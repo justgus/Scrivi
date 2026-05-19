@@ -6,12 +6,12 @@ Tasks listed here are assigned to an active Sprint and currently in progress.
 
 ## T-0001: Repository Skeleton
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend)
 **Priority:** Critical
 **Epic:** EP-001: ScriviCore Foundation
 **Date Requested:** 2026-05-19
-**Date Implemented:** —
+**Date Implemented:** 2026-05-19
 **Date Verified:** —
 **Sprint Assigned:** SP-001
 
@@ -42,13 +42,20 @@ Follow Section 5 (top-level layout), Section 9 (CMake targets), Section 10 (Fetc
 - ScriviCore/tests/: CMakeLists.txt
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- Root `CMakeLists.txt`: cmake 3.24, project Scrivi, `enable_testing()` at root, `add_subdirectory(ScriviCore)`
+- `ScriviCore/CMakeLists.txt`: static lib, `cxx_std_23`, public include dir, single source `ScriviCore.cpp`
+- `ScriviCore/tests/CMakeLists.txt`: Catch2 v3.6.0 via FetchContent (SHA256 verified), `catch_discover_tests`
+- 9 public headers written per doc Sections 8.1–8.9 (Error, Result, IDs, Types, RepairIssue, Services, Requests, Results, ScriviCore)
+- `ScriviCore.cpp` stub: all 7 methods return `{ErrorCode::internalError, "not implemented"}`
+- `ResultTests.cpp` + `IDTests.cpp`: 6 tests, 6 passing
+- GitHub Actions CI: `scrivi-core-ci.yml`, matrix: macos-latest + ubuntu-latest, triggers on ScriviCore/ and CMakeLists.txt changes
+- `.gitignore` updated with CMake/C++ build artefacts
 
 **Test Steps:**
-1. `cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON` — should configure without errors
-2. `cmake --build build` — should build ScriviCore static library and test executable
-3. `ctest --test-dir build` — empty test run should exit 0
-4. Verify no UI framework headers appear in include/scrivi/
+1. `cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON` ✅ configures without errors
+2. `cmake --build build --parallel` ✅ builds ScriviCore static lib + ScriviCoreTests executable
+3. `ctest --test-dir build --output-on-failure` ✅ 6/6 tests pass
+4. `grep -r "#import" ScriviCore/include/` ✅ clean — no UI framework imports
 
 **Notes:**
 CMake FetchContent is the approved dependency strategy for v0.1. Do not vendor or submodule dependencies at this stage. See Section 10.3 of the doc.

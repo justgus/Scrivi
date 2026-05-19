@@ -35,7 +35,7 @@ Currently: **3 active Tasks**
 
 | Task   | Title | Epic | Sprint | Status |
 | ------ | ----- | ---- | ------ | ------ |
-| T-0001 | Repository Skeleton | EP-001 | SP-001 | 🟡 Active |
+| T-0001 | Repository Skeleton | EP-001 | SP-001 | 🟡 Implemented - Not Verified |
 | T-0002 | Core Value Types | EP-001 | SP-001 | 🟡 Active |
 | T-0003 | Utility Foundation | EP-001 | SP-001 | 🟡 Active |
 
