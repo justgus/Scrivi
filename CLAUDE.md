@@ -139,18 +139,23 @@ All models are in `Cumberland/Model/`:
 
 ### TBD
 
-## Issue Tracking Systems
+## Agile Tracking Systems
 
-This project uses two complementary tracking systems:
+This project uses an Agile workflow with four complementary tracking layers:
+
+```
+Epics → Sprints → Tasks / Issues
+```
 
 ### Issues (I)
 **For bugs, defects, and unintended behavior**
 
-Location: `Documentation/Issues/`
+Location: `docs/Issues/`
 
-- Active DRs in `Issue-active.md`
-- Verified DRs archived in `Issues/Verified/Issue-verified-XXXX-YYYY.md` batches
-- Closed Issuess (without verification) in `Issues/Closed/Issue-closed-XXX-XXX.md`
+- Active Issues in `Issue-active.md`
+- Backlog Issues in `Issue-backlog.md`
+- Verified Issues archived in `Issues/Verified/Issue-verified-XXXX-YYYY.md` batches
+- Closed Issues (without verification) in `Issues/Closed/Issue-closed-XXX-XXX.md`
 - Guidelines in `Issues/Issue-GUIDELINES.md`
 - **Claude can mark as "Resolved - Not Verified"**
 - **Claude can only mark as "Verified" after direct user approval**
@@ -158,20 +163,45 @@ Location: `Documentation/Issues/`
 ### Tasks (T)
 **For new features, improvements, and planned changes**
 
-Location: `Documentation/Tasks/`
+Location: `docs/Tasks/`
 
-- Proposed Tasks in `Task-backlog.md`
+- Backlog Tasks in `Task-backlog.md`
 - In-progress Tasks in `Task-active.md`
 - Unverified Tasks in `Task-unverified.md`
 - Verified Tasks archived in `Tasks/Verified/Task-verified-XXXX.md`
 - Guidelines in `Task-Guidelines.md`
 - Same verification workflow as Issues
 
+### Sprints (SP)
+**Fixed-duration iterations grouping Tasks and Issues into focused work batches**
+
+Location: `docs/Sprints/`
+
+- Active Sprint in `Sprint-active.md`
+- All Sprints indexed in `Sprint-Documentation.md`
+- Closed Sprints archived in `Sprints/Closed/Sprint-SP-XXX.md`
+- Guidelines in `Sprint-GUIDELINES.md`
+- **Claude can create and activate Sprints**
+- **Claude can only close a Sprint after direct user approval**
+
+### Epics (EP)
+**Strategic milestones spanning multiple Sprints**
+
+Location: `docs/Epics/`
+
+- Active Epics in `Epic-active.md`
+- All Epics indexed in `Epic-Documentation.md`
+- Closed Epics archived in `Epics/Closed/Epic-EP-XXX.md`
+- Guidelines in `Epic-GUIDELINES.md`
+- **Claude can create Epics and mark them Complete**
+- **Claude can only close an Epic after direct user approval**
+
 **When implementing fixes or features**:
 1. Document in appropriate file (Issue or Task)
-2. Include file:line references
-3. Mark as "Resolved/Implemented - Not Verified" when done
-4. Leave verification status for user to confirm
+2. Assign to current Sprint if active
+3. Include file:line references
+4. Mark as "Resolved/Implemented - Not Verified" when done
+5. Leave verification status for user to confirm
 
 ## Documentation References
 
