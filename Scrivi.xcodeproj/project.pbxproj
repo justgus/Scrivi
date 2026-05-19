@@ -1,0 +1,309 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A001 /* Error.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F001 /* Error.hpp */; };
+		A002 /* Result.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F002 /* Result.hpp */; };
+		A003 /* IDs.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F003 /* IDs.hpp */; };
+		A004 /* Types.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F004 /* Types.hpp */; };
+		A005 /* RepairIssue.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F005 /* RepairIssue.hpp */; };
+		A006 /* Services.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F006 /* Services.hpp */; };
+		A007 /* Requests.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F007 /* Requests.hpp */; };
+		A008 /* Results.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F008 /* Results.hpp */; };
+		A009 /* ScriviCore.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F009 /* ScriviCore.hpp */; };
+		A010 /* ScriviCore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F010 /* ScriviCore.cpp */; };
+		A011 /* ResultTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F011 /* ResultTests.cpp */; };
+		A012 /* IDTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F012 /* IDTests.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F001 /* Error.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Error.hpp; path = ScriviCore/include/scrivi/Error.hpp; sourceTree = SOURCE_ROOT; };
+		F002 /* Result.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Result.hpp; path = ScriviCore/include/scrivi/Result.hpp; sourceTree = SOURCE_ROOT; };
+		F003 /* IDs.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = IDs.hpp; path = ScriviCore/include/scrivi/IDs.hpp; sourceTree = SOURCE_ROOT; };
+		F004 /* Types.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Types.hpp; path = ScriviCore/include/scrivi/Types.hpp; sourceTree = SOURCE_ROOT; };
+		F005 /* RepairIssue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = RepairIssue.hpp; path = ScriviCore/include/scrivi/RepairIssue.hpp; sourceTree = SOURCE_ROOT; };
+		F006 /* Services.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Services.hpp; path = ScriviCore/include/scrivi/Services.hpp; sourceTree = SOURCE_ROOT; };
+		F007 /* Requests.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Requests.hpp; path = ScriviCore/include/scrivi/Requests.hpp; sourceTree = SOURCE_ROOT; };
+		F008 /* Results.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Results.hpp; path = ScriviCore/include/scrivi/Results.hpp; sourceTree = SOURCE_ROOT; };
+		F009 /* ScriviCore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ScriviCore.hpp; path = ScriviCore/include/scrivi/ScriviCore.hpp; sourceTree = SOURCE_ROOT; };
+		F010 /* ScriviCore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ScriviCore.cpp; path = ScriviCore/src/public_api/ScriviCore.cpp; sourceTree = SOURCE_ROOT; };
+		F011 /* ResultTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ResultTests.cpp; path = ScriviCore/tests/unit/ResultTests.cpp; sourceTree = SOURCE_ROOT; };
+		F012 /* IDTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IDTests.cpp; path = ScriviCore/tests/unit/IDTests.cpp; sourceTree = SOURCE_ROOT; };
+		F020 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CMakeLists.txt; path = CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+		F021 /* CMakePresets.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = CMakePresets.json; path = CMakePresets.json; sourceTree = SOURCE_ROOT; };
+		F022 /* ScriviCore-CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CMakeLists.txt; path = ScriviCore/CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+		F023 /* tests-CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CMakeLists.txt; path = ScriviCore/tests/CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		/* Root group */
+		ROOT /* Scrivi */ = {
+			isa = PBXGroup;
+			children = (
+				GRP_SCRIVICORE /* ScriviCore */,
+				GRP_BUILD /* Build */,
+			);
+			sourceTree = "<group>";
+		};
+
+		GRP_SCRIVICORE /* ScriviCore */ = {
+			isa = PBXGroup;
+			children = (
+				GRP_INCLUDE /* include */,
+				GRP_SRC /* src */,
+				GRP_TESTS /* tests */,
+				F022 /* CMakeLists.txt */,
+			);
+			name = ScriviCore;
+			sourceTree = "<group>";
+		};
+
+		GRP_INCLUDE /* include/scrivi */ = {
+			isa = PBXGroup;
+			children = (
+				F009 /* ScriviCore.hpp */,
+				F002 /* Result.hpp */,
+				F001 /* Error.hpp */,
+				F003 /* IDs.hpp */,
+				F004 /* Types.hpp */,
+				F005 /* RepairIssue.hpp */,
+				F006 /* Services.hpp */,
+				F007 /* Requests.hpp */,
+				F008 /* Results.hpp */,
+			);
+			name = "include/scrivi";
+			sourceTree = "<group>";
+		};
+
+		GRP_SRC /* src */ = {
+			isa = PBXGroup;
+			children = (
+				F010 /* ScriviCore.cpp */,
+			);
+			name = src;
+			sourceTree = "<group>";
+		};
+
+		GRP_TESTS /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				GRP_UNIT /* unit */,
+				F023 /* CMakeLists.txt */,
+			);
+			name = tests;
+			sourceTree = "<group>";
+		};
+
+		GRP_UNIT /* unit */ = {
+			isa = PBXGroup;
+			children = (
+				F011 /* ResultTests.cpp */,
+				F012 /* IDTests.cpp */,
+			);
+			name = unit;
+			sourceTree = "<group>";
+		};
+
+		GRP_BUILD /* Build */ = {
+			isa = PBXGroup;
+			children = (
+				F020 /* CMakeLists.txt */,
+				F021 /* CMakePresets.json */,
+			);
+			name = Build;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXAggregateTarget section */
+		T001 /* ScriviCore */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = BCL001 /* Build configuration list for PBXAggregateTarget "ScriviCore" */;
+			buildPhases = (
+				BP001 /* Build */,
+			);
+			dependencies = (
+			);
+			name = ScriviCore;
+			productName = ScriviCore;
+		};
+		T002 /* ScriviCoreTests */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = BCL002 /* Build configuration list for PBXAggregateTarget "ScriviCoreTests" */;
+			buildPhases = (
+				BP002 /* Build and Test */,
+			);
+			dependencies = (
+			);
+			name = ScriviCoreTests;
+			productName = ScriviCoreTests;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXProject section */
+		PROJECT /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = BCL000 /* Build configuration list for PBXProject "Scrivi" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = ROOT;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T001 /* ScriviCore */,
+				T002 /* ScriviCoreTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		BP001 /* Build */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = Build;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "set -e\ncd \"$SRCROOT\"\ncmake -S . -B build/ninja -G Ninja -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\ncmake --build build/ninja --parallel\n";
+		};
+		BP002 /* Build and Test */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build and Test";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "set -e\ncd \"$SRCROOT\"\ncmake -S . -B build/ninja -G Ninja -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\ncmake --build build/ninja --parallel\nctest --test-dir build/ninja --output-on-failure\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		BC000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
+				CLANG_CXX_LIBRARY = "libc++";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Debug;
+		};
+		BC000R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
+				CLANG_CXX_LIBRARY = "libc++";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MTL_ENABLE_DEBUG_INFO = ERROR;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Release;
+		};
+		BC001D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = ScriviCore;
+			};
+			name = Debug;
+		};
+		BC001R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = ScriviCore;
+			};
+			name = Release;
+		};
+		BC002D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = ScriviCoreTests;
+			};
+			name = Debug;
+		};
+		BC002R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = ScriviCoreTests;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BCL000 /* Build configuration list for PBXProject "Scrivi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC000D /* Debug */,
+				BC000R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BCL001 /* Build configuration list for PBXAggregateTarget "ScriviCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC001D /* Debug */,
+				BC001R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BCL002 /* Build configuration list for PBXAggregateTarget "ScriviCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC002D /* Debug */,
+				BC002R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = PROJECT /* Project object */;
+}

@@ -2,28 +2,8 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "xcode-debug",
-      "displayName": "Xcode — Debug",
-      "generator": "Xcode",
-      "binaryDir": "${sourceDir}/build/xcode",
-      "cacheVariables": {
-        "SCRIVI_BUILD_TESTS": "ON",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    },
-    {
-      "name": "xcode-release",
-      "displayName": "Xcode — Release",
-      "generator": "Xcode",
-      "binaryDir": "${sourceDir}/build/xcode-release",
-      "cacheVariables": {
-        "SCRIVI_BUILD_TESTS": "OFF",
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
       "name": "ninja-debug",
-      "displayName": "Ninja — Debug (CI / terminal)",
+      "displayName": "Ninja — Debug",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/ninja",
       "cacheVariables": {
@@ -31,26 +11,29 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
+    },
+    {
+      "name": "ninja-release",
+      "displayName": "Ninja — Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ninja-release",
+      "cacheVariables": {
+        "SCRIVI_BUILD_TESTS": "OFF",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
     {
-      "name": "xcode-debug",
-      "configurePreset": "xcode-debug",
-      "configuration": "Debug"
-    },
-    {
       "name": "ninja-debug",
       "configurePreset": "ninja-debug"
+    },
+    {
+      "name": "ninja-release",
+      "configurePreset": "ninja-release"
     }
   ],
   "testPresets": [
-    {
-      "name": "xcode-debug",
-      "configurePreset": "xcode-debug",
-      "configuration": "Debug",
-      "output": { "outputOnFailure": true }
-    },
     {
       "name": "ninja-debug",
       "configurePreset": "ninja-debug",

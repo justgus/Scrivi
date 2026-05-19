@@ -68,7 +68,9 @@ fastlane/test_output
 /build/
 /out/
 /cmake-build-*/
-*.xcodeproj/xcuserdata/
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
