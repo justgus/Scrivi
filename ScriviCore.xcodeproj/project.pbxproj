@@ -188,7 +188,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\ncmake -S . -B build/ninja -G Ninja -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\ncmake --build build/ninja --parallel\n";
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\ncmake -S . -B build/ninja -G Ninja -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\ncmake --build build/ninja --parallel\n";
 		};
 		BP002 /* Build and Test */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -207,7 +207,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
-			shellScript = "set -e\ncd \"$SRCROOT\"\ncmake -S . -B build/ninja -G Ninja -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\ncmake --build build/ninja --parallel\nctest --test-dir build/ninja --output-on-failure\n";
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\ncmake -S . -B build/ninja -G Ninja -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\ncmake --build build/ninja --parallel\nctest --test-dir build/ninja --output-on-failure\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
