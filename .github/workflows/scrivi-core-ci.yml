@@ -1,0 +1,36 @@
+name: ScriviCore CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ScriviCore/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/scrivi-core-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ScriviCore/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/scrivi-core-ci.yml'
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

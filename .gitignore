@@ -63,3 +63,30 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# CMake / C++ build outputs
+/build/
+/out/
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+
+# Test output
+ScriviCore/tests/tmp/
+ScriviCore/tests/output/
+
+# Coverage / profiling
+*.gcda
+*.gcno
+coverage/
