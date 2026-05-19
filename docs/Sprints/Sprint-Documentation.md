@@ -11,23 +11,23 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-Currently: **No active Sprint**
+Currently: **SP-001 🟡 Active**
 
 See: [Sprint-active.md](Sprint-active.md)
 
 ## All Sprints
 
-Currently: **0 Sprints** | Next available: **SP-001**
+Currently: **1 Sprint** | Next available: **SP-002**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
-|        |       |      |       |     |        |
+| SP-001 | ScriviCore Foundation — Build, Types, and Utilities | EP-001 | 2026-05-19 | 2026-05-26 | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 0
+- **Total Sprints:** 1
 - **Closed:** 0 ✅
-- **Active:** 0 🟡
+- **Active:** 1 🟡
 - **Planning:** 0 🔵
 
 ---

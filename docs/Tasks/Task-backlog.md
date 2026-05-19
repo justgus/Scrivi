@@ -2,18 +2,20 @@
 
 Tasks listed here are documented and ready for Sprint assignment. All items are 🔵 Backlog.
 
+> T-0001, T-0002, T-0003 have been moved to Task-active.md (assigned to SP-001).
+
 ---
 
 ## T-0001: Repository Skeleton
 
-**Status:** 🔵 Backlog
+**Status:** 🟡 Active → see Task-active.md
 **Component:** ScriviCore (C++ backend)
 **Priority:** Critical
 **Epic:** EP-001: ScriviCore Foundation
 **Date Requested:** 2026-05-19
 **Date Implemented:** —
 **Date Verified:** —
-**Sprint Assigned:** Not Assigned
+**Sprint Assigned:** SP-001
 
 **Rationale:**
 The project cannot build, test, or receive any implementation without a correctly structured repository. This is the prerequisite for every subsequent task.
@@ -57,14 +59,14 @@ CMake FetchContent is the approved dependency strategy for v0.1. Do not vendor o
 
 ## T-0002: Core Value Types
 
-**Status:** 🔵 Backlog
+**Status:** 🟡 Active → see Task-active.md
 **Component:** ScriviCore (C++ backend)
 **Priority:** Critical
 **Epic:** EP-001: ScriviCore Foundation
 **Date Requested:** 2026-05-19
 **Date Implemented:** —
 **Date Verified:** —
-**Sprint Assigned:** Not Assigned
+**Sprint Assigned:** SP-001
 
 **Rationale:**
 All service implementations depend on the shared value types, ID types, Result<T>, and error types. These must be correct and compile-clean before any further work.
@@ -107,14 +109,14 @@ Result<T> may internally use `std::expected` if available on the target compiler
 
 ## T-0003: Utility Foundation
 
-**Status:** 🔵 Backlog
+**Status:** 🟡 Active → see Task-active.md
 **Component:** ScriviCore (C++ backend)
 **Priority:** Critical
 **Epic:** EP-001: ScriviCore Foundation
 **Date Requested:** 2026-05-19
 **Date Implemented:** —
 **Date Verified:** —
-**Sprint Assigned:** Not Assigned
+**Sprint Assigned:** SP-001
 
 **Rationale:**
 Schema readers/writers and service implementations depend on path manipulation, slug generation, text statistics, JSON wrapping, atomic file writes, and content hashing. These utilities must be correct and unit-tested before any schema or service work.

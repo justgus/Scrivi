@@ -14,13 +14,10 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **11 backlog Tasks**
+Currently: **8 backlog Tasks**
 
 | Task   | Title | Epic | Priority | Status |
 | ------ | ----- | ---- | -------- | ------ |
-| T-0001 | Repository Skeleton | EP-001 | Critical | 🔵 Backlog |
-| T-0002 | Core Value Types | EP-001 | Critical | 🔵 Backlog |
-| T-0003 | Utility Foundation | EP-001 | Critical | 🔵 Backlog |
 | T-0004 | Mock Services | EP-001 | Critical | 🔵 Backlog |
 | T-0005 | Schema Read/Write | EP-001 | Critical | 🔵 Backlog |
 | T-0006 | Project Creation | EP-002 | High | 🔵 Backlog |
@@ -34,11 +31,13 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks**
+Currently: **3 active Tasks**
 
-| Task | Title | Epic | Sprint | Status |
-| ---- | ----- | ---- | ------ | ------ |
-|      |       |      |        |        |
+| Task   | Title | Epic | Sprint | Status |
+| ------ | ----- | ---- | ------ | ------ |
+| T-0001 | Repository Skeleton | EP-001 | SP-001 | 🟡 Active |
+| T-0002 | Core Value Types | EP-001 | SP-001 | 🟡 Active |
+| T-0003 | Utility Foundation | EP-001 | SP-001 | 🟡 Active |
 
 See: [Task-active.md](Task-active.md)
 
@@ -62,8 +61,8 @@ Currently: **0 verified Tasks** | Next available: **T-0012**
 
 - **Total Tasks:** 11
 - **Verified:** 0 (0%) ✅
-- **Active:** 0 (0%) 🟡
-- **Backlog:** 11 (100%) 🔵
+- **Active:** 3 (27%) 🟡
+- **Backlog:** 8 (73%) 🔵
 
 ---
 
