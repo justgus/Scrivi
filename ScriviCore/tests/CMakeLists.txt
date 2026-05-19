@@ -21,4 +21,7 @@ target_link_libraries(ScriviCoreTests
 
 include(CTest)
 include(Catch)
-catch_discover_tests(ScriviCoreTests)
+# DISCOVERY_MODE PRE_TEST defers test enumeration to run time — required for
+# the Xcode generator, which sandboxes post-build scripts and kills the
+# subprocess that BUILD_TIME mode tries to launch.
+catch_discover_tests(ScriviCoreTests DISCOVERY_MODE PRE_TEST)
