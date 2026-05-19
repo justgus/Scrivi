@@ -42,7 +42,7 @@
 
 /* Begin PBXGroup section */
 		/* Root group */
-		ROOT /* Scrivi */ = {
+		ROOT /* ScriviCore */ = {
 			isa = PBXGroup;
 			children = (
 				GRP_SCRIVICORE /* ScriviCore */,
@@ -152,7 +152,7 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1600;
 			};
-			buildConfigurationList = BCL000 /* Build configuration list for PBXProject "Scrivi" */;
+			buildConfigurationList = BCL000 /* Build configuration list for PBXProject "ScriviCore" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -275,7 +275,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BCL000 /* Build configuration list for PBXProject "Scrivi" */ = {
+		BCL000 /* Build configuration list for PBXProject "ScriviCore" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BC000D /* Debug */,

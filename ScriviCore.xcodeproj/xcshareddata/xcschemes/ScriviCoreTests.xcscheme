@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "T001"
-               BuildableName = "ScriviCore"
-               BlueprintName = "ScriviCore"
-               ReferencedContainer = "container:Scrivi.xcodeproj">
+               BlueprintIdentifier = "T002"
+               BuildableName = "ScriviCoreTests"
+               BlueprintName = "ScriviCoreTests"
+               ReferencedContainer = "container:ScriviCore.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
