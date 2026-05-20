@@ -77,17 +77,33 @@
 		D020 /* Epic-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-active.md"; path = "docs/Epics/Epic-active.md"; sourceTree = SOURCE_ROOT; };
 		D021 /* Epic-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-Documentation.md"; path = "docs/Epics/Epic-Documentation.md"; sourceTree = SOURCE_ROOT; };
 		D022 /* Epic-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-GUIDELINES.md"; path = "docs/Epics/Epic-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
+		D023 /* Epic-backlog.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-backlog.md"; path = "docs/Epics/Epic-backlog.md"; sourceTree = SOURCE_ROOT; };
+		D024 /* Epic-EP-001.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-EP-001.md"; path = "docs/Epics/Closed/Epic-EP-001.md"; sourceTree = SOURCE_ROOT; };
 		D030 /* Issue-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-Documentation.md"; path = "docs/Issues/Issue-Documentation.md"; sourceTree = SOURCE_ROOT; };
 		D031 /* Issue-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-GUIDELINES.md"; path = "docs/Issues/Issue-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
 		D032 /* Issue-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-active.md"; path = "docs/Issues/Issue-active.md"; sourceTree = SOURCE_ROOT; };
+		D033 /* Issue-verified-0001-0010.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-verified-0001-0010.md"; path = "docs/Issues/Verified/Issue-verified-0001-0010.md"; sourceTree = SOURCE_ROOT; };
 		D040 /* Sprint-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-active.md"; path = "docs/Sprints/Sprint-active.md"; sourceTree = SOURCE_ROOT; };
 		D041 /* Sprint-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-Documentation.md"; path = "docs/Sprints/Sprint-Documentation.md"; sourceTree = SOURCE_ROOT; };
 		D042 /* Sprint-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-GUIDELINES.md"; path = "docs/Sprints/Sprint-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
+		D043 /* Sprint-SP-002.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-SP-002.md"; path = "docs/Sprints/Closed/Sprint-SP-002.md"; sourceTree = SOURCE_ROOT; };
+		D044 /* Sprint-SP-001.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-SP-001.md"; path = "docs/Sprints/Closed/Sprint-SP-001.md"; sourceTree = SOURCE_ROOT; };
+		D045 /* Sprint-SP-003-planning.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-SP-003-planning.md"; path = "docs/Sprints/Sprint-SP-003-planning.md"; sourceTree = SOURCE_ROOT; };
 		D050 /* Task-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-active.md"; path = "docs/Tasks/Task-active.md"; sourceTree = SOURCE_ROOT; };
 		D051 /* Task-backlog.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-backlog.md"; path = "docs/Tasks/Task-backlog.md"; sourceTree = SOURCE_ROOT; };
 		D052 /* Task-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-Documentation.md"; path = "docs/Tasks/Task-Documentation.md"; sourceTree = SOURCE_ROOT; };
 		D053 /* Task-Guidelines.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-Guidelines.md"; path = "docs/Tasks/Task-Guidelines.md"; sourceTree = SOURCE_ROOT; };
 		D054 /* Task-unverified.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-unverified.md"; path = "docs/Tasks/Task-unverified.md"; sourceTree = SOURCE_ROOT; };
+		D060 /* Task-verified-0001.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0001.md"; path = "docs/Tasks/Verified/Task-verified-0001.md"; sourceTree = SOURCE_ROOT; };
+		D061 /* Task-verified-0002.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0002.md"; path = "docs/Tasks/Verified/Task-verified-0002.md"; sourceTree = SOURCE_ROOT; };
+		D062 /* Task-verified-0003.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0003.md"; path = "docs/Tasks/Verified/Task-verified-0003.md"; sourceTree = SOURCE_ROOT; };
+		D063 /* Task-verified-0004.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0004.md"; path = "docs/Tasks/Verified/Task-verified-0004.md"; sourceTree = SOURCE_ROOT; };
+		D064 /* Task-verified-0005.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0005.md"; path = "docs/Tasks/Verified/Task-verified-0005.md"; sourceTree = SOURCE_ROOT; };
+		D065 /* Task-verified-0006.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0006.md"; path = "docs/Tasks/Verified/Task-verified-0006.md"; sourceTree = SOURCE_ROOT; };
+		D066 /* Task-verified-0007.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0007.md"; path = "docs/Tasks/Verified/Task-verified-0007.md"; sourceTree = SOURCE_ROOT; };
+		D067 /* Task-verified-0008.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0008.md"; path = "docs/Tasks/Verified/Task-verified-0008.md"; sourceTree = SOURCE_ROOT; };
+		D068 /* Task-verified-0009.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0009.md"; path = "docs/Tasks/Verified/Task-verified-0009.md"; sourceTree = SOURCE_ROOT; };
+		D069 /* Task-verified-0010.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-verified-0010.md"; path = "docs/Tasks/Verified/Task-verified-0010.md"; sourceTree = SOURCE_ROOT; };
 		F001 /* Error.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Error.hpp; path = ScriviCore/include/scrivi/Error.hpp; sourceTree = SOURCE_ROOT; };
 		F002 /* Result.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Result.hpp; path = ScriviCore/include/scrivi/Result.hpp; sourceTree = SOURCE_ROOT; };
 		F003 /* IDs.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = IDs.hpp; path = ScriviCore/include/scrivi/IDs.hpp; sourceTree = SOURCE_ROOT; };
@@ -244,10 +260,20 @@
 			isa = PBXGroup;
 			children = (
 				D020 /* Epic-active.md */,
+				D023 /* Epic-backlog.md */,
 				D021 /* Epic-Documentation.md */,
 				D022 /* Epic-GUIDELINES.md */,
+				GRP_EPICS_CLOSED /* Closed */,
 			);
 			name = Epics;
+			sourceTree = "<group>";
+		};
+		GRP_EPICS_CLOSED /* Closed */ = {
+			isa = PBXGroup;
+			children = (
+				D024 /* Epic-EP-001.md */,
+			);
+			name = Closed;
 			sourceTree = "<group>";
 		};
 		GRP_DOCS_ISSUES /* Issues */ = {
@@ -256,8 +282,17 @@
 				D030 /* Issue-Documentation.md */,
 				D031 /* Issue-GUIDELINES.md */,
 				D032 /* Issue-active.md */,
+				GRP_ISSUES_VERIFIED /* Verified */,
 			);
 			name = Issues;
+			sourceTree = "<group>";
+		};
+		GRP_ISSUES_VERIFIED /* Verified */ = {
+			isa = PBXGroup;
+			children = (
+				D033 /* Issue-verified-0001-0010.md */,
+			);
+			name = Verified;
 			sourceTree = "<group>";
 		};
 		GRP_DOCS_SPECS /* Specifications */ = {
@@ -283,10 +318,21 @@
 			isa = PBXGroup;
 			children = (
 				D040 /* Sprint-active.md */,
+				D045 /* Sprint-SP-003-planning.md */,
 				D041 /* Sprint-Documentation.md */,
 				D042 /* Sprint-GUIDELINES.md */,
+				GRP_SPRINTS_CLOSED /* Closed */,
 			);
 			name = Sprints;
+			sourceTree = "<group>";
+		};
+		GRP_SPRINTS_CLOSED /* Closed */ = {
+			isa = PBXGroup;
+			children = (
+				D044 /* Sprint-SP-001.md */,
+				D043 /* Sprint-SP-002.md */,
+			);
+			name = Closed;
 			sourceTree = "<group>";
 		};
 		GRP_DOCS_TASKS /* Tasks */ = {
@@ -297,8 +343,26 @@
 				D052 /* Task-Documentation.md */,
 				D053 /* Task-Guidelines.md */,
 				D054 /* Task-unverified.md */,
+				GRP_TASKS_VERIFIED /* Verified */,
 			);
 			name = Tasks;
+			sourceTree = "<group>";
+		};
+		GRP_TASKS_VERIFIED /* Verified */ = {
+			isa = PBXGroup;
+			children = (
+				D060 /* Task-verified-0001.md */,
+				D061 /* Task-verified-0002.md */,
+				D062 /* Task-verified-0003.md */,
+				D063 /* Task-verified-0004.md */,
+				D064 /* Task-verified-0005.md */,
+				D065 /* Task-verified-0006.md */,
+				D066 /* Task-verified-0007.md */,
+				D067 /* Task-verified-0008.md */,
+				D068 /* Task-verified-0009.md */,
+				D069 /* Task-verified-0010.md */,
+			);
+			name = Verified;
 			sourceTree = "<group>";
 		};
 		GRP_INCLUDE /* include/scrivi */ = {

@@ -12,7 +12,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-Currently: **SP-002 🟡 Active**
+Currently: **SP-003 — ScriviCore Swift Interop**
 
 See: [Sprint-active.md](Sprint-active.md)
 
@@ -23,15 +23,15 @@ Currently: **3 Sprints** | Next available: **SP-004**
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
 | SP-001 | ScriviCore Foundation — Build, Types, and Utilities | EP-001 | 2026-05-19 | 2026-05-20 | ✅ Closed |
-| SP-002 | ScriviCore Services — Project Lifecycle and Repair | EP-002 | 2026-05-20 | TBD | 🟡 Active |
-| SP-003 | ScriviCore Swift Interop | EP-002 | TBD | TBD | 🔵 Planning |
+| SP-002 | ScriviCore Services — Project Lifecycle and Repair | EP-002 | 2026-05-20 | 2026-05-20 | ✅ Closed |
+| SP-003 | ScriviCore Swift Interop | EP-002 / EP-003 | 2026-05-20 | TBD | 🟡 Active |
 
 ## Statistics
 
 - **Total Sprints:** 3
-- **Closed:** 1 ✅
+- **Closed:** 2 ✅
 - **Active:** 1 🟡
-- **Planning:** 1 🔵
+- **Planning:** 0 🔵
 
 ---
 

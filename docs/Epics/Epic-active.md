@@ -23,8 +23,8 @@
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-002 | ScriviCore Services — Project Lifecycle and Repair | 🟡 Active | 2026-05-20 – TBD |
-| SP-003 | ScriviCore Swift Interop | 🔵 Planning | TBD |
+| SP-002 | ScriviCore Services — Project Lifecycle and Repair | ✅ Closed | 2026-05-20 – 2026-05-20 |
+| SP-003 | ScriviCore Swift Interop | 🟡 Active | 2026-05-20 – TBD |
 
 ### Tasks
 
@@ -35,13 +35,13 @@
 | T-0008 | Save Scene | ✅ Verified |
 | T-0009 | External Change Scan | ✅ Verified |
 | T-0010 | Git Snapshots | ✅ Verified |
-| T-0011 | Swift Interop Prototype | 🔵 Backlog |
+| T-0011 | Swift Interop Prototype | 🟡 Active |
 
 ### Issues
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| I-0001 | git commit fails on CI runners with no global git identity configured | 🟡 Resolved - Not Verified |
+| I-0001 | git commit fails on CI runners with no global git identity configured | ✅ Verified |
 
 ### Scope Notes
 
@@ -55,9 +55,10 @@ EP-002 begins after EP-001 is closed and verified. Scope drawn from Section 16, 
 
 ## EP-003: Identity and First Launch
 
-**Status:** 🔵 Draft
+**Status:** 🟡 Active
 **Goal:** Implement `ensureLocalIdentity()` — the first facade operation in the ScriviCore public API. Delivers a real `IdentityService` backed by `SecureStore`, a real `SystemUUIDProvider` generating UUID v7-style IDs, the first-launch detection flow, and the `appSupportRoot` directory layout. When this Epic closes, ScriviCore can create a local identity and default persona without any account, email, or cloud login, and `createProject()` can reference a real identity rather than a stub.
 **Date Created:** 2026-05-20
+**Start Date:** 2026-05-20
 **Target Close Date:** TBD
 **Actual Close Date:** —
 
@@ -77,13 +78,14 @@ EP-002 begins after EP-001 is closed and verified. Scope drawn from Section 16, 
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| —      | Not yet assigned | — | — |
+| SP-003 | ScriviCore Swift Interop | 🟡 Active | 2026-05-20 – TBD |
 
 ### Tasks
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| —  | To be defined at Sprint planning | — |
+| ID     | Title | Status |
+| ------ | ----- | ------ |
+| T-0013 | appSupportRoot Directory Bootstrap | 🟡 Active |
+| T-0012 | Identity Service and UUID Provider | 🟡 Active |
 
 ### Issues
 
@@ -97,6 +99,8 @@ Drawn from:
 - `Scrivi_Cpp24_Core_API_Sketch_v0_2.md` Section 20 (`ensureLocalIdentity` request/result), Section 16.4 (`SecureStore`), Section 18 (app-local path layout)
 - `Scrivi_Backend_Behavior_Spec_v0_1.md` Section 5 (first app startup)
 - `Scrivi_Project_Creation_and_Open_Flow_v0_1.md` Section 4 (first app startup flow)
+
+T-0012 and T-0013 are assigned to SP-003 as prerequisites for T-0011 (Swift Interop Prototype). EP-003 closes after T-0012 and T-0013 are verified and the identity integration is exercised by T-0011.
 
 **Explicit non-goals for this Epic:**
 - No Apple Keychain implementation (`AppleKeychainSecureStore` belongs to EP-006 / Swift interop layer)

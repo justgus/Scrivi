@@ -13,31 +13,21 @@ This is the main index for all Cumberland Issues. Issues track bugs and unintend
 
 ## Active Issues
 
-Currently: **1 active issue**
+Currently: **0 active issues**
 
-| I#     | Title | Status | Date |
-| ------ | ----- | ------ | ---- |
-| I-0001 | git commit fails on CI runners with no global git identity configured | 🟡 Resolved - Not Verified | 2026-05-20 |
+| I#  | Title | Status | Date |
+| --- | ----- | ------ | ---- |
+|     |       |        |      |
 
 See: [Issue-active.md](Issue-active.md)
 
 ## Verified Issues
 
-Currently: **0 verified issues** | Next available I#: **I-0002**
+Currently: **1 verified issue** | Next available I#: **I-0002**
 
 | Batch | DRs | File | Status |
 | ----- | --- | ---- | ------ |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
-|       |     |      |        |
+| 1 | I-0001 – I-0010 | [Issue-verified-0001-0010.md](Verified/Issue-verified-0001-0010.md) | 🟡 In Progress (1/10) |
 
 ## Closed Issues (Not Verified)
 
@@ -56,8 +46,7 @@ Currently: **0 closed issues**
 ## Statistics
 
 - **Total Issues:** 1
-- **Verified:** 0 (0%) ✅
-- **Resolved - Not Verified:** 1 (100%) 🟡
+- **Verified:** 1 (100%) ✅
 - **Open:** 0 (0%) 🔴
 - **Closed/Deferred:** 0 (0%) ⚪
 

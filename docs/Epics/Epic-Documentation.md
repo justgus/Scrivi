@@ -30,7 +30,7 @@ Currently: **6 Epics** | Next available: **EP-007**
 | ------ | ----- | ------ | ----- | ------------ |
 | EP-001 | ScriviCore Foundation | ✅ Closed | 2026-05-19 | 2026-05-20 |
 | EP-002 | ScriviCore Services | 🟡 Active | 2026-05-20 | TBD |
-| EP-003 | Identity and First Launch | 🔵 Draft | — | TBD |
+| EP-003 | Identity and First Launch | 🟡 Active | 2026-05-20 | TBD |
 | EP-004 | Repair and Recovery | 🔵 Proposed | — | TBD |
 | EP-005 | Full Project Package — Objects, Assets, and Comments | 🔵 Proposed | — | TBD |
 | EP-006 | Swift Interop and Apple Shell | 🔵 Proposed | — | TBD |
@@ -40,8 +40,8 @@ Currently: **6 Epics** | Next available: **EP-007**
 - **Total Epics:** 6
 - **Closed:** 1 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡
-- **Draft:** 1 🔵
+- **Active:** 2 🟡
+- **Draft:** 0 🔵
 - **Proposed (backlog):** 3 🔵
 
 ---

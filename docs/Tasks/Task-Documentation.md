@@ -14,21 +14,23 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **1 backlog Task**
+Currently: **0 backlog Tasks**
 
 | Task   | Title | Epic | Priority | Status |
 | ------ | ----- | ---- | -------- | ------ |
-| T-0011 | Swift Interop Prototype | EP-002 | High | 🔵 Backlog |
+|        |       |      |          |        |
 
 See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks**
+Currently: **3 active Tasks**
 
-| Task | Title | Epic | Sprint | Status |
-| ---- | ----- | ---- | ------ | ------ |
-|      |       |      |        |        |
+| Task   | Title | Epic | Sprint | Status |
+| ------ | ----- | ---- | ------ | ------ |
+| T-0013 | appSupportRoot Directory Bootstrap | EP-003 | SP-003 | 🟡 Active |
+| T-0012 | Identity Service and UUID Provider | EP-003 | SP-003 | 🟡 Active |
+| T-0011 | Swift Interop Prototype | EP-002 | SP-003 | 🟡 Active |
 
 See: [Task-active.md](Task-active.md)
 
@@ -42,7 +44,7 @@ Currently: **0 unverified Tasks**
 
 ## Verified Tasks
 
-Currently: **10 verified Tasks** | Next available: **T-0012**
+Currently: **10 verified Tasks** | Next available: **T-0014**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -59,11 +61,11 @@ Currently: **10 verified Tasks** | Next available: **T-0012**
 
 ## Statistics
 
-- **Total Tasks:** 11
-- **Verified:** 10 (91%) ✅
-- **Active:** 0 (0%) 🟡
-- **Backlog:** 1 (9%) 🔵
+- **Total Tasks:** 13
+- **Verified:** 10 (77%) ✅
+- **Active:** 3 (23%) 🟡
+- **Backlog:** 0 (0%) 🔵
 
 ---
 
-*Last Updated: 2026-05-20* (T-0006–T-0010 verified)
+*Last Updated: 2026-05-20* (SP-003 started; T-0011, T-0012, T-0013 moved to active)

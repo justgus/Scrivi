@@ -2,11 +2,11 @@
 
 ---
 
-## SP-002: ScriviCore Services — Project Lifecycle and Repair
+## SP-003: ScriviCore Swift Interop
 
 **Status:** 🟡 Active
-**Epic:** EP-002: ScriviCore Services
-**Goal:** Implement the full C++ service layer for the MVP project lifecycle: create, open, save, scan for external changes, and Git snapshots. At the end of this Sprint, all five service operations are implemented and pass integration tests against real temporary directories.
+**Epic:** EP-002 / EP-003 (cross-epic sprint)
+**Goal:** Prove the Swift/C++ interop boundary by implementing a minimal Apple-side wrapper that calls `createProject()`, `openProject()`, and `saveScene()` through the C++ core. Prerequisites: bootstrap `appSupportRoot` layout (T-0013) and implement `ensureLocalIdentity()` with a real `IdentityService` and `SystemUUIDProvider` (T-0012) so the interop prototype exercises a genuine end-to-end path.
 **Start Date:** 2026-05-20
 **End Date:** TBD
 **Capacity:** TBD
@@ -15,25 +15,22 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0006 | Project Creation | High | ✅ Verified |
-| T-0007 | Open/Resume | High | ✅ Verified |
-| T-0008 | Save Scene | High | ✅ Verified |
-| T-0009 | External Change Scan | High | ✅ Verified |
-| T-0010 | Git Snapshots | High | ✅ Verified |
+| T-0013 | appSupportRoot Directory Bootstrap | High | 🟡 Active |
+| T-0012 | Identity Service and UUID Provider | High | 🟡 Active |
+| T-0011 | Swift Interop Prototype | High | 🟡 Active |
 
 ### Assigned Issues
 
-| ID     | Title | Severity | Status |
-| ------ | ----- | -------- | ------ |
-| I-0001 | git commit fails on CI runners with no global git identity configured | High | 🟡 Resolved - Not Verified |
+| ID | Title | Severity | Status |
+| -- | ----- | -------- | ------ |
+| —  | None  | —        | —      |
 
 ### Sprint Notes
 
-- T-0006 (Project Creation) is a prerequisite for T-0007, T-0008, and T-0009 — complete and verify it first.
-- T-0007, T-0008, and T-0009 can be worked in parallel once T-0006 is in place.
-- T-0010 (Git Snapshots) depends on T-0006 for the project creation path; can begin in parallel with T-0007–T-0009.
-- Success is measured by integration tests passing against real temp directories for all five operations.
-- T-0011 (Swift Interop) is intentionally deferred to SP-003 to de-risk the toolchain boundary work.
+- Execution order: T-0013 first (bootstrap), then T-0012 (identity service), then T-0011 (Swift interop).
+- T-0013 and T-0012 are EP-003 scope; T-0011 is EP-002 scope. All three are required to close EP-002's remaining acceptance criterion: "Swift can call `createProject()`, `openProject()`, `saveScene()` through C++ core."
+- T-0011 scope is intentionally narrow: prove the interop bridge works end-to-end, not build the full app shell.
+- Apple's Swift/C++ direct interop requires C++17 minimum; C++24 header compatibility with the bridge requires validation before T-0011 implementation begins.
 
 ### Retrospective
 
