@@ -15,7 +15,7 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0006 | Project Creation | High | 🟡 Active |
+| T-0006 | Project Creation | High | 🟡 Implemented - Not Verified |
 | T-0007 | Open/Resume | High | 🟡 Active |
 | T-0008 | Save Scene | High | 🟡 Active |
 | T-0009 | External Change Scan | High | 🟡 Active |

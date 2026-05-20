@@ -17,6 +17,7 @@ add_executable(ScriviCoreTests
     unit/JsonSchemaTests.cpp
     unit/MockServicesTests.cpp
     unit/SchemaTests.cpp
+    integration/CreateProjectTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

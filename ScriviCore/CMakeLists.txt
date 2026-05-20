@@ -21,6 +21,7 @@ target_include_directories(ScriviCore
 target_sources(ScriviCore
     PRIVATE
         src/public_api/ScriviCore.cpp
+        src/project_package/ProjectCreator.cpp
         src/util/PathUtils.cpp
         src/util/Slug.cpp
         src/util/TextStats.cpp

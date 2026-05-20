@@ -32,6 +32,34 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXFileReference section */
+		86E648802FBE02E400376B3D /* ProjectCreator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectCreator.hpp; sourceTree = "<group>"; };
+		86E648812FBE02E400376B3D /* ProjectCreator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectCreator.cpp; sourceTree = "<group>"; };
+		D001 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = docs/README.md; sourceTree = SOURCE_ROOT; };
+		D002 /* Scrivi_Backend_Architecture_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Architecture_v0_2.md; path = docs/Scrivi_Backend_Architecture_v0_2.md; sourceTree = SOURCE_ROOT; };
+		D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Behavior_Spec_v0_1.md; path = docs/Scrivi_Backend_Behavior_Spec_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D004 /* Scrivi_Backend_MVP_Slice_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_MVP_Slice_v0_1.md; path = docs/Scrivi_Backend_MVP_Slice_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D005 /* Scrivi_Backend_Runtime_Trade_Study_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Runtime_Trade_Study_v0_2.md; path = docs/Scrivi_Backend_Runtime_Trade_Study_v0_2.md; sourceTree = SOURCE_ROOT; };
+		D006 /* Scrivi_Cpp24_Backend_Core_Plan_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Cpp24_Backend_Core_Plan_v0_1.md; path = docs/Scrivi_Cpp24_Backend_Core_Plan_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D007 /* Scrivi_Cpp24_Core_API_Sketch_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Cpp24_Core_API_Sketch_v0_2.md; path = docs/Scrivi_Cpp24_Core_API_Sketch_v0_2.md; sourceTree = SOURCE_ROOT; };
+		D008 /* Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md; path = docs/Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D009 /* Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md; path = docs/Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D010 /* Scrivi_External_Change_Repair_Matrix_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_External_Change_Repair_Matrix_v0_1.md; path = docs/Scrivi_External_Change_Repair_Matrix_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D011 /* Scrivi_Minimum_Schema_Set_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Minimum_Schema_Set_v0_1.md; path = docs/Scrivi_Minimum_Schema_Set_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D012 /* Scrivi_Project_Creation_and_Open_Flow_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Project_Creation_and_Open_Flow_v0_1.md; path = docs/Scrivi_Project_Creation_and_Open_Flow_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D013 /* Scrivi_Project_Package_Structure_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Project_Package_Structure_v0_1.md; path = docs/Scrivi_Project_Package_Structure_v0_1.md; sourceTree = SOURCE_ROOT; };
+		D020 /* Epic-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-active.md"; path = "docs/Epics/Epic-active.md"; sourceTree = SOURCE_ROOT; };
+		D021 /* Epic-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-Documentation.md"; path = "docs/Epics/Epic-Documentation.md"; sourceTree = SOURCE_ROOT; };
+		D022 /* Epic-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-GUIDELINES.md"; path = "docs/Epics/Epic-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
+		D030 /* Issue-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-Documentation.md"; path = "docs/Issues/Issue-Documentation.md"; sourceTree = SOURCE_ROOT; };
+		D031 /* Issue-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-GUIDELINES.md"; path = "docs/Issues/Issue-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
+		D040 /* Sprint-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-active.md"; path = "docs/Sprints/Sprint-active.md"; sourceTree = SOURCE_ROOT; };
+		D041 /* Sprint-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-Documentation.md"; path = "docs/Sprints/Sprint-Documentation.md"; sourceTree = SOURCE_ROOT; };
+		D042 /* Sprint-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-GUIDELINES.md"; path = "docs/Sprints/Sprint-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
+		D050 /* Task-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-active.md"; path = "docs/Tasks/Task-active.md"; sourceTree = SOURCE_ROOT; };
+		D051 /* Task-backlog.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-backlog.md"; path = "docs/Tasks/Task-backlog.md"; sourceTree = SOURCE_ROOT; };
+		D052 /* Task-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-Documentation.md"; path = "docs/Tasks/Task-Documentation.md"; sourceTree = SOURCE_ROOT; };
+		D053 /* Task-Guidelines.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-Guidelines.md"; path = "docs/Tasks/Task-Guidelines.md"; sourceTree = SOURCE_ROOT; };
+		D054 /* Task-unverified.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Task-unverified.md"; path = "docs/Tasks/Task-unverified.md"; sourceTree = SOURCE_ROOT; };
 		F001 /* Error.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Error.hpp; path = ScriviCore/include/scrivi/Error.hpp; sourceTree = SOURCE_ROOT; };
 		F002 /* Result.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Result.hpp; path = ScriviCore/include/scrivi/Result.hpp; sourceTree = SOURCE_ROOT; };
 		F003 /* IDs.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = IDs.hpp; path = ScriviCore/include/scrivi/IDs.hpp; sourceTree = SOURCE_ROOT; };
@@ -88,35 +116,60 @@
 		F092 /* ProjectPersonasJson.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ProjectPersonasJson.cpp; path = ScriviCore/src/schemas/ProjectPersonasJson.cpp; sourceTree = SOURCE_ROOT; };
 		F093 /* WorkspaceStateJson.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = WorkspaceStateJson.hpp; path = ScriviCore/src/schemas/WorkspaceStateJson.hpp; sourceTree = SOURCE_ROOT; };
 		F094 /* WorkspaceStateJson.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WorkspaceStateJson.cpp; path = ScriviCore/src/schemas/WorkspaceStateJson.cpp; sourceTree = SOURCE_ROOT; };
-		D001 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = docs/README.md; sourceTree = SOURCE_ROOT; };
-		D002 /* Scrivi_Backend_Architecture_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Architecture_v0_2.md; path = docs/Scrivi_Backend_Architecture_v0_2.md; sourceTree = SOURCE_ROOT; };
-		D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Behavior_Spec_v0_1.md; path = docs/Scrivi_Backend_Behavior_Spec_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D004 /* Scrivi_Backend_MVP_Slice_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_MVP_Slice_v0_1.md; path = docs/Scrivi_Backend_MVP_Slice_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D005 /* Scrivi_Backend_Runtime_Trade_Study_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Runtime_Trade_Study_v0_2.md; path = docs/Scrivi_Backend_Runtime_Trade_Study_v0_2.md; sourceTree = SOURCE_ROOT; };
-		D006 /* Scrivi_Cpp24_Backend_Core_Plan_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Cpp24_Backend_Core_Plan_v0_1.md; path = docs/Scrivi_Cpp24_Backend_Core_Plan_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D007 /* Scrivi_Cpp24_Core_API_Sketch_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Cpp24_Core_API_Sketch_v0_2.md; path = docs/Scrivi_Cpp24_Core_API_Sketch_v0_2.md; sourceTree = SOURCE_ROOT; };
-		D008 /* Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md; path = docs/Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D009 /* Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md; path = docs/Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D010 /* Scrivi_External_Change_Repair_Matrix_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_External_Change_Repair_Matrix_v0_1.md; path = docs/Scrivi_External_Change_Repair_Matrix_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D011 /* Scrivi_Minimum_Schema_Set_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Minimum_Schema_Set_v0_1.md; path = docs/Scrivi_Minimum_Schema_Set_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D012 /* Scrivi_Project_Creation_and_Open_Flow_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Project_Creation_and_Open_Flow_v0_1.md; path = docs/Scrivi_Project_Creation_and_Open_Flow_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D013 /* Scrivi_Project_Package_Structure_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Project_Package_Structure_v0_1.md; path = docs/Scrivi_Project_Package_Structure_v0_1.md; sourceTree = SOURCE_ROOT; };
-		D020 /* Epic-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Epic-active.md; path = docs/Epics/Epic-active.md; sourceTree = SOURCE_ROOT; };
-		D021 /* Epic-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Epic-Documentation.md; path = docs/Epics/Epic-Documentation.md; sourceTree = SOURCE_ROOT; };
-		D022 /* Epic-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Epic-GUIDELINES.md; path = docs/Epics/Epic-GUIDELINES.md; sourceTree = SOURCE_ROOT; };
-		D030 /* Issue-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Issue-Documentation.md; path = docs/Issues/Issue-Documentation.md; sourceTree = SOURCE_ROOT; };
-		D031 /* Issue-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Issue-GUIDELINES.md; path = docs/Issues/Issue-GUIDELINES.md; sourceTree = SOURCE_ROOT; };
-		D040 /* Sprint-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Sprint-active.md; path = docs/Sprints/Sprint-active.md; sourceTree = SOURCE_ROOT; };
-		D041 /* Sprint-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Sprint-Documentation.md; path = docs/Sprints/Sprint-Documentation.md; sourceTree = SOURCE_ROOT; };
-		D042 /* Sprint-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Sprint-GUIDELINES.md; path = docs/Sprints/Sprint-GUIDELINES.md; sourceTree = SOURCE_ROOT; };
-		D050 /* Task-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Task-active.md; path = docs/Tasks/Task-active.md; sourceTree = SOURCE_ROOT; };
-		D051 /* Task-backlog.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Task-backlog.md; path = docs/Tasks/Task-backlog.md; sourceTree = SOURCE_ROOT; };
-		D052 /* Task-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Task-Documentation.md; path = docs/Tasks/Task-Documentation.md; sourceTree = SOURCE_ROOT; };
-		D053 /* Task-Guidelines.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Task-Guidelines.md; path = docs/Tasks/Task-Guidelines.md; sourceTree = SOURCE_ROOT; };
-		D054 /* Task-unverified.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Task-unverified.md; path = docs/Tasks/Task-unverified.md; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		86E648782FBE02E400376B3D /* domain */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = domain;
+			sourceTree = "<group>";
+		};
+		86E648792FBE02E400376B3D /* git */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = git;
+			sourceTree = "<group>";
+		};
+		86E6487A2FBE02E400376B3D /* identity */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = identity;
+			sourceTree = "<group>";
+		};
+		86E6487B2FBE02E400376B3D /* manuscript */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = manuscript;
+			sourceTree = "<group>";
+		};
+		86E648822FBE02E400376B3D /* project_package */ = {
+			isa = PBXGroup;
+			children = (
+				86E648802FBE02E400376B3D /* ProjectCreator.hpp */,
+				86E648812FBE02E400376B3D /* ProjectCreator.cpp */,
+			);
+			path = project_package;
+			sourceTree = "<group>";
+		};
+		86E648852FBE02E400376B3D /* repair */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = repair;
+			sourceTree = "<group>";
+		};
+		86E648A32FBE02E400376B3D /* workspace */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = workspace;
+			sourceTree = "<group>";
+		};
 		GRP_BUILD /* Build */ = {
 			isa = PBXGroup;
 			children = (
@@ -124,131 +177,6 @@
 				F021 /* CMakePresets.json */,
 			);
 			name = Build;
-			sourceTree = "<group>";
-		};
-		GRP_INCLUDE /* include/scrivi */ = {
-			isa = PBXGroup;
-			children = (
-				F009 /* ScriviCore.hpp */,
-				F002 /* Result.hpp */,
-				F001 /* Error.hpp */,
-				F003 /* IDs.hpp */,
-				F004 /* Types.hpp */,
-				F005 /* RepairIssue.hpp */,
-				F006 /* Services.hpp */,
-				F007 /* Requests.hpp */,
-				F008 /* Results.hpp */,
-			);
-			name = include/scrivi;
-			sourceTree = "<group>";
-		};
-		GRP_SCRIVICORE /* ScriviCore */ = {
-			isa = PBXGroup;
-			children = (
-				GRP_INCLUDE /* include/scrivi */,
-				GRP_SRC /* src */,
-				GRP_TESTS /* tests */,
-				F022 /* CMakeLists.txt */,
-			);
-			name = ScriviCore;
-			sourceTree = "<group>";
-		};
-		GRP_SRC /* src */ = {
-			isa = PBXGroup;
-			children = (
-				F010 /* ScriviCore.cpp */,
-				GRP_UTIL /* util */,
-				GRP_PLATFORM /* platform */,
-				GRP_SCHEMAS /* schemas */,
-			);
-			name = src;
-			sourceTree = "<group>";
-		};
-		GRP_PLATFORM /* platform */ = {
-			isa = PBXGroup;
-			children = (
-				F060 /* NullLogger.hpp */,
-				F061 /* LocalFileSystem.hpp */,
-				F062 /* LocalFileSystem.cpp */,
-			);
-			name = platform;
-			sourceTree = "<group>";
-		};
-		GRP_SCHEMAS /* schemas */ = {
-			isa = PBXGroup;
-			children = (
-				F080 /* SchemaUtils.hpp */,
-				F081 /* ProjectJson.hpp */,
-				F082 /* ProjectJson.cpp */,
-				F083 /* ManuscriptMetaJson.hpp */,
-				F084 /* ManuscriptMetaJson.cpp */,
-				F085 /* ChapterMetaJson.hpp */,
-				F086 /* ChapterMetaJson.cpp */,
-				F087 /* SceneMetaJson.hpp */,
-				F088 /* SceneMetaJson.cpp */,
-				F089 /* ProjectMembersJson.hpp */,
-				F090 /* ProjectMembersJson.cpp */,
-				F091 /* ProjectPersonasJson.hpp */,
-				F092 /* ProjectPersonasJson.cpp */,
-				F093 /* WorkspaceStateJson.hpp */,
-				F094 /* WorkspaceStateJson.cpp */,
-			);
-			name = schemas;
-			sourceTree = "<group>";
-		};
-		GRP_UTIL /* util */ = {
-			isa = PBXGroup;
-			children = (
-				F030 /* PathUtils.hpp */,
-				F031 /* PathUtils.cpp */,
-				F032 /* Slug.hpp */,
-				F033 /* Slug.cpp */,
-				F034 /* TextStats.hpp */,
-				F035 /* TextStats.cpp */,
-				F036 /* Json.hpp */,
-				F037 /* Json.cpp */,
-				F038 /* AtomicWrite.hpp */,
-				F039 /* AtomicWrite.cpp */,
-				F040 /* Hash.hpp */,
-				F041 /* Hash.cpp */,
-			);
-			name = util;
-			sourceTree = "<group>";
-		};
-		GRP_TESTS /* tests */ = {
-			isa = PBXGroup;
-			children = (
-				GRP_UNIT /* unit */,
-				GRP_MOCKS /* mocks */,
-				F023 /* CMakeLists.txt */,
-			);
-			name = tests;
-			sourceTree = "<group>";
-		};
-		GRP_UNIT /* unit */ = {
-			isa = PBXGroup;
-			children = (
-				F011 /* ResultTests.cpp */,
-				F012 /* IDTests.cpp */,
-				F050 /* PathUtilsTests.cpp */,
-				F051 /* SlugTests.cpp */,
-				F052 /* TextStatsTests.cpp */,
-				F053 /* JsonSchemaTests.cpp */,
-				F074 /* MockServicesTests.cpp */,
-				F075 /* SchemaTests.cpp */,
-			);
-			name = unit;
-			sourceTree = "<group>";
-		};
-		GRP_MOCKS /* mocks */ = {
-			isa = PBXGroup;
-			children = (
-				F070 /* FixedClock.hpp */,
-				F071 /* DeterministicUUIDProvider.hpp */,
-				F072 /* MockSecureStore.hpp */,
-				F073 /* MockGitProvider.hpp */,
-			);
-			name = mocks;
 			sourceTree = "<group>";
 		};
 		GRP_DOCS /* docs */ = {
@@ -283,6 +211,25 @@
 			name = Issues;
 			sourceTree = "<group>";
 		};
+		GRP_DOCS_SPECS /* Specifications */ = {
+			isa = PBXGroup;
+			children = (
+				D002 /* Scrivi_Backend_Architecture_v0_2.md */,
+				D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */,
+				D004 /* Scrivi_Backend_MVP_Slice_v0_1.md */,
+				D005 /* Scrivi_Backend_Runtime_Trade_Study_v0_2.md */,
+				D006 /* Scrivi_Cpp24_Backend_Core_Plan_v0_1.md */,
+				D007 /* Scrivi_Cpp24_Core_API_Sketch_v0_2.md */,
+				D008 /* Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md */,
+				D009 /* Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md */,
+				D010 /* Scrivi_External_Change_Repair_Matrix_v0_1.md */,
+				D011 /* Scrivi_Minimum_Schema_Set_v0_1.md */,
+				D012 /* Scrivi_Project_Creation_and_Open_Flow_v0_1.md */,
+				D013 /* Scrivi_Project_Package_Structure_v0_1.md */,
+			);
+			name = Specifications;
+			sourceTree = "<group>";
+		};
 		GRP_DOCS_SPRINTS /* Sprints */ = {
 			isa = PBXGroup;
 			children = (
@@ -305,23 +252,136 @@
 			name = Tasks;
 			sourceTree = "<group>";
 		};
-		GRP_DOCS_SPECS /* Specifications */ = {
+		GRP_INCLUDE /* include/scrivi */ = {
 			isa = PBXGroup;
 			children = (
-				D002 /* Scrivi_Backend_Architecture_v0_2.md */,
-				D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */,
-				D004 /* Scrivi_Backend_MVP_Slice_v0_1.md */,
-				D005 /* Scrivi_Backend_Runtime_Trade_Study_v0_2.md */,
-				D006 /* Scrivi_Cpp24_Backend_Core_Plan_v0_1.md */,
-				D007 /* Scrivi_Cpp24_Core_API_Sketch_v0_2.md */,
-				D008 /* Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md */,
-				D009 /* Scrivi_DevOps_and_Build_Environment_Plan_v0_1.md */,
-				D010 /* Scrivi_External_Change_Repair_Matrix_v0_1.md */,
-				D011 /* Scrivi_Minimum_Schema_Set_v0_1.md */,
-				D012 /* Scrivi_Project_Creation_and_Open_Flow_v0_1.md */,
-				D013 /* Scrivi_Project_Package_Structure_v0_1.md */,
+				F009 /* ScriviCore.hpp */,
+				F002 /* Result.hpp */,
+				F001 /* Error.hpp */,
+				F003 /* IDs.hpp */,
+				F004 /* Types.hpp */,
+				F005 /* RepairIssue.hpp */,
+				F006 /* Services.hpp */,
+				F007 /* Requests.hpp */,
+				F008 /* Results.hpp */,
 			);
-			name = Specifications;
+			name = include/scrivi;
+			sourceTree = "<group>";
+		};
+		GRP_MOCKS /* mocks */ = {
+			isa = PBXGroup;
+			children = (
+				F070 /* FixedClock.hpp */,
+				F071 /* DeterministicUUIDProvider.hpp */,
+				F072 /* MockSecureStore.hpp */,
+				F073 /* MockGitProvider.hpp */,
+			);
+			name = mocks;
+			sourceTree = "<group>";
+		};
+		GRP_PLATFORM /* platform */ = {
+			isa = PBXGroup;
+			children = (
+				F060 /* NullLogger.hpp */,
+				F061 /* LocalFileSystem.hpp */,
+				F062 /* LocalFileSystem.cpp */,
+			);
+			name = platform;
+			sourceTree = "<group>";
+		};
+		GRP_SCHEMAS /* schemas */ = {
+			isa = PBXGroup;
+			children = (
+				F080 /* SchemaUtils.hpp */,
+				F081 /* ProjectJson.hpp */,
+				F082 /* ProjectJson.cpp */,
+				F083 /* ManuscriptMetaJson.hpp */,
+				F084 /* ManuscriptMetaJson.cpp */,
+				F085 /* ChapterMetaJson.hpp */,
+				F086 /* ChapterMetaJson.cpp */,
+				F087 /* SceneMetaJson.hpp */,
+				F088 /* SceneMetaJson.cpp */,
+				F089 /* ProjectMembersJson.hpp */,
+				F090 /* ProjectMembersJson.cpp */,
+				F091 /* ProjectPersonasJson.hpp */,
+				F092 /* ProjectPersonasJson.cpp */,
+				F093 /* WorkspaceStateJson.hpp */,
+				F094 /* WorkspaceStateJson.cpp */,
+			);
+			name = schemas;
+			sourceTree = "<group>";
+		};
+		GRP_SCRIVICORE /* ScriviCore */ = {
+			isa = PBXGroup;
+			children = (
+				GRP_INCLUDE /* include/scrivi */,
+				GRP_SRC /* src */,
+				GRP_TESTS /* tests */,
+				F022 /* CMakeLists.txt */,
+			);
+			name = ScriviCore;
+			sourceTree = "<group>";
+		};
+		GRP_SRC /* src */ = {
+			isa = PBXGroup;
+			children = (
+				F010 /* ScriviCore.cpp */,
+				86E648782FBE02E400376B3D /* domain */,
+				86E648792FBE02E400376B3D /* git */,
+				86E6487A2FBE02E400376B3D /* identity */,
+				86E6487B2FBE02E400376B3D /* manuscript */,
+				86E648822FBE02E400376B3D /* project_package */,
+				86E648852FBE02E400376B3D /* repair */,
+				86E648A32FBE02E400376B3D /* workspace */,
+				GRP_UTIL /* util */,
+				GRP_PLATFORM /* platform */,
+				GRP_SCHEMAS /* schemas */,
+			);
+			name = src;
+			sourceTree = "<group>";
+		};
+		GRP_TESTS /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				GRP_UNIT /* unit */,
+				GRP_MOCKS /* mocks */,
+				F023 /* CMakeLists.txt */,
+			);
+			name = tests;
+			sourceTree = "<group>";
+		};
+		GRP_UNIT /* unit */ = {
+			isa = PBXGroup;
+			children = (
+				F011 /* ResultTests.cpp */,
+				F012 /* IDTests.cpp */,
+				F050 /* PathUtilsTests.cpp */,
+				F051 /* SlugTests.cpp */,
+				F052 /* TextStatsTests.cpp */,
+				F053 /* JsonSchemaTests.cpp */,
+				F074 /* MockServicesTests.cpp */,
+				F075 /* SchemaTests.cpp */,
+			);
+			name = unit;
+			sourceTree = "<group>";
+		};
+		GRP_UTIL /* util */ = {
+			isa = PBXGroup;
+			children = (
+				F030 /* PathUtils.hpp */,
+				F031 /* PathUtils.cpp */,
+				F032 /* Slug.hpp */,
+				F033 /* Slug.cpp */,
+				F034 /* TextStats.hpp */,
+				F035 /* TextStats.cpp */,
+				F036 /* Json.hpp */,
+				F037 /* Json.cpp */,
+				F038 /* AtomicWrite.hpp */,
+				F039 /* AtomicWrite.cpp */,
+				F040 /* Hash.hpp */,
+				F041 /* Hash.cpp */,
+			);
+			name = util;
 			sourceTree = "<group>";
 		};
 		ROOT = {

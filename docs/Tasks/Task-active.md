@@ -6,12 +6,12 @@ Tasks listed here are assigned to an active Sprint and currently in progress.
 
 ## T-0006: Project Creation
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend)
 **Priority:** High
 **Epic:** EP-002: ScriviCore Services
 **Date Requested:** 2026-05-19
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-002
 
@@ -42,17 +42,26 @@ Implement `ProjectCreator` in `ScriviCore/src/project_package/`. `ScriviCore::cr
 - ScriviCore/tests/integration/CreateProjectTests.cpp
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `src/project_package/ProjectCreator.hpp/.cpp` — implements full creation sequence
+- `ScriviCore::createProject()` delegates to `ProjectCreator::create()`
+- Validates `AuthorshipRef` (non-empty identityID and personaID) before any I/O; returns `invalidArgument` if invalid
+- Writes all 7 required files in sequence: `project.json`, `manuscript.meta.json`, `chapter.meta.json`, `scene.md` (empty), `scene.meta.json`, `project-members.json`, `project-personas.json`
+- App-local workspace state written to `appSupportRoot/state/projects/<projectID>/workspace-state.json`
+- Git path: `initRepository` → write `.gitignore` → write `snapshots/scrivi-snapshots.json` → `addAll` → `commit`
+- Git author email mapped as `<identityID>@scrivi.author` per spec
+- Any I/O failure propagates immediately; no partial cleanup attempted at this stage
 
 **Test Steps:**
-1. `integration/CreateProjectTests.cpp` — create project in temp dir, verify directory structure matches Section 12.1 fixture layout
-2. All JSON files are valid and round-trip through schema readers
-3. `CreateProjectResult` contains correct IDs and paths
-4. Git-enabled creation: temp dir contains `.git`, initial commit exists
-5. Non-Git creation: no `.git` directory present
+1. `ctest --test-dir build --output-on-failure` — 58/58 tests pass including:
+2. Test 53: minimum package structure — all 7 files exist, no Git files
+3. Test 54: project.json content contains title, slug, identity, schema tag
+4. Test 55: scene.meta.json round-trips through `parseSceneMeta()`
+5. Test 56: workspace-state.json written under `appSupportRoot`, references first scene
+6. Test 57: Git path — init/addAll/commit called in order, .gitignore and snapshots/ written
+7. Test 58: empty identityID returns `invalidArgument`
 
 **Notes:**
-Uses `LocalFileSystem`, `DeterministicUUIDProvider`, `FixedClock`, and `MockGitProvider` (or `SystemGitProvider` for integration) from T-0004.
+Uses `LocalFileSystem`, `DeterministicUUIDProvider`, `FixedClock`, and `MockGitProvider` from T-0004.
 
 ---
 

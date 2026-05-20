@@ -18,13 +18,14 @@ Epics are not scheduled directly — they are delivered through a sequence of Sp
 ## Epic Lifecycle
 
 ```
-Draft → Active → Complete → Closed
-  🔵      🟡        🟠         ✅
+Proposed → Draft → Active → Complete → Closed
+   🔵        🔵      🟡        🟠         ✅
 ```
 
 ### Status Definitions
 
-- **🔵 Draft** — Epic is being defined. Goal, scope, and acceptance criteria are being established. No Sprints assigned yet.
+- **🔵 Proposed** — Epic is queued in the backlog. Goal and rough scope are noted but acceptance criteria have not been written. No Sprints assigned.
+- **🔵 Draft** — Epic is being actively defined. Goal, scope, and acceptance criteria are being established. No Sprints assigned yet.
 - **🟡 Active** — At least one Sprint is actively delivering work toward this Epic.
 - **🟠 Complete** — All planned Sprints are closed and all required Tasks/Issues are verified. Awaiting final acceptance.
 - **✅ Closed** — Epic is fully accepted and archived. No further work planned.
@@ -84,7 +85,8 @@ When all planned Sprints are closed:
 docs/Epics/
 ├── Epic-GUIDELINES.md          ← This file
 ├── Epic-Documentation.md       ← Index of all Epics
-├── Epic-active.md              ← Currently active Epic(s) in detail
+├── Epic-backlog.md             ← Proposed Epics not yet being actively defined
+├── Epic-active.md              ← Epics that are Draft, Active, or Complete-pending-close
 ├── Closed/
 │   ├── Epic-EP-001.md
 │   ├── Epic-EP-002.md
@@ -92,7 +94,8 @@ docs/Epics/
 ```
 
 - **Epic-Documentation.md** — Lean index. One row per Epic, always up to date.
-- **Epic-active.md** — Full detail on Epics that are Active or Complete-pending-close. Multiple Epics may be active simultaneously.
+- **Epic-backlog.md** — Proposed Epics queued for future planning. Rough goal and scope only.
+- **Epic-active.md** — Full detail on Epics that are Draft, Active, or Complete-pending-close. Multiple Epics may be active simultaneously.
 - **Closed/Epic-EP-XXX.md** — Archive file per closed Epic.
 
 ## Epic Entry Template
@@ -141,9 +144,22 @@ docs/Epics/
 
 ## Epic-Documentation.md Update Checklist
 
-### When Creating a New Epic:
-- [ ] Epic entry added to Epic-Documentation.md index table
-- [ ] Epic entry added to Epic-active.md (if immediately activated) or noted as Draft
+### When Proposing a New Epic (Backlog):
+- [ ] Epic entry added to Epic-backlog.md with goal and rough scope
+- [ ] Epic entry added to Epic-Documentation.md index table with 🔵 Proposed status
+- [ ] Epic count updated
+- [ ] "Last Updated" date updated
+
+### When Promoting an Epic from Backlog to Draft:
+- [ ] Epic entry moved from Epic-backlog.md to Epic-active.md
+- [ ] Acceptance criteria written
+- [ ] Status changed to 🔵 Draft in Epic-active.md
+- [ ] Status updated to 🔵 Draft in Epic-Documentation.md index
+- [ ] "Last Updated" date updated
+
+### When Creating a New Epic (directly as Draft):
+- [ ] Epic entry added to Epic-active.md with full acceptance criteria
+- [ ] Epic entry added to Epic-Documentation.md index table with 🔵 Draft status
 - [ ] Epic count updated
 - [ ] "Last Updated" date updated
 
