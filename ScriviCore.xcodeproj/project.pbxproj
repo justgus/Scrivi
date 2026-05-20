@@ -79,6 +79,7 @@
 		D022 /* Epic-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Epic-GUIDELINES.md"; path = "docs/Epics/Epic-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
 		D030 /* Issue-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-Documentation.md"; path = "docs/Issues/Issue-Documentation.md"; sourceTree = SOURCE_ROOT; };
 		D031 /* Issue-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-GUIDELINES.md"; path = "docs/Issues/Issue-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
+		D032 /* Issue-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Issue-active.md"; path = "docs/Issues/Issue-active.md"; sourceTree = SOURCE_ROOT; };
 		D040 /* Sprint-active.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-active.md"; path = "docs/Sprints/Sprint-active.md"; sourceTree = SOURCE_ROOT; };
 		D041 /* Sprint-Documentation.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-Documentation.md"; path = "docs/Sprints/Sprint-Documentation.md"; sourceTree = SOURCE_ROOT; };
 		D042 /* Sprint-GUIDELINES.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = "Sprint-GUIDELINES.md"; path = "docs/Sprints/Sprint-GUIDELINES.md"; sourceTree = SOURCE_ROOT; };
@@ -254,6 +255,7 @@
 			children = (
 				D030 /* Issue-Documentation.md */,
 				D031 /* Issue-GUIDELINES.md */,
+				D032 /* Issue-active.md */,
 			);
 			name = Issues;
 			sourceTree = "<group>";

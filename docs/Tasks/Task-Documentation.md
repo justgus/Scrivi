@@ -24,15 +24,11 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **5 active Tasks**
+Currently: **0 active Tasks**
 
-| Task   | Title | Epic | Sprint | Status |
-| ------ | ----- | ---- | ------ | ------ |
-| T-0006 | Project Creation | EP-002 | SP-002 | 🟡 Active |
-| T-0007 | Open/Resume | EP-002 | SP-002 | 🟡 Active |
-| T-0008 | Save Scene | EP-002 | SP-002 | 🟡 Active |
-| T-0009 | External Change Scan | EP-002 | SP-002 | 🟡 Active |
-| T-0010 | Git Snapshots | EP-002 | SP-002 | 🟡 Active |
+| Task | Title | Epic | Sprint | Status |
+| ---- | ----- | ---- | ------ | ------ |
+|      |       |      |        |        |
 
 See: [Task-active.md](Task-active.md)
 
@@ -46,7 +42,7 @@ Currently: **0 unverified Tasks**
 
 ## Verified Tasks
 
-Currently: **5 verified Tasks** | Next available: **T-0012**
+Currently: **10 verified Tasks** | Next available: **T-0012**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -55,14 +51,19 @@ Currently: **5 verified Tasks** | Next available: **T-0012**
 | T-0003 | Utility Foundation | [Task-verified-0003.md](Verified/Task-verified-0003.md) | ✅ Verified |
 | T-0004 | Mock Services | [Task-verified-0004.md](Verified/Task-verified-0004.md) | ✅ Verified |
 | T-0005 | Schema Read/Write | [Task-verified-0005.md](Verified/Task-verified-0005.md) | ✅ Verified |
+| T-0006 | Project Creation | [Task-verified-0006.md](Verified/Task-verified-0006.md) | ✅ Verified |
+| T-0007 | Open/Resume | [Task-verified-0007.md](Verified/Task-verified-0007.md) | ✅ Verified |
+| T-0008 | Save Scene | [Task-verified-0008.md](Verified/Task-verified-0008.md) | ✅ Verified |
+| T-0009 | External Change Scan | [Task-verified-0009.md](Verified/Task-verified-0009.md) | ✅ Verified |
+| T-0010 | Git Snapshots | [Task-verified-0010.md](Verified/Task-verified-0010.md) | ✅ Verified |
 
 ## Statistics
 
 - **Total Tasks:** 11
-- **Verified:** 5 (45%) ✅
-- **Active:** 5 (45%) 🟡
+- **Verified:** 10 (91%) ✅
+- **Active:** 0 (0%) 🟡
 - **Backlog:** 1 (9%) 🔵
 
 ---
 
-*Last Updated: 2026-05-20*
+*Last Updated: 2026-05-20* (T-0006–T-0010 verified)

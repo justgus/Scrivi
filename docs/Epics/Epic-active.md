@@ -30,18 +30,18 @@
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| T-0006 | Project Creation | 🟡 Implemented - Not Verified |
-| T-0007 | Open/Resume | 🟡 Implemented - Not Verified |
-| T-0008 | Save Scene | 🟡 Implemented - Not Verified |
-| T-0009 | External Change Scan | 🟡 Implemented - Not Verified |
-| T-0010 | Git Snapshots | 🟡 Implemented - Not Verified |
+| T-0006 | Project Creation | ✅ Verified |
+| T-0007 | Open/Resume | ✅ Verified |
+| T-0008 | Save Scene | ✅ Verified |
+| T-0009 | External Change Scan | ✅ Verified |
+| T-0010 | Git Snapshots | ✅ Verified |
 | T-0011 | Swift Interop Prototype | 🔵 Backlog |
 
 ### Issues
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| —  | None  | —      |
+| ID     | Title | Status |
+| ------ | ----- | ------ |
+| I-0001 | git commit fails on CI runners with no global git identity configured | 🟡 Resolved - Not Verified |
 
 ### Scope Notes
 

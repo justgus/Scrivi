@@ -15,17 +15,17 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0006 | Project Creation | High | 🟡 Implemented - Not Verified |
-| T-0007 | Open/Resume | High | 🟡 Implemented - Not Verified |
-| T-0008 | Save Scene | High | 🟡 Implemented - Not Verified |
-| T-0009 | External Change Scan | High | 🟡 Implemented - Not Verified |
-| T-0010 | Git Snapshots | High | 🟡 Implemented - Not Verified |
+| T-0006 | Project Creation | High | ✅ Verified |
+| T-0007 | Open/Resume | High | ✅ Verified |
+| T-0008 | Save Scene | High | ✅ Verified |
+| T-0009 | External Change Scan | High | ✅ Verified |
+| T-0010 | Git Snapshots | High | ✅ Verified |
 
 ### Assigned Issues
 
-| ID | Title | Severity | Status |
-| -- | ----- | -------- | ------ |
-| —  | None  | —        | —      |
+| ID     | Title | Severity | Status |
+| ------ | ----- | -------- | ------ |
+| I-0001 | git commit fails on CI runners with no global git identity configured | High | 🟡 Resolved - Not Verified |
 
 ### Sprint Notes
 

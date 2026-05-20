@@ -13,20 +13,17 @@ This is the main index for all Cumberland Issues. Issues track bugs and unintend
 
 ## Active Issues
 
-Currently: **0 active issues**
+Currently: **1 active issue**
 
-| DR  | Title | Status | Date |
-| --- | ----- | ------ | ---- |
-|     |       |        |      |
-|     |       |        |      |
-|     |       |        |      |
-|     |       |        |      |
+| I#     | Title | Status | Date |
+| ------ | ----- | ------ | ---- |
+| I-0001 | git commit fails on CI runners with no global git identity configured | 🟡 Resolved - Not Verified | 2026-05-20 |
 
-See: [I-active.md][2]
+See: [Issue-active.md](Issue-active.md)
 
 ## Verified Issues
 
-Currently: **0 verified issues** | Next available I#: **I-0001**
+Currently: **0 verified issues** | Next available I#: **I-0002**
 
 | Batch | DRs | File | Status |
 | ----- | --- | ---- | ------ |
@@ -58,15 +55,15 @@ Currently: **0 closed issues**
 
 ## Statistics
 
-- **Total Issues:** 0
+- **Total Issues:** 1
 - **Verified:** 0 (0%) ✅
-- **Unverified:** 0 (0%) 🟡
-- **Open:** 0 (0%) 🔴 *(0 deferred)*
+- **Resolved - Not Verified:** 1 (100%) 🟡
+- **Open:** 0 (0%) 🔴
 - **Closed/Deferred:** 0 (0%) ⚪
 
 ---
 
-*Last Updated: 2026-03-27*
+*Last Updated: 2026-05-20*
 
 
 [1]:	./ER-Documentation.md

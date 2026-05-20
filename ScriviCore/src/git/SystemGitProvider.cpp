@@ -61,10 +61,14 @@ Result<CommitID> SystemGitProvider::commit(
     auto check = requireGit();
     if (!check.ok()) return Result<CommitID>::failure(check.error());
 
-    auto authorStr = req.author.name + " <" + req.author.email + ">";
+    auto authorStr      = req.author.name + " <" + req.author.email + ">";
+    auto configName     = "user.name=" + req.author.name;
+    auto configEmail    = "user.email=" + req.author.email;
 
     auto r = util::runProcess("git",
-        {"commit",
+        {"-c", configName,
+         "-c", configEmail,
+         "commit",
          "--allow-empty",
          "--author", authorStr,
          "-m", req.message},
