@@ -11,6 +11,18 @@ FetchContent_MakeAvailable(Catch2)
 add_executable(ScriviCoreTests
     unit/ResultTests.cpp
     unit/IDTests.cpp
+    unit/PathUtilsTests.cpp
+    unit/SlugTests.cpp
+    unit/TextStatsTests.cpp
+    unit/JsonSchemaTests.cpp
+    unit/MockServicesTests.cpp
+    unit/SchemaTests.cpp
+)
+
+target_include_directories(ScriviCoreTests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/ScriviCore/src
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(ScriviCoreTests

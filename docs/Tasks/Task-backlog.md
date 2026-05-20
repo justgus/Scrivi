@@ -157,14 +157,14 @@ The Json wrapper is a key guardrail: nlohmann types must never leak into public 
 
 ## T-0004: Mock Services
 
-**Status:** 🔵 Backlog
+**Status:** 🟡 Active → see Task-active.md
 **Component:** ScriviCore (C++ backend)
 **Priority:** Critical
 **Epic:** EP-001: ScriviCore Foundation
 **Date Requested:** 2026-05-19
 **Date Implemented:** —
 **Date Verified:** —
-**Sprint Assigned:** Not Assigned
+**Sprint Assigned:** SP-001
 
 **Rationale:**
 Integration tests for project creation, open, and save require controllable, deterministic implementations of all service interfaces. Without mocks, integration tests cannot run portably or produce stable output.
@@ -207,14 +207,14 @@ See Section 13 of the doc for the design intent behind each mock. DeterministicU
 
 ## T-0005: Schema Read/Write
 
-**Status:** 🔵 Backlog
+**Status:** 🟡 Active → see Task-active.md
 **Component:** ScriviCore (C++ backend)
 **Priority:** Critical
 **Epic:** EP-001: ScriviCore Foundation
 **Date Requested:** 2026-05-19
 **Date Implemented:** —
 **Date Verified:** —
-**Sprint Assigned:** Not Assigned
+**Sprint Assigned:** SP-001
 
 **Rationale:**
 All project data is stored as JSON files in the `.scrivi` package. Schema readers/writers are required before any project creation, open, or save logic can work. Correctness here prevents data loss and format corruption.

@@ -24,17 +24,17 @@
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| —      | Not yet assigned | — | — |
+| SP-001 | ScriviCore Foundation — Build, Types, and Utilities | 🟡 Active | 2026-05-19 – 2026-05-26 |
 
 ### Tasks
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| T-0001 | Repository Skeleton | 🔵 Backlog |
-| T-0002 | Core Value Types | 🔵 Backlog |
-| T-0003 | Utility Foundation | 🔵 Backlog |
-| T-0004 | Mock Services | 🔵 Backlog |
-| T-0005 | Schema Read/Write | 🔵 Backlog |
+| T-0001 | Repository Skeleton | ✅ Verified |
+| T-0002 | Core Value Types | ✅ Verified |
+| T-0003 | Utility Foundation | ✅ Verified |
+| T-0004 | Mock Services | ✅ Verified |
+| T-0005 | Schema Read/Write | 🟡 Implemented - Not Verified |
 
 ### Issues
 

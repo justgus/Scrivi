@@ -15,9 +15,11 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0001 | Repository Skeleton | Critical | 🟡 Active |
-| T-0002 | Core Value Types | Critical | 🟡 Active |
-| T-0003 | Utility Foundation | Critical | 🟡 Active |
+| T-0001 | Repository Skeleton | Critical | ✅ Verified |
+| T-0002 | Core Value Types | Critical | ✅ Verified |
+| T-0003 | Utility Foundation | Critical | ✅ Verified |
+| T-0004 | Mock Services | Critical | 🟡 Active |
+| T-0005 | Schema Read/Write | Critical | 🟡 Active |
 
 ### Assigned Issues
 
