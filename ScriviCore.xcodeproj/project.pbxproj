@@ -32,18 +32,35 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXFileReference section */
-		86E648802FBE02E400376B3D /* ProjectCreator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectCreator.hpp; sourceTree = "<group>"; };
-		86E648812FBE02E400376B3D /* ProjectCreator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectCreator.cpp; sourceTree = "<group>"; };
-		86E648A42FBE0E0700376B3D /* ProjectOpener.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectOpener.hpp; sourceTree = "<group>"; };
-		86E648A52FBE0E0700376B3D /* ProjectOpener.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectOpener.cpp; sourceTree = "<group>"; };
-		86E648A62FBE0E0700376B3D /* ProjectValidator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectValidator.hpp; sourceTree = "<group>"; };
-		86E648A72FBE0E0700376B3D /* ProjectValidator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectValidator.cpp; sourceTree = "<group>"; };
-		86E648A82FBE0E7000376B3D /* ManuscriptOrderResolver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ManuscriptOrderResolver.hpp; sourceTree = "<group>"; };
-		86E648A92FBE0E7000376B3D /* ManuscriptOrderResolver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ManuscriptOrderResolver.cpp; sourceTree = "<group>"; };
-		86E648AA2FBE0E7000376B3D /* SceneReader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SceneReader.hpp; sourceTree = "<group>"; };
-		86E648AB2FBE0E7000376B3D /* SceneReader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SceneReader.cpp; sourceTree = "<group>"; };
-		86E648AC2FBE0E7000376B3D /* SceneWriter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SceneWriter.hpp; sourceTree = "<group>"; };
-		86E648AD2FBE0E7000376B3D /* SceneWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SceneWriter.cpp; sourceTree = "<group>"; };
+		86E648802FBE02E400376B3D /* ProjectCreator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ProjectCreator.hpp; path = ScriviCore/src/project_package/ProjectCreator.hpp; sourceTree = SOURCE_ROOT; };
+		86E648812FBE02E400376B3D /* ProjectCreator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ProjectCreator.cpp; path = ScriviCore/src/project_package/ProjectCreator.cpp; sourceTree = SOURCE_ROOT; };
+		86E648A42FBE0E0700376B3D /* ProjectOpener.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ProjectOpener.hpp; path = ScriviCore/src/project_package/ProjectOpener.hpp; sourceTree = SOURCE_ROOT; };
+		86E648A52FBE0E0700376B3D /* ProjectOpener.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ProjectOpener.cpp; path = ScriviCore/src/project_package/ProjectOpener.cpp; sourceTree = SOURCE_ROOT; };
+		86E648A62FBE0E0700376B3D /* ProjectValidator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ProjectValidator.hpp; path = ScriviCore/src/project_package/ProjectValidator.hpp; sourceTree = SOURCE_ROOT; };
+		86E648A72FBE0E0700376B3D /* ProjectValidator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ProjectValidator.cpp; path = ScriviCore/src/project_package/ProjectValidator.cpp; sourceTree = SOURCE_ROOT; };
+		86E648A82FBE0E7000376B3D /* ManuscriptOrderResolver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ManuscriptOrderResolver.hpp; path = ScriviCore/src/manuscript/ManuscriptOrderResolver.hpp; sourceTree = SOURCE_ROOT; };
+		86E648A92FBE0E7000376B3D /* ManuscriptOrderResolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ManuscriptOrderResolver.cpp; path = ScriviCore/src/manuscript/ManuscriptOrderResolver.cpp; sourceTree = SOURCE_ROOT; };
+		86E648AA2FBE0E7000376B3D /* SceneReader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SceneReader.hpp; path = ScriviCore/src/manuscript/SceneReader.hpp; sourceTree = SOURCE_ROOT; };
+		86E648AB2FBE0E7000376B3D /* SceneReader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SceneReader.cpp; path = ScriviCore/src/manuscript/SceneReader.cpp; sourceTree = SOURCE_ROOT; };
+		86E648AC2FBE0E7000376B3D /* SceneWriter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SceneWriter.hpp; path = ScriviCore/src/manuscript/SceneWriter.hpp; sourceTree = SOURCE_ROOT; };
+		86E648AD2FBE0E7000376B3D /* SceneWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SceneWriter.cpp; path = ScriviCore/src/manuscript/SceneWriter.cpp; sourceTree = SOURCE_ROOT; };
+		86E648AE2FBE0F9C00376B3D /* WorkspaceStateService.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = WorkspaceStateService.hpp; path = ScriviCore/src/workspace/WorkspaceStateService.hpp; sourceTree = SOURCE_ROOT; };
+		86E648AF2FBE0F9C00376B3D /* WorkspaceStateService.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WorkspaceStateService.cpp; path = ScriviCore/src/workspace/WorkspaceStateService.cpp; sourceTree = SOURCE_ROOT; };
+		A001 /* RepairClassifier.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = RepairClassifier.hpp; path = ScriviCore/src/repair/RepairClassifier.hpp; sourceTree = SOURCE_ROOT; };
+		A002 /* RepairClassifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RepairClassifier.cpp; path = ScriviCore/src/repair/RepairClassifier.cpp; sourceTree = SOURCE_ROOT; };
+		A003 /* ExternalChangeScanner.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ExternalChangeScanner.hpp; path = ScriviCore/src/repair/ExternalChangeScanner.hpp; sourceTree = SOURCE_ROOT; };
+		A004 /* ExternalChangeScanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ExternalChangeScanner.cpp; path = ScriviCore/src/repair/ExternalChangeScanner.cpp; sourceTree = SOURCE_ROOT; };
+		A005 /* SystemGitProvider.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SystemGitProvider.hpp; path = ScriviCore/src/git/SystemGitProvider.hpp; sourceTree = SOURCE_ROOT; };
+		A006 /* SystemGitProvider.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemGitProvider.cpp; path = ScriviCore/src/git/SystemGitProvider.cpp; sourceTree = SOURCE_ROOT; };
+		A007 /* SnapshotService.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SnapshotService.hpp; path = ScriviCore/src/git/SnapshotService.hpp; sourceTree = SOURCE_ROOT; };
+		A008 /* SnapshotService.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SnapshotService.cpp; path = ScriviCore/src/git/SnapshotService.cpp; sourceTree = SOURCE_ROOT; };
+		A009 /* Process.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Process.hpp; path = ScriviCore/src/util/Process.hpp; sourceTree = SOURCE_ROOT; };
+		A010 /* Process.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Process.cpp; path = ScriviCore/src/util/Process.cpp; sourceTree = SOURCE_ROOT; };
+		B001 /* CreateProjectTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CreateProjectTests.cpp; path = ScriviCore/tests/integration/CreateProjectTests.cpp; sourceTree = SOURCE_ROOT; };
+		B002 /* OpenProjectTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = OpenProjectTests.cpp; path = ScriviCore/tests/integration/OpenProjectTests.cpp; sourceTree = SOURCE_ROOT; };
+		B003 /* SaveSceneTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SaveSceneTests.cpp; path = ScriviCore/tests/integration/SaveSceneTests.cpp; sourceTree = SOURCE_ROOT; };
+		B004 /* ExternalChangeTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ExternalChangeTests.cpp; path = ScriviCore/tests/integration/ExternalChangeTests.cpp; sourceTree = SOURCE_ROOT; };
+		B005 /* GitSnapshotTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GitSnapshotTests.cpp; path = ScriviCore/tests/integration/GitSnapshotTests.cpp; sourceTree = SOURCE_ROOT; };
 		D001 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = docs/README.md; sourceTree = SOURCE_ROOT; };
 		D002 /* Scrivi_Backend_Architecture_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Architecture_v0_2.md; path = docs/Scrivi_Backend_Architecture_v0_2.md; sourceTree = SOURCE_ROOT; };
 		D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Behavior_Spec_v0_1.md; path = docs/Scrivi_Backend_Behavior_Spec_v0_1.md; sourceTree = SOURCE_ROOT; };
@@ -133,21 +150,25 @@
 			isa = PBXGroup;
 			children = (
 			);
-			path = domain;
+			name = domain;
 			sourceTree = "<group>";
 		};
 		86E648792FBE02E400376B3D /* git */ = {
 			isa = PBXGroup;
 			children = (
+				A005 /* SystemGitProvider.hpp */,
+				A006 /* SystemGitProvider.cpp */,
+				A007 /* SnapshotService.hpp */,
+				A008 /* SnapshotService.cpp */,
 			);
-			path = git;
+			name = git;
 			sourceTree = "<group>";
 		};
 		86E6487A2FBE02E400376B3D /* identity */ = {
 			isa = PBXGroup;
 			children = (
 			);
-			path = identity;
+			name = identity;
 			sourceTree = "<group>";
 		};
 		86E6487B2FBE02E400376B3D /* manuscript */ = {
@@ -160,7 +181,7 @@
 				86E648AC2FBE0E7000376B3D /* SceneWriter.hpp */,
 				86E648AD2FBE0E7000376B3D /* SceneWriter.cpp */,
 			);
-			path = manuscript;
+			name = manuscript;
 			sourceTree = "<group>";
 		};
 		86E648822FBE02E400376B3D /* project_package */ = {
@@ -173,21 +194,27 @@
 				86E648A62FBE0E0700376B3D /* ProjectValidator.hpp */,
 				86E648A72FBE0E0700376B3D /* ProjectValidator.cpp */,
 			);
-			path = project_package;
+			name = project_package;
 			sourceTree = "<group>";
 		};
 		86E648852FBE02E400376B3D /* repair */ = {
 			isa = PBXGroup;
 			children = (
+				A001 /* RepairClassifier.hpp */,
+				A002 /* RepairClassifier.cpp */,
+				A003 /* ExternalChangeScanner.hpp */,
+				A004 /* ExternalChangeScanner.cpp */,
 			);
-			path = repair;
+			name = repair;
 			sourceTree = "<group>";
 		};
 		86E648A32FBE02E400376B3D /* workspace */ = {
 			isa = PBXGroup;
 			children = (
+				86E648AE2FBE0F9C00376B3D /* WorkspaceStateService.hpp */,
+				86E648AF2FBE0F9C00376B3D /* WorkspaceStateService.cpp */,
 			);
-			path = workspace;
+			name = workspace;
 			sourceTree = "<group>";
 		};
 		GRP_BUILD /* Build */ = {
@@ -363,11 +390,24 @@
 		GRP_TESTS /* tests */ = {
 			isa = PBXGroup;
 			children = (
+				GRP_INTEGRATION /* integration */,
 				GRP_UNIT /* unit */,
 				GRP_MOCKS /* mocks */,
 				F023 /* CMakeLists.txt */,
 			);
 			name = tests;
+			sourceTree = "<group>";
+		};
+		GRP_INTEGRATION /* integration */ = {
+			isa = PBXGroup;
+			children = (
+				B001 /* CreateProjectTests.cpp */,
+				B002 /* OpenProjectTests.cpp */,
+				B003 /* SaveSceneTests.cpp */,
+				B004 /* ExternalChangeTests.cpp */,
+				B005 /* GitSnapshotTests.cpp */,
+			);
+			name = integration;
 			sourceTree = "<group>";
 		};
 		GRP_UNIT /* unit */ = {
@@ -400,6 +440,8 @@
 				F039 /* AtomicWrite.cpp */,
 				F040 /* Hash.hpp */,
 				F041 /* Hash.cpp */,
+				A009 /* Process.hpp */,
+				A010 /* Process.cpp */,
 			);
 			name = util;
 			sourceTree = "<group>";

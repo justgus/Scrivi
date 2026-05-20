@@ -82,6 +82,8 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
+**Xcode project file rule:** The user commits and creates PRs from Xcode. Every time a new `.cpp` or `.hpp` file is added, `ScriviCore.xcodeproj/project.pbxproj` MUST be updated in the same step — before the build, not after. Failing to do this means the user cannot see new files in Xcode and cannot stage them for commit. This is a non-negotiable requirement.
+
 ### Apple Platform (when UI work begins)
 
 - **Xcode:** 26.2+ (build 17C52)

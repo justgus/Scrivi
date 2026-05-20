@@ -18,8 +18,8 @@
 | T-0006 | Project Creation | High | 🟡 Implemented - Not Verified |
 | T-0007 | Open/Resume | High | 🟡 Implemented - Not Verified |
 | T-0008 | Save Scene | High | 🟡 Implemented - Not Verified |
-| T-0009 | External Change Scan | High | 🟡 Active |
-| T-0010 | Git Snapshots | High | 🟡 Active |
+| T-0009 | External Change Scan | High | 🟡 Implemented - Not Verified |
+| T-0010 | Git Snapshots | High | 🟡 Implemented - Not Verified |
 
 ### Assigned Issues
 

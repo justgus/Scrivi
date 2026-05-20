@@ -28,6 +28,11 @@ target_sources(ScriviCore
         src/manuscript/SceneReader.cpp
         src/manuscript/SceneWriter.cpp
         src/workspace/WorkspaceStateService.cpp
+        src/repair/RepairClassifier.cpp
+        src/repair/ExternalChangeScanner.cpp
+        src/git/SystemGitProvider.cpp
+        src/git/SnapshotService.cpp
+        src/util/Process.cpp
         src/util/PathUtils.cpp
         src/util/Slug.cpp
         src/util/TextStats.cpp

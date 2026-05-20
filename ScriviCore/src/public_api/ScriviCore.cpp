@@ -1,8 +1,10 @@
 #include "scrivi/ScriviCore.hpp"
 
+#include "git/SnapshotService.hpp"
 #include "manuscript/SceneWriter.hpp"
 #include "project_package/ProjectCreator.hpp"
 #include "project_package/ProjectOpener.hpp"
+#include "repair/ExternalChangeScanner.hpp"
 
 namespace scrivi {
 
@@ -34,21 +36,21 @@ Result<SaveSceneResult> ScriviCore::saveScene(
 }
 
 Result<ExternalChangeScanResult> ScriviCore::scanForExternalChanges(
-    const ExternalChangeScanRequest&) {
-    return Result<ExternalChangeScanResult>::failure(
-        {ErrorCode::internalError, "not implemented"});
+    const ExternalChangeScanRequest& request) {
+    repair::ExternalChangeScanner scanner{services_};
+    return scanner.scan(request);
 }
 
 Result<EnableGitResult> ScriviCore::enableGitSnapshots(
-    const EnableGitRequest&) {
-    return Result<EnableGitResult>::failure(
-        {ErrorCode::internalError, "not implemented"});
+    const EnableGitRequest& request) {
+    git::SnapshotService service{services_};
+    return service.enable(request);
 }
 
 Result<CreateSnapshotResult> ScriviCore::createSnapshot(
-    const CreateSnapshotRequest&) {
-    return Result<CreateSnapshotResult>::failure(
-        {ErrorCode::internalError, "not implemented"});
+    const CreateSnapshotRequest& request) {
+    git::SnapshotService service{services_};
+    return service.createSnapshot(request);
 }
 
 } // namespace scrivi

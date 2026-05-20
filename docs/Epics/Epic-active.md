@@ -33,8 +33,8 @@
 | T-0006 | Project Creation | 🟡 Implemented - Not Verified |
 | T-0007 | Open/Resume | 🟡 Implemented - Not Verified |
 | T-0008 | Save Scene | 🟡 Implemented - Not Verified |
-| T-0009 | External Change Scan | 🟡 Active |
-| T-0010 | Git Snapshots | 🟡 Active |
+| T-0009 | External Change Scan | 🟡 Implemented - Not Verified |
+| T-0010 | Git Snapshots | 🟡 Implemented - Not Verified |
 | T-0011 | Swift Interop Prototype | 🔵 Backlog |
 
 ### Issues

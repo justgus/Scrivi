@@ -187,12 +187,12 @@ AtomicWrite (write to temp, then rename) ensures no partial writes on crash. See
 
 ## T-0009: External Change Scan
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend)
 **Priority:** High
 **Epic:** EP-002: ScriviCore Services
 **Date Requested:** 2026-05-19
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-002
 
@@ -221,28 +221,33 @@ Implement in `ScriviCore/src/repair/`. Scanner uses `FileSystem` service to walk
 - ScriviCore/tests/fixtures/: missing-scene-md, missing-scene-meta, corrupt-scene-meta, external-edit
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `src/repair/RepairClassifier.hpp/.cpp` — builds `RepairIssue` structs for each condition with suggested actions
+- `src/repair/ExternalChangeScanner.hpp/.cpp` — reads manuscript index chain, checks all registered files, walks filesystem for unregistered `.md` files, optionally checks Git status
+- When scene metadata is missing/corrupt, expected content path derived from metadata path (`.meta.json` → `.md`) and registered to suppress false unregistered-file reports
+- `ScriviCore::scanForExternalChanges()` delegates to `ExternalChangeScanner::scan()`
 
 **Test Steps:**
-1. Scan `minimal-valid` fixture — zero RepairIssues
-2. Scan `missing-scene-md` fixture — one issue, category `missingContent`
-3. Scan `missing-scene-meta` fixture — one issue, category `missingMetadata`
-4. Scan `corrupt-scene-meta` fixture — one issue, category `corruptMetadata`
-5. Scan `external-edit` fixture — issue category `safeExternalEdit` or `indexesDirty = true`
+1. `ctest --test-dir build --output-on-failure` — 82/82 tests pass including:
+2. Test 71: clean project — zero issues, indexesDirty=false
+3. Test 72: deleted scene .md → one missingContent issue, severity blocking
+4. Test 73: deleted scene .meta.json → one missingMetadata issue, severity blocking
+5. Test 74: corrupt scene .meta.json → one corruptMetadata issue, severity blocking
+6. Test 75: unregistered interloper.md → one unregisteredManuscriptFile warning, indexesDirty=true
+7. Test 76: MockGitProvider with repoExists=true → gitStatusChecked=true, statusCalls recorded
 
 **Notes:**
-All four error fixtures from Section 12 are exercised here. This task depends on fixtures being checked in (initially created in T-0007).
+Error-path tests create projects on disk and surgically damage them — no pre-built fixtures needed. Fixtures approach remains available for T-0009 regression suite if needed later.
 
 ---
 
 ## T-0010: Git Snapshots
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend)
 **Priority:** High
 **Epic:** EP-002: ScriviCore Services
 **Date Requested:** 2026-05-19
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-002
 
@@ -273,17 +278,23 @@ No Git snapshot logic exists.
 - ScriviCore/tests/integration/GitSnapshotTests.cpp
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `src/util/Process.hpp/.cpp` — runs shell commands via `popen`, returns `ProcessResult{exitCode, stdout_}`; `executableInPath()` checks availability
+- `src/git/SystemGitProvider.hpp/.cpp` — wraps git CLI via Process; all methods return `gitUnavailable` if git not in PATH
+- `src/git/SnapshotService.hpp/.cpp` — implements `enable()` and `createSnapshot()`; reads/appends `snapshots/scrivi-snapshots.json` via `parseJson()`/`appendToArray()`
+- `ScriviCore::enableGitSnapshots()` and `createSnapshot()` delegate to `SnapshotService`
+- `SystemGitProvider::available()` is a static method tests use to skip gracefully
 
 **Test Steps:**
-1. Enable Git on a project in temp dir — `.git` directory created, initial commit exists
-2. Create named snapshot — new commit with correct message and author
-3. `SnapshotMetadataJson` written and readable
-4. Normal (non-Git) project creation and open — `GitProvider` never called
-5. Git integration tests skip gracefully if `git` is not in PATH
+1. `ctest --test-dir build --output-on-failure` — 82/82 tests pass including:
+2. Test 77: mock — init/addAll/commit called in order, .gitignore written, snapshot metadata has one entry
+3. Test 78: mock with repoExists=true — alreadyRepository=true, initRepository not called
+4. Test 79: mock — createSnapshot appends second metadata entry with correct label/note
+5. Test 80: normal project — createProject+openProject with MockGitProvider, zero git calls
+6. Test 81: real git — .git directory created, initial commit hash is 40 chars
+7. Test 82: real git — createSnapshot produces a second commit, metadata has two entries
 
 **Notes:**
-`Process` utility wraps `std::system` or `popen`-equivalent. Must handle Git unavailability cleanly. See Section 13.2–13.3 for MockGitProvider vs SystemGitProvider test policy.
+`Process` utility uses `popen` for cross-platform subprocess execution. Tests 81–82 skip with `SKIP()` if `SystemGitProvider::available()` returns false.
 
 ---
 

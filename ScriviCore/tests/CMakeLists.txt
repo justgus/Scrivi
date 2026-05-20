@@ -20,6 +20,8 @@ add_executable(ScriviCoreTests
     integration/CreateProjectTests.cpp
     integration/OpenProjectTests.cpp
     integration/SaveSceneTests.cpp
+    integration/ExternalChangeTests.cpp
+    integration/GitSnapshotTests.cpp
 )
 
 target_include_directories(ScriviCoreTests
