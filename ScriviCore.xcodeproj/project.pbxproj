@@ -34,6 +34,16 @@
 /* Begin PBXFileReference section */
 		86E648802FBE02E400376B3D /* ProjectCreator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectCreator.hpp; sourceTree = "<group>"; };
 		86E648812FBE02E400376B3D /* ProjectCreator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectCreator.cpp; sourceTree = "<group>"; };
+		86E648A42FBE0E0700376B3D /* ProjectOpener.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectOpener.hpp; sourceTree = "<group>"; };
+		86E648A52FBE0E0700376B3D /* ProjectOpener.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectOpener.cpp; sourceTree = "<group>"; };
+		86E648A62FBE0E0700376B3D /* ProjectValidator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProjectValidator.hpp; sourceTree = "<group>"; };
+		86E648A72FBE0E0700376B3D /* ProjectValidator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProjectValidator.cpp; sourceTree = "<group>"; };
+		86E648A82FBE0E7000376B3D /* ManuscriptOrderResolver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ManuscriptOrderResolver.hpp; sourceTree = "<group>"; };
+		86E648A92FBE0E7000376B3D /* ManuscriptOrderResolver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ManuscriptOrderResolver.cpp; sourceTree = "<group>"; };
+		86E648AA2FBE0E7000376B3D /* SceneReader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SceneReader.hpp; sourceTree = "<group>"; };
+		86E648AB2FBE0E7000376B3D /* SceneReader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SceneReader.cpp; sourceTree = "<group>"; };
+		86E648AC2FBE0E7000376B3D /* SceneWriter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SceneWriter.hpp; sourceTree = "<group>"; };
+		86E648AD2FBE0E7000376B3D /* SceneWriter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SceneWriter.cpp; sourceTree = "<group>"; };
 		D001 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = docs/README.md; sourceTree = SOURCE_ROOT; };
 		D002 /* Scrivi_Backend_Architecture_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Architecture_v0_2.md; path = docs/Scrivi_Backend_Architecture_v0_2.md; sourceTree = SOURCE_ROOT; };
 		D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Behavior_Spec_v0_1.md; path = docs/Scrivi_Backend_Behavior_Spec_v0_1.md; sourceTree = SOURCE_ROOT; };
@@ -143,6 +153,12 @@
 		86E6487B2FBE02E400376B3D /* manuscript */ = {
 			isa = PBXGroup;
 			children = (
+				86E648A82FBE0E7000376B3D /* ManuscriptOrderResolver.hpp */,
+				86E648A92FBE0E7000376B3D /* ManuscriptOrderResolver.cpp */,
+				86E648AA2FBE0E7000376B3D /* SceneReader.hpp */,
+				86E648AB2FBE0E7000376B3D /* SceneReader.cpp */,
+				86E648AC2FBE0E7000376B3D /* SceneWriter.hpp */,
+				86E648AD2FBE0E7000376B3D /* SceneWriter.cpp */,
 			);
 			path = manuscript;
 			sourceTree = "<group>";
@@ -152,6 +168,10 @@
 			children = (
 				86E648802FBE02E400376B3D /* ProjectCreator.hpp */,
 				86E648812FBE02E400376B3D /* ProjectCreator.cpp */,
+				86E648A42FBE0E0700376B3D /* ProjectOpener.hpp */,
+				86E648A52FBE0E0700376B3D /* ProjectOpener.cpp */,
+				86E648A62FBE0E0700376B3D /* ProjectValidator.hpp */,
+				86E648A72FBE0E0700376B3D /* ProjectValidator.cpp */,
 			);
 			path = project_package;
 			sourceTree = "<group>";

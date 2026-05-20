@@ -67,12 +67,12 @@ Uses `LocalFileSystem`, `DeterministicUUIDProvider`, `FixedClock`, and `MockGitP
 
 ## T-0007: Open/Resume
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend)
 **Priority:** High
 **Epic:** EP-002: ScriviCore Services
 **Date Requested:** 2026-05-19
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-002
 
@@ -103,28 +103,39 @@ Implement in `ScriviCore/src/project_package/` and `ScriviCore/src/manuscript/`.
 - ScriviCore/tests/integration/OpenProjectTests.cpp
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `src/project_package/ProjectValidator.hpp/.cpp` — walks package structure, detects missingMetadata, corruptMetadata, missingContent per scene
+- `src/project_package/ProjectOpener.hpp/.cpp` — delegates to ProjectValidator, ManuscriptOrderResolver, WorkspaceStateService (read), SceneReader; selects active scene
+- `src/manuscript/ManuscriptOrderResolver.hpp/.cpp` — reads manuscript.meta.json → chapter.meta.json → scene.meta.json chain; returns scenes in order
+- `src/manuscript/SceneReader.hpp/.cpp` — reads content file at relative path from project root
+- `src/workspace/WorkspaceStateService.hpp/.cpp` — load/save workspace state at `appSupportRoot/state/projects/<id>/workspace-state.json`
+- `ScriviCore::openProject()` delegates to `ProjectOpener::open()`
+- Blocking repair issues → `OpenMode::repairRequired`; no issues → `OpenMode::normalEdit`; non-blocking warnings → `OpenMode::editWithWarnings`
+- Workspace state missing → falls back to first scene, zero selection/scroll
+- Workspace state present → sceneID looked up in ordered scene list; selection and scroll restored
 
 **Test Steps:**
-1. Open project created by T-0006 — returns `OpenMode::normalEdit`, correct Markdown
-2. Open with saved workspace state — restores last scene, selection, and scroll
-3. Open with no workspace state — falls back to first scene
-4. Open `missing-scene-md` fixture — returns `OpenMode::repairRequired`, repairIssues populated
-5. Open `corrupt-scene-meta` fixture — returns repairIssues with `corruptMetadata`
+1. `ctest --test-dir build --output-on-failure` — 70/70 tests pass including:
+2. Test 59: normalEdit mode, correct projectID, zero repairIssues
+3. Test 60: restores selection {5,10} and scroll 0.42 after saveScene + reopen
+4. Test 61: fresh appSupportRoot → falls back to first scene, zero selection/scroll
+5. Test 62: deleted scene.meta.json → repairRequired, missingMetadata issue
+6. Test 63: deleted scene.md → repairRequired, missingContent issue
+7. Test 64: corrupt scene.meta.json → repairRequired, corruptMetadata issue
+8. Test 65: known content written directly → activeSceneMarkdown matches
 
 **Notes:**
-Uses fixtures from Section 12 for error-path tests. Fixtures must be checked in under `ScriviCore/tests/fixtures/`.
+Error-path tests exercise the structural damage scenarios in-place (delete/corrupt on disk) rather than using checked-in fixtures. Fixtures approach deferred until T-0009 requires them.
 
 ---
 
 ## T-0008: Save Scene
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend)
 **Priority:** High
 **Epic:** EP-002: ScriviCore Services
 **Date Requested:** 2026-05-19
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-002
 
@@ -154,14 +165,20 @@ Implement `SceneWriter` in `ScriviCore/src/manuscript/`. WorkspaceStateService w
 - ScriviCore/tests/integration/SaveSceneTests.cpp
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `src/manuscript/SceneWriter.hpp/.cpp` — atomically writes content, reads+updates scene meta, updates workspace state
+- `src/workspace/WorkspaceStateService.hpp/.cpp` — write path shared with T-0007
+- `ScriviCore::saveScene()` delegates to `SceneWriter::save()`
+- Idempotent: computes `sha256Hex(markdown)`, skips content write if hash matches `previouslyLoadedContentHash`; workspace state always updated
+- `countText(markdown)` provides wordCount/characterCount for metadata and result
+- `atomicWriteTextFile` (FileSystem service) guarantees no partial writes
 
 **Test Steps:**
-1. Save Markdown → read back → content identical
-2. Metadata `modifiedAt` updated after save
-3. Word count in metadata matches actual word count
-4. Open after save restores cursor selection and scroll position
-5. Save with unchanged content hash → `SaveSceneResult.saved = false`
+1. `ctest --test-dir build --output-on-failure` — 70/70 tests pass including:
+2. Test 66: content written to disk reads back identically
+3. Test 67: modifiedAt, modifiedByIdentityID, modifiedByDisplayName updated in metadata
+4. Test 68: wordCount=10 for 10-word sentence, stored in metadata
+5. Test 69: openProject after saveScene restores selection {3,7} and scroll 0.75
+6. Test 70: same hash → saved=false, workspaceStateUpdated=true
 
 **Notes:**
 AtomicWrite (write to temp, then rename) ensures no partial writes on crash. See T-0003.

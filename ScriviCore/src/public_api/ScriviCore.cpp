@@ -1,6 +1,8 @@
 #include "scrivi/ScriviCore.hpp"
 
+#include "manuscript/SceneWriter.hpp"
 #include "project_package/ProjectCreator.hpp"
+#include "project_package/ProjectOpener.hpp"
 
 namespace scrivi {
 
@@ -20,15 +22,15 @@ Result<CreateProjectResult> ScriviCore::createProject(
 }
 
 Result<OpenProjectResult> ScriviCore::openProject(
-    const OpenProjectRequest&) {
-    return Result<OpenProjectResult>::failure(
-        {ErrorCode::internalError, "not implemented"});
+    const OpenProjectRequest& request) {
+    project_package::ProjectOpener opener{services_};
+    return opener.open(request);
 }
 
 Result<SaveSceneResult> ScriviCore::saveScene(
-    const SaveSceneRequest&) {
-    return Result<SaveSceneResult>::failure(
-        {ErrorCode::internalError, "not implemented"});
+    const SaveSceneRequest& request) {
+    manuscript::SceneWriter writer{services_};
+    return writer.save(request);
 }
 
 Result<ExternalChangeScanResult> ScriviCore::scanForExternalChanges(

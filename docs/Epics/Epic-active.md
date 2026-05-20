@@ -31,8 +31,8 @@
 | ID     | Title | Status |
 | ------ | ----- | ------ |
 | T-0006 | Project Creation | 🟡 Implemented - Not Verified |
-| T-0007 | Open/Resume | 🟡 Active |
-| T-0008 | Save Scene | 🟡 Active |
+| T-0007 | Open/Resume | 🟡 Implemented - Not Verified |
+| T-0008 | Save Scene | 🟡 Implemented - Not Verified |
 | T-0009 | External Change Scan | 🟡 Active |
 | T-0010 | Git Snapshots | 🟡 Active |
 | T-0011 | Swift Interop Prototype | 🔵 Backlog |

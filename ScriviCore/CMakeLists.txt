@@ -22,6 +22,12 @@ target_sources(ScriviCore
     PRIVATE
         src/public_api/ScriviCore.cpp
         src/project_package/ProjectCreator.cpp
+        src/project_package/ProjectValidator.cpp
+        src/project_package/ProjectOpener.cpp
+        src/manuscript/ManuscriptOrderResolver.cpp
+        src/manuscript/SceneReader.cpp
+        src/manuscript/SceneWriter.cpp
+        src/workspace/WorkspaceStateService.cpp
         src/util/PathUtils.cpp
         src/util/Slug.cpp
         src/util/TextStats.cpp
