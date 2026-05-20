@@ -228,6 +228,8 @@ For long-term or lowerpriority Tasks
 - [ ] Task moved from Task-backlog.md to Task-active.md
 - [ ] Status changed to 🟡 Active
 - [ ] Task moved from Backlog table to Active table in Task-Documentation.md
+- [ ] Status updated to 🟡 Active in the assigned Sprint's task table (Sprint-active.md)
+- [ ] Status updated to 🟡 Active in the Epic's task table (Epic-active.md)
 - [ ] Backlog count decremented, Active count incremented
 - [ ] Statistics updated
 - [ ] "Last Updated" date updated

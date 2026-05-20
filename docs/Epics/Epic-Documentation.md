@@ -11,7 +11,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 active Epic, 1 draft Epic**
+Currently: **1 active Epic**
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -21,17 +21,17 @@ Currently: **2 Epics** | Next available: **EP-003**
 
 | Epic   | Title | Status | Start | Target Close |
 | ------ | ----- | ------ | ----- | ------------ |
-| EP-001 | ScriviCore Foundation | 🟡 Active | 2026-05-19 | TBD |
-| EP-002 | ScriviCore Services | 🔵 Draft | — | TBD |
+| EP-001 | ScriviCore Foundation | ✅ Closed | 2026-05-19 | 2026-05-20 |
+| EP-002 | ScriviCore Services | 🟡 Active | 2026-05-20 | TBD |
 
 ## Statistics
 
 - **Total Epics:** 2
-- **Closed:** 0 ✅
+- **Closed:** 1 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 1 🟡
-- **Draft:** 1 🔵
+- **Draft:** 0 🔵
 
 ---
 
-*Last Updated: 2026-05-19*
+*Last Updated: 2026-05-20*

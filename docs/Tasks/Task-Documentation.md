@@ -14,30 +14,25 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **8 backlog Tasks**
+Currently: **1 backlog Task**
 
 | Task   | Title | Epic | Priority | Status |
 | ------ | ----- | ---- | -------- | ------ |
-| T-0004 | Mock Services | EP-001 | Critical | 🔵 Backlog |
-| T-0005 | Schema Read/Write | EP-001 | Critical | 🔵 Backlog |
-| T-0006 | Project Creation | EP-002 | High | 🔵 Backlog |
-| T-0007 | Open/Resume | EP-002 | High | 🔵 Backlog |
-| T-0008 | Save Scene | EP-002 | High | 🔵 Backlog |
-| T-0009 | External Change Scan | EP-002 | High | 🔵 Backlog |
-| T-0010 | Git Snapshots | EP-002 | High | 🔵 Backlog |
 | T-0011 | Swift Interop Prototype | EP-002 | High | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **3 active Tasks**
+Currently: **5 active Tasks**
 
 | Task   | Title | Epic | Sprint | Status |
 | ------ | ----- | ---- | ------ | ------ |
-| T-0001 | Repository Skeleton | EP-001 | SP-001 | 🟡 Implemented - Not Verified |
-| T-0002 | Core Value Types | EP-001 | SP-001 | 🟡 Active |
-| T-0003 | Utility Foundation | EP-001 | SP-001 | 🟡 Active |
+| T-0006 | Project Creation | EP-002 | SP-002 | 🟡 Active |
+| T-0007 | Open/Resume | EP-002 | SP-002 | 🟡 Active |
+| T-0008 | Save Scene | EP-002 | SP-002 | 🟡 Active |
+| T-0009 | External Change Scan | EP-002 | SP-002 | 🟡 Active |
+| T-0010 | Git Snapshots | EP-002 | SP-002 | 🟡 Active |
 
 See: [Task-active.md](Task-active.md)
 
@@ -51,19 +46,23 @@ Currently: **0 unverified Tasks**
 
 ## Verified Tasks
 
-Currently: **0 verified Tasks** | Next available: **T-0012**
+Currently: **5 verified Tasks** | Next available: **T-0012**
 
-| Task | Title | File | Status |
-| ---- | ----- | ---- | ------ |
-|      |       |      |        |
+| Task   | Title | File | Status |
+| ------ | ----- | ---- | ------ |
+| T-0001 | Repository Skeleton | [Task-verified-0001.md](Verified/Task-verified-0001.md) | ✅ Verified |
+| T-0002 | Core Value Types | [Task-verified-0002.md](Verified/Task-verified-0002.md) | ✅ Verified |
+| T-0003 | Utility Foundation | [Task-verified-0003.md](Verified/Task-verified-0003.md) | ✅ Verified |
+| T-0004 | Mock Services | [Task-verified-0004.md](Verified/Task-verified-0004.md) | ✅ Verified |
+| T-0005 | Schema Read/Write | [Task-verified-0005.md](Verified/Task-verified-0005.md) | ✅ Verified |
 
 ## Statistics
 
 - **Total Tasks:** 11
-- **Verified:** 0 (0%) ✅
-- **Active:** 3 (27%) 🟡
-- **Backlog:** 8 (73%) 🔵
+- **Verified:** 5 (45%) ✅
+- **Active:** 5 (45%) 🟡
+- **Backlog:** 1 (9%) 🔵
 
 ---
 
-*Last Updated: 2026-05-19*
+*Last Updated: 2026-05-20*

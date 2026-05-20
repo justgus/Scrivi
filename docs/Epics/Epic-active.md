@@ -2,61 +2,12 @@
 
 ---
 
-## EP-001: ScriviCore Foundation
-
-**Status:** 🟡 Active
-**Goal:** A buildable, testable C++24 library skeleton with all value types, utilities, mock services, and schema I/O in place — no live services yet. This establishes the structural and type foundation that all service implementations depend on.
-**Date Created:** 2026-05-19
-**Target Close Date:** TBD
-**Actual Close Date:** —
-
-### Acceptance Criteria
-
-- [ ] ScriviCore builds as a standalone static library (no UI dependencies)
-- [ ] Catch2 tests build and run without UI
-- [ ] nlohmann/json is hidden behind schema/json utilities and does not appear in public headers
-- [ ] Public headers expose no UI framework types
-- [ ] Git is behind `GitProvider` abstraction
-- [ ] Secure storage is behind `SecureStore` abstraction
-- [ ] App-local paths are supplied by request structs in MVP
-
-### Sprints
-
-| Sprint | Title | Status | Dates |
-| ------ | ----- | ------ | ----- |
-| SP-001 | ScriviCore Foundation — Build, Types, and Utilities | 🟡 Active | 2026-05-19 – 2026-05-26 |
-
-### Tasks
-
-| ID     | Title | Status |
-| ------ | ----- | ------ |
-| T-0001 | Repository Skeleton | ✅ Verified |
-| T-0002 | Core Value Types | ✅ Verified |
-| T-0003 | Utility Foundation | ✅ Verified |
-| T-0004 | Mock Services | ✅ Verified |
-| T-0005 | Schema Read/Write | 🟡 Implemented - Not Verified |
-
-### Issues
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| —  | None  | —      |
-
-### Scope Notes
-
-Scope drawn from Scrivi C++24 Core Repository Skeleton v0.1, Section 16, Milestones 1–5. Non-goals from Section 4 apply (no SQLite, no full object graph, no UI shells, no exports, no remote Git).
-
-### Completion Summary
-
-*To be filled in when EP-001 reaches 🟠 Complete.*
-
----
-
 ## EP-002: ScriviCore Services
 
-**Status:** 🔵 Draft
+**Status:** 🟡 Active
 **Goal:** All MVP service operations implemented and callable from Swift. Delivers the full MVP loop: create local identity/persona, create project, open project, resume last writing surface, save scene, update metadata, restore workspace state, detect external changes, optionally initialize and create Git-backed snapshots.
 **Date Created:** 2026-05-19
+**Start Date:** 2026-05-20
 **Target Close Date:** TBD
 **Actual Close Date:** —
 
@@ -72,17 +23,18 @@ Scope drawn from Scrivi C++24 Core Repository Skeleton v0.1, Section 16, Milesto
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| —      | Not yet assigned | — | — |
+| SP-002 | ScriviCore Services — Project Lifecycle and Repair | 🟡 Active | 2026-05-20 – TBD |
+| SP-003 | ScriviCore Swift Interop | 🔵 Planning | TBD |
 
 ### Tasks
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| T-0006 | Project Creation | 🔵 Backlog |
-| T-0007 | Open/Resume | 🔵 Backlog |
-| T-0008 | Save Scene | 🔵 Backlog |
-| T-0009 | External Change Scan | 🔵 Backlog |
-| T-0010 | Git Snapshots | 🔵 Backlog |
+| T-0006 | Project Creation | 🟡 Active |
+| T-0007 | Open/Resume | 🟡 Active |
+| T-0008 | Save Scene | 🟡 Active |
+| T-0009 | External Change Scan | 🟡 Active |
+| T-0010 | Git Snapshots | 🟡 Active |
 | T-0011 | Swift Interop Prototype | 🔵 Backlog |
 
 ### Issues
@@ -101,4 +53,5 @@ EP-002 begins after EP-001 is closed and verified. Scope drawn from Section 16, 
 
 ---
 
-*Last Updated: 2026-05-19*
+*Last Updated: 2026-05-20*
+

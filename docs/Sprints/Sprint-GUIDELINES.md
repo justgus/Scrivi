@@ -142,7 +142,11 @@ docs/Sprints/
 ### When Activating a Sprint:
 - [ ] Status changed to 🟡 Active in Sprint-active.md
 - [ ] Status updated in Sprint-Documentation.md index
+- [ ] Status updated to 🟡 Active in the Epic's sprint table (Epic-active.md)
 - [ ] Task and Issue "Sprint" fields updated for all assigned items
+- [ ] Task statuses updated to 🟡 Active in Sprint task table (Sprint-active.md)
+- [ ] Task statuses updated to 🟡 Active in Epic task table (Epic-active.md)
+- [ ] Task statuses updated to 🟡 Active in Task-active.md and Task-Documentation.md
 - [ ] "Last Updated" date updated
 
 ### When Closing a Sprint:
@@ -150,6 +154,7 @@ docs/Sprints/
 - [ ] Retrospective section completed
 - [ ] Incomplete items returned to backlog (Sprint field cleared)
 - [ ] Status updated to ✅ Closed in Sprint-Documentation.md index
+- [ ] Status updated to ✅ Closed in the Epic's sprint table (Epic-active.md)
 - [ ] Sprint-active.md cleared (or set to next Sprint if immediately starting)
 - [ ] Statistics updated
 - [ ] "Last Updated" date updated

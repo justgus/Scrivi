@@ -7,29 +7,32 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 ## Organization
 
 - **Sprint-active.md** — The currently active Sprint (at most one at a time)
+- **Sprint-SP-003-planning.md** — SP-003 in planning (not yet active)
 - **Closed/Sprint-SP-XXX.md** — Archived closed Sprints, one file each
 
 ## Active Sprint
 
-Currently: **SP-001 🟡 Active**
+Currently: **SP-002 🟡 Active**
 
 See: [Sprint-active.md](Sprint-active.md)
 
 ## All Sprints
 
-Currently: **1 Sprint** | Next available: **SP-002**
+Currently: **3 Sprints** | Next available: **SP-004**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
-| SP-001 | ScriviCore Foundation — Build, Types, and Utilities | EP-001 | 2026-05-19 | 2026-05-26 | 🟡 Active |
+| SP-001 | ScriviCore Foundation — Build, Types, and Utilities | EP-001 | 2026-05-19 | 2026-05-20 | ✅ Closed |
+| SP-002 | ScriviCore Services — Project Lifecycle and Repair | EP-002 | 2026-05-20 | TBD | 🟡 Active |
+| SP-003 | ScriviCore Swift Interop | EP-002 | TBD | TBD | 🔵 Planning |
 
 ## Statistics
 
-- **Total Sprints:** 1
-- **Closed:** 0 ✅
+- **Total Sprints:** 3
+- **Closed:** 1 ✅
 - **Active:** 1 🟡
-- **Planning:** 0 🔵
+- **Planning:** 1 🔵
 
 ---
 
-*Last Updated: 2026-05-19*
+*Last Updated: 2026-05-20*
