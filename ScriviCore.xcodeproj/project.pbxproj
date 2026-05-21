@@ -132,6 +132,9 @@
 		F039 /* AtomicWrite.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AtomicWrite.cpp; path = ScriviCore/src/util/AtomicWrite.cpp; sourceTree = SOURCE_ROOT; };
 		F040 /* Hash.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Hash.hpp; path = ScriviCore/src/util/Hash.hpp; sourceTree = SOURCE_ROOT; };
 		F041 /* Hash.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Hash.cpp; path = ScriviCore/src/util/Hash.cpp; sourceTree = SOURCE_ROOT; };
+		F042 /* AppSupportLayout.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AppSupportLayout.hpp; path = ScriviCore/src/util/AppSupportLayout.hpp; sourceTree = SOURCE_ROOT; };
+		F043 /* AppSupportLayout.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AppSupportLayout.cpp; path = ScriviCore/src/util/AppSupportLayout.cpp; sourceTree = SOURCE_ROOT; };
+		B006 /* AppSupportLayoutTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AppSupportLayoutTests.cpp; path = ScriviCore/tests/integration/AppSupportLayoutTests.cpp; sourceTree = SOURCE_ROOT; };
 		F050 /* PathUtilsTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PathUtilsTests.cpp; path = ScriviCore/tests/unit/PathUtilsTests.cpp; sourceTree = SOURCE_ROOT; };
 		F051 /* SlugTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SlugTests.cpp; path = ScriviCore/tests/unit/SlugTests.cpp; sourceTree = SOURCE_ROOT; };
 		F052 /* TextStatsTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TextStatsTests.cpp; path = ScriviCore/tests/unit/TextStatsTests.cpp; sourceTree = SOURCE_ROOT; };
@@ -139,6 +142,11 @@
 		F060 /* NullLogger.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = NullLogger.hpp; path = ScriviCore/src/platform/NullLogger.hpp; sourceTree = SOURCE_ROOT; };
 		F061 /* LocalFileSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = LocalFileSystem.hpp; path = ScriviCore/src/platform/LocalFileSystem.hpp; sourceTree = SOURCE_ROOT; };
 		F062 /* LocalFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LocalFileSystem.cpp; path = ScriviCore/src/platform/LocalFileSystem.cpp; sourceTree = SOURCE_ROOT; };
+		F063 /* SystemUUIDProvider.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SystemUUIDProvider.hpp; path = ScriviCore/src/platform/SystemUUIDProvider.hpp; sourceTree = SOURCE_ROOT; };
+		F064 /* SystemUUIDProvider.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemUUIDProvider.cpp; path = ScriviCore/src/platform/SystemUUIDProvider.cpp; sourceTree = SOURCE_ROOT; };
+		C001 /* IdentityService.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = IdentityService.hpp; path = ScriviCore/src/identity/IdentityService.hpp; sourceTree = SOURCE_ROOT; };
+		C002 /* IdentityService.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IdentityService.cpp; path = ScriviCore/src/identity/IdentityService.cpp; sourceTree = SOURCE_ROOT; };
+		B007 /* IdentityTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IdentityTests.cpp; path = ScriviCore/tests/integration/IdentityTests.cpp; sourceTree = SOURCE_ROOT; };
 		F070 /* FixedClock.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = FixedClock.hpp; path = ScriviCore/tests/mocks/FixedClock.hpp; sourceTree = SOURCE_ROOT; };
 		F071 /* DeterministicUUIDProvider.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = DeterministicUUIDProvider.hpp; path = ScriviCore/tests/mocks/DeterministicUUIDProvider.hpp; sourceTree = SOURCE_ROOT; };
 		F072 /* MockSecureStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = MockSecureStore.hpp; path = ScriviCore/tests/mocks/MockSecureStore.hpp; sourceTree = SOURCE_ROOT; };
@@ -184,6 +192,8 @@
 		86E6487A2FBE02E400376B3D /* identity */ = {
 			isa = PBXGroup;
 			children = (
+				C001 /* IdentityService.hpp */,
+				C002 /* IdentityService.cpp */,
 			);
 			name = identity;
 			sourceTree = "<group>";
@@ -398,6 +408,8 @@
 				F060 /* NullLogger.hpp */,
 				F061 /* LocalFileSystem.hpp */,
 				F062 /* LocalFileSystem.cpp */,
+				F063 /* SystemUUIDProvider.hpp */,
+				F064 /* SystemUUIDProvider.cpp */,
 			);
 			name = platform;
 			sourceTree = "<group>";
@@ -467,6 +479,8 @@
 		GRP_INTEGRATION /* integration */ = {
 			isa = PBXGroup;
 			children = (
+				B006 /* AppSupportLayoutTests.cpp */,
+				B007 /* IdentityTests.cpp */,
 				B001 /* CreateProjectTests.cpp */,
 				B002 /* OpenProjectTests.cpp */,
 				B003 /* SaveSceneTests.cpp */,
@@ -494,6 +508,8 @@
 		GRP_UTIL /* util */ = {
 			isa = PBXGroup;
 			children = (
+				F042 /* AppSupportLayout.hpp */,
+				F043 /* AppSupportLayout.cpp */,
 				F030 /* PathUtils.hpp */,
 				F031 /* PathUtils.cpp */,
 				F032 /* Slug.hpp */,

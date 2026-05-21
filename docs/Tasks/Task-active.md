@@ -4,12 +4,12 @@
 
 ## T-0013: appSupportRoot Directory Bootstrap
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend) — app-local path layer
 **Priority:** High
 **Epic:** EP-003: Identity and First Launch
 **Date Requested:** 2026-05-20
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-003
 
@@ -39,7 +39,12 @@ A small `AppSupportLayout` struct or free function in `src/util/` or `src/platfo
 - `ScriviCore.xcodeproj/project.pbxproj` — must be updated in the same step
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `AppSupportLayout.hpp/.cpp` added to `src/util/`
+- `bootstrapAppSupport()` iterates five required subdirs (`identity/`, `state/projects/`, `cache/projects/`, `logs/`, `tmp/`) calling `FileSystem::createDirectories()` on each; first failure returns immediately
+- Facade (`src/public_api/ScriviCore.cpp`) calls `bootstrapAppSupport()` at the top of `ensureLocalIdentity()`, `createProject()`, and `openProject()`; any bootstrap failure propagates as the facade's error
+- `AppSupportLayoutTests.cpp` added to `tests/integration/` — 4 tests (Tests 53–56)
+- `CMakeLists.txt` updated in both `ScriviCore/` and `tests/`
+- `project.pbxproj` updated with new file references and group entries
 
 **Test Steps:**
 1. Call `ensureLocalIdentity()` (via T-0012) with a completely empty temp directory as `appSupportRoot` — all subdirectories (`identity/`, `state/projects/`, `cache/projects/`, `logs/`, `tmp/`) exist afterward
@@ -55,12 +60,12 @@ The `identity/` subdirectory is created by bootstrap but ScriviCore never writes
 
 ## T-0012: Identity Service and UUID Provider
 
-**Status:** 🟡 Active
+**Status:** 🟡 Implemented - Not Verified
 **Component:** ScriviCore (C++ backend) — identity layer
 **Priority:** High
 **Epic:** EP-003: Identity and First Launch
 **Date Requested:** 2026-05-20
-**Date Implemented:** —
+**Date Implemented:** 2026-05-20
 **Date Verified:** —
 **Sprint Assigned:** SP-003
 
@@ -95,7 +100,11 @@ Key material scoping: the Behavior Spec (Section 5.3) and API sketch (Section 20
 - `ScriviCore.xcodeproj/project.pbxproj` — must be updated in the same step
 
 **Implementation Details:**
-*To be filled in during implementation.*
+- `src/identity/IdentityService.hpp/.cpp` — `ensureLocalIdentity()` checks `SecureStore` for key `"scrivi.identity.v1"`; returns existing identity if present, otherwise generates new `IdentityID`/`PersonaID` via `UUIDProvider`, builds a JSON bundle (identity ID, persona ID, display name, device ID, 32-byte hex secret material), stores as `SecretBytes`, returns `createdNewIdentity=true`; any `SecureStore` failure propagates as `secureStoreError`
+- `src/platform/SystemUUIDProvider.hpp/.cpp` — UUID v7-style generation using 48-bit Unix millisecond timestamp in high bits, random low bits, RFC 9562 version/variant nibbles; formatted as `<prefix>_<xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx>`
+- `src/public_api/ScriviCore.cpp` — `ensureLocalIdentity()` now delegates to `IdentityService` after bootstrap
+- `tests/integration/IdentityTests.cpp` — 6 tests (Tests 57–62): new identity creation, prefixed IDs, idempotency, `SecureStore` failure path, no plaintext in `identity/` dir, `createProject()` with real `AuthorshipRef`
+- Test 54 (AppSupportLayoutTests) updated: assertion corrected now that `ensureLocalIdentity()` succeeds instead of returning a stub error
 
 **Test Steps:**
 1. Call `ensureLocalIdentity()` with a fresh `MockSecureStore` and a valid `appSupportRoot` — result is success, `createdNewIdentity == true`, `identityID` and `defaultPersonaID` are non-empty with correct prefixes

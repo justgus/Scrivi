@@ -15,8 +15,8 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0013 | appSupportRoot Directory Bootstrap | High | 🟡 Active |
-| T-0012 | Identity Service and UUID Provider | High | 🟡 Active |
+| T-0013 | appSupportRoot Directory Bootstrap | High | 🟡 Implemented - Not Verified |
+| T-0012 | Identity Service and UUID Provider | High | 🟡 Implemented - Not Verified |
 | T-0011 | Swift Interop Prototype | High | 🟡 Active |
 
 ### Assigned Issues

@@ -84,8 +84,8 @@ EP-002 begins after EP-001 is closed and verified. Scope drawn from Section 16, 
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| T-0013 | appSupportRoot Directory Bootstrap | 🟡 Active |
-| T-0012 | Identity Service and UUID Provider | 🟡 Active |
+| T-0013 | appSupportRoot Directory Bootstrap | 🟡 Implemented - Not Verified |
+| T-0012 | Identity Service and UUID Provider | 🟡 Implemented - Not Verified |
 
 ### Issues
 

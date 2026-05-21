@@ -17,6 +17,8 @@ add_executable(ScriviCoreTests
     unit/JsonSchemaTests.cpp
     unit/MockServicesTests.cpp
     unit/SchemaTests.cpp
+    integration/AppSupportLayoutTests.cpp
+    integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp
     integration/OpenProjectTests.cpp
     integration/SaveSceneTests.cpp

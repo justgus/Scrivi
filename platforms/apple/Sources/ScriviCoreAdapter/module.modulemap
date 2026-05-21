@@ -1,0 +1,5 @@
+module ScriviCoreAdapter {
+    header "ScriviCoreAdapter.hpp"
+    requires cplusplus
+    export *
+}

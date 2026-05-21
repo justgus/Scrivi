@@ -1,10 +1,12 @@
 #include "scrivi/ScriviCore.hpp"
 
 #include "git/SnapshotService.hpp"
+#include "identity/IdentityService.hpp"
 #include "manuscript/SceneWriter.hpp"
 #include "project_package/ProjectCreator.hpp"
 #include "project_package/ProjectOpener.hpp"
 #include "repair/ExternalChangeScanner.hpp"
+#include "util/AppSupportLayout.hpp"
 
 namespace scrivi {
 
@@ -12,19 +14,25 @@ ScriviCore::ScriviCore(CoreServices services)
     : services_(services) {}
 
 Result<EnsureIdentityResult> ScriviCore::ensureLocalIdentity(
-    const EnsureIdentityRequest&) {
-    return Result<EnsureIdentityResult>::failure(
-        {ErrorCode::internalError, "not implemented"});
+    const EnsureIdentityRequest& request) {
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+        return Result<EnsureIdentityResult>::failure(r.error());
+    identity::IdentityService svc{services_};
+    return svc.ensureLocalIdentity(request);
 }
 
 Result<CreateProjectResult> ScriviCore::createProject(
     const CreateProjectRequest& request) {
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+        return Result<CreateProjectResult>::failure(r.error());
     project_package::ProjectCreator creator{services_};
     return creator.create(request);
 }
 
 Result<OpenProjectResult> ScriviCore::openProject(
     const OpenProjectRequest& request) {
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+        return Result<OpenProjectResult>::failure(r.error());
     project_package::ProjectOpener opener{services_};
     return opener.open(request);
 }

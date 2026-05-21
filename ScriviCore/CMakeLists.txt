@@ -21,6 +21,8 @@ target_include_directories(ScriviCore
 target_sources(ScriviCore
     PRIVATE
         src/public_api/ScriviCore.cpp
+        src/identity/IdentityService.cpp
+        src/platform/SystemUUIDProvider.cpp
         src/project_package/ProjectCreator.cpp
         src/project_package/ProjectValidator.cpp
         src/project_package/ProjectOpener.cpp
@@ -32,6 +34,7 @@ target_sources(ScriviCore
         src/repair/ExternalChangeScanner.cpp
         src/git/SystemGitProvider.cpp
         src/git/SnapshotService.cpp
+        src/util/AppSupportLayout.cpp
         src/util/Process.cpp
         src/util/PathUtils.cpp
         src/util/Slug.cpp

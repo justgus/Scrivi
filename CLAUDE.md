@@ -29,32 +29,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The design documents in `docs/` are the authoritative source of truth for architecture, behavior, and implementation decisions. Any contradiction between this file and the design docs must be surfaced and reconciled before implementation begins.
 
 Key documents:
-- `docs/Scrivi_Backend_Architecture_v0_2.md` — approved architecture and 31 architectural decisions
-- `docs/Scrivi_Backend_Behavior_Spec_v0_1.md` — operational behavior specification
+- `docs/Scrivi_Architecture_v0_3.md` — **current approved architecture** (supersedes v0.2); pass-by-value principle, JSON-over-string boundary, confirmed decisions
+- `docs/Scrivi_Backend_Behavior_Spec_v0_2.md` — operational behavior specification
 - `docs/Scrivi_Backend_MVP_Slice_v0_1.md` — minimum viable backend slice definition
 - `docs/Scrivi_Cpp24_Backend_Core_Plan_v0_1.md` — C++24 backend implementation plan (8 milestones)
-- `docs/Scrivi_Cpp24_Core_API_Sketch_v0_2.md` — public API shape, types, and 29 approved decisions
-- `docs/Scrivi_Cpp24_Core_Repository_Skeleton_v0_1.md` — repository structure and CMake layout
+- `docs/Scrivi_Cpp24_Core_API_Sketch_v0_3.md` — public API shape, types, boundary protocol, approved decisions
+- `docs/Scrivi_Cpp24_Core_Repository_Skeleton_v0_2.md` — repository structure, CMake layout, adapter design, SPM package
+- `docs/Scrivi_Apple_Wrapper_Design_v0_1.md` — ScriviCoreAdapter and ScriviEngine design (JSON-over-string boundary)
 - `docs/Scrivi_Project_Package_Structure_v0_1.md` — on-disk `.scrivi` package layout
 - `docs/Scrivi_Minimum_Schema_Set_v0_1.md` — required JSON schemas
-- `docs/Scrivi_Project_Creation_and_Open_Flow_v0_1.md` — first-launch and project lifecycle flows
-- `docs/Scrivi_External_Change_Repair_Matrix_v0_1.md` — 20 failure conditions and repair behavior
+- `docs/Scrivi_Project_Creation_and_Open_Flow_v0_2.md` — first-launch and project lifecycle flows
+- `docs/Scrivi_External_Change_Repair_Matrix_v0_2.md` — 20 failure conditions and repair behavior
 - `docs/Scrivi_Backend_Runtime_Trade_Study_v0_2.md` — rationale for C++24 backend selection
+- `docs/Scrivi_Swift_Interop_Trade_Study_v0_1.md` — why JSON-over-string is the permanent boundary protocol
 
-### Backend: C++24 (ScriviCore)
+### Backend: C++23 (ScriviCore)
 
-The approved architecture uses a **shared C++24 static library (ScriviCore)** as the single backend core across all platforms. This was the explicit outcome of the runtime trade study. SwiftData is not the data layer — project data is stored as JSON files on disk inside a `.scrivi` project package, managed entirely by ScriviCore.
+The approved architecture uses a **shared C++23 static library (ScriviCore)** as the single backend core across all platforms. SwiftData is not the data layer — project data is stored as JSON files on disk inside a `.scrivi` project package, managed entirely by ScriviCore.
 
 - All project I/O, schema read/write, identity management, Git snapshots, and external change detection live in C++.
-- The Apple platform (Swift) calls into ScriviCore via Swift/C++ direct interop — no Objective-C bridging.
+- The Apple platform (Swift) calls into ScriviCore through `ScriviCoreAdapter` — a permanent C++ shim that serializes results to `std::string` JSON. No Objective-C bridging.
+- The boundary protocol is **JSON-over-`std::string`**, permanent. Swift/C++ direct struct interop with ScriviCore public headers is not the boundary strategy.
 - No backend logic is reimplemented in Swift. Swift is responsible for UI only.
 
-### Apple Platform Layer (future — not yet begun)
+### Apple Platform Layer (interop prototype complete)
 
-The Swift/Apple layer will be a thin wrapper over ScriviCore. It does not own the data model. UI work begins after the C++ core is sufficiently complete.
+The Swift/Apple layer is a thin wrapper over ScriviCore via `ScriviCoreAdapter`. The interop prototype (T-0011) is complete. UI work (SwiftUI) begins after the C++ core is sufficiently complete.
 
-- Swift/C++ direct interop (approved in `Scrivi_Cpp24_Core_API_Sketch_v0_2.md`, Section on interop strategy)
-- SwiftUI for all UI on Apple platforms
+- `ScriviCoreAdapter` (C++) accepts `const char*` inputs, returns `std::string` JSON results by value.
+- `ScriviEngine.swift` holds the adapter, converts Swift types, decodes JSON envelopes, throws `ScriviError`.
+- SPM package at `platforms/apple/` with three targets: `ScriviCoreAdapter`, `Scrivi`, `ScriviInteropTests`.
+- SwiftUI for all UI on Apple platforms (not yet started)
 - CloudKit for sync (future — not in current Epics)
 - PencilKit, MapKit, RealityKit as appropriate per platform
 
