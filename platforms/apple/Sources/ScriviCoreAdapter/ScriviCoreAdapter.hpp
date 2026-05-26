@@ -64,6 +64,26 @@ public:
         const char* personaID,
         const char* displayName);
 
+    std::string scanForExternalChanges(
+        const char* projectRootPath,
+        const char* appSupportRoot,
+        bool        includeGitStatus);
+
+    std::string enableGitSnapshots(
+        const char* projectRootPath,
+        const char* identityID,
+        const char* personaID,
+        const char* displayName,
+        const char* initialSnapshotLabel);
+
+    std::string createSnapshot(
+        const char* projectRootPath,
+        const char* identityID,
+        const char* personaID,
+        const char* displayName,
+        const char* label,
+        const char* note);
+
 private:
     ScriviAdapter();
     ~ScriviAdapter();

@@ -1,4 +1,4 @@
-#include "Slug.hpp"
+#include "domain/Slug.hpp"
 
 #include <algorithm>
 #include <cctype>

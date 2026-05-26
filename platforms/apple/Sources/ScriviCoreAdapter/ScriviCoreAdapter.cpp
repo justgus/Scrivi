@@ -4,6 +4,7 @@
 #include "scrivi/Requests.hpp"
 #include "scrivi/Results.hpp"
 #include "scrivi/Services.hpp"
+#include "git/SystemGitProvider.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
 #include "util/Json.hpp"
@@ -82,6 +83,7 @@ struct ScriviAdapter::Impl {
     scrivi::platform::SystemUUIDProvider uuidProvider;
     PrototypeClock                       clock;
     PrototypeSecureStore                 secureStore;
+    scrivi::git::SystemGitProvider       gitProvider;
     std::unique_ptr<scrivi::ScriviCore>  core;
 
     Impl() {
@@ -90,7 +92,7 @@ struct ScriviAdapter::Impl {
         svc.uuidProvider = &uuidProvider;
         svc.secureStore  = &secureStore;
         svc.clock        = &clock;
-        svc.gitProvider  = nullptr;
+        svc.gitProvider  = &gitProvider;
         svc.logger       = nullptr;
         core = std::make_unique<scrivi::ScriviCore>(svc);
     }
@@ -211,6 +213,19 @@ std::string ScriviAdapter::openProject(
 
     const auto& v = result.value();
 
+    // If the project can't be opened (missing files, blocking repair issues),
+    // surface this as an error rather than returning an incomplete result struct.
+    if (v.mode == scrivi::OpenMode::cannotOpen ||
+        v.mode == scrivi::OpenMode::repairRequired)
+    {
+        scrivi::Error err;
+        err.code    = scrivi::ErrorCode::repairRequired;
+        err.message = v.repairIssues.empty()
+            ? "Project cannot be opened"
+            : v.repairIssues.front().title;
+        return errorEnvelope(err);
+    }
+
     scrivi::util::JsonDoc scene;
     if (v.activeScene.has_value()) {
         scene.setString("sceneID",      v.activeScene->sceneID.value);
@@ -259,6 +274,87 @@ std::string ScriviAdapter::saveScene(
     doc.setString("sceneID",   v.sceneID.value);
     doc.setBool("saved",       v.saved);
     doc.setInt("wordCount",    static_cast<int>(v.wordCount));
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::scanForExternalChanges(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    bool        includeGitStatus)
+{
+    scrivi::ExternalChangeScanRequest req;
+    req.projectRootPath  = projectRootPath ? projectRootPath : "";
+    req.appSupportRoot   = appSupportRoot  ? appSupportRoot  : "";
+    req.includeGitStatus = includeGitStatus;
+
+    auto result = impl_->core->scanForExternalChanges(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("projectID",               v.projectID.value);
+    doc.setBool("indexesDirty",              v.indexesDirty);
+    doc.setBool("gitStatusChecked",          v.gitStatusChecked);
+    doc.setBool("hasUnsnapshottedChanges",   v.hasUnsnapshottedChanges);
+    doc.setInt("issueCount", static_cast<int>(v.repairIssues.size()));
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::enableGitSnapshots(
+    const char* projectRootPath,
+    const char* identityID,
+    const char* personaID,
+    const char* displayName,
+    const char* initialSnapshotLabel)
+{
+    scrivi::EnableGitRequest req;
+    req.projectRootPath       = projectRootPath       ? projectRootPath       : "";
+    req.initialSnapshotLabel  = initialSnapshotLabel  ? initialSnapshotLabel  : "Initial project";
+    req.author = {
+        scrivi::IdentityID{identityID  ? identityID  : ""},
+        scrivi::PersonaID {personaID   ? personaID   : ""},
+        displayName ? displayName : ""
+    };
+
+    auto result = impl_->core->enableGitSnapshots(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setBool("gitInitialized",    v.gitInitialized);
+    doc.setBool("alreadyRepository", v.alreadyRepository);
+    doc.setString("initialSnapshotID", v.initialSnapshotID.value);
+    doc.setString("initialCommitID",   v.initialCommitID.value);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::createSnapshot(
+    const char* projectRootPath,
+    const char* identityID,
+    const char* personaID,
+    const char* displayName,
+    const char* label,
+    const char* note)
+{
+    scrivi::CreateSnapshotRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.label           = label           ? label           : "";
+    req.note            = note            ? note            : "";
+    req.author = {
+        scrivi::IdentityID{identityID  ? identityID  : ""},
+        scrivi::PersonaID {personaID   ? personaID   : ""},
+        displayName ? displayName : ""
+    };
+
+    auto result = impl_->core->createSnapshot(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("snapshotID", v.snapshotID.value);
+    doc.setString("commitID",   v.commitID.value);
+    doc.setString("createdAt",  v.createdAt);
+    doc.setBool("created",      v.created);
     return okEnvelope(std::move(doc));
 }
 

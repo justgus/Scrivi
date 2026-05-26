@@ -1,6 +1,6 @@
 # Issues (I) - Index
 
-This is the main index for all Cumberland Issues. Issues track bugs and unintended system behavior.
+This is the main index for all Scrivi Issues. Issues track bugs and unintended system behavior.
 
 > **Note:** For planned improvements and new features, see [Tasks (T)][1]
 > 
@@ -15,19 +15,19 @@ This is the main index for all Cumberland Issues. Issues track bugs and unintend
 
 Currently: **0 active issues**
 
-| I#  | Title | Status | Date |
+| I\# | Title | Status | Date |
 | --- | ----- | ------ | ---- |
 |     |       |        |      |
 
-See: [Issue-active.md](Issue-active.md)
+See: [Issue-active.md][2]
 
 ## Verified Issues
 
 Currently: **1 verified issue** | Next available I#: **I-0002**
 
-| Batch | DRs | File | Status |
-| ----- | --- | ---- | ------ |
-| 1 | I-0001 – I-0010 | [Issue-verified-0001-0010.md](Verified/Issue-verified-0001-0010.md) | 🟡 In Progress (1/10) |
+| Batch | DRs             | File                             | Status                |
+| ----- | --------------- | -------------------------------- | --------------------- |
+| 1     | I-0001 – I-0010 | [Issue-verified-0001-0010.md][3] | 🟡 In Progress (1/10) |
 
 ## Closed Issues (Not Verified)
 
@@ -56,4 +56,5 @@ Currently: **0 closed issues**
 
 
 [1]:	./ER-Documentation.md
-[2]:	./DR-unverified.md
+[2]:	Issue-active.md
+[3]:	Verified/Issue-verified-0001-0010.md

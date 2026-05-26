@@ -14,23 +14,26 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **0 backlog Tasks**
+Currently: **6 backlog Tasks**
 
 | Task   | Title | Epic | Priority | Status |
 | ------ | ----- | ---- | -------- | ------ |
-|        |       |      |          |        |
+| T-0028 | `RepairIssueJson` Schema Module | EP-004 | High | 🔵 Backlog |
+| T-0029 | `applyRepair` Facade Method — Request, Result, and Dispatch | EP-004 | High | 🔵 Backlog |
+| T-0030 | Repair Handlers — Manuscript File Operations | EP-004 | High | 🔵 Backlog |
+| T-0031 | Automatic Rename Detection in `RepairClassifier` | EP-004 | Medium | 🔵 Backlog |
+| T-0032 | Integration Tests for `applyRepair` | EP-004 | High | 🔵 Backlog |
+| T-0033 | Adapter — `applyRepair` Method + Full `RepairIssue` Serialization in Scan/Open Results | EP-004 | High | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **3 active Tasks**
+Currently: **0 active Tasks**
 
 | Task   | Title | Epic | Sprint | Status |
 | ------ | ----- | ---- | ------ | ------ |
-| T-0013 | appSupportRoot Directory Bootstrap | EP-003 | SP-003 | 🟡 Active |
-| T-0012 | Identity Service and UUID Provider | EP-003 | SP-003 | 🟡 Active |
-| T-0011 | Swift Interop Prototype | EP-002 | SP-003 | 🟡 Active |
+| —      | None  | —    | —      | —      |
 
 See: [Task-active.md](Task-active.md)
 
@@ -44,7 +47,7 @@ Currently: **0 unverified Tasks**
 
 ## Verified Tasks
 
-Currently: **10 verified Tasks** | Next available: **T-0014**
+Currently: **27 verified Tasks** | Next available: **T-0034**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -58,14 +61,31 @@ Currently: **10 verified Tasks** | Next available: **T-0014**
 | T-0008 | Save Scene | [Task-verified-0008.md](Verified/Task-verified-0008.md) | ✅ Verified |
 | T-0009 | External Change Scan | [Task-verified-0009.md](Verified/Task-verified-0009.md) | ✅ Verified |
 | T-0010 | Git Snapshots | [Task-verified-0010.md](Verified/Task-verified-0010.md) | ✅ Verified |
+| T-0011 | Swift Interop Prototype | [Task-verified-0011.md](Verified/Task-verified-0011.md) | ✅ Verified |
+| T-0012 | Identity Service and UUID Provider | [Task-verified-0012.md](Verified/Task-verified-0012.md) | ✅ Verified |
+| T-0013 | appSupportRoot Directory Bootstrap | [Task-verified-0013.md](Verified/Task-verified-0013.md) | ✅ Verified |
+| T-0014 | Introduce `src/domain/` and Relocate Slug and TextStats | [Task-verified-0014.md](Verified/Task-verified-0014.md) | ✅ Verified |
+| T-0015 | Move `AppSupportLayout` from `src/util/` to `src/platform/` | [Task-verified-0015.md](Verified/Task-verified-0015.md) | ✅ Verified |
+| T-0016 | Merge `MockServicesTests.cpp` into `ResultTests.cpp` | [Task-verified-0016.md](Verified/Task-verified-0016.md) | ✅ Verified |
+| T-0017 | Merge `SchemaTests.cpp` into `JsonSchemaTests.cpp` | [Task-verified-0017.md](Verified/Task-verified-0017.md) | ✅ Verified |
+| T-0018 | First Green Build and Full Test Suite Verification | [Task-verified-0018.md](Verified/Task-verified-0018.md) | ✅ Verified |
+| T-0019 | Add `SnapshotMetadataJson` Schema | [Task-verified-0019.md](Verified/Task-verified-0019.md) | ✅ Verified |
+| T-0020 | Add `SnapshotMetadataJson` Test Coverage | [Task-verified-0020.md](Verified/Task-verified-0020.md) | ✅ Verified |
+| T-0021 | Milestone 10 Verification — External Change Scan | [Task-verified-0021.md](Verified/Task-verified-0021.md) | ✅ Verified |
+| T-0022 | Milestone 11 Verification — Git Snapshots | [Task-verified-0022.md](Verified/Task-verified-0022.md) | ✅ Verified |
+| T-0023 | Extract `ScriviError.swift` as a Separate File | [Task-verified-0023.md](Verified/Task-verified-0023.md) | ✅ Verified |
+| T-0024 | Add Adapter Methods for `scanForExternalChanges`, `enableGitSnapshots`, `createSnapshot` | [Task-verified-0024.md](Verified/Task-verified-0024.md) | ✅ Verified |
+| T-0025 | Add Swift Engine Methods for `scanForExternalChanges`, `enableGitSnapshots`, `createSnapshot` | [Task-verified-0025.md](Verified/Task-verified-0025.md) | ✅ Verified |
+| T-0026 | Add Swift Interop Tests for New Adapter Methods | [Task-verified-0026.md](Verified/Task-verified-0026.md) | ✅ Verified |
+| T-0027 | Full MVP Loop Integration Test | [Task-verified-0027.md](Verified/Task-verified-0027.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 13
-- **Verified:** 10 (77%) ✅
-- **Active:** 3 (23%) 🟡
-- **Backlog:** 0 (0%) 🔵
+- **Total Tasks:** 33
+- **Verified:** 27 (82%) ✅
+- **Active:** 0 (0%) 🟡
+- **Backlog:** 6 (18%) 🔵
 
 ---
 
-*Last Updated: 2026-05-20* (SP-003 started; T-0011, T-0012, T-0013 moved to active)
+*Last Updated: 2026-05-26 (T-0011 through T-0027 verified; T-0028 through T-0033 added for EP-004)*

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
 
 #include <optional>
@@ -69,6 +70,15 @@ struct CreateSnapshotRequest {
     AuthorshipRef author;
     std::string   label;
     std::string   note;
+};
+
+struct ApplyRepairRequest {
+    std::string       issueID;
+    AbsolutePath      projectRootPath;
+    AbsolutePath      appSupportRoot;
+    RepairActionKind  actionKind = RepairActionKind::none;
+    std::string       targetPath;   // optional — used for relink/move operations
+    AuthorshipRef     author;
 };
 
 } // namespace scrivi

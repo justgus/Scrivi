@@ -32,13 +32,15 @@ target_sources(ScriviCore
         src/workspace/WorkspaceStateService.cpp
         src/repair/RepairClassifier.cpp
         src/repair/ExternalChangeScanner.cpp
+        src/repair/RepairDispatcher.cpp
         src/git/SystemGitProvider.cpp
         src/git/SnapshotService.cpp
-        src/util/AppSupportLayout.cpp
+        src/domain/IDs.cpp
+        src/domain/Slug.cpp
+        src/domain/TextStats.cpp
+        src/platform/AppSupportLayout.cpp
         src/util/Process.cpp
         src/util/PathUtils.cpp
-        src/util/Slug.cpp
-        src/util/TextStats.cpp
         src/util/Json.cpp
         src/util/AtomicWrite.cpp
         src/util/Hash.cpp
@@ -50,6 +52,8 @@ target_sources(ScriviCore
         src/schemas/ProjectMembersJson.cpp
         src/schemas/ProjectPersonasJson.cpp
         src/schemas/WorkspaceStateJson.cpp
+        src/schemas/SnapshotMetadataJson.cpp
+        src/schemas/RepairIssueJson.cpp
 )
 
 target_link_libraries(ScriviCore

@@ -88,4 +88,12 @@ struct CreateSnapshotResult {
     bool             created = false;
 };
 
+struct ApplyRepairResult {
+    std::string       issueID;
+    RepairActionKind  actionApplied = RepairActionKind::none;
+    bool              resolved = false;
+    std::string       detail;                      // human-readable outcome
+    std::vector<RepairIssue> warnings;             // any new issues discovered during repair
+};
+
 } // namespace scrivi

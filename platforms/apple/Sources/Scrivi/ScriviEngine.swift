@@ -112,6 +112,66 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decode(json)
     }
+
+    // MARK: — scanForExternalChanges
+
+    public func scanForExternalChanges(
+        projectRootPath: String,
+        appSupportRoot: String,
+        includeGitStatus: Bool = true
+    ) throws -> ScanResult {
+        let json = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                adapter.scanForExternalChanges(prp, asr, includeGitStatus)
+            }
+        }
+        return try decode(json)
+    }
+
+    // MARK: — enableGitSnapshots
+
+    public func enableGitSnapshots(
+        projectRootPath: String,
+        authorshipRef: AuthorshipRef,
+        initialSnapshotLabel: String = "Initial project"
+    ) throws -> EnableGitResult {
+        let json = projectRootPath.withCString { prp in
+            authorshipRef.identityID.withCString { iid in
+                authorshipRef.personaID.withCString { pid in
+                    authorshipRef.displayName.withCString { dn in
+                        initialSnapshotLabel.withCString { label in
+                            adapter.enableGitSnapshots(prp, iid, pid, dn, label)
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    // MARK: — createSnapshot
+
+    public func createSnapshot(
+        projectRootPath: String,
+        authorshipRef: AuthorshipRef,
+        label: String,
+        note: String = ""
+    ) throws -> CreateSnapshotResult {
+        let json = projectRootPath.withCString { prp in
+            authorshipRef.identityID.withCString { iid in
+                authorshipRef.personaID.withCString { pid in
+                    authorshipRef.displayName.withCString { dn in
+                        label.withCString { lbl in
+                            note.withCString { n in
+                                adapter.createSnapshot(prp, iid, pid, dn, lbl, n)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
 }
 
 // MARK: — Swift result types
@@ -164,36 +224,26 @@ public struct SaveSceneResult: Decodable, Sendable {
     public let wordCount: Int
 }
 
-// MARK: — Error type
-
-public struct ScriviError: Error, Sendable {
-    public let code:    Int
-    public let message: String
+public struct ScanResult: Decodable, Sendable {
+    public let projectID:                 String
+    public let indexesDirty:              Bool
+    public let gitStatusChecked:          Bool
+    public let hasUnsnapshottedChanges:   Bool
+    public let issueCount:                Int
 }
 
-// MARK: — JSON envelope decoding
-
-private struct Envelope<T: Decodable>: Decodable {
-    let ok:     Bool
-    let result: T?
-    let error:  ErrorPayload?
+public struct EnableGitResult: Decodable, Sendable {
+    public let gitInitialized:    Bool
+    public let alreadyRepository: Bool
+    public let initialSnapshotID: String
+    public let initialCommitID:   String
 }
 
-private struct ErrorPayload: Decodable {
-    let code:    Int
-    let message: String
+public struct CreateSnapshotResult: Decodable, Sendable {
+    public let snapshotID: String
+    public let commitID:   String
+    public let createdAt:  String
+    public let created:    Bool
 }
 
-private func decode<T: Decodable>(_ cxxString: std.string) throws -> T {
-    let json = String(cxxString)
-    let data = Data(json.utf8)
-    let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
-    if !envelope.ok {
-        let e = envelope.error ?? ErrorPayload(code: -1, message: "unknown error")
-        throw ScriviError(code: e.code, message: e.message)
-    }
-    guard let result = envelope.result else {
-        throw ScriviError(code: -1, message: "ok=true but result missing")
-    }
-    return result
-}
+// ScriviError, Envelope, ErrorPayload, and decode() are in ScriviError.swift.

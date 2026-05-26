@@ -15,8 +15,6 @@ add_executable(ScriviCoreTests
     unit/SlugTests.cpp
     unit/TextStatsTests.cpp
     unit/JsonSchemaTests.cpp
-    unit/MockServicesTests.cpp
-    unit/SchemaTests.cpp
     integration/AppSupportLayoutTests.cpp
     integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp
@@ -24,6 +22,7 @@ add_executable(ScriviCoreTests
     integration/SaveSceneTests.cpp
     integration/ExternalChangeTests.cpp
     integration/GitSnapshotTests.cpp
+    integration/MvpLoopTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

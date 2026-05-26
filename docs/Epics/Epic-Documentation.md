@@ -18,32 +18,33 @@ See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **4 proposed Epics**
+Currently: **2 proposed Epics**
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **6 Epics** | Next available: **EP-007**
+Currently: **7 Epics** | Next available: **EP-008**
 
 | Epic   | Title | Status | Start | Target Close |
 | ------ | ----- | ------ | ----- | ------------ |
 | EP-001 | ScriviCore Foundation | ✅ Closed | 2026-05-19 | 2026-05-20 |
-| EP-002 | ScriviCore Services | 🟡 Active | 2026-05-20 | TBD |
-| EP-003 | Identity and First Launch | 🟡 Active | 2026-05-20 | TBD |
-| EP-004 | Repair and Recovery | 🔵 Proposed | — | TBD |
+| EP-002 | ScriviCore Services | ✅ Closed | 2026-05-20 | 2026-05-26 |
+| EP-003 | Identity and First Launch | ✅ Closed | 2026-05-20 | 2026-05-26 |
+| EP-004 | Repair and Recovery | 🟡 Active | 2026-05-26 | TBD |
 | EP-005 | Full Project Package — Objects, Assets, and Comments | 🔵 Proposed | — | TBD |
 | EP-006 | Swift Interop and Apple Shell | 🔵 Proposed | — | TBD |
+| EP-007 | Skeleton v0.2 Migration | ✅ Closed | 2026-05-22 | 2026-05-26 |
 
 ## Statistics
 
-- **Total Epics:** 6
-- **Closed:** 1 ✅
+- **Total Epics:** 7
+- **Closed:** 4 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 2 🟡
+- **Active:** 1 🟡
 - **Draft:** 0 🔵
-- **Proposed (backlog):** 3 🔵
+- **Proposed (backlog):** 2 🔵
 
 ---
 
-*Last Updated: 2026-05-20*
+*Last Updated: 2026-05-26 (EP-004 activated; SP-008 and SP-009 planning docs created)*

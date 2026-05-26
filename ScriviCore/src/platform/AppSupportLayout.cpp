@@ -1,6 +1,6 @@
-#include "AppSupportLayout.hpp"
+#include "platform/AppSupportLayout.hpp"
 
-#include "PathUtils.hpp"
+#include "util/PathUtils.hpp"
 
 namespace scrivi::util {
 

@@ -18,6 +18,7 @@ public:
     Result<ExternalChangeScanResult> scanForExternalChanges(const ExternalChangeScanRequest& request);
     Result<EnableGitResult>         enableGitSnapshots(const EnableGitRequest& request);
     Result<CreateSnapshotResult>    createSnapshot(const CreateSnapshotRequest& request);
+    Result<ApplyRepairResult>       applyRepair(const ApplyRepairRequest& request);
 
 private:
     CoreServices services_;

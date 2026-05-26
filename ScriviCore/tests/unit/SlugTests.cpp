@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "util/Slug.hpp"
+#include "domain/Slug.hpp"
 
 using namespace scrivi::util;
 

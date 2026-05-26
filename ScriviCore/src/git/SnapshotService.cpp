@@ -1,6 +1,7 @@
 #include "git/SnapshotService.hpp"
 
 #include "scrivi/Error.hpp"
+#include "schemas/SnapshotMetadataJson.hpp"
 #include "util/Json.hpp"
 #include "util/PathUtils.hpp"
 
@@ -38,49 +39,36 @@ Result<void> SnapshotService::appendSnapshotMetadata(
     auto& fs = *services_.fileSystem;
     auto snapshotsPath = util::join(projectRoot, "snapshots/scrivi-snapshots.json");
 
-    // Read existing file or start fresh
-    std::string existing;
+    // Read and parse existing metadata, or start fresh
+    schemas::SnapshotMetadataData metadata;
     auto existsR = fs.exists(snapshotsPath);
     if (existsR.ok() && existsR.value()) {
         auto readR = fs.readTextFile(snapshotsPath);
-        if (readR.ok()) existing = readR.value();
-    }
-
-    // Parse existing JSON to append — use simple string manipulation since
-    // we need to stay light. If parse fails, start fresh.
-    util::JsonDoc doc;
-    bool parsed = false;
-    if (!existing.empty()) {
-        auto parseR = util::parseJson(existing);
-        if (parseR.ok()) {
-            doc    = std::move(parseR.value());
-            parsed = true;
+        if (readR.ok()) {
+            auto parseR = schemas::parseSnapshotMetadata(readR.value());
+            if (parseR.ok()) metadata = std::move(parseR.value());
+            // On parse failure, start with an empty metadata (self-healing)
         }
     }
 
-    if (!parsed) {
-        doc.setString("schema",     "scrivi-snapshots");
-        doc.setInt("schemaVersion", 1);
-    }
-
-    // Build the new snapshot entry
-    util::JsonDoc entry;
-    entry.setString("snapshotID", snapshotID);
-    entry.setString("commitID",   commitID.value);
-    entry.setString("label",      label);
-    entry.setString("note",       note);
-    entry.setString("createdAt",  timestamp);
-    entry.setString("createdByIdentityID",  author.identityID.value);
-    entry.setString("createdByPersonaID",   author.personaID.value);
-    entry.setString("createdByDisplayName", author.displayName);
-
-    doc.appendToArray("snapshots", std::move(entry));
+    // Append the new entry
+    schemas::SnapshotEntryData entry;
+    entry.snapshotID             = snapshotID;
+    entry.commitID               = commitID.value;
+    entry.label                  = label;
+    entry.note                   = note;
+    entry.createdAt              = timestamp;
+    entry.createdByIdentityID    = author.identityID.value;
+    entry.createdByPersonaID     = author.personaID.value;
+    entry.createdByDisplayName   = author.displayName;
+    metadata.snapshots.push_back(std::move(entry));
 
     auto snapshotsDir = util::join(projectRoot, "snapshots");
     auto dirR = fs.createDirectories(snapshotsDir);
     if (!dirR.ok()) return dirR;
 
-    return fs.atomicWriteTextFile(snapshotsPath, doc.dump());
+    return fs.atomicWriteTextFile(snapshotsPath,
+        schemas::serializeSnapshotMetadata(metadata));
 }
 
 // ---------------------------------------------------------------------------

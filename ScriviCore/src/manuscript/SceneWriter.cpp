@@ -3,7 +3,7 @@
 #include "schemas/SceneMetaJson.hpp"
 #include "util/Hash.hpp"
 #include "util/PathUtils.hpp"
-#include "util/TextStats.hpp"
+#include "domain/TextStats.hpp"
 #include "workspace/WorkspaceStateService.hpp"
 
 namespace scrivi::manuscript {

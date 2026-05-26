@@ -6,7 +6,8 @@
 #include "project_package/ProjectCreator.hpp"
 #include "project_package/ProjectOpener.hpp"
 #include "repair/ExternalChangeScanner.hpp"
-#include "util/AppSupportLayout.hpp"
+#include "repair/RepairDispatcher.hpp"
+#include "platform/AppSupportLayout.hpp"
 
 namespace scrivi {
 
@@ -59,6 +60,12 @@ Result<CreateSnapshotResult> ScriviCore::createSnapshot(
     const CreateSnapshotRequest& request) {
     git::SnapshotService service{services_};
     return service.createSnapshot(request);
+}
+
+Result<ApplyRepairResult> ScriviCore::applyRepair(
+    const ApplyRepairRequest& request) {
+    repair::RepairDispatcher dispatcher{services_};
+    return dispatcher.apply(request);
 }
 
 } // namespace scrivi
