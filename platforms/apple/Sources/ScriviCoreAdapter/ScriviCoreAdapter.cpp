@@ -7,6 +7,7 @@
 #include "git/SystemGitProvider.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
+#include "schemas/RepairIssueJson.hpp"
 #include "util/Json.hpp"
 
 #include <chrono>
@@ -213,17 +214,24 @@ std::string ScriviAdapter::openProject(
 
     const auto& v = result.value();
 
-    // If the project can't be opened (missing files, blocking repair issues),
-    // surface this as an error rather than returning an incomplete result struct.
-    if (v.mode == scrivi::OpenMode::cannotOpen ||
-        v.mode == scrivi::OpenMode::repairRequired)
-    {
+    // If the project cannot be opened at all, return an error envelope.
+    if (v.mode == scrivi::OpenMode::cannotOpen) {
         scrivi::Error err;
         err.code    = scrivi::ErrorCode::repairRequired;
         err.message = v.repairIssues.empty()
             ? "Project cannot be opened"
             : v.repairIssues.front().title;
         return errorEnvelope(err);
+    }
+
+    // If repair is required, return an ok envelope that includes the full issues list.
+    // Swift can inspect mode == "repairRequired" and present the repair UI.
+    if (v.mode == scrivi::OpenMode::repairRequired) {
+        scrivi::util::JsonDoc doc;
+        doc.setString("projectID", v.project.projectID.value);
+        doc.setString("mode", "repairRequired");
+        scrivi::schemas::appendRepairIssuesToDoc(doc, "repairIssues", v.repairIssues);
+        return okEnvelope(std::move(doc));
     }
 
     scrivi::util::JsonDoc scene;
@@ -236,6 +244,7 @@ std::string ScriviAdapter::openProject(
 
     scrivi::util::JsonDoc doc;
     doc.setString("projectID", v.project.projectID.value);
+    doc.setString("mode", "ready");
     doc.setSubDoc("activeScene", std::move(scene));
     return okEnvelope(std::move(doc));
 }
@@ -296,7 +305,91 @@ std::string ScriviAdapter::scanForExternalChanges(
     doc.setBool("indexesDirty",              v.indexesDirty);
     doc.setBool("gitStatusChecked",          v.gitStatusChecked);
     doc.setBool("hasUnsnapshottedChanges",   v.hasUnsnapshottedChanges);
-    doc.setInt("issueCount", static_cast<int>(v.repairIssues.size()));
+    scrivi::schemas::appendRepairIssuesToDoc(doc, "repairIssues", v.repairIssues);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::applyRepair(
+    const char* issueID,
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* actionKind,
+    const char* targetPath,
+    const char* identityID,
+    const char* personaID,
+    const char* displayName)
+{
+    // Decode the actionKind string via the schema module's converter.
+    // We reproduce the lookup here to keep the adapter self-contained.
+    static const auto kindFromStr = [](std::string_view s) -> scrivi::RepairActionKind {
+        using K = scrivi::RepairActionKind;
+        if (s == "relinkToFile")           return K::relinkToFile;
+        if (s == "createEmptyContentFile") return K::createEmptyContentFile;
+        if (s == "markMissing")            return K::markMissing;
+        if (s == "removeFromProject")      return K::removeFromProject;
+        if (s == "moveToInbox")            return K::moveToInbox;
+        if (s == "reloadExternalVersion")  return K::reloadExternalVersion;
+        if (s == "regenerateMetadata")     return K::regenerateMetadata;
+        if (s == "importAsNewScene")       return K::importAsNewScene;
+        if (s == "attachToExistingScene")  return K::attachToExistingScene;
+        if (s == "restoreFromSnapshot")    return K::restoreFromSnapshot;
+        if (s == "keepCurrentVersion")     return K::keepCurrentVersion;
+        if (s == "saveCurrentVersionAsCopy") return K::saveCurrentVersionAsCopy;
+        if (s == "ignore")                 return K::ignore;
+        if (s == "deleteAfterConfirmation") return K::deleteAfterConfirmation;
+        if (s == "openReadOnly")           return K::openReadOnly;
+        if (s == "cancelOpen")             return K::cancelOpen;
+        return K::none;
+    };
+
+    scrivi::ApplyRepairRequest req;
+    req.issueID         = issueID        ? issueID        : "";
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.appSupportRoot  = appSupportRoot  ? appSupportRoot  : "";
+    req.actionKind      = kindFromStr(actionKind ? actionKind : "");
+    req.targetPath      = targetPath     ? targetPath     : "";
+    req.author = {
+        scrivi::IdentityID{identityID  ? identityID  : ""},
+        scrivi::PersonaID {personaID   ? personaID   : ""},
+        displayName ? displayName : ""
+    };
+
+    auto result = impl_->core->applyRepair(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+
+    // Encode RepairActionKind back to string.
+    static const auto kindToStr = [](scrivi::RepairActionKind k) -> std::string_view {
+        using K = scrivi::RepairActionKind;
+        switch (k) {
+            case K::relinkToFile:           return "relinkToFile";
+            case K::createEmptyContentFile: return "createEmptyContentFile";
+            case K::markMissing:            return "markMissing";
+            case K::removeFromProject:      return "removeFromProject";
+            case K::moveToInbox:            return "moveToInbox";
+            case K::reloadExternalVersion:  return "reloadExternalVersion";
+            case K::regenerateMetadata:     return "regenerateMetadata";
+            case K::importAsNewScene:       return "importAsNewScene";
+            case K::attachToExistingScene:  return "attachToExistingScene";
+            case K::restoreFromSnapshot:    return "restoreFromSnapshot";
+            case K::keepCurrentVersion:     return "keepCurrentVersion";
+            case K::saveCurrentVersionAsCopy: return "saveCurrentVersionAsCopy";
+            case K::ignore:                 return "ignore";
+            case K::deleteAfterConfirmation: return "deleteAfterConfirmation";
+            case K::openReadOnly:           return "openReadOnly";
+            case K::cancelOpen:             return "cancelOpen";
+            case K::none:                   return "none";
+        }
+        return "none";
+    };
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("issueID",       v.issueID);
+    doc.setString("actionApplied", std::string(kindToStr(v.actionApplied)));
+    doc.setBool("resolved",        v.resolved);
+    doc.setString("detail",        v.detail);
+    scrivi::schemas::appendRepairIssuesToDoc(doc, "warnings", v.warnings);
     return okEnvelope(std::move(doc));
 }
 

@@ -7,6 +7,7 @@
 #include "project_package/ProjectOpener.hpp"
 #include "repair/ExternalChangeScanner.hpp"
 #include "repair/RepairDispatcher.hpp"
+#include "objects/ObjectStore.hpp"
 #include "platform/AppSupportLayout.hpp"
 
 namespace scrivi {
@@ -66,6 +67,30 @@ Result<ApplyRepairResult> ScriviCore::applyRepair(
     const ApplyRepairRequest& request) {
     repair::RepairDispatcher dispatcher{services_};
     return dispatcher.apply(request);
+}
+
+Result<CreateObjectResult> ScriviCore::createObject(
+    const CreateObjectRequest& request) {
+    objects::ObjectStore store{services_};
+    return store.create(request);
+}
+
+Result<OpenObjectResult> ScriviCore::openObject(
+    const OpenObjectRequest& request) {
+    objects::ObjectStore store{services_};
+    return store.open(request);
+}
+
+Result<SaveObjectResult> ScriviCore::saveObject(
+    const SaveObjectRequest& request) {
+    objects::ObjectStore store{services_};
+    return store.save(request);
+}
+
+Result<DeleteObjectResult> ScriviCore::deleteObject(
+    const DeleteObjectRequest& request) {
+    objects::ObjectStore store{services_};
+    return store.remove(request);
 }
 
 } // namespace scrivi

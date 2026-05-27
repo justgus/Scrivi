@@ -9,6 +9,7 @@
 #include "schemas/WorkspaceStateJson.hpp"
 #include "schemas/SnapshotMetadataJson.hpp"
 #include "schemas/RepairIssueJson.hpp"
+#include "schemas/ObjectJson.hpp"
 
 using namespace scrivi;
 using namespace scrivi::util;
@@ -434,6 +435,80 @@ TEST_CASE("RepairIssueJson rejects corrupt JSON", "[schemas]") {
 TEST_CASE("RepairIssueJson rejects wrong schema tag", "[schemas]") {
     auto result = parseRepairIssues(
         R"({"schema":"wrong-schema","schemaVersion":1,"issues":[]})");
+    REQUIRE_FALSE(result.ok());
+    REQUIRE(result.error().code == ErrorCode::validationError);
+}
+
+// ---------------------------------------------------------------------------
+// ObjectJson round-trip tests (T-0034)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("ObjectJson round-trips a minimal CharacterObject", "[schemas][T-0034]") {
+    CharacterObject c;
+    c.objectID.value         = "character_01ABC";
+    c.slug                   = "ada";
+    c.displayName            = "Ada Thornwood";
+    c.status                 = "active";
+    c.createdAt              = "2026-05-27T10:00:00Z";
+    c.createdByIdentityID    = "identity_01";
+    c.createdByPersonaID     = "persona_01";
+    c.createdByDisplayName   = "Test Author";
+    c.modifiedAt             = "2026-05-27T10:00:00Z";
+    c.modifiedByIdentityID   = "identity_01";
+    c.modifiedByPersonaID    = "persona_01";
+    c.modifiedByDisplayName  = "Test Author";
+    c.notes                  = "";
+
+    const auto json = serializeCharacter(c);
+    auto result = parseCharacter(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.objectID.value == "character_01ABC");
+    REQUIRE(r.slug           == "ada");
+    REQUIRE(r.displayName    == "Ada Thornwood");
+    REQUIRE(r.status         == "active");
+    REQUIRE(r.createdAt      == "2026-05-27T10:00:00Z");
+    REQUIRE(r.createdByIdentityID  == "identity_01");
+    REQUIRE(r.modifiedByDisplayName == "Test Author");
+    REQUIRE(r.tags.empty());
+    REQUIRE(r.attributes.empty());
+}
+
+TEST_CASE("ObjectJson round-trips a CharacterObject with tags and attributes", "[schemas][T-0034]") {
+    CharacterObject c;
+    c.objectID.value         = "character_02DEF";
+    c.slug                   = "thomas";
+    c.displayName            = "Thomas Belacroix";
+    c.status                 = "active";
+    c.createdAt              = "2026-05-27T11:00:00Z";
+    c.createdByIdentityID    = "identity_02";
+    c.createdByPersonaID     = "persona_02";
+    c.createdByDisplayName   = "Author Two";
+    c.modifiedAt             = "2026-05-27T12:00:00Z";
+    c.modifiedByIdentityID   = "identity_02";
+    c.modifiedByPersonaID    = "persona_02";
+    c.modifiedByDisplayName  = "Author Two";
+    c.notes                  = "Antagonist. Arrives in chapter 3.";
+    c.tags                   = {"antagonist", "recurring"};
+    c.attributes["age"]      = "47";
+    c.attributes["faction"]  = "Obsidian Court";
+
+    const auto json = serializeCharacter(c);
+    auto result = parseCharacter(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.displayName == "Thomas Belacroix");
+    REQUIRE(r.notes       == "Antagonist. Arrives in chapter 3.");
+    REQUIRE(r.tags.size()       == 2);
+    REQUIRE(r.tags[0]           == "antagonist");
+    REQUIRE(r.tags[1]           == "recurring");
+    REQUIRE(r.attributes.size() == 2);
+    REQUIRE(r.attributes.at("age")     == "47");
+    REQUIRE(r.attributes.at("faction") == "Obsidian Court");
+}
+
+TEST_CASE("ObjectJson rejects wrong schema tag", "[schemas][T-0034]") {
+    auto result = parseCharacter(R"({"schema":"wrong.schema","objectID":"x"})");
     REQUIRE_FALSE(result.ok());
     REQUIRE(result.error().code == ErrorCode::validationError);
 }

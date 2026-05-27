@@ -184,4 +184,37 @@ Result<std::vector<RepairIssue>> parseRepairIssues(std::string_view json) {
     return Result<std::vector<RepairIssue>>::success(std::move(issues));
 }
 
+// ---------------------------------------------------------------------------
+// appendRepairIssuesToDoc — embed issues directly into an existing JsonDoc
+// ---------------------------------------------------------------------------
+
+void appendRepairIssuesToDoc(util::JsonDoc& doc,
+                              std::string_view arrayKey,
+                              const std::vector<RepairIssue>& issues)
+{
+    for (const auto& issue : issues) {
+        util::JsonDoc issueDoc;
+        issueDoc.setString("issueID",     issue.issueID);
+        issueDoc.setString("severity",    std::string(severityToString(issue.severity)));
+        issueDoc.setString("category",    std::string(categoryToString(issue.category)));
+        issueDoc.setString("title",       issue.title);
+        issueDoc.setString("message",     issue.message);
+        issueDoc.setString("path",        issue.path);
+        issueDoc.setString("relatedPath", issue.relatedPath);
+        issueDoc.setString("projectID",   issue.projectID.value);
+        issueDoc.setString("chapterID",   issue.chapterID.value);
+        issueDoc.setString("sceneID",     issue.sceneID.value);
+
+        for (const auto& action : issue.suggestedActions) {
+            util::JsonDoc actionDoc;
+            actionDoc.setString("kind",   std::string(actionKindToString(action.kind)));
+            actionDoc.setString("label",  action.label);
+            actionDoc.setString("detail", action.detail);
+            issueDoc.appendToArray("suggestedActions", std::move(actionDoc));
+        }
+
+        doc.appendToArray(arrayKey, std::move(issueDoc));
+    }
+}
+
 } // namespace scrivi::schemas

@@ -12,5 +12,6 @@ struct IdentityID   { std::string value; };
 struct PersonaID    { std::string value; };
 struct SnapshotID   { std::string value; };
 struct CommitID     { std::string value; };
+struct ObjectID     { std::string value; };
 
 } // namespace scrivi

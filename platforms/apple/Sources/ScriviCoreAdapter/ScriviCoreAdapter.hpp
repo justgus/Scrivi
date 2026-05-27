@@ -69,6 +69,16 @@ public:
         const char* appSupportRoot,
         bool        includeGitStatus);
 
+    std::string applyRepair(
+        const char* issueID,
+        const char* projectRootPath,
+        const char* appSupportRoot,
+        const char* actionKind,
+        const char* targetPath,
+        const char* identityID,
+        const char* personaID,
+        const char* displayName);
+
     std::string enableGitSnapshots(
         const char* projectRootPath,
         const char* identityID,

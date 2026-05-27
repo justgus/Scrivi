@@ -33,6 +33,7 @@ target_sources(ScriviCore
         src/repair/RepairClassifier.cpp
         src/repair/ExternalChangeScanner.cpp
         src/repair/RepairDispatcher.cpp
+        src/repair/RepairHandlers.cpp
         src/git/SystemGitProvider.cpp
         src/git/SnapshotService.cpp
         src/domain/IDs.cpp
@@ -54,6 +55,8 @@ target_sources(ScriviCore
         src/schemas/WorkspaceStateJson.cpp
         src/schemas/SnapshotMetadataJson.cpp
         src/schemas/RepairIssueJson.cpp
+        src/schemas/ObjectJson.cpp
+        src/objects/ObjectStore.cpp
 )
 
 target_link_libraries(ScriviCore

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scrivi/ObjectTypes.hpp"
 #include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
 
@@ -79,6 +80,33 @@ struct ApplyRepairRequest {
     RepairActionKind  actionKind = RepairActionKind::none;
     std::string       targetPath;   // optional — used for relink/move operations
     AuthorshipRef     author;
+};
+
+// ---------------------------------------------------------------------------
+// Object CRUD requests (EP-005)
+// ---------------------------------------------------------------------------
+
+struct CreateObjectRequest {
+    AbsolutePath  projectRootPath;
+    std::string   displayName;     // required — slug is derived from this
+    Slug          slug;            // optional override; if empty, derived from displayName
+    AuthorshipRef author;
+};
+
+struct OpenObjectRequest {
+    AbsolutePath  projectRootPath;
+    ObjectID      objectID;
+};
+
+struct SaveObjectRequest {
+    AbsolutePath    projectRootPath;
+    CharacterObject object;        // full updated object; objectID must match an existing file
+    AuthorshipRef   author;
+};
+
+struct DeleteObjectRequest {
+    AbsolutePath  projectRootPath;
+    ObjectID      objectID;
 };
 
 } // namespace scrivi

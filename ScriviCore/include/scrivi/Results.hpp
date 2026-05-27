@@ -1,5 +1,6 @@
 #pragma once
 
+#include "scrivi/ObjectTypes.hpp"
 #include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
 
@@ -94,6 +95,31 @@ struct ApplyRepairResult {
     bool              resolved = false;
     std::string       detail;                      // human-readable outcome
     std::vector<RepairIssue> warnings;             // any new issues discovered during repair
+};
+
+// ---------------------------------------------------------------------------
+// Object CRUD results (EP-005)
+// ---------------------------------------------------------------------------
+
+struct CreateObjectResult {
+    ObjectID     objectID;
+    Slug         slug;
+    AbsolutePath path;             // absolute path to the created .json file
+};
+
+struct OpenObjectResult {
+    CharacterObject object;
+    AbsolutePath    path;
+};
+
+struct SaveObjectResult {
+    ObjectID objectID;
+    bool     saved = false;
+};
+
+struct DeleteObjectResult {
+    ObjectID objectID;
+    bool     deleted = false;
 };
 
 } // namespace scrivi

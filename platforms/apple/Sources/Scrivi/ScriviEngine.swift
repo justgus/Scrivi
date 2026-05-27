@@ -128,6 +128,36 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decode(json)
     }
 
+    // MARK: — applyRepair
+
+    public func applyRepair(
+        issueID: String,
+        projectRootPath: String,
+        appSupportRoot: String,
+        actionKind: String,
+        targetPath: String = "",
+        authorshipRef: AuthorshipRef
+    ) throws -> ApplyRepairResult {
+        let json = issueID.withCString { iid in
+            projectRootPath.withCString { prp in
+                appSupportRoot.withCString { asr in
+                    actionKind.withCString { ak in
+                        targetPath.withCString { tp in
+                            authorshipRef.identityID.withCString { identID in
+                                authorshipRef.personaID.withCString { pid in
+                                    authorshipRef.displayName.withCString { dn in
+                                        adapter.applyRepair(iid, prp, asr, ak, tp, identID, pid, dn)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
     // MARK: — enableGitSnapshots
 
     public func enableGitSnapshots(
@@ -214,8 +244,22 @@ public struct ActiveSceneResult: Decodable, Sendable {
 }
 
 public struct OpenProjectResult: Decodable, Sendable {
-    public let projectID:   String
-    public let activeScene: ActiveSceneResult
+    public let projectID:    String
+    public let mode:         String          // "ready" | "repairRequired"
+    public let activeScene:  ActiveSceneResult?
+    public let repairIssues: [RepairIssueResult]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        projectID    = try c.decode(String.self, forKey: .projectID)
+        mode         = try c.decodeIfPresent(String.self, forKey: .mode) ?? "ready"
+        activeScene  = try c.decodeIfPresent(ActiveSceneResult.self, forKey: .activeScene)
+        repairIssues = try c.decodeIfPresent([RepairIssueResult].self, forKey: .repairIssues) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case projectID, mode, activeScene, repairIssues
+    }
 }
 
 public struct SaveSceneResult: Decodable, Sendable {
@@ -225,11 +269,85 @@ public struct SaveSceneResult: Decodable, Sendable {
 }
 
 public struct ScanResult: Decodable, Sendable {
-    public let projectID:                 String
-    public let indexesDirty:              Bool
-    public let gitStatusChecked:          Bool
-    public let hasUnsnapshottedChanges:   Bool
-    public let issueCount:                Int
+    public let projectID:               String
+    public let indexesDirty:            Bool
+    public let gitStatusChecked:        Bool
+    public let hasUnsnapshottedChanges: Bool
+    public let repairIssues:            [RepairIssueResult]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        projectID               = try c.decode(String.self, forKey: .projectID)
+        indexesDirty            = try c.decode(Bool.self,   forKey: .indexesDirty)
+        gitStatusChecked        = try c.decode(Bool.self,   forKey: .gitStatusChecked)
+        hasUnsnapshottedChanges = try c.decode(Bool.self,   forKey: .hasUnsnapshottedChanges)
+        repairIssues            = try c.decodeIfPresent([RepairIssueResult].self, forKey: .repairIssues) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case projectID, indexesDirty, gitStatusChecked, hasUnsnapshottedChanges, repairIssues
+    }
+}
+
+public struct RepairActionResult: Decodable, Sendable {
+    public let kind:   String
+    public let label:  String
+    public let detail: String
+}
+
+public struct RepairIssueResult: Decodable, Sendable {
+    public let issueID:          String
+    public let severity:         String
+    public let category:         String
+    public let title:            String
+    public let message:          String
+    public let path:             String
+    public let relatedPath:      String
+    public let projectID:        String
+    public let chapterID:        String
+    public let sceneID:          String
+    public let suggestedActions: [RepairActionResult]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        issueID          = try c.decode(String.self, forKey: .issueID)
+        severity         = try c.decode(String.self, forKey: .severity)
+        category         = try c.decode(String.self, forKey: .category)
+        title            = try c.decode(String.self, forKey: .title)
+        message          = try c.decode(String.self, forKey: .message)
+        path             = try c.decodeIfPresent(String.self, forKey: .path)        ?? ""
+        relatedPath      = try c.decodeIfPresent(String.self, forKey: .relatedPath) ?? ""
+        projectID        = try c.decodeIfPresent(String.self, forKey: .projectID)   ?? ""
+        chapterID        = try c.decodeIfPresent(String.self, forKey: .chapterID)   ?? ""
+        sceneID          = try c.decodeIfPresent(String.self, forKey: .sceneID)     ?? ""
+        suggestedActions = try c.decodeIfPresent([RepairActionResult].self, forKey: .suggestedActions) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case issueID, severity, category, title, message, path, relatedPath,
+             projectID, chapterID, sceneID, suggestedActions
+    }
+}
+
+public struct ApplyRepairResult: Decodable, Sendable {
+    public let issueID:       String
+    public let actionApplied: String
+    public let resolved:      Bool
+    public let detail:        String
+    public let warnings:      [RepairIssueResult]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        issueID       = try c.decode(String.self, forKey: .issueID)
+        actionApplied = try c.decode(String.self, forKey: .actionApplied)
+        resolved      = try c.decode(Bool.self,   forKey: .resolved)
+        detail        = try c.decodeIfPresent(String.self, forKey: .detail) ?? ""
+        warnings      = try c.decodeIfPresent([RepairIssueResult].self, forKey: .warnings) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case issueID, actionApplied, resolved, detail, warnings
+    }
 }
 
 public struct EnableGitResult: Decodable, Sendable {

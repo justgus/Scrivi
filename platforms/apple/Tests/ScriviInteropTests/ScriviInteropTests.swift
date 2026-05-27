@@ -161,7 +161,8 @@ struct ScriviInteropTests {
         )
 
         #expect(!opened.projectID.isEmpty)
-        #expect(!opened.activeScene.sceneID.isEmpty)
+        #expect(opened.activeScene != nil)
+        #expect(!opened.activeScene!.sceneID.isEmpty)
     }
 
     // MARK: — Test 4: saveScene persists Markdown
@@ -214,22 +215,23 @@ struct ScriviInteropTests {
             appSupportRoot:  appSupport.path,
             identityID: identity.identityID
         )
-        #expect(reopened.activeScene.markdown.contains("dark and stormy night"))
+        #expect(reopened.activeScene?.markdown.contains("dark and stormy night") == true)
     }
 
-    // MARK: — Test 5: ScriviError on bad path
+    // MARK: — Test 5: repairRequired on bad path
 
-    @Test("openProject on nonexistent path throws ScriviError")
-    func openProjectOnBadPathThrows() throws {
+    @Test("openProject on nonexistent path returns repairRequired with blocking issues")
+    func openProjectOnBadPathReturnsRepairRequired() throws {
         let appSupport = try TempDir()
         let engine = ScriviEngine()
 
-        #expect(throws: ScriviError.self) {
-            _ = try engine.openProject(
-                projectRootPath: "/tmp/does-not-exist-scrivi-interop",
-                appSupportRoot:  appSupport.path
-            )
-        }
+        let result = try engine.openProject(
+            projectRootPath: "/tmp/does-not-exist-scrivi-interop",
+            appSupportRoot:  appSupport.path
+        )
+        #expect(result.mode == "repairRequired")
+        #expect(!result.repairIssues.isEmpty)
+        #expect(result.activeScene == nil)
     }
 
     // MARK: — Test 6: scanForExternalChanges returns zero issues on a fresh project
@@ -245,7 +247,7 @@ struct ScriviInteropTests {
         )
 
         #expect(!scan.projectID.isEmpty)
-        #expect(scan.issueCount == 0)
+        #expect(scan.repairIssues.isEmpty)
     }
 
     // MARK: — Test 7: enableGitSnapshots initializes git and returns a snapshot ID
@@ -293,13 +295,14 @@ struct ScriviInteropTests {
             appSupportRoot:  appSupport.path,
             identityID: ref.identityID
         )
+        guard let openedScene = opened.activeScene else { return }
         _ = try engine.saveScene(
             projectID:         opened.projectID,
             projectRootPath:   projectDir.path,
             appSupportRoot:    appSupport.path,
-            sceneID:           opened.activeScene.sceneID,
-            sceneMetadataPath: opened.activeScene.metadataPath,
-            sceneContentPath:  opened.activeScene.contentPath,
+            sceneID:           openedScene.sceneID,
+            sceneMetadataPath: openedScene.metadataPath,
+            sceneContentPath:  openedScene.contentPath,
             markdown:          "# Draft\n\nSome content for snapshot test.",
             authorshipRef:     ref
         )
@@ -315,5 +318,64 @@ struct ScriviInteropTests {
         #expect(!snapshot.snapshotID.isEmpty)
         #expect(!snapshot.commitID.isEmpty)
         #expect(!snapshot.createdAt.isEmpty)
+    }
+
+    // MARK: — Test 9: applyRepair applies createEmptyContentFile via adapter
+
+    @Test("applyRepair createEmptyContentFile resolves missing-content issue end-to-end")
+    func applyRepairCreateEmptyFileEndToEnd() throws {
+        let appSupport  = try TempDir()
+        let projectDir  = try TempDir()
+        let engine      = ScriviEngine()
+
+        let identity = try engine.ensureLocalIdentity(
+            displayName: "Test Author",
+            appSupportRoot: appSupport.path
+        )
+        let ref = AuthorshipRef(
+            identityID:  identity.identityID,
+            personaID:   identity.defaultPersonaID,
+            displayName: identity.displayName
+        )
+
+        let created = try engine.createProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path,
+            title: "Repair Adapter Test",
+            slug:  "repair-adapter-test",
+            authorshipRef: ref
+        )
+
+        // Delete the scene content file to create a missing-content issue.
+        let contentURL = URL(fileURLWithPath: projectDir.path)
+            .appendingPathComponent(created.firstScene.contentPath)
+        try FileManager.default.removeItem(at: contentURL)
+
+        // Scan to surface the issue.
+        let scan = try engine.scanForExternalChanges(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path,
+            includeGitStatus: false
+        )
+
+        guard let issue = scan.repairIssues.first(where: { $0.category == "missingContent" }) else {
+            Issue.record("Expected a missingContent repair issue after deleting content file")
+            return
+        }
+
+        // Apply the repair.
+        let repairResult = try engine.applyRepair(
+            issueID:        issue.issueID,
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path,
+            actionKind:     "createEmptyContentFile",
+            authorshipRef:  ref
+        )
+
+        #expect(repairResult.resolved == true)
+        #expect(repairResult.actionApplied == "createEmptyContentFile")
+
+        // The file should now exist.
+        #expect(FileManager.default.fileExists(atPath: contentURL.path))
     }
 }

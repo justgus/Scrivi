@@ -20,6 +20,11 @@ public:
     Result<CreateSnapshotResult>    createSnapshot(const CreateSnapshotRequest& request);
     Result<ApplyRepairResult>       applyRepair(const ApplyRepairRequest& request);
 
+    Result<CreateObjectResult>      createObject(const CreateObjectRequest& request);
+    Result<OpenObjectResult>        openObject(const OpenObjectRequest& request);
+    Result<SaveObjectResult>        saveObject(const SaveObjectRequest& request);
+    Result<DeleteObjectResult>      deleteObject(const DeleteObjectRequest& request);
+
 private:
     CoreServices services_;
 };

@@ -16,6 +16,7 @@ public:
     IdentityID   newIdentityID()   override;
     PersonaID    newPersonaID()    override;
     SnapshotID   newSnapshotID()   override;
+    ObjectID     newObjectID()     override;
 
 private:
     std::string generateV7(std::string_view prefix);

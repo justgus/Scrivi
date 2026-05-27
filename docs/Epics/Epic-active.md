@@ -2,45 +2,44 @@
 
 ---
 
-## EP-004: Repair and Recovery
+## EP-005: Full Project Package — Objects, Assets, and Comments
 
 **Status:** 🟡 Active
-**Goal:** Implement the full repair apply side: a stateless `applyRepair` facade method that accepts an `issueID + actionKind + context`, dispatches to the appropriate repair handler, and returns a result. Also serialize the full `RepairIssue` list (with `suggestedActions`) into the JSON envelopes for `scanForExternalChanges` and `openProject`, making the repair lifecycle fully callable from Swift. Detection already works (EP-002). This Epic delivers: **Detect → Stage → Apply → Confirm**.
-**Date Created:** 2026-05-26
-**Start Date:** 2026-05-26
+**Goal:** Implement the full `.scrivi` project package beyond manuscripts: objects (characters, locations, items, rules, timelines), assets (with metadata sidecars), comments, and inbox. Delivers the worldbuilding layer that makes Scrivi more than a scene editor.
+**Date Created:** 2026-05-20
+**Start Date:** 2026-05-27
 **Target Close Date:** TBD
 **Actual Close Date:** —
 
 ### Acceptance Criteria
 
-- [ ] `RepairIssueJson` schema module serializes/deserializes `RepairIssue` and `RepairAction` lists
-- [ ] `scanForExternalChanges` JSON result includes full `repairIssues` array (not just `issueCount`)
-- [ ] `openProject` JSON result includes full `repairIssues` array when mode is `repairRequired`
-- [ ] `ApplyRepairRequest` / `ApplyRepairResult` types defined in `Requests.hpp` / `Results.hpp`
-- [ ] `ScriviCore::applyRepair()` facade method dispatches to the correct handler based on `actionKind`
-- [ ] Repair handlers implemented for all 8 manuscript-level actions: `relinkToFile`, `createEmptyContentFile`, `markMissing`, `removeFromProject`, `moveToInbox`, `reloadExternalVersion`, `regenerateMetadata` (scene), `regenerateMetadata` (chapter)
-- [ ] Automatic rename detection: `possibleRename` and `possiblePairedRename` classifiers added to `RepairClassifier`; auto-apply when ID match is unambiguous and single candidate exists
-- [ ] `ScriviCoreAdapter` exposes `applyRepair` with JSON envelope output
-- [ ] Integration tests cover each action kind (1 test per action minimum)
+- [x] Character object schema defined (`objects/characters/<slug>.json`) and implemented (`ObjectJson` schema module)
+- [x] `createObject` / `openObject` / `saveObject` / `deleteObject` facade methods for character objects
+- [ ] Location, item, rule, and timeline object schemas defined and implemented
+- [ ] `createObject` / `openObject` / `saveObject` / `deleteObject` generalized to all object types
+- [ ] Asset metadata sidecar schema defined (`<filename>.meta.json` in `assets/`)
+- [ ] `importAsset` / `listAssets` / `removeAsset` facade methods
+- [ ] Comments schema defined (`comments/<scope>/<objectID>.comments.json`) and implemented
+- [ ] `addComment` / `listComments` / `resolveComment` facade methods
+- [ ] Inbox implemented (`inbox/dropped-files/`) with `listInbox` / `importFromInbox` facade methods
+- [ ] All object/asset/comment types covered by integration tests
 - [ ] `ctest --test-dir build --output-on-failure` passes all tests
+- [ ] `ScriviCoreAdapter` exposes all new facade methods with JSON envelope output
+- [ ] `swift test` passes all interop tests
 
 ### Sprints
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-008 | Repair and Recovery — Schema and Facade | 🔵 Planning | TBD |
-| SP-009 | Repair and Recovery — Handlers and Tests | 🔵 Planning | TBD |
+| SP-010 | Objects Layer Foundation — Character Schema and CRUD | ✅ Closed | 2026-05-27 – 2026-05-27 |
 
 ### Tasks
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| T-0028 | `RepairIssueJson` Schema Module | 🔵 Backlog |
-| T-0029 | `applyRepair` Facade Method — Request, Result, and Dispatch | 🔵 Backlog |
-| T-0030 | Repair Handlers — Manuscript File Operations | 🔵 Backlog |
-| T-0031 | Automatic Rename Detection in `RepairClassifier` | 🔵 Backlog |
-| T-0032 | Integration Tests for `applyRepair` | 🔵 Backlog |
-| T-0033 | Adapter: `applyRepair` Method + Full `RepairIssue` Serialization in Scan/Open Results | 🔵 Backlog |
+| T-0034 | Character Object Schema (`ObjectJson`) | ✅ Implemented - Verified |
+| T-0035 | `createObject` / `openObject` / `saveObject` / `deleteObject` Facade — Characters | ✅ Implemented - Verified |
+| T-0036 | Integration Tests for Character Object CRUD | ✅ Implemented - Verified |
 
 ### Issues
 
@@ -50,21 +49,18 @@
 
 ### Scope Notes
 
-Drawn from `Scrivi_External_Change_Repair_Matrix_v0_2.md` (20 conditions) and `Scrivi_Backend_Behavior_Spec_v0_2.md` §11. Detection is complete (T-0009/EP-002). This Epic implements the apply side only.
+Drawn from `Scrivi_Project_Package_Structure_v0_1.md` (objects/, assets/, comments/, inbox/ layout). None of this package structure is implemented in EP-001 through EP-004. Tasks are defined incrementally as each object type is completed.
 
-**Out of scope:**
-- Asset repair (EP-005 precondition — assets not yet implemented)
-- Merge conflict resolution UI
-- Comment anchor / object relationship repair
-- Encryption-aware repair
-- Cloud sync conflict behavior
-
-**Architecture decision:** `applyRepair` is stateless. The caller passes `issueID + projectRootPath + appSupportRoot + actionKind + optional targetPath + author`. `ScriviCore` re-reads project state to validate and execute. No in-memory staged issue list.
+**Out of scope for EP-005:**
+- SwiftUI worldbuilding UI (EP-006)
+- Cloud sync of object data
+- Relationship graphs between objects (deferred to EP-005+ or a dedicated Epic)
+- Export of object data
 
 ### Completion Summary
 
-*To be filled in when EP-004 reaches 🟠 Complete.*
+*To be filled in when EP-005 reaches 🟠 Complete.*
 
 ---
 
-*Last Updated: 2026-05-26 (EP-004 activated)*
+*Last Updated: 2026-05-27 (SP-010 closed; T-0034/T-0035/T-0036 verified; 121 tests passing)*

@@ -7,18 +7,15 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 ## Organization
 
 - **Sprint-active.md** — The currently active Sprint (at most one at a time)
-- **Sprint-SP-009-planning.md** — SP-009 in planning (not yet active)
 - **Closed/Sprint-SP-XXX.md** — Archived closed Sprints, one file each
 
 ## Active Sprint
 
-Currently: **None**
-
-See: [Sprint-active.md](Sprint-active.md)
+Currently: **none**
 
 ## All Sprints
 
-Currently: **9 Sprints** | Next available: **SP-010**
+Currently: **10 Sprints** | Next available: **SP-011**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -30,15 +27,16 @@ Currently: **9 Sprints** | Next available: **SP-010**
 | SP-006 | Skeleton v0.2 Migration — Adapter and Swift Completion | EP-007 | 2026-05-26 | 2026-05-26 | ✅ Closed |
 | SP-007 | EP-002 Completion — Full MVP Loop Test | EP-002 | 2026-05-26 | 2026-05-26 | ✅ Closed |
 | SP-008 | Repair and Recovery — Schema and Facade | EP-004 | 2026-05-26 | 2026-05-26 | ✅ Closed |
-| SP-009 | Repair and Recovery — Handlers, Tests, and Adapter | EP-004 | TBD | TBD | 🔵 Planning |
+| SP-009 | Repair and Recovery — Handlers, Tests, and Adapter | EP-004 | 2026-05-27 | 2026-05-27 | ✅ Closed |
+| SP-010 | Objects Layer Foundation — Character Schema and CRUD | EP-005 | 2026-05-27 | 2026-05-27 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 9
-- **Closed:** 8 ✅
+- **Total Sprints:** 10
+- **Closed:** 10 ✅
 - **Active:** 0 🟡
-- **Planning:** 1 🔵
+- **Planning:** 0 🔵
 
 ---
 
-*Last Updated: 2026-05-26 (SP-008 closed and verified)*
+*Last Updated: 2026-05-27 (SP-010 closed)*

@@ -1,6 +1,7 @@
 #include "RepairDispatcher.hpp"
 
 #include "repair/ExternalChangeScanner.hpp"
+#include "repair/RepairHandlers.hpp"
 
 #include <algorithm>
 
@@ -8,21 +9,6 @@ namespace scrivi::repair {
 
 RepairDispatcher::RepairDispatcher(CoreServices services)
     : services_(services) {}
-
-// ---------------------------------------------------------------------------
-// Stub handlers — to be replaced by RepairHandlers in T-0030
-// ---------------------------------------------------------------------------
-
-static Result<ApplyRepairResult> stubNotImplemented(
-    const ApplyRepairRequest& request, std::string_view handlerName)
-{
-    return Result<ApplyRepairResult>::failure({
-        ErrorCode::internalError,
-        std::string(handlerName) + " handler not yet implemented",
-        request.projectRootPath,
-        "scheduled for T-0030"
-    });
-}
 
 // ---------------------------------------------------------------------------
 // apply — re-scan to validate issue exists, then dispatch
@@ -74,55 +60,48 @@ Result<ApplyRepairResult> RepairDispatcher::apply(const ApplyRepairRequest& requ
             "actionKind is not a suggested action for issue '" + request.issueID + "'"
         });
 
-    // Dispatch to the appropriate handler (T-0030 will replace stubs)
+    // Build a HandlerContext for the real handlers
+    HandlerContext hctx{request, issue, services_};
+
+    // Dispatch to the appropriate handler
     switch (request.actionKind) {
+        // --- T-0030 implemented handlers ---
         case RepairActionKind::relinkToFile:
-            return stubNotImplemented(request, "relinkToFile");
+            return handleRelinkToFile(hctx);
 
         case RepairActionKind::createEmptyContentFile:
-            return stubNotImplemented(request, "createEmptyContentFile");
+            return handleCreateEmptyContentFile(hctx);
 
         case RepairActionKind::markMissing:
-            return stubNotImplemented(request, "markMissing");
+            return handleMarkMissing(hctx);
 
         case RepairActionKind::removeFromProject:
-            return stubNotImplemented(request, "removeFromProject");
+            return handleRemoveFromProject(hctx);
 
         case RepairActionKind::moveToInbox:
-            return stubNotImplemented(request, "moveToInbox");
+            return handleMoveToInbox(hctx);
 
         case RepairActionKind::reloadExternalVersion:
-            return stubNotImplemented(request, "reloadExternalVersion");
+            return handleReloadExternalVersion(hctx);
 
         case RepairActionKind::regenerateMetadata:
-            return stubNotImplemented(request, "regenerateMetadata");
+            return handleRegenerateMetadata(hctx);
 
+        // --- Not-yet-implemented action kinds (out of T-0030 scope) ---
         case RepairActionKind::importAsNewScene:
-            return stubNotImplemented(request, "importAsNewScene");
-
         case RepairActionKind::attachToExistingScene:
-            return stubNotImplemented(request, "attachToExistingScene");
-
         case RepairActionKind::keepCurrentVersion:
-            return stubNotImplemented(request, "keepCurrentVersion");
-
         case RepairActionKind::saveCurrentVersionAsCopy:
-            return stubNotImplemented(request, "saveCurrentVersionAsCopy");
-
         case RepairActionKind::restoreFromSnapshot:
-            return stubNotImplemented(request, "restoreFromSnapshot");
-
         case RepairActionKind::ignore:
-            return stubNotImplemented(request, "ignore");
-
         case RepairActionKind::deleteAfterConfirmation:
-            return stubNotImplemented(request, "deleteAfterConfirmation");
-
         case RepairActionKind::openReadOnly:
-            return stubNotImplemented(request, "openReadOnly");
-
         case RepairActionKind::cancelOpen:
-            return stubNotImplemented(request, "cancelOpen");
+            return Result<ApplyRepairResult>::failure({
+                ErrorCode::internalError,
+                "handler not yet implemented for this actionKind",
+                request.projectRootPath
+            });
 
         case RepairActionKind::none:
             // Already rejected above, but required for exhaustive switch

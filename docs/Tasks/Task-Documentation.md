@@ -9,21 +9,16 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 - **Task-backlog.md** — Proposed Tasks not assigned to a Sprint
 - **Task-active.md** — In-Progress Tasks assigned to a Sprint
-- **Closed/Task-closed-XXXX.md** — A Task that was removed from all Sprints and the backlog
+- **Task-unverified.md** — Implemented Tasks awaiting user verification
 - **Verified/Task-verified-XXXX.md** — Verified Tasks (one file per Task)
 
 ## Backlog Tasks
 
-Currently: **6 backlog Tasks**
+Currently: **0 backlog Tasks**
 
-| Task   | Title | Epic | Priority | Status |
-| ------ | ----- | ---- | -------- | ------ |
-| T-0028 | `RepairIssueJson` Schema Module | EP-004 | High | 🔵 Backlog |
-| T-0029 | `applyRepair` Facade Method — Request, Result, and Dispatch | EP-004 | High | 🔵 Backlog |
-| T-0030 | Repair Handlers — Manuscript File Operations | EP-004 | High | 🔵 Backlog |
-| T-0031 | Automatic Rename Detection in `RepairClassifier` | EP-004 | Medium | 🔵 Backlog |
-| T-0032 | Integration Tests for `applyRepair` | EP-004 | High | 🔵 Backlog |
-| T-0033 | Adapter — `applyRepair` Method + Full `RepairIssue` Serialization in Scan/Open Results | EP-004 | High | 🔵 Backlog |
+| Task | Title | Epic | Priority | Status |
+| ---- | ----- | ---- | -------- | ------ |
+| —    | None  | —    | —        | —      |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -31,9 +26,9 @@ See: [Task-backlog.md](Task-backlog.md)
 
 Currently: **0 active Tasks**
 
-| Task   | Title | Epic | Sprint | Status |
-| ------ | ----- | ---- | ------ | ------ |
-| —      | None  | —    | —      | —      |
+| Task | Title | Epic | Sprint | Status |
+| ---- | ----- | ---- | ------ | ------ |
+| —    | None  | —    | —      | —      |
 
 See: [Task-active.md](Task-active.md)
 
@@ -43,11 +38,13 @@ Currently: **0 unverified Tasks**
 
 | Task | Title | Status |
 | ---- | ----- | ------ |
-|      |       |        |
+| —    | None  | —      |
+
+See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **27 verified Tasks** | Next available: **T-0034**
+Currently: **36 verified Tasks** | Next available: **T-0037**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -78,14 +75,23 @@ Currently: **27 verified Tasks** | Next available: **T-0034**
 | T-0025 | Add Swift Engine Methods for `scanForExternalChanges`, `enableGitSnapshots`, `createSnapshot` | [Task-verified-0025.md](Verified/Task-verified-0025.md) | ✅ Verified |
 | T-0026 | Add Swift Interop Tests for New Adapter Methods | [Task-verified-0026.md](Verified/Task-verified-0026.md) | ✅ Verified |
 | T-0027 | Full MVP Loop Integration Test | [Task-verified-0027.md](Verified/Task-verified-0027.md) | ✅ Verified |
+| T-0028 | `RepairIssueJson` Schema Module | [Task-verified-0028.md](Verified/Task-verified-0028.md) | ✅ Verified |
+| T-0029 | `applyRepair` Facade Method — Request, Result, and Dispatch | [Task-verified-0029.md](Verified/Task-verified-0029.md) | ✅ Verified |
+| T-0030 | Repair Handlers — Manuscript File Operations | [Task-verified-0030.md](Verified/Task-verified-0030.md) | ✅ Verified |
+| T-0031 | Automatic Rename Detection in `RepairClassifier` | [Task-verified-0031.md](Verified/Task-verified-0031.md) | ✅ Verified |
+| T-0032 | Integration Tests for `applyRepair` | [Task-verified-0032.md](Verified/Task-verified-0032.md) | ✅ Verified |
+| T-0033 | Adapter — `applyRepair` + Full `RepairIssue` Serialization | [Task-verified-0033.md](Verified/Task-verified-0033.md) | ✅ Verified |
+| T-0034 | Character Object Schema (`ObjectJson`) | [Task-verified-0034.md](Verified/Task-verified-0034.md) | ✅ Verified |
+| T-0035 | `createObject` / `openObject` / `saveObject` / `deleteObject` Facade — Characters | [Task-verified-0035.md](Verified/Task-verified-0035.md) | ✅ Verified |
+| T-0036 | Integration Tests for Character Object CRUD | [Task-verified-0036.md](Verified/Task-verified-0036.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 33
-- **Verified:** 27 (82%) ✅
+- **Total Tasks:** 36
+- **Verified:** 36 (100%) ✅
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 6 (18%) 🔵
+- **Backlog:** 0 (0%) 🔵
 
 ---
 
-*Last Updated: 2026-05-26 (T-0011 through T-0027 verified; T-0028 through T-0033 added for EP-004)*
+*Last Updated: 2026-05-27 (T-0028 through T-0036 archived to Verified/; backlog and active queues empty)*

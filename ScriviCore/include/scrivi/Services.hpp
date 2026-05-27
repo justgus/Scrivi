@@ -28,6 +28,7 @@ public:
     virtual IdentityID   newIdentityID()   = 0;
     virtual PersonaID    newPersonaID()    = 0;
     virtual SnapshotID   newSnapshotID()   = 0;
+    virtual ObjectID     newObjectID()     = 0;
 };
 
 class FileSystem {

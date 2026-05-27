@@ -52,6 +52,8 @@
 		A004 /* ExternalChangeScanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ExternalChangeScanner.cpp; path = ScriviCore/src/repair/ExternalChangeScanner.cpp; sourceTree = SOURCE_ROOT; };
 		A009 /* RepairDispatcher.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = RepairDispatcher.hpp; path = ScriviCore/src/repair/RepairDispatcher.hpp; sourceTree = SOURCE_ROOT; };
 		A010 /* RepairDispatcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RepairDispatcher.cpp; path = ScriviCore/src/repair/RepairDispatcher.cpp; sourceTree = SOURCE_ROOT; };
+		A011 /* RepairHandlers.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = RepairHandlers.hpp; path = ScriviCore/src/repair/RepairHandlers.hpp; sourceTree = SOURCE_ROOT; };
+		A012 /* RepairHandlers.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RepairHandlers.cpp; path = ScriviCore/src/repair/RepairHandlers.cpp; sourceTree = SOURCE_ROOT; };
 		A005 /* SystemGitProvider.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SystemGitProvider.hpp; path = ScriviCore/src/git/SystemGitProvider.hpp; sourceTree = SOURCE_ROOT; };
 		A006 /* SystemGitProvider.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemGitProvider.cpp; path = ScriviCore/src/git/SystemGitProvider.cpp; sourceTree = SOURCE_ROOT; };
 		A007 /* SnapshotService.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SnapshotService.hpp; path = ScriviCore/src/git/SnapshotService.hpp; sourceTree = SOURCE_ROOT; };
@@ -64,6 +66,7 @@
 		B004 /* ExternalChangeTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ExternalChangeTests.cpp; path = ScriviCore/tests/integration/ExternalChangeTests.cpp; sourceTree = SOURCE_ROOT; };
 		B005 /* GitSnapshotTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GitSnapshotTests.cpp; path = ScriviCore/tests/integration/GitSnapshotTests.cpp; sourceTree = SOURCE_ROOT; };
 		B008 /* MvpLoopTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MvpLoopTests.cpp; path = ScriviCore/tests/integration/MvpLoopTests.cpp; sourceTree = SOURCE_ROOT; };
+		B009 /* ApplyRepairTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ApplyRepairTests.cpp; path = ScriviCore/tests/integration/ApplyRepairTests.cpp; sourceTree = SOURCE_ROOT; };
 		D001 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = docs/README.md; sourceTree = SOURCE_ROOT; };
 		D002 /* Scrivi_Backend_Architecture_v0_2.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Architecture_v0_2.md; path = docs/Scrivi_Backend_Architecture_v0_2.md; sourceTree = SOURCE_ROOT; };
 		D003 /* Scrivi_Backend_Behavior_Spec_v0_1.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Scrivi_Backend_Behavior_Spec_v0_1.md; path = docs/Scrivi_Backend_Behavior_Spec_v0_1.md; sourceTree = SOURCE_ROOT; };
@@ -116,6 +119,12 @@
 		F007 /* Requests.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Requests.hpp; path = ScriviCore/include/scrivi/Requests.hpp; sourceTree = SOURCE_ROOT; };
 		F008 /* Results.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Results.hpp; path = ScriviCore/include/scrivi/Results.hpp; sourceTree = SOURCE_ROOT; };
 		F009 /* ScriviCore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ScriviCore.hpp; path = ScriviCore/include/scrivi/ScriviCore.hpp; sourceTree = SOURCE_ROOT; };
+		E001 /* ObjectTypes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ObjectTypes.hpp; path = ScriviCore/include/scrivi/ObjectTypes.hpp; sourceTree = SOURCE_ROOT; };
+		E002 /* ObjectJson.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ObjectJson.hpp; path = ScriviCore/src/schemas/ObjectJson.hpp; sourceTree = SOURCE_ROOT; };
+		E003 /* ObjectJson.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ObjectJson.cpp; path = ScriviCore/src/schemas/ObjectJson.cpp; sourceTree = SOURCE_ROOT; };
+		E004 /* ObjectStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ObjectStore.hpp; path = ScriviCore/src/objects/ObjectStore.hpp; sourceTree = SOURCE_ROOT; };
+		E005 /* ObjectStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ObjectStore.cpp; path = ScriviCore/src/objects/ObjectStore.cpp; sourceTree = SOURCE_ROOT; };
+		E006 /* ObjectCrudTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ObjectCrudTests.cpp; path = ScriviCore/tests/integration/ObjectCrudTests.cpp; sourceTree = SOURCE_ROOT; };
 		F010 /* ScriviCore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ScriviCore.cpp; path = ScriviCore/src/public_api/ScriviCore.cpp; sourceTree = SOURCE_ROOT; };
 		F011 /* ResultTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ResultTests.cpp; path = ScriviCore/tests/unit/ResultTests.cpp; sourceTree = SOURCE_ROOT; };
 		F012 /* IDTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IDTests.cpp; path = ScriviCore/tests/unit/IDTests.cpp; sourceTree = SOURCE_ROOT; };
@@ -244,6 +253,8 @@
 				A004 /* ExternalChangeScanner.cpp */,
 				A009 /* RepairDispatcher.hpp */,
 				A010 /* RepairDispatcher.cpp */,
+				A011 /* RepairHandlers.hpp */,
+				A012 /* RepairHandlers.cpp */,
 			);
 			name = repair;
 			sourceTree = "<group>";
@@ -400,6 +411,7 @@
 				F006 /* Services.hpp */,
 				F007 /* Requests.hpp */,
 				F008 /* Results.hpp */,
+				E001 /* ObjectTypes.hpp */,
 			);
 			name = include/scrivi;
 			sourceTree = "<group>";
@@ -451,6 +463,8 @@
 				D102 /* SnapshotMetadataJson.cpp */,
 				D103 /* RepairIssueJson.hpp */,
 				D104 /* RepairIssueJson.cpp */,
+				E002 /* ObjectJson.hpp */,
+				E003 /* ObjectJson.cpp */,
 			);
 			name = schemas;
 			sourceTree = "<group>";
@@ -466,6 +480,15 @@
 			name = ScriviCore;
 			sourceTree = "<group>";
 		};
+		GRP_OBJECTS /* objects */ = {
+			isa = PBXGroup;
+			children = (
+				E004 /* ObjectStore.hpp */,
+				E005 /* ObjectStore.cpp */,
+			);
+			name = objects;
+			sourceTree = "<group>";
+		};
 		GRP_SRC /* src */ = {
 			isa = PBXGroup;
 			children = (
@@ -474,6 +497,7 @@
 				86E648792FBE02E400376B3D /* git */,
 				86E6487A2FBE02E400376B3D /* identity */,
 				86E6487B2FBE02E400376B3D /* manuscript */,
+				GRP_OBJECTS /* objects */,
 				86E648822FBE02E400376B3D /* project_package */,
 				86E648852FBE02E400376B3D /* repair */,
 				86E648A32FBE02E400376B3D /* workspace */,
@@ -506,6 +530,8 @@
 				B004 /* ExternalChangeTests.cpp */,
 				B005 /* GitSnapshotTests.cpp */,
 				B008 /* MvpLoopTests.cpp */,
+				B009 /* ApplyRepairTests.cpp */,
+				E006 /* ObjectCrudTests.cpp */,
 			);
 			name = integration;
 			sourceTree = "<group>";

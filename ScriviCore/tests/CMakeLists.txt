@@ -23,6 +23,7 @@ add_executable(ScriviCoreTests
     integration/ExternalChangeTests.cpp
     integration/GitSnapshotTests.cpp
     integration/MvpLoopTests.cpp
+    integration/ApplyRepairTests.cpp
 )
 
 target_include_directories(ScriviCoreTests
