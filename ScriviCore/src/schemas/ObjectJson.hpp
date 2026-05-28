@@ -8,11 +8,23 @@
 
 namespace scrivi::schemas {
 
-// Serialize a CharacterObject to a JSON string.
 std::string serializeCharacter(const CharacterObject& obj);
-
-// Parse a JSON string back into a CharacterObject.
-// Returns parseError on malformed JSON, validationError on schema mismatch.
 Result<CharacterObject> parseCharacter(std::string_view json);
+
+std::string serializeLocation(const LocationObject& obj);
+Result<LocationObject> parseLocation(std::string_view json);
+
+std::string serializeItem(const ItemObject& obj);
+Result<ItemObject> parseItem(std::string_view json);
+
+std::string serializeRule(const RuleObject& obj);
+Result<RuleObject> parseRule(std::string_view json);
+
+std::string serializeTimeline(const TimelineObject& obj);
+Result<TimelineObject> parseTimeline(std::string_view json);
+
+// Serialize / parse any WorldObject variant.
+std::string serializeWorldObject(const WorldObject& obj);
+Result<WorldObject> parseWorldObject(std::string_view json, ObjectKind kind);
 
 } // namespace scrivi::schemas

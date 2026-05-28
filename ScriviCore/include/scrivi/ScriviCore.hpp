@@ -25,6 +25,14 @@ public:
     Result<SaveObjectResult>        saveObject(const SaveObjectRequest& request);
     Result<DeleteObjectResult>      deleteObject(const DeleteObjectRequest& request);
 
+    Result<ImportAssetResult>       importAsset(const ImportAssetRequest& request);
+    Result<ListAssetsResult>        listAssets(const ListAssetsRequest& request);
+    Result<RemoveAssetResult>       removeAsset(const RemoveAssetRequest& request);
+
+    Result<AddCommentResult>        addComment(const AddCommentRequest& request);
+    Result<ListCommentsResult>      listComments(const ListCommentsRequest& request);
+    Result<ResolveCommentResult>    resolveComment(const ResolveCommentRequest& request);
+
 private:
     CoreServices services_;
 };

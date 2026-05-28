@@ -24,6 +24,9 @@ add_executable(ScriviCoreTests
     integration/GitSnapshotTests.cpp
     integration/MvpLoopTests.cpp
     integration/ApplyRepairTests.cpp
+    integration/ObjectCrudTests.cpp
+    integration/AssetTests.cpp
+    integration/CommentTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

@@ -1,7 +1,7 @@
 # Active Tasks
 
-No tasks are currently active.
+No Tasks are currently active.
 
 ---
 
-*Last Updated: 2026-05-26*
+*Last Updated: 2026-05-28 (T-0040–T-0045 moved to Unverified after SP-012 implementation)*

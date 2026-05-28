@@ -56,7 +56,11 @@ target_sources(ScriviCore
         src/schemas/SnapshotMetadataJson.cpp
         src/schemas/RepairIssueJson.cpp
         src/schemas/ObjectJson.cpp
+        src/schemas/AssetMetaJson.cpp
+        src/schemas/CommentJson.cpp
         src/objects/ObjectStore.cpp
+        src/assets/AssetStore.cpp
+        src/comments/CommentStore.cpp
 )
 
 target_link_libraries(ScriviCore

@@ -32,6 +32,9 @@
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-010 | Objects Layer Foundation — Character Schema and CRUD | ✅ Closed | 2026-05-27 – 2026-05-27 |
+| SP-011 | Objects Layer — Remaining Types and Generalized CRUD | ✅ Closed | 2026-05-28 – 2026-05-28 |
+| SP-012 | Assets and Comments Layer | ✅ Closed | 2026-05-28 – 2026-05-28 |
+| SP-013 | Inbox and Adapter Completion | 🔵 Planned | TBD |
 
 ### Tasks
 
@@ -40,6 +43,17 @@
 | T-0034 | Character Object Schema (`ObjectJson`) | ✅ Implemented - Verified |
 | T-0035 | `createObject` / `openObject` / `saveObject` / `deleteObject` Facade — Characters | ✅ Implemented - Verified |
 | T-0036 | Integration Tests for Character Object CRUD | ✅ Implemented - Verified |
+| T-0037 | Remaining Object Types — Location, Item, Rule, Timeline Schemas | ✅ Implemented - Verified |
+| T-0038 | Generalize Object CRUD Facade to All Object Types | ✅ Implemented - Verified |
+| T-0039 | Integration Tests for All Object Types CRUD | ✅ Implemented - Verified |
+| T-0040 | Asset Metadata Sidecar Schema (`AssetMetaJson`) | ✅ Implemented - Verified |
+| T-0041 | `importAsset` / `listAssets` / `removeAsset` Facade Methods | ✅ Implemented - Verified |
+| T-0042 | Integration Tests for Asset Operations | ✅ Implemented - Verified |
+| T-0043 | Comments Schema (`CommentJson`) and Comment Types | ✅ Implemented - Verified |
+| T-0044 | `addComment` / `listComments` / `resolveComment` Facade Methods | ✅ Implemented - Verified |
+| T-0045 | Integration Tests for Comment Operations | ✅ Implemented - Verified |
+| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | 🔵 Backlog |
+| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | 🔵 Backlog |
 
 ### Issues
 
@@ -63,4 +77,4 @@ Drawn from `Scrivi_Project_Package_Structure_v0_1.md` (objects/, assets/, commen
 
 ---
 
-*Last Updated: 2026-05-27 (SP-010 closed; T-0034/T-0035/T-0036 verified; 121 tests passing)*
+*Last Updated: 2026-05-28 (SP-012 closed verified; SP-013 planned — T-0046/T-0047)*

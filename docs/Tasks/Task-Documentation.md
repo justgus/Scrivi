@@ -14,11 +14,12 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **0 backlog Tasks**
+Currently: **2 backlog Tasks**
 
-| Task | Title | Epic | Priority | Status |
-| ---- | ----- | ---- | -------- | ------ |
-| —    | None  | —    | —        | —      |
+| Task   | Title | Epic | Priority | Status |
+| ------ | ----- | ---- | -------- | ------ |
+| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | EP-005 | Medium | 🔵 Backlog |
+| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | EP-005 | High | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -26,9 +27,9 @@ See: [Task-backlog.md](Task-backlog.md)
 
 Currently: **0 active Tasks**
 
-| Task | Title | Epic | Sprint | Status |
-| ---- | ----- | ---- | ------ | ------ |
-| —    | None  | —    | —      | —      |
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| —    | None  | —      |
 
 See: [Task-active.md](Task-active.md)
 
@@ -44,7 +45,7 @@ See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **36 verified Tasks** | Next available: **T-0037**
+Currently: **36 verified Tasks** | Next available: **T-0048**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -84,14 +85,24 @@ Currently: **36 verified Tasks** | Next available: **T-0037**
 | T-0034 | Character Object Schema (`ObjectJson`) | [Task-verified-0034.md](Verified/Task-verified-0034.md) | ✅ Verified |
 | T-0035 | `createObject` / `openObject` / `saveObject` / `deleteObject` Facade — Characters | [Task-verified-0035.md](Verified/Task-verified-0035.md) | ✅ Verified |
 | T-0036 | Integration Tests for Character Object CRUD | [Task-verified-0036.md](Verified/Task-verified-0036.md) | ✅ Verified |
+| T-0037 | Remaining Object Types — Location, Item, Rule, Timeline Schemas | [Task-verified-0037.md](Verified/Task-verified-0037.md) | ✅ Verified |
+| T-0038 | Generalize Object CRUD Facade to All Object Types | [Task-verified-0038.md](Verified/Task-verified-0038.md) | ✅ Verified |
+| T-0039 | Integration Tests for All Object Types CRUD | [Task-verified-0039.md](Verified/Task-verified-0039.md) | ✅ Verified |
+| T-0040 | Asset Metadata Sidecar Schema (`AssetMetaJson`) | [Task-verified-0040.md](Verified/Task-verified-0040.md) | ✅ Verified |
+| T-0041 | `importAsset` / `listAssets` / `removeAsset` Facade Methods | [Task-verified-0041.md](Verified/Task-verified-0041.md) | ✅ Verified |
+| T-0042 | Integration Tests for Asset Operations | [Task-verified-0042.md](Verified/Task-verified-0042.md) | ✅ Verified |
+| T-0043 | Comments Schema (`CommentJson`) and Comment Types | [Task-verified-0043.md](Verified/Task-verified-0043.md) | ✅ Verified |
+| T-0044 | `addComment` / `listComments` / `resolveComment` Facade Methods | [Task-verified-0044.md](Verified/Task-verified-0044.md) | ✅ Verified |
+| T-0045 | Integration Tests for Comment Operations | [Task-verified-0045.md](Verified/Task-verified-0045.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 36
-- **Verified:** 36 (100%) ✅
+- **Total Tasks:** 47
+- **Verified:** 45 (96%) ✅
+- **Unverified:** 0 (0%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 0 (0%) 🔵
+- **Backlog:** 2 (4%) 🔵
 
 ---
 
-*Last Updated: 2026-05-27 (T-0028 through T-0036 archived to Verified/; backlog and active queues empty)*
+*Last Updated: 2026-05-28 (T-0040–T-0045 verified; SP-012 closed)*

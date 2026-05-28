@@ -8,6 +8,8 @@
 #include "repair/ExternalChangeScanner.hpp"
 #include "repair/RepairDispatcher.hpp"
 #include "objects/ObjectStore.hpp"
+#include "assets/AssetStore.hpp"
+#include "comments/CommentStore.hpp"
 #include "platform/AppSupportLayout.hpp"
 
 namespace scrivi {
@@ -91,6 +93,42 @@ Result<DeleteObjectResult> ScriviCore::deleteObject(
     const DeleteObjectRequest& request) {
     objects::ObjectStore store{services_};
     return store.remove(request);
+}
+
+Result<ImportAssetResult> ScriviCore::importAsset(
+    const ImportAssetRequest& request) {
+    assets::AssetStore store{services_};
+    return store.import(request);
+}
+
+Result<ListAssetsResult> ScriviCore::listAssets(
+    const ListAssetsRequest& request) {
+    assets::AssetStore store{services_};
+    return store.list(request);
+}
+
+Result<RemoveAssetResult> ScriviCore::removeAsset(
+    const RemoveAssetRequest& request) {
+    assets::AssetStore store{services_};
+    return store.remove(request);
+}
+
+Result<AddCommentResult> ScriviCore::addComment(
+    const AddCommentRequest& request) {
+    comments::CommentStore store{services_};
+    return store.add(request);
+}
+
+Result<ListCommentsResult> ScriviCore::listComments(
+    const ListCommentsRequest& request) {
+    comments::CommentStore store{services_};
+    return store.list(request);
+}
+
+Result<ResolveCommentResult> ScriviCore::resolveComment(
+    const ResolveCommentRequest& request) {
+    comments::CommentStore store{services_};
+    return store.resolve(request);
 }
 
 } // namespace scrivi

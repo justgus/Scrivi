@@ -10,6 +10,8 @@
 #include "schemas/SnapshotMetadataJson.hpp"
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
+#include "schemas/AssetMetaJson.hpp"
+#include "schemas/CommentJson.hpp"
 
 using namespace scrivi;
 using namespace scrivi::util;
@@ -511,4 +513,291 @@ TEST_CASE("ObjectJson rejects wrong schema tag", "[schemas][T-0034]") {
     auto result = parseCharacter(R"({"schema":"wrong.schema","objectID":"x"})");
     REQUIRE_FALSE(result.ok());
     REQUIRE(result.error().code == ErrorCode::validationError);
+}
+
+// ---------------------------------------------------------------------------
+// Remaining object type schema round-trip tests (T-0037)
+// ---------------------------------------------------------------------------
+
+static WorldObjectFields makeTestFields(const std::string& id = "obj-001") {
+    WorldObjectFields f;
+    f.objectID.value         = id;
+    f.slug                   = "test-slug";
+    f.displayName            = "Test Object";
+    f.status                 = "active";
+    f.createdAt              = "2026-05-28T00:00:00Z";
+    f.createdByIdentityID    = "identity-001";
+    f.createdByPersonaID     = "persona-001";
+    f.createdByDisplayName   = "Test Author";
+    f.modifiedAt             = "2026-05-28T00:00:00Z";
+    f.modifiedByIdentityID   = "identity-001";
+    f.modifiedByPersonaID    = "persona-001";
+    f.modifiedByDisplayName  = "Test Author";
+    f.notes                  = "Some notes.";
+    f.tags                   = {"tag-a", "tag-b"};
+    f.attributes             = {{"key1", "val1"}};
+    return f;
+}
+
+TEST_CASE("LocationObject round-trips correctly", "[schemas][T-0037]") {
+    LocationObject lo;
+    static_cast<WorldObjectFields&>(lo) = makeTestFields("loc-001");
+    lo.displayName = "Old Watchtower";
+
+    const auto json = serializeLocation(lo);
+    auto result = parseLocation(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.objectID.value == "loc-001");
+    REQUIRE(r.displayName    == "Old Watchtower");
+    REQUIRE(r.slug           == "test-slug");
+    REQUIRE(r.tags.size()    == 2);
+    REQUIRE(r.attributes.at("key1") == "val1");
+}
+
+TEST_CASE("ItemObject round-trips correctly", "[schemas][T-0037]") {
+    ItemObject io;
+    static_cast<WorldObjectFields&>(io) = makeTestFields("item-001");
+    io.displayName = "Brass Key";
+
+    const auto json = serializeItem(io);
+    auto result = parseItem(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.objectID.value == "item-001");
+    REQUIRE(r.displayName    == "Brass Key");
+}
+
+TEST_CASE("RuleObject round-trips correctly", "[schemas][T-0037]") {
+    RuleObject ro;
+    static_cast<WorldObjectFields&>(ro) = makeTestFields("rule-001");
+    ro.displayName = "Magic System";
+
+    const auto json = serializeRule(ro);
+    auto result = parseRule(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.objectID.value == "rule-001");
+    REQUIRE(r.displayName    == "Magic System");
+}
+
+TEST_CASE("TimelineObject round-trips correctly", "[schemas][T-0037]") {
+    TimelineObject to;
+    static_cast<WorldObjectFields&>(to) = makeTestFields("timeline-001");
+    to.displayName = "Main Timeline";
+
+    const auto json = serializeTimeline(to);
+    auto result = parseTimeline(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.objectID.value == "timeline-001");
+    REQUIRE(r.displayName    == "Main Timeline");
+}
+
+TEST_CASE("parseLocation rejects character schema tag", "[schemas][T-0037]") {
+    LocationObject lo;
+    static_cast<WorldObjectFields&>(lo) = makeTestFields();
+    const auto json = serializeCharacter(
+        []{ CharacterObject c; static_cast<WorldObjectFields&>(c) = makeTestFields(); return c; }());
+    auto result = parseLocation(json);
+    REQUIRE_FALSE(result.ok());
+    REQUIRE(result.error().code == ErrorCode::validationError);
+}
+
+TEST_CASE("serializeWorldObject / parseWorldObject round-trip for each kind",
+          "[schemas][T-0037]")
+{
+    auto fields = makeTestFields("wobj-001");
+
+    auto test = [&](ObjectKind kind, const std::string& expectedDisplay) {
+        WorldObject obj;
+        switch (kind) {
+            case ObjectKind::character: { CharacterObject t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
+            case ObjectKind::location:  { LocationObject  t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
+            case ObjectKind::item:      { ItemObject      t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
+            case ObjectKind::rule:      { RuleObject      t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
+            case ObjectKind::timeline:  { TimelineObject  t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
+        }
+        const auto json = serializeWorldObject(obj);
+        auto result = parseWorldObject(json, kind);
+        REQUIRE(result.ok());
+        REQUIRE(worldObjectFields(result.value()).displayName == expectedDisplay);
+    };
+
+    test(ObjectKind::character, "A Character");
+    test(ObjectKind::location,  "A Location");
+    test(ObjectKind::item,      "An Item");
+    test(ObjectKind::rule,      "A Rule");
+    test(ObjectKind::timeline,  "A Timeline");
+}
+
+// ---------------------------------------------------------------------------
+// AssetMetaJson tests (T-0040)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("AssetMetaJson round-trips a minimal AssetMeta", "[schemas][T-0040]") {
+    AssetMeta meta;
+    meta.assetID                    = "asset_01";
+    meta.slug                       = "map-of-the-realm";
+    meta.filename                   = "map.png";
+    meta.category                   = AssetCategory::image;
+    meta.mimeType                   = "image/png";
+    meta.importedAt                 = "2026-05-28T10:00:00Z";
+    meta.importedByIdentityID       = "identity_01";
+    meta.importedByPersonaID        = "persona_01";
+    meta.importedByDisplayName      = "Test Author";
+    meta.title                      = "Map of the Realm";
+    meta.notes                      = "";
+
+    const auto json = serializeAssetMeta(meta);
+    auto result = parseAssetMeta(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.assetID                   == "asset_01");
+    REQUIRE(r.slug                      == "map-of-the-realm");
+    REQUIRE(r.filename                  == "map.png");
+    REQUIRE(r.category                  == AssetCategory::image);
+    REQUIRE(r.mimeType                  == "image/png");
+    REQUIRE(r.importedAt                == "2026-05-28T10:00:00Z");
+    REQUIRE(r.importedByIdentityID      == "identity_01");
+    REQUIRE(r.importedByPersonaID       == "persona_01");
+    REQUIRE(r.importedByDisplayName     == "Test Author");
+    REQUIRE(r.title                     == "Map of the Realm");
+    REQUIRE(r.notes                     == "");
+    REQUIRE(r.tags.empty());
+}
+
+TEST_CASE("AssetMetaJson round-trips with tags and all categories", "[schemas][T-0040]") {
+    auto testCategory = [](AssetCategory cat, const std::string& mime) {
+        AssetMeta meta;
+        meta.assetID               = "asset_cat";
+        meta.slug                  = "test-asset";
+        meta.filename              = "file.bin";
+        meta.category              = cat;
+        meta.mimeType              = mime;
+        meta.importedAt            = "2026-05-28T12:00:00Z";
+        meta.importedByIdentityID  = "id";
+        meta.importedByPersonaID   = "pid";
+        meta.importedByDisplayName = "Author";
+        meta.title                 = "Test";
+        meta.tags                  = {"tag1", "tag2"};
+
+        auto json   = serializeAssetMeta(meta);
+        auto result = parseAssetMeta(json);
+        REQUIRE(result.ok());
+        REQUIRE(result.value().category    == cat);
+        REQUIRE(result.value().tags.size() == 2);
+        REQUIRE(result.value().tags[0]     == "tag1");
+        REQUIRE(result.value().tags[1]     == "tag2");
+    };
+
+    testCategory(AssetCategory::image,    "image/png");
+    testCategory(AssetCategory::audio,    "audio/mpeg");
+    testCategory(AssetCategory::video,    "video/mp4");
+    testCategory(AssetCategory::document, "application/pdf");
+    testCategory(AssetCategory::other,    "application/octet-stream");
+}
+
+TEST_CASE("AssetMetaJson rejects wrong schema tag", "[schemas][T-0040]") {
+    auto result = parseAssetMeta(
+        R"({"schema":"wrong.schema","assetID":"x","slug":"","filename":"","category":"image","mimeType":"","importedAt":"","importedBy":{},"title":"","notes":"","tags":[]})");
+    REQUIRE_FALSE(result.ok());
+    REQUIRE(result.error().code == ErrorCode::validationError);
+}
+
+TEST_CASE("AssetMetaJson rejects corrupt JSON", "[schemas][T-0040]") {
+    auto result = parseAssetMeta("{not valid json}");
+    REQUIRE_FALSE(result.ok());
+    REQUIRE(result.error().code == ErrorCode::parseError);
+}
+
+// ---------------------------------------------------------------------------
+// CommentJson tests (T-0043)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("CommentJson round-trips an empty thread", "[schemas][T-0043]") {
+    CommentThread thread;
+    thread.scopeKind = "scene";
+    thread.targetID  = "scene_01";
+
+    const auto json = serializeCommentThread(thread);
+    auto result = parseCommentThread(json);
+    REQUIRE(result.ok());
+    REQUIRE(result.value().scopeKind     == "scene");
+    REQUIRE(result.value().targetID      == "scene_01");
+    REQUIRE(result.value().comments.empty());
+}
+
+TEST_CASE("CommentJson round-trips a thread with an unresolved comment", "[schemas][T-0043]") {
+    Comment c;
+    c.commentID              = "comment_01";
+    c.body                   = "This paragraph needs revision.";
+    c.resolved               = false;
+    c.createdAt              = "2026-05-28T10:00:00Z";
+    c.createdByIdentityID    = "identity_01";
+    c.createdByPersonaID     = "persona_01";
+    c.createdByDisplayName   = "Test Author";
+
+    CommentThread thread;
+    thread.scopeKind = "scene";
+    thread.targetID  = "scene_01";
+    thread.comments.push_back(c);
+
+    const auto json = serializeCommentThread(thread);
+    auto result = parseCommentThread(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value();
+    REQUIRE(r.comments.size()               == 1);
+    REQUIRE(r.comments[0].commentID         == "comment_01");
+    REQUIRE(r.comments[0].body              == "This paragraph needs revision.");
+    REQUIRE(r.comments[0].resolved          == false);
+    REQUIRE(r.comments[0].createdAt         == "2026-05-28T10:00:00Z");
+    REQUIRE(r.comments[0].createdByIdentityID == "identity_01");
+    REQUIRE(!r.comments[0].resolvedAt.has_value());
+    REQUIRE(!r.comments[0].resolvedByIdentityID.has_value());
+}
+
+TEST_CASE("CommentJson round-trips a resolved comment", "[schemas][T-0043]") {
+    Comment c;
+    c.commentID              = "comment_02";
+    c.body                   = "Fixed.";
+    c.resolved               = true;
+    c.createdAt              = "2026-05-28T10:00:00Z";
+    c.createdByIdentityID    = "identity_01";
+    c.createdByPersonaID     = "persona_01";
+    c.createdByDisplayName   = "Author";
+    c.resolvedAt             = "2026-05-28T11:00:00Z";
+    c.resolvedByIdentityID   = "identity_02";
+    c.resolvedByPersonaID    = "persona_02";
+    c.resolvedByDisplayName  = "Reviewer";
+
+    CommentThread thread;
+    thread.scopeKind = "object";
+    thread.targetID  = "character_01";
+    thread.comments.push_back(c);
+
+    const auto json = serializeCommentThread(thread);
+    auto result = parseCommentThread(json);
+    REQUIRE(result.ok());
+    const auto& r = result.value().comments[0];
+    REQUIRE(r.resolved                       == true);
+    REQUIRE(r.resolvedAt.has_value());
+    REQUIRE(r.resolvedAt.value()             == "2026-05-28T11:00:00Z");
+    REQUIRE(r.resolvedByIdentityID.has_value());
+    REQUIRE(r.resolvedByIdentityID.value()   == "identity_02");
+    REQUIRE(r.resolvedByDisplayName.has_value());
+    REQUIRE(r.resolvedByDisplayName.value()  == "Reviewer");
+}
+
+TEST_CASE("CommentJson rejects wrong schema tag", "[schemas][T-0043]") {
+    auto result = parseCommentThread(
+        R"({"schema":"wrong.schema","scopeKind":"scene","targetID":"x","comments":[]})");
+    REQUIRE_FALSE(result.ok());
+    REQUIRE(result.error().code == ErrorCode::validationError);
+}
+
+TEST_CASE("CommentJson rejects corrupt JSON", "[schemas][T-0043]") {
+    auto result = parseCommentThread("{not valid json}");
+    REQUIRE_FALSE(result.ok());
+    REQUIRE(result.error().code == ErrorCode::parseError);
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "scrivi/AssetTypes.hpp"
+#include "scrivi/CommentTypes.hpp"
 #include "scrivi/ObjectTypes.hpp"
 #include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
@@ -108,8 +110,8 @@ struct CreateObjectResult {
 };
 
 struct OpenObjectResult {
-    CharacterObject object;
-    AbsolutePath    path;
+    WorldObject  object;
+    AbsolutePath path;
 };
 
 struct SaveObjectResult {
@@ -120,6 +122,45 @@ struct SaveObjectResult {
 struct DeleteObjectResult {
     ObjectID objectID;
     bool     deleted = false;
+};
+
+// ---------------------------------------------------------------------------
+// Asset results (EP-005 T-0041)
+// ---------------------------------------------------------------------------
+
+struct ImportAssetResult {
+    std::string  assetID;
+    AbsolutePath assetPath;    // absolute path to the copied binary file
+    AbsolutePath sidecarPath;  // absolute path to the .meta.json file
+};
+
+struct ListAssetsResult {
+    std::vector<AssetMeta> assets;
+};
+
+struct RemoveAssetResult {
+    std::string assetID;
+    bool        deleted = false;
+};
+
+// ---------------------------------------------------------------------------
+// Comment results (EP-005 T-0044)
+// ---------------------------------------------------------------------------
+
+struct AddCommentResult {
+    std::string commentID;
+    bool        added = false;
+};
+
+struct ListCommentsResult {
+    std::vector<Comment> comments;
+    std::string          scopeKind;
+    std::string          targetID;
+};
+
+struct ResolveCommentResult {
+    std::string commentID;
+    bool        resolved = false;
 };
 
 } // namespace scrivi

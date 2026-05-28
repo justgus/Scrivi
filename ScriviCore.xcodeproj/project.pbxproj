@@ -125,6 +125,18 @@
 		E004 /* ObjectStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ObjectStore.hpp; path = ScriviCore/src/objects/ObjectStore.hpp; sourceTree = SOURCE_ROOT; };
 		E005 /* ObjectStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ObjectStore.cpp; path = ScriviCore/src/objects/ObjectStore.cpp; sourceTree = SOURCE_ROOT; };
 		E006 /* ObjectCrudTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ObjectCrudTests.cpp; path = ScriviCore/tests/integration/ObjectCrudTests.cpp; sourceTree = SOURCE_ROOT; };
+		E010 /* AssetTypes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AssetTypes.hpp; path = ScriviCore/include/scrivi/AssetTypes.hpp; sourceTree = SOURCE_ROOT; };
+		E011 /* CommentTypes.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommentTypes.hpp; path = ScriviCore/include/scrivi/CommentTypes.hpp; sourceTree = SOURCE_ROOT; };
+		E012 /* AssetMetaJson.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AssetMetaJson.hpp; path = ScriviCore/src/schemas/AssetMetaJson.hpp; sourceTree = SOURCE_ROOT; };
+		E013 /* AssetMetaJson.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssetMetaJson.cpp; path = ScriviCore/src/schemas/AssetMetaJson.cpp; sourceTree = SOURCE_ROOT; };
+		E014 /* CommentJson.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommentJson.hpp; path = ScriviCore/src/schemas/CommentJson.hpp; sourceTree = SOURCE_ROOT; };
+		E015 /* CommentJson.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommentJson.cpp; path = ScriviCore/src/schemas/CommentJson.cpp; sourceTree = SOURCE_ROOT; };
+		E016 /* AssetStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AssetStore.hpp; path = ScriviCore/src/assets/AssetStore.hpp; sourceTree = SOURCE_ROOT; };
+		E017 /* AssetStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssetStore.cpp; path = ScriviCore/src/assets/AssetStore.cpp; sourceTree = SOURCE_ROOT; };
+		E018 /* CommentStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommentStore.hpp; path = ScriviCore/src/comments/CommentStore.hpp; sourceTree = SOURCE_ROOT; };
+		E019 /* CommentStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommentStore.cpp; path = ScriviCore/src/comments/CommentStore.cpp; sourceTree = SOURCE_ROOT; };
+		E020 /* AssetTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssetTests.cpp; path = ScriviCore/tests/integration/AssetTests.cpp; sourceTree = SOURCE_ROOT; };
+		E021 /* CommentTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommentTests.cpp; path = ScriviCore/tests/integration/CommentTests.cpp; sourceTree = SOURCE_ROOT; };
 		F010 /* ScriviCore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ScriviCore.cpp; path = ScriviCore/src/public_api/ScriviCore.cpp; sourceTree = SOURCE_ROOT; };
 		F011 /* ResultTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ResultTests.cpp; path = ScriviCore/tests/unit/ResultTests.cpp; sourceTree = SOURCE_ROOT; };
 		F012 /* IDTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IDTests.cpp; path = ScriviCore/tests/unit/IDTests.cpp; sourceTree = SOURCE_ROOT; };
@@ -412,6 +424,8 @@
 				F007 /* Requests.hpp */,
 				F008 /* Results.hpp */,
 				E001 /* ObjectTypes.hpp */,
+				E010 /* AssetTypes.hpp */,
+				E011 /* CommentTypes.hpp */,
 			);
 			name = include/scrivi;
 			sourceTree = "<group>";
@@ -465,6 +479,10 @@
 				D104 /* RepairIssueJson.cpp */,
 				E002 /* ObjectJson.hpp */,
 				E003 /* ObjectJson.cpp */,
+				E012 /* AssetMetaJson.hpp */,
+				E013 /* AssetMetaJson.cpp */,
+				E014 /* CommentJson.hpp */,
+				E015 /* CommentJson.cpp */,
 			);
 			name = schemas;
 			sourceTree = "<group>";
@@ -489,6 +507,24 @@
 			name = objects;
 			sourceTree = "<group>";
 		};
+		GRP_ASSETS /* assets */ = {
+			isa = PBXGroup;
+			children = (
+				E016 /* AssetStore.hpp */,
+				E017 /* AssetStore.cpp */,
+			);
+			name = assets;
+			sourceTree = "<group>";
+		};
+		GRP_COMMENTS /* comments */ = {
+			isa = PBXGroup;
+			children = (
+				E018 /* CommentStore.hpp */,
+				E019 /* CommentStore.cpp */,
+			);
+			name = comments;
+			sourceTree = "<group>";
+		};
 		GRP_SRC /* src */ = {
 			isa = PBXGroup;
 			children = (
@@ -498,6 +534,8 @@
 				86E6487A2FBE02E400376B3D /* identity */,
 				86E6487B2FBE02E400376B3D /* manuscript */,
 				GRP_OBJECTS /* objects */,
+				GRP_ASSETS /* assets */,
+				GRP_COMMENTS /* comments */,
 				86E648822FBE02E400376B3D /* project_package */,
 				86E648852FBE02E400376B3D /* repair */,
 				86E648A32FBE02E400376B3D /* workspace */,
@@ -532,6 +570,8 @@
 				B008 /* MvpLoopTests.cpp */,
 				B009 /* ApplyRepairTests.cpp */,
 				E006 /* ObjectCrudTests.cpp */,
+				E020 /* AssetTests.cpp */,
+				E021 /* CommentTests.cpp */,
 			);
 			name = integration;
 			sourceTree = "<group>";

@@ -7,7 +7,8 @@
 
 namespace scrivi::objects {
 
-// Handles character object CRUD against objects/characters/ in the project package.
+// Handles world-object CRUD against objects/<kind>/ in the project package.
+// Dispatches to the correct subdirectory and schema based on ObjectKind.
 class ObjectStore {
 public:
     explicit ObjectStore(CoreServices& services);
@@ -20,12 +21,11 @@ public:
 private:
     CoreServices& services_;
 
-    // Returns the absolute path to the characters directory.
-    AbsolutePath charsDir(const AbsolutePath& projectRoot) const;
+    AbsolutePath kindDir(const AbsolutePath& projectRoot, ObjectKind kind) const;
 
-    // Scans charsDir to find the .json file whose parsed objectID matches id.
-    // Returns notFound if no match.
+    // Scans kindDir to find the .json file whose parsed objectID matches id.
     Result<AbsolutePath> findByID(const AbsolutePath& projectRoot,
+                                   ObjectKind kind,
                                    const ObjectID& id) const;
 };
 

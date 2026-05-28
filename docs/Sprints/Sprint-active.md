@@ -1,7 +1,7 @@
 # Active Sprint
 
-*No active sprint. Start a new sprint when ready.*
+No Sprint is currently active.
 
 ---
 
-*Last Updated: 2026-05-27 (SP-010 closed)*
+*Last Updated: 2026-05-28 (SP-012 closed verified)*

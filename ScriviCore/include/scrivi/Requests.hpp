@@ -1,5 +1,7 @@
 #pragma once
 
+#include "scrivi/AssetTypes.hpp"
+#include "scrivi/CommentTypes.hpp"
 #include "scrivi/ObjectTypes.hpp"
 #include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
@@ -88,6 +90,7 @@ struct ApplyRepairRequest {
 
 struct CreateObjectRequest {
     AbsolutePath  projectRootPath;
+    ObjectKind    objectKind = ObjectKind::character;
     std::string   displayName;     // required — slug is derived from this
     Slug          slug;            // optional override; if empty, derived from displayName
     AuthorshipRef author;
@@ -95,18 +98,68 @@ struct CreateObjectRequest {
 
 struct OpenObjectRequest {
     AbsolutePath  projectRootPath;
+    ObjectKind    objectKind = ObjectKind::character;
     ObjectID      objectID;
 };
 
 struct SaveObjectRequest {
-    AbsolutePath    projectRootPath;
-    CharacterObject object;        // full updated object; objectID must match an existing file
-    AuthorshipRef   author;
+    AbsolutePath  projectRootPath;
+    WorldObject   object;          // full updated object; objectID must match an existing file
+    AuthorshipRef author;
 };
 
 struct DeleteObjectRequest {
     AbsolutePath  projectRootPath;
+    ObjectKind    objectKind = ObjectKind::character;
     ObjectID      objectID;
+};
+
+// ---------------------------------------------------------------------------
+// Asset requests (EP-005 T-0041)
+// ---------------------------------------------------------------------------
+
+struct ImportAssetRequest {
+    AbsolutePath  projectRootPath;
+    AbsolutePath  sourcePath;         // absolute path to the file to import
+    AssetCategory category;
+    std::string   title;
+    AuthorshipRef author;
+};
+
+struct ListAssetsRequest {
+    AbsolutePath             projectRootPath;
+    std::optional<AssetCategory> category;   // if set, filter by this category
+};
+
+struct RemoveAssetRequest {
+    AbsolutePath projectRootPath;
+    std::string  assetID;
+};
+
+// ---------------------------------------------------------------------------
+// Comment requests (EP-005 T-0044)
+// ---------------------------------------------------------------------------
+
+struct AddCommentRequest {
+    AbsolutePath  projectRootPath;
+    std::string   scopeKind;   // "scene" | "object"
+    std::string   targetID;    // sceneID or objectID value
+    std::string   body;
+    AuthorshipRef author;
+};
+
+struct ListCommentsRequest {
+    AbsolutePath projectRootPath;
+    std::string  scopeKind;
+    std::string  targetID;
+};
+
+struct ResolveCommentRequest {
+    AbsolutePath  projectRootPath;
+    std::string   scopeKind;
+    std::string   targetID;
+    std::string   commentID;
+    AuthorshipRef resolver;
 };
 
 } // namespace scrivi
