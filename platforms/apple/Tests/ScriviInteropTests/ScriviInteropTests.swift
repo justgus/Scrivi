@@ -378,4 +378,192 @@ struct ScriviInteropTests {
         // The file should now exist.
         #expect(FileManager.default.fileExists(atPath: contentURL.path))
     }
+
+    // MARK: — Test 10: createObject / openObject / deleteObject — character
+
+    @Test("createObject creates a character and openObject retrieves it")
+    func createAndOpenCharacterObject() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        let created = try engine.createObject(
+            projectRootPath: projectDir.path,
+            objectKind:      "character",
+            displayName:     "Elara Voss",
+            authorshipRef:   ref
+        )
+
+        #expect(!created.objectID.isEmpty)
+        #expect(!created.slug.isEmpty)
+
+        let opened = try engine.openObject(
+            projectRootPath: projectDir.path,
+            objectKind:      "character",
+            objectID:        created.objectID
+        )
+
+        #expect(!opened.objectJson.isEmpty)
+        #expect(!opened.path.isEmpty)
+    }
+
+    @Test("deleteObject removes a character object")
+    func deleteCharacterObject() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        let created = try engine.createObject(
+            projectRootPath: projectDir.path,
+            objectKind:      "character",
+            displayName:     "Temp Character",
+            authorshipRef:   ref
+        )
+
+        let deleted = try engine.deleteObject(
+            projectRootPath: projectDir.path,
+            objectKind:      "character",
+            objectID:        created.objectID
+        )
+
+        #expect(deleted.deleted == true)
+    }
+
+    // MARK: — Test 11: importAsset / listAssets / removeAsset
+
+    @Test("importAsset copies a file and listAssets returns it")
+    func importAndListAssets() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        // Write a synthetic source file outside the project.
+        let srcDir = try TempDir()
+        let srcURL = srcDir.url.appendingPathComponent("image.png")
+        try "FAKE_PNG".data(using: .utf8)!.write(to: srcURL)
+
+        let imported = try engine.importAsset(
+            projectRootPath: projectDir.path,
+            sourcePath:      srcURL.path(percentEncoded: false),
+            category:        "image",
+            title:           "Cover Image",
+            authorshipRef:   ref
+        )
+
+        #expect(!imported.assetID.isEmpty)
+        #expect(!imported.assetPath.isEmpty)
+
+        let listed = try engine.listAssets(projectRootPath: projectDir.path)
+        #expect(listed.count == 1)
+    }
+
+    @Test("removeAsset deletes the asset and sidecar")
+    func removeAssetDeletesBothFiles() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        let srcDir = try TempDir()
+        let srcURL = srcDir.url.appendingPathComponent("doc.pdf")
+        try "FAKE_PDF".data(using: .utf8)!.write(to: srcURL)
+
+        let imported = try engine.importAsset(
+            projectRootPath: projectDir.path,
+            sourcePath:      srcURL.path(percentEncoded: false),
+            category:        "document",
+            title:           "Notes",
+            authorshipRef:   ref
+        )
+
+        let removed = try engine.removeAsset(
+            projectRootPath: projectDir.path,
+            assetID:         imported.assetID
+        )
+
+        #expect(removed.deleted == true)
+
+        let listed = try engine.listAssets(projectRootPath: projectDir.path)
+        #expect(listed.count == 0)
+    }
+
+    // MARK: — Test 12: addComment / listComments / resolveComment
+
+    @Test("addComment adds a comment and listComments returns count 1")
+    func addAndListComments() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        let added = try engine.addComment(
+            projectRootPath: projectDir.path,
+            scopeKind:       "scene",
+            targetID:        "scene-abc",
+            body:            "Needs more tension here.",
+            authorshipRef:   ref
+        )
+
+        #expect(added.added == true)
+        #expect(!added.commentID.isEmpty)
+
+        let listed = try engine.listComments(
+            projectRootPath: projectDir.path,
+            scopeKind:       "scene",
+            targetID:        "scene-abc"
+        )
+
+        #expect(listed.count == 1)
+    }
+
+    @Test("resolveComment marks a comment as resolved")
+    func resolveCommentSetsResolvedFlag() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        let added = try engine.addComment(
+            projectRootPath: projectDir.path,
+            scopeKind:       "object",
+            targetID:        "char-xyz",
+            body:            "Verify backstory.",
+            authorshipRef:   ref
+        )
+
+        let resolved = try engine.resolveComment(
+            projectRootPath: projectDir.path,
+            scopeKind:       "object",
+            targetID:        "char-xyz",
+            commentID:       added.commentID,
+            authorshipRef:   ref
+        )
+
+        #expect(resolved.resolved == true)
+    }
+
+    // MARK: — Test 13: listInbox / importFromInbox
+
+    @Test("listInbox returns empty list on a fresh project")
+    func listInboxReturnEmptyOnFreshProject() throws {
+        let (engine, _, _, projectDir, _) = try makeProjectFixture()
+
+        let result = try engine.listInbox(projectRootPath: projectDir.path)
+        #expect(result.count == 0)
+    }
+
+    @Test("importFromInbox importAsAsset moves inbox file to assets")
+    func importFromInboxMovesFileToAssets() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        // Drop a file directly into inbox/dropped-files/
+        let inboxDir = URL(fileURLWithPath: projectDir.path)
+            .appendingPathComponent("inbox/dropped-files")
+        try FileManager.default.createDirectory(
+            at: inboxDir, withIntermediateDirectories: true)
+        let fileURL = inboxDir.appendingPathComponent("hero.png")
+        try "PNG_BYTES".data(using: .utf8)!.write(to: fileURL)
+
+        let listBefore = try engine.listInbox(projectRootPath: projectDir.path)
+        #expect(listBefore.count == 1)
+
+        let result = try engine.importFromInbox(
+            projectRootPath: projectDir.path,
+            filename:        "hero.png",
+            action:          "importAsAsset",
+            category:        "image",
+            authorshipRef:   ref
+        )
+
+        #expect(result.actionTaken == "importAsAsset")
+        #expect(!result.assetID.isEmpty)
+
+        let listAfter = try engine.listInbox(projectRootPath: projectDir.path)
+        #expect(listAfter.count == 0)
+    }
 }

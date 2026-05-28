@@ -33,6 +33,9 @@ public:
     Result<ListCommentsResult>      listComments(const ListCommentsRequest& request);
     Result<ResolveCommentResult>    resolveComment(const ResolveCommentRequest& request);
 
+    Result<ListInboxResult>         listInbox(const ListInboxRequest& request);
+    Result<ImportFromInboxResult>   importFromInbox(const ImportFromInboxRequest& request);
+
 private:
     CoreServices services_;
 };

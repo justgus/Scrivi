@@ -11,11 +11,11 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-Currently: **None**
+Currently: **SP-013**
 
 ## All Sprints
 
-Currently: **12 Sprints** | Next available: **SP-013**
+Currently: **13 Sprints** | Next available: **SP-014**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -31,13 +31,14 @@ Currently: **12 Sprints** | Next available: **SP-013**
 | SP-010 | Objects Layer Foundation — Character Schema and CRUD | EP-005 | 2026-05-27 | 2026-05-27 | ✅ Closed |
 | SP-011 | Objects Layer — Remaining Types and Generalized CRUD | EP-005 | 2026-05-28 | 2026-05-28 | ✅ Closed |
 | SP-012 | Assets and Comments Layer | EP-005 | 2026-05-28 | 2026-05-28 | ✅ Closed |
+| SP-013 | Inbox and Adapter Completion | EP-005 | 2026-05-28 | TBD | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 12
+- **Total Sprints:** 13
 - **Closed:** 12 ✅
-- **Active:** 0
+- **Active:** 1 🟡
 
 ---
 
-*Last Updated: 2026-05-28 (SP-012 closed verified)*
+*Last Updated: 2026-05-28 (SP-013 activated)*

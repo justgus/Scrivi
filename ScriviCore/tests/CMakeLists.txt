@@ -27,6 +27,7 @@ add_executable(ScriviCoreTests
     integration/ObjectCrudTests.cpp
     integration/AssetTests.cpp
     integration/CommentTests.cpp
+    integration/InboxTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

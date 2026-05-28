@@ -8,6 +8,7 @@
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
 #include "schemas/RepairIssueJson.hpp"
+#include "schemas/ObjectJson.hpp"
 #include "util/Json.hpp"
 
 #include <chrono>
@@ -448,6 +449,384 @@ std::string ScriviAdapter::createSnapshot(
     doc.setString("commitID",   v.commitID.value);
     doc.setString("createdAt",  v.createdAt);
     doc.setBool("created",      v.created);
+    return okEnvelope(std::move(doc));
+}
+
+// ---------------------------------------------------------------------------
+// EP-005 — Object CRUD
+// ---------------------------------------------------------------------------
+
+std::string ScriviAdapter::createObject(
+    const char* projectRootPath,
+    const char* objectKind,
+    const char* displayName,
+    const char* slug,
+    const char* identityID,
+    const char* personaID,
+    const char* authorDisplayName)
+{
+    static const auto kindFromStr = [](std::string_view s) -> scrivi::ObjectKind {
+        if (s == "location") return scrivi::ObjectKind::location;
+        if (s == "item")     return scrivi::ObjectKind::item;
+        if (s == "rule")     return scrivi::ObjectKind::rule;
+        if (s == "timeline") return scrivi::ObjectKind::timeline;
+        return scrivi::ObjectKind::character;
+    };
+
+    scrivi::CreateObjectRequest req;
+    req.projectRootPath = projectRootPath    ? projectRootPath    : "";
+    req.objectKind      = kindFromStr(objectKind ? objectKind : "character");
+    req.displayName     = displayName        ? displayName        : "";
+    req.slug            = slug               ? slug               : "";
+    req.author = {
+        scrivi::IdentityID{identityID          ? identityID          : ""},
+        scrivi::PersonaID {personaID           ? personaID           : ""},
+        authorDisplayName ? authorDisplayName : ""
+    };
+
+    auto result = impl_->core->createObject(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("objectID", v.objectID.value);
+    doc.setString("slug",     v.slug);
+    doc.setString("path",     v.path);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::openObject(
+    const char* projectRootPath,
+    const char* objectKind,
+    const char* objectID)
+{
+    static const auto kindFromStr = [](std::string_view s) -> scrivi::ObjectKind {
+        if (s == "location") return scrivi::ObjectKind::location;
+        if (s == "item")     return scrivi::ObjectKind::item;
+        if (s == "rule")     return scrivi::ObjectKind::rule;
+        if (s == "timeline") return scrivi::ObjectKind::timeline;
+        return scrivi::ObjectKind::character;
+    };
+
+    scrivi::OpenObjectRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.objectKind      = kindFromStr(objectKind ? objectKind : "character");
+    req.objectID        = scrivi::ObjectID{objectID ? objectID : ""};
+
+    auto result = impl_->core->openObject(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    // Re-serialize the WorldObject to JSON for the envelope.
+    auto objectJson = scrivi::schemas::serializeWorldObject(v.object);
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("objectJson", objectJson);
+    doc.setString("path",       v.path);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::saveObject(
+    const char* projectRootPath,
+    const char* objectKind,
+    const char* objectJson,
+    const char* identityID,
+    const char* personaID,
+    const char* authorDisplayName)
+{
+    static const auto kindFromStr = [](std::string_view s) -> scrivi::ObjectKind {
+        if (s == "location") return scrivi::ObjectKind::location;
+        if (s == "item")     return scrivi::ObjectKind::item;
+        if (s == "rule")     return scrivi::ObjectKind::rule;
+        if (s == "timeline") return scrivi::ObjectKind::timeline;
+        return scrivi::ObjectKind::character;
+    };
+
+    std::string jsonStr = objectJson ? objectJson : "";
+    auto kind = kindFromStr(objectKind ? objectKind : "character");
+    auto parseR = scrivi::schemas::parseWorldObject(jsonStr, kind);
+    if (!parseR.ok()) return errorEnvelope(parseR.error());
+
+    scrivi::SaveObjectRequest req;
+    req.projectRootPath = projectRootPath    ? projectRootPath    : "";
+    req.object          = std::move(parseR.value());
+    req.author = {
+        scrivi::IdentityID{identityID          ? identityID          : ""},
+        scrivi::PersonaID {personaID           ? personaID           : ""},
+        authorDisplayName ? authorDisplayName : ""
+    };
+
+    auto result = impl_->core->saveObject(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("objectID", v.objectID.value);
+    doc.setBool("saved",      v.saved);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::deleteObject(
+    const char* projectRootPath,
+    const char* objectKind,
+    const char* objectID)
+{
+    static const auto kindFromStr = [](std::string_view s) -> scrivi::ObjectKind {
+        if (s == "location") return scrivi::ObjectKind::location;
+        if (s == "item")     return scrivi::ObjectKind::item;
+        if (s == "rule")     return scrivi::ObjectKind::rule;
+        if (s == "timeline") return scrivi::ObjectKind::timeline;
+        return scrivi::ObjectKind::character;
+    };
+
+    scrivi::DeleteObjectRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.objectKind      = kindFromStr(objectKind ? objectKind : "character");
+    req.objectID        = scrivi::ObjectID{objectID ? objectID : ""};
+
+    auto result = impl_->core->deleteObject(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("objectID", v.objectID.value);
+    doc.setBool("deleted",    v.deleted);
+    return okEnvelope(std::move(doc));
+}
+
+// ---------------------------------------------------------------------------
+// EP-005 — Assets
+// ---------------------------------------------------------------------------
+
+std::string ScriviAdapter::importAsset(
+    const char* projectRootPath,
+    const char* sourcePath,
+    const char* category,
+    const char* title,
+    const char* identityID,
+    const char* personaID,
+    const char* authorDisplayName)
+{
+    scrivi::ImportAssetRequest req;
+    req.projectRootPath = projectRootPath    ? projectRootPath    : "";
+    req.sourcePath      = sourcePath         ? sourcePath         : "";
+    req.category        = scrivi::assetCategoryFromString(category ? category : "other");
+    req.title           = title              ? title              : "";
+    req.author = {
+        scrivi::IdentityID{identityID          ? identityID          : ""},
+        scrivi::PersonaID {personaID           ? personaID           : ""},
+        authorDisplayName ? authorDisplayName : ""
+    };
+
+    auto result = impl_->core->importAsset(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("assetID",     v.assetID);
+    doc.setString("assetPath",   v.assetPath);
+    doc.setString("sidecarPath", v.sidecarPath);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::listAssets(
+    const char* projectRootPath,
+    const char* category)
+{
+    scrivi::ListAssetsRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    std::string catStr  = category        ? category        : "";
+    if (!catStr.empty())
+        req.category = scrivi::assetCategoryFromString(catStr);
+
+    auto result = impl_->core->listAssets(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    // Encode assets as JSON array string — Swift will decode as [AssetResult].
+    std::string arr = "[";
+    bool first = true;
+    for (const auto& a : v.assets) {
+        if (!first) arr += ",";
+        first = false;
+        arr += "{\"assetID\":\"" + a.assetID + "\","
+               "\"filename\":\"" + a.filename + "\","
+               "\"category\":\"" + scrivi::assetCategoryString(a.category) + "\","
+               "\"title\":\"" + a.title + "\"}";
+    }
+    arr += "]";
+    doc.setString("assets", arr);
+    doc.setInt("count", static_cast<int>(v.assets.size()));
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::removeAsset(
+    const char* projectRootPath,
+    const char* assetID)
+{
+    scrivi::RemoveAssetRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.assetID         = assetID         ? assetID         : "";
+
+    auto result = impl_->core->removeAsset(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("assetID", v.assetID);
+    doc.setBool("deleted",   v.deleted);
+    return okEnvelope(std::move(doc));
+}
+
+// ---------------------------------------------------------------------------
+// EP-005 — Comments
+// ---------------------------------------------------------------------------
+
+std::string ScriviAdapter::addComment(
+    const char* projectRootPath,
+    const char* scopeKind,
+    const char* targetID,
+    const char* body,
+    const char* identityID,
+    const char* personaID,
+    const char* authorDisplayName)
+{
+    scrivi::AddCommentRequest req;
+    req.projectRootPath = projectRootPath    ? projectRootPath    : "";
+    req.scopeKind       = scopeKind          ? scopeKind          : "";
+    req.targetID        = targetID           ? targetID           : "";
+    req.body            = body               ? body               : "";
+    req.author = {
+        scrivi::IdentityID{identityID          ? identityID          : ""},
+        scrivi::PersonaID {personaID           ? personaID           : ""},
+        authorDisplayName ? authorDisplayName : ""
+    };
+
+    auto result = impl_->core->addComment(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("commentID", v.commentID);
+    doc.setBool("added",       v.added);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::listComments(
+    const char* projectRootPath,
+    const char* scopeKind,
+    const char* targetID)
+{
+    scrivi::ListCommentsRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.scopeKind       = scopeKind       ? scopeKind       : "";
+    req.targetID        = targetID        ? targetID        : "";
+
+    auto result = impl_->core->listComments(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("scopeKind", v.scopeKind);
+    doc.setString("targetID",  v.targetID);
+    doc.setInt("count",        static_cast<int>(v.comments.size()));
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::resolveComment(
+    const char* projectRootPath,
+    const char* scopeKind,
+    const char* targetID,
+    const char* commentID,
+    const char* identityID,
+    const char* personaID,
+    const char* resolverDisplayName)
+{
+    scrivi::ResolveCommentRequest req;
+    req.projectRootPath = projectRootPath     ? projectRootPath     : "";
+    req.scopeKind       = scopeKind           ? scopeKind           : "";
+    req.targetID        = targetID            ? targetID            : "";
+    req.commentID       = commentID           ? commentID           : "";
+    req.resolver = {
+        scrivi::IdentityID{identityID           ? identityID           : ""},
+        scrivi::PersonaID {personaID            ? personaID            : ""},
+        resolverDisplayName ? resolverDisplayName : ""
+    };
+
+    auto result = impl_->core->resolveComment(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("commentID", v.commentID);
+    doc.setBool("resolved",    v.resolved);
+    return okEnvelope(std::move(doc));
+}
+
+// ---------------------------------------------------------------------------
+// EP-005 — Inbox
+// ---------------------------------------------------------------------------
+
+std::string ScriviAdapter::listInbox(
+    const char* projectRootPath)
+{
+    scrivi::ListInboxRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+
+    auto result = impl_->core->listInbox(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setInt("count", static_cast<int>(v.entries.size()));
+    // Encode filenames as a simple JSON array string.
+    std::string arr = "[";
+    bool first = true;
+    for (const auto& e : v.entries) {
+        if (!first) arr += ",";
+        first = false;
+        arr += "\"" + e.filename + "\"";
+    }
+    arr += "]";
+    doc.setString("filenames", arr);
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::importFromInbox(
+    const char* projectRootPath,
+    const char* filename,
+    const char* action,
+    const char* category,
+    const char* identityID,
+    const char* personaID,
+    const char* authorDisplayName)
+{
+    static const auto actionFromStr = [](std::string_view s) -> scrivi::InboxAction {
+        if (s == "ignore")     return scrivi::InboxAction::ignore;
+        if (s == "deleteFile") return scrivi::InboxAction::deleteFile;
+        return scrivi::InboxAction::importAsAsset;
+    };
+
+    scrivi::ImportFromInboxRequest req;
+    req.projectRootPath = projectRootPath    ? projectRootPath    : "";
+    req.filename        = filename           ? filename           : "";
+    req.action          = actionFromStr(action ? action : "importAsAsset");
+    req.assetCategory   = scrivi::assetCategoryFromString(category ? category : "other");
+    req.author = {
+        scrivi::IdentityID{identityID          ? identityID          : ""},
+        scrivi::PersonaID {personaID           ? personaID           : ""},
+        authorDisplayName ? authorDisplayName : ""
+    };
+
+    auto result = impl_->core->importFromInbox(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("actionTaken", v.actionTaken);
+    doc.setString("resultPath",  v.resultPath);
+    doc.setString("assetID",     v.assetID);
     return okEnvelope(std::move(doc));
 }
 

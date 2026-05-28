@@ -162,4 +162,22 @@ struct ResolveCommentRequest {
     AuthorshipRef resolver;
 };
 
+// ---------------------------------------------------------------------------
+// Inbox requests (EP-005 T-0046)
+// ---------------------------------------------------------------------------
+
+enum class InboxAction { importAsAsset, ignore, deleteFile };
+
+struct ListInboxRequest {
+    AbsolutePath projectRootPath;
+};
+
+struct ImportFromInboxRequest {
+    AbsolutePath  projectRootPath;
+    std::string   filename;       // basename of the file in inbox/dropped-files/
+    InboxAction   action = InboxAction::importAsAsset;
+    AssetCategory assetCategory = AssetCategory::other;  // used when action == importAsAsset
+    AuthorshipRef author;
+};
+
 } // namespace scrivi

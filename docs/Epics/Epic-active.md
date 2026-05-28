@@ -34,7 +34,7 @@
 | SP-010 | Objects Layer Foundation — Character Schema and CRUD | ✅ Closed | 2026-05-27 – 2026-05-27 |
 | SP-011 | Objects Layer — Remaining Types and Generalized CRUD | ✅ Closed | 2026-05-28 – 2026-05-28 |
 | SP-012 | Assets and Comments Layer | ✅ Closed | 2026-05-28 – 2026-05-28 |
-| SP-013 | Inbox and Adapter Completion | 🔵 Planned | TBD |
+| SP-013 | Inbox and Adapter Completion | 🟡 Active | 2026-05-28 – TBD |
 
 ### Tasks
 
@@ -52,8 +52,8 @@
 | T-0043 | Comments Schema (`CommentJson`) and Comment Types | ✅ Implemented - Verified |
 | T-0044 | `addComment` / `listComments` / `resolveComment` Facade Methods | ✅ Implemented - Verified |
 | T-0045 | Integration Tests for Comment Operations | ✅ Implemented - Verified |
-| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | 🔵 Backlog |
-| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | 🔵 Backlog |
+| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | 🟠 Implemented - Not Verified |
+| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | 🟠 Implemented - Not Verified |
 
 ### Issues
 
@@ -77,4 +77,4 @@ Drawn from `Scrivi_Project_Package_Structure_v0_1.md` (objects/, assets/, commen
 
 ---
 
-*Last Updated: 2026-05-28 (SP-012 closed verified; SP-013 planned — T-0046/T-0047)*
+*Last Updated: 2026-05-28 (SP-013 implemented — T-0046/T-0047 awaiting verification)*

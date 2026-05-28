@@ -137,6 +137,9 @@
 		E019 /* CommentStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommentStore.cpp; path = ScriviCore/src/comments/CommentStore.cpp; sourceTree = SOURCE_ROOT; };
 		E020 /* AssetTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssetTests.cpp; path = ScriviCore/tests/integration/AssetTests.cpp; sourceTree = SOURCE_ROOT; };
 		E021 /* CommentTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CommentTests.cpp; path = ScriviCore/tests/integration/CommentTests.cpp; sourceTree = SOURCE_ROOT; };
+		E022 /* InboxStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = InboxStore.hpp; path = ScriviCore/src/inbox/InboxStore.hpp; sourceTree = SOURCE_ROOT; };
+		E023 /* InboxStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = InboxStore.cpp; path = ScriviCore/src/inbox/InboxStore.cpp; sourceTree = SOURCE_ROOT; };
+		E024 /* InboxTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = InboxTests.cpp; path = ScriviCore/tests/integration/InboxTests.cpp; sourceTree = SOURCE_ROOT; };
 		F010 /* ScriviCore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ScriviCore.cpp; path = ScriviCore/src/public_api/ScriviCore.cpp; sourceTree = SOURCE_ROOT; };
 		F011 /* ResultTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ResultTests.cpp; path = ScriviCore/tests/unit/ResultTests.cpp; sourceTree = SOURCE_ROOT; };
 		F012 /* IDTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IDTests.cpp; path = ScriviCore/tests/unit/IDTests.cpp; sourceTree = SOURCE_ROOT; };
@@ -525,6 +528,15 @@
 			name = comments;
 			sourceTree = "<group>";
 		};
+		GRP_INBOX /* inbox */ = {
+			isa = PBXGroup;
+			children = (
+				E022 /* InboxStore.hpp */,
+				E023 /* InboxStore.cpp */,
+			);
+			name = inbox;
+			sourceTree = "<group>";
+		};
 		GRP_SRC /* src */ = {
 			isa = PBXGroup;
 			children = (
@@ -536,6 +548,7 @@
 				GRP_OBJECTS /* objects */,
 				GRP_ASSETS /* assets */,
 				GRP_COMMENTS /* comments */,
+				GRP_INBOX /* inbox */,
 				86E648822FBE02E400376B3D /* project_package */,
 				86E648852FBE02E400376B3D /* repair */,
 				86E648A32FBE02E400376B3D /* workspace */,
@@ -572,6 +585,7 @@
 				E006 /* ObjectCrudTests.cpp */,
 				E020 /* AssetTests.cpp */,
 				E021 /* CommentTests.cpp */,
+				E024 /* InboxTests.cpp */,
 			);
 			name = integration;
 			sourceTree = "<group>";

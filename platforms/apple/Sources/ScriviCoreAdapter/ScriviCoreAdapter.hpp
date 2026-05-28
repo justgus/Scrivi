@@ -94,6 +94,89 @@ public:
         const char* label,
         const char* note);
 
+    // EP-005 — Object CRUD (all types)
+    std::string createObject(
+        const char* projectRootPath,
+        const char* objectKind,
+        const char* displayName,
+        const char* slug,
+        const char* identityID,
+        const char* personaID,
+        const char* authorDisplayName);
+
+    std::string openObject(
+        const char* projectRootPath,
+        const char* objectKind,
+        const char* objectID);
+
+    std::string saveObject(
+        const char* projectRootPath,
+        const char* objectKind,
+        const char* objectJson,  // full serialized WorldObject as JSON string
+        const char* identityID,
+        const char* personaID,
+        const char* authorDisplayName);
+
+    std::string deleteObject(
+        const char* projectRootPath,
+        const char* objectKind,
+        const char* objectID);
+
+    // EP-005 — Assets
+    std::string importAsset(
+        const char* projectRootPath,
+        const char* sourcePath,
+        const char* category,
+        const char* title,
+        const char* identityID,
+        const char* personaID,
+        const char* authorDisplayName);
+
+    std::string listAssets(
+        const char* projectRootPath,
+        const char* category);  // empty string = all categories
+
+    std::string removeAsset(
+        const char* projectRootPath,
+        const char* assetID);
+
+    // EP-005 — Comments
+    std::string addComment(
+        const char* projectRootPath,
+        const char* scopeKind,
+        const char* targetID,
+        const char* body,
+        const char* identityID,
+        const char* personaID,
+        const char* authorDisplayName);
+
+    std::string listComments(
+        const char* projectRootPath,
+        const char* scopeKind,
+        const char* targetID);
+
+    std::string resolveComment(
+        const char* projectRootPath,
+        const char* scopeKind,
+        const char* targetID,
+        const char* commentID,
+        const char* identityID,
+        const char* personaID,
+        const char* resolverDisplayName);
+
+    // EP-005 — Inbox
+    std::string listInbox(
+        const char* projectRootPath);
+
+    std::string importFromInbox(
+        const char* projectRootPath,
+        const char* filename,
+        const char* action,      // "importAsAsset" | "ignore" | "deleteFile"
+        const char* category,    // asset category, used when action == "importAsAsset"
+        const char* identityID,
+        const char* personaID,
+        const char* authorDisplayName);
+
 private:
     ScriviAdapter();
     ~ScriviAdapter();

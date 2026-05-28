@@ -14,12 +14,11 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **2 backlog Tasks**
+Currently: **0 backlog Tasks**
 
-| Task   | Title | Epic | Priority | Status |
-| ------ | ----- | ---- | -------- | ------ |
-| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | EP-005 | Medium | 🔵 Backlog |
-| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | EP-005 | High | 🔵 Backlog |
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| —    | None  | —      |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -35,11 +34,12 @@ See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **0 unverified Tasks**
+Currently: **2 unverified Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+| Task   | Title | Epic | Priority | Status |
+| ------ | ----- | ---- | -------- | ------ |
+| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | EP-005 | Medium | 🟠 Implemented - Not Verified |
+| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | EP-005 | High | 🟠 Implemented - Not Verified |
 
 See: [Task-unverified.md](Task-unverified.md)
 
@@ -99,10 +99,10 @@ Currently: **36 verified Tasks** | Next available: **T-0048**
 
 - **Total Tasks:** 47
 - **Verified:** 45 (96%) ✅
-- **Unverified:** 0 (0%) 🟠
+- **Unverified:** 2 (4%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 2 (4%) 🔵
+- **Backlog:** 0 (0%) 🔵
 
 ---
 
-*Last Updated: 2026-05-28 (T-0040–T-0045 verified; SP-012 closed)*
+*Last Updated: 2026-05-28 (T-0046, T-0047 implemented — awaiting verification)*

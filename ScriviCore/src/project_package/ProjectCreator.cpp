@@ -208,7 +208,11 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
                                schemas::serializeProjectPersonas(personas));
     if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
 
-    // 8. app-local workspace state
+    // 8. inbox/dropped-files/
+    r = fs.createDirectories(util::join(util::join(root, "inbox"), "dropped-files"));
+    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+
+    // 10. app-local workspace state
     schemas::WorkspaceStateData ws;
     ws.projectID        = projectID;
     ws.deviceID         = "device-local";
@@ -235,7 +239,7 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
         schemas::serializeWorkspaceState(ws));
     if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
 
-    // 9. Optional Git
+    // 11. Optional Git
     bool gitInitialized = false;
     std::optional<SnapshotID> initialSnapshotID;
 
@@ -269,7 +273,7 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
         initialSnapshotID  = snapID;
     }
 
-    // 10. Assemble result
+    // 12. Assemble result
     ProjectSummary summary;
     summary.projectID           = projectID;
     summary.title               = request.title;

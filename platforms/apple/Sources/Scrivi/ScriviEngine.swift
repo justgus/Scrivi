@@ -202,6 +202,238 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decode(json)
     }
+    // MARK: — EP-005: Object CRUD
+
+    public func createObject(
+        projectRootPath: String,
+        objectKind: String,
+        displayName: String,
+        slug: String = "",
+        authorshipRef: AuthorshipRef
+    ) throws -> CreateObjectResult {
+        let json = projectRootPath.withCString { prp in
+            objectKind.withCString { ok in
+                displayName.withCString { dn in
+                    slug.withCString { s in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pid in
+                                authorshipRef.displayName.withCString { adn in
+                                    adapter.createObject(prp, ok, dn, s, iid, pid, adn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    public func openObject(
+        projectRootPath: String,
+        objectKind: String,
+        objectID: String
+    ) throws -> OpenObjectResult {
+        let json = projectRootPath.withCString { prp in
+            objectKind.withCString { ok in
+                objectID.withCString { oid in
+                    adapter.openObject(prp, ok, oid)
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    public func saveObject(
+        projectRootPath: String,
+        objectKind: String,
+        objectJson: String,
+        authorshipRef: AuthorshipRef
+    ) throws -> SaveObjectResult {
+        let json = projectRootPath.withCString { prp in
+            objectKind.withCString { ok in
+                objectJson.withCString { oj in
+                    authorshipRef.identityID.withCString { iid in
+                        authorshipRef.personaID.withCString { pid in
+                            authorshipRef.displayName.withCString { adn in
+                                adapter.saveObject(prp, ok, oj, iid, pid, adn)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    public func deleteObject(
+        projectRootPath: String,
+        objectKind: String,
+        objectID: String
+    ) throws -> DeleteObjectResult {
+        let json = projectRootPath.withCString { prp in
+            objectKind.withCString { ok in
+                objectID.withCString { oid in
+                    adapter.deleteObject(prp, ok, oid)
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    // MARK: — EP-005: Assets
+
+    public func importAsset(
+        projectRootPath: String,
+        sourcePath: String,
+        category: String,
+        title: String,
+        authorshipRef: AuthorshipRef
+    ) throws -> ImportAssetResult {
+        let json = projectRootPath.withCString { prp in
+            sourcePath.withCString { sp in
+                category.withCString { cat in
+                    title.withCString { t in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pid in
+                                authorshipRef.displayName.withCString { adn in
+                                    adapter.importAsset(prp, sp, cat, t, iid, pid, adn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    public func listAssets(
+        projectRootPath: String,
+        category: String = ""
+    ) throws -> ListAssetsResult {
+        let json = projectRootPath.withCString { prp in
+            category.withCString { cat in
+                adapter.listAssets(prp, cat)
+            }
+        }
+        return try decode(json)
+    }
+
+    public func removeAsset(
+        projectRootPath: String,
+        assetID: String
+    ) throws -> RemoveAssetResult {
+        let json = projectRootPath.withCString { prp in
+            assetID.withCString { aid in
+                adapter.removeAsset(prp, aid)
+            }
+        }
+        return try decode(json)
+    }
+
+    // MARK: — EP-005: Comments
+
+    public func addComment(
+        projectRootPath: String,
+        scopeKind: String,
+        targetID: String,
+        body: String,
+        authorshipRef: AuthorshipRef
+    ) throws -> AddCommentResult {
+        let json = projectRootPath.withCString { prp in
+            scopeKind.withCString { sk in
+                targetID.withCString { tid in
+                    body.withCString { b in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pid in
+                                authorshipRef.displayName.withCString { adn in
+                                    adapter.addComment(prp, sk, tid, b, iid, pid, adn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    public func listComments(
+        projectRootPath: String,
+        scopeKind: String,
+        targetID: String
+    ) throws -> ListCommentsResult {
+        let json = projectRootPath.withCString { prp in
+            scopeKind.withCString { sk in
+                targetID.withCString { tid in
+                    adapter.listComments(prp, sk, tid)
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    public func resolveComment(
+        projectRootPath: String,
+        scopeKind: String,
+        targetID: String,
+        commentID: String,
+        authorshipRef: AuthorshipRef
+    ) throws -> ResolveCommentResult {
+        let json = projectRootPath.withCString { prp in
+            scopeKind.withCString { sk in
+                targetID.withCString { tid in
+                    commentID.withCString { cid in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pid in
+                                authorshipRef.displayName.withCString { adn in
+                                    adapter.resolveComment(prp, sk, tid, cid, iid, pid, adn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
+    // MARK: — EP-005: Inbox
+
+    public func listInbox(
+        projectRootPath: String
+    ) throws -> ListInboxResult {
+        let json = projectRootPath.withCString { prp in
+            adapter.listInbox(prp)
+        }
+        return try decode(json)
+    }
+
+    public func importFromInbox(
+        projectRootPath: String,
+        filename: String,
+        action: String,
+        category: String = "other",
+        authorshipRef: AuthorshipRef
+    ) throws -> ImportFromInboxResult {
+        let json = projectRootPath.withCString { prp in
+            filename.withCString { fn in
+                action.withCString { act in
+                    category.withCString { cat in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pid in
+                                authorshipRef.displayName.withCString { adn in
+                                    adapter.importFromInbox(prp, fn, act, cat, iid, pid, adn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
 }
 
 // MARK: — Swift result types
@@ -362,6 +594,98 @@ public struct CreateSnapshotResult: Decodable, Sendable {
     public let commitID:   String
     public let createdAt:  String
     public let created:    Bool
+}
+
+// EP-005 Object CRUD result types
+
+public struct CreateObjectResult: Decodable, Sendable {
+    public let objectID: String
+    public let slug:     String
+    public let path:     String
+}
+
+public struct OpenObjectResult: Decodable, Sendable {
+    public let objectJson: String
+    public let path:       String
+}
+
+public struct SaveObjectResult: Decodable, Sendable {
+    public let objectID: String
+    public let saved:    Bool
+}
+
+public struct DeleteObjectResult: Decodable, Sendable {
+    public let objectID: String
+    public let deleted:  Bool
+}
+
+// EP-005 Asset result types
+
+public struct ImportAssetResult: Decodable, Sendable {
+    public let assetID:     String
+    public let assetPath:   String
+    public let sidecarPath: String
+}
+
+public struct ListAssetsResult: Decodable, Sendable {
+    public let count:  Int
+    public let assets: String  // raw JSON array string
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        count  = try c.decode(Int.self,    forKey: .count)
+        assets = try c.decodeIfPresent(String.self, forKey: .assets) ?? "[]"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case count, assets
+    }
+}
+
+public struct RemoveAssetResult: Decodable, Sendable {
+    public let assetID: String
+    public let deleted: Bool
+}
+
+// EP-005 Comment result types
+
+public struct AddCommentResult: Decodable, Sendable {
+    public let commentID: String
+    public let added:     Bool
+}
+
+public struct ListCommentsResult: Decodable, Sendable {
+    public let scopeKind: String
+    public let targetID:  String
+    public let count:     Int
+}
+
+public struct ResolveCommentResult: Decodable, Sendable {
+    public let commentID: String
+    public let resolved:  Bool
+}
+
+// EP-005 Inbox result types
+
+public struct ListInboxResult: Decodable, Sendable {
+    public let count:     Int
+    public let filenames: String  // raw JSON array string
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        count     = try c.decode(Int.self,    forKey: .count)
+        filenames = try c.decodeIfPresent(String.self, forKey: .filenames) ?? "[]"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case count, filenames
+    }
+}
+
+public struct ImportFromInboxResult: Decodable, Sendable {
+    public let actionTaken: String
+    public let resultPath:  String
+    public let assetID:     String
 }
 
 // ScriviError, Envelope, ErrorPayload, and decode() are in ScriviError.swift.

@@ -61,6 +61,7 @@ target_sources(ScriviCore
         src/objects/ObjectStore.cpp
         src/assets/AssetStore.cpp
         src/comments/CommentStore.cpp
+        src/inbox/InboxStore.cpp
 )
 
 target_link_libraries(ScriviCore

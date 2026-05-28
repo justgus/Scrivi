@@ -10,6 +10,7 @@
 #include "objects/ObjectStore.hpp"
 #include "assets/AssetStore.hpp"
 #include "comments/CommentStore.hpp"
+#include "inbox/InboxStore.hpp"
 #include "platform/AppSupportLayout.hpp"
 
 namespace scrivi {
@@ -129,6 +130,18 @@ Result<ResolveCommentResult> ScriviCore::resolveComment(
     const ResolveCommentRequest& request) {
     comments::CommentStore store{services_};
     return store.resolve(request);
+}
+
+Result<ListInboxResult> ScriviCore::listInbox(
+    const ListInboxRequest& request) {
+    inbox::InboxStore store{services_};
+    return store.list(request);
+}
+
+Result<ImportFromInboxResult> ScriviCore::importFromInbox(
+    const ImportFromInboxRequest& request) {
+    inbox::InboxStore store{services_};
+    return store.importFromInbox(request);
 }
 
 } // namespace scrivi

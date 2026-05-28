@@ -163,4 +163,23 @@ struct ResolveCommentResult {
     bool        resolved = false;
 };
 
+// ---------------------------------------------------------------------------
+// Inbox results (EP-005 T-0046)
+// ---------------------------------------------------------------------------
+
+struct InboxEntry {
+    std::string  filename;      // basename, e.g. "photo.jpg"
+    AbsolutePath absolutePath;
+};
+
+struct ListInboxResult {
+    std::vector<InboxEntry> entries;
+};
+
+struct ImportFromInboxResult {
+    std::string actionTaken;   // "importAsAsset" | "ignored" | "deleted"
+    std::string resultPath;    // absolute path of resulting asset (empty for ignore/delete)
+    std::string assetID;       // set when actionTaken == "importAsAsset"
+};
+
 } // namespace scrivi
