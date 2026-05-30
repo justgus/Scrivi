@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Complete-Pending-Close Epic** (EP-006)
+Currently: **1 Draft Epic** (EP-008)
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -24,7 +24,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **7 Epics** | Next available: **EP-008**
+Currently: **8 Epics** | Next available: **EP-009**
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -33,18 +33,19 @@ Currently: **7 Epics** | Next available: **EP-008**
 | EP-003 | Identity and First Launch | ✅ Closed | 2026-05-20 | 2026-05-26 |
 | EP-004 | Repair and Recovery | ✅ Closed | 2026-05-26 | 2026-05-27 |
 | EP-005 | Full Project Package — Objects, Assets, and Comments | ✅ Closed | 2026-05-27 | 2026-05-28 |
-| EP-006 | Swift Interop and Apple Shell | 🟠 Complete - Pending Close | 2026-05-28 | TBD |
+| EP-006 | Swift Interop and Apple Shell | ✅ Closed | 2026-05-28 | 2026-05-30 |
 | EP-007 | Skeleton v0.2 Migration | ✅ Closed | 2026-05-22 | 2026-05-26 |
+| EP-008 | Multi-Scene Navigation and Cross-Platform Build | 🔵 Draft | — | — |
 
 ## Statistics
 
-- **Total Epics:** 7
-- **Closed:** 6 ✅
-- **Complete (pending close):** 1 🟠
+- **Total Epics:** 8
+- **Closed:** 7 ✅
+- **Complete (pending close):** 0 🟠
 - **Active:** 0 🟡
-- **Draft:** 0 🔵
+- **Draft:** 1 🔵
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-05-28 (EP-006 promoted from Proposed to Draft)*
+*Last Updated: 2026-05-30 (EP-008 created as Draft)*

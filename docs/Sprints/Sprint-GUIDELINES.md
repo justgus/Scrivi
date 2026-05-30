@@ -74,14 +74,16 @@ docs/Sprints/
 ├── Sprint-GUIDELINES.md          ← This file
 ├── Sprint-Documentation.md       ← Index of all Sprints
 ├── Sprint-active.md              ← Currently active Sprint
+├── Sprint-backlog.md             ← Planned Sprints in 🔵 Planning status
 ├── Closed/
 │   ├── Sprint-SP-001.md
 │   ├── Sprint-SP-002.md
 │   └── ...
 ```
 
-- **Sprint-Documentation.md** — Lean index. One row per Sprint, always up to date.
+- **Sprint-Documentation.md** — Lean index. One row per Sprint, always up to date. Includes a Sprint Backlog summary table.
 - **Sprint-active.md** — Contains the single active Sprint in full detail. At most one Sprint is Active at a time.
+- **Sprint-backlog.md** — Full detail on Sprints in 🔵 Planning status. Sprints are defined here before activation and removed when activated (moved to Sprint-active.md) or cancelled.
 - **Closed/Sprint-SP-XXX.md** — Archive file per closed Sprint, including retrospective.
 
 ## Sprint Entry Template

@@ -11,11 +11,21 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-SP-016: saveScene Wiring and EP-006 Close (2026-05-30 – active)
+No sprint is currently active.
+
+## Sprint Backlog
+
+See: [Sprint-backlog.md](Sprint-backlog.md)
+
+| Sprint | Title | Epic | Status |
+| ------ | ----- | ---- | ------ |
+| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | 🔵 Planning |
+| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 🔵 Planning |
+| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **15 Sprints** | Next available: **SP-016**
+Currently: **19 Sprints** | Next available: **SP-020**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -34,14 +44,18 @@ Currently: **15 Sprints** | Next available: **SP-016**
 | SP-013 | Inbox and Adapter Completion | EP-005 | 2026-05-28 | 2026-05-28 | ✅ Closed |
 | SP-014 | Infrastructure — Keychain Identity and JsonDoc Double | EP-006 | 2026-05-28 | 2026-05-29 | ✅ Closed |
 | SP-015 | macOS App Target and SwiftUI Shell | EP-006 | 2026-05-29 | 2026-05-29 | ✅ Closed |
-| SP-016 | saveScene Wiring and EP-006 Close | EP-006 | 2026-05-30 | — | 🟡 Active |
+| SP-016 | saveScene Wiring and EP-006 Close | EP-006 | 2026-05-30 | 2026-05-30 | ✅ Closed |
+| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | — | — | 🔵 Planning |
+| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | — | — | 🔵 Planning |
+| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | — | — | 🔵 Planning |
 
 ## Statistics
 
-- **Total Sprints:** 16
-- **Closed:** 15 ✅
-- **Active:** 1 🟡
+- **Total Sprints:** 19
+- **Closed:** 16 ✅
+- **Active:** 0 🟡
+- **Planning:** 3 🔵
 
 ---
 
-*Last Updated: 2026-05-30 (SP-016 activated)*
+*Last Updated: 2026-05-30 (SP-017–SP-019 created in Planning for EP-008; Sprint-backlog.md introduced)*

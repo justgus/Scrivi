@@ -14,22 +14,28 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **0 backlog Tasks**
+Currently: **8 backlog Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+| Task   | Title | Status |
+| ------ | ----- | ------ |
+| T-0055 | Ubuntu CMake Build — GCC/Clang Green + Gap Document | 🔵 Backlog |
+| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🔵 Backlog |
+| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🔵 Backlog |
+| T-0058 | SecureStore Trade Study — Linux and Windows | 🔵 Backlog |
+| T-0059 | `OpenProjectResult` — Add Scene List | 🔵 Backlog |
+| T-0060 | `openScene` Facade Method — Switch Active Scene | 🔵 Backlog |
+| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🔵 Backlog |
+| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **2 active Tasks**
+Currently: **0 active Tasks**
 
-| Task   | Title | Status |
-| ------ | ----- | ------ |
-| T-0048 | `JsonDoc` Double Support — `setDouble` / `getDouble` | 🟡 Active |
-| T-0049 | `KeychainSecureStore` — macOS Keychain Implementation | 🟡 Active |
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| —    | None  | —      |
 
 See: [Task-active.md](Task-active.md)
 
@@ -45,7 +51,7 @@ See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **47 verified Tasks** | Next available: **T-0050**
+Currently: **54 verified Tasks** | Next available: **T-0055**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -96,15 +102,22 @@ Currently: **47 verified Tasks** | Next available: **T-0050**
 | T-0045 | Integration Tests for Comment Operations | [Task-verified-0045.md](Verified/Task-verified-0045.md) | ✅ Verified |
 | T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | [Task-verified-0046.md](Verified/Task-verified-0046.md) | ✅ Verified |
 | T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | [Task-verified-0047.md](Verified/Task-verified-0047.md) | ✅ Verified |
+| T-0048 | `JsonDoc` Double Support — `setDouble` / `getDouble` | [Task-verified-0048.md](Verified/Task-verified-0048.md) | ✅ Verified |
+| T-0049 | `KeychainSecureStore` — macOS Keychain Implementation | [Task-verified-0049.md](Verified/Task-verified-0049.md) | ✅ Verified |
+| T-0050 | macOS App Target — Xcode Project Setup | [Task-verified-0050.md](Verified/Task-verified-0050.md) | ✅ Verified |
+| T-0051 | ScriviEngine Bootstrap — `AppEnvironment` Observable | [Task-verified-0051.md](Verified/Task-verified-0051.md) | ✅ Verified |
+| T-0052 | SwiftUI Shell — Landing View, Editor View, and Project Flows | [Task-verified-0052.md](Verified/Task-verified-0052.md) | ✅ Verified |
+| T-0053 | `saveScene` Wiring — ⌘S Save in SwiftUI Editor | [Task-verified-0053.md](Verified/Task-verified-0053.md) | ✅ Verified |
+| T-0054 | EP-006 Verification — `swift test` + `ctest` Green | [Task-verified-0054.md](Verified/Task-verified-0054.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 49
-- **Verified:** 47 (96%) ✅
+- **Total Tasks:** 62
+- **Verified:** 54 (87%) ✅
 - **Unverified:** 0 (0%) 🟠
-- **Active:** 2 (4%) 🟡
-- **Backlog:** 0 (0%) 🔵
+- **Active:** 0 (0%) 🟡
+- **Backlog:** 8 (13%) 🔵
 
 ---
 
-*Last Updated: 2026-05-28 (T-0048, T-0049 created and activated for SP-014; EP-006 begins)*
+*Last Updated: 2026-05-30 (T-0055–T-0062 added to backlog for EP-008)*
