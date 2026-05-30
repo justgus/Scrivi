@@ -90,7 +90,7 @@ struct ScriviInteropTests {
         #expect(!identity.defaultPersonaID.isEmpty)
         #expect(identity.identityID.hasPrefix("identity_"))
         #expect(identity.defaultPersonaID.hasPrefix("persona_"))
-        #expect(identity.createdNewIdentity == true)
+        // createdNewIdentity depends on Keychain state across runs — not asserted here.
     }
 
     // MARK: — Test 2: createProject succeeds with real AuthorshipRef

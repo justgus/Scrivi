@@ -24,28 +24,28 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks**
+Currently: **2 active Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+| Task   | Title | Status |
+| ------ | ----- | ------ |
+| T-0048 | `JsonDoc` Double Support — `setDouble` / `getDouble` | 🟡 Active |
+| T-0049 | `KeychainSecureStore` — macOS Keychain Implementation | 🟡 Active |
 
 See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **2 unverified Tasks**
+Currently: **0 unverified Tasks**
 
-| Task   | Title | Epic | Priority | Status |
-| ------ | ----- | ---- | -------- | ------ |
-| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | EP-005 | Medium | 🟠 Implemented - Not Verified |
-| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | EP-005 | High | 🟠 Implemented - Not Verified |
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| —    | None  | —      |
 
 See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **36 verified Tasks** | Next available: **T-0048**
+Currently: **47 verified Tasks** | Next available: **T-0050**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -94,15 +94,17 @@ Currently: **36 verified Tasks** | Next available: **T-0048**
 | T-0043 | Comments Schema (`CommentJson`) and Comment Types | [Task-verified-0043.md](Verified/Task-verified-0043.md) | ✅ Verified |
 | T-0044 | `addComment` / `listComments` / `resolveComment` Facade Methods | [Task-verified-0044.md](Verified/Task-verified-0044.md) | ✅ Verified |
 | T-0045 | Integration Tests for Comment Operations | [Task-verified-0045.md](Verified/Task-verified-0045.md) | ✅ Verified |
+| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | [Task-verified-0046.md](Verified/Task-verified-0046.md) | ✅ Verified |
+| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | [Task-verified-0047.md](Verified/Task-verified-0047.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 47
-- **Verified:** 45 (96%) ✅
-- **Unverified:** 2 (4%) 🟠
-- **Active:** 0 (0%) 🟡
+- **Total Tasks:** 49
+- **Verified:** 47 (96%) ✅
+- **Unverified:** 0 (0%) 🟠
+- **Active:** 2 (4%) 🟡
 - **Backlog:** 0 (0%) 🔵
 
 ---
 
-*Last Updated: 2026-05-28 (T-0046, T-0047 implemented — awaiting verification)*
+*Last Updated: 2026-05-28 (T-0048, T-0049 created and activated for SP-014; EP-006 begins)*

@@ -11,11 +11,11 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-Currently: **SP-013**
+SP-016: saveScene Wiring and EP-006 Close (2026-05-30 – active)
 
 ## All Sprints
 
-Currently: **13 Sprints** | Next available: **SP-014**
+Currently: **15 Sprints** | Next available: **SP-016**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -31,14 +31,17 @@ Currently: **13 Sprints** | Next available: **SP-014**
 | SP-010 | Objects Layer Foundation — Character Schema and CRUD | EP-005 | 2026-05-27 | 2026-05-27 | ✅ Closed |
 | SP-011 | Objects Layer — Remaining Types and Generalized CRUD | EP-005 | 2026-05-28 | 2026-05-28 | ✅ Closed |
 | SP-012 | Assets and Comments Layer | EP-005 | 2026-05-28 | 2026-05-28 | ✅ Closed |
-| SP-013 | Inbox and Adapter Completion | EP-005 | 2026-05-28 | TBD | 🟡 Active |
+| SP-013 | Inbox and Adapter Completion | EP-005 | 2026-05-28 | 2026-05-28 | ✅ Closed |
+| SP-014 | Infrastructure — Keychain Identity and JsonDoc Double | EP-006 | 2026-05-28 | 2026-05-29 | ✅ Closed |
+| SP-015 | macOS App Target and SwiftUI Shell | EP-006 | 2026-05-29 | 2026-05-29 | ✅ Closed |
+| SP-016 | saveScene Wiring and EP-006 Close | EP-006 | 2026-05-30 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 13
-- **Closed:** 12 ✅
+- **Total Sprints:** 16
+- **Closed:** 15 ✅
 - **Active:** 1 🟡
 
 ---
 
-*Last Updated: 2026-05-28 (SP-013 activated)*
+*Last Updated: 2026-05-30 (SP-016 activated)*

@@ -47,6 +47,15 @@ TEST_CASE("set and dump round-trips string field", "[Json]") {
     REQUIRE(json.value().getString("slug") == "my-story");
 }
 
+TEST_CASE("setDouble round-trips through dump and parseJson", "[Json]") {
+    JsonDoc doc;
+    doc.setDouble("scroll", 0.375);
+    auto parsed = parseJson(doc.dump());
+    REQUIRE(parsed.ok());
+    REQUIRE(parsed.value().getDouble("scroll") == 0.375);
+    REQUIRE(parsed.value().getDouble("missing", 1.5) == 1.5);
+}
+
 TEST_CASE("contains returns correct presence", "[Json]") {
     auto result = parseJson(R"({"x":1})");
     REQUIRE(result.ok());

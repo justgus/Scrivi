@@ -43,6 +43,13 @@ int JsonDoc::getInt(std::string_view key, int defaultValue) const {
     return defaultValue;
 }
 
+double JsonDoc::getDouble(std::string_view key, double defaultValue) const {
+    auto k = std::string(key);
+    if (impl_->data.contains(k) && impl_->data[k].is_number())
+        return impl_->data[k].get<double>();
+    return defaultValue;
+}
+
 void JsonDoc::setString(std::string_view key, std::string_view value) {
     impl_->data[std::string(key)] = std::string(value);
 }
@@ -52,6 +59,10 @@ void JsonDoc::setBool(std::string_view key, bool value) {
 }
 
 void JsonDoc::setInt(std::string_view key, int value) {
+    impl_->data[std::string(key)] = value;
+}
+
+void JsonDoc::setDouble(std::string_view key, double value) {
     impl_->data[std::string(key)] = value;
 }
 

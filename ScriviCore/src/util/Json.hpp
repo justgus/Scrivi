@@ -23,10 +23,12 @@ public:
     std::string getString(std::string_view key, std::string_view defaultValue = "") const;
     bool        getBool(std::string_view key, bool defaultValue = false) const;
     int         getInt(std::string_view key, int defaultValue = 0) const;
+    double      getDouble(std::string_view key, double defaultValue = 0.0) const;
 
     void setString(std::string_view key, std::string_view value);
     void setBool(std::string_view key, bool value);
     void setInt(std::string_view key, int value);
+    void setDouble(std::string_view key, double value);
 
     // Embeds a nested JsonDoc as a sub-object under key.
     void setSubDoc(std::string_view key, JsonDoc sub);

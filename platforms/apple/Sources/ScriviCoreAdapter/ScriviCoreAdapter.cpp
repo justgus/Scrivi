@@ -1,4 +1,5 @@
 #include "ScriviCoreAdapter.hpp"
+#include "KeychainSecureStore.hpp"
 
 #include "scrivi/ScriviCore.hpp"
 #include "scrivi/Requests.hpp"
@@ -84,7 +85,7 @@ struct ScriviAdapter::Impl {
     scrivi::platform::LocalFileSystem    fileSystem;
     scrivi::platform::SystemUUIDProvider uuidProvider;
     PrototypeClock                       clock;
-    PrototypeSecureStore                 secureStore;
+    KeychainSecureStore                  secureStore;
     scrivi::git::SystemGitProvider       gitProvider;
     std::unique_ptr<scrivi::ScriviCore>  core;
 

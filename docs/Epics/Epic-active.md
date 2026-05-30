@@ -1,59 +1,46 @@
 # Active Epics
 
----
+## EP-006: Swift Interop and Apple Shell
 
-## EP-005: Full Project Package — Objects, Assets, and Comments
-
-**Status:** 🟡 Active
-**Goal:** Implement the full `.scrivi` project package beyond manuscripts: objects (characters, locations, items, rules, timelines), assets (with metadata sidecars), comments, and inbox. Delivers the worldbuilding layer that makes Scrivi more than a scene editor.
-**Date Created:** 2026-05-20
-**Start Date:** 2026-05-27
+**Status:** 🟠 Complete - Pending Close
+**Goal:** Deliver a working macOS app that opens and writes a `.scrivi` project through the full stack — SwiftUI shell → ScriviEngine → ScriviCoreAdapter → ScriviCore — with production-quality service wiring (Keychain identity, real file I/O) and enough UI to prove the end-to-end vertical slice.
+**Date Created:** 2026-05-28
+**Start Date:** 2026-05-28
 **Target Close Date:** TBD
 **Actual Close Date:** —
 
 ### Acceptance Criteria
 
-- [x] Character object schema defined (`objects/characters/<slug>.json`) and implemented (`ObjectJson` schema module)
-- [x] `createObject` / `openObject` / `saveObject` / `deleteObject` facade methods for character objects
-- [ ] Location, item, rule, and timeline object schemas defined and implemented
-- [ ] `createObject` / `openObject` / `saveObject` / `deleteObject` generalized to all object types
-- [ ] Asset metadata sidecar schema defined (`<filename>.meta.json` in `assets/`)
-- [ ] `importAsset` / `listAssets` / `removeAsset` facade methods
-- [ ] Comments schema defined (`comments/<scope>/<objectID>.comments.json`) and implemented
-- [ ] `addComment` / `listComments` / `resolveComment` facade methods
-- [ ] Inbox implemented (`inbox/dropped-files/`) with `listInbox` / `importFromInbox` facade methods
-- [ ] All object/asset/comment types covered by integration tests
-- [ ] `ctest --test-dir build --output-on-failure` passes all tests
-- [ ] `ScriviCoreAdapter` exposes all new facade methods with JSON envelope output
-- [ ] `swift test` passes all interop tests
+- [x] `KeychainSecureStore` implemented; identity (identityID + private key material) survives process restart on macOS
+- [x] macOS app target added to `platforms/apple/`; builds and runs on macOS 26.0+
+- [x] `SwiftUI` document-based app shell presents a single-window editor for a `.scrivi` project
+- [x] `openProject` loads the active scene and displays its Markdown content in a `TextEditor`
+- [x] `saveScene` writes the editor's current text back to disk on explicit save (⌘S)
+- [x] `createProject` flow reachable from the app (new document or first-launch path)
+- [x] `JsonDoc` gains `setDouble`/`getDouble`; `ScrollPosition.value` stored as a true `double` on disk
+- [x] `saveScene` in Swift passes live cursor offset and scroll position from the SwiftUI editor
+- [x] All existing `swift test` interop tests still pass (17/17)
+- [x] `ctest --test-dir build --output-on-failure` still passes (159/159)
 
 ### Sprints
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-010 | Objects Layer Foundation — Character Schema and CRUD | ✅ Closed | 2026-05-27 – 2026-05-27 |
-| SP-011 | Objects Layer — Remaining Types and Generalized CRUD | ✅ Closed | 2026-05-28 – 2026-05-28 |
-| SP-012 | Assets and Comments Layer | ✅ Closed | 2026-05-28 – 2026-05-28 |
-| SP-013 | Inbox and Adapter Completion | 🟡 Active | 2026-05-28 – TBD |
+| SP-014 | Infrastructure — Keychain Identity and JsonDoc Double | ✅ Closed | 2026-05-28 – 2026-05-29 |
+| SP-015 | macOS App Target and SwiftUI Shell | ✅ Closed | 2026-05-29 – 2026-05-29 |
+| SP-016 | saveScene Wiring and EP-006 Close | 🟡 Active | 2026-05-30 – — |
 
 ### Tasks
 
 | ID     | Title | Status |
 | ------ | ----- | ------ |
-| T-0034 | Character Object Schema (`ObjectJson`) | ✅ Implemented - Verified |
-| T-0035 | `createObject` / `openObject` / `saveObject` / `deleteObject` Facade — Characters | ✅ Implemented - Verified |
-| T-0036 | Integration Tests for Character Object CRUD | ✅ Implemented - Verified |
-| T-0037 | Remaining Object Types — Location, Item, Rule, Timeline Schemas | ✅ Implemented - Verified |
-| T-0038 | Generalize Object CRUD Facade to All Object Types | ✅ Implemented - Verified |
-| T-0039 | Integration Tests for All Object Types CRUD | ✅ Implemented - Verified |
-| T-0040 | Asset Metadata Sidecar Schema (`AssetMetaJson`) | ✅ Implemented - Verified |
-| T-0041 | `importAsset` / `listAssets` / `removeAsset` Facade Methods | ✅ Implemented - Verified |
-| T-0042 | Integration Tests for Asset Operations | ✅ Implemented - Verified |
-| T-0043 | Comments Schema (`CommentJson`) and Comment Types | ✅ Implemented - Verified |
-| T-0044 | `addComment` / `listComments` / `resolveComment` Facade Methods | ✅ Implemented - Verified |
-| T-0045 | Integration Tests for Comment Operations | ✅ Implemented - Verified |
-| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | 🟠 Implemented - Not Verified |
-| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | 🟠 Implemented - Not Verified |
+| T-0048 | `JsonDoc` Double Support — `setDouble` / `getDouble` | ✅ Verified |
+| T-0049 | `KeychainSecureStore` — macOS Keychain Implementation | ✅ Verified |
+| T-0050 | macOS App Target — Xcode Project Setup | ✅ Verified |
+| T-0051 | ScriviEngine Bootstrap — `AppEnvironment` Observable | ✅ Verified |
+| T-0052 | SwiftUI Shell — Landing View, Editor View, and Project Flows | ✅ Verified |
+| T-0053 | `saveScene` Wiring — ⌘S Save in SwiftUI Editor | 🟠 Not Verified |
+| T-0054 | EP-006 Verification — `swift test` + `ctest` Green | 🟠 Not Verified |
 
 ### Issues
 
@@ -63,18 +50,32 @@
 
 ### Scope Notes
 
-Drawn from `Scrivi_Project_Package_Structure_v0_1.md` (objects/, assets/, comments/, inbox/ layout). None of this package structure is implemented in EP-001 through EP-004. Tasks are defined incrementally as each object type is completed.
+**Baseline entering EP-006:**
+- ScriviEngine exposes all 25 facade methods (T-0047, EP-005 complete).
+- `PrototypeSecureStore` is in-memory only — identity is lost on every process restart.
+- No macOS app target exists; the Apple layer is a library + test harness only.
+- `JsonDoc` has no `setDouble`/`getDouble`; scroll position is stored as `int * 1000` workaround.
+- `saveScene` in Swift passes zeroes for cursor and scroll (adapter accepts them; wiring deferred).
+- `openProject` returns a single `activeScene`; multi-scene manifest design is deferred.
 
-**Out of scope for EP-005:**
-- SwiftUI worldbuilding UI (EP-006)
-- Cloud sync of object data
-- Relationship graphs between objects (deferred to EP-005+ or a dedicated Epic)
-- Export of object data
+**Open questions from Architecture v0.3 addressed in this Epic:**
+- Open Question 2 (`JsonDoc` double) → T-0048 or equivalent
+- Open Question 3 (`KeychainSecureStore`) → first sprint
+- Open Question 4 (cursor/scroll wiring from SwiftUI) → UI sprint
+
+**Deferred out of EP-006:**
+- Multi-scene project manifest (`openProject` richer result) — deferred to EP-007 or later
+- Device identity (`IOPlatformExpertDevice` or Keychain UUID as `deviceID`) — deferred
+- `appSupportRoot` bootstrap on non-Apple platforms — not in scope
+- Repair UI — deferred
+- CloudKit sync — future Epic
+- iOS / iPadOS / visionOS UI — future Epics
+- Git snapshot UI — future Epic
 
 ### Completion Summary
 
-*To be filled in when EP-005 reaches 🟠 Complete.*
+*(Filled in when EP-006 reaches 🟠 Complete)*
 
 ---
 
-*Last Updated: 2026-05-28 (SP-013 implemented — T-0046/T-0047 awaiting verification)*
+*Last Updated: 2026-05-30 (T-0053, T-0054 implemented; all acceptance criteria met; EP-006 complete pending user close)*

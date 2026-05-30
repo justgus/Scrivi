@@ -41,7 +41,7 @@ let package = Package(
         .target(
             name: "ScriviCoreAdapter",
             path: "Sources/ScriviCoreAdapter",
-            sources: ["ScriviCoreAdapter.cpp"],
+            sources: ["ScriviCoreAdapter.cpp", "KeychainSecureStore.cpp"],
             publicHeadersPath: ".",
             cxxSettings: [
                 .unsafeFlags([
@@ -54,6 +54,7 @@ let package = Package(
             ],
             linkerSettings: [
                 .unsafeFlags([scriviCoreLib]),
+                .linkedFramework("Security"),
             ]
         ),
 

@@ -1,20 +1,20 @@
 # Active Sprint
 
-## SP-013: Inbox and Adapter Completion
+## SP-016: saveScene Wiring and EP-006 Close
 
 **Status:** 🟡 Active
-**Epic:** EP-005: Full Project Package — Objects, Assets, and Comments
-**Goal:** Implement the inbox facade (`listInbox` / `importFromInbox`) and expose all EP-005 facade methods through `ScriviCoreAdapter` and `ScriviEngine.swift` with interop tests. Closes EP-005.
-**Start Date:** 2026-05-28
-**End Date:** TBD
-**Capacity:** Single session
+**Epic:** EP-006: Swift Interop and Apple Shell
+**Goal:** Wire `saveScene` end-to-end: ⌘S triggers a call through `AppEnvironment` → `ScriviEngine.saveScene` → adapter → C++ core, writing the editor's current Markdown to disk. Cursor offset and scroll position are read from the SwiftUI editor and passed as real values (not zeroes). Confirm all `swift test` and `ctest` suites still pass, then close EP-006.
+**Start Date:** 2026-05-30
+**End Date:** —
+**Capacity:** —
 
 ### Assigned Tasks
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0046 | Inbox — `listInbox` / `importFromInbox` Facade Methods | Medium | 🟠 Implemented - Not Verified |
-| T-0047 | `ScriviCoreAdapter` — Expose All EP-005 Facade Methods | High | 🟠 Implemented - Not Verified |
+| T-0053 | `saveScene` Wiring — ⌘S Save in SwiftUI Editor | Critical | 🟡 Active |
+| T-0054 | EP-006 Verification — `swift test` + `ctest` Green | Critical | 🔵 Backlog |
 
 ### Assigned Issues
 
@@ -24,15 +24,8 @@
 
 ### Sprint Notes
 
-- T-0046 must land before T-0047 (adapter can't expose `listInbox`/`importFromInbox` until `InboxStore` exists).
-- `ProjectCreator` must be amended to create `inbox/dropped-files/` at project creation time.
-- All new `.cpp`/`.hpp` files must be added to `ScriviCore.xcodeproj/project.pbxproj` in the same step they are created.
-- T-0047 is the EP-005 completion gate: `swift test` must pass before EP-005 can be closed.
-
-### Retrospective
-
-*To be filled in at Sprint close.*
+`saveScene` in `ScriviEngine` already exists and is fully wired to the adapter (added in EP-002). The gap is purely in the SwiftUI layer: `EditorView` has no save action, and `AppEnvironment` has no `saveScene` method. Cursor offset capture via `TextEditor` uses `@FocusState` + `NSTextView` introspection or a simple deferred approach; scroll position is similarly approximated. The adapter already accepts `cursorOffset` and `scrollPosition` as `double` (T-0048).
 
 ---
 
-*Last Updated: 2026-05-28 (SP-013 activated)*
+*Last Updated: 2026-05-30 (SP-016 activated)*

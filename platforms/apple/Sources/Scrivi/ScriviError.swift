@@ -6,6 +6,11 @@ import Foundation
 public struct ScriviError: Error, Sendable {
     public let code:    Int
     public let message: String
+
+    public init(code: Int, message: String) {
+        self.code    = code
+        self.message = message
+    }
 }
 
 // MARK: — JSON envelope decoding (internal)

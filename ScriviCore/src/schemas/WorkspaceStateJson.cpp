@@ -21,8 +21,7 @@ std::string serializeWorkspaceState(const WorkspaceStateData& d) {
         lws.setString("sceneID",        d.lastSceneID);
         lws.setString("contentPath",    d.lastContentPath);
         lws.setSubDoc("cursor",         std::move(cursor));
-        // scrollPosition stored as int-truncated for now (JsonDoc has no setDouble)
-        lws.setInt("scrollPosition", static_cast<int>(d.scrollPosition * 1000));
+        lws.setDouble("scrollPosition", d.scrollPosition);
 
         doc.setSubDoc("lastWritingSurface", std::move(lws));
     }
@@ -52,7 +51,7 @@ Result<WorkspaceStateData> parseWorkspaceState(std::string_view json) {
         data.hasLastWritingSurface = true;
         data.lastSceneID     = lws.getString("sceneID");
         data.lastContentPath = lws.getString("contentPath");
-        data.scrollPosition  = lws.getInt("scrollPosition") / 1000.0;
+        data.scrollPosition  = lws.getDouble("scrollPosition");
         auto cursor = lws.getSubDoc("cursor");
         data.cursorAnchor = static_cast<std::size_t>(cursor.getInt("anchor"));
         data.cursorFocus  = static_cast<std::size_t>(cursor.getInt("focus"));
