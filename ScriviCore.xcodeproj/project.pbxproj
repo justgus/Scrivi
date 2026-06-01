@@ -173,6 +173,7 @@
 		E022 /* InboxStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = InboxStore.hpp; path = ScriviCore/src/inbox/InboxStore.hpp; sourceTree = SOURCE_ROOT; };
 		E023 /* InboxStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = InboxStore.cpp; path = ScriviCore/src/inbox/InboxStore.cpp; sourceTree = SOURCE_ROOT; };
 		E024 /* InboxTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = InboxTests.cpp; path = ScriviCore/tests/integration/InboxTests.cpp; sourceTree = SOURCE_ROOT; };
+		E025 /* MultiSceneTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MultiSceneTests.cpp; path = ScriviCore/tests/integration/MultiSceneTests.cpp; sourceTree = SOURCE_ROOT; };
 		F010 /* ScriviCore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ScriviCore.cpp; path = ScriviCore/src/public_api/ScriviCore.cpp; sourceTree = SOURCE_ROOT; };
 		F011 /* ResultTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ResultTests.cpp; path = ScriviCore/tests/unit/ResultTests.cpp; sourceTree = SOURCE_ROOT; };
 		F012 /* IDTests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IDTests.cpp; path = ScriviCore/tests/unit/IDTests.cpp; sourceTree = SOURCE_ROOT; };
@@ -627,6 +628,7 @@
 				E020 /* AssetTests.cpp */,
 				E021 /* CommentTests.cpp */,
 				E024 /* InboxTests.cpp */,
+				E025 /* MultiSceneTests.cpp */,
 			);
 			name = integration;
 			sourceTree = "<group>";

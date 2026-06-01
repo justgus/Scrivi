@@ -74,6 +74,26 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decode(json)
     }
 
+    // MARK: — openScene
+
+    public func openScene(
+        projectRootPath: String,
+        appSupportRoot: String,
+        projectID: String,
+        sceneID: String
+    ) throws -> OpenSceneResult {
+        let json = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                projectID.withCString { pid in
+                    sceneID.withCString { sid in
+                        adapter.openScene(prp, asr, pid, sid)
+                    }
+                }
+            }
+        }
+        return try decode(json)
+    }
+
     // MARK: — saveScene
 
     public func saveScene(
@@ -475,10 +495,20 @@ public struct ActiveSceneResult: Decodable, Sendable {
     public let markdown:     String
 }
 
+public struct SceneInfo: Decodable, Sendable {
+    public let sceneID:      String
+    public let chapterID:    String
+    public let title:        String
+    public let slug:         String
+    public let metadataPath: String
+    public let contentPath:  String
+}
+
 public struct OpenProjectResult: Decodable, Sendable {
     public let projectID:    String
     public let mode:         String          // "ready" | "repairRequired"
     public let activeScene:  ActiveSceneResult?
+    public let scenes:       [SceneInfo]
     public let repairIssues: [RepairIssueResult]
 
     public init(from decoder: Decoder) throws {
@@ -486,12 +516,18 @@ public struct OpenProjectResult: Decodable, Sendable {
         projectID    = try c.decode(String.self, forKey: .projectID)
         mode         = try c.decodeIfPresent(String.self, forKey: .mode) ?? "ready"
         activeScene  = try c.decodeIfPresent(ActiveSceneResult.self, forKey: .activeScene)
+        scenes       = try c.decodeIfPresent([SceneInfo].self, forKey: .scenes) ?? []
         repairIssues = try c.decodeIfPresent([RepairIssueResult].self, forKey: .repairIssues) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case projectID, mode, activeScene, repairIssues
+        case projectID, mode, activeScene, scenes, repairIssues
     }
+}
+
+public struct OpenSceneResult: Decodable, Sendable {
+    public let scene:    SceneInfo
+    public let markdown: String
 }
 
 public struct SaveSceneResult: Decodable, Sendable {

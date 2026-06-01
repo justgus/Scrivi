@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-No sprint is currently active.
+SP-019 is active. See [Sprint-active.md](Sprint-active.md).
 
 ## Sprint Backlog
 
@@ -46,16 +46,16 @@ Currently: **19 Sprints** | Next available: **SP-020**
 | SP-015 | macOS App Target and SwiftUI Shell | EP-006 | 2026-05-29 | 2026-05-29 | ✅ Closed |
 | SP-016 | saveScene Wiring and EP-006 Close | EP-006 | 2026-05-30 | 2026-05-30 | ✅ Closed |
 | SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | 2026-05-30 | 2026-05-31 | ✅ Closed |
-| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 2026-05-31 | — | 🟡 Active |
-| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | — | — | 🔵 Planning |
+| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 2026-05-31 | 2026-06-01 | ✅ Closed |
+| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | 2026-06-01 | — | 🟡 Active |
 
 ## Statistics
 
 - **Total Sprints:** 19
-- **Closed:** 17 ✅
+- **Closed:** 18 ✅
 - **Active:** 1 🟡
-- **Planning:** 1 🔵
+- **Planning:** 0 🔵
 
 ---
 
-*Last Updated: 2026-05-31 (SP-018 activated)*
+*Last Updated: 2026-06-01 (SP-019 activated)*

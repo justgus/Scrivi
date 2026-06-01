@@ -45,6 +45,8 @@ struct OpenProjectResult {
     std::optional<SceneSummary>   activeScene;
     Utf8Text                      activeSceneMarkdown;
 
+    std::vector<SceneSummary> scenes;   // all scenes in manuscript order
+
     TextSelection  restoredSelection;
     ScrollPosition restoredScroll;
 
@@ -180,6 +182,18 @@ struct ImportFromInboxResult {
     std::string actionTaken;   // "importAsAsset" | "ignored" | "deleted"
     std::string resultPath;    // absolute path of resulting asset (empty for ignore/delete)
     std::string assetID;       // set when actionTaken == "importAsAsset"
+};
+
+// ---------------------------------------------------------------------------
+// openScene (EP-008 T-0060)
+// ---------------------------------------------------------------------------
+
+struct OpenSceneResult {
+    SceneSummary scene;
+    Utf8Text     markdown;
+
+    TextSelection  restoredSelection;
+    ScrollPosition restoredScroll;
 };
 
 } // namespace scrivi

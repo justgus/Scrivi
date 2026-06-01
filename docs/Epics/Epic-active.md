@@ -27,21 +27,21 @@
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | ✅ Closed | 2026-05-30 – 2026-05-31 |
-| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | 🟡 Active | 2026-05-31 – — |
-| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | 🔵 Planning | — |
+| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | ✅ Closed | 2026-05-31 – 2026-06-01 |
+| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | 🟡 Active | 2026-06-01 – — |
 
 ### Tasks
 
 | ID | Title | Status |
 | -- | ----- | ------ |
 | T-0055 | Ubuntu CMake Build — GCC/Clang Green + Gap Document | ✅ Verified |
-| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🟠 Unverified |
-| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🟠 Unverified |
-| T-0058 | SecureStore Trade Study — Linux and Windows | 🟠 Unverified |
-| T-0059 | `OpenProjectResult` — Add Scene List | 🔵 Backlog |
-| T-0060 | `openScene` Facade Method — Switch Active Scene | 🔵 Backlog |
-| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🔵 Backlog |
-| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🔵 Backlog |
+| T-0056 | Windows CMake Build — MSVC Green + Gap Document | ✅ Verified |
+| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | ✅ Verified |
+| T-0058 | SecureStore Trade Study — Linux and Windows | ✅ Verified |
+| T-0059 | `OpenProjectResult` — Add Scene List | 🟠 Unverified |
+| T-0060 | `openScene` Facade Method — Switch Active Scene | 🟠 Unverified |
+| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🟠 Unverified |
+| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🟠 Unverified |
 
 ### Issues
 
@@ -70,4 +70,4 @@
 
 ---
 
-*Last Updated: 2026-05-31 (T-0056 implemented — 160/160 on macOS + Ubuntu + Windows MSVC; SP-018 all tasks unverified)*
+*Last Updated: 2026-06-01 (T-0059–T-0062 implemented — 165/165 ctest, 19/19 swift test)*

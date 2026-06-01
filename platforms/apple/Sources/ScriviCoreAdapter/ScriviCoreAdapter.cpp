@@ -248,6 +248,48 @@ std::string ScriviAdapter::openProject(
     doc.setString("projectID", v.project.projectID.value);
     doc.setString("mode", "ready");
     doc.setSubDoc("activeScene", std::move(scene));
+
+    // Build scenes array directly on doc
+    for (auto& s : v.scenes) {
+        scrivi::util::JsonDoc entry;
+        entry.setString("sceneID",      s.sceneID.value);
+        entry.setString("chapterID",    s.chapterID.value);
+        entry.setString("title",        s.title);
+        entry.setString("slug",         s.slug);
+        entry.setString("metadataPath", s.metadataPath);
+        entry.setString("contentPath",  s.contentPath);
+        doc.appendToArray("scenes", std::move(entry));
+    }
+    return okEnvelope(std::move(doc));
+}
+
+std::string ScriviAdapter::openScene(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* projectID,
+    const char* sceneID)
+{
+    scrivi::OpenSceneRequest req;
+    req.projectRootPath = projectRootPath ? projectRootPath : "";
+    req.appSupportRoot  = appSupportRoot  ? appSupportRoot  : "";
+    req.projectID       = scrivi::ProjectID{projectID ? projectID : ""};
+    req.sceneID         = scrivi::SceneID{sceneID    ? sceneID    : ""};
+
+    auto result = impl_->core->openScene(req);
+    if (!result.ok()) return errorEnvelope(result.error());
+
+    const auto& v = result.value();
+    scrivi::util::JsonDoc scene;
+    scene.setString("sceneID",      v.scene.sceneID.value);
+    scene.setString("chapterID",    v.scene.chapterID.value);
+    scene.setString("title",        v.scene.title);
+    scene.setString("slug",         v.scene.slug);
+    scene.setString("metadataPath", v.scene.metadataPath);
+    scene.setString("contentPath",  v.scene.contentPath);
+
+    scrivi::util::JsonDoc doc;
+    doc.setSubDoc("scene",    std::move(scene));
+    doc.setString("markdown", v.markdown);
     return okEnvelope(std::move(doc));
 }
 

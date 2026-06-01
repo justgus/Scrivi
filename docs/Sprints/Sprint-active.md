@@ -1,11 +1,11 @@
 # Active Sprint
 
-## SP-018: Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study
+## SP-019: Multi-Scene C++ Core — `openProject` Scene List + `openScene`
 
 **Status:** 🟡 Active
 **Epic:** EP-008: Multi-Scene Navigation and Cross-Platform Build
-**Goal:** Get ScriviCore building and all CTests passing on Windows (MSVC 19.38+ / VS 2022). Implement `AppSupportLayout::platformDefault()` for Linux (`$XDG_DATA_HOME`) and Windows (`%APPDATA%`). Produce a written trade study selecting the `SecureStore` implementation strategy for Linux and Windows.
-**Start Date:** 2026-05-31
+**Goal:** Extend `openProject` to return a full scene list alongside the active scene. Add `openScene` to the C++ facade and adapter, allowing the UI to switch the active scene without reopening the project. All three test suites (macOS ctest, swift test, Ubuntu ctest) must remain green.
+**Start Date:** 2026-06-01
 **End Date:** —
 **Capacity:** —
 
@@ -13,9 +13,10 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0056 | Windows CMake Build — MSVC Green + Gap Document | Critical | 🟠 Unverified |
-| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | High | 🟠 Unverified |
-| T-0058 | SecureStore Trade Study — Linux and Windows | High | 🟠 Unverified |
+| T-0059 | `OpenProjectResult` — Add Scene List | Critical | 🟠 Unverified |
+| T-0060 | `openScene` Facade Method — Switch Active Scene | Critical | 🟠 Unverified |
+| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | Critical | 🟠 Unverified |
+| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | High | 🟠 Unverified |
 
 ### Assigned Issues
 
@@ -25,15 +26,12 @@
 
 ### Sprint Notes
 
-Carry-forward from SP-017 gap document:
-- `PRIx64` fix already applied — correct for MSVC as well; no further change needed
-- `fs::rename` on Windows uses `MoveFileExW(MOVEFILE_REPLACE_EXISTING)` via MSVC STL — verify but expect no code change
-- `popen`/`_popen` alias already present in `Process.cpp`
-- `WIFEXITED`/`WEXITSTATUS` correctly guarded `#ifndef _WIN32`
-- `SHGetKnownFolderPath` for `AppSupportLayout::platformDefault()` requires linking `shell32.lib` — add to CMake in T-0057
-- Windows build via Docker using `mcr.microsoft.com/windows/servercore` is not viable on macOS ARM; use GitHub Actions `windows-latest` runner for T-0056
-- SecureStore trade study must produce a concrete recommendation per platform, not just a list of options
+- `SceneSummary` already exists in `Types.hpp` — reuse as-is.
+- `openScene` should accept a `SceneID` and return content + metadata + updated workspace state. Minimal new surface.
+- Scene list ordering must match `ManuscriptOrderResolver` output (chapter order, then scene order within chapter).
+- Swift `OpenProjectResult` gains a `scenes: [SceneInfo]` property; `SceneInfo` mirrors `SceneSummary`.
+- SwiftUI scene navigation sidebar is **deferred to EP-008** — this sprint delivers the C++ and adapter layer only.
 
 ---
 
-*Last Updated: 2026-05-31 (SP-018 activated)*
+*Last Updated: 2026-06-01 (SP-019 activated; T-0059–T-0062 implemented — 165/165 ctest, 19/19 swift test)*

@@ -180,4 +180,15 @@ struct ImportFromInboxRequest {
     AuthorshipRef author;
 };
 
+// ---------------------------------------------------------------------------
+// openScene (EP-008 T-0060)
+// ---------------------------------------------------------------------------
+
+struct OpenSceneRequest {
+    AbsolutePath projectRootPath;
+    AbsolutePath appSupportRoot;
+    ProjectID    projectID;
+    SceneID      sceneID;
+};
+
 } // namespace scrivi

@@ -14,14 +14,11 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **4 backlog Tasks**
+Currently: **0 backlog Tasks**
 
-| Task   | Title | Status |
-| ------ | ----- | ------ |
-| T-0059 | `OpenProjectResult` — Add Scene List | 🔵 Backlog |
-| T-0060 | `openScene` Facade Method — Switch Active Scene | 🔵 Backlog |
-| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🔵 Backlog |
-| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🔵 Backlog |
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| —    | None  | —      |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -37,13 +34,14 @@ See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **3 unverified Tasks**
+Currently: **4 unverified Tasks**
 
 | Task   | Title | Status |
 | ------ | ----- | ------ |
-| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🟠 Unverified |
-| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🟠 Unverified |
-| T-0058 | SecureStore Trade Study — Linux and Windows | 🟠 Unverified |
+| T-0059 | `OpenProjectResult` — Add Scene List | 🟠 Unverified |
+| T-0060 | `openScene` Facade Method — Switch Active Scene | 🟠 Unverified |
+| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🟠 Unverified |
+| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🟠 Unverified |
 
 See: [Task-unverified.md](Task-unverified.md)
 
@@ -107,15 +105,18 @@ Currently: **54 verified Tasks** | Next available: **T-0055**
 | T-0052 | SwiftUI Shell — Landing View, Editor View, and Project Flows | [Task-verified-0052.md](Verified/Task-verified-0052.md) | ✅ Verified |
 | T-0053 | `saveScene` Wiring — ⌘S Save in SwiftUI Editor | [Task-verified-0053.md](Verified/Task-verified-0053.md) | ✅ Verified |
 | T-0054 | EP-006 Verification — `swift test` + `ctest` Green | [Task-verified-0054.md](Verified/Task-verified-0054.md) | ✅ Verified |
+| T-0056 | Windows CMake Build — MSVC Green + Gap Document | [Task-verified-0056.md](Verified/Task-verified-0056.md) | ✅ Verified |
+| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | [Task-verified-0057.md](Verified/Task-verified-0057.md) | ✅ Verified |
+| T-0058 | SecureStore Trade Study — Linux and Windows | [Task-verified-0058.md](Verified/Task-verified-0058.md) | ✅ Verified |
 
 ## Statistics
 
 - **Total Tasks:** 62
-- **Verified:** 55 (89%) ✅
-- **Unverified:** 3 (5%) 🟠
+- **Verified:** 58 (94%) ✅
+- **Unverified:** 4 (6%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 4 (6%) 🔵
+- **Backlog:** 0 (0%) 🔵
 
 ---
 
-*Last Updated: 2026-05-31 (T-0056 implemented; 160/160 on macOS + Ubuntu + Windows MSVC)*
+*Last Updated: 2026-06-01 (T-0059–T-0062 implemented; 165/165 ctest, 19/19 swift test)*

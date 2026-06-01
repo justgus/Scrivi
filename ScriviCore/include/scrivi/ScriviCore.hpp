@@ -14,6 +14,7 @@ public:
     Result<EnsureIdentityResult>    ensureLocalIdentity(const EnsureIdentityRequest& request);
     Result<CreateProjectResult>     createProject(const CreateProjectRequest& request);
     Result<OpenProjectResult>       openProject(const OpenProjectRequest& request);
+    Result<OpenSceneResult>         openScene(const OpenSceneRequest& request);
     Result<SaveSceneResult>         saveScene(const SaveSceneRequest& request);
     Result<ExternalChangeScanResult> scanForExternalChanges(const ExternalChangeScanRequest& request);
     Result<EnableGitResult>         enableGitSnapshots(const EnableGitRequest& request);

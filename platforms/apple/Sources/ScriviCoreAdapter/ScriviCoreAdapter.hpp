@@ -52,6 +52,12 @@ public:
         const char* appSupportRoot,
         const char* identityID);
 
+    std::string openScene(
+        const char* projectRootPath,
+        const char* appSupportRoot,
+        const char* projectID,
+        const char* sceneID);
+
     std::string saveScene(
         const char* projectID,
         const char* projectRootPath,

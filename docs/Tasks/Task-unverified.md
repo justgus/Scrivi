@@ -4,101 +4,101 @@ Tasks listed here are implemented and awaiting user verification before being ar
 
 ---
 
-## T-0057: `AppSupportLayout` — Linux and Windows Platform Paths
+## T-0059: `OpenProjectResult` — Add Scene List
 
 **Status:** 🟠 Implemented — Not Verified
-**Sprint:** SP-018
+**Sprint:** SP-019
 **Epic:** EP-008
 
 **Implementation:**
 
-- `AppSupportLayout::platformDefault()` added to `AppSupportLayout.hpp` / `.cpp`
-- Three platform branches:
-  - **Apple:** `~/Library/Application Support/Scrivi` (via `getenv("HOME")` / `getpwuid`)
-  - **Linux:** `$XDG_DATA_HOME/Scrivi` if set and non-empty, else `~/.local/share/Scrivi`
-  - **Windows:** `SHGetKnownFolderPath(FOLDERID_RoamingAppData) + \Scrivi` via `SHGetKnownFolderPath`
-- Returns `Result<AbsolutePath>`; all failure paths use `Error{ErrorCode::ioError, …}`
-- `Shell32` linked via `$<$<PLATFORM_ID:Windows>:Shell32>` generator expression in `CMakeLists.txt`
-- `Error.hpp` included in `.cpp` for `ErrorCode`
-- Three new tests added to `AppSupportLayoutTests.cpp` (tagged `[T-0057]`):
-  - `platformDefault — returns a non-empty path ending in 'Scrivi'` (all platforms)
-  - `platformDefault — Linux respects XDG_DATA_HOME when set` (`#ifdef __linux__`)
-  - `platformDefault — Linux falls back to ~/.local/share when XDG_DATA_HOME unset` (`#ifdef __linux__`)
-- **CTest result:** 160/160 passed (was 159/159)
+- `std::vector<SceneSummary> scenes` field added to `OpenProjectResult` in `Results.hpp`
+- `ProjectOpener::open` populates `scenes` from the resolved `ManuscriptOrderResolver` output (all scenes in manuscript order)
+- No new types required — `SceneSummary` already existed in `Types.hpp`
+- Adapter (`openProject`) serializes the scenes as a JSON array under key `"scenes"`; each entry contains `sceneID`, `chapterID`, `title`, `slug`, `metadataPath`, `contentPath`
+- Swift `OpenProjectResult` gains `scenes: [SceneInfo]`; `SceneInfo` is a new `Decodable` struct mirroring `SceneSummary`
 
 **Files changed:**
-- `ScriviCore/src/platform/AppSupportLayout.hpp` — declaration added
-- `ScriviCore/src/platform/AppSupportLayout.cpp` — implementation added
-- `ScriviCore/CMakeLists.txt` — `Shell32` generator expression added
-- `ScriviCore/tests/integration/AppSupportLayoutTests.cpp` — three new tests + `platform/AppSupportLayout.hpp` include
+- `ScriviCore/include/scrivi/Results.hpp` — `scenes` field added to `OpenProjectResult`
+- `ScriviCore/src/project_package/ProjectOpener.cpp` — scenes vector populated from resolver output
+- `platforms/apple/Sources/ScriviCoreAdapter/ScriviCoreAdapter.cpp` — scenes array serialized in `openProject`
+- `platforms/apple/Sources/Scrivi/ScriviEngine.swift` — `SceneInfo` type added; `OpenProjectResult.scenes` added
+
+**CTest result:** 165/165 (was 160/160; 5 new tests added)
+**swift test result:** 19/19 (was 17/17; 2 new tests added)
 
 ---
 
-## T-0058: SecureStore Trade Study — Linux and Windows
+## T-0060: `openScene` Facade Method — Switch Active Scene
 
 **Status:** 🟠 Implemented — Not Verified
-**Sprint:** SP-018
+**Sprint:** SP-019
 **Epic:** EP-008
 
 **Implementation:**
 
-Trade study document produced at `docs/Scrivi_SecureStore_Platform_Trade_Study_v0_1.md`.
-
-**Conclusions:**
-
-| Platform | Recommendation | Notes |
-|----------|---------------|-------|
-| Linux (current) | `EncryptedFileSecureStore` (AES-256-GCM via OpenSSL 3) | Zero deps; works headless, CI, Docker |
-| Linux (future desktop app) | libsecret hybrid + encrypted-file fallback | Deferred to desktop app Epic |
-| Windows | `DPAPISecureStore` (`CryptProtectData` / `CryptUnprotectData`) | Platform-idiomatic; zero deps; user-credential-gated |
-
-Implementation of these classes is deferred to the next cross-platform Epic (EP-009 or later). The `MockSecureStore` continues to serve all test suites.
+- `OpenSceneRequest` added to `Requests.hpp` (`projectRootPath`, `appSupportRoot`, `projectID`, `sceneID`)
+- `OpenSceneResult` added to `Results.hpp` (`scene: SceneSummary`, `markdown`, `restoredSelection`, `restoredScroll`)
+- `ScriviCore::openScene` added to `ScriviCore.hpp` / `ScriviCore.cpp`
+- Implementation: resolves manuscript order, finds scene by `sceneID`, reads content, updates workspace state `lastWritingSurface`, returns result
+- Returns `ErrorCode::invalidArgument` if `sceneID` not found in manuscript
 
 **Files changed:**
-- `docs/Scrivi_SecureStore_Platform_Trade_Study_v0_1.md` — created
+- `ScriviCore/include/scrivi/Requests.hpp` — `OpenSceneRequest` added
+- `ScriviCore/include/scrivi/Results.hpp` — `OpenSceneResult` added
+- `ScriviCore/include/scrivi/ScriviCore.hpp` — `openScene` declaration added
+- `ScriviCore/src/public_api/ScriviCore.cpp` — `openScene` implementation added
 
 ---
 
-## T-0056: Windows CMake Build — MSVC Green + Gap Document
+## T-0061: Adapter + Swift Engine — Expose `openScene` and Scene List
 
 **Status:** 🟠 Implemented — Not Verified
-**Sprint:** SP-018
+**Sprint:** SP-019
 **Epic:** EP-008
 
 **Implementation:**
 
-MSVC 19.44 (VS 2022) build verified green on dumbledor-2 (Windows 11). 160/160 CTests pass.
-
-**Gaps found and fixed:**
-
-| # | Gap | Fix |
-|---|-----|-----|
-| 1 | `PathUtils::join` / `makeAbsolute` used `.string()` — produces `\` on Windows | Changed to `.generic_string()` in `PathUtils.cpp` |
-| 2 | `LocalFileSystem::listDirectory` used `.string()` — produces `\` paths | Changed to `.generic_string()` |
-| 3 | Test fixture `std::ofstream` opened without `std::ios::binary` — text mode translates `\n` to `\r\n` on write | Added `std::ios::binary` to all bare ofstream opens in test files |
-| 4 | Test names with UTF-8 em-dash `—` mangled by Windows console codepage in CTest name matching | Replaced all ` — ` with ` - ` in test names across 16 files |
-| 5 | `SHGetKnownFolderPath` requires `Shell32.lib` | Added via CMake generator expression (T-0057) |
-| 6 | `PRIx64` / `<cinttypes>` | Fixed in SP-017 |
-| 7 | `<sys/wait.h>` | Fixed in SP-017 |
-
-No MSVC C++23 feature parity issues. `std::format`, `std::expected`, `<ranges>` not used. `fs::rename` uses `MoveFileExW(MOVEFILE_REPLACE_EXISTING)` via MSVC STL — no code change needed.
-
-**All three platforms green:**
-- macOS ctest: 160/160
-- Ubuntu ctest: 160/160 (SP-017)
-- Windows MSVC ctest: 160/160
+- `openScene(projectRootPath, appSupportRoot, projectID, sceneID)` added to `ScriviCoreAdapter.hpp` and `ScriviCoreAdapter.cpp`
+- Adapter serializes `OpenSceneResult` as `{"scene":{...}, "markdown":"..."}`
+- `openScene(...)` added to `ScriviEngine.swift`
+- `OpenSceneResult` Swift struct added (decodes `scene: SceneInfo` and `markdown: String`)
 
 **Files changed:**
-- `ScriviCore/src/util/PathUtils.cpp` — `.generic_string()` for `join` and `makeAbsolute`
-- `ScriviCore/src/platform/LocalFileSystem.cpp` — `.generic_string()` for `listDirectory`
-- `ScriviCore/tests/CMakeLists.txt` — `/utf-8` compile flag + UTF-8 manifest for MSVC
-- `ScriviCore/tests/utf8.manifest` — new file: active code page UTF-8 manifest
-- `ScriviCore/tests/integration/OpenProjectTests.cpp` — `std::ios::binary` on ofstream
-- `ScriviCore/tests/integration/ExternalChangeTests.cpp` — `std::ios::binary` on ofstream
-- `ScriviCore/tests/integration/MvpLoopTests.cpp` — `std::ios::binary` on ofstream
-- `ScriviCore/tests/integration/ApplyRepairTests.cpp` — `std::ios::binary` on ofstream/ifstream
-- All 16 test `.cpp` files — em-dash `—` replaced with ` - ` in test names
+- `platforms/apple/Sources/ScriviCoreAdapter/ScriviCoreAdapter.hpp` — `openScene` declaration
+- `platforms/apple/Sources/ScriviCoreAdapter/ScriviCoreAdapter.cpp` — `openScene` implementation
+- `platforms/apple/Sources/Scrivi/ScriviEngine.swift` — `openScene` method + `OpenSceneResult` type
 
 ---
 
-*Last Updated: 2026-05-31 (T-0056, T-0057, T-0058 implemented)*
+## T-0062: Integration Tests — Multi-Scene `openProject` and `openScene`
+
+**Status:** 🟠 Implemented — Not Verified
+**Sprint:** SP-019
+**Epic:** EP-008
+
+**Implementation:**
+
+New test file `ScriviCore/tests/integration/MultiSceneTests.cpp` with 5 tests:
+
+**T-0059 tests:**
+- `openProject - scenes list contains all scenes in manuscript order` — creates project, appends second scene, verifies both appear in order
+- `openProject - scenes list has one entry for single-scene project`
+
+**T-0060 tests:**
+- `openScene - loads correct content for requested scene`
+- `openScene - updates workspace state to newly opened scene` — verifies re-opening project restores the scene opened via `openScene`
+- `openScene - returns error for unknown sceneID`
+
+New Swift interop tests in `ScriviInteropTests.swift`:
+- `openProject returns scenes array with one entry for a freshly created project`
+- `openScene returns correct scene content and openProject restores it as active scene`
+
+`MultiSceneTests.cpp` registered in `ScriviCore/tests/CMakeLists.txt` and `ScriviCore.xcodeproj/project.pbxproj`.
+
+**CTest result:** 165/165 passed
+**swift test result:** 19/19 passed
+
+---
+
+*Last Updated: 2026-06-01 (T-0059, T-0060, T-0061, T-0062 implemented)*

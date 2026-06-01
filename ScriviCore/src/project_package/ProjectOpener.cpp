@@ -118,12 +118,26 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     sceneSummary.metadataPath = activeScene->metadataPath;
     sceneSummary.contentPath  = activeScene->contentPath;
 
+    std::vector<SceneSummary> allScenes;
+    allScenes.reserve(scenes.size());
+    for (auto& s : scenes) {
+        SceneSummary ss;
+        ss.sceneID      = s.sceneID;
+        ss.chapterID    = s.chapterID;
+        ss.title        = s.title;
+        ss.slug         = s.slug;
+        ss.metadataPath = s.metadataPath;
+        ss.contentPath  = s.contentPath;
+        allScenes.push_back(std::move(ss));
+    }
+
     OpenProjectResult result;
     result.mode               = issues.empty() ? OpenMode::normalEdit : OpenMode::editWithWarnings;
     result.project            = summary;
     result.workspaceState     = workspaceState;
     result.activeScene        = sceneSummary;
     result.activeSceneMarkdown = std::move(mdR.value());
+    result.scenes             = std::move(allScenes);
     result.restoredSelection  = restoredSelection;
     result.restoredScroll     = restoredScroll;
     result.repairIssues       = std::move(issues);

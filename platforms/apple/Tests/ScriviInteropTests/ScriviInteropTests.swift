@@ -566,4 +566,58 @@ struct ScriviInteropTests {
         let listAfter = try engine.listInbox(projectRootPath: projectDir.path)
         #expect(listAfter.count == 0)
     }
+
+    // MARK: - Test 14: openProject returns scenes array (T-0059)
+
+    @Test("openProject returns scenes array with one entry for a freshly created project")
+    func openProjectReturnsScenesArray() throws {
+        let (engine, _, _, projectDir, appSupport) = try makeProjectFixture()
+
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path
+        )
+
+        #expect(!opened.scenes.isEmpty)
+        #expect(opened.scenes[0].sceneID == opened.activeScene?.sceneID)
+        #expect(!opened.scenes[0].title.isEmpty)
+        #expect(!opened.scenes[0].metadataPath.isEmpty)
+        #expect(!opened.scenes[0].contentPath.isEmpty)
+    }
+
+    // MARK: - Test 15: openScene round-trip (T-0060)
+
+    @Test("openScene returns correct scene content and openProject restores it as active scene")
+    func openSceneRoundTrip() throws {
+        let (engine, _, _, projectDir, appSupport) = try makeProjectFixture()
+
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path
+        )
+
+        guard let activeScene = opened.activeScene else {
+            Issue.record("Expected activeScene after openProject")
+            return
+        }
+
+        // Open the same scene via openScene
+        let sceneResult = try engine.openScene(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path,
+            projectID:       opened.projectID,
+            sceneID:         activeScene.sceneID
+        )
+
+        #expect(sceneResult.scene.sceneID == activeScene.sceneID)
+        #expect(sceneResult.scene.metadataPath == activeScene.metadataPath)
+        #expect(sceneResult.scene.contentPath  == activeScene.contentPath)
+
+        // Re-open project - active scene should still be the same
+        let reopened = try engine.openProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path
+        )
+        #expect(reopened.activeScene?.sceneID == activeScene.sceneID)
+    }
 }
