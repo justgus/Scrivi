@@ -1425,9 +1425,14 @@ The repository skeleton is successful if:
 
 ## 20. Open Questions
 
-1. **`appSupportRoot` on non-Apple platforms.** `AppSupportLayout` bootstraps the support directory on Apple. The path-determination mechanism for Windows, Linux, and Android is not yet defined.
-2. **`JsonDoc` double support.** `ScrollPosition.value` is a `double`. The current `JsonDoc` wrapper has no `setDouble`/`getDouble`. Either add them or represent scroll as a fixed-point integer.
-3. **`KeychainSecureStore` sprint timing.** `PrototypeSecureStore` does not survive process restart. This must be replaced before any real user testing. The sprint for this has not been scheduled.
-4. **Cursor and scroll from Swift.** `ScriviEngine.saveScene` currently passes zero for `selection` and `scroll`. These will need wiring when the SwiftUI editor is implemented.
-5. **Multi-scene `openProject` result.** The current result returns one `activeScene`. A future richer result will return a scene list for the project explorer. Schema not yet designed.
-6. **Repair action operations.** `scanForExternalChanges` returns `RepairIssue` lists. Applying repair actions (relink, import, restore) is not yet in the API.
+~~1. **`appSupportRoot` on non-Apple platforms.**~~ **Resolved — 2026-05-30.** `AppSupportLayout::platformDefault()` resolves the OS-appropriate root at the C++ layer. Linux: `$XDG_DATA_HOME/Scrivi` or `~/.local/share/Scrivi`. Windows: `%APPDATA%\Scrivi`. Apple: unchanged. Implemented in T-0057 (EP-008 / SP-018).
+
+~~2. **`JsonDoc` double support.**~~ **Resolved — T-0048 (EP-006).** `setDouble`/`getDouble` added to `JsonDoc`.
+
+~~3. **`KeychainSecureStore` sprint timing.**~~ **Resolved — T-0049 (EP-006).** `KeychainSecureStore` implemented on Apple. Non-Apple platform implementations addressed in T-0058 (EP-008 / SP-018).
+
+~~4. **Cursor and scroll from Swift.**~~ **Resolved — T-0053 (EP-006).** Live cursor offset wired via `TrackingTextEditor`. Scroll at `0.0` — acceptable pending SwiftUI scroll API.
+
+5. **Multi-scene `openProject` result.** The current result returns one `activeScene`. Addressed in T-0059/T-0060 (EP-008 / SP-019).
+
+6. **Repair action operations.** `scanForExternalChanges` returns `RepairIssue` lists but no apply-repair facade methods exist yet. Deferred — not in EP-008 scope.

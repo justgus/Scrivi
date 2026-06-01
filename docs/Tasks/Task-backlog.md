@@ -6,75 +6,6 @@ Tasks listed here are documented and ready for Sprint assignment. All items are 
 
 ## EP-008: Multi-Scene Navigation and Cross-Platform Build
 
-### SP-017 — Cross-Platform Build: Ubuntu
-
-#### T-0055: Ubuntu CMake Build — GCC/Clang Green + Gap Document
-
-**Status:** 🔵 Backlog
-**Sprint:** SP-017
-**Epic:** EP-008
-**Priority:** Critical
-
-Get ScriviCore building and all CTests passing on Ubuntu using GCC 13+ or Clang 17+. Document every compiler/stdlib gap, FetchContent issue, or filesystem behavior difference found. No new features.
-
-**Checklist:**
-- `cxx_std_23` feature flag on GCC 13 / Clang 17 — note any `<format>`, `<expected>`, `<ranges>` gaps
-- FetchContent for nlohmann/json and Catch2 resolves cleanly
-- `AtomicWrite` / `LocalFileSystem::atomicWriteTextFile` POSIX rename semantics verified
-- `AppSupportLayout` needs `$XDG_DATA_HOME` / `~/.local/share/Scrivi` path (feeds T-0057)
-- `SystemGitProvider` process execution on Linux — path quoting and executable lookup
-- Output: gap document in Task detail or a `docs/` trade-study note
-
----
-
-### SP-018 — Cross-Platform Build: Windows + SecureStore Trade Study
-
-#### T-0056: Windows CMake Build — MSVC Green + Gap Document
-
-**Status:** 🔵 Backlog
-**Sprint:** SP-018
-**Epic:** EP-008
-**Priority:** Critical
-
-Get ScriviCore building and all CTests passing on Windows (MSVC 19.38+ / VS 2022). Document every MSVC-specific gap.
-
-**Checklist:**
-- MSVC C++23 feature parity vs. Apple Clang — `std::format`, `std::expected`, structured bindings
-- `AtomicWrite` — verify `MoveFileExW(MOVEFILE_REPLACE_EXISTING)` path or add it
-- `SystemGitProvider` process execution — path quoting, spaces in `Program Files`
-- FetchContent on Windows — any network/proxy issues
-- Output: gap document in Task detail
-
----
-
-#### T-0057: `AppSupportLayout` — Linux and Windows Platform Paths
-
-**Status:** 🔵 Backlog
-**Sprint:** SP-018
-**Epic:** EP-008
-**Priority:** High
-
-Add Linux and Windows platform path resolution to `AppSupportLayout`. Currently macOS/Apple-only.
-
-- Linux: `$XDG_DATA_HOME` if set, else `~/.local/share/Scrivi`
-- Windows: `SHGetKnownFolderPath(FOLDERID_RoamingAppData)` → `%APPDATA%\Scrivi`; environment variable fallback
-
----
-
-#### T-0058: SecureStore Trade Study — Linux and Windows
-
-**Status:** 🔵 Backlog
-**Sprint:** SP-018
-**Epic:** EP-008
-**Priority:** High
-
-Produce a written trade study selecting the `SecureStore` implementation strategy for Linux and Windows. Must end with a concrete recommendation per platform, not just a list of options.
-
-- **Linux:** libsecret (D-Bus Secret Service) vs. encrypted-file fallback (platform-derived key). Key question: what happens in CI, headless servers, and WSL where D-Bus may not be running?
-- **Windows:** DPAPI (`CryptProtectData`) — per-user encryption, no external dependency, Win10+ ubiquitous. Confirm suitability; note any roaming profile concerns.
-- Output: `docs/Scrivi_SecureStore_Platform_Trade_Study_v0_1.md`
-
----
 
 ### SP-019 — Multi-Scene C++ Core
 
@@ -131,4 +62,4 @@ Add integration tests covering:
 
 ---
 
-*Last Updated: 2026-05-30 (T-0055–T-0062 added for EP-008)*
+*Last Updated: 2026-05-31 (T-0056, T-0057, T-0058 implemented; all moved to unverified)*

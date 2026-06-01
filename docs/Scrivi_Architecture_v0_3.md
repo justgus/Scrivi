@@ -357,21 +357,21 @@ The on-disk data model (the JSON schemas in `Scrivi_Minimum_Schema_Set_v0_1.md`)
 
 ## 10. Open Questions
 
-These are unresolved questions that will affect future design decisions. They are not blockers for the current sprint.
+These are unresolved questions that will affect future design decisions.
 
-1. **Device identity.** What is the correct mechanism for generating a stable `deviceID` on Apple platforms? On macOS, `IOPlatformExpertDevice` serial number or `SecKeychainItem` UUID are options. This must be settled before workspace state sync is designed.
+~~1. **Device identity.**~~ Open — deferred until workspace state sync is designed. `deviceID` remains hardcoded `"device-local"`. Acceptable until sync is in scope.
 
-2. **`JsonDoc` double support.** `ScrollPosition.value` is a `double`. The current `JsonDoc` wrapper has no `setDouble`/`getDouble`. Either add them or represent scroll position as a fixed-point integer. This is a small implementation gap, not an architectural question.
+~~2. **`JsonDoc` double support.**~~ **Resolved — T-0048 (EP-006).** `setDouble`/`getDouble` added. `ScrollPosition.value` is stored as a true `double` on disk.
 
-3. **`KeychainSecureStore`.** When does the production Keychain implementation replace `PrototypeSecureStore`? This should happen before any user testing — in-memory secrets do not survive restart, which means identity is lost on every restart. This is a sprint-level task.
+~~3. **`KeychainSecureStore`.**~~ **Resolved — T-0049 (EP-006).** `KeychainSecureStore` implemented; identity survives process restart on macOS.
 
-4. **Cursor and scroll from Swift.** `ScriviEngine.saveScene` currently passes zero for `selection` and `scroll`. When the SwiftUI editor is implemented, these must be wired. The adapter already accepts them; only the Swift call site needs updating.
+~~4. **Cursor and scroll from Swift.**~~ **Resolved — T-0053 (EP-006).** `TrackingTextEditor` captures live cursor offset via `NSTextViewDelegate`. Scroll position deferred at `0.0` pending SwiftUI scroll API; this is acceptable and documented.
 
-5. **`appSupportRoot` bootstrap on other platforms.** `AppSupportLayout` bootstraps the app support directory structure. On Apple, the path is the platform Application Support directory. On other platforms this will need a platform-specific determination. The mechanism (injected path, environment variable, etc.) is not yet defined for non-Apple targets.
+~~5. **`appSupportRoot` bootstrap on other platforms.**~~ **Resolved — 2026-05-30.** Decision: **Option A — `AppSupportLayout::platformDefault()` resolves the OS-appropriate root path at the C++ layer.** Platform-specific logic lives in `AppSupportLayout`; callers may use `platformDefault()` or supply an explicit path (tests, non-standard installs). Linux: `$XDG_DATA_HOME/Scrivi` or `~/.local/share/Scrivi`. Windows: `%APPDATA%\Scrivi` via `SHGetKnownFolderPath(FOLDERID_RoamingAppData)`. Apple: existing behavior unchanged. Implemented in T-0057 (EP-008 / SP-018).
 
-6. **Multi-scene projects.** The current `openProject` result returns a single `activeScene`. A future `openProject` result will need to return enough information for the UI to render a scene list (manuscript order, chapter/scene titles, statuses). The schema for that richer result is not yet designed.
+6. **Multi-scene projects.** The current `openProject` result returns a single `activeScene`. A future `openProject` result will need to return enough information for the UI to render a scene list. Addressed in T-0059/T-0060 (EP-008 / SP-019).
 
-7. **Repair actions.** `scanForExternalChanges` returns `RepairIssue` lists. The API does not yet have operations for applying repair actions. These will be needed before the repair UI is designed.
+7. **Repair actions.** `scanForExternalChanges` returns `RepairIssue` lists. The API does not yet have operations for applying repair actions. Deferred — not in EP-008 scope.
 
 ---
 

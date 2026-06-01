@@ -11,11 +11,11 @@
 
 ### Acceptance Criteria
 
-- [ ] ScriviCore builds cleanly on Ubuntu (GCC 13+ or Clang 17+) via CMake; all CTests pass
-- [ ] ScriviCore builds cleanly on Windows (MSVC 19.38+ / VS 2022) via CMake; all CTests pass
-- [ ] `AppSupportLayout` uses `$XDG_DATA_HOME` (Linux) and `%APPDATA%` (Windows) for platform-appropriate paths
+- [x] ScriviCore builds cleanly on Ubuntu (GCC 13+ or Clang 17+) via CMake; all CTests pass
+- [x] ScriviCore builds cleanly on Windows (MSVC 19.38+ / VS 2022) via CMake; all CTests pass
+- [x] `AppSupportLayout` uses `$XDG_DATA_HOME` (Linux) and `%APPDATA%` (Windows) for platform-appropriate paths
 - [ ] All compiler/stdlib gaps between Apple Clang, GCC, and MSVC are documented
-- [ ] `SecureStore` trade study produced for Linux (libsecret vs. encrypted-file) and Windows (DPAPI) with a concrete recommendation
+- [x] `SecureStore` trade study produced for Linux (libsecret vs. encrypted-file) and Windows (DPAPI) with a concrete recommendation
 - [ ] `OpenProjectResult` includes a full ordered scene list (`std::vector<SceneSummary>`)
 - [ ] `openScene` facade method added — switches active scene, updates workspace state, returns scene content
 - [ ] `ScriviCoreAdapter` exposes `openScene`; `ScriviEngine.swift` wraps it
@@ -26,18 +26,18 @@
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | 🔵 Planning | — |
-| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | 🔵 Planning | — |
+| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | ✅ Closed | 2026-05-30 – 2026-05-31 |
+| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | 🟡 Active | 2026-05-31 – — |
 | SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | 🔵 Planning | — |
 
 ### Tasks
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0055 | Ubuntu CMake Build — GCC/Clang Green + Gap Document | 🔵 Backlog |
-| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🔵 Backlog |
-| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🔵 Backlog |
-| T-0058 | SecureStore Trade Study — Linux and Windows | 🔵 Backlog |
+| T-0055 | Ubuntu CMake Build — GCC/Clang Green + Gap Document | ✅ Verified |
+| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🟠 Unverified |
+| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🟠 Unverified |
+| T-0058 | SecureStore Trade Study — Linux and Windows | 🟠 Unverified |
 | T-0059 | `OpenProjectResult` — Add Scene List | 🔵 Backlog |
 | T-0060 | `openScene` Facade Method — Switch Active Scene | 🔵 Backlog |
 | T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🔵 Backlog |
@@ -70,4 +70,4 @@
 
 ---
 
-*Last Updated: 2026-05-30 (EP-008 created as Draft; SP-017–SP-019 in Planning)*
+*Last Updated: 2026-05-31 (T-0056 implemented — 160/160 on macOS + Ubuntu + Windows MSVC; SP-018 all tasks unverified)*

@@ -31,7 +31,7 @@ Everything else from v0.2 is confirmed unchanged.
 | 6 | Cross-language boundary | JSON-over-`std::string` via `ScriviCoreAdapter` — permanent, not a workaround |
 | 7 | Git provider | `GitProvider` abstraction; `SystemGitProvider` first implementation |
 | 8 | Secure storage | `SecureStore` abstraction; `PrototypeSecureStore` for MVP; `KeychainSecureStore` for production Apple |
-| 9 | App-local paths | MVP passes `appSupportRoot` in request structs; ScriviCore owns subfolder layout |
+| 9 | App-local paths | `AppSupportLayout::platformDefault()` resolves the OS root at the C++ layer (Option A, decided 2026-05-30); callers may override with an explicit path for tests or non-standard installs |
 | 10 | Paths | UTF-8 strings at wrapper/project boundary; `std::filesystem::path` internally |
 
 ---
@@ -847,10 +847,16 @@ The API is successful if it supports:
 
 ## 31. Open Questions
 
-1. **`JsonDoc` double support.** `ScrollPosition.value` is a `double`. `JsonDoc` has no `setDouble`/`getDouble`. Add them, or represent scroll as a fixed-point integer.
-2. **`deviceID` in workspace state.** Currently hardcoded `"device-local"`. A real stable device identifier is needed before workspace state sync is designed.
-3. **`KeychainSecureStore` sprint timing.** `PrototypeSecureStore` does not persist across restarts. Must be replaced before real user testing.
-4. **Cursor and scroll wiring from Swift.** Currently zero; will need wiring when the SwiftUI editor is implemented.
-5. **Multi-scene `openProject` result.** Current result returns one `activeScene`. A richer result returning a scene list for the project explorer is not yet designed.
-6. **Repair action operations.** `scanForExternalChanges` returns `RepairIssue` lists but there are no facade methods for applying repair actions yet.
-7. **`appSupportRoot` on non-Apple platforms.** Determination mechanism for Windows, Linux, and Android is not yet defined.
+~~1. **`JsonDoc` double support.**~~ **Resolved — T-0048 (EP-006).** `setDouble`/`getDouble` added to `JsonDoc`.
+
+2. **`deviceID` in workspace state.** Currently hardcoded `"device-local"`. A real stable device identifier is needed before workspace state sync is designed. Deferred — not in EP-008 scope.
+
+~~3. **`KeychainSecureStore` sprint timing.**~~ **Resolved — T-0049 (EP-006).** `KeychainSecureStore` implemented on Apple. Non-Apple platform strategy addressed in T-0058 (EP-008 / SP-018).
+
+~~4. **Cursor and scroll wiring from Swift.**~~ **Resolved — T-0053 (EP-006).** Live cursor offset wired. Scroll at `0.0` — acceptable pending SwiftUI scroll API.
+
+5. **Multi-scene `openProject` result.** Current result returns one `activeScene`. Addressed in T-0059/T-0060 (EP-008 / SP-019).
+
+6. **Repair action operations.** No facade methods for applying repair actions yet. Deferred — not in EP-008 scope.
+
+~~7. **`appSupportRoot` on non-Apple platforms.**~~ **Resolved — 2026-05-30.** `AppSupportLayout::platformDefault()` resolves the OS-appropriate root at the C++ layer. Linux: `$XDG_DATA_HOME/Scrivi` or `~/.local/share/Scrivi`. Windows: `%APPDATA%\Scrivi`. Apple: unchanged. Implemented in T-0057 (EP-008 / SP-018).

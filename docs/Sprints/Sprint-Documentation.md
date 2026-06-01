@@ -45,17 +45,17 @@ Currently: **19 Sprints** | Next available: **SP-020**
 | SP-014 | Infrastructure — Keychain Identity and JsonDoc Double | EP-006 | 2026-05-28 | 2026-05-29 | ✅ Closed |
 | SP-015 | macOS App Target and SwiftUI Shell | EP-006 | 2026-05-29 | 2026-05-29 | ✅ Closed |
 | SP-016 | saveScene Wiring and EP-006 Close | EP-006 | 2026-05-30 | 2026-05-30 | ✅ Closed |
-| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | — | — | 🔵 Planning |
-| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | — | — | 🔵 Planning |
+| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | 2026-05-30 | 2026-05-31 | ✅ Closed |
+| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 2026-05-31 | — | 🟡 Active |
 | SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | — | — | 🔵 Planning |
 
 ## Statistics
 
 - **Total Sprints:** 19
-- **Closed:** 16 ✅
-- **Active:** 0 🟡
-- **Planning:** 3 🔵
+- **Closed:** 17 ✅
+- **Active:** 1 🟡
+- **Planning:** 1 🔵
 
 ---
 
-*Last Updated: 2026-05-30 (SP-017–SP-019 created in Planning for EP-008; Sprint-backlog.md introduced)*
+*Last Updated: 2026-05-31 (SP-018 activated)*
