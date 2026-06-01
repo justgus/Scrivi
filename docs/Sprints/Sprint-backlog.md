@@ -4,8 +4,8 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-*No sprints in planning. SP-019 is active.*
+*No sprints in planning. SP-020 is active.*
 
 ---
 
-*Last Updated: 2026-06-01 (SP-019 activated)*
+*Last Updated: 2026-06-01 (SP-020 activated)*

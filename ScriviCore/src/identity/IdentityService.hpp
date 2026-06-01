@@ -11,8 +11,8 @@ class IdentityService {
 public:
     explicit IdentityService(CoreServices& services);
 
-    Result<EnsureIdentityResult> ensureLocalIdentity(
-        const EnsureIdentityRequest& request);
+    [[nodiscard]] Result<EnsureIdentityResult> ensureLocalIdentity(
+        const EnsureIdentityRequest& request) const;
 
 private:
     CoreServices& services_;

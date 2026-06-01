@@ -29,7 +29,7 @@ static std::string workspaceStatePath(const AbsolutePath& appSupportRoot,
         projectID.value) + "/workspace-state.json";
 }
 
-Result<void> ProjectCreator::writeGitignore(const AbsolutePath& root) {
+Result<void> ProjectCreator::writeGitignore(const AbsolutePath& root) const {
     const std::string content =
         "# Scrivi app-local files — not part of the canonical project\n"
         ".scrivi-cache/\n"
@@ -42,12 +42,13 @@ Result<void> ProjectCreator::writeGitignore(const AbsolutePath& root) {
         util::join(root, ".gitignore"), content);
 }
 
-Result<void> ProjectCreator::writeSnapshotMetadata(const AbsolutePath& root) {
+Result<void> ProjectCreator::writeSnapshotMetadata(const AbsolutePath& root) const {
     const std::string content =
         "{\"schema\":\"scrivi-snapshots\",\"schemaVersion\":1,\"snapshots\":[]}\n";
     auto snapshotsDir = util::join(root, "snapshots");
     auto r = services_.fileSystem->createDirectories(snapshotsDir);
-    if (!r.ok()) return r;
+    if (!r.ok()) { return r;
+}
     return services_.fileSystem->atomicWriteTextFile(
         util::join(snapshotsDir, "scrivi-snapshots.json"), content);
 }
@@ -61,8 +62,8 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     if (request.author.identityID.value.empty() ||
         request.author.personaID.value.empty()) {
         return Result<CreateProjectResult>::failure(
-            {ErrorCode::invalidArgument,
-             "AuthorshipRef must have non-empty identityID and personaID"});
+            {.code=ErrorCode::invalidArgument,
+             .message="AuthorshipRef must have non-empty identityID and personaID"});
     }
 
     auto& fs  = *services_.fileSystem;
@@ -94,7 +95,8 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
 
     // 1. Create package root
     auto r = fs.createDirectories(root);
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 2. project.json
     schemas::ProjectJsonData proj;
@@ -112,11 +114,13 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
 
     r = fs.atomicWriteTextFile(util::join(root, "project.json"),
                                schemas::serializeProject(proj));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 3. manuscript/
     r = fs.createDirectories(util::join(root, manuscriptDir));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     schemas::ManuscriptMetaData ms;
     ms.manuscriptID            = manuscriptID;
@@ -125,15 +129,17 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     ms.createdByIdentityID     = request.author.identityID.value;
     ms.createdByPersonaID      = request.author.personaID.value;
     ms.createdByDisplayName    = request.author.displayName;
-    ms.chapters.push_back({chapterID, chapterDir + "/chapter.meta.json"});
+    ms.chapters.push_back({.chapterID=chapterID, .path=chapterDir + "/chapter.meta.json"});
 
     r = fs.atomicWriteTextFile(util::join(root, msMeta),
                                schemas::serializeManuscriptMeta(ms));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 4. chapter/
     r = fs.createDirectories(util::join(root, chapterDir));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     schemas::ChapterMetaData ch;
     ch.chapterID               = chapterID;
@@ -145,15 +151,17 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     ch.createdByIdentityID     = request.author.identityID.value;
     ch.createdByPersonaID      = request.author.personaID.value;
     ch.createdByDisplayName    = request.author.displayName;
-    ch.scenes.push_back({sceneID, sceneMetaRel});
+    ch.scenes.push_back({.sceneID=sceneID, .metadataPath=sceneMetaRel});
 
     r = fs.atomicWriteTextFile(util::join(root, chMeta),
                                schemas::serializeChapterMeta(ch));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 5. scene .md (empty)
     r = fs.atomicWriteTextFile(util::join(root, sceneMdRel), "");
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 6. scene .meta.json
     schemas::SceneMetaData scene;
@@ -175,42 +183,47 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
 
     r = fs.atomicWriteTextFile(util::join(root, sceneMetaRel),
                                schemas::serializeSceneMeta(scene));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 7. identities/
     r = fs.createDirectories(util::join(root, identitiesDir));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     schemas::ProjectMembersData members;
     members.members.push_back({
-        request.author.identityID,
-        "owner",
-        "active",
-        request.author.personaID.value,
-        now
+        .identityID=request.author.identityID,
+        .role="owner",
+        .status="active",
+        .defaultPersonaID=request.author.personaID.value,
+        .joinedAt=now
     });
 
     r = fs.atomicWriteTextFile(util::join(root, membersPath),
                                schemas::serializeProjectMembers(members));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     schemas::ProjectPersonasData personas;
     personas.personas.push_back({
-        request.author.personaID,
-        request.author.displayName,
-        "individual",
-        request.author.identityID.value,
-        now,
-        "active"
+        .personaID=request.author.personaID,
+        .displayName=request.author.displayName,
+        .personaKind="individual",
+        .controlledByIdentityID=request.author.identityID.value,
+        .createdAt=now,
+        .status="active"
     });
 
     r = fs.atomicWriteTextFile(util::join(root, personasPath),
                                schemas::serializeProjectPersonas(personas));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 8. inbox/dropped-files/
     r = fs.createDirectories(util::join(util::join(root, "inbox"), "dropped-files"));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 10. app-local workspace state
     schemas::WorkspaceStateData ws;
@@ -232,12 +245,14 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
             "projects"),
         projectID.value);
     r = fs.createDirectories(wsDir);
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     r = fs.atomicWriteTextFile(
         util::join(wsDir, "workspace-state.json"),
         schemas::serializeWorkspaceState(ws));
-    if (!r.ok()) return Result<CreateProjectResult>::failure(r.error());
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
 
     // 11. Optional Git
     bool gitInitialized = false;
@@ -247,26 +262,31 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
         auto& git = *services_.gitProvider;
 
         auto initR = git.initRepository(root);
-        if (!initR.ok()) return Result<CreateProjectResult>::failure(initR.error());
+        if (!initR.ok()) { return Result<CreateProjectResult>::failure(initR.error());
+}
 
         auto ignR = writeGitignore(root);
-        if (!ignR.ok()) return Result<CreateProjectResult>::failure(ignR.error());
+        if (!ignR.ok()) { return Result<CreateProjectResult>::failure(ignR.error());
+}
 
         auto snapR = writeSnapshotMetadata(root);
-        if (!snapR.ok()) return Result<CreateProjectResult>::failure(snapR.error());
+        if (!snapR.ok()) { return Result<CreateProjectResult>::failure(snapR.error());
+}
 
         auto addR = git.addAll(root);
-        if (!addR.ok()) return Result<CreateProjectResult>::failure(addR.error());
+        if (!addR.ok()) { return Result<CreateProjectResult>::failure(addR.error());
+}
 
         CommitRequest commitReq;
         commitReq.message = "Initial project";
         commitReq.author  = {
-            request.author.displayName,
-            request.author.identityID.value + "@scrivi.author"
+            .name=request.author.displayName,
+            .email=request.author.identityID.value + "@scrivi.author"
         };
 
         auto commitR = git.commit(root, commitReq);
-        if (!commitR.ok()) return Result<CreateProjectResult>::failure(commitR.error());
+        if (!commitR.ok()) { return Result<CreateProjectResult>::failure(commitR.error());
+}
 
         gitInitialized     = true;
         auto snapID        = ids.newSnapshotID();
@@ -288,7 +308,7 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     wsState.activePersonaID = request.author.personaID;
     wsState.lastOpenedAt    = now;
     wsState.lastWritingSurface = LastWritingSurface{
-        sceneID, sceneMdRel, {0, 0}, {0.0}
+        .sceneID=sceneID, .contentPath=sceneMdRel, .selection={.anchor=0, .focus=0}, .scroll={0.0}
     };
 
     CreateProjectResult result;

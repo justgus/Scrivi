@@ -47,20 +47,23 @@ std::array<uint8_t, 32> sha256Raw(std::string_view data) {
     uint64_t bitLen = static_cast<uint64_t>(data.size()) * 8;
     std::string msg(data);
     msg += '\x80';
-    while (msg.size() % 64 != 56) msg += '\0';
-    for (int i = 7; i >= 0; --i)
+    while (msg.size() % 64 != 56) { msg += '\0'; }
+    for (int i = 7; i >= 0; --i) {
         msg += static_cast<char>((bitLen >> (i * 8)) & 0xff);
+    }
 
     for (size_t i = 0; i < msg.size(); i += 64) {
         std::array<uint32_t, 64> w{};
         for (int j = 0; j < 16; ++j) {
-            w[j] = (static_cast<uint8_t>(msg[i + j*4])     << 24) |
-                   (static_cast<uint8_t>(msg[i + j*4 + 1]) << 16) |
-                   (static_cast<uint8_t>(msg[i + j*4 + 2]) <<  8) |
-                   (static_cast<uint8_t>(msg[i + j*4 + 3]));
+            auto jj = static_cast<std::size_t>(j);
+            w[j] = (static_cast<uint8_t>(msg[i + (jj*4)])     << 24) |
+                   (static_cast<uint8_t>(msg[i + (jj*4) + 1]) << 16) |
+                   (static_cast<uint8_t>(msg[i + (jj*4) + 2]) <<  8) |
+                   (static_cast<uint8_t>(msg[i + (jj*4) + 3]));
         }
-        for (int j = 16; j < 64; ++j)
+        for (int j = 16; j < 64; ++j) {
             w[j] = gam1(w[j-2]) + w[j-7] + gam0(w[j-15]) + w[j-16];
+        }
 
         auto [a,b,c,d,e,f,g,hh] = h;
         for (int j = 0; j < 64; ++j) {
@@ -73,9 +76,11 @@ std::array<uint8_t, 32> sha256Raw(std::string_view data) {
     }
 
     std::array<uint8_t, 32> digest{};
-    for (int i = 0; i < 8; ++i)
-        for (int j = 0; j < 4; ++j)
-            digest[i*4+j] = static_cast<uint8_t>((h[i] >> (24 - j*8)) & 0xff);
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            digest[(i*4)+j] = static_cast<uint8_t>((h[i] >> (24 - (j*8))) & 0xff);
+        }
+    }
     return digest;
 }
 
@@ -85,8 +90,9 @@ std::string sha256Hex(std::string_view data) {
     auto digest = sha256Raw(data);
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
-    for (uint8_t b : digest)
+    for (uint8_t b : digest) {
         oss << std::setw(2) << static_cast<int>(b);
+    }
     return oss.str();
 }
 

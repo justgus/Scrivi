@@ -2,12 +2,13 @@
 
 #include "scrivi/Types.hpp"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 namespace scrivi {
 
-enum class AssetCategory { image, audio, video, document, other };
+enum class AssetCategory : std::uint8_t { image, audio, video, document, other };
 
 inline std::string assetCategorySubdir(AssetCategory cat) {
     switch (cat) {
@@ -32,10 +33,10 @@ inline std::string assetCategoryString(AssetCategory cat) {
 }
 
 inline AssetCategory assetCategoryFromString(const std::string& s) {
-    if (s == "image")    return AssetCategory::image;
-    if (s == "audio")    return AssetCategory::audio;
-    if (s == "video")    return AssetCategory::video;
-    if (s == "document") return AssetCategory::document;
+    if (s == "image")    { return AssetCategory::image; }
+    if (s == "audio")    { return AssetCategory::audio; }
+    if (s == "video")    { return AssetCategory::video; }
+    if (s == "document") { return AssetCategory::document; }
     return AssetCategory::other;
 }
 

@@ -24,7 +24,7 @@ class ManuscriptOrderResolver {
 public:
     explicit ManuscriptOrderResolver(CoreServices& services);
 
-    Result<std::vector<ResolvedScene>> resolve(const AbsolutePath& projectRoot);
+    [[nodiscard]] Result<std::vector<ResolvedScene>> resolve(const AbsolutePath& projectRoot) const;
 
 private:
     CoreServices& services_;

@@ -17,8 +17,8 @@ static std::string_view severityToString(RepairSeverity s) {
 }
 
 static RepairSeverity severityFromString(std::string_view s) {
-    if (s == "warning")  return RepairSeverity::warning;
-    if (s == "blocking") return RepairSeverity::blocking;
+    if (s == "warning")  { return RepairSeverity::warning; }
+    if (s == "blocking") { return RepairSeverity::blocking; }
     return RepairSeverity::info;
 }
 
@@ -42,17 +42,17 @@ static std::string_view categoryToString(RepairCategory c) {
 }
 
 static RepairCategory categoryFromString(std::string_view s) {
-    if (s == "safeExternalEdit")           return RepairCategory::safeExternalEdit;
-    if (s == "unregisteredManuscriptFile") return RepairCategory::unregisteredManuscriptFile;
-    if (s == "missingContent")             return RepairCategory::missingContent;
-    if (s == "missingMetadata")            return RepairCategory::missingMetadata;
-    if (s == "possibleRename")             return RepairCategory::possibleRename;
-    if (s == "orphanMetadata")             return RepairCategory::orphanMetadata;
-    if (s == "corruptMetadata")            return RepairCategory::corruptMetadata;
-    if (s == "unsupportedSchema")          return RepairCategory::unsupportedSchema;
-    if (s == "gitStateChanged")            return RepairCategory::gitStateChanged;
-    if (s == "mergeConflict")              return RepairCategory::mergeConflict;
-    if (s == "unknownFile")               return RepairCategory::unknownFile;
+    if (s == "safeExternalEdit")           { return RepairCategory::safeExternalEdit; }
+    if (s == "unregisteredManuscriptFile") { return RepairCategory::unregisteredManuscriptFile; }
+    if (s == "missingContent")             { return RepairCategory::missingContent; }
+    if (s == "missingMetadata")            { return RepairCategory::missingMetadata; }
+    if (s == "possibleRename")             { return RepairCategory::possibleRename; }
+    if (s == "orphanMetadata")             { return RepairCategory::orphanMetadata; }
+    if (s == "corruptMetadata")            { return RepairCategory::corruptMetadata; }
+    if (s == "unsupportedSchema")          { return RepairCategory::unsupportedSchema; }
+    if (s == "gitStateChanged")            { return RepairCategory::gitStateChanged; }
+    if (s == "mergeConflict")              { return RepairCategory::mergeConflict; }
+    if (s == "unknownFile")                { return RepairCategory::unknownFile; }
     return RepairCategory::unknownIssue;
 }
 
@@ -80,22 +80,22 @@ static std::string_view actionKindToString(RepairActionKind k) {
 }
 
 static RepairActionKind actionKindFromString(std::string_view s) {
-    if (s == "reloadExternalVersion")    return RepairActionKind::reloadExternalVersion;
-    if (s == "keepCurrentVersion")       return RepairActionKind::keepCurrentVersion;
-    if (s == "saveCurrentVersionAsCopy") return RepairActionKind::saveCurrentVersionAsCopy;
-    if (s == "importAsNewScene")         return RepairActionKind::importAsNewScene;
-    if (s == "attachToExistingScene")    return RepairActionKind::attachToExistingScene;
-    if (s == "regenerateMetadata")       return RepairActionKind::regenerateMetadata;
-    if (s == "restoreFromSnapshot")      return RepairActionKind::restoreFromSnapshot;
-    if (s == "createEmptyContentFile")   return RepairActionKind::createEmptyContentFile;
-    if (s == "relinkToFile")             return RepairActionKind::relinkToFile;
-    if (s == "markMissing")              return RepairActionKind::markMissing;
-    if (s == "removeFromProject")        return RepairActionKind::removeFromProject;
-    if (s == "moveToInbox")              return RepairActionKind::moveToInbox;
-    if (s == "ignore")                   return RepairActionKind::ignore;
-    if (s == "deleteAfterConfirmation")  return RepairActionKind::deleteAfterConfirmation;
-    if (s == "openReadOnly")             return RepairActionKind::openReadOnly;
-    if (s == "cancelOpen")               return RepairActionKind::cancelOpen;
+    if (s == "reloadExternalVersion")    { return RepairActionKind::reloadExternalVersion; }
+    if (s == "keepCurrentVersion")       { return RepairActionKind::keepCurrentVersion; }
+    if (s == "saveCurrentVersionAsCopy") { return RepairActionKind::saveCurrentVersionAsCopy; }
+    if (s == "importAsNewScene")         { return RepairActionKind::importAsNewScene; }
+    if (s == "attachToExistingScene")    { return RepairActionKind::attachToExistingScene; }
+    if (s == "regenerateMetadata")       { return RepairActionKind::regenerateMetadata; }
+    if (s == "restoreFromSnapshot")      { return RepairActionKind::restoreFromSnapshot; }
+    if (s == "createEmptyContentFile")   { return RepairActionKind::createEmptyContentFile; }
+    if (s == "relinkToFile")             { return RepairActionKind::relinkToFile; }
+    if (s == "markMissing")              { return RepairActionKind::markMissing; }
+    if (s == "removeFromProject")        { return RepairActionKind::removeFromProject; }
+    if (s == "moveToInbox")              { return RepairActionKind::moveToInbox; }
+    if (s == "ignore")                   { return RepairActionKind::ignore; }
+    if (s == "deleteAfterConfirmation")  { return RepairActionKind::deleteAfterConfirmation; }
+    if (s == "openReadOnly")             { return RepairActionKind::openReadOnly; }
+    if (s == "cancelOpen")               { return RepairActionKind::cancelOpen; }
     return RepairActionKind::none;
 }
 
@@ -141,13 +141,14 @@ std::string serializeRepairIssues(const std::vector<RepairIssue>& issues) {
 
 Result<std::vector<RepairIssue>> parseRepairIssues(std::string_view json) {
     auto r = util::parseJson(json);
-    if (!r.ok()) return Result<std::vector<RepairIssue>>::failure(r.error());
+    if (!r.ok()) { return Result<std::vector<RepairIssue>>::failure(r.error()); }
     auto& root = r.value();
 
     auto schemaTag = root.getString("schema");
-    if (schemaTag != "scrivi-repair-issues")
+    if (schemaTag != "scrivi-repair-issues") {
         return Result<std::vector<RepairIssue>>::failure(
-            {ErrorCode::validationError, "unexpected schema: " + schemaTag});
+            {.code = ErrorCode::validationError, .message = "unexpected schema: " + schemaTag});
+    }
 
     std::vector<RepairIssue> issues;
     const auto count = root.arraySize("issues");

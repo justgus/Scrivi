@@ -14,7 +14,7 @@ SnapshotService::SnapshotService(CoreServices& services)
 // Helpers
 // ---------------------------------------------------------------------------
 
-Result<void> SnapshotService::writeGitignore(const AbsolutePath& projectRoot) {
+Result<void> SnapshotService::writeGitignore(const AbsolutePath& projectRoot) const {
     const std::string content =
         "# Scrivi app-local files — not part of the canonical project\n"
         ".scrivi-cache/\n"
@@ -34,7 +34,7 @@ Result<void> SnapshotService::appendSnapshotMetadata(
     const std::string& label,
     const std::string& note,
     const std::string& timestamp,
-    const AuthorshipRef& author)
+    const AuthorshipRef& author) const
 {
     auto& fs = *services_.fileSystem;
     auto snapshotsPath = util::join(projectRoot, "snapshots/scrivi-snapshots.json");
@@ -46,7 +46,8 @@ Result<void> SnapshotService::appendSnapshotMetadata(
         auto readR = fs.readTextFile(snapshotsPath);
         if (readR.ok()) {
             auto parseR = schemas::parseSnapshotMetadata(readR.value());
-            if (parseR.ok()) metadata = std::move(parseR.value());
+            if (parseR.ok()) { metadata = std::move(parseR.value());
+}
             // On parse failure, start with an empty metadata (self-healing)
         }
     }
@@ -65,7 +66,8 @@ Result<void> SnapshotService::appendSnapshotMetadata(
 
     auto snapshotsDir = util::join(projectRoot, "snapshots");
     auto dirR = fs.createDirectories(snapshotsDir);
-    if (!dirR.ok()) return dirR;
+    if (!dirR.ok()) { return dirR;
+}
 
     return fs.atomicWriteTextFile(snapshotsPath,
         schemas::serializeSnapshotMetadata(metadata));
@@ -78,7 +80,7 @@ Result<void> SnapshotService::appendSnapshotMetadata(
 Result<EnableGitResult> SnapshotService::enable(const EnableGitRequest& request) {
     if (services_.gitProvider == nullptr) {
         return Result<EnableGitResult>::failure(
-            {ErrorCode::gitUnavailable, "No GitProvider configured"});
+            {.code=ErrorCode::gitUnavailable, .message="No GitProvider configured"});
     }
 
     auto& git = *services_.gitProvider;
@@ -89,41 +91,47 @@ Result<EnableGitResult> SnapshotService::enable(const EnableGitRequest& request)
 
     // Check if already a repo
     auto isRepoR = git.isRepository(request.projectRootPath);
-    if (!isRepoR.ok()) return Result<EnableGitResult>::failure(isRepoR.error());
+    if (!isRepoR.ok()) { return Result<EnableGitResult>::failure(isRepoR.error());
+}
 
     if (isRepoR.value()) {
         result.alreadyRepository = true;
     } else {
         auto initR = git.initRepository(request.projectRootPath);
-        if (!initR.ok()) return Result<EnableGitResult>::failure(initR.error());
+        if (!initR.ok()) { return Result<EnableGitResult>::failure(initR.error());
+}
     }
 
     // Write .gitignore
     auto ignR = writeGitignore(request.projectRootPath);
-    if (!ignR.ok()) return Result<EnableGitResult>::failure(ignR.error());
+    if (!ignR.ok()) { return Result<EnableGitResult>::failure(ignR.error());
+}
 
     // Write initial snapshot metadata file
     auto snapshotsDir = util::join(request.projectRootPath, "snapshots");
     auto dirR = services_.fileSystem->createDirectories(snapshotsDir);
-    if (!dirR.ok()) return Result<EnableGitResult>::failure(dirR.error());
+    if (!dirR.ok()) { return Result<EnableGitResult>::failure(dirR.error());
+}
 
     const auto snapshotID = ids.newSnapshotID();
     const auto now        = clk.nowUTC();
 
     // Stage all files
     auto addR = git.addAll(request.projectRootPath);
-    if (!addR.ok()) return Result<EnableGitResult>::failure(addR.error());
+    if (!addR.ok()) { return Result<EnableGitResult>::failure(addR.error());
+}
 
     // Initial commit
     CommitRequest commitReq;
     commitReq.message = request.initialSnapshotLabel;
     commitReq.author  = {
-        request.author.displayName,
-        request.author.identityID.value + "@scrivi.author"
+        .name=request.author.displayName,
+        .email=request.author.identityID.value + "@scrivi.author"
     };
 
     auto commitR = git.commit(request.projectRootPath, commitReq);
-    if (!commitR.ok()) return Result<EnableGitResult>::failure(commitR.error());
+    if (!commitR.ok()) { return Result<EnableGitResult>::failure(commitR.error());
+}
 
     // Write snapshot metadata
     auto metaR = appendSnapshotMetadata(
@@ -134,7 +142,8 @@ Result<EnableGitResult> SnapshotService::enable(const EnableGitRequest& request)
         "",
         now,
         request.author);
-    if (!metaR.ok()) return Result<EnableGitResult>::failure(metaR.error());
+    if (!metaR.ok()) { return Result<EnableGitResult>::failure(metaR.error());
+}
 
     result.gitInitialized    = true;
     result.initialSnapshotID = snapshotID;
@@ -152,7 +161,7 @@ Result<CreateSnapshotResult> SnapshotService::createSnapshot(
 {
     if (services_.gitProvider == nullptr) {
         return Result<CreateSnapshotResult>::failure(
-            {ErrorCode::gitUnavailable, "No GitProvider configured"});
+            {.code=ErrorCode::gitUnavailable, .message="No GitProvider configured"});
     }
 
     auto& git = *services_.gitProvider;
@@ -164,18 +173,20 @@ Result<CreateSnapshotResult> SnapshotService::createSnapshot(
 
     // Stage all changes
     auto addR = git.addAll(request.projectRootPath);
-    if (!addR.ok()) return Result<CreateSnapshotResult>::failure(addR.error());
+    if (!addR.ok()) { return Result<CreateSnapshotResult>::failure(addR.error());
+}
 
     // Commit
     CommitRequest commitReq;
     commitReq.message = request.label;
     commitReq.author  = {
-        request.author.displayName,
-        request.author.identityID.value + "@scrivi.author"
+        .name=request.author.displayName,
+        .email=request.author.identityID.value + "@scrivi.author"
     };
 
     auto commitR = git.commit(request.projectRootPath, commitReq);
-    if (!commitR.ok()) return Result<CreateSnapshotResult>::failure(commitR.error());
+    if (!commitR.ok()) { return Result<CreateSnapshotResult>::failure(commitR.error());
+}
 
     // Write snapshot metadata
     auto metaR = appendSnapshotMetadata(
@@ -186,7 +197,8 @@ Result<CreateSnapshotResult> SnapshotService::createSnapshot(
         request.note,
         now,
         request.author);
-    if (!metaR.ok()) return Result<CreateSnapshotResult>::failure(metaR.error());
+    if (!metaR.ok()) { return Result<CreateSnapshotResult>::failure(metaR.error());
+}
 
     CreateSnapshotResult result;
     result.snapshotID = snapshotID;

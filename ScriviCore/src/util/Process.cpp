@@ -22,10 +22,10 @@ bool executableInPath(const std::string& name) {
 #ifdef _WIN32
     // On Windows, use where.exe
     std::string cmd = "where " + name + " >NUL 2>&1";
-    return std::system(cmd.c_str()) == 0;
+    return std::system(cmd.c_str()) == 0; // NOLINT(bugprone-command-processor)
 #else
     std::string cmd = "command -v " + name + " >/dev/null 2>&1";
-    return std::system(cmd.c_str()) == 0;
+    return std::system(cmd.c_str()) == 0; // NOLINT(bugprone-command-processor)
 #endif
 }
 
@@ -42,17 +42,17 @@ Result<ProcessResult> runProcess(
     cmd << "\"" << workingDirectory << "\"";
     cmd << " && ";
     cmd << "\"" << executable << "\"";
-    for (auto& arg : args) {
+    for (const auto& arg : args) {
         cmd << " \"" << arg << "\"";
     }
     cmd << " 2>&1";
 
     std::string cmdStr = cmd.str();
 
-    FILE* pipe = popen(cmdStr.c_str(), "r");
-    if (!pipe) {
+    FILE* pipe = popen(cmdStr.c_str(), "r"); // NOLINT(bugprone-command-processor)
+    if (pipe == nullptr) {
         return Result<ProcessResult>::failure(
-            {ErrorCode::internalError, "Failed to launch process: " + cmdStr});
+            {.code = ErrorCode::internalError, .message = "Failed to launch process: " + cmdStr});
     }
 
     std::string output;

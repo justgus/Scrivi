@@ -10,7 +10,7 @@ AssetStore::AssetStore(CoreServices& services)
     : services_(services) {}
 
 AbsolutePath AssetStore::categoryDir(const AbsolutePath& projectRoot,
-                                      AssetCategory cat) const
+                                      AssetCategory cat) 
 {
     return util::join(util::join(projectRoot, "assets"),
                       assetCategorySubdir(cat));
@@ -20,26 +20,29 @@ AbsolutePath AssetStore::categoryDir(const AbsolutePath& projectRoot,
 // import
 // ---------------------------------------------------------------------------
 
-Result<ImportAssetResult> AssetStore::import(const ImportAssetRequest& request)
+Result<ImportAssetResult> AssetStore::import(const ImportAssetRequest& request) const
 {
     auto& fs    = *services_.fileSystem;
     auto& uuid  = *services_.uuidProvider;
     auto& clock = *services_.clock;
 
     auto dir = categoryDir(request.projectRootPath, request.category);
-    if (auto r = fs.createDirectories(dir); !r.ok())
+    if (auto r = fs.createDirectories(dir); !r.ok()) {
         return Result<ImportAssetResult>::failure(r.error());
+}
 
     // Read source file bytes (binary mode via readTextFile).
     auto srcR = fs.readTextFile(request.sourcePath);
-    if (!srcR.ok()) return Result<ImportAssetResult>::failure(srcR.error());
+    if (!srcR.ok()) { return Result<ImportAssetResult>::failure(srcR.error());
+}
 
     // Destination: assets/<category>/<filename>
     auto filename = util::filename(request.sourcePath);
     auto destPath = util::join(dir, filename);
 
-    if (auto r = fs.atomicWriteTextFile(destPath, srcR.value()); !r.ok())
+    if (auto r = fs.atomicWriteTextFile(destPath, srcR.value()); !r.ok()) {
         return Result<ImportAssetResult>::failure(r.error());
+}
 
     // Build sidecar metadata.
     AssetMeta meta;
@@ -57,8 +60,9 @@ Result<ImportAssetResult> AssetStore::import(const ImportAssetRequest& request)
 
     auto sidecarPath = destPath + ".meta.json";
     auto sidecarJson = schemas::serializeAssetMeta(meta);
-    if (auto r = fs.atomicWriteTextFile(sidecarPath, sidecarJson); !r.ok())
+    if (auto r = fs.atomicWriteTextFile(sidecarPath, sidecarJson); !r.ok()) {
         return Result<ImportAssetResult>::failure(r.error());
+}
 
     ImportAssetResult result;
     result.assetID     = meta.assetID;
@@ -71,7 +75,7 @@ Result<ImportAssetResult> AssetStore::import(const ImportAssetRequest& request)
 // list
 // ---------------------------------------------------------------------------
 
-Result<ListAssetsResult> AssetStore::list(const ListAssetsRequest& request)
+Result<ListAssetsResult> AssetStore::list(const ListAssetsRequest& request) const
 {
     auto& fs = *services_.fileSystem;
 
@@ -82,23 +86,29 @@ Result<ListAssetsResult> AssetStore::list(const ListAssetsRequest& request)
         auto dir = categoryDir(request.projectRootPath, cat);
 
         auto existsR = fs.exists(dir);
-        if (!existsR.ok() || !existsR.value())
+        if (!existsR.ok() || !existsR.value()) {
             return Result<void>::success();  // directory absent — skip silently
+}
 
         auto listR = fs.listDirectory(dir);
-        if (!listR.ok()) return Result<void>::failure(listR.error());
+        if (!listR.ok()) { return Result<void>::failure(listR.error());
+}
 
         for (const auto& entry : listR.value()) {
-            if (util::extension(entry) != ".json") continue;
+            if (util::extension(entry) != ".json") { continue;
+}
             // Only consider files ending in .meta.json
             auto base = util::filename(entry);
             if (base.size() < 10 ||
-                base.substr(base.size() - 10) != ".meta.json") continue;
+                base.substr(base.size() - 10) != ".meta.json") { continue;
+}
 
             auto textR = fs.readTextFile(entry);
-            if (!textR.ok()) continue;
+            if (!textR.ok()) { continue;
+}
             auto metaR = schemas::parseAssetMeta(textR.value());
-            if (!metaR.ok()) continue;
+            if (!metaR.ok()) { continue;
+}
             result.assets.push_back(std::move(metaR.value()));
         }
         return Result<void>::success();
@@ -106,13 +116,15 @@ Result<ListAssetsResult> AssetStore::list(const ListAssetsRequest& request)
 
     if (request.category.has_value()) {
         auto r = scanCategory(request.category.value());
-        if (!r.ok()) return Result<ListAssetsResult>::failure(r.error());
+        if (!r.ok()) { return Result<ListAssetsResult>::failure(r.error());
+}
     } else {
         for (auto cat : {AssetCategory::image, AssetCategory::audio,
                          AssetCategory::video, AssetCategory::document,
                          AssetCategory::other}) {
             auto r = scanCategory(cat);
-            if (!r.ok()) return Result<ListAssetsResult>::failure(r.error());
+            if (!r.ok()) { return Result<ListAssetsResult>::failure(r.error());
+}
         }
     }
 
@@ -123,7 +135,7 @@ Result<ListAssetsResult> AssetStore::list(const ListAssetsRequest& request)
 // remove
 // ---------------------------------------------------------------------------
 
-Result<RemoveAssetResult> AssetStore::remove(const RemoveAssetRequest& request)
+Result<RemoveAssetResult> AssetStore::remove(const RemoveAssetRequest& request) const
 {
     auto& fs = *services_.fileSystem;
 
@@ -134,21 +146,27 @@ Result<RemoveAssetResult> AssetStore::remove(const RemoveAssetRequest& request)
         auto dir = categoryDir(request.projectRootPath, cat);
 
         auto existsR = fs.exists(dir);
-        if (!existsR.ok() || !existsR.value()) continue;
+        if (!existsR.ok() || !existsR.value()) { continue;
+}
 
         auto listR = fs.listDirectory(dir);
-        if (!listR.ok()) continue;
+        if (!listR.ok()) { continue;
+}
 
         for (const auto& entry : listR.value()) {
             auto base = util::filename(entry);
             if (base.size() < 10 ||
-                base.substr(base.size() - 10) != ".meta.json") continue;
+                base.substr(base.size() - 10) != ".meta.json") { continue;
+}
 
             auto textR = fs.readTextFile(entry);
-            if (!textR.ok()) continue;
+            if (!textR.ok()) { continue;
+}
             auto metaR = schemas::parseAssetMeta(textR.value());
-            if (!metaR.ok()) continue;
-            if (metaR.value().assetID != request.assetID) continue;
+            if (!metaR.ok()) { continue;
+}
+            if (metaR.value().assetID != request.assetID) { continue;
+}
 
             // Found — delete sidecar, then binary file.
             auto sidecarPath = entry;
@@ -166,7 +184,7 @@ Result<RemoveAssetResult> AssetStore::remove(const RemoveAssetRequest& request)
     }
 
     return Result<RemoveAssetResult>::failure(
-        {ErrorCode::ioError, "asset not found: " + request.assetID});
+        {.code=ErrorCode::ioError, .message="asset not found: " + request.assetID});
 }
 
 } // namespace scrivi::assets

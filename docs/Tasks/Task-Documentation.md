@@ -24,30 +24,30 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks**
+Currently: **4 active Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+| Task   | Title | Status |
+| ------ | ----- | ------ |
+| T-0063 | clang-tidy — `readability-braces-around-statements` (142 warnings) | 🟡 Active |
+| T-0064 | clang-tidy — `modernize-use-designated-initializers` + `readability-qualified-auto` (51 warnings) | 🟡 Active |
+| T-0065 | clang-tidy — `[[nodiscard]]`, `const`, and `static` member functions (21 warnings) | 🟡 Active |
+| T-0066 | clang-tidy — Remaining checks (20 warnings) | 🟡 Active |
 
 See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **4 unverified Tasks**
+Currently: **0 unverified Tasks**
 
-| Task   | Title | Status |
-| ------ | ----- | ------ |
-| T-0059 | `OpenProjectResult` — Add Scene List | 🟠 Unverified |
-| T-0060 | `openScene` Facade Method — Switch Active Scene | 🟠 Unverified |
-| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🟠 Unverified |
-| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🟠 Unverified |
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| —    | None  | —      |
 
 See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **54 verified Tasks** | Next available: **T-0055**
+Currently: **58 verified Tasks** | Next available: **T-0067**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -105,18 +105,23 @@ Currently: **54 verified Tasks** | Next available: **T-0055**
 | T-0052 | SwiftUI Shell — Landing View, Editor View, and Project Flows | [Task-verified-0052.md](Verified/Task-verified-0052.md) | ✅ Verified |
 | T-0053 | `saveScene` Wiring — ⌘S Save in SwiftUI Editor | [Task-verified-0053.md](Verified/Task-verified-0053.md) | ✅ Verified |
 | T-0054 | EP-006 Verification — `swift test` + `ctest` Green | [Task-verified-0054.md](Verified/Task-verified-0054.md) | ✅ Verified |
+| T-0055 | Ubuntu CMake Build — GCC/Clang Green + Gap Document | [Task-verified-0055.md](Verified/Task-verified-0055.md) | ✅ Verified |
 | T-0056 | Windows CMake Build — MSVC Green + Gap Document | [Task-verified-0056.md](Verified/Task-verified-0056.md) | ✅ Verified |
 | T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | [Task-verified-0057.md](Verified/Task-verified-0057.md) | ✅ Verified |
 | T-0058 | SecureStore Trade Study — Linux and Windows | [Task-verified-0058.md](Verified/Task-verified-0058.md) | ✅ Verified |
+| T-0059 | `OpenProjectResult` — Add Scene List | [Task-verified-0059.md](Verified/Task-verified-0059.md) | ✅ Verified |
+| T-0060 | `openScene` Facade Method — Switch Active Scene | [Task-verified-0060.md](Verified/Task-verified-0060.md) | ✅ Verified |
+| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | [Task-verified-0061.md](Verified/Task-verified-0061.md) | ✅ Verified |
+| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | [Task-verified-0062.md](Verified/Task-verified-0062.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 62
-- **Verified:** 58 (94%) ✅
-- **Unverified:** 4 (6%) 🟠
-- **Active:** 0 (0%) 🟡
+- **Total Tasks:** 66
+- **Verified:** 58 (88%) ✅
+- **Unverified:** 0 (0%) 🟠
+- **Active:** 4 (6%) 🟡 (T-0063–T-0066, SP-020)
 - **Backlog:** 0 (0%) 🔵
 
 ---
 
-*Last Updated: 2026-06-01 (T-0059–T-0062 implemented; 165/165 ctest, 19/19 swift test)*
+*Last Updated: 2026-06-01 (T-0059–T-0062 verified; SP-019 closed; SP-020 activated with T-0063–T-0066)*

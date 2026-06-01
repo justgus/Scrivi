@@ -26,14 +26,15 @@ std::string serializeSnapshotMetadata(const SnapshotMetadataData& data) {
 
 Result<SnapshotMetadataData> parseSnapshotMetadata(std::string_view json) {
     auto r = util::parseJson(json);
-    if (!r.ok()) return Result<SnapshotMetadataData>::failure(r.error());
+    if (!r.ok()) { return Result<SnapshotMetadataData>::failure(r.error()); }
     auto& doc = r.value();
 
     // Validate schema tag — this file uses a plain string, not dot-notation
     auto schemaTag = doc.getString("schema");
-    if (schemaTag != "scrivi-snapshots")
+    if (schemaTag != "scrivi-snapshots") {
         return Result<SnapshotMetadataData>::failure(
-            {ErrorCode::validationError, "unexpected schema: " + schemaTag});
+            {.code = ErrorCode::validationError, .message = "unexpected schema: " + schemaTag});
+    }
 
     SnapshotMetadataData data;
     const auto count = doc.arraySize("snapshots");

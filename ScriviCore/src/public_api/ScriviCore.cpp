@@ -23,37 +23,41 @@ ScriviCore::ScriviCore(CoreServices services)
 
 Result<EnsureIdentityResult> ScriviCore::ensureLocalIdentity(
     const EnsureIdentityRequest& request) {
-    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok()) {
         return Result<EnsureIdentityResult>::failure(r.error());
+    }
     identity::IdentityService svc{services_};
     return svc.ensureLocalIdentity(request);
 }
 
 Result<CreateProjectResult> ScriviCore::createProject(
     const CreateProjectRequest& request) {
-    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok()) {
         return Result<CreateProjectResult>::failure(r.error());
+    }
     project_package::ProjectCreator creator{services_};
     return creator.create(request);
 }
 
 Result<OpenProjectResult> ScriviCore::openProject(
     const OpenProjectRequest& request) {
-    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok()) {
         return Result<OpenProjectResult>::failure(r.error());
+    }
     project_package::ProjectOpener opener{services_};
     return opener.open(request);
 }
 
 Result<OpenSceneResult> ScriviCore::openScene(
     const OpenSceneRequest& request) {
-    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok())
+    if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok()) {
         return Result<OpenSceneResult>::failure(r.error());
+    }
 
     // 1. Resolve manuscript order to find the requested scene
     manuscript::ManuscriptOrderResolver resolver{services_};
     auto scenesR = resolver.resolve(request.projectRootPath);
-    if (!scenesR.ok()) return Result<OpenSceneResult>::failure(scenesR.error());
+    if (!scenesR.ok()) { return Result<OpenSceneResult>::failure(scenesR.error()); }
 
     const manuscript::ResolvedScene* found = nullptr;
     for (auto& s : scenesR.value()) {
@@ -62,27 +66,29 @@ Result<OpenSceneResult> ScriviCore::openScene(
             break;
         }
     }
-    if (!found) {
+    if (found == nullptr) {
         return Result<OpenSceneResult>::failure(
-            Error{ErrorCode::invalidArgument, "Scene not found: " + request.sceneID.value});
+            Error{.code = ErrorCode::invalidArgument,
+                  .message = "Scene not found: " + request.sceneID.value});
     }
 
     // 2. Read scene content
     manuscript::SceneReader reader{services_};
     auto mdR = reader.readContent(request.projectRootPath, found->contentPath);
-    if (!mdR.ok()) return Result<OpenSceneResult>::failure(mdR.error());
+    if (!mdR.ok()) { return Result<OpenSceneResult>::failure(mdR.error()); }
 
     // 3. Load workspace state to restore cursor/scroll, then update active scene
     workspace::WorkspaceStateService wsService{services_};
     auto wsR = wsService.load(request.appSupportRoot, request.projectID);
-    if (!wsR.ok()) return Result<OpenSceneResult>::failure(wsR.error());
+    if (!wsR.ok()) { return Result<OpenSceneResult>::failure(wsR.error()); }
 
     TextSelection  restoredSelection;
     ScrollPosition restoredScroll;
 
     WorkspaceState ws;
-    if (wsR.value().has_value()) {
-        ws = *wsR.value();
+    const auto& maybeWs = wsR.value();
+    if (maybeWs.has_value()) {
+        ws = *maybeWs;
         // Restore cursor/scroll only if the last surface matches this scene
         if (ws.lastWritingSurface.has_value() &&
             ws.lastWritingSurface->sceneID.value == request.sceneID.value) {
@@ -100,8 +106,9 @@ Result<OpenSceneResult> ScriviCore::openScene(
     ws.projectID    = request.projectID;
     ws.lastWritingSurface = lws;
 
-    if (auto r = wsService.save(request.appSupportRoot, ws); !r.ok())
+    if (auto r = wsService.save(request.appSupportRoot, ws); !r.ok()) {
         return Result<OpenSceneResult>::failure(r.error());
+    }
 
     // 4. Assemble result
     SceneSummary summary;

@@ -5,6 +5,7 @@
 #include "scrivi/Types.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
 #include <vector>
 
@@ -81,7 +82,7 @@ public:
     virtual Result<GitStatus> status(const AbsolutePath& rootPath)   = 0;
 };
 
-enum class LogLevel { debug, info, warning, error };
+enum class LogLevel : std::uint8_t { debug, info, warning, error };
 
 class Logger {
 public:

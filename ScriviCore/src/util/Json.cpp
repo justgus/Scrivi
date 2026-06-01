@@ -24,29 +24,33 @@ bool JsonDoc::contains(std::string_view key) const {
 
 std::string JsonDoc::getString(std::string_view key, std::string_view defaultValue) const {
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_string())
+    if (impl_->data.contains(k) && impl_->data[k].is_string()) {
         return impl_->data[k].get<std::string>();
+    }
     return std::string(defaultValue);
 }
 
 bool JsonDoc::getBool(std::string_view key, bool defaultValue) const {
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_boolean())
+    if (impl_->data.contains(k) && impl_->data[k].is_boolean()) {
         return impl_->data[k].get<bool>();
+    }
     return defaultValue;
 }
 
 int JsonDoc::getInt(std::string_view key, int defaultValue) const {
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_number_integer())
+    if (impl_->data.contains(k) && impl_->data[k].is_number_integer()) {
         return impl_->data[k].get<int>();
+    }
     return defaultValue;
 }
 
 double JsonDoc::getDouble(std::string_view key, double defaultValue) const {
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_number())
+    if (impl_->data.contains(k) && impl_->data[k].is_number()) {
         return impl_->data[k].get<double>();
+    }
     return defaultValue;
 }
 
@@ -73,30 +77,34 @@ void JsonDoc::setSubDoc(std::string_view key, JsonDoc sub) {
 JsonDoc JsonDoc::getSubDoc(std::string_view key) const {
     JsonDoc sub;
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_object())
+    if (impl_->data.contains(k) && impl_->data[k].is_object()) {
         sub.impl_->data = impl_->data[k];
+    }
     return sub;
 }
 
 void JsonDoc::appendToArray(std::string_view key, JsonDoc item) {
     auto k = std::string(key);
-    if (!impl_->data.contains(k) || !impl_->data[k].is_array())
+    if (!impl_->data.contains(k) || !impl_->data[k].is_array()) {
         impl_->data[k] = nlohmann::json::array();
+    }
     impl_->data[k].push_back(std::move(item.impl_->data));
 }
 
 std::size_t JsonDoc::arraySize(std::string_view key) const {
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_array())
+    if (impl_->data.contains(k) && impl_->data[k].is_array()) {
         return impl_->data[k].size();
+    }
     return 0;
 }
 
 JsonDoc JsonDoc::arrayItem(std::string_view key, std::size_t i) const {
     JsonDoc item;
     auto k = std::string(key);
-    if (impl_->data.contains(k) && impl_->data[k].is_array() && i < impl_->data[k].size())
+    if (impl_->data.contains(k) && impl_->data[k].is_array() && i < impl_->data[k].size()) {
         item.impl_->data = impl_->data[k][i];
+    }
     return item;
 }
 
@@ -110,7 +118,7 @@ Result<JsonDoc> parseJson(std::string_view utf8) {
         doc.impl_->data = nlohmann::json::parse(utf8);
         return Result<JsonDoc>::success(std::move(doc));
     } catch (const nlohmann::json::parse_error& e) {
-        return Result<JsonDoc>::failure({ErrorCode::parseError, e.what()});
+        return Result<JsonDoc>::failure({.code = ErrorCode::parseError, .message = e.what()});
     }
 }
 

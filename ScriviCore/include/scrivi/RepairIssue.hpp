@@ -2,14 +2,15 @@
 
 #include "scrivi/IDs.hpp"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 namespace scrivi {
 
-enum class RepairSeverity { info, warning, blocking };
+enum class RepairSeverity : std::uint8_t { info, warning, blocking };
 
-enum class RepairCategory {
+enum class RepairCategory : std::uint8_t {
     none,
     safeExternalEdit,
     unregisteredManuscriptFile,
@@ -25,7 +26,7 @@ enum class RepairCategory {
     unknownIssue
 };
 
-enum class RepairActionKind {
+enum class RepairActionKind : std::uint8_t {
     none,
     reloadExternalVersion,
     keepCurrentVersion,

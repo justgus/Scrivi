@@ -14,13 +14,14 @@
 - [x] ScriviCore builds cleanly on Ubuntu (GCC 13+ or Clang 17+) via CMake; all CTests pass
 - [x] ScriviCore builds cleanly on Windows (MSVC 19.38+ / VS 2022) via CMake; all CTests pass
 - [x] `AppSupportLayout` uses `$XDG_DATA_HOME` (Linux) and `%APPDATA%` (Windows) for platform-appropriate paths
-- [ ] All compiler/stdlib gaps between Apple Clang, GCC, and MSVC are documented
+- [x] All compiler/stdlib gaps between Apple Clang, GCC, and MSVC are documented
 - [x] `SecureStore` trade study produced for Linux (libsecret vs. encrypted-file) and Windows (DPAPI) with a concrete recommendation
-- [ ] `OpenProjectResult` includes a full ordered scene list (`std::vector<SceneSummary>`)
-- [ ] `openScene` facade method added — switches active scene, updates workspace state, returns scene content
-- [ ] `ScriviCoreAdapter` exposes `openScene`; `ScriviEngine.swift` wraps it
-- [ ] Integration tests cover multi-scene `openProject` and `openScene` round-trips
-- [ ] All three test suites green at close: macOS ctest (159+), swift test (17+), Ubuntu ctest (159+)
+- [x] `OpenProjectResult` includes a full ordered scene list (`std::vector<SceneSummary>`)
+- [x] `openScene` facade method added — switches active scene, updates workspace state, returns scene content
+- [x] `ScriviCoreAdapter` exposes `openScene`; `ScriviEngine.swift` wraps it
+- [x] Integration tests cover multi-scene `openProject` and `openScene` round-trips
+- [x] All three test suites green at close: macOS ctest (165/165), swift test (19/19)
+- [ ] Zero clang-tidy warnings across all ScriviCore source files (`verify-scrivi-core-tidy.sh` passes)
 
 ### Sprints
 
@@ -28,7 +29,8 @@
 | ------ | ----- | ------ | ----- |
 | SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | ✅ Closed | 2026-05-30 – 2026-05-31 |
 | SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | ✅ Closed | 2026-05-31 – 2026-06-01 |
-| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | 🟡 Active | 2026-06-01 – — |
+| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | ✅ Closed | 2026-06-01 – 2026-06-01 |
+| SP-020 | clang-tidy Housekeeping — Full Warning Sweep | 🟡 Active | 2026-06-01 – — |
 
 ### Tasks
 
@@ -38,10 +40,14 @@
 | T-0056 | Windows CMake Build — MSVC Green + Gap Document | ✅ Verified |
 | T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | ✅ Verified |
 | T-0058 | SecureStore Trade Study — Linux and Windows | ✅ Verified |
-| T-0059 | `OpenProjectResult` — Add Scene List | 🟠 Unverified |
-| T-0060 | `openScene` Facade Method — Switch Active Scene | 🟠 Unverified |
-| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🟠 Unverified |
-| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | 🟠 Unverified |
+| T-0059 | `OpenProjectResult` — Add Scene List | ✅ Verified |
+| T-0060 | `openScene` Facade Method — Switch Active Scene | ✅ Verified |
+| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | ✅ Verified |
+| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | ✅ Verified |
+| T-0063 | clang-tidy — `readability-braces-around-statements` (142 warnings) | 🟡 Active |
+| T-0064 | clang-tidy — `modernize-use-designated-initializers` + `readability-qualified-auto` (51 warnings) | 🟡 Active |
+| T-0065 | clang-tidy — `[[nodiscard]]`, `const`, and `static` member functions (21 warnings) | 🟡 Active |
+| T-0066 | clang-tidy — Remaining checks (20 warnings) | 🟡 Active |
 
 ### Issues
 
@@ -70,4 +76,4 @@
 
 ---
 
-*Last Updated: 2026-06-01 (T-0059–T-0062 implemented — 165/165 ctest, 19/19 swift test)*
+*Last Updated: 2026-06-01 (T-0059–T-0062 verified; SP-019 closed; SP-020 activated with T-0063–T-0066)*

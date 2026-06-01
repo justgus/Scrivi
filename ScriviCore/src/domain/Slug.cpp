@@ -13,9 +13,10 @@ Slug makeSlug(std::string_view text) {
     bool lastWasHyphen = true; // suppress leading hyphen
 
     for (unsigned char ch : text) {
-        if (ch > 127) continue; // drop non-ASCII
+        if (ch > 127) { continue; // drop non-ASCII
+}
 
-        if (std::isalnum(ch)) {
+        if (std::isalnum(ch) != 0) {
             result += static_cast<char>(std::tolower(ch));
             lastWasHyphen = false;
         } else {
@@ -27,8 +28,9 @@ Slug makeSlug(std::string_view text) {
     }
 
     // strip trailing hyphen
-    if (!result.empty() && result.back() == '-')
+    if (!result.empty() && result.back() == '-') {
         result.pop_back();
+}
 
     return result;
 }

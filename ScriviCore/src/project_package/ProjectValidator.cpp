@@ -11,7 +11,7 @@ ProjectValidator::ProjectValidator(CoreServices& services)
     : services_(services) {}
 
 Result<std::vector<RepairIssue>> ProjectValidator::validate(
-    const AbsolutePath& projectRoot)
+    const AbsolutePath& projectRoot) const
 {
     auto& fs = *services_.fileSystem;
     std::vector<RepairIssue> issues;
@@ -19,7 +19,8 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
     // Check project.json exists
     auto projPath = util::join(projectRoot, "project.json");
     auto existsR  = fs.exists(projPath);
-    if (!existsR.ok()) return Result<std::vector<RepairIssue>>::failure(existsR.error());
+    if (!existsR.ok()) { return Result<std::vector<RepairIssue>>::failure(existsR.error());
+}
     if (!existsR.value()) {
         RepairIssue issue;
         issue.severity = RepairSeverity::blocking;
@@ -33,7 +34,8 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
     // Read manuscript.meta.json
     auto msPath  = util::join(projectRoot, "manuscript/manuscript.meta.json");
     auto msExistsR = fs.exists(msPath);
-    if (!msExistsR.ok()) return Result<std::vector<RepairIssue>>::failure(msExistsR.error());
+    if (!msExistsR.ok()) { return Result<std::vector<RepairIssue>>::failure(msExistsR.error());
+}
     if (!msExistsR.value()) {
         RepairIssue issue;
         issue.severity = RepairSeverity::blocking;
@@ -45,7 +47,8 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
     }
 
     auto msTextR = fs.readTextFile(msPath);
-    if (!msTextR.ok()) return Result<std::vector<RepairIssue>>::failure(msTextR.error());
+    if (!msTextR.ok()) { return Result<std::vector<RepairIssue>>::failure(msTextR.error());
+}
 
     auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
     if (!msParsed.ok()) {
@@ -63,7 +66,8 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
     for (auto& chRef : msParsed.value().chapters) {
         auto chPath   = util::join(projectRoot, chRef.path);
         auto chExistsR = fs.exists(chPath);
-        if (!chExistsR.ok()) return Result<std::vector<RepairIssue>>::failure(chExistsR.error());
+        if (!chExistsR.ok()) { return Result<std::vector<RepairIssue>>::failure(chExistsR.error());
+}
 
         if (!chExistsR.value()) {
             RepairIssue issue;
@@ -77,7 +81,8 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
         }
 
         auto chTextR = fs.readTextFile(chPath);
-        if (!chTextR.ok()) return Result<std::vector<RepairIssue>>::failure(chTextR.error());
+        if (!chTextR.ok()) { return Result<std::vector<RepairIssue>>::failure(chTextR.error());
+}
 
         auto chParsed = schemas::parseChapterMeta(chTextR.value());
         if (!chParsed.ok()) {
@@ -95,8 +100,9 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
         for (auto& scRef : chParsed.value().scenes) {
             auto sMetaPath  = util::join(projectRoot, scRef.metadataPath);
             auto sMetaExistsR = fs.exists(sMetaPath);
-            if (!sMetaExistsR.ok())
+            if (!sMetaExistsR.ok()) {
                 return Result<std::vector<RepairIssue>>::failure(sMetaExistsR.error());
+}
 
             if (!sMetaExistsR.value()) {
                 RepairIssue issue;
@@ -111,7 +117,8 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
             }
 
             auto sTextR = fs.readTextFile(sMetaPath);
-            if (!sTextR.ok()) return Result<std::vector<RepairIssue>>::failure(sTextR.error());
+            if (!sTextR.ok()) { return Result<std::vector<RepairIssue>>::failure(sTextR.error());
+}
 
             auto sParsed = schemas::parseSceneMeta(sTextR.value());
             if (!sParsed.ok()) {
@@ -130,8 +137,9 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
             // Check content file exists
             auto contentPath   = util::join(projectRoot, sParsed.value().contentPath);
             auto contentExistsR = fs.exists(contentPath);
-            if (!contentExistsR.ok())
+            if (!contentExistsR.ok()) {
                 return Result<std::vector<RepairIssue>>::failure(contentExistsR.error());
+}
 
             if (!contentExistsR.value()) {
                 RepairIssue issue;

@@ -3,6 +3,8 @@
 #include "scrivi/Error.hpp"
 #include "util/PathUtils.hpp"
 
+#include <array>
+
 #ifdef _WIN32
   #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
@@ -10,7 +12,7 @@
   #include <windows.h>
   #include <shlobj.h>
   #include <combaseapi.h>
-#elif defined(__APPLE__)
+#elifdef __APPLE__
   #include <pwd.h>
   #include <unistd.h>
 #else
@@ -26,7 +28,7 @@
 namespace scrivi::util {
 
 Result<AbsolutePath> platformDefault() {
-#if defined(_WIN32)
+#ifdef _WIN32
     PWSTR wpath = nullptr;
     HRESULT hr = SHGetKnownFolderPath(FOLDERID_RoamingAppData,
                                       KF_FLAG_CREATE, nullptr, &wpath);
@@ -38,16 +40,17 @@ Result<AbsolutePath> platformDefault() {
     CoTaskMemFree(wpath);
     return Result<AbsolutePath>::success((base / "Scrivi").string());
 
-#elif defined(__APPLE__)
+#elifdef __APPLE__
     // On Apple platforms the caller (AppEnvironment.swift / ScriviCoreAdapter)
     // supplies the path from FileManager.applicationSupportDirectory, which is
     // the correct sandboxed location. platformDefault() here covers headless /
     // non-sandboxed C++ usage (ctest, CLI tools).
     const char* home = std::getenv("HOME");
-    if (!home || home[0] == '\0') {
+    if ((home == nullptr) || home[0] == '\0') {
         struct passwd* pw = getpwuid(getuid());
-        if (!pw) return Result<AbsolutePath>::failure(
-                Error{ErrorCode::ioError, "Cannot determine HOME"});
+        if (pw == nullptr) { return Result<AbsolutePath>::failure(
+                Error{.code=ErrorCode::ioError, .message="Cannot determine HOME"});
+}
         home = pw->pw_dir;
     }
     std::filesystem::path base{home};
@@ -76,7 +79,7 @@ Result<AbsolutePath> platformDefault() {
 
 Result<void> bootstrapAppSupport(const AbsolutePath& appSupportRoot,
                                  FileSystem& fs) {
-    static const char* const kSubdirs[] = {
+    static constexpr std::array<const char*, 5> kSubdirs = {
         "identity",
         "state/projects",
         "cache/projects",
@@ -87,7 +90,8 @@ Result<void> bootstrapAppSupport(const AbsolutePath& appSupportRoot,
     for (const auto* sub : kSubdirs) {
         auto path = join(appSupportRoot, sub);
         auto result = fs.createDirectories(path);
-        if (!result.ok()) return result;
+        if (!result.ok()) { return result;
+}
     }
 
     return Result<void>::success();

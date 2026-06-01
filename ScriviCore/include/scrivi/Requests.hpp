@@ -166,7 +166,7 @@ struct ResolveCommentRequest {
 // Inbox requests (EP-005 T-0046)
 // ---------------------------------------------------------------------------
 
-enum class InboxAction { importAsAsset, ignore, deleteFile };
+enum class InboxAction : std::uint8_t { importAsAsset, ignore, deleteFile };
 
 struct ListInboxRequest {
     AbsolutePath projectRootPath;

@@ -17,21 +17,21 @@ public:
 private:
     CoreServices& services_;
 
-    Result<void> writeGitignore(const AbsolutePath& projectRoot);
+    [[nodiscard]] Result<void> writeGitignore(const AbsolutePath& projectRoot) const;
     Result<SnapshotID> commitSnapshot(
         const AbsolutePath& projectRoot,
         const AuthorshipRef& author,
         const std::string& label,
         const std::string& snapshotID,
         const std::string& timestamp);
-    Result<void> appendSnapshotMetadata(
+    [[nodiscard]] Result<void> appendSnapshotMetadata(
         const AbsolutePath& projectRoot,
         const std::string& snapshotID,
         const CommitID& commitID,
         const std::string& label,
         const std::string& note,
         const std::string& timestamp,
-        const AuthorshipRef& author);
+        const AuthorshipRef& author) const;
 };
 
 } // namespace scrivi::git

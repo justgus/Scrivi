@@ -21,6 +21,31 @@
         "SCRIVI_BUILD_TESTS": "OFF",
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "asan-ubsan",
+      "displayName": "Ninja — Debug + ASan + UBSan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/asan-ubsan",
+      "cacheVariables": {
+        "SCRIVI_BUILD_TESTS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
+      "name": "tidy",
+      "displayName": "Ninja — Debug + clang-tidy",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/tidy",
+      "cacheVariables": {
+        "SCRIVI_BUILD_TESTS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy"
+      }
     }
   ],
   "buildPresets": [
@@ -31,12 +56,25 @@
     {
       "name": "ninja-release",
       "configurePreset": "ninja-release"
+    },
+    {
+      "name": "asan-ubsan",
+      "configurePreset": "asan-ubsan"
+    },
+    {
+      "name": "tidy",
+      "configurePreset": "tidy"
     }
   ],
   "testPresets": [
     {
       "name": "ninja-debug",
       "configurePreset": "ninja-debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "asan-ubsan",
+      "configurePreset": "asan-ubsan",
       "output": { "outputOnFailure": true }
     }
   ]

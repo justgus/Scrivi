@@ -58,7 +58,7 @@ static Result<WorldObjectFields> parseFields(std::string_view json,
                                               std::string_view expectedSchema)
 {
     auto r = parseAndValidateSchema(json, expectedSchema);
-    if (!r.ok()) return Result<WorldObjectFields>::failure(r.error());
+    if (!r.ok()) { return Result<WorldObjectFields>::failure(r.error()); }
     auto& doc = r.value();
 
     WorldObjectFields obj;
@@ -82,8 +82,9 @@ static Result<WorldObjectFields> parseFields(std::string_view json,
 
     const auto tagCount = doc.arraySize("tags");
     obj.tags.reserve(tagCount);
-    for (std::size_t i = 0; i < tagCount; ++i)
+    for (std::size_t i = 0; i < tagCount; ++i) {
         obj.tags.push_back(doc.arrayItem("tags", i).getString("v"));
+    }
 
     const auto attrCount = doc.arraySize("attributes");
     for (std::size_t i = 0; i < attrCount; ++i) {
@@ -104,7 +105,7 @@ std::string serializeCharacter(const CharacterObject& obj) {
 
 Result<CharacterObject> parseCharacter(std::string_view json) {
     auto r = parseFields(json, kCharacterSchema);
-    if (!r.ok()) return Result<CharacterObject>::failure(r.error());
+    if (!r.ok()) { return Result<CharacterObject>::failure(r.error()); }
     CharacterObject obj;
     static_cast<WorldObjectFields&>(obj) = std::move(r.value());
     return Result<CharacterObject>::success(std::move(obj));
@@ -120,7 +121,7 @@ std::string serializeLocation(const LocationObject& obj) {
 
 Result<LocationObject> parseLocation(std::string_view json) {
     auto r = parseFields(json, kLocationSchema);
-    if (!r.ok()) return Result<LocationObject>::failure(r.error());
+    if (!r.ok()) { return Result<LocationObject>::failure(r.error()); }
     LocationObject obj;
     static_cast<WorldObjectFields&>(obj) = std::move(r.value());
     return Result<LocationObject>::success(std::move(obj));
@@ -136,7 +137,7 @@ std::string serializeItem(const ItemObject& obj) {
 
 Result<ItemObject> parseItem(std::string_view json) {
     auto r = parseFields(json, kItemSchema);
-    if (!r.ok()) return Result<ItemObject>::failure(r.error());
+    if (!r.ok()) { return Result<ItemObject>::failure(r.error()); }
     ItemObject obj;
     static_cast<WorldObjectFields&>(obj) = std::move(r.value());
     return Result<ItemObject>::success(std::move(obj));
@@ -152,7 +153,7 @@ std::string serializeRule(const RuleObject& obj) {
 
 Result<RuleObject> parseRule(std::string_view json) {
     auto r = parseFields(json, kRuleSchema);
-    if (!r.ok()) return Result<RuleObject>::failure(r.error());
+    if (!r.ok()) { return Result<RuleObject>::failure(r.error()); }
     RuleObject obj;
     static_cast<WorldObjectFields&>(obj) = std::move(r.value());
     return Result<RuleObject>::success(std::move(obj));
@@ -168,7 +169,7 @@ std::string serializeTimeline(const TimelineObject& obj) {
 
 Result<TimelineObject> parseTimeline(std::string_view json) {
     auto r = parseFields(json, kTimelineSchema);
-    if (!r.ok()) return Result<TimelineObject>::failure(r.error());
+    if (!r.ok()) { return Result<TimelineObject>::failure(r.error()); }
     TimelineObject obj;
     static_cast<WorldObjectFields&>(obj) = std::move(r.value());
     return Result<TimelineObject>::success(std::move(obj));
@@ -179,11 +180,11 @@ Result<TimelineObject> parseTimeline(std::string_view json) {
 // ---------------------------------------------------------------------------
 
 std::string serializeWorldObject(const WorldObject& obj) {
-    if (auto* p = std::get_if<CharacterObject>(&obj)) return serializeCharacter(*p);
-    if (auto* p = std::get_if<LocationObject>(&obj))  return serializeLocation(*p);
-    if (auto* p = std::get_if<ItemObject>(&obj))      return serializeItem(*p);
-    if (auto* p = std::get_if<RuleObject>(&obj))      return serializeRule(*p);
-    if (auto* p = std::get_if<TimelineObject>(&obj))  return serializeTimeline(*p);
+    if (const auto* p = std::get_if<CharacterObject>(&obj)) { return serializeCharacter(*p); }
+    if (const auto* p = std::get_if<LocationObject>(&obj))  { return serializeLocation(*p); }
+    if (const auto* p = std::get_if<ItemObject>(&obj))      { return serializeItem(*p); }
+    if (const auto* p = std::get_if<RuleObject>(&obj))      { return serializeRule(*p); }
+    if (const auto* p = std::get_if<TimelineObject>(&obj))  { return serializeTimeline(*p); }
     return "";
 }
 
@@ -191,31 +192,31 @@ Result<WorldObject> parseWorldObject(std::string_view json, ObjectKind kind) {
     switch (kind) {
         case ObjectKind::character: {
             auto r = parseCharacter(json);
-            if (!r.ok()) return Result<WorldObject>::failure(r.error());
+            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
             return Result<WorldObject>::success(std::move(r.value()));
         }
         case ObjectKind::location: {
             auto r = parseLocation(json);
-            if (!r.ok()) return Result<WorldObject>::failure(r.error());
+            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
             return Result<WorldObject>::success(std::move(r.value()));
         }
         case ObjectKind::item: {
             auto r = parseItem(json);
-            if (!r.ok()) return Result<WorldObject>::failure(r.error());
+            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
             return Result<WorldObject>::success(std::move(r.value()));
         }
         case ObjectKind::rule: {
             auto r = parseRule(json);
-            if (!r.ok()) return Result<WorldObject>::failure(r.error());
+            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
             return Result<WorldObject>::success(std::move(r.value()));
         }
         case ObjectKind::timeline: {
             auto r = parseTimeline(json);
-            if (!r.ok()) return Result<WorldObject>::failure(r.error());
+            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
             return Result<WorldObject>::success(std::move(r.value()));
         }
     }
-    return Result<WorldObject>::failure({ErrorCode::invalidArgument, "unknown ObjectKind"});
+    return Result<WorldObject>::failure({.code = ErrorCode::invalidArgument, .message = "unknown ObjectKind"});
 }
 
 } // namespace scrivi::schemas

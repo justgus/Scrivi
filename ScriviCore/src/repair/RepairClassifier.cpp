@@ -36,29 +36,29 @@ RepairIssue RepairClassifier::missingContent(
     issue.chapterID = chapterID;
     issue.sceneID   = sceneID;
     issue.suggestedActions.push_back({
-        RepairActionKind::relinkToFile,
-        "Relink to another file",
-        "Point the scene metadata to a different .md file."
+        .kind=RepairActionKind::relinkToFile,
+        .label="Relink to another file",
+        .detail="Point the scene metadata to a different .md file."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::createEmptyContentFile,
-        "Create empty file",
-        "Create an empty .md file at the expected path."
+        .kind=RepairActionKind::createEmptyContentFile,
+        .label="Create empty file",
+        .detail="Create an empty .md file at the expected path."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::markMissing,
-        "Mark as missing",
-        "Keep the scene in the index but flag it as missing."
+        .kind=RepairActionKind::markMissing,
+        .label="Mark as missing",
+        .detail="Keep the scene in the index but flag it as missing."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::removeFromProject,
-        "Remove from project",
-        "Remove the scene entry from the chapter; files are preserved on disk."
+        .kind=RepairActionKind::removeFromProject,
+        .label="Remove from project",
+        .detail="Remove the scene entry from the chapter; files are preserved on disk."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::restoreFromSnapshot,
-        "Restore from snapshot",
-        "Restore the last known good version from a Git snapshot."
+        .kind=RepairActionKind::restoreFromSnapshot,
+        .label="Restore from snapshot",
+        .detail="Restore the last known good version from a Git snapshot."
     });
     return issue;
 }
@@ -80,9 +80,9 @@ RepairIssue RepairClassifier::missingMetadata(
     issue.chapterID = chapterID;
     issue.sceneID   = sceneID;
     issue.suggestedActions.push_back({
-        RepairActionKind::regenerateMetadata,
-        "Regenerate metadata",
-        "Create a new .meta.json from the existing content file."
+        .kind=RepairActionKind::regenerateMetadata,
+        .label="Regenerate metadata",
+        .detail="Create a new .meta.json from the existing content file."
     });
     return issue;
 }
@@ -105,14 +105,14 @@ RepairIssue RepairClassifier::corruptMetadata(
     issue.chapterID = chapterID;
     issue.sceneID   = sceneID;
     issue.suggestedActions.push_back({
-        RepairActionKind::regenerateMetadata,
-        "Regenerate metadata",
-        "Replace the corrupt .meta.json with a freshly generated one."
+        .kind=RepairActionKind::regenerateMetadata,
+        .label="Regenerate metadata",
+        .detail="Replace the corrupt .meta.json with a freshly generated one."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::restoreFromSnapshot,
-        "Restore from snapshot",
-        "Restore the last known good version from a Git snapshot."
+        .kind=RepairActionKind::restoreFromSnapshot,
+        .label="Restore from snapshot",
+        .detail="Restore the last known good version from a Git snapshot."
     });
     return issue;
 }
@@ -131,19 +131,19 @@ RepairIssue RepairClassifier::unregisteredFile(
     issue.path      = path;
     issue.projectID = projectID;
     issue.suggestedActions.push_back({
-        RepairActionKind::importAsNewScene,
-        "Import as new scene",
-        "Create metadata for this file and add it to the manuscript."
+        .kind=RepairActionKind::importAsNewScene,
+        .label="Import as new scene",
+        .detail="Create metadata for this file and add it to the manuscript."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::moveToInbox,
-        "Move to inbox",
-        "Move to the project inbox for later review."
+        .kind=RepairActionKind::moveToInbox,
+        .label="Move to inbox",
+        .detail="Move to the project inbox for later review."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::ignore,
-        "Ignore",
-        "Leave the file in place without registering it."
+        .kind=RepairActionKind::ignore,
+        .label="Ignore",
+        .detail="Leave the file in place without registering it."
     });
     return issue;
 }
@@ -173,14 +173,14 @@ RepairIssue RepairClassifier::possibleRename(
     issue.chapterID   = chapterID;
     issue.sceneID     = sceneID;
     issue.suggestedActions.push_back({
-        RepairActionKind::relinkToFile,
-        "Accept rename",
-        "Update scene metadata to reference the new filename."
+        .kind=RepairActionKind::relinkToFile,
+        .label="Accept rename",
+        .detail="Update scene metadata to reference the new filename."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::ignore,
-        "Ignore",
-        "Leave metadata unchanged for now."
+        .kind=RepairActionKind::ignore,
+        .label="Ignore",
+        .detail="Leave metadata unchanged for now."
     });
     return issue;
 }
@@ -206,14 +206,14 @@ RepairIssue RepairClassifier::possibleMetadataRename(
     issue.chapterID   = chapterID;
     issue.sceneID     = sceneID;
     issue.suggestedActions.push_back({
-        RepairActionKind::relinkToFile,
-        "Accept rename",
-        "Update the chapter's scene list to reference the new metadata path."
+        .kind=RepairActionKind::relinkToFile,
+        .label="Accept rename",
+        .detail="Update the chapter's scene list to reference the new metadata path."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::ignore,
-        "Ignore",
-        "Leave the chapter entry unchanged for now."
+        .kind=RepairActionKind::ignore,
+        .label="Ignore",
+        .detail="Leave the chapter entry unchanged for now."
     });
     return issue;
 }
@@ -239,14 +239,14 @@ RepairIssue RepairClassifier::possiblePairedRename(
     issue.chapterID   = chapterID;
     issue.sceneID     = sceneID;
     issue.suggestedActions.push_back({
-        RepairActionKind::relinkToFile,
-        "Accept paired rename",
-        "Update the chapter's scene list and metadata contentPath to the new names."
+        .kind=RepairActionKind::relinkToFile,
+        .label="Accept paired rename",
+        .detail="Update the chapter's scene list and metadata contentPath to the new names."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::ignore,
-        "Ignore",
-        "Leave both entries unchanged for now."
+        .kind=RepairActionKind::ignore,
+        .label="Ignore",
+        .detail="Leave both entries unchanged for now."
     });
     return issue;
 }
@@ -270,14 +270,14 @@ RepairIssue RepairClassifier::possibleChapterFolderRename(
     issue.projectID   = projectID;
     issue.chapterID   = chapterID;
     issue.suggestedActions.push_back({
-        RepairActionKind::relinkToFile,
-        "Accept folder rename",
-        "Update manuscript metadata to reference the new chapter folder path."
+        .kind=RepairActionKind::relinkToFile,
+        .label="Accept folder rename",
+        .detail="Update manuscript metadata to reference the new chapter folder path."
     });
     issue.suggestedActions.push_back({
-        RepairActionKind::ignore,
-        "Ignore",
-        "Leave the manuscript entry unchanged for now."
+        .kind=RepairActionKind::ignore,
+        .label="Ignore",
+        .detail="Leave the manuscript entry unchanged for now."
     });
     return issue;
 }

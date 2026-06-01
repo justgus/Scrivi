@@ -11,7 +11,7 @@ class ExternalChangeScanner {
 public:
     explicit ExternalChangeScanner(CoreServices& services);
 
-    Result<ExternalChangeScanResult> scan(const ExternalChangeScanRequest& request);
+    [[nodiscard]] Result<ExternalChangeScanResult> scan(const ExternalChangeScanRequest& request) const;
 
 private:
     CoreServices& services_;

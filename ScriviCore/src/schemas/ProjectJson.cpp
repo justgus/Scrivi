@@ -38,12 +38,12 @@ std::string serializeProject(const ProjectJsonData& d) {
 
 Result<ProjectJsonData> parseProject(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.project.v1");
-    if (!r.ok()) return Result<ProjectJsonData>::failure(r.error());
+    if (!r.ok()) { return Result<ProjectJsonData>::failure(r.error()); }
     auto& doc = r.value();
 
-    for (auto key : {"projectID", "title", "createdAt"}) {
+    for (const auto* key : {"projectID", "title", "createdAt"}) {
         auto v = requireField(doc, key);
-        if (!v.ok()) return Result<ProjectJsonData>::failure(v.error());
+        if (!v.ok()) { return Result<ProjectJsonData>::failure(v.error()); }
     }
 
     ProjectJsonData data;

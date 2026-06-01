@@ -1,10 +1,10 @@
 # Active Sprint
 
-## SP-019: Multi-Scene C++ Core — `openProject` Scene List + `openScene`
+## SP-020: clang-tidy Housekeeping — Full Warning Sweep
 
 **Status:** 🟡 Active
-**Epic:** EP-008: Multi-Scene Navigation and Cross-Platform Build
-**Goal:** Extend `openProject` to return a full scene list alongside the active scene. Add `openScene` to the C++ facade and adapter, allowing the UI to switch the active scene without reopening the project. All three test suites (macOS ctest, swift test, Ubuntu ctest) must remain green.
+**Epic:** None
+**Goal:** Eliminate all 234 clang-tidy warnings across ScriviCore's 42 source files. Warnings are grouped into four tasks by category. At completion, `scripts/verify-scrivi-core-tidy.sh` must pass with zero warnings, and all 165 ctests must remain green.
 **Start Date:** 2026-06-01
 **End Date:** —
 **Capacity:** —
@@ -13,10 +13,10 @@
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0059 | `OpenProjectResult` — Add Scene List | Critical | 🟠 Unverified |
-| T-0060 | `openScene` Facade Method — Switch Active Scene | Critical | 🟠 Unverified |
-| T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | Critical | 🟠 Unverified |
-| T-0062 | Integration Tests — Multi-Scene `openProject` and `openScene` | High | 🟠 Unverified |
+| T-0063 | clang-tidy — `readability-braces-around-statements` (142 warnings) | Medium | 🟣 Implemented — Not Verified |
+| T-0064 | clang-tidy — `modernize-use-designated-initializers` + `readability-qualified-auto` (51 warnings) | Medium | 🟣 Implemented — Not Verified |
+| T-0065 | clang-tidy — `[[nodiscard]]`, `const`, and `static` member functions (21 warnings) | Medium | 🟣 Implemented — Not Verified |
+| T-0066 | clang-tidy — Remaining checks (20 warnings) | Low | 🟣 Implemented — Not Verified |
 
 ### Assigned Issues
 
@@ -26,12 +26,11 @@
 
 ### Sprint Notes
 
-- `SceneSummary` already exists in `Types.hpp` — reuse as-is.
-- `openScene` should accept a `SceneID` and return content + metadata + updated workspace state. Minimal new surface.
-- Scene list ordering must match `ManuscriptOrderResolver` output (chapter order, then scene order within chapter).
-- Swift `OpenProjectResult` gains a `scenes: [SceneInfo]` property; `SceneInfo` mirrors `SceneSummary`.
-- SwiftUI scene navigation sidebar is **deferred to EP-008** — this sprint delivers the C++ and adapter layer only.
+- Execute tasks in order: T-0063 first (largest, most mechanical), T-0066 last (manual).
+- After each task: `cmake --build build/ninja --parallel && ctest --test-dir build/ninja --output-on-failure`.
+- Final gate: `bash scripts/verify-scrivi-core-tidy.sh` must exit 0.
+- Note: SP-020 is not under EP-008 but is a housekeeping sprint run concurrently with EP-008 close.
 
 ---
 
-*Last Updated: 2026-06-01 (SP-019 activated; T-0059–T-0062 implemented — 165/165 ctest, 19/19 swift test)*
+*Last Updated: 2026-06-01 (T-0063–T-0066 all implemented — not verified; tidy gate passes)*

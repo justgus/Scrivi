@@ -22,21 +22,21 @@ public:
         return r;
     }
 
-    bool ok() const { return value_.has_value(); }
+    [[nodiscard]] bool ok() const { return value_.has_value(); }
 
-    const T& value() const {
+    [[nodiscard]] const T& value() const {
         assert(ok());
-        return *value_;
+        return value_.value(); // NOLINT(bugprone-unchecked-optional-access)
     }
 
-    T& value() {
+    [[nodiscard]] T& value() {
         assert(ok());
-        return *value_;
+        return value_.value(); // NOLINT(bugprone-unchecked-optional-access)
     }
 
-    const Error& error() const {
+    [[nodiscard]] const Error& error() const {
         assert(!ok());
-        return *error_;
+        return error_.value(); // NOLINT(bugprone-unchecked-optional-access)
     }
 
 private:
@@ -50,12 +50,12 @@ public:
     static Result success() { return Result(true, {}); }
 
     static Result failure(Error error) {
-        return Result(false, std::move(error));
+        return {false, std::move(error)};
     }
 
-    bool ok() const { return ok_; }
+    [[nodiscard]] bool ok() const { return ok_; }
 
-    const Error& error() const {
+    [[nodiscard]] const Error& error() const {
         assert(!ok_);
         return error_;
     }

@@ -13,16 +13,16 @@ class CommentStore {
 public:
     explicit CommentStore(CoreServices& services);
 
-    Result<AddCommentResult>     add(const AddCommentRequest& request);
-    Result<ListCommentsResult>   list(const ListCommentsRequest& request);
-    Result<ResolveCommentResult> resolve(const ResolveCommentRequest& request);
+    [[nodiscard]] Result<AddCommentResult>     add(const AddCommentRequest& request) const;
+    [[nodiscard]] Result<ListCommentsResult>   list(const ListCommentsRequest& request) const;
+    [[nodiscard]] Result<ResolveCommentResult> resolve(const ResolveCommentRequest& request) const;
 
 private:
     CoreServices& services_;
 
-    AbsolutePath threadPath(const AbsolutePath& projectRoot,
-                             const std::string& scopeKind,
-                             const std::string& targetID) const;
+    [[nodiscard]] static AbsolutePath threadPath(const AbsolutePath& projectRoot,
+                                                  const std::string& scopeKind,
+                                                  const std::string& targetID);
 };
 
 } // namespace scrivi::comments

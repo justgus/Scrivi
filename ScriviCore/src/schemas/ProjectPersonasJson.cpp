@@ -7,7 +7,7 @@ std::string serializeProjectPersonas(const ProjectPersonasData& d) {
     util::JsonDoc doc;
     doc.setString("schema", "scrivi.projectPersonas.v1");
 
-    for (auto& p : d.personas) {
+    for (const auto& p : d.personas) {
         util::JsonDoc entry;
         entry.setString("personaID",   p.personaID.value);
         entry.setString("displayName", p.displayName);
@@ -26,11 +26,11 @@ std::string serializeProjectPersonas(const ProjectPersonasData& d) {
 
 Result<ProjectPersonasData> parseProjectPersonas(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.projectPersonas.v1");
-    if (!r.ok()) return Result<ProjectPersonasData>::failure(r.error());
+    if (!r.ok()) { return Result<ProjectPersonasData>::failure(r.error()); }
     auto& doc = r.value();
 
     auto v = requireField(doc, "personas");
-    if (!v.ok()) return Result<ProjectPersonasData>::failure(v.error());
+    if (!v.ok()) { return Result<ProjectPersonasData>::failure(v.error()); }
 
     ProjectPersonasData data;
     auto n = doc.arraySize("personas");
@@ -42,8 +42,9 @@ Result<ProjectPersonasData> parseProjectPersonas(std::string_view json) {
         p.personaKind     = item.getString("personaKind");
         p.createdAt       = item.getString("createdAt");
         p.status          = item.getString("status");
-        if (item.arraySize("controlledBy") > 0)
+        if (item.arraySize("controlledBy") > 0) {
             p.controlledByIdentityID = item.arrayItem("controlledBy", 0).getString("value");
+        }
         data.personas.push_back(std::move(p));
     }
 

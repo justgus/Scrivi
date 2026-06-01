@@ -1,10 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace scrivi {
 
-enum class ErrorCode {
+enum class ErrorCode : std::uint8_t {
     ok,
 
     invalidArgument,

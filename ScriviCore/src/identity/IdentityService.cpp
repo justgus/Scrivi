@@ -2,6 +2,7 @@
 
 #include "util/Json.hpp"
 
+#include <array>
 #include <cinttypes>
 #include <cstddef>
 #include <cstdint>
@@ -22,7 +23,7 @@ SecretBytes bundleToBytes(const std::string& json) {
 }
 
 std::string bytesToString(const SecretBytes& bytes) {
-    return std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    return {reinterpret_cast<const char*>(bytes.data()), bytes.size()};
 }
 
 // Generate a 32-byte random secret as a hex string (placeholder key material).
@@ -33,11 +34,12 @@ std::string generateSecretHex() {
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<unsigned> dist(0, 255);
 
-    char buf[65];
-    for (int i = 0; i < 32; ++i)
-        std::snprintf(buf + i * 2, 3, "%02x", dist(gen));
+    std::array<char, 65> buf{};
+    for (int i = 0; i < 32; ++i) {
+        std::snprintf(buf.data() + (static_cast<std::size_t>(i) * 2), 3, "%02x", dist(gen));
+    }
     buf[64] = '\0';
-    return buf;
+    return buf.data();
 }
 
 // Derive a stable synthetic device ID from std::random_device (one-time, stored
@@ -46,9 +48,9 @@ std::string generateDeviceID() {
     std::random_device rd;
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<uint64_t> dist;
-    char buf[32];
-    std::snprintf(buf, sizeof(buf), "device-%016" PRIx64, dist(gen));
-    return buf;
+    std::array<char, 32> buf{};
+    std::snprintf(buf.data(), buf.size(), "device-%016" PRIx64, dist(gen));
+    return buf.data();
 }
 
 } // namespace
@@ -57,23 +59,26 @@ IdentityService::IdentityService(CoreServices& services)
     : services_(services) {}
 
 Result<EnsureIdentityResult> IdentityService::ensureLocalIdentity(
-    const EnsureIdentityRequest& request)
+    const EnsureIdentityRequest& request) const
 {
     // --- Check for existing identity ---
     auto containsR = services_.secureStore->containsSecret(kIdentityKey);
-    if (!containsR.ok())
+    if (!containsR.ok()) {
         return Result<EnsureIdentityResult>::failure(containsR.error());
+}
 
     if (containsR.value()) {
         // Load and return existing identity.
         auto getBytesR = services_.secureStore->getSecret(kIdentityKey);
-        if (!getBytesR.ok())
+        if (!getBytesR.ok()) {
             return Result<EnsureIdentityResult>::failure(getBytesR.error());
+}
 
         auto parseR = util::parseJson(bytesToString(getBytesR.value()));
-        if (!parseR.ok())
+        if (!parseR.ok()) {
             return Result<EnsureIdentityResult>::failure(
-                {ErrorCode::secureStoreError, "identity bundle corrupt"});
+                {.code=ErrorCode::secureStoreError, .message="identity bundle corrupt"});
+}
 
         auto& doc = parseR.value();
         EnsureIdentityResult result;
@@ -98,8 +103,9 @@ Result<EnsureIdentityResult> IdentityService::ensureLocalIdentity(
 
     auto putR = services_.secureStore->putSecret(
         kIdentityKey, bundleToBytes(doc.dump(0)));
-    if (!putR.ok())
+    if (!putR.ok()) {
         return Result<EnsureIdentityResult>::failure(putR.error());
+}
 
     EnsureIdentityResult result;
     result.identityID         = identityID;

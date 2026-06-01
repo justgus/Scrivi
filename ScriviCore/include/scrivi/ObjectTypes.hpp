@@ -3,6 +3,7 @@
 #include "scrivi/IDs.hpp"
 #include "scrivi/Types.hpp"
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <variant>
@@ -14,7 +15,7 @@ namespace scrivi {
 // ObjectKind — discriminant for all world-object types
 // -----------------------------------------------------------------------
 
-enum class ObjectKind {
+enum class ObjectKind : std::uint8_t {
     character,
     location,
     item,
@@ -84,8 +85,8 @@ using WorldObject = std::variant<
 
 // Retrieve the shared fields from any WorldObject variant.
 inline const WorldObjectFields& worldObjectFields(const WorldObject& obj) {
-    return std::visit([](const WorldObjectFields& f) -> const WorldObjectFields& {
-        return f;
+    return std::visit([]<typename T>(const T& o) -> const WorldObjectFields& {
+        return static_cast<const WorldObjectFields&>(o);
     }, obj);
 }
 

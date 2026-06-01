@@ -3,6 +3,7 @@
 #include "scrivi/IDs.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -15,12 +16,12 @@ using Slug             = std::string;
 using RelativePath     = std::string;
 using AbsolutePath     = std::string;
 
-enum class ManuscriptStatus { draft, revised, final, archived };
-enum class PersonaKind      { individual, group };
-enum class ProjectRole      { owner, editor, reader };
-enum class MemberStatus     { active, removed };
+enum class ManuscriptStatus : std::uint8_t { draft, revised, final, archived };
+enum class PersonaKind      : std::uint8_t { individual, group };
+enum class ProjectRole      : std::uint8_t { owner, editor, reader };
+enum class MemberStatus     : std::uint8_t { active, removed };
 
-enum class OpenMode {
+enum class OpenMode : std::uint8_t {
     normalEdit,
     editWithWarnings,
     repairRequired,

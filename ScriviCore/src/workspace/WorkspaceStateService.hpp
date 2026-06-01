@@ -14,20 +14,20 @@ public:
     explicit WorkspaceStateService(CoreServices& services);
 
     // Read the workspace state for a project. Returns nullopt if no state exists.
-    Result<std::optional<WorkspaceState>> load(
+    [[nodiscard]] Result<std::optional<WorkspaceState>> load(
         const AbsolutePath& appSupportRoot,
-        const ProjectID&    projectID);
+        const ProjectID&    projectID) const;
 
     // Write workspace state for a project, creating directories as needed.
-    Result<void> save(
+    [[nodiscard]] Result<void> save(
         const AbsolutePath& appSupportRoot,
-        const WorkspaceState& state);
+        const WorkspaceState& state) const;
 
 private:
     CoreServices& services_;
 
-    AbsolutePath stateFilePath(const AbsolutePath& appSupportRoot,
-                               const ProjectID& projectID) const;
+    [[nodiscard]] static AbsolutePath stateFilePath(const AbsolutePath& appSupportRoot,
+                                                    const ProjectID& projectID);
 };
 
 } // namespace scrivi::workspace

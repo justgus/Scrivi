@@ -19,7 +19,7 @@ public:
     ObjectID     newObjectID()     override;
 
 private:
-    std::string generateV7(std::string_view prefix);
+    static std::string generateV7(std::string_view prefix);
 };
 
 } // namespace scrivi::platform

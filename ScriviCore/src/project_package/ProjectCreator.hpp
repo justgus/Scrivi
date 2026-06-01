@@ -15,8 +15,8 @@ public:
 private:
     CoreServices& services_;
 
-    Result<void> writeGitignore(const AbsolutePath& root);
-    Result<void> writeSnapshotMetadata(const AbsolutePath& root);
+    [[nodiscard]] Result<void> writeGitignore(const AbsolutePath& root) const;
+    [[nodiscard]] Result<void> writeSnapshotMetadata(const AbsolutePath& root) const;
 };
 
 } // namespace scrivi::project_package

@@ -45,7 +45,7 @@ static void autoApplyMetadataRename(
     // Build relative new meta path
     std::string relNewMeta = newMetaAbsPath;
     if (relNewMeta.size() > projectRootPath.size() &&
-        relNewMeta.substr(0, projectRootPath.size()) == projectRootPath)
+        relNewMeta.starts_with(projectRootPath))
     {
         relNewMeta = relNewMeta.substr(projectRootPath.size() + 1);
     }
@@ -62,7 +62,8 @@ static void autoApplyMetadataRename(
     // Write .bak before rewriting
     auto bakPath = chapterMetaPath + ".bak";
     auto origR   = fs.readTextFile(chapterMetaPath);
-    if (origR.ok()) fs.atomicWriteTextFile(bakPath, origR.value());
+    if (origR.ok()) { fs.atomicWriteTextFile(bakPath, origR.value());
+}
 
     fs.atomicWriteTextFile(chapterMetaPath, schemas::serializeChapterMeta(updated));
     result.indexesDirty = true;
@@ -82,7 +83,7 @@ static void autoApplyChapterFolderRename(
     // Build relative new chapter meta path
     std::string relNewChMeta = newChMetaAbsPath;
     if (relNewChMeta.size() > projectRootPath.size() &&
-        relNewChMeta.substr(0, projectRootPath.size()) == projectRootPath)
+        relNewChMeta.starts_with(projectRootPath))
     {
         relNewChMeta = relNewChMeta.substr(projectRootPath.size() + 1);
     }
@@ -97,7 +98,8 @@ static void autoApplyChapterFolderRename(
 
     auto bakPath = msMetaPath + ".bak";
     auto origR   = fs.readTextFile(msMetaPath);
-    if (origR.ok()) fs.atomicWriteTextFile(bakPath, origR.value());
+    if (origR.ok()) { fs.atomicWriteTextFile(bakPath, origR.value());
+}
 
     fs.atomicWriteTextFile(msMetaPath, schemas::serializeManuscriptMeta(updated));
     result.indexesDirty = true;
@@ -108,16 +110,18 @@ static void autoApplyChapterFolderRename(
 // ---------------------------------------------------------------------------
 
 Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
-    const ExternalChangeScanRequest& request)
+    const ExternalChangeScanRequest& request) const
 {
     auto& fs = *services_.fileSystem;
 
     // Read project.json for projectID
     auto projTextR = fs.readTextFile(util::join(request.projectRootPath, "project.json"));
-    if (!projTextR.ok()) return Result<ExternalChangeScanResult>::failure(projTextR.error());
+    if (!projTextR.ok()) { return Result<ExternalChangeScanResult>::failure(projTextR.error());
+}
 
     auto projParsed = schemas::parseProject(projTextR.value());
-    if (!projParsed.ok()) return Result<ExternalChangeScanResult>::failure(projParsed.error());
+    if (!projParsed.ok()) { return Result<ExternalChangeScanResult>::failure(projParsed.error());
+}
 
     const ProjectID projectID = projParsed.value().projectID;
 
@@ -128,10 +132,12 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     const std::string msMetaPath = util::join(request.projectRootPath,
                                               "manuscript/manuscript.meta.json");
     auto msTextR = fs.readTextFile(msMetaPath);
-    if (!msTextR.ok()) return Result<ExternalChangeScanResult>::failure(msTextR.error());
+    if (!msTextR.ok()) { return Result<ExternalChangeScanResult>::failure(msTextR.error());
+}
 
     auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
-    if (!msParsed.ok()) return Result<ExternalChangeScanResult>::failure(msParsed.error());
+    if (!msParsed.ok()) { return Result<ExternalChangeScanResult>::failure(msParsed.error());
+}
 
     const auto& msData = msParsed.value();
 
@@ -151,7 +157,7 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     // ---------------------------------------------------------------------------
     // Main scan loop
     // ---------------------------------------------------------------------------
-    for (auto& chapterRef : msData.chapters) {
+    for (const auto& chapterRef : msData.chapters) {
         auto chPath = util::join(request.projectRootPath, chapterRef.path);
         registeredChapterMetaPaths.insert(chPath);
 
@@ -177,7 +183,7 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
 
         const auto& chData = chParsed.value();
 
-        for (auto& sceneRef : chData.scenes) {
+        for (const auto& sceneRef : chData.scenes) {
             auto sMetaPath  = util::join(request.projectRootPath, sceneRef.metadataPath);
             auto sMetaTextR = fs.readTextFile(sMetaPath);
 
@@ -193,10 +199,10 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
                 registeredContentPaths.insert(expectedContentPath);
                 // Record for rename detection
                 missingMetas.push_back({
-                    chapterRef.chapterID,
-                    sceneRef.sceneID,
-                    sMetaPath,
-                    chPath
+                    .chapterID=chapterRef.chapterID,
+                    .sceneID=sceneRef.sceneID,
+                    .expectedMetaPath=sMetaPath,
+                    .chapterMetaPath=chPath
                 });
                 continue;
             }
@@ -216,8 +222,9 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
 
             auto absContentPath = util::join(request.projectRootPath, contentPath);
             auto contentExistsR = fs.exists(absContentPath);
-            if (!contentExistsR.ok())
+            if (!contentExistsR.ok()) {
                 return Result<ExternalChangeScanResult>::failure(contentExistsR.error());
+}
 
             if (!contentExistsR.value()) {
                 result.repairIssues.push_back(
@@ -239,34 +246,39 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     if (listR.ok()) {
         for (auto& chapterDirPath : listR.value()) {
             auto isDirR = fs.isDirectory(chapterDirPath);
-            if (!isDirR.ok() || !isDirR.value()) continue;
+            if (!isDirR.ok() || !isDirR.value()) { continue;
+}
 
             auto filesR = fs.listDirectory(chapterDirPath);
-            if (!filesR.ok()) continue;
+            if (!filesR.ok()) { continue;
+}
 
             for (auto& filePath : filesR.value()) {
                 const auto ext = util::extension(filePath);
 
                 if (ext == ".md") {
                     std::string rel = filePath.substr(request.projectRootPath.size() + 1);
-                    if (registeredContentPaths.find(rel) == registeredContentPaths.end()) {
+                    if (!registeredContentPaths.contains(rel)) {
                         result.repairIssues.push_back(
                             RepairClassifier::unregisteredFile(projectID, filePath));
                         result.indexesDirty = true;
                     }
                 } else if (ext == ".json") {
                     // Could be an orphan .meta.json — check if it's registered
-                    if (registeredChapterMetaPaths.find(filePath) !=
-                        registeredChapterMetaPaths.end())
+                    if (registeredChapterMetaPaths.contains(filePath)) {
                         continue; // it's a registered chapter meta
-                    if (util::filename(filePath) == "chapter.meta.json")
+}
+                    if (util::filename(filePath) == "chapter.meta.json") {
                         continue; // handled separately below
+}
 
                     // Try to parse as scene metadata to get sceneID
                     auto textR = fs.readTextFile(filePath);
-                    if (!textR.ok()) continue;
+                    if (!textR.ok()) { continue;
+}
                     auto parsed = schemas::parseSceneMeta(textR.value());
-                    if (!parsed.ok()) continue;
+                    if (!parsed.ok()) { continue;
+}
 
                     // Only treat as orphan if its path is not a registered meta path
                     // (registered meta paths are those in chapter scene lists —
@@ -286,7 +298,8 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     for (auto& missing : missingMetas) {
         const auto& sceneIDVal = missing.sceneID.value;
         auto it = orphanMetasBySceneID.find(sceneIDVal);
-        if (it == orphanMetasBySceneID.end()) continue; // no candidate found
+        if (it == orphanMetasBySceneID.end()) { continue; // no candidate found
+}
 
         const auto& candidates = it->second;
 
@@ -296,8 +309,9 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
         // Filter candidates to those in the same chapter directory
         std::vector<std::string> sameDirCandidates;
         for (const auto& cPath : candidates) {
-            if (util::parent(cPath) == expectedChDir)
+            if (util::parent(cPath) == expectedChDir) {
                 sameDirCandidates.push_back(cPath);
+}
         }
 
         if (sameDirCandidates.empty()) {
@@ -327,13 +341,12 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
                         request.projectRootPath,
                         result);
                     // Remove the corresponding missingMetadata issue we already staged
-                    result.repairIssues.erase(
-                        std::remove_if(result.repairIssues.begin(), result.repairIssues.end(),
-                            [&](const RepairIssue& i) {
-                                return i.category == RepairCategory::missingMetadata &&
-                                       i.sceneID.value == sceneIDVal;
-                            }),
-                        result.repairIssues.end());
+                    auto toErase1 = std::ranges::remove_if(result.repairIssues,
+                        [&](const RepairIssue& i) {
+                            return i.category == RepairCategory::missingMetadata &&
+                                   i.sceneID.value == sceneIDVal;
+                        });
+                    result.repairIssues.erase(toErase1.begin(), result.repairIssues.end());
                 }
             }
         } else {
@@ -354,7 +367,8 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     if (!missingChapterFolders.empty() && listR.ok()) {
         for (auto& chapterDirPath : listR.value()) {
             auto isDirR = fs.isDirectory(chapterDirPath);
-            if (!isDirR.ok() || !isDirR.value()) continue;
+            if (!isDirR.ok() || !isDirR.value()) { continue;
+}
 
             // Skip registered chapter directories
             // A registered chapter dir is the parent of a registered chapter meta path
@@ -365,19 +379,23 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
                     break;
                 }
             }
-            if (alreadyRegistered) continue;
+            if (alreadyRegistered) { continue;
+}
 
             // Look for chapter.meta.json in this unregistered directory
             auto candidateChMeta = util::join(chapterDirPath, "chapter.meta.json");
             auto chTextR         = fs.readTextFile(candidateChMeta);
-            if (!chTextR.ok()) continue;
+            if (!chTextR.ok()) { continue;
+}
 
             auto chParsed = schemas::parseChapterMeta(chTextR.value());
-            if (!chParsed.ok()) continue;
+            if (!chParsed.ok()) { continue;
+}
 
             const auto& foundChapterID = chParsed.value().chapterID.value;
             auto mIt = missingChapterFolders.find(foundChapterID);
-            if (mIt == missingChapterFolders.end()) continue;
+            if (mIt == missingChapterFolders.end()) { continue;
+}
 
             // Found a match — auto-apply (single candidate guaranteed since
             // chapterIDs are unique and we've found the first match)
@@ -394,14 +412,13 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
                         request.projectRootPath,
                         result);
                     // Remove the corresponding missingMetadata issue for this chapter
-                    result.repairIssues.erase(
-                        std::remove_if(result.repairIssues.begin(), result.repairIssues.end(),
-                            [&](const RepairIssue& i) {
-                                return i.category == RepairCategory::missingMetadata &&
-                                       i.chapterID.value == foundChapterID &&
-                                       i.sceneID.value.empty();
-                            }),
-                        result.repairIssues.end());
+                    auto toErase2 = std::ranges::remove_if(result.repairIssues,
+                        [&](const RepairIssue& i) {
+                            return i.category == RepairCategory::missingMetadata &&
+                                   i.chapterID.value == foundChapterID &&
+                                   i.sceneID.value.empty();
+                        });
+                    result.repairIssues.erase(toErase2.begin(), result.repairIssues.end());
                 }
             }
             // Remove from missing set so we don't process it again

@@ -19,7 +19,7 @@ std::string serializeChapterMeta(const ChapterMetaData& d) {
     doc.setString("createdAt",    d.createdAt);
     doc.setSubDoc("createdBy",    std::move(createdBy));
 
-    for (auto& s : d.scenes) {
+    for (const auto& s : d.scenes) {
         util::JsonDoc ref;
         ref.setString("sceneID",      s.sceneID.value);
         ref.setString("metadataPath", s.metadataPath);
@@ -31,12 +31,12 @@ std::string serializeChapterMeta(const ChapterMetaData& d) {
 
 Result<ChapterMetaData> parseChapterMeta(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.chapter.v1");
-    if (!r.ok()) return Result<ChapterMetaData>::failure(r.error());
+    if (!r.ok()) { return Result<ChapterMetaData>::failure(r.error()); }
     auto& doc = r.value();
 
-    for (auto key : {"chapterID", "title", "displayLabel", "status"}) {
+    for (const auto* key : {"chapterID", "title", "displayLabel", "status"}) {
         auto v = requireField(doc, key);
-        if (!v.ok()) return Result<ChapterMetaData>::failure(v.error());
+        if (!v.ok()) { return Result<ChapterMetaData>::failure(v.error()); }
     }
 
     ChapterMetaData data;

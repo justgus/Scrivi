@@ -7,7 +7,7 @@ std::string serializeProjectMembers(const ProjectMembersData& d) {
     util::JsonDoc doc;
     doc.setString("schema", "scrivi.projectMembers.v1");
 
-    for (auto& m : d.members) {
+    for (const auto& m : d.members) {
         util::JsonDoc entry;
         entry.setString("identityID",      m.identityID.value);
         entry.setString("role",            m.role);
@@ -22,11 +22,11 @@ std::string serializeProjectMembers(const ProjectMembersData& d) {
 
 Result<ProjectMembersData> parseProjectMembers(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.projectMembers.v1");
-    if (!r.ok()) return Result<ProjectMembersData>::failure(r.error());
+    if (!r.ok()) { return Result<ProjectMembersData>::failure(r.error()); }
     auto& doc = r.value();
 
     auto v = requireField(doc, "members");
-    if (!v.ok()) return Result<ProjectMembersData>::failure(v.error());
+    if (!v.ok()) { return Result<ProjectMembersData>::failure(v.error()); }
 
     ProjectMembersData data;
     auto n = doc.arraySize("members");

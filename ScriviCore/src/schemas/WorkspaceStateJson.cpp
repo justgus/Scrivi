@@ -31,12 +31,12 @@ std::string serializeWorkspaceState(const WorkspaceStateData& d) {
 
 Result<WorkspaceStateData> parseWorkspaceState(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.workspaceState.v1");
-    if (!r.ok()) return Result<WorkspaceStateData>::failure(r.error());
+    if (!r.ok()) { return Result<WorkspaceStateData>::failure(r.error()); }
     auto& doc = r.value();
 
-    for (auto key : {"projectID", "deviceID", "identityID"}) {
+    for (const auto* key : {"projectID", "deviceID", "identityID"}) {
         auto v = requireField(doc, key);
-        if (!v.ok()) return Result<WorkspaceStateData>::failure(v.error());
+        if (!v.ok()) { return Result<WorkspaceStateData>::failure(v.error()); }
     }
 
     WorkspaceStateData data;

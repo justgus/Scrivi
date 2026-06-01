@@ -11,17 +11,19 @@ ManuscriptOrderResolver::ManuscriptOrderResolver(CoreServices& services)
     : services_(services) {}
 
 Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
-    const AbsolutePath& projectRoot)
+    const AbsolutePath& projectRoot) const
 {
     auto& fs = *services_.fileSystem;
 
     // Read manuscript.meta.json
     auto msPath = util::join(projectRoot, "manuscript/manuscript.meta.json");
     auto msTextR = fs.readTextFile(msPath);
-    if (!msTextR.ok()) return Result<std::vector<ResolvedScene>>::failure(msTextR.error());
+    if (!msTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(msTextR.error());
+}
 
     auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
-    if (!msParsed.ok()) return Result<std::vector<ResolvedScene>>::failure(msParsed.error());
+    if (!msParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(msParsed.error());
+}
 
     std::vector<ResolvedScene> scenes;
 
@@ -29,19 +31,23 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
         // chapterRef.path is relative to projectRoot and points to chapter.meta.json
         auto chPath = util::join(projectRoot, chapterRef.path);
         auto chTextR = fs.readTextFile(chPath);
-        if (!chTextR.ok()) return Result<std::vector<ResolvedScene>>::failure(chTextR.error());
+        if (!chTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(chTextR.error());
+}
 
         auto chParsed = schemas::parseChapterMeta(chTextR.value());
-        if (!chParsed.ok()) return Result<std::vector<ResolvedScene>>::failure(chParsed.error());
+        if (!chParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(chParsed.error());
+}
 
         for (auto& sceneRef : chParsed.value().scenes) {
             // sceneRef.metadataPath is relative to projectRoot
             auto sMetaPath = util::join(projectRoot, sceneRef.metadataPath);
             auto sTextR = fs.readTextFile(sMetaPath);
-            if (!sTextR.ok()) return Result<std::vector<ResolvedScene>>::failure(sTextR.error());
+            if (!sTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(sTextR.error());
+}
 
             auto sParsed = schemas::parseSceneMeta(sTextR.value());
-            if (!sParsed.ok()) return Result<std::vector<ResolvedScene>>::failure(sParsed.error());
+            if (!sParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(sParsed.error());
+}
 
             ResolvedScene rs;
             rs.sceneID      = sParsed.value().sceneID;

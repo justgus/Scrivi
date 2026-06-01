@@ -8,7 +8,7 @@ SceneReader::SceneReader(CoreServices& services)
     : services_(services) {}
 
 Result<Utf8Text> SceneReader::readContent(const AbsolutePath& projectRoot,
-                                          const RelativePath& contentPath)
+                                          const RelativePath& contentPath) const
 {
     auto absPath = util::join(projectRoot, contentPath);
     return services_.fileSystem->readTextFile(absPath);

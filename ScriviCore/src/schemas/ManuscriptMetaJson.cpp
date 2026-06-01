@@ -10,7 +10,7 @@ std::string serializeManuscriptMeta(const ManuscriptMetaData& d) {
     createdBy.setString("displayNameAtCreation", d.createdByDisplayName);
 
     util::JsonDoc structure;
-    for (auto& ch : d.chapters) {
+    for (const auto& ch : d.chapters) {
         util::JsonDoc ref;
         ref.setString("chapterID", ch.chapterID.value);
         ref.setString("path",      ch.path);
@@ -30,12 +30,12 @@ std::string serializeManuscriptMeta(const ManuscriptMetaData& d) {
 
 Result<ManuscriptMetaData> parseManuscriptMeta(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.manuscript.v1");
-    if (!r.ok()) return Result<ManuscriptMetaData>::failure(r.error());
+    if (!r.ok()) { return Result<ManuscriptMetaData>::failure(r.error()); }
     auto& doc = r.value();
 
-    for (auto key : {"manuscriptID", "title"}) {
+    for (const auto* key : {"manuscriptID", "title"}) {
         auto v = requireField(doc, key);
-        if (!v.ok()) return Result<ManuscriptMetaData>::failure(v.error());
+        if (!v.ok()) { return Result<ManuscriptMetaData>::failure(v.error()); }
     }
 
     ManuscriptMetaData data;

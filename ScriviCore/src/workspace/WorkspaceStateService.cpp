@@ -10,7 +10,7 @@ WorkspaceStateService::WorkspaceStateService(CoreServices& services)
 
 AbsolutePath WorkspaceStateService::stateFilePath(
     const AbsolutePath& appSupportRoot,
-    const ProjectID& projectID) const
+    const ProjectID& projectID)
 {
     return util::join(
         util::join(
@@ -21,19 +21,19 @@ AbsolutePath WorkspaceStateService::stateFilePath(
 
 Result<std::optional<WorkspaceState>> WorkspaceStateService::load(
     const AbsolutePath& appSupportRoot,
-    const ProjectID&    projectID)
+    const ProjectID&    projectID) const
 {
     auto path = stateFilePath(appSupportRoot, projectID);
 
     auto existsR = services_.fileSystem->exists(path);
-    if (!existsR.ok()) return Result<std::optional<WorkspaceState>>::failure(existsR.error());
-    if (!existsR.value()) return Result<std::optional<WorkspaceState>>::success(std::nullopt);
+    if (!existsR.ok()) { return Result<std::optional<WorkspaceState>>::failure(existsR.error()); }
+    if (!existsR.value()) { return Result<std::optional<WorkspaceState>>::success(std::nullopt); }
 
     auto textR = services_.fileSystem->readTextFile(path);
-    if (!textR.ok()) return Result<std::optional<WorkspaceState>>::failure(textR.error());
+    if (!textR.ok()) { return Result<std::optional<WorkspaceState>>::failure(textR.error()); }
 
     auto parseR = schemas::parseWorkspaceState(textR.value());
-    if (!parseR.ok()) return Result<std::optional<WorkspaceState>>::failure(parseR.error());
+    if (!parseR.ok()) { return Result<std::optional<WorkspaceState>>::failure(parseR.error()); }
 
     auto& d = parseR.value();
 
@@ -48,7 +48,7 @@ Result<std::optional<WorkspaceState>> WorkspaceStateService::load(
         LastWritingSurface lws;
         lws.sceneID.value   = d.lastSceneID;
         lws.contentPath     = d.lastContentPath;
-        lws.selection       = {d.cursorAnchor, d.cursorFocus};
+        lws.selection       = {.anchor = d.cursorAnchor, .focus = d.cursorFocus};
         lws.scroll          = {d.scrollPosition};
         state.lastWritingSurface = lws;
     }
@@ -58,7 +58,7 @@ Result<std::optional<WorkspaceState>> WorkspaceStateService::load(
 
 Result<void> WorkspaceStateService::save(
     const AbsolutePath& appSupportRoot,
-    const WorkspaceState& state)
+    const WorkspaceState& state) const
 {
     auto dir = util::join(
         util::join(
@@ -67,7 +67,7 @@ Result<void> WorkspaceStateService::save(
         state.projectID.value);
 
     auto dirR = services_.fileSystem->createDirectories(dir);
-    if (!dirR.ok()) return dirR;
+    if (!dirR.ok()) { return dirR; }
 
     schemas::WorkspaceStateData d;
     d.projectID.value  = state.projectID.value;
@@ -77,7 +77,7 @@ Result<void> WorkspaceStateService::save(
     d.lastOpenedAt     = state.lastOpenedAt;
 
     if (state.lastWritingSurface.has_value()) {
-        auto& lws = *state.lastWritingSurface;
+        const auto& lws = *state.lastWritingSurface;
         d.hasLastWritingSurface = true;
         d.lastSceneID      = lws.sceneID.value;
         d.lastContentPath  = lws.contentPath;

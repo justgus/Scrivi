@@ -11,11 +11,12 @@ TextStatsResult countText(std::string_view utf8Markdown) {
 
     for (unsigned char ch : utf8Markdown) {
         // Count every byte that starts a UTF-8 code point (not a continuation byte)
-        if ((ch & 0xC0) != 0x80)
+        if ((ch & 0xC0) != 0x80) {
             ++stats.characterCount;
+}
 
         // Word detection: split on ASCII whitespace; non-ASCII bytes are word chars
-        bool isSpace = (ch <= 127 && std::isspace(ch));
+        bool isSpace = (ch <= 127 && (std::isspace(ch) != 0));
         if (!isSpace) {
             if (!inWord) {
                 ++stats.wordCount;

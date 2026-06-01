@@ -19,7 +19,8 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     // 1. Validate project package structure
     ProjectValidator validator{services_};
     auto issuesR = validator.validate(request.projectRootPath);
-    if (!issuesR.ok()) return Result<OpenProjectResult>::failure(issuesR.error());
+    if (!issuesR.ok()) { return Result<OpenProjectResult>::failure(issuesR.error());
+}
 
     auto& issues = issuesR.value();
 
@@ -41,10 +42,12 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
 
     // 2. Read project.json
     auto projTextR = fs.readTextFile(util::join(request.projectRootPath, "project.json"));
-    if (!projTextR.ok()) return Result<OpenProjectResult>::failure(projTextR.error());
+    if (!projTextR.ok()) { return Result<OpenProjectResult>::failure(projTextR.error());
+}
 
     auto projParsed = schemas::parseProject(projTextR.value());
-    if (!projParsed.ok()) return Result<OpenProjectResult>::failure(projParsed.error());
+    if (!projParsed.ok()) { return Result<OpenProjectResult>::failure(projParsed.error());
+}
 
     auto& proj = projParsed.value();
 
@@ -58,7 +61,8 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     // 3. Resolve manuscript order
     manuscript::ManuscriptOrderResolver resolver{services_};
     auto scenesR = resolver.resolve(request.projectRootPath);
-    if (!scenesR.ok()) return Result<OpenProjectResult>::failure(scenesR.error());
+    if (!scenesR.ok()) { return Result<OpenProjectResult>::failure(scenesR.error());
+}
 
     auto& scenes = scenesR.value();
     if (scenes.empty()) {
@@ -76,17 +80,19 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     // 4. Load workspace state
     workspace::WorkspaceStateService wsService{services_};
     auto wsR = wsService.load(request.appSupportRoot, proj.projectID);
-    if (!wsR.ok()) return Result<OpenProjectResult>::failure(wsR.error());
+    if (!wsR.ok()) { return Result<OpenProjectResult>::failure(wsR.error());
+}
 
     // 5. Determine active scene (from workspace state or fall back to first)
-    const manuscript::ResolvedScene* activeScene = &scenes[0];
+    const manuscript::ResolvedScene* activeScene = scenes.data();
 
     std::optional<WorkspaceState> workspaceState;
     TextSelection  restoredSelection;
     ScrollPosition restoredScroll;
 
-    if (wsR.value().has_value()) {
-        workspaceState = *wsR.value();
+    const auto& wsOpt = wsR.value();
+    if (wsOpt.has_value()) {
+        workspaceState = *wsOpt;
         auto& ws = *workspaceState;
 
         if (ws.lastWritingSurface.has_value()) {
@@ -107,7 +113,8 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     // 6. Read active scene markdown
     manuscript::SceneReader reader{services_};
     auto mdR = reader.readContent(request.projectRootPath, activeScene->contentPath);
-    if (!mdR.ok()) return Result<OpenProjectResult>::failure(mdR.error());
+    if (!mdR.ok()) { return Result<OpenProjectResult>::failure(mdR.error());
+}
 
     // 7. Assemble result
     SceneSummary sceneSummary;

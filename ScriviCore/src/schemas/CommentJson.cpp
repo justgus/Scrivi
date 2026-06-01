@@ -37,7 +37,7 @@ std::string serializeCommentThread(const CommentThread& thread) {
 
 Result<CommentThread> parseCommentThread(std::string_view json) {
     auto r = parseAndValidateSchema(json, kCommentSchema);
-    if (!r.ok()) return Result<CommentThread>::failure(r.error());
+    if (!r.ok()) { return Result<CommentThread>::failure(r.error()); }
     auto& doc = r.value();
 
     CommentThread thread;
@@ -61,16 +61,16 @@ Result<CommentThread> parseCommentThread(std::string_view json) {
         c.createdByDisplayName  = createdBy.getString("displayName");
 
         auto ra = commentDoc.getString("resolvedAt");
-        if (!ra.empty()) c.resolvedAt = ra;
+        if (!ra.empty()) { c.resolvedAt = ra; }
 
         auto rid = commentDoc.getString("resolvedByIdentityID");
-        if (!rid.empty()) c.resolvedByIdentityID = rid;
+        if (!rid.empty()) { c.resolvedByIdentityID = rid; }
 
         auto rpid = commentDoc.getString("resolvedByPersonaID");
-        if (!rpid.empty()) c.resolvedByPersonaID = rpid;
+        if (!rpid.empty()) { c.resolvedByPersonaID = rpid; }
 
         auto rdn = commentDoc.getString("resolvedByDisplayName");
-        if (!rdn.empty()) c.resolvedByDisplayName = rdn;
+        if (!rdn.empty()) { c.resolvedByDisplayName = rdn; }
 
         thread.comments.push_back(std::move(c));
     }

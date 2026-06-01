@@ -15,7 +15,7 @@ public:
 
     // Check for structural issues in the project package. Returns all detected
     // issues; an empty vector means the project is healthy.
-    Result<std::vector<RepairIssue>> validate(const AbsolutePath& projectRoot);
+    [[nodiscard]] Result<std::vector<RepairIssue>> validate(const AbsolutePath& projectRoot) const;
 
 private:
     CoreServices& services_;

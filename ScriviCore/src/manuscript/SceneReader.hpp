@@ -11,8 +11,8 @@ public:
     explicit SceneReader(CoreServices& services);
 
     // Reads Markdown content from contentPath (relative to projectRoot).
-    Result<Utf8Text> readContent(const AbsolutePath& projectRoot,
-                                 const RelativePath& contentPath);
+    [[nodiscard]] Result<Utf8Text> readContent(const AbsolutePath& projectRoot,
+                                 const RelativePath& contentPath) const;
 
 private:
     CoreServices& services_;

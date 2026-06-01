@@ -11,7 +11,7 @@ CommentStore::CommentStore(CoreServices& services)
 
 AbsolutePath CommentStore::threadPath(const AbsolutePath& projectRoot,
                                        const std::string& scopeKind,
-                                       const std::string& targetID) const
+                                       const std::string& targetID) 
 {
     auto dir = util::join(util::join(projectRoot, "comments"), scopeKind);
     return util::join(dir, targetID + ".comments.json");
@@ -27,7 +27,8 @@ static Result<CommentThread> loadThread(scrivi::FileSystem& fs,
                                          const std::string& targetID)
 {
     auto existsR = fs.exists(path);
-    if (!existsR.ok()) return Result<CommentThread>::failure(existsR.error());
+    if (!existsR.ok()) { return Result<CommentThread>::failure(existsR.error());
+}
 
     if (!existsR.value()) {
         // Brand-new thread file.
@@ -39,7 +40,8 @@ static Result<CommentThread> loadThread(scrivi::FileSystem& fs,
     }
 
     auto textR = fs.readTextFile(path);
-    if (!textR.ok()) return Result<CommentThread>::failure(textR.error());
+    if (!textR.ok()) { return Result<CommentThread>::failure(textR.error());
+}
     return schemas::parseCommentThread(textR.value());
 }
 
@@ -47,7 +49,7 @@ static Result<CommentThread> loadThread(scrivi::FileSystem& fs,
 // add
 // ---------------------------------------------------------------------------
 
-Result<AddCommentResult> CommentStore::add(const AddCommentRequest& request)
+Result<AddCommentResult> CommentStore::add(const AddCommentRequest& request) const
 {
     auto& fs    = *services_.fileSystem;
     auto& uuid  = *services_.uuidProvider;
@@ -57,11 +59,13 @@ Result<AddCommentResult> CommentStore::add(const AddCommentRequest& request)
 
     // Ensure parent directory exists.
     auto dir = util::parent(path);
-    if (auto r = fs.createDirectories(dir); !r.ok())
+    if (auto r = fs.createDirectories(dir); !r.ok()) {
         return Result<AddCommentResult>::failure(r.error());
+}
 
     auto threadR = loadThread(fs, path, request.scopeKind, request.targetID);
-    if (!threadR.ok()) return Result<AddCommentResult>::failure(threadR.error());
+    if (!threadR.ok()) { return Result<AddCommentResult>::failure(threadR.error());
+}
     auto thread = std::move(threadR.value());
 
     Comment c;
@@ -77,8 +81,9 @@ Result<AddCommentResult> CommentStore::add(const AddCommentRequest& request)
     thread.comments.push_back(std::move(c));
 
     auto json = schemas::serializeCommentThread(thread);
-    if (auto r = fs.atomicWriteTextFile(path, json); !r.ok())
+    if (auto r = fs.atomicWriteTextFile(path, json); !r.ok()) {
         return Result<AddCommentResult>::failure(r.error());
+}
 
     AddCommentResult result;
     result.commentID = commentID;
@@ -90,13 +95,14 @@ Result<AddCommentResult> CommentStore::add(const AddCommentRequest& request)
 // list
 // ---------------------------------------------------------------------------
 
-Result<ListCommentsResult> CommentStore::list(const ListCommentsRequest& request)
+Result<ListCommentsResult> CommentStore::list(const ListCommentsRequest& request) const
 {
     auto& fs = *services_.fileSystem;
 
     auto path    = threadPath(request.projectRootPath, request.scopeKind, request.targetID);
     auto threadR = loadThread(fs, path, request.scopeKind, request.targetID);
-    if (!threadR.ok()) return Result<ListCommentsResult>::failure(threadR.error());
+    if (!threadR.ok()) { return Result<ListCommentsResult>::failure(threadR.error());
+}
 
     ListCommentsResult result;
     result.comments  = std::move(threadR.value().comments);
@@ -109,19 +115,21 @@ Result<ListCommentsResult> CommentStore::list(const ListCommentsRequest& request
 // resolve
 // ---------------------------------------------------------------------------
 
-Result<ResolveCommentResult> CommentStore::resolve(const ResolveCommentRequest& request)
+Result<ResolveCommentResult> CommentStore::resolve(const ResolveCommentRequest& request) const
 {
     auto& fs    = *services_.fileSystem;
     auto& clock = *services_.clock;
 
     auto path    = threadPath(request.projectRootPath, request.scopeKind, request.targetID);
     auto threadR = loadThread(fs, path, request.scopeKind, request.targetID);
-    if (!threadR.ok()) return Result<ResolveCommentResult>::failure(threadR.error());
+    if (!threadR.ok()) { return Result<ResolveCommentResult>::failure(threadR.error());
+}
     auto thread = std::move(threadR.value());
 
     bool found = false;
     for (auto& c : thread.comments) {
-        if (c.commentID != request.commentID) continue;
+        if (c.commentID != request.commentID) { continue;
+}
         c.resolved               = true;
         c.resolvedAt             = clock.nowUTC();
         c.resolvedByIdentityID   = request.resolver.identityID.value;
@@ -131,13 +139,15 @@ Result<ResolveCommentResult> CommentStore::resolve(const ResolveCommentRequest& 
         break;
     }
 
-    if (!found)
+    if (!found) {
         return Result<ResolveCommentResult>::failure(
-            {ErrorCode::ioError, "comment not found: " + request.commentID});
+            {.code=ErrorCode::ioError, .message="comment not found: " + request.commentID});
+}
 
     auto json = schemas::serializeCommentThread(thread);
-    if (auto r = fs.atomicWriteTextFile(path, json); !r.ok())
+    if (auto r = fs.atomicWriteTextFile(path, json); !r.ok()) {
         return Result<ResolveCommentResult>::failure(r.error());
+}
 
     ResolveCommentResult result;
     result.commentID = request.commentID;

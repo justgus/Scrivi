@@ -11,13 +11,13 @@ class InboxStore {
 public:
     explicit InboxStore(CoreServices& services);
 
-    Result<ListInboxResult>       list(const ListInboxRequest& request);
+    [[nodiscard]] Result<ListInboxResult> list(const ListInboxRequest& request) const;
     Result<ImportFromInboxResult> importFromInbox(const ImportFromInboxRequest& request);
 
 private:
     CoreServices& services_;
 
-    AbsolutePath droppedFilesDir(const AbsolutePath& projectRoot) const;
+    [[nodiscard]] static AbsolutePath droppedFilesDir(const AbsolutePath& projectRoot);
 };
 
 } // namespace scrivi::inbox

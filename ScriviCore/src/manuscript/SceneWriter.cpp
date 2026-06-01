@@ -35,14 +35,15 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
         ws.activePersonaID      = request.author.personaID;
         ws.lastOpenedAt         = clk.nowUTC();
         ws.lastWritingSurface   = LastWritingSurface{
-            request.sceneID,
-            request.sceneContentPath,
-            request.selection,
-            request.scroll
+            .sceneID=request.sceneID,
+            .contentPath=request.sceneContentPath,
+            .selection=request.selection,
+            .scroll=request.scroll
         };
 
         auto wsR = wsService.save(request.appSupportRoot, ws);
-        if (!wsR.ok()) return Result<SaveSceneResult>::failure(wsR.error());
+        if (!wsR.ok()) { return Result<SaveSceneResult>::failure(wsR.error());
+}
 
         result.saved                 = false;
         result.metadataUpdated       = false;
@@ -53,7 +54,8 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
     // 3. Write content atomically
     auto contentAbsPath = util::join(request.projectRootPath, request.sceneContentPath);
     auto writeR = fs.atomicWriteTextFile(contentAbsPath, request.markdown);
-    if (!writeR.ok()) return Result<SaveSceneResult>::failure(writeR.error());
+    if (!writeR.ok()) { return Result<SaveSceneResult>::failure(writeR.error());
+}
 
     result.saved = true;
 
@@ -65,10 +67,12 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
     // 5. Read current scene metadata
     auto metaAbsPath = util::join(request.projectRootPath, request.sceneMetadataPath);
     auto metaTextR = fs.readTextFile(metaAbsPath);
-    if (!metaTextR.ok()) return Result<SaveSceneResult>::failure(metaTextR.error());
+    if (!metaTextR.ok()) { return Result<SaveSceneResult>::failure(metaTextR.error());
+}
 
     auto metaParsed = schemas::parseSceneMeta(metaTextR.value());
-    if (!metaParsed.ok()) return Result<SaveSceneResult>::failure(metaParsed.error());
+    if (!metaParsed.ok()) { return Result<SaveSceneResult>::failure(metaParsed.error());
+}
 
     // 6. Update metadata fields
     auto& meta             = metaParsed.value();
@@ -80,7 +84,8 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
     meta.characterCount          = stats.characterCount;
 
     auto writeMetaR = fs.atomicWriteTextFile(metaAbsPath, schemas::serializeSceneMeta(meta));
-    if (!writeMetaR.ok()) return Result<SaveSceneResult>::failure(writeMetaR.error());
+    if (!writeMetaR.ok()) { return Result<SaveSceneResult>::failure(writeMetaR.error());
+}
 
     result.metadataUpdated = true;
 
@@ -93,14 +98,15 @@ Result<SaveSceneResult> SceneWriter::save(const SaveSceneRequest& request)
     ws.activePersonaID    = request.author.personaID;
     ws.lastOpenedAt       = meta.modifiedAt;
     ws.lastWritingSurface = LastWritingSurface{
-        request.sceneID,
-        request.sceneContentPath,
-        request.selection,
-        request.scroll
+        .sceneID=request.sceneID,
+        .contentPath=request.sceneContentPath,
+        .selection=request.selection,
+        .scroll=request.scroll
     };
 
     auto wsR = wsService.save(request.appSupportRoot, ws);
-    if (!wsR.ok()) return Result<SaveSceneResult>::failure(wsR.error());
+    if (!wsR.ok()) { return Result<SaveSceneResult>::failure(wsR.error());
+}
 
     result.workspaceStateUpdated = true;
 

@@ -11,7 +11,7 @@ ObjectStore::ObjectStore(CoreServices& services)
     : services_(services) {}
 
 AbsolutePath ObjectStore::kindDir(const AbsolutePath& projectRoot,
-                                   ObjectKind kind) const
+                                   ObjectKind kind) 
 {
     return util::join(util::join(projectRoot, "objects"),
                       objectKindSubdir(kind));
@@ -25,33 +25,40 @@ Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
     auto  dir = kindDir(projectRoot, kind);
 
     auto existsR = fs.exists(dir);
-    if (!existsR.ok()) return Result<AbsolutePath>::failure(existsR.error());
-    if (!existsR.value())
+    if (!existsR.ok()) { return Result<AbsolutePath>::failure(existsR.error());
+}
+    if (!existsR.value()) {
         return Result<AbsolutePath>::failure(
-            {ErrorCode::ioError, objectKindSubdir(kind) + " directory not found"});
+            {.code=ErrorCode::ioError, .message=objectKindSubdir(kind) + " directory not found"});
+}
 
     auto listR = fs.listDirectory(dir);
-    if (!listR.ok()) return Result<AbsolutePath>::failure(listR.error());
+    if (!listR.ok()) { return Result<AbsolutePath>::failure(listR.error());
+}
 
     for (const auto& entry : listR.value()) {
-        if (util::extension(entry) != ".json") continue;
+        if (util::extension(entry) != ".json") { continue;
+}
         auto textR = fs.readTextFile(entry);
-        if (!textR.ok()) continue;
+        if (!textR.ok()) { continue;
+}
         auto parseR = schemas::parseWorldObject(textR.value(), kind);
-        if (!parseR.ok()) continue;
-        if (worldObjectFields(parseR.value()).objectID.value == id.value)
+        if (!parseR.ok()) { continue;
+}
+        if (worldObjectFields(parseR.value()).objectID.value == id.value) {
             return Result<AbsolutePath>::success(entry);
+}
     }
 
     return Result<AbsolutePath>::failure(
-        {ErrorCode::ioError, "object not found: " + id.value});
+        {.code=ErrorCode::ioError, .message="object not found: " + id.value});
 }
 
 // ---------------------------------------------------------------------------
 // create
 // ---------------------------------------------------------------------------
 
-Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& request)
+Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& request) const
 {
     auto& fs    = *services_.fileSystem;
     auto& uuid  = *services_.uuidProvider;
@@ -61,21 +68,25 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
         ? util::makeSlug(request.displayName)
         : request.slug;
 
-    if (slug.empty())
+    if (slug.empty()) {
         return Result<CreateObjectResult>::failure(
-            {ErrorCode::invalidArgument, "could not derive slug from displayName"});
+            {.code=ErrorCode::invalidArgument, .message="could not derive slug from displayName"});
+}
 
     auto dir = kindDir(request.projectRootPath, request.objectKind);
-    if (auto r = fs.createDirectories(dir); !r.ok())
+    if (auto r = fs.createDirectories(dir); !r.ok()) {
         return Result<CreateObjectResult>::failure(r.error());
+}
 
     auto destPath = util::join(dir, slug + ".json");
     auto existsR  = fs.exists(destPath);
-    if (!existsR.ok()) return Result<CreateObjectResult>::failure(existsR.error());
-    if (existsR.value())
+    if (!existsR.ok()) { return Result<CreateObjectResult>::failure(existsR.error());
+}
+    if (existsR.value()) {
         return Result<CreateObjectResult>::failure(
-            {ErrorCode::invalidArgument,
-             "an object with slug '" + slug + "' already exists"});
+            {.code=ErrorCode::invalidArgument,
+             .message="an object with slug '" + slug + "' already exists"});
+}
 
     WorldObjectFields fields;
     fields.objectID.value         = uuid.newObjectID().value;
@@ -102,8 +113,9 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
     }
 
     auto json = schemas::serializeWorldObject(obj);
-    if (auto r = fs.atomicWriteTextFile(destPath, json); !r.ok())
+    if (auto r = fs.atomicWriteTextFile(destPath, json); !r.ok()) {
         return Result<CreateObjectResult>::failure(r.error());
+}
 
     CreateObjectResult result;
     result.objectID = fields.objectID;
@@ -121,13 +133,16 @@ Result<OpenObjectResult> ObjectStore::open(const OpenObjectRequest& request)
     auto& fs = *services_.fileSystem;
 
     auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID);
-    if (!pathR.ok()) return Result<OpenObjectResult>::failure(pathR.error());
+    if (!pathR.ok()) { return Result<OpenObjectResult>::failure(pathR.error());
+}
 
     auto textR = fs.readTextFile(pathR.value());
-    if (!textR.ok()) return Result<OpenObjectResult>::failure(textR.error());
+    if (!textR.ok()) { return Result<OpenObjectResult>::failure(textR.error());
+}
 
     auto parseR = schemas::parseWorldObject(textR.value(), request.objectKind);
-    if (!parseR.ok()) return Result<OpenObjectResult>::failure(parseR.error());
+    if (!parseR.ok()) { return Result<OpenObjectResult>::failure(parseR.error());
+}
 
     OpenObjectResult result;
     result.object = std::move(parseR.value());
@@ -147,22 +162,25 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
     const auto& fields = worldObjectFields(request.object);
     const auto  kind   = std::visit([](const auto& o) -> ObjectKind {
         using T = std::decay_t<decltype(o)>;
-        if constexpr (std::is_same_v<T, CharacterObject>) return ObjectKind::character;
-        else if constexpr (std::is_same_v<T, LocationObject>)  return ObjectKind::location;
-        else if constexpr (std::is_same_v<T, ItemObject>)      return ObjectKind::item;
-        else if constexpr (std::is_same_v<T, RuleObject>)      return ObjectKind::rule;
-        else                                                    return ObjectKind::timeline;
+        if constexpr (std::is_same_v<T, CharacterObject>) { return ObjectKind::character;
+        } else if constexpr (std::is_same_v<T, LocationObject>) {  return ObjectKind::location;
+        } else if constexpr (std::is_same_v<T, ItemObject>) {      return ObjectKind::item;
+        } else if constexpr (std::is_same_v<T, RuleObject>) {      return ObjectKind::rule;
+        } else {                                                    return ObjectKind::timeline;
+}
     }, request.object);
 
     auto pathR = findByID(request.projectRootPath, kind, fields.objectID);
-    if (!pathR.ok()) return Result<SaveObjectResult>::failure(pathR.error());
+    if (!pathR.ok()) { return Result<SaveObjectResult>::failure(pathR.error());
+}
 
     const auto& destPath = pathR.value();
 
     // Best-effort backup before overwriting
     auto textR = fs.readTextFile(destPath);
-    if (textR.ok())
+    if (textR.ok()) {
         (void)fs.atomicWriteTextFile(destPath + ".bak", textR.value());
+}
 
     // Apply updated timestamps by mutating the concrete alternative via visit
     auto now = clock.nowUTC();
@@ -175,8 +193,9 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
     }, updated);
 
     auto json = schemas::serializeWorldObject(updated);
-    if (auto r = fs.atomicWriteTextFile(destPath, json); !r.ok())
+    if (auto r = fs.atomicWriteTextFile(destPath, json); !r.ok()) {
         return Result<SaveObjectResult>::failure(r.error());
+}
 
     SaveObjectResult result;
     result.objectID = fields.objectID;
@@ -193,10 +212,12 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
     auto& fs = *services_.fileSystem;
 
     auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID);
-    if (!pathR.ok()) return Result<DeleteObjectResult>::failure(pathR.error());
+    if (!pathR.ok()) { return Result<DeleteObjectResult>::failure(pathR.error());
+}
 
-    if (auto r = fs.removeFile(pathR.value()); !r.ok())
+    if (auto r = fs.removeFile(pathR.value()); !r.ok()) {
         return Result<DeleteObjectResult>::failure(r.error());
+}
 
     DeleteObjectResult result;
     result.objectID = request.objectID;

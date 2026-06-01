@@ -26,7 +26,7 @@ static ApplyRepairResult okResult(const ApplyRepairRequest& req, std::string det
 static Result<ApplyRepairResult> repairError(ErrorCode code, std::string message,
                                               const std::string& path = {})
 {
-    return Result<ApplyRepairResult>::failure({code, std::move(message), path});
+    return Result<ApplyRepairResult>::failure({.code=code, .message=std::move(message), .path=path});
 }
 
 // Read the scene metadata file identified by issue.path. issue.path is the
@@ -35,8 +35,9 @@ static Result<schemas::SceneMetaData> readSceneMeta(
     const HandlerContext& ctx, const std::string& absMetaPath)
 {
     auto textR = ctx.services.fileSystem->readTextFile(absMetaPath);
-    if (!textR.ok())
+    if (!textR.ok()) {
         return Result<schemas::SceneMetaData>::failure(textR.error());
+    }
     return schemas::parseSceneMeta(textR.value());
 }
 
@@ -44,7 +45,9 @@ static Result<schemas::SceneMetaData> readSceneMeta(
 // Ignores errors — a missing backup is not fatal.
 static void writeBackup(FileSystem& fs, const AbsolutePath& path) {
     auto textR = fs.readTextFile(path);
-    if (!textR.ok()) return;
+    if (!textR.ok()) {
+        return;
+    }
     auto bakPath = path + ".bak";
     fs.atomicWriteTextFile(bakPath, textR.value());
 }
@@ -67,8 +70,9 @@ static Result<ChapterLocation> findChapterForScene(
     // Read manuscript.meta.json to get chapter list
     auto msPath  = util::join(root, "manuscript/manuscript.meta.json");
     auto msTextR = fs.readTextFile(msPath);
-    if (!msTextR.ok())
+    if (!msTextR.ok()) {
         return Result<ChapterLocation>::failure(msTextR.error());
+    }
 
     // Parse manually (we only need the chapters array)
     // We'll iterate chapter paths and check each one.
@@ -76,20 +80,27 @@ static Result<ChapterLocation> findChapterForScene(
     // First get the list of chapter dirs from the manuscript directory.
     auto msDirPath = util::join(root, "manuscript");
     auto listR     = fs.listDirectory(msDirPath);
-    if (!listR.ok())
+    if (!listR.ok()) {
         return Result<ChapterLocation>::failure(listR.error());
+    }
 
     for (auto& entry : listR.value()) {
         auto isDirR = fs.isDirectory(entry);
-        if (!isDirR.ok() || !isDirR.value()) continue;
+        if (!isDirR.ok() || !isDirR.value()) {
+            continue;
+        }
 
         // Look for chapter.meta.json inside this directory
         auto chMetaPath = util::join(entry, "chapter.meta.json");
         auto chTextR    = fs.readTextFile(chMetaPath);
-        if (!chTextR.ok()) continue;
+        if (!chTextR.ok()) {
+            continue;
+        }
 
         auto chParsed = schemas::parseChapterMeta(chTextR.value());
-        if (!chParsed.ok()) continue;
+        if (!chParsed.ok()) {
+            continue;
+        }
 
         auto& scenes = chParsed.value().scenes;
         for (std::size_t i = 0; i < scenes.size(); ++i) {
@@ -103,8 +114,8 @@ static Result<ChapterLocation> findChapterForScene(
         }
     }
 
-    return Result<ChapterLocation>::failure({ErrorCode::invalidArgument,
-        "could not find a chapter owning sceneID '" + sceneID.value + "'"});
+    return Result<ChapterLocation>::failure({.code=ErrorCode::invalidArgument,
+        .message="could not find a chapter owning sceneID '" + sceneID.value + "'"});
 }
 
 // ---------------------------------------------------------------------------
@@ -119,29 +130,32 @@ Result<ApplyRepairResult> handleRelinkToFile(const HandlerContext& ctx) {
     const auto& req   = ctx.request;
     const auto& issue = ctx.issue;
 
-    if (req.targetPath.empty())
+    if (req.targetPath.empty()) {
         return repairError(ErrorCode::invalidArgument,
             "relinkToFile requires a non-empty targetPath");
+    }
 
     // Resolve the scene metadata path via the chapter index
     auto chLocR = findChapterForScene(ctx, issue.sceneID);
-    if (!chLocR.ok())
+    if (!chLocR.ok()) {
         return Result<ApplyRepairResult>::failure(chLocR.error());
+    }
 
     const auto& chLoc    = chLocR.value();
     const auto& sceneRef = chLoc.data.scenes[chLoc.sceneIndex];
     auto absMetaPath     = util::join(req.projectRootPath, sceneRef.metadataPath);
 
     auto metaR = readSceneMeta(ctx, absMetaPath);
-    if (!metaR.ok())
+    if (!metaR.ok()) {
         return Result<ApplyRepairResult>::failure(metaR.error());
+    }
 
     auto meta = metaR.value();
 
     // Normalise targetPath to relative
     std::string relTarget = req.targetPath;
     if (relTarget.size() > req.projectRootPath.size() &&
-        relTarget.substr(0, req.projectRootPath.size()) == req.projectRootPath)
+        relTarget.starts_with(req.projectRootPath))
     {
         relTarget = relTarget.substr(req.projectRootPath.size() + 1);
     }
@@ -156,8 +170,9 @@ Result<ApplyRepairResult> handleRelinkToFile(const HandlerContext& ctx) {
 
     auto writeR = ctx.services.fileSystem->atomicWriteTextFile(
         absMetaPath, schemas::serializeSceneMeta(meta));
-    if (!writeR.ok())
+    if (!writeR.ok()) {
         return Result<ApplyRepairResult>::failure(writeR.error());
+    }
 
     return Result<ApplyRepairResult>::success(
         okResult(req, "Scene relinked to '" + relTarget + "'"));
@@ -180,12 +195,14 @@ Result<ApplyRepairResult> handleCreateEmptyContentFile(const HandlerContext& ctx
     // Ensure the parent directory exists
     auto parentDir = util::parent(absContentPath);
     auto mkdirR = ctx.services.fileSystem->createDirectories(parentDir);
-    if (!mkdirR.ok())
+    if (!mkdirR.ok()) {
         return Result<ApplyRepairResult>::failure(mkdirR.error());
+    }
 
     auto writeR = ctx.services.fileSystem->atomicWriteTextFile(absContentPath, "");
-    if (!writeR.ok())
+    if (!writeR.ok()) {
         return Result<ApplyRepairResult>::failure(writeR.error());
+    }
 
     return Result<ApplyRepairResult>::success(
         okResult(req, "Empty content file created at '" + absContentPath + "'"));
@@ -209,16 +226,18 @@ Result<ApplyRepairResult> handleMarkMissing(const HandlerContext& ctx) {
     // The issue.path is the missing *content* path; the metadata path is
     // stored in the chapter. Find the chapter and get the metadataPath.
     auto chLocR = findChapterForScene(ctx, issue.sceneID);
-    if (!chLocR.ok())
+    if (!chLocR.ok()) {
         return Result<ApplyRepairResult>::failure(chLocR.error());
+    }
 
     const auto& chLoc   = chLocR.value();
     const auto& sceneRef = chLoc.data.scenes[chLoc.sceneIndex];
     auto absMetaPath = util::join(req.projectRootPath, sceneRef.metadataPath);
 
     auto metaR = readSceneMeta(ctx, absMetaPath);
-    if (!metaR.ok())
+    if (!metaR.ok()) {
         return Result<ApplyRepairResult>::failure(metaR.error());
+    }
 
     auto meta    = metaR.value();
     meta.status  = "missing";
@@ -231,8 +250,9 @@ Result<ApplyRepairResult> handleMarkMissing(const HandlerContext& ctx) {
 
     auto writeR = ctx.services.fileSystem->atomicWriteTextFile(
         absMetaPath, schemas::serializeSceneMeta(meta));
-    if (!writeR.ok())
+    if (!writeR.ok()) {
         return Result<ApplyRepairResult>::failure(writeR.error());
+    }
 
     return Result<ApplyRepairResult>::success(
         okResult(req, "Scene '" + meta.sceneID.value + "' marked as missing"));
@@ -249,8 +269,9 @@ Result<ApplyRepairResult> handleRemoveFromProject(const HandlerContext& ctx) {
     const auto& issue = ctx.issue;
 
     auto chLocR = findChapterForScene(ctx, issue.sceneID);
-    if (!chLocR.ok())
+    if (!chLocR.ok()) {
         return Result<ApplyRepairResult>::failure(chLocR.error());
+    }
 
     auto chLoc = chLocR.value();
     auto& scenes = chLoc.data.scenes;
@@ -262,8 +283,9 @@ Result<ApplyRepairResult> handleRemoveFromProject(const HandlerContext& ctx) {
 
     auto writeR = ctx.services.fileSystem->atomicWriteTextFile(
         chLoc.absPath, schemas::serializeChapterMeta(chLoc.data));
-    if (!writeR.ok())
+    if (!writeR.ok()) {
         return Result<ApplyRepairResult>::failure(writeR.error());
+    }
 
     return Result<ApplyRepairResult>::success(
         okResult(req, "Scene '" + issue.sceneID.value +
@@ -286,8 +308,9 @@ Result<ApplyRepairResult> handleMoveToInbox(const HandlerContext& ctx) {
     // Ensure inbox directory exists
     auto inboxDir = util::join(req.projectRootPath, "inbox/dropped-files");
     auto mkdirR   = ctx.services.fileSystem->createDirectories(inboxDir);
-    if (!mkdirR.ok())
+    if (!mkdirR.ok()) {
         return Result<ApplyRepairResult>::failure(mkdirR.error());
+    }
 
     // Build destination path: inbox/dropped-files/<filename>
     auto fname   = util::filename(srcPath);
@@ -295,18 +318,21 @@ Result<ApplyRepairResult> handleMoveToInbox(const HandlerContext& ctx) {
 
     // Read source
     auto textR = ctx.services.fileSystem->readTextFile(srcPath);
-    if (!textR.ok())
+    if (!textR.ok()) {
         return Result<ApplyRepairResult>::failure(textR.error());
+    }
 
     // Write to destination
     auto writeR = ctx.services.fileSystem->atomicWriteTextFile(dstPath, textR.value());
-    if (!writeR.ok())
+    if (!writeR.ok()) {
         return Result<ApplyRepairResult>::failure(writeR.error());
+    }
 
     // Remove source
     auto removeR = ctx.services.fileSystem->removeFile(srcPath);
-    if (!removeR.ok())
+    if (!removeR.ok()) {
         return Result<ApplyRepairResult>::failure(removeR.error());
+    }
 
     return Result<ApplyRepairResult>::success(
         okResult(req, "File moved to inbox: '" + dstPath + "'"));
@@ -323,8 +349,9 @@ Result<ApplyRepairResult> handleReloadExternalVersion(const HandlerContext& ctx)
     const auto& issue = ctx.issue;
 
     auto textR = ctx.services.fileSystem->readTextFile(issue.path);
-    if (!textR.ok())
+    if (!textR.ok()) {
         return Result<ApplyRepairResult>::failure(textR.error());
+    }
 
     ApplyRepairResult result = okResult(req, textR.value());
     // resolved = true signals the issue is handled; the caller decides what
@@ -356,7 +383,7 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
         // Derive content path from metadata path: strip .meta.json → .md
         std::string relMeta = absMetaPath;
         if (relMeta.size() > req.projectRootPath.size() &&
-            relMeta.substr(0, req.projectRootPath.size()) == req.projectRootPath)
+            relMeta.starts_with(req.projectRootPath))
         {
             relMeta = relMeta.substr(req.projectRootPath.size() + 1);
         }
@@ -367,12 +394,14 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
 
         // Confirm content file exists
         auto existsR = ctx.services.fileSystem->exists(absContentPath);
-        if (!existsR.ok())
+        if (!existsR.ok()) {
             return Result<ApplyRepairResult>::failure(existsR.error());
-        if (!existsR.value())
+        }
+        if (!existsR.value()) {
             return repairError(ErrorCode::ioError,
                 "Cannot regenerate metadata: content file not found at '" +
                 absContentPath + "'");
+        }
 
         // Generate a fresh sceneID for the regenerated metadata
         auto newSceneID = ctx.services.uuidProvider->newSceneID();
@@ -383,8 +412,11 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
         auto stem = util::replaceExtension(fname, "");
         // Replace hyphens/underscores with spaces for a human-readable title
         std::string inferredTitle = stem;
-        for (char& c : inferredTitle)
-            if (c == '-' || c == '_') c = ' ';
+        for (char& c : inferredTitle) {
+            if (c == '-' || c == '_') {
+                c = ' ';
+            }
+        }
 
         auto now = ctx.services.clock->nowUTC();
 
@@ -407,8 +439,9 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
 
         // Back up if it exists (corrupt case)
         auto existsMeta = ctx.services.fileSystem->exists(absMetaPath);
-        if (existsMeta.ok() && existsMeta.value())
+        if (existsMeta.ok() && existsMeta.value()) {
             writeBackup(*ctx.services.fileSystem, absMetaPath);
+        }
 
         // Ensure parent directory exists
         auto parentDir = util::parent(absMetaPath);
@@ -416,84 +449,86 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
 
         auto writeR = ctx.services.fileSystem->atomicWriteTextFile(
             absMetaPath, schemas::serializeSceneMeta(meta));
-        if (!writeR.ok())
+        if (!writeR.ok()) {
             return Result<ApplyRepairResult>::failure(writeR.error());
+        }
 
         return Result<ApplyRepairResult>::success(
             okResult(req, "Scene metadata regenerated at '" + absMetaPath +
                           "' with new sceneID '" + newSceneID.value + "'"));
-
-    } else {
-        // --- Chapter metadata regeneration ---
-        // issue.path is the absolute path to the corrupt/missing chapter.meta.json.
-        const std::string& absChMetaPath = issue.path;
-        auto chapterDir = util::parent(absChMetaPath);
-
-        // Scan the chapter directory for .meta.json files (scene metadata)
-        auto listR = ctx.services.fileSystem->listDirectory(chapterDir);
-        if (!listR.ok())
-            return Result<ApplyRepairResult>::failure(listR.error());
-
-        std::vector<schemas::SceneRef> sceneRefs;
-        for (auto& entry : listR.value()) {
-            // A scene metadata file ends in .meta.json (but is not chapter.meta.json)
-            auto fname = util::filename(entry);
-            if (fname == "chapter.meta.json") continue;
-            if (util::extension(entry) != ".json") continue;
-            // Quick check: try to parse it as scene metadata
-            auto textR = ctx.services.fileSystem->readTextFile(entry);
-            if (!textR.ok()) continue;
-            auto parsed = schemas::parseSceneMeta(textR.value());
-            if (!parsed.ok()) continue;
-
-            // Build relative path from projectRoot
-            std::string relMeta = entry;
-            if (relMeta.size() > req.projectRootPath.size() &&
-                relMeta.substr(0, req.projectRootPath.size()) == req.projectRootPath)
-            {
-                relMeta = relMeta.substr(req.projectRootPath.size() + 1);
-            }
-            sceneRefs.push_back({parsed.value().sceneID, relMeta});
-        }
-
-        // Generate new chapterID
-        auto newChapterID = ctx.services.uuidProvider->newChapterID();
-
-        // Infer title from directory name
-        auto dirName       = util::filename(chapterDir);
-        std::string inferredTitle = dirName;
-        for (char& c : inferredTitle)
-            if (c == '-' || c == '_') c = ' ';
-
-        auto now = ctx.services.clock->nowUTC();
-
-        schemas::ChapterMetaData chData;
-        chData.chapterID.value       = newChapterID.value;
-        chData.title                 = inferredTitle;
-        chData.slug                  = dirName;
-        chData.displayLabel          = "Chapter";
-        chData.status                = "draft";
-        chData.createdAt             = now;
-        chData.createdByIdentityID   = req.author.identityID.value;
-        chData.createdByPersonaID    = req.author.personaID.value;
-        chData.createdByDisplayName  = req.author.displayName;
-        chData.scenes                = std::move(sceneRefs);
-
-        // Back up if the file exists (corrupt case)
-        auto existsCh = ctx.services.fileSystem->exists(absChMetaPath);
-        if (existsCh.ok() && existsCh.value())
-            writeBackup(*ctx.services.fileSystem, absChMetaPath);
-
-        auto writeR = ctx.services.fileSystem->atomicWriteTextFile(
-            absChMetaPath, schemas::serializeChapterMeta(chData));
-        if (!writeR.ok())
-            return Result<ApplyRepairResult>::failure(writeR.error());
-
-        return Result<ApplyRepairResult>::success(
-            okResult(req, "Chapter metadata regenerated at '" + absChMetaPath +
-                          "' with " + std::to_string(chData.scenes.size()) +
-                          " scene(s) discovered"));
     }
+
+    // --- Chapter metadata regeneration ---
+    // issue.path is the absolute path to the corrupt/missing chapter.meta.json.
+    const std::string& absChMetaPath = issue.path;
+    auto chapterDir = util::parent(absChMetaPath);
+
+    // Scan the chapter directory for .meta.json files (scene metadata)
+    auto listR = ctx.services.fileSystem->listDirectory(chapterDir);
+    if (!listR.ok()) {
+        return Result<ApplyRepairResult>::failure(listR.error());
+    }
+
+    std::vector<schemas::SceneRef> sceneRefs;
+    for (auto& entry : listR.value()) {
+        // A scene metadata file ends in .meta.json (but is not chapter.meta.json)
+        auto fname = util::filename(entry);
+        if (fname == "chapter.meta.json") { continue; }
+        if (util::extension(entry) != ".json") { continue; }
+        // Quick check: try to parse it as scene metadata
+        auto textR = ctx.services.fileSystem->readTextFile(entry);
+        if (!textR.ok()) { continue; }
+        auto parsed = schemas::parseSceneMeta(textR.value());
+        if (!parsed.ok()) { continue; }
+
+        // Build relative path from projectRoot
+        std::string relMeta = entry;
+        if (relMeta.starts_with(req.projectRootPath)) {
+            relMeta = relMeta.substr(req.projectRootPath.size() + 1);
+        }
+        sceneRefs.push_back({.sceneID = parsed.value().sceneID, .metadataPath = relMeta});
+    }
+
+    // Generate new chapterID
+    auto newChapterID = ctx.services.uuidProvider->newChapterID();
+
+    // Infer title from directory name
+    auto dirName       = util::filename(chapterDir);
+    std::string inferredTitle = dirName;
+    for (char& c : inferredTitle) {
+        if (c == '-' || c == '_') { c = ' '; }
+    }
+
+    auto now = ctx.services.clock->nowUTC();
+
+    schemas::ChapterMetaData chData;
+    chData.chapterID.value       = newChapterID.value;
+    chData.title                 = inferredTitle;
+    chData.slug                  = dirName;
+    chData.displayLabel          = "Chapter";
+    chData.status                = "draft";
+    chData.createdAt             = now;
+    chData.createdByIdentityID   = req.author.identityID.value;
+    chData.createdByPersonaID    = req.author.personaID.value;
+    chData.createdByDisplayName  = req.author.displayName;
+    chData.scenes                = std::move(sceneRefs);
+
+    // Back up if the file exists (corrupt case)
+    auto existsCh = ctx.services.fileSystem->exists(absChMetaPath);
+    if (existsCh.ok() && existsCh.value()) {
+        writeBackup(*ctx.services.fileSystem, absChMetaPath);
+    }
+
+    auto writeR = ctx.services.fileSystem->atomicWriteTextFile(
+        absChMetaPath, schemas::serializeChapterMeta(chData));
+    if (!writeR.ok()) {
+        return Result<ApplyRepairResult>::failure(writeR.error());
+    }
+
+    return Result<ApplyRepairResult>::success(
+        okResult(req, "Chapter metadata regenerated at '" + absChMetaPath +
+                      "' with " + std::to_string(chData.scenes.size()) +
+                      " scene(s) discovered"));
 }
 
 } // namespace scrivi::repair

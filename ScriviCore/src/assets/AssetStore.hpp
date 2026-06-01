@@ -12,14 +12,14 @@ class AssetStore {
 public:
     explicit AssetStore(CoreServices& services);
 
-    Result<ImportAssetResult> import(const ImportAssetRequest& request);
-    Result<ListAssetsResult>  list(const ListAssetsRequest& request);
-    Result<RemoveAssetResult> remove(const RemoveAssetRequest& request);
+    [[nodiscard]] Result<ImportAssetResult> import(const ImportAssetRequest& request) const;
+    [[nodiscard]] Result<ListAssetsResult>  list(const ListAssetsRequest& request) const;
+    [[nodiscard]] Result<RemoveAssetResult> remove(const RemoveAssetRequest& request) const;
 
 private:
     CoreServices& services_;
 
-    AbsolutePath categoryDir(const AbsolutePath& projectRoot, AssetCategory cat) const;
+    [[nodiscard]] static AbsolutePath categoryDir(const AbsolutePath& projectRoot, AssetCategory cat);
 };
 
 } // namespace scrivi::assets

@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-SP-019 is active. See [Sprint-active.md](Sprint-active.md).
+SP-020 is active. See [Sprint-active.md](Sprint-active.md).
 
 ## Sprint Backlog
 
@@ -19,13 +19,11 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | 🔵 Planning |
-| SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 🔵 Planning |
-| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | 🔵 Planning |
+| —      | None  | —    | —      |
 
 ## All Sprints
 
-Currently: **19 Sprints** | Next available: **SP-020**
+Currently: **20 Sprints** | Next available: **SP-021**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -47,15 +45,16 @@ Currently: **19 Sprints** | Next available: **SP-020**
 | SP-016 | saveScene Wiring and EP-006 Close | EP-006 | 2026-05-30 | 2026-05-30 | ✅ Closed |
 | SP-017 | Cross-Platform Build — Ubuntu (GCC/Clang) | EP-008 | 2026-05-30 | 2026-05-31 | ✅ Closed |
 | SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 2026-05-31 | 2026-06-01 | ✅ Closed |
-| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | 2026-06-01 | — | 🟡 Active |
+| SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | 2026-06-01 | 2026-06-01 | ✅ Closed |
+| SP-020 | clang-tidy Housekeeping — Full Warning Sweep | None | 2026-06-01 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 19
-- **Closed:** 18 ✅
+- **Total Sprints:** 20
+- **Closed:** 19 ✅
 - **Active:** 1 🟡
 - **Planning:** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-01 (SP-019 activated)*
+*Last Updated: 2026-06-01 (SP-019 closed; SP-020 activated)*

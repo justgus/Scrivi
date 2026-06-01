@@ -18,12 +18,12 @@ public:
     JsonDoc(const JsonDoc&) = delete;
     JsonDoc& operator=(const JsonDoc&) = delete;
 
-    bool contains(std::string_view key) const;
+    [[nodiscard]] bool contains(std::string_view key) const;
 
-    std::string getString(std::string_view key, std::string_view defaultValue = "") const;
-    bool        getBool(std::string_view key, bool defaultValue = false) const;
-    int         getInt(std::string_view key, int defaultValue = 0) const;
-    double      getDouble(std::string_view key, double defaultValue = 0.0) const;
+    [[nodiscard]] std::string getString(std::string_view key, std::string_view defaultValue = "") const;
+    [[nodiscard]] bool        getBool(std::string_view key, bool defaultValue = false) const;
+    [[nodiscard]] int         getInt(std::string_view key, int defaultValue = 0) const;
+    [[nodiscard]] double      getDouble(std::string_view key, double defaultValue = 0.0) const;
 
     void setString(std::string_view key, std::string_view value);
     void setBool(std::string_view key, bool value);
@@ -34,18 +34,18 @@ public:
     void setSubDoc(std::string_view key, JsonDoc sub);
 
     // Returns a sub-object as a JsonDoc, or an empty doc if missing/not-object.
-    JsonDoc getSubDoc(std::string_view key) const;
+    [[nodiscard]] JsonDoc getSubDoc(std::string_view key) const;
 
     // Array support: appends a sub-object to an array field (creates array if absent).
     void appendToArray(std::string_view key, JsonDoc item);
 
     // Returns the number of elements in an array field (0 if missing or not an array).
-    std::size_t arraySize(std::string_view key) const;
+    [[nodiscard]] std::size_t arraySize(std::string_view key) const;
 
     // Returns element i of an array field as a JsonDoc.
-    JsonDoc arrayItem(std::string_view key, std::size_t i) const;
+    [[nodiscard]] JsonDoc arrayItem(std::string_view key, std::size_t i) const;
 
-    std::string dump(int indent = 2) const;
+    [[nodiscard]] std::string dump(int indent = 2) const;
 
 private:
     struct Impl;

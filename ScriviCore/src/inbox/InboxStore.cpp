@@ -8,7 +8,7 @@ namespace scrivi::inbox {
 InboxStore::InboxStore(CoreServices& services)
     : services_(services) {}
 
-AbsolutePath InboxStore::droppedFilesDir(const AbsolutePath& projectRoot) const {
+AbsolutePath InboxStore::droppedFilesDir(const AbsolutePath& projectRoot) {
     return util::join(util::join(projectRoot, "inbox"), "dropped-files");
 }
 
@@ -16,17 +16,18 @@ AbsolutePath InboxStore::droppedFilesDir(const AbsolutePath& projectRoot) const 
 // list
 // ---------------------------------------------------------------------------
 
-Result<ListInboxResult> InboxStore::list(const ListInboxRequest& request)
+Result<ListInboxResult> InboxStore::list(const ListInboxRequest& request) const
 {
     auto& fs = *services_.fileSystem;
     auto dir = droppedFilesDir(request.projectRootPath);
 
     auto existsR = fs.exists(dir);
-    if (!existsR.ok() || !existsR.value())
+    if (!existsR.ok() || !existsR.value()) {
         return Result<ListInboxResult>::success(ListInboxResult{});
+    }
 
     auto listR = fs.listDirectory(dir);
-    if (!listR.ok()) return Result<ListInboxResult>::failure(listR.error());
+    if (!listR.ok()) { return Result<ListInboxResult>::failure(listR.error()); }
 
     ListInboxResult result;
     for (const auto& entry : listR.value()) {
@@ -56,8 +57,9 @@ Result<ImportFromInboxResult> InboxStore::importFromInbox(
             return Result<ImportFromInboxResult>::success(std::move(r));
         }
         case InboxAction::deleteFile: {
-            if (auto dr = fs.removeFile(inboxPath); !dr.ok())
+            if (auto dr = fs.removeFile(inboxPath); !dr.ok()) {
                 return Result<ImportFromInboxResult>::failure(dr.error());
+            }
             ImportFromInboxResult r;
             r.actionTaken = "deleted";
             return Result<ImportFromInboxResult>::success(std::move(r));
@@ -72,8 +74,9 @@ Result<ImportFromInboxResult> InboxStore::importFromInbox(
 
             assets::AssetStore assetStore{services_};
             auto importR = assetStore.import(assetReq);
-            if (!importR.ok())
+            if (!importR.ok()) {
                 return Result<ImportFromInboxResult>::failure(importR.error());
+            }
 
             // Remove the original inbox file after successful import.
             (void)fs.removeFile(inboxPath);
@@ -86,7 +89,7 @@ Result<ImportFromInboxResult> InboxStore::importFromInbox(
         }
     }
     return Result<ImportFromInboxResult>::failure(
-        {ErrorCode::invalidArgument, "unknown InboxAction"});
+        {.code = ErrorCode::invalidArgument, .message = "unknown InboxAction"});
 }
 
 } // namespace scrivi::inbox

@@ -1,5 +1,6 @@
 #include "platform/SystemUUIDProvider.hpp"
 
+#include <array>
 #include <chrono>
 #include <cinttypes>
 #include <cstdint>
@@ -45,8 +46,8 @@ std::string makeV7() {
     uint64_t lo = (uint64_t{0x8} << 60)   // variant 0b10xx
                 | (rand & 0x3FFFFFFFFFFFFFFF);
 
-    char buf[37];
-    std::snprintf(buf, sizeof(buf),
+    std::array<char, 37> buf{};
+    std::snprintf(buf.data(), buf.size(),
         "%08" PRIx32 "-%04" PRIx16 "-%04" PRIx16 "-%04" PRIx16 "-%012" PRIx64,
         static_cast<uint32_t>(hi >> 32),
         static_cast<uint16_t>(hi >> 16),
@@ -54,7 +55,7 @@ std::string makeV7() {
         static_cast<uint16_t>(lo >> 48),
         static_cast<uint64_t>(lo & 0x0000FFFFFFFFFFFF));
 
-    return buf;
+    return buf.data();
 }
 
 } // namespace

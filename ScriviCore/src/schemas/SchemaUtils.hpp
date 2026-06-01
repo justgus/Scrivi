@@ -11,9 +11,10 @@ namespace scrivi::schemas {
 
 // Returns validationError if the field is missing from doc.
 inline Result<void> requireField(const util::JsonDoc& doc, std::string_view key) {
-    if (!doc.contains(key))
-        return Result<void>::failure({ErrorCode::validationError,
-            std::string("missing required field: ") + std::string(key)});
+    if (!doc.contains(key)) {
+        return Result<void>::failure({.code = ErrorCode::validationError,
+            .message = std::string("missing required field: ") + std::string(key)});
+    }
     return Result<void>::success();
 }
 
@@ -21,12 +22,13 @@ inline Result<void> requireField(const util::JsonDoc& doc, std::string_view key)
 inline Result<util::JsonDoc> parseAndValidateSchema(std::string_view json,
                                                      std::string_view expectedSchema) {
     auto result = util::parseJson(json);
-    if (!result.ok()) return Result<util::JsonDoc>::failure(result.error());
+    if (!result.ok()) { return Result<util::JsonDoc>::failure(result.error()); }
     auto doc = std::move(result.value());
     auto schema = doc.getString("schema");
-    if (schema != expectedSchema)
-        return Result<util::JsonDoc>::failure({ErrorCode::validationError,
-            "unexpected schema: " + schema});
+    if (schema != expectedSchema) {
+        return Result<util::JsonDoc>::failure({.code = ErrorCode::validationError,
+            .message = "unexpected schema: " + schema});
+    }
     return Result<util::JsonDoc>::success(std::move(doc));
 }
 

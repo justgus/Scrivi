@@ -34,7 +34,7 @@ std::string serializeAssetMeta(const AssetMeta& meta) {
 
 Result<AssetMeta> parseAssetMeta(std::string_view json) {
     auto r = parseAndValidateSchema(json, kAssetMetaSchema);
-    if (!r.ok()) return Result<AssetMeta>::failure(r.error());
+    if (!r.ok()) { return Result<AssetMeta>::failure(r.error()); }
     auto& doc = r.value();
 
     AssetMeta meta;
@@ -54,8 +54,9 @@ Result<AssetMeta> parseAssetMeta(std::string_view json) {
 
     const auto tagCount = doc.arraySize("tags");
     meta.tags.reserve(tagCount);
-    for (std::size_t i = 0; i < tagCount; ++i)
+    for (std::size_t i = 0; i < tagCount; ++i) {
         meta.tags.push_back(doc.arrayItem("tags", i).getString("v"));
+    }
 
     return Result<AssetMeta>::success(std::move(meta));
 }

@@ -42,12 +42,12 @@ std::string serializeSceneMeta(const SceneMetaData& d) {
 
 Result<SceneMetaData> parseSceneMeta(std::string_view json) {
     auto r = parseAndValidateSchema(json, "scrivi.scene.v1");
-    if (!r.ok()) return Result<SceneMetaData>::failure(r.error());
+    if (!r.ok()) { return Result<SceneMetaData>::failure(r.error()); }
     auto& doc = r.value();
 
-    for (auto key : {"sceneID", "title", "status"}) {
+    for (const auto* key : {"sceneID", "title", "status"}) {
         auto v = requireField(doc, key);
-        if (!v.ok()) return Result<SceneMetaData>::failure(v.error());
+        if (!v.ok()) { return Result<SceneMetaData>::failure(v.error()); }
     }
 
     SceneMetaData data;

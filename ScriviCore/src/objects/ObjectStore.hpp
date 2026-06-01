@@ -13,7 +13,7 @@ class ObjectStore {
 public:
     explicit ObjectStore(CoreServices& services);
 
-    Result<CreateObjectResult> create(const CreateObjectRequest& request);
+    [[nodiscard]] Result<CreateObjectResult> create(const CreateObjectRequest& request) const;
     Result<OpenObjectResult>   open(const OpenObjectRequest& request);
     Result<SaveObjectResult>   save(const SaveObjectRequest& request);
     Result<DeleteObjectResult> remove(const DeleteObjectRequest& request);
@@ -21,12 +21,12 @@ public:
 private:
     CoreServices& services_;
 
-    AbsolutePath kindDir(const AbsolutePath& projectRoot, ObjectKind kind) const;
+    [[nodiscard]] static AbsolutePath kindDir(const AbsolutePath& projectRoot, ObjectKind kind);
 
     // Scans kindDir to find the .json file whose parsed objectID matches id.
-    Result<AbsolutePath> findByID(const AbsolutePath& projectRoot,
-                                   ObjectKind kind,
-                                   const ObjectID& id) const;
+    [[nodiscard]] Result<AbsolutePath> findByID(const AbsolutePath& projectRoot,
+                                                 ObjectKind kind,
+                                                 const ObjectID& id) const;
 };
 
 } // namespace scrivi::objects

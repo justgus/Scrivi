@@ -16,13 +16,15 @@ RepairDispatcher::RepairDispatcher(CoreServices services)
 
 Result<ApplyRepairResult> RepairDispatcher::apply(const ApplyRepairRequest& request) {
     // Validate inputs
-    if (request.issueID.empty())
+    if (request.issueID.empty()) {
         return Result<ApplyRepairResult>::failure(
-            {ErrorCode::invalidArgument, "issueID must not be empty"});
+            {.code=ErrorCode::invalidArgument, .message="issueID must not be empty"});
+}
 
-    if (request.actionKind == RepairActionKind::none)
+    if (request.actionKind == RepairActionKind::none) {
         return Result<ApplyRepairResult>::failure(
-            {ErrorCode::invalidArgument, "actionKind must not be none"});
+            {.code=ErrorCode::invalidArgument, .message="actionKind must not be none"});
+}
 
     // Re-read project state: re-scan to verify the issue still applies
     ExternalChangeScanRequest scanRequest;
@@ -32,36 +34,39 @@ Result<ApplyRepairResult> RepairDispatcher::apply(const ApplyRepairRequest& requ
 
     ExternalChangeScanner scanner{services_};
     auto scanResult = scanner.scan(scanRequest);
-    if (!scanResult.ok())
+    if (!scanResult.ok()) {
         return Result<ApplyRepairResult>::failure(scanResult.error());
+}
 
     // Find the matching issue by ID
     const auto& issues = scanResult.value().repairIssues;
-    auto it = std::find_if(issues.begin(), issues.end(),
+    auto it = std::ranges::find_if(issues,
         [&](const RepairIssue& i) { return i.issueID == request.issueID; });
 
-    if (it == issues.end())
+    if (it == issues.end()) {
         return Result<ApplyRepairResult>::failure({
-            ErrorCode::invalidArgument,
-            "issue '" + request.issueID + "' not found in current project scan — "
+            .code=ErrorCode::invalidArgument,
+            .message="issue '" + request.issueID + "' not found in current project scan — "
             "it may have already been resolved"
         });
+}
 
     const RepairIssue& issue = *it;
 
     // Verify the requested actionKind is in the issue's suggestedActions
-    bool actionOffered = std::any_of(
-        issue.suggestedActions.begin(), issue.suggestedActions.end(),
+    bool actionOffered = std::ranges::any_of(
+        issue.suggestedActions,
         [&](const RepairAction& a) { return a.kind == request.actionKind; });
 
-    if (!actionOffered)
+    if (!actionOffered) {
         return Result<ApplyRepairResult>::failure({
-            ErrorCode::invalidArgument,
-            "actionKind is not a suggested action for issue '" + request.issueID + "'"
+            .code=ErrorCode::invalidArgument,
+            .message="actionKind is not a suggested action for issue '" + request.issueID + "'"
         });
+}
 
     // Build a HandlerContext for the real handlers
-    HandlerContext hctx{request, issue, services_};
+    HandlerContext hctx{.request=request, .issue=issue, .services=services_};
 
     // Dispatch to the appropriate handler
     switch (request.actionKind) {
@@ -98,20 +103,20 @@ Result<ApplyRepairResult> RepairDispatcher::apply(const ApplyRepairRequest& requ
         case RepairActionKind::openReadOnly:
         case RepairActionKind::cancelOpen:
             return Result<ApplyRepairResult>::failure({
-                ErrorCode::internalError,
-                "handler not yet implemented for this actionKind",
-                request.projectRootPath
+                .code=ErrorCode::internalError,
+                .message="handler not yet implemented for this actionKind",
+                .path=request.projectRootPath
             });
 
         case RepairActionKind::none:
             // Already rejected above, but required for exhaustive switch
             return Result<ApplyRepairResult>::failure(
-                {ErrorCode::invalidArgument, "actionKind must not be none"});
+                {.code=ErrorCode::invalidArgument, .message="actionKind must not be none"});
     }
 
     // Unreachable — silence compiler warning
     return Result<ApplyRepairResult>::failure(
-        {ErrorCode::internalError, "unhandled actionKind in dispatch"});
+        {.code=ErrorCode::internalError, .message="unhandled actionKind in dispatch"});
 }
 
 } // namespace scrivi::repair
