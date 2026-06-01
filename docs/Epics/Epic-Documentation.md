@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Draft Epic** (EP-008)
+Currently: **0 active Epics**
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -35,17 +35,17 @@ Currently: **8 Epics** | Next available: **EP-009**
 | EP-005 | Full Project Package — Objects, Assets, and Comments | ✅ Closed | 2026-05-27 | 2026-05-28 |
 | EP-006 | Swift Interop and Apple Shell | ✅ Closed | 2026-05-28 | 2026-05-30 |
 | EP-007 | Skeleton v0.2 Migration | ✅ Closed | 2026-05-22 | 2026-05-26 |
-| EP-008 | Multi-Scene Navigation and Cross-Platform Build | 🔵 Draft | — | — |
+| EP-008 | Multi-Scene Navigation and Cross-Platform Build | ✅ Closed | 2026-05-30 | 2026-06-01 |
 
 ## Statistics
 
 - **Total Epics:** 8
-- **Closed:** 7 ✅
+- **Closed:** 8 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 0 🟡
-- **Draft:** 1 🔵
+- **Draft:** 0 🔵
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-05-30 (EP-008 created as Draft)*
+*Last Updated: 2026-06-01 (EP-008 closed)*
