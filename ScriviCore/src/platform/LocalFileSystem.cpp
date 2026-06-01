@@ -51,7 +51,7 @@ Result<std::vector<AbsolutePath>> LocalFileSystem::listDirectory(const AbsoluteP
     std::vector<AbsolutePath> entries;
     for (auto& entry : fs::directory_iterator(path, ec)) {
         if (ec) return Result<std::vector<AbsolutePath>>::failure({ErrorCode::ioError, ec.message(), path});
-        entries.push_back(entry.path().string());
+        entries.push_back(entry.path().generic_string());
     }
     if (ec) return Result<std::vector<AbsolutePath>>::failure({ErrorCode::ioError, ec.message(), path});
     return Result<std::vector<AbsolutePath>>::success(std::move(entries));

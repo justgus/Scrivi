@@ -42,6 +42,18 @@ target_link_libraries(ScriviCoreTests
         Catch2::Catch2WithMain
 )
 
+# On MSVC: compile source as UTF-8 so em-dash literals in test names survive.
+# On Windows at runtime: set the process code page to UTF-8 so CTest name
+# matching works correctly with non-ASCII test names.
+if(MSVC)
+    target_compile_options(ScriviCoreTests PRIVATE /utf-8)
+    target_compile_options(ScriviCore PRIVATE /utf-8)
+    # Embed UTF-8 active code page manifest so non-ASCII test names survive
+    # CTest's PRE_TEST subprocess launch on Windows.
+    target_sources(ScriviCoreTests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest)
+endif()
+
 include(CTest)
 include(Catch)
 # DISCOVERY_MODE PRE_TEST defers test enumeration to run time — required for

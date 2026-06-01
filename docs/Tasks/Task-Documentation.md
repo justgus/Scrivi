@@ -14,14 +14,10 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **8 backlog Tasks**
+Currently: **4 backlog Tasks**
 
 | Task   | Title | Status |
 | ------ | ----- | ------ |
-| T-0055 | Ubuntu CMake Build — GCC/Clang Green + Gap Document | 🔵 Backlog |
-| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🔵 Backlog |
-| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🔵 Backlog |
-| T-0058 | SecureStore Trade Study — Linux and Windows | 🔵 Backlog |
 | T-0059 | `OpenProjectResult` — Add Scene List | 🔵 Backlog |
 | T-0060 | `openScene` Facade Method — Switch Active Scene | 🔵 Backlog |
 | T-0061 | Adapter + Swift Engine — Expose `openScene` and Scene List | 🔵 Backlog |
@@ -41,11 +37,13 @@ See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **0 unverified Tasks**
+Currently: **3 unverified Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+| Task   | Title | Status |
+| ------ | ----- | ------ |
+| T-0056 | Windows CMake Build — MSVC Green + Gap Document | 🟠 Unverified |
+| T-0057 | `AppSupportLayout` — Linux and Windows Platform Paths | 🟠 Unverified |
+| T-0058 | SecureStore Trade Study — Linux and Windows | 🟠 Unverified |
 
 See: [Task-unverified.md](Task-unverified.md)
 
@@ -113,11 +111,11 @@ Currently: **54 verified Tasks** | Next available: **T-0055**
 ## Statistics
 
 - **Total Tasks:** 62
-- **Verified:** 54 (87%) ✅
-- **Unverified:** 0 (0%) 🟠
+- **Verified:** 55 (89%) ✅
+- **Unverified:** 3 (5%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 8 (13%) 🔵
+- **Backlog:** 4 (6%) 🔵
 
 ---
 
-*Last Updated: 2026-05-30 (T-0055–T-0062 added to backlog for EP-008)*
+*Last Updated: 2026-05-31 (T-0056 implemented; 160/160 on macOS + Ubuntu + Windows MSVC)*

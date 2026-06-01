@@ -94,7 +94,7 @@ struct AssetFixture {
 };
 
 // ---------------------------------------------------------------------------
-// T-0042: importAsset — file and sidecar written
+// T-0042: importAsset - file and sidecar written
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(AssetFixture, "importAsset writes binary file and sidecar to assets/<category>/",
@@ -121,7 +121,7 @@ TEST_CASE_METHOD(AssetFixture, "importAsset writes binary file and sidecar to as
 }
 
 // ---------------------------------------------------------------------------
-// T-0042: listAssets — imported assets are returned
+// T-0042: listAssets - imported assets are returned
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(AssetFixture, "listAssets returns all imported assets",
@@ -170,7 +170,7 @@ TEST_CASE_METHOD(AssetFixture, "listAssets with category filter returns only mat
 }
 
 // ---------------------------------------------------------------------------
-// T-0042: removeAsset — both binary and sidecar deleted
+// T-0042: removeAsset - both binary and sidecar deleted
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(AssetFixture, "removeAsset deletes binary file and sidecar",

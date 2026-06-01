@@ -9,7 +9,8 @@ namespace scrivi::util {
 namespace fs = std::filesystem;
 
 AbsolutePath join(const AbsolutePath& base, std::string_view relative) {
-    return (fs::path(base) / relative).string();
+    auto p = (fs::path(base) / relative).generic_string();
+    return p;
 }
 
 std::string extension(const AbsolutePath& path) {
@@ -30,7 +31,7 @@ AbsolutePath parent(const AbsolutePath& path) {
 
 Result<AbsolutePath> makeAbsolute(const RelativePath& rel, const AbsolutePath& base) {
     auto result = fs::path(base) / rel;
-    return Result<AbsolutePath>::success(result.lexically_normal().string());
+    return Result<AbsolutePath>::success(result.lexically_normal().generic_string());
 }
 
 } // namespace scrivi::util

@@ -71,10 +71,10 @@ static scrivi::CoreServices makeServices(
 }
 
 // ---------------------------------------------------------------------------
-// Tests — T-0012: Identity Service and UUID Provider
+// Tests - T-0012: Identity Service and UUID Provider
 // ---------------------------------------------------------------------------
 
-TEST_CASE("ensureLocalIdentity — creates new identity on first call",
+TEST_CASE("ensureLocalIdentity - creates new identity on first call",
           "[integration][T-0012]") {
     TempDir appSupportDir;
 
@@ -100,7 +100,7 @@ TEST_CASE("ensureLocalIdentity — creates new identity on first call",
     CHECK(result.value().displayName == "Rhozwyn Darius");
 }
 
-TEST_CASE("ensureLocalIdentity — DeterministicUUIDProvider gives prefixed IDs",
+TEST_CASE("ensureLocalIdentity - DeterministicUUIDProvider gives prefixed IDs",
           "[integration][T-0012]") {
     TempDir appSupportDir;
 
@@ -125,7 +125,7 @@ TEST_CASE("ensureLocalIdentity — DeterministicUUIDProvider gives prefixed IDs"
     CHECK(result.value().defaultPersonaID.value == "persona-001");
 }
 
-TEST_CASE("ensureLocalIdentity — idempotent: second call returns same identity",
+TEST_CASE("ensureLocalIdentity - idempotent: second call returns same identity",
           "[integration][T-0012]") {
     TempDir appSupportDir;
 
@@ -154,7 +154,7 @@ TEST_CASE("ensureLocalIdentity — idempotent: second call returns same identity
     CHECK(second.value().displayName         == first.value().displayName);
 }
 
-TEST_CASE("ensureLocalIdentity — SecureStore failure returns secureStoreError",
+TEST_CASE("ensureLocalIdentity - SecureStore failure returns secureStoreError",
           "[integration][T-0012]") {
     TempDir appSupportDir;
 
@@ -177,7 +177,7 @@ TEST_CASE("ensureLocalIdentity — SecureStore failure returns secureStoreError"
     CHECK(result.error().code == scrivi::ErrorCode::secureStoreError);
 }
 
-TEST_CASE("ensureLocalIdentity — identity not written inside appSupportRoot as plaintext",
+TEST_CASE("ensureLocalIdentity - identity not written inside appSupportRoot as plaintext",
           "[integration][T-0012]") {
     TempDir appSupportDir;
 
@@ -203,7 +203,7 @@ TEST_CASE("ensureLocalIdentity — identity not written inside appSupportRoot as
     CHECK(fs::is_empty(identityDir));
 }
 
-TEST_CASE("ensureLocalIdentity — createProject accepts AuthorshipRef from result",
+TEST_CASE("ensureLocalIdentity - createProject accepts AuthorshipRef from result",
           "[integration][T-0012]") {
     TempDir projectDir;
     TempDir appSupportDir;

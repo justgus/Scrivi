@@ -33,7 +33,7 @@ TEST_CASE("Result<void> failure holds error", "[Result]") {
 }
 
 // ---------------------------------------------------------------------------
-// Mock service tests (merged from MockServicesTests.cpp — T-0016)
+// Mock service tests (merged from MockServicesTests.cpp - T-0016)
 // ---------------------------------------------------------------------------
 
 TEST_CASE("FixedClock returns configured timestamp", "[mocks]") {

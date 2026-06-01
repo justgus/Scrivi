@@ -13,11 +13,11 @@ TEST_CASE("ID types hold string values", "[IDs]") {
     REQUIRE(sid.value == "scene-001");
 }
 
-// ID types are distinct structs — this verifies they are not accidentally
+// ID types are distinct structs - this verifies they are not accidentally
 // interchangeable (would fail to compile if types were aliased).
 TEST_CASE("ID types are distinct", "[IDs]") {
     ProjectID  pid{"x"};
     SceneID    sid{"x"};
-    // pid = sid; // must not compile — intentionally left as comment
+    // pid = sid; // must not compile - intentionally left as comment
     REQUIRE(pid.value == sid.value); // values can be equal, types cannot be swapped
 }

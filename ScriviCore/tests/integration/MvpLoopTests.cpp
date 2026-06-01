@@ -40,7 +40,7 @@ struct TempDir {
 };
 
 // ---------------------------------------------------------------------------
-// Full MVP loop — Section 3 end-to-end
+// Full MVP loop - Section 3 end-to-end
 //
 // Exercises all 13 steps from Scrivi_Backend_MVP_Slice_v0_1.md Section 3
 // in a single chained integration test using mock services.
@@ -61,7 +61,7 @@ struct TempDir {
 // 13. Optionally enable local Git-backed snapshots.         (verified via enableGitSnapshots + createSnapshot)
 // ---------------------------------------------------------------------------
 
-TEST_CASE("MVP loop — Section 3 end-to-end", "[integration][EP-002][T-0027]") {
+TEST_CASE("MVP loop - Section 3 end-to-end", "[integration][EP-002][T-0027]") {
 
     TempDir projectDir;
     TempDir appSupportDir;
@@ -208,7 +208,7 @@ TEST_CASE("MVP loop — Section 3 end-to-end", "[integration][EP-002][T-0027]") 
     CHECK(!brokenR.value().repairIssues.empty());
 
     // Restore for the git steps (write an empty file back)
-    { std::ofstream f((projectDir.path / firstContentPath).string()); }
+    { std::ofstream f((projectDir.path / firstContentPath).string(), std::ios::binary); }
 
     // -----------------------------------------------------------------------
     // Step 13: Optionally enable Git-backed snapshots and create a snapshot.

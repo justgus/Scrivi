@@ -64,7 +64,7 @@ TEST_CASE("contains returns correct presence", "[Json]") {
 }
 
 // ---------------------------------------------------------------------------
-// Schema round-trip tests (merged from SchemaTests.cpp — T-0017)
+// Schema round-trip tests (merged from SchemaTests.cpp - T-0017)
 // ---------------------------------------------------------------------------
 
 TEST_CASE("ProjectJson round-trips required fields", "[schemas]") {

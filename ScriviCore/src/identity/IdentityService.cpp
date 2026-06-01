@@ -2,7 +2,9 @@
 
 #include "util/Json.hpp"
 
+#include <cinttypes>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <random>
@@ -43,9 +45,9 @@ std::string generateSecretHex() {
 std::string generateDeviceID() {
     std::random_device rd;
     std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<unsigned long long> dist;
+    std::uniform_int_distribution<uint64_t> dist;
     char buf[32];
-    std::snprintf(buf, sizeof(buf), "device-%016llx", dist(gen));
+    std::snprintf(buf, sizeof(buf), "device-%016" PRIx64, dist(gen));
     return buf;
 }
 

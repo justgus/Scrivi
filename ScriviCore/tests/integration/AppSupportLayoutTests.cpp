@@ -8,6 +8,7 @@
 #include "mocks/MockGitProvider.hpp"
 #include "mocks/MockSecureStore.hpp"
 
+#include "platform/AppSupportLayout.hpp"
 #include "platform/LocalFileSystem.hpp"
 
 #include <chrono>
@@ -58,10 +59,55 @@ static scrivi::CoreServices makeServices(
 }
 
 // ---------------------------------------------------------------------------
-// Tests — T-0013: appSupportRoot Directory Bootstrap
+// Tests - T-0057: platformDefault()
 // ---------------------------------------------------------------------------
 
-TEST_CASE("bootstrap — all required subdirs created on empty appSupportRoot",
+TEST_CASE("platformDefault - returns a non-empty path ending in 'Scrivi'",
+          "[integration][T-0057]") {
+    auto result = scrivi::util::platformDefault();
+    REQUIRE(result.ok());
+    std::filesystem::path p{result.value()};
+    CHECK(!result.value().empty());
+    CHECK(p.filename() == "Scrivi");
+}
+
+#if defined(__linux__)
+TEST_CASE("platformDefault - Linux respects XDG_DATA_HOME when set",
+          "[integration][T-0057][linux]") {
+    // Save original value
+    const char* original = std::getenv("XDG_DATA_HOME");
+
+    setenv("XDG_DATA_HOME", "/tmp/xdg-test", 1);
+    auto result = scrivi::util::platformDefault();
+    REQUIRE(result.ok());
+    CHECK(result.value() == "/tmp/xdg-test/Scrivi");
+
+    // Restore
+    if (original) setenv("XDG_DATA_HOME", original, 1);
+    else           unsetenv("XDG_DATA_HOME");
+}
+
+TEST_CASE("platformDefault - Linux falls back to ~/.local/share when XDG_DATA_HOME unset",
+          "[integration][T-0057][linux]") {
+    const char* original = std::getenv("XDG_DATA_HOME");
+    unsetenv("XDG_DATA_HOME");
+
+    auto result = scrivi::util::platformDefault();
+    REQUIRE(result.ok());
+    std::filesystem::path p{result.value()};
+    CHECK(p.filename() == "Scrivi");
+    CHECK(p.parent_path().filename() == "share");
+    CHECK(p.parent_path().parent_path().filename() == ".local");
+
+    if (original) setenv("XDG_DATA_HOME", original, 1);
+}
+#endif
+
+// ---------------------------------------------------------------------------
+// Tests - T-0013: appSupportRoot Directory Bootstrap
+// ---------------------------------------------------------------------------
+
+TEST_CASE("bootstrap - all required subdirs created on empty appSupportRoot",
           "[integration][T-0013]") {
     TempDir appSupportDir;
 
@@ -89,7 +135,7 @@ TEST_CASE("bootstrap — all required subdirs created on empty appSupportRoot",
     CHECK(appSupportDir.hasDir("tmp"));
 }
 
-TEST_CASE("bootstrap — idempotent when dirs already exist",
+TEST_CASE("bootstrap - idempotent when dirs already exist",
           "[integration][T-0013]") {
     TempDir appSupportDir;
 
@@ -108,13 +154,13 @@ TEST_CASE("bootstrap — idempotent when dirs already exist",
 
     // First call
     REQUIRE(core.ensureLocalIdentity(req).ok());
-    // Second call — must also succeed and not error
+    // Second call - must also succeed and not error
     auto result = core.ensureLocalIdentity(req);
     REQUIRE(result.ok());
     CHECK(result.value().createdNewIdentity == false);
 }
 
-TEST_CASE("bootstrap — createProject triggers bootstrap on fresh appSupportRoot",
+TEST_CASE("bootstrap - createProject triggers bootstrap on fresh appSupportRoot",
           "[integration][T-0013]") {
     TempDir projectDir;
     TempDir appSupportDir;
@@ -148,7 +194,7 @@ TEST_CASE("bootstrap — createProject triggers bootstrap on fresh appSupportRoo
     CHECK(appSupportDir.hasDir("tmp"));
 }
 
-TEST_CASE("bootstrap — openProject triggers bootstrap on fresh appSupportRoot",
+TEST_CASE("bootstrap - openProject triggers bootstrap on fresh appSupportRoot",
           "[integration][T-0013]") {
     TempDir projectDir;
     TempDir appSupportDir;

@@ -80,7 +80,7 @@ static scrivi::CreateProjectResult createTestProject(
 // Tests
 // ---------------------------------------------------------------------------
 
-TEST_CASE("openProject — opens valid project in normalEdit mode", "[integration][T-0007]") {
+TEST_CASE("openProject - opens valid project in normalEdit mode", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -111,7 +111,7 @@ TEST_CASE("openProject — opens valid project in normalEdit mode", "[integratio
     CHECK(r.activeScene->sceneID.value == created.firstSceneID.value);
 }
 
-TEST_CASE("openProject — restores workspace state (last scene, selection, scroll)", "[integration][T-0007]") {
+TEST_CASE("openProject - restores workspace state (last scene, selection, scroll)", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -146,7 +146,7 @@ TEST_CASE("openProject — restores workspace state (last scene, selection, scro
     auto saveResult = core.saveScene(saveReq);
     REQUIRE(saveResult.ok());
 
-    // Now open — workspace state should be restored
+    // Now open - workspace state should be restored
     scrivi::OpenProjectRequest openReq;
     openReq.projectRootPath = projectDir.str();
     openReq.appSupportRoot  = appSupportDir.str();
@@ -165,10 +165,10 @@ TEST_CASE("openProject — restores workspace state (last scene, selection, scro
     CHECK(r.activeSceneMarkdown      == "Hello world.");
 }
 
-TEST_CASE("openProject — falls back to first scene when no workspace state", "[integration][T-0007]") {
+TEST_CASE("openProject - falls back to first scene when no workspace state", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDirCreate;
-    TempDir appSupportDirOpen;  // fresh dir — no workspace state
+    TempDir appSupportDirOpen;  // fresh dir - no workspace state
 
     scrivi::platform::LocalFileSystem        lfs;
     scrivi::mocks::DeterministicUUIDProvider uuids;
@@ -201,7 +201,7 @@ TEST_CASE("openProject — falls back to first scene when no workspace state", "
     CHECK(r.restoredScroll.value     == Catch::Approx(0.0));
 }
 
-TEST_CASE("openProject — returns repairRequired when scene .meta.json is missing", "[integration][T-0007]") {
+TEST_CASE("openProject - returns repairRequired when scene .meta.json is missing", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -232,7 +232,7 @@ TEST_CASE("openProject — returns repairRequired when scene .meta.json is missi
     CHECK(r.repairIssues[0].category == scrivi::RepairCategory::missingMetadata);
 }
 
-TEST_CASE("openProject — returns repairRequired when scene .md content is missing", "[integration][T-0007]") {
+TEST_CASE("openProject - returns repairRequired when scene .md content is missing", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -263,7 +263,7 @@ TEST_CASE("openProject — returns repairRequired when scene .md content is miss
     CHECK(r.repairIssues[0].category == scrivi::RepairCategory::missingContent);
 }
 
-TEST_CASE("openProject — returns repairRequired when scene .meta.json is corrupt", "[integration][T-0007]") {
+TEST_CASE("openProject - returns repairRequired when scene .meta.json is corrupt", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -281,7 +281,7 @@ TEST_CASE("openProject — returns repairRequired when scene .meta.json is corru
     // Overwrite scene meta with garbage
     auto metaPath = projectDir.sub("manuscript/chapter-001/001-opening-scene.meta.json");
     {
-        std::ofstream f(metaPath);
+        std::ofstream f(metaPath, std::ios::binary);
         f << "not valid json {{{";
     }
 
@@ -298,7 +298,7 @@ TEST_CASE("openProject — returns repairRequired when scene .meta.json is corru
     CHECK(r.repairIssues[0].category == scrivi::RepairCategory::corruptMetadata);
 }
 
-TEST_CASE("openProject — active scene markdown is returned correctly", "[integration][T-0007]") {
+TEST_CASE("openProject - active scene markdown is returned correctly", "[integration][T-0007]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -316,7 +316,7 @@ TEST_CASE("openProject — active scene markdown is returned correctly", "[integ
     // Write known content directly to the scene file
     auto contentPath = projectDir.sub("manuscript/chapter-001/001-opening-scene.md");
     {
-        std::ofstream f(contentPath);
+        std::ofstream f(contentPath, std::ios::binary);
         f << "# The Beginning\n\nIt was a dark and stormy night.";
     }
 

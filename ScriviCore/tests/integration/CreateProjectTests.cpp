@@ -77,7 +77,7 @@ struct TempDir {
 // Tests
 // ---------------------------------------------------------------------------
 
-TEST_CASE("createProject — minimum package structure", "[integration][T-0006]") {
+TEST_CASE("createProject - minimum package structure", "[integration][T-0006]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -124,7 +124,7 @@ TEST_CASE("createProject — minimum package structure", "[integration][T-0006]"
     CHECK(!r.initialSnapshotID.has_value());
 }
 
-TEST_CASE("createProject — project.json content is valid JSON with correct fields", "[integration][T-0006]") {
+TEST_CASE("createProject - project.json content is valid JSON with correct fields", "[integration][T-0006]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -155,7 +155,7 @@ TEST_CASE("createProject — project.json content is valid JSON with correct fie
     CHECK(json.find("\"gitSnapshots\"") != std::string::npos);
 }
 
-TEST_CASE("createProject — scene metadata round-trips through schema parser", "[integration][T-0006]") {
+TEST_CASE("createProject - scene metadata round-trips through schema parser", "[integration][T-0006]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -189,7 +189,7 @@ TEST_CASE("createProject — scene metadata round-trips through schema parser", 
     CHECK(parsed.value().contentPath == "manuscript/chapter-001/001-opening-scene.md");
 }
 
-TEST_CASE("createProject — workspace state written to appSupportRoot", "[integration][T-0006]") {
+TEST_CASE("createProject - workspace state written to appSupportRoot", "[integration][T-0006]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -227,7 +227,7 @@ TEST_CASE("createProject — workspace state written to appSupportRoot", "[integ
     CHECK(r.workspaceState.lastWritingSurface->sceneID.value == r.firstSceneID.value);
 }
 
-TEST_CASE("createProject — Git-enabled path initializes repo and creates snapshot", "[integration][T-0006]") {
+TEST_CASE("createProject - Git-enabled path initializes repo and creates snapshot", "[integration][T-0006]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -266,7 +266,7 @@ TEST_CASE("createProject — Git-enabled path initializes repo and creates snaps
     CHECK(fileExists(projectDir.sub("snapshots/scrivi-snapshots.json")));
 }
 
-TEST_CASE("createProject — rejects empty identityID", "[integration][T-0006]") {
+TEST_CASE("createProject - rejects empty identityID", "[integration][T-0006]") {
     TempDir projectDir;
     TempDir appSupportDir;
 

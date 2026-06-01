@@ -1,5 +1,5 @@
 // ApplyRepairTests.cpp
-// Integration tests for ScriviCore::applyRepair() — one test per action kind
+// Integration tests for ScriviCore::applyRepair() - one test per action kind
 // (8 manuscript handlers) plus 2 rename-detection tests via scanForExternalChanges.
 // All tests use real filesystem (TempDir) + mock services.
 
@@ -138,7 +138,7 @@ struct RepairFixture {
 // ---------------------------------------------------------------------------
 // 1. relinkToFile
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — relinkToFile updates contentPath in scene metadata",
+TEST_CASE("applyRepair - relinkToFile updates contentPath in scene metadata",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -146,7 +146,7 @@ TEST_CASE("applyRepair — relinkToFile updates contentPath in scene metadata",
     // Create a new content file; remove the original
     const std::string newContentAbs =
         f.projectDir.sub("manuscript/chapter-001/renamed-scene.md");
-    { std::ofstream out(newContentAbs); out << "# Renamed\n\nSome content."; }
+    { std::ofstream out(newContentAbs, std::ios::binary); out << "# Renamed\n\nSome content."; }
     fs::remove(f.projectDir.sub("manuscript/chapter-001/001-opening-scene.md"));
 
     auto issue = f.scanForIssue(scrivi::RepairCategory::missingContent);
@@ -164,7 +164,7 @@ TEST_CASE("applyRepair — relinkToFile updates contentPath in scene metadata",
 // ---------------------------------------------------------------------------
 // 2. createEmptyContentFile
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — createEmptyContentFile creates a .md at missing path",
+TEST_CASE("applyRepair - createEmptyContentFile creates a .md at missing path",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -187,7 +187,7 @@ TEST_CASE("applyRepair — createEmptyContentFile creates a .md at missing path"
 // ---------------------------------------------------------------------------
 // 3. markMissing
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — markMissing sets scene status to 'missing'",
+TEST_CASE("applyRepair - markMissing sets scene status to 'missing'",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -209,7 +209,7 @@ TEST_CASE("applyRepair — markMissing sets scene status to 'missing'",
 // ---------------------------------------------------------------------------
 // 4. removeFromProject
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — removeFromProject removes scene from chapter index",
+TEST_CASE("applyRepair - removeFromProject removes scene from chapter index",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -235,14 +235,14 @@ TEST_CASE("applyRepair — removeFromProject removes scene from chapter index",
 // ---------------------------------------------------------------------------
 // 5. moveToInbox
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — moveToInbox moves unregistered file to inbox/dropped-files/",
+TEST_CASE("applyRepair - moveToInbox moves unregistered file to inbox/dropped-files/",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
 
     const std::string orphanAbs =
         f.projectDir.sub("manuscript/chapter-001/orphan-scene.md");
-    { std::ofstream out(orphanAbs); out << "An orphaned scene."; }
+    { std::ofstream out(orphanAbs, std::ios::binary); out << "An orphaned scene."; }
 
     auto issue = f.scanForIssue(scrivi::RepairCategory::unregisteredManuscriptFile);
 
@@ -262,7 +262,7 @@ TEST_CASE("applyRepair — moveToInbox moves unregistered file to inbox/dropped-
 // RepairHandlers.hpp (included above). No dispatcher-level suggestedActions
 // validation is needed; we verify the observable contract: no write, content
 // returned in detail.
-TEST_CASE("applyRepair — reloadExternalVersion returns on-disk content unchanged",
+TEST_CASE("applyRepair - reloadExternalVersion returns on-disk content unchanged",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -270,7 +270,7 @@ TEST_CASE("applyRepair — reloadExternalVersion returns on-disk content unchang
     const std::string contentAbs =
         f.projectDir.sub("manuscript/chapter-001/001-opening-scene.md");
     const std::string expectedContent = "# Reloaded\n\nExternal content.";
-    { std::ofstream out(contentAbs); out << expectedContent; }
+    { std::ofstream out(contentAbs, std::ios::binary); out << expectedContent; }
 
     // Build a fake issue pointing at the content file
     scrivi::RepairIssue fakeIssue;
@@ -299,7 +299,7 @@ TEST_CASE("applyRepair — reloadExternalVersion returns on-disk content unchang
 // ---------------------------------------------------------------------------
 // 7. regenerateMetadata (scene)
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — regenerateMetadata (scene) creates new .meta.json",
+TEST_CASE("applyRepair - regenerateMetadata (scene) creates new .meta.json",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -325,7 +325,7 @@ TEST_CASE("applyRepair — regenerateMetadata (scene) creates new .meta.json",
 // ---------------------------------------------------------------------------
 // 8. regenerateMetadata (chapter)
 // ---------------------------------------------------------------------------
-TEST_CASE("applyRepair — regenerateMetadata (chapter) creates new chapter.meta.json",
+TEST_CASE("applyRepair - regenerateMetadata (chapter) creates new chapter.meta.json",
           "[integration][EP-004][T-0032]")
 {
     RepairFixture f;
@@ -350,10 +350,10 @@ TEST_CASE("applyRepair — regenerateMetadata (chapter) creates new chapter.meta
 }
 
 // ---------------------------------------------------------------------------
-// 9. Rename detection — unambiguous metadata rename is auto-applied
+// 9. Rename detection - unambiguous metadata rename is auto-applied
 // T-0031: scanner auto-applies when sceneID matches + single candidate in dir
 // ---------------------------------------------------------------------------
-TEST_CASE("scanForExternalChanges — unambiguous metadata rename is auto-applied",
+TEST_CASE("scanForExternalChanges - unambiguous metadata rename is auto-applied",
           "[integration][EP-004][T-0031][T-0032]")
 {
     RepairFixture f;
@@ -390,10 +390,10 @@ TEST_CASE("scanForExternalChanges — unambiguous metadata rename is auto-applie
 }
 
 // ---------------------------------------------------------------------------
-// 10. Rename detection — ambiguous metadata rename stages possibleRename issue
+// 10. Rename detection - ambiguous metadata rename stages possibleRename issue
 // T-0031: when two candidates share the same sceneID, issue is staged
 // ---------------------------------------------------------------------------
-TEST_CASE("scanForExternalChanges — ambiguous metadata rename stages possibleRename",
+TEST_CASE("scanForExternalChanges - ambiguous metadata rename stages possibleRename",
           "[integration][EP-004][T-0031][T-0032]")
 {
     RepairFixture f;
@@ -407,7 +407,7 @@ TEST_CASE("scanForExternalChanges — ambiguous metadata rename stages possibleR
 
     // Rename original to candidate A; copy to candidate B (same sceneID, two candidates)
     fs::rename(origMeta, candidateA);
-    { std::ifstream src(candidateA); std::ofstream dst(candidateB); dst << src.rdbuf(); }
+    { std::ifstream src(candidateA, std::ios::binary); std::ofstream dst(candidateB, std::ios::binary); dst << src.rdbuf(); }
 
     scrivi::ExternalChangeScanRequest scanReq;
     scanReq.projectRootPath  = f.projectDir.str();

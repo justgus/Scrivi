@@ -112,7 +112,7 @@ struct CommentFixture {
 };
 
 // ---------------------------------------------------------------------------
-// T-0045: scene scope — add creates thread file
+// T-0045: scene scope - add creates thread file
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(CommentFixture, "addComment creates thread file for scene scope",
@@ -129,7 +129,7 @@ TEST_CASE_METHOD(CommentFixture, "addComment creates thread file for scene scope
 }
 
 // ---------------------------------------------------------------------------
-// T-0045: scene scope — listComments returns all comments
+// T-0045: scene scope - listComments returns all comments
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(CommentFixture, "listComments returns all comments for scene scope",
@@ -146,7 +146,7 @@ TEST_CASE_METHOD(CommentFixture, "listComments returns all comments for scene sc
 }
 
 // ---------------------------------------------------------------------------
-// T-0045: scene scope — resolveComment sets resolved=true and resolvedAt
+// T-0045: scene scope - resolveComment sets resolved=true and resolvedAt
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(CommentFixture, "resolveComment sets resolved flag and resolvedAt for scene scope",
@@ -172,7 +172,7 @@ TEST_CASE_METHOD(CommentFixture, "resolveComment sets resolved flag and resolved
 }
 
 // ---------------------------------------------------------------------------
-// T-0045: object scope — add, list, resolve
+// T-0045: object scope - add, list, resolve
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(CommentFixture, "addComment creates thread file for object scope",

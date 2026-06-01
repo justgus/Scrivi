@@ -12,6 +12,7 @@
   #define popen  _popen
   #define pclose _pclose
 #else
+  #include <sys/wait.h>
   #include <unistd.h>
 #endif
 
