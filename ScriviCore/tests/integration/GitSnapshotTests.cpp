@@ -82,10 +82,10 @@ static std::string readFile(const std::string& path) {
 }
 
 // ---------------------------------------------------------------------------
-// Mock-based tests (always run — no real git required)
+// Mock-based tests (always run - no real git required)
 // ---------------------------------------------------------------------------
 
-TEST_CASE("enableGitSnapshots — mock: init/addAll/commit called, snapshot metadata written", "[integration][T-0010]") {
+TEST_CASE("enableGitSnapshots - mock: init/addAll/commit called, snapshot metadata written", "[integration][T-0010]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -138,7 +138,7 @@ TEST_CASE("enableGitSnapshots — mock: init/addAll/commit called, snapshot meta
     CHECK_FALSE(entry.getString("snapshotID").empty());
 }
 
-TEST_CASE("enableGitSnapshots — mock: alreadyRepository=true when repo exists", "[integration][T-0010]") {
+TEST_CASE("enableGitSnapshots - mock: alreadyRepository=true when repo exists", "[integration][T-0010]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -174,7 +174,7 @@ TEST_CASE("enableGitSnapshots — mock: alreadyRepository=true when repo exists"
     CHECK(git.commitRequests.size() == 1);
 }
 
-TEST_CASE("createSnapshot — mock: addAll/commit called, metadata appended", "[integration][T-0010]") {
+TEST_CASE("createSnapshot - mock: addAll/commit called, metadata appended", "[integration][T-0010]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -225,7 +225,7 @@ TEST_CASE("createSnapshot — mock: addAll/commit called, metadata appended", "[
     CHECK(entry.getString("note")  == "Finished the first chapter draft.");
 }
 
-TEST_CASE("normal project without Git — createProject/openProject work without GitProvider calls", "[integration][T-0010]") {
+TEST_CASE("normal project without Git - createProject/openProject work without GitProvider calls", "[integration][T-0010]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -242,7 +242,7 @@ TEST_CASE("normal project without Git — createProject/openProject work without
     auto created = createTestProject(core, projectDir.str(), appSupportDir.str());
     CHECK(created.gitInitialized == false);
 
-    // Open the project — no git calls
+    // Open the project - no git calls
     scrivi::OpenProjectRequest openReq;
     openReq.projectRootPath = projectDir.str();
     openReq.appSupportRoot  = appSupportDir.str();
@@ -257,10 +257,10 @@ TEST_CASE("normal project without Git — createProject/openProject work without
 }
 
 // ---------------------------------------------------------------------------
-// SystemGitProvider integration tests — skip if git not in PATH
+// SystemGitProvider integration tests - skip if git not in PATH
 // ---------------------------------------------------------------------------
 
-TEST_CASE("SystemGitProvider — real git: enable creates .git directory and initial commit", "[integration][T-0010][realGit]") {
+TEST_CASE("SystemGitProvider - real git: enable creates .git directory and initial commit", "[integration][T-0010][realGit]") {
     if (!scrivi::git::SystemGitProvider::available()) {
         SKIP("git not available in PATH");
     }
@@ -298,7 +298,7 @@ TEST_CASE("SystemGitProvider — real git: enable creates .git directory and ini
     CHECK(result.value().initialCommitID.value.size() == 40);
 }
 
-TEST_CASE("SystemGitProvider — real git: createSnapshot adds a new commit", "[integration][T-0010][realGit]") {
+TEST_CASE("SystemGitProvider - real git: createSnapshot adds a new commit", "[integration][T-0010][realGit]") {
     if (!scrivi::git::SystemGitProvider::available()) {
         SKIP("git not available in PATH");
     }

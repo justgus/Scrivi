@@ -90,7 +90,7 @@ struct ObjectFixture {
 };
 
 // ---------------------------------------------------------------------------
-// Character tests (T-0036 — unchanged behaviour)
+// Character tests (T-0036 - unchanged behaviour)
 // ---------------------------------------------------------------------------
 
 TEST_CASE("createObject succeeds and file exists at expected path",
@@ -221,7 +221,7 @@ TEST_CASE("createObject with duplicate slug returns failure",
 }
 
 // ---------------------------------------------------------------------------
-// Remaining object types — T-0039
+// Remaining object types - T-0039
 // ---------------------------------------------------------------------------
 
 template<typename T>

@@ -78,7 +78,7 @@ static scrivi::CreateProjectResult createTestProject(
 // Tests
 // ---------------------------------------------------------------------------
 
-TEST_CASE("scanForExternalChanges — clean project returns zero issues", "[integration][T-0009]") {
+TEST_CASE("scanForExternalChanges - clean project returns zero issues", "[integration][T-0009]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -104,7 +104,7 @@ TEST_CASE("scanForExternalChanges — clean project returns zero issues", "[inte
     CHECK(result.value().indexesDirty == false);
 }
 
-TEST_CASE("scanForExternalChanges — missing scene .md returns missingContent", "[integration][T-0009]") {
+TEST_CASE("scanForExternalChanges - missing scene .md returns missingContent", "[integration][T-0009]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -137,7 +137,7 @@ TEST_CASE("scanForExternalChanges — missing scene .md returns missingContent",
     CHECK_FALSE(issues[0].suggestedActions.empty());
 }
 
-TEST_CASE("scanForExternalChanges — missing scene .meta.json returns missingMetadata", "[integration][T-0009]") {
+TEST_CASE("scanForExternalChanges - missing scene .meta.json returns missingMetadata", "[integration][T-0009]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -169,7 +169,7 @@ TEST_CASE("scanForExternalChanges — missing scene .meta.json returns missingMe
     CHECK(issues[0].severity == scrivi::RepairSeverity::blocking);
 }
 
-TEST_CASE("scanForExternalChanges — corrupt scene .meta.json returns corruptMetadata", "[integration][T-0009]") {
+TEST_CASE("scanForExternalChanges - corrupt scene .meta.json returns corruptMetadata", "[integration][T-0009]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -186,7 +186,7 @@ TEST_CASE("scanForExternalChanges — corrupt scene .meta.json returns corruptMe
 
     // Corrupt the scene metadata
     {
-        std::ofstream f(projectDir.sub("manuscript/chapter-001/001-opening-scene.meta.json"));
+        std::ofstream f(projectDir.sub("manuscript/chapter-001/001-opening-scene.meta.json"), std::ios::binary);
         f << "{ this is not valid json !!!";
     }
 
@@ -204,7 +204,7 @@ TEST_CASE("scanForExternalChanges — corrupt scene .meta.json returns corruptMe
     CHECK(issues[0].severity == scrivi::RepairSeverity::blocking);
 }
 
-TEST_CASE("scanForExternalChanges — unregistered .md file returns unregisteredManuscriptFile", "[integration][T-0009]") {
+TEST_CASE("scanForExternalChanges - unregistered .md file returns unregisteredManuscriptFile", "[integration][T-0009]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -221,7 +221,7 @@ TEST_CASE("scanForExternalChanges — unregistered .md file returns unregistered
 
     // Drop an unregistered .md file into the chapter directory
     {
-        std::ofstream f(projectDir.sub("manuscript/chapter-001/interloper.md"));
+        std::ofstream f(projectDir.sub("manuscript/chapter-001/interloper.md"), std::ios::binary);
         f << "An external scene added outside of Scrivi.";
     }
 
@@ -241,7 +241,7 @@ TEST_CASE("scanForExternalChanges — unregistered .md file returns unregistered
     CHECK_FALSE(issues[0].suggestedActions.empty());
 }
 
-TEST_CASE("scanForExternalChanges — Git status checked when requested and repo exists", "[integration][T-0009]") {
+TEST_CASE("scanForExternalChanges - Git status checked when requested and repo exists", "[integration][T-0009]") {
     TempDir projectDir;
     TempDir appSupportDir;
 

@@ -92,7 +92,7 @@ TEST_CASE_METHOD(InboxFixture, "createProject creates inbox/dropped-files/ direc
 }
 
 // ---------------------------------------------------------------------------
-// T-0046: listInbox — empty inbox returns empty list
+// T-0046: listInbox - empty inbox returns empty list
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(InboxFixture, "listInbox returns empty list when inbox is empty",
@@ -107,7 +107,7 @@ TEST_CASE_METHOD(InboxFixture, "listInbox returns empty list when inbox is empty
 }
 
 // ---------------------------------------------------------------------------
-// T-0046: listInbox — dropped files are returned
+// T-0046: listInbox - dropped files are returned
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(InboxFixture, "listInbox returns all files in dropped-files/",
@@ -130,7 +130,7 @@ TEST_CASE_METHOD(InboxFixture, "listInbox returns all files in dropped-files/",
 }
 
 // ---------------------------------------------------------------------------
-// T-0046: importFromInbox — importAsAsset moves file into assets/ and removes from inbox
+// T-0046: importFromInbox - importAsAsset moves file into assets/ and removes from inbox
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(InboxFixture, "importFromInbox importAsAsset moves file to assets and clears inbox entry",
@@ -164,7 +164,7 @@ TEST_CASE_METHOD(InboxFixture, "importFromInbox importAsAsset moves file to asse
 }
 
 // ---------------------------------------------------------------------------
-// T-0046: importFromInbox — ignore leaves file in inbox
+// T-0046: importFromInbox - ignore leaves file in inbox
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(InboxFixture, "importFromInbox ignore leaves file untouched",
@@ -188,7 +188,7 @@ TEST_CASE_METHOD(InboxFixture, "importFromInbox ignore leaves file untouched",
 }
 
 // ---------------------------------------------------------------------------
-// T-0046: importFromInbox — deleteFile removes file from inbox
+// T-0046: importFromInbox - deleteFile removes file from inbox
 // ---------------------------------------------------------------------------
 
 TEST_CASE_METHOD(InboxFixture, "importFromInbox deleteFile removes file from dropped-files",

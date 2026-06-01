@@ -112,7 +112,7 @@ static scrivi::SaveSceneRequest makeSaveRequest(
 // Tests
 // ---------------------------------------------------------------------------
 
-TEST_CASE("saveScene — written content reads back identically", "[integration][T-0008]") {
+TEST_CASE("saveScene - written content reads back identically", "[integration][T-0008]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -138,7 +138,7 @@ TEST_CASE("saveScene — written content reads back identically", "[integration]
     CHECK(onDisk == content);
 }
 
-TEST_CASE("saveScene — modifiedAt updated in scene metadata", "[integration][T-0008]") {
+TEST_CASE("saveScene - modifiedAt updated in scene metadata", "[integration][T-0008]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -164,7 +164,7 @@ TEST_CASE("saveScene — modifiedAt updated in scene metadata", "[integration][T
     CHECK(parsed.value().modifiedByDisplayName == "Test Author");
 }
 
-TEST_CASE("saveScene — word count in metadata matches content", "[integration][T-0008]") {
+TEST_CASE("saveScene - word count in metadata matches content", "[integration][T-0008]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -195,7 +195,7 @@ TEST_CASE("saveScene — word count in metadata matches content", "[integration]
     CHECK(parsed.value().wordCount == 10);
 }
 
-TEST_CASE("saveScene — open after save restores cursor and scroll", "[integration][T-0008]") {
+TEST_CASE("saveScene - open after save restores cursor and scroll", "[integration][T-0008]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -228,7 +228,7 @@ TEST_CASE("saveScene — open after save restores cursor and scroll", "[integrat
     CHECK(r.activeSceneMarkdown      == "Some text.");
 }
 
-TEST_CASE("saveScene — unchanged content hash skips write and returns saved=false", "[integration][T-0008]") {
+TEST_CASE("saveScene - unchanged content hash skips write and returns saved=false", "[integration][T-0008]") {
     TempDir projectDir;
     TempDir appSupportDir;
 
@@ -245,12 +245,12 @@ TEST_CASE("saveScene — unchanged content hash skips write and returns saved=fa
 
     const std::string content = "Unchanged content.";
 
-    // First save — establishes the file
+    // First save - establishes the file
     auto req1 = makeSaveRequest(created, projectDir.str(), appSupportDir.str(), content);
     REQUIRE(core.saveScene(req1).ok());
 
     // Compute hash of the content (same as what save would have computed)
-    // Second save with the same hash — must not write
+    // Second save with the same hash - must not write
     auto req2 = req1;
     req2.previouslyLoadedContentHash = scrivi::util::sha256Hex(content);
 

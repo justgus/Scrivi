@@ -67,6 +67,7 @@ target_sources(ScriviCore
 target_link_libraries(ScriviCore
     PRIVATE
         nlohmann_json::nlohmann_json
+        $<$<PLATFORM_ID:Windows>:Shell32>
 )
 
 if(SCRIVI_BUILD_TESTS)
