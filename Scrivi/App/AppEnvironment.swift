@@ -1,5 +1,4 @@
 import Foundation
-import Scrivi
 
 @Observable @MainActor final class AppEnvironment {
 

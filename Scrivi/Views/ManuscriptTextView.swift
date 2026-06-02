@@ -326,9 +326,9 @@ final class ManuscriptNSTextView: NSTextView {
 
 // Renders a 1pt horizontal rule across the full text column.
 // No text, no label — purely visual separation.
-private final class DividerAttachmentCell: NSTextAttachmentCell {
+private let dividerCellHeight: CGFloat = 24
 
-    private static let height: CGFloat = 24  // total vertical space occupied by divider
+private final class DividerAttachmentCell: NSTextAttachmentCell {
 
     override func cellFrame(
         for textContainer: NSTextContainer,
@@ -337,7 +337,7 @@ private final class DividerAttachmentCell: NSTextAttachmentCell {
         characterIndex charIndex: Int
     ) -> NSRect {
         let width = textContainer.size.width
-        return NSRect(x: 0, y: 0, width: width, height: Self.height)
+        return NSRect(x: 0, y: 0, width: width, height: dividerCellHeight)
     }
 
     override func draw(withFrame cellFrame: NSRect, in controlView: NSView?) {

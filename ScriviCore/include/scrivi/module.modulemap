@@ -1,0 +1,4 @@
+module ScriviCore {
+    header "scrivi.h"
+    export *
+}

@@ -1,20 +1,15 @@
 import Foundation
-import ScriviCoreAdapter
+import ScriviCore
 
-// ScriviEngine is the single Swift-side entry point to the C++ ScriviCore backend.
+// ScriviEngine is the single Swift-side entry point to the ScriviCore C API.
 //
-// It owns the ScriviAdapter reference type (ARC-managed via import_reference retain/release).
-// Each method converts Swift String parameters to const char* via withCString, receives a
-// std::string JSON result by value, decodes the envelope, and returns a Swift result struct.
-// No backend logic lives here — only type conversion and JSON decoding.
+// Each method calls a plain-C scrivi_* function, receives a heap-allocated
+// UTF-8 JSON string, converts it to Swift String, calls scrivi_free(), then
+// decodes the JSON envelope via Codable. No C++ types cross the boundary.
 
 public final class ScriviEngine: @unchecked Sendable {
 
-    private let adapter: scrivi.apple.ScriviAdapter
-
-    public init() {
-        adapter = scrivi.apple.ScriviAdapter.create()
-    }
+    public init() {}
 
     // MARK: — ensureLocalIdentity
 
@@ -22,12 +17,12 @@ public final class ScriviEngine: @unchecked Sendable {
         displayName: String,
         appSupportRoot: String
     ) throws -> IdentityResult {
-        let json = displayName.withCString { dn in
+        let raw = displayName.withCString { dn in
             appSupportRoot.withCString { asr in
-                adapter.ensureLocalIdentity(dn, asr)
+                scrivi_ensure_local_identity(dn, asr)
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — createProject
@@ -39,14 +34,14 @@ public final class ScriviEngine: @unchecked Sendable {
         slug: String,
         authorshipRef: AuthorshipRef
     ) throws -> CreateProjectResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
                 title.withCString { t in
                     slug.withCString { s in
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { dn in
-                                    adapter.createProject(prp, asr, t, s, iid, pid, dn)
+                                    scrivi_create_project(prp, asr, t, s, iid, pid, dn)
                                 }
                             }
                         }
@@ -54,7 +49,7 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — openProject
@@ -64,14 +59,14 @@ public final class ScriviEngine: @unchecked Sendable {
         appSupportRoot: String,
         identityID: String = ""
     ) throws -> OpenProjectResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
                 identityID.withCString { iid in
-                    adapter.openProject(prp, asr, iid)
+                    scrivi_open_project(prp, asr, iid)
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — openScene
@@ -82,16 +77,16 @@ public final class ScriviEngine: @unchecked Sendable {
         projectID: String,
         sceneID: String
     ) throws -> OpenSceneResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
                 projectID.withCString { pid in
                     sceneID.withCString { sid in
-                        adapter.openScene(prp, asr, pid, sid)
+                        scrivi_open_scene(prp, asr, pid, sid)
                     }
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — saveScene
@@ -106,7 +101,7 @@ public final class ScriviEngine: @unchecked Sendable {
         markdown: String,
         authorshipRef: AuthorshipRef
     ) throws -> SaveSceneResult {
-        let json = projectID.withCString { pid in
+        let raw = projectID.withCString { pid in
             projectRootPath.withCString { prp in
                 appSupportRoot.withCString { asr in
                     sceneID.withCString { sid in
@@ -116,7 +111,7 @@ public final class ScriviEngine: @unchecked Sendable {
                                     authorshipRef.identityID.withCString { iid in
                                         authorshipRef.personaID.withCString { perid in
                                             authorshipRef.displayName.withCString { dn in
-                                                adapter.saveScene(
+                                                scrivi_save_scene(
                                                     pid, prp, asr, sid, smp, scp,
                                                     md, iid, perid, dn
                                                 )
@@ -130,7 +125,7 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — scanForExternalChanges
@@ -140,12 +135,12 @@ public final class ScriviEngine: @unchecked Sendable {
         appSupportRoot: String,
         includeGitStatus: Bool = true
     ) throws -> ScanResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
-                adapter.scanForExternalChanges(prp, asr, includeGitStatus)
+                scrivi_scan_for_external_changes(prp, asr, includeGitStatus ? 1 : 0)
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — applyRepair
@@ -158,7 +153,7 @@ public final class ScriviEngine: @unchecked Sendable {
         targetPath: String = "",
         authorshipRef: AuthorshipRef
     ) throws -> ApplyRepairResult {
-        let json = issueID.withCString { iid in
+        let raw = issueID.withCString { iid in
             projectRootPath.withCString { prp in
                 appSupportRoot.withCString { asr in
                     actionKind.withCString { ak in
@@ -166,7 +161,7 @@ public final class ScriviEngine: @unchecked Sendable {
                             authorshipRef.identityID.withCString { identID in
                                 authorshipRef.personaID.withCString { pid in
                                     authorshipRef.displayName.withCString { dn in
-                                        adapter.applyRepair(iid, prp, asr, ak, tp, identID, pid, dn)
+                                        scrivi_apply_repair(iid, prp, asr, ak, tp, identID, pid, dn)
                                     }
                                 }
                             }
@@ -175,7 +170,7 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — enableGitSnapshots
@@ -185,18 +180,18 @@ public final class ScriviEngine: @unchecked Sendable {
         authorshipRef: AuthorshipRef,
         initialSnapshotLabel: String = "Initial project"
     ) throws -> EnableGitResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             authorshipRef.identityID.withCString { iid in
                 authorshipRef.personaID.withCString { pid in
                     authorshipRef.displayName.withCString { dn in
                         initialSnapshotLabel.withCString { label in
-                            adapter.enableGitSnapshots(prp, iid, pid, dn, label)
+                            scrivi_enable_git_snapshots(prp, iid, pid, dn, label)
                         }
                     }
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     // MARK: — createSnapshot
@@ -207,22 +202,23 @@ public final class ScriviEngine: @unchecked Sendable {
         label: String,
         note: String = ""
     ) throws -> CreateSnapshotResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             authorshipRef.identityID.withCString { iid in
                 authorshipRef.personaID.withCString { pid in
                     authorshipRef.displayName.withCString { dn in
                         label.withCString { lbl in
                             note.withCString { n in
-                                adapter.createSnapshot(prp, iid, pid, dn, lbl, n)
+                                scrivi_create_snapshot(prp, iid, pid, dn, lbl, n)
                             }
                         }
                     }
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
-    // MARK: — EP-005: Object CRUD
+
+    // MARK: — Object CRUD
 
     public func createObject(
         projectRootPath: String,
@@ -231,14 +227,14 @@ public final class ScriviEngine: @unchecked Sendable {
         slug: String = "",
         authorshipRef: AuthorshipRef
     ) throws -> CreateObjectResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
                 displayName.withCString { dn in
                     slug.withCString { s in
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    adapter.createObject(prp, ok, dn, s, iid, pid, adn)
+                                    scrivi_create_object(prp, ok, dn, s, iid, pid, adn)
                                 }
                             }
                         }
@@ -246,7 +242,7 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func openObject(
@@ -254,14 +250,14 @@ public final class ScriviEngine: @unchecked Sendable {
         objectKind: String,
         objectID: String
     ) throws -> OpenObjectResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
                 objectID.withCString { oid in
-                    adapter.openObject(prp, ok, oid)
+                    scrivi_open_object(prp, ok, oid)
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func saveObject(
@@ -270,20 +266,20 @@ public final class ScriviEngine: @unchecked Sendable {
         objectJson: String,
         authorshipRef: AuthorshipRef
     ) throws -> SaveObjectResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
                 objectJson.withCString { oj in
                     authorshipRef.identityID.withCString { iid in
                         authorshipRef.personaID.withCString { pid in
                             authorshipRef.displayName.withCString { adn in
-                                adapter.saveObject(prp, ok, oj, iid, pid, adn)
+                                scrivi_save_object(prp, ok, oj, iid, pid, adn)
                             }
                         }
                     }
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func deleteObject(
@@ -291,17 +287,17 @@ public final class ScriviEngine: @unchecked Sendable {
         objectKind: String,
         objectID: String
     ) throws -> DeleteObjectResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
                 objectID.withCString { oid in
-                    adapter.deleteObject(prp, ok, oid)
+                    scrivi_delete_object(prp, ok, oid)
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
-    // MARK: — EP-005: Assets
+    // MARK: — Assets
 
     public func importAsset(
         projectRootPath: String,
@@ -310,14 +306,14 @@ public final class ScriviEngine: @unchecked Sendable {
         title: String,
         authorshipRef: AuthorshipRef
     ) throws -> ImportAssetResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             sourcePath.withCString { sp in
                 category.withCString { cat in
                     title.withCString { t in
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    adapter.importAsset(prp, sp, cat, t, iid, pid, adn)
+                                    scrivi_import_asset(prp, sp, cat, t, iid, pid, adn)
                                 }
                             }
                         }
@@ -325,34 +321,34 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func listAssets(
         projectRootPath: String,
         category: String = ""
     ) throws -> ListAssetsResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             category.withCString { cat in
-                adapter.listAssets(prp, cat)
+                scrivi_list_assets(prp, cat)
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func removeAsset(
         projectRootPath: String,
         assetID: String
     ) throws -> RemoveAssetResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             assetID.withCString { aid in
-                adapter.removeAsset(prp, aid)
+                scrivi_remove_asset(prp, aid)
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
-    // MARK: — EP-005: Comments
+    // MARK: — Comments
 
     public func addComment(
         projectRootPath: String,
@@ -361,14 +357,14 @@ public final class ScriviEngine: @unchecked Sendable {
         body: String,
         authorshipRef: AuthorshipRef
     ) throws -> AddCommentResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             scopeKind.withCString { sk in
                 targetID.withCString { tid in
                     body.withCString { b in
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    adapter.addComment(prp, sk, tid, b, iid, pid, adn)
+                                    scrivi_add_comment(prp, sk, tid, b, iid, pid, adn)
                                 }
                             }
                         }
@@ -376,7 +372,7 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func listComments(
@@ -384,14 +380,14 @@ public final class ScriviEngine: @unchecked Sendable {
         scopeKind: String,
         targetID: String
     ) throws -> ListCommentsResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             scopeKind.withCString { sk in
                 targetID.withCString { tid in
-                    adapter.listComments(prp, sk, tid)
+                    scrivi_list_comments(prp, sk, tid)
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func resolveComment(
@@ -401,14 +397,14 @@ public final class ScriviEngine: @unchecked Sendable {
         commentID: String,
         authorshipRef: AuthorshipRef
     ) throws -> ResolveCommentResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             scopeKind.withCString { sk in
                 targetID.withCString { tid in
                     commentID.withCString { cid in
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    adapter.resolveComment(prp, sk, tid, cid, iid, pid, adn)
+                                    scrivi_resolve_comment(prp, sk, tid, cid, iid, pid, adn)
                                 }
                             }
                         }
@@ -416,70 +412,18 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
-    // MARK: — EP-005: Inbox
+    // MARK: — Inbox
 
     public func listInbox(
         projectRootPath: String
     ) throws -> ListInboxResult {
-        let json = projectRootPath.withCString { prp in
-            adapter.listInbox(prp)
+        let raw = projectRootPath.withCString { prp in
+            scrivi_list_inbox(prp)
         }
-        return try decode(json)
-    }
-
-    // MARK: — EP-009: createScene / createChapter
-
-    public func createScene(
-        projectRootPath: String,
-        appSupportRoot: String,
-        projectID: String,
-        chapterID: String,
-        afterSceneID: String = "",
-        authorshipRef: AuthorshipRef
-    ) throws -> CreateSceneResult {
-        let json = projectRootPath.withCString { prp in
-            appSupportRoot.withCString { asr in
-                projectID.withCString { pid in
-                    chapterID.withCString { cid in
-                        afterSceneID.withCString { asid in
-                            authorshipRef.identityID.withCString { iid in
-                                authorshipRef.personaID.withCString { perid in
-                                    authorshipRef.displayName.withCString { dn in
-                                        adapter.createScene(prp, asr, pid, cid, asid, iid, perid, dn)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return try decode(json)
-    }
-
-    public func createChapter(
-        projectRootPath: String,
-        appSupportRoot: String,
-        projectID: String,
-        authorshipRef: AuthorshipRef
-    ) throws -> CreateChapterResult {
-        let json = projectRootPath.withCString { prp in
-            appSupportRoot.withCString { asr in
-                projectID.withCString { pid in
-                    authorshipRef.identityID.withCString { iid in
-                        authorshipRef.personaID.withCString { perid in
-                            authorshipRef.displayName.withCString { dn in
-                                adapter.createChapter(prp, asr, pid, iid, perid, dn)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return try decode(json)
+        return try decodeC(raw)
     }
 
     public func importFromInbox(
@@ -489,14 +433,14 @@ public final class ScriviEngine: @unchecked Sendable {
         category: String = "other",
         authorshipRef: AuthorshipRef
     ) throws -> ImportFromInboxResult {
-        let json = projectRootPath.withCString { prp in
+        let raw = projectRootPath.withCString { prp in
             filename.withCString { fn in
                 action.withCString { act in
                     category.withCString { cat in
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    adapter.importFromInbox(prp, fn, act, cat, iid, pid, adn)
+                                    scrivi_import_from_inbox(prp, fn, act, cat, iid, pid, adn)
                                 }
                             }
                         }
@@ -504,8 +448,82 @@ public final class ScriviEngine: @unchecked Sendable {
                 }
             }
         }
-        return try decode(json)
+        return try decodeC(raw)
     }
+
+    // MARK: — createScene / createChapter
+
+    public func createScene(
+        projectRootPath: String,
+        appSupportRoot: String,
+        projectID: String,
+        chapterID: String,
+        afterSceneID: String = "",
+        authorshipRef: AuthorshipRef
+    ) throws -> CreateSceneResult {
+        let raw = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                projectID.withCString { pid in
+                    chapterID.withCString { cid in
+                        afterSceneID.withCString { asid in
+                            authorshipRef.identityID.withCString { iid in
+                                authorshipRef.personaID.withCString { perid in
+                                    authorshipRef.displayName.withCString { dn in
+                                        scrivi_create_scene(prp, asr, pid, cid, asid, iid, perid, dn)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func createChapter(
+        projectRootPath: String,
+        appSupportRoot: String,
+        projectID: String,
+        authorshipRef: AuthorshipRef
+    ) throws -> CreateChapterResult {
+        let raw = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                projectID.withCString { pid in
+                    authorshipRef.identityID.withCString { iid in
+                        authorshipRef.personaID.withCString { perid in
+                            authorshipRef.displayName.withCString { dn in
+                                scrivi_create_chapter(prp, asr, pid, iid, perid, dn)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+}
+
+// MARK: — C boundary decode helper
+
+// Converts a heap-allocated const char* JSON result from scrivi_* into a
+// Swift Decodable value, calling scrivi_free() unconditionally before returning.
+private func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
+    guard let ptr else {
+        throw ScriviError(code: -1, message: "scrivi returned null")
+    }
+    let json = String(cString: ptr)
+    scrivi_free(ptr)
+    let data = Data(json.utf8)
+    let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
+    if !envelope.ok {
+        let e = envelope.error ?? ErrorPayload(code: -1, message: "unknown error")
+        throw ScriviError(code: e.code, message: e.message)
+    }
+    guard let result = envelope.result else {
+        throw ScriviError(code: -1, message: "ok=true but result missing")
+    }
+    return result
 }
 
 // MARK: — Swift result types
@@ -558,7 +576,7 @@ public struct SceneInfo: Decodable, Sendable {
 
 public struct OpenProjectResult: Decodable, Sendable {
     public let projectID:    String
-    public let mode:         String          // "ready" | "repairRequired"
+    public let mode:         String
     public let activeScene:  ActiveSceneResult?
     public let scenes:       [SceneInfo]
     public let repairIssues: [RepairIssueResult]
@@ -684,8 +702,6 @@ public struct CreateSnapshotResult: Decodable, Sendable {
     public let created:    Bool
 }
 
-// EP-005 Object CRUD result types
-
 public struct CreateObjectResult: Decodable, Sendable {
     public let objectID: String
     public let slug:     String
@@ -707,8 +723,6 @@ public struct DeleteObjectResult: Decodable, Sendable {
     public let deleted:  Bool
 }
 
-// EP-005 Asset result types
-
 public struct ImportAssetResult: Decodable, Sendable {
     public let assetID:     String
     public let assetPath:   String
@@ -717,25 +731,21 @@ public struct ImportAssetResult: Decodable, Sendable {
 
 public struct ListAssetsResult: Decodable, Sendable {
     public let count:  Int
-    public let assets: String  // raw JSON array string
+    public let assets: String
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        count  = try c.decode(Int.self,    forKey: .count)
+        count  = try c.decode(Int.self, forKey: .count)
         assets = try c.decodeIfPresent(String.self, forKey: .assets) ?? "[]"
     }
 
-    private enum CodingKeys: String, CodingKey {
-        case count, assets
-    }
+    private enum CodingKeys: String, CodingKey { case count, assets }
 }
 
 public struct RemoveAssetResult: Decodable, Sendable {
     public let assetID: String
     public let deleted: Bool
 }
-
-// EP-005 Comment result types
 
 public struct AddCommentResult: Decodable, Sendable {
     public let commentID: String
@@ -753,21 +763,17 @@ public struct ResolveCommentResult: Decodable, Sendable {
     public let resolved:  Bool
 }
 
-// EP-005 Inbox result types
-
 public struct ListInboxResult: Decodable, Sendable {
     public let count:     Int
-    public let filenames: String  // raw JSON array string
+    public let filenames: String
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        count     = try c.decode(Int.self,    forKey: .count)
+        count     = try c.decode(Int.self, forKey: .count)
         filenames = try c.decodeIfPresent(String.self, forKey: .filenames) ?? "[]"
     }
 
-    private enum CodingKeys: String, CodingKey {
-        case count, filenames
-    }
+    private enum CodingKeys: String, CodingKey { case count, filenames }
 }
 
 public struct ImportFromInboxResult: Decodable, Sendable {
@@ -775,8 +781,6 @@ public struct ImportFromInboxResult: Decodable, Sendable {
     public let resultPath:  String
     public let assetID:     String
 }
-
-// EP-009 createScene / createChapter result types
 
 public struct CreateSceneResult: Decodable, Sendable {
     public let sceneID:      String
@@ -793,4 +797,4 @@ public struct CreateChapterResult: Decodable, Sendable {
     public let firstSceneContentPath:  String
 }
 
-// ScriviError, Envelope, ErrorPayload, and decode() are in ScriviError.swift.
+// ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

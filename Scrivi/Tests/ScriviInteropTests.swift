@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import Scrivi
+@testable import ScriviApp
 
 // End-to-end interop tests for T-0011 and T-0026.
 // These prove the Swift/C++ boundary works end-to-end for all 7 facade operations.

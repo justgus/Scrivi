@@ -39,8 +39,9 @@
 | SP-021 | C++ Core — `createScene` and `createChapter` | ✅ Closed | 2026-06-01 → 2026-06-01 |
 | SP-022 | Adapter + Swift Engine — `createScene` and `createChapter` | ✅ Closed | 2026-06-01 → 2026-06-01 |
 | SP-023 | Writing Surface — `NSTextView`, Viewport Loader, and Auto-Save | ✅ Closed | 2026-06-01 → 2026-06-01 |
-| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | 🟡 Active | 2026-06-01 → TBD |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | ⏸ Paused | 2026-06-01 → TBD |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | 🔵 Planning | TBD |
+| SP-026 | Apple Platform C API Boundary — Retire C++ Adapter, Wire scrivi.h | ✅ Closed | 2026-06-02 → 2026-06-02 |
 
 ### Tasks
 
@@ -62,13 +63,19 @@
 | T-0080 | Auto-save — debounce, scene-exit, app-resign + backup placeholder | ✅ Verified |
 | T-0081 | `⌘↩` — create scene key binding | ✅ Verified |
 | T-0082 | `⌘⇧↩` — create chapter key binding | ✅ Verified |
-| T-0083 | `SceneNavigatorView` — sidebar list in manuscript order | 🟡 Active |
-| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | 🔵 Backlog |
-| T-0085 | Live title updates — ~300ms debounce | 🔵 Backlog |
-| T-0086 | Click-to-navigate — load scene, scroll editor | 🔵 Backlog |
-| T-0087 | Scroll-down past divider — promote next scene, release top scene | 🔵 Backlog |
-| T-0088 | Scroll-up past divider — promote previous scene, release bottom scene | 🔵 Backlog |
-| T-0089 | EP-009 verification — 16 ACs green; 165/165 ctests; macOS smoke test | 🔵 Backlog |
+| T-0083 | `SceneNavigatorView` — sidebar list in manuscript order | 🟠 Implemented — Not Verified |
+| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | 🟠 Implemented — Not Verified |
+| T-0085 | Live title updates — ~300ms debounce | 🟠 Implemented — Not Verified |
+| T-0086 | Click-to-navigate — load scene, scroll editor | 🟠 Implemented — Not Verified |
+| T-0087 | Restructure Apple platform — Xcode Workspace + proper xcodeproj, retire SPM | 🟠 Implemented — Not Verified |
+| T-0088 | Scroll-down past divider — promote next scene, release top scene | 🔵 Backlog |
+| T-0089 | Scroll-up past divider — promote previous scene, release bottom scene | 🔵 Backlog |
+| T-0090 | Remove `ScriviCoreAdapter` target from Xcode — update `project.pbxproj` | ✅ Verified |
+| T-0091 | Replace adapter module map with `ScriviCore` plain-C module map (`scrivi.h`) | ✅ Verified |
+| T-0092 | Rewrite `ScriviEngine.swift` — call `scrivi_*` C functions; `scrivi_free()` after each call | ✅ Verified |
+| T-0093 | Update `ScriviInteropTests.swift` — fix `@testable import` to correct module name | ✅ Verified |
+| T-0094 | Verify: Xcode build clean, `ScriviInteropTests` green, `ctest` count unchanged | ✅ Verified |
+| T-0095 | EP-009 verification — all ACs green; ctest green; macOS smoke test | 🔵 Backlog |
 
 ### Issues
 
@@ -96,4 +103,4 @@
 
 ---
 
-*Last Updated: 2026-06-01 (SP-023 closed; T-0077–T-0082 verified; SP-024 activated)*
+*Last Updated: 2026-06-02 (SP-026 closed; T-0090–T-0094 verified; SP-024 resumes)*

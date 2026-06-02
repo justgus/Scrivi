@@ -1,5 +1,4 @@
 import Foundation
-import Scrivi
 
 // A scene segment held in memory by the viewport loader.
 struct SceneSegment: Identifiable {

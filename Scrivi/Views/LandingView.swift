@@ -1,5 +1,4 @@
 import SwiftUI
-import Scrivi
 
 struct LandingView: View {
 

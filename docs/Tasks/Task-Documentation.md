@@ -14,7 +14,7 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **18 backlog Tasks** (T-0072–T-0089, EP-009)
+Currently: **8 backlog Tasks** (T-0090–T-0094 SP-026; T-0087–T-0089 SP-025)
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -30,17 +30,21 @@ See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **0 unverified Tasks**
+Currently: **5 unverified Tasks** (T-0083–T-0087 SP-024)
 
 | Task | Title | Status |
 | ---- | ----- | ------ |
-| —    | None  | —      |
+| T-0083 | `SceneNavigatorView` — sidebar List in manuscript order | 🟠 Implemented — Not Verified |
+| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | 🟠 Implemented — Not Verified |
+| T-0085 | Live title updates — ~300ms debounce | 🟠 Implemented — Not Verified |
+| T-0086 | Click-to-navigate — load scene, scroll editor | 🟠 Implemented — Not Verified |
+| T-0087 | Restructure Apple platform — Xcode Workspace + proper xcodeproj, retire SPM | 🟠 Implemented — Not Verified |
 
 See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **67 verified Tasks** | Next available: **T-0090**
+Currently: **67 verified Tasks**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -115,15 +119,21 @@ Currently: **67 verified Tasks** | Next available: **T-0090**
 | T-0069 | `CreateChapterRequest` / `CreateChapterResult` types + `ScriviCore::createChapter()` facade | [Task-verified-0069.md](Verified/Task-verified-0069.md) | ✅ Verified |
 | T-0070 | `ChapterCreator` implementation — slug generation, file writes, manuscript index update, auto first scene | [Task-verified-0070.md](Verified/Task-verified-0070.md) | ✅ Verified |
 | T-0071 | Integration tests — `createScene` ordering, insert-after-current, `createChapter` with auto-scene | [Task-verified-0071.md](Verified/Task-verified-0071.md) | ✅ Verified |
+| T-0090 | Remove `ScriviCoreAdapter` target from Xcode — update `project.pbxproj` | SP-026 (no separate file) | ✅ Verified |
+| T-0091 | Replace adapter module map with `ScriviCore` plain-C module map (`scrivi.h`) | SP-026 (no separate file) | ✅ Verified |
+| T-0092 | Rewrite `ScriviEngine.swift` — call `scrivi_*` C functions; `scrivi_free()` after each call | SP-026 (no separate file) | ✅ Verified |
+| T-0093 | Update `ScriviInteropTests.swift` — fix `@testable import` to correct module name | SP-026 (no separate file) | ✅ Verified |
+| T-0094 | Verify: Xcode build clean, `ScriviInteropTests` green, `ctest` count unchanged | SP-026 (no separate file) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 89
-- **Verified:** 67 (75%) ✅
-- **Unverified:** 0 (0%) 🟠
+- **Total Tasks:** 94
+- **Verified:** 72 (77%) ✅
+- **Unverified:** 5 (5%) 🟠 (T-0083–T-0087 SP-024)
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 18 (20%) 🔵 (T-0072–T-0089, EP-009)
+- **Backlog:** 3 (3%) 🔵 (T-0087–T-0089 SP-025)
+- **Next available:** T-0095
 
 ---
 
-*Last Updated: 2026-06-01 (T-0067–T-0071 verified; SP-021 closed; SP-022 activated)*
+*Last Updated: 2026-06-02 (SP-026 closed; T-0090–T-0094 verified; SP-024 resumes next)*

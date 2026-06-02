@@ -49,4 +49,4 @@ Currently: **9 Epics** | Next available: **EP-010**
 
 ---
 
-*Last Updated: 2026-06-01 (EP-009 created as Draft)*
+*Last Updated: 2026-06-02 (SP-026 added to EP-009; SP-024 paused)*

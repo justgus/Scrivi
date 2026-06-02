@@ -1,4 +1,0 @@
-module ScriviCoreAdapter {
-    header "ScriviCoreAdapter.hpp"
-    export *
-}

@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-**SP-024** — Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate (EP-009) | 🟡 Active | Started: 2026-06-01
+None — SP-024 (Scene Navigator) resumes next.
 
 ## Sprint Backlog
 
@@ -19,12 +19,12 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 🟡 Active |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | ⏸ Paused |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **25 Sprints** | Next available: **SP-026**
+Currently: **26 Sprints** | Next available: **SP-027**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -51,16 +51,18 @@ Currently: **25 Sprints** | Next available: **SP-026**
 | SP-021 | C++ Core — `createScene` and `createChapter` | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
 | SP-022 | Adapter + Swift Engine — `createScene` and `createChapter` | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
 | SP-023 | Writing Surface — `NSTextView`, Viewport Loader, and Auto-Save | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
-| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 2026-06-01 | TBD | 🟡 Active |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 2026-06-01 | TBD | ⏸ Paused |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | TBD | TBD | 🔵 Planning |
+| SP-026 | Apple Platform C API Boundary — Retire C++ Adapter, Wire scrivi.h | EP-009 | 2026-06-02 | 2026-06-02 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 25
-- **Closed:** 23 ✅
-- **Active:** 1 🟡
+- **Total Sprints:** 26
+- **Closed:** 24 ✅
+- **Paused:** 1 ⏸
+- **Active:** 0 🟡
 - **Planning:** 1 🔵
 
 ---
 
-*Last Updated: 2026-06-01 (SP-023 closed; SP-024 activated)*
+*Last Updated: 2026-06-02 (SP-026 closed; SP-024 resumes next)*
