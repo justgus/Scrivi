@@ -1,5 +1,5 @@
 # Active Tasks
 
-*No active tasks.*
+*No active tasks. T-0067–T-0071 implemented; awaiting verification.*
 
-*Last Updated: 2026-06-01 (T-0063–T-0066 verified; SP-020 closed)*
+*Last Updated: 2026-06-01 (SP-021 implementation complete)*

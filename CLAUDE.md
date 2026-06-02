@@ -52,16 +52,25 @@ The approved architecture uses a **shared C++23 static library (ScriviCore)** as
 - The boundary protocol is **JSON-over-`std::string`**, permanent. Swift/C++ direct struct interop with ScriviCore public headers is not the boundary strategy.
 - No backend logic is reimplemented in Swift. Swift is responsible for UI only.
 
-### Apple Platform Layer (interop prototype complete)
+### Apple Platform Layer
 
-The Swift/Apple layer is a thin wrapper over ScriviCore via `ScriviCoreAdapter`. The interop prototype (T-0011) is complete. UI work (SwiftUI) begins after the C++ core is sufficiently complete.
+The Swift/Apple layer is a thin wrapper over ScriviCore via `ScriviCoreAdapter`. All Apple-platform source lives in `Scrivi/` at the repo root, owned directly by `Scrivi.xcodeproj`. There is no SPM package.
 
-- `ScriviCoreAdapter` (C++) accepts `const char*` inputs, returns `std::string` JSON results by value.
-- `ScriviEngine.swift` holds the adapter, converts Swift types, decodes JSON envelopes, throws `ScriviError`.
-- SPM package at `platforms/apple/` with three targets: `ScriviCoreAdapter`, `Scrivi`, `ScriviInteropTests`.
-- SwiftUI for all UI on Apple platforms (not yet started)
+- `ScriviCoreAdapter` (C++, `Scrivi/Adapter/`) accepts `const char*` inputs, returns `std::string` JSON results by value. Built as a static library target inside Xcode.
+- `ScriviEngine.swift` (`Scrivi/Engine/`) holds the adapter reference, converts Swift types, decodes JSON envelopes, throws `ScriviError`. Built as a framework target inside Xcode.
+- App source in `Scrivi/App/` and `Scrivi/Views/`. Interop tests in `Scrivi/Tests/`.
+- `Scrivi.xcworkspace` is the entry point — open this, not the xcodeproj directly.
+- SwiftUI for all UI on Apple platforms (macOS active; iOS/visionOS targets stubbed, in progress)
 - CloudKit for sync (future — not in current Epics)
 - PencilKit, MapKit, RealityKit as appropriate per platform
+
+### Windows / Linux Platform Layer
+
+Qt/QML GUI calling ScriviCore directly (no adapter needed — same C++ process). Projects live in `platforms/windows/` and `platforms/linux/`. Not yet started — see Android maturity criteria.
+
+### Android Platform Layer
+
+Deferred. See `platforms/android/README.md` for the maturity criteria that gate Android development.
 
 ---
 
@@ -87,7 +96,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-**Xcode project file rule:** The user commits and creates PRs from Xcode. Every time a new `.cpp` or `.hpp` file is added, `ScriviCore.xcodeproj/project.pbxproj` MUST be updated in the same step — before the build, not after. Failing to do this means the user cannot see new files in Xcode and cannot stage them for commit. This is a non-negotiable requirement.
+**Xcode project file rule:** The user commits and creates PRs from Xcode. Every time a new `.cpp`, `.hpp`, or `.swift` file is added anywhere under `Scrivi/` or `ScriviCore/`, `Scrivi.xcodeproj/project.pbxproj` MUST be updated in the same step — before the build, not after. Failing to do this means the user cannot see new files in Xcode and cannot stage them for commit. This is a non-negotiable requirement. `ScriviCore.xcodeproj` no longer exists — do not reference it.
 
 ### Apple Platform (when UI work begins)
 
@@ -121,7 +130,15 @@ Common pitfalls to avoid (Apple):
 
 ```
 Scrivi/
-├── ScriviCore/                  ← C++24 backend static library
+├── Scrivi.xcworkspace           ← Open this in Xcode (entry point)
+├── Scrivi.xcodeproj             ← Xcode project (all Apple targets)
+├── Scrivi/                      ← Apple platform Swift + Adapter source
+│   ├── Adapter/                 ← ScriviCoreAdapter.cpp/.hpp, KeychainSecureStore, module.modulemap
+│   ├── Engine/                  ← ScriviEngine.swift, ScriviError.swift
+│   ├── App/                     ← ScriviApp.swift, AppEnvironment.swift, Info.plist, entitlements
+│   ├── Views/                   ← All SwiftUI views
+│   └── Tests/                   ← ScriviInteropTests.swift
+├── ScriviCore/                  ← C++23 backend static library (CMake builds this)
 │   ├── include/scrivi/          ← Public headers (no UI types, no third-party types)
 │   ├── src/
 │   │   ├── public_api/          ← ScriviCore.cpp facade implementation
@@ -133,12 +150,16 @@ Scrivi/
 │       ├── integration/         ← Integration tests against real temp directories
 │       ├── mocks/               ← Test-only mock implementations
 │       └── fixtures/            ← Canonical test project fixtures
+├── platforms/
+│   ├── windows/                 ← Qt/QML Windows project (placeholder)
+│   ├── linux/                   ← Qt/QML Linux project (placeholder)
+│   └── android/                 ← Deferred (see README for maturity criteria)
 ├── docs/                        ← All design and architecture documents
 │   ├── Epics/                   ← Epic tracking
 │   ├── Sprints/                 ← Sprint tracking
 │   ├── Tasks/                   ← Task tracking
 │   └── Issues/                  ← Issue tracking
-└── CMakeLists.txt               ← Root CMake configuration
+└── CMakeLists.txt               ← Root CMake configuration (ScriviCore only)
 ```
 
 ---

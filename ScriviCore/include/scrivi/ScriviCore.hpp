@@ -37,6 +37,9 @@ public:
     Result<ListInboxResult>         listInbox(const ListInboxRequest& request);
     Result<ImportFromInboxResult>   importFromInbox(const ImportFromInboxRequest& request);
 
+    Result<CreateSceneResult>       createScene(const CreateSceneRequest& request);
+    Result<CreateChapterResult>     createChapter(const CreateChapterRequest& request);
+
 private:
     CoreServices services_;
 };

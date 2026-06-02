@@ -1,0 +1,862 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B001_BF /* ScriviCoreAdapter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B001 /* ScriviCoreAdapter.cpp */; };
+		B002_BF /* KeychainSecureStore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B002 /* KeychainSecureStore.cpp */; };
+		B010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
+		B011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		B020_BF /* libScriviCoreAdapter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B020_PRODUCT /* libScriviCoreAdapter.a */; };
+		C001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
+		C002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
+		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
+		C004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
+		C005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
+		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
+		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
+		C009_BF /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C009 /* Info.plist */; };
+		C010_BF /* ScriviEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B010_PRODUCT /* ScriviEngine.framework */; };
+		D001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
+		D002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
+		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
+		D004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
+		D005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		D006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
+		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
+		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
+		D010_BF /* ScriviEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B010_PRODUCT /* ScriviEngine.framework */; };
+		E001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
+		E002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
+		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
+		E004_BF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C004 /* EditorView.swift */; };
+		E005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
+		E006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
+		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
+		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
+		E010_BF /* ScriviEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B010_PRODUCT /* ScriviEngine.framework */; };
+		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
+		F010_BF /* ScriviEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B010_PRODUCT /* ScriviEngine.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DEP_ADAPTER_PROXY /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJECT /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B_ADAPTER_TARGET;
+			remoteInfo = ScriviCoreAdapter;
+		};
+		DEP_ENGINE_PROXY /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJECT /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B_ENGINE_TARGET;
+			remoteInfo = ScriviEngine;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B001 /* ScriviCoreAdapter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ScriviCoreAdapter.cpp; path = Scrivi/Adapter/ScriviCoreAdapter.cpp; sourceTree = SOURCE_ROOT; };
+		B001H /* ScriviCoreAdapter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ScriviCoreAdapter.hpp; path = Scrivi/Adapter/ScriviCoreAdapter.hpp; sourceTree = SOURCE_ROOT; };
+		B002 /* KeychainSecureStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = KeychainSecureStore.cpp; path = Scrivi/Adapter/KeychainSecureStore.cpp; sourceTree = SOURCE_ROOT; };
+		B002H /* KeychainSecureStore.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = KeychainSecureStore.hpp; path = Scrivi/Adapter/KeychainSecureStore.hpp; sourceTree = SOURCE_ROOT; };
+		B003 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.module; name = module.modulemap; path = Scrivi/Adapter/module.modulemap; sourceTree = SOURCE_ROOT; };
+		B010 /* ScriviEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngine.swift; path = Scrivi/Engine/ScriviEngine.swift; sourceTree = SOURCE_ROOT; };
+		B010_PRODUCT /* ScriviEngine.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ScriviEngine.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B011 /* ScriviError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviError.swift; path = Scrivi/Engine/ScriviError.swift; sourceTree = SOURCE_ROOT; };
+		B020_PRODUCT /* libScriviCoreAdapter.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libScriviCoreAdapter.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		C001 /* ScriviApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviApp.swift; path = Scrivi/App/ScriviApp.swift; sourceTree = SOURCE_ROOT; };
+		C002 /* AppEnvironment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppEnvironment.swift; path = Scrivi/App/AppEnvironment.swift; sourceTree = SOURCE_ROOT; };
+		C003 /* LandingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LandingView.swift; path = Scrivi/Views/LandingView.swift; sourceTree = SOURCE_ROOT; };
+		C004 /* EditorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = EditorView.swift; path = Scrivi/Views/EditorView.swift; sourceTree = SOURCE_ROOT; };
+		C005 /* NewProjectSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NewProjectSheet.swift; path = Scrivi/Views/NewProjectSheet.swift; sourceTree = SOURCE_ROOT; };
+		C006 /* ViewportSceneLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewportSceneLoader.swift; path = Scrivi/Views/ViewportSceneLoader.swift; sourceTree = SOURCE_ROOT; };
+		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Scrivi/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
+		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
+		C009 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Scrivi/App/Info.plist; sourceTree = SOURCE_ROOT; };
+		C010 /* Scrivi.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = Scrivi.entitlements; path = Scrivi/App/Scrivi.entitlements; sourceTree = SOURCE_ROOT; };
+		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Scrivi/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
+		F_PRODUCT /* ScriviInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriviInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		SCRIVI_CORE_REF /* ScriviCore */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ScriviCore; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B_ENGINE_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B020_BF /* libScriviCoreAdapter.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C010_BF /* ScriviEngine.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D010_BF /* ScriviEngine.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E010_BF /* ScriviEngine.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F_FW /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F010_BF /* ScriviEngine.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		GRP_ADAPTER /* Adapter */ = {
+			isa = PBXGroup;
+			children = (
+				B001 /* ScriviCoreAdapter.cpp */,
+				B001H /* ScriviCoreAdapter.hpp */,
+				B002 /* KeychainSecureStore.cpp */,
+				B002H /* KeychainSecureStore.hpp */,
+				B003 /* module.modulemap */,
+			);
+			name = Adapter;
+			sourceTree = "<group>";
+		};
+		GRP_APP /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C001 /* ScriviApp.swift */,
+				C002 /* AppEnvironment.swift */,
+				C009 /* Info.plist */,
+				C010 /* Scrivi.entitlements */,
+			);
+			name = App;
+			sourceTree = "<group>";
+		};
+		GRP_ENGINE /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				B010 /* ScriviEngine.swift */,
+				B011 /* ScriviError.swift */,
+			);
+			name = Engine;
+			sourceTree = "<group>";
+		};
+		GRP_PRODUCTS /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B020_PRODUCT /* libScriviCoreAdapter.a */,
+				B010_PRODUCT /* ScriviEngine.framework */,
+				C_PRODUCT /* Scrivi.app */,
+				D_PRODUCT /* Scrivi.app */,
+				E_PRODUCT /* Scrivi.app */,
+				F_PRODUCT /* ScriviInteropTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		GRP_ROOT = {
+			isa = PBXGroup;
+			children = (
+				GRP_SCRIVI /* Scrivi */,
+				SCRIVI_CORE_REF /* ScriviCore */,
+				GRP_PRODUCTS /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		GRP_SCRIVI /* Scrivi */ = {
+			isa = PBXGroup;
+			children = (
+				GRP_ADAPTER /* Adapter */,
+				GRP_ENGINE /* Engine */,
+				GRP_APP /* App */,
+				GRP_VIEWS /* Views */,
+				GRP_TESTS /* Tests */,
+			);
+			name = Scrivi;
+			sourceTree = "<group>";
+		};
+		GRP_TESTS /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				F001 /* ScriviInteropTests.swift */,
+			);
+			name = Tests;
+			sourceTree = "<group>";
+		};
+		GRP_VIEWS /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C003 /* LandingView.swift */,
+				C004 /* EditorView.swift */,
+				C005 /* NewProjectSheet.swift */,
+				C006 /* ViewportSceneLoader.swift */,
+				C007 /* ManuscriptTextView.swift */,
+				C008 /* SceneNavigatorView.swift */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B_ADAPTER_TARGET /* ScriviCoreAdapter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B_ADAPTER_BCL /* Build configuration list for PBXNativeTarget "ScriviCoreAdapter" */;
+			buildPhases = (
+				B_CMAKE_PHASE /* Build ScriviCore (CMake) */,
+				B_ADAPTER_SOURCES /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ScriviCoreAdapter;
+			productName = ScriviCoreAdapter;
+			productReference = B020_PRODUCT /* libScriviCoreAdapter.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		B_ENGINE_TARGET /* ScriviEngine */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B_ENGINE_BCL /* Build configuration list for PBXNativeTarget "ScriviEngine" */;
+			buildPhases = (
+				B_ENGINE_SOURCES /* Sources */,
+				B_ENGINE_FW /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_ADAPTER /* PBXTargetDependency */,
+			);
+			name = ScriviEngine;
+			productName = ScriviEngine;
+			productReference = B010_PRODUCT /* ScriviEngine.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		C_TARGET /* ScriviApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C_BCL /* Build configuration list for PBXNativeTarget "ScriviApp" */;
+			buildPhases = (
+				C_SOURCES /* Sources */,
+				C_RESOURCES /* Resources */,
+				C_FW /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_ENGINE_MACOS /* PBXTargetDependency */,
+			);
+			name = ScriviApp;
+			productName = ScriviApp;
+			productReference = C_PRODUCT /* Scrivi.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D_TARGET /* ScriviApp-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D_BCL /* Build configuration list for PBXNativeTarget "ScriviApp-iOS" */;
+			buildPhases = (
+				D_SOURCES /* Sources */,
+				D_FW /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_ENGINE_IOS /* PBXTargetDependency */,
+			);
+			name = "ScriviApp-iOS";
+			productName = "ScriviApp-iOS";
+			productReference = D_PRODUCT /* Scrivi.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E_TARGET /* ScriviApp-visionOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E_BCL /* Build configuration list for PBXNativeTarget "ScriviApp-visionOS" */;
+			buildPhases = (
+				E_SOURCES /* Sources */,
+				E_FW /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_ENGINE_VISION /* PBXTargetDependency */,
+			);
+			name = "ScriviApp-visionOS";
+			productName = "ScriviApp-visionOS";
+			productReference = E_PRODUCT /* Scrivi.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F_TARGET /* ScriviInteropTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F_BCL /* Build configuration list for PBXNativeTarget "ScriviInteropTests" */;
+			buildPhases = (
+				F_SOURCES /* Sources */,
+				F_FW /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP_ENGINE_TESTS /* PBXTargetDependency */,
+			);
+			name = ScriviInteropTests;
+			productName = ScriviInteropTests;
+			productReference = F_PRODUCT /* ScriviInteropTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		PROJECT /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					F_TARGET = {
+						TestTargetID = C_TARGET;
+					};
+				};
+			};
+			buildConfigurationList = PROJ_BCL /* Build configuration list for PBXProject "Scrivi" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = GRP_ROOT;
+			productRefGroup = GRP_PRODUCTS /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B_ADAPTER_TARGET /* ScriviCoreAdapter */,
+				B_ENGINE_TARGET /* ScriviEngine */,
+				C_TARGET /* ScriviApp */,
+				D_TARGET /* ScriviApp-iOS */,
+				E_TARGET /* ScriviApp-visionOS */,
+				F_TARGET /* ScriviInteropTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C_RESOURCES /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C009_BF /* Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B_CMAKE_PHASE /* Build ScriviCore (CMake) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build ScriviCore (CMake)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\ncd \"$SRCROOT\"\ncmake -S . -B build -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug\ncmake --build build --parallel\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B_ADAPTER_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B001_BF /* ScriviCoreAdapter.cpp in Sources */,
+				B002_BF /* KeychainSecureStore.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B_ENGINE_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B010_BF /* ScriviEngine.swift in Sources */,
+				B011_BF /* ScriviError.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C001_BF /* ScriviApp.swift in Sources */,
+				C002_BF /* AppEnvironment.swift in Sources */,
+				C003_BF /* LandingView.swift in Sources */,
+				C004_BF /* EditorView.swift in Sources */,
+				C005_BF /* NewProjectSheet.swift in Sources */,
+				C006_BF /* ViewportSceneLoader.swift in Sources */,
+				C007_BF /* ManuscriptTextView.swift in Sources */,
+				C008_BF /* SceneNavigatorView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D001_BF /* ScriviApp.swift in Sources */,
+				D002_BF /* AppEnvironment.swift in Sources */,
+				D003_BF /* LandingView.swift in Sources */,
+				D004_BF /* EditorView.swift in Sources */,
+				D005_BF /* NewProjectSheet.swift in Sources */,
+				D006_BF /* ViewportSceneLoader.swift in Sources */,
+				D007_BF /* ManuscriptTextView.swift in Sources */,
+				D008_BF /* SceneNavigatorView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E001_BF /* ScriviApp.swift in Sources */,
+				E002_BF /* AppEnvironment.swift in Sources */,
+				E003_BF /* LandingView.swift in Sources */,
+				E004_BF /* EditorView.swift in Sources */,
+				E005_BF /* NewProjectSheet.swift in Sources */,
+				E006_BF /* ViewportSceneLoader.swift in Sources */,
+				E007_BF /* ManuscriptTextView.swift in Sources */,
+				E008_BF /* SceneNavigatorView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F_SOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F001_BF /* ScriviInteropTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DEP_ADAPTER /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B_ADAPTER_TARGET /* ScriviCoreAdapter */;
+			targetProxy = DEP_ADAPTER_PROXY /* PBXContainerItemProxy */;
+		};
+		DEP_ENGINE_IOS /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B_ENGINE_TARGET /* ScriviEngine */;
+			targetProxy = DEP_ENGINE_PROXY /* PBXContainerItemProxy */;
+		};
+		DEP_ENGINE_MACOS /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B_ENGINE_TARGET /* ScriviEngine */;
+			targetProxy = DEP_ENGINE_PROXY /* PBXContainerItemProxy */;
+		};
+		DEP_ENGINE_TESTS /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B_ENGINE_TARGET /* ScriviEngine */;
+			targetProxy = DEP_ENGINE_PROXY /* PBXContainerItemProxy */;
+		};
+		DEP_ENGINE_VISION /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B_ENGINE_TARGET /* ScriviEngine */;
+			targetProxy = DEP_ENGINE_PROXY /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B_ADAPTER_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/ScriviCore/include",
+					"$(SRCROOT)/ScriviCore/src",
+					"$(SDKROOT)/usr/include/c++/v1",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MODULE_MAP_FILE = "$(SRCROOT)/Scrivi/Adapter/module.modulemap";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/build/ScriviCore/libScriviCore.a",
+					"-framework",
+					Security,
+				);
+				PRODUCT_NAME = ScriviCoreAdapter;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+			};
+			name = Debug;
+		};
+		B_ADAPTER_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/ScriviCore/include",
+					"$(SRCROOT)/ScriviCore/src",
+					"$(SDKROOT)/usr/include/c++/v1",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MODULE_MAP_FILE = "$(SRCROOT)/Scrivi/Adapter/module.modulemap";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"$(SRCROOT)/build/ScriviCore/libScriviCore.a",
+					"-framework",
+					Security,
+				);
+				PRODUCT_NAME = ScriviCoreAdapter;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+			};
+			name = Release;
+		};
+		B_ENGINE_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -I$(SRCROOT)/ScriviCore/include -Xcc -I$(SRCROOT)/ScriviCore/src";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = com.caposoft.scrivi.engine;
+				PRODUCT_NAME = ScriviEngine;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+			};
+			name = Debug;
+		};
+		B_ENGINE_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -I$(SRCROOT)/ScriviCore/include -Xcc -I$(SRCROOT)/ScriviCore/src";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = com.caposoft.scrivi.engine;
+				PRODUCT_NAME = ScriviEngine;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+			};
+			name = Release;
+		};
+		C_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Scrivi/App/Scrivi.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Scrivi/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_NAME = Scrivi;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Scrivi/App/Scrivi.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Scrivi/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_NAME = Scrivi;
+				SDKROOT = macosx;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_NAME = Scrivi;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_NAME = Scrivi;
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_NAME = Scrivi;
+				SDKROOT = xros;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		E_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_NAME = Scrivi;
+				SDKROOT = xros;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		F_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -I$(SRCROOT)/ScriviCore/include -Xcc -I$(SRCROOT)/ScriviCore/src";
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi.tests;
+				PRODUCT_NAME = ScriviInteropTests;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scrivi.app/Contents/MacOS/Scrivi";
+			};
+			name = Debug;
+		};
+		F_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QEJ2Z74RY9;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -I$(SRCROOT)/ScriviCore/include -Xcc -I$(SRCROOT)/ScriviCore/src";
+				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi.tests;
+				PRODUCT_NAME = ScriviInteropTests;
+				SDKROOT = macosx;
+				SWIFT_OBJC_INTEROP_MODE = swiftcxx;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scrivi.app/Contents/MacOS/Scrivi";
+			};
+			name = Release;
+		};
+		PROJ_BC_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include/c++/v1";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		PROJ_BC_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++23";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include/c++/v1";
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B_ADAPTER_BCL /* Build configuration list for PBXNativeTarget "ScriviCoreAdapter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B_ADAPTER_BC_DEBUG /* Debug */,
+				B_ADAPTER_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B_ENGINE_BCL /* Build configuration list for PBXNativeTarget "ScriviEngine" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B_ENGINE_BC_DEBUG /* Debug */,
+				B_ENGINE_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C_BCL /* Build configuration list for PBXNativeTarget "ScriviApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C_BC_DEBUG /* Debug */,
+				C_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D_BCL /* Build configuration list for PBXNativeTarget "ScriviApp-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D_BC_DEBUG /* Debug */,
+				D_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E_BCL /* Build configuration list for PBXNativeTarget "ScriviApp-visionOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E_BC_DEBUG /* Debug */,
+				E_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F_BCL /* Build configuration list for PBXNativeTarget "ScriviInteropTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F_BC_DEBUG /* Debug */,
+				F_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		PROJ_BCL /* Build configuration list for PBXProject "Scrivi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				PROJ_BC_DEBUG /* Debug */,
+				PROJ_BC_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = PROJECT /* Project object */;
+}

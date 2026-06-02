@@ -27,6 +27,8 @@ target_sources(ScriviCore
         src/project_package/ProjectValidator.cpp
         src/project_package/ProjectOpener.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
+        src/manuscript/ChapterCreator.cpp
+        src/manuscript/SceneCreator.cpp
         src/manuscript/SceneReader.cpp
         src/manuscript/SceneWriter.cpp
         src/workspace/WorkspaceStateService.cpp

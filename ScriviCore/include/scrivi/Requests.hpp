@@ -191,4 +191,24 @@ struct OpenSceneRequest {
     SceneID      sceneID;
 };
 
+// ---------------------------------------------------------------------------
+// createScene / createChapter (EP-009 SP-021 T-0067)
+// ---------------------------------------------------------------------------
+
+struct CreateSceneRequest {
+    AbsolutePath  projectRootPath;
+    AbsolutePath  appSupportRoot;
+    ProjectID     projectID;
+    ChapterID     chapterID;
+    SceneID       afterSceneID;   // insert after this scene; empty = append to end of chapter
+    AuthorshipRef author;
+};
+
+struct CreateChapterRequest {
+    AbsolutePath  projectRootPath;
+    AbsolutePath  appSupportRoot;
+    ProjectID     projectID;
+    AuthorshipRef author;
+};
+
 } // namespace scrivi

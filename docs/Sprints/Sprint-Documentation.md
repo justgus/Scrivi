@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-No active sprint.
+**SP-024** — Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate (EP-009) | 🟡 Active | Started: 2026-06-01
 
 ## Sprint Backlog
 
@@ -19,11 +19,12 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| —      | None  | —    | —      |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 🟡 Active |
+| SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **20 Sprints** | Next available: **SP-021**
+Currently: **25 Sprints** | Next available: **SP-026**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -47,14 +48,19 @@ Currently: **20 Sprints** | Next available: **SP-021**
 | SP-018 | Cross-Platform Build — Windows (MSVC) + SecureStore Trade Study | EP-008 | 2026-05-31 | 2026-06-01 | ✅ Closed |
 | SP-019 | Multi-Scene C++ Core — `openProject` Scene List + `openScene` | EP-008 | 2026-06-01 | 2026-06-01 | ✅ Closed |
 | SP-020 | clang-tidy Housekeeping — Full Warning Sweep | EP-008 | 2026-06-01 | 2026-06-01 | ✅ Closed |
+| SP-021 | C++ Core — `createScene` and `createChapter` | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
+| SP-022 | Adapter + Swift Engine — `createScene` and `createChapter` | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
+| SP-023 | Writing Surface — `NSTextView`, Viewport Loader, and Auto-Save | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 2026-06-01 | TBD | 🟡 Active |
+| SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | TBD | TBD | 🔵 Planning |
 
 ## Statistics
 
-- **Total Sprints:** 20
-- **Closed:** 20 ✅
-- **Active:** 0
-- **Planning:** 0 🔵
+- **Total Sprints:** 25
+- **Closed:** 23 ✅
+- **Active:** 1 🟡
+- **Planning:** 1 🔵
 
 ---
 
-*Last Updated: 2026-06-01 (SP-020 closed; EP-008 closed)*
+*Last Updated: 2026-06-01 (SP-023 closed; SP-024 activated)*

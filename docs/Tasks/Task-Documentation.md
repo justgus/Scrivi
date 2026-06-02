@@ -14,11 +14,7 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **0 backlog Tasks**
-
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+Currently: **18 backlog Tasks** (T-0072–T-0089, EP-009)
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -44,7 +40,7 @@ See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **62 verified Tasks** | Next available: **T-0067**
+Currently: **67 verified Tasks** | Next available: **T-0090**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -114,15 +110,20 @@ Currently: **62 verified Tasks** | Next available: **T-0067**
 | T-0064 | clang-tidy — `modernize-use-designated-initializers` + `readability-qualified-auto` (51 warnings) | [Task-verified-0064.md](Verified/Task-verified-0064.md) | ✅ Verified |
 | T-0065 | clang-tidy — `[[nodiscard]]`, `const`, and `static` member functions (21 warnings) | [Task-verified-0065.md](Verified/Task-verified-0065.md) | ✅ Verified |
 | T-0066 | clang-tidy — Remaining checks (20 warnings) | [Task-verified-0066.md](Verified/Task-verified-0066.md) | ✅ Verified |
+| T-0067 | `CreateSceneRequest` / `CreateSceneResult` types + `ScriviCore::createScene()` facade | [Task-verified-0067.md](Verified/Task-verified-0067.md) | ✅ Verified |
+| T-0068 | `SceneCreator` implementation — slug generation, file writes, chapter index update | [Task-verified-0068.md](Verified/Task-verified-0068.md) | ✅ Verified |
+| T-0069 | `CreateChapterRequest` / `CreateChapterResult` types + `ScriviCore::createChapter()` facade | [Task-verified-0069.md](Verified/Task-verified-0069.md) | ✅ Verified |
+| T-0070 | `ChapterCreator` implementation — slug generation, file writes, manuscript index update, auto first scene | [Task-verified-0070.md](Verified/Task-verified-0070.md) | ✅ Verified |
+| T-0071 | Integration tests — `createScene` ordering, insert-after-current, `createChapter` with auto-scene | [Task-verified-0071.md](Verified/Task-verified-0071.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 66
-- **Verified:** 62 (94%) ✅
+- **Total Tasks:** 89
+- **Verified:** 67 (75%) ✅
 - **Unverified:** 0 (0%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 0 (0%) 🔵
+- **Backlog:** 18 (20%) 🔵 (T-0072–T-0089, EP-009)
 
 ---
 
-*Last Updated: 2026-06-01 (T-0063–T-0066 verified; SP-020 closed; EP-008 closed)*
+*Last Updated: 2026-06-01 (T-0067–T-0071 verified; SP-021 closed; SP-022 activated)*

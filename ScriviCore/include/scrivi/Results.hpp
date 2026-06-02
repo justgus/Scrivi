@@ -196,4 +196,24 @@ struct OpenSceneResult {
     ScrollPosition restoredScroll;
 };
 
+// ---------------------------------------------------------------------------
+// createScene / createChapter (EP-009 SP-021 T-0067)
+// ---------------------------------------------------------------------------
+
+struct CreateSceneResult {
+    SceneID      sceneID;
+    ChapterID    chapterID;
+    RelativePath metadataPath;
+    RelativePath contentPath;
+};
+
+struct CreateChapterResult {
+    ChapterID    chapterID;
+    RelativePath chapterMetadataPath;
+
+    SceneID      firstSceneID;
+    RelativePath firstSceneMetadataPath;
+    RelativePath firstSceneContentPath;
+};
+
 } // namespace scrivi

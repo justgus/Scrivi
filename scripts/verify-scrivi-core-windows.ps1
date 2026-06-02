@@ -1,6 +1,15 @@
 # Validates ScriviCore (C++) on Windows using Visual Studio 2022.
 # Run from Developer PowerShell for VS 2022.
+#
+# IMPORTANT: This script must run locally on the Win11 development machine.
+# It requires the MSVC toolchain and local filesystem access. Do not attempt
+# to invoke it remotely or when the Win11 machine is off the local network.
 $ErrorActionPreference = "Stop"
+
+if (-not (Test-Path "C:\Windows\System32\cmd.exe")) {
+    Write-Error "This script must run locally on the Win11 machine. Aborting."
+    exit 1
+}
 
 $RepoRoot = $PSScriptRoot | Split-Path -Parent
 $BuildDir = Join-Path $RepoRoot "build\windows-debug"

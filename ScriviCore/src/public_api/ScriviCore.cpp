@@ -3,6 +3,8 @@
 #include "git/SnapshotService.hpp"
 #include "identity/IdentityService.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
+#include "manuscript/ChapterCreator.hpp"
+#include "manuscript/SceneCreator.hpp"
 #include "manuscript/SceneReader.hpp"
 #include "manuscript/SceneWriter.hpp"
 #include "project_package/ProjectCreator.hpp"
@@ -227,6 +229,18 @@ Result<ImportFromInboxResult> ScriviCore::importFromInbox(
     const ImportFromInboxRequest& request) {
     inbox::InboxStore store{services_};
     return store.importFromInbox(request);
+}
+
+Result<CreateSceneResult> ScriviCore::createScene(
+    const CreateSceneRequest& request) {
+    manuscript::SceneCreator creator{services_};
+    return creator.create(request);
+}
+
+Result<CreateChapterResult> ScriviCore::createChapter(
+    const CreateChapterRequest& request) {
+    manuscript::ChapterCreator creator{services_};
+    return creator.create(request);
 }
 
 } // namespace scrivi
