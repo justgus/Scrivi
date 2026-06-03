@@ -35,6 +35,16 @@ struct ManuscriptTextView: NSViewRepresentable {
         scroll.documentView = textView
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
+
+        // Observe scroll position changes to drive scene promotion.
+        scroll.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.scrollDidChange(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: scroll.contentView
+        )
+
         return scroll
     }
 
@@ -79,11 +89,50 @@ struct ManuscriptTextView: NSViewRepresentable {
         var lastSegmentIDs: [String] = []
         private var saveTask: Task<Void, Never>?
         private var titleTask: Task<Void, Never>?
+        private var scrollTask: Task<Void, Never>?
 
         // Tracks which segment index the cursor was in at last check.
         private var lastCursorSegmentIndex: Int = 0
 
         init(_ parent: ManuscriptTextView) { self.parent = parent }
+
+        // Called by NSScrollView bounds-change notification.
+        // Debounced 100ms to avoid thrashing on fast scroll.
+        @objc func scrollDidChange(_ notification: Notification) {
+            guard let clipView = notification.object as? NSClipView,
+                  let tv = textView else { return }
+
+            // Capture scroll position before the debounce delay.
+            let topY = clipView.bounds.minY
+
+            scrollTask?.cancel()
+            let loader = parent.loader
+            let env = parent.env
+            scrollTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                guard !Task.isCancelled else { return }
+
+                recomputeBoundaries(tv)
+
+                // Find the character index at the top of the visible area.
+                let topPoint = NSPoint(x: 0, y: topY)
+                guard let layoutManager = tv.layoutManager,
+                      let textContainer = tv.textContainer else { return }
+                let glyphIdx = layoutManager.glyphIndex(
+                    for: topPoint,
+                    in: textContainer,
+                    fractionOfDistanceThroughGlyph: nil
+                )
+                let charIdx = layoutManager.characterIndexForGlyph(at: glyphIdx)
+
+                guard let newSegIdx = segmentIndex(for: charIdx),
+                      newSegIdx != loader.currentIndex else { return }
+
+                if let ref = env.authorshipRef {
+                    await loader.scrollPromoteTo(index: newSegIdx, engine: env.engine, ref: ref)
+                }
+            }
+        }
 
         // Rebuild the entire NSTextStorage from the current segments.
         // Called when the segment list changes (new scene inserted, viewport shifted).

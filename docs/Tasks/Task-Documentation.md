@@ -14,7 +14,7 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **8 backlog Tasks** (T-0090–T-0094 SP-026; T-0087–T-0089 SP-025)
+Currently: **1 backlog Task** (T-0096)
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -128,13 +128,13 @@ Currently: **67 verified Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 94
-- **Verified:** 77 (82%) ✅
+- **Total Tasks:** 96
+- **Verified:** 80 (83%) ✅
 - **Unverified:** 0 (0%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 3 (3%) 🔵 (T-0088–T-0089 SP-025, T-0095 EP-009 close)
-- **Next available:** T-0096
+- **Backlog:** 1 (1%) 🔵 (T-0096 scroll bar fidelity)
+- **Next available:** T-0097
 
 ---
 
-*Last Updated: 2026-06-03 (SP-024 closed; T-0083–T-0087 verified; SP-025 is next)*
+*Last Updated: 2026-06-03 (SP-025 closed; T-0095 verified; EP-009 complete)*

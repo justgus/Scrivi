@@ -90,6 +90,19 @@ struct SceneSegment: Identifiable {
         liveTitles[sceneID] = title
     }
 
+    // Called by scroll detection when the visible top crosses into a different segment.
+    // Saves the segment that scrolled out of view; updates currentIndex.
+    // Does not reload the viewport — segments already in memory are kept.
+    func scrollPromoteTo(index: Int, engine: ScriviEngine, ref: AuthorshipRef) async {
+        guard index != currentIndex, segments.indices.contains(index) else { return }
+        let departing = currentIndex
+        currentIndex = index
+        await saveAndRelease(at: departing, engine: engine, ref: ref)
+        if segments.indices.contains(departing) {
+            segments[departing].isDirty = false
+        }
+    }
+
     // Navigate to a scene by ID. Saves current scene, clears loaded segments,
     // reloads from the target scene outward. Returns the new currentIndex (0).
     func navigateTo(sceneID: String, engine: ScriviEngine, ref: AuthorshipRef) async {
@@ -200,11 +213,15 @@ struct SceneSegment: Identifiable {
 
         var charCount = segments.map(\.text.count).reduce(0, +)
         var nextAllIdx = lastAllIdx + 1
+        var loaded = 0
 
-        while charCount < viewportCharBudget + 1, nextAllIdx < allScenes.count {
+        // Always load at least one scene forward as a buffer, regardless of charCount.
+        // Continue loading until the budget is met.
+        while nextAllIdx < allScenes.count, (loaded == 0 || charCount < viewportCharBudget + 1) {
             loadScene(at: nextAllIdx, insertAt: .end)
             charCount += segments.last?.text.count ?? 0
             nextAllIdx += 1
+            loaded += 1
         }
     }
 
@@ -216,12 +233,16 @@ struct SceneSegment: Identifiable {
 
         var charCount = segments.map(\.text.count).reduce(0, +)
         var prevAllIdx = firstAllIdx - 1
+        var loaded = 0
 
-        while charCount < viewportCharBudget + 1, prevAllIdx >= 0 {
+        // Always load at least one scene backward as a buffer, regardless of charCount.
+        // Continue loading until the budget is met.
+        while prevAllIdx >= 0, (loaded == 0 || charCount < viewportCharBudget + 1) {
             loadScene(at: prevAllIdx, insertAt: .beginning)
             charCount += segments.first?.text.count ?? 0
             prevAllIdx -= 1
             currentIndex += 1  // segment shifted right
+            loaded += 1
         }
     }
 
