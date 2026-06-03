@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-None — SP-024 (Scene Navigator) resumes next.
+None — SP-025 (Scroll-Driven Scene Switching and EP-009 Close) is next.
 
 ## Sprint Backlog
 
@@ -19,7 +19,6 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | ⏸ Paused |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | 🔵 Planning |
 
 ## All Sprints
@@ -51,18 +50,18 @@ Currently: **26 Sprints** | Next available: **SP-027**
 | SP-021 | C++ Core — `createScene` and `createChapter` | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
 | SP-022 | Adapter + Swift Engine — `createScene` and `createChapter` | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
 | SP-023 | Writing Surface — `NSTextView`, Viewport Loader, and Auto-Save | EP-009 | 2026-06-01 | 2026-06-01 | ✅ Closed |
-| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 2026-06-01 | TBD | ⏸ Paused |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 2026-06-01 | 2026-06-03 | ✅ Closed |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | TBD | TBD | 🔵 Planning |
 | SP-026 | Apple Platform C API Boundary — Retire C++ Adapter, Wire scrivi.h | EP-009 | 2026-06-02 | 2026-06-02 | ✅ Closed |
 
 ## Statistics
 
 - **Total Sprints:** 26
-- **Closed:** 24 ✅
-- **Paused:** 1 ⏸
+- **Closed:** 25 ✅
+- **Paused:** 0 ⏸
 - **Active:** 0 🟡
 - **Planning:** 1 🔵
 
 ---
 
-*Last Updated: 2026-06-02 (SP-026 closed; SP-024 resumes next)*
+*Last Updated: 2026-06-03 (SP-024 closed; SP-025 is next)*

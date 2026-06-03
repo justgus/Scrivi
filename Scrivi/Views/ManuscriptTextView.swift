@@ -42,6 +42,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         guard let tv = scrollView.documentView as? NSTextView else { return }
         let coordinator = context.coordinator
 
+        // Keep coordinator current so delegate callbacks always see the latest env and loader.
+        coordinator.parent = self
+
         // Rebuild text storage when segment list changes.
         let segIDs = loader.segments.map(\.id)
         if segIDs != coordinator.lastSegmentIDs {
@@ -121,6 +124,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? NSTextView else { return }
             let loc = tv.selectedRange().location
+
+            // Recompute boundaries from live storage — they shift with every keystroke.
+            recomputeBoundaries(tv)
 
             guard let segIdx = segmentIndex(for: loc) else { return }
 
@@ -276,6 +282,39 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         // MARK: — Helpers
+
+        // Recompute sceneBoundaries by scanning the live text storage for divider
+        // attachment characters (U+FFFC). Each divider occupies 2 chars (attachment + \n).
+        // Segment N spans from end-of-divider-N to start-of-divider-(N+1).
+        func recomputeBoundaries(_ tv: NSTextView) {
+            guard let storage = tv.textStorage else { return }
+            let fullLen = storage.length
+            guard fullLen > 0 else { return }
+
+            // Find positions of all divider attachments.
+            var dividerStarts: [Int] = []
+            var pos = 0
+            while pos < fullLen {
+                if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil {
+                    dividerStarts.append(pos)
+                    pos += 2  // skip attachment + \n
+                } else {
+                    pos += 1
+                }
+            }
+
+            // Build boundaries from divider positions.
+            var newBoundaries: [NSRange] = []
+            var segStart = 0
+            for divStart in dividerStarts {
+                newBoundaries.append(NSRange(location: segStart, length: divStart - segStart))
+                segStart = divStart + 2  // character after attachment + \n
+            }
+            // Last (or only) segment runs to end of storage.
+            newBoundaries.append(NSRange(location: segStart, length: fullLen - segStart))
+
+            sceneBoundaries = newBoundaries
+        }
 
         private func segmentIndex(for characterLocation: Int) -> Int? {
             for (i, range) in sceneBoundaries.enumerated() {

@@ -246,6 +246,16 @@ struct SceneSegment: Identifiable {
             contentPath: info.contentPath,
             text: text
         )
+
+        // Seed the live title from the loaded content so the Navigator shows
+        // the first line immediately on launch, before the author types.
+        let firstLine = text
+            .components(separatedBy: .newlines)
+            .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+        if !firstLine.isEmpty {
+            liveTitles[info.sceneID] = firstLine
+        }
+
         switch position {
         case .end:       segments.append(seg)
         case .beginning: segments.insert(seg, at: 0)

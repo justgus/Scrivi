@@ -30,15 +30,11 @@ See: [Task-active.md](Task-active.md)
 
 ## Unverified Tasks (Implemented, Awaiting Verification)
 
-Currently: **5 unverified Tasks** (T-0083–T-0087 SP-024)
+Currently: **0 unverified Tasks**
 
 | Task | Title | Status |
 | ---- | ----- | ------ |
-| T-0083 | `SceneNavigatorView` — sidebar List in manuscript order | 🟠 Implemented — Not Verified |
-| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | 🟠 Implemented — Not Verified |
-| T-0085 | Live title updates — ~300ms debounce | 🟠 Implemented — Not Verified |
-| T-0086 | Click-to-navigate — load scene, scroll editor | 🟠 Implemented — Not Verified |
-| T-0087 | Restructure Apple platform — Xcode Workspace + proper xcodeproj, retire SPM | 🟠 Implemented — Not Verified |
+| —    | None  | —      |
 
 See: [Task-unverified.md](Task-unverified.md)
 
@@ -119,6 +115,11 @@ Currently: **67 verified Tasks**
 | T-0069 | `CreateChapterRequest` / `CreateChapterResult` types + `ScriviCore::createChapter()` facade | [Task-verified-0069.md](Verified/Task-verified-0069.md) | ✅ Verified |
 | T-0070 | `ChapterCreator` implementation — slug generation, file writes, manuscript index update, auto first scene | [Task-verified-0070.md](Verified/Task-verified-0070.md) | ✅ Verified |
 | T-0071 | Integration tests — `createScene` ordering, insert-after-current, `createChapter` with auto-scene | [Task-verified-0071.md](Verified/Task-verified-0071.md) | ✅ Verified |
+| T-0083 | `SceneNavigatorView` — sidebar List in manuscript order | [Task-verified-0083.md](Verified/Task-verified-0083.md) | ✅ Verified |
+| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | [Task-verified-0084.md](Verified/Task-verified-0084.md) | ✅ Verified |
+| T-0085 | Live title updates — ~300ms debounce | [Task-verified-0085.md](Verified/Task-verified-0085.md) | ✅ Verified |
+| T-0086 | Click-to-navigate — load scene, scroll editor | [Task-verified-0086.md](Verified/Task-verified-0086.md) | ✅ Verified |
+| T-0087 | Restructure Apple platform — Xcode Workspace + proper xcodeproj, retire SPM | [Task-verified-0087.md](Verified/Task-verified-0087.md) | ✅ Verified |
 | T-0090 | Remove `ScriviCoreAdapter` target from Xcode — update `project.pbxproj` | SP-026 (no separate file) | ✅ Verified |
 | T-0091 | Replace adapter module map with `ScriviCore` plain-C module map (`scrivi.h`) | SP-026 (no separate file) | ✅ Verified |
 | T-0092 | Rewrite `ScriviEngine.swift` — call `scrivi_*` C functions; `scrivi_free()` after each call | SP-026 (no separate file) | ✅ Verified |
@@ -128,12 +129,12 @@ Currently: **67 verified Tasks**
 ## Statistics
 
 - **Total Tasks:** 94
-- **Verified:** 72 (77%) ✅
-- **Unverified:** 5 (5%) 🟠 (T-0083–T-0087 SP-024)
+- **Verified:** 77 (82%) ✅
+- **Unverified:** 0 (0%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 3 (3%) 🔵 (T-0087–T-0089 SP-025)
-- **Next available:** T-0095
+- **Backlog:** 3 (3%) 🔵 (T-0088–T-0089 SP-025, T-0095 EP-009 close)
+- **Next available:** T-0096
 
 ---
 
-*Last Updated: 2026-06-02 (SP-026 closed; T-0090–T-0094 verified; SP-024 resumes next)*
+*Last Updated: 2026-06-03 (SP-024 closed; T-0083–T-0087 verified; SP-025 is next)*

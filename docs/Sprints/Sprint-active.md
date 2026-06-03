@@ -1,7 +1,7 @@
 # Active Sprint
 
-Currently no active sprint. SP-024 (Scene Navigator) is paused and resumes next.
+Currently no active sprint. SP-025 (Scroll-Driven Scene Switching and EP-009 Close) is next.
 
 ---
 
-*Last Updated: 2026-06-02 (SP-026 closed; SP-024 resumes)*
+*Last Updated: 2026-06-03 (SP-024 closed; SP-025 is next)*

@@ -23,11 +23,11 @@ See: [Issue-active.md][2]
 
 ## Verified Issues
 
-Currently: **1 verified issue** | Next available I#: **I-0002**
+Currently: **2 verified issues** | Next available I#: **I-0003**
 
 | Batch | DRs             | File                             | Status                |
 | ----- | --------------- | -------------------------------- | --------------------- |
-| 1     | I-0001 – I-0010 | [Issue-verified-0001-0010.md][3] | 🟡 In Progress (1/10) |
+| 1     | I-0001 – I-0010 | [Issue-verified-0001-0010.md][3] | 🟡 In Progress (2/10) |
 
 ## Closed Issues (Not Verified)
 
@@ -45,14 +45,14 @@ Currently: **0 closed issues**
 
 ## Statistics
 
-- **Total Issues:** 1
-- **Verified:** 1 (100%) ✅
+- **Total Issues:** 2
+- **Verified:** 2 (100%) ✅
 - **Open:** 0 (0%) 🔴
 - **Closed/Deferred:** 0 (0%) ⚪
 
 ---
 
-*Last Updated: 2026-05-20*
+*Last Updated: 2026-06-03*
 
 
 [1]:	./ER-Documentation.md

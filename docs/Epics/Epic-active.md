@@ -39,7 +39,7 @@
 | SP-021 | C++ Core — `createScene` and `createChapter` | ✅ Closed | 2026-06-01 → 2026-06-01 |
 | SP-022 | Adapter + Swift Engine — `createScene` and `createChapter` | ✅ Closed | 2026-06-01 → 2026-06-01 |
 | SP-023 | Writing Surface — `NSTextView`, Viewport Loader, and Auto-Save | ✅ Closed | 2026-06-01 → 2026-06-01 |
-| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | ⏸ Paused | 2026-06-01 → TBD |
+| SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | ✅ Closed | 2026-06-01 → 2026-06-03 |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | 🔵 Planning | TBD |
 | SP-026 | Apple Platform C API Boundary — Retire C++ Adapter, Wire scrivi.h | ✅ Closed | 2026-06-02 → 2026-06-02 |
 
@@ -63,11 +63,11 @@
 | T-0080 | Auto-save — debounce, scene-exit, app-resign + backup placeholder | ✅ Verified |
 | T-0081 | `⌘↩` — create scene key binding | ✅ Verified |
 | T-0082 | `⌘⇧↩` — create chapter key binding | ✅ Verified |
-| T-0083 | `SceneNavigatorView` — sidebar list in manuscript order | 🟠 Implemented — Not Verified |
-| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | 🟠 Implemented — Not Verified |
-| T-0085 | Live title updates — ~300ms debounce | 🟠 Implemented — Not Verified |
-| T-0086 | Click-to-navigate — load scene, scroll editor | 🟠 Implemented — Not Verified |
-| T-0087 | Restructure Apple platform — Xcode Workspace + proper xcodeproj, retire SPM | 🟠 Implemented — Not Verified |
+| T-0083 | `SceneNavigatorView` — sidebar list in manuscript order | ✅ Verified |
+| T-0084 | Navigator title derivation — first line or "Scene X"; chapter headers | ✅ Verified |
+| T-0085 | Live title updates — ~300ms debounce | ✅ Verified |
+| T-0086 | Click-to-navigate — load scene, scroll editor | ✅ Verified |
+| T-0087 | Restructure Apple platform — Xcode Workspace + proper xcodeproj, retire SPM | ✅ Verified |
 | T-0088 | Scroll-down past divider — promote next scene, release top scene | 🔵 Backlog |
 | T-0089 | Scroll-up past divider — promote previous scene, release bottom scene | 🔵 Backlog |
 | T-0090 | Remove `ScriviCoreAdapter` target from Xcode — update `project.pbxproj` | ✅ Verified |
@@ -103,4 +103,4 @@
 
 ---
 
-*Last Updated: 2026-06-02 (SP-026 closed; T-0090–T-0094 verified; SP-024 resumes)*
+*Last Updated: 2026-06-03 (SP-024 closed; T-0083–T-0087 verified; SP-025 is next)*
