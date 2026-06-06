@@ -288,12 +288,14 @@ const char* scrivi_open_project(
     doc.setSubDoc("activeScene", std::move(scene));
     for (auto& s : v.scenes) {
         scrivi::util::JsonDoc entry;
-        entry.setString("sceneID",      s.sceneID.value);
-        entry.setString("chapterID",    s.chapterID.value);
-        entry.setString("title",        s.title);
-        entry.setString("slug",         s.slug);
-        entry.setString("metadataPath", s.metadataPath);
-        entry.setString("contentPath",  s.contentPath);
+        entry.setString("sceneID",              s.sceneID.value);
+        entry.setString("chapterID",            s.chapterID.value);
+        entry.setString("title",                s.title);
+        entry.setString("chapterTitle",         s.chapterTitle);
+        entry.setString("slug",                 s.slug);
+        entry.setString("metadataPath",         s.metadataPath);
+        entry.setString("contentPath",          s.contentPath);
+        entry.setString("chapterMetadataPath",  s.chapterMetadataPath);
         doc.appendToArray("scenes", std::move(entry));
     }
     return heap(okEnvelope(std::move(doc)));
@@ -867,6 +869,131 @@ const char* scrivi_create_chapter(
     doc.setString("firstSceneID",           v.firstSceneID.value);
     doc.setString("firstSceneMetadataPath", v.firstSceneMetadataPath);
     doc.setString("firstSceneContentPath",  v.firstSceneContentPath);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_delete_scene(
+    const char* projectRootPath,
+    const char* sceneID)
+{
+    scrivi::DeleteSceneRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID         = scrivi::SceneID{S(sceneID)};
+
+    auto r = core().deleteScene(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", v.sceneID.value);
+    doc.setBool("deleted",   v.deleted);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_delete_chapter(
+    const char* projectRootPath,
+    const char* chapterID)
+{
+    scrivi::DeleteChapterRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.chapterID       = scrivi::ChapterID{S(chapterID)};
+
+    auto r = core().deleteChapter(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("chapterID",    v.chapterID.value);
+    doc.setInt("scenesDeleted",   v.scenesDeleted);
+    doc.setBool("deleted",        v.deleted);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_reorder_scene(
+    const char* projectRootPath,
+    const char* sceneID,
+    const char* sourceChapterID,
+    const char* targetChapterID,
+    const char* afterSceneID)
+{
+    scrivi::ReorderSceneRequest req;
+    req.projectRootPath  = S(projectRootPath);
+    req.sceneID          = scrivi::SceneID  {S(sceneID)};
+    req.sourceChapterID  = scrivi::ChapterID{S(sourceChapterID)};
+    req.targetChapterID  = scrivi::ChapterID{S(targetChapterID)};
+    req.afterSceneID     = scrivi::SceneID  {S(afterSceneID)};
+
+    auto r = core().reorderScene(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID",         v.sceneID.value);
+    doc.setString("sourceChapterID", v.sourceChapterID.value);
+    doc.setString("targetChapterID", v.targetChapterID.value);
+    doc.setBool("reordered",         v.reordered);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_reorder_chapter(
+    const char* projectRootPath,
+    const char* chapterID,
+    const char* afterChapterID)
+{
+    scrivi::ReorderChapterRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.chapterID       = scrivi::ChapterID{S(chapterID)};
+    req.afterChapterID  = scrivi::ChapterID{S(afterChapterID)};
+
+    auto r = core().reorderChapter(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("chapterID", v.chapterID.value);
+    doc.setBool("reordered",   v.reordered);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_rename_scene(
+    const char* projectRootPath,
+    const char* metadataPath,
+    const char* newTitle)
+{
+    scrivi::RenameSceneRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.metadataPath    = S(metadataPath);
+    req.newTitle        = S(newTitle);
+
+    auto r = core().renameScene(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("metadataPath", v.metadataPath);
+    doc.setString("newTitle",     v.newTitle);
+    doc.setBool("renamed",        v.renamed);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_rename_chapter(
+    const char* projectRootPath,
+    const char* metadataPath,
+    const char* newTitle)
+{
+    scrivi::RenameChapterRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.metadataPath    = S(metadataPath);
+    req.newTitle        = S(newTitle);
+
+    auto r = core().renameChapter(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("metadataPath", v.metadataPath);
+    doc.setString("newTitle",     v.newTitle);
+    doc.setBool("renamed",        v.renamed);
     return heap(okEnvelope(std::move(doc)));
 }
 

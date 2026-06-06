@@ -64,7 +64,7 @@ Result<CreateChapterResult> ChapterCreator::create(const CreateChapterRequest& r
     // 6. Write scene metadata file
     schemas::SceneMetaData sceneMeta;
     sceneMeta.sceneID               = firstSceneID;
-    sceneMeta.title                 = "Scene 1";
+    sceneMeta.title                 = "";
     sceneMeta.slug                  = sceneSlug;
     sceneMeta.status                = "draft";
     sceneMeta.createdAt             = now;

@@ -216,4 +216,51 @@ struct CreateChapterResult {
     RelativePath firstSceneContentPath;
 };
 
+// ---------------------------------------------------------------------------
+// deleteScene / deleteChapter (EP-010 SP-027)
+// ---------------------------------------------------------------------------
+
+struct DeleteSceneResult {
+    SceneID sceneID;
+    bool    deleted = false;
+};
+
+struct DeleteChapterResult {
+    ChapterID chapterID;
+    int       scenesDeleted = 0;
+    bool      deleted       = false;
+};
+
+// ---------------------------------------------------------------------------
+// renameScene / renameChapter (EP-010 SP-028)
+// ---------------------------------------------------------------------------
+
+struct RenameSceneResult {
+    RelativePath metadataPath;
+    std::string  newTitle;   // the value actually written (trimmed to "" if whitespace)
+    bool         renamed = false;
+};
+
+// ---------------------------------------------------------------------------
+// reorderScene / reorderChapter (EP-010 SP-029)
+// ---------------------------------------------------------------------------
+
+struct ReorderSceneResult {
+    SceneID   sceneID;
+    ChapterID sourceChapterID;
+    ChapterID targetChapterID;
+    bool      reordered = false;
+};
+
+struct ReorderChapterResult {
+    ChapterID chapterID;
+    bool      reordered = false;
+};
+
+struct RenameChapterResult {
+    RelativePath metadataPath;
+    std::string  newTitle;
+    bool         renamed = false;
+};
+
 } // namespace scrivi

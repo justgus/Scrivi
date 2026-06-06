@@ -4,7 +4,13 @@
 #include "identity/IdentityService.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/ChapterCreator.hpp"
+#include "manuscript/ChapterDeleter.hpp"
+#include "manuscript/ChapterRenamer.hpp"
+#include "manuscript/ChapterReorderer.hpp"
 #include "manuscript/SceneCreator.hpp"
+#include "manuscript/SceneDeleter.hpp"
+#include "manuscript/SceneRenamer.hpp"
+#include "manuscript/SceneReorderer.hpp"
 #include "manuscript/SceneReader.hpp"
 #include "manuscript/SceneWriter.hpp"
 #include "project_package/ProjectCreator.hpp"
@@ -241,6 +247,42 @@ Result<CreateChapterResult> ScriviCore::createChapter(
     const CreateChapterRequest& request) {
     manuscript::ChapterCreator creator{services_};
     return creator.create(request);
+}
+
+Result<DeleteSceneResult> ScriviCore::deleteScene(
+    const DeleteSceneRequest& request) {
+    manuscript::SceneDeleter deleter{services_};
+    return deleter.remove(request);
+}
+
+Result<DeleteChapterResult> ScriviCore::deleteChapter(
+    const DeleteChapterRequest& request) {
+    manuscript::ChapterDeleter deleter{services_};
+    return deleter.remove(request);
+}
+
+Result<RenameSceneResult> ScriviCore::renameScene(
+    const RenameSceneRequest& request) {
+    manuscript::SceneRenamer renamer{services_};
+    return renamer.rename(request);
+}
+
+Result<RenameChapterResult> ScriviCore::renameChapter(
+    const RenameChapterRequest& request) {
+    manuscript::ChapterRenamer renamer{services_};
+    return renamer.rename(request);
+}
+
+Result<ReorderSceneResult> ScriviCore::reorderScene(
+    const ReorderSceneRequest& request) {
+    manuscript::SceneReorderer reorderer{services_};
+    return reorderer.reorder(request);
+}
+
+Result<ReorderChapterResult> ScriviCore::reorderChapter(
+    const ReorderChapterRequest& request) {
+    manuscript::ChapterReorderer reorderer{services_};
+    return reorderer.reorder(request);
 }
 
 } // namespace scrivi

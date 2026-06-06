@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **0 active Epics**
+Currently: **1 active Epic** (Draft — planning not started)
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -24,7 +24,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **9 Epics** | Next available: **EP-010**
+Currently: **11 Epics** | Next available: **EP-012**
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -37,16 +37,18 @@ Currently: **9 Epics** | Next available: **EP-010**
 | EP-007 | Skeleton v0.2 Migration | ✅ Closed | 2026-05-22 | 2026-05-26 |
 | EP-008 | Multi-Scene Navigation and Cross-Platform Build | ✅ Closed | 2026-05-30 | 2026-06-01 |
 | EP-009 | Writing Surface and Scene Navigator | ✅ Closed | 2026-06-01 | 2026-06-03 |
+| EP-010 | Manuscript Structure Editing — Delete, Reorder, and Title | ✅ Closed | 2026-06-04 | 2026-06-06 |
+| EP-011 | Writing Surface Behavior — Scroll, Cursor, and Focus | 🔵 Draft | — | — |
 
 ## Statistics
 
-- **Total Epics:** 9
-- **Closed:** 9 ✅
+- **Total Epics:** 11
+- **Closed:** 10 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 0 🟡
-- **Draft:** 0 🔵
+- **Draft:** 1 🔵
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-03 (EP-009 closed)*
+*Last Updated: 2026-06-06 (EP-010 closed; EP-011 created)*

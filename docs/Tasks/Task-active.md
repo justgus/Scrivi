@@ -1,5 +1,9 @@
 # Active Tasks
 
-*No active tasks. T-0067–T-0071 implemented; awaiting verification.*
+| ID | Title | Sprint | Status |
+| -- | ----- | ------ | ------ |
+| —  | None  | —      | —      |
 
-*Last Updated: 2026-06-01 (SP-021 implementation complete)*
+---
+
+*Last Updated: 2026-06-06 (T-0109/T-0110 verified; T-0111 retired OBE; SP-032 closed)*

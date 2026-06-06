@@ -1,7 +1,7 @@
 # Active Sprint
 
-Currently no active sprint. EP-009 is complete — awaiting user approval to close.
+*No active Sprint. SP-032 closed 2026-06-06. EP-011 (Writing Surface Behavior) is next.*
 
 ---
 
-*Last Updated: 2026-06-03 (SP-025 closed; EP-009 complete)*
+*Last Updated: 2026-06-06 (SP-032 closed)*

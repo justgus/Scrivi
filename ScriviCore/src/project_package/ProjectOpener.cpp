@@ -118,23 +118,27 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
 
     // 7. Assemble result
     SceneSummary sceneSummary;
-    sceneSummary.sceneID      = activeScene->sceneID;
-    sceneSummary.chapterID    = activeScene->chapterID;
-    sceneSummary.title        = activeScene->title;
-    sceneSummary.slug         = activeScene->slug;
-    sceneSummary.metadataPath = activeScene->metadataPath;
-    sceneSummary.contentPath  = activeScene->contentPath;
+    sceneSummary.sceneID             = activeScene->sceneID;
+    sceneSummary.chapterID           = activeScene->chapterID;
+    sceneSummary.title               = activeScene->title;
+    sceneSummary.chapterTitle        = activeScene->chapterTitle;
+    sceneSummary.slug                = activeScene->slug;
+    sceneSummary.metadataPath        = activeScene->metadataPath;
+    sceneSummary.contentPath         = activeScene->contentPath;
+    sceneSummary.chapterMetadataPath = activeScene->chapterMetadataPath;
 
     std::vector<SceneSummary> allScenes;
     allScenes.reserve(scenes.size());
     for (auto& s : scenes) {
         SceneSummary ss;
-        ss.sceneID      = s.sceneID;
-        ss.chapterID    = s.chapterID;
-        ss.title        = s.title;
-        ss.slug         = s.slug;
-        ss.metadataPath = s.metadataPath;
-        ss.contentPath  = s.contentPath;
+        ss.sceneID             = s.sceneID;
+        ss.chapterID           = s.chapterID;
+        ss.title               = s.title;
+        ss.chapterTitle        = s.chapterTitle;
+        ss.slug                = s.slug;
+        ss.metadataPath        = s.metadataPath;
+        ss.contentPath         = s.contentPath;
+        ss.chapterMetadataPath = s.chapterMetadataPath;
         allScenes.push_back(std::move(ss));
     }
 

@@ -40,6 +40,15 @@ public:
     Result<CreateSceneResult>       createScene(const CreateSceneRequest& request);
     Result<CreateChapterResult>     createChapter(const CreateChapterRequest& request);
 
+    Result<DeleteSceneResult>       deleteScene(const DeleteSceneRequest& request);
+    Result<DeleteChapterResult>     deleteChapter(const DeleteChapterRequest& request);
+
+    Result<RenameSceneResult>       renameScene(const RenameSceneRequest& request);
+    Result<RenameChapterResult>     renameChapter(const RenameChapterRequest& request);
+
+    Result<ReorderSceneResult>      reorderScene(const ReorderSceneRequest& request);
+    Result<ReorderChapterResult>    reorderChapter(const ReorderChapterRequest& request);
+
 private:
     CoreServices services_;
 };

@@ -84,7 +84,7 @@ Result<CreateSceneResult> SceneCreator::create(const CreateSceneRequest& request
     // 5. Write scene metadata file
     schemas::SceneMetaData sceneMeta;
     sceneMeta.sceneID               = newSceneID;
-    sceneMeta.title                 = "Scene " + std::to_string(newOrdinal);
+    sceneMeta.title                 = "";
     sceneMeta.slug                  = sceneSlug;
     sceneMeta.status                = "draft";
     sceneMeta.createdAt             = now;

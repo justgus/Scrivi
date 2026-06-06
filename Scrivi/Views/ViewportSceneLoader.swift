@@ -159,18 +159,173 @@ struct SceneSegment: Identifiable {
         segments.insert(seg, at: insertIdx)
 
         // Also insert into allScenes so fill logic stays accurate.
+        // Inherit chapterMetadataPath from the predecessor scene in the same chapter.
         if let allIdx = allScenes.firstIndex(where: { $0.sceneID == segments[index].sceneID }) {
+            let chapterMetaPath = allScenes[allIdx].chapterMetadataPath
             let info = SceneInfo(
                 sceneID: result.sceneID,
                 chapterID: result.chapterID,
                 title: "",
+                chapterTitle: allScenes[allIdx].chapterTitle,
                 slug: "",
                 metadataPath: result.metadataPath,
-                contentPath: result.contentPath
+                contentPath: result.contentPath,
+                chapterMetadataPath: chapterMetaPath
             )
             allScenes.insert(info, at: allIdx + 1)
         }
         return insertIdx
+    }
+
+    // Update the stored title for a scene in allScenes (called after a successful renameScene).
+    func updateSceneTitle(_ newTitle: String, forMetadataPath metadataPath: String) {
+        guard let idx = allScenes.firstIndex(where: { $0.metadataPath == metadataPath }) else { return }
+        let old = allScenes[idx]
+        allScenes[idx] = SceneInfo(
+            sceneID: old.sceneID,
+            chapterID: old.chapterID,
+            title: newTitle,
+            chapterTitle: old.chapterTitle,
+            slug: old.slug,
+            metadataPath: old.metadataPath,
+            contentPath: old.contentPath,
+            chapterMetadataPath: old.chapterMetadataPath
+        )
+    }
+
+    // Update the stored chapter title for all scenes in a chapter (called after renameChapter).
+    func updateChapterTitle(_ newTitle: String, forChapterMetadataPath chapterMetadataPath: String) {
+        for idx in allScenes.indices where allScenes[idx].chapterMetadataPath == chapterMetadataPath {
+            let old = allScenes[idx]
+            allScenes[idx] = SceneInfo(
+                sceneID: old.sceneID,
+                chapterID: old.chapterID,
+                title: old.title,
+                chapterTitle: newTitle,
+                slug: old.slug,
+                metadataPath: old.metadataPath,
+                contentPath: old.contentPath,
+                chapterMetadataPath: old.chapterMetadataPath
+            )
+        }
+    }
+
+    // Reorder a scene within allScenes to reflect a successful reorderScene call.
+    // `targetChapterID` is the chapter the scene now belongs to.
+    // `afterSceneID` is the scene it should follow; empty means "insert at beginning of chapter".
+    func reorderScene(
+        sceneID: String,
+        targetChapterID: String,
+        afterSceneID: String,
+        targetChapterMetadataPath: String,
+        targetChapterTitle: String
+    ) {
+        guard let fromIdx = allScenes.firstIndex(where: { $0.sceneID == sceneID }) else { return }
+        var scene = allScenes.remove(at: fromIdx)
+        // Update chapter membership fields if the scene moved across chapters.
+        if scene.chapterID != targetChapterID {
+            scene = SceneInfo(
+                sceneID: scene.sceneID,
+                chapterID: targetChapterID,
+                title: scene.title,
+                chapterTitle: targetChapterTitle,
+                slug: scene.slug,
+                metadataPath: scene.metadataPath,
+                contentPath: scene.contentPath,
+                chapterMetadataPath: targetChapterMetadataPath
+            )
+        }
+        if afterSceneID.isEmpty {
+            // Insert at the beginning of the target chapter's block.
+            let insertAt = allScenes.firstIndex(where: { $0.chapterID == targetChapterID }) ?? allScenes.endIndex
+            allScenes.insert(scene, at: insertAt)
+        } else {
+            let afterIdx = allScenes.firstIndex(where: { $0.sceneID == afterSceneID }) ?? allScenes.endIndex - 1
+            allScenes.insert(scene, at: afterIdx + 1)
+        }
+        // Keep segments in sync.
+        if let segIdx = segments.firstIndex(where: { $0.sceneID == sceneID }) {
+            var seg = segments.remove(at: segIdx)
+            seg = SceneSegment(
+                id: seg.id,
+                sceneID: seg.sceneID,
+                chapterID: targetChapterID,
+                metadataPath: seg.metadataPath,
+                contentPath: seg.contentPath,
+                text: seg.text,
+                isDirty: seg.isDirty
+            )
+            if afterSceneID.isEmpty {
+                let insertAt = segments.firstIndex(where: { $0.chapterID == targetChapterID }) ?? segments.endIndex
+                segments.insert(seg, at: insertAt)
+            } else {
+                let afterIdx = segments.firstIndex(where: { $0.sceneID == afterSceneID }) ?? segments.endIndex - 1
+                segments.insert(seg, at: afterIdx + 1)
+            }
+            currentIndex = segments.firstIndex(where: { $0.sceneID == currentSegment?.sceneID }) ?? 0
+        }
+    }
+
+    // Reorder a chapter within allScenes to reflect a successful reorderChapter call.
+    // `afterChapterID` is the chapter the moved chapter should follow; empty means first.
+    func reorderChapter(chapterID: String, afterChapterID: String) {
+        // Extract all scenes belonging to the moved chapter, preserving order.
+        let movedScenes = allScenes.filter { $0.chapterID == chapterID }
+        allScenes.removeAll { $0.chapterID == chapterID }
+
+        let insertAt: Int
+        if afterChapterID.isEmpty {
+            insertAt = 0
+        } else if let afterIdx = allScenes.lastIndex(where: { $0.chapterID == afterChapterID }) {
+            insertAt = afterIdx + 1
+        } else {
+            insertAt = allScenes.endIndex
+        }
+        allScenes.insert(contentsOf: movedScenes, at: insertAt)
+
+        // Keep segments in sync.
+        let movedSegs = segments.filter { $0.chapterID == chapterID }
+        segments.removeAll { $0.chapterID == chapterID }
+        let segInsertAt: Int
+        if afterChapterID.isEmpty {
+            segInsertAt = 0
+        } else if let afterIdx = segments.lastIndex(where: { $0.chapterID == afterChapterID }) {
+            segInsertAt = afterIdx + 1
+        } else {
+            segInsertAt = segments.endIndex
+        }
+        segments.insert(contentsOf: movedSegs, at: segInsertAt)
+        currentIndex = segments.firstIndex(where: { $0.sceneID == currentSegment?.sceneID }) ?? 0
+    }
+
+    // Remove a scene from allScenes and segments after a successful deleteScene call.
+    // Returns the sceneID to navigate to next (nearest remaining scene), or nil if none left.
+    func removeScene(sceneID: String) -> String? {
+        allScenes.removeAll { $0.sceneID == sceneID }
+        segments.removeAll { $0.sceneID == sceneID }
+        liveTitles.removeValue(forKey: sceneID)
+
+        // Clamp currentIndex in case it pointed at or past the removed segment.
+        if !segments.isEmpty {
+            currentIndex = min(currentIndex, segments.count - 1)
+            return segments[currentIndex].sceneID
+        }
+        return nil
+    }
+
+    // Remove all scenes belonging to chapterID from allScenes and segments.
+    // Returns the sceneID to navigate to next (nearest remaining scene), or nil if none left.
+    func removeChapter(chapterID: String) -> String? {
+        let removedIDs = Set(allScenes.filter { $0.chapterID == chapterID }.map(\.sceneID))
+        allScenes.removeAll { $0.chapterID == chapterID }
+        segments.removeAll { removedIDs.contains($0.sceneID) }
+        removedIDs.forEach { liveTitles.removeValue(forKey: $0) }
+
+        if !segments.isEmpty {
+            currentIndex = min(currentIndex, segments.count - 1)
+            return segments[currentIndex].sceneID
+        }
+        return nil
     }
 
     // Append a new chapter's first scene after the current segment.
@@ -192,7 +347,8 @@ struct SceneSegment: Identifiable {
             title: "",
             slug: "",
             metadataPath: result.firstSceneMetadataPath,
-            contentPath: result.firstSceneContentPath
+            contentPath: result.firstSceneContentPath,
+            chapterMetadataPath: result.chapterMetadataPath
         )
         if let allIdx = allScenes.firstIndex(where: { $0.sceneID == segments[index].sceneID }) {
             allScenes.insert(info, at: allIdx + 1)

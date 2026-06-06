@@ -16,6 +16,8 @@ struct ManuscriptTextView: NSViewRepresentable {
     var loader: ViewportSceneLoader
     var env: AppEnvironment
     @Binding var navigateToSceneID: String?
+    @Binding var focusManuscriptView: Bool
+    var showChapterTitles: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -55,10 +57,11 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Keep coordinator current so delegate callbacks always see the latest env and loader.
         coordinator.parent = self
 
-        // Rebuild text storage when segment list changes.
+        // Rebuild text storage when segment list or chapter title toggle changes.
         let segIDs = loader.segments.map(\.id)
-        if segIDs != coordinator.lastSegmentIDs {
+        if segIDs != coordinator.lastSegmentIDs || showChapterTitles != coordinator.lastShowChapterTitles {
             coordinator.lastSegmentIDs = segIDs
+            coordinator.lastShowChapterTitles = showChapterTitles
             coordinator.rebuildStorage(tv, segments: loader.segments)
         }
 
@@ -72,6 +75,14 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             // Clear the binding so this doesn't re-trigger.
             DispatchQueue.main.async { self.navigateToSceneID = nil }
+        }
+
+        // Transfer keyboard focus to the text view after a delete-navigate.
+        if focusManuscriptView {
+            DispatchQueue.main.async {
+                tv.window?.makeFirstResponder(tv)
+                self.focusManuscriptView = false
+            }
         }
     }
 
@@ -87,6 +98,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         var sceneBoundaries: [NSRange] = []
 
         var lastSegmentIDs: [String] = []
+        var lastShowChapterTitles: Bool = false
         private var saveTask: Task<Void, Never>?
         private var titleTask: Task<Void, Never>?
         private var scrollTask: Task<Void, Never>?
@@ -135,7 +147,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         // Rebuild the entire NSTextStorage from the current segments.
-        // Called when the segment list changes (new scene inserted, viewport shifted).
+        // Called when the segment list changes (new scene inserted, viewport shifted, toggle flipped).
         func rebuildStorage(_ tv: NSTextView, segments: [SceneSegment]) {
             let storage = tv.textStorage!
             storage.beginEditing()
@@ -143,12 +155,48 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
             let attrs: [NSAttributedString.Key: Any] = [.font: font]
+            let showTitles = parent.showChapterTitles
 
             sceneBoundaries = []
             var offset = 0
 
             for (i, seg) in segments.enumerated() {
                 if i > 0 {
+                    let prevSeg = segments[i - 1]
+                    let isChapterBoundary = prevSeg.chapterID != seg.chapterID
+
+                    // Insert chapter title heading before the divider at a chapter boundary.
+                    if showTitles && isChapterBoundary {
+                        let chapterTitle = parent.loader.allScenes
+                            .first(where: { $0.sceneID == seg.sceneID })
+                            .map { info -> String in
+                                let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
+                                if !t.isEmpty { return t }
+                                // Derive ordinal from allScenes.
+                                let chapterIDs = parent.loader.allScenes.map(\.chapterID)
+                                var seen: [String: Int] = [:]
+                                var ordinal = 0
+                                for cid in chapterIDs {
+                                    if seen[cid] == nil {
+                                        ordinal += 1
+                                        seen[cid] = ordinal
+                                    }
+                                }
+                                return "Chapter \(seen[info.chapterID] ?? ordinal)"
+                            } ?? ""
+                        let headingFont = NSFont.boldSystemFont(ofSize: NSFont.systemFontSize + 2)
+                        let headingAttrs: [NSAttributedString.Key: Any] = [
+                            .font: headingFont,
+                            .foregroundColor: NSColor.secondaryLabelColor
+                        ]
+                        let headingStr = NSAttributedString(
+                            string: "\n\(chapterTitle)\n",
+                            attributes: headingAttrs
+                        )
+                        storage.append(headingStr)
+                        offset += headingStr.length
+                    }
+
                     // Insert divider (1 char placeholder + line break).
                     let divider = makeDividerAttachment()
                     let divStr = NSMutableAttributedString(attachment: divider)

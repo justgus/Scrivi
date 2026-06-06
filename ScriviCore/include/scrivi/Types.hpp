@@ -72,10 +72,12 @@ struct SceneSummary {
     SceneID          sceneID;
     ChapterID        chapterID;
     std::string      title;
+    std::string      chapterTitle;
     Slug             slug;
     ManuscriptStatus status = ManuscriptStatus::draft;
     RelativePath     metadataPath;
     RelativePath     contentPath;
+    RelativePath     chapterMetadataPath;
 };
 
 } // namespace scrivi

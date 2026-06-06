@@ -14,7 +14,12 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **1 backlog Task** (T-0096)
+Currently: **2 backlog Tasks**
+
+| Task | Title | Status |
+| ---- | ----- | ------ |
+| T-0096 | Per-scene character-ratio position and size for full-manuscript scroll bar fidelity | 🔵 Backlog |
+| T-0112 | Global manuscript cursor position tracking + scene start position map | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -37,6 +42,7 @@ Currently: **0 unverified Tasks**
 | —    | None  | —      |
 
 See: [Task-unverified.md](Task-unverified.md)
+
 
 ## Verified Tasks
 
@@ -125,16 +131,22 @@ Currently: **67 verified Tasks**
 | T-0092 | Rewrite `ScriviEngine.swift` — call `scrivi_*` C functions; `scrivi_free()` after each call | SP-026 (no separate file) | ✅ Verified |
 | T-0093 | Update `ScriviInteropTests.swift` — fix `@testable import` to correct module name | SP-026 (no separate file) | ✅ Verified |
 | T-0094 | Verify: Xcode build clean, `ScriviInteropTests` green, `ctest` count unchanged | SP-026 (no separate file) | ✅ Verified |
+| T-0106 | Wire `reorderScene`/`reorderChapter` through C API and `ScriviEngine.swift` | [Task-verified-0106.md](Verified/Task-verified-0106.md) | ✅ Verified |
+| T-0107 | SwiftUI drag-and-drop for scene rows (within-chapter + cross-chapter) | [Task-verified-0107.md](Verified/Task-verified-0107.md) | ✅ Verified |
+| T-0108 | SwiftUI drag-and-drop for chapter rows + insertion-line highlight | [Task-verified-0108.md](Verified/Task-verified-0108.md) | ✅ Verified |
+| T-0109 | Global chapter title toggle + headings in writing surface | SP-032 inline | ✅ Verified |
+| T-0110 | Navigator title fallback chain + delete-of-open-scene edge case + cursor placement | SP-032 inline | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 96
-- **Verified:** 80 (83%) ✅
+- **Total Tasks:** 112
+- **Verified:** 85 (76%) ✅
+- **Retired (OBE):** 1 (T-0111)
 - **Unverified:** 0 (0%) 🟠
 - **Active:** 0 (0%) 🟡
-- **Backlog:** 1 (1%) 🔵 (T-0096 scroll bar fidelity)
-- **Next available:** T-0097
+- **Backlog:** 2 (T-0096, T-0112)
+- **Next available:** T-0113
 
 ---
 
-*Last Updated: 2026-06-03 (SP-025 closed; T-0095 verified; EP-009 complete)*
+*Last Updated: 2026-06-06 (T-0109/T-0110 verified; T-0111 retired OBE; SP-032/EP-010 closed)*

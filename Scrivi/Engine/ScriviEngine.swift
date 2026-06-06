@@ -451,6 +451,102 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — reorderScene / reorderChapter
+
+    public func reorderScene(
+        projectRootPath: String,
+        sceneID: String,
+        sourceChapterID: String,
+        targetChapterID: String,
+        afterSceneID: String = ""
+    ) throws -> ReorderSceneResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                sourceChapterID.withCString { src in
+                    targetChapterID.withCString { tgt in
+                        afterSceneID.withCString { after in
+                            scrivi_reorder_scene(prp, sid, src, tgt, after)
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func reorderChapter(
+        projectRootPath: String,
+        chapterID: String,
+        afterChapterID: String = ""
+    ) throws -> ReorderChapterResult {
+        let raw = projectRootPath.withCString { prp in
+            chapterID.withCString { cid in
+                afterChapterID.withCString { after in
+                    scrivi_reorder_chapter(prp, cid, after)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    // MARK: — deleteScene / deleteChapter
+
+    public func deleteScene(
+        projectRootPath: String,
+        sceneID: String
+    ) throws -> DeleteSceneResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                scrivi_delete_scene(prp, sid)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func deleteChapter(
+        projectRootPath: String,
+        chapterID: String
+    ) throws -> DeleteChapterResult {
+        let raw = projectRootPath.withCString { prp in
+            chapterID.withCString { cid in
+                scrivi_delete_chapter(prp, cid)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    // MARK: — renameScene / renameChapter
+
+    public func renameScene(
+        projectRootPath: String,
+        metadataPath: String,
+        newTitle: String
+    ) throws -> RenameSceneResult {
+        let raw = projectRootPath.withCString { prp in
+            metadataPath.withCString { mp in
+                newTitle.withCString { t in
+                    scrivi_rename_scene(prp, mp, t)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func renameChapter(
+        projectRootPath: String,
+        metadataPath: String,
+        newTitle: String
+    ) throws -> RenameChapterResult {
+        let raw = projectRootPath.withCString { prp in
+            metadataPath.withCString { mp in
+                newTitle.withCString { t in
+                    scrivi_rename_chapter(prp, mp, t)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
     // MARK: — createScene / createChapter
 
     public func createScene(
@@ -566,12 +662,45 @@ public struct ActiveSceneResult: Decodable, Sendable {
 }
 
 public struct SceneInfo: Decodable, Sendable {
-    public let sceneID:      String
-    public let chapterID:    String
-    public let title:        String
-    public let slug:         String
-    public let metadataPath: String
-    public let contentPath:  String
+    public let sceneID:              String
+    public let chapterID:            String
+    public let title:                String
+    public let chapterTitle:         String
+    public let slug:                 String
+    public let metadataPath:         String
+    public let contentPath:          String
+    public let chapterMetadataPath:  String
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sceneID             = try c.decode(String.self, forKey: .sceneID)
+        chapterID           = try c.decode(String.self, forKey: .chapterID)
+        title               = try c.decodeIfPresent(String.self, forKey: .title)               ?? ""
+        chapterTitle        = try c.decodeIfPresent(String.self, forKey: .chapterTitle)        ?? ""
+        slug                = try c.decodeIfPresent(String.self, forKey: .slug)                ?? ""
+        metadataPath        = try c.decode(String.self, forKey: .metadataPath)
+        contentPath         = try c.decode(String.self, forKey: .contentPath)
+        chapterMetadataPath = try c.decodeIfPresent(String.self, forKey: .chapterMetadataPath) ?? ""
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sceneID, chapterID, title, chapterTitle, slug,
+             metadataPath, contentPath, chapterMetadataPath
+    }
+
+    public init(
+        sceneID: String, chapterID: String, title: String = "", chapterTitle: String = "",
+        slug: String = "", metadataPath: String, contentPath: String, chapterMetadataPath: String = ""
+    ) {
+        self.sceneID             = sceneID
+        self.chapterID           = chapterID
+        self.title               = title
+        self.chapterTitle        = chapterTitle
+        self.slug                = slug
+        self.metadataPath        = metadataPath
+        self.contentPath         = contentPath
+        self.chapterMetadataPath = chapterMetadataPath
+    }
 }
 
 public struct OpenProjectResult: Decodable, Sendable {
@@ -795,6 +924,41 @@ public struct CreateChapterResult: Decodable, Sendable {
     public let firstSceneID:           String
     public let firstSceneMetadataPath: String
     public let firstSceneContentPath:  String
+}
+
+public struct DeleteSceneResult: Decodable, Sendable {
+    public let sceneID:  String
+    public let deleted:  Bool
+}
+
+public struct DeleteChapterResult: Decodable, Sendable {
+    public let chapterID:     String
+    public let scenesDeleted: Int
+    public let deleted:       Bool
+}
+
+public struct RenameSceneResult: Decodable, Sendable {
+    public let metadataPath: String
+    public let newTitle:     String
+    public let renamed:      Bool
+}
+
+public struct RenameChapterResult: Decodable, Sendable {
+    public let metadataPath: String
+    public let newTitle:     String
+    public let renamed:      Bool
+}
+
+public struct ReorderSceneResult: Decodable, Sendable {
+    public let sceneID:         String
+    public let sourceChapterID: String
+    public let targetChapterID: String
+    public let reordered:       Bool
+}
+
+public struct ReorderChapterResult: Decodable, Sendable {
+    public let chapterID: String
+    public let reordered: Bool
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

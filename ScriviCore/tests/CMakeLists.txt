@@ -30,6 +30,9 @@ add_executable(ScriviCoreTests
     integration/InboxTests.cpp
     integration/MultiSceneTests.cpp
     integration/CreateSceneTests.cpp
+    integration/DeleteSceneTests.cpp
+    integration/RenameSceneTests.cpp
+    integration/ReorderTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

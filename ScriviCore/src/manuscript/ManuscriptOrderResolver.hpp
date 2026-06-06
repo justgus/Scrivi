@@ -12,10 +12,12 @@ struct ResolvedScene {
     SceneID      sceneID;
     ChapterID    chapterID;
     std::string  title;
+    std::string  chapterTitle;
     Slug         slug;
     std::string  status;
     RelativePath metadataPath;
     RelativePath contentPath;
+    RelativePath chapterMetadataPath;
 };
 
 // Walks the on-disk project structure (manuscript.meta.json → chapter.meta.json

@@ -15,19 +15,17 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 Currently: **0 active issues**
 
-| I\# | Title | Status | Date |
-| --- | ----- | ------ | ---- |
-|     |       |        |      |
+*None.*
 
 See: [Issue-active.md][2]
 
 ## Verified Issues
 
-Currently: **2 verified issues** | Next available I#: **I-0003**
+Currently: **9 verified issues** | Next available I#: **I-0010**
 
 | Batch | DRs             | File                             | Status                |
 | ----- | --------------- | -------------------------------- | --------------------- |
-| 1     | I-0001 – I-0010 | [Issue-verified-0001-0010.md][3] | 🟡 In Progress (2/10) |
+| 1     | I-0001 – I-0010 | [Issue-verified-0001-0010.md][3] | 🟡 In Progress (9/10) |
 
 ## Closed Issues (Not Verified)
 
@@ -42,17 +40,19 @@ Currently: **0 closed issues**
 
 ## Backlogged Issues
 
+*None. See [Issue-backlog.md](Issue-backlog.md)*
+
 
 ## Statistics
 
-- **Total Issues:** 2
-- **Verified:** 2 (100%) ✅
-- **Open:** 0 (0%) 🔴
+- **Total Issues:** 9
+- **Verified:** 9 (100%) ✅
+- **Open/In Progress:** 0 (0%) 🟡
 - **Closed/Deferred:** 0 (0%) ⚪
 
 ---
 
-*Last Updated: 2026-06-03*
+*Last Updated: 2026-06-05 (Issue-backlog.md created)*
 
 
 [1]:	./ER-Documentation.md

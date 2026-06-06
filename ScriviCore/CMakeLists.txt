@@ -29,7 +29,13 @@ target_sources(ScriviCore
         src/project_package/ProjectOpener.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
         src/manuscript/ChapterCreator.cpp
+        src/manuscript/ChapterDeleter.cpp
+        src/manuscript/ChapterRenamer.cpp
+        src/manuscript/ChapterReorderer.cpp
         src/manuscript/SceneCreator.cpp
+        src/manuscript/SceneDeleter.cpp
+        src/manuscript/SceneRenamer.cpp
+        src/manuscript/SceneReorderer.cpp
         src/manuscript/SceneReader.cpp
         src/manuscript/SceneWriter.cpp
         src/workspace/WorkspaceStateService.cpp

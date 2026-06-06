@@ -211,4 +211,52 @@ struct CreateChapterRequest {
     AuthorshipRef author;
 };
 
+// ---------------------------------------------------------------------------
+// deleteScene / deleteChapter (EP-010 SP-027)
+// ---------------------------------------------------------------------------
+
+struct DeleteSceneRequest {
+    AbsolutePath projectRootPath;
+    SceneID      sceneID;
+};
+
+struct DeleteChapterRequest {
+    AbsolutePath projectRootPath;
+    ChapterID    chapterID;
+};
+
+// ---------------------------------------------------------------------------
+// renameScene / renameChapter (EP-010 SP-028)
+// ---------------------------------------------------------------------------
+
+struct RenameSceneRequest {
+    AbsolutePath projectRootPath;
+    RelativePath metadataPath;  // relative path to scene.meta.json
+    std::string  newTitle;      // blank/whitespace saved as ""
+};
+
+// ---------------------------------------------------------------------------
+// reorderScene / reorderChapter (EP-010 SP-029)
+// ---------------------------------------------------------------------------
+
+struct ReorderSceneRequest {
+    AbsolutePath projectRootPath;
+    SceneID      sceneID;
+    ChapterID    sourceChapterID;   // chapter currently containing the scene
+    ChapterID    targetChapterID;   // chapter to move the scene into (same = reorder within)
+    SceneID      afterSceneID;      // insert after this scene; empty = insert at beginning
+};
+
+struct ReorderChapterRequest {
+    AbsolutePath projectRootPath;
+    ChapterID    chapterID;
+    ChapterID    afterChapterID;    // insert after this chapter; empty = insert at beginning
+};
+
+struct RenameChapterRequest {
+    AbsolutePath projectRootPath;
+    RelativePath metadataPath;  // relative path to chapter.meta.json
+    std::string  newTitle;      // blank/whitespace saved as ""
+};
+
 } // namespace scrivi

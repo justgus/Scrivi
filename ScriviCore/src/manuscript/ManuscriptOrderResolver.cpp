@@ -50,13 +50,15 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
 }
 
             ResolvedScene rs;
-            rs.sceneID      = sParsed.value().sceneID;
-            rs.chapterID    = chParsed.value().chapterID;
-            rs.title        = sParsed.value().title;
-            rs.slug         = sParsed.value().slug;
-            rs.status       = sParsed.value().status;
-            rs.metadataPath = sceneRef.metadataPath;
-            rs.contentPath  = sParsed.value().contentPath;
+            rs.sceneID              = sParsed.value().sceneID;
+            rs.chapterID            = chParsed.value().chapterID;
+            rs.title                = sParsed.value().title;
+            rs.chapterTitle         = chParsed.value().title;
+            rs.slug                 = sParsed.value().slug;
+            rs.status               = sParsed.value().status;
+            rs.metadataPath         = sceneRef.metadataPath;
+            rs.contentPath          = sParsed.value().contentPath;
+            rs.chapterMetadataPath  = chapterRef.path;
             scenes.push_back(std::move(rs));
         }
     }

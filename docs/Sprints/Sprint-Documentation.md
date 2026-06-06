@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-None — EP-009 complete, awaiting user approval to close.
+*None — SP-032 closed 2026-06-06. EP-011 (Writing Surface Behavior) is next.*
 
 ## Sprint Backlog
 
@@ -19,11 +19,11 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-|        | None  |      |        |
+| —      | None  | — | — |
 
 ## All Sprints
 
-Currently: **26 Sprints** | Next available: **SP-027**
+Currently: **32 Sprints** | Next available: **SP-033**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -53,15 +53,21 @@ Currently: **26 Sprints** | Next available: **SP-027**
 | SP-024 | Scene Navigator — Sidebar, Live Titles, and Click-to-Navigate | EP-009 | 2026-06-01 | 2026-06-03 | ✅ Closed |
 | SP-025 | Scroll-Driven Scene Switching and EP-009 Close | EP-009 | 2026-06-03 | 2026-06-03 | ✅ Closed |
 | SP-026 | Apple Platform C API Boundary — Retire C++ Adapter, Wire scrivi.h | EP-009 | 2026-06-02 | 2026-06-02 | ✅ Closed |
+| SP-027 | C++ Core: deleteScene and deleteChapter | EP-010 | 2026-06-04 | 2026-06-04 | ✅ Closed |
+| SP-028 | C++ Core: renameScene and renameChapter | EP-010 | 2026-06-04 | 2026-06-04 | ✅ Closed |
+| SP-029 | C++ Core: reorderScene and reorderChapter | EP-010 | 2026-06-04 | 2026-06-04 | ✅ Closed |
+| SP-030 | Adapter + Swift Engine: Delete and Rename | EP-010 | 2026-06-04 | 2026-06-04 | ✅ Closed |
+| SP-031 | Drag Reorder: Scene and Chapter (SwiftUI) | EP-010 | 2026-06-04 | 2026-06-05 | ✅ Closed |
+| SP-032 | Chapter Title Toggle, Navigator Fallback, and EP-010 Close | EP-010 | 2026-06-06 | 2026-06-06 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 26
-- **Closed:** 26 ✅
-- **Paused:** 0 ⏸
+- **Total Sprints:** 32
+- **Closed:** 31 ✅
 - **Active:** 0 🟡
 - **Planning:** 0 🔵
+- **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-06-03 (SP-025 closed; EP-009 complete)*
+*Last Updated: 2026-06-06 (SP-032 closed)*

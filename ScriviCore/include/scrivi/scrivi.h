@@ -183,6 +183,36 @@ const char* scrivi_create_chapter(
     const char* personaID,
     const char* displayName);
 
+const char* scrivi_delete_scene(
+    const char* projectRootPath,
+    const char* sceneID);
+
+const char* scrivi_delete_chapter(
+    const char* projectRootPath,
+    const char* chapterID);
+
+const char* scrivi_reorder_scene(
+    const char* projectRootPath,
+    const char* sceneID,
+    const char* sourceChapterID,
+    const char* targetChapterID,
+    const char* afterSceneID);
+
+const char* scrivi_reorder_chapter(
+    const char* projectRootPath,
+    const char* chapterID,
+    const char* afterChapterID);
+
+const char* scrivi_rename_scene(
+    const char* projectRootPath,
+    const char* metadataPath,
+    const char* newTitle);
+
+const char* scrivi_rename_chapter(
+    const char* projectRootPath,
+    const char* metadataPath,
+    const char* newTitle);
+
 #ifdef __cplusplus
 }
 #endif

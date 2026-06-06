@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. Minimum code that solves the problem. Do nothing speculative.
 3. Touch only what you must. Clean up only your own mess.
 4. Define success criteria. Loop until approved.
-5. I can make mistakes. Do not assume I am always right.
+5. Claude can make mistakes. Do not assume Claude is always right.
+6. I (the Human) can make mistakes.  Do not assume that I (the Human) am always right.  
 
 ---
 
