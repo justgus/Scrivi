@@ -1,6 +1,6 @@
 # Sprint Backlog
 
-Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started. At most one Sprint is Active at a time; the remainder queue here until their predecessor closes.
+Sprints listed here are in 🔵 Planning status — defined and ready to activate, but not yet started.
 
 ---
 
@@ -10,4 +10,4 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-*Last Updated: 2026-06-06 (SP-032 activated; backlog cleared)*
+*Last Updated: 2026-06-08 (SP-034 cancelled; backlog cleared)*

@@ -13,36 +13,61 @@ struct SceneSegment: Identifiable {
 
 // ViewportSceneLoader owns the ordered array of loaded SceneSegments.
 //
-// Loading rule: load forward and backward from the current scene until the
-// combined character count fills an estimated viewport plus one scene of buffer
-// in each direction. Short or empty scenes are absorbed transparently.
+// All scenes are loaded into memory at once on project open (all-in-memory model).
+// The dynamic fill/release cycle is not used.
 //
 // Thread-safety: all mutations happen on @MainActor via AppEnvironment.
 @Observable @MainActor final class ViewportSceneLoader {
 
-    // Loaded scene segments in manuscript order.
+    // All scene segments in manuscript order.
     private(set) var segments: [SceneSegment] = []
 
     // Index into `segments` of the scene the cursor is currently in.
-    private(set) var currentIndex: Int = 0
-
-    // Approximate character count to consider "viewport full".
-    // 3 000 chars ≈ ~1 screen of text at normal font size.
-    private let viewportCharBudget: Int = 3_000
+    // @ObservationIgnored so cursor movement does not trigger SwiftUI view updates.
+    @ObservationIgnored private(set) var currentIndex: Int = 0
 
     private var engine: ScriviEngine
     private var projectRootPath: String
     private var appSupportRoot: String
     private(set) var projectID: String
 
-    // Full ordered scene list (includes scenes not yet loaded into `segments`).
-    // Used by SceneNavigatorView to build the complete sidebar list.
+    // Full ordered scene list. Used by SceneNavigatorView to build the sidebar.
     private(set) var allScenes: [SceneInfo]
 
-    // Live first-line titles keyed by sceneID. Updated by ManuscriptTextView
-    // as the author types (debounced ~300ms). Navigator reads from here first,
-    // falling back to "Scene X" if absent or empty.
+    // Live first-line titles keyed by sceneID.
     private(set) var liveTitles: [String: String] = [:]
+
+    // Manuscript-coordinate start position for each scene (separator chars excluded).
+    // Built by rebuildSceneStartMap(); updated after every structural change.
+    private(set) var sceneStartMap: [String: Int] = [:]
+
+    // Storage-coordinate start offset for each scene (separator chars included).
+    // Used by ManuscriptTextView to place the cursor after navigate/delete.
+    private(set) var sceneStorageOffsetMap: [String: Int] = [:]
+
+    // The sceneID the cursor (insertion point) is currently in.
+    // @ObservationIgnored — must not trigger SwiftUI view updates on every keystroke.
+    @ObservationIgnored private(set) var cursorSceneID: String?
+
+    // The sceneID currently visible in the viewport — drives the Navigator highlight.
+    // Updates on scroll (debounced) and on cursor movement.
+    // Only this property is observable by SwiftUI.
+    private(set) var viewportSceneID: String?
+
+    // Current cursor position in manuscript coordinates (separator chars excluded).
+    // @ObservationIgnored so cursor movement does not trigger SwiftUI view updates.
+    @ObservationIgnored private(set) var manuscriptCursorPosition: Int = 0
+
+    // Set by ManuscriptTextView.Coordinator.makeNSView; used to forward takeFocus calls.
+    var takeFocusHandler: (() -> Void)?
+
+    func takeFocus() { takeFocusHandler?() }
+
+    // Called by the Coordinator when the visible scene changes (scroll or cursor movement).
+    // This is the only path that updates the Navigator highlight.
+    func setViewportScene(_ sceneID: String?) {
+        viewportSceneID = sceneID
+    }
 
     init(
         engine: ScriviEngine,
@@ -58,12 +83,19 @@ struct SceneSegment: Identifiable {
         self.allScenes = allScenes
     }
 
-    // Load the initial viewport starting at scene index 0.
-    func loadInitial() {
-        guard !allScenes.isEmpty else { return }
-        loadScene(at: 0, insertAt: .end)
+    // Load all scenes into memory at once. Called once on project open.
+    func loadAll() {
+        segments.removeAll()
+        for i in allScenes.indices {
+            loadScene(at: i, insertAt: .end)
+        }
         currentIndex = 0
-        fillForward()
+        rebuildSceneStartMap()
+        if let firstID = segments.first?.sceneID {
+            cursorSceneID = firstID
+            // viewportSceneID intentionally left nil — no scene is pre-selected
+            // in the Navigator on load. The scroll observer sets it on first scroll.
+        }
     }
 
     var currentSegment: SceneSegment? {
@@ -74,8 +106,9 @@ struct SceneSegment: Identifiable {
     // Called by ManuscriptTextView when the author's cursor moves into a different segment.
     func setCurrentIndex(_ index: Int) {
         currentIndex = index
-        fillForward()
-        fillBackward()
+        if segments.indices.contains(index) {
+            cursorSceneID = segments[index].sceneID
+        }
     }
 
     // Called by ManuscriptTextView when the author edits text in a segment.
@@ -90,38 +123,8 @@ struct SceneSegment: Identifiable {
         liveTitles[sceneID] = title
     }
 
-    // Called by scroll detection when the visible top crosses into a different segment.
-    // Saves the segment that scrolled out of view; updates currentIndex.
-    // Does not reload the viewport — segments already in memory are kept.
-    func scrollPromoteTo(index: Int, engine: ScriviEngine, ref: AuthorshipRef) async {
-        guard index != currentIndex, segments.indices.contains(index) else { return }
-        let departing = currentIndex
-        currentIndex = index
-        await saveAndRelease(at: departing, engine: engine, ref: ref)
-        if segments.indices.contains(departing) {
-            segments[departing].isDirty = false
-        }
-    }
-
-    // Navigate to a scene by ID. Saves current scene, clears loaded segments,
-    // reloads from the target scene outward. Returns the new currentIndex (0).
-    func navigateTo(sceneID: String, engine: ScriviEngine, ref: AuthorshipRef) async {
-        // Save current scene before switching.
-        await saveCurrentIfDirty(engine: engine, ref: ref)
-
-        // Find the target in allScenes.
-        guard let targetAllIdx = allScenes.firstIndex(where: { $0.sceneID == sceneID }) else { return }
-
-        // Clear current viewport and reload from target.
-        segments.removeAll()
-        currentIndex = 0
-        loadScene(at: targetAllIdx, insertAt: .end)
-        fillForward()
-        fillBackward()
-    }
-
-    // Save and release the segment at `index`. Used on scene-exit.
-    func saveAndRelease(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) async {
+    // Save the segment at `index` without removing it from memory.
+    func saveScene(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) async {
         guard segments.indices.contains(index), segments[index].isDirty else { return }
         let seg = segments[index]
         _ = try? engine.saveScene(
@@ -134,14 +137,40 @@ struct SceneSegment: Identifiable {
             markdown: seg.text,
             authorshipRef: ref
         )
+        segments[index].isDirty = false
     }
 
-    // Save the current segment without releasing (used by debounce auto-save).
+    // Save the current segment (used by debounce auto-save and app resign).
     func saveCurrentIfDirty(engine: ScriviEngine, ref: AuthorshipRef) async {
-        await saveAndRelease(at: currentIndex, engine: engine, ref: ref)
-        if segments.indices.contains(currentIndex) {
-            segments[currentIndex].isDirty = false
+        await saveScene(at: currentIndex, engine: engine, ref: ref)
+    }
+
+    // Save all dirty segments (used on app resign to flush everything).
+    func saveAllDirty(engine: ScriviEngine, ref: AuthorshipRef) async {
+        for i in segments.indices where segments[i].isDirty {
+            await saveScene(at: i, engine: engine, ref: ref)
         }
+    }
+
+    // Called by ManuscriptTextView.Coordinator.textViewDidChangeSelection.
+    // Only updates the non-observable cursor position. Scene tracking is done
+    // via setCurrentIndex() and setHighlightedScene() from the coordinator.
+    func updateCursorPosition(_ manuscriptPosition: Int) {
+        manuscriptCursorPosition = manuscriptPosition
+    }
+
+    // Return the NSTextStorage offset for the start of a scene (separator chars included).
+    func storageOffset(forSceneID sceneID: String) -> Int? {
+        sceneStorageOffsetMap[sceneID]
+    }
+
+    // Return the NSTextStorage offset for cursor placement after a delete.
+    // Returns the storage start of the scene at `segmentIndex`, or end-of-storage if out of range.
+    func storageOffsetForCursorAfterDelete(nextSegmentIndex: Int, totalStorageLength: Int) -> Int {
+        guard segments.indices.contains(nextSegmentIndex),
+              let offset = sceneStorageOffsetMap[segments[nextSegmentIndex].sceneID]
+        else { return totalStorageLength }
+        return offset
     }
 
     // Insert a new scene after the current segment.
@@ -174,6 +203,7 @@ struct SceneSegment: Identifiable {
             )
             allScenes.insert(info, at: allIdx + 1)
         }
+        rebuildSceneStartMap()
         return insertIdx
     }
 
@@ -305,11 +335,12 @@ struct SceneSegment: Identifiable {
         segments.removeAll { $0.sceneID == sceneID }
         liveTitles.removeValue(forKey: sceneID)
 
-        // Clamp currentIndex in case it pointed at or past the removed segment.
         if !segments.isEmpty {
             currentIndex = min(currentIndex, segments.count - 1)
+            rebuildSceneStartMap()
             return segments[currentIndex].sceneID
         }
+        rebuildSceneStartMap()
         return nil
     }
 
@@ -323,8 +354,10 @@ struct SceneSegment: Identifiable {
 
         if !segments.isEmpty {
             currentIndex = min(currentIndex, segments.count - 1)
+            rebuildSceneStartMap()
             return segments[currentIndex].sceneID
         }
+        rebuildSceneStartMap()
         return nil
     }
 
@@ -355,51 +388,34 @@ struct SceneSegment: Identifiable {
         } else {
             allScenes.append(info)
         }
+        rebuildSceneStartMap()
         return insertIdx
     }
 
-    // MARK: — Private fill logic
+    // MARK: — Private helpers
 
-    private enum InsertPosition { case end, beginning }
+    // Build sceneStartMap and sceneStorageOffsetMap from the current segments array.
+    // sceneStartMap: manuscript-coordinate positions (separator chars excluded).
+    // sceneStorageOffsetMap: NSTextStorage offsets (separator chars included, 2 chars each).
+    // Called after loadAll() and after any structural change.
+    func rebuildSceneStartMap() {
+        var manuscriptOffset = 0
+        var storageOffset = 0
+        var newStartMap: [String: Int] = [:]
+        var newStorageMap: [String: Int] = [:]
 
-    private func fillForward() {
-        guard let lastSeg = segments.last,
-              let lastAllIdx = allScenes.firstIndex(where: { $0.sceneID == lastSeg.sceneID })
-        else { return }
+        for (i, seg) in segments.enumerated() {
+            if i > 0 {
+                storageOffset += 2 // attachment char + \n for separator
+            }
+            newStartMap[seg.sceneID] = manuscriptOffset
+            newStorageMap[seg.sceneID] = storageOffset
 
-        var charCount = segments.map(\.text.count).reduce(0, +)
-        var nextAllIdx = lastAllIdx + 1
-        var loaded = 0
-
-        // Always load at least one scene forward as a buffer, regardless of charCount.
-        // Continue loading until the budget is met.
-        while nextAllIdx < allScenes.count, (loaded == 0 || charCount < viewportCharBudget + 1) {
-            loadScene(at: nextAllIdx, insertAt: .end)
-            charCount += segments.last?.text.count ?? 0
-            nextAllIdx += 1
-            loaded += 1
+            manuscriptOffset += seg.text.count
+            storageOffset += seg.text.count
         }
-    }
-
-    private func fillBackward() {
-        guard let firstSeg = segments.first,
-              let firstAllIdx = allScenes.firstIndex(where: { $0.sceneID == firstSeg.sceneID }),
-              firstAllIdx > 0
-        else { return }
-
-        var charCount = segments.map(\.text.count).reduce(0, +)
-        var prevAllIdx = firstAllIdx - 1
-        var loaded = 0
-
-        // Always load at least one scene backward as a buffer, regardless of charCount.
-        // Continue loading until the budget is met.
-        while prevAllIdx >= 0, (loaded == 0 || charCount < viewportCharBudget + 1) {
-            loadScene(at: prevAllIdx, insertAt: .beginning)
-            charCount += segments.first?.text.count ?? 0
-            prevAllIdx -= 1
-            currentIndex += 1  // segment shifted right
-            loaded += 1
-        }
+        sceneStartMap = newStartMap
+        sceneStorageOffsetMap = newStorageMap
     }
 
     private func loadScene(at allIdx: Int, insertAt position: InsertPosition) {
@@ -424,8 +440,6 @@ struct SceneSegment: Identifiable {
             text: text
         )
 
-        // Seed the live title from the loaded content so the Navigator shows
-        // the first line immediately on launch, before the author types.
         let firstLine = text
             .components(separatedBy: .newlines)
             .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
@@ -438,4 +452,6 @@ struct SceneSegment: Identifiable {
         case .beginning: segments.insert(seg, at: 0)
         }
     }
+
+    private enum InsertPosition { case end, beginning }
 }

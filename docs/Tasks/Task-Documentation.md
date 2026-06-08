@@ -14,12 +14,11 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **2 backlog Tasks**
+Currently: **1 backlog Task**
 
 | Task | Title | Status |
 | ---- | ----- | ------ |
-| T-0096 | Per-scene character-ratio position and size for full-manuscript scroll bar fidelity | 🔵 Backlog |
-| T-0112 | Global manuscript cursor position tracking + scene start position map | 🔵 Backlog |
+| T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -136,17 +135,24 @@ Currently: **67 verified Tasks**
 | T-0108 | SwiftUI drag-and-drop for chapter rows + insertion-line highlight | [Task-verified-0108.md](Verified/Task-verified-0108.md) | ✅ Verified |
 | T-0109 | Global chapter title toggle + headings in writing surface | SP-032 inline | ✅ Verified |
 | T-0110 | Navigator title fallback chain + delete-of-open-scene edge case + cursor placement | SP-032 inline | ✅ Verified |
+| T-0113 | EP-011 Behavior Spec — scroll, cursor, separator, focus, delete rules | [Task-verified-0113.md](Verified/Task-verified-0113.md) | ✅ Verified |
+| T-0114 | All-scenes-in-memory viewport strategy — replace load/release cycle | [Task-verified-0114.md](Verified/Task-verified-0114.md) | ✅ Verified |
+| T-0115 | Global cursor position tracking + scene start position map | [Task-verified-0115.md](Verified/Task-verified-0115.md) | ✅ Verified |
+| T-0116 | Correct cursor placement after navigate and delete | [Task-verified-0116.md](Verified/Task-verified-0116.md) | ✅ Verified |
+| T-0117 | Reliable first-responder transfer — replace `focusManuscriptView` workaround | [Task-verified-0117.md](Verified/Task-verified-0117.md) | ✅ Verified |
+| T-0119 | EP-011 verification — macOS smoke test + deferred EP-010 AC | [Task-verified-0119.md](Verified/Task-verified-0119.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 112
-- **Verified:** 85 (76%) ✅
+- **Total Tasks:** 119
+- **Verified:** 91 (76%) ✅
 - **Retired (OBE):** 1 (T-0111)
-- **Unverified:** 0 (0%) 🟠
-- **Active:** 0 (0%) 🟡
-- **Backlog:** 2 (T-0096, T-0112)
-- **Next available:** T-0113
+- **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
+- **Unverified:** 0 🟠
+- **Active:** 0 🟡
+- **Backlog:** 1 (T-0118)
+- **Next available:** T-0120
 
 ---
 
-*Last Updated: 2026-06-06 (T-0109/T-0110 verified; T-0111 retired OBE; SP-032/EP-010 closed)*
+*Last Updated: 2026-06-08 (T-0113–T-0117/T-0119 verified; SP-033/EP-011 closed)*

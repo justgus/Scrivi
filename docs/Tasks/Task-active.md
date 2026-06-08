@@ -6,4 +6,4 @@
 
 ---
 
-*Last Updated: 2026-06-06 (T-0109/T-0110 verified; T-0111 retired OBE; SP-032 closed)*
+*Last Updated: 2026-06-08 (T-0113–T-0117/T-0119 verified; SP-033 closed)*

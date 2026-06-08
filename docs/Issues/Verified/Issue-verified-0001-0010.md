@@ -371,4 +371,35 @@ Text color was hardcoded, remaining black against a dark background in dark mode
 
 ---
 
-*Closed: 2026-06-05*
+## I-0010: Cursor jumps to scene start when crossing a scene boundary via arrow key or click
+
+**Status:** ✅ Resolved - Verified
+**Platform:** macOS
+**Component:** `ManuscriptTextView.swift`, `ViewportSceneLoader.swift`, `SceneNavigatorView.swift`
+**Severity:** High
+**Sprint:** SP-033
+
+**Description:**
+When the author arrows up or down across a scene boundary, or clicks into a scene other than the current one, the cursor jumps to the first character of the target scene instead of landing at the natural AppKit-computed position.
+
+**Root Cause Analysis:**
+Three compounding causes: (1) `setCurrentIndex` mutated observable `currentSceneID` on `@Observable ViewportSceneLoader`, triggering a SwiftUI re-render of `ManuscriptTextView` → `updateNSView` → `navigateToScene` → `setSelectedRange` forced the cursor to the scene start. (2) `currentIndex` and `manuscriptCursorPosition` were not `@ObservationIgnored`, so every cursor movement triggered a re-render. (3) `SceneNavigatorView.onChange(of: selectedRowID)` fired on programmatic highlight updates, calling `onNavigate` which set `navigateToSceneID`, completing the feedback loop.
+
+**Resolution:**
+- `cursorSceneID` and `viewportSceneID` separated; cursor-tracking properties marked `@ObservationIgnored`.
+- `navigateToSceneID` cleared synchronously before `navigateToScene` is called.
+- Navigator highlight decoupled from navigation: `List(selection:)` is purely visual; navigation fires only from explicit `.onTapGesture`.
+
+**Files Affected:**
+- `Scrivi/Views/ViewportSceneLoader.swift`
+- `Scrivi/Views/ManuscriptTextView.swift`
+- `Scrivi/Views/SceneNavigatorView.swift`
+
+**Verification:**
+- ✅ Arrow across scene boundary — cursor lands at AppKit-natural position
+- ✅ Click in a different scene — cursor lands at clicked position
+- ✅ Navigator highlight updates correctly as cursor moves
+
+---
+
+*Closed: 2026-06-08*

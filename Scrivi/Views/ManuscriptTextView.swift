@@ -1,6 +1,11 @@
 import SwiftUI
 import AppKit
 
+// Custom attribute key used to mark chapter title heading ranges as non-editable.
+extension NSAttributedString.Key {
+    static let scriviHeading = NSAttributedString.Key("scrivi.heading")
+}
+
 // ManuscriptTextView presents all loaded SceneSegments as a single continuous NSTextView.
 //
 // Scene boundaries are tracked as character ranges in `sceneBoundaries`.
@@ -16,7 +21,6 @@ struct ManuscriptTextView: NSViewRepresentable {
     var loader: ViewportSceneLoader
     var env: AppEnvironment
     @Binding var navigateToSceneID: String?
-    @Binding var focusManuscriptView: Bool
     var showChapterTitles: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -32,13 +36,21 @@ struct ManuscriptTextView: NSViewRepresentable {
         textView.textContainerInset = NSSize(width: 60, height: 40)
         textView.delegate = context.coordinator
         context.coordinator.textView = textView
+        // Register takeFocus with both the coordinator and the loader so any
+        // caller (Navigator, delete handler) can transfer first-responder directly.
+        let takeFocus: () -> Void = { [weak textView] in
+            textView?.window?.makeFirstResponder(textView)
+        }
+        context.coordinator.onTakeFocus = takeFocus
+        loader.takeFocusHandler = takeFocus
 
         let scroll = NSScrollView()
         scroll.documentView = textView
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
 
-        // Observe scroll position changes to drive scene promotion.
+        // Observe scroll position to update the viewport scene (Navigator highlight).
+        // Does not trigger any load/release — purely for highlight tracking.
         scroll.contentView.postsBoundsChangedNotifications = true
         NotificationCenter.default.addObserver(
             context.coordinator,
@@ -65,25 +77,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             coordinator.rebuildStorage(tv, segments: loader.segments)
         }
 
-        // Scroll to a navigator-selected scene.
         if let targetID = navigateToSceneID {
-            if let segIdx = loader.segments.firstIndex(where: { $0.sceneID == targetID }),
-               coordinator.sceneBoundaries.indices.contains(segIdx) {
-                let range = coordinator.sceneBoundaries[segIdx]
-                tv.scrollRangeToVisible(range)
-                tv.setSelectedRange(NSRange(location: range.location, length: 0))
-            }
-            // Clear the binding so this doesn't re-trigger.
-            DispatchQueue.main.async { self.navigateToSceneID = nil }
+            navigateToSceneID = nil
+            coordinator.navigateToScene(targetID, in: tv)
         }
 
-        // Transfer keyboard focus to the text view after a delete-navigate.
-        if focusManuscriptView {
-            DispatchQueue.main.async {
-                tv.window?.makeFirstResponder(tv)
-                self.focusManuscriptView = false
-            }
-        }
     }
 
     // MARK: — Coordinator
@@ -101,48 +99,47 @@ struct ManuscriptTextView: NSViewRepresentable {
         var lastShowChapterTitles: Bool = false
         private var saveTask: Task<Void, Never>?
         private var titleTask: Task<Void, Never>?
+        private var highlightTask: Task<Void, Never>?
         private var scrollTask: Task<Void, Never>?
 
         // Tracks which segment index the cursor was in at last check.
         private var lastCursorSegmentIndex: Int = 0
 
+        // Set by makeNSView; call to transfer first-responder directly in AppKit.
+        var onTakeFocus: (() -> Void)?
+
+        func takeFocus() { onTakeFocus?() }
+
         init(_ parent: ManuscriptTextView) { self.parent = parent }
 
         // Called by NSScrollView bounds-change notification.
-        // Debounced 100ms to avoid thrashing on fast scroll.
+        // Updates the viewport scene (Navigator highlight) based on scroll position.
+        // Does not load or release any scenes.
         @objc func scrollDidChange(_ notification: Notification) {
             guard let clipView = notification.object as? NSClipView,
                   let tv = textView else { return }
-
-            // Capture scroll position before the debounce delay.
-            let topY = clipView.bounds.minY
-
+            // Use the center of the visible area as the anchor so the scene only
+            // changes when a boundary has clearly passed the midpoint of the viewport.
+            let centerY = clipView.bounds.minY + clipView.bounds.height / 2
             scrollTask?.cancel()
             let loader = parent.loader
-            let env = parent.env
             scrollTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 100_000_000)
+                try? await Task.sleep(nanoseconds: 120_000_000) // 120ms debounce
                 guard !Task.isCancelled else { return }
-
                 recomputeBoundaries(tv)
-
-                // Find the character index at the top of the visible area.
-                let topPoint = NSPoint(x: 0, y: topY)
                 guard let layoutManager = tv.layoutManager,
                       let textContainer = tv.textContainer else { return }
+                let centerPoint = NSPoint(x: 0, y: centerY)
                 let glyphIdx = layoutManager.glyphIndex(
-                    for: topPoint,
+                    for: centerPoint,
                     in: textContainer,
                     fractionOfDistanceThroughGlyph: nil
                 )
                 let charIdx = layoutManager.characterIndexForGlyph(at: glyphIdx)
-
-                guard let newSegIdx = segmentIndex(for: charIdx),
-                      newSegIdx != loader.currentIndex else { return }
-
-                if let ref = env.authorshipRef {
-                    await loader.scrollPromoteTo(index: newSegIdx, engine: env.engine, ref: ref)
-                }
+                guard let segIdx = segmentIndex(for: charIdx),
+                      loader.segments.indices.contains(segIdx) else { return }
+                let sceneID = loader.segments[segIdx].sceneID
+                loader.setViewportScene(sceneID)
             }
         }
 
@@ -161,48 +158,44 @@ struct ManuscriptTextView: NSViewRepresentable {
             var offset = 0
 
             for (i, seg) in segments.enumerated() {
+                let isChapterBoundary = i == 0 || segments[i - 1].chapterID != seg.chapterID
+
                 if i > 0 {
-                    let prevSeg = segments[i - 1]
-                    let isChapterBoundary = prevSeg.chapterID != seg.chapterID
-
-                    // Insert chapter title heading before the divider at a chapter boundary.
-                    if showTitles && isChapterBoundary {
-                        let chapterTitle = parent.loader.allScenes
-                            .first(where: { $0.sceneID == seg.sceneID })
-                            .map { info -> String in
-                                let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
-                                if !t.isEmpty { return t }
-                                // Derive ordinal from allScenes.
-                                let chapterIDs = parent.loader.allScenes.map(\.chapterID)
-                                var seen: [String: Int] = [:]
-                                var ordinal = 0
-                                for cid in chapterIDs {
-                                    if seen[cid] == nil {
-                                        ordinal += 1
-                                        seen[cid] = ordinal
-                                    }
-                                }
-                                return "Chapter \(seen[info.chapterID] ?? ordinal)"
-                            } ?? ""
-                        let headingFont = NSFont.boldSystemFont(ofSize: NSFont.systemFontSize + 2)
-                        let headingAttrs: [NSAttributedString.Key: Any] = [
-                            .font: headingFont,
-                            .foregroundColor: NSColor.secondaryLabelColor
-                        ]
-                        let headingStr = NSAttributedString(
-                            string: "\n\(chapterTitle)\n",
-                            attributes: headingAttrs
-                        )
-                        storage.append(headingStr)
-                        offset += headingStr.length
-                    }
-
-                    // Insert divider (1 char placeholder + line break).
+                    // Insert divider between every pair of adjacent scenes.
                     let divider = makeDividerAttachment()
                     let divStr = NSMutableAttributedString(attachment: divider)
                     divStr.append(NSAttributedString(string: "\n", attributes: attrs))
                     storage.append(divStr)
                     offset += divStr.length
+                }
+
+                // Insert chapter heading at every chapter boundary (including the first scene).
+                if showTitles && isChapterBoundary {
+                    let chapterTitle = parent.loader.allScenes
+                        .first(where: { $0.sceneID == seg.sceneID })
+                        .map { info -> String in
+                            let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
+                            if !t.isEmpty { return t }
+                            let chapterIDs = parent.loader.allScenes.map(\.chapterID)
+                            var seen: [String: Int] = [:]
+                            var ordinal = 0
+                            for cid in chapterIDs {
+                                if seen[cid] == nil { ordinal += 1; seen[cid] = ordinal }
+                            }
+                            return "Chapter \(seen[info.chapterID] ?? ordinal)"
+                        } ?? ""
+                    let headingFont = NSFont.boldSystemFont(ofSize: NSFont.systemFontSize + 2)
+                    let headingAttrs: [NSAttributedString.Key: Any] = [
+                        .font: headingFont,
+                        .foregroundColor: NSColor.secondaryLabelColor,
+                        .scriviHeading: true
+                    ]
+                    let headingStr = NSAttributedString(
+                        string: i == 0 ? "\(chapterTitle)\n" : "\n\(chapterTitle)\n",
+                        attributes: headingAttrs
+                    )
+                    storage.append(headingStr)
+                    offset += headingStr.length
                 }
 
                 let start = offset
@@ -231,23 +224,12 @@ struct ManuscriptTextView: NSViewRepresentable {
             let range = sceneBoundaries[segIdx]
             let extracted = (tv.string as NSString).substring(with: range)
 
-            // Update loader.
+            // Update loader in-memory; segment stays loaded.
             parent.loader.updateText(extracted, at: segIdx)
 
-            // Handle cursor crossing a segment boundary (scene-exit).
             if segIdx != lastCursorSegmentIndex {
-                let oldIdx = lastCursorSegmentIndex
                 lastCursorSegmentIndex = segIdx
                 parent.loader.setCurrentIndex(segIdx)
-
-                // Save and release the scene we left.
-                let loader = parent.loader
-                let env = parent.env
-                Task { @MainActor in
-                    if let ref = env.authorshipRef {
-                        await loader.saveAndRelease(at: oldIdx, engine: env.engine, ref: ref)
-                    }
-                }
             }
 
             // Debounce 1-second auto-save.
@@ -282,18 +264,24 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let segIdx = segmentIndex(for: loc) else { return }
 
             if segIdx != lastCursorSegmentIndex {
-                let oldIdx = lastCursorSegmentIndex
                 lastCursorSegmentIndex = segIdx
                 parent.loader.setCurrentIndex(segIdx)
-
+                // Cursor moved to a new scene — update viewport scene immediately.
+                // Cancel any pending scroll-based update; cursor movement takes priority.
+                scrollTask?.cancel()
+                highlightTask?.cancel()
                 let loader = parent.loader
-                let env = parent.env
-                Task { @MainActor in
-                    if let ref = env.authorshipRef {
-                        await loader.saveAndRelease(at: oldIdx, engine: env.engine, ref: ref)
-                    }
+                let sceneID = loader.segments.indices.contains(segIdx)
+                    ? loader.segments[segIdx].sceneID : nil
+                highlightTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 80_000_000) // 80ms debounce
+                    guard !Task.isCancelled else { return }
+                    loader.setViewportScene(sceneID)
                 }
             }
+
+            let manuscriptPos = storageOffsetToManuscriptPosition(loc)
+            parent.loader.updateCursorPosition(manuscriptPos)
         }
 
         // MARK: — Scene/Chapter creation (called from ManuscriptNSTextView)
@@ -413,6 +401,41 @@ struct ManuscriptTextView: NSViewRepresentable {
             sceneBoundaries = newBoundaries
         }
 
+        // Navigate to a scene by ID — scrolls to that scene without moving the cursor.
+        func navigateToScene(_ sceneID: String, in tv: NSTextView) {
+            guard let storageOffset = parent.loader.storageOffset(forSceneID: sceneID) else { return }
+            tv.scrollRangeToVisible(NSRange(location: storageOffset, length: 0))
+            // Update the Navigator highlight immediately for explicit navigation.
+            scrollTask?.cancel()
+            highlightTask?.cancel()
+            parent.loader.setViewportScene(sceneID)
+        }
+
+        // Place cursor at a given NSTextStorage offset and take focus.
+        func placeCursorAt(_ storageOffset: Int, in tv: NSTextView) {
+            let loc = NSRange(location: min(storageOffset, tv.string.count), length: 0)
+            tv.setSelectedRange(loc)
+            tv.scrollRangeToVisible(loc)
+            takeFocus()
+        }
+
+        // Translate an NSTextStorage offset to a manuscript position
+        // by subtracting the 2-char separator pairs (attachment + \n) before it.
+        func storageOffsetToManuscriptPosition(_ storageOffset: Int) -> Int {
+            guard let tv = textView, let storage = tv.textStorage else { return storageOffset }
+            var separatorCount = 0
+            var pos = 0
+            while pos < storageOffset && pos < storage.length {
+                if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil {
+                    separatorCount += 1
+                    pos += 2
+                } else {
+                    pos += 1
+                }
+            }
+            return storageOffset - (separatorCount * 2)
+        }
+
         private func segmentIndex(for characterLocation: Int) -> Int? {
             for (i, range) in sceneBoundaries.enumerated() {
                 let end = range.location + range.length
@@ -437,6 +460,30 @@ struct ManuscriptTextView: NSViewRepresentable {
 // Subclass so we can intercept ⌘↩ and ⌘⇧↩ before the text system handles them.
 final class ManuscriptNSTextView: NSTextView {
 
+    override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        guard let storage = textStorage, affectedCharRange.length > 0 || (replacementString?.isEmpty == false) else {
+            return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+        }
+        // Block any edit that touches a character with the scriviHeading attribute.
+        let checkRange = affectedCharRange.length > 0
+            ? affectedCharRange
+            : NSRange(location: max(0, affectedCharRange.location - 1), length: 1)
+        var isHeading = false
+        if checkRange.location < storage.length {
+            let safeRange = NSRange(
+                location: checkRange.location,
+                length: min(checkRange.length, storage.length - checkRange.location)
+            )
+            if safeRange.length > 0 {
+                storage.enumerateAttribute(.scriviHeading, in: safeRange, options: []) { value, _, stop in
+                    if value != nil { isHeading = true; stop.pointee = true }
+                }
+            }
+        }
+        if isHeading { return false }
+        return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+    }
+
     override func keyDown(with event: NSEvent) {
         let isReturn = event.keyCode == 36  // kVK_Return
         let cmd = event.modifierFlags.contains(.command)
@@ -451,6 +498,37 @@ final class ManuscriptNSTextView: NSTextView {
             return
         }
         super.keyDown(with: event)
+    }
+
+    override func deleteBackward(_ sender: Any?) {
+        guard let storage = textStorage else { super.deleteBackward(sender); return }
+        let loc = selectedRange().location
+        guard loc > 0 else { return }
+        // The character that would be deleted is at loc-1.
+        let target = loc - 1
+        if isSeparatorPosition(target, in: storage) { return }
+        super.deleteBackward(sender)
+    }
+
+    override func deleteForward(_ sender: Any?) {
+        guard let storage = textStorage else { super.deleteForward(sender); return }
+        let loc = selectedRange().location
+        guard loc < storage.length else { return }
+        // The character that would be deleted is at loc.
+        if isSeparatorPosition(loc, in: storage) { return }
+        super.deleteForward(sender)
+    }
+
+    // Returns true if the character at `pos` is part of a separator (attachment or its \n).
+    private func isSeparatorPosition(_ pos: Int, in storage: NSTextStorage) -> Bool {
+        guard pos >= 0, pos < storage.length else { return false }
+        // Direct attachment character.
+        if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil { return true }
+        // The \n that immediately follows an attachment.
+        if (storage.string as NSString).character(at: pos) == 10,
+           pos >= 1,
+           storage.attribute(.attachment, at: pos - 1, effectiveRange: nil) != nil { return true }
+        return false
     }
 
     private var coordinator: ManuscriptTextView.Coordinator? {

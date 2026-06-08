@@ -12,8 +12,9 @@ struct SceneNavigatorView: View {
 
     var loader: ViewportSceneLoader
     var env: AppEnvironment
-    var onNavigate: (String) -> Void        // sceneID — tap-to-navigate
-    var onDeleteNavigate: (String) -> Void  // sceneID — navigate after delete (triggers focus transfer)
+    var prefs: ProjectPreferences
+    var onNavigate: (String) -> Void   // sceneID — tap-to-navigate
+    var onTakeFocus: () -> Void        // called after delete to transfer first-responder
 
     // Rename sheet state
     @State private var renameTarget: RenameTarget? = nil
@@ -22,11 +23,39 @@ struct SceneNavigatorView: View {
     @State private var deleteChapterTarget: ChapterGroup? = nil
     // Error alert state
     @State private var alertError: String? = nil
-    // List selection — drives navigation without competing with drag gestures
-    @State private var selectedRowID: String? = nil
+    // The scene ID currently highlighted in the list — driven only by viewportSceneID.
+    // Never drives navigation; navigation is triggered by explicit tap gestures only.
+    @State private var highlightedRowID: String? = nil
 
     var body: some View {
-        List(selection: $selectedRowID) {
+        VStack(spacing: 0) {
+            projectHeader
+            Divider()
+            navigatorList
+        }
+    }
+
+    private var projectHeader: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
+                 ? "Untitled" : prefs.projectTitle)
+                .font(.headline)
+                .lineLimit(2)
+                .foregroundStyle(.primary)
+            if !prefs.projectSubtitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text(prefs.projectSubtitle)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private var navigatorList: some View {
+        List(selection: $highlightedRowID) {
             ForEach(flatRows, id: \.rowID) { row in
                 switch row {
                 case .chapterHeader(let group):
@@ -42,20 +71,9 @@ struct SceneNavigatorView: View {
         }
         .listStyle(.inset)
         .frame(minWidth: 180, idealWidth: 220, maxWidth: 280)
-        .onChange(of: selectedRowID) { _, newValue in
-            guard let rowID = newValue else { return }
-            if rowID.hasPrefix("scene-") {
-                let sceneID = String(rowID.dropFirst("scene-".count))
-                navigate(to: sceneID)
-            } else {
-                // Chapter header tapped — clear selection, no navigation
-                selectedRowID = nil
-            }
-        }
-        .onChange(of: loader.currentSegment?.sceneID) { _, sceneID in
-            if let sceneID {
-                selectedRowID = "scene-\(sceneID)"
-            }
+        .onChange(of: loader.viewportSceneID) { _, sceneID in
+            // Sync highlight to viewport — never triggers navigation.
+            highlightedRowID = sceneID.map { "scene-\($0)" }
         }
         // MARK: Rename sheet
         .sheet(item: $renameTarget) { target in
@@ -131,10 +149,11 @@ struct SceneNavigatorView: View {
 
     @ViewBuilder
     private func sceneRow(for entry: SceneEntry, in group: ChapterGroup) -> some View {
-        let isActive = entry.sceneID == loader.currentSegment?.sceneID
+        let isActive = entry.sceneID == loader.viewportSceneID
         NavigatorSceneRow(title: entry.title, isActive: isActive)
             .tag("scene-\(entry.sceneID)")
             .listRowBackground(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
+            .onTapGesture { navigate(to: entry.sceneID) }
             .contextMenu {
                 Button("Rename") { renameTarget = .scene(entry) }
                 Divider()
@@ -168,12 +187,7 @@ struct SceneNavigatorView: View {
     // MARK: — Navigation
 
     private func navigate(to sceneID: String) {
-        Task { @MainActor in
-            if let ref = env.authorshipRef {
-                await loader.navigateTo(sceneID: sceneID, engine: env.engine, ref: ref)
-            }
-            onNavigate(sceneID)
-        }
+        onNavigate(sceneID)
     }
 
     // MARK: — Rename
@@ -210,7 +224,6 @@ struct SceneNavigatorView: View {
 
     private func performDeleteScene(entry: SceneEntry) {
         guard let projectRootPath = env.projectRootPath else { return }
-        let wasCurrentScene = entry.sceneID == loader.currentSegment?.sceneID
         Task { @MainActor in
             do {
                 _ = try env.engine.deleteScene(
@@ -218,14 +231,11 @@ struct SceneNavigatorView: View {
                     sceneID: entry.sceneID
                 )
                 if let nextSceneID = loader.removeScene(sceneID: entry.sceneID) {
-                    if wasCurrentScene, let ref = env.authorshipRef {
-                        // Navigate and transfer keyboard focus to the text view.
-                        await loader.navigateTo(sceneID: nextSceneID, engine: env.engine, ref: ref)
-                        onDeleteNavigate(nextSceneID)
-                    } else {
-                        navigate(to: nextSceneID)
-                    }
+                    // Navigate via binding so ManuscriptTextView places cursor using the map.
+                    onNavigate(nextSceneID)
                 }
+                // Transfer first-responder directly in AppKit.
+                onTakeFocus()
             } catch let e as ScriviError {
                 alertError = e.message
             } catch {
@@ -244,12 +254,10 @@ struct SceneNavigatorView: View {
                     chapterID: group.chapterID
                 )
                 if let nextSceneID = loader.removeChapter(chapterID: group.chapterID) {
-                    if wasCurrentChapter, let ref = env.authorshipRef {
-                        await loader.navigateTo(sceneID: nextSceneID, engine: env.engine, ref: ref)
-                        onDeleteNavigate(nextSceneID)
-                    } else {
-                        navigate(to: nextSceneID)
-                    }
+                    onNavigate(nextSceneID)
+                }
+                if wasCurrentChapter {
+                    onTakeFocus()
                 }
             } catch let e as ScriviError {
                 alertError = e.message

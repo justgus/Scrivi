@@ -19,7 +19,9 @@ struct ScriviApp: App {
                 ) { _ in
                     Task { await env.onAppResign() }
                 }
+                .background(WindowFrameAutosave())
         }
+        .defaultSize(width: 1100, height: 700)
     }
 }
 

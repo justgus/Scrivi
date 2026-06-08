@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-*None — SP-032 closed 2026-06-06. EP-011 (Writing Surface Behavior) is next.*
+*None — SP-033 closed 2026-06-08.*
 
 ## Sprint Backlog
 
@@ -19,7 +19,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| —      | None  | — | — |
+| —      | None  | —    | —      |
 
 ## All Sprints
 
@@ -59,15 +59,18 @@ Currently: **32 Sprints** | Next available: **SP-033**
 | SP-030 | Adapter + Swift Engine: Delete and Rename | EP-010 | 2026-06-04 | 2026-06-04 | ✅ Closed |
 | SP-031 | Drag Reorder: Scene and Chapter (SwiftUI) | EP-010 | 2026-06-04 | 2026-06-05 | ✅ Closed |
 | SP-032 | Chapter Title Toggle, Navigator Fallback, and EP-010 Close | EP-010 | 2026-06-06 | 2026-06-06 | ✅ Closed |
+| SP-033 | Writing Surface — All-in-Memory Viewport, Separator, Cursor, and Focus | EP-011 | 2026-06-08 | 2026-06-08 | ✅ Closed |
+| SP-034 | Writing Surface — Scroll Bar Fidelity and EP-011 Close | EP-011 | — | — | ⚪ Cancelled |
 
 ## Statistics
 
-- **Total Sprints:** 32
-- **Closed:** 31 ✅
+- **Total Sprints:** 34
+- **Closed:** 33 ✅
 - **Active:** 0 🟡
 - **Planning:** 0 🔵
+- **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-06-06 (SP-032 closed)*
+*Last Updated: 2026-06-08 (SP-033 closed; SP-034 cancelled; EP-011 closed)*

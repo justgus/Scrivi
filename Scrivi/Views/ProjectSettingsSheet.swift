@@ -2,14 +2,24 @@ import SwiftUI
 
 struct ProjectSettingsSheet: View {
 
-    @Binding var showChapterTitles: Bool
+    var prefs: ProjectPreferences
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Project") {
+                    LabeledContent("Title") {
+                        TextField("Untitled", text: Bindable(prefs).projectTitle)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Subtitle") {
+                        TextField("Optional", text: Bindable(prefs).projectSubtitle)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
                 Section("Writing Surface") {
-                    Toggle("Show chapter titles in manuscript", isOn: $showChapterTitles)
+                    Toggle("Show chapter titles in manuscript", isOn: Bindable(prefs).showChapterTitles)
                 }
             }
             .navigationTitle("Project Settings")
@@ -23,7 +33,7 @@ struct ProjectSettingsSheet: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 360, minHeight: 160)
+        .frame(minWidth: 380, minHeight: 220)
         #endif
     }
 }

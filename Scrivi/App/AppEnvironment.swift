@@ -15,6 +15,9 @@ import Foundation
     // Viewport scene loader — created when a project is opened, cleared when closed.
     var viewportLoader: ViewportSceneLoader?
 
+    // Per-project preferences — created when a project is opened, cleared when closed.
+    var projectPreferences: ProjectPreferences?
+
     var appSupportRoot: String {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first!.path(percentEncoded: false)
@@ -61,8 +64,9 @@ import Foundation
                 projectID: result.projectID,
                 allScenes: result.scenes
             )
-            loader.loadInitial()
+            loader.loadAll()
             viewportLoader = loader
+            projectPreferences = ProjectPreferences(projectID: result.projectID)
         } catch let e as ScriviError {
             projectError = e
         } catch {
@@ -96,7 +100,6 @@ import Foundation
     // Saves the current scene immediately.
     func onAppResign() async {
         guard let loader = viewportLoader, let ref = authorshipRef else { return }
-        await loader.saveCurrentIfDirty(engine: engine, ref: ref)
-        // TODO: backup
+        await loader.saveAllDirty(engine: engine, ref: ref)
     }
 }
