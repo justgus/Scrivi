@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-*None — SP-033 closed 2026-06-08.*
+*None — SP-035 closed 2026-06-09.*
 
 ## Sprint Backlog
 
@@ -23,7 +23,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **32 Sprints** | Next available: **SP-033**
+Currently: **35 Sprints** | Next available: **SP-036**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -61,11 +61,12 @@ Currently: **32 Sprints** | Next available: **SP-033**
 | SP-032 | Chapter Title Toggle, Navigator Fallback, and EP-010 Close | EP-010 | 2026-06-06 | 2026-06-06 | ✅ Closed |
 | SP-033 | Writing Surface — All-in-Memory Viewport, Separator, Cursor, and Focus | EP-011 | 2026-06-08 | 2026-06-08 | ✅ Closed |
 | SP-034 | Writing Surface — Scroll Bar Fidelity and EP-011 Close | EP-011 | — | — | ⚪ Cancelled |
+| SP-035 | Menu Bar, Project Commands, and About Panel | EP-012 | 2026-06-09 | 2026-06-09 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 34
-- **Closed:** 33 ✅
+- **Total Sprints:** 35
+- **Closed:** 34 ✅
 - **Active:** 0 🟡
 - **Planning:** 0 🔵
 - **Cancelled:** 1 ⚪ (SP-034)
@@ -73,4 +74,4 @@ Currently: **32 Sprints** | Next available: **SP-033**
 
 ---
 
-*Last Updated: 2026-06-08 (SP-033 closed; SP-034 cancelled; EP-011 closed)*
+*Last Updated: 2026-06-09 (SP-035 closed; EP-012 moved to Epic-backlog)*

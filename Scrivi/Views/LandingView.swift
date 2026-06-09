@@ -14,7 +14,7 @@ struct LandingView: View {
 
             HStack(spacing: 16) {
                 Button("Open Project…") {
-                    openProject()
+                    env.presentOpenProjectPanel()
                 }
                 .keyboardShortcut("o", modifiers: .command)
 
@@ -41,24 +41,4 @@ struct LandingView: View {
         }
     }
 
-    private func openProject() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.title = "Open Scrivi Project"
-        panel.prompt = "Open"
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-
-        Task {
-            await env.openProject(at: url.path(percentEncoded: false))
-
-            if let result = env.openProjectResult, result.mode == "repairRequired",
-               let issue = result.repairIssues.first {
-                env.openProjectResult = nil
-                env.projectError = ScriviError(code: -1, message: "Repair required: \(issue.title)")
-            }
-        }
-    }
 }

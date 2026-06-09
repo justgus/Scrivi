@@ -102,6 +102,10 @@ struct ManuscriptTextView: NSViewRepresentable {
         private var highlightTask: Task<Void, Never>?
         private var scrollTask: Task<Void, Never>?
 
+        // Set true during rebuildStorage to suppress textDidChange callbacks
+        // that fire from NSTextStorage delegate notifications mid-rebuild.
+        private var isRebuilding: Bool = false
+
         // Tracks which segment index the cursor was in at last check.
         private var lastCursorSegmentIndex: Int = 0
 
@@ -146,6 +150,17 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Rebuild the entire NSTextStorage from the current segments.
         // Called when the segment list changes (new scene inserted, viewport shifted, toggle flipped).
         func rebuildStorage(_ tv: NSTextView, segments: [SceneSegment]) {
+            // Suppress delegate callbacks and undo registration during rebuild.
+            // NSTextStorage fires textDidChange synchronously mid-rebuild, before
+            // sceneBoundaries is valid — which would corrupt segment text extraction.
+            isRebuilding = true
+            let undoManager = tv.undoManager
+            undoManager?.disableUndoRegistration()
+            defer {
+                undoManager?.enableUndoRegistration()
+                isRebuilding = false
+            }
+
             let storage = tv.textStorage!
             storage.beginEditing()
             storage.setAttributedString(NSAttributedString(string: ""))
@@ -212,6 +227,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // MARK: — NSTextViewDelegate
 
         func textDidChange(_ notification: Notification) {
+            guard !isRebuilding else { return }
             guard let tv = notification.object as? NSTextView else { return }
             let loc = tv.selectedRange().location
 
@@ -259,6 +275,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
+            guard !isRebuilding else { return }
             guard let tv = notification.object as? NSTextView else { return }
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }
@@ -368,32 +385,51 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // MARK: — Helpers
 
-        // Recompute sceneBoundaries by scanning the live text storage for divider
-        // attachment characters (U+FFFC). Each divider occupies 2 chars (attachment + \n).
-        // Segment N spans from end-of-divider-N to start-of-divider-(N+1).
+        // Recompute sceneBoundaries by scanning the live text storage.
+        //
+        // Layout of storage when chapter titles are shown:
+        //   [heading\n] scene0text [attachment\n] [\nheading\n] scene1text [attachment\n] ...
+        //
+        // A segment's content starts AFTER any leading scriviHeading-attributed characters,
+        // not immediately after the divider. recomputeBoundaries must skip heading runs
+        // the same way rebuildStorage does, otherwise boundaries point into heading text
+        // and textDidChange extracts heading characters into seg.text.
         func recomputeBoundaries(_ tv: NSTextView) {
             guard let storage = tv.textStorage else { return }
             let fullLen = storage.length
             guard fullLen > 0 else { return }
 
-            // Find positions of all divider attachments.
-            var dividerStarts: [Int] = []
-            var pos = 0
+            // Skip forward past any scriviHeading-attributed characters at `pos`.
+            func skipHeading(from pos: Int) -> Int {
+                var p = pos
+                while p < fullLen {
+                    var effectiveRange = NSRange(location: p, length: 1)
+                    let val = storage.attribute(.scriviHeading, at: p, effectiveRange: &effectiveRange)
+                    if val != nil {
+                        p = effectiveRange.location + effectiveRange.length
+                    } else {
+                        break
+                    }
+                }
+                return p
+            }
+
+            // First segment starts at position 0, after any opening heading.
+            var segStart = skipHeading(from: 0)
+            var newBoundaries: [NSRange] = []
+            var pos = segStart
+
             while pos < fullLen {
                 if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil {
-                    dividerStarts.append(pos)
+                    // Found a divider — close the current segment boundary.
+                    newBoundaries.append(NSRange(location: segStart, length: pos - segStart))
                     pos += 2  // skip attachment + \n
+                    // Skip any heading text that follows the divider.
+                    segStart = skipHeading(from: pos)
+                    pos = segStart
                 } else {
                     pos += 1
                 }
-            }
-
-            // Build boundaries from divider positions.
-            var newBoundaries: [NSRange] = []
-            var segStart = 0
-            for divStart in dividerStarts {
-                newBoundaries.append(NSRange(location: segStart, length: divStart - segStart))
-                segStart = divStart + 2  // character after attachment + \n
             }
             // Last (or only) segment runs to end of storage.
             newBoundaries.append(NSRange(location: segStart, length: fullLen - segStart))
@@ -465,9 +501,20 @@ final class ManuscriptNSTextView: NSTextView {
             return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
         }
         // Block any edit that touches a character with the scriviHeading attribute.
-        let checkRange = affectedCharRange.length > 0
-            ? affectedCharRange
-            : NSRange(location: max(0, affectedCharRange.location - 1), length: 1)
+        // For pure insertions (length == 0, non-empty replacement) check only the
+        // insertion point itself — do NOT look backward, as that would land inside
+        // heading text when the cursor is at the start of a scene.
+        // For deletions (length > 0) or backspace-style (length == 0, empty replacement)
+        // check the character being removed, falling back one position for backspace.
+        let isInsertion = affectedCharRange.length == 0 && replacementString?.isEmpty == false
+        let checkRange: NSRange
+        if isInsertion {
+            checkRange = NSRange(location: affectedCharRange.location, length: 0)
+        } else {
+            checkRange = affectedCharRange.length > 0
+                ? affectedCharRange
+                : NSRange(location: max(0, affectedCharRange.location - 1), length: 1)
+        }
         var isHeading = false
         if checkRange.location < storage.length {
             let safeRange = NSRange(

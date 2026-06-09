@@ -146,4 +146,154 @@ No UI existed to set or change project title or subtitle.
 
 ---
 
-*Last Updated: 2026-06-08 (I-0013, I-0014, I-0015 verified; SP-033)*
+## I-0020: Project name and subtitle should appear in the window title bar
+
+**Status:** ✅ Resolved - Verified
+**Platform:** macOS, iPadOS
+**Component:** `EditorView.swift`, `SceneNavigatorView.swift`
+**Severity:** Low
+**Sprint:** SP-035
+
+**Description:**
+Project title and subtitle only appeared in the Scene Navigator sidebar header. The window title bar showed the generic app name.
+
+**Root Cause Analysis:**
+`ManuscriptEditorView` did not call `.navigationTitle()` or `.navigationSubtitle()`. The project title was only rendered inside `SceneNavigatorView.projectHeader`.
+
+**Resolution:**
+- Added `.navigationTitle` and `.navigationSubtitle` on the detail pane `VStack` in `ManuscriptEditorView` (`EditorView.swift`).
+- Simplified `projectHeader` in `SceneNavigatorView` to show only the project title (subtitle removed; it now appears in the title bar subtitle slot).
+
+**Files Affected:**
+- `Scrivi/Views/EditorView.swift`
+- `Scrivi/Views/SceneNavigatorView.swift`
+
+**Verification:**
+- ✅ Project title appears in window title bar when a project is open
+- ✅ Subtitle appears in title bar subtitle slot
+- ✅ Landing View title bar shows app default (no project open)
+
+---
+
+## I-0021: Chapter headers in Scene Navigator are visually indistinct from scenes
+
+**Status:** ✅ Resolved - Verified
+**Platform:** macOS, iPadOS, iOS
+**Component:** `SceneNavigatorView.swift`
+**Severity:** Low
+**Sprint:** SP-035
+
+**Description:**
+Chapter header rows used `.caption` + `.secondary` — smaller and lighter than scene rows — making chapters appear subordinate to scenes. Visual hierarchy was inverted.
+
+**Root Cause Analysis:**
+`chapterHeaderRow(for:)` used `.font(.caption).foregroundStyle(.secondary)`. Scene rows used `.callout` + `.secondary`/`.primary`, making them appear heavier than their chapter container.
+
+**Resolution:**
+- Chapter headers updated to `.font(.subheadline.weight(.semibold))` with `.foregroundStyle(.primary)` and `.padding(.top, 6)`.
+- Scene rows given `.padding(.leading, 8)` indent to nest visually under their chapter.
+
+**Files Affected:**
+- `Scrivi/Views/SceneNavigatorView.swift`
+
+**Verification:**
+- ✅ Chapter names appear bold and dominant above scene rows
+- ✅ Scene rows are indented, visually nested under their chapter
+- ✅ Reorder drag still works correctly
+
+---
+
+## I-0022: No way to open a project from the menu bar
+
+**Status:** ✅ Resolved - Verified
+**Platform:** macOS, iPadOS
+**Component:** `ScriviApp.swift`, `AppEnvironment.swift`, `LandingView.swift`
+**Severity:** Medium
+**Sprint:** SP-035
+
+**Description:**
+No Open Project command existed in the menu bar. The only entry point was the Landing View button, inaccessible when a project was already open.
+
+**Root Cause Analysis:**
+The `Project` `CommandMenu` had no Open item. The open-panel logic was private to `LandingView`.
+
+**Resolution:**
+- Extracted open-panel logic into `AppEnvironment.presentOpenProjectPanel()`.
+- Added `Open Project… ⌘O` to the top of the `Project` `CommandMenu` in `ScriviApp.swift`, always enabled.
+- `LandingView` updated to call `env.presentOpenProjectPanel()` instead of its own private method.
+
+**Files Affected:**
+- `Scrivi/App/AppEnvironment.swift`
+- `Scrivi/App/ScriviApp.swift`
+- `Scrivi/Views/LandingView.swift`
+
+**Verification:**
+- ✅ Project → Open Project… appears in menu bar at all times
+- ✅ Selecting it opens the folder picker and loads the chosen project
+- ✅ Accessible when a project is already open (replaces it in the same window)
+
+---
+
+## I-0023: About panel uses SF Symbol placeholder instead of app icon
+
+**Status:** ✅ Resolved - Verified
+**Platform:** macOS, iPadOS, iOS
+**Component:** `AboutView.swift`
+**Severity:** Low
+**Sprint:** SP-035
+
+**Description:**
+The About panel displayed an SF Symbol (`pencil.and.outline`) instead of the real application icon.
+
+**Root Cause Analysis:**
+`AboutView` used `Image(systemName: "pencil.and.outline")` as a placeholder since no custom app icon existed yet.
+
+**Resolution:**
+- Replaced SF Symbol with `NSApp.applicationIconImage` on macOS (displays the bundle's `.icns`).
+- Falls back to `UIImage(named: "AppIcon")` on iOS/iPadOS, with SF Symbol fallback if neither is available.
+- Icon displayed at 80×80 with `cornerRadius(16)`.
+
+**Files Affected:**
+- `Scrivi/Views/AboutView.swift`
+
+**Verification:**
+- ✅ About panel shows the macOS default app icon (generic until a custom icon is added)
+- ✅ No SF Symbol placeholder visible
+
+---
+
+---
+
+## I-0024: Chapter title text written into scene content on app relaunch
+
+**Status:** ✅ Resolved - Verified
+**Platform:** macOS
+**Component:** `ManuscriptTextView.swift`
+**Severity:** High
+**Sprint:** SP-035
+
+**Description:**
+After closing and reopening the app, the chapter title appeared both as the styled heading and as editable text at the start of scene content. The writer had to manually delete the duplicated line. Additionally, typing at the very start of a scene was blocked when "Show chapter titles" was enabled.
+
+**Root Cause Analysis:**
+Two related bugs in `ManuscriptNSTextView`:
+
+1. `recomputeBoundaries` scanned for divider attachment characters and assumed each segment started immediately after the divider. When chapter titles are shown, heading text (`.scriviHeading` attributed) sits between the divider and the scene text. Every `sceneBoundaries[i].location` pointed into the heading rather than the scene, so `textDidChange` extracted heading characters into `seg.text` and saved them to disk.
+
+2. `shouldChangeText(in:replacementString:)` shifted the heading check range one character backward for insertions (`affectedCharRange.length == 0`). At the start of a scene, `location - 1` landed inside the trailing `\n` of the heading string (which carries `.scriviHeading`), causing the insertion to be blocked.
+
+**Resolution:**
+- `recomputeBoundaries` rewritten to call `skipHeading(from:)` at the document start and after each divider, advancing past any contiguous `.scriviHeading` run before recording the segment start. Boundaries now match what `rebuildStorage` produces.
+- `shouldChangeText` now distinguishes pure insertions (`length == 0`, non-empty replacement) from deletions/backspace. Insertions use a zero-length check range, bypassing the heading scan entirely. Only deletions still look at the preceding character.
+
+**Files Affected:**
+- `Scrivi/Views/ManuscriptTextView.swift`
+
+**Verification:**
+- ✅ Editing near start of scene, quit, relaunch — chapter title not present in scene text or on disk
+- ✅ Typing at the start of a chapter with "Show chapter titles" enabled works normally
+- ✅ Typing in heading text is still correctly blocked
+
+---
+
+*Last Updated: 2026-06-09 (I-0024 verified; batch 2 complete)*

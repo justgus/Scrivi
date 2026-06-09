@@ -23,9 +23,7 @@ private struct ManuscriptEditorView: View {
     var loader: ViewportSceneLoader
     var prefs: ProjectPreferences
 
-    // Scene ID to scroll to — set by Navigator on tap and after delete.
     @State private var navigateToSceneID: String? = nil
-    @State private var showProjectSettings: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -36,8 +34,12 @@ private struct ManuscriptEditorView: View {
             }
         } detail: {
             VStack(spacing: 0) {
-                toolbar
-                Divider()
+                #if os(iOS)
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    phoneToolbar
+                    Divider()
+                }
+                #endif
                 ManuscriptTextView(
                     loader: loader,
                     env: env,
@@ -46,29 +48,27 @@ private struct ManuscriptEditorView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .navigationTitle(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
+                             ? "Untitled" : prefs.projectTitle)
+            .navigationSubtitle(prefs.projectSubtitle)
         }
         .frame(minWidth: 700, minHeight: 400)
         .navigationSplitViewStyle(.balanced)
-        .sheet(isPresented: $showProjectSettings) {
-            ProjectSettingsSheet(prefs: prefs)
-        }
     }
 
-    private var toolbar: some View {
+    #if os(iOS)
+    private var phoneToolbar: some View {
         HStack {
             Spacer()
-            Button("Project Settings") { showProjectSettings = true }
+            Button("Project Settings") { env.showProjectSettings = true }
                 .buttonStyle(.borderless)
                 .font(.callout)
-            Button("Close Project") {
-                env.openProjectResult = nil
-                env.projectRootPath = nil
-                env.projectError = nil
-                env.viewportLoader = nil
-                env.projectPreferences = nil
-            }
+            Button("Close Project") { env.closeProject() }
+                .buttonStyle(.borderless)
+                .font(.callout)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
+    #endif
 }

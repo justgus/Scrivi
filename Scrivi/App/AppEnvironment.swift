@@ -1,4 +1,7 @@
 import Foundation
+#if os(macOS)
+import AppKit
+#endif
 
 @Observable @MainActor final class AppEnvironment {
 
@@ -17,6 +20,9 @@ import Foundation
 
     // Per-project preferences — created when a project is opened, cleared when closed.
     var projectPreferences: ProjectPreferences?
+
+    // Drives the Project Settings sheet from the menu bar.
+    var showProjectSettings: Bool = false
 
     var appSupportRoot: String {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
@@ -94,6 +100,34 @@ import Foundation
         } catch {
             projectError = ScriviError(code: -1, message: error.localizedDescription)
         }
+    }
+
+    @MainActor
+    func presentOpenProjectPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.title = "Open Scrivi Project"
+        panel.prompt = "Open"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Task {
+            await openProject(at: url.path(percentEncoded: false))
+            if let result = openProjectResult, result.mode == "repairRequired",
+               let issue = result.repairIssues.first {
+                openProjectResult = nil
+                projectError = ScriviError(code: -1, message: "Repair required: \(issue.title)")
+            }
+        }
+    }
+
+    func closeProject() {
+        openProjectResult = nil
+        projectRootPath = nil
+        projectError = nil
+        viewportLoader = nil
+        projectPreferences = nil
+        showProjectSettings = false
     }
 
     // Called by the application delegate on NSApplicationDelegate.applicationWillResignActive.

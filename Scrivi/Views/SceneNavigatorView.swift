@@ -36,22 +36,14 @@ struct SceneNavigatorView: View {
     }
 
     private var projectHeader: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
-                 ? "Untitled" : prefs.projectTitle)
-                .font(.headline)
-                .lineLimit(2)
-                .foregroundStyle(.primary)
-            if !prefs.projectSubtitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text(prefs.projectSubtitle)
-                    .font(.caption)
-                    .lineLimit(1)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        Text(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
+             ? "Untitled" : prefs.projectTitle)
+            .font(.headline)
+            .lineLimit(2)
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
     }
 
     private var navigatorList: some View {
@@ -169,8 +161,9 @@ struct SceneNavigatorView: View {
     @ViewBuilder
     private func chapterHeaderRow(for group: ChapterGroup) -> some View {
         Text(group.chapterTitle)
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .padding(.top, 6)
             .tag("header-\(group.chapterID)")
             .listRowBackground(Color.clear)
             .contextMenu {
@@ -517,6 +510,7 @@ private struct NavigatorSceneRow: View {
             .truncationMode(.tail)
             .foregroundStyle(isActive ? .primary : .secondary)
             .padding(.vertical, 2)
+            .padding(.leading, 8)
     }
 }
 

@@ -13,29 +13,25 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 **Sprint:** Not Assigned
 
 **Description:**
-Window position and size are correctly restored between app launches, but the maximized (zoomed) state is not. If the user maximizes the project window and quits, the window reopens at the previous un-maximized size instead of maximized.
+Window position, size, and maximized state are not fully restored between app launches. Frame and position restore correctly. Maximized state does not — the window always relaunches un-maximized regardless of saved zoom state.
 
 **Expected Behavior:**
-If the window was maximized at quit, it reopens maximized. The Landing View also respects the saved window state.
+On relaunch, the window appears at the same size, position, and maximized state as when the user last quit. The Landing View and Editor share the same window — no resize occurs when transitioning between them.
 
 **Actual Behavior:**
-Window reopens at un-maximized size. Landing View shows at a default size regardless of saved state.
+Frame and position restore correctly. Maximized state does not restore.
 
 **Steps to Reproduce:**
-1. Open a project, maximize the window.
+1. Maximize the window.
 2. Quit the app.
 3. Relaunch — window opens un-maximized.
-
-**Impact:**
-- Minor friction for writers who prefer working maximized.
 
 **Date Identified:** 2026-06-08
 
 **Root Cause Analysis:**
-`window.zoom(nil)` is deferred via `DispatchQueue.main.async` inside `makeNSView`, but SwiftUI's `WindowGroup` continues to apply its own sizing after that point, overriding the zoom. The Landing View is shown before the project opens, so `WindowFrameAutosave` is not in the view hierarchy at that point.
+`window.zoom(nil)` fires too early — SwiftUI's `WindowGroup` continues async layout passes after the call and overrides it. Current approach uses `NSApplication.didFinishLaunchingNotification` as the trigger, but this has not resolved the issue. Requires deeper investigation.
 
-**Resolution:**
-TBD — likely requires hooking into `NSApplicationDelegate.applicationDidFinishLaunching` after SwiftUI has completed all initial layout passes, or using `windowStyle(.hiddenTitleBar)` + manual frame management.
+**Resolution:** TBD
 
 ---
 
@@ -48,30 +44,48 @@ TBD — likely requires hooking into `NSApplicationDelegate.applicationDidFinish
 **Sprint:** Not Assigned
 
 **Description:**
-When the app loads a project, no scene is selected/highlighted in the Scene Navigator. The correct behavior is no selection (preferred over a wrong selection), but ideally the Navigator should highlight whichever scene is visible at the top of the viewport after load.
+When the app loads a project, no scene is selected/highlighted in the Scene Navigator. The Navigator self-corrects on first scroll.
 
 **Expected Behavior:**
-On load, the Navigator highlights the scene visible at the top of the manuscript viewport — or shows no selection if that is not determinable before the first scroll event.
+On load, the Navigator highlights the scene visible at the top of the manuscript viewport.
 
 **Actual Behavior:**
-No scene is highlighted. The Navigator becomes correct after the first scroll.
-
-**Steps to Reproduce:**
-1. Open a project with 2+ scenes.
-2. Observe Scene Navigator immediately on load — no scene is highlighted.
-3. Scroll slightly — the correct scene highlights.
-
-**Impact:**
-- Low — the Navigator self-corrects on first scroll. No functional breakage.
+No scene is highlighted until the first scroll event.
 
 **Date Identified:** 2026-06-08
 
 **Root Cause Analysis:**
-`viewportSceneID` is intentionally left nil during `loadAll()` to avoid the previous bug where a stale value caused SwiftUI's `List` to select the last row. The scroll observer sets `viewportSceneID` on first scroll, but this hasn't fired yet at load time.
+`viewportSceneID` is intentionally left nil during `loadAll()`. The scroll observer sets it on first scroll, but this hasn't fired at load time.
 
 **Resolution:**
-TBD — needs a mechanism to determine which scene is at the top of the viewport after `NSTextView` completes its initial layout, without triggering a scroll notification.
+TBD — needs a mechanism to determine the top-of-viewport scene after `NSTextView` completes initial layout without triggering a spurious scroll notification.
 
 ---
 
-*Last Updated: 2026-06-08 (I-0017, I-0018 added to backlog)*
+## I-0019: Undo and Redo have no effect in the manuscript editor
+
+**Status:** 🔴 Open
+**Platform:** macOS, iPadOS
+**Component:** `ManuscriptTextView.swift`
+**Severity:** High
+**Sprint:** Not Assigned
+
+**Description:**
+Pressing `⌘Z` in the manuscript editor produces the system "nothing to undo" flash — the undo manager is empty even after typing. Redo has no effect either.
+
+**Expected Behavior:**
+Undo reverses the most recent text edit. Redo re-applies it. Standard AppKit per-keystroke undo via `NSTextView`'s built-in undo manager.
+
+**Actual Behavior:**
+`⌘Z` produces a screen flash (empty undo stack). Nothing is undone.
+
+**Date Identified:** 2026-06-09
+
+**Root Cause Analysis:**
+Requires deeper investigation. Previous attempt (wrapping `rebuildStorage` with `disableUndoRegistration`) did not resolve the issue.
+
+**Resolution:** TBD
+
+---
+
+*Last Updated: 2026-06-09 (I-0017/I-0019 returned to backlog; I-0018 unchanged)*

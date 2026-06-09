@@ -14,11 +14,25 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **1 backlog Task**
+Currently: **15 backlog Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | 🔵 Backlog |
+| Task | Title | Epic | Status |
+| ---- | ----- | ---- | ------ |
+| T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
+| T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🔵 Backlog |
+| T-0125 | Two-finger swipe gesture on ManuscriptTextView — macOS (trackpad) | EP-013 | 🔵 Backlog |
+| T-0126 | Two-finger swipe gesture on ManuscriptTextView — iPadOS (touch) | EP-013 | 🔵 Backlog |
+| T-0127 | EP-013 verification | EP-013 | 🔵 Backlog |
+| T-0128 | SceneInspectorView skeleton — panel, hide/show toggle, tab bar structure | EP-014 | 🔵 Backlog |
+| T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | EP-014 | 🔵 Backlog |
+| T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | EP-014 | 🔵 Backlog |
+| T-0131 | iPhone exclusion — Inspector absent on phone idiom | EP-014 | 🔵 Backlog |
+| T-0132 | EP-014 verification | EP-014 | 🔵 Backlog |
+| T-0133 | TimelineStripView skeleton — panel chrome, hide/show toggle, horizontal scroll container | EP-015 | 🔵 Backlog |
+| T-0134 | Placeholder graphical event markers — static stub layout | EP-015 | 🔵 Backlog |
+| T-0135 | Timeline integration into ManuscriptEditorView — docking, height, collapse | EP-015 | 🔵 Backlog |
+| T-0136 | iPhone exclusion — Timeline absent on phone idiom | EP-015 | 🔵 Backlog |
+| T-0137 | EP-015 verification | EP-015 | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -26,9 +40,7 @@ See: [Task-backlog.md](Task-backlog.md)
 
 Currently: **0 active Tasks**
 
-| Task | Title | Status |
-| ---- | ----- | ------ |
-| —    | None  | —      |
+*None.*
 
 See: [Task-active.md](Task-active.md)
 
@@ -141,18 +153,21 @@ Currently: **67 verified Tasks**
 | T-0116 | Correct cursor placement after navigate and delete | [Task-verified-0116.md](Verified/Task-verified-0116.md) | ✅ Verified |
 | T-0117 | Reliable first-responder transfer — replace `focusManuscriptView` workaround | [Task-verified-0117.md](Verified/Task-verified-0117.md) | ✅ Verified |
 | T-0119 | EP-011 verification — macOS smoke test + deferred EP-010 AC | [Task-verified-0119.md](Verified/Task-verified-0119.md) | ✅ Verified |
+| T-0120 | Remove toolbar strip and add Project menu (Close Project, Project Settings) | [Task-verified-0120.md](Verified/Task-verified-0120.md) | ✅ Verified |
+| T-0121 | Add Edit menu with standard responder-chain commands and keyboard shortcuts | [Task-verified-0121.md](Verified/Task-verified-0121.md) | ✅ Verified |
+| T-0122 | Add About menu with About panel (name, version, build) and User Manual placeholder | [Task-verified-0122.md](Verified/Task-verified-0122.md) | ✅ Verified |
+| T-0124 | EP-012 verification | [Task-verified-0124.md](Verified/Task-verified-0124.md) | ✅ Verified |
 
 ## Statistics
 
-- **Total Tasks:** 119
-- **Verified:** 91 (76%) ✅
+- **Total Tasks:** 138
+- **Verified:** 95 ✅ (T-0001–T-0124, excluding gaps)
 - **Retired (OBE):** 1 (T-0111)
 - **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
-- **Unverified:** 0 🟠
 - **Active:** 0 🟡
-- **Backlog:** 1 (T-0118)
-- **Next available:** T-0120
+- **Backlog:** 15 🔵 (T-0118, T-0123, T-0125–T-0137)
+- **Next available:** T-0139
 
 ---
 
-*Last Updated: 2026-06-08 (T-0113–T-0117/T-0119 verified; SP-033/EP-011 closed)*
+*Last Updated: 2026-06-09 (T-0124 verified; SP-035 closed; EP-012 to backlog)*

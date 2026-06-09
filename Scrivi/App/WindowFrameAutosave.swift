@@ -5,20 +5,22 @@ private let frameKey  = "scrivi.mainWindow.frame"
 private let zoomedKey = "scrivi.mainWindow.zoomed"
 
 // Installs an NSWindowDelegate on the host window to persist frame and
-// zoomed state. Restoration is deferred until after SwiftUI finishes its
-// own layout pass so the saved frame is not overwritten.
+// zoomed state across launches.
+//
+// Frame restore happens in the first deferred pass (after SwiftUI gets the window).
+// Zoom restore is deferred until NSApplication.didFinishLaunching fires, which is
+// the earliest point where SwiftUI has fully completed all initial layout passes
+// and a zoom call will not be overridden.
 struct WindowFrameAutosave: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        // Use two deferred passes: first to get the window reference,
-        // second (after SwiftUI layout) to apply the saved state.
         DispatchQueue.main.async {
             guard let window = view.window else { return }
             window.delegate = context.coordinator
             context.coordinator.window = window
 
-            // Restore frame first.
+            // Restore the saved frame immediately.
             if let frameString = UserDefaults.standard.string(forKey: frameKey) {
                 let frame = NSRectFromString(frameString)
                 if frame != .zero {
@@ -26,12 +28,21 @@ struct WindowFrameAutosave: NSViewRepresentable {
                 }
             }
 
-            // Defer zoom restoration one more run loop turn so SwiftUI
-            // does not override it with its own initial sizing.
+            // Zoom restore is registered as a one-shot observer for didFinishLaunching.
+            // If the app has already finished launching (e.g., view re-appears), apply
+            // the zoom directly on the next run loop turn instead.
             let shouldZoom = UserDefaults.standard.bool(forKey: zoomedKey)
-            if shouldZoom {
-                DispatchQueue.main.async {
-                    window.zoom(nil)
+            guard shouldZoom else { return }
+
+            if NSApp.isRunning {
+                DispatchQueue.main.async { window.zoom(nil) }
+            } else {
+                NotificationCenter.default.addObserver(
+                    forName: NSApplication.didFinishLaunchingNotification,
+                    object: nil,
+                    queue: .main
+                ) { [weak window] _ in
+                    window?.zoom(nil)
                 }
             }
         }
@@ -45,29 +56,22 @@ struct WindowFrameAutosave: NSViewRepresentable {
     final class Coordinator: NSObject, NSWindowDelegate {
         weak var window: NSWindow?
 
-        func windowDidEndLiveResize(_ notification: Notification) { save(notification) }
-        func windowDidMove(_ notification: Notification)          { save(notification) }
+        @MainActor func windowDidEndLiveResize(_ notification: Notification) { saveState(notification) }
+        @MainActor func windowDidMove(_ notification: Notification)          { saveState(notification) }
+        @MainActor func windowWillClose(_ notification: Notification)        { saveState(notification) }
 
-        func windowWillClose(_ notification: Notification) {
-            guard let window = notification.object as? NSWindow else { return }
-            saveState(window)
-        }
-
+        @MainActor
         func windowDidChangeOcclusionState(_ notification: Notification) {
-            // Catch zoom/unzoom which doesn't always fire a resize notification.
             guard let window = notification.object as? NSWindow else { return }
             UserDefaults.standard.set(window.isZoomed, forKey: zoomedKey)
         }
 
-        private func save(_ notification: Notification) {
+        @MainActor
+        private func saveState(_ notification: Notification) {
             guard let window = notification.object as? NSWindow else { return }
-            saveState(window)
-        }
-
-        private func saveState(_ window: NSWindow) {
             UserDefaults.standard.set(window.isZoomed, forKey: zoomedKey)
-            // Save the un-zoomed frame so restore gives a sensible size
-            // when the user un-maximizes on the next launch.
+            // Only update the saved frame when un-zoomed, preserving the last
+            // known un-zoomed size across zoomed sessions.
             if !window.isZoomed {
                 UserDefaults.standard.set(
                     NSStringFromRect(window.frame),

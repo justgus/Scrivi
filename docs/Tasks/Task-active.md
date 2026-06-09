@@ -1,9 +1,7 @@
 # Active Tasks
 
-| ID | Title | Sprint | Status |
-| -- | ----- | ------ | ------ |
-| —  | None  | —      | —      |
+*No active tasks. T-0124 verified; SP-035 closed.*
 
 ---
 
-*Last Updated: 2026-06-08 (T-0113–T-0117/T-0119 verified; SP-033 closed)*
+*Last Updated: 2026-06-09 (T-0124 verified and archived; SP-035 closed)*
