@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-*None — SP-037 closed 2026-06-10.*
+*None — SP-038 closed 2026-06-10.*
 
 ## Sprint Backlog
 
@@ -23,7 +23,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **37 Sprints** | Next available: **SP-038**
+Currently: **38 Sprints** | Next available: **SP-039**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -64,11 +64,12 @@ Currently: **37 Sprints** | Next available: **SP-038**
 | SP-035 | Menu Bar, Project Commands, and About Panel | EP-012 | 2026-06-09 | 2026-06-09 | ✅ Closed |
 | SP-036 | Scene Navigator Swipe Gesture — macOS | EP-013 | 2026-06-10 | 2026-06-10 | ✅ Closed |
 | SP-037 | Scene Inspector Panel | EP-014 | 2026-06-10 | 2026-06-10 | ✅ Closed |
+| SP-038 | Real-Time Timeline Panel | EP-015 | 2026-06-10 | 2026-06-10 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 37
-- **Closed:** 36 ✅
+- **Total Sprints:** 38
+- **Closed:** 37 ✅
 - **Active:** 0 🟡
 - **Planning:** 0 🔵
 - **Cancelled:** 1 ⚪ (SP-034)
@@ -76,4 +77,4 @@ Currently: **37 Sprints** | Next available: **SP-038**
 
 ---
 
-*Last Updated: 2026-06-10 (SP-037 closed; EP-014 closed)*
+*Last Updated: 2026-06-10 (SP-038 closed; EP-015 closed)*

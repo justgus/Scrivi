@@ -10,4 +10,4 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-*Last Updated: 2026-06-10 (SP-037 activated; moved to Sprint-active.md)*
+*Last Updated: 2026-06-10 (SP-038 activated; moved to Sprint-active.md)*

@@ -48,6 +48,15 @@ private struct ManuscriptEditorView: View {
                         showChapterTitles: prefs.showChapterTitles
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    #if os(iOS)
+                    if UIDevice.current.userInterfaceIdiom != .phone && env.timelineVisible {
+                        TimelineStripView()
+                    }
+                    #else
+                    if env.timelineVisible {
+                        TimelineStripView()
+                    }
+                    #endif
                 }
                 #if os(iOS)
                 if UIDevice.current.userInterfaceIdiom != .phone && env.inspectorVisible {

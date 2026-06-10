@@ -14,7 +14,7 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **8 backlog Tasks**
+Currently: **3 backlog Tasks**
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
@@ -159,6 +159,11 @@ Currently: **67 verified Tasks**
 | T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | [Task-verified-0130.md](Verified/Task-verified-0130.md) | ✅ Verified |
 | T-0131 | iPhone exclusion — Inspector absent on phone idiom | [Task-verified-0131.md](Verified/Task-verified-0131.md) | ✅ Verified |
 | T-0132 | EP-014 verification | [Task-verified-0132.md](Verified/Task-verified-0132.md) | ✅ Verified |
+| T-0133 | TimelineStripView skeleton — panel chrome, horizontal scroll container | [Task-verified-0133.md](Verified/Task-verified-0133.md) | ✅ Verified |
+| T-0134 | Placeholder graphical event markers — static stub layout | [Task-verified-0134.md](Verified/Task-verified-0134.md) | ✅ Verified |
+| T-0135 | Timeline integration into ManuscriptEditorView — docking, height, collapse | [Task-verified-0135.md](Verified/Task-verified-0135.md) | ✅ Verified |
+| T-0136 | iPhone exclusion — Timeline absent on phone idiom | [Task-verified-0136.md](Verified/Task-verified-0136.md) | ✅ Verified |
+| T-0137 | EP-015 verification | [Task-verified-0137.md](Verified/Task-verified-0137.md) | ✅ Verified |
 
 ## Closed Tasks
 
@@ -172,15 +177,15 @@ Currently: **2 closed Tasks**
 ## Statistics
 
 - **Total Tasks:** 138
-- **Verified:** 100 ✅ (T-0001–T-0132, excluding gaps)
+- **Verified:** 105 ✅ (T-0001–T-0137, excluding gaps)
 - **Closed:** 2 🔴 (T-0125, T-0127)
 - **Retired (OBE):** 1 (T-0111)
 - **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
 - **Active:** 0 🟡
 - **Unverified:** 0 🟡
-- **Backlog:** 8 🔵 (T-0118, T-0123, T-0133–T-0137)
+- **Backlog:** 2 🔵 (T-0118, T-0123)
 - **Next available:** T-0139
 
 ---
 
-*Last Updated: 2026-06-10 (T-0128–T-0132 verified; SP-037 closed; EP-014 closed)*
+*Last Updated: 2026-06-10 (T-0133–T-0137 verified; SP-038 closed; EP-015 closed)*

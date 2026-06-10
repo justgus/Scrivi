@@ -62,6 +62,9 @@ struct ScriviApp: App {
                 Toggle("Show Scene Inspector", isOn: Bindable(env).inspectorVisible)
                     .keyboardShortcut("i", modifiers: [.command, .option])
                     .disabled(env.openProjectResult == nil)
+                Toggle("Show Timeline", isOn: Bindable(env).timelineVisible)
+                    .keyboardShortcut("t", modifiers: [.command, .option])
+                    .disabled(env.openProjectResult == nil)
             }
 
             // About menu.

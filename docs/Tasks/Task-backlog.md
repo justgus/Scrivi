@@ -12,11 +12,6 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified |
-| T-0133 | TimelineStripView skeleton — panel chrome, hide/show toggle, horizontal scroll container | EP-015 | 🔵 Backlog |
-| T-0134 | Placeholder graphical event markers — static stub layout | EP-015 | 🔵 Backlog |
-| T-0135 | Timeline integration into ManuscriptEditorView — docking, height, collapse | EP-015 | 🔵 Backlog |
-| T-0136 | iPhone exclusion — Timeline absent on phone idiom | EP-015 | 🔵 Backlog |
-| T-0137 | EP-015 verification | EP-015 | 🔵 Backlog |
 
 ## Full Detail — Implemented Tasks Returned to Backlog
 

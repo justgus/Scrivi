@@ -27,6 +27,9 @@ import AppKit
     // Drives the Scene Inspector panel visibility via the View menu.
     var inspectorVisible: Bool = true
 
+    // Drives the Timeline strip visibility via the View menu.
+    var timelineVisible: Bool = true
+
     var appSupportRoot: String {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first!.path(percentEncoded: false)
