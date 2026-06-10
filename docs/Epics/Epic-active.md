@@ -1,7 +1,7 @@
 # Active Epics
 
-*No active Epics. EP-012 moved to Epic-backlog 2026-06-09.*
+*No active Epics. EP-014 closed 2026-06-10.*
 
 ---
 
-*Last Updated: 2026-06-09 (EP-012 moved to backlog pending AC 5; SP-035 closed)*
+*Last Updated: 2026-06-10 (EP-014 closed; SP-037 closed)*

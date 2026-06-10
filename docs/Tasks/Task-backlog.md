@@ -12,21 +12,11 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified |
-| T-0125 | Two-finger swipe gesture on ManuscriptTextView — macOS (trackpad) | EP-013 | 🔵 Backlog |
-| T-0126 | Two-finger swipe gesture on ManuscriptTextView — iPadOS (touch) | EP-013 | 🔵 Backlog |
-| T-0127 | EP-013 verification | EP-013 | 🔵 Backlog |
-| T-0128 | SceneInspectorView skeleton — panel, hide/show toggle, tab bar structure | EP-014 | 🔵 Backlog |
-| T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | EP-014 | 🔵 Backlog |
-| T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | EP-014 | 🔵 Backlog |
-| T-0131 | iPhone exclusion — Inspector absent on phone idiom | EP-014 | 🔵 Backlog |
-| T-0132 | EP-014 verification | EP-014 | 🔵 Backlog |
 | T-0133 | TimelineStripView skeleton — panel chrome, hide/show toggle, horizontal scroll container | EP-015 | 🔵 Backlog |
 | T-0134 | Placeholder graphical event markers — static stub layout | EP-015 | 🔵 Backlog |
 | T-0135 | Timeline integration into ManuscriptEditorView — docking, height, collapse | EP-015 | 🔵 Backlog |
 | T-0136 | iPhone exclusion — Timeline absent on phone idiom | EP-015 | 🔵 Backlog |
 | T-0137 | EP-015 verification | EP-015 | 🔵 Backlog |
-
----
 
 ## Full Detail — Implemented Tasks Returned to Backlog
 
@@ -110,4 +100,4 @@ Returned to backlog before iPhone testing was available. macOS and iPadOS target
 
 ---
 
-*Last Updated: 2026-06-09 (T-0123 returned to backlog with full detail; index restructured)*
+*Last Updated: 2026-06-10 (T-0128–T-0132 activated for SP-037)*

@@ -33,20 +33,31 @@ private struct ManuscriptEditorView: View {
                 loader.takeFocus()
             }
         } detail: {
-            VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    #if os(iOS)
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        phoneToolbar
+                        Divider()
+                    }
+                    #endif
+                    ManuscriptTextView(
+                        loader: loader,
+                        env: env,
+                        navigateToSceneID: $navigateToSceneID,
+                        showChapterTitles: prefs.showChapterTitles
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
                 #if os(iOS)
-                if UIDevice.current.userInterfaceIdiom == .phone {
-                    phoneToolbar
-                    Divider()
+                if UIDevice.current.userInterfaceIdiom != .phone && env.inspectorVisible {
+                    SceneInspectorView()
+                }
+                #else
+                if env.inspectorVisible {
+                    SceneInspectorView()
                 }
                 #endif
-                ManuscriptTextView(
-                    loader: loader,
-                    env: env,
-                    navigateToSceneID: $navigateToSceneID,
-                    showChapterTitles: prefs.showChapterTitles
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationTitle(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
                              ? "Untitled" : prefs.projectTitle)

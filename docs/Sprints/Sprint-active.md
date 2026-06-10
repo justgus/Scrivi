@@ -1,7 +1,7 @@
 # Active Sprint
 
-*No active Sprint. SP-035 closed 2026-06-09. EP-012 moved to backlog.*
+*No active Sprint. SP-037 closed 2026-06-10. EP-014 closed.*
 
 ---
 
-*Last Updated: 2026-06-09 (SP-035 closed)*
+*Last Updated: 2026-06-10 (SP-037 closed)*

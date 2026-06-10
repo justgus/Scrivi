@@ -20,6 +20,7 @@
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		C032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
+		C034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
 		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		C011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
@@ -35,6 +36,7 @@
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
+		D034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
 		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		D011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		D020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
@@ -50,6 +52,7 @@
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
+		E034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
 		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		E011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		E020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
@@ -86,6 +89,7 @@
 		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Scrivi/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
 		C032 /* WindowFrameAutosave.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WindowFrameAutosave.swift; path = Scrivi/App/WindowFrameAutosave.swift; sourceTree = SOURCE_ROOT; };
 		C033 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Scrivi/Views/AboutView.swift; sourceTree = SOURCE_ROOT; };
+		C034 /* SceneInspectorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneInspectorView.swift; path = Scrivi/Views/SceneInspectorView.swift; sourceTree = SOURCE_ROOT; };
 		C010 /* Scrivi.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; name = Scrivi.entitlements; path = Scrivi/App/Scrivi.entitlements; sourceTree = SOURCE_ROOT; };
 		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -309,6 +313,7 @@
 				C031_BF /* ProjectPreferences.swift in Sources */,
 				C032_BF /* WindowFrameAutosave.swift in Sources */,
 				C033_BF /* AboutView.swift in Sources */,
+				C034_BF /* SceneInspectorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,6 +335,7 @@
 				D031_BF /* ProjectPreferences.swift in Sources */,
 				D032_BF /* WindowFrameAutosave.swift in Sources */,
 				D033_BF /* AboutView.swift in Sources */,
+				D034_BF /* SceneInspectorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,6 +357,7 @@
 				E031_BF /* ProjectPreferences.swift in Sources */,
 				E032_BF /* WindowFrameAutosave.swift in Sources */,
 				E033_BF /* AboutView.swift in Sources */,
+				E034_BF /* SceneInspectorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

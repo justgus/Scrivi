@@ -40,20 +40,20 @@ Currently: **15 Epics** | Next available: **EP-016**
 | EP-010 | Manuscript Structure Editing — Delete, Reorder, and Title | ✅ Closed | 2026-06-04 | 2026-06-06 |
 | EP-011 | Writing Surface Behavior — Scroll, Cursor, and Focus | ✅ Closed | 2026-06-08 | 2026-06-08 |
 | EP-012 | Menu Bar and Toolbar Replacement | 🔴 Deferred (AC 5 pending T-0123) | 2026-06-09 | — |
-| EP-013 | Scene Navigator Swipe Gesture | 🔵 Draft (backlog) | 2026-06-09 | — |
-| EP-014 | Scene Inspector Panel | 🔵 Draft (backlog) | 2026-06-09 | — |
+| EP-013 | Scene Navigator Swipe Gesture | ✅ Closed (no delivery) | 2026-06-09 | 2026-06-10 |
+| EP-014 | Scene Inspector Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-015 | Real-Time Timeline Panel | 🔵 Draft (backlog) | 2026-06-09 | — |
 
 ## Statistics
 
 - **Total Epics:** 15
-- **Closed:** 11 ✅
+- **Closed:** 13 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 0 🟡
 - **Deferred:** 1 🔴 (EP-012)
-- **Draft (backlog):** 3 🔵
+- **Draft (backlog):** 1 🔵 (EP-015)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-09 (EP-012, EP-013, EP-014, EP-015 created as Draft)*
+*Last Updated: 2026-06-10 (EP-014 closed; SP-037 closed)*

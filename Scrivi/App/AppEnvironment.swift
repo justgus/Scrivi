@@ -24,6 +24,9 @@ import AppKit
     // Drives the Project Settings sheet from the menu bar.
     var showProjectSettings: Bool = false
 
+    // Drives the Scene Inspector panel visibility via the View menu.
+    var inspectorVisible: Bool = true
+
     var appSupportRoot: String {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first!.path(percentEncoded: false)

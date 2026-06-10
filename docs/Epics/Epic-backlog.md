@@ -53,96 +53,7 @@ Epics listed here are fully defined but have no active sprint. Epics that were p
 
 ---
 
-## EP-013: Scene Navigator Swipe Gesture
 
-**Status:** 🔵 Draft
-**Goal:** Let the writer show and hide the Scene Navigator sidebar using a two-finger horizontal swipe on the manuscript surface, as a faster alternative to the NavigationSplitView collapse control.
-**Date Created:** 2026-06-09
-**Target Close Date:** TBD
-**Actual Close Date:** —
-
-### Acceptance Criteria
-
-- [ ] A two-finger swipe **left** on the manuscript surface hides the Scene Navigator (collapses the `NavigationSplitView` sidebar)
-- [ ] A two-finger swipe **right** on the manuscript surface shows the Scene Navigator (expands the sidebar)
-- [ ] The gesture does not interfere with text selection, scrolling, or cursor placement in `ManuscriptTextView`
-- [ ] The gesture works on both macOS (trackpad) and iPadOS (two-finger touch)
-- [ ] The swipe threshold is generous enough to avoid accidental triggers during normal typing/scrolling
-- [ ] Sidebar state (shown/hidden) persists across scene navigation within the same project session (not required to persist across app launches)
-- [ ] No regression in `NavigationSplitView` collapse/expand behavior via the standard sidebar toggle button
-
-### Scope Notes
-
-- On macOS the gesture target is the `NSScrollView` hosting `NSTextView` — a gesture recognizer added to `ManuscriptTextView`'s `NSViewRepresentable` coordinator
-- On iPadOS the same gesture is added via SwiftUI's `.gesture()` modifier or a `UIGestureRecognizer` in the representable
-- iPhone is out of scope — iPhone does not use `NavigationSplitView` in this layout
-- The two-finger swipe is distinct from a one-finger scroll: `NSPanGestureRecognizer` with touch-count filtering on macOS, `UIPanGestureRecognizer` with `minimumNumberOfTouches = 2` on iPadOS
-
-### Tasks
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0125 | Two-finger swipe gesture on ManuscriptTextView — macOS (trackpad) | 🔵 Backlog |
-| T-0126 | Two-finger swipe gesture on ManuscriptTextView — iPadOS (touch) | 🔵 Backlog |
-| T-0127 | EP-013 verification | 🔵 Backlog |
-
-### Sprints
-
-| Sprint | Title | Status |
-| ------ | ----- | ------ |
-| — | Not yet assigned | — |
-
----
-
-## EP-014: Scene Inspector Panel
-
-**Status:** 🔵 Draft
-**Goal:** Add a hideable Scene Inspector panel on the right side of the editor window, housing a tabbed container whose first tab displays context-aware entity cards for the current scene. The panel and its tabs are structural stubs — no entity data yet — but the full UI skeleton is in place.
-**Date Created:** 2026-06-09
-**Target Close Date:** TBD
-**Actual Close Date:** —
-
-### Background
-
-The Scene Inspector is the right-side panel visible in Xcode's inspector area. As the writer types in a scene, the Inspector will eventually surface entity cards (characters, locations, objects) that are participating in that scene, and allow tagging new ones. EP-014 delivers the panel structure and the first stub tab only — no entity inference, no backend entity schema, no data persistence.
-
-### Acceptance Criteria
-
-- [ ] A Scene Inspector panel is present on the right side of `ManuscriptEditorView`, between the manuscript surface and the window edge
-- [ ] The panel is independently hideable via a toolbar icon or View menu item; its shown/hidden state persists within the session
-- [ ] The panel contains a tab bar with at least one tab: **"Scene Entities"** (stub content — a placeholder message and a disabled "Add Entity" button)
-- [ ] The tab bar is architecturally capable of hosting additional tabs in future epics without structural refactor
-- [ ] When hidden, the manuscript surface expands to fill the reclaimed width (no dead space)
-- [ ] The panel has a configurable minimum and default width (suggested: 240 pt min, 280 pt default)
-- [ ] On iPhone, the Inspector panel is not present (the phone layout is unchanged)
-- [ ] On iPadOS, the Inspector panel is present and functions identically to macOS
-- [ ] The Scene Entities tab stub contains: a title label, a "No entities yet" empty-state message, and a disabled/placeholder "Add Entity" button — all clearly marked as placeholder UI
-
-### Scope Notes
-
-- Implemented as a conditional `HSplitView` or manual `HStack` with a `@State var inspectorVisible: Bool` in `ManuscriptEditorView`
-- The Inspector panel is a new `SceneInspectorView.swift` in `Scrivi/Views/`
-- No backend calls, no `ScriviEngine` interaction, no entity schema in this Epic
-- Future tabs (e.g., Notes, References, Outline) are added in later Epics by extending the tab model in `SceneInspectorView`
-- The hide/show toggle should be a button in the main window toolbar or a `View` menu command — consistent with macOS inspector conventions
-
-### Tasks
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0128 | SceneInspectorView skeleton — panel, hide/show toggle, tab bar structure | 🔵 Backlog |
-| T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | 🔵 Backlog |
-| T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | 🔵 Backlog |
-| T-0131 | iPhone exclusion — Inspector absent on phone idiom | 🔵 Backlog |
-| T-0132 | EP-014 verification | 🔵 Backlog |
-
-### Sprints
-
-| Sprint | Title | Status |
-| ------ | ----- | ------ |
-| — | Not yet assigned | — |
-
----
 
 ## EP-015: Real-Time Timeline Panel
 
@@ -192,4 +103,4 @@ The Real-Time Timeline gives the writer a live view of where the current scene s
 
 ---
 
-*Last Updated: 2026-06-09 (EP-013, EP-014, EP-015 moved here from Epic-active — Draft, no sprint assigned)*
+*Last Updated: 2026-06-10 (EP-013 scope refined — 60pt threshold, T-0126 deferred, SP-036 assigned for Planning)*

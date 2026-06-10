@@ -14,15 +14,12 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **15 backlog Tasks**
+Currently: **8 backlog Tasks**
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🔵 Backlog |
-| T-0125 | Two-finger swipe gesture on ManuscriptTextView — macOS (trackpad) | EP-013 | 🔵 Backlog |
-| T-0126 | Two-finger swipe gesture on ManuscriptTextView — iPadOS (touch) | EP-013 | 🔵 Backlog |
-| T-0127 | EP-013 verification | EP-013 | 🔵 Backlog |
 | T-0128 | SceneInspectorView skeleton — panel, hide/show toggle, tab bar structure | EP-014 | 🔵 Backlog |
 | T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | EP-014 | 🔵 Backlog |
 | T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | EP-014 | 🔵 Backlog |
@@ -157,17 +154,33 @@ Currently: **67 verified Tasks**
 | T-0121 | Add Edit menu with standard responder-chain commands and keyboard shortcuts | [Task-verified-0121.md](Verified/Task-verified-0121.md) | ✅ Verified |
 | T-0122 | Add About menu with About panel (name, version, build) and User Manual placeholder | [Task-verified-0122.md](Verified/Task-verified-0122.md) | ✅ Verified |
 | T-0124 | EP-012 verification | [Task-verified-0124.md](Verified/Task-verified-0124.md) | ✅ Verified |
+| T-0128 | SceneInspectorView skeleton — panel, tab bar structure | [Task-verified-0128.md](Verified/Task-verified-0128.md) | ✅ Verified |
+| T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | [Task-verified-0129.md](Verified/Task-verified-0129.md) | ✅ Verified |
+| T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | [Task-verified-0130.md](Verified/Task-verified-0130.md) | ✅ Verified |
+| T-0131 | iPhone exclusion — Inspector absent on phone idiom | [Task-verified-0131.md](Verified/Task-verified-0131.md) | ✅ Verified |
+| T-0132 | EP-014 verification | [Task-verified-0132.md](Verified/Task-verified-0132.md) | ✅ Verified |
+
+## Closed Tasks
+
+Currently: **2 closed Tasks**
+
+| Task | Title | File | Status |
+| ---- | ----- | ---- | ------ |
+| T-0125 | Two-finger swipe gesture on ManuscriptTextView — macOS (trackpad) | [Task-closed-0125.md](Closed/Task-closed-0125.md) | 🔴 Closed |
+| T-0127 | EP-013 verification | [Task-closed-0127.md](Closed/Task-closed-0127.md) | 🔴 Closed |
 
 ## Statistics
 
 - **Total Tasks:** 138
-- **Verified:** 95 ✅ (T-0001–T-0124, excluding gaps)
+- **Verified:** 100 ✅ (T-0001–T-0132, excluding gaps)
+- **Closed:** 2 🔴 (T-0125, T-0127)
 - **Retired (OBE):** 1 (T-0111)
 - **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
 - **Active:** 0 🟡
-- **Backlog:** 15 🔵 (T-0118, T-0123, T-0125–T-0137)
+- **Unverified:** 0 🟡
+- **Backlog:** 8 🔵 (T-0118, T-0123, T-0133–T-0137)
 - **Next available:** T-0139
 
 ---
 
-*Last Updated: 2026-06-09 (T-0124 verified; SP-035 closed; EP-012 to backlog)*
+*Last Updated: 2026-06-10 (T-0128–T-0132 verified; SP-037 closed; EP-014 closed)*

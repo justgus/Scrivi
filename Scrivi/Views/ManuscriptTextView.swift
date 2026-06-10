@@ -22,7 +22,6 @@ struct ManuscriptTextView: NSViewRepresentable {
     var env: AppEnvironment
     @Binding var navigateToSceneID: String?
     var showChapterTitles: Bool
-
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSScrollView {

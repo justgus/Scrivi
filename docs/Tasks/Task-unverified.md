@@ -8,4 +8,4 @@ No unverified tasks.
 
 ---
 
-*Last Updated: 2026-06-03 (T-0083–T-0087 verified and archived; SP-024 closed)*
+*Last Updated: 2026-06-10 (T-0128–T-0131 verified and archived; SP-037 closed)*

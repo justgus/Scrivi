@@ -57,6 +57,13 @@ struct ScriviApp: App {
                 .disabled(env.openProjectResult == nil)
             }
 
+            // View menu.
+            CommandMenu("View") {
+                Toggle("Show Scene Inspector", isOn: Bindable(env).inspectorVisible)
+                    .keyboardShortcut("i", modifiers: [.command, .option])
+                    .disabled(env.openProjectResult == nil)
+            }
+
             // About menu.
             CommandGroup(replacing: .appInfo) {
                 Button("About Scrivi") {
