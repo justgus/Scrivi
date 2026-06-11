@@ -21,12 +21,13 @@ See: [Issue-active.md][2]
 
 ## Verified Issues
 
-Currently: **19 verified issues**
+Currently: **30 verified issues**
 
 | Batch | DRs              | File                              | Status      |
 | ----- | ---------------- | --------------------------------- | ----------- |
 | 1     | I-0001 – I-0010  | [Issue-verified-0001-0010.md][3]  | ✅ Complete |
 | 2     | I-0011 – I-0024  | [Issue-verified-0011-0020.md][4]  | ✅ Complete (10/10) |
+| 3     | I-0025 – I-0030  | [Issue-verified-0021-0030.md](Verified/Issue-verified-0021-0030.md) | ✅ Complete (6/10) |
 
 ## Closed Issues (Not Verified)
 
@@ -50,12 +51,13 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 24
-- **Verified:** 20 ✅ (I-0001–I-0015, I-0020–I-0024)
+- **Total Issues:** 30
+- **Verified:** 30 ✅ (I-0001–I-0015, I-0020–I-0030; I-0016 superseded; I-0017–I-0019 backlog)
+- **Active:** 0
 - **In Progress:** 0 ⚠️
 - **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0025
+- **Next available:** I-0031
 
 ---
 

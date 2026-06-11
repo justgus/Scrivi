@@ -66,8 +66,41 @@ void JsonDoc::setInt(std::string_view key, int value) {
     impl_->data[std::string(key)] = value;
 }
 
+void JsonDoc::setInt64(std::string_view key, int64_t value) {
+    impl_->data[std::string(key)] = value;
+}
+
+int64_t JsonDoc::getInt64(std::string_view key, int64_t defaultValue) const {
+    auto k = std::string(key);
+    if (impl_->data.contains(k) && impl_->data[k].is_number_integer()) {
+        return impl_->data[k].get<int64_t>();
+    }
+    return defaultValue;
+}
+
 void JsonDoc::setDouble(std::string_view key, double value) {
     impl_->data[std::string(key)] = value;
+}
+
+void JsonDoc::appendStringToArray(std::string_view key, std::string_view value) {
+    auto k = std::string(key);
+    if (!impl_->data.contains(k) || !impl_->data[k].is_array()) {
+        impl_->data[k] = nlohmann::json::array();
+    }
+    impl_->data[k].push_back(std::string(value));
+}
+
+std::vector<std::string> JsonDoc::getStringArray(std::string_view key) const {
+    std::vector<std::string> result;
+    auto k = std::string(key);
+    if (impl_->data.contains(k) && impl_->data[k].is_array()) {
+        for (const auto& elem : impl_->data[k]) {
+            if (elem.is_string()) {
+                result.push_back(elem.get<std::string>());
+            }
+        }
+    }
+    return result;
 }
 
 void JsonDoc::setSubDoc(std::string_view key, JsonDoc sub) {

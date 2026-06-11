@@ -997,4 +997,310 @@ const char* scrivi_rename_chapter(
     return heap(okEnvelope(std::move(doc)));
 }
 
+// ---- Timeline (EP-016 SP-039) -----------------------------------------------
+
+const char* scrivi_get_timeline(const char* projectRootPath) {
+    scrivi::GetTimelineRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().getTimeline(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineID", v.timelineID);
+    doc.setString("epochLabel", v.epochLabel);
+    doc.setString("projectID",  v.projectID);
+    doc.setString("createdAt",  v.createdAt);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_timeline_epoch_label(const char* projectRootPath, const char* label) {
+    scrivi::SetTimelineEpochLabelRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.label           = S(label);
+    auto r = core().setTimelineEpochLabel(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setBool("updated", r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_scene_story_time(const char* projectRootPath, const char* sceneID,
+                                         int64_t offsetMs, const char* source,
+                                         int64_t gapMs,
+                                         int64_t durationMs, const char* durationSource) {
+    scrivi::SetSceneStoryTimeRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    req.offsetMs        = offsetMs;
+    req.source          = S(source);
+    req.gapMs           = gapMs;
+    req.durationMs      = durationMs;
+    req.durationSource  = S(durationSource);
+    auto r = core().setSceneStoryTime(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", r.value().sceneID.value);
+    doc.setBool("updated",   r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_get_scene_story_time(const char* projectRootPath, const char* sceneID) {
+    scrivi::GetSceneStoryTimeRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    auto r = core().getSceneStoryTime(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID",             v.sceneID.value);
+    doc.setInt64("offsetMs",             v.offsetMs);
+    doc.setString("offsetSource",        v.offsetSource);
+    doc.setInt64("gapMs",                v.gapMs);
+    doc.setInt64("durationMs",           v.durationMs);
+    doc.setString("durationSource",      v.durationSource);
+    doc.setString("inferenceHint",       v.inferenceHint);
+    doc.setDouble("inferenceConfidence", v.inferenceConfidence);
+    doc.setString("bandID",              v.bandID);
+    doc.setString("bandAssignedAt",      v.bandAssignedAt);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_clear_scene_story_time(const char* projectRootPath, const char* sceneID) {
+    scrivi::ClearSceneStoryTimeRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    auto r = core().clearSceneStoryTime(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", r.value().sceneID.value);
+    doc.setBool("cleared",   r.value().cleared);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char* sceneID,
+                                         const char* bandID) {
+    scrivi::AssignSceneToBandRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    req.bandID          = S(bandID);
+    auto r = core().assignSceneToBand(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID",  r.value().sceneID.value);
+    doc.setBool("assigned",   r.value().assigned);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const char* sceneID) {
+    scrivi::UnassignSceneFromBandRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    auto r = core().unassignSceneFromBand(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID",   r.value().sceneID.value);
+    doc.setBool("unassigned",  r.value().unassigned);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_get_story_structure(const char* projectRootPath) {
+    scrivi::GetStoryStructureRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().getStoryStructure(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setBool("hasStructure",   v.hasStructure);
+    doc.setString("structureID",  v.structureID);
+    doc.setString("bandLayoutJSON", v.bandLayoutJSON);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_story_structure(const char* projectRootPath, const char* structureID,
+                                        const char* bandLayoutJSON) {
+    scrivi::SetStoryStructureRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.structureID     = S(structureID);
+    req.bandLayoutJSON  = S(bandLayoutJSON);
+    auto r = core().setStoryStructure(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setBool("set", r.value().set);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_update_band_layout(const char* projectRootPath, const char* bandLayoutJSON) {
+    scrivi::UpdateBandLayoutRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.bandLayoutJSON  = S(bandLayoutJSON);
+    auto r = core().updateBandLayout(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setBool("updated", r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_remove_story_structure(const char* projectRootPath) {
+    scrivi::RemoveStoryStructureRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().removeStoryStructure(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setBool("removed", r.value().removed);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_create_historical_event(const char* projectRootPath,
+                                             const char* title, int64_t offsetMs,
+                                             const char* description, const char* tagsJSON,
+                                             const char* identityID, const char* personaID,
+                                             const char* displayName) {
+    scrivi::CreateHistoricalEventRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.title           = S(title);
+    req.offsetMs        = offsetMs;
+    req.description     = S(description);
+    req.author = {
+        .identityID  = scrivi::IdentityID{S(identityID)},
+        .personaID   = scrivi::PersonaID{S(personaID)},
+        .displayName = S(displayName)
+    };
+    // Parse tagsJSON as a flat string array: ["tag1","tag2"]
+    auto tagsR = scrivi::util::parseJson(S(tagsJSON));
+    if (tagsR.ok()) {
+        req.tags = tagsR.value().getStringArray("tags");
+        // Also try root-level array
+        if (req.tags.empty()) {
+            const auto n = tagsR.value().arraySize("tags");
+            (void)n; // getStringArray already handles this
+        }
+    }
+    auto r = core().createHistoricalEvent(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("eventID", r.value().eventID);
+    doc.setString("slug",    r.value().slug);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_update_historical_event(const char* projectRootPath, const char* eventID,
+                                             const char* title, int64_t offsetMs,
+                                             const char* description, const char* tagsJSON) {
+    scrivi::UpdateHistoricalEventRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.eventID         = S(eventID);
+    req.title           = S(title);
+    req.offsetMs        = offsetMs;
+    req.description     = S(description);
+    auto tagsR = scrivi::util::parseJson(S(tagsJSON));
+    if (tagsR.ok()) { req.tags = tagsR.value().getStringArray("tags"); }
+    auto r = core().updateHistoricalEvent(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("eventID", r.value().eventID);
+    doc.setBool("updated",   r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_delete_historical_event(const char* projectRootPath, const char* eventID) {
+    scrivi::DeleteHistoricalEventRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.eventID         = S(eventID);
+    auto r = core().deleteHistoricalEvent(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("eventID", r.value().eventID);
+    doc.setBool("deleted",   r.value().deleted);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_historical_events(const char* projectRootPath) {
+    scrivi::ListHistoricalEventsRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().listHistoricalEvents(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setInt("count",        r.value().count);
+    doc.setString("eventsJSON", r.value().eventsJSON);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_import_external_timeline(const char* projectRootPath,
+                                              const char* timelineJSON, int64_t epochOffsetMs,
+                                              const char* assignedGreyShade) {
+    scrivi::ImportExternalTimelineRequest req;
+    req.projectRootPath    = S(projectRootPath);
+    req.timelineJSON       = S(timelineJSON);
+    req.epochOffsetMs      = epochOffsetMs;
+    req.assignedGreyShade  = S(assignedGreyShade);
+    auto r = core().importExternalTimeline(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineID", r.value().timelineID);
+    doc.setBool("imported",     r.value().imported);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_update_imported_timeline_offset(const char* projectRootPath,
+                                                     const char* timelineID,
+                                                     int64_t epochOffsetMs) {
+    scrivi::UpdateImportedTimelineOffsetRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.timelineID      = S(timelineID);
+    req.epochOffsetMs   = epochOffsetMs;
+    auto r = core().updateImportedTimelineOffset(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineID", r.value().timelineID);
+    doc.setBool("updated",      r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_imported_timeline_visible(const char* projectRootPath,
+                                                   const char* timelineID, int visible) {
+    scrivi::SetImportedTimelineVisibleRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.timelineID      = S(timelineID);
+    req.visible         = (visible != 0);
+    auto r = core().setImportedTimelineVisible(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineID", r.value().timelineID);
+    doc.setBool("updated",      r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_imported_timelines(const char* projectRootPath) {
+    scrivi::ListImportedTimelinesRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().listImportedTimelines(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setInt("count",           r.value().count);
+    doc.setString("timelinesJSON", r.value().timelinesJSON);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_remove_imported_timeline(const char* projectRootPath, const char* timelineID) {
+    scrivi::RemoveImportedTimelineRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.timelineID      = S(timelineID);
+    auto r = core().removeImportedTimeline(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineID", r.value().timelineID);
+    doc.setBool("removed",      r.value().removed);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_export_project_timeline(const char* projectRootPath) {
+    scrivi::ExportProjectTimelineRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().exportProjectTimeline(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineJSON", r.value().timelineJSON);
+    return heap(okEnvelope(std::move(doc)));
+}
+
 } // extern "C"

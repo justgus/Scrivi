@@ -6,6 +6,7 @@
 #include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -262,5 +263,55 @@ struct RenameChapterResult {
     std::string  newTitle;
     bool         renamed = false;
 };
+
+// ---------------------------------------------------------------------------
+// Timeline results (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct GetTimelineResult {
+    std::string  timelineID;
+    std::string  epochLabel;
+    std::string  projectID;
+    std::string  createdAt;
+};
+struct SetTimelineEpochLabelResult { bool updated = false; };
+
+struct SetSceneStoryTimeResult     { SceneID sceneID; bool updated = false; };
+struct GetSceneStoryTimeResult {
+    SceneID     sceneID;
+    int64_t     offsetMs            = 0;
+    std::string offsetSource;
+    int64_t     gapMs               = 0;
+    int64_t     durationMs          = 3'600'000;
+    std::string durationSource;
+    std::string inferenceHint;
+    double      inferenceConfidence = -1.0;
+    std::string bandID;
+    std::string bandAssignedAt;
+};
+struct ClearSceneStoryTimeResult    { SceneID sceneID; bool cleared = false; };
+struct AssignSceneToBandResult      { SceneID sceneID; bool assigned = false; };
+struct UnassignSceneFromBandResult  { SceneID sceneID; bool unassigned = false; };
+
+struct GetStoryStructureResult {
+    bool        hasStructure   = false;
+    std::string structureID;
+    std::string bandLayoutJSON;
+};
+struct SetStoryStructureResult    { bool set     = false; };
+struct UpdateBandLayoutResult     { bool updated = false; };
+struct RemoveStoryStructureResult { bool removed = false; };
+
+struct CreateHistoricalEventResult { std::string eventID; std::string slug; };
+struct UpdateHistoricalEventResult { std::string eventID; bool updated = false; };
+struct DeleteHistoricalEventResult { std::string eventID; bool deleted = false; };
+struct ListHistoricalEventsResult  { std::string eventsJSON; int count = 0; };
+
+struct ImportExternalTimelineResult       { std::string timelineID; bool imported = false; };
+struct UpdateImportedTimelineOffsetResult { std::string timelineID; bool updated  = false; };
+struct SetImportedTimelineVisibleResult   { std::string timelineID; bool updated  = false; };
+struct ListImportedTimelinesResult        { std::string timelinesJSON; int count = 0; };
+struct RemoveImportedTimelineResult       { std::string timelineID; bool removed = false; };
+struct ExportProjectTimelineResult        { std::string timelineJSON; };
 
 } // namespace scrivi

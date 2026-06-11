@@ -15,8 +15,10 @@ public:
     SceneID      newSceneID()      override;
     IdentityID   newIdentityID()   override;
     PersonaID    newPersonaID()    override;
-    SnapshotID   newSnapshotID()   override;
-    ObjectID     newObjectID()     override;
+    SnapshotID        newSnapshotID()        override;
+    ObjectID          newObjectID()          override;
+    TimelineID        newTimelineID()        override;
+    HistoricalEventID newHistoricalEventID() override;
 
 private:
     static std::string generateV7(std::string_view prefix);

@@ -43,6 +43,7 @@ Key documents:
 - `docs/Scrivi_External_Change_Repair_Matrix_v0_2.md` — 20 failure conditions and repair behavior
 - `docs/Scrivi_Backend_Runtime_Trade_Study_v0_2.md` — rationale for C++24 backend selection
 - `docs/Scrivi_Swift_Interop_Trade_Study_v0_1.md` — why JSON-over-string is the permanent boundary protocol
+- `docs/Scrivi_Timeline_Panel_Design_v0_3.md` — Timeline Panel requirements, interaction model, persistence schema, Story Structure integration, historical events, multi-row imported timelines, clustering, Time Delta Picker (supersedes v0.1, v0.2)
 
 ### Backend: C++23 (ScriviCore)
 

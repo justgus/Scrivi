@@ -22,16 +22,21 @@ std::string serializeProject(const ProjectJsonData& d) {
     util::JsonDoc features;
     features.setSubDoc("gitSnapshots", std::move(gitSnapshots));
 
+    util::JsonDoc timelineDefaults;
+    timelineDefaults.setInt64("defaultSceneDurationMs", d.defaultSceneDurationMs);
+    timelineDefaults.setString("dragPositioningMode",   d.dragPositioningMode);
+
     util::JsonDoc doc;
     doc.setString("schema",    "scrivi.project.v1");
     doc.setString("projectID", d.projectID.value);
     doc.setString("title",     d.title);
     doc.setString("slug",      d.slug);
     doc.setString("createdAt", d.createdAt);
-    doc.setSubDoc("createdBy",  std::move(createdBy));
-    doc.setSubDoc("manuscript", std::move(manuscript));
-    doc.setSubDoc("identities", std::move(identities));
-    doc.setSubDoc("features",   std::move(features));
+    doc.setSubDoc("createdBy",       std::move(createdBy));
+    doc.setSubDoc("manuscript",      std::move(manuscript));
+    doc.setSubDoc("identities",      std::move(identities));
+    doc.setSubDoc("features",        std::move(features));
+    doc.setSubDoc("timelineDefaults",std::move(timelineDefaults));
 
     return doc.dump();
 }
@@ -67,6 +72,13 @@ Result<ProjectJsonData> parseProject(std::string_view json) {
     auto features     = doc.getSubDoc("features");
     auto gitSnapshots = features.getSubDoc("gitSnapshots");
     data.gitSnapshotsEnabled = gitSnapshots.getBool("enabled");
+
+    // timelineDefaults is optional — absent in projects created before this feature.
+    if (doc.contains("timelineDefaults")) {
+        auto td = doc.getSubDoc("timelineDefaults");
+        data.defaultSceneDurationMs = td.getInt64("defaultSceneDurationMs", 3'600'000);
+        data.dragPositioningMode    = td.getString("dragPositioningMode", "proportional");
+    }
 
     return Result<ProjectJsonData>::success(std::move(data));
 }

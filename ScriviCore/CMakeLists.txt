@@ -67,6 +67,10 @@ target_sources(ScriviCore
         src/schemas/ObjectJson.cpp
         src/schemas/AssetMetaJson.cpp
         src/schemas/CommentJson.cpp
+        src/schemas/TimelineMetaJson.cpp
+        src/schemas/StoryStructureJson.cpp
+        src/schemas/HistoricalEventJson.cpp
+        src/schemas/ExternalTimelineJson.cpp
         src/objects/ObjectStore.cpp
         src/assets/AssetStore.cpp
         src/comments/CommentStore.cpp

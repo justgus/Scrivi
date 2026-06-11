@@ -2,8 +2,10 @@
 
 #include "scrivi/Result.hpp"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 // Opaque JSON document handle — nlohmann types do not appear in this header.
 namespace scrivi::util {
@@ -23,12 +25,18 @@ public:
     [[nodiscard]] std::string getString(std::string_view key, std::string_view defaultValue = "") const;
     [[nodiscard]] bool        getBool(std::string_view key, bool defaultValue = false) const;
     [[nodiscard]] int         getInt(std::string_view key, int defaultValue = 0) const;
+    [[nodiscard]] int64_t     getInt64(std::string_view key, int64_t defaultValue = 0) const;
     [[nodiscard]] double      getDouble(std::string_view key, double defaultValue = 0.0) const;
 
     void setString(std::string_view key, std::string_view value);
     void setBool(std::string_view key, bool value);
     void setInt(std::string_view key, int value);
+    void setInt64(std::string_view key, int64_t value);
     void setDouble(std::string_view key, double value);
+
+    // String array support
+    void appendStringToArray(std::string_view key, std::string_view value);
+    [[nodiscard]] std::vector<std::string> getStringArray(std::string_view key) const;
 
     // Embeds a nested JsonDoc as a sub-object under key.
     void setSubDoc(std::string_view key, JsonDoc sub);

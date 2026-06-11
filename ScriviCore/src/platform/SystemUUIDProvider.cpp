@@ -71,6 +71,8 @@ SceneID      SystemUUIDProvider::newSceneID()      { return SceneID     {generat
 IdentityID   SystemUUIDProvider::newIdentityID()   { return IdentityID  {generateV7("identity")}; }
 PersonaID    SystemUUIDProvider::newPersonaID()    { return PersonaID   {generateV7("persona")}; }
 SnapshotID   SystemUUIDProvider::newSnapshotID()   { return SnapshotID  {generateV7("snapshot")}; }
-ObjectID     SystemUUIDProvider::newObjectID()     { return ObjectID    {generateV7("character")}; }
+ObjectID          SystemUUIDProvider::newObjectID()          { return ObjectID         {generateV7("character")}; }
+TimelineID        SystemUUIDProvider::newTimelineID()        { return TimelineID        {generateV7("timeline")}; }
+HistoricalEventID SystemUUIDProvider::newHistoricalEventID() { return HistoricalEventID {generateV7("hevent")}; }
 
 } // namespace scrivi::platform

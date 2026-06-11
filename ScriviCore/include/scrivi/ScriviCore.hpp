@@ -49,6 +49,29 @@ public:
     Result<ReorderSceneResult>      reorderScene(const ReorderSceneRequest& request);
     Result<ReorderChapterResult>    reorderChapter(const ReorderChapterRequest& request);
 
+    // Timeline (EP-016 SP-039)
+    Result<GetTimelineResult>             getTimeline(const GetTimelineRequest& request);
+    Result<SetTimelineEpochLabelResult>   setTimelineEpochLabel(const SetTimelineEpochLabelRequest& request);
+    Result<SetSceneStoryTimeResult>       setSceneStoryTime(const SetSceneStoryTimeRequest& request);
+    Result<GetSceneStoryTimeResult>       getSceneStoryTime(const GetSceneStoryTimeRequest& request);
+    Result<ClearSceneStoryTimeResult>     clearSceneStoryTime(const ClearSceneStoryTimeRequest& request);
+    Result<AssignSceneToBandResult>       assignSceneToBand(const AssignSceneToBandRequest& request);
+    Result<UnassignSceneFromBandResult>   unassignSceneFromBand(const UnassignSceneFromBandRequest& request);
+    Result<GetStoryStructureResult>       getStoryStructure(const GetStoryStructureRequest& request);
+    Result<SetStoryStructureResult>       setStoryStructure(const SetStoryStructureRequest& request);
+    Result<UpdateBandLayoutResult>        updateBandLayout(const UpdateBandLayoutRequest& request);
+    Result<RemoveStoryStructureResult>    removeStoryStructure(const RemoveStoryStructureRequest& request);
+    Result<CreateHistoricalEventResult>   createHistoricalEvent(const CreateHistoricalEventRequest& request);
+    Result<UpdateHistoricalEventResult>   updateHistoricalEvent(const UpdateHistoricalEventRequest& request);
+    Result<DeleteHistoricalEventResult>   deleteHistoricalEvent(const DeleteHistoricalEventRequest& request);
+    Result<ListHistoricalEventsResult>    listHistoricalEvents(const ListHistoricalEventsRequest& request);
+    Result<ImportExternalTimelineResult>        importExternalTimeline(const ImportExternalTimelineRequest& request);
+    Result<UpdateImportedTimelineOffsetResult>  updateImportedTimelineOffset(const UpdateImportedTimelineOffsetRequest& request);
+    Result<SetImportedTimelineVisibleResult>    setImportedTimelineVisible(const SetImportedTimelineVisibleRequest& request);
+    Result<ListImportedTimelinesResult>         listImportedTimelines(const ListImportedTimelinesRequest& request);
+    Result<RemoveImportedTimelineResult>        removeImportedTimeline(const RemoveImportedTimelineRequest& request);
+    Result<ExportProjectTimelineResult>         exportProjectTimeline(const ExportProjectTimelineRequest& request);
+
 private:
     CoreServices services_;
 };

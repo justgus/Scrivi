@@ -6,6 +6,7 @@
 #include "schemas/ProjectMembersJson.hpp"
 #include "schemas/ProjectPersonasJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
+#include "schemas/TimelineMetaJson.hpp"
 #include "schemas/WorkspaceStateJson.hpp"
 #include "util/PathUtils.hpp"
 
@@ -110,7 +111,9 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     proj.manuscriptPath        = manuscriptDir;
     proj.membersPath           = membersPath;
     proj.personasPath          = personasPath;
-    proj.gitSnapshotsEnabled   = request.enableGitSnapshots;
+    proj.gitSnapshotsEnabled       = request.enableGitSnapshots;
+    proj.defaultSceneDurationMs    = 3'600'000;
+    proj.dragPositioningMode       = "proportional";
 
     r = fs.atomicWriteTextFile(util::join(root, "project.json"),
                                schemas::serializeProject(proj));
@@ -222,6 +225,23 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
 
     // 8. inbox/dropped-files/
     r = fs.createDirectories(util::join(util::join(root, "inbox"), "dropped-files"));
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
+
+    // 9. objects/timelines/timeline.meta.json
+    r = fs.createDirectories(util::join(root, "objects/timelines"));
+    if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
+
+    schemas::TimelineMetaData tlMeta;
+    tlMeta.timelineID.value = ids.newTimelineID().value;
+    tlMeta.projectID        = projectID;
+    tlMeta.createdAt        = now;
+    tlMeta.epochLabel       = "Story Open";
+
+    r = fs.atomicWriteTextFile(
+        util::join(root, "objects/timelines/timeline.meta.json"),
+        schemas::serializeTimelineMeta(tlMeta));
     if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
 }
 

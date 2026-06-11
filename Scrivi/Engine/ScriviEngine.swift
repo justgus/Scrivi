@@ -598,6 +598,194 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decodeC(raw)
     }
+
+    // MARK: — Timeline (EP-016 SP-039)
+
+    public func getTimeline(projectRootPath: String) throws -> GetTimelineResult {
+        let raw = projectRootPath.withCString { scrivi_get_timeline($0) }
+        return try decodeC(raw)
+    }
+
+    public func setTimelineEpochLabel(projectRootPath: String, label: String) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            label.withCString { l in scrivi_set_timeline_epoch_label(prp, l) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func setSceneStoryTime(projectRootPath: String, sceneID: String,
+                                   offsetMs: Int64, source: String,
+                                   gapMs: Int64 = 0,
+                                   durationMs: Int64 = 3_600_000,
+                                   durationSource: String = "default") throws -> SceneStoryTimeResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                source.withCString { src in
+                    durationSource.withCString { ds in
+                        scrivi_set_scene_story_time(prp, sid, offsetMs, src, gapMs, durationMs, ds)
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func getSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in scrivi_get_scene_story_time(prp, sid) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in scrivi_clear_scene_story_time(prp, sid) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                bandID.withCString { bid in scrivi_assign_scene_to_band(prp, sid, bid) }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in scrivi_unassign_scene_from_band(prp, sid) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func getStoryStructure(projectRootPath: String) throws -> StoryStructureResult {
+        let raw = projectRootPath.withCString { scrivi_get_story_structure($0) }
+        return try decodeC(raw)
+    }
+
+    public func setStoryStructure(projectRootPath: String, structureID: String,
+                                   bandLayoutJSON: String = "") throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            structureID.withCString { sid in
+                bandLayoutJSON.withCString { bl in scrivi_set_story_structure(prp, sid, bl) }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func updateBandLayout(projectRootPath: String, bandLayoutJSON: String) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            bandLayoutJSON.withCString { bl in scrivi_update_band_layout(prp, bl) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func removeStoryStructure(projectRootPath: String) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { scrivi_remove_story_structure($0) }
+        return try decodeC(raw)
+    }
+
+    public func createHistoricalEvent(projectRootPath: String, title: String,
+                                       offsetMs: Int64, description: String = "",
+                                       tagsJSON: String = "{}",
+                                       authorshipRef: AuthorshipRef) throws -> HistoricalEventResult {
+        let raw = projectRootPath.withCString { prp in
+            title.withCString { t in
+                description.withCString { desc in
+                    tagsJSON.withCString { tj in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pid in
+                                authorshipRef.displayName.withCString { dn in
+                                    scrivi_create_historical_event(prp, t, offsetMs, desc, tj, iid, pid, dn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func updateHistoricalEvent(projectRootPath: String, eventID: String,
+                                       title: String, offsetMs: Int64,
+                                       description: String = "", tagsJSON: String = "{}") throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            eventID.withCString { eid in
+                title.withCString { t in
+                    description.withCString { desc in
+                        tagsJSON.withCString { tj in
+                            scrivi_update_historical_event(prp, eid, t, offsetMs, desc, tj)
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func deleteHistoricalEvent(projectRootPath: String, eventID: String) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            eventID.withCString { eid in scrivi_delete_historical_event(prp, eid) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func listHistoricalEvents(projectRootPath: String) throws -> HistoricalEventsListResult {
+        let raw = projectRootPath.withCString { scrivi_list_historical_events($0) }
+        return try decodeC(raw)
+    }
+
+    public func importExternalTimeline(projectRootPath: String, timelineJSON: String,
+                                        epochOffsetMs: Int64, assignedGreyShade: String = "") throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            timelineJSON.withCString { tj in
+                assignedGreyShade.withCString { gs in
+                    scrivi_import_external_timeline(prp, tj, epochOffsetMs, gs)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func updateImportedTimelineOffset(projectRootPath: String, timelineID: String,
+                                              epochOffsetMs: Int64) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            timelineID.withCString { tid in
+                scrivi_update_imported_timeline_offset(prp, tid, epochOffsetMs)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func setImportedTimelineVisible(projectRootPath: String, timelineID: String,
+                                            visible: Bool) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            timelineID.withCString { tid in
+                scrivi_set_imported_timeline_visible(prp, tid, visible ? 1 : 0)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func listImportedTimelines(projectRootPath: String) throws -> ImportedTimelinesListResult {
+        let raw = projectRootPath.withCString { scrivi_list_imported_timelines($0) }
+        return try decodeC(raw)
+    }
+
+    public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult {
+        let raw = projectRootPath.withCString { prp in
+            timelineID.withCString { tid in scrivi_remove_imported_timeline(prp, tid) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult {
+        let raw = projectRootPath.withCString { scrivi_export_project_timeline($0) }
+        return try decodeC(raw)
+    }
 }
 
 // MARK: — C boundary decode helper
@@ -959,6 +1147,57 @@ public struct ReorderSceneResult: Decodable, Sendable {
 public struct ReorderChapterResult: Decodable, Sendable {
     public let chapterID: String
     public let reordered: Bool
+}
+
+// MARK: — Timeline Result Types (EP-016 SP-039)
+
+public struct GetTimelineResult: Decodable, Sendable {
+    public let timelineID: String
+    public let epochLabel: String
+    public let projectID:  String
+    public let createdAt:  String
+}
+
+public struct SceneStoryTimeResult: Decodable, Sendable {
+    public let sceneID:             String
+    public let offsetMs:            Int64
+    public let offsetSource:        String
+    public let gapMs:               Int64
+    public let durationMs:          Int64
+    public let durationSource:      String
+    public let inferenceHint:       String
+    public let inferenceConfidence: Double
+    public let bandID:              String
+    public let bandAssignedAt:      String
+}
+
+public struct StoryStructureResult: Decodable, Sendable {
+    public let hasStructure:   Bool
+    public let structureID:    String
+    public let bandLayoutJSON: String
+}
+
+public struct HistoricalEventResult: Decodable, Sendable {
+    public let eventID: String
+    public let slug:    String
+}
+
+public struct HistoricalEventsListResult: Decodable, Sendable {
+    public let count:      Int
+    public let eventsJSON: String
+}
+
+public struct ImportedTimelinesListResult: Decodable, Sendable {
+    public let count:         Int
+    public let timelinesJSON: String
+}
+
+public struct ExportTimelineResult: Decodable, Sendable {
+    public let timelineJSON: String
+}
+
+public struct TimelineBoolResult: Decodable, Sendable {
+    public let updated: Bool
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

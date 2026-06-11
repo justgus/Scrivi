@@ -22,7 +22,11 @@ struct ProjectJsonData {
     std::string membersPath;
     std::string personasPath;
 
-    bool gitSnapshotsEnabled = false;
+    bool    gitSnapshotsEnabled      = false;
+
+    // Timeline defaults (optional — absent in old projects, runtime uses hardcoded defaults)
+    int64_t defaultSceneDurationMs   = 3'600'000;   // 1 hour
+    std::string dragPositioningMode  = "proportional";
 };
 
 std::string serializeProject(const ProjectJsonData& data);

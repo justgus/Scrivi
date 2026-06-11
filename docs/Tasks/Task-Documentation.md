@@ -14,22 +14,34 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **3 backlog Tasks**
+Currently: **23 backlog Tasks**
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🔵 Backlog |
-| T-0128 | SceneInspectorView skeleton — panel, hide/show toggle, tab bar structure | EP-014 | 🔵 Backlog |
-| T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | EP-014 | 🔵 Backlog |
-| T-0130 | Inspector panel integration into ManuscriptEditorView — width, collapse, expand | EP-014 | 🔵 Backlog |
-| T-0131 | iPhone exclusion — Inspector absent on phone idiom | EP-014 | 🔵 Backlog |
-| T-0132 | EP-014 verification | EP-014 | 🔵 Backlog |
-| T-0133 | TimelineStripView skeleton — panel chrome, hide/show toggle, horizontal scroll container | EP-015 | 🔵 Backlog |
-| T-0134 | Placeholder graphical event markers — static stub layout | EP-015 | 🔵 Backlog |
-| T-0135 | Timeline integration into ManuscriptEditorView — docking, height, collapse | EP-015 | 🔵 Backlog |
-| T-0136 | iPhone exclusion — Timeline absent on phone idiom | EP-015 | 🔵 Backlog |
-| T-0137 | EP-015 verification | EP-015 | 🔵 Backlog |
+| T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | EP-016 | 🔵 Backlog |
+| T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | EP-016 | 🔵 Backlog |
+| T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | EP-016 | 🔵 Backlog |
+| T-0142 | `HistoricalEventJson` schema — read/write `historical-events/<id>.json` | EP-016 | 🔵 Backlog |
+| T-0143 | `ExternalTimelineJson` schema — read/write imported timeline files | EP-016 | 🔵 Backlog |
+| T-0144 | ScriviCore facade — timeline, story-time, and band-assignment operations | EP-016 | 🔵 Backlog |
+| T-0145 | ScriviCore facade — story structure, historical events, imported timelines, export | EP-016 | 🔵 Backlog |
+| T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | EP-016 | 🔵 Backlog |
+| T-0147 | Integration tests — timeline persistence round-trip | EP-016 | 🔵 Backlog |
+| T-0148 | `createProject` update — write `timeline.meta.json` on new project | EP-016 | 🔵 Backlog |
+| T-0156 | Story Structure band overlay — colored bands, label row, Structure selector menu | EP-016 | 🔵 Backlog |
+| T-0157 | Band border drag — proportional resize, persistence | EP-016 | 🔵 Backlog |
+| T-0158 | Band assignment by drag-up to label — ring color on dot | EP-016 | 🔵 Backlog |
+| T-0159 | Band assignment via context menu ("Assign to Act…" / "Unassign") | EP-016 | 🔵 Backlog |
+| T-0160 | Scene dot context menu — full menu | EP-016 | 🔵 Backlog |
+| T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | EP-016 | 🔵 Backlog |
+| T-0162 | Imported timeline row — render events as grey row below project row | EP-016 | 🔵 Backlog |
+| T-0163 | Epoch offset dialog — import flow with window intersection preview | EP-016 | 🔵 Backlog |
+| T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | EP-016 | 🔵 Backlog |
+| T-0165 | Timeline export — produce `.scrivi-timeline.json` | EP-016 | 🔵 Backlog |
+| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | EP-016 | 🔵 Backlog |
+| T-0167 | EP-016 verification | EP-016 | 🔵 Backlog |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -164,6 +176,14 @@ Currently: **67 verified Tasks**
 | T-0135 | Timeline integration into ManuscriptEditorView — docking, height, collapse | [Task-verified-0135.md](Verified/Task-verified-0135.md) | ✅ Verified |
 | T-0136 | iPhone exclusion — Timeline absent on phone idiom | [Task-verified-0136.md](Verified/Task-verified-0136.md) | ✅ Verified |
 | T-0137 | EP-015 verification | [Task-verified-0137.md](Verified/Task-verified-0137.md) | ✅ Verified |
+| T-0149 | `TimelineStripView` rebuild — horizontal line, scene dots, manuscript-order layout | [Task-verified-0149.md](Verified/Task-verified-0149.md) | ✅ Verified |
+| T-0150 | Scene dot drag — horizontal gesture, story-time update | [Task-verified-0150.md](Verified/Task-verified-0150.md) | ✅ Verified |
+| T-0151 | Time Delta Picker — spinner, named anchors, dismiss behavior | [Task-verified-0151.md](Verified/Task-verified-0151.md) | ✅ Verified |
+| T-0152 | Time Delta Picker — pre-population and anchor base | [Task-verified-0152.md](Verified/Task-verified-0152.md) | ✅ Verified |
+| T-0153 | Scene dot tooltip / popover — title, chapter, human-readable story-time | [Task-verified-0153.md](Verified/Task-verified-0153.md) | ✅ Verified |
+| T-0154 | Timeline panel resize — drag top edge, dynamic minimum height | [Task-verified-0154.md](Verified/Task-verified-0154.md) | ✅ Verified |
+| T-0155 | Expand Timeline Forward/Backward popover | [Task-verified-0155.md](Verified/Task-verified-0155.md) | ✅ Verified |
+| T-0168 | Scene duration, chain propagation, project timeline defaults, "Immediately after" | [Task-verified-0168.md](Verified/Task-verified-0168.md) | ✅ Verified |
 
 ## Closed Tasks
 
@@ -176,15 +196,15 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 138
-- **Verified:** 105 ✅ (T-0001–T-0137, excluding gaps)
+- **Total Tasks:** 168
+- **Verified:** 113 ✅ (T-0001–T-0137 excluding gaps, T-0149–T-0155, T-0168)
 - **Closed:** 2 🔴 (T-0125, T-0127)
 - **Retired (OBE):** 1 (T-0111)
 - **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
 - **Active:** 0 🟡
 - **Unverified:** 0 🟡
-- **Backlog:** 2 🔵 (T-0118, T-0123)
-- **Next available:** T-0139
+- **Backlog:** 23 🔵 (T-0118, T-0123, T-0139–T-0148, T-0156–T-0167)
+- **Next available:** T-0169
 
 ---
 

@@ -49,12 +49,25 @@ private struct ManuscriptEditorView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     #if os(iOS)
-                    if UIDevice.current.userInterfaceIdiom != .phone && env.timelineVisible {
-                        TimelineStripView()
+                    if UIDevice.current.userInterfaceIdiom != .phone,
+                       env.timelineVisible,
+                       let tlModel = env.timelineModel,
+                       let prp = env.projectRootPath {
+                        TimelineStripView(
+                            model: tlModel,
+                            engine: env.engine,
+                            projectRootPath: prp
+                        )
                     }
                     #else
-                    if env.timelineVisible {
-                        TimelineStripView()
+                    if env.timelineVisible,
+                       let tlModel = env.timelineModel,
+                       let prp = env.projectRootPath {
+                        TimelineStripView(
+                            model: tlModel,
+                            engine: env.engine,
+                            projectRootPath: prp
+                        )
                     }
                     #endif
                 }

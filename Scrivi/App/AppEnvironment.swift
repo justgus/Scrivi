@@ -21,6 +21,9 @@ import AppKit
     // Per-project preferences — created when a project is opened, cleared when closed.
     var projectPreferences: ProjectPreferences?
 
+    // Timeline model — created when a project is opened, cleared when closed.
+    var timelineModel: TimelineViewModel?
+
     // Drives the Project Settings sheet from the menu bar.
     var showProjectSettings: Bool = false
 
@@ -79,6 +82,11 @@ import AppKit
             loader.loadAll()
             viewportLoader = loader
             projectPreferences = ProjectPreferences(projectID: result.projectID)
+
+            // Build the timeline model from the loaded scene list.
+            let tlModel = TimelineViewModel()
+            tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
+            timelineModel = tlModel
         } catch let e as ScriviError {
             projectError = e
         } catch {
@@ -133,6 +141,7 @@ import AppKit
         projectError = nil
         viewportLoader = nil
         projectPreferences = nil
+        timelineModel = nil
         showProjectSettings = false
     }
 

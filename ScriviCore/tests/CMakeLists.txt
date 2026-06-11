@@ -33,6 +33,7 @@ add_executable(ScriviCoreTests
     integration/DeleteSceneTests.cpp
     integration/RenameSceneTests.cpp
     integration/ReorderTests.cpp
+    integration/TimelineTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

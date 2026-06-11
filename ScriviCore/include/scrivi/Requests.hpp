@@ -6,8 +6,10 @@
 #include "scrivi/RepairIssue.hpp"
 #include "scrivi/Types.hpp"
 
+#include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace scrivi {
 
@@ -258,5 +260,102 @@ struct RenameChapterRequest {
     RelativePath metadataPath;  // relative path to chapter.meta.json
     std::string  newTitle;      // blank/whitespace saved as ""
 };
+
+// ---------------------------------------------------------------------------
+// Timeline meta (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct GetTimelineRequest          { AbsolutePath projectRootPath; };
+struct SetTimelineEpochLabelRequest { AbsolutePath projectRootPath; std::string label; };
+
+// ---------------------------------------------------------------------------
+// Scene story-time (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct SetSceneStoryTimeRequest {
+    AbsolutePath projectRootPath;
+    SceneID      sceneID;
+    int64_t      offsetMs       = 0;
+    std::string  source;            // "manual" | "inferred" | "default"
+    int64_t      gapMs          = 0;   // gap from previousSceneEnd; 0 for "default"
+    int64_t      durationMs     = 3'600'000;
+    std::string  durationSource = "default";
+};
+
+struct GetSceneStoryTimeRequest   { AbsolutePath projectRootPath; SceneID sceneID; };
+struct ClearSceneStoryTimeRequest { AbsolutePath projectRootPath; SceneID sceneID; };
+
+// ---------------------------------------------------------------------------
+// Band assignment (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct AssignSceneToBandRequest {
+    AbsolutePath projectRootPath;
+    SceneID      sceneID;
+    std::string  bandID;
+};
+
+struct UnassignSceneFromBandRequest { AbsolutePath projectRootPath; SceneID sceneID; };
+
+// ---------------------------------------------------------------------------
+// Story Structure (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct GetStoryStructureRequest    { AbsolutePath projectRootPath; };
+struct SetStoryStructureRequest    { AbsolutePath projectRootPath; std::string structureID; std::string bandLayoutJSON; };
+struct UpdateBandLayoutRequest     { AbsolutePath projectRootPath; std::string bandLayoutJSON; };
+struct RemoveStoryStructureRequest { AbsolutePath projectRootPath; };
+
+// ---------------------------------------------------------------------------
+// Historical Events (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct CreateHistoricalEventRequest {
+    AbsolutePath             projectRootPath;
+    std::string              title;
+    int64_t                  offsetMs = 0;
+    std::string              description;
+    std::vector<std::string> tags;
+    AuthorshipRef            author;
+};
+
+struct UpdateHistoricalEventRequest {
+    AbsolutePath             projectRootPath;
+    std::string              eventID;
+    std::string              title;
+    int64_t                  offsetMs = 0;
+    std::string              description;
+    std::vector<std::string> tags;
+};
+
+struct DeleteHistoricalEventRequest { AbsolutePath projectRootPath; std::string eventID; };
+struct ListHistoricalEventsRequest  { AbsolutePath projectRootPath; };
+
+// ---------------------------------------------------------------------------
+// Imported Timelines (EP-016 SP-039)
+// ---------------------------------------------------------------------------
+
+struct ImportExternalTimelineRequest {
+    AbsolutePath projectRootPath;
+    std::string  timelineJSON;
+    int64_t      epochOffsetMs     = 0;
+    std::string  assignedGreyShade;
+};
+
+struct UpdateImportedTimelineOffsetRequest {
+    AbsolutePath projectRootPath;
+    std::string  timelineID;
+    int64_t      epochOffsetMs = 0;
+};
+
+struct SetImportedTimelineVisibleRequest {
+    AbsolutePath projectRootPath;
+    std::string  timelineID;
+    bool         visible = true;
+};
+
+struct ListImportedTimelinesRequest  { AbsolutePath projectRootPath; };
+struct RemoveImportedTimelineRequest { AbsolutePath projectRootPath; std::string timelineID; };
+struct ExportProjectTimelineRequest  { AbsolutePath projectRootPath; };
 
 } // namespace scrivi

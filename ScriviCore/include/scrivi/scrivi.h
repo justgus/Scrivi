@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -212,6 +214,51 @@ const char* scrivi_rename_chapter(
     const char* projectRootPath,
     const char* metadataPath,
     const char* newTitle);
+
+/* ---- Timeline (EP-016 SP-039) ------------------------------------------ */
+
+const char* scrivi_get_timeline(const char* projectRootPath);
+const char* scrivi_set_timeline_epoch_label(const char* projectRootPath, const char* label);
+
+const char* scrivi_set_scene_story_time(const char* projectRootPath, const char* sceneID,
+                                         int64_t offsetMs, const char* source,
+                                         int64_t gapMs,
+                                         int64_t durationMs, const char* durationSource);
+const char* scrivi_get_scene_story_time(const char* projectRootPath, const char* sceneID);
+const char* scrivi_clear_scene_story_time(const char* projectRootPath, const char* sceneID);
+
+const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char* sceneID,
+                                         const char* bandID);
+const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const char* sceneID);
+
+const char* scrivi_get_story_structure(const char* projectRootPath);
+const char* scrivi_set_story_structure(const char* projectRootPath, const char* structureID,
+                                        const char* bandLayoutJSON);
+const char* scrivi_update_band_layout(const char* projectRootPath, const char* bandLayoutJSON);
+const char* scrivi_remove_story_structure(const char* projectRootPath);
+
+const char* scrivi_create_historical_event(const char* projectRootPath,
+                                             const char* title, int64_t offsetMs,
+                                             const char* description, const char* tagsJSON,
+                                             const char* identityID, const char* personaID,
+                                             const char* displayName);
+const char* scrivi_update_historical_event(const char* projectRootPath, const char* eventID,
+                                             const char* title, int64_t offsetMs,
+                                             const char* description, const char* tagsJSON);
+const char* scrivi_delete_historical_event(const char* projectRootPath, const char* eventID);
+const char* scrivi_list_historical_events(const char* projectRootPath);
+
+const char* scrivi_import_external_timeline(const char* projectRootPath,
+                                              const char* timelineJSON, int64_t epochOffsetMs,
+                                              const char* assignedGreyShade);
+const char* scrivi_update_imported_timeline_offset(const char* projectRootPath,
+                                                     const char* timelineID,
+                                                     int64_t epochOffsetMs);
+const char* scrivi_set_imported_timeline_visible(const char* projectRootPath,
+                                                   const char* timelineID, int visible);
+const char* scrivi_list_imported_timelines(const char* projectRootPath);
+const char* scrivi_remove_imported_timeline(const char* projectRootPath, const char* timelineID);
+const char* scrivi_export_project_timeline(const char* projectRootPath);
 
 #ifdef __cplusplus
 }

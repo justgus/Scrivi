@@ -17,10 +17,12 @@ public:
     IdentityID   newIdentityID()   override { return IdentityID  {"identity-"+ next(identity_)}; }
     PersonaID    newPersonaID()    override { return PersonaID   {"persona-" + next(persona_)}; }
     SnapshotID   newSnapshotID()   override { return SnapshotID  {"snap-"    + next(snap_)}; }
-    ObjectID     newObjectID()     override { return ObjectID    {"obj-"     + next(obj_)}; }
+    ObjectID          newObjectID()          override { return ObjectID         {"obj-"      + next(obj_)}; }
+    TimelineID        newTimelineID()        override { return TimelineID        {"timeline-" + next(tl_)}; }
+    HistoricalEventID newHistoricalEventID() override { return HistoricalEventID {"hevent-"   + next(hev_)}; }
 
 private:
-    int proj_ = 0, ms_ = 0, ch_ = 0, scene_ = 0, identity_ = 0, persona_ = 0, snap_ = 0, obj_ = 0;
+    int proj_ = 0, ms_ = 0, ch_ = 0, scene_ = 0, identity_ = 0, persona_ = 0, snap_ = 0, obj_ = 0, tl_ = 0, hev_ = 0;
 
     static std::string next(int& counter) {
         ++counter;
