@@ -1,11 +1,12 @@
 import Foundation
+#if os(macOS)
 import ScriviCore
+#endif
 
 // ScriviEngine is the single Swift-side entry point to the ScriviCore C API.
-//
-// Each method calls a plain-C scrivi_* function, receives a heap-allocated
-// UTF-8 JSON string, converts it to Swift String, calls scrivi_free(), then
-// decodes the JSON envelope via Codable. No C++ types cross the boundary.
+// On non-macOS platforms ScriviCore is not yet built; ScriviEngine is stubbed.
+
+#if os(macOS)
 
 public final class ScriviEngine: @unchecked Sendable {
 
@@ -809,6 +810,73 @@ private func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
     }
     return result
 }
+
+#else
+
+// MARK: — ScriviEngine stub (non-macOS)
+// ScriviCore is not yet built for iOS/visionOS. Every method throws a
+// "not available" error so the codebase compiles without platform guards.
+
+public final class ScriviEngine: @unchecked Sendable {
+    public init() {}
+
+    private func unavailable<T>() throws -> T {
+        throw ScriviError(code: -1, message: "ScriviCore not available on this platform")
+    }
+
+    public func ensureLocalIdentity(displayName: String, appSupportRoot: String) throws -> IdentityResult { try unavailable() }
+    public func createProject(projectRootPath: String, appSupportRoot: String, title: String, slug: String, authorshipRef: AuthorshipRef) throws -> CreateProjectResult { try unavailable() }
+    public func openProject(projectRootPath: String, appSupportRoot: String, identityID: String = "") throws -> OpenProjectResult { try unavailable() }
+    public func openScene(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
+    public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
+    public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
+    public func applyRepair(issueID: String, projectRootPath: String, appSupportRoot: String, actionKind: String, targetPath: String = "", authorshipRef: AuthorshipRef) throws -> ApplyRepairResult { try unavailable() }
+    public func enableGitSnapshots(projectRootPath: String, authorshipRef: AuthorshipRef, initialSnapshotLabel: String = "Initial project") throws -> EnableGitResult { try unavailable() }
+    public func createSnapshot(projectRootPath: String, authorshipRef: AuthorshipRef, label: String, note: String = "") throws -> CreateSnapshotResult { try unavailable() }
+    public func createObject(projectRootPath: String, objectKind: String, displayName: String, slug: String = "", authorshipRef: AuthorshipRef) throws -> CreateObjectResult { try unavailable() }
+    public func openObject(projectRootPath: String, objectKind: String, objectID: String) throws -> OpenObjectResult { try unavailable() }
+    public func saveObject(projectRootPath: String, objectKind: String, objectJson: String, authorshipRef: AuthorshipRef) throws -> SaveObjectResult { try unavailable() }
+    public func deleteObject(projectRootPath: String, objectKind: String, objectID: String) throws -> DeleteObjectResult { try unavailable() }
+    public func importAsset(projectRootPath: String, sourcePath: String, category: String, title: String, authorshipRef: AuthorshipRef) throws -> ImportAssetResult { try unavailable() }
+    public func listAssets(projectRootPath: String, category: String = "") throws -> ListAssetsResult { try unavailable() }
+    public func removeAsset(projectRootPath: String, assetID: String) throws -> RemoveAssetResult { try unavailable() }
+    public func addComment(projectRootPath: String, scopeKind: String, targetID: String, body: String, authorshipRef: AuthorshipRef) throws -> AddCommentResult { try unavailable() }
+    public func listComments(projectRootPath: String, scopeKind: String, targetID: String) throws -> ListCommentsResult { try unavailable() }
+    public func resolveComment(projectRootPath: String, scopeKind: String, targetID: String, commentID: String, authorshipRef: AuthorshipRef) throws -> ResolveCommentResult { try unavailable() }
+    public func listInbox(projectRootPath: String) throws -> ListInboxResult { try unavailable() }
+    public func importFromInbox(projectRootPath: String, filename: String, action: String, category: String = "other", authorshipRef: AuthorshipRef) throws -> ImportFromInboxResult { try unavailable() }
+    public func reorderScene(projectRootPath: String, sceneID: String, sourceChapterID: String, targetChapterID: String, afterSceneID: String = "") throws -> ReorderSceneResult { try unavailable() }
+    public func reorderChapter(projectRootPath: String, chapterID: String, afterChapterID: String = "") throws -> ReorderChapterResult { try unavailable() }
+    public func deleteScene(projectRootPath: String, sceneID: String) throws -> DeleteSceneResult { try unavailable() }
+    public func deleteChapter(projectRootPath: String, chapterID: String) throws -> DeleteChapterResult { try unavailable() }
+    public func renameScene(projectRootPath: String, metadataPath: String, newTitle: String) throws -> RenameSceneResult { try unavailable() }
+    public func renameChapter(projectRootPath: String, metadataPath: String, newTitle: String) throws -> RenameChapterResult { try unavailable() }
+    public func createScene(projectRootPath: String, appSupportRoot: String, projectID: String, chapterID: String, afterSceneID: String = "", authorshipRef: AuthorshipRef) throws -> CreateSceneResult { try unavailable() }
+    public func createChapter(projectRootPath: String, appSupportRoot: String, projectID: String, authorshipRef: AuthorshipRef) throws -> CreateChapterResult { try unavailable() }
+    public func getTimeline(projectRootPath: String) throws -> GetTimelineResult { try unavailable() }
+    public func setTimelineEpochLabel(projectRootPath: String, label: String) throws -> TimelineBoolResult { try unavailable() }
+    public func setSceneStoryTime(projectRootPath: String, sceneID: String, offsetMs: Int64, source: String, gapMs: Int64 = 0, durationMs: Int64 = 3_600_000, durationSource: String = "default") throws -> SceneStoryTimeResult { try unavailable() }
+    public func getSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func getStoryStructure(projectRootPath: String) throws -> StoryStructureResult { try unavailable() }
+    public func setStoryStructure(projectRootPath: String, structureID: String, bandLayoutJSON: String = "") throws -> TimelineBoolResult { try unavailable() }
+    public func updateBandLayout(projectRootPath: String, bandLayoutJSON: String) throws -> TimelineBoolResult { try unavailable() }
+    public func removeStoryStructure(projectRootPath: String) throws -> TimelineBoolResult { try unavailable() }
+    public func createHistoricalEvent(projectRootPath: String, title: String, offsetMs: Int64, description: String = "", tagsJSON: String = "{}", authorshipRef: AuthorshipRef) throws -> HistoricalEventResult { try unavailable() }
+    public func updateHistoricalEvent(projectRootPath: String, eventID: String, title: String, offsetMs: Int64, description: String = "", tagsJSON: String = "{}") throws -> TimelineBoolResult { try unavailable() }
+    public func deleteHistoricalEvent(projectRootPath: String, eventID: String) throws -> TimelineBoolResult { try unavailable() }
+    public func listHistoricalEvents(projectRootPath: String) throws -> HistoricalEventsListResult { try unavailable() }
+    public func importExternalTimeline(projectRootPath: String, timelineJSON: String, epochOffsetMs: Int64, assignedGreyShade: String = "") throws -> TimelineBoolResult { try unavailable() }
+    public func updateImportedTimelineOffset(projectRootPath: String, timelineID: String, epochOffsetMs: Int64) throws -> TimelineBoolResult { try unavailable() }
+    public func setImportedTimelineVisible(projectRootPath: String, timelineID: String, visible: Bool) throws -> TimelineBoolResult { try unavailable() }
+    public func listImportedTimelines(projectRootPath: String) throws -> ImportedTimelinesListResult { try unavailable() }
+    public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
+    public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
+}
+
+#endif
 
 // MARK: — Swift result types
 

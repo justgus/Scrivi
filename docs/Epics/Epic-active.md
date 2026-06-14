@@ -2,7 +2,7 @@
 
 ## EP-016: Timeline Panel — Full Implementation
 
-**Status:** 🔵 Draft
+**Status:** 🟡 Active
 **Goal:** Deliver the fully functional Timeline Panel as specified in `Scrivi_Timeline_Panel_Design_v0_3.md`. This includes the ScriviCore persistence layer (timeline meta, scene story-time, story structure bands, historical events, imported timelines), all ScriviCore API operations, the rebuilt SwiftUI `TimelineStripView`, the Time Delta Picker, and the Story Structure band overlay.
 **Date Created:** 2026-06-11
 **Target Close Date:** TBD
@@ -44,8 +44,8 @@
 | ------ | ----- | ------ |
 | SP-039 | Timeline Persistence — ScriviCore schema and API | ✅ Closed |
 | SP-040 | Timeline SwiftUI — core rendering, drag, and Time Delta Picker | ✅ Closed |
-| SP-041 | Story Structure bands — overlay, drag borders, band assignment | 🔵 Planning |
-| SP-042 | Historical events, imported timelines, export, and clustering | 🔵 Planning |
+| SP-041 | Story Structure bands — overlay, drag borders, band assignment | ✅ Closed |
+| SP-042 | Historical events, imported timelines, export, and clustering | 🟡 Active |
 | SP-043 | EP-016 verification and polish | 🔵 Planning |
 
 ### Tasks
@@ -69,20 +69,20 @@
 | T-0153 | Scene dot tooltip / popover — title, chapter, human-readable story-time | SP-040 | ✅ Verified |
 | T-0154 | Timeline panel resize — drag top edge, dynamic minimum height | SP-040 | ✅ Verified |
 | T-0155 | Expand Timeline Forward/Backward popover | SP-040 | ✅ Verified |
-| T-0156 | Story Structure band overlay — colored bands, label row, Structure selector menu | SP-041 | 🔵 Backlog |
-| T-0157 | Band border drag — proportional resize, persistence | SP-041 | 🔵 Backlog |
-| T-0158 | Band assignment by drag-up to label — ring color on dot | SP-041 | 🔵 Backlog |
-| T-0159 | Band assignment via context menu ("Assign to Act…" / "Unassign") | SP-041 | 🔵 Backlog |
-| T-0160 | Scene dot context menu — full menu (assign, set time delta, set story time, view scene, copy/paste) | SP-041 | 🔵 Backlog |
-| T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | SP-042 | 🔵 Backlog |
-| T-0162 | Imported timeline row — render events as grey row below project row | SP-042 | 🔵 Backlog |
-| T-0163 | Epoch offset dialog — import flow with window intersection preview | SP-042 | 🔵 Backlog |
-| T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | SP-042 | 🔵 Backlog |
-| T-0165 | Timeline export — produce `.scrivi-timeline.json` | SP-042 | 🔵 Backlog |
-| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | 🔵 Backlog |
+| T-0156 | Story Structure band overlay — colored bands, label row, Structure selector menu | SP-041 | ✅ Verified |
+| T-0157 | Band border drag — proportional resize, persistence | SP-041 | ✅ Verified |
+| T-0158 | Band assignment by drag-up to label — ring color on dot | SP-041 | ✅ Verified |
+| T-0159 | Band assignment via context menu ("Assign to Act…" / "Unassign") | SP-041 | ✅ Verified |
+| T-0160 | Scene dot context menu — full menu (assign, set time delta, set story time, view scene, copy/paste) | SP-041 | ✅ Verified |
+| T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | SP-042 | 🟡 In Progress |
+| T-0162 | Imported timeline row — render events as grey row below project row | SP-042 | 🟡 In Progress |
+| T-0163 | Epoch offset dialog — import flow with window intersection preview | SP-042 | 🟡 In Progress |
+| T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | SP-042 | 🟡 In Progress |
+| T-0165 | Timeline export — produce `.scrivi-timeline.json` | SP-042 | 🟡 In Progress |
+| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | 🟡 In Progress |
 | T-0167 | EP-016 verification | SP-043 | 🔵 Backlog |
 | T-0168 | Scene duration, chain propagation, project timeline defaults, "Immediately after" | SP-040 | ✅ Verified |
 
 ---
 
-*Last Updated: 2026-06-11 (SP-039 and SP-040 closed and verified; SP-041–SP-043 remain)*
+*Last Updated: 2026-06-12 (SP-042 activated)*

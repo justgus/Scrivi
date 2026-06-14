@@ -15,12 +15,20 @@ struct ScriviApp: App {
                 }
                 .onReceive(
                     NotificationCenter.default.publisher(
-                        for: NSApplication.willResignActiveNotification
+                        for: {
+                            #if os(macOS)
+                            NSApplication.willResignActiveNotification
+                            #else
+                            UIApplication.willResignActiveNotification
+                            #endif
+                        }()
                     )
                 ) { _ in
                     Task { await env.onAppResign() }
                 }
+                #if os(macOS)
                 .background(WindowFrameAutosave())
+                #endif
                 .sheet(isPresented: $showAbout) {
                     AboutView()
                 }

@@ -1,0 +1,83 @@
+{
+  "schema": "scrivi.externalTimeline.v1",
+  "timelineID": "ext-mr-omicron-mystery-v1",
+  "sourceProjectID": "project_ext_omicron_001",
+  "sourceProjectTitle": "Mr. Omicron — The Shadow Thread",
+  "epochLabel": "Story Open",
+  "epochOffsetMs": 0,
+  "visible": true,
+  "assignedGreyShade": "",
+  "exportedAt": "2026-06-14T10:00:00Z",
+  "events": [
+    {
+      "eventID": "hevent_om_001",
+      "kind": "historical",
+      "title": "Omicron identifies Alyson leaving class",
+      "offsetMs": 9000000,
+      "notes": "2h30m after Story Open. Omicron is already in position near the criminology building. He has been watching for her. He spots Alyson as she exits the building after her class with Grimstein."
+    },
+    {
+      "eventID": "hevent_om_002",
+      "kind": "historical",
+      "title": "Omicron observes Alyson's exchange with Miles Tillman",
+      "offsetMs": 9900000,
+      "notes": "2h45m. Omicron watches from a distance as Alyson speaks with Tillman near the metro entrance. He notes that she does not linger — the conversation is brief and ends cleanly. He photographs both of them."
+    },
+    {
+      "eventID": "hevent_om_003",
+      "kind": "historical",
+      "title": "Omicron boards the Metro — two cars behind Alyson",
+      "offsetMs": 10800000,
+      "notes": "3h. Alyson boards the Metro. Omicron boards the same train in a rear car. He uses the window reflection to watch her without direct eye contact. He notes which stop she exits at."
+    },
+    {
+      "eventID": "hevent_om_004",
+      "kind": "historical",
+      "title": "Omicron reaches Le Porte — enters via side entrance",
+      "offsetMs": 22500000,
+      "notes": "6h15m. Alyson entered Le Porte fifteen minutes earlier. Omicron arrives, surveys the exterior, then enters through the side door and takes a seat at the counter with a sightline to Alyson's table. He orders a black coffee and does not open a book or phone."
+    },
+    {
+      "eventID": "hevent_om_005",
+      "kind": "historical",
+      "title": "Omicron observes Alyson and Ekta — notes the friendship dynamic",
+      "offsetMs": 25200000,
+      "notes": "7h. He watches them for forty-five minutes. He notes that Ekta does most of the talking. Alyson listens with unusual stillness. He writes three lines in a small notebook and closes it."
+    },
+    {
+      "eventID": "hevent_om_006",
+      "kind": "historical",
+      "title": "Omicron exits Le Porte ahead of Alyson and Ekta",
+      "offsetMs": 27000000,
+      "notes": "7h30m. He leaves before they do, positions himself outside where he can see the door without being seen from it. When they emerge he falls in behind them at half a block's distance."
+    },
+    {
+      "eventID": "hevent_om_007",
+      "kind": "historical",
+      "title": "Omicron follows Alyson and Ekta to Coricolo's",
+      "offsetMs": 28800000,
+      "notes": "8h. He tracks them to the restaurant. He does not enter. He waits in the square across the street on a bench, eating a sandwich he brought, reading nothing. He is very patient."
+    },
+    {
+      "eventID": "hevent_om_008",
+      "kind": "historical",
+      "title": "Omicron spots the speed dating flyer — registers at the last minute",
+      "offsetMs": 30600000,
+      "notes": "8h30m. While waiting outside Coricolo's he notices the event poster for the American University Speed Dating Night in the window of the adjacent building. He calls the organiser's number on the poster and secures a late registration spot. He pays in cash."
+    },
+    {
+      "eventID": "hevent_om_009",
+      "kind": "historical",
+      "title": "Omicron arrives at the speed dating venue — checks seating rotation",
+      "offsetMs": 32400000,
+      "notes": "9h. He arrives at the same time the event opens. He examines the seating rotation card and calculates which number position will bring him to Alyson's table. He arranges to be assigned that number."
+    },
+    {
+      "eventID": "hevent_om_010",
+      "kind": "scene",
+      "title": "Omicron meets Alyson — Table 23",
+      "offsetMs": 39600000,
+      "notes": "11h. After working through the rotation, Omicron is finally seated across from Alyson. His card reads 'Mr. Omicron.' He opens with control questions — and she notices."
+    }
+  ]
+}

@@ -39,7 +39,7 @@ import AppKit
     }
 
     func bootstrap() async {
-        let displayName = Host.current().localizedName ?? "Unknown Mac"
+        let displayName = ProcessInfo.processInfo.hostName
         do {
             let result = try engine.ensureLocalIdentity(
                 displayName: displayName,
@@ -71,7 +71,6 @@ import AppKit
             projectRootPath = path
             openProjectResult = result
 
-            // Create the viewport loader for this project.
             let loader = ViewportSceneLoader(
                 engine: engine,
                 projectRootPath: path,
@@ -83,7 +82,6 @@ import AppKit
             viewportLoader = loader
             projectPreferences = ProjectPreferences(projectID: result.projectID)
 
-            // Build the timeline model from the loaded scene list.
             let tlModel = TimelineViewModel()
             tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
             timelineModel = tlModel
@@ -118,6 +116,7 @@ import AppKit
 
     @MainActor
     func presentOpenProjectPanel() {
+        #if os(macOS)
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
@@ -133,6 +132,7 @@ import AppKit
                 projectError = ScriviError(code: -1, message: "Repair required: \(issue.title)")
             }
         }
+        #endif
     }
 
     func closeProject() {

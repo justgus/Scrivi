@@ -1,5 +1,7 @@
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
 
 struct EditorView: View {
 
@@ -56,7 +58,8 @@ private struct ManuscriptEditorView: View {
                         TimelineStripView(
                             model: tlModel,
                             engine: env.engine,
-                            projectRootPath: prp
+                            projectRootPath: prp,
+                            authorshipRef: env.authorshipRef
                         )
                     }
                     #else
@@ -66,7 +69,8 @@ private struct ManuscriptEditorView: View {
                         TimelineStripView(
                             model: tlModel,
                             engine: env.engine,
-                            projectRootPath: prp
+                            projectRootPath: prp,
+                            authorshipRef: env.authorshipRef
                         )
                     }
                     #endif
@@ -83,7 +87,9 @@ private struct ManuscriptEditorView: View {
             }
             .navigationTitle(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
                              ? "Untitled" : prefs.projectTitle)
+            #if os(macOS) || os(iOS)
             .navigationSubtitle(prefs.projectSubtitle)
+            #endif
         }
         .frame(minWidth: 700, minHeight: 400)
         .navigationSplitViewStyle(.balanced)

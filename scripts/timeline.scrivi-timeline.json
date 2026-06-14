@@ -1,0 +1,69 @@
+{
+  "assignedGreyShade": "",
+  "epochLabel": "Story Open",
+  "epochOffsetMs": 0,
+  "events": [
+    {
+      "eventID": "scene_019e7537-66dd-7219-a195-5d80fce9f400",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 0,
+      "title": "The Interrogation"
+    },
+    {
+      "eventID": "scene_019e8da1-1e1d-7034-8345-91df6b8d9f17",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 0,
+      "title": "On the Metro"
+    },
+    {
+      "eventID": "scene_019e8da2-206f-76e8-ae81-7fc9f402701b",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 10800000,
+      "title": ""
+    },
+    {
+      "eventID": "scene_019e9428-6627-733c-b3c5-9cae1c9ed916",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 21600000,
+      "title": ""
+    },
+    {
+      "eventID": "scene_019e9cdd-2735-7fcd-bcd9-02c7bbf6c7c3",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 32400000,
+      "title": "There were a total of twenty four men and twenty four women that evening."
+    },
+    {
+      "eventID": "scene_019eadd6-c198-766d-a6d1-06eca262af29",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 36000000,
+      "title": ""
+    },
+    {
+      "eventID": "scene_019e9cea-683e-772f-b2f6-e7fdc7f81bb1",
+      "kind": "scene",
+      "notes": "",
+      "offsetMs": 39600000,
+      "title": ""
+    },
+    {
+      "eventID": "hevent_019ec19b-882f-7831-8312-e7f7206e8261",
+      "kind": "historical",
+      "notes": "",
+      "offsetMs": 21600000,
+      "title": "New Historical Event"
+    }
+  ],
+  "exportedAt": "2026-06-13T15:36:48Z",
+  "schema": "scrivi.externalTimeline.v1",
+  "sourceProjectID": "",
+  "sourceProjectTitle": "",
+  "timelineID": "export-2026-06-13T15:36:48Z",
+  "visible": true
+}

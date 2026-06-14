@@ -1,0 +1,69 @@
+{
+  "schema": "scrivi.externalTimeline.v1",
+  "timelineID": "ext-bureau-of-identity-integrity-v1",
+  "sourceProjectID": "project_ext_bureau_001",
+  "sourceProjectTitle": "Bureau of Identity Integrity — Case Files",
+  "epochLabel": "Bureau Founded",
+  "epochOffsetMs": 0,
+  "visible": true,
+  "assignedGreyShade": "",
+  "exportedAt": "2026-06-13T18:00:00Z",
+  "events": [
+    {
+      "eventID": "hevent_bii_001",
+      "kind": "historical",
+      "title": "Bureau of Identity Integrity established by executive order",
+      "offsetMs": 0,
+      "notes": "Classified. Mandate: detect, monitor, and contain individuals exhibiting non-standard identity expression at the biological level."
+    },
+    {
+      "eventID": "hevent_bii_002",
+      "kind": "historical",
+      "title": "First confirmed Fluent subject identified — Subject Zero",
+      "offsetMs": 94608000000,
+      "notes": "Three years after founding. Subject Zero voluntarily surrendered. Provided the foundational biometric baseline for all subsequent detection protocols."
+    },
+    {
+      "eventID": "hevent_bii_003",
+      "kind": "historical",
+      "title": "Fluency Containment Protocol v1 ratified internally",
+      "offsetMs": 126144000000,
+      "notes": "Four years after founding. Establishes the legal framework for indefinite administrative hold of Fluent subjects without judicial review."
+    },
+    {
+      "eventID": "hevent_bii_004",
+      "kind": "historical",
+      "title": "Metro biometric scan network goes live — City-wide coverage",
+      "offsetMs": 220752000000,
+      "notes": "Seven years after founding. Passive identity-scan infrastructure embedded in metro turnstiles, platform cameras, and fare terminals. Primary detection vector for unregistered Fluents."
+    },
+    {
+      "eventID": "hevent_bii_005",
+      "kind": "historical",
+      "title": "Anomalous scan flagged: Subject designation MIRROR-7",
+      "offsetMs": 283996800000,
+      "notes": "Nine years after founding. Metro Line 4 turnstile logs a biometric mismatch: same individual presenting two different skeletal geometries within 40 minutes. Case assigned to Agent Reyes."
+    },
+    {
+      "eventID": "hevent_bii_006",
+      "kind": "historical",
+      "title": "MIRROR-7 surveillance file opened — passive monitoring authorized",
+      "offsetMs": 284083200000,
+      "notes": "One day after initial flag. Address, employment, known associates logged. No contact made. Bureau prefers to observe Fluents before approach — activation events yield more data."
+    },
+    {
+      "eventID": "hevent_bii_007",
+      "kind": "scene",
+      "title": "Interrogation of MIRROR-7 — Story Open",
+      "offsetMs": 315532800000,
+      "notes": "Ten years after founding. The opening scene. Bureau brings MIRROR-7 in for questioning. Agent Reyes leads. No charges filed — insufficient evidence of willful concealment. Subject released."
+    },
+    {
+      "eventID": "hevent_bii_008",
+      "kind": "historical",
+      "title": "MIRROR-7 file escalated to Active Watch",
+      "offsetMs": 315554400000,
+      "notes": "Six hours after interrogation. Reyes escalates classification. Continued metro surveillance authorized. Covert follow protocol initiated."
+    }
+  ]
+}

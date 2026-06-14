@@ -22,11 +22,6 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | EP-016 | 🔵 Backlog |
 | T-0147 | Integration tests — timeline persistence round-trip | EP-016 | 🔵 Backlog |
 | T-0148 | `createProject` update — write `timeline.meta.json` on new project | EP-016 | 🔵 Backlog |
-| T-0156 | Story Structure band overlay — colored bands, label row, Structure selector menu | EP-016 | 🔵 Backlog |
-| T-0157 | Band border drag — proportional resize, persistence | EP-016 | 🔵 Backlog |
-| T-0158 | Band assignment by drag-up to label — ring color on dot | EP-016 | 🔵 Backlog |
-| T-0159 | Band assignment via context menu ("Assign to Act…" / "Unassign") | EP-016 | 🔵 Backlog |
-| T-0160 | Scene dot context menu — full menu | EP-016 | 🔵 Backlog |
 | T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | EP-016 | 🔵 Backlog |
 | T-0162 | Imported timeline row — render events as grey row below project row | EP-016 | 🔵 Backlog |
 | T-0163 | Epoch offset dialog — import flow with window intersection preview | EP-016 | 🔵 Backlog |

@@ -63,6 +63,7 @@ struct NewProjectSheet: View {
     }
 
     private func choosePath() {
+        #if os(macOS)
         let panel = NSSavePanel()
         panel.title = "Choose Project Location"
         panel.nameFieldLabel = "Project folder:"
@@ -75,6 +76,7 @@ struct NewProjectSheet: View {
         if slug.isEmpty {
             slug = url.deletingPathExtension().lastPathComponent
         }
+        #endif
     }
 
     private func createProject() {

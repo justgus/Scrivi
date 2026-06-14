@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 
@@ -42,7 +43,7 @@ struct WindowFrameAutosave: NSViewRepresentable {
                     object: nil,
                     queue: .main
                 ) { [weak window] _ in
-                    window?.zoom(nil)
+                    MainActor.assumeIsolated { window?.zoom(nil) }
                 }
             }
         }
@@ -81,3 +82,4 @@ struct WindowFrameAutosave: NSViewRepresentable {
         }
     }
 }
+#endif

@@ -1,4 +1,5 @@
 import SwiftUI
+#if os(macOS)
 import AppKit
 
 // Custom attribute key used to mark chapter title heading ranges as non-editable.
@@ -77,8 +78,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         if let targetID = navigateToSceneID {
-            navigateToSceneID = nil
             coordinator.navigateToScene(targetID, in: tv)
+            // Reset the binding after the current update pass completes —
+            // mutating bound state inside updateNSView is a view-update violation.
+            DispatchQueue.main.async {
+                navigateToSceneID = nil
+            }
         }
 
     }
@@ -627,3 +632,23 @@ private final class DividerAttachmentCell: NSTextAttachmentCell {
         draw(withFrame: cellFrame, in: controlView)
     }
 }
+
+#else
+
+// iOS / visionOS stub — full UITextView implementation is a future task.
+struct ManuscriptTextView: View {
+    var loader: ViewportSceneLoader
+    var env: AppEnvironment
+    @Binding var navigateToSceneID: String?
+    var showChapterTitles: Bool
+
+    var body: some View {
+        Text("Manuscript editor not yet available on this platform.")
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    func takeFocus() {}
+}
+
+#endif

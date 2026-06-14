@@ -47,9 +47,13 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks**
+Currently: **3 active Tasks**
 
-*None.*
+| Task | Title | Sprint | Status |
+| ---- | ----- | ------ | ------ |
+| T-0169 | Hover tooltips for historical event and imported event dots | SP-042 | 🔴 Open |
+| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | SP-042 | 🔴 Open |
+| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | 🟡 Implemented - Not Verified |
 
 See: [Task-active.md](Task-active.md)
 
@@ -204,7 +208,8 @@ Currently: **2 closed Tasks**
 - **Active:** 0 🟡
 - **Unverified:** 0 🟡
 - **Backlog:** 23 🔵 (T-0118, T-0123, T-0139–T-0148, T-0156–T-0167)
-- **Next available:** T-0169
+- **Active:** 3 🟡 (T-0166, T-0169, T-0170)
+- **Next available:** T-0171
 
 ---
 

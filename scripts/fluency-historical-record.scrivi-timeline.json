@@ -1,0 +1,69 @@
+{
+  "schema": "scrivi.externalTimeline.v1",
+  "timelineID": "ext-fluency-historical-record-v1",
+  "sourceProjectID": "project_ext_fluency_record_001",
+  "sourceProjectTitle": "The Fluency Record — Documented Cases",
+  "epochLabel": "Earliest Known Case",
+  "epochOffsetMs": 0,
+  "visible": true,
+  "assignedGreyShade": "",
+  "exportedAt": "2026-06-13T18:00:00Z",
+  "events": [
+    {
+      "eventID": "hevent_fr_001",
+      "kind": "historical",
+      "title": "Earliest Known Case — The Merchant of Antioch",
+      "offsetMs": 0,
+      "notes": "A merchant documented in three simultaneous legal disputes in different cities on the same day. Witnesses described him differently in each location. Case closed as clerical error."
+    },
+    {
+      "eventID": "hevent_fr_002",
+      "kind": "historical",
+      "title": "The Venice Doubling — first forensically documented case",
+      "offsetMs": 9461674800000,
+      "notes": "A notary and his exact double appear simultaneously before the same magistrate. Both are arrested. Both escape. No further record of either individual. First case to survive into the modern archival record."
+    },
+    {
+      "eventID": "hevent_fr_003",
+      "kind": "historical",
+      "title": "Term 'Fluency' coined in academic literature",
+      "offsetMs": 47336400000000,
+      "notes": "A rogue biologist publishes a monograph on 'phenotypic fluency' — the theoretical capacity for voluntary somatic self-modification. Dismissed as pseudoscience. Paper suppressed within six months."
+    },
+    {
+      "eventID": "hevent_fr_004",
+      "kind": "historical",
+      "title": "First genetic marker associated with Fluency isolated",
+      "offsetMs": 60566160000000,
+      "notes": "Classified research. The MORF-9 locus identified in post-mortem tissue of Subject Zero. Heritability unknown — no confirmed parent-child transmission on record."
+    },
+    {
+      "eventID": "hevent_fr_005",
+      "kind": "historical",
+      "title": "Estimated global Fluent population: fewer than 200",
+      "offsetMs": 62597280000000,
+      "notes": "Bureau internal estimate. Likely an undercount — detection depends on subjects using Fluency near biometric infrastructure. Rural and unmonitored Fluents are invisible to the system."
+    },
+    {
+      "eventID": "hevent_fr_006",
+      "kind": "historical",
+      "title": "MIRROR-7 born — MORF-9 locus present at birth",
+      "offsetMs": 63071040000000,
+      "notes": "Retrospective finding. Neonatal genomic screen archived. MORF-9 flagged as variant of unknown significance at the time. File sealed and forwarded to Bureau twelve years later."
+    },
+    {
+      "eventID": "hevent_fr_007",
+      "kind": "historical",
+      "title": "MIRROR-7 first uncontrolled Fluency event — age 16",
+      "offsetMs": 63576480000000,
+      "notes": "Self-reported in Bureau interrogation (Story Open). Subject describes looking in a mirror and seeing her mother's face looking back. Lasted approximately 40 seconds. She told no one."
+    },
+    {
+      "eventID": "hevent_fr_008",
+      "kind": "scene",
+      "title": "MIRROR-7 interrogated — Story Open",
+      "offsetMs": 63629280000000,
+      "notes": "Current day. Bureau interview. Subject denies voluntary control. Biometric logs confirm three distinct facial geometries over the preceding 72 hours."
+    }
+  ]
+}

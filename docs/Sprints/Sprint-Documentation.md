@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-*None — SP-038 closed 2026-06-10.*
+SP-042 — Historical events, imported timelines, export, and clustering (activated 2026-06-12)
 
 ## Sprint Backlog
 
@@ -19,10 +19,6 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-039 | Timeline Persistence — ScriviCore schema and API | EP-016 | 🔵 Planning |
-| SP-040 | Timeline SwiftUI — core rendering, drag, and Time Delta Picker | EP-016 | 🔵 Planning |
-| SP-041 | Story Structure bands — overlay, drag borders, band assignment | EP-016 | 🔵 Planning |
-| SP-042 | Historical events, imported timelines, export, and clustering | EP-016 | 🔵 Planning |
 | SP-043 | EP-016 verification and polish | EP-016 | 🔵 Planning |
 
 ## All Sprints
@@ -69,21 +65,21 @@ Currently: **43 Sprints** | Next available: **SP-044**
 | SP-036 | Scene Navigator Swipe Gesture — macOS | EP-013 | 2026-06-10 | 2026-06-10 | ✅ Closed |
 | SP-037 | Scene Inspector Panel | EP-014 | 2026-06-10 | 2026-06-10 | ✅ Closed |
 | SP-038 | Real-Time Timeline Panel | EP-015 | 2026-06-10 | 2026-06-10 | ✅ Closed |
-| SP-039 | Timeline Persistence — ScriviCore schema and API | EP-016 | — | — | 🔵 Planning |
+| SP-039 | Timeline Persistence — ScriviCore schema and API | EP-016 | 2026-06-11 | 2026-06-11 | ✅ Closed |
 | SP-040 | Timeline SwiftUI — core rendering, drag, and Time Delta Picker | EP-016 | 2026-06-11 | 2026-06-11 | ✅ Closed |
-| SP-041 | Story Structure bands — overlay, drag borders, band assignment | EP-016 | — | — | 🔵 Planning |
-| SP-042 | Historical events, imported timelines, export, and clustering | EP-016 | — | — | 🔵 Planning |
+| SP-041 | Story Structure bands — overlay, drag borders, band assignment | EP-016 | 2026-06-12 | 2026-06-12 | ✅ Closed |
+| SP-042 | Historical events, imported timelines, export, and clustering | EP-016 | 2026-06-12 | — | 🟡 Active |
 | SP-043 | EP-016 verification and polish | EP-016 | — | — | 🔵 Planning |
 
 ## Statistics
 
 - **Total Sprints:** 43
-- **Closed:** 38 ✅
-- **Active:** 0 🟡
-- **Planning:** 4 🔵 (SP-041–SP-043, SP-039 closed)
+- **Closed:** 41 ✅
+- **Active:** 1 🟡 (SP-042)
+- **Planning:** 1 🔵 (SP-043)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-06-10 (SP-038 closed; EP-015 closed)*
+*Last Updated: 2026-06-12 (SP-041 closed; SP-042 activated)*
