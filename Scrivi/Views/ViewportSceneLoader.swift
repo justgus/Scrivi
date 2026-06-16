@@ -361,6 +361,141 @@ struct SceneSegment: Identifiable {
         return nil
     }
 
+    // Split the scene at `index` at `splitOffset` (character offset within that scene's text).
+    // Returns the index of the new (tail) scene, which is inserted at index+1.
+    // The caller must have already saved `result` to disk and written the tail text to the new scene's file.
+    func splitScene(_ result: CreateSceneResult, at index: Int, headText: String, tailText: String) -> Int {
+        segments[index].text = headText
+        segments[index].isDirty = false  // already saved by caller
+
+        let newSeg = SceneSegment(
+            id: result.sceneID,
+            sceneID: result.sceneID,
+            chapterID: result.chapterID,
+            metadataPath: result.metadataPath,
+            contentPath: result.contentPath,
+            text: tailText,
+            isDirty: false  // tail was saved by caller
+        )
+        let insertIdx = index + 1
+        segments.insert(newSeg, at: insertIdx)
+
+        if let allIdx = allScenes.firstIndex(where: { $0.sceneID == segments[index].sceneID }) {
+            let predecessor = allScenes[allIdx]
+            let info = SceneInfo(
+                sceneID: result.sceneID,
+                chapterID: result.chapterID,
+                title: "",
+                chapterTitle: predecessor.chapterTitle,
+                slug: "",
+                metadataPath: result.metadataPath,
+                contentPath: result.contentPath,
+                chapterMetadataPath: predecessor.chapterMetadataPath
+            )
+            allScenes.insert(info, at: allIdx + 1)
+        }
+        rebuildSceneStartMap()
+        return insertIdx
+    }
+
+    // Merge the scene at `index` into the scene at `index-1`.
+    // Updates both segments in-memory; caller saves both via ScriviEngine.
+    // Returns the segment index of the merged (predecessor) scene.
+    func mergeSceneIntoPredecessor(at index: Int, joinText: String) -> Int {
+        let predecessorIdx = index - 1
+        segments[predecessorIdx].text = joinText
+        segments[predecessorIdx].isDirty = false  // caller saves
+
+        let removedSceneID = segments[index].sceneID
+        segments.remove(at: index)
+        allScenes.removeAll { $0.sceneID == removedSceneID }
+        liveTitles.removeValue(forKey: removedSceneID)
+
+        currentIndex = predecessorIdx
+        rebuildSceneStartMap()
+        return predecessorIdx
+    }
+
+    // Move scenes from `movingFrom` onward that still belong to `oldChapterID` into the new chapter.
+    // Called after splitScene() for the Shift-Cmd-Enter chapter-split path.
+    // `movingFrom` is the index of the first scene of the new chapter (already has new chapterID).
+    // Subsequent scenes in the old chapter (at movingFrom+1, +2, ...) are re-assigned here.
+    func splitChapter(_ result: CreateChapterResult, movingFrom index: Int, oldChapterID: String) {
+        // Re-assign any remaining scenes at index+1... that still belong to oldChapterID.
+        var i = index + 1
+        while i < segments.count && segments[i].chapterID == oldChapterID {
+            segments[i] = SceneSegment(
+                id: segments[i].id,
+                sceneID: segments[i].sceneID,
+                chapterID: result.chapterID,
+                metadataPath: segments[i].metadataPath,
+                contentPath: segments[i].contentPath,
+                text: segments[i].text,
+                isDirty: segments[i].isDirty
+            )
+            i += 1
+        }
+
+        // Mirror in allScenes for the same scenes (index+1 onward in old chapter).
+        for j in allScenes.indices where allScenes[j].chapterID == oldChapterID {
+            if let segIdx = segments.firstIndex(where: { $0.sceneID == allScenes[j].sceneID }),
+               segIdx > index {
+                allScenes[j] = SceneInfo(
+                    sceneID: allScenes[j].sceneID,
+                    chapterID: result.chapterID,
+                    title: allScenes[j].title,
+                    chapterTitle: allScenes[j].chapterTitle,
+                    slug: allScenes[j].slug,
+                    metadataPath: allScenes[j].metadataPath,
+                    contentPath: allScenes[j].contentPath,
+                    chapterMetadataPath: result.chapterMetadataPath
+                )
+            }
+        }
+
+        rebuildSceneStartMap()
+    }
+
+    // Merge the chapter at `index`'s chapter into the predecessor chapter.
+    // All scenes from the current chapter move to the predecessor chapter.
+    // Caller must call deleteChapter on the engine after this.
+    func mergeChapterIntoPredecessor(at index: Int,
+                                      predecessorChapterID: String,
+                                      predecessorChapterMetadataPath: String,
+                                      predecessorChapterTitle: String) {
+        let currentChapterID = segments[index].chapterID
+
+        // Re-assign all segments in the current chapter to the predecessor chapter.
+        for i in segments.indices where segments[i].chapterID == currentChapterID {
+            segments[i] = SceneSegment(
+                id: segments[i].id,
+                sceneID: segments[i].sceneID,
+                chapterID: predecessorChapterID,
+                metadataPath: segments[i].metadataPath,
+                contentPath: segments[i].contentPath,
+                text: segments[i].text,
+                isDirty: segments[i].isDirty
+            )
+        }
+
+        // Mirror in allScenes.
+        for j in allScenes.indices where allScenes[j].chapterID == currentChapterID {
+            allScenes[j] = SceneInfo(
+                sceneID: allScenes[j].sceneID,
+                chapterID: predecessorChapterID,
+                title: allScenes[j].title,
+                chapterTitle: predecessorChapterTitle,
+                slug: allScenes[j].slug,
+                metadataPath: allScenes[j].metadataPath,
+                contentPath: allScenes[j].contentPath,
+                chapterMetadataPath: predecessorChapterMetadataPath
+            )
+        }
+
+        currentIndex = index
+        rebuildSceneStartMap()
+    }
+
     // Append a new chapter's first scene after the current segment.
     func insertChapterFirstScene(_ result: CreateChapterResult, after index: Int) -> Int {
         let seg = SceneSegment(

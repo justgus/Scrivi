@@ -1,338 +1,5 @@
 # Active Issues
 
-## I-0031: Story Structure bands not rendered after selecting a structure
-
-**Status:** ✅ Resolved - Verified
-**Platform:** macOS
-**Component:** `TimelineStripView.swift` — `TimelineViewModel`
-**Severity:** High
-**Sprint:** SP-041
-
-**Description:**
-Selecting a Story Structure from the `[Structure ▾]` menu had no visible effect. No colored bands appeared in the timeline panel and no label row was shown.
-
-**Expected Behavior:**
-Selecting a structure immediately renders colored bands behind the timeline and a label row at the top of the panel.
-
-**Actual Behavior:**
-Panel remained unchanged after selection. No bands, no label row.
-
-**Steps to Reproduce:**
-1. Open a project with at least one scene.
-2. Click `[Structure ▾]` in the timeline panel header.
-3. Select "Three Act Structure".
-4. Observe: no bands appear.
-
-**Impact:**
-- T-0156 (band overlay), T-0157 (border drag), T-0158 (drag-up assignment), T-0159 (context menu assignment) all depend on bands rendering — all were effectively blocked.
-
-**Date Identified:** 2026-06-12
-
-**Root Cause Analysis:**
-The C++ backend wraps the band array under a `"bands"` key in both directions. Swift was generating a plain array `[...]` outbound and trying to decode a plain array inbound — both silently failed, leaving `activeBands` empty.
-
-**Resolution:**
-
-**Fix Date:** 2026-06-12
-**Verification Date:** 2026-06-12
-
-**Implementation:**
-1. `applyStructure` passes `bandLayoutJSON: ""` — C++ populates from its own built-in table.
-2. `decodeBandLayout` unwraps the `"bands"` key before decoding.
-3. `encodeBandLayout` wraps output as `{"bands":[...]}`.
-
-**Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift`
-
-**Verification:**
-- ✅ Selecting "Three Act Structure" renders three colored bands immediately
-- ✅ Band labels appear in the label row
-- ✅ Bands persist across project close/reopen
-
-**Related Issues:** I-0032, I-0033, I-0034, I-0035
-
----
-
-## I-0032: Band border cursor does not change on hover
-
-**Status:** ✅ Resolved - Verified
-**Platform:** macOS
-**Component:** `TimelineStripView.swift` — `BandOverlayView`
-**Severity:** Low
-**Sprint:** SP-041
-
-**Description:**
-When hovering the mouse pointer near a band border in the timeline panel, the cursor remains as the default arrow. It should change to a horizontal resize cursor to indicate the border is draggable.
-
-**Expected Behavior:**
-Cursor changes to `NSCursor.resizeLeftRight` when hovering within ~8pt of a band border.
-
-**Actual Behavior:**
-Cursor stays as the default arrow at all times within the band overlay.
-
-**Steps to Reproduce:**
-1. Apply a Story Structure.
-2. Hover slowly over the border between two bands.
-3. Observe: cursor does not change.
-
-**Impact:**
-- AC-7 fails. Discoverability of band border dragging is reduced.
-
-**Date Identified:** 2026-06-12
-
-**Root Cause Analysis:**
-`BandOverlayView` uses a `Canvas` for drawing which does not participate in `onHover`. No cursor-change logic was added to the band overlay — the `cursor(.resizeUpDown)` helper exists on `TimelineStripView`'s resize handle but was never applied to band borders.
-
-**Resolution:**
-
-**Fix Date:** 2026-06-12
-
-**Implementation:**
-Added an `.onHover` handler to `BandOverlayView` that computes the nearest border index at the current mouse X position (same logic as `nearestBorderIndex`) and pushes/pops `NSCursor.resizeLeftRight` accordingly.
-
-**Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — `BandOverlayView`
-
-**Verification:**
-- [ ] Hovering within 8pt of a band border changes cursor to horizontal resize
-- [ ] Cursor returns to default when moving away from borders
-
-**Related Issues:** I-0031
-
----
-
-## I-0033: Drag-up band assignment gesture blocked after tooltip is shown
-
-**Status:** ✅ Resolved - Verified
-**Platform:** macOS
-**Component:** `TimelineStripView.swift` — `SceneDotView`
-**Severity:** High
-**Sprint:** SP-041
-
-**Description:**
-After hovering a scene dot (causing the tooltip popover to appear), the drag-up band assignment gesture does not activate on the next click-drag. The user must press Escape first to dismiss the tooltip, then click and drag.
-
-**Expected Behavior:**
-A drag gesture on a scene dot should work at any time, regardless of whether the tooltip popover is currently shown.
-
-**Actual Behavior:**
-If the tooltip popover is visible when the user begins a drag, the gesture is blocked or misfires. Pressing Escape dismisses the tooltip, after which the drag works normally.
-
-**Steps to Reproduce:**
-1. Apply a Story Structure.
-2. Hover a scene dot until the tooltip appears.
-3. Without pressing Escape, begin dragging the dot upward.
-4. Observe: gesture does not activate.
-
-**Impact:**
-- AC-13 fails. Band assignment by drag-up is unreliable in normal use whenever the tooltip has been shown.
-
-**Date Identified:** 2026-06-12
-
----
-
-### What I assumed initially — and why that was wrong
-
-My first root cause assumption was: *"the tooltip popover intercepts the initial hit-test, preventing `onChanged` from firing at all."* I assumed this because the `.simultaneousGesture` modifier was already in use (a previous fix for a similar issue, I-0028), and popover hit-test interception is a known SwiftUI problem. I applied a fix — moving `showTooltip = false` to the top of `onChanged` — without evidence that `onChanged` was actually failing to fire.
-
-**This was an assumption, not an analysis.** CLAUDE.md principle 1: *Don't assume. Don't hide confusion. Surface tradeoffs.* I should have mapped the actual failure path before writing a fix.
-
----
-
-### Proper Problem Statement
-
-The user described the symptom precisely: *"Drag up not active on simple click. User has to press 'Esc' first and then click to drag."*
-
-Key observations to extract:
-1. The failure mode is **"on simple click"** — not "after hover", not "always". It fails specifically when clicking without Escape first.
-2. Escape dismisses the tooltip, after which the drag works. Escape is the standard macOS key to dismiss a popover.
-3. The phrase "simple click" suggests the user is clicking and dragging in one motion — the normal way to drag on macOS. This is not a hover-then-drag sequence problem; it's a click-to-begin-drag problem with a popover present.
-
-This points to a different mechanism than I assumed.
-
----
-
-### 5 Whys
-
-**Why 1: Why does the drag not activate when the tooltip popover is shown?**
-Because macOS routes the initial mouse-down event to the frontmost interactive window — and a popover is a separate window. When the popover is visible, the first click on the dot goes to the popover window to dismiss it (as a click-outside dismiss), not to the dot's gesture recognizer.
-
-**Why 2: Why does the first click go to the popover window?**
-Because macOS popovers are implemented as `NSPanel` windows. Any click outside the popover's bounds is first consumed by the popover as a "click-outside-to-dismiss" event, before it reaches the content underneath. The dot never sees the mouse-down that started the drag.
-
-**Why 3: Why does Escape fix it?**
-Escape dismisses the popover via keyboard — no mouse event consumed, no click swallowed. After Escape the popover window is gone, so the very next mouse-down goes directly to the dot and the drag gesture fires normally.
-
-**Why 4: Why does `.simultaneousGesture` not help here?**
-`.simultaneousGesture` allows a gesture to coexist with *SwiftUI's own gesture recognizers* in the same view hierarchy. It does not override macOS window-level event routing. The popover is a separate `NSPanel` — it intercepts the mouse event at the OS level before SwiftUI's gesture system sees it at all.
-
-**Why 5: Why was `showTooltip = false` at the top of `onChanged` insufficient?**
-Because `onChanged` never fires on the first click-drag when the popover is present. The mouse-down is consumed by the popover window dismissal. `onChanged` only begins receiving events on the *second* click-drag (after the popover has already been dismissed by the first click). The `showTooltip = false` line runs too late — after the event has already been consumed.
-
----
-
-### Possible Root Causes (all plausible, not yet narrowed to one)
-
-**RC-1 (most likely): The popover is an `NSPanel` and consumes mouse-down at the OS level.**
-The first click-drag is swallowed by the popover window dismiss handler. The dot gesture never receives a mouse-down. Fix: dismiss the popover at the `onHover { false }` exit point (when the mouse leaves the dot), so the popover is already gone before the user can click to drag. This is the only fix that eliminates the window-level interception.
-
-**RC-2: `showPicker` and `showTooltip` are two separate popovers on the same view.**
-SwiftUI may serialize popover presentation/dismissal. If `showPicker` was recently shown and dismissed, its dismissal animation may be holding the popover window alive briefly, causing a second popover (tooltip) to appear in an unexpected state. This could compound RC-1.
-
-**RC-3: The `.onHover` handler sets `showTooltip = true` but does not set it to `false` during a drag.**
-Once the drag begins, hover events cease. If `showTooltip` is `true` when the drag starts, the popover remains presented throughout the drag, and SwiftUI may refuse to fire the drag gesture on a view with a presented popover depending on the macOS version's gesture arbitration rules.
-
-**RC-4: `minimumDistance: 4` on `DragGesture` combined with popover dismiss.**
-The first mouse-down (consumed by popover) moves the apparent gesture start point. The second mouse-down (the actual drag start) is interpreted as a fresh gesture with zero prior translation. If the user moves less than 4pt before releasing, the gesture fires `onEnded` without ever calling `onChanged`, triggering the Time Delta Picker unexpectedly and masking the drag-up failure.
-
-**RC-5: The `ZStack` hit-test area (`contentShape`) is smaller than the popover anchor frame.**
-If the popover arrow or window edge overlaps the dot's `contentShape`, part of the dot's draggable area may fall outside the hit-testable region, making certain drag start positions unreliable regardless of popover state.
-
----
-
-### Correct Fix Strategy
-
-The fix that addresses RC-1 (the most likely and fundamental cause) is: **dismiss the tooltip when the mouse leaves the dot, not when the drag begins.** The `onHover` handler already runs `showTooltip = over` — when `over` becomes `false` (mouse exits), `showTooltip` becomes `false` and the popover dismisses. This means by the time the user moves the mouse to begin a drag (which requires leaving the dot's hover area briefly, or at minimum moving the cursor), the popover should already be dismissing.
-
-However, the guard `if !isDragging { showTooltip = over }` means that if the user begins dragging directly from hover (without the cursor leaving first), `showTooltip` remains `true`. Removing the `!isDragging` guard from `onHover` would cause the tooltip to dismiss the moment a drag starts — but since the drag's `onChanged` fires only after `minimumDistance` is exceeded, there is still a window where the popover intercepts.
-
-The most robust fix is to also set `showTooltip = false` in `onHover` unconditionally (not gated on `!isDragging`), so the tooltip is dismissed the instant the cursor moves at all. This is RC-1's solution.
-
-The `showTooltip = false` at the top of `onChanged` (current fix) addresses RC-3, but not RC-1. It may partially help in cases where the popover is still in its presentation animation but not yet an active NSPanel window.
-
----
-
-**Resolution:**
-
-**Fix Date:** 2026-06-12 (partial — `showTooltip = false` in `onChanged`)
-**Root Cause Confirmed:** Pending verification of revised fix
-
-**Confirmed Root Cause (2026-06-12):**
-None of the RC-1 through RC-5 hypotheses were correct. The drag fails on the very first attempt, before any popover has ever appeared — eliminating all popover theories. The actual cause is RC-6 (below), introduced in SP-041.
-
-**RC-6 (confirmed): `BandOverlayView` full-panel `.gesture` swallows all drag events.**
-`BandOverlayView` is rendered as a full-panel-width, full-panel-height `Canvas` inside the same `ZStack` as the scene dots. It carries a `.gesture(bandBorderDragGesture)` — the default SwiftUI gesture, which has higher priority than `.simultaneousGesture`. Every mouse-down anywhere in the panel is first offered to the band overlay's drag gesture. The gesture checks `nearestBorderIndex`, finds nothing (when the cursor is not on a border), and silently consumes the entire drag event. The dot's `.simultaneousGesture` never receives it. This was present from the moment `BandOverlayView` was introduced in SP-041. It explains why:
-- Drag fails from fresh launch (no popovers involved)
-- Drag fails in both directions equally
-- Right-click twice → drag works: the context menu appearance/dismissal sequence resets SwiftUI's gesture state in a way that happens to let the dot gesture win the next event
-- Once a drag is active, both directions work correctly
-
-**Fix Applied (2026-06-12):**
-1. Changed `BandOverlayView`'s `.gesture(bandBorderDragGesture)` to `.simultaneousGesture(bandBorderDragGesture)` so it coexists with the dot's gesture instead of taking priority.
-2. Added `.allowsHitTesting(false)` to the `Canvas` itself so the canvas surface does not intercept events — only the gesture recognizer layer is active.
-
-**Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — `BandOverlayView.body`
-
-**Verification:**
-- [ ] Fresh launch: click and drag a dot immediately — gesture activates on first attempt
-- [ ] Drag works in both horizontal and vertical directions without prior right-click
-- [ ] Band border drag still works correctly
-- [ ] Drag-up band assignment works on first attempt
-
-**Related Issues:** I-0031
-
----
-
-## I-0034: Drag-up on assigned dot should toggle assignment off regardless of release position
-
-**Status:** ✅ Resolved - Verified
-**Platform:** macOS
-**Component:** `TimelineStripView.swift` — `SceneDotView.combinedDragGesture`
-**Severity:** Medium
-**Sprint:** SP-041
-
-**Description:**
-When a scene dot is assigned to a band, dragging it upward and releasing anywhere — including over a band label — should behave as a toggle: if the dot is assigned, any upward drag unassigns it. Releasing over a label should not re-assign to that label; it should simply unassign.
-
-**Expected Behavior:**
-Drag-up on an assigned dot acts as a toggle switch — it always unassigns, regardless of where the dot is released. The user uses the context menu to assign to a specific band.
-
-**Actual Behavior (after initial fix):**
-- Drag-up and release below the label row — correctly unassigns (initial fix resolved this)
-- Drag-up and release over a band label — assigns to that band instead of unassigning
-
-**Steps to Reproduce:**
-1. Assign a scene dot to Act I via context menu.
-2. Drag the dot upward all the way to the Act II label and release.
-3. Observe: dot is now assigned to Act II. Expected: dot is unassigned.
-
-**Impact:**
-- AC-14 partially fails. The unassign-by-drag gesture is inconsistent depending on release position.
-
-**Date Identified:** 2026-06-12
-
-**Root Cause Analysis:**
-In `onEnded`, the assign branch (`onAssignToBand(hid)`) runs when `isDraggingUp && hoveredBandID != nil`, taking priority over unassignment. For an already-assigned dot, any upward drag should unassign — the release position should not trigger a re-assignment.
-
-**Resolution:**
-
-**Fix Date:** 2026-06-12
-
-**Implementation:**
-In `onEnded`, when `isDraggingUp` is true and the dot has an existing assignment (`!dot.bandID.isEmpty`), always unassign — regardless of whether `hoveredBandID` is set. The assign-on-release path only fires for unassigned dots.
-
-**Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — `SceneDotView.combinedDragGesture.onEnded`
-
-**Verification:**
-- [ ] Drag assigned dot upward, release below label row — unassigns
-- [ ] Drag assigned dot upward, release over a label — unassigns (not re-assigned)
-- [ ] Drag unassigned dot upward, release over a label — assigns to that band
-
-**Related Issues:** I-0031
-
----
-
-## I-0035: No checkmark on currently assigned band in context menu
-
-**Status:** ✅ Resolved - Verified
-**Platform:** macOS
-**Component:** `TimelineStripView.swift` — `SceneDotView` context menu
-**Severity:** Medium
-**Sprint:** SP-041
-
-**Description:**
-The "Assign to Act…" context menu submenu should show a checkmark next to the currently assigned band. No checkmark appears.
-
-**Expected Behavior:**
-The band matching `dot.bandID` displays a checkmark in the submenu (per AC-16 and §7.6 of the design doc).
-
-**Actual Behavior:**
-All band items appear identically — no checkmark on the assigned band.
-
-**Steps to Reproduce:**
-1. Assign a scene dot to a band.
-2. Right-click the dot.
-3. Open "Assign to Act…".
-4. Observe: no checkmark on the assigned band.
-
-**Impact:**
-- AC-16 fails. The user cannot tell which band is currently assigned from the context menu.
-
-**Date Identified:** 2026-06-12
-
-**Root Cause Analysis:**
-The context menu button uses `Label(band.label, systemImage: "checkmark")` when `dot.bandID == band.bandID`. On macOS, `Label` inside a `Menu` button does not render a checkmark the way a native menu item checkmark does — it renders the SF Symbol image inline as an icon, which macOS menu rendering suppresses. The correct approach is to use a SwiftUI `Button` with a `Text` label and apply a separate checkmark indicator, or use the menu item's native check state via `.tag` on a `Picker`.
-
-**Resolution:**
-
-**Fix Date:** 2026-06-12
-
-**Implementation:**
-Replaced the `Label(..., systemImage: "checkmark")` approach with a `Picker`-based context menu section. A `Picker` with `.inline` style renders native macOS menu checkmarks automatically based on the selected tag. The picker selection is bound to the dot's current `bandID`.
-
-**Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — `SceneDotView` context menu
-
-**Verification:**
-- [ ] Right-click assigned dot → "Assign to Act…" → assigned band shows a native checkmark
-- [ ] Selecting a different band moves the checkmark
-
-**Related Issues:** I-0031
-
----
-
 ## I-0036: Color.clear overlay blocks all timeline interaction; historical event placed at midpoint, not click location; no title-entry popup on creation
 
 **Status:** 🔴 Resolved - Not Verified
@@ -404,10 +71,6 @@ Three related defects introduced in SP-042 that together make the timeline panel
 
 ---
 
-*Last Updated: 2026-06-14 (I-0037 opened)*
-
----
-
 ## I-0037: Hover tooltips for historical event and imported event dots display in wrong position and show wrong content
 
 **Status:** 🔴 Open
@@ -444,9 +107,7 @@ This is the identical class of problem that required scene dot tooltips to use t
 
 **RC-2 — All imported event dots show the same tooltip:**
 
-`ImportedEventDotView` receives `ev.title` and `sourceName` as let constants. However, the tooltip shows only `sourceName` for all dots. Two possible causes:
-
-**RC-2 (confirmed):** `@State var isHovered` in `ImportedEventDotView` does not maintain stable per-instance state when the view is placed with `.position()` inside a `ForEach` inside a clipped `ZStack`. `.position()` does not create a new layout container — it places the view's centre at an absolute coordinate within the parent. SwiftUI's view identity diffing for `@State` across a `ForEach` inside a `ZStack` with `.position()` is unreliable: when `isHovered` becomes `true` on any one dot, the parent ZStack re-renders and SwiftUI re-uses or conflates the `@State` across instances. The result is that the hovered state propagates to all dots simultaneously. Since `sourceName` is identical for all dots on the same timeline row, all tooltips show the same string — the timeline name — regardless of which dot is actually hovered. The event titles are correctly populated in the data; the issue is purely SwiftUI state identity.
+`@State var isHovered` in `ImportedEventDotView` does not maintain stable per-instance state when the view is placed with `.position()` inside a `ForEach` inside a clipped `ZStack`. `.position()` does not create a new layout container — it places the view's centre at an absolute coordinate within the parent. SwiftUI's view identity diffing for `@State` across a `ForEach` inside a `ZStack` with `.position()` is unreliable: when `isHovered` becomes `true` on any one dot, the parent ZStack re-renders and SwiftUI re-uses or conflates the `@State` across instances. The result is that the hovered state propagates to all dots simultaneously. Since `sourceName` is identical for all dots on the same timeline row, all tooltips show the same string — the timeline name — regardless of which dot is actually hovered. The event titles are correctly populated in the data; the issue is purely SwiftUI state identity.
 
 **Correct Fix Strategy:**
 
@@ -471,7 +132,7 @@ This is the identical class of problem that required scene dot tooltips to use t
 
 ## I-0038: New scenes created via Cmd-Enter do not appear as dots on the Timeline
 
-**Status:** 🔴 Open
+**Status:** 🟡 Resolved - Not Verified
 **Platform:** macOS
 **Component:** `ViewportSceneLoader.swift`, `AppEnvironment.swift`, `TimelineStripView.swift` — `TimelineViewModel`
 **Severity:** High
@@ -499,13 +160,17 @@ The timeline panel does not update. The new scene dot does not appear until the 
 **Root Cause Analysis:**
 `TimelineViewModel` is populated once in `AppEnvironment.openProject()` via `tlModel.load(engine:projectRootPath:scenes:)` using the scene list from `OpenProjectResult`. When `createScene` or `createChapter` is called from `ManuscriptTextView` (via the Coordinator), the new scene is written to disk by ScriviCore and added to the Scene Navigator's model, but `TimelineViewModel.dots` is never updated. There is no notification or callback path from scene creation back to the timeline model.
 
-**Correct Fix Strategy:**
-After a successful `createScene` or `createChapter` call, reload the timeline model's dot array. The scene list held by `ViewportSceneLoader.allScenes` is the authoritative in-memory list — after a scene is created, `allScenes` is updated. `TimelineViewModel` should be reloaded from `allScenes` at that point. The simplest path: expose a `reload(engine:projectRootPath:scenes:)` method on `TimelineViewModel` (or reuse `load`) and call it from `AppEnvironment` after any scene/chapter creation. Alternatively, observe `ViewportSceneLoader.allScenes` changes and trigger a timeline reload reactively.
+**Resolution:**
+
+**Fix Date:** 2026-06-14
+
+**Implementation:**
+1. Added `reloadSceneDots(engine:projectRootPath:scenes:)` to `TimelineViewModel` (`TimelineStripView.swift:265`). Rebuilds only the dot array from the updated scene list, preserving existing band assignments, historical events, imported timelines, and story structure.
+2. After every successful `createScene`, `createChapter`, scene split, and chapter split in `ManuscriptTextView.Coordinator`, `env.timelineModel?.reloadSceneDots(...)` is called with `loader.allScenes` (which is already updated by the loader's insert methods).
 
 **Files Affected:**
-- `Scrivi/Views/ViewportSceneLoader.swift` — scene/chapter creation callbacks
-- `Scrivi/App/AppEnvironment.swift` — timeline reload after creation
-- `Scrivi/Views/TimelineStripView.swift` — `TimelineViewModel`
+- `Scrivi/Views/TimelineStripView.swift` — `TimelineViewModel.reloadSceneDots`
+- `Scrivi/Views/ManuscriptTextView.swift` — Coordinator create/split handlers
 
 **Verification:**
 - [ ] Creating a scene via Cmd-Enter immediately adds a dot at the end of the timeline
@@ -515,3 +180,213 @@ After a successful `createScene` or `createChapter` call, reload the timeline mo
 - [ ] No regression in existing timeline interactions
 
 **Related Issues:** I-0036, I-0037
+
+---
+
+## I-0039: Clustering only applies to unanchored dots; anchored scene dots with overlapping positions are not grouped
+
+**Status:** 🔴 Open
+**Platform:** macOS
+**Component:** `TimelineStripView.swift` — `buildClusters`, `TimelineStripView.body`
+**Severity:** High
+**Sprint:** SP-042
+
+**Description:**
+`buildClusters` iterates over `model.dots` and groups any two scene dots whose rendered X positions are within one diameter of each other. However, the clustering groups that are produced are only rendered for dots where the cluster position logic fires — in practice, only unanchored ("default" `offsetSource`) dots that land at the same default position get grouped. Anchored dots (those with a manually or inferred `offsetMs`) that happen to occupy the same or very close screen positions are not being grouped and therefore overlap as stacked dots on the timeline line.
+
+**Expected Behavior:**
+Any two scene dots — anchored or unanchored — whose rendered X positions are within one dot diameter should be grouped into a cluster and rendered using the hexagonal ring layout. No dot should visually overlap another on the main timeline row.
+
+**Actual Behavior:**
+Only unanchored dots that happen to land at the same default position are grouped. Anchored dots that are close together or co-located overlap without grouping, creating a visual pile-up on the timeline line.
+
+**Steps to Reproduce:**
+1. Open a project where multiple scenes have manually-set story times that land within one dot diameter of each other on screen.
+2. Observe the timeline: the overlapping anchored dots appear stacked on the line with no cluster ring or count badge.
+
+**Root Cause (suspected):**
+`buildClusters` iterates `model.dots` in order and computes `dotX` for each. The comparison `abs(cx - ox) <= diameter` should group all nearby dots regardless of `offsetSource`. However, the ring-layout and badge rendering path (`clusterOffset`) requires the ZStack to place each member with a computed offset from the center. If `dotX` returns the same X for many unanchored dots (because they all share `offsetMs = 0` and `offsetSource = "default"`), they coincide trivially. For anchored dots the X values differ by tiny screen fractions — the `<= diameter` threshold may not catch them if `dotX` uses a floating-point comparison that is too tight, or `buildClusters` uses sorted order assumptions that cause it to skip comparisons between non-adjacent members.
+
+**Date Identified:** 2026-06-15
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — `buildClusters` (line 1029), `TimelineStripView.body` cluster rendering (line 626)
+
+**Verification:**
+- [ ] Two anchored scene dots at the same story time are rendered as a cluster with a ring layout
+- [ ] Two anchored scene dots within one diameter on screen are rendered as a cluster
+- [ ] Unanchored dots continue to cluster as before
+- [ ] No dot overlaps another on the main timeline row
+
+**Related Issues:** I-0037
+
+---
+
+## I-0040: Historical event dots on the main timeline are not clustered when co-located
+
+**Status:** 🔴 Open
+**Platform:** macOS
+**Component:** `TimelineStripView.swift` — `TimelineStripView.body`, historical event dot rendering
+**Severity:** High
+**Sprint:** SP-042
+
+**Description:**
+Historical event dots placed on the main (project) timeline row are rendered individually via a `ForEach` over `model.historicalEvents` without any clustering pass. When two or more historical event dots — or a historical event dot and a scene dot — land at the same or very close X position, they overlap visually. Unlike scene dots, historical event dots are not fed through `buildClusters` and are not subject to the hexagonal ring layout.
+
+**Expected Behavior:**
+Historical event dots that are co-located with other historical event dots, or co-located with scene dots, on the main timeline row should be grouped and rendered in the cluster ring layout (or at minimum offset so they do not visually overlap).
+
+**Actual Behavior:**
+Historical event dots are rendered at their computed X positions without any overlap detection. Multiple historical events at the same offset stack on top of each other and the overlapping dots are invisible beneath the top-most dot.
+
+**Steps to Reproduce:**
+1. Create two or more historical events at the same story-time offset (or close enough to overlap on screen).
+2. Observe the timeline main row: only the topmost dot is visible; the others are hidden underneath it.
+
+**Date Identified:** 2026-06-15
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — historical event `ForEach` in `TimelineStripView.body` (approximately line 690–730)
+
+**Verification:**
+- [ ] Two historical event dots at the same offset are rendered as a cluster (ring or offset)
+- [ ] A historical event dot co-located with a scene dot does not visually overlap it
+- [ ] No historical event dot is hidden beneath another
+
+**Related Issues:** I-0039, I-0037
+
+---
+
+## I-0041: Imported timeline dots on secondary and tertiary rows are not clustered when co-located
+
+**Status:** 🔴 Open
+**Platform:** macOS
+**Component:** `TimelineStripView.swift` — `ImportedEventDotView`, imported timeline row rendering
+**Severity:** Medium
+**Sprint:** SP-042
+
+**Description:**
+Imported timeline rows (secondary and tertiary, rendered below the main project row) display their event dots via a `ForEach` over each `ImportedTimelineRow`'s events without any clustering or overlap detection. When two events from the same imported timeline land at the same or very close X position, they overlap visually. There is no grouping, ring layout, or count badge for imported timeline rows.
+
+**Expected Behavior:**
+Imported timeline event dots that are co-located on the same row should be grouped and rendered using the same ring layout as scene dots, or at minimum offset so they do not overlap. A count badge should appear when the cluster exceeds the panel height budget.
+
+**Actual Behavior:**
+Imported event dots are rendered at their raw X positions with no clustering. Co-located events stack invisibly.
+
+**Steps to Reproduce:**
+1. Import a `.scrivi-timeline.json` that contains two or more events at the same story-time offset (after epoch adjustment).
+2. Observe the imported timeline row: the dots are stacked with only the topmost visible.
+
+**Date Identified:** 2026-06-15
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — imported timeline `ForEach` body (approximately line 730–790)
+
+**Verification:**
+- [ ] Two events from the same imported timeline at the same offset render as a cluster or are offset
+- [ ] Count badge appears when cluster height exceeds panel row budget
+- [ ] Events from different imported timeline rows do not interfere with each other's clustering
+
+**Related Issues:** I-0039, I-0040, I-0037
+
+---
+
+## I-0042: Timeline tooltip shows "Scene N" fallback title instead of first-line text; scene rename in Navigator is not reflected in Timeline
+
+**Status:** 🔴 Open
+**Platform:** macOS
+**Component:** `TimelineStripView.swift` — `SceneDotTooltipView`, `TimelineViewModel`; `ViewportSceneLoader.swift` — `liveTitles`
+**Severity:** Medium
+**Sprint:** SP-042
+
+**Description:**
+Two related defects in how scene titles are displayed in the Timeline panel:
+
+1. **Tooltip shows "Scene N" instead of first-line text.** When a scene has no explicit title set (i.e., `SceneInfo.title` is empty) the Scene Navigator correctly falls back to the first line of the scene's text content via `loader.liveTitles`. The Timeline tooltip (`SceneDotTooltipView`) uses `dot.title`, which is set from `info.title.isEmpty ? "Scene \(idx + 1)" : info.title` — it never consults `liveTitles`. The result is that the tooltip displays the ordinal fallback ("Scene 7") while the Navigator shows the actual first line ("Ekta lives in an apartment near the campus").
+
+2. **Renaming a scene in the Scene Navigator does not update the Timeline tooltip.** When the user edits a scene's title in the Navigator, `liveTitles` is updated via `updateLiveTitle(_:forSceneID:)`. The `SceneDot.title` field in `TimelineViewModel.dots` is only populated at load time — there is no reactive path from `liveTitles` back to `TimelineViewModel`. Consequently, `dot.title` remains stale until the project is closed and reopened.
+
+**Expected Behavior:**
+- When a scene has no explicit title, the Timeline tooltip shows the same first-line text that the Scene Navigator shows.
+- When the user renames a scene in the Navigator (or the first line of text changes), the Timeline tooltip updates to match within the same session.
+
+**Actual Behavior:**
+- Timeline tooltip shows "Scene N" for untitled scenes regardless of what the Navigator shows.
+- Changing the scene name in the Navigator has no effect on the Timeline tooltip for the rest of the session.
+
+**Steps to Reproduce:**
+1. Open a project where at least one scene has no explicit title (the first line of text is the de-facto name).
+2. Hover the corresponding dot in the Timeline panel — tooltip shows "Scene N".
+3. The Scene Navigator for the same scene shows the first line of text.
+4. Rename the scene in the Navigator.
+5. Hover the dot again — tooltip still shows the old "Scene N" fallback.
+
+**Root Cause:**
+`TimelineViewModel` is populated from `SceneInfo.title` at project open and on `reloadSceneDots`. It has no access to `ViewportSceneLoader.liveTitles`, which is the live first-line-title dictionary updated by `ManuscriptTextView.Coordinator`. The two systems are not connected.
+
+**Date Identified:** 2026-06-15
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — `TimelineViewModel` dot construction (line 244, 275), `SceneDotTooltipView.tooltipContent` (line 1769)
+- `Scrivi/Views/ViewportSceneLoader.swift` — `liveTitles` (line 38), `updateLiveTitle` (line 123)
+
+**Verification:**
+- [ ] Hovering a dot for an untitled scene shows the same first-line text that the Scene Navigator shows
+- [ ] Renaming a scene in the Navigator updates the Timeline tooltip in the same session without reopening the project
+- [ ] Scenes with explicit titles continue to show their titles unchanged
+
+**Related Issues:** I-0037, I-0038
+
+---
+
+## I-0043: Splitting a chapter creates a duplicate chapter number instead of renumbering; no confirmation dialog
+
+**Status:** 🔴 Open
+**Platform:** macOS
+**Component:** `ManuscriptTextView.swift` — chapter split handler; `ViewportSceneLoader.swift` — `splitChapter`
+**Severity:** High
+**Sprint:** SP-042
+
+**Description:**
+Two related defects in the chapter split operation (Shift-Cmd-Enter):
+
+1. **Duplicate chapter number produced.** Splitting Chapter 8 (for example) produces two chapters both titled "Chapter 8" instead of renaming the second half "Chapter 9" and incrementing all subsequent chapters (Chapter 9 → 10, etc.). The `splitChapter` implementation reassigns segments to the new chapter ID but does not update chapter ordinal labels anywhere — it preserves `chapterTitle` from the original chapter verbatim.
+
+2. **No confirmation dialog.** Renumbering all chapters following the split point is a large, irreversible operation that affects the entire manuscript. Currently, Shift-Cmd-Enter fires immediately with no warning. A confirmation dialog explaining the scope (e.g., "Splitting here will renumber Chapter 9 through Chapter N") should gate the operation.
+
+**Expected Behavior:**
+- Splitting a chapter at the cursor produces the original chapter (retaining its number) and a new chapter numbered one higher than the original, with all subsequent chapters incremented by one.
+- Before executing the split, a confirmation dialog appears explaining that all subsequent chapters will be renumbered and giving the user the opportunity to cancel.
+
+**Actual Behavior:**
+- Both halves of the split retain the original chapter's title, producing a duplicate chapter number in the Navigator.
+- The split fires immediately with no confirmation.
+
+**Steps to Reproduce:**
+1. Position the cursor in the middle of Chapter 8 (not the first or last scene).
+2. Press Shift-Cmd-Enter.
+3. Observe: two chapters labelled "Chapter 8" appear in the Scene Navigator. Chapters 9 and beyond are not renumbered.
+4. Observe: no confirmation dialog appeared before the split.
+
+**Root Cause (suspected):**
+`ViewportSceneLoader.splitChapter` copies `allScenes[j].chapterTitle` unchanged into the new chapter's `SceneInfo` entries (line 447). No renaming of the new chapter or renumbering of subsequent chapters is attempted — either in-memory or on disk (via the engine). The chapter-split engine call creates the chapter with a new ID but the title assignment is the caller's responsibility; neither the caller (`ManuscriptTextView.Coordinator`) nor the loader updates any titles.
+
+**Date Identified:** 2026-06-15
+
+**Files Affected:**
+- `Scrivi/Views/ManuscriptTextView.swift` — chapter split handler (line 390–480)
+- `Scrivi/Views/ViewportSceneLoader.swift` — `splitChapter` (line 423), `chapterTitle` propagation (line 447)
+
+**Verification:**
+- [ ] Splitting Chapter 8 produces "Chapter 8" and "Chapter 9" (or equivalent ordinal scheme)
+- [ ] All chapters after the split point are renumbered correctly
+- [ ] A confirmation dialog appears before the split, naming the scope of the renumber
+- [ ] The user can cancel from the confirmation dialog with no changes made
+- [ ] The Timeline panel reflects the updated chapter titles after the split
+
+**Related Issues:** I-0038
+
+---
+
+*Last Updated: 2026-06-15 (archived I-0031–I-0035 to verified; I-0036–I-0043 active)*

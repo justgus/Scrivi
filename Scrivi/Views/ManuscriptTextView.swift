@@ -305,8 +305,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             parent.loader.updateCursorPosition(manuscriptPos)
         }
 
-        // MARK: — Scene/Chapter creation (called from ManuscriptNSTextView)
+        // MARK: — Scene/Chapter creation and split/merge (called from ManuscriptNSTextView)
 
+        // Cmd-Enter: split scene at cursor, or append empty scene if at end.
         func handleCreateScene() {
             guard let tv = textView else { return }
             let loc = tv.selectedRange().location
@@ -314,15 +315,21 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let loader = parent.loader
             let env = parent.env
+
+            // Determine split offset within this segment's text.
+            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : NSRange(location: loc, length: 0)
+            let splitOffsetInSeg = max(0, loc - segRange.location)
+            let currentText = loader.segments.indices.contains(segIdx) ? loader.segments[segIdx].text : ""
+            let isAtEnd = splitOffsetInSeg >= currentText.count
+
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
                       let rootPath = env.projectRootPath,
                       let proj = env.openProjectResult,
-                      let currentSeg = loader.segments.indices.contains(segIdx)
-                          ? loader.segments[segIdx] : nil
+                      loader.segments.indices.contains(segIdx)
                 else { return }
 
-                // Save current scene first.
+                let currentSeg = loader.segments[segIdx]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
 
                 do {
@@ -334,15 +341,53 @@ struct ManuscriptTextView: NSViewRepresentable {
                         afterSceneID: currentSeg.sceneID,
                         authorshipRef: ref
                     )
-                    let newIdx = loader.insertScene(result, after: segIdx)
-                    loader.setCurrentIndex(newIdx)
-                    insertDividerAndMoveCursor(after: segIdx)
+
+                    if isAtEnd {
+                        // Append empty scene — original behaviour.
+                        let newIdx = loader.insertScene(result, after: segIdx)
+                        loader.setCurrentIndex(newIdx)
+                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
+                    } else {
+                        // Split: head stays in current scene, tail goes to the new scene.
+                        let headText = splitHead(of: currentText, at: splitOffsetInSeg)
+                        let tailText = splitTail(of: currentText, at: splitOffsetInSeg)
+
+                        // Save head into current scene.
+                        _ = try? env.engine.saveScene(
+                            projectID: proj.projectID,
+                            projectRootPath: rootPath,
+                            appSupportRoot: env.appSupportRoot,
+                            sceneID: currentSeg.sceneID,
+                            sceneMetadataPath: currentSeg.metadataPath,
+                            sceneContentPath: currentSeg.contentPath,
+                            markdown: headText,
+                            authorshipRef: ref
+                        )
+                        // Save tail into new scene.
+                        _ = try? env.engine.saveScene(
+                            projectID: proj.projectID,
+                            projectRootPath: rootPath,
+                            appSupportRoot: env.appSupportRoot,
+                            sceneID: result.sceneID,
+                            sceneMetadataPath: result.metadataPath,
+                            sceneContentPath: result.contentPath,
+                            markdown: tailText,
+                            authorshipRef: ref
+                        )
+                        let newIdx = loader.splitScene(result, at: segIdx, headText: headText, tailText: tailText)
+                        loader.setCurrentIndex(newIdx)
+                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
+                    }
+
+                    env.timelineModel?.reloadSceneDots(
+                        engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
                 } catch {
                     print("[Scrivi] createScene failed: \(error)")
                 }
             }
         }
 
+        // Shift-Cmd-Enter: split at cursor creating a new chapter, or append empty chapter at end.
         func handleCreateChapter() {
             guard let tv = textView else { return }
             let loc = tv.selectedRange().location
@@ -350,12 +395,20 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let loader = parent.loader
             let env = parent.env
+
+            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : NSRange(location: loc, length: 0)
+            let splitOffsetInSeg = max(0, loc - segRange.location)
+            let currentText = loader.segments.indices.contains(segIdx) ? loader.segments[segIdx].text : ""
+            let isAtEnd = splitOffsetInSeg >= currentText.count
+
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
                       let rootPath = env.projectRootPath,
-                      let proj = env.openProjectResult
+                      let proj = env.openProjectResult,
+                      loader.segments.indices.contains(segIdx)
                 else { return }
 
+                let currentSeg = loader.segments[segIdx]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
 
                 do {
@@ -365,18 +418,198 @@ struct ManuscriptTextView: NSViewRepresentable {
                         projectID: proj.projectID,
                         authorshipRef: ref
                     )
-                    let newIdx = loader.insertChapterFirstScene(result, after: segIdx)
-                    loader.setCurrentIndex(newIdx)
-                    insertDividerAndMoveCursor(after: segIdx)
+
+                    if isAtEnd {
+                        // Append empty chapter after current — original behaviour.
+                        let newIdx = loader.insertChapterFirstScene(result, after: segIdx)
+                        loader.setCurrentIndex(newIdx)
+                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
+                    } else {
+                        // Split scene at cursor: head stays in current scene (current chapter),
+                        // tail becomes first scene of new chapter.
+                        let headText = splitHead(of: currentText, at: splitOffsetInSeg)
+                        let tailText = splitTail(of: currentText, at: splitOffsetInSeg)
+
+                        // Save head into current scene.
+                        _ = try? env.engine.saveScene(
+                            projectID: proj.projectID,
+                            projectRootPath: rootPath,
+                            appSupportRoot: env.appSupportRoot,
+                            sceneID: currentSeg.sceneID,
+                            sceneMetadataPath: currentSeg.metadataPath,
+                            sceneContentPath: currentSeg.contentPath,
+                            markdown: headText,
+                            authorshipRef: ref
+                        )
+                        // Save tail into new chapter's first scene.
+                        _ = try? env.engine.saveScene(
+                            projectID: proj.projectID,
+                            projectRootPath: rootPath,
+                            appSupportRoot: env.appSupportRoot,
+                            sceneID: result.firstSceneID,
+                            sceneMetadataPath: result.firstSceneMetadataPath,
+                            sceneContentPath: result.firstSceneContentPath,
+                            markdown: tailText,
+                            authorshipRef: ref
+                        )
+
+                        // Capture old chapter ID before splitScene changes the segment.
+                        let oldChapterID = loader.segments.indices.contains(segIdx)
+                            ? loader.segments[segIdx].chapterID : ""
+
+                        // Update in-memory state for the new chapter's first scene.
+                        let chapterFirstResult = CreateSceneResult(
+                            sceneID: result.firstSceneID,
+                            chapterID: result.chapterID,
+                            metadataPath: result.firstSceneMetadataPath,
+                            contentPath: result.firstSceneContentPath
+                        )
+                        let newIdx = loader.splitScene(chapterFirstResult, at: segIdx,
+                                                       headText: headText, tailText: tailText)
+                        // Re-assign subsequent scenes in the old chapter to the new chapter.
+                        loader.splitChapter(result, movingFrom: newIdx, oldChapterID: oldChapterID)
+                        loader.setCurrentIndex(newIdx)
+                        insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
+                    }
+
+                    env.timelineModel?.reloadSceneDots(
+                        engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
                 } catch {
                     print("[Scrivi] createChapter failed: \(error)")
                 }
             }
         }
 
-        // After inserting a new segment into `loader.segments`, rebuild storage
-        // and position the cursor at the start of the new (empty) segment.
-        private func insertDividerAndMoveCursor(after segIdx: Int) {
+        // Cmd-Backspace: merge scene with previous scene (only if cursor at position 0 of scene,
+        // and the scene is not the first scene in its chapter).
+        func handleMergeScene() {
+            guard let tv = textView else { return }
+            let loc = tv.selectedRange().location
+            guard let segIdx = segmentIndex(for: loc) else { return }
+            guard segIdx > 0 else { return }
+
+            let loader = parent.loader
+            let env = parent.env
+
+            // Only fire if cursor is at the very start of this segment's content.
+            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : nil
+            guard let range = segRange, loc == range.location else { return }
+
+            // Do nothing if this is the first scene in its chapter.
+            guard loader.segments.indices.contains(segIdx),
+                  loader.segments.indices.contains(segIdx - 1),
+                  loader.segments[segIdx].chapterID == loader.segments[segIdx - 1].chapterID
+            else { return }
+
+            Task { @MainActor in
+                guard let ref = env.authorshipRef,
+                      let rootPath = env.projectRootPath,
+                      let proj = env.openProjectResult,
+                      loader.segments.indices.contains(segIdx),
+                      loader.segments.indices.contains(segIdx - 1)
+                else { return }
+
+                let currentSeg  = loader.segments[segIdx]
+                let predecessorSeg = loader.segments[segIdx - 1]
+                await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+
+                // Join: predecessor text + current text (no separator).
+                let joinText = predecessorSeg.text + currentSeg.text
+                let joinPoint = predecessorSeg.text.count  // cursor lands here after merge
+
+                // Save merged text into the predecessor scene.
+                _ = try? env.engine.saveScene(
+                    projectID: proj.projectID,
+                    projectRootPath: rootPath,
+                    appSupportRoot: env.appSupportRoot,
+                    sceneID: predecessorSeg.sceneID,
+                    sceneMetadataPath: predecessorSeg.metadataPath,
+                    sceneContentPath: predecessorSeg.contentPath,
+                    markdown: joinText,
+                    authorshipRef: ref
+                )
+                // Delete the current (now empty) scene from disk.
+                _ = try? env.engine.deleteScene(projectRootPath: rootPath, sceneID: currentSeg.sceneID)
+
+                let mergedIdx = loader.mergeSceneIntoPredecessor(at: segIdx, joinText: joinText)
+                loader.setCurrentIndex(mergedIdx)
+                rebuildStorageAndPlaceCursor(at: mergedIdx, textOffset: joinPoint)
+
+                env.timelineModel?.reloadSceneDots(
+                    engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+            }
+        }
+
+        // Shift-Cmd-Backspace: merge chapter with previous chapter (only if cursor at position 0
+        // of the first scene of a chapter, and not in the first chapter).
+        func handleMergeChapter() {
+            guard let tv = textView else { return }
+            let loc = tv.selectedRange().location
+            guard let segIdx = segmentIndex(for: loc) else { return }
+            guard segIdx > 0 else { return }
+
+            let loader = parent.loader
+            let env = parent.env
+
+            // Only fire if cursor is at the very start of the segment.
+            let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : nil
+            guard let range = segRange, loc == range.location else { return }
+
+            guard loader.segments.indices.contains(segIdx),
+                  loader.segments.indices.contains(segIdx - 1)
+            else { return }
+
+            let currentChapterID    = loader.segments[segIdx].chapterID
+            let predecessorChapterID = loader.segments[segIdx - 1].chapterID
+
+            // Must be a chapter boundary.
+            guard currentChapterID != predecessorChapterID else { return }
+
+            // Must be at the first scene of its chapter.
+            guard segIdx == loader.segments.firstIndex(where: { $0.chapterID == currentChapterID }) else { return }
+
+            Task { @MainActor in
+                guard let ref = env.authorshipRef,
+                      let rootPath = env.projectRootPath,
+                      let _ = env.openProjectResult,
+                      loader.segments.indices.contains(segIdx),
+                      loader.segments.indices.contains(segIdx - 1)
+                else { return }
+
+                await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+
+                // Find predecessor chapter's metadata path from allScenes.
+                let predecessorMeta = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterMetadataPath ?? ""
+                let predecessorTitle = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterTitle ?? ""
+
+                // Update in-memory state: move all scenes from current chapter to predecessor chapter.
+                loader.mergeChapterIntoPredecessor(
+                    at: segIdx,
+                    predecessorChapterID: predecessorChapterID,
+                    predecessorChapterMetadataPath: predecessorMeta,
+                    predecessorChapterTitle: predecessorTitle
+                )
+
+                // Delete the (now empty) chapter from disk.
+                _ = try? env.engine.deleteChapter(projectRootPath: rootPath, chapterID: currentChapterID)
+
+                // Rebuild storage; cursor stays at segIdx (now in predecessor chapter).
+                if let tv = textView {
+                    rebuildStorage(tv, segments: loader.segments)
+                    if sceneBoundaries.indices.contains(segIdx) {
+                        let cursorLoc = sceneBoundaries[segIdx].location
+                        tv.setSelectedRange(NSRange(location: cursorLoc, length: 0))
+                        tv.scrollRangeToVisible(NSRange(location: cursorLoc, length: 0))
+                    }
+                }
+
+                env.timelineModel?.reloadSceneDots(
+                    engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+            }
+        }
+
+        // After inserting a new segment, rebuild storage and position cursor.
+        private func insertDividerAndMoveCursor(after segIdx: Int, placeCursorAtStart: Bool) {
             guard let tv = textView else { return }
             rebuildStorage(tv, segments: parent.loader.segments)
             let newSegIdx = segIdx + 1
@@ -385,6 +618,32 @@ struct ManuscriptTextView: NSViewRepresentable {
                 tv.setSelectedRange(NSRange(location: loc, length: 0))
                 tv.scrollRangeToVisible(NSRange(location: loc, length: 0))
             }
+        }
+
+        // Rebuild storage and place the cursor at `textOffset` characters into segment `segIdx`.
+        private func rebuildStorageAndPlaceCursor(at segIdx: Int, textOffset: Int) {
+            guard let tv = textView else { return }
+            rebuildStorage(tv, segments: parent.loader.segments)
+            if sceneBoundaries.indices.contains(segIdx) {
+                let loc = sceneBoundaries[segIdx].location + textOffset
+                let clamped = min(loc, tv.string.count)
+                tv.setSelectedRange(NSRange(location: clamped, length: 0))
+                tv.scrollRangeToVisible(NSRange(location: clamped, length: 0))
+            }
+        }
+
+        // Return the substring of `text` before `offset`.
+        private func splitHead(of text: String, at offset: Int) -> String {
+            guard offset > 0 else { return "" }
+            let idx = text.index(text.startIndex, offsetBy: min(offset, text.count))
+            return String(text[..<idx])
+        }
+
+        // Return the substring of `text` from `offset` onward.
+        private func splitTail(of text: String, at offset: Int) -> String {
+            guard offset < text.count else { return "" }
+            let idx = text.index(text.startIndex, offsetBy: offset)
+            return String(text[idx...])
         }
 
         // MARK: — Helpers
@@ -536,9 +795,10 @@ final class ManuscriptNSTextView: NSTextView {
     }
 
     override func keyDown(with event: NSEvent) {
-        let isReturn = event.keyCode == 36  // kVK_Return
-        let cmd = event.modifierFlags.contains(.command)
-        let shift = event.modifierFlags.contains(.shift)
+        let isReturn    = event.keyCode == 36  // kVK_Return
+        let isDelete    = event.keyCode == 51  // kVK_Delete (backspace)
+        let cmd         = event.modifierFlags.contains(.command)
+        let shift       = event.modifierFlags.contains(.shift)
 
         if isReturn && cmd && shift {
             coordinator?.handleCreateChapter()
@@ -546,6 +806,14 @@ final class ManuscriptNSTextView: NSTextView {
         }
         if isReturn && cmd && !shift {
             coordinator?.handleCreateScene()
+            return
+        }
+        if isDelete && cmd && shift {
+            coordinator?.handleMergeChapter()
+            return
+        }
+        if isDelete && cmd && !shift {
+            coordinator?.handleMergeScene()
             return
         }
         super.keyDown(with: event)

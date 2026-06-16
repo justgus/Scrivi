@@ -52,7 +52,7 @@ Currently: **3 active Tasks**
 | Task | Title | Sprint | Status |
 | ---- | ----- | ------ | ------ |
 | T-0169 | Hover tooltips for historical event and imported event dots | SP-042 | 🔴 Open |
-| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | SP-042 | 🔴 Open |
+| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | SP-042 | 🟡 Implemented - Not Verified |
 | T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | 🟡 Implemented - Not Verified |
 
 See: [Task-active.md](Task-active.md)
@@ -213,4 +213,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-06-10 (T-0133–T-0137 verified; SP-038 closed; EP-015 closed)*
+*Last Updated: 2026-06-14 (T-0170 implemented - not verified)*

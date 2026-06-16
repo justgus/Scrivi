@@ -13,13 +13,18 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 ## Active Issues
 
-Currently: **1 active issue**
+Currently: **8 active issues**
 
 | Issue | Title | Severity | Sprint |
 | ----- | ----- | -------- | ------ |
 | I-0036 | Color.clear overlay blocks all timeline interaction; historical event at midpoint; no title popup | Critical | SP-042 |
 | I-0037 | Hover tooltips for historical event and imported event dots display in wrong position and show wrong content | High | SP-042 |
-| I-0038 | New scenes created via Cmd-Enter do not appear as dots on the Timeline | High | SP-042 |
+| I-0038 | New scenes created via Cmd-Enter do not appear as dots on the Timeline | High | SP-042 | 🟡 |
+| I-0039 | Clustering only applies to unanchored dots; anchored scene dots with overlapping positions are not grouped | High | SP-042 |
+| I-0040 | Historical event dots on the main timeline are not clustered when co-located | High | SP-042 |
+| I-0041 | Imported timeline dots on secondary and tertiary rows are not clustered when co-located | Medium | SP-042 |
+| I-0042 | Timeline tooltip shows "Scene N" fallback title instead of first-line text; rename not reflected | Medium | SP-042 |
+| I-0043 | Splitting a chapter creates a duplicate chapter number instead of renumbering; no confirmation dialog | High | SP-042 |
 
 See: [Issue-active.md][2]
 
@@ -56,16 +61,16 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 38
+- **Total Issues:** 43
 - **Verified:** 35 ✅ (I-0001–I-0015, I-0020–I-0036; I-0016 superseded; I-0017–I-0019 backlog)
-- **Active:** 2 🔴 (I-0037, I-0038)
+- **Active:** 7 🔴/🟡 (I-0037 open, I-0038 resolved-not-verified, I-0039–I-0043 open)
 - **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0039
+- **Next available:** I-0044
 
 ---
 
-*Last Updated: 2026-06-14 (I-0038 opened; I-0036 verified)*
+*Last Updated: 2026-06-15 (I-0039 through I-0043 opened)*
 
 
 [1]:	./ER-Documentation.md

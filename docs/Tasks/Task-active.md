@@ -11,7 +11,7 @@
 | T-0165 | Timeline export — produce `.scrivi-timeline.json` | ✅ Verified |
 | T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | 🟡 Implemented - Not Verified |
 | T-0169 | Hover tooltips for historical event and imported event dots | 🔴 Open |
-| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | 🔴 Open |
+| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | 🟡 Implemented - Not Verified |
 
 ---
 
@@ -19,9 +19,10 @@
 
 ## T-0170: Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges
 
-**Status:** 🔴 Open
+**Status:** 🟡 Implemented - Not Verified
 **Sprint:** SP-042
 **Epic:** EP-016
+**Date Implemented:** 2026-06-14
 
 **Description:**
 Extend Scrivi's manuscript editing with split and merge operations that respect the cursor position, providing natural authoring flow for restructuring content.
@@ -59,7 +60,48 @@ Extend Scrivi's manuscript editing with split and merge operations that respect 
 **Files Affected:**
 - `Scrivi/Views/ManuscriptTextView.swift` — Coordinator key binding handlers
 - `Scrivi/Views/ViewportSceneLoader.swift` — split/merge logic and scene boundary tracking
-- `Scrivi/Views/SceneNavigatorView.swift` — navigator reload after split/merge
+- `Scrivi/Views/TimelineStripView.swift` — `TimelineViewModel.reloadSceneDots`
+
+**Implementation Details:**
+
+### ManuscriptNSTextView.keyDown
+Added Cmd-Backspace → `handleMergeScene()` and Shift-Cmd-Backspace → `handleMergeChapter()` intercepts alongside the existing Cmd-Enter / Shift-Cmd-Enter intercepts.
+
+### Coordinator — Cmd-Enter (`handleCreateScene`)
+Now cursor-aware. Computes `splitOffsetInSeg` from the cursor's position within the current segment boundary.
+- At end: original empty-scene-append behaviour (no text split).
+- In middle or at beginning: saves `headText` to current scene via `saveScene`, saves `tailText` to the new scene via `saveScene`, then calls `loader.splitScene(result, at:headText:tailText:)`.
+- Always calls `timelineModel.reloadSceneDots` after success.
+
+### Coordinator — Shift-Cmd-Enter (`handleCreateChapter`)
+Same cursor-awareness as above for the scene-level split, plus `loader.splitChapter(result, movingFrom:oldChapterID:)` to re-assign any subsequent scenes in the old chapter to the new chapter. Always calls `timelineModel.reloadSceneDots`.
+
+### Coordinator — Cmd-Backspace (`handleMergeScene`)
+Guard: only fires if `loc == segRange.location` (cursor at very start of segment) and `segments[segIdx].chapterID == segments[segIdx-1].chapterID` (not first scene in chapter). Joins predecessor text + current text, saves via `saveScene`, deletes current scene via `deleteScene`, calls `loader.mergeSceneIntoPredecessor`. Cursor placed at join point.
+
+### Coordinator — Shift-Cmd-Backspace (`handleMergeChapter`)
+Guard: cursor at very start of a segment that is the first scene of its chapter, and not chapter 1. Calls `loader.mergeChapterIntoPredecessor`, then `deleteChapter` on the engine. Cursor placed at the start of the first moved scene.
+
+### ViewportSceneLoader — new methods
+- `splitScene(_:at:headText:tailText:)` — inserts new segment and allScenes entry; updates head segment text.
+- `mergeSceneIntoPredecessor(at:joinText:)` — removes the current segment and its allScenes entry; updates predecessor text.
+- `splitChapter(_:movingFrom:oldChapterID:)` — re-assigns segments at movingFrom+1 onward that still have oldChapterID to the new chapter.
+- `mergeChapterIntoPredecessor(at:predecessorChapterID:predecessorChapterMetadataPath:predecessorChapterTitle:)` — re-assigns all segments in the current chapter to the predecessor chapter.
+
+### TimelineViewModel — `reloadSceneDots`
+New method that rebuilds only `dots` from an updated scene list, preserving existing band assignments from the current `dots` array. Does not touch historical events, imported timelines, or story structure.
+
+**Test Steps:**
+1. **Cmd-Enter at end of scene:** place cursor at end of last word in a scene → press Cmd-Enter → new empty scene appears in navigator and as a new dot on timeline.
+2. **Cmd-Enter in middle of scene:** place cursor mid-sentence → press Cmd-Enter → text before cursor stays in current scene, text after cursor moves to a new scene; both visible in navigator and timeline.
+3. **Cmd-Enter at beginning of scene:** place cursor at position 0 of a scene → press Cmd-Enter → empty new scene inserted before (cursor scene becomes second); verify navigator and timeline.
+4. **Shift-Cmd-Enter at end of chapter's last scene:** cursor at end → press Shift-Cmd-Enter → new chapter created with empty first scene; verify navigator shows new chapter header.
+5. **Shift-Cmd-Enter in middle of scene:** cursor mid-sentence → press Shift-Cmd-Enter → head stays in current chapter, tail + all following scenes move to new chapter.
+6. **Cmd-Backspace at beginning of non-first scene in chapter:** cursor at position 0 of second scene → press Cmd-Backspace → scenes merge; merged scene in navigator, one fewer dot on timeline.
+7. **Cmd-Backspace at beginning of first scene in chapter:** cursor at position 0 of first scene in a chapter → press Cmd-Backspace → nothing happens (no merge across chapter boundary).
+8. **Shift-Cmd-Backspace at beginning of first scene of a chapter (not Ch.1):** cursor at position 0 → press Shift-Cmd-Backspace → all scenes of that chapter move to previous chapter; chapter header disappears in navigator.
+9. **Shift-Cmd-Backspace in Chapter 1:** cursor at position 0 of first scene → press Shift-Cmd-Backspace → nothing happens.
+10. **Timeline sync:** after each operation above, confirm dot count on timeline matches scene count in navigator.
 
 **Acceptance Criteria:**
 - [ ] Cmd-Enter at end of scene creates a new scene after current scene in same chapter
@@ -76,4 +118,4 @@ Extend Scrivi's manuscript editing with split and merge operations that respect 
 
 ---
 
-*Last Updated: 2026-06-14 (T-0161–T-0165 verified; T-0170 opened)*
+*Last Updated: 2026-06-14 (T-0170 implemented - not verified)*

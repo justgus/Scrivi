@@ -259,6 +259,33 @@ private struct ImportedTimelineFile: Decodable {
         loadImportedTimelines(projectRootPath: projectRootPath)
     }
 
+    // Reload only the scene dots from an updated scene list.
+    // Used after scene/chapter creation, split, or merge so the timeline stays in sync
+    // without resetting historical events, imported timelines, or story structure.
+    func reloadSceneDots(engine: ScriviEngine, projectRootPath: String, scenes: [SceneInfo]) {
+        var raw: [SceneDot] = scenes.enumerated().map { idx, info in
+            // Preserve any existing dot's bandID so band assignments survive the reload.
+            let existingBandID = dots.first(where: { $0.sceneID == info.sceneID })?.bandID ?? ""
+            let st = try? engine.getSceneStoryTime(
+                projectRootPath: projectRootPath, sceneID: info.sceneID)
+            let dur = st?.durationMs ?? defaultSceneDurationMs
+            return SceneDot(
+                id: info.sceneID,
+                sceneID: info.sceneID,
+                title: info.title.isEmpty ? "Scene \(idx + 1)" : info.title,
+                chapterTitle: info.chapterTitle,
+                offsetMs: 0,
+                offsetSource: st?.offsetSource ?? "default",
+                gapMs: st?.gapMs ?? 0,
+                durationMs: dur > 0 ? dur : defaultSceneDurationMs,
+                durationSource: st?.durationSource ?? "default",
+                bandID: st?.bandID.isEmpty == false ? st!.bandID : existingBandID
+            )
+        }
+        recomputeAllOffsets(in: &raw)
+        dots = raw
+    }
+
     // MARK: Historical events
 
     func loadHistoricalEvents(engine: ScriviEngine, projectRootPath: String) {
