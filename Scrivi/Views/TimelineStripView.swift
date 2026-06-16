@@ -188,8 +188,8 @@ private struct ImportedTimelineFile: Decodable {
     struct SceneDot: Identifiable {
         let id: String              // == sceneID
         let sceneID: String
-        let title: String
-        let chapterTitle: String
+        var title: String
+        var chapterTitle: String
         var offsetMs: Int64         // derived — computed from the gap chain, never stored as canonical
         var offsetSource: String    // "default" | "manual" | "inferred"
         var gapMs: Int64            // canonical: gap from previousSceneEnd to this scene's start
@@ -284,6 +284,29 @@ private struct ImportedTimelineFile: Decodable {
         }
         recomputeAllOffsets(in: &raw)
         dots = raw
+    }
+
+    // Patch dot titles to match the Scene Navigator's display logic exactly:
+    //   1. Explicit engine title (info.title non-empty) → use it unchanged.
+    //   2. No explicit title → use liveTitles first-line text if available.
+    //   3. Neither → keep the existing "Scene N" ordinal fallback on the dot.
+    // `allScenes` is passed so we can check info.title without a separate lookup path.
+    func updateDotTitles(liveTitles: [String: String], allScenes: [SceneInfo]) {
+        for i in dots.indices {
+            let sceneID = dots[i].sceneID
+            // Find the canonical title from allScenes.
+            if let info = allScenes.first(where: { $0.sceneID == sceneID }) {
+                if !info.title.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // Explicit title always wins.
+                    dots[i].title = info.title
+                } else if let live = liveTitles[sceneID],
+                          !live.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // No explicit title — use first-line live text.
+                    dots[i].title = live
+                }
+                // Otherwise leave the "Scene N" fallback already on the dot.
+            }
+        }
     }
 
     // MARK: Historical events
@@ -622,53 +645,94 @@ struct TimelineStripView: View {
                             .position(x: panelW / 2, y: lineY)
                     }
 
-                    // Scene dots (clustered)
+                    // Main-row dots — scene and historical event dots clustered together.
                     let clusters = buildClusters(usable: usable, panelW: panelW)
-                    ForEach(clusters, id: \.centerDotID) { cluster in
-                        ForEach(Array(cluster.members.enumerated()), id: \.element.id) { i, dot in
-                            let startX    = dotX(for: dot, usable: usable, panelW: panelW)
-                            let clusterOffset = clusterOffset(position: i, radius: dotRadius)
-                            let prevEndMs = previousSceneEndMs(for: dot)
-                            let prevTitle = previousSceneTitle(for: dot)
-                            let bandColor = bandColor(for: dot)
-                            SceneDotView(
-                                dot: dot,
-                                radius: dotRadius,
-                                epochLabel: model.epochLabel,
-                                startX: startX,
-                                panelWidth: panelW,
-                                lineY: lineY - clusterOffset.height,
-                                labelRowHeight: model.activeBands.isEmpty ? 0 : labelRowHeight,
-                                bands: model.activeBands,
-                                bandRingColor: bandColor,
-                                previousSceneEndMs: prevEndMs,
-                                previousSceneTitle: prevTitle,
-                                defaultDurationMs: model.defaultSceneDurationMs,
-                                computeOffsetMs: { finalPanelX in
-                                    offsetMs(fromPanelX: finalPanelX, usable: usable)
-                                },
-                                onCommit: { result, durationMs in
-                                    applyPickerResult(result, for: dot, pickerDurationMs: durationMs)
-                                },
-                                onAssignToBand: { bandID in
-                                    model.assignToBand(sceneID: dot.sceneID, bandID: bandID,
-                                                       engine: engine, projectRootPath: projectRootPath)
-                                },
-                                onUnassign: {
-                                    model.unassignFromBand(sceneID: dot.sceneID, engine: engine,
-                                                            projectRootPath: projectRootPath)
-                                },
-                                onHoverChanged: { hovered in
-                                    model.hoveredDotID = hovered ? dot.sceneID : nil
-                                }
-                            )
-                            .position(x: startX + clusterOffset.width, y: lineY - clusterOffset.height)
+                    ForEach(clusters, id: \.centerItemID) { cluster in
+                        // All ring offsets are relative to the cluster center X (first member
+                        // after X-sort). Each dot's own baseX is still passed as startX to the
+                        // dot view so drag/story-time calculations remain correct.
+                        let centerX = itemX(cluster.members[0], usable: usable, panelW: panelW)
+                        ForEach(Array(cluster.members.enumerated()), id: \.element.id) { i, item in
+                            let baseX         = itemX(item, usable: usable, panelW: panelW)
+                            let offset        = clusterOffset(position: i, clusterSize: cluster.members.count, radius: dotRadius)
+                            let posX          = centerX + offset.width
+                            let posY          = lineY - offset.height
+                            switch item {
+                            case .scene(let dot):
+                                let prevEndMs = previousSceneEndMs(for: dot)
+                                let prevTitle = previousSceneTitle(for: dot)
+                                let bandColor = bandColor(for: dot)
+                                SceneDotView(
+                                    dot: dot,
+                                    radius: dotRadius,
+                                    epochLabel: model.epochLabel,
+                                    startX: baseX,
+                                    panelWidth: panelW,
+                                    lineY: posY,
+                                    labelRowHeight: model.activeBands.isEmpty ? 0 : labelRowHeight,
+                                    bands: model.activeBands,
+                                    bandRingColor: bandColor,
+                                    previousSceneEndMs: prevEndMs,
+                                    previousSceneTitle: prevTitle,
+                                    defaultDurationMs: model.defaultSceneDurationMs,
+                                    computeOffsetMs: { finalPanelX in
+                                        offsetMs(fromPanelX: finalPanelX, usable: usable)
+                                    },
+                                    onCommit: { result, durationMs in
+                                        applyPickerResult(result, for: dot, pickerDurationMs: durationMs)
+                                    },
+                                    onAssignToBand: { bandID in
+                                        model.assignToBand(sceneID: dot.sceneID, bandID: bandID,
+                                                           engine: engine, projectRootPath: projectRootPath)
+                                    },
+                                    onUnassign: {
+                                        model.unassignFromBand(sceneID: dot.sceneID, engine: engine,
+                                                                projectRootPath: projectRootPath)
+                                    },
+                                    onHoverChanged: { hovered in
+                                        model.hoveredDotID = hovered ? dot.sceneID : nil
+                                    }
+                                )
+                                .position(x: posX, y: posY)
+                            case .historical(let event):
+                                HistoricalEventDotView(
+                                    event: event,
+                                    radius: dotRadius,
+                                    startX: baseX,
+                                    panelWidth: panelW,
+                                    lineY: posY,
+                                    epochLabel: model.epochLabel,
+                                    onDragEnd: { newOffsetMs in
+                                        model.updateHistoricalEventOffset(
+                                            eventID: event.eventID, offsetMs: newOffsetMs,
+                                            engine: engine, projectRootPath: projectRootPath)
+                                    },
+                                    onEdit: {
+                                        editingEventID = event.eventID
+                                        editingEventTitle = event.title
+                                        editingEventDescription = event.description
+                                        showHistoricalEventEditor = true
+                                    },
+                                    onDelete: {
+                                        model.deleteHistoricalEvent(
+                                            eventID: event.eventID, engine: engine,
+                                            projectRootPath: projectRootPath)
+                                    },
+                                    computeOffsetMs: { finalX in
+                                        offsetMs(fromPanelX: finalX, usable: usable)
+                                    },
+                                    onHoverChanged: { hovered in
+                                        model.hoveredHistoricalEventID = hovered ? event.eventID : nil
+                                    }
+                                )
+                                .position(x: posX, y: posY)
+                            }
                         }
                         // Count badge when cluster is too tall for the panel
                         if cluster.members.count > 1 {
                             let tallest = CGFloat(cluster.ringCount) * (dotRadius * 2 + 4)
                             if tallest > lineY - (model.activeBands.isEmpty ? 0 : labelRowHeight) {
-                                let cx = dotX(for: cluster.members[0], usable: usable, panelW: panelW)
+                                let cx = itemX(cluster.members[0], usable: usable, panelW: panelW)
                                 Text("\(cluster.members.count)")
                                     .font(.system(size: 8, weight: .bold))
                                     .foregroundStyle(.white)
@@ -678,42 +742,6 @@ struct TimelineStripView: View {
                                     .allowsHitTesting(false)
                             }
                         }
-                    }
-
-                    // Historical event dots
-                    ForEach(model.historicalEvents) { event in
-                        let x = eventX(offsetMs: event.offsetMs, usable: usable, panelW: panelW)
-                        HistoricalEventDotView(
-                            event: event,
-                            radius: dotRadius,
-                            startX: x,
-                            panelWidth: panelW,
-                            lineY: lineY,
-                            epochLabel: model.epochLabel,
-                            onDragEnd: { newOffsetMs in
-                                model.updateHistoricalEventOffset(
-                                    eventID: event.eventID, offsetMs: newOffsetMs,
-                                    engine: engine, projectRootPath: projectRootPath)
-                            },
-                            onEdit: {
-                                editingEventID = event.eventID
-                                editingEventTitle = event.title
-                                editingEventDescription = event.description
-                                showHistoricalEventEditor = true
-                            },
-                            onDelete: {
-                                model.deleteHistoricalEvent(
-                                    eventID: event.eventID, engine: engine,
-                                    projectRootPath: projectRootPath)
-                            },
-                            computeOffsetMs: { finalX in
-                                offsetMs(fromPanelX: finalX, usable: usable)
-                            },
-                            onHoverChanged: { hovered in
-                                model.hoveredHistoricalEventID = hovered ? event.eventID : nil
-                            }
-                        )
-                        .position(x: x, y: lineY)
                     }
 
                     // Imported timeline rows — centred as a group with the project row.
@@ -734,22 +762,45 @@ struct TimelineStripView: View {
                             .fill(Color.secondary.opacity(0.2))
                             .frame(width: max(usable, 1), height: 1)
                             .position(x: panelW / 2, y: rowY)
-                        // Event dots
-                        ForEach(timeline.events.filter {
+                        // Event dots — clustered per row so co-located events don't overlap.
+                        let importedRadius = dotRadius * 0.7
+                        let visibleEvents = timeline.events.filter {
                             let x = eventX(offsetMs: $0.projectOffsetMs, usable: usable, panelW: panelW)
                             return x >= 16 && x <= panelW - 16
-                        }) { ev in
-                            let x = eventX(offsetMs: ev.projectOffsetMs, usable: usable, panelW: panelW)
-                            let key = "\(timeline.timelineID):\(ev.eventID)"
-                            ImportedEventDotView(
-                                ev: ev,
-                                color: timeline.swiftUIColor,
-                                radius: dotRadius * 0.7,
-                                onHoverChanged: { hovered in
-                                    model.hoveredImportedEventKey = hovered ? key : nil
+                        }
+                        let importedClusters = buildImportedRowClusters(
+                            events: visibleEvents, usable: usable, panelW: panelW,
+                            radius: importedRadius)
+                        ForEach(importedClusters, id: \.centerEventID) { iCluster in
+                            let iCenterX = eventX(offsetMs: iCluster.members[0].projectOffsetMs,
+                                                  usable: usable, panelW: panelW)
+                            ForEach(Array(iCluster.members.enumerated()), id: \.element.id) { i, ev in
+                                let offset = clusterOffset(position: i, clusterSize: iCluster.members.count, radius: importedRadius)
+                                let key    = "\(timeline.timelineID):\(ev.eventID)"
+                                ImportedEventDotView(
+                                    ev: ev,
+                                    color: timeline.swiftUIColor,
+                                    radius: importedRadius,
+                                    onHoverChanged: { hovered in
+                                        model.hoveredImportedEventKey = hovered ? key : nil
+                                    }
+                                )
+                                .position(x: iCenterX + offset.width, y: rowY - offset.height)
+                            }
+                            if iCluster.members.count > 1 {
+                                let tallest = CGFloat(iCluster.ringCount) * (importedRadius * 2 + 4)
+                                if tallest > rowSpacing / 2 {
+                                    let cx = eventX(offsetMs: iCluster.members[0].projectOffsetMs,
+                                                    usable: usable, panelW: panelW)
+                                    Text("\(iCluster.members.count)")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 3).padding(.vertical, 1)
+                                        .background(Capsule().fill(Color.secondary))
+                                        .position(x: cx, y: rowY - tallest - 6)
+                                        .allowsHitTesting(false)
                                 }
-                            )
-                            .position(x: x, y: rowY)
+                            }
                         }
                     }
                 }
@@ -1019,51 +1070,127 @@ struct TimelineStripView: View {
 
     // MARK: Clustering (FR-030–FR-035)
 
+    // A single item on the main timeline row — either a scene dot or a historical event dot.
+    enum MainRowItem {
+        case scene(TimelineViewModel.SceneDot)
+        case historical(HistoricalEventDot)
+
+        var id: String {
+            switch self {
+            case .scene(let d): return "s:\(d.id)"
+            case .historical(let e): return "h:\(e.id)"
+            }
+        }
+
+        var offsetMs: Int64 {
+            switch self {
+            case .scene(let d): return d.offsetMs
+            case .historical(let e): return e.offsetMs
+            }
+        }
+    }
+
     struct DotCluster {
-        let centerDotID: String
-        let members: [TimelineViewModel.SceneDot]
+        let centerItemID: String
+        let members: [MainRowItem]
         var ringCount: Int { members.count <= 1 ? 0 : members.count <= 7 ? 1 : 2 }
     }
 
-    // Groups dots within one dot-diameter of each other into clusters.
+    // Groups all main-row items (scene dots + historical event dots) within one dot-diameter
+    // of each other into clusters. Items are sorted by X first, then grouped using a
+    // contiguous-window pass so grouping is transitive: any item within one diameter of the
+    // rightmost current cluster member joins, not just items near the first member.
     private func buildClusters(usable: CGFloat, panelW: CGFloat) -> [DotCluster] {
         let diameter = dotRadius * 2
-        var assigned = Set<String>()
+        var allItems: [MainRowItem] = model.dots.map { .scene($0) }
+            + model.historicalEvents.map { .historical($0) }
+        allItems.sort { itemX($0, usable: usable, panelW: panelW) < itemX($1, usable: usable, panelW: panelW) }
+
         var clusters: [DotCluster] = []
-        for dot in model.dots {
-            guard !assigned.contains(dot.id) else { continue }
-            let cx = dotX(for: dot, usable: usable, panelW: panelW)
-            var members = [dot]
-            assigned.insert(dot.id)
-            for other in model.dots where !assigned.contains(other.id) {
-                let ox = dotX(for: other, usable: usable, panelW: panelW)
-                if abs(cx - ox) <= diameter {
-                    members.append(other)
-                    assigned.insert(other.id)
+        var i = 0
+        while i < allItems.count {
+            let anchor = allItems[i]
+            var members = [anchor]
+            var clusterMaxX = itemX(anchor, usable: usable, panelW: panelW)
+            var j = i + 1
+            while j < allItems.count {
+                let ox = itemX(allItems[j], usable: usable, panelW: panelW)
+                if ox - clusterMaxX <= diameter {
+                    members.append(allItems[j])
+                    clusterMaxX = ox
+                    j += 1
+                } else {
+                    break
                 }
             }
-            clusters.append(DotCluster(centerDotID: dot.id, members: members))
+            clusters.append(DotCluster(centerItemID: anchor.id, members: members))
+            i = j
         }
         return clusters
     }
 
-    // Returns the x/y offset for position `i` in a hexagonal cluster ring layout.
-    // Position 0 = center (on the line). Positions 1–6 = ring 1 clockwise from 12 o'clock.
-    // Positions 7–18 = ring 2.
-    private func clusterOffset(position: Int, radius: CGFloat) -> CGSize {
-        if position == 0 { return .zero }
-        let spacing = radius * 2 + 3
-        let (ring, pos) = ringAndPos(for: position)
-        let count = ring * 6
-        let angle = (CGFloat(pos) / CGFloat(count)) * 2 * .pi - (.pi / 2)
-        let r = CGFloat(ring) * spacing
-        return CGSize(width: r * cos(angle), height: r * sin(angle))
+    private func itemX(_ item: MainRowItem, usable: CGFloat, panelW: CGFloat) -> CGFloat {
+        eventX(offsetMs: item.offsetMs, usable: usable, panelW: panelW)
     }
 
-    private func ringAndPos(for position: Int) -> (Int, Int) {
-        if position <= 6  { return (1, position - 1) }
-        if position <= 18 { return (2, position - 7) }
-        return (3, position - 19)
+    // Clusters imported event dots within a single row by X proximity.
+    // Events from different rows are never mixed — call once per visible row.
+    struct ImportedRowCluster {
+        let centerEventID: String
+        let members: [ImportedEventDot]
+        var ringCount: Int { members.count <= 1 ? 0 : members.count <= 7 ? 1 : 2 }
+    }
+
+    private func buildImportedRowClusters(events: [ImportedEventDot],
+                                          usable: CGFloat, panelW: CGFloat,
+                                          radius: CGFloat) -> [ImportedRowCluster] {
+        let diameter = radius * 2
+        let sorted = events.sorted {
+            eventX(offsetMs: $0.projectOffsetMs, usable: usable, panelW: panelW)
+            < eventX(offsetMs: $1.projectOffsetMs, usable: usable, panelW: panelW)
+        }
+        var clusters: [ImportedRowCluster] = []
+        var i = 0
+        while i < sorted.count {
+            let anchor = sorted[i]
+            var members = [anchor]
+            var clusterMaxX = eventX(offsetMs: anchor.projectOffsetMs, usable: usable, panelW: panelW)
+            var j = i + 1
+            while j < sorted.count {
+                let ox = eventX(offsetMs: sorted[j].projectOffsetMs, usable: usable, panelW: panelW)
+                if ox - clusterMaxX <= diameter {
+                    members.append(sorted[j])
+                    clusterMaxX = ox
+                    j += 1
+                } else {
+                    break
+                }
+            }
+            clusters.append(ImportedRowCluster(centerEventID: anchor.eventID, members: members))
+            i = j
+        }
+        return clusters
+    }
+
+    // Returns the x/y offset for cluster member at index `i` within a cluster of `clusterSize`.
+    // i=0 always returns .zero — the anchor dot stays on the timeline line.
+    // i=1+ are placed in the ring: 12 o'clock, 2 o'clock, 4 o'clock, 6 o'clock, 8 o'clock, 10 o'clock…
+    // height is positive-upward; callers use `lineY - offset.height`.
+    private func clusterOffset(position: Int, clusterSize: Int, radius: CGFloat) -> CGSize {
+        guard clusterSize > 1, position > 0 else { return .zero }
+        let spacing = radius * 2 + 3
+        // Ring members start at position 1. Map to ring/slot (ring 1 has 6 slots, ring 2 has 12).
+        let ringPosition = position - 1
+        let (ring, slot): (Int, Int)
+        if ringPosition < 6       { (ring, slot) = (1, ringPosition) }
+        else if ringPosition < 18 { (ring, slot) = (2, ringPosition - 6) }
+        else                      { (ring, slot) = (3, ringPosition - 18) }
+        let count = ring * 6
+        // Start at 90° (12 o'clock) and step clockwise at 60° increments.
+        let angleDeg = 90.0 - (Double(slot) / Double(count)) * 360.0
+        let angleRad = angleDeg * .pi / 180.0
+        let r = CGFloat(ring) * spacing
+        return CGSize(width: r * cos(angleRad), height: r * sin(angleRad))
     }
 
     // MARK: Import / Export

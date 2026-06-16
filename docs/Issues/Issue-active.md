@@ -73,7 +73,7 @@ Three related defects introduced in SP-042 that together make the timeline panel
 
 ## I-0037: Hover tooltips for historical event and imported event dots display in wrong position and show wrong content
 
-**Status:** 🔴 Open
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `TimelineStripView.swift` — `HistoricalEventDotView`, `ImportedEventDotView`, `SimpleTooltipView`
 **Severity:** High
@@ -132,7 +132,7 @@ This is the identical class of problem that required scene dot tooltips to use t
 
 ## I-0038: New scenes created via Cmd-Enter do not appear as dots on the Timeline
 
-**Status:** 🟡 Resolved - Not Verified
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `ViewportSceneLoader.swift`, `AppEnvironment.swift`, `TimelineStripView.swift` — `TimelineViewModel`
 **Severity:** High
@@ -185,7 +185,7 @@ The timeline panel does not update. The new scene dot does not appear until the 
 
 ## I-0039: Clustering only applies to unanchored dots; anchored scene dots with overlapping positions are not grouped
 
-**Status:** 🔴 Open
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `TimelineStripView.swift` — `buildClusters`, `TimelineStripView.body`
 **Severity:** High
@@ -209,8 +209,15 @@ Only unanchored dots that happen to land at the same default position are groupe
 
 **Date Identified:** 2026-06-15
 
+**Resolution:**
+
+**Fix Date:** 2026-06-16
+
+**Implementation:**
+Introduced a `MainRowItem` enum wrapping either a `SceneDot` or a `HistoricalEventDot`. `buildClusters` now operates over all main-row items sorted by X position before grouping, so transitive proximity chains are caught regardless of source array order. Both dot types share a single cluster loop; the rendering loop switches on `MainRowItem` case to call `SceneDotView` or `HistoricalEventDotView` as appropriate. This also fixes I-0040 in the same change.
+
 **Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — `buildClusters` (line 1029), `TimelineStripView.body` cluster rendering (line 626)
+- `Scrivi/Views/TimelineStripView.swift` — `MainRowItem` enum, `DotCluster`, `buildClusters`, `itemX`, main-row rendering loop
 
 **Verification:**
 - [ ] Two anchored scene dots at the same story time are rendered as a cluster with a ring layout
@@ -218,13 +225,13 @@ Only unanchored dots that happen to land at the same default position are groupe
 - [ ] Unanchored dots continue to cluster as before
 - [ ] No dot overlaps another on the main timeline row
 
-**Related Issues:** I-0037
+**Related Issues:** I-0037, I-0040
 
 ---
 
 ## I-0040: Historical event dots on the main timeline are not clustered when co-located
 
-**Status:** 🔴 Open
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `TimelineStripView.swift` — `TimelineStripView.body`, historical event dot rendering
 **Severity:** High
@@ -245,8 +252,15 @@ Historical event dots are rendered at their computed X positions without any ove
 
 **Date Identified:** 2026-06-15
 
+**Resolution:**
+
+**Fix Date:** 2026-06-16
+
+**Implementation:**
+Fixed as part of I-0039. Historical event dots are now included in the unified `buildClusters` pass via `MainRowItem.historical`. The separate unclustered `ForEach` over `model.historicalEvents` has been removed; historical event dots are now rendered inside the same cluster loop as scene dots, using the `clusterOffset` ring layout.
+
 **Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — historical event `ForEach` in `TimelineStripView.body` (approximately line 690–730)
+- `Scrivi/Views/TimelineStripView.swift` — unified main-row rendering loop; separate historical event `ForEach` removed
 
 **Verification:**
 - [ ] Two historical event dots at the same offset are rendered as a cluster (ring or offset)
@@ -259,7 +273,7 @@ Historical event dots are rendered at their computed X positions without any ove
 
 ## I-0041: Imported timeline dots on secondary and tertiary rows are not clustered when co-located
 
-**Status:** 🔴 Open
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `TimelineStripView.swift` — `ImportedEventDotView`, imported timeline row rendering
 **Severity:** Medium
@@ -280,8 +294,15 @@ Imported event dots are rendered at their raw X positions with no clustering. Co
 
 **Date Identified:** 2026-06-15
 
+**Resolution:**
+
+**Fix Date:** 2026-06-16
+
+**Implementation:**
+Added `ImportedRowCluster` struct and `buildImportedRowClusters` helper (parallel to `buildClusters`). Each visible imported row now runs its own clustering pass over its events sorted by X position; dots from different rows are never mixed. The inner `ForEach` over raw events is replaced with a clustered loop using `clusterOffset` for ring layout and a count badge when the cluster height exceeds the row's half-spacing budget. The `hoveredImportedEventKey` tooltip path is unchanged — each dot still sets the key on hover.
+
 **Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — imported timeline `ForEach` body (approximately line 730–790)
+- `Scrivi/Views/TimelineStripView.swift` — `ImportedRowCluster`, `buildImportedRowClusters`, imported row rendering loop
 
 **Verification:**
 - [ ] Two events from the same imported timeline at the same offset render as a cluster or are offset
@@ -294,7 +315,7 @@ Imported event dots are rendered at their raw X positions with no clustering. Co
 
 ## I-0042: Timeline tooltip shows "Scene N" fallback title instead of first-line text; scene rename in Navigator is not reflected in Timeline
 
-**Status:** 🔴 Open
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `TimelineStripView.swift` — `SceneDotTooltipView`, `TimelineViewModel`; `ViewportSceneLoader.swift` — `liveTitles`
 **Severity:** Medium
@@ -327,9 +348,19 @@ Two related defects in how scene titles are displayed in the Timeline panel:
 
 **Date Identified:** 2026-06-15
 
+**Resolution:**
+
+**Fix Date:** 2026-06-16
+
+**Implementation:**
+1. `SceneDot.title` and `SceneDot.chapterTitle` changed from `let` to `var` to allow in-place patching.
+2. Added `TimelineViewModel.updateDotTitles(liveTitles:allScenes:)` — applies the same three-way priority as the Scene Navigator: (1) explicit `info.title` if non-empty, (2) `liveTitles` first-line text if available, (3) leave the existing "Scene N" fallback unchanged. `allScenes` is passed so explicit titles can be distinguished from fallbacks without a separate lookup.
+3. `ManuscriptTextView.Coordinator.titleTask` debounce calls `updateDotTitles` immediately after `loader.updateLiveTitle(...)` — so any first-line edit propagates to the Timeline tooltip within the 300ms debounce window.
+4. All four `reloadSceneDots` call sites now call `updateDotTitles` immediately after, so the correct title is applied whenever the dot array is rebuilt.
+
 **Files Affected:**
-- `Scrivi/Views/TimelineStripView.swift` — `TimelineViewModel` dot construction (line 244, 275), `SceneDotTooltipView.tooltipContent` (line 1769)
-- `Scrivi/Views/ViewportSceneLoader.swift` — `liveTitles` (line 38), `updateLiveTitle` (line 123)
+- `Scrivi/Views/TimelineStripView.swift` — `SceneDot` (`title`/`chapterTitle` now `var`), `TimelineViewModel.updateDotTitles(liveTitles:allScenes:)`
+- `Scrivi/Views/ManuscriptTextView.swift` — `titleTask` debounce, all four `reloadSceneDots` call sites
 
 **Verification:**
 - [ ] Hovering a dot for an untitled scene shows the same first-line text that the Scene Navigator shows
@@ -342,7 +373,7 @@ Two related defects in how scene titles are displayed in the Timeline panel:
 
 ## I-0043: Splitting a chapter creates a duplicate chapter number instead of renumbering; no confirmation dialog
 
-**Status:** 🔴 Open
+**Status:** ✅ Verified
 **Platform:** macOS
 **Component:** `ManuscriptTextView.swift` — chapter split handler; `ViewportSceneLoader.swift` — `splitChapter`
 **Severity:** High
@@ -369,24 +400,104 @@ Two related defects in the chapter split operation (Shift-Cmd-Enter):
 3. Observe: two chapters labelled "Chapter 8" appear in the Scene Navigator. Chapters 9 and beyond are not renumbered.
 4. Observe: no confirmation dialog appeared before the split.
 
-**Root Cause (suspected):**
-`ViewportSceneLoader.splitChapter` copies `allScenes[j].chapterTitle` unchanged into the new chapter's `SceneInfo` entries (line 447). No renaming of the new chapter or renumbering of subsequent chapters is attempted — either in-memory or on disk (via the engine). The chapter-split engine call creates the chapter with a new ID but the title assignment is the caller's responsibility; neither the caller (`ManuscriptTextView.Coordinator`) nor the loader updates any titles.
+**Root Cause:**
+`ViewportSceneLoader.splitChapter` re-assigns scene `chapterID` and `chapterMetadataPath` but copies `chapterTitle` verbatim from the old chapter's `allScenes` entries. The engine writes the correct ordinal title to disk (e.g. "Chapter 9") but does not return it in `CreateChapterResult`, so the Swift layer never learns it. No renumbering of subsequent chapters was attempted in memory. Additionally, `handleCreateChapter` fired immediately with no confirmation dialog.
 
 **Date Identified:** 2026-06-15
 
+**Resolution:**
+
+**Fix Date:** 2026-06-16
+
+**Implementation:**
+1. Added `ViewportSceneLoader.renumberChapterTitlesFrom(segmentIndex:)` — builds the ordered chapter list from `allScenes`, finds the ordinal of the chapter at `segmentIndex`, then rewrites `chapterTitle` for every scene in every chapter from that ordinal onward to `"Chapter N"`. This corrects the new chapter and all subsequent chapters in-memory; the engine already wrote the correct titles to disk.
+2. `handleCreateChapter` now calls `renumberChapterTitlesFrom` after both the "append at end" and "split in middle" paths.
+3. Before the `Task` fires, `handleCreateChapter` counts how many chapters follow the current one. If `chaptersAfter > 0`, an `NSAlert` is shown explaining the scope of renumbering. The split proceeds only if the user confirms.
+4. `handleMergeChapter` (Shift-Cmd-Backspace) now calls `renumberChapterTitlesFrom` after `mergeChapterIntoPredecessor`, starting from the first scene of the predecessor chapter. Deleting a chapter shifts all subsequent chapter ordinals down by one; without this call those chapters would retain stale "Chapter N+1" titles in-memory.
+
 **Files Affected:**
-- `Scrivi/Views/ManuscriptTextView.swift` — chapter split handler (line 390–480)
-- `Scrivi/Views/ViewportSceneLoader.swift` — `splitChapter` (line 423), `chapterTitle` propagation (line 447)
+- `Scrivi/Views/ViewportSceneLoader.swift` — `renumberChapterTitlesFrom(segmentIndex:)`
+- `Scrivi/Views/ManuscriptTextView.swift` — `handleCreateChapter` (confirmation dialog + `renumberChapterTitlesFrom`), `handleMergeChapter` (`renumberChapterTitlesFrom` after merge)
 
 **Verification:**
-- [ ] Splitting Chapter 8 produces "Chapter 8" and "Chapter 9" (or equivalent ordinal scheme)
-- [ ] All chapters after the split point are renumbered correctly
-- [ ] A confirmation dialog appears before the split, naming the scope of the renumber
+- [ ] Splitting Chapter 8 produces "Chapter 8" and "Chapter 9" in the Navigator
+- [ ] All chapters after the split point are renumbered correctly (Chapter 9 → 10, etc.)
+- [ ] A confirmation dialog appears before the split when subsequent chapters exist, naming the count
 - [ ] The user can cancel from the confirmation dialog with no changes made
-- [ ] The Timeline panel reflects the updated chapter titles after the split
+- [ ] Splitting the last chapter (no chapters after) proceeds without a confirmation dialog
+- [ ] Merging Chapter 9 into Chapter 8 via Shift-Cmd-Backspace renumbers Chapter 10 → Chapter 9, Chapter 11 → Chapter 10, etc.
+- [ ] The Timeline panel reflects the updated chapter titles after split and merge
 
 **Related Issues:** I-0038
 
 ---
 
-*Last Updated: 2026-06-15 (archived I-0031–I-0035 to verified; I-0036–I-0043 active)*
+## I-0044: Three cluster layout defects: wrong direction, anchor-only grouping, center dot on the line
+
+**Status:** ✅ Verified
+**Platform:** macOS
+**Component:** `TimelineStripView.swift` — `clusterOffset`, `buildClusters`, `buildImportedRowClusters`, main-row rendering loop
+**Severity:** High
+**Sprint:** SP-042
+
+**Description:**
+Three separate defects in the cluster layout, discovered incrementally during verification:
+
+1. **Ring grew downward instead of upward; clockwise direction inverted.** Position 1 (intended 12 o'clock, above the line) appeared at 6 o'clock (below the line), and subsequent positions proceeded counter-clockwise.
+
+2. **Grouping was non-transitive.** `buildClusters` compared every candidate against the first cluster member's X only. A chain of dots each within one diameter of their neighbor but more than one diameter from the anchor created multiple small clusters instead of one. E.g., Scenes 11–16 each one-diameter apart formed three pairs rather than one cluster of six.
+
+3. **Cluster members positioned relative to their own timeline X, not the cluster center.** The rendering loop computed `posX = baseX + offset.width` using each dot's individual timeline X as the base. Ring offsets were applied relative to each dot's own story-time position, not the cluster center's X. This produced dots scattered at angles determined by their individual X displacement — visually appearing at ~60° instead of the intended 90°, 30°, -30°, etc.
+
+4. **Center dot (position 0) sat on the timeline line.** Every cluster anchor remained on the line, visually implying it represents an exact story-time position. The design intent is that all cluster members — including the center — are lifted off the line. The correct layout has position 0 at 90° (12 o'clock) and subsequent members at 30°, -30°, -90°, -150°, 150° clockwise.
+
+**Expected Behavior:**
+- Position 0 (anchor) stays on the timeline line at the cluster center X.
+- Positions 1–6 form ring 1 clockwise: 12 o'clock, 2 o'clock, 4 o'clock, 6 o'clock, 8 o'clock, 10 o'clock.
+- Grouping is transitive: any dot within one diameter of any current cluster member joins that cluster.
+- All members rendered relative to the cluster center's X, not their own story-time X.
+
+**Actual Behavior:**
+- Position 0 sat on the line; position 1 appeared below the line.
+- Nearby-but-not-anchor-adjacent dots formed separate clusters (zig-zag pairs instead of one ring).
+- Ring members appeared at wrong angles due to individual baseX displacement.
+
+**Date Identified:** 2026-06-16
+
+**Root Cause Analysis:**
+
+**RC-1 — Inverted direction (`clusterOffset`):** `height = r * sin(angle)`. At 12 o'clock, `angle = -π/2`, `sin(-π/2) = -1`, giving `height = -r`. The rendering loop computes `posY = lineY - offset.height = lineY + r` — below the line. Fixed by negating sin: `height = -(r * sin(angle))`.
+
+**RC-2 — Non-transitive grouping (`buildClusters`, `buildImportedRowClusters`):** The inner loop compared each candidate against `cx` (the first member's X) only. After sorting by X, a simple contiguous-window pass suffices: each new member extends the cluster's right edge, and subsequent candidates are compared against that growing edge.
+
+**RC-3 — Wrong base X in rendering loop:** `posX = baseX + offset.width` used each dot's own `baseX`. Must use the cluster center's X (the first member's X after X-sort) as the common anchor for all ring offsets.
+
+**RC-4 — Position 0 on the line:** `clusterOffset(position: 0)` returned `.zero`. Changed so that position 0 maps to the 90° slot and positions 1–5 follow clockwise at 30° increments, using a flat 6-position ring (no center dot).
+
+**Resolution:**
+
+**Fix Date:** 2026-06-16
+
+**Implementation:**
+1. `clusterOffset` rewritten: position `i` maps to angle `90° - i * 60°` (clockwise from 12 o'clock). All positions are off the line. `spacing = radius * 2 + 3`. Height is positive-upward.
+2. `buildClusters` grouping changed to a contiguous window: after X-sort, the cluster's right boundary extends as members join; new candidates compare against `clusterMaxX`, not just `cx`.
+3. `buildImportedRowClusters` gets the same contiguous-window fix.
+4. Rendering loop: `centerX` extracted from `cluster.members[0]` once per cluster; all members use `centerX + offset.width` for their X position. Each dot's own `baseX` (its true timeline X) is still passed as `startX` to the dot view for drag/story-time calculations.
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — `clusterOffset`, `buildClusters`, `buildImportedRowClusters`, main-row rendering loop
+
+**Verification:**
+- [ ] Solo dots remain on the timeline line, unaffected
+- [ ] Cluster anchor (position 0) stays on the timeline line at the cluster center X
+- [ ] Position 1 appears at 12 o'clock directly above the anchor
+- [ ] Positions 2–6 proceed clockwise: 2, 4, 6, 8, 10 o'clock
+- [ ] Six scenes within one-diameter-chain of each other form one cluster of 6, not multiple pairs
+- [ ] All ring members are horizontally centred on the cluster center X, not scattered by their individual story-time offsets
+- [ ] Drag interactions on clustered dots still compute story-time correctly from their own timeline position
+
+**Related Issues:** I-0039, I-0040, I-0041
+
+---
+
+*Last Updated: 2026-06-16 (I-0036–I-0044 all verified)*

@@ -45,7 +45,7 @@
 | SP-039 | Timeline Persistence — ScriviCore schema and API | ✅ Closed |
 | SP-040 | Timeline SwiftUI — core rendering, drag, and Time Delta Picker | ✅ Closed |
 | SP-041 | Story Structure bands — overlay, drag borders, band assignment | ✅ Closed |
-| SP-042 | Historical events, imported timelines, export, and clustering | 🟡 Active |
+| SP-042 | Historical events, imported timelines, export, and clustering | ✅ Closed |
 | SP-043 | EP-016 verification and polish | 🔵 Planning |
 
 ### Tasks

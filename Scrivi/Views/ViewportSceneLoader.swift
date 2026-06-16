@@ -416,6 +416,43 @@ struct SceneSegment: Identifiable {
         return predecessorIdx
     }
 
+    // Recompute ordinal chapter titles ("Chapter N") for all chapters from `segmentIndex` onward.
+    // Called after a chapter split to fix the in-memory titles — the engine already wrote the
+    // correct ordinals to disk; this keeps the Navigator and tooltip display in sync.
+    func renumberChapterTitlesFrom(segmentIndex: Int) {
+        // Build the ordered list of distinct chapterIDs as they appear in allScenes.
+        var seen = Set<String>()
+        var orderedChapterIDs: [String] = []
+        for info in allScenes {
+            if seen.insert(info.chapterID).inserted {
+                orderedChapterIDs.append(info.chapterID)
+            }
+        }
+        // Find the ordinal of the chapter at segmentIndex so we know where renumbering begins.
+        guard segments.indices.contains(segmentIndex) else { return }
+        let startChapterID = segments[segmentIndex].chapterID
+        guard let startOrdinalIdx = orderedChapterIDs.firstIndex(of: startChapterID) else { return }
+
+        // Rewrite chapterTitle for every scene in every chapter from startOrdinalIdx onward.
+        for ordinalIdx in startOrdinalIdx ..< orderedChapterIDs.count {
+            let chID = orderedChapterIDs[ordinalIdx]
+            let newTitle = "Chapter \(ordinalIdx + 1)"
+            for j in allScenes.indices where allScenes[j].chapterID == chID {
+                let old = allScenes[j]
+                allScenes[j] = SceneInfo(
+                    sceneID: old.sceneID,
+                    chapterID: old.chapterID,
+                    title: old.title,
+                    chapterTitle: newTitle,
+                    slug: old.slug,
+                    metadataPath: old.metadataPath,
+                    contentPath: old.contentPath,
+                    chapterMetadataPath: old.chapterMetadataPath
+                )
+            }
+        }
+    }
+
     // Move scenes from `movingFrom` onward that still belong to `oldChapterID` into the new chapter.
     // Called after splitScene() for the Shift-Cmd-Enter chapter-split path.
     // `movingFrom` is the index of the first scene of the new chapter (already has new chapterID).

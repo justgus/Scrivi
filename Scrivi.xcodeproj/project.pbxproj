@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ASSETS_BF /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		C001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		C002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -15,7 +16,6 @@
 		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
-		ASSETS_BF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Assets.xcassets */; };
 		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		C011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
@@ -35,7 +35,6 @@
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		D011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
-		D020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
@@ -52,7 +51,6 @@
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		E011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
-		E020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
@@ -76,6 +74,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ASSETS_REF /* Scrivi/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Scrivi/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		B010 /* ScriviEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngine.swift; path = Scrivi/Engine/ScriviEngine.swift; sourceTree = SOURCE_ROOT; };
 		B011 /* ScriviError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviError.swift; path = Scrivi/Engine/ScriviError.swift; sourceTree = SOURCE_ROOT; };
 		C001 /* ScriviApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviApp.swift; path = Scrivi/App/ScriviApp.swift; sourceTree = SOURCE_ROOT; };
@@ -98,7 +97,6 @@
 		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Scrivi/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
 		F_PRODUCT /* ScriviInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriviInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		GRP_SCRIVI /* Scrivi */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Scrivi; sourceTree = SOURCE_ROOT; };
-		ASSETS_REF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Scrivi/Assets.xcassets"; sourceTree = SOURCE_ROOT; };
 		SCRIVI_CORE_LIB /* libScriviCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libScriviCore.a; path = build/ScriviCore/libScriviCore.a; sourceTree = SOURCE_ROOT; };
 		SCRIVI_CORE_REF /* ScriviCore */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ScriviCore; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -158,6 +156,7 @@
 				C035 /* TimelineStripView.swift */,
 				SCRIVI_CORE_LIB /* libScriviCore.a */,
 				F001 /* ScriviInteropTests.swift */,
+				ASSETS_REF /* Scrivi/Assets.xcassets */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -293,7 +292,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ASSETS_BF /* Assets.xcassets in Resources */,
+				ASSETS_BF /* Scrivi/Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -415,7 +414,8 @@
 		C_BC_DEBUG /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconMacOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Scrivi/App/Scrivi.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -447,7 +447,8 @@
 		C_BC_RELEASE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconMacOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Scrivi/App/Scrivi.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -478,6 +479,8 @@
 		D_BC_DEBUG /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconIOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -494,6 +497,8 @@
 		D_BC_RELEASE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconIOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -509,6 +514,8 @@
 		E_BC_DEBUG /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconVisionOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
@@ -524,6 +531,8 @@
 		E_BC_RELEASE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconVisionOS;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;

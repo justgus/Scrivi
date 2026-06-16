@@ -9,9 +9,9 @@
 | T-0163 | Epoch offset dialog — import flow with window intersection preview | ✅ Verified |
 | T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | ✅ Verified |
 | T-0165 | Timeline export — produce `.scrivi-timeline.json` | ✅ Verified |
-| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | 🟡 Implemented - Not Verified |
-| T-0169 | Hover tooltips for historical event and imported event dots | 🔴 Open |
-| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | 🟡 Implemented - Not Verified |
+| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | ✅ Verified |
+| T-0169 | Hover tooltips for historical event and imported event dots | ✅ Verified |
+| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | ✅ Verified |
 
 ---
 
@@ -118,4 +118,4 @@ New method that rebuilds only `dots` from an updated scene list, preserving exis
 
 ---
 
-*Last Updated: 2026-06-14 (T-0170 implemented - not verified)*
+*Last Updated: 2026-06-16 (T-0161–T-0166, T-0169, T-0170 all verified)*

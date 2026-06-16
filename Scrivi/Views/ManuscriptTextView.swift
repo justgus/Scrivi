@@ -275,6 +275,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     .components(separatedBy: .newlines)
                     .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
                 loader.updateLiveTitle(firstLine, forSceneID: sid)
+                env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
         }
 
@@ -381,6 +382,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                     env.timelineModel?.reloadSceneDots(
                         engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+                    env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
                 } catch {
                     print("[Scrivi] createScene failed: \(error)")
                 }
@@ -400,6 +402,31 @@ struct ManuscriptTextView: NSViewRepresentable {
             let splitOffsetInSeg = max(0, loc - segRange.location)
             let currentText = loader.segments.indices.contains(segIdx) ? loader.segments[segIdx].text : ""
             let isAtEnd = splitOffsetInSeg >= currentText.count
+
+            // Count chapters that follow the current one — these will be renumbered.
+            // If splitting at end there are no following scenes in the current chapter so
+            // renumbering only affects chapters after the current one (if any).
+            let currentChapterID = loader.segments.indices.contains(segIdx)
+                ? loader.segments[segIdx].chapterID : ""
+            let orderedChapterIDs: [String] = {
+                var seen = Set<String>()
+                return loader.allScenes.compactMap {
+                    seen.insert($0.chapterID).inserted ? $0.chapterID : nil
+                }
+            }()
+            let currentChapterOrdinal = (orderedChapterIDs.firstIndex(of: currentChapterID) ?? 0) + 1
+            let chaptersAfter = orderedChapterIDs.count - currentChapterOrdinal
+
+            // Show confirmation dialog when the split will renumber subsequent chapters.
+            if chaptersAfter > 0 {
+                let alert = NSAlert()
+                alert.messageText = "Split into New Chapter?"
+                alert.informativeText = "Splitting here will create a new chapter and renumber \(chaptersAfter) subsequent chapter\(chaptersAfter == 1 ? "" : "s"). This cannot be undone."
+                alert.addButton(withTitle: "Split")
+                alert.addButton(withTitle: "Cancel")
+                alert.alertStyle = .warning
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
 
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
@@ -422,6 +449,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     if isAtEnd {
                         // Append empty chapter after current — original behaviour.
                         let newIdx = loader.insertChapterFirstScene(result, after: segIdx)
+                        loader.renumberChapterTitlesFrom(segmentIndex: newIdx)
                         loader.setCurrentIndex(newIdx)
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     } else {
@@ -468,12 +496,15 @@ struct ManuscriptTextView: NSViewRepresentable {
                                                        headText: headText, tailText: tailText)
                         // Re-assign subsequent scenes in the old chapter to the new chapter.
                         loader.splitChapter(result, movingFrom: newIdx, oldChapterID: oldChapterID)
+                        // Fix chapter titles in-memory — engine wrote correct ordinals to disk.
+                        loader.renumberChapterTitlesFrom(segmentIndex: newIdx)
                         loader.setCurrentIndex(newIdx)
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     }
 
                     env.timelineModel?.reloadSceneDots(
                         engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+                    env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
                 } catch {
                     print("[Scrivi] createChapter failed: \(error)")
                 }
@@ -537,6 +568,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 env.timelineModel?.reloadSceneDots(
                     engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+                env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
         }
 
@@ -589,6 +621,10 @@ struct ManuscriptTextView: NSViewRepresentable {
                     predecessorChapterMetadataPath: predecessorMeta,
                     predecessorChapterTitle: predecessorTitle
                 )
+                // Renumber all chapters from the predecessor onward — the deleted chapter
+                // shifts every subsequent chapter's ordinal down by one.
+                let renumberFrom = loader.segments.firstIndex(where: { $0.chapterID == predecessorChapterID }) ?? segIdx
+                loader.renumberChapterTitlesFrom(segmentIndex: renumberFrom)
 
                 // Delete the (now empty) chapter from disk.
                 _ = try? env.engine.deleteChapter(projectRootPath: rootPath, chapterID: currentChapterID)
@@ -605,6 +641,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 env.timelineModel?.reloadSceneDots(
                     engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+                env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
         }
 

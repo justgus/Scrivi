@@ -31,4 +31,4 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-*Last Updated: 2026-06-12 (SP-042 activated; SP-043 remains in backlog)*
+*Last Updated: 2026-06-16 (SP-042 closed; SP-043 next in backlog)*

@@ -13,7 +13,7 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 ## Active Issues
 
-Currently: **8 active issues**
+Currently: **9 active issues**
 
 | Issue | Title | Severity | Sprint |
 | ----- | ----- | -------- | ------ |
@@ -25,6 +25,7 @@ Currently: **8 active issues**
 | I-0041 | Imported timeline dots on secondary and tertiary rows are not clustered when co-located | Medium | SP-042 |
 | I-0042 | Timeline tooltip shows "Scene N" fallback title instead of first-line text; rename not reflected | Medium | SP-042 |
 | I-0043 | Splitting a chapter creates a duplicate chapter number instead of renumbering; no confirmation dialog | High | SP-042 |
+| I-0044 | Cluster ring layout places dots below the timeline line instead of above; clockwise direction inverted | High | SP-042 |
 
 See: [Issue-active.md][2]
 
@@ -61,16 +62,16 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 43
-- **Verified:** 35 ✅ (I-0001–I-0015, I-0020–I-0036; I-0016 superseded; I-0017–I-0019 backlog)
-- **Active:** 7 🔴/🟡 (I-0037 open, I-0038 resolved-not-verified, I-0039–I-0043 open)
+- **Total Issues:** 44
+- **Verified:** 38 ✅ (I-0001–I-0015, I-0020–I-0038; I-0016 superseded; I-0017–I-0019 backlog)
+- **Active:** 6 🔴/🟡 (I-0039–I-0044 resolved-not-verified; I-0042–I-0043 open)
 - **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0044
+- **Next available:** I-0045
 
 ---
 
-*Last Updated: 2026-06-15 (I-0039 through I-0043 opened)*
+*Last Updated: 2026-06-16 (I-0036–I-0038 verified; I-0039–I-0041, I-0044 resolved - not verified; I-0044 opened)*
 
 
 [1]:	./ER-Documentation.md
