@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Launches the project-local AgileCockpit.app with the Scrivi workspace config.
+set -euo pipefail
+source "$(dirname "$0")/_ac_common.sh"
+
+APP="$REPO_ROOT/../Airframe/demos/LiveDemo/Applications/AgileCockpit.app"
+STORE="$REPO_ROOT/.airframe/airframe-local-backend.json"
+
+if [[ ! -d "$APP" ]]; then
+  echo "error: AgileCockpit.app not found at $APP" >&2
+  echo "Run: ../Airframe/scripts/install-live-demo.sh" >&2
+  exit 1
+fi
+
+echo "Launching AgileCockpit with Scrivi workspace config..."
+open -n --fresh \
+  --env "AIRFRAME_CONFIG_PATH=$AC_CONFIG" \
+  --env "AIRFRAME_STORE_PATH=$STORE" \
+  "$APP"

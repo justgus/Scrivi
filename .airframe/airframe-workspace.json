@@ -1,0 +1,23 @@
+{
+    "schemaVersion": 1,
+    "workspace": {
+      "id": { "rawValue": "WS-SCRIVI" },
+      "name": "Scrivi  Airframe Workspace",
+      "rootPath": "."
+    },
+    "projects": [
+      {
+        "id": { "rawValue": "PRJ-SCRIVI" },
+        "name": "Scrivi",
+        "repository": "justgus/Scrivi",
+        "activeSprintID": { "rawValue": "SP-043" },
+        "activeEpicID": { "rawValue": "EP-016" }
+      }
+    ],
+    "defaultProjectID": { "rawValue": "PRJ-SCRIVI" },
+    "backend": {
+      "kind": "github-issues",
+      "location": "justgus/Scrivi"
+    }
+  }
+

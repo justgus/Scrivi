@@ -205,12 +205,10 @@ Currently: **2 closed Tasks**
 - **Closed:** 2 🔴 (T-0125, T-0127)
 - **Retired (OBE):** 1 (T-0111)
 - **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
-- **Active:** 0 🟡
-- **Unverified:** 0 🟡
-- **Backlog:** 23 🔵 (T-0118, T-0123, T-0139–T-0148, T-0156–T-0167)
-- **Active:** 3 🟡 (T-0166, T-0169, T-0170)
-- **Next available:** T-0171
+- **Backlog:** 2 🔵 (T-0118, T-0123)
+- **Active:** 3 🟡 (T-0167, T-0171, T-0172)
+- **Next available:** T-0173
 
 ---
 
-*Last Updated: 2026-06-14 (T-0170 implemented - not verified)*
+*Last Updated: 2026-06-16 (T-0171 and T-0172 created for SP-043; backlog cleared of verified EP-016 entries)*

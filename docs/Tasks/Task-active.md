@@ -15,6 +15,14 @@
 
 ---
 
+## SP-043 — EP-016 Verification and Polish
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0167 | EP-016 verification | 🔴 Open |
+| T-0171 | Cluster count badge when ring height exceeds panel height | 🟡 Implemented - Not Verified |
+| T-0172 | Zoom in resolves clusters into individual dots | 🟡 Implemented - Not Verified |
+
 ---
 
 ## T-0170: Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges
@@ -118,4 +126,93 @@ New method that rebuilds only `dots` from an updated scene list, preserving exis
 
 ---
 
-*Last Updated: 2026-06-16 (T-0161–T-0166, T-0169, T-0170 all verified)*
+## T-0171: Cluster count badge when ring height exceeds panel height
+
+**Status:** 🟡 Implemented - Not Verified
+**Sprint:** SP-043
+**Epic:** EP-016
+**Date Implemented:** 2026-06-16
+
+**Description:**
+When a dot cluster's ring stack is taller than the available space above the timeline line (from the line up to the label row or the top of the content area), a count badge appears on the cluster centre dot showing the total number of events in the cluster.
+
+**Design Reference:** FR-035
+
+**Implementation:**
+Count badge was present in `TimelineStripView.swift` at line ~755. The badge renders as a white number on an accent-coloured capsule, positioned above the tallest ring, and is `allowsHitTesting(false)` so it does not interfere with dot interaction. Identical logic is applied to clusters on imported timeline rows.
+
+The condition is:
+```
+tallest = ringCount * (dotDiameter + 4)
+if tallest > lineY - (activeBands.isEmpty ? 0 : labelRowHeight)  →  show badge
+```
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — lines ~755–768 (main row), ~815–826 (imported rows)
+
+**Test Steps:**
+1. Shrink the timeline panel to its minimum height (drag top edge down).
+2. Create 8+ scenes in the project (enough for ring 2) with the same or very close story-time offset so they cluster.
+3. Verify a count badge (white number on coloured capsule) appears above the cluster centre dot.
+4. Expand the panel height — verify the badge disappears once there is room for all rings.
+5. Zoom in until the cluster dissolves — verify badge disappears.
+
+**Acceptance Criteria:**
+- [ ] Count badge appears on cluster centre when ring stack height > available panel space above line.
+- [ ] Badge shows the total count (not ring count).
+- [ ] Badge is non-interactive (does not block dot hover/drag).
+- [ ] Badge disappears when panel is tall enough to show all rings.
+- [ ] Badge disappears when zoom level resolves the cluster into individual dots.
+
+---
+
+## T-0172: Zoom in resolves clusters into individual dots
+
+**Status:** 🟡 Implemented - Not Verified
+**Sprint:** SP-043
+**Epic:** EP-016
+**Date Implemented:** 2026-06-16
+
+**Description:**
+The timeline supports pinch-to-zoom (trackpad) and horizontal pan, so that as the writer zooms in, co-located dots spread apart and clusters resolve into individual dots that can be independently interacted with.
+
+**Design Reference:** FR-009, FR-032, NFR-007
+
+**Implementation:**
+
+Added to `TimelineStripView`:
+- `@State zoomFactor: CGFloat = 1.0` — base zoom level (1 = full span; higher = smaller visible window)
+- `@GestureState magnifyGestureScale: CGFloat = 1.0` — live in-progress pinch scale
+- `@State scrollOffsetFraction: CGFloat = 0.0` — horizontal pan position (0 = left, 1 = right)
+- `effectiveZoom` computed var combining both
+- `visibleSpanMs()` and `visibleMinMs()` helpers used by all coordinate math (`dotX`, `eventX`, `offsetMs(fromPanelX:)`)
+- `MagnifyGesture` with `.updating($magnifyGestureScale)` for live pinch preview; `zoomFactor` committed on `.onEnded`
+- `TimelineScrollCaptureView` (NSViewRepresentable + local NSEvent monitor) for trackpad scroll pan and vertical/⌘ scroll-to-zoom
+- Zoom is clamped to [1, 50]; scroll fraction is clamped to [0, 1]
+- Visible window centre is preserved during zoom so content doesn't jump
+
+**Clustering auto-resolves:** `buildClusters` uses `itemX()` which picks up the zoomed coordinate math. As zoom increases, pixel distance between dots increases and previously co-located dots exceed the one-diameter threshold, breaking the cluster naturally.
+
+**Files Affected:**
+- `Scrivi/Views/TimelineStripView.swift` — `TimelineScrollCaptureView`, `_TimelineScrollNSView`, zoom state vars, zoom helpers, `MagnifyGesture`, scroll background
+
+**Test Steps:**
+1. Create a project with 3+ scenes at the same or adjacent story-time positions so they cluster.
+2. Pinch outward on the trackpad over the timeline panel — verify dots spread apart and the cluster breaks into individual dots.
+3. Pinch inward — verify dots return to a cluster.
+4. Scroll horizontally on the trackpad (two-finger swipe left/right) while zoomed in — verify the view pans.
+5. Scroll vertically with ⌘ held — verify zoom changes.
+6. Verify dot hover tooltips, drag-to-reposition, and context menus all still work correctly on individual dots after zooming in.
+7. Verify the timeline returns to full-span view after pinching back to zoom 1.0.
+
+**Acceptance Criteria:**
+- [ ] Pinch outward on trackpad zooms in; clusters resolve into individual dots at sufficient zoom.
+- [ ] Pinch inward zooms out; dots re-cluster when within one diameter.
+- [ ] Horizontal trackpad scroll pans the visible window when zoomed in.
+- [ ] Dot interactions (hover, drag, context menu) work correctly at any zoom level.
+- [ ] Zoom does not alter underlying `offsetMs` values — it is purely a display transform.
+- [ ] All dots return to clustered view when zoom is returned to 1.0.
+
+---
+
+*Last Updated: 2026-06-16 (T-0171 and T-0172 implemented for SP-043)*

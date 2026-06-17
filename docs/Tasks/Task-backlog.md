@@ -12,23 +12,6 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified |
-| T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | EP-016 | 🔵 Backlog |
-| T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | EP-016 | 🔵 Backlog |
-| T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | EP-016 | 🔵 Backlog |
-| T-0142 | `HistoricalEventJson` schema — read/write `historical-events/<id>.json` | EP-016 | 🔵 Backlog |
-| T-0143 | `ExternalTimelineJson` schema — read/write imported timeline files | EP-016 | 🔵 Backlog |
-| T-0144 | ScriviCore facade — timeline, story-time, and band-assignment operations | EP-016 | 🔵 Backlog |
-| T-0145 | ScriviCore facade — story structure, historical events, imported timelines, export | EP-016 | 🔵 Backlog |
-| T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | EP-016 | 🔵 Backlog |
-| T-0147 | Integration tests — timeline persistence round-trip | EP-016 | 🔵 Backlog |
-| T-0148 | `createProject` update — write `timeline.meta.json` on new project | EP-016 | 🔵 Backlog |
-| T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | EP-016 | 🔵 Backlog |
-| T-0162 | Imported timeline row — render events as grey row below project row | EP-016 | 🔵 Backlog |
-| T-0163 | Epoch offset dialog — import flow with window intersection preview | EP-016 | 🔵 Backlog |
-| T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | EP-016 | 🔵 Backlog |
-| T-0165 | Timeline export — produce `.scrivi-timeline.json` | EP-016 | 🔵 Backlog |
-| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | EP-016 | 🔵 Backlog |
-| T-0167 | EP-016 verification | EP-016 | 🔵 Backlog |
 
 ## Full Detail — Implemented Tasks Returned to Backlog
 
@@ -112,4 +95,4 @@ Returned to backlog before iPhone testing was available. macOS and iPadOS target
 
 ---
 
-*Last Updated: 2026-06-10 (T-0128–T-0132 activated for SP-037)*
+*Last Updated: 2026-06-16 (EP-016 stale backlog entries cleared; T-0171, T-0172 moved to Task-active)*

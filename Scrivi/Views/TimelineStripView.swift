@@ -588,6 +588,30 @@ struct TimelineStripView: View {
 
     private let importedRowHeight: CGFloat = 32
 
+    // MARK: Zoom & pan state (FR-009, FR-032)
+    // zoomFactor 1.0 = full span visible; higher values shrink the visible window so dots spread apart.
+    // magnifyGestureScale accumulates during a pinch gesture and is folded into zoomFactor on end.
+    @State private var zoomFactor: CGFloat = 1.0
+    @GestureState private var magnifyGestureScale: CGFloat = 1.0
+    // scrollOffsetFraction 0.0 = leftmost edge of full span; 1.0 = rightmost.
+    @State private var scrollOffsetFraction: CGFloat = 0.0
+    private let maxZoom: CGFloat = 50.0
+
+    // Effective zoom including any in-progress pinch gesture.
+    private var effectiveZoom: CGFloat {
+        max(1.0, min(maxZoom, zoomFactor * magnifyGestureScale))
+    }
+    // Visible span in milliseconds at the current zoom level.
+    private func visibleSpanMs() -> Int64 {
+        max(Int64(CGFloat(model.spanMs) / effectiveZoom), 1)
+    }
+    // Leftmost visible offset in milliseconds.
+    private func visibleMinMs() -> Int64 {
+        let slack = CGFloat(model.spanMs) - CGFloat(visibleSpanMs())
+        return model.minOffsetMs + Int64(scrollOffsetFraction * slack)
+    }
+
+
     private var minPanelHeight: CGFloat {
         let bandExtra: CGFloat = model.activeBands.isEmpty ? 0 : labelRowHeight
         let importedExtra = CGFloat(model.importedTimelines.filter(\.visible).count) * importedRowHeight
@@ -898,6 +922,47 @@ struct TimelineStripView: View {
                         }
                     }
                 }
+                // Pinch-to-zoom (FR-009): MagnifyGesture adjusts zoomFactor.
+                // magnifyGestureScale live-tracks during pinch; zoomFactor is committed on end.
+                .simultaneousGesture(
+                    MagnifyGesture()
+                        .updating($magnifyGestureScale) { value, state, _ in
+                            state = value.magnification
+                        }
+                        .onEnded { value in
+                            let newZoom = max(1.0, min(maxZoom, zoomFactor * value.magnification))
+                            // Recentre the visible window so the current visible centre stays fixed.
+                            let oldSpan = CGFloat(model.spanMs) / effectiveZoom
+                            let newSpan = CGFloat(model.spanMs) / newZoom
+                            let centreFraction = scrollOffsetFraction + 0.5 * oldSpan / CGFloat(model.spanMs)
+                            let newStart = centreFraction - 0.5 * newSpan / CGFloat(model.spanMs)
+                            scrollOffsetFraction = max(0, min(1, newStart))
+                            zoomFactor = newZoom
+                        }
+                )
+                // Scroll-wheel capture: pan (horizontal) when zoomed, zoom (vertical/⌘) via trackpad (FR-009).
+                .background {
+                    #if os(macOS)
+                    TimelineScrollCaptureView(
+                        onScroll: { dx, dy in
+                            if NSEvent.modifierFlags.contains(.command) || abs(dy) > abs(dx) {
+                                let factor = 1.0 - dy * 0.04
+                                let newZoom = max(1.0, min(maxZoom, zoomFactor * factor))
+                                let oldSpan = CGFloat(model.spanMs) / effectiveZoom
+                                let newSpan = CGFloat(model.spanMs) / newZoom
+                                let centre  = scrollOffsetFraction + 0.5 * oldSpan / CGFloat(model.spanMs)
+                                let newStart = centre - 0.5 * newSpan / CGFloat(model.spanMs)
+                                scrollOffsetFraction = max(0, min(1, newStart))
+                                zoomFactor = newZoom
+                            } else if zoomFactor > 1.0 {
+                                let usable = geo.size.width - 32
+                                let panFraction = -dx / usable
+                                scrollOffsetFraction = max(0, min(1, scrollOffsetFraction + panFraction))
+                            }
+                        }
+                    )
+                    #endif
+                }
             }
             .frame(height: max(minPanelHeight, panelHeight))
         }
@@ -1052,20 +1117,24 @@ struct TimelineStripView: View {
 
     private func dotX(for dot: TimelineViewModel.SceneDot,
                       usable: CGFloat, panelW: CGFloat) -> CGFloat {
-        guard model.spanMs > 0 else { return 16 + dotRadius }
-        let fraction = CGFloat(dot.offsetMs - model.minOffsetMs) / CGFloat(model.spanMs)
+        let vSpan = visibleSpanMs()
+        let vMin  = visibleMinMs()
+        guard vSpan > 0 else { return 16 + dotRadius }
+        let fraction = CGFloat(dot.offsetMs - vMin) / CGFloat(vSpan)
         return 16 + fraction * usable
     }
 
     private func eventX(offsetMs: Int64, usable: CGFloat, panelW: CGFloat) -> CGFloat {
-        guard model.spanMs > 0 else { return 16 + dotRadius }
-        let fraction = CGFloat(offsetMs - model.minOffsetMs) / CGFloat(model.spanMs)
+        let vSpan = visibleSpanMs()
+        let vMin  = visibleMinMs()
+        guard vSpan > 0 else { return 16 + dotRadius }
+        let fraction = CGFloat(offsetMs - vMin) / CGFloat(vSpan)
         return 16 + fraction * usable
     }
 
     private func offsetMs(fromPanelX x: CGFloat, usable: CGFloat) -> Int64 {
         let fraction = (x - 16) / usable
-        return model.minOffsetMs + Int64(fraction * CGFloat(model.spanMs))
+        return visibleMinMs() + Int64(fraction * CGFloat(visibleSpanMs()))
     }
 
     // MARK: Clustering (FR-030–FR-035)
@@ -2177,6 +2246,69 @@ struct TimeDeltaPicker: View {
         }
     }
 }
+
+// MARK: — Scroll capture (macOS) for timeline pan and zoom (FR-009)
+
+#if os(macOS)
+/// Wraps the scroll-event monitor lifecycle. Attach via .background so the SwiftUI content
+/// layer receives all hit-testing while this view intercepts scroll-wheel events.
+struct TimelineScrollCaptureView: NSViewRepresentable {
+    var onScroll: (_ dx: CGFloat, _ dy: CGFloat) -> Void
+
+    func makeNSView(context: Context) -> _TimelineScrollNSView {
+        let v = _TimelineScrollNSView()
+        v.onScroll = onScroll
+        return v
+    }
+
+    func updateNSView(_ nsView: _TimelineScrollNSView, context: Context) {
+        nsView.onScroll = onScroll
+    }
+}
+
+@MainActor final class _TimelineScrollNSView: NSView {
+    var onScroll: ((_ dx: CGFloat, _ dy: CGFloat) -> Void)?
+    private var monitor: Any?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        monitor.map { NSEvent.removeMonitor($0) }
+        guard window != nil else { monitor = nil; return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            guard let self else { return event }
+            // Extract the values we need from the (non-Sendable) NSEvent here so the
+            // event itself never crosses into the main-actor closure below.
+            let eventWindow    = event.window
+            let momentumPhase  = event.momentumPhase
+            let phase          = event.phase
+            let locationInWindow = event.locationInWindow
+            let deltaX         = event.scrollingDeltaX
+            let deltaY         = event.scrollingDeltaY
+            let consume = MainActor.assumeIsolated { () -> Bool in
+                guard let win = self.window, eventWindow === win else { return false }
+                // Only consume trackpad scroll/momentum phases.
+                if !momentumPhase.isEmpty || !phase.isEmpty {
+                    let pt = self.convert(locationInWindow, from: nil)
+                    if self.bounds.contains(pt) {
+                        self.onScroll?(deltaX, deltaY)
+                        return true
+                    }
+                }
+                return false
+            }
+            return consume ? nil : event
+        }
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil {
+            monitor.map { NSEvent.removeMonitor($0) }
+            monitor = nil
+        }
+        super.viewWillMove(toWindow: newWindow)
+    }
+}
+#endif
 
 // MARK: — Human-readable duration
 

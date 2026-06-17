@@ -46,7 +46,7 @@
 | SP-040 | Timeline SwiftUI — core rendering, drag, and Time Delta Picker | ✅ Closed |
 | SP-041 | Story Structure bands — overlay, drag borders, band assignment | ✅ Closed |
 | SP-042 | Historical events, imported timelines, export, and clustering | ✅ Closed |
-| SP-043 | EP-016 verification and polish | 🔵 Planning |
+| SP-043 | EP-016 verification and polish | 🟡 Active |
 
 ### Tasks
 
@@ -74,15 +74,17 @@
 | T-0158 | Band assignment by drag-up to label — ring color on dot | SP-041 | ✅ Verified |
 | T-0159 | Band assignment via context menu ("Assign to Act…" / "Unassign") | SP-041 | ✅ Verified |
 | T-0160 | Scene dot context menu — full menu (assign, set time delta, set story time, view scene, copy/paste) | SP-041 | ✅ Verified |
-| T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | SP-042 | 🟡 In Progress |
-| T-0162 | Imported timeline row — render events as grey row below project row | SP-042 | 🟡 In Progress |
-| T-0163 | Epoch offset dialog — import flow with window intersection preview | SP-042 | 🟡 In Progress |
-| T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | SP-042 | 🟡 In Progress |
-| T-0165 | Timeline export — produce `.scrivi-timeline.json` | SP-042 | 🟡 In Progress |
-| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | 🟡 In Progress |
-| T-0167 | EP-016 verification | SP-043 | 🔵 Backlog |
+| T-0161 | Historical event CRUD — author in project, drag on timeline, `#C8A97A` dot | SP-042 | ✅ Verified |
+| T-0162 | Imported timeline row — render events as grey row below project row | SP-042 | ✅ Verified |
+| T-0163 | Epoch offset dialog — import flow with window intersection preview | SP-042 | ✅ Verified |
+| T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | SP-042 | ✅ Verified |
+| T-0165 | Timeline export — produce `.scrivi-timeline.json` | SP-042 | ✅ Verified |
+| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | ✅ Verified |
+| T-0167 | EP-016 verification | SP-043 | 🔴 Open |
 | T-0168 | Scene duration, chain propagation, project timeline defaults, "Immediately after" | SP-040 | ✅ Verified |
+| T-0171 | Cluster count badge when ring height exceeds panel height | SP-043 | 🟡 Implemented - Not Verified |
+| T-0172 | Zoom in resolves clusters into individual dots | SP-043 | 🟡 Implemented - Not Verified |
 
 ---
 
-*Last Updated: 2026-06-12 (SP-042 activated)*
+*Last Updated: 2026-06-16 (SP-043 active; T-0161–T-0166, T-0168, T-0169 verified; T-0171, T-0172 implemented)*

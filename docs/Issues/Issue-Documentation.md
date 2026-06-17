@@ -13,32 +13,25 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 ## Active Issues
 
-Currently: **9 active issues**
+Currently: **0 active issues**
 
 | Issue | Title | Severity | Sprint |
 | ----- | ----- | -------- | ------ |
-| I-0036 | Color.clear overlay blocks all timeline interaction; historical event at midpoint; no title popup | Critical | SP-042 |
-| I-0037 | Hover tooltips for historical event and imported event dots display in wrong position and show wrong content | High | SP-042 |
-| I-0038 | New scenes created via Cmd-Enter do not appear as dots on the Timeline | High | SP-042 | 🟡 |
-| I-0039 | Clustering only applies to unanchored dots; anchored scene dots with overlapping positions are not grouped | High | SP-042 |
-| I-0040 | Historical event dots on the main timeline are not clustered when co-located | High | SP-042 |
-| I-0041 | Imported timeline dots on secondary and tertiary rows are not clustered when co-located | Medium | SP-042 |
-| I-0042 | Timeline tooltip shows "Scene N" fallback title instead of first-line text; rename not reflected | Medium | SP-042 |
-| I-0043 | Splitting a chapter creates a duplicate chapter number instead of renumbering; no confirmation dialog | High | SP-042 |
-| I-0044 | Cluster ring layout places dots below the timeline line instead of above; clockwise direction inverted | High | SP-042 |
+|       |       |          |        |
 
 See: [Issue-active.md][2]
 
 ## Verified Issues
 
-Currently: **30 verified issues**
+Currently: **40 verified issues**
 
 | Batch | DRs              | File                              | Status      |
 | ----- | ---------------- | --------------------------------- | ----------- |
 | 1     | I-0001 – I-0010  | [Issue-verified-0001-0010.md][3]  | ✅ Complete |
-| 2     | I-0011 – I-0024  | [Issue-verified-0011-0020.md][4]  | ✅ Complete (10/10) |
-| 3     | I-0025 – I-0030  | [Issue-verified-0021-0030.md](Verified/Issue-verified-0021-0030.md) | ✅ Complete (6/10) |
-| 4     | I-0031 – I-0040  | [Issue-verified-0031-0040.md](Verified/Issue-verified-0031-0040.md) | 🟡 In Progress (5/10) |
+| 2     | I-0011 – I-0020  | [Issue-verified-0011-0020.md][4]  | ✅ Complete (10/10) |
+| 3     | I-0021 – I-0030  | [Issue-verified-0021-0030.md](Verified/Issue-verified-0021-0030.md) | ✅ Complete (6/10) |
+| 4     | I-0031 – I-0040  | [Issue-verified-0031-0040.md](Verified/Issue-verified-0031-0040.md) | ✅ Complete (10/10) |
+| 5     | I-0041 – I-0050  | [Issue-verified-0041-0050.md](Verified/Issue-verified-0041-0050.md) | 🟡 In Progress (4/10) |
 
 ## Closed Issues (Not Verified)
 
@@ -63,15 +56,15 @@ See: [Issue-backlog.md](Issue-backlog.md)
 ## Statistics
 
 - **Total Issues:** 44
-- **Verified:** 38 ✅ (I-0001–I-0015, I-0020–I-0038; I-0016 superseded; I-0017–I-0019 backlog)
-- **Active:** 6 🔴/🟡 (I-0039–I-0044 resolved-not-verified; I-0042–I-0043 open)
+- **Verified:** 40 ✅ (I-0001–I-0015, I-0020–I-0044; I-0016 superseded; I-0017–I-0019 backlog)
+- **Active:** 0
 - **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
 - **Next available:** I-0045
 
 ---
 
-*Last Updated: 2026-06-16 (I-0036–I-0038 verified; I-0039–I-0041, I-0044 resolved - not verified; I-0044 opened)*
+*Last Updated: 2026-06-17 (I-0036–I-0044 verified and moved to Verified batch files; batch 4 complete, batch 5 opened)*
 
 
 [1]:	./ER-Documentation.md
