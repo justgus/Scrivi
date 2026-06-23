@@ -11,15 +11,13 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprint
 
-*None — SP-042 closed 2026-06-16. SP-043 is next in backlog.*
+*None — SP-043 closed 2026-06-23 (EP-016 complete). No Sprint in the backlog.*
 
 ## Sprint Backlog
 
 See: [Sprint-backlog.md](Sprint-backlog.md)
 
-| Sprint | Title | Epic | Status |
-| ------ | ----- | ---- | ------ |
-| SP-043 | EP-016 verification and polish | EP-016 | 🔵 Planning |
+*No sprints in the backlog.*
 
 ## All Sprints
 
@@ -69,17 +67,17 @@ Currently: **43 Sprints** | Next available: **SP-044**
 | SP-040 | Timeline SwiftUI — core rendering, drag, and Time Delta Picker | EP-016 | 2026-06-11 | 2026-06-11 | ✅ Closed |
 | SP-041 | Story Structure bands — overlay, drag borders, band assignment | EP-016 | 2026-06-12 | 2026-06-12 | ✅ Closed |
 | SP-042 | Historical events, imported timelines, export, and clustering | EP-016 | 2026-06-12 | 2026-06-16 | ✅ Closed |
-| SP-043 | EP-016 verification and polish | EP-016 | — | — | 🔵 Planning |
+| SP-043 | EP-016 verification and polish | EP-016 | 2026-06-16 | 2026-06-23 | ✅ Closed |
 
 ## Statistics
 
 - **Total Sprints:** 43
 - **Closed:** 42 ✅
 - **Active:** 0 🟡
-- **Planning:** 1 🔵 (SP-043)
+- **Planning:** 0 🔵
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-06-16 (SP-042 closed)*
+*Last Updated: 2026-06-23 (SP-043 closed; EP-016 complete)*

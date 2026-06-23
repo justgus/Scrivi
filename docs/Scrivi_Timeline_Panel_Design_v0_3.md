@@ -246,22 +246,42 @@ This row is always visible but visually secondary. Changing the duration and pre
 
 These requirements address the case where two or more events share the same (or visually indistinguishable) story-time position. This is common in stories that span years when multiple scenes occur within the same short window.
 
-**FR-030** When two or more events occupy the same story-time position on the timeline, they shall be rendered as a cluster rather than overlapping dots.
+> **Revision (T-0174, supersedes prior FR-031, FR-033, FR-035):** The original spec rendered
+> clusters as concentric hexagonal rings of dots. In practice a single ring (≤7 dots) was
+> readable, but a second ring produced an illegible "blob" — made worse by per-dot adornments
+> (band rings, manual/inferred offset rings, selection highlight) appearing inconsistently
+> across members. The cluster is now rendered as a single **aggregate dot** that is compact
+> (one timeline X position) and scales to any member count. The ring-of-dots layout is retained
+> only as the transient **fan-out** state (FR-035b) and as the permanent result of zoom-resolve
+> (FR-032). Co-location detection (FR-030, FR-032) and the no-line-shift rule (FR-033) are
+> unchanged in intent.
 
-**FR-031** A cluster shall be rendered using concentric hexagonal ring positions:
+**FR-030** When two or more events occupy the same story-time position on the timeline, they shall be rendered as a single aggregate representation rather than overlapping dots.
 
-- **Position 1 (center):** The earliest scene in manuscript order at this position. Sits directly on the timeline line.
-- **Positions 2–7 (first ring):** Six additional scenes, arranged clockwise beginning from the top (12 o'clock), equally spaced in a hexagonal pattern around the center dot.
-- **Positions 8–19 (second ring):** Twelve additional scenes, arranged clockwise beginning from the top of the second ring.
-- **Additional rings:** Continue the hexagonal pattern outward. Ring *n* holds 6n dots.
+**FR-031 (revised)** A co-located group of two or more members shall be rendered as a single **aggregate dot** at the shared X position:
 
-**FR-032** For the purposes of clustering, two events are considered co-located if their pixel positions on the current zoom level are within one dot-diameter of each other. As the writer zooms in, clusters may resolve into individual dots.
+- The aggregate dot is compact — it occupies one timeline position regardless of member count.
+- The aggregate dot's core shall be rendered **slightly larger** than a regular (single-scene) timeline dot. The larger core signals "this is a group of scenes, not one scene," and keeps the aggregate visually distinct from the per-dot decoration rings used on individual dots (the placement ring for `manual`/`inferred` offsets, FR-028; the band-membership ring, FR-007/FR-047) — so the aggregate's own arc ring is not confused with those decorations.
+- A **count number** is shown on/at the aggregate dot indicating the total number of members. (Numbers are the only text permitted on the timeline line; titles are not.)
+- A **segmented arc ring** surrounds the aggregate dot: one equal-width segment per member, ordered by story order (the same order used by the clustering pass). For *N* members each segment spans `360° / N`.
+- All members receive a segment — both scene dots and historical-event dots. Segment base tint may hint at member type (scene vs. historical).
+- The arc ring is a **display surface only — it is not interactive.**
 
-**FR-033** The cluster shall expand vertically upward from the timeline line. The timeline line position shall not shift when clusters form.
+**FR-031a (selection arc)** When a member of an aggregate is the currently selected scene (`viewportSceneID`), that member's arc segment shall be highlighted in the selection color. Because segments are strictly ordered, the *position* of the lit segment indicates *which* member is selected, not merely that one is. Selecting a member from elsewhere (Scene Navigator, manuscript) lights the corresponding segment on the collapsed aggregate; it does **not** auto-expand the aggregate.
 
-**FR-034** Each dot in a cluster shall remain independently interactive (hover for tooltip, drag to reposition, context menu).
+**FR-032** For the purposes of clustering, two events are considered co-located if their pixel positions on the current zoom level are within one dot-diameter of each other. As the writer zooms in, aggregates may resolve into individual dots.
 
-**FR-035** When a cluster contains more events than can be clearly distinguished at the current panel height, a count badge shall appear at the cluster center indicating the total number of events. Individual dots remain accessible by zooming in.
+**FR-033** The aggregate shall be centred on the timeline line; the timeline line position shall not shift when aggregates form. Because the aggregate is compact (arc ring only, no stacked rings of dots), it does not require the panel to grow to accommodate it.
+
+**FR-034 (revised — drill-in)** Members of an aggregate remain reachable through interaction rather than by always rendering every dot:
+
+- **Hover the aggregate → fan-out.** Hovering an aggregate dot fans its members out into the ring/cluster layout (the retained hexagonal positions) as a transient overlay.
+- Once fanned out, each member dot behaves like a normal individual dot: **hover it for its tooltip**, **click it to select/navigate** to that scene (drives `viewportSceneID`, manuscript scroll, and Navigator highlight per the bidirectional-selection model), drag to reposition, context menu.
+- The fan-out collapses back to the aggregate dot when the pointer leaves.
+
+**FR-035 (revised)** The count number (FR-031) replaces the prior conditional count badge — it is always present on an aggregate. The selection arc (FR-031a) replaces the prior need to expand to see selection state. Individual dots remain accessible via fan-out (FR-034) and via zoom-resolve (FR-032).
+
+**FR-035b (fan-out layout)** The fan-out reuses the concentric hexagonal ring positions previously specified for static clusters: position 1 at the centre, positions 2–7 in the first ring (clockwise from 12 o'clock), positions 8–19 in the second ring, ring *n* holding 6*n* dots. This layout now appears only transiently during fan-out, not as the resting representation.
 
 ### 4.7 Story Structure Bands
 

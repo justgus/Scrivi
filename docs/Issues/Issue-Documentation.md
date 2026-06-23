@@ -31,7 +31,7 @@ Currently: **40 verified issues**
 | 2     | I-0011 – I-0020  | [Issue-verified-0011-0020.md][4]  | ✅ Complete (10/10) |
 | 3     | I-0021 – I-0030  | [Issue-verified-0021-0030.md](Verified/Issue-verified-0021-0030.md) | ✅ Complete (6/10) |
 | 4     | I-0031 – I-0040  | [Issue-verified-0031-0040.md](Verified/Issue-verified-0031-0040.md) | ✅ Complete (10/10) |
-| 5     | I-0041 – I-0050  | [Issue-verified-0041-0050.md](Verified/Issue-verified-0041-0050.md) | 🟡 In Progress (4/10) |
+| 5     | I-0041 – I-0050  | [Issue-verified-0041-0050.md](Verified/Issue-verified-0041-0050.md) | 🟡 In Progress (9/10) |
 
 ## Closed Issues (Not Verified)
 

@@ -59,7 +59,9 @@ private struct ManuscriptEditorView: View {
                             model: tlModel,
                             engine: env.engine,
                             projectRootPath: prp,
-                            authorshipRef: env.authorshipRef
+                            authorshipRef: env.authorshipRef,
+                            loader: loader,
+                            onSelectScene: { sceneID in navigateToSceneID = sceneID }
                         )
                     }
                     #else
@@ -70,7 +72,9 @@ private struct ManuscriptEditorView: View {
                             model: tlModel,
                             engine: env.engine,
                             projectRootPath: prp,
-                            authorshipRef: env.authorshipRef
+                            authorshipRef: env.authorshipRef,
+                            loader: loader,
+                            onSelectScene: { sceneID in navigateToSceneID = sceneID }
                         )
                     }
                     #endif

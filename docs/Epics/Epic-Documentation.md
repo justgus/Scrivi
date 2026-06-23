@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 active Epic**
+Currently: **0 active Epics**
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -43,18 +43,18 @@ Currently: **16 Epics** | Next available: **EP-017**
 | EP-013 | Scene Navigator Swipe Gesture | ✅ Closed (no delivery) | 2026-06-09 | 2026-06-10 |
 | EP-014 | Scene Inspector Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-015 | Real-Time Timeline Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
-| EP-016 | Timeline Panel — Full Implementation | 🔵 Draft | 2026-06-11 | — |
+| EP-016 | Timeline Panel — Full Implementation | ✅ Closed | 2026-06-11 | 2026-06-23 |
 
 ## Statistics
 
 - **Total Epics:** 16
-- **Closed:** 14 ✅
+- **Closed:** 15 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 0 🟡
-- **Draft:** 1 🔵 (EP-016)
+- **Draft:** 0 🔵
 - **Deferred:** 1 🔴 (EP-012)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-10 (EP-015 closed; SP-038 closed)*
+*Last Updated: 2026-06-23 (EP-016 closed with user approval)*

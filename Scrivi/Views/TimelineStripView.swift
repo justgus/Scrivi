@@ -231,6 +231,18 @@ private struct ImportedTimelineFile: Decodable {
     }
     var spanMs: Int64 { max(maxEndMs - minOffsetMs, 1) }
 
+    // I-0048: Story Structure bands span the story from the FIRST scene to the LAST scene in
+    // manuscript order (dots[0] → dots.last), NOT min/max offset. A flashback scene in the
+    // middle of the order (e.g. with a far-past offset) therefore falls OUTSIDE the band
+    // region rather than stretching it. Returns nil when there are fewer than 2 scenes.
+    var structureRange: (startMs: Int64, endMs: Int64)? {
+        guard let first = dots.first, let last = dots.last, dots.count >= 2 else { return nil }
+        let start = first.offsetMs
+        let end   = last.offsetMs + last.durationMs
+        guard end > start else { return nil }
+        return (start, end)
+    }
+
     func load(engine: ScriviEngine, projectRootPath: String, scenes: [SceneInfo]) {
         epochLabel = (try? engine.getTimeline(projectRootPath: projectRootPath))?.epochLabel ?? "Story Open"
 
@@ -568,6 +580,12 @@ struct TimelineStripView: View {
     var engine: ScriviEngine
     var projectRootPath: String
     var authorshipRef: AuthorshipRef?
+    // T-0173: shared selection state. `loader.viewportSceneID` is the single source of truth
+    // for the currently-selected scene across the Navigator, manuscript, and this timeline.
+    var loader: ViewportSceneLoader?
+    // T-0173: invoked when a scene dot is clicked — drives manuscript navigation (which also
+    // sets viewportSceneID, so the Navigator highlights automatically).
+    var onSelectScene: ((String) -> Void)? = nil
 
     @State private var showEpochOffsetDialog = false
     @State private var pendingImportJSON: String = ""
@@ -583,7 +601,11 @@ struct TimelineStripView: View {
     @State private var panelHeight: CGFloat = 120
     private let minPanelHeightBase: CGFloat = 64
     private let labelRowHeight: CGFloat = 24
-    private let dotRadius: CGFloat = 7
+    // I-0045: scene + main-row historical dots halved (was 7) to cut cluster clipping/overlap.
+    private let dotRadius: CGFloat = 3.5
+    // Imported-row dots were already small; keep them near their prior absolute size,
+    // slightly smaller than scene dots. (Previously dotRadius * 0.7 = 4.9.)
+    private let importedDotRadius: CGFloat = 3.0
     private let lineThickness: CGFloat = 2
 
     private let importedRowHeight: CGFloat = 32
@@ -595,7 +617,35 @@ struct TimelineStripView: View {
     @GestureState private var magnifyGestureScale: CGFloat = 1.0
     // scrollOffsetFraction 0.0 = leftmost edge of full span; 1.0 = rightmost.
     @State private var scrollOffsetFraction: CGFloat = 0.0
-    private let maxZoom: CGFloat = 50.0
+
+    // I-0045: max zoom is data-driven, not a fixed 50. For year-spanning timelines a cap of
+    // 50 leaves a 24-hour cluster unresolvable (visible span stays ~weeks wide). We compute
+    // the zoom needed to shrink the visible span down to the smallest scene gap so any
+    // co-located cluster can always be pulled apart, whatever the total span.
+    private let minVisibleSpanFloorMs: Int64 = 60 * 60 * 1000   // 1 hour — finest useful window
+    private let maxZoomCeiling: CGFloat = 100_000               // safety bound
+
+    private var maxZoom: CGFloat {
+        let span = model.spanMs
+        guard span > 0 else { return 1.0 }
+        // Smallest gap between adjacent scene/historical offsets on the main row.
+        let target = max(minVisibleSpanFloorMs, smallestMainRowGapMs())
+        let z = CGFloat(span) / CGFloat(max(target, 1))
+        return max(1.0, min(maxZoomCeiling, z))
+    }
+
+    // Smallest non-zero gap between consecutive main-row item offsets (scenes + historical
+    // events), so max zoom can always separate the tightest pair by more than one diameter.
+    private func smallestMainRowGapMs() -> Int64 {
+        var offsets: [Int64] = model.dots.map(\.offsetMs) + model.historicalEvents.map(\.offsetMs)
+        offsets.sort()
+        var smallest: Int64 = .max
+        for i in 1..<max(offsets.count, 1) where i < offsets.count {
+            let gap = offsets[i] - offsets[i - 1]
+            if gap > 0 { smallest = min(smallest, gap) }
+        }
+        return smallest == .max ? minVisibleSpanFloorMs : smallest
+    }
 
     // Effective zoom including any in-progress pinch gesture.
     private var effectiveZoom: CGFloat {
@@ -612,11 +662,29 @@ struct TimelineStripView: View {
     }
 
 
+    // I-0045: the vertical room (px above the timeline line) the tallest current cluster
+    // needs. Recomputed inside the GeometryReader as clusters are built; drives auto-grow
+    // of the panel so ring stacks don't clip into neighbouring rows or off the top edge.
+    @State private var requiredClusterHeight: CGFloat = 0
+
+    // T-0174: aggregate-dot popover. A co-located group of ≥2 collapses to one dot; hovering
+    // it opens a popover with a circle-of-dots. The popover stays open (hover is just the
+    // opener) and dismisses on outside-click or member selection. Keyed by centerItemID.
+    @State private var openAggregateID: String? = nil
+    // Imported-row aggregate popover, keyed by "timelineID:centerEventID".
+    @State private var openImportedAggregateID: String? = nil
+    // Aggregate core dot is notably larger than a regular dot (dotRadius 3.5) so the count
+    // number fits and it reads clearly as a group, distinct from placement / band rings.
+    private let aggregateDotRadius: CGFloat = 11
+
     private var minPanelHeight: CGFloat {
         let bandExtra: CGFloat = model.activeBands.isEmpty ? 0 : labelRowHeight
         let importedExtra = CGFloat(model.importedTimelines.filter(\.visible).count) * importedRowHeight
-        return minPanelHeightBase + bandExtra + importedExtra
+        // I-0045: grow to fit the tallest cluster's ring stack (plus the badge cap above it).
+        let clusterExtra = requiredClusterHeight > 0 ? requiredClusterHeight + 12 : 0
+        return minPanelHeightBase + bandExtra + importedExtra + clusterExtra
     }
+
 
     var body: some View {
         VStack(spacing: 0) {
@@ -635,19 +703,37 @@ struct TimelineStripView: View {
                 let rowSpacing: CGFloat = 32
                 let lineY = contentTop + (contentH - CGFloat(visibleImportedCount) * rowSpacing) / 2
 
+                // I-0045: tallest ring stack across the main row and all imported rows at the
+                // current zoom. Drives auto-grow (requiredClusterHeight) so clusters never clip.
+                let tallestStack = tallestClusterStack(usable: usable, panelW: panelW)
+
                 ZStack(alignment: .topLeading) {
                     // I-0036: hit-testable background so the ZStack-level context menu fires
                     // on empty space. Must be first (bottom layer) so all child views on top
                     // of it win hit-testing when clicked directly.
                     Color.clear.contentShape(Rectangle())
 
-                    // Band background — drawn behind everything
-                    if !model.activeBands.isEmpty {
+                    // Band background — drawn behind everything.
+                    // I-0048: the band region spans the FIRST→LAST scene in story time, mapped
+                    // through eventX so it zooms and pans with the timeline. Hidden when there
+                    // is no usable scene range (0–1 scene).
+                    if !model.activeBands.isEmpty, let range = model.structureRange {
+                        let regionX = eventX(offsetMs: range.startMs, usable: usable, panelW: panelW)
+                        let regionEndX = eventX(offsetMs: range.endMs, usable: usable, panelW: panelW)
+                        let _ = NSLog("BANDDIAG P1-parent regionX=\(regionX) regionEndX=\(regionEndX) zoom=\(effectiveZoom) scroll=\(scrollOffsetFraction)")
                         BandOverlayView(
                             bands: model.activeBands,
+                            regionX: regionX,
+                            regionWidth: max(regionEndX - regionX, 1),
                             panelWidth: panelW,
                             panelHeight: geo.size.height,
                             labelRowHeight: labelRowHeight,
+                            // I-0048: convert an absolute panel-X back to a fraction within the
+                            // band region so border-drag edits map through story time.
+                            fractionForPanelX: { px in
+                                let f = (px - regionX) / max(regionEndX - regionX, 1)
+                                return Double(min(max(f, 0), 1))
+                            },
                             onBorderDragged: { updatedBands in
                                 model.updateBandLayout(updatedBands, engine: engine,
                                                         projectRootPath: projectRootPath)
@@ -670,101 +756,39 @@ struct TimelineStripView: View {
                     }
 
                     // Main-row dots — scene and historical event dots clustered together.
+                    // T-0174: a co-located group of ≥2 renders as a single AggregateDotView
+                    // whose hover opens a popover containing a circle-of-dots. A group of 1
+                    // renders as the normal individual dot.
                     let clusters = buildClusters(usable: usable, panelW: panelW)
                     ForEach(clusters, id: \.centerItemID) { cluster in
-                        // All ring offsets are relative to the cluster center X (first member
-                        // after X-sort). Each dot's own baseX is still passed as startX to the
-                        // dot view so drag/story-time calculations remain correct.
                         let centerX = itemX(cluster.members[0], usable: usable, panelW: panelW)
-                        ForEach(Array(cluster.members.enumerated()), id: \.element.id) { i, item in
-                            let baseX         = itemX(item, usable: usable, panelW: panelW)
-                            let offset        = clusterOffset(position: i, clusterSize: cluster.members.count, radius: dotRadius)
-                            let posX          = centerX + offset.width
-                            let posY          = lineY - offset.height
-                            switch item {
-                            case .scene(let dot):
-                                let prevEndMs = previousSceneEndMs(for: dot)
-                                let prevTitle = previousSceneTitle(for: dot)
-                                let bandColor = bandColor(for: dot)
-                                SceneDotView(
-                                    dot: dot,
-                                    radius: dotRadius,
-                                    epochLabel: model.epochLabel,
-                                    startX: baseX,
-                                    panelWidth: panelW,
-                                    lineY: posY,
-                                    labelRowHeight: model.activeBands.isEmpty ? 0 : labelRowHeight,
-                                    bands: model.activeBands,
-                                    bandRingColor: bandColor,
-                                    previousSceneEndMs: prevEndMs,
-                                    previousSceneTitle: prevTitle,
-                                    defaultDurationMs: model.defaultSceneDurationMs,
-                                    computeOffsetMs: { finalPanelX in
-                                        offsetMs(fromPanelX: finalPanelX, usable: usable)
-                                    },
-                                    onCommit: { result, durationMs in
-                                        applyPickerResult(result, for: dot, pickerDurationMs: durationMs)
-                                    },
-                                    onAssignToBand: { bandID in
-                                        model.assignToBand(sceneID: dot.sceneID, bandID: bandID,
-                                                           engine: engine, projectRootPath: projectRootPath)
-                                    },
-                                    onUnassign: {
-                                        model.unassignFromBand(sceneID: dot.sceneID, engine: engine,
-                                                                projectRootPath: projectRootPath)
-                                    },
-                                    onHoverChanged: { hovered in
-                                        model.hoveredDotID = hovered ? dot.sceneID : nil
-                                    }
-                                )
-                                .position(x: posX, y: posY)
-                            case .historical(let event):
-                                HistoricalEventDotView(
-                                    event: event,
-                                    radius: dotRadius,
-                                    startX: baseX,
-                                    panelWidth: panelW,
-                                    lineY: posY,
-                                    epochLabel: model.epochLabel,
-                                    onDragEnd: { newOffsetMs in
-                                        model.updateHistoricalEventOffset(
-                                            eventID: event.eventID, offsetMs: newOffsetMs,
-                                            engine: engine, projectRootPath: projectRootPath)
-                                    },
-                                    onEdit: {
-                                        editingEventID = event.eventID
-                                        editingEventTitle = event.title
-                                        editingEventDescription = event.description
-                                        showHistoricalEventEditor = true
-                                    },
-                                    onDelete: {
-                                        model.deleteHistoricalEvent(
-                                            eventID: event.eventID, engine: engine,
-                                            projectRootPath: projectRootPath)
-                                    },
-                                    computeOffsetMs: { finalX in
-                                        offsetMs(fromPanelX: finalX, usable: usable)
-                                    },
-                                    onHoverChanged: { hovered in
-                                        model.hoveredHistoricalEventID = hovered ? event.eventID : nil
-                                    }
-                                )
-                                .position(x: posX, y: posY)
-                            }
-                        }
-                        // Count badge when cluster is too tall for the panel
-                        if cluster.members.count > 1 {
-                            let tallest = CGFloat(cluster.ringCount) * (dotRadius * 2 + 4)
-                            if tallest > lineY - (model.activeBands.isEmpty ? 0 : labelRowHeight) {
-                                let cx = itemX(cluster.members[0], usable: usable, panelW: panelW)
-                                Text("\(cluster.members.count)")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 4).padding(.vertical, 2)
-                                    .background(Capsule().fill(Color.accentColor))
-                                    .position(x: cx, y: lineY - tallest - 8)
-                                    .allowsHitTesting(false)
-                            }
+                        if cluster.members.count == 1 {
+                            memberDot(cluster.members[0], at: CGPoint(x: centerX, y: lineY),
+                                      usable: usable, panelW: panelW)
+                        } else {
+                            AggregateDotView(
+                                members: cluster.members,
+                                radius: aggregateDotRadius,
+                                selectedSceneID: loader?.viewportSceneID,
+                                isPopoverOpen: openAggregateID == cluster.centerItemID,
+                                onHover: { openAggregateID = cluster.centerItemID },
+                                popoverContent: {
+                                    AggregateMembersPopover(
+                                        members: cluster.members,
+                                        selectedSceneID: loader?.viewportSceneID,
+                                        dotRadius: dotRadius,
+                                        memberContent: { item, isSelected in
+                                            popoverMemberDot(item, isSelected: isSelected,
+                                                             onSelect: {
+                                                                 selectMember(item)
+                                                                 openAggregateID = nil
+                                                             })
+                                        }
+                                    )
+                                },
+                                onPopoverDismiss: { openAggregateID = nil }
+                            )
+                            .position(x: centerX, y: lineY)
                         }
                     }
 
@@ -787,7 +811,7 @@ struct TimelineStripView: View {
                             .frame(width: max(usable, 1), height: 1)
                             .position(x: panelW / 2, y: rowY)
                         // Event dots — clustered per row so co-located events don't overlap.
-                        let importedRadius = dotRadius * 0.7
+                        let importedRadius = importedDotRadius
                         let visibleEvents = timeline.events.filter {
                             let x = eventX(offsetMs: $0.projectOffsetMs, usable: usable, panelW: panelW)
                             return x >= 16 && x <= panelW - 16
@@ -795,35 +819,35 @@ struct TimelineStripView: View {
                         let importedClusters = buildImportedRowClusters(
                             events: visibleEvents, usable: usable, panelW: panelW,
                             radius: importedRadius)
+                        // T-0174: ≥2 co-located imported events render as one aggregate dot
+                        // whose hover opens a circle-of-dots popover (no selection segment —
+                        // imported events aren't selectable scenes).
                         ForEach(importedClusters, id: \.centerEventID) { iCluster in
                             let iCenterX = eventX(offsetMs: iCluster.members[0].projectOffsetMs,
                                                   usable: usable, panelW: panelW)
-                            ForEach(Array(iCluster.members.enumerated()), id: \.element.id) { i, ev in
-                                let offset = clusterOffset(position: i, clusterSize: iCluster.members.count, radius: importedRadius)
-                                let key    = "\(timeline.timelineID):\(ev.eventID)"
+                            let aggKey = "\(timeline.timelineID):\(iCluster.centerEventID)"
+                            if iCluster.members.count == 1 {
+                                let ev  = iCluster.members[0]
+                                let key = "\(timeline.timelineID):\(ev.eventID)"
                                 ImportedEventDotView(
-                                    ev: ev,
-                                    color: timeline.swiftUIColor,
-                                    radius: importedRadius,
+                                    ev: ev, color: timeline.swiftUIColor, radius: importedRadius,
                                     onHoverChanged: { hovered in
                                         model.hoveredImportedEventKey = hovered ? key : nil
                                     }
                                 )
-                                .position(x: iCenterX + offset.width, y: rowY - offset.height)
-                            }
-                            if iCluster.members.count > 1 {
-                                let tallest = CGFloat(iCluster.ringCount) * (importedRadius * 2 + 4)
-                                if tallest > rowSpacing / 2 {
-                                    let cx = eventX(offsetMs: iCluster.members[0].projectOffsetMs,
-                                                    usable: usable, panelW: panelW)
-                                    Text("\(iCluster.members.count)")
-                                        .font(.system(size: 7, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 3).padding(.vertical, 1)
-                                        .background(Capsule().fill(Color.secondary))
-                                        .position(x: cx, y: rowY - tallest - 6)
-                                        .allowsHitTesting(false)
-                                }
+                                .position(x: iCenterX, y: rowY)
+                            } else {
+                                ImportedAggregateDotView(
+                                    members: iCluster.members,
+                                    count: iCluster.members.count,
+                                    color: timeline.swiftUIColor,
+                                    radius: importedRadius + 4,
+                                    dotRadius: importedRadius,
+                                    isPopoverOpen: openImportedAggregateID == aggKey,
+                                    onHover: { openImportedAggregateID = aggKey },
+                                    onPopoverDismiss: { openImportedAggregateID = nil }
+                                )
+                                .position(x: iCenterX, y: rowY)
                             }
                         }
                     }
@@ -922,6 +946,16 @@ struct TimelineStripView: View {
                         }
                     }
                 }
+                // I-0045: feed the tallest current ring stack to the auto-grow state.
+                .onChange(of: tallestStack, initial: true) { _, newValue in
+                    if requiredClusterHeight != newValue { requiredClusterHeight = newValue }
+                }
+                // T-0173: when the selected scene changes elsewhere (Navigator click, manuscript
+                // cursor), pan the timeline so the matching dot is visible. The highlight itself
+                // is driven by isSelected on each dot.
+                .onChange(of: loader?.viewportSceneID) { _, newID in
+                    if let id = newID { revealScene(id) }
+                }
                 // Pinch-to-zoom (FR-009): MagnifyGesture adjusts zoomFactor.
                 // magnifyGestureScale live-tracks during pinch; zoomFactor is committed on end.
                 .simultaneousGesture(
@@ -943,6 +977,7 @@ struct TimelineStripView: View {
                 // Scroll-wheel capture: pan (horizontal) when zoomed, zoom (vertical/⌘) via trackpad (FR-009).
                 .background {
                     #if os(macOS)
+                    BandPointerProbeView()   // BANDDIAG: passive raw-pointer observer
                     TimelineScrollCaptureView(
                         onScroll: { dx, dy in
                             if NSEvent.modifierFlags.contains(.command) || abs(dy) > abs(dx) {
@@ -955,8 +990,12 @@ struct TimelineStripView: View {
                                 scrollOffsetFraction = max(0, min(1, newStart))
                                 zoomFactor = newZoom
                             } else if zoomFactor > 1.0 {
+                                // I-0047: scrollOffsetFraction spans the FULL timeline, but the
+                                // visible window is only 1/zoom of it — so a raw dx/usable moves
+                                // the content by dx*zoom px (far too fast when zoomed in). Divide
+                                // by effectiveZoom so dx pixels of finger travel pans dx pixels.
                                 let usable = geo.size.width - 32
-                                let panFraction = -dx / usable
+                                let panFraction = -dx / usable / effectiveZoom
                                 scrollOffsetFraction = max(0, min(1, scrollOffsetFraction + panFraction))
                             }
                         }
@@ -1113,6 +1152,139 @@ struct TimelineStripView: View {
             )
     }
 
+    // I-0048: band region (panel coords) from the first→last scene story-time range, mapped
+    // through eventX. 0 when there's no usable range (then dots fall back to full-panel logic).
+    private func bandRegionX(usable: CGFloat, panelW: CGFloat) -> CGFloat {
+        guard let r = model.structureRange else { return 0 }
+        return eventX(offsetMs: r.startMs, usable: usable, panelW: panelW)
+    }
+    private func bandRegionWidth(usable: CGFloat, panelW: CGFloat) -> CGFloat {
+        guard let r = model.structureRange else { return 0 }
+        let x0 = eventX(offsetMs: r.startMs, usable: usable, panelW: panelW)
+        let x1 = eventX(offsetMs: r.endMs, usable: usable, panelW: panelW)
+        return max(x1 - x0, 1)
+    }
+
+    // MARK: T-0174 — member dot rendering (shared by resolved singles and fan-out)
+
+    // Renders one main-row member (scene or historical event) as the normal individual dot
+    // at the given panel position. Used both for size-1 clusters and for fanned-out members.
+    @ViewBuilder
+    private func memberDot(_ item: MainRowItem, at point: CGPoint,
+                           usable: CGFloat, panelW: CGFloat) -> some View {
+        let baseX = itemX(item, usable: usable, panelW: panelW)
+        switch item {
+        case .scene(let dot):
+            let prevEndMs = previousSceneEndMs(for: dot)
+            let prevTitle = previousSceneTitle(for: dot)
+            let bandColor = bandColor(for: dot)
+            SceneDotView(
+                dot: dot,
+                radius: dotRadius,
+                epochLabel: model.epochLabel,
+                startX: baseX,
+                panelWidth: panelW,
+                lineY: point.y,
+                labelRowHeight: model.activeBands.isEmpty ? 0 : labelRowHeight,
+                bands: model.activeBands,
+                bandRingColor: bandColor,
+                bandRegionX: bandRegionX(usable: usable, panelW: panelW),
+                bandRegionWidth: bandRegionWidth(usable: usable, panelW: panelW),
+                previousSceneEndMs: prevEndMs,
+                previousSceneTitle: prevTitle,
+                defaultDurationMs: model.defaultSceneDurationMs,
+                computeOffsetMs: { finalPanelX in
+                    offsetMs(fromPanelX: finalPanelX, usable: usable)
+                },
+                onCommit: { result, durationMs in
+                    applyPickerResult(result, for: dot, pickerDurationMs: durationMs)
+                },
+                onAssignToBand: { bandID in
+                    model.assignToBand(sceneID: dot.sceneID, bandID: bandID,
+                                       engine: engine, projectRootPath: projectRootPath)
+                },
+                onUnassign: {
+                    model.unassignFromBand(sceneID: dot.sceneID, engine: engine,
+                                            projectRootPath: projectRootPath)
+                },
+                onHoverChanged: { hovered in
+                    model.hoveredDotID = hovered ? dot.sceneID : nil
+                },
+                isSelected: loader?.viewportSceneID == dot.sceneID,
+                onSelect: { onSelectScene?(dot.sceneID) },
+                aggregateJoinOffsetMs: { finalX in
+                    aggregateJoinOffsetMs(finalPanelX: finalX, excludingSceneID: dot.sceneID,
+                                          usable: usable, panelW: panelW)
+                }
+            )
+            .position(x: point.x, y: point.y)
+        case .historical(let event):
+            HistoricalEventDotView(
+                event: event,
+                radius: dotRadius,
+                startX: baseX,
+                panelWidth: panelW,
+                lineY: point.y,
+                epochLabel: model.epochLabel,
+                onDragEnd: { newOffsetMs in
+                    model.updateHistoricalEventOffset(
+                        eventID: event.eventID, offsetMs: newOffsetMs,
+                        engine: engine, projectRootPath: projectRootPath)
+                },
+                onEdit: {
+                    editingEventID = event.eventID
+                    editingEventTitle = event.title
+                    editingEventDescription = event.description
+                    showHistoricalEventEditor = true
+                },
+                onDelete: {
+                    model.deleteHistoricalEvent(
+                        eventID: event.eventID, engine: engine,
+                        projectRootPath: projectRootPath)
+                },
+                computeOffsetMs: { finalX in
+                    offsetMs(fromPanelX: finalX, usable: usable)
+                },
+                onHoverChanged: { hovered in
+                    model.hoveredHistoricalEventID = hovered ? event.eventID : nil
+                }
+            )
+            .position(x: point.x, y: point.y)
+        }
+    }
+
+    // T-0174: one non-draggable member dot for the aggregate popover. Looks like the timeline
+    // dot (band ring, placement ring, selection highlight); grows on hover with a native
+    // tooltip; click selects and dismisses. No drag, no context menu, no picker.
+    @ViewBuilder
+    private func popoverMemberDot(_ item: MainRowItem, isSelected: Bool,
+                                  onSelect: @escaping () -> Void) -> some View {
+        switch item {
+        case .scene(let dot):
+            PopoverMemberDotView(
+                radius: dotRadius,
+                fill: Color.accentColor,
+                isSelected: isSelected,
+                bandRingColor: bandColor(for: dot),
+                placementSource: dot.offsetSource,
+                tooltip: dot.title.isEmpty ? "Untitled scene" : dot.title,
+                subtitle: dot.chapterTitle,
+                onSelect: onSelect
+            )
+        case .historical(let event):
+            PopoverMemberDotView(
+                radius: dotRadius,
+                fill: Color(hex: "#C8A97A") ?? .orange,
+                isSelected: false,
+                bandRingColor: nil,
+                placementSource: "manual",
+                tooltip: event.title.isEmpty ? "Historical event" : event.title,
+                subtitle: "Historical event",
+                onSelect: {}                       // historical events aren't selectable scenes
+            )
+        }
+    }
+
     // MARK: Coordinate math
 
     private func dotX(for dot: TimelineViewModel.SceneDot,
@@ -1130,6 +1302,47 @@ struct TimelineStripView: View {
         guard vSpan > 0 else { return 16 + dotRadius }
         let fraction = CGFloat(offsetMs - vMin) / CGFloat(vSpan)
         return 16 + fraction * usable
+    }
+
+    // T-0174: select a member from the aggregate popover. Scenes navigate (driving the
+    // bidirectional selection); historical events are not selectable scenes — no-op for now.
+    private func selectMember(_ item: MainRowItem) {
+        if case .scene(let dot) = item { onSelectScene?(dot.sceneID) }
+    }
+
+    // T-0174: if `finalPanelX` lands on an existing aggregate (cluster of ≥2) that does not
+    // already include `excludingSceneID`, return that aggregate's offsetMs (its snap target).
+    private func aggregateJoinOffsetMs(finalPanelX: CGFloat, excludingSceneID: String,
+                                       usable: CGFloat, panelW: CGFloat) -> Int64? {
+        let snapRadius = aggregateDotRadius + dotRadius   // generous hit zone
+        for cluster in buildClusters(usable: usable, panelW: panelW) where cluster.members.count > 1 {
+            let alreadyMember = cluster.members.contains {
+                if case .scene(let d) = $0 { return d.sceneID == excludingSceneID }
+                return false
+            }
+            if alreadyMember { continue }
+            let cx = itemX(cluster.members[0], usable: usable, panelW: panelW)
+            if abs(cx - finalPanelX) <= snapRadius {
+                return cluster.members[0].offsetMs
+            }
+        }
+        return nil
+    }
+
+    // T-0173: pan the visible window so the given scene's dot is on-screen. If it already
+    // falls inside the current visible span, do nothing (avoid yanking the view around).
+    // Only meaningful when zoomed in; at zoom 1 the whole span is visible.
+    private func revealScene(_ sceneID: String) {
+        guard let dot = model.dots.first(where: { $0.sceneID == sceneID }) else { return }
+        let vSpan = visibleSpanMs()
+        let vMin  = visibleMinMs()
+        if dot.offsetMs >= vMin && dot.offsetMs <= vMin + vSpan { return }
+        // Centre the dot in the visible window.
+        let desiredMin = dot.offsetMs - vSpan / 2
+        let slack = CGFloat(model.spanMs) - CGFloat(vSpan)
+        guard slack > 0 else { return }
+        let fraction = CGFloat(desiredMin - model.minOffsetMs) / slack
+        scrollOffsetFraction = max(0, min(1, fraction))
     }
 
     private func offsetMs(fromPanelX x: CGFloat, usable: CGFloat) -> Int64 {
@@ -1165,12 +1378,13 @@ struct TimelineStripView: View {
         var ringCount: Int { members.count <= 1 ? 0 : members.count <= 7 ? 1 : 2 }
     }
 
-    // Groups all main-row items (scene dots + historical event dots) within one dot-diameter
-    // of each other into clusters. Items are sorted by X first, then grouped using a
-    // contiguous-window pass so grouping is transitive: any item within one diameter of the
-    // rightmost current cluster member joins, not just items near the first member.
+    // Groups all main-row items (scene dots + historical event dots) into clusters, sorted by
+    // X, using a contiguous-window pass so grouping is transitive. T-0174: the absorption
+    // threshold is size-aware — once the running cluster has ≥2 members it renders as a large
+    // aggregate dot, so the next item must be within the AGGREGATE footprint (not just one
+    // regular diameter) to be merged. This stops adjacent aggregates from overlapping when
+    // their gap exceeds a regular diameter but is smaller than an aggregate's width.
     private func buildClusters(usable: CGFloat, panelW: CGFloat) -> [DotCluster] {
-        let diameter = dotRadius * 2
         var allItems: [MainRowItem] = model.dots.map { .scene($0) }
             + model.historicalEvents.map { .historical($0) }
         allItems.sort { itemX($0, usable: usable, panelW: panelW) < itemX($1, usable: usable, panelW: panelW) }
@@ -1184,7 +1398,7 @@ struct TimelineStripView: View {
             var j = i + 1
             while j < allItems.count {
                 let ox = itemX(allItems[j], usable: usable, panelW: panelW)
-                if ox - clusterMaxX <= diameter {
+                if ox - clusterMaxX <= mergeThreshold(currentSize: members.count) {
                     members.append(allItems[j])
                     clusterMaxX = ox
                     j += 1
@@ -1198,8 +1412,26 @@ struct TimelineStripView: View {
         return clusters
     }
 
+    // Centre-to-centre distance within which the next item joins the running cluster: the
+    // radius of what the cluster currently renders as, plus one regular dot radius and a small
+    // margin. Size 1 → regular dot; size ≥2 → aggregate dot footprint.
+    private func mergeThreshold(currentSize: Int) -> CGFloat {
+        let currentRenderedRadius = currentSize >= 2 ? aggregateDotRadius : dotRadius
+        return currentRenderedRadius + dotRadius + 2
+    }
+
     private func itemX(_ item: MainRowItem, usable: CGFloat, panelW: CGFloat) -> CGFloat {
         eventX(offsetMs: item.offsetMs, usable: usable, panelW: panelW)
+    }
+
+    // T-0174: co-located groups now render as compact aggregate dots and their members live in
+    // a floating popover (its own window), so the panel never needs to grow for clustering.
+    // The aggregate dot itself is only ~one regular ring taller than a normal dot. (This
+    // supersedes the I-0045 ring-stack auto-grow, which existed for the old in-panel rings.)
+    private func tallestClusterStack(usable: CGFloat, panelW: CGFloat) -> CGFloat {
+        let hasAggregate = buildClusters(usable: usable, panelW: panelW)
+            .contains { $0.members.count > 1 }
+        return hasAggregate ? aggregateDotRadius : 0
     }
 
     // Clusters imported event dots within a single row by X proximity.
@@ -1213,7 +1445,12 @@ struct TimelineStripView: View {
     private func buildImportedRowClusters(events: [ImportedEventDot],
                                           usable: CGFloat, panelW: CGFloat,
                                           radius: CGFloat) -> [ImportedRowCluster] {
-        let diameter = radius * 2
+        // T-0174: size-aware threshold (see buildClusters) — once ≥2, use the imported
+        // aggregate footprint (radius + 4, as rendered) so adjacent aggregates don't overlap.
+        let aggRadius = radius + 4
+        func threshold(currentSize: Int) -> CGFloat {
+            (currentSize >= 2 ? aggRadius : radius) + radius + 2
+        }
         let sorted = events.sorted {
             eventX(offsetMs: $0.projectOffsetMs, usable: usable, panelW: panelW)
             < eventX(offsetMs: $1.projectOffsetMs, usable: usable, panelW: panelW)
@@ -1227,7 +1464,7 @@ struct TimelineStripView: View {
             var j = i + 1
             while j < sorted.count {
                 let ox = eventX(offsetMs: sorted[j].projectOffsetMs, usable: usable, panelW: panelW)
-                if ox - clusterMaxX <= diameter {
+                if ox - clusterMaxX <= threshold(currentSize: members.count) {
                     members.append(sorted[j])
                     clusterMaxX = ox
                     j += 1
@@ -1351,9 +1588,17 @@ struct TimelineStripView: View {
 private struct BandOverlayView: View {
 
     var bands: [StoryBand]
+    // I-0048: the band region in panel coordinates — spans first→last scene in story time and
+    // moves/scales with the timeline (the parent computes these via eventX). All band geometry
+    // is relative to [regionX, regionX + regionWidth] instead of the full panel width.
+    var regionX: CGFloat
+    var regionWidth: CGFloat
     var panelWidth: CGFloat
     var panelHeight: CGFloat
     var labelRowHeight: CGFloat
+    // I-0048: maps an absolute panel-X to a [0,1] fraction within the band region (through the
+    // timeline transform) for border-drag editing.
+    var fractionForPanelX: (CGFloat) -> Double
     var onBorderDragged: ([StoryBand]) -> Void
 
     // Track which border is being dragged: index == right edge of bands[index]
@@ -1366,36 +1611,46 @@ private struct BandOverlayView: View {
         }
         .allowsHitTesting(false)   // I-0033: canvas must not intercept events; gesture layer only
         .frame(width: panelWidth, height: panelHeight)
-        .simultaneousGesture(bandBorderDragGesture)   // I-0033: coexist with dot gestures
+        // I-0033 fix: allowsHitTesting(false) on the Canvas also disables any gesture attached
+        // to the same view, so the band-border drag never fired. Host the gesture on a separate
+        // hit-testable surface (contentShape) layered over the non-hittable canvas instead.
+        .overlay {
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(width: panelWidth, height: panelHeight)
+                .simultaneousGesture(bandBorderDragGesture)   // coexist with dot gestures
+                // I-0032: change cursor to horizontal resize when near a band border.
+                // Hover lives on the same hittable surface as the gesture so loc.x is in
+                // the same (panel) coordinate space the canvas was drawn in.
+                .onContinuousHover { phase in
+                    #if os(macOS)
+                    switch phase {
+                    case .active(let loc):
+                        if nearestBorderIndex(at: loc.x) != nil {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    case .ended:
+                        NSCursor.pop()
+                    }
+                    #endif
+                }
+        }
         .onAppear { workingBands = bands }
         .onChange(of: bands) { _, new in workingBands = new }
-        // I-0032: change cursor to horizontal resize when near a band border
-        .onContinuousHover { phase in
-            #if os(macOS)
-            switch phase {
-            case .active(let loc):
-                if nearestBorderIndex(at: loc.x) != nil {
-                    NSCursor.resizeLeftRight.push()
-                } else {
-                    NSCursor.pop()
-                }
-            case .ended:
-                NSCursor.pop()
-            }
-            #endif
-        }
         // Label row — rendered on top of the canvas
         .overlay(alignment: .topLeading) {
             bandLabelRow
         }
     }
 
-    // Draw the band rectangles into the canvas. The label row height is reserved at top.
+    // Draw the band rectangles into the canvas, within the band region [regionX, +regionWidth].
     private func drawBands(ctx: inout GraphicsContext, size: CGSize) {
         let effectiveBands = workingBands.isEmpty ? bands : workingBands
-        var x: CGFloat = 0
+        var x: CGFloat = regionX
         for band in effectiveBands {
-            let w = CGFloat(band.proportion) * size.width
+            let w = CGFloat(band.proportion) * regionWidth
             let rect = CGRect(x: x, y: labelRowHeight,
                               width: w, height: size.height - labelRowHeight)
             ctx.fill(Path(rect), with: .color((Color(hex: band.color) ?? .accentColor).opacity(0.18)))
@@ -1403,7 +1658,7 @@ private struct BandOverlayView: View {
         }
     }
 
-    // Render band labels in the label row. Labels truncate with ellipsis.
+    // Render band labels in the label row, offset to the band region and clipped to it.
     private var bandLabelRow: some View {
         HStack(spacing: 0) {
             let effectiveBands = workingBands.isEmpty ? bands : workingBands
@@ -1414,10 +1669,13 @@ private struct BandOverlayView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.leading, 5)
-                    .frame(width: CGFloat(band.proportion) * panelWidth,
+                    .frame(width: CGFloat(band.proportion) * regionWidth,
                            height: labelRowHeight, alignment: .leading)
             }
         }
+        .frame(width: regionWidth, alignment: .leading)
+        .clipped()
+        .offset(x: regionX)
     }
 
     // Find the nearest band border within a hit area, then redistribute proportions.
@@ -1429,13 +1687,24 @@ private struct BandOverlayView: View {
                     draggingBorderIndex = nearestBorderIndex(at: x)
                     if draggingBorderIndex != nil { workingBands = bands }
                 }
-                guard let borderIdx = draggingBorderIndex else { return }
-                workingBands = redistributeProportions(
+                // P2: region as the gesture/draw/hit-test see it (props on this instance).
+                // P3: region implied by the closure (back-derive from two sample points).
+                let f0 = fractionForPanelX(regionX)            // should be 0 if P3==P2
+                let f1 = fractionForPanelX(regionX + regionWidth) // should be 1 if P3==P2
+                NSLog("BANDDIAG P2-gesture regionX=\(regionX) regionW=\(regionWidth) | P3-closure f(regionX)=\(f0) f(regionX+W)=\(f1) | x=\(x) idx=\(String(describing: draggingBorderIndex))")
+                guard let borderIdx = draggingBorderIndex else {
+                    NSLog("BANDDIAG  -> no border latched (hit-test failed at drag start)")
+                    return
+                }
+                let before = workingBands[borderIdx].proportion
+                let frac = fractionForPanelX(x)
+                let updated = redistributeProportions(
                     draggedBorderIndex: borderIdx,
-                    newX: x,
-                    bands: workingBands,
-                    totalWidth: panelWidth
+                    draggedFraction: frac,
+                    bands: workingBands
                 )
+                NSLog("BANDDIAG  -> frac=\(frac) before=\(before) after=\(updated[borderIdx].proportion) changed=\(updated[borderIdx].proportion != before)")
+                workingBands = updated
                 onBorderDragged(workingBands)
             }
             .onEnded { _ in
@@ -1447,48 +1716,305 @@ private struct BandOverlayView: View {
     }
 
     // Returns the index of the band whose right border is within 8pt of `x`, or nil.
+    // Borders are measured within the band region [regionX, regionX + regionWidth].
     private func nearestBorderIndex(at x: CGFloat) -> Int? {
-        var accumulated: CGFloat = 0
+        guard regionWidth > 0 else { return nil }
+        var accumulated: CGFloat = regionX
         let effectiveBands = workingBands.isEmpty ? bands : workingBands
         for i in 0..<effectiveBands.count - 1 {   // last band has no right-border to drag
-            accumulated += CGFloat(effectiveBands[i].proportion) * panelWidth
+            accumulated += CGFloat(effectiveBands[i].proportion) * regionWidth
             if abs(accumulated - x) < 8 { return i }
         }
         return nil
     }
 
-    // Move border at `draggedBorderIndex`: clamp so neither adjacent band goes below 4%.
-    private func redistributeProportions(draggedBorderIndex: Int, newX: CGFloat,
-                                          bands: [StoryBand], totalWidth: CGFloat) -> [StoryBand] {
-        guard totalWidth > 0 else { return bands }
+    // Move border at `draggedBorderIndex` to `draggedFraction` (a [0,1] position within the
+    // band region, computed through the timeline transform). Clamp so neither adjacent band
+    // goes below 4%.
+    private func redistributeProportions(draggedBorderIndex: Int, draggedFraction: Double,
+                                          bands: [StoryBand]) -> [StoryBand] {
         var result = bands
         let minProportion = 0.04
 
-        // Compute current left edge of the dragged border
-        var leftEdge: CGFloat = 0
-        for i in 0...draggedBorderIndex {
-            leftEdge += (i < draggedBorderIndex)
-                ? CGFloat(result[i].proportion) * totalWidth
-                : 0
-        }
-
-        let clampedX = max(leftEdge + CGFloat(minProportion) * totalWidth,
-                           min(newX, totalWidth - CGFloat(minProportion) * totalWidth))
-        let newLeftProp = Double(clampedX / totalWidth)
-
-        // Sum of all bands up to and including the dragged band's left
+        // Sum of all bands strictly before the dragged border = the dragged band's left edge.
         var sumBefore: Double = 0
         for i in 0..<draggedBorderIndex { sumBefore += result[i].proportion }
 
-        let leftBandNewProp = max(minProportion, newLeftProp - sumBefore)
-        let rightBandNewProp = max(minProportion,
-                                   result[draggedBorderIndex].proportion
-                                   + result[draggedBorderIndex + 1].proportion
-                                   - leftBandNewProp)
+        // Clamp the new border position so both adjacent bands keep ≥ minProportion.
+        let pairTotal = result[draggedBorderIndex].proportion
+            + result[draggedBorderIndex + 1].proportion
+        let newBorder = min(max(draggedFraction, sumBefore + minProportion),
+                            sumBefore + pairTotal - minProportion)
+
+        let leftBandNewProp  = newBorder - sumBefore
+        let rightBandNewProp = pairTotal - leftBandNewProp
 
         result[draggedBorderIndex].proportion = leftBandNewProp
         result[draggedBorderIndex + 1].proportion = rightBandNewProp
         return result
+    }
+}
+
+// MARK: — AggregateDotView (T-0174)
+
+// A co-located group of ≥2 members renders as one large dot with a count and a thick arc
+// ring whose lit segment marks the selected member (its angular position = which member).
+// Hovering the dot opens a popover containing a circle-of-dots (see AggregateMembersPopover).
+private struct AggregateDotView<Popover: View>: View {
+
+    let members: [TimelineStripView.MainRowItem]
+    let radius: CGFloat
+    let selectedSceneID: String?
+    let isPopoverOpen: Bool
+    let onHover: () -> Void
+    @ViewBuilder let popoverContent: () -> Popover
+    let onPopoverDismiss: () -> Void
+
+    @State private var isHovered = false
+
+    // Below this per-segment angle, dividers are sub-pixel; draw the base ring continuous and
+    // overlay only the selected member's slot.
+    private let minSegmentDegrees: Double = 6
+    private var count: Int { members.count }
+
+    private var selectedIndex: Int? {
+        guard let sid = selectedSceneID else { return nil }
+        return members.firstIndex {
+            if case .scene(let d) = $0 { return d.sceneID == sid }
+            return false
+        }
+    }
+
+    var body: some View {
+        let ringDiameter = radius * 2 + 12
+        ZStack {
+            arcRing
+                .frame(width: ringDiameter, height: ringDiameter)
+            Circle()
+                .fill(Color.accentColor)
+                .frame(width: radius * 2, height: radius * 2)
+            Text("\(count)")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white)
+                .minimumScaleFactor(0.5)
+                .frame(width: radius * 2 - 2, height: radius * 2 - 2)
+        }
+        .scaleEffect(isHovered ? 1.15 : 1.0)               // grow on hover like scene dots
+        .animation(.easeOut(duration: 0.1), value: isHovered)
+        .frame(width: ringDiameter + 8, height: ringDiameter + 8)
+        .contentShape(Circle())
+        .onHover { hovered in
+            isHovered = hovered
+            if hovered { onHover() }
+        }
+        .popover(isPresented: Binding(get: { isPopoverOpen },
+                                      set: { if !$0 { onPopoverDismiss() } })) {
+            popoverContent()
+        }
+        .help("\(count) scenes here — hover to open")
+    }
+
+    @ViewBuilder
+    private var arcRing: some View {
+        let perSegment = 360.0 / Double(count)
+        GeometryReader { geo in
+            let rect = CGRect(origin: .zero, size: geo.size)
+            let centre = CGPoint(x: rect.midX, y: rect.midY)
+            let r = min(rect.width, rect.height) / 2 - 2
+            ZStack {
+                if perSegment >= minSegmentDegrees {
+                    ForEach(0..<count, id: \.self) { i in
+                        segmentPath(centre: centre, r: r, index: i, perSegment: perSegment,
+                                    gapDegrees: 2)
+                            .stroke(segmentColor(i),
+                                    style: StrokeStyle(lineWidth: i == selectedIndex ? 5 : 4,
+                                                       lineCap: .butt))
+                    }
+                } else {
+                    Circle().stroke(Color.secondary.opacity(0.5), lineWidth: 4).padding(2)
+                    if let sel = selectedIndex {
+                        segmentPath(centre: centre, r: r, index: sel, perSegment: perSegment,
+                                    gapDegrees: 0)
+                            .stroke(Color.orange, lineWidth: 5)
+                    }
+                }
+            }
+        }
+    }
+
+    // Segment 0 starts at 12 o'clock and proceeds clockwise.
+    private func segmentPath(centre: CGPoint, r: CGFloat, index: Int,
+                             perSegment: Double, gapDegrees: Double) -> Path {
+        let start = -90.0 + Double(index) * perSegment + gapDegrees / 2
+        let end   = -90.0 + Double(index + 1) * perSegment - gapDegrees / 2
+        var p = Path()
+        p.addArc(center: centre, radius: r,
+                 startAngle: .degrees(start), endAngle: .degrees(end), clockwise: false)
+        return p
+    }
+
+    private func segmentColor(_ i: Int) -> Color {
+        if i == selectedIndex { return .orange }
+        switch members[i] {
+        case .scene:      return Color.accentColor.opacity(0.6)
+        case .historical: return (Color(hex: "#C8A97A") ?? .orange).opacity(0.85)
+        }
+    }
+}
+
+// MARK: — AggregateMembersPopover (T-0174)
+
+// The popover content: members laid out as a circle of dots around the centre, the radius
+// scaling with member count. Each member is rendered by the caller's `memberContent` builder
+// (so they look exactly like timeline dots). Display-only positions — dots are not draggable.
+private struct AggregateMembersPopover<Member: View>: View {
+
+    let members: [TimelineStripView.MainRowItem]
+    let selectedSceneID: String?
+    let dotRadius: CGFloat
+    @ViewBuilder let memberContent: (TimelineStripView.MainRowItem, Bool) -> Member
+
+    private var count: Int { members.count }
+
+    var body: some View {
+        // Ring radius grows so adjacent dots keep at least ~one diameter of arc spacing.
+        let spacing = dotRadius * 2 + 8
+        let ringR = max(spacing, CGFloat(count) * spacing / (2 * .pi))
+        let canvas = (ringR + spacing) * 2
+        ZStack {
+            ForEach(Array(members.enumerated()), id: \.element.id) { i, item in
+                let angle = -90.0 + (Double(i) / Double(count)) * 360.0
+                let rad   = angle * .pi / 180.0
+                let x = canvas / 2 + ringR * CGFloat(cos(rad))
+                let y = canvas / 2 + ringR * CGFloat(sin(rad))
+                memberContent(item, isSelected(item))
+                    .position(x: x, y: y)
+            }
+        }
+        .frame(width: canvas, height: canvas)
+        .padding(12)
+    }
+
+    private func isSelected(_ item: TimelineStripView.MainRowItem) -> Bool {
+        guard let sid = selectedSceneID else { return false }
+        if case .scene(let d) = item { return d.sceneID == sid }
+        return false
+    }
+}
+
+// MARK: — PopoverMemberDotView (T-0174)
+
+// A non-draggable dot used inside the aggregate popover. Mirrors the timeline dot's look
+// (placement ring, band ring, selection highlight), grows on hover with a native tooltip,
+// and selects on click.
+private struct PopoverMemberDotView: View {
+
+    let radius: CGFloat
+    let fill: Color
+    let isSelected: Bool
+    let bandRingColor: Color?
+    let placementSource: String          // "manual" | "inferred" | "default"
+    let tooltip: String
+    let subtitle: String
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        ZStack {
+            if let bc = bandRingColor {
+                Circle().strokeBorder(bc, lineWidth: 3)
+                    .frame(width: radius * 2 + 10, height: radius * 2 + 10)
+            }
+            if placementSource == "manual" {
+                Circle().strokeBorder(Color.accentColor, lineWidth: 2)
+                    .frame(width: radius * 2 + 6, height: radius * 2 + 6)
+            } else if placementSource == "inferred" {
+                Circle().strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1.5)
+                    .frame(width: radius * 2 + 6, height: radius * 2 + 6)
+            }
+            if isSelected {
+                Circle().strokeBorder(Color.yellow, lineWidth: 2)
+                    .frame(width: radius * 2 + 4, height: radius * 2 + 4)
+            }
+            Circle()
+                .fill(isSelected ? Color.orange : fill)
+                .frame(width: radius * 2, height: radius * 2)
+                .scaleEffect(isHovered ? 1.25 : (isSelected ? 1.15 : 1.0))
+                .animation(.easeOut(duration: 0.1), value: isHovered)
+        }
+        .frame(width: radius * 2 + 14, height: radius * 2 + 14)
+        .contentShape(Circle())
+        .onHover { isHovered = $0 }
+        .onTapGesture { onSelect() }
+        .help("\(tooltip)\n\(subtitle)")
+    }
+}
+
+// MARK: — ImportedAggregateDotView (T-0174)
+
+// Aggregate dot for a co-located group of imported-timeline events. Larger dot + count + a
+// uniform ring in the row colour (no selection segment — imported events aren't selectable
+// scenes). Hover opens a circle-of-dots popover of the member events for their tooltips.
+private struct ImportedAggregateDotView: View {
+
+    let members: [ImportedEventDot]
+    let count: Int
+    let color: Color
+    let radius: CGFloat
+    let dotRadius: CGFloat
+    let isPopoverOpen: Bool
+    let onHover: () -> Void
+    let onPopoverDismiss: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        let ringDiameter = radius * 2 + 8
+        ZStack {
+            Circle().stroke(color.opacity(0.6), lineWidth: 3)
+                .frame(width: ringDiameter, height: ringDiameter)
+            Circle().fill(color)
+                .frame(width: radius * 2, height: radius * 2)
+            Text("\(count)")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.white)
+                .minimumScaleFactor(0.5)
+                .frame(width: radius * 2 - 2, height: radius * 2 - 2)
+        }
+        .scaleEffect(isHovered ? 1.15 : 1.0)
+        .animation(.easeOut(duration: 0.1), value: isHovered)
+        .frame(width: ringDiameter + 8, height: ringDiameter + 8)
+        .contentShape(Circle())
+        .onHover { hovered in
+            isHovered = hovered
+            if hovered { onHover() }
+        }
+        .popover(isPresented: Binding(get: { isPopoverOpen },
+                                      set: { if !$0 { onPopoverDismiss() } })) {
+            popover
+        }
+        .help("\(count) events here — hover to open")
+    }
+
+    private var popover: some View {
+        let spacing = dotRadius * 2 + 8
+        let ringR = max(spacing, CGFloat(count) * spacing / (2 * .pi))
+        let canvas = (ringR + spacing) * 2
+        return ZStack {
+            ForEach(Array(members.enumerated()), id: \.element.id) { i, ev in
+                let angle = -90.0 + (Double(i) / Double(count)) * 360.0
+                let rad = angle * .pi / 180.0
+                let x = canvas / 2 + ringR * CGFloat(cos(rad))
+                let y = canvas / 2 + ringR * CGFloat(sin(rad))
+                ImportedEventDotView(ev: ev, color: color, radius: dotRadius,
+                                     onHoverChanged: { _ in })
+                    .help(ev.title.isEmpty ? "Event" : ev.title)
+                    .position(x: x, y: y)
+            }
+        }
+        .frame(width: canvas, height: canvas)
+        .padding(12)
     }
 }
 
@@ -1505,6 +2031,10 @@ private struct SceneDotView: View {
     let labelRowHeight: CGFloat          // 0 if no structure, else height of label row
     let bands: [StoryBand]               // active bands — needed for assign-by-drag
     let bandRingColor: Color?            // ring color when assigned to a band
+    // I-0048: band region in panel coords, so drag-up-to-assign maps to the same band extents
+    // the bands are drawn at. Defaults make the dot fall back to full-panel behaviour.
+    var bandRegionX: CGFloat = 0
+    var bandRegionWidth: CGFloat = 0
     let previousSceneEndMs: Int64
     let previousSceneTitle: String
     let defaultDurationMs: Int64
@@ -1513,6 +2043,13 @@ private struct SceneDotView: View {
     let onAssignToBand: (String) -> Void
     let onUnassign: () -> Void
     let onHoverChanged: (Bool) -> Void
+    // T-0173: selection — highlight the dot when it is the selected scene; click to select.
+    var isSelected: Bool = false
+    var onSelect: () -> Void = {}
+    // T-0174: drag-to-join. Given the final panel X of a horizontal drag, returns the
+    // offsetMs of an aggregate the dot was released onto (snap target), or nil. When non-nil
+    // the dot snaps to that offset (manual) instead of opening the Time Delta Picker.
+    var aggregateJoinOffsetMs: (CGFloat) -> Int64? = { _ in nil }
 
     @State private var dragOffsetX: CGFloat = 0
     @State private var dragOffsetY: CGFloat = 0
@@ -1543,13 +2080,22 @@ private struct SceneDotView: View {
                     .frame(width: radius * 2 + 6, height: radius * 2 + 6)
             }
 
-            // Core dot — scale up on hover, back to normal on press/drag
+            // T-0173: selection highlight ring — drawn just outside the core dot.
+            if isSelected {
+                Circle()
+                    .strokeBorder(Color.yellow, lineWidth: 2)
+                    .frame(width: radius * 2 + 4, height: radius * 2 + 4)
+            }
+
+            // Core dot — scale up on hover, back to normal on press/drag.
+            // T-0173: selected dot is tinted to stand out from the cluster.
             Circle()
-                .fill(Color.accentColor)
+                .fill(isSelected ? Color.orange : Color.accentColor)
                 .frame(width: radius * 2, height: radius * 2)
-                .scaleEffect(isDragging ? 1.3 : (isHovered ? 1.2 : 1.0))
+                .scaleEffect(isDragging ? 1.3 : (isHovered ? 1.2 : (isSelected ? 1.15 : 1.0)))
                 .animation(.easeOut(duration: 0.15), value: isDragging)
                 .animation(.easeOut(duration: 0.1), value: isHovered)
+                .animation(.easeOut(duration: 0.1), value: isSelected)
 
             // Hover label when dragging upward into label row
             if isDraggingUp, let hid = hoveredBandID,
@@ -1607,8 +2153,8 @@ private struct SceneDotView: View {
             }
             Button("Set Story Time…") { }
                 .disabled(true)
-            Button("View Scene") { }
-                .disabled(true)
+            // T-0173: jump to this scene in the manuscript + Navigator.
+            Button("Go to Scene") { onSelect() }
             Divider()
             Button("Copy Story-Time Position") { }
                 .disabled(true)
@@ -1620,6 +2166,10 @@ private struct SceneDotView: View {
             onHoverChanged(over)
         }
         .offset(x: dragOffsetX, y: dragOffsetY)
+        // T-0173: single click selects the scene (navigates manuscript + highlights in the
+        // Navigator). The reposition drag uses minimumDistance 4, so a stationary click here
+        // does not conflict with drag-to-reposition.
+        .onTapGesture { onSelect() }
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
@@ -1666,10 +2216,17 @@ private struct SceneDotView: View {
                     // Drag-up on an unassigned dot released over a label — assign.
                     onAssignToBand(hid)
                 } else {
-                    // Horizontal drag completed — show Time Delta Picker
+                    // Horizontal drag completed.
                     let finalPanelX = startX + v.translation.width
-                    pendingOffsetMs = computeOffsetMs(finalPanelX)
-                    showPicker = true
+                    if let joinMs = aggregateJoinOffsetMs(finalPanelX) {
+                        // T-0174: released over an aggregate — snap to its offset (manual)
+                        // so this scene joins the co-located group. No picker.
+                        onCommit(.keepPosition(joinMs), dot.durationMs)
+                    } else {
+                        // Otherwise show the Time Delta Picker for the dropped position.
+                        pendingOffsetMs = computeOffsetMs(finalPanelX)
+                        showPicker = true
+                    }
                 }
 
                 isDraggingUp = false
@@ -1685,9 +2242,12 @@ private struct SceneDotView: View {
         // dragY is negative (dragging upward). labelRowHeight is from top of the panel.
         let dotPanelY = lineY + dragY
         guard dotPanelY < labelRowHeight else { return nil }
-        var accumulated: CGFloat = 0
+        // I-0048: bands occupy the region [bandRegionX, +bandRegionWidth]; map within it.
+        let width = bandRegionWidth > 0 ? bandRegionWidth : panelWidth
+        let origin = bandRegionWidth > 0 ? bandRegionX : 0
+        var accumulated: CGFloat = origin
         for band in bands {
-            accumulated += CGFloat(band.proportion) * panelWidth
+            accumulated += CGFloat(band.proportion) * width
             if dotPanelX <= accumulated { return band.bandID }
         }
         return bands.last?.bandID
@@ -2263,6 +2823,41 @@ struct TimelineScrollCaptureView: NSViewRepresentable {
 
     func updateNSView(_ nsView: _TimelineScrollNSView, context: Context) {
         nsView.onScroll = onScroll
+    }
+}
+
+// BANDDIAG: passive raw-pointer observer. Logs left mouse down/drag in panel-local coords
+// WITHOUT consuming events, so we can tell whether SwiftUI is even delivering pointer events
+// to the band gesture (gesture logs absent + these present == routing failure).
+struct BandPointerProbeView: NSViewRepresentable {
+    func makeNSView(context: Context) -> _BandPointerProbeNSView { _BandPointerProbeNSView() }
+    func updateNSView(_ nsView: _BandPointerProbeNSView, context: Context) {}
+}
+
+@MainActor final class _BandPointerProbeNSView: NSView {
+    private var monitor: Any?
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        monitor.map { NSEvent.removeMonitor($0) }
+        guard window != nil else { monitor = nil; return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged]) { [weak self] event in
+            guard let self else { return event }
+            let eventWindow = event.window
+            let loc = event.locationInWindow
+            let kind = event.type == .leftMouseDown ? "DOWN" : "DRAG"
+            MainActor.assumeIsolated {
+                guard let win = self.window, eventWindow === win else { return }
+                let pt = self.convert(loc, from: nil)
+                if self.bounds.contains(pt) {
+                    NSLog("BANDDIAG RAW-\(kind) panelLocalX=\(pt.x) y=\(pt.y) bounds=\(self.bounds)")
+                }
+            }
+            return event   // never consume — pure observation
+        }
+    }
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil { monitor.map { NSEvent.removeMonitor($0) }; monitor = nil }
+        super.viewWillMove(toWindow: newWindow)
     }
 }
 
