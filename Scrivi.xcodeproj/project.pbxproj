@@ -28,6 +28,10 @@
 		C036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		C037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
 		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
+		C050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		C054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
 		D001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		D002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -47,6 +51,10 @@
 		D036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		D037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
 		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
+		D050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		D054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
 		E001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		E002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -66,6 +74,10 @@
 		E036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		E037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
 		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
+		E050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		E054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
 		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
 		F010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		F011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
@@ -102,6 +114,10 @@
 		C035 /* TimelineStripView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TimelineStripView.swift; path = Scrivi/Views/TimelineStripView.swift; sourceTree = SOURCE_ROOT; };
 		C036 /* SpotlightDonor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SpotlightDonor.swift; path = Scrivi/App/SpotlightDonor.swift; sourceTree = SOURCE_ROOT; };
 		C037 /* ProjectBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectBookmarkStore.swift; path = Scrivi/App/ProjectBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
+		C050 /* ProjectSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSession.swift; path = Scrivi/App/ProjectSession.swift; sourceTree = SOURCE_ROOT; };
+		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Scrivi/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
+		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Scrivi/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
 		C038 /* ScriviURL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviURL.swift; path = Scrivi/App/ScriviURL.swift; sourceTree = SOURCE_ROOT; };
 		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -169,6 +185,10 @@
 				C036 /* SpotlightDonor.swift */,
 				C037 /* ProjectBookmarkStore.swift */,
 				C038 /* ScriviURL.swift */,
+				C050 /* ProjectSession.swift */,
+				C051 /* OpenProjectRegistry.swift */,
+				C053 /* ProjectWindowManager.swift */,
+				C054 /* OpenSessionManifest.swift */,
 				SCRIVI_CORE_LIB /* libScriviCore.a */,
 				F001 /* ScriviInteropTests.swift */,
 				ASSETS_REF /* Scrivi/Assets.xcassets */,
@@ -366,6 +386,10 @@
 				C036_BF /* SpotlightDonor.swift in Sources */,
 				C037_BF /* ProjectBookmarkStore.swift in Sources */,
 				C038_BF /* ScriviURL.swift in Sources */,
+				C050_BF /* ProjectSession.swift in Sources */,
+				C051_BF /* OpenProjectRegistry.swift in Sources */,
+				C053_BF /* ProjectWindowManager.swift in Sources */,
+				C054_BF /* OpenSessionManifest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -392,6 +416,11 @@
 				D036_BF /* SpotlightDonor.swift in Sources */,
 				D037_BF /* ProjectBookmarkStore.swift in Sources */,
 				D038_BF /* ScriviURL.swift in Sources */,
+				D050_BF /* ProjectSession.swift in Sources */,
+				D051_BF /* OpenProjectRegistry.swift in Sources */,
+				D052_BF /* ProjectWindowID.swift in Sources */,
+				D053_BF /* ProjectWindowManager.swift in Sources */,
+				D054_BF /* OpenSessionManifest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,6 +447,11 @@
 				E036_BF /* SpotlightDonor.swift in Sources */,
 				E037_BF /* ProjectBookmarkStore.swift in Sources */,
 				E038_BF /* ScriviURL.swift in Sources */,
+				E050_BF /* ProjectSession.swift in Sources */,
+				E051_BF /* OpenProjectRegistry.swift in Sources */,
+				E052_BF /* ProjectWindowID.swift in Sources */,
+				E053_BF /* ProjectWindowManager.swift in Sources */,
+				E054_BF /* OpenSessionManifest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

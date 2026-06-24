@@ -12,6 +12,7 @@ struct SceneNavigatorView: View {
 
     var loader: ViewportSceneLoader
     var env: AppEnvironment
+    var session: ProjectSession
     var prefs: ProjectPreferences
     var onNavigate: (String) -> Void   // sceneID — tap-to-navigate
     var onTakeFocus: () -> Void        // called after delete to transfer first-responder
@@ -186,7 +187,7 @@ struct SceneNavigatorView: View {
     // MARK: — Rename
 
     private func performRename(target: RenameTarget, newTitle: String) {
-        guard let projectRootPath = env.projectRootPath else { return }
+        guard let projectRootPath = session.projectRootPath else { return }
         Task { @MainActor in
             do {
                 switch target {
@@ -216,7 +217,7 @@ struct SceneNavigatorView: View {
     // MARK: — Delete
 
     private func performDeleteScene(entry: SceneEntry) {
-        guard let projectRootPath = env.projectRootPath else { return }
+        guard let projectRootPath = session.projectRootPath else { return }
         Task { @MainActor in
             do {
                 _ = try env.engine.deleteScene(
@@ -238,7 +239,7 @@ struct SceneNavigatorView: View {
     }
 
     private func performDeleteChapter(group: ChapterGroup) {
-        guard let projectRootPath = env.projectRootPath else { return }
+        guard let projectRootPath = session.projectRootPath else { return }
         let wasCurrentChapter = loader.currentSegment.map { seg in group.scenes.contains { $0.sceneID == seg.sceneID } } ?? false
         Task { @MainActor in
             do {
@@ -333,7 +334,7 @@ struct SceneNavigatorView: View {
         targetGroup: ChapterGroup,
         afterSceneID: String
     ) {
-        guard let projectRootPath = env.projectRootPath else { return }
+        guard let projectRootPath = session.projectRootPath else { return }
         loader.reorderScene(
             sceneID: sceneID,
             targetChapterID: targetGroup.chapterID,
@@ -361,7 +362,7 @@ struct SceneNavigatorView: View {
     // MARK: — Reorder chapter
 
     private func performReorderChapter(chapterID: String, afterChapterID: String) {
-        guard let projectRootPath = env.projectRootPath else { return }
+        guard let projectRootPath = session.projectRootPath else { return }
         loader.reorderChapter(chapterID: chapterID, afterChapterID: afterChapterID)
         Task { @MainActor in
             do {

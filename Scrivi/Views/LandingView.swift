@@ -39,6 +39,19 @@ struct LandingView: View {
             NewProjectSheet()
                 .environment(env)
         }
+        // File ▸ New Project… (menu) sets this; present the sheet and clear the request.
+        .onChange(of: env.requestNewProject) { _, requested in
+            if requested {
+                showNewProjectSheet = true
+                env.requestNewProject = false
+            }
+        }
+        .onAppear {
+            if env.requestNewProject {
+                showNewProjectSheet = true
+                env.requestNewProject = false
+            }
+        }
     }
 
 }

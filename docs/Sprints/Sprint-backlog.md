@@ -8,10 +8,8 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | ------ | ----- | ---- | ------ |
 | SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | 🔵 Planning |
 | SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | 🔵 Planning |
-| SP-049 | Per-window model — windowing & restore-all-windows | EP-018 | 🔵 Planning |
-| SP-050 | Per-window model — deep-link rewrite & EP-018 verification | EP-018 | 🔵 Planning |
 
-> SP-044 closed 2026-06-23 — see `Closed/Sprint-SP-044.md`. SP-045 activated 2026-06-23 — see `Sprint-active.md`. SP-048 (EP-018) activated 2026-06-24 — see `Sprint-active.md`.
+> SP-044/SP-048/SP-049 closed — see `Closed/`. SP-045 (EP-017) and SP-050 (EP-018) active — see `Sprint-active.md`.
 
 ---
 
@@ -61,47 +59,4 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-## SP-049: Per-Window Model — Windowing & Restore-All-Windows
-
-**Status:** 🔵 Planning
-**Epic:** EP-018
-**Goal:** Convert the app to one window per project and restore all previously-open windows on relaunch, building on the SP-048 foundation and the R3 mechanism chosen by the T-0191 spike.
-
-### Tasks
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0194 | Convert scene to `WindowGroup(for: ProjectWindowID.self)` + Landing window; wire `openWindow` (R1/R2/R3) | 🔵 Backlog |
-| T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | 🔵 Backlog |
-
-### Acceptance Criteria
-
-- [ ] Multiple distinct projects open simultaneously, one per window (R1/R2).
-- [ ] Re-opening an already-open project focuses its existing window (R3), using the spike-chosen mechanism.
-- [ ] On relaunch, all previously-open project windows are restored (R4); per-window scene/cursor/scroll restored by the existing backend open flow.
-- [ ] macOS build/codesign clean; `ctest` green; no regression to open/save/close.
-
----
-
-## SP-050: Per-Window Model — Deep-Link Rewrite & EP-018 Verification
-
-**Status:** 🔵 Planning
-**Epic:** EP-018
-**Goal:** Rewrite the deep-link handler (paused EP-017 T-0184) on the per-window model, fix the scene-ID matching, cross-reference the open-flow doc, and verify EP-018.
-
-### Tasks
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0196 | Rewrite deep-link handler on new model + scene-`ID` fix (R5); open-flow v0.2 cross-ref; EP-018 verification | 🔵 Backlog |
-
-### Acceptance Criteria
-
-- [ ] A deep link opens/focuses the target project's window and selects the item by its `scene_…` ID (R5).
-- [ ] Reuses `ScriviDeepLink` / `ProjectBookmarkStore` / `SpotlightDonor`; the single-project switch control flow is gone.
-- [ ] `Scrivi_Project_Creation_and_Open_Flow_v0_2.md` cross-references the per-window model.
-- [ ] EP-018 R1–R5 verified by the user; EP-017 AC5 unblocked.
-
----
-
-*Last Updated: 2026-06-24 (EP-018 added: SP-049–SP-050 planned; SP-048 activated to Sprint-active. SP-044 closed; SP-045 active; SP-046–SP-047 remain in Planning.)*
+*Last Updated: 2026-06-24 (SP-049 closed; SP-050 activated to Sprint-active. SP-045 active; SP-046–SP-047 remain in Planning.)*

@@ -1,37 +1,37 @@
 # Active Sprint
 
-> Two sprints active: **SP-048** (EP-018, per-window model — current focus) and **SP-045** (EP-017, Spotlight — its last task T-0184 is ⏸ paused pending EP-018).
+> Two sprints active: **SP-050** (EP-018, per-window model — deep-link rewrite & Epic verification, current focus) and **SP-045** (EP-017, Spotlight — its last task T-0184 is ⏸ paused pending EP-018). SP-048 and SP-049 closed 2026-06-24 — see `Closed/Sprint-SP-048.md`, `Closed/Sprint-SP-049.md`.
 
-## SP-048: Per-Window Model — Foundation (Spike, ProjectSession, Registry)
+## SP-050: Per-Window Model — Deep-Link Rewrite & EP-018 Verification
 
 **Status:** 🟡 Active
 **Epic:** EP-018
 **Start Date:** 2026-06-24
 **End Date:** —
-**Goal:** De-risk and lay the foundation for the per-window/per-project model: prove the
-`WindowGroup(for:)` focus-by-value behavior (V1 spike), then extract a per-window
-`ProjectSession` off the shared `AppEnvironment` and add an `OpenProjectRegistry` — all
-behavior-preserving (app stays single-window until SP-049). No ScriviCore/C++ changes.
+**Goal:** Finish EP-018 — confirm the deep-link handler is correct on the per-window model (much of
+it already landed in T-0194), fix scene-ID matching, cross-reference the open-flow doc, and run
+EP-018 R1–R5 verification. Unblocks EP-017 AC5.
 
 ### Tasks
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3 mechanism) | 🔵 Backlog |
-| T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | 🔵 Backlog |
-| T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session) | 🔵 Backlog |
+| T-0196 | Deep-link handler on the per-window model + scene-`ID` fix (R5); open-flow cross-ref; EP-018 verification | 🔵 Backlog |
 
 ### Acceptance Criteria
 
-- [ ] T-0191 produces a clear yes/no on `WindowGroup(for:)` focus-by-value on macOS 26, and the R3 mechanism (native de-dup vs. registry + `NSApp` activation) is chosen and recorded before any production refactor lands.
-- [ ] `ProjectSession` owns all former per-project state; `AppEnvironment` keeps only engine + identity + registry; app behavior is unchanged (still single window this sprint).
-- [ ] `OpenProjectRegistry` exists and is wired into `AppEnvironment`.
-- [ ] macOS build clean; `ctest` green; no regression to project open/save/close.
+- [ ] A deep link opens/focuses the target project's window and selects the item by its `scene_…` ID (R5).
+- [ ] Reuses `ScriviDeepLink` / `ProjectBookmarkStore` / `SpotlightDonor`; no single-project switch behavior remains.
+- [ ] `Scrivi_Project_Creation_and_Open_Flow_v0_2.md` cross-references the per-window model.
+- [ ] EP-018 R1–R5 verified; EP-017 AC5 unblocked.
 
 ### Sprint Notes
 
-- **Spike-gates-refactor:** T-0191 is throwaway and must report before T-0194 (SP-049) commits the `WindowGroup(for:)` conversion. Per the approved design doc §8 step 0.
-- Reuses `ProjectBookmarkStore` (built under T-0184) for the later restore manifest — that work is not wasted.
+- **Most of the deep-link rewrite already shipped in T-0194:** `handleDeepLink` now opens/focuses the
+  target window via the registry + `ProjectWindowManager`, and loads-from-bookmark for closed
+  projects (`ensureOpenAndShow`). Verified working in T-0194 testing. SP-050's remaining work is the
+  **scene-`ID` selection fix** (deep link must match `scene_…` ID, not title), the open-flow doc
+  cross-ref, and the formal EP-018 acceptance pass.
 
 ### Retrospective
 

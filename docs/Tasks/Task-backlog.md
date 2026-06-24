@@ -20,11 +20,11 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox/perf pass | EP-017 (SP-046) | 🔵 Backlog |
 | T-0189 | End-to-end verification (app-closed search, deep-link, donations succeed) | EP-017 (SP-047) | 🔵 Backlog |
 | T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | EP-017 (SP-047) | 🔵 Backlog |
-| T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3) | EP-018 (SP-048) | 🔵 Backlog |
-| T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | EP-018 (SP-048) | 🔵 Backlog |
-| T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session) | EP-018 (SP-048) | 🔵 Backlog |
-| T-0194 | Convert scene to `WindowGroup(for: ProjectWindowID.self)` + Landing window; wire `openWindow` (R1/R2/R3) | EP-018 (SP-049) | 🔵 Backlog |
-| T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | EP-018 (SP-049) | 🔵 Backlog |
+| T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3) | EP-018 (SP-048) | ✅ Done (2026-06-24) |
+| T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0192.md` |
+| T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0193.md` |
+| T-0194 | Per-window project model — AppKit NSWindow per project (R1/R2/R3) + Welcome; single-instance; File menu | EP-018 (SP-049) | ✅ Verified → `Verified/Task-verified-0194.md` |
+| T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | EP-018 (SP-049) | ✅ Verified → `Verified/Task-verified-0195.md` |
 | T-0196 | Rewrite deep-link handler on new model + scene-`ID` fix (R5); open-flow cross-ref; EP-018 verification | EP-018 (SP-050) | 🔵 Backlog |
 
 ## Full Detail — Implemented Tasks Returned to Backlog
@@ -146,10 +146,14 @@ production refactor commits.
 
 ### SP-048 — Foundation (spike, ProjectSession, registry)
 
-**T-0191 — V1 spike.** Throwaway: confirm whether `WindowGroup(for: ProjectWindowID.self)` on
-macOS 26 focuses an existing window for a repeated value (giving R3 non-reentrancy for free) or
-duplicates it. Report yes/no; choose the R3 mechanism (native de-dup vs. `OpenProjectRegistry` +
-`NSApp` activation fallback). Must report before T-0194 commits the conversion.
+**T-0191 — V1 spike. ✅ Done 2026-06-24.** Throwaway `#if SPIKE_T0191` block in `ScriviApp.swift`
+(built, run, observed, removed). **Result:** macOS 26 `WindowGroup(for:)` de-dups by value **only
+against already-established windows; NOT race-safe** — two `openWindow(value:)` for the same value
+in quick succession produced two windows; re-opening an already-open value focused it.
+**Decision:** `OpenProjectRegistry` (T-0193) is the **authoritative R3 guard** (check-and-focus
+before `openWindow`); native de-dup is a steady-state backstop only. Critical for restore-all
+(T-0195) and deep links, which open windows concurrently. Recorded in design doc §3.2 and SP-048
+notes.
 
 **T-0192 — Extract `ProjectSession`.** Move all per-project state (`openProjectResult`,
 `viewportLoader`, `projectPreferences`, `timelineModel`, `pendingNavigationSceneID`,

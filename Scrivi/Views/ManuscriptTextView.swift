@@ -21,6 +21,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
     var loader: ViewportSceneLoader
     var env: AppEnvironment
+    var session: ProjectSession
     @Binding var navigateToSceneID: String?
     var showChapterTitles: Bool
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -256,6 +257,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             saveTask?.cancel()
             let loader = parent.loader
             let env = parent.env
+            let session = parent.session
             saveTask = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard !Task.isCancelled else { return }
@@ -275,7 +277,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     .components(separatedBy: .newlines)
                     .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
                 loader.updateLiveTitle(firstLine, forSceneID: sid)
-                env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
         }
 
@@ -316,6 +318,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let loader = parent.loader
             let env = parent.env
+            let session = parent.session
 
             // Determine split offset within this segment's text.
             let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : NSRange(location: loc, length: 0)
@@ -325,8 +328,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
-                      let rootPath = env.projectRootPath,
-                      let proj = env.openProjectResult,
+                      let rootPath = session.projectRootPath,
+                      let proj = session.openProjectResult,
                       loader.segments.indices.contains(segIdx)
                 else { return }
 
@@ -380,9 +383,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     }
 
-                    env.timelineModel?.reloadSceneDots(
+                    session.timelineModel?.reloadSceneDots(
                         engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                    env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                    session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
                 } catch {
                     print("[Scrivi] createScene failed: \(error)")
                 }
@@ -397,6 +400,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let loader = parent.loader
             let env = parent.env
+            let session = parent.session
 
             let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : NSRange(location: loc, length: 0)
             let splitOffsetInSeg = max(0, loc - segRange.location)
@@ -430,8 +434,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
-                      let rootPath = env.projectRootPath,
-                      let proj = env.openProjectResult,
+                      let rootPath = session.projectRootPath,
+                      let proj = session.openProjectResult,
                       loader.segments.indices.contains(segIdx)
                 else { return }
 
@@ -502,9 +506,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     }
 
-                    env.timelineModel?.reloadSceneDots(
+                    session.timelineModel?.reloadSceneDots(
                         engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                    env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                    session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
                 } catch {
                     print("[Scrivi] createChapter failed: \(error)")
                 }
@@ -521,6 +525,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let loader = parent.loader
             let env = parent.env
+            let session = parent.session
 
             // Only fire if cursor is at the very start of this segment's content.
             let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : nil
@@ -534,8 +539,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
-                      let rootPath = env.projectRootPath,
-                      let proj = env.openProjectResult,
+                      let rootPath = session.projectRootPath,
+                      let proj = session.openProjectResult,
                       loader.segments.indices.contains(segIdx),
                       loader.segments.indices.contains(segIdx - 1)
                 else { return }
@@ -566,9 +571,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                 loader.setCurrentIndex(mergedIdx)
                 rebuildStorageAndPlaceCursor(at: mergedIdx, textOffset: joinPoint)
 
-                env.timelineModel?.reloadSceneDots(
+                session.timelineModel?.reloadSceneDots(
                     engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
         }
 
@@ -582,6 +587,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let loader = parent.loader
             let env = parent.env
+            let session = parent.session
 
             // Only fire if cursor is at the very start of the segment.
             let segRange = sceneBoundaries.indices.contains(segIdx) ? sceneBoundaries[segIdx] : nil
@@ -602,8 +608,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
-                      let rootPath = env.projectRootPath,
-                      let _ = env.openProjectResult,
+                      let rootPath = session.projectRootPath,
+                      let _ = session.openProjectResult,
                       loader.segments.indices.contains(segIdx),
                       loader.segments.indices.contains(segIdx - 1)
                 else { return }
@@ -639,9 +645,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                     }
                 }
 
-                env.timelineModel?.reloadSceneDots(
+                session.timelineModel?.reloadSceneDots(
                     engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
-                env.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
         }
 
@@ -944,6 +950,7 @@ private final class DividerAttachmentCell: NSTextAttachmentCell {
 struct ManuscriptTextView: View {
     var loader: ViewportSceneLoader
     var env: AppEnvironment
+    var session: ProjectSession
     @Binding var navigateToSceneID: String?
     var showChapterTitles: Bool
 

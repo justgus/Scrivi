@@ -5,10 +5,10 @@ import AppKit
 
 struct EditorView: View {
 
-    @Environment(AppEnvironment.self) private var env
+    @Environment(ProjectSession.self) private var session
 
     var body: some View {
-        if let loader = env.viewportLoader, let prefs = env.projectPreferences {
+        if let loader = session.viewportLoader, let prefs = session.projectPreferences {
             ManuscriptEditorView(loader: loader, prefs: prefs)
         } else {
             ProgressView("Loading…")
@@ -22,6 +22,7 @@ struct EditorView: View {
 private struct ManuscriptEditorView: View {
 
     @Environment(AppEnvironment.self) private var env
+    @Environment(ProjectSession.self) private var session
     var loader: ViewportSceneLoader
     var prefs: ProjectPreferences
 
@@ -29,7 +30,7 @@ private struct ManuscriptEditorView: View {
 
     var body: some View {
         NavigationSplitView {
-            SceneNavigatorView(loader: loader, env: env, prefs: prefs) { sceneID in
+            SceneNavigatorView(loader: loader, env: env, session: session, prefs: prefs) { sceneID in
                 navigateToSceneID = sceneID
             } onTakeFocus: {
                 loader.takeFocus()
@@ -46,15 +47,16 @@ private struct ManuscriptEditorView: View {
                     ManuscriptTextView(
                         loader: loader,
                         env: env,
+                        session: session,
                         navigateToSceneID: $navigateToSceneID,
                         showChapterTitles: prefs.showChapterTitles
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     #if os(iOS)
                     if UIDevice.current.userInterfaceIdiom != .phone,
-                       env.timelineVisible,
-                       let tlModel = env.timelineModel,
-                       let prp = env.projectRootPath {
+                       session.timelineVisible,
+                       let tlModel = session.timelineModel,
+                       let prp = session.projectRootPath {
                         TimelineStripView(
                             model: tlModel,
                             engine: env.engine,
@@ -65,9 +67,9 @@ private struct ManuscriptEditorView: View {
                         )
                     }
                     #else
-                    if env.timelineVisible,
-                       let tlModel = env.timelineModel,
-                       let prp = env.projectRootPath {
+                    if session.timelineVisible,
+                       let tlModel = session.timelineModel,
+                       let prp = session.projectRootPath {
                         TimelineStripView(
                             model: tlModel,
                             engine: env.engine,
@@ -80,11 +82,11 @@ private struct ManuscriptEditorView: View {
                     #endif
                 }
                 #if os(iOS)
-                if UIDevice.current.userInterfaceIdiom != .phone && env.inspectorVisible {
+                if UIDevice.current.userInterfaceIdiom != .phone && session.inspectorVisible {
                     SceneInspectorView()
                 }
                 #else
-                if env.inspectorVisible {
+                if session.inspectorVisible {
                     SceneInspectorView()
                 }
                 #endif
@@ -101,25 +103,29 @@ private struct ManuscriptEditorView: View {
         // it. .onAppear covers a cold-start link set before this view existed;
         // .onChange covers a link that arrives while the editor is already shown.
         .onAppear { consumePendingNavigation() }
-        .onChange(of: env.pendingNavigationSceneID) { _, _ in consumePendingNavigation() }
+        .onChange(of: session.pendingNavigationSceneID) { _, _ in consumePendingNavigation() }
     }
 
     private func consumePendingNavigation() {
-        guard let sceneID = env.pendingNavigationSceneID else { return }
+        guard let sceneID = session.pendingNavigationSceneID else { return }
         navigateToSceneID = sceneID
-        env.pendingNavigationSceneID = nil
+        session.pendingNavigationSceneID = nil
     }
 
     #if os(iOS)
     private var phoneToolbar: some View {
         HStack {
             Spacer()
-            Button("Project Settings") { env.showProjectSettings = true }
+            Button("Project Settings") { session.showProjectSettings = true }
                 .buttonStyle(.borderless)
                 .font(.callout)
-            Button("Close Project") { env.closeProject() }
-                .buttonStyle(.borderless)
-                .font(.callout)
+            Button("Close Project") {
+                if let pid = session.openProjectResult?.projectID {
+                    env.closeProject(projectID: pid)
+                }
+            }
+            .buttonStyle(.borderless)
+            .font(.callout)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

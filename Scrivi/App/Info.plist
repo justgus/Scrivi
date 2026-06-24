@@ -22,6 +22,12 @@
 	<string>1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
+	<!-- Single-instance: a second launch / scrivi:// deep link / Spotlight open is
+	     routed to the already-running process rather than spawning a second one.
+	     Scrivi is a single-process multi-window app; its OpenProjectRegistry is the
+	     per-process source of truth for what's open (EP-018 / T-0194). -->
+	<key>LSMultipleInstancesProhibited</key>
+	<true/>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>

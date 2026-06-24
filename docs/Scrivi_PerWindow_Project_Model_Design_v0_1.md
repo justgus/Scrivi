@@ -92,7 +92,21 @@ app-wide and project-independent:
 verbatim) from `AppEnvironment` onto `ProjectSession`. The logic is largely unchanged;
 it changes *owner*, not behavior.
 
-### 3.2 Scene routing (the SwiftUI mechanism)
+### 3.2 Scene routing (the window mechanism)
+
+> **SUPERSEDED 2026-06-24 (T-0194 implementation).** `WindowGroup(for:)` was tried and
+> **abandoned** after repeated, evidence-backed failures: it **caches dismissed windows**
+> and reopening a closed project rebinds to a dead view whose `.task`/`.onAppear` never
+> fire → permanent "Loading…". Logs confirmed `openWindow(value:)` fired with **no**
+> subsequent `resolve()` on reopen. SwiftUI's per-view `.onOpenURL` was also unreliable
+> across the Window+WindowGroup split (deep links stopped arriving). **Decision:** manage
+> **project windows via AppKit `NSWindow`/`NSWindowController`** — one window per session,
+> created on open, closed+released on close, focused for R3. We own the lifecycle
+> deterministically; SwiftUI's window restoration/caching is taken out of the loop. The
+> `OpenProjectRegistry` remains the authoritative R3 guard (map projectID → controller);
+> URL delivery uses the app-level `NSApplicationDelegate.application(_:open:)`. The
+> Welcome/Landing surface remains a SwiftUI `Window`. The original `WindowGroup(for:)`
+> sketch below is retained for history only.
 
 Use a `WindowGroup` parameterized by a `Codable & Hashable` value — the **projectID**
 (or a small `ProjectWindowID` struct wrapping it):
@@ -111,11 +125,20 @@ WindowGroup(for: ProjectWindowID.self) { $windowID in
 - A separate, unparameterized `Window` (or the no-value `WindowGroup` branch) hosts the
   **Landing / project-picker** UI when nothing is open.
 
-> **Design note / risk to validate (V1):** the exact "focus existing vs. create new"
-> behavior of `WindowGroup(for:)` on macOS 26 must be confirmed empirically before we
-> rely on it for R3. If it does not de-duplicate by value, we fall back to tracking
-> open windows in the registry and calling `NSApp` window activation. This is the
-> single biggest implementation risk and gets a spike (§8, step 0).
+> **V1 spike — RESOLVED 2026-06-24 (T-0191).** Empirically on macOS 26:
+> `WindowGroup(for:)` **de-dups by value only against already-established windows**, and
+> is **NOT race-safe**. Observed:
+> - Two `openWindow(value:)` calls for the **same** value in quick succession (before
+>   the first window settles) → **two windows stacked up** (no de-dup).
+> - Re-opening a value whose window **already exists** → **focused the existing window**
+>   (de-dup works in steady state).
+>
+> **Decision:** the `OpenProjectRegistry` (§4) is the **authoritative R3 guard** — we
+> check-and-focus *before* calling `openWindow`, never relying on native de-dup against a
+> race. Native `WindowGroup(for:)` de-dup is a steady-state backstop only. This matters
+> because restore-all-windows (T-0195) and deep links open windows concurrently, exactly
+> the race the native behavior does not cover. (This promotes the previously-named
+> fallback to the primary mechanism; the registry was already planned, now justified.)
 
 ### 3.3 ProjectSession lifecycle vs. SwiftUI window lifecycle
 

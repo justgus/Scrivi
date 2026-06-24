@@ -36,19 +36,19 @@ Multiple projects open simultaneously, one per window, restored where she left o
 
 | Sprint | Title | Status |
 | ------ | ----- | ------ |
-| SP-048 | Foundation — V1 spike, `ProjectSession` extraction, open-project registry | 🟡 Active |
-| SP-049 | Windowing & restore — `WindowGroup(for:)`, Landing window, restore-all-windows | 🔵 Planning |
-| SP-050 | Deep-link rewrite on new model + scene-ID fix; open-flow cross-ref; EP-018 verification | 🔵 Planning |
+| SP-048 | Foundation — V1 spike, `ProjectSession` extraction, open-project registry | ✅ Closed |
+| SP-049 | Windowing & restore — AppKit per-project windows, Welcome, single-instance, restore-all-windows | ✅ Closed |
+| SP-050 | Deep-link rewrite on new model + scene-ID fix; open-flow cross-ref; EP-018 verification | 🟡 Active |
 
 ### Tasks
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3 mechanism) | SP-048 | 🔵 Backlog |
-| T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | SP-048 | 🔵 Backlog |
-| T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session; powers R3 + R4) | SP-048 | 🔵 Backlog |
-| T-0194 | Convert scene to `WindowGroup(for: ProjectWindowID.self)` + Landing window; wire `openWindow` (R1/R2/R3) | SP-049 | 🔵 Backlog |
-| T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | SP-049 | 🔵 Backlog |
+| T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3 mechanism) | SP-048 | ✅ Done — registry is authoritative R3 guard (native de-dup not race-safe) |
+| T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | SP-048 | ✅ Verified |
+| T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session; powers R3 + R4) | SP-048 | ✅ Verified |
+| T-0194 | Per-window project model — AppKit NSWindow per project (R1/R2/R3) + Welcome window; single-instance; File menu | SP-049 | ✅ Verified |
+| T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | SP-049 | ✅ Verified |
 | T-0196 | Rewrite deep-link handler on new model + scene-`ID` fix (R5); open-flow v0.2 cross-ref; EP-018 verification | SP-050 | 🔵 Backlog |
 
 ---
