@@ -358,4 +358,12 @@ struct ListImportedTimelinesRequest  { AbsolutePath projectRootPath; };
 struct RemoveImportedTimelineRequest { AbsolutePath projectRootPath; std::string timelineID; };
 struct ExportProjectTimelineRequest  { AbsolutePath projectRootPath; };
 
+// ---------------------------------------------------------------------------
+// Searchable content (EP-017 SP-044 — Spotlight indexing facade)
+// ---------------------------------------------------------------------------
+
+struct ExtractSearchableTextRequest {
+    AbsolutePath projectRootPath;
+};
+
 } // namespace scrivi

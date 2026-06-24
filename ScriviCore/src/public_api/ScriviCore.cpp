@@ -28,8 +28,11 @@
 #include "schemas/SceneMetaJson.hpp"
 #include "schemas/StoryStructureJson.hpp"
 #include "schemas/TimelineMetaJson.hpp"
+#include "schemas/ObjectJson.hpp"
+#include "schemas/ProjectJson.hpp"
 #include "domain/Slug.hpp"
 #include "util/Json.hpp"
+#include "util/MarkdownStrip.hpp"
 #include "util/PathUtils.hpp"
 
 namespace scrivi {
@@ -906,6 +909,130 @@ Result<ExportProjectTimelineResult> ScriviCore::exportProjectTimeline(
     ExportProjectTimelineResult result;
     result.timelineJSON = schemas::serializeExternalTimeline(exportData);
     return Result<ExportProjectTimelineResult>::success(std::move(result));
+}
+
+// ---------------------------------------------------------------------------
+// Searchable content (EP-017 SP-044 — Spotlight indexing facade)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// Singular kind name used in uniqueIdentifier / the "kind" field
+// (objectKindSubdir returns the plural directory name).
+std::string objectKindName(ObjectKind kind) {
+    switch (kind) {
+        case ObjectKind::character: return "character";
+        case ObjectKind::location:  return "location";
+        case ObjectKind::item:      return "item";
+        case ObjectKind::rule:      return "rule";
+        case ObjectKind::timeline:  return "timeline";
+    }
+    return "character";
+}
+
+// Appends one record per *.json world object in objects/<subdir>/ to `items`.
+// Best-effort: unparseable files are skipped (a malformed object should not
+// fail the whole index extraction).
+void collectObjects(CoreServices& services,
+                    const AbsolutePath& projectRoot,
+                    const std::string& projectID,
+                    ObjectKind kind,
+                    std::vector<SearchableItem>& items) {
+    auto& fs  = *services.fileSystem;
+    auto  dir = util::join(util::join(projectRoot, "objects"), objectKindSubdir(kind));
+
+    auto existsR = fs.exists(dir);
+    if (!existsR.ok() || !existsR.value()) { return; }
+
+    auto listR = fs.listDirectory(dir);
+    if (!listR.ok()) { return; }
+
+    const std::string kindStr = objectKindName(kind);
+
+    for (const auto& entry : listR.value()) {
+        if (util::extension(entry) != ".json") { continue; }
+        auto textR = fs.readTextFile(entry);
+        if (!textR.ok()) { continue; }
+        auto parseR = schemas::parseWorldObject(textR.value(), kind);
+        if (!parseR.ok()) { continue; }
+
+        const auto& f = worldObjectFields(parseR.value());
+        SearchableItem item;
+        item.uniqueIdentifier   = kindStr + ":" + f.objectID.value;
+        item.kind               = kindStr;
+        item.title              = f.displayName;
+        item.displayName        = f.displayName;
+        item.contentDescription = f.notes;
+        item.keywords           = f.tags;
+        item.deepLink           = "scrivi://open?project=" + projectID
+                                + "&item=" + item.uniqueIdentifier;
+        items.push_back(std::move(item));
+    }
+}
+
+} // namespace
+
+Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
+    const ExtractSearchableTextRequest& request) {
+    auto& fs = *services_.fileSystem;
+
+    // 1. Project record — read project.json for identity (domain key) + title.
+    auto projTextR = fs.readTextFile(util::join(request.projectRootPath, "project.json"));
+    if (!projTextR.ok()) { return Result<ExtractSearchableTextResult>::failure(projTextR.error()); }
+
+    auto projParsed = schemas::parseProject(projTextR.value());
+    if (!projParsed.ok()) { return Result<ExtractSearchableTextResult>::failure(projParsed.error()); }
+
+    const auto& proj = projParsed.value();
+    const std::string projectID = proj.projectID.value;
+
+    ExtractSearchableTextResult out;
+    out.domainIdentifier = projectID;          // per-project delete-by-domain key
+    out.projectRootPath  = request.projectRootPath;
+
+    {
+        SearchableItem item;
+        item.uniqueIdentifier = "project:" + projectID;
+        item.kind             = "project";
+        item.title            = proj.title;
+        item.displayName      = proj.title;     // project.json has no separate displayName/summary
+        item.deepLink         = "scrivi://open?project=" + projectID
+                              + "&item=" + item.uniqueIdentifier;
+        out.items.push_back(std::move(item));
+    }
+
+    // 2. Scene records — manuscript order, body Markdown stripped to plain text.
+    manuscript::ManuscriptOrderResolver resolver{services_};
+    auto scenesR = resolver.resolve(request.projectRootPath);
+    if (scenesR.ok()) {
+        manuscript::SceneReader reader{services_};
+        for (const auto& s : scenesR.value()) {
+            SearchableItem item;
+            item.uniqueIdentifier = "scene:" + s.sceneID.value;
+            item.kind             = "scene";
+            item.title            = s.title;
+            item.displayName      = s.title;
+            item.containerTitle   = s.chapterTitle;
+
+            auto mdR = reader.readContent(request.projectRootPath, s.contentPath);
+            if (mdR.ok()) {
+                item.contentDescription = util::stripMarkdown(mdR.value());
+            }
+            item.deepLink = "scrivi://open?project=" + projectID
+                          + "&item=" + item.uniqueIdentifier;
+            out.items.push_back(std::move(item));
+        }
+    }
+    // A missing/empty manuscript is not fatal for indexing — degenerate projects
+    // still yield the project record (and any world objects).
+
+    // 3. World-object records — character/location/item/rule/timeline.
+    for (auto kind : {ObjectKind::character, ObjectKind::location, ObjectKind::item,
+                      ObjectKind::rule, ObjectKind::timeline}) {
+        collectObjects(services_, request.projectRootPath, projectID, kind, out.items);
+    }
+
+    return Result<ExtractSearchableTextResult>::success(std::move(out));
 }
 
 } // namespace scrivi

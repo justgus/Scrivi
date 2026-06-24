@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(CoreSpotlight)
+import CoreSpotlight
+#endif
 
 @main
 struct ScriviApp: App {
@@ -13,6 +16,23 @@ struct ScriviApp: App {
                 .task {
                     await env.bootstrap()
                 }
+                // Deep link via the scrivi:// URL scheme.
+                .onOpenURL { url in
+                    Task { await env.handleDeepLink(url) }
+                }
+                // Deep link via a tapped Core Spotlight result. The activity carries
+                // the item's uniqueIdentifier ("<kind>:<id>") under
+                // CSSearchableItemActivityIdentifier — NOT the deep-link URL. We
+                // reconstruct the link from it. (Note: this continuation is known to
+                // be unreliable on SwiftUI macOS; the scrivi:// URL scheme above is
+                // the primary path.)
+                #if canImport(CoreSpotlight)
+                .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                    guard let uid = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
+                    else { return }
+                    Task { await env.handleSpotlightItem(uniqueIdentifier: uid) }
+                }
+                #endif
                 .onReceive(
                     NotificationCenter.default.publisher(
                         for: {

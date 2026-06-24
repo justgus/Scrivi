@@ -254,10 +254,10 @@ struct ScriviInteropTests {
 
     @Test("enableGitSnapshots initializes git and returns a non-empty snapshotID")
     func enableGitSnapshotsInitializesRepo() throws {
-        guard ScriviInteropTests.gitAvailable() else {
-            withKnownIssue("git not available in PATH — skip") { }
-            return
-        }
+        // Skip when git can't be launched — e.g. not in PATH, or the sandboxed
+        // test host denies Process exec. A bare return is a clean no-op skip;
+        // withKnownIssue with an empty body would itself be flagged.
+        guard ScriviInteropTests.gitAvailable() else { return }
 
         let (engine, _, ref, projectDir, _) = try makeProjectFixture()
 
@@ -276,10 +276,8 @@ struct ScriviInteropTests {
 
     @Test("createSnapshot succeeds on a git-enabled project and returns created=true")
     func createSnapshotSucceeds() throws {
-        guard ScriviInteropTests.gitAvailable() else {
-            withKnownIssue("git not available in PATH — skip") { }
-            return
-        }
+        // See enableGitSnapshotsInitializesRepo — bare return is the clean skip.
+        guard ScriviInteropTests.gitAvailable() else { return }
 
         let (engine, _, ref, projectDir, appSupport) = try makeProjectFixture()
 
@@ -700,5 +698,96 @@ struct ScriviInteropTests {
         #expect(reopenedScenes2.count == 2)
         #expect(reopenedScenes2[1].sceneID == chapter.firstSceneID)
         #expect(reopenedScenes2[1].chapterID == chapter.chapterID)
+    }
+
+    // MARK: - Test 18: extractSearchableText decodes the indexing envelope (T-0181)
+
+    @Test("extractSearchableText returns decoded project, scene, and object records")
+    func extractSearchableTextDecodesRecords() throws {
+        let (engine, _, ref, projectDir, appSupport) = try makeProjectFixture()
+
+        // Put real Markdown into the opening scene so the scene record carries a
+        // stripped contentDescription.
+        let created = try engine.openProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path
+        )
+        guard let scene = created.activeScene else {
+            Issue.record("Expected an active scene")
+            return
+        }
+        _ = try engine.saveScene(
+            projectID:         created.projectID,
+            projectRootPath:   projectDir.path,
+            appSupportRoot:    appSupport.path,
+            sceneID:           scene.sceneID,
+            sceneMetadataPath: scene.metadataPath,
+            sceneContentPath:  scene.contentPath,
+            markdown:          "# The Beginning\n\nThe **silver mines** of *Khaz'tul*.",
+            authorshipRef:     ref
+        )
+
+        // Add a world object so a non-scene record appears.
+        _ = try engine.createObject(
+            projectRootPath: projectDir.path,
+            objectKind:      "character",
+            displayName:     "Khaz'tul Miner",
+            authorshipRef:   ref
+        )
+
+        let content = try engine.extractSearchableText(projectRootPath: projectDir.path)
+
+        #expect(content.schema == "scrivi.searchableContent.v1")
+        // domainIdentifier is the projectID (delete-by-domain key), not the identity.
+        #expect(content.domainIdentifier == created.projectID)
+
+        let project = content.items.first { $0.kind == "project" }
+        #expect(project != nil)
+        #expect(project?.uniqueIdentifier == "project:\(created.projectID)")
+
+        let sceneItem = content.items.first { $0.kind == "scene" }
+        #expect(sceneItem != nil)
+        #expect(sceneItem?.containerTitle.isEmpty == false)
+        // Markdown markup stripped to plain text.
+        #expect(sceneItem?.contentDescription == "The Beginning\nThe silver mines of Khaz'tul.")
+        #expect(sceneItem?.deepLink.hasPrefix("scrivi://open?project=\(created.projectID)") == true)
+
+        let character = content.items.first { $0.kind == "character" }
+        #expect(character != nil)
+        #expect(character?.title == "Khaz'tul Miner")
+    }
+
+    // MARK: - Test 19: ScriviDeepLink parsing (T-0184)
+
+    @Test("ScriviDeepLink parses a well-formed scene deep link")
+    func deepLinkParsesScene() throws {
+        let url = URL(string: "scrivi://open?project=project_abc&item=scene:scene_xyz")!
+        let link = try #require(ScriviDeepLink(url: url))
+        #expect(link.projectID == "project_abc")
+        #expect(link.itemID == "scene:scene_xyz")
+        #expect(link.targetSceneID == "scene_xyz")
+    }
+
+    @Test("ScriviDeepLink parses a project deep link (no scene target)")
+    func deepLinkParsesProject() throws {
+        let url = URL(string: "scrivi://open?project=project_abc&item=project:project_abc")!
+        let link = try #require(ScriviDeepLink(url: url))
+        #expect(link.projectID == "project_abc")
+        #expect(link.targetSceneID == nil)
+    }
+
+    @Test("ScriviDeepLink requires a non-empty project and the open host")
+    func deepLinkRejectsInvalid() {
+        #expect(ScriviDeepLink(url: URL(string: "scrivi://open?item=scene:s1")!) == nil)      // no project
+        #expect(ScriviDeepLink(url: URL(string: "scrivi://other?project=p1")!) == nil)         // wrong host
+        #expect(ScriviDeepLink(url: URL(string: "https://example.com?project=p1")!) == nil)    // wrong scheme
+    }
+
+    @Test("ScriviDeepLink tolerates a missing item (project-only link)")
+    func deepLinkMissingItem() throws {
+        let link = try #require(ScriviDeepLink(url: URL(string: "scrivi://open?project=project_abc")!))
+        #expect(link.projectID == "project_abc")
+        #expect(link.itemID.isEmpty)
+        #expect(link.targetSceneID == nil)
     }
 }

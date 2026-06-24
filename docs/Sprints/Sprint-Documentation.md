@@ -6,22 +6,26 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Organization
 
-- **Sprint-active.md** — The currently active Sprint (at most one at a time)
+- **Sprint-active.md** — The currently active Sprint(s); normally one, but parallel sprints across different Epics are permitted
 - **Closed/Sprint-SP-XXX.md** — Archived closed Sprints, one file each
 
-## Active Sprint
+## Active Sprints
 
-*None — SP-043 closed 2026-06-23 (EP-016 complete). No Sprint in the backlog.*
+- **SP-048 — Per-window model — foundation (spike, ProjectSession, registry)** (EP-018, 🟡 Active since 2026-06-24) — current focus. See [Sprint-active.md](Sprint-active.md).
+- **SP-045 — Spotlight — Layer 1: in-app Core Spotlight donations & deep-link** (EP-017, 🟡 Active since 2026-06-23) — last task T-0184 ⏸ paused pending EP-018. See [Sprint-active.md](Sprint-active.md).
 
 ## Sprint Backlog
 
 See: [Sprint-backlog.md](Sprint-backlog.md)
 
-*No sprints in the backlog.*
+| Sprint | Title | Epic | Status |
+| ------ | ----- | ---- | ------ |
+| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | 🔵 Planning |
+| SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **43 Sprints** | Next available: **SP-044**
+Currently: **47 Sprints** | Next available: **SP-048**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -68,16 +72,23 @@ Currently: **43 Sprints** | Next available: **SP-044**
 | SP-041 | Story Structure bands — overlay, drag borders, band assignment | EP-016 | 2026-06-12 | 2026-06-12 | ✅ Closed |
 | SP-042 | Historical events, imported timelines, export, and clustering | EP-016 | 2026-06-12 | 2026-06-16 | ✅ Closed |
 | SP-043 | EP-016 verification and polish | EP-016 | 2026-06-16 | 2026-06-23 | ✅ Closed |
+| SP-044 | Spotlight — design sign-off & ScriviCore indexing facade | EP-017 | 2026-06-23 | 2026-06-23 | ✅ Closed |
+| SP-045 | Spotlight — Layer 1: in-app Core Spotlight donations & deep-link | EP-017 | 2026-06-23 | — | 🟡 Active |
+| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | — | — | 🔵 Planning |
+| SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | — | — | 🔵 Planning |
+| SP-048 | Per-window model — foundation (spike, ProjectSession, registry) | EP-018 | 2026-06-24 | — | 🟡 Active |
+| SP-049 | Per-window model — windowing & restore-all-windows | EP-018 | — | — | 🔵 Planning |
+| SP-050 | Per-window model — deep-link rewrite & EP-018 verification | EP-018 | — | — | 🔵 Planning |
 
 ## Statistics
 
-- **Total Sprints:** 43
-- **Closed:** 42 ✅
-- **Active:** 0 🟡
-- **Planning:** 0 🔵
+- **Total Sprints:** 50
+- **Closed:** 43 ✅
+- **Active:** 2 🟡 (SP-045, SP-048)
+- **Planning:** 4 🔵 (SP-046–SP-047, SP-049–SP-050)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-06-23 (SP-043 closed; EP-016 complete)*
+*Last Updated: 2026-06-24 (EP-018 created; SP-048 activated, SP-049–SP-050 planned. SP-044 closed; SP-045 active for EP-017.)*

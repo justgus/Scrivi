@@ -97,6 +97,17 @@ private struct ManuscriptEditorView: View {
         }
         .frame(minWidth: 700, minHeight: 400)
         .navigationSplitViewStyle(.balanced)
+        // Forward a deep link's requested scene into local navigation, then clear
+        // it. .onAppear covers a cold-start link set before this view existed;
+        // .onChange covers a link that arrives while the editor is already shown.
+        .onAppear { consumePendingNavigation() }
+        .onChange(of: env.pendingNavigationSceneID) { _, _ in consumePendingNavigation() }
+    }
+
+    private func consumePendingNavigation() {
+        guard let sceneID = env.pendingNavigationSceneID else { return }
+        navigateToSceneID = sceneID
+        env.pendingNavigationSceneID = nil
     }
 
     #if os(iOS)

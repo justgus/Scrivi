@@ -787,6 +787,16 @@ public final class ScriviEngine: @unchecked Sendable {
         let raw = projectRootPath.withCString { scrivi_export_project_timeline($0) }
         return try decodeC(raw)
     }
+
+    // MARK: — Searchable content (EP-017 SP-045 — Spotlight indexing)
+
+    // Returns the project's indexable content (scrivi.searchableContent.v1) for
+    // Core Spotlight donation. Single source of indexing truth — the same facade
+    // the importer extension calls.
+    public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult {
+        let raw = projectRootPath.withCString { scrivi_extract_searchable_text($0) }
+        return try decodeC(raw)
+    }
 }
 
 // MARK: — C boundary decode helper
@@ -874,6 +884,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func listImportedTimelines(projectRootPath: String) throws -> ImportedTimelinesListResult { try unavailable() }
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
     public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
+    public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult { try unavailable() }
 }
 
 #endif
@@ -1266,6 +1277,58 @@ public struct ExportTimelineResult: Decodable, Sendable {
 
 public struct TimelineBoolResult: Decodable, Sendable {
     public let updated: Bool
+}
+
+// MARK: — Searchable Content Result Types (EP-017 SP-045)
+
+// One indexable record from scrivi.searchableContent.v1. Optional fields
+// (containerTitle, contentDescription, keywords) are omitted by the facade when
+// empty, so they decode with sensible defaults here.
+public struct SearchableItemResult: Decodable, Sendable {
+    public let uniqueIdentifier:   String
+    public let kind:               String   // project|scene|character|location|item|rule|timeline
+    public let title:              String
+    public let displayName:        String
+    public let containerTitle:     String   // scenes only (chapter); "" otherwise
+    public let contentDescription: String   // plain text; "" when absent
+    public let keywords:           [String]
+    public let deepLink:           String
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        uniqueIdentifier   = try c.decode(String.self, forKey: .uniqueIdentifier)
+        kind               = try c.decode(String.self, forKey: .kind)
+        title              = try c.decodeIfPresent(String.self, forKey: .title)              ?? ""
+        displayName        = try c.decodeIfPresent(String.self, forKey: .displayName)        ?? ""
+        containerTitle     = try c.decodeIfPresent(String.self, forKey: .containerTitle)     ?? ""
+        contentDescription = try c.decodeIfPresent(String.self, forKey: .contentDescription) ?? ""
+        keywords           = try c.decodeIfPresent([String].self, forKey: .keywords)         ?? []
+        deepLink           = try c.decodeIfPresent(String.self, forKey: .deepLink)           ?? ""
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case uniqueIdentifier, kind, title, displayName,
+             containerTitle, contentDescription, keywords, deepLink
+    }
+}
+
+public struct SearchableContentResult: Decodable, Sendable {
+    public let schema:           String
+    public let domainIdentifier: String   // projectID — Core Spotlight delete-by-domain key
+    public let projectRootPath:  String
+    public let items:            [SearchableItemResult]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        schema           = try c.decodeIfPresent(String.self, forKey: .schema) ?? ""
+        domainIdentifier = try c.decode(String.self, forKey: .domainIdentifier)
+        projectRootPath  = try c.decodeIfPresent(String.self, forKey: .projectRootPath) ?? ""
+        items            = try c.decodeIfPresent([SearchableItemResult].self, forKey: .items) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schema, domainIdentifier, projectRootPath, items
+    }
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

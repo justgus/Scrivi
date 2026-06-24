@@ -25,6 +25,9 @@
 		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
 		C034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
 		C035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
+		C036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
+		C037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		D001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		D002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -41,6 +44,9 @@
 		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
 		D034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
 		D035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
+		D036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
+		D037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		E001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		E002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -57,6 +63,9 @@
 		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
 		E034_BF /* SceneInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C034 /* SceneInspectorView.swift */; };
 		E035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
+		E036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
+		E037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
 		F010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		F011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
@@ -91,6 +100,9 @@
 		C033 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Scrivi/Views/AboutView.swift; sourceTree = SOURCE_ROOT; };
 		C034 /* SceneInspectorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneInspectorView.swift; path = Scrivi/Views/SceneInspectorView.swift; sourceTree = SOURCE_ROOT; };
 		C035 /* TimelineStripView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TimelineStripView.swift; path = Scrivi/Views/TimelineStripView.swift; sourceTree = SOURCE_ROOT; };
+		C036 /* SpotlightDonor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SpotlightDonor.swift; path = Scrivi/App/SpotlightDonor.swift; sourceTree = SOURCE_ROOT; };
+		C037 /* ProjectBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectBookmarkStore.swift; path = Scrivi/App/ProjectBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
+		C038 /* ScriviURL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviURL.swift; path = Scrivi/App/ScriviURL.swift; sourceTree = SOURCE_ROOT; };
 		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -154,6 +166,9 @@
 				C033 /* AboutView.swift */,
 				C034 /* SceneInspectorView.swift */,
 				C035 /* TimelineStripView.swift */,
+				C036 /* SpotlightDonor.swift */,
+				C037 /* ProjectBookmarkStore.swift */,
+				C038 /* ScriviURL.swift */,
 				SCRIVI_CORE_LIB /* libScriviCore.a */,
 				F001 /* ScriviInteropTests.swift */,
 				ASSETS_REF /* Scrivi/Assets.xcassets */,
@@ -261,6 +276,13 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
+					C_TARGET = {
+						SystemCapabilities = {
+							com.apple.Sandbox = {
+								enabled = 1;
+							};
+						};
+					};
 					F_TARGET = {
 						TestTargetID = C_TARGET;
 					};
@@ -341,6 +363,9 @@
 				C033_BF /* AboutView.swift in Sources */,
 				C034_BF /* SceneInspectorView.swift in Sources */,
 				C035_BF /* TimelineStripView.swift in Sources */,
+				C036_BF /* SpotlightDonor.swift in Sources */,
+				C037_BF /* ProjectBookmarkStore.swift in Sources */,
+				C038_BF /* ScriviURL.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -364,6 +389,9 @@
 				D033_BF /* AboutView.swift in Sources */,
 				D034_BF /* SceneInspectorView.swift in Sources */,
 				D035_BF /* TimelineStripView.swift in Sources */,
+				D036_BF /* SpotlightDonor.swift in Sources */,
+				D037_BF /* ProjectBookmarkStore.swift in Sources */,
+				D038_BF /* ScriviURL.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -387,6 +415,9 @@
 				E033_BF /* AboutView.swift in Sources */,
 				E034_BF /* SceneInspectorView.swift in Sources */,
 				E035_BF /* TimelineStripView.swift in Sources */,
+				E036_BF /* SpotlightDonor.swift in Sources */,
+				E037_BF /* ProjectBookmarkStore.swift in Sources */,
+				E038_BF /* ScriviURL.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,18 +447,33 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconMacOS;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Scrivi/App/Scrivi.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readonly;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.6;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -435,7 +481,14 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_MODULE_NAME = ScriviApp;
 				PRODUCT_NAME = Scrivi;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
@@ -449,18 +502,33 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconMacOS;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/Scrivi/App/Scrivi.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readonly;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readonly;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = "$(SRCROOT)/Scrivi/App/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.6;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -468,7 +536,14 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_MODULE_NAME = ScriviApp;
 				PRODUCT_NAME = Scrivi;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = macosx;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/ScriviCore/include/scrivi";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -483,7 +558,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
 				PRODUCT_NAME = Scrivi;
 				SDKROOT = iphoneos;
@@ -501,7 +576,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
 				PRODUCT_NAME = Scrivi;
 				SDKROOT = iphoneos;
@@ -524,7 +599,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
-				XROS_DEPLOYMENT_TARGET = 26.0;
+				XROS_DEPLOYMENT_TARGET = 26.6;
 			};
 			name = Debug;
 		};
@@ -540,7 +615,7 @@
 				SDKROOT = xros;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
-				XROS_DEPLOYMENT_TARGET = 26.0;
+				XROS_DEPLOYMENT_TARGET = 26.6;
 			};
 			name = Release;
 		};
@@ -550,7 +625,9 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				GENERATE_INFOPLIST_FILE = YES;
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
+				MACOSX_DEPLOYMENT_TARGET = 26.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi.tests;
 				PRODUCT_NAME = ScriviInteropTests;
 				SDKROOT = macosx;
@@ -568,7 +645,9 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				GENERATE_INFOPLIST_FILE = YES;
+				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
+				MACOSX_DEPLOYMENT_TARGET = 26.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi.tests;
 				PRODUCT_NAME = ScriviInteropTests;
 				SDKROOT = macosx;

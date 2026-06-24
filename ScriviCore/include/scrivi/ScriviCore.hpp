@@ -72,6 +72,12 @@ public:
     Result<RemoveImportedTimelineResult>        removeImportedTimeline(const RemoveImportedTimelineRequest& request);
     Result<ExportProjectTimelineResult>         exportProjectTimeline(const ExportProjectTimelineRequest& request);
 
+    // Searchable content (EP-017 SP-044 — Spotlight indexing facade).
+    // Read-only: composes existing schema readers and returns one record per
+    // indexable item (project, scenes, world objects). Single source of indexing
+    // truth for both Layer 1 (in-app donations) and Layer 2 (importer extension).
+    Result<ExtractSearchableTextResult>         extractSearchableText(const ExtractSearchableTextRequest& request);
+
 private:
     CoreServices services_;
 };

@@ -1303,4 +1303,34 @@ const char* scrivi_export_project_timeline(const char* projectRootPath) {
     return heap(okEnvelope(std::move(doc)));
 }
 
+const char* scrivi_extract_searchable_text(const char* projectRootPath) {
+    scrivi::ExtractSearchableTextRequest req;
+    req.projectRootPath = S(projectRootPath);
+
+    auto r = core().extractSearchableText(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("schema",           v.schema);
+    doc.setString("domainIdentifier", v.domainIdentifier);
+    doc.setString("projectRootPath",  v.projectRootPath);
+
+    for (const auto& it : v.items) {
+        scrivi::util::JsonDoc item;
+        item.setString("uniqueIdentifier", it.uniqueIdentifier);
+        item.setString("kind",             it.kind);
+        item.setString("title",            it.title);
+        item.setString("displayName",      it.displayName);
+        item.setString("deepLink",         it.deepLink);
+        // Optional fields: omitted (not null) when empty, per the schema.
+        if (!it.containerTitle.empty())    { item.setString("containerTitle", it.containerTitle); }
+        if (!it.contentDescription.empty()){ item.setString("contentDescription", it.contentDescription); }
+        for (const auto& kw : it.keywords) { item.appendStringToArray("keywords", kw); }
+        doc.appendToArray("items", std::move(item));
+    }
+
+    return heap(okEnvelope(std::move(doc)));
+}
+
 } // extern "C"

@@ -54,6 +54,7 @@ target_sources(ScriviCore
         src/util/Json.cpp
         src/util/AtomicWrite.cpp
         src/util/Hash.cpp
+        src/util/MarkdownStrip.cpp
         src/platform/LocalFileSystem.cpp
         src/schemas/ProjectJson.cpp
         src/schemas/ManuscriptMetaJson.cpp

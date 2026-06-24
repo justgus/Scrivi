@@ -260,6 +260,23 @@ const char* scrivi_list_imported_timelines(const char* projectRootPath);
 const char* scrivi_remove_imported_timeline(const char* projectRootPath, const char* timelineID);
 const char* scrivi_export_project_timeline(const char* projectRootPath);
 
+/* ---- Searchable content (EP-017 SP-044 — Spotlight indexing facade) ----- */
+
+/*
+ * Returns the indexable content of a .scrivi project as the
+ * scrivi.searchableContent.v1 envelope:
+ *   {"ok":true,"result":{
+ *     "schema":"scrivi.searchableContent.v1",
+ *     "domainIdentifier":"project_...",      // delete-by-domain key (projectID)
+ *     "projectRootPath":"/abs/path.scrivi",
+ *     "items":[ {"uniqueIdentifier":"...","kind":"...", ...}, ... ]
+ *   }}
+ * One record per project / scene / world object. Read-only. Both the in-app
+ * donor and the importer extension call this for a single source of indexing
+ * truth. Caller owns the result; free with scrivi_free.
+ */
+const char* scrivi_extract_searchable_text(const char* projectRootPath);
+
 #ifdef __cplusplus
 }
 #endif

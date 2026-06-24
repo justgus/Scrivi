@@ -70,7 +70,7 @@ See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **67 verified Tasks**
+Currently: **75 verified Tasks**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -188,6 +188,14 @@ Currently: **67 verified Tasks**
 | T-0154 | Timeline panel resize — drag top edge, dynamic minimum height | [Task-verified-0154.md](Verified/Task-verified-0154.md) | ✅ Verified |
 | T-0155 | Expand Timeline Forward/Backward popover | [Task-verified-0155.md](Verified/Task-verified-0155.md) | ✅ Verified |
 | T-0168 | Scene duration, chain propagation, project timeline defaults, "Immediately after" | [Task-verified-0168.md](Verified/Task-verified-0168.md) | ✅ Verified |
+| T-0176 | Resolve design gates — boundary (Option A) & adapter-location reconciliation | [Task-verified-0176.md](Verified/Task-verified-0176.md) | ✅ Verified |
+| T-0177 | Define indexable record schema (fields/attributes per item type) | [Task-verified-0177.md](Verified/Task-verified-0177.md) | ✅ Verified |
+| T-0178 | ScriviCore `extractSearchableText(projectPath) -> JSON` read-only facade | [Task-verified-0178.md](Verified/Task-verified-0178.md) | ✅ Verified |
+| T-0179 | Unit + integration tests for the indexing facade against a fixture project | [Task-verified-0179.md](Verified/Task-verified-0179.md) | ✅ Verified |
+| T-0180 | Spotlight/Core Spotlight entitlements + project config | [Task-verified-0180.md](Verified/Task-verified-0180.md) | ✅ Verified |
+| T-0181 | `ScriviEngine` Swift API to fetch indexable records (calls the facade) | [Task-verified-0181.md](Verified/Task-verified-0181.md) | ✅ Verified |
+| T-0182 | Donate `CSSearchableItem`s on project open/save; delete-by-domain on close | [Task-verified-0182.md](Verified/Task-verified-0182.md) | ✅ Verified |
+| T-0183 | Markdown→plain-text extraction for body indexing | [Task-verified-0183.md](Verified/Task-verified-0183.md) | ✅ Verified |
 
 ## Closed Tasks
 
@@ -200,15 +208,17 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 168
-- **Verified:** 113 ✅ (T-0001–T-0137 excluding gaps, T-0149–T-0155, T-0168)
-- **Closed:** 2 🔴 (T-0125, T-0127)
-- **Retired (OBE):** 1 (T-0111)
-- **Absorbed (OBE):** 2 (T-0096→T-0118, T-0112→T-0115)
-- **Backlog:** 2 🔵 (T-0118, T-0123)
-- **Active:** 3 🟡 (T-0167, T-0171, T-0172)
-- **Next available:** T-0173
+- **Total Tasks:** 183
+- **Backlog:** 11 🔵 (T-0118, T-0123, plus EP-017 SP-046/SP-047 tasks T-0185–T-0190)
+- **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
+- **Active:** 1 🟡 (SP-045 task T-0184; T-0180–T-0183 verified)
+- **Unverified:** 0
+- **Next available:** T-0191
+
+> Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
+> SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23. Some historical aggregate counts
+> above predate a full re-audit and may lag.
 
 ---
 
-*Last Updated: 2026-06-16 (T-0171 and T-0172 created for SP-043; backlog cleared of verified EP-016 entries)*
+*Last Updated: 2026-06-23 (T-0180 verified & archived; SP-045 tasks T-0181–T-0184 active)*

@@ -63,6 +63,44 @@ adapter currently builds under `platforms/apple/` (SPM-style: `ScriviCoreAdapter
 consumed by the Apple targets. **Confirm the real adapter location/build graph before deciding
 how the extension links ScriviCore.**
 
+### 3b. Gate resolution (T-0176, 2026-06-23) — RESOLVED
+
+Investigated the real build graph (`Scrivi.xcodeproj/project.pbxproj`, `ScriviCore/include/scrivi/`,
+`platforms/apple/`). Findings and decisions:
+
+**Build-graph reality (settles §3a):**
+- `platforms/apple/` is **not a live SPM package** — it contains only a stale `.build` cache and
+  a `.DS_Store`. There is no `Package.swift` and no source there. The earlier "SPM-style
+  ScriviCoreAdapter" observation was a leftover artifact directory, not the active build path.
+  CLAUDE.md's "there is no SPM package" is therefore **correct**; the `platforms/apple/` cache is
+  stale and should be ignored (candidate for cleanup, out of scope for this Epic).
+- The **C++ adapter was retired in SP-026.** The live boundary is a **pure C ABI**: ScriviCore
+  exposes `scrivi.h` (functions `scrivi_*(...) -> const char*` JSON, freed via `scrivi_free`),
+  published as a Clang module (`ScriviCore/include/scrivi/module.modulemap` → `module ScriviCore`).
+- The app target consumes ScriviCore via: a **"Build ScriviCore (CMake)" script phase**, linking
+  `libScriviCore.a` (`LIBRARY_SEARCH_PATHS = $(SRCROOT)/build/ScriviCore`), with
+  `HEADER_SEARCH_PATHS` including `ScriviCore/include/scrivi`. `ScriviEngine.swift` calls the C
+  functions and decodes the JSON envelopes.
+
+**Gate decision — boundary: Option A, refined.** The importer extension will call a **new C ABI
+function** `scrivi_extract_searchable_text(const char* projectRootPath) -> const char*` (JSON),
+implemented in ScriviCore's `public_api` facade, freed with `scrivi_free`. Both Layer 1 (app, via
+`ScriviEngine`) and Layer 2 (extension) call the **same** function — single source of indexing
+truth. This is *not* "link C++ into the extension"; it is "link the same C static lib + C module
+the app already links," which an app-extension target can do cleanly. Option B (Swift JSON
+parsing) remains rejected — it would duplicate project I/O outside ScriviCore.
+
+**Consequences for later tasks:**
+- T-0178 adds `scrivi_extract_searchable_text` to `scrivi.h` + `public_api`, building on the
+  existing schema readers (no new file I/O logic invented — it composes existing readers).
+- T-0186 (extension link) replicates the app's ScriviCore link recipe: the CMake-built
+  `libScriviCore.a` + the `ScriviCore` Clang module, under the app-extension sandbox. No separate
+  adapter is needed.
+- Markdown→plain-text (T-0183): **belongs in the ScriviCore facade**, so both layers share
+  identical indexed text (the facade already has the scene `.md` content; stripping there avoids
+  duplicating a Markdown stripper in Swift and in the extension).
+- The `platforms/apple/` stale cache is noted for cleanup but is **not** touched by this Epic.
+
 ## 4. What to index (from the package layout)
 
 Source of truth = `.scrivi` package (`Scrivi_Project_Package_Structure_v0_1.md`):
@@ -82,6 +120,116 @@ Notes:
 - `domainIdentifier` = project identity (the `identity_…` already logged at open); lets us
   delete-by-domain when a project is removed.
 - `uniqueIdentifier` = stable per-item id (scene id / object id) so deep-linking is reliable.
+
+### 4a. Indexable record schema (T-0177, 2026-06-23) — RESOLVED
+
+The output of `scrivi_extract_searchable_text(projectRootPath)` is a single JSON envelope,
+following the existing `{ "ok": bool, ... }` Result convention used by every other `scrivi_*`
+function. Schema name: `scrivi.searchableContent.v1`.
+
+```json
+{
+  "ok": true,
+  "schema": "scrivi.searchableContent.v1",
+  "domainIdentifier": "identity_019ef4ac-...",   // project identity; delete-by-domain key
+  "projectRootPath": "/abs/path/MyNovel.scrivi",
+  "items": [
+    {
+      "uniqueIdentifier": "project:<projectID>",
+      "kind": "project",                          // project|scene|character|location|item|rule|timeline
+      "title": "My Novel",
+      "displayName": "My Novel",
+      "contentDescription": "<project summary, plain text>",
+      "keywords": ["..."],                        // optional; omitted if empty
+      "deepLink": "scrivi://open?project=<identity>&item=project:<projectID>"
+    },
+    {
+      "uniqueIdentifier": "scene:<sceneID>",
+      "kind": "scene",
+      "title": "<scene title or first-line fallback>",
+      "containerTitle": "Chapter 3",              // chapter title, for scenes only
+      "contentDescription": "<scene body, Markdown stripped to plain text>",
+      "keywords": [],
+      "deepLink": "scrivi://open?project=<identity>&item=scene:<sceneID>"
+    }
+    // ... one entry per character/location/item/rule/timeline
+  ]
+}
+```
+
+Field rules:
+- **`kind`** drives the Spotlight `contentType` mapping in Layers 1/2.
+- **`uniqueIdentifier`** is `"<kind>:<id>"` — globally unique within a project and stable across
+  runs (deep-link target).
+- **`contentDescription`** is always plain text (Markdown already stripped by the facade, T-0183).
+- **`containerTitle`** present only for scenes (the chapter). Omitted otherwise.
+- Empty optional fields (`keywords`, `contentDescription`) are omitted, not emitted as null.
+- On failure the envelope is `{ "ok": false, "error": { "code": ..., "message": ... } }`,
+  matching the existing C API error convention; the C string is still owned by the caller and
+  freed via `scrivi_free`.
+- **Degenerate cases:** a project with no scenes/objects returns `ok:true` with an `items` array
+  containing only the `project` record. A non-existent/invalid project path returns `ok:false`.
+
+This envelope is the contract T-0178 implements and T-0179 tests; Layers 1 and 2 both consume it.
+
+### 4b. T-0178 implementation map (composition plan — verified against the codebase)
+
+The facade **composes existing readers**; it invents no new file I/O. Concrete plan:
+
+- **New facade method:** `Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(const ExtractSearchableTextRequest&)`
+  in `public_api/ScriviCore.cpp`, declared in `include/scrivi/ScriviCore.hpp`. Request carries
+  `projectRootPath` (+ `appSupportRoot` if needed for bootstrap, matching `openProject`).
+- **Project record:** read `project.json` via `schemas/ProjectJson` (used by `ProjectOpener`);
+  pull title/displayName/summary + project identity for `domainIdentifier`.
+- **Scene records:** `manuscript::ManuscriptOrderResolver::resolve(projectRoot)` → for each
+  `ResolvedScene` use `sceneID`, `title` (fallback to first line), `chapterTitle`
+  (→ `containerTitle`); body via `manuscript::SceneReader::readContent(projectRoot, contentPath)`,
+  then Markdown-stripped (T-0183 helper, see below).
+- **Object records:** enumerate `objects/<kind>/*.json` via `objects::ObjectStore` for kinds
+  character/location/item/rule/timeline; map name/aliases/description.
+- **Markdown→plain-text (T-0183):** a small `util/MarkdownStrip` helper in ScriviCore (new
+  `.cpp/.hpp` under `ScriviCore/src/util/`), unit-tested independently. Shared by all scene
+  bodies so Layers 1 & 2 index identical text.
+- **C API (`scrivi.h` + `public_api/scrivi_c_api.cpp`):** add
+  `const char* scrivi_extract_searchable_text(const char* projectRootPath);` returning the
+  `scrivi.searchableContent.v1` JSON, owned by caller, freed via `scrivi_free`. **Changing
+  `scrivi.h` and adding `MarkdownStrip.{c,h}pp` triggers the CLAUDE.md pbxproj rule** — update
+  `project.pbxproj` (and `ScriviCore/CMakeLists.txt` for the new util source) in the same step.
+- **Tests (T-0179):** Catch2 unit test for `MarkdownStrip`; integration test running
+  `extractSearchableText` against a canonical fixture project (assert one project record + N
+  scene records + object records, plain-text bodies, stable `uniqueIdentifier`s, degenerate
+  empty-project and invalid-path cases). Wire into `ScriviCore/tests/`.
+
+Status: T-0176 ✅ resolved, T-0177 ✅ schema fixed, T-0178 ✅ implemented (not verified).
+
+### 4c. T-0178 implementation notes & schema reconciliations (2026-06-23)
+
+Implemented `scrivi_extract_searchable_text` (C ABI) → `ScriviCore::extractSearchableText`
+(`public_api/ScriviCore.cpp`), plus `util/MarkdownStrip.{hpp,cpp}` and a Catch2 unit test
+(`tests/unit/MarkdownStripTests.cpp`). `ctest` green (217 tests). Three points in §4/§4a were
+reconciled against the **actual** on-disk schemas during implementation:
+
+1. **`domainIdentifier` is the `projectID`, not the local `identity_…`.** §4 said the domain key
+   is "project identity (the `identity_…` already logged at open)". But `identity_…` is the
+   *per-machine* user identity, shared across every project on that machine — using it as the
+   Spotlight delete-by-domain key would wipe *all* projects' index entries when one project is
+   removed (breaks AC3). The correct per-project key is the project's own `projectID`
+   (`project_<uuid>` from `project.json`). The facade emits `domainIdentifier = projectID`, and
+   deep links use `project=<projectID>`.
+2. **Field mapping follows the real schema, not the §4 wishlist.** `project.json` has only
+   `title` (no `displayName`/`summary`) → `title` and `displayName` both carry the title;
+   `contentDescription`/`keywords` are omitted for the project record. World objects
+   (`scrivi.{character,…}.v1`) expose `displayName`, `notes`, `tags` (no `aliases`/`description`
+   field) → `title`/`displayName` ← `displayName`, `contentDescription` ← `notes`,
+   `keywords` ← `tags`.
+3. **Envelope nests under `result`.** Every existing `scrivi_*` function returns
+   `{"ok":true,"result":{…}}`; the §4a flat example was illustrative. The
+   `scrivi.searchableContent.v1` payload (`schema`/`domainIdentifier`/`projectRootPath`/`items`)
+   sits inside `result`. The `ok:false` error form is unchanged.
+
+Behaviour: unparseable individual object files are skipped (one bad object must not fail the
+whole extraction); a missing/empty manuscript is non-fatal (project + objects still returned);
+a non-existent/invalid project path (no readable/valid `project.json`) returns `ok:false`.
 
 ## 5. Deep-linking back into Scrivi (Layer 1)
 

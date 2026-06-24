@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **0 active Epics**
+Currently: **2 active Epics** (EP-017, EP-018)
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -24,7 +24,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **16 Epics** | Next available: **EP-017**
+Currently: **18 Epics** | Next available: **EP-019**
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -44,17 +44,19 @@ Currently: **16 Epics** | Next available: **EP-017**
 | EP-014 | Scene Inspector Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-015 | Real-Time Timeline Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-016 | Timeline Panel — Full Implementation | ✅ Closed | 2026-06-11 | 2026-06-23 |
+| EP-017 | Spotlight Search Integration | 🟡 Active | 2026-06-23 | — |
+| EP-018 | Per-Window / Per-Project Window Model | 🟡 Active | 2026-06-24 | — |
 
 ## Statistics
 
-- **Total Epics:** 16
+- **Total Epics:** 18
 - **Closed:** 15 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 0 🟡
+- **Active:** 2 🟡 (EP-017, EP-018)
 - **Draft:** 0 🔵
 - **Deferred:** 1 🔴 (EP-012)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-23 (EP-016 closed with user approval)*
+*Last Updated: 2026-06-24 (EP-018 created & activated; SP-048 active. EP-017 active; T-0184 paused pending EP-018.)*

@@ -314,4 +314,28 @@ struct ListImportedTimelinesResult        { std::string timelinesJSON; int count
 struct RemoveImportedTimelineResult       { std::string timelineID; bool removed = false; };
 struct ExportProjectTimelineResult        { std::string timelineJSON; };
 
+// ---------------------------------------------------------------------------
+// Searchable content (EP-017 SP-044 — Spotlight indexing facade)
+// ---------------------------------------------------------------------------
+
+// One indexable record. Mirrors the scrivi.searchableContent.v1 item schema.
+// containerTitle/keywords/contentDescription are optional (empty = omit on emit).
+struct SearchableItem {
+    std::string uniqueIdentifier;   // "<kind>:<id>"
+    std::string kind;               // project|scene|character|location|item|rule|timeline
+    std::string title;
+    std::string displayName;
+    std::string containerTitle;     // scenes only (chapter title)
+    std::string contentDescription; // plain text (Markdown stripped for scenes)
+    std::vector<std::string> keywords;
+    std::string deepLink;           // scrivi://open?project=<projectID>&item=<uid>
+};
+
+struct ExtractSearchableTextResult {
+    std::string schema = "scrivi.searchableContent.v1";
+    std::string domainIdentifier;   // projectID — the Spotlight delete-by-domain key
+    AbsolutePath projectRootPath;
+    std::vector<SearchableItem> items;
+};
+
 } // namespace scrivi

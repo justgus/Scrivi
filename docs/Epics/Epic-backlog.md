@@ -2,6 +2,8 @@
 
 Epics listed here are fully defined but have no active sprint. Epics that were partially delivered and returned here retain their verified AC state. Work resumes when a sprint is assigned.
 
+> EP-017 (Spotlight Search Integration) was activated 2026-06-23 — see `Epic-active.md`.
+
 ---
 
 ## EP-012: Menu Bar and Toolbar Replacement
