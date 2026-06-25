@@ -13,7 +13,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
-| T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | ⏸ Paused — depends on EP-018; resumes rewritten as T-0196 |
+| T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | 🟢 Implemented - Not Verified (core verified via T-0196; Spotlight-continuation path hardened, full tap verify → T-0189) |
 | T-0185 | New Spotlight importer app-extension target + pbxproj wiring | EP-017 (SP-046) | 🔵 Backlog |
 | T-0186 | Link ScriviCore (or facade) into the extension (Option A build graph) | EP-017 (SP-046) | 🔵 Backlog |
 | T-0187 | Importer emits Spotlight attributes from facade JSON | EP-017 (SP-046) | 🔵 Backlog |
@@ -25,7 +25,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0193.md` |
 | T-0194 | Per-window project model — AppKit NSWindow per project (R1/R2/R3) + Welcome; single-instance; File menu | EP-018 (SP-049) | ✅ Verified → `Verified/Task-verified-0194.md` |
 | T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | EP-018 (SP-049) | ✅ Verified → `Verified/Task-verified-0195.md` |
-| T-0196 | Rewrite deep-link handler on new model + scene-`ID` fix (R5); open-flow cross-ref; EP-018 verification | EP-018 (SP-050) | 🔵 Backlog |
+| T-0196 | Rewrite deep-link handler on new model + scene-`ID` fix (R5); open-flow cross-ref; EP-018 verification | EP-018 (SP-050) | ✅ Verified — archived to Verified/Task-verified-0196.md |
 
 ## Full Detail — Implemented Tasks Returned to Backlog
 
@@ -106,6 +106,23 @@ project is already open — the `scrivi://` URL scheme is the complete route.
 first (blocked by T-0182 env issue). URL-scheme path is testable now via
 `open "scrivi://open?project=<id>&item=scene:<id>"` against a previously-opened project on a build that
 receives URL events.
+
+**T-0184 resumed & completed on the per-window model (2026-06-25 — Implemented, Not Verified).**
+EP-018 unblocked this. The core deep link (open/focus the right window, select scene by `scene_…` ID)
+was already verified via EP-018 / T-0196. The remaining Spotlight-result *continuation* path
+(`onContinueUserActivity(CSSearchableItemActionType)`) was finished and hardened:
+- `handleSpotlightItem` now accepts an optional `relatedURL` and **prefers the full donated deep link**
+  (`SpotlightDonor` sets it as `relatedUniqueIdentifier`). Because that URL carries the **projectID**,
+  a tapped `scene:` result can now open even a **closed** project (via its bookmark) — removing the old
+  inherent limit where scene taps only worked when the project was already open. Falls back to the
+  uid-only logic when no related URL is present. (`AppEnvironment.swift:344-385`)
+- `ScriviApp` recovers that URL from `activity.contentAttributeSet?.relatedUniqueIdentifier` and passes
+  it through. (`ScriviApp.swift:189-199`)
+- No new files. macOS `ScriviApp` build clean; interop suite 26/26 (incl. `ScriviDeepLink` parse).
+**Still not user-verified:** the live Spotlight-tap continuation depends on donations indexing
+(the T-0182 `SetStoreUpdateService` env issue) and is acknowledged unreliable on SwiftUI macOS; the
+`scrivi://` URL scheme remains the fully-verified route. Full end-to-end Spotlight-tap verification is
+T-0189 (SP-047).
 
 ### SP-046 — Layer 2: on-disk `.scrivi` importer extension
 

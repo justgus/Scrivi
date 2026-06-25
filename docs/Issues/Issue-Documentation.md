@@ -43,28 +43,29 @@ Currently: **0 closed issues**
 
 ## Backlogged Issues
 
-Currently: **3 backlogged issues**
+Currently: **4 backlogged issues**
 
 | Issue | Title | Severity |
 | ----- | ----- | -------- |
 | I-0017 | Window maximized state not restored on app relaunch | Medium |
 | I-0018 | Scene Navigator shows no selection on app load | Low |
 | I-0019 | Undo and Redo have no effect in the manuscript editor | High |
+| I-0051 | Restored project windows don't remember per-window size/position (stack at default) | Medium |
 
 See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 44
-- **Verified:** 40 ✅ (I-0001–I-0015, I-0020–I-0044; I-0016 superseded; I-0017–I-0019 backlog)
+- **Total Issues:** 51
+- **Verified:** 46 ✅ (I-0001–I-0015, I-0020–I-0050; I-0016 superseded; I-0017–I-0019, I-0051 backlog)
 - **Active:** 0
-- **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
+- **Open (backlog):** 4 🔴 (I-0017, I-0018, I-0019, I-0051)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0045
+- **Next available:** I-0052
 
 ---
 
-*Last Updated: 2026-06-17 (I-0036–I-0044 verified and moved to Verified batch files; batch 4 complete, batch 5 opened)*
+*Last Updated: 2026-06-25 (I-0051 filed — restored project windows don't remember per-window size/position; related to I-0017. Stats reconciled to I-0050.)*
 
 
 [1]:	./ER-Documentation.md

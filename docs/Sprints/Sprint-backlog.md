@@ -9,7 +9,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | 🔵 Planning |
 | SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | 🔵 Planning |
 
-> SP-044/SP-048/SP-049 closed — see `Closed/`. SP-045 (EP-017) and SP-050 (EP-018) active — see `Sprint-active.md`.
+> SP-044/SP-045/SP-048/SP-049/SP-050 closed — see `Closed/`. EP-018 is complete & closed. **No sprint is currently active** — SP-046 (below) is next up for EP-017; activate it to start.
 
 ---
 
@@ -59,4 +59,4 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-*Last Updated: 2026-06-24 (SP-049 closed; SP-050 activated to Sprint-active. SP-045 active; SP-046–SP-047 remain in Planning.)*
+*Last Updated: 2026-06-25 (SP-045 closed with user approval — no active sprint. SP-046–SP-047 remain in Planning; SP-046 is next to activate.)*

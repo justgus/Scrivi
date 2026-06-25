@@ -1,57 +1,6 @@
 # Active Epics
 
-## EP-018: Per-Window / Per-Project Window Model
-
-**Status:** 🟡 Active
-**Goal:** Let a writer keep **multiple distinct projects open at once, each in its own window**; make a project **non-reentrant** (re-opening an open project focuses its existing window instead of duplicating it); and **restore all previously-open project windows** on relaunch. This is the architectural foundation that a correct deep-link feature (EP-017 T-0184) depends on.
-**Date Created:** 2026-06-24
-**Date Activated:** 2026-06-24
-**Target Close Date:** TBD
-**Actual Close Date:** —
-**Design Reference:** `docs/Scrivi_PerWindow_Project_Model_Design_v0_1.md` (✅ approved 2026-06-24)
-**Estimated Span:** 3 Sprints (SP-048 → SP-050)
-**Origin:** Surfaced while verifying EP-017 / T-0184. The app's single shared `AppEnvironment` (one `openProjectResult`/`viewportLoader`/`timelineModel`, injected into every `WindowGroup` instance) means all windows render the same one project — incompatible with the user's per-project/per-window + restore requirements. Made its own Epic per user direction.
-
-### Strategic Rationale
-
-Multiple projects open simultaneously, one per window, restored where she left off, is a first-class capability for a serious authoring/worldbuilding tool — and a foundational one: EP-017 deep links and likely future navigation work sit on top of it. The current single-project model predates these requirements; building more features on it would deepen the mistake. **Swift-layer only — no ScriviCore/C++ changes.**
-
-### Acceptance Criteria
-
-- [ ] **R1** — Multiple **distinct** projects can be open simultaneously.
-- [ ] **R2** — Each open project lives in **its own window**.
-- [ ] **R3** — The same project is **non-reentrant**: re-opening an already-open project **focuses its existing window** rather than opening a second copy.
-- [ ] **R4** — On relaunch, the app **restores all previously-open project windows** (within each, the backend open flow already restores scene/cursor/scroll).
-- [ ] **R5** — A deep link opens/focuses the target project's window, then selects the item (rewritten T-0184 on the new model, incl. the scene-`ID` fix).
-- [ ] **AC-build** — macOS build and codesign clean; `ctest` green; no regression to existing project open/save/close behavior.
-
-### Key Design Decisions (from approved design doc)
-
-- **Two-tier state:** app-global `AppEnvironment` keeps only engine + identity + an `OpenProjectRegistry`; a new per-window `ProjectSession` owns all per-project state.
-- **Routing:** `WindowGroup(for: ProjectWindowID.self)` keyed by projectID; `openWindow(value:)` to open/focus.
-- **R3 mechanism is gated by the V1 spike (T-0191):** confirm `WindowGroup(for:)` de-dups/focuses by value on macOS 26 before committing the refactor; registry + `NSApp` activation is the fallback.
-- **Restore scope (Q1):** restore **all** previously-open windows via a persisted session manifest reusing `ProjectBookmarkStore`.
-
-### Sprints
-
-| Sprint | Title | Status |
-| ------ | ----- | ------ |
-| SP-048 | Foundation — V1 spike, `ProjectSession` extraction, open-project registry | ✅ Closed |
-| SP-049 | Windowing & restore — AppKit per-project windows, Welcome, single-instance, restore-all-windows | ✅ Closed |
-| SP-050 | Deep-link rewrite on new model + scene-ID fix; open-flow cross-ref; EP-018 verification | 🟡 Active |
-
-### Tasks
-
-| ID | Title | Sprint | Status |
-| -- | ----- | ------ | ------ |
-| T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3 mechanism) | SP-048 | ✅ Done — registry is authoritative R3 guard (native de-dup not race-safe) |
-| T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | SP-048 | ✅ Verified |
-| T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session; powers R3 + R4) | SP-048 | ✅ Verified |
-| T-0194 | Per-window project model — AppKit NSWindow per project (R1/R2/R3) + Welcome window; single-instance; File menu | SP-049 | ✅ Verified |
-| T-0195 | Session manifest persistence + launch restore of all previously-open windows (R4) | SP-049 | ✅ Verified |
-| T-0196 | Rewrite deep-link handler on new model + scene-`ID` fix (R5); open-flow v0.2 cross-ref; EP-018 verification | SP-050 | 🔵 Backlog |
-
----
+> **EP-018 (Per-Window / Per-Project Window Model) closed 2026-06-25** with all acceptance criteria R1–R5 + AC-build user-verified — see `Closed/Epic-EP-018.md`. Its closure **unblocks EP-017 AC5** (the Spotlight deep link is implemented & verified via EP-018 / T-0196).
 
 ## EP-017: Spotlight Search Integration
 
@@ -85,8 +34,10 @@ donations succeed and serve a real feature.
       project/scenes/objects to Core Spotlight; saving updates them; closing/removing a project
       deletes its items by domain identifier.
 - [ ] **AC4** — Manuscript body text is indexed as plain text (Markdown markup stripped).
-- [ ] **AC5** — A Spotlight result deep-links back into Scrivi: selecting it opens the project
-      and selects the specific scene/object.
+- [x] **AC5** — A Spotlight result deep-links back into Scrivi: selecting it opens the project
+      and selects the specific scene/object. *(Delivered & user-verified via EP-018 / T-0196,
+      2026-06-25 — `scrivi://open` URL path. Spotlight-result continuation path remains under
+      T-0184 in SP-045.)*
 - [ ] **AC6** — A Spotlight importer app-extension indexes `.scrivi` package contents on disk,
       so project content is findable even when Scrivi is not running.
 - [ ] **AC7** — The importer extension reads project content via ScriviCore (links the core or
@@ -111,8 +62,8 @@ donations succeed and serve a real feature.
 | Sprint | Title | Status |
 | ------ | ----- | ------ |
 | SP-044 | Spotlight — design sign-off & ScriviCore indexing facade | ✅ Closed |
-| SP-045 | Spotlight — Layer 1: in-app Core Spotlight donations & deep-link | 🟡 Active |
-| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | 🔵 Planning |
+| SP-045 | Spotlight — Layer 1: in-app Core Spotlight donations & deep-link | ✅ Closed |
+| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | 🔵 Planning (next) |
 | SP-047 | Spotlight — verification, cross-platform assessment, Epic close | 🔵 Planning |
 
 ### Tasks
@@ -127,7 +78,7 @@ donations succeed and serve a real feature.
 | T-0181 | `ScriviEngine` Swift API to fetch indexable records (calls the facade) | SP-045 | ✅ Verified |
 | T-0182 | Donate `CSSearchableItem`s on project open/save; delete-by-domain on close | SP-045 | ✅ Verified |
 | T-0183 | Markdown→plain-text extraction for body indexing | SP-045 | ✅ Verified |
-| T-0184 | Deep-link: result continuation opens project & selects item | SP-045 | ⏸ Paused — depends on EP-018 (per-window model) |
+| T-0184 | Deep-link: result continuation opens project & selects item | SP-045 | 🟢 Implemented - Not Verified — core verified via T-0196; Spotlight-continuation hardened (opens closed projects via donated URL); live tap verify → T-0189 |
 | T-0185 | New Spotlight importer app-extension target + pbxproj wiring | SP-046 | 🔵 Backlog |
 | T-0186 | Link ScriviCore (or facade) into the extension (Option A build graph) | SP-046 | 🔵 Backlog |
 | T-0187 | Importer emits Spotlight attributes from facade JSON | SP-046 | 🔵 Backlog |
@@ -137,6 +88,6 @@ donations succeed and serve a real feature.
 
 ---
 
-> **T-0184 paused (2026-06-24):** verifying the deep link surfaced that the app is single-project across all windows. A correct deep-link feature depends on the per-window/per-project model now tracked under **EP-018**. T-0184 resumes (rewritten) as EP-018 / T-0196. AC5 here is blocked until then. T-0184's reusable pieces (ScriviDeepLink, ProjectBookmarkStore, SpotlightDonor) carry forward.
+> **SP-045 closed (2026-06-25):** Spotlight Layer 1 task work complete. EP-018 (closed) delivered the per-window deep link, so **AC5 is met** — the `scrivi://` URL path is user-verified (via T-0196) and T-0184 was finished/hardened so a tapped `scene:` result opens even a closed project (via the donated deep-link URL). The only thing outstanding is the **live Spotlight-tap** end-to-end check, which depends on donations indexing and is formally tracked as **T-0189 (SP-047)**. Next sprint: **SP-046** (Layer 2 importer extension).
 
-*Last Updated: 2026-06-24 (T-0184 ⏸ paused pending EP-018; EP-018 created & activated. SP-044 closed & verified; SP-045 active.)*
+*Last Updated: 2026-06-25 (SP-045 closed — Layer 1 task work complete; T-0184 implemented on the per-window model; AC5 met. No active sprint; SP-046 next in Planning. EP-018 closed earlier today.)*

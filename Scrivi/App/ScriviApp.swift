@@ -182,15 +182,19 @@ private struct AppEventsModifier: ViewModifier {
                 Task { await env.handleDeepLink(url) }
             }
             #endif
-            // Deep link via a tapped Core Spotlight result. The activity carries the
-            // item's uniqueIdentifier ("<kind>:<id>") under
-            // CSSearchableItemActivityIdentifier — NOT the deep-link URL. (Known to be
-            // unreliable on SwiftUI macOS; the scrivi:// URL scheme is the primary path.)
+            // Deep link via a tapped Core Spotlight result. The activity carries the item's
+            // uniqueIdentifier ("<kind>:<id>") under CSSearchableItemActivityIdentifier. When
+            // available we also recover the full scrivi:// deep link from the donated
+            // contentAttributeSet.relatedUniqueIdentifier — it carries the projectID, so even a
+            // scene tap can open a *closed* project. (This continuation path is known to be
+            // unreliable on SwiftUI macOS; the scrivi:// URL scheme remains the primary route.)
             #if canImport(CoreSpotlight)
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 guard let uid = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
                 else { return }
-                Task { await env.handleSpotlightItem(uniqueIdentifier: uid) }
+                let relatedURL = (activity.contentAttributeSet?.relatedUniqueIdentifier)
+                    .flatMap(URL.init(string:))
+                Task { await env.handleSpotlightItem(uniqueIdentifier: uid, relatedURL: relatedURL) }
             }
             #endif
             .onReceive(

@@ -3,7 +3,8 @@
 **Status:** Approved baseline  
 **Project:** Scrivi  
 **Document type:** Backend / project package structure  
-**Purpose:** Define the physical on-disk structure of a `.scrivi` project package.
+**Purpose:** Define the physical on-disk structure of a `.scrivi` project package.  
+**Revised:** 2026-06-25 — corrected scene filename convention (`NNN-<slug>.*`, not `scene-NNN.*`) and on-disk identity keys (`projectID` / `sceneID` / `objectID` / `timelineID`, not `id`) to match what ScriviCore actually writes (verified against a real package). See the convention note in §4.
 
 ---
 
@@ -65,15 +66,15 @@ MyNovel.scrivi/
 
     chapter-001/
       chapter.meta.json
-      scene-001.md
-      scene-001.meta.json
-      scene-002.md
-      scene-002.meta.json
+      001-opening-scene.md
+      001-opening-scene.meta.json
+      002-the-door-beneath-the-hill.md
+      002-the-door-beneath-the-hill.meta.json
 
     chapter-002/
       chapter.meta.json
-      scene-001.md
-      scene-001.meta.json
+      001-arrival.md
+      001-arrival.meta.json
 
   objects/
     characters/
@@ -137,6 +138,24 @@ If Git-backed snapshots are enabled, the package also contains:
 
 The `.git/` directory is present only when Git is enabled.
 
+> **On-disk naming and key conventions (verified against a real package, 2026-06-25).**
+> These are the *actual* names ScriviCore writes — earlier drafts of this doc used
+> illustrative names that did **not** match disk. Tools and greps must use these:
+>
+> - **Scene files** are named `NNN-<slug>.md` / `NNN-<slug>.meta.json` — a 3-digit
+>   manuscript-order prefix, a hyphen, then the scene slug (e.g.
+>   `001-opening-scene.meta.json`, `002-the-door-beneath-the-hill.meta.json`). They are
+>   **not** `scene-NNN.*`.
+> - **`project.json`** stores the project identity under the key **`projectID`** (value
+>   `project_<uuid>`) — **not** `id`.
+> - **Scene `*.meta.json`** stores the scene identity under the key **`sceneID`** (value
+>   `scene_<uuid>`) — **not** `id`.
+> - To read these from disk:
+>   ```bash
+>   grep -m1 '"projectID"' "Your.scrivi/project.json"
+>   grep -m1 '"sceneID"'   "Your.scrivi"/manuscript/chapter-*/[0-9]*-*.meta.json
+>   ```
+
 ---
 
 ## 5. Root-Level Files and Folders
@@ -168,11 +187,12 @@ Expected responsibilities include:
 
 The `manuscript/` folder is the writer-facing prose area.
 
-Approved model:
+Approved model (scene files are named `NNN-<slug>.md` / `NNN-<slug>.meta.json` — see the
+naming-convention note in §4):
 
 ```text
-scene-001.md
-scene-001.meta.json
+001-opening-scene.md
+001-opening-scene.meta.json
 ```
 
 The manuscript text and metadata are paired visibly.
@@ -186,8 +206,8 @@ If a writer externally deletes, renames, or replaces a `.md` file, the companion
 The pairing is intentionally obvious:
 
 ```text
-scene-001.md
-scene-001.meta.json
+001-opening-scene.md
+001-opening-scene.meta.json
 ```
 
 Metadata is text-based and inspectable, but it is still app-managed. Scrivi does not promise to support arbitrary hand-editing of metadata JSON in v1.
@@ -224,8 +244,8 @@ Example:
 manuscript/
   chapter-001/
     chapter.meta.json
-    scene-001.md
-    scene-001.meta.json
+    001-opening-scene.md
+    001-opening-scene.meta.json
 ```
 
 ### 8.1 `chapter.meta.json`
@@ -247,7 +267,7 @@ Expected responsibilities include:
 
 ## 9. Scene Files
 
-### 9.1 `scene-001.md`
+### 9.1 `NNN-<slug>.md` (e.g. `001-opening-scene.md`)
 
 The `.md` file is canonical prose.
 
@@ -255,7 +275,7 @@ It should be readable and editable outside Scrivi.
 
 Scrivi may support Markdown or a Markdown-compatible markup profile. The exact manuscript markup profile is a later schema/design decision.
 
-### 9.2 `scene-001.meta.json`
+### 9.2 `NNN-<slug>.meta.json` (e.g. `001-opening-scene.meta.json`)
 
 The `.meta.json` file contains scene-level metadata.
 
@@ -279,11 +299,11 @@ Example pattern:
 
 ```json
 {
-  "id": "scene_01J8X...",
+  "sceneID": "scene_01J8X...",
   "title": "The Door Beneath the Hill",
-  "slug": "the-door-beneath-the-hill",
+  "slug": "002-the-door-beneath-the-hill",
   "content": {
-    "path": "scene-001.md",
+    "path": "manuscript/chapter-001/002-the-door-beneath-the-hill.md",
     "format": "markdown",
     "encryption": "none"
   }
@@ -295,7 +315,7 @@ Future encryption-compatible pattern:
 ```json
 {
   "content": {
-    "path": "scene-001.md.enc",
+    "path": "manuscript/chapter-001/002-the-door-beneath-the-hill.md.enc",
     "format": "markdown",
     "encryption": "object-key"
   }
@@ -354,13 +374,16 @@ Example pattern:
 
 ```json
 {
-  "id": "character_01J8X...",
+  "objectID": "character_01J8X...",
   "type": "character",
   "slug": "ada",
   "displayName": "Ada",
   "createdAt": "2026-05-18T00:00:00Z"
 }
 ```
+
+The identity key on disk is **`objectID`** for world objects (and **`timelineID`** for
+timeline files) — **not** `id`. See the naming/key-convention note in §4.
 
 ---
 
@@ -660,7 +683,7 @@ Scrivi should detect an orphaned metadata file and a new unregistered manuscript
 It may offer a repair action:
 
 ```text
-This looks like scene-001.md may have been renamed to chapter-opening.md.
+This looks like 001-opening-scene.md may have been renamed to chapter-opening.md.
 Relink metadata?
 ```
 

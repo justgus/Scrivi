@@ -476,6 +476,12 @@ For a newly-created project, `activeScene.markdown` is empty. Scrivi opens with 
 
 The writer can begin typing without opening a project browser or repair UI unless the active scene is structurally unsafe.
 
+### 9.6 Scope of restoration (window vs. project)
+
+This flow restores state **within a single project** — active scene, cursor (`restoredSelection`), and scroll (`restoredScroll`). It is silent on the **window↔project mapping** and on restoring *which projects* are open.
+
+That window-level model — multiple distinct projects open at once, one per window, non-reentrant per project, and restoring the full set of open project windows on relaunch — is specified separately in **`Scrivi_PerWindow_Project_Model_Design_v0_1.md`** (approved 2026-06-24, EP-018). On relaunch the per-window model reopens each previously-open project window; this Resume Writing Flow then runs *inside* each window to restore that project's scene/cursor/scroll. The two compose: per-window restore selects the projects; this flow restores position within each.
+
 ---
 
 ## 10. First Save Flow
@@ -722,7 +728,7 @@ openProject(root):
 7. App-local storage paths per platform (Windows, Linux, Android).
 8. Background index lifecycle.
 9. Autosave cadence.
-10. Multi-window behavior.
+10. ~~Multi-window behavior.~~ — **Resolved:** specified in `Scrivi_PerWindow_Project_Model_Design_v0_1.md` (EP-018). See §9.6.
 11. iPadOS/visionOS/macOS package behavior.
 12. Windows/Linux folder behavior.
 13. Multi-scene `openProject` result (scene list for project explorer).

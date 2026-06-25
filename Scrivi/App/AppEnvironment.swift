@@ -341,14 +341,28 @@ import AppKit
         }
     }
 
-    // Handles a tapped Spotlight result, identified only by the item's
-    // uniqueIdentifier ("<kind>:<id>"). A "project:<projectID>" id carries the
-    // project directly. A "scene:<id>" id does not encode its project, so it can
-    // only be selected when that project is already open; otherwise we direct the
-    // user to the scrivi:// path (which does carry the project). This is a
-    // best-effort companion to onOpenURL, not the primary deep-link route.
+    // Handles a tapped Spotlight result.
+    //
+    // Two carriers can identify the result, in order of preference:
+    //   1. `relatedURL` — the full `scrivi://open?project=…&item=…` deep link. The donor
+    //      sets it as each item's `relatedUniqueIdentifier` (SpotlightDonor), so it carries
+    //      the **projectID** and is sufficient to open even a *closed* project (via its
+    //      bookmark). When present we route through the canonical `handleDeepLink`.
+    //   2. `uid` — the item's `uniqueIdentifier` ("<kind>:<id>"), the only field guaranteed
+    //      on the continuation activity. A "project:<projectID>" id carries its project; a
+    //      "scene:<id>" id does NOT, so without (1) a scene tap can only select when that
+    //      project is already open.
+    //
+    // The `scrivi://` URL scheme remains the primary, fully-reliable route; this is its
+    // best-effort Spotlight-continuation companion (T-0184).
     @MainActor
-    func handleSpotlightItem(uniqueIdentifier uid: String) async {
+    func handleSpotlightItem(uniqueIdentifier uid: String, relatedURL: URL? = nil) async {
+        // Preferred: the donated deep link carries the projectID — open/closed both work.
+        if let relatedURL, ScriviDeepLink(url: relatedURL) != nil {
+            await handleDeepLink(relatedURL)
+            return
+        }
+
         if uid.hasPrefix("project:") {
             let projectID = String(uid.dropFirst("project:".count))
             await handleDeepLink(URL(string: "scrivi://open?project=\(projectID)&item=\(uid)")!)
@@ -356,8 +370,8 @@ import AppKit
         }
         if uid.hasPrefix("scene:") {
             let sceneID = String(uid.dropFirst("scene:".count))
-            // A scene id doesn't carry its project; we can only act if some open project
-            // contains it. Select it in that project's window.
+            // No projectID available (no related URL): we can only act if some open project
+            // contains this scene. Select it in that project's window.
             if let session = openProjects.sessions.values.first(where: {
                 $0.openProjectResult?.scenes.contains(where: { $0.sceneID == sceneID }) == true
             }), let projectID = session.openProjectResult?.projectID {

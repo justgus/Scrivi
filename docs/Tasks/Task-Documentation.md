@@ -221,4 +221,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-06-23 (T-0180 verified & archived; SP-045 tasks T-0181–T-0184 active)*
+*Last Updated: 2026-06-25 (EP-018 closed — T-0191–T-0196 verified; T-0196 archived. SP-045 closed — T-0180–T-0183 verified, T-0184 implemented on the per-window model (live Spotlight-tap verify → T-0189/SP-047). SP-046 next.)*
