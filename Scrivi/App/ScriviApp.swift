@@ -50,48 +50,66 @@ struct ScriviApp: App {
     @State private var env = AppEnvironment()
     @State private var showAbout = false
 
+    #if os(macOS)
     // The session of the frontmost project window — drives the project/view menus.
     // Tracked in AppEnvironment (set by each AppKit window when it becomes key), because
     // AppKit NSWindows don't feed SwiftUI's @FocusedValue.
     private var focusedSession: ProjectSession? { env.frontmostSession }
+    #endif
 
     var body: some Scene {
-        // The only SwiftUI scene is the Welcome/Landing window. Project editor windows
+        #if os(macOS)
+        // macOS: the only SwiftUI scene is the Welcome/Landing window. Project editor windows
         // are AppKit NSWindows owned by ProjectWindowManager (deterministic lifecycle;
         // WindowGroup(for:) was abandoned because it cached dead windows — T-0194).
         Window("Welcome to Scrivi", id: "welcome") {
             WelcomeWindowRoot()
                 .environment(env)
-                .task {
-                    // Bootstrap + restore run once per launch. The Welcome window's task
-                    // also fires when it reopens after the last project closes, so guard
-                    // restore behind a one-time flag (otherwise it would re-open projects
-                    // the user just closed).
-                    guard !env.didLaunchSetup else { return }
-                    env.didLaunchSetup = true
-                    await env.bootstrap()
-                    #if os(macOS)
-                    // Reliable app-level URL delivery (per-view .onOpenURL was unreliable).
-                    AppDelegate.onOpenURLs = { urls in
-                        Task { @MainActor in
-                            for url in urls { await env.handleDeepLink(url) }
-                        }
-                    }
-                    // Freeze the restore manifest at quit, before windows tear down.
-                    AppDelegate.onWillTerminate = { env.beginTermination() }
-                    #endif
-                    // Restore all project windows open at last quit (R4 / T-0195).
-                    await env.restoreOpenProjects()
-                }
+                .task { await launchSetup() }
                 .modifier(AppEventsModifier(env: env))
                 .sheet(isPresented: $showAbout) { AboutView() }
         }
         .defaultSize(width: 720, height: 480)
         .commands { appCommands }
+        #else
+        // iOS/iPadOS/visionOS: single-window model (the macOS AppKit multi-window model and
+        // menu bar do not apply — the full per-platform window UX is deferred, EP-018 non-goal).
+        // One WindowGroup hosts the editor for the active project, or Landing when none is open.
+        WindowGroup {
+            iOSRootView()
+                .environment(env)
+                .task { await launchSetup() }
+                .modifier(AppEventsModifier(env: env))
+                .sheet(isPresented: $showAbout) { AboutView() }
+        }
+        #endif
     }
 
-    // MARK: — Menu bar commands
+    // Bootstrap + restore, run once per launch. On macOS the Welcome window's .task re-fires
+    // whenever Welcome reopens, so the one-time guard prevents re-opening just-closed projects.
+    @MainActor
+    private func launchSetup() async {
+        guard !env.didLaunchSetup else { return }
+        env.didLaunchSetup = true
+        await env.bootstrap()
+        #if os(macOS)
+        // Reliable app-level URL delivery (per-view .onOpenURL was unreliable).
+        AppDelegate.onOpenURLs = { urls in
+            Task { @MainActor in
+                for url in urls { await env.handleDeepLink(url) }
+            }
+        }
+        // Freeze the restore manifest at quit, before windows tear down.
+        AppDelegate.onWillTerminate = { env.beginTermination() }
+        #endif
+        // Restore projects open at last quit (R4 / T-0195). On iOS this surfaces the
+        // most-recent project into the single window via the active session.
+        await env.restoreOpenProjects()
+    }
 
+    // MARK: — Menu bar commands (macOS only — iOS has no menu bar)
+
+    #if os(macOS)
     @CommandsBuilder
     private var appCommands: some Commands {
         // Standard File menu: New / Open / Close, in place of the system new-item group.
@@ -156,6 +174,7 @@ struct ScriviApp: App {
                 .disabled(true)
         }
     }
+    #endif
 }
 
 // MARK: — App-level event wiring shared by every scene
@@ -216,8 +235,9 @@ private struct AppEventsModifier: ViewModifier {
     }
 }
 
-// MARK: — Welcome window root
+// MARK: — Welcome window root (macOS)
 
+#if os(macOS)
 // Hosts the Landing view. Auto-dismisses itself once any project window is open, and is
 // reopened by orchestration when the last project closes ("close on open, reopen when
 // none left", EP-018 / T-0194).
@@ -238,4 +258,27 @@ private struct WelcomeWindowRoot: View {
             }
     }
 }
+#endif
+
+// MARK: — iOS root (single window)
+
+#if !os(macOS)
+// iOS/iPadOS/visionOS single-window root: shows the editor for the active project session,
+// or the Landing view when none is open. (The macOS AppKit multi-window model and menu bar
+// do not apply here; the full per-platform window UX is deferred — EP-018 non-goal.)
+private struct iOSRootView: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        Group {
+            if let session = env.activeSession {
+                EditorView()
+                    .environment(session)
+            } else {
+                LandingView()
+            }
+        }
+    }
+}
+#endif
 

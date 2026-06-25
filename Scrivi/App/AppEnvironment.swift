@@ -275,6 +275,44 @@ import AppKit
         #endif
     }
 
+    // Opens a project from a URL the user picked in a document importer (iOS/iPadOS/visionOS).
+    // Picked URLs are security-scoped — access must be started before reading and the scope held
+    // for the life of the open. On the single-window platforms, loadProject sets activeSession,
+    // which the iOS root view observes to show the editor (no requestOpenWindow needed).
+    @MainActor
+    func openProjectFromPickedURL(_ url: URL) async {
+        projectError = nil
+        let scoped = url.startAccessingSecurityScopedResource()
+        let session = await loadProject(at: url.path(percentEncoded: false), bookmarkURL: url)
+        if let result = session?.openProjectResult, result.mode == "repairRequired",
+           let issue = result.repairIssues.first {
+            if !result.projectID.isEmpty { closeProject(projectID: result.projectID) }
+            projectError = ScriviError(code: -1, message: "Repair required: \(issue.title)")
+            if scoped { url.stopAccessingSecurityScopedResource() }
+        } else if let projectID = session?.openProjectResult?.projectID {
+            requestOpenWindow(for: projectID)   // no-op on iOS; editor shows via activeSession
+            // NOTE: scope is intentionally not released here on success — the session reads the
+            // package for the duration it is open. Released when the project closes (a future
+            // iOS-close path); acceptable for the current single-project iOS model.
+        } else if scoped {
+            url.stopAccessingSecurityScopedResource()
+        }
+    }
+
+    // Creates a project inside a user-picked parent directory (iOS/iPadOS/visionOS). The macOS
+    // path uses NSSavePanel directly in NewProjectSheet; iOS picks a folder, then we compose
+    // <parent>/<slug>.scrivi. Security scope is started for the create + initial read.
+    @MainActor
+    func createProjectInPickedDirectory(_ directory: URL, title: String, slug: String) async {
+        let scoped = directory.startAccessingSecurityScopedResource()
+        let projectURL = directory.appendingPathComponent("\(slug).scrivi", isDirectory: true)
+        await createProject(at: projectURL.path(percentEncoded: false), title: title, slug: slug)
+        // On success the session holds the package open; release on failure.
+        if projectError != nil, scoped {
+            directory.stopAccessingSecurityScopedResource()
+        }
+    }
+
     // Closes a specific project's session and deregisters it from the registry. Called by
     // ProjectWindowManager when the window closes (any path) and by repair-abort. When the
     // last project closes, reopens the Welcome window. Idempotent.

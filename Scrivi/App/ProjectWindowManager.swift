@@ -85,14 +85,35 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
         )
         window.contentView = NSHostingView(rootView: root)
         window.isReleasedWhenClosed = false
-        window.center()
+
+        // Restore this project's last size/position instead of defaulting (I-0051). A saved
+        // frame is clamped back on-screen in case its display is gone. With no saved frame
+        // (first-ever open), center then cascade so concurrently-opened windows don't stack
+        // exactly on top of one another.
+        if let saved = ProjectWindowFrameStore.savedFrame(projectID: projectID) {
+            window.setFrame(ProjectWindowFrameStore.clampedOnscreen(saved), display: false)
+        } else {
+            window.center()
+            // cascadeTopLeft(from:) places the window and returns the next anchor point.
+            ProjectWindowController.lastCascadePoint =
+                window.cascadeTopLeft(from: ProjectWindowController.lastCascadePoint)
+        }
 
         let title = session.projectPreferences?.projectTitle ?? "Scrivi"
         window.title = title.trimmingCharacters(in: .whitespaces).isEmpty ? "Untitled" : title
 
         super.init()
         window.delegate = self
+
+        // Re-apply the saved zoomed state after the window exists.
+        if ProjectWindowFrameStore.savedZoomed(projectID: projectID), !window.isZoomed {
+            window.zoom(nil)
+        }
     }
+
+    // Shared cascade anchor so successive first-open windows step down/right instead of
+    // landing on the same centered point. AppKit advances and returns the next point.
+    private static var lastCascadePoint = NSPoint.zero
 
     func showAndFocus() {
         window.makeKeyAndOrderFront(nil)
@@ -105,7 +126,24 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
 
     // NSWindowDelegate: fires for every close path (red button, ⌘W, window.close()).
     func windowWillClose(_ notification: Notification) {
+        // Persist final size/position before teardown so reopening this project restores it
+        // (I-0051). Quit-time also routes through here as each window closes.
+        ProjectWindowFrameStore.save(window: window, projectID: projectID)
         onClose()
+    }
+
+    // Persist frame on user resize/move so a crash or force-quit still restores recent layout.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        ProjectWindowFrameStore.save(window: window, projectID: projectID)
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        ProjectWindowFrameStore.save(window: window, projectID: projectID)
+    }
+
+    // Record zoom (maximized) state changes; save(window:) keys on isZoomed.
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        ProjectWindowFrameStore.save(window: window, projectID: projectID)
     }
 
     // Frontmost tracking — drives the menu bar's enabled state and per-window toggles

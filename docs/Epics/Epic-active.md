@@ -63,7 +63,7 @@ donations succeed and serve a real feature.
 | ------ | ----- | ------ |
 | SP-044 | Spotlight — design sign-off & ScriviCore indexing facade | ✅ Closed |
 | SP-045 | Spotlight — Layer 1: in-app Core Spotlight donations & deep-link | ✅ Closed |
-| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | 🔵 Planning (next) |
+| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension (+ I-0051 per-window frame restore) | 🟡 Active |
 | SP-047 | Spotlight — verification, cross-platform assessment, Epic close | 🔵 Planning |
 
 ### Tasks

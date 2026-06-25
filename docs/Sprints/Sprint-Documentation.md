@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- **None active.** SP-045 closed 2026-06-25. Next up: **SP-046** (EP-017, Layer 2 importer extension) — in Planning, see [Sprint-backlog.md](Sprint-backlog.md). See [Sprint-active.md](Sprint-active.md).
+- **SP-046 — Spotlight — Layer 2: on-disk `.scrivi` importer extension** (EP-017, 🟡 Active since 2026-06-25) — includes I-0051 (per-window frame restore). See [Sprint-active.md](Sprint-active.md).
 
 ## Sprint Backlog
 
@@ -19,7 +19,6 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | 🔵 Planning |
 | SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | 🔵 Planning |
 
 ## All Sprints
@@ -73,7 +72,7 @@ Currently: **47 Sprints** | Next available: **SP-048**
 | SP-043 | EP-016 verification and polish | EP-016 | 2026-06-16 | 2026-06-23 | ✅ Closed |
 | SP-044 | Spotlight — design sign-off & ScriviCore indexing facade | EP-017 | 2026-06-23 | 2026-06-23 | ✅ Closed |
 | SP-045 | Spotlight — Layer 1: in-app Core Spotlight donations & deep-link | EP-017 | 2026-06-23 | 2026-06-25 | ✅ Closed |
-| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | — | — | 🔵 Planning |
+| SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension | EP-017 | 2026-06-25 | — | 🟡 Active |
 | SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | — | — | 🔵 Planning |
 | SP-048 | Per-window model — foundation (spike, ProjectSession, registry) | EP-018 | 2026-06-24 | 2026-06-24 | ✅ Closed |
 | SP-049 | Per-window model — windowing & restore-all-windows | EP-018 | 2026-06-24 | 2026-06-24 | ✅ Closed |
@@ -83,11 +82,11 @@ Currently: **47 Sprints** | Next available: **SP-048**
 
 - **Total Sprints:** 50
 - **Closed:** 47 ✅
-- **Active:** 0
-- **Planning:** 2 🔵 (SP-046–SP-047)
+- **Active:** 1 🟡 (SP-046)
+- **Planning:** 1 🔵 (SP-047)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-06-25 (SP-045 closed with user approval — Spotlight Layer 1 task work complete; T-0184 live Spotlight-tap verification carried to T-0189/SP-047. No active sprint; SP-046 next in Planning.)*
+*Last Updated: 2026-06-25 (SP-046 activated for EP-017 Layer 2 with I-0051 assigned. SP-045 closed earlier today; SP-047 remains in Planning.)*

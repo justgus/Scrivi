@@ -13,11 +13,12 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 ## Active Issues
 
-Currently: **0 active issues**
+Currently: **2 active issues**
 
 | Issue | Title | Severity | Sprint |
 | ----- | ----- | -------- | ------ |
-|       |       |          |        |
+| I-0051 | Restored project windows don't remember per-window size/position | Medium | SP-046 (🟢 Resolved - Not Verified) |
+| I-0052 | iOS target fails to build — macOS-only scene/commands in `ScriviApp` | High | SP-046 (🟢 Resolved - Not Verified) |
 
 See: [Issue-active.md][2]
 
@@ -43,29 +44,28 @@ Currently: **0 closed issues**
 
 ## Backlogged Issues
 
-Currently: **4 backlogged issues**
+Currently: **3 backlogged issues**
 
 | Issue | Title | Severity |
 | ----- | ----- | -------- |
 | I-0017 | Window maximized state not restored on app relaunch | Medium |
 | I-0018 | Scene Navigator shows no selection on app load | Low |
 | I-0019 | Undo and Redo have no effect in the manuscript editor | High |
-| I-0051 | Restored project windows don't remember per-window size/position (stack at default) | Medium |
 
 See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 51
-- **Verified:** 46 ✅ (I-0001–I-0015, I-0020–I-0050; I-0016 superseded; I-0017–I-0019, I-0051 backlog)
-- **Active:** 0
-- **Open (backlog):** 4 🔴 (I-0017, I-0018, I-0019, I-0051)
+- **Total Issues:** 52
+- **Verified:** 46 ✅ (I-0001–I-0015, I-0020–I-0050; I-0016 superseded; I-0017–I-0019 backlog; I-0051–I-0052 active)
+- **Active:** 2 ⚠️ (I-0051, I-0052 — both SP-046, Resolved - Not Verified)
+- **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0052
+- **Next available:** I-0053
 
 ---
 
-*Last Updated: 2026-06-25 (I-0051 filed — restored project windows don't remember per-window size/position; related to I-0017. Stats reconciled to I-0050.)*
+*Last Updated: 2026-06-25 (I-0052 filed & resolved — iOS target build fixed via macOS/iOS scene split, awaiting iOS run once platform installed. I-0051 also resolved-not-verified. Both under SP-046.)*
 
 
 [1]:	./ER-Documentation.md
