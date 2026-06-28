@@ -66,6 +66,9 @@ fastlane/test_output
 
 # CMake / C++ build outputs
 /build/
+# Per-platform ScriviCore build dirs from the iOS CMake build phase
+# (build-iphoneos, build-iphonesimulator — see I-0053)
+/build-*/
 /out/
 /cmake-build-*/
 xcuserdata/

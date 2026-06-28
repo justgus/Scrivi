@@ -5,13 +5,72 @@
 | ID | Title | Status |
 | -- | ----- | ------ |
 | I-0051 | Restored project windows don't remember per-window size/position (stack at default) | 🟢 Resolved - Not Verified |
-| I-0052 | iOS target fails to build — `Window`/menu commands are macOS-only in `ScriviApp` | 🟢 Resolved - Not Verified |
+| I-0052 | iOS target fails to build — `Window`/menu commands are macOS-only in `ScriviApp` | ✅ Resolved - Verified (2026-06-26) |
+| I-0053 | iOS `ScriviEngine` is stubbed — ScriviCore not built/linked for iOS; all backend calls throw | 🟢 Resolved - Not Verified |
+| I-0054 | iPad has no button bar (by design) and no iOS menu bar — Project Settings / Close Project unreachable on iPad | 🔴 Open |
+
+---
+
+## I-0054: iPad has no button bar and no iOS menu bar — Project Settings / Close Project unreachable on iPad
+
+**Status:** 🔴 Open
+**Platform:** iPadOS
+**Component:** `Scrivi/Views/EditorView.swift` (`ManuscriptEditorView`), iOS scene/command model in `ScriviApp.swift`
+**Severity:** High (no way to reach Project Settings or close a project on iPad)
+**Sprint:** SP-046
+**Epic:** EP-012 (toolbar/menu-bar split) — surfaced while verifying T-0123
+**Related:** T-0123 (phone-idiom toolbar restore), I-0052 (iOS scene split — no menu bar on iOS)
+**Date Identified:** 2026-06-28
+
+**Description:**
+EP-012 split project-chrome actions (Project Settings, Close Project) by idiom: macOS and **iPadOS**
+were intended to use the **menu bar**, while iPhone keeps an in-view toolbar (T-0123, gated to
+`userInterfaceIdiom == .phone`). But the iOS scene split (I-0052) established that **iOS/iPadOS have
+no menu bar** — the macOS `.commands`/`CommandMenu` model is compiled out under `#if os(macOS)`. The
+result is a coverage gap on **iPad specifically**:
+
+- iPad is **not** `.phone`, so T-0123's `phoneToolbar` is hidden by its runtime idiom check.
+- iPad has **no menu bar**, so the menu-bar route EP-012 assumed for iPad does not exist.
+
+So on iPad there is currently **no UI affordance** to open Project Settings or Close Project once a
+project is open.
+
+**Expected Behavior:**
+On iPad, Project Settings and Close Project are reachable through some always-available affordance
+(e.g. the same in-view toolbar used on iPhone, a navigation-bar item, or a real iPad menu surface).
+
+**Actual Behavior:**
+On iPad, neither the phone toolbar (idiom-gated to `.phone`) nor a menu bar (doesn't exist on iOS)
+is present — Project Settings and Close Project are unreachable.
+
+**Root Cause Analysis:**
+- T-0123 gates its toolbar to `UIDevice.current.userInterfaceIdiom == .phone`, deliberately excluding
+  iPad on the assumption iPad would use the menu bar (`EditorView.swift`).
+- I-0052's iOS scene split compiles the entire macOS menu model (`.commands`, `CommandGroup`,
+  `CommandMenu`) out under `#if os(macOS)`; iOS/iPadOS have no menu bar to host those actions.
+- The two changes individually are correct but jointly leave iPad with no host for these actions.
+
+**Proposed Direction (for when scheduled):**
+Decide the iPad affordance and implement it. Options:
+1. **Broaden T-0123's toolbar to iPad** — drop the `.phone`-only gate so the in-view toolbar shows on
+   any iOS idiom (simplest; one-line change to the runtime check). Re-evaluate visual placement on the
+   larger iPad canvas.
+2. **iPad navigation-bar items** — surface Project Settings / Close Project as `ToolbarItem`s in the
+   editor's `.toolbar`, idiom-appropriate for iPad.
+3. **iPad menu surface** — a dedicated overflow/ellipsis menu in the nav bar.
+Recommendation: option 1 for the minimum-to-reachable scope, since the toolbar already exists and is
+verified-pending on iPhone (T-0123).
+
+**Impact:**
+- Blocks the iPad arm of the EP-012 close-out (a minimal working iPad version requires reachable
+  Project Settings / Close Project).
+- Does not affect iPhone (toolbar present) or macOS (menu bar present).
 
 ---
 
 ## I-0052: iOS target fails to build — macOS-only scene/commands in `ScriviApp`
 
-**Status:** 🟢 Resolved - Not Verified
+**Status:** ✅ Resolved - Verified
 **Platform:** iOS / iPadOS / visionOS
 **Component:** `ScriviApp.swift`
 **Severity:** High (target does not compile)
@@ -19,7 +78,7 @@
 **Epic:** EP-018 follow-up (iOS window model was a deferred non-goal of EP-018)
 **Date Identified:** 2026-06-25
 **Date Implemented:** 2026-06-25
-**Date Verified:** —
+**Date Verified:** 2026-06-26 (user-confirmed: iOS 27.0 SDK installed, `ScriviApp-iOS` builds clean and launches to the Welcome/Landing screen on a 27.0 simulator — this Issue's acceptance bar)
 
 **Description:**
 Building the `ScriviApp-iOS` target fails: `ScriviApp.swift:62 'Window' is unavailable in iOS`. The
@@ -80,18 +139,143 @@ macOS deployment target left at 26.6 (unaffected).
 
 **Verification status:**
 - macOS `ScriviApp` still builds clean (no regression); pbxproj `plutil -lint` OK.
-- **iOS/visionOS still cannot be built in THIS environment — one step remains:** the **27.0 SDK is not
-  installed** (only the 27.0 *runtime* is; the installed SDK is 26.5). A 27.0 deployment target needs the
-  27.0 SDK, so the build won't link until the **iOS/visionOS 27.0 platform/SDK** is installed via
-  **Xcode ▸ Settings ▸ Components**.
-- Strongest proxy run here: **`swiftc -typecheck` of the full app Swift source set against the iOS SDK
-  passes with zero errors/warnings** — the `'Window' is unavailable` error and all other iOS-availability
-  issues are gone. The remaining failure is purely the missing SDK, not the code.
-- **Needs (user):** install the iOS/visionOS 27.0 SDK, then build `ScriviApp-iOS` and launch a 27.0
-  simulator. Confirm: app launches to Landing; the active-session path shows the editor. (Same install
-  also unblocks T-0123 / EP-012 iPhone verification.)
+- **CORRECTION (2026-06-26):** The earlier claim that the **iOS/visionOS 27.0 SDK was not installed**
+  (and that the installed SDK was 26.5) was **wrong** — a stale environment observation. The user
+  confirms the **iOS 27.0 SDK IS installed**, `ScriviApp-iOS` **builds clean with no errors**, and the
+  app **launches to the Welcome/Landing screen** in a 27.0 simulator. App launch succeeds. The scene
+  split (this Issue's actual fix) therefore works as intended — strike the SDK-blocker note.
+- **What this Issue's fix did NOT cover:** linking the ScriviCore backend into the iOS target. Booting
+  to Landing needs no backend; the first engine call (`bootstrap → ensureLocalIdentity`) throws
+  `"ScriviCore not available on this platform"` because `ScriviEngine` compiles as its iOS stub
+  (`#else` block) — ScriviCore isn't built/linked for iOS. That is a **separate fault tracked as I-0053**,
+  not a regression in this scene-split fix.
 
-**Resolution:** Implemented (scene split + 27.0 deployment target); awaiting the 27.0 SDK install + iOS run.
+**Resolution:** Implemented (macOS/iOS scene split + iOS pickers + deployment target). Builds clean and
+launches to Landing on the iOS 27.0 simulator (user-observed). Awaiting user's **Verified** sign-off. The
+backend-not-linked runtime fault is split out to **I-0053**.
+
+---
+
+## I-0053: iOS `ScriviEngine` is stubbed — ScriviCore not built/linked for iOS; all backend calls throw
+
+**Status:** 🟢 Resolved - Not Verified
+**Platform:** iOS / iPadOS (visionOS still stubbed — separate future item)
+**Component:** `ScriviEngine.swift`, `Scrivi.xcodeproj/project.pbxproj` (build graph), `ScriviCore/src/util/Process.cpp`
+**Severity:** High (no project can be created or opened on iOS; the app is non-functional past Landing)
+**Sprint:** SP-046
+**Epic:** Successor to I-0052; blocker for EP-012 / T-0123 (iPad/iPhone button-bar verification) and relevant to EP-017 / T-0190 (iOS assessment)
+**Date Identified:** 2026-06-26
+**Date Implemented:** 2026-06-26
+**Date Verified:** —
+
+**Description:**
+On the iOS target, every `ScriviEngine` method throws `"ScriviCore not available on this platform"`.
+The app builds and launches to the Welcome/Landing screen (no backend needed there), but the first
+call into the engine fails, so identity bootstrap and project create/open are impossible.
+
+**Expected Behavior:**
+`ScriviApp-iOS` reaches the editor: identity bootstraps, and creating/opening a `.scrivi` project
+succeeds via the real ScriviCore backend — same as macOS.
+
+**Actual Behavior:**
+- Console at launch: `[Scrivi] Bootstrap failed: ScriviCore not available on this platform`.
+- Tapping **Create** in the New Project sheet reports **"Identity not bootstrapped"** (the
+  `authorshipRef == nil` guard in `AppEnvironment.createProject`, because `bootstrap()` threw).
+
+**Steps to Reproduce:**
+1. Build & run `ScriviApp-iOS` on an iOS 27.0 simulator. App launches to Landing/Welcome.
+2. New Project → enter a title → Choose… a folder → tap **Create**.
+3. Error: "Identity not bootstrapped". (Console shows the bootstrap failure at launch.)
+
+**Impact:**
+- iOS/iPadOS app is unusable past the Landing screen.
+- Blocks on-iPad UI verification (button bar / editor), which gates **EP-012 / T-0123** and, in turn,
+  the close of **EP-012**.
+
+**Root Cause Analysis:**
+- `ScriviEngine.swift` gates the real engine behind `#if os(macOS)` (lines 2–4, 9); the iOS build
+  compiles the `#else` **stub** (lines 824–890), whose `unavailable()` throws the observed string
+  (line 834). This is by design "so the codebase compiles without ScriviCore on iOS" (file comment).
+- **ScriviCore is not built or linked for iOS.** The macOS app links a CMake-built
+  `build/ScriviCore/libScriviCore.a` (`SCRIVI_CORE_LIB`, produced by the `Build ScriviCore (CMake)`
+  shell phase running `cmake -S . -B build`) and imports the C ABI via
+  `ScriviCore/include/scrivi/module.modulemap`. That archive is a **macOS-host** build — wrong
+  architecture for iOS/iOS-simulator.
+- The iOS target's Frameworks phase (`D_FW`) is **empty** (no `libScriviCore.a`), though its
+  `LIBRARY_SEARCH_PATHS`/`SWIFT_INCLUDE_PATHS` were pre-pointed at the macOS build dir — wiring was
+  started and left incomplete.
+
+**Proposed Direction (in-project static lib; minimum-to-button-bar scope):**
+1. Add CMake invocation(s) producing iOS-device (arm64) and iOS-simulator slices of
+   `libScriviCore.a` into per-SDK build dirs, mirroring the existing `Build ScriviCore (CMake)` phase.
+2. Wire the correct slice into the iOS target's `D_FW` Frameworks phase, with
+   `LIBRARY_SEARCH_PATHS` resolved per-SDK (`[sdk=iphoneos*]` / `[sdk=iphonesimulator*]`).
+   Update `project.pbxproj` in the same step (CLAUDE.md).
+3. Broaden the engine gate: `#if os(macOS)` → `#if os(macOS) || os(iOS)` (incl. `import ScriviCore`)
+   so the real engine compiles for iOS. Required C ABI symbols
+   (`scrivi_ensure_local_identity`, `scrivi_create_project`, `scrivi_open_project`,
+   `scrivi_open_scene`) are present in `scrivi.h`.
+4. Verify on the iOS 27.0 simulator: `[Scrivi] Identity:` prints; create-into-picked-folder succeeds;
+   editor + button bar render.
+
+**Known limitations / out of scope for this round:**
+- Git is unavailable on iOS — already handled (`SystemGitProvider.available()` returns false; create
+  only runs git when `enableGitSnapshots` is set).
+- The runtime `PrototypeSecureStore` (in `scrivi_c_api.cpp`) is **in-memory only**, so identity won't
+  persist across launches on iOS. Acceptable for button-bar verification; track a real Keychain/file
+  store as a separate follow-up.
+- visionOS (`E_FW`) left untouched this round (scoped to iPad button-bar verification).
+
+**Resolution (2026-06-26 — Implemented, Not Verified):**
+
+1. **`ScriviCore/src/util/Process.cpp`** — guarded the subprocess path for embedded Apple
+   platforms. `std::system`/`popen`/`pclose` are marked **unavailable** in the iOS SDK; added a
+   `SCRIVI_NO_SUBPROCESS` macro (`__APPLE__ && TARGET_OS_IPHONE`) under which `executableInPath`
+   returns `false` and `runProcess` returns a graceful "not available" failure. No behavior change on
+   macOS/Linux/Windows. This is the **only** source-level iOS incompatibility in ScriviCore; git is
+   already a no-op on iOS (`SystemGitProvider::available()` → false; create only shells out when
+   `enableGitSnapshots` is set).
+
+2. **`Scrivi.xcodeproj/project.pbxproj`** — new build phase **`D_CMAKE_PHASE` ("Build ScriviCore for
+   iOS (CMake)")** added as the iOS target's first phase. It cross-builds ScriviCore against the
+   SDK Xcode selected (`$SDKROOT`/`$ARCHS`/`$IPHONEOS_DEPLOYMENT_TARGET`) into a per-platform dir
+   `build-$(PLATFORM_NAME)/` (so simulator and device slices don't collide). The iOS Debug/Release
+   configs (`D_BC_DEBUG`/`D_BC_RELEASE`) gained `LIBRARY_SEARCH_PATHS =
+   $(SRCROOT)/build-$(PLATFORM_NAME)/ScriviCore`, `SWIFT_INCLUDE_PATHS` to the modulemap, and
+   `OTHER_LDFLAGS = -lScriviCore -lc++`. Mirrors the macOS `C_CMAKE_PHASE` mechanism (no `.xcframework`).
+
+3. **`Scrivi/Engine/ScriviEngine.swift`** — broadened the gate `#if os(macOS)` → `#if os(macOS) ||
+   os(iOS)` (incl. `import ScriviCore`), so iOS compiles the real engine instead of the `#else` stub.
+   visionOS still falls through to the stub (future item).
+
+4. **`.gitignore`** — added `/build-*/` so the per-platform iOS build dirs aren't tracked.
+
+**Files Affected:**
+- `ScriviCore/src/util/Process.cpp`
+- `Scrivi.xcodeproj/project.pbxproj`
+- `Scrivi/Engine/ScriviEngine.swift`
+- `.gitignore`
+
+**Verification performed (in the dev environment, Xcode-beta / iOS 27.0 SDK):**
+- ScriviCore cross-builds clean for both **iOS simulator** (arm64 + x86_64) and **iOS device**
+  (arm64) against the 27.0 SDK.
+- `xcodebuild ScriviApp-iOS -sdk iphonesimulator` → **BUILD SUCCEEDED**; app links
+  `-lScriviCore` from `build-iphonesimulator/ScriviCore`.
+- Built `Scrivi.app` (iOS-sim, minos/sdk 27.0): the stub string `"ScriviCore not available on this
+  platform"` is **absent** from the binary (`strings | grep -c` → 0) — proves the real engine, not
+  the stub, is compiled in.
+- No regression: backend **ctest 224/224 pass**; macOS `ScriviApp` still **BUILD SUCCEEDED**.
+
+**Verification still needed (USER — requires a live iOS 27.0 simulator/device run):**
+- This dev environment has the iOS **27.0 SDK** (builds) but only **26.3.1 simulator runtimes**
+  (cannot boot the 27.0 app). The user's machine has a 27.0 sim runtime (their console showed one).
+- On an iPad 27.0 simulator: launch `ScriviApp-iOS`; confirm console prints **`[Scrivi] Identity:`**
+  (not "Bootstrap failed"); New Project → choose a folder → **Create** succeeds (no "Identity not
+  bootstrapped"); the **editor and its button bar render**. That observation unblocks **EP-012 / T-0123**.
+
+**Known limitation (out of scope, track separately):** the runtime `PrototypeSecureStore`
+(`scrivi_c_api.cpp`) is in-memory only, so the iOS author identity regenerates each launch and does
+not persist (no Keychain yet). Acceptable for button-bar verification.
 
 ---
 
@@ -191,4 +375,4 @@ clean. (No functional change — same children/refs.)
 
 ---
 
-*Last Updated: 2026-06-25 (I-0051 implemented — per-project window frame/zoom persistence; awaiting manual relaunch verification. pbxproj integrity warning also fixed.)*
+*Last Updated: 2026-06-28 (I-0054 filed — iPad has no button bar and no iOS menu bar, so Project Settings / Close Project are unreachable on iPad; surfaced while verifying T-0123. EP-012 iPad arm blocked until an iPad affordance is chosen.)*

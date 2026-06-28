@@ -14,12 +14,27 @@
 #else
   #include <sys/wait.h>
   #include <unistd.h>
+  #include <TargetConditionals.h>
+#endif
+
+// iOS/iPadOS/visionOS (and the other embedded Apple platforms) sandbox out
+// subprocess spawning: std::system / popen are marked unavailable in their SDKs.
+// Scrivi never shells out on those platforms — git snapshots are macOS/desktop
+// only, and SystemGitProvider::available() already treats "no git" as a graceful
+// no-op. So compile the subprocess path out there and report git/tools as absent.
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+  #define SCRIVI_NO_SUBPROCESS 1
+#else
+  #define SCRIVI_NO_SUBPROCESS 0
 #endif
 
 namespace scrivi::util {
 
 bool executableInPath(const std::string& name) {
-#ifdef _WIN32
+#if SCRIVI_NO_SUBPROCESS
+    (void)name;
+    return false; // no subprocess support on this platform
+#elif defined(_WIN32)
     // On Windows, use where.exe
     std::string cmd = "where " + name + " >NUL 2>&1";
     return std::system(cmd.c_str()) == 0; // NOLINT(bugprone-command-processor)
@@ -34,6 +49,14 @@ Result<ProcessResult> runProcess(
     const std::vector<std::string>& args,
     const std::string&              workingDirectory)
 {
+#if SCRIVI_NO_SUBPROCESS
+    (void)executable;
+    (void)args;
+    (void)workingDirectory;
+    return Result<ProcessResult>::failure(
+        {.code    = ErrorCode::internalError,
+         .message = "Subprocess execution is not available on this platform"});
+#else
     // Build the shell command: cd <workingDirectory> && <executable> <args...> 2>&1
     std::ostringstream cmd;
     cmd << "cd ";
@@ -73,6 +96,7 @@ Result<ProcessResult> runProcess(
     result.exitCode = exitCode;
     result.stdout_  = output;
     return Result<ProcessResult>::success(std::move(result));
+#endif // SCRIVI_NO_SUBPROCESS
 }
 
 } // namespace scrivi::util

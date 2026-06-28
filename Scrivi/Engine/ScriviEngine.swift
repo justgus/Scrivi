@@ -1,12 +1,13 @@
 import Foundation
-#if os(macOS)
+#if os(macOS) || os(iOS)
 import ScriviCore
 #endif
 
 // ScriviEngine is the single Swift-side entry point to the ScriviCore C API.
-// On non-macOS platforms ScriviCore is not yet built; ScriviEngine is stubbed.
+// macOS and iOS/iPadOS build & link ScriviCore (libScriviCore.a) and use the real
+// engine. visionOS is not yet wired and falls through to the stub (I-0053).
 
-#if os(macOS)
+#if os(macOS) || os(iOS)
 
 public final class ScriviEngine: @unchecked Sendable {
 
@@ -823,9 +824,9 @@ private func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
 
 #else
 
-// MARK: — ScriviEngine stub (non-macOS)
-// ScriviCore is not yet built for iOS/visionOS. Every method throws a
-// "not available" error so the codebase compiles without platform guards.
+// MARK: — ScriviEngine stub (visionOS / other non-macOS-non-iOS)
+// ScriviCore is built & linked for macOS and iOS; visionOS is not yet wired
+// (I-0053 follow-up). Every method throws so those targets still compile.
 
 public final class ScriviEngine: @unchecked Sendable {
     public init() {}

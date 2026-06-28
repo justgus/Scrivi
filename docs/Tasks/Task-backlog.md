@@ -11,7 +11,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
-| T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified |
+| T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified (iPhone run via DeviceHub; iPad gap → I-0054) |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
 | T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | 🟢 Implemented - Not Verified (core verified via T-0196; Spotlight-continuation path hardened, full tap verify → T-0189) |
 | T-0185 | New Spotlight importer app-extension target + pbxproj wiring | EP-017 (SP-046) | 🔵 Backlog |
@@ -272,16 +272,27 @@ private var phoneToolbar: some View {
 ```
 
 **Test Steps:**
-1. Build for iPhone simulator
+1. Build for **iPhone** simulator (the toolbar SHOULD appear on the phone idiom)
 2. Open a project — confirm Project Settings and Close Project buttons appear above the manuscript
 3. Tap Project Settings — confirm settings sheet opens
 4. Tap Close Project — confirm returns to Landing View
-5. Build for iPad simulator — confirm no toolbar appears (menu bar only)
-6. Build for macOS — confirm no toolbar appears
+5. Build for iPad simulator — confirm no toolbar appears here (**but see I-0054** — iPad currently has
+   neither a toolbar nor a menu bar, so these actions are unreachable on iPad; that gap is tracked
+   separately and is NOT what T-0123 verifies)
+6. Build for macOS — confirm no toolbar appears (menu bar only)
+
+**Environment note — where the iOS simulators live (2026-06-28):**
+The iPhone/iPad simulators no longer launch from the old standalone Simulator-runtimes path —
+**they now live inside the Xcode DeviceHub**. To run T-0123's iPhone verification, boot the iPhone
+27.0 simulator from the **DeviceHub** (not the legacy Simulator app entry). Recorded here so future
+runs of this verification don't go looking in the wrong place.
 
 **Notes:**
-Returned to backlog before iPhone testing was available. macOS and iPadOS targets verified under T-0120. iPhone verification requires an iPhone build target, which is not yet part of the active test workflow.
+Returned to backlog before iPhone testing was available. macOS and iPadOS targets verified under T-0120
+(toolbar correctly absent on those — they used the menu bar). iPhone verification requires an iPhone
+build target/simulator (now via the DeviceHub, see above). The iPad coverage gap that EP-012's
+menu-bar assumption created is filed as **I-0054**.
 
 ---
 
-*Last Updated: 2026-06-24 (EP-018 created — T-0191–T-0196 added, assigned to SP-048–SP-050. T-0184 ⏸ paused pending EP-018; resumes rewritten as T-0196. T-0175 expanded into EP-017; T-0176–T-0190 assigned to SP-044–SP-047.)*
+*Last Updated: 2026-06-28 (T-0123 — added DeviceHub note for the iPhone-simulator verification run, and cross-referenced I-0054 for the iPad reachability gap surfaced while verifying it.)*
