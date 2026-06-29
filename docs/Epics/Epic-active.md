@@ -1,6 +1,8 @@
 # Active Epics
 
-> **EP-018 (Per-Window / Per-Project Window Model) closed 2026-06-25** with all acceptance criteria R1–R5 + AC-build user-verified — see `Closed/Epic-EP-018.md`. Its closure **unblocks EP-017 AC5** (the Spotlight deep link is implemented & verified via EP-018 / T-0196).
+**Active: EP-017 (Spotlight Search Integration)** — the sole active Epic. (Its AC5 was unblocked by
+the now-closed EP-018 / Per-Window Project Model, which delivered the verified deep link via T-0196 —
+see `Closed/Epic-EP-018.md`.)
 
 ## EP-017: Spotlight Search Integration
 

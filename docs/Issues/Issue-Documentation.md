@@ -13,13 +13,9 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 ## Active Issues
 
-Currently: **3 active issues**
+Currently: **0 active issues** (I-0051/I-0052/I-0053/I-0054/I-0055/I-0056 ✅ Verified, awaiting batch archive)
 
-| Issue | Title | Severity | Sprint |
-| ----- | ----- | -------- | ------ |
-| I-0051 | Restored project windows don't remember per-window size/position | Medium | SP-046 (🟢 Resolved - Not Verified) |
-| I-0053 | iOS `ScriviEngine` stubbed — ScriviCore not built/linked for iOS | High | SP-046 (🟢 Resolved - Not Verified) |
-| I-0054 | iPad has no button bar and no iOS menu bar — Project Settings / Close Project unreachable | High | SP-046 (🔴 Open) |
+_No Issues are currently open or awaiting verification._
 
 See: [Issue-active.md][2]
 
@@ -57,16 +53,16 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 54
-- **Verified:** 47 ✅ (I-0001–I-0015, I-0020–I-0050, I-0052; I-0016 superseded; I-0017–I-0019 backlog)
-- **Active:** 3 ⚠️ (I-0051, I-0053 — SP-046, Resolved - Not Verified; I-0054 — Open)
+- **Total Issues:** 56
+- **Verified:** 52 ✅ (I-0001–I-0015, I-0020–I-0056 except backlog/superseded; I-0016 superseded; I-0017–I-0019 backlog)
+- **Active:** 0 ⚠️
 - **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0055
+- **Next available:** I-0057
 
 ---
 
-*Last Updated: 2026-06-28 (I-0054 filed — iPad has no button bar and no iOS menu bar, so Project Settings / Close Project are unreachable on iPad; surfaced during T-0123 verification. Active table corrected: I-0052 is Verified (was stale), I-0053 added.)*
+*Last Updated: 2026-06-29 (I-0053 Verified on iOS — `[Scrivi] Identity:` logged and projects created/opened on iPhone 17 Pro + iPad Pro / iOS 27.0, confirming the real ScriviCore backend is linked. No active Issues remain. I-0051–I-0056 stay in Issue-active.md until the I-0051–I-0060 batch is archived.)*
 
 
 [1]:	./ER-Documentation.md

@@ -2,8 +2,6 @@
 
 Issues listed here are open and documented but not currently assigned to a Sprint.
 
-> **I-0051 moved to Issue-active.md (2026-06-25)** — assigned to **SP-046**. See `Issue-active.md`.
-
 ---
 
 ## I-0017: Window maximized state not restored on app relaunch
@@ -13,7 +11,7 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 **Component:** `WindowFrameAutosave.swift`
 **Severity:** Medium
 **Sprint:** Not Assigned
-**Related:** I-0051 (multi-window per-project frame/position restore — predates and largely subsumes this; the zoom-timing problem here should be folded into that fix)
+**Related:** I-0051 (multi-window per-project frame/position restore — Verified 2026-06-29, subsumes the position/size part of this); **I-0055** (multi-window maximize-restore defect — the same zoom-restore problem on the per-window model; fix the two together)
 
 **Description:**
 Window position, size, and maximized state are not fully restored between app launches. Frame and position restore correctly. Maximized state does not — the window always relaunches un-maximized regardless of saved zoom state.

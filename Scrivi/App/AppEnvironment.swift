@@ -1,6 +1,7 @@
 import Foundation
 #if os(macOS)
 import AppKit
+import UniformTypeIdentifiers
 #endif
 
 // AppEnvironment — app-global state and orchestration (EP-018 / T-0192, T-0194).
@@ -58,12 +59,43 @@ import AppKit
     // the Welcome window so the sheet has a host.
     var requestNewProject: Bool = false
 
-    // File ▸ New Project…: ensure the Welcome window is present, then ask it to show the
-    // New Project sheet.
+    // iOS only: set by the File ▸ Open Project… menu command to ask the showing iOS view to
+    // present its .fileImporter (the iPad menu bar can't toggle a view's local @State directly).
+    // Observed and cleared by the iOS root / Landing view. On macOS, Open uses an NSOpenPanel
+    // directly (presentOpenProjectPanel), so this flag is unused there.
+    var requestOpenImporter: Bool = false
+
+    // File ▸ New Project…: ensure the Landing/Welcome surface is present, then ask it to show
+    // the New Project sheet. On macOS the Welcome window hosts the sheet. On iOS the app is
+    // single-scene — the sheet's host (LandingView) only exists when no project is open, so we
+    // close the active project first to surface Landing, which then consumes the request flag.
     func presentNewProject() {
+        #if os(macOS)
         openWelcomeAction?()
+        #else
+        closeActiveProjectForLanding()
+        #endif
         requestNewProject = true
     }
+
+    // File ▸ Open Project… on iOS: surface Landing (closing any open project on this single-scene
+    // platform), then ask it to raise the document importer. (macOS uses an NSOpenPanel directly.)
+    func presentOpenImporter() {
+        #if !os(macOS)
+        closeActiveProjectForLanding()
+        #endif
+        requestOpenImporter = true
+    }
+
+    #if !os(macOS)
+    // iOS single-scene helper: close the open project so the Landing view (which hosts the
+    // New Project sheet and the Open document importer) returns to the single window.
+    private func closeActiveProjectForLanding() {
+        if let pid = activeSession?.openProjectResult?.projectID {
+            closeProject(projectID: pid)
+        }
+    }
+    #endif
 
     // Opens — or, for an already-open project, focuses (R3) — the AppKit window for a
     // project whose session is already loaded+registered. The registry is the
@@ -253,8 +285,16 @@ import AppKit
     func presentOpenProjectPanel() {
         #if os(macOS)
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false
+        // A .scrivi project is a *package* (a directory with a registered UTI). The panel must
+        // present it as a single selectable item, not traverse into it. Allow files of the .scrivi
+        // type and treat packages as opaque (not directories); fall back to allowing directories so
+        // a .scrivi that lost its UTI registration is still choosable. This mirrors the Welcome
+        // screen's .fileImporter, which allows the same com.caposoft.scrivi.project type.
+        let scriviType = UTType("com.caposoft.scrivi.project") ?? .package
+        panel.allowedContentTypes = [scriviType]
+        panel.canChooseFiles = true
         panel.canChooseDirectories = true
+        panel.treatsFilePackagesAsDirectories = false
         panel.allowsMultipleSelection = false
         panel.title = "Open Scrivi Project"
         panel.prompt = "Open"

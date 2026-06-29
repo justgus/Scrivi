@@ -1,17 +1,17 @@
 #if os(macOS)
 import AppKit
 
-// ProjectWindowFrameStore — persists each project window's frame + zoom state, keyed by
-// projectID, so a restored or reopened project window returns to the size/position it had
-// when last quit or closed (I-0051).
+// ProjectWindowFrameStore — persists each project window's frame + full-screen state, keyed by
+// projectID, so a restored or reopened project window returns to the size/position (and
+// full-screen state) it had when last quit or closed (I-0051 / I-0055).
 //
 // The app's pre-EP-018 single-window autosave (WindowFrameAutosave) only ever stored ONE
 // frame and was attached only to the SwiftUI Welcome window; the AppKit project windows
 // (ProjectWindowController) used a hardcoded rect + center(), so multiple restored windows
 // all stacked at the default. This store fixes that for the multi-window model.
 //
-// State lives in UserDefaults under per-project keys. Frames are only saved while un-zoomed
-// (preserving the last un-zoomed size across zoomed sessions), mirroring WindowFrameAutosave.
+// State lives in UserDefaults under per-project keys. The windowed frame is only saved while
+// NOT full screen, preserving the pre-full-screen size/position across full-screen sessions.
 //
 // @MainActor because the save/clamp paths touch AppKit (`NSWindow`, `NSScreen`), which are
 // main-actor isolated under Swift 6; all callers (ProjectWindowController) are already on the
@@ -22,8 +22,8 @@ enum ProjectWindowFrameStore {
     private static func frameKey(_ projectID: String) -> String {
         "scrivi.projectWindow.\(projectID).frame"
     }
-    private static func zoomedKey(_ projectID: String) -> String {
-        "scrivi.projectWindow.\(projectID).zoomed"
+    private static func fullScreenKey(_ projectID: String) -> String {
+        "scrivi.projectWindow.\(projectID).fullScreen"
     }
 
     // The saved un-zoomed frame for a project, or nil if none recorded yet.
@@ -34,17 +34,28 @@ enum ProjectWindowFrameStore {
         return rect == .zero ? nil : rect
     }
 
-    static func savedZoomed(projectID: String) -> Bool {
+    // Whether the project was last quit/closed in macOS Full Screen.
+    static func savedFullScreen(projectID: String) -> Bool {
         guard !projectID.isEmpty else { return false }
-        return UserDefaults.standard.bool(forKey: zoomedKey(projectID))
+        return UserDefaults.standard.bool(forKey: fullScreenKey(projectID))
     }
 
-    // Persist the window's current state for a project. Only records the frame when un-zoomed,
-    // so the restored un-zoomed size survives across sessions that ended zoomed.
+    // Persist the window's current state for a project.
+    //
+    // The green button puts the window into macOS **Full Screen** (menu bar hides, own Space) — a
+    // distinct state from a window the user merely resized to fill the screen. We persist Full
+    // Screen as a dimensionless binary via NSWindow.styleMask.contains(.fullScreen) — a
+    // deterministic flag, unlike NSWindow.isZoomed (which proved unreliable) or a geometry check
+    // (which would wrongly flag a manually screen-sized window — I-0055).
+    //
+    // While full screen, the *windowed* frame is NOT overwritten, so the stored frame stays at the
+    // size/position the window had before going full screen. On restore that frame is applied and
+    // the window is then toggled back into full screen (I-0051 / I-0055).
     static func save(window: NSWindow, projectID: String) {
         guard !projectID.isEmpty else { return }
-        UserDefaults.standard.set(window.isZoomed, forKey: zoomedKey(projectID))
-        if !window.isZoomed {
+        let fullScreen = window.styleMask.contains(.fullScreen)
+        UserDefaults.standard.set(fullScreen, forKey: fullScreenKey(projectID))
+        if !fullScreen {
             UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: frameKey(projectID))
         }
     }

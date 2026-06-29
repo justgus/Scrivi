@@ -1,26 +1,34 @@
 # Active Issues
 
-## SP-046 — EP-017 Spotlight Layer 2 + Windowing Polish
+These are the open Issues (still awaiting verification). Verified Issues are removed from this
+table and stay in this file as full entries only until the next batch archive (I-0051–I-0060).
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| I-0051 | Restored project windows don't remember per-window size/position (stack at default) | 🟢 Resolved - Not Verified |
-| I-0052 | iOS target fails to build — `Window`/menu commands are macOS-only in `ScriviApp` | ✅ Resolved - Verified (2026-06-26) |
-| I-0053 | iOS `ScriviEngine` is stubbed — ScriviCore not built/linked for iOS; all backend calls throw | 🟢 Resolved - Not Verified |
-| I-0054 | iPad has no button bar (by design) and no iOS menu bar — Project Settings / Close Project unreachable on iPad | 🔴 Open |
+No Issues are currently awaiting verification.
+
+**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29) and I-0052 (Verified 2026-06-26) — full entries retained below until the I-0051–I-0060 batch is archived.
 
 ---
 
 ## I-0054: iPad has no button bar and no iOS menu bar — Project Settings / Close Project unreachable on iPad
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved - Verified (2026-06-29, user-confirmed on iPad Pro / iOS 27.0)
 **Platform:** iPadOS
-**Component:** `Scrivi/Views/EditorView.swift` (`ManuscriptEditorView`), iOS scene/command model in `ScriviApp.swift`
+**Component:** `Scrivi/Views/EditorView.swift`, `Scrivi/App/ScriviApp.swift` (`iosCommands`), `AppEnvironment.swift`, `LandingView.swift`
 **Severity:** High (no way to reach Project Settings or close a project on iPad)
 **Sprint:** SP-046
 **Epic:** EP-012 (toolbar/menu-bar split) — surfaced while verifying T-0123
 **Related:** T-0123 (phone-idiom toolbar restore), I-0052 (iOS scene split — no menu bar on iOS)
 **Date Identified:** 2026-06-28
+**Date Verified:** 2026-06-29
+
+**Resolution (2026-06-29 — Verified):** Fixed as part of the T-0123 iOS Master/Detail rework (see
+that Task's 2026-06-29 Resolution addendum). iPad now has two reachable surfaces:
+1. **Nav-bar `•••` menu** on the editor detail (Project Settings, Show Inspector, Show Timeline,
+   Close Project) — present on both iPhone and iPad.
+2. **iPad hardware-keyboard menu bar** (`ScriviApp.iosCommands`) — File (New/Open/Close) and Project
+   (Settings, Show Inspector ⇧⌘I, Show Timeline ⇧⌘T), deconflicted against the iOS-synthesized
+   menus (no ⌘, no duplicate "View" menu, ⇧⌘ toggle shortcuts).
+User-confirmed on iPad Pro / iOS 27.0: menus populated and functional, no menu-conflict console spam.
 
 **Description:**
 EP-012 split project-chrome actions (Project Settings, Close Project) by idiom: macOS and **iPadOS**
@@ -158,7 +166,7 @@ backend-not-linked runtime fault is split out to **I-0053**.
 
 ## I-0053: iOS `ScriviEngine` is stubbed — ScriviCore not built/linked for iOS; all backend calls throw
 
-**Status:** 🟢 Resolved - Not Verified
+**Status:** ✅ Resolved - Verified (2026-06-29, user-confirmed on iPhone 17 Pro + iPad Pro / iOS 27.0)
 **Platform:** iOS / iPadOS (visionOS still stubbed — separate future item)
 **Component:** `ScriviEngine.swift`, `Scrivi.xcodeproj/project.pbxproj` (build graph), `ScriviCore/src/util/Process.cpp`
 **Severity:** High (no project can be created or opened on iOS; the app is non-functional past Landing)
@@ -166,7 +174,16 @@ backend-not-linked runtime fault is split out to **I-0053**.
 **Epic:** Successor to I-0052; blocker for EP-012 / T-0123 (iPad/iPhone button-bar verification) and relevant to EP-017 / T-0190 (iOS assessment)
 **Date Identified:** 2026-06-26
 **Date Implemented:** 2026-06-26
-**Date Verified:** —
+**Date Verified:** 2026-06-29
+
+> **Verified (2026-06-29):** Confirmed via this session's live iOS runs — the console logged
+> `[Scrivi] Identity: identity_019f13…` (the real ScriviCore backend bootstrapped, not the stub's
+> "ScriviCore not available" throw), and new projects were created and opened on the iOS simulator
+> ("The Majestic Horse of Time", "The Tattered Kingdom of Thieves") with the editor rendering. Met on
+> **both** iPhone 17 Pro and iPad Pro / iOS 27.0 (exceeds the iPad-only bar). The whole T-0123 / I-0054
+> iOS UI verification was only possible because the backend is linked. visionOS remains stubbed
+> (separate future item); the in-memory `PrototypeSecureStore` (identity not persisted across launches)
+> remains a tracked-separately limitation.
 
 **Description:**
 On the iOS target, every `ScriviEngine` method throws `"ScriviCore not available on this platform"`.
@@ -281,15 +298,20 @@ not persist (no Keychain yet). Acceptable for button-bar verification.
 
 ## I-0051: Restored project windows don't remember per-window size/position (stack at default)
 
-**Status:** 🟢 Resolved - Not Verified
+**Status:** ✅ Resolved - Verified (2026-06-29, user-confirmed on macOS — windows restore size/position perfectly across relaunch)
 **Platform:** macOS
 **Component:** `ProjectWindowFrameStore.swift` (new), `ProjectWindowManager.swift` (`ProjectWindowController`)
 **Severity:** Medium
 **Sprint:** SP-046
 **Epic:** EP-018 follow-up (per-window model polish), scheduled under EP-017 / SP-046
-**Related:** I-0017 (single-window maximized-state restore — this is its multi-window successor)
+**Related:** I-0017 (single-window maximized-state restore — this is its multi-window successor); I-0055 (restored-maximized state defect — carved out below)
 **Date Implemented:** 2026-06-25
-**Date Verified:** —
+**Date Verified:** 2026-06-29
+
+> **Verified scope:** un-zoomed size/position restore (incl. two side-by-side projects returning
+> side-by-side, reopen-of-closed-project, and off-screen re-anchor) is user-confirmed working. The
+> one remaining defect — a window quit while **maximized** reopens *filling the screen but not in the
+> true zoomed state* — is split out to **I-0055** and is NOT part of this Issue's verified scope.
 
 **Description:**
 With multiple projects open (EP-018), each project window's size and on-screen position are not
@@ -375,4 +397,139 @@ clean. (No functional change — same children/refs.)
 
 ---
 
-*Last Updated: 2026-06-28 (I-0054 filed — iPad has no button bar and no iOS menu bar, so Project Settings / Close Project are unreachable on iPad; surfaced while verifying T-0123. EP-012 iPad arm blocked until an iPad affordance is chosen.)*
+## I-0055: Restored-maximized project window fills the screen but is not truly zoomed
+
+**Status:** ✅ Resolved - Verified (2026-06-29, user-confirmed on macOS — a project quit/closed in Full Screen reopens in Full Screen)
+**Platform:** macOS
+**Component:** `ProjectWindowManager.swift` (`ProjectWindowController` — full-screen restore + delegate callbacks), `ProjectWindowFrameStore.swift`
+**Severity:** Low
+**Sprint:** SP-046
+**Epic:** EP-018 follow-up (per-window model polish)
+**Related:** I-0051 (parent — windowed frame restore, Verified 2026-06-29); I-0017 (single-window maximized-state restore)
+**Date Identified:** 2026-06-29
+**Date Implemented:** 2026-06-29
+**Date Verified:** 2026-06-29
+
+**Description:**
+When a project window is put into **macOS Full Screen** (the green traffic-light button, clicked with
+no tiling option selected from its hover menu — the menu bar auto-hides and the window moves to its
+own Space) and the app is then quit, on relaunch the window did **not** return to Full Screen — it
+reopened windowed (and an earlier attempt left it merely *filling the screen* without truly being
+maximized). (Toggling full screen *within* a single session worked; the defect was across quit/relaunch.)
+
+**Expected Behavior:**
+A window quit in Full Screen reopens **genuinely in Full Screen**. Exiting Full Screen returns the
+window to the size/position it had **before** entering Full Screen. "Full Screen" is treated as a
+dimensionless binary: the window's dimensions are not recorded while it is full screen; only the
+binary flag is persisted.
+
+**Actual Behavior:**
+The restored window did not re-enter Full Screen (or filled the screen without being truly full
+screen); the saved windowed dimensions were also at risk of being overwritten by the full-screen
+geometry.
+
+**Steps to Reproduce:**
+1. Open a project; click the green button so it enters Full Screen.
+2. ⌘Q to quit.
+3. Relaunch → the window does not return to Full Screen.
+
+**Root Cause Analysis:**
+The green button enters macOS **Full Screen**, not Zoom. The earlier implementation keyed on
+`NSWindow.isZoomed` (which read false right after the action, so the state was never persisted) and
+then on a frame-vs-`visibleFrame` geometry check (which would also misclassify a window the user
+manually resized to fill the screen). The reliable signal is `styleMask.contains(.fullScreen)` plus
+the full-screen delegate callbacks. See the Diagnosis history + Fix below.
+
+**Diagnosis history (2026-06-29):**
+1. *First attempt (zoom-timing):* deferred `window.zoom(nil)` from init to `showAndFocus()`. No
+   change in behavior.
+2. *Second attempt (NSWindow.zoom / isZoomed):* logging revealed the real fault was **save-side** —
+   after maximizing, the relaunch logged `savedZoomed=false`. `NSWindow.isZoomed` read **false**
+   right after a green-button "maximize", so the state was never persisted. Switched detection to a
+   geometry check (frame ≈ `visibleFrame`).
+3. *Correction (the actual macOS behavior):* the geometry check is **wrong** — it would flag a
+   window the user manually resized to fill the screen as "maximized." More fundamentally, the
+   green button (clicked with no tiling option from its hover menu) does **not** zoom; it enters
+   **macOS Full Screen** — the menu bar auto-hides and the window moves to its own Space. That is a
+   distinct, *deterministic* state: `NSWindow.styleMask.contains(.fullScreen)` plus the
+   `windowWillEnter/DidEnter/WillExit/DidExitFullScreen` delegate callbacks. (The green-button hover
+   menu's tiling options — quadrants/halves/thirds, "Maximize and center" — leave the menu bar/Space
+   alone and are ordinary frame changes; only true Full Screen is the dimensionless binary.)
+
+**Fix (2026-06-29):**
+- `ProjectWindowFrameStore` now persists a **`fullScreen`** flag via
+  `window.styleMask.contains(.fullScreen)` (key `scrivi.projectWindow.<id>.fullScreen`), and writes
+  the windowed frame **only while not full screen** — so quitting in full screen preserves the
+  pre-full-screen size/position.
+- `ProjectWindowController` restores via `window.toggleFullScreen(nil)` in `showAndFocus()` (real
+  full-screen transition), and uses the full-screen delegate callbacks
+  (`windowDidEnter/DidExitFullScreen`) to persist the flag, with an `isTransitioningFullScreen`
+  guard so the transient resize doesn't overwrite the windowed frame.
+- Diagnostic logging added (`init … savedFullScreen=…`, `restore-fullscreen requested`,
+  `didEnter/ExitFullScreen`, `windowWillClose … fullScreen=…`).
+
+**Verification needed (USER, macOS):**
+1. Open a project; click the green button so it enters Full Screen (menu bar hides, own Space). ⌘Q.
+2. Relaunch → window returns **genuinely in Full Screen** (not just screen-filling). Log:
+   `init … savedFullScreen=true`.
+3. Exit Full Screen (Ctrl-⌘-F or the green button) → window returns to its **pre-full-screen** size/position.
+4. **Regression guard:** manually resize a window to fill the screen (NOT full screen — menu bar
+   stays), quit, relaunch → it restores at that manual size and is **not** treated as full screen.
+
+**Impact:** Cosmetic/behavioral nit; does not affect windowed size/position restore (I-0051, Verified).
+
+---
+
+## I-0056: macOS File ▸ Open Project panel won't let you select the `.scrivi` package
+
+**Status:** ✅ Resolved - Verified (2026-06-29, user-confirmed on macOS — File ▸ Open Project selects `.scrivi`, matching the Welcome screen)
+**Platform:** macOS
+**Component:** `AppEnvironment.swift` (`presentOpenProjectPanel`)
+**Severity:** Medium (no way to open an existing project from the menu when no project is open / via File ▸ Open)
+**Sprint:** SP-046
+**Epic:** EP-012 follow-up (the menu File ▸ Open path) / per-window model
+**Related:** Welcome screen open path (`LandingView` `.fileImporter`) — the inconsistent counterpart
+**Date Identified:** 2026-06-29
+**Date Implemented:** 2026-06-29
+**Date Verified:** 2026-06-29
+
+**Description:**
+The macOS **File ▸ Open Project…** menu command opens an `NSOpenPanel` that **does not allow selecting
+the `.scrivi` project folder itself** — the panel traverses *into* the `.scrivi` package instead of
+treating it as a selectable item, so the user cannot actually pick a project. This is inconsistent
+with the **Welcome screen's** open button, which uses a `.fileImporter` that correctly presents
+`.scrivi` as one selectable item.
+
+**Expected Behavior:**
+File ▸ Open Project lets the user select a `.scrivi` project as a single item — the same selection
+behavior as the Welcome screen.
+
+**Actual Behavior:**
+The panel set `canChooseFiles = false`, `canChooseDirectories = true`, and **no `allowedContentTypes`**.
+Because `.scrivi` is registered as a package UTI (`com.caposoft.scrivi.project`), the panel showed it
+as an opaque package and, with files not choosable, it could not be selected — only navigated into.
+
+**Steps to Reproduce:**
+1. With a project open (or from any state where the menu bar is available), choose File ▸ Open Project…
+2. Navigate to a `.scrivi` project folder.
+3. The panel won't let you select it (it drills into the package); only plain folders are selectable.
+
+**Root Cause:**
+`NSOpenPanel` defaulted to treating the registered `.scrivi` package as opaque, with `canChooseFiles`
+off and no `allowedContentTypes`, so the package was neither selectable as a file nor as a folder.
+
+**Resolution (2026-06-29 — Implemented, Not Verified):**
+`presentOpenProjectPanel` now configures the panel to match the Welcome screen's `.fileImporter`:
+- `allowedContentTypes = [UTType("com.caposoft.scrivi.project") ?? .package]`
+- `canChooseFiles = true`, `canChooseDirectories = true` (folder fallback if the UTI registration is missing)
+- `treatsFilePackagesAsDirectories = false` so the `.scrivi` package is chosen as a single unit.
+Added `import UniformTypeIdentifiers` (macOS-guarded).
+
+**Verification needed (macOS):**
+1. File ▸ Open Project… → navigate to a `.scrivi` project → it is **selectable as one item**; choosing it opens the project.
+2. The behavior matches the Welcome screen's open button.
+3. A plain (non-`.scrivi`) folder is not offered as a valid project (or is handled gracefully).
+
+---
+
+*Last Updated: 2026-06-29 (I-0055 and I-0056 both Resolved - Verified on macOS: a project quit/closed in Full Screen reopens in Full Screen; File ▸ Open Project selects the .scrivi package, matching the Welcome screen. Investigation-only debug logs removed. SP-046's only remaining active Issue is I-0053.)*

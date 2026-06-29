@@ -14,8 +14,14 @@ struct SceneNavigatorView: View {
     var env: AppEnvironment
     var session: ProjectSession
     var prefs: ProjectPreferences
-    var onNavigate: (String) -> Void   // sceneID — tap-to-navigate
+    // macOS: tap-to-navigate within the continuous manuscript. Unused on iOS, where the List
+    // selection binding (`selection`) is the navigation source of truth so NavigationSplitView
+    // can drive the detail column. Defaults to a no-op so iOS call sites can omit it.
+    var onNavigate: (String) -> Void = { _ in }
     var onTakeFocus: () -> Void        // called after delete to transfer first-responder
+    // iOS Master/Detail selection (bare sceneID). When provided, the List selection binds to it
+    // so master and detail stay in sync and the compact-width detail push is selection-driven.
+    var selection: Binding<String?>? = nil
 
     // Rename sheet state
     @State private var renameTarget: RenameTarget? = nil
@@ -47,8 +53,28 @@ struct SceneNavigatorView: View {
             .padding(.vertical, 10)
     }
 
+    // List selection bound to rowID ("scene-<id>"). On iOS this maps to/from the parent's bare
+    // sceneID `selection` so the List drives Master/Detail; on macOS it tracks viewportSceneID
+    // for highlight only (navigation is via tap there).
+    private var listSelection: Binding<String?> {
+        guard let selection else { return $highlightedRowID }
+        return Binding<String?>(
+            get: {
+                guard let id = selection.wrappedValue else { return nil }
+                return "scene-" + id
+            },
+            set: { (newRowID: String?) in
+                guard let rowID = newRowID, rowID.hasPrefix("scene-") else {
+                    selection.wrappedValue = nil
+                    return
+                }
+                selection.wrappedValue = String(rowID.dropFirst("scene-".count))
+            }
+        )
+    }
+
     private var navigatorList: some View {
-        List(selection: $highlightedRowID) {
+        List(selection: listSelection) {
             ForEach(flatRows, id: \.rowID) { row in
                 switch row {
                 case .chapterHeader(let group):
@@ -65,8 +91,17 @@ struct SceneNavigatorView: View {
         .listStyle(.inset)
         .frame(minWidth: 180, idealWidth: 220, maxWidth: 280)
         .onChange(of: loader.viewportSceneID) { _, sceneID in
-            // Sync highlight to viewport — never triggers navigation.
-            highlightedRowID = sceneID.map { "scene-\($0)" }
+            // Sync highlight to viewport as the manuscript scrolls.
+            if let selection {
+                // iOS: reflect the scrolled-to scene in the selection (and thus the highlight)
+                // without re-triggering a scroll. Only update when it actually differs.
+                if let sceneID, selection.wrappedValue != sceneID {
+                    selection.wrappedValue = sceneID
+                }
+            } else {
+                // macOS: highlight only — never triggers navigation.
+                highlightedRowID = sceneID.map { "scene-\($0)" }
+            }
         }
         // MARK: Rename sheet
         .sheet(item: $renameTarget) { target in
@@ -146,7 +181,11 @@ struct SceneNavigatorView: View {
         NavigatorSceneRow(title: entry.title, isActive: isActive)
             .tag("scene-\(entry.sceneID)")
             .listRowBackground(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
+            // macOS navigates via explicit tap; iOS navigates via the List selection binding
+            // (a tap gesture here would swallow row selection), so only attach it off-iOS.
+            #if !os(iOS)
             .onTapGesture { navigate(to: entry.sceneID) }
+            #endif
             .contextMenu {
                 Button("Rename") { renameTarget = .scene(entry) }
                 Divider()

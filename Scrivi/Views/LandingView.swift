@@ -75,11 +75,26 @@ struct LandingView: View {
                 env.requestNewProject = false
             }
         }
+        #if !os(macOS)
+        // File ▸ Open Project… (iPad menu) sets this; raise the importer and clear the request.
+        .onChange(of: env.requestOpenImporter) { _, requested in
+            if requested {
+                showOpenImporter = true
+                env.requestOpenImporter = false
+            }
+        }
+        #endif
         .onAppear {
             if env.requestNewProject {
                 showNewProjectSheet = true
                 env.requestNewProject = false
             }
+            #if !os(macOS)
+            if env.requestOpenImporter {
+                showOpenImporter = true
+                env.requestOpenImporter = false
+            }
+            #endif
         }
     }
 

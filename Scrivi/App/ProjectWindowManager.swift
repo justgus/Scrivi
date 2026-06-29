@@ -105,11 +105,16 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
         super.init()
         window.delegate = self
 
-        // Re-apply the saved zoomed state after the window exists.
-        if ProjectWindowFrameStore.savedZoomed(projectID: projectID), !window.isZoomed {
-            window.zoom(nil)
-        }
+        // The saved windowed frame is applied above (setFrame) and is the size the window returns to
+        // when it leaves full screen. If the project was last quit in macOS Full Screen, restore
+        // that state after the window is shown (showAndFocus) via the proper toggleFullScreen API —
+        // NOT a geometry hack (a manually screen-sized window is NOT full screen) and NOT
+        // window.zoom(nil) (unreliable). I-0055.
+        restoreFullScreenOnShow = ProjectWindowFrameStore.savedFullScreen(projectID: projectID)
     }
+
+    // Set in init from the persisted per-project full-screen flag; consumed once in showAndFocus().
+    private var restoreFullScreenOnShow = false
 
     // Shared cascade anchor so successive first-open windows step down/right instead of
     // landing on the same centered point. AppKit advances and returns the next point.
@@ -118,6 +123,18 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
     func showAndFocus() {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+
+        // Restore macOS Full Screen now that the window is on screen. toggleFullScreen drives the
+        // real full-screen transition (menu-bar hide, own Space) and fires windowWillExitFullScreen
+        // on the way back out, so the saved windowed frame (applied in init) is the size the window
+        // returns to. The windowDidEnterFullScreen delegate persists the flag; the windowed frame is
+        // never overwritten while full screen.
+        if restoreFullScreenOnShow {
+            restoreFullScreenOnShow = false
+            if !window.styleMask.contains(.fullScreen) {
+                window.toggleFullScreen(nil)
+            }
+        }
     }
 
     func close() {
@@ -141,8 +158,37 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
         ProjectWindowFrameStore.save(window: window, projectID: projectID)
     }
 
-    // Record zoom (maximized) state changes; save(window:) keys on isZoomed.
-    func windowDidChangeOcclusionState(_ notification: Notification) {
+    // Live drag-resize and tiling (quadrant/half/third) end here; persist the new windowed frame.
+    // Suppressed during a full-screen transition so the transient full-screen resize does not
+    // overwrite the saved windowed frame (save() also guards via styleMask, this avoids the churn).
+    func windowDidResize(_ notification: Notification) {
+        guard !isTransitioningFullScreen else { return }
+        ProjectWindowFrameStore.save(window: window, projectID: projectID)
+    }
+
+    // MARK: Full-screen transitions (the green-button "maximize" path)
+
+    // True from willEnter/willExit until the matching did-callback, so windowDidResize does not
+    // persist the transient full-screen geometry as the windowed frame.
+    private var isTransitioningFullScreen = false
+
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        isTransitioningFullScreen = true
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        isTransitioningFullScreen = false
+        // Persist the full-screen flag; save() leaves the windowed frame untouched while full screen.
+        ProjectWindowFrameStore.save(window: window, projectID: projectID)
+    }
+
+    func windowWillExitFullScreen(_ notification: Notification) {
+        isTransitioningFullScreen = true
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        isTransitioningFullScreen = false
+        // Back to windowed: record fullScreen=false and the restored windowed frame.
         ProjectWindowFrameStore.save(window: window, projectID: projectID)
     }
 

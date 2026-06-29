@@ -26,8 +26,11 @@ windowing work.
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| I-0051 | Restored project windows don't remember per-window size/position (stack at default) | 🟢 Resolved - Not Verified |
-| I-0052 | iOS target fails to build — macOS-only scene/commands in `ScriviApp` | 🟢 Resolved - Not Verified |
+| I-0051 | Restored project windows don't remember per-window size/position (stack at default) | ✅ Resolved - Verified (2026-06-29) |
+| I-0052 | iOS target fails to build — macOS-only scene/commands in `ScriviApp` | ✅ Resolved - Verified (2026-06-26) |
+| I-0053 | iOS `ScriviEngine` stubbed — ScriviCore not built/linked for iOS | ✅ Resolved - Verified (2026-06-29) |
+| I-0055 | Restored full-screen project window doesn't return to Full Screen on relaunch (carved out of I-0051) | ✅ Resolved - Verified (2026-06-29) |
+| I-0056 | macOS File ▸ Open Project panel won't let you select the `.scrivi` package | ✅ Resolved - Verified (2026-06-29) |
 
 ### Acceptance Criteria
 
@@ -35,7 +38,7 @@ windowing work.
 - [ ] Extension reads project content via ScriviCore (no Swift JSON parsing of `.scrivi`).
 - [ ] OS indexes `.scrivi` contents with Scrivi not running; results appear in Spotlight.
 - [ ] Extension respects the app-extension sandbox; indexing completes within reasonable time on a large fixture project.
-- [ ] **(I-0051)** Each project window reopens at the same size/position (and zoom state) it had when last quit/closed; two side-by-side projects return side-by-side, not stacked at default.
+- [x] **(I-0051)** Each project window reopens at the same size/position it had when last quit/closed; two side-by-side projects return side-by-side, not stacked at default. *(Verified 2026-06-29. The zoom/maximized-state restore carved out to **I-0055** — Open: a restored-maximized window fills the screen but is not truly zoomed.)*
 
 ### Sprint Notes
 

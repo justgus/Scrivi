@@ -14,12 +14,11 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **23 backlog Tasks**
+Currently: **22 backlog Tasks**
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
-| T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🔵 Backlog |
 | T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | EP-016 | 🔵 Backlog |
 | T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | EP-016 | 🔵 Backlog |
 | T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | EP-016 | 🔵 Backlog |
@@ -70,7 +69,7 @@ See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **75 verified Tasks**
+Currently: **76 verified Tasks**
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -169,6 +168,7 @@ Currently: **75 verified Tasks**
 | T-0120 | Remove toolbar strip and add Project menu (Close Project, Project Settings) | [Task-verified-0120.md](Verified/Task-verified-0120.md) | ✅ Verified |
 | T-0121 | Add Edit menu with standard responder-chain commands and keyboard shortcuts | [Task-verified-0121.md](Verified/Task-verified-0121.md) | ✅ Verified |
 | T-0122 | Add About menu with About panel (name, version, build) and User Manual placeholder | [Task-verified-0122.md](Verified/Task-verified-0122.md) | ✅ Verified |
+| T-0123 | iPhone affordance for Close Project / Project Settings (iOS Master/Detail rework; AC5) | [Task-verified-0123.md](Verified/Task-verified-0123.md) | ✅ Verified |
 | T-0124 | EP-012 verification | [Task-verified-0124.md](Verified/Task-verified-0124.md) | ✅ Verified |
 | T-0128 | SceneInspectorView skeleton — panel, tab bar structure | [Task-verified-0128.md](Verified/Task-verified-0128.md) | ✅ Verified |
 | T-0129 | Scene Entities stub tab — empty state, placeholder Add Entity button | [Task-verified-0129.md](Verified/Task-verified-0129.md) | ✅ Verified |
@@ -209,7 +209,7 @@ Currently: **2 closed Tasks**
 ## Statistics
 
 - **Total Tasks:** 183
-- **Backlog:** 11 🔵 (T-0118, T-0123, plus EP-017 SP-046/SP-047 tasks T-0185–T-0190)
+- **Backlog:** 10 🔵 (T-0118, plus EP-017 SP-046/SP-047 tasks T-0185–T-0190)
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
 - **Active:** 1 🟡 (SP-045 task T-0184; T-0180–T-0183 verified)
 - **Unverified:** 0
@@ -221,4 +221,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-06-25 (EP-018 closed — T-0191–T-0196 verified; T-0196 archived. SP-045 closed — T-0180–T-0183 verified, T-0184 implemented on the per-window model (live Spotlight-tap verify → T-0189/SP-047). SP-046 next.)*
+*Last Updated: 2026-06-29 (T-0123 Verified & archived to Verified/Task-verified-0123.md — iOS Master/Detail rework satisfied EP-012 AC5; removed from backlog. EP-012 closed; I-0054 resolved in the same work.)*

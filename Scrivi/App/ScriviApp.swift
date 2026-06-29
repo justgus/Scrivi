@@ -82,6 +82,10 @@ struct ScriviApp: App {
                 .modifier(AppEventsModifier(env: env))
                 .sheet(isPresented: $showAbout) { AboutView() }
         }
+        // iPad hardware-keyboard menu bar. Deconflicted against iOS's auto-synthesized menus
+        // (no ⌘, no second "View" menu, ⇧⌘ view-toggle shortcuts) — see iosCommands. The
+        // in-view nav-bar ••• menu remains the primary surface and the only one on iPhone.
+        .commands { iosCommands }
         #endif
     }
 
@@ -175,6 +179,70 @@ struct ScriviApp: App {
         }
     }
     #endif
+
+    // MARK: — iOS/iPadOS menu commands (hardware-keyboard menu bar on iPad)
+
+    // iPadOS surfaces a menu bar when a hardware keyboard is attached. Without an explicit
+    // .commands block iPad shows only the generic system menus (empty File, no app actions).
+    //
+    // Deconflicted against the iOS-synthesized menu bar (the earlier version collided — see the
+    // note at the .commands call site):
+    //   • No ⌘, on Project Settings — iOS reserves ⌘, for the system "Settings…" item.
+    //   • No CommandMenu("View") — iOS already synthesizes a "View" menu; adding our own
+    //     duplicated it. The view toggles live in the Project menu instead.
+    //   • View toggles use ⇧⌘I / ⇧⌘T (the macOS app uses ⌥⌘I / ⌥⌘T, which collided on iOS).
+    // Actions target the single active session.
+    @CommandsBuilder
+    private var iosCommands: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Project…") {
+                env.presentNewProject()
+            }
+            .keyboardShortcut("n", modifiers: .command)
+
+            Button("Open Project…") {
+                env.presentOpenImporter()
+            }
+            .keyboardShortcut("o", modifiers: .command)
+
+            Divider()
+
+            Button("Close Project") {
+                if let pid = env.activeSession?.openProjectResult?.projectID {
+                    env.closeProject(projectID: pid)
+                }
+            }
+            .keyboardShortcut("w", modifiers: .command)
+            .disabled(env.activeSession == nil)
+        }
+
+        CommandMenu("Project") {
+            Button("Project Settings…") {
+                env.activeSession?.showProjectSettings = true
+            }
+            .disabled(env.activeSession == nil)
+
+            Divider()
+
+            if let session = env.activeSession {
+                Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
+                    .keyboardShortcut("i", modifiers: [.command, .shift])
+                Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
+            } else {
+                Toggle("Show Scene Inspector", isOn: .constant(false))
+                    .keyboardShortcut("i", modifiers: [.command, .shift])
+                    .disabled(true)
+                Toggle("Show Timeline", isOn: .constant(false))
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
+                    .disabled(true)
+            }
+        }
+
+        CommandGroup(replacing: .appInfo) {
+            Button("About Scrivi") { showAbout = true }
+        }
+    }
 }
 
 // MARK: — App-level event wiring shared by every scene

@@ -11,7 +11,6 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
-| T-0123 | iPhone conditional — restore toolbar buttons on compact/phone idiom | EP-012 | 🟡 Implemented - Not Verified (iPhone run via DeviceHub; iPad gap → I-0054) |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
 | T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | 🟢 Implemented - Not Verified (core verified via T-0196; Spotlight-continuation path hardened, full tap verify → T-0189) |
 | T-0185 | New Spotlight importer app-extension target + pbxproj wiring | EP-017 (SP-046) | 🔵 Backlog |
@@ -204,95 +203,4 @@ new model: resolve projectID → registry → focus existing window or `openWind
 the per-window model from `Scrivi_Project_Creation_and_Open_Flow_v0_2.md`. Run EP-018 R1–R5
 verification; unblock EP-017 AC5.
 
----
-
-## T-0123: iPhone Conditional — Restore Toolbar Buttons on Phone Idiom
-
-**Status:** 🟡 Implemented - Not Verified
-**Component:** `EditorView.swift`
-**Priority:** Medium
-**Date Requested:** 2026-06-09
-**Date Implemented:** 2026-06-09
-**Date Verified:** —
-**Sprint Assigned:** SP-035 (returned to backlog before verification)
-**Epic:** EP-012
-
-**Rationale:**
-EP-012 removed the custom toolbar strip from `ManuscriptEditorView` and replaced it with macOS/iPadOS menu bar commands. On iPhone, no menu bar is available, so the Close Project and Project Settings buttons must remain as a visible toolbar in the view. The implementation uses a platform conditional so the toolbar is only compiled and shown on the phone idiom.
-
-**Current Behavior (pre-implementation):**
-The toolbar strip was removed entirely for all platforms, leaving iPhone with no way to access Project Settings or Close Project.
-
-**Desired Behavior:**
-On iPhone (`UIDevice.current.userInterfaceIdiom == .phone`), a toolbar with Project Settings and Close Project buttons appears above the manuscript surface. On macOS and iPadOS, no toolbar is shown — those platforms use the menu bar.
-
-**Requirements:**
-1. `#if os(iOS)` conditional compiles the phone toolbar only on iOS builds
-2. `UIDevice.current.userInterfaceIdiom == .phone` runtime check gates the toolbar to phone only — iPadOS does not show it
-3. Toolbar contains: Project Settings button (triggers `env.showProjectSettings = true`) and Close Project button (calls `env.closeProject()`)
-4. Toolbar matches the visual style of the removed toolbar (`.borderless`, `.callout` font, trailing-aligned, standard padding)
-5. A `Divider()` separates the toolbar from the manuscript surface
-
-**Design Approach:**
-Conditional compilation via `#if os(iOS)` wraps a `phoneToolbar` computed property in `ManuscriptEditorView`. The property uses a runtime `UIDevice` check so it does not appear on iPadOS. Placed at the top of the detail `VStack`, above `ManuscriptTextView`.
-
-**Components Affected:**
-- `Scrivi/Views/EditorView.swift` — `phoneToolbar` computed property added under `#if os(iOS)`
-
-**Implementation Details:**
-Added `#if os(iOS)` block inside the detail `VStack` in `ManuscriptEditorView.body`:
-
-```swift
-#if os(iOS)
-if UIDevice.current.userInterfaceIdiom == .phone {
-    phoneToolbar
-    Divider()
-}
-#endif
-```
-
-Added `phoneToolbar` computed property under `#if os(iOS)`:
-
-```swift
-#if os(iOS)
-private var phoneToolbar: some View {
-    HStack {
-        Spacer()
-        Button("Project Settings") { env.showProjectSettings = true }
-            .buttonStyle(.borderless)
-            .font(.callout)
-        Button("Close Project") { env.closeProject() }
-            .buttonStyle(.borderless)
-            .font(.callout)
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-}
-#endif
-```
-
-**Test Steps:**
-1. Build for **iPhone** simulator (the toolbar SHOULD appear on the phone idiom)
-2. Open a project — confirm Project Settings and Close Project buttons appear above the manuscript
-3. Tap Project Settings — confirm settings sheet opens
-4. Tap Close Project — confirm returns to Landing View
-5. Build for iPad simulator — confirm no toolbar appears here (**but see I-0054** — iPad currently has
-   neither a toolbar nor a menu bar, so these actions are unreachable on iPad; that gap is tracked
-   separately and is NOT what T-0123 verifies)
-6. Build for macOS — confirm no toolbar appears (menu bar only)
-
-**Environment note — where the iOS simulators live (2026-06-28):**
-The iPhone/iPad simulators no longer launch from the old standalone Simulator-runtimes path —
-**they now live inside the Xcode DeviceHub**. To run T-0123's iPhone verification, boot the iPhone
-27.0 simulator from the **DeviceHub** (not the legacy Simulator app entry). Recorded here so future
-runs of this verification don't go looking in the wrong place.
-
-**Notes:**
-Returned to backlog before iPhone testing was available. macOS and iPadOS targets verified under T-0120
-(toolbar correctly absent on those — they used the menu bar). iPhone verification requires an iPhone
-build target/simulator (now via the DeviceHub, see above). The iPad coverage gap that EP-012's
-menu-bar assumption created is filed as **I-0054**.
-
----
-
-*Last Updated: 2026-06-28 (T-0123 — added DeviceHub note for the iPhone-simulator verification run, and cross-referenced I-0054 for the iPad reachability gap surfaced while verifying it.)*
+*Last Updated: 2026-06-29 (T-0123 removed from backlog — Verified and archived to Verified/Task-verified-0123.md; EP-012 closed.)*

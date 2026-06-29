@@ -39,7 +39,7 @@ Currently: **18 Epics** | Next available: **EP-019**
 | EP-009 | Writing Surface and Scene Navigator | ✅ Closed | 2026-06-01 | 2026-06-03 |
 | EP-010 | Manuscript Structure Editing — Delete, Reorder, and Title | ✅ Closed | 2026-06-04 | 2026-06-06 |
 | EP-011 | Writing Surface Behavior — Scroll, Cursor, and Focus | ✅ Closed | 2026-06-08 | 2026-06-08 |
-| EP-012 | Menu Bar and Toolbar Replacement | 🔴 Deferred (AC 5 pending T-0123) | 2026-06-09 | — |
+| EP-012 | Menu Bar and Toolbar Replacement | ✅ Closed | 2026-06-09 | 2026-06-29 |
 | EP-013 | Scene Navigator Swipe Gesture | ✅ Closed (no delivery) | 2026-06-09 | 2026-06-10 |
 | EP-014 | Scene Inspector Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-015 | Real-Time Timeline Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
@@ -50,13 +50,13 @@ Currently: **18 Epics** | Next available: **EP-019**
 ## Statistics
 
 - **Total Epics:** 18
-- **Closed:** 16 ✅
+- **Closed:** 17 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 1 🟡 (EP-017)
 - **Draft:** 0 🔵
-- **Deferred:** 1 🔴 (EP-012)
+- **Deferred:** 0 🔴
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-25 (EP-018 closed with user approval — all R1–R5 + AC-build verified; AC5 of EP-017 met via T-0196. EP-017 active.)*
+*Last Updated: 2026-06-29 (EP-012 closed with user approval — AC5 met via the verified T-0123 iOS Master/Detail rework; I-0054 resolved in the same work. No Epics deferred. EP-017 remains the sole active Epic.)*
