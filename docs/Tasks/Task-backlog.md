@@ -13,10 +13,10 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
 | T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | 🟢 Implemented - Not Verified (core verified via T-0196; Spotlight-continuation path hardened, full tap verify → T-0189) |
-| T-0185 | New Spotlight importer app-extension target + pbxproj wiring | EP-017 (SP-046) | 🔵 Backlog |
-| T-0186 | Link ScriviCore (or facade) into the extension (Option A build graph) | EP-017 (SP-046) | 🔵 Backlog |
-| T-0187 | Importer emits Spotlight attributes from facade JSON | EP-017 (SP-046) | 🔵 Backlog |
-| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox/perf pass | EP-017 (SP-046) | 🔵 Backlog |
+| T-0185 | New Spotlight importer app-extension target (Xcode-authored) | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
+| T-0186 | Link ScriviCore into the extension (Option A build graph) | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
+| T-0187 | Importer emits Spotlight attributes from facade JSON | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
+| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
 | T-0189 | End-to-end verification (app-closed search, deep-link, donations succeed) | EP-017 (SP-047) | 🔵 Backlog |
 | T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | EP-017 (SP-047) | 🔵 Backlog |
 | T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3) | EP-018 (SP-048) | ✅ Done (2026-06-24) |
@@ -123,23 +123,37 @@ was already verified via EP-018 / T-0196. The remaining Spotlight-result *contin
 `scrivi://` URL scheme remains the fully-verified route. Full end-to-end Spotlight-tap verification is
 T-0189 (SP-047).
 
-### SP-046 — Layer 2: on-disk `.scrivi` importer extension
+### SP-046 — Layer 2: on-disk `.scrivi` importer extension — Implemented, Not Verified (2026-06-30)
 
-**T-0185 — Importer extension target + pbxproj.** New Spotlight importer app-extension target in
-`Scrivi.xcodeproj`. Per CLAUDE.md, the target and all its source files are added to
-`project.pbxproj` in the same step as creating them, before building.
+All four implemented; macOS `ScriviApp` scheme builds clean and the OS registered the Spotlight
+extension on install. Awaiting live verification (Spotlight finds `.scrivi` content with the app
+closed).
 
-**T-0186 — Link ScriviCore into the extension (Option A).** Make ScriviCore (or its read-only
-facade) buildable/linkable into the extension target under the app-extension sandbox. Depends on
-the T-0176 build-graph decision.
+**T-0185 — Importer extension target.** ✅ New macOS app-extension target **ScriviSpotlightImporter**
+(bundle `com.caposoft.scrivi.ScriviSpotlightImporter`), created via Xcode's **Spotlight Importer**
+template (`CSImportExtension`) and embedded in `ScriviApp`. Authored by Xcode, so the target +
+`ImportExtension.swift` + `Info.plist` are managed in `project.pbxproj` by Xcode (no hand-edit; the
+CLAUDE.md pbxproj rule applies to *hand-created* files, none here).
 
-**T-0187 — Emit attributes from facade JSON.** Importer calls `extractSearchableText` for the
-package on disk and maps the JSON to `CSSearchableItemAttributeSet` values. Single indexing
-truth shared with Layer 1.
+**T-0186 — Link ScriviCore (Option A).** ✅ Mirrors the app's recipe via Build Settings on the
+extension: own `Build ScriviCore (CMake)` run-script phase → `build/ScriviCore/libScriviCore.a`;
+`LIBRARY_SEARCH_PATHS=$(SRCROOT)/build/ScriviCore`, `OTHER_LDFLAGS=-lScriviCore -lc++`,
+`SWIFT_INCLUDE_PATHS=$(SRCROOT)/ScriviCore/include/scrivi` (so `import ScriviCore` resolves the C
+module). **Required `ENABLE_USER_SCRIPT_SANDBOXING=NO`** (matching the app) — the default `YES`
+sandboxed the run-script and made CMake fail to read the root `CMakeLists.txt`.
 
-**T-0188 — UTI handling + sandbox/perf pass.** Extension declares it handles
-`com.caposoft.scrivi.project`; verify it runs within the app-extension sandbox and indexes a
-large fixture project within reasonable time/memory.
+**T-0187 — Emit attributes from facade JSON.** ✅ `ImportExtension.update(_:forFileAt:)` calls
+`scrivi_extract_searchable_text(path)` (same facade as Layer 1; `scrivi_free`'d), decodes the
+`scrivi.searchableContent.v1` envelope, and emits one `CSSearchableItemAttributeSet`:
+`displayName` = project title; `textContent` = every record's title + description folded together
+(so any scene/object content surfaces the package); `keywords` = deduped union. **Note:**
+`CSImportExtension` indexes the package as a **single** item, so per-scene deep-linking stays Layer 1's
+job (the in-app `CSSearchableIndex` donor) — this on-disk layer makes content findable, by design.
+
+**T-0188 — UTI handling + sandbox.** ✅ `Info.plist` `CSSupportedContentTypes` =
+`com.caposoft.scrivi.project` (the app exports this UTI), `CSExtensionLabel` = "Scrivi Project
+Importer". Extension runs in the App Sandbox with **User Selected File = Read Only**. Perf pass on a
+large fixture deferred to verification.
 
 ### SP-047 — Verification, cross-platform assessment, Epic close
 

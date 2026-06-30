@@ -17,10 +17,10 @@ windowing work.
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0185 | New Spotlight importer app-extension target + pbxproj wiring | 🔵 Backlog |
-| T-0186 | Link ScriviCore (or facade) into the extension (Option A build graph) | 🔵 Backlog |
-| T-0187 | Importer emits Spotlight attributes from facade JSON | 🔵 Backlog |
-| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox/perf pass | 🔵 Backlog |
+| T-0185 | New Spotlight importer app-extension target (Xcode-authored) | 🟢 Implemented - Not Verified |
+| T-0186 | Link ScriviCore into the extension (Option A build graph) | 🟢 Implemented - Not Verified |
+| T-0187 | Importer emits Spotlight attributes from facade JSON | 🟢 Implemented - Not Verified |
+| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | 🟢 Implemented - Not Verified |
 
 ### Issues
 
