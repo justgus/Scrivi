@@ -13,7 +13,7 @@ This is the main index for all Scrivi Issues. Issues track bugs and unintended s
 
 ## Active Issues
 
-Currently: **0 active issues** (I-0051/I-0052/I-0053/I-0054/I-0055/I-0056 ✅ Verified, awaiting batch archive)
+Currently: **0 active issues** (I-0051/I-0052/I-0053/I-0054/I-0055/I-0056/I-0057 ✅ Verified, awaiting batch archive).
 
 _No Issues are currently open or awaiting verification._
 
@@ -53,16 +53,16 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 56
-- **Verified:** 52 ✅ (I-0001–I-0015, I-0020–I-0056 except backlog/superseded; I-0016 superseded; I-0017–I-0019 backlog)
-- **Active:** 0 ⚠️
+- **Total Issues:** 57
+- **Verified:** 53 ✅ (I-0001–I-0015, I-0020–I-0057 except backlog/superseded; I-0016 superseded; I-0017–I-0019 backlog)
+- **Active:** 0
 - **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0057
+- **Next available:** I-0058
 
 ---
 
-*Last Updated: 2026-06-29 (I-0053 Verified on iOS — `[Scrivi] Identity:` logged and projects created/opened on iPhone 17 Pro + iPad Pro / iOS 27.0, confirming the real ScriviCore backend is linked. No active Issues remain. I-0051–I-0056 stay in Issue-active.md until the I-0051–I-0060 batch is archived.)*
+*Last Updated: 2026-07-01 (I-0057 Verified — Spotlight Layer 2 on-disk `CSImportExtension` descoped to the in-app `CSSearchableIndex` donor (Option B); appex target/source/scheme removed, macOS app builds & codesigns clean without it. No active Issues remain.)*
 
 
 [1]:	./ER-Documentation.md

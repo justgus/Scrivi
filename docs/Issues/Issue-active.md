@@ -5,7 +5,128 @@ table and stay in this file as full entries only until the next batch archive (I
 
 No Issues are currently awaiting verification.
 
-**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29) and I-0052 (Verified 2026-06-26) — full entries retained below until the I-0051–I-0060 batch is archived.
+**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), and I-0057 (Verified 2026-07-01) — full entries retained below until the I-0051–I-0060 batch is archived.
+
+---
+
+## I-0057: Spotlight on-disk importer (`CSImportExtension`) never runs on macOS — Layer 2 descoped to the in-app `CSSearchableIndex` donor
+
+**Status:** ✅ Resolved - Verified (2026-07-01, user-approved: descope to Option B accepted; on-disk `CSImportExtension` removed and the macOS app builds/signs clean without it)
+**Platform:** macOS (Apple platforms generally; `CSImportExtension` is non-functional on macOS)
+**Component:** `ScriviSpotlightImporter/ImportExtension.swift` (extension, to be removed), `ScriviSpotlightImporter.appex` target, `Scrivi.xcodeproj/project.pbxproj`; unaffected survivor: `Scrivi/App/SpotlightDonor.swift` (Layer 1 in-app donor)
+**Severity:** High (the entire SP-046 deliverable — on-disk indexing — cannot work as built; the feature must be re-architected or descoped)
+**Sprint:** SP-046
+**Epic:** EP-017 (Spotlight) — this is the Layer 2 on-disk importer
+**Related:** SP-046 T-0185/T-0186/T-0187/T-0188 (all built against the non-functional API); Layer 1 in-app donor (`SpotlightDonor.swift`) is the adopted replacement
+**Date Identified:** 2026-07-01
+**Date Implemented (decision):** 2026-07-01
+
+**Description:**
+The SP-046 on-disk Spotlight importer is implemented as a modern `CSImportExtension`
+(`class ImportExtension: CSImportExtension`). The extension builds, codesigns cleanly, and is embedded
+in the app, but at invocation time the OS spawns the extension process and then immediately tears it
+down before it vends its XPC service — so `.scrivi` packages are never indexed on disk. Extensive
+diagnosis (below) shows this is **not** a bug in our code, our link, our signature, or our
+entitlements: **`CSImportExtension` is non-functional on macOS**, confirmed by Apple DTS, and this has
+not changed through macOS 26 Tahoe.
+
+**Expected Behavior:**
+The OS launches the importer extension to index a `.scrivi` package on disk even when Scrivi is not
+running; project/scene/object content becomes findable in Spotlight (SP-046 acceptance criteria).
+
+**Actual Behavior:**
+The extension process launches (observed pid) then dies before vending its XPC service. Host-side log:
+`apple-extension-service was invalidated: Connection init failed at lookup with error 3 - No such
+process`; `Unable to setup extension context - error: Couldn't communicate with a helper application.
+Code=4099`; `xpc_error=[3: No such process]`. Nothing is ever indexed. **No crash report is generated
+and the extension emits no log lines under its own process name** — because it is not crashing; the
+system never drives a `CSImportExtension` at all.
+
+**Steps to Reproduce:**
+1. Build & run `Scrivi.app` (macOS) with the embedded `ScriviSpotlightImporter.appex`.
+2. Trigger indexing of a `.scrivi` package (e.g. `mdimport -d3` the package, or let Spotlight scan).
+3. The extension process appears and dies; host log shows the XPC `error 3 / Code=4099` teardown; the
+   package is not indexed.
+
+**Impact:**
+- The SP-046 deliverable (on-disk indexing while Scrivi is not running) **cannot work as built** on macOS.
+- SP-046 tasks T-0185–T-0188 targeted a non-functional API; the extension target is dead weight.
+- Layer 1 (in-app `CSSearchableIndex` donor, `SpotlightDonor.swift`) is **unaffected** and remains the
+  supported path for making Scrivi content findable.
+
+**Root Cause Analysis:**
+The code uses the modern `CSImportExtension` API, delivered via ExtensionKit. Per Apple DTS engineer
+**Kevin Elliott**: *"CSImportExtension does not function on macOS and never has. Multiple bugs have
+been filed on both the extension point and the documentation, but until something changes in the
+system, the only option is to use the old MDImport API."* The macOS ExtensionKit host looks up /
+spawns the service but never actually drives a `CSImportExtension`, so the process is invalidated
+(`error 3 - No such process`). This is still the case on **macOS 26 Tahoe** (confirmed 2026-07-01);
+Tahoe's Spotlight overhaul did not restore the extension point. The (unreliable) lowercase-`CSSupportedContentTypes`
+workaround reported for macOS 15 does not apply here — our UTI `com.caposoft.scrivi.project` is already
+lowercase.
+
+**Diagnosis evidence (2026-07-01 — this is not our bug):**
+- **No crash report anywhere** (`~/Library/Logs/DiagnosticReports`, `/Library/…`, `Retired/`) — no
+  `.ips` for `ScriviSpotlightImporter`; and `log show --predicate 'process == "ScriviSpotlightImporter"'`
+  is empty. The process never emits a single line under its own identity → not a runtime crash, a
+  service-activation teardown.
+- **Binary is healthy:** `otool -L` on the embedded appex shows only system dylibs (`libc++`,
+  Foundation, libobjc, libSystem, CoreSpotlight, Swift runtime) plus the cleanly *statically*-linked
+  `libScriviCore.a` — no dyld/"Library not loaded" risk. Earlier hypothesis (unloadable static lib /
+  C++/Swift runtime miss) is **falsified**.
+- **Signature/entitlements are fine:** `codesign -vvv --deep --strict` → "valid on disk", satisfies its
+  Designated Requirement; hardened runtime on. Entitlements = app-sandbox + user-selected.read-only +
+  get-task-allow — the same `get-task-allow=true` the **host app** carries, and the host app runs; so
+  that is not the killer.
+- **Info.plist mismatch is secondary:** the built plist uses the legacy `NSExtension` /
+  `NSExtensionPointIdentifier = com.apple.spotlight.import` / `NSExtensionPrincipalClass` block while
+  the code is a modern ExtensionKit `CSImportExtension`. But per DTS this is moot — no plist shape
+  (`NSExtension` or `EXAppExtensionAttributes`) makes `CSImportExtension` run on macOS.
+
+**Resolution (2026-07-01 — Decision: Option B, adopted; implementation pending):**
+Descope Layer 2's on-disk `CSImportExtension`. Rely on the supported **Layer 1 in-app
+`CSSearchableIndex` donor** (`SpotlightDonor.swift`), which Scrivi already has and which uses a
+100%-supported API. Trade-off accepted: content is findable once the app has opened/edited a project
+(the donor runs in-app), but **not** while the app has never been opened. This is the pragmatic path
+given DTS calls the on-disk extension point non-functional.
+
+Rejected alternative (**Option A**): re-implement the on-disk importer as a legacy MDImporter
+(`CFPlugIn` / `.mdimporter`, e.g. via Quinn's `QSpotlightPlugIn` scaffolding) — the only Apple-supported
+on-disk path. Keeps the Option-A boundary (the `.mdimporter`'s `GetMetadataForFile` still calls
+`scrivi_extract_searchable_text`). Not chosen this round; may be revisited if true not-yet-opened
+on-disk indexing becomes a requirement.
+
+**Implementation (2026-07-01 — done):**
+1. **Removed the `ScriviSpotlightImporter.appex` target** and all 18 of its reference sites across every
+   `Scrivi.xcodeproj/project.pbxproj` section — PBXBuildFile, PBXContainerItemProxy, the app's "Embed
+   Foundation Extensions" PBXCopyFilesBuildPhase, PBXFileReference, both PBXFileSystemSynchronized*
+   sections, the target's Frameworks/Resources/Sources/CMake build phases, both PBXGroup children,
+   the PBXNativeTarget, the project `targets` list + `TargetAttributes`, the app target's embed-phase
+   and dependency refs, the PBXTargetDependency, both XCBuildConfigurations, and the XCConfigurationList.
+   `plutil -lint` OK; zero remaining `861474…`/appex/importer references.
+2. **Deleted `ScriviSpotlightImporter/`** (`ImportExtension.swift`, `Info.plist`) and the stale
+   `ScriviSpotlightImporter.xcscheme`.
+3. **In-app donor (`SpotlightDonor.swift`) survives** as the sole Spotlight path (Layer 1).
+4. SP-046 re-scoped and EP-017 AC6–AC8 struck (done in the same pass this Issue was logged).
+
+**Files Affected:**
+- `ScriviSpotlightImporter/ImportExtension.swift` + `ScriviSpotlightImporter/Info.plist` — deleted
+- `Scrivi.xcodeproj/project.pbxproj` — appex target + all membership removed
+- `Scrivi.xcodeproj/xcshareddata/xcschemes/ScriviSpotlightImporter.xcscheme` — deleted
+- `Scrivi/App/SpotlightDonor.swift` — unchanged; adopted Layer 1 path
+
+**Verification (2026-07-01 — Verified):**
+- `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build` → **BUILD SUCCEEDED**; app
+  codesigns cleanly.
+- Built `Scrivi.app` has **no `Contents/PlugIns`** (appex gone); `codesign --deep --strict` → valid,
+  satisfies its Designated Requirement.
+- Target list reduced to ScriviApp / -iOS / -visionOS / ScriviInteropTests.
+- **User-approved (2026-07-01):** Option-B descope accepted; proceed. (Live donor-indexed Spotlight
+  search remains exercisable via Layer 1 / T-0189 in SP-047 — not a gate on this descope Issue.)
+
+**References:**
+- Apple DTS thread — [macOS] CoreSpotlight importer using CSImportExtension: https://developer.apple.com/forums/thread/713953
+- CSImportExtension docs: https://developer.apple.com/documentation/corespotlight/csimportextension
 
 ---
 

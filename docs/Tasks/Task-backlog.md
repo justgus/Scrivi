@@ -13,12 +13,12 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
 | T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | 🟢 Implemented - Not Verified (core verified via T-0196; Spotlight-continuation path hardened, full tap verify → T-0189) |
-| T-0185 | New Spotlight importer app-extension target (Xcode-authored) | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
-| T-0186 | Link ScriviCore into the extension (Option A build graph) | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
-| T-0187 | Importer emits Spotlight attributes from facade JSON | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
-| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | EP-017 (SP-046) | 🟢 Implemented - Not Verified |
-| T-0189 | End-to-end verification (app-closed search, deep-link, donations succeed) | EP-017 (SP-047) | 🔵 Backlog |
-| T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | EP-017 (SP-047) | 🔵 Backlog |
+| T-0185 | New Spotlight importer app-extension target (Xcode-authored) | EP-017 (SP-046) | ⚪ Descoped (I-0057 — `CSImportExtension` non-functional on macOS) |
+| T-0186 | Link ScriviCore into the extension (Option A build graph) | EP-017 (SP-046) | ⚪ Descoped (I-0057) |
+| T-0187 | Importer emits Spotlight attributes from facade JSON | EP-017 (SP-046) | ⚪ Descoped (I-0057) |
+| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | EP-017 (SP-046) | ⚪ Descoped (I-0057) |
+| T-0189 | End-to-end verification (donor search, deep-link tap, donations succeed) | EP-017 (SP-047) | 🟡 Active |
+| T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | EP-017 (SP-047) | 🟡 Active |
 | T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3) | EP-018 (SP-048) | ✅ Done (2026-06-24) |
 | T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0192.md` |
 | T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0193.md` |

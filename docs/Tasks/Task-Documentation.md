@@ -46,13 +46,16 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **3 active Tasks**
+Currently: **2 active Tasks** (SP-047)
 
 | Task | Title | Sprint | Status |
 | ---- | ----- | ------ | ------ |
-| T-0169 | Hover tooltips for historical event and imported event dots | SP-042 | 🔴 Open |
-| T-0170 | Scene/Chapter split and merge — Cmd-Enter splits at cursor, Cmd-Backspace merges | SP-042 | 🟡 Implemented - Not Verified |
-| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | SP-042 | 🟡 Implemented - Not Verified |
+| T-0189 | End-to-end verification (donor search, deep-link tap, donations succeed) | SP-047 | 🟡 Active |
+| T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | SP-047 | 🟡 Active |
+
+> **Note (2026-07-01):** The prior Active-Tasks list (T-0166/T-0169/T-0170, all Sprint **SP-042** — closed
+> 2026-06-16) was stale leftover from a closed sprint and contradicted `Task-active.md`. Those three
+> should be triaged separately (verify/close or re-backlog); they are not part of the active SP-047.
 
 See: [Task-active.md](Task-active.md)
 
@@ -209,7 +212,7 @@ Currently: **2 closed Tasks**
 ## Statistics
 
 - **Total Tasks:** 183
-- **Backlog:** 10 🔵 (T-0118, plus EP-017 SP-046/SP-047 tasks T-0185–T-0190)
+- **Backlog:** 1 🔵 (T-0118). *(EP-017: T-0189/T-0190 now Active in SP-047; T-0185–T-0188 ⚪ Descoped per I-0057 — `CSImportExtension` non-functional on macOS.)*
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
 - **Active:** 1 🟡 (SP-045 task T-0184; T-0180–T-0183 verified)
 - **Unverified:** 0
@@ -221,4 +224,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-06-29 (T-0123 Verified & archived to Verified/Task-verified-0123.md — iOS Master/Detail rework satisfied EP-012 AC5; removed from backlog. EP-012 closed; I-0054 resolved in the same work.)*
+*Last Updated: 2026-07-01 (SP-047 activated — T-0189/T-0190 set Active; T-0185–T-0188 Descoped per I-0057 (Spotlight on-disk importer non-functional on macOS). Corrected a stale Active-Tasks list carrying closed-sprint SP-042 items — flagged for separate triage.)*
