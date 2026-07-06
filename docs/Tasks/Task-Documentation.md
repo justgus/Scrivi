@@ -14,7 +14,7 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **22 backlog Tasks**
+Currently: **21 backlog Tasks**
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
@@ -39,8 +39,7 @@ Currently: **22 backlog Tasks**
 | T-0163 | Epoch offset dialog — import flow with window intersection preview | EP-016 | 🔵 Backlog |
 | T-0164 | Multiple imported timeline rows — distinct grey shades, hide/show toggle | EP-016 | 🔵 Backlog |
 | T-0165 | Timeline export — produce `.scrivi-timeline.json` | EP-016 | 🔵 Backlog |
-| T-0166 | Co-located dot clustering — hexagonal ring layout, count badge | EP-016 | 🔵 Backlog |
-| T-0167 | EP-016 verification | EP-016 | 🔵 Backlog |
+| T-0167 | EP-016 verification | EP-016 | ✅ Verified (2026-06-23) |
 
 See: [Task-backlog.md](Task-backlog.md)
 
@@ -53,9 +52,10 @@ Currently: **2 active Tasks** (SP-047)
 | T-0189 | End-to-end verification (donor search, deep-link tap, donations succeed) | SP-047 | 🟡 Active |
 | T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | SP-047 | 🟡 Active |
 
-> **Note (2026-07-01):** The prior Active-Tasks list (T-0166/T-0169/T-0170, all Sprint **SP-042** — closed
-> 2026-06-16) was stale leftover from a closed sprint and contradicted `Task-active.md`. Those three
-> should be triaged separately (verify/close or re-backlog); they are not part of the active SP-047.
+> **Cleanup (2026-07-01):** The former stale Active-Tasks list carried three SP-042 (closed) items —
+> **T-0166, T-0169, T-0170**. All are now user-verified and archived to `Verified/`
+> (`Task-verified-0166.md`, `Task-verified-0169.md`, `Task-verified-0170.md`) and appear in no active
+> or backlog list.
 
 See: [Task-active.md](Task-active.md)
 
@@ -214,7 +214,7 @@ Currently: **2 closed Tasks**
 - **Total Tasks:** 183
 - **Backlog:** 1 🔵 (T-0118). *(EP-017: T-0189/T-0190 now Active in SP-047; T-0185–T-0188 ⚪ Descoped per I-0057 — `CSImportExtension` non-functional on macOS.)*
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
-- **Active:** 1 🟡 (SP-045 task T-0184; T-0180–T-0183 verified)
+- **Active:** 2 🟡 (SP-047 tasks T-0189, T-0190)
 - **Unverified:** 0
 - **Next available:** T-0191
 
@@ -224,4 +224,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-07-01 (SP-047 activated — T-0189/T-0190 set Active; T-0185–T-0188 Descoped per I-0057 (Spotlight on-disk importer non-functional on macOS). Corrected a stale Active-Tasks list carrying closed-sprint SP-042 items — flagged for separate triage.)*
+*Last Updated: 2026-07-01 (SP-047 activated — T-0189/T-0190 set Active; T-0185–T-0188 Descoped per I-0057. Stale SP-042 items T-0166/T-0169/T-0170 user-verified and archived to Verified/ — removed from all active/backlog lists. Active-count stat corrected to 2; backlog 22→21.)*

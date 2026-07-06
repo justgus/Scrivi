@@ -12,13 +12,14 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
-| T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | 🟢 Implemented - Not Verified (core verified via T-0196; Spotlight-continuation path hardened, full tap verify → T-0189) |
+| T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | ✅ Verified → `Verified/Task-verified-0184.md` |
 | T-0185 | New Spotlight importer app-extension target (Xcode-authored) | EP-017 (SP-046) | ⚪ Descoped (I-0057 — `CSImportExtension` non-functional on macOS) |
 | T-0186 | Link ScriviCore into the extension (Option A build graph) | EP-017 (SP-046) | ⚪ Descoped (I-0057) |
 | T-0187 | Importer emits Spotlight attributes from facade JSON | EP-017 (SP-046) | ⚪ Descoped (I-0057) |
 | T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | EP-017 (SP-046) | ⚪ Descoped (I-0057) |
-| T-0189 | End-to-end verification (donor search, deep-link tap, donations succeed) | EP-017 (SP-047) | 🟡 Active |
-| T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | EP-017 (SP-047) | 🟡 Active |
+| T-0189 | End-to-end verification (donor search, deep-link tap, donations succeed) | EP-017 (SP-047) | ✅ Verified → `Verified/Task-verified-0189.md` |
+| T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | EP-017 (SP-047) | ✅ Verified (DEFERRED) → `Verified/Task-verified-0190.md` |
+| T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3) | EP-018 (SP-048) | ✅ Done (2026-06-24) |
 | T-0192 | Extract `ProjectSession`; move per-project state + methods off `AppEnvironment` (behavior-preserving) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0192.md` |
 | T-0193 | Introduce `OpenProjectRegistry` in `AppEnvironment` (projectID → session) | EP-018 (SP-048) | ✅ Verified → `Verified/Task-verified-0193.md` |
@@ -217,4 +218,14 @@ new model: resolve projectID → registry → focus existing window or `openWind
 the per-window model from `Scrivi_Project_Creation_and_Open_Flow_v0_2.md`. Run EP-018 R1–R5
 verification; unblock EP-017 AC5.
 
-*Last Updated: 2026-06-29 (T-0123 removed from backlog — Verified and archived to Verified/Task-verified-0123.md; EP-012 closed.)*
+### EP-017 follow-up (deferred from T-0190)
+
+**T-0197 — Enable Core Spotlight donation on iOS/iPadOS.** Broaden the `SpotlightDonor` /
+`AppEnvironment` guards from `os(macOS)` to `os(macOS) || os(iOS)`, verify Spotlight entitlements on
+the iOS target, and wire the iOS deep-link/bookmark **consumer** side so a tapped Spotlight result can
+resolve a persisted project across launches (`ProjectBookmarkStore` is currently macOS-only). visionOS
+is out of scope until its `ScriviEngine` backend links (I-0053 covered iOS/iPadOS only). Gated on:
+(a) T-0189 done ✅, and (b) iOS bookmark/restore parity. Rationale + assessment in
+`Verified/Task-verified-0190.md`.
+
+*Last Updated: 2026-07-06 (EP-017 Spotlight verified end-to-end — T-0184/T-0189/T-0190 verified & archived; T-0190 deferred iOS/visionOS to new backlog task T-0197. Earlier: 2026-06-29 T-0123 archived, EP-012 closed.)*

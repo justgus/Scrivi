@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- **SP-047 — Spotlight — verification, cross-platform assessment, Epic close** (EP-017, 🟡 Active since 2026-07-01) — final EP-017 sprint; verifies the in-app donor path (Layer 2 descoped in SP-046 / I-0057). See [Sprint-active.md](Sprint-active.md).
+- _None._ SP-047 closed 2026-07-06 (final EP-017 sprint); EP-017 closed alongside it. See [Sprint-active.md](Sprint-active.md).
 
 ## Sprint Backlog
 
@@ -73,7 +73,7 @@ Currently: **47 Sprints** | Next available: **SP-048**
 | SP-044 | Spotlight — design sign-off & ScriviCore indexing facade | EP-017 | 2026-06-23 | 2026-06-23 | ✅ Closed |
 | SP-045 | Spotlight — Layer 1: in-app Core Spotlight donations & deep-link | EP-017 | 2026-06-23 | 2026-06-25 | ✅ Closed |
 | SP-046 | Spotlight — Layer 2: on-disk `.scrivi` importer extension (Layer 2 descoped — I-0057) | EP-017 | 2026-06-25 | 2026-07-01 | ✅ Closed |
-| SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | 2026-07-01 | — | 🟡 Active |
+| SP-047 | Spotlight — verification, cross-platform assessment, Epic close | EP-017 | 2026-07-01 | 2026-07-06 | ✅ Closed |
 | SP-048 | Per-window model — foundation (spike, ProjectSession, registry) | EP-018 | 2026-06-24 | 2026-06-24 | ✅ Closed |
 | SP-049 | Per-window model — windowing & restore-all-windows | EP-018 | 2026-06-24 | 2026-06-24 | ✅ Closed |
 | SP-050 | Per-window model — deep-link rewrite & EP-018 verification | EP-018 | 2026-06-24 | 2026-06-25 | ✅ Closed |
@@ -81,12 +81,12 @@ Currently: **47 Sprints** | Next available: **SP-048**
 ## Statistics
 
 - **Total Sprints:** 50
-- **Closed:** 48 ✅
-- **Active:** 1 🟡 (SP-047)
+- **Closed:** 49 ✅
+- **Active:** 0 🟡
 - **Planning:** 0 🔵
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-01 (SP-046 closed — windowing polish shipped, Layer 2 on-disk importer descoped to the in-app donor per I-0057. SP-047 activated as the final EP-017 sprint; backlog empty.)*
+*Last Updated: 2026-07-06 (SP-047 closed with user approval — final EP-017 sprint; EP-017 closed alongside it. No Sprint currently active; backlog empty.)*

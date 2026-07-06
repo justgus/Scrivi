@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 active Epic** (EP-017)
+Currently: **0 active Epics** — EP-017 closed 2026-07-06.
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -44,19 +44,19 @@ Currently: **18 Epics** | Next available: **EP-019**
 | EP-014 | Scene Inspector Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-015 | Real-Time Timeline Panel | ✅ Closed | 2026-06-09 | 2026-06-10 |
 | EP-016 | Timeline Panel — Full Implementation | ✅ Closed | 2026-06-11 | 2026-06-23 |
-| EP-017 | Spotlight Search Integration | 🟡 Active | 2026-06-23 | — |
+| EP-017 | Spotlight Search Integration | ✅ Closed | 2026-06-23 | 2026-07-06 |
 | EP-018 | Per-Window / Per-Project Window Model | ✅ Closed | 2026-06-24 | 2026-06-25 |
 
 ## Statistics
 
 - **Total Epics:** 18
-- **Closed:** 17 ✅
+- **Closed:** 18 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-017)
+- **Active:** 0 🟡
 - **Draft:** 0 🔵
 - **Deferred:** 0 🔴
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-06-29 (EP-012 closed with user approval — AC5 met via the verified T-0123 iOS Master/Detail rework; I-0054 resolved in the same work. No Epics deferred. EP-017 remains the sole active Epic.)*
+*Last Updated: 2026-07-06 (EP-017 Spotlight Search Integration closed with user approval — all non-descoped ACs met, verified end-to-end on a signed build (T-0189); AC6–AC8 descoped (I-0057), AC11 deferred (T-0190/T-0197). Final sprint SP-047 closed the same day. No Epics active.)*
