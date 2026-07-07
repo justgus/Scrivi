@@ -199,7 +199,10 @@ verified-pending on iPhone (T-0123).
 
 ## I-0052: iOS target fails to build — macOS-only scene/commands in `ScriviApp`
 
-**Status:** ✅ Resolved - Verified
+**Status:** ✅ Resolved - Verified · ⚪ **OBE (2026-07-07)** — the "macOS deployment target left at
+26.6" detail below is superseded: **all app targets (macOS/iOS/visionOS) and `ScriviInteropTests` now
+deploy to 27.0** (raised during SP-052 / T-0203, user-directed). CLAUDE.md updated to 27.0. The
+scene-split fix itself is unchanged and remains Verified; only the 26.6 deployment note is obsolete.
 **Platform:** iOS / iPadOS / visionOS
 **Component:** `ScriviApp.swift`
 **Severity:** High (target does not compile)
@@ -264,7 +267,8 @@ NSSavePanel paths). Added the iOS-native pickers:
 **Deployment target raised (2026-06-25):** `IPHONEOS_DEPLOYMENT_TARGET` and `XROS_DEPLOYMENT_TARGET`
 moved 26.6 → **27.0** (Debug + Release). The original 26.6 minimum exceeded the only installed SDK
 (26.5), which itself blocked the build; 27.0 aligns with the installed iOS/visionOS 27.0 **runtimes**.
-macOS deployment target left at 26.6 (unaffected).
+macOS deployment target left at 26.6 (unaffected). **[OBE 2026-07-07: macOS raised to 27.0 too;
+all targets incl. `ScriviInteropTests` now 27.0 — see the OBE note in this Issue's status.]**
 
 **Verification status:**
 - macOS `ScriviApp` still builds clean (no regression); pbxproj `plutil -lint` OK.

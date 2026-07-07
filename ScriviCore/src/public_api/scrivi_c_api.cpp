@@ -9,6 +9,7 @@
 #include "platform/SystemUUIDProvider.hpp"
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
+#include "history/HistoryService.hpp"
 #include "util/Json.hpp"
 
 #include <chrono>
@@ -121,6 +122,75 @@ static const char* heap(std::string s) {
 }
 
 static const char* S(const char* p) { return p ? p : ""; }
+
+// Error envelope from a raw code+message (for ABI-layer errors that don't
+// originate from a scrivi::Result — e.g. "history not open").
+static std::string errorEnvelope(scrivi::ErrorCode code, std::string_view message) {
+    scrivi::util::JsonDoc err;
+    err.setInt("code",    static_cast<int>(code));
+    err.setString("message", message);
+    scrivi::util::JsonDoc root;
+    root.setBool("ok", false);
+    root.setSubDoc("error", std::move(err));
+    return root.dump();
+}
+
+// ---------------------------------------------------------------------------
+// Undo/Redo history registry (EP-019 SP-052 — T-0202)
+// ---------------------------------------------------------------------------
+// One in-memory HistoryService per open project, keyed by projectRootPath.
+// Opened by scrivi_history_open, discarded by scrivi_history_close. Guarded by
+// a mutex because ScriviEngine may call from arbitrary Swift threads.
+
+struct HistoryRegistry {
+    std::mutex mutex;
+    std::unordered_map<std::string, std::unique_ptr<scrivi::history::HistoryService>> byRoot;
+};
+
+static HistoryRegistry& historyRegistry() {
+    static HistoryRegistry r;
+    return r;
+}
+
+// UTF-8-scalar-safe v7-style ID minter for history nodes/sessions. Kept local
+// to the ABI layer so the shared UUIDProvider interface stays untouched; mirror
+// of SystemUUIDProvider's format (<prefix>_<uuid-v7>).
+static std::string mintHistoryID(std::string_view prefix) {
+    // Reuse the process UUID provider via a throwaway SceneID mint, then swap
+    // the prefix — cheaper than duplicating makeV7 and keeps one RNG path.
+    static scrivi::platform::SystemUUIDProvider provider;
+    const std::string raw = provider.newSceneID().value;      // "scene_<uuid>"
+    const auto us = raw.find('_');
+    const std::string uuid = (us == std::string::npos) ? raw : raw.substr(us + 1);
+    return std::string(prefix) + "_" + uuid;
+}
+
+static std::string nowTimestamp() {
+    static PrototypeClock clock;
+    return clock.nowUTC();
+}
+
+static scrivi::history::EventKind eventKindFromStr(std::string_view s) {
+    using K = scrivi::history::EventKind;
+    if (s == "delete")  return K::Delete;
+    if (s == "replace") return K::Replace;
+    if (s == "paste")   return K::Paste;
+    if (s == "cut")     return K::Cut;
+    return K::Typing;   // default
+}
+
+// Appends the {sceneID,newText,cursorAfter} change (if any) to a "changes"
+// array on `doc`, matching the multi-scene envelope shape (v1 emits at most one).
+static void appendStepChanges(scrivi::util::JsonDoc& doc,
+                              const scrivi::history::StepResult& step) {
+    if (step.change.has_value()) {
+        scrivi::util::JsonDoc c;
+        c.setString("sceneID",    step.change->sceneID);
+        c.setString("newText",    step.change->newText);
+        c.setInt64("cursorAfter", step.change->cursorAfter);
+        doc.appendToArray("changes", std::move(c));
+    }
+}
 
 static scrivi::RepairActionKind repairKindFromStr(std::string_view s) {
     using K = scrivi::RepairActionKind;
@@ -1330,6 +1400,179 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath) {
         doc.appendToArray("items", std::move(item));
     }
 
+    return heap(okEnvelope(std::move(doc)));
+}
+
+// ---- Undo/Redo history (EP-019 SP-052 — T-0202) -------------------------
+
+const char* scrivi_history_open(const char* projectRootPath) {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto svc = std::make_unique<scrivi::history::HistoryService>(
+        mintHistoryID("ses"), nowTimestamp());
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("sessionID",     svc->sessionID());
+    doc.setString("currentNodeID", svc->currentNodeID());
+    doc.setBool("canUndo",         svc->canUndo());
+    doc.setBool("canRedo",         svc->canRedo());
+
+    reg.byRoot[root] = std::move(svc);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_seed_scene(const char* projectRootPath,
+                                      const char* sceneID,
+                                      const char* sceneTextUtf8) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    it->second->seedSceneBaseline(S(sceneID), S(sceneTextUtf8));
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("seeded", true);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_record_event(const char* projectRootPath,
+                                         const char* sceneID,
+                                         const char* newSceneTextUtf8,
+                                         const char* paramsJSON) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    scrivi::history::RecordParams p;
+    p.sceneID      = S(sceneID);
+    p.newSceneText = S(newSceneTextUtf8);
+    p.timestamp    = nowTimestamp();
+
+    auto paramsR = scrivi::util::parseJson(S(paramsJSON));
+    if (paramsR.ok()) {
+        const auto& pj = paramsR.value();
+        p.kind         = eventKindFromStr(pj.getString("kind", "typing"));
+        p.cursorBefore = pj.getInt64("cursorBefore", 0);
+        p.cursorAfter  = pj.getInt64("cursorAfter", 0);
+    }
+
+    const auto r = it->second->record(p, mintHistoryID("evt"));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("eventID",      r.eventID);
+    doc.setBool("createdBranch",  r.createdBranch);
+    doc.setInt("evictedCount",    r.evictedCount);
+    doc.setBool("noOp",           r.noOp);
+    doc.setBool("canUndo",        it->second->canUndo());
+    doc.setBool("canRedo",        it->second->canRedo());
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_record_barrier(const char* projectRootPath,
+                                           const char* paramsJSON) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    scrivi::history::BarrierParams p;
+    p.timestamp = nowTimestamp();
+    auto paramsR = scrivi::util::parseJson(S(paramsJSON));
+    if (paramsR.ok()) {
+        const auto& pj = paramsR.value();
+        p.barrierKind = pj.getString("barrierKind", "");
+        p.barrierNote = pj.getString("note", "");
+    }
+
+    const auto r = it->second->recordBarrier(p, mintHistoryID("evt"));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("eventID", r.eventID);
+    doc.setBool("canUndo",   it->second->canUndo());
+    doc.setBool("canRedo",   it->second->canRedo());
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_undo(const char* projectRootPath) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    const auto step = it->second->undo();
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("moved",  step.moved);
+    doc.setString("nodeID", step.nodeID);
+    doc.setBool("canUndo", step.canUndo);
+    doc.setBool("canRedo", step.canRedo);
+    doc.setBool("crossedSessionBoundary", step.crossedSessionBoundary);
+    if (step.crossedSessionBoundary)
+        doc.setString("boundaryTimestamp", step.boundaryTimestamp);
+    if (step.stoppedAtBarrier) {
+        scrivi::util::JsonDoc b;
+        b.setString("kind", step.barrierKind);
+        b.setString("note", step.barrierNote);
+        doc.setSubDoc("stoppedAtBarrier", std::move(b));
+    }
+    appendStepChanges(doc, step);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_redo(const char* projectRootPath) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    const auto step = it->second->redo();
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("moved",  step.moved);
+    doc.setString("nodeID", step.nodeID);
+    doc.setBool("canUndo", step.canUndo);
+    doc.setBool("canRedo", step.canRedo);
+    appendStepChanges(doc, step);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_close(const char* projectRootPath) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    const bool wasOpen = reg.byRoot.erase(root) > 0;
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("closed", wasOpen);
     return heap(okEnvelope(std::move(doc)));
 }
 

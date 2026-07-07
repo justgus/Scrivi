@@ -16,6 +16,7 @@ add_executable(ScriviCoreTests
     unit/TextStatsTests.cpp
     unit/MarkdownStripTests.cpp
     unit/JsonSchemaTests.cpp
+    unit/HistoryServiceTests.cpp
     integration/AppSupportLayoutTests.cpp
     integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp
@@ -36,6 +37,7 @@ add_executable(ScriviCoreTests
     integration/ReorderTests.cpp
     integration/TimelineTests.cpp
     integration/SearchableContentTests.cpp
+    integration/HistoryCApiTests.cpp
 )
 
 target_include_directories(ScriviCoreTests

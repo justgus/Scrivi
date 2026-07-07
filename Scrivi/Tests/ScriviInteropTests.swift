@@ -790,4 +790,116 @@ struct ScriviInteropTests {
         #expect(link.itemID.isEmpty)
         #expect(link.targetSceneID == nil)
     }
+
+    // MARK: — Undo/Redo history wrappers (EP-019 SP-052 — T-0203)
+    // The history engine is in-memory, keyed by projectRootPath, so these need
+    // no on-disk project — a unique path string per test keeps them independent.
+
+    @Test("historyOpen mints a session and reports no undo/redo")
+    func historyOpenMintsSession() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        let opened = try engine.historyOpen(projectRootPath: root)
+        #expect(opened.sessionID.hasPrefix("ses_"))
+        #expect(!opened.canUndo)
+        #expect(!opened.canRedo)
+        try engine.historyClose(projectRootPath: root)
+    }
+
+    @Test("record → undo → redo round-trips text and cursor through Swift")
+    func historyRoundTrip() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        defer { try? engine.historyClose(projectRootPath: root) }
+
+        let r1 = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a",
+            newSceneText: "Hello", cursorBefore: 0, cursorAfter: 5)
+        #expect(r1.eventID.hasPrefix("evt_"))
+        #expect(!r1.noOp)
+        #expect(r1.canUndo)
+        #expect(!r1.canRedo)
+
+        _ = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a",
+            newSceneText: "Hello world", cursorBefore: 5, cursorAfter: 11)
+
+        let undo = try engine.historyUndo(projectRootPath: root)
+        #expect(undo.moved)
+        let change = try #require(undo.changes.first)
+        #expect(change.sceneID == "scene_a")
+        #expect(change.newText == "Hello")
+        #expect(change.cursorAfter == 5)
+        #expect(undo.canUndo)
+        #expect(undo.canRedo)
+        #expect(!undo.crossedSessionBoundary)
+
+        let redo = try engine.historyRedo(projectRootPath: root)
+        #expect(redo.moved)
+        #expect(redo.changes.first?.newText == "Hello world")
+        #expect(redo.changes.first?.cursorAfter == 11)
+        #expect(!redo.canRedo)
+    }
+
+    @Test("recording identical text reports noOp")
+    func historyNoOpOnIdenticalText() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        defer { try? engine.historyClose(projectRootPath: root) }
+
+        let r = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a", newSceneText: "")
+        #expect(r.noOp)
+        #expect(!r.canUndo)
+    }
+
+    @Test("undo stops at a barrier with a notice")
+    func historyBarrierStopsUndo() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        defer { try? engine.historyClose(projectRootPath: root) }
+
+        _ = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a",
+            newSceneText: "before", cursorBefore: 0, cursorAfter: 6)
+        _ = try engine.historyRecordBarrier(
+            projectRootPath: root, barrierKind: "sceneMerge",
+            note: "Can't undo past a scene merge")
+        _ = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a",
+            newSceneText: "before after", cursorBefore: 6, cursorAfter: 12)
+
+        // First undo removes the post-barrier text.
+        let u1 = try engine.historyUndo(projectRootPath: root)
+        #expect(u1.moved)
+        #expect(u1.changes.first?.newText == "before")
+
+        // Second undo hits the barrier — no move, notice returned.
+        let u2 = try engine.historyUndo(projectRootPath: root)
+        #expect(!u2.moved)
+        let stop = try #require(u2.stoppedAtBarrier)
+        #expect(stop.kind == "sceneMerge")
+        #expect(stop.note == "Can't undo past a scene merge")
+    }
+
+    @Test("history calls before open throw a ScriviError")
+    func historyBeforeOpenThrows() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-unopened-\(UUID().uuidString).scrivi"
+        #expect(throws: ScriviError.self) {
+            _ = try engine.historyUndo(projectRootPath: root)
+        }
+    }
+
+    @Test("historyClose reports whether a history was open")
+    func historyCloseReporting() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        #expect(try engine.historyClose(projectRootPath: root).closed)
+        #expect(!(try engine.historyClose(projectRootPath: root).closed))   // already closed
+    }
 }

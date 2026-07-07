@@ -1,0 +1,1 @@
+include("/Users/justgus/Xcode-Projects/Scrivi/ScriviCore/build/tests/ScriviCoreTests-b12d07c_include.cmake")

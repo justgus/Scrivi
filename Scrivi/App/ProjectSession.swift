@@ -38,6 +38,11 @@ import os
     // Timeline model — created on load, cleared on close.
     var timelineModel: TimelineViewModel?
 
+    // Undo/redo history capture (EP-019) — created on load, closed on close.
+    // Owned here (both are @MainActor) so the editor coordinator can reach it
+    // via the session and drive capture/undo/redo.
+    var historyCapture: HistoryCapture?
+
     // Scene a pending deep link wants selected once the project is open.
     // EditorView observes this and forwards it into its navigation.
     var pendingNavigationSceneID: String?
@@ -93,6 +98,11 @@ import os
         tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
         timelineModel = tlModel
 
+        // Open the undo/redo history for this project (best-effort — never blocks open).
+        let capture = HistoryCapture(engine: engine, projectRootPath: path)
+        capture.open()
+        historyCapture = capture
+
         // Donate the project's indexable content to Spotlight (best-effort).
         donateSpotlight(projectRootPath: path)
         return result
@@ -110,6 +120,9 @@ import os
             url.stopAccessingSecurityScopedResource()
             deepLinkAccessURL = nil
         }
+
+        historyCapture?.close()
+        historyCapture = nil
 
         openProjectResult = nil
         projectRootPath = nil

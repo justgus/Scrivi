@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Scrivi** is a multi-platform authoring, worldbuilding, and narrative design application. It helps writers, authors, dungeon masters, game designers, and scientists organize characters, scenes, locations, relationships, timelines, and maps for complex projects.
 
-**Target Platforms:** macOS 26.0+, iOS 26.0+, iPadOS 26.0+, visionOS 26.0+, Windows 11, Android, Linux
+**Target Platforms:** macOS 27.0+, iOS 27.0+, iPadOS 27.0+, visionOS 27.0+, Windows 11, Android, Linux
 
 **Key Apple Technologies (when UI work begins):** SwiftUI, CloudKit, PencilKit, MapKit, RealityKit (visionOS)
 
@@ -103,11 +103,15 @@ ctest --test-dir build --output-on-failure
 
 ### Apple Platform (when UI work begins)
 
-- **Xcode:** 26.2+ (build 17C52)
-- **macOS:** 26.2+
-- **iOS/iPadOS:** 26.2+
-- **visionOS:** 26.2+
+- **Xcode:** 27.0+
+- **macOS:** 27.0+
+- **iOS/iPadOS:** 27.0+
+- **visionOS:** 27.0+
 - **Swift:** 6.0+ (Swift 6 language mode)
+
+All app targets deploy to **27.0** (`MACOSX_DEPLOYMENT_TARGET` / `IPHONEOS_DEPLOYMENT_TARGET` /
+`XROS_DEPLOYMENT_TARGET = 27.0`), including the `ScriviInteropTests` target. Build and test the macOS
+app with `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`.
 
 **NEVER assume features, APIs, or behaviors from earlier versions of Xcode or any Apple platform.**
 

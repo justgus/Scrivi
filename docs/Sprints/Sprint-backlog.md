@@ -6,8 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-052 | Undo/Redo — linear history engine core (C++) + C ABI + Swift wrappers | EP-019 | 🔵 Planning |
-| SP-053 | Undo/Redo — in-session undo/redo on macOS (capture, apply, barriers) | EP-019 | 🔵 Planning |
 | SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 🔵 Planning |
 | SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 🔵 Planning |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning |
@@ -17,40 +15,8 @@ Design reference for all: `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_
 Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/Task-backlog.md` (T-0198–T-0217).
 
 > **SP-051 activated 2026-07-06** (design signed off at activation) — moved to `Sprint-active.md`.
-
----
-
-## SP-052: Undo/Redo — linear history engine core (C++) + C ABI + Swift wrappers
-
-**Status:** 🔵 Planning
-**Epic:** EP-019
-**Goal:** A linear (non-branching) history engine lives in ScriviCore with full unit coverage and is callable from Swift.
-
-### Assigned Tasks
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0201 | `HistoryService` core (record/undo/redo, snapshot-diff, sessions) + Catch2 tests | High | 🔵 Backlog |
-| T-0202 | C ABI: `scrivi_history_open/record_event/record_barrier/undo/redo/close` | High | 🔵 Backlog |
-| T-0203 | `ScriviEngine.swift` history wrappers + interop tests | High | 🔵 Backlog |
-
-**Exit criteria:** `ctest` green including new history unit tests; interop test round-trips record→undo→redo through the C ABI.
-
----
-
-## SP-053: Undo/Redo — in-session undo/redo on macOS (capture, apply, barriers)
-
-**Status:** 🔵 Planning
-**Epic:** EP-019
-**Goal:** ⌘Z/⇧⌘Z work in the running macOS app per the event model — **EP-019 AC1 delivered** (in-session; persistence follows in SP-054). AC1 carries the requirement formerly tracked as I-0019 (⚪ Closed 2026-07-06 — OBE/superseded, `docs/Issues/Closed/Issue-closed-0019.md`).
-
-### Assigned Tasks
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | High | 🔵 Backlog |
-| T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | High | 🔵 Backlog |
-| T-0206 | Barriers on structural operations | Medium | 🔵 Backlog |
-
-**Exit criteria:** type-undo-redo verifiable in the app across scene switches; pure cursor moves produce no events; structural ops barrier correctly; no auto-save regression.
+> **SP-052 activated 2026-07-07**, ✅ **closed 2026-07-07** — `Closed/Sprint-SP-052.md`.
+> **SP-053 activated 2026-07-07**, ✅ **closed 2026-07-07** — `Closed/Sprint-SP-053.md` (EP-019 AC1 delivered & verified).
 
 ---
 
@@ -121,4 +87,4 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 
 ---
 
-*Last Updated: 2026-07-06 (SP-051 activated and moved to Sprint-active.md — design approved by user. SP-052–SP-057 remain in Planning.)*
+*Last Updated: 2026-07-07 (SP-053 closed with user approval — `Closed/Sprint-SP-053.md` (EP-019 AC1 delivered & verified). SP-054 (persistence) is next in Planning. SP-054–SP-057 remain in Planning.)*

@@ -798,6 +798,81 @@ public final class ScriviEngine: @unchecked Sendable {
         let raw = projectRootPath.withCString { scrivi_extract_searchable_text($0) }
         return try decodeC(raw)
     }
+
+    // MARK: — Undo/Redo history (EP-019 SP-052 — T-0203)
+    // Pure decode wrappers over scrivi_history_*; no history logic in Swift.
+
+    public func historyOpen(projectRootPath: String) throws -> HistoryOpenResult {
+        let raw = projectRootPath.withCString { scrivi_history_open($0) }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                sceneText.withCString { txt in
+                    scrivi_history_seed_scene(prp, sid, txt)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func historyRecordEvent(
+        projectRootPath: String,
+        sceneID: String,
+        newSceneText: String,
+        kind: String = "typing",
+        cursorBefore: Int64 = 0,
+        cursorAfter: Int64 = 0
+    ) throws -> HistoryRecordResult {
+        let paramsData = try JSONEncoder().encode(HistoryRecordParams(
+            kind: kind, cursorBefore: cursorBefore, cursorAfter: cursorAfter))
+        let params = String(decoding: paramsData, as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                newSceneText.withCString { txt in
+                    params.withCString { p in
+                        scrivi_history_record_event(prp, sid, txt, p)
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func historyRecordBarrier(
+        projectRootPath: String,
+        barrierKind: String,
+        note: String = ""
+    ) throws -> HistoryBarrierResult {
+        // Encode params so barrierKind/note are safely JSON-escaped.
+        let paramsData = try JSONEncoder().encode(["barrierKind": barrierKind, "note": note])
+        let params = String(decoding: paramsData, as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in
+            params.withCString { p in
+                scrivi_history_record_barrier(prp, p)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func historyUndo(projectRootPath: String) throws -> HistoryStepResult {
+        let raw = projectRootPath.withCString { scrivi_history_undo($0) }
+        return try decodeC(raw)
+    }
+
+    public func historyRedo(projectRootPath: String) throws -> HistoryStepResult {
+        let raw = projectRootPath.withCString { scrivi_history_redo($0) }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func historyClose(projectRootPath: String) throws -> HistoryCloseResult {
+        let raw = projectRootPath.withCString { scrivi_history_close($0) }
+        return try decodeC(raw)
+    }
 }
 
 // MARK: — C boundary decode helper
@@ -886,6 +961,15 @@ public final class ScriviEngine: @unchecked Sendable {
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
     public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
     public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult { try unavailable() }
+    public func historyOpen(projectRootPath: String) throws -> HistoryOpenResult { try unavailable() }
+    @discardableResult
+    public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult { try unavailable() }
+    public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0) throws -> HistoryRecordResult { try unavailable() }
+    public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "") throws -> HistoryBarrierResult { try unavailable() }
+    public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    @discardableResult
+    public func historyClose(projectRootPath: String) throws -> HistoryCloseResult { try unavailable() }
 }
 
 #endif
@@ -1330,6 +1414,101 @@ public struct SearchableContentResult: Decodable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case schema, domainIdentifier, projectRootPath, items
     }
+}
+
+// MARK: — Undo/Redo History Result Types (EP-019 SP-052 — T-0203)
+
+// Params sent to scrivi_history_record_event. Encoded with JSONEncoder so cursor
+// offsets and kind land as valid JSON regardless of value.
+struct HistoryRecordParams: Encodable {
+    let kind: String
+    let cursorBefore: Int64
+    let cursorAfter: Int64
+}
+
+public struct HistoryOpenResult: Decodable, Sendable {
+    public let sessionID:     String
+    public let currentNodeID: String
+    public let canUndo:       Bool
+    public let canRedo:       Bool
+}
+
+public struct HistoryRecordResult: Decodable, Sendable {
+    public let eventID:       String
+    public let createdBranch: Bool
+    public let evictedCount:  Int
+    public let noOp:          Bool
+    public let canUndo:       Bool
+    public let canRedo:       Bool
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        eventID       = try c.decodeIfPresent(String.self, forKey: .eventID) ?? ""
+        createdBranch = try c.decodeIfPresent(Bool.self,   forKey: .createdBranch) ?? false
+        evictedCount  = try c.decodeIfPresent(Int.self,    forKey: .evictedCount) ?? 0
+        noOp          = try c.decodeIfPresent(Bool.self,   forKey: .noOp) ?? false
+        canUndo       = try c.decodeIfPresent(Bool.self,   forKey: .canUndo) ?? false
+        canRedo       = try c.decodeIfPresent(Bool.self,   forKey: .canRedo) ?? false
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case eventID, createdBranch, evictedCount, noOp, canUndo, canRedo
+    }
+}
+
+public struct HistoryBarrierResult: Decodable, Sendable {
+    public let eventID: String
+    public let canUndo: Bool
+    public let canRedo: Bool
+}
+
+// One scene's resulting text after an undo/redo step.
+public struct HistorySceneChange: Decodable, Sendable {
+    public let sceneID:     String
+    public let newText:     String
+    public let cursorAfter: Int64
+}
+
+// A barrier that blocked an undo (undo did not move).
+public struct HistoryBarrierStop: Decodable, Sendable {
+    public let kind: String
+    public let note: String
+}
+
+public struct HistoryStepResult: Decodable, Sendable {
+    public let moved:                  Bool
+    public let nodeID:                 String
+    public let canUndo:                Bool
+    public let canRedo:                Bool
+    public let changes:                [HistorySceneChange]
+    public let crossedSessionBoundary: Bool
+    public let boundaryTimestamp:      String?
+    public let stoppedAtBarrier:       HistoryBarrierStop?
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        moved                  = try c.decodeIfPresent(Bool.self,   forKey: .moved) ?? false
+        nodeID                 = try c.decodeIfPresent(String.self, forKey: .nodeID) ?? ""
+        canUndo                = try c.decodeIfPresent(Bool.self,   forKey: .canUndo) ?? false
+        canRedo                = try c.decodeIfPresent(Bool.self,   forKey: .canRedo) ?? false
+        changes                = try c.decodeIfPresent([HistorySceneChange].self, forKey: .changes) ?? []
+        crossedSessionBoundary = try c.decodeIfPresent(Bool.self,   forKey: .crossedSessionBoundary) ?? false
+        boundaryTimestamp      = try c.decodeIfPresent(String.self, forKey: .boundaryTimestamp)
+        stoppedAtBarrier       = try c.decodeIfPresent(HistoryBarrierStop.self, forKey: .stoppedAtBarrier)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case moved, nodeID, canUndo, canRedo, changes,
+             crossedSessionBoundary, boundaryTimestamp, stoppedAtBarrier
+    }
+}
+
+public struct HistoryCloseResult: Decodable, Sendable {
+    public let closed: Bool
+}
+
+public struct HistorySeedResult: Decodable, Sendable {
+    public let seeded: Bool
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

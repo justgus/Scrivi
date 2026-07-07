@@ -30,6 +30,11 @@ struct ManuscriptTextView: NSViewRepresentable {
         let textView = ManuscriptNSTextView()
         textView.isEditable = true
         textView.isRichText = false
+        // EP-019: disable AppKit's native undo entirely. Undo/redo are driven by
+        // our custom HistoryService via the undo(_:)/redo(_:) action methods on
+        // ManuscriptNSTextView (T-0199 spike: a real allowsUndo=false + first-
+        // responder action methods, NOT an UndoManager proxy).
+        textView.allowsUndo = false
         textView.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         textView.autoresizingMask = [.width]
         textView.isVerticallyResizable = true
@@ -114,12 +119,156 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Tracks which segment index the cursor was in at last check.
         private var lastCursorSegmentIndex: Int = 0
 
+        // Set by textDidChange so the immediately-following selection-change
+        // callback (fired on the same run loop turn) does not treat an edit as a
+        // pure cursor move; cleared each turn. History trigger #2 (§4.a).
+        private var editInFlight: Bool = false
+
         // Set by makeNSView; call to transfer first-responder directly in AppKit.
         var onTakeFocus: (() -> Void)?
 
         func takeFocus() { onTakeFocus?() }
 
         init(_ parent: ManuscriptTextView) { self.parent = parent }
+
+        // MARK: — History capture helpers (EP-019)
+
+        // The loaded segment at `index`, or nil if out of range.
+        func loader(for index: Int) -> SceneSegment? {
+            parent.loader.segments.indices.contains(index) ? parent.loader.segments[index] : nil
+        }
+
+        // Scene-local UTF-8 byte offset of the insertion point. `sceneText` is
+        // the scene's full text, `storageLoc` the storage char offset, `segRange`
+        // the scene's storage char range. History offsets are UTF-8 bytes (§4.b).
+        func sceneLocalByteOffset(in sceneText: String, storageLoc: Int, segRange: NSRange) -> Int {
+            let charOffset = max(0, min(storageLoc - segRange.location, (sceneText as NSString).length))
+            let prefix = (sceneText as NSString).substring(to: charOffset)
+            return prefix.utf8.count
+        }
+
+        // True if the character just typed (at cursorCharOffset-1 within the
+        // scene) is a sentence terminator or newline — history trigger #1 (§4.a).
+        // Trailing whitespace after a terminator does NOT re-commit: it starts the
+        // next pending edit and is deferred by the soft cursor-move trigger until
+        // real text follows (whitespace-only-delta rule in HistoryCapture.flush).
+        func isCommitBoundary(_ sceneText: String, cursorCharOffset: Int) -> Bool {
+            let ns = sceneText as NSString
+            let idx = cursorCharOffset - 1
+            guard idx >= 0, idx < ns.length else { return false }
+            let ch = ns.character(at: idx)
+            // '.' 46, '!' 33, '?' 63, '\n' 10, '\r' 13
+            return ch == 46 || ch == 33 || ch == 63 || ch == 10 || ch == 13
+        }
+
+        // MARK: — Undo / Redo apply path (T-0205, design §8)
+
+        var canUndo: Bool { parent.session.historyCapture?.canUndoNow ?? false }
+        var canRedo: Bool { parent.session.historyCapture?.canRedoNow ?? false }
+
+        // Performs an undo: asks HistoryService for the prior state, applies the
+        // returned full scene text into that scene's storage range, restores the
+        // cursor, and saves immediately.
+        func performUndo() {
+            guard let capture = parent.session.historyCapture else { return }
+            apply(step: capture.undo(), fallbackMessage: "Nothing to undo")
+        }
+
+        func performRedo() {
+            guard let capture = parent.session.historyCapture else { return }
+            apply(step: capture.redo(), fallbackMessage: nil)
+        }
+
+        // Applies a step result (undo or redo). A step may be blocked by a
+        // structural barrier (§4.5) — in that case we surface the notice and do
+        // not mutate text.
+        private func apply(step: HistoryStepResult?, fallbackMessage: String?) {
+            guard let step else { return }
+            guard let capture = parent.session.historyCapture else { return }
+
+            if let barrier = step.stoppedAtBarrier {
+                presentBarrierNotice(barrier.note.isEmpty
+                    ? "Can't undo past this point." : barrier.note)
+                capture.refreshCanState()
+                return
+            }
+            guard step.moved, let change = step.changes.first,
+                  let tv = textView, let storage = tv.textStorage else {
+                capture.refreshCanState()
+                return
+            }
+
+            // Map the changed scene to its loaded segment / storage range.
+            guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == change.sceneID }) else {
+                capture.refreshCanState()
+                return
+            }
+
+            recomputeBoundaries(tv)
+            guard sceneBoundaries.indices.contains(segIdx) else {
+                capture.refreshCanState()
+                return
+            }
+            let range = sceneBoundaries[segIdx]
+
+            // Apply the full scene text into the scene's boundary under the
+            // rebuild/apply guard so textDidChange does not record it as an edit.
+            // Dividers and scriviHeading runs sit outside [range] and are untouched.
+            capture.withApplying {
+                // Match rebuildStorage's body-text attributes exactly (regular
+                // monospaced font, default text color) so replaced text does not
+                // pick up typing attributes (e.g. bold) or a mismatched color.
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+                ]
+                storage.replaceCharacters(in: range, with: NSAttributedString(string: change.newText, attributes: attrs))
+                recomputeBoundaries(tv)
+
+                // Restore the cursor: scene-local UTF-8 byte offset → storage char.
+                if sceneBoundaries.indices.contains(segIdx) {
+                    let newRange = sceneBoundaries[segIdx]
+                    let sceneText = (tv.string as NSString).substring(with: newRange)
+                    let charOffset = charOffsetForByteOffset(Int(change.cursorAfter), in: sceneText)
+                    let storageLoc = min(newRange.location + charOffset, (tv.string as NSString).length)
+                    tv.setSelectedRange(NSRange(location: storageLoc, length: 0))
+                    tv.scrollRangeToVisible(NSRange(location: storageLoc, length: 0))
+                }
+            }
+
+            // Keep the loader's in-memory text in sync and save immediately.
+            parent.loader.updateText(change.newText, at: segIdx)
+            // The restored text is now the whitespace-delta reference.
+            capture.syncCommittedText(change.newText)
+            let env = parent.env
+            let loader = parent.loader
+            if let ref = env.authorshipRef {
+                Task { @MainActor in
+                    await loader.saveScene(at: segIdx, engine: env.engine, ref: ref)
+                }
+            }
+            capture.refreshCanState()
+        }
+
+        // Scene-local UTF-8 byte offset → character offset within `sceneText`.
+        private func charOffsetForByteOffset(_ byteOffset: Int, in sceneText: String) -> Int {
+            guard byteOffset > 0 else { return 0 }
+            var bytes = 0
+            var chars = 0
+            for scalar in sceneText.unicodeScalars {
+                if bytes >= byteOffset { break }
+                bytes += String(scalar).utf8.count
+                chars += scalar.utf16.count   // NSString char units
+            }
+            return chars
+        }
+
+        private func presentBarrierNotice(_ message: String) {
+            let alert = NSAlert()
+            alert.messageText = message
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
 
         // Called by NSScrollView bounds-change notification.
         // Updates the viewport scene (Navigator highlight) based on scroll position.
@@ -234,6 +383,10 @@ struct ManuscriptTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard !isRebuilding else { return }
             guard let tv = notification.object as? NSTextView else { return }
+            // While a history undo/redo apply mutates storage, the resulting
+            // textDidChange is not a user edit — skip capture (still update the
+            // loader below so in-memory text stays in sync).
+            let isHistoryApply = parent.session.historyCapture?.isApplying ?? false
             let loc = tv.selectedRange().location
 
             // Recompute boundaries from live storage — they shift with every keystroke.
@@ -245,12 +398,33 @@ struct ManuscriptTextView: NSViewRepresentable {
             let range = sceneBoundaries[segIdx]
             let extracted = (tv.string as NSString).substring(with: range)
 
+            // The scene's text *before* this edit (for first-edit baseline seeding).
+            let preEditText = loader(for: segIdx)?.text ?? ""
+
             // Update loader in-memory; segment stays loaded.
             parent.loader.updateText(extracted, at: segIdx)
 
             if segIdx != lastCursorSegmentIndex {
                 lastCursorSegmentIndex = segIdx
                 parent.loader.setCurrentIndex(segIdx)
+            }
+
+            // History capture (EP-019 §4.a): latch the edit, then commit on a
+            // sentence terminator or Return. `editInFlight` lets the following
+            // selection-change callback know this run came from an edit.
+            if !isHistoryApply, let capture = parent.session.historyCapture,
+               let sceneID = loader(for: segIdx)?.sceneID {
+                let cursorCharOffset = loc - range.location
+                let cursorByte = sceneLocalByteOffset(in: extracted, storageLoc: loc, segRange: range)
+                capture.noteEdit(sceneID: sceneID, text: extracted, cursor: cursorByte,
+                                 baselineIfFirst: preEditText)
+                editInFlight = true
+                // Commit on a sentence terminator or Return — but NOT on trailing
+                // whitespace (e.g. the second space of ". "). Whitespace is carried
+                // into the next event once real text follows (§4.a refinement).
+                if isCommitBoundary(extracted, cursorCharOffset: cursorCharOffset) {
+                    capture.flush(trigger: "sentence")
+                }
             }
 
             // Debounce 1-second auto-save.
@@ -262,6 +436,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard !Task.isCancelled else { return }
                 if let ref = env.authorshipRef {
+                    // §4.d invariant: commit any pending history event before the
+                    // scene file is written, so disk always equals a history node.
+                    session.historyCapture?.flushThenSave()
                     await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
                 }
             }
@@ -286,6 +463,25 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let tv = notification.object as? NSTextView else { return }
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }
+
+            // History triggers #2 and #5 (§4.a). A selection change that did NOT
+            // come from an edit this turn is a pure cursor move: commit any
+            // pending edit. A scene switch also commits (against the previous
+            // scene, which the pending edit already targets). An undo/redo apply
+            // moves the selection too — skip capture in that case.
+            let isHistoryApply = parent.session.historyCapture?.isApplying ?? false
+            if !isHistoryApply, let capture = parent.session.historyCapture {
+                let sceneSwitched = segIdx != lastCursorSegmentIndex
+                if sceneSwitched {
+                    // Leaving a scene: commit its pending edit (hard).
+                    capture.flush(trigger: "sceneSwitch")
+                } else if !editInFlight && capture.hasPendingChanges {
+                    // In-scene cursor move: soft — defers a whitespace-only pending
+                    // change so double-spaces never become a standalone undo step.
+                    capture.flush(trigger: "cursorMove", soft: true)
+                }
+            }
+            editInFlight = false
 
             if segIdx != lastCursorSegmentIndex {
                 lastCursorSegmentIndex = segIdx
@@ -335,6 +531,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 let currentSeg = loader.segments[segIdx]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+                // Structural op — record a barrier so undo stops here (§4.5).
+                session.historyCapture?.recordBarrier(kind: "sceneSplit", note: "Can't undo past creating a scene")
 
                 do {
                     let result = try env.engine.createScene(
@@ -441,6 +639,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 let currentSeg = loader.segments[segIdx]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+                // Structural op — record a barrier so undo stops here (§4.5).
+                session.historyCapture?.recordBarrier(kind: "chapterSplit", note: "Can't undo past creating a chapter")
 
                 do {
                     let result = try env.engine.createChapter(
@@ -548,6 +748,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 let currentSeg  = loader.segments[segIdx]
                 let predecessorSeg = loader.segments[segIdx - 1]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+                // Structural op — record a barrier so undo stops here (§4.5).
+                session.historyCapture?.recordBarrier(kind: "sceneMerge", note: "Can't undo past a scene merge")
 
                 // Join: predecessor text + current text (no separator).
                 let joinText = predecessorSeg.text + currentSeg.text
@@ -615,6 +817,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 else { return }
 
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+                // Structural op — record a barrier so undo stops here (§4.5).
+                session.historyCapture?.recordBarrier(kind: "chapterMerge", note: "Can't undo past a chapter merge")
 
                 // Find predecessor chapter's metadata path from allScenes.
                 let predecessorMeta = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterMetadataPath ?? ""
@@ -835,6 +1039,47 @@ final class ManuscriptNSTextView: NSTextView {
         }
         if isHeading { return false }
         return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+    }
+
+    // MARK: — Custom undo/redo routing (EP-019 T-0205, T-0199-validated mechanism)
+    //
+    // allowsUndo is false and there is NO undoManager override. The Edit ▸ Undo /
+    // Redo menu items send undo:/redo: down the responder chain; as first
+    // responder this text view implements them and delegates to the Coordinator's
+    // custom HistoryService-backed apply path. validateUserInterfaceItem drives
+    // the enable state (and could set the menu titles). ⌘Z/⇧⌘Z arrive as these
+    // same actions via the SwiftUI menu item's key equivalents.
+
+    @objc func undo(_ sender: Any?) {
+        coordinator?.performUndo()
+    }
+
+    @objc func redo(_ sender: Any?) {
+        coordinator?.performRedo()
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(undo(_:)): return coordinator?.canUndo ?? false
+        case #selector(redo(_:)): return coordinator?.canRedo ?? false
+        default:                  return super.validateUserInterfaceItem(item)
+        }
+    }
+
+    // Paste/cut commit as their own history events (§4.a triggers #3/#4): flush
+    // any pending typing first, tag the next commit, let AppKit mutate text
+    // (captured by textDidChange), then flush that insertion/removal as the
+    // paste/cut event.
+    override func paste(_ sender: Any?) {
+        coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
+        super.paste(sender)
+        coordinator?.parent.session.historyCapture?.flush(trigger: "paste", kind: "paste")
+    }
+
+    override func cut(_ sender: Any?) {
+        coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "cut")
+        super.cut(sender)
+        coordinator?.parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
     }
 
     override func keyDown(with event: NSEvent) {

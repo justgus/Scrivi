@@ -277,6 +277,63 @@ const char* scrivi_export_project_timeline(const char* projectRootPath);
  */
 const char* scrivi_extract_searchable_text(const char* projectRootPath);
 
+/* ---- Undo/Redo history (EP-019 SP-052 — T-0202) ------------------------- */
+
+/*
+ * In-memory undo/redo history engine, one instance per open project keyed by
+ * projectRootPath. Linear (non-branching) in this sprint; branching, disk
+ * persistence, capacity, sessions-UI, and copy buffers arrive in later EP-019
+ * sprints (the deferred scrivi_history_get_tree / _select_branch /
+ * _list_stale_branches / _purge_branch / _get_settings / _set_settings and
+ * scrivi_buffers_* functions are NOT declared yet — they land with their
+ * sprints).
+ *
+ * Standard envelope conventions apply: each returns a heap JSON string freed
+ * with scrivi_free. Offsets/cursors are scene-local UTF-8 byte offsets that
+ * originate and are consumed entirely inside the engine.
+ */
+
+/* Opens (creates) a fresh history for the project and mints a session.
+ * result: {sessionID, currentNodeID, canUndo, canRedo} */
+const char* scrivi_history_open(const char* projectRootPath);
+
+/* Seeds a scene's baseline (floor) text without recording an event. Call once,
+ * with the scene's current on-disk text, before that scene is first edited this
+ * session, so the first event diffs against real text and undo stops at the
+ * baseline instead of emptying the scene. No-op if the scene already has a head.
+ * result: {seeded} */
+const char* scrivi_history_seed_scene(const char* projectRootPath,
+                                      const char* sceneID,
+                                      const char* sceneTextUtf8);
+
+/* Records a text event by diffing newSceneTextUtf8 against the engine's cached
+ * head text for sceneID. paramsJSON: {kind, cursorBefore, cursorAfter}
+ *   kind is one of "typing|delete|replace|paste|cut" (default "typing").
+ * result: {eventID, createdBranch, evictedCount, noOp, canUndo, canRedo} */
+const char* scrivi_history_record_event(const char* projectRootPath,
+                                         const char* sceneID,
+                                         const char* newSceneTextUtf8,
+                                         const char* paramsJSON);
+
+/* Records a structural barrier node (section 4.5). paramsJSON: {barrierKind, note}.
+ * result: {eventID, canUndo, canRedo} */
+const char* scrivi_history_record_barrier(const char* projectRootPath,
+                                           const char* paramsJSON);
+
+/* Moves the current pointer back one node.
+ * result: {moved, changes:[{sceneID,newText,cursorAfter}], nodeID,
+ *          canUndo, canRedo, crossedSessionBoundary, boundaryTimestamp?,
+ *          stoppedAtBarrier:{kind,note}?} */
+const char* scrivi_history_undo(const char* projectRootPath);
+
+/* Moves the current pointer forward to the primary child.
+ * result: {moved, changes:[...], nodeID, canUndo, canRedo} */
+const char* scrivi_history_redo(const char* projectRootPath);
+
+/* Closes and discards the in-memory history for the project.
+ * (Disk checkpoint/flush is added in SP-054.) result: {closed} */
+const char* scrivi_history_close(const char* projectRootPath);
+
 #ifdef __cplusplus
 }
 #endif

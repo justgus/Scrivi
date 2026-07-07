@@ -29,12 +29,12 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0198 | Undo/redo + copy buffers design doc & trade studies | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0198.md` |
 | T-0199 | Spike: ⌘Z/⇧⌘Z + Edit-menu routing mechanism | EP-019 (SP-051) | ✅ Done (2026-07-06) |
 | T-0200 | `scrivi.history.v1` / `scrivi.buffers.v1` schema spec + repair-matrix row | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0200.md` |
-| T-0201 | `HistoryService` core (record/undo/redo, snapshot-diff, sessions) + unit tests | EP-019 (SP-052) | 🔵 Backlog |
-| T-0202 | C ABI: `scrivi_history_*` open/record/undo/redo/close | EP-019 (SP-052) | 🔵 Backlog |
-| T-0203 | `ScriviEngine.swift` history wrappers + interop tests | EP-019 (SP-052) | 🔵 Backlog |
-| T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | EP-019 (SP-053) | 🔵 Backlog |
-| T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | EP-019 (SP-053) | 🔵 Backlog |
-| T-0206 | Barriers on structural operations | EP-019 (SP-053) | 🔵 Backlog |
+| T-0201 | `HistoryService` core (record/undo/redo, snapshot-diff, sessions) + unit tests | EP-019 (SP-052) | ✅ Verified → `Verified/Task-verified-0201-0203.md` |
+| T-0202 | C ABI: `scrivi_history_*` open/record/undo/redo/close | EP-019 (SP-052) | ✅ Verified → `Verified/Task-verified-0201-0203.md` |
+| T-0203 | `ScriviEngine.swift` history wrappers + interop tests | EP-019 (SP-052) | ✅ Verified → `Verified/Task-verified-0201-0203.md` |
+| T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | EP-019 (SP-053) | ✅ Verified → `Verified/Task-verified-0204-0206.md` |
+| T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | EP-019 (SP-053) | ✅ Verified → `Verified/Task-verified-0204-0206.md` |
+| T-0206 | Barriers on structural operations | EP-019 (SP-053) | ✅ Verified → `Verified/Task-verified-0204-0206.md` |
 | T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | EP-019 (SP-054) | 🔵 Backlog |
 | T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | EP-019 (SP-054) | 🔵 Backlog |
 | T-0209 | Session-boundary warning popup | EP-019 (SP-054) | 🔵 Backlog |
