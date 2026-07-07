@@ -11,7 +11,7 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- _None._ SP-047 closed 2026-07-06 (final EP-017 sprint); EP-017 closed alongside it. See [Sprint-active.md](Sprint-active.md).
+- _None._ SP-051 closed 2026-07-06 (user-approved; all exit criteria met). Next up: SP-052 (EP-019, Planning). See [Sprint-active.md](Sprint-active.md).
 
 ## Sprint Backlog
 
@@ -19,11 +19,16 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| _(none)_ | | | |
+| SP-052 | Undo/Redo — linear history engine core (C++) + C ABI + Swift wrappers | EP-019 | 🔵 Planning |
+| SP-053 | Undo/Redo — in-session undo/redo on macOS (capture, apply, barriers) | EP-019 | 🔵 Planning |
+| SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 🔵 Planning |
+| SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 🔵 Planning |
+| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning |
+| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **47 Sprints** | Next available: **SP-048**
+Currently: **57 Sprints** (50 closed/cancelled + 7 in Planning) | Next available: **SP-058**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -77,16 +82,23 @@ Currently: **47 Sprints** | Next available: **SP-048**
 | SP-048 | Per-window model — foundation (spike, ProjectSession, registry) | EP-018 | 2026-06-24 | 2026-06-24 | ✅ Closed |
 | SP-049 | Per-window model — windowing & restore-all-windows | EP-018 | 2026-06-24 | 2026-06-24 | ✅ Closed |
 | SP-050 | Per-window model — deep-link rewrite & EP-018 verification | EP-018 | 2026-06-24 | 2026-06-25 | ✅ Closed |
+| SP-051 | Undo/Redo — design sign-off, ⌘Z-routing spike, schema spec | EP-019 | 2026-07-06 | 2026-07-06 | ✅ Closed |
+| SP-052 | Undo/Redo — linear history engine core (C++) + C ABI + Swift wrappers | EP-019 | — | — | 🔵 Planning |
+| SP-053 | Undo/Redo — in-session undo/redo on macOS (capture, apply, barriers) | EP-019 | — | — | 🔵 Planning |
+| SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | — | — | 🔵 Planning |
+| SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | — | — | 🔵 Planning |
+| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | — | — | 🔵 Planning |
+| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | — | — | 🔵 Planning |
 
 ## Statistics
 
-- **Total Sprints:** 50
-- **Closed:** 49 ✅
+- **Total Sprints:** 57
+- **Closed:** 50 ✅
 - **Active:** 0 🟡
-- **Planning:** 0 🔵
+- **Planning:** 6 🔵 (SP-052–SP-057, EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-06 (SP-047 closed with user approval — final EP-017 sprint; EP-017 closed alongside it. No Sprint currently active; backlog empty.)*
+*Last Updated: 2026-07-06 (SP-051 closed with user approval — design signed off, ⌘Z routing mechanism confirmed by spike, schemas specified; see `Closed/Sprint-SP-051.md`. SP-052–SP-057 remain in Planning. Earlier same day: SP-047/EP-017 closed; SP-051–SP-057 created; SP-051 activated.)*

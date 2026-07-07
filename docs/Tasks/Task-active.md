@@ -1,13 +1,16 @@
 # Active Tasks
 
-Active Sprint: **SP-047** (EP-017 — Spotlight verification & Epic close).
+_No active Tasks._ SP-051 closed 2026-07-06 (user-approved); no Sprint currently active.
 
-_No active Tasks._ SP-047's tasks are complete:
-- **T-0189** — end-to-end Spotlight verification ✅ Verified 2026-07-06 → `Verified/Task-verified-0189.md`
-- **T-0190** — iOS/iPadOS/visionOS assessment ✅ Verified (DEFERRED) 2026-07-06 → `Verified/Task-verified-0190.md` (follow-up: T-0197, backlog)
+SP-051's tasks at close:
+- **T-0198** — design doc + trade studies ✅ Verified → `Verified/Task-verified-0198.md`
+- **T-0199** — ⌘Z-routing spike ✅ Done (proxy rejected; first-responder action-method mechanism
+  confirmed live; findings in design §8/§12.6; spike code removed)
+- **T-0200** — schema spec + repair-matrix row ✅ Verified → `Verified/Task-verified-0200.md`
 
-SP-047 is ready for close (needs user approval); EP-017 is ready for close pending SP-047.
+Next: SP-052 (linear C++ `HistoryService` core + C ABI + Swift wrappers) — tasks T-0201–T-0203 in
+`Task-backlog.md`.
 
 ---
 
-*Last Updated: 2026-07-06 (T-0189/T-0190 verified & archived; active list cleared. SP-047 ready to close.)*
+*Last Updated: 2026-07-06 (SP-051 closed — T-0200 verified & archived, T-0199 done; active list cleared.)*

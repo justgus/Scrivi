@@ -33,36 +33,36 @@ Currently: **40 verified issues**
 
 ## Closed Issues (Not Verified)
 
-Currently: **0 closed issues**
+Currently: **1 closed issue**
 
-| Batch | DRs | File | Reason |
-| ----- | --- | ---- | ------ |
-|       |     |      |        |
+| Issue | File | Reason |
+| ----- | ---- | ------ |
+| I-0019 | [Issue-closed-0019.md](Closed/Issue-closed-0019.md) | Superseded / Design Decision — OBE; requirement carried by EP-019 AC1 (SP-053). Re-open if EP-019 is cancelled/descoped. |
 
 ## Backlogged Issues
 
-Currently: **3 backlogged issues**
+Currently: **2 backlogged issues**
 
 | Issue | Title | Severity |
 | ----- | ----- | -------- |
 | I-0017 | Window maximized state not restored on app relaunch | Medium |
 | I-0018 | Scene Navigator shows no selection on app load | Low |
-| I-0019 | Undo and Redo have no effect in the manuscript editor | High |
 
 See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
 - **Total Issues:** 57
-- **Verified:** 53 ✅ (I-0001–I-0015, I-0020–I-0057 except backlog/superseded; I-0016 superseded; I-0017–I-0019 backlog)
+- **Verified:** 53 ✅ (I-0001–I-0015, I-0020–I-0057 except backlog/superseded; I-0016 superseded; I-0017–I-0018 backlog)
 - **Active:** 0
-- **Open (backlog):** 3 🔴 (I-0017, I-0018, I-0019)
+- **Open (backlog):** 2 🔴 (I-0017, I-0018)
+- **Closed (not verified):** 1 ⚪ (I-0019 — superseded by EP-019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
 - **Next available:** I-0058
 
 ---
 
-*Last Updated: 2026-07-01 (I-0057 Verified — Spotlight Layer 2 on-disk `CSImportExtension` descoped to the in-app `CSSearchableIndex` donor (Option B); appex target/source/scheme removed, macOS app builds & codesigns clean without it. No active Issues remain.)*
+*Last Updated: 2026-07-06 (I-0019 closed without verification — OBE/superseded by EP-019, user-approved; first entry in `Closed/`. Earlier: 2026-07-01 I-0057 Verified — Spotlight Layer 2 descoped to the in-app donor.)*
 
 
 [1]:	./ER-Documentation.md

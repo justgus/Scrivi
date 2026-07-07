@@ -44,6 +44,7 @@ Key documents:
 - `docs/Scrivi_Backend_Runtime_Trade_Study_v0_2.md` — rationale for C++24 backend selection
 - `docs/Scrivi_Swift_Interop_Trade_Study_v0_1.md` — why JSON-over-string is the permanent boundary protocol
 - `docs/Scrivi_Timeline_Panel_Design_v0_3.md` — Timeline Panel requirements, interaction model, persistence schema, Story Structure integration, historical events, multi-row imported timelines, clustering, Time Delta Picker (supersedes v0.1, v0.2)
+- `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` — EP-019 custom undo/redo: sentence-granular events, tree-structured per-project persistent history (branching, sessions, capacity/purge), multiple copy buffers, `scrivi.history.v1`/`scrivi.buffers.v1`, trade studies T1–T6 (supersedes I-0019, closed 2026-07-06)
 
 ### Backend: C++23 (ScriviCore)
 

@@ -12,19 +12,19 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **0 active Epics** — EP-017 closed 2026-07-06.
+Currently: **1 Active Epic** — EP-019 (Custom Undo/Redo History & Multiple Copy Buffers), created and activated 2026-07-06; design v0.1 ✅ approved (trades T1–T6 ruled); SP-051 active.
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **0 Draft Epics**
+Currently: **0 Proposed Epics**
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **18 Epics** | Next available: **EP-019**
+Currently: **19 Epics** | Next available: **EP-020**
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -46,17 +46,18 @@ Currently: **18 Epics** | Next available: **EP-019**
 | EP-016 | Timeline Panel — Full Implementation | ✅ Closed | 2026-06-11 | 2026-06-23 |
 | EP-017 | Spotlight Search Integration | ✅ Closed | 2026-06-23 | 2026-07-06 |
 | EP-018 | Per-Window / Per-Project Window Model | ✅ Closed | 2026-06-24 | 2026-06-25 |
+| EP-019 | Custom Undo/Redo History & Multiple Copy Buffers | 🟡 Active | 2026-07-06 | — |
 
 ## Statistics
 
-- **Total Epics:** 18
+- **Total Epics:** 19
 - **Closed:** 18 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 0 🟡
+- **Active:** 1 🟡 (EP-019)
 - **Draft:** 0 🔵
 - **Deferred:** 0 🔴
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-06 (EP-017 Spotlight Search Integration closed with user approval — all non-descoped ACs met, verified end-to-end on a signed build (T-0189); AC6–AC8 descoped (I-0057), AC11 deferred (T-0190/T-0197). Final sprint SP-047 closed the same day. No Epics active.)*
+*Last Updated: 2026-07-06 (EP-019 activated — design v0.1 approved by user, all six trades ruled; SP-051 active. Earlier same day: EP-019 created as Draft; EP-017 closed with user approval.)*

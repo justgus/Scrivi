@@ -390,6 +390,42 @@ unknown issue
 
 ---
 
+### 6.21 History store corrupt, missing, or out of sync (`history/`) — *added 2026-07-06 (EP-019, T-0200)*
+
+The `history/` directory holds the undo/redo history and copy buffers
+(`scrivi.history.v1` / `scrivi.buffers.v1` — see
+`Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` §6 and Appendix A). It is
+**app-managed derived state, not canonical content**: the manuscript is never reconstructed from it,
+and no history repair may modify any manuscript or metadata file.
+
+**Classification:** `history issue`
+
+**Behavior (by sub-condition):**
+
+```text
+history/ absent entirely          → initialize fresh history silently (Info). Normal for
+                                    older projects and copies made before EP-019.
+Torn final line in active log     → truncate the torn line, continue (Info). Worst case
+                                    loses the last uncommitted event.
+state.json missing or corrupt     → rebuild the checkpoint by replaying the log segments (Info).
+Log segment unparseable           → reset history (fresh scrivi.history.v1), warn the user that
+                                    undo history was lost (Warning).
+Scene head-hash mismatch          → scene file changed outside the recorded history (external
+                                    edit, or crash between undo-apply and save). Append an
+                                    `externalChange` barrier for that scene and re-seed its
+                                    cached text from disk (Info; surfaced in the history UI as
+                                    a barrier, not a repair dialog).
+buffers.json missing or corrupt   → reset to empty buffer set, warn (Warning).
+```
+
+**Do not:** modify, restore, or delete any manuscript/metadata/object file as part of history
+repair; block writing (history conditions are never Blocking); silently keep history that no
+longer matches the scene files.
+
+**Severity:** Info or Warning only.
+
+---
+
 ## 7. Repair UI Severity Levels
 
 ### 7.1 Info

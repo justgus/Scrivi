@@ -14,11 +14,32 @@ This is the main index for all Scrivi Tasks. Tasks track planned improvements, n
 
 ## Backlog Tasks
 
-Currently: **21 backlog Tasks**
+Currently: **39 backlog Tasks** (T-0198 verified & archived; T-0199/T-0200 now Active in SP-051)
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
+| T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ deep-link/bookmark consumer) | EP-017 (deferred) | 🔵 Backlog |
+| T-0198 | Undo/redo + copy buffers design doc & trade studies | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0198.md` |
+| T-0199 | Spike: ⌘Z/⇧⌘Z + Edit-menu routing mechanism | EP-019 (SP-051) | ✅ Done (2026-07-06) |
+| T-0200 | `scrivi.history.v1` / `scrivi.buffers.v1` schema spec + repair-matrix row | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0200.md` |
+| T-0201 | `HistoryService` core + unit tests | EP-019 (SP-052) | 🔵 Backlog |
+| T-0202 | C ABI: `scrivi_history_*` open/record/undo/redo/close | EP-019 (SP-052) | 🔵 Backlog |
+| T-0203 | `ScriviEngine.swift` history wrappers + interop tests | EP-019 (SP-052) | 🔵 Backlog |
+| T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | EP-019 (SP-053) | 🔵 Backlog |
+| T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | EP-019 (SP-053) | 🔵 Backlog |
+| T-0206 | Barriers on structural operations | EP-019 (SP-053) | 🔵 Backlog |
+| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | EP-019 (SP-054) | 🔵 Backlog |
+| T-0208 | Capacity/eviction + history settings + Project Settings row | EP-019 (SP-054) | 🔵 Backlog |
+| T-0209 | Session-boundary warning popup | EP-019 (SP-054) | 🔵 Backlog |
+| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | 🔵 Backlog |
+| T-0211 | Inline fork popover | EP-019 (SP-055) | 🔵 Backlog |
+| T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | 🔵 Backlog |
+| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | 🔵 Backlog |
+| T-0214 | Buffer UX (HUD/palette/menus) + paste/cut history integration | EP-019 (SP-056) | 🔵 Backlog |
+| T-0215 | History panel (management surface) | EP-019 (SP-057) | 🔵 Backlog |
+| T-0216 | Perf/integration fixtures + gitignore migration | EP-019 (SP-057) | 🔵 Backlog |
+| T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (SP-057) | 🔵 Backlog |
 | T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | EP-016 | 🔵 Backlog |
 | T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | EP-016 | 🔵 Backlog |
 | T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | EP-016 | 🔵 Backlog |
@@ -45,12 +66,11 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **2 active Tasks** (SP-047)
+Currently: **0 active Tasks** (SP-051 closed 2026-07-06; no Sprint active)
 
 | Task | Title | Sprint | Status |
 | ---- | ----- | ------ | ------ |
-| T-0189 | End-to-end verification (donor search, deep-link tap, donations succeed) | SP-047 | 🟡 Active |
-| T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | SP-047 | 🟡 Active |
+| —    | None  | —      | —      |
 
 > **Cleanup (2026-07-01):** The former stale Active-Tasks list carried three SP-042 (closed) items —
 > **T-0166, T-0169, T-0170**. All are now user-verified and archived to `Verified/`
@@ -199,6 +219,8 @@ Currently: **76 verified Tasks**
 | T-0181 | `ScriviEngine` Swift API to fetch indexable records (calls the facade) | [Task-verified-0181.md](Verified/Task-verified-0181.md) | ✅ Verified |
 | T-0182 | Donate `CSSearchableItem`s on project open/save; delete-by-domain on close | [Task-verified-0182.md](Verified/Task-verified-0182.md) | ✅ Verified |
 | T-0183 | Markdown→plain-text extraction for body indexing | [Task-verified-0183.md](Verified/Task-verified-0183.md) | ✅ Verified |
+| T-0198 | Undo/redo + copy buffers design doc & trade studies (EP-019 design sign-off) | [Task-verified-0198.md](Verified/Task-verified-0198.md) | ✅ Verified |
+| T-0200 | `scrivi.history.v1` / `scrivi.buffers.v1` schema spec + repair-matrix row | [Task-verified-0200.md](Verified/Task-verified-0200.md) | ✅ Verified |
 
 ## Closed Tasks
 
@@ -211,17 +233,19 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 183
-- **Backlog:** 1 🔵 (T-0118). *(EP-017: T-0189/T-0190 now Active in SP-047; T-0185–T-0188 ⚪ Descoped per I-0057 — `CSImportExtension` non-functional on macOS.)*
+- **Total Tasks:** 203 (183 through T-0197 + 20 EP-019 tasks T-0198–T-0217)
+- **Backlog:** 39 🔵
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
-- **Active:** 2 🟡 (SP-047 tasks T-0189, T-0190)
+- **Active:** 0 🟡 (no active Sprint)
 - **Unverified:** 0
-- **Next available:** T-0191
+- **Verified:** +2 (T-0198, T-0200 — 2026-07-06); **Done (spike):** T-0199 (2026-07-06)
+- **Next available:** T-0218
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
-> SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23. Some historical aggregate counts
-> above predate a full re-audit and may lag.
+> SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190
+> verified and archived 2026-07-06. Some historical aggregate counts above predate a full re-audit
+> and may lag.
 
 ---
 
-*Last Updated: 2026-07-01 (SP-047 activated — T-0189/T-0190 set Active; T-0185–T-0188 Descoped per I-0057. Stale SP-042 items T-0166/T-0169/T-0170 user-verified and archived to Verified/ — removed from all active/backlog lists. Active-count stat corrected to 2; backlog 22→21.)*
+*Last Updated: 2026-07-06 (SP-051 closed: T-0200 ✅ Verified & archived; T-0199 spike ✅ Done — ⌘Z action-method mechanism confirmed. Active list cleared. Earlier same day: SP-051 activated, T-0198 verified; EP-019 tasks T-0198–T-0217 created.)*

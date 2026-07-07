@@ -63,30 +63,4 @@ TBD — needs a mechanism to determine the top-of-viewport scene after `NSTextVi
 
 ---
 
-## I-0019: Undo and Redo have no effect in the manuscript editor
-
-**Status:** 🔴 Open
-**Platform:** macOS, iPadOS
-**Component:** `ManuscriptTextView.swift`
-**Severity:** High
-**Sprint:** Not Assigned
-
-**Description:**
-Pressing `⌘Z` in the manuscript editor produces the system "nothing to undo" flash — the undo manager is empty even after typing. Redo has no effect either.
-
-**Expected Behavior:**
-Undo reverses the most recent text edit. Redo re-applies it. Standard AppKit per-keystroke undo via `NSTextView`'s built-in undo manager.
-
-**Actual Behavior:**
-`⌘Z` produces a screen flash (empty undo stack). Nothing is undone.
-
-**Date Identified:** 2026-06-09
-
-**Root Cause Analysis:**
-Requires deeper investigation. Previous attempt (wrapping `rebuildStorage` with `disableUndoRegistration`) did not resolve the issue.
-
-**Resolution:** TBD
-
----
-
-*Last Updated: 2026-06-09 (I-0017/I-0019 returned to backlog; I-0018 unchanged)*
+*Last Updated: 2026-07-06 (I-0019 closed without verification — OBE/superseded by EP-019, user-approved; moved to `Closed/Issue-closed-0019.md`. The ⌘Z requirement is carried by EP-019 AC1/SP-053. I-0017/I-0018 unchanged.)*

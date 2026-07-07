@@ -5,6 +5,7 @@
 **Document type:** Backend / project package structure  
 **Purpose:** Define the physical on-disk structure of a `.scrivi` project package.  
 **Revised:** 2026-06-25 — corrected scene filename convention (`NNN-<slug>.*`, not `scene-NNN.*`) and on-disk identity keys (`projectID` / `sceneID` / `objectID` / `timelineID`, not `id`) to match what ScriviCore actually writes (verified against a real package). See the convention note in §4.
+**Revised:** 2026-07-06 — added the `history/` directory (undo/redo history + copy buffers, EP-019 / T-0200; design: `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`). See §4, §16a, §17.
 
 ---
 
@@ -126,6 +127,11 @@ MyNovel.scrivi/
 
   snapshots/
     scrivi-snapshots.json
+
+  history/
+    state.json
+    log-000001.jsonl
+    buffers.json
 
   .gitignore
 ```
@@ -571,6 +577,37 @@ If Git is disabled, `snapshots/` may be absent or empty.
 
 ---
 
+## 16a. `history/` *(added 2026-07-06 — EP-019, T-0200)*
+
+The `history/` folder stores the undo/redo history tree and the copy buffers.
+
+Approved structure:
+
+```text
+history/
+  state.json          (scrivi.history.v1 checkpoint: pointers, settings, scene head hashes)
+  log-000001.jsonl    (append-only event/control log; segments rotate as log-NNNNNN.jsonl)
+  buffers.json        (scrivi.buffers.v1 — named copy-buffer slots)
+```
+
+Design authority: `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (§6 persistence,
+Appendix A field specification).
+
+Key properties:
+
+- **App-managed derived state, not canonical content.** Scene `.md` files remain the only
+  canonical prose. History records how the text changed and how to walk it back; the manuscript
+  is never reconstructed from `history/`.
+- **Lives inside the package deliberately** (approved Trade T6) so undo history travels with the
+  project across machines and syncs — but it is **excluded from Git snapshots** via `.gitignore`
+  (§17).
+- **Safe to delete.** Removing `history/` loses undo history and copy buffers, nothing else; the
+  app reinitializes it. Repair behavior: `Scrivi_External_Change_Repair_Matrix_v0_2.md` §6.21
+  (reset/rebuild history, warn where data was lost, never touch the manuscript).
+- May be absent in projects created before EP-019; created on first use.
+
+---
+
 ## 17. `.gitignore`
 
 If Git is enabled, Scrivi generates `.gitignore`.
@@ -593,9 +630,14 @@ Thumbs.db
 *.tmp
 *.swp
 ~$*
+
+# Scrivi undo/redo history and copy buffers (app-managed derived state — EP-019)
+history/
 ```
 
-Because approved indexes are app-local by default, `.gitignore` is mostly defensive.
+Because approved indexes are app-local by default, `.gitignore` is mostly defensive. The
+`history/` exclusion (added 2026-07-06) keeps undo-state churn out of Git snapshots; projects
+whose `.gitignore` predates EP-019 receive the entry via a one-time migration (EP-019 T-0216).
 
 ---
 
