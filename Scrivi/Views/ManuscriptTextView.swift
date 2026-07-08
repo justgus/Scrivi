@@ -247,6 +247,28 @@ struct ManuscriptTextView: NSViewRepresentable {
                 }
             }
             capture.refreshCanState()
+
+            // Session-boundary warning (§5, T-0209): the engine flags the first
+            // undo that steps into a previous session's work (once per crossing).
+            if step.crossedSessionBoundary {
+                presentSessionBoundaryNotice(boundaryTimestamp: step.boundaryTimestamp)
+            }
+        }
+
+        // Warns that undo has stepped into a previous session's changes, showing
+        // the boundary's wall-clock time when available.
+        private func presentSessionBoundaryNotice(boundaryTimestamp: String?) {
+            let alert = NSAlert()
+            alert.alertStyle = .informational
+            if let ts = boundaryTimestamp, let when = HistoryTimestamp.friendly(ts) {
+                alert.messageText = "Undoing changes from a previous session"
+                alert.informativeText = "You are now undoing changes made \(when)."
+            } else {
+                alert.messageText = "Undoing changes from a previous session"
+                alert.informativeText = "You are now undoing changes made before this session."
+            }
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
         }
 
         // Scene-local UTF-8 byte offset → character offset within `sceneText`.

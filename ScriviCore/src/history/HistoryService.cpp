@@ -111,7 +111,13 @@ void HistoryService::seedSceneBaseline(const std::string& sceneID, const std::st
     // Only seed a scene we have not seen yet — never clobber an established head.
     if (headText_.find(sceneID) == headText_.end()) {
         headText_[sceneID] = text;
+        floorTexts_[sceneID] = text;   // immutable baseline for persistence/replay
     }
+}
+
+void HistoryService::reseedSceneFloor(const std::string& sceneID, const std::string& text) {
+    floorTexts_[sceneID] = text;
+    headText_[sceneID]   = text;
 }
 
 RecordResult HistoryService::record(const RecordParams& p, std::string eventID) {
@@ -146,6 +152,7 @@ RecordResult HistoryService::record(const RecordParams& p, std::string eventID) 
 
     RecordResult r;
     r.eventID = newID;
+    r.evictedCount = evictToCapacity();
     return r;
 }
 
@@ -239,10 +246,16 @@ StepResult HistoryService::undo() {
     r.canUndo = canUndo();
     r.canRedo = canRedo();
 
-    // Session-boundary crossing: the node we just left belonged to a session
-    // that differs from the node we landed on. Warn once (§5).
+    // Session-boundary crossing (§5): warn when the node we undo *into* belongs
+    // to a session other than the current (open) one — i.e. we are stepping into
+    // a previous session's work — and we have not already warned for crossing
+    // into that session this run. Compared against sessionID_ (the current open
+    // session), so it fires even when the entire loaded chain predates this
+    // launch. `warnedSessions_` makes it once-per-crossing.
     const EventNode& landed = nodeRef(currentNodeID_);
-    if (landed.sessionID != cur.sessionID) {
+    if (landed.sessionID != sessionID_ &&
+        warnedSessions_.find(landed.sessionID) == warnedSessions_.end()) {
+        warnedSessions_.insert(landed.sessionID);
         r.crossedSessionBoundary = true;
         r.boundaryTimestamp = landed.timestamp;
     }
@@ -300,12 +313,80 @@ void HistoryService::rebuildHeadCache() {
     }
     std::reverse(path.begin(), path.end());
 
-    headText_.clear();
+    // Start each scene from its floor snapshot (empty if never seeded), then
+    // apply the diffs along the root→current path. The ROOT node's own diff is
+    // NOT applied: the root represents the floor state (its diff was folded into
+    // floorTexts_ at eviction, or it is the original empty anchor).
+    headText_ = floorTexts_;
     for (const EventNode* n : path) {
         if (n->kind == EventKind::Barrier) continue;
+        if (n->eventID == rootID_) continue;
         auto& text = headText_[n->sceneID];
         text = applyForward(text, n->diff);
     }
+}
+
+int HistoryService::evictToCapacity() {
+    if (capacityEvents_ <= 0) return 0;   // unlimited
+    int evicted = 0;
+    while (eventCount() > capacityEvents_) {
+        EventNode& root = nodeRef(rootID_);
+        // Linear engine: the root has at most one child. Nothing to promote, or
+        // the only child IS the current pointer → stop (never evict the
+        // root→current path; the current state must always remain reachable).
+        if (root.childIDs.size() != 1) break;
+        const std::string childID = root.childIDs.front();
+        if (childID == currentNodeID_) break;
+
+        EventNode& child = nodeRef(childID);
+        // Fold the child's diff into the floor for its scene, so replay from the
+        // new root reproduces the same text. Barriers carry no diff.
+        if (child.kind != EventKind::Barrier) {
+            auto& floor = floorTexts_[child.sceneID];
+            floor = applyForward(floor, child.diff);
+        }
+        // Promote the child to the new root.
+        child.parentID.reset();
+        nodes_.erase(rootID_);
+        rootID_ = childID;
+        ++evicted;
+    }
+    if (evicted > 0) rebuildHeadCache();
+    return evicted;
+}
+
+void HistoryService::addLoadedFloor(const std::string& sceneID, std::string text) {
+    floorTexts_[sceneID] = text;
+    headText_[sceneID]   = std::move(text);
+}
+
+void HistoryService::addLoadedNode(EventNode node) {
+    const std::string id = node.eventID;
+    nodes_[id] = std::move(node);
+}
+
+void HistoryService::setPointers(std::string rootID, std::string currentNodeID,
+                                 std::string sessionID) {
+    rootID_        = std::move(rootID);
+    currentNodeID_ = std::move(currentNodeID);
+    sessionID_     = std::move(sessionID);
+}
+
+void HistoryService::finalizeLoad() {
+    // Derive childIDs and primaryChildID ordering from parent links. Records are
+    // replayed in append (seq) order, so childIDs preserve creation order and the
+    // last-recorded child is the primary (linear engine; SP-055 refines this).
+    for (auto& [id, node] : nodes_) { node.childIDs.clear(); }
+    for (auto& [id, node] : nodes_) {
+        if (node.parentID.has_value()) {
+            auto it = nodes_.find(*node.parentID);
+            if (it != nodes_.end()) {
+                it->second.childIDs.push_back(id);
+                it->second.primaryChildID = id;   // last child wins (linear)
+            }
+        }
+    }
+    rebuildHeadCache();
 }
 
 } // namespace scrivi::history

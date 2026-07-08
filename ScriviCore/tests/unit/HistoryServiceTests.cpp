@@ -187,3 +187,40 @@ TEST_CASE("diff is scalar-safe across a multibyte boundary", "[History]") {
     auto u = h.undo();
     REQUIRE(u.change->newText == "caf\xC3\xA9");
 }
+
+TEST_CASE("capacity eviction drops oldest nodes, folds them into the floor", "[History]") {
+    auto h = fresh();
+    h.setCapacity(2);   // keep at most 2 event nodes
+
+    h.record(typing("scene_a", "a", 0, 1), "evt_1");
+    h.record(typing("scene_a", "ab", 1, 2), "evt_2");
+    REQUIRE(h.eventCount() == 2);
+
+    // Third record pushes over capacity → evt_1 is evicted; its "a" folds into
+    // the floor. Head text is unchanged; the current pointer is untouched.
+    auto r = h.record(typing("scene_a", "abc", 2, 3), "evt_3");
+    REQUIRE(r.evictedCount == 1);
+    REQUIRE(h.eventCount() == 2);
+    REQUIRE(h.headTextForScene("scene_a") == "abc");
+
+    // Undo still works down to the (folded) floor, then stops at history start.
+    auto u1 = h.undo(); REQUIRE(u1.change->newText == "ab");
+    auto u2 = h.undo(); REQUIRE(u2.change->newText == "a");   // floor now == "a"
+    auto u3 = h.undo();
+    REQUIRE_FALSE(u3.moved);
+    REQUIRE(u3.barrierKind == "historyStart");
+}
+
+TEST_CASE("eviction never removes the current node (deferred)", "[History]") {
+    auto h = fresh();
+    h.setCapacity(1);
+    h.record(typing("scene_a", "a", 0, 1), "evt_1");
+    // Over capacity, but evt_1 IS the current pointer — must not be evicted.
+    auto r = h.record(typing("scene_a", "ab", 1, 2), "evt_2");
+    // evt_1 (now not current) can go; evt_2 is current and stays.
+    REQUIRE(r.evictedCount == 1);
+    REQUIRE(h.headTextForScene("scene_a") == "ab");
+    // Undo to the folded floor "a", then stop.
+    auto u1 = h.undo(); REQUIRE(u1.change->newText == "a");
+    auto u2 = h.undo(); REQUIRE_FALSE(u2.moved);
+}

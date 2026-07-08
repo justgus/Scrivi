@@ -101,6 +101,9 @@ import os
         // Open the undo/redo history for this project (best-effort — never blocks open).
         let capture = HistoryCapture(engine: engine, projectRootPath: path)
         capture.open()
+        // Head-hash validation (§6.b): flag any scene changed outside Scrivi since
+        // last close with an externalChange barrier (never modifies the manuscript).
+        capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
         historyCapture = capture
 
         // Donate the project's indexable content to Spotlight (best-effort).

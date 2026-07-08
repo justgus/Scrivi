@@ -3,11 +3,16 @@
 #include "scrivi/scrivi.h"
 #include "util/Json.hpp"
 
+#include <atomic>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string>
 
 // Round-trips the scrivi_history_* C ABI through its JSON envelopes (T-0202).
-// The history engine is in-memory and keyed by an arbitrary projectRootPath
-// string, so these tests need no on-disk project.
+// The history now persists to <root>/history/ (SP-054), so each test uses a
+// UNIQUE temp root and removes it — otherwise one test's log would replay into
+// the next test's open().
 
 using scrivi::util::JsonDoc;
 using scrivi::util::parseJson;
@@ -43,11 +48,24 @@ std::string recordParams(const char* kind, int64_t before, int64_t after) {
     return p.dump();
 }
 
-const char* ROOT = "/tmp/scrivi-history-capi-test.scrivi";
+// A unique temp project root that removes itself (incl. its history/ dir).
+struct HistoryRoot {
+    std::string path;
+    HistoryRoot() {
+        static std::atomic<int> counter{0};
+        path = (std::filesystem::temp_directory_path() /
+                ("scrivi-history-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
+                 std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
+                   .string();
+    }
+    ~HistoryRoot() { std::error_code ec; std::filesystem::remove_all(path, ec); }
+    const char* c() const { return path.c_str(); }
+};
 
 } // namespace
 
 TEST_CASE("C ABI: open mints a session and reports no undo/redo", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     auto res = okResult(scrivi_history_open(ROOT));
     REQUIRE(res.getString("sessionID").rfind("ses_", 0) == 0);
     REQUIRE_FALSE(res.getBool("canUndo"));
@@ -56,6 +74,7 @@ TEST_CASE("C ABI: open mints a session and reports no undo/redo", "[HistoryCApi]
 }
 
 TEST_CASE("C ABI: record then undo then redo round-trips", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     scrivi_free(scrivi_history_open(ROOT));
 
     // Record two typing events on one scene.
@@ -98,6 +117,7 @@ TEST_CASE("C ABI: record then undo then redo round-trips", "[HistoryCApi]") {
 }
 
 TEST_CASE("C ABI: recording identical text reports noOp", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     scrivi_free(scrivi_history_open(ROOT));
     // Scene starts empty; recording empty text is a no-op.
     auto r = okResult(scrivi_history_record_event(
@@ -108,6 +128,7 @@ TEST_CASE("C ABI: recording identical text reports noOp", "[HistoryCApi]") {
 }
 
 TEST_CASE("C ABI: undo stops at a barrier with a notice", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     scrivi_free(scrivi_history_open(ROOT));
     scrivi_free(scrivi_history_record_event(
         ROOT, "scene_a", "before", recordParams("typing", 0, 6).c_str()));
@@ -135,6 +156,7 @@ TEST_CASE("C ABI: undo stops at a barrier with a notice", "[HistoryCApi]") {
 }
 
 TEST_CASE("C ABI: seeded scene baseline — undo stops at pre-existing text", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     scrivi_free(scrivi_history_open(ROOT));
 
     // Seed the scene's pre-existing text, then append a sentence.
@@ -160,6 +182,7 @@ TEST_CASE("C ABI: seeded scene baseline — undo stops at pre-existing text", "[
 }
 
 TEST_CASE("C ABI: calling before open returns an error envelope", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     // Ensure closed first.
     scrivi_free(scrivi_history_close(ROOT));
     auto env = envelope(scrivi_history_undo(ROOT));
@@ -169,6 +192,7 @@ TEST_CASE("C ABI: calling before open returns an error envelope", "[HistoryCApi]
 }
 
 TEST_CASE("C ABI: close reports whether a history was open", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     scrivi_free(scrivi_history_open(ROOT));
     {
         auto r = okResult(scrivi_history_close(ROOT));
@@ -178,4 +202,108 @@ TEST_CASE("C ABI: close reports whether a history was open", "[HistoryCApi]") {
         auto r = okResult(scrivi_history_close(ROOT));   // already closed
         REQUIRE_FALSE(r.getBool("closed"));
     }
+}
+
+TEST_CASE("C ABI: history persists across close/re-open (relaunch)", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // --- Session 1: seed + two events, then close (writes log + checkpoint) ---
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "Base."));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "Base. One.", recordParams("typing", 5, 10).c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "Base. One. Two.", recordParams("typing", 10, 15).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // --- Session 2: re-open the SAME root — the log is replayed ---
+    {
+        auto r = okResult(scrivi_history_open(ROOT));
+        REQUIRE(r.getBool("loaded"));        // an existing history was read
+        REQUIRE(r.getBool("canUndo"));       // the tree came back
+        REQUIRE_FALSE(r.getBool("canRedo"));
+    }
+    // Undo walks back through yesterday's events; crossing the session boundary
+    // is flagged (session 1 nodes differ from the session 2 open).
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "Base. One.");
+        REQUIRE(r.getBool("crossedSessionBoundary"));
+    }
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "Base.");
+    }
+    // Floor preserved — one more undo stops at the history start, text intact.
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE_FALSE(r.getBool("moved"));
+        REQUIRE(r.getSubDoc("stoppedAtBarrier").getString("kind") == "historyStart");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: external scene edit produces an externalChange barrier", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // Session 1: seed a scene, record an edit, close (persists head hash of "AB").
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "A"));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AB", recordParams("typing", 1, 2).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // Session 2: re-open, then validate the scene against a DIFFERENT on-disk
+    // text (as if edited outside Scrivi) → externalChange barrier.
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        auto r = okResult(scrivi_history_validate_scene(ROOT, "scene_a", "AB-edited-elsewhere"));
+        REQUIRE(r.getBool("externalChange"));
+    }
+    // Validating the matching text does NOT re-trigger.
+    {
+        auto r = okResult(scrivi_history_validate_scene(ROOT, "scene_a", "AB-edited-elsewhere"));
+        REQUIRE_FALSE(r.getBool("externalChange"));
+    }
+    // Undo now hits the externalChange barrier (the manuscript text is untouched).
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE_FALSE(r.getBool("moved"));
+        REQUIRE(r.getSubDoc("stoppedAtBarrier").getString("kind") == "externalChange");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: torn final log line is truncated, tree survives", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", ""));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "kept.", recordParams("typing", 0, 5).c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "kept. torn", recordParams("typing", 5, 10).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // Simulate a crash mid-append: corrupt the final line of the log.
+    namespace fs = std::filesystem;
+    fs::path logFile = fs::path(ROOT_.path) / "history" / "log-000001.jsonl";
+    REQUIRE(fs::exists(logFile));
+    {
+        std::string content;
+        { std::ifstream in(logFile, std::ios::binary); std::ostringstream ss; ss << in.rdbuf(); content = ss.str(); }
+        content += "{\"rec\":\"event\",\"seq\":99,\"eventID\":\"evt_tor";  // truncated JSON, no newline
+        std::ofstream out(logFile, std::ios::binary | std::ios::trunc);
+        out << content;
+    }
+
+    // Re-open: the torn line is dropped; the last intact event ("kept. torn") remains.
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "kept.");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
 }

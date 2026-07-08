@@ -1,0 +1,289 @@
+#include "history/HistoryStore.hpp"
+
+#include "util/Json.hpp"
+#include "util/PathUtils.hpp"
+#include "util/Hash.hpp"
+
+#include <sstream>
+
+namespace scrivi::history {
+
+namespace {
+
+// EventKind <-> wire string.
+std::string kindToStr(EventKind k) {
+    switch (k) {
+        case EventKind::Typing:  return "typing";
+        case EventKind::Delete:  return "delete";
+        case EventKind::Replace: return "replace";
+        case EventKind::Paste:   return "paste";
+        case EventKind::Cut:     return "cut";
+        case EventKind::Barrier: return "barrier";
+    }
+    return "typing";
+}
+
+EventKind kindFromStr(const std::string& s) {
+    if (s == "delete")  return EventKind::Delete;
+    if (s == "replace") return EventKind::Replace;
+    if (s == "paste")   return EventKind::Paste;
+    if (s == "cut")     return EventKind::Cut;
+    if (s == "barrier") return EventKind::Barrier;
+    return EventKind::Typing;
+}
+
+} // namespace
+
+HistoryStore::HistoryStore(AbsolutePath historyDir, FileSystem* fs, Clock* clock)
+    : historyDir_(std::move(historyDir)), fs_(fs), clock_(clock) {}
+
+AbsolutePath HistoryStore::logPath() const {
+    return util::join(historyDir_, activeSegment_);
+}
+
+AbsolutePath HistoryStore::statePath() const {
+    return util::join(historyDir_, "state.json");
+}
+
+void HistoryStore::appendLine(const std::string& jsonLine) {
+    if (!fs_) return;
+    fs_->appendTextFile(logPath(), jsonLine + "\n");
+    if (++recordsSinceCheckpoint_ >= 200) {
+        checkpoint();
+        recordsSinceCheckpoint_ = 0;
+    }
+}
+
+bool HistoryStore::openOrCreate(const std::string& newSessionID,
+                                const std::string& nowTimestamp, bool& outLoaded) {
+    outLoaded = false;
+    if (fs_) { fs_->createDirectories(historyDir_); }
+
+    // Try to load an existing log by replaying its records.
+    bool haveLog = false;
+    std::string logText;
+    if (fs_) {
+        auto existsR = fs_->exists(logPath());
+        if (existsR.ok() && existsR.value()) {
+            auto readR = fs_->readTextFile(logPath());
+            if (readR.ok()) { logText = readR.value(); haveLog = true; }
+        }
+    }
+
+    if (haveLog && !logText.empty()) {
+        auto svc = std::make_unique<HistoryService>(newSessionID, nowTimestamp);
+        // Reset to an empty tree we control the pointers of.
+        std::string rootID = "evt_root";
+        std::string currentNodeID = rootID;
+        std::string loadedSessionID = newSessionID;
+        std::int64_t maxSeq = 0;
+        bool sawAnyRecord = false;
+
+        std::istringstream ss(logText);
+        std::string line;
+        while (std::getline(ss, line)) {
+            if (line.empty()) continue;
+            auto parsedR = util::parseJson(line);
+            if (!parsedR.ok()) {
+                // Torn final line (partial write) — stop; everything before is intact.
+                break;
+            }
+            const util::JsonDoc& d = parsedR.value();
+            const std::string rec = d.getString("rec");
+            const std::int64_t seq = d.getInt64("seq");
+            if (seq > maxSeq) maxSeq = seq;
+            sawAnyRecord = true;
+
+            if (rec == "floor") {
+                svc->addLoadedFloor(d.getString("sceneID"), d.getString("text"));
+            } else if (rec == "event") {
+                EventNode node;
+                node.eventID = d.getString("eventID");
+                if (d.contains("parentID") && !d.getString("parentID").empty()) {
+                    node.parentID = d.getString("parentID");
+                }
+                node.kind = kindFromStr(d.getString("kind"));
+                node.sceneID = d.getString("sceneID");
+                node.cursorBefore = d.getInt64("cursorBefore");
+                node.cursorAfter  = d.getInt64("cursorAfter");
+                node.timestamp = d.getString("timestamp");
+                node.sessionID = d.getString("sessionID");
+                if (node.kind == EventKind::Barrier) {
+                    util::JsonDoc b = d.getSubDoc("barrier");
+                    node.barrierKind = b.getString("barrierKind");
+                    node.barrierNote = b.getString("note");
+                } else {
+                    util::JsonDoc diff = d.getSubDoc("diff");
+                    node.diff.offsetUtf8 = static_cast<std::size_t>(diff.getInt64("offsetUtf8"));
+                    node.diff.removed  = diff.getString("removed");
+                    node.diff.inserted = diff.getString("inserted");
+                }
+                // Recording a node advances the current pointer to it; in seq
+                // order a later ctl:undo/redo may move it back. Last write wins.
+                currentNodeID = node.eventID;
+                svc->addLoadedNode(std::move(node));
+            } else if (rec == "ctl") {
+                const std::string op = d.getString("op");
+                if (op == "undo" || op == "redo") {
+                    currentNodeID = d.getString("nodeID");
+                } else if (op == "session") {
+                    loadedSessionID = d.getString("sessionID");
+                }
+                // root/evict/purge/setPrimary: linear engine ignores in SP-054.
+            }
+        }
+
+        if (sawAnyRecord) {
+            svc->setPointers(rootID, currentNodeID, loadedSessionID);
+            svc->finalizeLoad();
+            // Load persisted per-scene head hashes + settings from state.json for
+            // §6.b validation (best-effort; the log already rebuilt the tree).
+            if (fs_) {
+                auto stR = fs_->readTextFile(statePath());
+                if (stR.ok()) {
+                    auto sp = util::parseJson(stR.value());
+                    if (sp.ok()) {
+                        const util::JsonDoc& st = sp.value();
+                        util::JsonDoc setDoc = st.getSubDoc("settings");
+                        settings_.capacityEvents    = setDoc.getInt("capacityEvents", settings_.capacityEvents);
+                        settings_.staleBranchDays   = setDoc.getInt("staleBranchDays", settings_.staleBranchDays);
+                        settings_.idleRolloverHours = setDoc.getInt("idleRolloverHours", settings_.idleRolloverHours);
+                        util::JsonDoc heads = st.getSubDoc("sceneHeads");
+                        for (const auto& [sceneID, _] : svc->floorTexts()) {
+                            util::JsonDoc h = heads.getSubDoc(sceneID);
+                            const std::string sha = h.getString("sha256");
+                            if (!sha.empty()) loadedHeadHashes_[sceneID] = sha;
+                        }
+                    }
+                }
+            }
+            // Mint a NEW session for this open (Trade T5) — the loaded sessionID
+            // is what distinguishes "previous session" nodes for the warning.
+            svc->setSessionID(newSessionID);
+            service_ = std::move(svc);
+            lastSeq_ = maxSeq;
+            outLoaded = true;
+            // Record the session start so subsequent events carry it.
+            persistCtl("session", "");
+            return true;
+        }
+    }
+
+    // Fresh history.
+    service_ = std::make_unique<HistoryService>(newSessionID, nowTimestamp);
+    lastSeq_ = 0;
+    persistCtl("session", "");
+    checkpoint();
+    return true;
+}
+
+void HistoryStore::persistFloor(const std::string& sceneID, const std::string& text,
+                                const std::string& reason) {
+    util::JsonDoc d;
+    d.setString("rec", "floor");
+    d.setInt64("seq", ++lastSeq_);
+    d.setString("sceneID", sceneID);
+    d.setString("reason", reason);
+    d.setString("text", text);
+    d.setString("sha256", util::sha256Hex(text));
+    d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+    appendLine(d.dump(-1));
+}
+
+void HistoryStore::persistEvent(const EventNode& node) {
+    util::JsonDoc d;
+    d.setString("rec", "event");
+    d.setInt64("seq", ++lastSeq_);
+    d.setString("eventID", node.eventID);
+    d.setString("parentID", node.parentID.value_or(""));
+    d.setString("kind", kindToStr(node.kind));
+    d.setString("sceneID", node.sceneID);
+    d.setInt64("cursorBefore", node.cursorBefore);
+    d.setInt64("cursorAfter", node.cursorAfter);
+    d.setString("timestamp", node.timestamp);
+    d.setString("sessionID", node.sessionID);
+    if (node.kind == EventKind::Barrier) {
+        util::JsonDoc b;
+        b.setString("barrierKind", node.barrierKind);
+        b.setString("note", node.barrierNote);
+        d.setSubDoc("barrier", std::move(b));
+    } else {
+        util::JsonDoc diff;
+        diff.setInt64("offsetUtf8", static_cast<std::int64_t>(node.diff.offsetUtf8));
+        diff.setString("removed", node.diff.removed);
+        diff.setString("inserted", node.diff.inserted);
+        d.setSubDoc("diff", std::move(diff));
+    }
+    appendLine(d.dump(-1));
+}
+
+void HistoryStore::persistCtl(const std::string& op, const std::string& nodeID) {
+    util::JsonDoc d;
+    d.setString("rec", "ctl");
+    d.setInt64("seq", ++lastSeq_);
+    d.setString("op", op);
+    d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+    if (!nodeID.empty()) d.setString("nodeID", nodeID);
+    if (op == "session" && service_) d.setString("sessionID", service_->sessionID());
+    appendLine(d.dump(-1));
+}
+
+void HistoryStore::checkpoint() {
+    if (!fs_ || !service_) return;
+    util::JsonDoc d;
+    d.setString("schema", "scrivi.history.v1");
+
+    util::JsonDoc s;
+    s.setInt("capacityEvents", settings_.capacityEvents);
+    s.setInt("staleBranchDays", settings_.staleBranchDays);
+    s.setInt("idleRolloverHours", settings_.idleRolloverHours);
+    d.setSubDoc("settings", std::move(s));
+
+    d.setString("rootID", service_->rootID());
+    d.setString("currentNodeID", service_->currentNodeID());
+    d.setString("sessionID", service_->sessionID());
+    d.setInt64("lastSeq", lastSeq_);
+    d.setString("activeLogSegment", activeSegment_);
+
+    // Per-scene head hashes for §6.b validation at next open.
+    util::JsonDoc heads;
+    for (const auto& [sceneID, text] : service_->floorTexts()) {
+        util::JsonDoc h;
+        h.setString("sha256", util::sha256Hex(service_->headTextForScene(sceneID)));
+        heads.setSubDoc(sceneID, std::move(h));
+    }
+    d.setSubDoc("sceneHeads", std::move(heads));
+
+    fs_->atomicWriteTextFile(statePath(), d.dump(2));
+}
+
+bool HistoryStore::validateSceneHead(const std::string& sceneID,
+                                     const std::string& currentDiskText,
+                                     const std::string& nowTimestamp,
+                                     const std::string& barrierEventID) {
+    auto it = loadedHeadHashes_.find(sceneID);
+    if (it == loadedHeadHashes_.end()) return false;   // no baseline to compare
+    const std::string diskHash = util::sha256Hex(currentDiskText);
+    if (diskHash == it->second) return false;          // unchanged — all good
+
+    // Mismatch: the scene was edited outside Scrivi. Record an externalChange
+    // barrier so undo stops at this point, and re-seed the scene's cached text
+    // from disk. The manuscript is never modified by this repair (§6.b).
+    if (service_) {
+        BarrierParams bp;
+        bp.barrierKind = "externalChange";
+        bp.barrierNote = "This scene was changed outside Scrivi; undo stops here.";
+        bp.timestamp = nowTimestamp;
+        auto r = service_->recordBarrier(bp, barrierEventID);
+        auto nit = service_->nodes().find(r.eventID);
+        if (nit != service_->nodes().end()) { persistEvent(nit->second); }
+        // Re-seed this scene's floor from the on-disk text so future diffs and
+        // undo restores use the real current text as the new baseline.
+        service_->reseedSceneFloor(sceneID, currentDiskText);
+        persistFloor(sceneID, currentDiskText, "externalChange");
+    }
+    loadedHeadHashes_[sceneID] = diskHash;   // don't re-warn for the same edit
+    return true;
+}
+
+} // namespace scrivi::history

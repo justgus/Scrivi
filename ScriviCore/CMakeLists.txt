@@ -77,6 +77,7 @@ target_sources(ScriviCore
         src/comments/CommentStore.cpp
         src/inbox/InboxStore.cpp
         src/history/HistoryService.cpp
+        src/history/HistoryStore.cpp
 )
 
 target_link_libraries(ScriviCore

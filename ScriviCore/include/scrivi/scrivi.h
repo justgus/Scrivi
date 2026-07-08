@@ -330,8 +330,24 @@ const char* scrivi_history_undo(const char* projectRootPath);
  * result: {moved, changes:[...], nodeID, canUndo, canRedo} */
 const char* scrivi_history_redo(const char* projectRootPath);
 
-/* Closes and discards the in-memory history for the project.
- * (Disk checkpoint/flush is added in SP-054.) result: {closed} */
+/* Head-hash validation (§6.b). Compares currentDiskTextUtf8 for sceneID against
+ * the head hash persisted at last close; on mismatch (edited outside Scrivi)
+ * records an externalChange barrier and re-seeds the scene's floor from disk —
+ * never modifying the manuscript. Call once per loaded scene right after open.
+ * result: {externalChange} (true if a mismatch/barrier occurred). */
+const char* scrivi_history_validate_scene(const char* projectRootPath,
+                                          const char* sceneID,
+                                          const char* currentDiskTextUtf8);
+
+/* History capacity/session settings (Trade T1). result / settingsJSON:
+ * {capacityEvents, staleBranchDays, idleRolloverHours}. project.json is
+ * canonical; set writes the checkpoint mirror. */
+const char* scrivi_history_get_settings(const char* projectRootPath);
+const char* scrivi_history_set_settings(const char* projectRootPath,
+                                        const char* settingsJSON);
+
+/* Closes the history: writes a final state.json checkpoint and discards the
+ * in-memory tree. result: {closed} */
 const char* scrivi_history_close(const char* projectRootPath);
 
 #ifdef __cplusplus

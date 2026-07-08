@@ -10,6 +10,8 @@
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
 #include "history/HistoryService.hpp"
+#include "history/HistoryStore.hpp"
+#include "util/PathUtils.hpp"
 #include "util/Json.hpp"
 
 #include <chrono>
@@ -89,9 +91,13 @@ struct CoreSingleton {
     }
 };
 
-scrivi::ScriviCore& core() {
+CoreSingleton& singleton() {
     static CoreSingleton s;
-    return *s.core;
+    return s;
+}
+
+scrivi::ScriviCore& core() {
+    return *singleton().core;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,13 +144,14 @@ static std::string errorEnvelope(scrivi::ErrorCode code, std::string_view messag
 // ---------------------------------------------------------------------------
 // Undo/Redo history registry (EP-019 SP-052 — T-0202)
 // ---------------------------------------------------------------------------
-// One in-memory HistoryService per open project, keyed by projectRootPath.
-// Opened by scrivi_history_open, discarded by scrivi_history_close. Guarded by
-// a mutex because ScriviEngine may call from arbitrary Swift threads.
+// One HistoryStore (owning a HistoryService + on-disk persistence, SP-054) per
+// open project, keyed by projectRootPath. Opened by scrivi_history_open,
+// discarded by scrivi_history_close. Guarded by a mutex because ScriviEngine may
+// call from arbitrary Swift threads.
 
 struct HistoryRegistry {
     std::mutex mutex;
-    std::unordered_map<std::string, std::unique_ptr<scrivi::history::HistoryService>> byRoot;
+    std::unordered_map<std::string, std::unique_ptr<scrivi::history::HistoryStore>> byRoot;
 };
 
 static HistoryRegistry& historyRegistry() {
@@ -1405,6 +1412,11 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath) {
 
 // ---- Undo/Redo history (EP-019 SP-052 — T-0202) -------------------------
 
+// Helper: the history/ directory for a project root.
+static scrivi::AbsolutePath historyDirFor(const std::string& projectRoot) {
+    return scrivi::util::join(projectRoot, "history");
+}
+
 const char* scrivi_history_open(const char* projectRootPath) {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -1414,16 +1426,28 @@ const char* scrivi_history_open(const char* projectRootPath) {
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
 
-    auto svc = std::make_unique<scrivi::history::HistoryService>(
-        mintHistoryID("ses"), nowTimestamp());
+    auto& s = singleton();
+    auto store = std::make_unique<scrivi::history::HistoryStore>(
+        historyDirFor(root), &s.fileSystem, &s.clock);
 
+    bool loaded = false;
+    store->openOrCreate(mintHistoryID("ses"), nowTimestamp(), loaded);
+
+    auto& svc = store->service();
+    svc.setCapacity(store->settings().capacityEvents);
     scrivi::util::JsonDoc doc;
-    doc.setString("sessionID",     svc->sessionID());
-    doc.setString("currentNodeID", svc->currentNodeID());
-    doc.setBool("canUndo",         svc->canUndo());
-    doc.setBool("canRedo",         svc->canRedo());
+    doc.setString("sessionID",     svc.sessionID());
+    doc.setString("currentNodeID", svc.currentNodeID());
+    doc.setBool("canUndo",         svc.canUndo());
+    doc.setBool("canRedo",         svc.canRedo());
+    doc.setBool("loaded",          loaded);
+    scrivi::util::JsonDoc st;
+    st.setInt("capacityEvents",    store->settings().capacityEvents);
+    st.setInt("staleBranchDays",   store->settings().staleBranchDays);
+    st.setInt("idleRolloverHours", store->settings().idleRolloverHours);
+    doc.setSubDoc("settings", std::move(st));
 
-    reg.byRoot[root] = std::move(svc);
+    reg.byRoot[root] = std::move(store);
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -1439,7 +1463,13 @@ const char* scrivi_history_seed_scene(const char* projectRootPath,
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    it->second->seedSceneBaseline(S(sceneID), S(sceneTextUtf8));
+    auto& svc = it->second->service();
+    const std::string sid = S(sceneID);
+    const bool wasNew = svc.headTextForScene(sid).empty()
+                        && svc.floorTexts().find(sid) == svc.floorTexts().end();
+    svc.seedSceneBaseline(sid, S(sceneTextUtf8));
+    // Persist the floor record once, the first time this scene enters history.
+    if (wasNew) { it->second->persistFloor(sid, S(sceneTextUtf8), "seed"); }
 
     scrivi::util::JsonDoc doc;
     doc.setBool("seeded", true);
@@ -1472,15 +1502,21 @@ const char* scrivi_history_record_event(const char* projectRootPath,
         p.cursorAfter  = pj.getInt64("cursorAfter", 0);
     }
 
-    const auto r = it->second->record(p, mintHistoryID("evt"));
+    auto& svc = it->second->service();
+    const auto r = svc.record(p, mintHistoryID("evt"));
+    // Persist the new event node (if one was actually created).
+    if (!r.noOp && !r.eventID.empty()) {
+        auto nit = svc.nodes().find(r.eventID);
+        if (nit != svc.nodes().end()) { it->second->persistEvent(nit->second); }
+    }
 
     scrivi::util::JsonDoc doc;
     doc.setString("eventID",      r.eventID);
     doc.setBool("createdBranch",  r.createdBranch);
     doc.setInt("evictedCount",    r.evictedCount);
     doc.setBool("noOp",           r.noOp);
-    doc.setBool("canUndo",        it->second->canUndo());
-    doc.setBool("canRedo",        it->second->canRedo());
+    doc.setBool("canUndo",        svc.canUndo());
+    doc.setBool("canRedo",        svc.canRedo());
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -1504,12 +1540,17 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
         p.barrierNote = pj.getString("note", "");
     }
 
-    const auto r = it->second->recordBarrier(p, mintHistoryID("evt"));
+    auto& svc = it->second->service();
+    const auto r = svc.recordBarrier(p, mintHistoryID("evt"));
+    if (!r.eventID.empty()) {
+        auto nit = svc.nodes().find(r.eventID);
+        if (nit != svc.nodes().end()) { it->second->persistEvent(nit->second); }
+    }
 
     scrivi::util::JsonDoc doc;
     doc.setString("eventID", r.eventID);
-    doc.setBool("canUndo",   it->second->canUndo());
-    doc.setBool("canRedo",   it->second->canRedo());
+    doc.setBool("canUndo",   svc.canUndo());
+    doc.setBool("canRedo",   svc.canRedo());
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -1523,7 +1564,9 @@ const char* scrivi_history_undo(const char* projectRootPath) {
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    const auto step = it->second->undo();
+    auto& svc = it->second->service();
+    const auto step = svc.undo();
+    if (step.moved) { it->second->persistCtl("undo", step.nodeID); }
 
     scrivi::util::JsonDoc doc;
     doc.setBool("moved",  step.moved);
@@ -1553,7 +1596,9 @@ const char* scrivi_history_redo(const char* projectRootPath) {
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    const auto step = it->second->redo();
+    auto& svc = it->second->service();
+    const auto step = svc.redo();
+    if (step.moved) { it->second->persistCtl("redo", step.nodeID); }
 
     scrivi::util::JsonDoc doc;
     doc.setBool("moved",  step.moved);
@@ -1564,12 +1609,77 @@ const char* scrivi_history_redo(const char* projectRootPath) {
     return heap(okEnvelope(std::move(doc)));
 }
 
+const char* scrivi_history_validate_scene(const char* projectRootPath,
+                                          const char* sceneID,
+                                          const char* currentDiskTextUtf8) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    const bool mismatch = it->second->validateSceneHead(
+        S(sceneID), S(currentDiskTextUtf8), nowTimestamp(), mintHistoryID("evt"));
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("externalChange", mismatch);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_get_settings(const char* projectRootPath) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+    const auto& s = it->second->settings();
+    scrivi::util::JsonDoc doc;
+    doc.setInt("capacityEvents",    s.capacityEvents);
+    doc.setInt("staleBranchDays",   s.staleBranchDays);
+    doc.setInt("idleRolloverHours", s.idleRolloverHours);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_set_settings(const char* projectRootPath,
+                                        const char* settingsJSON) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+    scrivi::history::HistorySettings s = it->second->settings();
+    auto pr = scrivi::util::parseJson(S(settingsJSON));
+    if (pr.ok()) {
+        const auto& pj = pr.value();
+        s.capacityEvents    = pj.getInt("capacityEvents", s.capacityEvents);
+        s.staleBranchDays   = pj.getInt("staleBranchDays", s.staleBranchDays);
+        s.idleRolloverHours = pj.getInt("idleRolloverHours", s.idleRolloverHours);
+    }
+    it->second->setSettings(s);
+    it->second->service().setCapacity(s.capacityEvents);
+    it->second->checkpoint();
+    scrivi::util::JsonDoc doc;
+    doc.setBool("updated", true);
+    return heap(okEnvelope(std::move(doc)));
+}
+
 const char* scrivi_history_close(const char* projectRootPath) {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
 
-    const bool wasOpen = reg.byRoot.erase(root) > 0;
+    auto it = reg.byRoot.find(root);
+    const bool wasOpen = it != reg.byRoot.end();
+    if (wasOpen) {
+        it->second->checkpoint();   // final checkpoint before discarding
+        reg.byRoot.erase(it);
+    }
 
     scrivi::util::JsonDoc doc;
     doc.setBool("closed", wasOpen);

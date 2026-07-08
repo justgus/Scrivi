@@ -43,6 +43,11 @@ public:
     virtual Result<Utf8Text> readTextFile(const AbsolutePath& path) = 0;
     virtual Result<void> atomicWriteTextFile(
         const AbsolutePath& path, std::string_view utf8Text)     = 0;
+    // Appends utf8Text to path (creating it if absent), flushing before return.
+    // Used by the append-only history log (EP-019 §6.a). Not atomic across a
+    // crash mid-append — a torn final line is detected and truncated at load.
+    virtual Result<void> appendTextFile(
+        const AbsolutePath& path, std::string_view utf8Text)     = 0;
     virtual Result<std::vector<AbsolutePath>> listDirectory(
         const AbsolutePath& path)                                = 0;
     virtual Result<void> removeFile(const AbsolutePath& path)    = 0;

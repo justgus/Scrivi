@@ -84,6 +84,18 @@ final class HistoryCapture {
         }
     }
 
+    // Validates each loaded scene's on-disk text against the head hash persisted
+    // at last close (§6.b). A scene edited outside Scrivi between sessions gets an
+    // externalChange barrier + floor re-seed in the engine — never touching the
+    // manuscript. Call once, right after open, with (sceneID, currentText) pairs.
+    func validateScenes(_ scenes: [(id: String, text: String)]) {
+        guard isOpen else { return }
+        for scene in scenes {
+            _ = try? engine.historyValidateScene(
+                projectRootPath: projectRootPath, sceneID: scene.id, currentDiskText: scene.text)
+        }
+    }
+
     func close() {
         guard isOpen else { return }
         // Commit anything outstanding so the final sentence is not lost.
@@ -268,5 +280,29 @@ final class HistoryCapture {
         pendingText = ""
         pendingCursorBefore = 0
         pendingCursorAfter = 0
+    }
+}
+
+// Formats an ISO-8601 history timestamp for the session-boundary warning
+// (T-0209) — e.g. "yesterday at 9:42 PM" / "on Jul 3 at 2:15 PM".
+enum HistoryTimestamp {
+    static func friendly(_ iso8601: String) -> String? {
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime]
+        guard let date = parser.date(from: iso8601)
+            ?? { parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return parser.date(from: iso8601) }()
+        else { return nil }
+
+        let cal = Calendar.current
+        let time = DateFormatter()
+        time.timeStyle = .short
+        time.dateStyle = .none
+        let clock = time.string(from: date)
+
+        if cal.isDateInToday(date)     { return "earlier today at \(clock)" }
+        if cal.isDateInYesterday(date) { return "yesterday at \(clock)" }
+        let day = DateFormatter()
+        day.dateFormat = "MMM d"
+        return "on \(day.string(from: date)) at \(clock)"
     }
 }

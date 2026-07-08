@@ -869,6 +869,33 @@ public final class ScriviEngine: @unchecked Sendable {
     }
 
     @discardableResult
+    public func historyValidateScene(projectRootPath: String, sceneID: String, currentDiskText: String) throws -> HistoryValidateResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                currentDiskText.withCString { txt in
+                    scrivi_history_validate_scene(prp, sid, txt)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func historyGetSettings(projectRootPath: String) throws -> HistorySettingsResult {
+        let raw = projectRootPath.withCString { scrivi_history_get_settings($0) }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func historySetSettings(projectRootPath: String, capacityEvents: Int,
+                                   staleBranchDays: Int, idleRolloverHours: Int) throws -> TimelineBoolResult {
+        let json = "{\"capacityEvents\":\(capacityEvents),\"staleBranchDays\":\(staleBranchDays),\"idleRolloverHours\":\(idleRolloverHours)}"
+        let raw = projectRootPath.withCString { prp in
+            json.withCString { j in scrivi_history_set_settings(prp, j) }
+        }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
     public func historyClose(projectRootPath: String) throws -> HistoryCloseResult {
         let raw = projectRootPath.withCString { scrivi_history_close($0) }
         return try decodeC(raw)
@@ -968,6 +995,11 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "") throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    @discardableResult
+    public func historyValidateScene(projectRootPath: String, sceneID: String, currentDiskText: String) throws -> HistoryValidateResult { try unavailable() }
+    public func historyGetSettings(projectRootPath: String) throws -> HistorySettingsResult { try unavailable() }
+    @discardableResult
+    public func historySetSettings(projectRootPath: String, capacityEvents: Int, staleBranchDays: Int, idleRolloverHours: Int) throws -> TimelineBoolResult { try unavailable() }
     @discardableResult
     public func historyClose(projectRootPath: String) throws -> HistoryCloseResult { try unavailable() }
 }
@@ -1509,6 +1541,16 @@ public struct HistoryCloseResult: Decodable, Sendable {
 
 public struct HistorySeedResult: Decodable, Sendable {
     public let seeded: Bool
+}
+
+public struct HistorySettingsResult: Decodable, Sendable {
+    public let capacityEvents:    Int
+    public let staleBranchDays:   Int
+    public let idleRolloverHours: Int
+}
+
+public struct HistoryValidateResult: Decodable, Sendable {
+    public let externalChange: Bool
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

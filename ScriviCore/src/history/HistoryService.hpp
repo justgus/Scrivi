@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -137,6 +138,12 @@ public:
     // on-disk text is then the HEAD (reached by replaying events), not the floor.
     void seedSceneBaseline(const std::string& sceneID, const std::string& text);
 
+    // Forcibly resets a scene's floor AND current head text to `text`, replacing
+    // any existing value. Used by §6.b external-change repair after an
+    // externalChange barrier: the on-disk text becomes the new baseline. Unlike
+    // seedSceneBaseline this overwrites; it does not touch the tree.
+    void reseedSceneFloor(const std::string& sceneID, const std::string& text);
+
     // Records a text event by diffing `p.newSceneText` against the cached head
     // text for `p.sceneID`. If the text is unchanged, returns noOp=true and
     // records nothing. `eventID` is caller-minted.
@@ -163,6 +170,38 @@ public:
     // head-hash checkpoint work (SP-054) and for tests.
     [[nodiscard]] std::string headTextForScene(const std::string& sceneID) const;
 
+    // ---- Persistence surface (SP-054, HistoryStore) ----------------------
+    // These let HistoryStore serialize the tree to the log/checkpoint and
+    // rebuild it on load. No JSON here — the store owns the wire format.
+
+    // All nodes in insertion-independent order (map order by eventID). Used to
+    // serialize the tree on checkpoint.
+    [[nodiscard]] const std::map<std::string, EventNode>& nodes() const { return nodes_; }
+    [[nodiscard]] const std::string& rootID() const { return rootID_; }
+    // Per-scene floor (root) text — the baseline snapshots to persist.
+    [[nodiscard]] const std::map<std::string, std::string>& floorTexts() const { return floorTexts_; }
+
+    // Rehydration (load): install a node, set pointers, then finalize. The store
+    // calls addLoadedFloor/addLoadedNode for each record, then setPointers, then
+    // finalizeLoad() which derives childIDs and rebuilds the head cache.
+    void addLoadedFloor(const std::string& sceneID, std::string text);
+    void addLoadedNode(EventNode node);
+    void setPointers(std::string rootID, std::string currentNodeID, std::string sessionID);
+    void finalizeLoad();
+
+    // Replaces the current session id (used on idle rollover / new session at open).
+    void setSessionID(std::string sessionID) { sessionID_ = std::move(sessionID); }
+
+    // Capacity (Trade T1): the max number of event nodes retained. 0 = unlimited.
+    // When record() pushes the count above this, the oldest node(s) are evicted
+    // from the root (linear engine: the root's single child becomes the new root,
+    // its diff folded into the per-scene floor). Never evicts a node on the
+    // root→current path. Full branch-aware auto-purge is SP-055.
+    void setCapacity(int capacityEvents) { capacityEvents_ = capacityEvents; }
+    [[nodiscard]] int capacity() const { return capacityEvents_; }
+    // Number of event nodes currently retained (excludes the root anchor).
+    [[nodiscard]] int eventCount() const { return static_cast<int>(nodes_.size()) - 1; }
+
 private:
     EventNode& nodeRef(const std::string& id);
     [[nodiscard]] const EventNode& nodeRef(const std::string& id) const;
@@ -171,14 +210,30 @@ private:
     // root→current path and applying each node's diff to its scene.
     void rebuildHeadCache();
 
+    // Evicts oldest nodes while eventCount() > capacity (linear engine). Returns
+    // the number evicted. Stops if the next node to evict is the current pointer.
+    int evictToCapacity();
+
     std::map<std::string, EventNode> nodes_;   // eventID → node
     std::string rootID_;
     std::string currentNodeID_;
     std::string sessionID_;
 
     // sceneID → full text at the current node (the "head text" the next record
-    // diffs against, and undo/redo restore to).
+    // diffs against, and undo/redo restore to). Mutates as the pointer moves.
     std::map<std::string, std::string> headText_;
+
+    // sceneID → floor (root) text: the baseline the scene entered history with.
+    // Immutable after seeding; persisted as rec:"floor" and used as the starting
+    // text when replaying the log on load.
+    std::map<std::string, std::string> floorTexts_;
+
+    // Earlier sessions we have already surfaced a boundary warning for this run,
+    // so undo warns once per crossing (§5), not on every step into that session.
+    std::set<std::string> warnedSessions_;
+
+    // Max retained event nodes (Trade T1); 0 = unlimited.
+    int capacityEvents_ = 0;
 };
 
 } // namespace scrivi::history

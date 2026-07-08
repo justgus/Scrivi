@@ -51,6 +51,19 @@ Result<void> LocalFileSystem::atomicWriteTextFile(const AbsolutePath& path, std:
     return util::atomicWriteTextFile(path, utf8Text);
 }
 
+Result<void> LocalFileSystem::appendTextFile(const AbsolutePath& path, std::string_view utf8Text) {
+    std::ofstream out(path, std::ios::binary | std::ios::app);
+    if (!out) {
+        return Result<void>::failure({.code=ErrorCode::ioError, .message="could not open file for append", .path=path});
+    }
+    out.write(utf8Text.data(), static_cast<std::streamsize>(utf8Text.size()));
+    out.flush();
+    if (!out) {
+        return Result<void>::failure({.code=ErrorCode::ioError, .message="append failed", .path=path});
+    }
+    return Result<void>::success();
+}
+
 Result<std::vector<AbsolutePath>> LocalFileSystem::listDirectory(const AbsolutePath& path) {
     std::error_code ec;
     std::vector<AbsolutePath> entries;

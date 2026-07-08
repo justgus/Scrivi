@@ -46,9 +46,9 @@
 | T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
 | T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
 | T-0206 | Barriers on structural operations | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
-| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | SP-054 | 🔵 Backlog |
-| T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | SP-054 | 🔵 Backlog |
-| T-0209 | Session-boundary warning popup | SP-054 | 🔵 Backlog |
+| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | SP-054 | 🟡 Implemented — Not Verified (2026-07-07) |
+| T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | SP-054 | 🟡 Implemented — Not Verified (2026-07-07; linear eviction, full in SP-055) |
+| T-0209 | Session-boundary warning popup | SP-054 | 🟡 Implemented — Not Verified (2026-07-07) |
 | T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge on eviction | SP-055 | 🔵 Backlog |
 | T-0211 | Inline fork popover (T2 core interaction) | SP-055 | 🔵 Backlog |
 | T-0212 | Stale-branch detection + user-confirmed purge | SP-055 | 🔵 Backlog |
