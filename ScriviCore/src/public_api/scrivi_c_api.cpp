@@ -359,10 +359,17 @@ const char* scrivi_open_project(
     }
     scene.setString("markdown", v.activeSceneMarkdown);
 
+    // Restored cursor selection (scene-local offsets) and scroll fraction (I-0058).
+    scrivi::util::JsonDoc restored;
+    restored.setInt64("anchor", static_cast<int64_t>(v.restoredSelection.anchor));
+    restored.setInt64("focus",  static_cast<int64_t>(v.restoredSelection.focus));
+    restored.setDouble("scroll", v.restoredScroll.value);
+
     scrivi::util::JsonDoc doc;
     doc.setString("projectID", v.project.projectID.value);
     doc.setString("mode", "ready");
     doc.setSubDoc("activeScene", std::move(scene));
+    doc.setSubDoc("restored", std::move(restored));
     for (auto& s : v.scenes) {
         scrivi::util::JsonDoc entry;
         entry.setString("sceneID",              s.sceneID.value);
@@ -415,6 +422,9 @@ const char* scrivi_save_scene(
     const char* sceneMetadataPath,
     const char* sceneContentPath,
     const char* markdown,
+    long long   selectionAnchor,
+    long long   selectionFocus,
+    double      scroll,
     const char* identityID,
     const char* personaID,
     const char* displayName)
@@ -427,6 +437,11 @@ const char* scrivi_save_scene(
     req.sceneMetadataPath = S(sceneMetadataPath);
     req.sceneContentPath  = S(sceneContentPath);
     req.markdown          = S(markdown);
+    req.selection = {
+        selectionAnchor < 0 ? 0u : static_cast<std::size_t>(selectionAnchor),
+        selectionFocus  < 0 ? 0u : static_cast<std::size_t>(selectionFocus)
+    };
+    req.scroll = { scroll };
     req.author = {
         scrivi::IdentityID{S(identityID)},
         scrivi::PersonaID {S(personaID)},

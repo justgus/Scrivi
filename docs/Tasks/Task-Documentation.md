@@ -29,9 +29,9 @@ Currently: **39 backlog Tasks** (T-0198 verified & archived; T-0199/T-0200 now A
 | T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | EP-019 (SP-053) | 🔵 Backlog |
 | T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | EP-019 (SP-053) | 🔵 Backlog |
 | T-0206 | Barriers on structural operations | EP-019 (SP-053) | 🔵 Backlog |
-| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | EP-019 (SP-054) | 🔵 Backlog |
-| T-0208 | Capacity/eviction + history settings + Project Settings row | EP-019 (SP-054) | 🔵 Backlog |
-| T-0209 | Session-boundary warning popup | EP-019 (SP-054) | 🔵 Backlog |
+| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | EP-019 (SP-054) | ✅ Verified |
+| T-0208 | Capacity/eviction + history settings + Project Settings row | EP-019 (SP-054) | ✅ Verified |
+| T-0209 | Session-boundary warning popup | EP-019 (SP-054) | ✅ Verified |
 | T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | 🔵 Backlog |
 | T-0211 | Inline fork popover | EP-019 (SP-055) | 🔵 Backlog |
 | T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | 🔵 Backlog |

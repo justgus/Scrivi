@@ -43,26 +43,26 @@ Currently: **1 closed issue**
 
 Currently: **2 backlogged issues**
 
-| Issue | Title | Severity |
-| ----- | ----- | -------- |
-| I-0017 | Window maximized state not restored on app relaunch | Medium |
-| I-0018 | Scene Navigator shows no selection on app load | Low |
+| Issue | Title | Severity | Status |
+| ----- | ----- | -------- | ------ |
+| I-0017 | Window maximized state not restored on app relaunch | Medium | 🔴 Open |
+| I-0018 | Scene Navigator shows no selection on app load | Low | 🔴 Open |
 
 See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 57
-- **Verified:** 53 ✅ (I-0001–I-0015, I-0020–I-0057 except backlog/superseded; I-0016 superseded; I-0017–I-0018 backlog)
+- **Total Issues:** 58
+- **Verified:** 54 ✅ (I-0001–I-0015, I-0020–I-0058 except backlog/superseded; I-0016 superseded; I-0017–I-0018 backlog)
 - **Active:** 0
 - **Open (backlog):** 2 🔴 (I-0017, I-0018)
 - **Closed (not verified):** 1 ⚪ (I-0019 — superseded by EP-019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0058
+- **Next available:** I-0059
 
 ---
 
-*Last Updated: 2026-07-06 (I-0019 closed without verification — OBE/superseded by EP-019, user-approved; first entry in `Closed/`. Earlier: 2026-07-01 I-0057 Verified — Spotlight Layer 2 descoped to the in-app donor.)*
+*Last Updated: 2026-07-09 (I-0058 Verified — user-approved; full-fidelity resume fix confirmed working (last-edited scene + cursor + scroll). Filed and fixed same day: Swift open path discarded `OpenProjectResult.activeScene` and the C ABI dropped restored selection/scroll; fix widened the C ABI both directions and wired the Swift loader/editor. Regression against SP-049 R4. Earlier: 2026-07-06 I-0019 closed without verification — OBE/superseded by EP-019.)*
 
 
 [1]:	./ER-Documentation.md

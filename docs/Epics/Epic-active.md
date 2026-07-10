@@ -2,7 +2,7 @@
 
 ## EP-019: Custom Undo/Redo History & Multiple Copy Buffers
 
-**Status:** 🟡 Active (design ✅ approved 2026-07-06; SP-051/SP-052/SP-053 ✅ closed — **AC1 delivered & verified** 2026-07-07. Next: SP-054, Planning)
+**Status:** 🟡 Active (design ✅ approved 2026-07-06; SP-051/SP-052/SP-053 ✅ closed — **AC1 delivered & verified** 2026-07-07; **SP-054 ✅ closed 2026-07-09 — AC3 + AC5 delivered & verified** (AC5 branch-purge clauses deferred to SP-055). Next: SP-055, Planning)
 **Goal:** Replace the broken native undo (I-0019) with a from-scratch, sentence-granular undo/redo system backed by a tree-structured, per-project, on-disk persistent history (cross-session undo with session-boundary warning; branching with primary-line selection; capacity eviction and stale-branch purge), plus vim/emacs-register-style multiple copy buffers whose pastes are history events.
 **Design:** `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (v0.1 ✅ Approved baseline 2026-07-06 — trades ruled: T1=B, T2=A+refinements, T3=C, T4=B+D+A, T5=C, T6=A)
 **Supersedes:** I-0019 (Undo/Redo have no effect — ⚪ Closed 2026-07-06, OBE/superseded by this Epic, user-approved; see `docs/Issues/Closed/Issue-closed-0019.md`. AC1 carries the requirement; delivery target SP-053. Re-open I-0019 if EP-019 is cancelled or AC1 descoped.)
@@ -14,9 +14,9 @@
 
 - [x] AC1 — ⌘Z/⇧⌘Z work in the macOS manuscript editor: repeated ⌘Z walks back one history event at a time; ⇧⌘Z re-applies (**delivers the fix formerly tracked as I-0019**). ✅ **Verified live 2026-07-07** (SP-053; `Tasks/Verified/Task-verified-0204-0206.md`).
 - [ ] AC2 — Events commit exactly per the design's event model (`.` `!` `?`, Return, cursor-move-with-pending-changes, paste/cut, scene switch, flush); cursor moves/newlines without text changes produce **no** event.
-- [ ] AC3 — History persists across quit/relaunch; undoing past the session boundary shows a warning (once per crossing) before proceeding.
+- [x] AC3 — History persists across quit/relaunch; undoing past the session boundary shows a warning (once per crossing) before proceeding. ✅ **Verified 2026-07-09** (SP-054; `Tasks/Verified/Task-verified-0207-0209.md`).
 - [ ] AC4 — Undo-then-type creates a branch; the new line becomes primary; the old branch is selectable at the fork and becomes primary when selected; abandoned text fully restorable.
-- [ ] AC5 — History capacity configurable (per Trade T1); oldest events fall off at capacity; branches auto-purge when their branch point ages off; stale branches detectable and purgeable with user confirmation.
+- [x] AC5 — History capacity configurable (per Trade T1); oldest events fall off at capacity; branches auto-purge when their branch point ages off; stale branches detectable and purgeable with user confirmation. ✅ **Verified 2026-07-09** (SP-054 — capacity config + linear eviction of the root→current path; `Tasks/Verified/Task-verified-0207-0209.md`). ⚠️ **Branch-aware auto-purge + stale-branch detection/confirmation land in SP-055** (no branching exists yet); re-confirm the branch clauses at SP-055 close.
 - [ ] AC6 — Copy buffers: ≥ 2 buffers loadable and pasteable at multiple locations (design CONOPS §9.a); each paste is one undo step; system pasteboard unaffected; buffers persist across relaunch.
 - [ ] AC7 — Structural operations record barriers; undo stops at a barrier with a clear notice; no text corruption.
 - [ ] AC8 — No regression: auto-save, scene navigation, structure ops, external-change scan, Git snapshots unchanged; backend `ctest` + interop suites green.
@@ -28,7 +28,7 @@
 | SP-051 | Design sign-off, ⌘Z-routing spike, schema spec | ✅ Closed (user-approved) | 2026-07-06 – 2026-07-06 |
 | SP-052 | Linear history engine core (C++) + C ABI + Swift wrappers | ✅ Closed (user-approved) | 2026-07-07 – 2026-07-07 |
 | SP-053 | In-session undo/redo on macOS (capture, apply, barriers) — AC1 (ex-I-0019) delivered here | ✅ Closed (user-approved) | 2026-07-07 – 2026-07-07 |
-| SP-054 | Persistence, sessions, capacity, settings | 🔵 Planning | — |
+| SP-054 | Persistence, sessions, capacity, settings | ✅ Closed (user-approved) — AC3 + AC5 | 2026-07-07 – 2026-07-09 |
 | SP-055 | Branching — tree ops, fork popover, purge | 🔵 Planning | — |
 | SP-056 | Multiple copy buffers | 🔵 Planning | — |
 | SP-057 | History panel, performance fixtures, verification & Epic close | 🔵 Planning | — |
@@ -46,9 +46,9 @@
 | T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
 | T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
 | T-0206 | Barriers on structural operations | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
-| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | SP-054 | 🟡 Implemented — Not Verified (2026-07-07) |
-| T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | SP-054 | 🟡 Implemented — Not Verified (2026-07-07; linear eviction, full in SP-055) |
-| T-0209 | Session-boundary warning popup | SP-054 | 🟡 Implemented — Not Verified (2026-07-07) |
+| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | SP-054 | ✅ Verified (2026-07-09) |
+| T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | SP-054 | ✅ Verified (2026-07-09; linear eviction, full in SP-055) |
+| T-0209 | Session-boundary warning popup | SP-054 | ✅ Verified (2026-07-09) |
 | T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge on eviction | SP-055 | 🔵 Backlog |
 | T-0211 | Inline fork popover (T2 core interaction) | SP-055 | 🔵 Backlog |
 | T-0212 | Stale-branch detection + user-confirmed purge | SP-055 | 🔵 Backlog |

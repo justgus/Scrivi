@@ -5,7 +5,7 @@ table and stay in this file as full entries only until the next batch archive (I
 
 No Issues are currently awaiting verification.
 
-**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), and I-0057 (Verified 2026-07-01) — full entries retained below until the I-0051–I-0060 batch is archived.
+**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
 
 ---
 

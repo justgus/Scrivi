@@ -83,6 +83,14 @@ struct ManuscriptTextView: NSViewRepresentable {
             coordinator.rebuildStorage(tv, segments: loader.segments)
         }
 
+        // Resume the last-session writing surface once, after storage is built (I-0058).
+        // The loader was seeded with the restored scene (viewportSceneID) and scene-local
+        // cursor offset by loadAll(); place the cursor there and scroll to it.
+        if !coordinator.didRestoreSurface {
+            coordinator.didRestoreSurface = true
+            coordinator.restoreWritingSurface(in: tv)
+        }
+
         if let targetID = navigateToSceneID {
             coordinator.navigateToScene(targetID, in: tv)
             // Reset the binding after the current update pass completes —
@@ -118,6 +126,10 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // Tracks which segment index the cursor was in at last check.
         private var lastCursorSegmentIndex: Int = 0
+
+        // Set true after the first updateNSView restores the last-session writing
+        // surface (I-0058), so resume runs exactly once per editor lifetime.
+        var didRestoreSurface: Bool = false
 
         // Set by textDidChange so the immediately-following selection-change
         // callback (fired on the same run loop turn) does not treat an edit as a
@@ -298,6 +310,14 @@ struct ManuscriptTextView: NSViewRepresentable {
         @objc func scrollDidChange(_ notification: Notification) {
             guard let clipView = notification.object as? NSClipView,
                   let tv = textView else { return }
+
+            // Record the document scroll fraction so the next save persists it (I-0058).
+            if let docView = clipView.documentView {
+                let scrollable = max(0, docView.bounds.height - clipView.bounds.height)
+                let fraction = scrollable > 0 ? Double(clipView.bounds.minY / scrollable) : 0
+                parent.loader.updateScrollFraction(fraction)
+            }
+
             // Use the center of the visible area as the anchor so the scene only
             // changes when a boundary has clearly passed the midpoint of the viewport.
             let centerY = clipView.bounds.minY + clipView.bounds.height / 2
@@ -524,6 +544,13 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             let manuscriptPos = storageOffsetToManuscriptPosition(loc)
             parent.loader.updateCursorPosition(manuscriptPos)
+
+            // Record the scene-local cursor offset so the next save persists it as the
+            // restored selection (I-0058). Boundaries were recomputed above via segmentIndex.
+            if sceneBoundaries.indices.contains(segIdx) {
+                let sceneLocalOffset = max(0, loc - sceneBoundaries[segIdx].location)
+                parent.loader.updateSceneCursorOffset(sceneLocalOffset)
+            }
         }
 
         // MARK: — Scene/Chapter creation and split/merge (called from ManuscriptNSTextView)
@@ -967,6 +994,31 @@ struct ManuscriptTextView: NSViewRepresentable {
             newBoundaries.append(NSRange(location: segStart, length: fullLen - segStart))
 
             sceneBoundaries = newBoundaries
+        }
+
+        // Resume the writing surface restored from the last session (I-0058).
+        // Places the cursor at the restored scene's storage offset + scene-local
+        // selection offset, and scrolls it into view. No-op when nothing was restored
+        // (fresh open at scene 0 — the existing scroll observer handles highlight).
+        func restoreWritingSurface(in tv: NSTextView) {
+            let loader = parent.loader
+            guard let sceneID = loader.viewportSceneID,
+                  let sceneStorageStart = loader.storageOffset(forSceneID: sceneID) else { return }
+
+            // Clamp the scene-local offset to the scene's text length so a shrunken
+            // scene (edited externally) can't place the cursor past its bounds.
+            let localOffset = loader.restoredSelectionOffset ?? 0
+            let sceneLen = loader.segments.first(where: { $0.sceneID == sceneID })?.text.count ?? 0
+            let clampedLocal = min(max(0, localOffset), sceneLen)
+            let target = sceneStorageStart + clampedLocal
+
+            recomputeBoundaries(tv)
+            placeCursorAt(target, in: tv)
+            loader.setViewportScene(sceneID)
+
+            // Consume the one-shot restore state so it can't reapply on a later rebuild.
+            loader.restoredSelectionOffset = nil
+            loader.restoredScrollFraction = nil
         }
 
         // Navigate to a scene by ID — scrolls to that scene without moving the cursor.

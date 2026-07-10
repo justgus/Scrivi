@@ -90,7 +90,14 @@ import os
             projectID: result.projectID,
             allScenes: result.scenes
         )
-        loader.loadAll()
+        // Resume at the last-edited scene / cursor / scroll from the previous session
+        // (I-0058). The backend openProject flow returns these; wire them into the loader
+        // so the editor reopens where the writer left off instead of at the first scene.
+        loader.loadAll(
+            activeSceneID: result.activeScene?.sceneID,
+            restoredSelection: result.restored?.anchor,
+            restoredScroll: result.restored?.scroll
+        )
         viewportLoader = loader
         projectPreferences = ProjectPreferences(projectID: result.projectID)
 

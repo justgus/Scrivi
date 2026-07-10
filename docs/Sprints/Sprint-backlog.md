@@ -6,7 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 🔵 Planning |
 | SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 🔵 Planning |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning |
@@ -17,23 +16,7 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 > **SP-051 activated 2026-07-06** (design signed off at activation) — moved to `Sprint-active.md`.
 > **SP-052 activated 2026-07-07**, ✅ **closed 2026-07-07** — `Closed/Sprint-SP-052.md`.
 > **SP-053 activated 2026-07-07**, ✅ **closed 2026-07-07** — `Closed/Sprint-SP-053.md` (EP-019 AC1 delivered & verified).
-
----
-
-## SP-054: Undo/Redo — persistence, sessions, capacity, settings
-
-**Status:** 🔵 Planning
-**Epic:** EP-019
-**Goal:** History survives quit/relaunch; session-boundary warning works; capacity + eviction enforced; settings exposed per Trade T1.
-
-### Assigned Tasks
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | High | 🔵 Backlog |
-| T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | Medium | 🔵 Backlog |
-| T-0209 | Session-boundary warning popup | Medium | 🔵 Backlog |
-
-**Exit criteria:** quit/relaunch then undo yesterday's edit with the boundary warning shown; kill -9 mid-write loses at most the last event; external scene edit produces an `externalChange` barrier, never a manuscript change.
+> **SP-054 activated 2026-07-07** — moved to `Sprint-active.md`; all tasks ✅ Verified 2026-07-09, ready to close pending user approval.
 
 ---
 

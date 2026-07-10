@@ -54,6 +54,9 @@ const char* scrivi_save_scene(
     const char* sceneMetadataPath,
     const char* sceneContentPath,
     const char* markdown,
+    long long   selectionAnchor,
+    long long   selectionFocus,
+    double      scroll,
     const char* identityID,
     const char* personaID,
     const char* displayName);

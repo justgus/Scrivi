@@ -101,6 +101,9 @@ public final class ScriviEngine: @unchecked Sendable {
         sceneMetadataPath: String,
         sceneContentPath: String,
         markdown: String,
+        selectionAnchor: Int = 0,
+        selectionFocus: Int = 0,
+        scroll: Double = 0,
         authorshipRef: AuthorshipRef
     ) throws -> SaveSceneResult {
         let raw = projectID.withCString { pid in
@@ -115,7 +118,11 @@ public final class ScriviEngine: @unchecked Sendable {
                                             authorshipRef.displayName.withCString { dn in
                                                 scrivi_save_scene(
                                                     pid, prp, asr, sid, smp, scp,
-                                                    md, iid, perid, dn
+                                                    md,
+                                                    Int64(selectionAnchor),
+                                                    Int64(selectionFocus),
+                                                    scroll,
+                                                    iid, perid, dn
                                                 )
                                             }
                                         }
@@ -941,7 +948,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func createProject(projectRootPath: String, appSupportRoot: String, title: String, slug: String, authorshipRef: AuthorshipRef) throws -> CreateProjectResult { try unavailable() }
     public func openProject(projectRootPath: String, appSupportRoot: String, identityID: String = "") throws -> OpenProjectResult { try unavailable() }
     public func openScene(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
-    public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
+    public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
     public func applyRepair(issueID: String, projectRootPath: String, appSupportRoot: String, actionKind: String, targetPath: String = "", authorshipRef: AuthorshipRef) throws -> ApplyRepairResult { try unavailable() }
     public func enableGitSnapshots(projectRootPath: String, authorshipRef: AuthorshipRef, initialSnapshotLabel: String = "Initial project") throws -> EnableGitResult { try unavailable() }
@@ -1045,6 +1052,24 @@ public struct ActiveSceneResult: Decodable, Sendable {
     public let markdown:     String
 }
 
+// Restored writing-surface position returned by openProject (I-0058).
+// `anchor`/`focus` are scene-local cursor offsets within the active scene;
+// `scroll` is a document scroll fraction (0.0–1.0). All default to 0.
+public struct RestoredSurfaceResult: Decodable, Sendable {
+    public let anchor: Int
+    public let focus:  Int
+    public let scroll: Double
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        anchor = try c.decodeIfPresent(Int.self,    forKey: .anchor) ?? 0
+        focus  = try c.decodeIfPresent(Int.self,    forKey: .focus)  ?? 0
+        scroll = try c.decodeIfPresent(Double.self, forKey: .scroll) ?? 0
+    }
+
+    private enum CodingKeys: String, CodingKey { case anchor, focus, scroll }
+}
+
 public struct SceneInfo: Decodable, Sendable {
     public let sceneID:              String
     public let chapterID:            String
@@ -1091,6 +1116,7 @@ public struct OpenProjectResult: Decodable, Sendable {
     public let projectID:    String
     public let mode:         String
     public let activeScene:  ActiveSceneResult?
+    public let restored:     RestoredSurfaceResult?
     public let scenes:       [SceneInfo]
     public let repairIssues: [RepairIssueResult]
 
@@ -1099,12 +1125,13 @@ public struct OpenProjectResult: Decodable, Sendable {
         projectID    = try c.decode(String.self, forKey: .projectID)
         mode         = try c.decodeIfPresent(String.self, forKey: .mode) ?? "ready"
         activeScene  = try c.decodeIfPresent(ActiveSceneResult.self, forKey: .activeScene)
+        restored     = try c.decodeIfPresent(RestoredSurfaceResult.self, forKey: .restored)
         scenes       = try c.decodeIfPresent([SceneInfo].self, forKey: .scenes) ?? []
         repairIssues = try c.decodeIfPresent([RepairIssueResult].self, forKey: .repairIssues) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case projectID, mode, activeScene, scenes, repairIssues
+        case projectID, mode, activeScene, restored, scenes, repairIssues
     }
 }
 

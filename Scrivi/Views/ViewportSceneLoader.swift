@@ -58,6 +58,19 @@ struct SceneSegment: Identifiable {
     // @ObservationIgnored so cursor movement does not trigger SwiftUI view updates.
     @ObservationIgnored private(set) var manuscriptCursorPosition: Int = 0
 
+    // Scene-local cursor offset within the current scene (I-0058). Persisted on
+    // save as WorkspaceState selection so the cursor is restored on next open.
+    @ObservationIgnored private(set) var currentSceneCursorOffset: Int = 0
+
+    // Document scroll fraction (0.0–1.0), updated on scroll (I-0058). Persisted on
+    // save as WorkspaceState scroll so scroll position is restored on next open.
+    @ObservationIgnored private(set) var scrollFraction: Double = 0
+
+    // Restored writing surface from the last session (I-0058), consumed once by the
+    // editor on first appear to place the cursor and scroll. nil after consumption.
+    @ObservationIgnored var restoredSelectionOffset: Int?
+    @ObservationIgnored var restoredScrollFraction: Double?
+
     // Set by ManuscriptTextView.Coordinator.makeNSView; used to forward takeFocus calls.
     var takeFocusHandler: (() -> Void)?
 
@@ -84,17 +97,42 @@ struct SceneSegment: Identifiable {
     }
 
     // Load all scenes into memory at once. Called once on project open.
-    func loadAll() {
+    //
+    // `activeSceneID` (I-0058) is the scene the writer last edited, as returned by the
+    // backend openProject flow. When present and still in the manuscript, the loader
+    // resumes there: currentIndex/cursorSceneID/viewportSceneID all point at it, so the
+    // Navigator highlights it and the editor scrolls to it on first appear. When nil or
+    // stale, behaviour is unchanged — resume at the first scene, no pre-selection.
+    //
+    // `restoredSelectionOffset`/`restoredScrollFraction` are the scene-local cursor
+    // offset and document scroll fraction from the last session; the editor consumes
+    // them once on appear to place the cursor and scroll.
+    func loadAll(
+        activeSceneID: String? = nil,
+        restoredSelection: Int? = nil,
+        restoredScroll: Double? = nil
+    ) {
         segments.removeAll()
         for i in allScenes.indices {
             loadScene(at: i, insertAt: .end)
         }
-        currentIndex = 0
         rebuildSceneStartMap()
-        if let firstID = segments.first?.sceneID {
-            cursorSceneID = firstID
-            // viewportSceneID intentionally left nil — no scene is pre-selected
-            // in the Navigator on load. The scroll observer sets it on first scroll.
+
+        // Resume at the last-edited scene when the backend supplied one and it still exists.
+        if let activeSceneID,
+           let idx = segments.firstIndex(where: { $0.sceneID == activeSceneID }) {
+            currentIndex = idx
+            cursorSceneID = activeSceneID
+            viewportSceneID = activeSceneID
+            restoredSelectionOffset = restoredSelection
+            restoredScrollFraction = restoredScroll
+        } else {
+            currentIndex = 0
+            if let firstID = segments.first?.sceneID {
+                cursorSceneID = firstID
+                // viewportSceneID intentionally left nil — no scene is pre-selected
+                // in the Navigator on load. The scroll observer sets it on first scroll.
+            }
         }
     }
 
@@ -124,9 +162,14 @@ struct SceneSegment: Identifiable {
     }
 
     // Save the segment at `index` without removing it from memory.
+    //
+    // Only the *current* scene's save carries the live cursor offset + scroll fraction
+    // (I-0058); the backend stamps WorkspaceState.lastWritingSurface on every save, so
+    // the current scene must be the last write for resume to land on it (see saveAllDirty).
     func saveScene(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) async {
         guard segments.indices.contains(index), segments[index].isDirty else { return }
         let seg = segments[index]
+        let isCurrent = index == currentIndex
         _ = try? engine.saveScene(
             projectID: projectID,
             projectRootPath: projectRootPath,
@@ -135,6 +178,9 @@ struct SceneSegment: Identifiable {
             sceneMetadataPath: seg.metadataPath,
             sceneContentPath: seg.contentPath,
             markdown: seg.text,
+            selectionAnchor: isCurrent ? currentSceneCursorOffset : 0,
+            selectionFocus: isCurrent ? currentSceneCursorOffset : 0,
+            scroll: isCurrent ? scrollFraction : 0,
             authorshipRef: ref
         )
         segments[index].isDirty = false
@@ -146,10 +192,44 @@ struct SceneSegment: Identifiable {
     }
 
     // Save all dirty segments (used on app resign to flush everything).
+    // The current scene is saved LAST so its writing-surface state (cursor + scroll)
+    // is the one the backend records as lastWritingSurface for next-session resume.
     func saveAllDirty(engine: ScriviEngine, ref: AuthorshipRef) async {
-        for i in segments.indices where segments[i].isDirty {
+        for i in segments.indices where segments[i].isDirty && i != currentIndex {
             await saveScene(at: i, engine: engine, ref: ref)
         }
+        await saveScene(at: currentIndex, engine: engine, ref: ref)
+        // Then stamp the scrolled-to scene as the resume point (I-0058 follow-up),
+        // so a scene the writer scrolled to but never edited still resumes correctly.
+        await stampWritingSurface(engine: engine, ref: ref)
+    }
+
+    // Record the scrolled-to (viewport) scene as the backend's lastWritingSurface, even
+    // when nothing is dirty (I-0058 follow-up). The backend stamps lastWritingSurface on
+    // every saveScene; this forces one final save of the viewport scene so resume lands
+    // on the scene the writer was *looking at*, not just the last one they edited.
+    //
+    // No-op when the viewport scene is the same as the cursor scene (already stamped by
+    // the current-scene save above) or when the viewport scene isn't loaded.
+    func stampWritingSurface(engine: ScriviEngine, ref: AuthorshipRef) async {
+        guard let vpID = viewportSceneID,
+              vpID != cursorSceneID,
+              let seg = segments.first(where: { $0.sceneID == vpID }) else { return }
+        // Scroll fraction is meaningful; the cursor isn't in this scene, so send offset 0
+        // (§9.3: "scene changed / cursor not here" ⇒ restore scene + place cursor safely).
+        _ = try? engine.saveScene(
+            projectID: projectID,
+            projectRootPath: projectRootPath,
+            appSupportRoot: appSupportRoot,
+            sceneID: seg.sceneID,
+            sceneMetadataPath: seg.metadataPath,
+            sceneContentPath: seg.contentPath,
+            markdown: seg.text,
+            selectionAnchor: 0,
+            selectionFocus: 0,
+            scroll: scrollFraction,
+            authorshipRef: ref
+        )
     }
 
     // Called by ManuscriptTextView.Coordinator.textViewDidChangeSelection.
@@ -157,6 +237,17 @@ struct SceneSegment: Identifiable {
     // via setCurrentIndex() and setHighlightedScene() from the coordinator.
     func updateCursorPosition(_ manuscriptPosition: Int) {
         manuscriptCursorPosition = manuscriptPosition
+    }
+
+    // Record the scene-local cursor offset within the current scene (I-0058).
+    // Sent as the WorkspaceState selection on the next save so it can be restored.
+    func updateSceneCursorOffset(_ offset: Int) {
+        currentSceneCursorOffset = max(0, offset)
+    }
+
+    // Record the current document scroll fraction (I-0058), sent on the next save.
+    func updateScrollFraction(_ fraction: Double) {
+        scrollFraction = min(max(fraction, 0), 1)
     }
 
     // Return the NSTextStorage offset for the start of a scene (separator chars included).
