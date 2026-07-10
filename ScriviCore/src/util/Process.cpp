@@ -14,7 +14,9 @@
 #else
   #include <sys/wait.h>
   #include <unistd.h>
-  #include <TargetConditionals.h>
+  #ifdef __APPLE__
+    #include <TargetConditionals.h>  // Apple-only; defines TARGET_OS_IPHONE (used below)
+  #endif
 #endif
 
 // iOS/iPadOS/visionOS (and the other embedded Apple platforms) sandbox out
