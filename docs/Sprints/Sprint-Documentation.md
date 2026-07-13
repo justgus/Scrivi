@@ -11,7 +11,10 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- _None._ SP-054 closed 2026-07-09 (user-approved; all exit criteria met — EP-019 AC3 + AC5). Next up: SP-055 (EP-019, Planning). See [Sprint-active.md](Sprint-active.md).
+- **SP-058** — `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI (EP-020) — 🟢 **Active** (activated 2026-07-13). See [Sprint-active.md](Sprint-active.md).
+
+SP-055 ✅ closed 2026-07-13 (user-approved). SP-056/SP-057 (EP-019 `[Apple]`) remain in Planning but are
+parked behind the deferred EP-019 — see Backlog.
 
 ## Sprint Backlog
 
@@ -19,13 +22,12 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 🔵 Planning |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **57 Sprints** (54 closed/cancelled + 3 in Planning) | Next available: **SP-058**
+Currently: **58 Sprints** (55 closed/cancelled + 1 active + 2 in Planning) | Next available: **SP-059**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -83,19 +85,20 @@ Currently: **57 Sprints** (54 closed/cancelled + 3 in Planning) | Next available
 | SP-052 | Undo/Redo — linear history engine core (C++) + C ABI + Swift wrappers | EP-019 | 2026-07-07 | 2026-07-07 | ✅ Closed |
 | SP-053 | Undo/Redo — in-session undo/redo on macOS (capture, apply, barriers) | EP-019 | 2026-07-07 | 2026-07-07 | ✅ Closed |
 | SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 2026-07-07 | 2026-07-09 | ✅ Closed |
-| SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | — | — | 🔵 Planning |
-| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | — | — | 🔵 Planning |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | — | — | 🔵 Planning |
+| SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 2026-07-10 | 2026-07-13 | ✅ Closed |
+| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
+| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
+| SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | — | 🟢 Active |
 
 ## Statistics
 
-- **Total Sprints:** 57
-- **Closed:** 53 ✅
-- **Active:** 0 🟡
-- **Planning:** 3 🔵 (SP-055–SP-057, EP-019)
+- **Total Sprints:** 58
+- **Closed:** 54 ✅
+- **Active:** 1 🟢 (SP-058, EP-020 `[Linux]`)
+- **Planning:** 2 🔵 (SP-056–SP-057, EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-09 (SP-054 closed with user approval — undo/redo persistence, capacity/settings, session-boundary warning all verified; EP-019 AC3 + AC5 delivered. Index also reconciled: SP-052/SP-053 marked Closed (2026-07-07) here — they had closed but the index still showed Planning. Remaining EP-019 sprints: SP-055–SP-057.)*
+*Last Updated: 2026-07-13 (SP-058 activated — first sprint of EP-020 `[Linux]`: Docker/VNC harness, Qt6 skeleton, ScriviBridge, hello-ScriviCore slice, CI (T-0218–T-0222). Earlier same day: SP-055 closed; EP-019 → backlog `[Apple]` (SP-056/057 parked); `[Linux]` Epic family EP-020–EP-026 created.)*

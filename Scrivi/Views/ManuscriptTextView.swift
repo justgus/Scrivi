@@ -141,6 +141,11 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         func takeFocus() { onTakeFocus?() }
 
+        // Inline fork popover shown when an undo/redo step lands on a fork
+        // (SP-055 / §10 T2, T-0211). Owned by the coordinator; anchored at the
+        // caret in the text view.
+        private let forkPopover = ForkPopoverController()
+
         init(_ parent: ManuscriptTextView) { self.parent = parent }
 
         // MARK: — History capture helpers (EP-019)
@@ -206,6 +211,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             guard step.moved, let change = step.changes.first,
                   let tv = textView, let storage = tv.textStorage else {
+                // A step that did not move (nothing left to undo/redo) still
+                // means we are no longer on the previous fork — dismiss it.
+                forkPopover.close()
                 capture.refreshCanState()
                 return
             }
@@ -260,11 +268,39 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             capture.refreshCanState()
 
+            // Fork popover (§10 T2, T-0211): if this step landed on a fork show
+            // the branch chooser at the caret; otherwise the writer has moved off
+            // any prior fork, so dismiss a lingering popover.
+            if let fork = step.forkAhead {
+                presentForkPopover(fork, in: tv)
+            } else {
+                forkPopover.close()
+            }
+
             // Session-boundary warning (§5, T-0209): the engine flags the first
             // undo that steps into a previous session's work (once per crossing).
             if step.crossedSessionBoundary {
                 presentSessionBoundaryNotice(boundaryTimestamp: step.boundaryTimestamp)
             }
+        }
+
+        // Shows the inline fork popover for `fork` at the caret. Selecting a
+        // branch re-primaries the fork (selectBranch) then redoes onto it;
+        // dismissing without a choice leaves the primary child in place (§10 T2).
+        private func presentForkPopover(_ fork: HistoryForkAhead, in tv: NSTextView) {
+            guard let _ = parent.session.historyCapture else { return }
+            forkPopover.show(
+                fork: fork,
+                in: tv,
+                onSelect: { [weak self] childEventID in
+                    guard let self, let capture = self.parent.session.historyCapture else { return }
+                    // Re-primary the fork, then walk forward onto the chosen
+                    // branch. redo() returns the step to apply just like a normal
+                    // redo; apply() also handles a possible nested fork ahead.
+                    guard capture.selectBranch(forkNodeID: fork.nodeID, childEventID: childEventID) else { return }
+                    self.apply(step: capture.redo(), fallbackMessage: nil)
+                },
+                onCancel: { /* leave the existing primary child in place */ })
         }
 
         // Warns that undo has stepped into a previous session's changes, showing
@@ -429,6 +465,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             // textDidChange is not a user edit — skip capture (still update the
             // loader below so in-memory text stays in sync).
             let isHistoryApply = parent.session.historyCapture?.isApplying ?? false
+            // A genuine keystroke commits the writer to the current branch, so
+            // any open fork popover must dismiss rather than obstruct (§10 T2).
+            if !isHistoryApply { forkPopover.close() }
             let loc = tv.selectedRange().location
 
             // Recompute boundaries from live storage — they shift with every keystroke.

@@ -12,19 +12,23 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — EP-019 (Custom Undo/Redo History & Multiple Copy Buffers), created and activated 2026-07-06; design v0.1 ✅ approved (trades T1–T6 ruled); SP-051 active.
+Currently: **1 Active Epic** — EP-020 `[Linux]` (App Foundation — Qt/QML toolchain, bridge & shell), created & activated 2026-07-13; SP-058 active.
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **0 Proposed Epics**
+Currently: **7 Backlog Epics** —
+- EP-019 `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers), 🔴 Deferred 2026-07-13; partially delivered (AC1/AC3/AC4/AC5 verified; AC2/AC6/AC7/AC8 remaining); resume at SP-056.
+- EP-021–EP-026 `[Linux]` (Ubuntu Qt/QML app family — lifecycle, writing surface, structure, inspector, timeline, undo/menus/settings), 🔵 Draft 2026-07-13; promoted to Active one at a time behind EP-020.
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **19 Epics** | Next available: **EP-020**
+Currently: **26 Epics** | Next available: **EP-027**
+Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
+Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -46,18 +50,25 @@ Currently: **19 Epics** | Next available: **EP-020**
 | EP-016 | Timeline Panel — Full Implementation | ✅ Closed | 2026-06-11 | 2026-06-23 |
 | EP-017 | Spotlight Search Integration | ✅ Closed | 2026-06-23 | 2026-07-06 |
 | EP-018 | Per-Window / Per-Project Window Model | ✅ Closed | 2026-06-24 | 2026-06-25 |
-| EP-019 | Custom Undo/Redo History & Multiple Copy Buffers | 🟡 Active | 2026-07-06 | — |
+| EP-019 | `[Apple]` Custom Undo/Redo History & Multiple Copy Buffers | 🔴 Deferred (backlog) | 2026-07-06 | — |
+| EP-020 | `[Linux]` App Foundation — Qt/QML Toolchain, Bridge & Shell | 🟡 Active | 2026-07-13 | — |
+| EP-021 | `[Linux]` Project Lifecycle & Landing | 🔵 Draft (backlog) | — | — |
+| EP-022 | `[Linux]` Writing Surface & Scene Navigator | 🔵 Draft (backlog) | — | — |
+| EP-023 | `[Linux]` Manuscript Structure Editing | 🔵 Draft (backlog) | — | — |
+| EP-024 | `[Linux]` Scene Inspector Panel | 🔵 Draft (backlog) | — | — |
+| EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
+| EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
 
 ## Statistics
 
-- **Total Epics:** 19
+- **Total Epics:** 26
 - **Closed:** 18 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-019)
-- **Draft:** 0 🔵
-- **Deferred:** 0 🔴
+- **Active:** 1 🟡 (EP-020 `[Linux]`)
+- **Draft:** 6 🔵 (EP-021–EP-026 `[Linux]`)
+- **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-06 (EP-019 activated — design v0.1 approved by user, all six trades ruled; SP-051 active. Earlier same day: EP-019 created as Draft; EP-017 closed with user approval.)*
+*Last Updated: 2026-07-13 (Codebase-tag convention added to Epic-GUIDELINES.md; EP-019 retro-tagged `[Apple]`. NEW `[Linux]` app Epic family: EP-020 (Foundation) Active + SP-058; EP-021–EP-026 Draft in backlog — Ubuntu Qt/QML port for the no-Mac alpha tester. Android gate restated Linux-relative in `platforms/android/README.md`.)*

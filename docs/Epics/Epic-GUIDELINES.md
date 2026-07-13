@@ -38,6 +38,30 @@ Epics are numbered sequentially: `EP-001`, `EP-002`, `EP-003`, etc.
 
 Each Epic has a short descriptive title summarizing the capability it delivers.
 
+## Codebase Tag (required)
+
+Every Epic declares the **codebase it primarily serves** with a tag in its title, e.g.
+`## EP-022: [Linux] Writing Surface & Scene Navigator`. The same tag appears in the Epic index table
+(`Epic-Documentation.md`).
+
+| Tag | Codebase |
+| --- | -------- |
+| `[ScriviCore]` | C++23 backend / C ABI (`ScriviCore/`, `scrivi.h`) |
+| `[Apple]` | SwiftUI/AppKit macOS + iOS/iPadOS/visionOS app (`Scrivi/`) |
+| `[Linux]` | Qt/QML Ubuntu app (`platforms/linux/`) |
+| `[Windows]` | Qt/QML Windows app (`platforms/windows/`) |
+| `[Cross]` | Genuinely spans multiple codebases |
+
+**Rules:**
+- Pick the codebase where **most** of the Epic's work lands — that is its home tag. Most Epics have a
+  clear home even if they touch the C ABI incidentally (e.g. a Linux screen that needs one new
+  `scrivi_*` endpoint is still `[Linux]`; the endpoint is a Task with a note).
+- Reserve `[Cross]` for Epics whose work is genuinely and substantially split across codebases — use it
+  sparingly. When in doubt, pick the primary codebase and note the secondary work in Scope Notes.
+- A capability delivered on multiple platforms is **multiple Epics**, one per codebase (e.g. the macOS
+  timeline is EP-016 `[Apple]`; the Linux timeline is its own `[Linux]` Epic), not one `[Cross]` Epic —
+  this keeps each Epic's acceptance criteria verifiable on a single platform.
+
 ## Defining an Epic
 
 Before marking an Epic as Active:

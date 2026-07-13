@@ -6,7 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 🔵 Planning |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning |
 
@@ -16,24 +15,9 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 > **SP-051 activated 2026-07-06** (design signed off at activation) — moved to `Sprint-active.md`.
 > **SP-052 activated 2026-07-07**, ✅ **closed 2026-07-07** — `Closed/Sprint-SP-052.md`.
 > **SP-053 activated 2026-07-07**, ✅ **closed 2026-07-07** — `Closed/Sprint-SP-053.md` (EP-019 AC1 delivered & verified).
-> **SP-054 activated 2026-07-07** — moved to `Sprint-active.md`; all tasks ✅ Verified 2026-07-09, ready to close pending user approval.
-
----
-
-## SP-055: Undo/Redo — branching: tree ops, fork popover, purge
-
-**Status:** 🔵 Planning
-**Epic:** EP-019
-**Goal:** Full tree mechanics per the design (§5) with the inline fork popover (Trade T2 core interaction).
-
-### Assigned Tasks
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge on eviction | High | 🔵 Backlog |
-| T-0211 | Inline fork popover (T2) | High | 🔵 Backlog |
-| T-0212 | Stale-branch detection + user-confirmed purge | Medium | 🔵 Backlog |
-
-**Exit criteria:** undo-type-fork-reselect scenario verifiable end-to-end; abandoned branch fully restorable and re-primaried; auto-purge on eviction covered by unit tests.
+> **SP-054 activated 2026-07-07**, ✅ **closed 2026-07-09** — `Closed/Sprint-SP-054.md` (EP-019 AC3 + AC5 delivered & verified).
+> **SP-055 activated 2026-07-10**, ✅ **closed 2026-07-13** — `Closed/Sprint-SP-055.md` (EP-019 AC4 + AC5's deferred branch clauses delivered & verified).
+> **SP-056/SP-057 parked 2026-07-13** — EP-019 `[Apple]` was deferred to the Epic backlog; these sprints remain 🔵 Planning but are **not** next-up. The active line of work is now the `[Linux]` app (**SP-058**, EP-020) — see `Sprint-active.md`.
 
 ---
 
@@ -70,4 +54,4 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 
 ---
 
-*Last Updated: 2026-07-07 (SP-053 closed with user approval — `Closed/Sprint-SP-053.md` (EP-019 AC1 delivered & verified). SP-054 (persistence) is next in Planning. SP-054–SP-057 remain in Planning.)*
+*Last Updated: 2026-07-13 (SP-055 closed with user approval — `Closed/Sprint-SP-055.md` (EP-019 AC4 + AC5's deferred branch clauses delivered & verified). SP-056 (copy buffers) is next in Planning. SP-056–SP-057 remain in Planning.)*

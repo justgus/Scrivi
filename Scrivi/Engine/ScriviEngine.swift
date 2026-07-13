@@ -875,6 +875,41 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // Re-primaries a fork so a subsequent redo walks `childEventID`'s branch
+    // (SP-055 / §5, §7). Does not move the pointer — the caller redoes afterwards.
+    @discardableResult
+    public func historySelectBranch(projectRootPath: String, forkNodeID: String,
+                                    childEventID: String) throws -> HistorySelectBranchResult {
+        let raw = projectRootPath.withCString { prp in
+            forkNodeID.withCString { fork in
+                childEventID.withCString { child in
+                    scrivi_history_select_branch(prp, fork, child)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    // Lists stale branches — non-primary subtrees older than the project's
+    // staleBranchDays setting (SP-055 / §5, T-0212). The purge flow presents these
+    // for user confirmation.
+    public func historyListStaleBranches(projectRootPath: String) throws -> HistoryStaleBranchesResult {
+        let raw = projectRootPath.withCString { scrivi_history_list_stale_branches($0) }
+        return try decodeC(raw)
+    }
+
+    // Purges a stale branch subtree after user confirmation (SP-055 / §5, T-0212).
+    // Rejects (ok=false) the root or any node on the root→current path.
+    @discardableResult
+    public func historyPurgeBranch(projectRootPath: String, branchRootEventID: String) throws -> HistoryPurgeResult {
+        let raw = projectRootPath.withCString { prp in
+            branchRootEventID.withCString { branch in
+                scrivi_history_purge_branch(prp, branch)
+            }
+        }
+        return try decodeC(raw)
+    }
+
     @discardableResult
     public func historyValidateScene(projectRootPath: String, sceneID: String, currentDiskText: String) throws -> HistoryValidateResult {
         let raw = projectRootPath.withCString { prp in
@@ -1002,6 +1037,11 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "") throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    @discardableResult
+    public func historySelectBranch(projectRootPath: String, forkNodeID: String, childEventID: String) throws -> HistorySelectBranchResult { try unavailable() }
+    public func historyListStaleBranches(projectRootPath: String) throws -> HistoryStaleBranchesResult { try unavailable() }
+    @discardableResult
+    public func historyPurgeBranch(projectRootPath: String, branchRootEventID: String) throws -> HistoryPurgeResult { try unavailable() }
     @discardableResult
     public func historyValidateScene(projectRootPath: String, sceneID: String, currentDiskText: String) throws -> HistoryValidateResult { try unavailable() }
     public func historyGetSettings(projectRootPath: String) throws -> HistorySettingsResult { try unavailable() }
@@ -1543,6 +1583,9 @@ public struct HistoryStepResult: Decodable, Sendable {
     public let crossedSessionBoundary: Bool
     public let boundaryTimestamp:      String?
     public let stoppedAtBarrier:       HistoryBarrierStop?
+    // Present only when this step landed on a fork (a node with >= 2 children);
+    // drives the inline fork popover (SP-055 / §10 T2). Nil otherwise.
+    public let forkAhead:              HistoryForkAhead?
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -1554,12 +1597,64 @@ public struct HistoryStepResult: Decodable, Sendable {
         crossedSessionBoundary = try c.decodeIfPresent(Bool.self,   forKey: .crossedSessionBoundary) ?? false
         boundaryTimestamp      = try c.decodeIfPresent(String.self, forKey: .boundaryTimestamp)
         stoppedAtBarrier       = try c.decodeIfPresent(HistoryBarrierStop.self, forKey: .stoppedAtBarrier)
+        forkAhead              = try c.decodeIfPresent(HistoryForkAhead.self, forKey: .forkAhead)
     }
 
     private enum CodingKeys: String, CodingKey {
         case moved, nodeID, canUndo, canRedo, changes,
-             crossedSessionBoundary, boundaryTimestamp, stoppedAtBarrier
+             crossedSessionBoundary, boundaryTimestamp, stoppedAtBarrier, forkAhead
     }
+}
+
+// The fork the current step landed on: the fork node plus its child branches,
+// each a candidate the writer can redo into (SP-055 / §10 T2).
+public struct HistoryForkAhead: Decodable, Sendable {
+    public let nodeID:   String
+    public let children: [HistoryForkChild]
+}
+
+// One branch of a fork, as offered in the fork popover.
+public struct HistoryForkChild: Decodable, Sendable {
+    public let eventID:   String
+    public let preview:   String
+    public let timestamp: String
+    public let isPrimary: Bool
+}
+
+public struct HistorySelectBranchResult: Decodable, Sendable {
+    public let ok:           Bool
+    public let forkNodeID:   String
+    public let childEventID: String
+    public let canRedo:      Bool
+}
+
+// One stale branch offered for user-confirmed purge (§5, T-0212).
+public struct HistoryStaleBranch: Decodable, Sendable {
+    public let branchRootEventID: String
+    public let forkNodeID:        String
+    public let preview:           String
+    public let tipTimestamp:      String
+    public let nodeCount:         Int
+}
+
+public struct HistoryStaleBranchesResult: Decodable, Sendable {
+    public let staleBranchDays: Int
+    public let branches:        [HistoryStaleBranch]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        staleBranchDays = try c.decodeIfPresent(Int.self, forKey: .staleBranchDays) ?? 0
+        branches        = try c.decodeIfPresent([HistoryStaleBranch].self, forKey: .branches) ?? []
+    }
+    private enum CodingKeys: String, CodingKey { case staleBranchDays, branches }
+}
+
+public struct HistoryPurgeResult: Decodable, Sendable {
+    public let ok:                Bool
+    public let branchRootEventID: String
+    public let purgedCount:       Int
+    public let canUndo:           Bool
+    public let canRedo:           Bool
 }
 
 public struct HistoryCloseResult: Decodable, Sendable {

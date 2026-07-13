@@ -1,78 +1,78 @@
 # Active Epics
 
-## EP-019: Custom Undo/Redo History & Multiple Copy Buffers
+## EP-020: [Linux] App Foundation — Qt/QML Toolchain, Bridge & App Shell
 
-**Status:** 🟡 Active (design ✅ approved 2026-07-06; SP-051/SP-052/SP-053 ✅ closed — **AC1 delivered & verified** 2026-07-07; **SP-054 ✅ closed 2026-07-09 — AC3 + AC5 delivered & verified** (AC5 branch-purge clauses deferred to SP-055). Next: SP-055, Planning)
-**Goal:** Replace the broken native undo (I-0019) with a from-scratch, sentence-granular undo/redo system backed by a tree-structured, per-project, on-disk persistent history (cross-session undo with session-boundary warning; branching with primary-line selection; capacity eviction and stale-branch purge), plus vim/emacs-register-style multiple copy buffers whose pastes are history events.
-**Design:** `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (v0.1 ✅ Approved baseline 2026-07-06 — trades ruled: T1=B, T2=A+refinements, T3=C, T4=B+D+A, T5=C, T6=A)
-**Supersedes:** I-0019 (Undo/Redo have no effect — ⚪ Closed 2026-07-06, OBE/superseded by this Epic, user-approved; see `docs/Issues/Closed/Issue-closed-0019.md`. AC1 carries the requirement; delivery target SP-053. Re-open I-0019 if EP-019 is cancelled or AC1 descoped.)
-**Date Created:** 2026-07-06
-**Target Close Date:** TBD (7 sprints)
+**Codebase:** `[Linux]` (Qt/QML Ubuntu app, `platforms/linux/`) — touches `[ScriviCore]` only via the
+existing C ABI (no core changes expected; any needed endpoint is a Task with a note).
+
+**Status:** 🟡 Active (created & activated 2026-07-13)
+**Goal:** A running, professional-feeling Qt6/QML Ubuntu app *shell* that links `libScriviCore.a`, calls
+ScriviCore through the existing plain-C ABI (`scrivi.h`) via a thin C++ `ScriviBridge`, and is
+build-and-run verifiable in a **Docker + Xvfb/VNC desktop** on the developer's Mac and green in CI. This
+Epic delivers the toolchain, the bridge pattern, the app-window shell, and a "hello ScriviCore" vertical
+slice — the working spine every subsequent `[Linux]` Epic builds screens onto. It does **not** deliver
+any real editing screen (those are EP-021+).
+
+**Strategy:** First of the `[Linux]` Epic family (EP-020–EP-026) that ports the macOS app's capabilities
+to Ubuntu for an alpha tester who has no Mac. Ubuntu chosen first because it is CI-verifiable via Docker.
+Qt/QML chosen per the approved architecture (`docs/Scrivi_Cpp24_Core_Repository_Skeleton_v0_2.md`,
+`platforms/linux/README.md`): a real native desktop app (explicitly **not** a web app, **not** an
+immediate-mode "toy" GUI), reusable later for the Windows `[Windows]` Epic family.
+
+**Design references:** `platforms/linux/README.md` (Qt/QML + CMake + direct C++ calls),
+`ScriviCore/include/scrivi/scrivi.h` (the 65-function C ABI the UI consumes),
+`docs/Scrivi_Apple_Wrapper_Design_v0_1.md` (the Swift `ScriviEngine` the QML `ScriviBridge` mirrors —
+same JSON-over-string boundary, no backend logic in the UI layer).
+
+**Date Created:** 2026-07-13
+**Target Close Date:** TBD
 **Actual Close Date:** —
 
 ### Acceptance Criteria
 
-- [x] AC1 — ⌘Z/⇧⌘Z work in the macOS manuscript editor: repeated ⌘Z walks back one history event at a time; ⇧⌘Z re-applies (**delivers the fix formerly tracked as I-0019**). ✅ **Verified live 2026-07-07** (SP-053; `Tasks/Verified/Task-verified-0204-0206.md`).
-- [ ] AC2 — Events commit exactly per the design's event model (`.` `!` `?`, Return, cursor-move-with-pending-changes, paste/cut, scene switch, flush); cursor moves/newlines without text changes produce **no** event.
-- [x] AC3 — History persists across quit/relaunch; undoing past the session boundary shows a warning (once per crossing) before proceeding. ✅ **Verified 2026-07-09** (SP-054; `Tasks/Verified/Task-verified-0207-0209.md`).
-- [ ] AC4 — Undo-then-type creates a branch; the new line becomes primary; the old branch is selectable at the fork and becomes primary when selected; abandoned text fully restorable.
-- [x] AC5 — History capacity configurable (per Trade T1); oldest events fall off at capacity; branches auto-purge when their branch point ages off; stale branches detectable and purgeable with user confirmation. ✅ **Verified 2026-07-09** (SP-054 — capacity config + linear eviction of the root→current path; `Tasks/Verified/Task-verified-0207-0209.md`). ⚠️ **Branch-aware auto-purge + stale-branch detection/confirmation land in SP-055** (no branching exists yet); re-confirm the branch clauses at SP-055 close.
-- [ ] AC6 — Copy buffers: ≥ 2 buffers loadable and pasteable at multiple locations (design CONOPS §9.a); each paste is one undo step; system pasteboard unaffected; buffers persist across relaunch.
-- [ ] AC7 — Structural operations record barriers; undo stops at a barrier with a clear notice; no text corruption.
-- [ ] AC8 — No regression: auto-save, scene navigation, structure ops, external-change scan, Git snapshots unchanged; backend `ctest` + interop suites green.
+- [ ] AC1 — A Qt6/QML app target exists under `platforms/linux/`, built by CMake, linking
+  `libScriviCore.a` and including `scrivi.h` directly (same-process C++ calls; no adapter).
+- [ ] AC2 — A `ScriviBridge` C++ class marshals QML calls to `scrivi_*` functions, parses the
+  `{"ok":...}` JSON envelope, surfaces results/errors to QML as typed values, and calls `scrivi_free`
+  on every returned pointer (no leaks). This is the QML analogue of `ScriviEngine.swift` — it contains
+  **no** backend logic.
+- [ ] AC3 — A Docker image builds the Linux app (Qt6 + CMake) and runs it headless under Xvfb with a
+  VNC server, so the developer can open the running GUI from the Mac over VNC.
+- [ ] AC4 — A "hello ScriviCore" QML window calls at least one real `scrivi_*` function end-to-end
+  (e.g. `scrivi_ensure_local_identity`) and displays the decoded result in a real Qt window — proving
+  the full QML → bridge → C ABI → ScriviCore → JSON → QML round-trip.
+- [ ] AC5 — CI builds the Linux Qt/QML app on every relevant commit (the ScriviCore `ctest` job is
+  unchanged; a new job compiles the GUI and runs any headless smoke test).
+- [ ] AC6 — No regression to ScriviCore or the Apple app: `scrivi.h` unchanged (or additive-only),
+  backend `ctest` green, macOS build unaffected.
 
 ### Sprints
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-051 | Design sign-off, ⌘Z-routing spike, schema spec | ✅ Closed (user-approved) | 2026-07-06 – 2026-07-06 |
-| SP-052 | Linear history engine core (C++) + C ABI + Swift wrappers | ✅ Closed (user-approved) | 2026-07-07 – 2026-07-07 |
-| SP-053 | In-session undo/redo on macOS (capture, apply, barriers) — AC1 (ex-I-0019) delivered here | ✅ Closed (user-approved) | 2026-07-07 – 2026-07-07 |
-| SP-054 | Persistence, sessions, capacity, settings | ✅ Closed (user-approved) — AC3 + AC5 | 2026-07-07 – 2026-07-09 |
-| SP-055 | Branching — tree ops, fork popover, purge | 🔵 Planning | — |
-| SP-056 | Multiple copy buffers | 🔵 Planning | — |
-| SP-057 | History panel, performance fixtures, verification & Epic close | 🔵 Planning | — |
+| SP-058 | Docker/Xvfb/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI job | 🟢 Active | 2026-07-13 – (in progress) |
 
 ### Tasks
 
-| ID | Title | Sprint | Status |
-| -- | ----- | ------ | ------ |
-| T-0198 | Design doc + trade studies (this Epic's design) | SP-051 | ✅ Verified (2026-07-06) → `Verified/Task-verified-0198.md` |
-| T-0199 | Spike: ⌘Z/⇧⌘Z + Edit-menu routing mechanism | SP-051 | ✅ Done (2026-07-06) — proxy rejected; action-method mechanism confirmed live; design §8/§12.6 updated |
-| T-0200 | `scrivi.history.v1` / `scrivi.buffers.v1` schema spec + repair-matrix row | SP-051 | ✅ Verified (2026-07-06) → `Verified/Task-verified-0200.md` |
-| T-0201 | `HistoryService` core (record/undo/redo, snapshot-diff, sessions) + unit tests | SP-052 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0201-0203.md` |
-| T-0202 | C ABI: `scrivi_history_open/record_event/record_barrier/undo/redo/close` | SP-052 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0201-0203.md` |
-| T-0203 | `ScriviEngine.swift` history wrappers + interop tests | SP-052 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0201-0203.md` |
-| T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
-| T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
-| T-0206 | Barriers on structural operations | SP-053 | ✅ Verified (2026-07-07) → `Verified/Task-verified-0204-0206.md` |
-| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | SP-054 | ✅ Verified (2026-07-09) |
-| T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | SP-054 | ✅ Verified (2026-07-09; linear eviction, full in SP-055) |
-| T-0209 | Session-boundary warning popup | SP-054 | ✅ Verified (2026-07-09) |
-| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge on eviction | SP-055 | 🔵 Backlog |
-| T-0211 | Inline fork popover (T2 core interaction) | SP-055 | 🔵 Backlog |
-| T-0212 | Stale-branch detection + user-confirmed purge | SP-055 | 🔵 Backlog |
-| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | SP-056 | 🔵 Backlog |
-| T-0214 | Buffer UX: keyboard HUD + palette + Edit-menu items (T4); paste/cut history integration | SP-056 | 🔵 Backlog |
-| T-0215 | History panel (T2 management surface) | SP-057 | 🔵 Backlog |
-| T-0216 | Performance/integration fixtures (100k events, 500 KB scene); gitignore migration | SP-057 | 🔵 Backlog |
-| T-0217 | Doc updates + EP-019 acceptance-criteria verification | SP-057 | 🔵 Backlog |
+_(defined at sprint activation — see `docs/Tasks/Task-active.md` / `Task-backlog.md`)_
 
 ### Issues
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| I-0019 | Undo and Redo have no effect in the manuscript editor | ⚪ Closed 2026-07-06 — OBE/superseded by this Epic (user-approved); requirement lives on as AC1 → `docs/Issues/Closed/Issue-closed-0019.md` |
+_(none yet)_
 
 ### Scope Notes
 
-- Structural undo (scene/chapter create/delete/merge/reorder) is explicitly **out of scope** — those operations record history *barriers* in v1 (design §4.5); full structural undo is a documented future extension.
-- iOS/iPadOS capture layer deferred (editor is a stub); the C++ engine and ABI are platform-neutral by construction.
-- All six trade-study decisions **approved by the user 2026-07-06**: T1=B (capacity in Project
-  settings), T2=A with interaction refinements (popover on undo-landing-at-fork, suppressed when
-  undoing past, immediate on redo, redo-past takes primary, branch relegation — design §10 T2, §5),
-  T3=C (copy-into-buffer not an event; cut is), T4=B+D with A for discoverability, T5=C
-  (project-open session + idle rollover), T6=A (history inside package, gitignored).
+- **Out of scope (later `[Linux]` Epics):** landing/project lifecycle UI (EP-021), writing surface +
+  navigator (EP-022), structure editing (EP-023), inspector (EP-024), timeline (EP-025), undo/menus/
+  settings + parity verification (EP-026). EP-020 delivers only the toolchain, bridge, shell, and
+  hello-slice.
+- **Bridge pattern:** `ScriviBridge` mirrors `ScriviEngine.swift` — same JSON-over-`std::string`
+  boundary, same "UI layer holds no backend logic" rule. macOS App-layer *behavior* (sessions,
+  bookmarks, window-frame persistence, history capture) is re-created in C++/QML screen-by-screen in the
+  later Epics as each screen needs it, not ported wholesale here.
+- **Verification model:** CI proves *it builds + core logic works headless*; the developer proves *the
+  GUI works* visually via Docker+VNC; the alpha tester later proves it on real Ubuntu. CI alone cannot
+  verify a GUI.
 
 ### Completion Summary
 
@@ -80,4 +80,4 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-07 (SP-053 closed with user approval — T-0204/T-0205/T-0206 Verified & archived to `Verified/Task-verified-0204-0206.md`; **EP-019 AC1 delivered & verified live** (⌘Z/⇧⌘Z); three first-pass bugs fixed; root-floor semantics clarified in design §5. Backend 244/244, macOS build clean. Next: SP-054 (persistence) in Planning. Earlier 2026-07-07: SP-052 closed (T-0201–0203 Verified), targets unified to 27.0.)*
+*Last Updated: 2026-07-13 (EP-020 [Linux] created & activated — Qt/QML foundation for the Ubuntu app; SP-058 activated. First of the EP-020–EP-026 [Linux] family. See Epic-backlog.md for EP-021–EP-026.)*

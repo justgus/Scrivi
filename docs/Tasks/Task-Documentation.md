@@ -18,6 +18,11 @@ Currently: **39 backlog Tasks** (T-0198 verified & archived; T-0199/T-0200 now A
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
+| T-0218 | `[Linux]` Qt6/QML CMake skeleton — app target links `libScriviCore.a` + `scrivi.h` | EP-020 (SP-058) | 🟢 Active |
+| T-0219 | `[Linux]` `ScriviBridge` — QML ↔ C ABI marshalling, JSON parse, `scrivi_free` discipline | EP-020 (SP-058) | 🟢 Active |
+| T-0220 | `[Linux]` Hello-ScriviCore QML window — `scrivi_ensure_local_identity` round-trip | EP-020 (SP-058) | 🟢 Active |
+| T-0221 | `[Linux]` Docker (Qt6 + CMake) + Xvfb + VNC — run the GUI, viewable from the Mac | EP-020 (SP-058) | 🟢 Active |
+| T-0222 | `[Linux]` CI job — build the Qt/QML app (+ headless smoke) on relevant commits | EP-020 (SP-058) | 🟢 Active |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ deep-link/bookmark consumer) | EP-017 (deferred) | 🔵 Backlog |
 | T-0198 | Undo/redo + copy buffers design doc & trade studies | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0198.md` |
@@ -32,9 +37,9 @@ Currently: **39 backlog Tasks** (T-0198 verified & archived; T-0199/T-0200 now A
 | T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | EP-019 (SP-054) | ✅ Verified |
 | T-0208 | Capacity/eviction + history settings + Project Settings row | EP-019 (SP-054) | ✅ Verified |
 | T-0209 | Session-boundary warning popup | EP-019 (SP-054) | ✅ Verified |
-| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | 🔵 Backlog |
-| T-0211 | Inline fork popover | EP-019 (SP-055) | 🔵 Backlog |
-| T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | 🔵 Backlog |
+| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | ✅ Verified |
+| T-0211 | Inline fork popover | EP-019 (SP-055) | ✅ Verified |
+| T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | ✅ Verified |
 | T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | 🔵 Backlog |
 | T-0214 | Buffer UX (HUD/palette/menus) + paste/cut history integration | EP-019 (SP-056) | 🔵 Backlog |
 | T-0215 | History panel (management surface) | EP-019 (SP-057) | 🔵 Backlog |
@@ -66,11 +71,15 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks** (SP-051 closed 2026-07-06; no Sprint active)
+Currently: **5 active Tasks** (SP-058 `[Linux]` App Foundation, activated 2026-07-13)
 
 | Task | Title | Sprint | Status |
 | ---- | ----- | ------ | ------ |
-| —    | None  | —      | —      |
+| T-0218 | `[Linux]` Qt6/QML CMake skeleton | SP-058 | 🟢 Active |
+| T-0219 | `[Linux]` `ScriviBridge` (QML ↔ C ABI) | SP-058 | 🟢 Active |
+| T-0220 | `[Linux]` Hello-ScriviCore QML window | SP-058 | 🟢 Active |
+| T-0221 | `[Linux]` Docker + Xvfb + VNC harness | SP-058 | 🟢 Active |
+| T-0222 | `[Linux]` CI job for the Qt/QML app | SP-058 | 🟢 Active |
 
 > **Cleanup (2026-07-01):** The former stale Active-Tasks list carried three SP-042 (closed) items —
 > **T-0166, T-0169, T-0170**. All are now user-verified and archived to `Verified/`
@@ -92,7 +101,7 @@ See: [Task-unverified.md](Task-unverified.md)
 
 ## Verified Tasks
 
-Currently: **76 verified Tasks**
+Currently: **88 verified Tasks** (incl. EP-019 T-0198–T-0212)
 
 | Task   | Title | File | Status |
 | ------ | ----- | ---- | ------ |
@@ -221,6 +230,18 @@ Currently: **76 verified Tasks**
 | T-0183 | Markdown→plain-text extraction for body indexing | [Task-verified-0183.md](Verified/Task-verified-0183.md) | ✅ Verified |
 | T-0198 | Undo/redo + copy buffers design doc & trade studies (EP-019 design sign-off) | [Task-verified-0198.md](Verified/Task-verified-0198.md) | ✅ Verified |
 | T-0200 | `scrivi.history.v1` / `scrivi.buffers.v1` schema spec + repair-matrix row | [Task-verified-0200.md](Verified/Task-verified-0200.md) | ✅ Verified |
+| T-0201 | `HistoryService` core + unit tests | [Task-verified-0201-0203.md](Verified/Task-verified-0201-0203.md) | ✅ Verified |
+| T-0202 | C ABI: `scrivi_history_*` open/record/undo/redo/close | [Task-verified-0201-0203.md](Verified/Task-verified-0201-0203.md) | ✅ Verified |
+| T-0203 | `ScriviEngine.swift` history wrappers + interop tests | [Task-verified-0201-0203.md](Verified/Task-verified-0201-0203.md) | ✅ Verified |
+| T-0204 | `HistoryCapture` + commit-trigger wiring in the editor | [Task-verified-0204-0206.md](Verified/Task-verified-0204-0206.md) | ✅ Verified |
+| T-0205 | Undo/redo apply path + `allowsUndo=false` + ⌘Z routing | [Task-verified-0204-0206.md](Verified/Task-verified-0204-0206.md) | ✅ Verified |
+| T-0206 | Barriers on structural operations | [Task-verified-0204-0206.md](Verified/Task-verified-0204-0206.md) | ✅ Verified |
+| T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | [Task-verified-0207-0209.md](Verified/Task-verified-0207-0209.md) | ✅ Verified |
+| T-0208 | Capacity/eviction + history settings + Project Settings row | [Task-verified-0207-0209.md](Verified/Task-verified-0207-0209.md) | ✅ Verified |
+| T-0209 | Session-boundary warning popup | [Task-verified-0207-0209.md](Verified/Task-verified-0207-0209.md) | ✅ Verified |
+| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge on eviction | [Task-verified-0210-0212.md](Verified/Task-verified-0210-0212.md) | ✅ Verified |
+| T-0211 | Inline fork popover (Trade T2 core interaction) | [Task-verified-0210-0212.md](Verified/Task-verified-0210-0212.md) | ✅ Verified |
+| T-0212 | Stale-branch detection + user-confirmed purge | [Task-verified-0210-0212.md](Verified/Task-verified-0210-0212.md) | ✅ Verified |
 
 ## Closed Tasks
 
@@ -233,13 +254,13 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 203 (183 through T-0197 + 20 EP-019 tasks T-0198–T-0217)
+- **Total Tasks:** 208 (183 through T-0197 + 20 EP-019 tasks T-0198–T-0217 + 5 EP-020 tasks T-0218–T-0222)
 - **Backlog:** 39 🔵
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
-- **Active:** 0 🟡 (no active Sprint)
+- **Active:** 5 🟡 (T-0218–T-0222, SP-058 `[Linux]`)
 - **Unverified:** 0
-- **Verified:** +2 (T-0198, T-0200 — 2026-07-06); **Done (spike):** T-0199 (2026-07-06)
-- **Next available:** T-0218
+- **Verified:** EP-019 T-0198–T-0212 verified & archived (see Verified table)
+- **Next available:** T-0223
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190
@@ -248,4 +269,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-07-06 (SP-051 closed: T-0200 ✅ Verified & archived; T-0199 spike ✅ Done — ⌘Z action-method mechanism confirmed. Active list cleared. Earlier same day: SP-051 activated, T-0198 verified; EP-019 tasks T-0198–T-0217 created.)*
+*Last Updated: 2026-07-13 (SP-058 `[Linux]` activated — T-0218–T-0222 created & active: Qt6/QML skeleton, `ScriviBridge`, hello-ScriviCore slice, Docker/VNC harness, CI. First tasks of the EP-020 `[Linux]` app foundation. Earlier same day: SP-055 closed, T-0210/T-0211/T-0212 verified & archived; EP-019 deferred to backlog.)*

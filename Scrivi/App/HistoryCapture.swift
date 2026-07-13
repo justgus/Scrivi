@@ -249,6 +249,49 @@ final class HistoryCapture {
         } catch { print("[Scrivi] historyRedo failed: \(error)"); return nil }
     }
 
+    // Re-primaries a fork so the next redo walks `childEventID`'s branch
+    // (SP-055 / §5, §7, T-0211 fork popover). Does not move the pointer; the
+    // caller redoes afterwards to actually step onto the chosen branch. Returns
+    // false on failure (e.g. childEventID is not a child of the fork).
+    @discardableResult
+    func selectBranch(forkNodeID: String, childEventID: String) -> Bool {
+        guard isOpen else { return false }
+        do {
+            let r = try engine.historySelectBranch(
+                projectRootPath: projectRootPath, forkNodeID: forkNodeID, childEventID: childEventID)
+            engineCanRedo = r.canRedo
+            return r.ok
+        } catch { print("[Scrivi] historySelectBranch failed: \(error)"); return false }
+    }
+
+    // MARK: — Stale branches (T-0212, §5)
+
+    // Lists stale branches — non-primary subtrees older than the project's
+    // staleBranchDays setting. Empty when history is closed, detection is disabled
+    // (staleBranchDays <= 0), or nothing is stale. Best-effort.
+    func listStaleBranches() -> [HistoryStaleBranch] {
+        guard isOpen else { return [] }
+        do { return try engine.historyListStaleBranches(projectRootPath: projectRootPath).branches }
+        catch { print("[Scrivi] historyListStaleBranches failed: \(error)"); return [] }
+    }
+
+    // Purges a stale branch after user confirmation; refreshes redo-state on
+    // success (purge can drop the primary line of a fork). Returns false on
+    // failure or rejection (e.g. the branch is on the live path). Best-effort.
+    @discardableResult
+    func purgeStaleBranch(branchRootEventID: String) -> Bool {
+        guard isOpen else { return false }
+        do {
+            let r = try engine.historyPurgeBranch(
+                projectRootPath: projectRootPath, branchRootEventID: branchRootEventID)
+            if r.ok {
+                engineCanUndo = r.canUndo
+                engineCanRedo = r.canRedo
+            }
+            return r.ok
+        } catch { print("[Scrivi] historyPurgeBranch failed: \(error)"); return false }
+    }
+
     // Recomputes nothing itself — the can-state is refreshed from each engine
     // response above. Exposed so the editor can trigger a menu-validation refresh
     // after an apply that returned a barrier (which does not change the pointer).

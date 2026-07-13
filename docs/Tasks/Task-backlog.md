@@ -10,6 +10,11 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
+| T-0218 | `[Linux]` Qt6/QML CMake skeleton — links `libScriviCore.a` + `scrivi.h` | EP-020 (SP-058) | 🟢 Active → `Task-active.md` |
+| T-0219 | `[Linux]` `ScriviBridge` — QML ↔ C ABI marshalling + `scrivi_free` discipline | EP-020 (SP-058) | 🟢 Active → `Task-active.md` |
+| T-0220 | `[Linux]` Hello-ScriviCore QML window — `scrivi_ensure_local_identity` round-trip | EP-020 (SP-058) | 🟢 Active → `Task-active.md` |
+| T-0221 | `[Linux]` Docker (Qt6 + CMake) + Xvfb + VNC harness | EP-020 (SP-058) | 🟢 Active → `Task-active.md` |
+| T-0222 | `[Linux]` CI job — build the Qt/QML app on relevant commits | EP-020 (SP-058) | 🟢 Active → `Task-active.md` |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0175 | Spotlight integration (umbrella) — **superseded by EP-017** | EP-017 | ⚪ Superseded |
 | T-0184 | Deep-link: result continuation opens project & selects item | EP-017 (SP-045) | ✅ Verified → `Verified/Task-verified-0184.md` |
@@ -38,9 +43,9 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0207 | JSONL log + checkpoint + torn-line recovery + head-hash validation | EP-019 (SP-054) | ✅ Verified → `Verified/Task-verified-0207-0209.md` |
 | T-0208 | Capacity/eviction + history settings (T1) + Project Settings row | EP-019 (SP-054) | ✅ Verified → `Verified/Task-verified-0207-0209.md` |
 | T-0209 | Session-boundary warning popup | EP-019 (SP-054) | ✅ Verified → `Verified/Task-verified-0207-0209.md` |
-| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | 🔵 Backlog |
-| T-0211 | Inline fork popover (Trade T2 core interaction) | EP-019 (SP-055) | 🔵 Backlog |
-| T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | 🔵 Backlog |
+| T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | ✅ Verified → `Verified/Task-verified-0210-0212.md` |
+| T-0211 | Inline fork popover (Trade T2 core interaction) | EP-019 (SP-055) | ✅ Verified → `Verified/Task-verified-0210-0212.md` |
+| T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | ✅ Verified → `Verified/Task-verified-0210-0212.md` |
 | T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | 🔵 Backlog |
 | T-0214 | Buffer UX: keyboard HUD + palette + menu items; paste/cut history integration | EP-019 (SP-056) | 🔵 Backlog |
 | T-0215 | History panel (Trade T2 management surface) | EP-019 (SP-057) | 🔵 Backlog |
@@ -313,7 +318,7 @@ truncation, log-tail replay, head-hash validation → `externalChange` barrier (
 **T-0209 — Session warning.** `crossedSessionBoundary` → popup once per crossing, showing the
 boundary wall-clock time (Trade T5 ✅ approved: project-open span + 8 h idle rollover).
 
-### SP-055 — Branching
+### SP-055 — Branching ✅ closed 2026-07-13 (T-0210/T-0211/T-0212 verified → `Verified/Task-verified-0210-0212.md`)
 
 **T-0210 — Tree ops.** Fork-on-record (new sibling becomes primary), `select_branch` re-primary,
 auto-purge on eviction; unit tests for the undo-type-fork-reselect scenario (design §5).
@@ -348,4 +353,4 @@ verification; prepare Epic for close (user approval required).
 
 ---
 
-*Last Updated: 2026-07-06 (SP-051 closed: T-0200 verified & archived, T-0199 spike done — ⌘Z action-method mechanism confirmed, governs T-0205. Earlier same day: SP-051 activated, T-0198 verified; EP-019 tasks created.)*
+*Last Updated: 2026-07-13 (SP-055 closed: T-0210/T-0211/T-0212 verified & archived → `Verified/Task-verified-0210-0212.md`; EP-019 AC4 + AC5's deferred branch clauses delivered & verified. SP-056 (copy buffers) next.)*
