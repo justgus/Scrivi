@@ -307,3 +307,156 @@ TEST_CASE("C ABI: torn final log line is truncated, tree survives", "[HistoryCAp
     }
     scrivi_free(scrivi_history_close(ROOT));
 }
+
+TEST_CASE("C ABI: select_branch re-primaries a fork and survives relaunch (SP-055 D4)",
+          "[HistoryCApi][branch]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // --- Session 1: build a fork, select the abandoned branch, close ---
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "A"));
+    std::string evtB;
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "AB", recordParams("typing", 1, 2).c_str()));
+        evtB = r.getString("eventID");            // the "AB" branch
+    }
+    // Undo back to the seed floor "A" (evtB's parent — the fork-to-be).
+    scrivi_free(scrivi_history_undo(ROOT));
+    // Type a competing branch "AD" → forks; AD becomes primary.
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "AD", recordParams("typing", 1, 2).c_str()));
+        REQUIRE(r.getBool("createdBranch"));
+    }
+    // Undo lands back on the fork node; forkAhead lists both branches.
+    std::string forkNodeID;
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getSubDoc("forkAhead").getString("nodeID").size() > 0);
+        forkNodeID = r.getSubDoc("forkAhead").getString("nodeID");
+        REQUIRE(r.getSubDoc("forkAhead").arraySize("children") == 2);
+    }
+    // Re-select the abandoned "AB" branch — it becomes primary.
+    {
+        auto r = okResult(scrivi_history_select_branch(ROOT, forkNodeID.c_str(), evtB.c_str()));
+        REQUIRE(r.getBool("ok"));
+        REQUIRE(r.getBool("canRedo"));
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // --- Session 2: reopen; the SAVED primary (AB) must survive, not snap to AD ---
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        // We are at the fork; redo must follow the re-selected AB branch.
+        auto r = okResult(scrivi_history_redo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "AB");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: branch-aware eviction persists — purged branch does not resurrect (SP-055 §4.1)",
+          "[HistoryCApi][branch]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // --- Session 1: fork off the floor, then force capacity eviction ---
+    scrivi_free(scrivi_history_open(ROOT));
+    // Cap at 1 event node so extending the surviving branch evicts at the root.
+    {
+        JsonDoc s;
+        s.setInt("capacityEvents", 1);
+        auto r = okResult(scrivi_history_set_settings(ROOT, s.dump().c_str()));
+        REQUIRE(r.getBool("updated"));
+    }
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "A"));
+    // Branch 1 "AB" off the floor, then undo back to the floor.
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AB", recordParams("typing", 1, 2).c_str()));
+    scrivi_free(scrivi_history_undo(ROOT));
+    // Branch 2 "AC" forks (becomes primary); the root now has two children, so
+    // eventCount is 2 > capacity 1 → eviction runs on THIS record: it purges the
+    // non-primary "AB" branch and promotes the "AC" child to the new root floor.
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "AC", recordParams("typing", 1, 2).c_str()));
+        REQUIRE(r.getBool("createdBranch"));
+        REQUIRE(r.getInt("evictedCount") > 0);
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // --- Session 2: reopen; the purged "AB" branch must NOT come back ---
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        // Current head is the surviving branch tip "AC"; one undo hits the floor.
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE_FALSE(r.getBool("moved"));
+        REQUIRE(r.getSubDoc("stoppedAtBarrier").getString("kind") == "historyStart");
+        // No forkAhead: the abandoned "AB" branch was evicted, so the promoted
+        // root ("AC") is the floor with no children. If AB had resurrected, the
+        // floor would be the original "A" root with a two-child fork.
+        REQUIRE(r.getSubDoc("forkAhead").getString("nodeID").empty());
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: user-confirmed purge removes a branch and it does not resurrect (SP-055 T-0212)",
+          "[HistoryCApi][branch][stale]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // --- Session 1: build a fork (AB abandoned, AD primary), purge AB ---
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "A"));
+    std::string evtB, forkNodeID;
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "AB", recordParams("typing", 1, 2).c_str()));
+        evtB = r.getString("eventID");
+    }
+    scrivi_free(scrivi_history_undo(ROOT));                 // back at the floor (fork-to-be)
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AD", recordParams("typing", 1, 2).c_str()));   // AD forks, primary
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));       // land on the fork
+        forkNodeID = r.getSubDoc("forkAhead").getString("nodeID");
+        REQUIRE(r.getSubDoc("forkAhead").arraySize("children") == 2);
+    }
+
+    // list_stale_branches returns a well-formed envelope. With fresh timestamps
+    // nothing is stale yet, but the shape (staleBranchDays + branches array) must
+    // be present. (Age-threshold logic is covered by the unit tests, which control
+    // timestamps; the ABI stamps events with the real clock.)
+    {
+        auto r = okResult(scrivi_history_list_stale_branches(ROOT));
+        REQUIRE(r.getInt("staleBranchDays") >= 0);
+        REQUIRE(r.arraySize("branches") == 0);
+    }
+
+    // Purge the abandoned AB branch by its eventID (the user-confirmed action).
+    {
+        auto r = okResult(scrivi_history_purge_branch(ROOT, evtB.c_str()));
+        REQUIRE(r.getBool("ok"));
+        REQUIRE(r.getInt("purgedCount") == 1);
+    }
+    // AD (on the root→current path) is rejected; nothing removed.
+    {
+        // The fork collapsed to a single child after the purge; redo follows AD.
+        auto r = okResult(scrivi_history_redo(ROOT));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "AD");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // --- Session 2: reopen; the purged AB branch must NOT come back ---
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        // At AD; one undo reaches the floor. If AB had resurrected the floor would
+        // still be a two-child fork (forkAhead present); it must not be.
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.getSubDoc("forkAhead").getString("nodeID").empty());
+        // And re-selecting the purged branch fails (it is gone).
+        auto sel = okResult(scrivi_history_select_branch(ROOT, forkNodeID.c_str(), evtB.c_str()));
+        REQUIRE_FALSE(sel.getBool("ok"));
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}

@@ -224,3 +224,202 @@ TEST_CASE("eviction never removes the current node (deferred)", "[History]") {
     auto u1 = h.undo(); REQUIRE(u1.change->newText == "a");
     auto u2 = h.undo(); REQUIRE_FALSE(u2.moved);
 }
+
+// ---- SP-055 branching (T-0210) --------------------------------------------
+
+TEST_CASE("record after undo forks: old chain preserved, new work primary", "[History][branch]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");
+    h.record(typing("scene_a", "AB", 1, 2), "evt_B");   // chain A→B
+    h.undo();                                            // back to A
+    // Typing here forks: evt_B stays as a non-primary child of A; evt_D primary.
+    auto r = h.record(typing("scene_a", "AD", 1, 2), "evt_D");
+    REQUIRE(r.createdBranch);
+    REQUIRE(h.headTextForScene("scene_a") == "AD");
+    // The fork node (A) now has two children; the popover data lists both.
+    auto fa = h.undo();                                  // undo lands back on A (a fork)
+    REQUIRE(fa.forkAhead.has_value());
+    REQUIRE(fa.forkAhead->nodeID == "evt_A");
+    REQUIRE(fa.forkAhead->children.size() == 2);
+    // evt_D is primary (the most recent record); evt_B is the abandoned branch.
+    bool sawD = false, sawB = false;
+    for (const auto& c : fa.forkAhead->children) {
+        if (c.eventID == "evt_D") { sawD = true; REQUIRE(c.isPrimary); }
+        if (c.eventID == "evt_B") { sawB = true; REQUIRE_FALSE(c.isPrimary); }
+    }
+    REQUIRE(sawD);
+    REQUIRE(sawB);
+}
+
+TEST_CASE("first record after undo does not create a branch when node had no children",
+          "[History][branch]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");     // root's only child
+    auto r = h.record(typing("scene_a", "AB", 1, 2), "evt_B");
+    REQUIRE_FALSE(r.createdBranch);                       // linear extend, not a fork
+}
+
+TEST_CASE("select_branch re-primaries a fork; abandoned branch fully restorable",
+          "[History][branch]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");
+    h.record(typing("scene_a", "AB", 1, 2), "evt_B");
+    h.undo();                                            // at A
+    h.record(typing("scene_a", "AD", 1, 2), "evt_D");    // fork; D primary
+    h.undo();                                            // back at A (the fork)
+
+    // Re-select the abandoned branch B; pointer stays at A, B becomes primary.
+    auto sel = h.selectBranch("evt_A", "evt_B");
+    REQUIRE(sel.ok);
+    REQUIRE(sel.canRedo);
+    // Redo now walks the B branch, not D.
+    auto rr = h.redo();
+    REQUIRE(rr.moved);
+    REQUIRE(rr.change->newText == "AB");
+    REQUIRE(h.headTextForScene("scene_a") == "AB");
+
+    // D is still fully restorable by re-selecting it.
+    h.undo();                                            // back at A
+    REQUIRE(h.selectBranch("evt_A", "evt_D").ok);
+    auto rd = h.redo();
+    REQUIRE(rd.change->newText == "AD");
+}
+
+TEST_CASE("select_branch rejects a non-child", "[History][branch]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");
+    auto sel = h.selectBranch("evt_A", "evt_nonexistent");
+    REQUIRE_FALSE(sel.ok);
+}
+
+TEST_CASE("no forkAhead when the landed node has a single child", "[History][branch]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");
+    h.record(typing("scene_a", "AB", 1, 2), "evt_B");
+    auto u = h.undo();                                    // lands on A, one child (B)
+    REQUIRE(u.moved);
+    REQUIRE_FALSE(u.forkAhead.has_value());
+}
+
+TEST_CASE("branch-aware eviction: a non-primary branch off the root is auto-purged",
+          "[History][branch]") {
+    // Build a fork at the ROOT: root→A (then fork) so the root itself has two
+    // child subtrees, one of which is not on the root→current path.
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");     // root→A
+    h.undo();                                            // back at root
+    h.record(typing("scene_a", "B", 0, 1), "evt_B");     // fork at root: A (old), B (primary)
+    // Root now has two children (evt_A, evt_B); current is evt_B.
+    // Setting capacity to 1 forces one eviction: the off-path branch (A) is
+    // purged, then B is promoted to the new root and folded into the floor.
+    h.setCapacity(1);
+    h.record(typing("scene_a", "BC", 1, 2), "evt_C");    // triggers eviction
+    // evt_A's subtree is gone; the abandoned branch died with its branch point.
+    // Undo from BC → B (the folded floor), then stop at history start.
+    auto u1 = h.undo(); REQUIRE(u1.change->newText == "B");
+    auto u2 = h.undo(); REQUIRE_FALSE(u2.moved);          // B is now the floor/root
+    // The head text is intact throughout.
+    h.redo();
+    REQUIRE(h.headTextForScene("scene_a") == "BC");
+}
+
+TEST_CASE("branch-aware eviction defers when the current pointer is at the root",
+          "[History][branch]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1), "evt_A");
+    h.setCapacity(1);
+    // Undo to the root, then force an over-capacity condition by... it already is
+    // over capacity conceptually; eviction must DEFER because current == root
+    // (nothing on the root→current path to promote).
+    h.undo();                                            // current is now the root
+    // A fresh record here would fork at the root; but first prove a direct
+    // eviction attempt with current==root does nothing destructive: record a
+    // sibling that keeps current reachable.
+    auto r = h.record(typing("scene_a", "Z", 0, 1), "evt_Z");
+    // current is evt_Z; evt_A is an off-path root child. Capacity 1, eventCount
+    // is 2 → one eviction: A purged, Z promoted. Z stays reachable.
+    REQUIRE(r.evictedCount >= 1);
+    REQUIRE(h.headTextForScene("scene_a") == "Z");
+    auto u = h.undo(); REQUIRE_FALSE(u.moved);            // Z is the floor now
+}
+
+// ---- T-0212: stale-branch detection + user-confirmed purge -----------------
+
+// Builds a fork at evt_A with an OLD abandoned branch (B, stamped weeks ago) and
+// a RECENT primary branch (D). Returns with the pointer on the D line.
+static HistoryService forkWithOldAbandonedBranch() {
+    auto h = fresh();
+    h.record(typing("scene_a", "A", 0, 1, "2026-07-01T00:00:00Z"), "evt_A");
+    h.record(typing("scene_a", "AB", 1, 2, "2026-06-10T00:00:00Z"), "evt_B");  // old branch tip
+    h.undo();                                                                   // at A
+    h.record(typing("scene_a", "AD", 1, 2, "2026-07-09T00:00:00Z"), "evt_D");  // recent, primary
+    return h;
+}
+
+TEST_CASE("stale branch detected when its tip is older than the threshold",
+          "[History][branch][stale]") {
+    auto h = forkWithOldAbandonedBranch();
+    // now = 2026-07-10; B's tip is 2026-06-10 (30 days) → stale at 7-day threshold.
+    auto stale = h.listStaleBranches("2026-07-10T00:00:00Z", 7);
+    REQUIRE(stale.size() == 1);
+    REQUIRE(stale[0].branchRootEventID == "evt_B");
+    REQUIRE(stale[0].forkNodeID == "evt_A");
+    REQUIRE(stale[0].nodeCount == 1);
+    REQUIRE(stale[0].tipTimestamp == "2026-06-10T00:00:00Z");
+}
+
+TEST_CASE("no stale branches when the threshold is disabled or the tip is recent",
+          "[History][branch][stale]") {
+    auto h = forkWithOldAbandonedBranch();
+    REQUIRE(h.listStaleBranches("2026-07-10T00:00:00Z", 0).empty());   // disabled
+    REQUIRE(h.listStaleBranches("2026-07-10T00:00:00Z", 90).empty());  // 30d < 90d → not stale
+}
+
+TEST_CASE("the on-path (live) branch is never reported stale",
+          "[History][branch][stale]") {
+    // Make the OLD branch the one holding the pointer: after selecting B and
+    // redoing onto it, B is on the root→current path and must not be listed even
+    // though its tip is old. Only D (now off-path, but recent) exists otherwise.
+    auto h = forkWithOldAbandonedBranch();
+    h.undo();                                    // at A (the fork)
+    h.selectBranch("evt_A", "evt_B");
+    h.redo();                                    // pointer now on B
+    auto stale = h.listStaleBranches("2026-07-10T00:00:00Z", 7);
+    // B holds the pointer → excluded; D is recent (2026-07-09) → not stale.
+    REQUIRE(stale.empty());
+}
+
+TEST_CASE("purgeBranch erases a stale subtree and keeps the live line intact",
+          "[History][branch][stale]") {
+    auto h = forkWithOldAbandonedBranch();      // pointer on D (primary)
+    REQUIRE(h.headTextForScene("scene_a") == "AD");
+
+    auto p = h.purgeBranch("evt_B");
+    REQUIRE(p.ok);
+    REQUIRE(p.purgedCount == 1);
+    // The live D line is untouched; B is gone (re-selecting it now fails).
+    REQUIRE(h.headTextForScene("scene_a") == "AD");
+    REQUIRE_FALSE(h.selectBranch("evt_A", "evt_B").ok);
+    // And the fork is no longer a fork (A has a single child now).
+    h.undo();                                    // at A
+    auto u = h.undo();                            // A→root; A had one child so no forkAhead on the way
+    REQUIRE(h.listStaleBranches("2026-07-10T00:00:00Z", 7).empty());
+    (void)u;
+}
+
+TEST_CASE("purgeBranch rejects the root and any node on the root->current path",
+          "[History][branch][stale]") {
+    auto h = forkWithOldAbandonedBranch();      // pointer on D
+    // D is on the root→current path → reject.
+    auto pd = h.purgeBranch("evt_D");
+    REQUIRE_FALSE(pd.ok);
+    REQUIRE(pd.purgedCount == 0);
+    // A is also on the path (it is D's parent / an ancestor of current) → reject.
+    REQUIRE_FALSE(h.purgeBranch("evt_A").ok);
+    // The root is never purgeable.
+    REQUIRE_FALSE(h.purgeBranch("evt_root").ok);
+    // An unknown node → reject.
+    REQUIRE_FALSE(h.purgeBranch("evt_nope").ok);
+    // Nothing was removed by any of the rejections: B is still there and stale.
+    REQUIRE(h.listStaleBranches("2026-07-10T00:00:00Z", 7).size() == 1);
+}

@@ -22,6 +22,10 @@ public:
 
     [[nodiscard]] bool contains(std::string_view key) const;
 
+    // Member key names of this object (empty if not an object). Order is
+    // implementation-defined; callers must not depend on it.
+    [[nodiscard]] std::vector<std::string> objectKeys() const;
+
     [[nodiscard]] std::string getString(std::string_view key, std::string_view defaultValue = "") const;
     [[nodiscard]] bool        getBool(std::string_view key, bool defaultValue = false) const;
     [[nodiscard]] int         getInt(std::string_view key, int defaultValue = 0) const;

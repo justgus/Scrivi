@@ -57,6 +57,23 @@ public:
     void persistEvent(const EventNode& node);
     void persistCtl(const std::string& op, const std::string& nodeID);
 
+    // Persists a ctl:setPrimary record (branch re-selection, §5/§10 T2). Call
+    // after HistoryService::selectBranch succeeds so a re-primaried branch
+    // survives close/reopen (Appendix A.1.c).
+    void persistSetPrimary(const std::string& forkNodeID, const std::string& childEventID);
+
+    // Persists the branch-aware eviction that a record() just performed (§4.1):
+    // a ctl:purge per dropped non-primary subtree, then a ctl:evict per root
+    // promotion, in order. Replay honors these so an evicted branch does NOT
+    // resurrect from the log on reload. No-op when nothing was evicted.
+    void persistEviction(const EvictionDetail& detail);
+
+    // Persists a user-confirmed branch purge (§5, T-0212) as a ctl:purge record —
+    // the same record eviction emits, so replay drops the subtree identically and
+    // a purged branch does NOT resurrect on reload. Call after
+    // HistoryService::purgeBranch succeeds.
+    void persistPurge(const std::string& branchRootEventID);
+
     // Writes the state.json checkpoint (pointers, session, settings, seq, heads).
     void checkpoint();
 

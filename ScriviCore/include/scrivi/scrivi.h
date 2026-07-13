@@ -283,13 +283,12 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath);
 /* ---- Undo/Redo history (EP-019 SP-052 — T-0202) ------------------------- */
 
 /*
- * In-memory undo/redo history engine, one instance per open project keyed by
- * projectRootPath. Linear (non-branching) in this sprint; branching, disk
- * persistence, capacity, sessions-UI, and copy buffers arrive in later EP-019
- * sprints (the deferred scrivi_history_get_tree / _select_branch /
- * _list_stale_branches / _purge_branch / _get_settings / _set_settings and
- * scrivi_buffers_* functions are NOT declared yet — they land with their
- * sprints).
+ * Persistent (per-project, on-disk) undo/redo history engine, one instance per
+ * open project keyed by projectRootPath. Branching, disk persistence, capacity,
+ * sessions, stale-branch detection/purge are all in place (EP-019 SP-052..055).
+ * The remaining deferred functions are scrivi_history_get_tree (history panel,
+ * SP-057) and scrivi_buffers_* (copy buffers, SP-056) — they land with their
+ * sprints.
  *
  * Standard envelope conventions apply: each returns a heap JSON string freed
  * with scrivi_free. Offsets/cursors are scene-local UTF-8 byte offsets that
@@ -326,12 +325,39 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
 /* Moves the current pointer back one node.
  * result: {moved, changes:[{sceneID,newText,cursorAfter}], nodeID,
  *          canUndo, canRedo, crossedSessionBoundary, boundaryTimestamp?,
- *          stoppedAtBarrier:{kind,note}?} */
+ *          stoppedAtBarrier:{kind,note}?,
+ *          forkAhead:{nodeID, children:[{eventID,preview,timestamp,isPrimary}]}?}
+ * forkAhead is present only when the step lands on a fork (>= 2 children); it
+ * drives the inline fork popover (SP-055 / §10 T2). */
 const char* scrivi_history_undo(const char* projectRootPath);
 
 /* Moves the current pointer forward to the primary child.
- * result: {moved, changes:[...], nodeID, canUndo, canRedo} */
+ * result: {moved, changes:[...], nodeID, canUndo, canRedo, forkAhead?} */
 const char* scrivi_history_redo(const char* projectRootPath);
+
+/* Re-primaries a fork: sets forkNodeID's primaryChildID to childEventID (SP-055 /
+ * §5, §7). Does NOT move the current pointer — the caller walks the now-primary
+ * branch via scrivi_history_redo. Fails if childEventID is not a child of the fork.
+ * result: {ok, forkNodeID, childEventID, canRedo} */
+const char* scrivi_history_select_branch(const char* projectRootPath,
+                                         const char* forkNodeID,
+                                         const char* childEventID);
+
+/* Lists stale branches (SP-055 / §5, T-0212): every non-primary subtree whose
+ * newest node (tip) is older than the project's staleBranchDays setting. A branch
+ * holding the live pointer (on the root->current path) is never reported.
+ * result: {staleBranchDays, branches:[{branchRootEventID, forkNodeID, preview,
+ *          tipTimestamp, nodeCount}]}
+ * branches is empty when staleBranchDays <= 0 or nothing is stale. */
+const char* scrivi_history_list_stale_branches(const char* projectRootPath);
+
+/* Purges a branch subtree with user confirmation (SP-055 / §5, T-0212): erases
+ * branchRootEventID and all descendants and writes a ctl:purge record so the
+ * branch does not resurrect on reload. Rejects (ok=false) an unknown node, the
+ * root, or a node on the root->current path. Does NOT move the current pointer.
+ * result: {ok, branchRootEventID, purgedCount, canUndo, canRedo} */
+const char* scrivi_history_purge_branch(const char* projectRootPath,
+                                        const char* branchRootEventID);
 
 /* Head-hash validation (§6.b). Compares currentDiskTextUtf8 for sceneID against
  * the head hash persisted at last close; on mismatch (edited outside Scrivi)

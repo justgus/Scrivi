@@ -199,6 +199,25 @@ static void appendStepChanges(scrivi::util::JsonDoc& doc,
     }
 }
 
+// Serializes step.forkAhead into the undo/redo envelope (§7/§10 T2) when the
+// pointer landed on a fork. Absent otherwise, so the Swift popover shows/dismisses
+// purely on the field's presence.
+static void appendForkAhead(scrivi::util::JsonDoc& doc,
+                            const scrivi::history::StepResult& step) {
+    if (!step.forkAhead.has_value()) return;
+    scrivi::util::JsonDoc fa;
+    fa.setString("nodeID", step.forkAhead->nodeID);
+    for (const auto& child : step.forkAhead->children) {
+        scrivi::util::JsonDoc c;
+        c.setString("eventID",   child.eventID);
+        c.setString("preview",   child.preview);
+        c.setString("timestamp", child.timestamp);
+        c.setBool("isPrimary",   child.isPrimary);
+        fa.appendToArray("children", std::move(c));
+    }
+    doc.setSubDoc("forkAhead", std::move(fa));
+}
+
 static scrivi::RepairActionKind repairKindFromStr(std::string_view s) {
     using K = scrivi::RepairActionKind;
     if (s == "relinkToFile")             return K::relinkToFile;
@@ -1524,6 +1543,9 @@ const char* scrivi_history_record_event(const char* projectRootPath,
         auto nit = svc.nodes().find(r.eventID);
         if (nit != svc.nodes().end()) { it->second->persistEvent(nit->second); }
     }
+    // Persist any branch-aware eviction the record triggered (§4.1) — ctl:purge /
+    // ctl:evict records so evicted branches don't resurrect from the log on reload.
+    if (r.evictedCount > 0) { it->second->persistEviction(r.eviction); }
 
     scrivi::util::JsonDoc doc;
     doc.setString("eventID",      r.eventID);
@@ -1598,6 +1620,7 @@ const char* scrivi_history_undo(const char* projectRootPath) {
         doc.setSubDoc("stoppedAtBarrier", std::move(b));
     }
     appendStepChanges(doc, step);
+    appendForkAhead(doc, step);
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -1621,6 +1644,83 @@ const char* scrivi_history_redo(const char* projectRootPath) {
     doc.setBool("canUndo", step.canUndo);
     doc.setBool("canRedo", step.canRedo);
     appendStepChanges(doc, step);
+    appendForkAhead(doc, step);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_select_branch(const char* projectRootPath,
+                                         const char* forkNodeID,
+                                         const char* childEventID) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    auto& svc = it->second->service();
+    const auto r = svc.selectBranch(S(forkNodeID), S(childEventID));
+    if (r.ok) { it->second->persistSetPrimary(r.forkNodeID, r.childEventID); }
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("ok",            r.ok);
+    doc.setString("forkNodeID",  r.forkNodeID);
+    doc.setString("childEventID", r.childEventID);
+    doc.setBool("canRedo",       r.canRedo);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_list_stale_branches(const char* projectRootPath) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    auto& svc = it->second->service();
+    const auto stale = svc.listStaleBranches(nowTimestamp(),
+                                             it->second->settings().staleBranchDays);
+
+    scrivi::util::JsonDoc doc;
+    doc.setInt("staleBranchDays", it->second->settings().staleBranchDays);
+    for (const auto& sb : stale) {
+        scrivi::util::JsonDoc b;
+        b.setString("branchRootEventID", sb.branchRootEventID);
+        b.setString("forkNodeID",        sb.forkNodeID);
+        b.setString("preview",           sb.preview);
+        b.setString("tipTimestamp",      sb.tipTimestamp);
+        b.setInt("nodeCount",            sb.nodeCount);
+        doc.appendToArray("branches", std::move(b));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_purge_branch(const char* projectRootPath,
+                                        const char* branchRootEventID) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    auto& svc = it->second->service();
+    const auto r = svc.purgeBranch(S(branchRootEventID));
+    if (r.ok) { it->second->persistPurge(r.branchRootEventID); }
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("ok",                r.ok);
+    doc.setString("branchRootEventID", r.branchRootEventID);
+    doc.setInt("purgedCount",        r.purgedCount);
+    doc.setBool("canUndo",           r.canUndo);
+    doc.setBool("canRedo",           r.canRedo);
     return heap(okEnvelope(std::move(doc)));
 }
 

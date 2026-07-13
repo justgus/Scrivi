@@ -78,11 +78,22 @@ struct RecordParams {
     std::string timestamp;   // caller-supplied ISO-8601; kept verbatim
 };
 
+// What branch-aware eviction did, so the store can persist matching ctl records
+// (§4.1/§5). `promotedRoots` are the successive newRootIDs as the root advanced
+// along the surviving path; `purgedBranchRoots` are the subtree roots dropped
+// (non-primary branches whose branch point fell off the limit). Both empty when
+// nothing was evicted. Replay honors these to reproduce eviction after reload.
+struct EvictionDetail {
+    std::vector<std::string> promotedRoots;      // ctl:evict per new root, in order
+    std::vector<std::string> purgedBranchRoots;  // ctl:purge per dropped subtree
+};
+
 struct RecordResult {
     std::string eventID;
-    bool createdBranch = false;   // always false in the linear engine
-    int evictedCount = 0;         // always 0 until SP-054 capacity work
+    bool createdBranch = false;   // true when this record forked (§5/D1)
+    int evictedCount = 0;         // nodes dropped by capacity eviction (§4.1)
     bool noOp = false;            // true when newSceneText == head (no diff)
+    EvictionDetail eviction;      // what eviction purged/promoted (for persistence)
 };
 
 struct BarrierParams {
@@ -96,6 +107,21 @@ struct SceneChange {
     std::string sceneID;
     std::string newText;
     std::int64_t cursorAfter = 0;
+};
+
+// One forward branch at a fork node, for the inline fork popover (§10 T2 / SP-055).
+struct ForkChild {
+    std::string eventID;      // the child branch's first node
+    std::string preview;      // short text preview of that branch's change
+    std::string timestamp;    // the child's ISO-8601 timestamp
+    bool isPrimary = false;   // true for the current primaryChildID
+};
+
+// Present on a StepResult only when the pointer LANDS ON a node with >= 2
+// children (a real fork). Drives the T2 popover; absent otherwise. Design §7/§10.
+struct ForkAhead {
+    std::string nodeID;                 // the fork node the pointer is at
+    std::vector<ForkChild> children;    // forward branches, in childIDs order
 };
 
 // Result of an undo or redo step.
@@ -112,6 +138,38 @@ struct StepResult {
     bool stoppedAtBarrier = false;
     std::string barrierKind;
     std::string barrierNote;
+
+    // Present when the pointer landed on a fork (>= 2 children) — drives the
+    // inline fork popover (§10 T2). Absent (nullopt) otherwise.
+    std::optional<ForkAhead> forkAhead;
+};
+
+// Result of selecting a branch at a fork (re-primary; does not move the pointer).
+struct SelectBranchResult {
+    bool ok = false;
+    std::string forkNodeID;
+    std::string childEventID;
+    bool canRedo = false;
+};
+
+// One stale branch: a non-primary subtree whose most recent activity (tip) is
+// older than the stale threshold (§5, T-0212). `branchRootEventID` is the
+// subtree root the user purges; the other fields describe it for the confirm UI.
+struct StaleBranch {
+    std::string branchRootEventID;  // the non-primary child that roots the subtree
+    std::string forkNodeID;         // the fork this branch hangs off (its parent)
+    std::string preview;            // short text preview of the branch's first change
+    std::string tipTimestamp;       // ISO-8601 of the newest node in the subtree
+    int nodeCount = 0;              // nodes in the subtree (what purge removes)
+};
+
+// Result of a user-confirmed purge of a branch subtree (§5, T-0212).
+struct PurgeResult {
+    bool ok = false;                // false when branchRootEventID is not purgeable
+    std::string branchRootEventID;
+    int purgedCount = 0;            // nodes removed
+    bool canUndo = false;
+    bool canRedo = false;
 };
 
 // The linear history engine for one open project. In-memory only (SP-052).
@@ -160,6 +218,30 @@ public:
     // resulting scene text.
     StepResult redo();
 
+    // Re-primaries a fork: sets nodeRef(forkNodeID).primaryChildID = childEventID
+    // (design §5, T2). Does NOT move the current pointer — the caller walks the
+    // now-primary branch via redo(). Fails if childEventID is not a child of the
+    // fork. Design §7 scrivi_history_select_branch.
+    SelectBranchResult selectBranch(const std::string& forkNodeID,
+                                    const std::string& childEventID);
+
+    // Lists stale branches (§5, T-0212): every non-primary subtree whose tip
+    // (newest timestamp in the subtree) is older than `staleBranchDays` before
+    // `nowIso`. A branch on the root→current path is never reported (it holds the
+    // live state). `nowIso` and `staleBranchDays` come from the ABI (which owns
+    // the clock/settings); `staleBranchDays <= 0` reports nothing. Timestamps are
+    // ISO-8601; unparseable ones are treated as not stale. Design §7
+    // scrivi_history_list_stale_branches.
+    [[nodiscard]] std::vector<StaleBranch> listStaleBranches(const std::string& nowIso,
+                                                             int staleBranchDays) const;
+
+    // Purges a branch subtree with user confirmation (§5, T-0212): erases
+    // `branchRootEventID` and all its descendants. Rejects (ok=false) when the
+    // node is unknown, IS the root, or lies on the root→current path (purging it
+    // would strand the live pointer). Does NOT move the current pointer. Design §7
+    // scrivi_history_purge_branch.
+    PurgeResult purgeBranch(const std::string& branchRootEventID);
+
     [[nodiscard]] bool canUndo() const;
     [[nodiscard]] bool canRedo() const;
     [[nodiscard]] const std::string& sessionID() const { return sessionID_; }
@@ -189,14 +271,33 @@ public:
     void setPointers(std::string rootID, std::string currentNodeID, std::string sessionID);
     void finalizeLoad();
 
+    // Replays persisted branch-aware eviction (§4.1) after finalizeLoad() has
+    // derived childIDs. For each purged branch root, erases that subtree; for
+    // each promoted root (in order), folds the promoted child's diff into the
+    // floor, detaches it as the new root, and erases the old root — reproducing
+    // the in-memory eviction so evicted branches do NOT resurrect from the log.
+    // Order matches persistEviction: purges first, then promotions. No-op on an
+    // unknown ID (the record referenced a node already gone). Rebuilds the head
+    // cache at the end. Called by HistoryStore during replay.
+    void applyLoadedEviction(const std::vector<std::string>& purgedBranchRoots,
+                             const std::vector<std::string>& promotedRoots);
+
+    // Applies a persisted primary-child override for a fork (D4/SP-055): sets
+    // nodeRef(forkNodeID).primaryChildID = childEventID if childEventID is a child.
+    // Called by HistoryStore during replay for each ctl:setPrimary record and for
+    // each state.json primaryChildren entry, AFTER finalizeLoad() derives childIDs.
+    // No-op if either node is unknown or the child is not a child of the fork.
+    void applyPrimaryOverride(const std::string& forkNodeID, const std::string& childEventID);
+
     // Replaces the current session id (used on idle rollover / new session at open).
     void setSessionID(std::string sessionID) { sessionID_ = std::move(sessionID); }
 
     // Capacity (Trade T1): the max number of event nodes retained. 0 = unlimited.
     // When record() pushes the count above this, the oldest node(s) are evicted
-    // from the root (linear engine: the root's single child becomes the new root,
-    // its diff folded into the per-scene floor). Never evicts a node on the
-    // root→current path. Full branch-aware auto-purge is SP-055.
+    // from the root (§4.1, branch-aware: non-primary subtrees off the root are
+    // auto-purged, then the on-path child becomes the new root with its diff
+    // folded into the per-scene floor). Never evicts a node on the root→current
+    // path; DEFERS when the current pointer is the root itself.
     void setCapacity(int capacityEvents) { capacityEvents_ = capacityEvents; }
     [[nodiscard]] int capacity() const { return capacityEvents_; }
     // Number of event nodes currently retained (excludes the root anchor).
@@ -210,9 +311,30 @@ private:
     // root→current path and applying each node's diff to its scene.
     void rebuildHeadCache();
 
-    // Evicts oldest nodes while eventCount() > capacity (linear engine). Returns
-    // the number evicted. Stops if the next node to evict is the current pointer.
-    int evictToCapacity();
+    // Returns fork data for `nodeID` when it has >= 2 children, else nullopt.
+    // Used to populate StepResult.forkAhead after an undo/redo step.
+    [[nodiscard]] std::optional<ForkAhead> forkAheadAt(const std::string& nodeID) const;
+
+    // Evicts from the root while eventCount() > capacity (§5, branch-aware): at
+    // each step auto-purges the root's non-primary child subtrees, then promotes
+    // the child on the root→current path to the new root (folding its diff into
+    // the floor). Never evicts a node on the root→current path; DEFERS (stops)
+    // when the current pointer is the root itself. Returns the number of nodes
+    // evicted and, via `detail`, the promoted roots and purged branch roots so
+    // the store can persist matching ctl:evict/ctl:purge records (§4.1).
+    int evictToCapacity(EvictionDetail& detail);
+
+    // The root's child that lies on the root→current path (must be promoted, not
+    // evicted). Empty when the current pointer IS the root.
+    [[nodiscard]] std::string rootChildTowardCurrent() const;
+
+    // Erases a node and its whole descendant subtree from nodes_. Returns the
+    // count removed. Used by eviction auto-purge (§5) and user purge (T-0212).
+    int eraseSubtree(const std::string& subtreeRootID);
+
+    // Counts the nodes in a subtree without modifying it (for the stale-branch
+    // confirm UI's "N steps" — T-0212). Unknown ID → 0.
+    [[nodiscard]] int subtreeNodeCount(const std::string& subtreeRootID) const;
 
     std::map<std::string, EventNode> nodes_;   // eventID → node
     std::string rootID_;

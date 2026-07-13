@@ -22,6 +22,16 @@ bool JsonDoc::contains(std::string_view key) const {
     return impl_->data.contains(std::string(key));
 }
 
+std::vector<std::string> JsonDoc::objectKeys() const {
+    std::vector<std::string> keys;
+    if (impl_->data.is_object()) {
+        for (auto it = impl_->data.begin(); it != impl_->data.end(); ++it) {
+            keys.push_back(it.key());
+        }
+    }
+    return keys;
+}
+
 std::string JsonDoc::getString(std::string_view key, std::string_view defaultValue) const {
     auto k = std::string(key);
     if (impl_->data.contains(k) && impl_->data[k].is_string()) {

@@ -78,6 +78,14 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
         std::string loadedSessionID = newSessionID;
         std::int64_t maxSeq = 0;
         bool sawAnyRecord = false;
+        // Fork re-selections (ctl:setPrimary) collected during replay; applied
+        // after finalizeLoad() derives childIDs (D4/SP-055). forkNodeID → childID.
+        std::map<std::string, std::string> primaryOverrides;
+        // Branch-aware eviction (§4.1) collected during replay; applied after
+        // finalizeLoad() so evicted branches don't resurrect. Purges first, then
+        // promotions in log order (mirrors persistEviction()).
+        std::vector<std::string> purgedBranchRoots;
+        std::vector<std::string> promotedRoots;
 
         std::istringstream ss(logText);
         std::string line;
@@ -128,14 +136,39 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     currentNodeID = d.getString("nodeID");
                 } else if (op == "session") {
                     loadedSessionID = d.getString("sessionID");
+                } else if (op == "setPrimary") {
+                    // Collect fork re-selections; applied after finalizeLoad()
+                    // (childIDs must exist first). Last write per fork wins.
+                    primaryOverrides[d.getString("forkNodeID")] = d.getString("childEventID");
+                } else if (op == "purge") {
+                    // Branch-aware eviction (§4.1): a non-primary subtree dropped.
+                    // Applied after finalizeLoad() so the subtree doesn't resurrect.
+                    purgedBranchRoots.push_back(d.getString("branchRootEventID"));
+                } else if (op == "evict") {
+                    // Root promotion (§4.1): the root advanced to this node.
+                    // Applied by applyLoadedEviction() AFTER finalizeLoad(), which
+                    // rebuilds from the ORIGINAL root/floor first; the promotion
+                    // then re-folds the floor and advances rootID_.
+                    promotedRoots.push_back(d.getString("newRootID"));
                 }
-                // root/evict/purge/setPrimary: linear engine ignores in SP-054.
             }
         }
 
         if (sawAnyRecord) {
             svc->setPointers(rootID, currentNodeID, loadedSessionID);
             svc->finalizeLoad();
+            // §4.1/SP-055: replay branch-aware eviction (drop purged subtrees,
+            // advance the root) BEFORE restoring fork primaries — evicted forks
+            // are gone, so their overrides become harmless no-ops.
+            svc->applyLoadedEviction(purgedBranchRoots, promotedRoots);
+            // D4/SP-055: restore persisted fork primaries so a re-selected branch
+            // survives reopen instead of snapping back to finalizeLoad()'s
+            // "last child wins" default. The log's ctl:setPrimary records are the
+            // source of truth; state.json.primaryChildren (loaded below) is a
+            // redundant accelerator merged over the top.
+            for (const auto& [forkID, childID] : primaryOverrides) {
+                svc->applyPrimaryOverride(forkID, childID);
+            }
             // Load persisted per-scene head hashes + settings from state.json for
             // §6.b validation (best-effort; the log already rebuilt the tree).
             if (fs_) {
@@ -153,6 +186,13 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                             util::JsonDoc h = heads.getSubDoc(sceneID);
                             const std::string sha = h.getString("sha256");
                             if (!sha.empty()) loadedHeadHashes_[sceneID] = sha;
+                        }
+                        // Merge state.json fork primaries over the log-derived ones
+                        // (D4). Redundant with ctl:setPrimary but cheap insurance if
+                        // the checkpoint is newer than the replayed log tail.
+                        util::JsonDoc primaries = st.getSubDoc("primaryChildren");
+                        for (const std::string& forkID : primaries.objectKeys()) {
+                            svc->applyPrimaryOverride(forkID, primaries.getString(forkID));
                         }
                     }
                 }
@@ -228,6 +268,53 @@ void HistoryStore::persistCtl(const std::string& op, const std::string& nodeID) 
     appendLine(d.dump(-1));
 }
 
+void HistoryStore::persistSetPrimary(const std::string& forkNodeID,
+                                     const std::string& childEventID) {
+    util::JsonDoc d;
+    d.setString("rec", "ctl");
+    d.setInt64("seq", ++lastSeq_);
+    d.setString("op", "setPrimary");
+    d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+    d.setString("forkNodeID", forkNodeID);
+    d.setString("childEventID", childEventID);
+    appendLine(d.dump(-1));
+}
+
+void HistoryStore::persistEviction(const EvictionDetail& detail) {
+    // Purge records first (the subtrees dropped), then the promotions in order —
+    // replay applies them the same way: drop the subtree, then advance the root.
+    for (const std::string& branchRoot : detail.purgedBranchRoots) {
+        util::JsonDoc d;
+        d.setString("rec", "ctl");
+        d.setInt64("seq", ++lastSeq_);
+        d.setString("op", "purge");
+        d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+        d.setString("branchRootEventID", branchRoot);
+        appendLine(d.dump(-1));
+    }
+    for (const std::string& newRoot : detail.promotedRoots) {
+        util::JsonDoc d;
+        d.setString("rec", "ctl");
+        d.setInt64("seq", ++lastSeq_);
+        d.setString("op", "evict");
+        d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+        d.setString("newRootID", newRoot);
+        appendLine(d.dump(-1));
+    }
+}
+
+void HistoryStore::persistPurge(const std::string& branchRootEventID) {
+    // Same ctl:purge record eviction writes, so replay drops the subtree the same
+    // way (§4.1 collects op=="purge" into purgedBranchRoots).
+    util::JsonDoc d;
+    d.setString("rec", "ctl");
+    d.setInt64("seq", ++lastSeq_);
+    d.setString("op", "purge");
+    d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+    d.setString("branchRootEventID", branchRootEventID);
+    appendLine(d.dump(-1));
+}
+
 void HistoryStore::checkpoint() {
     if (!fs_ || !service_) return;
     util::JsonDoc d;
@@ -244,6 +331,18 @@ void HistoryStore::checkpoint() {
     d.setString("sessionID", service_->sessionID());
     d.setInt64("lastSeq", lastSeq_);
     d.setString("activeLogSegment", activeSegment_);
+
+    // Fork primaries — forks only (nodes with >= 2 children); a single child is
+    // implicitly primary and omitted (Appendix A.2). Load accelerator for D4.
+    util::JsonDoc primaries;
+    bool anyPrimary = false;
+    for (const auto& [id, node] : service_->nodes()) {
+        if (node.childIDs.size() >= 2 && node.primaryChildID.has_value()) {
+            primaries.setString(id, *node.primaryChildID);
+            anyPrimary = true;
+        }
+    }
+    if (anyPrimary) d.setSubDoc("primaryChildren", std::move(primaries));
 
     // Per-scene head hashes for §6.b validation at next open.
     util::JsonDoc heads;
