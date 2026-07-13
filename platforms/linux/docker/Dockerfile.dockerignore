@@ -1,0 +1,23 @@
+# Scoped to platforms/linux/docker/Dockerfile (build context = repo root).
+#
+# Keep host-only, machine-specific, and heavy artifacts out of the image build
+# context. Critically, the host `build/` tree carries an absolute-path
+# CMakeCache.txt (e.g. /Users/...) that makes the in-container `cmake -S . -B
+# build` refuse to run ("source does not match"). Excluding it is required, not
+# just an optimization.
+
+# CMake / build output (host-generated, absolute paths baked in)
+build/
+**/build/
+cmake-build-*/
+
+# Apple/Xcode artifacts — irrelevant to the Linux image
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# VCS + editor cruft
+.git/
+.DS_Store
+*.swp

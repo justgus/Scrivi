@@ -1,0 +1,63 @@
+name: Scrivi Linux App CI
+
+# Builds the Linux Qt/QML app (EP-020). Separate from ScriviCore CI so the core
+# build stays Qt-free; this job installs Qt6 and links the ScriviCore target.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platforms/linux/**'
+      - 'ScriviCore/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/scrivi-linux-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'platforms/linux/**'
+      - 'ScriviCore/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/scrivi-linux-ci.yml'
+
+jobs:
+  build-linux-app:
+    name: ubuntu-24.04 (Qt 6.4)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Qt 6.4 + QML modules from apt — matches the Docker/alpha toolchain pin.
+      - name: Install Qt6 + build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build \
+            qt6-base-dev qt6-declarative-dev \
+            qml6-module-qtquick qml6-module-qtquick-controls \
+            qml6-module-qtquick-templates \
+            qml6-module-qtquick-layouts qml6-module-qtquick-window \
+            qml6-module-qtqml-workerscript qml6-module-qtqml-models \
+            libgl1-mesa-dev
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # Headless smoke: launch the app under Xvfb and confirm it starts a window
+      # and stays up briefly (proves the QML engine + ScriviBridge load without
+      # crashing). A non-zero exit or immediate quit fails the job.
+      - name: Headless smoke test
+        run: |
+          sudo apt-get install -y --no-install-recommends xvfb
+          xvfb-run -a --server-args="-screen 0 1024x768x24" \
+            timeout --preserve-status 8 ./build/platforms/linux/scrivi_linux &
+          APP=$!
+          sleep 5
+          if ! kill -0 "$APP" 2>/dev/null; then
+            echo "App exited early — smoke test failed."
+            wait "$APP"; exit 1
+          fi
+          echo "App is running under Xvfb — smoke test passed."
+          kill "$APP" 2>/dev/null || true
