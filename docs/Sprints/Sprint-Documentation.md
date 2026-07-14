@@ -11,13 +11,14 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- _None currently active._
+- **SP-060** — `[Linux]` Project Lifecycle: Open + Close + full-loop Verify (EP-021 close half) — 🟢
+  **Active** (activated 2026-07-14; second of 2 EP-021 sprints; tasks T-0230–T-0233; delivers
+  AC3/AC6/AC7/AC8 + Epic close). See [Sprint-active.md](Sprint-active.md).
 
 Last closed: **SP-059** (EP-021 `[Linux]` Project Lifecycle — create half) — ✅ closed 2026-07-14, all
-seven tasks Verified (incl. T-0229 `EncryptedFileSecureStore`, added mid-sprint & user-approved);
-AC1/AC2/AC4/AC5 delivered & user-verified over VNC; `Closed/Sprint-SP-059.md`. **Next up: SP-060** (EP-021
-open/close half — not yet drafted). SP-056/SP-057 (EP-019 `[Apple]`) remain in Planning but are parked
-behind the deferred EP-019 — see Backlog.
+seven tasks Verified (incl. T-0229 `EncryptedFileSecureStore`); AC1/AC2/AC4/AC5 delivered & VNC-verified;
+`Closed/Sprint-SP-059.md`. SP-056/SP-057 (EP-019 `[Apple]`) remain in Planning but are parked behind the
+deferred EP-019 — see Backlog.
 
 ## Sprint Backlog
 
@@ -30,7 +31,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **59 Sprints** (56 closed + 1 cancelled + 2 in Planning; 0 active) | Next available: **SP-060**
+Currently: **60 Sprints** (56 closed + 1 cancelled + 2 in Planning + 1 active) | Next available: **SP-061**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -93,16 +94,17 @@ Currently: **59 Sprints** (56 closed + 1 cancelled + 2 in Planning; 0 active) | 
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
 | SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | 2026-07-13 | ✅ Closed |
 | SP-059 | `[Linux]` Project Lifecycle — appSupportRoot + recents + landing + create-project | EP-021 `[Linux]` | 2026-07-13 | 2026-07-14 | ✅ Closed |
+| SP-060 | `[Linux]` Project Lifecycle — Open + Close + full-loop Verify (EP-021 close half) | EP-021 `[Linux]` | 2026-07-14 | — | 🟢 Active |
 
 ## Statistics
 
-- **Total Sprints:** 59
+- **Total Sprints:** 60
 - **Closed:** 56 ✅
-- **Active:** 0 🟢
+- **Active:** 1 🟢 (SP-060, EP-021 `[Linux]` open/close half)
 - **Planning:** 2 🔵 (SP-056–SP-057, EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-14 (SP-059 ✅ closed with user approval — EP-021 `[Linux]` Project Lifecycle create-half (AC1/AC2/AC4/AC5) delivered & user-verified over VNC; T-0229 `EncryptedFileSecureStore` added mid-sprint. No active sprint; SP-060 (EP-021 open/close half) is next when drafted.)*
+*Last Updated: 2026-07-14 (SP-060 🟢 activated — EP-021 `[Linux]` close half: open + close + full-loop verify (AC3/AC6/AC7/AC8), tasks T-0230–T-0233. Earlier same day: SP-059 ✅ closed & VNC-verified.)*

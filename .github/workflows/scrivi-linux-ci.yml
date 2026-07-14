@@ -70,3 +70,10 @@ jobs:
         run: |
           platforms/linux/tests/persistence_smoke.sh \
             ./build/platforms/linux/scrivi_linux_persistence_smoke
+
+      # Full-loop lifecycle smoke (SP-060 / T-0233): create → open (ready) →
+      # close → reopen-from-recent, and assert it survives a restart (AC3/AC7).
+      - name: Lifecycle full-loop smoke test
+        run: |
+          platforms/linux/tests/lifecycle_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_lifecycle_smoke

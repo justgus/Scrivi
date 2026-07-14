@@ -83,3 +83,28 @@ target_link_libraries(scrivi_linux_persistence_smoke
 
 target_include_directories(scrivi_linux_persistence_smoke PRIVATE src)
 target_compile_features(scrivi_linux_persistence_smoke PRIVATE cxx_std_23)
+
+# --- Headless full-loop lifecycle smoke (SP-060 / T-0233) -----------------
+# Drives create → open (ready) → close → reopen-recent (and across a restart)
+# through the same ScriviBridge/RecentsStore code the app uses. Driven by
+# lifecycle_smoke.sh. Same link set as the persistence smoke (no window).
+qt_add_executable(scrivi_linux_lifecycle_smoke
+    tests/lifecycle_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_lifecycle_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_lifecycle_smoke PRIVATE src)
+target_compile_features(scrivi_linux_lifecycle_smoke PRIVATE cxx_std_23)

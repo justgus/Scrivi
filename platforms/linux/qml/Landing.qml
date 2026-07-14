@@ -19,11 +19,18 @@ ApplicationWindow {
     visible: true
     title: qsTr("Scrivi — Linux (alpha)")
 
+    // Landing-view error text, held at window scope so it is reachable from the
+    // shared open flow (openPath) and the bridge error handler alike. (It must NOT
+    // live only on the landing Page component — `landingPage` is a Component, not
+    // the instantiated Page, so writing a property on it throws and aborts the
+    // caller. That bug silently broke Open/recents-click in the first cut.)
+    property string landingError: ""
+
     // App-wide backend boundary + recents store, shared with pushed pages.
     ScriviBridge {
         id: bridge
         onErrorOccurred: (code, message) => {
-            landingPage.errorText = qsTr("Error %1: %2").arg(code).arg(message)
+            window.landingError = qsTr("Error %1: %2").arg(code).arg(message)
         }
     }
 
@@ -38,10 +45,95 @@ ApplicationWindow {
         bridge.bootstrap(Qt.application.name, appSupportRoot)
     }
 
+    // Shared Open flow (SP-060 / T-0231), reachable from the Open Project button
+    // and from a recents-row click. Calls bridge.openProject and branches the three
+    // core open modes:
+    //   • ready          → open the placeholder project window + refresh recents
+    //   • repairRequired → list the issues in a dialog; DO NOT enter the project
+    //   • cannotOpen / error → the bridge emits errorOccurred (shown inline); {}
+    function openPath(path) {
+        if (!path || path.length === 0)
+            return
+        window.landingError = ""
+        var result = bridge.openProject(path, appSupportRoot)
+        if (!result || result.mode === undefined) {
+            // cannotOpen or a malformed/other error — errorOccurred already fired.
+            return
+        }
+        if (result.mode === "repairRequired") {
+            repairDialog.projectPath = path
+            repairDialog.issues = result.repairIssues || []
+            repairDialog.open()
+            return
+        }
+        // ready — record in recents (moves to front) and open the project window.
+        var title = recentTitleFor(path)
+        recents.addOrUpdate(path, title)
+        stack.push(projectWindow, {
+            "projectID": result.projectID,
+            "projectTitle": title,
+            "projectPath": path,
+            "sceneCount": (result.scenes ? result.scenes.length : 0)
+        })
+    }
+
+    // Best-effort display title for a path: the existing recents title if we have
+    // one, else the folder name minus the .scrivi extension.
+    function recentTitleFor(path) {
+        for (var i = 0; i < recents.entries.length; ++i) {
+            if (recents.entries[i].path === path) {
+                var t = recents.entries[i].title
+                if (t && t.length > 0)
+                    return t
+            }
+        }
+        var name = path.substring(path.lastIndexOf("/") + 1)
+        return name.replace(/\.scrivi$/, "")
+    }
+
     StackView {
         id: stack
         anchors.fill: parent
         initialItem: landingPage
+    }
+
+    // repairRequired: surface the issue titles and stay on the landing view
+    // (surface + block — full repair workflow is a later Epic). SP-060 / T-0231.
+    Dialog {
+        id: repairDialog
+        property string projectPath: ""
+        property var issues: []
+        anchors.centerIn: parent
+        width: Math.min(parent ? parent.width - 80 : 480, 520)
+        modal: true
+        title: qsTr("This project needs repair")
+        standardButtons: Dialog.Ok
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: qsTr("Scrivi can't open this project yet — the following need attention. "
+                           + "Repairing projects arrives in a later update.")
+                opacity: 0.85
+            }
+            Repeater {
+                model: repairDialog.issues
+                delegate: RowLayout {
+                    Layout.fillWidth: true
+                    required property var modelData
+                    Label { text: "•"; opacity: 0.6 }
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        text: (modelData.title && modelData.title.length > 0)
+                              ? modelData.title : qsTr("Unknown issue")
+                    }
+                }
+            }
+        }
     }
 
     // ---- Landing page -----------------------------------------------------
@@ -49,7 +141,8 @@ ApplicationWindow {
         id: landingPage
 
         Page {
-            property string errorText: ""
+            // Mirrors the window-level error so the label below can bind to it.
+            readonly property string errorText: window.landingError
 
             ColumnLayout {
                 anchors.fill: parent
@@ -77,16 +170,20 @@ ApplicationWindow {
                         text: qsTr("New Project")
                         enabled: bridge.ready
                         onClicked: {
-                            errorText = ""
+                            window.landingError = ""
                             stack.push(newProjectDialog)
                         }
                     }
                     Button {
                         text: qsTr("Open Project")
-                        // Real open lands in SP-060; present but disabled for now.
-                        enabled: false
-                        ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Available in the next update")
+                        enabled: bridge.ready
+                        onClicked: {
+                            window.landingError = ""
+                            // Pick an existing .scrivi directory with the Widgets
+                            // QFileDialog (reused from the create flow), then open it.
+                            var picked = bridge.chooseFolder(defaultProjectsFolder)
+                            window.openPath(picked)
+                        }
                     }
                     Button {
                         text: qsTr("Quit")
@@ -136,8 +233,9 @@ ApplicationWindow {
                         delegate: ItemDelegate {
                             required property var modelData
                             width: ListView.view ? ListView.view.width : 0
-                            // Open is wired in SP-060; rows are inert for now.
-                            enabled: false
+                            enabled: bridge.ready
+                            // Click a recent to open it (SP-060 / T-0231).
+                            onClicked: window.openPath(modelData.path)
 
                             contentItem: ColumnLayout {
                                 spacing: 2

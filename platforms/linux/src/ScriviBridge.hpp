@@ -71,6 +71,17 @@ public:
     // `startDir` is the initial directory (absolute path); empty = platform default.
     Q_INVOKABLE QString chooseFolder(const QString& startDir);
 
+    // Opens an existing .scrivi project (SP-060 / T-0230). Fills appSupportRoot +
+    // the bootstrapped identityID, calls scrivi_open_project, and returns the ok
+    // "result" object to QML — which carries "mode":
+    //   • "ready"          → {projectID, mode, activeScene{...}, restored{...}, scenes:[...]}
+    //   • "repairRequired" → {projectID, mode, repairIssues:[{...}]}
+    // The third core open mode, "cannotOpen", comes back as an *error* envelope, so
+    // it is surfaced via errorOccurred and this returns an empty map (same as any
+    // other failure). Requires bootstrap() to have succeeded first. No backend logic.
+    Q_INVOKABLE QVariantMap openProject(const QString& projectRootPath,
+                                        const QString& appSupportRoot);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

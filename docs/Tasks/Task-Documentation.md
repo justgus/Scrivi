@@ -78,9 +78,15 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks.** SP-059 (EP-021 `[Linux]` Project Lifecycle — create half) closed 2026-07-14;
-its tasks T-0223–T-0229 are ✅ Verified & archived to `Verified/Task-verified-0223-0229.md`. Next up is
-SP-060 (EP-021 open/close half), whose tasks are defined when it is drafted.
+Currently: **4 active Tasks** (SP-060 `[Linux]` Project Lifecycle — open/close half, activated 2026-07-14).
+SP-059's T-0223–T-0229 are ✅ Verified & archived to `Verified/Task-verified-0223-0229.md`.
+
+| Task | Title | Sprint | Status |
+| ---- | ----- | ------ | ------ |
+| T-0230 | `[Linux]` `ScriviBridge.openProject` — `scrivi_open_project`, mode-tagged result | SP-060 | 🟢 Active |
+| T-0231 | `[Linux]` Open flow QML — recents click + `QFileDialog` `.scrivi`; 3-mode branch | SP-060 | 🟢 Active |
+| T-0232 | `[Linux]` Close → landing (app-side; recents refreshed) | SP-060 | 🟢 Active |
+| T-0233 | `[Linux]` Full-loop verify — create→open→close→reopen smoke + CI + Epic-close check | SP-060 | 🟢 Active |
 
 > **Cleanup (2026-07-14):** on SP-059 close, T-0223–T-0229 archived to `Verified/Task-verified-0223-0229.md`.
 > Also corrected stale rows for SP-058's T-0218–T-0222, which were still marked 🟢 Active in this index
@@ -259,13 +265,13 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 215 (183 through T-0197 + 20 EP-019 tasks T-0198–T-0217 + 5 EP-020 tasks T-0218–T-0222 + 7 EP-021 tasks T-0223–T-0229)
+- **Total Tasks:** 219 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233)
 - **Backlog:** 39 🔵
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
-- **Active:** 0
+- **Active:** 4 🟢 (T-0230–T-0233, SP-060 `[Linux]`)
 - **Unverified:** 0
 - **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, and EP-021/SP-059 T-0223–T-0229 verified & archived (see Verified table)
-- **Next available:** T-0230
+- **Next available:** T-0234
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190

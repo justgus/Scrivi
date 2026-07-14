@@ -42,9 +42,12 @@ Verified in Docker+VNC (developer) and, when a milestone lands, on real Ubuntu (
   `scrivi_create_project` through `ScriviBridge`, creating a real `.scrivi` package on disk; on success
   the app transitions out of the landing view to the opened project (placeholder project window is fine —
   the editor is EP-022). ✅ SP-059 (VNC-verified 2026-07-14; package confirmed on disk + from macOS).
-- [ ] AC3 — **Open project:** selecting a recent project or choosing a folder calls `scrivi_open_project`
+- [x] AC3 — **Open project:** selecting a recent project or choosing a folder calls `scrivi_open_project`
   and handles all three open modes — **ready**, **repairRequired**, **cannotOpen** — surfacing repair
-  issues / errors to the user rather than crashing or silently failing. _(SP-060)_
+  issues / errors to the user rather than crashing or silently failing.
+  ✅ SP-060 (VNC-verified 2026-07-14: two `ready` projects opened via recents + Open Project button;
+  `repairRequired` — broken `manuscript.meta.json` — showed the repair dialog and blocked; unreadable/
+  non-`.scrivi` path → inline error).
 - [x] AC4 — **Local identity bootstrap:** identity is ensured (`scrivi_ensure_local_identity`) before
   create/open as the flow requires, reusing the EP-020 bridge call; no duplicate-identity churn across
   app launches (identity persists — see the appSupportRoot note under Open Questions).
@@ -55,16 +58,21 @@ Verified in Docker+VNC (developer) and, when a milestone lands, on real Ubuntu (
   and removable. Stored app-side (no ScriviCore change) — location/format decided in the first sprint.
   ✅ SP-059 (`recents.json` under appSupportRoot; VNC-verified persistence across relaunch; remove wired,
   UI removal affordance lands with the open path in SP-060).
-- [ ] AC6 — **Close / return to landing:** closing a project returns to the landing view cleanly
+- [x] AC6 — **Close / return to landing:** closing a project returns to the landing view cleanly
   (resources released, recent list updated). Whether a `scrivi_close_project` C-ABI endpoint is needed is
-  resolved in planning (see Open Questions) — if so, it's a `[ScriviCore]` Task, additive-only. _(SP-060)_
-- [ ] AC7 — **Verified:** developer confirms the full create→open→close→reopen-recent loop over
+  resolved in planning (see Open Questions) — if so, it's a `[ScriviCore]` Task, additive-only.
+  ✅ SP-060 (VNC-verified: Close returns to landing; opened project at the **top** of recents). **No
+  `scrivi_close_project` needed** — close is purely an app-side UI/state transition (ScriviCore keeps no
+  cross-call open handle).
+- [x] AC7 — **Verified:** developer confirms the full create→open→close→reopen-recent loop over
   Docker+VNC; CI stays green (build + headless smoke; a lifecycle smoke test if feasible headless).
-  _(SP-060 — SP-059 verified the create+persistence portion.)_
-- [~] AC8 — **No regression:** `scrivi.h` unchanged or additive-only; ScriviCore `ctest` green; the macOS
-  app and EP-020's hello-slice/harness still build and run. **On track:** SP-059 added
-  `EncryptedFileSecureStore` (additive, `scrivi.h` unchanged), Linux `ctest` 271/271, macOS `ctest`
-  264/264 (secure store gated to Linux — macOS untouched). Final confirm with SP-060.
+  ✅ SP-060: `lifecycle_smoke` (create→open→close→reopen + restart) wired into CI + user-verified over VNC;
+  SP-059 verified the create+persistence portion.
+- [x] AC8 — **No regression:** `scrivi.h` unchanged or additive-only; ScriviCore `ctest` green; the macOS
+  app and EP-020's hello-slice/harness still build and run.
+  ✅ SP-060 touched **only** `platforms/linux/` + Linux CI + docs (no ScriviCore/Apple change). Cumulative:
+  SP-059's `EncryptedFileSecureStore` is additive (`scrivi.h` unchanged, Linux-gated); Linux `ctest`
+  271/271, macOS `ctest` 264/264 (macOS untouched).
 
 ### Sprints
 
@@ -75,7 +83,7 @@ shippable, VNC-verifiable milestone. Task IDs assigned at sprint activation.
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-059 | Foundation + Create — XDG `appSupportRoot`, recents store, landing view shell, New Project → `scrivi_create_project` (AC1, AC2, AC4, AC5) | ✅ Closed (VNC-verified) | 2026-07-13 – 2026-07-14 |
-| SP-060 | Open + Close + Verify — Open Project + folder picker, open modes (ready/repairRequired/cannotOpen), close→landing, full create→open→close→reopen loop + CI + Epic close (AC3, AC6, AC7, AC8) | 🔵 Planning | — |
+| SP-060 | Open + Close + Verify — Open Project + folder picker, open modes (ready/repairRequired/cannotOpen), close→landing, full create→open→close→reopen loop + CI + Epic close (AC3, AC6, AC7, AC8) | 🟢 Active | 2026-07-14 – (in progress) |
 
 **Split rationale:** SP-059 lands the persistence foundation (Open Question #1, the critical path) plus the
 first end-to-end path (create a real `.scrivi`, see it in recents, persist across restart). SP-060 adds the
@@ -84,7 +92,8 @@ closes the Epic. AC4 (identity bootstrap) spans both since create and open each 
 
 ### Tasks
 
-_(defined at sprint activation — see `docs/Tasks/Task-backlog.md` / `Task-active.md`)_
+- **SP-059 (closed):** T-0223–T-0229 ✅ Verified → `Tasks/Verified/Task-verified-0223-0229.md`.
+- **SP-060 (active):** T-0230–T-0233 🟢 Active → `Tasks/Task-active.md`.
 
 ### Issues
 

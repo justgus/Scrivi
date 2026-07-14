@@ -2,16 +2,19 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// ProjectWindow.qml — the placeholder project screen (SP-059 / T-0227). Shown
-// after a project is created; confirms the .scrivi exists by echoing the
-// projectID/title/path returned by createProject. The real editor is EP-022; for
-// now this is a stub with a Close action that returns to the landing view.
+// ProjectWindow.qml — the placeholder project screen (SP-059 / T-0227, extended
+// SP-060 / T-0231). Shown after a project is created OR opened; confirms the
+// .scrivi by echoing the projectID/title/path (+ scene count on open). The real
+// editor is EP-022; for now this is a stub with a Close action that returns to the
+// landing view.
 Page {
     id: root
 
     property string projectID: ""
     property string projectTitle: ""
     property string projectPath: ""
+    // -1 = created (no scene count shown); >= 0 = opened with that many scenes.
+    property int sceneCount: -1
 
     signal closed()
 
@@ -40,14 +43,14 @@ Page {
         spacing: 16
 
         Label {
-            text: qsTr("Project created")
+            text: root.sceneCount >= 0 ? qsTr("Project opened") : qsTr("Project created")
             font.pixelSize: 24
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
         }
         Label {
             text: qsTr("The editor lands in a future update. This confirms the "
-                       + ".scrivi package was created on disk.")
+                       + ".scrivi package on disk.")
             opacity: 0.7
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
@@ -64,6 +67,14 @@ Page {
             Label { text: root.projectTitle }
             Label { text: qsTr("Project ID:"); opacity: 0.6 }
             Label { text: root.projectID }
+            Label {
+                text: qsTr("Scenes:"); opacity: 0.6
+                visible: root.sceneCount >= 0
+            }
+            Label {
+                text: root.sceneCount
+                visible: root.sceneCount >= 0
+            }
             Label { text: qsTr("Path:"); opacity: 0.6 }
             Label {
                 text: root.projectPath

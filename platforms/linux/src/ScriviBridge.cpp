@@ -81,6 +81,24 @@ QVariantMap ScriviBridge::createProject(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::openProject(const QString& projectRootPath,
+                                      const QString& appSupportRoot)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_open_project(projectRootPath.toUtf8().constData(),
+                            appSupportRoot.toUtf8().constData(),
+                            identityID_.toUtf8().constData()));
+    // parseEnvelope returns the ok "result" (carrying "mode" for ready /
+    // repairRequired) or, for a cannotOpen / other error envelope, emits
+    // errorOccurred and returns {}.
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a
