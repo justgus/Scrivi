@@ -12,7 +12,9 @@
 # Qt Widgets QFileDialog (SP-059 / T-0227) instead of the Qt Quick FolderDialog,
 # which could not select the folder being viewed and needed the extra
 # Qt.labs.folderlistmodel runtime module.
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets)
+# QuickWidgets provides QQuickWidget — the SP-061 Widgets-host embeds the landing
+# QML in a QQuickWidget inside a QMainWindow (the shell flip).
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets)
 
 # Qt's AUTOMOC etc. are enabled per-target below via qt_standard_project_setup.
 qt_standard_project_setup(REQUIRES 6.4)
@@ -25,6 +27,16 @@ qt_add_executable(scrivi_linux
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
+    # SP-061 (EP-022): the Widgets host shell + native editor screen.
+    src/ScriviWindow.cpp
+    src/ScriviWindow.hpp
+    src/EditorShell.cpp
+    src/EditorShell.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    # SP-062 (EP-022): the editable writing surface with boundary integrity.
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
 )
 
 qt_add_qml_module(scrivi_linux
@@ -37,14 +49,14 @@ qt_add_qml_module(scrivi_linux
     QML_FILES
         qml/Landing.qml
         qml/NewProjectDialog.qml
-        qml/ProjectWindow.qml
 )
 
 target_link_libraries(scrivi_linux
     PRIVATE
         ScriviCore          # brings scrivi.h via its PUBLIC include dir
         Qt6::Quick
-        Qt6::Widgets        # QFileDialog folder picker (ScriviBridge::chooseFolder)
+        Qt6::Widgets        # QFileDialog picker + QMainWindow/QPlainTextEdit shell
+        Qt6::QuickWidgets   # QQuickWidget host for the landing QML (shell flip)
 )
 
 # The qmltyperegistrar-generated TU (scrivi_linux_qmltyperegistrations.cpp) is
@@ -108,3 +120,125 @@ target_link_libraries(scrivi_linux_lifecycle_smoke
 
 target_include_directories(scrivi_linux_lifecycle_smoke PRIVATE src)
 target_compile_features(scrivi_linux_lifecycle_smoke PRIVATE cxx_std_23)
+
+# --- Headless scene-load smoke (SP-061 / T-0237, EP-022 AC1/AC2) -----------
+# Builds a 3-scene fixture (distinct bodies via the C ABI), then replicates
+# EditorShell::load's assembly — scrivi_open_project + scrivi_open_scene loop +
+# SceneDocument::build — and asserts every body landed in the one QTextDocument at
+# the offset the map records. Driven by scene_load_smoke.sh. Links Qt6::Gui for
+# QTextDocument (offscreen platform via QT_QPA_PLATFORM=offscreen in the script).
+qt_add_executable(scrivi_linux_scene_load_smoke
+    tests/scene_load_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_load_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui            # QTextDocument / QTextCursor (SceneDocument)
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_scene_load_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_load_smoke PRIVATE cxx_std_23)
+
+# --- Headless editable-map smoke (SP-062 / T-0238) -------------------------
+# Pure SceneDocument logic (no project I/O): builds a 3-scene fixture and asserts
+# the boundary classification (editable body vs. protected heading/separator) and
+# the offset-map maintenance on insert + delete. Guards the edit-routing authority
+# that keeps edits inside their owning scene. Driven by editor_map_smoke.sh.
+qt_add_executable(scrivi_linux_editor_map_smoke
+    tests/editor_map_smoke.cpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_editor_map_smoke
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui            # QTextDocument / QTextCursor (SceneDocument)
+        Qt6::Widgets        # QPlainTextDocumentLayout (SceneDocument ctor)
+)
+
+target_include_directories(scrivi_linux_editor_map_smoke PRIVATE src)
+target_compile_features(scrivi_linux_editor_map_smoke PRIVATE cxx_std_23)
+
+# --- Headless per-scene save smoke (SP-062 / T-0239, EP-022 AC3) -----------
+# Drives create → open → saveScene(new body) → reopen and asserts the new bytes
+# came back (via open_scene and via the reopened activeScene) — proving
+# scrivi_save_scene wrote the real .md through the same ScriviBridge::saveScene the
+# editor's auto-save uses. Driven by scene_save_smoke.sh (no display).
+qt_add_executable(scrivi_linux_scene_save_smoke
+    tests/scene_save_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_save_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_scene_save_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_save_smoke PRIVATE cxx_std_23)
+
+# --- Headless in-editor create-scene smoke (SP-062 / T-0240, EP-022 AC3) ---
+# Drives the ⌘↩ create path headlessly: bridge.createScene after the active scene
+# (asserts it persists in order on reopen) + SceneDocument::insertSceneAfter (asserts
+# the new empty scene splices into the map and later offsets shift). Needs Widgets
+# for QApplication + QPlainTextDocumentLayout (SceneDocument). scene_create_smoke.sh.
+qt_add_executable(scrivi_linux_scene_create_smoke
+    tests/scene_create_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_create_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_scene_create_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_create_smoke PRIVATE cxx_std_23)
+
+# --- Headless quit-path smoke (SP-062 regression fix) ----------------------
+# Guards the shell-flip regression where the landing Quit button did nothing: a
+# QQuickWidget's engine doesn't auto-wire QQmlEngine::quit() to the app, so main.cpp
+# connects it. This asserts that emitting QQmlEngine::quit() exits the app(0).
+# quit_smoke.sh (offscreen platform). Needs QuickWidgets for QQuickWidget.
+qt_add_executable(scrivi_linux_quit_smoke
+    tests/quit_smoke.cpp
+)
+
+target_link_libraries(scrivi_linux_quit_smoke
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::QuickWidgets
+)
+
+target_include_directories(scrivi_linux_quit_smoke PRIVATE src)
+target_compile_features(scrivi_linux_quit_smoke PRIVATE cxx_std_23)

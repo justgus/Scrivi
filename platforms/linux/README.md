@@ -127,20 +127,24 @@ docker run --rm -p 5901:5900 scrivi-linux   # VNC → localhost:5901, password: 
 
 ```
 platforms/linux/
-├── CMakeLists.txt          ← Qt6 app + persistence-smoke targets, links ScriviCore
+├── CMakeLists.txt          ← Qt6 app + smoke targets, links ScriviCore
 ├── src/
-│   ├── main.cpp            ← QGuiApplication + QQmlApplicationEngine (loads Landing.qml)
+│   ├── main.cpp            ← QApplication + QMainWindow host; landing QML via QQuickWidget (SP-061 shell flip)
+│   ├── ScriviWindow.{hpp,cpp} ← QMainWindow host + ShellController: stacks landing QML / editor (T-0234)
+│   ├── EditorShell.{hpp,cpp}  ← native editor screen: navigator + read-only continuous viewport (T-0235/0236)
+│   ├── SceneDocument.{hpp,cpp}← assembles all scene bodies into one QTextDocument + offset map (T-0235)
 │   ├── AppSupport.{hpp,cpp}   ← XDG appSupportRoot resolver (T-0223)
 │   ├── RecentsStore.{hpp,cpp} ← recent-projects JSON store, QML_ELEMENT (T-0224)
-│   ├── ScriviBridge.hpp    ← QML ↔ C ABI boundary (QML_ELEMENT): bootstrap + createProject
+│   ├── ScriviBridge.hpp    ← QML ↔ C ABI boundary (QML_ELEMENT): bootstrap + create/open project + open scene
 │   └── ScriviBridge.cpp
 ├── qml/
-│   ├── Landing.qml            ← root screen: recents + New/Open actions (T-0226)
-│   ├── NewProjectDialog.qml   ← title→slug→folder→createProject flow (T-0227)
-│   └── ProjectWindow.qml      ← placeholder project window (real editor is EP-022)
+│   ├── Landing.qml            ← landing screen (Item; QQuickWidget-hosted): recents + New/Open actions (T-0226)
+│   └── NewProjectDialog.qml   ← title→slug→folder→createProject flow (T-0227)
 ├── tests/
 │   ├── persistence_smoke.cpp  ← headless identity+recents persistence harness (T-0228)
-│   └── persistence_smoke.sh   ← two-pass restart driver
+│   ├── persistence_smoke.sh   ← two-pass restart driver
+│   ├── lifecycle_smoke.{cpp,sh} ← headless create→open→close→reopen loop (T-0233)
+│   └── scene_load_smoke.{cpp,sh}← headless multi-scene viewport-assembly check (T-0237)
 └── docker/
     ├── Dockerfile          ← Ubuntu 24.04 + Qt 6.4 + libssl-dev, builds the app
     ├── run-vnc.sh          ← Xvfb + app + x11vnc (image CMD)

@@ -3,21 +3,23 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Scrivi
 
-// Landing.qml — the Linux app's root screen (SP-059 / T-0226), replacing the
+// Landing.qml — the Linux app's landing screen (SP-059 / T-0226), replacing the
 // EP-020 hello window. Hosts the app-wide ScriviBridge and RecentsStore, bootstraps
 // the local identity at launch, and shows the recent-projects list, a first-launch
 // empty state, and the New Project / Open Project actions.
 //
-// A StackView drives the single-window flow: the landing page is the base; New
-// Project pushes NewProjectDialog; a successful create pushes the placeholder
-// ProjectWindow (the real editor is EP-022). `appSupportRoot` is a context
-// property injected by main.cpp.
-ApplicationWindow {
+// SP-061 (EP-022 / T-0234): the app flipped to a Qt Widgets host — this QML is now
+// embedded in a QQuickWidget inside a QMainWindow, so the root is a plain Item (not
+// a top-level ApplicationWindow). A StackView drives the create/open flow: the
+// landing page is the base; New Project pushes NewProjectDialog. Opening a "ready"
+// project no longer pushes a QML placeholder — it calls shell.openEditor(path,
+// title) so the native editor (navigator + viewport) takes over the window.
+// `appSupportRoot`, `defaultProjectsFolder`, and `shell` are context properties
+// injected by main.cpp.
+Item {
     id: window
     width: 820
     height: 560
-    visible: true
-    title: qsTr("Scrivi — Linux (alpha)")
 
     // Landing-view error text, held at window scope so it is reachable from the
     // shared open flow (openPath) and the bridge error handler alike. (It must NOT
@@ -48,7 +50,7 @@ ApplicationWindow {
     // Shared Open flow (SP-060 / T-0231), reachable from the Open Project button
     // and from a recents-row click. Calls bridge.openProject and branches the three
     // core open modes:
-    //   • ready          → open the placeholder project window + refresh recents
+    //   • ready          → record in recents + hand off to the native editor (shell)
     //   • repairRequired → list the issues in a dialog; DO NOT enter the project
     //   • cannotOpen / error → the bridge emits errorOccurred (shown inline); {}
     function openPath(path) {
@@ -66,15 +68,13 @@ ApplicationWindow {
             repairDialog.open()
             return
         }
-        // ready — record in recents (moves to front) and open the project window.
+        // ready — record in recents (moves to front) and hand off to the native
+        // editor shell (SP-061 / T-0234): the QMainWindow swaps its central widget
+        // from this landing QML to the EditorShell, which re-opens the project and
+        // populates the navigator + read-only viewport.
         var title = recentTitleFor(path)
         recents.addOrUpdate(path, title)
-        stack.push(projectWindow, {
-            "projectID": result.projectID,
-            "projectTitle": title,
-            "projectPath": path,
-            "sceneCount": (result.scenes ? result.scenes.length : 0)
-        })
+        shell.openEditor(path, title)
     }
 
     // Best-effort display title for a path: the existing recents title if we have
@@ -284,22 +284,12 @@ ApplicationWindow {
             appSupportRootPath: appSupportRoot
             onCancelled: stack.pop()
             onCreated: (projectID, title, path) => {
-                // Replace the dialog with the placeholder project window so Back
-                // does not return to the create form.
-                stack.replace(projectWindow, {
-                    "projectID": projectID,
-                    "projectTitle": title,
-                    "projectPath": path
-                })
+                // Pop the create dialog back to the landing base, then hand off to
+                // the native editor shell (SP-061 / T-0234). The just-created
+                // project opens straight into the navigator + viewport.
+                stack.pop(null)
+                shell.openEditor(path, title)
             }
-        }
-    }
-
-    // ---- Placeholder project window (real editor is EP-022) ---------------
-    Component {
-        id: projectWindow
-        ProjectWindow {
-            onClosed: stack.pop(null)   // back to landing
         }
     }
 }

@@ -95,20 +95,20 @@ Currently: **64 Sprints** (57 closed + 1 cancelled + 6 in Planning; 0 active) | 
 | SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | 2026-07-13 | ✅ Closed |
 | SP-059 | `[Linux]` Project Lifecycle — appSupportRoot + recents + landing + create-project | EP-021 `[Linux]` | 2026-07-13 | 2026-07-14 | ✅ Closed |
 | SP-060 | `[Linux]` Project Lifecycle — Open + Close + full-loop Verify (EP-021 close half) | EP-021 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
-| SP-061 | `[Linux]` Shell flip to Widgets host + Scene navigator + read-only continuous viewport | EP-022 `[Linux]` | — | — | 🔵 Planning |
-| SP-062 | `[Linux]` Editable viewport + per-scene auto-save + in-editor ⌘↩/⌘⇧↩ Scene/Chapter creation | EP-022 `[Linux]` | — | — | 🔵 Planning |
+| SP-061 | `[Linux]` Shell flip to Widgets host + Scene navigator + read-only continuous viewport | EP-022 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
+| SP-062 | `[Linux]` Editable viewport + per-scene auto-save + in-editor ⌘↩/⌘⇧↩ Scene/Chapter creation | EP-022 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
 | SP-063 | `[Linux]` Scroll-driven scene switching + active-scene tracking | EP-022 `[Linux]` | — | — | 🔵 Planning |
 | SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 `[Linux]` | — | — | 🔵 Planning |
 
 ## Statistics
 
 - **Total Sprints:** 64
-- **Closed:** 57 ✅
+- **Closed:** 59 ✅
 - **Active:** 0 🟢
-- **Planning:** 6 🔵 (SP-061–SP-064 EP-022 `[Linux]` — full Epic drafted, none activated; SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
+- **Planning:** 4 🔵 (SP-063–SP-064 EP-022 `[Linux]` — SP-063 next-up; SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-14 (SP-060 ✅ closed; **EP-021 ✅ closed**. **EP-022 `[Linux]` Writing Surface fully planned** — all four sprints SP-061–SP-064 drafted 🔵 Planning (tasks T-0234–T-0248), no ScriviCore work; none activated. EP-022 is the Active Epic.)*
+*Last Updated: 2026-07-14 (SP-062 ✅ closed — EP-022 `[Linux]` editable viewport + per-scene auto-save + in-editor ⌘↩/⌘⇧↩ scene/chapter creation, **AC3 user-verified** (T-0238–T-0242 all Verified); I-0061 Quit regression fixed+verified, I-0062 chapter-label deferred. No sprint active — **SP-063 next-up** (scroll-driven switching, AC1/AC4 scroll). SP-064 remains 🔵 Planning. EP-022 is the Active Epic — AC1/AC2/AC3 done, AC4–AC7 remain.)*

@@ -3,9 +3,90 @@
 These are the open Issues (still awaiting verification). Verified Issues are removed from this
 table and stay in this file as full entries only until the next batch archive (I-0051–I-0060).
 
-No Issues are currently awaiting verification.
+| ID | Title | Severity | Sprint | Status |
+| -- | ----- | -------- | ------ | ------ |
+| I-0062 | `[Linux]` A newly-created chapter's heading reads "Chapter" (not "Chapter N") until the project is reloaded | Low | SP-062 | 🔵 Open (deferred) |
+| I-0061 | `[Linux]` Landing **Quit** button does nothing after the shell flip (`QQmlEngine::quit()` unconnected) | Medium | SP-062 | ✅ Resolved - Verified (2026-07-14) |
 
 **Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
+
+---
+
+## I-0062: [Linux] New chapter heading shows "Chapter" (not "Chapter N") until reload
+
+**Status:** 🔵 Open (deferred — cosmetic; data on disk is correct)
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onCreateChapterRequested`) →
+`SceneDocument::insertSceneAfter` (chapter-heading text); the correct label comes from
+`scrivi_open_project`'s `chapterTitle` on reload.
+**Severity:** Low (purely a live-vs-reloaded label mismatch; the chapter is created correctly, persists
+correctly, and renders its real title on the next open)
+**Sprint:** SP-062 (observed during T-0242 verification)
+**Epic:** EP-022 `[Linux]`
+**Related:** T-0241 (in-editor create chapter)
+**Date Identified:** 2026-07-14 (user VNC verification)
+
+**Description:**
+When a chapter is created in-editor (`Ctrl+Shift+Return`), its heading in the live document reads the
+generic **"Chapter"** rather than **"Chapter 2"** (etc.). After quitting and reopening the project, the
+heading renders correctly as "Chapter 2".
+
+**Root Cause:** `scrivi_create_chapter` returns `{chapterID, chapterMetadataPath, firstSceneID,
+firstSceneMetadataPath, firstSceneContentPath}` — **no display title**. So `insertSceneAfter` falls back to
+the `"Chapter"` label for the freshly-inserted heading. On reopen, `scrivi_open_project` returns the real
+`chapterTitle` (the ordinal-derived "Chapter 2"), so it displays correctly.
+
+**Expected Behavior:** The new chapter's heading shows its real ordinal title immediately, matching what a
+reload shows.
+
+**Options (not yet chosen):**
+- **A.** Have `scrivi_create_chapter` return the derived `chapterTitle` (a `[ScriviCore]` additive change),
+  and use it in `insertSceneAfter`. Keeps label derivation in the backend (preferred — no UI-side ordinal
+  logic). Additive to `scrivi.h`.
+- **B.** Re-fetch just the new chapter's title via a light `open_project` read after create and patch the
+  heading. Avoids a core change but adds a round-trip.
+- **C.** Accept the fallback until EP-023 (chapter rename/structure editing), where headings become
+  first-class and titled explicitly.
+
+**Deferred:** cosmetic and self-correcting on reload; chapter *naming/structure editing* is **EP-023**
+scope, not EP-022. Revisit when EP-023 is planned (or promote to a Task if the live label matters sooner).
+
+---
+
+## I-0061: [Linux] Landing Quit button does nothing after the SP-061 shell flip
+
+**Status:** ✅ Resolved - Verified (2026-07-14 — user confirmed the Quit button now quits over VNC, and the quit-path save fired; headless `quit_smoke` guards the regression in CI)
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/main.cpp` (app bootstrap); `qml/Landing.qml` Quit button (`Qt.quit()`)
+**Severity:** Medium (shipped UI action is dead; the app can't be quit from the landing — but the window-X still works, and edits aren't lost)
+**Sprint:** SP-062 (regression introduced by SP-061)
+**Epic:** EP-022 `[Linux]`
+**Related:** SP-061 shell flip (T-0234); SP-062 T-0239 (the quit-path auto-save that depended on this quit working)
+**Date Identified:** 2026-07-14 (user VNC verification of SP-062)
+**Date Resolved:** 2026-07-14
+
+**Description:**
+The SP-061 shell flip moved the landing QML from a top-level `QQmlApplicationEngine` into a
+`QQuickWidget`. `QQmlApplicationEngine` auto-connects `QQmlEngine::quit()` (the signal QML's `Qt.quit()`
+emits) to `QCoreApplication::quit()`; a `QQuickWidget`'s engine does **not**. So the landing's **Quit**
+button emitted into the void.
+
+**Expected Behavior:** Clicking **Quit** on the landing exits the app (and, in the Docker/VNC harness,
+tears the container down since the app is the foreground process).
+
+**Actual Behavior:** Nothing happened. Console: `Signal QQmlEngine::quit() emitted, but no receivers
+connected to handle it.`
+
+**Root Cause:** Missing signal→slot wiring after the integration direction inverted (QML now lives inside
+Widgets). No auto-connect happens for a `QQuickWidget` engine.
+
+**Fix:** `main.cpp` now connects the landing `QQuickWidget`'s engine explicitly —
+`QQmlEngine::quit → QApplication::quit` (plus the `exit(int)` variant). This also restores the T-0239
+quit-path auto-save chain (Quit → `QApplication::quit` → `aboutToQuit` → `ScriviWindow::flushEditor`).
+
+**Verification:** New headless **`quit_smoke`** wires the connection the way `main.cpp` does, emits
+`QQmlEngine::quit()`, and asserts the app reaches `exit(0)` (fail-safe timer fails loudly if unconnected).
+Green in Docker + wired into CI. **Awaiting user VNC confirmation that the Quit button now quits.**
 
 ---
 

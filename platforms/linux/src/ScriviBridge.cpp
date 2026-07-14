@@ -99,6 +99,99 @@ QVariantMap ScriviBridge::openProject(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::openScene(const QString& projectRootPath,
+                                    const QString& appSupportRoot,
+                                    const QString& projectID,
+                                    const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_open_scene(projectRootPath.toUtf8().constData(),
+                          appSupportRoot.toUtf8().constData(),
+                          projectID.toUtf8().constData(),
+                          sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::saveScene(const QString& projectID,
+                                    const QString& projectRootPath,
+                                    const QString& appSupportRoot,
+                                    const QString& sceneID,
+                                    const QString& sceneMetadataPath,
+                                    const QString& sceneContentPath,
+                                    const QString& markdown,
+                                    long long selectionAnchor,
+                                    long long selectionFocus,
+                                    double scroll)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_save_scene(projectID.toUtf8().constData(),
+                          projectRootPath.toUtf8().constData(),
+                          appSupportRoot.toUtf8().constData(),
+                          sceneID.toUtf8().constData(),
+                          sceneMetadataPath.toUtf8().constData(),
+                          sceneContentPath.toUtf8().constData(),
+                          markdown.toUtf8().constData(),
+                          selectionAnchor,
+                          selectionFocus,
+                          scroll,
+                          identityID_.toUtf8().constData(),
+                          personaID_.toUtf8().constData(),
+                          displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createScene(const QString& projectRootPath,
+                                      const QString& appSupportRoot,
+                                      const QString& projectID,
+                                      const QString& chapterID,
+                                      const QString& afterSceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_create_scene(projectRootPath.toUtf8().constData(),
+                            appSupportRoot.toUtf8().constData(),
+                            projectID.toUtf8().constData(),
+                            chapterID.toUtf8().constData(),
+                            afterSceneID.toUtf8().constData(),
+                            identityID_.toUtf8().constData(),
+                            personaID_.toUtf8().constData(),
+                            displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createChapter(const QString& projectRootPath,
+                                        const QString& appSupportRoot,
+                                        const QString& projectID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_create_chapter(projectRootPath.toUtf8().constData(),
+                              appSupportRoot.toUtf8().constData(),
+                              projectID.toUtf8().constData(),
+                              identityID_.toUtf8().constData(),
+                              personaID_.toUtf8().constData(),
+                              displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

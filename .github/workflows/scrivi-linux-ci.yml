@@ -77,3 +77,47 @@ jobs:
         run: |
           platforms/linux/tests/lifecycle_smoke.sh \
             ./build/platforms/linux/scrivi_linux_lifecycle_smoke
+
+      # Scene-load smoke (SP-061 / T-0237, EP-022 AC1/AC2): build a 3-scene
+      # fixture and assert the editor's continuous-viewport assembly loads every
+      # body at its recorded offset (open_project + open_scene loop +
+      # SceneDocument). Uses the Qt offscreen platform (set inside the script).
+      - name: Scene-load smoke test
+        run: |
+          platforms/linux/tests/scene_load_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_load_smoke
+
+      # Editable-map smoke (SP-062 / T-0238): pure SceneDocument logic — assert the
+      # boundary classification (editable body vs. protected heading/separator) and
+      # the offset-map maintenance on insert + delete that keep edits inside their
+      # owning scene. Offscreen platform (set inside the script).
+      - name: Editable-map smoke test
+        run: |
+          platforms/linux/tests/editor_map_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_editor_map_smoke
+
+      # Per-scene save smoke (SP-062 / T-0239, EP-022 AC3): create → open →
+      # saveScene(new body) → reopen asserts the new bytes are on disk, proving the
+      # editor's auto-save path (ScriviBridge::saveScene → scrivi_save_scene) writes
+      # the real .md. No display needed.
+      - name: Scene-save smoke test
+        run: |
+          platforms/linux/tests/scene_save_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_save_smoke
+
+      # In-editor create smoke (SP-062 / T-0240 + T-0241, EP-022 AC3): createScene
+      # after the active scene (persists in order) and createChapter at the end
+      # (persists last, in a new chapter), each spliced into the offset map via
+      # insertSceneAfter. Offscreen platform (set inside the script).
+      - name: Scene-create smoke test
+        run: |
+          platforms/linux/tests/scene_create_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_create_smoke
+
+      # Quit-path smoke (SP-062 regression guard): the shell flip broke the landing
+      # Quit button (a QQuickWidget engine doesn't auto-wire QQmlEngine::quit()).
+      # Assert the connection main.cpp adds drives the app to exit. Offscreen.
+      - name: Quit-path smoke test
+        run: |
+          platforms/linux/tests/quit_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_quit_smoke

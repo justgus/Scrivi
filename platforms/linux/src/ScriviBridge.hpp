@@ -82,6 +82,55 @@ public:
     Q_INVOKABLE QVariantMap openProject(const QString& projectRootPath,
                                         const QString& appSupportRoot);
 
+    // Loads a single scene's body (SP-061 / T-0235). Calls scrivi_open_scene and
+    // returns its ok "result": {scene{sceneID,chapterID,title,slug,metadataPath,
+    // contentPath}, markdown}. Used by the editor shell to fetch the bodies of the
+    // non-active scenes when assembling the continuous viewport (the active scene's
+    // body already comes back inside openProject). On failure emits errorOccurred
+    // and returns {}. Requires bootstrap() to have succeeded first.
+    Q_INVOKABLE QVariantMap openScene(const QString& projectRootPath,
+                                      const QString& appSupportRoot,
+                                      const QString& projectID,
+                                      const QString& sceneID);
+
+    // Persists one scene's Markdown (SP-062 / T-0239). Fills the author args from
+    // the bootstrapped identity, calls scrivi_save_scene, and returns its ok
+    // "result": {sceneID, saved, wordCount}. `selectionAnchor`/`selectionFocus` are
+    // scene-local cursor offsets and `scroll` the scroll fraction — persisted so a
+    // later open can restore the surface (used in full by SP-064); pass 0/0/0.0 when
+    // not tracking them yet. On failure emits errorOccurred and returns {}. Requires
+    // bootstrap() to have succeeded first.
+    Q_INVOKABLE QVariantMap saveScene(const QString& projectID,
+                                      const QString& projectRootPath,
+                                      const QString& appSupportRoot,
+                                      const QString& sceneID,
+                                      const QString& sceneMetadataPath,
+                                      const QString& sceneContentPath,
+                                      const QString& markdown,
+                                      long long selectionAnchor,
+                                      long long selectionFocus,
+                                      double scroll);
+
+    // Creates a new scene in `chapterID`, inserted after `afterSceneID` (empty =
+    // append to the chapter). Fills the author args from the bootstrapped identity,
+    // calls scrivi_create_scene, and returns its ok "result": {sceneID, chapterID,
+    // metadataPath, contentPath}. The Linux analogue of Apple's in-editor ⌘↩
+    // (SP-062 / T-0240). On failure emits errorOccurred and returns {}.
+    Q_INVOKABLE QVariantMap createScene(const QString& projectRootPath,
+                                        const QString& appSupportRoot,
+                                        const QString& projectID,
+                                        const QString& chapterID,
+                                        const QString& afterSceneID);
+
+    // Creates a new chapter (with its first scene). Fills the author args from the
+    // bootstrapped identity, calls scrivi_create_chapter, and returns its ok
+    // "result": {chapterID, chapterMetadataPath, firstSceneID, firstSceneMetadataPath,
+    // firstSceneContentPath}. The analogue of ⌘⇧↩ (SP-062 / T-0241). On failure
+    // emits errorOccurred and returns {}.
+    Q_INVOKABLE QVariantMap createChapter(const QString& projectRootPath,
+                                          const QString& appSupportRoot,
+                                          const QString& projectID);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);
