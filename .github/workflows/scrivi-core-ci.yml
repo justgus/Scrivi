@@ -26,6 +26,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # OpenSSL 3 (libcrypto) backs the Linux EncryptedFileSecureStore
+      # (SP-059 / AC4). Ubuntu runners ship it, but install explicitly so the
+      # find_package(OpenSSL 3 REQUIRED) configure step is deterministic.
+      - name: Install OpenSSL (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libssl-dev
+
       - name: Configure
         run: cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON
 

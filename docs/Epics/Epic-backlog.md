@@ -90,23 +90,14 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-## [Linux] App — Epic Family (EP-021–EP-026)
+## [Linux] App — Epic Family (EP-022–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
-built Epic-by-Epic). **EP-020 `[Linux]` (Foundation) is Active** in `Epic-active.md`; the Epics below are
-🔵 Draft — defined and sequenced, promoted to Active one at a time as EP-020's spine lands. Each is
-verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each targets near-parity with the
-named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a `[ScriviCore]` note, not a
-separate Epic.
-
-### EP-021: [Linux] Project Lifecycle & Landing
-
-**Status:** 🔵 Draft
-**Goal:** Create / open / close a `.scrivi` project and bootstrap local identity from the Linux app;
-landing view. Mirrors the Apple EP-006 project flows.
-**Rough scope:** landing view (recent projects, new/open), `scrivi_ensure_local_identity`,
-`scrivi_create_project`, `scrivi_open_project`, close/cleanup, project bookmark persistence (Linux
-equivalent of `ProjectBookmarkStore`). **Depends on:** EP-020.
+built Epic-by-Epic). **EP-020 `[Linux]` (Foundation) is ✅ closed** and **EP-021 `[Linux]` (Project
+Lifecycle & Landing) is Active** in `Epic-active.md`; the Epics below are 🔵 Draft — defined and
+sequenced, promoted to Active one at a time as each predecessor lands. Each is verified in Docker+VNC
+(developer) then on real Ubuntu (alpha tester). Each targets near-parity with the named Apple Epic. Any
+new `scrivi_*` endpoint a screen needs is a Task with a `[ScriviCore]` note, not a separate Epic.
 
 ### EP-022: [Linux] Writing Surface & Scene Navigator
 

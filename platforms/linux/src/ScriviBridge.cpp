@@ -1,5 +1,6 @@
 #include "ScriviBridge.hpp"
 
+#include <QFileDialog>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -30,6 +31,26 @@ private:
 
 ScriviBridge::ScriviBridge(QObject* parent) : QObject(parent) {}
 
+void ScriviBridge::bootstrap(const QString& displayName,
+                             const QString& appSupportRoot)
+{
+    if (ready_) {
+        return;   // idempotent — identity is resolved once per process
+    }
+
+    const QVariantMap result = ensureLocalIdentity(displayName, appSupportRoot);
+    if (result.isEmpty() || !result.contains(QStringLiteral("identityID"))) {
+        // ensureLocalIdentity already emitted errorOccurred; leave ready_ false.
+        return;
+    }
+
+    identityID_  = result.value(QStringLiteral("identityID")).toString();
+    personaID_   = result.value(QStringLiteral("defaultPersonaID")).toString();
+    displayName_ = result.value(QStringLiteral("displayName")).toString();
+    ready_       = true;
+    emit readyChanged();
+}
+
 QVariantMap ScriviBridge::ensureLocalIdentity(const QString& displayName,
                                               const QString& appSupportRoot)
 {
@@ -37,6 +58,40 @@ QVariantMap ScriviBridge::ensureLocalIdentity(const QString& displayName,
         scrivi_ensure_local_identity(displayName.toUtf8().constData(),
                                      appSupportRoot.toUtf8().constData()));
     return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createProject(const QString& projectRootPath,
+                                        const QString& appSupportRoot,
+                                        const QString& title,
+                                        const QString& slug)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_create_project(projectRootPath.toUtf8().constData(),
+                              appSupportRoot.toUtf8().constData(),
+                              title.toUtf8().constData(),
+                              slug.toUtf8().constData(),
+                              identityID_.toUtf8().constData(),
+                              personaID_.toUtf8().constData(),
+                              displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QString ScriviBridge::chooseFolder(const QString& startDir)
+{
+    // Widgets QFileDialog in directory mode: selects the folder itself (not a
+    // child) and offers "New Folder", so the user can pick an empty dir or make
+    // one. ShowDirsOnly keeps files out of the view. Returns "" on cancel.
+    const QString dir = QFileDialog::getExistingDirectory(
+        nullptr,
+        QStringLiteral("Choose Project Location"),
+        startDir,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    return dir;   // already an absolute local path (not a URL)
 }
 
 QVariantMap ScriviBridge::parseEnvelope(const QString& json)

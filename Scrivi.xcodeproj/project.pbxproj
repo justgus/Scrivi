@@ -141,6 +141,7 @@
 		GRP_SCRIVI /* Scrivi */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Scrivi; sourceTree = SOURCE_ROOT; };
 		SCRIVI_CORE_LIB /* libScriviCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libScriviCore.a; path = build/ScriviCore/libScriviCore.a; sourceTree = SOURCE_ROOT; };
 		SCRIVI_CORE_REF /* ScriviCore */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ScriviCore; sourceTree = SOURCE_ROOT; };
+		LINUX_PLATFORM_REF /* platforms/linux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "platforms/linux"; path = platforms/linux; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,6 +194,7 @@
 			children = (
 				GRP_SCRIVI /* Scrivi */,
 				SCRIVI_CORE_REF /* ScriviCore */,
+				LINUX_PLATFORM_REF /* platforms/linux */,
 				GRP_PRODUCTS /* Products */,
 				GRP_SOURCES /* Sources */,
 			);

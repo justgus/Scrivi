@@ -5,8 +5,12 @@
 #include "scrivi/Results.hpp"
 #include "scrivi/Services.hpp"
 #include "git/SystemGitProvider.hpp"
+#include "platform/AppSupportLayout.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
+#if defined(SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
+#include "platform/EncryptedFileSecureStore.hpp"
+#endif
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
 #include "history/HistoryService.hpp"
@@ -18,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
 #include <iomanip>
 #include <memory>
 #include <mutex>
@@ -71,19 +76,37 @@ struct PrototypeSecureStore final : public scrivi::SecureStore {
 // Singleton core — created once, lives for the process lifetime.
 // ---------------------------------------------------------------------------
 
+// Selects the persistent SecureStore where one is available (Linux/POSIX:
+// EncryptedFileSecureStore under <appSupportRoot>/secure, so the local identity
+// survives process restart — SP-059 / AC4). Platforms without a persistent store
+// wired here fall back to the in-memory PrototypeSecureStore.
+static std::unique_ptr<scrivi::SecureStore> makeSecureStore() {
+#if defined(SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
+    auto rootR = scrivi::util::platformDefault();
+    if (rootR.ok()) {
+        const std::string secureDir =
+            (std::filesystem::path{rootR.value()} / "secure").string();
+        return std::make_unique<scrivi::platform::EncryptedFileSecureStore>(secureDir);
+    }
+    // If the app-support root can't be resolved, degrade to in-memory rather
+    // than failing construction — identity simply won't persist this run.
+#endif
+    return std::make_unique<PrototypeSecureStore>();
+}
+
 struct CoreSingleton {
     scrivi::platform::LocalFileSystem    fileSystem;
     scrivi::platform::SystemUUIDProvider uuidProvider;
     PrototypeClock                       clock;
-    PrototypeSecureStore                 secureStore;
+    std::unique_ptr<scrivi::SecureStore> secureStore;
     scrivi::git::SystemGitProvider       gitProvider;
     std::unique_ptr<scrivi::ScriviCore>  core;
 
-    CoreSingleton() {
+    CoreSingleton() : secureStore(makeSecureStore()) {
         scrivi::CoreServices svc;
         svc.fileSystem   = &fileSystem;
         svc.uuidProvider = &uuidProvider;
-        svc.secureStore  = &secureStore;
+        svc.secureStore  = secureStore.get();
         svc.clock        = &clock;
         svc.gitProvider  = &gitProvider;
         svc.logger       = nullptr;

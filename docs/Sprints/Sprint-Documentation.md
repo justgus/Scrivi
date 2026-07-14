@@ -11,10 +11,13 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- **SP-058** — `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI (EP-020) — 🟢 **Active** (activated 2026-07-13). See [Sprint-active.md](Sprint-active.md).
+- _None currently active._
 
-SP-055 ✅ closed 2026-07-13 (user-approved). SP-056/SP-057 (EP-019 `[Apple]`) remain in Planning but are
-parked behind the deferred EP-019 — see Backlog.
+Last closed: **SP-059** (EP-021 `[Linux]` Project Lifecycle — create half) — ✅ closed 2026-07-14, all
+seven tasks Verified (incl. T-0229 `EncryptedFileSecureStore`, added mid-sprint & user-approved);
+AC1/AC2/AC4/AC5 delivered & user-verified over VNC; `Closed/Sprint-SP-059.md`. **Next up: SP-060** (EP-021
+open/close half — not yet drafted). SP-056/SP-057 (EP-019 `[Apple]`) remain in Planning but are parked
+behind the deferred EP-019 — see Backlog.
 
 ## Sprint Backlog
 
@@ -27,7 +30,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **58 Sprints** (55 closed/cancelled + 1 active + 2 in Planning) | Next available: **SP-059**
+Currently: **59 Sprints** (56 closed + 1 cancelled + 2 in Planning; 0 active) | Next available: **SP-060**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -88,17 +91,18 @@ Currently: **58 Sprints** (55 closed/cancelled + 1 active + 2 in Planning) | Nex
 | SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 2026-07-10 | 2026-07-13 | ✅ Closed |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
-| SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | — | 🟢 Active |
+| SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | 2026-07-13 | ✅ Closed |
+| SP-059 | `[Linux]` Project Lifecycle — appSupportRoot + recents + landing + create-project | EP-021 `[Linux]` | 2026-07-13 | 2026-07-14 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 58
-- **Closed:** 54 ✅
-- **Active:** 1 🟢 (SP-058, EP-020 `[Linux]`)
+- **Total Sprints:** 59
+- **Closed:** 56 ✅
+- **Active:** 0 🟢
 - **Planning:** 2 🔵 (SP-056–SP-057, EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-13 (SP-058 activated — first sprint of EP-020 `[Linux]`: Docker/VNC harness, Qt6 skeleton, ScriviBridge, hello-ScriviCore slice, CI (T-0218–T-0222). Earlier same day: SP-055 closed; EP-019 → backlog `[Apple]` (SP-056/057 parked); `[Linux]` Epic family EP-020–EP-026 created.)*
+*Last Updated: 2026-07-14 (SP-059 ✅ closed with user approval — EP-021 `[Linux]` Project Lifecycle create-half (AC1/AC2/AC4/AC5) delivered & user-verified over VNC; T-0229 `EncryptedFileSecureStore` added mid-sprint. No active sprint; SP-060 (EP-021 open/close half) is next when drafted.)*

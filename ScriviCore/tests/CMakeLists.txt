@@ -38,7 +38,17 @@ add_executable(ScriviCoreTests
     integration/TimelineTests.cpp
     integration/SearchableContentTests.cpp
     integration/HistoryCApiTests.cpp
+    integration/EncryptedSecureStoreTests.cpp
 )
+
+# EncryptedFileSecureStore is Linux-only (SP-059 / AC4). Its symbols live in the
+# ScriviCore static lib; the test TU needs the same compile define to enable its
+# body (and pulls OpenSSL headers transitively via the store header).
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_compile_definitions(ScriviCoreTests PRIVATE SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
+    find_package(OpenSSL 3 REQUIRED)
+    target_link_libraries(ScriviCoreTests PRIVATE OpenSSL::Crypto)
+endif()
 
 target_include_directories(ScriviCoreTests
     PRIVATE

@@ -18,11 +18,18 @@ Currently: **39 backlog Tasks** (T-0198 verified & archived; T-0199/T-0200 now A
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
-| T-0218 | `[Linux]` Qt6/QML CMake skeleton — app target links `libScriviCore.a` + `scrivi.h` | EP-020 (SP-058) | 🟢 Active |
-| T-0219 | `[Linux]` `ScriviBridge` — QML ↔ C ABI marshalling, JSON parse, `scrivi_free` discipline | EP-020 (SP-058) | 🟢 Active |
-| T-0220 | `[Linux]` Hello-ScriviCore QML window — `scrivi_ensure_local_identity` round-trip | EP-020 (SP-058) | 🟢 Active |
-| T-0221 | `[Linux]` Docker (Qt6 + CMake) + Xvfb + VNC — run the GUI, viewable from the Mac | EP-020 (SP-058) | 🟢 Active |
-| T-0222 | `[Linux]` CI job — build the Qt/QML app (+ headless smoke) on relevant commits | EP-020 (SP-058) | 🟢 Active |
+| T-0218 | `[Linux]` Qt6/QML CMake skeleton — app target links `libScriviCore.a` + `scrivi.h` | EP-020 (SP-058) | ✅ Verified → `Verified/Task-verified-0218-0222.md` |
+| T-0219 | `[Linux]` `ScriviBridge` — QML ↔ C ABI marshalling, JSON parse, `scrivi_free` discipline | EP-020 (SP-058) | ✅ Verified → `Verified/Task-verified-0218-0222.md` |
+| T-0220 | `[Linux]` Hello-ScriviCore QML window — `scrivi_ensure_local_identity` round-trip | EP-020 (SP-058) | ✅ Verified → `Verified/Task-verified-0218-0222.md` |
+| T-0221 | `[Linux]` Docker (Qt6 + CMake) + Xvfb + VNC — run the GUI, viewable from the Mac | EP-020 (SP-058) | ✅ Verified → `Verified/Task-verified-0218-0222.md` |
+| T-0222 | `[Linux]` CI job — build the Qt/QML app (+ headless smoke) on relevant commits | EP-020 (SP-058) | ✅ Verified → `Verified/Task-verified-0218-0222.md` |
+| T-0223 | `[Linux]` XDG `appSupportRoot` resolver | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0224 | `[Linux]` Recent-projects store (`recents.json`) | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0225 | `[Linux]` `ScriviBridge` — launch identity bootstrap + `createProject` | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0226 | `[Linux]` Landing view QML — recents + New/Open + Quit | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0227 | `[Linux]` New Project flow — title→slug→folder→create→recents (QFileDialog picker) | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0228 | `[Linux]` Docker/CI — `libssl-dev` + headless persistence smoke | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0229 | `EncryptedFileSecureStore` (Linux, ScriviCore) — persistent identity (AC4) | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ deep-link/bookmark consumer) | EP-017 (deferred) | 🔵 Backlog |
 | T-0198 | Undo/redo + copy buffers design doc & trade studies | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0198.md` |
@@ -71,16 +78,14 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **5 active Tasks** (SP-058 `[Linux]` App Foundation, activated 2026-07-13)
+Currently: **0 active Tasks.** SP-059 (EP-021 `[Linux]` Project Lifecycle — create half) closed 2026-07-14;
+its tasks T-0223–T-0229 are ✅ Verified & archived to `Verified/Task-verified-0223-0229.md`. Next up is
+SP-060 (EP-021 open/close half), whose tasks are defined when it is drafted.
 
-| Task | Title | Sprint | Status |
-| ---- | ----- | ------ | ------ |
-| T-0218 | `[Linux]` Qt6/QML CMake skeleton | SP-058 | 🟢 Active |
-| T-0219 | `[Linux]` `ScriviBridge` (QML ↔ C ABI) | SP-058 | 🟢 Active |
-| T-0220 | `[Linux]` Hello-ScriviCore QML window | SP-058 | 🟢 Active |
-| T-0221 | `[Linux]` Docker + Xvfb + VNC harness | SP-058 | 🟢 Active |
-| T-0222 | `[Linux]` CI job for the Qt/QML app | SP-058 | 🟢 Active |
-
+> **Cleanup (2026-07-14):** on SP-059 close, T-0223–T-0229 archived to `Verified/Task-verified-0223-0229.md`.
+> Also corrected stale rows for SP-058's T-0218–T-0222, which were still marked 🟢 Active in this index
+> though they were verified & archived (`Verified/Task-verified-0218-0222.md`) at SP-058 close on 2026-07-13.
+>
 > **Cleanup (2026-07-01):** The former stale Active-Tasks list carried three SP-042 (closed) items —
 > **T-0166, T-0169, T-0170**. All are now user-verified and archived to `Verified/`
 > (`Task-verified-0166.md`, `Task-verified-0169.md`, `Task-verified-0170.md`) and appear in no active
@@ -254,13 +259,13 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 208 (183 through T-0197 + 20 EP-019 tasks T-0198–T-0217 + 5 EP-020 tasks T-0218–T-0222)
+- **Total Tasks:** 215 (183 through T-0197 + 20 EP-019 tasks T-0198–T-0217 + 5 EP-020 tasks T-0218–T-0222 + 7 EP-021 tasks T-0223–T-0229)
 - **Backlog:** 39 🔵
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
-- **Active:** 5 🟡 (T-0218–T-0222, SP-058 `[Linux]`)
+- **Active:** 0
 - **Unverified:** 0
-- **Verified:** EP-019 T-0198–T-0212 verified & archived (see Verified table)
-- **Next available:** T-0223
+- **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, and EP-021/SP-059 T-0223–T-0229 verified & archived (see Verified table)
+- **Next available:** T-0230
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190
@@ -269,4 +274,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-07-13 (SP-058 `[Linux]` activated — T-0218–T-0222 created & active: Qt6/QML skeleton, `ScriviBridge`, hello-ScriviCore slice, Docker/VNC harness, CI. First tasks of the EP-020 `[Linux]` app foundation. Earlier same day: SP-055 closed, T-0210/T-0211/T-0212 verified & archived; EP-019 deferred to backlog.)*
+*Last Updated: 2026-07-14 (SP-059 `[Linux]` closed & user-approved — T-0223–T-0229 Verified & archived to `Verified/Task-verified-0223-0229.md` (incl. T-0229 `EncryptedFileSecureStore`, added mid-sprint for AC4). Also corrected stale SP-058 T-0218–T-0222 rows to Verified/archived. No active tasks; SP-060 (EP-021 open/close half) is next when drafted.)*

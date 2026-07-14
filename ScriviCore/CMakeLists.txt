@@ -80,6 +80,18 @@ target_sources(ScriviCore
         src/history/HistoryStore.cpp
 )
 
+# Persistent SecureStore (SP-059 / AC4, per T-0058 trade study). On Linux the
+# in-memory PrototypeSecureStore is replaced by EncryptedFileSecureStore
+# (AES-256-GCM via OpenSSL 3), so the local identity survives process restart.
+# Gated to Linux for now; Apple/Windows keep their current wiring. libssl-dev is
+# in the Docker/CI apt lists.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(OpenSSL 3 REQUIRED)
+    target_sources(ScriviCore PRIVATE src/platform/EncryptedFileSecureStore.cpp)
+    target_compile_definitions(ScriviCore PRIVATE SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
+    target_link_libraries(ScriviCore PRIVATE OpenSSL::Crypto)
+endif()
+
 target_link_libraries(ScriviCore
     PRIVATE
         nlohmann_json::nlohmann_json

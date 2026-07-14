@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ninja-build \
         git \
         ca-certificates \
+        libssl-dev \
         qt6-base-dev \
         qt6-declarative-dev \
         qml6-module-qtquick \
