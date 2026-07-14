@@ -93,20 +93,12 @@ _(filled in when the Epic reaches 🟠 Complete)_
 ## [Linux] App — Epic Family (EP-022–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
-built Epic-by-Epic). **EP-020 `[Linux]` (Foundation) is ✅ closed** and **EP-021 `[Linux]` (Project
-Lifecycle & Landing) is Active** in `Epic-active.md`; the Epics below are 🔵 Draft — defined and
-sequenced, promoted to Active one at a time as each predecessor lands. Each is verified in Docker+VNC
-(developer) then on real Ubuntu (alpha tester). Each targets near-parity with the named Apple Epic. Any
-new `scrivi_*` endpoint a screen needs is a Task with a `[ScriviCore]` note, not a separate Epic.
-
-### EP-022: [Linux] Writing Surface & Scene Navigator
-
-**Status:** 🔵 Draft
-**Goal:** The core writing loop on Linux — scene navigator sidebar, the manuscript editing surface,
-auto-save, quit/reopen. Mirrors Apple EP-009 / EP-011.
-**Rough scope:** navigator list (manuscript order, live titles), QML text editor over `scrivi_open_scene`
-/ `scrivi_save_scene`, viewport/scroll behavior, cursor/focus rules, auto-save debounce. **Depends on:**
-EP-021. *(Largest of the family — the editor is the heart of the app.)*
+built Epic-by-Epic). **EP-020 `[Linux]` (Foundation) and EP-021 `[Linux]` (Project Lifecycle & Landing)
+are ✅ closed**, and **EP-022 `[Linux]` (Writing Surface & Scene Navigator) is Active** in
+`Epic-active.md`; the Epics below are 🔵 Draft — defined and sequenced, promoted to Active one at a time as
+each predecessor lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each
+targets near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a
+`[ScriviCore]` note, not a separate Epic.
 
 ### EP-023: [Linux] Manuscript Structure Editing
 
@@ -144,4 +136,4 @@ tester. **Depends on:** EP-022 (and benefits from EP-023–EP-025).
 
 ---
 
-*Last Updated: 2026-07-13 (EP-019 → backlog 🔴 Deferred [Apple], retro-tagged. NEW: [Linux] app Epic family EP-021–EP-026 added as 🔵 Draft (EP-020 [Linux] Foundation is Active); Ubuntu Qt/QML port for the no-Mac alpha tester, one Epic per capability mirroring the Apple build. All non-Apple GUI Epics now codebase-tagged per Epic-GUIDELINES.md.)*
+*Last Updated: 2026-07-14 (EP-021 [Linux] ✅ closed; EP-022 [Linux] Writing Surface & Scene Navigator promoted from this backlog to Active. Remaining [Linux] family EP-023–EP-026 stay 🔵 Draft. EP-019 [Apple] remains 🔴 Deferred.)*

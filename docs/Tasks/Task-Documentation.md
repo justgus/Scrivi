@@ -30,6 +30,10 @@ Currently: **39 backlog Tasks** (T-0198 verified & archived; T-0199/T-0200 now A
 | T-0227 | `[Linux]` New Project flow — title→slug→folder→create→recents (QFileDialog picker) | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
 | T-0228 | `[Linux]` Docker/CI — `libssl-dev` + headless persistence smoke | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
 | T-0229 | `EncryptedFileSecureStore` (Linux, ScriviCore) — persistent identity (AC4) | EP-021 (SP-059) | ✅ Verified → `Verified/Task-verified-0223-0229.md` |
+| T-0230 | `[Linux]` `ScriviBridge.openProject` — `scrivi_open_project`, mode-tagged result | EP-021 (SP-060) | ✅ Verified → `Verified/Task-verified-0230-0233.md` |
+| T-0231 | `[Linux]` Open flow QML — recents click + `QFileDialog` `.scrivi`; 3-mode branch | EP-021 (SP-060) | ✅ Verified → `Verified/Task-verified-0230-0233.md` |
+| T-0232 | `[Linux]` Close → landing (app-side; recents refreshed) | EP-021 (SP-060) | ✅ Verified → `Verified/Task-verified-0230-0233.md` |
+| T-0233 | `[Linux]` Full-loop verify — create→open→close→reopen smoke + CI | EP-021 (SP-060) | ✅ Verified → `Verified/Task-verified-0230-0233.md` |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ deep-link/bookmark consumer) | EP-017 (deferred) | 🔵 Backlog |
 | T-0198 | Undo/redo + copy buffers design doc & trade studies | EP-019 (SP-051) | ✅ Verified → `Verified/Task-verified-0198.md` |
@@ -78,17 +82,15 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **4 active Tasks** (SP-060 `[Linux]` Project Lifecycle — open/close half, activated 2026-07-14).
-SP-059's T-0223–T-0229 are ✅ Verified & archived to `Verified/Task-verified-0223-0229.md`.
+Currently: **0 active Tasks.** SP-060 (EP-021 `[Linux]` open/close half) closed 2026-07-14; its tasks
+T-0230–T-0233 are ✅ Verified & archived to `Verified/Task-verified-0230-0233.md` (that sprint closed
+EP-021). Next up: **EP-022** `[Linux]` (Writing Surface & Scene Navigator) — its first-sprint tasks (SP-061)
+are defined at planning.
 
-| Task | Title | Sprint | Status |
-| ---- | ----- | ------ | ------ |
-| T-0230 | `[Linux]` `ScriviBridge.openProject` — `scrivi_open_project`, mode-tagged result | SP-060 | 🟢 Active |
-| T-0231 | `[Linux]` Open flow QML — recents click + `QFileDialog` `.scrivi`; 3-mode branch | SP-060 | 🟢 Active |
-| T-0232 | `[Linux]` Close → landing (app-side; recents refreshed) | SP-060 | 🟢 Active |
-| T-0233 | `[Linux]` Full-loop verify — create→open→close→reopen smoke + CI + Epic-close check | SP-060 | 🟢 Active |
-
-> **Cleanup (2026-07-14):** on SP-059 close, T-0223–T-0229 archived to `Verified/Task-verified-0223-0229.md`.
+> **Cleanup (2026-07-14, SP-060/EP-021 close):** T-0230–T-0233 archived to
+> `Verified/Task-verified-0230-0233.md`.
+>
+> **Cleanup (2026-07-14, SP-059 close):** T-0223–T-0229 archived to `Verified/Task-verified-0223-0229.md`.
 > Also corrected stale rows for SP-058's T-0218–T-0222, which were still marked 🟢 Active in this index
 > though they were verified & archived (`Verified/Task-verified-0218-0222.md`) at SP-058 close on 2026-07-13.
 >
@@ -268,9 +270,9 @@ Currently: **2 closed Tasks**
 - **Total Tasks:** 219 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233)
 - **Backlog:** 39 🔵
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
-- **Active:** 4 🟢 (T-0230–T-0233, SP-060 `[Linux]`)
+- **Active:** 0
 - **Unverified:** 0
-- **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, and EP-021/SP-059 T-0223–T-0229 verified & archived (see Verified table)
+- **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, and EP-021/SP-060 T-0230–T-0233 verified & archived (see Verified table)
 - **Next available:** T-0234
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
@@ -280,4 +282,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-07-14 (SP-059 `[Linux]` closed & user-approved — T-0223–T-0229 Verified & archived to `Verified/Task-verified-0223-0229.md` (incl. T-0229 `EncryptedFileSecureStore`, added mid-sprint for AC4). Also corrected stale SP-058 T-0218–T-0222 rows to Verified/archived. No active tasks; SP-060 (EP-021 open/close half) is next when drafted.)*
+*Last Updated: 2026-07-14 (SP-060 `[Linux]` closed & user-approved — T-0230–T-0233 Verified & archived to `Verified/Task-verified-0230-0233.md`; that sprint **closed EP-021**. No active tasks; EP-022 `[Linux]` Writing Surface & Scene Navigator is the new Active Epic — its first-sprint tasks (SP-061) are defined at planning.)*

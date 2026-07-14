@@ -12,15 +12,15 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — EP-021 `[Linux]` (Project Lifecycle & Landing), drafted & activated 2026-07-13 (EP-020 Foundation ✅ closed same day).
+Currently: **1 Active Epic** — EP-022 `[Linux]` (Writing Surface & Scene Navigator), drafted & activated 2026-07-14 (EP-021 Project Lifecycle & Landing ✅ closed same day). EP-020 Foundation + EP-021 Lifecycle both ✅ closed.
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **6 Backlog Epics** —
+Currently: **5 Backlog Epics** —
 - EP-019 `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers), 🔴 Deferred 2026-07-13; partially delivered (AC1/AC3/AC4/AC5 verified; AC2/AC6/AC7/AC8 remaining); resume at SP-056.
-- EP-022–EP-026 `[Linux]` (Ubuntu Qt/QML app family — writing surface, structure, inspector, timeline, undo/menus/settings), 🔵 Draft 2026-07-13; promoted to Active one at a time behind EP-021.
+- EP-023–EP-026 `[Linux]` (Ubuntu Qt/QML app family — structure editing, inspector, timeline, undo/menus/settings), 🔵 Draft; promoted to Active one at a time behind EP-022. (EP-022 Writing Surface is now Active.)
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
@@ -52,8 +52,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-018 | Per-Window / Per-Project Window Model | ✅ Closed | 2026-06-24 | 2026-06-25 |
 | EP-019 | `[Apple]` Custom Undo/Redo History & Multiple Copy Buffers | 🔴 Deferred (backlog) | 2026-07-06 | — |
 | EP-020 | `[Linux]` App Foundation — Qt/QML Toolchain, Bridge & Shell | ✅ Closed | 2026-07-13 | 2026-07-13 |
-| EP-021 | `[Linux]` Project Lifecycle & Landing | 🟡 Active | 2026-07-13 | — |
-| EP-022 | `[Linux]` Writing Surface & Scene Navigator | 🔵 Draft (backlog) | — | — |
+| EP-021 | `[Linux]` Project Lifecycle & Landing | ✅ Closed | 2026-07-13 | 2026-07-14 |
+| EP-022 | `[Linux]` Writing Surface & Scene Navigator | 🟡 Active | 2026-07-14 | — |
 | EP-023 | `[Linux]` Manuscript Structure Editing | 🔵 Draft (backlog) | — | — |
 | EP-024 | `[Linux]` Scene Inspector Panel | 🔵 Draft (backlog) | — | — |
 | EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
@@ -62,13 +62,13 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 ## Statistics
 
 - **Total Epics:** 26
-- **Closed:** 19 ✅
+- **Closed:** 20 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-021 `[Linux]`)
-- **Draft:** 5 🔵 (EP-022–EP-026 `[Linux]`)
+- **Active:** 1 🟡 (EP-022 `[Linux]`)
+- **Draft:** 4 🔵 (EP-023–EP-026 `[Linux]`)
 - **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-13 (EP-020 `[Linux]` App Foundation ✅ closed — all AC met/verified, SP-058 closed. EP-021 `[Linux]` Project Lifecycle & Landing drafted & activated as the next `[Linux]` Epic. EP-022–EP-026 remain 🔵 Draft.)*
+*Last Updated: 2026-07-14 (EP-021 `[Linux]` Project Lifecycle & Landing ✅ closed — all AC1–AC8 met/verified over VNC, SP-059 + SP-060 closed. EP-022 `[Linux]` Writing Surface & Scene Navigator drafted & activated as the next `[Linux]` Epic. EP-023–EP-026 remain 🔵 Draft.)*
