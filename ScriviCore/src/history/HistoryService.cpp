@@ -84,23 +84,50 @@ Diff computeDiff(const std::string& oldText, const std::string& newText) {
 }
 
 // Applies a diff forward: old scene text → new scene text.
+//
+// Defensive against a diff that does not match `oldText` — e.g. a persisted history
+// event replayed against a scene whose baseline has since changed (deleted/edited
+// externally), or a corrupt log. Such a mismatch must NOT crash: previously
+// `reserve(oldText.size() - removed.size() + ...)` underflowed (unsigned) to a huge
+// value and threw std::length_error, and `append(oldText, offset+removed, npos)`
+// could throw std::out_of_range. Both are now clamped so replay degrades to a
+// best-effort result instead of terminating the process (I-0065). The offset and the
+// removed span are clamped into `oldText`; the tail is whatever remains after them.
 std::string applyForward(const std::string& oldText, const Diff& d) {
+    const std::size_t off  = std::min(d.offsetUtf8, oldText.size());
+    const std::size_t cut  = std::min(off + d.removed.size(), oldText.size());
     std::string out;
-    out.reserve(oldText.size() - d.removed.size() + d.inserted.size());
-    out.append(oldText, 0, d.offsetUtf8);
+    out.reserve(off + d.inserted.size() + (oldText.size() - cut));
+    out.append(oldText, 0, off);
     out.append(d.inserted);
-    out.append(oldText, d.offsetUtf8 + d.removed.size(), std::string::npos);
+    out.append(oldText, cut, std::string::npos);
     return out;
 }
 
-// Applies a diff in reverse: new scene text → old scene text.
+// Applies a diff in reverse: new scene text → old scene text. Same clamping as
+// applyForward (I-0065): the offset and the inserted span are clamped into `newText`
+// so a mismatched/stale diff yields a best-effort result rather than throwing.
 std::string applyReverse(const std::string& newText, const Diff& d) {
+    const std::size_t off = std::min(d.offsetUtf8, newText.size());
+    const std::size_t cut = std::min(off + d.inserted.size(), newText.size());
     std::string out;
-    out.reserve(newText.size() - d.inserted.size() + d.removed.size());
-    out.append(newText, 0, d.offsetUtf8);
+    out.reserve(off + d.removed.size() + (newText.size() - cut));
+    out.append(newText, 0, off);
     out.append(d.removed);
-    out.append(newText, d.offsetUtf8 + d.inserted.size(), std::string::npos);
+    out.append(newText, cut, std::string::npos);
     return out;
+}
+
+// True iff diff `d` is self-consistent against `oldText`: its offset lies within
+// the text and the bytes it claims to remove actually appear there. A false result
+// means the diff cannot have been produced from `oldText` — the log is corrupt or
+// the node is an orphan of a deleted/changed scene (I-0065 / I-0066). applyForward
+// clamps such a diff to a best-effort result; this predicate is how load-time
+// pruning *detects* it so the bad node can be dropped rather than silently mangled.
+bool diffMatches(const std::string& oldText, const Diff& d) {
+    if (d.offsetUtf8 > oldText.size()) return false;
+    if (d.offsetUtf8 + d.removed.size() > oldText.size()) return false;
+    return oldText.compare(d.offsetUtf8, d.removed.size(), d.removed) == 0;
 }
 
 // Max bytes of a fork-child preview shown in the popover (§10 T2). Truncated on a
@@ -700,6 +727,75 @@ void HistoryService::applyLoadedEviction(const std::vector<std::string>& purgedB
     }
 
     rebuildHeadCache();
+}
+
+std::vector<std::string> HistoryService::pruneInconsistentNodes() {
+    std::vector<std::string> droppedRoots;   // subtree roots detached (for the log)
+    bool anyDropped = false;
+
+    // DFS from the root carrying the per-scene replayed text down each path. A node
+    // whose diff does not match its scene's text at that point cannot have been
+    // produced from it (orphan of a deleted/changed scene, or corrupt record) — drop
+    // it and its whole subtree, and do not recurse into it. childIDs must already be
+    // derived (finalizeLoad ran). We iterate a work stack of (nodeID, per-scene text
+    // snapshot) so sibling branches each see the correct pre-fork state.
+    struct Frame { std::string id; std::map<std::string, std::string> text; };
+    std::vector<Frame> stack;
+    stack.push_back({rootID_, floorTexts_});
+
+    while (!stack.empty()) {
+        Frame frame = std::move(stack.back());
+        stack.pop_back();
+
+        auto nit = nodes_.find(frame.id);
+        if (nit == nodes_.end()) continue;      // already erased via a parent
+        const EventNode& node = nit->second;
+
+        // Apply this node's diff to its scene (the root/barriers carry none), after
+        // validating it. A mismatch on a non-root textual node → prune the subtree.
+        if (node.eventID != rootID_ && node.kind != EventKind::Barrier) {
+            auto& sceneText = frame.text[node.sceneID];
+            if (!diffMatches(sceneText, node.diff)) {
+                // Detach from parent so no stale child ref survives, then erase the
+                // subtree. Record every erased eventID (subtree included) for the log.
+                if (node.parentID.has_value()) {
+                    auto pit = nodes_.find(*node.parentID);
+                    if (pit != nodes_.end()) {
+                        auto& kids = pit->second.childIDs;
+                        kids.erase(std::remove(kids.begin(), kids.end(), node.eventID),
+                                   kids.end());
+                        if (pit->second.primaryChildID.has_value() &&
+                            *pit->second.primaryChildID == node.eventID) {
+                            pit->second.primaryChildID =
+                                kids.empty() ? std::optional<std::string>{} : kids.back();
+                        }
+                    }
+                }
+                // Record just this subtree ROOT — one ctl:purge replays the whole
+                // subtree drop. eraseSubtree removes the root + all descendants.
+                droppedRoots.push_back(node.eventID);
+                anyDropped = true;
+                eraseSubtree(node.eventID);
+                continue;   // do not recurse into an erased subtree
+            }
+            sceneText = applyForward(sceneText, node.diff);
+        }
+
+        // Recurse into children with this node's (now-advanced) per-scene text.
+        for (const std::string& childID : node.childIDs) {
+            stack.push_back({childID, frame.text});
+        }
+    }
+
+    if (anyDropped) {
+        // The current pointer may have been inside a dropped subtree — walk it back
+        // to the nearest surviving ancestor (root at worst) so the tree stays valid.
+        if (nodes_.find(currentNodeID_) == nodes_.end()) {
+            currentNodeID_ = rootID_;
+        }
+        rebuildHeadCache();
+    }
+    return droppedRoots;
 }
 
 void HistoryService::applyPrimaryOverride(const std::string& forkNodeID,

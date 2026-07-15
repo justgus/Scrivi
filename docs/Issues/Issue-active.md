@@ -5,12 +5,179 @@ table and stay in this file as full entries only until the next batch archive (I
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| I-0066 | `[ScriviCore]`/`[Apple]` A scene/chapter deleted from the navigator leaves its history in the log (no barrier, no prune) — orphaned diffs accumulate and are what mismatched on open (I-0065) | Medium | — | ✅ Resolved - Verified (2026-07-15) |
+| I-0065 | `[ScriviCore]`/`[Apple]` A mismatched/stale history diff crashes the macOS app on project open — a C++ `std::length_error` in history replay-on-load crosses the C ABI and terminates the process | High | — | ✅ Resolved - Verified (2026-07-15) |
 | I-0064 | `[Linux]` Ctrl+Shift+Return appends an empty chapter at the manuscript end instead of splitting/inserting the chapter at the caret (no scene reassignment, no renumber) | Medium | SP-067 (target) | 🔵 Open |
 | I-0063 | `[Linux]` Deleting/inserting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | Low | — | 🔵 Open (backlog) |
 | I-0062 | `[Linux]` A newly-created chapter's heading reads "Chapter" (not "Chapter N") until the project is reloaded | Low | SP-066 | ✅ Resolved - Verified (2026-07-15) |
 | I-0061 | `[Linux]` Landing **Quit** button does nothing after the shell flip (`QQmlEngine::quit()` unconnected) | Medium | SP-062 | ✅ Resolved - Verified (2026-07-14) |
 
 **Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
+
+---
+
+## I-0066: [ScriviCore]/[Apple] A deleted scene/chapter leaves orphaned history in the log
+
+**Status:** ✅ Resolved - Verified (2026-07-15, user-confirmed on macOS — the previously-crashing project opens;
+its history log self-heals after one open; navigator scene/chapter deletes record a `sceneDelete` barrier).
+Load-time prune + delete-time barrier landed; ctest green (268/268).
+**Platform:** macOS/Apple (shared ScriviCore history + the Apple navigator delete path). Not Linux.
+**Component:** `Scrivi/Views/SceneNavigatorView.swift` (`performDeleteScene`/`performDeleteChapter` — the missing
+barrier); `ScriviCore/src/history/HistoryService.cpp` (`pruneInconsistentNodes`, `diffMatches`);
+`ScriviCore/src/history/HistoryStore.cpp` (`openOrCreate` prune + `ctl:purge` persist).
+**Severity:** Medium (root cause of the I-0065 crash; on its own it produces silently-degraded/orphaned undo
+history for deleted scenes, and — before I-0065's clamp — the crash).
+**Sprint:** — (out-of-band fix during EP-023)
+**Epic:** EP-019 `[Apple]` (Custom Undo/Redo History)
+**Related:** **I-0065** (the crash this feeds — clamp + C ABI guard was the immediate stop; this is the durable
+fix). macOS already records a `sceneMerge`/`sceneSplit` barrier on the *editor* delete/split path
+(`ManuscriptTextView.swift`); the **navigator** delete path never did.
+**Date Identified:** 2026-07-15 (diagnosing I-0065 — the mismatched diff traced back to a navigator scene delete)
+**Date Resolved:** 2026-07-15
+
+**Description:**
+When a scene or chapter is deleted **from the Scene Navigator** (`performDeleteScene`/`performDeleteChapter`),
+the app called `deleteScene`/`deleteChapter` but recorded **no history barrier** and did **nothing** to that
+scene's history in `history/log-000001.jsonl`. The scene's `rec:"floor"` and `rec:"event"` records stayed in the
+log. On the next open, replay faithfully reconstructed the deleted scene's history; because the scene (and its
+baseline) were gone or changed, a diff no longer matched — an **orphaned/inconsistent diff**. That is exactly the
+mismatched node that crashed the app in **I-0065**. (The editor-driven delete/merge/split paths in
+`ManuscriptTextView` *do* record barriers; only the navigator delete path was missing one.)
+
+**Expected Behavior:**
+Deleting a scene/chapter records a structural **`sceneDelete` barrier** (undo can't cross into the removed
+content), and any history the deletion orphaned is cleaned up so a later open never replays a diff against a
+missing scene — no crash, no silent head corruption, no perpetual re-degrade.
+
+**Actual Behavior:**
+Orphaned floor+event records accumulated in the log with no barrier; on reload they mismatched (crash pre-I-0065;
+silently-clamped best-effort head post-I-0065, re-degraded on every open).
+
+**Root Cause:**
+Two gaps: (a) the navigator delete path recorded no barrier (unlike the editor paths); (b) `scrivi_delete_scene`
+/`scrivi_delete_chapter` have no history-side effect, and the load path had no integrity check — a persisted diff
+was trusted to match its scene.
+
+**Fix (2026-07-15):**
+1. **Delete-time barrier (Apple)** — `performDeleteScene`/`performDeleteChapter` now call
+   `session.historyCapture?.recordBarrier(kind: "sceneDelete", …)` **before** the delete, matching the editor
+   paths. Undo stops at the barrier instead of walking into the removed scene.
+2. **Load-time self-heal (ScriviCore)** — `HistoryService::pruneInconsistentNodes()` runs in
+   `HistoryStore::openOrCreate` after `finalizeLoad()`/eviction. It DFS-walks the tree carrying each scene's
+   replayed text and, via the new `diffMatches(oldText, diff)` predicate, drops any node whose diff can't have
+   come from its scene (offset past end, or removed bytes absent) **together with its subtree**; the current
+   pointer is walked back to a surviving ancestor. It returns the detached subtree roots, and the store persists
+   a **`ctl:purge`** per root — so the log is clean on the *next* open (replay honors `ctl:purge`). The bad
+   history **self-heals** on first open instead of degrading forever.
+
+Together with I-0065's clamp (never crash) and C ABI guard (never cross the boundary), history is now: never
+crashes, never silently mangles a head, and repairs an already-corrupt log on load.
+
+**Verification (2026-07-15 — ctest green; user run pending):**
+- New tests (`HistoryServiceTests.cpp`, tag `[History][load][I-0066]`): (a) an inconsistent node is dropped while
+  a consistent sibling scene's history stays intact and undoable; (b) the current pointer is moved out of a
+  dropped subtree (whole bad chain → one purge root); (c) a fully-consistent tree prunes nothing (no false
+  positives). **15 assertions, 3 cases, all pass.**
+- Full suite: `./ScriviCoreTests` → **268 cases / 1568 assertions pass**; `ctest` → **268/268**.
+- **USER-CONFIRMED (2026-07-15):** on a rebuilt macOS app the previously-crashing project opens; after that open
+  its history log no longer carries the orphaned nodes (self-healed via the persisted `ctl:purge`); deleting a
+  scene/chapter from the navigator now records a `sceneDelete` barrier (undo stops there).
+
+**Files Affected:**
+- `Scrivi/Views/SceneNavigatorView.swift` — `sceneDelete` barrier before navigator scene/chapter delete
+- `ScriviCore/src/history/HistoryService.{hpp,cpp}` — `pruneInconsistentNodes()`, `diffMatches()`
+- `ScriviCore/src/history/HistoryStore.cpp` — prune-on-load + `ctl:purge` persistence
+- `ScriviCore/tests/unit/HistoryServiceTests.cpp` — I-0066 prune tests
+
+---
+
+## I-0065: [ScriviCore]/[Apple] A mismatched history diff crashes the macOS app on project open
+
+**Status:** ✅ Resolved - Verified (2026-07-15, user-confirmed on macOS — "The Twisted Remains of Myself" opens
+on a rebuilt app instead of crashing). Fix landed in ScriviCore; ctest reproduces the crash and is green
+(268/268 with the I-0066 prune tests).
+**Platform:** macOS (any Apple platform — the fault is in shared ScriviCore + its C ABI). Not Linux.
+**Component:** `ScriviCore/src/history/HistoryService.cpp` (`applyForward`/`applyReverse`,
+`rebuildHeadCache`/`finalizeLoad` replay-on-load); `ScriviCore/src/public_api/scrivi_c_api.cpp`
+(`scrivi_history_open`/`_undo`/`_redo` boundary). Swift caller: `Scrivi/App/HistoryCapture.swift`.
+**Severity:** High (hard crash — `libc++abi: terminating due to uncaught exception`; the project never opens).
+**Sprint:** — (out-of-band fix during EP-023; not a Linux sprint)
+**Epic:** EP-019 `[Apple]` (Custom Undo/Redo History) — the history subsystem that shipped the replay-on-load path.
+**Related:** **I-0066** (the durable root-cause fix — a navigator scene delete left the orphaned diff that
+mismatched here; that Issue adds the delete-time barrier + load-time prune). EP-019 SP-054 (HistoryStore
+load/replay); `HistoryCapture.swift` best-effort `open()` try/catch (which could not catch this because the
+exception `std::terminate`d *inside* the C ABI, before returning).
+**Date Identified:** 2026-07-15 (user — macOS app crash opening a real project)
+**Date Resolved:** 2026-07-15
+
+**Description:**
+Opening the project **"The Twisted Remains of Myself"** on the macOS app crashed **before the project opened**,
+with:
+```
+libc++abi: terminating due to uncaught exception of type std::length_error: basic_string
+```
+The crash fired during history **replay-on-load**: `scrivi_history_open` → `HistoryStore` replays the persisted
+JSONL log → `HistoryService::finalizeLoad()` → `rebuildHeadCache()`, which walks the root→current path and
+applies each node's diff forward with `applyForward`. When a persisted node's diff no longer matches the scene's
+baseline text — the shape produced when **a diff is replayed against a deleted or externally-changed scene**
+(the user's hypothesis: "applying a historical diff to the wrong Scene") — `applyForward` computed
+`reserve(oldText.size() - removed.size() + inserted.size())`. With `removed.size() > oldText.size()` that
+subtraction **underflowed** (both are `std::size_t`, unsigned) to a near-`SIZE_MAX` value, and
+`std::string::reserve` threw `std::length_error`. A sibling `append(oldText, offset+removed, npos)` could throw
+`std::out_of_range` on the same mismatch.
+
+Because that exception was thrown **inside** an unguarded C ABI function (`scrivi_history_open`), it crossed the
+`extern "C"` boundary — which is a hard `std::terminate` (a C++ exception may never unwind through a C frame).
+The Swift side (`HistoryCapture.open()`) already wraps `engine.historyOpen` in a best-effort try/catch ("a
+failure here must never block editing"), but it never got the chance: the process was already dead.
+
+**Expected Behavior:**
+A corrupt, stale, or mismatched history log degrades **history** to best-effort (no undo, or a truncated tree)
+and the **project still opens and is editable**. No crash, ever, from replaying a bad diff.
+
+**Actual Behavior:**
+The whole app terminated at project-open before the editor appeared.
+
+**Root Cause:**
+Two independent latent faults, both required for the crash:
+1. **`applyForward`/`applyReverse` assumed the diff matched `oldText`.** The `reserve()` size arithmetic
+   underflowed on `removed.size() > oldText.size()`, throwing `std::length_error`; the tail `append` could throw
+   `std::out_of_range`. A mismatched/stale/corrupt persisted diff triggers both.
+2. **The C ABI history entrypoints were unguarded.** Any C++ exception escaping `scrivi_history_open` (or
+   `_undo`/`_redo`) unwound into a C frame → `std::terminate`. The boundary contract (`scrivi.h` is a pure C ABI;
+   exceptions must never cross it) was violated by omission for these three functions.
+
+**Fix (2026-07-15):**
+- **Clamp-safe apply (defense in depth #1)** — `applyForward`/`applyReverse` now clamp the offset and the
+  removed/inserted span into the actual text:
+  `off = min(offsetUtf8, text.size())`, `cut = min(off + span.size(), text.size())`, and build the result from
+  `[0,off) + patch + [cut, end)`. No unsigned underflow, no out-of-range; a mismatched diff yields a best-effort
+  string instead of throwing. (`HistoryService.cpp` ~L96–119.)
+- **Guarded C ABI (defense in depth #2)** — a `guarded(fn)` helper wraps the history entrypoints in
+  `try { … } catch (const std::exception& e) { → errorEnvelope(internalError, "unhandled exception: …") } catch (...) { … }`,
+  so **no** exception can ever cross the boundary again; a failure returns a `{"error":…}` envelope Swift already
+  handles. Applied to `scrivi_history_open`, `scrivi_history_undo`, `scrivi_history_redo`.
+  (`scrivi_c_api.cpp` ~L175, L1498/L1645/L1680.)
+
+Both layers are deliberate: the clamp fixes *this* bug at the source; the guard ensures *any* future history-path
+exception becomes an error envelope (best-effort history) rather than a process kill — matching what
+`HistoryCapture.open()` was already written to expect.
+
+**Verification (2026-07-15 — ctest green; user run pending):**
+- New regression **`replay-on-load survives a diff whose removed span exceeds the floor`**
+  (`ScriviCore/tests/unit/HistoryServiceTests.cpp`, tag `[History][load][I-0065]`) rehydrates a service via
+  `addLoadedFloor`/`addLoadedNode`/`setPointers` with a persisted node whose `diff.removed` (20 bytes) exceeds
+  the scene's floor ("hi"), then asserts `finalizeLoad()` **does not throw**, yields a well-formed best-effort
+  head, and that `undo()`/`redo()` on the mismatched node also don't throw. **Before the fix this reproduced the
+  `std::length_error`.**
+- `ctest --test-dir build --output-on-failure` → **268/268 pass** (the I-0065 replay test + 3 I-0066 prune tests).
+- **USER-CONFIRMED (2026-07-15):** on a rebuilt macOS app, **"The Twisted Remains of Myself"** opens (history for
+  the affected scene truncated/best-effort) instead of crashing.
+
+**Files Affected:**
+- `ScriviCore/src/history/HistoryService.cpp` — clamp-safe `applyForward`/`applyReverse`
+- `ScriviCore/src/public_api/scrivi_c_api.cpp` — `guarded()` helper + wrapped history entrypoints
+- `ScriviCore/tests/unit/HistoryServiceTests.cpp` — I-0065 regression test
 
 ---
 
@@ -863,4 +1030,4 @@ Added `import UniformTypeIdentifiers` (macOS-guarded).
 
 ---
 
-*Last Updated: 2026-06-29 (I-0055 and I-0056 both Resolved - Verified on macOS: a project quit/closed in Full Screen reopens in Full Screen; File ▸ Open Project selects the .scrivi package, matching the Welcome screen. Investigation-only debug logs removed. SP-046's only remaining active Issue is I-0053.)*
+*Last Updated: 2026-07-15 (I-0065 + I-0066 both Resolved - Verified on macOS — user confirmed "The Twisted Remains of Myself" opens on a rebuilt app, its history log self-heals after one open, and navigator scene/chapter deletes record a `sceneDelete` barrier. I-0066 (durable root cause): a navigator delete left orphaned history in the log; fix = `sceneDelete` barrier before the navigator delete (Apple) + load-time `pruneInconsistentNodes()` that drops any node whose diff can't match its scene and persists a `ctl:purge` so the log self-heals on next open (ScriviCore). I-0065 (immediate crash stop): clamp-safe `applyForward`/`applyReverse` + a `guarded()` C ABI wrapper on `scrivi_history_open`/`_undo`/`_redo`. Suite 268/268 green. Earlier: I-0055/I-0056 Resolved - Verified on macOS.)*

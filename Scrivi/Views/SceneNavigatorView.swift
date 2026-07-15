@@ -259,6 +259,12 @@ struct SceneNavigatorView: View {
         guard let projectRootPath = session.projectRootPath else { return }
         Task { @MainActor in
             do {
+                // Record a structural barrier BEFORE the delete so undo can't walk
+                // back into the deleted scene, and — with I-0066 — so the scene's
+                // now-orphaned history is pruned cleanly on the next open instead of
+                // replaying a diff against a scene that no longer exists.
+                session.historyCapture?.recordBarrier(kind: "sceneDelete",
+                                                      note: "Can't undo past deleting a scene")
                 _ = try env.engine.deleteScene(
                     projectRootPath: projectRootPath,
                     sceneID: entry.sceneID
@@ -282,6 +288,11 @@ struct SceneNavigatorView: View {
         let wasCurrentChapter = loader.currentSegment.map { seg in group.scenes.contains { $0.sceneID == seg.sceneID } } ?? false
         Task { @MainActor in
             do {
+                // Structural barrier before the delete (I-0066): a deleted chapter
+                // takes all its scenes' history out of reach; the barrier stops undo
+                // and the load-time prune cleans up the orphaned diffs next open.
+                session.historyCapture?.recordBarrier(kind: "sceneDelete",
+                                                      note: "Can't undo past deleting a chapter")
                 _ = try env.engine.deleteChapter(
                     projectRootPath: projectRootPath,
                     chapterID: group.chapterID

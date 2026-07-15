@@ -282,6 +282,19 @@ public:
     void applyLoadedEviction(const std::vector<std::string>& purgedBranchRoots,
                              const std::vector<std::string>& promotedRoots);
 
+    // Load-time integrity repair (I-0066): after finalizeLoad() (and any eviction
+    // replay), walks the tree in parent→child order applying each event's diff to
+    // its scene's replayed text. A node whose diff does NOT match the text it would
+    // apply to (offset past end, or removed bytes absent) is an orphan of a deleted
+    // /externally-changed scene or a corrupt record — that node and its whole
+    // subtree are erased so replay can never produce a mismatched (clamped/mangled)
+    // head. If the current pointer fell inside a dropped subtree it is moved back to
+    // the nearest surviving ancestor. Returns the detached subtree ROOT eventIDs
+    // (empty when the tree was already consistent) — one ctl:purge per root replays
+    // the whole drop, so the store keeps the log clean on the next open. The head
+    // cache is rebuilt at the end. Idempotent; safe to call once per load.
+    [[nodiscard]] std::vector<std::string> pruneInconsistentNodes();
+
     // Applies a persisted primary-child override for a fork (D4/SP-055): sets
     // nodeRef(forkNodeID).primaryChildID = childEventID if childEventID is a child.
     // Called by HistoryStore during replay for each ctl:setPrimary record and for

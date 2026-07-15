@@ -169,6 +169,18 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
             for (const auto& [forkID, childID] : primaryOverrides) {
                 svc->applyPrimaryOverride(forkID, childID);
             }
+            // I-0066: repair a self-inconsistent log in place. A node whose diff no
+            // longer matches its scene (an orphan of a deleted/externally-changed
+            // scene, or a corrupt record) is dropped with its subtree, and the
+            // current pointer is walked back to a surviving ancestor. We persist a
+            // ctl:purge for each dropped subtree root so the log stays clean on the
+            // NEXT open (replay honors ctl:purge in applyLoadedEviction). The clamp
+            // in applyForward (I-0065) already prevents a crash; this makes the fix
+            // durable — the bad history self-heals instead of degrading every open.
+            std::vector<std::string> prunedRoots = svc->pruneInconsistentNodes();
+            for (const std::string& branchRoot : prunedRoots) {
+                persistPurge(branchRoot);   // one ctl:purge per detached subtree root
+            }
             // Load persisted per-scene head hashes + settings from state.json for
             // §6.b validation (best-effort; the log already rebuilt the tree).
             if (fs_) {

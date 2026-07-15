@@ -423,3 +423,166 @@ TEST_CASE("purgeBranch rejects the root and any node on the root->current path",
     // Nothing was removed by any of the rejections: B is still there and stale.
     REQUIRE(h.listStaleBranches("2026-07-10T00:00:00Z", 7).size() == 1);
 }
+
+// --- I-0065: replay-on-load must not crash on a mismatched/stale diff ---------
+// Regression for the macOS crash opening a project whose persisted history log
+// carries a node whose diff no longer matches the scene's baseline (e.g. the
+// scene was deleted or its text changed on disk). rebuildHeadCache() replayed
+// that diff with applyForward; a diff.removed longer than the floor text
+// underflowed reserve() (unsigned) and threw std::length_error, which crossed
+// the C ABI and terminated the app. finalizeLoad() must now degrade to a
+// best-effort head instead of throwing.
+TEST_CASE("replay-on-load survives a diff whose removed span exceeds the floor",
+          "[History][load][I-0065]") {
+    auto h = fresh();
+
+    // The scene's persisted floor is short ("hi"). The persisted child claims to
+    // remove 20 bytes at offset 5 and insert "X" — a stale/mismatched diff, the
+    // shape produced when a diff is replayed against a deleted/wrong scene.
+    h.addLoadedFloor("scene_gone", "hi");
+
+    EventNode root;
+    root.eventID = "evt_root";
+    root.kind = EventKind::Typing;   // root carries no applied diff
+
+    EventNode bad;
+    bad.eventID = "evt_bad";
+    bad.parentID = "evt_root";
+    bad.kind = EventKind::Typing;
+    bad.sceneID = "scene_gone";
+    bad.diff.offsetUtf8 = 5;                 // past end of "hi"
+    bad.diff.removed = std::string(20, 'z'); // longer than the floor text
+    bad.diff.inserted = "X";
+    bad.timestamp = "2026-07-07T00:00:01Z";
+    bad.sessionID = "ses_1";
+
+    h.addLoadedNode(root);
+    h.addLoadedNode(bad);
+    h.setPointers("evt_root", "evt_bad", "ses_1");
+
+    // finalizeLoad() rebuilds the head cache by replaying evt_bad's diff.
+    // Before the fix this threw std::length_error and terminated the process.
+    REQUIRE_NOTHROW(h.finalizeLoad());
+
+    // Best-effort result: clamped offset (5→2) + inserted, tail empty. The exact
+    // string is not the contract — not throwing is. Assert it is well-formed and
+    // begins with what survived the clamp.
+    const std::string head = h.headTextForScene("scene_gone");
+    REQUIRE(head == "hiX");
+
+    // The rehydrated tree is still usable: undo walks back to the floor, and
+    // neither direction throws on the mismatched node.
+    REQUIRE_NOTHROW(h.undo());
+    REQUIRE_NOTHROW(h.redo());
+}
+
+// --- I-0066: load-time pruning of an orphaned/inconsistent scene's history ----
+// A scene deleted from the navigator left its floor + event records in the log
+// with no barrier; on reload those diffs no longer matched their scene. The load
+// path now DROPS such nodes (subtree included) and reports the roots so the store
+// can persist a ctl:purge — the log self-heals instead of degrading every open.
+
+// Helper: a loaded event node with an explicit diff.
+EventNode loadedEvent(std::string id, std::string parent, std::string sceneID,
+                      std::size_t offset, std::string removed, std::string inserted) {
+    EventNode n;
+    n.eventID = std::move(id);
+    if (!parent.empty()) n.parentID = std::move(parent);
+    n.kind = EventKind::Typing;
+    n.sceneID = std::move(sceneID);
+    n.diff.offsetUtf8 = offset;
+    n.diff.removed = std::move(removed);
+    n.diff.inserted = std::move(inserted);
+    n.timestamp = "2026-07-15T00:00:00Z";
+    n.sessionID = "ses_1";
+    return n;
+}
+
+TEST_CASE("prune drops an inconsistent node and keeps a consistent sibling scene",
+          "[History][load][I-0066]") {
+    auto h = fresh();
+
+    // scene_ok: floor "ab", a matching diff appends "c" at offset 2 → "abc".
+    // scene_gone: floor "hi", a stale diff removes 5 bytes at offset 0 (mismatch).
+    h.addLoadedFloor("scene_ok", "ab");
+    h.addLoadedFloor("scene_gone", "hi");
+
+    EventNode root;
+    root.eventID = "evt_root";
+    root.kind = EventKind::Typing;
+
+    // Both events hang off the root (a fork); order is derived by finalizeLoad.
+    auto good = loadedEvent("evt_good", "evt_root", "scene_ok", 2, "", "c");
+    auto bad  = loadedEvent("evt_bad",  "evt_root", "scene_gone", 0,
+                            std::string(5, 'z'), "X");
+
+    h.addLoadedNode(root);
+    h.addLoadedNode(good);
+    h.addLoadedNode(bad);
+    h.setPointers("evt_root", "evt_good", "ses_1");
+    REQUIRE_NOTHROW(h.finalizeLoad());
+
+    auto droppedRoots = h.pruneInconsistentNodes();
+    REQUIRE(droppedRoots.size() == 1);
+    REQUIRE(droppedRoots[0] == "evt_bad");
+
+    // The good scene's history is intact and still replays correctly.
+    REQUIRE(h.headTextForScene("scene_ok") == "abc");
+    // The good node is still reachable / undoable.
+    REQUIRE(h.canUndo());
+    REQUIRE_NOTHROW(h.undo());
+    REQUIRE(h.headTextForScene("scene_ok") == "ab");
+}
+
+TEST_CASE("prune moves the current pointer out of a dropped subtree",
+          "[History][load][I-0066]") {
+    auto h = fresh();
+    h.addLoadedFloor("scene_gone", "hi");
+
+    EventNode root;
+    root.eventID = "evt_root";
+    root.kind = EventKind::Typing;
+
+    // A two-node bad chain; current points at the tip, which will be pruned.
+    auto bad1 = loadedEvent("evt_bad1", "evt_root", "scene_gone", 0,
+                            std::string(9, 'z'), "A");
+    auto bad2 = loadedEvent("evt_bad2", "evt_bad1", "scene_gone", 0, "A", "B");
+
+    h.addLoadedNode(root);
+    h.addLoadedNode(bad1);
+    h.addLoadedNode(bad2);
+    h.setPointers("evt_root", "evt_bad2", "ses_1");
+    REQUIRE_NOTHROW(h.finalizeLoad());
+
+    auto droppedRoots = h.pruneInconsistentNodes();
+    // The whole bad chain drops from its root (evt_bad1); one ctl:purge covers it.
+    REQUIRE(droppedRoots.size() == 1);
+    REQUIRE(droppedRoots[0] == "evt_bad1");
+
+    // Current walked back to the root; the tree is valid and no longer undoable.
+    REQUIRE_FALSE(h.canUndo());
+    REQUIRE_NOTHROW(h.headTextForScene("scene_gone"));
+}
+
+TEST_CASE("prune is a no-op on a fully consistent loaded tree",
+          "[History][load][I-0066]") {
+    auto h = fresh();
+    h.addLoadedFloor("scene_a", "");
+
+    EventNode root;
+    root.eventID = "evt_root";
+    root.kind = EventKind::Typing;
+
+    auto e1 = loadedEvent("evt_1", "evt_root", "scene_a", 0, "", "one");
+    auto e2 = loadedEvent("evt_2", "evt_1", "scene_a", 3, "", " two");
+
+    h.addLoadedNode(root);
+    h.addLoadedNode(e1);
+    h.addLoadedNode(e2);
+    h.setPointers("evt_root", "evt_2", "ses_1");
+    REQUIRE_NOTHROW(h.finalizeLoad());
+
+    auto droppedRoots = h.pruneInconsistentNodes();
+    REQUIRE(droppedRoots.empty());
+    REQUIRE(h.headTextForScene("scene_a") == "one two");
+}

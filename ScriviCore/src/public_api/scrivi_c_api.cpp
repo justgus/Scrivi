@@ -164,6 +164,26 @@ static std::string errorEnvelope(scrivi::ErrorCode code, std::string_view messag
     return root.dump();
 }
 
+// Exception firewall for the C ABI boundary. A C++ exception must NEVER cross the
+// plain-C boundary — doing so calls std::terminate and kills the host app (I-0065:
+// a mismatched/stale history diff threw std::length_error out of scrivi_history_open
+// and crashed the macOS app before the Swift best-effort catch could run). `guarded`
+// runs `fn` (which returns a heap()'d envelope) inside try/catch and converts any
+// escape into a heap()'d internalError envelope, so every wrapped endpoint always
+// returns a well-formed `{"ok":false,...}` string the caller can handle.
+template <typename Fn>
+static const char* guarded(Fn&& fn) {
+    try {
+        return fn();
+    } catch (const std::exception& e) {
+        return heap(errorEnvelope(scrivi::ErrorCode::internalError,
+                                  std::string("unhandled exception: ") + e.what()));
+    } catch (...) {
+        return heap(errorEnvelope(scrivi::ErrorCode::internalError,
+                                  "unhandled non-standard exception"));
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Undo/Redo history registry (EP-019 SP-052 — T-0202)
 // ---------------------------------------------------------------------------
@@ -1475,6 +1495,7 @@ static scrivi::AbsolutePath historyDirFor(const std::string& projectRoot) {
 }
 
 const char* scrivi_history_open(const char* projectRootPath) {
+  return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
@@ -1488,6 +1509,11 @@ const char* scrivi_history_open(const char* projectRootPath) {
         historyDirFor(root), &s.fileSystem, &s.clock);
 
     bool loaded = false;
+    // openOrCreate replays the on-disk log (finalizeLoad / applyLoadedEviction →
+    // applyForward). A mismatched/stale diff used to throw here and crash the app;
+    // applyForward/applyReverse are now clamp-safe, and `guarded` is the belt-and-
+    // suspenders firewall so any residual throw becomes an error envelope instead of
+    // terminating the process (I-0065). History is best-effort on the Swift side.
     store->openOrCreate(mintHistoryID("ses"), nowTimestamp(), loaded);
 
     auto& svc = store->service();
@@ -1506,6 +1532,7 @@ const char* scrivi_history_open(const char* projectRootPath) {
 
     reg.byRoot[root] = std::move(store);
     return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 const char* scrivi_history_seed_scene(const char* projectRootPath,
@@ -1615,6 +1642,7 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
 }
 
 const char* scrivi_history_undo(const char* projectRootPath) {
+  return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -1645,9 +1673,11 @@ const char* scrivi_history_undo(const char* projectRootPath) {
     appendStepChanges(doc, step);
     appendForkAhead(doc, step);
     return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 const char* scrivi_history_redo(const char* projectRootPath) {
+  return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -1669,6 +1699,7 @@ const char* scrivi_history_redo(const char* projectRootPath) {
     appendStepChanges(doc, step);
     appendForkAhead(doc, step);
     return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 const char* scrivi_history_select_branch(const char* projectRootPath,
