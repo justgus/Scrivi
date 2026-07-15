@@ -244,6 +244,145 @@ int SceneDocument::insertSceneAfter(int afterIndex,
     return afterIndex + 1;
 }
 
+namespace {
+// The leading-boundary text that build()/insertSceneAfter place BEFORE a segment's
+// body, given its position in the manuscript. `first` = this is the first segment in
+// the document; `chapterStart` = this segment begins a new chapter (heading needed);
+// `headingText` = the chapter title (or "Chapter" when empty). Kept in one place so
+// removeScene/reflow reproduce build() exactly.
+QString leadingBoundaryFor(bool first, bool chapterStart, const QString& headingText)
+{
+    if (first) {
+        // The very first body in the document has no leading gap (build() emits none
+        // before i==0), regardless of chapter — its heading, if any, is emitted with
+        // no preceding blank line. Match that: heading + "\n\n", or nothing.
+        return chapterStart ? headingText + QStringLiteral("\n\n") : QString();
+    }
+    if (chapterStart) {
+        return QStringLiteral("\n\n") + headingText + QStringLiteral("\n\n");
+    }
+    return QStringLiteral("\n\n");   // in-chapter scene separator
+}
+} // namespace
+
+void SceneDocument::reflowBoundaryAt(int index)
+{
+    if (index < 0 || index >= segments_.size()) {
+        return;
+    }
+    // The document span occupied by segment `index`'s CURRENT leading boundary runs
+    // from the previous body's end (or doc start for index 0) up to this bodyStart.
+    const int spanStart =
+        (index == 0) ? 0 : segments_.at(index - 1).bodyStart
+                               + segments_.at(index - 1).bodyLength;
+    const int spanEnd = segments_.at(index).bodyStart;
+
+    const bool first = (index == 0);
+    const bool chapterStart =
+        first || segments_.at(index).chapterID != segments_.at(index - 1).chapterID;
+    const QString heading = segments_.at(index).chapterTitle.isEmpty()
+                                ? QStringLiteral("Chapter")
+                                : segments_.at(index).chapterTitle;
+    const QString desired = leadingBoundaryFor(first, chapterStart, heading);
+
+    const int oldLen = spanEnd - spanStart;
+    if (oldLen == desired.length()) {
+        // Same length: still must rewrite in case the heading text changed, but no
+        // offsets shift. Only rewrite when the text actually differs.
+        QTextCursor probe(&doc_);
+        probe.setPosition(spanStart);
+        probe.setPosition(spanEnd, QTextCursor::KeepAnchor);
+        if (probe.selectedText().replace(QChar(0x2029), QLatin1Char('\n')) == desired) {
+            return;   // already correct
+        }
+    }
+
+    QTextCursor cursor(&doc_);
+    cursor.beginEditBlock();
+    cursor.setPosition(spanStart);
+    cursor.setPosition(spanEnd, QTextCursor::KeepAnchor);
+    cursor.insertText(desired);   // replaces the selection
+    cursor.endEditBlock();
+
+    const int delta = desired.length() - oldLen;
+    if (delta != 0) {
+        segments_[index].bodyStart += delta;
+        for (int j = index + 1; j < segments_.size(); ++j) {
+            segments_[j].bodyStart += delta;
+        }
+    }
+}
+
+bool SceneDocument::removeScene(int index)
+{
+    if (index < 0 || index >= segments_.size()) {
+        return false;
+    }
+
+    const SceneSegment target = segments_.at(index);   // copy (list mutates)
+
+    // Compute the document span to delete. Default: from the previous body's end
+    // through this body's end — i.e. this scene's leading boundary + its body. That
+    // leaves the following scene's own leading boundary intact.
+    int spanStart = 0;
+    int spanEnd = target.bodyStart + target.bodyLength;
+    if (index > 0) {
+        const SceneSegment& prev = segments_.at(index - 1);
+        spanStart = prev.bodyStart + prev.bodyLength;
+    } else if (segments_.size() > 1) {
+        // Removing the FIRST segment: take this body + its TRAILING boundary (up to
+        // the next body's start) so the new first scene has no leading gap.
+        spanStart = 0;
+        spanEnd = segments_.at(1).bodyStart;
+    } else {
+        // Only segment: clear the whole document.
+        spanStart = 0;
+        spanEnd = doc_.characterCount() - 1;   // characterCount includes the final \n
+    }
+
+    QTextCursor cursor(&doc_);
+    cursor.beginEditBlock();
+    cursor.setPosition(spanStart);
+    cursor.setPosition(spanEnd, QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
+    cursor.endEditBlock();
+
+    const int removed = spanEnd - spanStart;
+    for (int j = index + 1; j < segments_.size(); ++j) {
+        segments_[j].bodyStart -= removed;
+    }
+    segments_.removeAt(index);
+
+    // The segment that shifted into slot `index` (if any) may now need a different
+    // leading boundary than it had: removing the first scene strips the new-first's
+    // leading gap (it must have none, or a bare heading); removing a chapter's first
+    // scene promotes an in-chapter follower to chapter-first (its separator must
+    // become a heading). reflowBoundaryAt recomputes the correct boundary from the
+    // follower's new position and is a no-op when it's already right (the common
+    // in-chapter mid-delete). The position rule alone is sufficient — no need to know
+    // what the removed scene was.
+    if (index < segments_.size()) {
+        reflowBoundaryAt(index);
+    }
+    return true;
+}
+
+int SceneDocument::removeChapter(const QString& chapterID)
+{
+    // Collect member indices, then remove last-to-first so earlier offsets stay valid
+    // and no "promote follower" reflow fires mid-chapter (the whole chapter goes).
+    QList<int> members;
+    for (int i = 0; i < segments_.size(); ++i) {
+        if (segments_.at(i).chapterID == chapterID) {
+            members.append(i);
+        }
+    }
+    for (int k = members.size() - 1; k >= 0; --k) {
+        removeScene(members.at(k));
+    }
+    return members.size();
+}
+
 QString SceneDocument::bodyText(int index) const
 {
     if (index < 0 || index >= segments_.size()) {

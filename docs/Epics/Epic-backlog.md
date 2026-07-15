@@ -90,23 +90,15 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-## [Linux] App — Epic Family (EP-022–EP-026)
+## [Linux] App — Epic Family (EP-024–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
 built Epic-by-Epic). **EP-020 `[Linux]` (Foundation), EP-021 `[Linux]` (Project Lifecycle & Landing), and
 EP-022 `[Linux]` (Writing Surface & Scene Navigator) are all ✅ closed** (→ `Epics/Closed/`); **EP-023
-`[Linux]` (Manuscript Structure Editing) is next up** — the Epics below are 🔵 Draft, defined and sequenced,
-promoted to Active one at a time as each predecessor lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each
-targets near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a
-`[ScriviCore]` note, not a separate Epic.
-
-### EP-023: [Linux] Manuscript Structure Editing
-
-**Status:** 🔵 Draft
-**Goal:** Create / delete / rename / reorder scenes and chapters from the Linux navigator. Mirrors Apple
-EP-010.
-**Rough scope:** `scrivi_create_scene/create_chapter/delete_*/rename_*/reorder_*`, drag-reorder in QML,
-chapter title toggle. **Depends on:** EP-022.
+`[Linux]` (Manuscript Structure Editing) is now 🟡 Active** (→ `Epics/Epic-active.md`). The Epics below are
+🔵 Draft, defined and sequenced, promoted to Active one at a time as each predecessor lands. Each is verified
+in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each targets near-parity with the named Apple
+Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a `[ScriviCore]` note, not a separate Epic.
 
 ### EP-024: [Linux] Scene Inspector Panel
 
@@ -136,4 +128,4 @@ tester. **Depends on:** EP-022 (and benefits from EP-023–EP-025).
 
 ---
 
-*Last Updated: 2026-07-14 (EP-021 [Linux] ✅ closed; EP-022 [Linux] Writing Surface & Scene Navigator promoted from this backlog to Active. Remaining [Linux] family EP-023–EP-026 stay 🔵 Draft. EP-019 [Apple] remains 🔴 Deferred.)*
+*Last Updated: 2026-07-15 (EP-022 [Linux] ✅ closed; EP-023 [Linux] Manuscript Structure Editing promoted from this backlog to 🟡 Active (full detail now in `Epic-active.md`). Remaining [Linux] family EP-024–EP-026 stay 🔵 Draft. EP-019 [Apple] remains 🔴 Deferred.)*

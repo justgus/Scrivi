@@ -221,6 +221,35 @@ target_link_libraries(scrivi_linux_scene_create_smoke
 target_include_directories(scrivi_linux_scene_create_smoke PRIVATE src)
 target_compile_features(scrivi_linux_scene_create_smoke PRIVATE cxx_std_23)
 
+# --- Headless in-navigator delete smoke (SP-065 / T-0253, EP-023 AC1/AC2) ---
+# Drives the navigator Delete path headlessly: builds a 4-scene/2-chapter fixture,
+# splices scenes/chapters out of a SceneDocument via removeScene / removeChapter
+# (asserts the offset map stays well-formed and survivors keep their bodies), then
+# deletes via bridge.deleteScene / deleteChapter and asserts the removals persist on
+# reopen. Needs Widgets for QApplication + QPlainTextDocumentLayout (SceneDocument).
+# scene_delete_smoke.sh.
+qt_add_executable(scrivi_linux_scene_delete_smoke
+    tests/scene_delete_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_delete_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_scene_delete_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_delete_smoke PRIVATE cxx_std_23)
+
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a
 # QQuickWidget's engine doesn't auto-wire QQmlEngine::quit() to the app, so main.cpp

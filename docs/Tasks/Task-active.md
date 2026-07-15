@@ -2,18 +2,15 @@
 
 **No tasks are currently active.**
 
-The most recent sprint, **SP-060** (EP-021 `[Linux]` Project Lifecycle — open/close half), is ✅ closed
-(2026-07-14, user-approved). Its tasks **T-0230–T-0233** are all ✅ Verified and archived to
-`Verified/Task-verified-0230-0233.md`. That sprint **closed EP-021** (`Epics/Closed/Epic-EP-021.md`).
+**SP-065** (EP-023 `[Linux]` — delete scene/chapter) ✅ closed 2026-07-15 (user-approved). Its tasks
+**T-0250–T-0253** are all ✅ Verified and archived to `Verified/Task-verified-0250-0253.md`. That sprint
+delivered **EP-023 AC1 + AC2** (delete scene/chapter from the navigator + delete-of-active navigation).
 
-**Next up:** **EP-022** `[Linux]` — Writing Surface & Scene Navigator is now the Active Epic
-(`Epics/Epic-active.md`). Its first sprint (**SP-061** — navigator + open-scene read) and tasks are defined
-when it is drafted/activated at planning.
-
-_(Recent verified archives: SP-059 → `Verified/Task-verified-0223-0229.md`; SP-058 →
-`Verified/Task-verified-0218-0222.md`.)_
+**Next up:** **EP-023** `[Linux]` (Manuscript Structure Editing) remains the Active Epic. Its next sprint,
+**SP-066** (rename scene/chapter + closes I-0062), and tasks are defined when it is drafted/activated at
+planning.
 
 ---
 
-*Last Updated: 2026-07-14 (SP-060 closed; tasks T-0230–T-0233 Verified & archived; EP-021 closed. No active
-tasks; EP-022 Writing Surface is next, first sprint at planning.)*
+*Last Updated: 2026-07-15 (SP-065 closed; tasks T-0250–T-0253 Verified & archived. No active tasks; EP-023
+stays Active — SP-066 rename is next, first-sprint tasks at planning.)*

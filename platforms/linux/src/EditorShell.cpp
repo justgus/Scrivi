@@ -1,8 +1,11 @@
 #include "EditorShell.hpp"
 
+#include <QAction>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMenu>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QShowEvent>
@@ -21,6 +24,9 @@
 namespace {
 // Custom data roles on navigator items so activation can recover the sceneID.
 constexpr int kSceneIDRole = Qt::UserRole + 1;
+// Chapter rows carry their chapterID so the context menu can target a whole-chapter
+// delete (T-0251). Scene rows leave this empty; chapter rows leave kSceneIDRole empty.
+constexpr int kChapterIDRole = Qt::UserRole + 2;
 // Idle-save debounce: how long after the last keystroke an auto-save fires.
 // Mirrors Apple's ~1s; the sprint spec is ~1.5s.
 constexpr int kSaveDebounceMs = 1500;
@@ -68,6 +74,10 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
             this, &EditorShell::onNavigatorActivated);
     connect(navigator_, &QTreeView::clicked,
             this, &EditorShell::onNavigatorActivated);
+    // Right-click → Delete context menu on scene + chapter rows (EP-023, T-0251).
+    navigator_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(navigator_, &QTreeView::customContextMenuRequested,
+            this, &EditorShell::onNavigatorContextMenu);
 
     // --- Viewport (right): editable continuous document -------------------
     viewport_ = new ManuscriptEditor(this);
@@ -301,6 +311,194 @@ void EditorShell::onNavigatorActivated(const QModelIndex& index)
     selectNavigatorScene(sceneID);
 }
 
+void EditorShell::onNavigatorContextMenu(const QPoint& pos)
+{
+    const QModelIndex index = navigator_->indexAt(pos);
+    if (!index.isValid()) {
+        return;
+    }
+    const QString sceneID   = index.data(kSceneIDRole).toString();
+    const QString chapterID = index.data(kChapterIDRole).toString();
+
+    QMenu menu(this);
+    if (!sceneID.isEmpty()) {
+        QAction* del = menu.addAction(tr("Delete Scene"));
+        connect(del, &QAction::triggered, this,
+                [this, sceneID] { deleteSceneByID(sceneID); });
+    } else if (!chapterID.isEmpty()) {
+        QAction* del = menu.addAction(tr("Delete Chapter"));
+        connect(del, &QAction::triggered, this,
+                [this, chapterID] { deleteChapterByID(chapterID); });
+    } else {
+        return;   // neither a scene nor a chapter row
+    }
+    menu.exec(navigator_->viewport()->mapToGlobal(pos));
+}
+
+void EditorShell::deleteSceneByID(const QString& sceneID)
+{
+    const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+    if (idx < 0) {
+        return;
+    }
+    const int sceneCount = sceneDoc_.segments().size();
+
+    // Guard the manuscript's last remaining scene: a project must keep at least one
+    // scene (mirrors the Apple navigator, and there is nowhere to place the caret
+    // otherwise). Offer a clear notice instead of a silent no-op.
+    if (sceneCount <= 1) {
+        QMessageBox::information(
+            this, tr("Delete Scene"),
+            tr("This is the only scene in the manuscript and can't be deleted."));
+        return;
+    }
+
+    const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy (list mutates)
+    const QString sceneTitle =
+        seg.title.isEmpty() ? tr("this scene") : QStringLiteral("“%1”").arg(seg.title);
+
+    const QMessageBox::StandardButton choice = QMessageBox::question(
+        this, tr("Delete Scene"),
+        tr("Delete %1? This can't be undone.").arg(sceneTitle),
+        QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
+    if (choice != QMessageBox::Yes) {
+        return;
+    }
+
+    // Persist any OTHER pending edits first so a background flush can't later resurrect
+    // or clobber a file, then drop the doomed scene from the dirty set so auto-save
+    // won't rewrite the .md we're about to delete.
+    dirtyScenes_.remove(sceneID);
+    saveDirtyScenes();
+
+    const QVariantMap r = bridge_->deleteScene(projectPath_, sceneID);
+    if (r.isEmpty()) {
+        return;   // bridge already surfaced errorOccurred; leave the UI untouched
+    }
+
+    // Remember which scene was active so afterStructuralRemoval can keep it active at
+    // its new index if it survived (i.e. a *different* scene was deleted). Empty when
+    // the active scene is the one being deleted.
+    const QString activeSceneID =
+        (activeSegment_ >= 0 && activeSegment_ < sceneCount)
+            ? sceneDoc_.segments().at(activeSegment_).sceneID
+            : QString();
+
+    // Nearest remaining scene = the one that slides into this slot (next), else the
+    // previous one when we deleted the last segment. Only used when the active scene
+    // was the deletion target.
+    const int fallbackSeg = (idx < sceneCount - 1) ? idx : idx - 1;
+
+    loading_ = true;
+    sceneDoc_.removeScene(idx);
+    loading_ = false;
+
+    afterStructuralRemoval(activeSceneID, fallbackSeg);
+}
+
+void EditorShell::deleteChapterByID(const QString& chapterID)
+{
+    // Count the chapter's scenes for the confirmation message and the last-chapter
+    // guard.
+    int memberCount = 0;
+    QString firstMemberSceneID;
+    for (const SceneSegment& s : sceneDoc_.segments()) {
+        if (s.chapterID == chapterID) {
+            if (firstMemberSceneID.isEmpty()) {
+                firstMemberSceneID = s.sceneID;
+            }
+            ++memberCount;
+        }
+    }
+    if (memberCount == 0) {
+        return;   // unknown chapter
+    }
+
+    // Guard the manuscript's last chapter: deleting every scene would leave an empty
+    // manuscript with no caret home. Refuse with a notice (parity with the last-scene
+    // guard above).
+    if (memberCount >= sceneDoc_.segments().size()) {
+        QMessageBox::information(
+            this, tr("Delete Chapter"),
+            tr("This is the only chapter in the manuscript and can't be deleted."));
+        return;
+    }
+
+    const QMessageBox::StandardButton choice = QMessageBox::question(
+        this, tr("Delete Chapter"),
+        tr("Delete this chapter and all %n scene(s) in it? This can't be undone.",
+           nullptr, memberCount),
+        QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
+    if (choice != QMessageBox::Yes) {
+        return;
+    }
+
+    // Was the active scene inside the doomed chapter? If so we must re-anchor after.
+    const QString activeSceneID =
+        (activeSegment_ >= 0 && activeSegment_ < sceneDoc_.segments().size())
+            ? sceneDoc_.segments().at(activeSegment_).sceneID
+            : QString();
+    const int firstMemberIdx = sceneDoc_.sceneIndexForScene(firstMemberSceneID);
+
+    // Drop every doomed scene from the dirty set, then flush the survivors.
+    for (const SceneSegment& s : sceneDoc_.segments()) {
+        if (s.chapterID == chapterID) {
+            dirtyScenes_.remove(s.sceneID);
+        }
+    }
+    saveDirtyScenes();
+
+    const QVariantMap r = bridge_->deleteChapter(projectPath_, chapterID);
+    if (r.isEmpty()) {
+        return;
+    }
+
+    loading_ = true;
+    sceneDoc_.removeChapter(chapterID);
+    loading_ = false;
+
+    // Fallback active scene: the segment that now occupies the deleted chapter's first
+    // slot (the following chapter's first scene), clamped into range.
+    afterStructuralRemoval(activeSceneID, firstMemberIdx);
+}
+
+void EditorShell::afterStructuralRemoval(const QString& previouslyActiveSceneID,
+                                         int fallbackSeg)
+{
+    rebuildNavigator();
+
+    if (sceneDoc_.segments().isEmpty()) {
+        // Should not happen — the last-scene / last-chapter guards prevent it — but
+        // keep the tracker consistent if it ever does.
+        activeSegment_ = -1;
+        return;
+    }
+
+    // Does the previously-active scene still exist? (Empty ID = it was the deletion
+    // target, so it's gone by definition.)
+    const int survivingActive =
+        previouslyActiveSceneID.isEmpty()
+            ? -1
+            : sceneDoc_.sceneIndexForScene(previouslyActiveSceneID);
+
+    if (survivingActive >= 0) {
+        // The active scene survived; just keep it active at its new index and let the
+        // navigator highlight follow. No caret move (the author's place is preserved).
+        activeSegment_ = survivingActive;
+        selectNavigatorScene(sceneDoc_.segments().at(survivingActive).sceneID);
+        return;
+    }
+
+    // The active scene was deleted: promote the nearest remaining scene, drop the
+    // caret at its start, and hand focus back to the editor (delete-of-active, AC2).
+    const int target =
+        qBound(0, fallbackSeg, sceneDoc_.segments().size() - 1);
+    activeSegment_ = -1;               // force moveCaretToSegment/promote to register it
+    moveCaretToSegment(target);
+    selectNavigatorScene(sceneDoc_.segments().at(target).sceneID);
+    viewport_->setFocus();
+}
+
 void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdded)
 {
     // Ignore the programmatic assembly in load(); only user edits are dirty.
@@ -463,6 +661,7 @@ void EditorShell::rebuildNavigator()
             chapterItem = new QStandardItem(chapterText);
             chapterItem->setEditable(false);
             chapterItem->setSelectable(false);   // chapters group; scenes select
+            chapterItem->setData(seg.chapterID, kChapterIDRole);   // for delete (T-0251)
             navModel_->appendRow(chapterItem);
             lastChapterID = seg.chapterID;
         }

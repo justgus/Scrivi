@@ -192,6 +192,38 @@ QVariantMap ScriviBridge::createChapter(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::deleteScene(const QString& projectRootPath,
+                                      const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Delete takes no author identity — it is a structural removal, not an authored
+    // edit. Just the project root + the target sceneID.
+    const ScriviString envelope(
+        scrivi_delete_scene(projectRootPath.toUtf8().constData(),
+                            sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::deleteChapter(const QString& projectRootPath,
+                                        const QString& chapterID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Removes the chapter and every scene it contains. The "chapter + all its scenes"
+    // confirmation is the caller's responsibility (EditorShell, T-0251).
+    const ScriviString envelope(
+        scrivi_delete_chapter(projectRootPath.toUtf8().constData(),
+                              chapterID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

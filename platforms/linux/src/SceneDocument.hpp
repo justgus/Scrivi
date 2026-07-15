@@ -156,7 +156,44 @@ public:
                          const QString& contentPath,
                          bool newChapter);
 
+    // --- EP-023 in-navigator structure editing (T-0252) -------------------
+    //
+    // Surgically remove segment `index` from the live document + map, WITHOUT
+    // rebuilding. Deletes the scene's body plus exactly one adjoining boundary
+    // (heading/separator) so the remaining scenes stay well-formed, then shifts every
+    // later segment's bodyStart back by the removed length and drops the segment.
+    //
+    // Boundary rule (reverse of build()): a scene is joined to the manuscript by the
+    // text between the previous body's end and its own body's end. Removing that span
+    // takes the leading separator/heading with it. Special cases:
+    //   • Removing the FIRST segment instead removes from doc start through the start
+    //     of the next body (the trailing boundary), so the new first scene needs no
+    //     leading gap. If it's also the only segment, the whole document is cleared.
+    //   • If the removed scene begins a chapter and a following scene inherits that
+    //     chapter, the follower is re-promoted to the chapter's first scene: its
+    //     leading separator becomes a heading. The caller passes the surviving
+    //     chapter's title so the heading text is right; the map/segments are updated
+    //     and the affected span rewritten. (For a whole-chapter delete the caller uses
+    //     removeChapter, which removes every member scene, so this case only arises on
+    //     a single-scene delete that happened to be a chapter's first.)
+    //
+    // Returns true if a segment was removed. The document edits run inside a
+    // caller-managed "programmatic" window so they don't churn dirty flags.
+    bool removeScene(int index);
+
+    // Remove every segment belonging to `chapterID` (the chapter + all its scenes),
+    // reusing removeScene per member from last to first so offsets stay valid. Returns
+    // the number of scenes removed (0 if the chapter is unknown).
+    int removeChapter(const QString& chapterID);
+
 private:
+    // Recompute the leading-boundary text (heading/separator) for segment `index`
+    // from scratch — used when a delete promotes a following scene to a chapter's
+    // first scene (its separator must become a heading) or demotes one. Rewrites the
+    // document span before the body and fixes all later bodyStarts. Internal helper
+    // for removeScene.
+    void reflowBoundaryAt(int index);
+
     QTextDocument doc_;
     QList<SceneSegment> segments_;
 };

@@ -114,6 +114,16 @@ jobs:
           platforms/linux/tests/scene_create_smoke.sh \
             ./build/platforms/linux/scrivi_linux_scene_create_smoke
 
+      # In-navigator delete smoke (SP-065 / T-0253, EP-023 AC1/AC2): build a
+      # 4-scene/2-chapter fixture, splice scenes/chapters out of a SceneDocument via
+      # removeScene / removeChapter (asserting the offset map stays well-formed), then
+      # delete via bridge.deleteScene / deleteChapter and assert the removals persist
+      # on reopen. Offscreen platform (set inside the script).
+      - name: Scene-delete smoke test
+        run: |
+          platforms/linux/tests/scene_delete_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_delete_smoke
+
       # Quit-path smoke (SP-062 regression guard): the shell flip broke the landing
       # Quit button (a QQuickWidget engine doesn't auto-wire QQmlEngine::quit()).
       # Assert the connection main.cpp adds drives the app to exit. Offscreen.

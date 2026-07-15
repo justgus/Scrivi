@@ -67,6 +67,10 @@ signals:
 
 private slots:
     void onNavigatorActivated(const QModelIndex& index);
+    // Right-click on a navigator row (T-0251): build a context menu with Delete for
+    // the row under the cursor — scene rows and chapter rows both. `pos` is in the
+    // navigator viewport's coordinates.
+    void onNavigatorContextMenu(const QPoint& pos);
     // Document edit hook: reconcile the offset map, mark the touched scene dirty
     // (T-0238), and (re)arm the idle-save debounce (T-0239). Guarded against the
     // programmatic build in load().
@@ -109,6 +113,21 @@ private:
     // Both the caret hook and the scroll hook route through here so they never
     // double-drive or double-save. No-op if newSeg is invalid or unchanged.
     void promoteActiveScene(int newSeg);
+
+    // --- EP-023 delete (T-0251/T-0252) ------------------------------------
+    // Delete the scene with `sceneID` after a confirmation dialog: drop it from disk
+    // (scrivi_delete_scene), splice it out of the document/map/navigator, and if it was
+    // the active scene, promote the nearest remaining scene + refocus the editor.
+    void deleteSceneByID(const QString& sceneID);
+    // Delete `chapterID` and ALL its scenes after a confirmation that names the count:
+    // scrivi_delete_chapter, splice every member out, then re-anchor the active scene.
+    void deleteChapterByID(const QString& chapterID);
+    // Shared post-delete fixup: rebuild the navigator, then (if the previously active
+    // scene is gone) promote `fallbackSeg` clamped into range as active, move the caret
+    // to its start, and refocus the editor. `previouslyActiveSceneID` is checked
+    // against the surviving segments to decide whether re-anchoring is needed.
+    void afterStructuralRemoval(const QString& previouslyActiveSceneID,
+                                int fallbackSeg);
 
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;

@@ -131,6 +131,21 @@ public:
                                           const QString& appSupportRoot,
                                           const QString& projectID);
 
+    // Deletes one scene from disk + the manuscript/chapter index (EP-023 / SP-065,
+    // T-0250). Calls scrivi_delete_scene(projectRootPath, sceneID) and returns its ok
+    // "result". Delete takes no author identity (it is not an authored edit). On
+    // failure emits errorOccurred and returns {}. Requires bootstrap() first (so the
+    // bridge is in a consistent state), though the endpoint itself needs no identity.
+    Q_INVOKABLE QVariantMap deleteScene(const QString& projectRootPath,
+                                        const QString& sceneID);
+
+    // Deletes one chapter AND all its scenes from disk + the index (EP-023 / SP-065,
+    // T-0250). Calls scrivi_delete_chapter(projectRootPath, chapterID) and returns its
+    // ok "result". On failure emits errorOccurred and returns {}. The caller is
+    // responsible for the "chapter + all its scenes" confirmation before invoking.
+    Q_INVOKABLE QVariantMap deleteChapter(const QString& projectRootPath,
+                                          const QString& chapterID);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

@@ -82,11 +82,18 @@ See: [Task-backlog.md](Task-backlog.md)
 
 ## Active Tasks
 
-Currently: **0 active Tasks.** SP-060 (EP-021 `[Linux]` open/close half) closed 2026-07-14; its tasks
-T-0230–T-0233 are ✅ Verified & archived to `Verified/Task-verified-0230-0233.md` (that sprint closed
-EP-021). Next up: **EP-022** `[Linux]` (Writing Surface & Scene Navigator) — its first-sprint tasks (SP-061)
-are defined at planning.
+Currently: **0 active Tasks.** SP-065 (EP-023 `[Linux]` delete scene/chapter) ✅ closed 2026-07-15; its tasks
+**T-0250–T-0253** are all ✅ Verified & archived to `Verified/Task-verified-0250-0253.md` (delivered EP-023
+AC1 + AC2). **EP-023 remains Active** — its next sprint (**SP-066**, rename + I-0062) and tasks are defined
+at planning.
 
+> **Cleanup (2026-07-15, SP-065/EP-023 close):** T-0250–T-0253 archived to
+> `Verified/Task-verified-0250-0253.md`.
+>
+> **EP-022 note (2026-07-15):** EP-022 `[Linux]` (Writing Surface & Scene Navigator) ✅ closed; its tasks
+> **T-0234–T-0249** were tracked & Verified through the SP-061–SP-064 sprint records and archived at each
+> sprint's close.
+>
 > **Cleanup (2026-07-14, SP-060/EP-021 close):** T-0230–T-0233 archived to
 > `Verified/Task-verified-0230-0233.md`.
 >
@@ -267,13 +274,13 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 219 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233)
+- **Total Tasks:** 239 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233 + 16 EP-022 T-0234–T-0249 + 4 EP-023/SP-065 T-0250–T-0253)
 - **Backlog:** 39 🔵
 - **Superseded:** 1 ⚪ (T-0175 → expanded into EP-017)
 - **Active:** 0
 - **Unverified:** 0
-- **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, and EP-021/SP-060 T-0230–T-0233 verified & archived (see Verified table)
-- **Next available:** T-0234
+- **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, EP-021/SP-060 T-0230–T-0233, EP-022 T-0234–T-0249, and EP-023/SP-065 T-0250–T-0253 verified & archived (see Verified table)
+- **Next available:** T-0254
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190
@@ -282,4 +289,4 @@ Currently: **2 closed Tasks**
 
 ---
 
-*Last Updated: 2026-07-14 (SP-060 `[Linux]` closed & user-approved — T-0230–T-0233 Verified & archived to `Verified/Task-verified-0230-0233.md`; that sprint **closed EP-021**. No active tasks; EP-022 `[Linux]` Writing Surface & Scene Navigator is the new Active Epic — its first-sprint tasks (SP-061) are defined at planning.)*
+*Last Updated: 2026-07-15 (SP-065 `[Linux]` ✅ closed — T-0250–T-0253 Verified over VNC & archived to `Verified/Task-verified-0250-0253.md` (delete scene/chapter; delivered EP-023 AC1 + AC2); Active count 4→0. EP-023 stays Active — SP-066 rename is next. No ScriviCore work, `scrivi.h` untouched. Earlier: SP-065 activated same day; EP-022 T-0234–T-0249 folded into totals (239).)*
