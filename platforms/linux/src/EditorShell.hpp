@@ -55,6 +55,12 @@ public:
     // process). Safe to call with nothing dirty (no-op).
     void saveDirtyScenes();
 
+protected:
+    // Give the writing surface keyboard focus when the editor page becomes visible
+    // (T-0246) — the QStackedWidget swaps to the editor after load(), so focusing
+    // here (not just in load()) reliably lands focus on the QPlainTextEdit.
+    void showEvent(QShowEvent* event) override;
+
 signals:
     // The user asked to leave the editor (‹ Close). The shell returns to landing.
     void closeRequested();

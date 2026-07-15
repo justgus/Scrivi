@@ -106,6 +106,13 @@ public:
     // inclusive editable range. Boundary regions return false (protected).
     bool isEditablePosition(int pos) const;
 
+    // Snap `pos` to the nearest editable body position (T-0246): if `pos` is already
+    // editable it's returned unchanged; if it's in a heading/separator gap it snaps
+    // to whichever is closer — the end of the preceding body or the start of the
+    // following body. So the caret never rests inside protected boundary text.
+    // Returns `pos` unchanged if there are no segments.
+    int nearestEditablePosition(int pos) const;
+
     // True if the half-open range [start, end) lies entirely within one body's
     // editable span (so a selection replace/delete stays inside one scene and never
     // eats a boundary). Empty ranges defer to isEditablePosition(start).

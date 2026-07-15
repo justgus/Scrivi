@@ -102,6 +102,26 @@ int main(int argc, char* argv[])
     check(!doc.isEditableRange(segs.at(0).bodyStart, segs.at(1).bodyStart),
           "range spanning the seg0→seg1 boundary is rejected");
 
+    // ---- caret normalization (SP-064 T-0246): snap out of protected gaps ----
+    // An already-editable position is returned unchanged.
+    check(doc.nearestEditablePosition(segs.at(0).bodyStart + 1)
+              == segs.at(0).bodyStart + 1,
+          "editable position is left unchanged");
+    // The seg0→seg1 gap is a 2-char "\n\n" separator: bodyEnd0, then one gap char,
+    // then bodyStart1. bodyEnd0 is itself editable (inclusive body end), so the only
+    // strictly-interior gap position (bodyEnd0+1) is equidistant from both edges —
+    // the tie resolves to the preceding body end (deterministic, snap-back).
+    const int seg0End = segs.at(0).bodyStart + segs.at(0).bodyLength;
+    check(doc.nearestEditablePosition(seg0End + 1) == seg0End,
+          "interior gap position snaps to the preceding body end (tie → previous)");
+    // seg1Start-1 is that same interior gap char → also snaps to seg0End.
+    check(doc.nearestEditablePosition(segs.at(1).bodyStart - 1) == seg0End,
+          "gap char just before seg1 start snaps to seg0 body end (tie → previous)");
+    // The document start (in the chapter heading, before the first body) snaps
+    // forward to the first body start.
+    check(doc.nearestEditablePosition(0) == segs.at(0).bodyStart,
+          "document start (heading) snaps forward to first body");
+
     // ---- map maintenance on an insert inside seg0 ----
     // Insert "XX" at the start of seg0's body (the way a keystroke would), then feed
     // the same (pos, removed, added) to applyContentsChange and re-check everything.

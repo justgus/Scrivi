@@ -8,6 +8,33 @@
 ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
 {
     document()->setUndoRedoEnabled(false);   // ⌘Z reserved for EP-026 custom history
+
+    // Keep the caret out of protected boundary text (T-0246).
+    connect(this, &QPlainTextEdit::cursorPositionChanged,
+            this, &ManuscriptEditor::normalizeCaret);
+}
+
+void ManuscriptEditor::normalizeCaret()
+{
+    if (sceneDoc_ == nullptr || normalizingCaret_) {
+        return;
+    }
+    QTextCursor cursor = textCursor();
+    // Don't fight an active selection (the user may be selecting across a body); the
+    // edit guard already prevents boundary-touching edits. Only normalize a plain
+    // caret that has come to rest inside a heading/separator gap.
+    if (cursor.hasSelection()) {
+        return;
+    }
+    const int pos = cursor.position();
+    const int snapped = sceneDoc_->nearestEditablePosition(pos);
+    if (snapped == pos) {
+        return;
+    }
+    normalizingCaret_ = true;
+    cursor.setPosition(snapped);
+    setTextCursor(cursor);
+    normalizingCaret_ = false;
 }
 
 bool ManuscriptEditor::isModifyingKey(const QKeyEvent* event)

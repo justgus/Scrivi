@@ -6,7 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 | 🔵 Planning (next up) |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
 
@@ -23,44 +22,9 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 > **SP-059 activated 2026-07-13**, ✅ **closed 2026-07-14** — `Closed/Sprint-SP-059.md` (EP-021 `[Linux]` Project Lifecycle create-half: appSupportRoot + recents + landing + create-project; AC1/AC2/AC4/AC5 delivered & user-verified over VNC; T-0229 `EncryptedFileSecureStore` added mid-sprint).
 > **SP-060 activated 2026-07-14**, ✅ **closed 2026-07-14** — `Closed/Sprint-SP-060.md` (EP-021 `[Linux]` open/close half: Open Project + 3 open modes + close→landing + full-loop smoke; AC3/AC6/AC7/AC8 delivered & VNC-verified). **This closed EP-021.** Next `[Linux]` Epic **EP-022** (Writing Surface) is Active; its first sprint (SP-061) is drafted at planning.
 > **SP-061 activated 2026-07-14**, ✅ **closed 2026-07-14** — `Closed/Sprint-SP-061.md` (EP-022 `[Linux]` shell flip to Widgets host + scene navigator + read-only continuous viewport; AC1 + AC2 delivered & user-verified over VNC; `QPlainTextDocumentLayout` render bug found in click-through and fixed).
-> **SP-063/SP-064 drafted 2026-07-14** (🔵 Planning) — the rest of EP-022 after SP-062. **SP-063:** scroll-driven active-scene switching + navigator↔scroll sync (Apple SP-025 parity) → AC1/AC4 scroll portion. **SP-064:** cursor/focus + non-deletable separator + quit→reopen surface restore (Apple SP-033/EP-011 parity) + full EP-022 verification → **AC4/AC5/AC6/AC7**, **closes EP-022** (Claude drafts the completion summary; Epic close awaits user approval). Tasks T-0243–T-0248.
 > **SP-062 activated 2026-07-14**, ✅ **closed 2026-07-14** — `Closed/Sprint-SP-062.md` (EP-022 `[Linux]` editable viewport + per-scene auto-save (debounce+switch+close/quit) + in-editor `Ctrl+Return`/`Ctrl+Shift+Return` scene/chapter creation; **AC3** delivered & user-verified over VNC; T-0238–T-0242 Verified. I-0061 Quit-button regression fixed+verified; I-0062 live chapter-label deferred to EP-023). Next EP-022 sprint is **SP-063** (scroll-driven switching).
 > **SP-063 activated 2026-07-15**, ✅ **closed 2026-07-15** — `Closed/Sprint-SP-063.md` (EP-022 `[Linux]` scroll-driven scene switching + navigator↔scroll sync; **AC1/AC4 scroll portion** delivered & user-verified over VNC; T-0243–T-0245 Verified. Navigator-click requirement reversed mid-sprint: click takes the **caret to the clicked scene's start** (not caret-free) per user. T-0249 logged unscheduled — Page Fwd/Back + jump to manuscript start/end, bindings TBD). Next EP-022 sprint **SP-064** (cursor/focus + restore + verify, closes the Epic).
-
----
-
-## SP-064: [Linux] Cursor/focus behavior + quit-reopen restore + EP-022 verify & close
-
-**Status:** 🔵 Planning
-**Epic:** EP-022 `[Linux]` — Writing Surface & Scene Navigator (fourth of 4 sprints — **closes EP-022**)
-**Codebase:** `[Linux]` (`platforms/linux/`) only — no ScriviCore change.
-**Goal:** The EP-011-equivalent **cursor/focus polish** and **quit→reopen restore fidelity**, then the
-full EP-022 verification pass and Epic close. On open, the editor takes focus and the caret lands sensibly;
-crossing a scene boundary places the caret correctly (no jump-to-start); the scene-boundary separator is
-non-editable/non-deletable. Closing and reopening the project (via recents) restores the **last active
-scene + cursor + scroll** — proving the write→save→reopen loop end-to-end, using the `restored{anchor,
-focus,scroll}` payload `scrivi_open_project` already returns and the `selectionAnchor/focus/scroll` args
-`scrivi_save_scene` already persists. Delivers **AC4 + AC5 + AC6 + AC7** and **closes the Epic**.
-
-**Parity target (Apple SP-033 / EP-011):** all-in-memory viewport cursor map, correct cursor placement
-after navigate/switch (I-0010 fix), reliable first-responder transfer (Apple `takeFocus()` → Qt
-`setFocus`/`activateWindow`), non-editable/non-deletable virtual separator, restored active scene + surface
-state on relaunch.
-
-### Assigned Tasks
-
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0246 | **Cursor placement + focus** — editor takes focus on open; sensible initial caret; correct caret across boundary crossings (no jump-to-start); enforce non-editable/non-deletable boundary markers | High | 🔵 Backlog |
-| T-0247 | **Quit→reopen surface restore** — persist active scene + selection anchor/focus + scroll on close (via `save_scene`); on reopen (recents), apply `openProject`'s `restored{anchor,focus,scroll}` to select/scroll/caret the last active scene | High | 🔵 Backlog |
-| T-0248 | **EP-022 verification + close prep** — full write→save→switch→scroll→quit→reopen loop over VNC; real `.md` confirmed on disk / from macOS via the shared mount; AC1–AC7 checklist; extend the lifecycle/headless smoke for surface-state restore; CI green; draft EP-022 completion summary for user close approval | High | 🔵 Backlog |
-
-**Exit criteria:** editor takes focus on open with a sensible caret; caret is correct across boundary
-crossings; boundary markers are non-editable/non-deletable; closing + reopening (recents) restores the last
-active scene with its cursor + scroll; the full write→save→switch→scroll→quit→reopen loop is VNC-verified
-with real `.md` on disk; **all EP-022 ACs (AC1–AC7) pass user verification**; CI green (restore smoke +
-`ctest`; macOS/EP-020/021 untouched). EP-022 completion summary drafted — **Epic close awaits user
-approval** (Claude does not self-close Epics).
+> **SP-064 activated 2026-07-15**, ✅ **closed 2026-07-15** — `Closed/Sprint-SP-064.md` (EP-022 `[Linux]` cursor/focus polish (focus-on-open, caret normalization out of boundary gaps, non-deletable separator) + quit→reopen **surface restore** (last active scene + cursor + scroll via the `restored{}` payload + `save_scene` selection/scroll args — filled the 0/0/0.0 stub) + full EP-022 verify; **AC4-cursor/AC5/AC6/AC7** delivered & user-verified over VNC; T-0246–T-0248 Verified; no ScriviCore work, `scrivi.h` untouched). **This closed EP-022.** Next `[Linux]` Epic is **EP-023** (structure editing), drafted when the user activates it.
 
 ---
 
@@ -97,9 +61,7 @@ approval** (Claude does not self-close Epics).
 
 ---
 
-*Last Updated: 2026-07-14 (SP-060 ✅ closed; EP-021 ✅ closed. **All of EP-022 drafted** (🔵 Planning) —
-SP-061 (shell flip + navigator + read-only viewport, T-0234–T-0237, AC1/AC2), SP-062 (editable +
-per-scene auto-save + ⌘↩/⌘⇧↩ create, T-0238–T-0242, AC3), SP-063 (scroll-driven switching, T-0243–T-0245,
-AC1/AC4 scroll), SP-064 (cursor/focus + restore + verify/close, T-0246–T-0248, AC4/AC5/AC6/AC7 — closes
-EP-022). No ScriviCore work across the Epic. **None activated** — awaiting go-ahead. SP-056–SP-057 remain
-🔵 Planning, parked behind deferred EP-019.)*
+*Last Updated: 2026-07-15 (SP-064 ✅ closed; **EP-022 ✅ closed** — all 4 sprints SP-061–SP-064 closed, the
+full Linux writing loop delivered & verified over Docker+VNC (AC1–AC7), `scrivi.h` untouched. No EP-022
+sprints remain in Planning. The next `[Linux]` sprint is drafted when the user activates **EP-023**
+(structure editing). Only SP-056–SP-057 remain 🔵 Planning here, parked behind deferred EP-019 `[Apple]`.)*

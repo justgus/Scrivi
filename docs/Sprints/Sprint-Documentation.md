@@ -13,12 +13,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 - _None currently active._
 
-Last closed: **SP-060** (EP-021 `[Linux]` Project Lifecycle — open/close half) — ✅ closed 2026-07-14, all
-four tasks Verified (T-0230–T-0233); AC3/AC6/AC7/AC8 delivered & VNC-verified; **closed EP-021**;
-`Closed/Sprint-SP-060.md`. **Next up:** EP-022 `[Linux]` (Writing Surface & Scene Navigator) is the new
-Active Epic — **all four of its sprints (SP-061–SP-064) are now drafted** (🔵 Planning; the full Epic
-planned before activation), tasks T-0234–T-0248, no ScriviCore work. None activated yet. SP-056/SP-057
-(EP-019 `[Apple]`) remain in Planning but are parked behind the deferred EP-019 — see Backlog.
+Last closed: **SP-064** (EP-022 `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close) — ✅
+closed 2026-07-15, all three tasks Verified (T-0246–T-0248); AC4-cursor/AC5/AC6/AC7 delivered & VNC-verified;
+**closed EP-022** (the fourth and final EP-022 sprint); `Closed/Sprint-SP-064.md`. **Next up:** EP-022
+`[Linux]` (Writing Surface & Scene Navigator) is now ✅ closed — SP-061–SP-064 all closed. The next sprint is
+drafted when the user activates **EP-023** `[Linux]` (structure editing). SP-056/SP-057 (EP-019 `[Apple]`)
+remain in Planning but are parked behind the deferred EP-019 — see Backlog.
 
 ## Sprint Backlog
 
@@ -31,7 +31,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **64 Sprints** (57 closed + 1 cancelled + 6 in Planning; 0 active) | Next available: **SP-065**
+Currently: **64 Sprints** (58 closed + 1 cancelled + 5 in Planning; 0 active) | Next available: **SP-065**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -98,17 +98,17 @@ Currently: **64 Sprints** (57 closed + 1 cancelled + 6 in Planning; 0 active) | 
 | SP-061 | `[Linux]` Shell flip to Widgets host + Scene navigator + read-only continuous viewport | EP-022 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
 | SP-062 | `[Linux]` Editable viewport + per-scene auto-save + in-editor ⌘↩/⌘⇧↩ Scene/Chapter creation | EP-022 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
 | SP-063 | `[Linux]` Scroll-driven scene switching + active-scene tracking | EP-022 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
-| SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 `[Linux]` | — | — | 🔵 Planning |
+| SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 
 ## Statistics
 
 - **Total Sprints:** 64
 - **Closed:** 60 ✅
-- **Active:** 0 🟢
-- **Planning:** 3 🔵 (SP-064 EP-022 `[Linux]` — next-up, closes EP-022; SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
+- **Active:** 0 (SP-064 EP-022 `[Linux]` ✅ closed — closed EP-022)
+- **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-15 (SP-063 ✅ closed — EP-022 `[Linux]` scroll-driven scene switching + navigator↔scroll sync, **AC1/AC4 scroll portion user-verified** (T-0243–T-0245 Verified); navigator click reversed to caret-moves-to-scene-start per user; T-0249 logged unscheduled. No sprint active — **SP-064 next-up** (cursor/focus + restore + verify, closes EP-022). EP-022 is the Active Epic — AC1/AC2/AC3 + AC4-scroll done, AC4-cursor/AC5/AC6/AC7 remain.)*
+*Last Updated: 2026-07-15 (**SP-064 ✅ closed** with user approval — EP-022 `[Linux]` cursor/focus + quit-reopen surface restore + full EP-022 verify (AC4-cursor/AC5/AC6/AC7); T-0246–T-0248 all Verified; no ScriviCore work, `scrivi.h` untouched. SP-064 was the fourth & final EP-022 sprint — **EP-022 ✅ closed** (all AC1–AC7 verified over Docker+VNC). No Sprint currently Active; the `[Linux]` family continues with EP-023 structure editing. `Closed/Sprint-SP-064.md`.)*

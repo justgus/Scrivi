@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — EP-022 `[Linux]` (Writing Surface & Scene Navigator), drafted & activated 2026-07-14 (EP-021 Project Lifecycle & Landing ✅ closed same day). EP-020 Foundation + EP-021 Lifecycle both ✅ closed.
+Currently: **0 Active Epics.** EP-022 `[Linux]` (Writing Surface & Scene Navigator) ✅ closed 2026-07-15 (all 4 sprints SP-061–SP-064 closed; AC1–AC7 verified over Docker+VNC). EP-020 Foundation + EP-021 Lifecycle + EP-022 Writing Surface all ✅ closed. The `[Linux]` family continues with **EP-023** (structure editing), promoted to Active when the user starts it.
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -20,7 +20,7 @@ See: [Epic-active.md](Epic-active.md)
 
 Currently: **5 Backlog Epics** —
 - EP-019 `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers), 🔴 Deferred 2026-07-13; partially delivered (AC1/AC3/AC4/AC5 verified; AC2/AC6/AC7/AC8 remaining); resume at SP-056.
-- EP-023–EP-026 `[Linux]` (Ubuntu Qt/QML app family — structure editing, inspector, timeline, undo/menus/settings), 🔵 Draft; promoted to Active one at a time behind EP-022. (EP-022 Writing Surface is now Active.)
+- EP-023–EP-026 `[Linux]` (Ubuntu Qt/QML app family — structure editing, inspector, timeline, undo/menus/settings), 🔵 Draft; promoted to Active one at a time. (EP-022 Writing Surface ✅ closed; **EP-023** structure editing is next up.)
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
@@ -53,7 +53,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-019 | `[Apple]` Custom Undo/Redo History & Multiple Copy Buffers | 🔴 Deferred (backlog) | 2026-07-06 | — |
 | EP-020 | `[Linux]` App Foundation — Qt/QML Toolchain, Bridge & Shell | ✅ Closed | 2026-07-13 | 2026-07-13 |
 | EP-021 | `[Linux]` Project Lifecycle & Landing | ✅ Closed | 2026-07-13 | 2026-07-14 |
-| EP-022 | `[Linux]` Writing Surface & Scene Navigator | 🟡 Active | 2026-07-14 | — |
+| EP-022 | `[Linux]` Writing Surface & Scene Navigator | ✅ Closed | 2026-07-14 | 2026-07-15 |
 | EP-023 | `[Linux]` Manuscript Structure Editing | 🔵 Draft (backlog) | — | — |
 | EP-024 | `[Linux]` Scene Inspector Panel | 🔵 Draft (backlog) | — | — |
 | EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
@@ -62,13 +62,13 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 ## Statistics
 
 - **Total Epics:** 26
-- **Closed:** 20 ✅
+- **Closed:** 21 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-022 `[Linux]`)
+- **Active:** 0
 - **Draft:** 4 🔵 (EP-023–EP-026 `[Linux]`)
 - **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-14 (EP-021 `[Linux]` Project Lifecycle & Landing ✅ closed — all AC1–AC8 met/verified over VNC, SP-059 + SP-060 closed. EP-022 `[Linux]` Writing Surface & Scene Navigator drafted & activated as the next `[Linux]` Epic. EP-023–EP-026 remain 🔵 Draft.)*
+*Last Updated: 2026-07-15 (EP-022 `[Linux]` Writing Surface & Scene Navigator ✅ closed with user approval — the core Linux writing loop (navigator + continuous editable viewport + per-scene auto-save + in-editor scene/chapter creation + scroll-driven switching + cursor/focus + quit→reopen surface restore); all 4 sprints SP-061–SP-064 closed, AC1–AC7 verified over Docker+VNC, `scrivi.h` untouched. Archived to `Closed/Epic-EP-022.md`. No Epic currently Active; EP-023 `[Linux]` structure editing is next. EP-023–EP-026 remain 🔵 Draft.)*

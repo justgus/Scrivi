@@ -115,6 +115,33 @@ bool SceneDocument::isEditablePosition(int pos) const
     return sceneIndexForEditablePosition(pos) >= 0;
 }
 
+int SceneDocument::nearestEditablePosition(int pos) const
+{
+    if (segments_.isEmpty() || isEditablePosition(pos)) {
+        return pos;
+    }
+    // pos is in a protected gap. Snap to whichever editable edge is closer: the end
+    // of the preceding body (last segment starting at/before pos) or the start of
+    // the following body.
+    int prevEnd = -1;   // end of the nearest body at/before pos
+    int nextStart = -1; // start of the nearest body after pos
+    for (const SceneSegment& seg : segments_) {
+        const int bodyEnd = seg.bodyStart + seg.bodyLength;
+        if (bodyEnd <= pos) {
+            prevEnd = bodyEnd;                 // keeps advancing to the closest below
+        } else if (seg.bodyStart >= pos && nextStart < 0) {
+            nextStart = seg.bodyStart;         // first body starting at/after pos
+        }
+    }
+    if (prevEnd < 0) {
+        return nextStart;   // before the first body → first body start
+    }
+    if (nextStart < 0) {
+        return prevEnd;     // after the last body → last body end
+    }
+    return (pos - prevEnd <= nextStart - pos) ? prevEnd : nextStart;
+}
+
 bool SceneDocument::isEditableRange(int start, int end) const
 {
     if (start > end) {

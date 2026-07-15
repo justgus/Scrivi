@@ -48,6 +48,13 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void insertFromMimeData(const QMimeData* source) override;
 
+private slots:
+    // Keep the caret out of protected boundary text (T-0246): when the cursor lands
+    // in a heading/separator gap (via click or arrow navigation), snap it to the
+    // nearest editable body position. Re-entrancy-guarded (setTextCursor re-fires
+    // cursorPositionChanged). No-op when there's a selection (the user is selecting).
+    void normalizeCaret();
+
 private:
     // True if the given key event would modify document text (typed char, Enter,
     // Backspace, Delete, cut, paste-shortcut) as opposed to pure navigation/copy.
@@ -60,4 +67,5 @@ private:
     bool modifiedRangeFor(const QKeyEvent* event, int& start, int& end) const;
 
     SceneDocument* sceneDoc_ = nullptr;   // non-owning
+    bool normalizingCaret_ = false;       // re-entrancy guard for normalizeCaret()
 };

@@ -93,10 +93,10 @@ _(filled in when the Epic reaches 🟠 Complete)_
 ## [Linux] App — Epic Family (EP-022–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
-built Epic-by-Epic). **EP-020 `[Linux]` (Foundation) and EP-021 `[Linux]` (Project Lifecycle & Landing)
-are ✅ closed**, and **EP-022 `[Linux]` (Writing Surface & Scene Navigator) is Active** in
-`Epic-active.md`; the Epics below are 🔵 Draft — defined and sequenced, promoted to Active one at a time as
-each predecessor lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each
+built Epic-by-Epic). **EP-020 `[Linux]` (Foundation), EP-021 `[Linux]` (Project Lifecycle & Landing), and
+EP-022 `[Linux]` (Writing Surface & Scene Navigator) are all ✅ closed** (→ `Epics/Closed/`); **EP-023
+`[Linux]` (Manuscript Structure Editing) is next up** — the Epics below are 🔵 Draft, defined and sequenced,
+promoted to Active one at a time as each predecessor lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each
 targets near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a
 `[ScriviCore]` note, not a separate Epic.
 

@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollBar>
+#include <QShowEvent>
 #include <QSplitter>
 #include <QStandardItem>
 #include <QStandardItemModel>
@@ -161,6 +162,13 @@ bool EditorShell::load(const QString& projectPath,
     const QString activeSceneID = active.value(QStringLiteral("sceneID")).toString();
     const QString activeMarkdown = active.value(QStringLiteral("markdown")).toString();
 
+    // Restored surface state for the active scene (T-0247): scene-local cursor
+    // offsets + a scroll fraction. Applied after the document is assembled.
+    const QVariantMap restored = opened.value(QStringLiteral("restored")).toMap();
+    const int restoredAnchor = restored.value(QStringLiteral("anchor")).toInt();
+    const int restoredFocus  = restored.value(QStringLiteral("focus")).toInt();
+    const double restoredScroll = restored.value(QStringLiteral("scroll")).toDouble();
+
     // Stash identity for the save path (T-0239); reset save state for the new project.
     projectID_      = projectID;
     projectPath_    = projectPath;
@@ -215,21 +223,65 @@ bool EditorShell::load(const QString& projectPath,
     // Populate the navigator: chapter parents → scene children.
     rebuildNavigator();
 
-    // Apply the initial active scene: put the caret at its start (scrolls it into
-    // view) and highlight it in the navigator. (Restoring the *saved* cursor/scroll
-    // instead of the scene start is SP-064.)
+    // Apply the initial active scene (T-0247): restore the *saved* caret + scroll
+    // within it, rather than snapping to the scene start. ScriviCore returns the
+    // caret offsets scene-local (I-0058); map them to global by adding the segment's
+    // body start, clamp into the body, and apply the whole-document scroll fraction.
+    // (A navigator click still goes to the scene start — restore only fires here, on
+    // the reopen's active scene, once.)
     const int initialSeg = activeSceneID.isEmpty()
                                ? 0
                                : sceneDoc_.sceneIndexForScene(activeSceneID);
     if (initialSeg >= 0) {
-        moveCaretToSegment(initialSeg);
-        selectNavigatorScene(sceneDoc_.segments().at(initialSeg).sceneID);
+        const SceneSegment& seg = sceneDoc_.segments().at(initialSeg);
+        const int bodyEnd = seg.bodyStart + seg.bodyLength;
+        const int globalAnchor =
+            qBound(seg.bodyStart, seg.bodyStart + restoredAnchor, bodyEnd);
+        const int globalFocus =
+            qBound(seg.bodyStart, seg.bodyStart + restoredFocus, bodyEnd);
+
+        programmaticViewportChange_ = true;
+        QTextCursor cursor(sceneDoc_.document());
+        cursor.setPosition(globalAnchor);
+        if (globalFocus != globalAnchor) {
+            cursor.setPosition(globalFocus, QTextCursor::KeepAnchor);
+        }
+        viewport_->setTextCursor(cursor);
+        viewport_->centerCursor();
+        // Apply the saved scroll fraction over the whole document (overrides the
+        // centerCursor scroll when a real fraction was persisted).
+        if (QScrollBar* vsb = viewport_->verticalScrollBar()) {
+            const int range = vsb->maximum() - vsb->minimum();
+            if (range > 0 && restoredScroll > 0.0) {
+                vsb->setValue(vsb->minimum()
+                              + int(qRound(restoredScroll * range)));
+            }
+        }
+        programmaticViewportChange_ = false;
+        activeSegment_ = initialSeg;
+
+        selectNavigatorScene(seg.sceneID);
     }
     // Seed the active-segment tracker from the caret so the first real cursor move
     // only saves when the scene genuinely changes.
     activeSegment_ = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
 
+    // Focus the writing surface so the author can type immediately (T-0246). If the
+    // editor page isn't visible yet (loaded before the stack swaps to it), showEvent
+    // will focus it when it appears.
+    viewport_->setFocus();
+
     return true;
+}
+
+void EditorShell::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    // The QStackedWidget swaps to the editor after load() returns, so focus the
+    // writing surface here to be sure it takes on the page swap.
+    if (viewport_ != nullptr) {
+        viewport_->setFocus();
+    }
 }
 
 void EditorShell::onNavigatorActivated(const QModelIndex& index)
@@ -345,13 +397,33 @@ bool EditorShell::saveScene(int segmentIndex)
     }
     const SceneSegment& seg = sceneDoc_.segments().at(segmentIndex);
 
-    // Persist the scene's current body. Selection/scroll restore is SP-064; pass
-    // 0/0/0.0 for now (the args exist so the loop is stable when SP-064 fills them).
+    // Surface state (T-0247): persist the scene-local caret + scroll *only* for the
+    // scene the caret is actually in — ScriviCore restores whichever scene it deems
+    // active on reopen, and a non-caret scene's offsets are meaningless. For the rest,
+    // save 0/0/0.0 (body-only) so a background flush never clobbers a real cursor with
+    // a stale one. The caret's global position maps to scene-local by subtracting the
+    // body start; the scroll is the whole-document scrollbar fraction (matches the
+    // single continuous viewport).
+    long long selectionAnchor = 0;
+    long long selectionFocus  = 0;
+    double     scroll         = 0.0;
+    const QTextCursor caret = viewport_->textCursor();
+    if (sceneDoc_.sceneIndexForCaret(caret.position()) == segmentIndex) {
+        selectionAnchor = qMax(0, caret.anchor()   - seg.bodyStart);
+        selectionFocus  = qMax(0, caret.position() - seg.bodyStart);
+        if (QScrollBar* vsb = viewport_->verticalScrollBar()) {
+            const int range = vsb->maximum() - vsb->minimum();
+            scroll = range > 0
+                         ? double(vsb->value() - vsb->minimum()) / double(range)
+                         : 0.0;
+        }
+    }
+
     const QVariantMap r = bridge_->saveScene(
         projectID_, projectPath_, appSupportRoot_,
         seg.sceneID, seg.metadataPath, seg.contentPath,
         sceneDoc_.bodyText(segmentIndex),
-        /*selectionAnchor=*/0, /*selectionFocus=*/0, /*scroll=*/0.0);
+        selectionAnchor, selectionFocus, scroll);
 
     // Whatever the outcome, drop the scene from the dirty set: on success it's
     // clean; on failure the bridge already surfaced errorOccurred and re-queuing it

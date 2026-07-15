@@ -69,10 +69,15 @@ int main(int argc, char* argv[])
     const QString metadataPath = scene.value(QStringLiteral("metadataPath")).toString();
     const QString contentPath  = scene.value(QStringLiteral("contentPath")).toString();
 
-    // --- save a new body via the editor's save path -----------------------
+    // --- save a new body + surface state via the editor's save path -------
+    // Non-zero scene-local caret + scroll fraction exercise the T-0247 (SP-064)
+    // restore round-trip: these must come back from open_project's restored{}.
+    constexpr long long kAnchor = 7;
+    constexpr long long kFocus  = 12;
+    constexpr double    kScroll = 0.375;
     const QVariantMap saveResult = bridge.saveScene(
         projectID, projectPath, appSupport, sceneID, metadataPath, contentPath,
-        QString::fromUtf8(kNewBody), /*anchor=*/0, /*focus=*/0, /*scroll=*/0.0);
+        QString::fromUtf8(kNewBody), kAnchor, kFocus, kScroll);
     if (!saveResult.value(QStringLiteral("saved")).toBool()) {
         std::fprintf(stderr, "FAIL: saveScene did not report saved=true\n");
         return 1;
@@ -101,7 +106,25 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::fprintf(stderr, "OK: edit → saveScene → reopen shows the new bytes on disk.\n");
+    // (c) surface state round-trip (T-0247/SP-064): the saved scene-local caret +
+    //     scroll must come back through open_project's restored{} for the active scene.
+    const QVariantMap restored = opened.value(QStringLiteral("restored")).toMap();
+    if (restored.value(QStringLiteral("anchor")).toLongLong() != kAnchor
+        || restored.value(QStringLiteral("focus")).toLongLong() != kFocus) {
+        std::fprintf(stderr,
+                     "FAIL: restored caret != saved (anchor %lld/%lld, focus %lld/%lld)\n",
+                     restored.value(QStringLiteral("anchor")).toLongLong(), kAnchor,
+                     restored.value(QStringLiteral("focus")).toLongLong(), kFocus);
+        return 1;
+    }
+    if (qAbs(restored.value(QStringLiteral("scroll")).toDouble() - kScroll) > 1e-6) {
+        std::fprintf(stderr, "FAIL: restored scroll %f != saved %f\n",
+                     restored.value(QStringLiteral("scroll")).toDouble(), kScroll);
+        return 1;
+    }
+
+    std::fprintf(stderr, "OK: edit → saveScene → reopen shows the new bytes + restored "
+                         "caret/scroll on disk.\n");
     std::printf("%s\n", projectID.toUtf8().constData());
     return 0;
 }
