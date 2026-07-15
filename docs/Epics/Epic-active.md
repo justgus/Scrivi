@@ -48,6 +48,8 @@ Docker+VNC (developer) and, per milestone, on real Ubuntu (alpha tester). Sprint
   new-chapter heading label deferred (cosmetic, self-corrects on reload).)**
 - [ ] AC4 — **Scroll / cursor / focus behavior:** the editor honors the EP-011-equivalent rules —
   restored scroll position, sensible cursor placement on open, focus on the editor when a scene loads.
+  **(Scroll portion done + verified in SP-063: scroll-driven active-scene tracking, navigator↔scroll sync,
+  navigator-click caret placement. Cursor placement on open + focus + restored scroll remain → SP-064.)**
 - [ ] AC5 — **Quit / reopen fidelity:** closing and reopening the project (recents) restores the last active
   scene and its surface state (cursor/scroll), proving the write→save→reopen loop end-to-end.
 - [ ] AC6 — **Verified:** developer confirms edit → auto-save → switch scene → reopen over Docker+VNC; CI
@@ -69,7 +71,7 @@ assigned at each sprint's activation; titles/scope may refine at planning.
 | ------ | ----- | ------ | ----- |
 | SP-061 | **Shell flip to Widgets host** (`QApplication`+`QMainWindow`, EP-020/021 QML re-hosted via `QQuickWidget`) + scene navigator (ordered list + select) + **read-only continuous viewport** — all scene bodies in **one `QPlainTextEdit` / `QTextDocument`** with scene-boundary markers; the project window becomes the editor shell (replaces EP-021's placeholder). (AC1, AC2) | ✅ Closed | 2026-07-14 |
 | SP-062 | **Editable** viewport + **per-scene auto-save** + **in-editor ⌘↩/⌘⇧↩ Scene/Chapter creation** — `QPlainTextEdit` editing (doc-level undo disabled); edit → `scrivi_save_scene` per scene (debounce ~1.5s + scene-switch + close/quit); ⌘↩ create-scene / ⌘⇧↩ create-chapter (Apple SP-023 parity). Real `.md` on disk. The write loop. (AC3) | ✅ Closed | 2026-07-14 |
-| SP-063 | **Scroll-driven scene switching** + active-scene tracking — the visible/caret scene becomes "active" (saving the departing scene); navigator selection ↔ viewport scroll stay in sync (Apple SP-025 parity). (part of AC1/AC4) | 🔵 Planning (next up) | — |
+| SP-063 | **Scroll-driven scene switching** + active-scene tracking — the visible scene becomes "active" (saving the departing scene); navigator highlight ↔ viewport scroll stay in sync; navigator click takes the caret to the clicked scene's start (Apple SP-025 parity). (part of AC1/AC4) | ✅ Closed | 2026-07-15 |
 | SP-064 | Cursor / focus behavior + non-deletable separator + quit-reopen **restore** fidelity (Apple SP-033/EP-011 parity) + full EP-022 verify & **Epic close**. (AC4, AC5, AC6, AC7) | 🔵 Planning | — |
 
 **Split rationale:** SP-061 does the **shell flip** (the app becomes a Widgets `QMainWindow` re-hosting

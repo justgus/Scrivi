@@ -6,8 +6,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-063 | `[Linux]` Scroll-driven scene switching + active-scene tracking | EP-022 | 🔵 Planning (next up) |
-| SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 | 🔵 Planning |
+| SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 | 🔵 Planning (next up) |
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
 
@@ -26,36 +25,7 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 > **SP-061 activated 2026-07-14**, ✅ **closed 2026-07-14** — `Closed/Sprint-SP-061.md` (EP-022 `[Linux]` shell flip to Widgets host + scene navigator + read-only continuous viewport; AC1 + AC2 delivered & user-verified over VNC; `QPlainTextDocumentLayout` render bug found in click-through and fixed).
 > **SP-063/SP-064 drafted 2026-07-14** (🔵 Planning) — the rest of EP-022 after SP-062. **SP-063:** scroll-driven active-scene switching + navigator↔scroll sync (Apple SP-025 parity) → AC1/AC4 scroll portion. **SP-064:** cursor/focus + non-deletable separator + quit→reopen surface restore (Apple SP-033/EP-011 parity) + full EP-022 verification → **AC4/AC5/AC6/AC7**, **closes EP-022** (Claude drafts the completion summary; Epic close awaits user approval). Tasks T-0243–T-0248.
 > **SP-062 activated 2026-07-14**, ✅ **closed 2026-07-14** — `Closed/Sprint-SP-062.md` (EP-022 `[Linux]` editable viewport + per-scene auto-save (debounce+switch+close/quit) + in-editor `Ctrl+Return`/`Ctrl+Shift+Return` scene/chapter creation; **AC3** delivered & user-verified over VNC; T-0238–T-0242 Verified. I-0061 Quit-button regression fixed+verified; I-0062 live chapter-label deferred to EP-023). Next EP-022 sprint is **SP-063** (scroll-driven switching).
-
----
-
-## SP-063: [Linux] Scroll-driven scene switching + active-scene tracking
-
-**Status:** 🔵 Planning
-**Epic:** EP-022 `[Linux]` — Writing Surface & Scene Navigator (third of 4 sprints)
-**Codebase:** `[Linux]` (`platforms/linux/`) only — no ScriviCore change.
-**Goal:** Make the **visible/caret scene** the "active" scene and keep **navigator selection ↔ viewport
-scroll** in sync — the behavior Apple gave its own sprint (SP-025), kept separate here so it doesn't
-destabilize the SP-062 write loop. Scrolling the continuous `QTextDocument` past a scene boundary promotes
-the neighbor to active (saving the departing scene, reusing SP-062's save path); the navigator highlight
-follows the scroll; a navigator click still scrolls the viewport (from SP-061) **without** moving the caret.
-Delivers the scroll-driven portion of **AC1/AC4**.
-
-**Parity target (Apple SP-025 + SP-033):** scroll-past-boundary promotes next/previous scene + saves the
-departing scene; navigator highlight updates on scroll-driven switch; navigator tap scrolls to a scene
-without moving the cursor; scroll-driven tracking is distinct from cursor position.
-
-### Assigned Tasks
-
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0243 | **Scroll → active-scene promotion** — map the viewport's visible region (via the offset map) to the active scene; crossing a boundary promotes next/previous and saves the departing scene (reuse SP-062 save) | High | 🔵 Backlog |
-| T-0244 | **Navigator ↔ scroll sync** — navigator highlight follows scroll-driven active scene; navigator click scrolls the viewport without moving the caret; no feedback loop between the two | High | 🔵 Backlog |
-| T-0245 | **Verify** — VNC: scroll through a multi-scene project → active scene + navigator highlight track the scroll; departing scenes saved; click-to-scroll leaves the caret put; CI green | High | 🔵 Backlog |
-
-**Exit criteria:** scrolling past a boundary changes the active scene and saves the departing one; the
-navigator highlight tracks scroll position; navigator click scrolls without moving the caret; no
-scroll↔selection feedback loop. CI green. **AC1/AC4 (scroll portion) user-verified over VNC.**
+> **SP-063 activated 2026-07-15**, ✅ **closed 2026-07-15** — `Closed/Sprint-SP-063.md` (EP-022 `[Linux]` scroll-driven scene switching + navigator↔scroll sync; **AC1/AC4 scroll portion** delivered & user-verified over VNC; T-0243–T-0245 Verified. Navigator-click requirement reversed mid-sprint: click takes the **caret to the clicked scene's start** (not caret-free) per user. T-0249 logged unscheduled — Page Fwd/Back + jump to manuscript start/end, bindings TBD). Next EP-022 sprint **SP-064** (cursor/focus + restore + verify, closes the Epic).
 
 ---
 

@@ -97,18 +97,18 @@ Currently: **64 Sprints** (57 closed + 1 cancelled + 6 in Planning; 0 active) | 
 | SP-060 | `[Linux]` Project Lifecycle — Open + Close + full-loop Verify (EP-021 close half) | EP-021 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
 | SP-061 | `[Linux]` Shell flip to Widgets host + Scene navigator + read-only continuous viewport | EP-022 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
 | SP-062 | `[Linux]` Editable viewport + per-scene auto-save + in-editor ⌘↩/⌘⇧↩ Scene/Chapter creation | EP-022 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
-| SP-063 | `[Linux]` Scroll-driven scene switching + active-scene tracking | EP-022 `[Linux]` | — | — | 🔵 Planning |
+| SP-063 | `[Linux]` Scroll-driven scene switching + active-scene tracking | EP-022 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 | SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 `[Linux]` | — | — | 🔵 Planning |
 
 ## Statistics
 
 - **Total Sprints:** 64
-- **Closed:** 59 ✅
+- **Closed:** 60 ✅
 - **Active:** 0 🟢
-- **Planning:** 4 🔵 (SP-063–SP-064 EP-022 `[Linux]` — SP-063 next-up; SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
+- **Planning:** 3 🔵 (SP-064 EP-022 `[Linux]` — next-up, closes EP-022; SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-14 (SP-062 ✅ closed — EP-022 `[Linux]` editable viewport + per-scene auto-save + in-editor ⌘↩/⌘⇧↩ scene/chapter creation, **AC3 user-verified** (T-0238–T-0242 all Verified); I-0061 Quit regression fixed+verified, I-0062 chapter-label deferred. No sprint active — **SP-063 next-up** (scroll-driven switching, AC1/AC4 scroll). SP-064 remains 🔵 Planning. EP-022 is the Active Epic — AC1/AC2/AC3 done, AC4–AC7 remain.)*
+*Last Updated: 2026-07-15 (SP-063 ✅ closed — EP-022 `[Linux]` scroll-driven scene switching + navigator↔scroll sync, **AC1/AC4 scroll portion user-verified** (T-0243–T-0245 Verified); navigator click reversed to caret-moves-to-scene-start per user; T-0249 logged unscheduled. No sprint active — **SP-064 next-up** (cursor/focus + restore + verify, closes EP-022). EP-022 is the Active Epic — AC1/AC2/AC3 + AC4-scroll done, AC4-cursor/AC5/AC6/AC7 remain.)*

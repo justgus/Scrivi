@@ -65,9 +65,14 @@ private slots:
     // (T-0238), and (re)arm the idle-save debounce (T-0239). Guarded against the
     // programmatic build in load().
     void onContentsChange(int position, int charsRemoved, int charsAdded);
-    // Caret moved: if it crossed into a different scene, save the departing scene(s)
-    // (the scene-switch leg of the T-0239 cadence).
+    // Caret moved: if it crossed into a different scene, promote it active (which
+    // saves the departing scene — the scene-switch leg of the T-0239 cadence).
     void onCursorMoved();
+    // Viewport scrolled (T-0243): the visible scene becomes the active scene. Scroll
+    // is the authority for "which scene is active"; crossing a boundary promotes the
+    // newly-visible scene (and saves the departing one). Guarded against programmatic
+    // scrolls (navigator click, promotion-driven moves).
+    void onScrolled();
     // Ctrl+Return in the editor (T-0240): save the current scene, create a new one
     // after it in the same chapter, splice it into the document/map/navigator, and
     // drop the caret into its empty body.
@@ -79,8 +84,9 @@ private slots:
     void onCreateChapterRequested();
 
 private:
-    // Scroll the viewport so the given scene's body start is visible.
-    void scrollToScene(const QString& sceneID);
+    // Select the navigator row for `sceneID` (highlight only; no scroll, no caret).
+    // Used both by a click and by the scroll-driven active-scene follow.
+    void selectNavigatorScene(const QString& sceneID);
     // Save one scene's current body via the bridge; returns true on success. Clears
     // the scene from dirtyScenes_ whether or not it was present.
     bool saveScene(int segmentIndex);
@@ -89,6 +95,14 @@ private:
     // Move the caret to the start of segment `index`'s body and center it; also
     // reflects the selection in the navigator. Updates activeSegment_.
     void moveCaretToSegment(int index);
+    // The segment whose body occupies the vertical MIDDLE of the viewport — the
+    // "visible scene" (Apple's midpoint-of-viewport rule). -1 if none/undeterminable.
+    int visibleSceneIndex() const;
+    // Single writer for the active scene (T-0243): if `newSeg` differs from
+    // activeSegment_, save the departing dirty scene(s) and set activeSegment_.
+    // Both the caret hook and the scroll hook route through here so they never
+    // double-drive or double-save. No-op if newSeg is invalid or unchanged.
+    void promoteActiveScene(int newSeg);
 
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;
@@ -114,4 +128,9 @@ private:
     // True while load() is programmatically assembling the document, so the
     // contentsChange / cursor hooks ignore those (non-user) events.
     bool                loading_ = false;
+
+    // Guard against a scroll↔selection feedback loop (T-0243/T-0244): set while the
+    // shell is programmatically scrolling/selecting the viewport (navigator click,
+    // caret move) so onScrolled doesn't re-promote/re-scroll off its own change.
+    bool                programmaticViewportChange_ = false;
 };

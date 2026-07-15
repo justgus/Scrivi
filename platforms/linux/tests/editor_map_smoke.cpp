@@ -60,6 +60,23 @@ int main(int argc, char* argv[])
     check(doc.bodyText(1) == QStringLiteral("BBBB"), "seg1 body is BBBB");
     check(doc.bodyText(2) == QStringLiteral("CCCC"), "seg2 body is CCCC");
 
+    // ---- sceneID → index lookup (SP-063 T-0244 navigator-click promotion) ----
+    check(doc.sceneIndexForScene(QStringLiteral("s1")) == 0, "sceneIndexForScene(s1)==0");
+    check(doc.sceneIndexForScene(QStringLiteral("s2")) == 1, "sceneIndexForScene(s2)==1");
+    check(doc.sceneIndexForScene(QStringLiteral("s3")) == 2, "sceneIndexForScene(s3)==2");
+    check(doc.sceneIndexForScene(QStringLiteral("nope")) == -1,
+          "sceneIndexForScene(unknown)==-1");
+
+    // ---- caret position → owning scene (SP-063 T-0243 scroll/active mapping) ----
+    // sceneIndexForCaret maps any document position to the scene it belongs to; the
+    // scroll-driven active-scene promotion resolves the visible midpoint through it.
+    check(doc.sceneIndexForCaret(segs.at(0).bodyStart) == 0, "caret in body0 → scene0");
+    check(doc.sceneIndexForCaret(segs.at(1).bodyStart) == 1, "caret in body1 → scene1");
+    check(doc.sceneIndexForCaret(segs.at(2).bodyStart) == 2, "caret in body2 → scene2");
+    // A position in the seg1→seg2 gap belongs to the preceding scene (seg1).
+    check(doc.sceneIndexForCaret(segs.at(1).bodyStart + segs.at(1).bodyLength + 1) == 1,
+          "caret in seg1→seg2 gap → scene1 (trailing scene owns the gap)");
+
     // ---- boundary classification ----
     // Inside each body (a middle position) is editable.
     for (int i = 0; i < segs.size(); ++i) {

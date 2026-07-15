@@ -4,6 +4,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QSplitter>
 #include <QStandardItem>
 #include <QStandardItemModel>
@@ -102,6 +103,11 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // Scene-switch save: watch the caret so leaving a scene flushes it.
     connect(viewport_, &QPlainTextEdit::cursorPositionChanged,
             this, &EditorShell::onCursorMoved);
+
+    // Scroll-driven active scene (T-0243): the visible scene becomes active. The
+    // vertical scrollbar's valueChanged fires on every scroll tick.
+    connect(viewport_->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, &EditorShell::onScrolled);
 
     // In-editor scene creation (T-0240): Ctrl+Return in the ManuscriptEditor.
     connect(viewport_, &ManuscriptEditor::createSceneRequested,
@@ -209,9 +215,15 @@ bool EditorShell::load(const QString& projectPath,
     // Populate the navigator: chapter parents → scene children.
     rebuildNavigator();
 
-    // Apply the initial active scene: select it in the navigator and scroll to it.
-    if (!activeSceneID.isEmpty()) {
-        scrollToScene(activeSceneID);
+    // Apply the initial active scene: put the caret at its start (scrolls it into
+    // view) and highlight it in the navigator. (Restoring the *saved* cursor/scroll
+    // instead of the scene start is SP-064.)
+    const int initialSeg = activeSceneID.isEmpty()
+                               ? 0
+                               : sceneDoc_.sceneIndexForScene(activeSceneID);
+    if (initialSeg >= 0) {
+        moveCaretToSegment(initialSeg);
+        selectNavigatorScene(sceneDoc_.segments().at(initialSeg).sceneID);
     }
     // Seed the active-segment tracker from the caret so the first real cursor move
     // only saves when the scene genuinely changes.
@@ -226,7 +238,15 @@ void EditorShell::onNavigatorActivated(const QModelIndex& index)
     if (sceneID.isEmpty()) {
         return;   // a chapter row (no sceneID) — ignore
     }
-    scrollToScene(sceneID);
+    // A navigator click takes the CARET to the start of the clicked scene (the user
+    // is about to review/edit from the top) and scrolls it into view — the same
+    // deliberate caret placement create-scene uses. Moving the caret fires
+    // onCursorMoved → promoteActiveScene, which saves the departing scene and updates
+    // the navigator highlight. No separate caret-free scroll.
+    moveCaretToSegment(sceneDoc_.sceneIndexForScene(sceneID));
+    // Ensure the highlight reflects the click even when the scene was already active
+    // (promoteActiveScene no-ops then).
+    selectNavigatorScene(sceneID);
 }
 
 void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdded)
@@ -255,33 +275,55 @@ void EditorShell::onCursorMoved()
     if (loading_) {
         return;
     }
-    const int seg = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
-    if (seg == activeSegment_) {
-        return;   // still in the same scene — nothing to flush
+    // The caret owns *where you type*; scroll owns "which scene is active". But a
+    // caret jump across scenes (e.g. a click or arrow into another scene) should
+    // still flush the departing scene — route it through the single active-scene
+    // writer, which promotes + saves only when the scene actually changes.
+    promoteActiveScene(sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position()));
+}
+
+void EditorShell::onScrolled()
+{
+    if (loading_ || programmaticViewportChange_) {
+        return;   // ignore our own programmatic scrolls (navigator click, caret move)
     }
-    // The caret left activeSegment_. Flush everything dirty now (scene-switch leg of
-    // the T-0239 cadence), so the departing scene is on disk before we move on.
+    // The visible scene becomes active (T-0243). promoteActiveScene saves the
+    // departing dirty scene and updates the tracker only on a real boundary crossing.
+    promoteActiveScene(visibleSceneIndex());
+}
+
+int EditorShell::visibleSceneIndex() const
+{
+    // Map the vertical MIDDLE of the viewport to a document position, then to its
+    // scene (Apple's midpoint-of-viewport rule). cursorForPosition takes viewport
+    // coordinates; the x is arbitrary (offsets are line-based).
+    const QPoint mid(viewport_->viewport()->width() / 2,
+                     viewport_->viewport()->height() / 2);
+    const int pos = viewport_->cursorForPosition(mid).position();
+    return sceneDoc_.sceneIndexForCaret(pos);
+}
+
+void EditorShell::promoteActiveScene(int newSeg)
+{
+    if (newSeg < 0 || newSeg == activeSegment_) {
+        return;   // undeterminable, or still in the same scene — nothing to do
+    }
+    // The active scene changed. Flush everything dirty now so the departing scene is
+    // on disk before we move on (scene-switch leg of the T-0239 cadence). Single
+    // writer of activeSegment_ — both the caret and scroll hooks land here.
     if (!dirtyScenes_.isEmpty()) {
         saveDirtyScenes();
     }
-    activeSegment_ = seg;
+    activeSegment_ = newSeg;
+
+    // Navigator highlight follows the active scene (T-0244) — highlight only, so it
+    // doesn't re-scroll the viewport or move the caret (no feedback loop).
+    selectNavigatorScene(sceneDoc_.segments().at(newSeg).sceneID);
 }
 
-void EditorShell::scrollToScene(const QString& sceneID)
+void EditorShell::selectNavigatorScene(const QString& sceneID)
 {
-    const int start = sceneDoc_.bodyStartForScene(sceneID);
-    if (start < 0) {
-        return;
-    }
-
-    // Move the caret to the scene's body start and center it in the viewport.
-    // (Scroll-without-moving-caret on navigator click is SP-063's refinement.)
-    QTextCursor cursor(sceneDoc_.document());
-    cursor.setPosition(start);
-    viewport_->setTextCursor(cursor);
-    viewport_->centerCursor();
-
-    // Reflect the selection in the navigator (find the matching child row).
+    // Highlight-only: find the matching child row and select it. No scroll, no caret.
     for (int r = 0; r < navModel_->rowCount(); ++r) {
         QStandardItem* chapter = navModel_->item(r);
         for (int c = 0; c < chapter->rowCount(); ++c) {
@@ -368,10 +410,15 @@ void EditorShell::moveCaretToSegment(int index)
         return;
     }
     const SceneSegment& seg = sceneDoc_.segments().at(index);
+    // This is a deliberate caret placement (create-scene/chapter, initial load); the
+    // resulting scroll must not make onScrolled re-promote off a mid-move midpoint.
+    // Guard it and set the active scene explicitly.
+    programmaticViewportChange_ = true;
     QTextCursor cursor(sceneDoc_.document());
     cursor.setPosition(seg.bodyStart);
     viewport_->setTextCursor(cursor);
     viewport_->centerCursor();
+    programmaticViewportChange_ = false;
     activeSegment_ = index;
 }
 

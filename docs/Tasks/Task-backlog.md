@@ -60,12 +60,13 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0240 | `[Linux]` **⌘↩ create scene** in-editor (Linux: **Ctrl+Return**) — save current, create-scene, insert boundary, caret into new segment, update offset map + navigator | EP-022 (SP-062) | ✅ Verified 2026-07-14 |
 | T-0241 | `[Linux]` **⌘⇧↩ create chapter** in-editor (Linux: **Ctrl+Shift+Return**) — save current, create-chapter, insert boundary, caret into new chapter's first scene, update offset map + navigator | EP-022 (SP-062) | ✅ Verified 2026-07-14 |
 | T-0242 | `[Linux]` **Verify AC3 + headless save smoke** — edit→`save_scene`→reopen asserts new bytes; VNC type/switch/⌘↩/⌘⇧↩/quit-save | EP-022 (SP-062) | ✅ Verified 2026-07-14 |
-| T-0243 | `[Linux]` **Scroll → active-scene promotion** — visible region → active scene via offset map; boundary crossing promotes + saves departing scene | EP-022 (SP-063) | 🔵 Backlog |
-| T-0244 | `[Linux]` **Navigator ↔ scroll sync** — highlight follows scroll; click scrolls viewport without moving caret; no feedback loop | EP-022 (SP-063) | 🔵 Backlog |
-| T-0245 | `[Linux]` **Verify AC1/AC4 (scroll)** — VNC scroll-through tracks active scene + highlight; departing scenes saved; click-to-scroll leaves caret put | EP-022 (SP-063) | 🔵 Backlog |
+| T-0243 | `[Linux]` **Scroll → active-scene promotion** — visible region → active scene via offset map; boundary crossing promotes + saves departing scene | EP-022 (SP-063) | ✅ Verified 2026-07-15 |
+| T-0244 | `[Linux]` **Navigator ↔ scroll sync** — highlight follows scroll; navigator click takes caret to the clicked scene's start (scrolls into view); no feedback loop | EP-022 (SP-063) | ✅ Verified 2026-07-15 |
+| T-0245 | `[Linux]` **Verify AC1/AC4 (scroll)** — VNC scroll-through tracks active scene + highlight; departing scenes saved; navigator click lands caret at the clicked scene's start | EP-022 (SP-063) | ✅ Verified 2026-07-15 |
 | T-0246 | `[Linux]` **Cursor placement + focus** — editor takes focus on open, sensible caret, correct caret across boundaries (no jump-to-start), enforce non-editable/non-deletable markers | EP-022 (SP-064) | 🔵 Backlog |
 | T-0247 | `[Linux]` **Quit→reopen surface restore** — persist active scene + anchor/focus/scroll on close; apply `openProject` `restored{}` on reopen | EP-022 (SP-064) | 🔵 Backlog |
 | T-0248 | `[Linux]` **EP-022 verification + close prep** — full write→save→switch→scroll→quit→reopen loop VNC-verified; `.md` on disk; AC1–AC7 checklist; restore smoke; draft completion summary for user close | EP-022 (SP-064) | 🔵 Backlog |
+| T-0249 | `[Linux]` **Manuscript navigation gestures** — Page Forward / Page Backward + jump to absolute manuscript start / end. Gestures/keystrokes **undecided** (laptops & tablets lack extended keyboards — no PageUp/Down/Home/End assumed); pick touch-friendly bindings. Raised during SP-063 VNC verification; unscheduled (likely EP-022 follow-up or EP-026 menus/parity). | EP-022 (unscheduled) | 🔵 Backlog |
 
 ## Full Detail — Implemented Tasks Returned to Backlog
 

@@ -72,6 +72,16 @@ int SceneDocument::bodyStartForScene(const QString& sceneID) const
     return -1;
 }
 
+int SceneDocument::sceneIndexForScene(const QString& sceneID) const
+{
+    for (int i = 0; i < segments_.size(); ++i) {
+        if (segments_.at(i).sceneID == sceneID) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int SceneDocument::sceneIndexForEditablePosition(int pos) const
 {
     // Inclusive body range [bodyStart, bodyStart+bodyLength] so a caret at either

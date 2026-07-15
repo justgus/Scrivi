@@ -78,6 +78,10 @@ public:
     // scroll the viewport to a scene.
     int bodyStartForScene(const QString& sceneID) const;
 
+    // Segment index for a sceneID, or -1 if unknown. Used to promote a
+    // navigator-clicked scene to active (T-0244).
+    int sceneIndexForScene(const QString& sceneID) const;
+
     // --- SP-062 editable-viewport support (T-0238) ------------------------
     //
     // The offset map is the edit-routing authority. These queries + the mutator
