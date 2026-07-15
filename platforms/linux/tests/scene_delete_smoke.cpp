@@ -61,6 +61,7 @@ void assemble(SceneDocument& doc, ScriviBridge& bridge, const QString& projectPa
         i.slug         = s.value(QStringLiteral("slug")).toString();
         i.metadataPath = s.value(QStringLiteral("metadataPath")).toString();
         i.contentPath  = s.value(QStringLiteral("contentPath")).toString();
+        i.chapterMetadataPath = s.value(QStringLiteral("chapterMetadataPath")).toString();
         i.markdown = (id == activeID)
                          ? activeMd
                          : bridge.openScene(projectPath, appSupport, projectID, id)
@@ -70,13 +71,15 @@ void assemble(SceneDocument& doc, ScriviBridge& bridge, const QString& projectPa
     doc.build(in);
 }
 
-// The document position at which a manuscript-first scene's body begins: right after
-// its chapter heading ("<title|Chapter>\n\n"), with no leading blank line (build()'s
-// first-body rule). Mirrors leadingBoundaryFor(first=true, chapterStart=true, …).
+// The document position at which the MANUSCRIPT-FIRST scene's body begins: right after
+// its chapter heading ("<title|Chapter N>\n\n"), with no leading blank line (build()'s
+// first-body rule). The first chapter's derived ordinal is always "Chapter 1" when
+// untitled (the app owns chapter numbering from order). Only valid for the first
+// segment (ordinal 1).
 int firstBodyStartFor(const SceneSegment& seg)
 {
-    const QString heading =
-        seg.chapterTitle.isEmpty() ? QStringLiteral("Chapter") : seg.chapterTitle;
+    const QString heading = seg.chapterTitle.isEmpty() ? QStringLiteral("Chapter 1")
+                                                       : seg.chapterTitle;
     return (heading + QStringLiteral("\n\n")).length();
 }
 

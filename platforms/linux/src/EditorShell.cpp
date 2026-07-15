@@ -3,6 +3,7 @@
 #include <QAction>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
@@ -322,10 +323,16 @@ void EditorShell::onNavigatorContextMenu(const QPoint& pos)
 
     QMenu menu(this);
     if (!sceneID.isEmpty()) {
+        QAction* rename = menu.addAction(tr("Rename Scene…"));
+        connect(rename, &QAction::triggered, this,
+                [this, sceneID] { renameSceneByID(sceneID); });
         QAction* del = menu.addAction(tr("Delete Scene"));
         connect(del, &QAction::triggered, this,
                 [this, sceneID] { deleteSceneByID(sceneID); });
     } else if (!chapterID.isEmpty()) {
+        QAction* rename = menu.addAction(tr("Rename Chapter…"));
+        connect(rename, &QAction::triggered, this,
+                [this, chapterID] { renameChapterByID(chapterID); });
         QAction* del = menu.addAction(tr("Delete Chapter"));
         connect(del, &QAction::triggered, this,
                 [this, chapterID] { deleteChapterByID(chapterID); });
@@ -455,6 +462,11 @@ void EditorShell::deleteChapterByID(const QString& chapterID)
 
     loading_ = true;
     sceneDoc_.removeChapter(chapterID);
+    // NOTE: chapters created via scrivi_create_chapter carry a STORED "Chapter N" title,
+    // so they don't auto-renumber when an earlier chapter is deleted. True
+    // renumber-on-delete (rewriting later chapters' titles) is tracked as I-0063 — out of
+    // SP-066 scope. Untitled chapters (empty stored title) do derive their ordinal from
+    // order via chapterHeadingText, so those renumber for free on the navigator rebuild.
     loading_ = false;
 
     // Fallback active scene: the segment that now occupies the deleted chapter's first
@@ -497,6 +509,132 @@ void EditorShell::afterStructuralRemoval(const QString& previouslyActiveSceneID,
     moveCaretToSegment(target);
     selectNavigatorScene(sceneDoc_.segments().at(target).sceneID);
     viewport_->setFocus();
+}
+
+void EditorShell::refocusEditor()
+{
+    if (viewport_ != nullptr) {
+        viewport_->setFocus();
+    }
+}
+
+void EditorShell::applyDerivedLabels()
+{
+    // Pull the freshly-derived labels ScriviCore would show on a reload. This is the
+    // authority for the fallback chain (custom title → first prose line / "Chapter N"),
+    // so we never reimplement it UI-side.
+    const QVariantMap opened = bridge_->openProject(projectPath_, appSupportRoot_);
+    const QVariantList scenes = opened.value(QStringLiteral("scenes")).toList();
+    if (scenes.isEmpty()) {
+        return;
+    }
+
+    // Guard the document edits (setChapterTitle rewrites the live heading) so the
+    // programmatic changes don't churn dirty flags / active-scene tracking.
+    const bool wasLoading = loading_;
+    loading_ = true;
+
+    // Scene labels: match by sceneID, apply the derived title to that segment.
+    for (const QVariant& v : scenes) {
+        const QVariantMap s = v.toMap();
+        const int i =
+            sceneDoc_.sceneIndexForScene(s.value(QStringLiteral("sceneID")).toString());
+        if (i >= 0) {
+            sceneDoc_.setSceneTitle(i, s.value(QStringLiteral("title")).toString());
+        }
+    }
+
+    // Chapter titles: apply once per chapter (first occurrence). setChapterTitle updates
+    // every member's chapterTitle and rewrites the live heading in place.
+    QSet<QString> seenChapters;
+    for (const QVariant& v : scenes) {
+        const QVariantMap s = v.toMap();
+        const QString chapterID = s.value(QStringLiteral("chapterID")).toString();
+        if (chapterID.isEmpty() || seenChapters.contains(chapterID)) {
+            continue;
+        }
+        seenChapters.insert(chapterID);
+        sceneDoc_.setChapterTitle(chapterID,
+                                  s.value(QStringLiteral("chapterTitle")).toString());
+    }
+
+    loading_ = wasLoading;
+}
+
+void EditorShell::renameSceneByID(const QString& sceneID)
+{
+    const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+    if (idx < 0) {
+        return;
+    }
+    const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy (list mutates)
+
+    bool ok = false;
+    const QString newTitle = QInputDialog::getText(
+        this, tr("Rename Scene"), tr("Scene title:"),
+        QLineEdit::Normal, seg.title, &ok);
+    if (!ok) {
+        refocusEditor();
+        return;   // cancelled
+    }
+
+    // Write the sidecar title (blank/whitespace clears the custom title). The scene has
+    // no in-document heading, so nothing in the viewport text changes.
+    const QVariantMap r =
+        bridge_->renameScene(projectPath_, seg.metadataPath, newTitle.trimmed());
+    if (r.isEmpty()) {
+        refocusEditor();
+        return;   // bridge already surfaced errorOccurred
+    }
+
+    // Re-derive the navigator label the same way a reload would — from
+    // scrivi_open_project (custom title, else the backend's first-prose-line / "Scene N"
+    // fallback). This keeps the live label identical to the reloaded one, including the
+    // blank-clears-to-fallback case, without duplicating the fallback logic in the UI.
+    applyDerivedLabels();
+    rebuildNavigator();
+    // Keep the renamed scene highlighted + active tracking intact.
+    selectNavigatorScene(sceneID);
+    refocusEditor();
+}
+
+void EditorShell::renameChapterByID(const QString& chapterID)
+{
+    const int first = sceneDoc_.firstSegmentOfChapter(chapterID);
+    if (first < 0) {
+        return;
+    }
+    const SceneSegment seg = sceneDoc_.segments().at(first);   // copy (list mutates)
+    if (seg.chapterMetadataPath.isEmpty()) {
+        // Should not happen once open_project's chapterMetadataPath is captured; guard
+        // so a rename can't silently target the wrong path.
+        errorLabel_->setText(tr("This chapter can't be renamed (missing metadata path)."));
+        errorLabel_->show();
+        return;
+    }
+
+    bool ok = false;
+    const QString newTitle = QInputDialog::getText(
+        this, tr("Rename Chapter"), tr("Chapter title:"),
+        QLineEdit::Normal, seg.chapterTitle, &ok);
+    if (!ok) {
+        refocusEditor();
+        return;   // cancelled
+    }
+
+    const QVariantMap r = bridge_->renameChapter(
+        projectPath_, seg.chapterMetadataPath, newTitle.trimmed());
+    if (r.isEmpty()) {
+        refocusEditor();
+        return;
+    }
+
+    // Re-derive labels (custom title, else "Chapter N") from a fresh open_project, apply
+    // scene labels + the chapter's derived title (which also rewrites the live heading
+    // in place via setChapterTitle → reflowBoundaryAt), then rebuild the navigator.
+    applyDerivedLabels();
+    rebuildNavigator();
+    refocusEditor();
 }
 
 void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdded)
@@ -653,12 +791,12 @@ void EditorShell::rebuildNavigator()
     navModel_->clear();
     QStandardItem* chapterItem = nullptr;
     QString lastChapterID;
-    for (const SceneSegment& seg : sceneDoc_.segments()) {
+    for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
+        const SceneSegment& seg = sceneDoc_.segments().at(i);
         if (chapterItem == nullptr || seg.chapterID != lastChapterID) {
-            const QString chapterText = seg.chapterTitle.isEmpty()
-                                            ? tr("Chapter")
-                                            : seg.chapterTitle;
-            chapterItem = new QStandardItem(chapterText);
+            // Derived heading (custom title, else the ordinal "Chapter N") — the same
+            // authority the in-document heading uses, so the navigator + heading agree.
+            chapterItem = new QStandardItem(sceneDoc_.chapterHeadingText(i));
             chapterItem->setEditable(false);
             chapterItem->setSelectable(false);   // chapters group; scenes select
             chapterItem->setData(seg.chapterID, kChapterIDRole);   // for delete (T-0251)
@@ -730,6 +868,7 @@ void EditorShell::onCreateSceneRequested()
         /*slug=*/QString(),
         result.value(QStringLiteral("metadataPath")).toString(),
         result.value(QStringLiteral("contentPath")).toString(),
+        host.chapterMetadataPath,     // same chapter → same chapter metadata path
         /*newChapter=*/false);
     loading_ = false;
 
@@ -759,16 +898,23 @@ void EditorShell::onCreateChapterRequested()
         return;   // bridge already surfaced errorOccurred
     }
 
+    const QString newChapterID =
+        result.value(QStringLiteral("chapterID")).toString();
     const int lastIdx = sceneDoc_.segments().size() - 1;
     loading_ = true;
+    // I-0062 (T-0256): the new chapter is untitled, so insertSceneAfter derives its
+    // heading as the ordinal "Chapter N" from the segment's position (SceneDocument
+    // computes it — the app layer owns chapter numbering, matching macOS). So the live
+    // heading shows the correct "Chapter N" immediately — no reload, no title round-trip.
     const int newIdx = sceneDoc_.insertSceneAfter(
         lastIdx, firstSceneID,
-        result.value(QStringLiteral("chapterID")).toString(),
+        newChapterID,
         /*title=*/QString(),          // untitled until named (EP-023)
-        /*chapterTitle=*/QString(),   // untitled chapter → default "Chapter" heading
+        /*chapterTitle=*/QString(),   // untitled → derived ordinal heading
         /*slug=*/QString(),
         result.value(QStringLiteral("firstSceneMetadataPath")).toString(),
         result.value(QStringLiteral("firstSceneContentPath")).toString(),
+        result.value(QStringLiteral("chapterMetadataPath")).toString(),
         /*newChapter=*/true);
     loading_ = false;
 

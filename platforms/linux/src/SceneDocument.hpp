@@ -28,6 +28,10 @@ struct SceneSegment
     QString slug;
     QString metadataPath;
     QString contentPath;
+    // The CHAPTER's own sidecar metadata path (open_project's `chapterMetadataPath`).
+    // Needed to rename the chapter (EP-023 / SP-066, T-0254). Every scene segment in a
+    // chapter carries the same value.
+    QString chapterMetadataPath;
 
     // Character offset (into the assembled document) where this scene's BODY
     // text begins — after any chapter heading + separator lines. This is the
@@ -58,6 +62,7 @@ public:
         QString slug;
         QString metadataPath;
         QString contentPath;
+        QString chapterMetadataPath;   // chapter sidecar path (for rename, T-0254)
         QString markdown;   // the scene body (may be empty)
     };
 
@@ -154,6 +159,7 @@ public:
                          const QString& slug,
                          const QString& metadataPath,
                          const QString& contentPath,
+                         const QString& chapterMetadataPath,
                          bool newChapter);
 
     // --- EP-023 in-navigator structure editing (T-0252) -------------------
@@ -185,6 +191,40 @@ public:
     // reusing removeScene per member from last to first so offsets stay valid. Returns
     // the number of scenes removed (0 if the chapter is unknown).
     int removeChapter(const QString& chapterID);
+
+    // --- EP-023 rename (T-0255) -------------------------------------------
+    //
+    // Update segment `index`'s scene title in the map (the navigator label authority).
+    // Scenes have no in-document heading, so this touches no document text. Out-of-range
+    // index is a no-op.
+    void setSceneTitle(int index, const QString& title);
+
+    // Update the `chapterTitle` on EVERY segment in `chapterID`, then rewrite that
+    // chapter's live in-document heading in place via reflowBoundaryAt (its first
+    // segment). Reused by both chapter rename (T-0255) and the I-0062 live new-chapter
+    // heading fix (T-0256). No-op if the chapter is unknown. Runs inside a
+    // caller-managed "programmatic" window so it doesn't churn dirty flags.
+    void setChapterTitle(const QString& chapterID, const QString& chapterTitle);
+
+    // Index of the first segment of `chapterID`, or -1 if unknown. Used to target the
+    // heading for a chapter-level update.
+    int firstSegmentOfChapter(const QString& chapterID) const;
+
+    // Rewrite every chapter's in-document heading to its current derived text
+    // (chapterHeadingText) via reflowBoundaryAt. Call after any structural change that
+    // can shift chapter ordinals (delete/insert/reorder) so untitled chapters renumber
+    // in the document, matching the navigator — with no disk rewrite. Runs inside a
+    // caller-managed "programmatic" window (no dirty churn).
+    void reflowAllChapterHeadings();
+
+    // The DISPLAY heading for segment `index`'s chapter: the trimmed custom chapterTitle
+    // if non-empty, else the derived ordinal "Chapter N" where N is the chapter's 1-based
+    // position among the ordered distinct chapters (matching the macOS ManuscriptTextView
+    // rule). Deriving N from ORDER — not a stored string — means deleting or inserting a
+    // chapter renumbers every subsequent untitled chapter for free, with no disk rewrite.
+    // The ordinal authority for both the in-document heading and the navigator label.
+    // Empty string if index is out of range.
+    QString chapterHeadingText(int index) const;
 
 private:
     // Recompute the leading-boundary text (heading/separator) for segment `index`

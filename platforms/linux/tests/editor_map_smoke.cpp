@@ -47,9 +47,11 @@ int main(int argc, char* argv[])
     SceneDocument doc;
     {
         QList<SceneDocument::Input> in;
-        in.push_back({"s1", "c1", "Scene 1", "One", "s1", "", "", "AAAA"});
-        in.push_back({"s2", "c1", "Scene 2", "One", "s2", "", "", "BBBB"});
-        in.push_back({"s3", "c2", "Scene 3", "Two", "s3", "", "", "CCCC"});
+        // Fields: sceneID, chapterID, title, chapterTitle, slug, metadataPath,
+        // contentPath, chapterMetadataPath, markdown.
+        in.push_back({"s1", "c1", "Scene 1", "One", "s1", "", "", "", "AAAA"});
+        in.push_back({"s2", "c1", "Scene 2", "One", "s2", "", "", "", "BBBB"});
+        in.push_back({"s3", "c2", "Scene 3", "Two", "s3", "", "", "", "CCCC"});
         doc.build(in);
     }
     const auto& segs = doc.segments();

@@ -224,6 +224,43 @@ QVariantMap ScriviBridge::deleteChapter(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::renameScene(const QString& projectRootPath,
+                                      const QString& metadataPath,
+                                      const QString& newTitle)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Writes the scene's sidecar `title`. A blank/whitespace title is passed through
+    // as-is (ScriviCore stores it empty = "no custom title"); the caller decides the
+    // navigator fallback. No author identity — rename is a metadata edit, not authored.
+    const ScriviString envelope(
+        scrivi_rename_scene(projectRootPath.toUtf8().constData(),
+                            metadataPath.toUtf8().constData(),
+                            newTitle.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::renameChapter(const QString& projectRootPath,
+                                        const QString& metadataPath,
+                                        const QString& newTitle)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // `metadataPath` is the CHAPTER's metadata path (open_project's
+    // `chapterMetadataPath`). Blank/whitespace clears the custom title.
+    const ScriviString envelope(
+        scrivi_rename_chapter(projectRootPath.toUtf8().constData(),
+                              metadataPath.toUtf8().constData(),
+                              newTitle.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

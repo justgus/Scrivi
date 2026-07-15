@@ -250,6 +250,35 @@ target_link_libraries(scrivi_linux_scene_delete_smoke
 target_include_directories(scrivi_linux_scene_delete_smoke PRIVATE src)
 target_compile_features(scrivi_linux_scene_delete_smoke PRIVATE cxx_std_23)
 
+# --- Headless in-navigator rename smoke (SP-066 / T-0257, EP-023 AC3) -------
+# Drives the navigator Rename path headlessly: builds a 2-chapter fixture, renames a
+# scene + a chapter via bridge.renameScene / renameChapter (asserts the sidecar title
+# round-trips on reopen, incl. blank→cleared), and applies the label/heading update to
+# a SceneDocument (setSceneTitle: no document change; setChapterTitle: live heading
+# rewrite via reflowBoundaryAt with the offset map staying well-formed). Needs Widgets
+# for QApplication + QPlainTextDocumentLayout (SceneDocument). scene_rename_smoke.sh.
+qt_add_executable(scrivi_linux_scene_rename_smoke
+    tests/scene_rename_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_rename_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_scene_rename_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_rename_smoke PRIVATE cxx_std_23)
+
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a
 # QQuickWidget's engine doesn't auto-wire QQmlEngine::quit() to the app, so main.cpp

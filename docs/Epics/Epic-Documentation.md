@@ -12,7 +12,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — **EP-023** `[Linux]` (Manuscript Structure Editing), activated 2026-07-15. **SP-065 (delete) ✅ closed** — AC1 + AC2 verified over VNC; 1 of 4 sprints done. Remaining: SP-066 rename (closes I-0062) → SP-067 scene drag-reorder → SP-068 chapter drag-reorder + close. No ScriviCore work — all eight structure endpoints already exist. EP-020 Foundation + EP-021 Lifecycle + EP-022 Writing Surface all ✅ closed. EP-024–EP-026 `[Linux]` remain 🔵 Draft.
+Currently: **1 Active Epic** — **EP-023** `[Linux]` (Manuscript Structure Editing), activated 2026-07-15. **SP-065 (delete) + SP-066 (rename) ✅ closed** — AC1/AC2/AC3 verified over VNC; I-0062 Resolved-Verified; **2 of 4 sprints done**. Remaining: SP-067 scene drag-reorder (+ I-0064 chapter-split + I-0063 renumber) → SP-068 chapter drag-reorder + close. No ScriviCore work — all eight structure endpoints already exist. EP-020 Foundation + EP-021 Lifecycle + EP-022 Writing Surface all ✅ closed. EP-024–EP-026 `[Linux]` remain 🔵 Draft.
 
 See: [Epic-active.md](Epic-active.md)
 

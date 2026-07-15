@@ -5,23 +5,148 @@ table and stay in this file as full entries only until the next batch archive (I
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0062 | `[Linux]` A newly-created chapter's heading reads "Chapter" (not "Chapter N") until the project is reloaded | Low | SP-062 | 🔵 Open (deferred) |
+| I-0064 | `[Linux]` Ctrl+Shift+Return appends an empty chapter at the manuscript end instead of splitting/inserting the chapter at the caret (no scene reassignment, no renumber) | Medium | SP-067 (target) | 🔵 Open |
+| I-0063 | `[Linux]` Deleting/inserting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | Low | — | 🔵 Open (backlog) |
+| I-0062 | `[Linux]` A newly-created chapter's heading reads "Chapter" (not "Chapter N") until the project is reloaded | Low | SP-066 | ✅ Resolved - Verified (2026-07-15) |
 | I-0061 | `[Linux]` Landing **Quit** button does nothing after the shell flip (`QQmlEngine::quit()` unconnected) | Medium | SP-062 | ✅ Resolved - Verified (2026-07-14) |
 
 **Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
 
 ---
 
+## I-0064: [Linux] Ctrl+Shift+Return appends a chapter at the end instead of splitting at the caret
+
+**Status:** 🔵 Open (surfaced during SP-066 VNC verification, 2026-07-15). Targeted for **SP-067** (scene/chapter
+reorder) — the fix depends on the reorder primitives that sprint delivers.
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onCreateChapterRequested`) →
+`SceneDocument::insertSceneAfter`. The Linux create-chapter path has appended-at-end since EP-022/SP-062.
+**Severity:** Medium (the ⌘⇧↩ chapter gesture does not do what a writer expects; data is not corrupted, but
+the manuscript structure produced is wrong — a stray end-of-manuscript chapter instead of a split).
+**Sprint:** discovered SP-066; **fix targeted SP-067**
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0063 (chapter renumbering); SP-067/068 (drag-reorder — same reorder primitives);
+macOS spec: `ManuscriptTextView.swift` (⌘⇧↩ handler, ~L690–795) + `ViewportSceneLoader`
+(`splitScene`, `splitChapter`, `insertChapterFirstScene`, `renumberChapterTitlesFrom`).
+
+**Description:**
+Positioning the caret inside/at the end of a scene and pressing **Ctrl+Shift+Return** should **split the
+current chapter at the caret** (macOS parity), not append a new empty chapter at the end of the manuscript.
+
+Reproduced (user, 2026-07-15): three chapters with multiple scenes; Chapter 2 has three scenes; caret at the
+**end of Scene 2 of Chapter 2**. Expected: Chapter 2 splits — Scene 3 (and any following scenes of Chapter 2)
+becomes the first scene(s) of a **new Chapter 3** inserted right there, and the old Chapters 3+ renumber down
+the line. Actual: a brand-new empty **Chapter 4** with a single blank scene was **appended to the end** of the
+document; no split, no scene reassignment, no renumber.
+
+**Expected Behavior (macOS parity — `ManuscriptTextView` ⌘⇧↩):**
+- **Caret at end of a scene:** insert the new chapter **immediately after the current scene**; the scenes that
+  followed the caret's scene **within the current chapter** are reassigned into the new chapter; subsequent
+  chapters renumber. (macOS `insertChapterFirstScene(result, after: segIdx)` + `renumberChapterTitlesFrom`.)
+- **Caret mid-scene:** **split the scene** at the caret — the head stays in the current scene/chapter; the tail
+  becomes the **first scene of the new chapter**; following scenes of the old chapter move into the new
+  chapter; renumber. (macOS `splitScene` + `splitChapter` + `renumberChapterTitlesFrom`.)
+- A confirmation is shown when the split will renumber ≥1 subsequent chapter.
+
+**Actual Behavior:**
+`onCreateChapterRequested` calls `scrivi_create_chapter` (which is **append-only** — `ChapterCreator.cpp:104`
+`ms.chapters.push_back`, always a fresh chapter + blank scene at the manuscript end) and then
+`SceneDocument::insertSceneAfter(lastIdx, …)`, so the chapter always lands at the end with no positional
+insert, no scene reassignment, and no renumber. The caret position is ignored entirely.
+
+**Root Cause:**
+`scrivi_create_chapter` is an append-only primitive with no position argument and no scene-move capability.
+macOS builds the split behavior **on top of** it by orchestrating additional calls — `create_chapter` (append),
+`save_scene` (head/tail split), `reorder_chapter` (move the new chapter into position), `reorder_scene`
+(reassign the following scenes into the new chapter), then in-memory renumber. The Linux path never added that
+orchestration; it stops at the raw append.
+
+**Fix direction (SP-067 — no ScriviCore change needed):**
+The reorder endpoints already exist (`scrivi_reorder_scene(sceneID, sourceChapterID, targetChapterID,
+afterSceneID)`, `scrivi_reorder_chapter(chapterID, afterChapterID)` — `scrivi.h:199/206`). Orchestrate:
+1. `create_chapter` (appends new chapter C with blank first scene S).
+2. `reorder_chapter(C, afterChapterID = current chapter)` to move C into position.
+3. For each scene after the caret's scene in the current chapter: `reorder_scene` into C (in order).
+4. Mid-scene case: `save_scene` head into the current scene, tail into S (or the first reassigned scene).
+5. Renumber untitled/auto chapters (ties into I-0063) + rebuild the `SceneDocument` splice + navigator.
+6. Confirmation dialog when subsequent chapters will renumber.
+
+Do this in SP-067 alongside drag-reorder, which delivers/【exercises the same `reorder_*` orchestration and
+the `SceneDocument` move-splice peers.
+
+**Workaround (until fixed):** create chapters at the end and reorder later (once drag-reorder lands), or keep
+scenes you want split as separate scenes.
+
+---
+
+## I-0063: [Linux] Deleting/inserting a chapter doesn't renumber later created chapters
+
+**Status:** 🔵 Open (backlog — surfaced during SP-066 rename implementation, 2026-07-15)
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`deleteChapterByID` and any future chapter-insert path);
+`SceneDocument::chapterHeadingText` / `reflowAllChapterHeadings` (the renumber machinery already exists).
+**Severity:** Low (display-only ordinal drift; scene/chapter data and order are correct on disk)
+**Sprint:** — (backlog; discovered during SP-066)
+**Epic:** EP-023 `[Linux]`
+**Related:** SP-065 (delete), SP-066 (rename — added `chapterHeadingText` ordinal derivation + the unused
+`reflowAllChapterHeadings` helper this fix would call); macOS parity: `ViewportSceneLoader.renumberChapterTitlesFrom`.
+
+**Description:**
+When a chapter is created, **ScriviCore stamps a stored title `"Chapter N"`** into the chapter sidecar
+(`ChapterCreator.cpp:90`), and `scrivi_delete_chapter` does **not** renumber the remaining chapters. So after
+deleting an earlier chapter (or inserting one between), later **created** chapters keep their now-stale stored
+ordinal — e.g. delete "Chapter 1" and the old "Chapter 3" still reads "Chapter 3" instead of "Chapter 2".
+
+Untitled chapters (empty stored title) are unaffected — the Linux app derives their heading from order via
+`SceneDocument::chapterHeadingText` (added in SP-066), so those renumber for free. The gap is specifically
+chapters carrying a stored `"Chapter N"` string.
+
+**Expected Behavior (macOS parity):**
+After any chapter structural change (delete/insert/reorder), every subsequent chapter that is **not** custom-
+titled shows its correct ordinal — matching macOS `ViewportSceneLoader.renumberChapterTitlesFrom`, which
+rewrites the in-memory `chapterTitle` to `"Chapter N"` for affected chapters (and the engine persists the
+ordinals to disk).
+
+**Root Cause:**
+Two facts combine: (a) ScriviCore stores `"Chapter N"` as a real title at creation (not empty), so the app's
+order-based derivation treats it as a custom title and won't recompute it; (b) `ChapterDeleter` doesn't
+renumber survivors on disk. So neither layer renumbers created chapters after a delete.
+
+**Options (not yet chosen):**
+- **A.** App-side active renumber (macOS parity): after a chapter delete/insert, walk later chapters and, for
+  each whose stored title matches the auto pattern `"Chapter <n>"`, `renameChapter` it to its new ordinal
+  (rewrites disk). Uses the existing `reflowAllChapterHeadings` for the live document. Fragile edge: a user
+  who deliberately typed "Chapter 5" would be renumbered.
+- **B.** ScriviCore stores chapters **untitled** (empty title) and derives `"Chapter N"` only for display —
+  then the app's order-based derivation handles everything with no disk rewrite. Cleanest, but a `[ScriviCore]`
+  behavior change affecting Apple too (needs a cross-platform decision).
+- **C.** Accept the drift for created chapters until a dedicated structure-editing pass (reorder, SP-067/068),
+  where renumbering is revisited holistically.
+
+**Deferred:** display-only; created-chapter ordinals self-correct if the user renames them, and untitled
+chapters already renumber. Revisit alongside reorder (SP-067/068) or when the cross-platform numbering
+policy (Option B) is decided.
+
+---
+
 ## I-0062: [Linux] New chapter heading shows "Chapter" (not "Chapter N") until reload
 
-**Status:** 🔵 Open (deferred — cosmetic; data on disk is correct)
+**Status:** ✅ Resolved - Verified (2026-07-15, user-confirmed over VNC — a newly-created chapter's heading shows
+its ordinal "Chapter N" immediately, no reload). **Resolution (SP-066 / T-0256):** the Linux app now **derives**
+the chapter heading ordinal from segment order (`SceneDocument::chapterHeadingText` — custom title wins, else
+"Chapter N" by position), matching macOS `ManuscriptTextView`. `insertSceneAfter` reflows the new (untitled)
+chapter's heading to its derived ordinal on splice, so the live heading is correct without a round-trip. (This
+supersedes the earlier "Option B openProject re-fetch" plan — order-based derivation is cleaner and is the
+macOS mechanism.) Verified by `scene_create_smoke` (asserts the created chapter derives "Chapter 2" live) +
+VNC. Note: this covers **untitled** chapters; renumbering **created** (stored-"Chapter N") chapters on a later
+delete is the separate I-0063.
 **Platform:** Linux (`platforms/linux/`)
 **Component:** `platforms/linux/src/EditorShell.cpp` (`onCreateChapterRequested`) →
 `SceneDocument::insertSceneAfter` (chapter-heading text); the correct label comes from
 `scrivi_open_project`'s `chapterTitle` on reload.
 **Severity:** Low (purely a live-vs-reloaded label mismatch; the chapter is created correctly, persists
 correctly, and renders its real title on the next open)
-**Sprint:** SP-062 (observed during T-0242 verification)
+**Sprint:** SP-062 (observed during T-0242 verification); **fix scheduled SP-066 / T-0256**
 **Epic:** EP-022 `[Linux]`
 **Related:** T-0241 (in-editor create chapter)
 **Date Identified:** 2026-07-14 (user VNC verification)

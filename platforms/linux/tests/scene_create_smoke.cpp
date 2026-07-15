@@ -61,6 +61,7 @@ void assemble(SceneDocument& doc, ScriviBridge& bridge, const QString& projectPa
         i.slug         = s.value(QStringLiteral("slug")).toString();
         i.metadataPath = s.value(QStringLiteral("metadataPath")).toString();
         i.contentPath  = s.value(QStringLiteral("contentPath")).toString();
+        i.chapterMetadataPath = s.value(QStringLiteral("chapterMetadataPath")).toString();
         i.markdown = (id == activeID)
                          ? activeMd
                          : bridge.openScene(projectPath, appSupport, projectID, id)
@@ -125,6 +126,7 @@ int main(int argc, char* argv[])
         QString(), doc.segments().at(0).chapterTitle, QString(),
         res.value(QStringLiteral("metadataPath")).toString(),
         res.value(QStringLiteral("contentPath")).toString(),
+        doc.segments().at(0).chapterMetadataPath,   // same chapter
         /*newChapter=*/false);
 
     check(newIdx == 1, "new segment spliced at index 1");
@@ -167,6 +169,7 @@ int main(int argc, char* argv[])
         lastIdx, firstSceneID, newChapterID, QString(), QString(), QString(),
         chRes.value(QStringLiteral("firstSceneMetadataPath")).toString(),
         chRes.value(QStringLiteral("firstSceneContentPath")).toString(),
+        chRes.value(QStringLiteral("chapterMetadataPath")).toString(),
         /*newChapter=*/true);
 
     check(chIdx == segsBeforeCh, "chapter's first scene spliced at the end");
@@ -179,6 +182,12 @@ int main(int argc, char* argv[])
                   != doc.segments().at(chIdx - 1).chapterID,
               "new scene is in a different chapter than its predecessor");
         check(doc.segments().at(chIdx).bodyLength == 0, "new chapter scene is empty");
+        // I-0062: the new (untitled) chapter's heading derives the ordinal "Chapter 2"
+        // immediately from its position — no reload needed. insertSceneAfter reflowed it.
+        check(doc.chapterHeadingText(chIdx) == QStringLiteral("Chapter 2"),
+              "I-0062: new chapter's live heading derives \"Chapter 2\" (no reload)");
+        check(doc.document()->toPlainText().contains(QStringLiteral("Chapter 2")),
+              "I-0062: \"Chapter 2\" heading is in the live document");
     }
 
     // Reopen: 3 scenes now, the new chapter's scene last and in a new chapter.

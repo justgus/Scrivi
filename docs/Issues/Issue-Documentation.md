@@ -52,17 +52,17 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 58
-- **Verified:** 54 ✅ (I-0001–I-0015, I-0020–I-0058 except backlog/superseded; I-0016 superseded; I-0017–I-0018 backlog)
+- **Total Issues:** 64
+- **Verified:** I-0001–I-0015, I-0020–I-0058 (except backlog/superseded), I-0061, **I-0062** ✅
 - **Active:** 0
-- **Open (backlog):** 2 🔴 (I-0017, I-0018)
+- **Open (backlog):** 4 🔴 (I-0017, I-0018 `[Apple]`; **I-0063** `[Linux]` renumber-on-delete, backlog; **I-0064** `[Linux]` chapter-split, targeted SP-067)
 - **Closed (not verified):** 1 ⚪ (I-0019 — superseded by EP-019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0059
+- **Next available:** I-0065
 
 ---
 
-*Last Updated: 2026-07-09 (I-0058 Verified — user-approved; full-fidelity resume fix confirmed working (last-edited scene + cursor + scroll). Filed and fixed same day: Swift open path discarded `OpenProjectResult.activeScene` and the C ABI dropped restored selection/scroll; fix widened the C ABI both directions and wired the Swift loader/editor. Regression against SP-049 R4. Earlier: 2026-07-06 I-0019 closed without verification — OBE/superseded by EP-019.)*
+*Last Updated: 2026-07-15 (SP-066 `[Linux]` rename — **I-0062 ✅ Resolved-Verified** (new-chapter heading derives its "Chapter N" ordinal from order immediately, macOS parity). Two new `[Linux]` Issues filed during SP-066 VNC verify: **I-0064** (Ctrl+Shift+Return appends a chapter at the end instead of splitting at the caret — targeted SP-067) and **I-0063** (created chapters don't renumber on delete — backlog). Next available I-0065. Earlier: 2026-07-09 I-0058 Verified.)*
 
 
 [1]:	./ER-Documentation.md

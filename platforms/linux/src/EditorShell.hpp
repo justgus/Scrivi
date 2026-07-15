@@ -129,6 +129,26 @@ private:
     void afterStructuralRemoval(const QString& previouslyActiveSceneID,
                                 int fallbackSeg);
 
+    // --- EP-023 rename (T-0255) -------------------------------------------
+    // Rename the scene with `sceneID`: prompt (QInputDialog) pre-filled with the current
+    // title, call the bridge (sidecar `title`), update the map + navigator label. A
+    // blank/whitespace title clears the custom title (navigator then falls back to the
+    // first prose line).
+    void renameSceneByID(const QString& sceneID);
+    // Rename `chapterID`: prompt pre-filled with the current chapter title, call the
+    // bridge on the chapter's metadata path, update every member's `chapterTitle` +
+    // rewrite the live heading in place. Blank/whitespace → falls back to "Chapter N".
+    void renameChapterByID(const QString& chapterID);
+    // Editor focus back to the writing surface after a modal rename dialog closes.
+    void refocusEditor();
+    // Re-fetch the backend-derived scene + chapter titles from scrivi_open_project and
+    // apply them to the SceneDocument (scene labels via setSceneTitle; each chapter's
+    // title via setChapterTitle, which also rewrites the live heading in place). Used
+    // after a rename so the live navigator/heading match exactly what a reload shows —
+    // including the fallback chain (blank custom title → first prose line / "Chapter N"),
+    // which ScriviCore owns. Runs under the loading_ guard (no dirty churn).
+    void applyDerivedLabels();
+
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;
     QTreeView*          navigator_ = nullptr;

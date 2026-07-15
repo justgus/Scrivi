@@ -54,12 +54,16 @@ decided at planning (4 — see Sprints).
   Deleting the last scene of a chapter, or the last scene in the manuscript, is handled without corruption.
   ✅ **Verified over VNC 2026-07-15** (SP-065 — nearest promoted + editor keeps focus; last-scene/last-chapter
   guards refuse with a notice; no corruption).
-- [ ] AC3 — **Rename:** the context menu offers **Rename**, opening a focused edit field/dialog
+- [x] AC3 — **Rename:** the context menu offers **Rename**, opening a focused edit field/dialog
   pre-populated with the current title; saving writes the sidecar `title` via
   `scrivi_rename_scene`/`scrivi_rename_chapter`. A blank/whitespace-only title is treated as "no custom
   title" (sidecar `title` saved empty); the navigator falls back to first prose line (scene) or "Chapter N"
   (chapter). Also closes **I-0062** — the live chapter-heading label now reflects the real title without a
-  reload.
+  reload. ✅ **Verified over VNC 2026-07-15** (SP-066 — `QInputDialog` rename; live label + in-document
+  heading update; blank chapter → app-**derived** ordinal "Chapter N" from segment order, macOS parity; blank
+  scene → first-line/"Untitled"; I-0062 closed). *Note: chapter numbering is derived from order (the app
+  layer owns it); renumbering **created** chapters on delete is I-0063, and Ctrl+Shift+Return chapter-split is
+  I-0064 — both → SP-067, not AC3.*
 - [ ] AC4 — **Scene reorder (drag):** scene rows are draggable in the `QTreeView`; dragging a scene within
   its chapter reorders it; dragging a scene across a chapter boundary moves it to the target chapter at the
   indicated position, calling `scrivi_reorder_scene(sceneID, sourceChapterID, targetChapterID,
@@ -90,7 +94,7 @@ refine at planning.
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-065 | **Delete** scene/chapter — bridge wrappers (`delete_scene`/`delete_chapter`) + navigator context menu (Delete) + confirmation dialogs (chapter warns "+ all scenes") + document/map/navigator removal splice + delete-of-active-scene → nearest + focus. (AC1, AC2) | ✅ Closed | 2026-07-15 |
-| SP-066 | **Rename** scene/chapter — bridge wrappers (`rename_scene`/`rename_chapter`) + context-menu Rename + focused edit field + blank-title fallback chain + **live chapter-heading label (closes I-0062)**. (AC3) | 🔵 Planning | — |
+| SP-066 | **Rename** scene/chapter — bridge wrappers (`rename_scene`/`rename_chapter`) + context-menu Rename + focused edit field + blank-title fallback chain + **live chapter-heading label (closes I-0062)**. (AC3) | ✅ Closed | 2026-07-15 |
 | SP-067 | **Scene drag-reorder** in `QTreeView` — within-chapter + cross-chapter move (`reorder_scene`) + viewport re-splice + drop insertion-line highlight. (AC4) | 🔵 Planning | — |
 | SP-068 | **Chapter drag-reorder** (chapter-as-container, `reorder_chapter`) + boundary-unambiguous drop highlight + full EP-023 verify (create/rename/reorder/delete/quit/reopen) + **Epic close**. (AC5, AC6, AC7, AC8) | 🔵 Planning | — |
 
@@ -129,15 +133,17 @@ Assigned at each sprint's activation. SP-065's tasks are defined at its planning
 | Sprint | Tasks | Delivers |
 | ------ | ----- | -------- |
 | SP-065 ✅ | T-0250 bridge wrappers · T-0251 context menu + confirmations · T-0252 removal splice + delete-of-active · T-0253 smoke + VNC verify — **all ✅ Verified 2026-07-15** | AC1, AC2 ✅ |
-| SP-066 | rename bridge wrappers · context-menu Rename + inline edit · blank-title fallback + live heading (I-0062) · verify | AC3 |
-| SP-067 | scene drag-reorder (within/cross-chapter) · viewport re-splice · drop highlight · verify | AC4 |
+| SP-066 ✅ | T-0254 rename bridge wrappers + `chapterMetadataPath` · T-0255 context-menu Rename (`QInputDialog`) + live label/heading · T-0256 close I-0062 (app-derived ordinal) · T-0257 smoke + VNC verify — **all ✅ Verified 2026-07-15** | AC3 ✅ |
+| SP-067 | scene drag-reorder (within/cross-chapter) · viewport re-splice · drop highlight · **+ I-0064 chapter-split (Ctrl+Shift+Return) + I-0063 renumber** · verify | AC4 (+ I-0063/I-0064) |
 | SP-068 | chapter drag-reorder (container) · boundary drop highlight · full EP-023 verify + close prep | AC5, AC6, AC7, AC8 |
 
 ### Issues
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| I-0062 | Live new-chapter heading label reads "Chapter" until reload | 🟠 Open (deferred from EP-022; **targeted for closure in SP-066** as part of rename/live-heading work) |
+| I-0062 | Live new-chapter heading label reads "Chapter" until reload | ✅ Resolved-Verified (SP-066 / T-0256 — app derives "Chapter N" ordinal from segment order, macOS parity) |
+| I-0064 | Ctrl+Shift+Return appends a chapter at the manuscript end instead of splitting/inserting at the caret | 🔵 Open — **targeted SP-067** (needs the `reorder_*` orchestration that sprint delivers; full blueprint in `Issues/Issue-active.md`) |
+| I-0063 | Deleting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | 🔵 Open (backlog; untitled chapters already renumber via the derived ordinal) — pairs with I-0064 in SP-067 |
 
 ### Open Questions
 
@@ -176,8 +182,11 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-15 (EP-023 `[Linux]` Manuscript Structure Editing — **SP-065 (delete) ✅ Verified over
-VNC**: AC1 + AC2 checked; tasks T-0250–T-0253 all Verified; SP-065 → 🟠 Review (awaiting close approval).
+*Last Updated: 2026-07-15 (EP-023 `[Linux]` Manuscript Structure Editing — **SP-065 (delete) ✅ closed** and
+**SP-066 (rename) ✅ closed** (AC1/AC2/AC3 verified; I-0062 Resolved-Verified via app-derived "Chapter N"
+ordinal, macOS parity; T-0250–T-0257 archived). **2 of 4 sprints closed.** Next: **SP-067** (scene drag-reorder
++ **I-0064** Ctrl+Shift+Return chapter-split + **I-0063** renumber). Two `[Linux]` defects surfaced during
+SP-066 verify: I-0064 (chapter-split → SP-067) and I-0063 (renumber created chapters on delete → backlog/SP-067).
 **No ScriviCore work** — all eight structure endpoints already exist (`scrivi.h:173–219`); pure
 `platforms/linux/` bridge + `QTreeView`/viewport UI. Scoping locked pre-SP-065: chapter-title toggle
 **deferred to EP-026**; reorder = **`QTreeView` drag-and-drop**. **Sized at 4 sprints** — SP-065 delete ✅ ·

@@ -146,6 +146,26 @@ public:
     Q_INVOKABLE QVariantMap deleteChapter(const QString& projectRootPath,
                                           const QString& chapterID);
 
+    // Renames one scene — writes the sidecar `title` field (EP-023 / SP-066, T-0254).
+    // Calls scrivi_rename_scene(projectRootPath, metadataPath, newTitle) and returns its
+    // ok "result": {metadataPath, newTitle, renamed}. `metadataPath` is the scene's own
+    // sidecar path; a blank/whitespace `newTitle` clears the custom title (saved empty),
+    // and the navigator falls back to the first prose line. On failure emits
+    // errorOccurred and returns {}. No author identity (rename is not an authored edit).
+    Q_INVOKABLE QVariantMap renameScene(const QString& projectRootPath,
+                                        const QString& metadataPath,
+                                        const QString& newTitle);
+
+    // Renames one chapter — writes the chapter sidecar `title` (EP-023 / SP-066, T-0254).
+    // Calls scrivi_rename_chapter(projectRootPath, metadataPath, newTitle) and returns
+    // its ok "result": {metadataPath, newTitle, renamed}. `metadataPath` is the
+    // CHAPTER's metadata path (carried in scrivi_open_project's scene entries as
+    // `chapterMetadataPath`). Blank/whitespace clears the custom title → navigator +
+    // heading fall back to "Chapter N". On failure emits errorOccurred and returns {}.
+    Q_INVOKABLE QVariantMap renameChapter(const QString& projectRootPath,
+                                          const QString& metadataPath,
+                                          const QString& newTitle);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

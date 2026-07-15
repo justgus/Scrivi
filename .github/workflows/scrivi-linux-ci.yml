@@ -124,6 +124,16 @@ jobs:
           platforms/linux/tests/scene_delete_smoke.sh \
             ./build/platforms/linux/scrivi_linux_scene_delete_smoke
 
+      # In-navigator rename smoke (SP-066 / T-0257, EP-023 AC3): build a 2-chapter
+      # fixture, rename a scene + a chapter via bridge.renameScene / renameChapter
+      # (asserting the sidecar title round-trips on reopen, incl. blank→cleared), and
+      # apply the label/heading update to a SceneDocument (setChapterTitle rewrites the
+      # live heading in place, offset map well-formed). Offscreen platform.
+      - name: Scene-rename smoke test
+        run: |
+          platforms/linux/tests/scene_rename_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_rename_smoke
+
       # Quit-path smoke (SP-062 regression guard): the shell flip broke the landing
       # Quit button (a QQuickWidget engine doesn't auto-wire QQmlEngine::quit()).
       # Assert the connection main.cpp adds drives the app to exit. Offscreen.
