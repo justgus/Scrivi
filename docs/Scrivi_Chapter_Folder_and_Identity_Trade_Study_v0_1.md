@@ -302,3 +302,27 @@ auto-remove — independent of the on-disk model), and **pause/roll the chapter-
 (I-0064/I-0069/I-0070/I-0072) into the new Epic** rather than fixing them twice on a model that's being replaced.
 I-0071 (last-scene backfill) also folds in, as it's a scene-structure behavior. SP-067's AC4 (drag) can be
 verified once the drag fix lands **on a fresh (non-corrupt) project**; its split/renumber ACs defer to the Epic.
+
+### 7.6 Refinement during P2 implementation (2026-07-16): keep chapterID as a self-healing cache
+§7.1 said `chapterID` would be **removed** from `manuscript.meta.json`. During P2 the Human decided to **keep it
+as a self-healing cache** rather than drop it from the schema. Rationale:
+- Order is already fully disk-authoritative (`ManuscriptOrderResolver` iterates `listChaptersByOrder`, ignoring
+  the index array), and the index is **rebuilt from disk on open whenever it disagrees** with the on-disk
+  folders (`rebuildIndexIfInconsistent`) — de-duplicating and dropping phantom entries (the I-0072 self-heal).
+- So the index `chapterID` can no longer diverge (it self-heals to match the sidecars), which means dropping it
+  from the schema is **churn without functional gain** — it would ripple through the serde and every consumer +
+  test that constructs `ChapterRef{id, path}`, for a field that is now a harmless, always-consistent cache.
+- **Net:** B3's *guarantees* are met (filesystem is the source of truth for identity + order; the index is a
+  rebuildable, self-healing cache). The literal schema change (`ChapterRef{path}` only) is **deferred** and can
+  be done later if desired; it is not required for correctness or for the I-0072 fix.
+
+Consumers still reading `ref.chapterID` (`ChapterRenamer`, `ProjectValidator`, `ExternalChangeScanner`) are
+therefore correct as-is, because they read a now-always-consistent (self-healed) index. Migrating them to
+resolve identity directly from disk via `ChapterIndex` is an optional robustness follow-up, not a P2
+requirement.
+
+**P2 delivered (2026-07-16, ctest 288/288 macOS + Linux):** `util/OrderKey` (fractional keys), `ChapterIndex`
+(disk-authoritative helpers + `rebuildIndexIfInconsistent`), `ChapterCreator` order-key slugs (**I-0072
+collision fixed**), `ManuscriptOrderResolver` order-by-folder-sort, `ChapterReorderer` = `keyBetween` +
+`renamePath` one folder (paths rewritten), and open-time index self-heal. Schema `chapterID` drop + consumer
+disk-migration: **deferred** (see above).

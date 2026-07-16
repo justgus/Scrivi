@@ -52,21 +52,27 @@ repairable on-disk layout the Human wants.
 
 ### Acceptance Criteria (draft — refine at each sprint's planning)
 
-- [ ] AC1 — **Order-key slugs (chapters):** new chapters get a fractional order-key folder name
+- [x] AC1 — **Order-key slugs (chapters):** new chapters get a fractional order-key folder name
   (`chapter-<orderKey>`); `listDirectory` sorted = reading order; **no name ever collides**, including after
-  deletes that leave gaps. `chapter-<count+1>` is gone. Closes the I-0072 collision class.
-- [ ] AC2 — **Insert/reorder renames one folder:** inserting or moving a chapter picks a new order-key between
-  its neighbours and renames **only that chapter's folder** (+ nothing else), via the new safe rename primitive;
-  the sorted listing reflects the new order. A rebalance path exists for the rare key-exhaustion case.
-- [ ] AC3 — **Disk-authoritative identity + order (B3):** `chapterID` is stored **only** in the sidecar;
-  `manuscript.meta.json` no longer carries per-chapter ids and is treated as a rebuildable cache. Every consumer
-  that matched on the index id now derives identity from the sidecar / order from folder sort.
-- [ ] AC4 — **Rebuild-on-load self-heal:** a missing, stale, or inconsistent index is rebuilt from the
-  `chapter-*` folders (sort by order-key, read sidecars). A project whose index disagrees with disk (incl.
-  I-0072's phantom/duplicate damage) opens correctly and self-heals.
-- [ ] AC5 — **FileSystem rename/move primitive:** `renamePath` (and directory move) added to the port, atomic
-  where the OS allows and leaving a detectable/resumable half-state otherwise; `LocalFileSystem` impl + test
-  fakes; unit-tested incl. crash-mid-rename.
+  deletes that leave gaps. `chapter-<count+1>` is gone. Closes the I-0072 collision class. ✅ **P2 2026-07-16**
+  (`ChapterCreator` + regression test; initial `chapter-001` kept — created once, never collides). Not verified.
+- [x] AC2 — **Insert/reorder renames one folder:** moving a chapter picks a new order-key between its
+  neighbours and renames **only that chapter's folder** via `renamePath` (rewriting the sidecar slug + embedded
+  scene paths); the sorted listing reflects the new order. ✅ **P2 2026-07-16** (`ChapterReorderer`). Rare
+  key-exhaustion rebalance path: not yet needed (deferred). Not verified.
+- [x] AC3 — **Disk-authoritative identity + order (B3):** order is the on-disk folder-key sort
+  (`ManuscriptOrderResolver` via `listChaptersByOrder`), identity is the sidecar `chapterID`. ✅ **P2 2026-07-16.**
+  *Refinement:* the index `chapterID` is **kept as a self-healing cache** (not dropped from the schema) — it
+  can't diverge (self-heals on open), so the literal schema drop is deferred as churn-without-gain (trade study
+  §7.6). Not verified.
+- [x] AC4 — **Rebuild-on-load self-heal:** an inconsistent index is rebuilt from the `chapter-*` folders on open
+  (`rebuildIndexIfInconsistent`, wired into `ProjectOpener`). A project whose index disagrees with disk (incl.
+  I-0072's phantom/duplicate damage) self-heals — tested. ✅ **P2 2026-07-16.** Not verified.
+- [x] AC5 — **FileSystem rename/move primitive:** `renamePath` added to the port; atomic within a filesystem
+  (`std::filesystem::rename` — a crash mid-rename never leaves a half-moved dir), **refuses to clobber** an
+  existing destination, and refuses a missing source; `LocalFileSystem` impl; unit-tested (file move, directory
+  move w/ contents, no-clobber file+dir, missing-source). ✅ **Implemented 2026-07-16 (SP-069/T-0264)** — ctest
+  green macOS (273/273) + Linux container; not yet user-verified.
 - [ ] AC6 — **Migration of old-format projects:** an existing `chapter-NNN` + id-in-index project is detected at
   open and migrated lazily/idempotently/resumably to order-key slugs + disk-authoritative identity, without data
   loss and without bricking a half-migrated or never-opened project. Both schemes read during the transition.
@@ -82,14 +88,14 @@ repairable on-disk layout the Human wants.
 
 **Core-first, then per-platform verification** (Human decision 2026-07-16). Chapters before scenes.
 
-| Phase | Scope | Codebase |
-| ----- | ----- | -------- |
-| P1 — Rename primitive | `renamePath`/move in the FileSystem port + `LocalFileSystem` + fakes + crash-safe tests (AC5) | `[ScriviCore]` |
-| P2 — Order-key + disk-authority (chapters) | Order-key generator; `ChapterCreator`/`Reorderer`/`Deleter` on order-key slugs; drop `chapterID` from the index; consumers derive from sidecar/sort; rebuild-on-load (AC1–AC4) | `[ScriviCore]` |
-| P3 — Migration | Detect + lazy/idempotent/resumable old→new migration; dual-scheme read (AC6) | `[ScriviCore]` |
-| P4 — Linux verify | Rebuild/verify the Linux app on the new model; VNC create/reorder/migrate; re-home the paused SP-067 structure Issues here | `[Linux]` |
-| P5 — Apple verify | Confirm Apple opens + migrates; no regression (AC8) | `[Apple]` |
-| P6 — Scenes | Apply order-key + disk-authority to scenes; migration; verify (AC7) | `[ScriviCore]` + platforms |
+| Phase | Scope | Codebase | Sprint / Status |
+| ----- | ----- | -------- | --------------- |
+| P1 — Rename primitive | `renamePath`/move in the FileSystem port + `LocalFileSystem` + crash-safe tests (AC5) | `[ScriviCore]` | **SP-069** 🟢 Implemented (2026-07-16) — `FileSystem::renamePath` (atomic-within-fs, no-clobber, missing-source guard); T-0264; ctest green macOS + Linux (`[renamePath]` 5/20). Not verified. |
+| P2 — Order-key + disk-authority (chapters) | Order-key generator; `ChapterCreator`/`Reorderer` on order-key slugs; disk-authoritative order; open-time index self-heal (AC1–AC4) | `[ScriviCore]` | ✅ **Functionally complete — Not Verified (2026-07-16, ctest 288/288 macOS + Linux).** `util/OrderKey` (fractional keys, 3119 property assertions); `manuscript/ChapterIndex` disk-authoritative helpers + `rebuildIndexIfInconsistent`; `ChapterCreator` order-key slugs (**I-0072 collision FIXED + regression**); `ManuscriptOrderResolver` orders by **folder-key sort (B3)**; `ChapterReorderer` = `keyBetween` + **`renamePath` one folder** (paths rewritten); **open-time self-heal repairs an I-0072-corrupt index** (phantom/duplicate → rebuilt from disk, idempotent, tested). **Deferred (Human decision — churn without functional gain):** dropping `chapterID` from `ChapterRef` schema + migrating the 3 consumers that read it — the index `chapterID` is now a self-healing cache that can't diverge (trade study §7.6). |
+| P3 — Migration | Detect + lazy/idempotent/resumable old→new migration; dual-scheme read (AC6) | `[ScriviCore]` | 🔵 Planned |
+| P4 — Linux verify | Rebuild/verify the Linux app on the new model; VNC create/reorder/migrate; re-home the paused SP-067 structure Issues here | `[Linux]` | 🔵 Planned |
+| P5 — Apple verify | Confirm Apple opens + migrates; no regression (AC8) | `[Apple]` | 🔵 Planned |
+| P6 — Scenes | Apply order-key + disk-authority to scenes; migration; verify (AC7) | `[ScriviCore]` + platforms | 🔵 Planned |
 
 ### Issues rolled in (from SP-067 / EP-023, per the trade-study decision 2026-07-16)
 

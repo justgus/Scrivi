@@ -1,8 +1,10 @@
 #include "manuscript/ChapterCreator.hpp"
 
+#include "manuscript/ChapterIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
+#include "util/OrderKey.hpp"
 #include "util/PathUtils.hpp"
 
 namespace scrivi::manuscript {
@@ -35,14 +37,22 @@ Result<CreateChapterResult> ChapterCreator::create(const CreateChapterRequest& r
     if (!msParsed.ok()) { return Result<CreateChapterResult>::failure(msParsed.error()); }
 
     auto& ms = msParsed.value();
-    const std::size_t newChapterOrdinal = ms.chapters.size() + 1;
 
-    // 2. Generate chapter ID and slug
+    // 2. Generate chapter ID and an ORDER-KEY slug (EP-027 A4b). The folder name is
+    //    `chapter-<orderKey>`; sorting folders by key == manuscript order. create_chapter
+    //    appends at the end, so the new key is keyAfter(the current last chapter's key).
+    //    This is collision-free by construction — the fix for the I-0072 `count+1` slug
+    //    reuse-after-delete corruption. The number of existing chapters is irrelevant.
     const ChapterID newChapterID = ids.newChapterID();
-    const std::string chapterSlug = "chapter-" +
-        std::to_string(newChapterOrdinal).insert(
-            0, 3 - std::min<std::size_t>(3, std::to_string(newChapterOrdinal).size()), '0');
 
+    auto chaptersR = listChaptersByOrder(fs, root);
+    if (!chaptersR.ok()) { return Result<CreateChapterResult>::failure(chaptersR.error()); }
+    const auto& existing = chaptersR.value();
+    const std::string lastKey = existing.empty() ? std::string()
+                                                  : existing.back().orderKey;
+    const std::string orderKey = util::keyAfter(lastKey);
+
+    const std::string chapterSlug = "chapter-" + orderKey;
     const std::string chapterDir     = "manuscript/" + chapterSlug;
     const std::string chMetaRelPath  = chapterDir + "/chapter.meta.json";
     const std::string chMetaAbsPath  = util::join(root, chMetaRelPath);
@@ -84,7 +94,11 @@ Result<CreateChapterResult> ChapterCreator::create(const CreateChapterRequest& r
         schemas::serializeSceneMeta(sceneMeta));
     if (!writeSceneMetaR.ok()) { return Result<CreateChapterResult>::failure(writeSceneMetaR.error()); }
 
-    // 7. Write chapter.meta.json
+    // 7. Write chapter.meta.json. The display ordinal is the new chapter's POSITION
+    //    (it appends last → existing count + 1), derived from order — not from a folder
+    //    number. (The durable "Chapter N" numbering is order-derived in the display layer;
+    //    this stored title is a starting label, kept here to preserve current behavior.)
+    const std::size_t newChapterOrdinal = existing.size() + 1;
     schemas::ChapterMetaData ch;
     ch.chapterID              = newChapterID;
     ch.title                  = "Chapter " + std::to_string(newChapterOrdinal);

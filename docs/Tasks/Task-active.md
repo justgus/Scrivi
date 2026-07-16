@@ -1,6 +1,17 @@
 # Active Tasks
 
-_No active sprint._ **SP-067 ✅ closed 2026-07-16** — delivered **AC4 scene drag-reorder** (T-0260, verified;
+**SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority**) is 🟢 Implemented,
+Not Verified (2026-07-16). `scrivi.h` untouched; ctest green **288/288 macOS + Linux**. **I-0072 root cause
+fixed + regression + open-time self-heal for existing damage.** Full task table in `Sprints/Sprint-active.md`
+(T-0264 P1; T-0265–T-0269 P2). **Deferred:** drop `chapterID` from `ChapterRef` schema (self-healing cache —
+churn without gain; trade study §7.6).
+
+**Epic:** EP-027 `[ScriviCore]` — **Sprint:** SP-069 (`Sprints/Sprint-active.md`). Next available **T-0270**
+(P3 migration).
+
+---
+
+_Prior:_ **SP-067 ✅ closed 2026-07-16** — delivered **AC4 scene drag-reorder** (T-0260, verified;
 I-0067/I-0068 fixed via `Qt::CopyAction`) + **I-0063 renumber** (T-0262, verified). Its chapter-split task
 **T-0261 (I-0064)** was **superseded → EP-027** (the split path is rebuilt on EP-027's new on-disk model), along
 with I-0069/I-0070/I-0072/I-0071. SP-067's verified tasks (T-0258/259/260/262/263) archive with the sprint

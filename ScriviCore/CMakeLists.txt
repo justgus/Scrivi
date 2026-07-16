@@ -28,6 +28,7 @@ target_sources(ScriviCore
         src/project_package/ProjectValidator.cpp
         src/project_package/ProjectOpener.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
+        src/manuscript/ChapterIndex.cpp
         src/manuscript/ChapterCreator.cpp
         src/manuscript/ChapterDeleter.cpp
         src/manuscript/ChapterRenamer.cpp
@@ -51,6 +52,7 @@ target_sources(ScriviCore
         src/platform/AppSupportLayout.cpp
         src/util/Process.cpp
         src/util/PathUtils.cpp
+        src/util/OrderKey.cpp
         src/util/Json.cpp
         src/util/AtomicWrite.cpp
         src/util/Hash.cpp

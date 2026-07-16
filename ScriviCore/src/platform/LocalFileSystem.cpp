@@ -85,4 +85,38 @@ Result<void> LocalFileSystem::removeFile(const AbsolutePath& path) {
     return Result<void>::success();
 }
 
+Result<void> LocalFileSystem::renamePath(const AbsolutePath& from, const AbsolutePath& to) {
+    std::error_code ec;
+
+    // `from` must exist — renaming a missing path is a caller error, not I/O noise.
+    if (!fs::exists(from, ec) || ec) {
+        return Result<void>::failure({.code=ErrorCode::invalidArgument,
+                                      .message="rename source does not exist", .path=from});
+    }
+
+    // Never clobber: refuse if the destination already exists. std::filesystem::rename
+    // has platform-dependent overwrite behavior (it may replace an empty dir or a file,
+    // but errors on a non-empty dir), so we guard explicitly to guarantee no destination
+    // is ever destroyed — the no-clobber invariant EP-027 depends on (cf. I-0072, where a
+    // slug collision overwrote a live chapter sidecar). std::error_code overload (no throw).
+    ec.clear();
+    if (fs::exists(to, ec) || ec) {
+        return Result<void>::failure({.code=ErrorCode::invalidArgument,
+                                      .message="rename destination already exists", .path=to});
+    }
+
+    // Atomic within a filesystem: the OS rename either fully succeeds or fully fails, so a
+    // crash mid-rename never leaves a half-moved directory.
+    ec.clear();
+    fs::rename(from, to, ec);
+    if (ec) {
+        // A cross-filesystem move surfaces as cross_device_link — report it rather than
+        // silently doing a non-atomic copy+delete (in-package moves are same-filesystem,
+        // so this should not occur for chapter/scene folders).
+        return Result<void>::failure({.code=ErrorCode::ioError, .message=ec.message(),
+                                      .path=from, .detail=to});
+    }
+    return Result<void>::success();
+}
+
 } // namespace scrivi::platform

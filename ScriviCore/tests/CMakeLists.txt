@@ -17,6 +17,9 @@ add_executable(ScriviCoreTests
     unit/MarkdownStripTests.cpp
     unit/JsonSchemaTests.cpp
     unit/HistoryServiceTests.cpp
+    unit/LocalFileSystemTests.cpp
+    unit/OrderKeyTests.cpp
+    unit/ChapterIndexTests.cpp
     integration/AppSupportLayoutTests.cpp
     integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp
@@ -35,6 +38,7 @@ add_executable(ScriviCoreTests
     integration/DeleteSceneTests.cpp
     integration/RenameSceneTests.cpp
     integration/ReorderTests.cpp
+    integration/ChapterSlugCollisionTests.cpp
     integration/TimelineTests.cpp
     integration/SearchableContentTests.cpp
     integration/HistoryCApiTests.cpp

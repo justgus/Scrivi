@@ -1,5 +1,6 @@
 #include "manuscript/ManuscriptOrderResolver.hpp"
 
+#include "manuscript/ChapterIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
@@ -15,21 +16,22 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
 {
     auto& fs = *services_.fileSystem;
 
-    // Read manuscript.meta.json
-    auto msPath = util::join(projectRoot, "manuscript/manuscript.meta.json");
-    auto msTextR = fs.readTextFile(msPath);
-    if (!msTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(msTextR.error());
-}
-
-    auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
-    if (!msParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(msParsed.error());
-}
+    // EP-027 B3: manuscript order is FILESYSTEM-AUTHORITATIVE — iterate chapters in
+    // order-key sort order straight from the on-disk `chapter-*` folders, NOT from the
+    // manuscript.meta.json array (which is a rebuildable cache, and may be stale/corrupt,
+    // e.g. the I-0072 phantom/duplicate entries). listChaptersByOrder reads each sidecar
+    // for the authoritative chapterID, so a divergent index can never mis-order or lose a
+    // chapter here.
+    auto chaptersR = listChaptersByOrder(fs, projectRoot);
+    if (!chaptersR.ok()) {
+        return Result<std::vector<ResolvedScene>>::failure(chaptersR.error());
+    }
 
     std::vector<ResolvedScene> scenes;
 
-    for (auto& chapterRef : msParsed.value().chapters) {
-        // chapterRef.path is relative to projectRoot and points to chapter.meta.json
-        auto chPath = util::join(projectRoot, chapterRef.path);
+    for (auto& chapterEntry : chaptersR.value()) {
+        const std::string& chapterRelPath = chapterEntry.chapterMetadataRelPath;
+        auto chPath = util::join(projectRoot, chapterRelPath);
         auto chTextR = fs.readTextFile(chPath);
         if (!chTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(chTextR.error());
 }
@@ -58,7 +60,7 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
             rs.status               = sParsed.value().status;
             rs.metadataPath         = sceneRef.metadataPath;
             rs.contentPath          = sParsed.value().contentPath;
-            rs.chapterMetadataPath  = chapterRef.path;
+            rs.chapterMetadataPath  = chapterRelPath;
             scenes.push_back(std::move(rs));
         }
     }

@@ -277,13 +277,13 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 249 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233 + 16 EP-022 T-0234–T-0249 + 4 EP-023/SP-065 T-0250–T-0253 + 4 EP-023/SP-066 T-0254–T-0257 + 6 EP-023/SP-067 T-0258–T-0263)
+- **Total Tasks:** 255 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233 + 16 EP-022 T-0234–T-0249 + 4 EP-023/SP-065 T-0250–T-0253 + 4 EP-023/SP-066 T-0254–T-0257 + 6 EP-023/SP-067 T-0258–T-0263 + 6 EP-027/SP-069 T-0264–T-0269)
 - **Backlog:** 39 🔵
 - **Superseded:** 2 ⚪ (T-0175 → expanded into EP-017; **T-0261 I-0064 chapter-split → rebuilt in EP-027**)
-- **Active:** 0 🟡 (SP-067 closed 2026-07-16; no active sprint)
+- **Active:** 6 🟢 (EP-027/SP-069 **T-0264–T-0269** — P1 rename primitive + P2 order-key/disk-authority/self-heal; ctest-green macOS + Linux, not verified)
 - **Unverified:** 0
 - **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, EP-021/SP-060 T-0230–T-0233, EP-022 T-0234–T-0249, EP-023/SP-065 T-0250–T-0253, EP-023/SP-066 T-0254–T-0257, and **EP-023/SP-067 T-0258/259/260/262/263** (scene drag-reorder AC4 + I-0063; T-0261 superseded → EP-027) verified (see Verified table / `Sprints/Closed/Sprint-SP-067.md`)
-- **Next available:** T-0264
+- **Next available:** T-0270
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190

@@ -51,6 +51,18 @@ public:
     virtual Result<std::vector<AbsolutePath>> listDirectory(
         const AbsolutePath& path)                                = 0;
     virtual Result<void> removeFile(const AbsolutePath& path)    = 0;
+    // Renames/moves a path (file or directory) from `from` to `to`. The move is
+    // ATOMIC within a filesystem (the OS `rename` either fully succeeds or fully
+    // fails — a crash mid-rename never leaves a half-renamed directory), which is
+    // why chapter/scene folder reslugging (EP-027) relies on it. It REFUSES to
+    // overwrite: if `to` already exists the call fails (invalidArgument) rather than
+    // clobbering — a new destination must never destroy existing content (the class
+    // of bug behind I-0072). `from` must exist. A cross-filesystem move (rename's
+    // `cross_device_link`) is reported as an ioError rather than silently doing a
+    // non-atomic copy+delete; in-package moves are always same-filesystem so this
+    // does not arise for chapter/scene folders.
+    virtual Result<void> renamePath(
+        const AbsolutePath& from, const AbsolutePath& to)        = 0;
 };
 
 class SecureStore {

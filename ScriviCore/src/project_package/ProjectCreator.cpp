@@ -80,6 +80,12 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     const SceneID      sceneID      = ids.newSceneID();
 
     const std::string& root          = request.projectRootPath;
+    // The initial chapter keeps its `chapter-001` slug (request.initialChapterSlug). Its
+    // order-key is therefore "001" — a valid order key (all base-62 digits, not ending in
+    // '0'), so it sorts first and ChapterCreator's keyAfter("001") appends after it
+    // correctly. Only the APPEND path (ChapterCreator) had the count+1 collision bug
+    // (I-0072); the initial chapter is created once and never collides, so it needs no
+    // change. (EP-027 P2.)
     const std::string  chapterSlug   = request.initialChapterSlug;
     const std::string  sceneSlug     = request.initialSceneSlug;
 

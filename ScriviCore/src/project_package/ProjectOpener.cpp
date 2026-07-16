@@ -1,5 +1,6 @@
 #include "project_package/ProjectOpener.hpp"
 
+#include "manuscript/ChapterIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/SceneReader.hpp"
 #include "project_package/ProjectValidator.hpp"
@@ -57,6 +58,12 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     summary.slug               = proj.slug;
     summary.rootPath           = request.projectRootPath;
     summary.gitSnapshotsEnabled = proj.gitSnapshotsEnabled;
+
+    // 2b. EP-027 B3 self-heal: if manuscript.meta.json's chapter index disagrees with the
+    //     on-disk `chapter-*` folders (stale order, phantom/duplicate entries — the I-0072
+    //     damage), rewrite it from disk so the cache matches truth. Best-effort: order is
+    //     derived from disk regardless, so a write failure here doesn't block the open.
+    manuscript::rebuildIndexIfInconsistent(fs, request.projectRootPath);
 
     // 3. Resolve manuscript order
     manuscript::ManuscriptOrderResolver resolver{services_};
