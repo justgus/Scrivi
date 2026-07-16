@@ -402,6 +402,101 @@ int SceneDocument::removeChapter(const QString& chapterID)
     return members.size();
 }
 
+int SceneDocument::moveScene(int fromIndex,
+                             const QString& targetChapterID,
+                             const QString& targetChapterTitle,
+                             const QString& afterSceneID)
+{
+    if (fromIndex < 0 || fromIndex >= segments_.size()) {
+        return -1;
+    }
+
+    // Capture the moved scene's identity + live body BEFORE we disturb the document,
+    // so the re-insert reproduces it exactly at the destination.
+    SceneSegment moved = segments_.at(fromIndex);   // copy
+    const QString movedBody = bodyText(fromIndex);
+    moved.chapterID    = targetChapterID;
+    moved.chapterTitle = targetChapterTitle;
+
+    // Resolve the destination as an INSERT index in the post-removal list. Compute it
+    // from stable sceneIDs (not raw indices) so it survives the removal's re-index.
+    // afterSceneID empty  → the moved scene becomes the target chapter's first scene.
+    // afterSceneID present → it lands immediately after that sibling.
+    // A move that would drop the scene exactly back where it started is a no-op.
+    if (!afterSceneID.isEmpty() && afterSceneID == moved.sceneID) {
+        return -1;   // can't land after itself
+    }
+
+    // Lift the source out. removeScene handles the old chapter's follower promotion
+    // (a follower inheriting a vacated chapter-first slot regains its heading) and
+    // fixes every later bodyStart. After this the list has one fewer segment.
+    if (!removeScene(fromIndex)) {
+        return -1;
+    }
+
+    // Where does it go now?
+    int insertIndex = -1;
+    if (afterSceneID.isEmpty()) {
+        // First scene of the target chapter: insert before that chapter's current
+        // first segment. If the target chapter has no segments left (it was the moved
+        // scene's own chapter and this was its last member), fall back to the front.
+        const int firstOfTarget = firstSegmentOfChapter(targetChapterID);
+        insertIndex = (firstOfTarget >= 0) ? firstOfTarget : 0;
+    } else {
+        const int afterIdx = sceneIndexForScene(afterSceneID);
+        if (afterIdx < 0) {
+            return -1;   // unknown sibling — refuse rather than guess a position
+        }
+        insertIndex = afterIdx + 1;
+    }
+    insertIndex = qBound(0, insertIndex, segments_.size());
+
+    // Insert the moved body with a PROVISIONAL leading boundary, then let reflow fix
+    // it (and the follower's) from position. We first place a bare separator; if the
+    // scene is the very first body reflow will strip the gap, and if it begins a
+    // chapter reflow will turn it into a heading — so the exact provisional text only
+    // needs to be non-empty enough to carve a boundary region. Match build()/insert:
+    // "\n\n" between bodies (index 0 gets its gap stripped by reflowBoundaryAt).
+    const int prevEnd =
+        (insertIndex == 0) ? 0
+                           : segments_.at(insertIndex - 1).bodyStart
+                                 + segments_.at(insertIndex - 1).bodyLength;
+
+    const QString provisional =
+        (insertIndex == 0) ? QString() : QStringLiteral("\n\n");
+    const QString inserted = provisional + movedBody;
+
+    QTextCursor cursor(&doc_);
+    cursor.beginEditBlock();
+    cursor.setPosition(prevEnd);
+    cursor.insertText(inserted);
+    cursor.endEditBlock();
+
+    moved.bodyStart  = prevEnd + provisional.length();
+    moved.bodyLength = movedBody.length();
+
+    // Shift every segment at/after the insert point by the inserted length, then splice
+    // the moved segment in.
+    for (int j = insertIndex; j < segments_.size(); ++j) {
+        segments_[j].bodyStart += inserted.length();
+    }
+    segments_.insert(insertIndex, moved);
+
+    // Now fix the leading boundary of the moved scene (heading if it begins a chapter,
+    // separator otherwise; gap stripped if it's first) and of the segment that now
+    // follows it (its predecessor changed). reflowBoundaryAt is offset-correcting and a
+    // no-op when the boundary is already right.
+    reflowBoundaryAt(insertIndex);
+    if (insertIndex + 1 < segments_.size()) {
+        reflowBoundaryAt(insertIndex + 1);
+    }
+
+    // Renumber every untitled chapter so ordinals stay correct after the move.
+    reflowAllChapterHeadings();
+
+    return sceneIndexForScene(moved.sceneID);
+}
+
 void SceneDocument::setSceneTitle(int index, const QString& title)
 {
     if (index < 0 || index >= segments_.size()) {

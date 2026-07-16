@@ -11,14 +11,18 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- _None currently active._
+_None active._ Two Epics are Active (**EP-027** `[ScriviCore]`, **EP-023** `[Linux]`) but no sprint is currently
+running. Recommended next: **EP-027 P1** (FileSystem `renamePath`/move primitive). Activate from the relevant
+Epic's plan.
 
-Last closed: **SP-066** (EP-023 `[Linux]` Rename scene/chapter — context menu, inline edit, live heading +
-I-0062) — ✅ closed 2026-07-15, all four tasks Verified (T-0254–T-0257); AC3 delivered & VNC-verified; I-0062
-Resolved-Verified; `Closed/Sprint-SP-066.md`. **EP-023** `[Linux]` (Manuscript Structure Editing) remains 🟡
-Active — the next sprint is **SP-067** (scene drag-reorder + I-0064 chapter-split + I-0063 renumber),
-drafted/activated at planning. SP-056/SP-057 (EP-019 `[Apple]`) remain in Planning but are parked behind the
-deferred EP-019 — see Backlog.
+Last closed: **SP-067** (EP-023 `[Linux]` Scene drag-reorder + I-0064 chapter-split + I-0063 renumber) — ✅
+**closed 2026-07-16**. Delivered **AC4 scene drag-reorder** (I-0067/I-0068 fixed by forcing the drag to
+`Qt::CopyAction` so Qt never auto-removes the source row; user-verified "It's clean" on a fresh project over VNC)
+and **I-0063** renumber (T-0262, Verified). The chapter-split pieces — **I-0064/I-0069/I-0070**, the root slug
+corruption **I-0072**, and **I-0071** — were **re-homed to the new EP-027** (rebuilt on its filesystem-authoritative
+on-disk model rather than fixed twice). Follow-on **I-0073** (VNC drag-hover lag, likely environmental) flagged.
+`Closed/Sprint-SP-067.md`. Prior: **SP-066** (EP-023 rename + I-0062) ✅ closed 2026-07-15. SP-056/SP-057 (EP-019
+`[Apple]`) remain in Planning, parked behind the deferred EP-019 — see Backlog.
 
 ## Sprint Backlog
 
@@ -31,7 +35,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **66 Sprints** (62 closed + 1 cancelled + 2 in Planning + 0 active) | Next available: **SP-067**
+Currently: **67 Sprints** (62 closed + 1 cancelled + 2 in Planning + 1 active) | Next available: **SP-068**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -101,11 +105,12 @@ Currently: **66 Sprints** (62 closed + 1 cancelled + 2 in Planning + 0 active) |
 | SP-064 | `[Linux]` Cursor/focus + quit-reopen restore + EP-022 verify & close | EP-022 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 | SP-065 | `[Linux]` Delete scene/chapter — context menu, confirmation, removal splice + delete-of-active | EP-023 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 | SP-066 | `[Linux]` Rename scene/chapter — context menu, inline edit, live heading + I-0062 | EP-023 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
+| SP-067 | `[Linux]` Scene drag-reorder (AC4) + I-0063 renumber — split/renumber (I-0064/69/70/72) re-homed to EP-027 | EP-023 `[Linux]` | 2026-07-15 | 2026-07-16 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 66
-- **Closed:** 62 ✅
+- **Total Sprints:** 67
+- **Closed:** 63 ✅
 - **Active:** 0
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
@@ -113,7 +118,12 @@ Currently: **66 Sprints** (62 closed + 1 cancelled + 2 in Planning + 0 active) |
 
 ---
 
-*Last Updated: 2026-07-15 (**SP-066 ✅ closed** with user approval — EP-023 `[Linux]` rename scene/chapter
+*Last Updated: 2026-07-16 (**SP-067 ✅ closed** with user approval — EP-023 `[Linux]` third sprint: delivered
+**AC4 scene drag-reorder** (I-0067/I-0068 fixed via `Qt::CopyAction`, VNC-verified on a fresh project) + **I-0063**
+renumber (Verified); the chapter-split defects **I-0064/I-0069/I-0070**, the root slug corruption **I-0072**, and
+**I-0071** were **re-homed to the new EP-027** `[ScriviCore]` (rebuilt on its filesystem-authoritative model);
+follow-on **I-0073** (VNC drag lag) flagged. Closed 62→63, Active 1→0, next available SP-068. Two Epics now Active
+(EP-027 `[ScriviCore]`, EP-023 `[Linux]`); recommended next start EP-027 P1. Earlier: **SP-066 ✅ closed** with user approval — EP-023 `[Linux]` rename scene/chapter
 (context menu + `QInputDialog` edit + live label/heading + app-derived "Chapter N" ordinal); tasks
 T-0254–T-0257 all Verified over VNC & archived to `Tasks/Verified/Task-verified-0254-0257.md`; delivered EP-023
 **AC3** + **I-0062 Resolved-Verified**; all 9 headless smokes green; no ScriviCore work (`scrivi.h` untouched).

@@ -6,7 +6,7 @@
 
 #include "SceneDocument.hpp"
 
-class QTreeView;
+class NavigatorTree;
 class QStandardItemModel;
 class QStandardItem;
 class QLabel;
@@ -87,10 +87,12 @@ private slots:
     // after it in the same chapter, splice it into the document/map/navigator, and
     // drop the caret into its empty body.
     void onCreateSceneRequested();
-    // Ctrl+Shift+Return in the editor (T-0241): save the current scene, create a new
-    // chapter (appended to the end, with its first scene), splice a chapter-heading
-    // boundary + that first scene onto the end of the document/map/navigator, and
-    // drop the caret into it.
+    // Ctrl+Shift+Return in the editor (T-0261, I-0064): SPLIT the current chapter at
+    // the caret (macOS ⌘⇧↩ parity, disk-correct). Creates a new chapter K after the
+    // current chapter C, reassigns the scenes that followed the caret's scene into K,
+    // splits the caret's scene head/tail when mid-scene, renumbers subsequent chapters,
+    // and confirms first when a renumber will happen. No longer appends an empty chapter
+    // at the manuscript end.
     void onCreateChapterRequested();
 
 private:
@@ -141,6 +143,17 @@ private:
     void renameChapterByID(const QString& chapterID);
     // Editor focus back to the writing surface after a modal rename dialog closes.
     void refocusEditor();
+
+    // --- EP-023 I-0063 renumber created chapters (T-0262) -----------------
+    // After any chapter structural change (delete / insert / split / reorder), walk the
+    // chapters in manuscript order and, for each whose STORED title matches the auto
+    // pattern `^Chapter \d+$`, renameChapter it (via the bridge, on its chapterMetadataPath)
+    // to its correct 1-based ordinal — so a created chapter's stored "Chapter N" tracks
+    // its position. Custom titles (anything not matching the pattern) are left alone;
+    // untitled chapters already renumber for free via chapterHeadingText. Runs under the
+    // loading_ guard. Returns true if any chapter was renamed (the caller should
+    // re-derive labels + rebuild the navigator afterward).
+    bool renumberCreatedChapters();
     // Re-fetch the backend-derived scene + chapter titles from scrivi_open_project and
     // apply them to the SceneDocument (scene labels via setSceneTitle; each chapter's
     // title via setChapterTitle, which also rewrites the live heading in place). Used
@@ -149,9 +162,19 @@ private:
     // which ScriviCore owns. Runs under the loading_ guard (no dirty churn).
     void applyDerivedLabels();
 
+    // --- EP-023 scene reorder (T-0260 / SP-067, AC4) ----------------------
+    // A navigator scene row was dropped: move the dragged scene into targetChapterID
+    // right after afterSceneID (empty = first in the target chapter). Saves dirty
+    // scenes, calls scrivi_reorder_scene, re-splices via SceneDocument::moveScene,
+    // renumbers created chapters (I-0063), rebuilds the navigator, and restores the
+    // caret/active scene to the moved scene.
+    void onSceneDropped(const QString& draggedSceneID,
+                        const QString& targetChapterID,
+                        const QString& afterSceneID);
+
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;
-    QTreeView*          navigator_ = nullptr;
+    NavigatorTree*      navigator_ = nullptr;
     QStandardItemModel* navModel_  = nullptr;
     QLabel*             errorLabel_ = nullptr;
     QTimer*             saveTimer_ = nullptr;   // idle-save debounce (~1.5s)

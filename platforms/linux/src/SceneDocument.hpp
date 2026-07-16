@@ -192,6 +192,35 @@ public:
     // the number of scenes removed (0 if the chapter is unknown).
     int removeChapter(const QString& chapterID);
 
+    // --- EP-023 scene reorder (T-0259 / SP-067) ---------------------------
+    //
+    // Move segment `fromIndex` within its chapter or across a chapter boundary,
+    // surgically re-splicing the live document + offset map WITHOUT a rebuild (the
+    // inverse peer of removeScene + insertSceneAfter, but preserving the moved body).
+    //
+    // The destination mirrors the scrivi_reorder_scene contract: `targetChapterID` is
+    // the chapter the scene joins (== its current chapter for a within-chapter move),
+    // and `afterSceneID` names the sibling it lands right after — empty means it
+    // becomes the target chapter's FIRST scene. The moved scene's `chapterID`/
+    // `chapterTitle` are updated to the target chapter's; its body text and identity
+    // (sceneID, metadataPath, contentPath, slug, title) are preserved.
+    //
+    // Boundary handling (reuses build()'s leading-boundary rule via reflow):
+    //   • Lifting the scene out demotes/promotes its old-chapter follower exactly as
+    //     removeScene does (a follower that inherits a vacated chapter-first slot gains
+    //     its heading; a mid-chapter follower is untouched).
+    //   • Re-inserting it gives it a heading when it becomes the target chapter's first
+    //     scene, or a plain separator otherwise.
+    // Then reflowAllChapterHeadings() renumbers every untitled chapter so ordinals stay
+    // correct after the move. Runs inside a caller-managed "programmatic" window (no
+    // dirty churn). Returns the moved scene's NEW segment index, or -1 on a bad move
+    // (unknown fromIndex, unknown afterSceneID, or a no-op that would place the scene
+    // exactly where it already is).
+    int moveScene(int fromIndex,
+                  const QString& targetChapterID,
+                  const QString& targetChapterTitle,
+                  const QString& afterSceneID);
+
     // --- EP-023 rename (T-0255) -------------------------------------------
     //
     // Update segment `index`'s scene title in the map (the navigator label authority).

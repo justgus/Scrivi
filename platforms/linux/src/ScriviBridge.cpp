@@ -224,6 +224,46 @@ QVariantMap ScriviBridge::deleteChapter(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::reorderScene(const QString& projectRootPath,
+                                       const QString& sceneID,
+                                       const QString& sourceChapterID,
+                                       const QString& targetChapterID,
+                                       const QString& afterSceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Moves the scene within its chapter (source == target) or across chapters. No
+    // author identity — a reorder is a structural move, not an authored edit. An empty
+    // afterSceneID places it first in the target chapter.
+    const ScriviString envelope(
+        scrivi_reorder_scene(projectRootPath.toUtf8().constData(),
+                             sceneID.toUtf8().constData(),
+                             sourceChapterID.toUtf8().constData(),
+                             targetChapterID.toUtf8().constData(),
+                             afterSceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::reorderChapter(const QString& projectRootPath,
+                                         const QString& chapterID,
+                                         const QString& afterChapterID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Moves the chapter to sit after afterChapterID (empty = front). No author identity.
+    const ScriviString envelope(
+        scrivi_reorder_chapter(projectRootPath.toUtf8().constData(),
+                               chapterID.toUtf8().constData(),
+                               afterChapterID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::renameScene(const QString& projectRootPath,
                                       const QString& metadataPath,
                                       const QString& newTitle)

@@ -1,5 +1,120 @@
 # Active Epics
 
+## EP-027: [ScriviCore] Filesystem-Authoritative Chapter/Scene Identity & Ordering
+
+**Codebase:** `[ScriviCore]` (shared C++ backend) + per-platform verification (`[Linux]`, `[Apple]`).
+**Cross-platform:** changes the on-disk `.scrivi` package layout, so it affects **every** platform that reads a
+project. `scrivi.h` shape kept stable where possible (the change is on-disk behavior, not API).
+
+**Status:** 🟡 Active (activated 2026-07-16). **Design decided** — see
+`docs/Scrivi_Chapter_Folder_and_Identity_Trade_Study_v0_1.md` (Human-approved 2026-07-16).
+
+**Goal:** Make the **filesystem the source of truth** for chapter (then scene) **identity and order**, and stop
+deriving folder names from positional counts. Concretely:
+- **A4b — fractional order-key slugs:** `chapter-<orderKey>` where `orderKey` is a lexicographically-sortable
+  rank string (`a0`, `a0m`, `a1`, …); a plain sorted directory listing equals manuscript reading order. Folder
+  names are **order-key only** (no human suffix; the human title lives in the sidecar). Inserting/moving a
+  chapter renames **at most one folder** (a new key between neighbours); a rare global **rebalance** is the only
+  multi-rename event.
+- **B3 — disk-authoritative:** chapter **identity** lives solely in the sidecar (`chapter.meta.json.chapterID`);
+  chapter **order** is the folders' sort position. `chapterID` is **removed from `manuscript.meta.json`**, which
+  becomes a **rebuildable cache/manifest**, never authoritative.
+- **Order Authority = filesystem.**
+- **New FileSystem-port primitive:** a crash-safe `renamePath`/move (the port has none today).
+- **Migration:** detect old-format projects (numeric `chapter-NNN` names and/or per-entry `chapterID` in the
+  index) and migrate them **lazily, idempotently, resumably** (repair-on-open), reading BOTH schemes during the
+  transition and writing only the new one.
+- **Load-time self-heal:** rebuild the index from disk when it's missing/inconsistent — this also repairs the
+  I-0072 phantom/duplicate damage.
+
+**Why now:** I-0072 root-caused the `chapter-<count+1>` slug collision that corrupts `manuscript.meta.json`
+(phantom + duplicate entries, sidecar clobbering) after any delete — and the Human's review surfaced the deeper
+architecture issues (positional names on an identity model; `chapterID` duplicated across index + sidecar with
+no owner). This Epic fixes the class of bug, not just the instance, and delivers the self-describing, easily
+repairable on-disk layout the Human wants.
+
+**Design references:**
+- `docs/Scrivi_Chapter_Folder_and_Identity_Trade_Study_v0_1.md` — **the decided design** (options, criteria,
+  decision record §7).
+- `ScriviCore/src/manuscript/ChapterCreator.cpp` (slug-collision origin), `ChapterReorderer.cpp` (order writer,
+  clean), `ChapterDeleter.cpp` (no renumber), `SceneCreator.cpp` (same pattern → phase 2).
+- `ScriviCore/include/scrivi/Services.hpp` (FileSystem port — needs `renamePath`), `LocalFileSystem.*`.
+- `ScriviCore/src/schemas/ManuscriptMetaJson.*` (`ChapterRef{chapterID,path}` → `{path}`),
+  `ChapterMetaJson.*` (sidecar owns id; has a `slug` field already).
+- `ScriviCore/src/project_package/ProjectValidator.cpp`, `repair/ExternalChangeScanner.cpp` — existing
+  integrity/repair machinery to extend for rebuild-from-disk.
+- `docs/Scrivi_Project_Package_Structure_v0_1.md`, `Scrivi_Minimum_Schema_Set_v0_1.md`,
+  `Scrivi_External_Change_Repair_Matrix_v0_2.md` — on-disk/schema/repair docs this Epic revises.
+
+**Date Created:** 2026-07-16
+**Target Close Date:** TBD
+**Actual Close Date:** —
+
+### Acceptance Criteria (draft — refine at each sprint's planning)
+
+- [ ] AC1 — **Order-key slugs (chapters):** new chapters get a fractional order-key folder name
+  (`chapter-<orderKey>`); `listDirectory` sorted = reading order; **no name ever collides**, including after
+  deletes that leave gaps. `chapter-<count+1>` is gone. Closes the I-0072 collision class.
+- [ ] AC2 — **Insert/reorder renames one folder:** inserting or moving a chapter picks a new order-key between
+  its neighbours and renames **only that chapter's folder** (+ nothing else), via the new safe rename primitive;
+  the sorted listing reflects the new order. A rebalance path exists for the rare key-exhaustion case.
+- [ ] AC3 — **Disk-authoritative identity + order (B3):** `chapterID` is stored **only** in the sidecar;
+  `manuscript.meta.json` no longer carries per-chapter ids and is treated as a rebuildable cache. Every consumer
+  that matched on the index id now derives identity from the sidecar / order from folder sort.
+- [ ] AC4 — **Rebuild-on-load self-heal:** a missing, stale, or inconsistent index is rebuilt from the
+  `chapter-*` folders (sort by order-key, read sidecars). A project whose index disagrees with disk (incl.
+  I-0072's phantom/duplicate damage) opens correctly and self-heals.
+- [ ] AC5 — **FileSystem rename/move primitive:** `renamePath` (and directory move) added to the port, atomic
+  where the OS allows and leaving a detectable/resumable half-state otherwise; `LocalFileSystem` impl + test
+  fakes; unit-tested incl. crash-mid-rename.
+- [ ] AC6 — **Migration of old-format projects:** an existing `chapter-NNN` + id-in-index project is detected at
+  open and migrated lazily/idempotently/resumably to order-key slugs + disk-authoritative identity, without data
+  loss and without bricking a half-migrated or never-opened project. Both schemes read during the transition.
+- [ ] AC7 — **Scenes (follow-on phase):** the same order-key slug + disk-authority treatment applies to scenes'
+  `NNN-slug` within a chapter (`SceneCreator`), removing the analogous scene-slug collision. *(Phase 2 — after
+  chapters are proven.)*
+- [ ] AC8 — **Cross-platform verify + no regression:** ScriviCore `ctest` green (new order-key, rename, migration,
+  rebuild tests); the **Linux** app opens/creates/reorders/migrates correctly over VNC; the **Apple** app opens
+  and migrates a project. Existing flows (create/open/close/delete/rename/reorder, history) unbroken on both
+  platforms.
+
+### Phases / Sprints (sketch — IDs assigned at activation)
+
+**Core-first, then per-platform verification** (Human decision 2026-07-16). Chapters before scenes.
+
+| Phase | Scope | Codebase |
+| ----- | ----- | -------- |
+| P1 — Rename primitive | `renamePath`/move in the FileSystem port + `LocalFileSystem` + fakes + crash-safe tests (AC5) | `[ScriviCore]` |
+| P2 — Order-key + disk-authority (chapters) | Order-key generator; `ChapterCreator`/`Reorderer`/`Deleter` on order-key slugs; drop `chapterID` from the index; consumers derive from sidecar/sort; rebuild-on-load (AC1–AC4) | `[ScriviCore]` |
+| P3 — Migration | Detect + lazy/idempotent/resumable old→new migration; dual-scheme read (AC6) | `[ScriviCore]` |
+| P4 — Linux verify | Rebuild/verify the Linux app on the new model; VNC create/reorder/migrate; re-home the paused SP-067 structure Issues here | `[Linux]` |
+| P5 — Apple verify | Confirm Apple opens + migrates; no regression (AC8) | `[Apple]` |
+| P6 — Scenes | Apply order-key + disk-authority to scenes; migration; verify (AC7) | `[ScriviCore]` + platforms |
+
+### Issues rolled in (from SP-067 / EP-023, per the trade-study decision 2026-07-16)
+
+| ID | Title | Disposition |
+| -- | ----- | ----------- |
+| I-0072 | `chapter-<count+1>` slug collision corrupts the index | **Root defect this Epic fixes** (AC1/AC4/AC6) |
+| I-0064 | Ctrl+Shift+Return appends instead of splitting at the caret | Chapter-structure op — rebuilt on the new model here (was SP-067/T-0261) |
+| I-0069 | End-of-scene-with-followers split shows no new chapter | Same split path — rebuilt here (was SP-067) |
+| I-0070 | End-of-scene-no-followers split appends at manuscript end | Same split path — rebuilt here (was SP-067) |
+| I-0071 | Last-scene drag orphans an empty chapter (backfill blank scene) | Scene-structure behavior — folds into P6/scenes |
+
+**Not rolled in:** I-0067/I-0068 (scene drag vanish/no-persist) — these are an **app-layer** Qt MoveAction bug
+independent of the on-disk model; they stay in SP-067 and are fixed there (verify on a fresh project). I-0063
+(renumber created chapters) was **already Verified** and stays closed.
+
+### Open items to confirm at P1/P2 planning
+
+- Exact order-key encoding (base-N alphabet, rebalance threshold) — pick a proven scheme; document it.
+- Whether the index (cache) is written eagerly by each op or purely rebuilt on load (leaning: written eagerly
+  for speed, but authoritative-only as a rebuildable cache — never trusted over disk).
+- `scrivi.h` impact — confirm the change stays on-disk-only (no C ABI shape change); if a new
+  `scrivi_migrate`/`scrivi_rebuild_index` entrypoint is wanted, it's additive.
+
+---
+
 ## EP-023: [Linux] Manuscript Structure Editing
 
 **Codebase:** `[Linux]` (Qt/QML Ubuntu app, `platforms/linux/`) — calls `[ScriviCore]` only via the
@@ -8,7 +123,13 @@ exist in `scrivi.h` (create scene/chapter already wrapped by `ScriviBridge` in S
 need bridge wrappers only). Any genuinely missing endpoint would be a Task with a `[ScriviCore]` note — none
 expected.
 
-**Status:** 🟡 Active (promoted from 🔵 Draft and activated 2026-07-15; first sprint SP-065)
+**Status:** 🟡 Active (activated 2026-07-15). **3 of 4 sprints closed** (SP-065 delete, SP-066 rename, SP-067
+scene drag-reorder). **AC1/AC2/AC3 verified** (delete, rename; I-0062 closed) and **AC4 verified** (scene
+drag-reorder, SP-067 — I-0067/I-0068 fixed via `Qt::CopyAction`; I-0063 renumber Verified). The chapter-split
+defects surfaced in SP-067 (**I-0064/I-0069/I-0070**) and their root **`[ScriviCore]` slug corruption (I-0072)**
+were **re-homed to EP-027** (`[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering). Remaining:
+**SP-068** (chapter drag-reorder AC5 + EP-023 verify/close) — 🔵 Planning; its chapter-structure verification
+depends on EP-027's new on-disk model, so sequence SP-068 against EP-027.
 **Goal:** Give the Linux writer full control over manuscript structure **from the scene navigator** —
 **create**, **delete** (with confirmation), **rename**, and **reorder** scenes and chapters. Scenes reorder
 within and across chapters by drag; chapters reorder as containers carrying their scenes. Rename writes the
@@ -64,10 +185,12 @@ decided at planning (4 — see Sprints).
   scene → first-line/"Untitled"; I-0062 closed). *Note: chapter numbering is derived from order (the app
   layer owns it); renumbering **created** chapters on delete is I-0063, and Ctrl+Shift+Return chapter-split is
   I-0064 — both → SP-067, not AC3.*
-- [ ] AC4 — **Scene reorder (drag):** scene rows are draggable in the `QTreeView`; dragging a scene within
+- [x] AC4 — **Scene reorder (drag):** scene rows are draggable in the `QTreeView`; dragging a scene within
   its chapter reorders it; dragging a scene across a chapter boundary moves it to the target chapter at the
   indicated position, calling `scrivi_reorder_scene(sceneID, sourceChapterID, targetChapterID,
-  afterSceneID)`. The continuous viewport re-splices to the new manuscript order.
+  afterSceneID)`. The continuous viewport re-splices to the new manuscript order. ✅ **Verified over VNC
+  2026-07-16** (SP-067 — within/cross-chapter drag, insertion-line highlight, persists across quit→reopen;
+  I-0067/I-0068 fixed by forcing `Qt::CopyAction` so Qt never auto-removes the source row).
 - [ ] AC5 — **Chapter reorder (drag):** chapter rows are draggable and move as a **unit** (chapter + all its
   scenes) to the new position via `scrivi_reorder_chapter(chapterID, afterChapterID)`. A clear
   insertion-line drop highlight makes the landing position unambiguous, including chapter-boundary positions
@@ -95,8 +218,8 @@ refine at planning.
 | ------ | ----- | ------ | ----- |
 | SP-065 | **Delete** scene/chapter — bridge wrappers (`delete_scene`/`delete_chapter`) + navigator context menu (Delete) + confirmation dialogs (chapter warns "+ all scenes") + document/map/navigator removal splice + delete-of-active-scene → nearest + focus. (AC1, AC2) | ✅ Closed | 2026-07-15 |
 | SP-066 | **Rename** scene/chapter — bridge wrappers (`rename_scene`/`rename_chapter`) + context-menu Rename + focused edit field + blank-title fallback chain + **live chapter-heading label (closes I-0062)**. (AC3) | ✅ Closed | 2026-07-15 |
-| SP-067 | **Scene drag-reorder** in `QTreeView` — within-chapter + cross-chapter move (`reorder_scene`) + viewport re-splice + drop insertion-line highlight. (AC4) | 🔵 Planning | — |
-| SP-068 | **Chapter drag-reorder** (chapter-as-container, `reorder_chapter`) + boundary-unambiguous drop highlight + full EP-023 verify (create/rename/reorder/delete/quit/reopen) + **Epic close**. (AC5, AC6, AC7, AC8) | 🔵 Planning | — |
+| SP-067 | **Scene drag-reorder** in `QTreeView` (`reorder_scene`) + viewport re-splice + insertion-line highlight (**AC4**) + **I-0063 renumber**. *Chapter-split I-0064/I-0069/I-0070 + slug corruption I-0072 re-homed to EP-027.* | ✅ Closed | 2026-07-15 → 2026-07-16 |
+| SP-068 | **Chapter drag-reorder** (chapter-as-container, `reorder_chapter`) + boundary-unambiguous drop highlight + full EP-023 verify (create/rename/reorder/delete/quit/reopen) + **Epic close**. (AC5, AC6, AC7, AC8) — *note: chapter-structure ops depend on EP-027's new on-disk model; sequence against EP-027.* | 🔵 Planning | — |
 
 **Split rationale:** SP-065/066 are the low-risk menu-driven ops (delete, rename) — they exercise the bridge
 + navigator + splice path without drag machinery, and land two immediately useful capabilities. SP-067/068
@@ -134,7 +257,7 @@ Assigned at each sprint's activation. SP-065's tasks are defined at its planning
 | ------ | ----- | -------- |
 | SP-065 ✅ | T-0250 bridge wrappers · T-0251 context menu + confirmations · T-0252 removal splice + delete-of-active · T-0253 smoke + VNC verify — **all ✅ Verified 2026-07-15** | AC1, AC2 ✅ |
 | SP-066 ✅ | T-0254 rename bridge wrappers + `chapterMetadataPath` · T-0255 context-menu Rename (`QInputDialog`) + live label/heading · T-0256 close I-0062 (app-derived ordinal) · T-0257 smoke + VNC verify — **all ✅ Verified 2026-07-15** | AC3 ✅ |
-| SP-067 | scene drag-reorder (within/cross-chapter) · viewport re-splice · drop highlight · **+ I-0064 chapter-split (Ctrl+Shift+Return) + I-0063 renumber** · verify | AC4 (+ I-0063/I-0064) |
+| SP-067 ✅ | T-0258 reorder bridge wrappers · T-0259 `SceneDocument::moveScene` re-splice · T-0260 `QTreeView` scene drag-drop (**AC4 verified**; I-0067/I-0068 CopyAction fix) · T-0262 I-0063 renumber (**verified**) · T-0263 smoke — **all done**. T-0261 (I-0064 split) 🔵 superseded → EP-027. | AC4 ✅ + I-0063 ✅ |
 | SP-068 | chapter drag-reorder (container) · boundary drop highlight · full EP-023 verify + close prep | AC5, AC6, AC7, AC8 |
 
 ### Issues
@@ -142,8 +265,9 @@ Assigned at each sprint's activation. SP-065's tasks are defined at its planning
 | ID | Title | Status |
 | -- | ----- | ------ |
 | I-0062 | Live new-chapter heading label reads "Chapter" until reload | ✅ Resolved-Verified (SP-066 / T-0256 — app derives "Chapter N" ordinal from segment order, macOS parity) |
-| I-0064 | Ctrl+Shift+Return appends a chapter at the manuscript end instead of splitting/inserting at the caret | 🔵 Open — **targeted SP-067** (needs the `reorder_*` orchestration that sprint delivers; full blueprint in `Issues/Issue-active.md`) |
-| I-0063 | Deleting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | 🔵 Open (backlog; untitled chapters already renumber via the derived ordinal) — pairs with I-0064 in SP-067 |
+| I-0064 | Ctrl+Shift+Return appends a chapter at the manuscript end instead of splitting/inserting at the caret | 🔵 **Moved to EP-027** (2026-07-16) — the chapter-split path is rebuilt on EP-027's new filesystem-authoritative on-disk model rather than fixed twice; SP-067 VNC found the mid-scene case worked but end-of-scene failed (→ I-0069/I-0070), all re-homed to EP-027 |
+| I-0063 | Deleting/inserting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | ✅ **Resolved-Verified (2026-07-16, VNC)** — Option A app-side renumber (SP-067/T-0262); untitled already renumber via the derived ordinal |
+| I-0072 | `chapter-<count+1>` slug collision corrupts the manuscript index (found during SP-067 drag diagnosis) | 🔵 **Root defect of EP-027** — the reason chapter structure ops corrupt the index; EP-027's A4b+B3 rework fixes the class |
 
 ### Open Questions
 
@@ -182,8 +306,17 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-15 (EP-023 `[Linux]` Manuscript Structure Editing — **SP-065 (delete) ✅ closed** and
-**SP-066 (rename) ✅ closed** (AC1/AC2/AC3 verified; I-0062 Resolved-Verified via app-derived "Chapter N"
+*Last Updated: 2026-07-16 (EP-023 `[Linux]` — **SP-067 ✅ closed** (third of 4 sprints): delivered **AC4 scene
+drag-reorder** (I-0067/I-0068 fixed via `Qt::CopyAction`, VNC-verified on a fresh project) + **I-0063** renumber
+(Verified). The chapter-split defects **I-0064/I-0069/I-0070** + root slug corruption **I-0072** + **I-0071** were
+**re-homed to the new EP-027** `[ScriviCore]` (Filesystem-Authoritative Chapter/Scene Identity & Ordering);
+follow-on **I-0073** (VNC drag lag) flagged. **3 of 4 sprints closed**; remaining SP-068 (chapter drag-reorder +
+close) 🔵 Planning, sequenced against EP-027. Prior note follows.*
+
+*2026-07-15 (**SP-067 🟡 activated** (third of 4
+sprints): scene drag-reorder (AC4) + I-0064 Ctrl+Shift+Return chapter-split (T-0261) + I-0063 renumber created
+chapters (T-0262); tasks T-0258–T-0263; no ScriviCore work, `scrivi.h` untouched; I-0064/I-0063 moved 🔵 Open →
+🟡 In SP-067. Earlier: **SP-065 (delete) ✅ closed** and **SP-066 (rename) ✅ closed** (AC1/AC2/AC3 verified; I-0062 Resolved-Verified via app-derived "Chapter N"
 ordinal, macOS parity; T-0250–T-0257 archived). **2 of 4 sprints closed.** Next: **SP-067** (scene drag-reorder
 + **I-0064** Ctrl+Shift+Return chapter-split + **I-0063** renumber). Two `[Linux]` defects surfaced during
 SP-066 verify: I-0064 (chapter-split → SP-067) and I-0063 (renumber created chapters on delete → backlog/SP-067).

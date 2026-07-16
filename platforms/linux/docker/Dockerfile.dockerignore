@@ -16,6 +16,10 @@ cmake-build-*/
 *.xcworkspace/xcuserdata/
 DerivedData/
 *.xcuserstate
+# Apple SPM build tree — ~0.5 GB of macOS ModuleCache/.pcm; must never enter the
+# Linux build context (it once exhausted the Docker copy: "no space left on device").
+platforms/apple/.build/
+**/.build/
 
 # VCS + editor cruft
 .git/

@@ -1,17 +1,17 @@
 # Active Sprint
 
-_No Sprint is currently Active._
+_No sprint is currently active._
 
-SP-066 `[Linux]` (Rename scene/chapter — context menu, inline edit, live heading + I-0062) ✅ closed
-2026-07-15 → `Closed/Sprint-SP-066.md`. It was the **second** of EP-023's 4 sprints and delivered **EP-023
-AC3** + **closed I-0062**; tasks T-0254–T-0257 are all ✅ Verified & archived to
-`Tasks/Verified/Task-verified-0254-0257.md`. **EP-023** `[Linux]` (Manuscript Structure Editing) remains 🟡
-Active. The next sprint is **SP-067** (scene drag-reorder + **I-0064 chapter-split** + **I-0063 renumber**),
-drafted/activated at planning.
+**Last closed:** **SP-067** `[Linux]` (EP-023 Scene drag-reorder) — ✅ Closed 2026-07-16. Delivered **AC4 scene
+drag-reorder** (I-0067/I-0068 fixed via `Qt::CopyAction`) and **I-0063** renumber; the chapter-split pieces
+(I-0064/I-0069/I-0070/I-0072, + I-0071) were re-homed to **EP-027** `[ScriviCore]`. Archived to
+`Closed/Sprint-SP-067.md`.
 
----
+**Next:** two Epics are Active —
+- **EP-027** `[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering — recommended next start:
+  **P1** (FileSystem `renamePath`/move primitive). The chapter-structure defects (I-0064/I-0069/I-0070/I-0072)
+  are rebuilt here.
+- **EP-023** `[Linux]` Manuscript Structure Editing — remaining **SP-068** (chapter drag-reorder AC5 + full
+  EP-023 verify/close) is 🔵 Planning; note its split-dependent verification interacts with EP-027.
 
-*Last Updated: 2026-07-15 (SP-066 ✅ closed with user approval — rename scene/chapter, AC3 verified over VNC;
-I-0062 Resolved-Verified; T-0254–T-0257 Verified & archived; no ScriviCore work, `scrivi.h` untouched. No
-Sprint currently Active; EP-023 stays Active — SP-067 reorder (+ I-0064/I-0063) is next. Archived to
-`Closed/Sprint-SP-066.md`.)*
+Activate the next sprint from the relevant Epic's plan when ready.

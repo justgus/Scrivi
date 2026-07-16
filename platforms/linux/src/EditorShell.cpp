@@ -13,21 +13,22 @@
 #include <QSplitter>
 #include <QStandardItem>
 #include <QStandardItemModel>
+#include <QStringList>
+#include <QRegularExpression>
 #include <QTextCursor>
 #include <QTimer>
-#include <QTreeView>
 #include <QVBoxLayout>
 #include <QVariantList>
 
 #include "ManuscriptEditor.hpp"
+#include "NavigatorTree.hpp"
 #include "ScriviBridge.hpp"
 
 namespace {
-// Custom data roles on navigator items so activation can recover the sceneID.
-constexpr int kSceneIDRole = Qt::UserRole + 1;
-// Chapter rows carry their chapterID so the context menu can target a whole-chapter
-// delete (T-0251). Scene rows leave this empty; chapter rows leave kSceneIDRole empty.
-constexpr int kChapterIDRole = Qt::UserRole + 2;
+// Custom data roles on navigator items (shared with NavigatorTree's drop resolution):
+// scene rows carry kSceneIDRole; chapter rows carry kChapterIDRole.
+constexpr int kSceneIDRole   = navigator::kSceneIDRole;
+constexpr int kChapterIDRole = navigator::kChapterIDRole;
 // Idle-save debounce: how long after the last keystroke an auto-save fires.
 // Mirrors Apple's ~1s; the sprint spec is ~1.5s.
 constexpr int kSaveDebounceMs = 1500;
@@ -64,7 +65,7 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     toolbar->addWidget(spacer);
 
     // --- Navigator (left) -------------------------------------------------
-    navigator_ = new QTreeView(this);
+    navigator_ = new NavigatorTree(this);
     navigator_->setModel(navModel_);
     navigator_->setHeaderHidden(true);
     navigator_->setEditTriggers(QAbstractItemView::NoEditTriggers);  // display-only
@@ -79,6 +80,10 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     navigator_->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(navigator_, &QTreeView::customContextMenuRequested,
             this, &EditorShell::onNavigatorContextMenu);
+    // Scene drag-reorder (EP-023 / SP-067, T-0260, AC4): NavigatorTree resolves the
+    // drop and hands us (scene, targetChapter, afterScene); we do the real move.
+    connect(navigator_, &NavigatorTree::sceneDropRequested,
+            this, &EditorShell::onSceneDropped);
 
     // --- Viewport (right): editable continuous document -------------------
     viewport_ = new ManuscriptEditor(this);
@@ -204,6 +209,10 @@ bool EditorShell::load(const QString& projectPath,
         in.slug         = s.value(QStringLiteral("slug")).toString();
         in.metadataPath = s.value(QStringLiteral("metadataPath")).toString();
         in.contentPath  = s.value(QStringLiteral("contentPath")).toString();
+        // The chapter's own sidecar path (needed by rename + I-0063 renumber). Every
+        // scene entry in open_project carries its chapter's chapterMetadataPath.
+        in.chapterMetadataPath =
+            s.value(QStringLiteral("chapterMetadataPath")).toString();
 
         if (sceneID == activeSceneID) {
             in.markdown = activeMarkdown;   // already have it — skip the round-trip
@@ -462,12 +471,17 @@ void EditorShell::deleteChapterByID(const QString& chapterID)
 
     loading_ = true;
     sceneDoc_.removeChapter(chapterID);
-    // NOTE: chapters created via scrivi_create_chapter carry a STORED "Chapter N" title,
-    // so they don't auto-renumber when an earlier chapter is deleted. True
-    // renumber-on-delete (rewriting later chapters' titles) is tracked as I-0063 — out of
-    // SP-066 scope. Untitled chapters (empty stored title) do derive their ordinal from
-    // order via chapterHeadingText, so those renumber for free on the navigator rebuild.
     loading_ = false;
+
+    // I-0063 (T-0262): chapters created via scrivi_create_chapter carry a STORED
+    // "Chapter N" title, so deleting an earlier chapter leaves later created chapters
+    // with a stale ordinal. Rewrite each auto-pattern chapter's sidecar to its new
+    // position, then re-derive the live labels/headings so the navigator + document
+    // match disk. Untitled chapters already renumbered via chapterHeadingText on the
+    // rebuild below; custom titles are untouched.
+    if (renumberCreatedChapters()) {
+        applyDerivedLabels();
+    }
 
     // Fallback active scene: the segment that now occupies the deleted chapter's first
     // slot (the following chapter's first scene), clamped into range.
@@ -508,6 +522,62 @@ void EditorShell::afterStructuralRemoval(const QString& previouslyActiveSceneID,
     activeSegment_ = -1;               // force moveCaretToSegment/promote to register it
     moveCaretToSegment(target);
     selectNavigatorScene(sceneDoc_.segments().at(target).sceneID);
+    viewport_->setFocus();
+}
+
+void EditorShell::onSceneDropped(const QString& draggedSceneID,
+                                 const QString& targetChapterID,
+                                 const QString& afterSceneID)
+{
+    const int fromIdx = sceneDoc_.sceneIndexForScene(draggedSceneID);
+    if (fromIdx < 0 || targetChapterID.isEmpty()) {
+        return;
+    }
+    const SceneSegment moved = sceneDoc_.segments().at(fromIdx);   // copy (list mutates)
+    const QString sourceChapterID = moved.chapterID;
+
+    // The target chapter's display title: pull it from an existing member of that
+    // chapter (a cross-chapter move joins a chapter that already has scenes; a
+    // within-chapter move keeps its own title). Falls back to the moved scene's title
+    // if the target chapter is currently only this scene (degenerate).
+    QString targetChapterTitle = moved.chapterTitle;
+    const int firstOfTarget = sceneDoc_.firstSegmentOfChapter(targetChapterID);
+    if (firstOfTarget >= 0) {
+        targetChapterTitle = sceneDoc_.segments().at(firstOfTarget).chapterTitle;
+    }
+
+    // Persist any pending edits first so the moved body (and its neighbours) are on disk
+    // before the reorder rewrites the index. moveScene preserves the LIVE body, so a
+    // stale save can't clobber it, but flushing keeps disk + document in lock-step.
+    saveDirtyScenes();
+
+    const QVariantMap r = bridge_->reorderScene(
+        projectPath_, draggedSceneID, sourceChapterID, targetChapterID, afterSceneID);
+    if (r.isEmpty()) {
+        return;   // bridge already surfaced errorOccurred; leave the UI untouched
+    }
+
+    // Re-splice the live document + offset map to the new order (no full rebuild), then
+    // rebuild the navigator projection and re-anchor the caret on the moved scene.
+    loading_ = true;
+    const int newIdx = sceneDoc_.moveScene(
+        fromIdx, targetChapterID, targetChapterTitle, afterSceneID);
+    loading_ = false;
+
+    if (newIdx < 0) {
+        // The map move failed (unexpected — the bridge already reordered on disk). Fall
+        // back to a full reload so the UI matches disk rather than drifting.
+        load(projectPath_, appSupportRoot_,
+             findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+                 ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+                 : QString());
+        return;
+    }
+
+    rebuildNavigator();
+    activeSegment_ = -1;                 // force promote to register the move
+    moveCaretToSegment(newIdx);
+    selectNavigatorScene(draggedSceneID);
     viewport_->setFocus();
 }
 
@@ -559,6 +629,51 @@ void EditorShell::applyDerivedLabels()
     }
 
     loading_ = wasLoading;
+}
+
+bool EditorShell::renumberCreatedChapters()
+{
+    // I-0063 (Option A): created chapters carry a STORED "Chapter N" title (ScriviCore
+    // stamps it at creation), so they don't renumber from order like untitled chapters
+    // do. After a structural change, walk chapters in manuscript order and rewrite any
+    // whose stored title is exactly the auto pattern to its new ordinal. A deliberately
+    // user-typed title (which won't match the anchored pattern) is left untouched.
+    //
+    // The pattern is anchored (^Chapter \d+$) so a prose-y "Chapter of Secrets" is never
+    // renumbered — only the literal auto-generated "Chapter <n>".
+    static const QRegularExpression autoPattern(
+        QStringLiteral("^Chapter \\d+$"));
+
+    bool renamedAny = false;
+    int ordinal = 0;
+    QString lastChapterID;
+    for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
+        const SceneSegment& seg = sceneDoc_.segments().at(i);
+        if (seg.chapterID == lastChapterID) {
+            continue;   // already handled this chapter (first segment did it)
+        }
+        lastChapterID = seg.chapterID;
+        ++ordinal;
+
+        const QString stored = seg.chapterTitle;   // the sidecar title from open_project
+        if (!autoPattern.match(stored).hasMatch()) {
+            continue;   // untitled (empty) or custom — no renumber
+        }
+        const QString desired = QStringLiteral("Chapter %1").arg(ordinal);
+        if (stored == desired) {
+            continue;   // already correct
+        }
+        if (seg.chapterMetadataPath.isEmpty()) {
+            continue;   // can't target the sidecar — skip rather than guess
+        }
+
+        const QVariantMap r =
+            bridge_->renameChapter(projectPath_, seg.chapterMetadataPath, desired);
+        if (!r.isEmpty()) {
+            renamedAny = true;
+        }
+    }
+    return renamedAny;
 }
 
 void EditorShell::renameSceneByID(const QString& sceneID)
@@ -800,6 +915,10 @@ void EditorShell::rebuildNavigator()
             chapterItem->setEditable(false);
             chapterItem->setSelectable(false);   // chapters group; scenes select
             chapterItem->setData(seg.chapterID, kChapterIDRole);   // for delete (T-0251)
+            // Chapter rows don't drag (SP-068) but DO accept drops so a scene can be
+            // dropped on a heading to become that chapter's first scene (T-0260).
+            chapterItem->setFlags((chapterItem->flags() & ~Qt::ItemIsDragEnabled)
+                                  | Qt::ItemIsDropEnabled);
             navModel_->appendRow(chapterItem);
             lastChapterID = seg.chapterID;
         }
@@ -808,6 +927,11 @@ void EditorShell::rebuildNavigator()
         auto* sceneItem = new QStandardItem(sceneText);
         sceneItem->setEditable(false);
         sceneItem->setData(seg.sceneID, kSceneIDRole);
+        // Scene rows are draggable for reorder (T-0260); nothing accepts drops (the
+        // navigator handles them itself). Chapter rows below stay non-draggable —
+        // chapter drag-reorder is SP-068.
+        sceneItem->setFlags((sceneItem->flags() | Qt::ItemIsDragEnabled)
+                            & ~Qt::ItemIsDropEnabled);
         chapterItem->appendRow(sceneItem);
     }
     navigator_->expandAll();
@@ -885,42 +1009,155 @@ void EditorShell::onCreateChapterRequested()
         return;
     }
 
-    // Save the current scene first (mirrors Apple's ⌘⇧↩: save-then-create).
+    // I-0064 (T-0261): Ctrl+Shift+Return SPLITS the current chapter at the caret — it
+    // no longer appends an empty chapter at the manuscript end. macOS parity
+    // (ManuscriptTextView ⌘⇧↩), but disk-correct: we orchestrate the reorder endpoints
+    // so the on-disk manuscript order matches (macOS splices only in-memory).
+    //
+    // Caret in scene S of chapter C:
+    //   1. create_chapter (appends new chapter K + blank first scene K0 at the end).
+    //   2. reorder_chapter(K, afterChapterID = C) → K sits right after C.
+    //   3. Reassign each scene that FOLLOWED S within C into K, in order.
+    //   4. mid-scene: save head into S, tail into K's first scene; then renumber.
+    //      end-of-scene: no split; if S had followers they become K (K0 blank is
+    //      dropped); if not, K0 stays as a genuinely-new empty chapter after C.
+    //   5. Confirm first when ≥1 subsequent chapter will renumber.
+
+    // Resolve the caret's scene S and the split offset within its body.
+    const int caretPos = viewport_->textCursor().position();
+    int segS = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (segS < 0) {
+        segS = activeSegment_;
+    }
+    if (segS < 0 || segS >= sceneDoc_.segments().size()) {
+        return;
+    }
+    const SceneSegment sceneS = sceneDoc_.segments().at(segS);   // copy (list mutates)
+    const QString chapterC = sceneS.chapterID;
+
+    const int bodyEnd = sceneS.bodyStart + sceneS.bodyLength;
+    const int splitOffset = qBound(0, caretPos - sceneS.bodyStart, sceneS.bodyLength);
+    const bool isAtEnd = (caretPos >= bodyEnd);
+    const QString fullBody = sceneDoc_.bodyText(segS);
+    const QString headText = fullBody.left(splitOffset);
+    const QString tailText = fullBody.mid(splitOffset);
+
+    // The scenes that follow S within C, in order (they move into the new chapter).
+    QStringList followers;
+    for (int i = segS + 1; i < sceneDoc_.segments().size(); ++i) {
+        const SceneSegment& s = sceneDoc_.segments().at(i);
+        if (s.chapterID != chapterC) {
+            break;   // left chapter C — the rest belong to later chapters
+        }
+        followers.append(s.sceneID);
+    }
+
+    // Confirmation when the split will renumber ≥1 subsequent chapter. Count the
+    // distinct chapters after C in manuscript order.
+    int chaptersAfterC = 0;
+    {
+        bool seenC = false;
+        QString last;
+        for (const SceneSegment& s : sceneDoc_.segments()) {
+            if (s.chapterID == last) {
+                continue;
+            }
+            last = s.chapterID;
+            if (seenC) {
+                ++chaptersAfterC;
+            }
+            if (s.chapterID == chapterC) {
+                seenC = true;
+            }
+        }
+    }
+    if (chaptersAfterC > 0) {
+        const QMessageBox::StandardButton choice = QMessageBox::question(
+            this, tr("Split into New Chapter?"),
+            tr("Splitting here will create a new chapter and renumber %n subsequent "
+               "chapter(s). This can't be undone.",
+               nullptr, chaptersAfterC),
+            QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
+        if (choice != QMessageBox::Yes) {
+            return;
+        }
+    }
+
+    // Save the current scene first (mirrors Apple's ⌘⇧↩: save-then-create), so the
+    // head/tail split below writes over persisted state.
     saveDirtyScenes();
 
-    // ScriviCore appends the new chapter (with its first scene) to the END of the
-    // manuscript, so it splices after the LAST segment — not after the caret.
+    // 1. Create the new chapter K (appended at the end with a blank first scene K0).
     const QVariantMap result =
         bridge_->createChapter(projectPath_, appSupportRoot_, projectID_);
     const QString firstSceneID =
         result.value(QStringLiteral("firstSceneID")).toString();
-    if (firstSceneID.isEmpty()) {
+    const QString newChapterID =
+        result.value(QStringLiteral("chapterID")).toString();
+    if (firstSceneID.isEmpty() || newChapterID.isEmpty()) {
         return;   // bridge already surfaced errorOccurred
     }
 
-    const QString newChapterID =
-        result.value(QStringLiteral("chapterID")).toString();
-    const int lastIdx = sceneDoc_.segments().size() - 1;
-    loading_ = true;
-    // I-0062 (T-0256): the new chapter is untitled, so insertSceneAfter derives its
-    // heading as the ordinal "Chapter N" from the segment's position (SceneDocument
-    // computes it — the app layer owns chapter numbering, matching macOS). So the live
-    // heading shows the correct "Chapter N" immediately — no reload, no title round-trip.
-    const int newIdx = sceneDoc_.insertSceneAfter(
-        lastIdx, firstSceneID,
-        newChapterID,
-        /*title=*/QString(),          // untitled until named (EP-023)
-        /*chapterTitle=*/QString(),   // untitled → derived ordinal heading
-        /*slug=*/QString(),
-        result.value(QStringLiteral("firstSceneMetadataPath")).toString(),
-        result.value(QStringLiteral("firstSceneContentPath")).toString(),
-        result.value(QStringLiteral("chapterMetadataPath")).toString(),
-        /*newChapter=*/true);
-    loading_ = false;
+    // 2. Move K to sit right after C.
+    bridge_->reorderChapter(projectPath_, newChapterID, chapterC);
 
-    if (newIdx < 0) {
-        return;
+    // The scene that will carry the caret afterward: mid-scene → K0 (holds the tail);
+    // end-of-scene with followers → the first follower; end-of-scene without followers
+    // → K0 (the new empty chapter).
+    QString caretSceneID = firstSceneID;
+
+    if (!isAtEnd) {
+        // 3a. Mid-scene split: head stays in S, tail becomes K's first scene (K0).
+        const SceneSegment& sHead = sceneDoc_.segments().at(segS);
+        bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
+                           sceneS.sceneID, sHead.metadataPath, sHead.contentPath,
+                           headText, 0, 0, 0.0);
+        bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
+                           firstSceneID,
+                           result.value(QStringLiteral("firstSceneMetadataPath")).toString(),
+                           result.value(QStringLiteral("firstSceneContentPath")).toString(),
+                           tailText, 0, 0, 0.0);
+        // 3b. Followers move into K after K0, in order.
+        QString afterID = firstSceneID;
+        for (const QString& f : followers) {
+            bridge_->reorderScene(projectPath_, f, chapterC, newChapterID, afterID);
+            afterID = f;
+        }
+    } else if (!followers.isEmpty()) {
+        // End-of-scene WITH followers: the followers become K's scenes; the blank K0 is
+        // redundant, so drop it after the followers move in (K is non-empty by then).
+        QString afterID;   // empty → first follower becomes K's first scene
+        for (const QString& f : followers) {
+            bridge_->reorderScene(projectPath_, f, chapterC, newChapterID, afterID);
+            afterID = f;
+        }
+        bridge_->deleteScene(projectPath_, firstSceneID);
+        caretSceneID = followers.first();
     }
-    rebuildNavigator();
-    moveCaretToSegment(newIdx);
+    // else: end-of-scene, no followers → K0 stays as a new empty chapter after C.
+
+    // 4. Re-read authoritative disk state (the split touched multiple scenes + chapters)
+    //    so sceneDoc_ matches the new manuscript order. A full reload keeps disk as the
+    //    source of truth; the split is a rare, heavy structural op.
+    const QString title =
+        findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+            ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+            : QString();
+    load(projectPath_, appSupportRoot_, title);
+
+    // 5. Renumber created ("Chapter N") chapters whose ordinal shifted (I-0063), NOW that
+    //    sceneDoc_ reflects the post-split order. If any sidecar changed, re-derive the
+    //    live labels/headings so the navigator matches disk without another full reload.
+    if (renumberCreatedChapters()) {
+        applyDerivedLabels();
+        rebuildNavigator();
+    }
+
+    const int caretSeg = sceneDoc_.sceneIndexForScene(caretSceneID);
+    if (caretSeg >= 0) {
+        activeSegment_ = -1;
+        moveCaretToSegment(caretSeg);
+        selectNavigatorScene(caretSceneID);
+    }
+    viewport_->setFocus();
 }

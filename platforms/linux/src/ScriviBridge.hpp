@@ -146,6 +146,30 @@ public:
     Q_INVOKABLE QVariantMap deleteChapter(const QString& projectRootPath,
                                           const QString& chapterID);
 
+    // Moves a scene within its chapter or across chapters (EP-023 / SP-067, T-0258).
+    // Calls scrivi_reorder_scene(projectRootPath, sceneID, sourceChapterID,
+    // targetChapterID, afterSceneID) and returns its ok "result": {sceneID,
+    // sourceChapterID, targetChapterID, reordered}. `afterSceneID` empty = the scene
+    // becomes the first scene of the target chapter; otherwise it lands right after
+    // that sibling. source == target is a within-chapter reorder. No author identity
+    // (structural, not an authored edit). On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap reorderScene(const QString& projectRootPath,
+                                         const QString& sceneID,
+                                         const QString& sourceChapterID,
+                                         const QString& targetChapterID,
+                                         const QString& afterSceneID);
+
+    // Moves a whole chapter to sit right after `afterChapterID` (EP-023 / SP-067,
+    // T-0258). Calls scrivi_reorder_chapter(projectRootPath, chapterID, afterChapterID)
+    // and returns its ok "result": {chapterID, afterChapterID, reordered}. An empty
+    // `afterChapterID` moves the chapter to the manuscript's front. Used here by the
+    // I-0064 chapter-split orchestration (moving the appended chapter into caret
+    // position); full chapter drag-reorder is SP-068. No author identity. On failure
+    // emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap reorderChapter(const QString& projectRootPath,
+                                           const QString& chapterID,
+                                           const QString& afterChapterID);
+
     // Renames one scene — writes the sidecar `title` field (EP-023 / SP-066, T-0254).
     // Calls scrivi_rename_scene(projectRootPath, metadataPath, newTitle) and returns its
     // ok "result": {metadataPath, newTitle, renamed}. `metadataPath` is the scene's own

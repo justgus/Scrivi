@@ -5,14 +5,501 @@ table and stay in this file as full entries only until the next batch archive (I
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| I-0072 | `[ScriviCore]` `chapter-<count+1>` slug collides after a delete → clobbers a sidecar + phantom/duplicate index entries in `manuscript.meta.json`; breaks `reorder_scene` ("sourceChapterID not found") | High | **EP-027** | 🔵 Root defect of **EP-027** (A4b+B3 rework fixes the class) |
+| I-0071 | `[Linux]` Dragging a chapter's **last remaining scene** into another chapter orphans an empty chapter (no delete, no replacement scene) | Medium | **EP-027** | 🔵 Moved to EP-027 (scenes phase — backfill blank scene) |
+| I-0070 | `[Linux]` Ctrl+Shift+Return at **end-of-scene with no followers** appends the new chapter at the manuscript end instead of inserting it after the current chapter (I-0064 residual for this branch) | Medium | **EP-027** | 🔵 Moved to EP-027 (split rebuilt on new model) |
+| I-0069 | `[Linux]` Ctrl+Shift+Return at **end-of-scene with followers** renumbers but produces no visible new chapter/scenes (followers not moved / K not shown) | Medium | **EP-027** | 🔵 Moved to EP-027 (split rebuilt on new model) |
+| I-0073 | `[Linux]` Scene drag-drop has a **1–2 s lag** before the drop target/insertion line is realized (observed over Docker+VNC; may be environmental) | Low | — | 🔵 Open — needs triage (VNC vs. code) |
+| I-0068 | `[Linux]` On a scene drag-drop the scene **disappears from the navigator** and no new order is shown (Qt MoveAction auto-removes the source row) | High | SP-067 | ✅ Resolved - **Verified (2026-07-16, user "It's clean" over VNC on a fresh project)** |
+| I-0067 | `[Linux]` Scene drag-reorder **does not persist** — Qt auto-removes the row while the backend move fails/aborts; order reverts on quit→relaunch (AC4) | High | SP-067 | ✅ Resolved - **Verified (2026-07-16, user "It's clean" over VNC on a fresh project)** |
 | I-0066 | `[ScriviCore]`/`[Apple]` A scene/chapter deleted from the navigator leaves its history in the log (no barrier, no prune) — orphaned diffs accumulate and are what mismatched on open (I-0065) | Medium | — | ✅ Resolved - Verified (2026-07-15) |
 | I-0065 | `[ScriviCore]`/`[Apple]` A mismatched/stale history diff crashes the macOS app on project open — a C++ `std::length_error` in history replay-on-load crosses the C ABI and terminates the process | High | — | ✅ Resolved - Verified (2026-07-15) |
-| I-0064 | `[Linux]` Ctrl+Shift+Return appends an empty chapter at the manuscript end instead of splitting/inserting the chapter at the caret (no scene reassignment, no renumber) | Medium | SP-067 (target) | 🔵 Open |
-| I-0063 | `[Linux]` Deleting/inserting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | Low | — | 🔵 Open (backlog) |
+| I-0064 | `[Linux]` Ctrl+Shift+Return appends an empty chapter at the manuscript end instead of splitting/inserting the chapter at the caret (no scene reassignment, no renumber) | Medium | **EP-027** | 🔵 Moved to EP-027 — split path rebuilt on the new on-disk model (mid-scene worked in VNC 3b; end-of-scene → I-0069/I-0070) |
+| I-0063 | `[Linux]` Deleting/inserting a chapter doesn't renumber later **created** (stored-"Chapter N") chapters | Low | SP-067 | ✅ Resolved - **Verified (2026-07-16, user-confirmed over VNC)** |
 | I-0062 | `[Linux]` A newly-created chapter's heading reads "Chapter" (not "Chapter N") until the project is reloaded | Low | SP-066 | ✅ Resolved - Verified (2026-07-15) |
 | I-0061 | `[Linux]` Landing **Quit** button does nothing after the shell flip (`QQmlEngine::quit()` unconnected) | Medium | SP-062 | ✅ Resolved - Verified (2026-07-14) |
 
 **Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
+
+---
+
+## I-0073: [Linux] Scene drag-drop has a 1–2 s lag before the drop target is realized
+
+**Status:** 🔵 Open — needs triage. Observed by the user during I-0067/I-0068 VNC verification (2026-07-16):
+the drop target / insertion line takes "a second or two" to catch up while dragging. **Unknown whether this is
+environmental (Docker+VNC) or a code issue** — flagged so it isn't lost.
+**Platform:** Linux (`platforms/linux/`), observed **over the Docker+VNC harness** (not real hardware).
+**Component:** drag-hover path — `NavigatorTree::dragMoveEvent` (`NavigatorTree.cpp:117`); or, more likely, the
+Xvfb → x11vnc → VNC-client pointer-motion pipeline.
+**Severity:** Low (cosmetic responsiveness; the drop itself resolves correctly — I-0067/I-0068 verified clean).
+**Sprint:** — (triage first)
+**Epic:** EP-023 `[Linux]`
+
+**Description:** while dragging a scene row, the insertion-line drop indicator lags the cursor by ~1–2 s before
+the landing position updates.
+
+**Analysis (code path is cheap — points away from our code):** `dragMoveEvent` does only `QTreeView::
+dragMoveEvent` (base indicator/autoscroll) + `indexAt` + `resolveDrop` (a handful of `data()` reads and string
+compares) — **no I/O, no backend call, no notable allocation.** Nothing on the per-move path costs ~1 s.
+High-frequency pointer motion during a drag is exactly what a remote framebuffer protocol (VNC over
+Xvfb-in-Docker) throttles/batches, so the most probable cause is **environmental round-trip + frame-encode
+latency**, not compute.
+
+**Triage plan (before treating as a code bug):**
+1. **Real-hardware datapoint** — the alpha tester runs the drag on native Ubuntu (no VNC). If smooth there, it's
+   the harness → close as environmental / won't-fix (harness-only).
+2. If it lags on real hardware too, profile `dragMoveEvent` (is `indexAt` or `dropIndicatorPosition` unexpectedly
+   costly on this model?) and check whether the base `QTreeView::dragMoveEvent` autoscroll timer or a repaint is
+   the cost; consider throttling our own resolve or reducing repaints.
+
+**Do not act until step 1 gives a real-hardware reading** — optimizing a VNC-only artifact would be wasted work.
+
+---
+
+## I-0072: [ScriviCore]/[Linux] manuscript.meta.json chapters[] diverges from the chapter sidecars on disk
+
+**Status:** 🔴 Open — discovered while instrumenting the I-0067/I-0068 drag failure (2026-07-16). The reorder
+rejection `"sourceChapterID not found: chapter_019e9cdd-…"` traced to a **corrupt manuscript index**, not the
+drag code.
+**Platform:** Data/`[ScriviCore]` (whatever writes `manuscript.meta.json`); surfaced on `[Linux]`.
+**Component:** `manuscript/manuscript.meta.json` writer — the chapter-create/reorder/split orchestration that
+edits `structure.chapters[]`. On Linux this is `EditorShell::onCreateChapterRequested`
+(`create_chapter`→`reorder_chapter`→…) and `ScriviCore` `ChapterCreator`/`ChapterReorderer`. Reader that trips
+on it: `SceneReorderer::reorder` (`ScriviCore/src/manuscript/SceneReorderer.cpp:40-51`).
+**Severity:** High (a manuscript whose index disagrees with its sidecars makes `reorder_scene` — and any op
+keyed on the chapter list — fail or misbehave; latent structural corruption)
+**Sprint:** SP-067 (found here; the writer is likely today's split path)
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0067/I-0068 (the drag failure this explains); I-0064/I-0069/I-0070 (chapter-split — the most
+likely corruptor); **I-0065** (the SAME project, "The Twisted Remains of Myself," crashed macOS on open — this
+project has been a repeated corruption vector; its state may predate today and mix several defects).
+
+**Description:**
+In the project **"The Twisted Remains of Myself"**, `manuscript/manuscript.meta.json`'s `structure.chapters[]`
+does not match the chapter sidecars on disk:
+- **Wrong id for a real chapter:** the index lists `chapter-004` as `chapter_019e942e-…`, but
+  `manuscript/chapter-004/chapter.meta.json` actually contains `chapter_019e9cdd-…`. The id `019e942e` appears
+  in **no** sidecar (phantom).
+- **Duplicate path:** `manuscript/chapter-015/chapter.meta.json` is listed **twice**, under two different
+  chapter ids (`019ed110-…` and `019f6b84-…`).
+- **Missing/nonexistent dirs referenced or skipped:** dirs `chapter-011` and `chapter-014` don't exist; the
+  index ordering (…, chapter-007, chapter-017, chapter-008, …) is scrambled.
+
+Because the scene being dragged reports `chapterID = 019e9cdd` (from its sidecar, correctly surfaced by
+`open_project`), but the manuscript index has `chapter-004` under the phantom `019e942e`, `SceneReorderer`
+walks `chapters[]`, never finds `019e9cdd`, and returns `invalidArgument: "sourceChapterID not found"`.
+
+**Expected Behavior:** `manuscript.meta.json`'s `chapters[]` is always a faithful, de-duplicated, correctly
+ordered list of the real chapter ids/paths on disk; structural edits keep it consistent (atomic, no phantom or
+duplicate entries).
+
+**Actual Behavior:** the index carries phantom ids, a duplicated path under two ids, and references to absent
+dirs — diverging from the sidecars.
+
+**Root Cause — CONFIRMED (2026-07-16, forensic disk + timestamp analysis).** The bug is in
+**`ScriviCore/src/manuscript/ChapterCreator.cpp`**: the new chapter's on-disk **directory slug is derived from
+the chapter *count*** — `newChapterOrdinal = ms.chapters.size() + 1` (L38) → `chapterSlug = "chapter-<ordinal>"`
+(L42-44) → `chMetaRelPath` (L46-48). This is **not unique once any chapter has been deleted** (gaps make
+`count+1` land on an existing directory number). On such a collision the create path:
+1. `atomicWriteTextFile`s the new chapter's `chapter.meta.json` over the **already-existing** colliding
+   directory's sidecar (L100) → **destroys the colliding chapter's identity** (its real id now survives ONLY as
+   a stale entry in the index = phantom id), and
+2. `ms.chapters.push_back({newID, chMetaRelPath})` (L104) **appends a second index entry for that same path**
+   → duplicate path; the pre-existing entry now points at an id no sidecar has.
+
+Both observed corruptions are this one bug:
+- **Entry 3** (`chapter-004` path, phantom `019e942e`): UUIDv7 timestamps show `019e942e` was a real chapter
+  created **Jun 4 19:49**, later clobbered when a `count+1` collision reused the `chapter-004` slug and
+  overwrote its sidecar with `019e9cdd` (Jun 6). Index kept the original `019e942e` ref → phantom.
+- **Entries 13/14** (`chapter-015` path listed twice): the current `chapter-015` sidecar `019f6b84` was written
+  **today Jul 16 15:20** (matches the 11:29 index rewrite and the user's VNC split test), clobbering the
+  **Jun 16** chapter `019ed110` that had that slug — leaving `019ed110` as a duplicate/phantom index entry.
+  **This is the user's Failure-2 ("a new Chapter 15 was created" at end-of-Ch4/Scene-3), caught by timestamp.**
+
+The user's Failure-1 (end-of-Ch4/Scene-2, follower present → "no new chapter created") is the same collision in
+the **with-followers split**: `create_chapter` collides and clobbers the source chapter's sidecar, then a
+downstream `reorder_scene` fails on the now-mismatched ids and the orchestration aborts — so the chapter was
+"re-identified before the failure stopped creation" (the user's exact hypothesis, confirmed by the code path).
+
+**Provenance:** the corruption is entirely application-generated, triggered by the user's **in-app** split/create
+actions during VNC testing (NOT manual file edits, NOT Claude's automated tests). The user did nothing wrong —
+they exercised a latent `ChapterCreator` slug-collision defect.
+
+**Architecture study (2026-07-16):** the slug scheme + a second issue the user surfaced (`chapterID` is stored
+in BOTH `manuscript.meta.json` and `chapter.meta.json` with no declared source of truth) are analyzed in
+**`docs/Scrivi_Chapter_Folder_and_Identity_Trade_Study_v0_1.md`** (folder-naming options A1–A4 + id/order
+source-of-truth options B1–B3). The durable fix for I-0072 should follow that study's decision; the minimum
+safe close is "A2 monotonic slug + B1 sidecar-owns-id + a validator that prunes index entries whose sidecar id
+differs." **Awaiting the user's decision on the trade study before implementation.**
+
+**Immediate impact on SP-067 verification:** drag-reorder (and possibly split) **cannot be trusted-tested on
+this project** — its index is already corrupt. Re-run AC4 verification on a **freshly created** project. Also
+provide/confirm a repair path (rebuild `manuscript.meta.json` from the sidecars) for damaged projects.
+
+**Fix direction (now scoped — the primary fix is in ChapterCreator):**
+1. **`ChapterCreator` slug must be collision-free.** Do NOT derive the directory slug from `chapters.size()+1`.
+   Instead pick a slug that can't collide — e.g. `max(existing chapter-NNN dir number)+1`, or a slug derived
+   from the unique `chapterID`, or scan-and-skip existing dirs. **Never `atomicWriteTextFile` over a path that
+   already exists** for a *new* chapter (a create should fail or pick a fresh dir, never clobber). This is a
+   `[ScriviCore]` change affecting all platforms (Apple included) — same collision can occur on macOS after a
+   delete; confirm and cover there too.
+2. **De-dup / repair the index.** Add an integrity check that rebuilds/repairs `manuscript.meta.json`
+   `chapters[]` from the authoritative on-disk sidecars (drop phantom ids whose path's sidecar has a different
+   id; collapse duplicate paths) — a load-time self-heal in the spirit of I-0066's history prune and the
+   External-Change-Repair matrix. Needed to recover already-damaged projects like this one.
+3. `reorder_scene`/consumers already fail loudly ("sourceChapterID not found") — keep that; the durable fix is
+   #1 (stop creating the corruption) + #2 (heal existing damage).
+
+**Repro plan (to lock the fix):** fresh project → create several chapters → **delete** one (make a gap) →
+create another → assert its dir slug did not collide and `chapters[]` stays 1:1 with the sidecars. Extend to
+the split path (I-0064/I-0069/I-0070) once the create is fixed.
+
+**Files:**
+- **`ScriviCore/src/manuscript/ChapterCreator.cpp:38,42-48,100,104`** — the slug-collision + clobber + duplicate
+  (PRIMARY fix)
+- `ScriviCore/src/manuscript/SceneReorderer.cpp:40-56` — where the mismatch is detected (fails correctly)
+- `ScriviCore/src/manuscript/ChapterReorderer.cpp` — verified clean (id-keyed, atomic; NOT a corruptor)
+- `platforms/linux/src/EditorShell.cpp` `onCreateChapterRequested` — split orchestration that triggers create
+- affected data: `…/the-twisted-remains-of-myself.scrivi/manuscript/manuscript.meta.json` (needs repair or
+  discard; it's a damaged test project)
+
+---
+
+## I-0067: [Linux] Scene drag-reorder does not persist across quit→relaunch (AC4)
+
+**Status:** 🟠 **ROOT-CAUSED via instrumented VNC (2026-07-16) — fix not yet written.** The two prior
+hypotheses (wrong/empty dragged id; success-but-no-op reorder) were BOTH falsified by runtime evidence. The
+`startDrag` latch (kept — it's still more correct) had no effect because id-resolution was never the failing
+step. **Confirmed cause (unified with I-0068 — one event, both symptoms, as the user predicted):** on a drag,
+`NavigatorTree` uses `setDragDropMode(DragDrop)` + `setDefaultDropAction(Qt::MoveAction)` and `dropEvent`
+calls `event->acceptProposedAction()` **before** the backend move is known to succeed. `onSceneDropped` then
+calls `scrivi_reorder_scene`, which **failed** for this project (see below), so the handler correctly did
+NOTHING (early-returned on the empty envelope) — **hence no persist**. But because the drop was accepted as a
+`MoveAction`, **Qt's own `QAbstractItemView::startDrag` removed the source row from the model** after
+`dropEvent` returned — **hence the vanish (I-0068)**. The removal (Qt) and the persist (ScriviCore) are
+decoupled and the former isn't gated on the latter.
+
+**Why `reorder_scene` failed here:** instrumentation captured the raw envelope —
+`{"ok":false,"error":{"code":1,"message":"sourceChapterID not found: chapter_019e9cdd-…"}}`. The test project
+**"The Twisted Remains of Myself"** has a **corrupt `manuscript.meta.json`** whose `chapters[]` list disagrees
+with the on-disk chapter sidecars (e.g. it lists `chapter-004` as `019e942e` — a phantom id in no sidecar —
+while `chapter-004/chapter.meta.json` actually holds `019e9cdd`; also lists `chapter-015` twice and references
+nonexistent `chapter-011`/`014`). So the scene's real chapter (`019e9cdd`) isn't in the manuscript index →
+ScriviCore can't find the source chapter → rejects. **That data corruption is filed separately as I-0072**
+(likely fallout of today's I-0064/I-0069/I-0070 split path — same project that also crashed macOS in I-0065).
+
+**Fix direction (app layer — this Issue):** the navigator must change ONLY via our own `rebuildNavigator`, never
+via Qt's drag auto-remove.
+
+**FIX IMPLEMENTED (2026-07-16, SP-067 T-0260):** `NavigatorTree` now runs the drag as **`Qt::CopyAction`, never
+`MoveAction`** — `startDrag` forces `QTreeView::startDrag(Qt::CopyAction)`, the ctor sets
+`setDefaultDropAction(Qt::CopyAction)`, and `dragMoveEvent`/`dropEvent` `setDropAction(Qt::CopyAction)` before
+accept. With a Copy drop the base class never removes the source row, so the navigator changes *only* via
+`sceneDropRequested → EditorShell::onSceneDropped → rebuildNavigator`. A backend-rejected/failed reorder now
+leaves the tree untouched (no vanish); a successful one reflects solely through our rebuild. TEMP drag
+instrumentation removed. Container build + 275 ctest smokes green; **needs VNC re-verification on a FRESH
+(non-corrupt) project** — the old test project's I-0072 index corruption would still make `reorder_scene`
+legitimately fail (that's EP-027's job).
+
+**Prior finding (2026-07-16):** VNC cases 2a/2b: dragging a scene appeared to move it live (the row left its
+position), but after Quit→relaunch the chapter returned to its original order. Now explained: the disk move
+never happened; only Qt's row-removal did.
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onSceneDropped`, ~L528–582) →
+`ScriviBridge::reorderScene`; possibly `NavigatorTree::draggedSceneID`/`resolveDrop`
+(`NavigatorTree.cpp`).
+**Severity:** High (AC4 — the headline SP-067 deliverable — does not work end-to-end; the move is not durable)
+**Sprint:** SP-067 (regression against T-0260's exit criterion "the new order persists across quit→reopen")
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0068 (the sibling live symptom — scene vanishes); T-0260/T-0263. **Note:** the headless
+`scene_reorder_smoke` **Case C passes** — it calls `ScriviBridge::reorderScene` directly and confirms the
+reopened on-disk order changed. So the bridge + ScriviCore endpoint persist correctly *when called with the
+right arguments*; the fault is in the **live app path** that computes and issues that call, which the smoke
+never exercises.
+
+**Description:**
+A scene dragged in the navigator does not keep its new position after the project is closed and reopened —
+the manuscript reverts to the pre-drag order on disk.
+
+**Expected Behavior (AC4):** the drop calls `scrivi_reorder_scene`, the continuous viewport + map re-splice
+to the new order, and **the new order persists across quit→reopen**.
+
+**Actual Behavior:** live view changes momentarily (see I-0068), but disk is unchanged; quit→relaunch shows
+the original order.
+
+**Root Cause (hypothesis — needs a live-path debug run to confirm):**
+The persistence primitive is proven good by `scene_reorder_smoke` Case C, so the break is in `onSceneDropped`
+issuing the bridge call. The most probable causes, in order:
+1. **`reorderScene` returns empty and the early `return` at `EditorShell.cpp:557` fires**, so `moveScene`
+   never runs on disk — but then the row wouldn't "disappear" live, so this alone doesn't fit I-0068. More
+   likely the call is made with **wrong/empty arguments** (`draggedSceneID`, `sourceChapterID`,
+   `targetChapterID`, or `afterSceneID`), so ScriviCore rejects or no-ops it while the *in-memory* `moveScene`
+   still splices (producing the visual change that reverts on reload).
+2. **`draggedSceneID()` resolves from `currentIndex()`/selection** (`NavigatorTree.cpp:22–28`), not from the
+   drag's actual source row. During a Qt drag the current index can differ from the grabbed row, so the wrong
+   (or empty) sceneID is sent to `reorderScene`. This also explains I-0068 (the *visually* removed row is the
+   selected one, not necessarily the one reordered on disk).
+3. **`sourceChapterID` mismatch:** `onSceneDropped` reads `moved.chapterID` from the segment at `fromIdx`; if
+   `fromIdx` was resolved from a stale/again-selected scene, the source chapter passed to `reorder_scene` is
+   wrong and ScriviCore's move is a no-op.
+
+**5-Whys:**
+1. *Why did the reorder not persist?* — Because `scrivi_reorder_scene` did not change the on-disk index for
+   the intended scene.
+2. *Why didn't it change disk?* — Because the live `onSceneDropped` call either returned empty (early-return
+   before disk write) or issued the call with arguments that don't identify the intended move.
+3. *Why were the arguments wrong / the call empty?* — Because `draggedSceneID`/`sourceChapterID` are derived
+   from the tree's **current selection** at drop time rather than from the drag's committed source row, and a
+   Qt drag can leave the selection pointing elsewhere.
+4. *Why was selection used instead of the drag source?* — Because `NavigatorTree` never captured the source
+   sceneID at `startDrag`/drag-start; it re-reads `currentIndex()` in both `dragMoveEvent` and `dropEvent`.
+5. *Why wasn't this caught before VNC?* — Because `scene_reorder_smoke` validates the **bridge + SceneDocument
+   primitives directly** (Case C reorders and reopens successfully) but **never drives `onSceneDropped` or a
+   real `QDropEvent`**, so the argument-derivation path had zero automated coverage. **Root cause: the live
+   drag→drop→persist path has no test; only its primitives do.**
+
+**Fix direction (proposed, not yet implemented):**
+- Capture the dragged sceneID at **drag start** (override `startDrag`, stash the source row's `kSceneIDRole`
+  and its parent chapterID) instead of reading `currentIndex()` at drop time; pass both into
+  `sceneDropRequested`.
+- In `onSceneDropped`, when `reorderScene` returns empty, do **not** run the in-memory `moveScene` (keep disk
+  and view in lock-step — no optimistic splice that can't be persisted).
+- Add a **live-path smoke** that constructs a real `QDropEvent` (or calls `onSceneDropped` with resolved
+  args) and asserts the reopened on-disk order — closing the coverage gap named in why #5.
+
+---
+
+## I-0068: [Linux] Scene disappears from the navigator on drop (Qt MoveAction auto-removes the source row)
+
+**Status:** 🟠 **ROOT-CAUSED via instrumented VNC (2026-07-16) — fix not yet written. SAME root event as
+I-0067** (see it for the full evidence). The vanish is **Qt removing the dragged source row itself**: with
+`DragDrop` mode + `defaultDropAction = MoveAction`, `dropEvent`'s `acceptProposedAction()` tells the drag loop
+the move succeeded, so `QAbstractItemView::startDrag` calls its remove-source-rows path — deleting the row
+from the `QStandardItemModel` — **regardless of whether `onSceneDropped` did anything.** In this project
+`onSceneDropped` early-returned (backend rejected the move, I-0072), so the row was removed by Qt with no
+compensating rebuild → it disappears until reload. The instrumentation proved our handler never touched the
+tree (envelope empty → early return before `moveScene`).
+
+**Fix direction:** shared with I-0067 — stop accepting a `MoveAction` in `dropEvent` so Qt never auto-removes;
+let `rebuildNavigator` be the only thing that changes the model. The "outline box, no insertion line" in the
+original 2a was a separate cosmetic (drop indicator gating), re-check after the fix.
+
+**Prior finding (2026-07-16):** VNC 2a/2b: on drop the dragged scene disappeared from the navigator entirely
+rather than reappearing at the drop position.
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onSceneDropped` → `SceneDocument::moveScene` +
+`rebuildNavigator`, ~L560–580); `NavigatorTree::dragMoveEvent` (indicator draw, `NavigatorTree.cpp:89–109`).
+**Severity:** High (the reorder UI visibly loses the scene from the tree — alarming; the scene is not gone on
+disk, but the navigator no longer shows it until reload)
+**Sprint:** SP-067
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0067 (same drop path; the persistence failure). Likely the same root cause (wrong
+dragged/source id).
+
+**Description:**
+Dropping a dragged scene removes its row from the navigator instead of re-placing it at the new position. The
+tree ends up missing the scene until the project is reloaded.
+
+**Expected Behavior:** after the drop the scene appears at its new position in the navigator (and the
+viewport reflows), caret preserved.
+
+**Actual Behavior:** the row disappears; no re-inserted row is shown at the target.
+
+**Root Cause (hypothesis — confirm with a live run):**
+`onSceneDropped` runs the in-memory `SceneDocument::moveScene` (which lifts the scene out via `removeScene`
+then re-inserts) and then `rebuildNavigator()` (which projects the tree from `segments()`). A disappeared row
+means **either** (a) `moveScene` removed the scene but re-inserted it into a target the navigator then
+doesn't render (e.g. wrong `targetChapterID`, so it's spliced under a non-existent/hidden chapter node),
+**or** (b) `moveScene` returned `newIdx < 0` and the fallback full `load()` at `EditorShell.cpp:570` ran with
+a bad title/argument and dropped the row, **or** (c) the dragged id and the reordered id diverged (I-0067
+cause #2) so `removeScene` took out one row while nothing was re-inserted for it. The "outline box, no
+insertion line" in 2a further suggests `dragMoveEvent` `ignore()`d the position (no accepted drop target), yet
+`dropEvent` still emitted — i.e. the drop fired at a position the gate had rejected.
+
+**5-Whys:**
+1. *Why did the scene disappear?* — `rebuildNavigator` projected a segment list in which the dragged scene's
+   row was removed but not re-inserted at a rendered position.
+2. *Why was it removed-but-not-re-inserted?* — `moveScene` re-inserted it under a `targetChapterID` the
+   navigator didn't render, or the dragged id ≠ reordered id so the removed row had no matching re-insert.
+3. *Why did the ids diverge / the target come out wrong?* — Same origin as I-0067: `draggedSceneID`/target
+   resolved from `currentIndex()` + drop-indicator at drop time rather than from the committed drag source.
+4. *Why did the drop fire at a rejected position (2a)?* — `dropEvent` re-resolves `resolveDrop` independently
+   of `dragMoveEvent`; if the indicator position at drop differs from the last accepted move position, the
+   drop can proceed on a target the move gate would have vetoed (no shared "is this drop currently legal?"
+   state).
+5. *Why wasn't this caught before VNC?* — No test drives the real `QDropEvent`/navigator rebuild; the smoke
+   asserts `moveScene` on a `SceneDocument` in isolation (Cases A/B), which always re-inserts correctly
+   because it's handed correct arguments. **Root cause: the navigator-rebuild-after-drop path is untested with
+   real drop-resolved arguments.**
+
+**Fix direction (proposed):** shares I-0067's fix (capture drag source at drag-start; don't splice in-memory
+unless the disk reorder succeeded). Additionally, have `dropEvent` reuse the **last `dragMoveEvent`-accepted**
+resolution (store it) instead of re-resolving, so a drop can never land where the move gate said no.
+
+---
+
+## I-0069: [Linux] Ctrl+Shift+Return at end-of-scene WITH followers renumbers but creates no visible chapter/scenes
+
+**Status:** 🔴 Open — found during SP-067 VNC verification (2026-07-16, case 3a). The confirmation dialog
+fired and, on confirm, the later chapters **renumbered** — but **no new chapter or scenes appeared**. The
+followers were not visibly moved into a new chapter.
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onCreateChapterRequested`, end-of-scene-with-followers
+branch, ~L1126–1136 → reload L1146 → `renumberCreatedChapters` L1151).
+**Severity:** Medium (the ⌘⇧↩ split gesture appears to do nothing structural for this case, though it renumbers)
+**Sprint:** SP-067
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0064 (parent), I-0070 (the no-followers branch), I-0067/I-0068 (share the `reorder_scene`
+plumbing — a shared reorder defect could explain all four). macOS parity: `ManuscriptTextView` ⌘⇧↩.
+
+**Description:**
+With the caret at the **end of a scene that has following scenes in its chapter**, Ctrl+Shift+Return should
+insert a new chapter right after the current one and **move the followers into it**. Instead the followers
+stayed put and no new chapter/scenes showed; only the (unrelated) renumber visibly happened.
+
+**Expected Behavior:** a new chapter K appears immediately after the current chapter C, C's post-caret scenes
+become K's scenes, subsequent chapters renumber, the blank K0 is dropped.
+
+**Actual Behavior:** chapters renumbered but no new chapter/scenes are visible; followers not reassigned in
+the UI.
+
+**Root Cause (hypothesis — confirm with a live run):**
+The branch at `EditorShell.cpp:1126–1136` does: for each follower `reorderScene(f, chapterC, newChapterID,
+afterID)`, then `deleteScene(firstSceneID)` (drop blank K0), then a full `load()` at L1146. If **`reorderScene`
+here fails/no-ops** (the same suspected argument defect as I-0067 — e.g. a wrong `chapterC`/`newChapterID`, or
+`afterID` handling), the followers never join K; then `deleteScene(K0)` removes K's *only* scene, leaving K
+**empty**, and an empty chapter has no segments so the post-`load()` navigator **doesn't render it at all** —
+hence "no new chapter/scenes," while `renumberCreatedChapters()` still walked the chapters and renamed
+sidecars (the visible renumber). The mid-scene branch (3b) passes because it **saves the tail into K0** (K is
+never empty) and doesn't depend on follower reassignment.
+
+**5-Whys:**
+1. *Why did no new chapter/scenes appear?* — The new chapter K ended up **empty** (no scenes), and the
+   navigator doesn't render an empty chapter.
+2. *Why was K empty?* — The followers were not reassigned into K, and its only born scene (blank K0) was then
+   deleted.
+3. *Why were the followers not reassigned?* — The per-follower `reorderScene` call no-op'd/failed — the same
+   `reorder_scene` argument/plumbing fault suspected in I-0067.
+4. *Why did K0 get deleted anyway?* — The code unconditionally deletes K0 in the with-followers branch,
+   assuming the followers already populated K; it doesn't verify K is non-empty before dropping K0.
+5. *Why wasn't this caught before VNC?* — `scene_reorder_smoke` Case D replays these bridge steps **directly
+   with correct ids** and passes, so it proves the *orchestration recipe* but not the *app's execution* of it
+   (caret→segment resolution, follower collection, argument passing). **Root cause: the smoke tests the recipe,
+   not `onCreateChapterRequested`; and the with-followers branch deletes K0 without a "K is non-empty" guard.**
+
+**Fix direction (proposed):** fix the shared `reorder_scene` argument path (I-0067); guard the K0 delete on
+"K now has ≥1 scene" (never leave/observe an empty chapter — consistent with the I-0071 no-empty-chapter
+policy); add a live-path test that drives `onCreateChapterRequested` end-of-scene-with-followers and asserts
+the reopened structure.
+
+---
+
+## I-0070: [Linux] Ctrl+Shift+Return at end-of-scene with NO followers appends the new chapter at the manuscript end
+
+**Status:** 🔴 Open — found during SP-067 VNC verification (2026-07-16, case 3c). Splitting at the end of a
+chapter's **last** scene (no followers) **added a new chapter at the very end of the document** instead of
+inserting it right after the current chapter. This is the **original I-0064 symptom** surviving for this
+branch.
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onCreateChapterRequested`, no-followers path — falls
+through to the "else" at ~L1137 after `reorderChapter` at L1102).
+**Severity:** Medium (a stray end-of-manuscript chapter — the exact wrong structure I-0064 was meant to fix)
+**Sprint:** SP-067
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0064 (parent — this is the residual), I-0069 (sibling end-of-scene branch). macOS parity:
+`ManuscriptTextView` ⌘⇧↩ + `insertChapterFirstScene`.
+
+**Description:**
+Caret at the **end of the last (or only) scene of a chapter**; Ctrl+Shift+Return creates the new empty chapter
+but it lands at the **end of the manuscript**, not immediately after the current chapter.
+
+**Expected Behavior:** a new empty chapter is inserted **directly after the current chapter C**.
+
+**Actual Behavior:** the new chapter is appended at the manuscript end (no repositioning).
+
+**Root Cause (hypothesis — confirm with a live run):**
+Step 2, `reorderChapter(projectPath_, newChapterID, chapterC)` at `EditorShell.cpp:1102`, is supposed to move
+the freshly-appended K to sit right after C. For the no-followers branch nothing else moves K, so if
+`reorderChapter` **no-ops or fails**, K stays where `create_chapter` put it — appended at the end. Candidates:
+(a) `scrivi_reorder_chapter`'s `afterChapterID = chapterC` isn't honored when C is the last chapter (moving
+after the last chapter = staying last is *correct* only if C really is last — but here C is **not** meant to be
+last; check whether `chapterC` is the right id and whether reorder_chapter treats "after the last chapter" as a
+no-op); (b) `chapterC` is resolved wrong (stale caret→segment). Note the smoke's Case D calls
+`reorderChapter(kCh, ch1)` where ch1 is **not** last and it passes — so the failing condition is specifically
+**C being the current last chapter** (the natural no-followers case), which the smoke never exercises.
+
+**5-Whys:**
+1. *Why did the new chapter land at the end?* — K was never repositioned after C.
+2. *Why wasn't it repositioned?* — `reorderChapter(K, afterChapterID=C)` didn't move K.
+3. *Why didn't reorderChapter move it?* — Suspected: when C is the manuscript's **last** chapter, "insert K
+   after C" collapses to "K stays last" — but K was appended **after** the also-appended nothing… i.e. the
+   after-anchor/ordering for the last-chapter case isn't handled, or `chapterC` was resolved incorrectly.
+4. *Why is the last-chapter case unhandled?* — The orchestration assumes C has chapters after it (the general
+   split case); the no-followers-at-end case (C is last, K should still be a distinct new last chapter placed
+   immediately after C) wasn't distinguished.
+5. *Why wasn't it caught before VNC?* — `scene_reorder_smoke` Case D positions K after a **non-last** chapter
+   (ch1, with ch2 after it), so `reorder_chapter`'s last-chapter behavior is never tested; and no test drives
+   `onCreateChapterRequested` with the caret at the end of the last scene. **Root cause: the end-of-last-chapter
+   reposition path is untested, and the app path isn't covered.**
+
+**Fix direction (proposed):** verify `chapterC` resolution; confirm/handle `reorder_chapter`'s
+"after the current last chapter" semantics so K is placed as the new chapter immediately following C; add a
+live-path + smoke case with C as the last chapter.
+
+---
+
+## I-0071: [Linux] Dragging a chapter's last remaining scene orphans an empty chapter
+
+**Status:** 🔴 Open — identified during SP-067 review (2026-07-16). **Decision (user, 2026-07-16):** the move
+is allowed, and the vacated chapter gets a **new empty replacement scene** so it never becomes an empty
+chapter. If the writer then wants the chapter gone, she deletes it explicitly.
+**Platform:** Linux (`platforms/linux/`)
+**Component:** `platforms/linux/src/EditorShell.cpp` (`onSceneDropped`); `SceneDocument::moveScene`
+(the vacated-chapter case, `SceneDocument.cpp:443–444` already anticipates "target chapter has no segments
+left"); `ScriviBridge` (needs a create-scene call in the vacated chapter).
+**Severity:** Medium (data-structure hazard: `scrivi_reorder_scene` leaves the source chapter with zero
+scenes; the navigator projects nothing for it, so it silently vanishes from the UI while it may persist on
+disk — a chapter the writer can neither see nor manage)
+**Sprint:** SP-067
+**Epic:** EP-023 `[Linux]`
+**Related:** I-0067/I-0068 (the drag path this rides on); I-0069 (same empty-chapter hazard on the split path
+— apply the same "never leave an empty chapter" rule). Cross-platform: check whether macOS has the same gap.
+
+**Description:**
+Dragging the **only** scene of a chapter into a different chapter reassigns that scene's `chapterID` on disk
+but does nothing about the now-empty source chapter — `scrivi_reorder_scene` neither deletes it nor backfills
+a scene. The navigator, projecting from segments, renders nothing for the empty chapter, so it disappears from
+view while potentially remaining on disk.
+
+**Expected Behavior (user decision 2026-07-16):** the move succeeds; the vacated chapter is immediately given
+a **new blank scene** (so it stays a visible, valid, empty-bodied chapter). Deleting the chapter is a separate,
+explicit user action.
+
+**Actual Behavior:** the source chapter is left with zero scenes (orphaned/empty); no replacement scene is
+created.
+
+**Root Cause:**
+`scrivi_reorder_scene` is a pure reassignment primitive with no source-chapter bookkeeping, and the Linux drop
+path (`onSceneDropped`) doesn't detect "this was the source chapter's last scene" to backfill. `moveScene`
+already tolerates an emptied target chapter (`SceneDocument.cpp:443`) but nothing creates the replacement
+scene on disk.
+
+**5-Whys:**
+1. *Why can a chapter end up empty?* — A reorder can remove a chapter's last scene with no compensating action.
+2. *Why is there no compensating action?* — `scrivi_reorder_scene` only moves the scene; the app drop path
+   doesn't check for or handle the "last scene of the source chapter" case.
+3. *Why doesn't the app handle it?* — SP-067's scope covered moving scenes, not the empty-chapter side effect;
+   the case wasn't enumerated in the AC4 exit criteria.
+4. *Why wasn't it enumerated?* — Drag-reorder was specified around within/cross-chapter placement of the moved
+   scene, not the state left behind in the source chapter.
+5. *Why does an empty chapter matter?* — The navigator projects only from scene segments, so an empty chapter
+   is invisible and unmanageable — a chapter the user can't see, select, or delete. **Root cause: reorder has
+   no source-chapter-emptied policy, and the UI can't represent an empty chapter.**
+
+**Fix direction (per user decision):** in `onSceneDropped`, after a successful cross-chapter `reorderScene`,
+detect that the source chapter now has no scenes and `createScene` a blank scene in it (bridge call), then
+re-splice/rebuild. Same "never leave an empty chapter" guard applies to the I-0069 split path. (Alternative
+rejected by user: forbid the drag, or auto-delete the chapter.)
 
 ---
 
@@ -183,8 +670,26 @@ exception becomes an error envelope (best-effort history) rather than a process 
 
 ## I-0064: [Linux] Ctrl+Shift+Return appends a chapter at the end instead of splitting at the caret
 
-**Status:** 🔵 Open (surfaced during SP-066 VNC verification, 2026-07-15). Targeted for **SP-067** (scene/chapter
-reorder) — the fix depends on the reorder primitives that sprint delivers.
+**Status:** ⚠️ **Partially Resolved — VNC 2026-07-16.** The **mid-scene split** path works (VNC case 3b:
+caret mid-sentence → head stays, tail becomes the new chapter's first scene, new chapter inserted after
+the current one). The **end-of-scene** paths do **not**: end-of-scene *with followers* renumbers but shows
+no new chapter/scenes (**I-0069**), and end-of-scene *with no followers* still appends the new chapter at
+the manuscript end (**I-0070** — the exact original I-0064 symptom, surviving for that branch). So the fix
+landed for the mid-scene case only; the two end-of-scene branches are split out as I-0069/I-0070 and I-0064
+stays open until those close. (Prior "Resolved - Not Verified" note below retained for history.)
+
+**Prior status (2026-07-15, superseded by the VNC result above):** ✅ Resolved - Not Verified (SP-067 / T-0261). `onCreateChapterRequested` now SPLITS
+the current chapter at the caret instead of appending an empty chapter at the manuscript end. Disk-correct
+orchestration (unlike macOS, which splices only in-memory): `create_chapter` (append K + blank K0) →
+`reorder_chapter(K, afterChapterID = C)` → for each scene that followed the caret's scene S within C,
+`reorder_scene(scene, C, K, afterSceneID)` in order → **mid-scene:** `save_scene` head into S, tail into K0;
+**end-of-scene with followers:** followers become K's scenes and the redundant blank K0 is dropped;
+**end-of-scene, no followers:** K0 stays as a genuinely-new empty chapter after C → full reload (the split
+touches multiple scenes + chapters, so re-reading disk is the safest source-of-truth path) →
+`renumberCreatedChapters()` (I-0063) → caret lands at the start of the caret scene (K0/tail for mid-scene,
+first follower for end-of-scene). A confirmation dialog fires first when ≥1 subsequent chapter will renumber
+(macOS `ManuscriptTextView` parity). Verified headless by `scene_reorder_smoke` Cases D (end-of-scene) + E
+(mid-scene head/tail); **VNC user-verification pending.**
 **Platform:** Linux (`platforms/linux/`)
 **Component:** `platforms/linux/src/EditorShell.cpp` (`onCreateChapterRequested`) →
 `SceneDocument::insertSceneAfter`. The Linux create-chapter path has appended-at-end since EP-022/SP-062.
@@ -248,7 +753,19 @@ scenes you want split as separate scenes.
 
 ## I-0063: [Linux] Deleting/inserting a chapter doesn't renumber later created chapters
 
-**Status:** 🔵 Open (backlog — surfaced during SP-066 rename implementation, 2026-07-15)
+**Status:** ✅ Resolved - **Verified (2026-07-16, user-confirmed over VNC** — deleting an earlier chapter
+renumbered the later created "Chapter N" chapters to their correct ordinals, and a custom-titled chapter was
+left untouched; case 4 of the SP-067 VNC walkthrough). Implemented per **Option A** below. New
+`EditorShell::renumberCreatedChapters()` walks chapters in manuscript order and, for each whose STORED title
+matches the anchored auto pattern `^Chapter \d+$`, calls `bridge_->renameChapter(chapterMetadataPath, "Chapter
+<ordinal>")` to rewrite the sidecar to its new position; custom titles (which don't match the anchored
+pattern) are untouched, and untitled chapters already renumber for free via `chapterHeadingText`. Wired into
+`deleteChapterByID` (after `removeChapter`) and the T-0261 chapter-split path (after the reload), each followed
+by `applyDerivedLabels()` + `rebuildNavigator()` so the live navigator/heading match disk. Also fixed a latent
+gap: `EditorShell::load` now copies `chapterMetadataPath` from `open_project`'s scene entries into the segment
+map (the renumber + chapter-rename on a freshly-loaded chapter both need it). Verified headless by
+`scene_reorder_smoke` Case D's I-0063 assertions (created "Chapter N" chapters carry their correct ordinal on
+reopen after a split); **VNC user-verification pending.**
 **Platform:** Linux (`platforms/linux/`)
 **Component:** `platforms/linux/src/EditorShell.cpp` (`deleteChapterByID` and any future chapter-insert path);
 `SceneDocument::chapterHeadingText` / `reflowAllChapterHeadings` (the renumber machinery already exists).

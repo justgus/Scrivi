@@ -37,6 +37,9 @@ qt_add_executable(scrivi_linux
     # SP-062 (EP-022): the editable writing surface with boundary integrity.
     src/ManuscriptEditor.cpp
     src/ManuscriptEditor.hpp
+    # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
 )
 
 qt_add_qml_module(scrivi_linux
@@ -278,6 +281,38 @@ target_link_libraries(scrivi_linux_scene_rename_smoke
 
 target_include_directories(scrivi_linux_scene_rename_smoke PRIVATE src)
 target_compile_features(scrivi_linux_scene_rename_smoke PRIVATE cxx_std_23)
+
+# --- Headless scene/chapter reorder smoke (SP-067 / T-0263, EP-023 AC4 + ---
+# --- I-0063/I-0064) --------------------------------------------------------
+# Builds a 5-scene/2-chapter fixture, splices scenes within + across chapters via
+# SceneDocument::moveScene (offset map well-formed, bodies preserved, chapter-first
+# re-promotion), persists a cross-chapter reorder via ScriviBridge::reorderScene
+# (asserts the new order on reopen), replays the I-0064 chapter-split orchestration
+# (create_chapter → reorder_chapter → reorder_scene followers → save head/tail) for the
+# end-of-scene + mid-scene cases, and renumbers created "Chapter N" chapters (I-0063).
+# Needs Widgets for QApplication + QPlainTextDocumentLayout (SceneDocument).
+# scene_reorder_smoke.sh.
+qt_add_executable(scrivi_linux_scene_reorder_smoke
+    tests/scene_reorder_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_reorder_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_scene_reorder_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_reorder_smoke PRIVATE cxx_std_23)
 
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a

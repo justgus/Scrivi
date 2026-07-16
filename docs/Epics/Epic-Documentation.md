@@ -12,7 +12,9 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — **EP-023** `[Linux]` (Manuscript Structure Editing), activated 2026-07-15. **SP-065 (delete) + SP-066 (rename) ✅ closed** — AC1/AC2/AC3 verified over VNC; I-0062 Resolved-Verified; **2 of 4 sprints done**. Remaining: SP-067 scene drag-reorder (+ I-0064 chapter-split + I-0063 renumber) → SP-068 chapter drag-reorder + close. No ScriviCore work — all eight structure endpoints already exist. EP-020 Foundation + EP-021 Lifecycle + EP-022 Writing Surface all ✅ closed. EP-024–EP-026 `[Linux]` remain 🔵 Draft.
+Currently: **2 Active Epics.**
+- **EP-027** `[ScriviCore]` (Filesystem-Authoritative Chapter/Scene Identity & Ordering), activated 2026-07-16. Design decided (`docs/Scrivi_Chapter_Folder_and_Identity_Trade_Study_v0_1.md`): A4b order-key slugs + B3 disk-as-source-of-truth + filesystem order authority + FileSystem rename primitive + old→new migration. Fixes the I-0072 slug-collision class; rolls in I-0064/I-0069/I-0070/I-0072 (+I-0071 scenes) from SP-067. Core-first, then Linux + Apple verify; chapters before scenes.
+- **EP-023** `[Linux]` (Manuscript Structure Editing), activated 2026-07-15. **SP-065 (delete) + SP-066 (rename) + SP-067 (scene drag-reorder) ✅ closed** — AC1/AC2/AC3/AC4 verified over VNC; I-0062/I-0063/I-0067/I-0068 resolved; **3 of 4 sprints done**. The chapter-split defects surfaced in SP-067 (I-0064/I-0069/I-0070) + the root slug corruption (I-0072) were **re-homed to EP-027**. Remaining **SP-068** (chapter drag-reorder AC5 + verify/close) is 🔵 Planning — sequence against EP-027 (chapter-structure ops depend on its new on-disk model). EP-020/021/022 all ✅ closed. EP-024–EP-026 `[Linux]` remain 🔵 Draft.
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -26,7 +28,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **26 Epics** | Next available: **EP-027**
+Currently: **27 Epics** | Next available: **EP-028**
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -58,13 +60,14 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-024 | `[Linux]` Scene Inspector Panel | 🔵 Draft (backlog) | — | — |
 | EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
 | EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
+| EP-027 | `[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering | 🟡 Active | 2026-07-16 | — |
 
 ## Statistics
 
-- **Total Epics:** 26
+- **Total Epics:** 27
 - **Closed:** 21 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-023 `[Linux]` Manuscript Structure Editing)
+- **Active:** 2 🟡 (EP-023 `[Linux]` Manuscript Structure Editing; EP-027 `[ScriviCore]` FS-Authoritative Identity & Ordering)
 - **Draft:** 3 🔵 (EP-024–EP-026 `[Linux]`)
 - **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
