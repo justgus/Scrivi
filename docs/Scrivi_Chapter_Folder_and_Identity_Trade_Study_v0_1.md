@@ -326,3 +326,30 @@ requirement.
 collision fixed**), `ManuscriptOrderResolver` order-by-folder-sort, `ChapterReorderer` = `keyBetween` +
 `renamePath` one folder (paths rewritten), and open-time index self-heal. Schema `chapterID` drop + consumer
 disk-migration: **deferred** (see above).
+
+### 7.7 P3 delivered (2026-07-16, ctest 290/290 macOS + Linux): legacy-project migration
+Implements §7.4 as `migrateChapterOrderKeys(fs, projectRoot)` in `ChapterIndex`, wired into `ProjectOpener`
+(step 2a, before the self-heal of step 2b). How it satisfies each §7.4 clause:
+
+- **Intended order source.** For a legacy project the authoritative reading order is the `manuscript.meta.json`
+  `chapters[]` **array** order (under the old scheme, reorder shuffled that array, not the folders). Migration
+  walks the array and assigns each chapter a fresh ascending order-key via `keyAfter` from a moving cursor.
+- **Rename, don't rewrite bodies.** Each out-of-position chapter's folder is renamed to `chapter-<newKey>` via
+  the shared `renameChapterFolder` primitive, which `renamePath`s the directory and rewrites the sidecar `slug`
+  + every embedded scene `metadataPath`/`contentPath` — so scene bodies stay resolvable (no data loss).
+- **Lazy / idempotent / resumable.** It is a **no-op** when the folder-key sort already reproduces the array
+  order (every new-scheme project, and any legacy project whose numeric order already matched reading order), so
+  it is cheap to call on every open. Only folders still out of position are renamed, and `renamePath` never
+  clobbers, so an interrupted run is completed by the next open.
+- **Dual-scheme read + collision safety.** Legacy numeric `chapter-NNN` are themselves valid order-keys that
+  keep sorting/working until migrated. Generated keys are **letter-prefixed** (`V, k, s, w, …`), whose ASCII
+  bytes sort *after* the digit-prefixed legacy folders (`001, 002, …`) — so a target key can never collide with
+  an as-yet-unmigrated numeric folder. Back-compat window holds: both schemes read; only the new one is written.
+- **Then self-heal.** After renames, `rebuildIndexIfInconsistent` rewrites the index cache to match the freshly
+  ordered disk state.
+
+Tests (`integration/ChapterMigrationTests.cpp`, `[EP-027][migration]`): a legacy project whose array order
+disagrees with its numeric folder order migrates to the correct reading order with scene bodies intact and is
+idempotent on a second open; a project already in order is a verified no-op.
+
+**Remaining phases:** P4 Linux UI verify (VNC), P5 Apple verify, P6 scenes (same treatment as chapters).

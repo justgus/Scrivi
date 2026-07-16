@@ -1,13 +1,13 @@
 # Active Tasks
 
-**SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority**) is 🟢 Implemented,
-Not Verified (2026-07-16). `scrivi.h` untouched; ctest green **288/288 macOS + Linux**. **I-0072 root cause
-fixed + regression + open-time self-heal for existing damage.** Full task table in `Sprints/Sprint-active.md`
-(T-0264 P1; T-0265–T-0269 P2). **Deferred:** drop `chapterID` from `ChapterRef` schema (self-healing cache —
-churn without gain; trade study §7.6).
+**SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority + P3 migration**) is
+🟢 Implemented, Not Verified (2026-07-16). `scrivi.h` untouched; ctest green **290/290 macOS + Linux**. **I-0072
+root cause fixed + regression + open-time self-heal for existing damage + lazy migration of legacy `chapter-NNN`
+projects.** Full task table in `Sprints/Sprint-active.md` (T-0264 P1; T-0265–T-0269 P2; T-0270 P3). **Deferred:**
+drop `chapterID` from `ChapterRef` schema (self-healing cache — churn without gain; trade study §7.6).
 
-**Epic:** EP-027 `[ScriviCore]` — **Sprint:** SP-069 (`Sprints/Sprint-active.md`). Next available **T-0270**
-(P3 migration).
+**Epic:** EP-027 `[ScriviCore]` — **Sprint:** SP-069 (`Sprints/Sprint-active.md`). Next available **T-0271**
+(P4 Linux verify).
 
 ---
 

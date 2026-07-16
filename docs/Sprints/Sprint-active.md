@@ -1,13 +1,14 @@
 # Active Sprint
 
-# SP-069: [ScriviCore] EP-027 P1+P2 — Rename primitive + order-key/disk-authority (chapters)
+# SP-069: [ScriviCore] EP-027 P1–P3 — Rename primitive + order-key/disk-authority + migration (chapters)
 
-**Status:** 🟢 **Implemented — Not Verified (2026-07-16).** **P1** (rename primitive) and **P2** (order-key
-slugs + disk-authoritative chapter identity/order + open-time self-heal) both landed this session. ScriviCore
-`ctest` green on **macOS (288/288)** and the **Linux container** (all EP-027 tests, 3194 assertions). Verification
-is ctest (core-first; no UI surface). **I-0072 root cause fixed + regression + self-heal for existing damage.**
+**Status:** 🟢 **Implemented — Not Verified (2026-07-16).** **P1** (rename primitive), **P2** (order-key
+slugs + disk-authoritative chapter identity/order + open-time self-heal), and **P3** (old-format migration) all
+landed this session. ScriviCore `ctest` green on **macOS (290/290)** and the **Linux container** (all EP-027
+tests, 3225 assertions). Verification is ctest (core-first; no UI surface). **I-0072 root cause fixed +
+regression + self-heal for existing damage + lazy migration of legacy projects.**
 **Activated:** 2026-07-16
-**Epic:** EP-027 `[ScriviCore]` — Filesystem-Authoritative Chapter/Scene Identity & Ordering (**Phases 1–2 of 6**).
+**Epic:** EP-027 `[ScriviCore]` — Filesystem-Authoritative Chapter/Scene Identity & Ordering (**Phases 1–3 of 6**).
 **Codebase:** `[ScriviCore]` — the shared FileSystem port. Cross-platform (macOS + Linux verified at the
 ctest level). `scrivi.h` untouched (this is an internal port capability, not a C ABI change).
 
@@ -39,28 +40,32 @@ the order-key folder reslugging (P2) and the old→new migration (P3) both need,
 | T-0267 | **P2: `ChapterCreator` order-key slug** — new chapters named `chapter-<keyAfter(lastKey)>`, collision-free (**fixes I-0072**); `ProjectCreator` initial `chapter-001` kept (never collides). Integration regression `[I-0072]` (create→create→delete→create → distinct/ordered/no-clobber). | ✅ Done (not verified) — AC1. |
 | T-0268 | **P2: disk-authoritative order + reorder** — `ManuscriptOrderResolver` iterates `listChaptersByOrder` (folder-key sort, B3); `ChapterReorderer` reworked to `keyBetween` + `renamePath` the one moved folder, rewriting the sidecar slug + all embedded scene `metadataPath`/`contentPath`. Existing reorder tests pass on the new mechanics. | ✅ Done (not verified) — AC2/AC3. |
 | T-0269 | **P2: open-time index self-heal** — `rebuildIndexIfInconsistent` wired into `ProjectOpener`; an I-0072-corrupt index (phantom + duplicate) is rebuilt from disk on open, idempotent. Integration test `[I-0072]`. | ✅ Done (not verified) — AC4. |
+| T-0270 | **P3: legacy-project migration** — `migrateChapterOrderKeys` (ChapterIndex): walks the `manuscript.meta.json` `chapters[]` array (legacy intended order), assigns fresh ascending order-keys via `keyAfter`, renames each out-of-position folder via the shared `renameChapterFolder` primitive (rewriting sidecar slug + embedded scene paths), then self-heals the index. No-op when folder-key sort already == index-array order. Wired into `ProjectOpener` (step 2a, before self-heal). Letter-prefixed generated keys sort after numeric legacy folders → collision-free dual-scheme read. Integration tests `[EP-027][migration]` (2 cases: reorder-legacy → correct order + scene bodies intact + idempotent; no-op when already ordered). | ✅ Done (not verified) — AC6. |
 
 **P2 deferred (Human decision 2026-07-16):** drop `chapterID` from `ChapterRef` schema + migrate the 3 consumers
 that read it — the index id is now a self-healing cache that can't diverge, so this is churn without functional
 gain (trade study §7.6).
 
-## Exit criteria (P1+P2)
+## Exit criteria (P1–P3)
 
 - **AC5 (P1):** `renamePath` — atomic-within-fs, no-clobber, missing-source guard; unit-tested. ✅ met.
 - **AC1 (P2):** order-key slugs; no collision after deletes (**I-0072 fixed**); regression test. ✅ met.
 - **AC2 (P2):** reorder renames one folder via `renamePath`. ✅ met.
 - **AC3 (P2):** order = disk folder-key sort; identity = sidecar (index id kept as self-healing cache). ✅ met.
 - **AC4 (P2):** inconsistent index self-heals from disk on open (I-0072 damage repaired). ✅ met.
-- `scrivi.h` unchanged; no regression — full suite **288/288** macOS + Linux.
+- **AC6 (P3):** legacy `chapter-NNN` projects migrate to order-key slugs at open (lazy/idempotent/resumable,
+  dual-scheme read, no data loss); no-op when already ordered. ✅ met.
+- `scrivi.h` unchanged; no regression — full suite **290/290** macOS + Linux.
 
 ## Next (EP-027)
 
-- **P3 — Migration** (old-format `chapter-NNN` projects → order-key + disk-authority; lazy/idempotent/resumable;
-  dual-scheme read). Next available task **T-0270**.
-- Then P4 Linux verify, P5 Apple verify, P6 scenes.
+- **P4 — Linux verify** (drive the migrated/self-healed behavior through the Qt UI on the Linux container; VNC
+  walkthrough). Next available task **T-0271**.
+- Then P5 Apple verify, P6 scenes.
 
 ---
 
-*Activated 2026-07-16. EP-027 Phases 1–2 of 6 (`[ScriviCore]`). Delivers AC1–AC5 (rename primitive + order-key
-slugs + disk-authoritative chapter order/identity + open-time self-heal; **I-0072 fixed**). Verification is ctest
-(core-first; no UI surface). `scrivi.h` untouched. Full suite 288/288 macOS + Linux.*
+*Activated 2026-07-16. EP-027 Phases 1–3 of 6 (`[ScriviCore]`). Delivers AC1–AC6 (rename primitive + order-key
+slugs + disk-authoritative chapter order/identity + open-time self-heal + legacy-project migration; **I-0072
+fixed**). Verification is ctest (core-first; no UI surface). `scrivi.h` untouched. Full suite 290/290 macOS +
+Linux.*

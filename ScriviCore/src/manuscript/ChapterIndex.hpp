@@ -50,6 +50,16 @@ Result<ChapterID> resolveChapterID(
 Result<ChapterEntry> findChapterByID(
     FileSystem& fs, const AbsolutePath& projectRoot, const ChapterID& chapterID);
 
+// Rename a chapter's folder from `chapter-<oldKey>` to `chapter-<newKey>`: renamePath the
+// directory (atomic, never clobbers) and rewrite every relative path that embedded the
+// old folder — the sidecar `slug`, each scene's `metadataPath` in the chapter sidecar, and
+// each scene sidecar's own `contentPath` — so scene bodies stay resolvable. Returns the
+// new chapter.meta.json rel-path. Shared by reorder and migration (the folder-move
+// primitive of the order-key scheme).
+Result<std::string> renameChapterFolder(
+    FileSystem& fs, const AbsolutePath& projectRoot,
+    const std::string& oldKey, const std::string& newKey);
+
 // Self-heal the manuscript.meta.json chapter index if it disagrees with the on-disk
 // folders (EP-027 B3 rebuild-on-inconsistency). Compares the index's `chapters[]`
 // (chapterID + path pairs) against the authoritative on-disk chapters in order-key order;
@@ -60,6 +70,24 @@ Result<ChapterEntry> findChapterByID(
 // write failure surfaces as an error, but callers may ignore it (order is disk-derived
 // regardless).
 Result<bool> rebuildIndexIfInconsistent(
+    FileSystem& fs, const AbsolutePath& projectRoot);
+
+// Migrate a project whose chapter FOLDER order-key sort does not reproduce its intended
+// reading order (EP-027 P3). The intended order for a legacy/old-format project is the
+// `manuscript.meta.json` `chapters[]` ARRAY order (the last authoritative order under the
+// pre-EP-027 scheme, where reorder shuffled the index array, not the folders). This walks
+// the index array in order, assigns each chapter a fresh ascending order-key, and
+// `renamePath`s its folder to `chapter-<newKey>` (rewriting the sidecar slug + every
+// embedded scene metadataPath/contentPath), so that afterwards the folder-key sort equals
+// the index-array order and the filesystem becomes the source of truth (B3).
+//
+// It is a NO-OP when the folder-key sort already equals the index-array order — which is
+// the case for any project already created/reordered under the new scheme, and for a
+// legacy project whose numeric folder order already matches its reading order. So this is
+// safe (and cheap) to call on every open. Idempotent and resumable: interrupted mid-way,
+// a re-run completes it (it only renames folders still out of position, and never
+// clobbers because new keys are unique). Returns true if any folder was renamed.
+Result<bool> migrateChapterOrderKeys(
     FileSystem& fs, const AbsolutePath& projectRoot);
 
 } // namespace scrivi::manuscript

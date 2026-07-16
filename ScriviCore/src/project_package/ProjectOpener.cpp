@@ -59,6 +59,13 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     summary.rootPath           = request.projectRootPath;
     summary.gitSnapshotsEnabled = proj.gitSnapshotsEnabled;
 
+    // 2a. EP-027 P3 migration: an old-format project (legacy `chapter-NNN` folders whose
+    //     numeric sort doesn't reproduce the intended reading order held in the index
+    //     array) is migrated to order-key slugs so the folder-key sort == reading order.
+    //     Idempotent no-op for new-scheme / already-in-order projects. Runs BEFORE the
+    //     resolver reads order (which is now folder-sort based). Best-effort.
+    manuscript::migrateChapterOrderKeys(fs, request.projectRootPath);
+
     // 2b. EP-027 B3 self-heal: if manuscript.meta.json's chapter index disagrees with the
     //     on-disk `chapter-*` folders (stale order, phantom/duplicate entries — the I-0072
     //     damage), rewrite it from disk so the cache matches truth. Best-effort: order is

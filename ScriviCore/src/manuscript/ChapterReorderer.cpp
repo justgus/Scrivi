@@ -1,9 +1,7 @@
 #include "manuscript/ChapterReorderer.hpp"
 
 #include "manuscript/ChapterIndex.hpp"
-#include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
-#include "schemas/SceneMetaJson.hpp"
 #include "util/OrderKey.hpp"
 #include "util/PathUtils.hpp"
 
@@ -87,59 +85,20 @@ Result<ReorderChapterResult> ChapterReorderer::reorder(const ReorderChapterReque
         return Result<ReorderChapterResult>::success(std::move(result));
     }
 
-    // 5. New key strictly between the neighbours, and the new folder path.
+    // 5. New key strictly between the neighbours.
     const std::string newKey = util::keyBetween(lo, hi);
     if (newKey.empty()) {
         return Result<ReorderChapterResult>::failure(
             {.code = ErrorCode::internalError,
              .message = "could not compute an order key between neighbours"});
     }
-    const std::string oldDir = "manuscript/chapter-" + moving.orderKey;
-    const std::string newDir = "manuscript/chapter-" + newKey;
-    const std::string newChMetaRel = newDir + "/chapter.meta.json";
 
-    // 6. Rename the folder (atomic, never clobbers — the new key is unique by construction).
-    auto renameR = fs.renamePath(util::join(root, oldDir), util::join(root, newDir));
-    if (!renameR.ok()) { return Result<ReorderChapterResult>::failure(renameR.error()); }
-
-    // 7. The folder moved, so every relative path that referenced the OLD folder must be
-    //    rewritten to the NEW folder: the chapter sidecar's slug + each scene's
-    //    metadataPath, and each scene sidecar's own contentPath. (Paths are relative to
-    //    the project root and embed the `manuscript/chapter-<key>/` prefix.)
-    auto rewritePrefix = [&](std::string p) {
-        if (p.rfind(oldDir + "/", 0) == 0) {
-            return newDir + p.substr(oldDir.size());
-        }
-        return p;
-    };
-    {
-        auto chTextR = fs.readTextFile(util::join(root, newChMetaRel));
-        if (!chTextR.ok()) { return Result<ReorderChapterResult>::failure(chTextR.error()); }
-        auto chParsed = schemas::parseChapterMeta(chTextR.value());
-        if (!chParsed.ok()) { return Result<ReorderChapterResult>::failure(chParsed.error()); }
-        auto& ch = chParsed.value();
-        ch.slug = "chapter-" + newKey;
-
-        for (auto& sceneRef : ch.scenes) {
-            const std::string oldSceneMetaRel = sceneRef.metadataPath;
-            const std::string newSceneMetaRel = rewritePrefix(oldSceneMetaRel);
-            sceneRef.metadataPath = newSceneMetaRel;
-
-            // Rewrite the scene sidecar's own contentPath (the .md moved with the folder).
-            auto sTextR = fs.readTextFile(util::join(root, newSceneMetaRel));
-            if (!sTextR.ok()) { return Result<ReorderChapterResult>::failure(sTextR.error()); }
-            auto sParsed = schemas::parseSceneMeta(sTextR.value());
-            if (!sParsed.ok()) { return Result<ReorderChapterResult>::failure(sParsed.error()); }
-            sParsed.value().contentPath = rewritePrefix(sParsed.value().contentPath);
-            auto sw = fs.atomicWriteTextFile(util::join(root, newSceneMetaRel),
-                                             schemas::serializeSceneMeta(sParsed.value()));
-            if (!sw.ok()) { return Result<ReorderChapterResult>::failure(sw.error()); }
-        }
-
-        auto wR = fs.atomicWriteTextFile(util::join(root, newChMetaRel),
-                                         schemas::serializeChapterMeta(ch));
-        if (!wR.ok()) { return Result<ReorderChapterResult>::failure(wR.error()); }
-    }
+    // 6+7. Rename the folder to `chapter-<newKey>` and rewrite all embedded paths (shared
+    //       order-key folder-move primitive; atomic, never clobbers, scene bodies stay
+    //       resolvable). Only this one folder changes.
+    auto movedRel = renameChapterFolder(fs, root, moving.orderKey, newKey);
+    if (!movedRel.ok()) { return Result<ReorderChapterResult>::failure(movedRel.error()); }
+    const std::string newChMetaRel = movedRel.value();
 
     // 8. Update the index cache (manuscript.meta.json) to point at the new path. Best
     //    effort — order is now derived from disk, so a stale index self-heals on load;

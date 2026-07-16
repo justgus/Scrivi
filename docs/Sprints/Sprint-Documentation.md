@@ -11,10 +11,13 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- **SP-069** (EP-027 `[ScriviCore]` — **P1: FileSystem rename/move primitive**) — 🟢 Implemented, Not Verified,
-  activated 2026-07-16. Adds `FileSystem::renamePath(from,to)` (atomic-within-fs, **never clobbers**, missing-
-  source guard) + `LocalFileSystem` impl + unit tests (`[renamePath][EP-027]`). **ctest green** on macOS (273/273)
-  and the Linux container (5 cases/20 assertions). Task **T-0264**. `scrivi.h` untouched. `Sprint-active.md`.
+- **SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority + P3 migration**) —
+  🟢 Implemented, Not Verified, activated 2026-07-16. **P1:** `FileSystem::renamePath` (atomic-within-fs, never
+  clobbers, missing-source guard). **P2:** `util/OrderKey` fractional slugs + disk-authoritative chapter
+  identity/order (`ChapterIndex`) + order-key `ChapterCreator`/`ChapterReorderer` (**fixes I-0072**) + open-time
+  self-heal. **P3:** `migrateChapterOrderKeys` — lazy/idempotent migration of legacy `chapter-NNN` projects at
+  open (dual-scheme read; collision-free letter-prefixed keys). **ctest green 290/290** macOS + Linux container
+  (all EP-027 tests, 3225 assertions). Tasks **T-0264–T-0270**. `scrivi.h` untouched. `Sprint-active.md`.
 
 Last closed: **SP-067** (EP-023 `[Linux]` Scene drag-reorder + I-0064 chapter-split + I-0063 renumber) — ✅
 **closed 2026-07-16**. Delivered **AC4 scene drag-reorder** (I-0067/I-0068 fixed by forcing the drag to
@@ -107,13 +110,13 @@ Currently: **67 Sprints** (62 closed + 1 cancelled + 2 in Planning + 1 active) |
 | SP-065 | `[Linux]` Delete scene/chapter — context menu, confirmation, removal splice + delete-of-active | EP-023 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 | SP-066 | `[Linux]` Rename scene/chapter — context menu, inline edit, live heading + I-0062 | EP-023 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 | SP-067 | `[Linux]` Scene drag-reorder (AC4) + I-0063 renumber — split/renumber (I-0064/69/70/72) re-homed to EP-027 | EP-023 `[Linux]` | 2026-07-15 | 2026-07-16 | ✅ Closed |
-| SP-069 | `[ScriviCore]` EP-027 P1 — FileSystem rename/move primitive (`renamePath`) | EP-027 `[ScriviCore]` | 2026-07-16 | — | 🟢 Active |
+| SP-069 | `[ScriviCore]` EP-027 P1–P3 — rename primitive + order-key/disk-authority + legacy migration (I-0072 fixed) | EP-027 `[ScriviCore]` | 2026-07-16 | — | 🟢 Active |
 
 ## Statistics
 
 - **Total Sprints:** 68
 - **Closed:** 63 ✅
-- **Active:** 1 🟢 (SP-069 EP-027 `[ScriviCore]` P1 — rename primitive)
+- **Active:** 1 🟢 (SP-069 EP-027 `[ScriviCore]` P1–P3 — rename primitive + order-key/disk-authority + migration)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸

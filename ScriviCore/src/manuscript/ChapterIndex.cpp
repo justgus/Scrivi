@@ -2,9 +2,12 @@
 
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
+#include "schemas/SceneMetaJson.hpp"
+#include "util/OrderKey.hpp"
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -24,6 +27,48 @@ std::string orderKeyOf(std::string_view folderName) {
 }
 
 } // namespace
+
+Result<std::string> renameChapterFolder(
+    FileSystem& fs, const AbsolutePath& projectRoot,
+    const std::string& oldKey, const std::string& newKey)
+{
+    const std::string oldDir = "manuscript/chapter-" + oldKey;
+    const std::string newDir = "manuscript/chapter-" + newKey;
+    const std::string newChMetaRel = newDir + "/chapter.meta.json";
+
+    auto renameR = fs.renamePath(util::join(projectRoot, oldDir),
+                                 util::join(projectRoot, newDir));
+    if (!renameR.ok()) { return Result<std::string>::failure(renameR.error()); }
+
+    auto rewritePrefix = [&](std::string p) {
+        if (p.rfind(oldDir + "/", 0) == 0) { return newDir + p.substr(oldDir.size()); }
+        return p;
+    };
+
+    auto chTextR = fs.readTextFile(util::join(projectRoot, newChMetaRel));
+    if (!chTextR.ok()) { return Result<std::string>::failure(chTextR.error()); }
+    auto chParsed = schemas::parseChapterMeta(chTextR.value());
+    if (!chParsed.ok()) { return Result<std::string>::failure(chParsed.error()); }
+    auto& ch = chParsed.value();
+    ch.slug = "chapter-" + newKey;
+
+    for (auto& sceneRef : ch.scenes) {
+        sceneRef.metadataPath = rewritePrefix(sceneRef.metadataPath);
+        auto sTextR = fs.readTextFile(util::join(projectRoot, sceneRef.metadataPath));
+        if (!sTextR.ok()) { return Result<std::string>::failure(sTextR.error()); }
+        auto sParsed = schemas::parseSceneMeta(sTextR.value());
+        if (!sParsed.ok()) { return Result<std::string>::failure(sParsed.error()); }
+        sParsed.value().contentPath = rewritePrefix(sParsed.value().contentPath);
+        auto sw = fs.atomicWriteTextFile(util::join(projectRoot, sceneRef.metadataPath),
+                                         schemas::serializeSceneMeta(sParsed.value()));
+        if (!sw.ok()) { return Result<std::string>::failure(sw.error()); }
+    }
+
+    auto wR = fs.atomicWriteTextFile(util::join(projectRoot, newChMetaRel),
+                                     schemas::serializeChapterMeta(ch));
+    if (!wR.ok()) { return Result<std::string>::failure(wR.error()); }
+    return Result<std::string>::success(newChMetaRel);
+}
 
 Result<std::vector<ChapterEntry>> listChaptersByOrder(
     FileSystem& fs, const AbsolutePath& projectRoot)
@@ -160,6 +205,81 @@ Result<bool> rebuildIndexIfInconsistent(
         return Result<bool>::failure(writeR.error());
     }
     return Result<bool>::success(true);
+}
+
+Result<bool> migrateChapterOrderKeys(
+    FileSystem& fs, const AbsolutePath& projectRoot)
+{
+    // The legacy/intended order is the index ARRAY order. Read it.
+    const std::string msMetaPath =
+        util::join(projectRoot, "manuscript/manuscript.meta.json");
+    auto msTextR = fs.readTextFile(msMetaPath);
+    if (!msTextR.ok()) { return Result<bool>::failure(msTextR.error()); }
+    auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
+    if (!msParsed.ok()) { return Result<bool>::failure(msParsed.error()); }
+    const auto& indexChapters = msParsed.value().chapters;
+
+    // Current on-disk chapters, keyed by chapterID → order-key. (Authoritative identity.)
+    auto diskR = listChaptersByOrder(fs, projectRoot);
+    if (!diskR.ok()) { return Result<bool>::failure(diskR.error()); }
+
+    // Map chapterID → current order-key from disk.
+    auto keyForID = [&](const std::string& id) -> std::string {
+        for (const auto& e : diskR.value()) {
+            if (e.chapterID.value == id) return e.orderKey;
+        }
+        return {};   // in index but not on disk (a phantom entry) — skip it
+    };
+
+    // The intended order as a sequence of order-keys the chapters CURRENTLY have, walking
+    // the index array. Only chapters that actually exist on disk participate.
+    std::vector<std::string> intendedIDs;
+    std::vector<std::string> currentKeysInIntendedOrder;
+    for (const auto& ref : indexChapters) {
+        const std::string k = keyForID(ref.chapterID.value);
+        if (k.empty()) continue;   // phantom index entry — ignore (self-heal drops it)
+        intendedIDs.push_back(ref.chapterID.value);
+        currentKeysInIntendedOrder.push_back(k);
+    }
+
+    // Already migrated iff those current keys are already strictly ascending — i.e. the
+    // folder-key sort already reproduces the index-array order. No-op then.
+    bool ascending = true;
+    for (std::size_t i = 1; i < currentKeysInIntendedOrder.size(); ++i) {
+        if (!(currentKeysInIntendedOrder[i - 1] < currentKeysInIntendedOrder[i])) {
+            ascending = false;
+            break;
+        }
+    }
+    if (ascending) {
+        return Result<bool>::success(false);   // nothing to migrate
+    }
+
+    // Reassign fresh ascending order-keys in index-array order, renaming each folder whose
+    // current key differs from its target. We generate keys with keyAfter() from a moving
+    // cursor so the result is strictly ascending and collision-free.
+    bool renamedAny = false;
+    std::string prevKey;   // empty → keyAfter("") for the first
+    for (std::size_t i = 0; i < intendedIDs.size(); ++i) {
+        const std::string targetKey = util::keyAfter(prevKey);
+        const std::string currentKey = keyForID(intendedIDs[i]);
+        if (currentKey != targetKey) {
+            // Rename this chapter's folder to targetKey. currentKey is re-read each time
+            // (a prior rename doesn't touch this folder, so keyForID is still valid here —
+            // but re-read to be safe against any interaction).
+            auto rr = renameChapterFolder(fs, projectRoot, currentKey, targetKey);
+            if (!rr.ok()) { return Result<bool>::failure(rr.error()); }
+            renamedAny = true;
+        }
+        prevKey = targetKey;
+    }
+
+    // Rebuild the index cache to match the freshly-ordered disk state.
+    if (renamedAny) {
+        auto healR = rebuildIndexIfInconsistent(fs, projectRoot);
+        if (!healR.ok()) { return Result<bool>::failure(healR.error()); }
+    }
+    return Result<bool>::success(renamedAny);
 }
 
 } // namespace scrivi::manuscript
