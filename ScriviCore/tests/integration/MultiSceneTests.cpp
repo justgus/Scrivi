@@ -71,9 +71,9 @@ static scrivi::SceneID addSecondScene(
     const std::string chapterDir =
         projectDir + "/manuscript/chapter-001";
     const std::string scene2ID        = "scene-002";
-    const std::string scene2Slug      = "002-second-scene";
-    const std::string scene2MetaRel   = "manuscript/chapter-001/002-second-scene.meta.json";
-    const std::string scene2ContentRel= "manuscript/chapter-001/002-second-scene.md";
+    const std::string scene2Slug      = "002-second-scene";     // "002" is a valid order key
+    const std::string scene2MetaFile  = "002-second-scene.meta.json";
+    const std::string scene2ContentFile = "002-second-scene.md";
 
     // Write scene meta
     scrivi::schemas::SceneMetaData meta2;
@@ -89,7 +89,7 @@ static scrivi::SceneID addSecondScene(
     meta2.modifiedByIdentityID  = "identity-001";
     meta2.modifiedByPersonaID   = "persona-001";
     meta2.modifiedByDisplayName = "Test Author";
-    meta2.contentPath           = scene2ContentRel;
+    meta2.contentPath           = scene2ContentFile;   // §8.1: bare filename
 
     {
         std::ofstream f(projectDir + "/manuscript/chapter-001/002-second-scene.meta.json",
@@ -114,8 +114,7 @@ static scrivi::SceneID addSecondScene(
     auto chapter = parsedR.value();
 
     scrivi::schemas::SceneRef ref2;
-    ref2.sceneID.value   = scene2ID;
-    ref2.metadataPath    = scene2MetaRel;
+    ref2.metadataFilename = scene2MetaFile;   // §8.1: filename-only
     chapter.scenes.push_back(ref2);
 
     {

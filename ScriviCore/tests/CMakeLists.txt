@@ -40,6 +40,8 @@ add_executable(ScriviCoreTests
     integration/ReorderTests.cpp
     integration/ChapterSlugCollisionTests.cpp
     integration/ChapterMigrationTests.cpp
+    integration/SceneIdentityTests.cpp
+    integration/SceneSplitRepro.cpp
     integration/TimelineTests.cpp
     integration/SearchableContentTests.cpp
     integration/HistoryCApiTests.cpp

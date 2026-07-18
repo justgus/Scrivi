@@ -9,9 +9,15 @@
 
 namespace scrivi::schemas {
 
+// EP-027 §8.1 (B3, scenes): a scene reference is the BARE FILENAME of the scene's
+// `.meta.json`, resolved relative to the owning chapter's own folder. It deliberately
+// carries NO `sceneID` (identity lives solely in the scene sidecar) and NO embedded
+// chapter-folder prefix (a name that changes on every chapter reorder/split/migrate).
+// A bare filename never needs rewriting when its parent chapter folder is renamed, which
+// is what dissolves the B3/B4/C6 orphaning class. `scenes[]` stays an ordered, rebuildable
+// cache — regenerated from the folder scan when it disagrees with disk.
 struct SceneRef {
-    SceneID     sceneID;
-    std::string metadataPath;
+    std::string metadataFilename;   // e.g. "a0-scene.meta.json" — relative to the chapter dir
 };
 
 struct ChapterMetaData {

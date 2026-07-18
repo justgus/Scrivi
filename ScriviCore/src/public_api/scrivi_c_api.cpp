@@ -1001,7 +1001,8 @@ const char* scrivi_create_chapter(
     const char* projectID,
     const char* identityID,
     const char* personaID,
-    const char* displayName)
+    const char* displayName,
+    const char* afterChapterID)
 {
     scrivi::CreateChapterRequest req;
     req.projectRootPath = S(projectRootPath);
@@ -1012,6 +1013,8 @@ const char* scrivi_create_chapter(
         scrivi::PersonaID {S(personaID)},
         S(displayName)
     };
+    // Empty/null afterChapterID → append at the manuscript end (EP-027 P6 create-in-place).
+    req.afterChapterID  = scrivi::ChapterID{S(afterChapterID)};
 
     auto r = core().createChapter(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));

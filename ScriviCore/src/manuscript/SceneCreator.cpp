@@ -1,8 +1,10 @@
 #include "manuscript/SceneCreator.hpp"
 
+#include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
+#include "util/OrderKey.hpp"
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
@@ -65,17 +67,47 @@ Result<CreateSceneResult> SceneCreator::create(const CreateSceneRequest& request
     auto chParsed = schemas::parseChapterMeta(chTextR.value());
     if (!chParsed.ok()) { return Result<CreateSceneResult>::failure(chParsed.error()); }
 
-    auto& ch = chParsed.value();
-
-    // 3. Generate new scene ID and slug
+    // 3. Generate new scene ID and an ORDER-KEY filename (EP-027 §8.1). The key lands
+    //    strictly between the caret's neighbours in DISK order (the folder scan), not the
+    //    cache array — so the sorted filenames equal reading order. afterSceneID empty →
+    //    insert at the front.
     const SceneID newSceneID = ids.newSceneID();
-    const std::size_t newOrdinal = ch.scenes.size() + 1;
-    const std::string sceneSlug = std::to_string(newOrdinal).insert(
-        0, 3 - std::min<std::size_t>(3, std::to_string(newOrdinal).size()), '0')
-        + "-scene";
 
-    const std::string sceneMetaRel    = chapterDir + "/" + sceneSlug + ".meta.json";
-    const std::string sceneContentRel = chapterDir + "/" + sceneSlug + ".md";
+    auto onDiskR = listScenesByOrder(fs, root, chMetaRelPath);
+    if (!onDiskR.ok()) { return Result<CreateSceneResult>::failure(onDiskR.error()); }
+    const auto& onDisk = onDiskR.value();
+
+    // Contract (matches pre-EP-027 SceneCreator): an empty OR unknown afterSceneID APPENDS
+    // to the end of the chapter; a known anchor inserts immediately after it.
+    std::string lo, hi;
+    if (request.afterSceneID.value.empty()) {
+        lo = onDisk.empty() ? std::string() : onDisk.back().orderKey;
+        hi = std::string();
+    } else {
+        auto afterIt = std::find_if(onDisk.begin(), onDisk.end(),
+            [&](const SceneEntry& e) { return e.sceneID.value == request.afterSceneID.value; });
+        if (afterIt == onDisk.end()) {
+            // Unknown anchor → append after the last scene.
+            lo = onDisk.empty() ? std::string() : onDisk.back().orderKey;
+            hi = std::string();
+        } else {
+            lo = afterIt->orderKey;
+            auto nextIt = std::next(afterIt);
+            hi = (nextIt == onDisk.end()) ? std::string() : nextIt->orderKey;
+        }
+    }
+    const std::string orderKey = util::keyBetween(lo, hi);
+    if (orderKey.empty()) {
+        return Result<CreateSceneResult>::failure(
+            {.code = ErrorCode::internalError,
+             .message = "could not compute a scene order key between neighbours"});
+    }
+
+    const std::string sceneSlug       = orderKey + "-scene";
+    const std::string metaFilename    = sceneSlug + ".meta.json";
+    const std::string contentFilename = sceneSlug + ".md";
+    const std::string sceneMetaRel    = chapterDir + "/" + metaFilename;
+    const std::string sceneContentRel = chapterDir + "/" + contentFilename;
 
     // 4. Write empty scene content file
     auto writeR = fs.atomicWriteTextFile(util::join(root, sceneContentRel), "");
@@ -95,7 +127,8 @@ Result<CreateSceneResult> SceneCreator::create(const CreateSceneRequest& request
     sceneMeta.modifiedByIdentityID  = request.author.identityID.value;
     sceneMeta.modifiedByPersonaID   = request.author.personaID.value;
     sceneMeta.modifiedByDisplayName = request.author.displayName;
-    sceneMeta.contentPath           = sceneContentRel;
+    sceneMeta.contentPath           = contentFilename;   // §8.1: bare filename, resolved
+                                                          // against the scene's own folder
     sceneMeta.wordCount             = 0;
     sceneMeta.characterCount        = 0;
 
@@ -104,27 +137,11 @@ Result<CreateSceneResult> SceneCreator::create(const CreateSceneRequest& request
         schemas::serializeSceneMeta(sceneMeta));
     if (!writeMetaR.ok()) { return Result<CreateSceneResult>::failure(writeMetaR.error()); }
 
-    // 6. Insert the new SceneRef into the chapter's scenes list.
-    //    If afterSceneID is empty or not found, append to end.
-    schemas::SceneRef newRef{.sceneID = newSceneID, .metadataPath = sceneMetaRel};
-
-    if (!request.afterSceneID.value.empty()) {
-        auto insertAfter = std::find_if(ch.scenes.begin(), ch.scenes.end(),
-            [&](const schemas::SceneRef& ref) {
-                return ref.sceneID.value == request.afterSceneID.value;
-            });
-        if (insertAfter != ch.scenes.end()) {
-            ch.scenes.insert(std::next(insertAfter), std::move(newRef));
-        } else {
-            ch.scenes.push_back(std::move(newRef));
-        }
-    } else {
-        ch.scenes.push_back(std::move(newRef));
-    }
-
-    // 7. Rewrite chapter.meta.json atomically
-    auto writeChR = fs.atomicWriteTextFile(chMetaAbsPath, schemas::serializeChapterMeta(ch));
-    if (!writeChR.ok()) { return Result<CreateSceneResult>::failure(writeChR.error()); }
+    // 6. Rebuild the chapter's scenes[] cache from disk. The scene's on-disk order-key
+    //    filename is now authoritative for order (B3), so we regenerate the ordered
+    //    filename-only cache from the folder scan rather than hand-splicing the array.
+    auto rebuildR = rebuildChapterScenesIfInconsistent(fs, root, chMetaRelPath);
+    if (!rebuildR.ok()) { return Result<CreateSceneResult>::failure(rebuildR.error()); }
 
     CreateSceneResult result;
     result.sceneID      = newSceneID;

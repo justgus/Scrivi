@@ -1,6 +1,7 @@
 #include "project_package/ProjectOpener.hpp"
 
 #include "manuscript/ChapterIndex.hpp"
+#include "manuscript/SceneIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/SceneReader.hpp"
 #include "project_package/ProjectValidator.hpp"
@@ -16,6 +17,23 @@ ProjectOpener::ProjectOpener(CoreServices& services)
 Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
 {
     auto& fs = *services_.fileSystem;
+
+    // 0. EP-027 repair-on-open — MUST run before validation so a repairable project opens
+    //    instead of erroring (trade study §7.4 / §8.2). Order matters:
+    //    (a) chapter order-key migration: legacy `chapter-NNN` folders whose numeric sort
+    //        doesn't reproduce the index-array reading order are reslugged to order keys.
+    //    (b) chapter index self-heal: a manuscript.meta.json that disagrees with the on-disk
+    //        `chapter-*` folders (stale order, I-0072 phantom/duplicate) is rebuilt from disk.
+    //    (c) scene migration + orphan repair (§8.2): runs after chapters are in their final
+    //        folders. Relocates a scene file referenced by one chapter but physically stranded
+    //        in another (the C6 "Missing scene.meta.json" — a pre-EP-027 cross-chapter move
+    //        that never moved the files); reslugs legacy numeric `NNN-` scene filenames to
+    //        order keys; rebuilds each chapter's scenes[] cache from disk.
+    //    All three are lazy / idempotent / resumable — a no-op for new-scheme projects — and
+    //    best-effort (order is disk-derived regardless of a cache-write hiccup).
+    manuscript::migrateChapterOrderKeys(fs, request.projectRootPath);
+    manuscript::rebuildIndexIfInconsistent(fs, request.projectRootPath);
+    manuscript::migrateScenes(fs, request.projectRootPath);
 
     // 1. Validate project package structure
     ProjectValidator validator{services_};
@@ -58,19 +76,6 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     summary.slug               = proj.slug;
     summary.rootPath           = request.projectRootPath;
     summary.gitSnapshotsEnabled = proj.gitSnapshotsEnabled;
-
-    // 2a. EP-027 P3 migration: an old-format project (legacy `chapter-NNN` folders whose
-    //     numeric sort doesn't reproduce the intended reading order held in the index
-    //     array) is migrated to order-key slugs so the folder-key sort == reading order.
-    //     Idempotent no-op for new-scheme / already-in-order projects. Runs BEFORE the
-    //     resolver reads order (which is now folder-sort based). Best-effort.
-    manuscript::migrateChapterOrderKeys(fs, request.projectRootPath);
-
-    // 2b. EP-027 B3 self-heal: if manuscript.meta.json's chapter index disagrees with the
-    //     on-disk `chapter-*` folders (stale order, phantom/duplicate entries — the I-0072
-    //     damage), rewrite it from disk so the cache matches truth. Best-effort: order is
-    //     derived from disk regardless, so a write failure here doesn't block the open.
-    manuscript::rebuildIndexIfInconsistent(fs, request.projectRootPath);
 
     // 3. Resolve manuscript order
     manuscript::ManuscriptOrderResolver resolver{services_};

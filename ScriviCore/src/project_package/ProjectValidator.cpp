@@ -5,6 +5,8 @@
 #include "schemas/SceneMetaJson.hpp"
 #include "util/PathUtils.hpp"
 
+#include <filesystem>
+
 namespace scrivi::project_package {
 
 ProjectValidator::ProjectValidator(CoreServices& services)
@@ -97,8 +99,15 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
             continue;
         }
 
+        // EP-027 §8.1: scene refs are BARE FILENAMES resolved against the chapter's own
+        // folder; scene identity comes from the sidecar (not the ref). The chapter dir is
+        // the parent of its chapter.meta.json.
+        const std::string chapterDir =
+            std::filesystem::path(chRef.path).parent_path().string();
+
         for (auto& scRef : chParsed.value().scenes) {
-            auto sMetaPath  = util::join(projectRoot, scRef.metadataPath);
+            const std::string sMetaRel = chapterDir + "/" + scRef.metadataFilename;
+            auto sMetaPath  = util::join(projectRoot, sMetaRel);
             auto sMetaExistsR = fs.exists(sMetaPath);
             if (!sMetaExistsR.ok()) {
                 return Result<std::vector<RepairIssue>>::failure(sMetaExistsR.error());
@@ -111,7 +120,7 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
                 issue.title     = "Missing scene.meta.json";
                 issue.path      = sMetaPath;
                 issue.chapterID = chRef.chapterID;
-                issue.sceneID   = scRef.sceneID;
+                // sceneID unknown (the ref no longer carries it and the sidecar is missing).
                 issues.push_back(std::move(issue));
                 continue;
             }
@@ -128,14 +137,14 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
                 issue.title     = "Corrupt scene.meta.json";
                 issue.path      = sMetaPath;
                 issue.chapterID = chRef.chapterID;
-                issue.sceneID   = scRef.sceneID;
                 issue.message   = sParsed.error().message;
                 issues.push_back(std::move(issue));
                 continue;
             }
 
-            // Check content file exists
-            auto contentPath   = util::join(projectRoot, sParsed.value().contentPath);
+            // Check content file exists — contentPath is a bare filename (§8.1).
+            auto contentPath   =
+                util::join(projectRoot, chapterDir + "/" + sParsed.value().contentPath);
             auto contentExistsR = fs.exists(contentPath);
             if (!contentExistsR.ok()) {
                 return Result<std::vector<RepairIssue>>::failure(contentExistsR.error());
@@ -148,7 +157,7 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
                 issue.title     = "Missing scene content file";
                 issue.path      = contentPath;
                 issue.chapterID = chRef.chapterID;
-                issue.sceneID   = scRef.sceneID;
+                issue.sceneID   = sParsed.value().sceneID;
                 issues.push_back(std::move(issue));
             }
         }

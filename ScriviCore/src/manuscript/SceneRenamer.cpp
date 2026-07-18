@@ -1,5 +1,6 @@
 #include "manuscript/SceneRenamer.hpp"
 
+#include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
@@ -71,16 +72,14 @@ Result<RelativePath> SceneRenamer::findSceneMetadataPath(
     auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
     if (!msParsed.ok()) { return Result<RelativePath>::failure(msParsed.error()); }
 
+    // EP-027 §8.1: scan the on-disk scene files (identity from each sidecar); return the
+    // scene's root-relative meta path.
     for (const auto& chRef : msParsed.value().chapters) {
-        auto chTextR = fs.readTextFile(util::join(projectRootPath, chRef.path));
-        if (!chTextR.ok()) { continue; }
-
-        auto chParsed = schemas::parseChapterMeta(chTextR.value());
-        if (!chParsed.ok()) { continue; }
-
-        for (const auto& sceneRef : chParsed.value().scenes) {
-            if (sceneRef.sceneID.value == sceneID.value) {
-                return Result<RelativePath>::success(sceneRef.metadataPath);
+        auto scenesR = listScenesByOrder(fs, projectRootPath, chRef.path);
+        if (!scenesR.ok()) { continue; }
+        for (const auto& e : scenesR.value()) {
+            if (e.sceneID.value == sceneID.value) {
+                return Result<RelativePath>::success(e.metadataRelPath);
             }
         }
     }

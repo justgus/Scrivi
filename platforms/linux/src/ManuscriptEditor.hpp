@@ -68,4 +68,6 @@ private:
 
     SceneDocument* sceneDoc_ = nullptr;   // non-owning
     bool normalizingCaret_ = false;       // re-entrancy guard for normalizeCaret()
+    int  lastCaretPos_ = 0;               // previous caret pos → gives normalizeCaret()
+                                          // the direction of travel across a boundary gap
 };

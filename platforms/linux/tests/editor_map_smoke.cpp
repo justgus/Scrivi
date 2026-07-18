@@ -124,6 +124,26 @@ int main(int argc, char* argv[])
     check(doc.nearestEditablePosition(0) == segs.at(0).bodyStart,
           "document start (heading) snaps forward to first body");
 
+    // ---- DIRECTIONAL snap (I-0074 follow-up): arrows cross a boundary ----
+    // In the seg0→seg1 interior gap, "nearest" always snaps back to seg0End (tie → previous),
+    // which is why the arrows used to get stuck. Directional snap must instead honour travel:
+    //   moving FORWARD (Down/Right) → the NEXT body's start (into seg1),
+    //   moving BACKWARD (Up/Left)   → the PREVIOUS body's end (stay at seg0End).
+    check(doc.editablePositionInDirection(seg0End + 1, /*forward=*/true)
+              == segs.at(1).bodyStart,
+          "forward through the gap snaps into the next scene body");
+    check(doc.editablePositionInDirection(seg0End + 1, /*forward=*/false)
+              == seg0End,
+          "backward through the gap snaps to the previous scene body end");
+    // An already-editable position is unchanged regardless of direction.
+    check(doc.editablePositionInDirection(segs.at(0).bodyStart + 1, true)
+              == segs.at(0).bodyStart + 1,
+          "editable position unchanged (forward)");
+    // At the document start heading, backward has no previous body → falls back to the
+    // first body start (can't get stuck before the manuscript).
+    check(doc.editablePositionInDirection(0, /*forward=*/false) == segs.at(0).bodyStart,
+          "backward at document start falls back to first body start");
+
     // ---- map maintenance on an insert inside seg0 ----
     // Insert "XX" at the start of seg0's body (the way a keystroke would), then feed
     // the same (pos, removed, added) to applyContentsChange and re-check everything.

@@ -1,6 +1,7 @@
 #include "EditorShell.hpp"
 
 #include <QAction>
+#include <QDebug>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -1009,19 +1010,17 @@ void EditorShell::onCreateChapterRequested()
         return;
     }
 
-    // I-0064 (T-0261): Ctrl+Shift+Return SPLITS the current chapter at the caret — it
-    // no longer appends an empty chapter at the manuscript end. macOS parity
-    // (ManuscriptTextView ⌘⇧↩), but disk-correct: we orchestrate the reorder endpoints
-    // so the on-disk manuscript order matches (macOS splices only in-memory).
-    //
-    // Caret in scene S of chapter C:
-    //   1. create_chapter (appends new chapter K + blank first scene K0 at the end).
-    //   2. reorder_chapter(K, afterChapterID = C) → K sits right after C.
-    //   3. Reassign each scene that FOLLOWED S within C into K, in order.
-    //   4. mid-scene: save head into S, tail into K's first scene; then renumber.
-    //      end-of-scene: no split; if S had followers they become K (K0 blank is
-    //      dropped); if not, K0 stays as a genuinely-new empty chapter after C.
-    //   5. Confirm first when ≥1 subsequent chapter will renumber.
+    // I-0064: Ctrl+Shift+Return SPLITS the current chapter at the caret (macOS parity
+    // with ⌘⇧↩), disk-correct. Caret in scene S of chapter C:
+    //   1. createChapter(afterChapterID = C) → the new chapter K is born IN PLACE right
+    //      after C, with a blank first scene K0. No reorder/rename step (EP-027 P6): K's
+    //      folder gets its final order-key name at creation, so K0's returned paths stay
+    //      valid — this is what fixes the lost-tail bug (a post-create rename used to
+    //      invalidate them).
+    //   2. mid-scene → save head into S, tail into K0.
+    //      end-of-scene → K0 stays blank; the caret lands in it (a genuinely-new chapter).
+    //   3. Every scene that FOLLOWED S within C moves into K, in order (after K0). If S was
+    //      at the end and had followers, the caret follows the first of them.
 
     // Resolve the caret's scene S and the split offset within its body.
     const int caretPos = viewport_->textCursor().position();
@@ -1052,89 +1051,86 @@ void EditorShell::onCreateChapterRequested()
         followers.append(s.sceneID);
     }
 
-    // Confirmation when the split will renumber ≥1 subsequent chapter. Count the
-    // distinct chapters after C in manuscript order.
-    int chaptersAfterC = 0;
-    {
-        bool seenC = false;
-        QString last;
-        for (const SceneSegment& s : sceneDoc_.segments()) {
-            if (s.chapterID == last) {
-                continue;
-            }
-            last = s.chapterID;
-            if (seenC) {
-                ++chaptersAfterC;
-            }
-            if (s.chapterID == chapterC) {
-                seenC = true;
-            }
-        }
-    }
-    if (chaptersAfterC > 0) {
-        const QMessageBox::StandardButton choice = QMessageBox::question(
-            this, tr("Split into New Chapter?"),
-            tr("Splitting here will create a new chapter and renumber %n subsequent "
-               "chapter(s). This can't be undone.",
-               nullptr, chaptersAfterC),
-            QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
-        if (choice != QMessageBox::Yes) {
-            return;
-        }
-    }
+    // No confirmation dialog: Ctrl+Shift+Return IS the approval. Chapter-splitting is a
+    // frequent, flow-critical move during "seat of the pants" drafting, and a modal prompt
+    // on every break breaks that flow. (The split is also non-destructive — it only creates
+    // a chapter and moves scenes; nothing is deleted — so a confirm buys little.)
 
     // Save the current scene first (mirrors Apple's ⌘⇧↩: save-then-create), so the
     // head/tail split below writes over persisted state.
     saveDirtyScenes();
 
-    // 1. Create the new chapter K (appended at the end with a blank first scene K0).
+    // 1. Create the new chapter K in place, right after C (born with its final folder
+    //    name — no reorder). K0 is its blank first scene; its returned paths stay valid.
     const QVariantMap result =
-        bridge_->createChapter(projectPath_, appSupportRoot_, projectID_);
+        bridge_->createChapter(projectPath_, appSupportRoot_, projectID_, chapterC);
     const QString firstSceneID =
         result.value(QStringLiteral("firstSceneID")).toString();
     const QString newChapterID =
         result.value(QStringLiteral("chapterID")).toString();
+    const QString k0MetadataPath =
+        result.value(QStringLiteral("firstSceneMetadataPath")).toString();
+    const QString k0ContentPath =
+        result.value(QStringLiteral("firstSceneContentPath")).toString();
     if (firstSceneID.isEmpty() || newChapterID.isEmpty()) {
-        return;   // bridge already surfaced errorOccurred
+        // The chapter wasn't created (the bridge emitted errorOccurred). Surface it rather
+        // than silently doing nothing, and abort before we mutate anything else.
+        QMessageBox::warning(this, tr("Split Failed"),
+            tr("The new chapter could not be created; the manuscript was left unchanged."));
+        return;
     }
-
-    // 2. Move K to sit right after C.
-    bridge_->reorderChapter(projectPath_, newChapterID, chapterC);
 
     // The scene that will carry the caret afterward: mid-scene → K0 (holds the tail);
     // end-of-scene with followers → the first follower; end-of-scene without followers
     // → K0 (the new empty chapter).
     QString caretSceneID = firstSceneID;
 
+    // A split step failed → stop and report rather than silently continuing into a
+    // half-applied, corrupt on-disk state (the class of failure behind I-0074).
+    auto failSplit = [&](const QString& step) {
+        qWarning().noquote() << "Chapter split aborted at step:" << step;
+        QMessageBox::warning(this, tr("Split Failed"),
+            tr("The chapter split could not be completed (%1). The manuscript may be in a "
+               "partially-changed state; reopen the project to let it self-repair.").arg(step));
+    };
+
+    // 2. Mid-scene split: head stays in S, tail becomes K's first scene (K0). (End-of-scene
+    //    leaves K0 blank for the caret; no save needed.)
     if (!isAtEnd) {
-        // 3a. Mid-scene split: head stays in S, tail becomes K's first scene (K0).
         const SceneSegment& sHead = sceneDoc_.segments().at(segS);
-        bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
-                           sceneS.sceneID, sHead.metadataPath, sHead.contentPath,
-                           headText, 0, 0, 0.0);
-        bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
-                           firstSceneID,
-                           result.value(QStringLiteral("firstSceneMetadataPath")).toString(),
-                           result.value(QStringLiteral("firstSceneContentPath")).toString(),
-                           tailText, 0, 0, 0.0);
-        // 3b. Followers move into K after K0, in order.
-        QString afterID = firstSceneID;
-        for (const QString& f : followers) {
+        const QVariantMap headR =
+            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
+                               sceneS.sceneID, sHead.metadataPath, sHead.contentPath,
+                               headText, 0, 0, 0.0);
+        if (headR.isEmpty()) { failSplit(tr("saving the current scene")); return; }
+        const QVariantMap tailR =
+            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
+                               firstSceneID, k0MetadataPath, k0ContentPath,
+                               tailText, 0, 0, 0.0);
+        if (tailR.isEmpty()) { failSplit(tr("writing the new chapter's first scene")); return; }
+    }
+
+    // 3. Followers move into K after K0, in order (runs in every case — mid-scene AND
+    //    end-of-scene). reorderScene resolves chapters/scenes BY ID, so it is immune to any
+    //    folder naming. K0 is NEVER deleted — at end-of-scene with no followers it is the
+    //    blank scene the writer types into.
+    QString afterID = firstSceneID;
+    for (const QString& f : followers) {
+        const QVariantMap rr =
             bridge_->reorderScene(projectPath_, f, chapterC, newChapterID, afterID);
-            afterID = f;
+        if (rr.isEmpty() || !rr.value(QStringLiteral("reordered")).toBool()) {
+            failSplit(tr("moving a following scene into the new chapter"));
+            // Still reload so the UI reflects whatever DID persist, then bail.
+            const QString t = findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+                ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text() : QString();
+            load(projectPath_, appSupportRoot_, t);
+            return;
         }
-    } else if (!followers.isEmpty()) {
-        // End-of-scene WITH followers: the followers become K's scenes; the blank K0 is
-        // redundant, so drop it after the followers move in (K is non-empty by then).
-        QString afterID;   // empty → first follower becomes K's first scene
-        for (const QString& f : followers) {
-            bridge_->reorderScene(projectPath_, f, chapterC, newChapterID, afterID);
-            afterID = f;
-        }
-        bridge_->deleteScene(projectPath_, firstSceneID);
+        afterID = f;
+    }
+    if (isAtEnd && !followers.isEmpty()) {
         caretSceneID = followers.first();
     }
-    // else: end-of-scene, no followers → K0 stays as a new empty chapter after C.
 
     // 4. Re-read authoritative disk state (the split touched multiple scenes + chapters)
     //    so sceneDoc_ matches the new manuscript order. A full reload keeps disk as the

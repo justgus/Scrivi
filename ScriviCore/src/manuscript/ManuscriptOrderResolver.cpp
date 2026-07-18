@@ -1,6 +1,7 @@
 #include "manuscript/ManuscriptOrderResolver.hpp"
 
 #include "manuscript/ChapterIndex.hpp"
+#include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
@@ -40,10 +41,15 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
         if (!chParsed.ok()) { return Result<std::vector<ResolvedScene>>::failure(chParsed.error());
 }
 
-        for (auto& sceneRef : chParsed.value().scenes) {
-            // sceneRef.metadataPath is relative to projectRoot
-            auto sMetaPath = util::join(projectRoot, sceneRef.metadataPath);
-            auto sTextR = fs.readTextFile(sMetaPath);
+        // EP-027 §8.1: scene order within the chapter is FILESYSTEM-AUTHORITATIVE — the
+        // order-key filename sort of the on-disk scene files, not the cache array.
+        auto scenesR = listScenesByOrder(fs, projectRoot, chapterRelPath);
+        if (!scenesR.ok()) { return Result<std::vector<ResolvedScene>>::failure(scenesR.error()); }
+
+        const std::string chDir = chapterDirOf(chapterRelPath);
+
+        for (auto& sceneEntry : scenesR.value()) {
+            auto sTextR = fs.readTextFile(util::join(projectRoot, sceneEntry.metadataRelPath));
             if (!sTextR.ok()) { return Result<std::vector<ResolvedScene>>::failure(sTextR.error());
 }
 
@@ -58,8 +64,9 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
             rs.chapterTitle         = chParsed.value().title;
             rs.slug                 = sParsed.value().slug;
             rs.status               = sParsed.value().status;
-            rs.metadataPath         = sceneRef.metadataPath;
-            rs.contentPath          = sParsed.value().contentPath;
+            rs.metadataPath         = sceneEntry.metadataRelPath;
+            // §8.1: sidecar contentPath is a bare filename — resolve against the chapter dir.
+            rs.contentPath          = chDir + "/" + sParsed.value().contentPath;
             rs.chapterMetadataPath  = chapterRelPath;
             scenes.push_back(std::move(rs));
         }

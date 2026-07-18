@@ -40,29 +40,16 @@ Result<std::string> renameChapterFolder(
                                  util::join(projectRoot, newDir));
     if (!renameR.ok()) { return Result<std::string>::failure(renameR.error()); }
 
-    auto rewritePrefix = [&](std::string p) {
-        if (p.rfind(oldDir + "/", 0) == 0) { return newDir + p.substr(oldDir.size()); }
-        return p;
-    };
-
+    // EP-027 §8.1: scene references are BARE FILENAMES (resolved against the chapter's own
+    // folder) and scene contentPaths are bare filenames too, so a chapter-folder rename
+    // touches NO scene fields — the whole coupling that broke B3/B4/C6 is gone. Only the
+    // chapter sidecar's own `slug` still embeds the folder name and must be rewritten.
     auto chTextR = fs.readTextFile(util::join(projectRoot, newChMetaRel));
     if (!chTextR.ok()) { return Result<std::string>::failure(chTextR.error()); }
     auto chParsed = schemas::parseChapterMeta(chTextR.value());
     if (!chParsed.ok()) { return Result<std::string>::failure(chParsed.error()); }
     auto& ch = chParsed.value();
     ch.slug = "chapter-" + newKey;
-
-    for (auto& sceneRef : ch.scenes) {
-        sceneRef.metadataPath = rewritePrefix(sceneRef.metadataPath);
-        auto sTextR = fs.readTextFile(util::join(projectRoot, sceneRef.metadataPath));
-        if (!sTextR.ok()) { return Result<std::string>::failure(sTextR.error()); }
-        auto sParsed = schemas::parseSceneMeta(sTextR.value());
-        if (!sParsed.ok()) { return Result<std::string>::failure(sParsed.error()); }
-        sParsed.value().contentPath = rewritePrefix(sParsed.value().contentPath);
-        auto sw = fs.atomicWriteTextFile(util::join(projectRoot, sceneRef.metadataPath),
-                                         schemas::serializeSceneMeta(sParsed.value()));
-        if (!sw.ok()) { return Result<std::string>::failure(sw.error()); }
-    }
 
     auto wR = fs.atomicWriteTextFile(util::join(projectRoot, newChMetaRel),
                                      schemas::serializeChapterMeta(ch));

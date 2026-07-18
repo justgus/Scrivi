@@ -1,5 +1,6 @@
 #include "repair/RepairHandlers.hpp"
 
+#include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
 #include "util/PathUtils.hpp"
@@ -52,13 +53,15 @@ static void writeBackup(FileSystem& fs, const AbsolutePath& path) {
     fs.atomicWriteTextFile(bakPath, textR.value());
 }
 
-// Locate the chapter metadata file that owns a given sceneID by scanning
-// the chapter directories referenced from manuscript.meta.json.
-// Returns the absolute path to the chapter .meta.json and the parsed data.
+// Locate the chapter that owns a given sceneID (EP-027 §8.1: identity is
+// FILESYSTEM-AUTHORITATIVE — read from each scene sidecar, not the cache array, which no
+// longer carries a sceneID). Returns the chapter .meta.json path + parsed data, and the
+// owning scene's absolute meta path + bare filename (for locating it in the cache array).
 struct ChapterLocation {
-    AbsolutePath          absPath;
-    schemas::ChapterMetaData data;
-    std::size_t           sceneIndex; // index of the scene in data.scenes
+    AbsolutePath             absPath;          // chapter.meta.json abs path
+    schemas::ChapterMetaData data;             // parsed chapter meta (cache array)
+    AbsolutePath             sceneMetaAbsPath; // the owning scene's .meta.json abs path
+    std::string              sceneMetaFilename; // bare filename of that scene meta
 };
 
 static Result<ChapterLocation> findChapterForScene(
@@ -67,17 +70,8 @@ static Result<ChapterLocation> findChapterForScene(
     auto& fs         = *ctx.services.fileSystem;
     const auto& root = ctx.request.projectRootPath;
 
-    // Read manuscript.meta.json to get chapter list
-    auto msPath  = util::join(root, "manuscript/manuscript.meta.json");
-    auto msTextR = fs.readTextFile(msPath);
-    if (!msTextR.ok()) {
-        return Result<ChapterLocation>::failure(msTextR.error());
-    }
-
-    // Parse manually (we only need the chapters array)
-    // We'll iterate chapter paths and check each one.
-    // Use ChapterMetaJson to parse each chapter file.
-    // First get the list of chapter dirs from the manuscript directory.
+    // Scan the manuscript's chapter folders; within each, scan its on-disk scene files and
+    // read each sidecar for the authoritative sceneID.
     auto msDirPath = util::join(root, "manuscript");
     auto listR     = fs.listDirectory(msDirPath);
     if (!listR.ok()) {
@@ -90,7 +84,6 @@ static Result<ChapterLocation> findChapterForScene(
             continue;
         }
 
-        // Look for chapter.meta.json inside this directory
         auto chMetaPath = util::join(entry, "chapter.meta.json");
         auto chTextR    = fs.readTextFile(chMetaPath);
         if (!chTextR.ok()) {
@@ -102,13 +95,22 @@ static Result<ChapterLocation> findChapterForScene(
             continue;
         }
 
-        auto& scenes = chParsed.value().scenes;
-        for (std::size_t i = 0; i < scenes.size(); ++i) {
-            if (scenes[i].sceneID.value == sceneID.value) {
+        // chMetaPath is already absolute; derive the root-relative path for listScenesByOrder.
+        std::string chMetaRelPath = chMetaPath;
+        if (chMetaRelPath.size() > root.size() && chMetaRelPath.starts_with(root)) {
+            chMetaRelPath = chMetaRelPath.substr(root.size() + 1);
+        }
+
+        auto scenesR = manuscript::listScenesByOrder(fs, root, chMetaRelPath);
+        if (!scenesR.ok()) { continue; }
+
+        for (const auto& e : scenesR.value()) {
+            if (e.sceneID.value == sceneID.value) {
                 ChapterLocation loc;
-                loc.absPath   = chMetaPath;
-                loc.data      = std::move(chParsed.value());
-                loc.sceneIndex = i;
+                loc.absPath           = chMetaPath;
+                loc.data              = std::move(chParsed.value());
+                loc.sceneMetaAbsPath  = util::join(root, e.metadataRelPath);
+                loc.sceneMetaFilename = e.metadataFilename;
                 return Result<ChapterLocation>::success(std::move(loc));
             }
         }
@@ -142,8 +144,7 @@ Result<ApplyRepairResult> handleRelinkToFile(const HandlerContext& ctx) {
     }
 
     const auto& chLoc    = chLocR.value();
-    const auto& sceneRef = chLoc.data.scenes[chLoc.sceneIndex];
-    auto absMetaPath     = util::join(req.projectRootPath, sceneRef.metadataPath);
+    auto absMetaPath     = chLoc.sceneMetaAbsPath;
 
     auto metaR = readSceneMeta(ctx, absMetaPath);
     if (!metaR.ok()) {
@@ -152,15 +153,11 @@ Result<ApplyRepairResult> handleRelinkToFile(const HandlerContext& ctx) {
 
     auto meta = metaR.value();
 
-    // Normalise targetPath to relative
-    std::string relTarget = req.targetPath;
-    if (relTarget.size() > req.projectRootPath.size() &&
-        relTarget.starts_with(req.projectRootPath))
-    {
-        relTarget = relTarget.substr(req.projectRootPath.size() + 1);
-    }
+    // EP-027 §8.1: contentPath is a bare filename resolved against the scene's own chapter
+    // folder. Relink stores the target file's filename (the target lives in that folder).
+    const std::string relTargetFilename = util::filename(req.targetPath);
 
-    meta.contentPath             = relTarget;
+    meta.contentPath             = relTargetFilename;
     meta.modifiedAt              = ctx.services.clock->nowUTC();
     meta.modifiedByIdentityID    = req.author.identityID.value;
     meta.modifiedByPersonaID     = req.author.personaID.value;
@@ -175,7 +172,7 @@ Result<ApplyRepairResult> handleRelinkToFile(const HandlerContext& ctx) {
     }
 
     return Result<ApplyRepairResult>::success(
-        okResult(req, "Scene relinked to '" + relTarget + "'"));
+        okResult(req, "Scene relinked to '" + relTargetFilename + "'"));
 }
 
 // ---------------------------------------------------------------------------
@@ -231,8 +228,7 @@ Result<ApplyRepairResult> handleMarkMissing(const HandlerContext& ctx) {
     }
 
     const auto& chLoc   = chLocR.value();
-    const auto& sceneRef = chLoc.data.scenes[chLoc.sceneIndex];
-    auto absMetaPath = util::join(req.projectRootPath, sceneRef.metadataPath);
+    auto absMetaPath = chLoc.sceneMetaAbsPath;
 
     auto metaR = readSceneMeta(ctx, absMetaPath);
     if (!metaR.ok()) {
@@ -276,8 +272,12 @@ Result<ApplyRepairResult> handleRemoveFromProject(const HandlerContext& ctx) {
     auto chLoc = chLocR.value();
     auto& scenes = chLoc.data.scenes;
 
-    // Remove the scene entry at chLoc.sceneIndex
-    scenes.erase(scenes.begin() + static_cast<std::ptrdiff_t>(chLoc.sceneIndex));
+    // Remove the scene entry (matched by its bare filename — the cache array no longer
+    // carries a sceneID; identity was resolved from the sidecar in findChapterForScene).
+    scenes.erase(std::remove_if(scenes.begin(), scenes.end(),
+        [&](const schemas::SceneRef& r) {
+            return r.metadataFilename == chLoc.sceneMetaFilename;
+        }), scenes.end());
 
     writeBackup(*ctx.services.fileSystem, chLoc.absPath);
 
@@ -362,8 +362,7 @@ Result<ApplyRepairResult> handleReloadExternalVersion(const HandlerContext& ctx)
 // ---------------------------------------------------------------------------
 // regenerateMetadata
 // ---------------------------------------------------------------------------
-// Handles both scene and chapter metadata regeneration, distinguished by
-// whether issue.sceneID is set (scene) or empty (chapter).
+// Handles both scene and chapter metadata regeneration.
 //
 // Scene: reconstructs .meta.json from the content file name + inferred title.
 // Chapter: reconstructs chapter.meta.json from the folder contents.
@@ -372,8 +371,11 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
     const auto& req   = ctx.request;
     const auto& issue = ctx.issue;
 
-    // Distinguish scene vs chapter by sceneID
-    const bool isScene = !issue.sceneID.value.empty();
+    // Distinguish scene vs chapter by the target FILENAME (EP-027 §8.1: a missing scene
+    // meta no longer carries a sceneID in its ref, so sceneID can't discriminate). A
+    // chapter meta is always `chapter.meta.json`; anything else ending in `.meta.json` is a
+    // scene meta.
+    const bool isScene = (util::filename(issue.path) != "chapter.meta.json");
 
     if (isScene) {
         // --- Scene metadata regeneration ---
@@ -433,7 +435,7 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
         meta.modifiedByIdentityID    = req.author.identityID.value;
         meta.modifiedByPersonaID     = req.author.personaID.value;
         meta.modifiedByDisplayName   = req.author.displayName;
-        meta.contentPath             = relContent;
+        meta.contentPath             = util::filename(relContent);   // §8.1: bare filename
         meta.wordCount               = 0;
         meta.characterCount          = 0;
 
@@ -469,7 +471,10 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
         return Result<ApplyRepairResult>::failure(listR.error());
     }
 
-    std::vector<schemas::SceneRef> sceneRefs;
+    // EP-027 §8.1: the scenes[] cache is an ordered list of BARE FILENAMES (identity lives
+    // in each scene sidecar). Collect the scene meta filenames and sort by order-key so the
+    // regenerated cache matches on-disk reading order.
+    std::vector<std::string> sceneFilenames;
     for (auto& entry : listR.value()) {
         // A scene metadata file ends in .meta.json (but is not chapter.meta.json)
         auto fname = util::filename(entry);
@@ -480,13 +485,15 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
         if (!textR.ok()) { continue; }
         auto parsed = schemas::parseSceneMeta(textR.value());
         if (!parsed.ok()) { continue; }
-
-        // Build relative path from projectRoot
-        std::string relMeta = entry;
-        if (relMeta.starts_with(req.projectRootPath)) {
-            relMeta = relMeta.substr(req.projectRootPath.size() + 1);
-        }
-        sceneRefs.push_back({.sceneID = parsed.value().sceneID, .metadataPath = relMeta});
+        sceneFilenames.push_back(fname);
+    }
+    std::sort(sceneFilenames.begin(), sceneFilenames.end(),
+        [](const std::string& a, const std::string& b) {
+            return manuscript::sceneOrderKeyOf(a) < manuscript::sceneOrderKeyOf(b);
+        });
+    std::vector<schemas::SceneRef> sceneRefs;
+    for (auto& fname : sceneFilenames) {
+        sceneRefs.push_back({.metadataFilename = fname});
     }
 
     // Generate new chapterID

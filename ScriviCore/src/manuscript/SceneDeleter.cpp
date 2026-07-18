@@ -1,5 +1,7 @@
 #include "manuscript/SceneDeleter.hpp"
 
+#include "manuscript/ChapterIndex.hpp"
+#include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "util/PathUtils.hpp"
@@ -23,58 +25,36 @@ Result<DeleteSceneResult> SceneDeleter::remove(const DeleteSceneRequest& request
     auto& fs = *services_.fileSystem;
     const std::string& root = request.projectRootPath;
 
-    // 1. Read manuscript.meta.json to find which chapter owns the scene
-    const std::string msMetaPath = util::join(root, "manuscript/manuscript.meta.json");
-    auto msTextR = fs.readTextFile(msMetaPath);
-    if (!msTextR.ok()) { return Result<DeleteSceneResult>::failure(msTextR.error()); }
+    // EP-027 §8.1: identity + location are FILESYSTEM-AUTHORITATIVE. Scan the on-disk
+    // chapters in order and, within each, the on-disk scene files (sceneID from each
+    // sidecar) — not the cache arrays. Delete the matching scene's `.meta.json` + `.md`,
+    // then rebuild that chapter's scenes[] cache from disk.
+    auto chaptersR = listChaptersByOrder(fs, root);
+    if (!chaptersR.ok()) { return Result<DeleteSceneResult>::failure(chaptersR.error()); }
 
-    auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
-    if (!msParsed.ok()) { return Result<DeleteSceneResult>::failure(msParsed.error()); }
+    for (const auto& chapter : chaptersR.value()) {
+        const std::string chMetaRel = chapter.chapterMetadataRelPath;
+        const std::string chDir     = chapterDirOf(chMetaRel);
 
-    const auto& chapters = msParsed.value().chapters;
+        auto scenesR = listScenesByOrder(fs, root, chMetaRel);
+        if (!scenesR.ok()) { return Result<DeleteSceneResult>::failure(scenesR.error()); }
 
-    // 2. Search each chapter for the scene
-    for (const auto& chRef : chapters) {
-        const std::string chMetaAbsPath = util::join(root, chRef.path);
+        auto it = std::find_if(scenesR.value().begin(), scenesR.value().end(),
+            [&](const SceneEntry& e) { return e.sceneID.value == request.sceneID.value; });
+        if (it == scenesR.value().end()) { continue; }
 
-        auto chTextR = fs.readTextFile(chMetaAbsPath);
-        if (!chTextR.ok()) { continue; }
-
-        auto chParsed = schemas::parseChapterMeta(chTextR.value());
-        if (!chParsed.ok()) { continue; }
-
-        auto& ch = chParsed.value();
-        auto it = std::find_if(ch.scenes.begin(), ch.scenes.end(),
-            [&](const schemas::SceneRef& ref) {
-                return ref.sceneID.value == request.sceneID.value;
-            });
-
-        if (it == ch.scenes.end()) { continue; }
-
-        // Found it — record file paths before erasing the ref
-        const std::string metaAbsPath    = util::join(root, it->metadataPath);
-        const std::string metaRelPath    = it->metadataPath;
-
-        // Derive content path from metadata path (replace .meta.json with .md)
-        std::string contentRelPath = metaRelPath;
-        const std::string suffix = ".meta.json";
-        if (contentRelPath.size() > suffix.size() &&
-            contentRelPath.substr(contentRelPath.size() - suffix.size()) == suffix) {
-            contentRelPath.replace(contentRelPath.size() - suffix.size(),
-                                   suffix.size(), ".md");
-        }
-        const std::string contentAbsPath = util::join(root, contentRelPath);
-
-        // 3. Remove scene from chapter scenes list and rewrite chapter.meta.json
-        ch.scenes.erase(it);
-        auto writeChR = fs.atomicWriteTextFile(chMetaAbsPath,
-                                               schemas::serializeChapterMeta(ch));
-        if (!writeChR.ok()) { return Result<DeleteSceneResult>::failure(writeChR.error()); }
-
-        // 4. Delete scene files from disk (best-effort — ignore missing)
+        // Delete the scene files from disk (best-effort — ignore missing).
+        const std::string metaAbsPath =
+            util::join(root, it->metadataRelPath);
+        const std::string contentAbsPath =
+            util::join(root, chDir + "/" + it->contentFilename);
         std::error_code ec;
         std::filesystem::remove(metaAbsPath, ec);
         std::filesystem::remove(contentAbsPath, ec);
+
+        // Rebuild the chapter's scenes[] cache from disk (the scene is now gone).
+        auto rb = rebuildChapterScenesIfInconsistent(fs, root, chMetaRel);
+        if (!rb.ok()) { return Result<DeleteSceneResult>::failure(rb.error()); }
 
         DeleteSceneResult result;
         result.sceneID = request.sceneID;

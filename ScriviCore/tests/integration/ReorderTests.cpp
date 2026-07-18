@@ -389,3 +389,107 @@ TEST_CASE("reorderChapter - returns error for unknown chapterID",
     CHECK_FALSE(r.ok());
     CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
 }
+
+// ---------------------------------------------------------------------------
+// EP-027 P4 — chapter-split orchestration regressions (I-0069 / I-0070).
+//
+// The Linux editor's Ctrl+Shift+Return "split chapter at caret" (EditorShell::
+// onCreateChapterRequested) is: createChapter (appends K at the END) →
+// reorderChapter(K, afterChapterID = C). Under the old count-based slug + index-
+// array reorder, this failed two ways over VNC:
+//   • I-0070: end-of-scene, no followers → K stayed at the manuscript END instead
+//     of landing right after C (the index-array shuffle didn't move the folder).
+//   • I-0069: end-of-scene, followers → "no new chapter appeared" because the
+//     count-based slug (`chapter-<count+1>`) COLLIDED with an existing folder
+//     after a prior delete (I-0072), corrupting the index at createChapter time.
+// P2/P3 fixed the root causes in the core; these tests pin the exact orchestration
+// sequence so a regression in either the slug scheme or the folder-move reorder is
+// caught in CI, independent of the Qt UI.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("split orchestration - createChapter then reorder after middle lands right after it (I-0070)",
+          "[integration][EP-027][I-0070]")
+{
+    FourSceneProject p;   // [ch1, ch2]
+
+    // Create K — appended at the END (after ch2).
+    scrivi::CreateChapterRequest chReq;
+    chReq.projectRootPath = p.projectDir.str();
+    chReq.appSupportRoot  = p.appSupportDir.str();
+    chReq.projectID       = p.projectID;
+    chReq.author          = testAuthor();
+    auto kR = p.core.createChapter(chReq);
+    REQUIRE(kR.ok());
+    const std::string kID = kR.value().chapterID.value;
+
+    // Sanity: K is at the end before the reorder.
+    REQUIRE(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, p.ch2ID.value, kID});
+
+    // Split step 2: move K to sit right AFTER ch1 (the "current chapter" C).
+    scrivi::ReorderChapterRequest req;
+    req.projectRootPath = p.projectDir.str();
+    req.chapterID       = kR.value().chapterID;
+    req.afterChapterID  = p.ch1ID;
+    auto r = p.core.reorderChapter(req);
+    REQUIRE(r.ok());
+    CHECK(r.value().reordered);
+
+    // K now sits between ch1 and ch2 — NOT stranded at the end.
+    CHECK(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, kID, p.ch2ID.value});
+
+    // And the order survives a fresh resolve (disk-authoritative, folder-key sort).
+    CHECK(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, kID, p.ch2ID.value});
+}
+
+TEST_CASE("split orchestration - createChapter after a delete does not collide, reorders correctly (I-0069/I-0072)",
+          "[integration][EP-027][I-0069]")
+{
+    FourSceneProject p;   // [ch1, ch2]
+
+    auto makeChapter = [&]() {
+        scrivi::CreateChapterRequest chReq;
+        chReq.projectRootPath = p.projectDir.str();
+        chReq.appSupportRoot  = p.appSupportDir.str();
+        chReq.projectID       = p.projectID;
+        chReq.author          = testAuthor();
+        auto r = p.core.createChapter(chReq);
+        REQUIRE(r.ok());
+        return r.value().chapterID;
+    };
+
+    // Grow to [ch1, ch2, A], then DELETE ch2 → [ch1, A]. Under the old scheme the
+    // NEXT createChapter would compute `chapter-<count+1>` and collide with an
+    // existing folder; the order-key scheme allocates a fresh key after the last.
+    const scrivi::ChapterID aID = makeChapter();
+    REQUIRE(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, p.ch2ID.value, aID.value});
+
+    scrivi::DeleteChapterRequest delReq;
+    delReq.projectRootPath = p.projectDir.str();
+    delReq.chapterID       = p.ch2ID;
+    REQUIRE(p.core.deleteChapter(delReq).ok());
+    REQUIRE(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, aID.value});
+
+    // Now the split's createChapter — must succeed with a DISTINCT chapter (no
+    // collision, no index corruption: I-0069's "no new chapter" symptom).
+    const scrivi::ChapterID kID = makeChapter();
+    CHECK(kID.value != p.ch1ID.value);
+    CHECK(kID.value != aID.value);
+    CHECK(kID.value != p.ch2ID.value);
+    REQUIRE(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, aID.value, kID.value});
+
+    // Split step 2: move K to sit right after ch1.
+    scrivi::ReorderChapterRequest req;
+    req.projectRootPath = p.projectDir.str();
+    req.chapterID       = kID;
+    req.afterChapterID  = p.ch1ID;
+    REQUIRE(p.core.reorderChapter(req).ok());
+
+    CHECK(p.resolvedChapterOrder() == std::vector<std::string>{
+        p.ch1ID.value, kID.value, aID.value});
+}

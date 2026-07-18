@@ -160,7 +160,10 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     ch.createdByIdentityID     = request.author.identityID.value;
     ch.createdByPersonaID      = request.author.personaID.value;
     ch.createdByDisplayName    = request.author.displayName;
-    ch.scenes.push_back({.sceneID=sceneID, .metadataPath=sceneMetaRel});
+    // EP-027 §8.1: filename-only scene ref (identity in the sidecar). The initial scene's
+    // slug prefix "001" is already a valid order key, so a fresh project is born in the new
+    // scheme and needs no migration on first open.
+    ch.scenes.push_back({.metadataFilename = sceneSlug + ".meta.json"});
 
     r = fs.atomicWriteTextFile(util::join(root, chMeta),
                                schemas::serializeChapterMeta(ch));
@@ -186,7 +189,7 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
     scene.modifiedByIdentityID   = request.author.identityID.value;
     scene.modifiedByPersonaID    = request.author.personaID.value;
     scene.modifiedByDisplayName  = request.author.displayName;
-    scene.contentPath            = sceneMdRel;
+    scene.contentPath            = sceneSlug + ".md";   // §8.1: bare filename
     scene.wordCount              = 0;
     scene.characterCount         = 0;
 

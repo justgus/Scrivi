@@ -309,7 +309,11 @@ TEST_CASE("applyRepair - regenerateMetadata (scene) creates new .meta.json",
     fs::remove(metaAbs);
 
     auto issue = f.scanForIssue(scrivi::RepairCategory::missingMetadata);
-    CHECK(issue.sceneID.value == f.firstSceneID);
+    // EP-027 §8.1: a scene meta deleted outright (no rename → no orphan to derive from)
+    // leaves no recoverable sceneID — identity lived only in the now-deleted sidecar, and
+    // the filename-only chapter ref never duplicated it. Regeneration mints a fresh one.
+    CHECK(issue.sceneID.value.empty());
+    CHECK(issue.path.find("001-opening-scene.meta.json") != std::string::npos);
 
     auto result = f.core.applyRepair(
         f.makeRepairReq(issue.issueID, scrivi::RepairActionKind::regenerateMetadata));

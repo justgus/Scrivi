@@ -11,6 +11,11 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
+- **SP-070** (EP-027 `[ScriviCore]` — **P6 filesystem-authoritative scene identity & ordering**) —
+  🟢 Implemented, Not Verified, activated 2026-07-17. `SceneRef` filename-only (identity derived by sceneID
+  sidecar scan); order-key scene filenames; cross-chapter reorder relocates files; chapter rename touches zero
+  scene fields; scene migration/orphan-repair on open (before validation). Tasks **T-0271–T-0277**. `scrivi.h`
+  untouched. `Sprint-active.md`.
 - **SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority + P3 migration**) —
   🟢 Implemented, Not Verified, activated 2026-07-16. **P1:** `FileSystem::renamePath` (atomic-within-fs, never
   clobbers, missing-source guard). **P2:** `util/OrderKey` fractional slugs + disk-authoritative chapter
@@ -19,7 +24,13 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
   open (dual-scheme read; collision-free letter-prefixed keys). **ctest green 290/290** macOS + Linux container
   (all EP-027 tests, 3225 assertions). Tasks **T-0264–T-0270**. `scrivi.h` untouched. `Sprint-active.md`.
 
-Last closed: **SP-067** (EP-023 `[Linux]` Scene drag-reorder + I-0064 chapter-split + I-0063 renumber) — ✅
+Last closed: **SP-071** (EP-027/EP-023 — **create-chapter-in-place**; fixes the Linux chapter-split
+lost-tail/folder-scramble + open-time scene-stealing, **I-0074**; arrows cross scene/chapter boundaries, **I-0075**)
+— ✅ **closed 2026-07-18 (Human-approved).** `createChapter(afterChapterID)` (additive `scrivi.h` change) so the
+new chapter is born in place — no create-then-reorder, no stale path; scene cache is a pure disk mirror + removed
+the unsafe filename-based orphan relocation (order-key scene filenames repeat across chapters). Split dialog removed
+(Ctrl+Shift+Return is the approval). **Verified over VNC** (all four split cases update + reopen clean; arrow nav
+fixed). ctest **302/302** macOS. Tasks **T-0279–T-0289**. `Closed/Sprint-SP-071.md`. Prior: **SP-067** (EP-023 `[Linux]` Scene drag-reorder + I-0064 chapter-split + I-0063 renumber) — ✅
 **closed 2026-07-16**. Delivered **AC4 scene drag-reorder** (I-0067/I-0068 fixed by forcing the drag to
 `Qt::CopyAction` so Qt never auto-removes the source row; user-verified "It's clean" on a fresh project over VNC)
 and **I-0063** renumber (T-0262, Verified). The chapter-split pieces — **I-0064/I-0069/I-0070**, the root slug
@@ -39,7 +50,8 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **67 Sprints** (62 closed + 1 cancelled + 2 in Planning + 1 active) | Next available: **SP-068**
+Currently: **70 Sprints** (63 closed + 1 cancelled + 2 in Planning + 2 active; SP-068 skipped — its EP-023
+chapter-drag scope folded into EP-027) | Next available: **SP-072**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -111,6 +123,8 @@ Currently: **67 Sprints** (62 closed + 1 cancelled + 2 in Planning + 1 active) |
 | SP-066 | `[Linux]` Rename scene/chapter — context menu, inline edit, live heading + I-0062 | EP-023 `[Linux]` | 2026-07-15 | 2026-07-15 | ✅ Closed |
 | SP-067 | `[Linux]` Scene drag-reorder (AC4) + I-0063 renumber — split/renumber (I-0064/69/70/72) re-homed to EP-027 | EP-023 `[Linux]` | 2026-07-15 | 2026-07-16 | ✅ Closed |
 | SP-069 | `[ScriviCore]` EP-027 P1–P3 — rename primitive + order-key/disk-authority + legacy migration (I-0072 fixed) | EP-027 `[ScriviCore]` | 2026-07-16 | — | 🟢 Active |
+| SP-070 | `[ScriviCore]` EP-027 P6 — filesystem-authoritative scene identity & ordering (scenes) | EP-027 `[ScriviCore]` | 2026-07-17 | — | 🟢 Active |
+| SP-071 | `[ScriviCore]`+`[Linux]` create-chapter-in-place — split lost-tail/scene-steal fix (I-0074) + arrow nav (I-0075) | EP-027 / EP-023 | 2026-07-17 | 2026-07-18 | ✅ Closed |
 
 ## Statistics
 

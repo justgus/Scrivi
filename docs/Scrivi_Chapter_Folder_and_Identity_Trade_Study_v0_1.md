@@ -353,3 +353,84 @@ disagrees with its numeric folder order migrates to the correct reading order wi
 idempotent on a second open; a project already in order is a verified no-op.
 
 **Remaining phases:** P4 Linux UI verify (VNC), P5 Apple verify, P6 scenes (same treatment as chapters).
+
+---
+
+## 8. Scenes — apply the chapter model one level down (2026-07-16, Human-approved; addendum)
+
+**Why this section exists.** P4's Linux VNC walkthrough (2026-07-16) failed the chapter-split tests (B3 mid-scene,
+B4 end-of-scene-with-follower) and the migration open (C6, "Missing scene.meta.json"). Root cause, in all three:
+**cross-chapter scene moves never relocated the scene's files — they only shuffled a `SceneRef` between chapter
+sidecars.** This was invisible while chapter folder names were *stable* (the scene's `metadataPath` kept pointing
+at its original folder, which still existed). The moment EP-027 made reorder/split/**migration rename chapter
+folders**, every scene that had been cross-chapter-moved got **orphaned** — its `SceneRef.metadataPath` still
+embedded a folder name that no longer exists. On disk we found, e.g., `chapter-c`'s sidecar referencing
+`manuscript/chapter-V/003-scene.meta.json` (a foreign folder), and in twisted-remains a reference to
+`manuscript/chapter-017/…` after `017` had been reslugged away.
+
+This is the **exact same class of defect** §7 fixed for chapters (embedded, mutable location as a source of
+truth), one level down. The Human's diagnosis drove the fix and it mirrors §7 point-for-point.
+
+### 8.1 What this locks in (scenes)
+- **Scene filenames are fractional order-key slugs** (A4b, as chapters): `<orderKey>-<slug>.meta.json` +
+  `<orderKey>-<slug>.md` inside the scene's chapter folder. `ls chapter-X | sort` = scene reading order within
+  that chapter. Same base-62 alphabet + `keyBetween/keyAfter` (`util/OrderKey`) already built for chapters.
+- **The filesystem is the source of truth** (B3, as chapters): a scene's **identity** lives solely in its
+  `…scene.meta.json` (`sceneID`) — the **duplicate `sceneID` in the chapter sidecar's `SceneRef` is removed** —
+  and its **order** is its filename's order-key sort position within the chapter folder.
+- **Scene reference collapses to filename-only.** `SceneRef` in `chapter.meta.json` drops both the redundant
+  parent-folder prefix and the duplicated `sceneID`: it becomes just the **bare filename** of the scene's
+  `.meta.json`, resolved relative to the chapter's own folder. Rationale (Human): the path was already relative;
+  embedding `manuscript/chapter-<key>/` — a name that changes on every chapter reorder/split/migrate — created
+  the very bookkeeping (rewrite-every-child-path-on-folder-rename) that broke B3/B4/C6. A bare filename never
+  needs rewriting when the parent folder is renamed. **The `scenes[]` array stays** as an explicit, ordered,
+  **rebuildable cache** (Human chose "Filename only", not "drop the array"), regenerated from the folder scan
+  when it disagrees with disk — exactly as `manuscript.meta.json`'s `chapters[]` is now.
+- **Cross-chapter move = relocate the files + assign a between-neighbours order-key filename.** `SceneReorderer`
+  must **move** `<key>-<slug>.{md,meta.json}` into the destination chapter folder and give it an order-key
+  between its new neighbours there — then update both chapter sidecars' cache arrays. No path rewriting of *other*
+  scenes, because references no longer embed a parent folder. A **chapter** folder rename now touches **zero**
+  scene references.
+
+### 8.2 Migration (scene-level) — repairs the P4 damage
+- **Detect:** a scene reference whose filename still contains an embedded folder prefix / legacy numeric name, or
+  a chapter sidecar whose `scenes[]` disagrees with the `<orderKey>-*` files physically present, is old-format.
+- **Repair orphans (the C6 breaker):** a scene file physically present in chapter folder A but *referenced by*
+  chapter B's sidecar is **relocated into B** (or, if the reference is dangling because the file was orphaned by a
+  chapter-folder rename, the file is found by `sceneID` scan and moved to the referencing chapter). This is what
+  makes twisted-remains — and any project the pre-EP-027 `SceneReorderer` corrupted — **open instead of erroring**.
+- **Assign order-key filenames** to scenes that still have legacy `NNN-` numeric prefixes, in current array order
+  (as chapters did), renaming the files; then rebuild the `scenes[]` cache from the folder scan.
+- Lazy / idempotent / resumable / no-op-when-already-migrated / dual-scheme read — same contract as §7.4.
+
+### 8.3 Consequences / scope
+- **Schema touch:** `SceneRef` shape changes (filename-only, no `sceneID`). Serde + every consumer that reads
+  `SceneRef.metadataPath` or `.sceneID` updates. This is the scene analogue of the chapter `ChapterRef` change we
+  *deferred* in §7.6 — here it is **not** deferrable, because the embedded-path bug is the active defect.
+- **Reuses** `util/OrderKey`, `renamePath`, and the `ChapterIndex` pattern (a parallel `SceneIndex` /
+  folder-scan helper for scenes).
+- **Unblocks P4:** B3, B4, and the mechanism behind C6 all dissolve once scene location stops being a mutable,
+  duplicated source of truth. A2 (chapter-row drag) is unrelated app work, left to SP-068.
+- **This is EP-027 P6 pulled forward** — P4 cannot be verified without it. P4 becomes: land the scene model +
+  migration, then re-run the VNC walkthrough. Sequenced as a new sprint (P6 work executed before P5 Apple verify).
+
+### 8.4 Implementation record (SP-070, 2026-07-17 — Implemented, Not Verified)
+
+Landed exactly as specified above, with these decisions/refinements from the build:
+- **`sceneID` recoverability (Human 2026-07-17):** the ref stays **filename-only**, and `sceneID` is **derived by
+  scanning the scene sidecars** whenever a lookup needs it (never duplicated back into the ref). A moved/renamed
+  scene is always found by its sidecar `sceneID`. Consequence: when a scene sidecar is **deleted outright** (no
+  orphan to derive from), its `sceneID` is genuinely unrecoverable — `ProjectValidator` surfaces `missingMetadata`
+  with an empty `sceneID`, and regenerate mints a fresh id. Scene-vs-chapter disambiguation in repair now keys on
+  the **filename** (`chapter.meta.json` vs any other `*.meta.json`), not on `sceneID` presence.
+- **Repair-on-open ordering:** chapter migration → chapter self-heal → scene migration/orphan-repair now run in
+  `ProjectOpener` **before** `ProjectValidator` (§7.4/§8.2 intent), so a repairable project **opens** instead of
+  returning `repairRequired`. The scene cache rebuild deliberately **preserves a genuinely-missing ref** so a real
+  loss still surfaces to the validator.
+- **`contentPath` is filename-only** too (Human choice, "full §8"), so a chapter-folder rename touches no scene
+  field; `renameChapterFolder` lost its per-scene rewrite loop.
+- **External-rename detection** re-derived on the §8 basis: a missing ref + exactly one unreferenced orphan
+  `.meta.json` in the same chapter dir = unambiguous rename → auto-apply (rewrite the stale ref to the orphan's
+  filename); the `sceneID` for the issue is read from the orphan's sidecar. Two+ orphans → `possibleRename`.
+- **Tests:** 5 new `[EP-027][scenes]` integration cases; full suite **298/298 macOS**. Linux-container ctest
+  parity **pending** (run before P4 VNC).

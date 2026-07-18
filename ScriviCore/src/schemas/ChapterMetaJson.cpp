@@ -1,5 +1,6 @@
 #include "ChapterMetaJson.hpp"
 #include "SchemaUtils.hpp"
+#include "util/PathUtils.hpp"
 
 namespace scrivi::schemas {
 
@@ -21,8 +22,8 @@ std::string serializeChapterMeta(const ChapterMetaData& d) {
 
     for (const auto& s : d.scenes) {
         util::JsonDoc ref;
-        ref.setString("sceneID",      s.sceneID.value);
-        ref.setString("metadataPath", s.metadataPath);
+        // EP-027 §8.1: filename-only scene reference (no sceneID, no folder prefix).
+        ref.setString("metadataFilename", s.metadataFilename);
         doc.appendToArray("scenes", std::move(ref));
     }
 
@@ -56,8 +57,18 @@ Result<ChapterMetaData> parseChapterMeta(std::string_view json) {
     for (std::size_t i = 0; i < n; ++i) {
         auto item = doc.arrayItem("scenes", i);
         SceneRef ref;
-        ref.sceneID.value  = item.getString("sceneID");
-        ref.metadataPath   = item.getString("metadataPath");
+        // Dual-scheme read (EP-027 §8.2). New scheme: `metadataFilename` (bare filename).
+        // Legacy scheme: `metadataPath` (a root-relative path that embedded the chapter
+        // folder). For a legacy ref we keep only the filename so it resolves against the
+        // chapter's own folder — this is what lets a not-yet-migrated project still open,
+        // and it is idempotent (filename of a filename is itself). Scene migration then
+        // rewrites the sidecar into the new shape and repairs any true orphans.
+        std::string filename = item.getString("metadataFilename");
+        if (filename.empty()) {
+            const std::string legacyPath = item.getString("metadataPath");
+            filename = util::filename(legacyPath);   // strip any dir prefix; no-op if bare
+        }
+        ref.metadataFilename = std::move(filename);
         data.scenes.push_back(std::move(ref));
     }
 

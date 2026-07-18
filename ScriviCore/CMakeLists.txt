@@ -29,6 +29,7 @@ target_sources(ScriviCore
         src/project_package/ProjectOpener.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
         src/manuscript/ChapterIndex.cpp
+        src/manuscript/SceneIndex.cpp
         src/manuscript/ChapterCreator.cpp
         src/manuscript/ChapterDeleter.cpp
         src/manuscript/ChapterRenamer.cpp

@@ -7,6 +7,8 @@
 #include "schemas/SceneMetaJson.hpp"
 #include "util/PathUtils.hpp"
 
+#include <filesystem>
+
 #include <algorithm>
 #include <map>
 #include <set>
@@ -50,11 +52,24 @@ static void autoApplyMetadataRename(
         relNewMeta = relNewMeta.substr(projectRootPath.size() + 1);
     }
 
-    // Copy chapter data and update the matching scene entry
+    // EP-027 §8.1: scene refs are filename-only. The external rename left one ref whose file
+    // is GONE (the stale ref) and the moved file as an orphan on disk. Rewrite the ref whose
+    // file no longer exists to the orphan's bare filename. (The orphan's sidecar carries the
+    // authoritative sceneID, passed in for the result message — identity is derived, never
+    // duplicated in the ref.)
+    (void)sceneID;
+    const std::string chapterDir =
+        std::filesystem::path(chapterMetaPath).parent_path().string();
+    const std::string newFilename =
+        std::filesystem::path(relNewMeta).filename().string();
+
     schemas::ChapterMetaData updated = chData;
     for (auto& ref : updated.scenes) {
-        if (ref.sceneID.value == sceneID.value) {
-            ref.metadataPath = relNewMeta;
+        if (ref.metadataFilename == newFilename) { break; }   // already points at it
+        const std::string refMetaAbs = util::join(chapterDir, ref.metadataFilename);
+        auto existsR = fs.exists(refMetaAbs);
+        if (existsR.ok() && !existsR.value()) {
+            ref.metadataFilename = newFilename;   // stale ref → the moved file
             break;
         }
     }
@@ -147,6 +162,13 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     // Track registered chapter meta paths (to detect chapter folder renames)
     std::set<std::string> registeredChapterMetaPaths;
 
+    // Track registered scene meta ABS paths (those a chapter's scenes[] points at and that
+    // exist on disk). A scene .meta.json on disk NOT in this set is an orphan — a candidate
+    // for an external rename (EP-027 §8.1: refs are filename-only, so a rename is detected by
+    // an orphan appearing in the same chapter dir where a ref's file went missing; the
+    // orphan's own sidecar still carries the authoritative sceneID).
+    std::set<std::string> registeredSceneMetaPaths;
+
     // Gather info about scenes whose metadata file is missing (for rename detection)
     std::vector<MissingMetaInfo> missingMetas;
 
@@ -183,24 +205,32 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
 
         const auto& chData = chParsed.value();
 
+        // EP-027 §8.1: scene refs are BARE FILENAMES resolved against the chapter's own
+        // folder; scene identity + contentPath come from the sidecar.
+        const std::string chapterDir =
+            std::filesystem::path(chapterRef.path).parent_path().string();
+
         for (const auto& sceneRef : chData.scenes) {
-            auto sMetaPath  = util::join(request.projectRootPath, sceneRef.metadataPath);
+            const std::string sMetaRel = chapterDir + "/" + sceneRef.metadataFilename;
+            auto sMetaPath  = util::join(request.projectRootPath, sMetaRel);
             auto sMetaTextR = fs.readTextFile(sMetaPath);
 
-            // Derive expected content path from metadata path (swap .meta.json → .md)
+            // Derive expected content path from metadata filename (swap .meta.json → .md)
             const std::string expectedContentPath =
                 util::replaceExtension(
-                    util::replaceExtension(sceneRef.metadataPath, ""), ".md");
+                    util::replaceExtension(sMetaRel, ""), ".md");
 
             if (!sMetaTextR.ok()) {
+                // sceneID is unknown here (the ref no longer carries it and the sidecar is
+                // unreadable); rename detection matches on the meta path instead.
                 result.repairIssues.push_back(
                     RepairClassifier::missingMetadata(
-                        projectID, chapterRef.chapterID, sceneRef.sceneID, sMetaPath));
+                        projectID, chapterRef.chapterID, SceneID{""}, sMetaPath));
                 registeredContentPaths.insert(expectedContentPath);
                 // Record for rename detection
                 missingMetas.push_back({
                     .chapterID=chapterRef.chapterID,
-                    .sceneID=sceneRef.sceneID,
+                    .sceneID=SceneID{""},
                     .expectedMetaPath=sMetaPath,
                     .chapterMetaPath=chPath
                 });
@@ -211,16 +241,20 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
             if (!sParsed.ok()) {
                 result.repairIssues.push_back(
                     RepairClassifier::corruptMetadata(
-                        projectID, chapterRef.chapterID, sceneRef.sceneID, sMetaPath,
+                        projectID, chapterRef.chapterID, SceneID{""}, sMetaPath,
                         sParsed.error().message));
                 registeredContentPaths.insert(expectedContentPath);
                 continue;
             }
 
-            const std::string contentPath = sParsed.value().contentPath;
-            registeredContentPaths.insert(contentPath);
+            const SceneID sceneID = sParsed.value().sceneID;
+            registeredSceneMetaPaths.insert(sMetaPath);   // this ref resolves — not an orphan
+            // contentPath is a bare filename (§8.1) — resolve against the chapter dir.
+            const std::string contentRel =
+                chapterDir + "/" + sParsed.value().contentPath;
+            registeredContentPaths.insert(contentRel);
 
-            auto absContentPath = util::join(request.projectRootPath, contentPath);
+            auto absContentPath = util::join(request.projectRootPath, contentRel);
             auto contentExistsR = fs.exists(absContentPath);
             if (!contentExistsR.ok()) {
                 return Result<ExternalChangeScanResult>::failure(contentExistsR.error());
@@ -229,7 +263,7 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
             if (!contentExistsR.value()) {
                 result.repairIssues.push_back(
                     RepairClassifier::missingContent(
-                        projectID, chapterRef.chapterID, sceneRef.sceneID, absContentPath));
+                        projectID, chapterRef.chapterID, sceneID, absContentPath));
             }
         }
     }
@@ -280,10 +314,9 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
                     if (!parsed.ok()) { continue;
 }
 
-                    // Only treat as orphan if its path is not a registered meta path
-                    // (registered meta paths are those in chapter scene lists —
-                    //  we didn't track them above, so check by absence from
-                    //  registeredContentPaths is wrong; we use sceneID uniqueness instead)
+                    // A true orphan: a scene .meta.json on disk that no chapter's scenes[]
+                    // resolves to. (A ref that DID resolve registered its abs path above.)
+                    if (registeredSceneMetaPaths.contains(filePath)) { continue; }
                     orphanMetasBySceneID[parsed.value().sceneID.value].push_back(filePath);
                 }
             }
@@ -291,43 +324,43 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
     }
 
     // ---------------------------------------------------------------------------
-    // T-0031: Metadata rename detection
-    // For each missingMetadata issue, look for an orphan .meta.json with
-    // a matching sceneID in the same chapter directory.
+    // T-0031: Metadata rename detection (EP-027 §8.1 basis)
+    // A scene .meta.json renamed externally leaves (a) a missing ref in its chapter and
+    // (b) an orphan .meta.json in that same chapter folder. Refs are filename-only, so we
+    // pair them by CHAPTER DIRECTORY, not by a sceneID in the ref. The orphan's OWN sidecar
+    // still carries the authoritative sceneID — we read it there and thread it through the
+    // issue/auto-apply, so identity is never lost (it's derived, not duplicated in the ref).
     // ---------------------------------------------------------------------------
+
+    // Flatten orphans into a per-chapter-directory list (sceneID read from the sidecar).
+    std::map<std::string, std::vector<std::string>> orphansByChapterDir;
+    for (auto& [sceneIDVal, paths] : orphanMetasBySceneID) {
+        (void)sceneIDVal;
+        for (auto& p : paths) { orphansByChapterDir[util::parent(p)].push_back(p); }
+    }
+
     for (auto& missing : missingMetas) {
-        const auto& sceneIDVal = missing.sceneID.value;
-        auto it = orphanMetasBySceneID.find(sceneIDVal);
-        if (it == orphanMetasBySceneID.end()) { continue; // no candidate found
-}
-
-        const auto& candidates = it->second;
-
-        // Determine expected chapter directory
         const auto expectedChDir = util::parent(missing.expectedMetaPath);
+        auto dirIt = orphansByChapterDir.find(expectedChDir);
 
-        // Filter candidates to those in the same chapter directory
-        std::vector<std::string> sameDirCandidates;
-        for (const auto& cPath : candidates) {
-            if (util::parent(cPath) == expectedChDir) {
-                sameDirCandidates.push_back(cPath);
-}
+        if (dirIt == orphansByChapterDir.end() || dirIt->second.empty()) {
+            continue;   // no orphan in this chapter dir — a genuine missing metadata
         }
+        const auto& sameDirCandidates = dirIt->second;
 
-        if (sameDirCandidates.empty()) {
-            // Candidates exist but in different directories — stage ambiguous issue
-            if (!candidates.empty()) {
-                result.repairIssues.push_back(
-                    RepairClassifier::possibleMetadataRename(
-                        projectID, missing.chapterID, missing.sceneID,
-                        candidates.front(), missing.expectedMetaPath));
-            }
-            continue;
-        }
+        // Derive the sceneID from the (single) orphan's sidecar — this is the moved scene's
+        // authoritative identity.
+        auto orphanSceneID = [&](const std::string& p) -> SceneID {
+            auto t = fs.readTextFile(p);
+            if (!t.ok()) { return SceneID{""}; }
+            auto s = schemas::parseSceneMeta(t.value());
+            return s.ok() ? s.value().sceneID : SceneID{""};
+        };
 
         if (sameDirCandidates.size() == 1) {
             // Unambiguous single candidate in the same chapter dir — auto-apply.
-            // Read the chapter meta to perform the update.
+            const std::string& orphanPath = sameDirCandidates.front();
+            const SceneID sceneID = orphanSceneID(orphanPath);
             auto chTextR = fs.readTextFile(missing.chapterMetaPath);
             if (chTextR.ok()) {
                 auto chParsed = schemas::parseChapterMeta(chTextR.value());
@@ -336,24 +369,26 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
                         fs,
                         missing.chapterMetaPath,
                         chParsed.value(),
-                        missing.sceneID,
-                        sameDirCandidates.front(),
+                        sceneID,
+                        orphanPath,
                         request.projectRootPath,
                         result);
-                    // Remove the corresponding missingMetadata issue we already staged
+                    // Remove any missingMetadata issue we staged for this chapter's missing
+                    // scene (matched by chapter + the now-resolved sceneID).
                     auto toErase1 = std::ranges::remove_if(result.repairIssues,
                         [&](const RepairIssue& i) {
                             return i.category == RepairCategory::missingMetadata &&
-                                   i.sceneID.value == sceneIDVal;
+                                   i.chapterID.value == missing.chapterID.value;
                         });
                     result.repairIssues.erase(toErase1.begin(), result.repairIssues.end());
                 }
             }
         } else {
-            // Multiple candidates in same dir — stage for user review
+            // Multiple candidates in same dir — stage for user review (sceneID from the
+            // first candidate's sidecar).
             result.repairIssues.push_back(
                 RepairClassifier::possibleMetadataRename(
-                    projectID, missing.chapterID, missing.sceneID,
+                    projectID, missing.chapterID, orphanSceneID(sameDirCandidates.front()),
                     sameDirCandidates.front(), missing.expectedMetaPath));
         }
     }

@@ -43,13 +43,16 @@ std::string makeLegacyChapter(const fs::path& root, const std::string& nnn,
                               const std::string& chapterID, const std::string& sceneID,
                               const std::string& body) {
     const std::string dir = "manuscript/chapter-" + nnn;
+    // Scene filename prefix "001" is a valid order key, so scenes are new-scheme here; this
+    // fixture exercises CHAPTER migration (folder reslug). §8.1: refs + contentPath are
+    // bare filenames resolved against the chapter's own folder.
     const std::string sceneMetaRel = dir + "/001-scene.meta.json";
     const std::string sceneMdRel   = dir + "/001-scene.md";
 
     scrivi::schemas::SceneMetaData s;
     s.sceneID = scrivi::SceneID{sceneID};
     s.slug = "001-scene";
-    s.contentPath = sceneMdRel;
+    s.contentPath = "001-scene.md";
     write(root / sceneMetaRel, scrivi::schemas::serializeSceneMeta(s));
     write(root / sceneMdRel, body);
 
@@ -57,7 +60,7 @@ std::string makeLegacyChapter(const fs::path& root, const std::string& nnn,
     ch.chapterID = scrivi::ChapterID{chapterID};
     ch.title = "Chapter " + nnn;
     ch.slug = "chapter-" + nnn;
-    ch.scenes.push_back({scrivi::SceneID{sceneID}, sceneMetaRel});
+    ch.scenes.push_back({.metadataFilename = "001-scene.meta.json"});
     write(root / (dir + "/chapter.meta.json"), scrivi::schemas::serializeChapterMeta(ch));
     return dir + "/chapter.meta.json";
 }
@@ -116,11 +119,16 @@ TEST_CASE("migrateChapterOrderKeys reorders legacy folders to match index-array 
         auto ch = scrivi::schemas::parseChapterMeta(chText.value());
         REQUIRE(ch.ok());
         REQUIRE(ch.value().scenes.size() == 1);
-        auto sMeta = lfs.readTextFile(tmp.str() + "/" + ch.value().scenes[0].metadataPath);
+        // §8.1: ref + contentPath are bare filenames resolved against the chapter dir.
+        const std::string chDir =
+            fs::path(e.chapterMetadataRelPath).parent_path().string();
+        auto sMeta = lfs.readTextFile(
+            tmp.str() + "/" + chDir + "/" + ch.value().scenes[0].metadataFilename);
         REQUIRE(sMeta.ok());
         auto s = scrivi::schemas::parseSceneMeta(sMeta.value());
         REQUIRE(s.ok());
-        auto body = lfs.readTextFile(tmp.str() + "/" + s.value().contentPath);
+        auto body = lfs.readTextFile(
+            tmp.str() + "/" + chDir + "/" + s.value().contentPath);
         REQUIRE(body.ok());
         REQUIRE_FALSE(body.value().empty());
     }

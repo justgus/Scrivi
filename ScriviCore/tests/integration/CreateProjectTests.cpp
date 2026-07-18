@@ -186,7 +186,8 @@ TEST_CASE("createProject - scene metadata round-trips through schema parser", "[
     CHECK(parsed.value().title == "Opening Scene");
     CHECK(parsed.value().status == "draft");
     CHECK(parsed.value().wordCount == 0);
-    CHECK(parsed.value().contentPath == "manuscript/chapter-001/001-opening-scene.md");
+    // EP-027 §8.1: contentPath is a bare filename resolved against the scene's own folder.
+    CHECK(parsed.value().contentPath == "001-opening-scene.md");
 }
 
 TEST_CASE("createProject - workspace state written to appSupportRoot", "[integration][T-0006]") {

@@ -148,7 +148,8 @@ TEST_CASE("ChapterMetaJson round-trips with scenes", "[schemas]") {
     d.createdByIdentityID    = "identity-001";
     d.createdByPersonaID     = "persona-001";
     d.createdByDisplayName   = "Rhozwyn Darius";
-    d.scenes.push_back({SceneID{"scene-001"}, "001-opening-scene.meta.json"});
+    // EP-027 §8.1: scene refs are filename-only (no sceneID, no folder prefix).
+    d.scenes.push_back({.metadataFilename = "001-opening-scene.meta.json"});
 
     auto json   = serializeChapterMeta(d);
     auto result = parseChapterMeta(json);
@@ -156,7 +157,23 @@ TEST_CASE("ChapterMetaJson round-trips with scenes", "[schemas]") {
     REQUIRE(result.value().chapterID.value     == "ch-001");
     REQUIRE(result.value().status              == "draft");
     REQUIRE(result.value().scenes.size()       == 1);
-    REQUIRE(result.value().scenes[0].sceneID.value == "scene-001");
+    REQUIRE(result.value().scenes[0].metadataFilename == "001-opening-scene.meta.json");
+}
+
+TEST_CASE("ChapterMetaJson reads a legacy scene ref (metadataPath) as filename-only",
+          "[schemas][EP-027]") {
+    // A pre-EP-027 chapter sidecar embedded the full path + a duplicate sceneID. The parser
+    // must keep only the filename so a not-yet-migrated project still resolves (dual-scheme
+    // read, §8.2).
+    const char* legacy = R"({
+        "schema":"scrivi.chapter.v1","chapterID":"ch-1","title":"T",
+        "displayLabel":"Chapter 1","status":"draft",
+        "scenes":[{"sceneID":"scene-9","metadataPath":"manuscript/chapter-017/003-scene.meta.json"}]
+    })";
+    auto result = parseChapterMeta(legacy);
+    REQUIRE(result.ok());
+    REQUIRE(result.value().scenes.size() == 1);
+    REQUIRE(result.value().scenes[0].metadataFilename == "003-scene.meta.json");
 }
 
 TEST_CASE("ChapterMetaJson rejects missing required field", "[schemas]") {

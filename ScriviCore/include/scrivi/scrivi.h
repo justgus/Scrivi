@@ -180,13 +180,17 @@ const char* scrivi_create_scene(
     const char* personaID,
     const char* displayName);
 
+/* Creates a chapter. `afterChapterID` positions the new chapter immediately AFTER the
+ * given chapter (its folder is born in place with a between-neighbours order key, so no
+ * reorder/rename is needed — EP-027 P6). Pass "" or NULL to append at the manuscript end. */
 const char* scrivi_create_chapter(
     const char* projectRootPath,
     const char* appSupportRoot,
     const char* projectID,
     const char* identityID,
     const char* personaID,
-    const char* displayName);
+    const char* displayName,
+    const char* afterChapterID);
 
 const char* scrivi_delete_scene(
     const char* projectRootPath,

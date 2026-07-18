@@ -175,20 +175,24 @@ QVariantMap ScriviBridge::createScene(const QString& projectRootPath,
 
 QVariantMap ScriviBridge::createChapter(const QString& projectRootPath,
                                         const QString& appSupportRoot,
-                                        const QString& projectID)
+                                        const QString& projectID,
+                                        const QString& afterChapterID)
 {
     if (!ready_) {
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
 
+    // afterChapterID positions the new chapter right after that chapter (born in place,
+    // no reorder needed — EP-027 P6). Empty → append at the manuscript end.
     const ScriviString envelope(
         scrivi_create_chapter(projectRootPath.toUtf8().constData(),
                               appSupportRoot.toUtf8().constData(),
                               projectID.toUtf8().constData(),
                               identityID_.toUtf8().constData(),
                               personaID_.toUtf8().constData(),
-                              displayName_.toUtf8().constData()));
+                              displayName_.toUtf8().constData(),
+                              afterChapterID.toUtf8().constData()));
     return parseEnvelope(envelope.toQString());
 }
 

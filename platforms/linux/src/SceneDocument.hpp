@@ -118,6 +118,15 @@ public:
     // Returns `pos` unchanged if there are no segments.
     int nearestEditablePosition(int pos) const;
 
+    // Directional snap for KEYBOARD navigation across a boundary gap. If `pos` is already
+    // editable it's returned unchanged. Otherwise, when `movingForward` is true the caret
+    // snaps to the START of the FOLLOWING body (so Down/Right steps into the next scene);
+    // when false it snaps to the END of the PRECEDING body (so Up/Left steps into the prior
+    // scene). This is what lets the arrows cross a chapter heading / scene separator instead
+    // of getting stuck at the boundary (the "nearest" rule always snapped back the way you
+    // came). Falls back to the available edge when there is no body in the chosen direction.
+    int editablePositionInDirection(int pos, bool movingForward) const;
+
     // True if the half-open range [start, end) lies entirely within one body's
     // editable span (so a selection replace/delete stays inside one scene and never
     // eats a boundary). Empty ranges defer to isEditablePosition(start).

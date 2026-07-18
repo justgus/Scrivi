@@ -127,9 +127,13 @@ public:
     // "result": {chapterID, chapterMetadataPath, firstSceneID, firstSceneMetadataPath,
     // firstSceneContentPath}. The analogue of ⌘⇧↩ (SP-062 / T-0241). On failure
     // emits errorOccurred and returns {}.
+    // `afterChapterID` (optional) positions the new chapter immediately after that
+    // chapter — its folder is born in place, no reorder/rename (EP-027 P6). Empty (the
+    // default) appends at the manuscript end.
     Q_INVOKABLE QVariantMap createChapter(const QString& projectRootPath,
                                           const QString& appSupportRoot,
-                                          const QString& projectID);
+                                          const QString& projectID,
+                                          const QString& afterChapterID = {});
 
     // Deletes one scene from disk + the manuscript/chapter index (EP-023 / SP-065,
     // T-0250). Calls scrivi_delete_scene(projectRootPath, sceneID) and returns its ok

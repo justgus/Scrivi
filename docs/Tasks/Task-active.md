@@ -1,13 +1,23 @@
 # Active Tasks
 
+**SP-070** (EP-027 `[ScriviCore]` — **P6 filesystem-authoritative scene identity & ordering**) is
+🟢 Implemented, Not Verified (2026-07-17). Trade study **§8** (Human-approved 2026-07-17). `SceneRef` filename-only
+(identity derived by sceneID sidecar scan); order-key scene filenames; cross-chapter reorder **relocates the files**;
+chapter-folder rename touches **zero** scene fields; scene migration + orphan-repair on open (**before** validation)
+dissolves the **C6** "Missing scene.meta.json". `scrivi.h` untouched; ctest **298/298 macOS** (Linux-container parity
+pending). Full task table in `Sprints/Sprint-active.md` (T-0271–T-0277). **Next available T-0278** (P4 Linux verify,
+now unblocked).
+
+---
+
 **SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority + P3 migration**) is
 🟢 Implemented, Not Verified (2026-07-16). `scrivi.h` untouched; ctest green **290/290 macOS + Linux**. **I-0072
 root cause fixed + regression + open-time self-heal for existing damage + lazy migration of legacy `chapter-NNN`
 projects.** Full task table in `Sprints/Sprint-active.md` (T-0264 P1; T-0265–T-0269 P2; T-0270 P3). **Deferred:**
 drop `chapterID` from `ChapterRef` schema (self-healing cache — churn without gain; trade study §7.6).
 
-**Epic:** EP-027 `[ScriviCore]` — **Sprint:** SP-069 (`Sprints/Sprint-active.md`). Next available **T-0271**
-(P4 Linux verify).
+**Epic:** EP-027 `[ScriviCore]` — **Sprint:** SP-069 (`Sprints/Sprint-active.md`). (P6/SP-070 consumed
+T-0271–T-0277; next available **T-0278**.)
 
 ---
 

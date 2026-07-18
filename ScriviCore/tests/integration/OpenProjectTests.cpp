@@ -229,7 +229,12 @@ TEST_CASE("openProject - returns repairRequired when scene .meta.json is missing
     auto& r = result.value();
     CHECK(r.mode == scrivi::OpenMode::repairRequired);
     REQUIRE_FALSE(r.repairIssues.empty());
-    CHECK(r.repairIssues[0].category == scrivi::RepairCategory::missingMetadata);
+    // EP-027 P6 / I-0074: scene caches are a pure DISK MIRROR (no ref is preserved for a
+    // deleted scene meta — preserving it let orphan-repair steal a same-named scene from
+    // another chapter, the "Centauri" corruption). So deleting a scene's .meta.json (while
+    // its .md remains) now presents as an orphaned CONTENT file (missingContent), not a
+    // dangling metadata ref. The project still correctly requires repair.
+    CHECK(r.repairIssues[0].category == scrivi::RepairCategory::missingContent);
 }
 
 TEST_CASE("openProject - returns repairRequired when scene .md content is missing", "[integration][T-0007]") {

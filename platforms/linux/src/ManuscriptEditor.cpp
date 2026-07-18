@@ -24,17 +24,25 @@ void ManuscriptEditor::normalizeCaret()
     // edit guard already prevents boundary-touching edits. Only normalize a plain
     // caret that has come to rest inside a heading/separator gap.
     if (cursor.hasSelection()) {
+        lastCaretPos_ = cursor.position();
         return;
     }
     const int pos = cursor.position();
-    const int snapped = sceneDoc_->nearestEditablePosition(pos);
+    // Snap in the DIRECTION the caret was travelling, so arrow keys cross a boundary into
+    // the next/previous scene instead of getting stuck at it. Forward (Down/Right/typing)
+    // when the caret advanced; backward (Up/Left) when it retreated. A same-position event
+    // (no movement) keeps the previous direction bias as "forward" by default.
+    const bool movingForward = (pos >= lastCaretPos_);
+    const int snapped = sceneDoc_->editablePositionInDirection(pos, movingForward);
     if (snapped == pos) {
+        lastCaretPos_ = pos;
         return;
     }
     normalizingCaret_ = true;
     cursor.setPosition(snapped);
     setTextCursor(cursor);
     normalizingCaret_ = false;
+    lastCaretPos_ = snapped;
 }
 
 bool ManuscriptEditor::isModifyingKey(const QKeyEvent* event)

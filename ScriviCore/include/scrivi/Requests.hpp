@@ -211,6 +211,10 @@ struct CreateChapterRequest {
     AbsolutePath  appSupportRoot;
     ProjectID     projectID;
     AuthorshipRef author;
+    // Position: the new chapter is created immediately AFTER this chapter (its folder is
+    // born with an order key between `afterChapterID` and its successor, so no reorder/
+    // rename is needed — EP-027 P6). Empty = append at the manuscript end (default).
+    ChapterID     afterChapterID;
 };
 
 // ---------------------------------------------------------------------------

@@ -80,9 +80,12 @@ repairable on-disk layout the Human wants.
   generated keys are letter-prefixed so they never collide with numeric folders. ✅ **P3 2026-07-16** (tests:
   reorder-legacy → correct order + bodies intact + idempotent; no-op when already in order). Not verified. *(A
   never-opened project isn't touched until opened — lazy, as specified.)*
-- [ ] AC7 — **Scenes (follow-on phase):** the same order-key slug + disk-authority treatment applies to scenes'
-  `NNN-slug` within a chapter (`SceneCreator`), removing the analogous scene-slug collision. *(Phase 2 — after
-  chapters are proven.)*
+- [x] AC7 — **Scenes:** the same order-key slug + disk-authority treatment applies to scenes (trade study **§8**,
+  Human-approved 2026-07-17). Scene filenames are `<orderKey>-<slug>.{meta.json,md}`; `SceneRef` is **filename-only**
+  (identity in the sidecar, derived by sceneID scan); cross-chapter reorder **relocates the files**; a chapter-folder
+  rename touches **zero** scene fields; scene migration + orphan-repair runs on open (before validation) and dissolves
+  the C6 "Missing scene.meta.json". ✅ **SP-070 2026-07-17** (T-0271–T-0277; ctest 298/298 macOS, 5 new §8 tests). Not
+  verified. *(Pulled forward before P4 — P4 could not be verified without it.)*
 - [ ] AC8 — **Cross-platform verify + no regression:** ScriviCore `ctest` green (new order-key, rename, migration,
   rebuild tests); the **Linux** app opens/creates/reorders/migrates correctly over VNC; the **Apple** app opens
   and migrates a project. Existing flows (create/open/close/delete/rename/reorder, history) unbroken on both
@@ -97,9 +100,9 @@ repairable on-disk layout the Human wants.
 | P1 — Rename primitive | `renamePath`/move in the FileSystem port + `LocalFileSystem` + crash-safe tests (AC5) | `[ScriviCore]` | **SP-069** 🟢 Implemented (2026-07-16) — `FileSystem::renamePath` (atomic-within-fs, no-clobber, missing-source guard); T-0264; ctest green macOS + Linux (`[renamePath]` 5/20). Not verified. |
 | P2 — Order-key + disk-authority (chapters) | Order-key generator; `ChapterCreator`/`Reorderer` on order-key slugs; disk-authoritative order; open-time index self-heal (AC1–AC4) | `[ScriviCore]` | ✅ **Functionally complete — Not Verified (2026-07-16, ctest 288/288 macOS + Linux).** `util/OrderKey` (fractional keys, 3119 property assertions); `manuscript/ChapterIndex` disk-authoritative helpers + `rebuildIndexIfInconsistent`; `ChapterCreator` order-key slugs (**I-0072 collision FIXED + regression**); `ManuscriptOrderResolver` orders by **folder-key sort (B3)**; `ChapterReorderer` = `keyBetween` + **`renamePath` one folder** (paths rewritten); **open-time self-heal repairs an I-0072-corrupt index** (phantom/duplicate → rebuilt from disk, idempotent, tested). **Deferred (Human decision — churn without functional gain):** dropping `chapterID` from `ChapterRef` schema + migrating the 3 consumers that read it — the index `chapterID` is now a self-healing cache that can't diverge (trade study §7.6). |
 | P3 — Migration | Detect + lazy/idempotent/resumable old→new migration; dual-scheme read (AC6) | `[ScriviCore]` | ✅ **Functionally complete — Not Verified (2026-07-16, ctest 290/290 macOS + Linux).** `migrateChapterOrderKeys` (ChapterIndex): a legacy project whose folder-key sort ≠ its index-array reading order (e.g. after a legacy reorder that shuffled the array, not the folders) has its folders reslugged to order-keys **in index-array order** via the shared `renameChapterFolder` primitive (paths rewritten, bodies intact). No-op for new-scheme/already-in-order projects; idempotent + resumable; generated keys are letter-prefixed so they can't collide with legacy numeric `chapter-NNN`. Wired into `ProjectOpener` (runs before self-heal + resolve). Also refactored: `ChapterReorderer` now shares `renameChapterFolder` (dedup). Tests `[migration]` (2 cases: reorder-legacy + no-op). |
-| P4 — Linux verify | Rebuild/verify the Linux app on the new model; VNC create/reorder/migrate; re-home the paused SP-067 structure Issues here | `[Linux]` | 🔵 Planned |
+| P6 — Scenes | Apply order-key + disk-authority to scenes; cross-chapter reorder relocates files; migration + orphan-repair on open (AC7) | `[ScriviCore]` | ✅ **SP-070** — Implemented, Not Verified (2026-07-17). Trade study §8. `SceneRef` filename-only; `SceneIndex`; `SceneReorderer` relocates files; `renameChapterFolder` simplified; repair-on-open moved ahead of validation (C6 fix). ctest 298/298 macOS. **Pulled forward before P4.** |
+| P4 — Linux verify | Rebuild/verify the Linux app on the new model; VNC create/reorder/migrate/**split**; re-home the paused SP-067 structure Issues here | `[Linux]` | 🔵 Planned — **now unblocked by P6**; re-run the VNC walkthrough (B3/B4/C6 should pass) |
 | P5 — Apple verify | Confirm Apple opens + migrates; no regression (AC8) | `[Apple]` | 🔵 Planned |
-| P6 — Scenes | Apply order-key + disk-authority to scenes; migration; verify (AC7) | `[ScriviCore]` + platforms | 🔵 Planned |
 
 ### Issues rolled in (from SP-067 / EP-023, per the trade-study decision 2026-07-16)
 
