@@ -8,10 +8,12 @@
 //      all with the offset map staying well-formed (no rebuild).
 //   2. ScriviBridge::reorderScene / reorderChapter persistence: the moves land on disk in
 //      the new manuscript order, verified by reopen.
-//   3. I-0064 split orchestration (bridge-level replay of EditorShell's steps):
-//      create_chapter → reorder_chapter(K, afterC) → reorder_scene(followers → K) →
-//      save head/tail, for BOTH the end-of-scene and mid-scene cases; then
-//      I-0063 renumber (rename created "Chapter N" chapters to their new ordinal).
+//   3. I-0064 split orchestration (bridge-level replay of EditorShell's steps, on the
+//      EP-027 create-in-place model post-I-0074): create_chapter(K, afterChapterID=C) →
+//      reorder_scene(followers → K) → save head/tail, for BOTH the end-of-scene and
+//      mid-scene cases; then I-0063 renumber (rename created "Chapter N" chapters to their
+//      new ordinal). (No create-then-reorderChapter: that reslugged K's folder mid-split
+//      and stranded the captured scene paths — the I-0074 defect class.)
 //
 //   argv[1] = project dir to create (e.g. <tmp>/scene-reorder.scrivi)
 //   $XDG_DATA_HOME drives appSupportRoot; Qt offscreen platform (set by the script).
@@ -279,13 +281,13 @@ int main(int argc, char* argv[])
     //          steps EditorShell::onCreateChapterRequested runs.
     // ==========================================================================
     {
+        // Create K IN PLACE right after ch1 (create-in-place — no create-then-reorder, per
+        // I-0074 / EP-027). K's folder is born in its final position.
         const QVariantMap kRes =
-            bridge.createChapter(projectPath, appSupport, projectID);
+            bridge.createChapter(projectPath, appSupport, projectID, ch1);
         const QString kCh = kRes.value(QStringLiteral("chapterID")).toString();
         const QString k0  = kRes.value(QStringLiteral("firstSceneID")).toString();
         check(!kCh.isEmpty() && !k0.isEmpty(), "D: created chapter K + blank K0");
-
-        bridge.reorderChapter(projectPath, kCh, ch1);   // K right after ch1
 
         // followers of s0 within ch1 = {s1, s2}; reassign into K in order.
         QString afterID;   // empty → first follower becomes K's first
@@ -392,11 +394,14 @@ int main(int argc, char* argv[])
         const QString head = body.left(splitAt);
         const QString tail = body.mid(splitAt);
 
+        // Create K IN PLACE right after ch1 (EP-027 create-in-place — the orchestration the
+        // app uses post-I-0074). The old create-then-reorderChapter path reslugged K's folder
+        // AFTER we captured its scene paths, so the subsequent saveScene wrote to a stale
+        // path and the tail vanished — that is exactly the I-0074 class this replaces.
         const QVariantMap kRes =
-            bridge.createChapter(projectPath, appSupport, projectID);
+            bridge.createChapter(projectPath, appSupport, projectID, ch1);
         const QString kCh = kRes.value(QStringLiteral("chapterID")).toString();
         const QString k0  = kRes.value(QStringLiteral("firstSceneID")).toString();
-        bridge.reorderChapter(projectPath, kCh, ch1);   // ch1 is s0's chapter now
 
         // mid-scene: head into s0, tail into k0 (K's first scene). No followers of s0 in
         // ch1 (s0 is ch1's only scene after Case D).
