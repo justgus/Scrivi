@@ -590,15 +590,21 @@ public final class ScriviEngine: @unchecked Sendable {
         projectRootPath: String,
         appSupportRoot: String,
         projectID: String,
-        authorshipRef: AuthorshipRef
+        authorshipRef: AuthorshipRef,
+        afterChapterID: String = ""
     ) throws -> CreateChapterResult {
+        // afterChapterID positions the new chapter right after that chapter (born
+        // in place — EP-027). Empty → append at the manuscript end (the prior
+        // macOS behavior, preserved by the default).
         let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
                 projectID.withCString { pid in
                     authorshipRef.identityID.withCString { iid in
                         authorshipRef.personaID.withCString { perid in
                             authorshipRef.displayName.withCString { dn in
-                                scrivi_create_chapter(prp, asr, pid, iid, perid, dn)
+                                afterChapterID.withCString { after in
+                                    scrivi_create_chapter(prp, asr, pid, iid, perid, dn, after)
+                                }
                             }
                         }
                     }

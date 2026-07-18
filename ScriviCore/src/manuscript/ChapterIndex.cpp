@@ -7,6 +7,7 @@
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -210,22 +211,37 @@ Result<bool> migrateChapterOrderKeys(
     auto diskR = listChaptersByOrder(fs, projectRoot);
     if (!diskR.ok()) { return Result<bool>::failure(diskR.error()); }
 
-    // Map chapterID → current order-key from disk.
-    auto keyForID = [&](const std::string& id) -> std::string {
+    // Resolve an index ref to the order-key of its CURRENT on-disk folder. Prefer the
+    // authoritative chapterID match; but a legacy project can have an index chapterID that
+    // disagrees with the sidecar (I-0077) — in that case the folder still physically exists
+    // at the ref's `path`, so fall back to matching by that folder (its order-key), provided
+    // a chapter folder is actually there. Only a ref with neither an id match nor an existing
+    // folder is a true phantom to skip (self-heal later drops it).
+    auto keyForRef = [&](const schemas::ChapterRef& ref) -> std::string {
         for (const auto& e : diskR.value()) {
-            if (e.chapterID.value == id) return e.orderKey;
+            if (e.chapterID.value == ref.chapterID.value) return e.orderKey;
         }
-        return {};   // in index but not on disk (a phantom entry) — skip it
+        // id mismatch — fall back to the folder named by the ref's path.
+        const std::string folder =
+            std::filesystem::path(ref.path).parent_path().filename().string();
+        const std::string key = orderKeyOf(folder);
+        if (key.empty()) return {};
+        for (const auto& e : diskR.value()) {
+            if (e.orderKey == key) return e.orderKey;   // that folder is on disk
+        }
+        return {};   // no such folder either → genuine phantom
     };
 
     // The intended order as a sequence of order-keys the chapters CURRENTLY have, walking
-    // the index array. Only chapters that actually exist on disk participate.
-    std::vector<std::string> intendedIDs;
+    // the index array. Only chapters that actually exist on disk participate. We track each
+    // chapter by its CURRENT order-key (not the possibly-stale index id) so the rename set
+    // below is driven by the real folders.
+    std::vector<std::string> intendedKeys;   // the current key that identifies each folder
     std::vector<std::string> currentKeysInIntendedOrder;
     for (const auto& ref : indexChapters) {
-        const std::string k = keyForID(ref.chapterID.value);
+        const std::string k = keyForRef(ref);
         if (k.empty()) continue;   // phantom index entry — ignore (self-heal drops it)
-        intendedIDs.push_back(ref.chapterID.value);
+        intendedKeys.push_back(k);
         currentKeysInIntendedOrder.push_back(k);
     }
 
@@ -247,13 +263,13 @@ Result<bool> migrateChapterOrderKeys(
     // cursor so the result is strictly ascending and collision-free.
     bool renamedAny = false;
     std::string prevKey;   // empty → keyAfter("") for the first
-    for (std::size_t i = 0; i < intendedIDs.size(); ++i) {
+    for (std::size_t i = 0; i < intendedKeys.size(); ++i) {
         const std::string targetKey = util::keyAfter(prevKey);
-        const std::string currentKey = keyForID(intendedIDs[i]);
+        const std::string currentKey = intendedKeys[i];   // the folder's CURRENT key
         if (currentKey != targetKey) {
-            // Rename this chapter's folder to targetKey. currentKey is re-read each time
-            // (a prior rename doesn't touch this folder, so keyForID is still valid here —
-            // but re-read to be safe against any interaction).
+            // Rename this chapter's folder to targetKey. A prior iteration's rename never
+            // targets this folder's current key (targets are strictly ascending and fresh),
+            // so currentKey is still valid here.
             auto rr = renameChapterFolder(fs, projectRoot, currentKey, targetKey);
             if (!rr.ok()) { return Result<bool>::failure(rr.error()); }
             renamedAny = true;

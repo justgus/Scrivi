@@ -24,7 +24,16 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
   open (dual-scheme read; collision-free letter-prefixed keys). **ctest green 290/290** macOS + Linux container
   (all EP-027 tests, 3225 assertions). Tasks **T-0264–T-0270**. `scrivi.h` untouched. `Sprint-active.md`.
 
-Last closed: **SP-071** (EP-027/EP-023 — **create-chapter-in-place**; fixes the Linux chapter-split
+Last closed: **SP-072** (EP-027 — **P5 Apple-verify migration fixes**; a real legacy project failed to open on
+macOS with "Repair required: Missing scene content file"). — ✅ **closed 2026-07-18 (Human-approved).** Fixed
+**I-0078** (macOS `createChapter` wrapper drifted behind `scrivi.h`'s `afterChapterID` — app hadn't compiled since
+SP-071), **I-0076** (legacy scene `content.path` not bared on migration → dangling after chapter reslug;
+`parseSceneMeta` now bares it + `migrateScenes` normalises stale sidecars), **I-0077** (chapter with index/sidecar
+id mismatch dropped as phantom → path-folder fallback in `migrateChapterOrderKeys`). 2 regression tests, each proven
+RED-without-fix. ctest **304/304 macOS, 311/311 Linux**; Human opened a fresh copy of the real project → clean.
+**AC7+AC8 Verified.** Tasks **T-0290–T-0293**. `Closed/Sprint-SP-072.md`.
+
+Prior: **SP-071** (EP-027/EP-023 — **create-chapter-in-place**; fixes the Linux chapter-split
 lost-tail/folder-scramble + open-time scene-stealing, **I-0074**; arrows cross scene/chapter boundaries, **I-0075**)
 — ✅ **closed 2026-07-18 (Human-approved).** `createChapter(afterChapterID)` (additive `scrivi.h` change) so the
 new chapter is born in place — no create-then-reorder, no stale path; scene cache is a pure disk mirror + removed
@@ -50,8 +59,8 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **70 Sprints** (63 closed + 1 cancelled + 2 in Planning + 2 active; SP-068 skipped — its EP-023
-chapter-drag scope folded into EP-027) | Next available: **SP-072**
+Currently: **71 Sprints** (64 closed + 1 cancelled + 2 in Planning + 2 active [SP-069/SP-070, awaiting close
+approval]; SP-068 skipped — its EP-023 chapter-drag scope folded into EP-027) | Next available: **SP-073**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -125,6 +134,7 @@ chapter-drag scope folded into EP-027) | Next available: **SP-072**
 | SP-069 | `[ScriviCore]` EP-027 P1–P3 — rename primitive + order-key/disk-authority + legacy migration (I-0072 fixed) | EP-027 `[ScriviCore]` | 2026-07-16 | — | 🟢 Active |
 | SP-070 | `[ScriviCore]` EP-027 P6 — filesystem-authoritative scene identity & ordering (scenes) | EP-027 `[ScriviCore]` | 2026-07-17 | — | 🟢 Active |
 | SP-071 | `[ScriviCore]`+`[Linux]` create-chapter-in-place — split lost-tail/scene-steal fix (I-0074) + arrow nav (I-0075) | EP-027 / EP-023 | 2026-07-17 | 2026-07-18 | ✅ Closed |
+| SP-072 | `[ScriviCore]`+`[Apple]` EP-027 P5 Apple-verify — legacy migration fixes (I-0076/I-0077/I-0078) | EP-027 `[Apple]` | 2026-07-18 | 2026-07-18 | ✅ Closed |
 
 ## Statistics
 

@@ -1,6 +1,8 @@
 #include "SceneMetaJson.hpp"
 #include "SchemaUtils.hpp"
 
+#include <filesystem>
+
 namespace scrivi::schemas {
 
 std::string serializeSceneMeta(const SceneMetaData& d) {
@@ -89,7 +91,14 @@ Result<SceneMetaData> parseSceneMeta(std::string_view json) {
     data.modifiedByDisplayName = modifiedBy.getString("displayNameAtModification");
 
     auto content = doc.getSubDoc("content");
-    data.contentPath = content.getString("path");
+    // EP-027 §8.1: `contentPath` is a BARE FILENAME, resolved against the scene's own
+    // chapter folder. Legacy sidecars stored a full `manuscript/chapter-NNN/…md` path;
+    // after the chapter folder is reslugged that path dangles (I-0076). Normalise to the
+    // basename on read so every consumer (validator, listScenesByOrder, renameSceneFiles)
+    // resolves it in the scene's actual folder regardless of the stored shape. The stale
+    // on-disk value is rewritten to bare by `migrateScenes`.
+    data.contentPath =
+        std::filesystem::path(content.getString("path")).filename().string();
 
     auto stats = doc.getSubDoc("stats");
     data.wordCount      = static_cast<std::size_t>(stats.getInt("wordCount"));

@@ -2,13 +2,19 @@
 
 # SP-070: [ScriviCore] EP-027 P6 — Filesystem-authoritative scene identity & ordering (scenes)
 
-**Status:** 🟢 **Implemented — Not Verified (2026-07-17).** Applies the §7 chapter model one level down to
+**Status:** ✅ **Verified (2026-07-18, VNC + Linux ctest 309/309).** B3/B4 split + C6 orphan-open + I-0071
+last-scene drag all pass on the P6 model (Human-driven VNC walkthrough); Linux-container ctest 309/309. AC7 +
+AC8-Linux Verified; I-0064/I-0069/I-0070/I-0071 Verified. Sprint close awaits Human approval. Applies the §7
+chapter model one level down to
 **scenes** (trade study **§8**, Human-approved 2026-07-17). This is **P6 pulled forward before P4**, because the
 P4 Linux VNC walkthrough (2026-07-16) failed B3/B4 (chapter-split) and C6 ("Missing scene.meta.json") — all root-
 caused to the pre-EP-027 `SceneReorderer` moving a `SceneRef` between chapter sidecars **without relocating the
 scene's files**, which chapter-folder renames then orphaned. ScriviCore `ctest` **298/298 macOS** (293 pre-existing,
-all still green + 5 new §8 tests). Linux-container ctest parity: **pending** (no Docker in this session; changes are
-portable C++23, no platform code).
+all still green + 5 new §8 tests). Linux-container ctest parity: ✅ **CONFIRMED 2026-07-18** — fresh Ubuntu-24.04
+container (image `scrivi-linux`), `-DSCRIVI_BUILD_TESTS=ON`, clean configure + build, **`ctest` 309/309, 0 failed**
+(the 309 vs 298 delta is the Linux-only `EncryptedFileSecureStore` + C-ABI history tests; all EP-027 scene tests —
+`SceneIdentityTests` §8 cases + `SceneSplitRepro` — compiled and passed). Portable C++23, no platform code. **P4
+gate cleared.**
 **Activated:** 2026-07-17
 **Epic:** EP-027 `[ScriviCore]` — Filesystem-Authoritative Chapter/Scene Identity & Ordering (**Phase 6 of 6**).
 **Codebase:** `[ScriviCore]` only. `scrivi.h` untouched (on-disk behavior change, not a C ABI change).
@@ -55,8 +61,9 @@ portable C++23, no platform code).
 
 ## Next (EP-027)
 
-- **P4 — Linux verify** (re-run the VNC walkthrough on the scene model; the split/migration cases should now pass).
-  Then **P5 Apple verify**. Next available task **T-0278**.
+- **P4 — Linux verify** (gate cleared 2026-07-18: Linux-container ctest 309/309). Remaining: re-run the **human VNC
+  walkthrough** on the scene model (split B3/B4 + C6 orphan-repair-on-open should now pass). Then **P5 Apple verify**.
+  Next available task **T-0278**.
 
 ---
 

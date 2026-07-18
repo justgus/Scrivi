@@ -21,6 +21,7 @@
 #include "manuscript/ChapterIndex.hpp"
 #include "manuscript/SceneIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
+#include "schemas/ManuscriptMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
 #include "util/OrderKey.hpp"
 #include "util/PathUtils.hpp"
@@ -391,4 +392,137 @@ TEST_CASE("open - migrates legacy numeric scene filenames to order keys",
     auto filesAfter1 = sceneFilesOnDisk(ch1Dir);
     REQUIRE(p.core.openProject(openReq).ok());
     CHECK(sceneFilesOnDisk(ch1Dir) == filesAfter1);
+}
+
+// ---------------------------------------------------------------------------
+// 6. I-0076 — a legacy scene sidecar whose `content.path` is a FULL path
+//    ("manuscript/chapter-NNN/…md") — the pre-EP-027 shape — must be normalised to a bare
+//    filename on open. The stem "001" is accepted by isOrderKey (so the reslug branch never
+//    fires), yet the stale full path dangles once the chapter folder is reslugged, which is
+//    what produced "Repair required: Missing scene content file" on the real project. After
+//    open: the project opens (NOT repairRequired), the sidecar content.path is bare, the body
+//    resolves, and it is idempotent.
+// ---------------------------------------------------------------------------
+TEST_CASE("open - normalises a legacy full-path scene content.path to a bare filename (I-0076)",
+          "[integration][EP-027][scenes][migration]")
+{
+    FourSceneProject p;
+    const std::string ch1Rel = "manuscript/chapter-001/chapter.meta.json";
+    const fs::path ch1Dir = fs::path(p.projectDir.str()) / "manuscript/chapter-001";
+
+    // Precondition: "001" is (unfortunately) a valid order key, so the reslug branch is
+    // SKIPPED for it — the fix must still heal its content.path.
+    REQUIRE(scrivi::util::isOrderKey("001"));
+
+    // Author a legacy-shape scene "001-opening": order-key-shaped stem, but content.path is a
+    // FULL path referencing the (current) chapter folder — the pre-P6 sidecar shape.
+    {
+        scrivi::schemas::SceneMetaData m;
+        m.sceneID.value = "scene-legacypath"; m.title = "Opening"; m.slug = "001-opening";
+        m.status = "draft";
+        m.contentPath = "manuscript/chapter-001/001-opening.md";   // stale FULL path
+        std::ofstream(ch1Dir / "001-opening.meta.json", std::ios::binary)
+            << scrivi::schemas::serializeSceneMeta(m);
+        std::ofstream(ch1Dir / "001-opening.md", std::ios::binary) << "OPENING BODY";
+    }
+    {
+        auto ch1 = scrivi::schemas::parseChapterMeta(p.read(ch1Rel)).value();
+        ch1.scenes.push_back({.metadataFilename = "001-opening.meta.json"});
+        std::ofstream(ch1Dir / "chapter.meta.json", std::ios::binary)
+            << scrivi::schemas::serializeChapterMeta(ch1);
+    }
+
+    scrivi::OpenProjectRequest openReq;
+    openReq.projectRootPath = p.projectDir.str();
+    openReq.appSupportRoot  = p.appSupportDir.str();
+    auto opened = p.core.openProject(openReq);
+    REQUIRE(opened.ok());
+    CHECK(opened.value().mode != scrivi::OpenMode::repairRequired);   // the bug: it errored
+
+    // The sidecar's content.path is now a BARE filename (no path separator).
+    auto meta = scrivi::schemas::parseSceneMeta(p.read("manuscript/chapter-001/001-opening.meta.json"));
+    REQUIRE(meta.ok());
+    CHECK(meta.value().contentPath.find('/') == std::string::npos);
+    CHECK(meta.value().contentPath == "001-opening.md");
+
+    // The scene resolves and its body survived.
+    scrivi::manuscript::ManuscriptOrderResolver resolver{p.services};
+    auto resolved = resolver.resolve(p.projectDir.str());
+    REQUIRE(resolved.ok());
+    bool found = false;
+    for (auto& s : resolved.value())
+        if (s.sceneID.value == "scene-legacypath") {
+            found = true;
+            CHECK(p.read(s.contentPath.find('/') == std::string::npos
+                         ? "manuscript/chapter-001/" + s.contentPath
+                         : s.contentPath) == "OPENING BODY");
+        }
+    CHECK(found);
+
+    // Idempotent: a second open makes no further change to the sidecar.
+    const std::string after1 = p.read("manuscript/chapter-001/001-opening.meta.json");
+    REQUIRE(p.core.openProject(openReq).ok());
+    CHECK(p.read("manuscript/chapter-001/001-opening.meta.json") == after1);
+}
+
+// ---------------------------------------------------------------------------
+// 7. I-0077 — a chapter whose index chapterID DISAGREES with its sidecar chapterID must still
+//    participate in chapter order-key migration (matched by its folder path), not be dropped
+//    as a "phantom". Otherwise it is left half-migrated (legacy numeric folder while its peers
+//    are reslugged). We force a migration by making the index array order differ from the disk
+//    folder sort, and corrupt one chapter's index id.
+// ---------------------------------------------------------------------------
+TEST_CASE("open - migrates a chapter whose index/sidecar chapterID disagree (I-0077)",
+          "[integration][EP-027][chapters][migration]")
+{
+    FourSceneProject p;   // chapter-001 (ch1) + chapter-<key> (ch2)
+
+    // Corrupt the index: give ch1's entry a bogus chapterID (≠ its sidecar) AND swap the array
+    // order so the folder-sort no longer reproduces the index-array order (forces migration).
+    const std::string msRel = "manuscript/manuscript.meta.json";
+    auto ms = scrivi::schemas::parseManuscriptMeta(p.read(msRel)).value();
+    REQUIRE(ms.chapters.size() == 2);
+    // Find the chapter-001 entry and rewrite its id to something that exists on NO sidecar.
+    for (auto& ref : ms.chapters)
+        if (ref.path.find("chapter-001/") != std::string::npos)
+            ref.chapterID.value = "chapter-BOGUS-mismatch";
+    std::reverse(ms.chapters.begin(), ms.chapters.end());   // array order ≠ folder sort
+    std::ofstream(fs::path(p.projectDir.str()) / msRel, std::ios::binary)
+        << scrivi::schemas::serializeManuscriptMeta(ms);
+
+    scrivi::OpenProjectRequest openReq;
+    openReq.projectRootPath = p.projectDir.str();
+    openReq.appSupportRoot  = p.appSupportDir.str();
+    auto opened = p.core.openProject(openReq);
+    REQUIRE(opened.ok());
+    CHECK(opened.value().mode != scrivi::OpenMode::repairRequired);
+
+    // The DISCRIMINATING assertion: the id-mismatched chapter's original `chapter-001` folder
+    // must be GONE — it was reslugged like its peer. Before the fix it was dropped as a
+    // "phantom" and left stranded on `chapter-001` (a numeric name isOrderKey() accepts, so a
+    // weaker "isOrderKey(orderKey)" check would falsely pass — hence checking the folder name).
+    CHECK_FALSE(fs::exists(fs::path(p.projectDir.str()) / "manuscript/chapter-001"));
+
+    auto chapters = scrivi::manuscript::listChaptersByOrder(p.lfs, p.projectDir.str());
+    REQUIRE(chapters.ok());
+    REQUIRE(chapters.value().size() == 2);
+    // No chapter retains a legacy numeric folder name; keys are the generated letter series.
+    for (auto& e : chapters.value()) {
+        CHECK(scrivi::util::isOrderKey(e.orderKey));
+        CHECK(e.chapterMetadataRelPath.find("chapter-001/") == std::string::npos);
+    }
+
+    // Reading order honours the (reversed) index array: ch2 first, then the mismatched ch1.
+    scrivi::manuscript::ManuscriptOrderResolver resolver{p.services};
+    auto order = resolver.resolve(p.projectDir.str());
+    REQUIRE(order.ok());
+
+    // Both original chapters are present by their (sidecar-authoritative) identity.
+    bool sawCh1 = false, sawCh2 = false;
+    for (auto& e : chapters.value()) {
+        if (e.chapterID.value == p.ch1ID.value) sawCh1 = true;
+        if (e.chapterID.value == p.ch2ID.value) sawCh2 = true;
+    }
+    CHECK(sawCh1);
+    CHECK(sawCh2);
 }

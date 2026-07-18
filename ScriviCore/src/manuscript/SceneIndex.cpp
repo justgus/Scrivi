@@ -3,6 +3,7 @@
 #include "manuscript/ChapterIndex.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
+#include "util/Json.hpp"
 #include "util/OrderKey.hpp"
 #include "util/PathUtils.hpp"
 
@@ -179,6 +180,38 @@ Result<void> renameSceneFiles(
     return Result<void>::success();
 }
 
+// I-0076: rewrite a scene sidecar whose stored `content.path` is NOT a bare filename
+// (a legacy full `manuscript/chapter-NNN/…md` path) so the on-disk value becomes the
+// bare filename. parseSceneMeta already bares the path on read, so a parse→serialize
+// round-trip writes the canonical form. No-op (and no write) when the stored path is
+// already bare — keeps migration idempotent. `metaRel` is root-relative.
+Result<bool> normalizeSceneContentPathIfStale(
+    FileSystem& fs, const AbsolutePath& projectRoot, const std::string& metaRel)
+{
+    const AbsolutePath metaAbs = util::join(projectRoot, metaRel);
+    auto textR = fs.readTextFile(metaAbs);
+    if (!textR.ok()) { return Result<bool>::failure(textR.error()); }
+
+    // Read the RAW stored content.path (parseJson does not normalise; only parseSceneMeta
+    // does). If it already has no path separator it is bare — nothing to do (idempotent).
+    auto rawR = util::parseJson(textR.value());
+    if (!rawR.ok()) { return Result<bool>::failure(rawR.error()); }
+    const std::string storedPath =
+        rawR.value().getSubDoc("content").getString("path");
+    if (storedPath.find('/') == std::string::npos) {
+        return Result<bool>::success(false);   // already a bare filename
+    }
+
+    // Stale legacy full path → rewrite the sidecar with the bared value. parseSceneMeta
+    // bares content.path on read, so serialize emits the canonical form.
+    auto parsed = schemas::parseSceneMeta(textR.value());
+    if (!parsed.ok()) { return Result<bool>::failure(parsed.error()); }
+    auto wR = fs.atomicWriteTextFile(
+        metaAbs, schemas::serializeSceneMeta(parsed.value()));
+    if (!wR.ok()) { return Result<bool>::failure(wR.error()); }
+    return Result<bool>::success(true);
+}
+
 // The slug portion after the `<key>-` prefix, sans the ".meta.json" suffix. For
 // "001-scene.meta.json" -> "scene"; for "a0-my-scene.meta.json" -> "my-scene".
 std::string baseSlugOf(const std::string& metaFilename) {
@@ -240,6 +273,15 @@ Result<bool> migrateScenes(FileSystem& fs, const AbsolutePath& projectRoot)
 
             if (util::isOrderKey(key)) {
                 lastKey = key;   // already migrated — keep its key as the running anchor
+                // …but a canonical key does NOT guarantee a canonical sidecar: a legacy
+                // project can hold an order-key-shaped scene stem whose stored
+                // `content.path` is still a full `manuscript/chapter-NNN/…md` path (I-0076).
+                // The reslug branch below never runs for it, so normalise its sidecar in
+                // place — parseSceneMeta already bares the path, so a re-serialize writes the
+                // canonical bare filename. No file move (the stem is already correct).
+                auto norm = normalizeSceneContentPathIfStale(fs, projectRoot, metaRel);
+                if (!norm.ok()) { return Result<bool>::failure(norm.error()); }
+                if (norm.value()) { changed = true; }
                 continue;
             }
             const std::string newKey = util::keyAfter(lastKey);
