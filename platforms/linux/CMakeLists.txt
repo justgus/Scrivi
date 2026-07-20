@@ -314,6 +314,35 @@ target_link_libraries(scrivi_linux_scene_reorder_smoke
 target_include_directories(scrivi_linux_scene_reorder_smoke PRIVATE src)
 target_compile_features(scrivi_linux_scene_reorder_smoke PRIVATE cxx_std_23)
 
+# --- Headless chapter-reorder smoke (SP-073 / T-0296, EP-023 AC5) -----------
+# Chapter drag-reorder as a container: SceneDocument::moveChapter block splice (map
+# well-formed, bodies + member order preserved, no-op landings refused),
+# ScriviBridge::reorderChapter persistence (reopen order + bodies), and the SP-073
+# stale-path refresh — the reorder reslugs the chapter's folder, so a save must go
+# through the refreshed paths (the I-0074/I-0079 class). Needs Widgets for
+# QApplication + QPlainTextDocumentLayout (SceneDocument). chapter_reorder_smoke.sh.
+qt_add_executable(scrivi_linux_chapter_reorder_smoke
+    tests/chapter_reorder_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+)
+
+target_link_libraries(scrivi_linux_chapter_reorder_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_chapter_reorder_smoke PRIVATE src)
+target_compile_features(scrivi_linux_chapter_reorder_smoke PRIVATE cxx_std_23)
+
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a
 # QQuickWidget's engine doesn't auto-wire QQmlEngine::quit() to the app, so main.cpp

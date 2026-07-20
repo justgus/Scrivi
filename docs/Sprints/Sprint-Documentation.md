@@ -11,20 +11,19 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-- **SP-070** (EP-027 `[ScriviCore]` — **P6 filesystem-authoritative scene identity & ordering**) —
-  🟢 Implemented, Not Verified, activated 2026-07-17. `SceneRef` filename-only (identity derived by sceneID
-  sidecar scan); order-key scene filenames; cross-chapter reorder relocates files; chapter rename touches zero
-  scene fields; scene migration/orphan-repair on open (before validation). Tasks **T-0271–T-0277**. `scrivi.h`
-  untouched. `Sprint-active.md`.
-- **SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority + P3 migration**) —
-  🟢 Implemented, Not Verified, activated 2026-07-16. **P1:** `FileSystem::renamePath` (atomic-within-fs, never
-  clobbers, missing-source guard). **P2:** `util/OrderKey` fractional slugs + disk-authoritative chapter
-  identity/order (`ChapterIndex`) + order-key `ChapterCreator`/`ChapterReorderer` (**fixes I-0072**) + open-time
-  self-heal. **P3:** `migrateChapterOrderKeys` — lazy/idempotent migration of legacy `chapter-NNN` projects at
-  open (dual-scheme read; collision-free letter-prefixed keys). **ctest green 290/290** macOS + Linux container
-  (all EP-027 tests, 3225 assertions). Tasks **T-0264–T-0270**. `scrivi.h` untouched. `Sprint-active.md`.
+_No active sprint._ (SP-069/SP-070 closed 2026-07-18 with EP-027; SP-073 closed 2026-07-19 with EP-023.)
 
-Last closed: **SP-072** (EP-027 — **P5 Apple-verify migration fixes**; a real legacy project failed to open on
+Last closed: **SP-073** (EP-023 `[Linux]` — **chapter drag-reorder AC5 + full EP-023 verify & Epic close**;
+renumbered from the skipped SP-068) — ✅ **closed 2026-07-19 (Human-approved).** Chapter rows drag as
+containers (CopyAction-only, boundary-only drop resolution, `SceneDocument::moveChapter` block splice,
+post-reslug path refresh via new reorder-envelope paths; `scrivi.h` untouched). Fixed & Verified en route:
+**I-0080** (`[ScriviCore]` open-time migration undid chapter reorders — legacy gate + eager index-cache
+rebuild), **I-0081** (stale scene paths after drag broke rename/save), **I-0082** (non-selectable chapter
+rows blocked the drag). ctest **306/306 macOS + 313/313 Linux**; **11/11** container smokes (new
+`chapter_reorder_smoke` in CI). Tasks **T-0294–T-0297** Verified & archived. **This closed EP-023** (all
+ACs AC1–AC8 Verified; `../Epics/Closed/Epic-EP-023.md`). `Closed/Sprint-SP-073.md`.
+
+Prior: **SP-072** (EP-027 — **P5 Apple-verify migration fixes**; a real legacy project failed to open on
 macOS with "Repair required: Missing scene content file"). — ✅ **closed 2026-07-18 (Human-approved).** Fixed
 **I-0078** (macOS `createChapter` wrapper drifted behind `scrivi.h`'s `afterChapterID` — app hadn't compiled since
 SP-071), **I-0076** (legacy scene `content.path` not bared on migration → dangling after chapter reslug;
@@ -54,13 +53,14 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning |
+| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
+| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
 
 ## All Sprints
 
-Currently: **71 Sprints** (66 closed + 1 cancelled + 2 in Planning + 0 active; SP-068 skipped — its EP-023
-chapter-drag scope folded into EP-027) | Next available: **SP-073**
+Currently: **72 Sprints** (69 closed + 1 cancelled + 2 in Planning + 0 active; the SP-068 **ID** was skipped
+when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
+2026-07-19) | Next available: **SP-074**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -135,19 +135,33 @@ chapter-drag scope folded into EP-027) | Next available: **SP-073**
 | SP-070 | `[ScriviCore]` EP-027 P6 — filesystem-authoritative scene identity & ordering (scenes) | EP-027 `[ScriviCore]` | 2026-07-17 | 2026-07-18 | ✅ Closed |
 | SP-071 | `[ScriviCore]`+`[Linux]` create-chapter-in-place — split lost-tail/scene-steal fix (I-0074) + arrow nav (I-0075) | EP-027 / EP-023 | 2026-07-17 | 2026-07-18 | ✅ Closed |
 | SP-072 | `[ScriviCore]`+`[Apple]` EP-027 P5 Apple-verify — legacy migration fixes (I-0076/I-0077/I-0078) | EP-027 `[Apple]` | 2026-07-18 | 2026-07-18 | ✅ Closed |
+| SP-073 | `[Linux]` Chapter drag-reorder (AC5) + full EP-023 verify & Epic close — renumbered from SP-068 | EP-023 `[Linux]` | 2026-07-19 | 2026-07-19 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 68
-- **Closed:** 63 ✅
-- **Active:** 1 🟢 (SP-069 EP-027 `[ScriviCore]` P1–P3 — rename primitive + order-key/disk-authority + migration)
+- **Total Sprints:** 72 (SP-001–SP-073 issued; SP-068 skipped)
+- **Closed:** 69 ✅
+- **Active:** 0 🟡
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-16 (**SP-067 ✅ closed** with user approval — EP-023 `[Linux]` third sprint: delivered
+*Last Updated: 2026-07-19 (**SP-073 ✅ closed with user approval** — EP-023 `[Linux]`'s final sprint,
+planned + activated + implemented + verified + closed same day (renumbered from the skipped SP-068):
+**AC5 chapter drag-reorder** (chapter-as-container, CopyAction-only, boundary drop resolution,
+`SceneDocument::moveChapter` block splice, post-reslug path refresh via the new reorder-envelope paths) +
+full EP-023 verify AC6–AC8. Three defects found & fixed & Verified en route: **I-0080** (`[ScriviCore]`
+open-time migration undid chapter reorders — legacy gate + eager index-cache rebuild), **I-0081** (stale
+scene paths after drag broke rename/save — envelope now reports post-move paths), **I-0082** (undraggable
+non-selectable chapter rows). New `chapter_reorder_smoke` + extended `scene_reorder_smoke` in CI; ctest
+**306/306 macOS + 313/313 Linux**; `scrivi.h` untouched. T-0294–T-0297 Verified & archived to
+`Tasks/Verified/Task-verified-0294-0297.md`. **This closed EP-023** (all ACs; `Epics/Closed/Epic-EP-023.md`).
+Closed 68→69, Active 1→0 — no active sprint, no Active Epic; next available **SP-074**. Record:
+`Closed/Sprint-SP-073.md`. Prior note follows.)*
+
+*2026-07-16 (**SP-067 ✅ closed** with user approval — EP-023 `[Linux]` third sprint: delivered
 **AC4 scene drag-reorder** (I-0067/I-0068 fixed via `Qt::CopyAction`, VNC-verified on a fresh project) + **I-0063**
 renumber (Verified); the chapter-split defects **I-0064/I-0069/I-0070**, the root slug corruption **I-0072**, and
 **I-0071** were **re-homed to the new EP-027** `[ScriviCore]` (rebuilt on its filesystem-authoritative model);

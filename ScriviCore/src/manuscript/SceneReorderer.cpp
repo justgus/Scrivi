@@ -113,10 +113,15 @@ Result<ReorderSceneResult> SceneReorderer::reorder(const ReorderSceneRequest& re
         (lo.empty() || lo < moving.orderKey) && (hi.empty() || moving.orderKey < hi);
     if (alreadyBetween) {
         ReorderSceneResult result;
-        result.sceneID         = request.sceneID;
-        result.sourceChapterID = request.sourceChapterID;
-        result.targetChapterID = request.targetChapterID;
-        result.reordered       = true;
+        result.sceneID             = request.sceneID;
+        result.sourceChapterID     = request.sourceChapterID;
+        result.targetChapterID     = request.targetChapterID;
+        // No files moved — report the CURRENT paths so callers can always refresh
+        // from the result (I-0081).
+        result.metadataPath        = chapterDirOf(srcChMetaRel) + "/" + moving.metadataFilename;
+        result.contentPath         = chapterDirOf(srcChMetaRel) + "/" + moving.contentFilename;
+        result.chapterMetadataPath = dstChMetaRel;
+        result.reordered           = true;
         return Result<ReorderSceneResult>::success(std::move(result));
     }
 
@@ -170,10 +175,15 @@ Result<ReorderSceneResult> SceneReorderer::reorder(const ReorderSceneRequest& re
     }
 
     ReorderSceneResult result;
-    result.sceneID         = request.sceneID;
-    result.sourceChapterID = request.sourceChapterID;
-    result.targetChapterID = request.targetChapterID;
-    result.reordered       = true;
+    result.sceneID             = request.sceneID;
+    result.sourceChapterID     = request.sourceChapterID;
+    result.targetChapterID     = request.targetChapterID;
+    // The post-move paths (I-0081): the files now live at the new order-key stem in the
+    // target chapter's folder — the caller's captured paths are stale.
+    result.metadataPath        = dstMetaRel;
+    result.contentPath         = dstContentRel;
+    result.chapterMetadataPath = dstChMetaRel;
+    result.reordered           = true;
     return Result<ReorderSceneResult>::success(std::move(result));
 }
 

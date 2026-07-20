@@ -85,6 +85,8 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // drop and hands us (scene, targetChapter, afterScene); we do the real move.
     connect(navigator_, &NavigatorTree::sceneDropRequested,
             this, &EditorShell::onSceneDropped);
+    connect(navigator_, &NavigatorTree::chapterDropRequested,
+            this, &EditorShell::onChapterDropped);
 
     // --- Viewport (right): editable continuous document -------------------
     viewport_ = new ManuscriptEditor(this);
@@ -565,6 +567,18 @@ void EditorShell::onSceneDropped(const QString& draggedSceneID,
         fromIdx, targetChapterID, targetChapterTitle, afterSceneID);
     loading_ = false;
 
+    // Path refresh (SP-073 / I-0081): the reorder renamed the scene's files to their new
+    // order-key stem (and relocated them cross-chapter), so the segment's captured paths
+    // are stale — a rename or auto-save through them would target vanished files. The
+    // envelope reports the post-move paths; apply them regardless of the splice outcome
+    // (the reload fallback below reloads everything anyway, but a refreshed segment is
+    // never wrong).
+    sceneDoc_.refreshScenePaths(
+        draggedSceneID,
+        r.value(QStringLiteral("metadataPath")).toString(),
+        r.value(QStringLiteral("contentPath")).toString(),
+        r.value(QStringLiteral("chapterMetadataPath")).toString());
+
     if (newIdx < 0) {
         // The map move failed (unexpected — the bridge already reordered on disk). Fall
         // back to a full reload so the UI matches disk rather than drifting.
@@ -579,6 +593,67 @@ void EditorShell::onSceneDropped(const QString& draggedSceneID,
     activeSegment_ = -1;                 // force promote to register the move
     moveCaretToSegment(newIdx);
     selectNavigatorScene(draggedSceneID);
+    viewport_->setFocus();
+}
+
+void EditorShell::onChapterDropped(const QString& draggedChapterID,
+                                   const QString& afterChapterID)
+{
+    if (draggedChapterID.isEmpty()
+        || sceneDoc_.firstSegmentOfChapter(draggedChapterID) < 0) {
+        return;
+    }
+
+    // Persist pending edits BEFORE the reorder: the reorder reslugs the chapter's
+    // folder, so any dirty scene saved after it must use the refreshed paths — flush
+    // now while every captured path is still valid.
+    saveDirtyScenes();
+
+    const QVariantMap r =
+        bridge_->reorderChapter(projectPath_, draggedChapterID, afterChapterID);
+    if (r.isEmpty()) {
+        return;   // bridge already surfaced errorOccurred; leave the UI untouched
+    }
+
+    // Path refresh FIRST (I-0074/I-0079 class): scrivi_reorder_chapter renamed the
+    // chapter's folder to its new order-key slug, so every captured metadataPath/
+    // contentPath in that chapter is stale. The envelope reports the chapter's
+    // post-reorder sidecar path; re-base the members' paths on it before anything
+    // else can save — even the reload fallback below is then safe.
+    sceneDoc_.refreshChapterPaths(
+        draggedChapterID, r.value(QStringLiteral("metadataPath")).toString());
+
+    // Re-splice the live document + offset map (chapter block move, no full rebuild).
+    loading_ = true;
+    const int newIdx = sceneDoc_.moveChapter(draggedChapterID, afterChapterID);
+    loading_ = false;
+
+    if (newIdx < 0) {
+        // The map move failed (unexpected — the bridge already reordered on disk). Fall
+        // back to a full reload so the UI matches disk rather than drifting.
+        load(projectPath_, appSupportRoot_,
+             findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+                 ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+                 : QString());
+        return;
+    }
+
+    // I-0063: chapters created via scrivi_create_chapter carry a STORED "Chapter N"
+    // title, so moving a chapter shuffles later created chapters' ordinals. Rewrite
+    // the stale sidecars, then re-derive the live labels so navigator + document
+    // match disk. (Untitled chapters already renumbered via reflowAllChapterHeadings
+    // inside moveChapter; custom titles untouched.)
+    if (renumberCreatedChapters()) {
+        applyDerivedLabels();
+    }
+
+    rebuildNavigator();
+
+    // Anchor the caret on the moved chapter's first scene — the container the writer
+    // just placed — mirroring the scene-drag re-anchor.
+    activeSegment_ = -1;                 // force promote to register the move
+    moveCaretToSegment(newIdx);
+    selectNavigatorScene(sceneDoc_.segments().at(newIdx).sceneID);
     viewport_->setFocus();
 }
 
@@ -914,11 +989,20 @@ void EditorShell::rebuildNavigator()
             // authority the in-document heading uses, so the navigator + heading agree.
             chapterItem = new QStandardItem(sceneDoc_.chapterHeadingText(i));
             chapterItem->setEditable(false);
-            chapterItem->setSelectable(false);   // chapters group; scenes select
+            // Chapter rows MUST be selectable for the chapter drag to start (SP-073 /
+            // I-0082): QAbstractItemView enters DraggingState only when the pressed row
+            // is among the SELECTED draggable indexes — a non-selectable row can never
+            // be selected, so a chapter-heading drag silently fell into rubber-band
+            // selection (selecting the nearest scene) instead of dragging. Clicking a
+            // chapter row is harmless (onNavigatorActivated ignores rows without a
+            // sceneID).
             chapterItem->setData(seg.chapterID, kChapterIDRole);   // for delete (T-0251)
-            // Chapter rows don't drag (SP-068) but DO accept drops so a scene can be
-            // dropped on a heading to become that chapter's first scene (T-0260).
-            chapterItem->setFlags((chapterItem->flags() & ~Qt::ItemIsDragEnabled)
+            // Chapter rows drag as containers (SP-073, AC5) and accept drops so a
+            // scene can be dropped on a heading to become that chapter's first scene
+            // (T-0260). NavigatorTree runs the chapter drag manually (the row is
+            // non-selectable) and resolves chapter drops to chapter boundaries only.
+            chapterItem->setFlags(chapterItem->flags()
+                                  | Qt::ItemIsDragEnabled
                                   | Qt::ItemIsDropEnabled);
             navModel_->appendRow(chapterItem);
             lastChapterID = seg.chapterID;
@@ -929,8 +1013,7 @@ void EditorShell::rebuildNavigator()
         sceneItem->setEditable(false);
         sceneItem->setData(seg.sceneID, kSceneIDRole);
         // Scene rows are draggable for reorder (T-0260); nothing accepts drops (the
-        // navigator handles them itself). Chapter rows below stay non-draggable —
-        // chapter drag-reorder is SP-068.
+        // navigator handles them itself).
         sceneItem->setFlags((sceneItem->flags() | Qt::ItemIsDragEnabled)
                             & ~Qt::ItemIsDropEnabled);
         chapterItem->appendRow(sceneItem);

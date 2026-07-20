@@ -252,19 +252,42 @@ int main(int argc, char* argv[])
             bridge.reorderScene(projectPath, s2, ch1, ch2, s3);   // ch2, after s3
         check(!r.isEmpty(), "C: reorderScene returned an ok result");
 
+        // I-0081 (SP-073): the reorder RENAMED/RELOCATED s2's files, so paths captured
+        // before the call are stale. The envelope must report the post-move paths, and a
+        // rename + save THROUGH those refreshed paths must land (the post-drag rename
+        // failure seen over VNC).
+        const QString newMeta =
+            r.value(QStringLiteral("metadataPath")).toString();
+        const QString newContent =
+            r.value(QStringLiteral("contentPath")).toString();
+        check(!newMeta.isEmpty() && !newContent.isEmpty(),
+              "C: reorder envelope reports the scene's post-move paths (I-0081)");
+        const QVariantMap ren = bridge.renameScene(
+            projectPath, newMeta, QStringLiteral("Renamed after drag"));
+        check(!ren.isEmpty(), "C: rename through the refreshed metadataPath lands (I-0081)");
+        bridge.saveScene(projectID, projectPath, appSupport, s2, newMeta, newContent,
+                         QStringLiteral("Body of scene two."), 0, 0, 0.0);
+
         const QVariantMap re = bridge.openProject(projectPath, appSupport);
         const QStringList order = orderedScenes(re);
         // Expected new order: s0, s1 (ch1), s3, s2, s4 (ch2) — s2 sits right after s3.
         check(order == (QStringList{s0, s1, s3, s2, s4}),
               "C: reopened order is s0,s1,s3,s2,s4 after the cross-chapter reorder");
-        // And s2 now reports chapter 2.
+        // And s2 now reports chapter 2, with the rename + save visible on disk.
         for (const QVariant& v : re.value(QStringLiteral("scenes")).toList()) {
             const QVariantMap m = v.toMap();
             if (m.value(QStringLiteral("sceneID")).toString() == s2) {
                 check(m.value(QStringLiteral("chapterID")).toString() == ch2,
                       "C: s2 is now in chapter 2 on disk");
+                check(m.value(QStringLiteral("title")).toString()
+                          == QStringLiteral("Renamed after drag"),
+                      "C: post-drag rename round-tripped (I-0081)");
             }
         }
+        check(bridge.openScene(projectPath, appSupport, projectID, s2)
+                      .value(QStringLiteral("markdown")).toString()
+                  == QStringLiteral("Body of scene two."),
+              "C: save through the refreshed paths landed (I-0081)");
     }
 
     // Restore s2 to chapter 1 (after s1) so the split cases below start from a known

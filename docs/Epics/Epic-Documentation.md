@@ -12,8 +12,11 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **2 Active Epics.**
-- **EP-023** `[Linux]` (Manuscript Structure Editing), activated 2026-07-15. **SP-065 (delete) + SP-066 (rename) + SP-067 (scene drag-reorder) ✅ closed** — AC1/AC2/AC3/AC4 verified over VNC; I-0062/I-0063/I-0067/I-0068 resolved; **3 of 4 sprints done**. The chapter-split defects surfaced in SP-067 (I-0064/I-0069/I-0070) + the root slug corruption (I-0072) were **re-homed to EP-027**. Remaining **SP-068** (chapter drag-reorder AC5 + verify/close) is 🔵 Planning — sequence against EP-027 (chapter-structure ops depend on its new on-disk model). EP-020/021/022 all ✅ closed. EP-024–EP-026 `[Linux]` remain 🔵 Draft.
+Currently: **0 Active Epics.** **EP-023** `[Linux]` (Manuscript Structure Editing) ✅ **closed 2026-07-19**
+(Human-approved) — all ACs AC1–AC8 verified over VNC across SP-065/066/067/073 (delete, rename, scene
+drag-reorder, chapter drag-reorder + verify; the SP-068 ID was skipped); I-0080/I-0081/I-0082 fixed &
+Verified in SP-073. Archived to `Closed/Epic-EP-023.md`. Next in line: EP-024–EP-026 `[Linux]` (🔵 Draft),
+promoted one at a time on user request.
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -21,7 +24,7 @@ See: [Epic-active.md](Epic-active.md)
 
 Currently: **4 Backlog Epics** —
 - EP-019 `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers), 🔴 Deferred 2026-07-13; partially delivered (AC1/AC3/AC4/AC5 verified; AC2/AC6/AC7/AC8 remaining); resume at SP-056.
-- EP-024–EP-026 `[Linux]` (Ubuntu Qt/QML app family — inspector, timeline, undo/menus/settings), 🔵 Draft; promoted to Active one at a time. (EP-023 structure editing is now Active.)
+- EP-024–EP-026 `[Linux]` (Ubuntu Qt/QML app family — inspector, timeline, undo/menus/settings), 🔵 Draft; promoted to Active one at a time. (EP-023 structure editing ✅ closed 2026-07-19.)
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
@@ -55,7 +58,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-020 | `[Linux]` App Foundation — Qt/QML Toolchain, Bridge & Shell | ✅ Closed | 2026-07-13 | 2026-07-13 |
 | EP-021 | `[Linux]` Project Lifecycle & Landing | ✅ Closed | 2026-07-13 | 2026-07-14 |
 | EP-022 | `[Linux]` Writing Surface & Scene Navigator | ✅ Closed | 2026-07-14 | 2026-07-15 |
-| EP-023 | `[Linux]` Manuscript Structure Editing | 🟡 Active | 2026-07-15 | — |
+| EP-023 | `[Linux]` Manuscript Structure Editing | ✅ Closed | 2026-07-15 | 2026-07-19 |
 | EP-024 | `[Linux]` Scene Inspector Panel | 🔵 Draft (backlog) | — | — |
 | EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
 | EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
@@ -64,13 +67,21 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 ## Statistics
 
 - **Total Epics:** 27
-- **Closed:** 21 ✅
+- **Closed:** 22 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-023 `[Linux]` Manuscript Structure Editing)
+- **Active:** 0 🟡
 - **Draft:** 3 🔵 (EP-024–EP-026 `[Linux]`)
 - **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-15 (EP-023 `[Linux]` Manuscript Structure Editing — **SP-065 (delete) ✅ closed** with user approval: AC1 + AC2 verified over VNC, tasks T-0250–T-0253 archived; 1 of 4 sprints done, EP-023 stays 🟡 Active (SP-066 rename next). Epic was activated same day (first sprint SP-065); Active count 0→1, Draft 4→3, Backlog 5→4. Delete → rename → scene drag-reorder → chapter drag-reorder + close across 4 sprints; no ScriviCore work (all eight structure endpoints exist); chapter-title toggle deferred to EP-026; reorder via QTreeView drag. Earlier: EP-022 `[Linux]` Writing Surface & Scene Navigator ✅ closed with user approval — the core Linux writing loop (navigator + continuous editable viewport + per-scene auto-save + in-editor scene/chapter creation + scroll-driven switching + cursor/focus + quit→reopen surface restore); all 4 sprints SP-061–SP-064 closed, AC1–AC7 verified over Docker+VNC, `scrivi.h` untouched. Archived to `Closed/Epic-EP-022.md`. No Epic currently Active; EP-023 `[Linux]` structure editing is next. EP-023–EP-026 remain 🔵 Draft.)*
+*Last Updated: 2026-07-19 (**EP-023 `[Linux]` ✅ closed with user approval** — full manuscript-structure
+editing from the navigator: create/delete/rename + scene & chapter drag-reorder, all persisting on the
+EP-027 on-disk model; ACs AC1–AC8 verified over Docker+VNC; SP-073 (final sprint, renumbered from the
+skipped SP-068) fixed & Verified I-0080 (core migration undid reorders), I-0081 (stale scene paths after
+drag), I-0082 (undraggable chapter rows); `scrivi.h` untouched for the whole Epic; ctest 306/306 macOS +
+313/313 Linux; archived to `Closed/Epic-EP-023.md`. Closed 21→22, Active 1→0 — **no Active Epics**; next
+in line EP-024–EP-026 `[Linux]` (Draft). Prior note follows.)*
+
+*2026-07-15 (EP-023 `[Linux]` Manuscript Structure Editing — **SP-065 (delete) ✅ closed** with user approval: AC1 + AC2 verified over VNC, tasks T-0250–T-0253 archived; 1 of 4 sprints done, EP-023 stays 🟡 Active (SP-066 rename next). Epic was activated same day (first sprint SP-065); Active count 0→1, Draft 4→3, Backlog 5→4. Delete → rename → scene drag-reorder → chapter drag-reorder + close across 4 sprints; no ScriviCore work (all eight structure endpoints exist); chapter-title toggle deferred to EP-026; reorder via QTreeView drag. Earlier: EP-022 `[Linux]` Writing Surface & Scene Navigator ✅ closed with user approval — the core Linux writing loop (navigator + continuous editable viewport + per-scene auto-save + in-editor scene/chapter creation + scroll-driven switching + cursor/focus + quit→reopen surface restore); all 4 sprints SP-061–SP-064 closed, AC1–AC7 verified over Docker+VNC, `scrivi.h` untouched. Archived to `Closed/Epic-EP-022.md`. No Epic currently Active; EP-023 `[Linux]` structure editing is next. EP-023–EP-026 remain 🔵 Draft.)*

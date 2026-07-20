@@ -211,6 +211,29 @@ Result<bool> migrateChapterOrderKeys(
     auto diskR = listChaptersByOrder(fs, projectRoot);
     if (!diskR.ok()) { return Result<bool>::failure(diskR.error()); }
 
+    // LEGACY GATE (SP-073 / I-0080). Only a genuine pre-EP-027 project may be migrated
+    // from its index-array order — and the legacy creator produced exclusively NUMERIC
+    // `chapter-NNN` folders, so "every folder key is digits-only" is the legacy shape.
+    // Any letter-bearing key means the project has been touched by the new scheme, where
+    // the FOLDER SORT is the order authority (B3) and the index array is a rebuildable
+    // cache that is stale by design right after a reorder. Without this gate, an open
+    // following a legitimate chapter reorder "migrated" the folders back to the stale
+    // array order — actively undoing the user's reorder (previously unnoticed only
+    // because the reslug usually crashed into renameChapterFolder's no-clobber guard and
+    // aborted). A stale array on a new-scheme project is the self-heal's job
+    // (rebuildIndexIfInconsistent adopts the disk order), never ours. Note: a fresh
+    // new-scheme project's initial `chapter-001` is digits-only, but with no disorder
+    // the ascending check below no-ops; the moment a reorder/create-in-place mints a
+    // letter key, this gate closes for good.
+    for (const auto& e : diskR.value()) {
+        const bool digitsOnly = !e.orderKey.empty()
+            && std::all_of(e.orderKey.begin(), e.orderKey.end(),
+                           [](unsigned char c) { return c >= '0' && c <= '9'; });
+        if (!digitsOnly) {
+            return Result<bool>::success(false);   // new-scheme project — never reslug
+        }
+    }
+
     // Resolve an index ref to the order-key of its CURRENT on-disk folder. Prefer the
     // authoritative chapterID match; but a legacy project can have an index chapterID that
     // disagrees with the sidecar (I-0077) — in that case the folder still physically exists

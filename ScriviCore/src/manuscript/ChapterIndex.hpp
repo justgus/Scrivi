@@ -81,12 +81,19 @@ Result<bool> rebuildIndexIfInconsistent(
 // embedded scene metadataPath/contentPath), so that afterwards the folder-key sort equals
 // the index-array order and the filesystem becomes the source of truth (B3).
 //
-// It is a NO-OP when the folder-key sort already equals the index-array order — which is
-// the case for any project already created/reordered under the new scheme, and for a
-// legacy project whose numeric folder order already matches its reading order. So this is
-// safe (and cheap) to call on every open. Idempotent and resumable: interrupted mid-way,
-// a re-run completes it (it only renames folders still out of position, and never
-// clobbers because new keys are unique). Returns true if any folder was renamed.
+// LEGACY GATE (SP-073 / I-0080): the reslug runs ONLY when every on-disk chapter folder
+// key is digits-only — the shape the pre-EP-027 creator produced. Any letter-bearing key
+// means the project is on the new scheme, where the folder sort IS the order authority
+// (B3) and the index array is a cache that is stale by design right after a
+// reorder/create-in-place; migrating there would rewrite disk to match the stale cache,
+// undoing the user's reorder. A stale array on a new-scheme project is self-heal's job.
+// (Trade-off: a crash mid-reslug leaves mixed keys, closing the gate — the remainder is
+// then adopted in DISK order by self-heal instead of finishing the array-order migration.
+// Rare, non-lossy, and preferable to hijacking every new-scheme reorder.)
+//
+// It is additionally a NO-OP when the folder-key sort already equals the index-array
+// order — a fresh project (all-numeric `chapter-001`) with no disorder. Idempotent.
+// Returns true if any folder was renamed.
 Result<bool> migrateChapterOrderKeys(
     FileSystem& fs, const AbsolutePath& projectRoot);
 

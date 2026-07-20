@@ -172,6 +172,17 @@ private:
                         const QString& targetChapterID,
                         const QString& afterSceneID);
 
+    // --- SP-073 chapter reorder (T-0295, AC5) -----------------------------
+    // A navigator chapter row was dropped: move the dragged chapter — as a container
+    // with all its scenes — to sit right after afterChapterID (empty = manuscript
+    // front). Saves dirty scenes, calls scrivi_reorder_chapter, refreshes the moved
+    // chapter's stale paths from the reorder envelope (the reorder reslugs the
+    // chapter's folder — I-0074/I-0079 class), re-splices via
+    // SceneDocument::moveChapter, renumbers created chapters (I-0063), rebuilds the
+    // navigator, and keeps the active scene anchored.
+    void onChapterDropped(const QString& draggedChapterID,
+                          const QString& afterChapterID);
+
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;
     NavigatorTree*      navigator_ = nullptr;

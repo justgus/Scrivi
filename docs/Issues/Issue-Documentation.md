@@ -58,11 +58,22 @@ See: [Issue-backlog.md](Issue-backlog.md)
 - **Open (backlog):** 4 🔴 (I-0017, I-0018 `[Apple]`; **I-0063** `[Linux]` renumber-on-delete, backlog; **I-0064** `[Linux]` chapter-split, targeted SP-067)
 - **Closed (not verified):** 1 ⚪ (I-0019 — superseded by EP-019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0065
+- **Next available:** I-0083
 
 ---
 
-*Last Updated: 2026-07-15 (SP-066 `[Linux]` rename — **I-0062 ✅ Resolved-Verified** (new-chapter heading derives its "Chapter N" ordinal from order immediately, macOS parity). Two new `[Linux]` Issues filed during SP-066 VNC verify: **I-0064** (Ctrl+Shift+Return appends a chapter at the end instead of splitting at the caret — targeted SP-067) and **I-0063** (created chapters don't renumber on delete — backlog). Next available I-0065. Earlier: 2026-07-09 I-0058 Verified.)*
+*Last Updated: 2026-07-19 (**I-0080/I-0081/I-0082 filed + Resolved-Not-Verified**, all SP-073. I-0080
+`[ScriviCore]`: open-time chapter migration undid a legitimate chapter reorder (no legacy gate; stale
+index array hijacked as order authority) — digits-only legacy gate + eager cache rebuild. I-0081
+`[ScriviCore]`+`[Linux]`: scene rename/save fails after a drag-reorder — §8 reorder renames/relocates the
+scene files but the envelope reported no paths; envelope now reports post-move paths +
+`refreshScenePaths` in the app (closes the I-0074/I-0079 stale-path class for scene drag). I-0082
+`[Linux]`: chapter drag never started — non-selectable heading rows can never satisfy Qt's
+selected-draggable gate; rows now selectable. I-0081/I-0082 found by the user's SP-073 VNC walkthrough.
+Full entries in `Issue-active.md`. Statistics above predate a re-audit; next available **I-0083**. Prior
+note follows.)*
+
+*2026-07-15 (SP-066 `[Linux]` rename — **I-0062 ✅ Resolved-Verified** (new-chapter heading derives its "Chapter N" ordinal from order immediately, macOS parity). Two new `[Linux]` Issues filed during SP-066 VNC verify: **I-0064** (Ctrl+Shift+Return appends a chapter at the end instead of splitting at the caret — targeted SP-067) and **I-0063** (created chapters don't renumber on delete — backlog). Next available I-0065. Earlier: 2026-07-09 I-0058 Verified.)*
 
 
 [1]:	./ER-Documentation.md

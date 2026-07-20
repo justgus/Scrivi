@@ -522,6 +522,169 @@ int SceneDocument::moveScene(int fromIndex,
     return sceneIndexForScene(moved.sceneID);
 }
 
+int SceneDocument::moveChapter(const QString& chapterID, const QString& afterChapterID)
+{
+    if (chapterID.isEmpty() || chapterID == afterChapterID) {
+        return -1;
+    }
+
+    // Locate the chapter's member block. Segments are in manuscript order, so a
+    // chapter's scenes are contiguous by construction — verify anyway and refuse a
+    // scattered chapter rather than splice a corrupt map.
+    int first = -1;
+    int last  = -1;
+    int count = 0;
+    for (int i = 0; i < segments_.size(); ++i) {
+        if (segments_.at(i).chapterID == chapterID) {
+            if (first < 0) first = i;
+            last = i;
+            ++count;
+        }
+    }
+    if (first < 0 || (last - first + 1) != count) {
+        return -1;
+    }
+
+    // The anchor chapter must exist (and isn't the mover — checked above).
+    if (!afterChapterID.isEmpty() && firstSegmentOfChapter(afterChapterID) < 0) {
+        return -1;
+    }
+
+    // No-op guard: landing after the chapter's CURRENT predecessor leaves it where it
+    // is (afterChapterID empty matches an empty predecessor = already first).
+    const QString predChapter =
+        (first > 0) ? segments_.at(first - 1).chapterID : QString();
+    if (afterChapterID == predChapter) {
+        return -1;
+    }
+
+    // Capture the members' identities + live bodies BEFORE disturbing the document.
+    QList<SceneSegment> members;
+    QStringList bodies;
+    members.reserve(count);
+    for (int i = first; i <= last; ++i) {
+        members.append(segments_.at(i));
+        bodies.append(bodyText(i));
+    }
+
+    // Lift the chapter out, last-to-first (mirrors removeChapter): offsets stay valid
+    // and the follower chapter's heading is reflowed by removeScene as needed.
+    for (int i = last; i >= first; --i) {
+        removeScene(i);
+    }
+
+    // Destination: right after the LAST segment of the anchor chapter (front = 0).
+    int insertIndex = 0;
+    if (!afterChapterID.isEmpty()) {
+        int lastOfAnchor = -1;
+        for (int i = 0; i < segments_.size(); ++i) {
+            if (segments_.at(i).chapterID == afterChapterID) {
+                lastOfAnchor = i;
+            }
+        }
+        if (lastOfAnchor < 0) {
+            return -1;   // anchor vanished mid-splice — should not happen
+        }
+        insertIndex = lastOfAnchor + 1;
+    }
+    insertIndex = qBound(0, insertIndex, segments_.size());
+
+    // Compose the block: a provisional leading boundary (reflow turns it into the
+    // chapter heading, or strips it at the document front) + the member bodies joined
+    // by in-chapter separators, exactly as build() lays a chapter out.
+    const int prevEnd =
+        (insertIndex == 0) ? 0
+                           : segments_.at(insertIndex - 1).bodyStart
+                                 + segments_.at(insertIndex - 1).bodyLength;
+    const QString provisional =
+        (insertIndex == 0) ? QString() : QStringLiteral("\n\n");
+
+    QString block = provisional;
+    QList<int> bodyStarts;
+    bodyStarts.reserve(count);
+    for (int k = 0; k < members.size(); ++k) {
+        if (k > 0) {
+            block += QStringLiteral("\n\n");
+        }
+        bodyStarts.append(prevEnd + block.length());
+        block += bodies.at(k);
+    }
+
+    QTextCursor cursor(&doc_);
+    cursor.beginEditBlock();
+    cursor.setPosition(prevEnd);
+    cursor.insertText(block);
+    cursor.endEditBlock();
+
+    // Shift every segment at/after the insert point, then splice the members back in
+    // with their new offsets.
+    for (int j = insertIndex; j < segments_.size(); ++j) {
+        segments_[j].bodyStart += block.length();
+    }
+    for (int k = 0; k < members.size(); ++k) {
+        members[k].bodyStart  = bodyStarts.at(k);
+        members[k].bodyLength = bodies.at(k).length();
+        segments_.insert(insertIndex + k, members.at(k));
+    }
+
+    // Fix the moved chapter's leading boundary (heading; gap stripped at the front) and
+    // the follower's (its predecessor changed). Both are offset-correcting no-ops when
+    // already right.
+    reflowBoundaryAt(insertIndex);
+    if (insertIndex + count < segments_.size()) {
+        reflowBoundaryAt(insertIndex + count);
+    }
+
+    // Renumber every untitled chapter so ordinals stay correct after the move.
+    reflowAllChapterHeadings();
+
+    return firstSegmentOfChapter(chapterID);
+}
+
+void SceneDocument::refreshChapterPaths(const QString& chapterID,
+                                        const QString& chapterMetadataPath)
+{
+    if (chapterID.isEmpty() || chapterMetadataPath.isEmpty()) {
+        return;
+    }
+    // The chapter's new folder is the sidecar path's directory; each member scene's
+    // files keep their FILENAMES (a chapter rename touches zero scene fields — EP-027
+    // AC7) and just re-base onto the new folder.
+    const int slash = chapterMetadataPath.lastIndexOf(QLatin1Char('/'));
+    if (slash < 0) {
+        return;   // not a folder-qualified path — nothing to re-base onto
+    }
+    const QString folder = chapterMetadataPath.left(slash);
+    auto rebase = [&folder](const QString& path) {
+        const int cut = path.lastIndexOf(QLatin1Char('/'));
+        const QString filename = (cut >= 0) ? path.mid(cut + 1) : path;
+        return filename.isEmpty() ? path : folder + QLatin1Char('/') + filename;
+    };
+    for (SceneSegment& seg : segments_) {
+        if (seg.chapterID != chapterID) {
+            continue;
+        }
+        seg.chapterMetadataPath = chapterMetadataPath;
+        seg.metadataPath        = rebase(seg.metadataPath);
+        seg.contentPath         = rebase(seg.contentPath);
+    }
+}
+
+void SceneDocument::refreshScenePaths(const QString& sceneID,
+                                      const QString& metadataPath,
+                                      const QString& contentPath,
+                                      const QString& chapterMetadataPath)
+{
+    const int idx = sceneIndexForScene(sceneID);
+    if (idx < 0) {
+        return;
+    }
+    SceneSegment& seg = segments_[idx];
+    if (!metadataPath.isEmpty())        seg.metadataPath        = metadataPath;
+    if (!contentPath.isEmpty())         seg.contentPath         = contentPath;
+    if (!chapterMetadataPath.isEmpty()) seg.chapterMetadataPath = chapterMetadataPath;
+}
+
 void SceneDocument::setSceneTitle(int index, const QString& title)
 {
     if (index < 0 || index >= segments_.size()) {

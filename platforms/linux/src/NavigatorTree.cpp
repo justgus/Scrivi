@@ -1,7 +1,10 @@
 #include "NavigatorTree.hpp"
 
+#include <QAbstractItemModel>
+#include <QDrag>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QMimeData>
 #include <QModelIndex>
 
 using navigator::kChapterIDRole;
@@ -29,14 +32,41 @@ NavigatorTree::NavigatorTree(QWidget* parent) : QTreeView(parent)
 
 void NavigatorTree::startDrag(Qt::DropActions /*supportedActions*/)
 {
-    // Capture the grabbed scene row NOW, from the drag's source index — this is the only
+    // Capture the grabbed row NOW, from the drag's source index — this is the only
     // point where the row under the cursor is guaranteed to be the one the user picked
     // up. Reading currentIndex() later (in dragMoveEvent/dropEvent) is unreliable: a drag
-    // can move the current/selection, so the dragged id must be latched here. Only scene
-    // rows carry kSceneIDRole (chapter rows aren't draggable), so a non-scene source
-    // yields an empty id and resolveDrop rejects the drop.
+    // can move the current/selection, so the dragged id must be latched here. A scene row
+    // carries kSceneIDRole; a chapter row carries kChapterIDRole (SP-073) — exactly one
+    // latch is set per drag, and the other resolver rejects the drop.
     const QModelIndex src = currentIndex();
     dragSourceSceneID_ = src.isValid() ? src.data(kSceneIDRole).toString() : QString();
+    dragSourceChapterID_ =
+        (dragSourceSceneID_.isEmpty() && src.isValid())
+            ? src.data(kChapterIDRole).toString()
+            : QString();
+
+    if (!dragSourceChapterID_.isEmpty()) {
+        // CHAPTER drag (SP-073). Chapter rows must be SELECTABLE for this to ever run:
+        // QAbstractItemView::mouseMoveEvent enters DraggingState (and calls startDrag)
+        // only when the pressed row is among the selected draggable indexes (I-0082 —
+        // a non-selectable heading fell into rubber-band selection instead). Run the
+        // drag loop manually rather than chaining to the base: same CopyAction
+        // discipline (Qt never mutates the model; our rebuild is the only thing that
+        // changes it), same dragMove/drop pipeline, and independent of whatever else
+        // is in the selection. The mime payload is irrelevant — the drop uses the
+        // latched id — but it must be the model's own format so dragEnterEvent
+        // accepts it.
+        QDrag drag(this);
+        QMimeData* mime = model() != nullptr
+                              ? model()->mimeData({src})
+                              : nullptr;
+        drag.setMimeData(mime != nullptr ? mime : new QMimeData);
+        drag.exec(Qt::CopyAction);
+
+        dragSourceChapterID_.clear();
+        dragSourceSceneID_.clear();
+        return;
+    }
 
     // Force CopyAction (never Move), regardless of what the caller passed: a Move drop
     // lets the base class remove the source row from the model after acceptance, which is
@@ -44,8 +74,9 @@ void NavigatorTree::startDrag(Qt::DropActions /*supportedActions*/)
     // runs the modal drag loop and returns when the drag ends.)
     QTreeView::startDrag(Qt::CopyAction);
 
-    // Drag finished — clear the latch so a stale id can't leak into a later drop.
+    // Drag finished — clear the latches so a stale id can't leak into a later drop.
     dragSourceSceneID_.clear();
+    dragSourceChapterID_.clear();
 }
 
 QString NavigatorTree::draggedSceneID() const
@@ -53,6 +84,12 @@ QString NavigatorTree::draggedSceneID() const
     // The scene id latched at startDrag from the grabbed row — stable for the whole drag,
     // unlike currentIndex()/selection which a drag can move.
     return dragSourceSceneID_;
+}
+
+QString NavigatorTree::draggedChapterID() const
+{
+    // The chapter id latched at startDrag (SP-073) — set only for a chapter-row drag.
+    return dragSourceChapterID_;
 }
 
 bool NavigatorTree::resolveDrop(const QString& draggedID,
@@ -114,22 +151,109 @@ bool NavigatorTree::resolveDrop(const QString& draggedID,
     return true;
 }
 
+bool NavigatorTree::resolveChapterDrop(const QString& draggedChID,
+                                       const QModelIndex& dropIndex,
+                                       int ipos,
+                                       QString& afterChapterID) const
+{
+    if (draggedChID.isEmpty() || model() == nullptr) {
+        return false;
+    }
+
+    // Top-level chapter rows in manuscript order, and the dragged chapter's current
+    // predecessor (for the no-op guard).
+    const int chapterCount = model()->rowCount();
+    if (chapterCount < 2) {
+        return false;   // nothing to reorder against
+    }
+    auto chapterIDAtRow = [this](int row) {
+        return model()->index(row, 0).data(kChapterIDRole).toString();
+    };
+    QString predOfDragged;   // chapter right before the dragged one (empty = it's first)
+    {
+        QString prev;
+        for (int row = 0; row < chapterCount; ++row) {
+            const QString id = chapterIDAtRow(row);
+            if (id == draggedChID) {
+                predOfDragged = prev;
+                break;
+            }
+            prev = id;
+        }
+    }
+
+    if (!dropIndex.isValid()) {
+        // Empty viewport area below the tree → land after the LAST chapter.
+        afterChapterID = chapterIDAtRow(chapterCount - 1);
+    } else {
+        const QString dropSceneID   = dropIndex.data(kSceneIDRole).toString();
+        const QString dropChapterID = dropIndex.data(kChapterIDRole).toString();
+
+        if (!dropChapterID.isEmpty()) {
+            // Hovering a CHAPTER heading. Only AboveItem is an unambiguous chapter
+            // boundary: the chapter lands BEFORE this heading, i.e. after this
+            // chapter's predecessor (empty = manuscript front). OnItem has no meaning
+            // for a container move, and BelowItem sits between the heading and its
+            // first scene — inside the chapter — so both are rejected.
+            if (ipos != QAbstractItemView::AboveItem) {
+                return false;
+            }
+            const int row = dropIndex.row();
+            afterChapterID = (row > 0) ? chapterIDAtRow(row - 1) : QString();
+        } else if (!dropSceneID.isEmpty()) {
+            // Hovering a SCENE row: inside a chapter's scene list — not a chapter
+            // boundary — EXCEPT BelowItem on the manuscript's very last scene, which
+            // is the "after the last chapter" landing (reachable even when the tree
+            // fills the viewport and no empty area exists).
+            const QModelIndex chapterIdx = dropIndex.parent();
+            const bool lastChapter = chapterIdx.isValid()
+                                     && chapterIdx.row() == chapterCount - 1;
+            const bool lastScene = lastChapter
+                                   && dropIndex.row()
+                                          == model()->rowCount(chapterIdx) - 1;
+            if (!(lastScene && ipos == QAbstractItemView::BelowItem)) {
+                return false;
+            }
+            afterChapterID = chapterIDAtRow(chapterCount - 1);
+        } else {
+            return false;   // neither a chapter nor a scene row
+        }
+    }
+
+    // No-op guards: a chapter can't land after itself, and landing after its current
+    // predecessor leaves it exactly where it is.
+    if (afterChapterID == draggedChID || afterChapterID == predOfDragged) {
+        return false;
+    }
+    return true;
+}
+
 void NavigatorTree::dragMoveEvent(QDragMoveEvent* event)
 {
     // Let the base class update the drop indicator + autoscroll, THEN veto illegal
     // landings so the insertion line only shows where a drop is actually accepted.
     QTreeView::dragMoveEvent(event);
 
-    const QString draggedID = draggedSceneID();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     const QModelIndex dropIndex = indexAt(event->position().toPoint());
 #else
     const QModelIndex dropIndex = indexAt(event->pos());
 #endif
-    QString targetChapterID;
-    QString afterSceneID;
-    if (resolveDrop(draggedID, dropIndex, dropIndicatorPosition(),
-                    targetChapterID, afterSceneID)) {
+
+    bool legal = false;
+    if (!draggedChapterID().isEmpty()) {
+        // CHAPTER drag (SP-073): boundary-only landings.
+        QString afterChapterID;
+        legal = resolveChapterDrop(draggedChapterID(), dropIndex,
+                                   dropIndicatorPosition(), afterChapterID);
+    } else {
+        QString targetChapterID;
+        QString afterSceneID;
+        legal = resolveDrop(draggedSceneID(), dropIndex, dropIndicatorPosition(),
+                            targetChapterID, afterSceneID);
+    }
+
+    if (legal) {
         // Accept as a Copy (never Move) so the drag loop never asks the model to remove
         // the source row (I-0067/I-0068). The insertion line still shows here.
         event->setDropAction(Qt::CopyAction);
@@ -143,12 +267,28 @@ void NavigatorTree::dropEvent(QDropEvent* event)
 {
     // Resolve and emit; deliberately do NOT chain to QTreeView::dropEvent (which would
     // auto-move the model rows). EditorShell owns the real move + navigator rebuild.
-    const QString draggedID = draggedSceneID();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     const QModelIndex dropIndex = indexAt(event->position().toPoint());
 #else
     const QModelIndex dropIndex = indexAt(event->pos());
 #endif
+
+    if (!draggedChapterID().isEmpty()) {
+        // CHAPTER drop (SP-073): same CopyAction discipline as scenes — Qt never
+        // touches the model; EditorShell::onChapterDropped + rebuildNavigator do.
+        QString afterChapterID;
+        if (resolveChapterDrop(draggedChapterID(), dropIndex,
+                               dropIndicatorPosition(), afterChapterID)) {
+            event->setDropAction(Qt::CopyAction);
+            event->accept();
+            emit chapterDropRequested(draggedChapterID(), afterChapterID);
+        } else {
+            event->ignore();
+        }
+        return;
+    }
+
+    const QString draggedID = draggedSceneID();
     QString targetChapterID;
     QString afterSceneID;
     if (resolveDrop(draggedID, dropIndex, dropIndicatorPosition(),

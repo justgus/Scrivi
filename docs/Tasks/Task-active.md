@@ -1,5 +1,15 @@
 # Active Tasks
 
+_No active tasks._
+
+**SP-073 ✅ closed 2026-07-19** (EP-023 `[Linux]` — chapter drag-reorder AC5 + full EP-023 verify; **this
+closed EP-023**). T-0294–T-0297 all ✅ Verified & archived to `Verified/Task-verified-0294-0297.md`; fixed
+& Verified en route: I-0080 (`[ScriviCore]` open-time migration undid chapter reorders), I-0081 (stale
+scene paths after drag), I-0082 (undraggable chapter rows). Sprint record:
+`Sprints/Closed/Sprint-SP-073.md`. **Next available T-0298.**
+
+---
+
 **SP-072 ✅ closed 2026-07-18** (EP-027 `[Apple]` — **P5 Apple-verify migration fixes**). Fixed I-0078 (macOS
 `createChapter` wrapper drift), I-0076 (legacy scene `content.path` bared on read + stale sidecars normalised on
 migration), I-0077 (id-mismatched chapter path-folder fallback). 2 regression tests (RED-without-fix). ctest

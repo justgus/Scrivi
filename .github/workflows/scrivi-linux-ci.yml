@@ -145,6 +145,18 @@ jobs:
           platforms/linux/tests/scene_reorder_smoke.sh \
             ./build/platforms/linux/scrivi_linux_scene_reorder_smoke
 
+      # Chapter-reorder smoke (SP-073 / T-0296, EP-023 AC5): build a 4-scene/3-chapter
+      # fixture, move whole chapters as blocks via SceneDocument::moveChapter (map
+      # well-formed, bodies + member order preserved, no-op landings refused), persist
+      # moves via ScriviBridge::reorderChapter (assert order + bodies on reopen), and
+      # prove the stale-path refresh: the reorder reslugs the chapter folder, the
+      # envelope reports the new metadataPath, and a save through the refreshed paths
+      # lands (I-0074/I-0079 class). Offscreen platform.
+      - name: Chapter-reorder smoke test
+        run: |
+          platforms/linux/tests/chapter_reorder_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_chapter_reorder_smoke
+
       # Quit-path smoke (SP-062 regression guard): the shell flip broke the landing
       # Quit button (a QQuickWidget engine doesn't auto-wire QQmlEngine::quit()).
       # Assert the connection main.cpp adds drives the app to exit. Offscreen.

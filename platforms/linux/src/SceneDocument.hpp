@@ -230,6 +230,46 @@ public:
                   const QString& targetChapterTitle,
                   const QString& afterSceneID);
 
+    // --- SP-073 chapter reorder (T-0295) ----------------------------------
+    //
+    // Move the whole chapter `chapterID` — its heading plus every member scene, as a
+    // contiguous block — to sit immediately after chapter `afterChapterID` (empty =
+    // manuscript front), surgically re-splicing the live document + offset map WITHOUT
+    // a rebuild. Mirrors the scrivi_reorder_chapter contract. Member scenes keep their
+    // chapterID/identity/bodies and their relative order; only the block's position
+    // changes. reflowBoundaryAt fixes the moved chapter's heading (and the follower's
+    // boundary), then reflowAllChapterHeadings() renumbers untitled chapters.
+    //
+    // Runs inside a caller-managed "programmatic" window (no dirty churn). Returns the
+    // moved chapter's NEW first-segment index, or -1 on a bad move: unknown chapterID,
+    // unknown afterChapterID, a non-contiguous chapter (map corruption — refuse), or a
+    // no-op that would leave the chapter exactly where it is.
+    int moveChapter(const QString& chapterID, const QString& afterChapterID);
+
+    // Refresh the on-disk paths of every segment in `chapterID` after a chapter-folder
+    // reslug (SP-073). scrivi_reorder_chapter renames the chapter's folder to its new
+    // order-key slug, so every captured metadataPath/contentPath under the old folder
+    // is stale — a later save would write into a vanished directory (the I-0074/I-0079
+    // failure class). `chapterMetadataPath` is the chapter's post-reorder sidecar path
+    // from the reorder envelope; each member's scene paths are re-based onto its folder
+    // (scene FILENAMES are untouched by a chapter rename — EP-027 AC7). No document
+    // text changes. Unknown chapter is a no-op.
+    void refreshChapterPaths(const QString& chapterID,
+                             const QString& chapterMetadataPath);
+
+    // Refresh ONE scene's on-disk paths after a scene reorder (SP-073 / I-0081).
+    // scrivi_reorder_scene renames the scene's files to their new order-key stem — and a
+    // cross-chapter move relocates them into the target chapter's folder — so the
+    // segment's captured metadataPath/contentPath (and, cross-chapter, its
+    // chapterMetadataPath) are stale after the call; a rename or save through them
+    // targets vanished files. The values come from the reorder envelope. Empty
+    // arguments leave the corresponding field untouched; unknown sceneID is a no-op.
+    // No document text changes.
+    void refreshScenePaths(const QString& sceneID,
+                           const QString& metadataPath,
+                           const QString& contentPath,
+                           const QString& chapterMetadataPath);
+
     // --- EP-023 rename (T-0255) -------------------------------------------
     //
     // Update segment `index`'s scene title in the map (the navigator label authority).

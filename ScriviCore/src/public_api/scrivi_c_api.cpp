@@ -1085,10 +1085,13 @@ const char* scrivi_reorder_scene(
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
-    doc.setString("sceneID",         v.sceneID.value);
-    doc.setString("sourceChapterID", v.sourceChapterID.value);
-    doc.setString("targetChapterID", v.targetChapterID.value);
-    doc.setBool("reordered",         v.reordered);
+    doc.setString("sceneID",             v.sceneID.value);
+    doc.setString("sourceChapterID",     v.sourceChapterID.value);
+    doc.setString("targetChapterID",     v.targetChapterID.value);
+    doc.setString("metadataPath",        v.metadataPath);
+    doc.setString("contentPath",         v.contentPath);
+    doc.setString("chapterMetadataPath", v.chapterMetadataPath);
+    doc.setBool("reordered",             v.reordered);
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -1107,8 +1110,9 @@ const char* scrivi_reorder_chapter(
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
-    doc.setString("chapterID", v.chapterID.value);
-    doc.setBool("reordered",   v.reordered);
+    doc.setString("chapterID",    v.chapterID.value);
+    doc.setString("metadataPath", v.metadataPath);
+    doc.setBool("reordered",      v.reordered);
     return heap(okEnvelope(std::move(doc)));
 }
 

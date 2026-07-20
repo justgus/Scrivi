@@ -15,6 +15,7 @@
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "util/PathUtils.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <string>
@@ -214,6 +215,47 @@ TEST_CASE("reorderScene - move scene after specific scene in same chapter",
 // reorderScene — cross-chapter (T-0101)
 // ---------------------------------------------------------------------------
 
+TEST_CASE("reorderScene - reports the scene's post-move paths (I-0081)",
+          "[integration][SP-073][I-0081]")
+{
+    FourSceneProject p;
+
+    // Cross-chapter move: s1 (ch1) → ch2, after s3. The files are RELOCATED into ch2's
+    // folder under a new order-key stem, so the result must report the new paths — the
+    // caller's captured paths are stale (a rename/save through them targets vanished
+    // files; the Linux app's post-drag rename failure).
+    scrivi::ReorderSceneRequest req;
+    req.projectRootPath = p.projectDir.str();
+    req.sceneID         = p.s1ID;
+    req.sourceChapterID = p.ch1ID;
+    req.targetChapterID = p.ch2ID;
+    req.afterSceneID    = p.s3ID;
+
+    auto r = p.core.reorderScene(req);
+    REQUIRE(r.ok());
+    const auto& v = r.value();
+    REQUIRE_FALSE(v.metadataPath.empty());
+    REQUIRE_FALSE(v.contentPath.empty());
+    REQUIRE_FALSE(v.chapterMetadataPath.empty());
+    // The reported files exist on disk, inside the TARGET chapter's folder.
+    CHECK(fs::exists(p.projectDir.path / v.metadataPath));
+    CHECK(fs::exists(p.projectDir.path / v.contentPath));
+    const std::string dstDir =
+        fs::path(v.chapterMetadataPath).parent_path().string();
+    CHECK(v.metadataPath.find(dstDir) == 0);
+    CHECK(v.contentPath.find(dstDir) == 0);
+
+    // A rename through the REPORTED path lands (the exact post-drag operation that
+    // failed with the stale path).
+    scrivi::RenameSceneRequest ren;
+    ren.projectRootPath = p.projectDir.str();
+    ren.metadataPath    = v.metadataPath;
+    ren.newTitle        = "Renamed after drag";
+    auto renR = p.core.renameScene(ren);
+    REQUIRE(renR.ok());
+    CHECK(renR.value().renamed);
+}
+
 TEST_CASE("reorderScene - move scene from ch1 to beginning of ch2",
           "[integration][T-0101]")
 {
@@ -335,6 +377,14 @@ TEST_CASE("reorderChapter - move ch2 to beginning (before ch1)",
     REQUIRE(r.ok());
     CHECK(r.value().reordered);
 
+    // SP-073: the result reports the chapter's post-reorder metadataPath — the reorder
+    // reslugged the folder, so the caller's captured paths are stale and must be
+    // refreshed from this. It must point at the moved chapter's real sidecar on disk.
+    const std::string movedMetaRel = r.value().metadataPath;
+    REQUIRE_FALSE(movedMetaRel.empty());
+    CHECK(movedMetaRel.find("/chapter.meta.json") != std::string::npos);
+    CHECK(fs::exists(p.projectDir.path / movedMetaRel));
+
     // Expected chapter order: [ch2, ch1]
     CHECK(p.resolvedChapterOrder() == std::vector<std::string>{
         p.ch2ID.value, p.ch1ID.value});
@@ -357,9 +407,17 @@ TEST_CASE("reorderChapter - move ch1 after ch2",
     auto r = p.core.reorderChapter(req);
     REQUIRE(r.ok());
     CHECK(r.value().reordered);
+    REQUIRE_FALSE(r.value().metadataPath.empty());
+    CHECK(fs::exists(p.projectDir.path / r.value().metadataPath));
 
     CHECK(p.resolvedChapterOrder() == std::vector<std::string>{
         p.ch2ID.value, p.ch1ID.value});
+
+    // A repeat of the same request is a placement no-op but still reports the (current)
+    // metadataPath so callers can always refresh from the result.
+    auto again = p.core.reorderChapter(req);
+    REQUIRE(again.ok());
+    CHECK(again.value().metadataPath == r.value().metadataPath);
 }
 
 TEST_CASE("reorderChapter - returns error for empty chapterID",
@@ -492,4 +550,80 @@ TEST_CASE("split orchestration - createChapter after a delete does not collide, 
 
     CHECK(p.resolvedChapterOrder() == std::vector<std::string>{
         p.ch1ID.value, kID.value, aID.value});
+}
+
+// ---------------------------------------------------------------------------
+// SP-073 (EP-023 AC5) — chapter drag-reorder sequence with opens interleaved.
+//
+// Replays the chapter_reorder_smoke sequence at the core level: three chapters,
+// move-between, move-to-front (afterChapterID empty), move-to-last, with a full
+// openProject between moves — open runs the EP-027 migration + index self-heal,
+// so this pins the interaction between reorderChapter and the open path.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("reorderChapter - move-to-front and move-to-last survive reopen (SP-073)",
+          "[integration][SP-073]")
+{
+    FourSceneProject p;   // [ch1, ch2]
+
+    // Grow to three chapters: [ch1, ch2, ch3].
+    scrivi::CreateChapterRequest chReq;
+    chReq.projectRootPath = p.projectDir.str();
+    chReq.appSupportRoot  = p.appSupportDir.str();
+    chReq.projectID       = p.projectID;
+    chReq.author          = testAuthor();
+    auto ch3r = p.core.createChapter(chReq);
+    REQUIRE(ch3r.ok());
+    const std::string ch1 = p.ch1ID.value;
+    const std::string ch2 = p.ch2ID.value;
+    const std::string ch3 = ch3r.value().chapterID.value;
+
+    auto open = [&] {
+        scrivi::OpenProjectRequest req;
+        req.projectRootPath = p.projectDir.str();
+        req.appSupportRoot  = p.appSupportDir.str();
+        auto r = p.core.openProject(req);
+        REQUIRE(r.ok());
+    };
+    auto listFolders = [&] {
+        std::vector<std::string> names;
+        for (const auto& e :
+             fs::directory_iterator(p.projectDir.path / "manuscript")) {
+            if (e.is_directory()) names.push_back(e.path().filename().string());
+        }
+        std::sort(names.begin(), names.end());
+        std::string joined;
+        for (const auto& n : names) joined += n + " ";
+        return joined;
+    };
+
+    open();
+    REQUIRE(p.resolvedChapterOrder() == std::vector<std::string>{ch1, ch2, ch3});
+    INFO("after fixture: " << listFolders());
+
+    // Move ch1 after ch2 → [ch2, ch1, ch3], then reopen.
+    scrivi::ReorderChapterRequest req;
+    req.projectRootPath = p.projectDir.str();
+    req.chapterID       = p.ch1ID;
+    req.afterChapterID  = p.ch2ID;
+    REQUIRE(p.core.reorderChapter(req).ok());
+    open();
+    INFO("after ch1-after-ch2 + open: " << listFolders());
+    CHECK(p.resolvedChapterOrder() == std::vector<std::string>{ch2, ch1, ch3});
+
+    // Move ch3 to the FRONT (afterChapterID empty) → [ch3, ch2, ch1], reopen.
+    req.chapterID      = ch3r.value().chapterID;
+    req.afterChapterID = scrivi::ChapterID{""};
+    REQUIRE(p.core.reorderChapter(req).ok());
+    open();
+    INFO("after ch3-to-front + open: " << listFolders());
+    CHECK(p.resolvedChapterOrder() == std::vector<std::string>{ch3, ch2, ch1});
+
+    // Move ch2 to the END (after ch1) → [ch3, ch1, ch2], reopen.
+    req.chapterID      = p.ch2ID;
+    req.afterChapterID = p.ch1ID;
+    REQUIRE(p.core.reorderChapter(req).ok());
+    open();
+    INFO("after ch2-to-last + open: " << listFolders());
+    CHECK(p.resolvedChapterOrder() == std::vector<std::string>{ch3, ch1, ch2});
 }

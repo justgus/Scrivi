@@ -147,10 +147,15 @@ Result<CreateChapterResult> ChapterCreator::create(const CreateChapterRequest& r
     auto writeChR = fs.atomicWriteTextFile(chMetaAbsPath, schemas::serializeChapterMeta(ch));
     if (!writeChR.ok()) { return Result<CreateChapterResult>::failure(writeChR.error()); }
 
-    // 8. Append new ChapterRef to manuscript.meta.json
+    // 8. Append new ChapterRef to manuscript.meta.json, then rebuild the cache from disk
+    //    so the ARRAY ORDER matches the folder order (SP-073 / I-0080): a create-in-place
+    //    (afterChapterID mid-manuscript) would otherwise leave the new ref appended at the
+    //    array's end while its folder sorts mid-manuscript — a stale cache that poisons
+    //    any consumer trusting the array. Best effort — order is disk-derived regardless.
     ms.chapters.push_back({.chapterID = newChapterID, .path = chMetaRelPath});
     auto writeMsR = fs.atomicWriteTextFile(msMetaPath, schemas::serializeManuscriptMeta(ms));
     if (!writeMsR.ok()) { return Result<CreateChapterResult>::failure(writeMsR.error()); }
+    rebuildIndexIfInconsistent(fs, root);
 
     CreateChapterResult result;
     result.chapterID              = newChapterID;

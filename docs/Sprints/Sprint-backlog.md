@@ -9,6 +9,9 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
 
+> **SP-073 activated 2026-07-19** — moved to `Sprint-active.md` (EP-023 `[Linux]` chapter drag-reorder +
+> Epic verify/close; tasks T-0294–T-0297).
+
 Design reference for all: `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (✅ Approved baseline 2026-07-06).
 Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/Task-backlog.md` (T-0198–T-0217).
 
@@ -61,7 +64,8 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 
 ---
 
-*Last Updated: 2026-07-15 (SP-064 ✅ closed; **EP-022 ✅ closed** — all 4 sprints SP-061–SP-064 closed, the
-full Linux writing loop delivered & verified over Docker+VNC (AC1–AC7), `scrivi.h` untouched. No EP-022
-sprints remain in Planning. The next `[Linux]` sprint is drafted when the user activates **EP-023**
-(structure editing). Only SP-056–SP-057 remain 🔵 Planning here, parked behind deferred EP-019 `[Apple]`.)*
+*Last Updated: 2026-07-19 (**SP-073 planned and activated same day** — EP-023's final sprint, renumbered
+from the skipped SP-068: chapter drag-reorder (AC5) + full EP-023 verify (AC6–AC8) + Epic close prep; tasks
+T-0294–T-0297; entry moved to `Sprint-active.md`. Path-refresh decision made at activation: additive reorder
+envelope paths, `scrivi.h` untouched. SP-056–SP-057 remain 🔵 Planning, parked behind deferred EP-019
+`[Apple]`.)*

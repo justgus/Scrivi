@@ -80,8 +80,9 @@ Result<ReorderChapterResult> ChapterReorderer::reorder(const ReorderChapterReque
         (lo.empty() || lo < moving.orderKey) && (hi.empty() || moving.orderKey < hi);
     if (alreadyBetween) {
         ReorderChapterResult result;
-        result.chapterID = request.chapterID;
-        result.reordered = true;
+        result.chapterID    = request.chapterID;
+        result.metadataPath = moving.chapterMetadataRelPath;   // unchanged — no rename
+        result.reordered    = true;
         return Result<ReorderChapterResult>::success(std::move(result));
     }
 
@@ -100,29 +101,17 @@ Result<ReorderChapterResult> ChapterReorderer::reorder(const ReorderChapterReque
     if (!movedRel.ok()) { return Result<ReorderChapterResult>::failure(movedRel.error()); }
     const std::string newChMetaRel = movedRel.value();
 
-    // 8. Update the index cache (manuscript.meta.json) to point at the new path. Best
-    //    effort — order is now derived from disk, so a stale index self-heals on load;
-    //    but keep it consistent when we can.
-    {
-        const std::string msMetaPath = util::join(root, "manuscript/manuscript.meta.json");
-        auto msTextR = fs.readTextFile(msMetaPath);
-        if (msTextR.ok()) {
-            auto msParsed = schemas::parseManuscriptMeta(msTextR.value());
-            if (msParsed.ok()) {
-                for (auto& ref : msParsed.value().chapters) {
-                    if (ref.chapterID.value == moving.chapterID.value) {
-                        ref.path = newChMetaRel;
-                    }
-                }
-                fs.atomicWriteTextFile(msMetaPath,
-                                       schemas::serializeManuscriptMeta(msParsed.value()));
-            }
-        }
-    }
+    // 8. Rebuild the index cache (manuscript.meta.json) from disk so its ARRAY ORDER —
+    //    not just the moved ref's path — matches the new folder order (SP-073 / I-0080:
+    //    a path-only patch left the array order stale, which is fine for resolving (B3,
+    //    disk-derived) but poisoned any consumer that still trusts the array). Best
+    //    effort — order is disk-derived regardless, and the same rebuild runs on open.
+    rebuildIndexIfInconsistent(fs, root);
 
     ReorderChapterResult result;
-    result.chapterID  = request.chapterID;
-    result.reordered  = true;
+    result.chapterID    = request.chapterID;
+    result.metadataPath = newChMetaRel;
+    result.reordered    = true;
     return Result<ReorderChapterResult>::success(std::move(result));
 }
 

@@ -477,9 +477,29 @@ TEST_CASE("open - migrates a chapter whose index/sidecar chapterID disagree (I-0
 {
     FourSceneProject p;   // chapter-001 (ch1) + chapter-<key> (ch2)
 
+    // Make the fixture a genuinely LEGACY-shaped project (SP-073 / I-0080): the migration
+    // now runs only when EVERY chapter folder key is digits-only (the pre-EP-027 creator's
+    // shape) — a letter-bearing key marks a new-scheme project whose index array is a mere
+    // cache, never an order authority. The real I-0077 project was all-numeric
+    // (chapter-004 mismatched among chapter-NNN siblings), so rename ch2's created
+    // letter-key folder to `chapter-002` and point its index ref there.
+    const std::string msRel = "manuscript/manuscript.meta.json";
+    {
+        auto pre = scrivi::schemas::parseManuscriptMeta(p.read(msRel)).value();
+        REQUIRE(pre.chapters.size() == 2);
+        for (auto& ref : pre.chapters) {
+            if (ref.path.find("chapter-001/") != std::string::npos) continue;
+            const fs::path oldDir =
+                fs::path(p.projectDir.str()) / fs::path(ref.path).parent_path();
+            fs::rename(oldDir, fs::path(p.projectDir.str()) / "manuscript/chapter-002");
+            ref.path = "manuscript/chapter-002/chapter.meta.json";
+        }
+        std::ofstream(fs::path(p.projectDir.str()) / msRel, std::ios::binary)
+            << scrivi::schemas::serializeManuscriptMeta(pre);
+    }
+
     // Corrupt the index: give ch1's entry a bogus chapterID (≠ its sidecar) AND swap the array
     // order so the folder-sort no longer reproduces the index-array order (forces migration).
-    const std::string msRel = "manuscript/manuscript.meta.json";
     auto ms = scrivi::schemas::parseManuscriptMeta(p.read(msRel)).value();
     REQUIRE(ms.chapters.size() == 2);
     // Find the chapter-001 entry and rewrite its id to something that exists on NO sidecar.

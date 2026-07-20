@@ -250,11 +250,23 @@ struct ReorderSceneResult {
     SceneID   sceneID;
     ChapterID sourceChapterID;
     ChapterID targetChapterID;
+    // The scene's paths AFTER the reorder (I-0081). Under EP-027 §8 a reorder renames
+    // the scene's files to their new order-key stem — and a cross-chapter move relocates
+    // them into the target chapter's folder — so every path the caller captured before
+    // the call is invalid; callers must refresh from these. `chapterMetadataPath` is the
+    // TARGET chapter's sidecar path (the chapter the scene now belongs to).
+    RelativePath metadataPath;
+    RelativePath contentPath;
+    RelativePath chapterMetadataPath;
     bool      reordered = false;
 };
 
 struct ReorderChapterResult {
     ChapterID chapterID;
+    // The chapter's chapter.meta.json relative path AFTER the reorder. A reorder renames
+    // the chapter's folder to its new order-key slug (EP-027), which invalidates every
+    // path the caller captured before the call — callers must refresh from this.
+    RelativePath metadataPath;
     bool      reordered = false;
 };
 
