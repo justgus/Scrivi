@@ -1158,6 +1158,52 @@ const char* scrivi_rename_chapter(
     return heap(okEnvelope(std::move(doc)));
 }
 
+// ---- Merge (EP-028 SP-074) --------------------------------------------------
+
+const char* scrivi_merge_scene(
+    const char* projectRootPath,
+    const char* sceneID)
+{
+    scrivi::MergeSceneRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID         = scrivi::SceneID{S(sceneID)};
+
+    auto r = core().mergeScene(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("survivorSceneID",      v.survivorSceneID.value);
+    doc.setString("mergedSceneID",        v.mergedSceneID.value);
+    doc.setString("chapterID",            v.chapterID.value);
+    doc.setString("survivorMetadataPath", v.survivorMetadataPath);
+    doc.setString("survivorContentPath",  v.survivorContentPath);
+    doc.setString("chapterMetadataPath",  v.chapterMetadataPath);
+    doc.setBool("merged",                 v.merged);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_merge_chapter(
+    const char* projectRootPath,
+    const char* chapterID)
+{
+    scrivi::MergeChapterRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.chapterID       = scrivi::ChapterID{S(chapterID)};
+
+    auto r = core().mergeChapter(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("survivorChapterID",           v.survivorChapterID.value);
+    doc.setString("mergedChapterID",             v.mergedChapterID.value);
+    doc.setString("survivorChapterMetadataPath", v.survivorChapterMetadataPath);
+    doc.setInt("scenesRelocated",                v.scenesRelocated);
+    doc.setBool("merged",                        v.merged);
+    return heap(okEnvelope(std::move(doc)));
+}
+
 // ---- Timeline (EP-016 SP-039) -----------------------------------------------
 
 const char* scrivi_get_timeline(const char* projectRootPath) {

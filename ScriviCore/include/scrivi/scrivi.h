@@ -222,6 +222,29 @@ const char* scrivi_rename_chapter(
     const char* metadataPath,
     const char* newTitle);
 
+/* ---- Merge (EP-028 SP-074) --------------------------------------------- */
+
+/* Join a scene into the scene immediately BEFORE it in the same chapter. The predecessor
+ * (the survivor) keeps its own order-key files and gains the merged scene's body appended;
+ * the merged scene's files are removed. Fails if `sceneID` is first in its chapter (no
+ * predecessor — that is the whole-chapter merge, scrivi_merge_chapter). Result JSON carries
+ * survivorSceneID, mergedSceneID, chapterID, survivorMetadataPath, survivorContentPath,
+ * chapterMetadataPath, merged. */
+const char* scrivi_merge_scene(
+    const char* projectRootPath,
+    const char* sceneID);
+
+/* Merge a whole chapter into the chapter immediately BEFORE it in manuscript order. Every
+ * scene file in `chapterID` is RELOCATED into the predecessor chapter's folder (appended
+ * after its last scene, order-key files renamed, sidecar slug/contentPath rewritten), then
+ * the emptied chapter folder + its manuscript.meta.json entry are removed. Atomic fix for
+ * I-0083 (no scene is deleted). Fails if `chapterID` is first in the manuscript (no
+ * predecessor). Result JSON carries survivorChapterID, mergedChapterID,
+ * survivorChapterMetadataPath, scenesRelocated, merged. */
+const char* scrivi_merge_chapter(
+    const char* projectRootPath,
+    const char* chapterID);
+
 /* ---- Timeline (EP-016 SP-039) ------------------------------------------ */
 
 const char* scrivi_get_timeline(const char* projectRootPath);

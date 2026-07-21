@@ -277,6 +277,34 @@ struct RenameChapterResult {
 };
 
 // ---------------------------------------------------------------------------
+// mergeScene / mergeChapter (EP-028 SP-074)
+// ---------------------------------------------------------------------------
+
+struct MergeSceneResult {
+    SceneID   survivorSceneID;   // the predecessor scene that absorbed the merged body
+    SceneID   mergedSceneID;     // the scene that was joined in and removed
+    ChapterID chapterID;         // the chapter both scenes belonged to
+    // The survivor's paths AFTER the merge. The survivor keeps its own order-key files, so
+    // these are its unchanged paths — reported so callers can always refresh from the result
+    // (mirrors ReorderSceneResult / I-0081).
+    RelativePath survivorMetadataPath;
+    RelativePath survivorContentPath;
+    RelativePath chapterMetadataPath;
+    bool      merged = false;
+};
+
+struct MergeChapterResult {
+    ChapterID survivorChapterID;   // the predecessor chapter that absorbed the scenes
+    ChapterID mergedChapterID;     // the chapter that was merged in and removed
+    // The predecessor chapter's chapter.meta.json path AFTER the merge (unchanged — the
+    // predecessor folder is not renamed; only scenes are relocated into it). Reported so
+    // callers can always refresh from the result.
+    RelativePath survivorChapterMetadataPath;
+    int  scenesRelocated = 0;      // how many scenes moved out of the merged chapter
+    bool merged = false;
+};
+
+// ---------------------------------------------------------------------------
 // Timeline results (EP-016 SP-039)
 // ---------------------------------------------------------------------------
 

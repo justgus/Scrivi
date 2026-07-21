@@ -11,6 +11,8 @@
 #include "manuscript/SceneDeleter.hpp"
 #include "manuscript/SceneRenamer.hpp"
 #include "manuscript/SceneReorderer.hpp"
+#include "manuscript/SceneMerger.hpp"
+#include "manuscript/ChapterMerger.hpp"
 #include "manuscript/SceneReader.hpp"
 #include "manuscript/SceneWriter.hpp"
 #include "project_package/ProjectCreator.hpp"
@@ -294,6 +296,18 @@ Result<ReorderChapterResult> ScriviCore::reorderChapter(
     const ReorderChapterRequest& request) {
     manuscript::ChapterReorderer reorderer{services_};
     return reorderer.reorder(request);
+}
+
+Result<MergeSceneResult> ScriviCore::mergeScene(
+    const MergeSceneRequest& request) {
+    manuscript::SceneMerger merger{services_};
+    return merger.merge(request);
+}
+
+Result<MergeChapterResult> ScriviCore::mergeChapter(
+    const MergeChapterRequest& request) {
+    manuscript::ChapterMerger merger{services_};
+    return merger.merge(request);
 }
 
 // ---------------------------------------------------------------------------

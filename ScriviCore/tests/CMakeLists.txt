@@ -36,6 +36,7 @@ add_executable(ScriviCoreTests
     integration/MultiSceneTests.cpp
     integration/CreateSceneTests.cpp
     integration/DeleteSceneTests.cpp
+    integration/MergeSceneTests.cpp
     integration/RenameSceneTests.cpp
     integration/ReorderTests.cpp
     integration/ChapterSlugCollisionTests.cpp

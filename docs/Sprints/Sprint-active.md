@@ -16,16 +16,16 @@ data-loss bug the current Swift-composed merge has under EP-027. Both platforms 
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | High | 🟡 Active |
-| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake + pbxproj | High | 🔵 Backlog |
-| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | High | 🔵 Backlog |
-| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | High | 🔵 Backlog |
+| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | High | 🟢 Implemented, Not Verified |
+| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake + pbxproj | High | 🟢 Implemented, Not Verified |
+| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | High | 🟢 Implemented, Not Verified |
+| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | High | 🟢 Implemented, Not Verified |
 
 ### Assigned Issues
 
 | ID     | Title | Severity | Status |
 | ------ | ----- | -------- | ------ |
-| I-0083 | Chapter-merge loses scenes on reopen (in-memory reassign + `deleteChapter` deletes on-disk scene files under EP-027) | High | 🔴 Open |
+| I-0083 | Chapter-merge loses scenes on reopen (in-memory reassign + `deleteChapter` deletes on-disk scene files under EP-027) | High | 🟢 Resolved, Not Verified |
 
 ### Sprint Notes
 
@@ -48,5 +48,8 @@ _(filled in at close)_
 
 ---
 
-*Last Updated: 2026-07-20 (SP-074 created & activated under EP-028. Next available sprint **SP-075**;
-next task **T-0308**; next issue **I-0084**.)*
+*Last Updated: 2026-07-21 (SP-074 all four tasks 🟢 Implemented, Not Verified — T-0298 red repro,
+T-0299 `scrivi_merge_scene`, T-0300 `scrivi_merge_chapter` (fixes I-0083 at core), T-0301 coverage +
+cross-platform green: **macOS 317/317, Linux 324/324**. Both merge C symbols exported in `libScriviCore.a`.
+Awaiting user verification, then sprint close. App adoption of `scrivi_merge_chapter` = SP-075 (Apple) /
+SP-076 (Linux). Next available sprint **SP-075**; next task **T-0308**; next issue **I-0084**.)*

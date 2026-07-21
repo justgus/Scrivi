@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     git \
     ca-certificates \
     pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work

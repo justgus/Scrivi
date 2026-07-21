@@ -49,6 +49,10 @@ public:
     Result<ReorderSceneResult>      reorderScene(const ReorderSceneRequest& request);
     Result<ReorderChapterResult>    reorderChapter(const ReorderChapterRequest& request);
 
+    // Merge (EP-028 SP-074)
+    Result<MergeSceneResult>        mergeScene(const MergeSceneRequest& request);
+    Result<MergeChapterResult>      mergeChapter(const MergeChapterRequest& request);
+
     // Timeline (EP-016 SP-039)
     Result<GetTimelineResult>             getTimeline(const GetTimelineRequest& request);
     Result<SetTimelineEpochLabelResult>   setTimelineEpochLabel(const SetTimelineEpochLabelRequest& request);

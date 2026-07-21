@@ -266,6 +266,31 @@ struct RenameChapterRequest {
 };
 
 // ---------------------------------------------------------------------------
+// mergeScene / mergeChapter (EP-028 SP-074)
+// ---------------------------------------------------------------------------
+
+// Join a scene into the scene immediately BEFORE it in the same chapter (the survivor).
+// The survivor's body gets the merged scene's body appended, the survivor keeps its own
+// order key + files, and the merged scene's files are removed. Filesystem-authoritative:
+// the scene is located by sceneID scan on disk (EP-027 §8.1), not from a cache.
+struct MergeSceneRequest {
+    AbsolutePath projectRootPath;
+    SceneID      sceneID;   // the scene to merge INTO its predecessor (the one that disappears)
+};
+
+// Merge a whole chapter into the chapter immediately BEFORE it in manuscript order (the
+// predecessor). Every scene FILE in the merged chapter is RELOCATED into the predecessor's
+// folder — appended after its last scene with freshly minted order keys — so no scene body
+// is lost, then the now-empty merged chapter folder + its manuscript.meta.json entry are
+// removed. This is the atomic ScriviCore fix for I-0083 (the app's Swift-composed
+// in-memory-reassign + deleteChapter deleted the scene files on disk). Filesystem-
+// authoritative: the chapter is located by chapterID scan on disk (EP-027 §8.1).
+struct MergeChapterRequest {
+    AbsolutePath projectRootPath;
+    ChapterID    chapterID;   // the chapter to merge INTO its predecessor (the one removed)
+};
+
+// ---------------------------------------------------------------------------
 // Timeline meta (EP-016 SP-039)
 // ---------------------------------------------------------------------------
 
