@@ -52,13 +52,13 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 65
+- **Total Issues:** 67
 - **Verified:** I-0001–I-0015, I-0020–I-0058 (except backlog/superseded), I-0061, **I-0062** ✅
-- **Active:** 1 🔴 (**I-0083** `[Apple]`+`[ScriviCore]` chapter-merge scene-loss on reopen, EP-028/SP-074)
+- **Active:** 3 (🟢 **I-0083** chapter-merge scene-loss, Resolved-core/Not-Verified, EP-028; 🟢 **I-0084** `[Apple]` caret-jump-after-scene-merge, Resolved/Not-Verified, SP-075; 🔴 **I-0085** `[Apple]` NSOpenPanel crash, Open, pre-existing)
 - **Open (backlog):** 4 🔴 (I-0017, I-0018 `[Apple]`; **I-0063** `[Linux]` renumber-on-delete, backlog; **I-0064** `[Linux]` chapter-split, targeted SP-067)
 - **Closed (not verified):** 1 ⚪ (I-0019 — superseded by EP-019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0084
+- **Next available:** I-0086
 
 ---
 

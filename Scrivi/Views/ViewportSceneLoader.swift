@@ -624,6 +624,43 @@ struct SceneSegment: Identifiable {
         rebuildSceneStartMap()
     }
 
+    // Refresh every in-memory scene's on-disk paths from a fresh openProject scene list,
+    // matched by the stable sceneID. Used after a structural op that RELOCATES/renames scene
+    // files (e.g. mergeChapter mints new order-key filenames), so captured metadataPath/
+    // contentPath/chapterMetadataPath don't go stale and break a later rename/save (I-0081).
+    // Segment text/isDirty and array ORDER are preserved; only paths are updated.
+    func refreshScenePaths(from freshScenes: [SceneInfo]) {
+        var byID: [String: SceneInfo] = [:]
+        for s in freshScenes { byID[s.sceneID] = s }
+
+        for i in segments.indices {
+            guard let fresh = byID[segments[i].sceneID] else { continue }
+            segments[i] = SceneSegment(
+                id: segments[i].id,
+                sceneID: segments[i].sceneID,
+                chapterID: segments[i].chapterID,
+                metadataPath: fresh.metadataPath,
+                contentPath: fresh.contentPath,
+                text: segments[i].text,
+                isDirty: segments[i].isDirty
+            )
+        }
+        for j in allScenes.indices {
+            guard let fresh = byID[allScenes[j].sceneID] else { continue }
+            let old = allScenes[j]
+            allScenes[j] = SceneInfo(
+                sceneID: old.sceneID,
+                chapterID: old.chapterID,
+                title: old.title,
+                chapterTitle: old.chapterTitle,
+                slug: old.slug,
+                metadataPath: fresh.metadataPath,
+                contentPath: fresh.contentPath,
+                chapterMetadataPath: fresh.chapterMetadataPath
+            )
+        }
+    }
+
     // Append a new chapter's first scene after the current segment.
     func insertChapterFirstScene(_ result: CreateChapterResult, after index: Int) -> Int {
         let seg = SceneSegment(

@@ -11,6 +11,10 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 > **SP-073 activated 2026-07-19** — moved to `Sprint-active.md` (EP-023 `[Linux]` chapter drag-reorder +
 > Epic verify/close; tasks T-0294–T-0297).
+> **SP-074 activated 2026-07-20, ✅ closed 2026-07-21** — `Closed/Sprint-SP-074.md` (EP-028 `[ScriviCore]`
+> merge endpoints + I-0083 core fix; ctest macOS 317/317 + Linux 324/324). **SP-075 `[Apple]` activated
+> 2026-07-21** — adopt the endpoints on macOS (T-0302/T-0303); moved to `Sprint-active.md`. SP-074/SP-075
+> were defined in `Epics/Epic-active.md`, not staged here, so no Planning entry existed to remove.
 
 Design reference for all: `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (✅ Approved baseline 2026-07-06).
 Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/Task-backlog.md` (T-0198–T-0217).

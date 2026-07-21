@@ -11,11 +11,21 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**SP-074** `[ScriviCore]` (EP-028 — **Merge endpoints + filesystem-coherence fix**): two new atomic C ABI
-endpoints `scrivi_merge_scene` / `scrivi_merge_chapter`, fixing the EP-027 chapter-merge scene-loss bug
-(I-0083). 🟡 **Active from 2026-07-20.** Tasks T-0298–T-0301. See `Sprint-active.md`.
+**SP-075** `[Apple]` (EP-028 — **Adopt the merge endpoints**): point the macOS `⌘-Backspace` /
+`⇧⌘-Backspace` merge commands at SP-074's `scrivi_merge_scene` / `scrivi_merge_chapter` — a regression-safe
+backend swap delivering the app-side of the I-0083 chapter-merge fix (AC4). Swift-only; `scrivi.h`/ScriviCore
+untouched. 🟡 **Active from 2026-07-21.** Tasks T-0302–T-0303. See `Sprint-active.md`.
 
-Last closed: **SP-073** (EP-023 `[Linux]` — **chapter drag-reorder AC5 + full EP-023 verify & Epic close**;
+Last closed: **SP-074** (EP-028 `[ScriviCore]` — **Merge endpoints + filesystem-coherence fix**) — ✅
+**closed 2026-07-21 (Human-approved).** Two new atomic C ABI endpoints `scrivi_merge_scene` (`SceneMerger`) /
+`scrivi_merge_chapter` (`ChapterMerger` — the atomic I-0083 fix: relocates scene files into the predecessor
+BEFORE removing the emptied chapter). 11 merge tests incl. the I-0083 loss guard on the old
+`deleteChapter`-composed path; ctest **macOS 317/317 + Linux 324/324**; both C symbols exported in
+`libScriviCore.a`; `scrivi.h` boundary stayed pure C ABI. Fixed stale `devops/docker/linux/Dockerfile`
+(missing `libssl-dev`). **I-0083 Resolved at core, Not Verified** — app adoption is SP-075/076. Tasks
+T-0298–T-0301. `Closed/Sprint-SP-074.md`.
+
+Prior: **SP-073** (EP-023 `[Linux]` — **chapter drag-reorder AC5 + full EP-023 verify & Epic close**;
 renumbered from the skipped SP-068) — ✅ **closed 2026-07-19 (Human-approved).** Chapter rows drag as
 containers (CopyAction-only, boundary-only drop resolution, `SceneDocument::moveChapter` block splice,
 post-reslug path refresh via new reorder-envelope paths; `scrivi.h` untouched). Fixed & Verified en route:
@@ -60,9 +70,9 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **72 Sprints** (69 closed + 1 cancelled + 2 in Planning + 0 active; the SP-068 **ID** was skipped
+Currently: **73 Sprints** (70 closed + 1 cancelled + 2 in Planning + 1 active; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-075**
+2026-07-19) | Next available: **SP-076**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -138,20 +148,29 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-071 | `[ScriviCore]`+`[Linux]` create-chapter-in-place — split lost-tail/scene-steal fix (I-0074) + arrow nav (I-0075) | EP-027 / EP-023 | 2026-07-17 | 2026-07-18 | ✅ Closed |
 | SP-072 | `[ScriviCore]`+`[Apple]` EP-027 P5 Apple-verify — legacy migration fixes (I-0076/I-0077/I-0078) | EP-027 `[Apple]` | 2026-07-18 | 2026-07-18 | ✅ Closed |
 | SP-073 | `[Linux]` Chapter drag-reorder (AC5) + full EP-023 verify & Epic close — renumbered from SP-068 | EP-023 `[Linux]` | 2026-07-19 | 2026-07-19 | ✅ Closed |
-| SP-074 | `[ScriviCore]` Merge endpoints (`scrivi_merge_scene`/`scrivi_merge_chapter`) + filesystem-coherence fix (I-0083) | EP-028 `[Cross]` | 2026-07-20 | — | 🟡 Active |
+| SP-074 | `[ScriviCore]` Merge endpoints (`scrivi_merge_scene`/`scrivi_merge_chapter`) + filesystem-coherence fix (I-0083) | EP-028 `[Cross]` | 2026-07-20 | 2026-07-21 | ✅ Closed |
+| SP-075 | `[Apple]` Adopt the merge endpoints (regression-safe swap) — app-side I-0083 fix (AC4) | EP-028 `[Cross]` | 2026-07-21 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 73 (SP-001–SP-074 issued; SP-068 skipped)
-- **Closed:** 69 ✅
-- **Active:** 1 🟡 (SP-074 EP-028 `[ScriviCore]`)
+- **Total Sprints:** 74 (SP-001–SP-075 issued; SP-068 skipped)
+- **Closed:** 70 ✅
+- **Active:** 1 🟡 (SP-075 EP-028 `[Apple]`)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-19 (**SP-073 ✅ closed with user approval** — EP-023 `[Linux]`'s final sprint,
+*Last Updated: 2026-07-21 (**SP-074 ✅ closed with user approval** — EP-028 `[ScriviCore]`: delivered both
+merge C ABI endpoints (`scrivi_merge_scene`/`scrivi_merge_chapter`) + the atomic I-0083 core fix (relocate
+scene files BEFORE deleting the emptied chapter); 11 merge tests; ctest **macOS 317/317 + Linux 324/324**;
+`scrivi.h` boundary pure C ABI; stale `devops/docker/linux/Dockerfile` libssl-dev gap fixed (user-approved).
+I-0083 Resolved at core, Not Verified. **SP-075 `[Apple]` activated same step** — adopt the endpoints on
+macOS (T-0302/T-0303), the app-side of the I-0083 fix (AC4). Closed 69→70, Active stays 1 (SP-074→SP-075);
+next available **SP-076**. Record: `Closed/Sprint-SP-074.md`. Prior note follows.)*
+
+*2026-07-19 (**SP-073 ✅ closed with user approval** — EP-023 `[Linux]`'s final sprint,
 planned + activated + implemented + verified + closed same day (renumbered from the skipped SP-068):
 **AC5 chapter drag-reorder** (chapter-as-container, CopyAction-only, boundary drop resolution,
 `SceneDocument::moveChapter` block splice, post-reslug path refresh via the new reorder-envelope paths) +

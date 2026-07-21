@@ -1,14 +1,23 @@
 # Active Tasks
 
-**Epic:** EP-028 `[Cross]` (Scene & Chapter Merging) — **Sprint:** SP-074 `[ScriviCore]` (`Sprints/Sprint-active.md`).
+**Epic:** EP-028 `[Cross]` (Scene & Chapter Merging) — **Sprint:** SP-075 `[Apple]` (`Sprints/Sprint-active.md`).
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0298 | **Reproduce the chapter-merge data-loss bug (I-0083)** — new `ScriviCore/tests/integration/MergeSceneTests.cpp`: build a 2-chapter project, replay the app's compose-merge (in-memory reassign + `deleteChapter`), reopen via `ManuscriptOrderResolver::resolve`, assert scene 2 is LOST (`size==1`, ch2 folder gone, scene-2 body deleted on disk). Also assert same-chapter scene-merge (`saveScene`+`deleteScene`) survives reopen with both bodies. Registered in `tests/CMakeLists.txt` (CMake-only; ScriviCore integration tests are not in pbxproj). ctest **308/308 macOS**. | 🟢 Implemented, Not Verified |
-| T-0299 | **`scrivi_merge_scene`** — `SceneMerger` impl (`src/manuscript/SceneMerger.{hpp,cpp}`), `MergeSceneRequest`/`MergeSceneResult`, facade `ScriviCore::mergeScene`, C dispatcher in `scrivi_c_api.cpp` (mirror `scrivi_reorder_scene`), `scrivi.h` decl, CMake source entry. Same-chapter join into the previous scene; survivor keeps its own order-key files, merged body appended, merged files removed, chapter cache rebuilt. First-scene/empty/unknown sceneID → `invalidArgument`. 4 facade tests; `_scrivi_merge_scene` exported in `libScriviCore.a`. ctest **312/312 macOS**. **No pbxproj change** — the Xcode app links the prebuilt `libScriviCore.a`, it does not compile ScriviCore `.cpp` files. | 🟢 Implemented, Not Verified |
-| T-0300 | **`scrivi_merge_chapter`** — atomic whole-chapter merge: `ChapterMerger` relocates every scene file into the predecessor folder (mint `keyAfter` the survivor's last scene, rename `.meta.json`+`.md` like `SceneReorderer`, rewrite sidecar slug/contentPath), rebuild survivor cache, remove the emptied chapter via `ChapterDeleter` (folder + `manuscript.meta.json` entry), `rebuildIndexIfInconsistent`. `MergeChapterRequest`/`MergeChapterResult`, facade, C ABI `scrivi_merge_chapter`, `scrivi.h`, CMake. First-chapter/empty/unknown → `invalidArgument`. **Fixes I-0083** (proven: 4-scene 2-chapter merge → all 4 survive in order after reopen). 4 tests; `_scrivi_merge_chapter` exported. ctest **316/316 macOS**. | 🟢 Implemented, Not Verified |
-| T-0301 | **Integration coverage + `ctest` green** — 11 tests in `MergeSceneTests.cpp`: same-chapter scene merge (+ empty-scene body elision), cross-chapter whole-chapter merge (4-scene/2-chapter, order + bodies preserved), manuscript-start / first-in-chapter no-op, empty/unknown ID errors, reopen round-trip via `ManuscriptOrderResolver`; the I-0083 loss test guards the old `deleteChapter`-composed path. Registered in `tests/CMakeLists.txt`. **ctest green: macOS 317/317, Linux (Ubuntu 24.04/GCC 13) 324/324.** Also fixed a stale devops file: `devops/docker/linux/Dockerfile` was missing `libssl-dev` (OpenSSL 3, required since SP-059) so the local Linux harness couldn't configure — added it to match GitHub CI. | 🟢 Implemented, Not Verified |
+| T-0302 | **`[Apple]` `ScriviEngine` merge wrappers** — `mergeScene(sceneID:)` / `mergeChapter(chapterID:)` calling `scrivi_merge_scene` / `scrivi_merge_chapter`, decoding into new `MergeSceneResult` / `MergeChapterResult` structs, throwing `ScriviError` via `decodeC`; 4 interop tests in `ScriviInteropTests`. `xcodebuild build`+`test` green (36/36). | 🟢 Implemented, Not Verified |
+| T-0303 | **`[Apple]` Point the merge handlers at the endpoints** — `handleMergeScene`→`engine.mergeScene` (retires `saveScene(joinText)`+`deleteScene`); `handleMergeChapter`→`engine.mergeChapter` (retires in-memory reassign + `deleteChapter`, the I-0083 cause). Kept `⌘/⇧⌘-Backspace` bindings, no-op guards, `sceneMerge`/`chapterMerge` barriers; new `ViewportSceneLoader.refreshScenePaths(from:)` refreshes moved-scene paths after chapter-merge (I-0081). Scene-merge join separator → blank line (user-approved change). No new `.swift`/no pbxproj; `scrivi.h` untouched. **Delivers the macOS app-side of the I-0083 fix (AC4).** ctest via `xcodebuild test` proves chapter-merge→reopen keeps all scenes. | 🟢 Implemented, Not Verified |
 
+**Next available T-0304** (Linux merge parity, SP-076).
+
+---
+
+**SP-074 ✅ closed 2026-07-21** (EP-028 `[ScriviCore]` — **Merge endpoints + filesystem-coherence fix**).
+Delivered `scrivi_merge_scene` (`SceneMerger`) + `scrivi_merge_chapter` (`ChapterMerger` — the atomic I-0083
+fix: relocates scene files into the predecessor BEFORE removing the emptied chapter) + `MergeSceneTests.cpp`
+(11 tests, incl. the I-0083 loss guard on the old `deleteChapter`-composed path). ctest **macOS 317/317 +
+Linux 324/324**; both C symbols exported in `libScriviCore.a`; `scrivi.h` boundary stayed pure C ABI. Fixed a
+stale `devops/docker/linux/Dockerfile` (missing `libssl-dev`). **I-0083 Resolved at core, Not Verified** — app
+adoption is SP-075 (this sprint) / SP-076. T-0298–T-0301 record: `Sprints/Closed/Sprint-SP-074.md`.
 **Next available T-0302.**
 
 ---

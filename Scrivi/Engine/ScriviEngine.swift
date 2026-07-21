@@ -498,6 +498,38 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — mergeScene / mergeChapter (EP-028 SP-075)
+
+    /// Join a scene into the scene immediately before it in the same chapter (the survivor).
+    /// The survivor keeps its own files and gains the merged body; the merged scene's files
+    /// are removed. Fails if `sceneID` is first in its chapter (use `mergeChapter` there).
+    public func mergeScene(
+        projectRootPath: String,
+        sceneID: String
+    ) throws -> MergeSceneResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                scrivi_merge_scene(prp, sid)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    /// Merge a whole chapter into the chapter immediately before it. Every scene file is
+    /// relocated into the predecessor's folder before the emptied chapter is removed — the
+    /// atomic fix for the I-0083 data-loss bug. Fails if `chapterID` is first in the manuscript.
+    public func mergeChapter(
+        projectRootPath: String,
+        chapterID: String
+    ) throws -> MergeChapterResult {
+        let raw = projectRootPath.withCString { prp in
+            chapterID.withCString { cid in
+                scrivi_merge_chapter(prp, cid)
+            }
+        }
+        return try decodeC(raw)
+    }
+
     // MARK: — deleteScene / deleteChapter
 
     public func deleteScene(
@@ -1416,6 +1448,31 @@ public struct ReorderSceneResult: Decodable, Sendable {
 public struct ReorderChapterResult: Decodable, Sendable {
     public let chapterID: String
     public let reordered: Bool
+}
+
+// MARK: — Merge Result Types (EP-028 SP-075)
+
+public struct MergeSceneResult: Decodable, Sendable {
+    public let survivorSceneID:      String
+    public let mergedSceneID:        String
+    public let chapterID:            String
+    /// The survivor scene's paths AFTER the merge. The survivor keeps its own order-key
+    /// files, so these are its (unchanged) paths — callers must refresh their segment from
+    /// them regardless (the I-0081 stale-path contract).
+    public let survivorMetadataPath: String
+    public let survivorContentPath:  String
+    public let chapterMetadataPath:  String
+    public let merged:               Bool
+}
+
+public struct MergeChapterResult: Decodable, Sendable {
+    public let survivorChapterID:           String
+    public let mergedChapterID:             String
+    /// The predecessor chapter's chapter.meta.json path AFTER the merge (unchanged — the
+    /// predecessor folder is not renamed; only scenes are relocated into it).
+    public let survivorChapterMetadataPath: String
+    public let scenesRelocated:             Int
+    public let merged:                      Bool
 }
 
 // MARK: — Timeline Result Types (EP-016 SP-039)

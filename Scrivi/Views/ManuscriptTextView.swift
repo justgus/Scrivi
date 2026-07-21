@@ -454,6 +454,15 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
 
             storage.endEditing()
+
+            // Sync the change-detection keys so the NEXT updateNSView pass — which the
+            // @Observable segment mutation that prompted this rebuild will schedule — sees no
+            // change and does NOT rebuild storage again. A redundant rebuild there re-runs
+            // setAttributedString and drops the selection to 0, which stole the caret after a
+            // scene/chapter merge (SP-075). Any handler that rebuilds storage then places the
+            // caret can now trust that placement to survive.
+            lastSegmentIDs = segments.map(\.id)
+            lastShowChapterTitles = parent.showChapterTitles
         }
 
         // MARK: — NSTextViewDelegate
@@ -828,35 +837,38 @@ struct ManuscriptTextView: NSViewRepresentable {
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
                       let rootPath = session.projectRootPath,
-                      let proj = session.openProjectResult,
+                      let _ = session.openProjectResult,
                       loader.segments.indices.contains(segIdx),
                       loader.segments.indices.contains(segIdx - 1)
                 else { return }
 
                 let currentSeg  = loader.segments[segIdx]
                 let predecessorSeg = loader.segments[segIdx - 1]
+                // Flush BOTH scenes to disk first — the endpoint joins the on-disk bodies, so
+                // any unsaved edits in either scene must be persisted before the merge. (In the
+                // normal flow only the current scene can be dirty, but the predecessor may hold
+                // edits too; save it explicitly.)
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
+                await loader.saveScene(at: segIdx - 1, engine: env.engine, ref: ref)
                 // Structural op — record a barrier so undo stops here (§4.5).
                 session.historyCapture?.recordBarrier(kind: "sceneMerge", note: "Can't undo past a scene merge")
 
-                // Join: predecessor text + current text (no separator).
-                let joinText = predecessorSeg.text + currentSeg.text
-                let joinPoint = predecessorSeg.text.count  // cursor lands here after merge
+                // Atomic same-chapter merge in ScriviCore: the current scene joins into the
+                // predecessor (survivor), which keeps its own files; the current scene's files
+                // are removed and the chapter cache is rebuilt (EP-028 SP-075). Replaces the
+                // former saveScene(joinText)+deleteScene composition.
+                let joinPoint = predecessorSeg.text.count  // cursor lands at the seam
+                do {
+                    _ = try env.engine.mergeScene(projectRootPath: rootPath, sceneID: currentSeg.sceneID)
+                } catch {
+                    print("[Scrivi] mergeScene failed: \(error)")
+                    return
+                }
 
-                // Save merged text into the predecessor scene.
-                _ = try? env.engine.saveScene(
-                    projectID: proj.projectID,
-                    projectRootPath: rootPath,
-                    appSupportRoot: env.appSupportRoot,
-                    sceneID: predecessorSeg.sceneID,
-                    sceneMetadataPath: predecessorSeg.metadataPath,
-                    sceneContentPath: predecessorSeg.contentPath,
-                    markdown: joinText,
-                    authorshipRef: ref
-                )
-                // Delete the current (now empty) scene from disk.
-                _ = try? env.engine.deleteScene(projectRootPath: rootPath, sceneID: currentSeg.sceneID)
-
+                // Mirror the on-disk join in memory. The endpoint joins with a blank line
+                // (SceneMerger.joinBodies), elided when either side is empty — match it so the
+                // in-memory text equals disk.
+                let joinText = Self.joinedMergeBody(predecessorSeg.text, currentSeg.text)
                 let mergedIdx = loader.mergeSceneIntoPredecessor(at: segIdx, joinText: joinText)
                 loader.setCurrentIndex(mergedIdx)
                 rebuildStorageAndPlaceCursor(at: mergedIdx, textOffset: joinPoint)
@@ -865,6 +877,14 @@ struct ManuscriptTextView: NSViewRepresentable {
                     engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
                 session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             }
+        }
+
+        // Join two scene bodies the way ScriviCore's SceneMerger.joinBodies does: a blank-line
+        // separator, elided when either side is empty (so no stray leading/trailing blanks).
+        static func joinedMergeBody(_ base: String, _ addition: String) -> String {
+            if base.isEmpty { return addition }
+            if addition.isEmpty { return base }
+            return base + "\n\n" + addition
         }
 
         // Shift-Cmd-Backspace: merge chapter with previous chapter (only if cursor at position 0
@@ -908,24 +928,38 @@ struct ManuscriptTextView: NSViewRepresentable {
                 // Structural op — record a barrier so undo stops here (§4.5).
                 session.historyCapture?.recordBarrier(kind: "chapterMerge", note: "Can't undo past a chapter merge")
 
-                // Find predecessor chapter's metadata path from allScenes.
+                // Find predecessor chapter's metadata path/title from allScenes.
                 let predecessorMeta = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterMetadataPath ?? ""
                 let predecessorTitle = loader.allScenes.first(where: { $0.chapterID == predecessorChapterID })?.chapterTitle ?? ""
 
-                // Update in-memory state: move all scenes from current chapter to predecessor chapter.
+                // Atomic whole-chapter merge in ScriviCore (EP-028 SP-075): RELOCATES every
+                // scene file of the current chapter into the predecessor's folder, then removes
+                // the emptied chapter. Replaces the former in-memory-reassign + deleteChapter
+                // composition that deleted the scene files on disk (I-0083).
+                do {
+                    _ = try env.engine.mergeChapter(projectRootPath: rootPath, chapterID: currentChapterID)
+                } catch {
+                    print("[Scrivi] mergeChapter failed: \(error)")
+                    return
+                }
+
+                // Mirror the move in memory: re-assign the moved scenes to the predecessor chapter.
                 loader.mergeChapterIntoPredecessor(
                     at: segIdx,
                     predecessorChapterID: predecessorChapterID,
                     predecessorChapterMetadataPath: predecessorMeta,
                     predecessorChapterTitle: predecessorTitle
                 )
-                // Renumber all chapters from the predecessor onward — the deleted chapter
+                // The relocation minted NEW order-key filenames for every moved scene, so their
+                // in-memory metadataPath/contentPath are now stale (the I-0081 stale-path class).
+                // Refresh all scene paths from a fresh openProject before any later rename/save.
+                if let reopened = try? env.engine.openProject(projectRootPath: rootPath, appSupportRoot: env.appSupportRoot) {
+                    loader.refreshScenePaths(from: reopened.scenes)
+                }
+                // Renumber all chapters from the predecessor onward — the merged chapter
                 // shifts every subsequent chapter's ordinal down by one.
                 let renumberFrom = loader.segments.firstIndex(where: { $0.chapterID == predecessorChapterID }) ?? segIdx
                 loader.renumberChapterTitlesFrom(segmentIndex: renumberFrom)
-
-                // Delete the (now empty) chapter from disk.
-                _ = try? env.engine.deleteChapter(projectRootPath: rootPath, chapterID: currentChapterID)
 
                 // Rebuild storage; cursor stays at segIdx (now in predecessor chapter).
                 if let tv = textView {

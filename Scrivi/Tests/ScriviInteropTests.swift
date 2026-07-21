@@ -700,6 +700,128 @@ struct ScriviInteropTests {
         #expect(reopenedScenes2[1].chapterID == chapter.chapterID)
     }
 
+    // MARK: - Merge endpoints (EP-028 SP-075, T-0302)
+
+    @Test("mergeScene joins a scene into its predecessor; body survives reopen")
+    func mergeSceneJoinsPredecessor() throws {
+        let (engine, _, ref, projectDir, appSupport) = try makeProjectFixture()
+
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
+        guard let scene1 = opened.scenes.first else {
+            Issue.record("Expected a first scene"); return
+        }
+
+        // Give scene 1 a body.
+        _ = try engine.saveScene(
+            projectID: opened.projectID, projectRootPath: projectDir.path,
+            appSupportRoot: appSupport.path, sceneID: scene1.sceneID,
+            sceneMetadataPath: scene1.metadataPath, sceneContentPath: scene1.contentPath,
+            markdown: "SCENE-ONE-BODY", authorshipRef: ref)
+
+        // Add scene 2 in the same chapter with its own body.
+        let scene2 = try engine.createScene(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+            projectID: opened.projectID, chapterID: scene1.chapterID,
+            afterSceneID: scene1.sceneID, authorshipRef: ref)
+        _ = try engine.saveScene(
+            projectID: opened.projectID, projectRootPath: projectDir.path,
+            appSupportRoot: appSupport.path, sceneID: scene2.sceneID,
+            sceneMetadataPath: scene2.metadataPath, sceneContentPath: scene2.contentPath,
+            markdown: "SCENE-TWO-BODY", authorshipRef: ref)
+
+        let result = try engine.mergeScene(
+            projectRootPath: projectDir.path, sceneID: scene2.sceneID)
+        #expect(result.merged)
+        #expect(result.survivorSceneID == scene1.sceneID)
+        #expect(result.mergedSceneID == scene2.sceneID)
+        #expect(result.chapterID == scene1.chapterID)
+        #expect(!result.survivorContentPath.isEmpty)
+
+        // Reopen: one scene, with both bodies on disk in order.
+        let reopened = try engine.openProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
+        #expect(reopened.scenes.count == 1)
+        #expect(reopened.scenes[0].sceneID == scene1.sceneID)
+
+        let survivor = try engine.openScene(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+            projectID: reopened.projectID, sceneID: scene1.sceneID)
+        #expect(survivor.markdown.contains("SCENE-ONE-BODY"))
+        #expect(survivor.markdown.contains("SCENE-TWO-BODY"))
+    }
+
+    @Test("mergeScene on the first scene of a chapter throws (no predecessor)")
+    func mergeSceneFirstSceneThrows() throws {
+        let (engine, _, _, projectDir, appSupport) = try makeProjectFixture()
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
+        guard let scene1 = opened.scenes.first else {
+            Issue.record("Expected a first scene"); return
+        }
+        #expect(throws: (any Error).self) {
+            _ = try engine.mergeScene(projectRootPath: projectDir.path, sceneID: scene1.sceneID)
+        }
+    }
+
+    @Test("mergeChapter relocates all scenes into the predecessor; nothing lost on reopen (I-0083)")
+    func mergeChapterRelocatesScenes() throws {
+        let (engine, _, ref, projectDir, appSupport) = try makeProjectFixture()
+
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
+        guard let scene1 = opened.scenes.first else {
+            Issue.record("Expected a first scene"); return
+        }
+        _ = try engine.saveScene(
+            projectID: opened.projectID, projectRootPath: projectDir.path,
+            appSupportRoot: appSupport.path, sceneID: scene1.sceneID,
+            sceneMetadataPath: scene1.metadataPath, sceneContentPath: scene1.contentPath,
+            markdown: "CH1-BODY", authorshipRef: ref)
+
+        // Chapter 2 with a distinctive body.
+        let chapter2 = try engine.createChapter(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+            projectID: opened.projectID, authorshipRef: ref)
+        _ = try engine.saveScene(
+            projectID: opened.projectID, projectRootPath: projectDir.path,
+            appSupportRoot: appSupport.path, sceneID: chapter2.firstSceneID,
+            sceneMetadataPath: chapter2.firstSceneMetadataPath,
+            sceneContentPath: chapter2.firstSceneContentPath,
+            markdown: "CH2-BODY", authorshipRef: ref)
+
+        let result = try engine.mergeChapter(
+            projectRootPath: projectDir.path, chapterID: chapter2.chapterID)
+        #expect(result.merged)
+        #expect(result.survivorChapterID == scene1.chapterID)
+        #expect(result.mergedChapterID == chapter2.chapterID)
+        #expect(result.scenesRelocated == 1)
+
+        // Reopen: both scenes survive (I-0083 fix), now both in chapter 1, bodies intact.
+        let reopened = try engine.openProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
+        #expect(reopened.scenes.count == 2)
+        #expect(reopened.scenes.allSatisfy { $0.chapterID == scene1.chapterID })
+
+        let ch2Scene = try engine.openScene(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+            projectID: reopened.projectID, sceneID: chapter2.firstSceneID)
+        #expect(ch2Scene.markdown.contains("CH2-BODY"))
+    }
+
+    @Test("mergeChapter on the first chapter throws (no predecessor)")
+    func mergeChapterFirstChapterThrows() throws {
+        let (engine, _, _, projectDir, appSupport) = try makeProjectFixture()
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path)
+        guard let scene1 = opened.scenes.first else {
+            Issue.record("Expected a first scene"); return
+        }
+        #expect(throws: (any Error).self) {
+            _ = try engine.mergeChapter(projectRootPath: projectDir.path, chapterID: scene1.chapterID)
+        }
+    }
+
     // MARK: - Test 18: extractSearchableText decodes the indexing envelope (T-0181)
 
     @Test("extractSearchableText returns decoded project, scene, and object records")
