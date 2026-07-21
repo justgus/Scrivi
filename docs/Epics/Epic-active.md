@@ -1,20 +1,106 @@
 # Active Epics
 
-_No Epic is currently Active._
+## EP-028: [Cross] Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix
 
-Last closed: **EP-023** `[Linux]` Manuscript Structure Editing — ✅ **closed 2026-07-19 (Human-approved)**,
-all ACs AC1–AC8 Verified over Docker+VNC across 4 sprints (SP-065 delete, SP-066 rename, SP-067 scene
-drag-reorder, SP-073 chapter drag-reorder + verify; the SP-068 ID was skipped). Archived to
-`Closed/Epic-EP-023.md`.
+**Status:** 🟡 Active
+**Goal:** A writer can merge scenes and chapters by keyboard on **both** the macOS and Linux apps, and
+the merge is filesystem-coherent under the EP-027 model (survives quit/reopen with no data loss).
+Scene-merge = `⌘/Ctrl-Backspace` at the start of a scene → the scene joins the previous scene.
+Chapter-merge = `⇧⌘/Ctrl-Shift-Backspace` at the start of a chapter's first scene → the whole chapter
+merges into the previous chapter. No confirmation dialogs (both platforms behave identically).
+**Date Created:** 2026-07-20
+**Target Close Date:** 2026-07-27 (estimated, 3 sprints)
+**Actual Close Date:** —
 
-**Next in line** (promoted one at a time, per the `[Linux]` family plan — all 🔵 Draft in
-`Epic-backlog.md`): **EP-024** (inspector panel), **EP-025** (timeline), **EP-026** (undo/menus/settings).
-**EP-019** `[Apple]` (undo/redo remainder — copy buffers + history panel, SP-056/SP-057) stays parked in
-the Epic backlog. Drafted/activated on user request.
+> **Codebase:** `[Cross]` — genuinely split: SP-074 is `[ScriviCore]` (two new C ABI merge endpoints +
+> the coherence fix), SP-075 is `[Apple]` (adopt the endpoints, no behavior change for the user), SP-076
+> is `[Linux]` (new parity). Kept as one Epic because the three legs deliver a single capability whose
+> correctness (SP-074) is shared by both platforms.
 
-Next available: Epic **EP-028** · Sprint **SP-074** · Task **T-0298** · Issue **I-0083**.
+### Background
+
+The user asked to add "scene merging." Exploration found the **macOS app already implements** scene- and
+chapter-merge (bound to `⌘-Backspace` / `⇧⌘-Backspace`, no confirmation) — it did not fall through the
+cracks. So this Epic's real work is (1) Linux parity and (2) fixing a coherence bug the current
+Swift-composed merge has under EP-027's filesystem-authoritative identity/ordering model.
+
+**The coherence bug (I-0083):** Apple's chapter-merge reassigns scenes to the predecessor chapter
+**in memory only** (`ViewportSceneLoader.mergeChapterIntoPredecessor`), then calls
+`deleteChapter(currentChapterID)`. Under EP-027 the scene files physically live in the chapter's folder,
+so `deleteChapter` deletes the scene files the in-memory model thinks it preserved → **scene loss on
+reopen**. The fix is a first-class ScriviCore `scrivi_merge_chapter` that atomically **relocates** the
+scene files into the predecessor folder before removing the emptied chapter. A companion
+`scrivi_merge_scene` gives both platforms one shared, atomic path (same-chapter scene-merge is likely
+already coherent as-composed; folding it into the endpoint removes the duplicated multi-step logic).
+
+**Confirmed scope decisions (user, 2026-07-20):** match Apple's existing triggers on both platforms; the
+cross-chapter case merges the **whole chapter** (existing Apple behavior), not a single scene; **no**
+confirmation dialogs.
+
+### Acceptance Criteria
+
+- [ ] AC1 — The chapter-merge data-loss path is reproduced as a failing ScriviCore integration test, and
+  passes after the fix (no scene loss on reopen). (I-0083)
+- [ ] AC2 — `scrivi_merge_scene` merges a scene into the previous scene **within the same chapter**:
+  text concatenated, absorbed scene's files removed, chapter cache rebuilt from disk; reopen round-trips.
+- [ ] AC3 — `scrivi_merge_chapter` merges a whole chapter into the previous chapter by **relocating** all
+  its scene files into the predecessor folder (order keys minted after the predecessor's last scene),
+  then removing the emptied chapter folder + `manuscript.meta.json` entry; reopen round-trips with every
+  scene present and in order.
+- [ ] AC4 — macOS: `⌘-Backspace` (scene) and `⇧⌘-Backspace` (chapter) behave exactly as today from the
+  user's view, now backed by the endpoints; **chapter-merge survives quit/reopen** (the regression fix).
+- [ ] AC5 — Linux: `Ctrl-Backspace` (scene) and `Ctrl-Shift-Backspace` (chapter) at the start of a
+  scene/chapter perform the merge with parity to macOS (no confirmation), including reopen.
+- [ ] AC6 — No-op at the very start of the manuscript on both platforms; history barriers
+  (`sceneMerge`/`chapterMerge`) recorded on both platforms.
+- [ ] AC7 — No regression: backend `ctest` + Apple interop suites + Linux smoke suites green; auto-save,
+  navigation, structure ops, external-change scan unchanged. Writing-surface spec updated (merge is now
+  supported — the current spec says it is not).
+
+### Sprints
+
+| Sprint | Title | Status | Dates |
+| ------ | ----- | ------ | ----- |
+| SP-074 | `[ScriviCore]` Merge endpoints (`scrivi_merge_scene` / `scrivi_merge_chapter`) + coherence fix | 🟡 Active | 2026-07-20 – |
+| SP-075 | `[Apple]` Adopt the merge endpoints (regression-safe swap) | 🔵 Planning | — |
+| SP-076 | `[Linux]` Scene & chapter merge parity | 🔵 Planning | — |
+
+### Tasks
+
+| ID     | Title | Sprint | Status |
+| ------ | ----- | ------ | ------ |
+| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | SP-074 | 🟡 Active |
+| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake + pbxproj | SP-074 | 🔵 Backlog |
+| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | SP-074 | 🔵 Backlog |
+| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | SP-074 | 🔵 Backlog |
+| T-0302 | `[Apple]` `ScriviEngine` `mergeScene`/`mergeChapter` wrappers + result structs + interop tests | SP-075 | 🔵 Backlog |
+| T-0303 | `[Apple]` Point `handleMergeScene`/`handleMergeChapter` at the endpoints; keep bindings/barriers | SP-075 | 🔵 Backlog |
+| T-0304 | `[Linux]` `ManuscriptEditor` `Ctrl/Ctrl-Shift-Backspace` → `mergeScene/ChapterRequested` signals | SP-076 | 🔵 Backlog |
+| T-0305 | `[Linux]` `ScriviBridge` `mergeScene`/`mergeChapter` + `SceneDocument` merge splices | SP-076 | 🔵 Backlog |
+| T-0306 | `[Linux]` `EditorShell` merge slots (guards, caret re-anchor) + `scene_merge_smoke` test | SP-076 | 🔵 Backlog |
+| T-0307 | Update `docs/Scrivi_WritingSurface_Behavior_Spec_v0_1.md` (merge now supported) | SP-076 | 🔵 Backlog |
+
+### Issues
+
+| ID     | Title | Severity | Status |
+| ------ | ----- | -------- | ------ |
+| I-0083 | Chapter-merge loses scenes on reopen (in-memory reassign + `deleteChapter` deletes on-disk scene files under EP-027) | High | 🔴 Open |
+
+### Scope Notes
+
+- Cross-chapter merge = **whole-chapter** merge (user decision), matching existing macOS behavior — not a
+  single-scene-across-the-boundary merge.
+- **No confirmation dialogs** on either platform (user decision); both apps behave identically.
+- Merge records history **barriers** (`sceneMerge`/`chapterMerge`), consistent with EP-019 §4.5 (structural
+  undo remains out of scope; the barrier vocabulary is already reserved in `HistoryService`).
+- The boundary stays pure C ABI / JSON-over-`std::string` — two new `scrivi_*` entry points, no struct interop.
+
+### Completion Summary
+
+_(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-19 (EP-023 ✅ closed with user approval — full Linux manuscript-structure editing
-delivered & verified; I-0080/I-0081/I-0082 fixed & Verified in SP-073. No Active Epics.)*
+*Last Updated: 2026-07-20 (EP-028 `[Cross]` Scene & Chapter Merging created and activated; SP-074
+`[ScriviCore]` started. Discovered the macOS merge already exists but has a chapter-merge data-loss bug
+under EP-027 (I-0083) — this Epic fixes it in ScriviCore and brings Linux to parity. No other Active Epics.)*

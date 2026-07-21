@@ -11,7 +11,9 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-_No active sprint._ (SP-069/SP-070 closed 2026-07-18 with EP-027; SP-073 closed 2026-07-19 with EP-023.)
+**SP-074** `[ScriviCore]` (EP-028 — **Merge endpoints + filesystem-coherence fix**): two new atomic C ABI
+endpoints `scrivi_merge_scene` / `scrivi_merge_chapter`, fixing the EP-027 chapter-merge scene-loss bug
+(I-0083). 🟡 **Active from 2026-07-20.** Tasks T-0298–T-0301. See `Sprint-active.md`.
 
 Last closed: **SP-073** (EP-023 `[Linux]` — **chapter drag-reorder AC5 + full EP-023 verify & Epic close**;
 renumbered from the skipped SP-068) — ✅ **closed 2026-07-19 (Human-approved).** Chapter rows drag as
@@ -60,7 +62,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 Currently: **72 Sprints** (69 closed + 1 cancelled + 2 in Planning + 0 active; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-074**
+2026-07-19) | Next available: **SP-075**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -136,12 +138,13 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-071 | `[ScriviCore]`+`[Linux]` create-chapter-in-place — split lost-tail/scene-steal fix (I-0074) + arrow nav (I-0075) | EP-027 / EP-023 | 2026-07-17 | 2026-07-18 | ✅ Closed |
 | SP-072 | `[ScriviCore]`+`[Apple]` EP-027 P5 Apple-verify — legacy migration fixes (I-0076/I-0077/I-0078) | EP-027 `[Apple]` | 2026-07-18 | 2026-07-18 | ✅ Closed |
 | SP-073 | `[Linux]` Chapter drag-reorder (AC5) + full EP-023 verify & Epic close — renumbered from SP-068 | EP-023 `[Linux]` | 2026-07-19 | 2026-07-19 | ✅ Closed |
+| SP-074 | `[ScriviCore]` Merge endpoints (`scrivi_merge_scene`/`scrivi_merge_chapter`) + filesystem-coherence fix (I-0083) | EP-028 `[Cross]` | 2026-07-20 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 72 (SP-001–SP-073 issued; SP-068 skipped)
+- **Total Sprints:** 73 (SP-001–SP-074 issued; SP-068 skipped)
 - **Closed:** 69 ✅
-- **Active:** 0 🟡
+- **Active:** 1 🟡 (SP-074 EP-028 `[ScriviCore]`)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸

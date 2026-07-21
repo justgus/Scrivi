@@ -1,6 +1,17 @@
 # Active Tasks
 
-_No active tasks._
+**Epic:** EP-028 `[Cross]` (Scene & Chapter Merging) — **Sprint:** SP-074 `[ScriviCore]` (`Sprints/Sprint-active.md`).
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0298 | **Reproduce the chapter-merge data-loss bug (I-0083)** — new `ScriviCore/tests/integration/MergeSceneTests.cpp`: build a 2-chapter project, replay the app's compose-merge (`saveScene` into predecessor + `deleteChapter`), reopen via `ManuscriptOrderResolver::resolve`, assert scenes are LOST (red). Also assert same-chapter scene-merge (`saveScene`+`deleteScene`) survives reopen. | 🟡 Active |
+| T-0299 | **`scrivi_merge_scene`** — `SceneMerger` impl (`src/manuscript/SceneMerger.{hpp,cpp}`), `MergeSceneRequest`/`MergeSceneResult`, facade `ScriviCore::mergeScene`, C dispatcher in `scrivi_c_api.cpp` (mirror `scrivi_reorder_scene`), `scrivi.h` decl, CMake source entry + **pbxproj**. Same-chapter join into the previous scene; reuse survivor order key. | 🔵 Backlog |
+| T-0300 | **`scrivi_merge_chapter`** — atomic whole-chapter merge: relocate every scene file into the predecessor folder (mint keys after its last scene, rename like `SceneReorderer`, rewrite sidecar slug/contentPath), remove the emptied chapter folder + `manuscript.meta.json` entry, rebuild caches. **Fixes I-0083.** | 🔵 Backlog |
+| T-0301 | **Integration coverage + `ctest` green** — same-chapter merge, cross-chapter whole-chapter merge, manuscript-start no-op, reopen round-trip; register in `tests/CMakeLists.txt`; green on macOS + Linux. | 🔵 Backlog |
+
+**Next available T-0302.**
+
+---
 
 **SP-073 ✅ closed 2026-07-19** (EP-023 `[Linux]` — chapter drag-reorder AC5 + full EP-023 verify; **this
 closed EP-023**). T-0294–T-0297 all ✅ Verified & archived to `Verified/Task-verified-0294-0297.md`; fixed

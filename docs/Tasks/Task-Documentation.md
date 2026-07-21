@@ -279,13 +279,13 @@ Currently: **2 closed Tasks**
 
 ## Statistics
 
-- **Total Tasks:** 282 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233 + 16 EP-022 T-0234–T-0249 + 4 EP-023/SP-065 T-0250–T-0253 + 4 EP-023/SP-066 T-0254–T-0257 + 6 EP-023/SP-067 T-0258–T-0263 + 7 EP-027/SP-069 T-0264–T-0270 + 7 EP-027/SP-070 T-0271–T-0277 + 11 EP-027/SP-071 T-0279–T-0289 + 4 EP-027/SP-072 T-0290–T-0293 + 4 EP-023/SP-073 T-0294–T-0297; **T-0278 skipped** — reserved for P4, never assigned)
+- **Total Tasks:** 286 (183 through T-0197 + 20 EP-019 T-0198–T-0217 + 5 EP-020 T-0218–T-0222 + 7 EP-021/SP-059 T-0223–T-0229 + 4 EP-021/SP-060 T-0230–T-0233 + 16 EP-022 T-0234–T-0249 + 4 EP-023/SP-065 T-0250–T-0253 + 4 EP-023/SP-066 T-0254–T-0257 + 6 EP-023/SP-067 T-0258–T-0263 + 7 EP-027/SP-069 T-0264–T-0270 + 7 EP-027/SP-070 T-0271–T-0277 + 11 EP-027/SP-071 T-0279–T-0289 + 4 EP-027/SP-072 T-0290–T-0293 + 4 EP-023/SP-073 T-0294–T-0297 + 4 EP-028/SP-074 T-0298–T-0301; **T-0278 skipped** — reserved for P4, never assigned)
 - **Backlog:** 39 🔵
 - **Superseded:** 2 ⚪ (T-0175 → expanded into EP-017; **T-0261 I-0064 chapter-split → rebuilt in EP-027**)
-- **Active:** 0 🟡 (**T-0294–T-0297** all ✅ Verified 2026-07-19 — SP-073 EP-023 `[Linux]` chapter drag-reorder + Epic verify/close; archive with the sprint close)
+- **Active:** 4 🟡 (**T-0298–T-0301** — EP-028/SP-074 `[ScriviCore]` merge endpoints + coherence fix, I-0083)
 - **Unverified:** 0
 - **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, EP-021/SP-060 T-0230–T-0233, EP-022 T-0234–T-0249, EP-023/SP-065 T-0250–T-0253, EP-023/SP-066 T-0254–T-0257, **EP-023/SP-067 T-0258/259/260/262/263** (scene drag-reorder AC4 + I-0063; T-0261 superseded → EP-027), and the **EP-027 tasks T-0264–T-0277, T-0279–T-0293** (SP-069/SP-070/SP-071/SP-072 — Epic closed 2026-07-18; see `Sprints/Closed/`)
-- **Next available:** T-0298
+- **Next available:** T-0302
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190
@@ -298,5 +298,9 @@ Currently: **2 closed Tasks**
 drag-reorder (AC5) + full EP-023 verify & Epic close prep; detail in `Task-backlog.md` +
 `Sprints/Sprint-backlog.md`. Statistics refreshed through EP-027's close: total 282, Active 0, next
 available **T-0298** (T-0278 skipped, never assigned). Prior note follows.)*
+
+*2026-07-20 (EP-028 `[Cross]` Scene & Chapter Merging — SP-074 `[ScriviCore]` activated; tasks **T-0298–T-0301**
+defined: reproduce the chapter-merge scene-loss bug (I-0083) then ship `scrivi_merge_scene`/`scrivi_merge_chapter`
++ coverage. Active 0→4, total 282→286, next available **T-0302**.)*
 
 *2026-07-15 (SP-067 `[Linux]` 🟡 activated — tasks **T-0258–T-0263** defined at planning: scene drag-reorder (AC4) + I-0064 chapter-split + I-0063 renumber; Active count 0→6, total 243→249, next available T-0264. No ScriviCore work, `scrivi.h` untouched. Earlier same day: SP-066 ✅ closed — T-0254–T-0257 Verified over VNC & archived to `Verified/Task-verified-0254-0257.md` (rename; EP-023 AC3 + closed I-0062).)*
