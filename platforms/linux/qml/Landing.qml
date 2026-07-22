@@ -97,6 +97,29 @@ Item {
         initialItem: landingPage
     }
 
+    // File ▸ New Project (SP-077, T-0314): the native menu can't reach the landing's
+    // StackView directly, so ScriviWindow's menu action emits shell.newProjectRequested
+    // and we open the New Project panel here — the same push the New Project button does.
+    // Pop back to the landing root first so it opens from a known state (e.g. if a dialog
+    // was already pushed).
+    Connections {
+        target: shell
+        function onNewProjectRequested() {
+            window.landingError = ""
+            stack.pop(landingPage)
+            stack.push(newProjectDialog)
+        }
+        // File ▸ Open Project (SP-077, T-0315): run the same folder-picker + open the
+        // landing's Open Project button does. Pop to the landing root first so we open
+        // from a known state.
+        function onOpenProjectRequested() {
+            window.landingError = ""
+            stack.pop(landingPage)
+            var picked = bridge.chooseFolder(defaultProjectsFolder)
+            window.openPath(picked)
+        }
+    }
+
     // repairRequired: surface the issue titles and stay on the landing view
     // (surface + block — full repair workflow is a later Epic). SP-060 / T-0231.
     Dialog {

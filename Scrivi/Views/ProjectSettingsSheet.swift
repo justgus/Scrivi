@@ -124,7 +124,7 @@ struct ProjectSettingsSheet: View {
         let capacity = max(0, historyCapacity)
         // Preserve idleRolloverHours; capacity and stale threshold are user-editable here.
         let current = try? env.engine.historyGetSettings(projectRootPath: root)
-        try? env.engine.historySetSettings(
+        _ = try? env.engine.historySetSettings(
             projectRootPath: root,
             capacityEvents: capacity,
             staleBranchDays: max(0, staleBranchDays),

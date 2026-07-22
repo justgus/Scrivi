@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QList>
 #include <QMainWindow>
 #include <QObject>
 #include <QString>
 
+class QAction;
 class QQuickWidget;
 class QStackedWidget;
 class EditorShell;
@@ -39,6 +41,21 @@ public:
     // loads the project into it.
     Q_INVOKABLE void openEditor(const QString& projectPath, const QString& title);
 
+    // Ask the landing QML to open the New Project panel (SP-077, T-0314). The File ▸
+    // New Project menu action emits this; Landing.qml listens via a Connections block
+    // and pushes newProjectDialog. A signal (not an invokable) because the C++ side
+    // drives the QML, which owns the StackView.
+    void requestNewProject() { emit newProjectRequested(); }
+
+    // Ask the landing QML to run the Open Project flow (SP-077, T-0315): its folder
+    // picker + open, the same as the landing's Open Project button. File ▸ Open emits
+    // this; Landing.qml listens and calls bridge.chooseFolder + openPath.
+    void requestOpenProject() { emit openProjectRequested(); }
+
+signals:
+    void newProjectRequested();
+    void openProjectRequested();
+
 private:
     ScriviWindow* window_ = nullptr;
     QString appSupportRoot_;
@@ -57,8 +74,15 @@ public:
     // if the load fails.
     void showEditor(const QString& projectPath, const QString& title);
 
-    // Return the central stack to the landing page (editor Close).
+    // Return the central stack to the landing page (editor Close). File ▸ Open/Close
+    // route here — the landing page hosts the full Open UI + the ScriviBridge, so the
+    // menu doesn't reimplement that plumbing. File ▸ New additionally asks the landing
+    // to open the New Project panel (see setShellController).
     void showLanding();
+
+    // Wire the QML↔C++ boundary controller (created in main after the window) so File ▸
+    // New can ask the landing QML to open its New Project panel (SP-077, T-0314).
+    void setShellController(ShellController* shell) { shell_ = shell; }
 
     // Flush any pending editor edits to disk (T-0239). Wired to
     // QCoreApplication::aboutToQuit in main() so the quit legs of the auto-save
@@ -73,8 +97,19 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private:
-    QStackedWidget* stack_       = nullptr;
-    QQuickWidget*   landing_     = nullptr;
-    EditorShell*    editor_      = nullptr;
-    QString         appSupportRoot_;
+    // Build the native menu bar (SP-077, T-0310/T-0311/T-0312) and stash the actions
+    // whose enabled state depends on whether the editor page is active.
+    void buildMenuBar();
+    // Enable/disable the editor-only actions (Edit, Scene, Chapter, Project, File▸Close)
+    // for the current page. Called from showEditor/showLanding.
+    void updateMenuState(bool editorActive);
+
+    QStackedWidget*   stack_       = nullptr;
+    QQuickWidget*     landing_     = nullptr;
+    EditorShell*      editor_      = nullptr;
+    ShellController*  shell_       = nullptr;   // QML boundary (New Project panel)
+    QString           appSupportRoot_;
+
+    // Actions that are only meaningful with a project open in the editor.
+    QList<QAction*> editorOnlyActions_;
 };

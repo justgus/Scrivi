@@ -12,11 +12,10 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — **EP-028** `[Cross]` (Scene & Chapter Merging) 🟡 Active from 2026-07-20,
-delivering keyboard scene/chapter merge on macOS + Linux and fixing the EP-027 chapter-merge data-loss bug
-(I-0083); SP-074 `[ScriviCore]` started. **EP-023** `[Linux]` (Manuscript Structure Editing) ✅ **closed
-2026-07-19** (Human-approved). Next in line after EP-028: EP-024–EP-026 `[Linux]` (🔵 Draft), promoted one
-at a time on user request.
+Currently: **0 Active Epics.** **EP-028** `[Cross]` (Scene & Chapter Merging) ✅ **closed 2026-07-22**
+(Human-approved) — keyboard scene/chapter merge on macOS + Linux + the atomic I-0083 data-loss fix; 4 sprints
+(SP-074–SP-077), AC1–AC7 Verified; archived to `Closed/Epic-EP-028.md`. Next in line: EP-024–EP-026 `[Linux]`
+(🔵 Draft), promoted to Active one at a time on user request.
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -63,26 +62,29 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
 | EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
 | EP-027 | `[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering | ✅ Closed | 2026-07-16 | 2026-07-18 |
-| EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | 🟡 Active | 2026-07-20 | — |
+| EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | ✅ Closed | 2026-07-20 | 2026-07-22 |
 
 ## Statistics
 
 - **Total Epics:** 28
-- **Closed:** 22 ✅
+- **Closed:** 23 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-028 `[Cross]` Scene & Chapter Merging)
+- **Active:** 0 🟡
 - **Draft:** 3 🔵 (EP-024–EP-026 `[Linux]`)
 - **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-20 (**EP-028 `[Cross]` Scene & Chapter Merging created & activated** — keyboard
-scene/chapter merge on macOS + Linux; discovered the macOS merge already exists but loses scenes on reopen
-under EP-027 (chapter-merge reassigns in memory then `deleteChapter` removes the on-disk files → I-0083,
-High). Epic fixes it via a first-class atomic `scrivi_merge_chapter` (relocates scene files across folders)
-plus `scrivi_merge_scene`, then brings Linux to parity. 3 sprints: SP-074 `[ScriviCore]` (Active),
-SP-075 `[Apple]`, SP-076 `[Linux]`. Epics 27→28, Active 0→1. Prior note follows.)*
+*Last Updated: 2026-07-22 (**EP-028 `[Cross]` Scene & Chapter Merging ✅ closed with user approval** —
+delivered keyboard scene/chapter merge on macOS + Linux backed by two new atomic ScriviCore endpoints
+(`scrivi_merge_scene` / `scrivi_merge_chapter`), and fixed the EP-027 chapter-merge data-loss regression
+(I-0083) at the core (relocate scene files across folders BEFORE removing the emptied chapter). 4 sprints:
+SP-074 `[ScriviCore]`, SP-075 `[Apple]`, SP-076 `[Linux]` parity, SP-077 `[Linux]` native menu bar (added
+to make chapter-merge verifiable over VNC — macOS→VNC swallows `Ctrl-Shift-Backspace`; the menu also closed
+a data-loss hole in the editor-leaving paths). AC1–AC7 all Verified; I-0083/I-0084 Verified, I-0085 Not-a-Bug,
+I-0086 fixed. Archived to `Closed/Epic-EP-028.md`. Closed 22→23, Active 1→0 — **no Active Epics**; next in
+line EP-024–EP-026 `[Linux]` (Draft). Prior note follows.)*
 
 *2026-07-19 (**EP-023 `[Linux]` ✅ closed with user approval** — full manuscript-structure
 editing from the navigator: create/delete/rename + scene & chapter drag-reorder, all persisting on the

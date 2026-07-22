@@ -1,9 +1,22 @@
 #include "ManuscriptEditor.hpp"
 
 #include <QKeyEvent>
+#include <QPaintEvent>
+#include <QPainter>
+#include <QPalette>
+#include <QTextBlock>
 #include <QTextCursor>
+#include <QTextDocument>
+
+#include <cmath>
 
 #include "SceneDocument.hpp"
+
+namespace {
+// Horizontal inset (px) at each end of the rule, matching Apple's DividerAttachmentCell
+// (which insets 20pt). Keeps the line from touching the text margins.
+constexpr int kRuleInset = 20;
+}   // namespace
 
 ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
 {
@@ -120,6 +133,33 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
         return;
     }
 
+    // In-editor structure merging (EP-028 / T-0304): Ctrl+Backspace = merge this
+    // scene into the previous one, Ctrl+Shift+Backspace = merge this chapter into
+    // the previous one (the Linux analogues of ⌘⌫ / ⇧⌘⌫). Catch these before the
+    // modifying-key path so a bare Backspace never runs the edit guard and deletes a
+    // character. The editor only signals intent; EditorShell resolves the caret,
+    // enforces the start-of-scene / manuscript-start no-op, and calls the endpoint.
+    // NOTE: accept BOTH Backspace and Delete for the Shift variant — over VNC/X11,
+    // Shift+Backspace is frequently delivered as Qt::Key_Delete, which would otherwise
+    // make chapter-merge silently miss everywhere.
+    if (sceneDoc_ != nullptr
+        && (event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete)
+        && (event->modifiers() & Qt::ControlModifier)) {
+        if (event->modifiers() & Qt::ShiftModifier) {
+            emit mergeChapterRequested();
+        } else if (event->key() == Qt::Key_Backspace) {
+            // Plain Ctrl+Backspace = scene merge. (Ctrl+Delete with no Shift is left to the
+            // edit path — it is not a merge gesture.)
+            emit mergeSceneRequested();
+        } else {
+            // Ctrl+Delete without Shift — not a merge; fall through to normal handling.
+            QPlainTextEdit::keyPressEvent(event);
+            return;
+        }
+        event->accept();
+        return;
+    }
+
     // No document loaded, or a non-modifying key (navigation, copy, modifiers):
     // let the base class handle it.
     if (sceneDoc_ == nullptr || !isModifyingKey(event)) {
@@ -155,4 +195,51 @@ void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
         }
     }
     QPlainTextEdit::insertFromMimeData(source);
+}
+
+void ManuscriptEditor::paintEvent(QPaintEvent* event)
+{
+    // Text first — then overlay the separator rules on top of the (blank) gap blocks.
+    QPlainTextEdit::paintEvent(event);
+
+    if (sceneDoc_ == nullptr) {
+        return;
+    }
+    const QList<int> separators = sceneDoc_->sceneSeparatorPositions();
+    if (separators.isEmpty()) {
+        return;
+    }
+
+    QPainter painter(viewport());
+    painter.setRenderHint(QPainter::Antialiasing, false);   // crisp 1px hairline
+    // Theme-aware faint tone — the Qt analogue of NSColor.separatorColor; adapts to the
+    // active light/dark palette automatically.
+    QColor ruleColor = palette().color(QPalette::Mid);
+    painter.setPen(QPen(ruleColor, 1));
+
+    const QRectF vp = viewport()->rect();
+    QTextDocument* doc = document();
+
+    for (const int pos : separators) {
+        // The separator's blank block is the one immediately BEFORE the following scene's
+        // first block (that scene begins at `pos`). Take the block just above it.
+        const QTextBlock sceneBlock = doc->findBlock(pos);
+        if (!sceneBlock.isValid()) {
+            continue;
+        }
+        const QTextBlock gapBlock = sceneBlock.previous();
+        if (!gapBlock.isValid()) {
+            continue;
+        }
+        // Block geometry is document-relative; translate by contentOffset() to viewport
+        // coordinates (the standard QPlainTextEdit mapping used by line-number gutters).
+        const QRectF r =
+            blockBoundingGeometry(gapBlock).translated(contentOffset());
+        if (r.bottom() < vp.top() || r.top() > vp.bottom()) {
+            continue;   // off-screen — skip (viewport-culled)
+        }
+        const qreal y = std::round(r.center().y()) + 0.5;   // pixel-center the hairline
+        painter.drawLine(QPointF(r.left() + kRuleInset, y),
+                         QPointF(r.right() - kRuleInset, y));
+    }
 }

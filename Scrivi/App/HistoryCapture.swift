@@ -100,7 +100,7 @@ final class HistoryCapture {
         guard isOpen else { return }
         // Commit anything outstanding so the final sentence is not lost.
         flush(trigger: "flush")
-        try? engine.historyClose(projectRootPath: projectRootPath)
+        _ = try? engine.historyClose(projectRootPath: projectRootPath)
         isOpen = false
         clearPending()
     }
@@ -137,7 +137,7 @@ final class HistoryCapture {
         guard !seededScenes.contains(sceneID) else { return }
         seededScenes.insert(sceneID)
         lastCommittedText = baseline   // whitespace-delta reference starts at the floor
-        try? engine.historySeedScene(projectRootPath: projectRootPath, sceneID: sceneID, sceneText: baseline)
+        _ = try? engine.historySeedScene(projectRootPath: projectRootPath, sceneID: sceneID, sceneText: baseline)
     }
 
     // The editor calls this after applying an undo/redo result so the

@@ -52,13 +52,15 @@ See: [Issue-backlog.md](Issue-backlog.md)
 
 ## Statistics
 
-- **Total Issues:** 67
+- **Total Issues:** 68
 - **Verified:** I-0001–I-0015, I-0020–I-0058 (except backlog/superseded), I-0061, **I-0062** ✅
-- **Active:** 3 (🟢 **I-0083** chapter-merge scene-loss, Resolved-core/Not-Verified, EP-028; 🟢 **I-0084** `[Apple]` caret-jump-after-scene-merge, Resolved/Not-Verified, SP-075; 🔴 **I-0085** `[Apple]` NSOpenPanel crash, Open, pre-existing)
+- **Active:** 1 (🟢 **I-0086** `[Apple]` build `try?`-unused warnings, Resolved/Not-Verified, SP-075)
+- **Verified (2026-07-21):** ✅ **I-0083** chapter-merge scene-loss (SP-074 core + SP-075 app adoption, EP-028); ✅ **I-0084** `[Apple]` caret-jump-after-scene-merge (SP-075)
+- **Closed — Not a Bug:** **I-0085** `[Apple]` NSOpenPanel crash — environmental (duplicate instance + macOS 27.0 beta panel-XPC timeout); clean relaunch worked (2026-07-21)
 - **Open (backlog):** 4 🔴 (I-0017, I-0018 `[Apple]`; **I-0063** `[Linux]` renumber-on-delete, backlog; **I-0064** `[Linux]` chapter-split, targeted SP-067)
 - **Closed (not verified):** 1 ⚪ (I-0019 — superseded by EP-019)
 - **Superseded:** 1 ⚪ (I-0016 → I-0018)
-- **Next available:** I-0086
+- **Next available:** I-0087
 
 ---
 

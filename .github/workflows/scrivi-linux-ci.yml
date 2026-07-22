@@ -157,6 +157,18 @@ jobs:
           platforms/linux/tests/chapter_reorder_smoke.sh \
             ./build/platforms/linux/scrivi_linux_chapter_reorder_smoke
 
+      # Scene/chapter merge smoke (SP-076 / T-0306, EP-028 AC5/AC6/AC7): build a
+      # 5-scene/2-chapter fixture, merge a scene into the previous same-chapter scene via
+      # ScriviBridge::mergeScene (assert on reopen the absorbed scene's files are gone and
+      # the survivor holds both bodies, blank-line joined), then merge a whole chapter into
+      # the previous one via ScriviBridge::mergeChapter (assert every scene relocated —
+      # nothing lost, the I-0083 fix — the emptied chapter removed, bodies intact).
+      # Offscreen platform.
+      - name: Scene-merge smoke test
+        run: |
+          platforms/linux/tests/scene_merge_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_merge_smoke
+
       # Quit-path smoke (SP-062 regression guard): the shell flip broke the landing
       # Quit button (a QQuickWidget engine doesn't auto-wire QQmlEngine::quit()).
       # Assert the connection main.cpp adds drives the app to exit. Offscreen.

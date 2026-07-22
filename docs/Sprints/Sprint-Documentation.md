@@ -11,19 +11,43 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**SP-075** `[Apple]` (EP-028 — **Adopt the merge endpoints**): point the macOS `⌘-Backspace` /
-`⇧⌘-Backspace` merge commands at SP-074's `scrivi_merge_scene` / `scrivi_merge_chapter` — a regression-safe
-backend swap delivering the app-side of the I-0083 chapter-merge fix (AC4). Swift-only; `scrivi.h`/ScriviCore
-untouched. 🟡 **Active from 2026-07-21.** Tasks T-0302–T-0303. See `Sprint-active.md`.
+**None.** SP-076 + SP-077 (EP-028 `[Linux]`) both ✅ closed 2026-07-22 — see below. **This closed EP-028.**
+No active Epic; next in line EP-024–EP-026 `[Linux]` (🔵 Draft). Next available sprint **SP-078**.
 
-Last closed: **SP-074** (EP-028 `[ScriviCore]` — **Merge endpoints + filesystem-coherence fix**) — ✅
+Last closed: **SP-077** (`[Linux]` — **Native menu bar**) — ✅ **closed 2026-07-22 (Human-approved).** Built
+a native `QMenuBar` on `ScriviWindow` (File/Edit/Scene/Chapter/Project) so every core op has a mouse-driven
+trigger + shortcut hint. **This unblocked EP-028 AC5/AC6 Linux verification over VNC** — the macOS→VNC input
+path swallows `Ctrl-Shift-Backspace` (Shift held; proven via key-log, not an app bug), so chapter-merge was
+verified live via **Chapter ▸ Merge**. Also: File ▸ New/Open route to the landing page's create/open UI
+(T-0314/T-0315); **flush-safe editor-leaving paths** closed a data-loss hole (Close/New/Open now flush first,
+T-0316); Ctrl+W closes to landing (T-0317); TEMP diagnostics stripped (T-0313). Container build + smokes green;
+full VNC walkthrough user-verified. Tasks T-0310–T-0317 all Verified. `Closed/Sprint-SP-077.md`.
+
+Prior: **SP-076** (EP-028 `[Linux]` — **Scene & chapter merge parity**, the final EP-028 leg) — ✅ **closed
+2026-07-22 (Human-approved).** Brought Linux to macOS parity: `Ctrl-Backspace` (scene) / `Ctrl-Shift-Backspace`
+(chapter) merges backed by SP-074's `scrivi_merge_scene` / `scrivi_merge_chapter`, no confirmation, no-op at
+manuscript start, reload-from-disk (I-0081-safe). Scene-merge verified live over VNC; chapter-merge verified
+live via the SP-077 menu. Plus two Apple-parity extras surfaced in VNC testing: between-scene separator rule
+(T-0308) + `Ctrl+Return` mid-scene split (T-0309). New `scene_merge_smoke` in CI; container build + smokes
+green. Linux-only (Qt/C++); `scrivi.h`/ScriviCore untouched. Covered **AC5, AC6 (Linux), AC7** — **closed
+EP-028**. Tasks T-0304–T-0309 all Verified. `Closed/Sprint-SP-076.md`.
+
+Prior: **SP-075** (EP-028 `[Apple]` — **Adopt the merge endpoints**) — ✅ **closed 2026-07-21
+(Human-approved).** Pointed the macOS `⌘-Backspace` / `⇧⌘-Backspace` merge commands at SP-074's endpoints
+(retiring the `deleteChapter`-composed chapter-merge = the I-0083 cause); new `ScriviEngine.mergeScene`/
+`mergeChapter` wrappers + `MergeSceneResult`/`MergeChapterResult`; `xcodebuild build`+`test` green (36/36
+interop, incl. 4 new merge tests). Scene-merge join changed to blank-line (user-approved). **I-0083 & I-0084
+Verified** (user GUI); **I-0085** closed Not-a-Bug (env. duplicate-instance + macOS 27.0 beta panel-XPC
+timeout); **I-0086** `try?`-unused build warnings fixed. EP-028 AC1–AC4 complete. Tasks T-0302–T-0303.
+`Closed/Sprint-SP-075.md`.
+
+Prior: **SP-074** (EP-028 `[ScriviCore]` — **Merge endpoints + filesystem-coherence fix**) — ✅
 **closed 2026-07-21 (Human-approved).** Two new atomic C ABI endpoints `scrivi_merge_scene` (`SceneMerger`) /
 `scrivi_merge_chapter` (`ChapterMerger` — the atomic I-0083 fix: relocates scene files into the predecessor
 BEFORE removing the emptied chapter). 11 merge tests incl. the I-0083 loss guard on the old
 `deleteChapter`-composed path; ctest **macOS 317/317 + Linux 324/324**; both C symbols exported in
 `libScriviCore.a`; `scrivi.h` boundary stayed pure C ABI. Fixed stale `devops/docker/linux/Dockerfile`
-(missing `libssl-dev`). **I-0083 Resolved at core, Not Verified** — app adoption is SP-075/076. Tasks
-T-0298–T-0301. `Closed/Sprint-SP-074.md`.
+(missing `libssl-dev`). Tasks T-0298–T-0301. `Closed/Sprint-SP-074.md`.
 
 Prior: **SP-073** (EP-023 `[Linux]` — **chapter drag-reorder AC5 + full EP-023 verify & Epic close**;
 renumbered from the skipped SP-068) — ✅ **closed 2026-07-19 (Human-approved).** Chapter rows drag as
@@ -70,9 +94,9 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **73 Sprints** (70 closed + 1 cancelled + 2 in Planning + 1 active; the SP-068 **ID** was skipped
+Currently: **75 Sprints** (73 closed + 1 cancelled + 2 in Planning; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-076**
+2026-07-19) | Next available: **SP-078**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -149,26 +173,30 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-072 | `[ScriviCore]`+`[Apple]` EP-027 P5 Apple-verify — legacy migration fixes (I-0076/I-0077/I-0078) | EP-027 `[Apple]` | 2026-07-18 | 2026-07-18 | ✅ Closed |
 | SP-073 | `[Linux]` Chapter drag-reorder (AC5) + full EP-023 verify & Epic close — renumbered from SP-068 | EP-023 `[Linux]` | 2026-07-19 | 2026-07-19 | ✅ Closed |
 | SP-074 | `[ScriviCore]` Merge endpoints (`scrivi_merge_scene`/`scrivi_merge_chapter`) + filesystem-coherence fix (I-0083) | EP-028 `[Cross]` | 2026-07-20 | 2026-07-21 | ✅ Closed |
-| SP-075 | `[Apple]` Adopt the merge endpoints (regression-safe swap) — app-side I-0083 fix (AC4) | EP-028 `[Cross]` | 2026-07-21 | — | 🟡 Active |
+| SP-075 | `[Apple]` Adopt the merge endpoints (regression-safe swap) — app-side I-0083 fix (AC4) | EP-028 `[Cross]` | 2026-07-21 | 2026-07-21 | ✅ Closed |
+| SP-076 | `[Linux]` Scene & chapter merge parity (AC5/AC6/AC7) — final EP-028 leg | EP-028 `[Cross]` | 2026-07-21 | 2026-07-22 | ✅ Closed |
+| SP-077 | `[Linux]` Native menu bar (File/Edit/Scene/Chapter/Project) — unblocked EP-028 AC5/AC6 Linux verify over VNC | — `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 74 (SP-001–SP-075 issued; SP-068 skipped)
-- **Closed:** 70 ✅
-- **Active:** 1 🟡 (SP-075 EP-028 `[Apple]`)
+- **Total Sprints:** 76 (SP-001–SP-077 issued; SP-068 skipped)
+- **Closed:** 73 ✅
+- **Active:** 0 🟡
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-21 (**SP-074 ✅ closed with user approval** — EP-028 `[ScriviCore]`: delivered both
-merge C ABI endpoints (`scrivi_merge_scene`/`scrivi_merge_chapter`) + the atomic I-0083 core fix (relocate
-scene files BEFORE deleting the emptied chapter); 11 merge tests; ctest **macOS 317/317 + Linux 324/324**;
-`scrivi.h` boundary pure C ABI; stale `devops/docker/linux/Dockerfile` libssl-dev gap fixed (user-approved).
-I-0083 Resolved at core, Not Verified. **SP-075 `[Apple]` activated same step** — adopt the endpoints on
-macOS (T-0302/T-0303), the app-side of the I-0083 fix (AC4). Closed 69→70, Active stays 1 (SP-074→SP-075);
-next available **SP-076**. Record: `Closed/Sprint-SP-074.md`. Prior note follows.)*
+*Last Updated: 2026-07-22 (**SP-076 + SP-077 ✅ both closed with user approval** — the final EP-028 `[Linux]`
+legs. **SP-076** delivered scene & chapter merge parity (`Ctrl-Backspace`/`Ctrl-Shift-Backspace`, reload-from-disk,
+no confirmation) + between-scene separator rule + `Ctrl+Return` mid-scene split; scene-merge live over VNC,
+chapter-merge live via the SP-077 menu; new `scene_merge_smoke` in CI. **SP-077** delivered the native menu bar
+(File/Edit/Scene/Chapter/Project) that made chapter-merge verifiable over VNC (macOS→VNC swallows
+`Ctrl-Shift-Backspace`), plus flush-safe editor-leaving paths (closed a data-loss hole) + Ctrl+W. **This closed
+EP-028** — AC5/AC6/AC7 Verified (AC1–AC4 already Verified from SP-074/SP-075). Closed 71→73, Active 1→0 —
+**no active sprint, no Active Epic**; next available **SP-078**. Records: `Closed/Sprint-SP-076.md`,
+`Closed/Sprint-SP-077.md`. Prior note follows.)*
 
 *2026-07-19 (**SP-073 ✅ closed with user approval** — EP-023 `[Linux]`'s final sprint,
 planned + activated + implemented + verified + closed same day (renumbered from the skipped SP-068):

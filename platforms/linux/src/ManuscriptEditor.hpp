@@ -43,10 +43,24 @@ signals:
     void createSceneRequested();
     // Ctrl+Shift+Return — the analogue of ⌘⇧↩ "new chapter" (T-0241).
     void createChapterRequested();
+    // Ctrl+Backspace — the Linux analogue of Apple's ⌘⌫ "merge scene into the
+    // previous scene" (EP-028 / T-0304). The editor does NOT delete anything;
+    // EditorShell resolves the caret, applies the start-of-scene / manuscript-start
+    // guards, and calls the merge endpoint.
+    void mergeSceneRequested();
+    // Ctrl+Shift+Backspace — the analogue of ⇧⌘⌫ "merge chapter into the previous
+    // chapter" (EP-028 / T-0304). Same division of labor: EditorShell decides.
+    void mergeChapterRequested();
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void insertFromMimeData(const QMimeData* source) override;
+    // Draw the faint between-scene separator rule (EP-028 SP-076, T-0308) — the Linux
+    // analogue of Apple's DividerAttachmentCell. Runs AFTER the base class paints text,
+    // then strokes a 1px inset line centered in each within-chapter scene-separator gap.
+    // Purely visual: no document text or offset-map change (positions come from
+    // SceneDocument::sceneSeparatorPositions()).
+    void paintEvent(QPaintEvent* event) override;
 
 private slots:
     // Keep the caret out of protected boundary text (T-0246): when the cursor lands

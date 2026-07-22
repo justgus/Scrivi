@@ -32,7 +32,13 @@ APP_PID=$!
 # stored so Apple's Screen Sharing client will connect (see above).
 VNC_PASSFILE="/tmp/scrivi-vnc-passwd"
 x11vnc -storepasswd "$VNC_PASSWORD" "$VNC_PASSFILE" >/dev/null 2>&1
-x11vnc -display "$DISPLAY" -forever -shared -rfbauth "$VNC_PASSFILE" -rfbport 5900 -quiet &
+# -repeat: keep X server keyboard auto-repeat ON. x11vnc DISABLES server auto-repeat by
+# default (to avoid double-repeat when the VNC client also repeats), but macOS Screen
+# Sharing does NOT synthesize client-side repeat, so held keys (e.g. arrow keys) never
+# repeat without this. With -repeat the server drives the repeat and holding an arrow
+# moves the caret continuously, as expected.
+x11vnc -display "$DISPLAY" -forever -shared -repeat \
+    -rfbauth "$VNC_PASSFILE" -rfbport 5900 -quiet &
 VNC_PID=$!
 
 cleanup() {

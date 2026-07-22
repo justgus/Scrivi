@@ -8,7 +8,6 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QScrollBar>
 #include <QShowEvent>
 #include <QSplitter>
@@ -40,16 +39,11 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     bridge_    = new ScriviBridge(this);
     navModel_  = new QStandardItemModel(this);
 
-    // --- Toolbar: Close (back to landing) + title -------------------------
-    auto* closeButton = new QPushButton(tr("‹ Close"), this);
-    closeButton->setFlat(true);
-    // Flush pending edits before leaving the editor (close leg of T-0239), then
-    // signal the shell to return to landing.
-    connect(closeButton, &QPushButton::clicked, this, [this] {
-        saveDirtyScenes();
-        emit closeRequested();
-    });
-
+    // --- Title bar --------------------------------------------------------
+    // The project title only. Leaving the editor (Close/New/Open) is now driven by the
+    // native File menu (SP-077, T-0316) — which flushes edits first — so the old raw
+    // "‹ Close" button was removed. The `closeRequested` signal is retained for a future
+    // proper button bar. Menu ▸ File ▸ Close Project is the flush-safe path today.
     auto* titleLabel = new QLabel(this);
     titleLabel->setObjectName(QStringLiteral("editorTitle"));
     titleLabel->setAlignment(Qt::AlignCenter);
@@ -58,12 +52,7 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     titleLabel->setFont(titleFont);
 
     auto* toolbar = new QHBoxLayout;
-    toolbar->addWidget(closeButton);
     toolbar->addWidget(titleLabel, /*stretch=*/1);
-    // Keep the title visually centered against the Close button.
-    auto* spacer = new QWidget(this);
-    spacer->setFixedWidth(72);
-    toolbar->addWidget(spacer);
 
     // --- Navigator (left) -------------------------------------------------
     navigator_ = new NavigatorTree(this);
@@ -135,6 +124,15 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // In-editor chapter creation (T-0241): Ctrl+Shift+Return.
     connect(viewport_, &ManuscriptEditor::createChapterRequested,
             this, &EditorShell::onCreateChapterRequested);
+
+    // In-editor scene/chapter merging (EP-028 / T-0306): Ctrl+Backspace merges the
+    // current scene into the previous one; Ctrl+Shift+Backspace merges the current
+    // chapter into the previous one. The editor only signals; these slots enforce the
+    // guards and call the merge endpoints (macOS parity, SP-075).
+    connect(viewport_, &ManuscriptEditor::mergeSceneRequested,
+            this, &EditorShell::onMergeSceneRequested);
+    connect(viewport_, &ManuscriptEditor::mergeChapterRequested,
+            this, &EditorShell::onMergeChapterRequested);
 
     // Surface bridge errors inline rather than silently failing.
     connect(bridge_, &ScriviBridge::errorOccurred, this,
@@ -1043,7 +1041,8 @@ void EditorShell::onCreateSceneRequested()
 {
     // Which scene are we in? The caret's owning segment (fall back to the tracked
     // active segment). A create needs a valid host scene + chapter.
-    int idx = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
+    const int caretPos = viewport_->textCursor().position();
+    int idx = sceneDoc_.sceneIndexForCaret(caretPos);
     if (idx < 0) {
         idx = activeSegment_;
     }
@@ -1052,21 +1051,71 @@ void EditorShell::onCreateSceneRequested()
     }
     const SceneSegment host = sceneDoc_.segments().at(idx);   // copy (list mutates)
 
+    // macOS ⌘↩ parity (ManuscriptTextView.swift:644-679): SPLIT the current scene at the
+    // caret. Mid-body → the head stays in the current scene and the tail moves to the new
+    // scene (caret follows the tail). At end-of-body → append an empty scene (nothing to
+    // move). Previously this ALWAYS appended empty regardless of caret position — so a
+    // mid-scene ⌃↩ left the text in place and dropped an empty scene below (the SP-076 VNC
+    // "splits at the bottom, not the middle" report).
+    const int bodyEnd = host.bodyStart + host.bodyLength;
+    const int splitOffset = qBound(0, caretPos - host.bodyStart, host.bodyLength);
+    const bool isAtEnd = (caretPos >= bodyEnd);
+    const QString fullBody = sceneDoc_.bodyText(idx);
+    const QString headText = fullBody.left(splitOffset);
+    const QString tailText = fullBody.mid(splitOffset);
+
     // Save the current scene first so the create builds on persisted state (mirrors
     // Apple's ⌘↩: save-then-create).
     saveDirtyScenes();
 
-    // Create the scene after the host, in the host's chapter.
+    // Create the (initially empty) scene after the host, in the host's chapter.
     const QVariantMap result = bridge_->createScene(
         projectPath_, appSupportRoot_, projectID_, host.chapterID, host.sceneID);
     const QString newSceneID = result.value(QStringLiteral("sceneID")).toString();
     if (newSceneID.isEmpty()) {
         return;   // bridge already surfaced errorOccurred
     }
+    const QString newMeta    = result.value(QStringLiteral("metadataPath")).toString();
+    const QString newContent = result.value(QStringLiteral("contentPath")).toString();
 
-    // Splice the new empty scene into the live document + map (guarded so the
-    // programmatic boundary insert doesn't churn dirty flags), refresh the
-    // navigator, and drop the caret into the new body.
+    if (!isAtEnd) {
+        // Mid-scene split: persist head → current scene, tail → new scene, then reload from
+        // disk so the document/map reflect the moved text (disk is authoritative; a split is
+        // a rare structural op, mirroring the chapter-split path).
+        const QVariantMap headR =
+            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
+                               host.sceneID, host.metadataPath, host.contentPath,
+                               headText, 0, 0, 0.0);
+        const QVariantMap tailR =
+            bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
+                               newSceneID, newMeta, newContent,
+                               tailText, 0, 0, 0.0);
+        if (headR.isEmpty() || tailR.isEmpty()) {
+            // A save failed (bridge surfaced errorOccurred). Reload to whatever persisted so
+            // the UI matches disk, then bail.
+            load(projectPath_, appSupportRoot_,
+                 findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+                     ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+                     : QString());
+            return;
+        }
+        load(projectPath_, appSupportRoot_,
+             findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+                 ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+                 : QString());
+        // Caret to the start of the new (tail) scene — where the split landed.
+        const int newSeg = sceneDoc_.sceneIndexForScene(newSceneID);
+        if (newSeg >= 0) {
+            activeSegment_ = -1;
+            moveCaretToSegment(newSeg);
+            selectNavigatorScene(newSceneID);
+        }
+        return;
+    }
+
+    // End-of-scene: splice the new EMPTY scene into the live document + map (guarded so the
+    // programmatic boundary insert doesn't churn dirty flags), refresh the navigator, and
+    // drop the caret into the new body — the original append behaviour.
     loading_ = true;
     const int newIdx = sceneDoc_.insertSceneAfter(
         idx, newSceneID,
@@ -1074,8 +1123,8 @@ void EditorShell::onCreateSceneRequested()
         /*title=*/QString(),          // new scenes are untitled until named (EP-023)
         host.chapterTitle,            // same chapter → same heading label
         /*slug=*/QString(),
-        result.value(QStringLiteral("metadataPath")).toString(),
-        result.value(QStringLiteral("contentPath")).toString(),
+        newMeta,
+        newContent,
         host.chapterMetadataPath,     // same chapter → same chapter metadata path
         /*newChapter=*/false);
     loading_ = false;
@@ -1240,3 +1289,174 @@ void EditorShell::onCreateChapterRequested()
     }
     viewport_->setFocus();
 }
+
+void EditorShell::onMergeSceneRequested()
+{
+    // Resolve the caret's scene. A merge needs a valid host with a predecessor.
+    const int caretPos = viewport_->textCursor().position();
+    int segIdx = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (segIdx < 0) {
+        segIdx = activeSegment_;
+    }
+    if (segIdx <= 0 || segIdx >= sceneDoc_.segments().size()) {
+        return;   // unknown, or the very first scene (nothing before it) — no-op
+    }
+
+    const SceneSegment current = sceneDoc_.segments().at(segIdx);        // copy
+    const SceneSegment predecessor = sceneDoc_.segments().at(segIdx - 1);
+
+    // Only fire at the VERY START of the scene's body (macOS parity: ⌘⌫ at position 0).
+    if (caretPos != current.bodyStart) {
+        return;
+    }
+    // Only a SAME-CHAPTER scene merge here; a chapter's first scene is the chapter-merge
+    // gesture (Ctrl+Shift+Backspace), not this one.
+    if (current.chapterID != predecessor.chapterID) {
+        return;
+    }
+
+    // Flush pending edits first — the endpoint joins the ON-DISK bodies, so both the
+    // current scene and the predecessor must be persisted before the merge.
+    saveDirtyScenes();
+
+    // Atomic same-chapter merge: current joins into predecessor (survivor keeps its
+    // files); current's files are removed. Replaces any saveScene(join)+deleteScene
+    // composition (EP-028 / SP-076).
+    const QVariantMap r = bridge_->mergeScene(projectPath_, current.sceneID);
+    if (r.isEmpty()) {
+        return;   // bridge already surfaced errorOccurred; leave the UI untouched
+    }
+
+    // The merge rewrote disk (predecessor body grew, current scene's files gone). Disk
+    // is authoritative, so reload the document/map/navigator from it rather than
+    // hand-splicing — a merge is a rare structural op, so the reload cost is fine and it
+    // is provably in sync with disk (mirrors the reorder handlers' reload-on-drift path).
+    load(projectPath_, appSupportRoot_,
+         findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+             ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+             : QString());
+
+    // Re-anchor on the survivor (its sceneID persists across the merge) and drop the caret
+    // at the JOIN SEAM — where the absorbed scene's text now begins inside the survivor
+    // (macOS parity: ⌘⌫ lands the caret at predecessor.length). The seam offset is the
+    // predecessor's ORIGINAL body length, captured before the merge (bodyLength), measured
+    // from the survivor's post-reload body start. If either side was empty the blank-line
+    // join is elided, but the seam still sits at the predecessor's original length, so this
+    // holds. Clamp to the survivor's new body just in case.
+    const int survivorSeg = sceneDoc_.sceneIndexForScene(predecessor.sceneID);
+    if (survivorSeg >= 0) {
+        const SceneSegment& survivor = sceneDoc_.segments().at(survivorSeg);
+        const int seam = qBound(survivor.bodyStart,
+                                survivor.bodyStart + predecessor.bodyLength,
+                                survivor.bodyStart + survivor.bodyLength);
+        // Place the caret at the seam WITHOUT re-centering the viewport. The merge happens
+        // at the boundary the writer was already looking at, so the seam is already on
+        // screen — do NOT call moveCaretToSegment (it centerCursor()s, which yanks the
+        // scroll and reads as a distracting "jump to the previous scene"). Just set the
+        // caret and let ensureCursorVisible scroll only if it actually fell off-screen.
+        activeSegment_ = survivorSeg;   // register the active scene without a scroll
+        programmaticViewportChange_ = true;
+        QTextCursor cursor(sceneDoc_.document());
+        cursor.setPosition(seam);
+        viewport_->setTextCursor(cursor);
+        viewport_->ensureCursorVisible();
+        programmaticViewportChange_ = false;
+        selectNavigatorScene(predecessor.sceneID);
+    }
+    viewport_->setFocus();
+}
+
+void EditorShell::onMergeChapterRequested()
+{
+    // Resolve the caret's scene. A chapter merge needs a chapter with a predecessor.
+    const int caretPos = viewport_->textCursor().position();
+    int segIdx = sceneDoc_.sceneIndexForCaret(caretPos);
+    if (segIdx < 0) {
+        segIdx = activeSegment_;
+    }
+    if (segIdx <= 0 || segIdx >= sceneDoc_.segments().size()) {
+        return;   // unknown, or the first scene of the manuscript — no-op
+    }
+
+    const SceneSegment current = sceneDoc_.segments().at(segIdx);        // copy
+    const SceneSegment predecessor = sceneDoc_.segments().at(segIdx - 1);
+
+    // Only fire at the VERY START of the scene's body (macOS parity: ⇧⌘⌫ at position 0).
+    if (caretPos != current.bodyStart) {
+        return;
+    }
+    // Must be a chapter boundary (the predecessor is in a different chapter)...
+    if (current.chapterID == predecessor.chapterID) {
+        return;
+    }
+    // ...and the caret must be at the chapter's FIRST scene (segIdx is the first segment
+    // whose chapterID matches — guaranteed here because the predecessor differs, but keep
+    // the explicit check to mirror macOS and guard against map anomalies).
+    if (sceneDoc_.firstSegmentOfChapter(current.chapterID) != segIdx) {
+        return;
+    }
+
+    // Flush pending edits before the relocation rewrites the chapter's files.
+    saveDirtyScenes();
+
+    // Atomic whole-chapter merge: RELOCATE every scene of the current chapter into the
+    // predecessor's folder, then remove the emptied chapter (the I-0083 fix — no scene
+    // loss on reopen). Not composed from deleteChapter.
+    const QVariantMap r = bridge_->mergeChapter(projectPath_, current.chapterID);
+    if (r.isEmpty()) {
+        return;   // bridge already surfaced errorOccurred; leave the UI untouched
+    }
+
+    // The relocation minted new order-key filenames for every moved scene and removed the
+    // old chapter folder — disk is authoritative and every captured path is stale (the
+    // I-0081 class). Reload from disk so the document/map/navigator match exactly.
+    load(projectPath_, appSupportRoot_,
+         findChild<QLabel*>(QStringLiteral("editorTitle")) != nullptr
+             ? findChild<QLabel*>(QStringLiteral("editorTitle"))->text()
+             : QString());
+
+    // Re-anchor on the merged chapter's (former) first scene — its sceneID survives the
+    // relocation — now sitting inside the predecessor chapter.
+    const int caretSeg = sceneDoc_.sceneIndexForScene(current.sceneID);
+    if (caretSeg >= 0) {
+        activeSegment_ = -1;
+        moveCaretToSegment(caretSeg);
+        selectNavigatorScene(current.sceneID);
+    }
+    viewport_->setFocus();
+}
+
+// --- SP-077 menu-bar triggers (T-0310/T-0311) --------------------------------
+//
+// Thin forwarders so the ScriviWindow menu bar drives the same operations as the
+// keyboard shortcuts. The Scene/Chapter triggers give the caret focus first so the
+// handlers (which resolve the caret's scene) see the writing surface's real caret,
+// not a stale one — a menu click moves focus to the menu, so without this the caret
+// position could be ambiguous. The operations themselves are unchanged.
+void EditorShell::splitScene()
+{
+    viewport_->setFocus();
+    onCreateSceneRequested();
+}
+
+void EditorShell::mergeScene()
+{
+    viewport_->setFocus();
+    onMergeSceneRequested();
+}
+
+void EditorShell::splitChapter()
+{
+    viewport_->setFocus();
+    onCreateChapterRequested();
+}
+
+void EditorShell::mergeChapter()
+{
+    viewport_->setFocus();
+    onMergeChapterRequested();
+}
+
+void EditorShell::cutSelection()   { viewport_->cut(); }
+void EditorShell::copySelection()  { viewport_->copy(); }
+void EditorShell::pasteClipboard() { viewport_->paste(); }

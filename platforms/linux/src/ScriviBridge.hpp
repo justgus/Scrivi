@@ -174,6 +174,31 @@ public:
                                            const QString& chapterID,
                                            const QString& afterChapterID);
 
+    // Merge one scene into the scene immediately BEFORE it in the SAME chapter
+    // (EP-028 / SP-076, T-0305 — the Linux analogue of Apple's ⌘⌫). Calls
+    // scrivi_merge_scene(projectRootPath, sceneID) and returns its ok "result":
+    // {survivorSceneID, mergedSceneID, chapterID, survivorMetadataPath,
+    // survivorContentPath, chapterMetadataPath, merged}. The survivor keeps its own
+    // files; `sceneID`'s body is appended (blank-line join) and its files removed. The
+    // caller (EditorShell) enforces the start-of-scene / first-scene-of-chapter no-op
+    // BEFORE invoking. No author identity (structural, not an authored edit). On
+    // failure emits errorOccurred and returns {}.
+    Q_INVOKABLE QVariantMap mergeScene(const QString& projectRootPath,
+                                       const QString& sceneID);
+
+    // Merge a whole chapter into the chapter immediately BEFORE it in manuscript order
+    // (EP-028 / SP-076, T-0305 — the analogue of ⇧⌘⌫). Calls
+    // scrivi_merge_chapter(projectRootPath, chapterID): every scene file of `chapterID`
+    // is RELOCATED into the predecessor's folder (order-key files renamed after its last
+    // scene), then the emptied chapter is removed. Returns its ok "result":
+    // {survivorChapterID, mergedChapterID, survivorChapterMetadataPath, scenesRelocated,
+    // merged}. This is the atomic, no-scene-loss fix (I-0083) — the caller does NOT
+    // compose it from deleteChapter. The caller enforces the first-scene-of-chapter /
+    // manuscript-start no-op. No author identity. On failure emits errorOccurred,
+    // returns {}.
+    Q_INVOKABLE QVariantMap mergeChapter(const QString& projectRootPath,
+                                         const QString& chapterID);
+
     // Renames one scene — writes the sidecar `title` field (EP-023 / SP-066, T-0254).
     // Calls scrivi_rename_scene(projectRootPath, metadataPath, newTitle) and returns its
     // ok "result": {metadataPath, newTitle, renamed}. `metadataPath` is the scene's own

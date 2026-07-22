@@ -705,6 +705,22 @@ int SceneDocument::firstSegmentOfChapter(const QString& chapterID) const
     return -1;
 }
 
+QList<int> SceneDocument::sceneSeparatorPositions() const
+{
+    // A scene shows a leading separator rule when it is NOT the first scene of its chapter
+    // (a chapter's first scene shows a heading instead). Segment i is a chapter's first
+    // scene exactly when its chapterID differs from segment i-1's — mirroring build()'s
+    // chapterBoundary test. Return each such following scene's bodyStart; the editor draws
+    // the rule in the blank block just above it.
+    QList<int> out;
+    for (int i = 1; i < segments_.size(); ++i) {
+        if (segments_.at(i).chapterID == segments_.at(i - 1).chapterID) {
+            out.append(segments_.at(i).bodyStart);
+        }
+    }
+    return out;
+}
+
 void SceneDocument::reflowAllChapterHeadings()
 {
     // Reflow each chapter's first segment. Walk by chapter boundary; reflowBoundaryAt

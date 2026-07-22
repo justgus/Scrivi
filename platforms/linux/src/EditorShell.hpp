@@ -55,6 +55,21 @@ public:
     // process). Safe to call with nothing dirty (no-op).
     void saveDirtyScenes();
 
+    // --- SP-077 menu-bar triggers (T-0310/T-0311) -------------------------
+    //
+    // Public entry points so the ScriviWindow menu bar can invoke the same operations
+    // as the editor's keyboard shortcuts. Needed because the shortcut path is
+    // unreliable over VNC (macOS swallows Ctrl-Shift-Backspace and Ctrl-Arrow) and a
+    // menu action is a mouse-driven trigger that always reaches the app. Each simply
+    // forwards to the corresponding existing handler / viewport slot; no new logic.
+    void splitScene();     // Scene ▸ Split   (== Ctrl+Return)
+    void mergeScene();     // Scene ▸ Merge   (== Ctrl+Backspace)
+    void splitChapter();   // Chapter ▸ Split (== Ctrl+Shift+Return)
+    void mergeChapter();   // Chapter ▸ Merge (== Ctrl+Shift+Backspace)
+    void cutSelection();   // Edit ▸ Cut      → viewport cut()
+    void copySelection();  // Edit ▸ Copy     → viewport copy()
+    void pasteClipboard(); // Edit ▸ Paste    → viewport paste()
+
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible
     // (T-0246) — the QStackedWidget swaps to the editor after load(), so focusing
@@ -94,6 +109,19 @@ private slots:
     // and confirms first when a renumber will happen. No longer appends an empty chapter
     // at the manuscript end.
     void onCreateChapterRequested();
+    // Ctrl+Backspace in the editor (EP-028 / T-0306, macOS ⌘⌫ parity): if the caret is
+    // at the very START of a scene that is NOT its chapter's first scene, merge that
+    // scene into the previous scene (bodies joined blank-line; the merged scene's files
+    // removed). No-op at a scene's interior, at a chapter's first scene, or at the very
+    // start of the manuscript. Reloads from disk (the merge relocated/removed files) and
+    // re-anchors the caret at the survivor.
+    void onMergeSceneRequested();
+    // Ctrl+Shift+Backspace in the editor (EP-028 / T-0306, macOS ⇧⌘⌫ parity): if the
+    // caret is at the START of a chapter's FIRST scene and that chapter is not the first
+    // in the manuscript, merge the whole chapter into the previous chapter (every scene
+    // relocated into the predecessor's folder, the emptied chapter removed — the atomic
+    // I-0083 fix). No-op otherwise. Reloads from disk and re-anchors the caret.
+    void onMergeChapterRequested();
 
 private:
     // Select the navigator row for `sceneID` (highlight only; no scroll, no caret).

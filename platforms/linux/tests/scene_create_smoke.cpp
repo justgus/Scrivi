@@ -203,9 +203,70 @@ int main(int argc, char* argv[])
               "new chapter's scene carries the new chapterID after reopen");
     }
 
+    // ==========================================================================
+    // T-0309 — MID-SCENE split (macOS ⌘↩ parity): the create-scene bridge sequence
+    // the app runs for a mid-body split. Give a scene a known body, then replay
+    // createScene + saveScene(head into current) + saveScene(tail into new), and
+    // assert on reopen that the head stayed and the tail moved to the new scene.
+    // (The app's onCreateSceneRequested does exactly this when the caret is mid-body;
+    // the smoke exercises the bridge recipe, like scene_reorder_smoke Case E.)
+    // ==========================================================================
+    {
+        QVariantMap re = bridge.openProject(projectPath, appSupport);
+        // Use scene 0 (hostSceneID). Give it a two-part body and persist it.
+        QString s0Meta, s0Content;
+        for (const QVariant& v : re.value(QStringLiteral("scenes")).toList()) {
+            const QVariantMap m = v.toMap();
+            if (m.value(QStringLiteral("sceneID")).toString() == hostSceneID) {
+                s0Meta    = m.value(QStringLiteral("metadataPath")).toString();
+                s0Content = m.value(QStringLiteral("contentPath")).toString();
+            }
+        }
+        const QString whole = QStringLiteral("Head half. Tail half.");
+        bridge.saveScene(projectID, projectPath, appSupport, hostSceneID, s0Meta,
+                         s0Content, whole, 0, 0, 0.0);
+
+        // Split at "Head half. " | "Tail half." (caret after the space).
+        const int splitAt = QStringLiteral("Head half. ").length();
+        const QString head = whole.left(splitAt);
+        const QString tail = whole.mid(splitAt);
+
+        // createScene after host, then head→host, tail→new (the app's mid-split writes).
+        const QVariantMap sr =
+            bridge.createScene(projectPath, appSupport, projectID, hostChapter, hostSceneID);
+        const QString splitNewID = sr.value(QStringLiteral("sceneID")).toString();
+        check(!splitNewID.isEmpty(), "T-0309: split createScene returned a sceneID");
+        bridge.saveScene(projectID, projectPath, appSupport, hostSceneID, s0Meta,
+                         s0Content, head, 0, 0, 0.0);
+        bridge.saveScene(projectID, projectPath, appSupport, splitNewID,
+                         sr.value(QStringLiteral("metadataPath")).toString(),
+                         sr.value(QStringLiteral("contentPath")).toString(),
+                         tail, 0, 0, 0.0);
+
+        re = bridge.openProject(projectPath, appSupport);
+        const QString headAfter =
+            bridge.openScene(projectPath, appSupport, projectID, hostSceneID)
+                .value(QStringLiteral("markdown")).toString();
+        const QString tailAfter =
+            bridge.openScene(projectPath, appSupport, projectID, splitNewID)
+                .value(QStringLiteral("markdown")).toString();
+        check(headAfter == head, "T-0309: head stayed in the original scene");
+        check(tailAfter == tail, "T-0309: tail moved to the new scene");
+        // The new (tail) scene immediately follows the host in order.
+        const QVariantList sc = re.value(QStringLiteral("scenes")).toList();
+        int hostPos = -1, tailPos = -1;
+        for (int i = 0; i < sc.size(); ++i) {
+            const QString id = sc.at(i).toMap().value(QStringLiteral("sceneID")).toString();
+            if (id == hostSceneID) { hostPos = i; }
+            if (id == splitNewID)  { tailPos = i; }
+        }
+        check(hostPos >= 0 && tailPos == hostPos + 1,
+              "T-0309: the tail scene sits right after the head scene");
+    }
+
     if (failures == 0) {
-        std::fprintf(stderr, "OK: create-scene + create-chapter persisted and "
-                             "spliced into the map.\n");
+        std::fprintf(stderr, "OK: create-scene + create-chapter + mid-scene split "
+                             "persisted and spliced into the map.\n");
         std::printf("%s\n", projectID.toUtf8().constData());
         return 0;
     }

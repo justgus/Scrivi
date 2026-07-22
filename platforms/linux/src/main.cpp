@@ -78,6 +78,8 @@ int main(int argc, char* argv[])
     // Parented to the window; exposed to the landing QML as "shell".
     auto* shell = new ShellController(&window, appSupportRoot);
     landing->rootContext()->setContextProperty(QStringLiteral("shell"), shell);
+    // Let File ▸ New Project ask the landing QML to open its New Project panel.
+    window.setShellController(shell);
 
     // QQuickWidget can't loadFromModule on Qt 6.4; load the module's Landing.qml
     // by its qrc URL (CMake pins RESOURCE_PREFIX "/" → qrc:/<URI>/<QML_FILES path>).

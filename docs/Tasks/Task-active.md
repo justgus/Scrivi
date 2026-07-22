@@ -1,13 +1,25 @@
 # Active Tasks
 
-**Epic:** EP-028 `[Cross]` (Scene & Chapter Merging) — **Sprint:** SP-075 `[Apple]` (`Sprints/Sprint-active.md`).
+_(No active Tasks — no active Sprint or Epic.)_
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0302 | **`[Apple]` `ScriviEngine` merge wrappers** — `mergeScene(sceneID:)` / `mergeChapter(chapterID:)` calling `scrivi_merge_scene` / `scrivi_merge_chapter`, decoding into new `MergeSceneResult` / `MergeChapterResult` structs, throwing `ScriviError` via `decodeC`; 4 interop tests in `ScriviInteropTests`. `xcodebuild build`+`test` green (36/36). | 🟢 Implemented, Not Verified |
-| T-0303 | **`[Apple]` Point the merge handlers at the endpoints** — `handleMergeScene`→`engine.mergeScene` (retires `saveScene(joinText)`+`deleteScene`); `handleMergeChapter`→`engine.mergeChapter` (retires in-memory reassign + `deleteChapter`, the I-0083 cause). Kept `⌘/⇧⌘-Backspace` bindings, no-op guards, `sceneMerge`/`chapterMerge` barriers; new `ViewportSceneLoader.refreshScenePaths(from:)` refreshes moved-scene paths after chapter-merge (I-0081). Scene-merge join separator → blank line (user-approved change). No new `.swift`/no pbxproj; `scrivi.h` untouched. **Delivers the macOS app-side of the I-0083 fix (AC4).** ctest via `xcodebuild test` proves chapter-merge→reopen keeps all scenes. | 🟢 Implemented, Not Verified |
+**SP-076 + SP-077 (EP-028 `[Linux]`) ✅ both closed 2026-07-22 (Human-approved) — this closed EP-028.**
+All of T-0304–T-0317 are ✅ **Verified** and archived with their sprints:
 
-**Next available T-0304** (Linux merge parity, SP-076).
+- **SP-076** (`[Linux]` merge parity) — `Closed/Sprint-SP-076.md`. T-0304 (`ManuscriptEditor` merge signals),
+  T-0305 (`ScriviBridge` merge invokables), T-0306 (`EditorShell` merge slots + `scene_merge_smoke`), T-0307
+  (spec update §8.1), T-0308 (between-scene separator rule), T-0309 (`Ctrl+Return` mid-scene split). Scene-merge
+  verified live over VNC; chapter-merge verified live via the SP-077 menu.
+- **SP-077** (`[Linux]` native menu bar) — `Closed/Sprint-SP-077.md`. T-0310 (menu bar scaffold + File/Edit),
+  T-0311 (Scene/Chapter menus + public `EditorShell` triggers — made chapter-merge testable over VNC), T-0312
+  (Project ▸ Settings… stub), T-0313 (chapter-merge live-verified + TEMP diagnostics stripped — closed AC5/AC6
+  Linux), T-0314 (File ▸ New opens the New Project panel), T-0315 (File ▸ Open shows the folder picker), T-0316
+  (flush-safe editor-leaving paths — closed a data-loss hole; removed the raw ‹ Close button), T-0317 (Ctrl+W
+  closes the project).
+
+**EP-028 AC1–AC7 all Verified. Archived to `../Epics/Closed/Epic-EP-028.md`. No active Epic; next in line
+EP-024–EP-026 `[Linux]` (Draft). Next available Task: T-0318.**
+
+_The full T-0304–T-0317 detail lives in the two sprint archives above and the closed Epic; not re-listed here._
 
 ---
 
@@ -86,7 +98,9 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-15 (SP-067 implemented — T-0258–T-0263 all done; scene drag-reorder (AC4) via new
-`NavigatorTree` + `SceneDocument::moveScene`, I-0064 chapter-split, I-0063 renumber; Docker build +
-`scene_reorder_smoke` + all prior smokes green; VNC user-verification pending; no ScriviCore work, `scrivi.h`
-untouched. Next available T-0264.)*
+*Last Updated: 2026-07-22 (**SP-076 + SP-077 ✅ both closed (Human-approved) — EP-028 closed.** All of
+T-0304–T-0317 Verified & archived with their sprints (`Closed/Sprint-SP-076.md`, `Closed/Sprint-SP-077.md`)
+and the closed Epic (`../Epics/Closed/Epic-EP-028.md`). SP-076 delivered `[Linux]` scene & chapter merge
+parity + separator rule + mid-scene split; SP-077 the native menu bar (which unblocked chapter-merge over
+VNC) + flush-safe editor-leaving paths + Ctrl+W. No active Sprint/Epic; next available **T-0318**. Prior note
+below is retained for reference.)*

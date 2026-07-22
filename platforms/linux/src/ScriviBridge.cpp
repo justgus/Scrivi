@@ -268,6 +268,40 @@ QVariantMap ScriviBridge::reorderChapter(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::mergeScene(const QString& projectRootPath,
+                                     const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Joins this scene into the previous scene of the same chapter (survivor keeps its
+    // files; this scene's files are removed). No author identity — a merge is a
+    // structural op, not an authored edit. The caller guards the no-op cases.
+    const ScriviString envelope(
+        scrivi_merge_scene(projectRootPath.toUtf8().constData(),
+                           sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::mergeChapter(const QString& projectRootPath,
+                                       const QString& chapterID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Relocates every scene file of this chapter into the predecessor's folder, then
+    // removes the emptied chapter — the atomic I-0083 fix (no scene loss on reopen).
+    // No author identity. The caller guards the no-op cases.
+    const ScriviString envelope(
+        scrivi_merge_chapter(projectRootPath.toUtf8().constData(),
+                             chapterID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::renameScene(const QString& projectRootPath,
                                       const QString& metadataPath,
                                       const QString& newTitle)

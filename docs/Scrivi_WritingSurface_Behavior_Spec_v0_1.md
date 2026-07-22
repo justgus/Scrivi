@@ -123,7 +123,9 @@ The Scene Navigator always highlights the current scene, giving the writer unamb
 
 ## 8. Delete Rules
 
-The separator is **non-deletable**. Scenes cannot be merged via keyboard input.
+The separator is **non-deletable** by a *plain* delete keystroke. A bare ⌫/⌦ can never
+erase a boundary or bleed text across scenes. (Scene/chapter **merging** is a distinct,
+*modified* gesture — see §8.1 — not a plain delete.)
 
 | Cursor position | Delete backward (⌫) | Delete forward (⌦) |
 |----------------|---------------------|---------------------|
@@ -132,6 +134,26 @@ The separator is **non-deletable**. Scenes cannot be merged via keyboard input.
 | At end of Scene N | Deletes last char of Scene N | No effect |
 
 **Implementation:** Override `deleteBackward:` and `deleteForward:` in `ManuscriptNSTextView`. Before delegating to `super`, check whether the cursor is at a separator boundary using `recomputeBoundaries` and the known attachment character positions. If at a protected boundary, return without calling `super`.
+
+### 8.1 Scene & Chapter Merge (EP-028)
+
+Scenes and chapters **can** be merged via keyboard — through a **modified** delete, so it
+never collides with the plain-⌫ boundary protection above. Both platforms behave
+identically; there is **no confirmation dialog** (the keystroke is the approval), and both
+are no-ops at the very start of the manuscript.
+
+| Gesture | macOS | Linux | Effect |
+|---------|-------|-------|--------|
+| **Merge scene** | ⌘⌫ | Ctrl+⌫ | Caret at the **start of a scene** that is *not* its chapter's first scene → the scene joins the **previous scene** of the same chapter. Bodies are concatenated with a **blank-line** separator (elided if either side is empty); the absorbed scene's files are removed; the survivor keeps its identity. |
+| **Merge chapter** | ⇧⌘⌫ | Ctrl+Shift+⌫ | Caret at the **start of a chapter's first scene** (chapter not first in the manuscript) → the whole chapter merges into the **previous chapter**. Every scene file is **relocated** into the predecessor's folder (order keys minted after its last scene) and the emptied chapter is removed — no scene is lost on reopen (I-0083). |
+
+Both merges are backed by the atomic ScriviCore endpoints `scrivi_merge_scene` /
+`scrivi_merge_chapter` (SP-074) — the single, filesystem-coherent path under the EP-027
+identity/ordering model. Merge records a history **barrier** (`sceneMerge` / `chapterMerge`)
+on platforms that have a history subsystem (macOS/EP-019); structural undo itself remains
+out of scope. On Linux the merge relocates/renames files on disk, so the editor **reloads
+from disk** after the endpoint returns (disk is authoritative), re-anchoring the caret on
+the survivor.
 
 ---
 
