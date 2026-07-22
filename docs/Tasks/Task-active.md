@@ -1,21 +1,21 @@
 # Active Tasks
 
-**Epic:** EP-025 `[Linux]` (Timeline Panel) — **Sprint:** SP-079 `[Linux]` (`Sprints/Sprint-active.md`).
+_(No active Tasks — no active Sprint. EP-025 `[Linux]` Timeline Panel is 🟡 Active; its next sprint SP-080 is
+not yet activated.)_
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0321 | **`[Linux]` `ScriviBridge::getTimeline` + `getSceneStoryTime` invokables** — `getTimeline` → `scrivi_get_timeline` (epoch label + meta); `getSceneStoryTime` → `scrivi_get_scene_story_time` (gapMs/durationMs/offsetSource/bandID). Two invokables (per-scene story-time is a separate endpoint from the timeline meta). `scrivi.h` untouched (both exported since EP-016). | ✅ Verified (2026-07-22) |
-| T-0322 | **`[Linux]` `TimelinePanel` widget** — new `QWidget` (`TimelinePanel.cpp/.hpp`): horizontal strip painting a baseline + one dot per scene positioned by story-time `offsetMs`, vertically centered; empty-state; min height (80) + top-edge resize; active-dot highlight; hit-testing for clicks + tooltips. Registered in the Linux CMake. | ✅ Verified (2026-07-22) |
-| T-0323 | **`[Linux]` Dock as bottom strip + View ▸ Show Timeline toggle** — outer **vertical `QSplitter`** (`outerSplitter_`) wraps the 3-pane `splitter_` above + `timeline_` below (sizes `{620,120}`, non-collapsible); `setTimelineVisible`/`isTimelineVisible` (session-scoped, default shown); **View ▸ Show Timeline** (checkable, Ctrl+Alt+T, editor-only, check-state synced under a `QSignalBlocker`) on the SP-077 menu bar. | ✅ Verified (2026-07-22) |
-| T-0324 | **`[Linux]` Dot↔navigator selection + tooltip + verify** — dot click → `sceneClicked` → `moveCaretToSegment` + focus; active-scene change highlights its dot (driven from `selectNavigatorScene`, the single caret+scroll hook); `reloadTimeline` chains gapMs/durationMs → offsets on load + after every structural change. Hover tooltip = title + chapter + human-readable story-time. Closes **AC1 + AC2**. | ✅ Verified (2026-07-22) |
+**SP-079 (EP-025 `[Linux]`) ✅ closed 2026-07-22 (Human-approved).** T-0321/T-0322/T-0323/T-0324 all ✅
+**Verified** live over VNC and archived with the sprint (`Closed/Sprint-SP-079.md`):
 
-**Verification (2026-07-22):** ✅ build green (185/185, 0 warnings, `scrivi_linux` linked); ✅ regression smokes
-PASS (merge/create/reorder/chapter-reorder/scene-load/editor-map); ✅ Xvfb app-launch smoke PASS; ✅ **live VNC
-walkthrough — user Verified all four tasks** (dots in story-time order; View ▸ Show Timeline menu+Ctrl+Alt+T
-hide/show; top-edge resize; click-a-dot navigates; active-dot highlights both ways; tooltip reads
-title+story-time; empty-state on a scene-less project; inert on landing). **EP-025 AC1 + AC2 met. SP-079 ready
-to close** (awaiting user approval). No new headless smoke (pure UI). No `scrivi_*`/`scrivi.h`/Apple change →
-no pbxproj (Linux-only). **Next available T-0325.**
+- **T-0321** — `ScriviBridge::getTimeline` + `getSceneStoryTime` invokables (epoch/meta + per-scene gap/duration).
+- **T-0322** — `TimelinePanel` widget (bottom strip, scene dots in story-time order, empty-state, resize,
+  active-dot highlight, hit-testing).
+- **T-0323** — docked as the editor's bottom strip (outer vertical splitter) + View ▸ Show Timeline toggle
+  (Ctrl+Alt+T) on the SP-077 menu bar.
+- **T-0324** — bidirectional dot↔navigator selection + tooltip + `reloadTimeline` gap chain.
+
+**EP-025 AC1 + AC2 Verified.** `scrivi.h` untouched (timeline C ABI complete from EP-016); no pbxproj
+(Linux-only); no new headless smoke (pure UI, verified live). **EP-025 continues → SP-080** (scene-dot drag +
+Time Delta Picker + chain propagation, AC3). **Next available Task: T-0325.**
 
 ---
 
@@ -132,11 +132,11 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-079 T-0321–T-0324 ✅ all Verified (user, live VNC)** — EP-025 `[Linux]`
-Timeline Panel's read + layout + select core: `ScriviBridge::getTimeline` + `getSceneStoryTime` invokables, a
-`TimelinePanel` bottom strip with scene dots in story-time order (chain-computed shell-side), a View ▸ Show
-Timeline toggle (Ctrl+Alt+T) on the SP-077 menu bar, and bidirectional dot↔navigator selection + tooltip.
-**EP-025 AC1 + AC2 met; SP-079 ready to close (awaiting user approval).** Container build green (185/185,
-0 warnings) + all Linux smokes PASS. `scrivi.h` untouched; no pbxproj (Linux-only). Next available **T-0325**;
-next Sprint SP-080 (drag + Time Delta Picker, AC3). Earlier same day: **SP-078 ✅ closed — EP-024 closed**
-(T-0318–T-0320 Verified). Prior notes below retained for reference.)*
+*Last Updated: 2026-07-22 (**SP-079 ✅ closed — EP-025 AC1 + AC2 Verified.** T-0321–T-0324 all Verified live
+over VNC & archived with the sprint (`Sprints/Closed/Sprint-SP-079.md`). Delivered the `[Linux]` Timeline
+panel's read + layout + select core: `ScriviBridge::getTimeline` + `getSceneStoryTime` invokables, a
+`TimelinePanel` bottom strip with scene dots in story-time order, a View ▸ Show Timeline toggle (Ctrl+Alt+T)
+on the SP-077 menu bar, and bidirectional dot↔navigator selection + tooltip. `scrivi.h` untouched; no pbxproj
+(Linux-only). No active Sprint; **EP-025 stays Active** → SP-080 (drag + Time Delta Picker, AC3). Next available
+**T-0325**. Earlier same day: **SP-078 ✅ closed — EP-024 closed** (T-0318–T-0320 Verified). Prior notes below
+retained for reference.)*

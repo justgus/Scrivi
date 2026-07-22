@@ -69,8 +69,8 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time layout) + show/hide + dot↔navigator selection | 🟡 Active — all tasks Verified (AC1/AC2 met); ready to close | 2026-07-22 – |
-| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | 🔵 Planned | — |
+| SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time layout) + show/hide + dot↔navigator selection | ✅ Closed | 2026-07-22 – 2026-07-22 |
+| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | 🔵 Planned (next) | — |
 | SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | 🔵 Planned | — |
 | SP-082 | `[Linux]` Historical events + imported timelines + export | 🔵 Planned | — |
 | SP-083 | `[Linux]` Clustering + pan/zoom + persistence + full EP-025 verify & Epic close | 🔵 Planned | — |
@@ -101,14 +101,16 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel activated + SP-079 implemented** — the largest
-Linux Epic since Apple EP-016 (full parity, ~5 sprints, rebuilt in Qt/C++; the timeline C ABI already exists
-from EP-016/SP-039). **SP-079** (read + layout + select core) 🟢 Implemented, Not Verified: `ScriviBridge`
-`getTimeline` + `getSceneStoryTime` invokables, a `TimelinePanel` bottom strip with one scene dot per scene in
-story-time order (chain-computed shell-side), a View ▸ Show Timeline toggle (Ctrl+Alt+T) on the SP-077 menu
-bar, and bidirectional dot↔navigator selection + tooltip (T-0321–T-0324). Container build green (185/185,
-0 warnings) + all Linux smokes PASS; live VNC + AC1/AC2 sign-off pending. Panel docks as a bottom strip (user
-decision). Epics Active 0→1, Draft 2→1. Prior note follows.)*
+*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel — SP-079 ✅ closed (Human-approved)** — the first
+of ~5 sprints delivered the timeline read + layout + select core: `ScriviBridge` `getTimeline` +
+`getSceneStoryTime` invokables, a `TimelinePanel` bottom strip with one scene dot per scene in story-time order
+(chain-computed shell-side), a View ▸ Show Timeline toggle (Ctrl+Alt+T) on the SP-077 menu bar, and
+bidirectional dot↔navigator selection + tooltip (T-0321–T-0324, all Verified). **AC1 + AC2 met.** Container
+build green (185/185, 0 warnings) + all Linux smokes PASS; `scrivi.h` untouched (timeline C ABI complete from
+EP-016). **EP-025 stays 🟡 Active** → SP-080 (scene-dot drag + Time Delta Picker + chain propagation, AC3).
+Design note: `scrivi_get_timeline` returns only timeline meta; per-scene story-time is a separate
+`get_scene_story_time` call + client-side gap chain (corrected on AC1/design refs at SP-079). Prior note
+follows.)*
 
 *2026-07-22 (**EP-024 `[Linux]` Scene Inspector Panel ✅ closed with user approval** — the Linux mirror of
 Apple EP-014: a hideable right-side `QTabWidget` panel docked as `EditorShell`'s third splitter pane, a stub
