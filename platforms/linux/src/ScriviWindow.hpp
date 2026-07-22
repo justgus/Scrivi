@@ -116,4 +116,8 @@ private:
     // View ▸ Show Inspector (SP-078, T-0320) — checkable; its check-state is
     // synced to the editor's actual inspector visibility on every page swap.
     QAction* showInspectorAction_ = nullptr;
+
+    // View ▸ Show Timeline (SP-079, T-0323) — checkable; check-state synced to the
+    // editor's actual timeline visibility on every page swap.
+    QAction* showTimelineAction_ = nullptr;
 };

@@ -43,6 +43,9 @@ qt_add_executable(scrivi_linux
     # SP-078 (EP-024): the Scene Inspector side panel (UI stub).
     src/SceneInspector.cpp
     src/SceneInspector.hpp
+    # SP-079 (EP-025): the Timeline bottom strip (scene dots in story-time order).
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
 )
 
 qt_add_qml_module(scrivi_linux

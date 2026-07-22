@@ -219,6 +219,23 @@ public:
                                           const QString& metadataPath,
                                           const QString& newTitle);
 
+    // Returns the project's timeline meta (EP-025 / SP-079, T-0321). Calls
+    // scrivi_get_timeline(projectRootPath) and returns its ok "result":
+    // {timelineID, epochLabel, projectID, createdAt}. Used by the Timeline panel to
+    // label the story-time origin ("Story Open"). The timeline C ABI already exists
+    // (EP-016/SP-039); scrivi.h is untouched. On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap getTimeline(const QString& projectRootPath);
+
+    // Returns one scene's story-time (EP-025 / SP-079, T-0321). Calls
+    // scrivi_get_scene_story_time(projectRootPath, sceneID) and returns its ok
+    // "result": {sceneID, offsetMs, offsetSource, gapMs, durationMs, durationSource,
+    // inferenceHint, inferenceConfidence, bandID, bandAssignedAt}. The Timeline panel
+    // reads gapMs + durationMs for each scene and computes the dot offsets via the
+    // default gap chain (mirroring Apple's TimelineViewModel.recomputeAllOffsets). On
+    // failure emits errorOccurred and returns {}.
+    Q_INVOKABLE QVariantMap getSceneStoryTime(const QString& projectRootPath,
+                                              const QString& sceneID);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

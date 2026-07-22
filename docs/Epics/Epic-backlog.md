@@ -94,21 +94,12 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
 built Epic-by-Epic). **EP-020 `[Linux]` (Foundation), EP-021 `[Linux]` (Project Lifecycle & Landing),
-EP-022 `[Linux]` (Writing Surface & Scene Navigator), and EP-023 `[Linux]` (Manuscript Structure Editing)
-are all ✅ closed** (→ `Epics/Closed/`); **EP-024 `[Linux]` (Scene Inspector Panel) is now 🟡 Active**
-(→ `Epics/Epic-active.md`). The Epics below are 🔵 Draft, defined and sequenced, promoted to Active one at a
-time as each predecessor lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester).
-Each targets near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with
-a `[ScriviCore]` note, not a separate Epic.
-
-### EP-025: [Linux] Timeline Panel
-
-**Status:** 🔵 Draft
-**Goal:** The timeline panel on Linux — scene dots, story-time, story-structure bands, historical
-events, imported timelines. Mirrors Apple EP-015 / EP-016.
-**Rough scope:** the timeline `scrivi_*` surface (get_timeline, story-time, bands, historical events,
-imported timelines, export), horizontal QML timeline with drag, time delta picker. **Depends on:**
-EP-022. *(Large — EP-016 was a substantial Apple Epic.)*
+EP-022 `[Linux]` (Writing Surface & Scene Navigator), EP-023 `[Linux]` (Manuscript Structure Editing), and
+EP-024 `[Linux]` (Scene Inspector Panel) are all ✅ closed** (→ `Epics/Closed/`); **EP-025 `[Linux]`
+(Timeline Panel) is now 🟡 Active** (→ `Epics/Epic-active.md`). The Epic below is 🔵 Draft, promoted to Active
+when EP-025 lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each targets
+near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a
+`[ScriviCore]` note, not a separate Epic.
 
 ### EP-026: [Linux] Undo/Redo, Menus, Settings & Parity Verification
 
@@ -122,8 +113,8 @@ tester. **Depends on:** EP-022 (and benefits from EP-023–EP-025).
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-024 [Linux] Scene Inspector Panel promoted from this backlog and ✅ closed
-same day** — its only sprint SP-078 delivered & verified the panel in one day, mirroring Apple EP-014/SP-037;
-archived to `Closed/Epic-EP-024.md`. Remaining [Linux] family EP-025–EP-026 stay 🔵 Draft (EP-025 Timeline is
-next in line). EP-019 [Apple] remains 🔴 Deferred. Prior: 2026-07-15 (EP-022 ✅ closed; EP-023 promoted to
-Active).)*
+*Last Updated: 2026-07-22 (**EP-025 [Linux] Timeline Panel promoted from this backlog to 🟡 Active** (full
+detail now in `Epic-active.md`); its first sprint SP-079 activated same day. The largest Linux Epic (full
+Apple EP-016 parity, ~5 sprints). Remaining [Linux] family: **EP-026** stays 🔵 Draft (promoted when EP-025
+lands). EP-019 [Apple] remains 🔴 Deferred. Prior: 2026-07-22 (EP-024 ✅ closed same-day); 2026-07-15 (EP-022
+✅ closed; EP-023 promoted to Active).)*

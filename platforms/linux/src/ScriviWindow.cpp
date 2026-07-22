@@ -139,6 +139,16 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(showInspectorAction_);
 
+    // Show Timeline (EP-025 / SP-079, T-0323) — the bottom timeline strip. Ctrl+Alt+T,
+    // the timeline analogue of the inspector's Ctrl+Alt+I; not macOS→VNC-intercepted.
+    showTimelineAction_ = view->addAction(tr("Show Timeline"));
+    showTimelineAction_->setCheckable(true);
+    showTimelineAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_T));
+    connect(showTimelineAction_, &QAction::toggled, this, [this](bool on) {
+        if (editor_ != nullptr) { editor_->setTimelineVisible(on); }
+    });
+    editorOnlyActions_.append(showTimelineAction_);
+
     // --- Scene ------------------------------------------------------------
     QMenu* scene = bar->addMenu(tr("&Scene"));
     QAction* splitScene = scene->addAction(tr("Split Scene"));
@@ -203,6 +213,14 @@ void ScriviWindow::updateMenuState(bool editorActive)
                            && editor_->isInspectorVisible();
         const QSignalBlocker block(showInspectorAction_);
         showInspectorAction_->setChecked(shown);
+    }
+
+    // Same for View ▸ Show Timeline (EP-025, T-0323).
+    if (showTimelineAction_ != nullptr) {
+        const bool shown = editorActive && editor_ != nullptr
+                           && editor_->isTimelineVisible();
+        const QSignalBlocker block(showTimelineAction_);
+        showTimelineAction_->setChecked(shown);
     }
 }
 

@@ -15,6 +15,7 @@ class QSplitter;
 class ScriviBridge;
 class ManuscriptEditor;
 class SceneInspector;
+class TimelinePanel;
 
 // EditorShell — the Linux editor screen (SP-061 T-0235/0236, SP-062 T-0238…).
 //
@@ -82,6 +83,14 @@ public:
     void setInspectorVisible(bool visible);
     bool isInspectorVisible() const;
 
+    // --- EP-025 Timeline Panel (SP-079, T-0323) ---------------------------
+    //
+    // Show/hide the bottom Timeline strip (a resizable pane below the
+    // navigator|viewport|inspector splitter). Session-scoped, default shown —
+    // matching the inspector. Driven by View ▸ Show Timeline (T-0323).
+    void setTimelineVisible(bool visible);
+    bool isTimelineVisible() const;
+
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible
     // (T-0246) — the QStackedWidget swaps to the editor after load(), so focusing
@@ -144,6 +153,16 @@ private:
     bool saveScene(int segmentIndex);
     // (Re)populate the navigator tree from the current SceneDocument segments.
     void rebuildNavigator();
+
+    // --- EP-025 Timeline (SP-079, T-0322/T-0324) --------------------------
+    // Rebuild the Timeline panel's dots from the current segments + the backend
+    // story-time: epoch label from bridge_->getTimeline, then per-scene gapMs +
+    // durationMs from bridge_->getSceneStoryTime, run through the default gap chain
+    // (offset[i] = prevEnd + gapMs[i]) to get each dot's story-time offset — mirroring
+    // Apple's TimelineViewModel.load + recomputeAllOffsets. Called on load() and after
+    // any structural change so the strip tracks the manuscript. Guarded by loading_
+    // (no work mid-assembly beyond the final call).
+    void reloadTimeline();
     // Move the caret to the start of segment `index`'s body and center it; also
     // reflects the selection in the navigator. Updates activeSegment_.
     void moveCaretToSegment(int index);
@@ -231,6 +250,8 @@ private:
     QTimer*             saveTimer_ = nullptr;   // idle-save debounce (~1.5s)
     QSplitter*          splitter_  = nullptr;   // navigator | viewport | inspector
     SceneInspector*     inspector_ = nullptr;   // EP-024 right-side panel
+    QSplitter*          outerSplitter_ = nullptr;  // (panels) above | timeline below
+    TimelinePanel*      timeline_  = nullptr;   // EP-025 bottom strip
     SceneDocument       sceneDoc_;
 
     // Identity of the open project, stashed on load() for the save path.

@@ -11,8 +11,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**None.** SP-078 (EP-024 `[Linux]`) ✅ closed 2026-07-22 — see below. **This closed EP-024.** No active Epic;
-next in line EP-025 `[Linux]` (Timeline Panel, 🔵 Draft). Next available sprint **SP-079**.
+**SP-079** `[Linux]` (EP-025 — **Timeline Panel**, opens the Epic): the read + layout + select core of the
+Linux timeline — a hideable **bottom** strip (`TimelinePanel`) with one dot per scene in **story-time** order
+(from `scrivi_get_timeline` via a new `ScriviBridge::getTimeline`), a **View ▸ Show Timeline** toggle
+(Ctrl+Alt+T) on the SP-077 menu bar, and bidirectional **dot↔navigator selection** + tooltip. Mirrors Apple
+EP-016's SP-039 read + SP-040/SP-043 layout/select core; `scrivi.h` untouched (timeline C ABI already complete
+from EP-016). 🟡 **Active from 2026-07-22.** Tasks T-0321–T-0324. See `Sprint-active.md`.
 
 Last closed: **SP-078** (EP-024 `[Linux]` — **Scene Inspector Panel**, opened AND closed the Epic) — ✅
 **closed 2026-07-22 (Human-approved).** A hideable right-side tabbed panel mirroring Apple EP-014 — a
@@ -104,9 +108,9 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **76 Sprints** (74 closed + 1 cancelled + 2 in Planning; the SP-068 **ID** was skipped
+Currently: **77 Sprints** (74 closed + 1 cancelled + 1 active + 2 in Planning; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-079**
+2026-07-19) | Next available: **SP-080**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -187,19 +191,28 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-076 | `[Linux]` Scene & chapter merge parity (AC5/AC6/AC7) — final EP-028 leg | EP-028 `[Cross]` | 2026-07-21 | 2026-07-22 | ✅ Closed |
 | SP-077 | `[Linux]` Native menu bar (File/Edit/Scene/Chapter/Project) — unblocked EP-028 AC5/AC6 Linux verify over VNC | — `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-078 | `[Linux]` Scene Inspector Panel — dockable tabbed panel + Scene Entities stub + View-menu toggle | EP-024 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
+| SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time) + show/hide + dot↔navigator selection | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 77 (SP-001–SP-078 issued; SP-068 skipped)
+- **Total Sprints:** 78 (SP-001–SP-079 issued; SP-068 skipped)
 - **Closed:** 74 ✅
-- **Active:** 0 🟡
+- **Active:** 1 🟡 (SP-079 EP-025 `[Linux]` Timeline Panel)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-078 ✅ closed with user approval** — EP-024 `[Linux]` Scene Inspector Panel,
+*Last Updated: 2026-07-22 (**SP-079 activated** — opens EP-025 `[Linux]` Timeline Panel, the largest Linux
+Epic since Apple EP-016. This first sprint delivers the read + layout + select core: a hideable bottom timeline
+strip (`TimelinePanel`) with one scene dot per scene in story-time order (from `scrivi_get_timeline` via a new
+`ScriviBridge::getTimeline`), a View ▸ Show Timeline toggle (Ctrl+Alt+T) on the SP-077 menu bar, and
+bidirectional dot↔navigator selection + tooltip. Tasks T-0321–T-0324; `scrivi.h` untouched (timeline C ABI
+already complete from EP-016); panel docks as a bottom strip (user decision). Active 0→1; next available SP-080
+(drag + Time Delta Picker). Prior note follows.)*
+
+*2026-07-22 (**SP-078 ✅ closed with user approval** — EP-024 `[Linux]` Scene Inspector Panel,
 planned + activated + implemented + verified + closed same day (mirroring Apple EP-014/SP-037). A hideable
 right-side `QTabWidget` panel docked as `EditorShell`'s third splitter pane, a stub "Scene Entities" tab, and
 a View ▸ Show Inspector toggle (Ctrl+Alt+I) on the SP-077 menu bar; session-scoped, default shown, 120/200

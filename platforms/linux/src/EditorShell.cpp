@@ -24,6 +24,7 @@
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
 #include "ScriviBridge.hpp"
+#include "TimelinePanel.hpp"
 
 namespace {
 // Custom data roles on navigator items (shared with NavigatorTree's drop resolution):
@@ -105,6 +106,31 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     splitter_->setCollapsible(2, false);
     splitter_->setSizes({240, 580, 200});   // 200 = default inspector width (user pref)
 
+    // --- Timeline (bottom): EP-025 Timeline strip -------------------------
+    // Docks as a resizable BOTTOM strip below the panels (user decision 2026-07-22,
+    // Apple EP-016 layout). An outer VERTICAL splitter holds the 3-pane row above and
+    // the timeline below; the divider resizes the strip by its top edge. Non-collapsible
+    // via drag — hide it via View ▸ Show Timeline (T-0323). Session-scoped, default shown.
+    timeline_ = new TimelinePanel(this);
+    connect(timeline_, &TimelinePanel::sceneClicked,
+            this, [this](const QString& sceneID) {
+                // Same navigate the navigator click uses: caret to the scene start +
+                // highlight it in the navigator (moveCaretToSegment also sets active).
+                const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+                if (idx >= 0) {
+                    moveCaretToSegment(idx);
+                    viewport_->setFocus();
+                }
+            });
+
+    outerSplitter_ = new QSplitter(Qt::Vertical, this);
+    outerSplitter_->addWidget(splitter_);
+    outerSplitter_->addWidget(timeline_);
+    outerSplitter_->setStretchFactor(0, 1);   // panels take the slack
+    outerSplitter_->setStretchFactor(1, 0);   // timeline — fixed-ish
+    outerSplitter_->setCollapsible(1, false);
+    outerSplitter_->setSizes({620, 120});     // ~120px default timeline height
+
     errorLabel_ = new QLabel(this);
     errorLabel_->setStyleSheet(QStringLiteral("color:#c0392b;"));
     errorLabel_->setWordWrap(true);
@@ -113,7 +139,7 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
     root->addLayout(toolbar);
-    root->addWidget(splitter_, /*stretch=*/1);
+    root->addWidget(outerSplitter_, /*stretch=*/1);
     root->addWidget(errorLabel_);
 
     // Idle-save debounce (T-0239): (re)armed on each edit; fires one saveDirtyScenes.
@@ -304,6 +330,10 @@ bool EditorShell::load(const QString& projectPath,
     // editor page isn't visible yet (loaded before the stack swaps to it), showEvent
     // will focus it when it appears.
     viewport_->setFocus();
+
+    // EP-025: build the timeline dots from the backend story-time now that the
+    // segments + activeSegment are set.
+    reloadTimeline();
 
     return true;
 }
@@ -913,6 +943,13 @@ void EditorShell::promoteActiveScene(int newSeg)
 
 void EditorShell::selectNavigatorScene(const QString& sceneID)
 {
+    // Timeline follows the active scene too (EP-025, T-0324): highlight its dot. This
+    // is the single hook both promoteActiveScene and moveCaretToSegment route through,
+    // so the timeline stays in sync with the navigator without a separate wiring.
+    if (timeline_ != nullptr) {
+        timeline_->setActiveScene(sceneID);
+    }
+
     // Highlight-only: find the matching child row and select it. No scroll, no caret.
     for (int r = 0; r < navModel_->rowCount(); ++r) {
         QStandardItem* chapter = navModel_->item(r);
@@ -1030,6 +1067,11 @@ void EditorShell::rebuildNavigator()
         chapterItem->appendRow(sceneItem);
     }
     navigator_->expandAll();
+
+    // Keep the timeline strip in sync after any structural change (create / delete /
+    // rename / reorder / merge / split all rebuild the navigator). Guarded internally
+    // against the mid-load programmatic build (load() calls reloadTimeline once at end).
+    reloadTimeline();
 }
 
 void EditorShell::moveCaretToSegment(int index)
@@ -1490,4 +1532,67 @@ void EditorShell::setInspectorVisible(bool visible)
 bool EditorShell::isInspectorVisible() const
 {
     return inspector_ != nullptr && inspector_->isVisible();
+}
+
+// --- EP-025 Timeline visibility + reload (SP-079) -------------------------
+
+void EditorShell::setTimelineVisible(bool visible)
+{
+    if (timeline_ == nullptr) {
+        return;
+    }
+    // Collapse/restore the bottom pane; the panels above (stretch=1) reclaim the
+    // height when hidden. Session-scoped — no on-disk persistence (matches inspector).
+    timeline_->setVisible(visible);
+}
+
+bool EditorShell::isTimelineVisible() const
+{
+    return timeline_ != nullptr && timeline_->isVisible();
+}
+
+void EditorShell::reloadTimeline()
+{
+    if (timeline_ == nullptr || loading_) {
+        return;   // load() calls this once at the end, past the loading_ guard
+    }
+
+    // Epoch label from the timeline meta (falls back to "Story Open" inside the panel).
+    const QVariantMap tl = bridge_->getTimeline(projectPath_);
+    const QString epochLabel = tl.value(QStringLiteral("epochLabel")).toString();
+
+    // Build the dots in manuscript order, computing each dot's story-time offset via
+    // the default gap chain (mirrors Apple's TimelineViewModel.recomputeAllOffsets):
+    //   offset[0] = gap[0]; offset[i] = (offset[i-1] + duration[i-1]) + gap[i].
+    // gapMs + durationMs come from scrivi_get_scene_story_time per scene; unset scenes
+    // fall back to gap 0 + the 1-hour default duration.
+    constexpr qint64 kDefaultDurationMs = 3'600'000;   // 1 hour (project default)
+    QList<TimelinePanel::Dot> dots;
+    qint64 prevEnd = 0;
+    const QList<SceneSegment>& segs = sceneDoc_.segments();
+    for (int i = 0; i < segs.size(); ++i) {
+        const SceneSegment& seg = segs.at(i);
+        const QVariantMap st = bridge_->getSceneStoryTime(projectPath_, seg.sceneID);
+        const qint64 gapMs = st.value(QStringLiteral("gapMs")).toLongLong();
+        qint64 durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
+        if (durationMs <= 0) {
+            durationMs = kDefaultDurationMs;
+        }
+        const qint64 offsetMs = (i == 0) ? gapMs : (prevEnd + gapMs);
+        prevEnd = offsetMs + durationMs;
+
+        TimelinePanel::Dot dot;
+        dot.sceneID    = seg.sceneID;
+        dot.title      = seg.title.isEmpty() ? tr("Scene %1").arg(i + 1) : seg.title;
+        dot.chapterTitle = sceneDoc_.chapterHeadingText(i);
+        dot.offsetMs   = offsetMs;
+        dot.durationMs = durationMs;
+        dots.append(dot);
+    }
+
+    timeline_->setTimeline(epochLabel, dots);
+    // Re-highlight the active scene's dot after the rebuild.
+    if (activeSegment_ >= 0 && activeSegment_ < segs.size()) {
+        timeline_->setActiveScene(segs.at(activeSegment_).sceneID);
+    }
 }

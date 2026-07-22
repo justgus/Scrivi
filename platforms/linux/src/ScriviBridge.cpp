@@ -339,6 +339,36 @@ QVariantMap ScriviBridge::renameChapter(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::getTimeline(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Read-only; no author identity. Returns {timelineID, epochLabel, projectID,
+    // createdAt}. The timeline C ABI is already exported (EP-016) — scrivi.h untouched.
+    const ScriviString envelope(
+        scrivi_get_timeline(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getSceneStoryTime(const QString& projectRootPath,
+                                            const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Read-only; no author identity. Returns the scene's story-time block
+    // (gapMs/durationMs drive the dot chain; offsetSource/bandID for later sprints).
+    const ScriviString envelope(
+        scrivi_get_scene_story_time(projectRootPath.toUtf8().constData(),
+                                    sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

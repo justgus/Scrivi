@@ -12,20 +12,20 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **0 Active Epics.** **EP-024** `[Linux]` (Scene Inspector Panel) ✅ **closed 2026-07-22**
-(Human-approved) — a hideable right-side tabbed panel with a stub "Scene Entities" tab (mirroring Apple
-EP-014); delivered & verified in one sprint (**SP-078**); archived to `Closed/Epic-EP-024.md`. **EP-028**
-`[Cross]` (Scene & Chapter Merging) ✅ **closed 2026-07-22** — 4 sprints (SP-074–SP-077), AC1–AC7 Verified;
-archived to `Closed/Epic-EP-028.md`. Next in line: EP-025 `[Linux]` (Timeline Panel), then EP-026 `[Linux]`
-(🔵 Draft), promoted to Active one at a time on user request.
+Currently: **1 Active Epic** — **EP-025** `[Linux]` (Timeline Panel) 🟡 Active from 2026-07-22: a hideable
+bottom timeline strip with scene dots in story-time order, drag + Time Delta Picker, story-structure bands,
+historical/imported events, export, clustering — full Apple EP-016 parity, rebuilt in Qt/C++; ~5 sprints
+(first sprint **SP-079** active). **EP-024** `[Linux]` (Scene Inspector Panel) ✅ **closed 2026-07-22** —
+one sprint (SP-078); archived to `Closed/Epic-EP-024.md`. Next in line after EP-025: EP-026 `[Linux]`
+(🔵 Draft), promoted to Active on user request.
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **3 Backlog Epics** —
+Currently: **2 Backlog Epics** —
 - EP-019 `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers), 🔴 Deferred 2026-07-13; partially delivered (AC1/AC3/AC4/AC5 verified; AC2/AC6/AC7/AC8 remaining); resume at SP-056.
-- EP-025–EP-026 `[Linux]` (Ubuntu Qt/QML app family — timeline, undo/menus/settings), 🔵 Draft; promoted to Active one at a time. (EP-023 structure editing ✅ closed 2026-07-19; **EP-024 Scene Inspector ✅ closed 2026-07-22**.)
+- EP-026 `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft; promoted to Active on user request. (EP-023 ✅ closed 2026-07-19; **EP-024 Scene Inspector ✅ closed 2026-07-22**; **EP-025 Timeline Panel 🟡 Active 2026-07-22**.)
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
@@ -61,7 +61,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-022 | `[Linux]` Writing Surface & Scene Navigator | ✅ Closed | 2026-07-14 | 2026-07-15 |
 | EP-023 | `[Linux]` Manuscript Structure Editing | ✅ Closed | 2026-07-15 | 2026-07-19 |
 | EP-024 | `[Linux]` Scene Inspector Panel | ✅ Closed | 2026-07-22 | 2026-07-22 |
-| EP-025 | `[Linux]` Timeline Panel | 🔵 Draft (backlog) | — | — |
+| EP-025 | `[Linux]` Timeline Panel | 🟡 Active | 2026-07-22 | — |
 | EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
 | EP-027 | `[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering | ✅ Closed | 2026-07-16 | 2026-07-18 |
 | EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | ✅ Closed | 2026-07-20 | 2026-07-22 |
@@ -71,14 +71,22 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 - **Total Epics:** 28
 - **Closed:** 24 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 0 🟡
-- **Draft:** 2 🔵 (EP-025–EP-026 `[Linux]`)
+- **Active:** 1 🟡 (EP-025 `[Linux]` Timeline Panel)
+- **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-024 `[Linux]` Scene Inspector Panel ✅ closed with user approval** — the Linux
+*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel activated** — the next `[Linux]` family Epic and
+the largest since Apple EP-016: a hideable bottom timeline strip with scene dots in story-time order, drag +
+Time Delta Picker, story-structure bands, historical/imported events, export, and clustering — full EP-016
+parity (user decision), rebuilt in Qt/C++. The full timeline C ABI already exists (EP-016/SP-039), so this is
+a pure `[Linux]` UI Epic like EP-022/EP-023. 5 sprints sequenced (SP-079–SP-083); **SP-079** active (panel
+scaffold + scene dots + show/hide + dot↔navigator selection, T-0321–T-0324). Panel docks as a bottom strip
+(user decision). Epics Active 0→1, Draft 2→1, Backlog 3→2. Prior note follows.)*
+
+*2026-07-22 (**EP-024 `[Linux]` Scene Inspector Panel ✅ closed with user approval** — the Linux
 mirror of Apple EP-014, planned + activated + implemented + verified + closed same day: a hideable right-side
 `SceneInspector` (`QTabWidget`, stub "Scene Entities" tab) docked as `EditorShell`'s third splitter pane + a
 View ▸ Show Inspector toggle at Ctrl+Alt+I on the SP-077 menu bar; session-scoped, default shown, 120/200 width
