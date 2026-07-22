@@ -46,6 +46,9 @@ qt_add_executable(scrivi_linux
     # SP-079 (EP-025): the Timeline bottom strip (scene dots in story-time order).
     src/TimelinePanel.cpp
     src/TimelinePanel.hpp
+    # SP-080 (EP-025): the Time Delta Picker dialog (scene story-time placement).
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
 )
 
 qt_add_qml_module(scrivi_linux
@@ -378,6 +381,33 @@ target_link_libraries(scrivi_linux_scene_merge_smoke
 
 target_include_directories(scrivi_linux_scene_merge_smoke PRIVATE src)
 target_compile_features(scrivi_linux_scene_merge_smoke PRIVATE cxx_std_23)
+
+# --- Headless timeline story-time smoke (SP-080 / T-0328, EP-025 AC3) ------
+# Builds a 3-scene fixture, then through the bridge (the layer
+# EditorShell::showTimeDeltaPicker calls): places a scene manually 2h after the
+# previous scene's end (setSceneStoryTime source="manual") + re-persists the chain,
+# asserts on reopen the manual gap persisted and later default scenes stayed on the
+# chain, then resets to default and asserts it returns to the chain. The drag + picker
+# QDialog UI is verified live over VNC; the endpoint + gap-chain math are headless here.
+# timeline_story_time_smoke.sh (no display — QCoreApplication only).
+qt_add_executable(scrivi_linux_timeline_story_time_smoke
+    tests/timeline_story_time_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_timeline_story_time_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_timeline_story_time_smoke PRIVATE src)
+target_compile_features(scrivi_linux_timeline_story_time_smoke PRIVATE cxx_std_23)
 
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a

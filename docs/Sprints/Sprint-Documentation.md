@@ -11,9 +11,11 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**None.** SP-079 (EP-025 `[Linux]`) ✅ closed 2026-07-22 — see below. **EP-025 `[Linux]` Timeline Panel stays
-🟡 Active** → next sprint **SP-080** (scene-dot drag + Time Delta Picker + chain propagation, AC3). Next
-available sprint **SP-080**.
+**SP-080** `[Linux]` (EP-025 — **Timeline Panel**, 2nd of ~5 sprints): interactive scene dots — drag a dot →
+**Time Delta Picker** on release (Apple parity) → commit via `scrivi_set_scene_story_time` (manual placement) +
+**chain-propagate** subsequent offsets; also a dot context-menu "Set Time Delta…". Delivers **AC3**. Canonical
+stored value is `gapMs` + derived `offsetMs` chain; `scrivi.h` untouched (endpoint exists from EP-016); new
+`timeline_story_time_smoke`. 🟡 **Active from 2026-07-22.** Tasks T-0325–T-0328. See `Sprint-active.md`.
 
 Last closed: **SP-079** (EP-025 `[Linux]` — **Timeline Panel**, opened the Epic) — ✅ **closed 2026-07-22
 (Human-approved).** The read + layout + select core: a hideable **bottom** strip (`TimelinePanel`) with one dot
@@ -113,9 +115,9 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **77 Sprints** (75 closed + 1 cancelled + 2 in Planning; the SP-068 **ID** was skipped
+Currently: **78 Sprints** (75 closed + 1 cancelled + 1 active + 2 in Planning; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-080**
+2026-07-19) | Next available: **SP-081**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -197,19 +199,27 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-077 | `[Linux]` Native menu bar (File/Edit/Scene/Chapter/Project) — unblocked EP-028 AC5/AC6 Linux verify over VNC | — `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-078 | `[Linux]` Scene Inspector Panel — dockable tabbed panel + Scene Entities stub + View-menu toggle | EP-024 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time) + show/hide + dot↔navigator selection | EP-025 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
+| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 78 (SP-001–SP-079 issued; SP-068 skipped)
+- **Total Sprints:** 79 (SP-001–SP-080 issued; SP-068 skipped)
 - **Closed:** 75 ✅
-- **Active:** 0 🟡
+- **Active:** 1 🟡 (SP-080 EP-025 `[Linux]` Timeline Panel)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-079 ✅ closed with user approval** — EP-025 `[Linux]` Timeline Panel's first
+*Last Updated: 2026-07-22 (**SP-080 activated** — EP-025 `[Linux]` Timeline Panel's 2nd sprint: interactive
+scene dots (drag → Time Delta Picker on release → `scrivi_set_scene_story_time` manual commit + chain
+propagation; + dot context-menu "Set Time Delta…"). Delivers AC3. Tasks T-0325–T-0328; canonical stored value
+is `gapMs` + derived `offsetMs` chain; `scrivi.h` untouched (endpoint from EP-016); new `timeline_story_time_smoke`.
+Pan/zoom decided for SP-083 (Ctrl+wheel + buttons zoom, drag-background + Shift+wheel pan — not trackpad pinch,
+VNC/X11 can't carry it). Active 0→1; next available SP-081 (story-structure bands). Prior note follows.)*
+
+*2026-07-22 (**SP-079 ✅ closed with user approval** — EP-025 `[Linux]` Timeline Panel's first
 sprint, planned + activated + implemented + verified + closed same day. Delivered the timeline read + layout +
 select core: a hideable bottom `TimelinePanel` strip with one scene dot per scene in story-time order
 (chain-computed from new `ScriviBridge::getTimeline` + `getSceneStoryTime` invokables), a View ▸ Show Timeline

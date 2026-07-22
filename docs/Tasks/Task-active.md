@@ -1,7 +1,23 @@
 # Active Tasks
 
-_(No active Tasks — no active Sprint. EP-025 `[Linux]` Timeline Panel is 🟡 Active; its next sprint SP-080 is
-not yet activated.)_
+**Epic:** EP-025 `[Linux]` (Timeline Panel) — **Sprint:** SP-080 `[Linux]` (`Sprints/Sprint-active.md`).
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0325 | **`[Linux]` `ScriviBridge::setSceneStoryTime` invokable** — → `scrivi_set_scene_story_time` (exported since EP-016). Peer to SP-079's `getSceneStoryTime`. `scrivi.h` untouched. | ✅ Verified (2026-07-22) |
+| T-0326 | **`[Linux]` `TimelinePanel` dot drag** — press-on-dot → horizontal drag (4px threshold) live-moves the dot (`dragX_`) → `dotDragged(sceneID, offsetForX())` on release; click vs drag by threshold; right-click "Set Time Delta…" → `setTimeDeltaRequested`; **background reserved for pan (SP-083)**. | ✅ Verified (2026-07-22) |
+| T-0327 | **`[Linux]` `TimeDeltaPicker` `QDialog`** (`TimeDeltaPicker.cpp/.hpp`) — amount spinbox + unit combo (Min…Yr) + direction (Later/Before) seeded via `bestFit`; scene-duration row; **"Immediately after previous" (reset)** + Set/Cancel. Returns `Outcome` + `resultOffsetMs`/`resultDurationMs`. No backend calls in the dialog. | ✅ Verified (2026-07-22) |
+| T-0328 | **`[Linux]` Wire drag/context-menu → picker → commit + chain propagation** — `EditorShell::showTimeDeltaPicker` seeds from the `reloadTimeline` offset/duration cache; `gap = newOffset − prevEnd`; `setSceneStoryTime(…, "manual", gap, …)` (or reset → `"default"`, gap 0); then **recompute + re-persist** every following scene (Apple `recomputeAndPersistFrom`); `reloadTimeline`. New `timeline_story_time_smoke` (+ CMake + CI). Closes **AC3**. | ✅ Verified (2026-07-22) |
+
+**Verification (2026-07-22):** ✅ build green (193/193, 0 warnings, both binaries linked); ✅ **new
+`timeline_story_time_smoke` PASS** (manual placement 2h-after-prev + chain re-persist + reset round-trip
+through reopen); ✅ regression smokes PASS (merge/create/reorder/chapter-reorder/scene-load/editor-map);
+✅ Xvfb app-launch PASS; ✅ **live VNC walkthrough — user Verified all four tasks** (drag a dot → picker seeded
+→ commit shifts dot + following scenes + survives reopen; context-menu "Set Time Delta…"; "Immediately after"
+resets; plain click still navigates). **EP-025 AC3 met. SP-080 ready to close.** Next available **T-0329**.
+`scrivi.h` untouched (endpoint from EP-016); no pbxproj (Linux-only).
+
+---
 
 **SP-079 (EP-025 `[Linux]`) ✅ closed 2026-07-22 (Human-approved).** T-0321/T-0322/T-0323/T-0324 all ✅
 **Verified** live over VNC and archived with the sprint (`Closed/Sprint-SP-079.md`):
@@ -132,11 +148,11 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-079 ✅ closed — EP-025 AC1 + AC2 Verified.** T-0321–T-0324 all Verified live
-over VNC & archived with the sprint (`Sprints/Closed/Sprint-SP-079.md`). Delivered the `[Linux]` Timeline
-panel's read + layout + select core: `ScriviBridge::getTimeline` + `getSceneStoryTime` invokables, a
-`TimelinePanel` bottom strip with scene dots in story-time order, a View ▸ Show Timeline toggle (Ctrl+Alt+T)
-on the SP-077 menu bar, and bidirectional dot↔navigator selection + tooltip. `scrivi.h` untouched; no pbxproj
-(Linux-only). No active Sprint; **EP-025 stays Active** → SP-080 (drag + Time Delta Picker, AC3). Next available
-**T-0325**. Earlier same day: **SP-078 ✅ closed — EP-024 closed** (T-0318–T-0320 Verified). Prior notes below
-retained for reference.)*
+*Last Updated: 2026-07-22 (**SP-080 T-0325–T-0328 ✅ all Verified (user, live VNC)** — EP-025 `[Linux]`
+Timeline Panel, 2nd sprint. Interactive scene dots: `ScriviBridge::setSceneStoryTime` invokable, `TimelinePanel`
+dot drag + "Set Time Delta…" context menu, a `TimeDeltaPicker` `QDialog`, and drag/menu → picker → commit
+(manual placement) + chain propagation. **EP-025 AC3 met; SP-080 ready to close.** Container build green
+(193/193, 0 warnings); new `timeline_story_time_smoke` PASS + all regression smokes + Xvfb app-launch PASS.
+`scrivi.h` untouched (endpoint from EP-016); no pbxproj (Linux-only). Next available **T-0329**; next Sprint
+SP-081 (story-structure bands, AC4). Earlier same day: **SP-079 ✅ closed — AC1/AC2 Verified**; **SP-078 ✅
+closed — EP-024 closed**. Prior notes below retained for reference.)*

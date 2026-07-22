@@ -7,7 +7,7 @@ plain-C ABI through `ScriviBridge`. **The full timeline C ABI already exists** (
 `scrivi_get_timeline`, `scrivi_set_scene_story_time`, story-structure, historical events, imported timelines,
 export — `scrivi.h` lines 248–291). No new endpoint is expected; any gap is a Task with a `[ScriviCore]` note.
 
-**Status:** 🟡 Active (activated 2026-07-22; first sprint SP-079 active)
+**Status:** 🟡 Active (activated 2026-07-22; SP-079 ✅ closed [AC1/AC2]; SP-080 AC3 Verified, ready to close)
 **Goal:** The **Timeline Panel** on Linux — a hideable horizontal timeline strip across the **bottom** of the
 editor showing one dot per scene in **story-time** order, with drag-to-reposition + the Time Delta Picker,
 story-structure bands, historical events, imported timelines, export, and co-located-dot clustering. Full
@@ -48,10 +48,10 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
   session-scoped, editor-only, check-state synced) shows/hides the strip; clicking a dot selects/scrolls to
   that scene in the editor, and the active scene highlights its dot (bidirectional, Apple T-0173). Dot tooltip
   shows title + human-readable story-time. **(SP-079)** ✅ **Verified (2026-07-22).**
-- [ ] AC3 — **Scene-dot drag + Time Delta Picker + chain propagation:** dragging a dot horizontally opens the
+- [x] AC3 — **Scene-dot drag + Time Delta Picker + chain propagation:** dragging a dot horizontally opens the
   Time Delta Picker (spinner pre-populated, duration row, "Immediately after"); committing writes
   `scrivi_set_scene_story_time` and recomputes subsequent default-positioned scenes' offsets. Context-menu
-  "Set Time Delta…" opens it without a drag. **(SP-080)**
+  "Set Time Delta…" opens it without a drag. **(SP-080)** ✅ **Verified (2026-07-22).**
 - [ ] AC4 — **Story-structure bands:** applying a structure writes via `scrivi_set_story_structure` and renders
   colored bands + labels; band borders drag (proportional, persist); a dot assigns to a band by drag-up or
   context menu ("Assign to Act…"); removing a structure keeps offsets + assignments. **(SP-081)**
@@ -59,9 +59,11 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
   dot color) via the C ABI; import a `.scrivi-timeline.json` (distinct grey row, window-clipped, multiple
   rows/shades, hide/show); export the project timeline. **(SP-082)**
 - [ ] AC6 — **Clustering + pan/zoom + full verify:** co-located dots form an aggregate dot with a members
-  popover (Apple T-0174); zoom resolves clusters; two-finger/scroll pan + zoom; panel persists all state
-  across close/reopen. No regression: Linux smokes + the app-launch smoke green; writing loop / navigator /
-  inspector unaffected. **(SP-083)**
+  popover (Apple T-0174); zoom resolves clusters; **zoom = Ctrl+scroll-wheel + toolbar +/−, pan = click-drag on
+  empty timeline background + Shift+wheel** (NOT trackpad pinch — VNC/X11 can't carry it, user decision
+  2026-07-22; native pinch is an optional bonus on real Ubuntu); panel persists all state across close/reopen.
+  No regression: Linux smokes + the app-launch smoke green; writing loop / navigator / inspector unaffected.
+  **(SP-083)**
 
 > **Apple ACs N/A on Linux:** the iPhone-exclusion AC from EP-016 does not apply (Linux is desktop-only).
 
@@ -70,7 +72,7 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time layout) + show/hide + dot↔navigator selection | ✅ Closed | 2026-07-22 – 2026-07-22 |
-| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | 🔵 Planned (next) | — |
+| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | 🟡 Active — all tasks Verified (AC3 met); ready to close | 2026-07-22 – |
 | SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | 🔵 Planned | — |
 | SP-082 | `[Linux]` Historical events + imported timelines + export | 🔵 Planned | — |
 | SP-083 | `[Linux]` Clustering + pan/zoom + persistence + full EP-025 verify & Epic close | 🔵 Planned | — |
@@ -83,6 +85,10 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | T-0322 | `[Linux]` `TimelinePanel` widget — horizontal strip, scene dots laid out by story-time, empty state, resizable top edge, active-dot highlight, hit-testing | SP-079 | ✅ Verified (2026-07-22) |
 | T-0323 | `[Linux]` Dock the panel as the editor's bottom strip (outer vertical splitter) + **View ▸ Show Timeline** toggle (Ctrl+Alt+T, session-scoped, editor-only, check-state synced) | SP-079 | ✅ Verified (2026-07-22) |
 | T-0324 | `[Linux]` Dot↔navigator bidirectional selection + tooltip + `reloadTimeline` chain math (closes AC1/AC2) | SP-079 | ✅ Verified (2026-07-22) |
+| T-0325 | `[Linux]` `ScriviBridge::setSceneStoryTime` invokable → `scrivi_set_scene_story_time` (peer to `getSceneStoryTime`) | SP-080 | ✅ Verified (2026-07-22) |
+| T-0326 | `[Linux]` `TimelinePanel` dot drag — press-on-dot → horizontal drag → `dotDragged(sceneID, newOffsetMs)` on release; click vs drag by threshold; context-menu "Set Time Delta…"; background reserved for pan | SP-080 | ✅ Verified (2026-07-22) |
+| T-0327 | `[Linux]` `TimeDeltaPicker` `QDialog` — amount/unit/direction spinner + duration row + "Immediately after" (reset); returns Outcome + offset + duration | SP-080 | ✅ Verified (2026-07-22) |
+| T-0328 | `[Linux]` Wire drag/context-menu → picker → commit (`setSceneStoryTime` manual) + chain propagation + `timeline_story_time_smoke` (closes AC3) | SP-080 | ✅ Verified (2026-07-22) |
 
 ### Scope Notes
 
@@ -94,6 +100,13 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
   navigator+viewport+inspector splitter in `EditorShell`'s `QVBoxLayout`, resizable by its top edge.
 - **Menu home:** the SP-077 `QMenuBar` — **View ▸ Show Timeline** joins **View ▸ Show Inspector** (EP-024)
   on the existing `editorOnlyActions_` + `updateMenuState()` machinery.
+- **Pan/zoom input = keyboard/wheel/buttons, NOT trackpad pinch (user decision 2026-07-22, AC6/SP-083).** The
+  macOS→VNC→x11vnc→Xvfb→Qt(X11) test path cannot carry trackpad pinch/magnify or high-res pixelDelta scroll
+  (same class as the SP-076/077 swallowed keys; and X11 delivers no native pinch to Qt regardless). So EP-025
+  pan/zoom is **zoom = Ctrl+scroll-wheel + toolbar +/−**, **pan = click-drag on empty timeline background +
+  Shift+wheel**, with native `QNativeGestureEvent`/pixelDelta accepted only as an optional bonus on real
+  Ubuntu. Consequence for **SP-080**: the scene-dot drag binds to the **dot only** — empty-background drag stays
+  reserved for pan. (Memory: `project_linux_vnc_input_constraints`.)
 
 ### Completion Summary
 
@@ -101,7 +114,15 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel — SP-079 ✅ closed (Human-approved)** — the first
+*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel — SP-080 activated** (2nd sprint): interactive
+scene dots — drag a dot → **Time Delta Picker** on release (Apple parity, user decision) → commit via
+`scrivi_set_scene_story_time` (manual placement) + **chain-propagate** subsequent offsets; also a dot
+context-menu "Set Time Delta…". Delivers AC3. Tasks T-0325–T-0328; `scrivi.h` untouched (endpoint exists from
+EP-016); canonical stored value is `gapMs` + derived `offsetMs` chain; new `timeline_story_time_smoke`. **Pan/zoom
+input decided for SP-083** (user 2026-07-22): Ctrl+wheel + toolbar +/− zoom, drag-background + Shift+wheel pan —
+NOT trackpad pinch (VNC/X11 can't carry it); recorded in Scope Notes + AC6. Prior note follows.)*
+
+*2026-07-22 (**SP-079 ✅ closed (Human-approved)** — the first
 of ~5 sprints delivered the timeline read + layout + select core: `ScriviBridge` `getTimeline` +
 `getSceneStoryTime` invokables, a `TimelinePanel` bottom strip with one scene dot per scene in story-time order
 (chain-computed shell-side), a View ▸ Show Timeline toggle (Ctrl+Alt+T) on the SP-077 menu bar, and

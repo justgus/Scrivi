@@ -369,6 +369,33 @@ QVariantMap ScriviBridge::getSceneStoryTime(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::setSceneStoryTime(const QString& projectRootPath,
+                                            const QString& sceneID,
+                                            long long offsetMs,
+                                            const QString& source,
+                                            long long gapMs,
+                                            long long durationMs,
+                                            const QString& durationSource)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    // Structural (timeline placement), no author identity. `gapMs` is canonical; the
+    // endpoint recomputes/persists this scene's block. Chain propagation to later
+    // scenes is the caller's job (EditorShell, T-0328), one setSceneStoryTime each.
+    const ScriviString envelope(
+        scrivi_set_scene_story_time(projectRootPath.toUtf8().constData(),
+                                    sceneID.toUtf8().constData(),
+                                    offsetMs,
+                                    source.toUtf8().constData(),
+                                    gapMs,
+                                    durationMs,
+                                    durationSource.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

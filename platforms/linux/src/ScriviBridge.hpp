@@ -236,6 +236,23 @@ public:
     Q_INVOKABLE QVariantMap getSceneStoryTime(const QString& projectRootPath,
                                               const QString& sceneID);
 
+    // Writes one scene's story-time (EP-025 / SP-080, T-0325). Calls
+    // scrivi_set_scene_story_time(projectRootPath, sceneID, offsetMs, source, gapMs,
+    // durationMs, durationSource) and returns its ok "result" (the updated block).
+    // The canonical stored value is `gapMs` (gap from the previous scene's END to this
+    // scene's START); `offsetMs` is the derived absolute position. `source` is
+    // "manual" for a writer-placed scene or "default" to return it to the gap chain.
+    // Used by the Time Delta Picker commit + the chain re-persist (T-0328). Peer to
+    // getSceneStoryTime; the endpoint is already exported (EP-016). No author identity.
+    // On failure emits errorOccurred and returns {}.
+    Q_INVOKABLE QVariantMap setSceneStoryTime(const QString& projectRootPath,
+                                              const QString& sceneID,
+                                              long long offsetMs,
+                                              const QString& source,
+                                              long long gapMs,
+                                              long long durationMs,
+                                              const QString& durationSource);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

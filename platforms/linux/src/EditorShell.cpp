@@ -24,6 +24,7 @@
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
 #include "ScriviBridge.hpp"
+#include "TimeDeltaPicker.hpp"
 #include "TimelinePanel.hpp"
 
 namespace {
@@ -122,6 +123,11 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
                     viewport_->setFocus();
                 }
             });
+    // SP-080: dot drag + context-menu "Set Time Delta…" → the picker flow (T-0328).
+    connect(timeline_, &TimelinePanel::dotDragged,
+            this, &EditorShell::onDotDragged);
+    connect(timeline_, &TimelinePanel::setTimeDeltaRequested,
+            this, &EditorShell::onSetTimeDeltaRequested);
 
     outerSplitter_ = new QSplitter(Qt::Vertical, this);
     outerSplitter_->addWidget(splitter_);
@@ -1568,6 +1574,8 @@ void EditorShell::reloadTimeline()
     // fall back to gap 0 + the 1-hour default duration.
     constexpr qint64 kDefaultDurationMs = 3'600'000;   // 1 hour (project default)
     QList<TimelinePanel::Dot> dots;
+    timelineOffsets_.clear();
+    timelineDurations_.clear();
     qint64 prevEnd = 0;
     const QList<SceneSegment>& segs = sceneDoc_.segments();
     for (int i = 0; i < segs.size(); ++i) {
@@ -1580,6 +1588,11 @@ void EditorShell::reloadTimeline()
         }
         const qint64 offsetMs = (i == 0) ? gapMs : (prevEnd + gapMs);
         prevEnd = offsetMs + durationMs;
+
+        // Cache for the Time Delta Picker (SP-080): previous-scene-end anchor + current
+        // duration, without a second backend round-trip.
+        timelineOffsets_.insert(seg.sceneID, offsetMs);
+        timelineDurations_.insert(seg.sceneID, durationMs);
 
         TimelinePanel::Dot dot;
         dot.sceneID    = seg.sceneID;
@@ -1595,4 +1608,93 @@ void EditorShell::reloadTimeline()
     if (activeSegment_ >= 0 && activeSegment_ < segs.size()) {
         timeline_->setActiveScene(segs.at(activeSegment_).sceneID);
     }
+}
+
+// --- EP-025 Timeline drag/picker (SP-080, T-0328) -------------------------
+
+void EditorShell::onDotDragged(const QString& sceneID, qint64 newOffsetMs)
+{
+    // The drag proposes a new absolute offset; the picker opens seeded with it.
+    showTimeDeltaPicker(sceneID, newOffsetMs);
+}
+
+void EditorShell::onSetTimeDeltaRequested(const QString& sceneID)
+{
+    // Context menu: no drag — seed the picker with the scene's current offset.
+    showTimeDeltaPicker(sceneID, timelineOffsets_.value(sceneID, 0));
+}
+
+void EditorShell::showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetMs)
+{
+    const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+    if (idx < 0) {
+        return;
+    }
+    const QList<SceneSegment>& segs = sceneDoc_.segments();
+    constexpr qint64 kDefaultDurationMs = 3'600'000;   // 1 hour (project default)
+
+    // Anchor = the previous scene's END (offset + duration); 0 for the first scene, so
+    // the delta is measured from the epoch. Uses the cache built in reloadTimeline.
+    qint64 previousSceneEndMs = 0;
+    QString referenceName;
+    if (idx > 0) {
+        const QString prevID = segs.at(idx - 1).sceneID;
+        previousSceneEndMs = timelineOffsets_.value(prevID, 0)
+                             + timelineDurations_.value(prevID, kDefaultDurationMs);
+        referenceName = segs.at(idx - 1).title;
+    }
+    const qint64 currentDurationMs =
+        timelineDurations_.value(sceneID, kDefaultDurationMs);
+
+    TimeDeltaPicker picker(referenceName, seedOffsetMs, previousSceneEndMs,
+                           currentDurationMs, kDefaultDurationMs,
+                           QStringLiteral("Story Open"), this);
+    if (picker.exec() != QDialog::Accepted) {
+        return;   // cancelled — no change
+    }
+
+    if (picker.outcome() == TimeDeltaPicker::Outcome::SetOffset) {
+        // Manual placement: the canonical stored value is the GAP from the previous
+        // scene's end to this scene's start (Apple applyPickerResult).
+        const qint64 offsetMs = picker.resultOffsetMs();
+        const qint64 gapMs    = offsetMs - previousSceneEndMs;
+        bridge_->setSceneStoryTime(projectPath_, sceneID, offsetMs,
+                                   QStringLiteral("manual"), gapMs,
+                                   picker.resultDurationMs(),
+                                   QStringLiteral("manual"));
+    } else {   // ResetDefault — return the scene to the gap chain
+        bridge_->setSceneStoryTime(projectPath_, sceneID, previousSceneEndMs,
+                                   QStringLiteral("default"), /*gapMs=*/0,
+                                   picker.resultDurationMs(),
+                                   QStringLiteral("default"));
+    }
+
+    // Chain propagation (Apple recomputeAndPersistFrom): from the changed scene
+    // onward, recompute each scene's absolute offset from the running chain and
+    // re-persist it, keeping each scene's OWN stored gapMs. A manual scene's gap is
+    // preserved (it just shifts if an earlier scene moved); default scenes keep gap 0.
+    qint64 prevEnd = 0;
+    for (int i = 0; i < segs.size(); ++i) {
+        const QString sid = segs.at(i).sceneID;
+        const QVariantMap st = bridge_->getSceneStoryTime(projectPath_, sid);
+        const qint64 gapMs = st.value(QStringLiteral("gapMs")).toLongLong();
+        qint64 durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
+        if (durationMs <= 0) {
+            durationMs = kDefaultDurationMs;
+        }
+        const QString source = st.value(QStringLiteral("offsetSource"),
+                                        QStringLiteral("default")).toString();
+        const QString durSource = st.value(QStringLiteral("durationSource"),
+                                           QStringLiteral("default")).toString();
+        const qint64 offsetMs = (i == 0) ? gapMs : (prevEnd + gapMs);
+        prevEnd = offsetMs + durationMs;
+
+        // Re-persist only from the changed scene onward (earlier scenes are unaffected).
+        if (i >= idx) {
+            bridge_->setSceneStoryTime(projectPath_, sid, offsetMs, source,
+                                       gapMs, durationMs, durSource);
+        }
+    }
+
+    reloadTimeline();   // rebuild the strip from the persisted story-time
 }

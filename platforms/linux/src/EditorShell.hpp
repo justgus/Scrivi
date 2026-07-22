@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QSet>
 #include <QString>
 #include <QWidget>
@@ -144,6 +145,14 @@ private slots:
     // I-0083 fix). No-op otherwise. Reloads from disk and re-anchors the caret.
     void onMergeChapterRequested();
 
+    // --- EP-025 Timeline drag/picker (SP-080, T-0328) ---------------------
+    // A timeline dot was dragged to `newOffsetMs` (TimelinePanel::dotDragged): open the
+    // Time Delta Picker seeded with that offset, then commit + chain-propagate.
+    void onDotDragged(const QString& sceneID, qint64 newOffsetMs);
+    // Dot context-menu "Set Time Delta…" (TimelinePanel::setTimeDeltaRequested): open
+    // the picker seeded with the scene's CURRENT offset (no drag).
+    void onSetTimeDeltaRequested(const QString& sceneID);
+
 private:
     // Select the navigator row for `sceneID` (highlight only; no scroll, no caret).
     // Used both by a click and by the scroll-driven active-scene follow.
@@ -161,8 +170,16 @@ private:
     // (offset[i] = prevEnd + gapMs[i]) to get each dot's story-time offset — mirroring
     // Apple's TimelineViewModel.load + recomputeAllOffsets. Called on load() and after
     // any structural change so the strip tracks the manuscript. Guarded by loading_
-    // (no work mid-assembly beyond the final call).
+    // (no work mid-assembly beyond the final call). Also caches per-scene
+    // offsetMs/durationMs into timelineOffsets_/timelineDurations_ for the picker flow.
     void reloadTimeline();
+
+    // Shared picker flow (SP-080, T-0328): open the Time Delta Picker for `sceneID`
+    // seeded with `seedOffsetMs`, then apply the result — write the scene's story-time
+    // via setSceneStoryTime (manual placement or reset-to-default) and re-persist every
+    // subsequent scene's offset from the gap chain (Apple recomputeAndPersistFrom).
+    // Rebuilds the strip. No-op if the sceneID is unknown.
+    void showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetMs);
     // Move the caret to the start of segment `index`'s body and center it; also
     // reflects the selection in the navigator. Updates activeSegment_.
     void moveCaretToSegment(int index);
@@ -252,6 +269,11 @@ private:
     SceneInspector*     inspector_ = nullptr;   // EP-024 right-side panel
     QSplitter*          outerSplitter_ = nullptr;  // (panels) above | timeline below
     TimelinePanel*      timeline_  = nullptr;   // EP-025 bottom strip
+    // Per-scene story-time cached on each reloadTimeline (SP-080): sceneID → resolved
+    // offsetMs / durationMs. Feeds the picker (previous-scene-end anchor + current
+    // duration) without re-hitting the backend.
+    QHash<QString, qint64> timelineOffsets_;
+    QHash<QString, qint64> timelineDurations_;
     SceneDocument       sceneDoc_;
 
     // Identity of the open project, stashed on load() for the save path.
