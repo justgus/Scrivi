@@ -9,6 +9,11 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
 
+> **SP-078 activated & ✅ closed 2026-07-22** — `Closed/Sprint-SP-078.md` (EP-024 `[Linux]` Scene Inspector
+> Panel, first & only sprint; tasks T-0318–T-0320 Verified live over VNC). **This closed EP-024** in one sprint,
+> mirroring Apple EP-014/SP-037. SP-078 was defined in the Epic (not staged here), so no Planning entry existed
+> to remove.
+
 > **SP-073 activated 2026-07-19** — moved to `Sprint-active.md` (EP-023 `[Linux]` chapter drag-reorder +
 > Epic verify/close; tasks T-0294–T-0297).
 > **SP-074 activated 2026-07-20, ✅ closed 2026-07-21** — `Closed/Sprint-SP-074.md` (EP-028 `[ScriviCore]`
@@ -71,8 +76,7 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 
 ---
 
-*Last Updated: 2026-07-19 (**SP-073 planned and activated same day** — EP-023's final sprint, renumbered
-from the skipped SP-068: chapter drag-reorder (AC5) + full EP-023 verify (AC6–AC8) + Epic close prep; tasks
-T-0294–T-0297; entry moved to `Sprint-active.md`. Path-refresh decision made at activation: additive reorder
-envelope paths, `scrivi.h` untouched. SP-056–SP-057 remain 🔵 Planning, parked behind deferred EP-019
-`[Apple]`.)*
+*Last Updated: 2026-07-22 (**SP-078 planned, activated, and implemented same day** — opened EP-024 `[Linux]`
+Scene Inspector Panel (mirrors Apple EP-014); moved to `Sprint-active.md`. Default visibility = **shown**
+(Apple parity, user decision). Container build green (184/184, 0 warnings) + all Linux smokes PASS; live VNC
+verify + AC sign-off pending. SP-056–SP-057 remain 🔵 Planning, parked behind deferred EP-019 `[Apple]`.)*

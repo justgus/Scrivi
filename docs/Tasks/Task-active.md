@@ -2,6 +2,23 @@
 
 _(No active Tasks — no active Sprint or Epic.)_
 
+**SP-078 (EP-024 `[Linux]`) ✅ closed 2026-07-22 (Human-approved) — this closed EP-024.** T-0318/T-0319/T-0320
+all ✅ **Verified** live over VNC and archived with the sprint (`Closed/Sprint-SP-078.md`) and the closed Epic
+(`../Epics/Closed/Epic-EP-024.md`):
+
+- **T-0318** — `SceneInspector` widget + Scene Entities stub tab (`QTabWidget`; bold title + "No entities yet."
+  + disabled Add Entity; **120/200 width**).
+- **T-0319** — docked as `EditorShell`'s third `QSplitter` pane + `setInspectorVisible`/`isInspectorVisible`
+  (session-scoped, default shown).
+- **T-0320** — View ▸ Show Inspector menu toggle (Ctrl+Alt+I, checkable, editor-only, check-state synced) on
+  the SP-077 menu bar.
+
+Post-verify user tweaks: inspector widths 240/280 → 120/200, window default 820×560 → 1020×760; rebuilt green.
+Qt/C++ UI only — no `scrivi_*`/`scrivi.h`/Apple change → no pbxproj. **All EP-024 ACs met; Epic closed in one
+sprint (mirroring Apple EP-014/SP-037). Next available Task: T-0321.**
+
+---
+
 **SP-076 + SP-077 (EP-028 `[Linux]`) ✅ both closed 2026-07-22 (Human-approved) — this closed EP-028.**
 All of T-0304–T-0317 are ✅ **Verified** and archived with their sprints:
 
@@ -98,9 +115,10 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-076 + SP-077 ✅ both closed (Human-approved) — EP-028 closed.** All of
-T-0304–T-0317 Verified & archived with their sprints (`Closed/Sprint-SP-076.md`, `Closed/Sprint-SP-077.md`)
-and the closed Epic (`../Epics/Closed/Epic-EP-028.md`). SP-076 delivered `[Linux]` scene & chapter merge
-parity + separator rule + mid-scene split; SP-077 the native menu bar (which unblocked chapter-merge over
-VNC) + flush-safe editor-leaving paths + Ctrl+W. No active Sprint/Epic; next available **T-0318**. Prior note
-below is retained for reference.)*
+*Last Updated: 2026-07-22 (**SP-078 ✅ closed (Human-approved) — EP-024 closed.** T-0318–T-0320 all Verified
+live over VNC & archived with the sprint (`Closed/Sprint-SP-078.md`) and Epic (`../Epics/Closed/Epic-EP-024.md`).
+Delivered the `[Linux]` Scene Inspector panel (a hideable right-side `QTabWidget` docked as `EditorShell`'s
+third splitter pane + a View ▸ Show Inspector toggle at Ctrl+Alt+I on the SP-077 menu bar; default shown,
+120/200 width; window 1020×760). Qt/C++ UI only. No active Sprint/Epic; next available **T-0321**. Earlier same
+day: **SP-076 + SP-077 ✅ closed — EP-028 closed** (T-0304–T-0317 Verified). Prior notes below retained for
+reference.)*

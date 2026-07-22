@@ -112,4 +112,8 @@ private:
 
     // Actions that are only meaningful with a project open in the editor.
     QList<QAction*> editorOnlyActions_;
+
+    // View ▸ Show Inspector (SP-078, T-0320) — checkable; its check-state is
+    // synced to the editor's actual inspector visibility on every page swap.
+    QAction* showInspectorAction_ = nullptr;
 };

@@ -11,8 +11,10 @@ class QStandardItemModel;
 class QStandardItem;
 class QLabel;
 class QTimer;
+class QSplitter;
 class ScriviBridge;
 class ManuscriptEditor;
+class SceneInspector;
 
 // EditorShell — the Linux editor screen (SP-061 T-0235/0236, SP-062 T-0238…).
 //
@@ -69,6 +71,16 @@ public:
     void cutSelection();   // Edit ▸ Cut      → viewport cut()
     void copySelection();  // Edit ▸ Copy     → viewport copy()
     void pasteClipboard(); // Edit ▸ Paste    → viewport paste()
+
+    // --- EP-024 Scene Inspector (SP-078, T-0319) --------------------------
+    //
+    // Show/hide the Scene Inspector panel (the third pane of the splitter, right
+    // of the viewport). Hiding collapses the pane so the writing surface reclaims
+    // the width (no dead space); showing restores Apple's default width. Visibility
+    // is SESSION-scoped only — a member, not persisted to disk (mirrors Apple's
+    // AppEnvironment.inspectorVisible). Driven by View ▸ Show Inspector (T-0320).
+    void setInspectorVisible(bool visible);
+    bool isInspectorVisible() const;
 
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible
@@ -217,6 +229,8 @@ private:
     QStandardItemModel* navModel_  = nullptr;
     QLabel*             errorLabel_ = nullptr;
     QTimer*             saveTimer_ = nullptr;   // idle-save debounce (~1.5s)
+    QSplitter*          splitter_  = nullptr;   // navigator | viewport | inspector
+    SceneInspector*     inspector_ = nullptr;   // EP-024 right-side panel
     SceneDocument       sceneDoc_;
 
     // Identity of the open project, stashed on load() for the save path.

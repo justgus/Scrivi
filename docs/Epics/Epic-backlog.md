@@ -93,19 +93,13 @@ _(filled in when the Epic reaches 🟠 Complete)_
 ## [Linux] App — Epic Family (EP-024–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
-built Epic-by-Epic). **EP-020 `[Linux]` (Foundation), EP-021 `[Linux]` (Project Lifecycle & Landing), and
-EP-022 `[Linux]` (Writing Surface & Scene Navigator) are all ✅ closed** (→ `Epics/Closed/`); **EP-023
-`[Linux]` (Manuscript Structure Editing) is now 🟡 Active** (→ `Epics/Epic-active.md`). The Epics below are
-🔵 Draft, defined and sequenced, promoted to Active one at a time as each predecessor lands. Each is verified
-in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each targets near-parity with the named Apple
-Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a `[ScriviCore]` note, not a separate Epic.
-
-### EP-024: [Linux] Scene Inspector Panel
-
-**Status:** 🔵 Draft
-**Goal:** The scene inspector side panel on Linux. Mirrors Apple EP-014.
-**Rough scope:** dockable inspector, scene-entities tab structure, collapse/expand. **Depends on:**
-EP-022.
+built Epic-by-Epic). **EP-020 `[Linux]` (Foundation), EP-021 `[Linux]` (Project Lifecycle & Landing),
+EP-022 `[Linux]` (Writing Surface & Scene Navigator), and EP-023 `[Linux]` (Manuscript Structure Editing)
+are all ✅ closed** (→ `Epics/Closed/`); **EP-024 `[Linux]` (Scene Inspector Panel) is now 🟡 Active**
+(→ `Epics/Epic-active.md`). The Epics below are 🔵 Draft, defined and sequenced, promoted to Active one at a
+time as each predecessor lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester).
+Each targets near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with
+a `[ScriviCore]` note, not a separate Epic.
 
 ### EP-025: [Linux] Timeline Panel
 
@@ -128,4 +122,8 @@ tester. **Depends on:** EP-022 (and benefits from EP-023–EP-025).
 
 ---
 
-*Last Updated: 2026-07-15 (EP-022 [Linux] ✅ closed; EP-023 [Linux] Manuscript Structure Editing promoted from this backlog to 🟡 Active (full detail now in `Epic-active.md`). Remaining [Linux] family EP-024–EP-026 stay 🔵 Draft. EP-019 [Apple] remains 🔴 Deferred.)*
+*Last Updated: 2026-07-22 (**EP-024 [Linux] Scene Inspector Panel promoted from this backlog and ✅ closed
+same day** — its only sprint SP-078 delivered & verified the panel in one day, mirroring Apple EP-014/SP-037;
+archived to `Closed/Epic-EP-024.md`. Remaining [Linux] family EP-025–EP-026 stay 🔵 Draft (EP-025 Timeline is
+next in line). EP-019 [Apple] remains 🔴 Deferred. Prior: 2026-07-15 (EP-022 ✅ closed; EP-023 promoted to
+Active).)*

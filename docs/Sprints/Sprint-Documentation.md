@@ -11,10 +11,20 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**None.** SP-076 + SP-077 (EP-028 `[Linux]`) both ✅ closed 2026-07-22 — see below. **This closed EP-028.**
-No active Epic; next in line EP-024–EP-026 `[Linux]` (🔵 Draft). Next available sprint **SP-078**.
+**None.** SP-078 (EP-024 `[Linux]`) ✅ closed 2026-07-22 — see below. **This closed EP-024.** No active Epic;
+next in line EP-025 `[Linux]` (Timeline Panel, 🔵 Draft). Next available sprint **SP-079**.
 
-Last closed: **SP-077** (`[Linux]` — **Native menu bar**) — ✅ **closed 2026-07-22 (Human-approved).** Built
+Last closed: **SP-078** (EP-024 `[Linux]` — **Scene Inspector Panel**, opened AND closed the Epic) — ✅
+**closed 2026-07-22 (Human-approved).** A hideable right-side tabbed panel mirroring Apple EP-014 — a
+`SceneInspector` (`QTabWidget`, one stub "Scene Entities" tab: title + "No entities yet." + disabled Add
+Entity) docked as `EditorShell`'s **third splitter pane**, toggled from **View ▸ Show Inspector** (Ctrl+Alt+I,
+checkable, editor-only) on the SP-077 menu bar; session-scoped, default **shown**, **120/200 width** (user
+pref); window enlarged to **1020×760**. Verified live over VNC (T-0318–T-0320); container build green
+(184/184, 0 warnings) + all Linux smokes PASS. Qt/C++ UI only — no `scrivi_*`/`scrivi.h`/Apple change; no new
+headless smoke (pure UI). **This closed EP-024** in a single sprint, like Apple EP-014/SP-037.
+`Closed/Sprint-SP-078.md`.
+
+Prior: **SP-077** (`[Linux]` — **Native menu bar**) — ✅ **closed 2026-07-22 (Human-approved).** Built
 a native `QMenuBar` on `ScriviWindow` (File/Edit/Scene/Chapter/Project) so every core op has a mouse-driven
 trigger + shortcut hint. **This unblocked EP-028 AC5/AC6 Linux verification over VNC** — the macOS→VNC input
 path swallows `Ctrl-Shift-Backspace` (Shift held; proven via key-log, not an app bug), so chapter-merge was
@@ -94,9 +104,9 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **75 Sprints** (73 closed + 1 cancelled + 2 in Planning; the SP-068 **ID** was skipped
+Currently: **76 Sprints** (74 closed + 1 cancelled + 2 in Planning; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-078**
+2026-07-19) | Next available: **SP-079**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -176,11 +186,12 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-075 | `[Apple]` Adopt the merge endpoints (regression-safe swap) — app-side I-0083 fix (AC4) | EP-028 `[Cross]` | 2026-07-21 | 2026-07-21 | ✅ Closed |
 | SP-076 | `[Linux]` Scene & chapter merge parity (AC5/AC6/AC7) — final EP-028 leg | EP-028 `[Cross]` | 2026-07-21 | 2026-07-22 | ✅ Closed |
 | SP-077 | `[Linux]` Native menu bar (File/Edit/Scene/Chapter/Project) — unblocked EP-028 AC5/AC6 Linux verify over VNC | — `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
+| SP-078 | `[Linux]` Scene Inspector Panel — dockable tabbed panel + Scene Entities stub + View-menu toggle | EP-024 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 76 (SP-001–SP-077 issued; SP-068 skipped)
-- **Closed:** 73 ✅
+- **Total Sprints:** 77 (SP-001–SP-078 issued; SP-068 skipped)
+- **Closed:** 74 ✅
 - **Active:** 0 🟡
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
@@ -188,7 +199,16 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-076 + SP-077 ✅ both closed with user approval** — the final EP-028 `[Linux]`
+*Last Updated: 2026-07-22 (**SP-078 ✅ closed with user approval** — EP-024 `[Linux]` Scene Inspector Panel,
+planned + activated + implemented + verified + closed same day (mirroring Apple EP-014/SP-037). A hideable
+right-side `QTabWidget` panel docked as `EditorShell`'s third splitter pane, a stub "Scene Entities" tab, and
+a View ▸ Show Inspector toggle (Ctrl+Alt+I) on the SP-077 menu bar; session-scoped, default shown, 120/200
+width (user pref); window enlarged to 1020×760. T-0318–T-0320 all ✅ Verified live over VNC; container build
+green (184/184, 0 warnings) + all Linux smokes PASS. Qt/C++ UI only — no `scrivi_*`/`scrivi.h`/Apple change.
+**This closed EP-024.** Closed 73→74, Active 1→0 — no active sprint, no Active Epic; next available SP-079.
+Record: `Closed/Sprint-SP-078.md`. Prior note follows.)*
+
+*2026-07-22 (**SP-076 + SP-077 ✅ both closed with user approval** — the final EP-028 `[Linux]`
 legs. **SP-076** delivered scene & chapter merge parity (`Ctrl-Backspace`/`Ctrl-Shift-Backspace`, reload-from-disk,
 no confirmation) + between-scene separator rule + `Ctrl+Return` mid-scene split; scene-merge live over VNC,
 chapter-merge live via the SP-077 menu; new `scene_merge_smoke` in CI. **SP-077** delivered the native menu bar

@@ -10,6 +10,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QQuickWidget>
+#include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
@@ -35,7 +36,7 @@ ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot)
     : landing_(landing), appSupportRoot_(std::move(appSupportRoot))
 {
     setWindowTitle(QStringLiteral("Scrivi — Linux (alpha)"));
-    resize(820, 560);
+    resize(1020, 760);   // 820×560 + 200 each (user pref 2026-07-22)
 
     stack_ = new QStackedWidget(this);
     // The QQuickWidget resizes with the view so the QML fills the window.
@@ -123,6 +124,21 @@ void ScriviWindow::buildMenuBar()
             [this]() { if (editor_ != nullptr) { editor_->pasteClipboard(); } });
     editorOnlyActions_.append(paste);
 
+    // --- View -------------------------------------------------------------
+    // Show Inspector (EP-024 / SP-078, T-0320) — a checkable toggle for the Scene
+    // Inspector panel, the Linux analogue of Apple's View ▸ Show Inspector at ⌘⌥I.
+    // Ctrl+Alt+I is the Linux equivalent and (like SP-077's Ctrl+W) is not eaten by
+    // the macOS→VNC input path. Editor-only; the check-state is synced to the
+    // editor's real inspector visibility in updateMenuState().
+    QMenu* view = bar->addMenu(tr("&View"));
+    showInspectorAction_ = view->addAction(tr("Show Inspector"));
+    showInspectorAction_->setCheckable(true);
+    showInspectorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_I));
+    connect(showInspectorAction_, &QAction::toggled, this, [this](bool on) {
+        if (editor_ != nullptr) { editor_->setInspectorVisible(on); }
+    });
+    editorOnlyActions_.append(showInspectorAction_);
+
     // --- Scene ------------------------------------------------------------
     QMenu* scene = bar->addMenu(tr("&Scene"));
     QAction* splitScene = scene->addAction(tr("Split Scene"));
@@ -177,6 +193,16 @@ void ScriviWindow::updateMenuState(bool editorActive)
 {
     for (QAction* a : editorOnlyActions_) {
         a->setEnabled(editorActive);
+    }
+
+    // Reflect the editor's real inspector visibility in the View ▸ Show Inspector
+    // check-state whenever a project is active (block signals so syncing the box
+    // doesn't re-drive setInspectorVisible). No editor → leave it unchecked.
+    if (showInspectorAction_ != nullptr) {
+        const bool shown = editorActive && editor_ != nullptr
+                           && editor_->isInspectorVisible();
+        const QSignalBlocker block(showInspectorAction_);
+        showInspectorAction_->setChecked(shown);
     }
 }
 

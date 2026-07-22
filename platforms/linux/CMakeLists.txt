@@ -40,6 +40,9 @@ qt_add_executable(scrivi_linux
     # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
+    # SP-078 (EP-024): the Scene Inspector side panel (UI stub).
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
 )
 
 qt_add_qml_module(scrivi_linux

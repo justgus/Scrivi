@@ -22,6 +22,7 @@
 
 #include "ManuscriptEditor.hpp"
 #include "NavigatorTree.hpp"
+#include "SceneInspector.hpp"
 #include "ScriviBridge.hpp"
 
 namespace {
@@ -85,12 +86,24 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // Editable (SP-062, T-0238). Boundary integrity is enforced by ManuscriptEditor;
     // per-scene dirty tracking + map maintenance happen in onContentsChange.
 
-    auto* splitter = new QSplitter(Qt::Horizontal, this);
-    splitter->addWidget(navigator_);
-    splitter->addWidget(viewport_);
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-    splitter->setSizes({240, 580});
+    // --- Inspector (right): EP-024 Scene Inspector panel ------------------
+    // Docks as the THIRD pane of the same splitter (navigator | viewport |
+    // inspector), the cleanest match for Apple's "between the manuscript surface
+    // and the window edge". A UI stub for now (no project data). Session-scoped
+    // visibility (inspectorVisible_); defaults SHOWN (Apple parity — user decision
+    // 2026-07-22). View ▸ Show Inspector (T-0320) toggles it.
+    inspector_ = new SceneInspector(this);
+
+    splitter_ = new QSplitter(Qt::Horizontal, this);
+    splitter_->addWidget(navigator_);
+    splitter_->addWidget(viewport_);
+    splitter_->addWidget(inspector_);
+    splitter_->setStretchFactor(0, 0);   // navigator — fixed-ish
+    splitter_->setStretchFactor(1, 1);   // viewport — takes the slack
+    splitter_->setStretchFactor(2, 0);   // inspector — fixed-ish
+    // Keep the inspector from being dragged away entirely; hide it via the menu.
+    splitter_->setCollapsible(2, false);
+    splitter_->setSizes({240, 580, 200});   // 200 = default inspector width (user pref)
 
     errorLabel_ = new QLabel(this);
     errorLabel_->setStyleSheet(QStringLiteral("color:#c0392b;"));
@@ -100,7 +113,7 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
     root->addLayout(toolbar);
-    root->addWidget(splitter, /*stretch=*/1);
+    root->addWidget(splitter_, /*stretch=*/1);
     root->addWidget(errorLabel_);
 
     // Idle-save debounce (T-0239): (re)armed on each edit; fires one saveDirtyScenes.
@@ -1460,3 +1473,21 @@ void EditorShell::mergeChapter()
 void EditorShell::cutSelection()   { viewport_->cut(); }
 void EditorShell::copySelection()  { viewport_->copy(); }
 void EditorShell::pasteClipboard() { viewport_->paste(); }
+
+// --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------
+
+void EditorShell::setInspectorVisible(bool visible)
+{
+    if (inspector_ == nullptr) {
+        return;
+    }
+    // setVisible() on the pane collapses/restores it inside the splitter; the
+    // viewport (stretch=1) reclaims the freed width, so there is no dead space
+    // when hidden. Session-scoped: no on-disk persistence (Apple parity).
+    inspector_->setVisible(visible);
+}
+
+bool EditorShell::isInspectorVisible() const
+{
+    return inspector_ != nullptr && inspector_->isVisible();
+}
