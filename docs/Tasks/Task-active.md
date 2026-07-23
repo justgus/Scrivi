@@ -1,21 +1,46 @@
 # Active Tasks
 
-**Epic:** EP-025 `[Linux]` (Timeline Panel) — **Sprint:** SP-080 `[Linux]` (`Sprints/Sprint-active.md`).
+**Epic:** EP-025 `[Linux]` (Timeline Panel) — **two active sprints:** SP-083 (zoom/pan, focus) + SP-081
+(story-structure bands) (`Sprints/Sprint-active.md`).
+
+**SP-083** `[Linux]` — timeline zoom + pan (brought forward to fix **I-0087** / unblock SP-081 T-0332):
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0325 | **`[Linux]` `ScriviBridge::setSceneStoryTime` invokable** — → `scrivi_set_scene_story_time` (exported since EP-016). Peer to SP-079's `getSceneStoryTime`. `scrivi.h` untouched. | ✅ Verified (2026-07-22) |
-| T-0326 | **`[Linux]` `TimelinePanel` dot drag** — press-on-dot → horizontal drag (4px threshold) live-moves the dot (`dragX_`) → `dotDragged(sceneID, offsetForX())` on release; click vs drag by threshold; right-click "Set Time Delta…" → `setTimeDeltaRequested`; **background reserved for pan (SP-083)**. | ✅ Verified (2026-07-22) |
-| T-0327 | **`[Linux]` `TimeDeltaPicker` `QDialog`** (`TimeDeltaPicker.cpp/.hpp`) — amount spinbox + unit combo (Min…Yr) + direction (Later/Before) seeded via `bestFit`; scene-duration row; **"Immediately after previous" (reset)** + Set/Cancel. Returns `Outcome` + `resultOffsetMs`/`resultDurationMs`. No backend calls in the dialog. | ✅ Verified (2026-07-22) |
-| T-0328 | **`[Linux]` Wire drag/context-menu → picker → commit + chain propagation** — `EditorShell::showTimeDeltaPicker` seeds from the `reloadTimeline` offset/duration cache; `gap = newOffset − prevEnd`; `setSceneStoryTime(…, "manual", gap, …)` (or reset → `"default"`, gap 0); then **recompute + re-persist** every following scene (Apple `recomputeAndPersistFrom`); `reloadTimeline`. New `timeline_story_time_smoke` (+ CMake + CI). Closes **AC3**. | ✅ Verified (2026-07-22) |
+| T-0333 | **`[Linux]` `TimelinePanel` zoom model** — `zoom_` factor + `panFraction_` over `xForOffset`/`offsetForX`; **`Ctrl`+wheel** zoom-about-pointer; clamp; zoom 1 = full-fit. Linear axis kept. | 🔵 Backlog |
+| T-0334 | **`[Linux]` `+`/`−` zoom control + scrollbar** — bottom-right `+`/`−` control (zoom about pointer/center) + a horizontal scrollbar when `zoom_ > 1`. VNC-safe (plain clicks). | 🔵 Backlog |
+| T-0335 | **`[Linux]` Pan (background drag) + verify** — drag the empty area above/below the dots to pan; dot/border drags still win on their zones. VNC: zoom a crowded cluster (wheel + `+` button), dots separate, pan; **re-verify SP-081 T-0332** (drag a dot up onto a band). Closes **I-0087 + T-0332/AC4 + AC6a**. | 🔵 Backlog |
 
-**Verification (2026-07-22):** ✅ build green (193/193, 0 warnings, both binaries linked); ✅ **new
-`timeline_story_time_smoke` PASS** (manual placement 2h-after-prev + chain re-persist + reset round-trip
-through reopen); ✅ regression smokes PASS (merge/create/reorder/chapter-reorder/scene-load/editor-map);
-✅ Xvfb app-launch PASS; ✅ **live VNC walkthrough — user Verified all four tasks** (drag a dot → picker seeded
-→ commit shifts dot + following scenes + survives reopen; context-menu "Set Time Delta…"; "Immediately after"
-resets; plain click still navigates). **EP-025 AC3 met. SP-080 ready to close.** Next available **T-0329**.
-`scrivi.h` untouched (endpoint from EP-016); no pbxproj (Linux-only).
+**Next available T-0336.** Zoom/pan is pure UI over the existing linear model (no new headless smoke; verified
+live over VNC). `scrivi.h` untouched; no pbxproj (Linux-only).
+
+---
+
+**SP-081** `[Linux]` — story-structure bands (T-0332 blocked by I-0087, verifies after SP-083):
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0329 | **`[Linux]` Story-structure bridge invokables** — `getStoryStructure`/`setStoryStructure`/`updateBandLayout`/`removeStoryStructure` + `assignSceneToBand`/`unassignSceneFromBand` (exported since EP-016; `scrivi.h` untouched). Plus the **built-in band table** ported from Apple into `StoryStructures.cpp/.hpp` + `bandLayoutJSON`/`parseBandLayout` (`{"bands":[…]}` wrapper — the ScriviCore contract). | ✅ Verified (2026-07-22) |
+| T-0330 | **`[Linux]` Band overlay painting + Structure selector** — `TimelinePanel::setBands`/`paintEvent` paints translucent colored proportional bands + labels **behind** the dots + a label row; **View ▸ Story Structure…** (`pickStoryStructure` → `chooseStoryStructure`) pops built-ins + Remove; loaded via `getStoryStructure` in `reloadTimeline`. Bands render only when a structure is set. | ✅ Verified (2026-07-22) |
+| T-0331 | **`[Linux]` Band border drag** — press a border zone (`borderIndexNearX`, hit-tested first) → drag proportion between adjacent bands (0.05 floor, pair-sum constant); live `dragProportions_`; release → `bandProportionsChanged` → `updateBandLayout`. | ✅ Verified (2026-07-22) |
+| T-0332 | **`[Linux]` Scene→band assignment + verify** — dot dragged up into the label row → `sceneAssignedToBand` (`bandIndexAtX`) + colored ring; context-menu **"Assign to Act…"** / **"Unassign"**; assignment survives structure-remove. New `story_structure_smoke` (+ CMake + CI). Closes **AC4**. | 🟡 Implemented — build+smokes green; **live verify blocked by I-0087** (needs SP-083 zoom to spread crowded dots) |
+
+**Verification (2026-07-22, container):** ✅ build green (202/202, 0 warnings, both binaries linked);
+✅ **new `story_structure_smoke` PASS** (set structure → assign scene → re-proportion → remove-keeps-assignment
+= AC4; a JSON-shape bug — layout is `{"bands":[…]}` not a bare array — was caught by the smoke and fixed);
+✅ regression smokes PASS (timeline-story-time/merge/create/reorder/chapter-reorder/scene-load/editor-map);
+✅ Xvfb app-launch PASS. ⏳ **Live VNC walkthrough pending** (View ▸ Story Structure… paints bands; border drag
+re-proportions; dot drag-up assigns + ring; "Assign to Act…"/"Unassign"; remove keeps assignment; SP-080 dot
+drag + SP-079 click still work). **Next available T-0333.** `scrivi.h` untouched (C ABI from EP-016); no pbxproj
+(Linux-only).
+
+---
+
+**SP-080 (EP-025 `[Linux]`) ✅ closed 2026-07-22 (Human-approved).** T-0325/T-0326/T-0327/T-0328 all ✅
+**Verified** live over VNC and archived with the sprint (`Closed/Sprint-SP-080.md`): `setSceneStoryTime`
+invokable, `TimelinePanel` dot drag + "Set Time Delta…" context menu, the `TimeDeltaPicker` `QDialog`, and
+drag/menu → picker → commit (manual placement) + chain propagation. **EP-025 AC3 met.** New
+`timeline_story_time_smoke`. `scrivi.h` untouched (endpoint from EP-016).
 
 ---
 
@@ -148,11 +173,11 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-080 T-0325–T-0328 ✅ all Verified (user, live VNC)** — EP-025 `[Linux]`
-Timeline Panel, 2nd sprint. Interactive scene dots: `ScriviBridge::setSceneStoryTime` invokable, `TimelinePanel`
-dot drag + "Set Time Delta…" context menu, a `TimeDeltaPicker` `QDialog`, and drag/menu → picker → commit
-(manual placement) + chain propagation. **EP-025 AC3 met; SP-080 ready to close.** Container build green
-(193/193, 0 warnings); new `timeline_story_time_smoke` PASS + all regression smokes + Xvfb app-launch PASS.
-`scrivi.h` untouched (endpoint from EP-016); no pbxproj (Linux-only). Next available **T-0329**; next Sprint
-SP-081 (story-structure bands, AC4). Earlier same day: **SP-079 ✅ closed — AC1/AC2 Verified**; **SP-078 ✅
-closed — EP-024 closed**. Prior notes below retained for reference.)*
+*Last Updated: 2026-07-22 (**SP-081 implemented — T-0329–T-0332 🟢 Implemented, Not Verified** (EP-025
+`[Linux]` Timeline Panel, 3rd sprint). Story-structure bands: six `ScriviBridge` invokables + a ported built-in
+band table (`StoryStructures.cpp/.hpp`), band overlay painting + View ▸ Story Structure… selector, band
+border-drag re-proportion, and scene→band assignment (drag-up / "Assign to Act…") with a colored ring; remove
+keeps assignments. Container build green (202/202, 0 warnings); new `story_structure_smoke` PASS (a
+`{"bands":[…]}` JSON-shape bug caught by the smoke + fixed) + all regression smokes + Xvfb app-launch PASS; live
+VNC (band paint/drags) pending. Delivers AC4; `scrivi.h` untouched (C ABI from EP-016). Next available **T-0333**.
+Earlier same day: **SP-080 ✅ closed — AC3 Verified**. Prior notes below retained for reference.)*

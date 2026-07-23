@@ -5,6 +5,7 @@ table and stay in this file as full entries only until the next batch archive (I
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| I-0087 | `[Linux]` **Timeline dots crowd to one edge when a scene is a far time-outlier; without zoom you can't spread them to grab one.** Found in SP-081 T-0332 VNC verify (2026-07-22). A project with one flashback scene ~2 years before the rest stretches the linear story-time window to ~730 days, so every present-day scene collapses into a sliver at the opposite edge — overlapping, un-grabbable. Dragging one is nearly impossible and **dragging a dot up onto a band label (T-0332 assignment) is impossible** — a small horizontal move just opens the Time Delta Picker. **Not a layout bug — it's the linear time-axis with no zoom.** T-0329/0330/0331 all Verified; only the drag-dependent T-0332 is blocked. **User decision (2026-07-22):** keep the linear axis (Apple parity), do NOT switch to even-spacing; fix via **zoom + pan** — bring **SP-083 forward** now. Zoom = `Ctrl`+wheel + an always-works `+`/`−` control (bottom-right of the strip, zoom-about-pointer); pan = drag on the empty area above/below the dots. | High | **SP-081** (found) → **SP-083** (fix) | 🔴 Open — blocks SP-081 T-0332 live verify; fix in SP-083 (activated 2026-07-22, brought forward) |
 | I-0086 | `[Apple]` **Build warnings: "Result of 'try?' is unused" at three call sites.** Fire-and-forget engine calls used `try?` on a non-Void-returning throwing function without discarding the result, tripping Swift's unused-result warning. Sites: `HistoryCapture.close()` (`historyClose`), `HistoryCapture.seedBaselineIfNeeded()` (`historySeedScene`), and `ProjectSettingsSheet.saveHistorySettings()` (`historySetSettings`). All three are intentional discards (a failure needs no handling here). **Fix:** prefix each with `_ = ` (matching the existing `_ = try?` at `HistoryCapture.swift:94`). One-token change per site; no behavior change. | Low | **SP-075** | ✅ Resolved - Not Verified (2026-07-21) — `_ = try?` applied at `HistoryCapture.swift:103` & `:140` and `ProjectSettingsSheet.swift:127`; `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build` → **BUILD SUCCEEDED** with all three warnings gone. |
 | I-0085 | `[Apple]` **App crashes constructing the Open Project panel.** From `LandingView` (or File ▸ Open Project…), clicking Open calls `AppEnvironment.presentOpenProjectPanel()` → `NSOpenPanel()`, which aborts with `*** Assertion failure in -[NSOpenPanel _initBridgeAndStuff], NSSavePanel.m:466 — Advance to configuration phase semaphore timed out.` This fires at panel **construction** (`NSOpenPanel()`), before `runModal`. **Investigation (2026-07-21):** the assertion is the sandbox Open/Save-panel ViewBridge XPC service (`com.apple.appkit.xpc.openAndSavePanelService`) timing out its init handshake. Evidence it is **environmental, not a code defect**: (a) this exact `NSOpenPanel()` code dates to **SP-035** and is unchanged through ~40 sprints of working Open flows; (b) entitlements are correct (`app-sandbox` + `files.user-selected.read-write`) and `ENABLE_APP_SANDBOX = YES`; (c) **a second Scrivi instance was found running** (`…Scrivi -NSDocumentRevisionsDebugMode YES`, an Xcode debug launch) alongside the `open`-launched one — two instances of a sandboxed app contend for the single per-user panel XPC service, a known trigger for this timeout — even though `LSMultipleInstancesProhibited = true`; (d) host is **macOS 27.0 beta (26A5378n)**, where ViewBridge XPC flakiness is common; (e) **not merge-related** — `presentOpenProjectPanel` is untouched by SP-075. **Resolution (2026-07-21):** confirmed **environmental, NOT a code defect.** The user quit all instances and relaunched clean; the Open Project dialog constructed and ran fine, exactly as the investigation predicted (duplicate sandboxed instance + macOS 27.0 beta panel-XPC handshake timeout). No code change made or warranted — `presentOpenProjectPanel`/`NSOpenPanel()` are unchanged and correct. Closed as Not-a-Bug. | High | **SP-075** (found) | ✅ **Closed — Not a Bug (2026-07-21)**: clean relaunch reproduced the working Open dialog; the crash was the environmental duplicate-instance + beta-OS XPC panel timeout, not Scrivi code. |
 | I-0084 | `[Apple]` **Caret jumps to the next scene/chapter start after a scene merge.** After `⌘-Backspace` scene-merge (SP-075 T-0303), the cursor lost its intended seam position and landed at what looked like the start of the following chapter/scene. **Root cause:** `handleMergeScene` mutates `loader.segments` (`@Observable`), which schedules a `updateNSView` pass; that pass rebuilt storage a SECOND time (its `segIDs != lastSegmentIDs` guard was still true because the coordinator's manual `rebuildStorage` never updated `lastSegmentIDs`), and the redundant `setAttributedString` dropped the selection to 0 — stomping the caret that `rebuildStorageAndPlaceCursor` had just placed. Latent in the original merge code; SP-075's added `await` exposed it. **Fix:** `rebuildStorage` now stamps `lastSegmentIDs`/`lastShowChapterTitles` at the end, so the follow-up `updateNSView` sees no change and skips the redundant rebuild — the caret placement survives. Benefits every manual-rebuild handler (merge/split/create). | Medium | **SP-075** | ✅ Resolved - **Verified (2026-07-21)** — fix in `ManuscriptTextView.rebuildStorage`; user confirmed in the GUI that the caret holds its seam position after a scene merge (no jump to the next scene/chapter start). |
@@ -33,6 +34,61 @@ table and stay in this file as full entries only until the next batch archive (I
 | I-0061 | `[Linux]` Landing **Quit** button does nothing after the shell flip (`QQmlEngine::quit()` unconnected) | Medium | SP-062 | ✅ Resolved - Verified (2026-07-14) |
 
 **Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
+
+---
+
+## I-0087: [Linux] Timeline dots crowd to one edge when a scene is a far time-outlier (no zoom to spread them)
+
+**Status:** 🔴 Open — found in SP-081 T-0332 VNC verification (2026-07-22). Blocks the live verify of the
+scene→band **drag-up assignment** (T-0332); fixed by bringing **SP-083 (zoom/pan)** forward.
+**Platform:** Linux (`platforms/linux/`).
+**Component:** `platforms/linux/src/TimelinePanel.cpp` — the linear story-time → x mapping (`xForOffset`, the
+`[minMs_, maxMs_]` window set in `setTimeline`). Not a defect in that code; it's the *design* (linear axis, no
+zoom) meeting a real manuscript.
+**Severity:** High (the timeline is unusable for any project with a large story-time span; band assignment by
+drag is impossible).
+**Sprint:** SP-081 (found) → **SP-083** (fix).
+**Epic:** EP-025 `[Linux]`.
+
+**Description:**
+In a real project, one scene mid-manuscript is a flashback set ~2 years before the others. The timeline maps
+story-time **linearly** across the strip, so the window spans ~730 days. Every present-day scene (spanning
+days/weeks) collapses into a tiny cluster at the far edge, dots overlapping and un-grabbable; the flashback
+sits alone at the opposite edge with a vast empty gap between. The writer cannot spread the cluster, so:
+- moving a present-day scene is very hard (dots overlap), and
+- **T-0332 band assignment (drag a dot UP onto a band label) is impossible** — the tiny horizontal room means
+  any drag is read as a horizontal story-time move and opens the Time Delta Picker instead.
+
+**Expected:** the writer can zoom into the present-day cluster to separate the dots and interact with them
+(assign to bands, reposition), then pan across the timeline.
+
+**Actual:** no zoom or pan exists yet (SP-083), so an outlier scene renders the rest of the timeline
+un-interactable.
+
+**Root cause:** the **linear time-axis with no zoom** — an intrinsic property of a faithful duration axis (an
+outlier dominates the scale). This is the same class Apple hit (EP-016 I-0046 "year-spanning timelines: max
+zoom too low to resolve a 24-hour cluster" + the T-0174 clustering redesign). It is NOT a Linux layout bug and
+NOT the story-structure code (T-0329/0330/0331 all Verified independently).
+
+**Decision (user, 2026-07-22):** **keep the linear time-axis** (Apple parity — the user built the Apple side
+that way and wants Linux to match) — do **not** substitute even/ordinal spacing. Fix via **zoom + pan**, and
+**bring SP-083 forward now** rather than deferring T-0332 verification. Gesture set (all VNC-safe or with a
+VNC-safe fallback):
+- **Zoom = `Ctrl`+mouse-wheel** — the universal X11/Linux zoom idiom (GIMP/Inkscape/browsers/VS Code/LibreOffice).
+  Zoom about the pointer (center if the pointer is outside the strip). Carries over VNC via the wheel modifier,
+  though a Mac Magic Mouse/trackpad may not emit a discrete wheel x11vnc forwards — hence the buttons below.
+- **`+`/`−` control** (user spec): a tiny horizontal control at the timeline's **bottom-right**, below the
+  scrollbars — `+` left, `−` right. Click zooms about the current pointer (center if away). A plain click always
+  survives VNC → the guaranteed path for testing + non-power-users. Ship BOTH.
+- **Pan = click-drag on the empty area above/below the dots** (background drag was reserved for this in SP-080;
+  the dot itself is the story-time drag). Optionally `Shift`+wheel.
+
+**Fix:** delivered by **SP-083** (activated 2026-07-22, brought forward from its planned position). Once zoom
+exists, re-run the T-0332 band-assignment verify zoomed into the cluster.
+
+**Files (fix lands in SP-083):**
+- `platforms/linux/src/TimelinePanel.cpp/.hpp` — a zoom factor + pan offset over `xForOffset`/`offsetForX`;
+  `wheelEvent` (Ctrl+wheel, zoom-about-pointer); a `+`/`−` widget; background-drag pan.
 
 ---
 

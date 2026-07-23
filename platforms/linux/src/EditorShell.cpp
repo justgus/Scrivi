@@ -6,6 +6,7 @@
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QLabel>
+#include <QCursor>
 #include <QMenu>
 #include <QMessageBox>
 #include <QScrollBar>
@@ -24,8 +25,12 @@
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
 #include "ScriviBridge.hpp"
+#include "StoryStructures.hpp"
 #include "TimeDeltaPicker.hpp"
 #include "TimelinePanel.hpp"
+
+// Short alias for the built-in story-structure presets (SP-081).
+namespace story = scrivi::linux_app::story;
 
 namespace {
 // Custom data roles on navigator items (shared with NavigatorTree's drop resolution):
@@ -128,6 +133,15 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
             this, &EditorShell::onDotDragged);
     connect(timeline_, &TimelinePanel::setTimeDeltaRequested,
             this, &EditorShell::onSetTimeDeltaRequested);
+    // SP-081: story-structure band signals (T-0331/0332).
+    connect(timeline_, &TimelinePanel::bandProportionsChanged,
+            this, &EditorShell::onBandProportionsChanged);
+    connect(timeline_, &TimelinePanel::sceneAssignedToBand,
+            this, &EditorShell::onSceneAssignedToBand);
+    connect(timeline_, &TimelinePanel::assignBandRequested,
+            this, &EditorShell::onAssignBandRequested);
+    connect(timeline_, &TimelinePanel::unassignBandRequested,
+            this, &EditorShell::onUnassignBandRequested);
 
     outerSplitter_ = new QSplitter(Qt::Vertical, this);
     outerSplitter_->addWidget(splitter_);
@@ -1557,6 +1571,15 @@ bool EditorShell::isTimelineVisible() const
     return timeline_ != nullptr && timeline_->isVisible();
 }
 
+void EditorShell::pickStoryStructure()
+{
+    // Ensure the timeline is visible so the writer sees the bands they just chose.
+    if (timeline_ != nullptr && !timeline_->isVisible()) {
+        setTimelineVisible(true);
+    }
+    chooseStoryStructure(QCursor::pos());
+}
+
 void EditorShell::reloadTimeline()
 {
     if (timeline_ == nullptr || loading_) {
@@ -1604,6 +1627,35 @@ void EditorShell::reloadTimeline()
     }
 
     timeline_->setTimeline(epochLabel, dots);
+
+    // Story structure (SP-081): load the current structure + band assignments and push
+    // them to the panel. Empty structure → no bands. bandID per scene comes from
+    // getSceneStoryTime (already fetched above would be ideal, but the story-time call
+    // returns bandID too — re-read here keeps reloadTimeline's dot loop unchanged).
+    const QVariantMap ss = bridge_->getStoryStructure(projectPath_);
+    QList<TimelinePanel::Band> panelBands;
+    if (ss.value(QStringLiteral("hasStructure")).toBool()) {
+        currentStructureID_    = ss.value(QStringLiteral("structureID")).toString();
+        currentBandLayoutJSON_ = ss.value(QStringLiteral("bandLayoutJSON")).toString();
+        for (const story::Band& b : story::parseBandLayout(currentBandLayoutJSON_)) {
+            panelBands.append({b.bandID, b.label, b.color, b.proportion});
+        }
+    } else {
+        currentStructureID_.clear();
+        currentBandLayoutJSON_.clear();
+    }
+    QHash<QString, QString> sceneBands;
+    if (!panelBands.isEmpty()) {
+        for (const SceneSegment& seg : segs) {
+            const QVariantMap st = bridge_->getSceneStoryTime(projectPath_, seg.sceneID);
+            const QString bandID = st.value(QStringLiteral("bandID")).toString();
+            if (!bandID.isEmpty()) {
+                sceneBands.insert(seg.sceneID, bandID);
+            }
+        }
+    }
+    timeline_->setBands(panelBands, sceneBands);
+
     // Re-highlight the active scene's dot after the rebuild.
     if (activeSegment_ >= 0 && activeSegment_ < segs.size()) {
         timeline_->setActiveScene(segs.at(activeSegment_).sceneID);
@@ -1697,4 +1749,88 @@ void EditorShell::showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetM
     }
 
     reloadTimeline();   // rebuild the strip from the persisted story-time
+}
+
+// --- EP-025 story structure (SP-081, T-0330/0331/0332) --------------------
+
+void EditorShell::chooseStoryStructure(const QPoint& globalPos)
+{
+    QMenu menu(this);
+    // One entry per built-in structure (checked = current), plus "None (Remove)".
+    QHash<QAction*, QString> actionToID;
+    for (const story::Structure& s : story::builtInStructures()) {
+        QAction* a = menu.addAction(s.name);
+        a->setCheckable(true);
+        a->setChecked(s.structureID == currentStructureID_);
+        actionToID.insert(a, s.structureID);
+    }
+    menu.addSeparator();
+    QAction* none = menu.addAction(tr("None (Remove Structure)"));
+    none->setCheckable(true);
+    none->setChecked(currentStructureID_.isEmpty());
+
+    QAction* chosen = menu.exec(globalPos);
+    if (chosen == nullptr) {
+        return;
+    }
+    if (chosen == none) {
+        // Remove — offsets + assignments are preserved by the endpoint (AC4).
+        bridge_->removeStoryStructure(projectPath_);
+    } else if (actionToID.contains(chosen)) {
+        const QString structureID = actionToID.value(chosen);
+        const story::Structure* s = story::structureForID(structureID);
+        if (s != nullptr) {
+            bridge_->setStoryStructure(projectPath_, structureID,
+                                       story::bandLayoutJSON(s->bands));
+        }
+    }
+    reloadTimeline();
+}
+
+void EditorShell::onBandProportionsChanged(const QList<double>& proportions)
+{
+    // Apply the dragged proportions to the current band layout + persist. The bandIDs/
+    // labels/colors are unchanged; only proportions move (they sum to 1.0).
+    QList<story::Band> bands = story::parseBandLayout(currentBandLayoutJSON_);
+    if (bands.size() != proportions.size()) {
+        return;   // stale — a reload will re-sync
+    }
+    for (int i = 0; i < bands.size(); ++i) {
+        bands[i].proportion = proportions.at(i);
+    }
+    currentBandLayoutJSON_ = story::bandLayoutJSON(bands);
+    bridge_->updateBandLayout(projectPath_, currentBandLayoutJSON_);
+    reloadTimeline();
+}
+
+void EditorShell::onSceneAssignedToBand(const QString& sceneID, const QString& bandID)
+{
+    bridge_->assignSceneToBand(projectPath_, sceneID, bandID);
+    reloadTimeline();
+}
+
+void EditorShell::onAssignBandRequested(const QString& sceneID)
+{
+    // Pop a submenu of the current bands (from the cached layout) at the cursor.
+    const QList<story::Band> bands = story::parseBandLayout(currentBandLayoutJSON_);
+    if (bands.isEmpty()) {
+        return;
+    }
+    QMenu menu(this);
+    QHash<QAction*, QString> actionToBand;
+    for (const story::Band& b : bands) {
+        QAction* a = menu.addAction(b.label);
+        actionToBand.insert(a, b.bandID);
+    }
+    QAction* chosen = menu.exec(QCursor::pos());
+    if (chosen != nullptr && actionToBand.contains(chosen)) {
+        bridge_->assignSceneToBand(projectPath_, sceneID, actionToBand.value(chosen));
+        reloadTimeline();
+    }
+}
+
+void EditorShell::onUnassignBandRequested(const QString& sceneID)
+{
+    bridge_->unassignSceneFromBand(projectPath_, sceneID);
+    reloadTimeline();
 }

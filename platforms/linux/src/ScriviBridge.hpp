@@ -253,6 +253,46 @@ public:
                                               long long durationMs,
                                               const QString& durationSource);
 
+    // --- Story structure (EP-025 / SP-081, T-0329) ------------------------
+    //
+    // Wrappers over the story-structure C ABI (all exported since EP-016; scrivi.h
+    // untouched). A structure is a named set of proportional colored BANDS painted
+    // behind the timeline dots; scenes assign to a band.
+
+    // Returns {hasStructure, structureID, bandLayoutJSON}. bandLayoutJSON is an array
+    // of {bandID, label, color, proportion} (proportions sum to 1.0). Empty structure
+    // when none set. On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap getStoryStructure(const QString& projectRootPath);
+
+    // Sets the project's story structure (`structureID`, e.g. "three-act") with the
+    // given `bandLayoutJSON` (the app supplies the built-in preset layout). Persists
+    // + returns the ok result. On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap setStoryStructure(const QString& projectRootPath,
+                                              const QString& structureID,
+                                              const QString& bandLayoutJSON);
+
+    // Updates only the band proportions/layout of the current structure (border-drag
+    // re-proportion, T-0331) — `bandLayoutJSON` is the new full layout. On failure
+    // emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap updateBandLayout(const QString& projectRootPath,
+                                             const QString& bandLayoutJSON);
+
+    // Removes the story structure. Scene offsets + bandID assignments are PRESERVED
+    // (the AC4 contract) — only the band rendering goes away. On failure emits
+    // errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap removeStoryStructure(const QString& projectRootPath);
+
+    // Assigns `sceneID` to band `bandID` (drag-up / "Assign to Act…", T-0332). The dot
+    // then paints a ring in the band's color. On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap assignSceneToBand(const QString& projectRootPath,
+                                              const QString& sceneID,
+                                              const QString& bandID);
+
+    // Clears `sceneID`'s band assignment ("Unassign"). On failure emits errorOccurred,
+    // returns {}.
+    Q_INVOKABLE QVariantMap unassignSceneFromBand(const QString& projectRootPath,
+                                                  const QString& sceneID);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

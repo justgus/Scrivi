@@ -58,6 +58,14 @@ void TimelinePanel::setTimeline(const QString& epochLabel, const QList<Dot>& dot
     update();
 }
 
+void TimelinePanel::setBands(const QList<Band>& bands,
+                             const QHash<QString, QString>& sceneBands)
+{
+    bands_      = bands;
+    sceneBands_ = sceneBands;
+    update();
+}
+
 void TimelinePanel::setActiveScene(const QString& sceneID)
 {
     if (activeSceneID_ == sceneID) {
@@ -65,6 +73,71 @@ void TimelinePanel::setActiveScene(const QString& sceneID)
     }
     activeSceneID_ = sceneID;
     update();
+}
+
+// --- SP-081 band geometry -------------------------------------------------
+
+double TimelinePanel::bandLabelRowHeight() const
+{
+    // A short row along the top for band labels + the assignment drop target.
+    return bands_.isEmpty() ? 0.0 : 22.0;
+}
+
+QList<double> TimelinePanel::effectiveProportions() const
+{
+    if (draggingBorder_ >= 0 && dragProportions_.size() == bands_.size()) {
+        return dragProportions_;
+    }
+    QList<double> props;
+    props.reserve(bands_.size());
+    for (const Band& b : bands_) {
+        props.append(b.proportion);
+    }
+    return props;
+}
+
+double TimelinePanel::bandLeftX(int i) const
+{
+    const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+    const QList<double> props = effectiveProportions();
+    double acc = 0.0;
+    for (int k = 0; k < i && k < props.size(); ++k) {
+        acc += props.at(k);
+    }
+    return kSideInset + acc * usable;
+}
+
+double TimelinePanel::bandRightX(int i) const
+{
+    const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+    const QList<double> props = effectiveProportions();
+    double acc = 0.0;
+    for (int k = 0; k <= i && k < props.size(); ++k) {
+        acc += props.at(k);
+    }
+    return kSideInset + acc * usable;
+}
+
+int TimelinePanel::bandIndexAtX(double x) const
+{
+    for (int i = 0; i < bands_.size(); ++i) {
+        if (x >= bandLeftX(i) && x < bandRightX(i)) {
+            return i;
+        }
+    }
+    return bands_.isEmpty() ? -1 : bands_.size() - 1;   // clamp to the last band
+}
+
+int TimelinePanel::borderIndexNearX(double x) const
+{
+    // Borders between adjacent bands (i .. i+1) sit at bandRightX(i). Grab within 5px.
+    constexpr double kGrab = 5.0;
+    for (int i = 0; i < bands_.size() - 1; ++i) {
+        if (std::abs(x - bandRightX(i)) <= kGrab) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 double TimelinePanel::xForOffset(qint64 offsetMs) const
@@ -152,28 +225,73 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
 
     const double cy = height() / 2.0;
 
+    // --- Story-structure bands (behind everything, SP-081) ----------------
+    // Translucent colored proportional slices + a label near the top; a subtle
+    // separator at each border. Painted first so dots + baseline sit on top.
+    if (!bands_.isEmpty()) {
+        const double top    = 1.0;
+        const double bottom = height() - 1.0;
+        for (int i = 0; i < bands_.size(); ++i) {
+            const double left  = bandLeftX(i);
+            const double right = bandRightX(i);
+            QColor c(bands_.at(i).color);
+            if (!c.isValid()) { c = pal.color(QPalette::Mid); }
+            c.setAlpha(48);   // translucent so the dots read clearly over it
+            painter.fillRect(QRectF(left, top, right - left, bottom - top), c);
+
+            // Band label near the top-left of its slice, elided to the slice width.
+            painter.setPen(pal.color(QPalette::Text));
+            const QRectF labelRect(left + 4.0, top, right - left - 8.0,
+                                   bandLabelRowHeight());
+            const QString elided = painter.fontMetrics().elidedText(
+                bands_.at(i).label, Qt::ElideRight,
+                static_cast<int>(labelRect.width()));
+            painter.drawText(labelRect, Qt::AlignVCenter | Qt::AlignLeft, elided);
+
+            // Border separator (skip the outer right edge).
+            if (i < bands_.size() - 1) {
+                QColor border = pal.color(QPalette::Mid);
+                if (draggingBorder_ == i) { border = pal.color(QPalette::Highlight); }
+                painter.setPen(QPen(border, draggingBorder_ == i ? 2.0 : 1.0));
+                painter.drawLine(QPointF(right, top), QPointF(right, bottom));
+            }
+        }
+    }
+
     // Baseline (a faint horizontal rule, theme-aware).
     painter.setPen(QPen(pal.color(QPalette::Mid), 1.0));
     painter.drawLine(QPointF(kSideInset, cy),
                      QPointF(width() - kSideInset, cy));
 
     // Dots. The active scene's dot is drawn filled with the highlight colour and a
-    // ring; the rest use the text colour. While dragging, the dragged dot follows the
-    // live pointer x (dragX_) instead of its stored offset — the SP-080 drag preview.
+    // ring; the rest use the text colour. An ASSIGNED dot (SP-081) shows a ring in its
+    // band's color. While dragging, the dragged dot follows the live pointer x (dragX_)
+    // for a horizontal drag, or the pointer for a drag-to-band.
     const QColor dotColor    = pal.color(QPalette::Text);
     const QColor activeColor = pal.color(QPalette::Highlight);
     for (int i = 0; i < dots_.size(); ++i) {
         const Dot& d = dots_.at(i);
-        const bool isDragged = (dragging_ && i == pressedDot_);
-        const double cx = isDragged ? dragX_ : xForOffset(d.offsetMs);
+        const bool isHDrag = (dragMode_ == DragMode::DotHorizontal && i == pressedDot_);
+        const double cx = isHDrag ? dragX_ : xForOffset(d.offsetMs);
         const bool active = (d.sceneID == activeSceneID_);
         painter.setPen(Qt::NoPen);
-        painter.setBrush((active || isDragged) ? activeColor : dotColor);
+        painter.setBrush((active || isHDrag) ? activeColor : dotColor);
         painter.drawEllipse(QPointF(cx, cy), kDotRadius, kDotRadius);
-        if (active || isDragged) {
+        if (active || isHDrag) {
             painter.setPen(QPen(activeColor, 1.5));
             painter.setBrush(Qt::NoBrush);
             painter.drawEllipse(QPointF(cx, cy), kDotRadius + 3.0, kDotRadius + 3.0);
+        }
+        // Band-assignment ring (SP-081) in the assigned band's color.
+        const QString bandID = sceneBands_.value(d.sceneID);
+        if (!bandID.isEmpty()) {
+            QColor ringColor = pal.color(QPalette::Text);
+            for (const Band& b : bands_) {
+                if (b.bandID == bandID) { ringColor = QColor(b.color); break; }
+            }
+            painter.setPen(QPen(ringColor, 2.0));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawEllipse(QPointF(cx, cy), kDotRadius + 5.0, kDotRadius + 5.0);
         }
     }
 
@@ -185,11 +303,23 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
 void TimelinePanel::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton) {
-        // Remember which dot (if any) is under the press. A click vs a drag is decided
-        // in mouseMoveEvent (movement past the threshold) / mouseReleaseEvent. A press
-        // on the background leaves pressedDot_ = -1 (reserved for pan in SP-083).
+        pressPos_   = event->position();
+        pressedDot_ = -1;
+        dragMode_   = DragMode::None;
+        draggingBorder_ = -1;
+
+        // Priority: a band border (T-0331) wins over a dot, since borders sit in the
+        // band gutters where a stray dot could also be. Then a dot (mode decided by
+        // the first drag direction). Background press → nothing (reserved for pan).
+        const int border = borderIndexNearX(pressPos_.x());
+        if (border >= 0) {
+            draggingBorder_  = border;
+            dragMode_        = DragMode::Border;
+            dragProportions_ = effectiveProportions();
+            event->accept();
+            return;
+        }
         pressedDot_ = dotIndexAt(event->pos());
-        dragging_   = false;
         if (pressedDot_ >= 0) {
             dragX_ = xForOffset(dots_.at(pressedDot_).offsetMs);
             event->accept();
@@ -201,15 +331,53 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
 
 void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
 {
-    if (pressedDot_ >= 0 && (event->buttons() & Qt::LeftButton)) {
-        const double x = event->position().x();
-        if (!dragging_
-            && std::abs(x - xForOffset(dots_.at(pressedDot_).offsetMs)) > kDragThreshold) {
-            dragging_ = true;   // crossed the threshold — this is a drag, not a click
+    if (!(event->buttons() & Qt::LeftButton)) {
+        QWidget::mouseMoveEvent(event);
+        return;
+    }
+    const QPointF p = event->position();
+
+    // --- Border re-proportion drag (T-0331) -------------------------------
+    if (dragMode_ == DragMode::Border && draggingBorder_ >= 0
+        && draggingBorder_ + 1 < bands_.size()) {
+        const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+        const int i = draggingBorder_;
+        // Move proportion between band i and i+1: band i's new width runs from its left
+        // edge to the pointer. Keep each above a 0.05 floor; their pair-sum is constant
+        // so no other band shifts.
+        const double pairSum = dragProportions_.at(i) + dragProportions_.at(i + 1);
+        const double bandStartFrac = (bandLeftX(i) - kSideInset) / usable;
+        const double leftProp = std::clamp((p.x() - kSideInset) / usable - bandStartFrac,
+                                           0.05, pairSum - 0.05);
+        dragProportions_[i]     = leftProp;
+        dragProportions_[i + 1] = pairSum - leftProp;
+        update();
+        event->accept();
+        return;
+    }
+
+    // --- Dot drag: decide mode on first movement past the threshold -------
+    if (pressedDot_ >= 0) {
+        const double dx = p.x() - pressPos_.x();
+        const double dy = p.y() - pressPos_.y();
+        if (dragMode_ == DragMode::None
+            && (std::abs(dx) > kDragThreshold || std::abs(dy) > kDragThreshold)) {
+            // Up into the label row (and a structure is present) → assignment; else a
+            // horizontal story-time drag. "Mostly up" = dy dominant and into the row.
+            const bool intoLabelRow = !bands_.isEmpty()
+                                      && p.y() < bandLabelRowHeight() + 6.0;
+            dragMode_ = (intoLabelRow && dy < 0 && std::abs(dy) >= std::abs(dx))
+                            ? DragMode::DotToBand
+                            : DragMode::DotHorizontal;
         }
-        if (dragging_) {
-            dragX_ = std::clamp(x, kSideInset, width() - kSideInset);
-            update();   // redraw the dragged dot at the live x
+        if (dragMode_ == DragMode::DotHorizontal) {
+            dragX_ = std::clamp(p.x(), kSideInset, width() - kSideInset);
+            update();
+            event->accept();
+            return;
+        }
+        if (dragMode_ == DragMode::DotToBand) {
+            update();   // (a full drag-ghost is unnecessary; the drop resolves on release)
             event->accept();
             return;
         }
@@ -219,19 +387,34 @@ void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
 
 void TimelinePanel::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (event->button() == Qt::LeftButton && pressedDot_ >= 0) {
+    if (event->button() != Qt::LeftButton) {
+        QWidget::mouseReleaseEvent(event);
+        return;
+    }
+
+    if (dragMode_ == DragMode::Border && draggingBorder_ >= 0) {
+        emit bandProportionsChanged(dragProportions_);   // shell persists via update_band_layout
+        draggingBorder_ = -1;
+        dragMode_ = DragMode::None;
+        update();
+        event->accept();
+        return;
+    }
+
+    if (pressedDot_ >= 0) {
         const QString sceneID = dots_.at(pressedDot_).sceneID;
-        if (dragging_) {
-            // Dragged: map the release x back to a story-time offset; the shell opens
-            // the Time Delta Picker seeded with it (T-0328).
-            const qint64 newOffsetMs = offsetForX(dragX_);
-            emit dotDragged(sceneID, newOffsetMs);
+        if (dragMode_ == DragMode::DotHorizontal) {
+            emit dotDragged(sceneID, offsetForX(dragX_));   // → Time Delta Picker (SP-080)
+        } else if (dragMode_ == DragMode::DotToBand) {
+            const int bi = bandIndexAtX(event->position().x());
+            if (bi >= 0) {
+                emit sceneAssignedToBand(sceneID, bands_.at(bi).bandID);
+            }
         } else {
-            // No movement past the threshold — a plain click → navigate (SP-079).
-            emit sceneClicked(sceneID);
+            emit sceneClicked(sceneID);   // no drag — navigate (SP-079)
         }
         pressedDot_ = -1;
-        dragging_   = false;
+        dragMode_ = DragMode::None;
         update();
         event->accept();
         return;
@@ -246,13 +429,29 @@ void TimelinePanel::contextMenuEvent(QContextMenuEvent* event)
         QWidget::contextMenuEvent(event);
         return;
     }
-    // Right-click on a dot → "Set Time Delta…" (Apple's context-menu entry). The shell
-    // opens the picker without a drag (T-0328).
-    QMenu menu(this);
-    QAction* setDelta = menu.addAction(tr("Set Time Delta…"));
     const QString sceneID = dots_.at(i).sceneID;
-    if (menu.exec(event->globalPos()) == setDelta) {
+    QMenu menu(this);
+    QAction* setDelta = menu.addAction(tr("Set Time Delta…"));   // SP-080
+
+    // SP-081: band assignment entries when a structure is present. The shell owns the
+    // band submenu (it knows the current bands), so we just signal intent.
+    QAction* assign = nullptr;
+    QAction* unassign = nullptr;
+    if (!bands_.isEmpty()) {
+        menu.addSeparator();
+        assign = menu.addAction(tr("Assign to Act…"));
+        if (!sceneBands_.value(sceneID).isEmpty()) {
+            unassign = menu.addAction(tr("Unassign"));
+        }
+    }
+
+    QAction* chosen = menu.exec(event->globalPos());
+    if (chosen == setDelta) {
         emit setTimeDeltaRequested(sceneID);
+    } else if (chosen != nullptr && chosen == assign) {
+        emit assignBandRequested(sceneID);
+    } else if (chosen != nullptr && chosen == unassign) {
+        emit unassignBandRequested(sceneID);
     }
     event->accept();
 }

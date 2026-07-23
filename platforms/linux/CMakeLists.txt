@@ -49,6 +49,9 @@ qt_add_executable(scrivi_linux
     # SP-080 (EP-025): the Time Delta Picker dialog (scene story-time placement).
     src/TimeDeltaPicker.cpp
     src/TimeDeltaPicker.hpp
+    # SP-081 (EP-025): built-in story-structure band presets.
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
 )
 
 qt_add_qml_module(scrivi_linux
@@ -408,6 +411,34 @@ target_link_libraries(scrivi_linux_timeline_story_time_smoke
 
 target_include_directories(scrivi_linux_timeline_story_time_smoke PRIVATE src)
 target_compile_features(scrivi_linux_timeline_story_time_smoke PRIVATE cxx_std_23)
+
+# --- Headless story-structure smoke (SP-081 / T-0332, EP-025 AC4) ----------
+# Sets a built-in structure (three-act) + asserts it persisted on reopen; assigns a
+# scene to a band + asserts the bandID persisted; re-proportions the bands
+# (update_band_layout) + asserts the new proportions persisted; removes the structure +
+# asserts the scene's band assignment is PRESERVED (the AC4 "remove keeps offsets +
+# assignments" contract). The band painting + border/assignment drags are verified live
+# over VNC; the layout + assignment persistence are headless here. story_structure_smoke.sh.
+qt_add_executable(scrivi_linux_story_structure_smoke
+    tests/story_structure_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+)
+
+target_link_libraries(scrivi_linux_story_structure_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_story_structure_smoke PRIVATE src)
+target_compile_features(scrivi_linux_story_structure_smoke PRIVATE cxx_std_23)
 
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a

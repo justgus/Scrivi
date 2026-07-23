@@ -149,6 +149,14 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(showTimelineAction_);
 
+    // Story Structure… (EP-025 / SP-081, T-0330) — pick a built-in structure (Three Act
+    // / Five Act / Hero's Journey / …) or remove it; the timeline paints the bands.
+    QAction* storyStructure = view->addAction(tr("Story Structure…"));
+    connect(storyStructure, &QAction::triggered, this, [this]() {
+        if (editor_ != nullptr) { editor_->pickStoryStructure(); }
+    });
+    editorOnlyActions_.append(storyStructure);
+
     // --- Scene ------------------------------------------------------------
     QMenu* scene = bar->addMenu(tr("&Scene"));
     QAction* splitScene = scene->addAction(tr("Split Scene"));

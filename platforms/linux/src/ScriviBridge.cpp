@@ -396,6 +396,84 @@ QVariantMap ScriviBridge::setSceneStoryTime(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::getStoryStructure(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_get_story_structure(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setStoryStructure(const QString& projectRootPath,
+                                            const QString& structureID,
+                                            const QString& bandLayoutJSON)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_set_story_structure(projectRootPath.toUtf8().constData(),
+                                   structureID.toUtf8().constData(),
+                                   bandLayoutJSON.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::updateBandLayout(const QString& projectRootPath,
+                                           const QString& bandLayoutJSON)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_update_band_layout(projectRootPath.toUtf8().constData(),
+                                  bandLayoutJSON.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::removeStoryStructure(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_remove_story_structure(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::assignSceneToBand(const QString& projectRootPath,
+                                            const QString& sceneID,
+                                            const QString& bandID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_assign_scene_to_band(projectRootPath.toUtf8().constData(),
+                                    sceneID.toUtf8().constData(),
+                                    bandID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::unassignSceneFromBand(const QString& projectRootPath,
+                                                const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_unassign_scene_from_band(projectRootPath.toUtf8().constData(),
+                                        sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

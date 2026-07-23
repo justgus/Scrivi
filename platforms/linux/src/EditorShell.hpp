@@ -92,6 +92,11 @@ public:
     void setTimelineVisible(bool visible);
     bool isTimelineVisible() const;
 
+    // Open the story-structure selector menu (SP-081, T-0330). Called from the
+    // ScriviWindow View ▸ Story Structure… menu action; pops the built-ins + Remove
+    // at the cursor and applies the choice. No-op if no project/timeline is loaded.
+    void pickStoryStructure();
+
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible
     // (T-0246) — the QStackedWidget swaps to the editor after load(), so focusing
@@ -153,6 +158,18 @@ private slots:
     // the picker seeded with the scene's CURRENT offset (no drag).
     void onSetTimeDeltaRequested(const QString& sceneID);
 
+    // --- EP-025 story structure (SP-081, T-0330/0331/0332) ----------------
+    // Band borders re-proportioned (TimelinePanel::bandProportionsChanged): apply the
+    // new proportions to the current bands + persist via updateBandLayout.
+    void onBandProportionsChanged(const QList<double>& proportions);
+    // A dot was dragged onto a band label (TimelinePanel::sceneAssignedToBand): persist
+    // via assignSceneToBand + refresh the strip.
+    void onSceneAssignedToBand(const QString& sceneID, const QString& bandID);
+    // Dot context-menu "Assign to Act…": pop a submenu of the current bands, then assign.
+    void onAssignBandRequested(const QString& sceneID);
+    // Dot context-menu "Unassign": clear the scene's band + refresh.
+    void onUnassignBandRequested(const QString& sceneID);
+
 private:
     // Select the navigator row for `sceneID` (highlight only; no scroll, no caret).
     // Used both by a click and by the scroll-driven active-scene follow.
@@ -180,6 +197,11 @@ private:
     // subsequent scene's offset from the gap chain (Apple recomputeAndPersistFrom).
     // Rebuilds the strip. No-op if the sceneID is unknown.
     void showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetMs);
+
+    // Story-structure selector (SP-081, T-0330): show a menu of the built-in structures
+    // + "None (Remove)" and apply the choice (setStoryStructure / removeStoryStructure),
+    // then refresh the strip. Anchored at `globalPos` (the menu button / bar action).
+    void chooseStoryStructure(const QPoint& globalPos);
     // Move the caret to the start of segment `index`'s body and center it; also
     // reflects the selection in the navigator. Updates activeSegment_.
     void moveCaretToSegment(int index);
@@ -274,6 +296,12 @@ private:
     // duration) without re-hitting the backend.
     QHash<QString, qint64> timelineOffsets_;
     QHash<QString, qint64> timelineDurations_;
+
+    // Current story structure (SP-081), cached on each reloadTimeline: the structureID
+    // and the band layout JSON as persisted. Empty structureID = no structure. The
+    // border-drag re-proportion (T-0331) edits + re-persists this layout.
+    QString currentStructureID_;
+    QString currentBandLayoutJSON_;
     SceneDocument       sceneDoc_;
 
     // Identity of the open project, stashed on load() for the save path.

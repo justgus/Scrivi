@@ -11,13 +11,27 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**SP-080** `[Linux]` (EP-025 — **Timeline Panel**, 2nd of ~5 sprints): interactive scene dots — drag a dot →
-**Time Delta Picker** on release (Apple parity) → commit via `scrivi_set_scene_story_time` (manual placement) +
-**chain-propagate** subsequent offsets; also a dot context-menu "Set Time Delta…". Delivers **AC3**. Canonical
-stored value is `gapMs` + derived `offsetMs` chain; `scrivi.h` untouched (endpoint exists from EP-016); new
-`timeline_story_time_smoke`. 🟡 **Active from 2026-07-22.** Tasks T-0325–T-0328. See `Sprint-active.md`.
+**Two active sprints** (both EP-025 `[Linux]` Timeline):
 
-Last closed: **SP-079** (EP-025 `[Linux]` — **Timeline Panel**, opened the Epic) — ✅ **closed 2026-07-22
+- **SP-083** `[Linux]` (EP-025 — **Timeline zoom + pan**, *brought forward* to fix I-0087): keep the linear
+  time-axis (Apple parity) and add **zoom = `Ctrl`+wheel zoom-about-pointer + an always-works `+`/`−` control**
+  (bottom-right, VNC-safe) + **pan = drag the empty area above/below the dots**. Fixes the dot-crowding that a
+  far-outlier scene causes (I-0087) and **unblocks SP-081 T-0332**. Delivers **AC6a**. 🟡 **Active from
+  2026-07-22** (current focus). Tasks T-0333–T-0335. See `Sprint-active.md`.
+- **SP-081** `[Linux]` (EP-025 — **Story-structure bands**): a structure selector paints colored proportional
+  bands + labels behind the dots; borders drag to re-proportion; scenes assign to bands (drag-up / "Assign to
+  Act…") with a colored ring; remove keeps offsets + assignments. **T-0329/0330/0331 ✅ Verified; T-0332
+  (drag-up assignment) blocked by I-0087** → verifies once SP-083's zoom spreads the dots. Delivers **AC4**.
+  Tasks T-0329–T-0332. See `Sprint-active.md`.
+
+Last closed: **SP-080** (EP-025 `[Linux]` — **Timeline Panel**, 2nd sprint) — ✅ **closed 2026-07-22
+(Human-approved).** Interactive scene dots: drag a dot → **Time Delta Picker** on release → commit via
+`scrivi_set_scene_story_time` (manual placement) + **chain-propagate** subsequent offsets; also a dot
+context-menu "Set Time Delta…". **EP-025 AC3 Verified** live over VNC; container build green (193/193,
+0 warnings) + new `timeline_story_time_smoke` + all Linux smokes PASS; `scrivi.h` untouched (endpoint from
+EP-016). Tasks T-0325–T-0328 all Verified. `Closed/Sprint-SP-080.md`.
+
+Prior: **SP-079** (EP-025 `[Linux]` — **Timeline Panel**, opened the Epic) — ✅ **closed 2026-07-22
 (Human-approved).** The read + layout + select core: a hideable **bottom** strip (`TimelinePanel`) with one dot
 per scene in **story-time** order (chain-computed from new `ScriviBridge::getTimeline` + `getSceneStoryTime`
 invokables), a **View ▸ Show Timeline** toggle (Ctrl+Alt+T) on the SP-077 menu bar, and bidirectional
@@ -115,9 +129,9 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 ## All Sprints
 
-Currently: **78 Sprints** (75 closed + 1 cancelled + 1 active + 2 in Planning; the SP-068 **ID** was skipped
+Currently: **80 Sprints** (76 closed + 1 cancelled + 2 active + 2 in Planning; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19) | Next available: **SP-081**
+2026-07-19; **SP-083 was brought forward** ahead of SP-082, which stays planned) | Next available: **SP-084**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -199,25 +213,31 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-077 | `[Linux]` Native menu bar (File/Edit/Scene/Chapter/Project) — unblocked EP-028 AC5/AC6 Linux verify over VNC | — `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-078 | `[Linux]` Scene Inspector Panel — dockable tabbed panel + Scene Entities stub + View-menu toggle | EP-024 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time) + show/hide + dot↔navigator selection | EP-025 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
-| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
+| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation | EP-025 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
+| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
+| SP-083 | `[Linux]` Timeline zoom + pan (brought forward — fixes I-0087) | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
 
 ## Statistics
 
-- **Total Sprints:** 79 (SP-001–SP-080 issued; SP-068 skipped)
-- **Closed:** 75 ✅
-- **Active:** 1 🟡 (SP-080 EP-025 `[Linux]` Timeline Panel)
+- **Total Sprints:** 81 (SP-001–SP-083 issued; SP-068 skipped; SP-082 planned but SP-083 brought forward)
+- **Closed:** 76 ✅
+- **Active:** 2 🟡 (SP-081 + SP-083, both EP-025 `[Linux]` Timeline Panel)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-080 activated** — EP-025 `[Linux]` Timeline Panel's 2nd sprint: interactive
-scene dots (drag → Time Delta Picker on release → `scrivi_set_scene_story_time` manual commit + chain
-propagation; + dot context-menu "Set Time Delta…"). Delivers AC3. Tasks T-0325–T-0328; canonical stored value
-is `gapMs` + derived `offsetMs` chain; `scrivi.h` untouched (endpoint from EP-016); new `timeline_story_time_smoke`.
-Pan/zoom decided for SP-083 (Ctrl+wheel + buttons zoom, drag-background + Shift+wheel pan — not trackpad pinch,
-VNC/X11 can't carry it). Active 0→1; next available SP-081 (story-structure bands). Prior note follows.)*
+*Last Updated: 2026-07-22 (**SP-080 ✅ closed (AC3 Verified) + SP-081 activated** — EP-025 `[Linux]` Timeline
+Panel. SP-080 delivered interactive scene dots (drag → Time Delta Picker → manual placement + chain
+propagation; + "Set Time Delta…" context menu), T-0325–T-0328 all Verified live over VNC; container build green
+(193/193) + `timeline_story_time_smoke` + all smokes PASS; `scrivi.h` untouched. **SP-081** now active (3rd
+sprint): story-structure bands — structure selector paints colored proportional bands + labels behind the dots,
+border-drag re-proportion (`update_band_layout`), scene→band assignment (drag-up / "Assign to Act…",
+`assign_scene_to_band`) with a colored ring, remove keeps offsets+assignments. Delivers AC4. Tasks T-0329–T-0332;
+full story-structure C ABI exists (EP-016), `scrivi.h` untouched; new `story_structure_smoke`. Closed 75→76,
+Active stays 1 (SP-080→SP-081); next available SP-082 (historical + imported events). Records:
+`Closed/Sprint-SP-080.md`. Prior note follows.)*
 
 *2026-07-22 (**SP-079 ✅ closed with user approval** — EP-025 `[Linux]` Timeline Panel's first
 sprint, planned + activated + implemented + verified + closed same day. Delivered the timeline read + layout +

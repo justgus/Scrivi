@@ -7,7 +7,8 @@ plain-C ABI through `ScriviBridge`. **The full timeline C ABI already exists** (
 `scrivi_get_timeline`, `scrivi_set_scene_story_time`, story-structure, historical events, imported timelines,
 export — `scrivi.h` lines 248–291). No new endpoint is expected; any gap is a Task with a `[ScriviCore]` note.
 
-**Status:** 🟡 Active (activated 2026-07-22; SP-079 ✅ closed [AC1/AC2]; SP-080 AC3 Verified, ready to close)
+**Status:** 🟡 Active (2026-07-22: SP-079 ✅ [AC1/AC2] + SP-080 ✅ [AC3] closed; SP-081 active [AC4], T-0332
+blocked by I-0087; **SP-083 zoom/pan brought forward** [AC6a] to unblock it — two parallel active sprints)
 **Goal:** The **Timeline Panel** on Linux — a hideable horizontal timeline strip across the **bottom** of the
 editor showing one dot per scene in **story-time** order, with drag-to-reposition + the Time Delta Picker,
 story-structure bands, historical events, imported timelines, export, and co-located-dot clustering. Full
@@ -58,12 +59,14 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 - [ ] AC5 — **Historical events + imported timelines + export:** author/edit/delete historical events (own
   dot color) via the C ABI; import a `.scrivi-timeline.json` (distinct grey row, window-clipped, multiple
   rows/shades, hide/show); export the project timeline. **(SP-082)**
-- [ ] AC6 — **Clustering + pan/zoom + full verify:** co-located dots form an aggregate dot with a members
-  popover (Apple T-0174); zoom resolves clusters; **zoom = Ctrl+scroll-wheel + toolbar +/−, pan = click-drag on
-  empty timeline background + Shift+wheel** (NOT trackpad pinch — VNC/X11 can't carry it, user decision
-  2026-07-22; native pinch is an optional bonus on real Ubuntu); panel persists all state across close/reopen.
-  No regression: Linux smokes + the app-launch smoke green; writing loop / navigator / inspector unaffected.
-  **(SP-083)**
+- [ ] AC6a — **Zoom + pan (SP-083, brought forward to fix I-0087):** the writer can zoom the linear time-axis
+  to spread crowded dots (an outlier scene no longer makes the rest un-interactable) and pan across it. **Zoom
+  = `Ctrl`+scroll-wheel (zoom-about-pointer) + an always-works `+`/`−` control at the strip's bottom-right**
+  (a plain click, VNC-safe); **pan = click-drag on the empty area above/below the dots**. Linear axis kept
+  (Apple parity — NOT even-spacing); native pinch an optional bonus on real Ubuntu. Unblocks T-0332.
+- [ ] AC6b — **Clustering + full verify (SP-084):** co-located dots form an aggregate dot with a members
+  popover (Apple T-0174); zoom resolves clusters; panel persists all state across close/reopen. No regression:
+  Linux smokes + the app-launch smoke green; writing loop / navigator / inspector unaffected.
 
 > **Apple ACs N/A on Linux:** the iPhone-exclusion AC from EP-016 does not apply (Linux is desktop-only).
 
@@ -72,10 +75,11 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time layout) + show/hide + dot↔navigator selection | ✅ Closed | 2026-07-22 – 2026-07-22 |
-| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | 🟡 Active — all tasks Verified (AC3 met); ready to close | 2026-07-22 – |
-| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | 🔵 Planned | — |
+| SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | ✅ Closed | 2026-07-22 – 2026-07-22 |
+| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | 🟡 Active (T-0332 blocked by I-0087 → SP-083) | 2026-07-22 – |
+| SP-083 | `[Linux]` Timeline zoom + pan (Ctrl+wheel + `+`/`−` control, drag-to-pan) — **brought forward** to fix I-0087 / unblock T-0332 | 🟡 Active | 2026-07-22 – |
 | SP-082 | `[Linux]` Historical events + imported timelines + export | 🔵 Planned | — |
-| SP-083 | `[Linux]` Clustering + pan/zoom + persistence + full EP-025 verify & Epic close | 🔵 Planned | — |
+| SP-084 | `[Linux]` Co-located dot clustering + persistence + full EP-025 verify & Epic close (was SP-083's tail) | 🔵 Planned | — |
 
 ### Tasks
 
@@ -89,6 +93,13 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | T-0326 | `[Linux]` `TimelinePanel` dot drag — press-on-dot → horizontal drag → `dotDragged(sceneID, newOffsetMs)` on release; click vs drag by threshold; context-menu "Set Time Delta…"; background reserved for pan | SP-080 | ✅ Verified (2026-07-22) |
 | T-0327 | `[Linux]` `TimeDeltaPicker` `QDialog` — amount/unit/direction spinner + duration row + "Immediately after" (reset); returns Outcome + offset + duration | SP-080 | ✅ Verified (2026-07-22) |
 | T-0328 | `[Linux]` Wire drag/context-menu → picker → commit (`setSceneStoryTime` manual) + chain propagation + `timeline_story_time_smoke` (closes AC3) | SP-080 | ✅ Verified (2026-07-22) |
+| T-0329 | `[Linux]` Story-structure bridge invokables (`get/set/update/remove_story_structure`, `assign/unassign_scene_to_band`) + built-in band table ported from Apple (`StoryStructures.cpp/.hpp`) | SP-081 | ✅ Verified (2026-07-22) |
+| T-0330 | `[Linux]` Band overlay painting (behind dots) + View ▸ Story Structure… selector (built-ins + Remove); loaded via `getStoryStructure` | SP-081 | ✅ Verified (2026-07-22) |
+| T-0331 | `[Linux]` Band border drag — re-proportion adjacent bands (sum 1.0) + persist via `updateBandLayout` | SP-081 | ✅ Verified (2026-07-22) |
+| T-0332 | `[Linux]` Scene→band assignment (drag-up-onto-label + "Assign to Act…" context menu) + colored ring + `story_structure_smoke` (closes AC4) | SP-081 | 🟡 Implemented — build+smokes green; live verify **blocked by I-0087** (dot-crowding) |
+| T-0333 | `[Linux]` `TimelinePanel` zoom model — zoom factor + pan offset over `xForOffset`/`offsetForX`; `Ctrl`+wheel zoom-about-pointer; clamp/reset | SP-083 | 🔵 Backlog |
+| T-0334 | `[Linux]` `+`/`−` zoom control (bottom-right of the strip, zoom-about-pointer-or-center) + a horizontal scrollbar when zoomed | SP-083 | 🔵 Backlog |
+| T-0335 | `[Linux]` Pan by click-drag on the empty area above/below the dots (background drag reserved in SP-080) + verify; **re-verify T-0332 assignment zoomed in** (closes I-0087) | SP-083 | 🔵 Backlog |
 
 ### Scope Notes
 
@@ -114,13 +125,16 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel — SP-080 activated** (2nd sprint): interactive
-scene dots — drag a dot → **Time Delta Picker** on release (Apple parity, user decision) → commit via
-`scrivi_set_scene_story_time` (manual placement) + **chain-propagate** subsequent offsets; also a dot
-context-menu "Set Time Delta…". Delivers AC3. Tasks T-0325–T-0328; `scrivi.h` untouched (endpoint exists from
-EP-016); canonical stored value is `gapMs` + derived `offsetMs` chain; new `timeline_story_time_smoke`. **Pan/zoom
-input decided for SP-083** (user 2026-07-22): Ctrl+wheel + toolbar +/− zoom, drag-background + Shift+wheel pan —
-NOT trackpad pinch (VNC/X11 can't carry it); recorded in Scope Notes + AC6. Prior note follows.)*
+*Last Updated: 2026-07-22 (**EP-025 SP-081 — T-0329/0330/0331 ✅ Verified; T-0332 blocked by I-0087; SP-083
+zoom/pan brought forward** (two parallel active sprints). SP-081's story-structure bridge/presets (T-0329),
+band overlay + View ▸ Story Structure… selector (T-0330), and band border-drag re-proportion (T-0331) are all
+Verified live. **T-0332** (scene→band drag-up assignment) is blocked by **I-0087**: a single far-outlier
+flashback scene (~2yr) collapses all other dots to one strip edge under the linear time-axis, so a dot can't
+be spread/grabbed to drag onto a band. **User decision:** keep the linear axis (Apple parity — NOT
+even-spacing); fix via zoom/pan and **bring SP-083 forward** now. **SP-083** (activated 2026-07-22): timeline
+zoom (`Ctrl`+wheel zoom-about-pointer + an always-works `+`/`−` control, bottom-right, for VNC/non-power-users)
++ pan (drag the empty area above/below the dots). Tasks T-0333–T-0335; re-verify T-0332 zoomed in. Clustering +
+full verify + Epic close move to a new **SP-084**. Prior note follows.)*
 
 *2026-07-22 (**SP-079 ✅ closed (Human-approved)** — the first
 of ~5 sprints delivered the timeline read + layout + select core: `ScriviBridge` `getTimeline` +
