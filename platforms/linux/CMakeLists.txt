@@ -52,6 +52,12 @@ qt_add_executable(scrivi_linux
     # SP-081 (EP-025): built-in story-structure band presets.
     src/StoryStructures.cpp
     src/StoryStructures.hpp
+    # SP-082 (EP-025): the historical-event author/edit dialog.
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    # SP-082 (EP-025): the import epoch-offset dialog.
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
 )
 
 qt_add_qml_module(scrivi_linux
@@ -439,6 +445,33 @@ target_link_libraries(scrivi_linux_story_structure_smoke
 
 target_include_directories(scrivi_linux_story_structure_smoke PRIVATE src)
 target_compile_features(scrivi_linux_story_structure_smoke PRIVATE cxx_std_23)
+
+# --- Headless timeline-events smoke (SP-082 / T-0344, EP-025 AC5) -----------
+# Historical events + imported timelines + export through the bridge (the layer
+# EditorShell's SP-082 slots call): create/update/delete a historical event (list
+# round-trip); import a fixture .scrivi-timeline.json (stored, metadata, on-disk file);
+# hide/show + update-offset persist; export yields a valid scrivi.externalTimeline.v1
+# body carrying the surviving historical event; remove clears the list. The dot
+# rendering + drag + dialogs are verified live over VNC; persistence is headless here.
+# timeline_events_smoke.sh.
+qt_add_executable(scrivi_linux_timeline_events_smoke
+    tests/timeline_events_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_timeline_events_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_timeline_events_smoke PRIVATE src)
+target_compile_features(scrivi_linux_timeline_events_smoke PRIVATE cxx_std_23)
 
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a

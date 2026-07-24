@@ -97,6 +97,13 @@ public:
     // at the cursor and applies the choice. No-op if no project/timeline is loaded.
     void pickStoryStructure();
 
+    // Import / Export the project timeline (SP-082, T-0345). Public triggers so the
+    // File ▸ Import/Export Timeline… menu items can drive the same flows the timeline
+    // panel's empty-area menu offers. Each forwards to the private slot (file dialog +
+    // bridge). No-op if no project is loaded.
+    void importTimeline();
+    void exportTimeline();
+
 protected:
     // Give the writing surface keyboard focus when the editor page becomes visible
     // (T-0246) — the QStackedWidget swaps to the editor after load(), so focusing
@@ -172,7 +179,36 @@ private slots:
     // SP-083 T-0338: persist the timeline zoom/pan for the open project (QSettings).
     void onTimelineViewStateChanged(double zoom, double panFraction);
 
+    // --- EP-025 historical events + import/export (SP-082, T-0341/0342/0343) ---
+    // A historical-event dot was dragged (TimelinePanel::historicalEventDragged): persist
+    // the new absolute offset via updateHistoricalEvent + refresh.
+    void onHistoricalEventDragged(const QString& eventID, qint64 newOffsetMs);
+    // Empty-area "New Historical Event Here": open the editor dialog seeded at atOffsetMs,
+    // then createHistoricalEvent + refresh.
+    void onNewHistoricalEventRequested(qint64 atOffsetMs);
+    // Historical-dot "Edit Historical Event…": open the editor dialog on the event, then
+    // updateHistoricalEvent + refresh.
+    void onEditHistoricalEventRequested(const QString& eventID);
+    // Historical-dot "Delete Historical Event": deleteHistoricalEvent + refresh.
+    void onDeleteHistoricalEventRequested(const QString& eventID);
+    // Empty-area "Import Timeline…" (T-0342): pick a .scrivi-timeline.json → epoch-offset
+    // dialog → importExternalTimeline + refresh.
+    void onImportTimelineRequested();
+    // Empty-area "Export Timeline…" (T-0343): exportProjectTimeline → save-as write.
+    void onExportTimelineRequested();
+    // Imported-row "Edit Epoch Offset…" (T-0342): re-run the offset dialog on an existing
+    // import → updateImportedTimelineOffset + refresh.
+    void onEditImportedOffsetRequested(const QString& timelineID);
+    // Imported-row "Hide This Timeline" (T-0342): setImportedTimelineVisible + refresh.
+    void onSetImportedTimelineVisible(const QString& timelineID, bool visible);
+    // Imported-row "Remove Imported Timeline" (T-0342): removeImportedTimeline + refresh.
+    void onRemoveImportedTimelineRequested(const QString& timelineID);
+
 private:
+    // Load the imported-timeline rows into the panel (T-0342). Reads listImportedTimelines
+    // for metadata + each stored file in objects/imported-timelines/ for the per-event
+    // dots (the list projection omits events). Called from reloadTimeline.
+    void reloadImportedTimelines();
     // Absolute path to the timeline view-state INI. Lives INSIDE the app-support root
     // (not the default ~/.config) so it survives the Docker/VNC container's --rm restart,
     // which only bind-mounts app-support (T-0338 persistence fix). Empty appSupportRoot_
@@ -309,6 +345,18 @@ private:
     // border-drag re-proportion (T-0331) edits + re-persists this layout.
     QString currentStructureID_;
     QString currentBandLayoutJSON_;
+
+    // Historical events cached on each reloadTimeline (SP-082, T-0341): eventID → its
+    // record, so the Edit dialog + a drag re-time can read title/description/offset
+    // without a re-fetch. (Tags are read from disk on demand — the list drops them.) A
+    // local struct keeps TimelinePanel forward-declared in this header (it's only used
+    // as a pointer otherwise).
+    struct HistEventCache {
+        QString title;
+        QString description;
+        qint64  offsetMs = 0;
+    };
+    QHash<QString, HistEventCache> histEvents_;
     SceneDocument       sceneDoc_;
 
     // Identity of the open project, stashed on load() for the save path.

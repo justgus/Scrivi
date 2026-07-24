@@ -293,6 +293,91 @@ public:
     Q_INVOKABLE QVariantMap unassignSceneFromBand(const QString& projectRootPath,
                                                   const QString& sceneID);
 
+    // --- Historical events + imported timelines + export (EP-025 / SP-082, T-0340) ---
+    //
+    // Wrappers over the timeline-events C ABI (all exported since EP-016/SP-039;
+    // scrivi.h lines 270-291, untouched). Historical events are worldbuilding moments
+    // (not scenes) that appear on the project row as their own dot; imported timelines
+    // are external .scrivi-timeline.json files rendered as grey rows below the project
+    // row; export produces a .scrivi-timeline.json body.
+    //
+    // Envelope shapes (confirmed against scrivi_c_api.cpp at planning):
+    //   createHistoricalEvent  -> {eventID, slug}
+    //   updateHistoricalEvent  -> {eventID, updated}
+    //   deleteHistoricalEvent  -> {eventID, deleted}
+    //   listHistoricalEvents   -> {count, eventsJSON}      (eventsJSON is a STRING:
+    //     {"events":[{eventID,title,offsetMs,offsetSource,description,createdAt,
+    //      modifiedAt}, ...]} — no tags/slug in the list projection)
+    //   importExternalTimeline -> {timelineID, imported}
+    //   updateImportedTimelineOffset / setImportedTimelineVisible -> {timelineID, updated}
+    //   removeImportedTimeline -> {timelineID, removed}
+    //   listImportedTimelines  -> {count, timelinesJSON}   (timelinesJSON is a STRING:
+    //     {"timelines":[{timelineID,sourceProjectTitle,epochLabel,epochOffsetMs,visible,
+    //      assignedGreyShade,eventCount}, ...]} — METADATA ONLY, no per-event array. To
+    //      render imported dots the shell reads the stored files in
+    //      objects/imported-timelines/ directly, exactly as Apple does — there is NO C ABI
+    //      gap here, the list endpoint is metadata-only by design.)
+    //   exportProjectTimeline  -> {timelineJSON}           (the full .scrivi-timeline.json body)
+
+    // Creates a historical event (empty tags → pass "" for tagsJSON, else
+    // {"tags":["a","b"]}). No author identity (empty identity args, like story-time).
+    // On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap createHistoricalEvent(const QString& projectRootPath,
+                                                  const QString& title,
+                                                  long long offsetMs,
+                                                  const QString& description,
+                                                  const QString& tagsJSON);
+
+    // Updates an existing historical event (all fields overwrite). On failure emits
+    // errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap updateHistoricalEvent(const QString& projectRootPath,
+                                                  const QString& eventID,
+                                                  const QString& title,
+                                                  long long offsetMs,
+                                                  const QString& description,
+                                                  const QString& tagsJSON);
+
+    // Deletes a historical event by ID. On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap deleteHistoricalEvent(const QString& projectRootPath,
+                                                  const QString& eventID);
+
+    // Lists the project's historical events → {count, eventsJSON}. On failure emits
+    // errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap listHistoricalEvents(const QString& projectRootPath);
+
+    // Imports an external timeline. `timelineJSON` is the file body; `epochOffsetMs`
+    // shifts every event; `assignedGreyShade` is the row's per-source grey (hex). On
+    // failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap importExternalTimeline(const QString& projectRootPath,
+                                                   const QString& timelineJSON,
+                                                   long long epochOffsetMs,
+                                                   const QString& assignedGreyShade);
+
+    // Changes an imported timeline's epoch offset ("Edit Epoch Offset…"). On failure
+    // emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap updateImportedTimelineOffset(const QString& projectRootPath,
+                                                         const QString& timelineID,
+                                                         long long epochOffsetMs);
+
+    // Shows/hides an imported timeline row (persisted `visible` flag). On failure emits
+    // errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap setImportedTimelineVisible(const QString& projectRootPath,
+                                                       const QString& timelineID,
+                                                       bool visible);
+
+    // Lists imported timelines → {count, timelinesJSON} (metadata only). On failure
+    // emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap listImportedTimelines(const QString& projectRootPath);
+
+    // Removes an imported timeline (deletes its stored file). On failure emits
+    // errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap removeImportedTimeline(const QString& projectRootPath,
+                                                   const QString& timelineID);
+
+    // Exports the project timeline → {timelineJSON} (scene + historical events; no prose
+    // or identity). On failure emits errorOccurred, returns {}.
+    Q_INVOKABLE QVariantMap exportProjectTimeline(const QString& projectRootPath);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

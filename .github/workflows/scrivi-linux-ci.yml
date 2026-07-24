@@ -188,6 +188,16 @@ jobs:
           platforms/linux/tests/story_structure_smoke.sh \
             ./build/platforms/linux/scrivi_linux_story_structure_smoke
 
+      # Timeline-events smoke (SP-082 / T-0344, EP-025 AC5): create/update/delete a
+      # historical event (list round-trip); import a fixture .scrivi-timeline.json
+      # (stored + metadata + on-disk file); hide/show + update-offset persist; export a
+      # valid scrivi.externalTimeline.v1 body carrying the surviving historical event;
+      # remove clears the list. The dot rendering + drag + dialogs are live-VNC. Offscreen.
+      - name: Timeline-events smoke test
+        run: |
+          platforms/linux/tests/timeline_events_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_timeline_events_smoke
+
       # Quit-path smoke (SP-062 regression guard): the shell flip broke the landing
       # Quit button (a QQuickWidget engine doesn't auto-wire QQmlEngine::quit()).
       # Assert the connection main.cpp adds drives the app to exit. Offscreen.

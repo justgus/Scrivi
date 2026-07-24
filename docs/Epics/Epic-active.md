@@ -7,8 +7,9 @@ plain-C ABI through `ScriviBridge`. **The full timeline C ABI already exists** (
 `scrivi_get_timeline`, `scrivi_set_scene_story_time`, story-structure, historical events, imported timelines,
 export — `scrivi.h` lines 248–291). No new endpoint is expected; any gap is a Task with a `[ScriviCore]` note.
 
-**Status:** 🟡 Active (2026-07-22: SP-079 ✅ [AC1/AC2] + SP-080 ✅ [AC3] closed; SP-081 active [AC4], T-0332
-blocked by I-0087; **SP-083 zoom/pan brought forward** [AC6a] to unblock it — two parallel active sprints)
+**Status:** 🟡 Active (2026-07-24: SP-079 ✅ [AC1/AC2] + SP-080 ✅ [AC3] + SP-081 ✅ [AC4] + SP-083 ✅ [AC6a]
+closed; **SP-082 ✅ all tasks Verified [AC5]** — awaiting close approval; only **SP-084** [AC6b clustering +
+persistence + Epic close] remains)
 **Goal:** The **Timeline Panel** on Linux — a hideable horizontal timeline strip across the **bottom** of the
 editor showing one dot per scene in **story-time** order, with drag-to-reposition + the Time Delta Picker,
 story-structure bands, historical events, imported timelines, export, and co-located-dot clustering. Full
@@ -53,17 +54,19 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
   Time Delta Picker (spinner pre-populated, duration row, "Immediately after"); committing writes
   `scrivi_set_scene_story_time` and recomputes subsequent default-positioned scenes' offsets. Context-menu
   "Set Time Delta…" opens it without a drag. **(SP-080)** ✅ **Verified (2026-07-22).**
-- [ ] AC4 — **Story-structure bands:** applying a structure writes via `scrivi_set_story_structure` and renders
+- [x] AC4 — **Story-structure bands:** applying a structure writes via `scrivi_set_story_structure` and renders
   colored bands + labels; band borders drag (proportional, persist); a dot assigns to a band by drag-up or
-  context menu ("Assign to Act…"); removing a structure keeps offsets + assignments. **(SP-081)**
-- [ ] AC5 — **Historical events + imported timelines + export:** author/edit/delete historical events (own
+  context menu ("Assign to Act…"); removing a structure keeps offsets + assignments. **(SP-081)** ✅ **Verified
+  (2026-07-23).**
+- [x] AC5 — **Historical events + imported timelines + export:** author/edit/delete historical events (own
   dot color) via the C ABI; import a `.scrivi-timeline.json` (distinct grey row, window-clipped, multiple
-  rows/shades, hide/show); export the project timeline. **(SP-082)**
-- [ ] AC6a — **Zoom + pan (SP-083, brought forward to fix I-0087):** the writer can zoom the linear time-axis
+  rows/shades, hide/show); export the project timeline. **(SP-082)** ✅ **Verified (2026-07-24, VNC).**
+- [x] AC6a — **Zoom + pan (SP-083, brought forward to fix I-0087):** the writer can zoom the linear time-axis
   to spread crowded dots (an outlier scene no longer makes the rest un-interactable) and pan across it. **Zoom
   = `Ctrl`+scroll-wheel (zoom-about-pointer) + an always-works `+`/`−` control at the strip's bottom-right**
   (a plain click, VNC-safe); **pan = click-drag on the empty area above/below the dots**. Linear axis kept
-  (Apple parity — NOT even-spacing); native pinch an optional bonus on real Ubuntu. Unblocks T-0332.
+  (Apple parity — NOT even-spacing); native pinch an optional bonus on real Ubuntu. Unblocked T-0332.
+  **(SP-083)** ✅ **Verified (2026-07-23).**
 - [ ] AC6b — **Clustering + full verify (SP-084):** co-located dots form an aggregate dot with a members
   popover (Apple T-0174); zoom resolves clusters; panel persists all state across close/reopen. No regression:
   Linux smokes + the app-launch smoke green; writing loop / navigator / inspector unaffected.
@@ -76,9 +79,9 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | ------ | ----- | ------ | ----- |
 | SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time layout) + show/hide + dot↔navigator selection | ✅ Closed | 2026-07-22 – 2026-07-22 |
 | SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation (`set_scene_story_time`) | ✅ Closed | 2026-07-22 – 2026-07-22 |
-| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | 🟡 Active (T-0332 blocked by I-0087 → SP-083) | 2026-07-22 – |
-| SP-083 | `[Linux]` Timeline zoom + pan (Ctrl+wheel + `+`/`−` control, drag-to-pan) — **brought forward** to fix I-0087 / unblock T-0332 | 🟡 Active | 2026-07-22 – |
-| SP-082 | `[Linux]` Historical events + imported timelines + export | 🔵 Planned | — |
+| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | ✅ Closed | 2026-07-22 – 2026-07-23 |
+| SP-083 | `[Linux]` Timeline zoom + pan (Ctrl+wheel + `+`/`−` control, drag-to-pan) — **brought forward** to fix I-0087 / unblock T-0332 | ✅ Closed | 2026-07-22 – 2026-07-23 |
+| SP-082 | `[Linux]` Historical events + imported timelines + export | 🟢 Verified — awaiting close | 2026-07-24 – |
 | SP-084 | `[Linux]` Co-located dot clustering + persistence + full EP-025 verify & Epic close (was SP-083's tail) | 🔵 Planned | — |
 
 ### Tasks
@@ -96,10 +99,20 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | T-0329 | `[Linux]` Story-structure bridge invokables (`get/set/update/remove_story_structure`, `assign/unassign_scene_to_band`) + built-in band table ported from Apple (`StoryStructures.cpp/.hpp`) | SP-081 | ✅ Verified (2026-07-22) |
 | T-0330 | `[Linux]` Band overlay painting (behind dots) + View ▸ Story Structure… selector (built-ins + Remove); loaded via `getStoryStructure` | SP-081 | ✅ Verified (2026-07-22) |
 | T-0331 | `[Linux]` Band border drag — re-proportion adjacent bands (sum 1.0) + persist via `updateBandLayout` | SP-081 | ✅ Verified (2026-07-22) |
-| T-0332 | `[Linux]` Scene→band assignment (drag-up-onto-label + "Assign to Act…" context menu) + colored ring + `story_structure_smoke` (closes AC4) | SP-081 | 🟡 Implemented — build+smokes green; live verify **blocked by I-0087** (dot-crowding) |
-| T-0333 | `[Linux]` `TimelinePanel` zoom model — zoom factor + pan offset over `xForOffset`/`offsetForX`; `Ctrl`+wheel zoom-about-pointer; clamp/reset | SP-083 | 🟢 Implemented, Not Verified |
-| T-0334 | `[Linux]` `+`/`−` zoom control (bottom-right, zoom-about-pointer-or-center) + a horizontal scrollbar when zoomed | SP-083 | 🟢 Implemented, Not Verified |
-| T-0335 | `[Linux]` Pan by click-drag on the empty area above/below the dots + verify; **re-verify T-0332 assignment zoomed in** (closes I-0087) | SP-083 | 🟡 Implemented — build+smokes green; live VNC verify pending |
+| T-0332 | `[Linux]` Scene→band assignment (drag-up-onto-label + "Assign to Act…" context menu) + colored ring + `story_structure_smoke` (closes AC4) | SP-081 | ✅ Verified (2026-07-23) |
+| T-0333 | `[Linux]` `TimelinePanel` zoom model — zoom factor + pan offset over `xForOffset`/`offsetForX`; `Ctrl`+wheel zoom-about-pointer; clamp/reset | SP-083 | ✅ Verified (2026-07-23) |
+| T-0334 | `[Linux]` `+`/`−` zoom control (bottom-right, zoom-about-pointer-or-center) + a horizontal scrollbar when zoomed | SP-083 | ✅ Verified (2026-07-23) |
+| T-0335 | `[Linux]` Pan by click-drag on the empty area above/below the dots + verify; **re-verify T-0332 assignment zoomed in** (closes I-0087) | SP-083 | ✅ Verified (2026-07-23) |
+| T-0336 | `[Linux]` Time Delta Picker — anchor to ANY scene's end (resolved once to a manual offset; no schema change) | SP-083 | ✅ Verified (2026-07-23) |
+| T-0337 | `[Linux]` Story bands wrap the storyline `[0, last-scene-end]` + zoom with the timeline; flashback stays assignable | SP-083 | ✅ Verified (2026-07-23) |
+| T-0338 | `[Linux]` Persist timeline zoom + pan per project (INI under the app-support root — the `--rm` `~/.config` wipe fix) | SP-083 | ✅ Verified (2026-07-23) |
+| T-0339 | `[Linux]` Elide long scene titles in the picker's anchor combo (cap width + 40-char ellipsis + full-title tooltip) | SP-083 | ✅ Verified (2026-07-23) |
+| T-0340 | `[Linux]` Timeline-events bridge invokables — historical CRUD + import/update-offset/visible/list/remove + export (Qt wrappers; `scrivi.h` untouched) | SP-082 | ✅ Verified (2026-07-24) |
+| T-0341 | `[Linux]` Historical-event `#C8A97A` dots + drag + "New Historical Event Here" / Edit / Delete (`HistoricalEventDialog`) | SP-082 | ✅ Verified (2026-07-24) |
+| T-0342 | `[Linux]` Imported-timeline grey rows (per-source shade, window-clip, read-only) + `EpochOffsetDialog` on import + Edit Offset / Hide / Remove / Show-Hidden | SP-082 | ✅ Verified (2026-07-24) |
+| T-0343 | `[Linux]` Export Timeline… → `exportProjectTimeline` → `QFileDialog` save-as `.scrivi-timeline.json` (re-import round-trip) | SP-082 | ✅ Verified (2026-07-24) |
+| T-0344 | `[Linux]` Wire-up (`reloadTimeline` loads events + imported rows) + `timeline_events_smoke` + verify (closes AC5) | SP-082 | ✅ Verified (2026-07-24) |
+| T-0345 | `[Linux]` File ▸ Import / Export Timeline… menu items (SP-077 menu bar; editor-only; public `EditorShell` triggers; panel entries kept) | SP-082 | ✅ Verified (2026-07-24) |
 
 ### Scope Notes
 
@@ -125,7 +138,29 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-025 SP-081 — T-0329/0330/0331 ✅ Verified; T-0332 blocked by I-0087; SP-083
+*Last Updated: 2026-07-24 (**EP-025 SP-082 ✅ all tasks Verified (VNC) — AC5 met, awaiting close approval.**
+Human verified T-0340–T-0345 on `the-twisted-remains-of-myself`: historical events (author/drag/edit/delete,
+`#C8A97A` dots), imported grey rows (two sources + per-source shade + window-clip + hide/show + edit-offset +
+remove), export→re-import round-trip, and File ▸ Import/Export Timeline… menu items. Two findings fixed +
+re-verified same day: **I-0090** (imported row hidden behind the zoom scrollbar — reserve a bottom controls
+band) + **I-0091** (file dialogs defaulted to `/root` — seed with the project's folder). Container green
+(211/211) + `timeline_events_smoke` + 11 regression smokes PASS. **Only SP-084 remains** (AC6b clustering +
+panel persistence + Epic close). Prior note follows.)*
+
+*2026-07-24 (**EP-025 SP-082 planned + activated** [AC5]. **SP-081 ✅ closed** [AC4 — bands +
+border drag + scene→band assignment, T-0329–T-0332, I-0089 mode-latch fixed] and **SP-083 ✅ closed** [AC6a —
+zoom + pan, T-0333–T-0339, closing I-0087/I-0088; keeps the linear axis], both 2026-07-23 (Human-approved),
+archived to `Closed/Sprint-SP-081.md` + `Closed/Sprint-SP-083.md`. **SP-082** (4th sprint, mirrors Apple EP-016
+SP-042 minus clustering): historical events (author/edit/delete + `#C8A97A` draggable dots + context menus),
+imported timelines (grey rows below the project row, per-source shade, window-clip, `EpochOffsetDialog` on
+import, hide/show, edit-offset, remove), and export (`.scrivi-timeline.json` → re-import round-trip). Tasks
+**T-0340–T-0345** (T-0345 = File ▸ Import/Export Timeline… menu items, user request); the timeline-events C ABI
+is complete (EP-016, `scrivi.h` 270–291) → `scrivi.h` untouched;
+new `timeline_events_smoke`; no pbxproj (Linux-only). **Clustering + panel-persistence sweep + full EP-025
+verify + Epic close carved out to SP-084** (user decision). Two remaining ACs after SP-082: AC5 (this sprint) →
+AC6b (SP-084). Prior note follows.)*
+
+*2026-07-22 (**EP-025 SP-081 — T-0329/0330/0331 ✅ Verified; T-0332 blocked by I-0087; SP-083
 zoom/pan brought forward** (two parallel active sprints). SP-081's story-structure bridge/presets (T-0329),
 band overlay + View ▸ Story Structure… selector (T-0330), and band border-drag re-proportion (T-0331) are all
 Verified live. **T-0332** (scene→band drag-up assignment) is blocked by **I-0087**: a single far-outlier

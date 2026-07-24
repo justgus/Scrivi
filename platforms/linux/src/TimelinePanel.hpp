@@ -57,9 +57,48 @@ public:
         double  proportion = 0.0;
     };
 
+    // One historical-event dot (EP-025 / SP-082, T-0341). Worldbuilding moments
+    // (not scenes) painted on the project row in a muted warm tone (#C8A97A, spec
+    // §7.2/FR-052). Draggable in story time; no manuscript association, no band ring.
+    struct HistDot {
+        QString eventID;
+        QString title;
+        QString description;
+        QStringList tags;
+        qint64  offsetMs = 0;   // story-time position (absolute, from the epoch)
+    };
+
     // Replace the panel's contents. `epochLabel` names the story-time origin
     // ("Story Open"); `dots` are in manuscript order. Triggers a repaint.
     void setTimeline(const QString& epochLabel, const QList<Dot>& dots);
+
+    // Set the historical events painted on the project row (EP-025 / SP-082, T-0341).
+    // Fed by the shell from listHistoricalEvents. Recomputes the story-time window so
+    // an event before the first scene / after the last is not clipped. Triggers a repaint.
+    void setHistoricalEvents(const QList<HistDot>& events);
+
+    // One imported external-timeline event (a read-only grey dot, EP-025 / SP-082,
+    // T-0342). `projectOffsetMs` is the event's own offset + the row's epochOffsetMs,
+    // i.e. its position in THIS project's story time; clipped to the window at paint.
+    struct ImportedEvent {
+        QString title;
+        qint64  projectOffsetMs = 0;
+    };
+
+    // One imported-timeline row below the project row (EP-025 / SP-082, T-0342). Grey,
+    // read-only, per-source shade; hidden rows are kept but not drawn (FR-065).
+    struct ImportedRow {
+        QString timelineID;
+        QString sourceName;
+        QString greyShade;     // hex "#RRGGBB"; blank → a default grey
+        bool    visible = true;
+        QList<ImportedEvent> events;
+    };
+
+    // Set the imported-timeline rows (EP-025 / SP-082, T-0342). Fed by the shell from
+    // listImportedTimelines + the stored files (events aren't in the list projection).
+    // Only visible rows occupy layout height + paint. Triggers a repaint.
+    void setImportedTimelines(const QList<ImportedRow>& rows);
 
     // Set the story-structure bands to paint behind the dots (empty = no structure →
     // no bands). `sceneBands` maps sceneID → its assigned bandID (for the colored ring).
@@ -78,6 +117,10 @@ public:
     // The current zoom factor (1 = full-fit). Lets the shell enable/disable the
     // scrollbar + the − button.
     double zoomFactor() const { return zoom_; }
+
+    // The current story-time window [min, max] over all dots (T-0342). Used by the
+    // epoch-offset dialog to preview which imported events fall inside vs clipped.
+    void storyTimeWindow(qint64& minMs, qint64& maxMs) const { minMs = minMs_; maxMs = maxMs_; }
 
     // Restore a previously-persisted zoom + pan (T-0338). `zoom` is clamped to [1, 500];
     // `panFraction` is clamped to the valid range for that zoom. No signal is emitted (the
@@ -101,6 +144,32 @@ signals:
     // without a drag gesture (Apple's context-menu entry). The shell shows the picker
     // seeded with the dot's current offset.
     void setTimeDeltaRequested(const QString& sceneID);
+
+    // --- SP-082 historical-event signals (T-0341) -------------------------
+    // A historical-event dot was dragged to a new story-time position. Emitted on
+    // release after the pointer moved past the threshold; `newOffsetMs` may be negative
+    // (before Story Open). The shell persists it via updateHistoricalEvent.
+    void historicalEventDragged(const QString& eventID, qint64 newOffsetMs);
+
+    // Empty-area right-click ▸ "New Historical Event Here" (§7.9). `atOffsetMs` is the
+    // story-time under the click, so the new event lands where the writer pointed.
+    void newHistoricalEventRequested(qint64 atOffsetMs);
+
+    // Historical-dot context menu (§7.7): the shell opens the editor dialog / clears it.
+    void editHistoricalEventRequested(const QString& eventID);
+    void deleteHistoricalEventRequested(const QString& eventID);
+
+    // Empty-area right-click ▸ Import / Export (§7.9). The shell runs the file dialogs
+    // (T-0342 / T-0343). Kept here so the empty-area menu has a single home.
+    void importTimelineRequested();
+    void exportTimelineRequested();
+
+    // --- SP-082 imported-timeline row signals (T-0342, §7.8) --------------
+    // Right-click on an imported row: the shell runs the epoch-offset dialog / toggles
+    // visibility / removes the stored file. `setVisible` carries the desired state.
+    void editImportedOffsetRequested(const QString& timelineID);
+    void setImportedTimelineVisibleRequested(const QString& timelineID, bool visible);
+    void removeImportedTimelineRequested(const QString& timelineID);
 
     // --- SP-081 story-structure signals -----------------------------------
     // Band borders were re-proportioned by a drag (T-0331): the shell persists the new
@@ -145,6 +214,27 @@ private:
     qint64 offsetForX(double x) const;
     // The dot under panel-space point `p` (within the hit radius), or -1.
     int dotIndexAt(const QPoint& p) const;
+    // The historical-event dot under `p` (within the hit radius), or -1 (T-0341).
+    int histDotIndexAt(const QPoint& p) const;
+    // Recompute the story-time window [minMs_, maxMs_] + storyEndMs_ over the current
+    // scene + historical dots. Called by setTimeline / setHistoricalEvents (T-0341).
+    void recomputeWindow();
+
+    // --- SP-082 imported-row geometry (T-0342) ----------------------------
+    // The visible imported rows, in order (hidden rows are excluded from layout, FR-065).
+    QList<int> visibleImportedRowIndices() const;
+    // The baseline y of the project (scene/historical) row — pushed UP when imported rows
+    // occupy the lower part of the strip so both fit. Replaces the bare height()/2 the
+    // dots used before imported rows existed.
+    double projectRowY() const;
+    // The y-center of visible-imported-row slot `slot` (0-based among visible rows).
+    double importedRowY(int slot) const;
+    // The imported row index whose row band contains panel-space `p`, or -1 (for the
+    // row context menu). Matches on the whole row strip, not just a dot.
+    int importedRowAt(const QPoint& p) const;
+    // If an imported dot is under `p`, show its tooltip (title + source + story-time) at
+    // `globalPos` and return true; else return false (T-0342).
+    bool importedEventTooltipAt(const QPoint& p, const QPoint& globalPos) const;
     // Human-readable story-time for `offsetMs` relative to the epoch, e.g.
     // "3 days, 4 hours after Story Open" (or "at Story Open" for 0).
     QString humanStoryTime(qint64 offsetMs) const;
@@ -176,9 +266,11 @@ private:
     // Keep the visible window (width 1/zoom_) inside [0,1] of the full window.
     void clampPan();
 
-    QString      epochLabel_ = QStringLiteral("Story Open");
-    QList<Dot>   dots_;
-    QString      activeSceneID_;
+    QString        epochLabel_ = QStringLiteral("Story Open");
+    QList<Dot>     dots_;
+    QList<HistDot> histDots_;   // historical events on the project row (SP-082, T-0341)
+    QList<ImportedRow> importedRows_;   // imported grey rows below the project row (T-0342)
+    QString        activeSceneID_;
 
     // Story structure (SP-081): the bands painted behind the dots + each scene's
     // assigned bandID (for the ring). Empty bands_ = no structure.
@@ -201,9 +293,11 @@ private:
     //   • Border        — press on a band border → re-proportion (T-0331)
     //   • Pan           — press on empty area above/below the dots → pan (SP-083, T-0335)
     // pressedDot_ is the dot under the press (-1 = none); pressPos_ is the press point.
-    enum class DragMode { None, DotHorizontal, DotToBand, Border, Pan };
-    DragMode dragMode_   = DragMode::None;
-    int      pressedDot_ = -1;
+    //   • HistHorizontal — press on a historical-event dot, dragged → story-time (T-0341)
+    enum class DragMode { None, DotHorizontal, DotToBand, Border, Pan, HistHorizontal };
+    DragMode dragMode_    = DragMode::None;
+    int      pressedDot_  = -1;
+    int      pressedHist_ = -1;   // historical-event dot under the press (-1 = none), T-0341
     QPointF  pressPos_;
     double   dragX_      = 0.0;   // live pointer x during a dot horizontal drag
     QPointF  dragPos_;            // live pointer during a DotToBand drag (for the cue)

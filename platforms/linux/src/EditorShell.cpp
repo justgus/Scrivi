@@ -2,9 +2,17 @@
 
 #include <QAction>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
 #include <QLabel>
 #include <QCursor>
 #include <QMenu>
@@ -22,6 +30,8 @@
 #include <QVBoxLayout>
 #include <QVariantList>
 
+#include "EpochOffsetDialog.hpp"
+#include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
@@ -146,6 +156,25 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // SP-083 T-0338: persist the timeline zoom/pan per project so it reopens as left.
     connect(timeline_, &TimelinePanel::viewStateChanged,
             this, &EditorShell::onTimelineViewStateChanged);
+    // SP-082: historical events + import/export (T-0341/0342/0343).
+    connect(timeline_, &TimelinePanel::historicalEventDragged,
+            this, &EditorShell::onHistoricalEventDragged);
+    connect(timeline_, &TimelinePanel::newHistoricalEventRequested,
+            this, &EditorShell::onNewHistoricalEventRequested);
+    connect(timeline_, &TimelinePanel::editHistoricalEventRequested,
+            this, &EditorShell::onEditHistoricalEventRequested);
+    connect(timeline_, &TimelinePanel::deleteHistoricalEventRequested,
+            this, &EditorShell::onDeleteHistoricalEventRequested);
+    connect(timeline_, &TimelinePanel::importTimelineRequested,
+            this, &EditorShell::onImportTimelineRequested);
+    connect(timeline_, &TimelinePanel::exportTimelineRequested,
+            this, &EditorShell::onExportTimelineRequested);
+    connect(timeline_, &TimelinePanel::editImportedOffsetRequested,
+            this, &EditorShell::onEditImportedOffsetRequested);
+    connect(timeline_, &TimelinePanel::setImportedTimelineVisibleRequested,
+            this, &EditorShell::onSetImportedTimelineVisible);
+    connect(timeline_, &TimelinePanel::removeImportedTimelineRequested,
+            this, &EditorShell::onRemoveImportedTimelineRequested);
 
     outerSplitter_ = new QSplitter(Qt::Vertical, this);
     outerSplitter_->addWidget(splitter_);
@@ -1632,6 +1661,37 @@ void EditorShell::reloadTimeline()
 
     timeline_->setTimeline(epochLabel, dots);
 
+    // Historical events (SP-082, T-0341): worldbuilding moments on the project row. The
+    // list endpoint returns {count, eventsJSON} where eventsJSON is a STRING wrapping
+    // {"events":[…]} (confirmed against the C ABI at planning). Parse it into HistDots.
+    // Fed after setTimeline so the panel's window includes them (setHistoricalEvents
+    // recomputes the window). Empty on failure — the strip degrades to scenes only.
+    QList<TimelinePanel::HistDot> histDots;
+    histEvents_.clear();
+    const QVariantMap he = bridge_->listHistoricalEvents(projectPath_);
+    const QString eventsJSON = he.value(QStringLiteral("eventsJSON")).toString();
+    if (!eventsJSON.isEmpty()) {
+        const QJsonDocument doc = QJsonDocument::fromJson(eventsJSON.toUtf8());
+        const QJsonArray arr = doc.object().value(QStringLiteral("events")).toArray();
+        for (const QJsonValue& v : arr) {
+            const QJsonObject o = v.toObject();
+            TimelinePanel::HistDot h;
+            h.eventID     = o.value(QStringLiteral("eventID")).toString();
+            h.title       = o.value(QStringLiteral("title")).toString();
+            h.description = o.value(QStringLiteral("description")).toString();
+            h.offsetMs    = static_cast<qint64>(
+                o.value(QStringLiteral("offsetMs")).toDouble());
+            // tags are omitted by the list projection — read from disk on demand in the
+            // Edit slot. The cache still feeds title/description/offset for drag + edit.
+            histDots.append(h);
+            histEvents_.insert(h.eventID, {h.title, h.description, h.offsetMs});
+        }
+    }
+    timeline_->setHistoricalEvents(histDots);
+
+    // Imported timelines (SP-082, T-0342): grey rows below the project row.
+    reloadImportedTimelines();
+
     // SP-083 T-0338: restore the persisted zoom/pan for this project (default = full-fit).
     // Read from the app-support INI (same path onTimelineViewStateChanged writes). Applied
     // after setTimeline (which reset the window) via setViewState, which does NOT re-emit
@@ -1867,6 +1927,313 @@ void EditorShell::onAssignBandRequested(const QString& sceneID)
 void EditorShell::onUnassignBandRequested(const QString& sceneID)
 {
     bridge_->unassignSceneFromBand(projectPath_, sceneID);
+    reloadTimeline();
+}
+
+// --- EP-025 historical events (SP-082, T-0341) ----------------------------
+
+namespace {
+// Serialize tags to the C ABI's expected wrapper: {"tags":["a","b"]} (the same
+// object-wrapping-an-array shape the story-structure layout uses — SP-081's lesson).
+// Empty tags → "" (the C ABI treats an unparseable/empty tagsJSON as no tags).
+QString tagsToJson(const QStringList& tags)
+{
+    if (tags.isEmpty()) {
+        return {};
+    }
+    QJsonArray arr;
+    for (const QString& t : tags) {
+        arr.append(t);
+    }
+    QJsonObject o;
+    o.insert(QStringLiteral("tags"), arr);
+    return QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact));
+}
+
+// Read a historical event's tags straight off disk (the list endpoint drops them, so
+// the Edit dialog reads the stored file to prefill accurately — the same
+// read-the-file pattern Apple uses for imported-timeline events). Returns empty on any
+// miss. `projectPath`/objects/historical-events/<id>-<slug>.json holds a "tags" array.
+QStringList readHistoricalEventTagsFromDisk(const QString& projectPath,
+                                            const QString& eventID)
+{
+    QStringList out;
+    const QDir dir(projectPath + QStringLiteral("/objects/historical-events"));
+    if (!dir.exists()) {
+        return out;
+    }
+    const QStringList files = dir.entryList({QStringLiteral("*.json")}, QDir::Files);
+    for (const QString& f : files) {
+        QFile file(dir.filePath(f));
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        const QJsonObject o = QJsonDocument::fromJson(file.readAll()).object();
+        if (o.value(QStringLiteral("eventID")).toString() != eventID) {
+            continue;
+        }
+        for (const QJsonValue& v : o.value(QStringLiteral("tags")).toArray()) {
+            out.append(v.toString());
+        }
+        break;
+    }
+    return out;
+}
+} // namespace
+
+void EditorShell::onHistoricalEventDragged(const QString& eventID, qint64 newOffsetMs)
+{
+    // A drag re-times the event. updateHistoricalEvent overwrites ALL fields, so re-send
+    // the cached title/description + the disk tags with the new offset (a partial update
+    // would blank them). Cache is from reloadTimeline; tags come from disk (list drops them).
+    if (!histEvents_.contains(eventID)) {
+        return;   // unknown event (stale strip) — ignore rather than blank-write
+    }
+    const HistEventCache h = histEvents_.value(eventID);
+    const QStringList tags = readHistoricalEventTagsFromDisk(projectPath_, eventID);
+    bridge_->updateHistoricalEvent(projectPath_, eventID, h.title, newOffsetMs,
+                                   h.description, tagsToJson(tags));
+    reloadTimeline();
+}
+
+void EditorShell::onNewHistoricalEventRequested(qint64 atOffsetMs)
+{
+    HistoricalEventDialog dlg(tr("New Historical Event"), {}, {}, {}, this);
+    if (dlg.exec() != QDialog::Accepted) {
+        return;
+    }
+    bridge_->createHistoricalEvent(projectPath_, dlg.title(), atOffsetMs,
+                                   dlg.description(), tagsToJson(dlg.tags()));
+    reloadTimeline();
+}
+
+void EditorShell::onEditHistoricalEventRequested(const QString& eventID)
+{
+    if (!histEvents_.contains(eventID)) {
+        return;
+    }
+    const HistEventCache h = histEvents_.value(eventID);
+    const QStringList tags = readHistoricalEventTagsFromDisk(projectPath_, eventID);
+    HistoricalEventDialog dlg(tr("Edit Historical Event"),
+                              h.title, h.description, tags, this);
+    if (dlg.exec() != QDialog::Accepted) {
+        return;
+    }
+    // Keep the event's current offset (Edit changes content, not position — position is
+    // moved by dragging the dot, §7.7). Re-send the (possibly changed) title/desc/tags.
+    bridge_->updateHistoricalEvent(projectPath_, eventID, dlg.title(), h.offsetMs,
+                                   dlg.description(), tagsToJson(dlg.tags()));
+    reloadTimeline();
+}
+
+void EditorShell::onDeleteHistoricalEventRequested(const QString& eventID)
+{
+    bridge_->deleteHistoricalEvent(projectPath_, eventID);
+    reloadTimeline();
+}
+
+// --- EP-025 export timeline (SP-082, T-0343) ------------------------------
+
+void EditorShell::onExportTimelineRequested()
+{
+    // exportProjectTimeline returns {timelineJSON} — the full .scrivi-timeline.json body
+    // (scene + historical events; no prose/identity, §6.6/FR-069). Ask for a save
+    // location (QFileDialog — proven over VNC, EP-021) and write it.
+    const QVariantMap r = bridge_->exportProjectTimeline(projectPath_);
+    const QString timelineJSON = r.value(QStringLiteral("timelineJSON")).toString();
+    if (timelineJSON.isEmpty()) {
+        return;   // export failed (errorOccurred already emitted by the bridge)
+    }
+    // Default the save location to the folder the project lives in (its .scrivi
+    // package's parent), not /root — the writer's projects live together (I-0090).
+    const QString startDir = QFileInfo(projectPath_).absolutePath();
+    const QString suggested = QDir(startDir)
+        .filePath(QStringLiteral("timeline.scrivi-timeline.json"));
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Export Timeline"), suggested,
+        tr("Scrivi Timeline (*.scrivi-timeline.json);;All Files (*)"));
+    if (path.isEmpty()) {
+        return;   // cancelled
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, tr("Export Timeline"),
+                             tr("Could not write to:\n%1").arg(path));
+        return;
+    }
+    file.write(timelineJSON.toUtf8());
+}
+
+// --- EP-025 imported timelines (SP-082, T-0342) ---------------------------
+
+namespace {
+// Find the stored imported-timeline file for `timelineID` and return its parsed object,
+// or an empty object on any miss. Files live in objects/imported-timelines/ and each
+// carries the full record (metadata + events + epochOffsetMs/visible/assignedGreyShade),
+// which the list endpoint does not — so reads go straight to disk (Apple's pattern).
+QJsonObject readImportedTimelineFile(const QString& projectPath, const QString& timelineID)
+{
+    const QDir dir(projectPath + QStringLiteral("/objects/imported-timelines"));
+    if (!dir.exists()) {
+        return {};
+    }
+    const QStringList files = dir.entryList({QStringLiteral("*.json")}, QDir::Files);
+    for (const QString& f : files) {
+        QFile file(dir.filePath(f));
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        const QJsonObject o = QJsonDocument::fromJson(file.readAll()).object();
+        if (o.value(QStringLiteral("timelineID")).toString() == timelineID) {
+            return o;
+        }
+    }
+    return {};
+}
+} // namespace
+
+void EditorShell::reloadImportedTimelines()
+{
+    QList<TimelinePanel::ImportedRow> rows;
+
+    // Metadata (incl. timelineID, visible, greyShade) from the list endpoint; the
+    // per-event dots come from each stored file (the list projection omits events).
+    const QVariantMap li = bridge_->listImportedTimelines(projectPath_);
+    const QString timelinesJSON = li.value(QStringLiteral("timelinesJSON")).toString();
+    if (!timelinesJSON.isEmpty()) {
+        const QJsonArray arr = QJsonDocument::fromJson(timelinesJSON.toUtf8())
+                                   .object().value(QStringLiteral("timelines")).toArray();
+        for (const QJsonValue& v : arr) {
+            const QJsonObject meta = v.toObject();
+            TimelinePanel::ImportedRow row;
+            row.timelineID = meta.value(QStringLiteral("timelineID")).toString();
+            row.sourceName = meta.value(QStringLiteral("sourceProjectTitle")).toString();
+            row.greyShade  = meta.value(QStringLiteral("assignedGreyShade")).toString();
+            row.visible    = meta.value(QStringLiteral("visible")).toBool(true);
+
+            // Per-event dots from the stored file: projectOffset = own offset + epochOffset.
+            const QJsonObject file = readImportedTimelineFile(projectPath_, row.timelineID);
+            const qint64 epochOffset = static_cast<qint64>(
+                file.value(QStringLiteral("epochOffsetMs")).toDouble());
+            for (const QJsonValue& ev : file.value(QStringLiteral("events")).toArray()) {
+                const QJsonObject eo = ev.toObject();
+                TimelinePanel::ImportedEvent e;
+                e.title = eo.value(QStringLiteral("title")).toString();
+                e.projectOffsetMs = static_cast<qint64>(
+                    eo.value(QStringLiteral("offsetMs")).toDouble()) + epochOffset;
+                row.events.append(e);
+            }
+            rows.append(row);
+        }
+    }
+    timeline_->setImportedTimelines(rows);
+}
+
+void EditorShell::importTimeline()
+{
+    // Public trigger for File ▸ Import Timeline… (T-0345). Same flow the panel's
+    // empty-area menu offers. Guard: no project → no-op (the menu action is editor-only,
+    // but belt-and-suspenders since a shortcut could reach it).
+    if (projectPath_.isEmpty() || timeline_ == nullptr) {
+        return;
+    }
+    onImportTimelineRequested();
+}
+
+void EditorShell::exportTimeline()
+{
+    // Public trigger for File ▸ Export Timeline… (T-0345).
+    if (projectPath_.isEmpty()) {
+        return;
+    }
+    onExportTimelineRequested();
+}
+
+void EditorShell::onImportTimelineRequested()
+{
+    // Pick a .scrivi-timeline.json (QFileDialog — VNC-proven, EP-021). Start in the
+    // folder the project lives in (its .scrivi package's parent), not /root (I-0090).
+    const QString startDir = QFileInfo(projectPath_).absolutePath();
+    const QString path = QFileDialog::getOpenFileName(
+        this, tr("Import Timeline"), startDir,
+        tr("Scrivi Timeline (*.scrivi-timeline.json);;All Files (*)"));
+    if (path.isEmpty()) {
+        return;   // cancelled
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, tr("Import Timeline"),
+                             tr("Could not read:\n%1").arg(path));
+        return;
+    }
+    const QByteArray bytes = file.readAll();
+    const QJsonObject obj = QJsonDocument::fromJson(bytes).object();
+
+    // Feed the epoch-offset dialog the source name/label + the events' own offsets so it
+    // can preview the in/out-of-window split against this project's current window.
+    const QString sourceName = obj.value(QStringLiteral("sourceProjectTitle")).toString();
+    const QString epochLabel = obj.value(QStringLiteral("epochLabel")).toString();
+    QList<qint64> eventOffsets;
+    for (const QJsonValue& ev : obj.value(QStringLiteral("events")).toArray()) {
+        eventOffsets.append(static_cast<qint64>(
+            ev.toObject().value(QStringLiteral("offsetMs")).toDouble()));
+    }
+    qint64 winMin = 0;
+    qint64 winMax = 1;
+    timeline_->storyTimeWindow(winMin, winMax);
+
+    EpochOffsetDialog dlg(sourceName, epochLabel, eventOffsets, winMin, winMax, this);
+    if (dlg.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    // Assign a distinct grey shade per source so multiple imports read apart (FR-059).
+    // Cycle a small palette by the current import count.
+    static const char* kGreyShades[] = {"#8A8A8A", "#A6A6A6", "#6F6F6F", "#BDBDBD"};
+    const QVariantMap li = bridge_->listImportedTimelines(projectPath_);
+    const int existing = li.value(QStringLiteral("count")).toInt();
+    const QString shade = QString::fromLatin1(
+        kGreyShades[existing % (sizeof(kGreyShades) / sizeof(kGreyShades[0]))]);
+
+    bridge_->importExternalTimeline(projectPath_, QString::fromUtf8(bytes),
+                                    dlg.epochOffsetMs(), shade);
+    reloadTimeline();
+}
+
+void EditorShell::onEditImportedOffsetRequested(const QString& timelineID)
+{
+    const QJsonObject file = readImportedTimelineFile(projectPath_, timelineID);
+    if (file.isEmpty()) {
+        return;
+    }
+    const QString sourceName = file.value(QStringLiteral("sourceProjectTitle")).toString();
+    const QString epochLabel = file.value(QStringLiteral("epochLabel")).toString();
+    QList<qint64> eventOffsets;
+    for (const QJsonValue& ev : file.value(QStringLiteral("events")).toArray()) {
+        eventOffsets.append(static_cast<qint64>(
+            ev.toObject().value(QStringLiteral("offsetMs")).toDouble()));
+    }
+    qint64 winMin = 0;
+    qint64 winMax = 1;
+    timeline_->storyTimeWindow(winMin, winMax);
+
+    EpochOffsetDialog dlg(sourceName, epochLabel, eventOffsets, winMin, winMax, this);
+    if (dlg.exec() != QDialog::Accepted) {
+        return;
+    }
+    bridge_->updateImportedTimelineOffset(projectPath_, timelineID, dlg.epochOffsetMs());
+    reloadTimeline();
+}
+
+void EditorShell::onSetImportedTimelineVisible(const QString& timelineID, bool visible)
+{
+    bridge_->setImportedTimelineVisible(projectPath_, timelineID, visible);
+    reloadTimeline();
+}
+
+void EditorShell::onRemoveImportedTimelineRequested(const QString& timelineID)
+{
+    bridge_->removeImportedTimeline(projectPath_, timelineID);
     reloadTimeline();
 }
 

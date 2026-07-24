@@ -474,6 +474,160 @@ QVariantMap ScriviBridge::unassignSceneFromBand(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+// --- Historical events + imported timelines + export (EP-025 / SP-082, T-0340) ---
+// Thin wrappers over the timeline-events C ABI (scrivi.h 270-291, complete since
+// EP-016; untouched). Same shape as the story-structure wrappers above: ready_ guard,
+// RAII ScriviString, parseEnvelope. No author identity (empty identity args) — a
+// historical event is worldbuilding data, not an authored persona artefact, matching
+// how story-time is written (T-0325).
+
+QVariantMap ScriviBridge::createHistoricalEvent(const QString& projectRootPath,
+                                                const QString& title,
+                                                long long offsetMs,
+                                                const QString& description,
+                                                const QString& tagsJSON)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_create_historical_event(projectRootPath.toUtf8().constData(),
+                                       title.toUtf8().constData(),
+                                       static_cast<int64_t>(offsetMs),
+                                       description.toUtf8().constData(),
+                                       tagsJSON.toUtf8().constData(),
+                                       "", "", ""));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::updateHistoricalEvent(const QString& projectRootPath,
+                                                const QString& eventID,
+                                                const QString& title,
+                                                long long offsetMs,
+                                                const QString& description,
+                                                const QString& tagsJSON)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_update_historical_event(projectRootPath.toUtf8().constData(),
+                                       eventID.toUtf8().constData(),
+                                       title.toUtf8().constData(),
+                                       static_cast<int64_t>(offsetMs),
+                                       description.toUtf8().constData(),
+                                       tagsJSON.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::deleteHistoricalEvent(const QString& projectRootPath,
+                                                const QString& eventID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_delete_historical_event(projectRootPath.toUtf8().constData(),
+                                       eventID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listHistoricalEvents(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_list_historical_events(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::importExternalTimeline(const QString& projectRootPath,
+                                                 const QString& timelineJSON,
+                                                 long long epochOffsetMs,
+                                                 const QString& assignedGreyShade)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_import_external_timeline(projectRootPath.toUtf8().constData(),
+                                        timelineJSON.toUtf8().constData(),
+                                        static_cast<int64_t>(epochOffsetMs),
+                                        assignedGreyShade.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::updateImportedTimelineOffset(const QString& projectRootPath,
+                                                       const QString& timelineID,
+                                                       long long epochOffsetMs)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_update_imported_timeline_offset(projectRootPath.toUtf8().constData(),
+                                               timelineID.toUtf8().constData(),
+                                               static_cast<int64_t>(epochOffsetMs)));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setImportedTimelineVisible(const QString& projectRootPath,
+                                                     const QString& timelineID,
+                                                     bool visible)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_set_imported_timeline_visible(projectRootPath.toUtf8().constData(),
+                                             timelineID.toUtf8().constData(),
+                                             visible ? 1 : 0));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listImportedTimelines(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_list_imported_timelines(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::removeImportedTimeline(const QString& projectRootPath,
+                                                 const QString& timelineID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_remove_imported_timeline(projectRootPath.toUtf8().constData(),
+                                        timelineID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::exportProjectTimeline(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_export_project_timeline(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QString ScriviBridge::chooseFolder(const QString& startDir)
 {
     // Widgets QFileDialog in directory mode: selects the folder itself (not a

@@ -98,6 +98,22 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(closeProj);
 
+    // Timeline import/export (EP-025 / SP-082, T-0345). File operations — importing an
+    // external .scrivi-timeline.json and exporting the project timeline — so they live
+    // in File alongside Open/Close, not only in the timeline panel's right-click menu.
+    // Editor-only (a project must be open); each forwards to the EditorShell trigger
+    // (file dialog + bridge). No accelerators (no writer-standard key for them).
+    file->addSeparator();
+    QAction* importTimeline = file->addAction(tr("Import Timeline…"));
+    connect(importTimeline, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { editor_->importTimeline(); } });
+    editorOnlyActions_.append(importTimeline);
+
+    QAction* exportTimeline = file->addAction(tr("Export Timeline…"));
+    connect(exportTimeline, &QAction::triggered, this,
+            [this]() { if (editor_ != nullptr) { editor_->exportTimeline(); } });
+    editorOnlyActions_.append(exportTimeline);
+
     file->addSeparator();
     QAction* quit = file->addAction(tr("Quit"));
     quit->setShortcut(QKeySequence::Quit);

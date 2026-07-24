@@ -1,75 +1,65 @@
 # Active Tasks
 
-**Epic:** EP-025 `[Linux]` (Timeline Panel) — **two active sprints:** SP-083 (zoom/pan, focus) + SP-081
-(story-structure bands) (`Sprints/Sprint-active.md`).
+**Epic:** EP-025 `[Linux]` (Timeline Panel) — **active sprint:** SP-082 (historical events + imported
+timelines + export, **AC5**) (`Sprints/Sprint-active.md`).
 
-**SP-083** `[Linux]` — timeline zoom + pan (brought forward to fix **I-0087** / unblock SP-081 T-0332):
+**SP-082** `[Linux]` — historical events + imported timelines + export (AC5); C ABI complete (EP-016,
+`scrivi.h` 270–291, untouched); clustering + Epic close carved out to SP-084:
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0333 | **`[Linux]` `TimelinePanel` zoom model** — `zoom_` factor + `panFraction_` over `xForOffset`/`offsetForX`; **`Ctrl`+wheel** zoom-about-pointer (`zoomAbout`/`wheelEvent`); clamp [1,500]; zoom 1 = full-fit. Linear axis kept. | ✅ **Verified (2026-07-23, VNC)** — zoom works; exercised throughout the I-0088/T-0336–0339 session. |
-| T-0334 | **`[Linux]` `+`/`−` zoom control + scrollbar** — bottom-right `QToolButton` `+`/`−` (`zoomInStep`/`zoomOutStep`, about pointer/center) + a horizontal `QScrollBar` when `zoom_ > 1` (`syncScrollBar`/`resizeEvent`). VNC-safe (plain clicks). | ✅ **Verified (2026-07-23, VNC)** — user confirmed "the zoom buttons work". |
-| T-0335 | **`[Linux]` Pan (background drag) + verify** — empty-area press with `zoom_>1` → `DragMode::Pan` (closed-hand) adjusts `panFraction_`; dot/border drags still win. VNC: zoom a crowded cluster (`+` button and/or wheel), dots separate, pan; **re-verify SP-081 T-0332** (drag a dot up onto a band). Closes **I-0087 + T-0332/AC4 + AC6a**. | ✅ **Verified (2026-07-23, VNC)** — zoom + pan spread the crowded cluster and let the flashback/scene work proceed. |
-| T-0336 | **`[Linux]` Time Delta Picker — anchor to ANY scene** — the anchor combo lists the previous scene's end, Story Open (0), **and the END of every other scene** (`TimeDeltaPicker::AnchorScene` list from `EditorShell::showTimeDeltaPicker`, built off the `timelineOffsets_`/`timelineDurations_` caches). Choosing a scene resolves to an absolute `manual` offset **once** — no persisted anchor link, no backend/schema change (user decision 2026-07-23). Lets "Scene 14 immediately after 'We go to the Lab'" be one click. Re-open seeds the anchor to the nearest match. | ✅ **Verified (2026-07-23, VNC)** — user set Scene 14 to immediately-after "We go to the Lab" from the picker. |
-| T-0337 | **`[Linux]` Story bands wrap the main storyline, not the whole strip** — `bandRegionLeftX/RightX` = `xForOffset(0)`…`xForOffset(storyEndMs_)`, so bands cover story-time **[0, last-scene-end]** and **expand/contract with zoom/pan** (`bandLeftX/RightX` + the border-drag proportion math divide that region, not `usable`). A flashback left of the epoch has **no band behind it** but is still assignable — `bandIndexAtX` snaps an out-of-region drop to the nearer band (first if left of the region), and the context-menu "Assign to Act…" is position-independent. Fixes bands being dragged into the negative/flashback region. | ✅ **Verified (2026-07-23, VNC)** — user confirmed bands wrap the storyline, resize with zoom, and border moves persist. |
-| T-0338 | **`[Linux]` Persist timeline zoom + pan per project** — `TimelinePanel::viewStateChanged(zoom, pan)` fires when zoom/pan settles (`zoomAbout`, scrollbar, pan-drag release); `EditorShell::onTimelineViewStateChanged` writes it to an INI **under the app-support root** (`timelineViewStatePath()` = `<appSupport>/timeline-view.ini`, group `timeline/<projectID>`) + `sync()`. `reloadTimeline` restores via `setViewState` (clamps + repaints, does NOT re-emit → no save echo). **Fix (2026-07-23):** first cut used default `QSettings` → wrote to `~/.config`, which the Docker `--rm` container wiped on exit ("not saved"); moved into the bind-mounted app-support dir so it survives restarts. | ✅ **Verified (2026-07-23, VNC)** — zoom/pan persists across container restart. |
-| T-0339 | **`[Linux]` Truncate long scene titles in the picker's anchor combo** — a sentence-length title (e.g. "There were a total of twenty four men…") no longer stretches the dialog: the anchor combo caps width (`AdjustToMinimumContentsLengthWithIcon` + `setMinimumContentsLength(24)` + `setMaximumWidth(260)`) and elides each entry to 40 chars with an ellipsis, keeping the full title in the item's tooltip (Scene-Navigator feel). | ✅ **Verified (2026-07-23, VNC)** — user confirmed the truncation renders correctly. |
+| T-0340 | **`[Linux]` Timeline-events bridge invokables** — `ScriviBridge` wrappers over the EP-016 C ABI: `createHistoricalEvent`/`updateHistoricalEvent`/`deleteHistoricalEvent`/`listHistoricalEvents` + `importExternalTimeline`/`updateImportedTimelineOffset`/`setImportedTimelineVisible`/`listImportedTimelines`/`removeImportedTimeline`/`exportProjectTimeline`. Each `parseEnvelope`s, RAII `scrivi_free`, `errorOccurred` on failure, `ready_` guard, no identity (empty identity args). `scrivi.h` untouched. | ✅ Verified (2026-07-24, VNC) |
+| T-0341 | **`[Linux]` Historical-event dots + author/edit/delete** — `TimelinePanel` renders historical events as `#C8A97A` filled dots (distinct from scene accent + imported grey, §7.2), draggable in story time (`HistHorizontal` drag → `historicalEventDragged(eventID, newOffsetMs)`) + hover tooltip. Empty-area menu **"New Historical Event Here"** (§7.9); historical-dot menu **Edit / Delete** (§7.7) → a `HistoricalEventDialog` (title, description, tags). Fed via `reloadTimeline` (`listHistoricalEvents`); tags read from disk on Edit (list drops them). | ✅ Verified (2026-07-24, VNC) |
+| T-0342 | **`[Linux]` Imported-timeline rows + epoch-offset dialog + hide/show** — one **grey row below** the project row per import (source-name label, per-source `assignedGreyShade`, dots **window-clipped** §6.7, read-only, tooltip = title + source + computed time). **Import Timeline…** (§7.9) → `QFileDialog` → **`EpochOffsetDialog`** (source name + epoch label + signed offset + in/out-of-window preview, FR-067) → `importExternalTimeline`. Row menu (§7.8): **Edit Epoch Offset… / Hide This Timeline / Remove Imported Timeline**; **Show Hidden Timelines** submenu on the empty-area menu (un-hide path, FR-065). Events read from the stored files (list is metadata-only). Min-height grows one row per visible import (FR-064). | ✅ Verified (2026-07-24, VNC) |
+| T-0343 | **`[Linux]` Export timeline** — **Export Timeline…** (§7.9) → `exportProjectTimeline` (scene + historical events, no prose/identity, §6.6/FR-069) → `QFileDialog` save-as writes `.scrivi-timeline.json`. An exported file re-imports (T-0342) into another project (smoke round-trips it). | ✅ Verified (2026-07-24, VNC) |
+| T-0344 | **`[Linux]` Wire-up + `timeline_events_smoke` + verify** — `reloadTimeline` also loads historical events (`reloadImportedTimelines`) + imported rows; new headless **`timeline_events_smoke`** (create/update/delete a historical event round-trips; import a fixture → stored + metadata + on-disk file; hide/show + update-offset persist; export → valid `scrivi.externalTimeline.v1` carrying the surviving historical event; remove clears) + CMake + CI. **Container green + smoke PASS; live VNC walkthrough pending.** Closes AC5. | ✅ Verified (2026-07-24, VNC) |
+| T-0345 | **`[Linux]` File ▸ Import / Export Timeline… menu items** (user request 2026-07-24) — import/export are **file** ops, so they join **File** (below Close Project, own separator group) on the SP-077 menu bar, not only the timeline right-click. Editor-only (`editorOnlyActions_`); each forwards to new public `EditorShell::importTimeline()`/`exportTimeline()` → the T-0342/T-0343 flow. Panel empty-area entries kept (both homes). Container green (211/211) + app-launch OK. | ✅ Verified (2026-07-24, VNC) |
 
-**Verification (2026-07-22, container):** ✅ build green (0 warnings, `scrivi_linux` linked); ✅ regression smokes
-PASS (story-structure/timeline-story-time/merge/create/reorder/chapter-reorder/editor-map); ✅ Xvfb app-launch
-PASS. ⏳ **Live VNC pending** — `+`/`−` + Ctrl+wheel zoom, scrollbar + background-drag pan, and the headline
-**I-0087** check: zoom into the crowded cluster (the `+` button is the VNC-safe path if the Mac wheel doesn't
-reach x11vnc), dots separate, then **re-verify T-0332** band-assignment. **Next available T-0340.** Zoom/pan is
-pure UI (no new headless smoke); `scrivi.h` untouched; no pbxproj (Linux-only).
-
-**T-0336 / T-0337 (2026-07-23, follow-on to I-0088) — ✅ Verified (VNC).** The flashback fix surfaced two
-follow-ups — (1) a scene chains off its manuscript predecessor, so an untitled Scene 14 followed the Flashback
-back to −2y; the picker now anchors to **any scene's end** (resolved once to a manual offset — no schema
-change); (2) story bands filled the whole strip and got dragged into the flashback region — they now wrap
-**[0, last-scene-end]** and zoom with the timeline, while a flashback stays assignable. User verified both over
-VNC: Scene 14 set immediately-after "We go to the Lab"; bands wrap the storyline, resize with zoom, border
-moves persist.
-
-**T-0338 / T-0339 (2026-07-23, same VNC session) — 🟢 Implemented, Not Verified.** Two polish items the user
-asked for after verifying T-0336/0337: (T-0338) **persist the timeline zoom/pan** per project so it doesn't
-reset to full-fit on every open (Linux-only `QSettings`, keyed by projectID — not the backend); (T-0339)
-**truncate long scene titles** in the picker's anchor combo so a sentence-length title no longer stretches the
-dialog (cap width + elide to 40 chars, full title in tooltip — Scene-Navigator feel). All in
-`TimeDeltaPicker.cpp/.hpp`, `TimelinePanel.cpp/.hpp`, `EditorShell.cpp/.hpp`. `scrivi.h`/backend untouched; no
+**Verification (2026-07-24):** ✅ **build green** (Qt 6.4: **211/211** targets, `scrivi_linux` +
+`scrivi_linux_timeline_events_smoke` linked); ✅ **new `timeline_events_smoke` PASS** (historical CRUD list
+round-trip; import fixture → stored + metadata + on-disk file; hide/show + offset persist; export a valid
+`scrivi.externalTimeline.v1` carrying the surviving historical event; remove → list empty); ✅ **all 11
+regression smokes PASS**; ✅ **headless app-launch OK**. ✅ **Live VNC walkthrough COMPLETE** — Human verified
+all six tasks on `the-twisted-remains-of-myself`: historical events author/drag/edit/delete (`#C8A97A` dots);
+imported grey rows (two sources, per-source shade); export + import round-trip; File ▸ Import/Export Timeline…
+menu items. **Two findings surfaced + fixed + re-verified same day: I-0090** (imported row hidden behind the
+zoom scrollbar) + **I-0091** (file dialogs defaulted to `/root`). **AC5 met; SP-082 awaiting Human close
+approval. Next available Task after SP-082: T-0346.** `scrivi.h` untouched (C ABI complete from EP-016); no
 pbxproj (Linux-only).
 
-**Container build + smokes GREEN (2026-07-23):** `docker build --no-cache` compiled all 202 targets incl.
-`scrivi_linux` with 0 errors; all 9 relevant smoke wrappers PASS (timeline_story_time, story_structure,
-scene_merge/create/reorder, chapter_reorder, editor_map, scene_save/rename) with `QT_QPA_PLATFORM=offscreen`.
-T-0339 (title truncation) **user-verified over VNC (2026-07-23)**.
-
-**T-0338 persistence fix (2026-07-23):** the user reported zoom/pan not surviving. Root cause **found +
-proven**: default `QSettings` wrote to `/root/.config/Caposoft/Scrivi.conf`, which the `docker run --rm`
-container is NOT bind-mounting (only `/root/.local/share/Scrivi` and `/projects`), so the file was destroyed on
-container exit. Fixed by writing the INI into the app-support root (`<appSupport>/timeline-view.ini`) + `sync()`.
-Verified in-container that the INI now lands at `/root/.local/share/Scrivi/timeline-view.ini` and **appears on
-the host bind-mount** (survives `--rm`), round-tripping zoom/pan. ✅ **Verified (2026-07-23, VNC)** — user
-confirmed zoom/pan persists across quit → re-run `build-and-run.sh` → reopen.
+**Design/impl notes (2026-07-24):**
+- **The C ABI was already complete** (EP-016/SP-039): all 10 endpoints at `scrivi.h` 270–291. T-0340 added only
+  Qt bridge wrappers; `scrivi.h` untouched.
+- **Envelope-shape findings** (confirmed against `scrivi_c_api.cpp` at planning, guarded by the smoke): the two
+  list endpoints return **metadata only** as a nested JSON string — `listHistoricalEvents` → `{count,
+  eventsJSON}` where `eventsJSON` = `{"events":[…]}` **without tags/slug**; `listImportedTimelines` → `{count,
+  timelinesJSON}` = `{"timelines":[…metadata + eventCount…]}` **without the per-event array**. So per-event data
+  is read **directly from the stored files** in `objects/historical-events/` and `objects/imported-timelines/`
+  — **Apple's own pattern** (its `loadImportedTimelines` comment: "the stored files include events;
+  listImportedTimelines returns metadata only"). **No C ABI gap.**
+- **Tags** are accepted/stored by create/update but dropped by the list projection → the Edit dialog reads tags
+  from the on-disk event file to prefill accurately; `tagsToJson` sends the `{"tags":[…]}` wrapper.
+- **New files** (Linux CMake, not pbxproj): `HistoricalEventDialog.{cpp,hpp}`, `EpochOffsetDialog.{cpp,hpp}`,
+  `tests/timeline_events_smoke.{cpp,sh}`. New CI step wired.
 
 ---
 
-**SP-081** `[Linux]` — story-structure bands (T-0332 blocked by I-0087, verifies after SP-083):
+**SP-081 + SP-083 (EP-025 `[Linux]`) ✅ both closed 2026-07-23 (Human-approved).** Archived to
+`Closed/Sprint-SP-081.md` and `Closed/Sprint-SP-083.md`; between them they delivered **AC4** (story-structure
+bands + border drag + scene→band assignment) and **AC6a** (timeline zoom + pan) and closed I-0087/I-0088/I-0089.
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0329 | **`[Linux]` Story-structure bridge invokables** — `getStoryStructure`/`setStoryStructure`/`updateBandLayout`/`removeStoryStructure` + `assignSceneToBand`/`unassignSceneFromBand` (exported since EP-016; `scrivi.h` untouched). Plus the **built-in band table** ported from Apple into `StoryStructures.cpp/.hpp` + `bandLayoutJSON`/`parseBandLayout` (`{"bands":[…]}` wrapper — the ScriviCore contract). | ✅ Verified (2026-07-22) |
-| T-0330 | **`[Linux]` Band overlay painting + Structure selector** — `TimelinePanel::setBands`/`paintEvent` paints translucent colored proportional bands + labels **behind** the dots + a label row; **View ▸ Story Structure…** (`pickStoryStructure` → `chooseStoryStructure`) pops built-ins + Remove; loaded via `getStoryStructure` in `reloadTimeline`. Bands render only when a structure is set. | ✅ Verified (2026-07-22) |
-| T-0331 | **`[Linux]` Band border drag** — press a border zone (`borderIndexNearX`, hit-tested first) → drag proportion between adjacent bands (0.05 floor, pair-sum constant); live `dragProportions_`; release → `bandProportionsChanged` → `updateBandLayout`. | ✅ Verified (2026-07-22) |
-| T-0332 | **`[Linux]` Scene→band assignment + verify** — dot dragged up into the label row → `sceneAssignedToBand` (`bandIndexAtX`) + colored ring; context-menu **"Assign to Act…"** / **"Unassign"**; assignment survives structure-remove. New `story_structure_smoke` (+ CMake + CI). Closes **AC4**. | 🟡 Implemented — build+smokes green; **live verify blocked by I-0087** (needs SP-083 zoom to spread crowded dots) |
+- **SP-081** (`[Linux]` story-structure bands) — T-0329 (bridge invokables + built-in band table, `{"bands":[…]}`
+  wrapper), T-0330 (band overlay + View ▸ Story Structure… selector), T-0331 (band border-drag re-proportion),
+  T-0332 (scene→band drag-up + "Assign to Act…" assignment + `story_structure_smoke`; unblocked once SP-083
+  zoom spread the crowded dots; I-0089 mode-latch fixed). All ✅ Verified.
+- **SP-083** (`[Linux]` timeline zoom + pan, brought forward to fix I-0087) — T-0333 (zoom model, Ctrl+wheel
+  zoom-about-pointer, linear axis kept), T-0334 (`+`/`−` control + scrollbar), T-0335 (background-drag pan +
+  re-verify T-0332). Follow-ons T-0336 (Time Delta Picker anchors to any scene's end), T-0337 (bands wrap the
+  storyline `[0, last-scene-end]`, zoom with the timeline), T-0338 (persist zoom/pan per project under the
+  app-support root — the `--rm` `~/.config` wipe fix), T-0339 (elide long titles in the picker anchor combo).
+  All ✅ Verified live over VNC.
 
-**Verification (2026-07-22, container):** ✅ build green (202/202, 0 warnings, both binaries linked);
-✅ **new `story_structure_smoke` PASS** (set structure → assign scene → re-proportion → remove-keeps-assignment
-= AC4; a JSON-shape bug — layout is `{"bands":[…]}` not a bare array — was caught by the smoke and fixed);
-✅ regression smokes PASS (timeline-story-time/merge/create/reorder/chapter-reorder/scene-load/editor-map);
-✅ Xvfb app-launch PASS. ⏳ **Live VNC walkthrough pending** (View ▸ Story Structure… paints bands; border drag
-re-proportions; dot drag-up assigns + ring; "Assign to Act…"/"Unassign"; remove keeps assignment; SP-080 dot
-drag + SP-079 click still work). **Next available T-0333.** `scrivi.h` untouched (C ABI from EP-016); no pbxproj
-(Linux-only).
+_The full T-0329–T-0339 detail lives in the two sprint archives; not re-listed here._
 
 ---
 
@@ -210,11 +200,11 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-081 T-0329/0330/0331 ✅ Verified; T-0332 blocked by I-0087 → SP-083 zoom/pan
-brought forward & implemented** (two parallel EP-025 sprints). SP-081's bridge/presets + band overlay + View ▸
-Story Structure… selector + band border-drag are Verified live; scene→band drag-up assignment (T-0332) is
-blocked because a far-outlier flashback scene crowds all dots to one edge under the linear axis (I-0087). Per
-user decision (keep linear axis, Apple parity) **SP-083** now delivers zoom (`Ctrl`+wheel zoom-about-pointer +
-an always-works `+`/`−` control, bottom-right) + pan (background drag) — T-0333–T-0335 🟢 Implemented, build +
-all smokes green; live VNC pending (then re-verify T-0332 zoomed in). Clustering + Epic close → new SP-084.
-Next available **T-0336**. Prior notes below retained for reference.)*
+*Last Updated: 2026-07-24 (**SP-082 planned + activated** — EP-025 `[Linux]` Timeline Panel, 4th sprint,
+delivering **AC5**: historical events (author/edit/delete + `#C8A97A` draggable dots + context menus), imported
+timelines (grey rows below, per-source shade, window-clip, epoch-offset dialog, hide/show, edit-offset, remove),
+and export (`.scrivi-timeline.json` → re-import round-trip). Tasks **T-0340–T-0344**. The full timeline-events C
+ABI is exported (EP-016, `scrivi.h` 270–291) → `scrivi.h` untouched; T-0340 adds Qt bridge wrappers only; new
+`timeline_events_smoke`; no pbxproj (Linux-only). Clustering + panel-persistence sweep + Epic close carved out
+to **SP-084** (user decision). **SP-081 + SP-083 ✅ both closed 2026-07-23** (AC4 + AC6a; archived). Next
+available Task after SP-082: **T-0345**. Prior notes below retained for reference.)*

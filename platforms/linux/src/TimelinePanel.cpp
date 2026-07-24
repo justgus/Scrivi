@@ -25,6 +25,11 @@ constexpr double kSideInset    = 28.0;   // left/right padding for the baseline
 constexpr double kDotRadius    = 6.0;
 constexpr double kHitRadius    = 12.0;   // generous click/hover target
 constexpr double kDragThreshold = 4.0;   // px of movement before a press becomes a drag
+constexpr double kImportedRowHeight = 26.0;   // height per imported-timeline row (T-0342)
+// The bottom band occupied by the +/- zoom buttons + the horizontal scrollbar
+// (layoutControls): kBtn(20) + kMargin(4). Content (imported rows, baseline) must stay
+// ABOVE this so the lowest imported row isn't hidden behind the scrollbar (I-0090).
+constexpr double kBottomControlsHeight = 24.0;
 
 constexpr qint64 kMsPerSecond = 1000;
 constexpr qint64 kMsPerMinute = 60 * kMsPerSecond;
@@ -115,33 +120,136 @@ void TimelinePanel::setTimeline(const QString& epochLabel, const QList<Dot>& dot
 {
     epochLabel_ = epochLabel.isEmpty() ? QStringLiteral("Story Open") : epochLabel;
     dots_       = dots;
+    recomputeWindow();
+    update();
+}
 
-    // Window over story-time: from the first dot's offset to the last dot's end
-    // (offset + duration), so the whole span maps across the strip. Guard against a
-    // zero-width window (single scene / all-coincident) so xForOffset never /0.
-    if (dots_.isEmpty()) {
-        minMs_ = 0;
-        maxMs_ = 1;
-    } else {
-        minMs_ = dots_.first().offsetMs;
-        maxMs_ = dots_.first().offsetMs + std::max<qint64>(dots_.first().durationMs, 1);
-        for (const Dot& d : dots_) {
-            minMs_ = std::min(minMs_, d.offsetMs);
-            maxMs_ = std::max(maxMs_, d.offsetMs + std::max<qint64>(d.durationMs, 1));
-        }
-        if (maxMs_ <= minMs_) {
-            maxMs_ = minMs_ + 1;
+void TimelinePanel::setHistoricalEvents(const QList<HistDot>& events)
+{
+    histDots_ = events;
+    recomputeWindow();   // a historical event may extend the window past the scenes
+    update();
+}
+
+void TimelinePanel::setImportedTimelines(const QList<ImportedRow>& rows)
+{
+    importedRows_ = rows;
+    // The panel's minimum height grows by one row per VISIBLE import (FR-064) so a
+    // resized-small strip still shows every row ABOVE the bottom controls band (I-0090).
+    // Base = the scene-row min (already includes room for the controls); each visible
+    // imported row adds kImportedRowHeight.
+    const int visibleCount = static_cast<int>(visibleImportedRowIndices().size());
+    setMinimumHeight(kMinHeight + visibleCount * static_cast<int>(kImportedRowHeight));
+    update();
+}
+
+QList<int> TimelinePanel::visibleImportedRowIndices() const
+{
+    QList<int> out;
+    for (int i = 0; i < importedRows_.size(); ++i) {
+        if (importedRows_.at(i).visible) {
+            out.append(i);
         }
     }
+    return out;
+}
+
+double TimelinePanel::projectRowY() const
+{
+    // Reserve the bottom of the strip for the visible imported rows AND the zoom
+    // controls/scrollbar band; the project (scene/historical) row centres in the space
+    // that remains above them. With no imported rows this is (height-controls)/2 — the
+    // baseline sits a touch above centre, clear of the controls.
+    const int visibleCount = static_cast<int>(visibleImportedRowIndices().size());
+    const double reserved = visibleCount * kImportedRowHeight + kBottomControlsHeight;
+    const double top = bandLabelRowHeight();
+    return top + (height() - top - reserved) / 2.0;
+}
+
+double TimelinePanel::importedRowY(int slot) const
+{
+    // Visible imported rows stack upward from ABOVE the bottom controls band (so the
+    // lowest row isn't hidden behind the scrollbar, I-0090); slot 0 is the topmost
+    // imported row (directly under the project row).
+    const double bottom = height() - kBottomControlsHeight;
+    return bottom - (slot + 0.5) * kImportedRowHeight;
+}
+
+int TimelinePanel::importedRowAt(const QPoint& p) const
+{
+    const QList<int> vis = visibleImportedRowIndices();
+    for (int slot = 0; slot < vis.size(); ++slot) {
+        const double cy = importedRowY(slot);
+        if (std::abs(p.y() - cy) <= kImportedRowHeight / 2.0) {
+            return vis.at(slot);
+        }
+    }
+    return -1;
+}
+
+bool TimelinePanel::importedEventTooltipAt(const QPoint& p, const QPoint& globalPos) const
+{
+    // An imported dot under `p` → show {title, source name, computed story-time}
+    // (§7.8/FR-063). Only visible rows + window-clipped events are hit-testable (they're
+    // the only ones drawn). Returns true if a tooltip was shown.
+    const QList<int> vis = visibleImportedRowIndices();
+    for (int slot = 0; slot < vis.size(); ++slot) {
+        const ImportedRow& row = importedRows_.at(vis.at(slot));
+        const double ry = importedRowY(slot);
+        for (const ImportedEvent& ev : row.events) {
+            if (ev.projectOffsetMs < minMs_ || ev.projectOffsetMs > maxMs_) {
+                continue;
+            }
+            const double cx = xForOffset(ev.projectOffsetMs);
+            const double dx = p.x() - cx;
+            const double dy = p.y() - ry;
+            if (dx * dx + dy * dy <= kHitRadius * kHitRadius) {
+                QString text = ev.title;
+                if (!row.sourceName.isEmpty()) {
+                    text += QStringLiteral("\n") + row.sourceName;
+                }
+                text += QStringLiteral("\n") + humanStoryTime(ev.projectOffsetMs);
+                QToolTip::showText(globalPos, text, const_cast<TimelinePanel*>(this));
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void TimelinePanel::recomputeWindow()
+{
+    // Window over story-time: from the earliest event's offset to the latest event's
+    // end, so the whole span maps across the strip. Both scene dots (offset+duration)
+    // and historical dots (a point, offset) participate — a historical event before the
+    // first scene or after the last must not be clipped. Guard against a zero-width
+    // window (single scene / all-coincident / empty) so xForOffset never /0.
+    bool     any = false;
+    qint64   lo  = 0;
+    qint64   hi  = 1;
+    for (const Dot& d : dots_) {
+        const qint64 end = d.offsetMs + std::max<qint64>(d.durationMs, 1);
+        if (!any) { lo = d.offsetMs; hi = end; any = true; }
+        else      { lo = std::min(lo, d.offsetMs); hi = std::max(hi, end); }
+    }
+    for (const HistDot& h : histDots_) {
+        if (!any) { lo = h.offsetMs; hi = h.offsetMs + 1; any = true; }
+        else      { lo = std::min(lo, h.offsetMs); hi = std::max(hi, h.offsetMs + 1); }
+    }
+    if (!any) { lo = 0; hi = 1; }
+    if (hi <= lo) { hi = lo + 1; }
+    minMs_ = lo;
+    maxMs_ = hi;
 
     // Story-structure bands wrap the MAIN storyline only: story-time [0, last-scene-end],
-    // NOT the flashback region left of the epoch (user decision 2026-07-23). storyEndMs_
-    // is the latest scene end at/after the epoch; guard against a zero-width span so the
-    // band region never collapses. (maxMs_ is the overall window end incl. duration; when
-    // every scene is a flashback, clamp the storyline span to a minimal positive width.)
-    storyEndMs_ = std::max<qint64>(maxMs_, 1);
-
-    update();
+    // NOT the flashback region left of the epoch (user decision 2026-07-23). Use the
+    // scene span (not historical) for the storyline end so a distant historical event
+    // doesn't stretch the acts. Guard against a zero-width span.
+    qint64 sceneEnd = 1;
+    for (const Dot& d : dots_) {
+        sceneEnd = std::max<qint64>(sceneEnd, d.offsetMs + std::max<qint64>(d.durationMs, 1));
+    }
+    storyEndMs_ = std::max<qint64>(sceneEnd, 1);
 }
 
 void TimelinePanel::setBands(const QList<Band>& bands,
@@ -346,9 +454,23 @@ void TimelinePanel::zoomOutStep()
 
 int TimelinePanel::dotIndexAt(const QPoint& p) const
 {
-    const double cy = height() / 2.0;
+    const double cy = projectRowY();
     for (int i = 0; i < dots_.size(); ++i) {
         const double cx = xForOffset(dots_.at(i).offsetMs);
+        const double dx = p.x() - cx;
+        const double dy = p.y() - cy;
+        if (dx * dx + dy * dy <= kHitRadius * kHitRadius) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int TimelinePanel::histDotIndexAt(const QPoint& p) const
+{
+    const double cy = projectRowY();
+    for (int i = 0; i < histDots_.size(); ++i) {
+        const double cx = xForOffset(histDots_.at(i).offsetMs);
         const double dx = p.x() - cx;
         const double dy = p.y() - cy;
         if (dx * dx + dy * dy <= kHitRadius * kHitRadius) {
@@ -406,15 +528,16 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
 
     const QPalette& pal = palette();
 
-    // Empty-state: no scenes → centred hint, no baseline.
-    if (dots_.isEmpty()) {
+    // Empty-state: no scenes AND no historical events → centred hint, no baseline.
+    // (A project with only historical events still draws the baseline + those dots.)
+    if (dots_.isEmpty() && histDots_.isEmpty()) {
         painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
         painter.drawText(rect(), Qt::AlignCenter,
                          tr("No scenes yet — the timeline is empty."));
         return;
     }
 
-    const double cy = height() / 2.0;
+    const double cy = projectRowY();
 
     // --- Story-structure bands (behind everything, SP-081) ----------------
     // Translucent colored proportional slices + a label near the top; a subtle
@@ -504,6 +627,60 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
         }
     }
 
+    // Historical-event dots (SP-082, T-0341): muted warm tone (#C8A97A, spec §7.2),
+    // on the same baseline, visually distinct from scene (accent) + imported (grey)
+    // dots. Draggable in story time; the dragged one follows the live pointer x.
+    const QColor histColor(0xC8, 0xA9, 0x7A);
+    for (int i = 0; i < histDots_.size(); ++i) {
+        const HistDot& h = histDots_.at(i);
+        const bool isDrag = (dragMode_ == DragMode::HistHorizontal && i == pressedHist_);
+        const double cx = isDrag ? dragX_ : xForOffset(h.offsetMs);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(histColor);
+        painter.drawEllipse(QPointF(cx, cy), kDotRadius, kDotRadius);
+        if (isDrag) {
+            painter.setPen(QPen(histColor, 1.5));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawEllipse(QPointF(cx, cy), kDotRadius + 3.0, kDotRadius + 3.0);
+        }
+    }
+
+    // --- Imported-timeline rows (SP-082, T-0342) --------------------------
+    // Each VISIBLE imported timeline is a grey row below the project row: a faint
+    // baseline, the source name at the left, and read-only grey dots. Only events whose
+    // computed project story-time falls within the window are drawn (window-clipped,
+    // §6.7/FR-061) — the rest are silently omitted. Each source uses its own grey shade.
+    {
+        const QList<int> vis = visibleImportedRowIndices();
+        for (int slot = 0; slot < vis.size(); ++slot) {
+            const ImportedRow& row = importedRows_.at(vis.at(slot));
+            const double ry = importedRowY(slot);
+
+            // Row baseline (fainter than the project baseline).
+            painter.setPen(QPen(pal.color(QPalette::Mid), 1.0, Qt::DotLine));
+            painter.drawLine(QPointF(kSideInset, ry), QPointF(width() - kSideInset, ry));
+
+            // Source-name label at the left, elided so it never overruns the first dot.
+            painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
+            const QString label = painter.fontMetrics().elidedText(
+                row.sourceName, Qt::ElideRight, 120);
+            painter.drawText(QPointF(kSideInset, ry - kDotRadius - 3.0), label);
+
+            // Grey dots, window-clipped.
+            QColor grey(row.greyShade);
+            if (!grey.isValid()) { grey = QColor(0x8A, 0x8A, 0x8A); }
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(grey);
+            for (const ImportedEvent& ev : row.events) {
+                if (ev.projectOffsetMs < minMs_ || ev.projectOffsetMs > maxMs_) {
+                    continue;   // outside the current window → clipped
+                }
+                painter.drawEllipse(QPointF(xForOffset(ev.projectOffsetMs), ry),
+                                    kDotRadius - 1.0, kDotRadius - 1.0);
+            }
+        }
+    }
+
     // Epoch marker: the origin (offset 0 = Story Open) is anchored to its REAL story-time
     // position through the zoom/pan window, so it tracks scroll/zoom and sits where the
     // epoch actually is — which is no longer the left edge once scenes exist before it
@@ -536,9 +713,10 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
 void TimelinePanel::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() == Qt::LeftButton) {
-        pressPos_   = event->position();
-        pressedDot_ = -1;
-        dragMode_   = DragMode::None;
+        pressPos_    = event->position();
+        pressedDot_  = -1;
+        pressedHist_ = -1;
+        dragMode_    = DragMode::None;
         draggingBorder_ = -1;
 
         // Priority: a band border (T-0331) wins over a dot, since borders sit in the
@@ -555,6 +733,14 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
         pressedDot_ = dotIndexAt(event->pos());
         if (pressedDot_ >= 0) {
             dragX_ = xForOffset(dots_.at(pressedDot_).offsetMs);
+            event->accept();
+            return;
+        }
+        // Historical-event dot (T-0341): press it → a horizontal story-time drag on
+        // release (no band assignment, no navigate). Same dragX_ live-preview path.
+        pressedHist_ = histDotIndexAt(event->pos());
+        if (pressedHist_ >= 0) {
+            dragX_ = xForOffset(histDots_.at(pressedHist_).offsetMs);
             event->accept();
             return;
         }
@@ -658,6 +844,21 @@ void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
             return;
         }
     }
+
+    // --- Historical-event dot drag (T-0341): horizontal only ---------------
+    if (pressedHist_ >= 0) {
+        const double dx = p.x() - pressPos_.x();
+        const double dy = p.y() - pressPos_.y();
+        if (std::abs(dx) > kDragThreshold || std::abs(dy) > kDragThreshold) {
+            dragMode_ = DragMode::HistHorizontal;
+        }
+        if (dragMode_ == DragMode::HistHorizontal) {
+            dragX_ = std::clamp(p.x(), kSideInset, width() - kSideInset);
+            update();
+            event->accept();
+            return;
+        }
+    }
     QWidget::mouseMoveEvent(event);
 }
 
@@ -704,39 +905,132 @@ void TimelinePanel::mouseReleaseEvent(QMouseEvent* event)
         event->accept();
         return;
     }
+
+    // Historical-event dot release (T-0341): a horizontal drag re-times it; a plain
+    // press does nothing (historical events have no manuscript to navigate to — edit is
+    // via the context menu, §7.7).
+    if (pressedHist_ >= 0) {
+        if (dragMode_ == DragMode::HistHorizontal) {
+            emit historicalEventDragged(histDots_.at(pressedHist_).eventID,
+                                        offsetForX(dragX_));
+        }
+        pressedHist_ = -1;
+        dragMode_ = DragMode::None;
+        update();
+        event->accept();
+        return;
+    }
     QWidget::mouseReleaseEvent(event);
 }
 
 void TimelinePanel::contextMenuEvent(QContextMenuEvent* event)
 {
     const int i = dotIndexAt(event->pos());
-    if (i < 0) {
-        QWidget::contextMenuEvent(event);
+    if (i >= 0) {
+        // --- Scene-dot menu (SP-080/SP-081) ---
+        const QString sceneID = dots_.at(i).sceneID;
+        QMenu menu(this);
+        QAction* setDelta = menu.addAction(tr("Set Time Delta…"));   // SP-080
+
+        // SP-081: band assignment entries when a structure is present. The shell owns
+        // the band submenu (it knows the current bands), so we just signal intent.
+        QAction* assign = nullptr;
+        QAction* unassign = nullptr;
+        if (!bands_.isEmpty()) {
+            menu.addSeparator();
+            assign = menu.addAction(tr("Assign to Act…"));
+            if (!sceneBands_.value(sceneID).isEmpty()) {
+                unassign = menu.addAction(tr("Unassign"));
+            }
+        }
+
+        QAction* chosen = menu.exec(event->globalPos());
+        if (chosen == setDelta) {
+            emit setTimeDeltaRequested(sceneID);
+        } else if (chosen != nullptr && chosen == assign) {
+            emit assignBandRequested(sceneID);
+        } else if (chosen != nullptr && chosen == unassign) {
+            emit unassignBandRequested(sceneID);
+        }
+        event->accept();
         return;
     }
-    const QString sceneID = dots_.at(i).sceneID;
-    QMenu menu(this);
-    QAction* setDelta = menu.addAction(tr("Set Time Delta…"));   // SP-080
 
-    // SP-081: band assignment entries when a structure is present. The shell owns the
-    // band submenu (it knows the current bands), so we just signal intent.
-    QAction* assign = nullptr;
-    QAction* unassign = nullptr;
-    if (!bands_.isEmpty()) {
+    const int hi = histDotIndexAt(event->pos());
+    if (hi >= 0) {
+        // --- Historical-event menu (SP-082, §7.7) ---
+        const QString eventID = histDots_.at(hi).eventID;
+        QMenu menu(this);
+        QAction* edit = menu.addAction(tr("Edit Historical Event…"));
         menu.addSeparator();
-        assign = menu.addAction(tr("Assign to Act…"));
-        if (!sceneBands_.value(sceneID).isEmpty()) {
-            unassign = menu.addAction(tr("Unassign"));
+        QAction* del = menu.addAction(tr("Delete Historical Event"));
+        QAction* chosen = menu.exec(event->globalPos());
+        if (chosen == edit) {
+            emit editHistoricalEventRequested(eventID);
+        } else if (chosen == del) {
+            emit deleteHistoricalEventRequested(eventID);
+        }
+        event->accept();
+        return;
+    }
+
+    const int ri = importedRowAt(event->pos());
+    if (ri >= 0) {
+        // --- Imported-row menu (SP-082, §7.8) ---
+        const ImportedRow& row = importedRows_.at(ri);
+        QMenu menu(this);
+        QAction* editOffset = menu.addAction(tr("Edit Epoch Offset…"));
+        QAction* hide = menu.addAction(tr("Hide This Timeline"));
+        menu.addSeparator();
+        QAction* remove = menu.addAction(tr("Remove Imported Timeline"));
+        QAction* chosen = menu.exec(event->globalPos());
+        if (chosen == editOffset) {
+            emit editImportedOffsetRequested(row.timelineID);
+        } else if (chosen == hide) {
+            emit setImportedTimelineVisibleRequested(row.timelineID, false);
+        } else if (chosen == remove) {
+            emit removeImportedTimelineRequested(row.timelineID);
+        }
+        event->accept();
+        return;
+    }
+
+    // --- Empty-area menu (SP-082, §7.9) ---
+    // "New Historical Event Here" seeds the new event at the story-time under the click;
+    // Import/Export are the file-dialog flows (T-0342/T-0343). A hidden imported row can
+    // no longer be right-clicked (it isn't drawn), so a "Show Hidden Timelines" submenu
+    // here is the un-hide path (FR-065's "via the panel menu"). The shell owns all flows.
+    QMenu menu(this);
+    QAction* newHist = menu.addAction(tr("New Historical Event Here"));
+    menu.addSeparator();
+    QAction* import = menu.addAction(tr("Import Timeline…"));
+    QAction* exportT = menu.addAction(tr("Export Timeline…"));
+
+    QHash<QAction*, QString> showActions;   // action → hidden timelineID
+    QList<int> hidden;
+    for (int i = 0; i < importedRows_.size(); ++i) {
+        if (!importedRows_.at(i).visible) { hidden.append(i); }
+    }
+    if (!hidden.isEmpty()) {
+        menu.addSeparator();
+        QMenu* showMenu = menu.addMenu(tr("Show Hidden Timelines"));
+        for (int i : hidden) {
+            const ImportedRow& row = importedRows_.at(i);
+            QAction* a = showMenu->addAction(
+                row.sourceName.isEmpty() ? tr("(untitled timeline)") : row.sourceName);
+            showActions.insert(a, row.timelineID);
         }
     }
 
     QAction* chosen = menu.exec(event->globalPos());
-    if (chosen == setDelta) {
-        emit setTimeDeltaRequested(sceneID);
-    } else if (chosen != nullptr && chosen == assign) {
-        emit assignBandRequested(sceneID);
-    } else if (chosen != nullptr && chosen == unassign) {
-        emit unassignBandRequested(sceneID);
+    if (chosen == newHist) {
+        emit newHistoricalEventRequested(offsetForX(event->pos().x()));
+    } else if (chosen == import) {
+        emit importTimelineRequested();
+    } else if (chosen == exportT) {
+        emit exportTimelineRequested();
+    } else if (chosen != nullptr && showActions.contains(chosen)) {
+        emit setImportedTimelineVisibleRequested(showActions.value(chosen), true);
     }
     event->accept();
 }
@@ -746,6 +1040,7 @@ bool TimelinePanel::event(QEvent* event)
     if (event->type() == QEvent::ToolTip) {
         auto* help = static_cast<QHelpEvent*>(event);
         const int i = dotIndexAt(help->pos());
+        const int hi = (i < 0) ? histDotIndexAt(help->pos()) : -1;
         if (i >= 0) {
             const Dot& d = dots_.at(i);
             QString text = d.title;
@@ -754,6 +1049,14 @@ bool TimelinePanel::event(QEvent* event)
             }
             text += QStringLiteral("\n") + humanStoryTime(d.offsetMs);
             QToolTip::showText(help->globalPos(), text, this);
+        } else if (hi >= 0) {
+            const HistDot& h = histDots_.at(hi);
+            QString text = h.title;
+            text += QStringLiteral("\n") + tr("Historical event");
+            text += QStringLiteral("\n") + humanStoryTime(h.offsetMs);
+            QToolTip::showText(help->globalPos(), text, this);
+        } else if (importedEventTooltipAt(help->pos(), help->globalPos())) {
+            // handled inside the helper (imported dot: title + source + story-time)
         } else {
             QToolTip::hideText();
             event->ignore();
