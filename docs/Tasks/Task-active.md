@@ -7,12 +7,49 @@
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0333 | **`[Linux]` `TimelinePanel` zoom model** — `zoom_` factor + `panFraction_` over `xForOffset`/`offsetForX`; **`Ctrl`+wheel** zoom-about-pointer; clamp; zoom 1 = full-fit. Linear axis kept. | 🔵 Backlog |
-| T-0334 | **`[Linux]` `+`/`−` zoom control + scrollbar** — bottom-right `+`/`−` control (zoom about pointer/center) + a horizontal scrollbar when `zoom_ > 1`. VNC-safe (plain clicks). | 🔵 Backlog |
-| T-0335 | **`[Linux]` Pan (background drag) + verify** — drag the empty area above/below the dots to pan; dot/border drags still win on their zones. VNC: zoom a crowded cluster (wheel + `+` button), dots separate, pan; **re-verify SP-081 T-0332** (drag a dot up onto a band). Closes **I-0087 + T-0332/AC4 + AC6a**. | 🔵 Backlog |
+| T-0333 | **`[Linux]` `TimelinePanel` zoom model** — `zoom_` factor + `panFraction_` over `xForOffset`/`offsetForX`; **`Ctrl`+wheel** zoom-about-pointer (`zoomAbout`/`wheelEvent`); clamp [1,500]; zoom 1 = full-fit. Linear axis kept. | ✅ **Verified (2026-07-23, VNC)** — zoom works; exercised throughout the I-0088/T-0336–0339 session. |
+| T-0334 | **`[Linux]` `+`/`−` zoom control + scrollbar** — bottom-right `QToolButton` `+`/`−` (`zoomInStep`/`zoomOutStep`, about pointer/center) + a horizontal `QScrollBar` when `zoom_ > 1` (`syncScrollBar`/`resizeEvent`). VNC-safe (plain clicks). | ✅ **Verified (2026-07-23, VNC)** — user confirmed "the zoom buttons work". |
+| T-0335 | **`[Linux]` Pan (background drag) + verify** — empty-area press with `zoom_>1` → `DragMode::Pan` (closed-hand) adjusts `panFraction_`; dot/border drags still win. VNC: zoom a crowded cluster (`+` button and/or wheel), dots separate, pan; **re-verify SP-081 T-0332** (drag a dot up onto a band). Closes **I-0087 + T-0332/AC4 + AC6a**. | ✅ **Verified (2026-07-23, VNC)** — zoom + pan spread the crowded cluster and let the flashback/scene work proceed. |
+| T-0336 | **`[Linux]` Time Delta Picker — anchor to ANY scene** — the anchor combo lists the previous scene's end, Story Open (0), **and the END of every other scene** (`TimeDeltaPicker::AnchorScene` list from `EditorShell::showTimeDeltaPicker`, built off the `timelineOffsets_`/`timelineDurations_` caches). Choosing a scene resolves to an absolute `manual` offset **once** — no persisted anchor link, no backend/schema change (user decision 2026-07-23). Lets "Scene 14 immediately after 'We go to the Lab'" be one click. Re-open seeds the anchor to the nearest match. | ✅ **Verified (2026-07-23, VNC)** — user set Scene 14 to immediately-after "We go to the Lab" from the picker. |
+| T-0337 | **`[Linux]` Story bands wrap the main storyline, not the whole strip** — `bandRegionLeftX/RightX` = `xForOffset(0)`…`xForOffset(storyEndMs_)`, so bands cover story-time **[0, last-scene-end]** and **expand/contract with zoom/pan** (`bandLeftX/RightX` + the border-drag proportion math divide that region, not `usable`). A flashback left of the epoch has **no band behind it** but is still assignable — `bandIndexAtX` snaps an out-of-region drop to the nearer band (first if left of the region), and the context-menu "Assign to Act…" is position-independent. Fixes bands being dragged into the negative/flashback region. | ✅ **Verified (2026-07-23, VNC)** — user confirmed bands wrap the storyline, resize with zoom, and border moves persist. |
+| T-0338 | **`[Linux]` Persist timeline zoom + pan per project** — `TimelinePanel::viewStateChanged(zoom, pan)` fires when zoom/pan settles (`zoomAbout`, scrollbar, pan-drag release); `EditorShell::onTimelineViewStateChanged` writes it to an INI **under the app-support root** (`timelineViewStatePath()` = `<appSupport>/timeline-view.ini`, group `timeline/<projectID>`) + `sync()`. `reloadTimeline` restores via `setViewState` (clamps + repaints, does NOT re-emit → no save echo). **Fix (2026-07-23):** first cut used default `QSettings` → wrote to `~/.config`, which the Docker `--rm` container wiped on exit ("not saved"); moved into the bind-mounted app-support dir so it survives restarts. | ✅ **Verified (2026-07-23, VNC)** — zoom/pan persists across container restart. |
+| T-0339 | **`[Linux]` Truncate long scene titles in the picker's anchor combo** — a sentence-length title (e.g. "There were a total of twenty four men…") no longer stretches the dialog: the anchor combo caps width (`AdjustToMinimumContentsLengthWithIcon` + `setMinimumContentsLength(24)` + `setMaximumWidth(260)`) and elides each entry to 40 chars with an ellipsis, keeping the full title in the item's tooltip (Scene-Navigator feel). | ✅ **Verified (2026-07-23, VNC)** — user confirmed the truncation renders correctly. |
 
-**Next available T-0336.** Zoom/pan is pure UI over the existing linear model (no new headless smoke; verified
-live over VNC). `scrivi.h` untouched; no pbxproj (Linux-only).
+**Verification (2026-07-22, container):** ✅ build green (0 warnings, `scrivi_linux` linked); ✅ regression smokes
+PASS (story-structure/timeline-story-time/merge/create/reorder/chapter-reorder/editor-map); ✅ Xvfb app-launch
+PASS. ⏳ **Live VNC pending** — `+`/`−` + Ctrl+wheel zoom, scrollbar + background-drag pan, and the headline
+**I-0087** check: zoom into the crowded cluster (the `+` button is the VNC-safe path if the Mac wheel doesn't
+reach x11vnc), dots separate, then **re-verify T-0332** band-assignment. **Next available T-0340.** Zoom/pan is
+pure UI (no new headless smoke); `scrivi.h` untouched; no pbxproj (Linux-only).
+
+**T-0336 / T-0337 (2026-07-23, follow-on to I-0088) — ✅ Verified (VNC).** The flashback fix surfaced two
+follow-ups — (1) a scene chains off its manuscript predecessor, so an untitled Scene 14 followed the Flashback
+back to −2y; the picker now anchors to **any scene's end** (resolved once to a manual offset — no schema
+change); (2) story bands filled the whole strip and got dragged into the flashback region — they now wrap
+**[0, last-scene-end]** and zoom with the timeline, while a flashback stays assignable. User verified both over
+VNC: Scene 14 set immediately-after "We go to the Lab"; bands wrap the storyline, resize with zoom, border
+moves persist.
+
+**T-0338 / T-0339 (2026-07-23, same VNC session) — 🟢 Implemented, Not Verified.** Two polish items the user
+asked for after verifying T-0336/0337: (T-0338) **persist the timeline zoom/pan** per project so it doesn't
+reset to full-fit on every open (Linux-only `QSettings`, keyed by projectID — not the backend); (T-0339)
+**truncate long scene titles** in the picker's anchor combo so a sentence-length title no longer stretches the
+dialog (cap width + elide to 40 chars, full title in tooltip — Scene-Navigator feel). All in
+`TimeDeltaPicker.cpp/.hpp`, `TimelinePanel.cpp/.hpp`, `EditorShell.cpp/.hpp`. `scrivi.h`/backend untouched; no
+pbxproj (Linux-only).
+
+**Container build + smokes GREEN (2026-07-23):** `docker build --no-cache` compiled all 202 targets incl.
+`scrivi_linux` with 0 errors; all 9 relevant smoke wrappers PASS (timeline_story_time, story_structure,
+scene_merge/create/reorder, chapter_reorder, editor_map, scene_save/rename) with `QT_QPA_PLATFORM=offscreen`.
+T-0339 (title truncation) **user-verified over VNC (2026-07-23)**.
+
+**T-0338 persistence fix (2026-07-23):** the user reported zoom/pan not surviving. Root cause **found +
+proven**: default `QSettings` wrote to `/root/.config/Caposoft/Scrivi.conf`, which the `docker run --rm`
+container is NOT bind-mounting (only `/root/.local/share/Scrivi` and `/projects`), so the file was destroyed on
+container exit. Fixed by writing the INI into the app-support root (`<appSupport>/timeline-view.ini`) + `sync()`.
+Verified in-container that the INI now lands at `/root/.local/share/Scrivi/timeline-view.ini` and **appears on
+the host bind-mount** (survives `--rm`), round-tripping zoom/pan. ✅ **Verified (2026-07-23, VNC)** — user
+confirmed zoom/pan persists across quit → re-run `build-and-run.sh` → reopen.
 
 ---
 
@@ -173,11 +210,11 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-081 implemented — T-0329–T-0332 🟢 Implemented, Not Verified** (EP-025
-`[Linux]` Timeline Panel, 3rd sprint). Story-structure bands: six `ScriviBridge` invokables + a ported built-in
-band table (`StoryStructures.cpp/.hpp`), band overlay painting + View ▸ Story Structure… selector, band
-border-drag re-proportion, and scene→band assignment (drag-up / "Assign to Act…") with a colored ring; remove
-keeps assignments. Container build green (202/202, 0 warnings); new `story_structure_smoke` PASS (a
-`{"bands":[…]}` JSON-shape bug caught by the smoke + fixed) + all regression smokes + Xvfb app-launch PASS; live
-VNC (band paint/drags) pending. Delivers AC4; `scrivi.h` untouched (C ABI from EP-016). Next available **T-0333**.
-Earlier same day: **SP-080 ✅ closed — AC3 Verified**. Prior notes below retained for reference.)*
+*Last Updated: 2026-07-22 (**SP-081 T-0329/0330/0331 ✅ Verified; T-0332 blocked by I-0087 → SP-083 zoom/pan
+brought forward & implemented** (two parallel EP-025 sprints). SP-081's bridge/presets + band overlay + View ▸
+Story Structure… selector + band border-drag are Verified live; scene→band drag-up assignment (T-0332) is
+blocked because a far-outlier flashback scene crowds all dots to one edge under the linear axis (I-0087). Per
+user decision (keep linear axis, Apple parity) **SP-083** now delivers zoom (`Ctrl`+wheel zoom-about-pointer +
+an always-works `+`/`−` control, bottom-right) + pan (background drag) — T-0333–T-0335 🟢 Implemented, build +
+all smokes green; live VNC pending (then re-verify T-0332 zoomed in). Clustering + Epic close → new SP-084.
+Next available **T-0336**. Prior notes below retained for reference.)*

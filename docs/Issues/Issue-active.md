@@ -5,7 +5,9 @@ table and stay in this file as full entries only until the next batch archive (I
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0087 | `[Linux]` **Timeline dots crowd to one edge when a scene is a far time-outlier; without zoom you can't spread them to grab one.** Found in SP-081 T-0332 VNC verify (2026-07-22). A project with one flashback scene ~2 years before the rest stretches the linear story-time window to ~730 days, so every present-day scene collapses into a sliver at the opposite edge — overlapping, un-grabbable. Dragging one is nearly impossible and **dragging a dot up onto a band label (T-0332 assignment) is impossible** — a small horizontal move just opens the Time Delta Picker. **Not a layout bug — it's the linear time-axis with no zoom.** T-0329/0330/0331 all Verified; only the drag-dependent T-0332 is blocked. **User decision (2026-07-22):** keep the linear axis (Apple parity), do NOT switch to even-spacing; fix via **zoom + pan** — bring **SP-083 forward** now. Zoom = `Ctrl`+wheel + an always-works `+`/`−` control (bottom-right of the strip, zoom-about-pointer); pan = drag on the empty area above/below the dots. | High | **SP-081** (found) → **SP-083** (fix) | 🔴 Open — blocks SP-081 T-0332 live verify; fix in SP-083 (activated 2026-07-22, brought forward) |
+| I-0089 | `[Linux]` **Scene→band drag-up assignment (T-0332) never triggers — the drag mode latches to horizontal on the first 4px move.** Found when re-verifying T-0332 after SP-083 zoom fixed the crowding (2026-07-23) — the dots spread fine but dragging a dot up onto a band label still just opens the Time Delta Picker. **Root cause (NOT crowding, a separate defect from I-0087):** `TimelinePanel::mouseMoveEvent` decided DotToBand-vs-DotHorizontal **once**, on the first move past the 4px threshold, and required the pointer to *already* be inside the ~22px top label row at that instant. But dots sit at the strip's vertical centre (~60px in a ~120px strip), so on the first micro-move the pointer is ~55px below the row → it always latched to `DotHorizontal` and the upward drag could never become `DotToBand`. **Fix:** classify by **dominant direction, re-evaluated while ambiguous** — an upward drag (`dy<0`, `|dy|>|dx|`) with a structure present → `DotToBand`; sideways → `DotHorizontal`; drop resolves via `bandIndexAtX(release x)`. Plus an assignment cue (target-band outline + leader line) so the mode is legible. | High | **SP-081** | ✅ **Verified (2026-07-23, VNC)** — see full entry below |
+| I-0088 | `[Linux]` **A scene before Story Open (a flashback) can't be placed — the Time Delta Picker floors "N before" to offset 0, and the chain then poisons every later scene.** Found in the SP-083 VNC verify (2026-07-23) on `the-twisted-remains-of-myself`. Setting a flashback to "2 years before previous" snaps it to Story Open (offset 0) instead of −2 years, and scenes after it (e.g. Ch 8 Scene 1) then read "2 hours after Story Open" instead of shifting far earlier. **Root cause (Linux shell only — the backend stores signed `offsetMs`/`gapMs` with no clamp):** three zero-floors delete the negative — `TimeDeltaPicker::commitSetOffset` (`std::max(0, spinnerOffsetMs())`), `TimelinePanel::offsetForX` (`std::max(offset, 0)`), and the drag-signal contract. Two matching presentation bugs: the "Story Open" label was painted at a fixed left inset (never tracked scroll/zoom, so it clung to the left edge — the user's "label persists" complaint), and `humanStoryTime` phrased everything relative to the earliest dot (`minMs_`) instead of the epoch (offset 0). | High | **SP-083** | ✅ **Verified (2026-07-23, VNC)** — see full entry below |
+| I-0087 | `[Linux]` **Timeline dots crowd to one edge when a scene is a far time-outlier; without zoom you can't spread them to grab one.** Found in SP-081 T-0332 VNC verify (2026-07-22). A project with one flashback scene ~2 years before the rest stretches the linear story-time window to ~730 days, so every present-day scene collapses into a sliver at the opposite edge — overlapping, un-grabbable. Dragging one is nearly impossible and **dragging a dot up onto a band label (T-0332 assignment) is impossible** — a small horizontal move just opens the Time Delta Picker. **Not a layout bug — it's the linear time-axis with no zoom.** T-0329/0330/0331 all Verified; only the drag-dependent T-0332 is blocked. **User decision (2026-07-22):** keep the linear axis (Apple parity), do NOT switch to even-spacing; fix via **zoom + pan** — bring **SP-083 forward** now. Zoom = `Ctrl`+wheel + an always-works `+`/`−` control (bottom-right of the strip, zoom-about-pointer); pan = drag on the empty area above/below the dots. | High | **SP-081** (found) → **SP-083** (fix) | ✅ **Verified (2026-07-23, VNC)** — SP-083 zoom + pan (T-0333/0334/0335) spread the crowded cluster; user confirmed the zoom buttons work and drove zoom/pan through the flashback session. |
 | I-0086 | `[Apple]` **Build warnings: "Result of 'try?' is unused" at three call sites.** Fire-and-forget engine calls used `try?` on a non-Void-returning throwing function without discarding the result, tripping Swift's unused-result warning. Sites: `HistoryCapture.close()` (`historyClose`), `HistoryCapture.seedBaselineIfNeeded()` (`historySeedScene`), and `ProjectSettingsSheet.saveHistorySettings()` (`historySetSettings`). All three are intentional discards (a failure needs no handling here). **Fix:** prefix each with `_ = ` (matching the existing `_ = try?` at `HistoryCapture.swift:94`). One-token change per site; no behavior change. | Low | **SP-075** | ✅ Resolved - Not Verified (2026-07-21) — `_ = try?` applied at `HistoryCapture.swift:103` & `:140` and `ProjectSettingsSheet.swift:127`; `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build` → **BUILD SUCCEEDED** with all three warnings gone. |
 | I-0085 | `[Apple]` **App crashes constructing the Open Project panel.** From `LandingView` (or File ▸ Open Project…), clicking Open calls `AppEnvironment.presentOpenProjectPanel()` → `NSOpenPanel()`, which aborts with `*** Assertion failure in -[NSOpenPanel _initBridgeAndStuff], NSSavePanel.m:466 — Advance to configuration phase semaphore timed out.` This fires at panel **construction** (`NSOpenPanel()`), before `runModal`. **Investigation (2026-07-21):** the assertion is the sandbox Open/Save-panel ViewBridge XPC service (`com.apple.appkit.xpc.openAndSavePanelService`) timing out its init handshake. Evidence it is **environmental, not a code defect**: (a) this exact `NSOpenPanel()` code dates to **SP-035** and is unchanged through ~40 sprints of working Open flows; (b) entitlements are correct (`app-sandbox` + `files.user-selected.read-write`) and `ENABLE_APP_SANDBOX = YES`; (c) **a second Scrivi instance was found running** (`…Scrivi -NSDocumentRevisionsDebugMode YES`, an Xcode debug launch) alongside the `open`-launched one — two instances of a sandboxed app contend for the single per-user panel XPC service, a known trigger for this timeout — even though `LSMultipleInstancesProhibited = true`; (d) host is **macOS 27.0 beta (26A5378n)**, where ViewBridge XPC flakiness is common; (e) **not merge-related** — `presentOpenProjectPanel` is untouched by SP-075. **Resolution (2026-07-21):** confirmed **environmental, NOT a code defect.** The user quit all instances and relaunched clean; the Open Project dialog constructed and ran fine, exactly as the investigation predicted (duplicate sandboxed instance + macOS 27.0 beta panel-XPC handshake timeout). No code change made or warranted — `presentOpenProjectPanel`/`NSOpenPanel()` are unchanged and correct. Closed as Not-a-Bug. | High | **SP-075** (found) | ✅ **Closed — Not a Bug (2026-07-21)**: clean relaunch reproduced the working Open dialog; the crash was the environmental duplicate-instance + beta-OS XPC panel timeout, not Scrivi code. |
 | I-0084 | `[Apple]` **Caret jumps to the next scene/chapter start after a scene merge.** After `⌘-Backspace` scene-merge (SP-075 T-0303), the cursor lost its intended seam position and landed at what looked like the start of the following chapter/scene. **Root cause:** `handleMergeScene` mutates `loader.segments` (`@Observable`), which schedules a `updateNSView` pass; that pass rebuilt storage a SECOND time (its `segIDs != lastSegmentIDs` guard was still true because the coordinator's manual `rebuildStorage` never updated `lastSegmentIDs`), and the redundant `setAttributedString` dropped the selection to 0 — stomping the caret that `rebuildStorageAndPlaceCursor` had just placed. Latent in the original merge code; SP-075's added `await` exposed it. **Fix:** `rebuildStorage` now stamps `lastSegmentIDs`/`lastShowChapterTitles` at the end, so the follow-up `updateNSView` sees no change and skips the redundant rebuild — the caret placement survives. Benefits every manual-rebuild handler (merge/split/create). | Medium | **SP-075** | ✅ Resolved - **Verified (2026-07-21)** — fix in `ManuscriptTextView.rebuildStorage`; user confirmed in the GUI that the caret holds its seam position after a scene merge (no jump to the next scene/chapter start). |
@@ -37,10 +39,94 @@ table and stay in this file as full entries only until the next batch archive (I
 
 ---
 
+## I-0089: [Linux] Scene→band drag-up assignment (T-0332) never triggers — drag mode latches to horizontal
+
+**Status:** ✅ **Verified (2026-07-23, VNC)** — found re-verifying T-0332 after SP-083 zoom fixed the crowding
+(I-0087); the dots spread correctly but the drag-up assignment still failed until this fix. User confirmed the
+drag-up assignment now works (target-band cue + ring, survives reopen).
+
+**Symptom.** With a story structure applied, dragging a scene dot **up onto a band label** to assign it does
+nothing — a small move just opens the Time Delta Picker (the horizontal story-time drag). This is what blocked
+SP-081 T-0332 from being verified; SP-083 was brought forward assuming crowding was the only cause, but the
+gesture stayed broken once the dots were spread.
+
+**Root cause — a mode-latching bug, distinct from I-0087 (crowding).** `TimelinePanel::mouseMoveEvent` chose
+between `DotToBand` and `DotHorizontal` **exactly once**, on the first mouse-move past the 4px drag threshold,
+and the `DotToBand` branch required `p.y() < bandLabelRowHeight() + 6.0` — i.e. the pointer already inside the
+~22px label row at the **top** of the strip. But scene dots are drawn at the strip's **vertical centre**
+(`cy = height()/2 ≈ 60px` in the ~120px strip). On the first 4px move the pointer is still ~55px below the label
+row, so `intoLabelRow` was false → the mode latched to `DotHorizontal` and never re-evaluated, no matter how far
+up the drag continued. The assignment path was unreachable.
+
+**Fix.** Classify the dot drag by **dominant direction, re-evaluated while the mode is still ambiguous** (not a
+one-shot check): an **upward** drag (`dy < 0` and `|dy| > |dx|`) with a structure present →
+`DragMode::DotToBand`; a clearly **sideways** drag (`|dx| ≥ |dy|`) → `DragMode::DotHorizontal`; a small diagonal
+stays unresolved until one axis wins. Once `DotHorizontal` is chosen it holds (the picker preview is live). The
+drop still resolves by `bandIndexAtX(release x)` (which already snaps an out-of-region flashback dot to the
+nearer band). Added a visual **assignment cue** — the target band is outlined in the highlight colour and a
+dashed leader line runs from the dragged dot up to the label row — so the writer can see they are in assignment
+mode and which act they will drop into.
+
+**Files:** `platforms/linux/src/TimelinePanel.cpp` (mode classification in `mouseMoveEvent`, cue in
+`paintEvent`, reset in `mouseReleaseEvent`), `TimelinePanel.hpp` (`dragPos_`, `dragBandTarget_`). No backend /
+`scrivi.h` change; no pbxproj (Linux-only).
+
+**Verify (pending, user over VNC):** with a structure applied, drag a scene dot upward → the target band
+outlines + a leader line appears; release → the dot gets that band's colored ring and the assignment survives
+quit→reopen. A horizontal drag still opens the Time Delta Picker. This unblocks **SP-081 T-0332**. Container
+build + Linux smokes green.
+
+## I-0088: [Linux] A scene before Story Open (a flashback) can't be placed — negative story-time is floored to 0
+
+**Status:** ✅ **Verified (2026-07-23, VNC)** — found in the SP-083 VNC verify on
+`the-twisted-remains-of-myself`; user confirmed the flashback places correctly before Story Open and the later
+scenes no longer follow it into the negative region.
+
+**Symptoms (user report).** On the timeline: the "Story Open" label clings to the left edge regardless of
+scroll. Setting the Flashback scene to "2 years before previous" moves it to sit directly under Chapter 1
+Scene 1 (offset 0) instead of two years earlier. Scenes after the flashback (Ch 8 Scene 1) then show "2 hours
+after Story Open" rather than shifting to well before Story Open. Overlapping dots and a mis-highlight on
+select (Flashback → highlights Ch 3 Scene 1) followed from multiple scenes collapsing onto the same clamped
+offset.
+
+**Root cause — Linux shell only.** The backend (`ScriviCore`) stores `storyTime.offsetMs`/`gapMs` as signed
+`int64` with **no clamping** (`SceneMetaJson.cpp`, `scrivi_c_api.cpp`), so it already supports scenes before
+the epoch. The Linux Qt shell threw the negative away in three places and mislabeled the origin in two:
+
+1. `TimeDeltaPicker::commitSetOffset` — `resultOffsetMs_ = std::max<qint64>(0, spinnerOffsetMs())` deleted the
+   negative the instant "before" was chosen. **This is the primary defect.**
+2. `EditorShell::showTimeDeltaPicker` chain propagation then computed `offset[i] = prevEnd + gapMs` from the
+   clamped (=0) flashback, so every later scene inherited a wrong `prevEnd` → "2 hours after Story Open".
+3. `TimelinePanel::offsetForX` also floored at 0, so a dot couldn't be *dragged* left of the epoch either.
+4. `TimelinePanel::paintEvent` drew "Story Open" at a fixed `kSideInset` (left edge), not at the epoch's real
+   position — so it never tracked scroll/zoom and, once negatives exist, sat nowhere near offset 0.
+5. `TimelinePanel::humanStoryTime` measured `rel = offsetMs - minMs_` (relative to the earliest dot), so
+   tooltips read relative to the flashback, not Story Open.
+
+**Fix.**
+- **Picker** (`TimeDeltaPicker.cpp/.hpp`): removed the zero-floor (`resultOffsetMs_ = spinnerOffsetMs()`, may be
+  negative). Added an **anchor combo** — the delta can be measured from the previous scene's end *or* from
+  **Story Open** (offset 0), so a flashback is naturally "N years before Story Open". Seeds the epoch anchor
+  when the raw offset is ≤ 0. Direction relabeled "after"/"before".
+- **Panel** (`TimelinePanel.cpp/.hpp`): `offsetForX` no longer floors at 0; `humanStoryTime` measures from the
+  epoch (offset 0) and phrases "… before/after Story Open"; the epoch label is now **anchored to
+  `xForOffset(0)`** with a dashed **origin tick**, and pins to the nearer edge with a ‹/› hint when the origin
+  scrolls off-screen.
+
+**Files:** `platforms/linux/src/TimeDeltaPicker.cpp`, `TimeDeltaPicker.hpp`,
+`platforms/linux/src/TimelinePanel.cpp`, `TimelinePanel.hpp`. No `scrivi.h`/backend change. pbxproj N/A
+(Linux/Qt only).
+
+**Verify (pending, user over VNC):** open `the-twisted-remains-of-myself`; set the Flashback to "2 years before
+Story Open" — it lands two years left of the origin tick, and every later scene shifts with it (no "2 hours
+after Story Open"); the "Story Open" label + tick sit at the true origin and track zoom/pan; the tooltip on the
+flashback reads "2 years before Story Open". Container build + existing Linux smokes green.
+
 ## I-0087: [Linux] Timeline dots crowd to one edge when a scene is a far time-outlier (no zoom to spread them)
 
-**Status:** 🔴 Open — found in SP-081 T-0332 VNC verification (2026-07-22). Blocks the live verify of the
-scene→band **drag-up assignment** (T-0332); fixed by bringing **SP-083 (zoom/pan)** forward.
+**Status:** ✅ **Verified (2026-07-23, VNC)** — found in SP-081 T-0332 VNC verification (2026-07-22); fixed by
+bringing **SP-083 (zoom/pan)** forward. User confirmed the zoom buttons work and zoom + pan spread the crowded
+cluster so the far-outlier flashback and present-day dots are individually workable.
 **Platform:** Linux (`platforms/linux/`).
 **Component:** `platforms/linux/src/TimelinePanel.cpp` — the linear story-time → x mapping (`xForOffset`, the
 `[minMs_, maxMs_]` window set in `setTimeline`). Not a defect in that code; it's the *design* (linear axis, no

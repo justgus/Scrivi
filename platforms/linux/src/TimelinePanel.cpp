@@ -1,14 +1,20 @@
 #include "TimelinePanel.hpp"
 
 #include <QContextMenuEvent>
+#include <QCursor>
 #include <QHelpEvent>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPalette>
+#include <QResizeEvent>
+#include <QScrollBar>
+#include <QToolButton>
 #include <QToolTip>
+#include <QWheelEvent>
 
 #include <algorithm>
+#include <cmath>
 
 namespace {
 // Geometry. The strip is short; dots sit on a horizontal baseline centred
@@ -30,6 +36,79 @@ TimelinePanel::TimelinePanel(QWidget* parent) : QWidget(parent)
 {
     setMinimumHeight(kMinHeight);
     setMouseTracking(true);   // hover tooltips without a pressed button
+
+    // --- SP-083 zoom control (bottom-right): + on the left, − on the right ---
+    // Plain-click buttons = the guaranteed VNC-safe zoom path (a Mac Magic
+    // Mouse/trackpad may not emit a discrete wheel x11vnc forwards).
+    zoomInBtn_  = new QToolButton(this);
+    zoomInBtn_->setText(QStringLiteral("+"));
+    zoomInBtn_->setToolTip(tr("Zoom in (Ctrl+wheel also zooms)"));
+    zoomInBtn_->setFocusPolicy(Qt::NoFocus);
+    connect(zoomInBtn_, &QToolButton::clicked, this, &TimelinePanel::zoomInStep);
+
+    zoomOutBtn_ = new QToolButton(this);
+    zoomOutBtn_->setText(QStringLiteral("−"));
+    zoomOutBtn_->setToolTip(tr("Zoom out"));
+    zoomOutBtn_->setFocusPolicy(Qt::NoFocus);
+    connect(zoomOutBtn_, &QToolButton::clicked, this, &TimelinePanel::zoomOutStep);
+
+    // Horizontal scrollbar to pan when zoomed (hidden at zoom 1).
+    hScroll_ = new QScrollBar(Qt::Horizontal, this);
+    hScroll_->setFocusPolicy(Qt::NoFocus);
+    hScroll_->hide();
+    connect(hScroll_, &QScrollBar::valueChanged, this, [this](int v) {
+        // Map the bar value back to panFraction_ (0..maxPan scaled to the bar range).
+        const double maxPan = std::max(0.0, 1.0 - 1.0 / zoom_);
+        const int span = hScroll_->maximum() - hScroll_->minimum();
+        panFraction_ = span > 0 ? maxPan * (double(v - hScroll_->minimum()) / span) : 0.0;
+        clampPan();
+        update();
+        emit viewStateChanged(zoom_, panFraction_);   // persist (T-0338)
+    });
+
+    // Keep the control + scrollbar in step with zoom changes.
+    connect(this, &TimelinePanel::zoomChanged, this, &TimelinePanel::syncScrollBar);
+}
+
+void TimelinePanel::layoutControls()
+{
+    constexpr int kBtn = 20;
+    constexpr int kMargin = 4;
+    const int y = height() - kBtn - kMargin;
+    // + on the left, − on the right (user spec).
+    zoomInBtn_->setGeometry(width() - 2 * kBtn - kMargin - 2, y, kBtn, kBtn);
+    zoomOutBtn_->setGeometry(width() - kBtn - kMargin, y, kBtn, kBtn);
+    // Scrollbar runs along the bottom, left of the buttons.
+    hScroll_->setGeometry(kMargin, height() - kBtn - kMargin,
+                          width() - 2 * kBtn - 3 * kMargin - 4, kBtn - 6);
+}
+
+void TimelinePanel::syncScrollBar()
+{
+    if (hScroll_ == nullptr) {
+        return;
+    }
+    if (zoom_ <= 1.0) {
+        hScroll_->hide();
+        zoomOutBtn_->setEnabled(false);
+        return;
+    }
+    zoomOutBtn_->setEnabled(true);
+    // Model the bar as a 0..1000 range whose page = visible fraction (1/zoom_).
+    const QSignalBlocker block(hScroll_);
+    constexpr int kRange = 1000;
+    const double maxPan = std::max(1e-6, 1.0 - 1.0 / zoom_);
+    hScroll_->setRange(0, kRange);
+    hScroll_->setPageStep(int(kRange / zoom_));
+    hScroll_->setValue(int(kRange * (panFraction_ / maxPan)));
+    hScroll_->show();
+}
+
+void TimelinePanel::resizeEvent(QResizeEvent* event)
+{
+    QWidget::resizeEvent(event);
+    layoutControls();
+    syncScrollBar();
 }
 
 void TimelinePanel::setTimeline(const QString& epochLabel, const QList<Dot>& dots)
@@ -54,6 +133,13 @@ void TimelinePanel::setTimeline(const QString& epochLabel, const QList<Dot>& dot
             maxMs_ = minMs_ + 1;
         }
     }
+
+    // Story-structure bands wrap the MAIN storyline only: story-time [0, last-scene-end],
+    // NOT the flashback region left of the epoch (user decision 2026-07-23). storyEndMs_
+    // is the latest scene end at/after the epoch; guard against a zero-width span so the
+    // band region never collapses. (maxMs_ is the overall window end incl. duration; when
+    // every scene is a flashback, clamp the storyline span to a minimal positive width.)
+    storyEndMs_ = std::max<qint64>(maxMs_, 1);
 
     update();
 }
@@ -96,36 +182,58 @@ QList<double> TimelinePanel::effectiveProportions() const
     return props;
 }
 
+double TimelinePanel::bandRegionLeftX() const
+{
+    // The band region starts at the epoch (offset 0), mapped through zoom/pan.
+    return xForOffset(0);
+}
+
+double TimelinePanel::bandRegionRightX() const
+{
+    // …and ends at the last scene's end. So bands wrap the main storyline and expand /
+    // contract with zoom, instead of filling the whole strip (which would drag them out
+    // into the flashback region left of the epoch).
+    return xForOffset(storyEndMs_);
+}
+
 double TimelinePanel::bandLeftX(int i) const
 {
-    const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+    const double left  = bandRegionLeftX();
+    const double span  = bandRegionRightX() - left;
     const QList<double> props = effectiveProportions();
     double acc = 0.0;
     for (int k = 0; k < i && k < props.size(); ++k) {
         acc += props.at(k);
     }
-    return kSideInset + acc * usable;
+    return left + acc * span;
 }
 
 double TimelinePanel::bandRightX(int i) const
 {
-    const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+    const double left  = bandRegionLeftX();
+    const double span  = bandRegionRightX() - left;
     const QList<double> props = effectiveProportions();
     double acc = 0.0;
     for (int k = 0; k <= i && k < props.size(); ++k) {
         acc += props.at(k);
     }
-    return kSideInset + acc * usable;
+    return left + acc * span;
 }
 
 int TimelinePanel::bandIndexAtX(double x) const
 {
+    if (bands_.isEmpty()) {
+        return -1;
+    }
     for (int i = 0; i < bands_.size(); ++i) {
         if (x >= bandLeftX(i) && x < bandRightX(i)) {
             return i;
         }
     }
-    return bands_.isEmpty() ? -1 : bands_.size() - 1;   // clamp to the last band
+    // Outside the band region (bands now wrap only [0, last-end], so a flashback dot
+    // sits LEFT of band 0): snap to the nearer end so a scene before Story Open can still
+    // be assigned by dragging its dot straight up onto the label row.
+    return x < bandRegionLeftX() ? 0 : bands_.size() - 1;
 }
 
 int TimelinePanel::borderIndexNearX(double x) const
@@ -142,21 +250,98 @@ int TimelinePanel::borderIndexNearX(double x) const
 
 double TimelinePanel::xForOffset(qint64 offsetMs) const
 {
+    // Story-time → x, through the zoom/pan window (SP-083). `frac` is the offset's
+    // position in the FULL [minMs_, maxMs_] window (0..1). The VISIBLE window is a
+    // slice of width 1/zoom_ starting at panFraction_, mapped across the usable width:
+    //   visibleFrac = (frac - panFraction_) * zoom_.
+    // zoom_ = 1, panFraction_ = 0 → the original full-fit mapping.
     const double usable = std::max(1.0, width() - 2.0 * kSideInset);
     const double frac =
         static_cast<double>(offsetMs - minMs_) / static_cast<double>(maxMs_ - minMs_);
-    return kSideInset + std::clamp(frac, 0.0, 1.0) * usable;
+    const double visibleFrac = (frac - panFraction_) * zoom_;
+    return kSideInset + visibleFrac * usable;
 }
 
 qint64 TimelinePanel::offsetForX(double x) const
 {
-    // Inverse of xForOffset: map a panel x back to a story-time offset, clamped to
-    // the current window and never negative (a scene can't start before the epoch).
+    // Inverse of xForOffset through the zoom/pan window. The offset MAY be negative: a
+    // scene can start before the epoch (a flashback before Story Open). frac is NOT
+    // clamped to [0,1] so a drag can carry a dot to an offset just off the visible edge.
     const double usable = std::max(1.0, width() - 2.0 * kSideInset);
-    const double frac = std::clamp((x - kSideInset) / usable, 0.0, 1.0);
-    const qint64 offset =
-        minMs_ + static_cast<qint64>(frac * static_cast<double>(maxMs_ - minMs_));
-    return std::max<qint64>(offset, 0);
+    const double visibleFrac = (x - kSideInset) / usable;
+    const double frac = panFraction_ + visibleFrac / zoom_;
+    return minMs_ + static_cast<qint64>(frac * static_cast<double>(maxMs_ - minMs_));
+}
+
+void TimelinePanel::clampPan()
+{
+    // The visible window (width 1/zoom_) must stay within [0,1] of the full window.
+    const double maxPan = std::max(0.0, 1.0 - 1.0 / zoom_);
+    panFraction_ = std::clamp(panFraction_, 0.0, maxPan);
+}
+
+void TimelinePanel::zoomAbout(double factor, double anchorX)
+{
+    // Zoom by `factor` keeping the story-time under anchorX fixed on screen.
+    const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+    const double anchorVisibleFrac = (anchorX - kSideInset) / usable;   // 0..1 on screen
+    const double anchorFullFrac = panFraction_ + anchorVisibleFrac / zoom_;   // in full window
+
+    const double newZoom = std::clamp(zoom_ * factor, 1.0, 500.0);
+    if (newZoom == zoom_) {
+        return;
+    }
+    zoom_ = newZoom;
+    // Solve panFraction_ so anchorFullFrac still lands at anchorVisibleFrac on screen.
+    panFraction_ = anchorFullFrac - anchorVisibleFrac / zoom_;
+    clampPan();
+    update();
+    emit zoomChanged();
+    emit viewStateChanged(zoom_, panFraction_);   // persist (T-0338)
+}
+
+void TimelinePanel::setViewState(double zoom, double panFraction)
+{
+    // Apply persisted state without re-emitting viewStateChanged (that would echo a save).
+    zoom_ = std::clamp(zoom, 1.0, 500.0);
+    panFraction_ = panFraction;
+    clampPan();
+    syncScrollBar();
+    update();
+    emit zoomChanged();   // let the +/- control + scrollbar reflect the restored zoom
+}
+
+void TimelinePanel::wheelEvent(QWheelEvent* event)
+{
+    // Ctrl+wheel = zoom about the pointer (the universal X11/Linux zoom idiom). Plain
+    // wheel is left for the enclosing scroll area / future pan. angleDelta().y() > 0 =
+    // wheel up = zoom in.
+    if (event->modifiers() & Qt::ControlModifier) {
+        const double steps = event->angleDelta().y() / 120.0;   // one notch = 120
+        if (steps != 0.0) {
+            const double factor = std::pow(1.2, steps);
+            zoomAbout(factor, event->position().x());
+        }
+        event->accept();
+        return;
+    }
+    QWidget::wheelEvent(event);
+}
+
+void TimelinePanel::zoomInStep()
+{
+    // The +/- buttons zoom about the current pointer, or the strip center if the pointer
+    // is outside the panel (user spec).
+    const QPoint g = mapFromGlobal(QCursor::pos());
+    const double anchor = rect().contains(g) ? g.x() : width() / 2.0;
+    zoomAbout(1.25, anchor);
+}
+
+void TimelinePanel::zoomOutStep()
+{
+    const QPoint g = mapFromGlobal(QCursor::pos());
+    const double anchor = rect().contains(g) ? g.x() : width() / 2.0;
+    zoomAbout(1.0 / 1.25, anchor);
 }
 
 int TimelinePanel::dotIndexAt(const QPoint& p) const
@@ -175,10 +360,14 @@ int TimelinePanel::dotIndexAt(const QPoint& p) const
 
 QString TimelinePanel::humanStoryTime(qint64 offsetMs) const
 {
-    const qint64 rel = offsetMs - minMs_;
-    if (rel <= 0) {
+    // Measured from the EPOCH (offset 0 = Story Open), not from the earliest dot: a
+    // flashback reads "2 years before Story Open", and the Story Open scene reads
+    // "at Story Open" — regardless of what else is on the strip.
+    const qint64 rel = offsetMs;   // signed: negative = before the epoch
+    if (rel == 0) {
         return tr("at %1").arg(epochLabel_);
     }
+    const bool before = rel < 0;
 
     // Largest two non-zero units (days, hours, minutes, seconds), like Apple's
     // human-readable duration.
@@ -191,7 +380,7 @@ QString TimelinePanel::humanStoryTime(qint64 offsetMs) const
     };
 
     QStringList parts;
-    qint64 remaining = rel;
+    qint64 remaining = before ? -rel : rel;
     for (const Unit& u : units) {
         if (parts.size() >= 2) {
             break;
@@ -205,7 +394,9 @@ QString TimelinePanel::humanStoryTime(qint64 offsetMs) const
     if (parts.isEmpty()) {
         return tr("at %1").arg(epochLabel_);
     }
-    return tr("%1 after %2").arg(parts.join(QStringLiteral(", ")), epochLabel_);
+    return before
+        ? tr("%1 before %2").arg(parts.join(QStringLiteral(", ")), epochLabel_)
+        : tr("%1 after %2").arg(parts.join(QStringLiteral(", ")), epochLabel_);
 }
 
 void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
@@ -256,6 +447,24 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
                 painter.drawLine(QPointF(right, top), QPointF(right, bottom));
             }
         }
+
+        // Assignment cue (T-0332 / I-0089): during a drag-up-to-band, outline the target
+        // band and draw a leader line from the dragged dot to it, so the writer can see
+        // they're in assignment mode and which act they'll drop into.
+        if (dragMode_ == DragMode::DotToBand && dragBandTarget_ >= 0
+            && dragBandTarget_ < bands_.size() && pressedDot_ >= 0) {
+            const double bl = bandLeftX(dragBandTarget_);
+            const double br = bandRightX(dragBandTarget_);
+            const QColor hi = pal.color(QPalette::Highlight);
+            painter.setPen(QPen(hi, 2.0));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRect(QRectF(bl, top, br - bl, bottom - top));
+            // Leader from the dragged dot's baseline position up to the band label row.
+            const double dotX = xForOffset(dots_.at(pressedDot_).offsetMs);
+            painter.setPen(QPen(hi, 1.5, Qt::DashLine));
+            painter.drawLine(QPointF(dotX, cy),
+                             QPointF(dragPos_.x(), bandLabelRowHeight() + 2.0));
+        }
     }
 
     // Baseline (a faint horizontal rule, theme-aware).
@@ -295,9 +504,33 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
         }
     }
 
-    // Epoch label under the left edge of the baseline.
+    // Epoch marker: the origin (offset 0 = Story Open) is anchored to its REAL story-time
+    // position through the zoom/pan window, so it tracks scroll/zoom and sits where the
+    // epoch actually is — which is no longer the left edge once scenes exist before it
+    // (flashbacks at negative offsets). A short vertical tick marks the origin; the label
+    // sits just right of it. When the origin scrolls off-screen, pin the label to the
+    // nearer edge with a ‹/› hint so the writer still knows which way Story Open lies.
+    const double originX = xForOffset(0);
+    const double leftEdge  = kSideInset;
+    const double rightEdge = width() - kSideInset;
     painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
-    painter.drawText(QPointF(kSideInset, cy + kDotRadius + 16.0), epochLabel_);
+    if (originX >= leftEdge && originX <= rightEdge) {
+        // Origin tick across the strip's dot band.
+        painter.setPen(QPen(pal.color(QPalette::Mid), 1.0, Qt::DashLine));
+        painter.drawLine(QPointF(originX, cy - kDotRadius - 6.0),
+                         QPointF(originX, cy + kDotRadius + 6.0));
+        painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
+        painter.drawText(QPointF(originX + 4.0, cy + kDotRadius + 16.0), epochLabel_);
+    } else if (originX < leftEdge) {
+        // Origin is off the left → Story Open lies to the left.
+        painter.drawText(QPointF(leftEdge, cy + kDotRadius + 16.0),
+                         tr("‹ %1").arg(epochLabel_));
+    } else {
+        // Origin is off the right → Story Open lies to the right.
+        const QString txt = tr("%1 ›").arg(epochLabel_);
+        const double w = painter.fontMetrics().horizontalAdvance(txt);
+        painter.drawText(QPointF(rightEdge - w, cy + kDotRadius + 16.0), txt);
+    }
 }
 
 void TimelinePanel::mousePressEvent(QMouseEvent* event)
@@ -325,6 +558,15 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
             event->accept();
             return;
         }
+        // Empty area (no dot, no border): pan when zoomed in (SP-083, T-0335). At
+        // zoom 1 there's nothing to pan, so leave it to the base class.
+        if (zoom_ > 1.0) {
+            dragMode_ = DragMode::Pan;
+            panStartFraction_ = panFraction_;
+            setCursor(Qt::ClosedHandCursor);
+            event->accept();
+            return;
+        }
     }
     QWidget::mousePressEvent(event);
 }
@@ -337,17 +579,34 @@ void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
     }
     const QPointF p = event->position();
 
+    // --- Pan drag (SP-083, T-0335) ----------------------------------------
+    if (dragMode_ == DragMode::Pan) {
+        const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+        // Dragging right moves the content right → the visible window moves left (pan
+        // decreases). Convert the pixel delta to a full-window-fraction delta (÷ zoom_).
+        const double deltaFrac = (p.x() - pressPos_.x()) / usable / zoom_;
+        panFraction_ = panStartFraction_ - deltaFrac;
+        clampPan();
+        update();
+        event->accept();
+        return;
+    }
+
     // --- Border re-proportion drag (T-0331) -------------------------------
     if (dragMode_ == DragMode::Border && draggingBorder_ >= 0
         && draggingBorder_ + 1 < bands_.size()) {
-        const double usable = std::max(1.0, width() - 2.0 * kSideInset);
+        // Proportions are fractions of the BAND REGION ([0, last-scene-end] on screen),
+        // not the whole strip — so re-proportioning stays correct now that bands wrap
+        // only the main storyline and move with zoom/pan.
+        const double regionLeft = bandRegionLeftX();
+        const double regionSpan = std::max(1.0, bandRegionRightX() - regionLeft);
         const int i = draggingBorder_;
         // Move proportion between band i and i+1: band i's new width runs from its left
         // edge to the pointer. Keep each above a 0.05 floor; their pair-sum is constant
         // so no other band shifts.
         const double pairSum = dragProportions_.at(i) + dragProportions_.at(i + 1);
-        const double bandStartFrac = (bandLeftX(i) - kSideInset) / usable;
-        const double leftProp = std::clamp((p.x() - kSideInset) / usable - bandStartFrac,
+        const double bandStartFrac = (bandLeftX(i) - regionLeft) / regionSpan;
+        const double leftProp = std::clamp((p.x() - regionLeft) / regionSpan - bandStartFrac,
                                            0.05, pairSum - 0.05);
         dragProportions_[i]     = leftProp;
         dragProportions_[i + 1] = pairSum - leftProp;
@@ -356,19 +615,31 @@ void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
-    // --- Dot drag: decide mode on first movement past the threshold -------
+    // --- Dot drag: classify by DOMINANT DIRECTION, re-evaluated while still
+    // ambiguous (I-0089) -------------------------------------------------------
+    // The old code decided the mode on the FIRST 4px move and latched it. But the dots sit
+    // at the strip's vertical centre (~60px) while the band label row is the top ~22px, so
+    // on that first micro-move the pointer is nowhere near the row → it always latched to
+    // DotHorizontal and the drag-up assignment could NEVER trigger. Instead: an UPWARD
+    // drag (dy dominant, moving up) with a structure present → DotToBand; a sideways drag →
+    // DotHorizontal. Keep re-evaluating until one axis clearly wins, so a drag that starts
+    // slightly sideways but then heads up still becomes an assignment.
     if (pressedDot_ >= 0) {
         const double dx = p.x() - pressPos_.x();
         const double dy = p.y() - pressPos_.y();
-        if (dragMode_ == DragMode::None
-            && (std::abs(dx) > kDragThreshold || std::abs(dy) > kDragThreshold)) {
-            // Up into the label row (and a structure is present) → assignment; else a
-            // horizontal story-time drag. "Mostly up" = dy dominant and into the row.
-            const bool intoLabelRow = !bands_.isEmpty()
-                                      && p.y() < bandLabelRowHeight() + 6.0;
-            dragMode_ = (intoLabelRow && dy < 0 && std::abs(dy) >= std::abs(dx))
-                            ? DragMode::DotToBand
-                            : DragMode::DotHorizontal;
+        const bool pastThreshold =
+            std::abs(dx) > kDragThreshold || std::abs(dy) > kDragThreshold;
+        // (Re)classify while the mode isn't locked to a horizontal story-time drag. Once
+        // DotHorizontal is chosen we keep it (the picker preview is live); DotToBand may be
+        // revised back to horizontal only if the drag turns clearly sideways.
+        if (pastThreshold && dragMode_ != DragMode::DotHorizontal) {
+            const bool upward = dy < 0 && std::abs(dy) > std::abs(dx);
+            if (!bands_.isEmpty() && upward) {
+                dragMode_ = DragMode::DotToBand;
+            } else if (std::abs(dx) >= std::abs(dy)) {
+                dragMode_ = DragMode::DotHorizontal;
+            }
+            // else: still ambiguous (small, diagonal) — leave as-is until it resolves.
         }
         if (dragMode_ == DragMode::DotHorizontal) {
             dragX_ = std::clamp(p.x(), kSideInset, width() - kSideInset);
@@ -377,7 +648,12 @@ void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
             return;
         }
         if (dragMode_ == DragMode::DotToBand) {
-            update();   // (a full drag-ghost is unnecessary; the drop resolves on release)
+            // Track the pointer + the band it currently targets so paint can show a cue
+            // (a highlighted band + a leader line from the dot), making "assignment mode"
+            // legible — the drop resolves on release via bandIndexAtX(release x).
+            dragPos_         = p;
+            dragBandTarget_  = bandIndexAtX(p.x());
+            update();
             event->accept();
             return;
         }
@@ -389,6 +665,14 @@ void TimelinePanel::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() != Qt::LeftButton) {
         QWidget::mouseReleaseEvent(event);
+        return;
+    }
+
+    if (dragMode_ == DragMode::Pan) {
+        dragMode_ = DragMode::None;
+        unsetCursor();
+        emit viewStateChanged(zoom_, panFraction_);   // persist the panned position (T-0338)
+        event->accept();
         return;
     }
 
@@ -415,6 +699,7 @@ void TimelinePanel::mouseReleaseEvent(QMouseEvent* event)
         }
         pressedDot_ = -1;
         dragMode_ = DragMode::None;
+        dragBandTarget_ = -1;
         update();
         event->accept();
         return;

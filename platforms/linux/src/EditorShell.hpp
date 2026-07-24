@@ -169,8 +169,15 @@ private slots:
     void onAssignBandRequested(const QString& sceneID);
     // Dot context-menu "Unassign": clear the scene's band + refresh.
     void onUnassignBandRequested(const QString& sceneID);
+    // SP-083 T-0338: persist the timeline zoom/pan for the open project (QSettings).
+    void onTimelineViewStateChanged(double zoom, double panFraction);
 
 private:
+    // Absolute path to the timeline view-state INI. Lives INSIDE the app-support root
+    // (not the default ~/.config) so it survives the Docker/VNC container's --rm restart,
+    // which only bind-mounts app-support (T-0338 persistence fix). Empty appSupportRoot_
+    // → empty (persistence disabled). Keyed inside by projectID.
+    QString timelineViewStatePath() const;
     // Select the navigator row for `sceneID` (highlight only; no scroll, no caret).
     // Used both by a click and by the scroll-driven active-scene follow.
     void selectNavigatorScene(const QString& sceneID);

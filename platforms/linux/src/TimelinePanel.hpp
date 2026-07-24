@@ -6,6 +6,9 @@
 #include <QString>
 #include <QWidget>
 
+class QToolButton;
+class QScrollBar;
+
 // TimelinePanel — the Linux Timeline strip (EP-025 / SP-079, T-0322).
 //
 // The Linux mirror of Apple's TimelineStripView (EP-015/EP-016). A hideable
@@ -67,14 +70,31 @@ public:
     // Highlight the dot for `sceneID` as the active scene (empty clears). Repaints.
     void setActiveScene(const QString& sceneID);
 
+    // --- SP-083 zoom/pan (public control API for the +/- buttons, T-0334) --
+    // Step the zoom in/out about the current pointer (or the strip center if the
+    // pointer is outside), keeping the story-time under that point fixed.
+    void zoomInStep();
+    void zoomOutStep();
+    // The current zoom factor (1 = full-fit). Lets the shell enable/disable the
+    // scrollbar + the − button.
+    double zoomFactor() const { return zoom_; }
+
+    // Restore a previously-persisted zoom + pan (T-0338). `zoom` is clamped to [1, 500];
+    // `panFraction` is clamped to the valid range for that zoom. No signal is emitted (the
+    // shell is applying saved state, not producing new state). Repaints + syncs the
+    // scrollbar. Call after setTimeline (which resets the window).
+    void setViewState(double zoom, double panFraction);
+    double panFraction() const { return panFraction_; }
+
 signals:
     // A scene dot was clicked (press with no drag) — the shell scrolls/selects it.
     void sceneClicked(const QString& sceneID);
 
     // A scene dot was dragged to a new story-time position (SP-080, T-0326). Emitted
     // on release after the pointer moved past the drag threshold. `newOffsetMs` is the
-    // release x mapped back through the current story-time window (clamped ≥ 0). The
-    // shell opens the Time Delta Picker seeded with this offset (T-0328).
+    // release x mapped back through the current story-time window; it MAY be negative
+    // (dragged left of the epoch — a scene before Story Open). The shell opens the Time
+    // Delta Picker seeded with this offset (T-0328).
     void dotDragged(const QString& sceneID, qint64 newOffsetMs);
 
     // Right-click ▸ "Set Time Delta…" on a dot (SP-080, T-0328) — opens the picker
@@ -97,12 +117,22 @@ signals:
     void assignBandRequested(const QString& sceneID);
     void unassignBandRequested(const QString& sceneID);
 
+    // Zoom changed (SP-083) — the shell may update the +/- control / scrollbar.
+    void zoomChanged();
+
+    // Zoom OR pan settled to a new user-produced value (T-0338) — the shell persists it
+    // per-project (QSettings) so the timeline reopens at the same magnification/position.
+    // NOT emitted by setViewState (restoring saved state must not re-trigger a save).
+    void viewStateChanged(double zoom, double panFraction);
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;   // Ctrl+wheel zoom (SP-083, T-0333)
+    void resizeEvent(QResizeEvent* event) override; // reposition the +/- control + scrollbar
     // Hover tooltip (title + human-readable story-time) via help events.
     bool event(QEvent* event) override;
 
@@ -110,7 +140,8 @@ private:
     // X pixel for a story-time offset, given the current [minMs, maxMs] window and
     // the horizontal insets. Returns the panel-space x of a dot's centre.
     double xForOffset(qint64 offsetMs) const;
-    // Story-time offset for a panel-space x (inverse of xForOffset), clamped ≥ 0.
+    // Story-time offset for a panel-space x (inverse of xForOffset). May be negative
+    // (left of the epoch = a scene before Story Open).
     qint64 offsetForX(double x) const;
     // The dot under panel-space point `p` (within the hit radius), or -1.
     int dotIndexAt(const QPoint& p) const;
@@ -126,13 +157,24 @@ private:
     int    bandIndexAtX(double x) const;
     // The border index (between band i and i+1) within grab distance of x, or -1.
     int    borderIndexNearX(double x) const;
-    // Left/right panel x of band i's slice, honouring dragProportions_ while a border
-    // drag is live.
+    // The band region's screen extent: bands wrap the MAIN storyline only — story-time
+    // [0, storyEndMs_] mapped through zoom/pan — NOT the whole strip (so a flashback left
+    // of the epoch has no band behind it, and bands expand/contract with zoom).
+    double bandRegionLeftX() const;
+    double bandRegionRightX() const;
+    // Left/right panel x of band i's slice within the band region, honouring
+    // dragProportions_ while a border drag is live.
     double bandLeftX(int i) const;
     double bandRightX(int i) const;
     // The proportions used for layout right now (dragProportions_ mid-drag, else the
     // bands' own proportions).
     QList<double> effectiveProportions() const;
+
+    // --- SP-083 zoom/pan helpers ------------------------------------------
+    // Zoom by `factor` about panel-x `anchorX`, keeping the story-time under it fixed.
+    void zoomAbout(double factor, double anchorX);
+    // Keep the visible window (width 1/zoom_) inside [0,1] of the full window.
+    void clampPan();
 
     QString      epochLabel_ = QStringLiteral("Story Open");
     QList<Dot>   dots_;
@@ -148,18 +190,41 @@ private:
     qint64 minMs_ = 0;
     qint64 maxMs_ = 1;
 
+    // The main storyline's end (last scene end at/after the epoch), used for the band
+    // region — bands wrap [0, storyEndMs_], not the negative flashback region. Recomputed
+    // in setTimeline.
+    qint64 storyEndMs_ = 1;
+
     // Drag state. A press selects at most ONE of these modes based on start zone:
     //   • DotHorizontal — press on a dot, moved (mostly) horizontally → story-time (SP-080)
     //   • DotToBand     — press on a dot, moved up into the label row → assignment (T-0332)
     //   • Border        — press on a band border → re-proportion (T-0331)
+    //   • Pan           — press on empty area above/below the dots → pan (SP-083, T-0335)
     // pressedDot_ is the dot under the press (-1 = none); pressPos_ is the press point.
-    enum class DragMode { None, DotHorizontal, DotToBand, Border };
+    enum class DragMode { None, DotHorizontal, DotToBand, Border, Pan };
     DragMode dragMode_   = DragMode::None;
     int      pressedDot_ = -1;
     QPointF  pressPos_;
     double   dragX_      = 0.0;   // live pointer x during a dot horizontal drag
+    QPointF  dragPos_;            // live pointer during a DotToBand drag (for the cue)
+    int      dragBandTarget_ = -1;   // band the DotToBand drag currently targets (paint cue)
 
     // Border drag (T-0331): the border index being dragged + the live proportions.
     int           draggingBorder_ = -1;
     QList<double> dragProportions_;
+
+    // Zoom/pan (SP-083). zoom_ ≥ 1 (1 = full-fit); panFraction_ is the left edge of the
+    // visible window as a fraction of the full [minMs_, maxMs_] window.
+    double zoom_        = 1.0;
+    double panFraction_ = 0.0;
+    double panStartFraction_ = 0.0;   // panFraction_ at the start of a pan drag
+
+    // +/- zoom control (T-0334, bottom-right) + a horizontal scrollbar shown when
+    // zoomed. Lay out in resizeEvent; syncScrollBar() keeps the bar's range/value in
+    // step with zoom_/panFraction_.
+    QToolButton* zoomInBtn_  = nullptr;
+    QToolButton* zoomOutBtn_ = nullptr;
+    QScrollBar*  hScroll_    = nullptr;
+    void layoutControls();
+    void syncScrollBar();
 };

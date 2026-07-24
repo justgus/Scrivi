@@ -10,6 +10,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QSettings>
 #include <QShowEvent>
 #include <QSplitter>
 #include <QStandardItem>
@@ -142,6 +143,9 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
             this, &EditorShell::onAssignBandRequested);
     connect(timeline_, &TimelinePanel::unassignBandRequested,
             this, &EditorShell::onUnassignBandRequested);
+    // SP-083 T-0338: persist the timeline zoom/pan per project so it reopens as left.
+    connect(timeline_, &TimelinePanel::viewStateChanged,
+            this, &EditorShell::onTimelineViewStateChanged);
 
     outerSplitter_ = new QSplitter(Qt::Vertical, this);
     outerSplitter_->addWidget(splitter_);
@@ -1628,6 +1632,20 @@ void EditorShell::reloadTimeline()
 
     timeline_->setTimeline(epochLabel, dots);
 
+    // SP-083 T-0338: restore the persisted zoom/pan for this project (default = full-fit).
+    // Read from the app-support INI (same path onTimelineViewStateChanged writes). Applied
+    // after setTimeline (which reset the window) via setViewState, which does NOT re-emit
+    // viewStateChanged, so restoring never triggers a redundant save.
+    const QString viewStatePath = timelineViewStatePath();
+    if (!projectID_.isEmpty() && !viewStatePath.isEmpty()) {
+        QSettings settings(viewStatePath, QSettings::IniFormat);
+        settings.beginGroup(QStringLiteral("timeline/") + projectID_);
+        const double savedZoom = settings.value(QStringLiteral("zoom"), 1.0).toDouble();
+        const double savedPan  = settings.value(QStringLiteral("pan"),  0.0).toDouble();
+        settings.endGroup();
+        timeline_->setViewState(savedZoom, savedPan);
+    }
+
     // Story structure (SP-081): load the current structure + band assignments and push
     // them to the panel. Empty structure → no bands. bandID per scene comes from
     // getSceneStoryTime (already fetched above would be ideal, but the story-time call
@@ -1698,9 +1716,26 @@ void EditorShell::showTimeDeltaPicker(const QString& sceneID, qint64 seedOffsetM
     const qint64 currentDurationMs =
         timelineDurations_.value(sceneID, kDefaultDurationMs);
 
+    // Every OTHER scene the writer may anchor to (by its END = offset + duration), in
+    // manuscript order, excluding this scene and the immediate predecessor (already
+    // offered as the "previous" anchor). Uses the reloadTimeline caches — no backend
+    // round-trip. Choosing one is resolved to an absolute offset in the picker (no link).
+    QList<TimeDeltaPicker::AnchorScene> otherScenes;
+    for (int i = 0; i < segs.size(); ++i) {
+        if (i == idx || i == idx - 1) {
+            continue;
+        }
+        const QString sid = segs.at(i).sceneID;
+        const qint64 endMs = timelineOffsets_.value(sid, 0)
+                             + timelineDurations_.value(sid, kDefaultDurationMs);
+        const QString title = segs.at(i).title.isEmpty()
+            ? tr("Scene %1").arg(i + 1) : segs.at(i).title;
+        otherScenes.append({sid, title, endMs});
+    }
+
     TimeDeltaPicker picker(referenceName, seedOffsetMs, previousSceneEndMs,
                            currentDurationMs, kDefaultDurationMs,
-                           QStringLiteral("Story Open"), this);
+                           QStringLiteral("Story Open"), otherScenes, this);
     if (picker.exec() != QDialog::Accepted) {
         return;   // cancelled — no change
     }
@@ -1833,4 +1868,34 @@ void EditorShell::onUnassignBandRequested(const QString& sceneID)
 {
     bridge_->unassignSceneFromBand(projectPath_, sceneID);
     reloadTimeline();
+}
+
+QString EditorShell::timelineViewStatePath() const
+{
+    // Store the view state INSIDE the app-support root, not Qt's default ~/.config —
+    // app-support is the dir the Docker/VNC harness bind-mounts, so the file survives a
+    // `docker run --rm` restart (the earlier default-QSettings path lived in ~/.config,
+    // which the container wiped on exit → zoom/pan "not saved"). One INI, keyed per
+    // project inside.
+    if (appSupportRoot_.isEmpty()) {
+        return {};
+    }
+    return appSupportRoot_ + QStringLiteral("/timeline-view.ini");
+}
+
+void EditorShell::onTimelineViewStateChanged(double zoom, double panFraction)
+{
+    // SP-083 T-0338: persist the timeline zoom/pan per project (Linux-only view state —
+    // an INI under app-support, not the backend/.scrivi package). Restored in
+    // reloadTimeline. No-op before a project is open / without an app-support root.
+    const QString path = timelineViewStatePath();
+    if (projectID_.isEmpty() || path.isEmpty()) {
+        return;
+    }
+    QSettings settings(path, QSettings::IniFormat);
+    settings.beginGroup(QStringLiteral("timeline/") + projectID_);
+    settings.setValue(QStringLiteral("zoom"), zoom);
+    settings.setValue(QStringLiteral("pan"),  panFraction);
+    settings.endGroup();
+    settings.sync();   // flush now — a --rm container may SIGKILL before Qt's lazy flush
 }

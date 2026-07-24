@@ -214,14 +214,14 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-078 | `[Linux]` Scene Inspector Panel — dockable tabbed panel + Scene Entities stub + View-menu toggle | EP-024 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-079 | `[Linux]` Timeline panel scaffold + scene dots (story-time) + show/hide + dot↔navigator selection | EP-025 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation | EP-025 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
-| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
-| SP-083 | `[Linux]` Timeline zoom + pan (brought forward — fixes I-0087) | EP-025 `[Linux]` | 2026-07-22 | — | 🟡 Active |
+| SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | EP-025 `[Linux]` | 2026-07-22 | 2026-07-23 | ✅ Closed |
+| SP-083 | `[Linux]` Timeline zoom + pan (brought forward — fixes I-0087) | EP-025 `[Linux]` | 2026-07-22 | 2026-07-23 | ✅ Closed |
 
 ## Statistics
 
 - **Total Sprints:** 81 (SP-001–SP-083 issued; SP-068 skipped; SP-082 planned but SP-083 brought forward)
-- **Closed:** 76 ✅
-- **Active:** 2 🟡 (SP-081 + SP-083, both EP-025 `[Linux]` Timeline Panel)
+- **Closed:** 78 ✅
+- **Active:** 0 (SP-082 historical/imported events is next-up but not yet activated)
 - **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸

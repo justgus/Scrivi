@@ -97,9 +97,9 @@ parity with Apple **EP-015/EP-016** (`Scrivi_Timeline_Panel_Design_v0_3.md`), re
 | T-0330 | `[Linux]` Band overlay painting (behind dots) + View ▸ Story Structure… selector (built-ins + Remove); loaded via `getStoryStructure` | SP-081 | ✅ Verified (2026-07-22) |
 | T-0331 | `[Linux]` Band border drag — re-proportion adjacent bands (sum 1.0) + persist via `updateBandLayout` | SP-081 | ✅ Verified (2026-07-22) |
 | T-0332 | `[Linux]` Scene→band assignment (drag-up-onto-label + "Assign to Act…" context menu) + colored ring + `story_structure_smoke` (closes AC4) | SP-081 | 🟡 Implemented — build+smokes green; live verify **blocked by I-0087** (dot-crowding) |
-| T-0333 | `[Linux]` `TimelinePanel` zoom model — zoom factor + pan offset over `xForOffset`/`offsetForX`; `Ctrl`+wheel zoom-about-pointer; clamp/reset | SP-083 | 🔵 Backlog |
-| T-0334 | `[Linux]` `+`/`−` zoom control (bottom-right of the strip, zoom-about-pointer-or-center) + a horizontal scrollbar when zoomed | SP-083 | 🔵 Backlog |
-| T-0335 | `[Linux]` Pan by click-drag on the empty area above/below the dots (background drag reserved in SP-080) + verify; **re-verify T-0332 assignment zoomed in** (closes I-0087) | SP-083 | 🔵 Backlog |
+| T-0333 | `[Linux]` `TimelinePanel` zoom model — zoom factor + pan offset over `xForOffset`/`offsetForX`; `Ctrl`+wheel zoom-about-pointer; clamp/reset | SP-083 | 🟢 Implemented, Not Verified |
+| T-0334 | `[Linux]` `+`/`−` zoom control (bottom-right, zoom-about-pointer-or-center) + a horizontal scrollbar when zoomed | SP-083 | 🟢 Implemented, Not Verified |
+| T-0335 | `[Linux]` Pan by click-drag on the empty area above/below the dots + verify; **re-verify T-0332 assignment zoomed in** (closes I-0087) | SP-083 | 🟡 Implemented — build+smokes green; live VNC verify pending |
 
 ### Scope Notes
 
