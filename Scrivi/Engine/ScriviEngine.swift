@@ -870,10 +870,11 @@ public final class ScriviEngine: @unchecked Sendable {
         newSceneText: String,
         kind: String = "typing",
         cursorBefore: Int64 = 0,
-        cursorAfter: Int64 = 0
+        cursorAfter: Int64 = 0,
+        bufferID: String? = nil
     ) throws -> HistoryRecordResult {
         let paramsData = try JSONEncoder().encode(HistoryRecordParams(
-            kind: kind, cursorBefore: cursorBefore, cursorAfter: cursorAfter))
+            kind: kind, cursorBefore: cursorBefore, cursorAfter: cursorAfter, bufferID: bufferID))
         let params = String(decoding: paramsData, as: UTF8.self)
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in
@@ -980,6 +981,49 @@ public final class ScriviEngine: @unchecked Sendable {
         let raw = projectRootPath.withCString { scrivi_history_close($0) }
         return try decodeC(raw)
     }
+
+    // MARK: — Copy buffers (EP-019 SP-056 — T-0213)
+    // Pure decode wrappers over scrivi_buffers_*; no buffer logic in Swift. Buffers
+    // are per-project persistent slots ("1"-"9") stored in history/buffers.json; the
+    // system pasteboard is never touched (design §9). Each call is a stateless
+    // read-modify-write in ScriviCore — no open/close pairing.
+
+    @discardableResult
+    public func buffersLoad(projectRootPath: String, bufferID: String,
+                            text: String) throws -> BufferLoadResult {
+        let raw = projectRootPath.withCString { prp in
+            bufferID.withCString { bid in
+                text.withCString { txt in
+                    scrivi_buffers_load(prp, bid, txt)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func buffersGet(projectRootPath: String, bufferID: String) throws -> BufferGetResult {
+        let raw = projectRootPath.withCString { prp in
+            bufferID.withCString { bid in
+                scrivi_buffers_get(prp, bid)
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func buffersList(projectRootPath: String) throws -> BufferListResult {
+        let raw = projectRootPath.withCString { scrivi_buffers_list($0) }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func buffersClear(projectRootPath: String, bufferID: String) throws -> BufferClearResult {
+        let raw = projectRootPath.withCString { prp in
+            bufferID.withCString { bid in
+                scrivi_buffers_clear(prp, bid)
+            }
+        }
+        return try decodeC(raw)
+    }
 }
 
 // MARK: — C boundary decode helper
@@ -1071,7 +1115,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historyOpen(projectRootPath: String) throws -> HistoryOpenResult { try unavailable() }
     @discardableResult
     public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult { try unavailable() }
-    public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0) throws -> HistoryRecordResult { try unavailable() }
+    public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0, bufferID: String? = nil) throws -> HistoryRecordResult { try unavailable() }
     public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "") throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
@@ -1087,6 +1131,14 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historySetSettings(projectRootPath: String, capacityEvents: Int, staleBranchDays: Int, idleRolloverHours: Int) throws -> TimelineBoolResult { try unavailable() }
     @discardableResult
     public func historyClose(projectRootPath: String) throws -> HistoryCloseResult { try unavailable() }
+
+    // Copy buffers (EP-019 SP-056 — T-0213) — unavailable on this platform.
+    @discardableResult
+    public func buffersLoad(projectRootPath: String, bufferID: String, text: String) throws -> BufferLoadResult { try unavailable() }
+    public func buffersGet(projectRootPath: String, bufferID: String) throws -> BufferGetResult { try unavailable() }
+    public func buffersList(projectRootPath: String) throws -> BufferListResult { try unavailable() }
+    @discardableResult
+    public func buffersClear(projectRootPath: String, bufferID: String) throws -> BufferClearResult { try unavailable() }
 }
 
 #endif
@@ -1586,6 +1638,9 @@ struct HistoryRecordParams: Encodable {
     let kind: String
     let cursorBefore: Int64
     let cursorAfter: Int64
+    // Cut-into-buffer provenance (EP-019 SP-056, Trade T3). Encoded only when set,
+    // so ordinary events send the same params JSON as before.
+    var bufferID: String? = nil
 }
 
 public struct HistoryOpenResult: Decodable, Sendable {
@@ -1736,6 +1791,45 @@ public struct HistorySettingsResult: Decodable, Sendable {
 
 public struct HistoryValidateResult: Decodable, Sendable {
     public let externalChange: Bool
+}
+
+// MARK: — Copy-buffer result types (EP-019 SP-056 — T-0213)
+
+// One loaded copy-buffer slot (as returned by buffersList / buffersGet).
+public struct BufferSlot: Decodable, Sendable, Identifiable {
+    public let bufferID: String
+    public let text: String
+    public let updatedAt: String
+    public var id: String { bufferID }
+}
+
+public struct BufferLoadResult: Decodable, Sendable {
+    public let bufferID: String
+    public let updatedAt: String
+}
+
+public struct BufferGetResult: Decodable, Sendable {
+    public let bufferID: String
+    public let text: String
+    public let updatedAt: String
+    public let present: Bool
+}
+
+public struct BufferListResult: Decodable, Sendable {
+    public let count: Int
+    public let buffers: [BufferSlot]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        count   = try c.decodeIfPresent(Int.self, forKey: .count) ?? 0
+        buffers = try c.decodeIfPresent([BufferSlot].self, forKey: .buffers) ?? []
+    }
+    private enum CodingKeys: String, CodingKey { case count, buffers }
+}
+
+public struct BufferClearResult: Decodable, Sendable {
+    public let bufferID: String
+    public let cleared: Bool
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

@@ -4,11 +4,13 @@
 #include <QCursor>
 #include <QHelpEvent>
 #include <QMenu>
+#include <QFont>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPalette>
 #include <QResizeEvent>
 #include <QScrollBar>
+#include <QSet>
 #include <QToolButton>
 #include <QToolTip>
 #include <QWheelEvent>
@@ -250,6 +252,261 @@ void TimelinePanel::recomputeWindow()
         sceneEnd = std::max<qint64>(sceneEnd, d.offsetMs + std::max<qint64>(d.durationMs, 1));
     }
     storyEndMs_ = std::max<qint64>(sceneEnd, 1);
+}
+
+double TimelinePanel::memberX(const ClusterMember& m) const
+{
+    return xForOffset(m.offsetMs);
+}
+
+QList<TimelinePanel::Aggregate> TimelinePanel::computeClusters() const
+{
+    // Gather all project-row members (scene + historical dots) as a flat list, sorted by
+    // story-time. Then greedily group runs whose screen-x are within one dot-diameter of
+    // the run's first member — a co-located cluster (FR-032). A run of ≥2 becomes an
+    // Aggregate; singletons are left to render normally. Because the threshold is a
+    // SCREEN distance through xForOffset, zooming in widens the pixel gaps and a cluster
+    // naturally resolves into singletons (zoom-resolve, FR-032).
+    QList<ClusterMember> members;
+    members.reserve(dots_.size() + histDots_.size());
+    for (int i = 0; i < dots_.size(); ++i) {
+        members.append({true, i, dots_.at(i).offsetMs});
+    }
+    for (int i = 0; i < histDots_.size(); ++i) {
+        members.append({false, i, histDots_.at(i).offsetMs});
+    }
+    std::sort(members.begin(), members.end(),
+              [](const ClusterMember& a, const ClusterMember& b) {
+                  return a.offsetMs < b.offsetMs;
+              });
+
+    QList<Aggregate> aggregates;
+    // A run starts co-locating within one dot-diameter (FR-032). But once ≥2 members
+    // form an aggregate it renders LARGER (core + arc ring, ~kDotRadius+6 radius), so a
+    // nearby member/aggregate that would visually overlap the bigger mark must still be
+    // absorbed — otherwise two aggregates draw on top of each other (finding, T-0346).
+    // So once a run is a pair, the gap is measured against the LAST absorbed member with
+    // the wider AGGREGATE reach — a chain of co-located dots (and two aggregates that end
+    // up within an aggregate-diameter) all merge into one.
+    const double dotThreshold = 2.0 * kDotRadius;                 // singleton co-location
+    const double aggThreshold = (kDotRadius + 6.0) + kDotRadius;  // aggregate reach ∪ next dot
+    int i = 0;
+    while (i < members.size()) {
+        int j = i + 1;
+        // Grow the run: each candidate is measured against the PREVIOUS member's x, using
+        // the dot diameter until the run is a pair, then the aggregate reach.
+        while (j < members.size()) {
+            const double prevX = memberX(members.at(j - 1));
+            const double threshold = (j - i >= 2) ? aggThreshold : dotThreshold;
+            if (std::abs(memberX(members.at(j)) - prevX) > threshold) {
+                break;
+            }
+            ++j;
+        }
+        if (j - i >= 2) {
+            Aggregate agg;
+            // Centre the aggregate on the run's MIDDLE member's x so the mark sits over the
+            // cluster's visual centre rather than its left edge.
+            agg.centerOffsetMs = members.at(i + (j - i) / 2).offsetMs;
+            for (int k = i; k < j; ++k) {
+                agg.members.append(members.at(k));
+            }
+            aggregates.append(agg);
+        }
+        i = j;
+    }
+    return aggregates;
+}
+
+void TimelinePanel::paintAggregate(QPainter& painter, const Aggregate& agg,
+                                   double ax, double cy) const
+{
+    const QPalette& pal = palette();
+    const int n = static_cast<int>(agg.members.size());
+    const double core = kDotRadius + 2.0;    // slightly larger than a single dot (FR-031)
+    const double ringR = core + 4.0;         // the segmented arc sits just outside the core
+
+    // Segmented arc ring: one 360°/N wedge per member, in story order (the members are
+    // already sorted). Qt angles are in 1/16-degree units, 0° at 3 o'clock, CCW+. We lay
+    // segments clockwise from 12 o'clock to match the fan-out order. A small gap between
+    // wedges keeps them legible.
+    const QColor sceneTint = pal.color(QPalette::Text);
+    const QColor histTint(0xC8, 0xA9, 0x7A);
+    const QColor selColor  = pal.color(QPalette::Highlight);
+    const double perSeg = 360.0 / n;
+    const QRectF ringRect(ax - ringR, cy - ringR, 2.0 * ringR, 2.0 * ringR);
+    for (int s = 0; s < n; ++s) {
+        const ClusterMember& m = agg.members.at(s);
+        const bool activeMember =
+            m.isScene && dots_.at(m.index).sceneID == activeSceneID_;
+        QColor c = m.isScene ? sceneTint : histTint;
+        if (activeMember) { c = selColor; }             // selection arc (FR-031a)
+        // Clockwise-from-12: startAngle in Qt units. 90° is 12 o'clock; subtract to go CW.
+        const double startDeg = 90.0 - (s + 1) * perSeg + 1.0;   // +1° gap
+        const double spanDeg  = perSeg - 2.0;                    // 2° total gap
+        painter.setPen(QPen(c, 2.5));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawArc(ringRect,
+                        static_cast<int>(startDeg * 16.0),
+                        static_cast<int>(spanDeg * 16.0));
+    }
+
+    // Larger core.
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(pal.color(QPalette::Mid));
+    painter.drawEllipse(QPointF(ax, cy), core, core);
+
+    // Member count centred on the core (the only text allowed on the line, FR-031).
+    painter.setPen(pal.color(QPalette::Text));
+    QFont f = painter.font();
+    f.setPointSizeF(std::max(6.0, f.pointSizeF() - 1.0));
+    f.setBold(true);
+    painter.setFont(f);
+    painter.drawText(QRectF(ax - core, cy - core, 2.0 * core, 2.0 * core),
+                     Qt::AlignCenter, QString::number(n));
+}
+
+QPointF TimelinePanel::fanOutMemberPos(int slot, double ax, double cy) const
+{
+    // Hexagonal ring positions (FR-035b): slot 0 at the centre; ring r (r≥1) holds 6r
+    // positions at 360°/(6r) increments, clockwise from 12 o'clock. Rings expand upward
+    // from the baseline. Radius grows one dot-spacing per ring.
+    if (slot <= 0) {
+        return QPointF(ax, cy);
+    }
+    int idx = slot - 1;   // 0-based position among the ring slots
+    int ring = 1;
+    while (idx >= 6 * ring) {
+        idx -= 6 * ring;
+        ++ring;
+    }
+    const int count = 6 * ring;
+    const double radius = ring * (2.0 * kDotRadius + 3.0);
+    // Clockwise from 12 o'clock: angle measured CW from straight up.
+    constexpr double kTwoPi = 6.283185307179586;
+    const double angle = kTwoPi * (static_cast<double>(idx) / count);
+    const double dx = radius * std::sin(angle);
+    const double dy = -radius * std::cos(angle);   // up = negative y
+    return QPointF(ax + dx, cy + dy);
+}
+
+double TimelinePanel::fanRadius(int memberCount) const
+{
+    // The outermost ring index used by `memberCount` members (slot 0 = centre, ring r
+    // holds 6r slots), then that ring's radius + a dot + padding — the grey backing disc
+    // must enclose every fanned dot.
+    int remaining = memberCount - 1;   // slots beyond the centre
+    int ring = 0;
+    while (remaining > 0) {
+        ++ring;
+        remaining -= 6 * ring;
+    }
+    const double outer = ring * (2.0 * kDotRadius + 3.0);
+    return outer + kDotRadius + 6.0;   // + dot + padding
+}
+
+void TimelinePanel::paintFanOut(QPainter& painter, const Aggregate& agg,
+                                double ax, double cy) const
+{
+    const QPalette& pal = palette();
+    const QColor sceneColor  = pal.color(QPalette::Text);
+    const QColor activeColor = pal.color(QPalette::Highlight);
+    const QColor histColor(0xC8, 0xA9, 0x7A);
+
+    // Grey backing disc (finding, T-0348): the fan is an OVERLAY drawn above every other
+    // timeline entity (it's painted last, after all dots), and a filled grey circle
+    // behind the fanned dots makes it immediately readable over a busy background (bands,
+    // neighbouring dots). A darker rim outlines the overlay.
+    const double r = fanRadius(static_cast<int>(agg.members.size()));
+    QColor backing = pal.color(QPalette::Window);
+    // Nudge toward a neutral grey with high opacity so underlying marks don't bleed through.
+    backing = QColor(0x88, 0x88, 0x88);
+    backing.setAlpha(232);
+    painter.setPen(QPen(pal.color(QPalette::Mid), 1.0));
+    painter.setBrush(backing);
+    painter.drawEllipse(QPointF(ax, cy), r, r);
+
+    for (int s = 0; s < agg.members.size(); ++s) {
+        const ClusterMember& m = agg.members.at(s);
+        const QPointF p = fanOutMemberPos(s, ax, cy);
+        const bool active =
+            m.isScene && dots_.at(m.index).sceneID == activeSceneID_;
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(m.isScene ? (active ? activeColor : sceneColor) : histColor);
+        painter.drawEllipse(p, kDotRadius, kDotRadius);
+        if (active) {
+            painter.setPen(QPen(activeColor, 1.5));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawEllipse(p, kDotRadius + 3.0, kDotRadius + 3.0);
+        }
+    }
+}
+
+int TimelinePanel::aggregateAtPoint(const QList<Aggregate>& aggs, const QPoint& p) const
+{
+    const double cy = projectRowY();
+    const double core = kDotRadius + 2.0;
+    const double hit = core + 4.0;   // core + arc ring, generous
+    for (int a = 0; a < aggs.size(); ++a) {
+        const double ax = xForOffset(aggs.at(a).centerOffsetMs);
+        const double dx = p.x() - ax;
+        const double dy = p.y() - cy;
+        if (dx * dx + dy * dy <= hit * hit) {
+            return a;
+        }
+    }
+    return -1;
+}
+
+bool TimelinePanel::fanMemberAt(const QList<Aggregate>& aggs, int aggIndex,
+                                const QPoint& p, ClusterMember& out) const
+{
+    if (aggIndex < 0 || aggIndex >= aggs.size()) {
+        return false;
+    }
+    const double cy = projectRowY();
+    const double ax = xForOffset(aggs.at(aggIndex).centerOffsetMs);
+    const Aggregate& agg = aggs.at(aggIndex);
+    for (int s = 0; s < agg.members.size(); ++s) {
+        const QPointF fp = fanOutMemberPos(s, ax, cy);
+        const double dx = p.x() - fp.x();
+        const double dy = p.y() - fp.y();
+        if (dx * dx + dy * dy <= kHitRadius * kHitRadius) {
+            out = agg.members.at(s);
+            return true;
+        }
+    }
+    return false;
+}
+
+void TimelinePanel::updateHoverFan(const QPoint& p)
+{
+    const QList<Aggregate> aggs = computeClusters();
+    int newFan = -1;
+
+    // Keep the current fan while the pointer stays inside its grey backing disc — the
+    // same radius the overlay is drawn at (finding, T-0348), so the fan dismisses as soon
+    // as the pointer leaves the visible disc, no sooner and no later.
+    if (fannedAggregate_ >= 0 && fannedAggregate_ < aggs.size()) {
+        const double cy = projectRowY();
+        const double ax = xForOffset(aggs.at(fannedAggregate_).centerOffsetMs);
+        const double dx = p.x() - ax;
+        const double dy = p.y() - cy;
+        const double keep = fanRadius(
+            static_cast<int>(aggs.at(fannedAggregate_).members.size()));
+        if (dx * dx + dy * dy <= keep * keep) {
+            newFan = fannedAggregate_;
+        }
+    }
+    // Otherwise, fan out whichever aggregate's collapsed core the pointer is over.
+    if (newFan < 0) {
+        newFan = aggregateAtPoint(aggs, p);
+    }
+
+    if (newFan != fannedAggregate_) {
+        fannedAggregate_ = newFan;
+        update();
+    }
 }
 
 void TimelinePanel::setBands(const QList<Band>& bands,
@@ -595,6 +852,24 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
     painter.drawLine(QPointF(kSideInset, cy),
                      QPointF(width() - kSideInset, cy));
 
+    // --- SP-084 clustering (T-0346/0347): collapse co-located members ------
+    // Every aggregate member is painted by the aggregate/fan-out code, NEVER by the
+    // per-dot baseline loops — so ALL members go in the skip-sets, INCLUDING the fanned
+    // aggregate's (paintFanOut draws those in the ring). Skipping the fanned aggregate
+    // here was a bug: its members then drew twice — once in the ring and once at their
+    // real baseline x — so members at the wide aggregate's screen extremes showed as
+    // "phantom" dots outside the ring (and shared selection with their ring twin). The
+    // ring is the ONLY place a fanned member is drawn.
+    const QList<Aggregate> aggregates = computeClusters();
+    QSet<int> skipScene;
+    QSet<int> skipHist;
+    for (const Aggregate& agg : aggregates) {
+        for (const ClusterMember& m : agg.members) {
+            if (m.isScene) { skipScene.insert(m.index); }
+            else           { skipHist.insert(m.index); }
+        }
+    }
+
     // Dots. The active scene's dot is drawn filled with the highlight colour and a
     // ring; the rest use the text colour. An ASSIGNED dot (SP-081) shows a ring in its
     // band's color. While dragging, the dragged dot follows the live pointer x (dragX_)
@@ -602,6 +877,7 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
     const QColor dotColor    = pal.color(QPalette::Text);
     const QColor activeColor = pal.color(QPalette::Highlight);
     for (int i = 0; i < dots_.size(); ++i) {
+        if (skipScene.contains(i)) { continue; }   // collapsed into an aggregate (T-0347)
         const Dot& d = dots_.at(i);
         const bool isHDrag = (dragMode_ == DragMode::DotHorizontal && i == pressedDot_);
         const double cx = isHDrag ? dragX_ : xForOffset(d.offsetMs);
@@ -632,6 +908,7 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
     // dots. Draggable in story time; the dragged one follows the live pointer x.
     const QColor histColor(0xC8, 0xA9, 0x7A);
     for (int i = 0; i < histDots_.size(); ++i) {
+        if (skipHist.contains(i)) { continue; }   // collapsed into an aggregate (T-0347)
         const HistDot& h = histDots_.at(i);
         const bool isDrag = (dragMode_ == DragMode::HistHorizontal && i == pressedHist_);
         const double cx = isDrag ? dragX_ : xForOffset(h.offsetMs);
@@ -643,6 +920,25 @@ void TimelinePanel::paintEvent(QPaintEvent* /*event*/)
             painter.setBrush(Qt::NoBrush);
             painter.drawEllipse(QPointF(cx, cy), kDotRadius + 3.0, kDotRadius + 3.0);
         }
+    }
+
+    // --- SP-084 aggregate dots (T-0347) + fan-out (T-0348) ----------------
+    // Each aggregate collapses ≥2 co-located members into one compact mark: a slightly
+    // larger core (FR-031) with the member count centred, and a segmented arc ring —
+    // one 360°/N wedge per member in story order, tinted by member type (scene =
+    // accent-ish text tone, historical = warm), the active scene's wedge lit in the
+    // selection colour (FR-031a). The arc is display-only. The fanned-out aggregate
+    // (hover, T-0348) is drawn LAST (below), as an overlay above every other entity.
+    for (int a = 0; a < aggregates.size(); ++a) {
+        if (a == fannedAggregate_) { continue; }   // fanned one painted last (on top)
+        const Aggregate& agg = aggregates.at(a);
+        paintAggregate(painter, agg, xForOffset(agg.centerOffsetMs), cy);
+    }
+    // Fan-out overlay, drawn after ALL collapsed aggregates + dots so it's the topmost
+    // project-row element (finding, T-0348): a grey backing disc + the member dots.
+    if (fannedAggregate_ >= 0 && fannedAggregate_ < aggregates.size()) {
+        const Aggregate& agg = aggregates.at(fannedAggregate_);
+        paintFanOut(painter, agg, xForOffset(agg.centerOffsetMs), cy);
     }
 
     // --- Imported-timeline rows (SP-082, T-0342) --------------------------
@@ -730,6 +1026,27 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
             event->accept();
             return;
         }
+
+        // A fanned-out aggregate member (SP-084, T-0348): if the pointer is on a member
+        // of the currently fanned aggregate, route the press to that member as if it were
+        // a normal dot — scene → click-navigate / horizontal drag, historical → drag.
+        // Checked before the collapsed dot hit-tests (the collapsed members are skipped).
+        if (fannedAggregate_ >= 0) {
+            const QList<Aggregate> aggs = computeClusters();
+            ClusterMember m;
+            if (fanMemberAt(aggs, fannedAggregate_, event->pos(), m)) {
+                if (m.isScene) {
+                    pressedDot_ = m.index;
+                    dragX_ = xForOffset(dots_.at(pressedDot_).offsetMs);
+                } else {
+                    pressedHist_ = m.index;
+                    dragX_ = xForOffset(histDots_.at(pressedHist_).offsetMs);
+                }
+                event->accept();
+                return;
+            }
+        }
+
         pressedDot_ = dotIndexAt(event->pos());
         if (pressedDot_ >= 0) {
             dragX_ = xForOffset(dots_.at(pressedDot_).offsetMs);
@@ -760,6 +1077,10 @@ void TimelinePanel::mousePressEvent(QMouseEvent* event)
 void TimelinePanel::mouseMoveEvent(QMouseEvent* event)
 {
     if (!(event->buttons() & Qt::LeftButton)) {
+        // --- SP-084 hover fan-out (T-0348) --------------------------------
+        // With no button held, hovering an aggregate fans its members out; leaving the
+        // fan collapses it. `fannedAggregate_` drives the paint + the fan-aware hit-tests.
+        updateHoverFan(event->pos());
         QWidget::mouseMoveEvent(event);
         return;
     }
@@ -1039,6 +1360,40 @@ bool TimelinePanel::event(QEvent* event)
 {
     if (event->type() == QEvent::ToolTip) {
         auto* help = static_cast<QHelpEvent*>(event);
+
+        // SP-084 clustering (T-0348): a fanned-out member's own tooltip wins; over a
+        // collapsed aggregate core, show a "N events" summary. Checked before the plain
+        // dot hit-tests (which would otherwise tooltip an underlying clustered dot).
+        const QList<Aggregate> aggs = computeClusters();
+        if (fannedAggregate_ >= 0) {
+            ClusterMember m;
+            if (fanMemberAt(aggs, fannedAggregate_, help->pos(), m)) {
+                QString text;
+                if (m.isScene) {
+                    const Dot& d = dots_.at(m.index);
+                    text = d.title;
+                    if (!d.chapterTitle.isEmpty()) {
+                        text += QStringLiteral("\n") + d.chapterTitle;
+                    }
+                    text += QStringLiteral("\n") + humanStoryTime(d.offsetMs);
+                } else {
+                    const HistDot& h = histDots_.at(m.index);
+                    text = h.title + QStringLiteral("\n") + tr("Historical event")
+                           + QStringLiteral("\n") + humanStoryTime(h.offsetMs);
+                }
+                QToolTip::showText(help->globalPos(), text, this);
+                return true;
+            }
+        }
+        const int aggIdx = aggregateAtPoint(aggs, help->pos());
+        if (aggIdx >= 0) {
+            const int n = static_cast<int>(aggs.at(aggIdx).members.size());
+            QToolTip::showText(help->globalPos(),
+                               tr("%n co-located event(s) — hover to fan out", "", n),
+                               this);
+            return true;
+        }
+
         const int i = dotIndexAt(help->pos());
         const int hi = (i < 0) ? histDotIndexAt(help->pos()) : -1;
         if (i >= 0) {

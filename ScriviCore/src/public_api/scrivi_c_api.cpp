@@ -13,6 +13,7 @@
 #endif
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
+#include "history/BufferStore.hpp"
 #include "history/HistoryService.hpp"
 #include "history/HistoryStore.hpp"
 #include "util/PathUtils.hpp"
@@ -1637,6 +1638,9 @@ const char* scrivi_history_record_event(const char* projectRootPath,
         p.kind         = eventKindFromStr(pj.getString("kind", "typing"));
         p.cursorBefore = pj.getInt64("cursorBefore", 0);
         p.cursorAfter  = pj.getInt64("cursorAfter", 0);
+        // Cut-into-buffer provenance (EP-019 SP-056, Trade T3): the slot a cut
+        // took its text from. Optional; empty for ordinary events.
+        p.bufferID     = pj.getString("bufferID", "");
     }
 
     auto& svc = it->second->service();
@@ -1906,6 +1910,98 @@ const char* scrivi_history_close(const char* projectRootPath) {
     scrivi::util::JsonDoc doc;
     doc.setBool("closed", wasOpen);
     return heap(okEnvelope(std::move(doc)));
+}
+
+// --- Copy buffers (EP-019 SP-056, T-0213) --------------------------------
+// Stateless read-modify-write of history/buffers.json — no registry, no
+// open/close pairing (unlike the history engine). Each call builds a BufferStore
+// on the singleton's filesystem/clock and services the one operation. `guarded`
+// converts any escape into an error envelope so a corrupt buffers file never
+// terminates the process.
+
+const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferID,
+                                const char* textUtf8) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    auto& s = singleton();
+    scrivi::history::BufferStore store(historyDirFor(root), &s.fileSystem, &s.clock);
+    auto r = store.load(S(bufferID), S(textUtf8), nowTimestamp());
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("bufferID",  S(bufferID));
+    doc.setString("updatedAt", r.value());
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_buffers_get(const char* projectRootPath, const char* bufferID) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    auto& s = singleton();
+    scrivi::history::BufferStore store(historyDirFor(root), &s.fileSystem, &s.clock);
+    auto r = store.get(S(bufferID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    if (r.value().has_value()) {
+        const auto& slot = *r.value();
+        doc.setString("bufferID",  slot.bufferID);
+        doc.setString("text",      slot.text);
+        doc.setString("updatedAt", slot.updatedAt);
+        doc.setBool("present",     true);
+    } else {
+        doc.setString("bufferID",  S(bufferID));
+        doc.setString("text",      "");
+        doc.setString("updatedAt", "");
+        doc.setBool("present",     false);
+    }
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_buffers_list(const char* projectRootPath) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    auto& s = singleton();
+    scrivi::history::BufferStore store(historyDirFor(root), &s.fileSystem, &s.clock);
+    auto r = store.list();
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setInt("count", static_cast<int>(r.value().size()));
+    for (const auto& slot : r.value()) {
+        scrivi::util::JsonDoc item;
+        item.setString("bufferID",  slot.bufferID);
+        item.setString("text",      slot.text);
+        item.setString("updatedAt", slot.updatedAt);
+        doc.appendToArray("buffers", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_buffers_clear(const char* projectRootPath, const char* bufferID) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    auto& s = singleton();
+    scrivi::history::BufferStore store(historyDirFor(root), &s.fileSystem, &s.clock);
+    auto r = store.clear(S(bufferID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("bufferID", S(bufferID));
+    doc.setBool("cleared",    r.value());
+    return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 } // extern "C"

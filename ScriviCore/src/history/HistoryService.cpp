@@ -211,6 +211,7 @@ RecordResult HistoryService::record(const RecordParams& p, std::string eventID) 
     node.cursorAfter = p.cursorAfter;
     node.timestamp = p.timestamp;
     node.sessionID = sessionID_;
+    node.bufferID = p.bufferID;   // cut-into-buffer provenance (Trade T3)
 
     const std::string newID = node.eventID;
     EventNode& parent = nodeRef(currentNodeID_);

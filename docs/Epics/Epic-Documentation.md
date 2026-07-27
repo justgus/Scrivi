@@ -12,26 +12,29 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic** — **EP-025** `[Linux]` (Timeline Panel) 🟡 Active from 2026-07-22: a hideable
-bottom timeline strip with scene dots in story-time order, drag + Time Delta Picker, story-structure bands,
-historical/imported events, export, clustering — full Apple EP-016 parity, rebuilt in Qt/C++; ~5 sprints
-(first sprint **SP-079** active). **EP-024** `[Linux]` (Scene Inspector Panel) ✅ **closed 2026-07-22** —
-one sprint (SP-078); archived to `Closed/Epic-EP-024.md`. Next in line after EP-025: EP-026 `[Linux]`
-(🔵 Draft), promoted to Active on user request.
+Currently: **1 Active Epic (held) + 2 Draft.** **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy
+Buffers) 🟡 Active but **HELD PENDING** its final sprint SP-057 — AC1/AC3/AC4/AC5/**AC6** delivered & verified
+(**SP-056 ✅ closed 2026-07-27, AC6 — copy buffers**); SP-057 (AC2/AC7/AC8 verify + history panel + close) remains,
+deliberately held so **EP-029** can be planned first. **EP-029** `[Cross]` (Cross-Boundary Structured
+Cut/Copy/Paste) 🔵 **Draft, opened 2026-07-27** — the gap surfaced while verifying SP-056: manuscript-as-monolithic
+copy/cut/paste with structured buffers, cut-that-merges, paste-that-splits (5 sprints planned, design doc first).
+**EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification) 🔵 Draft — the last of the planned
+`[Linux]` family, sequenced after the Apple copy-buffer reference. **EP-025** `[Linux]` ✅ **closed 2026-07-24**.
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **2 Backlog Epics** —
-- EP-019 `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers), 🔴 Deferred 2026-07-13; partially delivered (AC1/AC3/AC4/AC5 verified; AC2/AC6/AC7/AC8 remaining); resume at SP-056.
-- EP-026 `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft; promoted to Active on user request. (EP-023 ✅ closed 2026-07-19; **EP-024 Scene Inspector ✅ closed 2026-07-22**; **EP-025 Timeline Panel 🟡 Active 2026-07-22**.)
+Currently: **1 Backlog Epic** —
+- EP-026 `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft; **next in line after EP-019** — the last of the planned `[Linux]` family. (EP-023 ✅ closed 2026-07-19; EP-024 ✅ closed 2026-07-22; **EP-025 Timeline Panel ✅ closed 2026-07-24**.)
+
+_(EP-019 `[Apple]` Undo/Redo was **un-deferred back to Active 2026-07-24** — now in `Epic-active.md`, resuming at SP-056.)_
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **28 Epics** | Next available: **EP-029**
+Currently: **29 Epics** | Next available: **EP-030**
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -55,30 +58,59 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-016 | Timeline Panel — Full Implementation | ✅ Closed | 2026-06-11 | 2026-06-23 |
 | EP-017 | Spotlight Search Integration | ✅ Closed | 2026-06-23 | 2026-07-06 |
 | EP-018 | Per-Window / Per-Project Window Model | ✅ Closed | 2026-06-24 | 2026-06-25 |
-| EP-019 | `[Apple]` Custom Undo/Redo History & Multiple Copy Buffers | 🔴 Deferred (backlog) | 2026-07-06 | — |
+| EP-019 | `[Apple]` Custom Undo/Redo History & Multiple Copy Buffers | 🟡 Active | 2026-07-06 | — |
 | EP-020 | `[Linux]` App Foundation — Qt/QML Toolchain, Bridge & Shell | ✅ Closed | 2026-07-13 | 2026-07-13 |
 | EP-021 | `[Linux]` Project Lifecycle & Landing | ✅ Closed | 2026-07-13 | 2026-07-14 |
 | EP-022 | `[Linux]` Writing Surface & Scene Navigator | ✅ Closed | 2026-07-14 | 2026-07-15 |
 | EP-023 | `[Linux]` Manuscript Structure Editing | ✅ Closed | 2026-07-15 | 2026-07-19 |
 | EP-024 | `[Linux]` Scene Inspector Panel | ✅ Closed | 2026-07-22 | 2026-07-22 |
-| EP-025 | `[Linux]` Timeline Panel | 🟡 Active | 2026-07-22 | — |
+| EP-025 | `[Linux]` Timeline Panel | ✅ Closed | 2026-07-22 | 2026-07-24 |
 | EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
 | EP-027 | `[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering | ✅ Closed | 2026-07-16 | 2026-07-18 |
 | EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | ✅ Closed | 2026-07-20 | 2026-07-22 |
+| EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | 🔵 Draft | — | — |
 
 ## Statistics
 
-- **Total Epics:** 28
+- **Total Epics:** 29
 - **Closed:** 24 ✅
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-025 `[Linux]` Timeline Panel)
-- **Draft:** 1 🔵 (EP-026 `[Linux]`)
-- **Deferred (backlog):** 1 🔴 (EP-019 `[Apple]` — partially delivered; AC1/AC3/AC4/AC5 verified)
+- **Active:** 1 🟡 (EP-019 `[Apple]` — **held pending SP-057**; SP-056/AC6 closed 2026-07-27)
+- **Draft:** 2 🔵 (EP-029 `[Cross]` cross-boundary Cut/Copy/Paste — next to plan; EP-026 `[Linux]`)
+- **Deferred (backlog):** 0
 - **Proposed (backlog):** 0 🔵
 
 ---
 
-*Last Updated: 2026-07-22 (**EP-025 `[Linux]` Timeline Panel activated** — the next `[Linux]` family Epic and
+*Last Updated: 2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-019 held pending SP-057; EP-029 opened.**
+EP-019 SP-056 delivered multiple copy buffers (T-0213 + T-0214, both Verified live): explicit ⌘1–9/⌃1–9/⌥1–9
+copy/paste/cut chords, app-global per-project palette, Edit/Scene/Chapter menu items, bufferID-tagged cut event
+(backend schema extended); ctest 327 + interop 43 green. EP-019 is now **held pending** its final sprint SP-057
+(AC2/AC7/AC8 verify + history panel + Epic close). New Epic **EP-029** `[Cross]` (Cross-Boundary Structured
+Cut/Copy/Paste) opened 🔵 Draft — treat the manuscript as one monolithic document for Cut/Copy/Paste + buffers
+(structured fragments, cut-that-merges, paste-that-splits); 5 sprints planned (SP-085 design → SP-089 Apple
+wiring), design doc first. Total Epics 28→29, Draft 1→2; next available Epic **EP-030**. Prior note follows.)*
+
+*2026-07-24 (**EP-019 `[Apple]` Undo/Redo & Copy Buffers ✅ un-deferred → Active (user request).**
+Moved back from the backlog to lock the copy-buffer implementation on Apple before the Linux side (EP-026)
+tackles it, so Apple is the reference. The undo/redo engine + AC1/AC3/AC4/AC5 are delivered & verified (SP-051–
+SP-055 closed); resuming at **SP-056** (multiple copy buffers → AC6: 9-slot per-project persistent buffers in
+`history/buffers.json`, keyboard HUD + palette + Edit-menu UX per Trades T3/T4, copy≠event/cut=event). Then
+SP-057 (AC2/AC7/AC8 verify + Epic close). Epics Active 0→1, Deferred 1→0. Same day: **EP-025 `[Linux]` ✅ CLOSED**
+(below). Prior note follows.)*
+
+*2026-07-24 (**EP-025 `[Linux]` Timeline Panel ✅ CLOSED with user approval** — the fifth
+`[Linux]` family Epic and the largest since Apple EP-016, delivered in six sprints (SP-079/080/081/083/082/084;
+SP-083 brought forward ahead of SP-082). Full Apple EP-015/EP-016 parity rebuilt natively in Qt/C++ over the
+complete EP-016 timeline C ABI (`scrivi.h` untouched throughout): bottom timeline strip with story-time scene
+dots + drag + Time Delta Picker + chain propagation (AC1–AC3); story-structure bands (AC4); zoom/pan (AC6a);
+historical events + imported timelines + export (AC5); and co-located-dot clustering — aggregate dot + hover
+fan-out + zoom-resolve (AC6b). All ACs Verified live over Docker+VNC. Issues closed: I-0087/I-0088/I-0089/
+I-0090/I-0091. Tests: `timeline_story_time_smoke`, `story_structure_smoke`, `timeline_events_smoke`,
+`timeline_cluster_smoke`. Archived to `Closed/Epic-EP-025.md`. Epics Closed 23→24, Active 1→0 — **no Active
+Epics**; next in line **EP-026 `[Linux]`** (Draft). Prior note follows.)*
+
+*2026-07-22 (**EP-025 `[Linux]` Timeline Panel activated** — the next `[Linux]` family Epic and
 the largest since Apple EP-016: a hideable bottom timeline strip with scene dots in story-time order, drag +
 Time Delta Picker, story-structure bands, historical/imported events, export, and clustering — full EP-016
 parity (user decision), rebuilt in Qt/C++. The full timeline C ABI already exists (EP-016/SP-039), so this is

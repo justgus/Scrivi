@@ -285,7 +285,10 @@ Currently: **2 closed Tasks**
 - **Active:** 4 🟡 (**T-0298–T-0301** — EP-028/SP-074 `[ScriviCore]` merge endpoints + coherence fix, I-0083)
 - **Unverified:** 0
 - **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, EP-021/SP-060 T-0230–T-0233, EP-022 T-0234–T-0249, EP-023/SP-065 T-0250–T-0253, EP-023/SP-066 T-0254–T-0257, **EP-023/SP-067 T-0258/259/260/262/263** (scene drag-reorder AC4 + I-0063; T-0261 superseded → EP-027), and the **EP-027 tasks T-0264–T-0277, T-0279–T-0293** (SP-069/SP-070/SP-071/SP-072 — Epic closed 2026-07-18; see `Sprints/Closed/`)
-- **Next available:** T-0302
+- **EP-019 SP-056 (2026-07-27):** T-0213 + T-0214 ✅ **Verified** — multiple copy buffers (AC6). See
+  `Sprints/Sprint-active.md` (SP-056 closed) and `../Epics/Epic-active.md` (EP-019).
+- **Next available:** T-0351 (T-0350 = EP-029/SP-085 design-doc task, reserved). _NB: the aggregate counts above
+  predate a full re-audit and undercount tasks issued through T-0349 — see the note below._
 
 > Note: EP-016 tasks (T-0167, T-0170–T-0174) verified and archived to `Verified/` on 2026-06-23;
 > SP-044 tasks (T-0176–T-0179) verified and archived 2026-06-23; EP-017 tasks T-0184/T-0189/T-0190

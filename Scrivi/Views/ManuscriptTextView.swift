@@ -50,6 +50,30 @@ struct ManuscriptTextView: NSViewRepresentable {
         context.coordinator.onTakeFocus = takeFocus
         loader.takeFocusHandler = takeFocus
 
+        // Bridge the buffers palette / Edit menu to the coordinator's text mutations
+        // (EP-019 SP-056, T-0214). The palette calls these so paste/load run on this
+        // text view through the history + auto-save path. Loading from the palette
+        // takes focus first so the current selection is this view's selection.
+        let coordinator = context.coordinator
+        session.bufferService?.pasteFromBufferHandler = { [weak coordinator] bufferID in
+            coordinator?.pasteFromBuffer(bufferID)
+        }
+        session.bufferService?.loadSelectionHandler = { [weak coordinator] bufferID in
+            coordinator?.copyIntoBuffer(bufferID)
+        }
+        session.bufferService?.cutIntoBufferHandler = { [weak coordinator] bufferID in
+            coordinator?.cutIntoBuffer(bufferID)
+        }
+
+        // Structural editing bridges (T-0214) — let the Scene/Chapter menu items invoke
+        // the same handlers as the ⌘↩ / ⌘⇧↩ / ⌘⌫ / ⌘⇧⌫ keys. Take focus first so the
+        // operation acts on the manuscript caret (menu clicks don't change first
+        // responder), matching what the keyboard path already has.
+        session.createSceneAction   = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateScene() }
+        session.createChapterAction = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateChapter() }
+        session.mergeSceneAction    = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeScene() }
+        session.mergeChapterAction  = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeChapter() }
+
         let scroll = NSScrollView()
         scroll.documentView = textView
         scroll.hasVerticalScroller = true
@@ -463,6 +487,71 @@ struct ManuscriptTextView: NSViewRepresentable {
             // caret can now trust that placement to survive.
             lastSegmentIDs = segments.map(\.id)
             lastShowChapterTitles = parent.showChapterTitles
+        }
+
+        // MARK: — Copy buffers (EP-019 SP-056, T-0214)
+        //
+        // Ten buffers 0–9; buffer 0 is the system pasteboard (ordinary ⌘C/⌘V, never
+        // touched here). Slots 1–9 are ScriviCore-persisted. ⌘N/⇧⌘N route here from
+        // ManuscriptNSTextView.keyDown. These mutate text via the same paths the
+        // native paste/cut overrides use, so history capture + auto-save happen
+        // through the existing textDidChange flow (Trade T3).
+
+        // ⌘N (or the palette's plain button): copy the selection into slot N. Copy-only
+        // — the selection is left in place and NO text changes, so per Trade T3 there is
+        // no history event. A no-op when nothing is selected (the palette button can be
+        // clicked with an empty selection; the keyboard chord likewise just no-ops).
+        func copyIntoBuffer(_ bufferID: String) {
+            guard let tv = textView else { return }
+            let sel = tv.selectedRange()
+            guard sel.length > 0 else { return }
+            let text = (tv.string as NSString).substring(with: sel)
+            parent.session.bufferService?.load(text, intoSlot: bufferID)
+        }
+
+        // ⌥N (or the palette's Option button): cut the selection into slot N. This DOES
+        // mutate text, so it records a `cut` history event tagged with bufferID (Trade
+        // T3). The store load happens first (so the slot holds the text even if the
+        // delete is later undone), then the delete runs through AppKit and is captured
+        // as the cut event by the surrounding beginCutIntoBuffer/flush bracket. A no-op
+        // when nothing is selected.
+        func cutIntoBuffer(_ bufferID: String) {
+            guard let tv = textView, let mtv = tv as? ManuscriptNSTextView else { return }
+            // The palette lives in a floating panel; a click there leaves the text view
+            // not-first-responder, so its delete would be dropped. Restore focus first
+            // (a no-op on the keyboard path, where the text view is already first
+            // responder). The selection is preserved across the focus change.
+            tv.window?.makeFirstResponder(tv)
+            let sel = tv.selectedRange()
+            guard sel.length > 0 else { return }
+            let text = (tv.string as NSString).substring(with: sel)
+            // Load into the slot first — a cut must not lose the text if the store
+            // write and the delete are ever separated by a failure.
+            guard parent.session.bufferService?.load(text, intoSlot: bufferID) == true else { return }
+            // Delete the selection through the same history bracket the native cut
+            // uses, but tagged with the buffer slot. deleteSelectionForBuffer performs
+            // the AppKit removal that textDidChange then records as the cut event.
+            parent.session.historyCapture?.beginCutIntoBuffer(bufferID: bufferID)
+            mtv.deleteSelectionForBuffer()
+            parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
+        }
+
+        // ⌃N (or the palette's Control button): paste slot N at the caret, replacing any
+        // selection. An empty slot is a silent no-op. A non-empty paste inserts text and
+        // records an ordinary `paste` history event (one undo step) — the system
+        // pasteboard is untouched.
+        func pasteFromBuffer(_ bufferID: String) {
+            guard let tv = textView, let mtv = tv as? ManuscriptNSTextView else { return }
+            guard let text = parent.session.bufferService?.text(inSlot: bufferID),
+                  !text.isEmpty else { return }   // empty slot → silent no-op
+            // Restore first responder so a palette-driven paste inserts into the editor
+            // (the panel click steals focus; insertText on a non-first-responder text
+            // view is dropped — the root cause of the palette paste doing nothing).
+            // No-op on the keyboard path. This is why the earlier row-click paste failed.
+            tv.window?.makeFirstResponder(tv)
+            parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
+            mtv.insertTextForBuffer(text)
+            parent.session.historyCapture?.flush(trigger: "paste", kind: "paste")
         }
 
         // MARK: — NSTextViewDelegate
@@ -1229,6 +1318,27 @@ final class ManuscriptNSTextView: NSTextView {
         coordinator?.parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
     }
 
+    // MARK: — Copy-buffer text mutation (EP-019 SP-056, T-0214)
+    //
+    // The buffer paste/cut go through insertText/deleteBackward like ordinary
+    // editing so textDidChange captures them, but WITHOUT going through the system
+    // pasteboard (buffers are a parallel mechanism). The coordinator brackets these
+    // with the history capture begin/flush, exactly as the native paste/cut do.
+
+    // Inserts `text` at the caret (replacing any selection), routed through
+    // insertText so it commits as a normal editable change. Used by pasteFromBuffer.
+    func insertTextForBuffer(_ text: String) {
+        insertText(text, replacementRange: selectedRange())
+    }
+
+    // Deletes the current selection, routed through AppKit's delete so the removal
+    // is captured by textDidChange. Used by cutIntoBuffer (the text is already saved
+    // into the slot before this runs). No-op when there is no selection.
+    func deleteSelectionForBuffer() {
+        guard selectedRange().length > 0 else { return }
+        deleteBackward(nil)
+    }
+
     override func keyDown(with event: NSEvent) {
         let isReturn    = event.keyCode == 36  // kVK_Return
         let isDelete    = event.keyCode == 51  // kVK_Delete (backspace)
@@ -1251,6 +1361,37 @@ final class ManuscriptNSTextView: NSTextView {
             coordinator?.handleMergeScene()
             return
         }
+
+        // Copy-buffer chords (EP-019 SP-056, T-0214). Three EXPLICIT chords over slots
+        // 1–9 — one action each, so behaviour never depends on whether text happens to
+        // be selected (the earlier context-sensitive ⌘N was ambiguous and couldn't
+        // paste-over-selection). The palette's modifier-sensitive button mirrors these.
+        //   ⌘1–9  → copy selection into slot N (copy-only, no history event, Trade T3)
+        //   ⌃1–9  → paste slot N at the caret, replacing any selection (a `paste` event)
+        //   ⌥1–9  → cut selection into slot N (a `cut` history event, bufferID-tagged)
+        // ⇧⌘digit is deliberately NOT used (⇧⌘3/4/5 are the system screenshot chords).
+        // ⌘C/⌘V (buffer 0 = system pasteboard) are untouched. Each branch requires its
+        // one modifier and none of the other two, so the chords never overlap.
+        let ctrl = event.modifierFlags.contains(.control)
+        let opt  = event.modifierFlags.contains(.option)
+        if let digit = event.charactersIgnoringModifiers,
+           digit.count == 1, let scalar = digit.unicodeScalars.first,
+           scalar >= "1", scalar <= "9" {
+            let bufferID = String(scalar)
+            if cmd && !ctrl && !opt && !shift {
+                coordinator?.copyIntoBuffer(bufferID)      // ⌘N — copy
+                return
+            }
+            if ctrl && !cmd && !opt && !shift {
+                coordinator?.pasteFromBuffer(bufferID)     // ⌃N — paste
+                return
+            }
+            if opt && !cmd && !ctrl && !shift {
+                coordinator?.cutIntoBuffer(bufferID)       // ⌥N — cut
+                return
+            }
+        }
+
         super.keyDown(with: event)
     }
 

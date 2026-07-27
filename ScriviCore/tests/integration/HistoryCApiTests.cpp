@@ -48,6 +48,36 @@ std::string recordParams(const char* kind, int64_t before, int64_t after) {
     return p.dump();
 }
 
+// Builds record-event params tagged with a copy-buffer slot (Trade T3 cut-into-buffer).
+std::string recordParamsWithBuffer(const char* kind, int64_t before, int64_t after,
+                                   const char* bufferID) {
+    JsonDoc p;
+    p.setString("kind", kind);
+    p.setInt64("cursorBefore", before);
+    p.setInt64("cursorAfter", after);
+    p.setString("bufferID", bufferID);
+    return p.dump();
+}
+
+// Reads and concatenates every history log segment (log-*.jsonl) under `root`
+// (empty if none). The log is the ground truth for what got persisted.
+std::string readHistoryLog(const std::string& root) {
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::path(root) / "history";
+    std::error_code ec;
+    if (!fs::exists(dir, ec)) return {};
+    std::string out;
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        const std::string name = entry.path().filename().string();
+        if (name.rfind("log-", 0) == 0 && entry.path().extension() == ".jsonl") {
+            std::ifstream in(entry.path());
+            std::stringstream ss; ss << in.rdbuf();
+            out += ss.str();
+        }
+    }
+    return out;
+}
+
 // A unique temp project root that removes itself (incl. its history/ dir).
 struct HistoryRoot {
     std::string path;
@@ -242,6 +272,54 @@ TEST_CASE("C ABI: history persists across close/re-open (relaunch)", "[HistoryCA
         REQUIRE(r.getSubDoc("stoppedAtBarrier").getString("kind") == "historyStart");
     }
     scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: cut-into-buffer event persists its bufferID tag (Trade T3)", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // Session 1: seed, then record a cut-into-buffer event tagged with slot "3".
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "Base. Cut me."));
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "Base. ",
+            recordParamsWithBuffer("cut", 12, 6, "3").c_str()));
+        REQUIRE_FALSE(r.getBool("noOp"));   // a real deletion → a real event
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // The tag reached disk: the persisted event line carries bufferID "3".
+    {
+        const std::string log = readHistoryLog(ROOT);
+        REQUIRE(log.find("\"kind\":\"cut\"") != std::string::npos);
+        REQUIRE(log.find("\"bufferID\":\"3\"") != std::string::npos);
+    }
+
+    // Session 2: reopen — the tagged cut replays and behaves exactly like a plain
+    // cut (undo restores the pre-cut text). The tag is provenance, not behavior.
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "Base. Cut me.");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: an ordinary event writes no bufferID field", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // A plain typing event must not gain a bufferID key — the on-disk shape is
+    // unchanged for the common case (the tag is written only when non-empty).
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "A"));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AB", recordParams("typing", 1, 2).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    const std::string log = readHistoryLog(ROOT);
+    REQUIRE(log.find("\"kind\":\"typing\"") != std::string::npos);
+    REQUIRE(log.find("bufferID") == std::string::npos);
 }
 
 TEST_CASE("C ABI: external scene edit produces an externalChange barrier", "[HistoryCApi]") {

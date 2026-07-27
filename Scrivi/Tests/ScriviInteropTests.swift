@@ -964,6 +964,28 @@ struct ScriviInteropTests {
         #expect(!redo.canRedo)
     }
 
+    @Test("a cut-into-buffer event carries a bufferID and undoes like a plain cut (Trade T3)")
+    func historyCutIntoBufferTag() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        defer { try? engine.historyClose(projectRootPath: root) }
+
+        _ = try engine.historySeedScene(
+            projectRootPath: root, sceneID: "scene_a", sceneText: "Base. Cut me.")
+        // A cut-into-buffer: text mutates and the event is tagged with slot "3".
+        let cut = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a",
+            newSceneText: "Base. ", kind: "cut", cursorBefore: 12, cursorAfter: 6,
+            bufferID: "3")
+        #expect(!cut.noOp)          // a real deletion → a real event
+
+        // The tag is provenance only — undo restores the pre-cut text exactly.
+        let undo = try engine.historyUndo(projectRootPath: root)
+        #expect(undo.moved)
+        #expect(undo.changes.first?.newText == "Base. Cut me.")
+    }
+
     @Test("recording identical text reports noOp")
     func historyNoOpOnIdenticalText() throws {
         let engine = ScriviEngine()
@@ -1023,5 +1045,75 @@ struct ScriviInteropTests {
         _ = try engine.historyOpen(projectRootPath: root)
         #expect(try engine.historyClose(projectRootPath: root).closed)
         #expect(!(try engine.historyClose(projectRootPath: root).closed))   // already closed
+    }
+
+    // MARK: — Copy-buffer wrappers (EP-019 SP-056 — T-0213)
+    // Buffers write history/buffers.json on disk, so these use a real TempDir.
+    // No open/close — each call is a stateless read-modify-write in ScriviCore.
+
+    @Test("buffersLoad → buffersGet round-trips text through Swift")
+    func buffersLoadGetRoundTrip() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+
+        let loaded = try engine.buffersLoad(projectRootPath: dir.path, bufferID: "1", text: "Kazd'ul")
+        #expect(loaded.bufferID == "1")
+        #expect(!loaded.updatedAt.isEmpty)
+
+        let got = try engine.buffersGet(projectRootPath: dir.path, bufferID: "1")
+        #expect(got.present)
+        #expect(got.text == "Kazd'ul")
+    }
+
+    @Test("buffersGet on an unset slot reports present=false")
+    func buffersGetUnset() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        let got = try engine.buffersGet(projectRootPath: dir.path, bufferID: "9")
+        #expect(!got.present)
+        #expect(got.text.isEmpty)
+    }
+
+    @Test("buffersList returns non-empty slots ascending with a count")
+    func buffersListOrder() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.buffersLoad(projectRootPath: dir.path, bufferID: "3", text: "gamma")
+        try engine.buffersLoad(projectRootPath: dir.path, bufferID: "1", text: "alpha")
+
+        let listed = try engine.buffersList(projectRootPath: dir.path)
+        #expect(listed.count == 2)
+        #expect(listed.buffers.map(\.bufferID) == ["1", "3"])
+        #expect(listed.buffers.first?.text == "alpha")
+    }
+
+    @Test("buffersClear removes a slot; clearing an empty slot is a no-op")
+    func buffersClearBehavior() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.buffersLoad(projectRootPath: dir.path, bufferID: "2", text: "beta")
+
+        #expect(try engine.buffersClear(projectRootPath: dir.path, bufferID: "2").cleared)
+        #expect(!(try engine.buffersGet(projectRootPath: dir.path, bufferID: "2").present))
+        #expect(!(try engine.buffersClear(projectRootPath: dir.path, bufferID: "2").cleared))
+    }
+
+    @Test("copy buffers persist across a fresh call (no in-memory state)")
+    func buffersPersist() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.buffersLoad(projectRootPath: dir.path, bufferID: "5", text: "epsilon")
+        // A second, independent engine sees the slot — persistence is entirely on disk.
+        let engine2 = ScriviEngine()
+        #expect(try engine2.buffersGet(projectRootPath: dir.path, bufferID: "5").text == "epsilon")
+    }
+
+    @Test("an out-of-range bufferID throws a ScriviError")
+    func buffersInvalidID() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        #expect(throws: ScriviError.self) {
+            try engine.buffersLoad(projectRootPath: dir.path, bufferID: "0", text: "x")
+        }
     }
 }

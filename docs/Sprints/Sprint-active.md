@@ -1,47 +1,77 @@
 # Active Sprint
 
-## SP-082: [Linux] Historical events + imported timelines + export
-
-**Status:** 🟢 All tasks Verified (2026-07-24, VNC) — **awaiting Human close approval**
-**Epic:** EP-025 `[Linux]` Timeline Panel (4th of ~5 sprints; mirrors Apple EP-016 **SP-042**, minus the
-clustering half which is carved out to **SP-084**)
-**Goal:** Give the Linux timeline the last of its authored/imported content. A writer can **author, edit, and
-delete historical events** in the project — worldbuilding moments (not scenes) that appear on the project row as
-a **muted warm-toned (`#C8A97A`) dot**, draggable in story time. A writer can **import** an external
-`.scrivi-timeline.json` — its events render in a **distinct grey row below** the project row, window-clipped to
-the current timeline span, with a **per-source grey shade**, and each row can be **hidden/shown**; the import
-flow shows an **epoch-offset dialog** so only intersecting events appear. And a writer can **export** the
-project's scene + historical events as a `.scrivi-timeline.json`. Delivers **EP-025 AC5**.
-**Start Date:** 2026-07-24
-**Target Close Date:** TBD (est. 1–2 days, matching SP-079/SP-080/SP-081)
-**Capacity:** ~8–10 hours
-
-> **Scope carve-out (user decision, planning 2026-07-24):** Apple bundled clustering into its equivalent
-> SP-042; the Linux EP-025 plan already split **co-located dot clustering + panel persistence + full EP-025
-> verify + Epic close into SP-084**. SP-082 is **historical / imported / export only**. Aggregate dots are
-> explicitly out of scope here.
+_No active sprint. SP-056 ✅ closed 2026-07-27 (Human-approved) — see below. EP-019 is **held pending** its final
+sprint SP-057 (AC2/AC7/AC8 verify + Epic close). The next work is the newly-opened **EP-029** `[Cross]`
+(cross-boundary structured Cut/Copy/Paste) — sprints planned in `../Epics/Epic-active.md`; SP-085 to be activated
+on your go-ahead._
 
 ---
 
-### Design references
+## SP-056: [Apple] Multiple copy buffers ✅ CLOSED (2026-07-27, Human-approved)
 
-- `docs/Scrivi_Timeline_Panel_Design_v0_3.md` — **§4.9 Historical Events (FR-050–FR-056)**, **§4.10 Multiple
-  Timeline Rows (FR-057–FR-065)**, **§4.11 Import/Export (FR-066–FR-070)**; persistence **§6.5** (historical
-  event file), **§6.6** (`.scrivi-timeline.json` exchange format), **§6.7** (imported record: `epochOffsetMs`,
-  `visible`, `assignedGreyShade`); context menus **§7.7 / §7.8 / §7.9**; dot states **§7.2**.
-- **The timeline C ABI is complete (EP-016).** `scrivi.h` lines **270–291** already export everything this
-  sprint consumes — confirmed at planning, `scrivi.h` **untouched** this sprint:
-  - `scrivi_create_historical_event(root, title, offsetMs, description, tagsJSON, identityID, personaID,
-    displayName)`, `scrivi_update_historical_event(root, eventID, title, offsetMs, description, tagsJSON)`,
-    `scrivi_delete_historical_event(root, eventID)`, `scrivi_list_historical_events(root)`.
-  - `scrivi_import_external_timeline(root, timelineJSON, epochOffsetMs, assignedGreyShade)`,
-    `scrivi_update_imported_timeline_offset(root, timelineID, epochOffsetMs)`,
-    `scrivi_set_imported_timeline_visible(root, timelineID, visible)`,
-    `scrivi_list_imported_timelines(root)`, `scrivi_remove_imported_timeline(root, timelineID)`,
-    `scrivi_export_project_timeline(root)`.
-- **Apple analogue** (behavior to re-create in Qt, NOT port): EP-016 **SP-042** (`Closed/Sprint-SP-042.md`),
-  tasks T-0161–T-0165/T-0169 and `TimelineStripView.swift` (`HistoricalEventDot`, imported-row rendering,
-  `EpochOffsetDialog`, export). Segment/cluster pieces (T-0166) belong to SP-084, not here.
+**Status:** ✅ Closed — **AC6 Verified.** T-0213 + T-0214 both ✅ Verified live (2026-07-27). Delivered
+vim/emacs-register-style multiple copy buffers. Archived summary below; the sprint record is retained here until
+moved to `Closed/Sprint-SP-056.md`.
+
+**Verified behaviour (user, 2026-07-27):** ⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut into slots 1–9 (buffer 0 = the
+untouched system pasteboard); the floating Copy Buffers palette (View ▸ Show Buffers / ⌥⌘B) with a
+modifier-sensitive per-row action button (copy/paste/cut icons follow the held modifier) + clear (✕); buffers
+persist across relaunch and **per project** (palette reloads to the front project on window/tab switch);
+Edit-menu Copy/Paste/Cut To Buffer submenus; Scene/Chapter menu items (New/Merge) for mouse users. Cut-into-buffer
+records a `cut` history event **tagged with the bufferID** (backend C ABI + history-node schema extended,
+re-verified: ctest + interop green).
+
+> **Gap surfaced during verify (2026-07-27) → new Epic.** Cross-boundary ⌘C/⌘X/⌘V and buffer copy/cut across
+> **scene/chapter boundaries** do not work as a writer expects (the manuscript is one `NSTextStorage` with
+> divider attachments + non-editable heading runs; a spanning selection can't be cleanly copied, and cut is
+> blocked by the heading guard). User decision: treat the manuscript as one monolithic document for
+> copy/cut/paste — **structured** buffers (scene/chapter markers), cut-that-merges, paste-that-splits. This is
+> explicitly **out of EP-019 scope** (structural editing) and is now **EP-029** `[Cross]`. See
+> `../Epics/Epic-active.md`.
+
+**~~Status:~~** ~~🟡 Active~~
+**Epic:** EP-019 `[Apple]` Custom Undo/Redo History & Multiple Copy Buffers (resumed 2026-07-24; the 6th of 7
+sprints — the undo/redo engine + AC1/AC3/AC4/AC5 are delivered & verified, this sprint adds copy buffers → AC6)
+**Goal:** Add **vim/emacs-register-style multiple copy buffers** to the macOS editor. The writer loads text into
+numbered slots (`1`–`9`) and pastes from any slot at multiple locations — fast repetitive multi-string
+replacement without round-tripping through the single system pasteboard (design §9.a CONOPS: the "Kazd'ul" /
+"Kazda'la" scan-and-replace workflow). Buffers are **per-project + persistent** (ScriviCore-owned
+`history/buffers.json`, `scrivi.buffers.v1`); the **system pasteboard is never clobbered**; **paste-from-buffer
+is an ordinary history event** (undo works with zero special cases). Delivers **EP-019 AC6**.
+**Start Date:** 2026-07-24
+**Target Close Date:** TBD (est. 2–3 days)
+**Capacity:** ~10–12 hours
+
+> **Why now (user decision 2026-07-24):** un-defer EP-019 and finish copy buffers on **Apple first**, so the
+> locked Apple implementation is the reference the Linux side (EP-026) mirrors — rather than designing the
+> feature twice in parallel.
+
+---
+
+### Design references (source of truth)
+
+- `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` — **§9 Multiple Copy Buffers** (9.a CONOPS,
+  9.b model, 9.c presentation), **Trade T3** (copy-into-buffer is **not** a history event — no text change;
+  cut-into-buffer **is**, `kind:"cut"` + `bufferID`; paste-from-buffer is an ordinary `paste` event), **Trade
+  T4** (presentation = **B + D + A**: keyboard HUD fast path + toggleable palette + Edit-menu items), and
+  **Appendix A.3** — the `history/buffers.json` (`scrivi.buffers.v1`) schema:
+  `{ "schema":"scrivi.buffers.v1", "buffers":[ { "bufferID":"1", "label":null, "text":"…", "updatedAt":"…" } ] }`
+  (IDs `"1"`–`"9"`; `label` reserved/null in v1; empty slots omitted; atomic write).
+- **Peer pattern (already built, EP-019 SP-052):** `ScriviCore/src/history/HistoryService.{hpp,cpp}` +
+  `HistoryStore.{hpp,cpp}`, the `scrivi_history_*` C ABI (`scrivi.h` 327–407), and `ScriviEngine.swift` history
+  wrappers + `ScriviInteropTests`. The buffer store/ABI/wrappers mirror this shape. `scrivi.h` already **reserves
+  `scrivi_buffers_*` for SP-056** (comment at line 316–317).
+
+### Confirmed at planning
+
+- **Backend is greenfield but small** — no buffers scaffolding exists yet (`grep` found none). T-0213 adds a
+  `BufferStore` (peer to `HistoryStore`), the `scrivi_buffers_*` C ABI, and Swift engine wrappers. This is the
+  only backend work; the history engine is untouched.
+- **`scrivi.h` grows** by the `scrivi_buffers_*` family (an anticipated, reserved addition — not a boundary
+  change). Every new endpoint is documented in the header.
+- **History integration is the app's job** — the backend just stores buffer slots; whether a copy/cut/paste
+  becomes a history event is decided in the editor (T-0214) using the existing `scrivi_history_record_event`
+  path (Trade T3).
 
 ---
 
@@ -49,93 +79,77 @@ project's scene + historical events as a `.scrivi-timeline.json`. Delivers **EP-
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0340 | `[Linux]` **Timeline-events bridge invokables** — `ScriviBridge` Qt wrappers over the complete EP-016 C ABI: `createHistoricalEvent`/`updateHistoricalEvent`/`deleteHistoricalEvent`/`listHistoricalEvents` + `importExternalTimeline`/`updateImportedTimelineOffset`/`setImportedTimelineVisible`/`listImportedTimelines`/`removeImportedTimeline`/`exportProjectTimeline`. Each `parseEnvelope`s, RAII `scrivi_free`, `errorOccurred` on failure, `ready_` guard, no identity (empty `identityID`/`personaID`/`displayName` — same as story-time). `scrivi.h` **untouched**. | High | ✅ Verified (2026-07-24, VNC) |
-| T-0341 | `[Linux]` **Historical-event dots + author/edit/delete** — `TimelinePanel` renders historical events on the project row as `#C8A97A` filled dots (distinct from scene accent + imported grey, spec §7.2), draggable in story time (`HistHorizontal` drag → `historicalEventDragged(eventID, newOffsetMs)`), with a hover tooltip. `EditorShell` feeds them via `reloadTimeline` (`listHistoricalEvents`). **Empty-area context menu "New Historical Event Here"** (§7.9) + **historical-dot context menu Edit / Delete** (§7.7) → `HistoricalEventDialog` (title, description, tags; tags read from disk on Edit since the list drops them). | High | ✅ Verified (2026-07-24, VNC) |
-| T-0342 | `[Linux]` **Imported-timeline rows + epoch-offset dialog + hide/show** — `TimelinePanel` paints one **grey row below** the project row per imported timeline (source name label at left, per-source `assignedGreyShade`, dots **window-clipped** per §6.7, read-only, tooltip = title + source + computed time). **Import Timeline…** (§7.9) → `QFileDialog` → **`EpochOffsetDialog`** (source name + epoch label + signed offset + in/out-of-window preview, FR-067) → `importExternalTimeline`. Row menu (§7.8): **Edit Epoch Offset… / Hide This Timeline / Remove Imported Timeline**; **Show Hidden Timelines** submenu (empty-area menu) un-hides (FR-065). Events read from the stored files (list is metadata-only, Apple's pattern). Min-height +1 row per visible import (FR-064). | High | ✅ Verified (2026-07-24, VNC) |
-| T-0343 | `[Linux]` **Export timeline** — **Export Timeline…** (§7.9) → `exportProjectTimeline` (scene + historical events, no prose/identity, §6.6/FR-069) → `QFileDialog` save-as writes the file. Round-trips: an exported file re-imports (T-0342) into another project (smoke asserts it). | Medium | ✅ Verified (2026-07-24, VNC) |
-| T-0344 | `[Linux]` **Wire-up + `timeline_events_smoke` + verify** — end-to-end wiring in `EditorShell` (`reloadTimeline`/`reloadImportedTimelines` load historical events + imported rows); new **`timeline_events_smoke`** (headless, offscreen): historical CRUD round-trip, import a fixture (stored + metadata + on-disk file), hide/show + update-offset persist, export a valid `scrivi.externalTimeline.v1` carrying the surviving historical event, remove clears + CMake target + CI step. **Container green + smoke PASS + VNC walkthrough complete.** Closes AC5. | High | ✅ Verified (2026-07-24, VNC) |
-| T-0345 | `[Linux]` **File ▸ Import / Export Timeline… menu items** (user request 2026-07-24) — now that SP-077 gave the app a native menu bar, the import/export **file** operations also live in **File** (below Close Project, own separator group), not only in the timeline panel's right-click menu. Editor-only (`editorOnlyActions_`, disabled on landing); each forwards to a new public `EditorShell::importTimeline()`/`exportTimeline()` trigger → the same T-0342/T-0343 flow. The panel's empty-area entries are **kept** (both homes, like Cut/Copy). | Medium | ✅ Verified (2026-07-24, VNC) |
+| T-0213 | `[ScriviCore]`+`[Apple]` **Copy-buffer store + C ABI + engine wrappers** — a `BufferStore` (peer to `HistoryStore`) owns `history/buffers.json` (`scrivi.buffers.v1`, Appendix A.3: 9 slots `"1"`–`"9"`, `text` + `updatedAt`, empty slots omitted, atomic write). New C ABI `scrivi_buffers_load/_get/_list/_clear` (JSON-over-string envelopes). `ScriviEngine.swift` wrappers + `ScriviInteropTests`. | High | ✅ **Verified (2026-07-27)** — ctest 325/325 (8 new BuffersCApi) + macOS interop GREEN; buffer round-trip + persistence verified live via T-0214. |
+| T-0214 | `[Apple]` **Buffer UX — palette + Edit-menu items + chords + history integration** — **DELIVERED as three explicit chords** (revised from the context-sensitive design, user 2026-07-25/27): **⌘1–9 copy · ⌃1–9 paste (replaces selection) · ⌥1–9 cut** into slots 1–9; buffer 0 = the untouched system pasteboard (⌘C/⌘V). Floating **Copy Buffers palette** (View ▸ Show Buffers / ⌥⌘B, app-global, follows the frontmost project) with a **modifier-sensitive per-row action button** (copy/paste/cut icons follow the held ⌃/⌥) + clear (✕). **Edit-menu** Copy/Paste/Cut To Buffer submenus + **Scene/Chapter** menu items (New/Merge, mouse alternatives to ⌘↩/⌘⇧↩/⌘⌫/⌘⇧⌫). **History (Trade T3):** copy = no event; paste = ordinary `paste` event; cut = `cut` event **tagged with bufferID** (backend C ABI `scrivi_history_record_event` + history-node schema extended to persist the tag; +2 ctest, +1 interop). System pasteboard untouched; buffers persist across relaunch + per project. Closes **AC6**. | High | ✅ **Verified (2026-07-27)** — all chords, palette (incl. project-switch reload), menus, cut-tag, persistence verified live by the user. Findings fixed en route: palette-paste focus bug (restore first responder), ✕ tooltip (was dropped under `.disabled`), context-sensitive→explicit chord redesign, ⇧⌘ screenshot-collision avoided (paste moved to ⌃), standard Cut/Copy/Paste icons. |
 
 ### Assigned Issues
 
-Found in the 2026-07-24 VNC verify, both fixed same day and **re-verified live (2026-07-24)**:
+_None. New defects found during implementation/verify are filed against SP-056._
 
-| ID | Title | Severity | Status |
-| -- | ----- | -------- | ------ |
-| I-0090 | `[Linux]` **Lowest imported-timeline row obscured by the zoom scrollbar** — imported rows stacked from `height()` over the +/- controls + scrollbar band. Fixed: reserve a `kBottomControlsHeight` (24px) band; rows stack above it. | Medium | ✅ **Verified (2026-07-24, VNC)** — user confirmed the second imported row ("Bureau of Identity") is fully visible above the scrollbar. |
-| I-0091 | `[Linux]` **Import/Export file dialogs defaulted to `/root`** not the project's folder. Fixed: seed both `QFileDialog`s with `QFileInfo(projectPath_).absolutePath()` (the project's parent folder — NOT hardcoded). | Low | ✅ **Verified (2026-07-24, VNC)** — user confirmed both dialogs open in the project's folder. |
+### Verification (2026-07-24)
 
-### Verification (2026-07-24, container)
-
-- ✅ **Build green** — Qt 6.4: **211/211** targets, 0 errors; `scrivi_linux` +
-  `scrivi_linux_timeline_events_smoke` linked (new dialogs compiled in).
-- ✅ **New `timeline_events_smoke` PASS** — historical create/update/delete list round-trip; import a fixture
-  `.scrivi-timeline.json` (stored + metadata + on-disk file present); hide/show + update-offset persist; export
-  a valid `scrivi.externalTimeline.v1` body carrying the surviving historical event; remove → list empty.
-- ✅ **All 11 regression smokes PASS** — story-structure, timeline-story-time, merge, create, reorder,
-  chapter-reorder, editor-map, save, rename, delete, load, lifecycle, persistence.
-- ✅ **Headless app-launch OK** — the full window tree (incl. the SP-082 panel + dialogs) constructs offscreen.
-- ✅ **Live VNC walkthrough complete (2026-07-24)** — Human verified all six tasks on
-  `the-twisted-remains-of-myself`: historical events author/drag/edit/delete (`#C8A97A` dots); imported grey
-  rows (two sources, per-source shade); export + import round-trip; and the File ▸ Import/Export Timeline…
-  menu items. Two findings surfaced + fixed + re-verified same day: **I-0090** (imported row hidden behind the
-  scrollbar) and **I-0091** (file dialogs defaulted to `/root`). **AC5 met.** Sprint awaiting Human close
-  approval.
+**T-0213 (backend + wrappers) — build + test GREEN:**
+- ✅ **ScriviCore `ctest`: 325/325** (8 new `BuffersCApi` tests — load→get round-trip, unset-slot present=false,
+  load replaces, list ascending + count, clear + no-op-when-empty, persistence across a fresh call, out-of-range
+  bufferID rejected, corrupt `buffers.json` treated as empty).
+- ✅ **macOS app `xcodebuild build` — BUILD SUCCEEDED** (buffer C ABI compiled into `libScriviCore.a` via the
+  CMake build phase; the `scrivi_buffers_*` decls reach Swift through the `ScriviCore` modulemap — no header copy,
+  no pbxproj change since no new app-target files were added).
+- ✅ **macOS interop `xcodebuild test` — TEST SUCCEEDED, 42/42** (6 new buffer wrapper tests: load→get,
+  unset-slot, list-order, clear, persist-across-fresh-call, invalid-ID throws).
+- **New files:** `ScriviCore/src/history/BufferStore.{hpp,cpp}` (CMake) + `ScriviCore/tests/integration/
+  BuffersCApiTests.cpp` (CMake tests). `scrivi.h` gained the `scrivi_buffers_*` family (documented). Edited
+  (already in pbxproj): `ScriviEngine.swift` (wrappers + Result structs + visionOS stubs),
+  `ScriviInteropTests.swift`. **No new app-target files → no pbxproj change.**
+- ⏳ **T-0214 (buffer UX) is next** — the keyboard HUD + palette + Edit-menu + history integration; that closes
+  AC6 and is where the user-facing verify happens.
 
 ---
 
-### Acceptance Criteria (EP-025 AC5)
+### Acceptance Criteria (EP-019 AC6) — ✅ ALL MET (Verified 2026-07-27)
 
-- [x] **"New Historical Event Here"** from the empty-area context menu creates an event and shows it as a
-  `#C8A97A` dot on the project row.
-- [x] Historical events are **draggable** on the timeline (their `offsetMs` updates + persists across reopen).
-- [x] Historical-dot context menu: **Edit… / Delete** work; edit/delete persist. (Re-timing is by drag —
-  "Set Story Time" folded into the drag path, §7.7.)
-- [x] **Import Timeline…** picks a `.scrivi-timeline.json` and shows the **epoch-offset dialog** (source name,
-  epoch label, signed offset, in/out-of-window preview) before storing.
-- [x] Imported events appear as a **grey row below** the project row; the source name is labelled at left.
-- [x] Only events whose **computed project story-time falls within the current window** are rendered
-  (window-clipped per §6.7).
-- [x] **Two** imported timelines appear as two distinct rows with **distinguishable grey shades**.
-- [x] A row can be **hidden/shown** via the panel menu without removing the imported file.
-- [x] **Edit Epoch Offset…** on a row re-offsets its events (persists).
-- [x] **Remove Imported Timeline** deletes the stored file; the row disappears.
-- [x] **Export** produces a syntactically valid `.scrivi-timeline.json` containing all project scenes +
-  historical events; it re-imports into another project.
-- [x] Hover tooltips: historical dot (title + story-time); imported dot (title + source name + computed
-  story-time).
-- [x] **No regression:** scene dots (SP-079), dot drag + Time Delta Picker (SP-080), bands + assignment
-  (SP-081), zoom/pan (SP-083) all still work; imported rows follow the same zoom/scroll as the project row.
-- [x] **File ▸ Import/Export Timeline… menu items** (T-0345) present, editor-only, drive the same flows.
-
-> **N/A this sprint (→ SP-084):** aggregate/cluster dots (FR-030–035), full-panel persistence sweep beyond the
-> zoom/pan state SP-083 already persists, and the EP-025 Epic close.
+- [x] **≥ 2 buffers** can be loaded and pasted at multiple locations (design §9.a CONOPS).
+- [x] Each **paste-from-buffer is exactly one undo step** (an ordinary `paste` history event; Trade T3).
+- [x] **Copy-into-buffer records no history event** (no text change); **cut-into-buffer records a `cut` event**
+  (bufferID-tagged, persisted).
+- [x] The **system pasteboard is never clobbered** — buffer 0 = the pasteboard; ⌘C/⌘V unchanged.
+- [x] Buffers **persist across quit/relaunch** (stored in `history/buffers.json`) **and per project** (palette
+  reloads to the frontmost project on window/tab switch).
+- [x] **Keyboard fast path** — delivered as three explicit chords (⌘1–9 copy / ⌃1–9 paste / ⌥1–9 cut) rather than
+  the originally-designed ⌥⌘C/⌥⌘V HUD. Design refinement approved by the user 2026-07-25/27 (the single
+  context-sensitive chord was ambiguous and couldn't paste-over-selection; no HUD needed since the chord IS the
+  action). The HUD may return in the future inspector panel.
+- [x] The **buffers palette** shows the 9 slots with previews + `updatedAt`; a modifier-sensitive per-row button
+  (copy/paste/cut) + clear.
+- [x] **Edit-menu items** (Copy / Paste / Cut To Buffer submenus) present and functional; Scene/Chapter New/Merge
+  menu items added for mouse users.
+- [x] **No regression:** undo/redo (AC1/AC3/AC4/AC5), auto-save, scene navigation, structure ops all unaffected;
+  backend `ctest` (327) + `ScriviInteropTests` (43) green.
 
 ### Scope & guardrails
 
-- **No backend work.** The timeline events C ABI is complete (EP-016/SP-039). `scrivi.h` **untouched**; a
-  genuinely missing endpoint would become a `[ScriviCore]` Task, not new sprint scope.
-- **Re-create, don't port.** The Apple `TimelineStripView` historical/imported/export code is the behavioral
-  reference; the Linux panel is native Qt widgets/painting fed by `EditorShell`.
-- **VNC-safe interaction.** Import/export use `QFileDialog` (already proven over VNC — `ScriviBridge::chooseFolder`,
-  EP-021). All context menus are right-click `QMenu`s. No new gesture-only path (memory:
-  `project_linux_vnc_input_constraints`).
-- **JSON-shape watch.** As with SP-081's `{"bands":[…]}` finding, confirm the exact envelope shapes the C ABI
-  returns/accepts against the smoke — the `timeline_events_smoke` exists to catch a shape mismatch, not to trust
-  the format sight-unseen.
-- **`EditorShell::reloadTimeline` is the single feed.** The panel calls no `scrivi_*` itself; the shell loads
-  scenes + bands (existing) **plus** historical events + imported rows (new) and owns all persistence.
-- **No pbxproj** — Linux-only (Qt/C++). New `.cpp` (`HistoricalEventDialog`, `EpochOffsetDialog`, the smoke) go
-  in the Linux CMake, never `Scrivi.xcodeproj` (memory: `project_pbxproj_scrivicore_scope`).
+- **Source of truth is the design doc** (§9 + Trades T3/T4 + Appendix A.3), approved 2026-07-06. Any deviation
+  is surfaced + reconciled before implementation (per CLAUDE.md).
+- **Backend owns persistence** (`BufferStore` + `buffers.json`), Swift owns UI + history-integration decisions.
+  The system pasteboard is a parallel mechanism — never touched.
+- **Apple-only sprint.** macOS editor + ScriviCore. The parallel **Linux** copy-buffer UI is **EP-026**, not
+  this sprint — this sprint locks the Apple reference first (user decision).
+- **pbxproj rule:** every new Swift source (and any C++ shim compiled into the app) is added to
+  `Scrivi.xcodeproj/project.pbxproj` in the same step, before the build. ScriviCore `.cpp`/`.hpp` go in **CMake**
+  (the app links prebuilt `libScriviCore.a`), NOT pbxproj (memory: `project_pbxproj_scrivicore_scope`).
+- **Build/test = Apple toolchain:** `xcodebuild -scheme ScriviApp -destination 'platform=macOS' build|test`
+  (deployment target 27.0) + `ctest` for the ScriviCore side. (Not Docker/VNC — that's the Linux world we just
+  left.)
 
 ---
 
-*Last Updated: 2026-07-24 (**SP-082 all tasks ✅ Verified (VNC) — awaiting Human close approval**. EP-025
-`[Linux]` Timeline Panel, 4th sprint, delivering **AC5**: historical events (author/edit/delete + `#C8A97A`
-draggable dots), imported timelines (grey rows below, per-source shade, window-clip, epoch-offset dialog,
-hide/show, edit-offset, remove), export (`.scrivi-timeline.json`), + File ▸ Import/Export menu items. Tasks
-**T-0340–T-0345** all Verified live on `the-twisted-remains-of-myself`. Two findings surfaced + fixed +
-re-verified same day: **I-0090** (imported row hidden behind the zoom scrollbar) + **I-0091** (file dialogs
-defaulted to `/root` not the project folder). Container green (211/211) + `timeline_events_smoke` + 11
-regression smokes PASS; `scrivi.h` untouched; no pbxproj (Linux-only). Clustering + panel persistence + Epic
-close remain in **SP-084**. Next available Task after this sprint: **T-0346**.)*
+*Last Updated: 2026-07-24 (**SP-056 planned + activated** — EP-019 `[Apple]` resumed from the backlog (user
+request: lock copy buffers on Apple before Linux). Delivers **AC6**: vim/emacs-register-style multiple copy
+buffers — 9 per-project persistent slots (`history/buffers.json`, `scrivi.buffers.v1`), keyboard HUD + palette +
+Edit-menu UX (Trade T4 = B+D+A), copy≠event / cut=event / paste=ordinary-event (Trade T3), system pasteboard
+untouched. Tasks **T-0213** (`BufferStore` + `scrivi_buffers_*` C ABI + `ScriviEngine` wrappers + interop tests)
+and **T-0214** (keyboard HUD + palette + Edit-menu items + history integration). Backend is greenfield but small
+(peer to the built `HistoryStore`); `scrivi.h` gains the reserved `scrivi_buffers_*` family; pbxproj updated for
+new Swift files. Apple-only (the Linux copy-buffer UI is EP-026). SP-057 (AC2/AC7/AC8 verify + Epic close)
+follows. **SP-084 ✅ closed 2026-07-24** (EP-025 AC6b; that closed EP-025). Next available Sprint **SP-085**; next
+available Task **T-0350** (T-0213/0214 pre-exist from EP-019 planning).)*

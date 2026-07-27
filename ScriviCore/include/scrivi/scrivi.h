@@ -313,9 +313,9 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath);
  * Persistent (per-project, on-disk) undo/redo history engine, one instance per
  * open project keyed by projectRootPath. Branching, disk persistence, capacity,
  * sessions, stale-branch detection/purge are all in place (EP-019 SP-052..055).
- * The remaining deferred functions are scrivi_history_get_tree (history panel,
- * SP-057) and scrivi_buffers_* (copy buffers, SP-056) — they land with their
- * sprints.
+ * The remaining deferred function is scrivi_history_get_tree (history panel,
+ * SP-057). scrivi_buffers_* (copy buffers) landed in SP-056 — see the Copy
+ * buffers section below.
  *
  * Standard envelope conventions apply: each returns a heap JSON string freed
  * with scrivi_free. Offsets/cursors are scene-local UTF-8 byte offsets that
@@ -336,8 +336,11 @@ const char* scrivi_history_seed_scene(const char* projectRootPath,
                                       const char* sceneTextUtf8);
 
 /* Records a text event by diffing newSceneTextUtf8 against the engine's cached
- * head text for sceneID. paramsJSON: {kind, cursorBefore, cursorAfter}
+ * head text for sceneID. paramsJSON: {kind, cursorBefore, cursorAfter, bufferID?}
  *   kind is one of "typing|delete|replace|paste|cut" (default "typing").
+ *   bufferID (optional, "1".."9") tags a cut-into-buffer event with the copy-buffer
+ *   slot it fed (EP-019 SP-056, Trade T3); omitted/empty for ordinary events.
+ *   It is metadata only — preserved across reload, not consumed by undo/redo.
  * result: {eventID, createdBranch, evictedCount, noOp, canUndo, canRedo} */
 const char* scrivi_history_record_event(const char* projectRootPath,
                                          const char* sceneID,
@@ -405,6 +408,41 @@ const char* scrivi_history_set_settings(const char* projectRootPath,
 /* Closes the history: writes a final state.json checkpoint and discards the
  * in-memory tree. result: {closed} */
 const char* scrivi_history_close(const char* projectRootPath);
+
+/* ---- Copy buffers (EP-019 SP-056 — T-0213) ------------------------------ */
+
+/*
+ * Multiple copy buffers — vim/emacs-register-style numbered slots (v1: IDs
+ * "1"-"9") that the writer loads text into and pastes from WITHOUT touching the
+ * system pasteboard (design §9). Per-project + persistent, stored by ScriviCore
+ * in history/buffers.json (scrivi.buffers.v1). Independent of the undo/redo
+ * history engine: each call is a stateless read-modify-write of buffers.json, so
+ * there is no open/close pairing and buffers survive quit/relaunch trivially.
+ * Whether a copy/cut/paste becomes a HISTORY event is decided by the app (Trade
+ * T3: copy≠event, cut=event, paste=ordinary paste event) — this API only stores
+ * the slots. Standard envelope conventions apply (heap JSON, free with
+ * scrivi_free). A bufferID outside "1".."9" returns an invalidArgument error.
+ */
+
+/* Loads `textUtf8` into slot `bufferID` (create-or-replace), stamping updatedAt.
+ * result: {bufferID, updatedAt} */
+const char* scrivi_buffers_load(const char* projectRootPath,
+                                const char* bufferID,
+                                const char* textUtf8);
+
+/* Reads one slot. result: {bufferID, text, updatedAt, present} — `present` is
+ * false and text/updatedAt are empty when the slot is unset. */
+const char* scrivi_buffers_get(const char* projectRootPath,
+                               const char* bufferID);
+
+/* Lists all non-empty slots (ascending by bufferID).
+ * result: {count, buffers:[{bufferID, text, updatedAt}, ...]} */
+const char* scrivi_buffers_list(const char* projectRootPath);
+
+/* Clears one slot (removes its entry). result: {bufferID, cleared} — `cleared`
+ * is false when the slot was already empty. */
+const char* scrivi_buffers_clear(const char* projectRootPath,
+                                 const char* bufferID);
 
 #ifdef __cplusplus
 }

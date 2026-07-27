@@ -473,6 +473,29 @@ target_link_libraries(scrivi_linux_timeline_events_smoke
 target_include_directories(scrivi_linux_timeline_events_smoke PRIVATE src)
 target_compile_features(scrivi_linux_timeline_events_smoke PRIVATE cxx_std_23)
 
+# --- Headless clustering smoke (SP-084 / T-0349, EP-025 AC6b) ---------------
+# Drives TimelinePanel's clustering pass directly (no mouse/paint) via its test hooks:
+# co-located dots collapse into one aggregate of N; zooming in resolves them into
+# singletons (zoom-resolve, FR-032); well-separated dots never cluster; a historical
+# event co-located with scenes joins the aggregate. The aggregate paint + hover fan-out
+# are verified live over VNC; the pass math is headless here. timeline_cluster_smoke.sh.
+# Links the whole TimelinePanel (QtWidgets) — no ScriviBridge/ScriviCore.
+qt_add_executable(scrivi_linux_timeline_cluster_smoke
+    tests/timeline_cluster_smoke.cpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+)
+
+target_link_libraries(scrivi_linux_timeline_cluster_smoke
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_timeline_cluster_smoke PRIVATE src)
+target_compile_features(scrivi_linux_timeline_cluster_smoke PRIVATE cxx_std_23)
+
 # --- Headless quit-path smoke (SP-062 regression fix) ----------------------
 # Guards the shell-flip regression where the landing Quit button did nothing: a
 # QQuickWidget's engine doesn't auto-wire QQmlEngine::quit() to the app, so main.cpp

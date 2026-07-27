@@ -62,6 +62,12 @@ struct EventNode {
     std::string timestamp;                             // ISO-8601, minted by caller
     std::string sessionID;
 
+    // Copy-buffer provenance (EP-019 SP-056, Trade T3): the slot ("1"-"9") a
+    // cut-into-buffer took its text from, so the node records which buffer the cut
+    // fed. Empty for ordinary events (typing/delete/paste/plain-cut). Metadata only
+    // — nothing in the undo/redo walk consumes it; it is preserved across reload.
+    std::string bufferID;
+
     // Barrier-only: the structural reason undo stops here (§4.5).
     std::string barrierKind;
     std::string barrierNote;
@@ -76,6 +82,7 @@ struct RecordParams {
     std::int64_t cursorBefore = 0;
     std::int64_t cursorAfter = 0;
     std::string timestamp;   // caller-supplied ISO-8601; kept verbatim
+    std::string bufferID;    // cut-into-buffer provenance ("1"-"9"); empty otherwise
 };
 
 // What branch-aware eviction did, so the store can persist matching ctl records

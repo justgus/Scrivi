@@ -158,9 +158,24 @@ final class HistoryCapture {
         nextEventKind = kind
     }
 
+    // Cut-into-buffer boundary (EP-019 SP-056, Trade T3). Like beginPasteOrCut with
+    // kind "cut", but also tags the resulting event with the copy-buffer slot the
+    // cut fed, so the history node records which buffer the text went to. The tag is
+    // metadata only — undo still restores the text exactly as a plain cut would.
+    func beginCutIntoBuffer(bufferID: String) {
+        guard isOpen else { return }
+        flush(trigger: "cut")     // close out prior typing as its own step
+        nextEventKind = "cut"
+        nextBufferID = bufferID
+    }
+
     // Kind label to apply to the next committed event (set by beginPasteOrCut,
     // consumed on the next flush). Defaults back to "typing".
     private var nextEventKind: String?
+
+    // bufferID to tag the next committed event with (set by beginCutIntoBuffer,
+    // consumed on the next flush). nil for every event that isn't a cut-into-buffer.
+    private var nextBufferID: String?
 
     // MARK: — Commit triggers (§4.a)
 
@@ -178,6 +193,7 @@ final class HistoryCapture {
     func flush(trigger: String, kind: String = "typing", soft: Bool = false) -> Bool {
         guard isOpen, let sceneID = pendingSceneID else {
             nextEventKind = nil   // nothing pending — drop any stale kind hint
+            nextBufferID = nil
             return false
         }
         // Defer a whitespace-only pending change on a soft trigger.
@@ -187,7 +203,9 @@ final class HistoryCapture {
         // A pending paste/cut kind hint (from beginPasteOrCut) wins over the
         // caller's default "typing".
         let effectiveKind = nextEventKind ?? kind
+        let effectiveBufferID = nextBufferID
         nextEventKind = nil
+        nextBufferID = nil
         do {
             let r = try engine.historyRecordEvent(
                 projectRootPath: projectRootPath,
@@ -195,7 +213,8 @@ final class HistoryCapture {
                 newSceneText: pendingText,
                 kind: effectiveKind,
                 cursorBefore: Int64(pendingCursorBefore),
-                cursorAfter: Int64(pendingCursorAfter))
+                cursorAfter: Int64(pendingCursorAfter),
+                bufferID: effectiveBufferID)
             engineCanUndo = r.canUndo
             engineCanRedo = r.canRedo
             if !r.noOp { lastCommittedText = pendingText }

@@ -125,6 +125,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     node.diff.offsetUtf8 = static_cast<std::size_t>(diff.getInt64("offsetUtf8"));
                     node.diff.removed  = diff.getString("removed");
                     node.diff.inserted = diff.getString("inserted");
+                    node.bufferID = d.getString("bufferID");  // cut-into-buffer tag; "" when absent
                 }
                 // Recording a node advances the current pointer to it; in seq
                 // order a later ctl:undo/redo may move it back. Last write wins.
@@ -265,6 +266,11 @@ void HistoryStore::persistEvent(const EventNode& node) {
         diff.setString("removed", node.diff.removed);
         diff.setString("inserted", node.diff.inserted);
         d.setSubDoc("diff", std::move(diff));
+        // Cut-into-buffer provenance (Trade T3) — written only when tagged, so
+        // ordinary events keep their existing on-disk shape.
+        if (!node.bufferID.empty()) {
+            d.setString("bufferID", node.bufferID);
+        }
     }
     appendLine(d.dump(-1));
 }

@@ -33,6 +33,8 @@
 		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		C050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
 		C060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		C062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
+		C063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
 		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
 		C054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
@@ -59,6 +61,8 @@
 		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		D050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
 		D060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		D062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
+		D063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
 		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
 		D054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
@@ -85,6 +89,8 @@
 		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		E050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
 		E060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		E062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
+		E063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
 		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
 		E054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
@@ -129,6 +135,8 @@
 		C038 /* ScriviURL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviURL.swift; path = Scrivi/App/ScriviURL.swift; sourceTree = SOURCE_ROOT; };
 		C050 /* ProjectSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSession.swift; path = Scrivi/App/ProjectSession.swift; sourceTree = SOURCE_ROOT; };
 		C060 /* HistoryCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCapture.swift; path = Scrivi/App/HistoryCapture.swift; sourceTree = SOURCE_ROOT; };
+		C062 /* BufferService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BufferService.swift; path = Scrivi/App/BufferService.swift; sourceTree = SOURCE_ROOT; };
+		C063 /* BuffersPalette.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BuffersPalette.swift; path = Scrivi/Views/BuffersPalette.swift; sourceTree = SOURCE_ROOT; };
 		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Scrivi/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
 		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
 		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Scrivi/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
@@ -225,6 +233,8 @@
 				C038 /* ScriviURL.swift */,
 				C050 /* ProjectSession.swift */,
 				C060 /* HistoryCapture.swift */,
+				C062 /* BufferService.swift */,
+				C063 /* BuffersPalette.swift */,
 				C051 /* OpenProjectRegistry.swift */,
 				C053 /* ProjectWindowManager.swift */,
 				C054 /* OpenSessionManifest.swift */,
@@ -447,6 +457,8 @@
 				C038_BF /* ScriviURL.swift in Sources */,
 				C050_BF /* ProjectSession.swift in Sources */,
 				C060_BF /* HistoryCapture.swift in Sources */,
+				C062_BF /* BufferService.swift in Sources */,
+				C063_BF /* BuffersPalette.swift in Sources */,
 				C051_BF /* OpenProjectRegistry.swift in Sources */,
 				C053_BF /* ProjectWindowManager.swift in Sources */,
 				C054_BF /* OpenSessionManifest.swift in Sources */,
@@ -480,6 +492,8 @@
 				D038_BF /* ScriviURL.swift in Sources */,
 				D050_BF /* ProjectSession.swift in Sources */,
 				D060_BF /* HistoryCapture.swift in Sources */,
+				D062_BF /* BufferService.swift in Sources */,
+				D063_BF /* BuffersPalette.swift in Sources */,
 				D051_BF /* OpenProjectRegistry.swift in Sources */,
 				D053_BF /* ProjectWindowManager.swift in Sources */,
 				D054_BF /* OpenSessionManifest.swift in Sources */,
@@ -513,6 +527,8 @@
 				E038_BF /* ScriviURL.swift in Sources */,
 				E050_BF /* ProjectSession.swift in Sources */,
 				E060_BF /* HistoryCapture.swift in Sources */,
+				E062_BF /* BufferService.swift in Sources */,
+				E063_BF /* BuffersPalette.swift in Sources */,
 				E051_BF /* OpenProjectRegistry.swift in Sources */,
 				E053_BF /* ProjectWindowManager.swift in Sources */,
 				E054_BF /* OpenSessionManifest.swift in Sources */,

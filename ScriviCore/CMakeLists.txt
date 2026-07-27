@@ -83,6 +83,7 @@ target_sources(ScriviCore
         src/inbox/InboxStore.cpp
         src/history/HistoryService.cpp
         src/history/HistoryStore.cpp
+        src/history/BufferStore.cpp
 )
 
 # Persistent SecureStore (SP-059 / AC4, per T-0058 trade study). On Linux the

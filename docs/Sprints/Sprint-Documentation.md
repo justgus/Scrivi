@@ -11,17 +11,43 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**One active sprint** (EP-025 `[Linux]` Timeline):
+**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057; the next work is **EP-029**
+`[Cross]`, whose design sprint **SP-085** is planned and awaits activation.
 
-- **SP-082** `[Linux]` (EP-025 — **Historical events + imported timelines + export**): a writer authors/edits/
-  deletes **historical events** (own `#C8A97A` draggable dots + context menus); **imports** external
-  `.scrivi-timeline.json` files as **distinct grey rows below** the project row (per-source shade, window-clipped,
-  `EpochOffsetDialog` on import, hide/show, edit-offset, remove); and **exports** the project timeline. Delivers
-  **AC5**. The timeline-events C ABI is complete (EP-016, `scrivi.h` 270–291) → `scrivi.h` untouched; new
-  `timeline_events_smoke`. Clustering + Epic close carved out to SP-084. 🟡 **Active from 2026-07-24.** Tasks
-  T-0340–T-0344. See `Sprint-active.md`.
+- **SP-085** `[Cross]` (EP-029 — **Design doc + trade studies + fragment schema**, 1st of 5 planned sprints):
+  write & get approval for `Scrivi_Structured_CutCopyPaste_Design_v0_1.md` — the `scrivi.fragment.v1` schema,
+  extract / cut-merge / paste-splice behaviour, copy-buffer schema evolution, and trades T1–T4. Task **T-0350**.
+  🔵 **Planned — awaiting go-ahead to activate.** See `../Epics/Epic-active.md` (EP-029).
 
-Last closed: **SP-081 + SP-083** (EP-025 `[Linux]` — **Timeline Panel**, 3rd sprint + brought-forward zoom/pan)
+Last closed: **SP-056** (EP-019 `[Apple]` — **Multiple copy buffers**) — ✅ **closed 2026-07-27
+(Human-approved).** Delivered **AC6**: vim/emacs-register-style copy buffers, refined to **three explicit
+chords** (user 2026-07-25/27) — **⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut** into 9 per-project persistent slots
+(`history/buffers.json`), buffer 0 = the untouched system pasteboard; an app-global Copy Buffers palette
+(View ▸ Show Buffers / ⌥⌘B, reloads to the frontmost project, modifier-sensitive action button + clear);
+Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items. Trade T3: copy = no event, paste =
+`paste` event, cut = `cut` event **tagged with bufferID** (backend `scrivi_history_record_event` + history-node
+schema extended). T-0213 + T-0214 both Verified live; ctest **327** + macOS interop **43** green. A cross-boundary
+Cut/Copy/Paste gap surfaced during verify → new **EP-029**. `Closed/Sprint-SP-056.md` (to be archived).
+
+Prior: **SP-084** (EP-025 `[Linux]` — **Clustering + persistence verify + full verify & Epic close**) — ✅
+**closed 2026-07-24 (Human-approved).** Co-located project-row dots collapse into a single **aggregate dot**
+(larger core + count + segmented arc ring + selection arc, Apple T-0174); **hover fans** the members into the
+hexagonal ring; **zoom resolves** the cluster. Then a persistence sweep + full EP-025 verify. **AC6b Verified**
+live over VNC; four clustering findings fixed + re-verified same session (incl. a phantom double-draw defect).
+Container green (216/216) + new `timeline_cluster_smoke` + 14 regression smokes PASS; `scrivi.h` untouched.
+Tasks T-0346–T-0349 all Verified. **This closed EP-025** (all ACs AC1–AC6b; `../Epics/Closed/Epic-EP-025.md`).
+`Closed/Sprint-SP-084.md`.
+
+Prior: **SP-082** (EP-025 `[Linux]` — **Historical events + imported timelines + export**, 4th sprint) —
+✅ **closed 2026-07-24 (Human-approved).** A writer authors/edits/deletes **historical events** (own `#C8A97A`
+draggable dots + context menus); **imports** external `.scrivi-timeline.json` files as **distinct grey rows
+below** the project row (per-source shade, window-clipped, `EpochOffsetDialog` on import, hide/show, edit-offset,
+remove); **exports** the project timeline; and File ▸ Import/Export Timeline… menu items (T-0345). **AC5
+Verified** live over VNC; two findings fixed + re-verified same day (I-0090 imported row behind the scrollbar,
+I-0091 dialogs defaulted to `/root`). Container green (211/211) + new `timeline_events_smoke` + 11 regression
+smokes PASS; `scrivi.h` untouched. Tasks T-0340–T-0345 all Verified. `Closed/Sprint-SP-082.md`.
+
+Prior: **SP-081 + SP-083** (EP-025 `[Linux]` — **Timeline Panel**, 3rd sprint + brought-forward zoom/pan)
 — ✅ **both closed 2026-07-23 (Human-approved).** **SP-081** delivered story-structure bands (structure selector
 → colored proportional bands + labels; border-drag re-proportion; scene→band drag-up / "Assign to Act…"
 assignment with a colored ring; remove keeps offsets + assignments) — **AC4**; T-0329–T-0332 all Verified;
@@ -131,14 +157,15 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
+| SP-085 | Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 | 🔵 Planned (next to activate) |
+| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (**EP-019 held pending**) |
+| SP-056 | Copy buffers — store, ABI, palette/menu UX, chords, history integration | EP-019 | ✅ Closed (Human-approved) — **AC6** |
 
 ## All Sprints
 
-Currently: **81 Sprints** (79 closed + 1 cancelled + 1 active + 2 in Planning; the SP-068 **ID** was skipped
+Currently: **83 Sprints** (82 closed + 1 cancelled + 1 in Planning + 1 planned; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19; **SP-083 was brought forward** ahead of SP-082, now the active sprint) | Next available: **SP-084**
+2026-07-19; **SP-083 was brought forward** ahead of SP-082, both now closed) | Next available: **SP-086**
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -197,8 +224,8 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-053 | Undo/Redo — in-session undo/redo on macOS (capture, apply, barriers) | EP-019 | 2026-07-07 | 2026-07-07 | ✅ Closed |
 | SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 2026-07-07 | 2026-07-09 | ✅ Closed |
 | SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 2026-07-10 | 2026-07-13 | ✅ Closed |
-| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (parked) |
+| SP-056 | Copy buffers — store, ABI, palette/menu UX, ⌘/⌃/⌥1–9 chords, history integration (**AC6**) | EP-019 `[Apple]` | 2026-07-24 | 2026-07-27 | ✅ Closed |
+| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (**EP-019 held pending**) |
 | SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | 2026-07-13 | ✅ Closed |
 | SP-059 | `[Linux]` Project Lifecycle — appSupportRoot + recents + landing + create-project | EP-021 `[Linux]` | 2026-07-13 | 2026-07-14 | ✅ Closed |
 | SP-060 | `[Linux]` Project Lifecycle — Open + Close + full-loop Verify (EP-021 close half) | EP-021 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
@@ -223,20 +250,62 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-080 | `[Linux]` Scene-dot drag + Time Delta Picker + chain propagation | EP-025 `[Linux]` | 2026-07-22 | 2026-07-22 | ✅ Closed |
 | SP-081 | `[Linux]` Story-structure bands — overlay, border drag, band assignment | EP-025 `[Linux]` | 2026-07-22 | 2026-07-23 | ✅ Closed |
 | SP-083 | `[Linux]` Timeline zoom + pan (brought forward — fixes I-0087) | EP-025 `[Linux]` | 2026-07-22 | 2026-07-23 | ✅ Closed |
-| SP-082 | `[Linux]` Historical events + imported timelines + export | EP-025 `[Linux]` | 2026-07-24 | — | 🟡 Active |
+| SP-082 | `[Linux]` Historical events + imported timelines + export | EP-025 `[Linux]` | 2026-07-24 | 2026-07-24 | ✅ Closed |
+| SP-084 | `[Linux]` Co-located dot clustering + persistence + full EP-025 verify & Epic close | EP-025 `[Linux]` | 2026-07-24 | 2026-07-24 | ✅ Closed |
+| SP-085 | `[Cross]` Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 `[Cross]` | — | — | 🔵 Planned |
 
 ## Statistics
 
-- **Total Sprints:** 81 (SP-001–SP-083 issued; SP-068 skipped; SP-083 was brought forward ahead of SP-082)
-- **Closed:** 79 ✅
-- **Active:** 1 🟡 (SP-082 EP-025 `[Linux]` — historical events + imported timelines + export)
-- **Planning:** 2 🔵 (SP-056–SP-057 EP-019 `[Apple]` — parked behind deferred EP-019)
+- **Total Sprints:** 83 (SP-001–SP-085 issued; SP-068 skipped; SP-083 was brought forward ahead of SP-082)
+- **Closed:** 82 ✅ (incl. SP-056, closed 2026-07-27 — EP-019 AC6)
+- **Active:** 0 🟡
+- **Planned:** 1 🔵 (SP-085 EP-029 `[Cross]` — design doc; next to activate)
+- **Planning:** 1 🔵 (SP-057 EP-019 `[Apple]` — history panel + verify + Epic close; **EP-019 held pending**)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-24 (**SP-082 planned + activated** — EP-025 `[Linux]` Timeline Panel, 4th sprint,
+*Last Updated: 2026-07-27 (**SP-056 ✅ closed (Human-approved) — EP-019 AC6 Verified; SP-085 planned under new
+EP-029.** SP-056 delivered multiple copy buffers (T-0213 + T-0214 both Verified live): explicit ⌘1–9 copy /
+⌃1–9 paste / ⌥1–9 cut chords (buffer 0 = the untouched system pasteboard), an app-global Copy Buffers palette
+(follows the frontmost project), Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items, and a
+bufferID-tagged `cut` history event (backend `scrivi_history_record_event` + node schema extended). ctest 327 +
+interop 43 green. A cross-boundary Cut/Copy/Paste gap surfaced during verify → new Epic **EP-029** `[Cross]`; its
+design sprint **SP-085** is planned (design doc `Scrivi_Structured_CutCopyPaste_Design_v0_1.md`, task T-0350) and
+awaits activation. EP-019 is **held pending** its final sprint SP-057. Total Sprints 82→83; Active 1→0; next
+available Sprint **SP-086**. Prior note follows.)*
+
+*2026-07-24 (**EP-019 `[Apple]` un-deferred → SP-056 activated** (user request: lock copy buffers
+on Apple before Linux). SP-056 (6th of 7 EP-019 sprints) delivers **AC6** — vim/emacs-register-style multiple
+copy buffers: 9 per-project persistent slots (`history/buffers.json`), keyboard HUD + palette + Edit-menu UX
+(Trade T4), copy≠event/cut=event/paste=ordinary-event (Trade T3), system pasteboard untouched. Tasks T-0213
+(`BufferStore` + `scrivi_buffers_*` C ABI + engine wrappers + interop) + T-0214 (buffer UX + history
+integration). Backend greenfield-but-small (peer to the built `HistoryStore`); Apple-only (Linux copy buffers =
+EP-026). Active 0→1, Planning 2→1. Next available Sprint **SP-085**. Prior note follows.)*
+
+*2026-07-24 (**SP-084 ✅ closed (Human-approved) — this closed EP-025.** The 5th and final EP-025
+sprint delivered **AC6b** (co-located dot clustering — aggregate dot + hover fan-out + zoom-resolve, Apple
+T-0174 — + a persistence sweep + full EP-025 verify); T-0346–T-0349 all Verified live; four clustering findings
+fixed + re-verified same session (incl. a phantom double-draw defect). Container green (216/216) + new
+`timeline_cluster_smoke` + 14 regression smokes PASS; `scrivi.h` untouched; no pbxproj. **EP-025 CLOSED** — all
+ACs AC1–AC6b Verified across six sprints; archived `../Epics/Closed/Epic-EP-025.md`. Closed 80→81, Active 1→0
+(no active sprint or Epic). Next available Sprint **SP-085**. Records: `Closed/Sprint-SP-084.md`. Prior note
+follows.)*
+
+*2026-07-24 (**SP-082 ✅ closed (Human-approved) + SP-084 planned + activated** — EP-025 `[Linux]`
+Timeline Panel. **SP-082** (4th sprint) delivered **AC5** — historical events (author/edit/delete + `#C8A97A`
+draggable dots + context menus), imported timelines (grey rows below, per-source shade, window-clip,
+`EpochOffsetDialog`, hide/show, edit-offset, remove), export, + File ▸ Import/Export menu items (T-0345);
+T-0340–T-0345 all Verified live; two findings fixed + re-verified same day (I-0090 imported row behind the
+scrollbar, I-0091 dialogs defaulted to `/root`); container green (211/211) + `timeline_events_smoke` + 11
+regression smokes PASS; archived `Closed/Sprint-SP-082.md`. **SP-084** now active (5th and final sprint):
+co-located dot **clustering** (aggregate dot — larger core + count + segmented arc ring + selection arc, hover
+fan-out, zoom-resolve; Apple T-0174) + **persistence sweep** + **full EP-025 verify** + **Epic close**; delivers
+**AC6b**; tasks T-0346–T-0349; new `timeline_cluster_smoke`; `scrivi.h` untouched; no pbxproj. Closed 79→80,
+Active stays 1 (SP-082→SP-084); next available **SP-085**. Prior note follows.)*
+
+*2026-07-24 (**SP-082 planned + activated** — EP-025 `[Linux]` Timeline Panel, 4th sprint,
 delivering **AC5**: historical events (author/edit/delete + `#C8A97A` draggable dots + context menus), imported
 timelines (grey rows below, per-source shade, window-clip, `EpochOffsetDialog`, hide/show, edit-offset, remove),
 and export (`.scrivi-timeline.json` → re-import round-trip). Tasks T-0340–T-0344; timeline-events C ABI complete

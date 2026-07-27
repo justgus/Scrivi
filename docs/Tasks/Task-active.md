@@ -1,46 +1,60 @@
 # Active Tasks
 
-**Epic:** EP-025 `[Linux]` (Timeline Panel) — **active sprint:** SP-082 (historical events + imported
-timelines + export, **AC5**) (`Sprints/Sprint-active.md`).
+**No active sprint.** **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers) is **held pending**
+its final sprint SP-057 — **SP-056 ✅ closed 2026-07-27 (AC6 Verified)**. The next work is the newly-opened
+**EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste), whose design-doc sprint **SP-085** is planned
+and awaits your go-ahead to activate (`../Epics/Epic-active.md`).
 
-**SP-082** `[Linux]` — historical events + imported timelines + export (AC5); C ABI complete (EP-016,
-`scrivi.h` 270–291, untouched); clustering + Epic close carved out to SP-084:
+**SP-056** `[Apple]` — multiple copy buffers (**AC6**) ✅ **CLOSED 2026-07-27 (Human-approved).** Delivered
+vim/emacs-register-style copy buffers, refined at implementation to **three explicit chords** (user
+2026-07-25/27). Source of truth: `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` §9 + Trades T3/T4 +
+Appendix A.3 (with the approved chord refinement noted in SP-056).
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0340 | **`[Linux]` Timeline-events bridge invokables** — `ScriviBridge` wrappers over the EP-016 C ABI: `createHistoricalEvent`/`updateHistoricalEvent`/`deleteHistoricalEvent`/`listHistoricalEvents` + `importExternalTimeline`/`updateImportedTimelineOffset`/`setImportedTimelineVisible`/`listImportedTimelines`/`removeImportedTimeline`/`exportProjectTimeline`. Each `parseEnvelope`s, RAII `scrivi_free`, `errorOccurred` on failure, `ready_` guard, no identity (empty identity args). `scrivi.h` untouched. | ✅ Verified (2026-07-24, VNC) |
-| T-0341 | **`[Linux]` Historical-event dots + author/edit/delete** — `TimelinePanel` renders historical events as `#C8A97A` filled dots (distinct from scene accent + imported grey, §7.2), draggable in story time (`HistHorizontal` drag → `historicalEventDragged(eventID, newOffsetMs)`) + hover tooltip. Empty-area menu **"New Historical Event Here"** (§7.9); historical-dot menu **Edit / Delete** (§7.7) → a `HistoricalEventDialog` (title, description, tags). Fed via `reloadTimeline` (`listHistoricalEvents`); tags read from disk on Edit (list drops them). | ✅ Verified (2026-07-24, VNC) |
-| T-0342 | **`[Linux]` Imported-timeline rows + epoch-offset dialog + hide/show** — one **grey row below** the project row per import (source-name label, per-source `assignedGreyShade`, dots **window-clipped** §6.7, read-only, tooltip = title + source + computed time). **Import Timeline…** (§7.9) → `QFileDialog` → **`EpochOffsetDialog`** (source name + epoch label + signed offset + in/out-of-window preview, FR-067) → `importExternalTimeline`. Row menu (§7.8): **Edit Epoch Offset… / Hide This Timeline / Remove Imported Timeline**; **Show Hidden Timelines** submenu on the empty-area menu (un-hide path, FR-065). Events read from the stored files (list is metadata-only). Min-height grows one row per visible import (FR-064). | ✅ Verified (2026-07-24, VNC) |
-| T-0343 | **`[Linux]` Export timeline** — **Export Timeline…** (§7.9) → `exportProjectTimeline` (scene + historical events, no prose/identity, §6.6/FR-069) → `QFileDialog` save-as writes `.scrivi-timeline.json`. An exported file re-imports (T-0342) into another project (smoke round-trips it). | ✅ Verified (2026-07-24, VNC) |
-| T-0344 | **`[Linux]` Wire-up + `timeline_events_smoke` + verify** — `reloadTimeline` also loads historical events (`reloadImportedTimelines`) + imported rows; new headless **`timeline_events_smoke`** (create/update/delete a historical event round-trips; import a fixture → stored + metadata + on-disk file; hide/show + update-offset persist; export → valid `scrivi.externalTimeline.v1` carrying the surviving historical event; remove clears) + CMake + CI. **Container green + smoke PASS; live VNC walkthrough pending.** Closes AC5. | ✅ Verified (2026-07-24, VNC) |
-| T-0345 | **`[Linux]` File ▸ Import / Export Timeline… menu items** (user request 2026-07-24) — import/export are **file** ops, so they join **File** (below Close Project, own separator group) on the SP-077 menu bar, not only the timeline right-click. Editor-only (`editorOnlyActions_`); each forwards to new public `EditorShell::importTimeline()`/`exportTimeline()` → the T-0342/T-0343 flow. Panel empty-area entries kept (both homes). Container green (211/211) + app-launch OK. | ✅ Verified (2026-07-24, VNC) |
+| T-0213 | **`[ScriviCore]`+`[Apple]` Copy-buffer store + C ABI + engine wrappers** — `BufferStore` owns `history/buffers.json` (`scrivi.buffers.v1`); C ABI `scrivi_buffers_load/_get/_list/_clear`; `ScriviEngine` wrappers + interop. | ✅ **Verified (2026-07-27)** |
+| T-0214 | **`[Apple]` Buffer UX — palette + Edit/Scene/Chapter menu items + explicit ⌘/⌃/⌥1–9 chords + history integration.** ⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut (buffer 0 = system pasteboard); app-global Copy Buffers palette (View ▸ Show Buffers / ⌥⌘B; per-project reload; modifier-sensitive action button + clear); Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items. Trade T3: copy = no event, paste = `paste` event, cut = `cut` event **tagged with bufferID** (backend `scrivi_history_record_event` + history-node schema extended). System pasteboard untouched; buffers persist per project + across relaunch. Closes **AC6**. | ✅ **Verified (2026-07-27)** |
 
-**Verification (2026-07-24):** ✅ **build green** (Qt 6.4: **211/211** targets, `scrivi_linux` +
-`scrivi_linux_timeline_events_smoke` linked); ✅ **new `timeline_events_smoke` PASS** (historical CRUD list
-round-trip; import fixture → stored + metadata + on-disk file; hide/show + offset persist; export a valid
-`scrivi.externalTimeline.v1` carrying the surviving historical event; remove → list empty); ✅ **all 11
-regression smokes PASS**; ✅ **headless app-launch OK**. ✅ **Live VNC walkthrough COMPLETE** — Human verified
-all six tasks on `the-twisted-remains-of-myself`: historical events author/drag/edit/delete (`#C8A97A` dots);
-imported grey rows (two sources, per-source shade); export + import round-trip; File ▸ Import/Export Timeline…
-menu items. **Two findings surfaced + fixed + re-verified same day: I-0090** (imported row hidden behind the
-zoom scrollbar) + **I-0091** (file dialogs defaulted to `/root`). **AC5 met; SP-082 awaiting Human close
-approval. Next available Task after SP-082: T-0346.** `scrivi.h` untouched (C ABI complete from EP-016); no
-pbxproj (Linux-only).
+**Planning note (2026-07-27):** SP-056 is closed and **AC6 Verified**. Two follow-on tracks are queued:
+1. **EP-019 SP-057** (held) — history panel (T-0215) + perf fixtures (T-0216) + AC2/AC7/AC8 verify + Epic close.
+   Deliberately **held** so EP-029 is planned first.
+2. **EP-029** `[Cross]` (new, opened 2026-07-27) — cross-boundary structured Cut/Copy/Paste. Gap surfaced during
+   SP-056 verify: the manuscript is one `NSTextStorage` with dividers + non-editable headings, so ⌘C/⌘X and
+   buffer copy/cut across scene/chapter boundaries don't behave as a writer expects. User decision: manuscript
+   behaves as one monolithic document — **structured** buffers (scene/chapter markers), **cut-that-merges**,
+   **paste-that-splits**. Reuses EP-027 (identity/order) + EP-028 (`SceneMerger`/`ChapterMerger`). 5 sprints
+   planned (SP-085 design → SP-086 extract → SP-087 paste-splice → SP-088 cut-merge → SP-089 Apple wiring).
+   **First task T-0350** (design doc, SP-085). Full plan: `../Epics/Epic-active.md` (EP-029). **Next available
+   Task: T-0351.**
 
-**Design/impl notes (2026-07-24):**
-- **The C ABI was already complete** (EP-016/SP-039): all 10 endpoints at `scrivi.h` 270–291. T-0340 added only
-  Qt bridge wrappers; `scrivi.h` untouched.
-- **Envelope-shape findings** (confirmed against `scrivi_c_api.cpp` at planning, guarded by the smoke): the two
-  list endpoints return **metadata only** as a nested JSON string — `listHistoricalEvents` → `{count,
-  eventsJSON}` where `eventsJSON` = `{"events":[…]}` **without tags/slug**; `listImportedTimelines` → `{count,
-  timelinesJSON}` = `{"timelines":[…metadata + eventCount…]}` **without the per-event array**. So per-event data
-  is read **directly from the stored files** in `objects/historical-events/` and `objects/imported-timelines/`
-  — **Apple's own pattern** (its `loadImportedTimelines` comment: "the stored files include events;
-  listImportedTimelines returns metadata only"). **No C ABI gap.**
-- **Tags** are accepted/stored by create/update but dropped by the list projection → the Edit dialog reads tags
-  from the on-disk event file to prefill accurately; `tagsToJson` sends the `{"tags":[…]}` wrapper.
-- **New files** (Linux CMake, not pbxproj): `HistoricalEventDialog.{cpp,hpp}`, `EpochOffsetDialog.{cpp,hpp}`,
-  `tests/timeline_events_smoke.{cpp,sh}`. New CI step wired.
+---
+
+**SP-084 (EP-025 `[Linux]`) ✅ closed 2026-07-24 (Human-approved) — this closed EP-025.** Archived to
+`Closed/Sprint-SP-084.md`. Delivered **AC6b** — co-located dot **clustering**: the aggregate dot (larger core +
+member count + segmented arc ring + selection arc, Apple T-0174), **hover fan-out** into the hexagonal ring, and
+**zoom-resolve**. T-0346–T-0349 all ✅ Verified live over VNC. Four clustering findings fixed + re-verified same
+session — larger-diameter aggregate-of-aggregates clustering; the fan drawn as an **overlay** on a **grey backing
+disc**; a tighter fan **dismiss** (keep-region = the disc); and the **phantom double-draw** defect (the skip-set
+excluded the fanned aggregate → its members drew twice; fixed so all aggregate members are skipped from the
+baseline loops, the ring being the sole draw). All recorded as sprint findings (not I-numbers — caught
+mid-review of un-accepted tasks). Container green (216/216) + new `timeline_cluster_smoke` + 14 regression
+smokes + app-launch PASS; `scrivi.h` untouched (C ABI complete from EP-016); no pbxproj (Linux-only). **Key
+decision:** persistence needed no new smoke — existing smokes prove backend persistence + SP-083 proved zoom/pan;
+the live walkthrough confirmed the full close/reopen restore. New file: `timeline_cluster_smoke`.
+
+---
+
+**SP-082 (EP-025 `[Linux]`) ✅ closed 2026-07-24 (Human-approved).** Archived to `Closed/Sprint-SP-082.md`.
+Delivered **AC5** — historical events (author/edit/delete + `#C8A97A` draggable dots + context menus), imported
+timelines (grey rows below the project row, per-source shade, window-clip, `EpochOffsetDialog` on import,
+hide/show, edit-offset, remove, Show-Hidden un-hide), export (`.scrivi-timeline.json` → re-import round-trip),
+and File ▸ Import/Export Timeline… menu items. T-0340–T-0345 all ✅ Verified live over VNC. Two findings fixed +
+re-verified same day: **I-0090** (imported row hidden behind the zoom scrollbar — reserve a 24px bottom controls
+band) + **I-0091** (file dialogs defaulted to `/root` — seed with the project's parent folder). Container green
+(211/211) + new `timeline_events_smoke` + 11 regression smokes PASS; `scrivi.h` untouched (C ABI complete from
+EP-016); no pbxproj (Linux-only). **Key finding:** the two list endpoints are **metadata-only** (events/tags read
+from the stored files — Apple's own pattern; no C ABI gap). New files: `HistoricalEventDialog`,
+`EpochOffsetDialog`, `timeline_events_smoke`.
 
 ---
 
@@ -200,11 +214,27 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-24 (**SP-082 planned + activated** — EP-025 `[Linux]` Timeline Panel, 4th sprint,
-delivering **AC5**: historical events (author/edit/delete + `#C8A97A` draggable dots + context menus), imported
-timelines (grey rows below, per-source shade, window-clip, epoch-offset dialog, hide/show, edit-offset, remove),
-and export (`.scrivi-timeline.json` → re-import round-trip). Tasks **T-0340–T-0344**. The full timeline-events C
-ABI is exported (EP-016, `scrivi.h` 270–291) → `scrivi.h` untouched; T-0340 adds Qt bridge wrappers only; new
-`timeline_events_smoke`; no pbxproj (Linux-only). Clustering + panel-persistence sweep + Epic close carved out
-to **SP-084** (user decision). **SP-081 + SP-083 ✅ both closed 2026-07-23** (AC4 + AC6a; archived). Next
-available Task after SP-082: **T-0345**. Prior notes below retained for reference.)*
+*Last Updated: 2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-029 opened + SP-085 planned.** T-0213 +
+T-0214 both ✅ Verified live: multiple copy buffers delivered as explicit ⌘1–9/⌃1–9/⌥1–9 (copy/paste/cut) chords
++ app-global per-project palette + Edit/Scene/Chapter menu items + bufferID-tagged cut event (backend schema
+extended); ctest 327 + interop 43 green. EP-019 **held pending** SP-057 (AC2/AC7/AC8 verify + history panel +
+close). New Epic **EP-029** `[Cross]` (cross-boundary structured Cut/Copy/Paste — gap surfaced during SP-056
+verify) opened; design sprint **SP-085** planned (task T-0350, design doc first). Next available Task T-0351.
+Prior note follows.)*
+
+*2026-07-24 (**EP-019 `[Apple]` un-deferred + SP-056 activated** — resumed from the backlog (user
+request: lock copy buffers on Apple before Linux). SP-056 delivers **AC6** (multiple copy buffers): T-0213
+(`BufferStore` + `scrivi_buffers_*` C ABI + `ScriviEngine` wrappers + interop) + T-0214 (keyboard HUD + palette
++ Edit-menu UX + history integration; Trades T3/T4). Backend greenfield-but-small (peer to the built
+`HistoryStore`); Apple-only (Linux copy buffers = EP-026); build/test via `xcodebuild` + `ctest`. **Same day:
+SP-084 ✅ closed → EP-025 closed** (below). Next available Task after SP-056: **T-0350**. Prior notes below
+retained for reference.)*
+
+*2026-07-24 (**SP-084 ✅ closed (Human-approved) — this closed EP-025.** The 5th and final EP-025
+sprint delivered **AC6b**: co-located dot **clustering** (aggregate dot per Apple T-0174 — larger core + count +
+segmented arc ring + selection arc; hover fan-out; zoom-resolve) + a persistence sweep + full EP-025 verify;
+T-0346–T-0349 all Verified live; four clustering findings fixed + re-verified same session (incl. a phantom
+double-draw defect). Container green (216/216) + new `timeline_cluster_smoke` + 14 regression smokes PASS;
+`scrivi.h` untouched; no pbxproj. **EP-025 CLOSED** — AC1–AC6b all Verified across six sprints; archived
+`../Epics/Closed/Epic-EP-025.md`. **No active sprint or Epic**; next in line EP-026 `[Linux]` (Draft). Next
+available Task **T-0350**; next Sprint **SP-085**. Prior notes below retained for reference.)*

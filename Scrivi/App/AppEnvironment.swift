@@ -48,7 +48,43 @@ import UniformTypeIdentifiers
     // per-window View toggles. Set by each AppKit window when it becomes key; cleared
     // when its project closes or the Welcome window is frontmost. (AppKit windows don't
     // feed SwiftUI's @FocusedValue, so we track focus explicitly.)
-    var frontmostSession: ProjectSession?
+    var frontmostSession: ProjectSession? {
+        didSet { syncBuffersPalette() }   // re-point the palette at the new front project
+    }
+
+    #if os(macOS)
+    // The floating Copy Buffers palette (EP-019 SP-056, T-0214). It is app-global — ONE
+    // panel that always mirrors the frontmost project's buffers — rather than one per
+    // window, so switching projects (window or tab) re-points it at the front project's
+    // slots. Owned here (not per editor view) so the single panel outlives any one window
+    // and follows focus.
+    let buffersPanel = BuffersPanelController()
+
+    // Whether the Copy Buffers palette is shown. App-global (the panel is a single shared
+    // surface). Toggled from View ▸ Show Buffers / ⌥⌘B.
+    var buffersPaletteVisible: Bool = false {
+        didSet { syncBuffersPalette() }
+    }
+
+    // Opens/closes/re-points the palette to match buffersPaletteVisible + the frontmost
+    // project. Shown only when a project is front (its BufferService exists); when the
+    // front window has no project (Welcome) the panel hides but the toggle state is kept,
+    // so returning to a project restores it. Row actions route to the FRONT project's
+    // BufferService each call, so they always act on the visible project.
+    func syncBuffersPalette() {
+        guard buffersPaletteVisible, let service = frontmostSession?.bufferService else {
+            buffersPanel.close()
+            return
+        }
+        buffersPanel.show(
+            service: service,
+            onPaste: { service.pasteFromBufferHandler?($0) },
+            onLoadFromSelection: { service.loadSelectionHandler?($0) },
+            onCut: { service.cutIntoBufferHandler?($0) },
+            onClear: { service.clear(slot: $0) },
+            onClose: { [weak self] in self?.buffersPaletteVisible = false })
+    }
+    #endif
 
     // Bridges `openWindow(id: "welcome")` so orchestration can reopen the Welcome window
     // when the last project closes. Installed by the scene on appear.

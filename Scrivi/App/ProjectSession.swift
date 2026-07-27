@@ -43,6 +43,22 @@ import os
     // via the session and drive capture/undo/redo.
     var historyCapture: HistoryCapture?
 
+    // Multiple copy buffers (EP-019 SP-056) — created on load, cleared on close.
+    // Owns the in-memory mirror of the persistent slots 1–9; the editor coordinator
+    // and the buffers palette both drive it via the session. The palette VISIBILITY is
+    // app-global (AppEnvironment.buffersPaletteVisible) since one floating panel follows
+    // the frontmost project — the session only owns the per-project buffer data.
+    var bufferService: BufferService?
+
+    // Structural editing bridges (EP-019 SP-056, T-0214) — installed by the editor
+    // coordinator so the menu bar can invoke the same scene/chapter operations the
+    // ⌘↩ / ⌘⇧↩ / ⌘⌫ / ⌘⇧⌫ keyboard commands do, for writers who prefer the mouse.
+    // nil until the manuscript view's coordinator is live. Menu items disable when nil.
+    var createSceneAction:  (() -> Void)?
+    var createChapterAction: (() -> Void)?
+    var mergeSceneAction:   (() -> Void)?
+    var mergeChapterAction: (() -> Void)?
+
     // Scene a pending deep link wants selected once the project is open.
     // EditorView observes this and forwards it into its navigation.
     var pendingNavigationSceneID: String?
@@ -113,6 +129,10 @@ import os
         capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
         historyCapture = capture
 
+        // Multiple copy buffers (EP-019 SP-056): mirror the persistent slots 1–9 for
+        // this project. Reads history/buffers.json (empty when none loaded yet).
+        bufferService = BufferService(engine: engine, projectRootPath: path)
+
         // Donate the project's indexable content to Spotlight (best-effort).
         donateSpotlight(projectRootPath: path)
         return result
@@ -133,6 +153,8 @@ import os
 
         historyCapture?.close()
         historyCapture = nil
+
+        bufferService = nil
 
         openProjectResult = nil
         projectRootPath = nil

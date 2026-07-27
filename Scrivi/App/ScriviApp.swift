@@ -152,13 +152,40 @@ struct ScriviApp: App {
             .disabled(focusedSession == nil)
         }
 
-        // View menu — toggles act on the focused project window.
+        // Scene / Chapter menus (EP-019 SP-056, T-0214) — mouse-accessible equivalents of
+        // the manuscript's structural keyboard commands, for writers who prefer the menu.
+        // We do NOT attach the ⌘↩/⌘⌫ key equivalents here: those chords are owned by the
+        // editor's proven keyDown path, and a SwiftUI menu key equivalent would intercept
+        // the event before keyDown, risking a double-fire (two scenes) or a regression if
+        // the menu ever fails to fire. The chord is shown in the title text instead. The
+        // menu action routes to the same coordinator handler via the session bridge.
+        // Merge acts on the caret's scene/chapter and no-ops when the caret isn't at a
+        // valid merge point (start of a non-first scene/chapter), matching the keys.
+        CommandMenu("Scene") {
+            Button("New Scene  (⌘↩)") { focusedSession?.createSceneAction?() }
+                .disabled(focusedSession?.createSceneAction == nil)
+            Button("Merge Scene with Previous  (⌘⌫)") { focusedSession?.mergeSceneAction?() }
+                .disabled(focusedSession?.mergeSceneAction == nil)
+        }
+
+        CommandMenu("Chapter") {
+            Button("New Chapter  (⇧⌘↩)") { focusedSession?.createChapterAction?() }
+                .disabled(focusedSession?.createChapterAction == nil)
+            Button("Merge Chapter with Previous  (⇧⌘⌫)") { focusedSession?.mergeChapterAction?() }
+                .disabled(focusedSession?.mergeChapterAction == nil)
+        }
+
+        // View menu — toggles act on the focused project window. Inspector/Timeline are
+        // per-window (session); the buffers palette is app-global (one panel that follows
+        // the frontmost project), so its toggle binds to AppEnvironment, not the session.
         CommandMenu("View") {
             if let session = focusedSession {
                 Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
                     .keyboardShortcut("i", modifiers: [.command, .option])
                 Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
                     .keyboardShortcut("t", modifiers: [.command, .option])
+                Toggle("Show Buffers", isOn: Bindable(env).buffersPaletteVisible)
+                    .keyboardShortcut("b", modifiers: [.command, .option])
             } else {
                 Toggle("Show Scene Inspector", isOn: .constant(false))
                     .keyboardShortcut("i", modifiers: [.command, .option])
@@ -166,7 +193,49 @@ struct ScriviApp: App {
                 Toggle("Show Timeline", isOn: .constant(false))
                     .keyboardShortcut("t", modifiers: [.command, .option])
                     .disabled(true)
+                Toggle("Show Buffers", isOn: .constant(false))
+                    .keyboardShortcut("b", modifiers: [.command, .option])
+                    .disabled(true)
             }
+        }
+
+        // Edit menu — copy-buffer discoverability items (EP-019 SP-056, T-0214). The
+        // three submenus are the discoverable face of the ⌘/⌃/⌥ + digit chords. We do
+        // NOT attach the digit key equivalents here: the chords are owned by the editor's
+        // keyDown (a menu key equivalent fires before the responder chain and would
+        // shadow the editor path); the chord is named in each submenu's header instead.
+        // Clicking a menu item performs that one explicit action on the front project.
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Menu("Copy To Buffer") {
+                Text("⌘1–9 — copy the selection")
+                ForEach(BufferService.slotIDs, id: \.self) { slotID in
+                    Button("Buffer \(slotID)") {
+                        focusedSession?.bufferService?.loadSelectionHandler?(slotID)
+                    }
+                }
+            }
+            .disabled(focusedSession?.bufferService == nil)
+
+            Menu("Paste From Buffer") {
+                Text("⌃1–9 — paste at the cursor")
+                ForEach(BufferService.slotIDs, id: \.self) { slotID in
+                    Button("Buffer \(slotID)") {
+                        focusedSession?.bufferService?.pasteFromBufferHandler?(slotID)
+                    }
+                }
+            }
+            .disabled(focusedSession?.bufferService == nil)
+
+            Menu("Cut To Buffer") {
+                Text("⌥1–9 — cut the selection")
+                ForEach(BufferService.slotIDs, id: \.self) { slotID in
+                    Button("Buffer \(slotID)") {
+                        focusedSession?.bufferService?.cutIntoBufferHandler?(slotID)
+                    }
+                }
+            }
+            .disabled(focusedSession?.bufferService == nil)
         }
 
         // About menu.

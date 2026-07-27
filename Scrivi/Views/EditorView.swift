@@ -52,6 +52,13 @@ private struct ManuscriptEditorView: View {
         // .onChange covers a link that arrives while the editor is already shown.
         .onAppear { consumePendingNavigation() }
         .onChange(of: session.pendingNavigationSceneID) { _, _ in consumePendingNavigation() }
+        #if os(macOS)
+        // The buffers palette is app-global (owned by AppEnvironment, follows the
+        // frontmost project). Once this editor's BufferService has installed its
+        // paste/load handlers (makeNSView), re-sync so a palette opened before this
+        // window's coordinator existed re-points at the now-ready service.
+        .onAppear { env.syncBuffersPalette() }
+        #endif
     }
 
     // MARK: — Platform container
