@@ -21,6 +21,10 @@ import Foundation
         didSet { save() }
     }
 
+    // True when this project had no persisted preferences yet (first open on this machine).
+    // ProjectSession uses it to decide whether to seed the display title from project.json.
+    let hadNoStoredPreferences: Bool
+
     init(projectID: String) {
         self.projectID = projectID
         let key = Self.key(for: projectID)
@@ -29,11 +33,24 @@ import Foundation
             showChapterTitles = stored.showChapterTitles
             projectTitle      = stored.projectTitle
             projectSubtitle   = stored.projectSubtitle
+            hadNoStoredPreferences = false
         } else {
             showChapterTitles = false
             projectTitle      = ""
             projectSubtitle   = ""
+            hadNoStoredPreferences = true
         }
+    }
+
+    // Seeds the display title from the on-disk project.json title (I-0093) when the writer has
+    // not already set one on this machine — so a project shows its real name instead of "Untitled".
+    // Only applies when there were no stored preferences and the incoming title is non-empty; an
+    // explicit later rename in Project Settings (persisted to UserDefaults) always wins.
+    func seedTitleFromSchemaIfUnset(_ schemaTitle: String) {
+        guard hadNoStoredPreferences,
+              projectTitle.trimmingCharacters(in: .whitespaces).isEmpty,
+              !schemaTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        projectTitle = schemaTitle
     }
 
     private func save() {

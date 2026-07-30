@@ -99,11 +99,17 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Keep coordinator current so delegate callbacks always see the latest env and loader.
         coordinator.parent = self
 
-        // Rebuild text storage when segment list or chapter title toggle changes.
+        // Rebuild text storage when the segment list, the chapter-title toggle, or any chapter
+        // title changes. A rename leaves the segment IDs identical (same scenes, new heading text),
+        // so the title fingerprint is what forces the heading to refresh after a rename (I-0095).
         let segIDs = loader.segments.map(\.id)
-        if segIDs != coordinator.lastSegmentIDs || showChapterTitles != coordinator.lastShowChapterTitles {
+        let chapterTitleFingerprint = coordinator.chapterHeadingFingerprint(for: loader)
+        if segIDs != coordinator.lastSegmentIDs
+            || showChapterTitles != coordinator.lastShowChapterTitles
+            || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint {
             coordinator.lastSegmentIDs = segIDs
             coordinator.lastShowChapterTitles = showChapterTitles
+            coordinator.lastChapterTitleFingerprint = chapterTitleFingerprint
             coordinator.rebuildStorage(tv, segments: loader.segments)
         }
 
@@ -139,6 +145,22 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         var lastSegmentIDs: [String] = []
         var lastShowChapterTitles: Bool = false
+        // Fingerprint of the resolved chapter headings (ordered chapterID→title pairs). A rename
+        // changes a title without changing any segment ID, so this is what makes updateNSView
+        // rebuild the storage — and thus refresh the heading — after a rename (I-0095).
+        var lastChapterTitleFingerprint: String = ""
+
+        // Ordered "chapterID=title" join across the loaded scenes — the raw stored titles the
+        // heading builder reads (empty titles included, so a cleared title also shifts the print
+        // and triggers a rebuild). Cheap: one pass over allScenes, deduped by chapter.
+        func chapterHeadingFingerprint(for loader: ViewportSceneLoader) -> String {
+            var seen = Set<String>()
+            var parts: [String] = []
+            for info in loader.allScenes where seen.insert(info.chapterID).inserted {
+                parts.append("\(info.chapterID)=\(info.chapterTitle)")
+            }
+            return parts.joined(separator: "\u{1f}")
+        }
         private var saveTask: Task<Void, Never>?
         private var titleTask: Task<Void, Never>?
         private var highlightTask: Task<Void, Never>?
@@ -1234,6 +1256,207 @@ struct ManuscriptTextView: NSViewRepresentable {
             attachment.attachmentCell = DividerAttachmentCell()
             return attachment
         }
+
+        // MARK: — Cross-boundary Cut/Copy/Paste support (EP-029 SP-089, T-0354)
+        //
+        // The manuscript is one NSTextStorage; sceneBoundaries[i] is scene i's storage char
+        // range (dividers/headings sit OUTSIDE those ranges). A selection is "cross-boundary"
+        // when it overlaps more than one scene's range — then Cut/Copy/Paste route through the
+        // ScriviCore fragment endpoints. A single-scene selection keeps the existing fast path
+        // (AC5).
+
+        // True if `sel` overlaps more than one scene boundary (i.e. spans a divider/heading).
+        func selectionCrossesBoundary(_ sel: NSRange) -> Bool {
+            guard sel.length > 0 else { return false }
+            var touched = 0
+            for range in sceneBoundaries where NSIntersectionRange(range, sel).length > 0 {
+                touched += 1
+                if touched > 1 { return true }
+            }
+            return false
+        }
+
+        // True if the caret at storage offset `loc` sits inside a non-editable scriviHeading run.
+        func caretInHeading(_ loc: Int) -> Bool {
+            guard let storage = textView?.textStorage, loc < storage.length else { return false }
+            return storage.attribute(.scriviHeading, at: loc, effectiveRange: nil) != nil
+        }
+
+        // Map a storage selection to ordered per-scene byte spans (reading order). Each span is
+        // (sceneID, startByte, endByte) with scene-local UTF-8 byte offsets. Only scenes the
+        // selection actually overlaps produce a span. Returns nil if any overlapped boundary has
+        // no backing segment (should not happen; guards against a rebuild race).
+        func fragmentSpans(for sel: NSRange) -> [FragmentSpanArg]? {
+            guard let tv = textView else { return nil }
+            let ns = tv.string as NSString
+            var spans: [FragmentSpanArg] = []
+            for (i, range) in sceneBoundaries.enumerated() {
+                let inter = NSIntersectionRange(range, sel)
+                if inter.length == 0 {
+                    // Include a zero-length touch only when the selection edge lands exactly at a
+                    // scene start inside the selection (a boundary crossed with 0 chars selected).
+                    let atStart = sel.location <= range.location && range.location < sel.location + sel.length
+                    if !(atStart) { continue }
+                }
+                guard parent.loader.segments.indices.contains(i) else { return nil }
+                let seg = parent.loader.segments[i]
+                // Scene-local char offsets, then convert each to a UTF-8 byte offset in the body.
+                let startChar = max(0, (inter.length == 0 ? range.location : inter.location) - range.location)
+                let endChar   = max(startChar, (inter.length == 0 ? range.location : inter.location + inter.length) - range.location)
+                let startByte = byteOffset(charOffset: startChar, in: seg.text)
+                let endByte   = byteOffset(charOffset: endChar,   in: seg.text)
+                spans.append(.init(sceneID: seg.sceneID, start: startByte, end: endByte))
+                _ = ns  // (kept for clarity; spans derive from the loader's canonical scene text)
+            }
+            return spans.isEmpty ? nil : spans
+        }
+
+        // Scene-local UTF-16 char offset → scene-local UTF-8 byte offset (history's convention).
+        private func byteOffset(charOffset: Int, in sceneText: String) -> Int {
+            let nsText = sceneText as NSString
+            let clamped = max(0, min(charOffset, nsText.length))
+            return nsText.substring(to: clamped).utf8.count
+        }
+
+        // Reload the whole manuscript from disk after a structural fragment op (cut/paste create
+        // or delete scenes+chapters). Re-opens the project → fresh scene list → rebuilds storage,
+        // then places the caret at `caretSceneID` + scene-local byte offset. The robust path (vs
+        // the in-memory patching the single merge/split handlers do — too fragile for N scenes).
+        func reloadManuscriptFromDisk(caretSceneID: String, caretByteOffset: Int) {
+            guard let tv = textView else { return }
+            let loader = parent.loader
+            let session = parent.session
+            guard let rootPath = session.projectRootPath else { return }
+            let appSupport = session.appSupportRoot
+
+            // Re-open to get the authoritative post-op scene list.
+            guard let reopened = try? parent.env.engine.openProject(
+                projectRootPath: rootPath, appSupportRoot: appSupport) else {
+                print("[Scrivi] reloadManuscriptFromDisk: openProject failed")
+                return
+            }
+            loader.replaceScenes(reopened.scenes, activeSceneID: caretSceneID)
+            rebuildStorage(tv, segments: loader.segments)
+            recomputeBoundaries(tv)
+
+            // Place the caret at the target scene + scene-local byte offset.
+            if let segIdx = loader.segments.firstIndex(where: { $0.sceneID == caretSceneID }),
+               sceneBoundaries.indices.contains(segIdx) {
+                let base = sceneBoundaries[segIdx].location
+                let charOff = charOffsetForByteOffset(caretByteOffset, in: loader.segments[segIdx].text)
+                placeCursorAt(base + charOff, in: tv)
+                loader.setCurrentIndex(segIdx)
+                loader.setViewportScene(caretSceneID)
+            }
+
+            // Keep the timeline in sync (scene set changed).
+            session.timelineModel?.reloadSceneDots(
+                engine: parent.env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+            session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+        }
+
+        // The internal structured clipboard (T2=A): a fragment placed by a cross-boundary ⌘C/⌘X.
+        // The system pasteboard carries only the flat plainText for external apps; the structured
+        // fragment lives here so an internal ⌘V can reconstruct boundaries. Nil until a
+        // cross-boundary copy/cut runs; a single-scene copy/cut clears it (so ⌘V falls back to the
+        // plain system-pasteboard path).
+        private var internalClipboardFragment: FragmentResult?
+
+        // Flash the screen + beep and do NOT paste — the caret sits in a non-editable chapter
+        // heading (§4.2, §10 Q2, user ruling 2026-07-27). Leaves the caret where it is.
+        private func flashRefuse(_ tv: NSTextView) {
+            NSSound.beep()
+            if let layer = tv.enclosingScrollView?.layer ?? tv.layer {
+                let flash = CABasicAnimation(keyPath: "backgroundColor")
+                flash.fromValue = NSColor.systemRed.withAlphaComponent(0.18).cgColor
+                flash.toValue   = NSColor.clear.cgColor
+                flash.duration  = 0.18
+                layer.add(flash, forKey: "scrivi.headingRefuseFlash")
+            }
+        }
+
+        // Cross-boundary ⌘C: extract the fragment, put its flat plainText on the system pasteboard
+        // (external apps get clean text), and hold the structured fragment internally for ⌘V.
+        // Returns true if it handled the copy (selection crossed a boundary); false → caller uses
+        // the normal single-scene copy.
+        func structuredCopyIfCrossBoundary() -> Bool {
+            guard let tv = textView else { return false }
+            let sel = tv.selectedRange()
+            guard selectionCrossesBoundary(sel), let spans = fragmentSpans(for: sel),
+                  let rootPath = parent.session.projectRootPath else { return false }
+            guard let frag = try? parent.env.engine.fragmentExtract(
+                projectRootPath: rootPath, spans: spans) else { return false }
+            internalClipboardFragment = frag
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(frag.plainText, forType: .string)
+            return true
+        }
+
+        // Cross-boundary ⌘X: fragmentCut (delete + collapse), flat plainText to the pasteboard,
+        // hold the fragment internally, reload from disk, place the caret at the survivor, and
+        // record a structural barrier. Returns true if handled.
+        func structuredCutIfCrossBoundary() -> Bool {
+            guard let tv = textView else { return false }
+            let sel = tv.selectedRange()
+            guard selectionCrossesBoundary(sel), let spans = fragmentSpans(for: sel),
+                  let rootPath = parent.session.projectRootPath else { return false }
+            // Flush pending edits so the on-disk bodies the cut reads are current.
+            parent.session.historyCapture?.flush(trigger: "flush")
+            guard let result = try? parent.env.engine.fragmentCut(
+                projectRootPath: rootPath, spans: spans) else { return false }
+            internalClipboardFragment = result.fragment
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(result.fragment.plainText, forType: .string)
+
+            // Structural op — barrier (reversible undo is T-0356). The survivor keeps the caret
+            // at the fold point (end of the head prefix = the first span's start byte).
+            parent.session.historyCapture?.recordBarrier(
+                kind: "structuredCut", note: "Can't undo past a cross-boundary cut")
+            let caretByte = spans.first?.start ?? 0
+            reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: caretByte)
+            return true
+        }
+
+        // ⌘V when the internal clipboard holds a structured fragment: reconstruct it at the caret.
+        // Refuses (flash) if the caret is in a heading. Returns true if handled; false → caller
+        // uses the normal system-pasteboard paste (no structured fragment, or single-scene).
+        func structuredPasteIfAvailable() -> Bool {
+            guard let tv = textView, let frag = internalClipboardFragment else { return false }
+            let loc = tv.selectedRange().location
+            if caretInHeading(loc) { flashRefuse(tv); return true }   // handled = refused, no super
+            guard let segIdx = segmentIndex(for: loc),
+                  parent.loader.segments.indices.contains(segIdx),
+                  sceneBoundaries.indices.contains(segIdx),
+                  let rootPath = parent.session.projectRootPath,
+                  let ref = parent.env.authorshipRef,
+                  let projectID = parent.session.openProjectResult?.projectID else { return false }
+
+            let seg = parent.loader.segments[segIdx]
+            let caretChar = max(0, loc - sceneBoundaries[segIdx].location)
+            let caretByte = byteOffset(charOffset: caretChar, in: seg.text)
+
+            parent.session.historyCapture?.flush(trigger: "flush")
+            guard let result = try? parent.env.engine.fragmentPaste(
+                projectRootPath: rootPath,
+                appSupportRoot: parent.session.appSupportRoot,
+                projectID: projectID,
+                fragmentJSON: frag.toJSON(),
+                caretSceneID: seg.sceneID,
+                caretByteOffset: caretByte,
+                authorshipRef: ref) else { return false }
+
+            parent.session.historyCapture?.recordBarrier(
+                kind: "structuredPaste", note: "Can't undo past a cross-boundary paste")
+            // Place the caret at the start of the paste target (the split point); the reload
+            // re-anchors to a valid scene.
+            reloadManuscriptFromDisk(caretSceneID: result.targetSceneID, caretByteOffset: caretByte)
+            return true
+        }
+
+        // True when a structured fragment is available for ⌘V (drives paste routing).
+        var hasInternalStructuredFragment: Bool { internalClipboardFragment != nil }
     }
 }
 
@@ -1306,13 +1529,28 @@ final class ManuscriptNSTextView: NSTextView {
     // any pending typing first, tag the next commit, let AppKit mutate text
     // (captured by textDidChange), then flush that insertion/removal as the
     // paste/cut event.
+    // ⌘C: a cross-boundary selection copies as a structured fragment (flat plainText goes to the
+    // system pasteboard for external apps; the fragment is held internally for ⌘V). A single-scene
+    // selection uses the normal copy (AC5). EP-029 SP-089.
+    override func copy(_ sender: Any?) {
+        if coordinator?.structuredCopyIfCrossBoundary() == true { return }
+        super.copy(sender)
+    }
+
     override func paste(_ sender: Any?) {
+        // A held structured fragment reconstructs at the caret (or refuses in a heading). Otherwise
+        // the normal system-pasteboard paste runs (AC5). EP-029 SP-089.
+        if coordinator?.hasInternalStructuredFragment == true,
+           coordinator?.structuredPasteIfAvailable() == true { return }
         coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
         super.paste(sender)
         coordinator?.parent.session.historyCapture?.flush(trigger: "paste", kind: "paste")
     }
 
     override func cut(_ sender: Any?) {
+        // A cross-boundary selection cuts as a structured fragment (delete + collapse; barrier).
+        // A single-scene selection uses the normal cut (AC5). EP-029 SP-089.
+        if coordinator?.structuredCutIfCrossBoundary() == true { return }
         coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "cut")
         super.cut(sender)
         coordinator?.parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")

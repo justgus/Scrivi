@@ -42,6 +42,9 @@ target_sources(ScriviCore
         src/manuscript/ChapterMerger.cpp
         src/manuscript/SceneReader.cpp
         src/manuscript/SceneWriter.cpp
+        src/manuscript/FragmentExtractor.cpp
+        src/manuscript/FragmentPaster.cpp
+        src/manuscript/FragmentCutter.cpp
         src/workspace/WorkspaceStateService.cpp
         src/repair/RepairClassifier.cpp
         src/repair/ExternalChangeScanner.cpp

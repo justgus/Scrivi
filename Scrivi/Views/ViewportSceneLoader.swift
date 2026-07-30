@@ -136,6 +136,16 @@ struct SceneSegment: Identifiable {
         }
     }
 
+    // Replace the entire scene set from a fresh on-disk list and reload all segment bodies
+    // (EP-029 SP-089). Used after a structural fragment op (cross-boundary cut/paste) creates or
+    // deletes many scenes/chapters — a full re-open is more robust than in-memory patching.
+    // `activeSceneID` becomes the current/viewport scene when it still exists.
+    func replaceScenes(_ scenes: [SceneInfo], activeSceneID: String?) {
+        allScenes = scenes
+        liveTitles.removeAll()
+        loadAll(activeSceneID: activeSceneID)
+    }
+
     var currentSegment: SceneSegment? {
         guard segments.indices.contains(currentIndex) else { return nil }
         return segments[currentIndex]

@@ -115,7 +115,12 @@ import os
             restoredScroll: result.restored?.scroll
         )
         viewportLoader = loader
-        projectPreferences = ProjectPreferences(projectID: result.projectID)
+        let prefs = ProjectPreferences(projectID: result.projectID)
+        // Show the real project.json title instead of "Untitled" (I-0093). The backend now returns
+        // it in the open envelope; seed the display title from it when the writer hasn't set one on
+        // this machine (an explicit Project-Settings rename, persisted to UserDefaults, still wins).
+        prefs.seedTitleFromSchemaIfUnset(result.projectTitle)
+        projectPreferences = prefs
 
         let tlModel = TimelineViewModel()
         tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)

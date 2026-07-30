@@ -1,9 +1,31 @@
 # Active Tasks
 
 **No active sprint.** **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers) is **held pending**
-its final sprint SP-057 — **SP-056 ✅ closed 2026-07-27 (AC6 Verified)**. The next work is the newly-opened
-**EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste), whose design-doc sprint **SP-085** is planned
-and awaits your go-ahead to activate (`../Epics/Epic-active.md`).
+its final sprint SP-057. **EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste) is Active: its design
+sprint **SP-085 ✅ closed 2026-07-27 (Human-approved)** — design doc
+`docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md` **✅ APPROVED**, trades ruled **T1=A · T2=A · T3=A · T4=A**,
+Open Questions #1–#3 resolved (**caret-in-heading paste = refuse + flash**, user override). **Next: SP-086**
+(ScriviCore `scrivi.fragment.v1` model + extract-fragment + `scrivi_fragment_extract` C ABI + tests), planned in
+`../Epics/Epic-active.md`, **awaiting go-ahead to activate.** (Historical note: T-0351 was the next free number
+at 2026-07-27; since then T-0354–T-0358 were taken — see below. **Next available Task: T-0359.**)
+
+**T-0358 (EP-027 lineage — OrderKey caps-only "dot naming" rework):**
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0358 | **`[ScriviCore]` OrderKey caps-only generation + dotted keys + rebalance** — replace the base-62 (0-9 A-Z a-z) fractional order-key generator with **base-36 CAPITALS-ONLY** (`kGenDigits`, `util/OrderKey.cpp`) joined by single-digit dot-segments (`"A.5"`, `"Q.3.T"`) so byte-sort == Finder/Explorer natural-sort on every filesystem. `'0'` and `'Z'` are **reserved open-bound sentinels** (never real keys); the top real single-digit key is `'Y'`. `keyBetween` uses a **bounded** fractional descent (loop capped at `max(loD,hiD)+1`, `belowHi` flag) — no unbounded growth. Out-of-order bounds **auto-repair** (swap); only equal bounded bounds return empty; `""`/`"0"`/`"Z"` normalize to the open sentinels. `rebalancedKeys(n)` spreads short caps keys within `1..'Y'`. Legacy lowercase keys stay accepted by `isOrderKey` (migration compat). | 🟡 **Implemented — Not Verified** |
+
+**T-0358 verification steps:**
+1. `cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON && cmake --build build --parallel`
+2. `./build/ScriviCore/tests/ScriviCoreTests "[OrderKey],[T-0358]"` → all pass (14 cases).
+3. `./build/ScriviCore/tests/ScriviCoreTests` → full suite green (**359 cases / 6505 assertions**), incl. the 500-iteration collision test, natural-sort agreement, and `SceneSplitRepro` create-in-place (now `001/A/M/S`, in-place insert `G`).
+4. Files: `ScriviCore/src/util/OrderKey.cpp`, `ScriviCore/src/util/OrderKey.hpp`, `ScriviCore/tests/unit/OrderKeyTests.cpp`, `ScriviCore/tests/integration/SceneSplitRepro.cpp`. (ScriviCore-only; no `pbxproj` change.)
+
+**SP-085 task (Verified):**
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0350 | **Design doc** — `scrivi.fragment.v1` schema, extract/paste-splice/cut-merge behaviour, buffer-schema evolution, trades T1–T4, milestone breakdown. | ✅ **Verified (2026-07-27)** — doc written + approved; T1–T4 ruled (all A). |
 
 **SP-056** `[Apple]` — multiple copy buffers (**AC6**) ✅ **CLOSED 2026-07-27 (Human-approved).** Delivered
 vim/emacs-register-style copy buffers, refined at implementation to **three explicit chords** (user

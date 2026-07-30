@@ -11,15 +11,20 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057; the next work is **EP-029**
-`[Cross]`, whose design sprint **SP-085** is planned and awaits activation.
+**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057; **EP-029** `[Cross]`
+continues at **SP-086** (ScriviCore extract-fragment), planned and awaiting go-ahead to activate.
 
-- **SP-085** `[Cross]` (EP-029 — **Design doc + trade studies + fragment schema**, 1st of 5 planned sprints):
-  write & get approval for `Scrivi_Structured_CutCopyPaste_Design_v0_1.md` — the `scrivi.fragment.v1` schema,
-  extract / cut-merge / paste-splice behaviour, copy-buffer schema evolution, and trades T1–T4. Task **T-0350**.
-  🔵 **Planned — awaiting go-ahead to activate.** See `../Epics/Epic-active.md` (EP-029).
+Last closed: **SP-085** (EP-029 `[Cross]` — **Design doc + trade studies + fragment schema**) — ✅ **closed
+2026-07-27 (Human-approved).** The design doc `Scrivi_Structured_CutCopyPaste_Design_v0_1.md` is **✅ APPROVED**:
+the `scrivi.fragment.v1` ordered-pieces schema, extract / paste-splice / cut-merge behaviour (composing EP-027
+create/split + EP-028 `SceneMerger`/`ChapterMerger`), copy-buffer schema evolution, and one-reversible-event
+history shape. Trades ruled **T1=A · T2=A · T3=A · T4=A**; Open Questions #1–#3 resolved (no cross-window paste
+in v1; **caret-in-heading paste = refuse + flash the screen**, user override; divider-anchored selection
+normalised to the adjacent scene body). Task T-0350 Verified. Grounded in the real
+`ManuscriptTextView`/`BufferStore`/merge code — docs-only (`scrivi.h`/pbxproj untouched).
+`Closed/Sprint-SP-085.md`. **EP-029 → SP-086** next.
 
-Last closed: **SP-056** (EP-019 `[Apple]` — **Multiple copy buffers**) — ✅ **closed 2026-07-27
+Prior: **SP-056** (EP-019 `[Apple]` — **Multiple copy buffers**) — ✅ **closed 2026-07-27
 (Human-approved).** Delivered **AC6**: vim/emacs-register-style copy buffers, refined to **three explicit
 chords** (user 2026-07-25/27) — **⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut** into 9 per-project persistent slots
 (`history/buffers.json`), buffer 0 = the untouched system pasteboard; an app-global Copy Buffers palette
@@ -157,13 +162,14 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-085 | Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 | 🔵 Planned (next to activate) |
+| SP-086 | ScriviCore: `scrivi.fragment.v1` model + extract-fragment + C ABI + tests | EP-029 | 🔵 Planned (next to activate) |
 | SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (**EP-019 held pending**) |
+| SP-085 | Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 | ✅ Closed (Human-approved) — doc approved, T1–T4 ruled |
 | SP-056 | Copy buffers — store, ABI, palette/menu UX, chords, history integration | EP-019 | ✅ Closed (Human-approved) — **AC6** |
 
 ## All Sprints
 
-Currently: **83 Sprints** (82 closed + 1 cancelled + 1 in Planning + 1 planned; the SP-068 **ID** was skipped
+Currently: **83 Sprints** (83 closed + 1 cancelled + 1 in Planning; the SP-068 **ID** was skipped
 when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
 2026-07-19; **SP-083 was brought forward** ahead of SP-082, both now closed) | Next available: **SP-086**
 
@@ -252,21 +258,31 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-083 | `[Linux]` Timeline zoom + pan (brought forward — fixes I-0087) | EP-025 `[Linux]` | 2026-07-22 | 2026-07-23 | ✅ Closed |
 | SP-082 | `[Linux]` Historical events + imported timelines + export | EP-025 `[Linux]` | 2026-07-24 | 2026-07-24 | ✅ Closed |
 | SP-084 | `[Linux]` Co-located dot clustering + persistence + full EP-025 verify & Epic close | EP-025 `[Linux]` | 2026-07-24 | 2026-07-24 | ✅ Closed |
-| SP-085 | `[Cross]` Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 `[Cross]` | — | — | 🔵 Planned |
+| SP-085 | `[Cross]` Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 `[Cross]` | 2026-07-27 | 2026-07-27 | ✅ Closed |
 
 ## Statistics
 
 - **Total Sprints:** 83 (SP-001–SP-085 issued; SP-068 skipped; SP-083 was brought forward ahead of SP-082)
-- **Closed:** 82 ✅ (incl. SP-056, closed 2026-07-27 — EP-019 AC6)
+- **Closed:** 83 ✅ (incl. SP-085, closed 2026-07-27 — EP-029 design doc approved; SP-056 — EP-019 AC6)
 - **Active:** 0 🟡
-- **Planned:** 1 🔵 (SP-085 EP-029 `[Cross]` — design doc; next to activate)
+- **Planned:** 0 🔵 (SP-086 EP-029 `[Cross]` — extract-fragment; next to activate, not yet ticketed as a row)
 - **Planning:** 1 🔵 (SP-057 EP-019 `[Apple]` — history panel + verify + Epic close; **EP-019 held pending**)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
 
 ---
 
-*Last Updated: 2026-07-27 (**SP-056 ✅ closed (Human-approved) — EP-019 AC6 Verified; SP-085 planned under new
+*Last Updated: 2026-07-27 (**SP-085 ✅ closed (Human-approved) — EP-029 design doc approved.** The EP-029
+`[Cross]` design sprint delivered + approved `Scrivi_Structured_CutCopyPaste_Design_v0_1.md`: the
+`scrivi.fragment.v1` ordered-pieces schema, extract / paste-splice / cut-merge behaviour (composing EP-027
+create/split + EP-028 merge), buffer-schema evolution, and a one-reversible-event history shape. Trades ruled
+**T1=A · T2=A · T3=A · T4=A**; Open Questions #1–#3 resolved — no cross-window structured paste in v1;
+**caret-in-heading paste = refuse + flash the screen** (user override of the drafted silent-retarget); divider-
+anchored selection normalised to the adjacent scene body. Task T-0350 Verified; docs-only (`scrivi.h`/pbxproj
+untouched). `Closed/Sprint-SP-085.md`. Closed 82→83, Active stays 0; **EP-029 → SP-086** (ScriviCore
+extract-fragment) next, awaiting go-ahead. Next available Task **T-0351**. Prior note follows.)*
+
+*2026-07-27 (**SP-056 ✅ closed (Human-approved) — EP-019 AC6 Verified; SP-085 planned under new
 EP-029.** SP-056 delivered multiple copy buffers (T-0213 + T-0214 both Verified live): explicit ⌘1–9 copy /
 ⌃1–9 paste / ⌥1–9 cut chords (buffer 0 = the untouched system pasteboard), an app-global Copy Buffers palette
 (follows the frontmost project), Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items, and a

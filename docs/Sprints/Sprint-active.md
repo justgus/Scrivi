@@ -1,9 +1,98 @@
 # Active Sprint
 
-_No active sprint. SP-056 ✅ closed 2026-07-27 (Human-approved) — see below. EP-019 is **held pending** its final
-sprint SP-057 (AC2/AC7/AC8 verify + Epic close). The next work is the newly-opened **EP-029** `[Cross]`
-(cross-boundary structured Cut/Copy/Paste) — sprints planned in `../Epics/Epic-active.md`; SP-085 to be activated
-on your go-ahead._
+_**SP-086** (extract) · **SP-087** (paste-splice) · **SP-088** (cut-with-merge) ✅ **all closed
+2026-07-27 (Human-approved)** — the three ScriviCore ops. `FragmentExtractor`/`FragmentPaster`/`FragmentCutter` +
+`scrivi_fragment_extract`/`_paste`/`_cut` C ABI + 25 tests; ctest 352/352. Archived `Closed/Sprint-SP-086.md`,
+`-SP-087.md`, `-SP-088.md`._
+
+## SP-089: [Apple] EP-029 — editor wiring 🟡 ACTIVE
+
+**Status:** 🟡 **Active** (activated 2026-07-27). The final EP-029 sprint — wires the manuscript editor's
+Cut/Copy/Paste + copy buffers through the three ScriviCore fragment ops so the manuscript behaves as one
+monolithic document. **Split into two passes** (user decision 2026-07-27): **Pass A** = system-clipboard
+cross-boundary ⌘C/⌘X/⌘V + heading refusal + history (AC1/2/3/5/6/7); **Pass B** = structured copy buffers
+(AC4, needs a small `buffers.json` fragment extension). Source of truth:
+`docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md` (✅ Approved).
+**Epic:** EP-029 `[Cross]` — Cross-Boundary Structured Cut/Copy/Paste (5th of 5 sprints; the `[Apple]` wiring).
+**Start Date:** 2026-07-27
+**Target Close Date:** TBD — closes EP-029 on live verification of AC1–AC7.
+
+### Assigned Tasks
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0354 | **Pass A** — system-clipboard cross-boundary Cut/Copy/Paste + heading refusal + **barrier** history (AC1/2/3/5/7) | 🟢 **Implemented — AC1/AC2/AC5 live-verified (2026-07-29)** — cross-boundary ⌘X (merge) + ⌘V (split) verified on `the-stairs-of-tintagael.scrivi` after fixing **I-0094** (empty-array JSON-decode mismatch that silently sank the structured cut → native fallback → "all in one scene"). AC3 (heading refusal) / AC7 (no-regression) still to confirm. |
+| T-0357 | **Title-capture cut/paste + chapter promotion** (user ruling 2026-07-29, supersedes §4.3 for chapter-crossing cuts) — cross-chapter cut **promotes the tail chapter's survivors into the head chapter** (no duplicate-named remnant) via the `ChapterMerger` primitive (I-0083); the fragment **captures scene + chapter titles** so paste **restores** them (was: minted "Chapter N" / untitled). Also fixes the manuscript-heading-not-refreshed-after-rename bug (I-0095). | ✅ **Verified (2026-07-29)** — user confirmed cross-chapter cut promotes survivors into the head + paste restores captured titles; heading refresh (I-0095) confirmed. core `ctest` **353/353**; macOS app **BUILD SUCCEEDED**. See I-0094/I-0095. |
+| T-0356 | **Reversible structured undo (AC6)** — extend C++ `HistoryService` for `structuredCut`/`structuredPaste` inverse-op undo/redo + tests (must also restore promoted scenes' chapter membership + survivor chapter title — T-0357) | 🔵 Backlog (after T-0354/T-0357 verify) |
+| T-0355 | **Pass B** — structured copy buffers (AC4; `buffers.json` gains optional `fragment`, T4=A) | 🔵 Backlog (after Pass A verifies) |
+
+### Assigned Issues
+
+| ID | Title | Severity | Status |
+| -- | ----- | -------- | ------ |
+| I-0093 | `[Apple]` Project opens showing "Untitled" though `project.json` has the real title — display title was sourced only from UserDefaults; `project.json` title never surfaced. **Fix:** `scrivi_open_project` emits `projectTitle`; `OpenProjectResult` decodes it; `ProjectSession` seeds `ProjectPreferences` from it. | Medium | ✅ **Verified (2026-07-28)** |
+| I-0092 | `[Apple]` macOS New Project creates the folder without the `.scrivi` extension — `NewProjectSheet.choosePath()` NSSavePanel had no `allowedContentTypes`. **Fix:** set the `.scrivi` package UTID + defensive extension append. | Low | ✅ **Verified (2026-07-28)** |
+
+_Found during the SP-089 live-verify session (2026-07-28) while creating a fresh project to exercise the EP-029 cut/copy/paste wiring; both are pre-existing defects surfaced here, unrelated to the fragment ops._
+
+### T-0354 implemented (2026-07-27) — what landed, and the AC6 carve-out
+
+**Landed (builds green, app launches clean):**
+- `ScriviEngine` fragment wrappers — `fragmentExtract` / `fragmentCut` / `fragmentPaste` + `FragmentResult`
+  (with `toJSON()` round-trip) / `FragmentCutResult` / `FragmentPasteResult` / `FragmentSpanArg` + visionOS stubs.
+- Coordinator boundary machinery — `selectionCrossesBoundary`, `fragmentSpans(for:)` (selection → per-scene
+  UTF-8 byte spans via `sceneBoundaries` + `sceneLocalByteOffset`), `caretInHeading`, and
+  `reloadManuscriptFromDisk` (re-open → `loader.replaceScenes` → `rebuildStorage` → re-anchor caret + timeline).
+- `ManuscriptNSTextView.copy/cut/paste` overrides route cross-boundary selections through the fragment
+  endpoints; **single-scene selections keep the existing fast path (AC5)**. ⌘C → extract → flat `plainText` on
+  the system pasteboard + fragment held internally (T2=A). ⌘X → `fragmentCut` → reload → **barrier**. ⌘V of a
+  held fragment → `fragmentPaste` → reload → **barrier**; **caret-in-heading → `NSSound.beep()` + red flash +
+  refuse** (§4.2, §10 Q2).
+- New loader method `replaceScenes(_:activeSceneID:)`.
+
+**Live-verify fix — I-0094 (2026-07-29):** the first cross-boundary ⌘X/⌘V verify failed ("all text in one
+scene"). Root-caused to a JSON-boundary decode mismatch, not the paste logic: the C API omits empty ID arrays,
+but `FragmentCutResult.removedChapterIDs` / `FragmentPasteResult.createdChapterIDs` were non-optional, so a
+cut/paste that touched no chapters threw `keyNotFound` in `JSONDecoder` → `structuredCutIfCrossBoundary()` fell
+through to the native AppKit cut (flat text, no structured fragment held) → paste landed everything in one
+scene. Fixed with tolerant `init(from:)` decoders (`decodeIfPresent ?? []`) on both structs in
+`ScriviEngine.swift`. After the fix, ⌘X (2 scenes → 1, merge) and ⌘V (1 scene → 2, split-preserving) both
+verified live. See I-0094.
+
+**AC6 carve-out (user decision 2026-07-27):** reversible structured undo is deeper than UI wiring — the C++
+`HistoryService.undo()` returns "stopped at barrier" *without* stepping past it, so app-side inverse-op undo needs
+a real engine change (step past a `structuredCut`/`structuredPaste` barrier on undo, re-run forward on redo).
+Carved into **T-0356** (its own focused task with tests). Pass A therefore records a **barrier** (undo stops with
+a clear notice), consistent with today's scene/chapter merge/split. **AC1/AC2/AC3/AC5/AC7 are testable now;
+AC6 lands with T-0356.**
+
+**⌘/⌃/⌥1–9 buffer chords still use the single-scene path** — structured buffers are Pass B (T-0355).
+
+### Approach (grounded in the editor code)
+
+- **The manuscript is one `NSTextStorage`** (`Scrivi/Views/ManuscriptTextView.swift`): scene boundaries = 1-char
+  divider attachments; chapter boundaries = non-editable `scriviHeading` runs; `coordinator.sceneBoundaries:
+  [NSRange]` maps each scene → its storage range (dividers/headings sit *outside* those ranges).
+- **Boundary detection:** a selection crosses a boundary iff it overlaps more than one `sceneBoundaries` entry
+  (or touches a divider/heading char). Single-scene selections keep the existing SP-056 fast path (AC5).
+- **Cross-boundary spans:** map the selection to an ordered `[(sceneID, startByte, endByte)]` using
+  `sceneBoundaries` + each scene's storage substring (UTF-16 offset → scene-local UTF-8 byte offset, the
+  existing `sceneLocalByteOffset` convention).
+- **After a structural op** (cut/paste create/delete scenes+chapters): **reload the manuscript from disk**
+  (re-`openProject` → fresh `allScenes` → `loadAll` → `rebuildStorage`), then place the caret — the robust
+  path, vs the in-memory patching the single merge/split handlers do (too fragile for N scenes/chapters).
+- **History (§5, T3=A):** the app records `structuredCut` / `structuredPaste` via the existing
+  `scrivi_history_record_event` path using the created/removed IDs the endpoints return. (Undo of a cut = paste
+  the fragment back; undo of a paste = cut the created span.) Recorded app-side — no ScriviCore change.
+- **Caret-in-heading paste** (§4.2, §10 Q2): if the caret sits in a `scriviHeading` run, **flash the screen**
+  (`NSBeep()` + brief flash), do **not** paste, leave the caret; never call paste-splice with a heading caret.
+
+### Acceptance (this sprint = EP-029 close)
+
+- [ ] **Pass A** — engine wrappers + boundary detection + ⌘C/⌘X/⌘V cross-boundary + heading refusal + history;
+  single-scene fast path preserved; builds green; live-verify AC1/AC2/AC3/AC5/AC6/AC7.
+- [ ] **Pass B** — `buffers.json` fragment extension + ⌘/⌃/⌥1–9 structured; live-verify AC4.
+- [ ] All EP-029 AC1–AC7 Verified live → **close SP-089 + EP-029** (user approval).
 
 ---
 

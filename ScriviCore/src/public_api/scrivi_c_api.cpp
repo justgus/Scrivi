@@ -16,6 +16,9 @@
 #include "history/BufferStore.hpp"
 #include "history/HistoryService.hpp"
 #include "history/HistoryStore.hpp"
+#include "manuscript/FragmentCutter.hpp"
+#include "manuscript/FragmentExtractor.hpp"
+#include "manuscript/FragmentPaster.hpp"
 #include "util/PathUtils.hpp"
 #include "util/Json.hpp"
 
@@ -122,6 +125,21 @@ CoreSingleton& singleton() {
 
 scrivi::ScriviCore& core() {
     return *singleton().core;
+}
+
+// Build a CoreServices view over the singleton for primitives that are constructed
+// directly at the ABI boundary (e.g. FragmentExtractor, EP-029) rather than routed
+// through a ScriviCore facade method. Mirrors the wiring in CoreSingleton's constructor.
+scrivi::CoreServices abiServices() {
+    auto& s = singleton();
+    scrivi::CoreServices svc;
+    svc.fileSystem   = &s.fileSystem;
+    svc.uuidProvider = &s.uuidProvider;
+    svc.secureStore  = s.secureStore.get();
+    svc.clock        = &s.clock;
+    svc.gitProvider  = &s.gitProvider;
+    svc.logger       = nullptr;
+    return svc;
 }
 
 // ---------------------------------------------------------------------------
@@ -430,6 +448,7 @@ const char* scrivi_open_project(
 
     scrivi::util::JsonDoc doc;
     doc.setString("projectID", v.project.projectID.value);
+    doc.setString("projectTitle", v.project.title);   // I-0093: surface the on-disk title to the UI
     doc.setString("mode", "ready");
     doc.setSubDoc("activeScene", std::move(scene));
     doc.setSubDoc("restored", std::move(restored));
@@ -1910,6 +1929,204 @@ const char* scrivi_history_close(const char* projectRootPath) {
     scrivi::util::JsonDoc doc;
     doc.setBool("closed", wasOpen);
     return heap(okEnvelope(std::move(doc)));
+}
+
+// --- Structured Cut/Copy/Paste: extract-fragment (EP-029 SP-086, T-0351) --
+// Read-only extract of a manuscript range (an ordered list of scene-local byte
+// spans) into a scrivi.fragment.v1 structured fragment. Builds a FragmentExtractor
+// on a CoreServices view of the singleton and services the one operation. `guarded`
+// converts any escape into an error envelope. ⌘C is non-destructive — this never
+// mutates the project. Cut (delete+merge) and paste-splice are separate endpoints
+// (SP-088 / SP-087). Design §4.1.
+
+namespace {
+
+// Serialize an OpensWith to the wire string used in scrivi.fragment.v1.
+const char* opensWithString(scrivi::manuscript::OpensWith o) {
+    switch (o) {
+        case scrivi::manuscript::OpensWith::Scene:   return "scene";
+        case scrivi::manuscript::OpensWith::Chapter: return "chapter";
+        case scrivi::manuscript::OpensWith::None:    break;
+    }
+    return "none";
+}
+
+// Parse { "spans":[{sceneID,startByte,endByte},…] } into FragmentSpans (reading order).
+std::vector<scrivi::manuscript::FragmentSpan> parseSpans(const scrivi::util::JsonDoc& in) {
+    std::vector<scrivi::manuscript::FragmentSpan> spans;
+    const std::size_t n = in.arraySize("spans");
+    spans.reserve(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        scrivi::util::JsonDoc item = in.arrayItem("spans", i);
+        scrivi::manuscript::FragmentSpan span;
+        span.sceneID   = scrivi::SceneID{item.getString("sceneID")};
+        span.startByte = static_cast<std::size_t>(item.getInt64("startByte", 0));
+        span.endByte   = static_cast<std::size_t>(item.getInt64("endByte", 0));
+        spans.push_back(std::move(span));
+    }
+    return spans;
+}
+
+// Serialize a Fragment into a scrivi.fragment.v1 JsonDoc (pieces + plainText + schema).
+scrivi::util::JsonDoc serializeFragment(const scrivi::manuscript::Fragment& frag) {
+    scrivi::util::JsonDoc doc;
+    doc.setString("schema", "scrivi.fragment.v1");
+    for (const auto& piece : frag.pieces) {
+        scrivi::util::JsonDoc item;
+        item.setString("opensWith", opensWithString(piece.opensWith));
+        if (piece.opensWith == scrivi::manuscript::OpensWith::Chapter)
+            item.setString("chapterTitle", piece.chapterTitle);
+        if (!piece.sceneTitle.empty())
+            item.setString("sceneTitle", piece.sceneTitle);   // captured for paste-restore (T-0357)
+        item.setString("text", piece.text);
+        switch (piece.partial) {
+            case scrivi::manuscript::Partial::Head: item.setString("partial", "head"); break;
+            case scrivi::manuscript::Partial::Tail: item.setString("partial", "tail"); break;
+            case scrivi::manuscript::Partial::None: break;  // omitted ⇒ null (whole scene)
+        }
+        doc.appendToArray("pieces", std::move(item));
+    }
+    doc.setString("plainText", frag.plainText);
+    return doc;
+}
+
+} // namespace
+
+const char* scrivi_fragment_extract(const char* projectRootPath, const char* spansJson) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+
+    // Input: { "spans": [ { "sceneID", "startByte", "endByte" }, … ] }, in manuscript reading
+    // order. Offsets are scene-local UTF-8 byte offsets.
+    auto parsed = scrivi::util::parseJson(S(spansJson));
+    if (!parsed.ok())
+        return heap(errorEnvelope(parsed.error()));
+
+    scrivi::CoreServices svc = abiServices();
+    scrivi::manuscript::FragmentExtractor extractor{svc};
+    auto r = extractor.extract(root, parseSpans(parsed.value()));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    return heap(okEnvelope(serializeFragment(r.value())));
+  });
+}
+
+// cut-with-merge — extract the fragment, delete the spanned text, and collapse the spanned
+// scenes/chapters into one continuous scene (design §4.3, delete-and-fold). Result carries the
+// extracted fragment (for the buffer / undo) + the survivingSceneID + the removed scene/chapter
+// IDs (for undo, §5).
+const char* scrivi_fragment_cut(const char* projectRootPath, const char* spansJson) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+
+    auto parsed = scrivi::util::parseJson(S(spansJson));
+    if (!parsed.ok())
+        return heap(errorEnvelope(parsed.error()));
+
+    scrivi::CoreServices svc = abiServices();
+    scrivi::manuscript::FragmentCutter cutter{svc};
+    auto r = cutter.cut(root, parseSpans(parsed.value()));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setSubDoc("fragment", serializeFragment(v.fragment));
+    doc.setString("survivingSceneID", v.survivingSceneID.value);
+    for (const auto& id : v.removedSceneIDs)
+        doc.appendStringToArray("removedSceneIDs", id.value);
+    for (const auto& id : v.removedChapterIDs)
+        doc.appendStringToArray("removedChapterIDs", id.value);
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+namespace {
+
+// Parse a scrivi.fragment.v1 JSON object (as produced by scrivi_fragment_extract, or carried
+// in a copy buffer) back into a Fragment. Unknown opensWith/partial strings degrade safely to
+// None. plainText is not needed by the paster (it works from pieces), so it is ignored here.
+scrivi::manuscript::Fragment parseFragment(const scrivi::util::JsonDoc& in) {
+    using namespace scrivi::manuscript;
+    Fragment frag;
+    const std::size_t n = in.arraySize("pieces");
+    frag.pieces.reserve(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        scrivi::util::JsonDoc item = in.arrayItem("pieces", i);
+        FragmentPiece piece;
+        const std::string opens = item.getString("opensWith", "none");
+        if      (opens == "scene")   piece.opensWith = OpensWith::Scene;
+        else if (opens == "chapter") piece.opensWith = OpensWith::Chapter;
+        else                          piece.opensWith = OpensWith::None;
+        piece.chapterTitle = item.getString("chapterTitle");
+        piece.sceneTitle   = item.getString("sceneTitle");   // restored on paste (T-0357)
+        piece.text         = item.getString("text");
+        const std::string partial = item.getString("partial");
+        if      (partial == "head") piece.partial = Partial::Head;
+        else if (partial == "tail") piece.partial = Partial::Tail;
+        else                         piece.partial = Partial::None;
+        frag.pieces.push_back(std::move(piece));
+    }
+    return frag;
+}
+
+} // namespace
+
+// paste-splice — insert a scrivi.fragment.v1 at a caret, reconstructing carried scene/chapter
+// boundaries (design §4.2). Composes EP-027 create primitives; mints fresh IDs. Result reports
+// the created scene/chapter IDs (for history/undo, §5) + the target scene. Design §4.2.
+const char* scrivi_fragment_paste(const char* projectRootPath,
+                                  const char* appSupportRoot,
+                                  const char* projectID,
+                                  const char* fragmentJson,
+                                  const char* caretSceneID,
+                                  long long   caretByteOffset,
+                                  const char* identityID,
+                                  const char* personaID,
+                                  const char* displayName) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    if (caretByteOffset < 0)
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "caretByteOffset must be >= 0"));
+
+    auto parsed = scrivi::util::parseJson(S(fragmentJson));
+    if (!parsed.ok())
+        return heap(errorEnvelope(parsed.error()));
+
+    scrivi::manuscript::PasteFragmentRequest req;
+    req.projectRootPath = root;
+    req.appSupportRoot  = S(appSupportRoot);
+    req.projectID       = scrivi::ProjectID{S(projectID)};
+    req.author          = { scrivi::IdentityID{S(identityID)},
+                            scrivi::PersonaID {S(personaID)},
+                            S(displayName) };
+    req.fragment        = parseFragment(parsed.value());
+    req.caretSceneID    = scrivi::SceneID{S(caretSceneID)};
+    req.caretByteOffset = static_cast<std::size_t>(caretByteOffset);
+
+    scrivi::CoreServices svc = abiServices();
+    scrivi::manuscript::FragmentPaster paster{svc};
+    auto r = paster.paste(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("targetSceneID", v.targetSceneID.value);
+    for (const auto& id : v.createdSceneIDs)
+        doc.appendStringToArray("createdSceneIDs", id.value);
+    for (const auto& id : v.createdChapterIDs)
+        doc.appendStringToArray("createdChapterIDs", id.value);
+    return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 // --- Copy buffers (EP-019 SP-056, T-0213) --------------------------------

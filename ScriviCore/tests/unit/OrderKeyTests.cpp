@@ -9,6 +9,7 @@
 #include "util/OrderKey.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,15 @@ using scrivi::util::keyBetween;
 using scrivi::util::keyBefore;
 using scrivi::util::keyAfter;
 using scrivi::util::isOrderKey;
+using scrivi::util::rebalancedKeys;
+
+// A caps-only generated key uses ONLY 0-9 A-Z and the '.' segment separator (T-0358).
+static bool isCapsOnly(const std::string& k) {
+    if (k.empty()) return false;
+    for (char c : k)
+        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '.')) return false;
+    return true;
+}
 
 TEST_CASE("keyBetween of two open bounds yields a valid mid key", "[OrderKey][EP-027]") {
     const std::string k = keyBetween("", "");
@@ -104,21 +114,164 @@ TEST_CASE("interleaved front/middle/back inserts all stay globally sorted",
     }
 }
 
-TEST_CASE("keyBetween on misuse (lo >= hi) returns empty", "[OrderKey][EP-027]") {
+TEST_CASE("keyBetween equal bounds is empty; out-of-order bounds auto-repair",
+          "[OrderKey][EP-027]") {
+    // Equal bounds leave no room between them → empty (genuine misuse).
     REQUIRE(keyBetween("5", "5").empty());
-    REQUIRE(keyBetween("9", "1").empty());
+    // Out-of-order bounds (lo > hi, both bounded) are auto-repaired by swapping, so the
+    // caller still gets a valid key strictly between the two values.
+    const std::string k = keyBetween("9", "1");
+    REQUIRE_FALSE(k.empty());
+    REQUIRE(std::string("1") < k);
+    REQUIRE(k < std::string("9"));
+    REQUIRE(isOrderKey(k));
+}
+
+// ---------------------------------------------------------------------------
+// T-0358: caps-only generation + rebalance + legacy-lowercase compatibility
+// ---------------------------------------------------------------------------
+
+TEST_CASE("generated keys are caps-only base-36 (T-0358)", "[OrderKey][T-0358]") {
+    // Every key keyBetween produces uses only 0-9 A-Z — never lowercase.
+    std::string last;
+    for (int i = 0; i < 200; ++i) {
+        const std::string k = keyAfter(last);
+        REQUIRE(isCapsOnly(k));
+        last = k;
+    }
+    // Front + interior inserts, too.
+    std::vector<std::string> v{ keyBetween("", "") };
+    for (int i = 0; i < 200; ++i) {
+        const std::size_t pos = static_cast<std::size_t>((i * 7919) % (v.size() + 1));
+        const std::string lo = pos == 0 ? std::string() : v[pos - 1];
+        const std::string hi = pos == v.size() ? std::string() : v[pos];
+        const std::string k = keyBetween(lo, hi);
+        REQUIRE(isCapsOnly(k));
+        v.insert(v.begin() + static_cast<std::ptrdiff_t>(pos), k);
+    }
+}
+
+TEST_CASE("caps generation is closed under inserts between caps neighbours (T-0358)",
+          "[OrderKey][T-0358]") {
+    // The post-rebalance world: all keys are caps. Every insert between two caps neighbours
+    // — including appending past the top REAL key 'Y' (which grows to a dotted two-segment
+    // key) — stays caps-only and strictly ordered. '0' and 'Z' are reserved open-bound
+    // sentinels, never real keys. This is the invariant that keeps a project clean.
+    const std::string mid = keyBetween("F", "I");
+    REQUIRE(std::string("F") < mid); REQUIRE(mid < std::string("I"));
+    REQUIRE(isCapsOnly(mid));
+
+    // 'Z' is the reserved open-top sentinel: appending after it is undefined → empty.
+    REQUIRE(keyAfter("Z").empty());
+
+    const std::string afterY = keyAfter("Y");           // append past the top REAL single digit
+    REQUIRE(std::string("Y") < afterY);
+    REQUIRE(isCapsOnly(afterY));                         // dotted, e.g. "Y.I"
+
+    const std::string beforeFirst = keyBefore("1");     // room before the first spread key
+    REQUIRE(beforeFirst < std::string("1"));
+    REQUIRE(isCapsOnly(beforeFirst));
+
+    // Between a key and its dotted child: A < A.x < B, all consistent.
+    const std::string child = keyBetween("A", "B");     // e.g. "A.H"? no — "A" and "B" have a
+    REQUIRE(std::string("A") < child); REQUIRE(child < std::string("B"));
+    const std::string grandchild = keyBetween("A", child);
+    REQUIRE(std::string("A") < grandchild); REQUIRE(grandchild < child);
+    REQUIRE(isCapsOnly(grandchild));
+}
+
+TEST_CASE("dotted keys sort identically under byte-sort and macOS natural-sort (T-0358)",
+          "[OrderKey][T-0358]") {
+    // The reason for the dot: each dot-segment is a single char, so no multi-digit run
+    // exists for natural/numeric sort to reorder. We simulate natural sort (compare digit
+    // runs numerically) and require it to agree with plain byte sort on generated keys.
+    std::vector<std::string> keys;
+    std::string last;
+    for (int i = 0; i < 60; ++i) { last = keyAfter(last); keys.push_back(last); }
+    // deep front-inserts to force dotted growth
+    std::string lo = "A", hi = keyAfter("A");
+    for (int i = 0; i < 40; ++i) { std::string k = keyBetween(lo, hi); keys.push_back(k); hi = k; }
+
+    auto byteSorted = keys; std::sort(byteSorted.begin(), byteSorted.end());
+    // Natural-sort comparator: compare char-by-char, but a maximal run of DIGITS compares
+    // numerically. (macOS-style.)
+    auto naturalLess = [](const std::string& a, const std::string& b) {
+        std::size_t i = 0, j = 0;
+        while (i < a.size() && j < b.size()) {
+            bool da = std::isdigit((unsigned char)a[i]), db = std::isdigit((unsigned char)b[j]);
+            if (da && db) {
+                std::size_t i2 = i, j2 = j;
+                while (i2 < a.size() && std::isdigit((unsigned char)a[i2])) ++i2;
+                while (j2 < b.size() && std::isdigit((unsigned char)b[j2])) ++j2;
+                long va = std::stol(a.substr(i, i2 - i)), vb = std::stol(b.substr(j, j2 - j));
+                if (va != vb) return va < vb;
+                i = i2; j = j2;
+            } else {
+                if (a[i] != b[j]) return a[i] < b[j];
+                ++i; ++j;
+            }
+        }
+        return a.size() < b.size();
+    };
+    auto natSorted = keys; std::sort(natSorted.begin(), natSorted.end(), naturalLess);
+    REQUIRE(byteSorted == natSorted);   // dots make the two orders agree
+}
+
+TEST_CASE("legacy lowercase keys stay VALID even though generation is caps-only (T-0358)",
+          "[OrderKey][T-0358]") {
+    // Compatibility contract: a pre-T-0358 project's lowercase keys are accepted by
+    // isOrderKey (so they are never mistaken for un-migrated folders + reslugged); the
+    // one-time rebalance repair converts them to caps. Generation itself is caps-only and
+    // is only used once neighbours are caps (see caps-closure test above).
+    REQUIRE(isOrderKey("k"));
+    REQUIRE(isOrderKey("aV"));
+    REQUIRE(isOrderKey("z"));
+}
+
+TEST_CASE("rebalancedKeys returns short, spread, ascending, valid caps keys (T-0358)",
+          "[OrderKey][T-0358]") {
+    // Single-char spread tops out at 34 keys ('1'..'Y'); 0 and 'Z' are reserved sentinels.
+    for (std::size_t n : {std::size_t(1), std::size_t(2), std::size_t(11),
+                          std::size_t(34), std::size_t(100)}) {
+        auto keys = rebalancedKeys(n);
+        REQUIRE(keys.size() == n);
+        for (std::size_t i = 0; i < keys.size(); ++i) {
+            REQUIRE(isCapsOnly(keys[i]));
+            REQUIRE(isOrderKey(keys[i]));
+            if (i > 0) REQUIRE(keys[i - 1] < keys[i]);   // strictly ascending
+        }
+        // There is always room before the first and after the last (never starts/ends at
+        // the extremes with no gap): a key can be inserted before keys[0] and after back().
+        REQUIRE_FALSE(keyBefore(keys.front()).empty());
+        REQUIRE_FALSE(keyAfter(keys.back()).empty());
+        // For counts that fit the single-char spread, keys stay one char (legible).
+        if (n <= 34) for (const auto& k : keys) REQUIRE(k.size() == 1);
+    }
+    REQUIRE(rebalancedKeys(0).empty());
+}
+
+TEST_CASE("rebalanced keys can be re-inserted between (spread leaves room) (T-0358)",
+          "[OrderKey][T-0358]") {
+    auto keys = rebalancedKeys(11);              // the-stairs case
+    for (std::size_t i = 1; i < keys.size(); ++i) {
+        const std::string mid = keyBetween(keys[i - 1], keys[i]);
+        REQUIRE(keys[i - 1] < mid);
+        REQUIRE(mid < keys[i]);
+        REQUIRE(isCapsOnly(mid));
+    }
 }
 
 TEST_CASE("isOrderKey rejects non-keys", "[OrderKey][EP-027]") {
     REQUIRE_FALSE(isOrderKey(""));        // empty
     REQUIRE_FALSE(isOrderKey("00"));      // ends in '0'
     REQUIRE_FALSE(isOrderKey("a0"));      // ends in '0'
-    REQUIRE_FALSE(isOrderKey("a-b"));     // '-' is not in the base-62 alphabet
-    REQUIRE(isOrderKey("a"));
+    REQUIRE_FALSE(isOrderKey("a-b"));     // '-' is not in the alphabet
+    REQUIRE_FALSE(isOrderKey(".A"));      // leading dot
+    REQUIRE_FALSE(isOrderKey("A."));      // trailing dot
+    REQUIRE_FALSE(isOrderKey("A..B"));    // empty segment
+    REQUIRE(isOrderKey("a"));             // legacy lowercase still accepted (permissive)
     REQUIRE(isOrderKey("V1"));
-    // NOTE: a purely-numeric string like "001" IS a valid key (all base-62 digits, not
-    // ending in '0'), so migration must NOT rely on isOrderKey to spot a legacy
-    // `chapter-001` folder — it detects legacy folders by the zero-padded numeric slug
-    // form directly (P3). Documented here so the P3 detector doesn't lean on isOrderKey.
-    REQUIRE(isOrderKey("012"));
+    REQUIRE(isOrderKey("A.5"));           // dotted caps key (T-0358 canonical form)
+    REQUIRE(isOrderKey("Q.3.T"));
+    REQUIRE(isOrderKey("012"));           // all-digit key still valid
 }

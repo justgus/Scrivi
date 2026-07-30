@@ -1,7 +1,5 @@
 import SwiftUI
-#if !os(macOS)
 import UniformTypeIdentifiers
-#endif
 
 struct NewProjectSheet: View {
 
@@ -117,8 +115,19 @@ struct NewProjectSheet: View {
         panel.nameFieldStringValue = slug.isEmpty ? "my-project" : slug
         panel.canCreateDirectories = true
         panel.prompt = "Choose"
+        // Make the panel a .scrivi *package* save (I-0092): with the package UTID set, the panel
+        // appends/enforces the `.scrivi` extension instead of taking the name field verbatim —
+        // otherwise the project folder was created with no suffix. Matches the Open panel's type.
+        let scriviType = UTType("com.caposoft.scrivi.project") ?? .package
+        panel.allowedContentTypes = [scriviType]
 
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard panel.runModal() == .OK, var url = panel.url else { return }
+        // Defensive: if the extension is still missing (a user can delete it in the field), add it
+        // so the created folder is always a real `.scrivi` package.
+        if url.pathExtension != "scrivi" {
+            url.deletePathExtension()
+            url.appendPathExtension("scrivi")
+        }
         chosenPath = url.path(percentEncoded: false)
         if slug.isEmpty {
             slug = url.deletingPathExtension().lastPathComponent

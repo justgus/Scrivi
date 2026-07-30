@@ -2,10 +2,19 @@
 
 **Epic:** EP-029 `[Cross]` — Cross-Boundary Structured Cut / Copy / Paste
 **Sprint:** SP-085 (design) — Task **T-0350**
-**Status:** 🔵 **DRAFT — awaiting user approval.** Per CLAUDE.md, design docs are the source of truth; no
-implementation begins until the four trade studies (T1–T4, §7) are ruled and this doc is marked ✅ Approved.
+**Status:** ✅ **APPROVED (user, 2026-07-27).** Trades ruled — **T1=A · T2=A · T3=A · T4=A** (the recommended
+set); Open Questions #1–#3 resolved (§10). This is now the binding source of truth for SP-086–SP-089. Per
+CLAUDE.md, implementation follows this doc; any deviation is surfaced + reconciled first.
 **Date:** 2026-07-27
 **Author:** Claude (planning), for user review.
+
+> **Trade rulings (user, 2026-07-27):**
+> - **T1 = A** — JSON `scrivi.fragment.v1` ordered pieces (§3).
+> - **T2 = A** — ScriviCore-owned internal clipboard; the system pasteboard carries only the flat `plainText`.
+>   (⇒ **Open Question #1 settled: NO cross-window / cross-project structured paste in v1** — internal-only;
+>   cross-project paste stays out of scope per §2.)
+> - **T3 = A** — one reversible structural event each (`structuredCut` / `structuredPaste`); undo = inverse op (§5).
+> - **T4 = A** — extend `scrivi.buffers.v1` in place with an optional `fragment` field (§6); no v2, no migration.
 
 **Supersedes / relates to:**
 - Extends the copy-buffer feature delivered in **EP-019 SP-056** (`Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` §9).
@@ -181,9 +190,19 @@ never includes them in a span; ScriviCore validates the spans fall within scene 
 3. **Each subsequent `opensWith: "scene"` piece** → `createScene` after the running insertion point (EP-027
    `createScene` with order-key placement). `opensWith: "chapter"` piece → `createChapter(afterChapterID)` +
    its first scene (EP-027 `createChapter` in-place primitive, SP-071).
-4. **Last piece** (`partial: tail`) → its text is prepended to the target scene's *tail* (so the tail rejoins the
-   fragment's trailing partial scene), rather than creating a standalone scene.
+4. **Last piece** (`partial: tail`) → its text is **not** a standalone scene; it joins the *running insertion
+   point* (the last scene created, or the target scene if the fragment had no boundaries). The original target
+   scene's **tail-suffix follows the whole pasted run** — it is appended to that same running scene, *after* the
+   tail piece's text. (Flat-document model, user-ruled 2026-07-27: the text after the caret must read continuously
+   *after* everything pasted, e.g. target `"AAA|BBB"` + fragment `[none:"one", scene:"two", tail:"three"]` →
+   `Scene1 "AAAone"`, `Scene2 "two"`, `Scene3 "threeBBB"`. NOT rejoined into the original scene, which would
+   fracture reading order.)
 5. Fresh sceneIDs/chapterIDs are minted by the create primitives; order-keys are assigned by the EP-027 model.
+6. **In-scene joins are direct concatenation, not a blank-line seam** (user-ruled 2026-07-27). The two joins that
+   happen *within* a scene — head + first-piece, and last-piece + tail-suffix — continue the paragraph at the
+   caret (a flat-document insert), so no `\n\n` is inserted. The blank-line seam that `SceneMerger` uses is *not*
+   used anywhere in paste: every cross-boundary piece becomes its own scene, so the scene split itself is the
+   boundary. (Contrast SP-088 cut-merge, which *does* use the seam when collapsing former scenes back into one.)
 
 **Output:** the updated scene list (so the editor rebuilds its segments) + the set of created sceneIDs/chapterIDs
 (so history/undo can target them, §5).
@@ -192,29 +211,84 @@ never includes them in a span; ScriviCore validates the spans fall within scene 
 - Caret at a scene **start** → no split; head is empty; first piece prepends.
 - Caret at a scene **end** → no split; tail is empty; last piece appends.
 - A one-piece fragment pasted → a plain text insert (fast path; the editor won't even call paste-splice for it).
+- **Caret in a non-editable chapter heading** → **paste is refused.** The editor guards the caret *before*
+  calling paste-splice: if the insertion point sits inside a `scriviHeading` run, it **flashes the screen**
+  (`NSBeep()` + a brief visual flash), does **not** paste, and leaves the caret where it is so the writer can
+  reposition into a scene. Paste-splice is never invoked with a heading caret (§10 Q2 — user ruling 2026-07-27:
+  do **not** silently retarget the paste; stop and signal). This is an editor-side (SP-089) precondition.
 
 ### 4.3 Cut-with-merge (SP-088)
 
-A cut is **extract-fragment (§4.1) + delete-the-span + merge**, performed **atomically** (all-or-nothing on disk,
-mirroring the atomic guarantee SP-074 built into `ChapterMerger` for I-0083).
+> **⚠️ SUPERSEDING DECISION (2026-07-29, user ruling — T-0357).** The original delete-and-fold behaviour below
+> **left the tail chapter's post-span scenes in place**, which produced **duplicate chapter titles** in the
+> manuscript (cut into "The Thing in the Black Casket", paste it back → two chapters both titled "The Thing in
+> the Black Casket"). To eliminate that litter, cut-with-merge now **captures chapter identity into the fragment
+> and promotes the tail chapter's survivors into the head chapter.** See **§4.4 Title-capture & chapter
+> promotion** immediately after this section — it governs; the delete-and-fold text below is retained as the
+> pre-2026-07-29 record and still describes the same-chapter (no boundary) and text-fold mechanics, which are
+> unchanged.
 
-**Behaviour:**
+**Behaviour** (implementation ruled 2026-07-27 — **delete-and-fold**, see below):
 
 1. **Extract** the fragment first (so the removed content is available to paste / land in a buffer).
-2. **Delete** the selected byte spans from each touched scene.
-3. **Merge the span into one scene:** the head scene's surviving prefix + the tail scene's surviving suffix must
-   become a **single continuous scene**, and every fully-selected interior scene disappears. This composes
-   `SceneMerger` across the span (repeatedly merging the tail into the head), and where the span crossed chapter
-   boundaries, `ChapterMerger` — reusing EP-028's atomic file-relocation-before-folder-removal ordering so no
-   scene file is orphaned.
-4. The result is one scene containing `headPrefix + tailSuffix`, in the head scene's chapter, with all
-   interior scenes and any emptied chapters removed.
+2. **Fold the surviving text into the head scene:** the head scene's body becomes
+   `headPrefix + tailSuffix` — the bytes before the span start abutted **directly** to the bytes after the span
+   end. **No blank-line seam** (user-ruled 2026-07-27): a cut just deletes the selected characters and closes the
+   gap, exactly like deleting a selection in any editor; the surviving edges abut as-is (whatever whitespace the
+   writer's selection left). (This corrects an earlier draft that reused `SceneMerger`'s seam — a *merge* of two
+   distinct scenes seams; a *cut* of a selection does not.)
+3. **Delete every other scene in the span** — all interior scenes *and* the tail scene — by sceneID
+   (`SceneDeleter`). Scenes *after* the span in a partially-covered chapter are left untouched.
+4. **Remove any chapter left empty** by step 3 (all its scenes were in the span) via `ChapterDeleter`.
 
-**Output:** the extracted fragment + the updated scene list + the set of removed sceneIDs/chapterIDs (for undo).
+The result is **one scene** containing `headPrefix + tailSuffix`, in the head scene's chapter, with all interior
+scenes and any emptied chapters removed.
 
-**Why compose, not re-implement:** EP-028 already made scene/chapter merge atomic and correct (I-0083). Cut-merge
-is "merge across N scenes" = N−1 pairwise merges. Building it on the verified primitives keeps the atomicity
-guarantee and avoids a second merge implementation to keep in sync.
+**Output:** the extracted fragment + the set of removed sceneIDs/chapterIDs (for undo) + the surviving head
+sceneID.
+
+**Why delete-and-fold rather than "compose SceneMerger/ChapterMerger" (ruling 2026-07-27):** the merge
+primitives don't fit a general span. `SceneMerger` is **same-chapter only**; `ChapterMerger` merges a **whole
+chapter** (it would wrongly pull in scenes *after* the span when the span ends mid-chapter); and there is no
+single-scene-cross-chapter merge primitive. Delete-and-fold is uniform across same-chapter and cross-chapter
+spans, leaves post-span scenes untouched, and is still "merge across N scenes" — expressed as *fold the two
+survivors + delete the rest*. It composes the existing `SceneWriter` / `SceneDeleter` / `ChapterDeleter`
+primitives (no new structural code), performed as a single ScriviCore call so the whole collapse is one
+operation from the app's view (atomicity: each primitive is individually atomic; the call fails fast on the first
+error, and because deletions run after the head fold, a mid-sequence failure leaves the head scene already
+carrying all surviving text — no text is lost).
+
+### 4.4 Title-capture & chapter promotion (SP-089 · T-0357, supersedes §4.3 for chapter-crossing cuts)
+
+**Motivation (user, 2026-07-29):** a cut that consumes a chapter's heading region should *take that chapter's
+name with it* into the cut buffer, so the writer never ends up with two chapters wearing the same title. When
+the name is later pasted, it comes back on the pasted chapter; the chapter it was cut from — if it still holds
+scenes — carries **no stored title** and therefore displays by **positional default** ("Chapter 2", "Chapter 3",
+… — the manuscript already renders an untitled chapter as `Chapter <ordinal>` and renumbers automatically).
+
+**What the fragment carries.** Every piece records its **scene title** (`sceneTitle`); a piece that opens a
+chapter also records that **chapter's title** (`chapterTitle`, already in the model). These travel through
+cut → buffer → paste so paste can restore the original names (previously both were discarded → paste minted
+"Chapter N" / untitled scenes).
+
+**Cut, when the span crosses ≥1 chapter boundary** (a piece has `opensWith == Chapter`):
+1. Extract the fragment (now capturing scene + chapter titles) and fold the two edge scenes as in §4.3.
+2. **Promote the surviving post-span scenes** of the last partially-cut chapter **into the head chapter** —
+   relocate their files after the head chapter's last scene (reusing the `ChapterMerger` relocation primitive
+   built for I-0083, which mints order keys and moves the `.md`/`.meta.json` atomically).
+3. **Delete every now-emptied chapter** in the span — both fully-consumed middle chapters and the drained tail
+   chapter. Result: **one continuous chapter** (the head), no duplicate-named remnant.
+4. A same-chapter cut (no `opensWith == Chapter` piece) is **unchanged** — plain delete-and-fold per §4.3.
+
+**Paste** applies the captured identity: a piece opening a chapter creates that chapter **with its captured
+`chapterTitle`**; every created scene is named from its captured `sceneTitle`. Chapters below the insertion point
+renumber positionally on their own (no stored-title rewrite needed). A pasted chapter therefore reappears as
+"The Thing in the Black Casket" while the chapter that now sits where it used to be shows the positional default.
+
+**Undo (T3):** still a **barrier** for now (undo stops with a notice), consistent with §5 and the T-0356
+carve-out. Full reversible undo — which must also restore the promoted scenes' original chapter membership and
+the survivor chapter's original title — lands with **T-0356**. (User ruling 2026-07-29: keep the barrier for
+this task.)
 
 ---
 
@@ -274,11 +348,11 @@ the text (detailed at SP-089 planning; the store change is small and additive).
 
 ## 7. Trade studies (to be ruled — **user decision required before implementation**)
 
-Each trade lists options, a recommendation, and the rationale. Following the EP-019 precedent, please rule each
-(A/B/C…) or amend; this doc is not Approved until all four are ruled.
+Each trade lists options, a recommendation, and the rationale. **All four ruled by the user 2026-07-27:
+T1=A · T2=A · T3=A · T4=A** (the recommended set). Rulings are binding on SP-086–SP-089.
 
 ### T1 — Fragment format
-- **(A) JSON `scrivi.fragment.v1` — ordered pieces (§3).** ✅ **Recommended.** Structure is explicit data, not
+- **(A) JSON `scrivi.fragment.v1` — ordered pieces (§3).** ✅ **Recommended. ✅ RULED (user, 2026-07-27).** Structure is explicit data, not
   parsed sentinels; the three operations are index walks; stripping happens once at extract; round-trips cleanly
   through the buffer schema (T4) and the pasteboard flattening (T2).
 - (B) A lightweight in-band marker string (sentinels between scenes/chapters). Compact, but re-introduces the
@@ -289,7 +363,8 @@ Each trade lists options, a recommendation, and the rationale. Following the EP-
 
 ### T2 — Internal clipboard vs system pasteboard
 - **(A) ScriviCore-owned internal clipboard holds the fragment; the system pasteboard carries only the flat
-  `plainText`.** ✅ **Recommended.** External apps still get clean text; internal paste gets full structure; the
+  `plainText`.** ✅ **Recommended. ✅ RULED (user, 2026-07-27)** — internal-only; **no cross-window/cross-project
+  structured paste in v1** (Open Question #1 settled). External apps still get clean text; internal paste gets full structure; the
   system pasteboard is never polluted with a custom blob. Matches the SP-056 "system pasteboard is buffer 0,
   never clobbered" principle.
 - (B) A custom `NSPasteboard` UTI carries the fragment on the system pasteboard. Enables cross-*app*/cross-window
@@ -300,14 +375,14 @@ Each trade lists options, a recommendation, and the rationale. Following the EP-
 
 ### T3 — Cut-merge / paste undo granularity
 - **(A) One reversible structural event each (`structuredCut` / `structuredPaste`); undo is the inverse
-  operation (§5).** ✅ **Recommended.** A clipboard action should undo in one step, text + structure together;
+  operation (§5).** ✅ **Recommended. ✅ RULED (user, 2026-07-27).** A clipboard action should undo in one step, text + structure together;
   the inverse-operation framing falls straight out of the shared primitives.
 - (B) A history **barrier** + sub-events (the current EP-019 structural model). Simpler, consistent with existing
   barriers, but the writer can't one-step-undo a cross-boundary cut — surprising for ⌘Z after ⌘X.
 
 ### T4 — Copy-buffer schema evolution
-- **(A) Extend `scrivi.buffers.v1` in place — optional `fragment` alongside `text` (§6).** ✅ **Recommended.**
-  Additive, backward-compatible, no migration; plaintext slots and old files keep working (AC5).
+- **(A) Extend `scrivi.buffers.v1` in place — optional `fragment` alongside `text` (§6).** ✅ **Recommended.
+  ✅ RULED (user, 2026-07-27).** Additive, backward-compatible, no migration; plaintext slots and old files keep working (AC5).
 - (B) Bump to `scrivi.buffers.v2` (fragment-aware) with a v1→v2 migration on open. Cleaner conceptually but the
   change is purely additive, so a version bump + migration is churn without benefit; reserve v2 for a
   non-additive change.
@@ -353,14 +428,15 @@ strategy change. Each new endpoint returns a JSON-over-`std::string` envelope. N
 
 ## 10. Open questions (fold into the ruling)
 
-1. **T2 cross-window paste.** Do you want structured paste to work *between two Scrivi windows/projects* in v1?
-   If yes, T2 leans toward (C) both; if no (recommended for v1), (A) internal-only suffices and cross-project is
-   explicitly out of scope (§2).
-2. **Caret-in-heading paste target.** If the caret sits in a non-editable chapter heading when ⌘V fires, paste
-   should target the start of that chapter's first scene (not the heading). Confirm this fallback.
-3. **Selection anchored on a divider.** If a selection starts/ends exactly on a divider attachment, the editor
-   normalises the span to the adjacent scene body before calling extract. Confirm (this is an editor-side
-   normalisation, SP-089).
+1. **T2 cross-window paste.** ✅ **RESOLVED (user, 2026-07-27): NO** cross-window/cross-project structured paste
+   in v1 (T2=A, internal-only). Cross-project paste is explicitly out of scope (§2).
+2. **Caret-in-heading paste.** ✅ **RESOLVED (user, 2026-07-27): REFUSE the paste.** If the caret sits in a
+   non-editable chapter heading when ⌘V fires, the editor **flashes the screen** (`NSBeep()` + visual flash),
+   does **not** paste, and waits for the writer to reposition into a scene. Do **not** silently retarget to the
+   chapter's first scene. Editor-side precondition, SP-089 (§4.2 edge cases).
+3. **Selection anchored on a divider.** ✅ **RESOLVED (user, 2026-07-27): confirmed.** If a selection
+   starts/ends exactly on a divider attachment, the editor normalises the span to the adjacent scene body before
+   calling extract. Editor-side normalisation, SP-089.
 
 ---
 

@@ -409,6 +409,85 @@ const char* scrivi_history_set_settings(const char* projectRootPath,
  * in-memory tree. result: {closed} */
 const char* scrivi_history_close(const char* projectRootPath);
 
+/* ---- Structured Cut/Copy/Paste (EP-029 SP-086 — T-0351) ----------------- */
+
+/*
+ * extract-fragment — turn a manuscript range that may cross scene/chapter
+ * boundaries into a scrivi.fragment.v1 structured fragment. READ-ONLY: never
+ * mutates the project (⌘C is non-destructive; cut and paste-splice are separate
+ * endpoints, SP-088 / SP-087).
+ *
+ * `spansJson` is { "spans": [ { "sceneID", "startByte", "endByte" }, ... ] } — one
+ * span per scene the selection touches, IN MANUSCRIPT READING ORDER. startByte/
+ * endByte are scene-local UTF-8 byte offsets into the scene body (same convention
+ * as the history engine); endByte is exclusive and >= startByte. The editor derives
+ * these from its storage-range -> sceneID map; dividers/headings (UI-only) are never
+ * part of a span.
+ *
+ * result: {
+ *   schema: "scrivi.fragment.v1",
+ *   pieces: [ { opensWith: "none"|"scene"|"chapter",
+ *               chapterTitle?,           // present only when opensWith == "chapter"
+ *               text,                     // this scene's selected body
+ *               partial?: "head"|"tail"   // omitted (null) for whole scenes
+ *             }, ... ],
+ *   plainText                             // pieces joined by a blank-line seam (for the
+ *                                         // system pasteboard; T2=A)
+ * }
+ *
+ * invalidArgument if spans is empty, out of manuscript order, has startByte>endByte,
+ * references an unknown scene, or a span exceeds its scene body. Standard envelope
+ * conventions apply (heap JSON, free with scrivi_free). Design §3, §4.1. */
+const char* scrivi_fragment_extract(const char* projectRootPath,
+                                    const char* spansJson);
+
+/*
+ * cut-with-merge — extract the fragment (as scrivi_fragment_extract), then delete the
+ * spanned text and collapse the spanned scenes/chapters into ONE continuous scene, exactly
+ * as ⌘X behaves in a flat document (design §4.3, delete-and-fold). The head scene keeps its
+ * prefix, the tail scene's suffix is folded onto it (blank-line seam), every other scene in
+ * the span is deleted, and any chapter left empty is removed. Scenes AFTER the span in a
+ * partially-covered chapter are left untouched. `spansJson` has the same shape + ordering as
+ * scrivi_fragment_extract.
+ *
+ * result: { fragment: <scrivi.fragment.v1>, survivingSceneID, removedSceneIDs:[...],
+ * removedChapterIDs:[...] } — the fragment is the removed content (for the buffer / undo);
+ * the removed IDs are in reading order (for undo, §5). invalidArgument on the same
+ * span-validation failures as extract. Standard envelope conventions (heap JSON, free with
+ * scrivi_free). Design §4.3. */
+const char* scrivi_fragment_cut(const char* projectRootPath,
+                                const char* spansJson);
+
+/*
+ * paste-splice — insert a scrivi.fragment.v1 (as produced by scrivi_fragment_extract
+ * or carried in a copy buffer) at a caret, reconstructing every carried scene/chapter
+ * boundary as if inserting into one continuous flat document (design §4.2). The target
+ * scene is split at the caret; the leading (head) piece extends the head; each subsequent
+ * piece creates a scene (opensWith "scene") or a chapter + first scene (opensWith
+ * "chapter") after the running insertion point via the EP-027 create primitives; the
+ * target scene's tail-suffix follows the whole pasted run onto the last created scene.
+ * Fresh scene/chapter IDs are minted; order-keys are assigned by the EP-027 model.
+ *
+ * `fragmentJson` is a scrivi.fragment.v1 object { pieces:[...], plainText? }. The caret is
+ * (`caretSceneID`, `caretByteOffset`) — a scene-local UTF-8 byte offset into that scene's
+ * body; it must be inside a real scene (the editor's caret-in-heading refusal + divider-span
+ * normalisation are SP-089 preconditions). identity/persona/displayName authorise the create
+ * primitives.
+ *
+ * result: { targetSceneID, createdSceneIDs:[...], createdChapterIDs:[...] } — the created IDs
+ * are in reading order (for history/undo, §5). invalidArgument if the fragment is empty, the
+ * caret scene is unknown, or the caret offset exceeds the scene body. Standard envelope
+ * conventions (heap JSON, free with scrivi_free). Design §4.2. */
+const char* scrivi_fragment_paste(const char* projectRootPath,
+                                  const char* appSupportRoot,
+                                  const char* projectID,
+                                  const char* fragmentJson,
+                                  const char* caretSceneID,
+                                  long long   caretByteOffset,
+                                  const char* identityID,
+                                  const char* personaID,
+                                  const char* displayName);
+
 /* ---- Copy buffers (EP-019 SP-056 — T-0213) ------------------------------ */
 
 /*

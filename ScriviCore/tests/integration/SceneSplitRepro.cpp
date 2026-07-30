@@ -250,10 +250,10 @@ TEST_CASE("createChapter(afterChapterID) - born in place; no intermediate folder
         r.projectID=projectID; r.author=author();   // afterChapterID empty → append
         auto rr = core.createChapter(r); REQUIRE(rr.ok()); return rr.value().chapterID;
     };
-    // Build the exact "Sentinel of Cenuri" shape: chapters 001, V, k, s.
-    const auto ch2 = appendChapter();   // chapter-V
-    appendChapter();                    // chapter-k
-    appendChapter();                    // chapter-s
+    // Build the "Sentinel of Cenuri" shape with the T-0358 caps generator: 001, A, M, S.
+    const auto ch2 = appendChapter();   // chapter-A
+    appendChapter();                    // chapter-M
+    appendChapter();                    // chapter-S
 
     auto folderNames = [&]() {
         std::vector<std::string> names;
@@ -263,10 +263,10 @@ TEST_CASE("createChapter(afterChapterID) - born in place; no intermediate folder
         return names;
     };
     REQUIRE(folderNames() == std::vector<std::string>{
-        "chapter-001", "chapter-V", "chapter-k", "chapter-s"});
+        "chapter-001", "chapter-A", "chapter-M", "chapter-S"});
 
-    // Now create a chapter AFTER ch2 (=chapter-V). Its key must be keyBetween("V","k")="c",
-    // so the folder is born as chapter-c. The append-key ("w", keyAfter "s") must NEVER
+    // Now create a chapter AFTER ch2 (=chapter-A). Its key must be keyBetween("A","M")="G",
+    // so the folder is born as chapter-G. The append-key ("V", keyAfter "S") must NEVER
     // appear — no create-then-rename.
     scrivi::CreateChapterRequest inPlace;
     inPlace.projectRootPath=proj.str(); inPlace.appSupportRoot=apps.str();
@@ -275,15 +275,15 @@ TEST_CASE("createChapter(afterChapterID) - born in place; no intermediate folder
     auto kR = core.createChapter(inPlace); REQUIRE(kR.ok());
 
     const auto names = folderNames();
-    CHECK(std::find(names.begin(), names.end(), "chapter-c") != names.end());
-    CHECK(std::find(names.begin(), names.end(), "chapter-w") == names.end());
+    CHECK(std::find(names.begin(), names.end(), "chapter-G") != names.end());
+    CHECK(std::find(names.begin(), names.end(), "chapter-V") == names.end());
 
     // Manuscript order: the new chapter sits right after ch2.
     auto ordered = scrivi::manuscript::listChaptersByOrder(lfs, proj.str());
     REQUIRE(ordered.ok());
     std::vector<std::string> ids;
     for (auto& e : ordered.value()) ids.push_back(e.chapterID.value);
-    // Expect: ch1, ch2, K, then the rest (k, s).
+    // Expect: ch1, ch2, G (the new in-place chapter), then the rest (M, S).
     REQUIRE(ids.size() == 5);
     CHECK(ids[0] == ch1.value);
     CHECK(ids[1] == ch2.value);

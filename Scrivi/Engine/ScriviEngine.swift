@@ -1024,6 +1024,85 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decodeC(raw)
     }
+
+    // MARK: — Structured Cut/Copy/Paste (EP-029 SP-089, T-0354)
+
+    // Serialize spans to { "spans": [ {sceneID,startByte,endByte}, … ] }.
+    private func spansJSON(_ spans: [FragmentSpanArg]) -> String {
+        let items = spans.map {
+            "{\"sceneID\":\(Self.jsonString($0.sceneID)),\"startByte\":\($0.start),\"endByte\":\($0.end)}"
+        }
+        return "{\"spans\":[\(items.joined(separator: ","))]}"
+    }
+
+    // Minimal JSON string escaper (the sceneIDs are UUIDs, but escape defensively).
+    private static func jsonString(_ s: String) -> String {
+        var out = "\""
+        for ch in s.unicodeScalars {
+            switch ch {
+            case "\"": out += "\\\""
+            case "\\": out += "\\\\"
+            case "\n": out += "\\n"
+            case "\r": out += "\\r"
+            case "\t": out += "\\t"
+            default:   out.unicodeScalars.append(ch)
+            }
+        }
+        out += "\""
+        return out
+    }
+
+    /// Extract a manuscript range (ordered per-scene byte spans, in reading order) into a
+    /// scrivi.fragment.v1 structured fragment. Read-only. §4.1.
+    public func fragmentExtract(projectRootPath: String,
+                                spans: [FragmentSpanArg]) throws -> FragmentResult {
+        let json = spansJSON(spans)
+        let raw = projectRootPath.withCString { prp in
+            json.withCString { sj in scrivi_fragment_extract(prp, sj) }
+        }
+        return try decodeC(raw)
+    }
+
+    /// Cut-with-merge: extract + delete the spanned text + collapse the spanned scenes/chapters
+    /// into one. Returns the fragment + removed IDs + the surviving scene. §4.3.
+    public func fragmentCut(projectRootPath: String,
+                            spans: [FragmentSpanArg]) throws -> FragmentCutResult {
+        let json = spansJSON(spans)
+        let raw = projectRootPath.withCString { prp in
+            json.withCString { sj in scrivi_fragment_cut(prp, sj) }
+        }
+        return try decodeC(raw)
+    }
+
+    /// Paste-splice a scrivi.fragment.v1 at a caret, reconstructing carried scene/chapter
+    /// boundaries. `fragmentJSON` is a serialized scrivi.fragment.v1 object. §4.2.
+    public func fragmentPaste(projectRootPath: String,
+                              appSupportRoot: String,
+                              projectID: String,
+                              fragmentJSON: String,
+                              caretSceneID: String,
+                              caretByteOffset: Int,
+                              authorshipRef: AuthorshipRef) throws -> FragmentPasteResult {
+        let raw = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                projectID.withCString { pid in
+                    fragmentJSON.withCString { fj in
+                        caretSceneID.withCString { csid in
+                            authorshipRef.identityID.withCString { iid in
+                                authorshipRef.personaID.withCString { pers in
+                                    authorshipRef.displayName.withCString { dn in
+                                        scrivi_fragment_paste(prp, asr, pid, fj, csid,
+                                                              Int64(caretByteOffset), iid, pers, dn)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
 }
 
 // MARK: — C boundary decode helper
@@ -1139,6 +1218,11 @@ public final class ScriviEngine: @unchecked Sendable {
     public func buffersList(projectRootPath: String) throws -> BufferListResult { try unavailable() }
     @discardableResult
     public func buffersClear(projectRootPath: String, bufferID: String) throws -> BufferClearResult { try unavailable() }
+
+    // Structured Cut/Copy/Paste (EP-029 SP-089) — unavailable on this platform.
+    public func fragmentExtract(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentResult { try unavailable() }
+    public func fragmentCut(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentCutResult { try unavailable() }
+    public func fragmentPaste(projectRootPath: String, appSupportRoot: String, projectID: String, fragmentJSON: String, caretSceneID: String, caretByteOffset: Int, authorshipRef: AuthorshipRef) throws -> FragmentPasteResult { try unavailable() }
 }
 
 #endif
@@ -1244,6 +1328,7 @@ public struct SceneInfo: Decodable, Sendable {
 
 public struct OpenProjectResult: Decodable, Sendable {
     public let projectID:    String
+    public let projectTitle: String   // I-0093: the on-disk project.json title (empty for repairRequired)
     public let mode:         String
     public let activeScene:  ActiveSceneResult?
     public let restored:     RestoredSurfaceResult?
@@ -1253,6 +1338,7 @@ public struct OpenProjectResult: Decodable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         projectID    = try c.decode(String.self, forKey: .projectID)
+        projectTitle = try c.decodeIfPresent(String.self, forKey: .projectTitle) ?? ""
         mode         = try c.decodeIfPresent(String.self, forKey: .mode) ?? "ready"
         activeScene  = try c.decodeIfPresent(ActiveSceneResult.self, forKey: .activeScene)
         restored     = try c.decodeIfPresent(RestoredSurfaceResult.self, forKey: .restored)
@@ -1261,7 +1347,7 @@ public struct OpenProjectResult: Decodable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case projectID, mode, activeScene, restored, scenes, repairIssues
+        case projectID, projectTitle, mode, activeScene, restored, scenes, repairIssues
     }
 }
 
@@ -1515,6 +1601,108 @@ public struct MergeSceneResult: Decodable, Sendable {
     public let survivorContentPath:  String
     public let chapterMetadataPath:  String
     public let merged:               Bool
+}
+
+// MARK: — Structured Cut/Copy/Paste results (EP-029 SP-089)
+
+/// A single-scene selection span for the fragment endpoints. Byte offsets are scene-local
+/// UTF-8 byte offsets into the scene body; `end` is exclusive and >= `start`.
+public struct FragmentSpanArg: Sendable {
+    public let sceneID: String
+    public let start: Int
+    public let end: Int
+    public init(sceneID: String, start: Int, end: Int) {
+        self.sceneID = sceneID; self.start = start; self.end = end
+    }
+}
+
+/// One piece of a scrivi.fragment.v1 fragment (design §3).
+public struct FragmentPiece: Decodable, Sendable {
+    public let opensWith:    String          // "none" | "scene" | "chapter"
+    public let chapterTitle: String?         // present only when opensWith == "chapter"
+    public let sceneTitle:   String?         // captured scene title, restored on paste (T-0357)
+    public let text:         String
+    public let partial:      String?         // "head" | "tail" | nil (whole scene)
+}
+
+/// A scrivi.fragment.v1 structured fragment (from fragmentExtract, or embedded in a cut result).
+public struct FragmentResult: Decodable, Sendable {
+    public let schema:    String             // "scrivi.fragment.v1"
+    public let pieces:    [FragmentPiece]
+    public let plainText: String
+
+    /// Re-serialize to the JSON the paste endpoint expects. Round-trips through the same wire
+    /// shape scrivi_fragment_extract produced (pieces + plainText + schema).
+    public func toJSON() -> String {
+        func js(_ s: String) -> String {
+            var out = "\""
+            for ch in s.unicodeScalars {
+                switch ch {
+                case "\"": out += "\\\""
+                case "\\": out += "\\\\"
+                case "\n": out += "\\n"
+                case "\r": out += "\\r"
+                case "\t": out += "\\t"
+                default:   out.unicodeScalars.append(ch)
+                }
+            }
+            return out + "\""
+        }
+        let pieceJSON = pieces.map { p -> String in
+            var fields = ["\"opensWith\":\(js(p.opensWith))"]
+            if let ct = p.chapterTitle, p.opensWith == "chapter" {
+                fields.append("\"chapterTitle\":\(js(ct))")
+            }
+            if let st = p.sceneTitle, !st.isEmpty {
+                fields.append("\"sceneTitle\":\(js(st))")   // restored on paste (T-0357)
+            }
+            fields.append("\"text\":\(js(p.text))")
+            if let pt = p.partial { fields.append("\"partial\":\(js(pt))") }
+            return "{\(fields.joined(separator: ","))}"
+        }
+        return "{\"schema\":\(js(schema)),\"pieces\":[\(pieceJSON.joined(separator: ","))],\"plainText\":\(js(plainText))}"
+    }
+}
+
+/// Result of scrivi_fragment_cut — the removed content + what was removed + the survivor.
+public struct FragmentCutResult: Decodable, Sendable {
+    public let fragment:          FragmentResult
+    public let survivingSceneID:  String
+    public let removedSceneIDs:   [String]
+    public let removedChapterIDs: [String]
+
+    // The C API omits empty ID arrays (appendStringToArray only emits a key when it has
+    // elements), so a cut that removes no chapters ships no `removedChapterIDs` key. Decode
+    // absent arrays as empty rather than throwing keyNotFound.
+    private enum CodingKeys: String, CodingKey {
+        case fragment, survivingSceneID, removedSceneIDs, removedChapterIDs
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        fragment          = try c.decode(FragmentResult.self, forKey: .fragment)
+        survivingSceneID  = try c.decode(String.self, forKey: .survivingSceneID)
+        removedSceneIDs   = try c.decodeIfPresent([String].self, forKey: .removedSceneIDs)   ?? []
+        removedChapterIDs = try c.decodeIfPresent([String].self, forKey: .removedChapterIDs) ?? []
+    }
+}
+
+/// Result of scrivi_fragment_paste — what was created (for history/undo) + the target scene.
+public struct FragmentPasteResult: Decodable, Sendable {
+    public let targetSceneID:     String
+    public let createdSceneIDs:   [String]
+    public let createdChapterIDs: [String]
+
+    // Same omit-empty contract as FragmentCutResult: a paste that creates no new chapters
+    // ships no `createdChapterIDs` key. Decode absent arrays as empty.
+    private enum CodingKeys: String, CodingKey {
+        case targetSceneID, createdSceneIDs, createdChapterIDs
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        targetSceneID     = try c.decode(String.self, forKey: .targetSceneID)
+        createdSceneIDs   = try c.decodeIfPresent([String].self, forKey: .createdSceneIDs)   ?? []
+        createdChapterIDs = try c.decodeIfPresent([String].self, forKey: .createdChapterIDs) ?? []
+    }
 }
 
 public struct MergeChapterResult: Decodable, Sendable {
