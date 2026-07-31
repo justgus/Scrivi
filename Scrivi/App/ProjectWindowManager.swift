@@ -124,15 +124,35 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        // Restore macOS Full Screen now that the window is on screen. toggleFullScreen drives the
-        // real full-screen transition (menu-bar hide, own Space) and fires windowWillExitFullScreen
-        // on the way back out, so the saved windowed frame (applied in init) is the size the window
-        // returns to. The windowDidEnterFullScreen delegate persists the flag; the windowed frame is
-        // never overwritten while full screen.
+        // Restore macOS Full Screen. toggleFullScreen drives the real full-screen transition
+        // (menu-bar hide, own Space); the windowDidEnterFullScreen delegate persists the flag and
+        // the windowed frame (applied in init) is never overwritten while full screen (I-0055).
         if restoreFullScreenOnShow {
             restoreFullScreenOnShow = false
-            if !window.styleMask.contains(.fullScreen) {
-                window.toggleFullScreen(nil)
+            // A programmatic toggleFullScreen fired DURING app launch stalls mid-flight —
+            // windowWillEnterFullScreen arrives but windowDidEnterFullScreen never does, so the
+            // window is left windowed (I-0097). Manual (green-button) full screen works because
+            // the app is already fully active. So defer the restore until the app is active AND
+            // the launch storm has settled: wait for NSApplication.didBecomeActive (or run now if
+            // already active), then a short delay before toggling.
+            let enterFullScreen: () -> Void = { [weak self] in
+                guard let self, !self.window.styleMask.contains(.fullScreen) else { return }
+                self.window.toggleFullScreen(nil)
+            }
+            let scheduleAfterSettle = {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { enterFullScreen() }
+            }
+            if NSApp.isActive {
+                scheduleAfterSettle()
+            } else {
+                var token: NSObjectProtocol?
+                token = NotificationCenter.default.addObserver(
+                    forName: NSApplication.didBecomeActiveNotification,
+                    object: nil, queue: .main
+                ) { _ in
+                    if let token { NotificationCenter.default.removeObserver(token) }
+                    scheduleAfterSettle()
+                }
             }
         }
     }
@@ -151,6 +171,11 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
 
     // Persist frame on user resize/move so a crash or force-quit still restores recent layout.
     func windowDidEndLiveResize(_ notification: Notification) {
+        // A full-screen transition emits live-resize end callbacks with the styleMask flipping
+        // mid-flight; saving here would persist the transient state (fs=1 then fs=0) and could
+        // clobber the real value. Suppress during the transition, exactly like windowDidResize
+        // (the ent/ exit did-callbacks persist the settled state). I-0097.
+        guard !isTransitioningFullScreen else { return }
         ProjectWindowFrameStore.save(window: window, projectID: projectID)
     }
 

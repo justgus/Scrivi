@@ -167,6 +167,7 @@ QVariantMap ScriviBridge::createScene(const QString& projectRootPath,
                             projectID.toUtf8().constData(),
                             chapterID.toUtf8().constData(),
                             afterSceneID.toUtf8().constData(),
+                            "" /* beforeSceneID — Apple-only for now (EP-026 will surface it) */,
                             identityID_.toUtf8().constData(),
                             personaID_.toUtf8().constData(),
                             displayName_.toUtf8().constData()));

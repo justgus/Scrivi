@@ -170,12 +170,17 @@ const char* scrivi_import_from_inbox(
     const char* personaID,
     const char* authorDisplayName);
 
+/* Creates a scene. `afterSceneID` inserts immediately AFTER the given scene ("" / NULL =
+ * append to the end of the chapter). `beforeSceneID` inserts immediately BEFORE the given
+ * scene and takes precedence when set ("" / NULL = not a before-insert) — this is the
+ * Cmd-Enter-at-scene-start case, including a chapter's first scene. */
 const char* scrivi_create_scene(
     const char* projectRootPath,
     const char* appSupportRoot,
     const char* projectID,
     const char* chapterID,
     const char* afterSceneID,
+    const char* beforeSceneID,
     const char* identityID,
     const char* personaID,
     const char* displayName);

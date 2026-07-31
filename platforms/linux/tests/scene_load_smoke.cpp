@@ -95,7 +95,8 @@ int main(int argc, char* argv[])
         const CStr env(scrivi_create_scene(
             u8(projectPath).constData(), u8(appSupport).constData(),
             u8(projectID).constData(), u8(chapterID).constData(),
-            u8(afterSceneID).constData(), u8(identityID).constData(),
+            u8(afterSceneID).constData(), "" /* beforeSceneID */,
+            u8(identityID).constData(),
             u8(personaID).constData(), u8(displayName).constData()));
         const QJsonObject root =
             QJsonDocument::fromJson(env.q().toUtf8()).object();

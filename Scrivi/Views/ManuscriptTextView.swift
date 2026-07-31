@@ -742,17 +742,31 @@ struct ManuscriptTextView: NSViewRepresentable {
                 // Structural op — record a barrier so undo stops here (§4.5).
                 session.historyCapture?.recordBarrier(kind: "sceneSplit", note: "Can't undo past creating a scene")
 
+                // Caret at the very start of a (non-empty) scene → insert a new empty scene
+                // BEFORE this one, exactly as a newline at position 0 would in one big buffer.
+                // The current scene keeps all its text + title; the new empty scene precedes it.
+                // This is the ONLY correct behaviour at offset 0 for any scene, including a
+                // chapter's first scene (handled by the engine's beforeSceneID prepend). I-0096.
+                let insertBefore = splitOffsetInSeg == 0 && !isAtEnd
+
                 do {
                     let result = try env.engine.createScene(
                         projectRootPath: rootPath,
                         appSupportRoot: env.appSupportRoot,
                         projectID: proj.projectID,
                         chapterID: currentSeg.chapterID,
-                        afterSceneID: currentSeg.sceneID,
+                        afterSceneID: insertBefore ? "" : currentSeg.sceneID,
+                        beforeSceneID: insertBefore ? currentSeg.sceneID : "",
                         authorshipRef: ref
                     )
 
-                    if isAtEnd {
+                    if insertBefore {
+                        // Empty scene inserted before the current one; current scene untouched.
+                        let newIdx = loader.insertScene(result, before: segIdx)
+                        loader.setCurrentIndex(newIdx)
+                        // Rebuild and drop the caret at the start of the new empty scene.
+                        rebuildStorageAndPlaceCursor(at: newIdx, textOffset: 0)
+                    } else if isAtEnd {
                         // Append empty scene — original behaviour.
                         let newIdx = loader.insertScene(result, after: segIdx)
                         loader.setCurrentIndex(newIdx)

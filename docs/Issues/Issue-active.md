@@ -41,7 +41,53 @@ table and stay in this file as full entries only until the next batch archive (I
 | I-0062 | `[Linux]` A newly-created chapter's heading reads "Chapter" (not "Chapter N") until the project is reloaded | Low | SP-066 | ✅ Resolved - Verified (2026-07-15) |
 | I-0061 | `[Linux]` Landing **Quit** button does nothing after the shell flip (`QQmlEngine::quit()` unconnected) | Medium | SP-062 | ✅ Resolved - Verified (2026-07-14) |
 
-**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060).
+**Verified, awaiting batch archive:** I-0051, I-0053, I-0054, I-0055, I-0056 (all Verified 2026-06-29), I-0052 (Verified 2026-06-26), I-0057 (Verified 2026-07-01), and **I-0058** (Verified 2026-07-09; full entry in `Issue-backlog.md`) — full entries retained until the I-0051–I-0060 batch is archived (pending I-0059/I-0060). Also **I-0096** and **I-0097** (both Verified 2026-07-31; SP-089; full entries below) — retained until the I-0091–I-0100 batch is archived.
+
+---
+
+## I-0097: [Apple] A project last quit in macOS Full Screen reopens NOT full screen (maximize state lost)
+
+**Status:** ✅ **Verified (2026-07-31)** — user confirmed a project last quit in macOS Full Screen reopens and
+**remains** full screen (brief windowed→full-screen animation on launch is expected). macOS app **BUILD SUCCEEDED**.
+
+Reported 2026-07-30 (not a regression — window-restore code unchanged since SP-046). **Root cause (log-confirmed,
+two bugs):** (1) `windowDidEndLiveResize` was **unguarded** — it fires repeatedly DURING a full-screen transition
+with `styleMask` flipping mid-flight, so it persisted transient states (`fs=1` then `fs=0`), churning/clobbering
+the saved flag (`windowDidResize` was already guarded by `isTransitioningFullScreen`; this sibling callback was
+missed). (2) The restore `toggleFullScreen` fired DURING app launch **stalled mid-flight** —
+`windowWillEnterFullScreen` arrived but `windowDidEnterFullScreen` **never** did, leaving the window windowed (the
+visible "lines drawing across then it lands windowed"). Manual green-button full screen always worked because the
+app is already active. **Fix:** (a) guard `windowDidEndLiveResize` with `isTransitioningFullScreen`, matching
+`windowDidResize`; (b) defer the restore until `NSApplication.didBecomeActive` (or immediately if already active)
+**plus a 0.35 s settle** so the launch storm clears before toggling — the enter transition then completes cleanly.
+Confirming log on reopen: `read savedFullScreen=1` → `windowWillEnterFullScreen` → **`windowDidEnterFullScreen`** →
+`save fullScreen=1`, staying full screen through `windowWillClose`. `ProjectWindowManager.swift` /
+`ProjectWindowFrameStore.swift` only; no core/ABI/pbxproj change. **Sprint:** SP-089. **Severity:** Low.
+
+---
+
+## I-0096: [Apple]+[ScriviCore] Cmd-Enter at the start of a scene mislabels scenes (title shifts to the wrong scene)
+
+**Status:** ✅ **Verified (2026-07-31)** — user confirmed ⌘↩ at the start of a scene inserts an unnamed Scene
+before it; the original scene keeps its name; survives quit→reopen. Core `ctest` **361/361** (2 new I-0096 tests);
+macOS app **BUILD SUCCEEDED**.
+
+Reported 2026-07-30 during the SP-089 live session. With the caret at the very **beginning** of a scene (most
+visibly a chapter's FIRST scene), ⌘↩ created the new Scene-1 but it **inherited the following scene's first-line
+title** while the following scene became untitled — persisting across quit→reopen. **Root cause:**
+`handleCreateScene` (`ManuscriptTextView.swift`) treated caret-offset-0 as a normal split → **empty head** saved
+into the existing scene (clearing its first line = its title) and the **entire body** saved into the new scene (so
+the new scene adopted the old first-line title). Scene "names" are derived from the first line of body
+(`liveTitles`), so the empty-head/full-tail split moved the title. Correct behaviour (as in one monolithic buffer):
+a newline at offset 0 inserts an empty scene **before** the caret's scene, leaving that scene's text + title
+intact. There was **no core path** to insert before a chapter's first scene — `createScene`'s empty `afterSceneID`
+**appends**, not prepends (its comment even claimed "front" wrongly). **Fix:** (a) `CreateSceneRequest` gains
+`beforeSceneID`; `SceneCreator` computes the order key as `keyBetween(prev, beforeScene)` (open-bottom `lo` when
+it's the chapter's first scene); threaded through the C ABI `scrivi_create_scene` (+`beforeSceneID` param),
+`ScriviEngine.createScene`, and the Linux bridge/smoke (pass `""`). (b) `ViewportSceneLoader.insertScene(before:)`;
+`handleCreateScene` routes caret-offset-0 to a before-insert (caret lands in the new empty scene). Core tests
+`createScene - beforeSceneID inserts before a chapter's FIRST scene / before a non-first scene` (2 new, RED without
+the fix). **Sprint:** SP-089. **Severity:** Medium.
 
 ---
 

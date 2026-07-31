@@ -987,6 +987,7 @@ const char* scrivi_create_scene(
     const char* projectID,
     const char* chapterID,
     const char* afterSceneID,
+    const char* beforeSceneID,
     const char* identityID,
     const char* personaID,
     const char* displayName)
@@ -997,6 +998,7 @@ const char* scrivi_create_scene(
     req.projectID       = scrivi::ProjectID{S(projectID)};
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
     req.afterSceneID    = scrivi::SceneID  {S(afterSceneID)};
+    req.beforeSceneID   = scrivi::SceneID  {S(beforeSceneID)};
     req.author = {
         scrivi::IdentityID{S(identityID)},
         scrivi::PersonaID {S(personaID)},

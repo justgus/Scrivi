@@ -267,6 +267,7 @@ Currently: **88 verified Tasks** (incl. EP-019 T-0198–T-0212)
 | T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge on eviction | [Task-verified-0210-0212.md](Verified/Task-verified-0210-0212.md) | ✅ Verified |
 | T-0211 | Inline fork popover (Trade T2 core interaction) | [Task-verified-0210-0212.md](Verified/Task-verified-0210-0212.md) | ✅ Verified |
 | T-0212 | Stale-branch detection + user-confirmed purge | [Task-verified-0210-0212.md](Verified/Task-verified-0210-0212.md) | ✅ Verified |
+| T-0358 | `[ScriviCore]` OrderKey caps-only generation + dotted keys + rebalance (EP-027 lineage) | [Task-verified-0358.md](Verified/Task-verified-0358.md) | ✅ Verified |
 
 ## Closed Tasks
 

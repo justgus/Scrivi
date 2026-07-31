@@ -218,6 +218,104 @@ TEST_CASE("createScene - empty afterSceneID appends to end of chapter",
     CHECK(resolved.value()[1].sceneID.value == result.value().sceneID.value);
 }
 
+TEST_CASE("createScene - beforeSceneID inserts before a chapter's FIRST scene (I-0096)",
+          "[integration][T-0071][I-0096]")
+{
+    TempDir projectDir;
+    TempDir appSupportDir;
+
+    scrivi::platform::LocalFileSystem        lfs;
+    scrivi::mocks::DeterministicUUIDProvider uuids;
+    scrivi::mocks::FixedClock                clock{"2026-06-01T00:00:00Z"};
+    scrivi::mocks::MockSecureStore           store;
+    scrivi::mocks::MockGitProvider           git;
+
+    auto services = makeServices(lfs, uuids, clock, store, git);
+    scrivi::ScriviCore core{services};
+
+    scrivi::CreateProjectRequest req;
+    req.projectRootPath = projectDir.str();
+    req.appSupportRoot  = appSupportDir.str();
+    req.title           = "Novel";
+    req.slug            = "novel";
+    req.author          = testAuthor();
+    auto created = core.createProject(req);
+    REQUIRE(created.ok());
+    const auto firstSceneID = created.value().firstSceneID;   // the chapter's first scene
+
+    // Insert a new scene BEFORE the chapter's first scene — the Cmd-Enter-at-start case that
+    // previously had no correct path (empty afterSceneID appends, not prepends).
+    scrivi::CreateSceneRequest sceneReq;
+    sceneReq.projectRootPath = projectDir.str();
+    sceneReq.appSupportRoot  = appSupportDir.str();
+    sceneReq.projectID       = created.value().project.projectID;
+    sceneReq.chapterID       = created.value().firstChapterID;
+    sceneReq.beforeSceneID   = firstSceneID;                   // prepend before the first scene
+    sceneReq.author          = testAuthor();
+    auto result = core.createScene(sceneReq);
+    REQUIRE(result.ok());
+
+    scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+    auto resolved = resolver.resolve(projectDir.str());
+    REQUIRE(resolved.ok());
+    REQUIRE(resolved.value().size() == 2);
+    // The NEW scene must sort FIRST, the original first scene second.
+    CHECK(resolved.value()[0].sceneID.value == result.value().sceneID.value);
+    CHECK(resolved.value()[1].sceneID.value == firstSceneID.value);
+}
+
+TEST_CASE("createScene - beforeSceneID inserts before a non-first scene (I-0096)",
+          "[integration][T-0071][I-0096]")
+{
+    TempDir projectDir;
+    TempDir appSupportDir;
+
+    scrivi::platform::LocalFileSystem        lfs;
+    scrivi::mocks::DeterministicUUIDProvider uuids;
+    scrivi::mocks::FixedClock                clock{"2026-06-01T00:00:00Z"};
+    scrivi::mocks::MockSecureStore           store;
+    scrivi::mocks::MockGitProvider           git;
+
+    auto services = makeServices(lfs, uuids, clock, store, git);
+    scrivi::ScriviCore core{services};
+
+    scrivi::CreateProjectRequest req;
+    req.projectRootPath = projectDir.str();
+    req.appSupportRoot  = appSupportDir.str();
+    req.title           = "Novel";
+    req.slug            = "novel";
+    req.author          = testAuthor();
+    auto created = core.createProject(req);
+    REQUIRE(created.ok());
+    const auto firstSceneID = created.value().firstSceneID;
+
+    // Append a second scene, so the chapter has [s1, s2].
+    scrivi::CreateSceneRequest s2Req;
+    s2Req.projectRootPath = projectDir.str();
+    s2Req.appSupportRoot  = appSupportDir.str();
+    s2Req.projectID       = created.value().project.projectID;
+    s2Req.chapterID       = created.value().firstChapterID;
+    s2Req.afterSceneID    = firstSceneID;
+    s2Req.author          = testAuthor();
+    auto s2 = core.createScene(s2Req);
+    REQUIRE(s2.ok());
+
+    // Now insert BEFORE s2 → order must be [s1, new, s2].
+    scrivi::CreateSceneRequest midReq = s2Req;
+    midReq.afterSceneID  = scrivi::SceneID{""};
+    midReq.beforeSceneID = s2.value().sceneID;
+    auto mid = core.createScene(midReq);
+    REQUIRE(mid.ok());
+
+    scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+    auto resolved = resolver.resolve(projectDir.str());
+    REQUIRE(resolved.ok());
+    REQUIRE(resolved.value().size() == 3);
+    CHECK(resolved.value()[0].sceneID.value == firstSceneID.value);
+    CHECK(resolved.value()[1].sceneID.value == mid.value().sceneID.value);
+    CHECK(resolved.value()[2].sceneID.value == s2.value().sceneID.value);
+}
+
 TEST_CASE("createScene - returns error for unknown chapterID",
           "[integration][T-0071]")
 {

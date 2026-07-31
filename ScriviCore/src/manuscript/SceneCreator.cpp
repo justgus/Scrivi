@@ -70,17 +70,28 @@ Result<CreateSceneResult> SceneCreator::create(const CreateSceneRequest& request
     // 3. Generate new scene ID and an ORDER-KEY filename (EP-027 §8.1). The key lands
     //    strictly between the caret's neighbours in DISK order (the folder scan), not the
     //    cache array — so the sorted filenames equal reading order. afterSceneID empty →
-    //    insert at the front.
+    //    APPEND to the end of the chapter; beforeSceneID set → insert before that scene.
     const SceneID newSceneID = ids.newSceneID();
 
     auto onDiskR = listScenesByOrder(fs, root, chMetaRelPath);
     if (!onDiskR.ok()) { return Result<CreateSceneResult>::failure(onDiskR.error()); }
     const auto& onDisk = onDiskR.value();
 
-    // Contract (matches pre-EP-027 SceneCreator): an empty OR unknown afterSceneID APPENDS
-    // to the end of the chapter; a known anchor inserts immediately after it.
+    // Contract:
+    //   • beforeSceneID set + known → insert immediately BEFORE it: hi = its key, lo = the key
+    //     of the scene ahead of it (or "" = open bottom when it is the chapter's first scene).
+    //     This is the Cmd-Enter-at-scene-start case, including a chapter's first scene.
+    //   • otherwise, an empty OR unknown afterSceneID APPENDS to the end of the chapter; a known
+    //     afterSceneID anchor inserts immediately after it (pre-EP-027 SceneCreator behaviour).
     std::string lo, hi;
-    if (request.afterSceneID.value.empty()) {
+    auto beforeIt = request.beforeSceneID.value.empty()
+        ? onDisk.end()
+        : std::find_if(onDisk.begin(), onDisk.end(),
+            [&](const SceneEntry& e) { return e.sceneID.value == request.beforeSceneID.value; });
+    if (beforeIt != onDisk.end()) {
+        hi = beforeIt->orderKey;
+        lo = (beforeIt == onDisk.begin()) ? std::string() : std::prev(beforeIt)->orderKey;
+    } else if (request.afterSceneID.value.empty()) {
         lo = onDisk.empty() ? std::string() : onDisk.back().orderKey;
         hi = std::string();
     } else {

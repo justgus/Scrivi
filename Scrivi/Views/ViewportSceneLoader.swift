@@ -308,6 +308,40 @@ struct SceneSegment: Identifiable {
         return insertIdx
     }
 
+    // Insert a new (empty) scene BEFORE the segment at `index` — the Cmd-Enter-at-scene-start
+    // case. The scene currently at `index` is pushed down and keeps all its text + title; the
+    // new empty scene takes its place. Returns the new segment's index (== `index`).
+    func insertScene(_ result: CreateSceneResult, before index: Int) -> Int {
+        let seg = SceneSegment(
+            id: result.sceneID,
+            sceneID: result.sceneID,
+            chapterID: result.chapterID,
+            metadataPath: result.metadataPath,
+            contentPath: result.contentPath,
+            text: ""
+        )
+        segments.insert(seg, at: index)
+
+        // Mirror into allScenes at the current scene's position (inherit chapter identity from
+        // the scene we are inserting before, since the new scene joins the same chapter).
+        if let allIdx = allScenes.firstIndex(where: { $0.sceneID == segments[index + 1].sceneID }) {
+            let anchor = allScenes[allIdx]
+            let info = SceneInfo(
+                sceneID: result.sceneID,
+                chapterID: result.chapterID,
+                title: "",
+                chapterTitle: anchor.chapterTitle,
+                slug: "",
+                metadataPath: result.metadataPath,
+                contentPath: result.contentPath,
+                chapterMetadataPath: anchor.chapterMetadataPath
+            )
+            allScenes.insert(info, at: allIdx)
+        }
+        rebuildSceneStartMap()
+        return index
+    }
+
     // Update the stored title for a scene in allScenes (called after a successful renameScene).
     func updateSceneTitle(_ newTitle: String, forMetadataPath metadataPath: String) {
         guard let idx = allScenes.firstIndex(where: { $0.metadataPath == metadataPath }) else { return }

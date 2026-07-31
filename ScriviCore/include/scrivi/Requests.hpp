@@ -203,6 +203,9 @@ struct CreateSceneRequest {
     ProjectID     projectID;
     ChapterID     chapterID;
     SceneID       afterSceneID;   // insert after this scene; empty = append to end of chapter
+    SceneID       beforeSceneID;  // insert BEFORE this scene (takes precedence over afterSceneID
+                                  // when set); empty = not a before-insert. Used for Cmd-Enter at
+                                  // the start of a scene, incl. a chapter's first scene.
     AuthorshipRef author;
 };
 

@@ -596,17 +596,23 @@ public final class ScriviEngine: @unchecked Sendable {
         projectID: String,
         chapterID: String,
         afterSceneID: String = "",
+        beforeSceneID: String = "",
         authorshipRef: AuthorshipRef
     ) throws -> CreateSceneResult {
+        // beforeSceneID (when set) inserts the new scene immediately BEFORE that scene and
+        // takes precedence over afterSceneID — the Cmd-Enter-at-scene-start case, including a
+        // chapter's first scene. Empty beforeSceneID keeps the append/after behaviour.
         let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
                 projectID.withCString { pid in
                     chapterID.withCString { cid in
                         afterSceneID.withCString { asid in
-                            authorshipRef.identityID.withCString { iid in
-                                authorshipRef.personaID.withCString { perid in
-                                    authorshipRef.displayName.withCString { dn in
-                                        scrivi_create_scene(prp, asr, pid, cid, asid, iid, perid, dn)
+                            beforeSceneID.withCString { bsid in
+                                authorshipRef.identityID.withCString { iid in
+                                    authorshipRef.personaID.withCString { perid in
+                                        authorshipRef.displayName.withCString { dn in
+                                            scrivi_create_scene(prp, asr, pid, cid, asid, bsid, iid, perid, dn)
+                                        }
                                     }
                                 }
                             }
@@ -1167,7 +1173,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func deleteChapter(projectRootPath: String, chapterID: String) throws -> DeleteChapterResult { try unavailable() }
     public func renameScene(projectRootPath: String, metadataPath: String, newTitle: String) throws -> RenameSceneResult { try unavailable() }
     public func renameChapter(projectRootPath: String, metadataPath: String, newTitle: String) throws -> RenameChapterResult { try unavailable() }
-    public func createScene(projectRootPath: String, appSupportRoot: String, projectID: String, chapterID: String, afterSceneID: String = "", authorshipRef: AuthorshipRef) throws -> CreateSceneResult { try unavailable() }
+    public func createScene(projectRootPath: String, appSupportRoot: String, projectID: String, chapterID: String, afterSceneID: String = "", beforeSceneID: String = "", authorshipRef: AuthorshipRef) throws -> CreateSceneResult { try unavailable() }
     public func createChapter(projectRootPath: String, appSupportRoot: String, projectID: String, authorshipRef: AuthorshipRef) throws -> CreateChapterResult { try unavailable() }
     public func getTimeline(projectRootPath: String) throws -> GetTimelineResult { try unavailable() }
     public func setTimelineEpochLabel(projectRootPath: String, label: String) throws -> TimelineBoolResult { try unavailable() }
