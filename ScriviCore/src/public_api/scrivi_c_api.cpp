@@ -261,6 +261,23 @@ static void appendStepChanges(scrivi::util::JsonDoc& doc,
     }
 }
 
+// Serializes a reversible structural step (T-0356 / AC6) into the undo/redo envelope:
+// structuralInverse:{direction:"undo"|"redo", payload:{…}}. Present only when undo/redo
+// stepped across a structural node; the app runs the inverse fragment op from the payload
+// and reloads. The payload is re-parsed from its stored string form to a nested object
+// (so the Swift decoder sees a real object, not a JSON-in-a-string). Absent otherwise.
+static void appendStructuralInverse(scrivi::util::JsonDoc& doc,
+                                    const scrivi::history::StepResult& step) {
+    if (!step.crossedStructural) return;
+    scrivi::util::JsonDoc si;
+    si.setString("direction", step.structuralDirection);
+    auto payloadR = scrivi::util::parseJson(step.structuralPayload);
+    if (payloadR.ok()) {
+        si.setSubDoc("payload", std::move(payloadR.value()));
+    }
+    doc.setSubDoc("structuralInverse", std::move(si));
+}
+
 // Serializes step.forkAhead into the undo/redo envelope (§7/§10 T2) when the
 // pointer landed on a fork. Absent otherwise, so the Swift popover shows/dismisses
 // purely on the field's presence.
@@ -1703,6 +1720,13 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
         const auto& pj = paramsR.value();
         p.barrierKind = pj.getString("barrierKind", "");
         p.barrierNote = pj.getString("note", "");
+        // Optional (T-0356 / AC6): when present, records a REVERSIBLE structural node the
+        // app replays on undo/redo, rather than a hard barrier. The payload is opaque JSON
+        // (serialized here as a string so the engine never parses it).
+        if (pj.contains("structuralPayload")) {
+            const auto& sp = pj.getSubDoc("structuralPayload");
+            p.structuralPayload = sp.dump(0);
+        }
     }
 
     auto& svc = it->second->service();
@@ -1748,6 +1772,7 @@ const char* scrivi_history_undo(const char* projectRootPath) {
         b.setString("note", step.barrierNote);
         doc.setSubDoc("stoppedAtBarrier", std::move(b));
     }
+    appendStructuralInverse(doc, step);
     appendStepChanges(doc, step);
     appendForkAhead(doc, step);
     return heap(okEnvelope(std::move(doc)));
@@ -1774,6 +1799,7 @@ const char* scrivi_history_redo(const char* projectRootPath) {
     doc.setString("nodeID", step.nodeID);
     doc.setBool("canUndo", step.canUndo);
     doc.setBool("canRedo", step.canRedo);
+    appendStructuralInverse(doc, step);
     appendStepChanges(doc, step);
     appendForkAhead(doc, step);
     return heap(okEnvelope(std::move(doc)));
@@ -2127,6 +2153,50 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
         doc.appendStringToArray("createdSceneIDs", id.value);
     for (const auto& id : v.createdChapterIDs)
         doc.appendStringToArray("createdChapterIDs", id.value);
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+// uncut-paste — the exact inverse of a paste (EP-029 AC6 / T-0356): undo of a structured paste,
+// and redo of a structured cut. Folds the created scenes back into the target and strips the
+// pasted fragment's piece texts (restoring the target's original body), then deletes the created
+// scenes/chapters. Keyed by IDs + the fragment, never byte spans. `createdIDsJson` is an object
+// { "sceneIDs":[…], "chapterIDs":[…] } (absent keys ⇒ empty). result: {survivingSceneID}.
+const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
+                                        const char* fragmentJson,
+                                        const char* targetSceneID,
+                                        const char* createdIDsJson) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+
+    auto fragR = scrivi::util::parseJson(S(fragmentJson));
+    if (!fragR.ok())
+        return heap(errorEnvelope(fragR.error()));
+
+    scrivi::manuscript::UncutPasteRequest req;
+    req.projectRootPath = root;
+    req.fragment        = parseFragment(fragR.value());
+    req.targetSceneID   = scrivi::SceneID{S(targetSceneID)};
+
+    // createdIDsJson: { "sceneIDs":[…], "chapterIDs":[…] } — absent keys parse to empty arrays.
+    auto idsR = scrivi::util::parseJson(S(createdIDsJson));
+    if (idsR.ok()) {
+        for (const auto& s : idsR.value().getStringArray("sceneIDs"))
+            req.createdSceneIDs.push_back(scrivi::SceneID{s});
+        for (const auto& s : idsR.value().getStringArray("chapterIDs"))
+            req.createdChapterIDs.push_back(scrivi::ChapterID{s});
+    }
+
+    scrivi::CoreServices svc = abiServices();
+    scrivi::manuscript::FragmentPaster paster{svc};
+    auto r = paster.uncutPaste(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("survivingSceneID", r.value().survivingSceneID.value);
     return heap(okEnvelope(std::move(doc)));
   });
 }

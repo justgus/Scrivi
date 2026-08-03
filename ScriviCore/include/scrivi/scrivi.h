@@ -353,7 +353,11 @@ const char* scrivi_history_record_event(const char* projectRootPath,
                                          const char* paramsJSON);
 
 /* Records a structural barrier node (section 4.5). paramsJSON: {barrierKind, note}.
- * result: {eventID, canUndo, canRedo} */
+ * OPTIONAL `structuralPayload` (an object): when present, records a REVERSIBLE
+ * structural node instead of a hard barrier (T-0356 / AC6) — undo/redo step ACROSS it
+ * and return the payload as `structuralInverse` for the app to replay (the inverse
+ * fragment op + reload). The engine treats the payload as opaque. Absent ⇒ classic
+ * barrier (undo stops with a notice). result: {eventID, canUndo, canRedo} */
 const char* scrivi_history_record_barrier(const char* projectRootPath,
                                            const char* paramsJSON);
 
@@ -361,13 +365,20 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
  * result: {moved, changes:[{sceneID,newText,cursorAfter}], nodeID,
  *          canUndo, canRedo, crossedSessionBoundary, boundaryTimestamp?,
  *          stoppedAtBarrier:{kind,note}?,
+ *          structuralInverse:{direction:"undo"|"redo", payload:{…}}?,
  *          forkAhead:{nodeID, children:[{eventID,preview,timestamp,isPrimary}]}?}
- * forkAhead is present only when the step lands on a fork (>= 2 children); it
- * drives the inline fork popover (SP-055 / §10 T2). */
+ * structuralInverse is present only when the step crossed a reversible structural node
+ * (T-0356 / AC6): `moved` is true, there are no `changes`, and the app runs the inverse
+ * fragment op from `payload` then reloads the manuscript. forkAhead is present only when
+ * the step lands on a fork (>= 2 children); it drives the inline fork popover
+ * (SP-055 / §10 T2). */
 const char* scrivi_history_undo(const char* projectRootPath);
 
 /* Moves the current pointer forward to the primary child.
- * result: {moved, changes:[...], nodeID, canUndo, canRedo, forkAhead?} */
+ * result: {moved, changes:[...], nodeID, canUndo, canRedo,
+ *          structuralInverse:{direction:"undo"|"redo", payload:{…}}?, forkAhead?}
+ * structuralInverse (T-0356) carries direction "redo" here — the app re-runs the
+ * forward structural op. */
 const char* scrivi_history_redo(const char* projectRootPath);
 
 /* Re-primaries a fork: sets forkNodeID's primaryChildID to childEventID (SP-055 /
@@ -492,6 +503,23 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
                                   const char* identityID,
                                   const char* personaID,
                                   const char* displayName);
+
+/* uncut-paste — the exact inverse of scrivi_fragment_paste (EP-029 AC6 / T-0356): undo of a
+ * structured paste, and redo of a structured cut. Folds the created scenes back into the target
+ * scene and STRIPS the pasted fragment's piece texts (restoring the target's original pre-paste
+ * body = head + tail), then deletes the created scenes/chapters. Keyed by IDs + the fragment,
+ * never byte spans — the app does no byte-offset math for the inverse.
+ *
+ * `fragmentJson` is the same scrivi.fragment.v1 that was pasted (its piece lengths drive the
+ * strip). `targetSceneID` is the scene the paste split. `createdIDsJson` is an object
+ * { "sceneIDs":[...], "chapterIDs":[...] } listing exactly what the paste created (as reported by
+ * scrivi_fragment_paste); absent keys ⇒ empty. result: { survivingSceneID }. invalidArgument if
+ * the fragment is empty, the target/created scenes are unknown, or a scene body does not match the
+ * pasted piece text it should bound (a state this fragment's paste could not have produced). */
+const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
+                                        const char* fragmentJson,
+                                        const char* targetSceneID,
+                                        const char* createdIDsJson);
 
 /* ---- Copy buffers (EP-019 SP-056 — T-0213) ------------------------------ */
 

@@ -166,6 +166,95 @@ TEST_CASE("undo stops at a barrier without moving", "[History]") {
     REQUIRE_FALSE(h.canUndo());
 }
 
+// ---- T-0356 / AC6: reversible structural nodes ---------------------------------
+//
+// Unlike a hard barrier, a structural node (recorded via recordBarrier with a non-empty
+// structuralPayload) is STEPPED ACROSS by undo/redo, which hand the app the opaque
+// inverse-op payload to replay. HistoryService itself never parses the payload.
+
+// Builds a structural BarrierParams (payload present ⇒ EventKind::Structural).
+namespace {
+BarrierParams structuralBP(std::string kind, std::string note, std::string payload,
+                           std::string ts = "2026-07-07T00:01:00Z") {
+    BarrierParams bp;
+    bp.barrierKind = std::move(kind);
+    bp.barrierNote = std::move(note);
+    bp.structuralPayload = std::move(payload);
+    bp.timestamp = std::move(ts);
+    return bp;
+}
+} // namespace
+
+TEST_CASE("undo steps across a structural node and returns its inverse payload (T-0356)",
+          "[History]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "before", 0, 6), "evt_1");
+    h.recordBarrier(
+        structuralBP("structuredCut", "Can't undo past a cross-boundary cut",
+                     R"({"op":"paste","fragmentJSON":"F","caretSceneID":"scene_a"})"),
+        "evt_struct");
+
+    // A structural node is steppable (not blocked like a barrier).
+    REQUIRE(h.canUndo());
+
+    auto u = h.undo();   // step ACROSS the structural node
+    REQUIRE(u.moved);
+    REQUIRE_FALSE(u.change.has_value());          // no text change — app replays the op
+    REQUIRE_FALSE(u.stoppedAtBarrier);
+    REQUIRE(u.crossedStructural);
+    REQUIRE(u.structuralDirection == "undo");
+    REQUIRE(u.structuralPayload ==
+            R"({"op":"paste","fragmentJSON":"F","caretSceneID":"scene_a"})");
+    REQUIRE(u.nodeID == "evt_1");                  // pointer landed on the pre-structural node
+
+    // Undo continues into the pre-structural text history.
+    REQUIRE(h.canUndo());
+    auto u2 = h.undo();
+    REQUIRE(u2.moved);
+    REQUIRE(u2.change.has_value());
+    REQUIRE(u2.change->newText == "");             // evt_1's text reversed to the floor
+}
+
+TEST_CASE("redo re-crosses a structural node with direction=redo (T-0356)", "[History]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "before", 0, 6), "evt_1");
+    h.recordBarrier(
+        structuralBP("structuredPaste", "Can't undo past a cross-boundary paste",
+                     R"({"op":"cut","spans":[]})"),
+        "evt_struct");
+
+    auto u = h.undo();                 // across the structural node (undo direction)
+    REQUIRE(u.crossedStructural);
+    REQUIRE(u.structuralDirection == "undo");
+    REQUIRE(h.canRedo());              // structural node ahead is redoable
+
+    auto r = h.redo();                 // re-cross forward
+    REQUIRE(r.moved);
+    REQUIRE_FALSE(r.change.has_value());
+    REQUIRE(r.crossedStructural);
+    REQUIRE(r.structuralDirection == "redo");
+    REQUIRE(r.structuralPayload == R"({"op":"cut","spans":[]})");
+    REQUIRE(r.nodeID == "evt_struct"); // pointer advanced onto the structural node
+}
+
+TEST_CASE("a payload-less barrier still blocks undo; a structural node does not (T-0356)",
+          "[History]") {
+    auto h = fresh();
+    h.record(typing("scene_a", "x", 0, 1), "evt_1");
+    // No structuralPayload ⇒ classic hard barrier.
+    BarrierParams hard;
+    hard.barrierKind = "sceneMerge";
+    hard.barrierNote = "Can't undo past a scene merge";
+    hard.timestamp = "2026-07-07T00:01:00Z";
+    h.recordBarrier(hard, "evt_hard");
+
+    REQUIRE_FALSE(h.canUndo());        // barrier blocks
+    auto u = h.undo();
+    REQUIRE_FALSE(u.moved);
+    REQUIRE(u.stoppedAtBarrier);
+    REQUIRE_FALSE(u.crossedStructural);
+}
+
 TEST_CASE("undo across a session boundary is flagged once", "[History]") {
     // Session 1 records evt_1; a new service instance simulates session 2 by
     // continuing to record — but since the engine mints one session per open,

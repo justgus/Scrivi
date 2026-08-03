@@ -1,12 +1,17 @@
 #include "manuscript/FragmentPaster.hpp"
 
 #include "manuscript/ChapterCreator.hpp"
+#include "manuscript/ChapterDeleter.hpp"
 #include "manuscript/ChapterRenamer.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/SceneCreator.hpp"
+#include "manuscript/SceneDeleter.hpp"
 #include "manuscript/SceneReader.hpp"
 #include "manuscript/SceneRenamer.hpp"
 #include "manuscript/SceneWriter.hpp"
+#include "util/PathUtils.hpp"
+
+#include <unordered_map>
 
 namespace scrivi::manuscript {
 
@@ -193,6 +198,118 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
     auto w = saveBody(runSceneID, runSceneMetaPath, runSceneContent, runSceneBody);
     if (!w.ok()) return R::failure(w.error());
 
+    return R::success(std::move(result));
+}
+
+Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& request)
+{
+    using R = Result<UncutPasteResult>;
+
+    const Fragment& frag = request.fragment;
+    if (frag.pieces.empty())
+        return R::failure(invalidArg("empty fragment: nothing to un-paste"));
+
+    const AbsolutePath& root = request.projectRootPath;
+
+    // Resolve the manuscript to find the target scene + every created scene by ID.
+    ManuscriptOrderResolver resolver{services_};
+    auto resolvedR = resolver.resolve(root);
+    if (!resolvedR.ok())
+        return R::failure(resolvedR.error());
+
+    std::unordered_map<std::string, const ResolvedScene*> sceneByID;
+    for (const auto& s : resolvedR.value())
+        sceneByID.emplace(s.sceneID.value, &s);
+
+    auto findScene = [&](const std::string& id) -> const ResolvedScene* {
+        auto it = sceneByID.find(id);
+        return it == sceneByID.end() ? nullptr : it->second;
+    };
+
+    const ResolvedScene* target = findScene(request.targetSceneID.value);
+    if (target == nullptr)
+        return R::failure(invalidArg("target scene not in manuscript: " + request.targetSceneID.value));
+
+    SceneReader reader{services_};
+
+    // Restore the target's original head: paste made target = head + piece0.text, so strip the
+    // trailing piece0.text (by byte length) to recover `head`.
+    auto targetBodyR = reader.readContent(root, target->contentPath);
+    if (!targetBodyR.ok())
+        return R::failure(targetBodyR.error());
+    const std::string& targetBody = targetBodyR.value();
+    const std::string& firstPieceText = frag.pieces.front().text;
+    if (targetBody.size() < firstPieceText.size() ||
+        targetBody.compare(targetBody.size() - firstPieceText.size(),
+                           firstPieceText.size(), firstPieceText) != 0)
+        return R::failure(invalidArg("target scene does not end with the pasted head text — "
+                                     "not a state this fragment's paste produced"));
+    const std::string head = targetBody.substr(0, targetBody.size() - firstPieceText.size());
+
+    // Restore the original tail: the paste appended the target's tail after the LAST piece's text
+    // in the last created scene (or, if the fragment created no scenes, the tail followed piece0 in
+    // the target itself — but then createdSceneIDs is empty and head already holds everything up to
+    // piece0, with the tail right after it: strip piece0 from target gives head, and the tail sits
+    // between head and the stripped piece0. That single-scene case is a same-scene paste, which is
+    // not a cross-boundary structured paste; guarded by the caller. Here createdSceneIDs is non-empty).
+    std::string tail;
+    if (!request.createdSceneIDs.empty()) {
+        const ResolvedScene* lastCreated = findScene(request.createdSceneIDs.back().value);
+        if (lastCreated == nullptr)
+            return R::failure(invalidArg("created scene not in manuscript: " +
+                                         request.createdSceneIDs.back().value));
+        auto lastBodyR = reader.readContent(root, lastCreated->contentPath);
+        if (!lastBodyR.ok())
+            return R::failure(lastBodyR.error());
+        const std::string& lastBody = lastBodyR.value();
+        const std::string& lastPieceText = frag.pieces.back().text;
+        if (lastBody.size() < lastPieceText.size() ||
+            lastBody.compare(0, lastPieceText.size(), lastPieceText) != 0)
+            return R::failure(invalidArg("last created scene does not begin with the pasted tail "
+                                         "text — not a state this fragment's paste produced"));
+        tail = lastBody.substr(lastPieceText.size());
+    }
+
+    // 1. Fold the restored body back into the target BEFORE deleting anything (so a later failure
+    //    never loses text). Direct write, matching FragmentCutter's fold — no authorship re-stamp.
+    {
+        auto& fs = *services_.fileSystem;
+        auto write = fs.atomicWriteTextFile(util::join(root, target->contentPath), head + tail);
+        if (!write.ok())
+            return R::failure(write.error());
+    }
+
+    // 2. Delete every created scene (reading order doesn't matter for deletion by ID). A created
+    //    scene inside a created chapter is removed when its chapter is deleted below, so skip those
+    //    to avoid a double-delete; delete only scenes NOT owned by a created chapter.
+    std::unordered_map<std::string, bool> createdChapterSet;
+    for (const auto& ch : request.createdChapterIDs)
+        createdChapterSet.emplace(ch.value, true);
+
+    SceneDeleter sceneDeleter{services_};
+    for (const auto& sid : request.createdSceneIDs) {
+        const ResolvedScene* sc = findScene(sid.value);
+        if (sc == nullptr) continue;                                  // already gone
+        if (createdChapterSet.count(sc->chapterID.value)) continue;   // removed with its chapter
+        DeleteSceneRequest del;
+        del.projectRootPath = root;
+        del.sceneID         = sid;
+        auto d = sceneDeleter.remove(del);
+        if (!d.ok()) return R::failure(d.error());
+    }
+
+    // 3. Delete every created chapter (removes its folder + the scenes it owned).
+    ChapterDeleter chapterDeleter{services_};
+    for (const auto& cid : request.createdChapterIDs) {
+        DeleteChapterRequest del;
+        del.projectRootPath = root;
+        del.chapterID       = cid;
+        auto d = chapterDeleter.remove(del);
+        if (!d.ok()) return R::failure(d.error());
+    }
+
+    UncutPasteResult result;
+    result.survivingSceneID = target->sceneID;
     return R::success(std::move(result));
 }
 

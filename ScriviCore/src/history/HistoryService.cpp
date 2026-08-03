@@ -35,6 +35,13 @@ std::optional<std::int64_t> parseIso8601Utc(const std::string& s) {
     return epoch;
 }
 
+// True when a node carries an applicable scene-local diff (i.e. is a textual event).
+// The root anchor, hard barriers, and reversible structural nodes (T-0356) carry no
+// diff, so eviction/promotion/prune/head-rebuild must NOT fold or match a diff for them.
+bool carriesDiff(EventKind kind) {
+    return kind != EventKind::Barrier && kind != EventKind::Structural;
+}
+
 // True if byte `b` is a UTF-8 continuation byte (0b10xxxxxx). A scalar boundary
 // is any position whose byte is NOT a continuation byte (or end-of-string).
 bool isContinuation(unsigned char b) { return (b & 0xC0) == 0x80; }
@@ -238,9 +245,12 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
     EventNode node;
     node.eventID = std::move(eventID);
     node.parentID = currentNodeID_;
-    node.kind = EventKind::Barrier;
+    // A non-empty structuralPayload makes this a REVERSIBLE structural node (EP-029 AC6 /
+    // T-0356) that undo/redo step across, instead of a hard barrier that blocks undo.
+    node.kind = p.structuralPayload.empty() ? EventKind::Barrier : EventKind::Structural;
     node.barrierKind = p.barrierKind;
     node.barrierNote = p.barrierNote;
+    node.structuralPayload = p.structuralPayload;
     node.timestamp = p.timestamp;
     node.sessionID = sessionID_;
 
@@ -258,8 +268,9 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
 }
 
 bool HistoryService::canUndo() const {
-    // Can undo when the current node is a text node (has a parent and is not the
-    // root). Barriers block undo but are themselves not undoable steps.
+    // Can undo when the current node is a text node OR a reversible structural node
+    // (has a parent and is not the root). A hard Barrier blocks undo; a Structural node
+    // (EP-029 AC6 / T-0356) is steppable — undo replays its inverse op.
     if (currentNodeID_ == rootID_) return false;
     const EventNode& cur = nodeRef(currentNodeID_);
     return cur.kind != EventKind::Barrier && cur.parentID.has_value();
@@ -268,7 +279,8 @@ bool HistoryService::canUndo() const {
 bool HistoryService::canRedo() const {
     const EventNode& cur = nodeRef(currentNodeID_);
     if (!cur.primaryChildID.has_value()) return false;
-    // Redo only re-applies text nodes; a barrier ahead is not redoable here.
+    // Redo re-applies text nodes and reversible structural nodes; a hard barrier ahead
+    // is not redoable, but a Structural node (T-0356) is (redo re-runs its forward op).
     return nodeRef(*cur.primaryChildID).kind != EventKind::Barrier;
 }
 
@@ -302,6 +314,31 @@ StepResult HistoryService::undo() {
         r.nodeID = currentNodeID_;
         r.canUndo = false;
         r.canRedo = canRedo();
+        return r;
+    }
+
+    // A reversible structural node (EP-029 AC6 / T-0356): step across it and hand the
+    // app the inverse-op payload to replay (undo direction). No SceneChange — the app
+    // runs the inverse fragment op + reloads the manuscript from disk. The pointer moves
+    // to the parent so a subsequent undo continues into the pre-structural history.
+    if (cur.kind == EventKind::Structural) {
+        currentNodeID_ = *cur.parentID;
+        r.moved = true;
+        r.crossedStructural = true;
+        r.structuralDirection = "undo";
+        r.structuralPayload = cur.structuralPayload;
+        r.nodeID = currentNodeID_;
+        r.canUndo = canUndo();
+        r.canRedo = canRedo();
+        // Session-boundary warning still applies to where we landed.
+        const EventNode& landed = nodeRef(currentNodeID_);
+        if (landed.sessionID != sessionID_ &&
+            warnedSessions_.find(landed.sessionID) == warnedSessions_.end()) {
+            warnedSessions_.insert(landed.sessionID);
+            r.crossedSessionBoundary = true;
+            r.boundaryTimestamp = landed.timestamp;
+        }
+        r.forkAhead = forkAheadAt(currentNodeID_);
         return r;
     }
 
@@ -360,6 +397,22 @@ StepResult HistoryService::redo() {
         r.nodeID = currentNodeID_;
         r.canUndo = canUndo();
         r.canRedo = false;
+        return r;
+    }
+
+    // A reversible structural node (EP-029 AC6 / T-0356): step onto it and hand the app
+    // the inverse-op payload to replay forward (redo direction). No SceneChange — the app
+    // re-runs the structural op + reloads. The pointer advances onto the structural node.
+    if (child.kind == EventKind::Structural) {
+        currentNodeID_ = child.eventID;
+        r.moved = true;
+        r.crossedStructural = true;
+        r.structuralDirection = "redo";
+        r.structuralPayload = child.structuralPayload;
+        r.nodeID = currentNodeID_;
+        r.canUndo = canUndo();
+        r.canRedo = canRedo();
+        r.forkAhead = forkAheadAt(currentNodeID_);
         return r;
     }
 
@@ -565,7 +618,7 @@ void HistoryService::rebuildHeadCache() {
     // floorTexts_ at eviction, or it is the original empty anchor).
     headText_ = floorTexts_;
     for (const EventNode* n : path) {
-        if (n->kind == EventKind::Barrier) continue;
+        if (!carriesDiff(n->kind)) continue;   // root/barrier/structural carry no diff
         if (n->eventID == rootID_) continue;
         auto& text = headText_[n->sceneID];
         text = applyForward(text, n->diff);
@@ -631,7 +684,7 @@ int HistoryService::evictToCapacity(EvictionDetail& detail) {
         // Promote the surviving child to the new root, folding its diff into the
         // per-scene floor so replay from the new root reproduces the same text.
         EventNode& keep = nodeRef(keepChildID);
-        if (keep.kind != EventKind::Barrier) {
+        if (carriesDiff(keep.kind)) {
             auto& floor = floorTexts_[keep.sceneID];
             floor = applyForward(floor, keep.diff);
         }
@@ -717,7 +770,7 @@ void HistoryService::applyLoadedEviction(const std::vector<std::string>& purgedB
         auto it = nodes_.find(newRoot);
         if (it == nodes_.end()) continue;   // already gone — nothing to promote
         EventNode& keep = it->second;
-        if (keep.kind != EventKind::Barrier) {
+        if (carriesDiff(keep.kind)) {
             auto& floor = floorTexts_[keep.sceneID];
             floor = applyForward(floor, keep.diff);
         }
@@ -752,9 +805,9 @@ std::vector<std::string> HistoryService::pruneInconsistentNodes() {
         if (nit == nodes_.end()) continue;      // already erased via a parent
         const EventNode& node = nit->second;
 
-        // Apply this node's diff to its scene (the root/barriers carry none), after
-        // validating it. A mismatch on a non-root textual node → prune the subtree.
-        if (node.eventID != rootID_ && node.kind != EventKind::Barrier) {
+        // Apply this node's diff to its scene (the root/barriers/structural carry none),
+        // after validating it. A mismatch on a non-root textual node → prune the subtree.
+        if (node.eventID != rootID_ && carriesDiff(node.kind)) {
             auto& sceneText = frame.text[node.sceneID];
             if (!diffMatches(sceneText, node.diff)) {
                 // Detach from parent so no stale child ref survives, then erase the

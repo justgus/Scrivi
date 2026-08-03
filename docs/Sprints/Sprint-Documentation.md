@@ -11,18 +11,17 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057; **EP-029** `[Cross]`
-continues at **SP-086** (ScriviCore extract-fragment), planned and awaiting go-ahead to activate.
+**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057 (AC2/AC7/AC8 verify + history
+panel + Epic close), awaiting user go-ahead to activate. **EP-029** `[Cross]` is ✅ **fully closed 2026-08-03.**
 
-Last closed: **SP-085** (EP-029 `[Cross]` — **Design doc + trade studies + fragment schema**) — ✅ **closed
-2026-07-27 (Human-approved).** The design doc `Scrivi_Structured_CutCopyPaste_Design_v0_1.md` is **✅ APPROVED**:
-the `scrivi.fragment.v1` ordered-pieces schema, extract / paste-splice / cut-merge behaviour (composing EP-027
-create/split + EP-028 `SceneMerger`/`ChapterMerger`), copy-buffer schema evolution, and one-reversible-event
-history shape. Trades ruled **T1=A · T2=A · T3=A · T4=A**; Open Questions #1–#3 resolved (no cross-window paste
-in v1; **caret-in-heading paste = refuse + flash the screen**, user override; divider-anchored selection
-normalised to the adjacent scene body). Task T-0350 Verified. Grounded in the real
-`ManuscriptTextView`/`BufferStore`/merge code — docs-only (`scrivi.h`/pbxproj untouched).
-`Closed/Sprint-SP-085.md`. **EP-029 → SP-086** next.
+Last closed: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
+(Human-approved).** The final EP-029 sprint, which **closed the Epic**. Wired the manuscript editor's
+Cut/Copy/Paste + copy buffers through the ScriviCore fragment ops so the manuscript behaves as one monolithic
+document: **T-0354** (Pass A system-clipboard ⌘C/⌘X/⌘V, Verified 2026-07-29), **T-0357** (title-capture + chapter
+promotion, 2026-07-29), **T-0355** (Pass B structured copy buffers, 2026-08-03), **T-0356** (AC6 reversible
+structured undo — app-runs-inverse, new core endpoint `scrivi_fragment_uncut_paste`, 2026-08-03). AC1–AC7 all
+met. ScriviCore `ctest` **369/369**, macOS interop **45/45**, app **BUILD SUCCEEDED**.
+`Closed/Sprint-SP-089.md`; EP-029 → `../Epics/Closed/Epic-EP-029.md`. **Next available Sprint SP-090.**
 
 Prior: **SP-056** (EP-019 `[Apple]` — **Multiple copy buffers**) — ✅ **closed 2026-07-27
 (Human-approved).** Delivered **AC6**: vim/emacs-register-style copy buffers, refined to **three explicit

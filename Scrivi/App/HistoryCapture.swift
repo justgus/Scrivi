@@ -328,10 +328,17 @@ final class HistoryCapture {
 
     // Records a structural barrier. Commits any pending edit first so the
     // barrier lands after the last text event. Best-effort.
-    func recordBarrier(kind: String, note: String) {
+    //
+    // A non-nil `structuralPayload` records a REVERSIBLE structural node (T-0356 / AC6)
+    // that undo/redo step across, handing the payload back for the editor to replay the
+    // inverse fragment op; nil records a hard barrier (undo stops with a notice).
+    func recordBarrier(kind: String, note: String,
+                       structuralPayload: HistoryStructuralPayload? = nil) {
         guard isOpen else { return }
         flush(trigger: "flush")
-        do { _ = try engine.historyRecordBarrier(projectRootPath: projectRootPath, barrierKind: kind, note: note) }
+        do { _ = try engine.historyRecordBarrier(projectRootPath: projectRootPath,
+                                                 barrierKind: kind, note: note,
+                                                 structuralPayload: structuralPayload) }
         catch { print("[Scrivi] historyRecordBarrier failed: \(error)") }
     }
 

@@ -12,14 +12,15 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic (held) + 2 Draft.** **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy
+Currently: **1 Active Epic (held) + 1 Draft.** **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy
 Buffers) 🟡 Active but **HELD PENDING** its final sprint SP-057 — AC1/AC3/AC4/AC5/**AC6** delivered & verified
-(**SP-056 ✅ closed 2026-07-27, AC6 — copy buffers**); SP-057 (AC2/AC7/AC8 verify + history panel + close) remains,
-deliberately held so **EP-029** can be planned first. **EP-029** `[Cross]` (Cross-Boundary Structured
-Cut/Copy/Paste) 🔵 **Draft, opened 2026-07-27** — the gap surfaced while verifying SP-056: manuscript-as-monolithic
-copy/cut/paste with structured buffers, cut-that-merges, paste-that-splits (5 sprints planned, design doc first).
-**EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification) 🔵 Draft — the last of the planned
-`[Linux]` family, sequenced after the Apple copy-buffer reference. **EP-025** `[Linux]` ✅ **closed 2026-07-24**.
+(**SP-056 ✅ closed 2026-07-27, AC6 — copy buffers**); SP-057 (AC2/AC7/AC8 verify + history panel + close) remains.
+**EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste) ✅ **closed 2026-08-03** — all 5 sprints (SP-085
+design → SP-086/087/088 ScriviCore → SP-089 Apple wiring) delivered; AC1–AC7 met; manuscript-as-monolithic
+copy/cut/paste with structured buffers, cut-that-merges, paste-that-splits, and reversible structured undo
+(`Closed/Epic-EP-029.md`). **EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification) 🔵 Draft — the
+last of the planned `[Linux]` family, sequenced after the Apple copy-buffer reference. **EP-025** `[Linux]` ✅
+**closed 2026-07-24**.
 
 See: [Epic-active.md](Epic-active.md)
 
@@ -68,15 +69,15 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-026 | `[Linux]` Undo/Redo, Menus, Settings & Parity Verification | 🔵 Draft (backlog) | — | — |
 | EP-027 | `[ScriviCore]` Filesystem-Authoritative Chapter/Scene Identity & Ordering | ✅ Closed | 2026-07-16 | 2026-07-18 |
 | EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | ✅ Closed | 2026-07-20 | 2026-07-22 |
-| EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | 🔵 Draft | — | — |
+| EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | ✅ Closed | 2026-07-27 | 2026-08-03 |
 
 ## Statistics
 
 - **Total Epics:** 29
-- **Closed:** 24 ✅
+- **Closed:** 25 ✅
 - **Complete (pending close):** 0 🟠
 - **Active:** 1 🟡 (EP-019 `[Apple]` — **held pending SP-057**; SP-056/AC6 closed 2026-07-27)
-- **Draft:** 2 🔵 (EP-029 `[Cross]` cross-boundary Cut/Copy/Paste — next to plan; EP-026 `[Linux]`)
+- **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0
 - **Proposed (backlog):** 0 🔵
 

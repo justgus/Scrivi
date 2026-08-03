@@ -28,7 +28,10 @@
 namespace scrivi::history {
 
 // Kind of a recorded node. `barrier` is a structural stop (§4.5); the text
-// kinds describe how the scene text changed at that node.
+// kinds describe how the scene text changed at that node. `structural` is a
+// REVERSIBLE structural node (EP-029 AC6, T-0356): unlike a barrier, undo/redo
+// step ACROSS it and hand the app an opaque inverse-op payload to run (the app
+// executes the inverse fragment op + reload; HistoryService stays filesystem-free).
 enum class EventKind {
     Typing,
     Delete,
@@ -36,6 +39,7 @@ enum class EventKind {
     Paste,
     Cut,
     Barrier,
+    Structural,
 };
 
 // A minimal scene-local diff: at `offsetUtf8`, `removed` bytes were replaced by
@@ -71,6 +75,13 @@ struct EventNode {
     // Barrier-only: the structural reason undo stops here (§4.5).
     std::string barrierKind;
     std::string barrierNote;
+
+    // Structural-only (EventKind::Structural, EP-029 AC6 / T-0356): an OPAQUE JSON
+    // payload the app minted describing how to reverse this structural edit (the
+    // inverse fragment op + fragment JSON + caret + created/removed IDs). HistoryService
+    // never parses it — undo/redo step across the node and return it verbatim so the app
+    // runs the inverse op. Empty for every non-structural node. Persisted + rehydrated.
+    std::string structuralPayload;
 };
 
 // Parameters for recording a text event. `newSceneText` is the full current
@@ -107,6 +118,11 @@ struct BarrierParams {
     std::string barrierKind;   // sceneSplit|sceneDelete|sceneMerge|... (§4.5)
     std::string barrierNote;   // human-readable "Can't undo past a scene merge"
     std::string timestamp;
+
+    // When non-empty, records a REVERSIBLE structural node (EventKind::Structural,
+    // EP-029 AC6 / T-0356) instead of a hard barrier: the opaque inverse-op payload
+    // the app replays on undo/redo. Empty ⇒ the classic barrier (undo stops here).
+    std::string structuralPayload;
 };
 
 // One scene's resulting text after an undo/redo step.
@@ -145,6 +161,15 @@ struct StepResult {
     bool stoppedAtBarrier = false;
     std::string barrierKind;
     std::string barrierNote;
+
+    // Set when the step CROSSED a reversible structural node (EventKind::Structural,
+    // EP-029 AC6 / T-0356): the pointer moved but there is no SceneChange — instead the
+    // app must replay this node's inverse op. `structuralDirection` is "undo" or "redo"
+    // (which way the app should run the payload); `structuralPayload` is the node's opaque
+    // JSON verbatim. Empty/false on every ordinary text or barrier step.
+    bool crossedStructural = false;
+    std::string structuralDirection;   // "undo" | "redo"
+    std::string structuralPayload;
 
     // Present when the pointer landed on a fork (>= 2 children) — drives the
     // inline fork popover (§10 T2). Absent (nullopt) otherwise.

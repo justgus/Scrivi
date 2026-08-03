@@ -17,18 +17,20 @@ std::string kindToStr(EventKind k) {
         case EventKind::Delete:  return "delete";
         case EventKind::Replace: return "replace";
         case EventKind::Paste:   return "paste";
-        case EventKind::Cut:     return "cut";
-        case EventKind::Barrier: return "barrier";
+        case EventKind::Cut:        return "cut";
+        case EventKind::Barrier:    return "barrier";
+        case EventKind::Structural: return "structural";
     }
     return "typing";
 }
 
 EventKind kindFromStr(const std::string& s) {
-    if (s == "delete")  return EventKind::Delete;
-    if (s == "replace") return EventKind::Replace;
-    if (s == "paste")   return EventKind::Paste;
-    if (s == "cut")     return EventKind::Cut;
-    if (s == "barrier") return EventKind::Barrier;
+    if (s == "delete")     return EventKind::Delete;
+    if (s == "replace")    return EventKind::Replace;
+    if (s == "paste")      return EventKind::Paste;
+    if (s == "cut")        return EventKind::Cut;
+    if (s == "barrier")    return EventKind::Barrier;
+    if (s == "structural") return EventKind::Structural;
     return EventKind::Typing;
 }
 
@@ -120,6 +122,13 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     util::JsonDoc b = d.getSubDoc("barrier");
                     node.barrierKind = b.getString("barrierKind");
                     node.barrierNote = b.getString("note");
+                } else if (node.kind == EventKind::Structural) {
+                    // Reversible structural node (T-0356): the barrier-style label plus the
+                    // opaque inverse-op payload the app replays. No diff.
+                    util::JsonDoc b = d.getSubDoc("barrier");
+                    node.barrierKind = b.getString("barrierKind");
+                    node.barrierNote = b.getString("note");
+                    node.structuralPayload = d.getString("structuralPayload");
                 } else {
                     util::JsonDoc diff = d.getSubDoc("diff");
                     node.diff.offsetUtf8 = static_cast<std::size_t>(diff.getInt64("offsetUtf8"));
@@ -260,6 +269,14 @@ void HistoryStore::persistEvent(const EventNode& node) {
         b.setString("barrierKind", node.barrierKind);
         b.setString("note", node.barrierNote);
         d.setSubDoc("barrier", std::move(b));
+    } else if (node.kind == EventKind::Structural) {
+        // Reversible structural node (T-0356): the barrier-style label plus the opaque
+        // inverse-op payload the app replays on undo/redo. No diff.
+        util::JsonDoc b;
+        b.setString("barrierKind", node.barrierKind);
+        b.setString("note", node.barrierNote);
+        d.setSubDoc("barrier", std::move(b));
+        d.setString("structuralPayload", node.structuralPayload);
     } else {
         util::JsonDoc diff;
         diff.setInt64("offsetUtf8", static_cast<std::int64_t>(node.diff.offsetUtf8));

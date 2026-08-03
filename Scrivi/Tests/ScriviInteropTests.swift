@@ -964,6 +964,46 @@ struct ScriviInteropTests {
         #expect(!redo.canRedo)
     }
 
+    @Test("a structural node round-trips its inverse payload through undo/redo (T-0356)")
+    func historyStructuralInverseRoundTrip() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        defer { try? engine.historyClose(projectRootPath: root) }
+
+        // A text event, then a reversible structural node carrying an inverse-op payload.
+        _ = try engine.historyRecordEvent(
+            projectRootPath: root, sceneID: "scene_a",
+            newSceneText: "before", cursorBefore: 0, cursorAfter: 6)
+        let payload = HistoryStructuralPayload(
+            op: "structuredCut", fragmentJSON: #"{"schema":"scrivi.fragment.v1","pieces":[]}"#,
+            caretSceneID: "scene_a", caretByte: 3,
+            removedSceneIDs: ["scene_b"], removedChapterIDs: [])
+        _ = try engine.historyRecordBarrier(
+            projectRootPath: root, barrierKind: "structuredCut",
+            note: "Can't undo past a cross-boundary cut", structuralPayload: payload)
+
+        // Undo steps ACROSS the structural node: moved, no text change, inverse payload (undo).
+        let undo = try engine.historyUndo(projectRootPath: root)
+        #expect(undo.moved)
+        #expect(undo.changes.isEmpty)
+        #expect(undo.stoppedAtBarrier == nil)
+        let inv = try #require(undo.structuralInverse)
+        #expect(inv.direction == "undo")
+        #expect(inv.payload.op == "structuredCut")
+        #expect(inv.payload.caretSceneID == "scene_a")
+        #expect(inv.payload.caretByte == 3)
+        #expect(inv.payload.removedSceneIDs == ["scene_b"])
+
+        // Redo re-crosses forward with direction=redo and the same payload.
+        let redo = try engine.historyRedo(projectRootPath: root)
+        #expect(redo.moved)
+        #expect(redo.changes.isEmpty)
+        let rinv = try #require(redo.structuralInverse)
+        #expect(rinv.direction == "redo")
+        #expect(rinv.payload.op == "structuredCut")
+    }
+
     @Test("a cut-into-buffer event carries a bufferID and undoes like a plain cut (Trade T3)")
     func historyCutIntoBufferTag() throws {
         let engine = ScriviEngine()

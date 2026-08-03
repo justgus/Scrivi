@@ -894,13 +894,26 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // Params for scrivi_history_record_barrier. A non-nil `structuralPayload` records a
+    // REVERSIBLE structural node (T-0356 / AC6) instead of a hard barrier; encoded as a
+    // nested object the engine stores opaquely and returns on undo/redo.
+    private struct RecordBarrierParams: Encodable {
+        let barrierKind: String
+        let note: String
+        let structuralPayload: HistoryStructuralPayload?
+    }
+
     public func historyRecordBarrier(
         projectRootPath: String,
         barrierKind: String,
-        note: String = ""
+        note: String = "",
+        structuralPayload: HistoryStructuralPayload? = nil
     ) throws -> HistoryBarrierResult {
-        // Encode params so barrierKind/note are safely JSON-escaped.
-        let paramsData = try JSONEncoder().encode(["barrierKind": barrierKind, "note": note])
+        // Encode params so barrierKind/note (and the optional structural payload) are
+        // safely JSON-escaped. structuralPayload is omitted when nil (classic barrier).
+        let paramsData = try JSONEncoder().encode(
+            RecordBarrierParams(barrierKind: barrierKind, note: note,
+                                structuralPayload: structuralPayload))
         let params = String(decoding: paramsData, as: UTF8.self)
         let raw = projectRootPath.withCString { prp in
             params.withCString { p in
@@ -1113,6 +1126,35 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decodeC(raw)
     }
+
+    /// The exact inverse of `fragmentPaste` (EP-029 AC6 / T-0356): undo of a structured paste,
+    /// and redo of a structured cut. Folds the created scenes back into the target and strips the
+    /// pasted fragment's piece texts (restoring the target's original body), then deletes the
+    /// created scenes/chapters. Keyed by IDs + the fragment — no byte-span math app-side.
+    public func fragmentUncutPaste(projectRootPath: String,
+                                   fragmentJSON: String,
+                                   targetSceneID: String,
+                                   createdSceneIDs: [String],
+                                   createdChapterIDs: [String]) throws -> FragmentUncutPasteResult {
+        // The core reads { "sceneIDs":[…], "chapterIDs":[…] }.
+        let ids = FragmentCreatedIDs(sceneIDs: createdSceneIDs, chapterIDs: createdChapterIDs)
+        let idsJSON = String(decoding: try JSONEncoder().encode(ids), as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in
+            fragmentJSON.withCString { fj in
+                targetSceneID.withCString { tsid in
+                    idsJSON.withCString { ij in
+                        scrivi_fragment_uncut_paste(prp, fj, tsid, ij)
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+}
+
+private struct FragmentCreatedIDs: Encodable {
+    let sceneIDs: [String]
+    let chapterIDs: [String]
 }
 
 // MARK: — C boundary decode helper
@@ -1205,7 +1247,7 @@ public final class ScriviEngine: @unchecked Sendable {
     @discardableResult
     public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult { try unavailable() }
     public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0, bufferID: String? = nil) throws -> HistoryRecordResult { try unavailable() }
-    public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "") throws -> HistoryBarrierResult { try unavailable() }
+    public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", structuralPayload: HistoryStructuralPayload? = nil) throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     @discardableResult
@@ -1233,6 +1275,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func fragmentExtract(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentResult { try unavailable() }
     public func fragmentCut(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentCutResult { try unavailable() }
     public func fragmentPaste(projectRootPath: String, appSupportRoot: String, projectID: String, fragmentJSON: String, caretSceneID: String, caretByteOffset: Int, authorshipRef: AuthorshipRef) throws -> FragmentPasteResult { try unavailable() }
+    public func fragmentUncutPaste(projectRootPath: String, fragmentJSON: String, targetSceneID: String, createdSceneIDs: [String], createdChapterIDs: [String]) throws -> FragmentUncutPasteResult { try unavailable() }
 }
 
 #endif
@@ -1715,6 +1758,11 @@ public struct FragmentPasteResult: Decodable, Sendable {
     }
 }
 
+/// Result of scrivi_fragment_uncut_paste — the target scene, restored to its pre-paste body.
+public struct FragmentUncutPasteResult: Decodable, Sendable {
+    public let survivingSceneID: String
+}
+
 public struct MergeChapterResult: Decodable, Sendable {
     public let survivorChapterID:           String
     public let mergedChapterID:             String
@@ -1890,6 +1938,63 @@ public struct HistoryBarrierStop: Decodable, Sendable {
     public let note: String
 }
 
+// The inverse-op descriptor the app minted when it recorded a reversible structural
+// node (EP-029 AC6 / T-0356). The engine round-trips it verbatim; the app both writes
+// it (at record time) and reads it back (when undo/redo cross the node) to replay the
+// inverse fragment op. `op` is the structural operation this node performed
+// ("structuredCut" | "structuredPaste"); the remaining fields are what the inverse needs.
+public struct HistoryStructuralPayload: Codable, Sendable {
+    public let op:            String   // "structuredCut" | "structuredPaste"
+    public let fragmentJSON:  String   // the scrivi.fragment.v1 that was cut/pasted
+    public let caretSceneID:  String   // scene the op was anchored at (cut survivor / paste target)
+    public let caretByte:     Int      // scene-local UTF-8 byte offset of the anchor
+    public let createdSceneIDs:   [String]   // paste: scenes it created (cut: empty)
+    public let createdChapterIDs: [String]
+    public let removedSceneIDs:   [String]   // cut: scenes it merged away (paste: empty)
+    public let removedChapterIDs: [String]
+
+    public init(op: String, fragmentJSON: String, caretSceneID: String, caretByte: Int,
+                createdSceneIDs: [String] = [], createdChapterIDs: [String] = [],
+                removedSceneIDs: [String] = [], removedChapterIDs: [String] = []) {
+        self.op = op; self.fragmentJSON = fragmentJSON
+        self.caretSceneID = caretSceneID; self.caretByte = caretByte
+        self.createdSceneIDs = createdSceneIDs; self.createdChapterIDs = createdChapterIDs
+        self.removedSceneIDs = removedSceneIDs; self.removedChapterIDs = removedChapterIDs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        op            = try c.decodeIfPresent(String.self, forKey: .op) ?? ""
+        fragmentJSON  = try c.decodeIfPresent(String.self, forKey: .fragmentJSON) ?? ""
+        caretSceneID  = try c.decodeIfPresent(String.self, forKey: .caretSceneID) ?? ""
+        caretByte     = try c.decodeIfPresent(Int.self,    forKey: .caretByte) ?? 0
+        createdSceneIDs   = try c.decodeIfPresent([String].self, forKey: .createdSceneIDs) ?? []
+        createdChapterIDs = try c.decodeIfPresent([String].self, forKey: .createdChapterIDs) ?? []
+        removedSceneIDs   = try c.decodeIfPresent([String].self, forKey: .removedSceneIDs) ?? []
+        removedChapterIDs = try c.decodeIfPresent([String].self, forKey: .removedChapterIDs) ?? []
+    }
+
+    /// Serialize to the JSON object the engine stores as this node's opaque payload.
+    public func toJSON() -> String {
+        guard let data = try? JSONEncoder().encode(self),
+              let s = String(data: data, encoding: .utf8) else { return "{}" }
+        return s
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case op, fragmentJSON, caretSceneID, caretByte,
+             createdSceneIDs, createdChapterIDs, removedSceneIDs, removedChapterIDs
+    }
+}
+
+// A reversible structural step (T-0356 / AC6): undo/redo CROSSED a structural node
+// (moved=true, no `changes`). The app runs the inverse fragment op from `payload` and
+// reloads the manuscript. `direction` is "undo" or "redo".
+public struct HistoryStructuralInverse: Decodable, Sendable {
+    public let direction: String   // "undo" | "redo"
+    public let payload:   HistoryStructuralPayload
+}
+
 public struct HistoryStepResult: Decodable, Sendable {
     public let moved:                  Bool
     public let nodeID:                 String
@@ -1899,6 +2004,9 @@ public struct HistoryStepResult: Decodable, Sendable {
     public let crossedSessionBoundary: Bool
     public let boundaryTimestamp:      String?
     public let stoppedAtBarrier:       HistoryBarrierStop?
+    // Present only when this step crossed a reversible structural node (T-0356 / AC6):
+    // moved=true, no `changes`; the app replays the inverse op. Nil otherwise.
+    public let structuralInverse:      HistoryStructuralInverse?
     // Present only when this step landed on a fork (a node with >= 2 children);
     // drives the inline fork popover (SP-055 / §10 T2). Nil otherwise.
     public let forkAhead:              HistoryForkAhead?
@@ -1913,12 +2021,14 @@ public struct HistoryStepResult: Decodable, Sendable {
         crossedSessionBoundary = try c.decodeIfPresent(Bool.self,   forKey: .crossedSessionBoundary) ?? false
         boundaryTimestamp      = try c.decodeIfPresent(String.self, forKey: .boundaryTimestamp)
         stoppedAtBarrier       = try c.decodeIfPresent(HistoryBarrierStop.self, forKey: .stoppedAtBarrier)
+        structuralInverse      = try c.decodeIfPresent(HistoryStructuralInverse.self, forKey: .structuralInverse)
         forkAhead              = try c.decodeIfPresent(HistoryForkAhead.self, forKey: .forkAhead)
     }
 
     private enum CodingKeys: String, CodingKey {
         case moved, nodeID, canUndo, canRedo, changes,
-             crossedSessionBoundary, boundaryTimestamp, stoppedAtBarrier, forkAhead
+             crossedSessionBoundary, boundaryTimestamp, stoppedAtBarrier,
+             structuralInverse, forkAhead
     }
 }
 

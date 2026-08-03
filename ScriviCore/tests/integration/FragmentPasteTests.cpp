@@ -289,3 +289,90 @@ TEST_CASE("paste - caret past end of body rejected", "[integration][T-0352]") {
     REQUIRE_FALSE(r.ok());
     CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
 }
+
+// ---------------------------------------------------------------------------
+// uncutPaste — the exact inverse of paste (EP-029 AC6 / T-0356). paste then uncut must
+// restore the ORIGINAL manuscript byte-for-byte: one scene, original body, no leftovers.
+// ---------------------------------------------------------------------------
+
+static ms::Fragment sceneBoundaryFragment() {
+    ms::Fragment frag;
+    frag.pieces = {
+        piece(ms::OpensWith::None,  "one",   ms::Partial::Head),
+        piece(ms::OpensWith::Scene, "two"),
+        piece(ms::OpensWith::Scene, "three", ms::Partial::Tail),
+    };
+    return frag;
+}
+
+TEST_CASE("uncutPaste - inverts a scene-boundary paste back to the original scene (T-0356)",
+          "[integration][T-0356]") {
+    OneSceneProject p("AAABBB");
+    ms::Fragment frag = sceneBoundaryFragment();
+    ms::Fragment fragCopy = frag;   // uncut needs the same fragment (piece lengths)
+
+    auto pr = p.paster().paste(req(p, std::move(frag), p.s1ID, 3));   // AAA|BBB
+    REQUIRE(pr.ok());
+    REQUIRE(p.resolved().size() == 3);                               // split into 3 scenes
+
+    ms::UncutPasteRequest ur;
+    ur.projectRootPath   = p.projectDir.str();
+    ur.fragment          = std::move(fragCopy);
+    ur.targetSceneID     = pr.value().targetSceneID;
+    ur.createdSceneIDs   = pr.value().createdSceneIDs;
+    ur.createdChapterIDs = pr.value().createdChapterIDs;
+    auto ur_r = p.paster().uncutPaste(ur);
+    REQUIRE(ur_r.ok());
+
+    auto scenes = p.resolved();
+    REQUIRE(scenes.size() == 1);                                     // back to one scene
+    CHECK(scenes[0].sceneID.value == p.s1ID.value);                 // the same original scene
+    CHECK(p.bodyOf(scenes[0]) == "AAABBB");                         // original body restored
+    CHECK(ur_r.value().survivingSceneID.value == p.s1ID.value);
+}
+
+TEST_CASE("uncutPaste - inverts a chapter-boundary paste, removing the created chapter (T-0356)",
+          "[integration][T-0356]") {
+    OneSceneProject p("AAABBB");
+    ms::Fragment frag;
+    frag.pieces = {
+        piece(ms::OpensWith::None,    "one", ms::Partial::Head),
+        piece(ms::OpensWith::Chapter, "two", ms::Partial::Tail, "Chapter 2"),
+    };
+    ms::Fragment fragCopy = frag;
+
+    auto pr = p.paster().paste(req(p, std::move(frag), p.s1ID, 3));
+    REQUIRE(pr.ok());
+    REQUIRE(pr.value().createdChapterIDs.size() == 1);
+    REQUIRE(p.resolved().size() == 2);
+
+    ms::UncutPasteRequest ur;
+    ur.projectRootPath   = p.projectDir.str();
+    ur.fragment          = std::move(fragCopy);
+    ur.targetSceneID     = pr.value().targetSceneID;
+    ur.createdSceneIDs   = pr.value().createdSceneIDs;
+    ur.createdChapterIDs = pr.value().createdChapterIDs;
+    auto ur_r = p.paster().uncutPaste(ur);
+    REQUIRE(ur_r.ok());
+
+    auto scenes = p.resolved();
+    REQUIRE(scenes.size() == 1);                     // the created chapter + its scene are gone
+    CHECK(scenes[0].sceneID.value == p.s1ID.value);
+    CHECK(p.bodyOf(scenes[0]) == "AAABBB");          // original body restored
+    CHECK(scenes[0].chapterID.value == p.ch1ID.value);
+}
+
+TEST_CASE("uncutPaste - rejects a body that the fragment's paste could not have produced (T-0356)",
+          "[integration][T-0356]") {
+    OneSceneProject p("AAABBB");
+    // The target does not end with the head piece's text "one" (never pasted), so uncut must
+    // refuse rather than corrupt the scene.
+    ms::Fragment frag = sceneBoundaryFragment();
+    ms::UncutPasteRequest ur;
+    ur.projectRootPath = p.projectDir.str();
+    ur.fragment        = std::move(frag);
+    ur.targetSceneID   = p.s1ID;                     // body is "AAABBB", not "…one"
+    auto r = p.paster().uncutPaste(ur);
+    REQUIRE_FALSE(r.ok());
+    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
+}

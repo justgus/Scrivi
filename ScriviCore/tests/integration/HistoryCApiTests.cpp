@@ -185,6 +185,61 @@ TEST_CASE("C ABI: undo stops at a barrier with a notice", "[HistoryCApi]") {
     scrivi_free(scrivi_history_close(ROOT));
 }
 
+TEST_CASE("C ABI: a structural node is stepped across, returning its inverse payload "
+          "and surviving relaunch (T-0356)", "[HistoryCApi][T-0356]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    // --- Session 1: record text, then a REVERSIBLE structural node (payload present) ---
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "before", recordParams("typing", 0, 6).c_str()));
+
+    JsonDoc payload;                       // the app's opaque inverse-op descriptor
+    payload.setString("op", "paste");
+    payload.setString("fragmentJSON", "F");
+    payload.setString("caretSceneID", "scene_a");
+    JsonDoc bp;
+    bp.setString("barrierKind", "structuredCut");
+    bp.setString("note", "Can't undo past a cross-boundary cut");
+    bp.setSubDoc("structuralPayload", std::move(payload));
+    scrivi_free(scrivi_history_record_barrier(ROOT, bp.dump().c_str()));
+
+    // Undo steps ACROSS the structural node: moved, no text change, inverse payload returned.
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arraySize("changes") == 0);           // no SceneChange
+        REQUIRE_FALSE(r.contains("stoppedAtBarrier"));
+        REQUIRE(r.contains("structuralInverse"));
+        JsonDoc si = r.getSubDoc("structuralInverse");
+        REQUIRE(si.getString("direction") == "undo");
+        JsonDoc p = si.getSubDoc("payload");
+        REQUIRE(p.getString("op") == "paste");
+        REQUIRE(p.getString("caretSceneID") == "scene_a");
+    }
+    // Redo re-crosses forward with direction=redo.
+    {
+        auto r = okResult(scrivi_history_redo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arraySize("changes") == 0);
+        REQUIRE(r.contains("structuralInverse"));
+        REQUIRE(r.getSubDoc("structuralInverse").getString("direction") == "redo");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // --- Session 2: reopen; the structural node + payload replay from the log ---
+    scrivi_free(scrivi_history_open(ROOT));
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));    // across the structural node again
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.contains("structuralInverse"));
+        JsonDoc si = r.getSubDoc("structuralInverse");
+        REQUIRE(si.getString("direction") == "undo");
+        REQUIRE(si.getSubDoc("payload").getString("op") == "paste");   // payload survived reload
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
 TEST_CASE("C ABI: seeded scene baseline — undo stops at pre-existing text", "[HistoryCApi]") {
     HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
     scrivi_free(scrivi_history_open(ROOT));

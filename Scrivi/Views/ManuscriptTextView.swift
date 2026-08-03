@@ -255,6 +255,15 @@ struct ManuscriptTextView: NSViewRepresentable {
                 capture.refreshCanState()
                 return
             }
+
+            // Reversible structural step (T-0356 / AC6): the pointer crossed a structuredCut/
+            // structuredPaste node. Run the inverse fragment op on disk + reload — no text change.
+            if let inverse = step.structuralInverse {
+                applyStructuralInverse(inverse)
+                capture.refreshCanState()
+                return
+            }
+
             guard step.moved, let change = step.changes.first,
                   let tv = textView, let storage = tv.textStorage else {
                 // A step that did not move (nothing left to undo/redo) still
@@ -384,6 +393,67 @@ struct ManuscriptTextView: NSViewRepresentable {
             alert.alertStyle = .informational
             alert.addButton(withTitle: "OK")
             alert.runModal()
+        }
+
+        // redo-of-a-cut needs the scene/chapter IDs that undo-of-that-cut re-pasted, so it can
+        // remove them again. Keyed by the structural payload's stable identity (op + caret +
+        // fragment), which is identical on the undo and the matching redo (same history node).
+        // Session-local: a redo only ever follows an undo within the same run. (T-0356)
+        private var structuralRedoCreated: [String: (scenes: [String], chapters: [String])] = [:]
+
+        private func structuralCacheKey(_ p: HistoryStructuralPayload) -> String {
+            "\(p.op)|\(p.caretSceneID)|\(p.caretByte)|\(p.fragmentJSON.hashValue)"
+        }
+
+        // Runs the inverse of a structuredCut/structuredPaste on disk, then reloads (T-0356 / AC6).
+        // The four directions reduce to two disk ops — a paste-splice or its uncut inverse:
+        //   undo-cut    → paste the extracted fragment back at the fold point
+        //   redo-paste  → paste the same fragment at the target again
+        //   undo-paste  → uncut the created scenes/chapters (strip pasted text, re-join target)
+        //   redo-cut    → uncut the scenes the undo-cut just re-pasted
+        private func applyStructuralInverse(_ inverse: HistoryStructuralInverse) {
+            let p = inverse.payload
+            guard let rootPath = parent.session.projectRootPath,
+                  let ref = parent.env.authorshipRef,
+                  let projectID = parent.session.openProjectResult?.projectID else { return }
+            let key = structuralCacheKey(p)
+
+            // Does this direction re-INSERT the fragment (a paste) or REMOVE it (an uncut)?
+            let isPaste = (p.op == "structuredCut" && inverse.direction == "undo")
+                       || (p.op == "structuredPaste" && inverse.direction == "redo")
+
+            if isPaste {
+                guard let result = try? parent.env.engine.fragmentPaste(
+                    projectRootPath: rootPath,
+                    appSupportRoot: parent.session.appSupportRoot,
+                    projectID: projectID,
+                    fragmentJSON: p.fragmentJSON,
+                    caretSceneID: p.caretSceneID,
+                    caretByteOffset: p.caretByte,
+                    authorshipRef: ref) else {
+                    print("[Scrivi] applyStructuralInverse: paste failed"); return
+                }
+                // Remember what this paste created so the matching uncut direction can remove it.
+                structuralRedoCreated[key] = (result.createdSceneIDs, result.createdChapterIDs)
+                reloadManuscriptFromDisk(caretSceneID: result.targetSceneID, caretByteOffset: p.caretByte)
+            } else {
+                // Uncut: remove the created scenes/chapters and re-join the target. For undo-paste
+                // the created IDs are the paste's own (carried in the payload); for redo-cut they
+                // are what the preceding undo-cut re-pasted (from the session cache).
+                let created = structuralRedoCreated[key]
+                let sceneIDs   = created?.scenes   ?? p.createdSceneIDs
+                let chapterIDs = created?.chapters ?? p.createdChapterIDs
+                guard let result = try? parent.env.engine.fragmentUncutPaste(
+                    projectRootPath: rootPath,
+                    fragmentJSON: p.fragmentJSON,
+                    targetSceneID: p.caretSceneID,
+                    createdSceneIDs: sceneIDs,
+                    createdChapterIDs: chapterIDs) else {
+                    print("[Scrivi] applyStructuralInverse: uncut failed"); return
+                }
+                structuralRedoCreated[key] = nil   // consumed; a later paste re-populates it
+                reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: p.caretByte)
+            }
         }
 
         // Called by NSScrollView bounds-change notification.
@@ -569,9 +639,18 @@ struct ManuscriptTextView: NSViewRepresentable {
                 if let result = try? parent.env.engine.fragmentCut(projectRootPath: rootPath, spans: spans) {
                     parent.session.bufferService?.load(result.fragment.plainText, intoSlot: bufferID,
                                                        fragmentJSON: result.fragment.toJSON())
-                    parent.session.historyCapture?.recordBarrier(
-                        kind: "structuredCut", note: "Can't undo past a cross-boundary cut")
+                    // Reversible structural op (T-0356 / AC6): undo re-pastes the fragment at the
+                    // fold point; redo re-runs the cut.
                     let caretByte = spans.first?.start ?? 0
+                    parent.session.historyCapture?.recordBarrier(
+                        kind: "structuredCut", note: "Can't undo past a cross-boundary cut",
+                        structuralPayload: HistoryStructuralPayload(
+                            op: "structuredCut",
+                            fragmentJSON: result.fragment.toJSON(),
+                            caretSceneID: result.survivingSceneID,
+                            caretByte: caretByte,
+                            removedSceneIDs: result.removedSceneIDs,
+                            removedChapterIDs: result.removedChapterIDs))
                     reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: caretByte)
                     return
                 }
@@ -1465,11 +1544,19 @@ struct ManuscriptTextView: NSViewRepresentable {
             pb.clearContents()
             pb.setString(result.fragment.plainText, forType: .string)
 
-            // Structural op — barrier (reversible undo is T-0356). The survivor keeps the caret
-            // at the fold point (end of the head prefix = the first span's start byte).
-            parent.session.historyCapture?.recordBarrier(
-                kind: "structuredCut", note: "Can't undo past a cross-boundary cut")
+            // Reversible structural op (T-0356 / AC6). The survivor keeps the caret at the fold
+            // point (end of the head prefix = the first span's start byte). Undo re-pastes the
+            // extracted fragment there (undo-cut == paste-splice, §5); redo re-runs the cut.
             let caretByte = spans.first?.start ?? 0
+            parent.session.historyCapture?.recordBarrier(
+                kind: "structuredCut", note: "Can't undo past a cross-boundary cut",
+                structuralPayload: HistoryStructuralPayload(
+                    op: "structuredCut",
+                    fragmentJSON: result.fragment.toJSON(),
+                    caretSceneID: result.survivingSceneID,
+                    caretByte: caretByte,
+                    removedSceneIDs: result.removedSceneIDs,
+                    removedChapterIDs: result.removedChapterIDs))
             reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: caretByte)
             return true
         }
@@ -1510,8 +1597,18 @@ struct ManuscriptTextView: NSViewRepresentable {
                 caretByteOffset: caretByte,
                 authorshipRef: ref) else { return false }
 
+            // Reversible structural op (T-0356 / AC6): undo cuts away exactly the created
+            // scenes/chapters and re-joins the split target (undo-paste == cut-merge, §5); redo
+            // re-runs the paste.
             parent.session.historyCapture?.recordBarrier(
-                kind: "structuredPaste", note: "Can't undo past a cross-boundary paste")
+                kind: "structuredPaste", note: "Can't undo past a cross-boundary paste",
+                structuralPayload: HistoryStructuralPayload(
+                    op: "structuredPaste",
+                    fragmentJSON: frag.toJSON(),
+                    caretSceneID: result.targetSceneID,
+                    caretByte: caretByte,
+                    createdSceneIDs: result.createdSceneIDs,
+                    createdChapterIDs: result.createdChapterIDs))
             // Place the caret at the start of the paste target (the split point); the reload
             // re-anchors to a valid scene.
             reloadManuscriptFromDisk(caretSceneID: result.targetSceneID, caretByteOffset: caretByte)

@@ -97,108 +97,16 @@ _(filled in when the Epic reaches 🟠 Complete)_
 
 ---
 
-## EP-029: [Cross] Cross-Boundary Structured Cut / Copy / Paste
+*Last Updated: 2026-08-03 (**EP-029 ✅ CLOSED (Human-approved) — cross-boundary structured Cut/Copy/Paste
+complete.** Final sprint **SP-089** delivered all four `[Apple]` tasks: T-0354 (Pass A clipboard, Verified
+2026-07-29), T-0357 (title-capture + chapter promotion, Verified 2026-07-29), T-0355 (Pass B structured buffers,
+Verified 2026-08-03), T-0356 (AC6 reversible structured undo, Verified 2026-08-03). AC1–AC7 all met; the AC6 undo
+runs **app-side** (`HistoryService` stays in-memory; new core endpoint `scrivi_fragment_uncut_paste` is the exact
+inverse of paste). ScriviCore `ctest` **369/369**, macOS interop **45/45**, app **BUILD SUCCEEDED**. **EP-029
+archived to `Closed/Epic-EP-029.md`; SP-089 archived to `Sprints/Closed/Sprint-SP-089.md`.** Active Epics: EP-019
+(held pending SP-057). Prior note follows.)*
 
-**Status:** 🟡 Active (opened 2026-07-27, user request) — **SP-085 ✅ closed 2026-07-27 (Human-approved).** Design
-doc `docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md` **✅ APPROVED**; trades ruled **T1=A · T2=A · T3=A ·
-T4=A**; Open Questions #1–#3 resolved (incl. caret-in-heading paste = **refuse + flash**, user override).
-**Next: SP-086** (ScriviCore extract-fragment) — awaiting go-ahead to activate.
-**Codebase:** `[Cross]` — the core capability (fragment model, extract, cut-merge, paste-splice) lives in
-**ScriviCore** and is reused by every platform; each platform then wires its editor's Cut/Copy/Paste + copy
-buffers through it. This Epic delivers the **Apple** wiring first (mirroring EP-019's "Apple as reference"
-decision); Linux/Windows wiring follow as they mature.
-**Goal:** Make the manuscript behave as **one monolithic document** for Cut/Copy/Paste and the copy buffers.
-A selection spanning scene/chapter boundaries copies/cuts as a **structured fragment** (carrying its scene &
-chapter boundary markers); **cut deletes and merges** the spanned scenes/chapters (history records it); **paste
-reconstructs** all carried boundaries at the destination, **splitting the target scene** if pasted mid-scene —
-exactly as if the manuscript were a single continuous document.
-
-**Origin:** Gap surfaced 2026-07-27 while verifying EP-019 SP-056 (T-0214). The manuscript is one
-`NSTextStorage` with divider attachments between scenes and non-editable heading runs at chapter starts; today a
-cross-boundary selection can't be cleanly copied (dividers/headings pollute the extracted string), ⌘X is blocked
-by the heading-edit guard (silent no-op), and the copy buffers store only flat text. EP-019 explicitly scopes
-structural editing OUT (barriers only), so this is a **new** Epic, not an EP-019 addendum. User decision
-2026-07-27: full structured round-trip (structured buffers, cut-that-merges, paste-that-splits).
-
-**Design:** `docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md` — **TO BE WRITTEN** (SP-085 / T-0350). Will
-define the fragment schema (`scrivi.fragment.v1`), extract / cut-merge / paste-splice behaviour, history
-integration, the copy-buffer schema evolution (`scrivi.buffers.v1` → structured), and the trade studies below.
-**Date Created:** 2026-07-27
-**Target Close Date:** TBD (est. 5 sprints)
-**Actual Close Date:** —
-
-### Acceptance Criteria (draft — finalised in the design doc)
-
-- [ ] AC1 — **⌘C across boundaries** places a structured fragment (scene/chapter markers + text) on an internal
-  clipboard; the system pasteboard also gets a clean plain-text flattening (blank-line seams) for external apps.
-- [ ] AC2 — **⌘V of a structured fragment** reconstructs every carried scene/chapter boundary at the caret,
-  splitting the target scene when pasted mid-scene; identity/order-keys resolved via the ScriviCore model
-  (EP-027) and the merge/split primitives (EP-028).
-- [ ] AC3 — **⌘X across boundaries** copies the structured fragment, deletes the spanned text, and **merges** the
-  spanned scenes/chapters into one; recorded as one undoable structural operation (history barrier + events).
-- [ ] AC4 — **Copy buffers hold structured fragments** (not just flat text): ⌘1–9 copy / ⌥1–9 cut across
-  boundaries store structure; ⌃1–9 paste reconstructs it. `buffers.json` schema evolves accordingly.
-- [ ] AC5 — **Within a single scene**, Cut/Copy/Paste and the buffers keep the existing fast plain-text path
-  (no regression to the EP-019 SP-056 behaviour the user verified 2026-07-27).
-- [ ] AC6 — **Undo/Redo** of a cross-boundary cut restores the text AND the pre-merge scene/chapter structure;
-  undo of a structured paste removes the created scenes/chapters. No text or structure corruption.
-- [ ] AC7 — **No regression:** auto-save, scene navigation, external-change scan, Git snapshots, and the EP-019
-  history engine are unaffected; ScriviCore `ctest` + interop suites green.
-
-### Sprints (planned — sequencing below; activated one at a time on user go-ahead)
-
-| Sprint | Title | Codebase | Status |
-| ------ | ----- | -------- | ------ |
-| SP-085 | **Design doc + trade studies + fragment schema spec** | `[Cross]` (docs) | ✅ **Closed 2026-07-27** — doc approved; T1–T4 ruled (all A) → `Closed/Sprint-SP-085.md` |
-| SP-086 | **ScriviCore: `scrivi.fragment.v1` model + extract-fragment** (manuscript range → structured fragment) + C ABI + unit/integration tests | `[ScriviCore]` | ✅ **Closed 2026-07-27** — T-0351 Verified; ctest 338/338 → `Closed/Sprint-SP-086.md` |
-| SP-087 | **ScriviCore: paste-splice** (insert a fragment at a caret; split target scene mid-scene; create carried scenes/chapters; wire identity/order-keys via EP-027/EP-028 primitives) + tests | `[ScriviCore]` | ✅ **Closed 2026-07-27** — T-0352 Verified; ctest 346/346 → `Closed/Sprint-SP-087.md` |
-| SP-088 | **ScriviCore: cut-with-merge** (delete a spanned range + merge spanned scenes/chapters atomically) + history event/barrier shape + tests | `[ScriviCore]` | ✅ **Closed 2026-07-27** — T-0353 Verified; ctest 352/352 → `Closed/Sprint-SP-088.md` |
-| SP-089 | **`[Apple]` editor wiring** — route ⌘C/⌘X/⌘V + ⌘/⌃/⌥1–9 through the fragment API when a selection/paste crosses boundaries; keep the single-scene fast path; structured buffer storage; history integration; verify | `[Apple]` | 🟡 **Active** (2026-07-27) — T-0354/T-0355/T-0357 Verified; only T-0356 (AC6) open |
-
-### Tasks
-
-_Assigned at each sprint's activation. First task **T-0350** (design doc, SP-085). Task IDs continue from T-0350._
-
-| ID | Title | Sprint | Status |
-| -- | ----- | ------ | ------ |
-| T-0350 | Design doc: fragment schema (`scrivi.fragment.v1`), extract/cut-merge/paste-splice behaviour, buffer-schema evolution, trade studies (T1–T4 below), milestone breakdown | SP-085 | ✅ **Verified (2026-07-27)** — `docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md` **approved**; T1–T4 ruled (all A); Open Questions #1–#3 resolved |
-| T-0351 | `[ScriviCore]` **extract-fragment** — `FragmentExtractor` (manuscript range → `scrivi.fragment.v1` via `ManuscriptOrderResolver` + `SceneReader`) + `scrivi_fragment_extract` C ABI + `FragmentExtractTests` | SP-086 | ✅ **Verified (2026-07-27)** — ctest 338/338 (+11); macOS build green; `scrivi.h` additive; no pbxproj |
-| T-0352 | `[ScriviCore]` **paste-splice** — `FragmentPaster` (split target scene at caret; create carried scenes via `createScene(afterSceneID)` + chapters via `createChapter(afterChapterID)`; tail-suffix follows the pasted run, flat-doc model; direct in-scene concatenation) + `scrivi_fragment_paste` C ABI + tests | SP-087 | ✅ **Verified (2026-07-27)** — ctest 346/346 (+8); macOS build green; `scrivi.h` additive; no pbxproj |
-| T-0353 | `[ScriviCore]` **cut-with-merge** — `FragmentCutter` (extract the fragment + delete the spanned byte ranges + collapse the spanned scenes/chapters into one via **delete-and-fold**: fold head=headPrefix+tailSuffix, delete other span scenes, remove emptied chapters) + `scrivi_fragment_cut` C ABI + tests | SP-088 | ✅ **Verified (2026-07-27)** — ctest 352/352 (+6); macOS build green; `scrivi.h` additive; no pbxproj |
-| T-0354 | `[Apple]` **Pass A — system-clipboard cross-boundary Cut/Copy/Paste** — `ScriviEngine` fragment wrappers (extract/paste/cut); coordinator boundary-detection (selection → per-scene byte spans from `sceneBoundaries`); ⌘C/⌘X/⌘V route through the fragment endpoints on boundary-crossing (internal clipboard + flat `plainText` on `NSPasteboard`); single-scene fast path preserved; caret-in-heading paste = flash + refuse; **structural barrier** on cross-boundary cut/paste; reload manuscript from disk after structural ops. AC1/AC2/AC3/AC5/AC7 | SP-089 | ✅ **Verified (2026-07-29)** — see I-0094 |
-| T-0356 | `[ScriviCore]`+`[Apple]` **Reversible structured undo (AC6)** — extend the C++ `HistoryService` so undo steps past a `structuredCut`/`structuredPaste` barrier and re-runs the inverse op (undo-cut = paste the fragment back; undo-paste = cut the created span), redo re-runs forward; app-side inverse-op payloads + wiring + tests. **Dedicated task** (user decision 2026-07-27 — deeper than UI wiring; a real history-engine change done right, not rushed) | SP-089 | 🟢 **Ready** — T-0354/T-0355/T-0357 all Verified; the last open SP-089 task (AC6). |
-| T-0355 | `[Apple]` **Pass B — structured copy buffers** — extend `scrivi.buffers.v1` in place with an optional `fragment` (T4=A); `scrivi_buffers_load` carries it; `BufferService`/palette + ⌘1–9/⌃1–9/⌥1–9 store/reconstruct structured fragments across boundaries (single-scene stays flat). AC4 | SP-089 | ✅ **Verified (2026-08-03)** — live test confirmed structured ⌃N copy/cut/paste; single-scene stays flat |
-
-### Trade studies — ✅ ALL RULED 2026-07-27 (T1=A · T2=A · T3=A · T4=A)
-
-- **T1 — Fragment format.** How a structured selection is serialised: (A) a JSON fragment
-  (`scrivi.fragment.v1`: ordered `[{chapterBoundary?, sceneBoundary, headOrTailPartial?, text}]`) vs (B) a
-  lightweight in-band marker string vs (C) reuse the on-disk scene/chapter layout as the transport.
-- **T2 — Internal clipboard vs system pasteboard.** Where the structured fragment lives on ⌘C: (A) a
-  ScriviCore-owned internal clipboard with the system pasteboard carrying only the flat-text flattening (so
-  external paste still works) vs (B) a custom `NSPasteboard` UTI carrying the fragment vs (C) both.
-- **T3 — Cut-merge undo granularity.** Whether a cross-boundary cut is one undo step (single structural event
-  that restores text+structure) vs a barrier + sub-events, and how it composes with the EP-019 history engine.
-- **T4 — Copy-buffer schema evolution.** Whether structured fragments extend `scrivi.buffers.v1` in place
-  (add an optional `fragment` alongside `text`) or bump to `scrivi.buffers.v2`; plaintext slots must keep working.
-
-### Scope Notes
-
-- **Reuses, does not duplicate, EP-027 (identity/ordering) and EP-028 (`SceneMerger`/`ChapterMerger`).** Cut-merge
-  composes the existing merge primitives across a multi-scene span; paste-splice composes create + the split path.
-- **Apple wiring first** (this Epic's AC1–AC7 target `[Apple]`), mirroring the EP-019 decision to lock the Apple
-  reference before the Linux mirror. Linux/Windows wiring are follow-on Epics once those editors reach parity.
-- **The EP-019 SP-056 single-scene buffer behaviour (Verified 2026-07-27) must not regress** — the fragment path
-  engages only when a selection or paste actually crosses a boundary (AC5).
-
-### Completion Summary
-
-_(filled in when the Epic reaches 🟠 Complete)_
-
-
----
-
-*Last Updated: 2026-07-27 (**SP-085 ✅ closed (Human-approved) — EP-029 design doc APPROVED.** The EP-029
+*2026-07-27 (**SP-085 ✅ closed (Human-approved) — EP-029 design doc APPROVED.** The EP-029
 `[Cross]` design sprint delivered + got approval for `docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md`: the
 `scrivi.fragment.v1` ordered-pieces schema, extract / paste-splice / cut-merge behaviour (composing EP-027
 create/split + EP-028 `SceneMerger`/`ChapterMerger`), buffer-schema evolution (extend `scrivi.buffers.v1` in

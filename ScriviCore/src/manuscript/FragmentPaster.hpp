@@ -57,6 +57,22 @@ struct PasteFragmentResult {
     std::vector<ChapterID> createdChapterIDs;  // chapters minted by the paste, in reading order
 };
 
+// The exact inverse of a paste (EP-029 AC6 / T-0356 — undo of a structured paste, and redo of a
+// structured cut). Folds the created scenes back into the target and STRIPS the pasted fragment's
+// piece texts, restoring the target's original pre-paste body, then deletes the created
+// scenes/chapters. Keyed by IDs + the fragment (never byte spans), so the app does no byte math.
+struct UncutPasteRequest {
+    AbsolutePath           projectRootPath;
+    Fragment               fragment;           // the fragment that was pasted (its piece lengths)
+    SceneID                targetSceneID;       // the scene the paste split (fold everything back here)
+    std::vector<SceneID>   createdSceneIDs;     // scenes the paste minted, reading order
+    std::vector<ChapterID> createdChapterIDs;   // chapters the paste minted, reading order
+};
+
+struct UncutPasteResult {
+    SceneID survivingSceneID;   // the target scene, now restored to its pre-paste body
+};
+
 class FragmentPaster {
 public:
     explicit FragmentPaster(CoreServices& services);
@@ -64,6 +80,11 @@ public:
     // invalidArgument if the fragment is empty, the caret scene is unknown, or the caret byte
     // offset exceeds the target scene body. ioError on a read/write failure.
     [[nodiscard]] Result<PasteFragmentResult> paste(const PasteFragmentRequest& request);
+
+    // The inverse of paste (T-0356). invalidArgument if the fragment is empty, the target scene is
+    // unknown, or a created scene body is shorter than the piece text it should end with (a state
+    // that cannot have come from this fragment's paste). ioError on a read/write failure.
+    [[nodiscard]] Result<UncutPasteResult> uncutPaste(const UncutPasteRequest& request);
 
 private:
     CoreServices& services_;
