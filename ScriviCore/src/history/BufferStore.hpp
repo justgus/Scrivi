@@ -38,6 +38,10 @@ struct BufferSlot {
     std::string bufferID;   // "1"-"9"
     std::string text;
     std::string updatedAt;  // ISO-8601 of the last load into this slot
+    // Optional structured fragment (a serialized scrivi.fragment.v1 object). Present only
+    // for cross-boundary copies/cuts (T-0355 / AC4); empty for plain-text slots (SP-056).
+    // Additive under scrivi.buffers.v1 (T4=A): old files simply have no "fragment" key.
+    std::string fragment;
 };
 
 class BufferStore {
@@ -50,8 +54,10 @@ public:
     static bool isValidBufferID(const std::string& bufferID);
 
     // Load `text` into slot `bufferID` (create-or-replace), stamping updatedAt = now.
+    // `fragment` is an optional serialized scrivi.fragment.v1 (empty = plain-text slot).
     // Persists atomically. Returns the slot's updatedAt on success.
     Result<std::string> load(const std::string& bufferID, const std::string& text,
+                             const std::string& fragment,
                              const std::string& nowTimestamp);
 
     // Read one slot. Returns nullopt (in an ok Result) if the slot is empty/absent.

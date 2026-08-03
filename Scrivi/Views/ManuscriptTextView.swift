@@ -527,6 +527,17 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let tv = textView else { return }
             let sel = tv.selectedRange()
             guard sel.length > 0 else { return }
+            // Cross-boundary selection → store a STRUCTURED fragment (flat text + fragment) so
+            // ⌃N can reconstruct the scene/chapter boundaries (T-0355 / AC4). Single-scene keeps
+            // the flat-text slot (AC5). Copy is not a text change → no history event (Trade T3).
+            if selectionCrossesBoundary(sel),
+               let spans = fragmentSpans(for: sel),
+               let rootPath = parent.session.projectRootPath,
+               let frag = try? parent.env.engine.fragmentExtract(projectRootPath: rootPath, spans: spans) {
+                parent.session.bufferService?.load(frag.plainText, intoSlot: bufferID,
+                                                   fragmentJSON: frag.toJSON())
+                return
+            }
             let text = (tv.string as NSString).substring(with: sel)
             parent.session.bufferService?.load(text, intoSlot: bufferID)
         }
@@ -546,6 +557,27 @@ struct ManuscriptTextView: NSViewRepresentable {
             tv.window?.makeFirstResponder(tv)
             let sel = tv.selectedRange()
             guard sel.length > 0 else { return }
+
+            // Cross-boundary cut → structured fragmentCut (delete + merge, reload, BARRIER),
+            // mirroring ⌘X (AC3), and store the fragment in slot N so ⌃N reconstructs it
+            // (T-0355 / AC4). Reversible structured undo is T-0356/AC6. Single-scene cut falls
+            // through to the flat, reversible cut path below (AC5).
+            if selectionCrossesBoundary(sel),
+               let spans = fragmentSpans(for: sel),
+               let rootPath = parent.session.projectRootPath {
+                parent.session.historyCapture?.flush(trigger: "flush")
+                if let result = try? parent.env.engine.fragmentCut(projectRootPath: rootPath, spans: spans) {
+                    parent.session.bufferService?.load(result.fragment.plainText, intoSlot: bufferID,
+                                                       fragmentJSON: result.fragment.toJSON())
+                    parent.session.historyCapture?.recordBarrier(
+                        kind: "structuredCut", note: "Can't undo past a cross-boundary cut")
+                    let caretByte = spans.first?.start ?? 0
+                    reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: caretByte)
+                    return
+                }
+                // fragmentCut failed → fall through to the flat cut rather than losing the action.
+            }
+
             let text = (tv.string as NSString).substring(with: sel)
             // Load into the slot first — a cut must not lose the text if the store
             // write and the delete are ever separated by a failure.
@@ -564,13 +596,22 @@ struct ManuscriptTextView: NSViewRepresentable {
         // pasteboard is untouched.
         func pasteFromBuffer(_ bufferID: String) {
             guard let tv = textView, let mtv = tv as? ManuscriptNSTextView else { return }
-            guard let text = parent.session.bufferService?.text(inSlot: bufferID),
-                  !text.isEmpty else { return }   // empty slot → silent no-op
             // Restore first responder so a palette-driven paste inserts into the editor
             // (the panel click steals focus; insertText on a non-first-responder text
             // view is dropped — the root cause of the palette paste doing nothing).
             // No-op on the keyboard path. This is why the earlier row-click paste failed.
             tv.window?.makeFirstResponder(tv)
+
+            // Structured slot → reconstruct the carried scene/chapter boundaries at the caret
+            // (T-0355 / AC4), the same path as ⌘V of a cross-boundary copy. A heading caret is
+            // refused (flash) inside pasteStructuredFragment.
+            if let frag = parent.session.bufferService?.fragment(inSlot: bufferID) {
+                _ = pasteStructuredFragment(frag)
+                return
+            }
+
+            guard let text = parent.session.bufferService?.text(inSlot: bufferID),
+                  !text.isEmpty else { return }   // empty slot → silent no-op
             parent.session.historyCapture?.beginPasteOrCut(kind: "paste")
             mtv.insertTextForBuffer(text)
             parent.session.historyCapture?.flush(trigger: "paste", kind: "paste")
@@ -1437,7 +1478,15 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Refuses (flash) if the caret is in a heading. Returns true if handled; false → caller
         // uses the normal system-pasteboard paste (no structured fragment, or single-scene).
         func structuredPasteIfAvailable() -> Bool {
-            guard let tv = textView, let frag = internalClipboardFragment else { return false }
+            guard let frag = internalClipboardFragment else { return false }
+            return pasteStructuredFragment(frag)
+        }
+
+        // Reconstruct `frag` at the caret (shared by ⌘V of the internal clipboard and ⌃N of a
+        // structured buffer slot — T-0355). Refuses (flash) if the caret is in a heading.
+        // Returns true if handled (pasted or refused); false → caller should fall back.
+        func pasteStructuredFragment(_ frag: FragmentResult) -> Bool {
+            guard let tv = textView else { return false }
             let loc = tv.selectedRange().location
             if caretInHeading(loc) { flashRefuse(tv); return true }   // handled = refused, no super
             guard let segIdx = segmentIndex(for: loc),

@@ -996,11 +996,15 @@ public final class ScriviEngine: @unchecked Sendable {
 
     @discardableResult
     public func buffersLoad(projectRootPath: String, bufferID: String,
-                            text: String) throws -> BufferLoadResult {
+                            text: String, fragmentJSON: String = "") throws -> BufferLoadResult {
+        // fragmentJSON (a serialized scrivi.fragment.v1) is optional — empty = plain-text slot
+        // (SP-056). A structured cross-boundary copy/cut stores the fragment too (T-0355 / AC4).
         let raw = projectRootPath.withCString { prp in
             bufferID.withCString { bid in
                 text.withCString { txt in
-                    scrivi_buffers_load(prp, bid, txt)
+                    fragmentJSON.withCString { frag in
+                        scrivi_buffers_load(prp, bid, txt, frag)
+                    }
                 }
             }
         }
@@ -1219,7 +1223,7 @@ public final class ScriviEngine: @unchecked Sendable {
 
     // Copy buffers (EP-019 SP-056 — T-0213) — unavailable on this platform.
     @discardableResult
-    public func buffersLoad(projectRootPath: String, bufferID: String, text: String) throws -> BufferLoadResult { try unavailable() }
+    public func buffersLoad(projectRootPath: String, bufferID: String, text: String, fragmentJSON: String = "") throws -> BufferLoadResult { try unavailable() }
     public func buffersGet(projectRootPath: String, bufferID: String) throws -> BufferGetResult { try unavailable() }
     public func buffersList(projectRootPath: String) throws -> BufferListResult { try unavailable() }
     @discardableResult
@@ -1994,7 +1998,18 @@ public struct BufferSlot: Decodable, Sendable, Identifiable {
     public let bufferID: String
     public let text: String
     public let updatedAt: String
+    // Present only for structured (cross-boundary) slots (T-0355 / AC4); nil for plain-text.
+    public let fragment: FragmentResult?
     public var id: String { bufferID }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        bufferID  = try c.decodeIfPresent(String.self, forKey: .bufferID) ?? ""
+        text      = try c.decodeIfPresent(String.self, forKey: .text) ?? ""
+        updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt) ?? ""
+        fragment  = try c.decodeIfPresent(FragmentResult.self, forKey: .fragment)
+    }
+    private enum CodingKeys: String, CodingKey { case bufferID, text, updatedAt, fragment }
 }
 
 public struct BufferLoadResult: Decodable, Sendable {
@@ -2007,6 +2022,18 @@ public struct BufferGetResult: Decodable, Sendable {
     public let text: String
     public let updatedAt: String
     public let present: Bool
+    // Present only for structured slots (T-0355 / AC4); nil for plain-text or empty slots.
+    public let fragment: FragmentResult?
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        bufferID  = try c.decodeIfPresent(String.self, forKey: .bufferID) ?? ""
+        text      = try c.decodeIfPresent(String.self, forKey: .text) ?? ""
+        updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt) ?? ""
+        present   = try c.decodeIfPresent(Bool.self, forKey: .present) ?? false
+        fragment  = try c.decodeIfPresent(FragmentResult.self, forKey: .fragment)
+    }
+    private enum CodingKeys: String, CodingKey { case bufferID, text, updatedAt, present, fragment }
 }
 
 public struct BufferListResult: Decodable, Sendable {

@@ -1065,6 +1065,32 @@ struct ScriviInteropTests {
         #expect(got.text == "Kazd'ul")
     }
 
+    @Test("buffersLoad with a fragment round-trips structure through Swift (T-0355)")
+    func buffersFragmentRoundTrip() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+
+        let fragJSON = """
+        {"schema":"scrivi.fragment.v1","plainText":"a\\n\\nb",\
+        "pieces":[{"opensWith":"none","partial":"tail","text":"a"},\
+        {"opensWith":"scene","text":"b"}]}
+        """
+        try engine.buffersLoad(projectRootPath: dir.path, bufferID: "4",
+                               text: "a\n\nb", fragmentJSON: fragJSON)
+
+        let got = try engine.buffersGet(projectRootPath: dir.path, bufferID: "4")
+        #expect(got.present)
+        #expect(got.text == "a\n\nb")
+        #expect(got.fragment != nil)                        // structured slot decoded
+        #expect(got.fragment?.pieces.count == 2)
+
+        // Re-loading plain text clears the fragment (load replaces both).
+        try engine.buffersLoad(projectRootPath: dir.path, bufferID: "4", text: "plain")
+        let got2 = try engine.buffersGet(projectRootPath: dir.path, bufferID: "4")
+        #expect(got2.text == "plain")
+        #expect(got2.fragment == nil)
+    }
+
     @Test("buffersGet on an unset slot reports present=false")
     func buffersGetUnset() throws {
         let engine = ScriviEngine()

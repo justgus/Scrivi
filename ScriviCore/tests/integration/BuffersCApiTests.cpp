@@ -56,7 +56,7 @@ struct BuffersRoot {
 TEST_CASE("C ABI buffers: load then get round-trips text + present flag", "[BuffersCApi]") {
     BuffersRoot root;
 
-    auto loaded = okResult(scrivi_buffers_load(root.c(), "1", "Kazd'ul"));
+    auto loaded = okResult(scrivi_buffers_load(root.c(), "1", "Kazd'ul", ""));
     REQUIRE(loaded.getString("bufferID") == "1");
     REQUIRE_FALSE(loaded.getString("updatedAt").empty());
 
@@ -76,18 +76,50 @@ TEST_CASE("C ABI buffers: an unset slot reports present=false, empty text", "[Bu
 
 TEST_CASE("C ABI buffers: load replaces an existing slot", "[BuffersCApi]") {
     BuffersRoot root;
-    okResult(scrivi_buffers_load(root.c(), "2", "first"));
-    okResult(scrivi_buffers_load(root.c(), "2", "second"));
+    okResult(scrivi_buffers_load(root.c(), "2", "first", ""));
+    okResult(scrivi_buffers_load(root.c(), "2", "second", ""));
     auto got = okResult(scrivi_buffers_get(root.c(), "2"));
     REQUIRE(got.getString("text") == "second");
+}
+
+TEST_CASE("C ABI buffers: a structured fragment round-trips through a slot (T-0355)",
+          "[BuffersCApi][T-0355]") {
+    BuffersRoot root;
+    // A minimal scrivi.fragment.v1 object (shape not validated by the store — it is opaque
+    // structure the editor round-trips to fragmentPaste).
+    const char* frag =
+        R"({"schema":"scrivi.fragment.v1","plainText":"a\n\nb",)"
+        R"("pieces":[{"opensWith":"none","partial":"tail","text":"a"},)"
+        R"({"opensWith":"scene","text":"b"}]})";
+
+    okResult(scrivi_buffers_load(root.c(), "3", "a\n\nb", frag));
+
+    auto got = okResult(scrivi_buffers_get(root.c(), "3"));
+    REQUIRE(got.getBool("present"));
+    REQUIRE(got.getString("text") == "a\n\nb");
+    REQUIRE(got.contains("fragment"));                       // structured slot
+    auto fragDoc = got.getSubDoc("fragment");
+    REQUIRE(fragDoc.getString("schema") == "scrivi.fragment.v1");
+    REQUIRE(fragDoc.arraySize("pieces") == 2);
+
+    // list() also carries the fragment.
+    auto listed = okResult(scrivi_buffers_list(root.c()));
+    REQUIRE(listed.arraySize("buffers") == 1);
+    REQUIRE(listed.arrayItem("buffers", 0).contains("fragment"));
+
+    // Re-loading PLAIN text into the same slot clears the fragment (load replaces both).
+    okResult(scrivi_buffers_load(root.c(), "3", "plain", ""));
+    auto got2 = okResult(scrivi_buffers_get(root.c(), "3"));
+    REQUIRE(got2.getString("text") == "plain");
+    REQUIRE_FALSE(got2.contains("fragment"));                // fragment gone
 }
 
 TEST_CASE("C ABI buffers: list returns non-empty slots ascending, with a count",
           "[BuffersCApi]") {
     BuffersRoot root;
-    okResult(scrivi_buffers_load(root.c(), "3", "gamma"));
-    okResult(scrivi_buffers_load(root.c(), "1", "alpha"));
-    okResult(scrivi_buffers_load(root.c(), "2", "beta"));
+    okResult(scrivi_buffers_load(root.c(), "3", "gamma", ""));
+    okResult(scrivi_buffers_load(root.c(), "1", "alpha", ""));
+    okResult(scrivi_buffers_load(root.c(), "2", "beta", ""));
 
     auto listed = okResult(scrivi_buffers_list(root.c()));
     REQUIRE(listed.getInt("count") == 3);
@@ -101,7 +133,7 @@ TEST_CASE("C ABI buffers: list returns non-empty slots ascending, with a count",
 TEST_CASE("C ABI buffers: clear removes a slot; clearing an empty slot is a no-op",
           "[BuffersCApi]") {
     BuffersRoot root;
-    okResult(scrivi_buffers_load(root.c(), "4", "delta"));
+    okResult(scrivi_buffers_load(root.c(), "4", "delta", ""));
 
     auto cleared = okResult(scrivi_buffers_clear(root.c(), "4"));
     REQUIRE(cleared.getBool("cleared"));
@@ -115,7 +147,7 @@ TEST_CASE("C ABI buffers: clear removes a slot; clearing an empty slot is a no-o
 TEST_CASE("C ABI buffers: buffers persist across a fresh load call (relaunch)",
           "[BuffersCApi]") {
     BuffersRoot root;
-    okResult(scrivi_buffers_load(root.c(), "5", "epsilon"));
+    okResult(scrivi_buffers_load(root.c(), "5", "epsilon", ""));
     // A second, independent call (no shared in-memory state) still sees the slot —
     // persistence is entirely on-disk in history/buffers.json.
     auto got = okResult(scrivi_buffers_get(root.c(), "5"));
@@ -127,7 +159,7 @@ TEST_CASE("C ABI buffers: buffers persist across a fresh load call (relaunch)",
 
 TEST_CASE("C ABI buffers: an out-of-range bufferID is rejected", "[BuffersCApi]") {
     BuffersRoot root;
-    auto env0 = envelope(scrivi_buffers_load(root.c(), "0", "x"));
+    auto env0 = envelope(scrivi_buffers_load(root.c(), "0", "x", ""));
     REQUIRE_FALSE(env0.getBool("ok"));
     auto envA = envelope(scrivi_buffers_get(root.c(), "a"));
     REQUIRE_FALSE(envA.getBool("ok"));
@@ -147,7 +179,7 @@ TEST_CASE("C ABI buffers: a corrupt buffers.json is treated as empty, not an err
     auto listed = okResult(scrivi_buffers_list(root.c()));   // ok, empty
     REQUIRE(listed.getInt("count") == 0);
     // A subsequent load overwrites the corrupt file cleanly.
-    okResult(scrivi_buffers_load(root.c(), "6", "recovered"));
+    okResult(scrivi_buffers_load(root.c(), "6", "recovered", ""));
     auto got = okResult(scrivi_buffers_get(root.c(), "6"));
     REQUIRE(got.getString("text") == "recovered");
 }

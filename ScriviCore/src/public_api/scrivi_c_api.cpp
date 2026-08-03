@@ -2139,7 +2139,7 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
 // terminates the process.
 
 const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferID,
-                                const char* textUtf8) {
+                                const char* textUtf8, const char* fragmentJson) {
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -2147,7 +2147,8 @@ const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferI
                                   "projectRootPath is required"));
     auto& s = singleton();
     scrivi::history::BufferStore store(historyDirFor(root), &s.fileSystem, &s.clock);
-    auto r = store.load(S(bufferID), S(textUtf8), nowTimestamp());
+    // fragmentJson is optional ("" / NULL = plain-text slot, the SP-056 behaviour).
+    auto r = store.load(S(bufferID), S(textUtf8), S(fragmentJson), nowTimestamp());
     if (!r.ok()) return heap(errorEnvelope(r.error()));
     scrivi::util::JsonDoc doc;
     doc.setString("bufferID",  S(bufferID));
@@ -2173,6 +2174,11 @@ const char* scrivi_buffers_get(const char* projectRootPath, const char* bufferID
         doc.setString("text",      slot.text);
         doc.setString("updatedAt", slot.updatedAt);
         doc.setBool("present",     true);
+        // Structured fragment as a nested object when the slot carries one (T-0355 / AC4).
+        if (!slot.fragment.empty()) {
+            auto fragR = scrivi::util::parseJson(slot.fragment);
+            if (fragR.ok()) doc.setSubDoc("fragment", std::move(fragR.value()));
+        }
     } else {
         doc.setString("bufferID",  S(bufferID));
         doc.setString("text",      "");
@@ -2200,6 +2206,10 @@ const char* scrivi_buffers_list(const char* projectRootPath) {
         item.setString("bufferID",  slot.bufferID);
         item.setString("text",      slot.text);
         item.setString("updatedAt", slot.updatedAt);
+        if (!slot.fragment.empty()) {
+            auto fragR = scrivi::util::parseJson(slot.fragment);
+            if (fragR.ok()) item.setSubDoc("fragment", std::move(fragR.value()));
+        }
         doc.appendToArray("buffers", std::move(item));
     }
     return heap(okEnvelope(std::move(doc)));

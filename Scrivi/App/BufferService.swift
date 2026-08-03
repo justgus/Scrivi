@@ -66,6 +66,12 @@ final class BufferService {
         slots.first(where: { $0.bufferID == bufferID })?.text
     }
 
+    // The structured fragment in slot `bufferID`, or nil when the slot is empty or holds
+    // only plain text (T-0355 / AC4). A non-nil result drives structured paste reconstruction.
+    func fragment(inSlot bufferID: String) -> FragmentResult? {
+        slots.first(where: { $0.bufferID == bufferID })?.fragment
+    }
+
     // A short single-line preview for slot `bufferID`, or nil when empty. Used by the
     // palette rows.
     func preview(forSlot bufferID: String) -> String? {
@@ -88,9 +94,14 @@ final class BufferService {
     // false on a store failure. No-op for empty text is the caller's call — an empty
     // selection never reaches here.
     @discardableResult
-    func load(_ text: String, intoSlot bufferID: String) -> Bool {
+    func load(_ text: String, intoSlot bufferID: String, fragmentJSON: String = "") -> Bool {
+        // fragmentJSON (a serialized scrivi.fragment.v1) is optional — a cross-boundary
+        // copy/cut passes it so the slot can later reconstruct structure (T-0355 / AC4);
+        // a single-scene copy passes "" and the slot is plain text (AC5). A load always
+        // replaces both, so re-copying plain text into a structured slot clears the fragment.
         do {
-            try engine.buffersLoad(projectRootPath: projectRootPath, bufferID: bufferID, text: text)
+            try engine.buffersLoad(projectRootPath: projectRootPath, bufferID: bufferID,
+                                   text: text, fragmentJSON: fragmentJSON)
             refresh()
             return true
         } catch {

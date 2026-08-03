@@ -509,18 +509,23 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
  */
 
 /* Loads `textUtf8` into slot `bufferID` (create-or-replace), stamping updatedAt.
- * result: {bufferID, updatedAt} */
+ * `fragmentJson` is an OPTIONAL serialized scrivi.fragment.v1 object ("" / NULL =
+ * plain-text slot, the SP-056 behaviour); when present the slot holds a structured
+ * fragment for cross-boundary paste (T-0355 / AC4). A load always replaces both text
+ * and fragment. result: {bufferID, updatedAt} */
 const char* scrivi_buffers_load(const char* projectRootPath,
                                 const char* bufferID,
-                                const char* textUtf8);
+                                const char* textUtf8,
+                                const char* fragmentJson);
 
-/* Reads one slot. result: {bufferID, text, updatedAt, present} — `present` is
- * false and text/updatedAt are empty when the slot is unset. */
+/* Reads one slot. result: {bufferID, text, updatedAt, present[, fragment]} —
+ * `present` is false and text/updatedAt are empty when the slot is unset; `fragment`
+ * (a nested scrivi.fragment.v1 object) appears only for structured slots. */
 const char* scrivi_buffers_get(const char* projectRootPath,
                                const char* bufferID);
 
 /* Lists all non-empty slots (ascending by bufferID).
- * result: {count, buffers:[{bufferID, text, updatedAt}, ...]} */
+ * result: {count, buffers:[{bufferID, text, updatedAt[, fragment]}, ...]} */
 const char* scrivi_buffers_list(const char* projectRootPath);
 
 /* Clears one slot (removes its entry). result: {bufferID, cleared} — `cleared`

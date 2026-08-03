@@ -1,5 +1,5 @@
 #if os(macOS)
-import AppKit
+@preconcurrency import AppKit
 import SwiftUI
 import os
 
@@ -54,6 +54,13 @@ final class ProjectWindowManager {
         controllers.removeValue(forKey: projectID)
         env.didCloseProjectWindow(projectID: projectID)
     }
+}
+
+// Holds a NotificationCenter observer token so a one-shot @Sendable observer closure can
+// remove itself. @unchecked Sendable is sound: the token is only written after addObserver
+// returns and read back on the main queue where the notification is delivered.
+private final class ObserverTokenBox: @unchecked Sendable {
+    var token: NSObjectProtocol?
 }
 
 // One NSWindow hosting a project's SwiftUI EditorView.
@@ -135,25 +142,32 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
             // the app is already fully active. So defer the restore until the app is active AND
             // the launch storm has settled: wait for NSApplication.didBecomeActive (or run now if
             // already active), then a short delay before toggling.
-            let enterFullScreen: () -> Void = { [weak self] in
-                guard let self, !self.window.styleMask.contains(.fullScreen) else { return }
-                self.window.toggleFullScreen(nil)
-            }
-            let scheduleAfterSettle = {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { enterFullScreen() }
-            }
             if NSApp.isActive {
-                scheduleAfterSettle()
+                scheduleFullScreenAfterSettle()
             } else {
-                var token: NSObjectProtocol?
-                token = NotificationCenter.default.addObserver(
+                // The block-observer closure is @Sendable, so it can capture only Sendable state:
+                // self (weak, hopped back onto the main actor) and a boxed token so the one-shot
+                // observer can remove itself. Delivery is already on .main, so assumeIsolated is
+                // sound.
+                let box = ObserverTokenBox()
+                box.token = NotificationCenter.default.addObserver(
                     forName: NSApplication.didBecomeActiveNotification,
                     object: nil, queue: .main
-                ) { _ in
-                    if let token { NotificationCenter.default.removeObserver(token) }
-                    scheduleAfterSettle()
+                ) { [weak self] _ in
+                    MainActor.assumeIsolated {
+                        if let token = box.token { NotificationCenter.default.removeObserver(token) }
+                        self?.scheduleFullScreenAfterSettle()
+                    }
                 }
             }
+        }
+    }
+
+    // Wait out the launch storm, then toggle into full screen if not already there (I-0097).
+    private func scheduleFullScreenAfterSettle() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self, !self.window.styleMask.contains(.fullScreen) else { return }
+            self.window.toggleFullScreen(nil)
         }
     }
 
