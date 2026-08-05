@@ -112,8 +112,20 @@ Source of truth = `.scrivi` package (`Scrivi_Project_Package_Structure_v0_1.md`)
 | Character | `objects/characters/*.json` | name, aliases, description |
 | Location | `objects/locations/*.json` | name, description |
 | Item | `objects/items/*.json` | name, description |
-| Rule | `objects/rules/*.json` | name, description |
-| Timeline | `objects/timelines/*.json` | name, event labels |
+| Rule | `<world>.scrivworld/rules/*.json` | name, description |
+| Timeline | *(removed)* | — |
+
+> **Amended 2026-08-05** per approved Doc 1 (`Scrivi_Worldbuilding_Object_Model_v0_2.md`) and Doc 3
+> (`Scrivi_World_Data_Separation_v0_1.md`):
+> - **`Rule` moved to world scope** — rules govern an environment, not a manuscript (Doc 1 §3). Indexing them
+>   requires the world package to be **available**; an unavailable world simply contributes no rules to the index
+>   (never an error — Doc 3 §4.6).
+> - **`Timeline` removed** — the legacy `timeline` object kind is retired (Doc 1 §3.2); the Timeline Panel owns
+>   timelines and they are not `objects/` files.
+> - **Not yet added:** `building`, `vehicle`, `map`, `source` (project-scoped) and `artifact`, `chronicle`,
+>   `faction`, `world` (world-scoped). Whether Spotlight indexes world-scoped objects at all is an open question
+>   for whichever sprint revisits EP-017 — cross-package indexing has availability and privacy implications this
+>   doc predates.
 
 Notes:
 - Manuscript bodies are Markdown — strip markup to plain text for the `contentDescription`.

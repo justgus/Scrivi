@@ -88,11 +88,19 @@ MyNovel.scrivi/
     items/
       brass-key.json
 
-    rules/
-      magic-system.json
+    maps/
+      battle-of-the-ford.json
 
-    timelines/
-      main-timeline.json
+    sources/
+      chronicle-of-eld.json
+
+    index.json
+    relationships.jsonl
+    relation-types.json
+
+  worlds/
+    world_01J.../
+      binding.json
 
   assets/
     images/
@@ -349,19 +357,28 @@ If a title changes, Scrivi may offer to rename files, but renaming should not be
 
 ---
 
-## 11. `objects/`
+## 11. `objects/` and `worlds/`
 
-The `objects/` folder contains structured world/project objects.
+> **Revised 2026-08-05** per the approved `Scrivi_Worldbuilding_Object_Model_v0_2.md` (Doc 1) and
+> `Scrivi_World_Data_Separation_v0_1.md` (Doc 3). Two changes from the original v0.1 text: object storage is now
+> split into a **project partition** and a **world partition**, and the legacy `objects/rules/` and
+> `objects/timelines/` entries are **removed**. Scrivi is unshipped, so this corrects a *specification*, not data
+> on disk — there is no migration.
 
-Example categories:
+### 11.1 `objects/` — project-scoped
 
 ```text
 objects/
   characters/
   locations/
+  buildings/
+  vehicles/
   items/
-  rules/
-  timelines/
+  maps/
+  sources/
+  index.json                 ← object index (scrivi.object-index.v1) — Doc 1 §4.2
+  relationships.jsonl        ← relationship graph, append-only log — Doc 1 §5.4
+  relation-types.json        ← RelationType vocabulary — Doc 1 §5.1
 ```
 
 Examples:
@@ -371,6 +388,30 @@ objects/characters/ada.json
 objects/locations/old-watchtower.json
 objects/items/brass-key.json
 ```
+
+### 11.2 `worlds/` — world bindings (project side)
+
+A world is a **separate `.scrivworld` package** outside the project (Doc 3 §6.1). The project stores only a
+binding per world it references:
+
+```text
+worlds/
+  <worldID>/
+    binding.json             ← epoch translation + reference + cached index — Doc 3 §6.2
+```
+
+World-scoped object kinds — `artifact`, `rule`, `chronicle`, `faction` — plus `historical-events/` and
+`historical-timelines/` live **inside the world package**, not here. Notably there is **no `objects/rules/`**:
+rules govern an environment, so they belong to a world (Doc 1 §3).
+
+### 11.3 Retired locations
+
+| Path | Status |
+| --- | --- |
+| `objects/rules/` | ❌ removed — rules are world-scoped (`<world>.scrivworld/rules/`) |
+| `objects/timelines/` | ❌ removed — the legacy `timeline` object kind is retired (Doc 1 §3.2); the Timeline Panel owns timelines |
+| `objects/historical-events/` | ❌ moved to world scope (Doc 3 §6.1) |
+| `objects/imported-timelines/` | ❌ moved to world scope as `historical-timelines/` (Doc 3 §6.1) |
 
 Worldbuilding objects are canonical creative source. They are visible, inspectable, and Git-visible.
 

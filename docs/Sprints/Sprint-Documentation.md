@@ -11,7 +11,9 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057 (AC2/AC7/AC8 verify + history
+**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057 — **rescoped 2026-08-05 to a
+verification sprint** (AC2/AC7 audited as already implemented; suites green; history panel moved to EP-030
+T-0366). Two new Epics planned: **EP-030** (SP-090–093) and **EP-031** (SP-094–099). Original note follows: (AC2/AC7/AC8 verify + history
 panel + Epic close), awaiting user go-ahead to activate. **EP-029** `[Cross]` is ✅ **fully closed 2026-08-03.**
 
 Last closed: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
@@ -31,7 +33,8 @@ chords** (user 2026-07-25/27) — **⌘1–9 copy · ⌃1–9 paste · ⌥1–9 
 Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items. Trade T3: copy = no event, paste =
 `paste` event, cut = `cut` event **tagged with bufferID** (backend `scrivi_history_record_event` + history-node
 schema extended). T-0213 + T-0214 both Verified live; ctest **327** + macOS interop **43** green. A cross-boundary
-Cut/Copy/Paste gap surfaced during verify → new **EP-029**. `Closed/Sprint-SP-056.md` (to be archived).
+Cut/Copy/Paste gap surfaced during verify → new **EP-029**. ✅ `Closed/Sprint-SP-056.md` **archived 2026-08-05**
+(reconstructed from the EP-019 record — the "to be archived" note above was never actioned at close time).
 
 Prior: **SP-084** (EP-025 `[Linux]` — **Clustering + persistence verify + full verify & Epic close**) — ✅
 **closed 2026-07-24 (Human-approved).** Co-located project-row dots collapse into a single **aggregate dot**
@@ -162,7 +165,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
 | SP-086 | ScriviCore: `scrivi.fragment.v1` model + extract-fragment + C ABI + tests | EP-029 | 🔵 Planned (next to activate) |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (**EP-019 held pending**) |
+| SP-057 | Undo/Redo — **verification sprint**: AC2/AC7/AC8 live verify + perf fixtures + Epic close (panel → EP-030 T-0366) | EP-019 | 🔵 Planning (**EP-019 held pending**; rescoped 2026-08-05) |
 | SP-085 | Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 | ✅ Closed (Human-approved) — doc approved, T1–T4 ruled |
 | SP-056 | Copy buffers — store, ABI, palette/menu UX, chords, history integration | EP-019 | ✅ Closed (Human-approved) — **AC6** |
 
@@ -230,7 +233,7 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 2026-07-07 | 2026-07-09 | ✅ Closed |
 | SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 2026-07-10 | 2026-07-13 | ✅ Closed |
 | SP-056 | Copy buffers — store, ABI, palette/menu UX, ⌘/⌃/⌥1–9 chords, history integration (**AC6**) | EP-019 `[Apple]` | 2026-07-24 | 2026-07-27 | ✅ Closed |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (**EP-019 held pending**) |
+| SP-057 | Undo/Redo — **verification sprint**: AC2/AC7/AC8 live verify + perf fixtures + Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (**EP-019 held pending**; rescoped 2026-08-05) |
 | SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | 2026-07-13 | ✅ Closed |
 | SP-059 | `[Linux]` Project Lifecycle — appSupportRoot + recents + landing + create-project | EP-021 `[Linux]` | 2026-07-13 | 2026-07-14 | ✅ Closed |
 | SP-060 | `[Linux]` Project Lifecycle — Open + Close + full-loop Verify (EP-021 close half) | EP-021 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |

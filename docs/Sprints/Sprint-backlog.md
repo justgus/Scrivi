@@ -6,8 +6,26 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-056 | Copy buffers — store, ABI, HUD/palette UX, history integration | EP-019 | 🔵 Planning (parked) |
-| SP-057 | Undo/Redo — history panel, perf fixtures, verification & Epic close | EP-019 | 🔵 Planning (parked) |
+| SP-057 | Undo/Redo — perf fixtures, verification & Epic close (**panel now EP-030 T-0366**) | EP-019 | 🔵 Planning (parked) |
+| SP-090 | Inspector framework: card protocol, registry, layout schema, tabs | EP-030 | 🔵 Planning |
+| SP-091 | Writing-tool cards: tags, todo, outline, sources | EP-030 | 🔵 Planning |
+| SP-092 | `history` card (folds in T-0215) + Properties tab | EP-030 | 🔵 Planning |
+| SP-093 | EP-030 verification & Epic close | EP-030 | 🔵 Planning |
+| SP-094 | Object kinds + fields + object index | EP-031 | 🔵 Planning |
+| SP-095 | Relationship graph: canonical edges, append-log, compaction | EP-031 | 🔵 Planning |
+| SP-096 | Integrity: prune, orphans, promotion, pending-vs-dangling | EP-031 | 🔵 Planning |
+| SP-097 | World packages: bindings, resolution, locking, epoch chain | EP-031 | 🔵 Planning |
+| SP-098 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
+| SP-099 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
+
+> ✅ **SP-056 archive written 2026-08-05** — `Closed/Sprint-SP-056.md`, reconstructed from the EP-019 record
+> (the sprint closed 2026-07-27 user-approved but was never archived; `Closed/` had jumped SP-055 → SP-058). The
+> archive is marked as reconstructed. Its tasks T-0213/T-0214 were also still showing 🔵 Backlog in
+> `Task-backlog.md` despite being Verified — corrected the same day.
+
+> **Sequencing (2026-08-05):** EP-030 SP-090→SP-093, then **EP-019 SP-057** (its history-panel requirement is
+> met by EP-030 T-0366), then EP-031 SP-094→SP-099. EP-031's ScriviCore sprints (SP-094–SP-097) have no
+> dependency on EP-030 and may run in parallel if capacity allows; only SP-098 needs the card framework.
 
 > **SP-078 activated & ✅ closed 2026-07-22** — `Closed/Sprint-SP-078.md` (EP-024 `[Linux]` Scene Inspector
 > Panel, first & only sprint; tasks T-0318–T-0320 Verified live over VNC). **This closed EP-024** in one sprint,

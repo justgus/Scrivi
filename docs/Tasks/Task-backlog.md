@@ -46,9 +46,42 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0210 | Tree ops: branching, primary-child, `select_branch`, auto-purge | EP-019 (SP-055) | ✅ Verified → `Verified/Task-verified-0210-0212.md` |
 | T-0211 | Inline fork popover (Trade T2 core interaction) | EP-019 (SP-055) | ✅ Verified → `Verified/Task-verified-0210-0212.md` |
 | T-0212 | Stale-branch detection + user-confirmed purge | EP-019 (SP-055) | ✅ Verified → `Verified/Task-verified-0210-0212.md` |
-| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | 🔵 Backlog |
-| T-0214 | Buffer UX: keyboard HUD + palette + menu items; paste/cut history integration | EP-019 (SP-056) | 🔵 Backlog |
-| T-0215 | History panel (Trade T2 management surface) | EP-019 (SP-057) | 🔵 Backlog |
+| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | ✅ **Verified (2026-07-27)** → `../Sprints/Closed/Sprint-SP-056.md` |
+| T-0214 | Buffer UX: palette + Edit/Scene/Chapter menu items + ⌘/⌃/⌥1–9 chords; paste/cut history integration | EP-019 (SP-056) | ✅ **Verified (2026-07-27)** → `../Sprints/Closed/Sprint-SP-056.md` |
+| T-0215 | History panel (Trade T2 management surface) | EP-019 (SP-057) | ⚪ **Superseded → T-0366** (ships as the `history` card, EP-030 SP-092) |
+| T-0359 | `InspectorCard` protocol + registry + `CardContext` | EP-030 (SP-090) | 🔵 Backlog |
+| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | EP-030 (SP-090) | 🔵 Backlog |
+| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | EP-030 (SP-090) | 🔵 Backlog |
+| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | 🔵 Backlog |
+| T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | 🔵 Backlog |
+| T-0364 | `outline` card | EP-030 (SP-091) | 🔵 Backlog |
+| T-0365 | `sources` card + `source` object kind | EP-030 (SP-091) | 🔵 Backlog |
+| T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🔵 Backlog |
+| T-0367 | Properties tab — field-driven view | EP-030 (SP-092) | 🔵 Backlog |
+| T-0368 | Card failure isolation + inline warning | EP-030 (SP-092) | 🔵 Backlog |
+| T-0369 | EP-030 verification + Epic close prep | EP-030 (SP-093) | 🔵 Backlog |
+| T-0370 | `ObjectKind` additions; retire `timeline` | EP-031 (SP-094) | 🔵 Backlog |
+| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (SP-094) | 🔵 Backlog |
+| T-0372 | `objects/index.json` + `findByID` over index | EP-031 (SP-094) | 🔵 Backlog |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | EP-031 (SP-095) | 🔵 Backlog |
+| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (SP-095) | 🔵 Backlog |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (SP-095) | 🔵 Backlog |
+| T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (SP-095) | 🔵 Backlog |
+| T-0377 | Cascade-prune on delete + load-time repair | EP-031 (SP-096) | 🔵 Backlog |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (SP-096) | 🔵 Backlog |
+| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (SP-096) | 🔵 Backlog |
+| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (SP-096) | 🔵 Backlog |
+| T-0381 | `.scrivworld` package + `world.json` + world index | EP-031 (SP-097) | 🔵 Backlog |
+| T-0382 | `binding.json` + `worldID`-verified resolution + relink | EP-031 (SP-097) | 🔵 Backlog |
+| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | EP-031 (SP-097) | 🔵 Backlog |
+| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (SP-097) | 🔵 Backlog |
+| T-0385 | Cached world index entries → named pending entries | EP-031 (SP-097) | 🔵 Backlog |
+| T-0386 | Object cards (one implementation, per-kind config) | EP-031 (SP-098) | 🔵 Backlog |
+| T-0387 | Object picker (unfiltered) + type-ahead + "Create new…" | EP-031 (SP-098) | 🔵 Backlog |
+| T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (SP-098) | 🔵 Backlog |
+| T-0389 | Pending presentation + Worlds menu + warning view | EP-031 (SP-098) | 🔵 Backlog |
+| T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (SP-099) | 🔵 Backlog |
+| T-0391 | EP-031 verification + Epic close prep | EP-031 (SP-099) | 🔵 Backlog |
 | T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | 🔵 Backlog |
 | T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (SP-057) | 🔵 Backlog |
 | T-0234 | `[Linux]` **Shell flip** — `main.cpp` → `QApplication`+`QMainWindow` host, landing QML re-hosted via `QQuickWidget`; keep context props + `QFileDialog` picker + Quit; re-verify EP-021 loop over VNC | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
@@ -362,8 +395,13 @@ an event (Trade T3 ✅ approved); system pasteboard untouched.
 
 ### SP-057 — Panel, perf, verification
 
-**T-0215 — History panel.** Windowed tree view (`scrivi_history_get_tree`), branch selection,
-stale badges + purge (Trade T2 option B management surface).
+**T-0215 — History panel.** ⚪ **Superseded 2026-08-05 → T-0366 (EP-030 SP-092).** The requirement is unchanged
+(windowed tree via `scrivi_history_get_tree`, branch selection, stale badges + purge — Trade T2 option B
+management surface); only its *surface* changed. Per the approved
+`Scrivi_Scene_Inspector_Card_Framework_v0_1.md` §8 it ships as the **`history` card** in the Writing stack rather
+than a standalone panel, so it is dismissible and positionable like every other writing-tool card. **EP-019
+AC-relevant note:** SP-057 no longer builds a panel; it verifies AC2/AC7/AC8 and closes the Epic once T-0366
+lands.
 
 **T-0216 — Perf + migration.** Integration fixtures: 100k-event history, 500 KB single scene;
 `.gitignore` migration adding `history/` for existing projects (design §6.c, §11).

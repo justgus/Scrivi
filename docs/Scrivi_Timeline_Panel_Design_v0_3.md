@@ -332,7 +332,16 @@ These requirements address the case where two or more events share the same (or 
 
 **FR-050** A writer may author historical events directly in the project. Historical events are worldbuilding objects — not scenes — that appear on the timeline.
 
-**FR-051** Historical events are stored as JSON files in `objects/historical-events/`. Each event has a stable ID, title, story-time offset, optional description, and optional tags.
+**FR-051** Historical events are stored as JSON files in the **world package** that owns them —
+`<world>.scrivworld/historical-events/`. Each event has a stable ID, title, story-time offset, optional
+description, and optional tags.
+
+> **Amended 2026-08-05** (was `objects/historical-events/`). Per the approved
+> `Scrivi_World_Data_Separation_v0_1.md` (Doc 3, W1) historical events are **world data**: they derive from a
+> world's recorded history rather than being authored by writing scenes. Their story-time offsets are
+> **world-relative** and reach project story-time through the epoch chain (Doc 1 §7.0):
+> `event.offsetMs + timeline.epochOffsetMs + binding.epochOffsetMs`. Scrivi is unshipped, so this corrects a
+> specification, not data on disk.
 
 **FR-052** Historical events shall appear on the project timeline row as dots visually distinct from scene dots and imported event dots. The approved visual is a muted warm-toned filled circle (e.g., `#C8A97A`).
 
@@ -380,6 +389,21 @@ These requirements address the case where two or more events share the same (or 
 
 **FR-070** An imported timeline may be removed from the project via its row's context menu ("Remove Imported Timeline"). Removal deletes the stored JSON file from `objects/imported-timelines/`.
 
+> **Amended 2026-08-05 — two distinct things after Doc 3.** FR-070 continues to describe **project-imported
+> timelines**: a `.scrivi-timeline.json` file imported into *this* project, stored project-side, removable by
+> deleting that file. That behavior is unchanged.
+>
+> **World historical timelines are separate.** They live in the world package
+> (`<world>.scrivworld/historical-timelines/`), each carries **its own epoch**, and their offsets are
+> **world-relative** (Doc 1 §7.0). Two consequences:
+>
+> - They are **never auto-included** in the panel (Doc 3, W4=D) — the writer brings one in at her discretion,
+>   just as with an import.
+> - Removing one from the panel **removes it from view only**. It must **never** delete the file: the world may
+>   be shared with other projects, and deleting another project's world data is not this project's to do. Use
+>   `scrivi_remove_world_reference` (Doc 3 §8) to drop a whole world; there is no "delete world timeline" action
+>   from the panel.
+
 ---
 
 ## 5. Non-Functional Requirements
@@ -413,14 +437,23 @@ MyNovel.scrivi/
     story-structures/
       story-structure.json                 ← active structure selection and band layout
 
-    historical-events/
-      <id>-<slug>.json                     ← each authored historical event
-
     imported-timelines/
       <id>-<slug>.scrivi-timeline.json     ← each imported external timeline (with epochOffsetMs)
+
+  worlds/
+    <worldID>/
+      binding.json                         ← epoch translation to this project (Doc 1 §7.0)
+
+Midgard.scrivworld/                        ← SEPARATE package, outside the project
+  historical-events/
+    <id>-<slug>.json                       ← authored historical events (world data)
+  historical-timelines/
+    <id>-<slug>.scrivi-timeline.json       ← each with its OWN epoch, offsets world-relative
 ```
 
-No new top-level folder is needed. All additions fit within the existing `objects/` folder.
+> **Amended 2026-08-05.** `objects/historical-events/` moved to world scope (FR-051); world **historical
+> timelines** are distinct from project **imported timelines**, which remain project-side. The project gains a
+> `worlds/` folder holding bindings only — see `Scrivi_Project_Package_Structure_v0_1.md` §11.
 
 ### 6.2 `objects/timelines/timeline.meta.json`
 
@@ -529,9 +562,10 @@ Stores the active Story Structure and band layout for this project. Created on f
 
 **Required fields:** `schema`, `activeStructureID`, `bandLayout`
 
-### 6.5 `objects/historical-events/<id>-<slug>.json`
+### 6.5 `<world>.scrivworld/historical-events/<id>-<slug>.json`
 
-One file per historical event. Created when the writer authors a historical event in the project.
+One file per historical event, stored in the **world package** that owns it (amended 2026-08-05 — was
+`objects/historical-events/`; see FR-051). Created when the writer authors a historical event.
 
 ```json
 {
@@ -940,8 +974,9 @@ std::string exportProjectTimeline(const char* projectID);
 
 - `timeline.meta.json` is created alongside `project.json` when a project is created.
 - `story-structure.json` is created on first Story Structure application; absent until then.
-- `objects/historical-events/` is created on first historical event; absent until then.
-- `objects/imported-timelines/` is created on first import; absent until then.
+- `<world>.scrivworld/historical-events/` is created on first historical event in that world; absent until then.
+- `objects/imported-timelines/` is created on first import; absent until then (project-scoped imports — distinct
+  from world historical timelines, see FR-070).
 - All files are written atomically using the existing `AtomicWrite` utility.
 - Scene `storyTime` blocks are written into the scene's existing `scene.meta.json` — no separate file per scene.
 
@@ -968,7 +1003,7 @@ All open questions from v0.1 have been resolved. No open questions remain in v0.
 
 | Document | Relationship |
 |---|---|
-| `Scrivi_Project_Package_Structure_v0_1.md` | This document adds `objects/timelines/`, `objects/story-structures/`, `objects/historical-events/`, and `objects/imported-timelines/` to the approved package layout. |
+| `Scrivi_Project_Package_Structure_v0_1.md` | This document adds `objects/timelines/`, `objects/story-structures/`, and `objects/imported-timelines/` to the approved package layout. **Amended 2026-08-05:** historical events and historical timelines moved to world packages (FR-051/FR-070); see Package Structure §11. |
 | `Scrivi_Minimum_Schema_Set_v0_1.md` | Timeline schemas were deferred (Section 13 of that doc). This document defines them. |
 | `Scrivi_Architecture_v0_3.md` | JSON-over-string boundary protocol governs all ScriviCore API calls defined here. |
 | `Scrivi_Cpp24_Core_API_Sketch_v0_3.md` | New timeline operations follow the same API shape and return-envelope pattern. |
