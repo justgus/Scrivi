@@ -317,6 +317,29 @@ struct GetTimelineResult {
 struct SetTimelineEpochLabelResult { bool updated = false; };
 
 struct SetSceneStoryTimeResult     { SceneID sceneID; bool updated = false; };
+
+// Scene writing-tool card content (EP-030 SP-091).
+struct SetSceneNotesResult { SceneID sceneID; bool updated = false; };
+
+struct SceneTodoEntry { std::string text; bool done = false; };
+
+struct GetSceneNotesResult {
+    SceneID                    sceneID;
+    std::vector<std::string>   tags;
+    std::string                outline;
+    std::vector<SceneTodoEntry> todo;
+
+    // Scene metadata for the inspector's Properties tab (EP-030 SP-092, T-0367).
+    // Carried here rather than on a new endpoint because getSceneNotes already parses
+    // the whole sidecar — the Properties tab costs no extra disk read.
+    std::string title;
+    std::string createdAt;
+    std::string createdByDisplayName;
+    std::string modifiedAt;
+    std::string modifiedByDisplayName;
+    int         wordCount      = 0;
+    int         characterCount = 0;
+};
 struct GetSceneStoryTimeResult {
     SceneID     sceneID;
     int64_t     offsetMs            = 0;

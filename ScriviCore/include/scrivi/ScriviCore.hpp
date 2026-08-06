@@ -59,6 +59,12 @@ public:
     Result<SetSceneStoryTimeResult>       setSceneStoryTime(const SetSceneStoryTimeRequest& request);
     Result<GetSceneStoryTimeResult>       getSceneStoryTime(const GetSceneStoryTimeRequest& request);
     Result<ClearSceneStoryTimeResult>     clearSceneStoryTime(const ClearSceneStoryTimeRequest& request);
+
+    // Scene writing-tool card content (EP-030 SP-091).
+    Result<SetSceneNotesResult>           setSceneTags(const SetSceneTagsRequest& request);
+    Result<SetSceneNotesResult>           setSceneOutline(const SetSceneOutlineRequest& request);
+    Result<SetSceneNotesResult>           setSceneTodo(const SetSceneTodoRequest& request);
+    Result<GetSceneNotesResult>           getSceneNotes(const GetSceneNotesRequest& request);
     Result<AssignSceneToBandResult>       assignSceneToBand(const AssignSceneToBandRequest& request);
     Result<UnassignSceneFromBandResult>   unassignSceneFromBand(const UnassignSceneFromBandRequest& request);
     Result<GetStoryStructureResult>       getStoryStructure(const GetStoryStructureRequest& request);

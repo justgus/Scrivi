@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdio>
 #include <ctime>
+#include <deque>      // getTree — breadth-first descendant walk (T-0394)
 #include <limits>
 #include <stdexcept>
 
@@ -584,6 +585,117 @@ PurgeResult HistoryService::purgeBranch(const std::string& branchRootEventID) {
     r.canUndo = canUndo();
     r.canRedo = canRedo();
     return r;
+}
+
+// --- Windowed tree projection (EP-030 SP-092, T-0394) ----------------------
+
+namespace {
+
+std::string treeKindToStr(EventKind k) {
+    switch (k) {
+        case EventKind::Typing:     return "typing";
+        case EventKind::Delete:     return "delete";
+        case EventKind::Replace:    return "replace";
+        case EventKind::Paste:      return "paste";
+        case EventKind::Cut:        return "cut";
+        case EventKind::Barrier:    return "barrier";
+        case EventKind::Structural: return "structural";
+    }
+    return "typing";
+}
+
+// Default window size. Large enough that a card shows meaningful context without
+// scrolling for it, small enough that a pathological history never serializes whole.
+constexpr int kDefaultMaxNodes = 200;
+
+} // namespace
+
+TreeWindow HistoryService::getTree(const std::string& aroundNodeID, int maxNodes) const {
+    TreeWindow out;
+    out.rootID         = rootID_;
+    out.currentNodeID  = currentNodeID_;
+    out.totalNodeCount = static_cast<int>(nodes_.size());
+
+    const int cap = maxNodes > 0 ? maxNodes : kDefaultMaxNodes;
+
+    // An unknown anchor (e.g. a node purged since the card last rendered) falls back
+    // to the current node rather than erroring — the card should still draw.
+    std::string anchor = aroundNodeID;
+    if (anchor.empty() || nodes_.find(anchor) == nodes_.end()) {
+        anchor = currentNodeID_;
+    }
+
+    // The primary spine: root→current following primaryChildID. Used to flag nodes so
+    // the card can draw the spine distinctly from side branches.
+    std::set<std::string> spine;
+    {
+        // Walk UP from current to root — parentID is always single-valued, so this is
+        // the unambiguous direction. (Walking down via primaryChildID can diverge from
+        // the current pointer after a branch selection.)
+        std::string id = currentNodeID_;
+        while (!id.empty()) {
+            spine.insert(id);
+            auto it = nodes_.find(id);
+            if (it == nodes_.end() || !it->second.parentID.has_value()) break;
+            id = *it->second.parentID;
+        }
+    }
+
+    // Collect outward from the anchor: ancestors first (the writer's spine is the most
+    // valuable context), then descendants breadth-first.
+    std::vector<std::string> ordered;
+    std::set<std::string> seen;
+
+    for (std::string id = anchor; !id.empty(); ) {
+        if (!seen.insert(id).second) break;
+        ordered.push_back(id);
+        auto it = nodes_.find(id);
+        if (it == nodes_.end() || !it->second.parentID.has_value()) break;
+        id = *it->second.parentID;
+    }
+
+    std::deque<std::string> queue{anchor};
+    while (!queue.empty() && static_cast<int>(ordered.size()) < cap) {
+        const std::string id = queue.front();
+        queue.pop_front();
+        auto it = nodes_.find(id);
+        if (it == nodes_.end()) continue;
+        for (const std::string& childID : it->second.childIDs) {
+            if (!seen.insert(childID).second) continue;
+            ordered.push_back(childID);
+            queue.push_back(childID);
+            if (static_cast<int>(ordered.size()) >= cap) break;
+        }
+    }
+
+    if (static_cast<int>(ordered.size()) > cap) { ordered.resize(static_cast<std::size_t>(cap)); }
+
+    out.nodes.reserve(ordered.size());
+    for (const std::string& id : ordered) {
+        auto it = nodes_.find(id);
+        if (it == nodes_.end()) continue;
+        const EventNode& n = it->second;
+
+        TreeNode t;
+        t.eventID        = n.eventID;
+        t.parentID       = n.parentID.value_or("");
+        t.primaryChildID = n.primaryChildID.value_or("");
+        t.childIDs       = n.childIDs;
+        t.kind           = treeKindToStr(n.kind);
+        t.sceneID        = n.sceneID;
+        t.preview        = forkPreview(n);
+        t.timestamp      = n.timestamp;
+        t.sessionID      = n.sessionID;
+        t.bufferID       = n.bufferID;
+        t.barrierKind    = n.barrierKind;
+        t.barrierNote    = n.barrierNote;
+        t.onPrimarySpine = spine.count(n.eventID) > 0;
+        t.isCurrent      = (n.eventID == currentNodeID_);
+        out.nodes.push_back(std::move(t));
+    }
+
+    out.truncated = static_cast<int>(out.nodes.size()) < out.totalNodeCount;
+    return out;
 }
 
 int HistoryService::subtreeNodeCount(const std::string& subtreeRootID) const {

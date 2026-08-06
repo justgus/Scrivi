@@ -675,3 +675,121 @@ TEST_CASE("prune is a no-op on a fully consistent loaded tree",
     REQUIRE(droppedRoots.empty());
     REQUIRE(h.headTextForScene("scene_a") == "one two");
 }
+
+// --- Windowed tree projection (EP-030 SP-092, T-0394) ----------------------
+
+TEST_CASE("getTree on a fresh history returns just the root, marked current",
+          "[History][T-0394]") {
+    auto h = fresh();
+    auto t = h.getTree("", 0);
+
+    REQUIRE(t.nodes.size() == 1);
+    CHECK(t.rootID == t.currentNodeID);
+    CHECK(t.totalNodeCount == 1);
+    CHECK_FALSE(t.truncated);
+    CHECK(t.nodes[0].eventID == t.rootID);
+    CHECK(t.nodes[0].isCurrent);
+    CHECK(t.nodes[0].onPrimarySpine);
+    CHECK(t.nodes[0].parentID.empty());       // the root has no parent
+}
+
+TEST_CASE("getTree returns a linear history with parent links and the spine flagged",
+          "[History][T-0394]") {
+    auto h = fresh();
+    h.record(typing("s1", "Hello", 0, 5), "evt_1");
+    h.record(typing("s1", "Hello world", 5, 11), "evt_2");
+
+    auto t = h.getTree("", 0);
+    REQUIRE(t.nodes.size() == 3);             // root + 2 events
+    CHECK(t.totalNodeCount == 3);
+    CHECK_FALSE(t.truncated);
+
+    // Every node on a linear history lies on the root→current spine.
+    for (const auto& n : t.nodes) { CHECK(n.onPrimarySpine); }
+
+    int currentCount = 0;
+    for (const auto& n : t.nodes) { if (n.isCurrent) ++currentCount; }
+    CHECK(currentCount == 1);                 // exactly one current node
+}
+
+TEST_CASE("getTree honours maxNodes and reports truncation", "[History][T-0394]") {
+    auto h = fresh();
+    for (int i = 0; i < 20; ++i) {
+        h.record(typing("s1", std::string(static_cast<std::size_t>(i) + 1, 'x'),
+                        i, i + 1),
+                 "evt_" + std::to_string(i));
+    }
+
+    auto capped = h.getTree("", 5);
+    CHECK(capped.nodes.size() == 5);
+    CHECK(capped.totalNodeCount == 21);       // root + 20
+    CHECK(capped.truncated);                  // window is smaller than the whole graph
+
+    auto full = h.getTree("", 1000);
+    CHECK(full.nodes.size() == 21);
+    CHECK_FALSE(full.truncated);
+}
+
+// The window is anchored so the writer's own position is always in it — that is what
+// makes a windowed view usable on a large history.
+TEST_CASE("getTree always includes the current node even when capped tightly",
+          "[History][T-0394]") {
+    auto h = fresh();
+    for (int i = 0; i < 30; ++i) {
+        h.record(typing("s1", std::string(static_cast<std::size_t>(i) + 1, 'y'),
+                        i, i + 1),
+                 "evt_" + std::to_string(i));
+    }
+
+    auto t = h.getTree("", 3);
+    REQUIRE(t.nodes.size() == 3);
+    bool sawCurrent = false;
+    for (const auto& n : t.nodes) { if (n.eventID == t.currentNodeID) sawCurrent = true; }
+    CHECK(sawCurrent);
+}
+
+TEST_CASE("getTree exposes a fork's children", "[History][T-0394]") {
+    auto h = fresh();
+    h.record(typing("s1", "Hello", 0, 5), "evt_1");
+    h.record(typing("s1", "Hello world", 5, 11), "evt_2");
+    h.undo();
+    h.record(typing("s1", "Hello there", 5, 11), "evt_3");   // forks at the "Hello" node
+
+    auto t = h.getTree("", 0);
+    CHECK(t.totalNodeCount == 4);                    // root + 3 events
+
+    int forks = 0;
+    for (const auto& n : t.nodes) { if (n.childIDs.size() >= 2) ++forks; }
+    CHECK(forks == 1);                               // exactly one fork node
+}
+
+TEST_CASE("getTree falls back to the current node for an unknown anchor",
+          "[History][T-0394]") {
+    auto h = fresh();
+    h.record(typing("s1", "Hello", 0, 5), "evt_1");
+
+    // A card asking about a node purged since it last rendered must still draw.
+    auto t = h.getTree("evt_does_not_exist", 0);
+    REQUIRE_FALSE(t.nodes.empty());
+    CHECK(t.currentNodeID == h.currentNodeID());
+}
+
+TEST_CASE("getTree reports barrier metadata", "[History][T-0394]") {
+    auto h = fresh();
+    h.record(typing("s1", "Hello", 0, 5), "evt_1");
+    BarrierParams b;
+    b.barrierKind = "sceneSplit";
+    b.barrierNote = "Can't undo past creating a scene";
+    b.timestamp = "2026-08-06T00:00:00Z";
+    h.recordBarrier(b, "evt_barrier");
+
+    auto t = h.getTree("", 0);
+    bool sawBarrier = false;
+    for (const auto& n : t.nodes) {
+        if (n.kind == "barrier" && n.barrierKind == "sceneSplit") {
+            sawBarrier = true;
+            CHECK(n.barrierNote == "Can't undo past creating a scene");
+        }
+    }
+    CHECK(sawBarrier);
+}

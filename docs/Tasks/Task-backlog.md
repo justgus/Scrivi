@@ -49,16 +49,18 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | ✅ **Verified (2026-07-27)** → `../Sprints/Closed/Sprint-SP-056.md` |
 | T-0214 | Buffer UX: palette + Edit/Scene/Chapter menu items + ⌘/⌃/⌥1–9 chords; paste/cut history integration | EP-019 (SP-056) | ✅ **Verified (2026-07-27)** → `../Sprints/Closed/Sprint-SP-056.md` |
 | T-0215 | History panel (Trade T2 management surface) | EP-019 (SP-057) | ⚪ **Superseded → T-0366** (ships as the `history` card, EP-030 SP-092) |
-| T-0359 | `InspectorCard` protocol + registry + `CardContext` | EP-030 (SP-090) | 🔵 Backlog |
-| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | EP-030 (SP-090) | 🔵 Backlog |
-| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | EP-030 (SP-090) | 🔵 Backlog |
-| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | 🔵 Backlog |
-| T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | 🔵 Backlog |
-| T-0364 | `outline` card | EP-030 (SP-091) | 🔵 Backlog |
+| T-0359 | `InspectorCard` protocol + registry + `CardContext` | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
+| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
+| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
+| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
+| T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
+| T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0365 | `sources` card + `source` object kind | EP-030 (SP-091) | 🔵 Backlog |
-| T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🔵 Backlog |
-| T-0367 | Properties tab — field-driven view | EP-030 (SP-092) | 🔵 Backlog |
-| T-0368 | Card failure isolation + inline warning | EP-030 (SP-092) | 🔵 Backlog |
+| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
+| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
+| T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
+| T-0367 | Properties tab — field-driven view | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
+| T-0368 | Card failure isolation + inline warning | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0369 | EP-030 verification + Epic close prep | EP-030 (SP-093) | 🔵 Backlog |
 | T-0370 | `ObjectKind` additions; retire `timeline` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (SP-094) | 🔵 Backlog |
@@ -82,7 +84,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0389 | Pending presentation + Worlds menu + warning view | EP-031 (SP-098) | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (SP-099) | 🔵 Backlog |
 | T-0391 | EP-031 verification + Epic close prep | EP-031 (SP-099) | 🔵 Backlog |
-| T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | 🔵 Backlog |
+| T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | ⚪ **Closed — OBE (2026-08-05, user-directed)** |
 | T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (SP-057) | 🔵 Backlog |
 | T-0234 | `[Linux]` **Shell flip** — `main.cpp` → `QApplication`+`QMainWindow` host, landing QML re-hosted via `QQuickWidget`; keep context props + `QFileDialog` picker + Quit; re-verify EP-021 loop over VNC | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
 | T-0235 | `[Linux]` **Editor shell + read-only continuous viewport** — one `QPlainTextEdit`/`QTextDocument` (read-only, undo disabled), all scene bodies via `openProject` + `scrivi_open_scene` loop, scene-boundary markers + per-scene start offsets (`sceneStartMap` seed) | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
@@ -384,6 +386,56 @@ fork; redoing without selecting follows the primary child.
 
 **T-0212 — Stale branches.** Detection thresholds + user-confirmed purge flow.
 
+## EP-030 Scene Inspector Card Framework Tasks (T-0359 – T-0369)
+
+Design: `../Scrivi_Scene_Inspector_Card_Framework_v0_1.md` ✅ **Approved 2026-08-05** (C1=C · C2=B · C3=A within
+tabs · C4=A · C5=C + in-stack creation · C6=B with **sort per-stack**).
+
+### SP-090 — Framework (🟡 ACTIVE 2026-08-05)
+
+**T-0359 — `InspectorCard` protocol + registry.** Per §5: `typeID` (stable, persisted), `title`, associated
+`Body`, and `CardContext` (`sceneID`, `engine`, `config`). A registry maps `typeID` → implementation so the
+layout file stays decoupled from Swift types. Swift is UI only — cards call ScriviCore via `ScriviEngine`.
+
+**T-0360 — `inspector-layout.json`.** Schema `scrivi.inspector-layout.v1` (§C2): `selectedTab`,
+`inspectorHidden`, `defaultStacks` (worldbuilding **empty**, writing = `tags`/`outline`/`todo`), `stackSort`,
+per-scene `worldbuilding`/`writing` arrays. Project-level and Git-visible — **not** the scene sidecar (EP-027
+keeps those canonical) and **not** workspace state (a card stack is a creative decision that should travel with
+the project). Unknown `typeID` → **skip with a notice, never crash**.
+
+**T-0361 — Tabs + persistence + replace the placeholder.** Order `Writing | Worldbuilding | Properties`,
+defaulting to **Writing**. Tab selection **does not follow the scene**. Persist `selectedTab` and
+`inspectorHidden` at project level — the latter promotes the existing in-memory `session.inspectorVisible`
+(`ProjectSession.swift:75`) to persisted state. Replace the fixed 280pt frame with a resizable pane.
+
+**T-0362 — Card stack mechanics.** Add / remove / reorder / collapse; **sort is per-stack, not per-card** (C6);
+"apply to all scenes" and "to this chapter" (C1), each scene independently editable afterward.
+
+### SP-091 — Writing-tool cards
+
+**T-0363 — `tags` + `todo` cards.** Scene-sidecar backed.
+**T-0364 — `outline` card.** Scene summary/synopsis.
+**T-0365 — `sources` card + `source` object kind.** Citations are **reusable across scenes** (ruled), so
+`source` is a real `objects/sources/<slug>.json`. ⚠️ Overlaps EP-031 T-0370 (`ObjectKind` additions) — coordinate
+at SP-091 planning.
+
+### SP-092 — History card + Properties
+
+**T-0366 — `history` card** (**supersedes T-0215**). Windowed tree (`scrivi_history_get_tree`), branch
+selection, stale badges + purge — the Trade T2 management surface, now a dismissible card in the Writing stack.
+**Unblocks EP-019 SP-057.**
+**T-0367 — Properties tab.** Author, created/modified, metrics, story-time position. **Not** a card stack.
+Built **field-driven**, each field declaring its own editability (§4.8.1) — read-only content today, but not a
+read-only architecture.
+**T-0368 — Card failure isolation.** One card's failure never blocks the stack; the failed card shows a warning
+in place of its content.
+
+### SP-093 — Verification
+
+**T-0369 — EP-030 verification (AC1–AC7) + Epic close prep.** User approval required to close.
+
+---
+
 ### SP-056 — Copy buffers
 
 **T-0213 — Buffer store.** `history/buffers.json` (`scrivi.buffers.v1`), 9 numbered slots,
@@ -403,8 +455,18 @@ than a standalone panel, so it is dismissible and positionable like every other 
 AC-relevant note:** SP-057 no longer builds a panel; it verifies AC2/AC7/AC8 and closes the Epic once T-0366
 lands.
 
-**T-0216 — Perf + migration.** Integration fixtures: 100k-event history, 500 KB single scene;
-`.gitignore` migration adding `history/` for existing projects (design §6.c, §11).
+**T-0216 — Perf + migration.** ⚪ **CLOSED — OBE 2026-08-05 (user-directed).** Original scope: integration
+fixtures (100k-event history, 500 KB single scene) + a `.gitignore` migration adding `history/` for existing
+projects (design §6.c, §11).
+
+**Why closed:** the `.gitignore` migration is obsolete — **Scrivi has not shipped**, so no projects exist in the
+field whose `.gitignore` predates the `history/` entry; new projects get it at creation. The user closed the
+task whole rather than splitting it.
+
+**⚠️ What this gives up:** the **perf fixtures were never built**, so EP-019 ships with **no** large-scale
+performance coverage — the 100k-event history and 500 KB single-scene cases (design §6.c worst case) are
+untested. `HistoryService` has unit + integration coverage at ordinary sizes only. If history performance is
+ever suspect at scale, this is the missing evidence; re-open as a new task rather than reviving T-0216.
 
 **T-0217 — Verification.** Update package-structure + repair-matrix docs; run EP-019 AC1–AC8
 verification; prepare Epic for close (user approval required).

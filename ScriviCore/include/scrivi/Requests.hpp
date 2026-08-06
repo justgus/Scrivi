@@ -318,6 +318,35 @@ struct GetSceneStoryTimeRequest   { AbsolutePath projectRootPath; SceneID sceneI
 struct ClearSceneStoryTimeRequest { AbsolutePath projectRootPath; SceneID sceneID; };
 
 // ---------------------------------------------------------------------------
+// Scene writing-tool card content (EP-030 SP-091) — tags / outline / todo.
+// Per-scene creative material stored on the scene sidecar so it travels with the
+// scene. Separate setters (rather than more parameters on saveScene) mirror the
+// story-time endpoints: saveScene is the manuscript path, not a metadata path.
+// ---------------------------------------------------------------------------
+
+struct SetSceneTagsRequest {
+    AbsolutePath             projectRootPath;
+    SceneID                  sceneID;
+    std::vector<std::string> tags;      // replaces the stored set wholesale
+};
+
+struct SetSceneOutlineRequest {
+    AbsolutePath projectRootPath;
+    SceneID      sceneID;
+    std::string  outline;               // empty clears it
+};
+
+struct SceneTodoArg { std::string text; bool done = false; };
+
+struct SetSceneTodoRequest {
+    AbsolutePath              projectRootPath;
+    SceneID                   sceneID;
+    std::vector<SceneTodoArg> todo;     // replaces the stored list wholesale
+};
+
+struct GetSceneNotesRequest { AbsolutePath projectRootPath; SceneID sceneID; };
+
+// ---------------------------------------------------------------------------
 // Band assignment (EP-016 SP-039)
 // ---------------------------------------------------------------------------
 

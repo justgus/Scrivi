@@ -59,6 +59,22 @@ std::string serializeSceneMeta(const SceneMetaData& d) {
     doc.setSubDoc("stats",      std::move(stats));
     doc.setSubDoc("storyTime",  std::move(storyTimeDoc));
 
+    // Writing-tool card content (SP-091, T-0392). Emitted only when non-empty so a scene
+    // that never used these cards keeps the pre-SP-091 sidecar shape byte-for-byte —
+    // no spurious diffs in Git for projects that don't use them.
+    for (const auto& tag : d.tags) {
+        doc.appendStringToArray("tags", tag);
+    }
+    if (!d.outline.empty()) {
+        doc.setString("outline", d.outline);
+    }
+    for (const auto& item : d.todo) {
+        util::JsonDoc todoDoc;
+        todoDoc.setString("text", item.text);
+        todoDoc.setBool("done",   item.done);
+        doc.appendToArray("todo", std::move(todoDoc));
+    }
+
     return doc.dump();
 }
 
@@ -116,6 +132,26 @@ Result<SceneMetaData> parseSceneMeta(std::string_view json) {
         auto ss = st.getSubDoc("storyStructure");
         data.storyTime.bandID         = ss.getString("bandID");
         data.storyTime.bandAssignedAt = ss.getString("assignedAt");
+    }
+
+    // Writing-tool card content (SP-091, T-0392) — ADDITIVE. A sidecar written before
+    // SP-091 has none of these keys; each read below yields empty, so such a file parses
+    // unchanged. This is the compatibility guarantee the sprint's exit criteria test.
+    data.tags = doc.getStringArray("tags");
+
+    data.outline = doc.getString("outline");
+
+    const std::size_t todoCount = doc.arraySize("todo");
+    data.todo.reserve(todoCount);
+    for (std::size_t i = 0; i < todoCount; ++i) {
+        auto item = doc.arrayItem("todo", i);
+        SceneTodoItem entry;
+        entry.text = item.getString("text");
+        entry.done = item.getBool("done", false);
+        // Skip structurally empty rows rather than surfacing blank todos to the writer.
+        if (!entry.text.empty()) {
+            data.todo.push_back(std::move(entry));
+        }
     }
 
     return Result<SceneMetaData>::success(std::move(data));

@@ -214,6 +214,89 @@ TEST_CASE("SceneMetaJson rejects corrupt JSON", "[schemas]") {
     REQUIRE_FALSE(parseSceneMeta("not json").ok());
 }
 
+// --- EP-030 SP-091 (T-0392): writing-tool card content on the scene sidecar ---
+
+TEST_CASE("SceneMetaJson round-trips tags, outline, and todo", "[schemas]") {
+    SceneMetaData d;
+    d.sceneID.value = "scene-001";
+    d.title         = "Opening Scene";
+    d.status        = "draft";
+    d.tags          = {"battle", "ada-pov"};
+    d.outline       = "Ada confronts the Warden at the gate.";
+    d.todo          = { {"check the timeline", false}, {"name the Warden", true} };
+
+    auto result = parseSceneMeta(serializeSceneMeta(d));
+    REQUIRE(result.ok());
+    const auto& v = result.value();
+
+    REQUIRE(v.tags.size() == 2);
+    REQUIRE(v.tags[0] == "battle");
+    REQUIRE(v.tags[1] == "ada-pov");          // order preserved
+    REQUIRE(v.outline == "Ada confronts the Warden at the gate.");
+    REQUIRE(v.todo.size() == 2);
+    REQUIRE(v.todo[0].text == "check the timeline");
+    REQUIRE(v.todo[0].done == false);
+    REQUIRE(v.todo[1].text == "name the Warden");
+    REQUIRE(v.todo[1].done == true);
+}
+
+// The compatibility guarantee this sprint rests on: a sidecar written BEFORE SP-091 has
+// no tags/outline/todo keys at all, and must still parse — leaving them empty rather
+// than erroring. Uses a hand-written pre-SP-091 document, not a serializer round-trip,
+// so the test keeps its value even if the serializer later changes.
+TEST_CASE("SceneMetaJson parses a pre-SP-091 sidecar with no card fields", "[schemas]") {
+    constexpr auto legacy = R"({
+        "schema": "scrivi.scene.v1",
+        "sceneID": "scene-001",
+        "title": "Opening Scene",
+        "slug": "001-opening-scene",
+        "status": "draft",
+        "createdAt": "2026-05-19T12:00:00Z",
+        "modifiedAt": "2026-05-19T12:00:00Z",
+        "content": { "path": "001-opening-scene.md", "format": "markdown" },
+        "stats": { "wordCount": 42, "characterCount": 200 }
+    })";
+
+    auto result = parseSceneMeta(legacy);
+    REQUIRE(result.ok());
+    const auto& v = result.value();
+
+    REQUIRE(v.title == "Opening Scene");
+    REQUIRE(v.wordCount == 42);
+    REQUIRE(v.tags.empty());
+    REQUIRE(v.outline.empty());
+    REQUIRE(v.todo.empty());
+}
+
+// A scene that never used these cards must serialize to the pre-SP-091 shape — no empty
+// "tags"/"todo" arrays, no empty "outline" — so existing projects show no Git churn.
+TEST_CASE("SceneMetaJson omits card fields when empty", "[schemas]") {
+    SceneMetaData d;
+    d.sceneID.value = "scene-001";
+    d.title         = "Opening Scene";
+    d.status        = "draft";
+
+    const auto json = serializeSceneMeta(d);
+    REQUIRE(json.find("\"tags\"")    == std::string::npos);
+    REQUIRE(json.find("\"outline\"") == std::string::npos);
+    REQUIRE(json.find("\"todo\"")    == std::string::npos);
+}
+
+TEST_CASE("SceneMetaJson drops todo rows with empty text", "[schemas]") {
+    constexpr auto withBlank = R"({
+        "schema": "scrivi.scene.v1",
+        "sceneID": "scene-001",
+        "title": "Opening Scene",
+        "status": "draft",
+        "todo": [ {"text":"real item","done":false}, {"text":"","done":false} ]
+    })";
+
+    auto result = parseSceneMeta(withBlank);
+    REQUIRE(result.ok());
+    REQUIRE(result.value().todo.size() == 1);
+    REQUIRE(result.value().todo[0].text == "real item");
+}
+
 TEST_CASE("ProjectMembersJson round-trips members", "[schemas]") {
     ProjectMembersData d;
     MemberEntry m;

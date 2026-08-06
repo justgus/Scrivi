@@ -35,6 +35,12 @@
 		C060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
 		C062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		C063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
+		C064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
+		C065_BF /* InspectorLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C065 /* InspectorLayoutStore.swift */; };
+		C066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
+		C067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
+		C068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		C069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
 		C054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
@@ -63,6 +69,12 @@
 		D060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
 		D062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		D063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
+		D064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
+		D065_BF /* InspectorLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C065 /* InspectorLayoutStore.swift */; };
+		D066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
+		D067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
+		D068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		D069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
 		D054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
@@ -91,6 +103,12 @@
 		E060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
 		E062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		E063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
+		E064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
+		E065_BF /* InspectorLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C065 /* InspectorLayoutStore.swift */; };
+		E066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
+		E067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
+		E068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		E069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
 		E054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
@@ -137,6 +155,12 @@
 		C060 /* HistoryCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCapture.swift; path = Scrivi/App/HistoryCapture.swift; sourceTree = SOURCE_ROOT; };
 		C062 /* BufferService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BufferService.swift; path = Scrivi/App/BufferService.swift; sourceTree = SOURCE_ROOT; };
 		C063 /* BuffersPalette.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BuffersPalette.swift; path = Scrivi/Views/BuffersPalette.swift; sourceTree = SOURCE_ROOT; };
+		C064 /* InspectorCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCard.swift; path = Scrivi/Views/Inspector/InspectorCard.swift; sourceTree = SOURCE_ROOT; };
+		C065 /* InspectorLayoutStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorLayoutStore.swift; path = Scrivi/App/InspectorLayoutStore.swift; sourceTree = SOURCE_ROOT; };
+		C066 /* InspectorCardStackView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCardStackView.swift; path = Scrivi/Views/Inspector/InspectorCardStackView.swift; sourceTree = SOURCE_ROOT; };
+		C067 /* WritingToolCards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WritingToolCards.swift; path = Scrivi/Views/Inspector/WritingToolCards.swift; sourceTree = SOURCE_ROOT; };
+		C068 /* HistoryCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCard.swift; path = Scrivi/Views/Inspector/HistoryCard.swift; sourceTree = SOURCE_ROOT; };
+		C069 /* ScenePropertiesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScenePropertiesView.swift; path = Scrivi/Views/Inspector/ScenePropertiesView.swift; sourceTree = SOURCE_ROOT; };
 		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Scrivi/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
 		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
 		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Scrivi/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
@@ -235,6 +259,12 @@
 				C060 /* HistoryCapture.swift */,
 				C062 /* BufferService.swift */,
 				C063 /* BuffersPalette.swift */,
+				C064 /* InspectorCard.swift */,
+				C065 /* InspectorLayoutStore.swift */,
+				C066 /* InspectorCardStackView.swift */,
+				C067 /* WritingToolCards.swift */,
+				C068 /* HistoryCard.swift */,
+				C069 /* ScenePropertiesView.swift */,
 				C051 /* OpenProjectRegistry.swift */,
 				C053 /* ProjectWindowManager.swift */,
 				C054 /* OpenSessionManifest.swift */,
@@ -459,6 +489,12 @@
 				C060_BF /* HistoryCapture.swift in Sources */,
 				C062_BF /* BufferService.swift in Sources */,
 				C063_BF /* BuffersPalette.swift in Sources */,
+				C064_BF /* InspectorCard.swift in Sources */,
+				C065_BF /* InspectorLayoutStore.swift in Sources */,
+				C066_BF /* InspectorCardStackView.swift in Sources */,
+				C067_BF /* WritingToolCards.swift in Sources */,
+				C068_BF /* HistoryCard.swift in Sources */,
+				C069_BF /* ScenePropertiesView.swift in Sources */,
 				C051_BF /* OpenProjectRegistry.swift in Sources */,
 				C053_BF /* ProjectWindowManager.swift in Sources */,
 				C054_BF /* OpenSessionManifest.swift in Sources */,
@@ -494,6 +530,12 @@
 				D060_BF /* HistoryCapture.swift in Sources */,
 				D062_BF /* BufferService.swift in Sources */,
 				D063_BF /* BuffersPalette.swift in Sources */,
+				D064_BF /* InspectorCard.swift in Sources */,
+				D065_BF /* InspectorLayoutStore.swift in Sources */,
+				D066_BF /* InspectorCardStackView.swift in Sources */,
+				D067_BF /* WritingToolCards.swift in Sources */,
+				D068_BF /* HistoryCard.swift in Sources */,
+				D069_BF /* ScenePropertiesView.swift in Sources */,
 				D051_BF /* OpenProjectRegistry.swift in Sources */,
 				D053_BF /* ProjectWindowManager.swift in Sources */,
 				D054_BF /* OpenSessionManifest.swift in Sources */,
@@ -529,6 +571,12 @@
 				E060_BF /* HistoryCapture.swift in Sources */,
 				E062_BF /* BufferService.swift in Sources */,
 				E063_BF /* BuffersPalette.swift in Sources */,
+				E064_BF /* InspectorCard.swift in Sources */,
+				E065_BF /* InspectorLayoutStore.swift in Sources */,
+				E066_BF /* InspectorCardStackView.swift in Sources */,
+				E067_BF /* WritingToolCards.swift in Sources */,
+				E068_BF /* HistoryCard.swift in Sources */,
+				E069_BF /* ScenePropertiesView.swift in Sources */,
 				E051_BF /* OpenProjectRegistry.swift in Sources */,
 				E053_BF /* ProjectWindowManager.swift in Sources */,
 				E054_BF /* OpenSessionManifest.swift in Sources */,

@@ -283,6 +283,20 @@ final class HistoryCapture {
         } catch { print("[Scrivi] historySelectBranch failed: \(error)"); return false }
     }
 
+    // MARK: — History tree (EP-030 SP-092, T-0395)
+
+    // A windowed projection of the history graph for the history card. Returns nil
+    // when history is closed or the call fails — the card renders its own notice
+    // rather than the stack failing (Doc 2 §7.1). Best-effort, like its siblings.
+    func tree(aroundNodeID: String? = nil, maxNodes: Int = 0) -> HistoryTreeResult? {
+        guard isOpen else { return nil }
+        do {
+            return try engine.historyGetTree(projectRootPath: projectRootPath,
+                                             aroundNodeID: aroundNodeID,
+                                             maxNodes: maxNodes)
+        } catch { print("[Scrivi] historyGetTree failed: \(error)"); return nil }
+    }
+
     // MARK: — Stale branches (T-0212, §5)
 
     // Lists stale branches — non-primary subtrees older than the project's

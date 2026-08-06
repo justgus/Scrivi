@@ -697,6 +697,51 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — Scene writing-tool card content (EP-030 SP-091)
+
+    /// All three card fields in one call, so a scene's Writing stack costs one crossing.
+    public func getSceneNotes(projectRootPath: String, sceneID: String) throws -> SceneNotesResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in scrivi_get_scene_notes(prp, sid) }
+        }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func setSceneTags(projectRootPath: String, sceneID: String,
+                             tags: [String]) throws -> SceneNotesUpdateResult {
+        let json = String(data: try JSONEncoder().encode(tags), encoding: .utf8) ?? "[]"
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                json.withCString { tj in scrivi_set_scene_tags(prp, sid, tj) }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func setSceneOutline(projectRootPath: String, sceneID: String,
+                                outline: String) throws -> SceneNotesUpdateResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                outline.withCString { o in scrivi_set_scene_outline(prp, sid, o) }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func setSceneTodo(projectRootPath: String, sceneID: String,
+                             todo: [SceneTodoItem]) throws -> SceneNotesUpdateResult {
+        let json = String(data: try JSONEncoder().encode(todo), encoding: .utf8) ?? "[]"
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                json.withCString { tj in scrivi_set_scene_todo(prp, sid, tj) }
+            }
+        }
+        return try decodeC(raw)
+    }
+
     public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeResult {
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in
@@ -953,6 +998,25 @@ public final class ScriviEngine: @unchecked Sendable {
     // for user confirmation.
     public func historyListStaleBranches(projectRootPath: String) throws -> HistoryStaleBranchesResult {
         let raw = projectRootPath.withCString { scrivi_history_list_stale_branches($0) }
+        return try decodeC(raw)
+    }
+
+    /// A windowed projection of the history graph for the history card
+    /// (EP-030 SP-092, T-0394/T-0395). `aroundNodeID` defaults to the current node;
+    /// `maxNodes` <= 0 uses the core's default cap.
+    public func historyGetTree(projectRootPath: String,
+                               aroundNodeID: String? = nil,
+                               maxNodes: Int = 0) throws -> HistoryTreeResult {
+        var params: [String: Any] = [:]
+        if let aroundNodeID, !aroundNodeID.isEmpty { params["aroundNodeID"] = aroundNodeID }
+        if maxNodes > 0 { params["maxNodes"] = maxNodes }
+        let json = params.isEmpty
+            ? "{}"
+            : (String(data: try JSONSerialization.data(withJSONObject: params), encoding: .utf8) ?? "{}")
+
+        let raw = projectRootPath.withCString { prp in
+            json.withCString { p in scrivi_history_get_tree(prp, p) }
+        }
         return try decodeC(raw)
     }
 
@@ -1226,6 +1290,10 @@ public final class ScriviEngine: @unchecked Sendable {
     public func setSceneStoryTime(projectRootPath: String, sceneID: String, offsetMs: Int64, source: String, gapMs: Int64 = 0, durationMs: Int64 = 3_600_000, durationSource: String = "default") throws -> SceneStoryTimeResult { try unavailable() }
     public func getSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
     public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func getSceneNotes(projectRootPath: String, sceneID: String) throws -> SceneNotesResult { try unavailable() }
+    @discardableResult public func setSceneTags(projectRootPath: String, sceneID: String, tags: [String]) throws -> SceneNotesUpdateResult { try unavailable() }
+    @discardableResult public func setSceneOutline(projectRootPath: String, sceneID: String, outline: String) throws -> SceneNotesUpdateResult { try unavailable() }
+    @discardableResult public func setSceneTodo(projectRootPath: String, sceneID: String, todo: [SceneTodoItem]) throws -> SceneNotesUpdateResult { try unavailable() }
     public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeResult { try unavailable() }
     public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
     public func getStoryStructure(projectRootPath: String) throws -> StoryStructureResult { try unavailable() }
@@ -1253,6 +1321,7 @@ public final class ScriviEngine: @unchecked Sendable {
     @discardableResult
     public func historySelectBranch(projectRootPath: String, forkNodeID: String, childEventID: String) throws -> HistorySelectBranchResult { try unavailable() }
     public func historyListStaleBranches(projectRootPath: String) throws -> HistoryStaleBranchesResult { try unavailable() }
+    public func historyGetTree(projectRootPath: String, aroundNodeID: String? = nil, maxNodes: Int = 0) throws -> HistoryTreeResult { try unavailable() }
     @discardableResult
     public func historyPurgeBranch(projectRootPath: String, branchRootEventID: String) throws -> HistoryPurgeResult { try unavailable() }
     @discardableResult
@@ -1795,6 +1864,67 @@ public struct SceneStoryTimeResult: Decodable, Sendable {
     public let bandAssignedAt:      String
 }
 
+// Scene writing-tool card content (EP-030 SP-091) — tags / outline / todo.
+
+public struct SceneTodoItem: Codable, Sendable, Equatable, Identifiable {
+    public var text: String
+    public var done: Bool
+
+    // Stable within a scene's list; the sidecar stores no per-item ID, so identity is
+    // positional + textual. Good enough for SwiftUI list diffing on a short list.
+    public var id: String { "\(text)#\(done)" }
+
+    public init(text: String, done: Bool = false) {
+        self.text = text
+        self.done = done
+    }
+}
+
+public struct SceneNotesResult: Decodable, Sendable {
+    public let sceneID: String
+    public let tags:    [String]
+    public let outline: String
+    public let todo:    [SceneTodoItem]
+
+    // Scene metadata for the Properties tab (SP-092 T-0367). Carried on this result
+    // because getSceneNotes already parses the whole sidecar — no extra disk read.
+    public let title:                 String
+    public let createdAt:             String
+    public let createdByDisplayName:  String
+    public let modifiedAt:            String
+    public let modifiedByDisplayName: String
+    public let wordCount:             Int
+    public let characterCount:        Int
+
+    // The C ABI omits empty arrays, so every field tolerates absence — the same
+    // empty-array-omitted mismatch that caused I-0094 in EP-029.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sceneID = (try? c.decode(String.self, forKey: .sceneID)) ?? ""
+        tags    = (try? c.decode([String].self, forKey: .tags)) ?? []
+        outline = (try? c.decode(String.self, forKey: .outline)) ?? ""
+        todo    = (try? c.decode([SceneTodoItem].self, forKey: .todo)) ?? []
+        title                 = (try? c.decode(String.self, forKey: .title)) ?? ""
+        createdAt             = (try? c.decode(String.self, forKey: .createdAt)) ?? ""
+        createdByDisplayName  = (try? c.decode(String.self, forKey: .createdByDisplayName)) ?? ""
+        modifiedAt            = (try? c.decode(String.self, forKey: .modifiedAt)) ?? ""
+        modifiedByDisplayName = (try? c.decode(String.self, forKey: .modifiedByDisplayName)) ?? ""
+        wordCount             = (try? c.decode(Int.self, forKey: .wordCount)) ?? 0
+        characterCount        = (try? c.decode(Int.self, forKey: .characterCount)) ?? 0
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case sceneID, tags, outline, todo
+        case title, createdAt, createdByDisplayName, modifiedAt, modifiedByDisplayName
+        case wordCount, characterCount
+    }
+}
+
+public struct SceneNotesUpdateResult: Decodable, Sendable {
+    public let sceneID: String
+    public let updated: Bool
+}
+
 public struct StoryStructureResult: Decodable, Sendable {
     public let hasStructure:   Bool
     public let structureID:    String
@@ -2073,6 +2203,77 @@ public struct HistoryStaleBranchesResult: Decodable, Sendable {
         branches        = try c.decodeIfPresent([HistoryStaleBranch].self, forKey: .branches) ?? []
     }
     private enum CodingKeys: String, CodingKey { case staleBranchDays, branches }
+}
+
+// History tree, windowed (EP-030 SP-092, T-0395).
+
+public struct HistoryTreeNode: Decodable, Sendable, Identifiable {
+    public let eventID:        String
+    public let parentID:       String
+    public let primaryChildID: String
+    public let childIDs:       [String]
+    public let kind:           String
+    public let sceneID:        String
+    public let preview:        String
+    public let timestamp:      String
+    public let sessionID:      String
+    public let bufferID:       String
+    public let barrierKind:    String
+    public let barrierNote:    String
+    public let onPrimarySpine: Bool
+    public let isCurrent:      Bool
+
+    public var id: String { eventID }
+    public var isFork: Bool { childIDs.count >= 2 }
+
+    // ⚠️ The C API omits empty arrays and empty strings, so a LEAF node ships no
+    // `childIDs` key and the root ships no `parentID`. Non-optional fields would
+    // throw `keyNotFound` on exactly those nodes — the I-0094 failure mode, which
+    // silently disabled EP-029's structured paste. Every field tolerates absence.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        eventID        = try c.decodeIfPresent(String.self,   forKey: .eventID) ?? ""
+        parentID       = try c.decodeIfPresent(String.self,   forKey: .parentID) ?? ""
+        primaryChildID = try c.decodeIfPresent(String.self,   forKey: .primaryChildID) ?? ""
+        childIDs       = try c.decodeIfPresent([String].self, forKey: .childIDs) ?? []
+        kind           = try c.decodeIfPresent(String.self,   forKey: .kind) ?? "typing"
+        sceneID        = try c.decodeIfPresent(String.self,   forKey: .sceneID) ?? ""
+        preview        = try c.decodeIfPresent(String.self,   forKey: .preview) ?? ""
+        timestamp      = try c.decodeIfPresent(String.self,   forKey: .timestamp) ?? ""
+        sessionID      = try c.decodeIfPresent(String.self,   forKey: .sessionID) ?? ""
+        bufferID       = try c.decodeIfPresent(String.self,   forKey: .bufferID) ?? ""
+        barrierKind    = try c.decodeIfPresent(String.self,   forKey: .barrierKind) ?? ""
+        barrierNote    = try c.decodeIfPresent(String.self,   forKey: .barrierNote) ?? ""
+        onPrimarySpine = try c.decodeIfPresent(Bool.self,     forKey: .onPrimarySpine) ?? false
+        isCurrent      = try c.decodeIfPresent(Bool.self,     forKey: .isCurrent) ?? false
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case eventID, parentID, primaryChildID, childIDs, kind, sceneID, preview
+        case timestamp, sessionID, bufferID, barrierKind, barrierNote
+        case onPrimarySpine, isCurrent
+    }
+}
+
+public struct HistoryTreeResult: Decodable, Sendable {
+    public let rootID:         String
+    public let currentNodeID:  String
+    public let totalNodeCount: Int
+    public let truncated:      Bool
+    public let nodes:          [HistoryTreeNode]
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        rootID         = try c.decodeIfPresent(String.self, forKey: .rootID) ?? ""
+        currentNodeID  = try c.decodeIfPresent(String.self, forKey: .currentNodeID) ?? ""
+        totalNodeCount = try c.decodeIfPresent(Int.self,    forKey: .totalNodeCount) ?? 0
+        truncated      = try c.decodeIfPresent(Bool.self,   forKey: .truncated) ?? false
+        nodes          = try c.decodeIfPresent([HistoryTreeNode].self, forKey: .nodes) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case rootID, currentNodeID, totalNodeCount, truncated, nodes
+    }
 }
 
 public struct HistoryPurgeResult: Decodable, Sendable {

@@ -11,6 +11,16 @@ option(SCRIVI_BUILD_LINUX "Build the Linux Qt/QML app (platforms/linux)" OFF)
 
 if(SCRIVI_BUILD_TESTS)
     enable_testing()
+else()
+    # Loud, because a silently test-less build directory has now bitten twice
+    # (SP-091, SP-092): ctest keeps passing by replaying a CACHED binary, so newly
+    # added tests appear green without ever being compiled — in SP-092 that hid
+    # seven real compile errors. If you see this, reconfigure:
+    #     cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON
+    message(WARNING
+        "SCRIVI_BUILD_TESTS=OFF — ScriviCoreTests will NOT be built. "
+        "`ctest` may still report PASS from a stale cached binary. "
+        "Reconfigure with -DSCRIVI_BUILD_TESTS=ON before trusting test results.")
 endif()
 
 add_subdirectory(ScriviCore)

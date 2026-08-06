@@ -50,6 +50,13 @@ struct ScriviApp: App {
     @State private var env = AppEnvironment()
     @State private var showAbout = false
 
+    init() {
+        // Populate the Scene Inspector card registry once (EP-030 SP-090). The layout
+        // file stores typeIDs, so a card must be registered before its entries resolve;
+        // unregistered typeIDs are reported, not dropped.
+        InspectorCardRegistry.registerBuiltIns()
+    }
+
     #if os(macOS)
     // The session of the frontmost project window — drives the project/view menus.
     // Tracked in AppEnvironment (set by each AppKit window when it becomes key), because

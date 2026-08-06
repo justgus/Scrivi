@@ -146,7 +146,7 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
                 scheduleFullScreenAfterSettle()
             } else {
                 // The block-observer closure is @Sendable, so it can capture only Sendable state:
-                // self (weak, hopped back onto the main actor) and a boxed token so the one-shot
+                // sf (weak, hopped back onto the main actor) and a boxed token so the one-shot
                 // observer can remove itself. Delivery is already on .main, so assumeIsolated is
                 // sound.
                 let box = ObserverTokenBox()

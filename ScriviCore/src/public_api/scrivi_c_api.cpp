@@ -1290,6 +1290,108 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
     return heap(okEnvelope(std::move(doc)));
 }
 
+// --- Scene writing-tool card content (EP-030 SP-091) -----------------------
+
+const char* scrivi_set_scene_tags(const char* projectRootPath, const char* sceneID,
+                                   const char* tagsJson) {
+    scrivi::SetSceneTagsRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+
+    // Parse the caller's JSON array. A malformed payload is rejected rather than
+    // silently treated as "no tags", which would wipe the writer's stored set.
+    const std::string raw = S(tagsJson);
+    if (!raw.empty()) {
+        auto parsed = scrivi::util::parseJson("{\"tags\":" + raw + "}");
+        if (!parsed.ok()) {
+            return heap(errorEnvelope({.code = scrivi::ErrorCode::invalidArgument,
+                                       .message = "tagsJson is not a valid JSON array"}));
+        }
+        req.tags = parsed.value().getStringArray("tags");
+    }
+
+    auto r = core().setSceneTags(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", r.value().sceneID.value);
+    doc.setBool("updated",   r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_scene_outline(const char* projectRootPath, const char* sceneID,
+                                      const char* outline) {
+    scrivi::SetSceneOutlineRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    req.outline         = S(outline);
+    auto r = core().setSceneOutline(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", r.value().sceneID.value);
+    doc.setBool("updated",   r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_scene_todo(const char* projectRootPath, const char* sceneID,
+                                   const char* todoJson) {
+    scrivi::SetSceneTodoRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+
+    const std::string raw = S(todoJson);
+    if (!raw.empty()) {
+        auto parsed = scrivi::util::parseJson("{\"todo\":" + raw + "}");
+        if (!parsed.ok()) {
+            return heap(errorEnvelope({.code = scrivi::ErrorCode::invalidArgument,
+                                       .message = "todoJson is not a valid JSON array"}));
+        }
+        const auto& doc = parsed.value();
+        const std::size_t n = doc.arraySize("todo");
+        req.todo.reserve(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            auto item = doc.arrayItem("todo", i);
+            req.todo.push_back({item.getString("text"), item.getBool("done", false)});
+        }
+    }
+
+    auto r = core().setSceneTodo(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", r.value().sceneID.value);
+    doc.setBool("updated",   r.value().updated);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID) {
+    scrivi::GetSceneNotesRequest req;
+    req.projectRootPath = S(projectRootPath);
+    req.sceneID.value   = S(sceneID);
+    auto r = core().getSceneNotes(req);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    const auto& v = r.value();
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("sceneID", v.sceneID.value);
+    doc.setString("title",                 v.title);
+    doc.setString("createdAt",             v.createdAt);
+    doc.setString("createdByDisplayName",  v.createdByDisplayName);
+    doc.setString("modifiedAt",            v.modifiedAt);
+    doc.setString("modifiedByDisplayName", v.modifiedByDisplayName);
+    doc.setInt("wordCount",                v.wordCount);
+    doc.setInt("characterCount",           v.characterCount);
+    for (const auto& tag : v.tags) {
+        doc.appendStringToArray("tags", tag);
+    }
+    doc.setString("outline", v.outline);
+    for (const auto& item : v.todo) {
+        scrivi::util::JsonDoc t;
+        t.setString("text", item.text);
+        t.setBool("done",   item.done);
+        doc.appendToArray("todo", std::move(t));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
 const char* scrivi_get_scene_story_time(const char* projectRootPath, const char* sceneID) {
     scrivi::GetSceneStoryTimeRequest req;
     req.projectRootPath = S(projectRootPath);
@@ -1827,6 +1929,58 @@ const char* scrivi_history_select_branch(const char* projectRootPath,
     doc.setString("forkNodeID",  r.forkNodeID);
     doc.setString("childEventID", r.childEventID);
     doc.setBool("canRedo",       r.canRedo);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_get_tree(const char* projectRootPath, const char* paramsJSON) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    // {aroundNodeID?, maxNodes?} — both optional; absent params window the default
+    // number of nodes around the current pointer.
+    std::string aroundNodeID;
+    int maxNodes = 0;
+    const std::string params = S(paramsJSON);
+    if (!params.empty()) {
+        auto parsed = scrivi::util::parseJson(params);
+        if (!parsed.ok())
+            return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                      "paramsJSON is not valid JSON"));
+        aroundNodeID = parsed.value().getString("aroundNodeID");
+        maxNodes     = static_cast<int>(parsed.value().getInt("maxNodes", 0));
+    }
+
+    const auto tree = it->second->service().getTree(aroundNodeID, maxNodes);
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("rootID",        tree.rootID);
+    doc.setString("currentNodeID", tree.currentNodeID);
+    doc.setInt("totalNodeCount",   tree.totalNodeCount);
+    doc.setBool("truncated",       tree.truncated);
+    for (const auto& n : tree.nodes) {
+        scrivi::util::JsonDoc d;
+        d.setString("eventID",        n.eventID);
+        d.setString("parentID",       n.parentID);
+        d.setString("primaryChildID", n.primaryChildID);
+        for (const auto& c : n.childIDs) { d.appendStringToArray("childIDs", c); }
+        d.setString("kind",           n.kind);
+        d.setString("sceneID",        n.sceneID);
+        d.setString("preview",        n.preview);
+        d.setString("timestamp",      n.timestamp);
+        d.setString("sessionID",      n.sessionID);
+        d.setString("bufferID",       n.bufferID);
+        d.setString("barrierKind",    n.barrierKind);
+        d.setString("barrierNote",    n.barrierNote);
+        d.setBool("onPrimarySpine",   n.onPrimarySpine);
+        d.setBool("isCurrent",        n.isCurrent);
+        doc.appendToArray("nodes", std::move(d));
+    }
     return heap(okEnvelope(std::move(doc)));
 }
 

@@ -4,7 +4,9 @@
 
 **Codebase:** `[Apple]` — the framework + writing-tool cards are SwiftUI; ScriviCore work is minimal (Doc 2 adds
 no new C ABI beyond Doc 1's).
-**Status:** 🔵 **Planned 2026-08-05** — ready to activate at SP-090.
+**Status:** 🟡 **ACTIVE.** **SP-090 ✅ closed 2026-08-05 (Human-approved)** — the card framework shipped
+(T-0359–T-0362 all Verified; the placeholder inspector is gone). **Next: SP-091** (writing-tool cards),
+awaiting go-ahead. AC1/AC2 substantially met by SP-090; AC3–AC6 land across SP-091/SP-092.
 **Goal:** Replace the placeholder `SceneInspectorView.swift` (57 lines: one tab case, a stub body, fixed 280pt)
 with the approved card framework — bottom tabs (`Writing | Worldbuilding | Properties`), per-scene card stacks
 persisted in `inspector-layout.json`, and the **writing-tool cards**. Folds in EP-019's history panel (T-0215) as
@@ -36,25 +38,29 @@ within tabs, C4=A, C5=C + in-stack creation, C6=B with sort per-stack).
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-090 | Framework: card protocol, registry, `inspector-layout.json`, tabs | 🔵 Planning | — |
-| SP-091 | Writing-tool cards: tags, todo, outline, sources | 🔵 Planning | — |
-| SP-092 | `history` card (folds in T-0215) + Properties tab | 🔵 Planning | — |
+| SP-090 | Framework: card protocol, registry, `inspector-layout.json`, tabs | ✅ **Closed (user-approved)** → `../Sprints/Closed/Sprint-SP-090.md` | 2026-08-05 – 2026-08-05 |
+| SP-091 | Writing-tool cards: tags, todo, outline (`sources` deferred → EP-031) | ✅ **Closed (user-approved)** → `../Sprints/Closed/Sprint-SP-091.md` | 2026-08-05 – 2026-08-05 |
+| SP-092 | `[Cross]` `history` card (folds in T-0215) + Properties tab + `scrivi_history_get_tree` | 🟡 **Active** (2026-08-06) → `../Sprints/Sprint-active.md` | 2026-08-06 – TBD |
 | SP-093 | Verification & Epic close | 🔵 Planning | — |
 
 ### Tasks
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| T-0359 | `InspectorCard` protocol + registry + `CardContext` | SP-090 | 🔵 Backlog |
-| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | SP-090 | 🔵 Backlog |
-| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | SP-090 | 🔵 Backlog |
-| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | 🔵 Backlog |
-| T-0363 | `tags` + `todo` cards (scene sidecar) | SP-091 | 🔵 Backlog |
-| T-0364 | `outline` card (scene sidecar) | SP-091 | 🔵 Backlog |
-| T-0365 | `sources` card + `source` object kind (`objects/sources/`) | SP-091 | 🔵 Backlog |
-| T-0366 | `history` card — windowed tree, branch selection, stale badges, purge (**supersedes T-0215**) | SP-092 | 🔵 Backlog |
-| T-0367 | Properties tab — field-driven view, author/timestamps/metrics | SP-092 | 🔵 Backlog |
-| T-0368 | Card failure isolation + inline warning presentation | SP-092 | 🔵 Backlog |
+| T-0359 | `InspectorCard` protocol + registry + `CardContext` | SP-090 | ✅ **Verified (2026-08-05)** |
+| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | SP-090 | ✅ **Verified (2026-08-05)** |
+| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | SP-090 | ✅ **Verified (2026-08-05)** |
+| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | ✅ **Verified (2026-08-05)** |
+| T-0363 | `tags` + `todo` cards (scene sidecar) | SP-091 | ✅ **Verified (2026-08-05)** |
+| T-0364 | `outline` card (scene sidecar) | SP-091 | ✅ **Verified (2026-08-05)** |
+| T-0365 | `sources` card + `source` object kind | SP-091 | ⚪ **Deferred → EP-031 SP-094** (ruled 2026-08-05) |
+| T-0392 | `[ScriviCore]` `scrivi.scene.v1` + `tags`/`outline`/`todo` (additive) | SP-091 | ✅ **Verified (2026-08-05)** |
+| T-0393 | `[ScriviCore]` C ABI: scene tags/outline/todo setters + `_get_scene_notes` | SP-091 | ✅ **Verified (2026-08-05)** |
+| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | SP-092 | 🟠 **Implemented — Not Verified** |
+| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` tree wrapper + interop test | SP-092 | 🟠 **Implemented — Not Verified** |
+| T-0366 | `history` card — windowed tree, branch selection, stale badges, purge (**supersedes T-0215**) | SP-092 | 🟠 **Implemented — Not Verified** |
+| T-0367 | Properties tab — field-driven view, author/timestamps/metrics | SP-092 | 🟠 **Implemented — Not Verified** |
+| T-0368 | Card failure isolation + inline warning presentation | SP-092 | 🟠 **Implemented — Not Verified** |
 | T-0369 | EP-030 verification (AC1–AC7) + Epic close prep | SP-093 | 🔵 Backlog |
 
 > **T-0215 relationship:** EP-019's history-panel task is **delivered by T-0366** as a card rather than a separate
@@ -162,7 +168,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 AC3+AC5 (2026-07-09), AC4+AC5-branch (2026-07-13), **AC6 (2026-07-27, SP-056 — copy buffers)**.
 **Scope reduced 2026-08-05:** the history panel moved to EP-030 (T-0366), and an audit found **AC2/AC7 already
 implemented** with both test suites green — so **SP-057 is now a verification sprint** (live verify AC2/AC7/AC8 +
-perf fixtures T-0216 + close), not a build sprint. See the close-out assessment below. EP-029 `[Cross]` (the gap
++ close), not a build sprint — **T-0216 was closed OBE 2026-08-05**. See the close-out assessment below. EP-029 `[Cross]` (the gap
 surfaced while verifying SP-056) was tackled first and ✅ closed 2026-08-03.
 **Goal:** Replace the broken native undo (I-0019) with a from-scratch, sentence-granular undo/redo system backed by a tree-structured, per-project, on-disk persistent history (cross-session undo with session-boundary warning; branching with primary-line selection; capacity eviction and stale-branch purge), plus vim/emacs-register-style multiple copy buffers whose pastes are history events.
 **Design:** `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (v0.1 ✅ Approved baseline 2026-07-06 — trades ruled: T1=B, T2=A+refinements, T3=C, T4=B+D+A, T5=C, T6=A)
@@ -181,27 +187,29 @@ surfaced while verifying SP-056) was tackled first and ✅ closed 2026-08-03.
 > | **AC7** (barriers) | ✅ **Built.** `recordBarrier` on structural ops (`ManuscriptTextView.swift:645,862-863`); undo stops with a notice (`:246-254`, `presentBarrierNotice` `:390`). | **Live verification only** |
 > | **AC8** (no regression) | ✅ **Suites green 2026-08-05**: ScriviCore `ctest` **369/369**, macOS interop **45/45**, app **TEST SUCCEEDED**. | **Live verification** of auto-save / navigation / structure ops / external-change scan / Git snapshots |
 > | ~~history panel~~ | ⚪ **Superseded** → EP-030 **T-0366** (ships as the `history` card, approved Doc 2 §8) | — |
-> | **T-0216** (perf fixtures) | 🔵 Not built — 100k-event history + 500 KB scene fixtures | Build + run |
-> | **T-0216** (`.gitignore` migration) | ⚠️ **Likely OBE** — see note below | Confirm, then drop or keep |
+> | **T-0216** (perf fixtures + gitignore migration) | ⚪ **Closed — OBE (2026-08-05, user-directed)** | — |
 >
 > **Conclusion: EP-019 cannot be closed today, but not because code is missing.** AC2/AC7 are implemented and
 > AC8's mechanical half passes; what is outstanding is **live user verification** (the three ACs were never
-> exercised end-to-end in front of the user) plus the T-0216 perf fixtures. Per CLAUDE.md, Claude cannot mark
-> these Verified — that requires direct user confirmation. SP-057 is therefore a **verification sprint**, and it
-> is materially smaller than its original scope now that the history panel has moved to EP-030.
+> exercised end-to-end in front of the user). Per CLAUDE.md, Claude cannot mark these Verified — that requires
+> direct user confirmation. SP-057 is therefore a **pure verification sprint** with **no build work at all**:
+> the history panel moved to EP-030 (T-0366) and T-0216 is closed OBE.
 >
 > **Two bookkeeping corrections made the same day:** `Closed/Sprint-SP-056.md` was written (the sprint closed
 > 2026-07-27 but was never archived), and T-0213/T-0214 were corrected from 🔵 Backlog to ✅ Verified in
 > `Task-backlog.md`.
 >
-> **⚠️ `.gitignore` migration (T-0216) — needs a ruling.** It was scoped to add `history/` to the `.gitignore`
-> of **existing projects**. Scrivi has not shipped (the same fact that deleted Doc 3's migration work), so there
-> are no existing projects in the field. This is probably obsolete; the only reason to keep it is if developer
-> fixtures or the user's own test projects predate the `history/` entry and would otherwise commit history noise.
+> **T-0216 closed OBE 2026-08-05 (user-directed).** The `.gitignore` migration is obsolete — Scrivi has not
+> shipped, so no projects exist whose `.gitignore` predates the `history/` entry; new projects get it at
+> creation. The task was closed **whole**, which also drops its perf fixtures.
 >
-> **Recommended SP-057 scope:** AC2 live verify · AC7 live verify · AC8 live regression sweep · T-0216 perf
-> fixtures · T-0217 doc updates + Epic close. Sequence it **after EP-030 SP-092** so T-0366 (the history card)
-> exists when the Epic closes.
+> **⚠️ Consequence to record:** EP-019 ships with **no large-scale performance coverage**. The design's
+> worst-case fixtures (§6.c — 100k-event history, 500 KB single scene) were never built; `HistoryService` is
+> tested at ordinary sizes only. If history performance is ever suspect at scale, this is the missing evidence —
+> open a **new** task rather than reviving T-0216.
+>
+> **SP-057 scope (final):** AC2 live verify · AC7 live verify · AC8 live regression sweep · T-0217 doc updates +
+> Epic close. Sequence it **after EP-030 SP-092** so T-0366 (the history card) exists when the Epic closes.
 
 ### Acceptance Criteria
 
@@ -224,7 +232,7 @@ surfaced while verifying SP-056) was tackled first and ✅ closed 2026-08-03.
 | SP-054 | Persistence, sessions, capacity, settings | ✅ Closed (user-approved) — AC3 + AC5 | 2026-07-07 – 2026-07-09 |
 | SP-055 | Branching — tree ops, fork popover, purge | ✅ Closed (user-approved) — AC4 + AC5 branch clauses | 2026-07-10 – 2026-07-13 |
 | SP-056 | Multiple copy buffers | ✅ Closed (user-approved) — **AC6** | 2026-07-24 – 2026-07-27 |
-| SP-057 | **Verification sprint** — AC2/AC7/AC8 live verify + perf fixtures (T-0216) + Epic close (**history panel moved to EP-030 T-0366**) | 🔵 Planning — scope reduced 2026-08-05; run **after EP-030 SP-092** | — |
+| SP-057 | **Verification sprint** — AC2/AC7/AC8 live verify + T-0217 docs + Epic close (**no build work**: panel → EP-030 T-0366; T-0216 closed OBE) | 🔵 Planning — scope reduced 2026-08-05; run **after EP-030 SP-092** | — |
 
 ### Tasks
 
@@ -248,7 +256,7 @@ surfaced while verifying SP-056) was tackled first and ✅ closed 2026-08-03.
 | T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | SP-056 | ✅ **Verified (2026-07-27)** |
 | T-0214 | Buffer UX: palette + Edit/Scene/Chapter menu items + explicit ⌘/⌃/⌥1–9 chords; paste/cut history integration (cut tagged w/ bufferID) | SP-056 | ✅ **Verified (2026-07-27)** |
 | T-0215 | History panel (T2 management surface) | SP-057 | ⚪ **Superseded 2026-08-05 → EP-030 T-0366** (ships as the `history` **card** in the Writing stack, per approved Doc 2 §8) |
-| T-0216 | Performance/integration fixtures (100k events, 500 KB scene); gitignore migration | SP-057 | 🔵 Backlog |
+| T-0216 | Performance/integration fixtures (100k events, 500 KB scene); gitignore migration | SP-057 | ⚪ **Closed — OBE (2026-08-05, user-directed)** — no perf coverage ships; see assessment |
 | T-0217 | Doc updates + EP-019 acceptance-criteria verification | SP-057 | 🔵 Backlog |
 
 ### Issues

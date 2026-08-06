@@ -170,13 +170,30 @@ private struct ManuscriptEditorView: View {
             }
             #if os(iOS)
             if UIDevice.current.userInterfaceIdiom != .phone && session.inspectorVisible {
-                SceneInspectorView()
+                inspector(loader: loader)
             }
             #else
             if session.inspectorVisible {
-                SceneInspectorView()
+                inspector(loader: loader)
             }
             #endif
+        }
+    }
+
+    /// The Scene Inspector (EP-030 SP-090). The card stack is per-scene, so it follows
+    /// the viewport scene — the same one the Navigator highlights. The selected TAB does
+    /// not follow the scene (Doc 2 §4.7); that lives in the layout store.
+    @ViewBuilder
+    private func inspector(loader: ViewportSceneLoader) -> some View {
+        if let layout = session.inspectorLayout {
+            SceneInspectorView(
+                sceneID: loader.viewportSceneID ?? loader.segments.first?.sceneID,
+                projectRootPath: session.projectRootPath,
+                engine: env.engine,
+                allSceneIDs: loader.segments.map(\.sceneID),
+                history: session.historyCapture,
+                layout: layout
+            )
         }
     }
 

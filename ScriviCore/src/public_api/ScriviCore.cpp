@@ -1,5 +1,7 @@
 #include "scrivi/ScriviCore.hpp"
 
+#include <algorithm>   // std::find — tag de-duplication in setSceneTags
+
 #include "git/SnapshotService.hpp"
 #include "identity/IdentityService.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
@@ -466,6 +468,109 @@ Result<SetSceneStoryTimeResult> ScriviCore::setSceneStoryTime(
     auto r = services_.fileSystem->atomicWriteTextFile(pathR.value(), schemas::serializeSceneMeta(data));
     if (!r.ok()) { return Result<SetSceneStoryTimeResult>::failure(r.error()); }
     return Result<SetSceneStoryTimeResult>::success({.sceneID = request.sceneID, .updated = true});
+}
+
+// --- Scene writing-tool card content (EP-030 SP-091) -----------------------
+//
+// All four follow the story-time shape above: locate the sidecar, parse, mutate the
+// one field, atomic-write. Setters replace their field wholesale — the card UI always
+// sends the complete list, so there is no partial-update path to get wrong.
+
+namespace {
+
+// Shared read-parse for the setters below. Returns the sidecar path + parsed data so
+// each setter only expresses what it changes.
+struct SceneMetaEdit {
+    AbsolutePath           path;
+    schemas::SceneMetaData data;
+};
+
+Result<SceneMetaEdit> loadSceneMetaForEdit(const AbsolutePath& projectRootPath,
+                                           const SceneID& sceneID,
+                                           CoreServices& services) {
+    auto pathR = findSceneMetaPath(projectRootPath, sceneID, services);
+    if (!pathR.ok()) { return Result<SceneMetaEdit>::failure(pathR.error()); }
+    auto textR = services.fileSystem->readTextFile(pathR.value());
+    if (!textR.ok()) { return Result<SceneMetaEdit>::failure(textR.error()); }
+    auto parseR = schemas::parseSceneMeta(textR.value());
+    if (!parseR.ok()) { return Result<SceneMetaEdit>::failure(parseR.error()); }
+    return Result<SceneMetaEdit>::success({pathR.value(), std::move(parseR.value())});
+}
+
+} // namespace
+
+Result<SetSceneNotesResult> ScriviCore::setSceneTags(const SetSceneTagsRequest& request) {
+    auto editR = loadSceneMetaForEdit(request.projectRootPath, request.sceneID, services_);
+    if (!editR.ok()) { return Result<SetSceneNotesResult>::failure(editR.error()); }
+    auto edit = std::move(editR.value());
+
+    // De-duplicate while preserving the writer's order — the card can send duplicates
+    // (paste, quick re-entry) and the sidecar should not accumulate them.
+    std::vector<std::string> deduped;
+    for (const auto& tag : request.tags) {
+        if (tag.empty()) { continue; }
+        if (std::find(deduped.begin(), deduped.end(), tag) == deduped.end()) {
+            deduped.push_back(tag);
+        }
+    }
+    edit.data.tags = std::move(deduped);
+
+    auto w = services_.fileSystem->atomicWriteTextFile(edit.path,
+                                                       schemas::serializeSceneMeta(edit.data));
+    if (!w.ok()) { return Result<SetSceneNotesResult>::failure(w.error()); }
+    return Result<SetSceneNotesResult>::success({.sceneID = request.sceneID, .updated = true});
+}
+
+Result<SetSceneNotesResult> ScriviCore::setSceneOutline(const SetSceneOutlineRequest& request) {
+    auto editR = loadSceneMetaForEdit(request.projectRootPath, request.sceneID, services_);
+    if (!editR.ok()) { return Result<SetSceneNotesResult>::failure(editR.error()); }
+    auto edit = std::move(editR.value());
+    edit.data.outline = request.outline;
+    auto w = services_.fileSystem->atomicWriteTextFile(edit.path,
+                                                       schemas::serializeSceneMeta(edit.data));
+    if (!w.ok()) { return Result<SetSceneNotesResult>::failure(w.error()); }
+    return Result<SetSceneNotesResult>::success({.sceneID = request.sceneID, .updated = true});
+}
+
+Result<SetSceneNotesResult> ScriviCore::setSceneTodo(const SetSceneTodoRequest& request) {
+    auto editR = loadSceneMetaForEdit(request.projectRootPath, request.sceneID, services_);
+    if (!editR.ok()) { return Result<SetSceneNotesResult>::failure(editR.error()); }
+    auto edit = std::move(editR.value());
+
+    edit.data.todo.clear();
+    edit.data.todo.reserve(request.todo.size());
+    for (const auto& item : request.todo) {
+        if (item.text.empty()) { continue; }   // blank rows are never persisted
+        edit.data.todo.push_back({item.text, item.done});
+    }
+
+    auto w = services_.fileSystem->atomicWriteTextFile(edit.path,
+                                                       schemas::serializeSceneMeta(edit.data));
+    if (!w.ok()) { return Result<SetSceneNotesResult>::failure(w.error()); }
+    return Result<SetSceneNotesResult>::success({.sceneID = request.sceneID, .updated = true});
+}
+
+Result<GetSceneNotesResult> ScriviCore::getSceneNotes(const GetSceneNotesRequest& request) {
+    auto editR = loadSceneMetaForEdit(request.projectRootPath, request.sceneID, services_);
+    if (!editR.ok()) { return Result<GetSceneNotesResult>::failure(editR.error()); }
+    const auto& data = editR.value().data;
+
+    GetSceneNotesResult result;
+    result.sceneID = request.sceneID;
+    result.tags    = data.tags;
+    result.outline = data.outline;
+    result.title                 = data.title;
+    result.createdAt             = data.createdAt;
+    result.createdByDisplayName  = data.createdByDisplayName;
+    result.modifiedAt            = data.modifiedAt;
+    result.modifiedByDisplayName = data.modifiedByDisplayName;
+    result.wordCount             = static_cast<int>(data.wordCount);
+    result.characterCount        = static_cast<int>(data.characterCount);
+    result.todo.reserve(data.todo.size());
+    for (const auto& item : data.todo) {
+        result.todo.push_back({item.text, item.done});
+    }
+    return Result<GetSceneNotesResult>::success(std::move(result));
 }
 
 Result<GetSceneStoryTimeResult> ScriviCore::getSceneStoryTime(

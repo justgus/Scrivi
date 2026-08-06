@@ -195,6 +195,37 @@ struct StaleBranch {
     int nodeCount = 0;              // nodes in the subtree (what purge removes)
 };
 
+// --- History tree, windowed (EP-030 SP-092, T-0394) ------------------------
+//
+// A read-only projection of the node graph for the history CARD (design §10 Trade T2
+// option B, formerly the "history panel"). Windowed because a project may hold 100k
+// events and the card renders a neighbourhood, never the whole graph.
+
+struct TreeNode {
+    std::string eventID;
+    std::string parentID;             // empty for the root
+    std::string primaryChildID;       // empty when the node has no children
+    std::vector<std::string> childIDs;
+    std::string kind;                 // "typing" | "delete" | "paste" | "cut" | "barrier" | "structural"
+    std::string sceneID;              // empty for the root
+    std::string preview;              // short single-line summary of the change
+    std::string timestamp;
+    std::string sessionID;
+    std::string bufferID;             // copy-buffer provenance; empty for ordinary events
+    std::string barrierKind;          // barrier/structural only
+    std::string barrierNote;
+    bool onPrimarySpine = false;      // node lies on root→current via primaryChildID
+    bool isCurrent      = false;
+};
+
+struct TreeWindow {
+    std::string rootID;
+    std::string currentNodeID;
+    std::vector<TreeNode> nodes;
+    int totalNodeCount = 0;           // nodes in the WHOLE history, not just the window
+    bool truncated     = false;       // true when totalNodeCount > nodes.size()
+};
+
 // Result of a user-confirmed purge of a branch subtree (§5, T-0212).
 struct PurgeResult {
     bool ok = false;                // false when branchRootEventID is not purgeable
@@ -273,6 +304,21 @@ public:
     // would strand the live pointer). Does NOT move the current pointer. Design §7
     // scrivi_history_purge_branch.
     PurgeResult purgeBranch(const std::string& branchRootEventID);
+
+    // A windowed read-only projection of the node graph for the history card
+    // (EP-030 SP-092, T-0394; design §10 Trade T2 option B).
+    //
+    // Windowing walks OUTWARD from `aroundNodeID` (default: the current node) —
+    // ancestors first, so the card always has the spine the writer is standing on,
+    // then descendants breadth-first — until `maxNodes` is reached. Anchoring on the
+    // current node is what makes the window useful: a 100k-event history renders the
+    // neighbourhood the writer is actually in, not an arbitrary slice of the root.
+    //
+    // `maxNodes <= 0` uses the default cap. An unknown `aroundNodeID` falls back to
+    // the current node rather than erroring — a card asking about a node that was
+    // just purged should still render.
+    [[nodiscard]] TreeWindow getTree(const std::string& aroundNodeID,
+                                     int maxNodes) const;
 
     [[nodiscard]] bool canUndo() const;
     [[nodiscard]] bool canRedo() const;

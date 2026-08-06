@@ -678,7 +678,9 @@ history/
 
 Because approved indexes are app-local by default, `.gitignore` is mostly defensive. The
 `history/` exclusion (added 2026-07-06) keeps undo-state churn out of Git snapshots; projects
-whose `.gitignore` predates EP-019 receive the entry via a one-time migration (EP-019 T-0216).
+whose `.gitignore` predates EP-019 would have received the entry via a one-time migration (EP-019 T-0216) —
+**T-0216 was closed OBE 2026-08-05**: Scrivi has not shipped, so no such projects exist. New projects get the
+`history/` entry at creation.
 
 ---
 

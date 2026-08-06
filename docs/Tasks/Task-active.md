@@ -1,13 +1,49 @@
 # Active Tasks
 
-**No active sprint.** **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers) is **held pending**
-its final sprint SP-057. **EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste) is Active: its design
-sprint **SP-085 ✅ closed 2026-07-27 (Human-approved)** — design doc
-`docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md` **✅ APPROVED**, trades ruled **T1=A · T2=A · T3=A · T4=A**,
-Open Questions #1–#3 resolved (**caret-in-heading paste = refuse + flash**, user override). **Next: SP-086**
-(ScriviCore `scrivi.fragment.v1` model + extract-fragment + `scrivi_fragment_extract` C ABI + tests), planned in
-`../Epics/Epic-active.md`, **awaiting go-ahead to activate.** (Historical note: T-0351 was the next free number
-at 2026-07-27; since then T-0354–T-0358 were taken — see below. **Next available Task: T-0359.**)
+## 🔵 SP-092 `[Cross]` — EP-030 history card + Properties tab (PLANNING, drafted 2026-08-05)
+
+**Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-030 · **Awaiting go-ahead to activate.**
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` + ctest | High | 🟠 **Implemented — Not Verified** |
+| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` tree wrapper + interop test | High | 🟠 **Implemented — Not Verified** |
+| T-0366 | `[Apple]` `history` card (**supersedes T-0215**) — unblocks EP-019's close | High | 🟠 **Implemented — Not Verified** |
+| T-0367 | `[Apple]` Properties tab — field-driven view | Medium | 🟠 **Implemented — Not Verified** |
+| T-0368 | `[Apple]` Card failure isolation + inline warning | Medium | 🟠 **Implemented — Not Verified** |
+
+**⚠️ Found at planning:** `scrivi_history_get_tree` **does not exist** (`scrivi.h:334` marks it deferred), so
+SP-092 is `[Cross]`. The engine work is done though — `HistoryService` already exposes `nodes()`/`rootID()`/
+`currentNodeID()`, so the endpoint is serialization + windowing, not new history logic.
+
+---
+
+## ✅ SP-091 `[Cross]` — EP-030 writing-tool cards (CLOSED 2026-08-05)
+
+All four tasks Verified; **I-0101** found, fixed, and Verified in-sprint. Archived
+`../Sprints/Closed/Sprint-SP-091.md`.
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0392 | `[ScriviCore]` `scrivi.scene.v1` + `tags`/`outline`/`todo` (additive) | ✅ **Verified (2026-08-05)** |
+| T-0393 | `[ScriviCore]` C ABI: scene notes setters + `_get_scene_notes` | ✅ **Verified (2026-08-05)** |
+| T-0363 | `[Apple]` `tags` + `todo` cards | ✅ **Verified (2026-08-05)** |
+| T-0364 | `[Apple]` `outline` card | ✅ **Verified (2026-08-05)** |
+| T-0365 | `sources` card + `source` object kind | ⚪ **Deferred → EP-031 SP-094** |
+
+## ✅ SP-090 `[Apple]` — EP-030 card framework (CLOSED 2026-08-05)
+
+T-0359–T-0362 all Verified. Archived `../Sprints/Closed/Sprint-SP-090.md`.
+
+---
+
+## Prior context
+
+**EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste) ✅ **CLOSED 2026-08-03** — all five sprints
+(SP-085–SP-089) closed; archived to `../Epics/Closed/Epic-EP-029.md`.
+**EP-019** `[Apple]` remains Active but **held pending** SP-057, now a **pure verification sprint** (no build
+work): AC2/AC7/AC8 live verify + Epic close. Run **after EP-030 SP-092**.
+**Next available Task: T-0392.**
 
 **T-0358** (EP-027 lineage — OrderKey caps-only "dot naming" rework) — ✅ **Verified (2026-07-31)**, archived to
 `Verified/Task-verified-0358.md`.
@@ -29,7 +65,8 @@ Appendix A.3 (with the approved chord refinement noted in SP-056).
 | T-0214 | **`[Apple]` Buffer UX — palette + Edit/Scene/Chapter menu items + explicit ⌘/⌃/⌥1–9 chords + history integration.** ⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut (buffer 0 = system pasteboard); app-global Copy Buffers palette (View ▸ Show Buffers / ⌥⌘B; per-project reload; modifier-sensitive action button + clear); Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items. Trade T3: copy = no event, paste = `paste` event, cut = `cut` event **tagged with bufferID** (backend `scrivi_history_record_event` + history-node schema extended). System pasteboard untouched; buffers persist per project + across relaunch. Closes **AC6**. | ✅ **Verified (2026-07-27)** |
 
 **Planning note (2026-07-27):** SP-056 is closed and **AC6 Verified**. Two follow-on tracks are queued:
-1. **EP-019 SP-057** (held) — history panel (T-0215) + perf fixtures (T-0216) + AC2/AC7/AC8 verify + Epic close.
+1. **EP-019 SP-057** (held) — **verification only**: AC2/AC7/AC8 live verify + Epic close. Rescoped 2026-08-05:
+   history panel (T-0215) → EP-030 T-0366; perf fixtures (T-0216) ⚪ closed OBE.
    Deliberately **held** so EP-029 is planned first.
 2. **EP-029** `[Cross]` (new, opened 2026-07-27) — cross-boundary structured Cut/Copy/Paste. Gap surfaced during
    SP-056 verify: the manuscript is one `NSTextStorage` with dividers + non-editable headings, so ⌘C/⌘X and

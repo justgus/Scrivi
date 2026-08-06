@@ -71,8 +71,21 @@ import os
     // release it on close. nil when the open project came from the panel.
     var deepLinkAccessURL: URL?
 
+    // Scene Inspector card layout (EP-030 SP-090) — `inspector-layout.json` in the
+    // project package. nil until a project is loaded.
+    var inspectorLayout: InspectorLayoutStore?
+
     // Per-window UI toggles.
-    var inspectorVisible: Bool = true
+    //
+    // `inspectorVisible` is restored from (and written back to) inspector-layout.json —
+    // Doc 2 AC4 requires the hide/show state to persist. It was previously in-memory
+    // only, so the inspector reappeared on every launch regardless of the writer's choice.
+    var inspectorVisible: Bool = true {
+        didSet {
+            guard oldValue != inspectorVisible else { return }
+            inspectorLayout?.setInspectorHidden(!inspectorVisible)
+        }
+    }
     var timelineVisible: Bool = true
     var showProjectSettings: Bool = false
 
@@ -138,6 +151,16 @@ import os
         // this project. Reads history/buffers.json (empty when none loaded yet).
         bufferService = BufferService(engine: engine, projectRootPath: path)
 
+        // Scene Inspector card layout (EP-030 SP-090). Project-level and Git-visible;
+        // absent on first open, in which case the ruled defaults apply (Worldbuilding
+        // empty, Writing = tags/outline/todo).
+        let layout = InspectorLayoutStore(projectRootPath: path)
+        // Restore the persisted hide/show state (Doc 2 AC4) BEFORE publishing the store,
+        // so `inspectorVisible`'s didSet has no store to write back to. Otherwise
+        // restoring would immediately re-save the value we just read.
+        inspectorVisible = !layout.document.inspectorHidden
+        inspectorLayout = layout
+
         // Donate the project's indexable content to Spotlight (best-effort).
         donateSpotlight(projectRootPath: path)
         return result
@@ -160,6 +183,10 @@ import os
         historyCapture = nil
 
         bufferService = nil
+
+        // Drop the layout store before the visibility toggle can fire its didSet against
+        // a closing project (writes are already flushed — each mutation saves eagerly).
+        inspectorLayout = nil
 
         openProjectResult = nil
         projectRootPath = nil

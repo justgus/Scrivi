@@ -262,6 +262,19 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
 const char* scrivi_get_scene_story_time(const char* projectRootPath, const char* sceneID);
 const char* scrivi_clear_scene_story_time(const char* projectRootPath, const char* sceneID);
 
+/* Scene writing-tool card content (EP-030 SP-091) — tags / outline / todo.
+   Setters replace their field wholesale; the card UI always sends the complete list.
+   `tagsJson` is a JSON string array: ["battle","ada-pov"]
+   `todoJson` is a JSON array of objects: [{"text":"…","done":false}] */
+const char* scrivi_set_scene_tags(const char* projectRootPath, const char* sceneID,
+                                   const char* tagsJson);
+const char* scrivi_set_scene_outline(const char* projectRootPath, const char* sceneID,
+                                      const char* outline);
+const char* scrivi_set_scene_todo(const char* projectRootPath, const char* sceneID,
+                                   const char* todoJson);
+/* Returns all three in one envelope so a card stack costs one call, not three. */
+const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID);
+
 const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char* sceneID,
                                          const char* bandID);
 const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const char* sceneID);
@@ -318,9 +331,9 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath);
  * Persistent (per-project, on-disk) undo/redo history engine, one instance per
  * open project keyed by projectRootPath. Branching, disk persistence, capacity,
  * sessions, stale-branch detection/purge are all in place (EP-019 SP-052..055).
- * The remaining deferred function is scrivi_history_get_tree (history panel,
- * SP-057). scrivi_buffers_* (copy buffers) landed in SP-056 — see the Copy
- * buffers section below.
+ * scrivi_history_get_tree landed in EP-030 SP-092 (T-0394) for the history CARD
+ * (the panel moved to the Scene Inspector); scrivi_buffers_* (copy buffers)
+ * landed in SP-056 — see the Copy buffers section below.
  *
  * Standard envelope conventions apply: each returns a heap JSON string freed
  * with scrivi_free. Offsets/cursors are scene-local UTF-8 byte offsets that
@@ -395,6 +408,22 @@ const char* scrivi_history_select_branch(const char* projectRootPath,
  * result: {staleBranchDays, branches:[{branchRootEventID, forkNodeID, preview,
  *          tipTimestamp, nodeCount}]}
  * branches is empty when staleBranchDays <= 0 or nothing is stale. */
+/* A windowed read-only projection of the node graph for the history card
+ * (EP-030 SP-092 / T-0394; design §10 Trade T2 option B).
+ *
+ * paramsJSON: {"aroundNodeID"?: string, "maxNodes"?: int} — both optional. The
+ * window walks outward from aroundNodeID (default: the current node): ancestors
+ * first, then descendants breadth-first, capped at maxNodes (default 200). An
+ * unknown aroundNodeID falls back to the current node rather than erroring.
+ *
+ * Returns {rootID, currentNodeID, totalNodeCount, truncated, nodes:[{eventID,
+ * parentID, primaryChildID, childIDs[], kind, sceneID, preview, timestamp,
+ * sessionID, bufferID, barrierKind, barrierNote, onPrimarySpine, isCurrent}]}.
+ * NOTE: childIDs is OMITTED for a leaf (empty arrays are not emitted) — decoders
+ * must tolerate its absence (see I-0094). */
+const char* scrivi_history_get_tree(const char* projectRootPath,
+                                    const char* paramsJSON);
+
 const char* scrivi_history_list_stale_branches(const char* projectRootPath);
 
 /* Purges a branch subtree with user confirmation (SP-055 / §5, T-0212): erases

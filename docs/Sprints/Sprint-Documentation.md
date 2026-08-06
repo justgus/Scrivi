@@ -11,10 +11,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint.** EP-019 `[Apple]` is **held pending** its final sprint SP-057 — **rescoped 2026-08-05 to a
-verification sprint** (AC2/AC7 audited as already implemented; suites green; history panel moved to EP-030
-T-0366). Two new Epics planned: **EP-030** (SP-090–093) and **EP-031** (SP-094–099). Original note follows: (AC2/AC7/AC8 verify + history
-panel + Epic close), awaiting user go-ahead to activate. **EP-029** `[Cross]` is ✅ **fully closed 2026-08-03.**
+**No active sprint.** **SP-090** ✅ closed 2026-08-05 (Human-approved) — EP-030's Scene Inspector card framework
+(T-0359–T-0362 all Verified); archived `Closed/Sprint-SP-090.md`. **Next: SP-091** (writing-tool cards), awaiting
+go-ahead. EP-019 `[Apple]` remains **held pending** SP-057 — **rescoped 2026-08-05 to a verification sprint**
+(AC2/AC7 audited as already implemented; suites green; history panel moved to EP-030 T-0366; T-0216 closed OBE).
+Two Epics now planned: **EP-030** (SP-090 ✅ / SP-091–093) and **EP-031** (SP-094–099). **EP-029** `[Cross]` is
+✅ **fully closed 2026-08-03.**
 
 Last closed: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
 (Human-approved).** The final EP-029 sprint, which **closed the Epic**. Wired the manuscript editor's
@@ -165,7 +167,8 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
 | SP-086 | ScriviCore: `scrivi.fragment.v1` model + extract-fragment + C ABI + tests | EP-029 | 🔵 Planned (next to activate) |
-| SP-057 | Undo/Redo — **verification sprint**: AC2/AC7/AC8 live verify + perf fixtures + Epic close (panel → EP-030 T-0366) | EP-019 | 🔵 Planning (**EP-019 held pending**; rescoped 2026-08-05) |
+| SP-057 | Undo/Redo — **verification sprint**: AC2/AC7/AC8 live verify + Epic close (panel → EP-030 T-0366; T-0216 OBE) | EP-019 | 🔵 Planning (**EP-019 held pending**; rescoped 2026-08-05) |
+| SP-090 | `[Apple]` EP-030 — Scene Inspector card framework (protocol, layout schema, tabs) | EP-030 | ✅ Closed (Human-approved) 2026-08-05 |
 | SP-085 | Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 | ✅ Closed (Human-approved) — doc approved, T1–T4 ruled |
 | SP-056 | Copy buffers — store, ABI, palette/menu UX, chords, history integration | EP-019 | ✅ Closed (Human-approved) — **AC6** |
 

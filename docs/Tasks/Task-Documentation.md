@@ -56,7 +56,7 @@ re-audit; `Task-backlog.md` is the authoritative backlog list.)*
 | T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | EP-019 (SP-056) | 🔵 Backlog |
 | T-0214 | Buffer UX (HUD/palette/menus) + paste/cut history integration | EP-019 (SP-056) | 🔵 Backlog |
 | T-0215 | History panel (management surface) | EP-019 (SP-057) | 🔵 Backlog |
-| T-0216 | Perf/integration fixtures + gitignore migration | EP-019 (SP-057) | 🔵 Backlog |
+| T-0216 | Perf/integration fixtures + gitignore migration | EP-019 (SP-057) | ⚪ **Closed — OBE (2026-08-05)** |
 | T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (SP-057) | 🔵 Backlog |
 | T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | EP-016 | 🔵 Backlog |
 | T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | EP-016 | 🔵 Backlog |

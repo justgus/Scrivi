@@ -928,6 +928,48 @@ struct ScriviInteropTests {
         try engine.historyClose(projectRootPath: root)
     }
 
+    // EP-030 SP-092 (T-0395) — the history tree the inspector card renders.
+    @Test("historyGetTree returns a windowed tree and tolerates absent arrays")
+    func historyGetTreeWindows() throws {
+        let engine = ScriviEngine()
+        let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
+        _ = try engine.historyOpen(projectRootPath: root)
+        defer { try? engine.historyClose(projectRootPath: root) }
+
+        // A fresh history is root-only: the root has no parentID and no childIDs, so
+        // the C API omits BOTH keys. Decoding this at all is the I-0094 regression
+        // guard — non-optional fields would throw keyNotFound here.
+        let empty = try engine.historyGetTree(projectRootPath: root)
+        #expect(empty.nodes.count == 1)
+        #expect(empty.totalNodeCount == 1)
+        #expect(!empty.truncated)
+        #expect(empty.rootID == empty.currentNodeID)
+        #expect(empty.nodes[0].parentID.isEmpty)
+        #expect(empty.nodes[0].childIDs.isEmpty)
+        #expect(empty.nodes[0].isCurrent)
+
+        for i in 0..<6 {
+            _ = try engine.historyRecordEvent(
+                projectRootPath: root, sceneID: "scene_a",
+                newSceneText: String(repeating: "x", count: i + 1),
+                cursorBefore: Int64(i), cursorAfter: Int64(i + 1))
+        }
+
+        let full = try engine.historyGetTree(projectRootPath: root)
+        #expect(full.totalNodeCount == 7)          // root + 6 events
+        #expect(full.nodes.count == 7)
+        #expect(!full.truncated)
+        #expect(full.nodes.contains { $0.isCurrent })
+
+        // maxNodes windows the result and flags truncation.
+        let capped = try engine.historyGetTree(projectRootPath: root, maxNodes: 3)
+        #expect(capped.nodes.count == 3)
+        #expect(capped.totalNodeCount == 7)
+        #expect(capped.truncated)
+        // The window is anchored on the writer's position, so it is always included.
+        #expect(capped.nodes.contains { $0.eventID == capped.currentNodeID })
+    }
+
     @Test("record → undo → redo round-trips text and cursor through Swift")
     func historyRoundTrip() throws {
         let engine = ScriviEngine()

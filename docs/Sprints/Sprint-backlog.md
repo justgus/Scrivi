@@ -7,9 +7,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
 | SP-057 | Undo/Redo — perf fixtures, verification & Epic close (**panel now EP-030 T-0366**) | EP-019 | 🔵 Planning (parked) |
-| SP-090 | Inspector framework: card protocol, registry, layout schema, tabs | EP-030 | 🔵 Planning |
-| SP-091 | Writing-tool cards: tags, todo, outline, sources | EP-030 | 🔵 Planning |
-| SP-092 | `history` card (folds in T-0215) + Properties tab | EP-030 | 🔵 Planning |
+| SP-092 | `[Cross]` `history` card + Properties tab + `scrivi_history_get_tree` | EP-030 | 🔵 **Planning (drafted)** → `Sprint-active.md` |
 | SP-093 | EP-030 verification & Epic close | EP-030 | 🔵 Planning |
 | SP-094 | Object kinds + fields + object index | EP-031 | 🔵 Planning |
 | SP-095 | Relationship graph: canonical edges, append-log, compaction | EP-031 | 🔵 Planning |
@@ -22,6 +20,12 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 > (the sprint closed 2026-07-27 user-approved but was never archived; `Closed/` had jumped SP-055 → SP-058). The
 > archive is marked as reconstructed. Its tasks T-0213/T-0214 were also still showing 🔵 Backlog in
 > `Task-backlog.md` despite being Verified — corrected the same day.
+
+> ✅ **SP-091 closed 2026-08-05 (Human-approved)** — `Closed/Sprint-SP-091.md`. Writing-tool cards + the
+> `scrivi.scene.v1` extension; T-0392/T-0393/T-0363/T-0364 Verified, I-0101 fixed in-sprint. **SP-092 is next.**
+
+> ✅ **SP-090 closed 2026-08-05 (Human-approved)** — `Closed/Sprint-SP-090.md`. EP-030's card framework
+> shipped; T-0359–T-0362 all Verified. Planning row removed. **SP-091 is next.**
 
 > **Sequencing (2026-08-05):** EP-030 SP-090→SP-093, then **EP-019 SP-057** (its history-panel requirement is
 > met by EP-030 T-0366), then EP-031 SP-094→SP-099. EP-031's ScriviCore sprints (SP-094–SP-097) have no
@@ -61,36 +65,91 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 
 ---
 
-## SP-056: Copy buffers — store, ABI, HUD/palette UX, history integration
+## SP-056 — ✅ CLOSED 2026-07-27 (stale Planning block removed 2026-08-05)
 
-**Status:** 🔵 Planning
-**Epic:** EP-019
-**Goal:** Multiple copy buffers usable for the two-buffer replacement-scan CONOPS (design §9.a); pastes are history events.
-
-### Assigned Tasks
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | High | 🔵 Backlog |
-| T-0214 | Buffer UX: keyboard HUD + palette + Edit-menu items (T4); paste/cut history integration | High | 🔵 Backlog |
-
-**Exit criteria:** CONOPS walkthrough verifiable; each buffer paste is one undo step; system pasteboard untouched; buffers persist across relaunch.
+Its full record lives in `Closed/Sprint-SP-056.md` (archived 2026-08-05, reconstructed). T-0213/T-0214 are
+✅ Verified. The Planning block that stood here still listed both tasks as 🔵 Backlog four months after they
+shipped — removed rather than left to mislead.
 
 ---
 
-## SP-057: Undo/Redo — history panel, perf fixtures, verification & Epic close
+## SP-057: Undo/Redo — verification & Epic close (**rescoped 2026-08-05 — no build work**)
 
-**Status:** 🔵 Planning
+**Status:** 🔵 Planning (parked — run **after EP-030 SP-092**)
 **Epic:** EP-019
-**Goal:** Management surface (Trade T2 option B), performance validation, and EP-019 acceptance-criteria verification.
+**Goal:** EP-019 acceptance-criteria verification and Epic close. **Rescoped 2026-08-05:** the history panel
+moved to EP-030 T-0366 (ships as the `history` card) and T-0216 was closed OBE, leaving **no implementation
+work** — AC2/AC7 were audited as already implemented and both suites are green; what remains is live user
+verification.
 
 ### Assigned Tasks
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
-| T-0215 | History panel (T2 management surface) | Medium | 🔵 Backlog |
-| T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | Medium | 🔵 Backlog |
+| T-0215 | History panel (T2 management surface) | Medium | ⚪ **Superseded → EP-030 T-0366** |
+| T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | Medium | ⚪ **Closed — OBE (2026-08-05)** |
 | T-0217 | Doc updates + EP-019 acceptance-criteria verification | High | 🔵 Backlog |
 
-**Exit criteria:** all EP-019 ACs pass user verification; docs updated (`Scrivi_Project_Package_Structure`, repair matrix); Epic ready for close approval.
+**Exit criteria:** AC2/AC7/AC8 pass **live** user verification; docs updated (`Scrivi_Project_Package_Structure`,
+repair matrix); Epic ready for close approval. **Sequence after EP-030 SP-092** so T-0366 exists at close.
+
+---
+
+## SP-091: `[Apple]` EP-030 — writing-tool cards
+
+**Status:** 🔵 Planning
+**Epic:** EP-030
+**Goal:** The first real cards on SP-090's framework — `tags`, `todo`, `outline`, `sources`.
+
+### Assigned Tasks
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0363 | `tags` + `todo` cards (scene sidecar) | High | 🔵 Backlog |
+| T-0364 | `outline` card (scene sidecar) | High | 🔵 Backlog |
+| T-0365 | `sources` card + `source` object kind (`objects/sources/`) | Medium | 🔵 Backlog |
+
+**Exit criteria:** the Writing tab's default stack (`tags`/`outline`/`todo`) renders real cards, empty and
+dismissible, with the writer's choices persisting (Doc 2 AC8). `source` is a real `objects/` file — citations
+are reusable across scenes (Doc 1 §3).
+
+> **Note:** T-0365 adds the **first new object kind**, which overlaps EP-031 SP-094's `ObjectKind` work
+> (T-0370). Coordinate: either land `source` here and let SP-094 extend, or defer T-0365 into SP-094. Decide at
+> SP-091 planning.
+
+---
+
+## SP-092: `[Apple]` EP-030 — history card + Properties tab
+
+**Status:** 🔵 Planning
+**Epic:** EP-030
+**Goal:** The `history` card (absorbing EP-019's T-0215) and the Properties tab.
+
+### Assigned Tasks
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0366 | `history` card — windowed tree, branch selection, stale badges, purge (**supersedes T-0215**) | High | 🔵 Backlog |
+| T-0367 | Properties tab — field-driven view, author/timestamps/metrics | Medium | 🔵 Backlog |
+| T-0368 | Card failure isolation + inline warning presentation | Medium | 🔵 Backlog |
+
+**Exit criteria:** Doc 2 AC12–AC15. **Properties must be built field-driven** — each field declares its own
+editability — so a future editable property is a field-level addition, not a rewrite (Doc 2 §4.8.1).
+
+> **Unblocks EP-019:** once T-0366 lands, EP-019's history-panel requirement is met and SP-057 can run.
+
+---
+
+## SP-093: `[Apple]` EP-030 — verification & Epic close
+
+**Status:** 🔵 Planning
+**Epic:** EP-030
+**Goal:** Full EP-030 AC1–AC7 verification; prepare the Epic for close approval.
+
+### Assigned Tasks
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0369 | EP-030 verification (AC1–AC7) + Epic close prep | High | 🔵 Backlog |
+
+**Exit criteria:** all EP-030 ACs pass user verification; `ctest` + interop green; Epic ready for close approval
+(user-only).
 
 ---
 
