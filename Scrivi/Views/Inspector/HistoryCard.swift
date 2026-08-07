@@ -29,6 +29,12 @@ private struct HistoryCardBody: View {
     @State private var pendingPurge: HistoryStaleBranch?
     @State private var loadFailed = false
 
+    /// Show only events belonging to the scene in view. Default ON: a project-wide
+    /// history is hundreds of rows and mostly about other scenes, which is what made
+    /// the unfiltered card unreadable. Per-device, not per-project — it is a viewing
+    /// preference, not a creative decision.
+    @AppStorage("historyCardSceneOnly") private var sceneOnly: Bool = true
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if context.history == nil {
@@ -80,14 +86,26 @@ private struct HistoryCardBody: View {
 
     @ViewBuilder
     private func treeView(_ tree: HistoryTreeResult) -> some View {
+        let shown = orderedNodes(tree)
+
         if tree.nodes.isEmpty {
             notice("No history yet.")
         } else {
             VStack(alignment: .leading, spacing: 3) {
+                scopeToggle(shown: shown.count, total: tree.nodes.count)
+
+                if shown.isEmpty {
+                    notice("No history for this scene yet.")
+                }
+
                 // Newest first — the writer's attention is at the tip, not the root.
-                ForEach(orderedNodes(tree)) { node in
+                ForEach(shown) { node in
                     HistoryNodeRow(
                         node: node,
+                        // Bold the entry whose change the caret is sitting inside, so
+                        // a long list of similar rows still says "you are here"
+                        // (user request, 2026-08-06).
+                        atCaret: isAtCaret(node),
                         onSelect: { select(node, in: tree) }
                     )
                 }
@@ -105,9 +123,39 @@ private struct HistoryCardBody: View {
     /// Spine nodes newest-first, then any off-spine (branch) nodes — so the line the
     /// writer is on reads top-down and abandoned branches sit below it.
     private func orderedNodes(_ tree: HistoryTreeResult) -> [HistoryTreeNode] {
-        let spine = tree.nodes.filter(\.onPrimarySpine).reversed()
-        let branches = tree.nodes.filter { !$0.onPrimarySpine }
+        // Scene scope first. The root is always dropped when scoped — it is a
+        // non-textual anchor belonging to no scene.
+        let scoped = sceneOnly
+            ? tree.nodes.filter { $0.sceneID == context.sceneID }
+            : tree.nodes
+        let spine = scoped.filter(\.onPrimarySpine).reversed()
+        let branches = scoped.filter { !$0.onPrimarySpine }
         return Array(spine) + branches
+    }
+
+    /// Scope toggle + the honest count, so a writer can see that filtering is why the
+    /// list is short rather than assuming history was lost.
+    private func scopeToggle(shown: Int, total: Int) -> some View {
+        HStack(spacing: 6) {
+            Toggle("This scene only", isOn: $sceneOnly)
+                .toggleStyle(.checkbox)
+                .font(.caption)
+            Spacer(minLength: 0)
+            Text(sceneOnly ? "\(shown) of \(total)" : "\(total)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .padding(.bottom, 2)
+    }
+
+    /// True when the caret sits inside this event's change in the scene being viewed.
+    /// Requires the node to belong to the caret's scene — an offset alone would match
+    /// coincidentally across scenes.
+    private func isAtCaret(_ node: HistoryTreeNode) -> Bool {
+        guard let caret = context.caretByteOffset, caret >= 0,
+              node.sceneID == context.sceneID else { return false }
+        return node.contains(caret: caret)
     }
 
     /// Clicking a node off the current line re-primaries its fork so redo walks it.
@@ -171,6 +219,7 @@ private struct HistoryCardBody: View {
 
 private struct HistoryNodeRow: View {
     let node: HistoryTreeNode
+    let atCaret: Bool
     let onSelect: () -> Void
 
     var body: some View {
@@ -184,7 +233,7 @@ private struct HistoryNodeRow: View {
                     .frame(width: 12)
 
                 Text(label)
-                    .font(.caption)
+                    .font(atCaret ? .caption.weight(.bold) : .caption)
                     .lineLimit(1)
                     .foregroundStyle(node.onPrimarySpine ? .primary : .secondary)
 

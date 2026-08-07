@@ -89,6 +89,10 @@ struct CardContext {
     /// nil when history failed to open, in which case that card reports it in place
     /// rather than the stack failing (§7.1).
     var history: HistoryCapture? = nil
+
+    /// Scene-local UTF-8 byte offset of the caret, or nil when unknown. Used by the
+    /// history card to bold the entry the caret is sitting inside.
+    var caretByteOffset: Int? = nil
 }
 
 /// A card the inspector can render. Conformers are registered in `InspectorCardRegistry`

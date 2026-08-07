@@ -120,6 +120,193 @@ suites are green, so what remains is live user verification of AC2/AC7/AC8 plus 
 
 ---
 
+## SP-093 (DRAFT): `[Cross]` History capture granularity + presentation
+
+**Status:** 🔵 **Drafted 2026-08-07 — awaiting go-ahead to activate.** Not started.
+**Epic:** EP-019 `[Cross]` — Undo/Redo, History & Copy Buffers.
+**Goal:** Make the history a faithful record of how the writer actually works — coherent typing sessions
+instead of arbitrary fragments, honest labels for whitespace and deletions, and a card that refreshes and
+highlights correctly.
+**Design:** `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` §4.a (commit triggers), §7 (ABI),
+§10 Trade T2.
+**Start Date:** TBD.
+**Depends on:** SP-092 (the history card ships there; this sprint corrects its data and behaviour).
+
+> ### Origin — the SP-092 live-verify (2026-08-07)
+>
+> The user verified the "This scene only" filter and orphaned-entry deletion (I-0102/I-0103 work) as
+> **working correctly**, then reported six further findings on the same session, on
+> `the-stairs-of-tintagael.scrivi` Ch 1 Sc 4 ("Mara's Room"). Diagnosis traced all six to code; three are
+> defects (I-0104/I-0105/I-0106) and three are behaviour changes (T-0396/T-0397/T-0398). **None is a
+> regression from SP-092** — the capture-granularity behaviour dates to SP-053, and the history card merely
+> made it visible for the first time.
+>
+> **The reference case.** The writer typed one continuous sentence — *"Now is the winter of our discontent
+> made glorious summer by this son of york"* — and history recorded it as **three** entries, split at
+> `"Now is"` / `" the winter of our discontent made glo"` / `"rious summer by this son of york"`. The split
+> points correspond to nothing semantic, because there is **no idle timer in the capture path at all**
+> (verified: `HistoryCapture.swift` has no timer; the only triggers are sentence terminators, cursor moves,
+> paste/cut, scene switch, and save). The breaks are cursor-move flushes.
+
+### Assigned Tasks
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash taken over replayed text, not disk bytes | High | 🔵 Open |
+| I-0105 | `[Apple]` History card doesn't refresh on commit — new edits appear only after reopen | High | 🔵 Open |
+| T-0396 | `[Apple]`+`[ScriviCore]` Typing-session coalescing — continuation-merge + idle timer | High | 🔵 Backlog |
+| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows | Medium | 🔵 Open |
+| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows | Medium | 🔵 Backlog |
+| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)" | Low | 🔵 Backlog |
+
+**Next free task after this sprint: T-0399.**
+
+### Task detail
+
+**I-0104 — the external-change trigger.** At close, `HistoryStore::persistState` hashes
+`service_->headTextForScene(sceneID)` (`HistoryStore.cpp:386`) — the *replayed history head*. At open,
+`validateSceneHead` (`HistoryStore.cpp:394-422`) hashes the scene's *on-disk text* and compares. These are
+different artifacts and diverge without any external editing, which is why the writer sees the warning on
+essentially every relaunch. Hash the bytes actually written at save time; compare disk-to-disk.
+
+> ⚠️ **Do not suppress the barrier.** An `externalChange` barrier is *correct* for a genuine third-party
+> edit — undo must not walk past text history never recorded. Only the trigger is wrong. A fix that quiets
+> the message without fixing the comparison would hide real external edits.
+
+**This supersedes I-0103**, which framed the same defect as a trailing-newline discrepancy. The newline is
+one symptom; the 3 scenes that "did not normalize simply" are explained by the same hash-source mismatch.
+
+**I-0105 — card refresh.** `HistoryCardBody` reloads on scene identity only
+(`.task(id: context.sceneID)`, `HistoryCard.swift:54`). A commit mutates state inside
+`HistoryCapture`/ScriviCore, which the card cannot observe, so the list goes stale until reopen. Add an
+observable revision counter bumped on every successful `flush`/undo/redo/barrier and fold it into the
+card's `.task(id:)`.
+
+**T-0396 — typing-session coalescing.** The core behaviour change, and the sprint's real weight.
+
+*Current triggers* (`ManuscriptTextView.swift`): `isCommitBoundary` commits on `.` `!` `?` `\n` `\r`
+(line 218-225); `flush(trigger: "cursorMove", soft: true)` commits on **any** cursor move (line 803).
+There is **no idle timer**.
+
+*Target model* (user-specified, 2026-08-07): continuous typing at the same insertion point **merges into
+the previous entry** rather than opening a new one — "this may result in one large historical entry
+especially for a writer that types really fast, but that would be preferable to breaking sentences up that
+were effectively typed in one session."
+
+Concretely:
+- On commit, record the scene + resulting end offset.
+- On the next `noteEdit`, if the scene matches and the cursor is at that offset (an append-continuation),
+  **reopen the previous node** and extend its diff instead of creating a sibling.
+- Add an **idle timer** as the secondary boundary — **30–60 s (user ruling, 2026-08-07)**, tunable.
+  Deliberately long: *"sometimes we writers ruminate for longer periods."* A pause is only a session
+  boundary when it is long enough to mean the writer actually stopped, not merely thought mid-sentence.
+- **Retire cursor-move as a hard commit trigger.** It is the direct cause of the three-way split in the
+  reference case. A cursor move that *relocates* the insertion point still ends the session (the next edit
+  is not a continuation); a move that returns to the same point does not.
+- Sentence terminators may remain a boundary, but must not split *mid-session* typing — the reference case
+  split at "glo|rious", nowhere near a terminator, so terminators are not the whole story.
+
+> **Where this lands — DECIDED (user, 2026-08-07): app-side.** Coalescing extends the pending latch before
+> it commits; `HistoryService` stays a pure append-only tree, matching the T-0356/AC6 precedent that kept
+> the service pure and ran inverse ops app-side. Do **not** split the logic across both layers.
+
+> ### ⚠️ T-0396 changes EP-019 **AC2** — the criterion must be amended before this sprint closes
+>
+> AC2 (`Epic-active.md:217`) names the event model explicitly, and **cursor-move-with-pending-changes is a
+> specified commit trigger**:
+>
+> > *"Events commit exactly per the design's event model (`.` `!` `?`, Return,
+> > **cursor-move-with-pending-changes**, paste/cut, scene switch, flush); cursor moves/newlines without text
+> > changes produce no event."*
+>
+> T-0396 **retires that trigger** and adds an idle timer the design never had. This is a deliberate,
+> user-directed change to approved acceptance criteria — not a defect fix, and not something to slip in
+> silently. AC2 is currently marked *"Implemented (audited 2026-08-05) — awaiting live verification"*;
+> verifying it as written would ratify the behaviour the user has rejected.
+>
+> **Required:** amend AC2 (and the §4.a trigger list in
+> `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`) to the coalescing model as part of this
+> sprint, via **T-0217** (doc updates, already in SP-057's scope). SP-057 then verifies the **amended**
+> AC2. This is the concrete reason SP-057 must run after SP-093 — see below.
+
+**T-0397 — whitespace-kind labels.** `forkPreview` (`HistoryService.cpp:148-157`) rewrites `\n`, `\r`, `\t`
+to spaces; `HistoryCard.label` (`HistoryCard.swift:264-271`) then trims and falls through to `"(no text)"`.
+A pure-newline event is therefore indistinguishable from an empty one — the user saw three such rows.
+Name the whitespace instead: `⏎ new paragraph`, `⇥ tab`, `␣␣␣ 3 spaces`. The kind must survive from the
+diff to the label rather than being flattened at preview time.
+
+**T-0398 — added vs. deleted.** Every row renders `circle.fill` (`HistoryCard.swift:258-262`), so a
+deletion is visually identical to an insertion — the user could not tell that the `"is the"` entry was
+text he had **removed**. The data exists (`diff.inserted` / `diff.removed`); the tree payload just doesn't
+carry it: `t.changeLength = n.diff.inserted.size()` (`HistoryService.cpp:700`) drops the removed length
+entirely. Add `removedLength` to the payload, then differentiate glyph/colour and prefix the label.
+
+> **Shared payload change with I-0106.** Both need `removedLength` in `TreeNode`. Do the ABI/serialization
+> change **once**, then let I-0106 (caret ranges) and T-0398 (presentation) consume it — sequence I-0106
+> and T-0398 together to avoid touching the envelope twice.
+
+**I-0106 — caret highlighting.** Two defects in one range model. (a) A deletion has
+`changeLength == 0`, hitting the degenerate `caret == changeOffsetUtf8` branch in
+`HistoryTreeNode.contains(caret:)` (`ScriviEngine.swift:2239-2241`) — which matches at the same offset an
+adjacent insertion's half-open range `[start, start+len)` also contains, so **two rows bold** (user-verified
+with "is the"). (b) The half-open range has no boundary tie-break, so a caret at the start of an entry
+bolds its neighbour. Give deletions a real span via `removedLength`; define the most-recent node as the
+winner at a shared boundary.
+
+### Exit criteria
+
+- [ ] A scene edited only inside Scrivi produces **no** `externalChange` barrier across repeated
+      quit→reopen cycles; a scene genuinely modified by an external editor **still does** (both directions
+      covered by ctest).
+- [ ] Committing an event refreshes the history card **without** a scene switch or relaunch.
+- [ ] The reference sentence — *"Now is the winter of our discontent made glorious summer by this son of
+      york"* — typed continuously, records as **one** history entry, not three.
+- [ ] A deliberate pause mid-sentence **beyond the 30–60 s idle threshold** starts a new entry; resuming at
+      the same insertion point after a shorter pause does **not** — a writer thinking mid-sentence keeps one
+      entry.
+- [ ] **EP-019 AC2 and design §4.a are amended** to the coalescing trigger model (via T-0217) before EP-019
+      is put forward for close — the old cursor-move trigger must not be verified as written.
+- [ ] Caret at the start of an entry bolds **that** entry; a deletion bolds **exactly one** row.
+- [ ] A newline/tab/space-run event reads as named whitespace, never `"(no text)"`.
+- [ ] Insertions and deletions are visually distinguishable at a glance, and a deletion's label says so.
+- [ ] `ctest` + interop suites green; app builds and launches clean.
+
+### Non-negotiables
+
+- **Coalescing is app-side** (user-approved 2026-08-07) — `HistoryService` stays pure. Not to be
+  re-litigated mid-implementation, and not split across both layers.
+- **Idle threshold 30–60 s** (user ruling) — not silently shortened because a test is slow to run.
+- **The `externalChange` barrier stays** for genuine external edits — I-0104 fixes the *trigger*, not the
+  feature.
+- **`removedLength` ships once**, consumed by both I-0106 and T-0398.
+- **pbxproj updated in the same step** as every new `.swift` file under `Scrivi/` (CLAUDE.md). **ScriviCore
+  `.cpp`/`.hpp` go in CMake, NOT pbxproj.**
+- **Build with `-DSCRIVI_BUILD_TESTS=ON`** and confirm the ctest count moves when tests are added (SP-091
+  precedent: a stale cached test binary silently replayed).
+- **Swift is UI only** (Architecture v0.3).
+- Claude may mark tasks **"Implemented — Not Verified"**; only the user marks them Verified.
+
+### Sequencing note
+
+I-0104 and I-0105 are independent and can land first — they are the two that make the card usable enough
+to verify everything else against. T-0396 is the largest change and should not be bundled with them.
+I-0106 and T-0398 share the `removedLength` payload change and should run together. T-0397 is
+self-contained and lowest priority.
+
+### Relationship to EP-019's close — **APPROVED: SP-057 runs after SP-093** (user, 2026-08-07)
+
+SP-092's close note had **EP-019 closing after that sprint** (T-0215 met by T-0366, T-0216 closed OBE,
+SP-057 reduced to pure verification). This sprint's findings are all EP-019 behaviour, so **EP-019 does
+not close until SP-093 completes** — closing it with the capture granularity in this state would archive
+the Epic against behaviour the user has explicitly reported as wrong.
+
+The ordering is now **load-bearing, not merely tidy**: SP-057's job is to live-verify **AC2**, and T-0396
+*changes what AC2 says* (see the T-0396 detail above). Running SP-057 first would verify the superseded
+trigger model and then immediately invalidate it. **T-0217** (doc updates, in SP-057's scope) carries the
+AC2 + design §4.a amendment.
+
+---
+
 _Prior: **SP-091** (`[Cross]` EP-030 — writing-tool cards) ✅ **closed 2026-08-05 (Human-approved)** — three real
 cards on new additive `scrivi.scene.v1` fields (`tags`/`outline`/`todo`) + four C ABI endpoints; T-0392, T-0393,
 T-0363, T-0364 all Verified, plus **I-0101** (unremovable unknown card) found, fixed, and Verified in-sprint.
@@ -127,7 +314,28 @@ ctest **381/381**, interop **45/45**. Archived `Closed/Sprint-SP-091.md`._
 
 _**SP-090** (card framework) ✅ closed 2026-08-05 — `Closed/Sprint-SP-090.md`._
 
-_**Then:** **EP-019 SP-057** (pure verification + Epic close) → **SP-093** (EP-030 verification + Epic close) →
-**EP-031** SP-094–SP-099 (T-0370–T-0391), whose ScriviCore sprints have no EP-030 dependency._
+_**Then:** **SP-093** (EP-019 history capture granularity + presentation — drafted above, from the SP-092
+live-verify) → **SP-094** (combined verification + double Epic close: EP-019 AC2/AC7/AC8 + T-0217 docs,
+**and** EP-030 AC1–AC7 + T-0369) → **EP-031** SP-095–SP-100 (T-0370–T-0391), whose ScriviCore sprints have
+no EP-030 dependency._
 
-_Next available Sprint **SP-093**, next Task **T-0396**._
+> ### Numbering + the T-0369 question — resolved (user, 2026-08-07)
+>
+> SP-093 was previously earmarked for **EP-030 verification + Epic close (T-0369)**; this draft claims the
+> number for the EP-019 history work.
+>
+> **T-0369 does not need its own sprint.** The old SP-093 (`Sprint-backlog.md:140-152`) and SP-057
+> (`Epic-active.md:235`) are **both pure verification sprints with no build work** — one task each
+> (T-0369; AC2/AC7/AC8 + T-0217), both gated on the same live-verify session against the same app build,
+> both ending in a user-only Epic close. Running them as two consecutive one-task sprints is ceremony, not
+> tracking.
+>
+> **Merged into a single SP-094: "EP-019 + EP-030 verification & Epic close."** Both Epics' ACs are
+> verified in one pass, then closed independently — each still requires its own direct user approval
+> (CLAUDE.md), and a failure in one Epic's ACs does **not** block the other's close. The old SP-093 entry
+> in `Sprint-backlog.md` should be struck when SP-093 activates.
+>
+> **If either Epic's verification turns up implementation work**, that work gets its own sprint and the
+> affected Epic's close moves behind it — exactly what happened here, when SP-092's verify produced SP-093.
+
+_Next available Sprint **SP-095** (after this draft and SP-094 activate), next Task **T-0399**._

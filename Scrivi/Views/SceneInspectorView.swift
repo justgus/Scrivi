@@ -15,6 +15,7 @@ struct SceneInspectorView: View {
     let engine: ScriviEngine
     let allSceneIDs: [String]
     let history: HistoryCapture?
+    let caretByteOffset: Int?
     @Bindable var layout: InspectorLayoutStore
 
     // Pane width is a per-device view preference (unlike the layout itself), so it
@@ -53,6 +54,7 @@ struct SceneInspectorView: View {
                                    engine: engine,
                                    allSceneIDs: allSceneIDs,
                                    history: history,
+                                   caretByteOffset: caretByteOffset,
                                    layout: layout)
         case .worldbuilding:
             InspectorCardStackView(stack: .worldbuilding,
@@ -61,6 +63,7 @@ struct SceneInspectorView: View {
                                    engine: engine,
                                    allSceneIDs: allSceneIDs,
                                    history: history,
+                                   caretByteOffset: caretByteOffset,
                                    layout: layout)
         case .properties:
             ScenePropertiesView(sceneID: sceneID,

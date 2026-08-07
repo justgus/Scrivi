@@ -12,6 +12,7 @@ struct InspectorCardStackView: View {
     let engine: ScriviEngine
     let allSceneIDs: [String]
     let history: HistoryCapture?
+    let caretByteOffset: Int?
     @Bindable var layout: InspectorLayoutStore
 
     var body: some View {
@@ -114,7 +115,8 @@ struct InspectorCardStackView: View {
                                     projectRootPath: projectRootPath,
                                     engine: engine,
                                     config: entry.config,
-                                    history: history
+                                    history: history,
+                                    caretByteOffset: caretByteOffset
                                 ),
                                 onToggleCollapsed: {
                                     layout.setCollapsed(!entry.collapsed,

@@ -251,6 +251,11 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
     node.kind = p.structuralPayload.empty() ? EventKind::Barrier : EventKind::Structural;
     node.barrierKind = p.barrierKind;
     node.barrierNote = p.barrierNote;
+    // BarrierParams has always carried sceneID, but recordBarrier never copied it —
+    // so every barrier node (624 of 947 in a real project) had an EMPTY sceneID and
+    // could not be attributed to a scene. That is what makes a 900-row history card
+    // unreadable and blocks per-scene filtering. Fixed 2026-08-06 (I-0102).
+    node.sceneID = p.sceneID;
     node.structuralPayload = p.structuralPayload;
     node.timestamp = p.timestamp;
     node.sessionID = sessionID_;
@@ -691,6 +696,8 @@ TreeWindow HistoryService::getTree(const std::string& aroundNodeID, int maxNodes
         t.barrierNote    = n.barrierNote;
         t.onPrimarySpine = spine.count(n.eventID) > 0;
         t.isCurrent      = (n.eventID == currentNodeID_);
+        t.changeOffsetUtf8 = n.diff.offsetUtf8;
+        t.changeLength     = n.diff.inserted.size();
         out.nodes.push_back(std::move(t));
     }
 

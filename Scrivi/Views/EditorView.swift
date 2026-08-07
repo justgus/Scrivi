@@ -192,6 +192,7 @@ private struct ManuscriptEditorView: View {
                 engine: env.engine,
                 allSceneIDs: loader.segments.map(\.sceneID),
                 history: session.historyCapture,
+                caretByteOffset: loader.cursorByteOffset,
                 layout: layout
             )
         }

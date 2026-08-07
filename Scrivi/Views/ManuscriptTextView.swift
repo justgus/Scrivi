@@ -737,6 +737,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                let sceneID = loader(for: segIdx)?.sceneID {
                 let cursorCharOffset = loc - range.location
                 let cursorByte = sceneLocalByteOffset(in: extracted, storageLoc: loc, segRange: range)
+                parent.loader.setCursorByteOffset(cursorByte, sceneID: sceneID)
                 capture.noteEdit(sceneID: sceneID, text: extracted, cursor: cursorByte,
                                  baselineIfFirst: preEditText)
                 editInFlight = true
@@ -803,6 +804,16 @@ struct ManuscriptTextView: NSViewRepresentable {
                 }
             }
             editInFlight = false
+
+            // Publish the caret's scene-local byte offset so the history card can bold
+            // the entry whose change the caret sits inside (user request, 2026-08-06).
+            // Done on every selection change, not just edits, so plain arrow-key moves
+            // update the highlight too.
+            if let seg = loader(for: segIdx), sceneBoundaries.indices.contains(segIdx) {
+                let byte = sceneLocalByteOffset(in: seg.text, storageLoc: loc,
+                                                segRange: sceneBoundaries[segIdx])
+                parent.loader.setCursorByteOffset(byte, sceneID: seg.sceneID)
+            }
 
             if segIdx != lastCursorSegmentIndex {
                 lastCursorSegmentIndex = segIdx

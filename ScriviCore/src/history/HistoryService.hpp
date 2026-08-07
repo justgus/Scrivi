@@ -119,6 +119,12 @@ struct BarrierParams {
     std::string barrierNote;   // human-readable "Can't undo past a scene merge"
     std::string timestamp;
 
+    // The scene this barrier belongs to, when there is one. Optional: some barriers
+    // (chapter-level ops) have no single owning scene. Without it a barrier node
+    // carries an empty sceneID and cannot be filtered or attributed in the history
+    // card — which is what made a 900-event history unreadable (I-0102).
+    std::string sceneID;
+
     // When non-empty, records a REVERSIBLE structural node (EventKind::Structural,
     // EP-029 AC6 / T-0356) instead of a hard barrier: the opaque inverse-op payload
     // the app replays on undo/redo. Empty ⇒ the classic barrier (undo stops here).
@@ -216,6 +222,13 @@ struct TreeNode {
     std::string barrierNote;
     bool onPrimarySpine = false;      // node lies on root→current via primaryChildID
     bool isCurrent      = false;
+
+    // Where in the scene this event changed text — a scene-local UTF-8 byte offset
+    // and the inserted length. Lets the history card highlight the entry the caret
+    // is currently sitting inside (user request, 2026-08-06). Zero for the root and
+    // for barriers, which change no text.
+    std::size_t changeOffsetUtf8 = 0;
+    std::size_t changeLength     = 0;
 };
 
 struct TreeWindow {

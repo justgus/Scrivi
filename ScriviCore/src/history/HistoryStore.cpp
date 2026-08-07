@@ -407,6 +407,7 @@ bool HistoryStore::validateSceneHead(const std::string& sceneID,
         BarrierParams bp;
         bp.barrierKind = "externalChange";
         bp.barrierNote = "This scene was changed outside Scrivi; undo stops here.";
+        bp.sceneID = sceneID;   // attribute the barrier so the history card can filter (I-0102)
         bp.timestamp = nowTimestamp;
         auto r = service_->recordBarrier(bp, barrierEventID);
         auto nit = service_->nodes().find(r.eventID);

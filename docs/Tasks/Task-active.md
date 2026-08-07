@@ -1,5 +1,30 @@
 # Active Tasks
 
+## 🔵 SP-093 `[Cross]` — EP-019 history capture granularity + presentation (PLANNING, drafted 2026-08-07)
+
+**Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-019 · **Awaiting go-ahead to activate.**
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash over replayed text, not disk bytes | High | 🔵 Open |
+| I-0105 | `[Apple]` History card doesn't refresh on commit — new edits appear only after reopen | High | 🔵 Open |
+| T-0396 | `[Apple]`+`[ScriviCore]` Typing-session coalescing — continuation-merge + idle timer | High | 🔵 Backlog |
+| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows | Medium | 🔵 Open |
+| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows | Medium | 🔵 Backlog |
+| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)" | Low | 🔵 Backlog |
+
+**Origin:** the SP-092 live-verify (2026-08-07). The user **verified** the "This scene only" filter and
+orphaned-entry deletion as working, then reported six further findings — all diagnosed to code, none a
+SP-092 regression. The capture-granularity behaviour dates to SP-053; the history card merely made it
+visible. **Reference case:** one continuously-typed sentence recorded as three entries, because there is
+**no idle timer** in the capture path — the splits are cursor-move flushes.
+
+**⚠️ Sequencing:** EP-019 should **not** close until this sprint completes — SP-092's note has it closing
+after SP-057, but these findings are all EP-019 behaviour. **⚠️ Numbering:** SP-093 was earmarked for
+EP-030 verification (T-0369); that still needs a sprint number.
+
+---
+
 ## 🔵 SP-092 `[Cross]` — EP-030 history card + Properties tab (PLANNING, drafted 2026-08-05)
 
 **Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-030 · **Awaiting go-ahead to activate.**

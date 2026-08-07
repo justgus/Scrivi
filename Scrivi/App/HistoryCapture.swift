@@ -347,11 +347,16 @@ final class HistoryCapture {
     // that undo/redo step across, handing the payload back for the editor to replay the
     // inverse fragment op; nil records a hard barrier (undo stops with a notice).
     func recordBarrier(kind: String, note: String,
+                       sceneID: String? = nil,
                        structuralPayload: HistoryStructuralPayload? = nil) {
         guard isOpen else { return }
+        // Capture the pending scene BEFORE flushing — flush() clears it, and it is the
+        // best available attribution when the caller does not name a scene (I-0102).
+        let attributed = sceneID ?? pendingSceneID
         flush(trigger: "flush")
         do { _ = try engine.historyRecordBarrier(projectRootPath: projectRootPath,
                                                  barrierKind: kind, note: note,
+                                                 sceneID: attributed,
                                                  structuralPayload: structuralPayload) }
         catch { print("[Scrivi] historyRecordBarrier failed: \(error)") }
     }

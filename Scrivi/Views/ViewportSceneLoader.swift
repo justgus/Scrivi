@@ -151,6 +151,18 @@ struct SceneSegment: Identifiable {
         return segments[currentIndex]
     }
 
+    // Scene-local UTF-8 byte offset of the caret within `cursorSceneID`. Observed (not
+    // @ObservationIgnored) so the history card re-highlights as the caret moves.
+    // -1 when unknown.
+    private(set) var cursorByteOffset: Int = -1
+
+    // Called by ManuscriptTextView on every caret move, so the history card can bold the
+    // entry whose change the caret is sitting inside (user request, 2026-08-06).
+    func setCursorByteOffset(_ offset: Int, sceneID: String) {
+        cursorSceneID = sceneID
+        cursorByteOffset = offset
+    }
+
     // Called by ManuscriptTextView when the author's cursor moves into a different segment.
     func setCurrentIndex(_ index: Int) {
         currentIndex = index

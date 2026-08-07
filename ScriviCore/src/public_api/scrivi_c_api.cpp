@@ -1822,6 +1822,9 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
         const auto& pj = paramsR.value();
         p.barrierKind = pj.getString("barrierKind", "");
         p.barrierNote = pj.getString("note", "");
+        // Optional — attributes the barrier to a scene so the history card can filter
+        // by scene (I-0102). Absent for barriers with no single owning scene.
+        p.sceneID     = pj.getString("sceneID", "");
         // Optional (T-0356 / AC6): when present, records a REVERSIBLE structural node the
         // app replays on undo/redo, rather than a hard barrier. The payload is opaque JSON
         // (serialized here as a string so the engine never parses it).
@@ -1979,6 +1982,8 @@ const char* scrivi_history_get_tree(const char* projectRootPath, const char* par
         d.setString("barrierNote",    n.barrierNote);
         d.setBool("onPrimarySpine",   n.onPrimarySpine);
         d.setBool("isCurrent",        n.isCurrent);
+        d.setInt64("changeOffsetUtf8", static_cast<int64_t>(n.changeOffsetUtf8));
+        d.setInt64("changeLength",     static_cast<int64_t>(n.changeLength));
         doc.appendToArray("nodes", std::move(d));
     }
     return heap(okEnvelope(std::move(doc)));
@@ -2121,6 +2126,13 @@ const char* scrivi_history_close(const char* projectRootPath) {
 // mutates the project. Cut (delete+merge) and paste-splice are separate endpoints
 // (SP-088 / SP-087). Design §4.1.
 
+// These are C++ helpers, not part of the C ABI. They sit inside the file's
+// `extern "C"` block, and an anonymous namespace does NOT restore C++ linkage — so
+// without this `extern "C++"` they inherit C linkage and Clang warns that they return
+// types incompatible with C (-Wreturn-type-c-linkage). Harmless in practice (nothing
+// calls them across a C boundary), but it is a real linkage mismatch and it made the
+// iOS/visionOS builds noisy. Fixed 2026-08-06.
+extern "C++" {
 namespace {
 
 // Serialize an OpensWith to the wire string used in scrivi.fragment.v1.
@@ -2173,6 +2185,7 @@ scrivi::util::JsonDoc serializeFragment(const scrivi::manuscript::Fragment& frag
 }
 
 } // namespace
+} // extern "C++"
 
 const char* scrivi_fragment_extract(const char* projectRootPath, const char* spansJson) {
   return guarded([&]() -> const char* {
@@ -2228,6 +2241,8 @@ const char* scrivi_fragment_cut(const char* projectRootPath, const char* spansJs
   });
 }
 
+// C++ helper, not part of the C ABI — see the note on the previous helper block.
+extern "C++" {
 namespace {
 
 // Parse a scrivi.fragment.v1 JSON object (as produced by scrivi_fragment_extract, or carried
@@ -2258,6 +2273,7 @@ scrivi::manuscript::Fragment parseFragment(const scrivi::util::JsonDoc& in) {
 }
 
 } // namespace
+} // extern "C++"
 
 // paste-splice — insert a scrivi.fragment.v1 at a caret, reconstructing carried scene/chapter
 // boundaries (design §4.2). Composes EP-027 create primitives; mints fresh IDs. Result reports

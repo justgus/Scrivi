@@ -84,6 +84,13 @@ import UniformTypeIdentifiers
             onClear: { service.clear(slot: $0) },
             onClose: { [weak self] in self?.buffersPaletteVisible = false })
     }
+    #else
+    // The Copy Buffers palette is a floating NSPanel and exists on macOS only. The
+    // no-op keeps every CALLER unconditional — `frontmostSession.didSet` and the
+    // editor's `.onAppear` both invoke this, and a `#if` cannot wrap a `didSet`
+    // clause. Without this stub, iOS/visionOS failed with "Cannot find
+    // 'syncBuffersPalette' in scope" (EP-019 SP-056 regression, fixed 2026-08-06).
+    func syncBuffersPalette() {}
     #endif
 
     // Bridges `openWindow(id: "welcome")` so orchestration can reopen the Welcome window

@@ -62,6 +62,9 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0367 | Properties tab — field-driven view | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0368 | Card failure isolation + inline warning | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0369 | EP-030 verification + Epic close prep | EP-030 (SP-093) | 🔵 Backlog |
+| T-0396 | `[Apple]`+`[ScriviCore]` **Typing-session coalescing** — continuation-merge at the same insertion point + idle timer; retire cursor-move as a hard commit trigger | EP-019 (SP-093) | 🔵 Backlog |
+| T-0397 | `[ScriviCore]`+`[Apple]` **Whitespace-kind labels in history** — newline/tab/space runs named instead of collapsing to "(no text)" | EP-019 (SP-093) | 🔵 Backlog |
+| T-0398 | `[ScriviCore]`+`[Apple]` **Distinguish added vs. deleted text in history rows** — glyph/colour + label prefix; carry `removedLength` in the tree payload | EP-019 (SP-093) | 🔵 Backlog |
 | T-0370 | `ObjectKind` additions; retire `timeline` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0372 | `objects/index.json` + `findByID` over index | EP-031 (SP-094) | 🔵 Backlog |

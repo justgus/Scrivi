@@ -945,6 +945,9 @@ public final class ScriviEngine: @unchecked Sendable {
     private struct RecordBarrierParams: Encodable {
         let barrierKind: String
         let note: String
+        // Attributes the barrier to a scene so the history card can filter by scene
+        // (I-0102). Omitted when nil — barriers with no single owning scene.
+        let sceneID: String?
         let structuralPayload: HistoryStructuralPayload?
     }
 
@@ -952,12 +955,14 @@ public final class ScriviEngine: @unchecked Sendable {
         projectRootPath: String,
         barrierKind: String,
         note: String = "",
+        sceneID: String? = nil,
         structuralPayload: HistoryStructuralPayload? = nil
     ) throws -> HistoryBarrierResult {
         // Encode params so barrierKind/note (and the optional structural payload) are
         // safely JSON-escaped. structuralPayload is omitted when nil (classic barrier).
         let paramsData = try JSONEncoder().encode(
             RecordBarrierParams(barrierKind: barrierKind, note: note,
+                                sceneID: sceneID,
                                 structuralPayload: structuralPayload))
         let params = String(decoding: paramsData, as: UTF8.self)
         let raw = projectRootPath.withCString { prp in
@@ -1315,7 +1320,7 @@ public final class ScriviEngine: @unchecked Sendable {
     @discardableResult
     public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult { try unavailable() }
     public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0, bufferID: String? = nil) throws -> HistoryRecordResult { try unavailable() }
-    public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", structuralPayload: HistoryStructuralPayload? = nil) throws -> HistoryBarrierResult { try unavailable() }
+    public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", sceneID: String? = nil, structuralPayload: HistoryStructuralPayload? = nil) throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     @discardableResult
@@ -2222,8 +2227,19 @@ public struct HistoryTreeNode: Decodable, Sendable, Identifiable {
     public let barrierNote:    String
     public let onPrimarySpine: Bool
     public let isCurrent:      Bool
+    /// Scene-local UTF-8 byte offset of this event's change, and its inserted length.
+    /// Lets the card highlight the entry the caret is sitting inside.
+    public let changeOffsetUtf8: Int
+    public let changeLength:     Int
 
     public var id: String { eventID }
+
+    /// True when `caret` (a scene-local UTF-8 byte offset) falls within this event's
+    /// change. A zero-length change matches only its exact offset.
+    public func contains(caret: Int) -> Bool {
+        guard changeLength > 0 else { return caret == changeOffsetUtf8 }
+        return caret >= changeOffsetUtf8 && caret < changeOffsetUtf8 + changeLength
+    }
     public var isFork: Bool { childIDs.count >= 2 }
 
     // ⚠️ The C API omits empty arrays and empty strings, so a LEAF node ships no
@@ -2246,12 +2262,14 @@ public struct HistoryTreeNode: Decodable, Sendable, Identifiable {
         barrierNote    = try c.decodeIfPresent(String.self,   forKey: .barrierNote) ?? ""
         onPrimarySpine = try c.decodeIfPresent(Bool.self,     forKey: .onPrimarySpine) ?? false
         isCurrent      = try c.decodeIfPresent(Bool.self,     forKey: .isCurrent) ?? false
+        changeOffsetUtf8 = try c.decodeIfPresent(Int.self,    forKey: .changeOffsetUtf8) ?? 0
+        changeLength     = try c.decodeIfPresent(Int.self,    forKey: .changeLength) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
         case eventID, parentID, primaryChildID, childIDs, kind, sceneID, preview
         case timestamp, sessionID, bufferID, barrierKind, barrierNote
-        case onPrimarySpine, isCurrent
+        case onPrimarySpine, isCurrent, changeOffsetUtf8, changeLength
     }
 }
 
