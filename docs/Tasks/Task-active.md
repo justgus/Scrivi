@@ -16,12 +16,28 @@
 **Origin:** the SP-092 live-verify (2026-08-07). The user **verified** the "This scene only" filter and
 orphaned-entry deletion as working, then reported six further findings — all diagnosed to code, none a
 SP-092 regression. The capture-granularity behaviour dates to SP-053; the history card merely made it
-visible. **Reference case:** one continuously-typed sentence recorded as three entries, because there is
-**no idle timer** in the capture path — the splits are cursor-move flushes.
+visible. **Reference case:** one continuously-typed sentence recorded as three entries.
 
-**⚠️ Sequencing:** EP-019 should **not** close until this sprint completes — SP-092's note has it closing
-after SP-057, but these findings are all EP-019 behaviour. **⚠️ Numbering:** SP-093 was earmarked for
-EP-030 verification (T-0369); that still needs a sprint number.
+**⚠️ Diagnosis corrected 2026-08-07.** The first draft blamed cursor-move flushes; the user had **not**
+moved the cursor (Shakespeare typed from muscle memory in one run). The real trigger is the **1 s autosave
+debounce** calling `flushThenSave()` (`ManuscriptTextView.swift:753-766`) — so an idle timer already exists
+and it is 1 second. Confirmed by the split falling **mid-word** (`"…made glo"` / `"rious…"`), which only a
+wall-clock timer produces. T-0396 is rescoped accordingly.
+
+**Decisions (user, 2026-08-07):** idle threshold **30–60 s** (writers ruminate; deliberately long) ·
+coalescing **app-side** (`HistoryService` stays pure) · `removedLength` **ships once** for I-0106 + T-0398 ·
+**SP-057 runs after SP-093** · **cursor-move, cut/paste, scene switch and sentence terminators are all
+KEPT** as commit triggers — they are intentional writer actions · **backspace must not commit** ("thinking
+of a different word, not ending the typing session").
+
+**EP-019 AC2 — narrow amendment, not an overturn.** Every trigger AC2 names is kept, so AC2 is **not**
+contradicted (an earlier draft wrongly claimed it was). The gap is that its list omits the save-driven
+commit. T-0217 documents the save-time commit + idle boundary in AC2 and design §4.a before EP-019 closes.
+
+**Sprint numbering:** SP-093 is this sprint. **T-0369 gets no separate sprint** — it merges with SP-057's
+verification into a single **SP-094** ("EP-019 + EP-030 verification & Epic close"); both were one-task,
+no-build-work verification sprints gated on the same live session. Each Epic still closes on its own user
+approval.
 
 ---
 

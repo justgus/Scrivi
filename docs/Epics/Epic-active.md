@@ -41,7 +41,7 @@ within tabs, C4=A, C5=C + in-stack creation, C6=B with sort per-stack).
 | SP-090 | Framework: card protocol, registry, `inspector-layout.json`, tabs | ✅ **Closed (user-approved)** → `../Sprints/Closed/Sprint-SP-090.md` | 2026-08-05 – 2026-08-05 |
 | SP-091 | Writing-tool cards: tags, todo, outline (`sources` deferred → EP-031) | ✅ **Closed (user-approved)** → `../Sprints/Closed/Sprint-SP-091.md` | 2026-08-05 – 2026-08-05 |
 | SP-092 | `[Cross]` `history` card (folds in T-0215) + Properties tab + `scrivi_history_get_tree` | 🟡 **Active** (2026-08-06) → `../Sprints/Sprint-active.md` | 2026-08-06 – TBD |
-| SP-093 | Verification & Epic close | 🔵 Planning | — |
+| SP-094 | **EP-019 + EP-030 verification & Epic close** (merged — see note) | 🔵 Planning | — |
 
 ### Tasks
 
@@ -61,7 +61,23 @@ within tabs, C4=A, C5=C + in-stack creation, C6=B with sort per-stack).
 | T-0366 | `history` card — windowed tree, branch selection, stale badges, purge (**supersedes T-0215**) | SP-092 | 🟠 **Implemented — Not Verified** |
 | T-0367 | Properties tab — field-driven view, author/timestamps/metrics | SP-092 | 🟠 **Implemented — Not Verified** |
 | T-0368 | Card failure isolation + inline warning presentation | SP-092 | 🟠 **Implemented — Not Verified** |
-| T-0369 | EP-030 verification (AC1–AC7) + Epic close prep | SP-093 | 🔵 Backlog |
+| T-0369 | EP-030 verification (AC1–AC7) + Epic close prep | **SP-094** | 🔵 Backlog |
+
+> ### 🔀 SP-093 renumbered / T-0369 merged (2026-08-07, user-ruled)
+>
+> **SP-093 is now the EP-019 history-capture sprint** (granularity + presentation), opened from the SP-092
+> live-verify: I-0104/I-0105/I-0106 + T-0396/T-0397/T-0398. See `../Sprints/Sprint-active.md`.
+>
+> **T-0369 no longer gets its own sprint.** EP-030's verification sprint and EP-019's SP-057 were both
+> one-task, no-build-work verification passes gated on the same live session and the same app build, so
+> they merge into a single **SP-094 — "EP-019 + EP-030 verification & Epic close."** Both Epics' ACs are
+> verified in one pass, then **closed independently** — each still needs its own direct user approval, and
+> a failure in one Epic's ACs does not block the other's close.
+>
+> ⚠️ **EP-030's close is not affected by SP-093's findings** — every SP-093 item is EP-019 behaviour
+> (history capture/labels), not card-framework behaviour. The one EP-030-side item, I-0105 (the card not
+> refreshing), is a `HistoryCard` defect, not a framework defect: AC12's failure-isolation guarantee and
+> the layout/persistence ACs are untouched by it.
 
 > **T-0215 relationship:** EP-019's history-panel task is **delivered by T-0366** as a card rather than a separate
 > panel (Doc 2 §8). EP-019's SP-057 therefore no longer needs to build a panel — it verifies AC2/AC7/AC8, and the
@@ -214,7 +230,7 @@ surfaced while verifying SP-056) was tackled first and ✅ closed 2026-08-03.
 ### Acceptance Criteria
 
 - [x] AC1 — ⌘Z/⇧⌘Z work in the macOS manuscript editor: repeated ⌘Z walks back one history event at a time; ⇧⌘Z re-applies (**delivers the fix formerly tracked as I-0019**). ✅ **Verified live 2026-07-07** (SP-053; `Tasks/Verified/Task-verified-0204-0206.md`).
-- [ ] AC2 — Events commit exactly per the design's event model (`.` `!` `?`, Return, cursor-move-with-pending-changes, paste/cut, scene switch, flush); cursor moves/newlines without text changes produce **no** event. 🔧 **Implemented (audited 2026-08-05)** — `ManuscriptTextView.swift:638-802` + `HistoryCapture.swift:185-194`; **awaiting live verification** (SP-057).
+- [ ] AC2 — Events commit exactly per the design's event model (`.` `!` `?`, Return, cursor-move-with-pending-changes, paste/cut, scene switch, flush); cursor moves/newlines without text changes produce **no** event. 🔧 **Implemented (audited 2026-08-05)** — `ManuscriptTextView.swift:638-802` + `HistoryCapture.swift:185-194`. ⚠️ **Narrow amendment pending (T-0217, revised 2026-08-07).** **Every trigger this AC names remains valid** — cursor-move, paste/cut, scene switch and the sentence terminators are all intentional writer actions and are **kept** (user ruling 2026-08-07). The gap is that the AC's list is **not exhaustive of what actually commits**: the 1 s autosave debounce calls `flushThenSave()` (`ManuscriptTextView.swift:753-766`), so a **~1 s typing pause silently seals a history entry** — an undocumented trigger that fragments continuously-typed prose (reference case: one sentence → three entries, one break falling **mid-word**). **SP-093 T-0396** decouples the save-time commit from session-sealing (the §4.d disk invariant is preserved) and adds a **30–60 s idle timer** as the real boundary. T-0217 amends this AC + design §4.a to state the save/idle behaviour explicitly.
 - [x] AC3 — History persists across quit/relaunch; undoing past the session boundary shows a warning (once per crossing) before proceeding. ✅ **Verified 2026-07-09** (SP-054; `Tasks/Verified/Task-verified-0207-0209.md`).
 - [x] AC4 — Undo-then-type creates a branch; the new line becomes primary; the old branch is selectable at the fork and becomes primary when selected; abandoned text fully restorable. ✅ **Verified 2026-07-13** (SP-055; `Tasks/Verified/Task-verified-0210-0212.md`).
 - [x] AC5 — History capacity configurable (per Trade T1); oldest events fall off at capacity; branches auto-purge when their branch point ages off; stale branches detectable and purgeable with user confirmation. ✅ **Verified 2026-07-09** (SP-054 — capacity config + linear eviction of the root→current path; `Tasks/Verified/Task-verified-0207-0209.md`). ✅ **Branch clauses verified 2026-07-13** (SP-055 — branch-aware auto-purge on eviction + stale-branch detection/user-confirmed purge; `Tasks/Verified/Task-verified-0210-0212.md`).
@@ -232,7 +248,9 @@ surfaced while verifying SP-056) was tackled first and ✅ closed 2026-08-03.
 | SP-054 | Persistence, sessions, capacity, settings | ✅ Closed (user-approved) — AC3 + AC5 | 2026-07-07 – 2026-07-09 |
 | SP-055 | Branching — tree ops, fork popover, purge | ✅ Closed (user-approved) — AC4 + AC5 branch clauses | 2026-07-10 – 2026-07-13 |
 | SP-056 | Multiple copy buffers | ✅ Closed (user-approved) — **AC6** | 2026-07-24 – 2026-07-27 |
-| SP-057 | **Verification sprint** — AC2/AC7/AC8 live verify + T-0217 docs + Epic close (**no build work**: panel → EP-030 T-0366; T-0216 closed OBE) | 🔵 Planning — scope reduced 2026-08-05; run **after EP-030 SP-092** | — |
+| SP-093 | **`[Cross]` History capture granularity + presentation** — I-0104/I-0105/I-0106 + T-0396/T-0397/T-0398, opened from the SP-092 live-verify | 🔵 **Drafted 2026-08-07** → `../Sprints/Sprint-active.md` | — |
+| SP-057 | **Verification sprint** — AC2/AC7/AC8 live verify + T-0217 docs + Epic close (**no build work**: panel → EP-030 T-0366; T-0216 closed OBE) | 🔵 Planning — **merged into SP-094** (with EP-030's T-0369); runs **after SP-093** (user-approved 2026-08-07) | — |
+| SP-094 | **EP-019 + EP-030 verification & Epic close** (SP-057 scope + T-0369, one live pass, two independent closes) | 🔵 Planning | — |
 
 ### Tasks
 

@@ -137,19 +137,19 @@ editability — so a future editable property is a field-level addition, not a r
 
 ---
 
-## SP-093: `[Apple]` EP-030 — verification & Epic close
+## ~~SP-093: `[Apple]` EP-030 — verification & Epic close~~ ⚪ SUPERSEDED (2026-08-07)
 
-**Status:** 🔵 Planning
-**Epic:** EP-030
-**Goal:** Full EP-030 AC1–AC7 verification; prepare the Epic for close approval.
+**Status:** ⚪ **Superseded — do not activate.** Two changes, both user-ruled 2026-08-07:
 
-### Assigned Tasks
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0369 | EP-030 verification (AC1–AC7) + Epic close prep | High | 🔵 Backlog |
+1. **SP-093 is now the EP-019 history-capture sprint** (granularity + presentation), opened from the SP-092
+   live-verify — see `Sprint-active.md`.
+2. **T-0369 merges into SP-094**, a combined **"EP-019 + EP-030 verification & Epic close"** sprint. This
+   entry and EP-019's SP-057 were both one-task, no-build-work verification passes gated on the same live
+   session and app build; running them as two consecutive sprints was ceremony. Both Epics' ACs are verified
+   in one pass, then **closed independently** — each on its own direct user approval.
 
-**Exit criteria:** all EP-030 ACs pass user verification; `ctest` + interop green; Epic ready for close approval
-(user-only).
+**Epic:** EP-030 · **Task:** T-0369 (now SP-094) · **Exit criteria** carried forward to SP-094: all EP-030
+ACs pass user verification; `ctest` + interop green; Epic ready for close approval (user-only).
 
 ---
 

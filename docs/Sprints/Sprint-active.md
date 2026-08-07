@@ -143,10 +143,11 @@ highlights correctly.
 >
 > **The reference case.** The writer typed one continuous sentence — *"Now is the winter of our discontent
 > made glorious summer by this son of york"* — and history recorded it as **three** entries, split at
-> `"Now is"` / `" the winter of our discontent made glo"` / `"rious summer by this son of york"`. The split
-> points correspond to nothing semantic, because there is **no idle timer in the capture path at all**
-> (verified: `HistoryCapture.swift` has no timer; the only triggers are sentence terminators, cursor moves,
-> paste/cut, scene switch, and save). The breaks are cursor-move flushes.
+> `"Now is"` / `" the winter of our discontent made glo"` / `"rious summer by this son of york"`. He did
+> **not** move the cursor — it is Shakespeare typed from muscle memory as filler text, in one unbroken run.
+> The breaks are the **1 s autosave debounce** calling `flushThenSave()` (corrected diagnosis, 2026-08-07 —
+> see T-0396). The `"…made glo"` / `"rious…"` break falls **mid-word**, which no trigger but a wall-clock
+> timer can produce.
 
 ### Assigned Tasks
 
@@ -184,50 +185,76 @@ card's `.task(id:)`.
 
 **T-0396 — typing-session coalescing.** The core behaviour change, and the sprint's real weight.
 
-*Current triggers* (`ManuscriptTextView.swift`): `isCommitBoundary` commits on `.` `!` `?` `\n` `\r`
-(line 218-225); `flush(trigger: "cursorMove", soft: true)` commits on **any** cursor move (line 803).
-There is **no idle timer**.
+> ### ⚠️ Diagnosis corrected 2026-08-07 — the cause is the **autosave debounce**, not cursor movement
+>
+> The first draft of this sprint blamed `flush(trigger: "cursorMove", soft: true)`
+> (`ManuscriptTextView.swift:803`) for the three-way split, and proposed retiring that trigger.
+> **That was wrong, and the user corrected it:** he did not move the cursor while typing the reference
+> sentence — it is Shakespeare he types from muscle memory as filler text, in one unbroken run.
+>
+> **The actual trigger is the 1-second autosave debounce** (`ManuscriptTextView.swift:753-766`):
+>
+> ```swift
+> saveTask?.cancel()
+> saveTask = Task { @MainActor in
+>     try? await Task.sleep(nanoseconds: 1_000_000_000)   // fires 1 s after typing stops
+>     guard !Task.isCancelled else { return }
+>     session.historyCapture?.flushThenSave()             // ← seals a history entry
+>     await loader.saveCurrentIfDirty(...)
+> }
+> ```
+>
+> The task is cancelled and restarted on every keystroke, so it fires only after **~1 s with no keypress** —
+> then commits, to honour the §4.d invariant (disk must never hold text no history node describes).
+> **So an idle timer already exists: it is the autosave's, and it is 1 second.** The earlier claim that
+> "there is no idle timer at all" was based on reading `HistoryCapture` alone without following
+> `flushThenSave` to its caller.
+>
+> This matches the evidence exactly, including the detail that rules out every other trigger: one break
+> falls **mid-word** (`"…made glo"` / `"rious summer…"`). No cursor move, terminator, or structural
+> operation fires mid-word — only a wall-clock timer does.
 
-*Target model* (user-specified, 2026-08-07): continuous typing at the same insertion point **merges into
-the previous entry** rather than opening a new one — "this may result in one large historical entry
-especially for a writer that types really fast, but that would be preferable to breaking sentences up that
-were effectively typed in one session."
+*Triggers that are **kept*** (user ruling, 2026-08-07): **cursor-move, cut/paste, scene switch, and the
+sentence terminators all remain valid.** They are intentional writer actions marking a genuine boundary.
+**AC2's event model is therefore not being overturned** — see the AC2 note in `Epic-active.md`.
+
+*Target model:* continuous typing at the same insertion point **merges into the previous entry** rather
+than opening a new one — *"this may result in one large historical entry especially for a writer that types
+really fast, but that would be preferable to breaking sentences up that were effectively typed in one
+session."*
 
 Concretely:
-- On commit, record the scene + resulting end offset.
-- On the next `noteEdit`, if the scene matches and the cursor is at that offset (an append-continuation),
-  **reopen the previous node** and extend its diff instead of creating a sibling.
-- Add an **idle timer** as the secondary boundary — **30–60 s (user ruling, 2026-08-07)**, tunable.
-  Deliberately long: *"sometimes we writers ruminate for longer periods."* A pause is only a session
-  boundary when it is long enough to mean the writer actually stopped, not merely thought mid-sentence.
-- **Retire cursor-move as a hard commit trigger.** It is the direct cause of the three-way split in the
-  reference case. A cursor move that *relocates* the insertion point still ends the session (the next edit
-  is not a continuation); a move that returns to the same point does not.
-- Sentence terminators may remain a boundary, but must not split *mid-session* typing — the reference case
-  split at "glo|rious", nowhere near a terminator, so terminators are not the whole story.
+- **Decouple the save-time commit from session-sealing.** This is the actual fix. Autosave must still flush
+  before writing — the §4.d invariant is sound and stays — but a *save* must not *end a typing session*.
+  The pending text is recorded so disk is covered, and the entry **stays open for continuation** rather
+  than being sealed.
+- On commit, record the scene + resulting end offset. On the next `noteEdit`, if the scene matches and the
+  cursor is at that offset (an append-continuation), **extend the open entry** instead of creating a sibling.
+- Add a genuine **idle timer at 30–60 s** as the session boundary, separate from the 1 s save cadence.
+  Deliberately long: *"sometimes we writers ruminate for longer periods."* A pause ends a session only when
+  it is long enough to mean the writer actually stopped, not merely thought mid-sentence.
+- **Backspace must not commit.** It does not fire a trigger directly today, but once continuation-merge
+  lands this must be explicit: *"a backspace within a line simply means I am thinking of a different word,
+  not ending the typing session"* (user, 2026-08-07). Intra-word correction stays inside the open entry.
 
 > **Where this lands — DECIDED (user, 2026-08-07): app-side.** Coalescing extends the pending latch before
 > it commits; `HistoryService` stays a pure append-only tree, matching the T-0356/AC6 precedent that kept
 > the service pure and ran inverse ops app-side. Do **not** split the logic across both layers.
 
-> ### ⚠️ T-0396 changes EP-019 **AC2** — the criterion must be amended before this sprint closes
+> ### T-0396 and EP-019 **AC2** — a narrow amendment, not an overturn (revised 2026-08-07)
 >
-> AC2 (`Epic-active.md:217`) names the event model explicitly, and **cursor-move-with-pending-changes is a
-> specified commit trigger**:
+> An earlier draft of this sprint claimed T-0396 **contradicted** AC2 by retiring the
+> `cursor-move-with-pending-changes` trigger it names. **With the diagnosis corrected, it does not.**
+> Every trigger AC2 lists — sentence terminators, Return, cursor-move-with-pending-changes, paste/cut,
+> scene switch, flush — **remains valid and is kept.**
 >
-> > *"Events commit exactly per the design's event model (`.` `!` `?`, Return,
-> > **cursor-move-with-pending-changes**, paste/cut, scene switch, flush); cursor moves/newlines without text
-> > changes produce no event."*
+> The real gap is that AC2's list is **not exhaustive of what actually commits.** The 1 s autosave debounce
+> calls `flushThenSave()`, so a ~1 s typing pause seals an entry — a trigger the AC never mentions and the
+> design never specified. AC2 can be verified honestly only once that behaviour is documented.
 >
-> T-0396 **retires that trigger** and adds an idle timer the design never had. This is a deliberate,
-> user-directed change to approved acceptance criteria — not a defect fix, and not something to slip in
-> silently. AC2 is currently marked *"Implemented (audited 2026-08-05) — awaiting live verification"*;
-> verifying it as written would ratify the behaviour the user has rejected.
->
-> **Required:** amend AC2 (and the §4.a trigger list in
-> `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`) to the coalescing model as part of this
-> sprint, via **T-0217** (doc updates, already in SP-057's scope). SP-057 then verifies the **amended**
-> AC2. This is the concrete reason SP-057 must run after SP-093 — see below.
+> **Required (T-0217, already in SP-057/SP-094's scope):** amend AC2 and design §4.a to state the
+> save-time commit and the idle-session boundary explicitly. This is a **documentation gap being closed**,
+> not approved criteria being overturned — a materially smaller change than the earlier draft claimed.
 
 **T-0397 — whitespace-kind labels.** `forkPreview` (`HistoryService.cpp:148-157`) rewrites `\n`, `\r`, `\t`
 to spaces; `HistoryCard.label` (`HistoryCard.swift:264-271`) then trims and falls through to `"(no text)"`.
@@ -261,11 +288,16 @@ winner at a shared boundary.
 - [ ] Committing an event refreshes the history card **without** a scene switch or relaunch.
 - [ ] The reference sentence — *"Now is the winter of our discontent made glorious summer by this son of
       york"* — typed continuously, records as **one** history entry, not three.
-- [ ] A deliberate pause mid-sentence **beyond the 30–60 s idle threshold** starts a new entry; resuming at
-      the same insertion point after a shorter pause does **not** — a writer thinking mid-sentence keeps one
-      entry.
-- [ ] **EP-019 AC2 and design §4.a are amended** to the coalescing trigger model (via T-0217) before EP-019
-      is put forward for close — the old cursor-move trigger must not be verified as written.
+- [ ] **An autosave during typing does not seal the entry** — the scene is written to disk (§4.d holds:
+      disk never contains text no history node describes) while the typing session stays open.
+- [ ] A deliberate pause mid-sentence **beyond the 30–60 s idle threshold** starts a new entry; a pause of
+      1–2 s (which currently splits the entry) does **not**.
+- [ ] **Backspace mid-word does not start a new entry** — intra-word correction stays in the open session.
+- [ ] **The kept triggers still work**: cursor-move-with-pending-changes, cut/paste, scene switch and
+      sentence terminators each still commit as AC2 specifies (regression check — this sprint must not
+      quietly weaken them while fixing the save-driven commit).
+- [ ] **EP-019 AC2 and design §4.a document the save-time commit and idle boundary** (via T-0217) before
+      EP-019 is put forward for close.
 - [ ] Caret at the start of an entry bolds **that** entry; a deletion bolds **exactly one** row.
 - [ ] A newline/tab/space-run event reads as named whitespace, never `"(no text)"`.
 - [ ] Insertions and deletions are visually distinguishable at a glance, and a deletion's label says so.
@@ -276,6 +308,11 @@ winner at a shared boundary.
 - **Coalescing is app-side** (user-approved 2026-08-07) — `HistoryService` stays pure. Not to be
   re-litigated mid-implementation, and not split across both layers.
 - **Idle threshold 30–60 s** (user ruling) — not silently shortened because a test is slow to run.
+- **The §4.d disk invariant is preserved.** Decoupling the save-time commit from session-sealing must not
+  let the scene file contain text no history node describes. Record, then keep the entry open — do not
+  simply stop flushing before save.
+- **Cursor-move, cut/paste, scene switch and sentence terminators stay as commit triggers** (user ruling,
+  2026-08-07). This sprint changes *save-driven* commits only.
 - **The `externalChange` barrier stays** for genuine external edits — I-0104 fixes the *trigger*, not the
   feature.
 - **`removedLength` ships once**, consumed by both I-0106 and T-0398.
@@ -300,10 +337,11 @@ SP-057 reduced to pure verification). This sprint's findings are all EP-019 beha
 not close until SP-093 completes** — closing it with the capture granularity in this state would archive
 the Epic against behaviour the user has explicitly reported as wrong.
 
-The ordering is now **load-bearing, not merely tidy**: SP-057's job is to live-verify **AC2**, and T-0396
-*changes what AC2 says* (see the T-0396 detail above). Running SP-057 first would verify the superseded
-trigger model and then immediately invalidate it. **T-0217** (doc updates, in SP-057's scope) carries the
-AC2 + design §4.a amendment.
+The ordering still holds, for a narrower reason than the first draft claimed. SP-057's job is to live-verify
+**AC2**, and while T-0396 does **not** overturn AC2's trigger list (all of it is kept), it does change
+*when a typing session ends* — so verifying AC2 before SP-093 would sign off on the fragmentation the user
+reported. **T-0217** (doc updates, in SP-057/SP-094's scope) carries the AC2 + design §4.a amendment
+documenting the save-time commit and the idle boundary.
 
 ---
 
