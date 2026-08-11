@@ -146,6 +146,11 @@ import os
         // last close with an externalChange barrier (never modifies the manuscript).
         capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
         historyCapture = capture
+        // I-0104: let the save path report the bytes it writes, so the head hash
+        // persisted at close describes disk and the next open compares like with
+        // like. Must come after validateScenes, which establishes this session's
+        // baseline from the text actually on disk.
+        loader.historyCapture = capture
 
         // Multiple copy buffers (EP-019 SP-056): mirror the persistent slots 1–9 for
         // this project. Reads history/buffers.json (empty when none loaded yet).
@@ -199,6 +204,26 @@ import os
 
     // Saves the current scene immediately, then refreshes the Spotlight index. Called on
     // app resign (and any time the session must flush).
+    // Synchronous flush for `applicationWillTerminate`, which does not await async
+    // work (I-0104/I-0108). Commits pending history first — T-0396 defers the
+    // save-time commit, so without this the last typing session would be lost — then
+    // writes every dirty scene, which is also what tells history the true disk bytes.
+    // No Spotlight re-donation: the process is going away.
+    func saveAllDirtyBlocking() {
+        guard let loader = viewportLoader, let ref = authorshipRef else { return }
+        historyCapture?.flush(trigger: "flush")
+        loader.saveAllDirtyBlocking(engine: engine, ref: ref)
+    }
+
+    // Closes the history on the quit path (I-0104). `scrivi_history_close` writes the
+    // final `state.json` checkpoint; without it every externalChange repair made during
+    // the session is discarded, so the same scenes re-flag on the next launch forever.
+    // Must run AFTER saveAllDirtyBlocking so the checkpoint sees the saved bytes.
+    func closeHistoryBlocking() {
+        historyCapture?.close()
+        historyCapture = nil
+    }
+
     func saveAllDirty() async {
         guard let loader = viewportLoader, let ref = authorshipRef else { return }
         await loader.saveAllDirty(engine: engine, ref: ref)

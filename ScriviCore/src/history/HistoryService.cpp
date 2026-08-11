@@ -156,6 +156,44 @@ std::string forkPreview(const EventNode& child) {
     return src;
 }
 
+// T-0397 — classify an all-whitespace change so the UI can NAME it.
+//
+// forkPreview() rewrites \n/\r/\t to spaces and the card then trims, so a
+// newline-only event arrived at the UI indistinguishable from an empty one and
+// rendered as "(no text)" — the writer saw three such rows and could not tell what
+// they were. The kind has to survive the diff rather than being flattened at preview
+// time, so it travels as its own field.
+//
+// Returns "" for anything containing a non-whitespace byte (the overwhelmingly
+// common case, where the preview text speaks for itself), otherwise the dominant
+// whitespace kind plus its run length: "newline:2", "tab:1", "space:3".
+// Mixed runs report whichever kind occurs most, ties resolving newline > tab > space
+// — the coarser boundary is the more meaningful thing to name.
+std::string whitespaceKind(const EventNode& node) {
+    const std::string& src = !node.diff.inserted.empty() ? node.diff.inserted
+                                                         : node.diff.removed;
+    if (src.empty()) return {};
+
+    std::size_t newlines = 0, tabs = 0, spaces = 0;
+    for (const char c : src) {
+        switch (c) {
+            case '\n': ++newlines; break;
+            case '\r': break;               // CRLF counts once, via the \n
+            case '\t': ++tabs;    break;
+            case ' ':  ++spaces;  break;
+            default: return {};             // real text — nothing to name
+        }
+    }
+
+    if (newlines > 0 && newlines >= tabs && newlines >= spaces)
+        return "newline:" + std::to_string(newlines);
+    if (tabs > 0 && tabs >= spaces)
+        return "tab:" + std::to_string(tabs);
+    if (spaces > 0)
+        return "space:" + std::to_string(spaces);
+    return {};                              // e.g. a lone \r
+}
+
 } // namespace
 
 HistoryService::HistoryService(std::string sessionID, std::string rootTimestamp)
@@ -646,6 +684,78 @@ TreeWindow HistoryService::getTree(const std::string& aroundNodeID, int maxNodes
         }
     }
 
+    // I-0107 — rebase each spine node's change offset onto the CURRENT text.
+    //
+    // diff.offsetUtf8 records where an edit landed at the moment it was recorded. Every
+    // later edit in the same scene shifts that position, but the stored offset never
+    // moves — so the card was testing the caret against historical coordinates. The
+    // writer saw entries bold two characters late (their two leading newlines), and
+    // entries whose stale span had drifted out of reach never bold at all.
+    //
+    // A later edit moves an older one ONLY IF it happened at or before the older
+    // position — text inserted *after* a node leaves that node exactly where it was.
+    // Each older node is therefore transformed through every newer edit individually,
+    // oldest-first, the way operational transforms compose.
+    //
+    // ⚠️ A single running total is WRONG and was the first attempt: it shifted every
+    // node by the full length of all later edits regardless of position, so an entry
+    // followed by seven typed sentences was displaced by all seven (user-reported
+    // 2026-08-10 — "highlights only when the cursor is six lines below"). The earlier
+    // tests missed it because they only ever inserted at offset 0, which is always
+    // "before" and so happens to look correct.
+    //
+    // Side branches are deliberately not rebased: their text is not in the current
+    // document at all, so no caret position corresponds to them.
+    std::map<std::string, std::size_t> rebasedOffset;
+    {
+        // The spine, oldest → newest, so each node can be transformed through the
+        // edits that follow it in the order they actually happened.
+        std::vector<std::string> spineOldestFirst;
+        for (std::string id = currentNodeID_; !id.empty();) {
+            auto it = nodes_.find(id);
+            if (it == nodes_.end()) break;
+            spineOldestFirst.push_back(id);
+            if (!it->second.parentID.has_value()) break;
+            id = *it->second.parentID;
+        }
+        std::reverse(spineOldestFirst.begin(), spineOldestFirst.end());
+
+        for (std::size_t i = 0; i < spineOldestFirst.size(); ++i) {
+            auto it = nodes_.find(spineOldestFirst[i]);
+            if (it == nodes_.end()) continue;
+            const EventNode& node = it->second;
+            if (!carriesDiff(node.kind) || node.sceneID.empty()) continue;
+
+            std::int64_t pos = static_cast<std::int64_t>(node.diff.offsetUtf8);
+
+            // Transform through each SUBSEQUENT edit in the same scene.
+            for (std::size_t j = i + 1; j < spineOldestFirst.size(); ++j) {
+                auto jt = nodes_.find(spineOldestFirst[j]);
+                if (jt == nodes_.end()) continue;
+                const EventNode& later = jt->second;
+                if (!carriesDiff(later.kind) || later.sceneID != node.sceneID) continue;
+
+                const std::int64_t lOff = static_cast<std::int64_t>(later.diff.offsetUtf8);
+                const std::int64_t lIns = static_cast<std::int64_t>(later.diff.inserted.size());
+                const std::int64_t lDel = static_cast<std::int64_t>(later.diff.removed.size());
+
+                // Strictly after this node's position → no effect on it.
+                if (lOff > pos) continue;
+
+                // A removal spanning this position collapses it back to the cut point;
+                // otherwise the net change applies in full.
+                if (lDel > 0 && lOff + lDel > pos) {
+                    pos = lOff;
+                } else {
+                    pos += lIns - lDel;
+                }
+                if (pos < 0) pos = 0;
+            }
+
+            rebasedOffset[node.eventID] = static_cast<std::size_t>(pos);
+        }
+    }
+
     // Collect outward from the anchor: ancestors first (the writer's spine is the most
     // valuable context), then descendants breadth-first.
     std::vector<std::string> ordered;
@@ -696,8 +806,16 @@ TreeWindow HistoryService::getTree(const std::string& aroundNodeID, int maxNodes
         t.barrierNote    = n.barrierNote;
         t.onPrimarySpine = spine.count(n.eventID) > 0;
         t.isCurrent      = (n.eventID == currentNodeID_);
-        t.changeOffsetUtf8 = n.diff.offsetUtf8;
+        // I-0107: report the offset this event's text occupies in the CURRENT scene,
+        // not where it landed when recorded. Off-spine nodes keep their stored offset —
+        // their text is not in the document, so no caret can be inside them anyway.
+        {
+            auto rb = rebasedOffset.find(n.eventID);
+            t.changeOffsetUtf8 = (rb != rebasedOffset.end()) ? rb->second : n.diff.offsetUtf8;
+        }
         t.changeLength     = n.diff.inserted.size();
+        t.removedLength    = n.diff.removed.size();   // I-0106 / T-0398
+        t.whitespaceKind   = whitespaceKind(n);       // T-0397
         out.nodes.push_back(std::move(t));
     }
 
@@ -897,6 +1015,25 @@ void HistoryService::applyLoadedEviction(const std::vector<std::string>& purgedB
         keep.parentID.reset();
         rootID_ = newRoot;
         if (oldRoot != newRoot) nodes_.erase(oldRoot);
+    }
+
+    // I-0110: the current pointer may have been INSIDE a subtree we just erased.
+    //
+    // Replaying a ctl:purge whose branch root is an ancestor of the loaded
+    // currentNodeID deletes that node along with the subtree, leaving the pointer
+    // dangling. The very next nodeRef() then threw `unknown node <id>`, which
+    // propagated out of scrivi_history_open as an unhandled exception — so the
+    // project opened with NO undo/redo at all, not merely a degraded history.
+    //
+    // Reported 2026-08-11 on the writer's real project: a purge record (of a branch
+    // that was an ancestor of the newest node) sat at the very end of the log, so
+    // every open replayed it and immediately failed.
+    //
+    // `pruneInconsistentNodes` already handles exactly this case at line ~1084; the
+    // eviction path simply never got the same guard. Walk back to the nearest
+    // surviving ancestor, root at worst — the same rule, so the two paths agree.
+    if (nodes_.find(currentNodeID_) == nodes_.end()) {
+        currentNodeID_ = rootID_;
     }
 
     rebuildHeadCache();

@@ -90,6 +90,26 @@ struct SceneNavigatorView: View {
         }
         .listStyle(.inset)
         .frame(minWidth: 180, idealWidth: 220, maxWidth: 280)
+        // I-0109 — Return commits the keyboard selection.
+        //
+        // Arrow keys move the List's highlight without navigating, which the writer
+        // explicitly wants kept ("it allows me to rapidly move to another scene").
+        // But Return did nothing at all, so a scene reached by keyboard could not be
+        // opened without going back to the mouse. Navigation was bound solely to
+        // `onTapGesture` (see `sceneRow`), so no key path reached it.
+        //
+        // macOS only: on iOS the `selection` binding already drives Master/Detail, so
+        // moving the highlight IS navigation there and a Return handler would be a
+        // redundant second trigger.
+        #if os(macOS)
+        .onKeyPress(.return) {
+            guard selection == nil,                       // macOS highlight-only mode
+                  let rowID = highlightedRowID,
+                  rowID.hasPrefix("scene-") else { return .ignored }
+            navigate(to: String(rowID.dropFirst("scene-".count)))
+            return .handled
+        }
+        #endif
         .onChange(of: loader.viewportSceneID) { _, sceneID in
             // Sync highlight to viewport as the manuscript scrolls.
             if let selection {

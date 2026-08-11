@@ -26,7 +26,6 @@ private struct HistoryCardBody: View {
 
     @State private var tree: HistoryTreeResult?
     @State private var stale: [HistoryStaleBranch] = []
-    @State private var pendingPurge: HistoryStaleBranch?
     @State private var loadFailed = false
 
     /// Show only events belonging to the scene in view. Default ON: a project-wide
@@ -51,35 +50,25 @@ private struct HistoryCardBody: View {
                 ProgressView().controlSize(.small)
             }
         }
-        .task(id: context.sceneID) { reload() }
-        .confirmationDialog(
-            purgeTitle,
-            isPresented: Binding(get: { pendingPurge != nil },
-                                 set: { if !$0 { pendingPurge = nil } }),
-            titleVisibility: .visible
-        ) {
-            // Purge is irreversible — it writes a ctl:purge record so the branch cannot
-            // resurrect on reload. The button names what is discarded rather than
-            // saying a bare "OK".
-            if let branch = pendingPurge {
-                Button("Discard \(branch.nodeCount) \(branch.nodeCount == 1 ? "Edit" : "Edits")",
-                       role: .destructive) {
-                    context.history?.purgeStaleBranch(branchRootEventID: branch.branchRootEventID)
-                    pendingPurge = nil
-                    reload()
-                }
-            }
-            Button("Keep", role: .cancel) { pendingPurge = nil }
-        } message: {
-            if let branch = pendingPurge {
-                Text("This permanently discards this branch and everything on it. "
-                     + "It can't be undone.\n\n\(branch.preview)")
-            }
-        }
+        // I-0105: reload on scene identity AND on every history mutation. Keyed on
+        // sceneID alone the card went stale the moment an event was committed —
+        // the tree lives in HistoryCapture/ScriviCore, neither of which the view
+        // can observe, so nothing invalidated it until the project was reopened.
+        .task(id: reloadKey) { reload() }
     }
 
-    private var purgeTitle: String {
-        pendingPurge.map { _ in "Discard this abandoned branch?" } ?? ""
+    // I-0108: purge and its confirmation moved OUT of this card to Project Settings,
+    // which has owned the same flow since T-0212/SP-055 (scan, list, purge, plus the
+    // staleness threshold). Two destructive surfaces for one irreversible operation was
+    // the duplication that made the project-wide list look like a filter bug here.
+
+    /// Identity for the reload task (I-0105): the scene AND the history revision, so
+    /// the tree is re-fetched both when the writer moves to another scene and when an
+    /// edit is committed in the current one. The caret is deliberately NOT part of this
+    /// — caret movement only changes which row is bolded, which is pure render, and
+    /// re-fetching on every arrow key would be gratuitous engine traffic.
+    private var reloadKey: String {
+        "\(context.sceneID)#\(context.historyRevision)"
     }
 
     // MARK: — Tree
@@ -91,6 +80,10 @@ private struct HistoryCardBody: View {
         if tree.nodes.isEmpty {
             notice("No history yet.")
         } else {
+            // Resolved once for the whole list, not per row: exactly one entry can be
+            // "where the caret is" (I-0106).
+            let caretNode = caretNodeID(in: shown)
+
             VStack(alignment: .leading, spacing: 3) {
                 scopeToggle(shown: shown.count, total: tree.nodes.count)
 
@@ -105,7 +98,7 @@ private struct HistoryCardBody: View {
                         // Bold the entry whose change the caret is sitting inside, so
                         // a long list of similar rows still says "you are here"
                         // (user request, 2026-08-06).
-                        atCaret: isAtCaret(node),
+                        atCaret: node.eventID == caretNode,
                         onSelect: { select(node, in: tree) }
                     )
                 }
@@ -149,13 +142,22 @@ private struct HistoryCardBody: View {
         .padding(.bottom, 2)
     }
 
-    /// True when the caret sits inside this event's change in the scene being viewed.
-    /// Requires the node to belong to the caret's scene — an offset alone would match
-    /// coincidentally across scenes.
-    private func isAtCaret(_ node: HistoryTreeNode) -> Bool {
-        guard let caret = context.caretByteOffset, caret >= 0,
-              node.sceneID == context.sceneID else { return false }
-        return node.contains(caret: caret)
+    /// The single event whose change the caret is sitting inside, or nil.
+    ///
+    /// I-0106 (b): this is resolved ACROSS the shown set rather than per row, because
+    /// ranges legitimately touch — a caret at the boundary between two entries is
+    /// inside both under a half-open range, and before this the card simply bolded
+    /// every match. **The most recent node wins a shared boundary**, matching how the
+    /// writer perceives it: the caret sitting where they just typed belongs to the
+    /// text they just typed, not to whatever preceded it.
+    ///
+    /// `shown` is spine-newest-first followed by branch nodes (see `orderedNodes`), so
+    /// the first match in that order is the most recent one.
+    private func caretNodeID(in shown: [HistoryTreeNode]) -> String? {
+        guard let caret = context.caretByteOffset, caret >= 0 else { return nil }
+        return shown.first { node in
+            node.sceneID == context.sceneID && node.contains(caret: caret)
+        }?.eventID
     }
 
     /// Clicking a node off the current line re-primaries its fork so redo walks it.
@@ -168,30 +170,37 @@ private struct HistoryCardBody: View {
 
     // MARK: — Stale branches
 
+    // I-0108 — a BADGE, not a list.
+    //
+    // The card used to render the full stale-branch list with per-branch purge. That was
+    // confusing for a reason the writer named exactly (2026-08-11): stale branches are
+    // **project-wide**, so they kept appearing even with "This scene only" checked, which
+    // reads as a bug in the filter. It was also a duplicate — Project Settings has shipped
+    // a complete scan/list/purge surface since T-0212/SP-055, alongside the staleness
+    // threshold that governs it.
+    //
+    // So the card keeps the passive signal (you still learn abandoned branches exist,
+    // where you are actually working) and hands off the management, which is project-level
+    // housekeeping. `StaleBranch` carries no sceneID, so per-scene filtering would have
+    // needed a C ABI change to show something Project Settings already shows better.
+    //
+    // Scope note: this amends T-0366, which specified "stale badges + user-confirmed
+    // purge" in the card. Purge now lives in one place instead of two.
     private var staleSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Label("\(stale.count) abandoned \(stale.count == 1 ? "branch" : "branches")",
                   systemImage: "exclamationmark.triangle")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
-            ForEach(stale, id: \.branchRootEventID) { branch in
-                HStack(spacing: 6) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(branch.preview.isEmpty ? "(no preview)" : branch.preview)
-                            .font(.caption)
-                            .lineLimit(1)
-                        Text("\(branch.nodeCount) \(branch.nodeCount == 1 ? "edit" : "edits")")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    Button("Discard…") { pendingPurge = branch }
-                        .buttonStyle(.borderless)
-                        .font(.caption)
-                }
-            }
+            // Stated plainly so the count is never read as scoped to this scene.
+            Text("Across the whole project — manage in Project Settings…")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: — Helpers
@@ -229,8 +238,9 @@ private struct HistoryNodeRow: View {
                 // see at a glance which line she is on.
                 Image(systemName: glyph)
                     .font(.caption2)
-                    .foregroundStyle(node.isCurrent ? Color.accentColor : .secondary)
+                    .foregroundStyle(glyphColor)
                     .frame(width: 12)
+                    .help(isDeletion ? "Text removed" : "Text added")
 
                 Text(label)
                     .font(atCaret ? .caption.weight(.bold) : .caption)
@@ -258,15 +268,51 @@ private struct HistoryNodeRow: View {
     private var glyph: String {
         if node.isCurrent { return "largecircle.fill.circle" }
         if node.kind == "barrier" || node.kind == "structural" { return "minus.circle" }
+        // T-0398: a deletion must not look like an insertion. Before this every row
+        // drew `circle.fill`, so the writer could not tell that an entry was text they
+        // had REMOVED — the reported case was a deletion of "is the" reading exactly
+        // like typed text.
+        if isDeletion { return node.onPrimarySpine ? "minus.circle.fill" : "minus.circle" }
         return node.onPrimarySpine ? "circle.fill" : "circle"
+    }
+
+    /// Events that removed text. A pure deletion has no insertion at all; `cut` is
+    /// included because it removes from the scene too (the text lives on in a buffer).
+    private var isDeletion: Bool {
+        node.isPureDeletion || node.kind == "delete" || node.kind == "cut"
+    }
+
+    /// Deletions read in a distinct hue so insert-vs-delete is legible at a glance,
+    /// not only on close reading of the label. Non-deletions keep the original
+    /// `.secondary` treatment — this task adds a distinction, it does not restyle
+    /// every existing row.
+    private var glyphColor: Color {
+        if node.isCurrent { return .accentColor }
+        return isDeletion ? .orange : .secondary
     }
 
     private var label: String {
         if !node.barrierKind.isEmpty {
             return node.barrierNote.isEmpty ? node.barrierKind : node.barrierNote
         }
+        // T-0397: an all-whitespace change is NAMED before anything else. It must be
+        // checked ahead of `preview`, because preview rewrites \n/\r/\t to spaces and
+        // trimming then leaves an empty string — the exact path that produced the
+        // "(no text)" rows the writer could not identify.
+        if let whitespace = node.whitespaceLabel {
+            return isDeletion ? "Deleted \(whitespace)" : whitespace
+        }
         let preview = node.preview.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !preview.isEmpty { return preview }
-        return node.kind == "barrier" ? "(structural change)" : "(no text)"
+        if !preview.isEmpty {
+            // T-0398: prefix so the row states what happened rather than leaving the
+            // glyph to carry it alone.
+            return isDeletion ? "Deleted \(preview)" : preview
+        }
+        if node.kind == "barrier" { return "(structural change)" }
+        // A deletion whose preview is empty still has a story to tell.
+        if isDeletion, node.removedLength > 0 {
+            return "Deleted \(node.removedLength) \(node.removedLength == 1 ? "byte" : "bytes")"
+        }
+        return "(no text)"
     }
 }

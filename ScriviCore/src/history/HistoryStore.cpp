@@ -4,6 +4,7 @@
 #include "util/PathUtils.hpp"
 #include "util/Hash.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace scrivi::history {
@@ -187,6 +188,15 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
             // NEXT open (replay honors ctl:purge in applyLoadedEviction). The clamp
             // in applyForward (I-0065) already prevents a crash; this makes the fix
             // durable — the bad history self-heals instead of degrading every open.
+            // I-0111: adopt the replayed high-water mark BEFORE writing anything.
+            // persistPurge() below stamps `++lastSeq_`, and lastSeq_ was still 0 here
+            // (it used to be assigned ~34 lines further down, after the state.json
+            // read), so every prune-driven purge was written with **seq 1** — 13 of
+            // them in the writer's log, causing 11 sequence regressions. The records
+            // replay correctly (order comes from file position, not seq), but the
+            // sequence numbers were meaningless and made log forensics misleading.
+            lastSeq_ = maxSeq;
+
             std::vector<std::string> prunedRoots = svc->pruneInconsistentNodes();
             for (const std::string& branchRoot : prunedRoots) {
                 persistPurge(branchRoot);   // one ctl:purge per detached subtree root
@@ -223,7 +233,10 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
             // is what distinguishes "previous session" nodes for the warning.
             svc->setSessionID(newSessionID);
             service_ = std::move(svc);
-            lastSeq_ = maxSeq;
+            // lastSeq_ was already adopted above, BEFORE the prune could write purge
+            // records (I-0111). Any records written since have advanced it further, so
+            // re-assigning maxSeq here would roll it backwards and reissue numbers.
+            lastSeq_ = std::max(lastSeq_, maxSeq);
             outLoaded = true;
             // Record the session start so subsequent events carry it.
             persistCtl("session", "");
@@ -380,15 +393,58 @@ void HistoryStore::checkpoint() {
     if (anyPrimary) d.setSubDoc("primaryChildren", std::move(primaries));
 
     // Per-scene head hashes for §6.b validation at next open.
+    //
+    // I-0104: this must be the hash of the bytes ON DISK, because that is what
+    // validateSceneHead() compares against at the next open. Prefer the hash the
+    // save path recorded via noteScenePersisted(); only fall back to the replayed
+    // head for a scene we never saw saved this session. Hashing the head here
+    // unconditionally (the old behaviour) compared head-to-disk and so fired an
+    // externalChange barrier on essentially every relaunch.
+    // ⚠️ ORDER MATTERS, and getting it wrong caused a permanent barrier loop.
+    //
+    // Reported 2026-08-10: the same 14 scenes re-flagged on EVERY relaunch, whether or
+    // not the writer touched them. Forensics on the real project were unambiguous —
+    // `validateSceneHead`'s repair was working (the newest `floor` record in the log
+    // matched the file byte-for-byte), but `state.json` held the hash of a *superseded*
+    // floor (13 of 14 scenes). So each open detected the same stale baseline again,
+    // warned again, repaired again, and then persisted the stale value again.
+    //
+    // The culprit was preferring `loadedHeadHashes_` here. That map is seeded at open
+    // and reflects what state.json said THEN; a repair that re-seeds the floor
+    // mid-session does not necessarily get written back before `checkpoint()` runs
+    // (it also fires every 200 records, not only at close).
+    //
+    // The floor text is the authority: it is the exact text the repair adopted from
+    // disk, and for an untouched scene it is what was loaded from disk. Hash THAT.
+    // `persistedDiskHashes_` still wins when present, because a save this session knows
+    // the written bytes precisely — including edits made after the floor was seeded.
     util::JsonDoc heads;
     for (const auto& [sceneID, text] : service_->floorTexts()) {
         util::JsonDoc h;
-        h.setString("sha256", util::sha256Hex(service_->headTextForScene(sceneID)));
+        auto dit = persistedDiskHashes_.find(sceneID);
+        if (dit != persistedDiskHashes_.end()) {
+            h.setString("sha256", dit->second);
+        } else {
+            auto lit = loadedHeadHashes_.find(sceneID);
+            h.setString("sha256", lit != loadedHeadHashes_.end()
+                                      ? lit->second
+                                      : util::sha256Hex(service_->headTextForScene(sceneID)));
+        }
         heads.setSubDoc(sceneID, std::move(h));
     }
     d.setSubDoc("sceneHeads", std::move(heads));
 
     fs_->atomicWriteTextFile(statePath(), d.dump(2));
+}
+
+void HistoryStore::noteScenePersisted(const std::string& sceneID, const std::string& diskText) {
+    if (sceneID.empty()) return;
+    const std::string h = util::sha256Hex(diskText);
+    persistedDiskHashes_[sceneID] = h;
+    // Keep the in-session baseline in step too: a later validateSceneHead() in
+    // this same session (e.g. a reopen without quitting) must not treat text we
+    // just wrote ourselves as an external edit.
+    loadedHeadHashes_[sceneID] = h;
 }
 
 bool HistoryStore::validateSceneHead(const std::string& sceneID,

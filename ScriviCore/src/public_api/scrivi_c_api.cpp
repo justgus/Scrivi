@@ -1984,6 +1984,8 @@ const char* scrivi_history_get_tree(const char* projectRootPath, const char* par
         d.setBool("isCurrent",        n.isCurrent);
         d.setInt64("changeOffsetUtf8", static_cast<int64_t>(n.changeOffsetUtf8));
         d.setInt64("changeLength",     static_cast<int64_t>(n.changeLength));
+        d.setInt64("removedLength",    static_cast<int64_t>(n.removedLength));
+        d.setString("whitespaceKind",  n.whitespaceKind);   // T-0397; omitted when empty
         doc.appendToArray("nodes", std::move(d));
     }
     return heap(okEnvelope(std::move(doc)));
@@ -2057,6 +2059,24 @@ const char* scrivi_history_validate_scene(const char* projectRootPath,
 
     scrivi::util::JsonDoc doc;
     doc.setBool("externalChange", mismatch);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_history_note_scene_persisted(const char* projectRootPath,
+                                                const char* sceneID,
+                                                const char* diskTextUtf8) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "history not open for this project"));
+
+    it->second->noteScenePersisted(S(sceneID), S(diskTextUtf8));
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("recorded", true);
     return heap(okEnvelope(std::move(doc)));
 }
 

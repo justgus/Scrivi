@@ -93,6 +93,11 @@ struct CardContext {
     /// Scene-local UTF-8 byte offset of the caret, or nil when unknown. Used by the
     /// history card to bold the entry the caret is sitting inside.
     var caretByteOffset: Int? = nil
+
+    /// Monotonic counter bumped whenever the history tree changes (I-0105). The
+    /// history card folds it into its `.task(id:)` so a commit re-fetches the tree;
+    /// reloading on `sceneID` alone left the card stale until the project reopened.
+    var historyRevision: Int = 0
 }
 
 /// A card the inspector can render. Conformers are registered in `InspectorCardRegistry`

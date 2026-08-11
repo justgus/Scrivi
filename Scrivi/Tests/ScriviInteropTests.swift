@@ -1224,4 +1224,215 @@ struct ScriviInteropTests {
             try engine.buffersLoad(projectRootPath: dir.path, bufferID: "0", text: "x")
         }
     }
+
+    // MARK: — T-0396: typing-session coalescing (engine-level invariant)
+
+    // NOTE ON COVERAGE. `HistoryCapture` — where the coalescing decision actually
+    // lives — is NOT compiled into this test target (the target builds only
+    // ScriviEngine.swift + ScriviError.swift standalone, so `@testable import` does
+    // not make app types usable here; adding HistoryCapture would cascade in most of
+    // the app layer). What is asserted below is the engine-level property the fix
+    // depends on: each recorded event is one node and one undo step, so recording
+    // ONCE per typing session is the only way to get one entry. The app-side
+    // behaviour itself is covered by live verification.
+
+    // Counts recorded nodes for a scene, ignoring the root anchor.
+    private func typingNodeCount(_ engine: ScriviEngine, projectRootPath: String,
+                                 sceneID: String) throws -> Int {
+        let tree = try engine.historyGetTree(projectRootPath: projectRootPath)
+        return tree.nodes.filter { $0.sceneID == sceneID && $0.eventID != tree.rootID }.count
+    }
+
+    // The reference case from the SP-093 plan: the writer typed one sentence
+    // continuously and history recorded THREE entries, split by the 1 s autosave
+    // debounce — one break falling mid-word ("…made glo" / "rious…"). Recording the
+    // finished sentence once yields ONE node and ONE undo step; the pre-fix
+    // behaviour of recording at each save point yields three of each.
+    @Test("one record per typing session is one node and one undo step (T-0396)")
+    func typingSessionIsOneNode() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        let sentence = "Now is the winter of our discontent made glorious summer by this son of york"
+
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+        // Coalesced: the session's final text recorded once, at a real boundary.
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: sentence, kind: "typing",
+                                          cursorBefore: 0,
+                                          cursorAfter: Int64(sentence.utf8.count))
+
+        #expect(try typingNodeCount(engine, projectRootPath: dir.path, sceneID: "scene_a") == 1)
+
+        // And it is a single undo step back to empty — not three.
+        let step = try engine.historyUndo(projectRootPath: dir.path)
+        #expect(step.moved)
+        #expect(step.changes.first?.newText == "")
+        try engine.historyClose(projectRootPath: dir.path)
+    }
+
+    // MARK: — I-0104 (2nd defect): a commit at close must keep the head hash disk-accurate
+
+    // Reported in live verify 2026-08-10: three quit→reopen cycles produced three
+    // externalChange barriers on a scene edited only inside Scrivi. The engine-level
+    // contract is what the app-side close() now upholds — the LAST text committed to
+    // history must also be the text whose hash is persisted, or the next open compares
+    // the replayed head against disk and flags a change that never happened.
+    @Test("three reopen cycles raise no barrier when the final text is recorded (I-0104)")
+    func repeatedReopenIsSilent() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        let finalText = "First sentence. Second."
+
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "First sentence.", kind: "typing",
+                                          cursorBefore: 0, cursorAfter: 15)
+        try engine.historyNoteScenePersisted(projectRootPath: dir.path, sceneID: "scene_a",
+                                             diskText: "First sentence.")
+        // A commit with no save after it — the shape that reintroduced the bug.
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: finalText, kind: "typing",
+                                          cursorBefore: 15, cursorAfter: 23)
+        try engine.historyNoteScenePersisted(projectRootPath: dir.path, sceneID: "scene_a",
+                                             diskText: finalText)
+        try engine.historyClose(projectRootPath: dir.path)
+
+        for cycle in 1...3 {
+            try engine.historyOpen(projectRootPath: dir.path)
+            let r = try engine.historyValidateScene(projectRootPath: dir.path,
+                                                    sceneID: "scene_a",
+                                                    currentDiskText: finalText)
+            #expect(!r.externalChange, "cycle \(cycle) raised a spurious externalChange")
+            try engine.historyClose(projectRootPath: dir.path)
+        }
+    }
+
+    // MARK: — I-0106 / T-0398: removedLength, caret spans, deletion identity
+
+    // The payload must survive the boundary. `removedLength` is the shared field both
+    // I-0106 (caret spans) and T-0398 (presentation) consume, so if it decodes as 0
+    // both regress silently — a deletion would look like an insertion again.
+    @Test("a deletion decodes with removedLength and no insertion (I-0106/T-0398)")
+    func deletionCarriesRemovedLength() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "Now is the winter", kind: "typing",
+                                          cursorBefore: 0, cursorAfter: 17)
+        // Remove "is the " — 7 bytes out, nothing in.
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "Now winter", kind: "delete",
+                                          cursorBefore: 4, cursorAfter: 4)
+
+        let tree = try engine.historyGetTree(projectRootPath: dir.path)
+        let del = try #require(tree.nodes.first { $0.eventID == tree.currentNodeID })
+
+        #expect(del.changeLength == 0)
+        #expect(del.removedLength == 7)
+        #expect(del.isPureDeletion, "a pure deletion must be identifiable for the glyph/label")
+        try engine.historyClose(projectRootPath: dir.path)
+    }
+
+    // I-0106 (a): a pure deletion used to have no span at all — `changeLength == 0`
+    // sent it down a degenerate "matches only its exact offset" path, which collided
+    // with the adjacent insertion's half-open range and bolded TWO rows. It must now
+    // own a real, bounded span.
+    @Test("a deletion has a real caret span, not a bare offset (I-0106)")
+    func deletionHasCaretSpan() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "the cat sat", kind: "typing",
+                                          cursorBefore: 0, cursorAfter: 11)
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "the sat", kind: "delete",
+                                          cursorBefore: 4, cursorAfter: 4)
+
+        let tree = try engine.historyGetTree(projectRootPath: dir.path)
+        let del = try #require(tree.nodes.first { $0.eventID == tree.currentNodeID })
+
+        // Hits at the seam where text was removed, and nowhere far from it.
+        #expect(del.contains(caret: del.changeOffsetUtf8))
+        #expect(!del.contains(caret: del.changeOffsetUtf8 + 50))
+        try engine.historyClose(projectRootPath: dir.path)
+    }
+
+    // MARK: — T-0397: whitespace-kind labels
+
+    // A newline-only event used to read "(no text)": `preview` rewrites \n to a space
+    // and the card trims it away. The kind now travels as its own field and turns
+    // into wording the writer can act on.
+    @Test("a newline-only event is named, not rendered as empty (T-0397)")
+    func newlineEventIsNamed() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "Line one", kind: "typing",
+                                          cursorBefore: 0, cursorAfter: 8)
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "Line one\n", kind: "typing",
+                                          cursorBefore: 8, cursorAfter: 9)
+
+        let tree = try engine.historyGetTree(projectRootPath: dir.path)
+        let nl = try #require(tree.nodes.first { $0.eventID == tree.currentNodeID })
+
+        #expect(nl.whitespaceKind == "newline:1")
+        #expect(nl.whitespaceLabel == "⏎ new paragraph")
+        // The old failure mode: preview trims to nothing, which is what sent the row
+        // down the "(no text)" path.
+        #expect(nl.preview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        try engine.historyClose(projectRootPath: dir.path)
+    }
+
+    // Ordinary text must NOT be relabelled — the preview speaks for itself, and a
+    // sentence containing spaces is not a "whitespace event".
+    @Test("an event with real text has no whitespace label (T-0397)")
+    func realTextHasNoWhitespaceLabel() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+        _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                          newSceneText: "Hello world", kind: "typing",
+                                          cursorBefore: 0, cursorAfter: 11)
+
+        let tree = try engine.historyGetTree(projectRootPath: dir.path)
+        let node = try #require(tree.nodes.first { $0.eventID == tree.currentNodeID })
+
+        #expect(node.whitespaceKind.isEmpty)
+        #expect(node.whitespaceLabel == nil)
+        try engine.historyClose(projectRootPath: dir.path)
+    }
+
+    // The pre-fix shape, asserted so the difference is explicit and regressions are
+    // visible: recording at each autosave point produces a node per save.
+    @Test("recording at each autosave point fragments the sentence (T-0396 baseline)")
+    func perSaveRecordingFragments() throws {
+        let engine = ScriviEngine()
+        let dir = try TempDir()
+        let pieces = ["Now is",
+                      "Now is the winter of our discontent made glo",
+                      "Now is the winter of our discontent made glorious summer by this son of york"]
+
+        try engine.historyOpen(projectRootPath: dir.path)
+        try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
+        for p in pieces {
+            _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
+                                              newSceneText: p, kind: "typing",
+                                              cursorBefore: 0, cursorAfter: Int64(p.utf8.count))
+        }
+        // Three saves → three entries → three undo stops. This is exactly what the
+        // writer reported, and what deferring the save-time commit eliminates.
+        #expect(try typingNodeCount(engine, projectRootPath: dir.path, sceneID: "scene_a") == 3)
+        try engine.historyClose(projectRootPath: dir.path)
+    }
 }

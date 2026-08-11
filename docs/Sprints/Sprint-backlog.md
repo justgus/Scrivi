@@ -6,15 +6,16 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-057 | Undo/Redo — perf fixtures, verification & Epic close (**panel now EP-030 T-0366**) | EP-019 | 🔵 Planning (parked) |
-| SP-092 | `[Cross]` `history` card + Properties tab + `scrivi_history_get_tree` | EP-030 | 🔵 **Planning (drafted)** → `Sprint-active.md` |
-| SP-093 | EP-030 verification & Epic close | EP-030 | 🔵 Planning |
-| SP-094 | Object kinds + fields + object index | EP-031 | 🔵 Planning |
-| SP-095 | Relationship graph: canonical edges, append-log, compaction | EP-031 | 🔵 Planning |
-| SP-096 | Integrity: prune, orphans, promotion, pending-vs-dangling | EP-031 | 🔵 Planning |
-| SP-097 | World packages: bindings, resolution, locking, epoch chain | EP-031 | 🔵 Planning |
-| SP-098 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
-| SP-099 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
+| SP-057 | ⚪ **Merged → SP-094** — was Undo/Redo verification & Epic close (perf fixtures closed OBE; panel → EP-030 T-0366) | EP-019 | ⚪ **Superseded** (2026-08-07) |
+| SP-092 | `[Cross]` `history` card + Properties tab + `scrivi_history_get_tree` | EP-030 | 🟡 **Active** (2026-08-06) → `Sprint-active.md` |
+| SP-093 | `[Cross]` **EP-019 history capture granularity + presentation** (I-0104/I-0105/I-0106 + T-0396/T-0397/T-0398) | EP-019 | 🔵 **Planning (drafted)** → `Sprint-active.md` |
+| SP-094 | **EP-019 + EP-030 verification & Epic close** (merged — T-0369 + AC2/AC7/AC8 + T-0217) | EP-019 + EP-030 | 🔵 Planning |
+| SP-095 | Object kinds + fields + object index | EP-031 | 🔵 Planning |
+| SP-096 | Relationship graph: canonical edges, append-log, compaction | EP-031 | 🔵 Planning |
+| SP-097 | Integrity: prune, orphans, promotion, pending-vs-dangling | EP-031 | 🔵 Planning |
+| SP-098 | World packages: bindings, resolution, locking, epoch chain | EP-031 | 🔵 Planning |
+| SP-099 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
+| SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
 
 > ✅ **SP-056 archive written 2026-08-05** — `Closed/Sprint-SP-056.md`, reconstructed from the EP-019 record
 > (the sprint closed 2026-07-27 user-approved but was never archived; `Closed/` had jumped SP-055 → SP-058). The
@@ -27,9 +28,14 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 > ✅ **SP-090 closed 2026-08-05 (Human-approved)** — `Closed/Sprint-SP-090.md`. EP-030's card framework
 > shipped; T-0359–T-0362 all Verified. Planning row removed. **SP-091 is next.**
 
-> **Sequencing (2026-08-05):** EP-030 SP-090→SP-093, then **EP-019 SP-057** (its history-panel requirement is
-> met by EP-030 T-0366), then EP-031 SP-094→SP-099. EP-031's ScriviCore sprints (SP-094–SP-097) have no
-> dependency on EP-030 and may run in parallel if capacity allows; only SP-098 needs the card framework.
+> **Sequencing (revised 2026-08-09):** EP-030 SP-090 ✅ → SP-091 ✅ → SP-092 🟡 → **SP-093** (EP-019 history
+> capture) → **SP-094** (merged EP-019 + EP-030 verification & double Epic close) → EP-031 SP-095→SP-100.
+> EP-031's ScriviCore sprints (SP-095–SP-098) have no dependency on EP-030 and may run in parallel if capacity
+> allows; only SP-099 needs the card framework.
+>
+> ⚠️ **Supersedes the 2026-08-05 sequencing note**, which read "SP-090→SP-093, then EP-019 SP-057, then EP-031
+> SP-094→SP-099". Two things changed on 2026-08-07: SP-093 became the EP-019 history sprint, and SP-057 merged
+> into SP-094 — which pushed EP-031's sprints down one to SP-095–SP-100.
 
 > **SP-078 activated & ✅ closed 2026-07-22** — `Closed/Sprint-SP-078.md` (EP-024 `[Linux]` Scene Inspector
 > Panel, first & only sprint; tasks T-0318–T-0320 Verified live over VNC). **This closed EP-024** in one sprint,
@@ -153,7 +159,59 @@ ACs pass user verification; `ctest` + interop green; Epic ready for close approv
 
 ---
 
-*Last Updated: 2026-07-22 (**SP-078 planned, activated, and implemented same day** — opened EP-024 `[Linux]`
+## SP-093: `[Cross]` EP-019 — history capture granularity + presentation
+
+**Status:** 🔵 **Drafted 2026-08-07 — awaiting go-ahead to activate.** Full plan in `Sprint-active.md`.
+**Epic:** EP-019 · **Goal:** Make the history a faithful record of how the writer actually works — coherent
+typing sessions instead of arbitrary fragments, honest labels for whitespace and deletions, and a card that
+refreshes and highlights correctly. Opened from the SP-092 live-verify; **none of its six items is an SP-092
+regression** (the capture granularity dates to SP-053).
+
+| ID | Title | Priority |
+| -- | ----- | -------- |
+| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash over replayed text, not disk bytes | High |
+| I-0105 | `[Apple]` History card doesn't refresh on commit | High |
+| T-0396 | `[Apple]`+`[ScriviCore]` Typing-session coalescing — continuation-merge + 30–60 s idle timer | High |
+| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows | Medium |
+| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows | Medium |
+| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)" | Low |
+
+> ⚠️ **T-0396's kept triggers.** Cursor-move, cut/paste, scene switch and sentence terminators **all remain**
+> commit triggers (user ruling 2026-08-07). The cause of the three-way split is the **1 s autosave debounce**,
+> not cursor movement — an earlier draft had this backwards. Coalescing is **app-side**; `HistoryService`
+> stays pure.
+
+**Blocks EP-019's close:** SP-057's verification (now merged into SP-094) runs **after** SP-093.
+
+---
+
+## SP-094: **EP-019 + EP-030 verification & Epic close** (merged)
+
+**Status:** 🔵 Planning. **Epics:** EP-019 + EP-030 · **Tasks:** T-0369 (EP-030 AC1–AC7) + T-0217 (EP-019
+doc updates) + EP-019 AC2/AC7/AC8 live verify.
+
+Merged from the old SP-093 (EP-030 close) and SP-057 (EP-019 close) — both were one-task, no-build-work
+verification passes gated on the same live session and app build. Both Epics' ACs are verified in one pass,
+then **closed independently**: each requires its own direct user approval, and a failure in one Epic's ACs
+does **not** block the other's close.
+
+> **T-0217 carries the AC2 amendment** — EP-019 AC2 and design §4.a must document the **save-time commit** and
+> the **idle-session boundary** before EP-019 is put forward for close. This is a documentation gap being
+> closed, not approved criteria being overturned: every trigger AC2 names is kept.
+
+---
+
+*Last Updated: 2026-08-09 (**Tracking-doc audit — backlog realigned to the 2026-08-07 renumbering.** This file
+was the main source of the SP-093 confusion: its summary table still read "SP-093 | EP-030 verification & Epic
+close" while the struck-through detail entry 130 lines below said the opposite. Corrected: **SP-093** is the
+`[Cross]` **EP-019 history-capture sprint** (detail entry added); **SP-094** is the merged **"EP-019 + EP-030
+verification & Epic close"** (detail entry added); **SP-057** marked ⚪ Superseded → SP-094 rather than
+"parked"; **SP-092** status corrected 🔵 Planning → 🟡 Active; **EP-031 renumbered SP-094–SP-099 →
+SP-095–SP-100** to clear the collision with the merged verification sprint (`Epic-active.md` and its 22
+T-0370–T-0391 rows realigned to match, per `Sprint-active.md:357`); the 2026-08-05 sequencing note superseded.
+Prior note follows.)*
+
+*2026-07-22 (**SP-078 planned, activated, and implemented same day** — opened EP-024 `[Linux]`
 Scene Inspector Panel (mirrors Apple EP-014); moved to `Sprint-active.md`. Default visibility = **shown**
 (Apple parity, user decision). Container build green (184/184, 0 warnings) + all Linux smokes PASS; live VNC
 verify + AC sign-off pending. SP-056–SP-057 remain 🔵 Planning, parked behind deferred EP-019 `[Apple]`.)*

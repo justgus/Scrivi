@@ -44,6 +44,62 @@ final class HistoryCapture {
     // treat the resulting textDidChange as a new user edit.
     private(set) var isApplying: Bool = false
 
+    // I-0105: bumped on every mutation of the history tree (commit, undo, redo,
+    // barrier, purge). The history card folds this into its `.task(id:)` so a
+    // commit re-fetches the tree; without it the card reloaded on scene identity
+    // alone and went stale until the project was reopened. A counter rather than
+    // a notification because the card only needs "something changed", and the
+    // value is cheap to diff in a task id.
+    private(set) var revision: Int = 0
+
+    private func bumpRevision() { revision &+= 1 }
+
+    // MARK: — Typing-session coalescing (T-0396)
+
+    // How long the writer must be idle before the next keystroke starts a NEW
+    // history entry rather than continuing the open one. Deliberately long
+    // (user ruling, 2026-08-07: 30–60 s) — "sometimes we writers ruminate for
+    // longer periods", so a pause only ends a session when it means the writer
+    // actually stopped, not merely thought mid-sentence. This is a SESSION
+    // boundary and is entirely separate from the 1 s autosave cadence, which
+    // writes to disk without sealing anything.
+    static let idleSessionThreshold: TimeInterval = 45
+
+    // Timestamp of the last text edit, for the idle-session boundary above.
+    private var lastActivity: Date?
+
+    // True when the writer has been idle past the threshold, so the open typing
+    // session should be considered over.
+    private var isSessionIdle: Bool {
+        guard let lastActivity else { return false }
+        return Date().timeIntervalSince(lastActivity) >= Self.idleSessionThreshold
+    }
+
+    // Fires the idle boundary on its own. Without this the session would only end
+    // when the writer did something ELSE (typed again, moved the caret, closed the
+    // project) — so a writer who simply stops mid-sentence and walks away would
+    // leave the entry uncommitted, and the history card would not show their last
+    // sentence until they came back. Restarted on every edit; cancelled on commit.
+    private var idleTask: Task<Void, Never>?
+
+    private func scheduleIdleCommit() {
+        idleTask?.cancel()
+        idleTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(Self.idleSessionThreshold * 1_000_000_000))
+            guard !Task.isCancelled, let self, self.hasPendingChanges else { return }
+            self.flush(trigger: "idle")
+        }
+    }
+
+    // Clear the session clock once an entry has been committed, so a later edit is
+    // judged fresh rather than against a stale timestamp, and stand the idle timer
+    // down — there is nothing left pending for it to seal.
+    private func endContinuation() {
+        lastActivity = nil
+        idleTask?.cancel()
+        idleTask = nil
+    }
+
     // Scenes whose baseline (pre-edit floor text) has been seeded this session,
     // so we seed each scene exactly once on its first edit.
     private var seededScenes: Set<String> = []
@@ -100,6 +156,20 @@ final class HistoryCapture {
         guard isOpen else { return }
         // Commit anything outstanding so the final sentence is not lost.
         flush(trigger: "flush")
+
+        // ⚠️ DO NOT call noteScenePersisted() here with the pending text.
+        //
+        // That was tried on 2026-08-10 and made things strictly worse (the writer's
+        // barrier count went 7 → 8 on a single relaunch). The reasoning behind it —
+        // "the pending text is already on disk, autosave wrote it" — is FALSE: T-0396
+        // defers the save-time commit, and `applicationWillTerminate` does not call
+        // `saveAllDirty`, so on quit the pending text may never have been written at
+        // all. Recording its hash told the next open that the file should contain text
+        // it does not, guaranteeing a mismatch → barrier, permanently.
+        //
+        // `noteScenePersisted` has exactly one correct caller: the save path, AFTER a
+        // successful write, with the bytes it actually wrote
+        // (`ViewportSceneLoader.saveScene`). Anywhere else is guessing at disk state.
         _ = try? engine.historyClose(projectRootPath: projectRootPath)
         isOpen = false
         clearPending()
@@ -116,6 +186,17 @@ final class HistoryCapture {
     func noteEdit(sceneID: String, text: String, cursor: Int, baselineIfFirst: String) {
         guard isOpen, !isApplying else { return }
         seedBaselineIfNeeded(sceneID: sceneID, baseline: baselineIfFirst)
+
+        // T-0396 — an idle gap ends the typing session. If the writer stopped for
+        // longer than the threshold, commit what was pending BEFORE folding this
+        // keystroke in, so the resumed work starts its own entry. Below the
+        // threshold the pending latch simply stays open and this edit joins it —
+        // which, with the save-time commit deferred, is what makes a continuously
+        // typed sentence record as one event instead of three.
+        if pendingSceneID != nil, isSessionIdle {
+            flush(trigger: "idle")
+        }
+
         if pendingSceneID == nil {
             // First change since the last commit — remember where the cursor was.
             pendingCursorBefore = cursor
@@ -123,6 +204,8 @@ final class HistoryCapture {
         pendingSceneID = sceneID
         pendingText = text
         pendingCursorAfter = cursor
+        lastActivity = Date()
+        scheduleIdleCommit()
     }
 
     // Seeds a scene's ROOT FLOOR text (the state undo stops at, never below):
@@ -217,8 +300,12 @@ final class HistoryCapture {
                 bufferID: effectiveBufferID)
             engineCanUndo = r.canUndo
             engineCanRedo = r.canRedo
-            if !r.noOp { lastCommittedText = pendingText }
+            if !r.noOp {
+                lastCommittedText = pendingText
+                bumpRevision()   // I-0105: a real commit — the card must re-fetch
+            }
             clearPending()
+            endContinuation()   // T-0396: entry sealed — the session clock resets
             return !r.noOp
         } catch {
             print("[Scrivi] historyRecordEvent failed: \(error)")
@@ -239,9 +326,50 @@ final class HistoryCapture {
     // The §4.d invariant: any code path that writes a scene file must first
     // flush the pending history commit, so the file on disk always equals a
     // recorded history node. Returns after the commit; the caller then saves.
+    //
+    // T-0396: a save must NOT end the typing session. It commits (so §4.d holds —
+    // disk never contains text no history node describes) and then immediately
+    // re-opens the entry for continuation, so the next keystroke at the same
+    // insertion point EXTENDS this event rather than starting a sibling. Before
+    // this, the 1 s autosave debounce sealed an entry every time the writer paused
+    // for a second, which is what split one continuously-typed sentence into three
+    // rows — including a break mid-word ("…made glo" / "rious…"), the signature of
+    // a wall-clock timer rather than any intentional boundary.
     func flushThenSave() {
-        flush(trigger: "flush")
+        // T-0396 — the save no longer seals the typing session. While the writer is
+        // mid-session the pending edit stays open and NO event is recorded; the
+        // scene is still written to disk by the caller. The entry commits once at a
+        // genuine boundary: the idle timer, or any of the triggers AC2 names
+        // (cursor move, sentence terminator, paste/cut, scene switch, close), all
+        // of which are KEPT (user ruling 2026-08-07).
+        //
+        // If the writer has already gone idle past the threshold, this save IS the
+        // boundary — commit now rather than leaving the entry dangling.
+        if isSessionIdle {
+            flush(trigger: "idle")
+            endContinuation()
+            return
+        }
+        // Otherwise: deliberately no flush. See `deferredCommitNote` below for the
+        // §4.d consequence and why it is safe.
     }
+
+    // ⚠️ §4.d — relaxed by T-0396, deliberately and with the user's approval.
+    //
+    // The invariant used to read: disk never contains text that no history node
+    // describes. Deferring the commit means disk can now LEAD history by at most
+    // one save's worth of typing while a session is open.
+    //
+    // Why that is safe: the pending text lives in `pendingText` and is committed at
+    // every boundary including project close (`close()` flushes). The only window
+    // where it is lost is a hard crash mid-session — and in that case the next open
+    // compares the scene's on-disk bytes against the persisted head hash (I-0104)
+    // and records an `externalChange` barrier, so undo stops at the last node it can
+    // honestly describe rather than walking past text it never recorded. The failure
+    // mode is "undo stops early", never "undo corrupts the manuscript".
+    //
+    // T-0217 carries the AC2 + design §4.a/§4.d amendment documenting this.
+    private var deferredCommitNote: Void { () }
 
     // MARK: — Undo / Redo (T-0205 — the editor applies the returned change)
 
@@ -254,6 +382,7 @@ final class HistoryCapture {
             let r = try engine.historyUndo(projectRootPath: projectRootPath)
             engineCanUndo = r.canUndo
             engineCanRedo = r.canRedo
+            bumpRevision()   // I-0105: the current-node pointer moved
             return r
         } catch { print("[Scrivi] historyUndo failed: \(error)"); return nil }
     }
@@ -264,6 +393,7 @@ final class HistoryCapture {
             let r = try engine.historyRedo(projectRootPath: projectRootPath)
             engineCanUndo = r.canUndo
             engineCanRedo = r.canRedo
+            bumpRevision()   // I-0105: the current-node pointer moved
             return r
         } catch { print("[Scrivi] historyRedo failed: \(error)"); return nil }
     }
@@ -279,8 +409,28 @@ final class HistoryCapture {
             let r = try engine.historySelectBranch(
                 projectRootPath: projectRootPath, forkNodeID: forkNodeID, childEventID: childEventID)
             engineCanRedo = r.canRedo
+            if r.ok { bumpRevision() }   // I-0105: the primary spine changed
             return r.ok
         } catch { print("[Scrivi] historySelectBranch failed: \(error)"); return false }
+    }
+
+    // MARK: — Save-path notification (I-0104)
+
+    // Record the exact bytes the save path just wrote for `sceneID`, so the head
+    // hash persisted at close describes the file rather than the replayed history
+    // head. Without this the next open compares head-to-disk and raises a spurious
+    // `externalChange` barrier for a scene edited only inside Scrivi.
+    //
+    // Deliberately NOT a commit: this only tells history what landed on disk. It
+    // does not seal the pending typing entry — that distinction is what T-0396
+    // builds on.
+    func noteScenePersisted(sceneID: String, diskText: String) {
+        guard isOpen, !sceneID.isEmpty else { return }
+        do {
+            try engine.historyNoteScenePersisted(projectRootPath: projectRootPath,
+                                                 sceneID: sceneID,
+                                                 diskText: diskText)
+        } catch { print("[Scrivi] historyNoteScenePersisted failed: \(error)") }
     }
 
     // MARK: — History tree (EP-030 SP-092, T-0395)
@@ -320,6 +470,7 @@ final class HistoryCapture {
             if r.ok {
                 engineCanUndo = r.canUndo
                 engineCanRedo = r.canRedo
+                bumpRevision()   // I-0105: a subtree was erased
             }
             return r.ok
         } catch { print("[Scrivi] historyPurgeBranch failed: \(error)"); return false }
@@ -354,10 +505,13 @@ final class HistoryCapture {
         // best available attribution when the caller does not name a scene (I-0102).
         let attributed = sceneID ?? pendingSceneID
         flush(trigger: "flush")
-        do { _ = try engine.historyRecordBarrier(projectRootPath: projectRootPath,
-                                                 barrierKind: kind, note: note,
-                                                 sceneID: attributed,
-                                                 structuralPayload: structuralPayload) }
+        do {
+            _ = try engine.historyRecordBarrier(projectRootPath: projectRootPath,
+                                                barrierKind: kind, note: note,
+                                                sceneID: attributed,
+                                                structuralPayload: structuralPayload)
+            bumpRevision()   // I-0105: a barrier node was appended
+        }
         catch { print("[Scrivi] historyRecordBarrier failed: \(error)") }
     }
 

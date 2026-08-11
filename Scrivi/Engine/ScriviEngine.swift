@@ -1049,6 +1049,22 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // I-0104 — tell history the exact bytes just written to a scene file, so the
+    // head hash persisted at close describes disk rather than the replayed head
+    // and `historyValidateScene` compares disk-to-disk at the next open.
+    @discardableResult
+    public func historyNoteScenePersisted(projectRootPath: String, sceneID: String,
+                                          diskText: String) throws -> HistoryNotePersistedResult {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                diskText.withCString { txt in
+                    scrivi_history_note_scene_persisted(prp, sid, txt)
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
     public func historyGetSettings(projectRootPath: String) throws -> HistorySettingsResult {
         let raw = projectRootPath.withCString { scrivi_history_get_settings($0) }
         return try decodeC(raw)
@@ -1331,6 +1347,8 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historyPurgeBranch(projectRootPath: String, branchRootEventID: String) throws -> HistoryPurgeResult { try unavailable() }
     @discardableResult
     public func historyValidateScene(projectRootPath: String, sceneID: String, currentDiskText: String) throws -> HistoryValidateResult { try unavailable() }
+    @discardableResult
+    public func historyNoteScenePersisted(projectRootPath: String, sceneID: String, diskText: String) throws -> HistoryNotePersistedResult { try unavailable() }
     public func historyGetSettings(projectRootPath: String) throws -> HistorySettingsResult { try unavailable() }
     @discardableResult
     public func historySetSettings(projectRootPath: String, capacityEvents: Int, staleBranchDays: Int, idleRolloverHours: Int) throws -> TimelineBoolResult { try unavailable() }
@@ -2231,14 +2249,62 @@ public struct HistoryTreeNode: Decodable, Sendable, Identifiable {
     /// Lets the card highlight the entry the caret is sitting inside.
     public let changeOffsetUtf8: Int
     public let changeLength:     Int
+    /// Bytes this event REMOVED (I-0106 / T-0398). `changeLength` counts inserted
+    /// bytes only, so a pure deletion has `changeLength == 0` and `removedLength > 0`.
+    public let removedLength:    Int
+    /// Set when this event's change is entirely whitespace, as `"<kind>:<count>"`
+    /// (T-0397). Empty for events containing real text. Prefer `whitespaceLabel`.
+    public let whitespaceKind:   String
+
+    /// A human-readable name for an all-whitespace change — `"⏎ new paragraph"`,
+    /// `"⇥ tab"`, `"␣ 3 spaces"` — or nil when the event contains real text.
+    ///
+    /// Exists because `preview` rewrites `\n`/`\r`/`\t` to spaces, so once the card
+    /// trims it a newline-only event is indistinguishable from an empty one and read
+    /// as "(no text)". Parsing lives here rather than in the view so every consumer
+    /// of the tree gets the same wording.
+    public var whitespaceLabel: String? {
+        let parts = whitespaceKind.split(separator: ":")
+        guard parts.count == 2, let count = Int(parts[1]), count > 0 else { return nil }
+        switch parts[0] {
+        case "newline":
+            // One newline ends a line; several open a gap. Naming them differently
+            // matches what the writer actually did.
+            return count == 1 ? "⏎ new paragraph" : "⏎ \(count) new paragraphs"
+        case "tab":
+            return count == 1 ? "⇥ tab" : "⇥ \(count) tabs"
+        case "space":
+            return count == 1 ? "␣ space" : "␣ \(count) spaces"
+        default:
+            return nil
+        }
+    }
 
     public var id: String { eventID }
 
+    /// True when this event only removed text — no insertion. Drives the deletion
+    /// glyph/label (T-0398) as well as the caret span below.
+    public var isPureDeletion: Bool { changeLength == 0 && removedLength > 0 }
+
     /// True when `caret` (a scene-local UTF-8 byte offset) falls within this event's
-    /// change. A zero-length change matches only its exact offset.
+    /// change, using its CURRENT position (offsets are rebased by the engine — I-0107).
+    ///
+    /// I-0106: a pure deletion leaves no inserted text, so it has no natural span. It
+    /// used to fall into a degenerate `caret == changeOffsetUtf8` branch, which matched
+    /// at exactly the offset an adjacent insertion's half-open range `[start, start+len)`
+    /// also contains — so two rows bolded at once. Giving a deletion a one-byte span at
+    /// its offset (the seam where the text was removed) makes it a real range like any
+    /// other; ties at a shared boundary are then broken by the caller, which prefers the
+    /// most recent node.
+    ///
+    /// I-0107: **every recorded row must be reachable by the caret.** An event that
+    /// inserted nothing still occupies a seam the writer can put the caret on, so it
+    /// gets a minimum one-byte span rather than matching a single exact offset — that
+    /// made whitespace rows ("⏎ 2 new paragraphs", "␣ 2 spaces") effectively
+    /// impossible to land on.
     public func contains(caret: Int) -> Bool {
-        guard changeLength > 0 else { return caret == changeOffsetUtf8 }
-        return caret >= changeOffsetUtf8 && caret < changeOffsetUtf8 + changeLength
+        let span = max(changeLength, 1)   // never zero — every row stays reachable
+        return caret >= changeOffsetUtf8 && caret < changeOffsetUtf8 + span
     }
     public var isFork: Bool { childIDs.count >= 2 }
 
@@ -2264,12 +2330,15 @@ public struct HistoryTreeNode: Decodable, Sendable, Identifiable {
         isCurrent      = try c.decodeIfPresent(Bool.self,     forKey: .isCurrent) ?? false
         changeOffsetUtf8 = try c.decodeIfPresent(Int.self,    forKey: .changeOffsetUtf8) ?? 0
         changeLength     = try c.decodeIfPresent(Int.self,    forKey: .changeLength) ?? 0
+        removedLength    = try c.decodeIfPresent(Int.self,    forKey: .removedLength) ?? 0
+        whitespaceKind   = try c.decodeIfPresent(String.self, forKey: .whitespaceKind) ?? ""
     }
 
     private enum CodingKeys: String, CodingKey {
         case eventID, parentID, primaryChildID, childIDs, kind, sceneID, preview
         case timestamp, sessionID, bufferID, barrierKind, barrierNote
-        case onPrimarySpine, isCurrent, changeOffsetUtf8, changeLength
+        case onPrimarySpine, isCurrent, changeOffsetUtf8, changeLength, removedLength
+        case whitespaceKind
     }
 }
 
@@ -2318,6 +2387,11 @@ public struct HistorySettingsResult: Decodable, Sendable {
 
 public struct HistoryValidateResult: Decodable, Sendable {
     public let externalChange: Bool
+}
+
+// I-0104 — acknowledgement that a scene's on-disk bytes were recorded.
+public struct HistoryNotePersistedResult: Decodable, Sendable {
+    public let recorded: Bool
 }
 
 // MARK: — Copy-buffer result types (EP-019 SP-056 — T-0213)

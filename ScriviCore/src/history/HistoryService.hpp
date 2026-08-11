@@ -229,6 +229,22 @@ struct TreeNode {
     // for barriers, which change no text.
     std::size_t changeOffsetUtf8 = 0;
     std::size_t changeLength     = 0;
+
+    // Bytes this event REMOVED (I-0106 / T-0398). Carried alongside changeLength,
+    // which counts inserted bytes only. Two consumers need it:
+    //   • caret highlighting — a pure deletion has changeLength == 0, so without a
+    //     real span it collapsed to "matches its exact offset" and tied with the
+    //     adjacent insertion, bolding TWO rows;
+    //   • presentation — a deletion rendered identically to an insertion, so the
+    //     writer could not tell removed text from added.
+    // Zero for the root and for barriers.
+    std::size_t removedLength = 0;
+
+    // T-0397 — set when this event's change is ENTIRELY whitespace, so the UI can
+    // name it ("new paragraph", "tab") instead of falling through to "(no text)".
+    // Format "<kind>:<count>" — "newline:2" | "tab:1" | "space:3". Empty for every
+    // event containing real text, which is the common case.
+    std::string whitespaceKind;
 };
 
 struct TreeWindow {

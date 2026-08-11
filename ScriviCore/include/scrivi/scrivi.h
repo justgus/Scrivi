@@ -418,7 +418,22 @@ const char* scrivi_history_select_branch(const char* projectRootPath,
  *
  * Returns {rootID, currentNodeID, totalNodeCount, truncated, nodes:[{eventID,
  * parentID, primaryChildID, childIDs[], kind, sceneID, preview, timestamp,
- * sessionID, bufferID, barrierKind, barrierNote, onPrimarySpine, isCurrent}]}.
+ * sessionID, bufferID, barrierKind, barrierNote, onPrimarySpine, isCurrent,
+ * changeOffsetUtf8, changeLength, removedLength, whitespaceKind}]}.
+ *
+ * whitespaceKind is set only when the event's change is ENTIRELY whitespace, as
+ * "<kind>:<count>" — "newline:2" | "tab:1" | "space:3" — so a UI can NAME such an
+ * event instead of rendering it as empty. `preview` rewrites \n/\r/\t to spaces, so
+ * it cannot carry this: a newline-only event is indistinguishable from an empty one
+ * once trimmed (T-0397). OMITTED (empty) for every event containing real text.
+ *
+ * changeOffsetUtf8/changeLength/removedLength locate the event's edit in its
+ * scene: the scene-local UTF-8 byte offset, the INSERTED byte count, and the
+ * REMOVED byte count. A pure deletion therefore has changeLength == 0 and
+ * removedLength > 0 — consumers must use removedLength to give it a real span,
+ * or a deletion collapses to a single offset and ties with the neighbouring
+ * insertion (I-0106). All three are 0 for the root and for barriers.
+ *
  * NOTE: childIDs is OMITTED for a leaf (empty arrays are not emitted) — decoders
  * must tolerate its absence (see I-0094). */
 const char* scrivi_history_get_tree(const char* projectRootPath,
@@ -442,6 +457,17 @@ const char* scrivi_history_purge_branch(const char* projectRootPath,
 const char* scrivi_history_validate_scene(const char* projectRootPath,
                                           const char* sceneID,
                                           const char* currentDiskTextUtf8);
+
+/* Record the exact bytes just written to a scene file (I-0104). Call this from
+ * the manuscript save path immediately AFTER the scene file is persisted,
+ * passing the same text that was written. History then carries a disk-derived
+ * head hash, so the next open compares disk-to-disk in
+ * scrivi_history_validate_scene and only a genuine third-party edit raises an
+ * externalChange barrier. Omitting this call does not corrupt anything — the
+ * scene simply keeps its previous baseline. result: {recorded:true}. */
+const char* scrivi_history_note_scene_persisted(const char* projectRootPath,
+                                                const char* sceneID,
+                                                const char* diskTextUtf8);
 
 /* History capacity/session settings (Trade T1). result / settingsJSON:
  * {capacityEvents, staleBranchDays, idleRolloverHours}. project.json is

@@ -116,7 +116,8 @@ struct InspectorCardStackView: View {
                                     engine: engine,
                                     config: entry.config,
                                     history: history,
-                                    caretByteOffset: caretByteOffset
+                                    caretByteOffset: caretByteOffset,
+                                    historyRevision: history?.revision ?? 0
                                 ),
                                 onToggleCollapsed: {
                                     layout.setCollapsed(!entry.collapsed,

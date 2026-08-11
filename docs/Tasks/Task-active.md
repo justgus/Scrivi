@@ -1,17 +1,31 @@
 # Active Tasks
 
-## 🔵 SP-093 `[Cross]` — EP-019 history capture granularity + presentation (PLANNING, drafted 2026-08-07)
+## 🟡 SP-093 `[Cross]` — EP-019 history capture granularity + presentation (ACTIVE — all items Implemented)
 
-**Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-019 · **Awaiting go-ahead to activate.**
+**Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-019 · **Activated 2026-08-09.**
+🟢 **COMPLETE — all 11 items ✅ Verified (2026-08-11); awaiting user approval to close.**
+EC1–EC12 all pass. Five of the 11 (**I-0107**, **I-0108**–**I-0111**) were found by live verification rather
+than by CI. ctest **413/413** · interop **53/53** · macOS BUILD SUCCEEDED.
+
+> **I-0107 was added mid-sprint**, found by the user's first live verify (2026-08-10) on Ch 2 Sc 6 of
+> `the-stairs-of-tintagael.scrivi`: the caret bolded the wrong row, two paragraphs could never be bolded, and
+> whitespace rows were unreachable. One root cause — change offsets are recorded at edit time and **never
+> rebased**, so hit zones drift as later text is inserted. **I-0106's fix was real but partial** (it corrected
+> the tie-break and the deletion span, not the drift). Fixed in-sprint; needs re-verification of that scene.
 
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
-| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash over replayed text, not disk bytes | High | 🔵 Open |
-| I-0105 | `[Apple]` History card doesn't refresh on commit — new edits appear only after reopen | High | 🔵 Open |
-| T-0396 | `[Apple]`+`[ScriviCore]` Typing-session coalescing — continuation-merge + idle timer | High | 🔵 Backlog |
-| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows | Medium | 🔵 Open |
-| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows | Medium | 🔵 Backlog |
-| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)" | Low | 🔵 Backlog |
+| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash over replayed text, not disk bytes | High | ✅ **Verified (2026-08-11, user-confirmed)** — EC1 passes; two launches, no new false notices |
+| I-0105 | `[Apple]` History card doesn't refresh on commit — new edits appear only after reopen | High | ✅ **Verified (2026-08-10, user-confirmed)** — EC6: the card refreshes on commit without a scene switch or relaunch. |
+| T-0396 | `[Apple]` Typing-session coalescing — deferred save-commit + 45 s idle timer (⚠️ §4.d relaxed) | High | ✅ **Verified (2026-08-10, user-confirmed)** — EC2–EC5: the reference sentence records as ONE entry; an autosave does not seal it; a pause beyond the idle threshold starts a new entry; backspace mid-word does not split. ⚠️ §4.d relaxed — T-0217 must document it. |
+| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows | Medium | ✅ **Verified (2026-08-10, user-confirmed)** — EC7 + EC9 (with [[I-0107]], which fixed the offset drift this alone did not). |
+| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows | Medium | ✅ **Verified (2026-08-10, user-confirmed)** — EC10: insertions and deletions are distinguishable at a glance. |
+| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)" | Low | ✅ **Verified (2026-08-10, user-confirmed)** — EC11: whitespace events read as named whitespace, never "(no text)". |
+| I-0107 | `[Cross]` Caret highlight uses **stale offsets** — hit zones drift; zero-span rows unreachable (found in live verify) | High | ✅ **Verified (2026-08-10, user-confirmed)** |
+| I-0108 | `[Apple]` Stale branches listed project-wide under "This scene only" — card now shows a **badge only**; purge lives in Project Settings | Low | ✅ **Verified (2026-08-11, user-confirmed)** |
+| I-0109 | `[Apple]` Navigator: Return does not open the arrow-key-selected scene (arrows stay browse-only) | Low | ✅ **Verified (2026-08-11, user-confirmed)** |
+| I-0110 | `[ScriviCore]` **History fails to open** — `unknown node` exception when a replayed purge contains the current node; project loses undo/redo | High | ✅ **Verified (2026-08-11, user-confirmed)** |
+| I-0111 | `[ScriviCore]` Prune-driven purges written with `seq 1` — log sequence numbers regressed (diagnostic only) | Low | ✅ **Verified (2026-08-11, user-approved)** — diagnostic-only; approved on test evidence |
 
 **Origin:** the SP-092 live-verify (2026-08-07). The user **verified** the "This scene only" filter and
 orphaned-entry deletion as working, then reported six further findings — all diagnosed to code, none a
@@ -70,7 +84,7 @@ All four tasks Verified; **I-0101** found, fixed, and Verified in-sprint. Archiv
 | T-0393 | `[ScriviCore]` C ABI: scene notes setters + `_get_scene_notes` | ✅ **Verified (2026-08-05)** |
 | T-0363 | `[Apple]` `tags` + `todo` cards | ✅ **Verified (2026-08-05)** |
 | T-0364 | `[Apple]` `outline` card | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | ⚪ **Deferred → EP-031 SP-094** |
+| T-0365 | `sources` card + `source` object kind | ⚪ **Deferred → EP-031 SP-095** |
 
 ## ✅ SP-090 `[Apple]` — EP-030 card framework (CLOSED 2026-08-05)
 
@@ -82,9 +96,10 @@ T-0359–T-0362 all Verified. Archived `../Sprints/Closed/Sprint-SP-090.md`.
 
 **EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste) ✅ **CLOSED 2026-08-03** — all five sprints
 (SP-085–SP-089) closed; archived to `../Epics/Closed/Epic-EP-029.md`.
-**EP-019** `[Apple]` remains Active but **held pending** SP-057, now a **pure verification sprint** (no build
-work): AC2/AC7/AC8 live verify + Epic close. Run **after EP-030 SP-092**.
-**Next available Task: T-0392.**
+**EP-019** `[Apple]` remains Active but **held pending** verification: AC2/AC7/AC8 live verify + Epic close.
+**Revised 2026-08-07** — SP-057 is ⚪ superseded, merged into **SP-094** ("EP-019 + EP-030 verification &
+Epic close"), which runs **after SP-093** (the EP-019 history-capture sprint), not after SP-092.
+**Next available Task: T-0399.**
 
 **T-0358** (EP-027 lineage — OrderKey caps-only "dot naming" rework) — ✅ **Verified (2026-07-31)**, archived to
 `Verified/Task-verified-0358.md`.
@@ -305,7 +320,19 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-029 opened + SP-085 planned.** T-0213 +
+*Last Updated: 2026-08-09 (**Tracking-doc audit — cross-layer realignment.** Audited all four layers
+(Task/Issue/Sprint/Epic) for status drift. **Structure was sound** — the reported "Issues in Task-active /
+Sprints in Task-active / Tasks in Sprint-active" filing is the established convention (sprint-grouped task
+tables; Issue rows appear as sprint scope while their authoritative entries live in `Issue-active.md`). The
+real defect was that the **2026-08-07 SP-093 renumbering never reached the two backlog files.** Fixed here:
+the EP-019 close note (SP-057 ⚪ superseded → merged into **SP-094**, which runs after **SP-093**, not after
+SP-092) and **T-0365**'s deferral target (EP-031 SP-094 → **SP-095**). Next available Task corrected
+T-0392 → **T-0399**. Companion fixes in `Task-backlog.md`, `Sprint-backlog.md`, `Epic-active.md`.
+**Still open, deliberately not touched** (needs user judgment): **I-0072** still reads "Root defect of EP-027"
+though EP-027 closed 2026-07-18; **I-0073** has sat "Open — needs triage" since mid-July; **I-0102**'s "(b)
+remains open" pointer now dead-ends at superseded I-0103. Prior note follows.)*
+
+*2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-029 opened + SP-085 planned.** T-0213 +
 T-0214 both ✅ Verified live: multiple copy buffers delivered as explicit ⌘1–9/⌃1–9/⌥1–9 (copy/paste/cut) chords
 + app-global per-project palette + Edit/Scene/Chapter menu items + bufferID-tagged cut event (backend schema
 extended); ctest 327 + interop 43 green. EP-019 **held pending** SP-057 (AC2/AC7/AC8 verify + history panel +

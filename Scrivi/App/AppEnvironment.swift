@@ -200,6 +200,40 @@ import UniformTypeIdentifiers
     func beginTermination() {
         OpenSessionManifest.save(projectIDs: openProjects.openProjectIDs)
         isTerminating = true
+
+        // I-0104/I-0108: SAVE EVERY DIRTY SCENE BEFORE QUITTING.
+        //
+        // Nothing did this. `saveAllDirty` ran only on willResignActive, so quitting
+        // straight from an active window wrote nothing — the writer lost the scene
+        // selection they had, and, worse, history had committed events for text that
+        // never reached disk. The next open then compared a head describing edits the
+        // file did not contain and raised an `externalChange` barrier, every launch,
+        // forever. T-0396 widened the window (the save-time commit is deferred), but
+        // the missing quit-time save is the root of it.
+        //
+        // Synchronous on purpose: `applicationWillTerminate` does not wait for async
+        // work, so a Task here would be cut off mid-write. The engine calls underneath
+        // are synchronous C ABI calls, so this is a direct call, not a bridge.
+        for session in openProjects.sessions.values {
+            session.saveAllDirtyBlocking()
+        }
+
+        // I-0104 — THE barrier loop. Quitting never CLOSED the history, so
+        // `scrivi_history_close` (and with it the final `checkpoint()`) never ran, and
+        // `state.json` was never rewritten.
+        //
+        // That is why the writer's 14 stuck scenes re-flagged on every single launch,
+        // whether or not they were edited: each open detected the stale baseline,
+        // recorded a barrier, and re-seeded the floor correctly — and then the repair
+        // died with the process. Forensics showed the floor had been right for 77
+        // consecutive repairs while `state.json` stayed frozen on floor #2 of 79.
+        //
+        // Proof: an instrumented probe that opened, validated every scene, and CLOSED
+        // the history healed all 14 in a single cycle. The repair logic was never
+        // broken — nothing was persisting it.
+        for session in openProjects.sessions.values {
+            session.closeHistoryBlocking()
+        }
     }
 
     // Restores all project windows that were open at last quit (R4 / T-0195). Skips any

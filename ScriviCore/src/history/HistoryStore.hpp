@@ -86,6 +86,14 @@ public:
     bool validateSceneHead(const std::string& sceneID, const std::string& currentDiskText,
                            const std::string& nowTimestamp, const std::string& barrierEventID);
 
+    // Record the exact bytes just written to a scene file (I-0104). The save
+    // path calls this immediately after persisting `sceneID`, so the hash we
+    // carry forward describes what is actually on disk rather than the replayed
+    // history head. Without it `persistState` would hash `headTextForScene()` —
+    // a different artifact that diverges from the file whenever a save lands
+    // after the last recorded event, making `externalChange` fire on every open.
+    void noteScenePersisted(const std::string& sceneID, const std::string& diskText);
+
     const HistorySettings& settings() const { return settings_; }
     void setSettings(const HistorySettings& s) { settings_ = s; }
 
@@ -109,6 +117,12 @@ private:
     // sceneID → head-text sha256 persisted at last close (state.json sceneHeads).
     // Loaded at open for §6.b validation; empty for a fresh history.
     std::map<std::string, std::string> loadedHeadHashes_;
+
+    // sceneID → sha256 of the bytes last written to that scene file this session
+    // (I-0104), fed by noteScenePersisted(). persistState prefers these over a
+    // head-derived hash so the next open compares disk-to-disk. A scene absent
+    // here was never saved this session, so its loaded baseline still stands.
+    std::map<std::string, std::string> persistedDiskHashes_;
 };
 
 } // namespace scrivi::history

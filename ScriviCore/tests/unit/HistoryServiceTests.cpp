@@ -748,6 +748,245 @@ TEST_CASE("getTree always includes the current node even when capped tightly",
     CHECK(sawCurrent);
 }
 
+// --- removedLength (I-0106 / T-0398) ---------------------------------------
+//
+// changeLength counts INSERTED bytes only, so before this a pure deletion reported
+// changeLength == 0 and the payload said nothing about what was removed. Two bugs
+// fell out of that: the card could not tell a deletion from an insertion, and the
+// caret-hit test had no span to work with, so a deletion tied with its neighbour and
+// bolded two rows. The tree must carry both lengths.
+
+TEST_CASE("getTree reports removedLength for a deletion (I-0106/T-0398)",
+          "[History][I-0106][T-0398]") {
+    auto h = fresh();
+    h.record(typing("s1", "Now is the winter", 0, 17), "evt_1");
+    // Delete "is the " — 7 bytes removed, nothing inserted.
+    h.record(typing("s1", "Now winter", 4, 4), "evt_2");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* del = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_2") del = &n; }
+    REQUIRE(del != nullptr);
+
+    CHECK(del->changeLength == 0);        // a pure deletion inserts nothing …
+    CHECK(del->removedLength == 7);       // … but it must still report its size
+}
+
+TEST_CASE("getTree reports removedLength 0 for a pure insertion (I-0106/T-0398)",
+          "[History][I-0106][T-0398]") {
+    auto h = fresh();
+    h.record(typing("s1", "Hello", 0, 5), "evt_1");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* ins = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_1") ins = &n; }
+    REQUIRE(ins != nullptr);
+
+    CHECK(ins->changeLength == 5);
+    CHECK(ins->removedLength == 0);       // insertions must not claim a removal
+}
+
+TEST_CASE("getTree reports both lengths for a replacement (I-0106/T-0398)",
+          "[History][I-0106][T-0398]") {
+    auto h = fresh();
+    h.record(typing("s1", "the cat sat", 0, 11), "evt_1");
+    // "cat" -> "dog": 3 bytes out, 3 in. Both counts must be non-zero, so a
+    // replacement is not mistaken for a pure deletion.
+    h.record(typing("s1", "the dog sat", 4, 7), "evt_2");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* rep = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_2") rep = &n; }
+    REQUIRE(rep != nullptr);
+
+    CHECK(rep->changeLength > 0);
+    CHECK(rep->removedLength > 0);
+}
+
+// --- offset rebasing (I-0107) ----------------------------------------------
+//
+// diff.offsetUtf8 is where an edit landed WHEN RECORDED. Every later edit shifts that
+// text, but the stored offset never moved — so the card tested the caret against
+// historical coordinates. Reported 2026-08-10: entries bolded ~2 characters late
+// (the writer's two leading newlines), and entries whose stale span drifted out of
+// reach never bolded at all. getTree must report each node's CURRENT offset.
+
+TEST_CASE("getTree rebases an earlier node's offset past later insertions (I-0107)",
+          "[History][I-0107]") {
+    auto h = fresh();
+    // Type a sentence, then insert two newlines BEFORE it — the reported shape.
+    h.record(typing("s1", "Now is the winter", 0, 17), "evt_sentence");
+    h.record(typing("s1", "\n\nNow is the winter", 0, 2), "evt_newlines");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* sentence = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_sentence") sentence = &n; }
+    REQUIRE(sentence != nullptr);
+
+    // "Now is the winter" started at 0 but now begins after the two newlines. Without
+    // rebasing this reports 0, and the caret has to sit 2 bytes early to match.
+    CHECK(sentence->changeOffsetUtf8 == 2);
+}
+
+// ⚠️ THE case the first I-0107 attempt got wrong. Text typed AFTER an entry must not
+// move that entry at all. The first implementation used one running total and shifted
+// every older node by the full length of all later edits, so an entry followed by
+// several typed sentences was displaced by all of them — the user saw "Now is the
+// winter…" highlight only when the caret sat six lines below it (2026-08-10).
+TEST_CASE("a later APPEND does not move an earlier node (I-0107)",
+          "[History][I-0107]") {
+    auto h = fresh();
+    h.record(typing("s1", "Now is the winter", 0, 17), "evt_target");
+    // Seven sentences appended AFTER it — none of them touch its position.
+    std::string text = "Now is the winter";
+    for (int i = 0; i < 7; ++i) {
+        const std::string add = " Sentence number " + std::to_string(i) + ".";
+        const std::size_t before = text.size();
+        text += add;
+        h.record(typing("s1", text, static_cast<int>(before),
+                        static_cast<int>(text.size())),
+                 "evt_after_" + std::to_string(i));
+    }
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* target = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_target") target = &n; }
+    REQUIRE(target != nullptr);
+    CHECK(target->changeOffsetUtf8 == 0);   // still at the start, exactly where typed
+}
+
+// An insertion in the middle moves only what follows it.
+TEST_CASE("a later insertion moves only nodes after it (I-0107)",
+          "[History][I-0107]") {
+    auto h = fresh();
+    h.record(typing("s1", "AB", 0, 2), "evt_head");        // at 0
+    h.record(typing("s1", "ABtail", 2, 6), "evt_tail");    // at 2
+    // Insert 3 bytes at offset 2 — before evt_tail's position, after evt_head's.
+    h.record(typing("s1", "ABXXXtail", 2, 5), "evt_mid");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* head = nullptr;
+    const scrivi::history::TreeNode* tail = nullptr;
+    for (const auto& n : t.nodes) {
+        if (n.eventID == "evt_head") head = &n;
+        if (n.eventID == "evt_tail") tail = &n;
+    }
+    REQUIRE(head != nullptr);
+    REQUIRE(tail != nullptr);
+    CHECK(head->changeOffsetUtf8 == 0);   // unmoved: the insertion was after it
+    CHECK(tail->changeOffsetUtf8 == 5);   // pushed right by the 3 inserted bytes
+}
+
+TEST_CASE("getTree rebases past a later deletion too (I-0107)", "[History][I-0107]") {
+    auto h = fresh();
+    h.record(typing("s1", "AABBtail", 0, 8), "evt_1");
+    // Remove "AABB" from the front: everything after it shifts DOWN by 4.
+    h.record(typing("s1", "tail", 0, 0), "evt_del");
+    h.record(typing("s1", "tail!", 4, 5), "evt_last");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* last = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_last") last = &n; }
+    REQUIRE(last != nullptr);
+    // The newest node is already current — nothing postdates it, so it is unshifted.
+    CHECK(last->changeOffsetUtf8 == 4);
+}
+
+TEST_CASE("getTree leaves a node in another scene unshifted (I-0107)",
+          "[History][I-0107]") {
+    auto h = fresh();
+    h.record(typing("s1", "scene one text", 0, 14), "evt_s1");
+    // A large insertion in a DIFFERENT scene must not move s1's offsets.
+    h.record(typing("s2", "an entirely separate scene", 0, 26), "evt_s2");
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* s1 = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_s1") s1 = &n; }
+    REQUIRE(s1 != nullptr);
+    CHECK(s1->changeOffsetUtf8 == 0);
+}
+
+TEST_CASE("getTree rebases across a chain of insertions (I-0107)",
+          "[History][I-0107]") {
+    auto h = fresh();
+    h.record(typing("s1", "end", 0, 3), "evt_oldest");
+    h.record(typing("s1", "Xend", 0, 1), "evt_mid");      // +1 before it
+    h.record(typing("s1", "YYXend", 0, 2), "evt_newest"); // +2 more before it
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* oldest = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_oldest") oldest = &n; }
+    REQUIRE(oldest != nullptr);
+    // Shifts accumulate: 0 -> +1 -> +3.
+    CHECK(oldest->changeOffsetUtf8 == 3);
+}
+
+// --- whitespaceKind (T-0397) -----------------------------------------------
+//
+// `preview` rewrites \n/\r/\t to spaces, so once the card trims it a newline-only
+// event is indistinguishable from an empty one and rendered "(no text)". The kind
+// must therefore survive the diff as its own field.
+
+TEST_CASE("getTree names a newline-only change (T-0397)", "[History][T-0397]") {
+    auto h = fresh();
+    h.record(typing("s1", "Line one", 0, 8), "evt_1");
+    h.record(typing("s1", "Line one\n", 8, 9), "evt_2");   // pressed Return
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* nl = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_2") nl = &n; }
+    REQUIRE(nl != nullptr);
+    CHECK(nl->whitespaceKind == "newline:1");
+}
+
+TEST_CASE("getTree counts a run of whitespace (T-0397)", "[History][T-0397]") {
+    auto h = fresh();
+    h.record(typing("s1", "A", 0, 1), "evt_1");
+    h.record(typing("s1", "A   ", 1, 4), "evt_2");   // three spaces
+    h.record(typing("s1", "A   \t", 4, 5), "evt_3"); // then a tab
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* sp = nullptr;
+    const scrivi::history::TreeNode* tb = nullptr;
+    for (const auto& n : t.nodes) {
+        if (n.eventID == "evt_2") sp = &n;
+        if (n.eventID == "evt_3") tb = &n;
+    }
+    REQUIRE(sp != nullptr);
+    REQUIRE(tb != nullptr);
+    CHECK(sp->whitespaceKind == "space:3");
+    CHECK(tb->whitespaceKind == "tab:1");
+}
+
+TEST_CASE("getTree leaves whitespaceKind empty for real text (T-0397)",
+          "[History][T-0397]") {
+    auto h = fresh();
+    h.record(typing("s1", "Hello", 0, 5), "evt_1");
+    // Text with a space in it is NOT a whitespace event — the preview speaks for it.
+    h.record(typing("s1", "Hello world", 5, 11), "evt_2");
+
+    auto t = h.getTree("", 0);
+    for (const auto& n : t.nodes) {
+        if (n.eventID == "evt_1" || n.eventID == "evt_2") {
+            CHECK(n.whitespaceKind.empty());
+        }
+    }
+}
+
+TEST_CASE("getTree names a DELETED newline too (T-0397)", "[History][T-0397]") {
+    auto h = fresh();
+    h.record(typing("s1", "A\nB", 0, 3), "evt_1");
+    h.record(typing("s1", "AB", 1, 1), "evt_2");   // removed the newline
+
+    auto t = h.getTree("", 0);
+    const scrivi::history::TreeNode* del = nullptr;
+    for (const auto& n : t.nodes) { if (n.eventID == "evt_2") del = &n; }
+    REQUIRE(del != nullptr);
+    // Falls back to the removed text, so a deleted paragraph break is named as well.
+    CHECK(del->whitespaceKind == "newline:1");
+    CHECK(del->removedLength == 1);
+}
+
 TEST_CASE("getTree exposes a fork's children", "[History][T-0394]") {
     auto h = fresh();
     h.record(typing("s1", "Hello", 0, 5), "evt_1");

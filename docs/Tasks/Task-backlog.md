@@ -55,16 +55,16 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | EP-030 (SP-091) | 🔵 Backlog |
+| T-0365 | `sources` card + `source` object kind | EP-031 (SP-095) | ⚪ **Deferred → EP-031 SP-095** (ruled 2026-08-05; sprint renumbered 2026-08-09) |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0367 | Properties tab — field-driven view | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0368 | Card failure isolation + inline warning | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
-| T-0369 | EP-030 verification + Epic close prep | EP-030 (SP-093) | 🔵 Backlog |
-| T-0396 | `[Apple]`+`[ScriviCore]` **Typing-session coalescing** — continuation-merge at the same insertion point + idle timer; retire cursor-move as a hard commit trigger | EP-019 (SP-093) | 🔵 Backlog |
-| T-0397 | `[ScriviCore]`+`[Apple]` **Whitespace-kind labels in history** — newline/tab/space runs named instead of collapsing to "(no text)" | EP-019 (SP-093) | 🔵 Backlog |
-| T-0398 | `[ScriviCore]`+`[Apple]` **Distinguish added vs. deleted text in history rows** — glyph/colour + label prefix; carry `removedLength` in the tree payload | EP-019 (SP-093) | 🔵 Backlog |
+| T-0369 | EP-030 verification + Epic close prep | EP-030 (**SP-094**) | 🔵 Backlog |
+| T-0396 | `[Apple]` **Typing-session coalescing** — autosave **defers** the commit (records nothing mid-session); entry seals at a real boundary or a **45 s** idle timer. ⚠️ **§4.d relaxed** (user-approved 2026-08-10): disk may lead history by ≤1 save while a session is open — bounded by `close()` + I-0104's head-hash barrier. Cursor-move, cut/paste, scene switch, terminators all **KEPT**; backspace does not commit. App-side only — `HistoryService` untouched. | EP-019 (SP-093) | 🟠 **Implemented — Not Verified (2026-08-10)** |
+| T-0397 | `[Cross]` **Whitespace-kind labels in history** — new `whitespaceKind` tree field (`"newline:2"`) → `whitespaceLabel` (`"⏎ new paragraph"`); `preview` left untouched so the fork popover / stale-branch / purge consumers are unaffected | EP-019 (SP-093) | 🟠 **Implemented — Not Verified (2026-08-10)** |
+| T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carried in the tree payload (**shipped once**, shared with I-0106) | EP-019 (SP-093) | 🟠 **Implemented — Not Verified (2026-08-10)** |
 | T-0370 | `ObjectKind` additions; retire `timeline` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0372 | `objects/index.json` + `findByID` over index | EP-031 (SP-094) | 🔵 Backlog |
@@ -433,9 +433,16 @@ read-only architecture.
 **T-0368 — Card failure isolation.** One card's failure never blocks the stack; the failed card shows a warning
 in place of its content.
 
-### SP-093 — Verification
+### SP-094 — Verification (merged EP-019 + EP-030)
 
 **T-0369 — EP-030 verification (AC1–AC7) + Epic close prep.** User approval required to close.
+
+> **Moved from SP-093 → SP-094 (user ruling, 2026-08-07).** SP-093 is now the **EP-019 history-capture
+> sprint** (granularity + presentation), opened from the SP-092 live-verify. T-0369 and EP-019's SP-057 were
+> both one-task, no-build-work verification passes gated on the same live session and app build, so they
+> merge into a single **SP-094 — "EP-019 + EP-030 verification & Epic close."** Both Epics' ACs are verified
+> in one pass, then **closed independently** — each on its own direct user approval, and a failure in one
+> Epic's ACs does not block the other's close.
 
 ---
 
@@ -474,6 +481,25 @@ ever suspect at scale, this is the missing evidence; re-open as a new task rathe
 **T-0217 — Verification.** Update package-structure + repair-matrix docs; run EP-019 AC1–AC8
 verification; prepare Epic for close (user approval required).
 
+> **⚠️ Scope added 2026-08-10 — two design-doc amendments T-0396 makes mandatory before EP-019 closes:**
+> 1. **AC2 + design §4.a** — document the save-time commit and the **idle-session boundary** (45 s). AC2's
+>    trigger list is not exhaustive of what actually commits; every trigger it names is kept.
+> 2. **Design §4.d — the invariant itself changed.** "Disk never contains text no history node describes" is
+>    **relaxed**: while a typing session is open, disk may lead history by at most one save. Bounded by
+>    `close()` committing pending text and, on a hard crash, I-0104's head-hash check raising an
+>    `externalChange` barrier. This is a **changed invariant**, not a documentation gap — it must be written
+>    up as such, with the rationale (`HistoryService::record` always appends; undo walks one node per step, so
+>    recording per-save cannot yield one undo step).
+
 ---
 
-*Last Updated: 2026-07-13 (SP-055 closed: T-0210/T-0211/T-0212 verified & archived → `Verified/Task-verified-0210-0212.md`; EP-019 AC4 + AC5's deferred branch clauses delivered & verified. SP-056 (copy buffers) next.)*
+*Last Updated: 2026-08-09 (**Tracking-doc audit — backlog realigned to the 2026-08-07 renumbering.** The
+SP-093 → EP-019 renumbering and the T-0369 → SP-094 merge had been applied to `Task-active.md`,
+`Sprint-active.md` and `Epic-active.md` but never propagated here. Corrected: **T-0369** reassigned SP-093 →
+**SP-094** (table + detail heading); **T-0396** rewritten — the stale row still said "retire cursor-move as a
+hard commit trigger", which the corrected 2026-08-07 diagnosis **reverses** (cursor-move is kept; the cause is
+the 1 s autosave debounce), and now records the app-side/30–60 s/backspace rulings; **T-0397/T-0398** retagged
+`[Cross]` to match the sprint plan; **T-0365** corrected from "EP-030 (SP-091) 🔵 Backlog" to **⚪ Deferred →
+EP-031 SP-094**, since SP-091 is closed. Prior note follows.)*
+
+*2026-07-13 (SP-055 closed: T-0210/T-0211/T-0212 verified & archived → `Verified/Task-verified-0210-0212.md`; EP-019 AC4 + AC5's deferred branch clauses delivered & verified. SP-056 (copy buffers) next.)*

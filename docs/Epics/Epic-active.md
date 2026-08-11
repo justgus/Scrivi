@@ -53,7 +53,7 @@ within tabs, C4=A, C5=C + in-stack creation, C6=B with sort per-stack).
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards (scene sidecar) | SP-091 | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card (scene sidecar) | SP-091 | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | SP-091 | ⚪ **Deferred → EP-031 SP-094** (ruled 2026-08-05) |
+| T-0365 | `sources` card + `source` object kind | SP-091 | ⚪ **Deferred → EP-031 SP-095** (ruled 2026-08-05; sprint renumbered 2026-08-09) |
 | T-0392 | `[ScriviCore]` `scrivi.scene.v1` + `tags`/`outline`/`todo` (additive) | SP-091 | ✅ **Verified (2026-08-05)** |
 | T-0393 | `[ScriviCore]` C ABI: scene tags/outline/todo setters + `_get_scene_notes` | SP-091 | ✅ **Verified (2026-08-05)** |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | SP-092 | 🟠 **Implemented — Not Verified** |
@@ -125,39 +125,45 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-094 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | 🔵 Planning | — |
-| SP-095 | Relationship graph: canonical edges, relation types, append-log, compaction | 🔵 Planning | — |
-| SP-096 | Integrity: cascade-prune, orphans, promotion, pending-vs-dangling | 🔵 Planning | — |
-| SP-097 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain | 🔵 Planning | — |
-| SP-098 | Worldbuilding-object cards (Apple, on EP-030's framework) | 🔵 Planning | — |
-| SP-099 | Verification & Epic close | 🔵 Planning | — |
+| SP-095 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | 🔵 Planning | — |
+| SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | 🔵 Planning | — |
+| SP-097 | Integrity: cascade-prune, orphans, promotion, pending-vs-dangling | 🔵 Planning | — |
+| SP-098 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain | 🔵 Planning | — |
+| SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | 🔵 Planning | — |
+| SP-100 | Verification & Epic close | 🔵 Planning | — |
+
+> **⚠️ Renumbered 2026-08-09 (SP-094–SP-099 → SP-095–SP-100).** EP-031's sprints were planned before the
+> 2026-08-07 ruling that made **SP-094** the merged *"EP-019 + EP-030 verification & Epic close"* sprint,
+> which collided with EP-031's first sprint. `Sprint-active.md:357` already sequenced EP-031 as
+> **SP-095–SP-100**; this table and the task assignments below are realigned to match. T-0365's deferral
+> target moves with it: **EP-031 SP-095**.
 
 ### Tasks
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| T-0370 | `ObjectKind` additions + `objectKindSubdir` + schema table; retire `timeline` | SP-094 | 🔵 Backlog |
-| T-0371 | `WorldObjectFields` extensions: `subtitle`, `image`, `worldID` | SP-094 | 🔵 Backlog |
-| T-0372 | `objects/index.json` — build, atomic update, scan-rebuild; `findByID` over index | SP-094 | 🔵 Backlog |
-| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-095 | 🔵 Backlog |
-| T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-095 | 🔵 Backlog |
-| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-095 | 🔵 Backlog |
-| T-0376 | Compaction at 30% / 1,000 tombstones | SP-095 | 🔵 Backlog |
-| T-0377 | Cascade-prune on delete + load-time repair | SP-096 | 🔵 Backlog |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-096 | 🔵 Backlog |
-| T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-096 | 🔵 Backlog |
-| T-0380 | ⚠️ Pending-vs-dangling loader distinction + frozen graph toward unavailable worlds | SP-096 | 🔵 Backlog |
-| T-0381 | `.scrivworld` package + `world.json` + world index | SP-097 | 🔵 Backlog |
-| T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-097 | 🔵 Backlog |
-| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | SP-097 | 🔵 Backlog |
-| T-0384 | Epoch chain: world/timeline/binding offsets + resolve endpoint | SP-097 | 🔵 Backlog |
-| T-0385 | Cached world index entries → named pending entries | SP-097 | 🔵 Backlog |
-| T-0386 | Object cards (one implementation, per-kind config) on EP-030's framework | SP-098 | 🔵 Backlog |
-| T-0387 | Object picker (unfiltered, all worlds) + inline type-ahead + "Create new…" | SP-098 | 🔵 Backlog |
-| T-0388 | In-stack create/edit, edit-state visuals, scene-change complete-or-discard | SP-098 | 🔵 Backlog |
-| T-0389 | Pending presentation + Worlds menu + warning view under the timeline | SP-098 | 🔵 Backlog |
-| T-0390 | External Change Repair Matrix — world-package conditions | SP-099 | 🔵 Backlog |
-| T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-099 | 🔵 Backlog |
+| T-0370 | `ObjectKind` additions + `objectKindSubdir` + schema table; retire `timeline` | SP-095 | 🔵 Backlog |
+| T-0371 | `WorldObjectFields` extensions: `subtitle`, `image`, `worldID` | SP-095 | 🔵 Backlog |
+| T-0372 | `objects/index.json` — build, atomic update, scan-rebuild; `findByID` over index | SP-095 | 🔵 Backlog |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-096 | 🔵 Backlog |
+| T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-096 | 🔵 Backlog |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | 🔵 Backlog |
+| T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | 🔵 Backlog |
+| T-0377 | Cascade-prune on delete + load-time repair | SP-097 | 🔵 Backlog |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-097 | 🔵 Backlog |
+| T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-097 | 🔵 Backlog |
+| T-0380 | ⚠️ Pending-vs-dangling loader distinction + frozen graph toward unavailable worlds | SP-097 | 🔵 Backlog |
+| T-0381 | `.scrivworld` package + `world.json` + world index | SP-098 | 🔵 Backlog |
+| T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-098 | 🔵 Backlog |
+| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | SP-098 | 🔵 Backlog |
+| T-0384 | Epoch chain: world/timeline/binding offsets + resolve endpoint | SP-098 | 🔵 Backlog |
+| T-0385 | Cached world index entries → named pending entries | SP-098 | 🔵 Backlog |
+| T-0386 | Object cards (one implementation, per-kind config) on EP-030's framework | SP-099 | 🔵 Backlog |
+| T-0387 | Object picker (unfiltered, all worlds) + inline type-ahead + "Create new…" | SP-099 | 🔵 Backlog |
+| T-0388 | In-stack create/edit, edit-state visuals, scene-change complete-or-discard | SP-099 | 🔵 Backlog |
+| T-0389 | Pending presentation + Worlds menu + warning view under the timeline | SP-099 | 🔵 Backlog |
+| T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | 🔵 Backlog |
+| T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-100 | 🔵 Backlog |
 
 > **Highest-risk task: T-0380.** The pending-vs-dangling distinction is the one failure in this Epic that is
 > *silent and unrecoverable* — a loader that reads "world unavailable" as "endpoint deleted" destroys every

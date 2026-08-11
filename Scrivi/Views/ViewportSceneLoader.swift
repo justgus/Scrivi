@@ -31,6 +31,12 @@ struct SceneSegment: Identifiable {
     private var appSupportRoot: String
     private(set) var projectID: String
 
+    // The project's history capture, when open (I-0104). Set by ProjectSession after
+    // both objects exist. `weak` because HistoryCapture is owned by the session, which
+    // also owns this loader — a strong reference here would be a retain cycle.
+    // @ObservationIgnored: wiring, not view state.
+    @ObservationIgnored weak var historyCapture: HistoryCapture?
+
     // Full ordered scene list. Used by SceneNavigatorView to build the sidebar.
     private(set) var allScenes: [SceneInfo]
 
@@ -189,6 +195,14 @@ struct SceneSegment: Identifiable {
     // (I-0058); the backend stamps WorkspaceState.lastWritingSurface on every save, so
     // the current scene must be the last write for resume to land on it (see saveAllDirty).
     func saveScene(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) async {
+        saveSceneBlocking(at: index, engine: engine, ref: ref)
+    }
+
+    // The actual write. Synchronous because every engine call it makes is a synchronous
+    // C ABI call — there is nothing to await. Having it callable without `await` is what
+    // lets `applicationWillTerminate` flush safely (I-0104/I-0108); that callback does
+    // not wait for async work, so a Task would be cut off mid-write.
+    func saveSceneBlocking(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) {
         guard segments.indices.contains(index), segments[index].isDirty else { return }
         let seg = segments[index]
         let isCurrent = index == currentIndex
@@ -206,6 +220,20 @@ struct SceneSegment: Identifiable {
             authorshipRef: ref
         )
         segments[index].isDirty = false
+
+        // I-0104: tell history the bytes we just wrote. The head hash persisted at
+        // close must describe the FILE, not the replayed history head — otherwise
+        // the next open compares two different artifacts and raises a spurious
+        // `externalChange` barrier for a scene edited only inside Scrivi.
+        //
+        // ⚠️ This is the ONLY correct place for this call: right after a successful
+        // write, with the exact bytes written. Calling it anywhere that merely *has*
+        // scene text (e.g. HistoryCapture.close with its pending latch) records a hash
+        // for text that may never have reached disk — tried 2026-08-10, and it made
+        // the barrier count worse rather than better.
+        if let historyCapture {
+            historyCapture.noteScenePersisted(sceneID: seg.sceneID, diskText: seg.text)
+        }
     }
 
     // Save the current segment (used by debounce auto-save and app resign).
@@ -217,13 +245,18 @@ struct SceneSegment: Identifiable {
     // The current scene is saved LAST so its writing-surface state (cursor + scroll)
     // is the one the backend records as lastWritingSurface for next-session resume.
     func saveAllDirty(engine: ScriviEngine, ref: AuthorshipRef) async {
+        saveAllDirtyBlocking(engine: engine, ref: ref)
+    }
+
+    // Synchronous counterpart for the quit path (I-0104/I-0108).
+    func saveAllDirtyBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
         for i in segments.indices where segments[i].isDirty && i != currentIndex {
-            await saveScene(at: i, engine: engine, ref: ref)
+            saveSceneBlocking(at: i, engine: engine, ref: ref)
         }
-        await saveScene(at: currentIndex, engine: engine, ref: ref)
+        saveSceneBlocking(at: currentIndex, engine: engine, ref: ref)
         // Then stamp the scrolled-to scene as the resume point (I-0058 follow-up),
         // so a scene the writer scrolled to but never edited still resumes correctly.
-        await stampWritingSurface(engine: engine, ref: ref)
+        stampWritingSurfaceBlocking(engine: engine, ref: ref)
     }
 
     // Record the scrolled-to (viewport) scene as the backend's lastWritingSurface, even
@@ -234,6 +267,10 @@ struct SceneSegment: Identifiable {
     // No-op when the viewport scene is the same as the cursor scene (already stamped by
     // the current-scene save above) or when the viewport scene isn't loaded.
     func stampWritingSurface(engine: ScriviEngine, ref: AuthorshipRef) async {
+        stampWritingSurfaceBlocking(engine: engine, ref: ref)
+    }
+
+    func stampWritingSurfaceBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
         guard let vpID = viewportSceneID,
               vpID != cursorSceneID,
               let seg = segments.first(where: { $0.sceneID == vpID }) else { return }
@@ -252,6 +289,10 @@ struct SceneSegment: Identifiable {
             scroll: scrollFraction,
             authorshipRef: ref
         )
+        // I-0104: this path writes the scene file too, so it must report the bytes it
+        // wrote — otherwise a scene stamped here (viewport ≠ cursor) keeps a stale
+        // baseline and re-flags as externally changed on the next open.
+        historyCapture?.noteScenePersisted(sceneID: seg.sceneID, diskText: seg.text)
     }
 
     // Called by ManuscriptTextView.Coordinator.textViewDidChangeSelection.
