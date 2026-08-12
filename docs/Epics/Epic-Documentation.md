@@ -43,7 +43,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **31 Epics** | Next available: **EP-032**
+Currently: **32 Epics** | Next available: **EP-033**
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -80,17 +80,18 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | ✅ Closed | 2026-07-27 | 2026-08-03 |
 | EP-030 | `[Apple]` Scene Inspector Card Framework (base cards) | ✅ Closed | 2026-08-05 | 2026-08-11 |
 | EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | 🟡 Active | 2026-08-12 | — |
+| EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes) | 🔵 Proposed (backlog) | — | — |
 
 ## Statistics
 
-- **Total Epics:** 31
+- **Total Epics:** 32
 - **Closed:** 28 ✅ (EP-019 + EP-030 both closed 2026-08-11)
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model, SP-095–SP-100; opened 2026-08-12)
+- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model, SP-095–SP-100; SP-095 closed 2026-08-12)
 - **Planned:** 0 🔵
 - **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0
-- **Proposed (backlog):** 0 🔵
+- **Proposed (backlog):** 1 🔵 (EP-032 `[Cross]` — Inline Object References, opened 2026-08-12)
 
 ---
 

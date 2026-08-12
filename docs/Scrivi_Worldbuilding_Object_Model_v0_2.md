@@ -5,6 +5,12 @@
 **Status:** ✅ **APPROVED 2026-08-05 (Human).** This is **Doc 1 of 3**. All six trades (T1–T6) and all §11
 questions are ruled. Implementation follows this doc; per CLAUDE.md any deviation must be surfaced and reconciled
 before it is built.
+**⚠️ AMENDED 2026-08-12 (user ruling) — `source` relates to OBJECTS, not scenes.** The 2026-08-05 text said
+`source` was "related to scenes by ordinary edges"; **that clause is withdrawn** in §3 and §11 Q2. A citation
+documents an object, so `source` is a full object relatable to any other via **`cites`/`documented-by`** (the
+first relation type with `null` on both kind constraints, §5.1). Putting a source *into* a scene as a footnote
+or pull quote requires rendering an object inside manuscript text — a capability Scrivi does not have — and is
+deferred to **EP-032**. New **§3.4**; `source` promoted into the §3 kinds table.
 
 | Doc | File | Status |
 | --- | --- | --- |
@@ -93,11 +99,18 @@ by `sceneID`, but a scene is never an `objects/` file.
 | `map` | project | new — **image-bearing**; a writing AID that may depict a place that **does not exist**; need not bind to a `location` |
 | `chronicle` | **world** | new — **narrative prose**; deep history-behind-the-history, may never appear in the manuscript |
 | `faction` | **world** | new (ruled 2026-08-05) — organizations, houses, guilds, orders. See §3.3 |
+| `source` | project | new (**promoted to this table 2026-08-12**) — citations/references. A **full object**, therefore relatable to any other object via `cites`/`documented-by`. Surfaced as a writing-tool card, but it is not a writing-tool-only artifact. See §3.4 |
 | `world` | container | new — see §7 |
 
 **Writing-tool "object":** `source` (citations/references) — **ruled 2026-08-05: a real `objects/` file**
-(`objects/sources/<slug>.json`), **project**-scoped, because citations are reusable across scenes. It is
-*surfaced* as a writing-tool card (Doc 2 §3.1) but is a first-class object related to scenes by ordinary edges.
+(`objects/sources/<slug>.json`), **project**-scoped, because citations are reusable. It is *surfaced* as a
+writing-tool card (Doc 2 §3.1) but is a first-class object. See **§3.4** for what it relates to.
+
+> ⚠️ **CORRECTED 2026-08-12 (user ruling).** The 2026-08-05 text ended *"…related to **scenes** by ordinary
+> edges,"* and §11 Q2 said the same. **That was wrong and is withdrawn.** A `source` is a citation — the 3×5
+> index card of a research paper — and it attaches to **objects**, not scenes. Source→scene is a genuinely
+> different and much larger feature (footnotes / pull quotes, which require rendering an object *inside*
+> manuscript text) and is **deferred to a future version** — see §3.4.1 and **EP-032**.
 
 **Excluded** (other subsystems own them): `scene`, `chapter`, `calendar`, `structure`, `project`, and the
 **project timeline**.
@@ -153,6 +166,55 @@ edges** — reintroducing the Cumberland duplication this model was designed to 
 > **This is the concrete justification for the §5.3 rule.** It was written as a hedge against a hypothetical
 > symmetric type; `faction` makes it certain. §9 AC4 must therefore include a same-kind symmetric case, not only
 > the asymmetric character→scene case.
+
+### 3.4 `source` — citations attach to OBJECTS, not scenes (ruled 2026-08-12)
+
+A `source` is a **citation**: the 3×5 index card of a research paper. It records where something came from.
+The thing it documents is an **object** — a character, a location, a rule, a faction — not a passage of
+manuscript text.
+
+**`source` is a full object** (`objects/sources/<slug>.json`, project-scoped, kind `source`), which by
+definition makes it relatable to **any other object** through the ordinary graph. Its relation type is
+**`cites` / `documented-by`**, valid against **any kind** (`sourceKind: null`, `targetKind: null`):
+
+```jsonc
+{ "code": "cites",
+  "forwardLabel": "cites", "inverseLabel": "documented by",
+  "sourceKind": null, "targetKind": null,          // any object ↔ any object
+  "canonicalDirection": "source-to-target", "symmetric": false }
+```
+
+**No new relationship machinery is required, and the cardinality is already right.** §5.2's model stores one
+canonical edge per relationship, so:
+
+- one source related to **many objects** = many edges, one per object;
+- one object carrying **many sources** = many edges, one per source.
+
+Many-to-many falls out of the edge model with nothing added. (Earlier drafting characterised this as a
+"one-to-many shape" needing special treatment — it does not; an edge is an edge.)
+
+#### 3.4.1 ⏸ Source → scene is DEFERRED — and why it is not a small task
+
+Sources may well end up *in* the manuscript, as **footnotes** or **pull quotes**. That is desirable and is
+**not** being designed away — it is being **deferred**, because it is far larger than a relation type:
+
+> Putting a source into a scene means **rendering an object inside manuscript text**. Scrivi has no such
+> capability today. Scene bodies are Markdown (`SceneReader`/`SceneWriter`); the structured-fragment model
+> (`scrivi.fragment.v1`, EP-029) carries scenes and chapters, not object references; and nothing in the
+> editor, the manuscript renderer, or export knows how to resolve an embedded object reference, keep it
+> current when the object changes, or survive cut/copy/paste of the surrounding text.
+
+This is **epic-sized and version-crossing** → **EP-032 `[Cross]` — Inline Object References in the
+Manuscript** (Epic backlog, 🔵 Proposed). It is deliberately **not** in EP-031. Until it ships:
+
+- **no `source`→`scene` relation type is defined**, and none should be added opportunistically;
+- sources reach a scene **indirectly and read-only**, through the objects that scene relates to
+  (scene → objects → sources), which is exactly what the Doc 2 `sources` card renders.
+
+> **Why deferring costs nothing structurally.** Scene endpoints are already supported by the graph in general
+> (`appears-in` is character→scene, §5.1), and endpoints are bare `{id}` (§5.2). If EP-032 later adds a
+> source→scene type, it is **additive** — a row in `relation-types.json`, no schema change, no migration of
+> existing edges.
 
 ---
 
@@ -246,12 +308,20 @@ optional kind constraints. Endpoints are **objects OR scenes**.
     { "code": "sibling-of",
       "forwardLabel": "sibling of", "inverseLabel": "sibling of",
       "sourceKind": "character", "targetKind": "character",
-      "canonicalDirection": "lexical", "symmetric": true }
+      "canonicalDirection": "lexical", "symmetric": true },
+    { "code": "cites",                               // §3.4 — citations
+      "forwardLabel": "cites", "inverseLabel": "documented by",
+      "sourceKind": null, "targetKind": null,        // ANY object ↔ ANY object
+      "canonicalDirection": "source-to-target", "symmetric": false }
   ]
 }
 ```
 
-Kind constraints are optional (`null` = any kind).
+Kind constraints are optional (`null` = any kind). **`cites` is the first type to use `null` on both ends**
+(ruled 2026-08-12) — a citation may document a character, a location, a rule, a faction, or anything else, so
+constraining either endpoint would be wrong. Its canonical direction is `source-to-target` with the `source`
+object on the `from` side, so "this source cites that object" and "that object is documented by this source"
+normalize to **one** edge (§5.3).
 
 ### 5.2 One canonical edge, inverse as a read-time projection (T6 = A, endpoints bare)
 
@@ -285,7 +355,30 @@ doubled work for ScriviCore.**
 **Endpoints are bare `{id}`** (ruled 2026-08-04). `kind` is resolved through the object index (§4.2). This
 permanently eliminates the promotion-staleness class described in §3.1 — an `item` promoted to `artifact` needs
 **zero** edge rewrites. Scene endpoints resolve via the scene identity path (EP-027 sidecar scan), not the object
-index; the loader distinguishes them by ID prefix (`scene_…`).
+index.
+
+> ⚠️ **CORRECTED 2026-08-12 (SP-096 T-0402).** This paragraph previously ended: *"the loader distinguishes them
+> by **ID prefix** (`scene_…`)."* **That rule does not work and is withdrawn.** Verified against the shipped
+> generators:
+>
+> | Generator | Mints | Consequence |
+> | --- | --- | --- |
+> | `SystemUUIDProvider::newObjectID()` | **`character_…` for EVERY object kind** | a `location`'s ID literally begins `character_` — the prefix names the *generator*, not the kind |
+> | `DeterministicUUIDProvider` (tests) | `obj-1` / `scene-1` | different separator **and** stem, so tests would take a different branch from production |
+>
+> A prefix test would therefore be wrong in production, differently wrong under test, and **silent** in both
+> cases — an edge would resolve against the wrong subsystem and report "not found" rather than erroring.
+>
+> **Endpoint kind is resolved by LOOKUP, never by string inspection** (`objects/EndpointResolver`):
+> object index → EP-027 scene path → unresolved. This is stronger than the original intent: prefixes are an
+> unenforced naming convention, while the index is the actual authority for ID→kind — which is exactly why
+> promotion cannot stale an endpoint (§3.1). SP-097's pending-vs-dangling distinction hangs off this one
+> resolver rather than a prefix test repeated at every call site.
+>
+> **The generators were deliberately NOT changed.** Making `newObjectID()` kind-aware would alter ID *shape*,
+> and IDs must never change: `objectID` preservation across promotion is load-bearing, and SP-095 already
+> shipped projects whose `objects/index.json` rows carry today's IDs. The resolver is additive and touches no
+> stored data.
 
 **`sortIndex`** (Double, mid-insertion friendly) ports Cumberland's ordered swimlanes, letting the inspector order
 "characters in this scene" deliberately.
@@ -673,9 +766,12 @@ The following are **out of scope for Doc 1** and belong to Doc 3, sequenced **be
    schema change. The absolute bound matters because 30% alone would let a very large graph accumulate tens of
    thousands of dead records before compacting; the ratio matters because 1,000 alone would compact a small graph
    constantly. Either trigger fires the same compaction pass (§5.4).
-2. ~~**`source` (citations)** — an `objects/` file or app-side only?~~ ✅ **RULED: citations are reusable across
-   scenes**, so `source` is a real `objects/` file (`objects/sources/<slug>.json`), project-scoped — not a
-   per-scene app-side artifact. Surfaced as a **writing-tool card** (Doc 2 §3.1) but a first-class object,
-   related to scenes by ordinary edges.
+2. ~~**`source` (citations)** — an `objects/` file or app-side only?~~ ✅ **RULED: `source` is a real
+   `objects/` file** (`objects/sources/<slug>.json`), project-scoped — not a per-scene app-side artifact.
+   Surfaced as a **writing-tool card** (Doc 2 §3.1) but a first-class object.
+   ⚠️ **AMENDED 2026-08-12:** the original ruling continued *"…related to **scenes** by ordinary edges"* and
+   justified itself with *"citations are reusable across scenes."* **Both clauses are withdrawn.** Citations
+   attach to **objects** (`cites`/`documented-by`, any kind ↔ any kind); source→scene means rendering an
+   object inside manuscript text and is **deferred to EP-032**. See **§3.4**.
 3. ~~Any kinds beyond the ten in §3?~~ ✅ **RULED: `faction` is approved** — see §3.3.
 4. ~~**Doc 3 trigger**~~ — moot; Doc 3 exists (`Scrivi_World_Data_Separation_v0_1.md`).

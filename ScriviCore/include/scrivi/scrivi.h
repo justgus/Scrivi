@@ -118,6 +118,42 @@ const char* scrivi_delete_object(
     const char* objectKind,
     const char* objectID);
 
+/* ---------------------------------------------------------------------------
+ * Relationship graph (EP-031 SP-096) — scrivi.relationships.v1
+ *
+ * ONE canonical edge per relationship; the inverse direction is a read-time
+ * label projection, never a second record. Creating the same relationship from
+ * either endpoint is rejected as a duplicate (error.detail == "duplicateEdge").
+ *
+ * Endpoints are BARE IDs — no kind parameter. Kind is resolved through
+ * objects/index.json, which is what makes item→artifact promotion cost zero
+ * edge rewrites. Endpoints may be objects OR scenes.
+ * ------------------------------------------------------------------------- */
+
+const char* scrivi_create_edge(
+    const char* projectRootPath,
+    const char* fromID,
+    const char* toID,
+    const char* relationTypeCode,
+    const char* note);
+
+const char* scrivi_delete_edge(
+    const char* projectRootPath,
+    const char* edgeID);
+
+/* Every edge touching endpointID in either direction, each carrying the label
+ * that reads correctly from that endpoint. */
+const char* scrivi_list_edges_for(
+    const char* projectRootPath,
+    const char* endpointID);
+
+/* RelationType vocabulary — scrivi.relation-types.v1 */
+const char* scrivi_list_relation_types(const char* projectRootPath);
+
+const char* scrivi_upsert_relation_type(
+    const char* projectRootPath,
+    const char* relationTypeJson);
+
 const char* scrivi_import_asset(
     const char* projectRootPath,
     const char* sourcePath,

@@ -11,7 +11,17 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint. SP-095 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first
+**No active sprint. SP-096 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-096.md`. EP-031's
+second sprint and the Epic's core deliverable: the relationship graph (relation types, `relationships.jsonl`
+append-log, canonical edges with duplicate rejection, compaction) — **T-0373, T-0374, T-0375, T-0376, T-0402**
+all Verified. **EP-031 AC5 met**; **AC3 met but for its faction↔faction clause** (needs SP-098's world
+packages). Planning found Doc 1 §5.2's endpoint **ID-prefix rule broken** (`newObjectID()` returns
+`character_…` for *every* kind), so **T-0402** resolved endpoint kind by object-index lookup and amended the
+design. ⚠️ **First `scrivi.h` change since EP-029** — 5 additive endpoints, all exported. Suites at close:
+ctest **455/455 macOS** + **462/462 Linux (GCC 14, zero warnings)**, interop **59 passed / 0 failed**.
+**Next: SP-097** (integrity — cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling), awaiting planning.
+
+**SP-095 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first
 sprint: `[ScriviCore]` object kinds + `WorldObjectFields` extensions + `objects/index.json`
 (**T-0370, T-0371, T-0372, T-0401** — all Verified). Suites at close: ScriviCore ctest **432/432 macOS** +
 **439/439 Linux (GCC 14, clean compile)**, macOS interop **59 passed / 0 failed**, app **BUILD SUCCEEDED**.
@@ -181,15 +191,14 @@ closed, and SP-057 was superseded into SP-094.)*
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-096 | Relationship graph: relation types, `relationships.jsonl`, canonical edges, compaction | EP-031 | 🔵 Planning (**next to plan & activate**) |
-| SP-097 | Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling | EP-031 | 🔵 Planning |
+| SP-097 | Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling | EP-031 | 🔵 Planning (**next to plan & activate**) |
 | SP-098 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain (**+ `rule` relocation**) | EP-031 | 🔵 Planning |
 | SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | EP-031 | 🔵 Planning |
 | SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **94 Sprints** (93 closed + 1 cancelled; SP-096–SP-100 are planned but not yet opened) |
+Currently: **95 Sprints** (94 closed + 1 cancelled; SP-097–SP-100 are planned but not yet opened) |
 Next available: **SP-102**
 
 > **Table repaired 2026-08-12.** SP-086–SP-094 and SP-101 had closed without ever being added to the table
@@ -295,6 +304,7 @@ Next available: **SP-102**
 | SP-094 | EP-019 + EP-030 verification & Epic close (merged) | EP-019 + EP-030 | 2026-08-11 | 2026-08-11 | ✅ Closed |
 | SP-101 | `[Apple]` EP-030 AC12 soft-failure isolation (T-0399) | EP-030 `[Apple]` | 2026-08-11 | 2026-08-11 | ✅ Closed |
 | SP-095 | `[ScriviCore]` Object kinds + fields + object index | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
+| SP-096 | `[ScriviCore]` Relationship graph — canonical edges, append-log, compaction | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 
 ## Statistics
 

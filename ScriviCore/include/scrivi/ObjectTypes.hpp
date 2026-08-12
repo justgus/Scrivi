@@ -5,7 +5,9 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -89,6 +91,18 @@ inline std::string objectKindName(ObjectKind kind) {
         case ObjectKind::world:     return "world";
     }
     return "character";
+}
+
+// Parses a singular kind name (the boundary spelling). Returns nullopt for
+// anything unrecognised — callers must never silently substitute a default.
+inline std::optional<ObjectKind> objectKindFromName(std::string_view name) {
+    for (auto k : {ObjectKind::character, ObjectKind::location,  ObjectKind::item,
+                   ObjectKind::building,  ObjectKind::vehicle,   ObjectKind::map,
+                   ObjectKind::rule,      ObjectKind::artifact,  ObjectKind::chronicle,
+                   ObjectKind::faction,   ObjectKind::world}) {
+        if (objectKindName(k) == name) { return k; }
+    }
+    return std::nullopt;
 }
 
 // True for kinds that belong to a WORLD rather than the project.

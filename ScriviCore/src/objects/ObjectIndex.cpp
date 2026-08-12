@@ -25,18 +25,9 @@ constexpr ObjectKind kScannedKinds[] = {
     ObjectKind::rule,
 };
 
-std::optional<ObjectKind> kindFromName(std::string_view name) {
-    for (auto k : kScannedKinds) {
-        if (objectKindName(k) == name) { return k; }
-    }
-    // Accept world-scoped names too, so an index written by a later sprint is
-    // readable here rather than triggering a spurious rebuild.
-    for (auto k : {ObjectKind::artifact, ObjectKind::chronicle,
-                   ObjectKind::faction, ObjectKind::world}) {
-        if (objectKindName(k) == name) { return k; }
-    }
-    return std::nullopt;
-}
+// NB: kind parsing lives in ObjectTypes.hpp as objectKindFromName() — it
+// accepts world-scoped names too, so an index written by a later sprint is
+// readable here rather than triggering a spurious rebuild.
 
 } // namespace
 
@@ -62,7 +53,7 @@ ObjectIndex::parse(std::string_view json) const {
     for (std::size_t i = 0; i < count; ++i) {
         auto item = doc.arrayItem("entries", i);
 
-        auto kind = kindFromName(item.getString("kind"));
+        auto kind = objectKindFromName(item.getString("kind"));
         if (!kind) { return std::nullopt; }          // unknown kind ⇒ rebuild
 
         ObjectIndexEntry e;

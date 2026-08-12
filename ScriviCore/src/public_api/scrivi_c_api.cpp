@@ -13,6 +13,8 @@
 #endif
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
+#include "objects/RelationTypes.hpp"
+#include "objects/RelationshipStore.hpp"
 #include "history/BufferStore.hpp"
 #include "history/HistoryService.hpp"
 #include "history/HistoryStore.hpp"
@@ -150,6 +152,12 @@ static std::string errorEnvelope(const scrivi::Error& e) {
     scrivi::util::JsonDoc err;
     err.setInt("code",    static_cast<int>(e.code));
     err.setString("message", e.message);
+    // `detail` carries a machine-readable discriminator when the code alone is
+    // too coarse — e.g. "duplicateEdge" (SP-096 §5.3), where the caller must
+    // distinguish "already related" from other invalidArgument rejections.
+    // Emitted only when set, so existing envelopes are byte-identical.
+    if (!e.detail.empty()) { err.setString("detail", e.detail); }
+    if (!e.path.empty())   { err.setString("path",   e.path); }
     scrivi::util::JsonDoc root;
     root.setBool("ok",    false);
     root.setSubDoc("error", std::move(err));
@@ -797,6 +805,142 @@ const char* scrivi_delete_object(
     scrivi::util::JsonDoc doc;
     doc.setString("objectID", v.objectID.value);
     doc.setBool("deleted",    v.deleted);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+// ---------------------------------------------------------------------------
+// Relationship graph (EP-031 SP-096)
+// ---------------------------------------------------------------------------
+
+const char* scrivi_create_edge(
+    const char* projectRootPath,
+    const char* fromID,
+    const char* toID,
+    const char* relationTypeCode,
+    const char* note)
+{
+    auto svc = abiServices();
+    scrivi::objects::RelationshipStore store{svc};
+    auto r = store.create(S(projectRootPath), S(fromID), S(toID),
+                          S(relationTypeCode), S(note));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& e = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("edgeID",       e.edgeID);
+    doc.setString("from",         e.fromID);
+    doc.setString("to",           e.toID);
+    doc.setString("relationType", e.relationType);
+    doc.setString("note",         e.note);
+    doc.setDouble("sortIndex",    e.sortIndex);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_delete_edge(
+    const char* projectRootPath,
+    const char* edgeID)
+{
+    auto svc = abiServices();
+    scrivi::objects::RelationshipStore store{svc};
+    auto r = store.remove(S(projectRootPath), S(edgeID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("edgeID", S(edgeID));
+    doc.setBool("deleted",  true);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_edges_for(
+    const char* projectRootPath,
+    const char* endpointID)
+{
+    auto svc = abiServices();
+    scrivi::objects::RelationshipStore store{svc};
+    auto r = store.listFor(S(projectRootPath), S(endpointID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& v : r.value()) {
+        scrivi::util::JsonDoc item;
+        item.setString("edgeID",           v.edge.edgeID);
+        item.setString("from",             v.edge.fromID);
+        item.setString("to",               v.edge.toID);
+        item.setString("relationType",     v.edge.relationType);
+        item.setString("note",             v.edge.note);
+        item.setDouble("sortIndex",        v.edge.sortIndex);
+        // The projection (§5.2): the SAME stored edge reads as forwardLabel
+        // from one endpoint and inverseLabel from the other.
+        item.setBool  ("isForward",        v.isForward);
+        item.setString("label",            v.label);
+        item.setString("otherID",          v.otherID);
+        item.setString("otherDisplayName", v.otherDisplayName);
+        doc.appendToArray("edges", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_relation_types(const char* projectRootPath)
+{
+    auto svc = abiServices();
+    scrivi::objects::RelationTypeStore store{svc};
+    auto r = store.load(S(projectRootPath));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& t : r.value()) {
+        scrivi::util::JsonDoc item;
+        item.setString("code",         t.code);
+        item.setString("forwardLabel", t.forwardLabel);
+        item.setString("inverseLabel", t.inverseLabel);
+        // Absent key = any kind (never an explicit null — see RelationTypes.cpp).
+        if (t.sourceIsScene)   { item.setString("sourceKind", "scene"); }
+        else if (t.sourceKind) { item.setString("sourceKind", scrivi::objectKindName(*t.sourceKind)); }
+        if (t.targetIsScene)   { item.setString("targetKind", "scene"); }
+        else if (t.targetKind) { item.setString("targetKind", scrivi::objectKindName(*t.targetKind)); }
+        item.setString("canonicalDirection",
+                       t.canonicalDirection == scrivi::objects::CanonicalDirection::lexical
+                           ? "lexical" : "source-to-target");
+        item.setBool("symmetric", t.symmetric);
+        doc.appendToArray("types", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_upsert_relation_type(
+    const char* projectRootPath,
+    const char* relationTypeJson)
+{
+    auto parsedR = scrivi::util::parseJson(S(relationTypeJson));
+    if (!parsedR.ok()) return heap(errorEnvelope(parsedR.error()));
+    const auto& d = parsedR.value();
+
+    scrivi::objects::RelationType t;
+    t.code         = d.getString("code");
+    t.forwardLabel = d.getString("forwardLabel");
+    t.inverseLabel = d.getString("inverseLabel");
+
+    const std::string src = d.getString("sourceKind");
+    t.sourceIsScene = (src == "scene");
+    t.sourceKind    = t.sourceIsScene ? std::nullopt : scrivi::objectKindFromName(src);
+
+    const std::string tgt = d.getString("targetKind");
+    t.targetIsScene = (tgt == "scene");
+    t.targetKind    = t.targetIsScene ? std::nullopt : scrivi::objectKindFromName(tgt);
+
+    t.canonicalDirection = d.getString("canonicalDirection") == "lexical"
+        ? scrivi::objects::CanonicalDirection::lexical
+        : scrivi::objects::CanonicalDirection::sourceToTarget;
+    t.symmetric = d.getBool("symmetric");
+
+    auto svc = abiServices();
+    scrivi::objects::RelationTypeStore store{svc};
+    auto r = store.upsert(S(projectRootPath), t);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("code", t.code);
+    doc.setBool("saved",  true);
     return heap(okEnvelope(std::move(doc)));
 }
 

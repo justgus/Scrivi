@@ -8,6 +8,7 @@
 #include "schemas/SceneMetaJson.hpp"
 #include "schemas/TimelineMetaJson.hpp"
 #include "schemas/WorkspaceStateJson.hpp"
+#include "objects/RelationTypes.hpp"
 #include "util/PathUtils.hpp"
 
 #include <sstream>
@@ -253,6 +254,17 @@ Result<CreateProjectResult> ProjectCreator::create(const CreateProjectRequest& r
         schemas::serializeTimelineMeta(tlMeta));
     if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
 }
+
+    // 9b. objects/relation-types.json — the starting relationship vocabulary
+    //     (EP-031 SP-096 §5.1). Seeded here so a new project can relate things
+    //     immediately; RelationTypeStore::load() re-seeds if the file is ever
+    //     missing or unusable, so this is a convenience, not a dependency.
+    {
+        objects::RelationTypeStore relTypes{services_};
+        r = relTypes.write(root, objects::RelationTypeStore::seedTypes());
+        if (!r.ok()) { return Result<CreateProjectResult>::failure(r.error());
+}
+    }
 
     // 10. app-local workspace state
     schemas::WorkspaceStateData ws;

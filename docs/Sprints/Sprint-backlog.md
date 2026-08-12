@@ -6,7 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-096 | Relationship graph: canonical edges, append-log, compaction | EP-031 | 🔵 Planning |
 | SP-097 | Integrity: prune, orphans, promotion, pending-vs-dangling | EP-031 | 🔵 Planning |
 | SP-098 | World packages: bindings, resolution, locking, epoch chain | EP-031 | 🔵 Planning |
 | SP-099 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
@@ -20,6 +19,18 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 >
 > **EP-019 ✅ CLOSED** and **EP-030 ✅ CLOSED** (both 2026-08-11) → `../Epics/Closed/`.
 > EP-031's ScriviCore sprints (SP-095–SP-098) have no dependency on EP-030; only SP-099 needs the card framework.
+
+> ✅ **SP-096 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-096.md`. EP-031's second sprint and the
+> Epic's core deliverable: relation types, `relationships.jsonl` append-log, canonical edges + duplicate
+> rejection, compaction — **T-0373–T-0376 plus T-0402**, all Verified. ctest **455/455 macOS** +
+> **462/462 Linux (GCC 14)**, interop **59 passed / 0 failed**. ⚠️ **First `scrivi.h` change since EP-029** —
+> 5 additive endpoints. **EP-031 AC5 met; AC3 met but for its faction↔faction clause** (needs SP-098).
+> Its Planning row was removed above at close, per the standing rule. **Next up: SP-097.**
+>
+> The three planning rulings all held: **R1** Doc 1 §5.2's endpoint **ID-prefix rule was verified broken**
+> against the shipped generators and was replaced by index-lookup resolution (T-0402 also amended the design);
+> **R2** all four §5.1 relation types seeded, scene-endpoint ones included; **R3** `scrivi_list_edges_for`
+> shipped here, giving the sprint a complete, directly-testable read path.
 
 > ✅ **SP-095 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first sprint:
 > object kinds + `WorldObjectFields` extensions + `objects/index.json`; T-0370/T-0371/T-0372/T-0401 all

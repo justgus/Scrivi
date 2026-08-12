@@ -1,5 +1,38 @@
 # Active Tasks
 
+## ✅ SP-096 — EP-031 relationship graph (CLOSED 2026-08-12)
+
+**Sprint:** SP-096 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
+`../Sprints/Closed/Sprint-SP-096.md`. All 5 tasks Verified.
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0402 | ⚠️ Endpoint-kind resolution via the object index (replaces §5.2's ID-prefix rule) + Doc 1 amendment | High | ✅ **Verified (2026-08-12)** |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` + seeded vocabulary | High | ✅ **Verified (2026-08-12)** |
+| T-0374 | `relationships.jsonl` append-log + create/delete/list + torn-line recovery | High | ✅ **Verified (2026-08-12)** |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | High | ✅ **Verified (2026-08-12)** |
+| T-0376 | Compaction at 30% / 1,000 tombstones | High | ✅ **Verified (2026-08-12)** |
+
+**Suites:** ScriviCore ctest **455/455 macOS** + **462/462 Linux (GCC 14, no warnings)**; macOS interop
+**59 passed / 0 failed**. ⚠️ **First `scrivi.h` change since EP-029** — 5 additive endpoints, all confirmed
+exported via `nm`. No pbxproj change (ScriviCore-only).
+
+**New files:** `src/objects/EndpointResolver.{hpp,cpp}`, `src/objects/RelationTypes.{hpp,cpp}`,
+`src/objects/RelationshipStore.{hpp,cpp}`, `tests/integration/RelationshipTests.cpp`.
+
+**T-0402 is a design defect caught at planning, not a shipped bug.** Doc 1 §5.2 distinguished scene from object
+endpoints "by ID prefix"; `SystemUUIDProvider::newObjectID()` mints `character_…` for **every** kind, and the
+test mock uses `obj-`/`scene-` — so the rule was wrong in production, differently wrong under test, and
+**silent** either way. Endpoint kind now comes from `ObjectIndex` lookup; **Doc 1 §5.2 was amended in the same
+task** so design and code agree.
+
+**EP-031 AC5 met. AC3 met but for one clause** — it names faction↔faction as the symmetric duplicate case, and
+`faction` is world-scoped until SP-098; SP-096 covers the same-kind symmetric shape with `sibling-of`.
+
+Full detail + retrospective: `../Sprints/Sprint-active.md`.
+
+---
+
 ## ✅ SP-095 — EP-031 object kinds + fields + object index (CLOSED 2026-08-12)
 
 **Sprint:** SP-095 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
@@ -148,7 +181,7 @@ All four tasks Verified; **I-0101** found, fixed, and Verified in-sprint. Archiv
 | T-0393 | `[ScriviCore]` C ABI: scene notes setters + `_get_scene_notes` | ✅ **Verified (2026-08-05)** |
 | T-0363 | `[Apple]` `tags` + `todo` cards | ✅ **Verified (2026-08-05)** |
 | T-0364 | `[Apple]` `outline` card | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | ⚪ **Deferred — no sprint (user ruling 2026-08-12)**; blocked on **OQ-1** (see `../Sprints/Sprint-active.md` §R2) |
+| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` | 🔵 **Backlog — unblocked 2026-08-12** (OQ-1 closed; Doc 1 §3.4 + Doc 2 §3.1.1 amended). Splits: ScriviCore → SP-096/097, card → SP-099. Source→scene → **EP-032** |
 
 ## ✅ SP-090 `[Apple]` — EP-030 card framework (CLOSED 2026-08-05)
 

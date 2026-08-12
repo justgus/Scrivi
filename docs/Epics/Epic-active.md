@@ -3,9 +3,10 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — 1 of 6 sprints closed. **SP-095 ✅ closed 2026-08-12 (Human-approved)**; the
-object-model foundation is in place and **AC2 is fully met**. **SP-096** (relationship graph) is next, awaiting
-planning. Only SP-099 needs EP-030's card framework; SP-095–SP-098 are pure `[ScriviCore]`.
+**Status:** 🟡 **Active** — **2 of 6 sprints closed.** SP-095 ✅ (**AC2 met**) and SP-096 ✅ (**AC5 met**;
+**AC3 met but for its faction↔faction clause**, which needs SP-098's world packages), both closed 2026-08-12
+with user approval. **SP-097** (integrity — cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling) is next,
+awaiting planning. Only SP-099 needs EP-030's card framework; SP-095–SP-098 are pure `[ScriviCore]`.
 **Goal:** Implement the approved object model — new kinds, the object index, the canonical relationship graph,
 world packages — then the worldbuilding-object cards on top of EP-030's framework.
 **Design:** `docs/Scrivi_Worldbuilding_Object_Model_v0_2.md` ✅ **Approved 2026-08-05** (T1–T6 ruled) +
@@ -18,9 +19,11 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 - [ ] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
       legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)
       > **Amended 2026-08-12 at SP-095 planning (user-ruled).** Two changes. **(a) `source` removed from AC1** —
-      > sources are a *writing aid*, not worldbuilding, and may belong in the Writing tab; T-0365 is deferred
-      > with no sprint, blocked on **OQ-1** (worldbuilding objects carrying *multiple* sources — a requirement
-      > no design doc states and no relation type covers). **(b) Round-trip is staged, not simultaneous:** the
+      > sources are a *writing aid*, not worldbuilding, and belong in the Writing tab. **Updated 2026-08-12:
+      > OQ-1 is closed and `source` is back in EP-031's scope** — as a full object kind with a
+      > **`cites`/`documented-by`** relation type (Doc 1 §3.4), scheduled as a split across SP-096/097
+      > (ScriviCore) and SP-099 (the aggregate card). AC1 should count `source` among the kinds when those
+      > sprints land. Source→scene is **out of EP-031** → EP-032. **(b) Round-trip is staged, not simultaneous:** the
       > world-scoped kinds (`artifact`, `chronicle`, `faction`) are *declared* in SP-095 but gated until
       > SP-098 supplies a world package to hold them, because Doc 3 §7 forbids the relocation pass that
       > creating them in `objects/` would require. AC1 is assessable only after SP-098.
@@ -37,10 +40,20 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 - [ ] AC3 — **One canonical edge** per relationship, created from either endpoint, with the inverse as a
       read-time label projection. Duplicate rejection tested for **asymmetric and symmetric** (faction↔faction)
       types. (Doc 1 AC4–AC5)
+      > **SP-096 (✅ Verified 2026-08-12):** canonical edges, both-direction label projection
+      > from one record, and duplicate rejection from either creation order all shipped and tested.
+      > ⚠️ **AC3 stays unticked on ONE clause only:** it names **faction↔faction** as the symmetric case, but
+      > `faction` is world-scoped and uncreatable until SP-098. SP-096 covers the same-kind symmetric *shape*
+      > with `sibling-of` (character↔character, lexical), which is what Doc 1 AC4 actually tests for. **The
+      > faction-specific case must be added in SP-098** — everything else in AC3 is delivered and Verified.
 - [ ] AC4 — Cascade-prune on delete; **orphans survive** and are findable; `objectID` preserved across
       `item`→`artifact` promotion with **zero edges rewritten**. (Doc 1 AC6–AC8)
-- [ ] AC5 — `relationships.jsonl` compacts at **30% or 1,000 tombstones**, whichever first; torn final line
-      detected and truncated. (Doc 1 AC9)
+- [x] AC5 — `relationships.jsonl` compacts at **30% or 1,000 tombstones**, whichever first; torn final line
+      detected and truncated. (Doc 1 AC9) ✅ **Met — SP-096 (T-0374 + T-0376), Verified 2026-08-12.**
+      > **SP-096 (✅ Verified 2026-08-12):** both triggers tested **independently** — a 6-record
+      > graph at 33% (under the absolute bound) and a 5,001-record log at 20% with 1,001 tombstones (under the
+      > ratio) — plus a below-both-thresholds case asserting **no** compaction, torn-final-line truncation, and
+      > crash-safety (a stray `.tmp` never displaces the real log).
 - [ ] AC6 — The **epoch chain** resolves (event → timeline → world → project); rebinding a world changes exactly
       one number; two timelines in one world relate without any project. (Doc 1 AC13–AC15)
 - [ ] AC7 — ⚠️ **Absence is never deletion:** an unavailable world holds edges **pending** — never pruned, never
@@ -57,7 +70,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | SP-095 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-095.md` | 2026-08-12 |
-| SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | 🔵 Planning | — |
+| SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-096.md` | 2026-08-12 |
 | SP-097 | Integrity: cascade-prune, orphans, promotion, pending-vs-dangling | 🔵 Planning | — |
 | SP-098 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain | 🔵 Planning | — |
 | SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | 🔵 Planning | — |
@@ -78,10 +91,11 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0371 | `WorldObjectFields` extensions: `subtitle`, `image`, `worldID` | SP-095 | ✅ **Verified 2026-08-12** |
 | T-0372 | `objects/index.json` — build, atomic update, scan-rebuild; `findByID` over index | SP-095 | ✅ **Verified 2026-08-12** |
 | T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — AC2 | SP-095 | ✅ **Verified 2026-08-12** |
-| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-096 | 🔵 Backlog |
-| T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-096 | 🔵 Backlog |
-| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | 🔵 Backlog |
-| T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | 🔵 Backlog |
+| T-0402 | ⚠️ Endpoint-kind resolution via the object index (replaces §5.2's ID-prefix rule) + Doc 1 amendment | SP-096 | ✅ **Verified (2026-08-12)** |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-096 | ✅ **Verified (2026-08-12)** |
+| T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-096 | ✅ **Verified (2026-08-12)** |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | ✅ **Verified (2026-08-12)** |
+| T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | ✅ **Verified (2026-08-12)** |
 | T-0377 | Cascade-prune on delete + load-time repair | SP-097 | 🔵 Backlog |
 | T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-097 | 🔵 Backlog |
 | T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-097 | 🔵 Backlog |
@@ -105,7 +119,40 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-12 (**SP-095 ✅ CLOSED (Human-approved) — EP-031's first sprint delivered.**
+*Last Updated: 2026-08-12 (**SP-096 ✅ CLOSED (Human-approved) — the relationship graph is in.**
+Archived to `../Sprints/Closed/Sprint-SP-096.md`; `Sprint-active.md` reset; **2 of 6 EP-031 sprints now
+closed**. **Next: SP-097** — integrity (cascade-prune, orphans, promotion, and ⚠️ **T-0380
+pending-vs-dangling**, the Epic's highest-risk task). Carried forward deliberately: the **faction↔faction
+symmetric duplicate test**, the last clause blocking **AC3**, which needs SP-098's world packages.
+Delivery detail: all 5 tasks
+(T-0373/T-0374/T-0375/T-0376/**T-0402**) ✅ **Verified 2026-08-12 (user-approved)**; sprint 🟠 Review awaiting
+close approval. **AC5 met**; **AC3 met but for its faction↔faction clause** (needs SP-098).
+One canonical edge per relationship with
+the inverse as a read-time label projection; duplicate rejection from either creation order for both an
+asymmetric cross-kind type and a symmetric same-kind type; append-only `relationships.jsonl` with torn-line
+recovery; compaction on both triggers independently. **AC3 and AC5 are substantially met** — see their notes;
+AC3 keeps one open clause because its named faction↔faction case needs SP-098's world packages.
+**T-0402 landed first and amends Doc 1 §5.2**: the ID-prefix endpoint rule was verified **broken** against the
+shipped generators (`newObjectID()` mints `character_…` for every kind; the test mock uses `obj-`/`scene-`) and
+is formally withdrawn in favour of index-lookup resolution. ⚠️ **First `scrivi.h` change since EP-029** — 5
+additive endpoints, all exported and confirmed via `nm`. Suites: ctest **455/455 macOS** + **462/462 Linux
+(GCC 14, zero warnings)**; interop **59 passed / 0 failed**. Prior note follows.)*
+
+*2026-08-12 (**Design amended — `source` relates to OBJECTS, not scenes (user ruling); OQ-1
+closed; EP-032 opened.** The 2026-08-05 specification that `source` is "related to scenes by ordinary edges"
+was **withdrawn** as mis-specified: a citation documents an object, not a passage of text. Doc 1 gains **§3.4**
+(+ `source` promoted into the §3 kinds table, `cites`/`documented-by` added to the §5.1 vocabulary as the first
+type with `null` on **both** kind constraints); Doc 2 gains **§3.1.1** — the `sources` card is now **ONE
+aggregate card** listing sources reached via *this scene's* objects with a click-through citation popup,
+**not a card per source** (an aggregate can be shown/hidden as a unit in the picker). Worldbuilding-object
+cards surface their own sources with the same popup. **T-0365 is unblocked**, to be scheduled as a split:
+ScriviCore (kind + relation type) → SP-096/097, card → SP-099. ⏸ **Source-in-manuscript — footnotes and pull
+quotes — deferred to new `EP-032` `[Cross]`** (Epic backlog, 🔵 Proposed): it requires rendering an object
+inside scene text, which touches the Markdown scene body, `scrivi.fragment.v1`, both editors, the renderer,
+export, and undo — genuinely epic-sized. Adding a source→scene type later is **additive**. Same-day doc fixes:
+Doc 2's Worldbuilding tab row was missing `factions`, and its Doc 3 status was stale. Prior note follows.)*
+
+*2026-08-12 (**SP-095 ✅ CLOSED (Human-approved) — EP-031's first sprint delivered.**
 Archived to `../Sprints/Closed/Sprint-SP-095.md`; `Sprint-active.md` reset; the Sprint index's All-Sprints
 table repaired (SP-086–SP-094 and SP-101 had closed without ever being listed — it still ended at SP-085 and
 read "Next available: SP-086"; eleven rows reconstructed from `Closed/`, next available now **SP-102**).

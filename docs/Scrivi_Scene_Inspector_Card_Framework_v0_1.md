@@ -5,12 +5,17 @@
 **Status:** ✅ **APPROVED 2026-08-05 (Human).** This is **Doc 2 of 3**. All trades (C1–C6) ruled; no blocking
 questions remain. Implementation follows this doc; per CLAUDE.md any deviation must be surfaced and reconciled
 before it is built.
+**⚠️ AMENDED 2026-08-12 (user ruling) — the `sources` card.** It is now **one aggregate card** listing the
+sources reached through this scene's worldbuilding objects, with a citation popup on click (**§3.1.1**), not a
+card per source. Sources attach to **objects**, never to scenes (Doc 1 §3.4); source-in-manuscript is deferred
+to **EP-032**. Same-day corrections: the Worldbuilding tab row was missing `factions` (approved 2026-08-05),
+and the Doc 3 status below was stale.
 
 | Doc | File | Status |
 | --- | --- | --- |
-| **1** | `Scrivi_Worldbuilding_Object_Model_v0_2.md` | ✅ **Approved 2026-08-05** |
-| **2** | `Scrivi_Scene_Inspector_Card_Framework_v0_1.md` *(this doc)* | ✅ **Approved** |
-| **3** | `Scrivi_World_Data_Separation_v0_1.md` | 🟡 Outline — W1–W6 ruled, body undrafted |
+| **1** | `Scrivi_Worldbuilding_Object_Model_v0_2.md` | ✅ **Approved 2026-08-05** (amended 2026-08-12, §3.4) |
+| **2** | `Scrivi_Scene_Inspector_Card_Framework_v0_1.md` *(this doc)* | ✅ **Approved** (amended 2026-08-12, §3.1.1) |
+| **3** | `Scrivi_World_Data_Separation_v0_1.md` | ✅ **Approved 2026-08-05** — W1–W6 ruled, body drafted |
 **Date:** 2026-08-04
 **Author:** Claude (planning), for user review.
 **Extends:** `Scrivi_Worldbuilding_Object_Model_v0_2.md` (the object/edge model these cards read),
@@ -89,8 +94,38 @@ never waits\*.  A Card load failure should display a warning message in place of
 | `todo`      | scene sidecar             | per-scene todo items · **ships in the default Writing stack (empty)**              |
 | `outline`   | scene sidecar             | scene summary/synopsis · **ships in the default Writing stack (empty)**            |
 | `history`   | `scrivi_history_get_tree` | **folds in EP-019 T-0215** — windowed tree, branch selection, stale badges + purge |
-| `sources`   | objects (`source`)        | citations — **reusable across scenes** (ruled), so a real `objects/` file          |
+| `sources`   | objects (`source`) + graph | **ONE aggregate card** listing the sources reached via this scene's objects — see §3.1.1 (ruled 2026-08-12) |
 | ~~`lookahead`~~ | —                     | ⏸ **DEFERRED to v2** (ruled 2026-08-05) — see §3.2                                 |
+
+#### 3.1.1 The `sources` card — one aggregate card (ruled 2026-08-12)
+
+> **This supersedes the original design, which would have created a card per source.** An aggregate card is
+> correct for two reasons: a per-source card would flood the Writing stack in any project with real research,
+> and — decisively — **one card can be shown/hidden as a unit in the card picker**, which a proliferating set
+> of per-source cards cannot.
+
+**What it lists.** Sources are attached to **objects**, never directly to scenes (Doc 1 §3.4). The card
+therefore renders the **indirect** path:
+
+```text
+this scene ──edges──▶ worldbuilding objects ──cites/documented-by──▶ sources
+```
+
+- **Scope: this scene's objects** (ruled). The card lists only sources reachable from the objects related to
+  the currently selected scene — consistent with every other card in the inspector, all of which are
+  per-scene. A scene whose objects carry no citations shows an **empty** card, and so does a scene with no
+  objects; neither is an error state.
+- **Each entry names the worldbuilding object(s) it came from** — the writer needs to know *why* a citation
+  is surfacing here. One source reached through two objects appears **once**, listing both.
+- **Click an entry → popup with the full citation detail.** The card row is a summary; the popup is the
+  record. No inline expansion in the stack.
+
+**The same interaction appears on worldbuilding-object cards** (ruled): an object card surfaces its own
+sources, and clicking one opens **the same citation popup**. One popup implementation, two entry points.
+
+> ⏸ **Sources do not appear *in* the manuscript in this version.** Footnotes and pull quotes require rendering
+> an object inside scene text — see Doc 1 §3.4.1 and **EP-032**. The `sources` card is a **read-only view onto
+> the graph**; it neither writes scene text nor implies a source→scene edge.
 
 **Worldbuilding-object cards (EP-B — need Doc 1's graph):**
 
@@ -299,8 +334,8 @@ selection has been saved:
 
 | # | Tab | Contents | Kind |
 | --- | --- | --- | --- |
-| 1 | **Writing** ← *default* | tags, todo, outline, history, sources | **card stack** |
-| 2 | **Worldbuilding** | characters, locations, buildings, vehicles, items, maps, artifacts, rules, chronicles | **card stack** |
+| 1 | **Writing** ← *default* | tags, todo, outline, history, **sources** (one aggregate card, §3.1.1) | **card stack** |
+| 2 | **Worldbuilding** | characters, locations, buildings, vehicles, items, maps, artifacts, rules, chronicles, **factions** | **card stack** |
 | 3 | **Properties** | scene metrics and metadata (§4.8) | **not a card stack** — a fixed view |
 
 > **Why Writing is first and default.** A new project has an **empty** Worldbuilding stack (ruled) and a Writing
@@ -582,8 +617,12 @@ nothing from Doc 1, which is what allows EP-019 to close first.
 
 **Answered by the 2026-08-05 rulings:**
 
-- ~~`source` (citations) — object or app-side only?~~ **Citations are reusable across scenes**, so `source` is a
-  real `objects/` file, not a per-scene app-side artifact.
+- ~~`source` (citations) — object or app-side only?~~ `source` is a **real `objects/` file**, not a per-scene
+  app-side artifact.
+  ⚠️ **AMENDED 2026-08-12:** the original justification — *"citations are reusable across scenes"* — is
+  **withdrawn**. Citations attach to **objects**, not scenes (Doc 1 §3.4). The `sources` card is **one
+  aggregate card** (§3.1.1), not a card per source, and source-in-manuscript (footnotes / pull quotes) is
+  deferred to **EP-032**.
 - ~~Chapter-level inspector?~~ **No — scene-only.** Chapters can be *selected*, but selecting a chapter does not
   change manuscript position; only scenes do. With sceneless chapters removed from the Scene Navigator, a
   chapter-level inspector has nothing coherent to inspect.

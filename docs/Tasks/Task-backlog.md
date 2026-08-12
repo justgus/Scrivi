@@ -55,7 +55,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | EP-031 (**unscheduled**) | ⚪ **Deferred — no sprint (user ruling 2026-08-12)**; blocked on **OQ-1**, see SP-095 §R2 |
+| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: ScriviCore → SP-096/097; card → SP-099**) | 🔵 **Backlog — unblocked 2026-08-12** (OQ-1 closed; design amended). Source→scene deferred to **EP-032** |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
@@ -71,10 +71,11 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
 | T-0372 | `objects/index.json` + `findByID` over index | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
 | T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
-| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | EP-031 (**SP-096**) | 🔵 Backlog |
-| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (**SP-096**) | 🔵 Backlog |
-| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (**SP-096**) | 🔵 Backlog |
-| T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (**SP-096**) | 🔵 Backlog |
+| T-0402 | ⚠️ Endpoint-kind resolution via `ObjectIndex` — replaces §5.2's broken ID-prefix rule; amends Doc 1 | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
+| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
+| T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
 | T-0377 | Cascade-prune on delete + load-time repair | EP-031 (**SP-097**) | 🔵 Backlog |
 | T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (**SP-097**) | 🔵 Backlog |
 | T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (**SP-097**) | 🔵 Backlog |
@@ -421,17 +422,26 @@ defaulting to **Writing**. Tab selection **does not follow the scene**. Persist 
 
 **T-0363 — `tags` + `todo` cards.** Scene-sidecar backed.
 **T-0364 — `outline` card.** Scene summary/synopsis.
-**T-0365 — `sources` card + `source` object kind.** ⚪ **Deferred with no sprint assigned (user ruling
-2026-08-12).** Sources are a **writing aid**, not worldbuilding, and may belong in the **Writing** tab rather
-than the worldbuilding tab — which is where Doc 2 §302 already places the card. Explicitly **not** in SP-095:
-no `source` kind is added and no `objects/sources/` path is created.
+**T-0365 — `sources` card + `source` object kind.** 🔵 **Backlog, unblocked — awaiting sprint assignment.**
+Not in SP-095 (no `source` kind was added there). **OQ-1 is CLOSED**: the design was amended 2026-08-12 and
+T-0365's scope is now fully specified. It should be **split across two sprints** when scheduled, because it is
+no longer one task:
 
-⚠️ **Blocked on OQ-1 (open, undocumented).** The user's ruling adds a requirement no design doc currently
-states: *every worldbuilding object should be able to have **more than one** source associated with it.* The
-docs describe only `source → scene` edges (Doc 1 §3 l.98–100, §11 Q2; Doc 2 l.28/92/302/585). Object-to-source
-is a different edge shape — any object → many sources — which the SP-096 relationship graph supports natively,
-but **no relation type for it exists**. Likely resolution: a `cites` / `documented-by` type with
-`sourceKind: null` (any kind). **User is reviewing the existing `source` language before this is scheduled.**
+- **`[ScriviCore]` half → SP-096/SP-097.** Add the `source` **object kind** (project-scoped; the enum work
+  SP-095 deliberately left out) and the **`cites` / `documented-by`** relation type — the first type with
+  `sourceKind: null` **and** `targetKind: null`, since a citation may document any kind (Doc 1 §3.4, §5.1).
+  No new machinery: many-to-many falls out of the canonical-edge model unchanged.
+- **`[Apple]` half → SP-099.** The **one aggregate `sources` card** (Doc 2 §3.1.1) — lists sources reached via
+  *this scene's* objects (scene → objects → sources), each entry naming the object(s) it came from, click →
+  citation popup. **Worldbuilding-object cards surface their own sources with the same popup.**
+
+> ⚠️ **Design corrected 2026-08-12 (user ruling), superseding the 2026-08-05 text.** Sources were specified as
+> "related to **scenes** by ordinary edges." **Withdrawn.** A citation documents an **object**, not a passage
+> of text. Two consequences: the card became **one aggregate card** rather than a card per source (so it can be
+> shown/hidden as a unit in the picker); and **source-in-manuscript — footnotes and pull quotes — is deferred
+> to `EP-032`**, because rendering an object inside scene text is a capability Scrivi does not have (Markdown
+> bodies with no reference syntax; `scrivi.fragment.v1` carries no object references; no resolution in the
+> editor, renderer, or export). Adding a `source`→`scene` type later is **additive** — Doc 1 §3.4.1.
 
 ### SP-092 — History card + Properties
 
@@ -487,14 +497,51 @@ mutation, **after** the object write succeeds (a phantom entry is silently wrong
 requirement, not a convenience." Five tests: missing index, corrupt index, stale index (hand-edited slug),
 idempotent rebuild, unparseable object file skipped-not-fatal. **The project must open in every case.**
 
-### SP-096 – SP-100 — outline
+### SP-096 — Relationship graph (🔵 Planning 2026-08-12)
 
-Detail is written at each sprint's planning. **SP-096** relation types + `relationships.jsonl` + canonical
-normalization + compaction (T-0373–T-0376). **SP-097** cascade-prune, orphans, promotion, and ⚠️ **T-0380
-pending-vs-dangling — the Epic's highest-risk task**, the one failure that is silent and unrecoverable.
-**SP-098** `.scrivworld` packages, bindings, locking, epoch chain (T-0381–T-0385) — **and the `rule`
-relocation + the Package Structure §11 correction deferred from SP-095**. **SP-099** object cards on EP-030's
-framework (T-0386–T-0389). **SP-100** repair matrix + verification (T-0390, T-0391).
+**T-0373 — `relation-types.json`.** `scrivi.relation-types.v1`; `canonicalDirection` + `symmetric`;
+seeded on project creation with §5.1's **four** types (`appears-in`, `located-at`, `sibling-of`, `cites`) and
+re-seeded on first read if absent. Upsert validates that `symmetric: true` implies `lexical` and matching
+labels. ⚠️ **Nullable kind constraints:** `JsonDoc::getString` cannot distinguish absent from explicit `null`,
+so "any kind" is written as **absent** and read as empty-means-any; `cites` is the first type unconstrained on
+**both** ends.
+
+**T-0374 — `relationships.jsonl` append-log.** `rec`/`seq` records via `appendTextFile` + torn-final-line
+detection, reusing EP-019's `HistoryStore` pattern. Create = one appended line; delete = a tombstone; load =
+linear scan with the full in-memory map retained (§5.4). Ships `scrivi_create_edge` / `scrivi_delete_edge` /
+`scrivi_list_edges_for` (bare IDs, no kind params). ⚠️ **`seq` must be assigned once at the append point** —
+`HistoryStore.cpp:194` documents a shipped bug where 13 records were written with `seq 1`.
+
+**T-0375 — Canonical normalization + duplicate rejection.** §5.3. Asymmetric types normalize to the declared
+direction; symmetric types sort endpoint IDs lexically. Creating a relationship from **either** end yields
+**one** edge; the reverse create is rejected with a distinct error. §9 AC4 requires both cases —
+⚠️ `faction` is world-scoped and uncreatable until SP-098, so the same-kind symmetric case uses
+`sibling-of` (character↔character); the faction-specific test lands in SP-098.
+
+**T-0376 — Compaction + graph settings.** Compacts on open at **30% of records or 1,000 tombstones**,
+whichever first, with **both triggers tested independently** (§9 AC9). Temp-write → atomic replace; `seq`
+renumbered from 1. Settings follow the `HistorySettings` precedent — **`project.json` canonical + a local
+mirror**, *not* inside history's `state.json`.
+
+**T-0402 — ⚠️ Endpoint-kind resolution (design defect found at planning).** Doc 1 §5.2 says endpoints are
+distinguished "by ID prefix (`scene_…`)". **That rule is broken**: `SystemUUIDProvider::newObjectID()`
+(`:74`) returns **`character_…` for every object kind**, so a `location`'s ID begins `character_`; and
+`DeterministicUUIDProvider` (`:16`/`:20`) uses `scene-`/`obj-` — different separator *and* stem, so tests
+would take a different branch from production. Both failure modes are **silent**. Replaced by
+`resolveEndpoint()`: `ObjectIndex::find` first (authoritative for ID→kind since SP-095), then the EP-027
+scene path, else unresolved. **Doc 1 §5.2 is amended in the same task** — the design and code must not
+disagree. Do **not** fix the generators instead: ID shape is load-bearing (`objectID` preservation across
+promotion, §3.1) and SP-095 already shipped index rows carrying today's IDs.
+
+### SP-097 – SP-100 — outline
+
+Detail is written at each sprint's planning. **SP-097** cascade-prune, orphans, promotion, and ⚠️ **T-0380
+pending-vs-dangling — the Epic's highest-risk task**, the one failure that is silent and unrecoverable;
+**plus T-0365's ScriviCore half** (the `source` object kind — the `cites` relation type itself ships in
+SP-096). **SP-098** `.scrivworld` packages, bindings, locking, epoch chain (T-0381–T-0385) — **and the `rule`
+relocation + the Package Structure §11 correction deferred from SP-095**, **and the faction↔faction symmetric
+duplicate test deferred from SP-096 T-0375**. **SP-099** object cards on EP-030's framework (T-0386–T-0389)
+**plus T-0365's aggregate `sources` card**. **SP-100** repair matrix + verification (T-0390, T-0391).
 
 ---
 
