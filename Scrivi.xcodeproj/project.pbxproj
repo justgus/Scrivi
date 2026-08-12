@@ -588,8 +588,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F010_BF /* ScriviEngine.swift in Sources */,
-				F011_BF /* ScriviError.swift in Sources */,
 				F001_BF /* ScriviInteropTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

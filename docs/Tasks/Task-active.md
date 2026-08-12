@@ -1,6 +1,41 @@
 # Active Tasks
 
-## 🟡 SP-093 `[Cross]` — EP-019 history capture granularity + presentation (ACTIVE — all items Implemented)
+## 🟡 SP-101 — EP-030 AC12 soft-failure isolation (T-0399)
+
+**Sprint:** SP-101 · **Epic:** EP-030 · **Opened 2026-08-11** from SP-094's verification pass.
+*(SP-095–SP-100 are EP-031's; this sprint takes the next free number rather than colliding with them.)*
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0399 | `[Apple]` Card **soft-failure isolation** as a framework guarantee + failing-card test fixture (EP-030 AC12, rescoped) | Medium | 🟠 **Implemented — Not Verified (2026-08-11)** |
+
+**T-0399 — what shipped.** AC12 was rescoped to **soft failures** (user-approved 2026-08-11) because SwiftUI
+cannot catch a trapping view body; Doc 2 §7.1 rewritten accordingly.
+
+- **`InspectorCard.makeContent(context:) throws`** (`InspectorCard.swift`) — opt-in throwing variant with a
+  default implementation forwarding to `body(context:)`, so existing cards are untouched.
+- **`AnyInspectorCard.body` now throws**, propagating a card's soft failure to the framework boundary.
+- **`CardBodyBoundary` is a real boundary** (`InspectorCardStackView.swift`) — was a no-op applying a frame
+  and nothing else. A throwing card now renders `CardFailureView` **in place of its content** while the rest
+  of the stack renders normally.
+- **Three test fixtures** (`ScriviInteropTests.swift`) — `FailingCard`/`HealthyCard` + a three-card stack
+  asserting 2 built / 1 failed. **This is the only way to exercise AC12** — it is not reachable from the UI.
+- **pbxproj:** the test target no longer compiles `ScriviEngine.swift`/`ScriviError.swift` (it relies on
+  `@testable import ScriviApp`). They were duplicated into the target, so a test-constructed `ScriviEngine`
+  was a *different type* from the app's and could not be passed to any app-side API. No new source files.
+
+**Layering kept deliberately:** cards that report their own load errors (`CardErrorView`) still do — that
+message is specific and better. The framework fallback is the **backstop** for cards that don't.
+
+**Suites:** ctest **413/413** · interop **56/56** (from 53) · **TEST SUCCEEDED**.
+
+⚠️ **Not live-verifiable.** Verification is the test fixture; there is no UI path to make a card fail.
+
+---
+
+## ✅ SP-093 `[Cross]` — EP-019 history capture granularity + presentation (CLOSED 2026-08-11)
+
+→ Archived: `../Sprints/Closed/Sprint-SP-093.md`
 
 **Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-019 · **Activated 2026-08-09.**
 🟢 **COMPLETE — all 11 items ✅ Verified (2026-08-11); awaiting user approval to close.**

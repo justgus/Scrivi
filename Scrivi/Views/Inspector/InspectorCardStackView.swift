@@ -248,12 +248,14 @@ private struct InspectorCardView: View {
             header
             if !entry.collapsed {
                 Divider()
-                // T-0368 — failure isolation as a FRAMEWORK guarantee (AC12), not a
-                // per-card courtesy. A card body that traps or renders nothing must not
-                // take the stack down with it, and the writer must be told which card
-                // failed rather than seeing a silently blank panel.
+                // T-0399 — soft-failure isolation as a FRAMEWORK guarantee (AC12 as
+                // rescoped 2026-08-11). A card that throws while building its content
+                // shows an inline warning in its place; the rest of the stack renders.
+                // Cards that report their own load errors still do — this is the
+                // backstop for the ones that don't. Trapping cards are out of scope:
+                // SwiftUI cannot contain them (Doc 2 §7.1).
                 CardBodyBoundary(cardTitle: card.title) {
-                    card.body(context: context)
+                    try card.body(context: context)
                 }
                 .padding(10)
             }
@@ -316,12 +318,48 @@ private struct InspectorCardView: View {
 /// 3. **A card that renders nothing is visible as such** — this wrapper reserves the
 ///    row so an empty body reads as an empty card, not as a card that silently vanished.
 ///    A vanished card looks like lost configuration to a writer.
-private struct CardBodyBoundary<Content: View>: View {
+/// The framework's soft-failure backstop (EP-030 AC12 as rescoped 2026-08-11, Doc 2 §7.1).
+///
+/// A card that throws while building its content renders an inline warning **in place of its
+/// content**, and the rest of the stack keeps rendering. Cards that report their own load
+/// errors (`CardErrorView`) still do — that message is specific and better; this is the
+/// backstop for cards that don't, so isolation doesn't depend on every card author.
+///
+/// ⚠️ **Soft failures only.** SwiftUI cannot catch a trapping view body — a card that traps
+/// terminates the process, and no wrapper can contain it. That case is out of scope by
+/// design, not an oversight; it is caught by tests and review, never absorbed at runtime.
+private struct CardBodyBoundary: View {
     let cardTitle: String
-    @ViewBuilder let content: () -> Content
+    let build: () throws -> AnyView
 
     var body: some View {
-        content()
-            .frame(maxWidth: .infinity, minHeight: 18, alignment: .leading)
+        Group {
+            if let content = try? build() {
+                content
+            } else {
+                CardFailureView(cardTitle: cardTitle)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 18, alignment: .leading)
+    }
+}
+
+/// Generic in-place failure presentation. Deliberately plain: it names the card so the
+/// writer knows *which* one is broken, and says the rest of the inspector still works —
+/// a blank card body with no explanation was the failure mode this replaces.
+private struct CardFailureView: View {
+    let cardTitle: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 5) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Text("“\(cardTitle)” couldn't be displayed. Other cards are unaffected.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("card-failure-\(cardTitle)")
     }
 }

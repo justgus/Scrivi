@@ -6,6 +6,7 @@
 **Purpose:** Define the physical on-disk structure of a `.scrivi` project package.  
 **Revised:** 2026-06-25 — corrected scene filename convention (`NNN-<slug>.*`, not `scene-NNN.*`) and on-disk identity keys (`projectID` / `sceneID` / `objectID` / `timelineID`, not `id`) to match what ScriviCore actually writes (verified against a real package). See the convention note in §4.
 **Revised:** 2026-07-06 — added the `history/` directory (undo/redo history + copy buffers, EP-019 / T-0200; design: `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`). See §4, §16a, §17.
+**Revised:** 2026-08-11 (T-0217) — §16a reconciled with the shipped EP-019 implementation: checkpoint cadence, the §4.d relaxation (scene files may lead history by one open typing session), and **segment rotation documented as specified-but-not-implemented**.
 
 ---
 
@@ -618,7 +619,7 @@ If Git is disabled, `snapshots/` may be absent or empty.
 
 ---
 
-## 16a. `history/` *(added 2026-07-06 — EP-019, T-0200)*
+## 16a. `history/` *(added 2026-07-06 — EP-019, T-0200; revised 2026-08-11 — T-0217, against the shipped implementation)*
 
 The `history/` folder stores the undo/redo history tree and the copy buffers.
 
@@ -627,9 +628,25 @@ Approved structure:
 ```text
 history/
   state.json          (scrivi.history.v1 checkpoint: pointers, settings, scene head hashes)
-  log-000001.jsonl    (append-only event/control log; segments rotate as log-NNNNNN.jsonl)
+  log-000001.jsonl    (append-only event/control log; segment naming reserves log-NNNNNN.jsonl)
   buffers.json        (scrivi.buffers.v1 — named copy-buffer slots)
 ```
+
+**As shipped (2026-08-11):** the layout above is exactly what EP-019 writes.
+
+- **`state.json`** is rewritten atomically at close *and* every 200 appended records
+  (`HistoryStore.cpp:53-57`) — it is a checkpoint, not a close-only artifact, so a crash still leaves a
+  recent one. It carries `activeLogSegment`, `lastSeq`, fork primaries (forks only), settings, and the
+  per-scene head hashes §6.b validates at the next open.
+- **`log-000001.jsonl`** is append-only, one JSON record per line (`rec` = `event` | `floor` | control).
+  Replay stops at the first unparseable line and keeps everything before it.
+- **Segment rotation is specified but not yet implemented.** `activeSegment_` is fixed at
+  `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rolls it over, so a project accumulates one
+  unbounded segment. Capacity/eviction (§4.1) bounds the *tree*, not the *log*: purged nodes stay on disk
+  as history of the purge. A real project has already reached ~3.4 MB in a single segment. The reader
+  already honours `activeLogSegment` from `state.json`, so rotation can be added without a format change —
+  but until it is, **do not describe segments as rotating**. Tracked as **T-0400, 🟢 nice-to-have**
+  (user ruling 2026-08-11); it did not block EP-019's close.
 
 Design authority: `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` (§6 persistence,
 Appendix A field specification).
@@ -639,13 +656,21 @@ Key properties:
 - **App-managed derived state, not canonical content.** Scene `.md` files remain the only
   canonical prose. History records how the text changed and how to walk it back; the manuscript
   is never reconstructed from `history/`.
+- **The scene files may lead history by one open typing session** *(§4.d as relaxed 2026-08-10,
+  T-0396, user-approved 2026-08-11).* An auto-save writes the scene file without committing a history
+  event, so mid-session the `.md` on disk can contain text no history node yet describes. This does not
+  weaken the property above — the manuscript is still canonical and complete; it is *history* that can
+  trail, never the prose. Bounded by project close committing pending text; on a hard crash the next open
+  detects it via the head hash and records an `externalChange` barrier (repair matrix §6.21).
 - **Lives inside the package deliberately** (approved Trade T6) so undo history travels with the
   project across machines and syncs — but it is **excluded from Git snapshots** via `.gitignore`
   (§17).
 - **Safe to delete.** Removing `history/` loses undo history and copy buffers, nothing else; the
   app reinitializes it. Repair behavior: `Scrivi_External_Change_Repair_Matrix_v0_2.md` §6.21
   (reset/rebuild history, warn where data was lost, never touch the manuscript).
-- May be absent in projects created before EP-019; created on first use.
+- **Created lazily, on first use** — a project that has never been edited has no `history/`, and its
+  absence is silent-Info, never a repair prompt (§6.21). The "projects created before EP-019" case is
+  moot: Scrivi has not shipped, so no such projects exist (cf. T-0216, closed OBE 2026-08-05).
 
 ---
 

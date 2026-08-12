@@ -116,6 +116,23 @@ protocol InspectorCard {
 
     /// The card's content, below the header chrome the stack draws.
     @ViewBuilder func body(context: CardContext) -> AnyView
+
+    /// Throwing variant, for a card that can fail while *building* its content and wants
+    /// the framework to present the failure (AC12, soft-failure scope — Doc 2 §7.1).
+    ///
+    /// Default implementation forwards to `body(context:)` and never throws, so adopting
+    /// this is opt-in and existing cards are unaffected. A card that already surfaces its
+    /// own load error inline (`CardErrorView`) should keep doing so — that message is more
+    /// specific than the framework's generic fallback. This exists as the **backstop** for
+    /// cards that don't, so stack isolation doesn't depend on every card author.
+    ///
+    /// ⚠️ Throwing is the only failure this can catch. A card whose view body **traps**
+    /// takes the process down — SwiftUI has no mechanism to contain that (Doc 2 §7.1).
+    func makeContent(context: CardContext) throws -> AnyView
+}
+
+extension InspectorCard {
+    func makeContent(context: CardContext) throws -> AnyView { body(context: context) }
 }
 
 /// Type-erased handle so the registry can hold heterogeneous card types.
@@ -125,17 +142,19 @@ struct AnyInspectorCard {
     let title: String
     let systemImage: String
     let stack: InspectorStack
-    private let makeBody: (CardContext) -> AnyView
+    private let makeBody: (CardContext) throws -> AnyView
 
     init<C: InspectorCard>(_ type: C.Type) {
         self.typeID = C.typeID
         self.title = C.title
         self.systemImage = C.systemImage
         self.stack = C.stack
-        self.makeBody = { context in C().body(context: context) }
+        self.makeBody = { context in try C().makeContent(context: context) }
     }
 
-    func body(context: CardContext) -> AnyView { makeBody(context) }
+    /// Builds the card's content, propagating a soft failure to the framework boundary
+    /// (`CardBodyBoundary`) so one card's failure can't blank the stack (AC12).
+    func body(context: CardContext) throws -> AnyView { try makeBody(context) }
 }
 
 /// Maps `typeID` → card implementation.

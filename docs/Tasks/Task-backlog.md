@@ -64,7 +64,9 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0369 | EP-030 verification + Epic close prep | EP-030 (**SP-094**) | 🔵 Backlog |
 | T-0396 | `[Apple]` **Typing-session coalescing** — autosave **defers** the commit (records nothing mid-session); entry seals at a real boundary or a **45 s** idle timer. ⚠️ **§4.d relaxed** (user-approved 2026-08-10): disk may lead history by ≤1 save while a session is open — bounded by `close()` + I-0104's head-hash barrier. Cursor-move, cut/paste, scene switch, terminators all **KEPT**; backspace does not commit. App-side only — `HistoryService` untouched. | EP-019 (SP-093) | 🟠 **Implemented — Not Verified (2026-08-10)** |
 | T-0397 | `[Cross]` **Whitespace-kind labels in history** — new `whitespaceKind` tree field (`"newline:2"`) → `whitespaceLabel` (`"⏎ new paragraph"`); `preview` left untouched so the fork popover / stale-branch / purge consumers are unaffected | EP-019 (SP-093) | 🟠 **Implemented — Not Verified (2026-08-10)** |
-| T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carried in the tree payload (**shipped once**, shared with I-0106) | EP-019 (SP-093) | 🟠 **Implemented — Not Verified (2026-08-10)** |
+| T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carried in the tree payload (**shipped once**, shared with I-0106) | EP-019 (SP-093) | ✅ **Verified 2026-08-10 (user-confirmed)** |
+| T-0400 | `[ScriviCore]` **History log-segment rotation** — `activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rotates it, so a project accumulates one unbounded segment (a real project is already ~3.4 MB). Capacity/eviction bounds the **tree**, not the **log**. Reader already honours `activeLogSegment` from `state.json`, so rotation is **additive, no format change**. Documented as not-implemented in package-structure §16a | EP-019 (deferred) | 🟢 **Nice to have** (user ruling 2026-08-11) — not a blocker; no sprint assigned |
+| T-0399 | `[Apple]` **Card soft-failure isolation** — framework backstop in `CardBodyBoundary` + throwing `makeContent` (default forwards) + failing-card test fixture. **EP-030 AC12 rescoped to soft failures** 2026-08-11 (user-approved): SwiftUI cannot catch a trapping view body, so hard failures are out of scope. **Not live-verifiable** — no UI path makes a card fail | EP-030 (SP-101) | 🟠 **Implemented — Not Verified (2026-08-11)** |
 | T-0370 | `ObjectKind` additions; retire `timeline` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (SP-094) | 🔵 Backlog |
 | T-0372 | `objects/index.json` + `findByID` over index | EP-031 (SP-094) | 🔵 Backlog |
@@ -481,7 +483,38 @@ ever suspect at scale, this is the missing evidence; re-open as a new task rathe
 **T-0217 — Verification.** Update package-structure + repair-matrix docs; run EP-019 AC1–AC8
 verification; prepare Epic for close (user approval required).
 
-> **⚠️ Scope added 2026-08-10 — two design-doc amendments T-0396 makes mandatory before EP-019 closes:**
+> **✅ Both design-doc amendments landed 2026-08-11** (ahead of SP-094 activation, so the AC2 live verify runs
+> against the amended wording rather than the superseded list):
+> - **§4.a** — trigger 6 (auto-save flush) retired; trigger 7 = the ≥ 45 s idle boundary; new **§4.a.1**
+>   explains the save/idle split, backspace-does-not-commit, and why record-and-reopen was not implementable.
+> - **§4.d** — rewritten as a **relaxed** invariant with the changed-invariant warning, bound, and failure
+>   mode; **§12.2** resolved; **§15 AC2** and the doc header amended; `Epic-active.md` **AC2** rewritten
+>   (its stale "the §4.d disk invariant is preserved" claim removed) and flagged so that approving EP-019's
+>   close is explicitly an approval of the relaxed §4.d.
+>
+> **✅ Package-structure + repair-matrix updates landed 2026-08-11** (design change user-approved same day):
+> - **`Scrivi_Project_Package_Structure_v0_1.md` §16a** — reconciled with the shipped implementation:
+>   checkpoint cadence (close *and* every 200 records), the **§4.d relaxation** stated as a package-level
+>   property (scene files may lead history by one open session; prose is still canonical and complete —
+>   it is *history* that trails), lazy creation, and the pre-EP-019 case retired per T-0216.
+> - **`Scrivi_External_Change_Repair_Matrix_v0_2.md` §6.21** — head-hash mismatch causes restated: a
+>   **hard crash mid-session is now an expected cause**, so a mismatch is **not by itself evidence of
+>   external editing** and the notice must not claim it is; new replayed-purge sub-condition (I-0110);
+>   torn-line behaviour corrected to *first* unparseable line; I-0104's false-positive history recorded as
+>   a caution for anyone touching the checkpoint.
+> - **Design §12.8 resolved** — the scanner cannot flag `history/` because it only walks `manuscript/`; no
+>   ignore-set entry exists or is needed (with a caveat if that scope ever widens). §14 table corrected.
+>
+> **Still open under T-0217:** the EP-019 AC1–AC8 verification pass itself (SP-094).
+>
+> ⚠️ **Found while documenting (2026-08-11): log-segment rotation is specified but not implemented.**
+> `activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); capacity/eviction bounds
+> the tree, not the log, so a segment grows unbounded (a real project is already at ~3.4 MB). The reader
+> already honours `activeLogSegment` from `state.json`, so rotation is additive and needs no format change.
+> Documented as not-implemented in §16a rather than papered over. **Not an EP-019 blocker** — needs its own
+> task; do not fold it into the verification sprint.
+>
+> *Original scope note (2026-08-10), retained for the record:*
 > 1. **AC2 + design §4.a** — document the save-time commit and the **idle-session boundary** (45 s). AC2's
 >    trigger list is not exhaustive of what actually commits; every trigger it names is kept.
 > 2. **Design §4.d — the invariant itself changed.** "Disk never contains text no history node describes" is

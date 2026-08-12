@@ -5,7 +5,9 @@
 **Version:** 0.2  
 **Status:** Approved Direction  
 **Date:** 2026-05-21  
-**Supersedes:** `Scrivi_External_Change_Repair_Matrix_v0_1.md`
+**Supersedes:** `Scrivi_External_Change_Repair_Matrix_v0_1.md`  
+**Revised:** 2026-07-06 (EP-019 / T-0200) — added §6.21, history store conditions.  
+**Revised:** 2026-08-11 (EP-019 / T-0217) — §6.21 reconciled with the shipped implementation: head-hash mismatch causes restated for the relaxed §4.d invariant (a mismatch is **not** by itself evidence of external editing), replayed-purge sub-condition added (I-0110), torn-line behaviour corrected to first-unparseable-line.
 
 ---
 
@@ -390,7 +392,7 @@ unknown issue
 
 ---
 
-### 6.21 History store corrupt, missing, or out of sync (`history/`) — *added 2026-07-06 (EP-019, T-0200)*
+### 6.21 History store corrupt, missing, or out of sync (`history/`) — *added 2026-07-06 (EP-019, T-0200); revised 2026-08-11 (T-0217) against the shipped implementation*
 
 The `history/` directory holds the undo/redo history and copy buffers
 (`scrivi.history.v1` / `scrivi.buffers.v1` — see
@@ -410,17 +412,48 @@ Torn final line in active log     → truncate the torn line, continue (Info). W
 state.json missing or corrupt     → rebuild the checkpoint by replaying the log segments (Info).
 Log segment unparseable           → reset history (fresh scrivi.history.v1), warn the user that
                                     undo history was lost (Warning).
-Scene head-hash mismatch          → scene file changed outside the recorded history (external
-                                    edit, or crash between undo-apply and save). Append an
-                                    `externalChange` barrier for that scene and re-seed its
-                                    cached text from disk (Info; surfaced in the history UI as
-                                    a barrier, not a repair dialog).
+Scene head-hash mismatch          → scene file no longer matches the hash recorded at last close.
+                                    Append an `externalChange` barrier for that scene and re-seed
+                                    its cached text from disk (Info; surfaced in the history UI as
+                                    a barrier, not a repair dialog). See the causes note below —
+                                    this is NOT exclusively an external edit.
+Replayed purge names the current  → the log contains a purge whose subtree includes the current
+node                                node. Re-point `current` to the nearest surviving ancestor
+                                    and continue (Info). Must never throw: an unhandled
+                                    `unknown node` here loses the project's entire undo history
+                                    (I-0110, fixed 2026-08-11).
 buffers.json missing or corrupt   → reset to empty buffer set, warn (Warning).
 ```
 
+> **Causes of a head-hash mismatch (revised 2026-08-11, T-0217).** The original wording named "external
+> edit, or crash between undo-apply and save". Since the **§4.d relaxation** (T-0396 — see the history design
+> doc §4.a.1/§4.d, user-approved 2026-08-10), there is a third and now more likely cause: a **hard crash
+> mid-typing-session**. Because an auto-save no longer commits a history event, disk may lead the recorded
+> head by up to one open session's typing; a crash in that window leaves exactly this mismatch on the next
+> open. **This is designed behaviour, and the barrier is the intended outcome** — undo stops at the last node
+> history can honestly describe rather than walking back past text it never recorded. The failure mode is
+> *"undo stops early"*, never *"undo corrupts the manuscript"*, and the manuscript is untouched either way.
+>
+> Consequence for repair UX: **a mismatch is not by itself evidence of external editing**, and the notice
+> must not assert that another app changed the file. It is an Info-level barrier, not a repair dialog.
+>
+> ⚠️ **The mismatch check is only as good as the hash that was persisted.** Writing the *replayed head*
+> hash instead of the *on-disk bytes* made this condition fire on essentially every relaunch (I-0104); a
+> stale floor hash in `state.json` then made the same scenes re-flag on every open in a permanent
+> barrier→repair→re-persist loop (fixed 2026-08-10, `HistoryStore.cpp:396-436`). Both were false positives
+> of this row. When touching the checkpoint, preserve the ordering rule documented there: a hash recorded by
+> the save path wins; otherwise hash the floor text, never the replayed head.
+
 **Do not:** modify, restore, or delete any manuscript/metadata/object file as part of history
 repair; block writing (history conditions are never Blocking); silently keep history that no
-longer matches the scene files.
+longer matches the scene files; assert that an external application edited a scene on the strength
+of a head-hash mismatch alone (see the causes note above).
+
+> **Implementation note (2026-08-11, T-0217).** Replay stops at the **first unparseable line**, keeping
+> everything before it (`HistoryStore.cpp:94-99`). This subsumes the torn-final-line row — a torn write is
+> the common case, but mid-log corruption degrades the same way rather than resetting the whole history.
+> "Log segment unparseable → reset" therefore applies to a log whose **first** records are unreadable, not
+> to any single bad line.
 
 **Severity:** Info or Warning only.
 

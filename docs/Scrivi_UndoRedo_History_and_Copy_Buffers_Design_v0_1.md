@@ -1,6 +1,7 @@
 # Scrivi Undo/Redo History and Copy Buffers Design v0.1
 
 **Status:** ✅ Approved baseline — user design sign-off 2026-07-06 (all six trades ruled; T2 approved with interaction refinements, incorporated in §10 T2)
+**Amended:** 2026-08-10 (T-0396, user-approved; documented under T-0217) — **§4.a** auto-save retired as a commit trigger and a ≥ 45 s idle-session boundary added (new §4.a.1); **§4.d invariant relaxed** — disk may lead history by at most one open session's typing; **§12.2** resolved; **§15 AC2** amended to match. Triggers 1–5 are unchanged.
 **Project:** Scrivi
 **Epic:** EP-019 — Custom Undo/Redo History & Multiple Copy Buffers
 **Task:** T-0198 (this document)
@@ -70,10 +71,39 @@ Commit triggers (detected by `HistoryCapture` via the existing editor hooks in `
 | 3 | Paste (system pasteboard or copy buffer) | `paste(_:)` override / buffer-paste action — commits pending first, then commits the insertion as its own `paste` event |
 | 4 | Cut (incl. cut-into-buffer) | as above; `kind:"cut"`, tagged with `bufferID` when applicable |
 | 5 | Cursor crosses a scene boundary | existing `lastCursorSegmentIndex` tracking — a special case of #2 committed against the *previous* scene's retained text |
-| 6 | Auto-save flush | committed **before** `saveCurrentIfDirty` runs in the existing 1 s debounce (invariant, §4.d) |
-| 7 | Structural op / app resign / project close | commit pending, then (structural) record a barrier (§4.5) |
+| 6 | ~~Auto-save flush~~ **Retired as a trigger** (T-0396, 2026-08-10) | An auto-save **no longer commits.** See §4.a.1. |
+| 7 | Idle-session boundary (T-0396, 2026-08-10) | the writer has not edited for **≥ 45 s** (`HistoryCapture.idleSessionThreshold`, within the user-ruled 30–60 s band). Fires two ways: a self-scheduled `idleTask` seals the entry while the writer is away, and the next `noteEdit` after a longer gap commits the pending entry *before* folding its keystroke in |
+| 8 | Structural op / app resign / project close | commit pending, then (structural) record a barrier (§4.5) |
 
 No commit occurs while IME marked text is active (`hasMarkedText()`); rebuilds (`isRebuilding`) never set the pending flag.
+
+#### 4.a.1 Auto-save does not seal a typing session *(T-0396, amended 2026-08-10 — supersedes the original trigger 6)*
+
+The 1 s auto-save debounce was originally a commit trigger (old #6), on the reasoning that §4.d required a
+commit before every disk write. In practice that made the **wall clock** a history boundary: a writer who
+paused ~1 s mid-sentence had the entry sealed under them. The reference case — *"Now is the winter of our
+discontent made glorious summer by this son of york"*, typed continuously — recorded as **three** entries,
+one break falling **mid-word** (`"…made glo"` / `"rious…"`), which no intentional trigger can produce.
+
+**The auto-save now writes the scene file and records nothing.** `flushThenSave` commits only if the session
+is *already* idle past the threshold; otherwise the pending entry stays open and the next keystroke extends
+it. The entry commits at a genuine boundary instead: any of triggers 1–5, the new idle boundary (7), or
+close (8).
+
+Two consequences worth stating explicitly:
+
+- **Backspace does not commit.** It is an ordinary edit into the open latch, so intra-word correction stays
+  inside the session rather than starting a sibling entry.
+- **Triggers 1–5 are unchanged and still commit** — sentence terminators, Return, cursor-move-with-pending-
+  changes, paste/cut, and scene switch each still `flush` at their own call sites. This amendment retires
+  *only* the save-driven commit.
+
+An earlier design for this change kept the entry open by recording at save time and re-arming a latch. It is
+**not implementable**: `HistoryService::record` always appends a node and diffs against the current head
+(`HistoryService.cpp:204-206`) — there is no amend/extend path — so a save that records anything necessarily
+creates a node, and undo walks one node per step. The writer would have seen one row but three ⌘Z stops.
+Deferring the commit was ruled instead (user, 2026-08-10). Coalescing stays **app-side**; `HistoryService`
+remains pure.
 
 ### 4.b Event record (`scrivi.history.v1` node)
 
@@ -101,9 +131,31 @@ No commit occurs while IME marked text is active (`hasMarkedText()`); rebuilds (
 
 One history tree per project. Each event targets exactly one scene. Rationale: the writer's mental model is a single manuscript timeline ("undo my last N sentences," walking back across scene switches), and the persistence unit (whole-scene `.md` + `saveScene`) is scene-scoped, so events map 1:1 onto the existing save path. Per-scene trees would multiply session/branch/capacity bookkeeping by scene count and make a single ⌘Z timeline impossible.
 
-### 4.d Invariant: history commits before disk writes
+### 4.d Invariant: disk may lead history by at most one open typing session *(relaxed 2026-08-10, T-0396, user-approved)*
 
-The scene file on disk must always equal the text at some recorded history node (normally the head). Therefore every path that writes a scene file (debounced auto-save, save-on-scene-exit, save-on-resign, save-after-undo) first flushes any pending history commit. Enforced in one place: `HistoryCapture.flushThenSave`.
+> **⚠️ Changed invariant.** This section previously read: *"The scene file on disk must always equal the text
+> at some recorded history node (normally the head). Therefore every path that writes a scene file …first
+> flushes any pending history commit."* That strict form **no longer holds**, and was given up deliberately —
+> it is what forced the auto-save to be a commit trigger, and therefore what fragmented continuously-typed
+> prose (§4.a.1). This is a relaxation of approved criteria, not a documentation gap being filled.
+
+**The invariant as it now stands:** the scene file on disk equals the text at some recorded history node, **or
+leads the head by at most the text typed since the last commit while a typing session is open.** Every path
+that writes a scene file still routes through the single `HistoryCapture.flushThenSave` choke point; that
+choke point now commits only when the session is already over (idle past the threshold), not on every write.
+
+**Why the relaxation is bounded and safe:**
+
+- The uncommitted text is never *lost* in ordinary use — it lives in `pendingText` and commits at every
+  boundary in §4.a, **including project close** (`close()` flushes). A clean quit loses nothing.
+- The only exposed window is a **hard crash mid-session**. There, the next open compares the scene's on-disk
+  bytes against the persisted head hash (I-0104) and records an `externalChange` barrier (§6.b), so undo
+  stops at the last node it can honestly describe rather than walking past text it never recorded.
+- The failure mode is therefore **"undo stops early"**, never **"undo corrupts the manuscript"** — the
+  property the strict invariant existed to protect is preserved; only its mechanism changed.
+
+The bound is one save's worth of typing, not one session's: a save writes the current text, so disk never
+trails history and the gap never exceeds what was typed since the last committed node.
 
 ### 4.5 (4.e) Structural operations are barriers in v1
 
@@ -330,13 +382,13 @@ House format, abbreviated per trade: options, criteria, scoring (1–5, higher i
 ## 12. Risks and Open Questions
 
 1. **UndoManager proxy behavior — ✅ RESOLVED by spike T-0199 (2026-07-06).** Risk confirmed real: AppKit's typing coalescer corrupted a proxy `UndoManager`'s private state and threw per keystroke, and the menu never consulted it. The proxy is rejected; the confirmed mechanism is first-responder `undo(_:)`/`redo(_:)` action methods + `validateUserInterfaceItem` (§8).
-2. **Auto-save ordering.** The §4.d invariant must be enforced at every save entry point (debounce, scene-exit, resign, undo-apply) through the single `flushThenSave` choke point.
+2. **Auto-save ordering — ✅ RESOLVED, with the invariant relaxed (T-0396, 2026-08-10).** Every save entry point (debounce, scene-exit, resign, undo-apply) still routes through the single `flushThenSave` choke point, but that point no longer commits mid-session: the §4.d invariant was deliberately relaxed to *disk may lead history by at most one open session's typing*, because enforcing the strict form made the 1 s save cadence a history boundary and fragmented continuous typing (§4.a.1).
 3. **IME / marked text / non-keystroke mutations.** Never commit during marked text; the "edit in flight" flag must be set by *any* `textDidChange` so autocorrect isn't misclassified as a pure cursor move.
 4. **Unicode discipline.** Prefix/suffix trimming must respect scalar boundaries (no torn emoji/combining sequences). All offsets C++-internal UTF-8.
 5. **Protected runs during undo apply.** Ranged replace inside `sceneBoundaries[segIdx]` under `isRebuilding` must never touch divider attachments or heading runs; verify with the heading-adjacent-edit fixture.
 6. **Cross-scene selection deletes.** Rare (partially blocked by existing separator guards); v1 records a barrier. Open question: silently barrier, or block the edit?
 7. **Barrier honesty.** Writers will hit "can't undo past a scene merge." UI copy must be clear; structural undo is the roadmap answer.
-8. **External-change scanner.** Confirm the scanner ignores unknown top-level dirs; add `history/` to its ignore set explicitly and the repair-matrix row (§6.c).
+8. **External-change scanner — ✅ RESOLVED (verified 2026-08-11, T-0217).** `history/` cannot be flagged as an unknown root file: `ExternalChangeScanner` only enumerates `manuscript/` (`ExternalChangeScanner.cpp:278-290`) and never walks the project root, so no ignore-set entry is needed or exists. The repair-matrix row landed as **§6.21** (revised 2026-08-11). ⚠️ If the scanner is ever extended to sweep the project root, `history/` must be added to its ignore set at that time — this resolution depends on the scanner's *scope*, not on an explicit exclusion.
 9. **Find-and-replace (future)** must route through `scrivi_history_record_event` with a `groupID` — noted in the API contract now so the schema doesn't change later.
 10. **Multi-window.** One window per project and a single in-process writer per project (EP-018 model) — no concurrent-writer handling needed in v1.
 
@@ -354,15 +406,15 @@ House format, abbreviated per trade: options, criteria, scoring (1–5, higher i
 | Document | Relationship |
 |----------|--------------|
 | `Scrivi_Architecture_v0_3.md` | This design conforms: backend logic/persistence in C++, JSON-over-string boundary, no Swift reimplementation |
-| `Scrivi_Project_Package_Structure_v0_1.md` | Adds `history/` (state.json, log-*.jsonl, buffers.json); doc gains the new directory when this design is approved |
-| `Scrivi_External_Change_Repair_Matrix_v0_2.md` | Gains one row: history corrupt/missing → reset history, warn, never touch manuscript |
+| `Scrivi_Project_Package_Structure_v0_1.md` | Adds `history/` (state.json, log-*.jsonl, buffers.json) — **§16a, landed 2026-07-06; reconciled with the shipped implementation 2026-08-11 (T-0217)**, incl. the §4.d relaxation and rotation-not-implemented |
+| `Scrivi_External_Change_Repair_Matrix_v0_2.md` | Gains **§6.21**: history corrupt/missing/out-of-sync → reset or barrier, warn, never touch manuscript — **landed 2026-07-06; revised 2026-08-11 (T-0217)** for the relaxed §4.d (head-hash mismatch ≠ external edit) + I-0110 |
 | `Scrivi_Backend_Behavior_Spec_v0_2.md` | New history/buffers behavior is additive; no existing behavior changes |
 | Git snapshots (EP-001/T-0010) | Complementary, unchanged; `history/` excluded from snapshots |
 
 ## 15. Success Criteria (Epic-level acceptance criteria, EP-019)
 
 1. Typing then pressing ⌘Z removes the most recent history event's text; repeated ⌘Z walks back event by event; ⇧⌘Z re-applies — in the running macOS app (**delivers the fix formerly tracked as I-0019**, closed–superseded 2026-07-06).
-2. Events commit exactly per §4.a (sentence terminators `.` `!` `?`, Return, cursor-move-with-pending-changes, paste/cut, scene switch, flush); pure cursor moves/newlines without text changes produce no event.
+2. Events commit exactly per §4.a — sentence terminators `.` `!` `?`, Return, cursor-move-with-pending-changes, paste/cut, scene switch, the **≥ 45 s idle-session boundary**, and close; pure cursor moves/newlines without text changes produce no event, **and an auto-save produces no event** (§4.a.1 — the save writes the file and leaves the typing session open, so continuously typed prose records as one entry; backspace mid-word likewise does not split it). *(Amended 2026-08-10, T-0396/T-0217: the original wording listed "flush" as a trigger and omitted the idle boundary.)*
 3. Quit and relaunch: prior-session edits remain undoable; undoing past the session boundary shows the warning (once per crossing) and proceeds only on confirmation.
 4. Undo N × then type ⇒ a branch is created; the new line is primary; the old branch is selectable at the fork (T2 UI) and becomes primary when selected; the abandoned text is fully restorable.
 5. Capacity is configurable (T1 location), oldest events fall off when exceeded, and a branch is auto-purged when its branch point ages off; stale branches are detectable and purgeable with user confirmation.

@@ -327,14 +327,15 @@ final class HistoryCapture {
     // flush the pending history commit, so the file on disk always equals a
     // recorded history node. Returns after the commit; the caller then saves.
     //
-    // T-0396: a save must NOT end the typing session. It commits (so §4.d holds —
-    // disk never contains text no history node describes) and then immediately
-    // re-opens the entry for continuation, so the next keystroke at the same
-    // insertion point EXTENDS this event rather than starting a sibling. Before
-    // this, the 1 s autosave debounce sealed an entry every time the writer paused
-    // for a second, which is what split one continuously-typed sentence into three
-    // rows — including a break mid-word ("…made glo" / "rious…"), the signature of
-    // a wall-clock timer rather than any intentional boundary.
+    // T-0396: a save must NOT end the typing session. Before this, the 1 s autosave
+    // debounce sealed an entry every time the writer paused for a second, which is
+    // what split one continuously-typed sentence into three rows — including a break
+    // mid-word ("…made glo" / "rious…"), the signature of a wall-clock timer rather
+    // than any intentional boundary.
+    //
+    // The commit is DEFERRED rather than recorded-and-reopened: `HistoryService::record`
+    // always appends a node with no amend path, so recording at save time would still
+    // have cost the writer one ⌘Z stop per save. Design §4.a.1 / §4.d.
     func flushThenSave() {
         // T-0396 — the save no longer seals the typing session. While the writer is
         // mid-session the pending edit stays open and NO event is recorded; the

@@ -412,10 +412,28 @@ destructive action deletes an object outright.
 
 ## 7. Failure, pending, and warning surfaces
 
-### 7.1 Independent card failure
+### 7.1 Independent card failure *(rescoped to soft failures 2026-08-11, user-approved — EP-030 AC12 / T-0399)*
 
-One card's failure never blocks the stack (§3). A failed card renders its own error inline and the rest of the
-inspector works normally.
+A card that **fails to load or produce its content** never blocks the stack (§3). The failed card renders an
+error inline, in place of its content, and the rest of the inspector works normally. This is guaranteed by the
+**framework** — a card that does not report its own error still gets the fallback — not left to each card.
+
+**Soft failures only.** This covers a card that throws while loading, returns no usable content, or depends on
+something unavailable (an offline world, §7.2). It does **not** cover a card whose view body **traps**:
+
+> ⚠️ **SwiftUI cannot catch a trapping view body.** There is no `try`/`catch` equivalent around a `View`, and a
+> runtime trap terminates the process — no parent view, boundary, or wrapper can contain it. The original
+> wording ("one card's failure never blocks the stack") was therefore not achievable as stated for hard
+> failures, and is superseded by this section. A trapping card is a **defect in that card**, caught by tests
+> and code review, not something the stack can absorb at runtime.
+
+**Layering.** Cards *should* still report their own load errors where they can — that produces a specific,
+useful message (`CardErrorView`, e.g. *"Couldn't load notes for this scene"*) instead of a generic one. The
+framework fallback is the **backstop** for cards that don't, so isolation does not depend on every card
+author remembering. Both layers are required; neither replaces the other.
+
+**Verification.** Not reachable from the UI — there is no way to make a card fail by using the app. This
+criterion is verified with a **test-only failing-card fixture**, never by live inspection.
 
 ### 7.2 Pending presentation (world unavailable — Doc 3 §4.6)
 

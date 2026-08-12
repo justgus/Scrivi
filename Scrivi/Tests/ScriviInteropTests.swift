@@ -1,6 +1,8 @@
 import Testing
 import Foundation
+import SwiftUI
 @testable import ScriviApp
+
 
 // End-to-end interop tests for T-0011 and T-0026.
 // These prove the Swift/C++ boundary works end-to-end for all 7 facade operations.
@@ -1434,5 +1436,91 @@ struct ScriviInteropTests {
         // writer reported, and what deferring the save-time commit eliminates.
         #expect(try typingNodeCount(engine, projectRootPath: dir.path, sceneID: "scene_a") == 3)
         try engine.historyClose(projectRootPath: dir.path)
+    }
+}
+
+// MARK: — EP-030 AC12: card soft-failure isolation (T-0399)
+
+/// AC12 is **not verifiable from the UI** — there is no way to make a real card fail by using
+/// the app, which is why the criterion sat unverified through SP-092 and SP-094. These fixtures
+/// are the only way to exercise it.
+///
+/// Scope note (Doc 2 §7.1, rescoped 2026-08-11): soft failures only. A card whose view body
+/// *traps* cannot be contained by SwiftUI at all, so there is deliberately no test for it —
+/// such a test would have to crash the runner to be honest.
+@MainActor
+private struct FailingCard: InspectorCard {
+    static let typeID = "test.failing"
+    static let title = "Failing Test Card"
+    static let systemImage = "xmark.octagon"
+    static let stack: InspectorStack = .writing
+
+    struct Boom: Error {}
+
+    init() {}
+
+    func body(context: CardContext) -> AnyView { AnyView(EmptyView()) }
+    func makeContent(context: CardContext) throws -> AnyView { throw Boom() }
+}
+
+@MainActor
+private struct HealthyCard: InspectorCard {
+    static let typeID = "test.healthy"
+    static let title = "Healthy Test Card"
+    static let systemImage = "checkmark"
+    static let stack: InspectorStack = .writing
+
+    init() {}
+
+    func body(context: CardContext) -> AnyView { AnyView(Text("content")) }
+}
+
+@Suite("Inspector card failure isolation (EP-030 AC12)")
+@MainActor
+struct InspectorCardFailureTests {
+
+    // The engine is irrelevant to AC12 — these fixtures never call it — but `CardContext`
+    // requires one.
+    private func context() -> CardContext {
+        CardContext(sceneID: "scene_a", projectRootPath: "/tmp/none",
+                    engine: ScriviEngine(), config: CardConfig())
+    }
+
+    @Test("a card that throws while building content does not throw out of the stack")
+    func failingCardIsContained() {
+        let card = AnyInspectorCard(FailingCard.self)
+        // The framework must be able to ASK for content and be told it failed, rather
+        // than the failure escaping to whatever renders the stack.
+        #expect(throws: FailingCard.Boom.self) {
+            _ = try card.body(context: context())
+        }
+    }
+
+    @Test("a healthy card still builds normally through the throwing path")
+    func healthyCardUnaffected() throws {
+        let card = AnyInspectorCard(HealthyCard.self)
+        // The default `makeContent` forwards to `body`, so a card that never opted into
+        // the throwing variant must be completely unaffected by AC12's machinery.
+        _ = try card.body(context: context())
+    }
+
+    @Test("one card's failure leaves its neighbours buildable")
+    func failureDoesNotBlockOthers() throws {
+        let cards = [AnyInspectorCard(HealthyCard.self),
+                     AnyInspectorCard(FailingCard.self),
+                     AnyInspectorCard(HealthyCard.self)]
+
+        // This is the AC in one assertion: build every card the way the stack does, and
+        // confirm the failure is isolated to its own slot — two neighbours still produce
+        // content, and the stack as a whole does not collapse to blank.
+        var built = 0
+        var failed = 0
+        for card in cards {
+            do { _ = try card.body(context: context()); built += 1 }
+            catch { failed += 1 }
+        }
+
+        #expect(built == 2)
+        #expect(failed == 1)
     }
 }
