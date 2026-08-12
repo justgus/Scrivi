@@ -36,6 +36,13 @@ struct ManuscriptTextView: NSViewRepresentable {
         // responder action methods, NOT an UndoManager proxy).
         textView.allowsUndo = false
         textView.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        // I-0112: an NSTextView whose textColor is nil renders runs that carry no
+        // .foregroundColor as literal NSColor.black — NOT the adaptive default — so in
+        // Dark Mode the manuscript was black text on a dark gray background. Body runs
+        // now set .foregroundColor explicitly (see rebuildStorage / the history-apply
+        // path); this assignment is the backstop so any run written without one still
+        // inherits an appearance-adaptive color instead of black.
+        textView.textColor = NSColor.textColor
         textView.autoresizingMask = [.width]
         textView.isVerticallyResizable = true
         textView.textContainer?.widthTracksTextView = true
@@ -291,10 +298,15 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Dividers and scriviHeading runs sit outside [range] and are untouched.
             capture.withApplying {
                 // Match rebuildStorage's body-text attributes exactly (regular
-                // monospaced font, default text color) so replaced text does not
+                // monospaced font, adaptive text color) so replaced text does not
                 // pick up typing attributes (e.g. bold) or a mismatched color.
+                // I-0112: .foregroundColor must be set explicitly here as well as in
+                // rebuildStorage — omitting it renders literal black, so an undo/redo
+                // would otherwise re-blacken a scene's text under Dark Mode even after
+                // the initial build was fixed.
                 let attrs: [NSAttributedString.Key: Any] = [
-                    .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+                    .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+                    .foregroundColor: NSColor.textColor
                 ]
                 storage.replaceCharacters(in: range, with: NSAttributedString(string: change.newText, attributes: attrs))
                 recomputeBoundaries(tv)
@@ -514,7 +526,12 @@ struct ManuscriptTextView: NSViewRepresentable {
             storage.setAttributedString(NSAttributedString(string: ""))
 
             let font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-            let attrs: [NSAttributedString.Key: Any] = [.font: font]
+            // I-0112: .foregroundColor is required — a run without it renders as literal
+            // NSColor.black, which is invisible against the dark background in Dark Mode.
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: NSColor.textColor
+            ]
             let showTitles = parent.showChapterTitles
 
             sceneBoundaries = []
@@ -1862,13 +1879,24 @@ private final class DividerAttachmentCell: NSTextAttachmentCell {
     }
 
     override func draw(withFrame cellFrame: NSRect, in controlView: NSView?) {
-        let lineY = cellFrame.midY
-        let path = NSBezierPath()
-        path.lineWidth = 1.0
-        path.move(to: NSPoint(x: cellFrame.minX + 20, y: lineY))
-        path.line(to: NSPoint(x: cellFrame.maxX - 20, y: lineY))
-        NSColor.separatorColor.setStroke()
-        path.stroke()
+        // I-0112: NSColor.separatorColor is semantic, but an NSTextAttachmentCell does
+        // not reliably inherit the hosting view's appearance context, so it can resolve
+        // against the wrong appearance. Draw inside the control view's effective
+        // appearance so the divider tracks Light/Dark with the rest of the manuscript.
+        let stroke = {
+            let lineY = cellFrame.midY
+            let path = NSBezierPath()
+            path.lineWidth = 1.0
+            path.move(to: NSPoint(x: cellFrame.minX + 20, y: lineY))
+            path.line(to: NSPoint(x: cellFrame.maxX - 20, y: lineY))
+            NSColor.separatorColor.setStroke()
+            path.stroke()
+        }
+        if let appearance = controlView?.effectiveAppearance {
+            appearance.performAsCurrentDrawingAppearance(stroke)
+        } else {
+            stroke()
+        }
     }
 
     override func draw(
