@@ -1,5 +1,34 @@
 # Active Tasks
 
+## ✅ SP-097 — EP-031 world packages (CLOSED 2026-08-12)
+
+**Sprint:** SP-097 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
+`../Sprints/Closed/Sprint-SP-097.md`. All 7 tasks Verified.
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0403 | ⚠️ `FileSystem::createFileExclusive` — the exclusive-create primitive Doc 3 §6.5 assumed but that did not exist | ✅ **Verified (2026-08-12)** |
+| T-0381 | `.scrivworld` package + `world.json` + per-world object index | ✅ **Verified (2026-08-12)** |
+| T-0382 | `binding.json` + platform-neutral reference + `worldID`-verified resolution + relink | ✅ **Verified (2026-08-12)** |
+| T-0383 | Lock → write → unlock + heartbeat + 60 s stale-lock recovery | ✅ **Verified (2026-08-12)** |
+| T-0384 | Epoch chain: world / timeline / binding offsets + resolve endpoint | ✅ **Verified (2026-08-12)** |
+| T-0385 | `cachedIndex` → named pending entries; world-scoped kinds become creatable | ✅ **Verified (2026-08-12)** |
+| T-0404 | `rule` relocation to world scope + Package Structure §11 correction | ✅ **Verified (2026-08-12)** |
+
+**Suites:** ctest **477/477 macOS** + **484/484 Linux (GCC 14, no warnings)**; interop **59 passed / 0 failed**.
+⚠️ **10 additive `scrivi.h` endpoints**, all exported. No pbxproj change.
+
+⚠️ **SP-097 and SP-098 had their content swapped** at planning: `promote_object` had no destination while
+`artifact` was gated, and pending-vs-dangling had no world plumbing to interrogate — so worlds landed first and
+integrity moved to SP-098, to be built once against real worlds. Sprint IDs stayed in sequence.
+
+**Closed two carried-forward clauses:** AC1's three gated kinds now round-trip in world scope, and the
+**faction↔faction** symmetric duplicate test exists (**AC3's last clause**).
+
+Full detail + retrospective: `../Sprints/Sprint-active.md` → archived copy.
+
+---
+
 ## ✅ SP-096 — EP-031 relationship graph (CLOSED 2026-08-12)
 
 **Sprint:** SP-096 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
@@ -26,8 +55,9 @@ test mock uses `obj-`/`scene-` — so the rule was wrong in production, differen
 **silent** either way. Endpoint kind now comes from `ObjectIndex` lookup; **Doc 1 §5.2 was amended in the same
 task** so design and code agree.
 
-**EP-031 AC5 met. AC3 met but for one clause** — it names faction↔faction as the symmetric duplicate case, and
-`faction` is world-scoped until SP-098; SP-096 covers the same-kind symmetric shape with `sibling-of`.
+**EP-031 AC5 met. AC3 met but for one clause at the time** — it names faction↔faction as the symmetric
+duplicate case, and `faction` was world-scoped and uncreatable; SP-096 covered the same-kind symmetric shape
+with `sibling-of`. ✅ **SP-097 (T-0385) closed that clause** — AC3 is now met.
 
 Full detail + retrospective: `../Sprints/Sprint-active.md`.
 

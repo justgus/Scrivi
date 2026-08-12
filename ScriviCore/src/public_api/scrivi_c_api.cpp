@@ -15,6 +15,7 @@
 #include "schemas/ObjectJson.hpp"
 #include "objects/RelationTypes.hpp"
 #include "objects/RelationshipStore.hpp"
+#include "worlds/WorldStore.hpp"
 #include "history/BufferStore.hpp"
 #include "history/HistoryService.hpp"
 #include "history/HistoryStore.hpp"
@@ -877,6 +878,189 @@ const char* scrivi_list_edges_for(
         item.setString("otherDisplayName", v.otherDisplayName);
         doc.appendToArray("edges", std::move(item));
     }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+// ---------------------------------------------------------------------------
+// Worlds (EP-031 SP-097)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+void putWorld(scrivi::util::JsonDoc& doc, const scrivi::worlds::WorldRecord& w) {
+    doc.setString("worldID",     w.worldID);
+    doc.setString("displayName", w.displayName);
+    doc.setString("epochLabel",  w.epochLabel);
+    doc.setString("createdAt",   w.createdAt);
+    doc.setString("modifiedAt",  w.modifiedAt);
+}
+
+} // namespace
+
+const char* scrivi_create_world(const char* projectRootPath,
+                                const char* packagePath,
+                                const char* displayName,
+                                const char* epochLabel)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.createWorld(S(projectRootPath), S(packagePath),
+                               S(displayName), S(epochLabel));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    putWorld(doc, r.value());
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_add_world(const char* projectRootPath, const char* packagePath)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.addWorld(S(projectRootPath), S(packagePath));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    putWorld(doc, r.value());
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_worlds(const char* projectRootPath)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.listWorlds(S(projectRootPath));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& w : r.value()) {
+        scrivi::util::JsonDoc item;
+        item.setString("worldID",       w.worldID);
+        item.setString("displayName",   w.displayName);
+        item.setString("status",        scrivi::worlds::worldStatusName(w.status));
+        item.setString("packagePath",   w.packagePath);
+        item.setInt64 ("epochOffsetMs", w.epochOffsetMs);
+        doc.appendToArray("worlds", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_get_world_status(const char* projectRootPath, const char* worldID)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto res = store.resolve(S(projectRootPath), S(worldID));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("worldID",     S(worldID));
+    doc.setString("status",      scrivi::worlds::worldStatusName(res.status));
+    doc.setString("packagePath", res.packagePath);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_get_world_binding(const char* projectRootPath, const char* worldID)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.loadBinding(S(projectRootPath), S(worldID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& b = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setString("worldID",       b.worldID);
+    doc.setString("displayName",   b.displayName);
+    doc.setInt64 ("epochOffsetMs", b.epochOffsetMs);
+    doc.setString("lastKnownPath", b.reference.lastKnownPath);
+    doc.setString("lastKnownAbsolutePath", b.reference.lastKnownAbsolutePath);
+    for (const auto& e : b.cachedIndex) {
+        scrivi::util::JsonDoc item;
+        item.setString("objectID",    e.objectID);
+        item.setString("kind",        e.kind);
+        item.setString("displayName", e.displayName);
+        doc.appendToArray("cachedIndex", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_relink_world(const char* projectRootPath,
+                                const char* worldID,
+                                const char* newPackagePath)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.relink(S(projectRootPath), S(worldID), S(newPackagePath));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("worldID", S(worldID));
+    doc.setBool("relinked",  true);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_remove_world_reference(const char* projectRootPath, const char* worldID)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.removeReference(S(projectRootPath), S(worldID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("worldID", S(worldID));
+    doc.setBool("removed",   true);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_world_epoch_offset(const char* projectRootPath,
+                                          const char* worldID,
+                                          long long epochOffsetMs)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.setWorldEpochOffset(S(projectRootPath), S(worldID), epochOffsetMs);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("worldID",       S(worldID));
+    doc.setInt64 ("epochOffsetMs", epochOffsetMs);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_set_timeline_epoch_offset(const char* projectRootPath,
+                                             const char* worldID,
+                                             const char* timelineID,
+                                             long long epochOffsetMs)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.setTimelineEpochOffset(S(projectRootPath), S(worldID),
+                                          S(timelineID), epochOffsetMs);
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("timelineID",    S(timelineID));
+    doc.setInt64 ("epochOffsetMs", epochOffsetMs);
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_resolve_timeline_project_times(const char* projectRootPath,
+                                                  const char* worldID,
+                                                  const char* timelineID)
+{
+    auto svc = abiServices();
+    scrivi::worlds::WorldStore store{svc};
+    auto r = store.resolveTimelineProjectOffset(S(projectRootPath), S(worldID), S(timelineID));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    auto tl = store.timelineEpochOffset(S(projectRootPath), S(worldID), S(timelineID));
+    auto b  = store.loadBinding(S(projectRootPath), S(worldID));
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("worldID",    S(worldID));
+    doc.setString("timelineID", S(timelineID));
+    // The caller adds an event's own offsetMs to `projectOffsetMs`.
+    doc.setInt64("projectOffsetMs",  r.value());
+    doc.setInt64("timelineOffsetMs", tl.ok() ? tl.value() : 0);
+    doc.setInt64("bindingOffsetMs",  b.ok() ? b.value().epochOffsetMs : 0);
     return heap(okEnvelope(std::move(doc)));
 }
 

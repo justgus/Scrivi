@@ -6,8 +6,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-097 | Integrity: prune, orphans, promotion, pending-vs-dangling | EP-031 | 🔵 Planning |
-| SP-098 | World packages: bindings, resolution, locking, epoch chain | EP-031 | 🔵 Planning |
+| SP-098 | **Integrity: prune, orphans, promotion, ⚠️ pending-vs-dangling** (⇄ swapped) | EP-031 | 🔵 Planning |
 | SP-099 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
 | SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
 
@@ -19,6 +18,17 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 >
 > **EP-019 ✅ CLOSED** and **EP-030 ✅ CLOSED** (both 2026-08-11) → `../Epics/Closed/`.
 > EP-031's ScriviCore sprints (SP-095–SP-098) have no dependency on EP-030; only SP-099 needs the card framework.
+
+> ✅ **SP-097 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-097.md`. ⚠️ **SP-097 and SP-098 had
+> their CONTENT SWAPPED** at planning: SP-097 became **world packages** (`.scrivworld`, bindings,
+> `worldID`-verified resolution, write locking, epoch chain — **T-0381–T-0385 plus T-0403 and T-0404**, all
+> Verified), and the whole integrity set moved to **SP-098**. Two integrity tasks were verified unbuildable
+> without worlds: `promote_object` had no destination while `artifact` was gated, and pending-vs-dangling had
+> no world plumbing to interrogate. **Sprint IDs stayed in sequence — only the content order changed.**
+> All three deferred items landed: the **`rule` relocation** (from SP-095), the **faction↔faction test**
+> (from SP-096 — **AC3's last clause, now closed**), and **AC1's three gated kinds**.
+> ctest **477/477 macOS** + **484/484 Linux (GCC 14)**, interop **59 passed / 0 failed**;
+> ⚠️ **10 additive `scrivi.h` endpoints**. **EP-031 AC3 + AC6 + AC8 met.** **Next up: SP-098.**
 
 > ✅ **SP-096 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-096.md`. EP-031's second sprint and the
 > Epic's core deliverable: relation types, `relationships.jsonl` append-log, canonical edges + duplicate
@@ -43,9 +53,8 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 > held out entirely**, deferred with no sprint pending **OQ-1**; and **T-0401 added** for index
 > rebuild/corruption coverage.
 >
-> ⚠️ **Carried into SP-098, deliberately:** relocating `rule` from `objects/rules/` to world scope, and the
-> matching **Package Structure v0.1 §11** correction (Doc 3 §7.2). `rule` is the one kind whose shipped
-> location contradicts the approved design today.
+> ⚠️ ~~**Carried into SP-098:** relocating `rule` to world scope + the Package Structure §11 correction.~~
+> **Done in SP-097 (T-0404)** after the content swap — `rule` is world-scoped and §11 is corrected.
 
 > ✅ **SP-056 archive written 2026-08-05** — `Closed/Sprint-SP-056.md`, reconstructed from the EP-019 record
 > (the sprint closed 2026-07-27 user-approved but was never archived; `Closed/` had jumped SP-055 → SP-058). The

@@ -7,6 +7,18 @@
 #include <sstream>
 #include <system_error>
 
+// Exclusive create needs a real O_EXCL — the C++ standard library offers no
+// portable "create only if absent" file mode (T-0403).
+#ifdef _WIN32
+  #include <io.h>
+  #include <share.h>
+  #include <fcntl.h>
+  #include <sys/stat.h>
+#else
+  #include <fcntl.h>
+  #include <unistd.h>
+#endif
+
 namespace scrivi::platform {
 
 namespace fs = std::filesystem;
@@ -49,6 +61,51 @@ Result<Utf8Text> LocalFileSystem::readTextFile(const AbsolutePath& path) {
 
 Result<void> LocalFileSystem::atomicWriteTextFile(const AbsolutePath& path, std::string_view utf8Text) {
     return util::atomicWriteTextFile(path, utf8Text);
+}
+
+Result<void> LocalFileSystem::createFileExclusive(const AbsolutePath& path,
+                                                   std::string_view utf8Text) {
+    // O_CREAT|O_EXCL is atomic at the OS level: exactly one caller can create
+    // the file, and everyone else gets EEXIST. An exists()-then-write sequence
+    // would race — both callers could see "absent" before either wrote.
+#ifdef _WIN32
+    int fd = -1;
+    const errno_t err = _sopen_s(&fd, path.c_str(),
+                                 _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY,
+                                 _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    if (err != 0 || fd < 0) {
+        return Result<void>::failure(
+            {.code = (err == EEXIST) ? ErrorCode::invalidArgument : ErrorCode::ioError,
+             .message = (err == EEXIST) ? "file already exists" : "exclusive create failed",
+             .path = path,
+             .detail = (err == EEXIST) ? "alreadyExists" : ""});
+    }
+    const int written = _write(fd, utf8Text.data(), static_cast<unsigned>(utf8Text.size()));
+    _close(fd);
+#else
+    const int fd = ::open(path.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0644);
+    if (fd < 0) {
+        const bool exists = (errno == EEXIST);
+        return Result<void>::failure(
+            {.code = exists ? ErrorCode::invalidArgument : ErrorCode::ioError,
+             .message = exists ? "file already exists" : "exclusive create failed",
+             .path = path,
+             .detail = exists ? "alreadyExists" : ""});
+    }
+    const auto written = ::write(fd, utf8Text.data(), utf8Text.size());
+    ::close(fd);
+#endif
+
+    if (written < 0 || static_cast<std::size_t>(written) != utf8Text.size()) {
+        // Partial write — remove the file so the caller does not hold a lock
+        // whose contents are unreadable.
+        std::error_code ec;
+        fs::remove(path, ec);
+        return Result<void>::failure(
+            {.code = ErrorCode::ioError, .message = "exclusive create wrote short", .path = path});
+    }
+
+    return Result<void>::success();
 }
 
 Result<void> LocalFileSystem::appendTextFile(const AbsolutePath& path, std::string_view utf8Text) {

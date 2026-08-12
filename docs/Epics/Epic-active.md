@@ -3,10 +3,12 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **2 of 6 sprints closed.** SP-095 ✅ (**AC2 met**) and SP-096 ✅ (**AC5 met**;
-**AC3 met but for its faction↔faction clause**, which needs SP-098's world packages), both closed 2026-08-12
-with user approval. **SP-097** (integrity — cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling) is next,
-awaiting planning. Only SP-099 needs EP-030's card framework; SP-095–SP-098 are pure `[ScriviCore]`.
+**Status:** 🟡 **Active** — **3 of 6 sprints closed; 5 of 10 ACs met.** SP-095 ✅ (**AC2 met**) and SP-096 ✅ (**AC5 met**;
+**AC3 met but for its faction↔faction clause**, which needs world packages), both closed 2026-08-12 with user
+approval. **SP-097 ✅ closed 2026-08-12** — ⚠️ **content swapped with SP-098**: it was the **world packages** sprint,
+because two integrity tasks were verified unbuildable without worlds. **AC3 + AC6 + AC8 met.** **SP-098**
+(integrity, including ⚠️ **T-0380 pending-vs-dangling** — the Epic's highest-risk task) is next and fully
+unblocked. Only SP-099 needs EP-030's card framework; SP-095–SP-098 are pure `[ScriviCore]`.
 **Goal:** Implement the approved object model — new kinds, the object index, the canonical relationship graph,
 world packages — then the worldbuilding-object cards on top of EP-030's framework.
 **Design:** `docs/Scrivi_Worldbuilding_Object_Model_v0_2.md` ✅ **Approved 2026-08-05** (T1–T6 ruled) +
@@ -25,27 +27,33 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > (ScriviCore) and SP-099 (the aggregate card). AC1 should count `source` among the kinds when those
       > sprints land. Source→scene is **out of EP-031** → EP-032. **(b) Round-trip is staged, not simultaneous:** the
       > world-scoped kinds (`artifact`, `chronicle`, `faction`) are *declared* in SP-095 but gated until
-      > SP-098 supplies a world package to hold them, because Doc 3 §7 forbids the relocation pass that
-      > creating them in `objects/` would require. AC1 is assessable only after SP-098.
+      > a world package supplies somewhere to hold them, because Doc 3 §7 forbids the relocation pass that
+      > creating them in `objects/` would require. **AC1 is assessable after SP-097** (world packages — the
+      > sprint that was SP-098 before the 2026-08-12 content swap).
       >
-      > **SP-095 progress (Verified 2026-08-12):** enum complete at 11 kinds; `building`/`vehicle`/`map`
-      > round-trip through full CRUD; legacy 5-kind files load unchanged (explicit legacy-fixture test);
-      > **`timeline` retired** with `objects/timelines/timeline.meta.json` asserted intact. **Outstanding for
-      > SP-098:** round-trip for the 3 gated kinds + the `rule` relocation.
+      > **SP-095 (Verified 2026-08-12):** enum complete at 11 kinds; `building`/`vehicle`/`map` round-trip;
+      > legacy 5-kind files load unchanged; **`timeline` retired** with `objects/timelines/timeline.meta.json`
+      > asserted intact.
+      > **SP-097 (✅ Verified 2026-08-12):** the 3 gated kinds — `artifact`/`chronicle`/`faction`
+      > — now **round-trip in world scope** (T-0385), and `rule` relocated to `worlds/<worldID>/rules/`
+      > (T-0404). **AC1's staged round-trip is complete**; `source` remains outstanding (T-0365's ScriviCore
+      > half, SP-098), which is the only reason AC1 stays unticked.
 - [x] AC2 — `objects/index.json` is built on open, updated atomically, and **rebuilt from a scan** when
       missing/stale/corrupt; `findByID` resolves via the index. (Doc 1 AC2–AC3)
       ✅ **Met — SP-095 (T-0372 + T-0401), Verified 2026-08-12.** All three rebuild triggers covered (missing;
       corrupt ×5 branches; stale ×2), plus idempotence and skip-not-fatal. The zero-scan property is proven
       behaviorally by a `listDirectory`-counting filesystem decorator, not merely asserted.
-- [ ] AC3 — **One canonical edge** per relationship, created from either endpoint, with the inverse as a
+- [x] AC3 — **One canonical edge** per relationship, created from either endpoint, with the inverse as a
       read-time label projection. Duplicate rejection tested for **asymmetric and symmetric** (faction↔faction)
-      types. (Doc 1 AC4–AC5)
+      types. (Doc 1 AC4–AC5) ✅ **Met — SP-096 (T-0375) + SP-097 (T-0385), Verified 2026-08-12.**
       > **SP-096 (✅ Verified 2026-08-12):** canonical edges, both-direction label projection
       > from one record, and duplicate rejection from either creation order all shipped and tested.
       > ⚠️ **AC3 stays unticked on ONE clause only:** it names **faction↔faction** as the symmetric case, but
-      > `faction` is world-scoped and uncreatable until SP-098. SP-096 covers the same-kind symmetric *shape*
-      > with `sibling-of` (character↔character, lexical), which is what Doc 1 AC4 actually tests for. **The
-      > faction-specific case must be added in SP-098** — everything else in AC3 is delivered and Verified.
+      > `faction` was world-scoped and uncreatable until worlds existed. SP-096 covered the same-kind symmetric
+      > *shape* with `sibling-of` (character↔character, lexical).
+      > ✅ **SP-097 closed the clause (Implemented, Not Verified 2026-08-12):** with `faction` creatable, the
+      > **faction↔faction "at war with"** duplicate test now exists and passes — created from both ends, one
+      > canonical edge, `detail == "duplicateEdge"`.
 - [ ] AC4 — Cascade-prune on delete; **orphans survive** and are findable; `objectID` preserved across
       `item`→`artifact` promotion with **zero edges rewritten**. (Doc 1 AC6–AC8)
 - [x] AC5 — `relationships.jsonl` compacts at **30% or 1,000 tombstones**, whichever first; torn final line
@@ -54,13 +62,27 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > graph at 33% (under the absolute bound) and a 5,001-record log at 20% with 1,001 tombstones (under the
       > ratio) — plus a below-both-thresholds case asserting **no** compaction, torn-final-line truncation, and
       > crash-safety (a stray `.tmp` never displaces the real log).
-- [ ] AC6 — The **epoch chain** resolves (event → timeline → world → project); rebinding a world changes exactly
+- [x] AC6 — The **epoch chain** resolves (event → timeline → world → project); rebinding a world changes exactly
       one number; two timelines in one world relate without any project. (Doc 1 AC13–AC15)
+      ✅ **Met — SP-097 (T-0384), Verified 2026-08-12.**
+      > **SP-097 (✅ Verified 2026-08-12) — T-0384.** All three clauses tested: the chain resolves
+      > as `timeline.epochOffsetMs + binding.epochOffsetMs`; two timelines in one world relate by pure
+      > world-relative arithmetic **with no project involved**; rebinding changes **one** number and rewrites no
+      > timeline offset. Plus: editing a binding **never mutates `world.json`**, asserted by byte-comparing the
+      > file — the world's epoch is intrinsic and travels with it when shared.
 - [ ] AC7 — ⚠️ **Absence is never deletion:** an unavailable world holds edges **pending** — never pruned, never
       modified, surviving save, restored on reattach. Status reports offline/unmounted/missing where
       determinable, else generic unavailable. (Doc 1 AC16–AC17, Doc 3 AC-A1–A7)
-- [ ] AC8 — World packages: `worldID`-verified resolution, no search/registry, platform-neutral bindings,
+- [x] AC8 — World packages: `worldID`-verified resolution, no search/registry, platform-neutral bindings,
       lock→write→unlock with stale-lock recovery. (Doc 3 AC-P1–P4, AC-L1–L5)
+      ✅ **Met — SP-097 (T-0381/T-0382/T-0383 + T-0403), Verified 2026-08-12.**
+      > **SP-097 (✅ Verified 2026-08-12) — T-0381/T-0382/T-0383 + T-0403.** Self-contained
+      > packages; **identity-verified** resolution (a same-named package with a different `worldID` is refused,
+      > not substituted — tested); no search, no registry; platform-neutral references (no bookmarks in the
+      > model); and lock→write→unlock with **60 s stale recovery**, unparseable-lock recovery, and
+      > contention that reports rather than hangs. ⚠️ Required a new **`createFileExclusive`** primitive
+      > (**T-0403**) — Doc 3 §6.5 assumed an `AtomicWrite` exclusive-create path that does not exist, and
+      > `rename` overwrites, so a lock built on it would have let two writers both win.
 - [ ] AC9 — Worldbuilding-object cards on EP-030's framework: unfiltered picker, in-stack creation with no modal,
       "Remove from scene" deletes the edge only. (Doc 2 AC16–AC24)
 - [ ] AC10 — No regression: `ctest` + interop suites green; existing projects open unchanged.
@@ -71,8 +93,8 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | ------ | ----- | ------ | ----- |
 | SP-095 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-095.md` | 2026-08-12 |
 | SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-096.md` | 2026-08-12 |
-| SP-097 | Integrity: cascade-prune, orphans, promotion, pending-vs-dangling | 🔵 Planning | — |
-| SP-098 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain | 🔵 Planning | — |
+| SP-097 | **World packages: `.scrivworld`, bindings, resolution, locking, epoch chain** | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-097.md` | 2026-08-12 |
+| SP-098 | **Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling** | 🔵 Planning | — |
 | SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | 🔵 Planning | — |
 | SP-100 | Verification & Epic close | 🔵 Planning | — |
 
@@ -82,6 +104,17 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 > **SP-095–SP-100**; this table and the task assignments below are realigned to match. ~~T-0365's deferral
 > target moves with it: **EP-031 SP-095**.~~ **Superseded 2026-08-12:** T-0365 is deferred with **no sprint**
 > at all (user ruling) — see the AC1 amendment above and `../Sprints/Sprint-active.md` §R2.
+
+> **⚠️ SP-097 ⇄ SP-098 CONTENT SWAPPED (ruled 2026-08-12).** SP-097 was to be the integrity sprint and SP-098
+> world packages. Planning verified that **two of the five integrity tasks were unbuildable**: **T-0379**
+> (`promote_object`) has **no destination** — `artifact` is refused by `ObjectStore::checkKindStorable` until
+> worlds exist — and **T-0380** (pending-vs-dangling) has **no world plumbing to interrogate**, so the Epic's
+> highest-risk branch could not even be reached, let alone tested. **Worlds now land in SP-097; the whole
+> integrity set moves to SP-098** and is built once, against real worlds. T-0377/T-0378 were not themselves
+> blocked, but shipping cascade-prune *before* the pending guard that protects it is the exact ordering Doc 3
+> §4.6 warns against. **Sprint IDs stay in sequence — only the content order changed.** Three deferred items
+> travel with the worlds they need and land in **SP-097**: the `rule` relocation, the faction↔faction
+> symmetric test (AC3's last clause), and AC1's three gated kinds.
 
 ### Tasks
 
@@ -96,15 +129,17 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-096 | ✅ **Verified (2026-08-12)** |
 | T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | ✅ **Verified (2026-08-12)** |
 | T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | ✅ **Verified (2026-08-12)** |
-| T-0377 | Cascade-prune on delete + load-time repair | SP-097 | 🔵 Backlog |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-097 | 🔵 Backlog |
-| T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-097 | 🔵 Backlog |
-| T-0380 | ⚠️ Pending-vs-dangling loader distinction + frozen graph toward unavailable worlds | SP-097 | 🔵 Backlog |
-| T-0381 | `.scrivworld` package + `world.json` + world index | SP-098 | 🔵 Backlog |
-| T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-098 | 🔵 Backlog |
-| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | SP-098 | 🔵 Backlog |
-| T-0384 | Epoch chain: world/timeline/binding offsets + resolve endpoint | SP-098 | 🔵 Backlog |
-| T-0385 | Cached world index entries → named pending entries | SP-098 | 🔵 Backlog |
+| T-0377 | Cascade-prune on delete + load-time repair | SP-098 | 🔵 Backlog |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-098 | 🔵 Backlog |
+| T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-098 | 🔵 Backlog |
+| T-0380 | ⚠️ Pending-vs-dangling loader distinction + frozen graph toward unavailable worlds | SP-098 | 🔵 Backlog |
+| T-0403 | ⚠️ `FileSystem::createFileExclusive` — the exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | SP-097 | ✅ **Verified (2026-08-12)** |
+| T-0381 | `.scrivworld` package + `world.json` + world index | SP-097 | ✅ **Verified (2026-08-12)** |
+| T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-097 | ✅ **Verified (2026-08-12)** |
+| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | SP-097 | ✅ **Verified (2026-08-12)** |
+| T-0384 | Epoch chain: world/timeline/binding offsets + resolve endpoint | SP-097 | ✅ **Verified (2026-08-12)** |
+| T-0385 | Cached world index entries → named pending entries; **world-scoped kinds become creatable** (closes AC1's gated half + AC3's faction↔faction clause) | SP-097 | ✅ **Verified (2026-08-12)** |
+| T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | SP-097 | ✅ **Verified (2026-08-12)** |
 | T-0386 | Object cards (one implementation, per-kind config) on EP-030's framework | SP-099 | 🔵 Backlog |
 | T-0387 | Object picker (unfiltered, all worlds) + inline type-ahead + "Create new…" | SP-099 | 🔵 Backlog |
 | T-0388 | In-stack create/edit, edit-state visuals, scene-change complete-or-discard | SP-099 | 🔵 Backlog |
@@ -119,7 +154,31 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-12 (**SP-096 ✅ CLOSED (Human-approved) — the relationship graph is in.**
+*Last Updated: 2026-08-12 (**SP-097 ✅ CLOSED (Human-approved) — worlds exist.** Archived to
+`../Sprints/Closed/Sprint-SP-097.md`; `Sprint-active.md` reset. **3 of 6 sprints closed, 5 of 10 ACs met.**
+**Next: SP-098** — integrity, including ⚠️ **T-0380 pending-vs-dangling**, the one failure Doc 3 §4.6 calls
+*silent and unrecoverable*; it is now fully buildable. Delivery detail follows.
+**SP-097's 7 tasks ✅ Verified.**
+**AC6 and AC8 are now MET**, and **AC3 is MET** — its faction↔faction clause closed once `faction` became
+creatable. **AC1's staged round-trip is complete**; it stays unticked only because `source` (T-0365's
+ScriviCore half) is still outstanding for SP-098. EP-031 now has **AC2, AC3, AC5, AC6, AC8 met** — 5 of 10.
+Prior note follows.)*
+
+*2026-08-12 (**SP-097 implemented — worlds exist.** All 7 tasks
+(T-0381–T-0385, **T-0403**, **T-0404**) 🟠 Implemented, Not Verified. `.scrivworld` packages with their own
+index; project-side bindings with platform-neutral references; **identity-verified resolution** (a same-named
+package with a different `worldID` is refused, never substituted); lock→write→unlock with 60 s stale recovery;
+and the three-layer epoch chain. **AC6 and AC8 are substantially met**; **AC1 and AC3's outstanding clauses are
+CLOSED** — the 3 gated kinds round-trip in world scope and the faction↔faction symmetric duplicate test now
+exists. ⚠️ **T-0403 was needed because Doc 3 §6.5 assumed an `AtomicWrite` exclusive-create path that does not
+exist** (`rename` overwrites, so two writers would both "win" the lock). Three real gaps surfaced during
+implementation and were fixed: world objects were being written to the *project* index rather than the world's
+own; cross-partition edges did not resolve (AC10); and Package Structure §11 claimed `objects/timelines/` was
+"removed" when it holds the live project timeline. ⚠️ **10 additive `scrivi.h` endpoints**, all exported.
+Suites: ctest **477/477 macOS** + **484/484 Linux (GCC 14, zero warnings)**; interop **59 passed / 0 failed**.
+Prior note follows.)*
+
+*2026-08-12 (**SP-096 ✅ CLOSED (Human-approved) — the relationship graph is in.**
 Archived to `../Sprints/Closed/Sprint-SP-096.md`; `Sprint-active.md` reset; **2 of 6 EP-031 sprints now
 closed**. **Next: SP-097** — integrity (cascade-prune, orphans, promotion, and ⚠️ **T-0380
 pending-vs-dangling**, the Epic's highest-risk task). Carried forward deliberately: the **faction↔faction

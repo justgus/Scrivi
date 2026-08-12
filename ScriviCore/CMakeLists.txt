@@ -74,6 +74,7 @@ target_sources(ScriviCore
         src/schemas/SnapshotMetadataJson.cpp
         src/schemas/RepairIssueJson.cpp
         src/schemas/ObjectJson.cpp
+        src/schemas/WorldJson.cpp
         src/schemas/AssetMetaJson.cpp
         src/schemas/CommentJson.cpp
         src/schemas/TimelineMetaJson.cpp
@@ -85,6 +86,7 @@ target_sources(ScriviCore
         src/objects/ObjectStore.cpp
         src/objects/RelationTypes.cpp
         src/objects/RelationshipStore.cpp
+        src/worlds/WorldStore.cpp
         src/assets/AssetStore.cpp
         src/comments/CommentStore.cpp
         src/inbox/InboxStore.cpp

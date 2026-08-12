@@ -147,6 +147,57 @@ const char* scrivi_list_edges_for(
     const char* projectRootPath,
     const char* endpointID);
 
+/* ---------------------------------------------------------------------------
+ * Worlds (EP-031 SP-097) — scrivi.world.v1 / scrivi.world-binding.v1
+ *
+ * A world is a SEPARATE `.scrivworld` package referenced by the project; only
+ * binding.json is project-local. `worldID` is the identity — every stored path
+ * is a hint, verified against world.json before it is trusted.
+ *
+ * An unreachable world is a STATUS, never an error: `status` is one of
+ * "available" | "missing" | "offline" | "unmounted" | "unavailable".
+ * "missing" is reported only when positively established; otherwise the honest
+ * fallback is "unavailable" (a wrong "missing" invites destructive remedies).
+ * ------------------------------------------------------------------------- */
+
+const char* scrivi_create_world(const char* projectRootPath,
+                                const char* packagePath,
+                                const char* displayName,
+                                const char* epochLabel);
+
+/* Binds an existing package. Read-only toward the world — takes no lock. */
+const char* scrivi_add_world(const char* projectRootPath,
+                             const char* packagePath);
+
+const char* scrivi_list_worlds(const char* projectRootPath);
+const char* scrivi_get_world_status(const char* projectRootPath, const char* worldID);
+const char* scrivi_get_world_binding(const char* projectRootPath, const char* worldID);
+
+/* Re-points a moved world. VERIFIES worldID before accepting the new path. */
+const char* scrivi_relink_world(const char* projectRootPath,
+                                const char* worldID,
+                                const char* newPackagePath);
+
+/* Removes only THIS project's reference; the world package is never touched. */
+const char* scrivi_remove_world_reference(const char* projectRootPath,
+                                          const char* worldID);
+
+/* Epoch chain (Doc 1 §7.0). Layer 2→3: world epoch → project timeline. */
+const char* scrivi_set_world_epoch_offset(const char* projectRootPath,
+                                          const char* worldID,
+                                          long long epochOffsetMs);
+
+/* Layer 1→2: a historical timeline's offset against its WORLD's epoch. */
+const char* scrivi_set_timeline_epoch_offset(const char* projectRootPath,
+                                             const char* worldID,
+                                             const char* timelineID,
+                                             long long epochOffsetMs);
+
+/* Resolves timeline→world→project; add an event's own offsetMs to the result. */
+const char* scrivi_resolve_timeline_project_times(const char* projectRootPath,
+                                                  const char* worldID,
+                                                  const char* timelineID);
+
 /* RelationType vocabulary — scrivi.relation-types.v1 */
 const char* scrivi_list_relation_types(const char* projectRootPath);
 

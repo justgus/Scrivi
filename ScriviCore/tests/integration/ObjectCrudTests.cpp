@@ -309,14 +309,9 @@ TEST_CASE("ItemObject full CRUD cycle",
         "Brass Key", "brass-key", "items");
 }
 
-TEST_CASE("RuleObject full CRUD cycle",
-          "[integration][EP-005][T-0039]")
-{
-    ObjectFixture fix;
-    runCrudCycle<scrivi::RuleObject>(
-        fix, scrivi::ObjectKind::rule,
-        "Magic System", "magic-system", "rules");
-}
+// NB: `rule` had a project-scoped CRUD cycle here until SP-097 (T-0404) moved
+// it to world scope. Its round-trip now lives in WorldTests.cpp alongside the
+// other world-scoped kinds, since it needs a bound world to exist in.
 
 // --- SP-095 T-0370: the new project-scoped kinds ----------------------------
 
@@ -344,18 +339,20 @@ TEST_CASE("MapObject full CRUD cycle", "[integration][T-0370]")
         "Northern Reaches", "northern-reaches", "maps");
 }
 
-TEST_CASE("world-scoped kinds are refused until a world exists (SP-098)",
-          "[integration][T-0370]")
+TEST_CASE("world-scoped kinds are refused when NO world is supplied",
+          "[integration][T-0370][T-0385]")
 {
     ObjectFixture fix;
 
-    // Declared in ObjectKind so the index and the SP-096 graph know the full
-    // kind set, but unstorable: World Data Separation v0.1 §7 writes no
-    // migration, so an artifact created under objects/ could never be moved
-    // into world scope later. Refusing now is what keeps that promise.
+    // SP-097 made these creatable — but only INTO A WORLD. Without a worldID
+    // they must still be refused: World Data Separation v0.1 §7 writes no
+    // migration code, so an artifact created under objects/ could never be
+    // moved into world scope later. (Creation WITH a world is covered in
+    // WorldTests.cpp.)
     for (auto kind : {scrivi::ObjectKind::artifact,
                       scrivi::ObjectKind::chronicle,
-                      scrivi::ObjectKind::faction}) {
+                      scrivi::ObjectKind::faction,
+                      scrivi::ObjectKind::rule}) {
         CAPTURE(scrivi::objectKindName(kind));
 
         auto r = fix.core.createObject(fix.makeCreateReq(kind, "Thing", "thing"));

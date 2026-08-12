@@ -2,6 +2,7 @@
 
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "objects/ObjectIndex.hpp"
+#include "worlds/WorldStore.hpp"
 
 namespace scrivi::objects {
 
@@ -25,7 +26,51 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
         return out;
     }
 
-    // 2. Scenes — the EP-027 filesystem-authoritative identity path. Scenes are
+    // 2. World objects — the object index spans BOTH partitions (Doc 1 §4.2,
+    //    Doc 3 §6.3), so a cross-partition edge (project character ↔ world
+    //    artifact) must resolve identically to a same-partition one (AC10).
+    //    The live world index wins when the world is reachable; the binding's
+    //    cache names the object when it is not, which is what lets a pending
+    //    entry read "⟨Midgard: Sword of Dawn⟩" instead of a bare UUID.
+    {
+        worlds::WorldStore ws{services_};
+        if (auto ids = ws.listBoundWorldIDs(projectRoot); ids.ok()) {
+            for (const auto& worldID : ids.value()) {
+                auto res = ws.resolve(projectRoot, worldID);
+                if (res.status == worlds::WorldStatus::available) {
+                    if (auto entries = index.loadWorldIndex(res.packagePath); entries.ok()) {
+                        for (const auto& e : entries.value()) {
+                            if (e.objectID.value == endpointID) {
+                                out.found       = true;
+                                out.kind        = e.kind;
+                                out.displayName = e.displayName;
+                                out.slug        = e.slug;
+                                return out;
+                            }
+                        }
+                    }
+                    continue;
+                }
+                // World unavailable — fall back to the cached names.
+                if (auto b = ws.loadBinding(projectRoot, worldID); b.ok()) {
+                    for (const auto& e : b.value().cachedIndex) {
+                        if (e.objectID == endpointID) {
+                            // ⚠️ NOT `found`: the object cannot be verified while
+                            // its world is away. SP-098's T-0380 turns this into
+                            // the explicit *pending* state; SP-097 only ensures
+                            // the name survives so the writer is never asked to
+                            // decide blind.
+                            out.displayName = e.displayName;
+                            if (auto k = objectKindFromName(e.kind)) { out.kind = *k; }
+                            return out;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Scenes — the EP-027 filesystem-authoritative identity path. Scenes are
     //    never objects/ files (§8), so they are resolved by walking the
     //    manuscript rather than through the object index.
     manuscript::ManuscriptOrderResolver resolver{services_};
@@ -40,7 +85,7 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
         }
     }
 
-    // 3. Neither. Not an error — the caller decides what an unresolved endpoint
+    // 4. Neither. Not an error — the caller decides what an unresolved endpoint
     //    means in its context (create refuses; list reports what it has).
     return out;
 }

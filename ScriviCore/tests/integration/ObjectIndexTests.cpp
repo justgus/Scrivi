@@ -39,6 +39,7 @@ public:
     scrivi::Result<void> createDirectories(const scrivi::AbsolutePath& p) override { return inner_.createDirectories(p); }
     scrivi::Result<scrivi::Utf8Text> readTextFile(const scrivi::AbsolutePath& p) override { return inner_.readTextFile(p); }
     scrivi::Result<void> atomicWriteTextFile(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.atomicWriteTextFile(p, t); }
+    scrivi::Result<void> createFileExclusive(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.createFileExclusive(p, t); }
     scrivi::Result<void> appendTextFile(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.appendTextFile(p, t); }
     scrivi::Result<void> removeFile(const scrivi::AbsolutePath& p) override { return inner_.removeFile(p); }
     scrivi::Result<void> renamePath(const scrivi::AbsolutePath& a, const scrivi::AbsolutePath& b) override { return inner_.renamePath(a, b); }

@@ -12,9 +12,10 @@ namespace {
 
 constexpr std::string_view kIndexSchema = "scrivi.object-index.v1";
 
-// Kinds the index scans. World-scoped kinds are excluded: they have no
-// objects/ directory until SP-098 gives them a world package to live in.
-// `rule` IS scanned — it ships project-scoped at objects/rules/ today.
+// Kinds the PROJECT index scans — project-scoped only. World-scoped kinds
+// (artifact/chronicle/faction/rule) live in .scrivworld packages and are carried
+// in the binding's cachedIndex instead (Doc 3 §6.3). `rule` left this list in
+// SP-097 when it became world-scoped (T-0404).
 constexpr ObjectKind kScannedKinds[] = {
     ObjectKind::character,
     ObjectKind::location,
@@ -22,7 +23,6 @@ constexpr ObjectKind kScannedKinds[] = {
     ObjectKind::building,
     ObjectKind::vehicle,
     ObjectKind::map,
-    ObjectKind::rule,
 };
 
 // NB: kind parsing lives in ObjectTypes.hpp as objectKindFromName() — it
@@ -164,6 +164,86 @@ Result<void> ObjectIndex::write(const AbsolutePath& projectRoot,
     }
 
     return fs.atomicWriteTextFile(indexPath(projectRoot), root.dump());
+}
+
+// --- world-package index (Doc 3 §6.1) ---------------------------------------
+//
+// Same schema, different file: <package>/index.json rather than
+// <project>/objects/index.json. Kept here so there is ONE index reader/writer
+// rather than a second implementation that could drift.
+
+Result<std::vector<ObjectIndexEntry>>
+ObjectIndex::loadWorldIndex(const AbsolutePath& packagePath) const {
+    auto& fs = *services_.fileSystem;
+    auto  p  = util::join(packagePath, "index.json");
+
+    if (auto textR = fs.readTextFile(p); textR.ok()) {
+        if (auto parsed = parse(textR.value())) {
+            return Result<std::vector<ObjectIndexEntry>>::success(std::move(*parsed));
+        }
+    }
+    // Missing or unusable — an empty index, rebuilt by the next write. A world
+    // must stay openable regardless of its index's state.
+    return Result<std::vector<ObjectIndexEntry>>::success({});
+}
+
+Result<void> ObjectIndex::upsertWorld(const AbsolutePath& packagePath,
+                                       const ObjectIndexEntry& entry) const {
+    auto loadedR = loadWorldIndex(packagePath);
+    if (!loadedR.ok()) { return Result<void>::failure(loadedR.error()); }
+
+    auto entries = std::move(loadedR.value());
+    auto it = std::find_if(entries.begin(), entries.end(),
+                           [&](const ObjectIndexEntry& e) {
+                               return e.objectID.value == entry.objectID.value;
+                           });
+    if (it != entries.end()) { *it = entry; } else { entries.push_back(entry); }
+
+    std::sort(entries.begin(), entries.end(),
+              [](const ObjectIndexEntry& a, const ObjectIndexEntry& b) {
+                  return a.objectID.value < b.objectID.value;
+              });
+
+    util::JsonDoc root;
+    root.setString("schema", std::string(kIndexSchema));
+    for (const auto& e : entries) {
+        util::JsonDoc item;
+        item.setString("objectID",    e.objectID.value);
+        item.setString("kind",        objectKindName(e.kind));
+        item.setString("slug",        e.slug);
+        item.setString("displayName", e.displayName);
+        item.setString("worldID",     e.worldID);
+        root.appendToArray("entries", std::move(item));
+    }
+    return services_.fileSystem->atomicWriteTextFile(
+        util::join(packagePath, "index.json"), root.dump());
+}
+
+Result<void> ObjectIndex::eraseWorld(const AbsolutePath& packagePath,
+                                      const ObjectID& id) const {
+    auto loadedR = loadWorldIndex(packagePath);
+    if (!loadedR.ok()) { return Result<void>::failure(loadedR.error()); }
+
+    auto entries = std::move(loadedR.value());
+    entries.erase(std::remove_if(entries.begin(), entries.end(),
+                                 [&](const ObjectIndexEntry& e) {
+                                     return e.objectID.value == id.value;
+                                 }),
+                  entries.end());
+
+    util::JsonDoc root;
+    root.setString("schema", std::string(kIndexSchema));
+    for (const auto& e : entries) {
+        util::JsonDoc item;
+        item.setString("objectID",    e.objectID.value);
+        item.setString("kind",        objectKindName(e.kind));
+        item.setString("slug",        e.slug);
+        item.setString("displayName", e.displayName);
+        item.setString("worldID",     e.worldID);
+        root.appendToArray("entries", std::move(item));
+    }
+    return services_.fileSystem->atomicWriteTextFile(
+        util::join(packagePath, "index.json"), root.dump());
 }
 
 Result<ObjectIndexEntry> ObjectIndex::find(const AbsolutePath& projectRoot,

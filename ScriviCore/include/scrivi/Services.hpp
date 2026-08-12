@@ -43,6 +43,17 @@ public:
     virtual Result<Utf8Text> readTextFile(const AbsolutePath& path) = 0;
     virtual Result<void> atomicWriteTextFile(
         const AbsolutePath& path, std::string_view utf8Text)     = 0;
+    // Creates `path` with `utf8Text` ONLY IF IT DOES NOT EXIST, atomically with
+    // respect to other processes. Returns `invalidArgument` when the file is
+    // already there, so a caller can distinguish "lost the race" from an I/O
+    // failure. Used to acquire the world write lock (World Data Separation v0.1
+    // §6.5) — EP-031 SP-097 T-0403.
+    //
+    // ⚠️ atomicWriteTextFile CANNOT serve this purpose: it is temp-write →
+    // rename, and rename OVERWRITES, so two racing writers would both believe
+    // they acquired the lock. Exclusivity must come from the create itself.
+    virtual Result<void> createFileExclusive(
+        const AbsolutePath& path, std::string_view utf8Text)     = 0;
     // Appends utf8Text to path (creating it if absent), flushing before return.
     // Used by the append-only history log (EP-019 §6.a). Not atomic across a
     // crash mid-append — a torn final line is detected and truncated at load.

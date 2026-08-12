@@ -36,6 +36,16 @@ public:
     // Absolute path of objects/index.json for a project.
     [[nodiscard]] static AbsolutePath indexPath(const AbsolutePath& projectRoot);
 
+    // A world package keeps its own index at <package>/index.json, using the
+    // SAME schema (Doc 3 §6.1), so a world is self-contained and its index
+    // rebuilds by the same scan. These operate on that file instead.
+    [[nodiscard]] Result<std::vector<ObjectIndexEntry>> loadWorldIndex(
+        const AbsolutePath& packagePath) const;
+    [[nodiscard]] Result<void> upsertWorld(const AbsolutePath& packagePath,
+                                           const ObjectIndexEntry& entry) const;
+    [[nodiscard]] Result<void> eraseWorld(const AbsolutePath& packagePath,
+                                          const ObjectID& id) const;
+
     // Loads the index, rebuilding from a directory scan if it is missing,
     // unreadable, malformed, or carries the wrong schema tag. Never fails
     // because of index contents — only a scan that cannot read objects/ fails.

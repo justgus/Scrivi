@@ -61,10 +61,6 @@ inline std::string objectKindSubdir(ObjectKind kind) {
         case ObjectKind::building:  return "buildings";
         case ObjectKind::vehicle:   return "vehicles";
         case ObjectKind::map:       return "maps";
-        // TODO(SP-098): `rule` still resolves under objects/rules/ because that
-        // is where it ships today. World Data Separation v0.1 §7.2 relocates it
-        // to worlds/<worldID>/rules/ together with the world package that will
-        // hold it; Package Structure v0.1 §11 is corrected in the same step.
         case ObjectKind::rule:      return "rules";
         case ObjectKind::artifact:  return "artifacts";
         case ObjectKind::chronicle: return "chronicles";
@@ -107,14 +103,16 @@ inline std::optional<ObjectKind> objectKindFromName(std::string_view name) {
 
 // True for kinds that belong to a WORLD rather than the project.
 //
-// `rule` is deliberately NOT listed: it ships project-scoped at objects/rules/
-// and stays there until SP-098 moves it with the rest of the world package.
-// Reporting it as world-scoped now would break every existing rule object.
+// `rule` joined this set in SP-097 (T-0404): rules govern an ENVIRONMENT, not a
+// manuscript, so they live at worlds/<worldID>/rules/ (Doc 1 §3, Doc 3 §7.2).
+// No migration was written — Scrivi has not shipped, so there is no field data
+// at objects/rules/; developer fixtures were regenerated instead.
 inline bool objectKindIsWorldScoped(ObjectKind kind) {
     switch (kind) {
         case ObjectKind::artifact:
         case ObjectKind::chronicle:
         case ObjectKind::faction:
+        case ObjectKind::rule:
             return true;
         default:
             return false;

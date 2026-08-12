@@ -1140,9 +1140,10 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
     // `timeline` was retired as an ObjectKind in SP-095; the project timeline
     // is not a world object and is indexed elsewhere. World-scoped kinds
     // (artifact/chronicle/faction) are absent until SP-098 gives them a home.
+    // Project-scoped kinds only. `rule` joined the world-scoped set in SP-097,
+    // so it is no longer under objects/; world-object indexing is future work.
     for (auto kind : {ObjectKind::character, ObjectKind::location, ObjectKind::item,
-                      ObjectKind::building, ObjectKind::vehicle, ObjectKind::map,
-                      ObjectKind::rule}) {
+                      ObjectKind::building, ObjectKind::vehicle, ObjectKind::map}) {
         collectObjects(services_, request.projectRootPath, projectID, kind, out.items);
     }
 

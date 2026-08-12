@@ -96,12 +96,17 @@ struct CreateObjectRequest {
     std::string   displayName;     // required — slug is derived from this
     Slug          slug;            // optional override; if empty, derived from displayName
     AuthorshipRef author;
+    // REQUIRED for world-scoped kinds (artifact/chronicle/faction/rule), which
+    // live in a .scrivworld package rather than objects/ (EP-031 SP-097).
+    // Empty for project-scoped kinds.
+    std::string   worldID;
 };
 
 struct OpenObjectRequest {
     AbsolutePath  projectRootPath;
     ObjectKind    objectKind = ObjectKind::character;
     ObjectID      objectID;
+    std::string   worldID;         // required for world-scoped kinds
 };
 
 struct SaveObjectRequest {
@@ -114,7 +119,10 @@ struct DeleteObjectRequest {
     AbsolutePath  projectRootPath;
     ObjectKind    objectKind = ObjectKind::character;
     ObjectID      objectID;
+    std::string   worldID;         // required for world-scoped kinds
 };
+// NB: SaveObjectRequest needs no worldID — the object it carries already holds
+// one in WorldObjectFields (SP-095 T-0371).
 
 // ---------------------------------------------------------------------------
 // Asset requests (EP-005 T-0041)

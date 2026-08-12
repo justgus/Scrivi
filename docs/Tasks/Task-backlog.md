@@ -76,15 +76,17 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
 | T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
 | T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
-| T-0377 | Cascade-prune on delete + load-time repair | EP-031 (**SP-097**) | 🔵 Backlog |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (**SP-097**) | 🔵 Backlog |
-| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (**SP-097**) | 🔵 Backlog |
-| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (**SP-097**) | 🔵 Backlog |
-| T-0381 | `.scrivworld` package + `world.json` + world index (**+ relocate `rule` to world scope**) | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0382 | `binding.json` + `worldID`-verified resolution + relink | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0385 | Cached world index entries → named pending entries | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0377 | Cascade-prune on delete + load-time repair | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0403 | ⚠️ `FileSystem::createFileExclusive` — exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
+| T-0381 | `.scrivworld` package + `world.json` + world index + `scrivi_create_world` | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
+| T-0382 | `binding.json` + `worldID`-verified resolution + relink | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
+| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
+| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
+| T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
+| T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0386 | Object cards (one implementation, per-kind config) | EP-031 (**SP-099**) | 🔵 Backlog |
 | T-0387 | Object picker (unfiltered) + type-ahead + "Create new…" | EP-031 (**SP-099**) | 🔵 Backlog |
 | T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (**SP-099**) | 🔵 Backlog |
@@ -533,15 +535,60 @@ scene path, else unresolved. **Doc 1 §5.2 is amended in the same task** — the
 disagree. Do **not** fix the generators instead: ID shape is load-bearing (`objectID` preservation across
 promotion, §3.1) and SP-095 already shipped index rows carrying today's IDs.
 
-### SP-097 – SP-100 — outline
+### SP-097 — World packages (🔵 Planning 2026-08-12) — ⚠️ **content swapped with SP-098**
 
-Detail is written at each sprint's planning. **SP-097** cascade-prune, orphans, promotion, and ⚠️ **T-0380
-pending-vs-dangling — the Epic's highest-risk task**, the one failure that is silent and unrecoverable;
-**plus T-0365's ScriviCore half** (the `source` object kind — the `cites` relation type itself ships in
-SP-096). **SP-098** `.scrivworld` packages, bindings, locking, epoch chain (T-0381–T-0385) — **and the `rule`
-relocation + the Package Structure §11 correction deferred from SP-095**, **and the faction↔faction symmetric
-duplicate test deferred from SP-096 T-0375**. **SP-099** object cards on EP-030's framework (T-0386–T-0389)
-**plus T-0365's aggregate `sources` card**. **SP-100** repair matrix + verification (T-0390, T-0391).
+> **Why the swap.** SP-097 was to be the integrity sprint. Planning verified **two of its five tasks were
+> unbuildable**: **T-0379** (`promote_object`) has no destination while `artifact` is refused by SP-095's
+> `checkKindStorable` gate, and **T-0380** (pending-vs-dangling) has **no world plumbing to interrogate** — the
+> Epic's highest-risk branch could not be reached, let alone tested. Worlds land first; the whole integrity set
+> moves to SP-098 and is built once against real worlds. **Sprint IDs stay in sequence.**
+
+**T-0403 — ⚠️ `FileSystem::createFileExclusive` (do first).** Doc 3 §6.5 specifies lock acquisition as
+"atomic create-if-absent (`AtomicWrite`'s exclusive-create path)". **No such path exists**:
+`util::atomicWriteTextFile` is temp-write → `fs::rename`, and **rename silently overwrites** — two writers would
+both believe they hold the lock. Adds a create-if-absent primitive to `FileSystem` + `LocalFileSystem` + mocks,
+with a **concurrent-acquire test proving exactly one winner**. **T-0383 depends on it.**
+
+**T-0381 — the `.scrivworld` package.** `world.json` (`scrivi.world.v1`), its own `index.json` (reusing
+SP-095's `scrivi.object-index.v1`), and the world-scoped kind directories. `scrivi_create_world` creates the
+package **and** its binding atomically. Self-contained: moving the directory loses nothing.
+
+**T-0382 — bindings + resolution + relink.** `worlds/<worldID>/binding.json` with a **platform-neutral**
+reference (Doc 3 §4.4.1 — no Apple bookmarks in the model). Resolution tries `lastKnownPath` **relative to the
+project** first, then absolute; the first candidate whose `world.json` carries the **matching `worldID`** wins.
+⚠️ **A different `worldID` is not the world — resolution stops**, which is what prevents a same-named package
+being silently substituted. No search, no registry (ruled).
+
+**T-0383 — write locking.** `.lock` file (not an OS advisory lock — semantics differ across seven targets and
+behave poorly on network volumes). Held **per write, never per session**; heartbeat; **60 s stale-lock
+recovery** so a crashed writer blocks others for at most a minute; contention **reports and moves on, never
+hangs**. `AtomicWrite` does not subsume this — it makes one write atomic, not a cross-process
+read-modify-write sequence.
+
+**T-0384 — the epoch chain.** Three layers (Doc 1 §7.0): timeline → world → project. Timeline offsets are
+**world-relative, always**, so rebinding changes exactly one number. Editing a binding never mutates
+`world.json`.
+
+**T-0385 — cached index + world kinds become creatable.** `binding.cachedIndex` exists for one reason: a
+pending entry must read "⟨Midgard: Sword of Dawn⟩", not a bare UUID — **a writer asked whether to clear world
+references cannot decide blind**. Never authoritative; overwritten whenever the world is reachable. Then
+relaxes `checkKindStorable` so `artifact`/`chronicle`/`faction` are creatable **into world scope**.
+⚠️ **Closes two carried-forward items: AC1's gated half, and AC3's faction↔faction symmetric duplicate test**
+deferred from SP-096.
+
+**T-0404 — `rule` relocation (deferred from SP-095).** Moves `objects/rules/` → `worlds/<worldID>/rules/` and
+flips `objectKindIsWorldScoped`. **No migration code** (Doc 3 §7 — nothing has shipped); fixtures are
+regenerated. Also corrects **Package Structure v0.1 §11** and the `TODO(SP-098)` marker in `ObjectTypes.hpp`,
+which now names the wrong sprint.
+
+### SP-098 – SP-100 — outline
+
+Detail is written at each sprint's planning. **SP-098** (post-swap) — cascade-prune on object **and** scene
+delete, orphan queries, `promote_object`, and ⚠️ **T-0380 pending-vs-dangling, the Epic's highest-risk task**,
+the one failure that is *silent and unrecoverable*; **plus T-0365's ScriviCore half** (the `source` object
+kind — the `cites` relation type itself already shipped in SP-096). All four are unblocked by SP-097's worlds.
+**SP-099** object cards on EP-030's framework (T-0386–T-0389) **plus T-0365's aggregate `sources` card**.
+**SP-100** repair matrix + verification (T-0390, T-0391).
 
 ---
 

@@ -2,6 +2,7 @@
 
 #include "domain/Slug.hpp"
 #include "objects/ObjectIndex.hpp"
+#include "worlds/WorldStore.hpp"
 #include "schemas/ObjectJson.hpp"
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
@@ -19,18 +20,9 @@ AbsolutePath ObjectStore::kindDir(const AbsolutePath& projectRoot,
 }
 
 Result<void> ObjectStore::checkKindStorable(ObjectKind kind) {
-    // World-scoped kinds are declared in ObjectKind so the index and the
-    // relationship graph know the full kind set, but they have nowhere to live
-    // until SP-098 delivers world packages. Refusing here is deliberate: World
-    // Data Separation v0.1 §7 writes no migration code, so an artifact created
-    // under objects/ today could never be moved to world scope later.
-    if (objectKindIsWorldScoped(kind)) {
-        return Result<void>::failure(
-            {.code = ErrorCode::invalidArgument,
-             .message = "kind '" + objectKindName(kind) +
-                        "' is world-scoped; a world is required (available in SP-098)"});
-    }
-
+    // Since SP-097, world-scoped kinds ARE storable — into a bound world
+    // package. The scope requirement is enforced by kindDirFor, which needs a
+    // worldID; only the `world` container kind is refused outright.
     if (kind == ObjectKind::world) {
         return Result<void>::failure(
             {.code = ErrorCode::invalidArgument,
@@ -40,12 +32,54 @@ Result<void> ObjectStore::checkKindStorable(ObjectKind kind) {
     return Result<void>::success();
 }
 
+Result<AbsolutePath> ObjectStore::kindDirFor(const AbsolutePath& projectRoot,
+                                              ObjectKind kind,
+                                              const std::string& worldID) const {
+    if (!objectKindIsWorldScoped(kind)) {
+        return Result<AbsolutePath>::success(kindDir(projectRoot, kind));
+    }
+
+    // World-scoped: the files live in the .scrivworld package, never under
+    // objects/. World Data Separation v0.1 §7 writes no migration code, so an
+    // artifact must be created in world scope FROM THE START — putting one in
+    // objects/ would strand it permanently.
+    if (worldID.empty()) {
+        return Result<AbsolutePath>::failure(
+            {.code = ErrorCode::invalidArgument,
+             .message = "kind '" + objectKindName(kind) +
+                        "' is world-scoped; a worldID is required",
+             .detail = "worldRequired"});
+    }
+
+    worlds::WorldStore store{services_};
+    auto res = store.resolve(projectRoot, worldID);
+    if (res.status != worlds::WorldStatus::available) {
+        // ⚠️ An unreachable world is NOT a missing object. The caller must not
+        // read this as "delete it" — that distinction is SP-098's T-0380, and
+        // this error carries the status so it can be surfaced honestly.
+        return Result<AbsolutePath>::failure(
+            {.code = ErrorCode::invalidArgument,
+             .message = "world '" + worldID + "' is " +
+                        worlds::worldStatusName(res.status),
+             .detail = "worldUnavailable:" + worlds::worldStatusName(res.status)});
+    }
+
+    return Result<AbsolutePath>::success(
+        util::join(res.packagePath, objectKindSubdir(kind)));
+}
+
 Result<AbsolutePath> ObjectStore::scanForID(const AbsolutePath& projectRoot,
                                              ObjectKind kind,
                                              const ObjectID& id) const
 {
-    auto& fs  = *services_.fileSystem;
-    auto  dir = kindDir(projectRoot, kind);
+    return scanDirForID(kindDir(projectRoot, kind), kind, id);
+}
+
+Result<AbsolutePath> ObjectStore::scanDirForID(const AbsolutePath& dir,
+                                                ObjectKind kind,
+                                                const ObjectID& id) const
+{
+    auto& fs = *services_.fileSystem;
 
     auto existsR = fs.exists(dir);
     if (!existsR.ok()) { return Result<AbsolutePath>::failure(existsR.error());
@@ -79,7 +113,8 @@ Result<AbsolutePath> ObjectStore::scanForID(const AbsolutePath& projectRoot,
 
 Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
                                             ObjectKind kind,
-                                            const ObjectID& id) const
+                                            const ObjectID& id,
+                                            const std::string& worldID) const
 {
     auto& fs = *services_.fileSystem;
 
@@ -88,7 +123,12 @@ Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
     ObjectIndex index{services_};
     if (auto entryR = index.find(projectRoot, id); entryR.ok()) {
         const auto& entry = entryR.value();
-        auto path = util::join(kindDir(projectRoot, entry.kind), entry.slug + ".json");
+        // The index carries the object's worldID, so a world-scoped object is
+        // located without the caller having to supply one.
+        auto dirR = kindDirFor(projectRoot, entry.kind,
+                               entry.worldID.empty() ? worldID : entry.worldID);
+        if (!dirR.ok()) { return Result<AbsolutePath>::failure(dirR.error()); }
+        auto path = util::join(dirR.value(), entry.slug + ".json");
 
         // The index names a slug; confirm the file is actually there before
         // trusting it. A stale slug falls through to the scan rather than
@@ -97,6 +137,27 @@ Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
         if (existsR.ok() && existsR.value()) {
             return Result<AbsolutePath>::success(std::move(path));
         }
+    }
+
+    // World-scoped objects are absent from the PROJECT index — they live in
+    // their world's own index (Doc 3 §6.1). Consult that before falling back
+    // to a scan.
+    if (objectKindIsWorldScoped(kind)) {
+        auto dirR = kindDirFor(projectRoot, kind, worldID);
+        if (!dirR.ok()) { return Result<AbsolutePath>::failure(dirR.error()); }
+        const auto pkg = util::parent(dirR.value());
+
+        if (auto entries = index.loadWorldIndex(pkg); entries.ok()) {
+            for (const auto& e : entries.value()) {
+                if (e.objectID.value != id.value) { continue; }
+                auto path = util::join(util::join(pkg, objectKindSubdir(e.kind)),
+                                       e.slug + ".json");
+                if (auto ex = fs.exists(path); ex.ok() && ex.value()) {
+                    return Result<AbsolutePath>::success(std::move(path));
+                }
+            }
+        }
+        return scanDirForID(dirR.value(), kind, id);
     }
 
     return scanForID(projectRoot, kind, id);
@@ -125,7 +186,10 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
             {.code=ErrorCode::invalidArgument, .message="could not derive slug from displayName"});
 }
 
-    auto dir = kindDir(request.projectRootPath, request.objectKind);
+    auto dirR = kindDirFor(request.projectRootPath, request.objectKind, request.worldID);
+    if (!dirR.ok()) { return Result<CreateObjectResult>::failure(dirR.error());
+}
+    const auto& dir = dirR.value();
     if (auto r = fs.createDirectories(dir); !r.ok()) {
         return Result<CreateObjectResult>::failure(r.error());
 }
@@ -153,6 +217,9 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
     fields.modifiedByIdentityID   = fields.createdByIdentityID;
     fields.modifiedByPersonaID    = fields.createdByPersonaID;
     fields.modifiedByDisplayName  = fields.createdByDisplayName;
+    // World-scoped objects carry their owning world; project-scoped ones leave
+    // this empty (SP-095 T-0371 shipped the field, SP-097 populates it).
+    fields.worldID                = request.worldID;
 
     // Build the correctly-typed WorldObject and serialize it.
     WorldObject obj;
@@ -176,7 +243,17 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
     entry.slug        = stored.slug;
     entry.displayName = stored.displayName;
     entry.worldID     = stored.worldID;
-    (void)index.upsert(request.projectRootPath, entry);
+    if (objectKindIsWorldScoped(request.objectKind)) {
+        // World objects belong in the WORLD's index (Doc 3 §6.1), not the
+        // project's — a world is self-contained. The project then caches the
+        // entry in its binding so a pending edge can still be shown BY NAME.
+        auto pkg = util::parent(util::parent(destPath));
+        (void)index.upsertWorld(pkg, entry);
+        worlds::WorldStore ws{services_};
+        (void)ws.refreshCachedIndex(request.projectRootPath, stored.worldID, pkg);
+    } else {
+        (void)index.upsert(request.projectRootPath, entry);
+    }
 
     CreateObjectResult result;
     result.objectID = stored.objectID;
@@ -197,7 +274,7 @@ Result<OpenObjectResult> ObjectStore::open(const OpenObjectRequest& request)
         return Result<OpenObjectResult>::failure(r.error());
 }
 
-    auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID);
+    auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID, request.worldID);
     if (!pathR.ok()) { return Result<OpenObjectResult>::failure(pathR.error());
 }
 
@@ -231,7 +308,7 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
         return Result<SaveObjectResult>::failure(r.error());
 }
 
-    auto pathR = findByID(request.projectRootPath, kind, fields.objectID);
+    auto pathR = findByID(request.projectRootPath, kind, fields.objectID, fields.worldID);
     if (!pathR.ok()) { return Result<SaveObjectResult>::failure(pathR.error());
 }
 
@@ -268,7 +345,14 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
     entry.slug        = saved.slug;
     entry.displayName = saved.displayName;
     entry.worldID     = saved.worldID;
-    (void)index.upsert(request.projectRootPath, entry);
+    if (objectKindIsWorldScoped(kind)) {
+        auto pkg = util::parent(util::parent(destPath));
+        (void)index.upsertWorld(pkg, entry);
+        worlds::WorldStore ws{services_};
+        (void)ws.refreshCachedIndex(request.projectRootPath, saved.worldID, pkg);
+    } else {
+        (void)index.upsert(request.projectRootPath, entry);
+    }
 
     SaveObjectResult result;
     result.objectID = fields.objectID;
@@ -288,7 +372,7 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
         return Result<DeleteObjectResult>::failure(r.error());
 }
 
-    auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID);
+    auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID, request.worldID);
     if (!pathR.ok()) { return Result<DeleteObjectResult>::failure(pathR.error());
 }
 
@@ -297,7 +381,14 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
 }
 
     ObjectIndex index{services_};
-    (void)index.erase(request.projectRootPath, request.objectID);
+    if (objectKindIsWorldScoped(request.objectKind)) {
+        auto pkg = util::parent(util::parent(pathR.value()));
+        (void)index.eraseWorld(pkg, request.objectID);
+        worlds::WorldStore ws{services_};
+        (void)ws.refreshCachedIndex(request.projectRootPath, request.worldID, pkg);
+    } else {
+        (void)index.erase(request.projectRootPath, request.objectID);
+    }
 
     DeleteObjectResult result;
     result.objectID = request.objectID;

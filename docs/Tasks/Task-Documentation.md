@@ -288,11 +288,12 @@ Currently: **2 closed Tasks**
 - **Verified:** EP-019 T-0198–T-0212, EP-020/SP-058 T-0218–T-0222, EP-021/SP-059 T-0223–T-0229, EP-021/SP-060 T-0230–T-0233, EP-022 T-0234–T-0249, EP-023/SP-065 T-0250–T-0253, EP-023/SP-066 T-0254–T-0257, **EP-023/SP-067 T-0258/259/260/262/263** (scene drag-reorder AC4 + I-0063; T-0261 superseded → EP-027), and the **EP-027 tasks T-0264–T-0277, T-0279–T-0293** (SP-069/SP-070/SP-071/SP-072 — Epic closed 2026-07-18; see `Sprints/Closed/`)
 - **EP-019 SP-056 (2026-07-27):** T-0213 + T-0214 ✅ **Verified** — multiple copy buffers (AC6). See
   `Sprints/Sprint-active.md` (SP-056 closed) and `../Epics/Epic-active.md` (EP-019).
-- **Next available:** **T-0403** (as of 2026-08-12). T-0370–T-0391 are EP-031's planned tasks; T-0392–T-0400
-  were issued during EP-030/EP-019; **T-0401** was added at SP-095 planning (index rebuild coverage) and
-  **T-0402** at SP-096 planning (endpoint-kind resolution). _NB: the aggregate counts above predate a full
-  re-audit and undercount tasks issued through T-0349 — see the note below. The "next available" figure is
-  maintained independently and is current._
+- **Next available:** **T-0405** (as of 2026-08-12). T-0370–T-0391 are EP-031's planned tasks; T-0392–T-0400
+  were issued during EP-030/EP-019; **T-0401** was added at SP-095 planning (index rebuild coverage),
+  **T-0402** at SP-096 planning (endpoint-kind resolution), and **T-0403** + **T-0404** at SP-097 planning
+  (exclusive-create primitive; `rule` relocation). _NB: the aggregate counts above predate a full re-audit and
+  undercount tasks issued through T-0349 — see the note below. The "next available" figure is maintained
+  independently and is current._
 - **EP-031 SP-095 (delivered 2026-08-12):** T-0370, T-0371, T-0372, **T-0401** — all ✅ **Verified
   (user-approved 2026-08-12)**; sprint 🟠 Review awaiting close approval. ctest **432/432 macOS** +
   **439/439 Linux (GCC 14)**, interop **59 passed / 0 failed**. **T-0365** (`sources` card + `source` kind)

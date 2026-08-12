@@ -749,10 +749,10 @@ TEST_CASE("world-scoped kinds are identified as such", "[schemas][T-0370]") {
     REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::vehicle));
     REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::map));
 
-    // `rule` ships project-scoped at objects/rules/ and stays there until
-    // SP-098 relocates it with the world package. Flipping this early would
-    // strand every existing rule object.
-    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::rule));
+    // `rule` became world-scoped in SP-097 (T-0404): rules govern an
+    // ENVIRONMENT, not a manuscript, so they live at worlds/<worldID>/rules/
+    // (Doc 1 §3, Doc 3 §7.2). The subdir name is unchanged — only its parent is.
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::rule));
     REQUIRE(objectKindSubdir(ObjectKind::rule) == "rules");
 }
 

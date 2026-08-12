@@ -410,7 +410,7 @@ rules govern an environment, so they belong to a world (Doc 1 §3).
 | Path | Status |
 | --- | --- |
 | `objects/rules/` | ❌ removed — rules are world-scoped (`<world>.scrivworld/rules/`) |
-| `objects/timelines/` | ❌ removed — the legacy `timeline` object kind is retired (Doc 1 §3.2); the Timeline Panel owns timelines |
+| `objects/timelines/` | ⚠️ **the KIND is retired; the DIRECTORY is live.** Corrected 2026-08-12 (SP-097) — the 2026-08-05 revision said "removed", which is wrong and dangerous. `ObjectKind::timeline` was retired in SP-095 (Doc 1 §3.2), but `objects/timelines/timeline.meta.json` is the **project timeline's** home, written into every new project by `ProjectCreator` and read by the Timeline Panel (EP-016/EP-025). **Deleting this directory breaks the Timeline Panel on every newly created project.** |
 | `objects/historical-events/` | ❌ moved to world scope (Doc 3 §6.1) |
 | `objects/imported-timelines/` | ❌ moved to world scope as `historical-timelines/` (Doc 3 §6.1) |
 

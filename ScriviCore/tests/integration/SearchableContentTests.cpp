@@ -193,7 +193,6 @@ TEST_CASE("extractSearchableText - world objects map name/notes/tags",
                                  "Digs the silver mines.", {"dwarf", "miner"});
     fix.makeObject(scrivi::ObjectKind::location, "Silver Mines", "Deep underground.", {});
     fix.makeObject(scrivi::ObjectKind::item,     "Pickaxe",      "", {});
-    fix.makeObject(scrivi::ObjectKind::rule,     "Mining Law",   "", {});
     fix.makeObject(scrivi::ObjectKind::building, "Guild Hall",   "", {});
     fix.makeObject(scrivi::ObjectKind::vehicle,  "Ore Cart",     "", {});
     fix.makeObject(scrivi::ObjectKind::map,      "Tunnel Map",   "", {});
@@ -203,7 +202,9 @@ TEST_CASE("extractSearchableText - world objects map name/notes/tags",
     CHECK(countKind(r, "character") == 1);
     CHECK(countKind(r, "location")  == 1);
     CHECK(countKind(r, "item")      == 1);
-    CHECK(countKind(r, "rule")      == 1);
+    // `rule` moved to world scope in SP-097 (T-0404), so it is no longer
+    // indexed from the project package.
+    CHECK(countKind(r, "rule")      == 0);
     CHECK(countKind(r, "building")  == 1);
     CHECK(countKind(r, "vehicle")   == 1);
     CHECK(countKind(r, "map")       == 1);
