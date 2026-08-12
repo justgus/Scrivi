@@ -342,12 +342,24 @@ static std::string_view repairKindToStr(scrivi::RepairActionKind k) {
     return "none";
 }
 
-static scrivi::ObjectKind objectKindFromStr(std::string_view s) {
-    if (s == "location") return scrivi::ObjectKind::location;
-    if (s == "item")     return scrivi::ObjectKind::item;
-    if (s == "rule")     return scrivi::ObjectKind::rule;
-    if (s == "timeline") return scrivi::ObjectKind::timeline;
-    return scrivi::ObjectKind::character;
+// Parses a boundary kind string. Returns nullopt for anything unrecognised.
+//
+// This used to default to `character`, which silently mis-dispatched every
+// unknown string. With 11 kinds at the boundary (SP-095) that default would
+// quietly create a character whenever a caller sent a typo or a retired kind
+// such as "timeline", so unknown input is now an error envelope instead.
+static std::optional<scrivi::ObjectKind> objectKindFromStr(std::string_view s) {
+    using K = scrivi::ObjectKind;
+    for (auto k : {K::character, K::location, K::item, K::building, K::vehicle,
+                   K::map, K::rule, K::artifact, K::chronicle, K::faction, K::world}) {
+        if (scrivi::objectKindName(k) == s) { return k; }
+    }
+    return std::nullopt;
+}
+
+static scrivi::Error unknownObjectKindError(std::string_view s) {
+    return {.code = scrivi::ErrorCode::invalidArgument,
+            .message = "unknown object kind: '" + std::string(s) + "'"};
 }
 
 } // anonymous namespace
@@ -684,9 +696,12 @@ const char* scrivi_create_object(
     const char* personaID,
     const char* authorDisplayName)
 {
+    auto kind = objectKindFromStr(S(objectKind));
+    if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
+
     scrivi::CreateObjectRequest req;
     req.projectRootPath = S(projectRootPath);
-    req.objectKind      = objectKindFromStr(S(objectKind));
+    req.objectKind      = *kind;
     req.displayName     = S(displayName);
     req.slug            = S(slug);
     req.author = {
@@ -711,9 +726,12 @@ const char* scrivi_open_object(
     const char* objectKind,
     const char* objectID)
 {
+    auto kind = objectKindFromStr(S(objectKind));
+    if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
+
     scrivi::OpenObjectRequest req;
     req.projectRootPath = S(projectRootPath);
-    req.objectKind      = objectKindFromStr(S(objectKind));
+    req.objectKind      = *kind;
     req.objectID        = scrivi::ObjectID{S(objectID)};
 
     auto r = core().openObject(req);
@@ -734,8 +752,10 @@ const char* scrivi_save_object(
     const char* personaID,
     const char* authorDisplayName)
 {
-    auto kind   = objectKindFromStr(S(objectKind));
-    auto parseR = scrivi::schemas::parseWorldObject(S(objectJson), kind);
+    auto kind = objectKindFromStr(S(objectKind));
+    if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
+
+    auto parseR = scrivi::schemas::parseWorldObject(S(objectJson), *kind);
     if (!parseR.ok()) return heap(errorEnvelope(parseR.error()));
 
     scrivi::SaveObjectRequest req;
@@ -762,9 +782,12 @@ const char* scrivi_delete_object(
     const char* objectKind,
     const char* objectID)
 {
+    auto kind = objectKindFromStr(S(objectKind));
+    if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
+
     scrivi::DeleteObjectRequest req;
     req.projectRootPath = S(projectRootPath);
-    req.objectKind      = objectKindFromStr(S(objectKind));
+    req.objectKind      = *kind;
     req.objectID        = scrivi::ObjectID{S(objectID)};
 
     auto r = core().deleteObject(req);

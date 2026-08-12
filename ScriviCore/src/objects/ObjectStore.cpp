@@ -1,6 +1,7 @@
 #include "objects/ObjectStore.hpp"
 
 #include "domain/Slug.hpp"
+#include "objects/ObjectIndex.hpp"
 #include "schemas/ObjectJson.hpp"
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
@@ -11,15 +12,37 @@ ObjectStore::ObjectStore(CoreServices& services)
     : services_(services) {}
 
 AbsolutePath ObjectStore::kindDir(const AbsolutePath& projectRoot,
-                                   ObjectKind kind) 
+                                   ObjectKind kind)
 {
     return util::join(util::join(projectRoot, "objects"),
                       objectKindSubdir(kind));
 }
 
-Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
-                                            ObjectKind kind,
-                                            const ObjectID& id) const
+Result<void> ObjectStore::checkKindStorable(ObjectKind kind) {
+    // World-scoped kinds are declared in ObjectKind so the index and the
+    // relationship graph know the full kind set, but they have nowhere to live
+    // until SP-098 delivers world packages. Refusing here is deliberate: World
+    // Data Separation v0.1 §7 writes no migration code, so an artifact created
+    // under objects/ today could never be moved to world scope later.
+    if (objectKindIsWorldScoped(kind)) {
+        return Result<void>::failure(
+            {.code = ErrorCode::invalidArgument,
+             .message = "kind '" + objectKindName(kind) +
+                        "' is world-scoped; a world is required (available in SP-098)"});
+    }
+
+    if (kind == ObjectKind::world) {
+        return Result<void>::failure(
+            {.code = ErrorCode::invalidArgument,
+             .message = "kind 'world' is a container; create it with scrivi_create_world"});
+    }
+
+    return Result<void>::success();
+}
+
+Result<AbsolutePath> ObjectStore::scanForID(const AbsolutePath& projectRoot,
+                                             ObjectKind kind,
+                                             const ObjectID& id) const
 {
     auto& fs  = *services_.fileSystem;
     auto  dir = kindDir(projectRoot, kind);
@@ -54,6 +77,31 @@ Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
         {.code=ErrorCode::ioError, .message="object not found: " + id.value});
 }
 
+Result<AbsolutePath> ObjectStore::findByID(const AbsolutePath& projectRoot,
+                                            ObjectKind kind,
+                                            const ObjectID& id) const
+{
+    auto& fs = *services_.fileSystem;
+
+    // Index first — one lookup instead of a directory listing with a JSON
+    // parse per file (Worldbuilding Object Model v0.2 §4.2).
+    ObjectIndex index{services_};
+    if (auto entryR = index.find(projectRoot, id); entryR.ok()) {
+        const auto& entry = entryR.value();
+        auto path = util::join(kindDir(projectRoot, entry.kind), entry.slug + ".json");
+
+        // The index names a slug; confirm the file is actually there before
+        // trusting it. A stale slug falls through to the scan rather than
+        // returning a path that does not exist.
+        auto existsR = fs.exists(path);
+        if (existsR.ok() && existsR.value()) {
+            return Result<AbsolutePath>::success(std::move(path));
+        }
+    }
+
+    return scanForID(projectRoot, kind, id);
+}
+
 // ---------------------------------------------------------------------------
 // create
 // ---------------------------------------------------------------------------
@@ -63,6 +111,10 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
     auto& fs    = *services_.fileSystem;
     auto& uuid  = *services_.uuidProvider;
     auto& clock = *services_.clock;
+
+    if (auto r = checkKindStorable(request.objectKind); !r.ok()) {
+        return Result<CreateObjectResult>::failure(r.error());
+}
 
     Slug slug = request.slug.empty()
         ? util::makeSlug(request.displayName)
@@ -104,21 +156,30 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
 
     // Build the correctly-typed WorldObject and serialize it.
     WorldObject obj;
-    switch (request.objectKind) {
-        case ObjectKind::character: { CharacterObject t; static_cast<WorldObjectFields&>(t) = fields; obj = std::move(t); break; }
-        case ObjectKind::location:  { LocationObject  t; static_cast<WorldObjectFields&>(t) = fields; obj = std::move(t); break; }
-        case ObjectKind::item:      { ItemObject      t; static_cast<WorldObjectFields&>(t) = fields; obj = std::move(t); break; }
-        case ObjectKind::rule:      { RuleObject      t; static_cast<WorldObjectFields&>(t) = fields; obj = std::move(t); break; }
-        case ObjectKind::timeline:  { TimelineObject  t; static_cast<WorldObjectFields&>(t) = fields; obj = std::move(t); break; }
+    {
+        auto typed = schemas::makeWorldObject(request.objectKind, std::move(fields));
+        obj = std::move(typed);
     }
+    const auto& stored = worldObjectFields(obj);
 
     auto json = schemas::serializeWorldObject(obj);
     if (auto r = fs.atomicWriteTextFile(destPath, json); !r.ok()) {
         return Result<CreateObjectResult>::failure(r.error());
 }
 
+    // Index AFTER the object write succeeds — an entry for a file that never
+    // landed is silently wrong, while a missing entry self-heals on rebuild.
+    ObjectIndex index{services_};
+    ObjectIndexEntry entry;
+    entry.objectID    = stored.objectID;
+    entry.kind        = request.objectKind;
+    entry.slug        = stored.slug;
+    entry.displayName = stored.displayName;
+    entry.worldID     = stored.worldID;
+    (void)index.upsert(request.projectRootPath, entry);
+
     CreateObjectResult result;
-    result.objectID = fields.objectID;
+    result.objectID = stored.objectID;
     result.slug     = slug;
     result.path     = destPath;
     return Result<CreateObjectResult>::success(std::move(result));
@@ -131,6 +192,10 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
 Result<OpenObjectResult> ObjectStore::open(const OpenObjectRequest& request)
 {
     auto& fs = *services_.fileSystem;
+
+    if (auto r = checkKindStorable(request.objectKind); !r.ok()) {
+        return Result<OpenObjectResult>::failure(r.error());
+}
 
     auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID);
     if (!pathR.ok()) { return Result<OpenObjectResult>::failure(pathR.error());
@@ -160,15 +225,11 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
     auto& clock = *services_.clock;
 
     const auto& fields = worldObjectFields(request.object);
-    const auto  kind   = std::visit([](const auto& o) -> ObjectKind {
-        using T = std::decay_t<decltype(o)>;
-        if constexpr (std::is_same_v<T, CharacterObject>) { return ObjectKind::character;
-        } else if constexpr (std::is_same_v<T, LocationObject>) {  return ObjectKind::location;
-        } else if constexpr (std::is_same_v<T, ItemObject>) {      return ObjectKind::item;
-        } else if constexpr (std::is_same_v<T, RuleObject>) {      return ObjectKind::rule;
-        } else {                                                    return ObjectKind::timeline;
+    const auto  kind   = worldObjectKind(request.object);
+
+    if (auto r = checkKindStorable(kind); !r.ok()) {
+        return Result<SaveObjectResult>::failure(r.error());
 }
-    }, request.object);
 
     auto pathR = findByID(request.projectRootPath, kind, fields.objectID);
     if (!pathR.ok()) { return Result<SaveObjectResult>::failure(pathR.error());
@@ -197,6 +258,18 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
         return Result<SaveObjectResult>::failure(r.error());
 }
 
+    // Refresh the index — displayName and worldID are both editable, and both
+    // are carried in the index for the inspector's benefit.
+    ObjectIndex index{services_};
+    const auto& saved = worldObjectFields(updated);
+    ObjectIndexEntry entry;
+    entry.objectID    = saved.objectID;
+    entry.kind        = kind;
+    entry.slug        = saved.slug;
+    entry.displayName = saved.displayName;
+    entry.worldID     = saved.worldID;
+    (void)index.upsert(request.projectRootPath, entry);
+
     SaveObjectResult result;
     result.objectID = fields.objectID;
     result.saved    = true;
@@ -211,6 +284,10 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
 {
     auto& fs = *services_.fileSystem;
 
+    if (auto r = checkKindStorable(request.objectKind); !r.ok()) {
+        return Result<DeleteObjectResult>::failure(r.error());
+}
+
     auto pathR = findByID(request.projectRootPath, request.objectKind, request.objectID);
     if (!pathR.ok()) { return Result<DeleteObjectResult>::failure(pathR.error());
 }
@@ -218,6 +295,9 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
     if (auto r = fs.removeFile(pathR.value()); !r.ok()) {
         return Result<DeleteObjectResult>::failure(r.error());
 }
+
+    ObjectIndex index{services_};
+    (void)index.erase(request.projectRootPath, request.objectID);
 
     DeleteObjectResult result;
     result.objectID = request.objectID;

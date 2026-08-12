@@ -80,6 +80,7 @@ target_sources(ScriviCore
         src/schemas/StoryStructureJson.cpp
         src/schemas/HistoricalEventJson.cpp
         src/schemas/ExternalTimelineJson.cpp
+        src/objects/ObjectIndex.cpp
         src/objects/ObjectStore.cpp
         src/assets/AssetStore.cpp
         src/comments/CommentStore.cpp

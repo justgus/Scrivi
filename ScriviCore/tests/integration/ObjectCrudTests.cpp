@@ -11,6 +11,8 @@
 #include "platform/LocalFileSystem.hpp"
 
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -316,13 +318,88 @@ TEST_CASE("RuleObject full CRUD cycle",
         "Magic System", "magic-system", "rules");
 }
 
-TEST_CASE("TimelineObject full CRUD cycle",
-          "[integration][EP-005][T-0039]")
+// --- SP-095 T-0370: the new project-scoped kinds ----------------------------
+
+TEST_CASE("BuildingObject full CRUD cycle", "[integration][T-0370]")
 {
     ObjectFixture fix;
-    runCrudCycle<scrivi::TimelineObject>(
-        fix, scrivi::ObjectKind::timeline,
-        "Main Timeline", "main-timeline", "timelines");
+    runCrudCycle<scrivi::BuildingObject>(
+        fix, scrivi::ObjectKind::building,
+        "Old Watchtower", "old-watchtower", "buildings");
+}
+
+TEST_CASE("VehicleObject full CRUD cycle", "[integration][T-0370]")
+{
+    ObjectFixture fix;
+    runCrudCycle<scrivi::VehicleObject>(
+        fix, scrivi::ObjectKind::vehicle,
+        "The Kestrel", "the-kestrel", "vehicles");
+}
+
+TEST_CASE("MapObject full CRUD cycle", "[integration][T-0370]")
+{
+    ObjectFixture fix;
+    runCrudCycle<scrivi::MapObject>(
+        fix, scrivi::ObjectKind::map,
+        "Northern Reaches", "northern-reaches", "maps");
+}
+
+TEST_CASE("world-scoped kinds are refused until a world exists (SP-098)",
+          "[integration][T-0370]")
+{
+    ObjectFixture fix;
+
+    // Declared in ObjectKind so the index and the SP-096 graph know the full
+    // kind set, but unstorable: World Data Separation v0.1 §7 writes no
+    // migration, so an artifact created under objects/ could never be moved
+    // into world scope later. Refusing now is what keeps that promise.
+    for (auto kind : {scrivi::ObjectKind::artifact,
+                      scrivi::ObjectKind::chronicle,
+                      scrivi::ObjectKind::faction}) {
+        CAPTURE(scrivi::objectKindName(kind));
+
+        auto r = fix.core.createObject(fix.makeCreateReq(kind, "Thing", "thing"));
+        REQUIRE_FALSE(r.ok());
+        REQUIRE(r.error().code == scrivi::ErrorCode::invalidArgument);
+        // The message must name the reason, not just fail.
+        REQUIRE(r.error().message.find("world") != std::string::npos);
+
+        // Nothing was written on the way to the refusal.
+        REQUIRE_FALSE(fs::exists(fix.projectDir / "objects" /
+                                 scrivi::objectKindSubdir(kind)));
+    }
+}
+
+TEST_CASE("the world container kind is not creatable as an object",
+          "[integration][T-0370]")
+{
+    ObjectFixture fix;
+
+    // Worlds are created by scrivi_create_world (SP-098), never through the
+    // object CRUD path.
+    auto r = fix.core.createObject(
+        fix.makeCreateReq(scrivi::ObjectKind::world, "Midgard", "midgard"));
+    REQUIRE_FALSE(r.ok());
+    REQUIRE(r.error().code == scrivi::ErrorCode::invalidArgument);
+}
+
+TEST_CASE("retiring the timeline kind leaves the project timeline intact",
+          "[integration][T-0370]")
+{
+    ObjectFixture fix;
+
+    // objects/timelines/ is SHARED: ObjectKind::timeline (retired in SP-095)
+    // and the Timeline Panel's timeline.meta.json (very much alive) occupied
+    // the same directory. Retiring the kind must not disturb the panel's file,
+    // which ProjectCreator seeds into every new project.
+    const auto metaPath = fix.projectDir / "objects" / "timelines" / "timeline.meta.json";
+    REQUIRE(fs::exists(metaPath));
+
+    // And it is still the Timeline Panel's schema, not an object schema.
+    std::ifstream in(metaPath);
+    std::string   body((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+    REQUIRE(body.find("scrivi.timeline") != std::string::npos);
 }
 
 TEST_CASE("Objects of different kinds with same slug do not conflict",

@@ -6,7 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-095 | Object kinds + fields + object index | EP-031 | 🔵 Planning |
 | SP-096 | Relationship graph: canonical edges, append-log, compaction | EP-031 | 🔵 Planning |
 | SP-097 | Integrity: prune, orphans, promotion, pending-vs-dangling | EP-031 | 🔵 Planning |
 | SP-098 | World packages: bindings, resolution, locking, epoch chain | EP-031 | 🔵 Planning |
@@ -20,8 +19,22 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 > and `../Epics/Closed/Epic-EP-019.md`.
 >
 > **EP-019 ✅ CLOSED** and **EP-030 ✅ CLOSED** (both 2026-08-11) → `../Epics/Closed/`.
-> **Next up: SP-095**, the first EP-031 sprint. EP-031's ScriviCore sprints (SP-095–SP-098) have no dependency
-> on EP-030 and may run in parallel if capacity allows; only SP-099 needs the card framework.
+> EP-031's ScriviCore sprints (SP-095–SP-098) have no dependency on EP-030; only SP-099 needs the card framework.
+
+> ✅ **SP-095 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first sprint:
+> object kinds + `WorldObjectFields` extensions + `objects/index.json`; T-0370/T-0371/T-0372/T-0401 all
+> Verified. ctest **432/432 macOS** + **439/439 Linux (GCC 14)**, interop **59 passed / 0 failed**.
+> **EP-031 AC2 fully met.** Its Planning row was removed from the table above at close, per the standing rule.
+> **Next up: SP-096.**
+>
+> Scope was fixed by three user rulings, all honoured: world-scoped kinds **declared but gated** until SP-098
+> (no file landed where it must later be moved from — Doc 3 §7 writes no migration code); **`source`/T-0365
+> held out entirely**, deferred with no sprint pending **OQ-1**; and **T-0401 added** for index
+> rebuild/corruption coverage.
+>
+> ⚠️ **Carried into SP-098, deliberately:** relocating `rule` from `objects/rules/` to world scope, and the
+> matching **Package Structure v0.1 §11** correction (Doc 3 §7.2). `rule` is the one kind whose shipped
+> location contradicts the approved design today.
 
 > ✅ **SP-056 archive written 2026-08-05** — `Closed/Sprint-SP-056.md`, reconstructed from the EP-019 record
 > (the sprint closed 2026-07-27 user-approved but was never archived; `Closed/` had jumped SP-055 → SP-058). The

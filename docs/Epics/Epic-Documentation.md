@@ -13,7 +13,10 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 ## Active Epics
 
 Currently: **1 Active Epic + 1 Draft.** **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) 🔵 Planned — six sprints SP-095–SP-100, unblocked now that EP-030 has closed.
+Graph) 🟡 **Active 2026-08-12** — six sprints SP-095–SP-100, unblocked now that EP-030 has closed. **SP-095**
+(object kinds + fields + object index; T-0370/T-0371/T-0372/T-0401) is planned and scope-fixed, awaiting
+activation. AC1 was **amended at planning** (user-ruled): `source` dropped from it, and world-scoped kinds are
+declared-but-gated until SP-098, so AC1 is assessable only then.
 
 **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers) ✅ **CLOSED 2026-08-11** — AC1–AC8 all
 Verified across 7 sprints. AC2 amended (auto-save retired as a commit trigger; 45 s idle boundary added) and
@@ -76,15 +79,15 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | ✅ Closed | 2026-07-20 | 2026-07-22 |
 | EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | ✅ Closed | 2026-07-27 | 2026-08-03 |
 | EP-030 | `[Apple]` Scene Inspector Card Framework (base cards) | ✅ Closed | 2026-08-05 | 2026-08-11 |
-| EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | 🔵 Planned | 2026-08-05 | — |
+| EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | 🟡 Active | 2026-08-12 | — |
 
 ## Statistics
 
 - **Total Epics:** 31
 - **Closed:** 28 ✅ (EP-019 + EP-030 both closed 2026-08-11)
 - **Complete (pending close):** 0 🟠
-- **Active:** 0 🟡
-- **Planned:** 1 🔵 (EP-031 `[ScriviCore]` — Worldbuilding Object Model, SP-095–SP-100)
+- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model, SP-095–SP-100; opened 2026-08-12)
+- **Planned:** 0 🔵
 - **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0
 - **Proposed (backlog):** 0 🔵

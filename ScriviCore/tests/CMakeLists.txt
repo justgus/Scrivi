@@ -30,6 +30,7 @@ add_executable(ScriviCoreTests
     integration/MvpLoopTests.cpp
     integration/ApplyRepairTests.cpp
     integration/ObjectCrudTests.cpp
+    integration/ObjectIndexTests.cpp
     integration/SceneNotesTests.cpp
     integration/AssetTests.cpp
     integration/CommentTests.cpp

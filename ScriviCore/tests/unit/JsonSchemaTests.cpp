@@ -570,10 +570,10 @@ TEST_CASE("ObjectJson round-trips a minimal CharacterObject", "[schemas][T-0034]
     c.modifiedByDisplayName  = "Test Author";
     c.notes                  = "";
 
-    const auto json = serializeCharacter(c);
-    auto result = parseCharacter(json);
-    REQUIRE(result.ok());
-    const auto& r = result.value();
+    const auto json = serializeWorldObject(c);
+    auto parsed = parseWorldObject(json, ObjectKind::character);
+    REQUIRE(parsed.ok());
+    const auto& r = worldObjectFields(parsed.value());
     REQUIRE(r.objectID.value == "character_01ABC");
     REQUIRE(r.slug           == "ada");
     REQUIRE(r.displayName    == "Ada Thornwood");
@@ -604,10 +604,10 @@ TEST_CASE("ObjectJson round-trips a CharacterObject with tags and attributes", "
     c.attributes["age"]      = "47";
     c.attributes["faction"]  = "Obsidian Court";
 
-    const auto json = serializeCharacter(c);
-    auto result = parseCharacter(json);
-    REQUIRE(result.ok());
-    const auto& r = result.value();
+    const auto json = serializeWorldObject(c);
+    auto parsed = parseWorldObject(json, ObjectKind::character);
+    REQUIRE(parsed.ok());
+    const auto& r = worldObjectFields(parsed.value());
     REQUIRE(r.displayName == "Thomas Belacroix");
     REQUIRE(r.notes       == "Antagonist. Arrives in chapter 3.");
     REQUIRE(r.tags.size()       == 2);
@@ -619,7 +619,8 @@ TEST_CASE("ObjectJson round-trips a CharacterObject with tags and attributes", "
 }
 
 TEST_CASE("ObjectJson rejects wrong schema tag", "[schemas][T-0034]") {
-    auto result = parseCharacter(R"({"schema":"wrong.schema","objectID":"x"})");
+    auto result = parseWorldObject(R"({"schema":"wrong.schema","objectID":"x"})",
+                                   ObjectKind::character);
     REQUIRE_FALSE(result.ok());
     REQUIRE(result.error().code == ErrorCode::validationError);
 }
@@ -649,14 +650,13 @@ static WorldObjectFields makeTestFields(const std::string& id = "obj-001") {
 }
 
 TEST_CASE("LocationObject round-trips correctly", "[schemas][T-0037]") {
-    LocationObject lo;
-    static_cast<WorldObjectFields&>(lo) = makeTestFields("loc-001");
-    lo.displayName = "Old Watchtower";
+    auto obj = makeWorldObject(ObjectKind::location, makeTestFields("loc-001"));
+    std::get<LocationObject>(obj).displayName = "Old Watchtower";
 
-    const auto json = serializeLocation(lo);
-    auto result = parseLocation(json);
-    REQUIRE(result.ok());
-    const auto& r = result.value();
+    const auto json = serializeWorldObject(obj);
+    auto parsed = parseWorldObject(json, ObjectKind::location);
+    REQUIRE(parsed.ok());
+    const auto& r = worldObjectFields(parsed.value());
     REQUIRE(r.objectID.value == "loc-001");
     REQUIRE(r.displayName    == "Old Watchtower");
     REQUIRE(r.slug           == "test-slug");
@@ -665,79 +665,169 @@ TEST_CASE("LocationObject round-trips correctly", "[schemas][T-0037]") {
 }
 
 TEST_CASE("ItemObject round-trips correctly", "[schemas][T-0037]") {
-    ItemObject io;
-    static_cast<WorldObjectFields&>(io) = makeTestFields("item-001");
-    io.displayName = "Brass Key";
+    auto obj = makeWorldObject(ObjectKind::item, makeTestFields("item-001"));
+    std::get<ItemObject>(obj).displayName = "Brass Key";
 
-    const auto json = serializeItem(io);
-    auto result = parseItem(json);
-    REQUIRE(result.ok());
-    const auto& r = result.value();
-    REQUIRE(r.objectID.value == "item-001");
-    REQUIRE(r.displayName    == "Brass Key");
+    const auto json = serializeWorldObject(obj);
+    auto parsed = parseWorldObject(json, ObjectKind::item);
+    REQUIRE(parsed.ok());
+    REQUIRE(worldObjectFields(parsed.value()).objectID.value == "item-001");
+    REQUIRE(worldObjectFields(parsed.value()).displayName    == "Brass Key");
 }
 
 TEST_CASE("RuleObject round-trips correctly", "[schemas][T-0037]") {
-    RuleObject ro;
-    static_cast<WorldObjectFields&>(ro) = makeTestFields("rule-001");
-    ro.displayName = "Magic System";
+    auto obj = makeWorldObject(ObjectKind::rule, makeTestFields("rule-001"));
+    std::get<RuleObject>(obj).displayName = "Magic System";
 
-    const auto json = serializeRule(ro);
-    auto result = parseRule(json);
-    REQUIRE(result.ok());
-    const auto& r = result.value();
-    REQUIRE(r.objectID.value == "rule-001");
-    REQUIRE(r.displayName    == "Magic System");
+    const auto json = serializeWorldObject(obj);
+    auto parsed = parseWorldObject(json, ObjectKind::rule);
+    REQUIRE(parsed.ok());
+    REQUIRE(worldObjectFields(parsed.value()).objectID.value == "rule-001");
+    REQUIRE(worldObjectFields(parsed.value()).displayName    == "Magic System");
 }
 
-TEST_CASE("TimelineObject round-trips correctly", "[schemas][T-0037]") {
-    TimelineObject to;
-    static_cast<WorldObjectFields&>(to) = makeTestFields("timeline-001");
-    to.displayName = "Main Timeline";
-
-    const auto json = serializeTimeline(to);
-    auto result = parseTimeline(json);
-    REQUIRE(result.ok());
-    const auto& r = result.value();
-    REQUIRE(r.objectID.value == "timeline-001");
-    REQUIRE(r.displayName    == "Main Timeline");
-}
-
-TEST_CASE("parseLocation rejects character schema tag", "[schemas][T-0037]") {
-    LocationObject lo;
-    static_cast<WorldObjectFields&>(lo) = makeTestFields();
-    const auto json = serializeCharacter(
-        []{ CharacterObject c; static_cast<WorldObjectFields&>(c) = makeTestFields(); return c; }());
-    auto result = parseLocation(json);
+TEST_CASE("parsing a location as a character rejects the schema tag", "[schemas][T-0037]") {
+    const auto json = serializeWorldObject(
+        makeWorldObject(ObjectKind::character, makeTestFields()));
+    auto result = parseWorldObject(json, ObjectKind::location);
     REQUIRE_FALSE(result.ok());
     REQUIRE(result.error().code == ErrorCode::validationError);
 }
 
-TEST_CASE("serializeWorldObject / parseWorldObject round-trip for each kind",
-          "[schemas][T-0037]")
+// --- SP-095 T-0370: the expanded kind set -----------------------------------
+
+TEST_CASE("serializeWorldObject / parseWorldObject round-trip for every kind",
+          "[schemas][T-0370]")
 {
-    auto fields = makeTestFields("wobj-001");
+    // Every kind in the enum, including the world-scoped ones. The schema layer
+    // is scope-agnostic — the storage gate lives in ObjectStore, not here.
+    for (auto kind : {ObjectKind::character, ObjectKind::location, ObjectKind::item,
+                      ObjectKind::building,  ObjectKind::vehicle,  ObjectKind::map,
+                      ObjectKind::rule,      ObjectKind::artifact, ObjectKind::chronicle,
+                      ObjectKind::faction,   ObjectKind::world}) {
+        CAPTURE(objectKindName(kind));
 
-    auto test = [&](ObjectKind kind, const std::string& expectedDisplay) {
-        WorldObject obj;
-        switch (kind) {
-            case ObjectKind::character: { CharacterObject t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
-            case ObjectKind::location:  { LocationObject  t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
-            case ObjectKind::item:      { ItemObject      t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
-            case ObjectKind::rule:      { RuleObject      t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
-            case ObjectKind::timeline:  { TimelineObject  t; static_cast<WorldObjectFields&>(t) = fields; t.displayName = expectedDisplay; obj = t; break; }
-        }
+        auto fields = makeTestFields("wobj-" + objectKindName(kind));
+        fields.displayName = "A " + objectKindName(kind);
+
+        auto obj = makeWorldObject(kind, fields);
+
+        // The variant alternative must agree with the kind that built it —
+        // this is the guard against positional/mis-typed dispatch.
+        REQUIRE(worldObjectKind(obj) == kind);
+
         const auto json = serializeWorldObject(obj);
-        auto result = parseWorldObject(json, kind);
-        REQUIRE(result.ok());
-        REQUIRE(worldObjectFields(result.value()).displayName == expectedDisplay);
-    };
+        auto parsed = parseWorldObject(json, kind);
+        REQUIRE(parsed.ok());
+        REQUIRE(worldObjectKind(parsed.value()) == kind);
+        REQUIRE(worldObjectFields(parsed.value()).displayName == "A " + objectKindName(kind));
+    }
+}
 
-    test(ObjectKind::character, "A Character");
-    test(ObjectKind::location,  "A Location");
-    test(ObjectKind::item,      "An Item");
-    test(ObjectKind::rule,      "A Rule");
-    test(ObjectKind::timeline,  "A Timeline");
+TEST_CASE("each kind writes its own schema tag", "[schemas][T-0370]") {
+    REQUIRE(objectSchemaTag(ObjectKind::character) == "scrivi.object.character.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::building)  == "scrivi.object.building.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::vehicle)   == "scrivi.object.vehicle.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::map)       == "scrivi.object.map.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::artifact)  == "scrivi.object.artifact.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::chronicle) == "scrivi.object.chronicle.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::faction)   == "scrivi.object.faction.v1");
+
+    // A kind's own tag is the only one it accepts.
+    const auto json = serializeWorldObject(
+        makeWorldObject(ObjectKind::building, makeTestFields("b-1")));
+    REQUIRE(parseWorldObject(json, ObjectKind::vehicle).ok() == false);
+}
+
+TEST_CASE("world-scoped kinds are identified as such", "[schemas][T-0370]") {
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::artifact));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::chronicle));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::faction));
+
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::character));
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::building));
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::vehicle));
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::map));
+
+    // `rule` ships project-scoped at objects/rules/ and stays there until
+    // SP-098 relocates it with the world package. Flipping this early would
+    // strand every existing rule object.
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::rule));
+    REQUIRE(objectKindSubdir(ObjectKind::rule) == "rules");
+}
+
+// --- SP-095 T-0371: subtitle / image / worldID ------------------------------
+
+TEST_CASE("subtitle, image and worldID round-trip", "[schemas][T-0371]") {
+    auto fields = makeTestFields("obj-fields");
+    fields.subtitle                 = "Keeper of the Deep Vault";
+    fields.image.assetID            = "asset_01IMG";
+    fields.image.thumbnailAssetID   = "asset_01THUMB";
+    fields.worldID                  = "world_01MIDGARD";
+
+    const auto json = serializeWorldObject(makeWorldObject(ObjectKind::character, fields));
+    auto parsed = parseWorldObject(json, ObjectKind::character);
+    REQUIRE(parsed.ok());
+
+    const auto& r = worldObjectFields(parsed.value());
+    REQUIRE(r.subtitle                == "Keeper of the Deep Vault");
+    REQUIRE(r.image.assetID           == "asset_01IMG");
+    REQUIRE(r.image.thumbnailAssetID  == "asset_01THUMB");
+    REQUIRE(r.worldID                 == "world_01MIDGARD");
+}
+
+TEST_CASE("an image with no thumbnail omits the thumbnail key", "[schemas][T-0371]") {
+    auto fields = makeTestFields("obj-img");
+    fields.image.assetID = "asset_01IMG";
+
+    const auto json = serializeWorldObject(makeWorldObject(ObjectKind::character, fields));
+    REQUIRE(json.find("thumbnailAssetID") == std::string::npos);
+
+    auto parsed = parseWorldObject(json, ObjectKind::character);
+    REQUIRE(parsed.ok());
+    REQUIRE(worldObjectFields(parsed.value()).image.assetID == "asset_01IMG");
+    REQUIRE(worldObjectFields(parsed.value()).image.thumbnailAssetID.empty());
+}
+
+TEST_CASE("a legacy object file without the SP-095 keys parses unchanged",
+          "[schemas][T-0371]")
+{
+    // Exactly the shape ObjectJson wrote before SP-095 — no subtitle, no
+    // image, no worldID. Additive fields must not break existing projects.
+    const auto legacy = R"({
+      "schema": "scrivi.object.character.v1",
+      "objectID": "character_LEGACY",
+      "slug": "ada",
+      "displayName": "Ada",
+      "status": "active",
+      "createdAt": "2026-05-27T10:00:00Z",
+      "createdBy": {"identityID":"i1","personaID":"p1","displayNameAtCreation":"A"},
+      "modifiedAt": "2026-05-27T10:00:00Z",
+      "modifiedBy": {"identityID":"i1","personaID":"p1","displayNameAtModification":"A"},
+      "notes": "Legacy notes.",
+      "tags": [{"v":"protagonist"}],
+      "attributes": [{"k":"eyeColor","v":"grey"}]
+    })";
+
+    auto parsed = parseWorldObject(legacy, ObjectKind::character);
+    REQUIRE(parsed.ok());
+
+    const auto& r = worldObjectFields(parsed.value());
+    REQUIRE(r.objectID.value == "character_LEGACY");
+    REQUIRE(r.displayName    == "Ada");
+    REQUIRE(r.notes          == "Legacy notes.");
+    REQUIRE(r.tags.size()    == 1);
+    REQUIRE(r.attributes.at("eyeColor") == "grey");
+
+    // The new fields default empty rather than appearing as literal "null".
+    REQUIRE(r.subtitle.empty());
+    REQUIRE(r.image.empty());
+    REQUIRE(r.worldID.empty());
+
+    // Re-serializing adds no spurious optional keys.
+    const auto rewritten = serializeWorldObject(parsed.value());
+    REQUIRE(rewritten.find("\"image\"")   == std::string::npos);
+    REQUIRE(rewritten.find("\"worldID\"") == std::string::npos);
 }
 
 // ---------------------------------------------------------------------------

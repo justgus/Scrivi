@@ -11,14 +11,26 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint.** **SP-090** ✅ closed 2026-08-05 (Human-approved) — EP-030's Scene Inspector card framework
-(T-0359–T-0362 all Verified); archived `Closed/Sprint-SP-090.md`. **Next: SP-091** (writing-tool cards), awaiting
-go-ahead. EP-019 `[Apple]` remains **held pending** SP-057 — **rescoped 2026-08-05 to a verification sprint**
-(AC2/AC7 audited as already implemented; suites green; history panel moved to EP-030 T-0366; T-0216 closed OBE).
-Two Epics now planned: **EP-030** (SP-090 ✅ / SP-091–093) and **EP-031** (SP-094–099). **EP-029** `[Cross]` is
-✅ **fully closed 2026-08-03.**
+**No active sprint. SP-095 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first
+sprint: `[ScriviCore]` object kinds + `WorldObjectFields` extensions + `objects/index.json`
+(**T-0370, T-0371, T-0372, T-0401** — all Verified). Suites at close: ScriviCore ctest **432/432 macOS** +
+**439/439 Linux (GCC 14, clean compile)**, macOS interop **59 passed / 0 failed**, app **BUILD SUCCEEDED**.
+**EP-031 AC2 fully met**; AC1 partially (the 3 gated world-scoped kinds and the `rule` relocation remain for
+SP-098). `scrivi.h` untouched; no pbxproj change. **Next: SP-096** (relationship graph — relation types,
+`relationships.jsonl`, canonical edges, compaction), awaiting planning. Three scope rulings were taken at
+SP-095 planning:
+world-scoped kinds (`artifact`/`chronicle`/`faction`) are **declared but gated** until SP-098 supplies a world
+package, since Doc 3 §7 writes no migration code; **`source`/T-0365 is held out entirely**, deferred with no
+sprint pending **OQ-1**; and **T-0401** was added for index rebuild/corruption coverage. `rule`'s relocation
+and the Package Structure §11 correction are carried to **SP-098**.
 
-Last closed: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
+**EP-031** `[ScriviCore]` is 🟡 **Active** — six sprints, **SP-095–SP-100** (renumbered 2026-08-09 from
+SP-094–SP-099). SP-095–SP-098 are pure ScriviCore; only SP-099 needs EP-030's card framework.
+**EP-019 and EP-030 both ✅ CLOSED 2026-08-11** (Human-approved, double Epic close) — sprints SP-092, SP-093,
+SP-094, SP-101 archived; suites at close **ctest 413/413 · macOS interop 56/56**. **EP-029** `[Cross]` ✅ fully
+closed 2026-08-03. **Next available Sprint: SP-102.**
+
+Prior: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
 (Human-approved).** The final EP-029 sprint, which **closed the Epic**. Wired the manuscript editor's
 Cut/Copy/Paste + copy buffers through the ScriviCore fragment ops so the manuscript behaves as one monolithic
 document: **T-0354** (Pass A system-clipboard ⌘C/⌘X/⌘V, Verified 2026-07-29), **T-0357** (title-capture + chapter
@@ -164,19 +176,27 @@ on-disk model rather than fixed twice). Follow-on **I-0073** (VNC drag-hover lag
 
 See: [Sprint-backlog.md](Sprint-backlog.md)
 
+*(Refreshed 2026-08-12 — the previous contents were entirely stale: SP-086/SP-090/SP-085/SP-056 have all
+closed, and SP-057 was superseded into SP-094.)*
+
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-086 | ScriviCore: `scrivi.fragment.v1` model + extract-fragment + C ABI + tests | EP-029 | 🔵 Planned (next to activate) |
-| SP-057 | Undo/Redo — **verification sprint**: AC2/AC7/AC8 live verify + Epic close (panel → EP-030 T-0366; T-0216 OBE) | EP-019 | 🔵 Planning (**EP-019 held pending**; rescoped 2026-08-05) |
-| SP-090 | `[Apple]` EP-030 — Scene Inspector card framework (protocol, layout schema, tabs) | EP-030 | ✅ Closed (Human-approved) 2026-08-05 |
-| SP-085 | Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 | ✅ Closed (Human-approved) — doc approved, T1–T4 ruled |
-| SP-056 | Copy buffers — store, ABI, palette/menu UX, chords, history integration | EP-019 | ✅ Closed (Human-approved) — **AC6** |
+| SP-096 | Relationship graph: relation types, `relationships.jsonl`, canonical edges, compaction | EP-031 | 🔵 Planning (**next to plan & activate**) |
+| SP-097 | Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling | EP-031 | 🔵 Planning |
+| SP-098 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain (**+ `rule` relocation**) | EP-031 | 🔵 Planning |
+| SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | EP-031 | 🔵 Planning |
+| SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **83 Sprints** (83 closed + 1 cancelled + 1 in Planning; the SP-068 **ID** was skipped
-when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as **SP-073**, ✅ closed
-2026-07-19; **SP-083 was brought forward** ahead of SP-082, both now closed) | Next available: **SP-086**
+Currently: **94 Sprints** (93 closed + 1 cancelled; SP-096–SP-100 are planned but not yet opened) |
+Next available: **SP-102**
+
+> **Table repaired 2026-08-12.** SP-086–SP-094 and SP-101 had closed without ever being added to the table
+> below, which still ended at SP-085 and read "Next available: SP-086". All eleven missing rows (including
+> SP-095) were reconstructed from `Closed/` at the SP-095 close. Historical notes:
+> the SP-068 **ID** was skipped when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
+> **SP-073** (✅ closed 2026-07-19); **SP-083 was brought forward** ahead of SP-082, both closed.
 
 | Sprint | Title | Epic | Start | End | Status |
 | ------ | ----- | ---- | ----- | --- | ------ |
@@ -264,6 +284,17 @@ when EP-027 claimed SP-069–SP-072 — its EP-023 chapter-drag scope shipped as
 | SP-082 | `[Linux]` Historical events + imported timelines + export | EP-025 `[Linux]` | 2026-07-24 | 2026-07-24 | ✅ Closed |
 | SP-084 | `[Linux]` Co-located dot clustering + persistence + full EP-025 verify & Epic close | EP-025 `[Linux]` | 2026-07-24 | 2026-07-24 | ✅ Closed |
 | SP-085 | `[Cross]` Design doc + trade studies + fragment schema (`scrivi.fragment.v1`) | EP-029 `[Cross]` | 2026-07-27 | 2026-07-27 | ✅ Closed |
+| SP-086 | `[ScriviCore]` `scrivi.fragment.v1` model + extract-fragment | EP-029 `[Cross]` | 2026-07-27 | 2026-07-27 | ✅ Closed |
+| SP-087 | `[ScriviCore]` paste-splice | EP-029 `[Cross]` | 2026-07-27 | 2026-07-27 | ✅ Closed |
+| SP-088 | `[ScriviCore]` cut-with-merge | EP-029 `[Cross]` | 2026-07-27 | 2026-07-27 | ✅ Closed |
+| SP-089 | `[Apple]` editor wiring — clipboard, structured buffers, reversible undo (closed EP-029) | EP-029 `[Cross]` | 2026-08-03 | 2026-08-03 | ✅ Closed |
+| SP-090 | `[Apple]` Scene Inspector card framework (protocol, layout schema, tabs) | EP-030 `[Apple]` | 2026-08-05 | 2026-08-05 | ✅ Closed |
+| SP-091 | `[Cross]` Writing-tool cards (tags · todo · outline) | EP-030 `[Apple]` | 2026-08-05 | 2026-08-05 | ✅ Closed |
+| SP-092 | `[Cross]` History card + Properties tab | EP-030 `[Apple]` | 2026-08-05 | 2026-08-11 | ✅ Closed |
+| SP-093 | `[Cross]` History capture granularity + presentation | EP-019 `[Apple]` | 2026-08-10 | 2026-08-11 | ✅ Closed |
+| SP-094 | EP-019 + EP-030 verification & Epic close (merged) | EP-019 + EP-030 | 2026-08-11 | 2026-08-11 | ✅ Closed |
+| SP-101 | `[Apple]` EP-030 AC12 soft-failure isolation (T-0399) | EP-030 `[Apple]` | 2026-08-11 | 2026-08-11 | ✅ Closed |
+| SP-095 | `[ScriviCore]` Object kinds + fields + object index | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 
 ## Statistics
 

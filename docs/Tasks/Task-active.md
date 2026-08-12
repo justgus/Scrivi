@@ -1,5 +1,34 @@
 # Active Tasks
 
+## ✅ SP-095 — EP-031 object kinds + fields + object index (CLOSED 2026-08-12)
+
+**Sprint:** SP-095 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
+`../Sprints/Closed/Sprint-SP-095.md`. All 4 tasks Verified.
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | High | ✅ **Verified (2026-08-12)** |
+| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | High | ✅ **Verified (2026-08-12)** |
+| T-0372 | `objects/index.json` + `findByID` over the index | High | ✅ **Verified (2026-08-12)** |
+| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | High | ✅ **Verified (2026-08-12)** |
+
+**Suites:** ScriviCore ctest **432/432 macOS** + **439/439 Linux (GCC 14, no warnings)**; macOS interop
+**59 passed / 0 failed**; app **BUILD SUCCEEDED**. `scrivi.h` untouched; no pbxproj change (ScriviCore-only).
+
+**New files:** `src/objects/ObjectIndex.{hpp,cpp}`, `tests/integration/ObjectIndexTests.cpp`.
+
+Two defects were caught at planning by reading the shipped code, and both landed in T-0370:
+**(1)** `objects/timelines/` is **shared** between the retired `timeline` kind and the live project timeline's
+`timeline.meta.json` — Doc 1 §3.2's "legacy overlap" phrasing implies the directory retires too, and deleting
+it would have broken the Timeline Panel on every newly created project; a test now asserts that file survives.
+**(2)** `ObjectStore.cpp:169` inferred object kind from the **position** of `timeline` as a terminal `else`;
+it is now an exhaustive `if constexpr` chain whose final `else` is a **`static_assert`**, so a future variant
+alternative fails to compile rather than silently mis-typing.
+
+Full detail + retrospective: `../Sprints/Sprint-active.md`.
+
+---
+
 ## 🟡 SP-101 — EP-030 AC12 soft-failure isolation (T-0399)
 
 **Sprint:** SP-101 · **Epic:** EP-030 · **Opened 2026-08-11** from SP-094's verification pass.
@@ -119,7 +148,7 @@ All four tasks Verified; **I-0101** found, fixed, and Verified in-sprint. Archiv
 | T-0393 | `[ScriviCore]` C ABI: scene notes setters + `_get_scene_notes` | ✅ **Verified (2026-08-05)** |
 | T-0363 | `[Apple]` `tags` + `todo` cards | ✅ **Verified (2026-08-05)** |
 | T-0364 | `[Apple]` `outline` card | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | ⚪ **Deferred → EP-031 SP-095** |
+| T-0365 | `sources` card + `source` object kind | ⚪ **Deferred — no sprint (user ruling 2026-08-12)**; blocked on **OQ-1** (see `../Sprints/Sprint-active.md` §R2) |
 
 ## ✅ SP-090 `[Apple]` — EP-030 card framework (CLOSED 2026-08-05)
 

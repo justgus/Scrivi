@@ -1,0 +1,248 @@
+#include "objects/ObjectIndex.hpp"
+
+#include "schemas/ObjectJson.hpp"
+#include "util/Json.hpp"
+#include "util/PathUtils.hpp"
+
+#include <algorithm>
+
+namespace scrivi::objects {
+
+namespace {
+
+constexpr std::string_view kIndexSchema = "scrivi.object-index.v1";
+
+// Kinds the index scans. World-scoped kinds are excluded: they have no
+// objects/ directory until SP-098 gives them a world package to live in.
+// `rule` IS scanned — it ships project-scoped at objects/rules/ today.
+constexpr ObjectKind kScannedKinds[] = {
+    ObjectKind::character,
+    ObjectKind::location,
+    ObjectKind::item,
+    ObjectKind::building,
+    ObjectKind::vehicle,
+    ObjectKind::map,
+    ObjectKind::rule,
+};
+
+std::optional<ObjectKind> kindFromName(std::string_view name) {
+    for (auto k : kScannedKinds) {
+        if (objectKindName(k) == name) { return k; }
+    }
+    // Accept world-scoped names too, so an index written by a later sprint is
+    // readable here rather than triggering a spurious rebuild.
+    for (auto k : {ObjectKind::artifact, ObjectKind::chronicle,
+                   ObjectKind::faction, ObjectKind::world}) {
+        if (objectKindName(k) == name) { return k; }
+    }
+    return std::nullopt;
+}
+
+} // namespace
+
+ObjectIndex::ObjectIndex(CoreServices& services)
+    : services_(services) {}
+
+AbsolutePath ObjectIndex::indexPath(const AbsolutePath& projectRoot) {
+    return util::join(util::join(projectRoot, "objects"), "index.json");
+}
+
+std::optional<std::vector<ObjectIndexEntry>>
+ObjectIndex::parse(std::string_view json) const {
+    auto docR = util::parseJson(json);
+    if (!docR.ok()) { return std::nullopt; }
+
+    auto& doc = docR.value();
+    if (doc.getString("schema") != kIndexSchema) { return std::nullopt; }
+
+    std::vector<ObjectIndexEntry> entries;
+    const auto count = doc.arraySize("entries");
+    entries.reserve(count);
+
+    for (std::size_t i = 0; i < count; ++i) {
+        auto item = doc.arrayItem("entries", i);
+
+        auto kind = kindFromName(item.getString("kind"));
+        if (!kind) { return std::nullopt; }          // unknown kind ⇒ rebuild
+
+        ObjectIndexEntry e;
+        e.objectID.value = item.getString("objectID");
+        if (e.objectID.value.empty()) { return std::nullopt; }  // no identity ⇒ rebuild
+        e.kind        = *kind;
+        e.slug        = item.getString("slug");
+        e.displayName = item.getString("displayName");
+        e.worldID     = item.getString("worldID");
+        entries.push_back(std::move(e));
+    }
+
+    return entries;
+}
+
+Result<std::vector<ObjectIndexEntry>>
+ObjectIndex::load(const AbsolutePath& projectRoot) const {
+    auto& fs = *services_.fileSystem;
+
+    auto path    = indexPath(projectRoot);
+    auto existsR = fs.exists(path);
+
+    if (existsR.ok() && existsR.value()) {
+        auto textR = fs.readTextFile(path);
+        if (textR.ok()) {
+            if (auto parsed = parse(textR.value())) {
+                return Result<std::vector<ObjectIndexEntry>>::success(std::move(*parsed));
+            }
+        }
+        // Present but unreadable or malformed — fall through to rebuild. A
+        // corrupt index must never keep the project from opening.
+    }
+
+    return rebuild(projectRoot);
+}
+
+Result<std::vector<ObjectIndexEntry>>
+ObjectIndex::rebuild(const AbsolutePath& projectRoot) const {
+    auto& fs         = *services_.fileSystem;
+    auto  objectsDir = util::join(projectRoot, "objects");
+
+    std::vector<ObjectIndexEntry> entries;
+
+    for (auto kind : kScannedKinds) {
+        auto dir     = util::join(objectsDir, objectKindSubdir(kind));
+        auto existsR = fs.exists(dir);
+        if (!existsR.ok() || !existsR.value()) { continue; }
+
+        auto listR = fs.listDirectory(dir);
+        if (!listR.ok()) { continue; }
+
+        for (const auto& entry : listR.value()) {
+            if (util::extension(entry) != ".json") { continue; }
+
+            auto textR = fs.readTextFile(entry);
+            if (!textR.ok()) { continue; }
+
+            // Best-effort, matching the posture elsewhere in the codebase: one
+            // unparseable object file must not cost the whole index.
+            auto parseR = schemas::parseWorldObject(textR.value(), kind);
+            if (!parseR.ok()) { continue; }
+
+            const auto& f = worldObjectFields(parseR.value());
+            if (f.objectID.value.empty()) { continue; }
+
+            ObjectIndexEntry e;
+            e.objectID    = f.objectID;
+            e.kind        = kind;
+            e.slug        = f.slug;
+            e.displayName = f.displayName;
+            e.worldID     = f.worldID;
+            entries.push_back(std::move(e));
+        }
+    }
+
+    // Deterministic order so a rebuild is idempotent regardless of the order
+    // the filesystem hands back directory entries.
+    std::sort(entries.begin(), entries.end(),
+              [](const ObjectIndexEntry& a, const ObjectIndexEntry& b) {
+                  return a.objectID.value < b.objectID.value;
+              });
+
+    if (auto r = write(projectRoot, entries); !r.ok()) {
+        return Result<std::vector<ObjectIndexEntry>>::failure(r.error());
+    }
+
+    return Result<std::vector<ObjectIndexEntry>>::success(std::move(entries));
+}
+
+Result<void> ObjectIndex::write(const AbsolutePath& projectRoot,
+                                 const std::vector<ObjectIndexEntry>& entries) const {
+    auto& fs = *services_.fileSystem;
+
+    auto objectsDir = util::join(projectRoot, "objects");
+    if (auto r = fs.createDirectories(objectsDir); !r.ok()) { return r; }
+
+    util::JsonDoc root;
+    root.setString("schema", std::string(kIndexSchema));
+
+    for (const auto& e : entries) {
+        util::JsonDoc item;
+        item.setString("objectID",    e.objectID.value);
+        item.setString("kind",        objectKindName(e.kind));
+        item.setString("slug",        e.slug);
+        item.setString("displayName", e.displayName);
+        item.setString("worldID",     e.worldID);
+        root.appendToArray("entries", std::move(item));
+    }
+
+    return fs.atomicWriteTextFile(indexPath(projectRoot), root.dump());
+}
+
+Result<ObjectIndexEntry> ObjectIndex::find(const AbsolutePath& projectRoot,
+                                            const ObjectID& id) const {
+    auto entriesR = load(projectRoot);
+    if (!entriesR.ok()) { return Result<ObjectIndexEntry>::failure(entriesR.error()); }
+
+    auto match = [&](const std::vector<ObjectIndexEntry>& v)
+        -> std::optional<ObjectIndexEntry> {
+        for (const auto& e : v) {
+            if (e.objectID.value == id.value) { return e; }
+        }
+        return std::nullopt;
+    };
+
+    if (auto hit = match(entriesR.value())) {
+        return Result<ObjectIndexEntry>::success(std::move(*hit));
+    }
+
+    // A miss may just mean the index is behind disk (an object created by an
+    // older build, or a file dropped in by hand). Rebuild once before
+    // concluding the object does not exist.
+    auto rebuiltR = rebuild(projectRoot);
+    if (!rebuiltR.ok()) { return Result<ObjectIndexEntry>::failure(rebuiltR.error()); }
+
+    if (auto hit = match(rebuiltR.value())) {
+        return Result<ObjectIndexEntry>::success(std::move(*hit));
+    }
+
+    return Result<ObjectIndexEntry>::failure(
+        {.code = ErrorCode::ioError, .message = "object not found: " + id.value});
+}
+
+Result<void> ObjectIndex::upsert(const AbsolutePath& projectRoot,
+                                  const ObjectIndexEntry& entry) const {
+    auto entriesR = load(projectRoot);
+    if (!entriesR.ok()) { return Result<void>::failure(entriesR.error()); }
+
+    auto entries = std::move(entriesR.value());
+    auto it = std::find_if(entries.begin(), entries.end(),
+                           [&](const ObjectIndexEntry& e) {
+                               return e.objectID.value == entry.objectID.value;
+                           });
+
+    if (it != entries.end()) {
+        *it = entry;
+    } else {
+        entries.push_back(entry);
+        std::sort(entries.begin(), entries.end(),
+                  [](const ObjectIndexEntry& a, const ObjectIndexEntry& b) {
+                      return a.objectID.value < b.objectID.value;
+                  });
+    }
+
+    return write(projectRoot, entries);
+}
+
+Result<void> ObjectIndex::erase(const AbsolutePath& projectRoot,
+                                 const ObjectID& id) const {
+    auto entriesR = load(projectRoot);
+    if (!entriesR.ok()) { return Result<void>::failure(entriesR.error()); }
+
+    auto entries = std::move(entriesR.value());
+    entries.erase(std::remove_if(entries.begin(), entries.end(),
+                                 [&](const ObjectIndexEntry& e) {
+                                     return e.objectID.value == id.value;
+                                 }),
+                  entries.end());
+
+    return write(projectRoot, entries);
+}
+
+} // namespace scrivi::objects

@@ -55,7 +55,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind | EP-031 (SP-095) | ⚪ **Deferred → EP-031 SP-095** (ruled 2026-08-05; sprint renumbered 2026-08-09) |
+| T-0365 | `sources` card + `source` object kind | EP-031 (**unscheduled**) | ⚪ **Deferred — no sprint (user ruling 2026-08-12)**; blocked on **OQ-1**, see SP-095 §R2 |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
@@ -67,28 +67,29 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carried in the tree payload (**shipped once**, shared with I-0106) | EP-019 (SP-093) | ✅ **Verified 2026-08-10 (user-confirmed)** |
 | T-0400 | `[ScriviCore]` **History log-segment rotation** — `activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rotates it, so a project accumulates one unbounded segment (a real project is already ~3.4 MB). Capacity/eviction bounds the **tree**, not the **log**. Reader already honours `activeLogSegment` from `state.json`, so rotation is **additive, no format change**. Documented as not-implemented in package-structure §16a | EP-019 (deferred) | 🟢 **Nice to have** (user ruling 2026-08-11) — not a blocker; no sprint assigned |
 | T-0399 | `[Apple]` **Card soft-failure isolation** — framework backstop in `CardBodyBoundary` + throwing `makeContent` (default forwards) + failing-card test fixture. **EP-030 AC12 rescoped to soft failures** 2026-08-11 (user-approved): SwiftUI cannot catch a trapping view body, so hard failures are out of scope. **Not live-verifiable** — no UI path makes a card fail | EP-030 (SP-101) | 🟠 **Implemented — Not Verified (2026-08-11)** |
-| T-0370 | `ObjectKind` additions; retire `timeline` | EP-031 (SP-094) | 🔵 Backlog |
-| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (SP-094) | 🔵 Backlog |
-| T-0372 | `objects/index.json` + `findByID` over index | EP-031 (SP-094) | 🔵 Backlog |
-| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | EP-031 (SP-095) | 🔵 Backlog |
-| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (SP-095) | 🔵 Backlog |
-| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (SP-095) | 🔵 Backlog |
-| T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (SP-095) | 🔵 Backlog |
-| T-0377 | Cascade-prune on delete + load-time repair | EP-031 (SP-096) | 🔵 Backlog |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (SP-096) | 🔵 Backlog |
-| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (SP-096) | 🔵 Backlog |
-| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (SP-096) | 🔵 Backlog |
-| T-0381 | `.scrivworld` package + `world.json` + world index | EP-031 (SP-097) | 🔵 Backlog |
-| T-0382 | `binding.json` + `worldID`-verified resolution + relink | EP-031 (SP-097) | 🔵 Backlog |
-| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | EP-031 (SP-097) | 🔵 Backlog |
-| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (SP-097) | 🔵 Backlog |
-| T-0385 | Cached world index entries → named pending entries | EP-031 (SP-097) | 🔵 Backlog |
-| T-0386 | Object cards (one implementation, per-kind config) | EP-031 (SP-098) | 🔵 Backlog |
-| T-0387 | Object picker (unfiltered) + type-ahead + "Create new…" | EP-031 (SP-098) | 🔵 Backlog |
-| T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (SP-098) | 🔵 Backlog |
-| T-0389 | Pending presentation + Worlds menu + warning view | EP-031 (SP-098) | 🔵 Backlog |
-| T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (SP-099) | 🔵 Backlog |
-| T-0391 | EP-031 verification + Epic close prep | EP-031 (SP-099) | 🔵 Backlog |
+| T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
+| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
+| T-0372 | `objects/index.json` + `findByID` over index | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
+| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | EP-031 (**SP-095**) | ✅ **Verified (2026-08-12)** |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | EP-031 (**SP-096**) | 🔵 Backlog |
+| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (**SP-096**) | 🔵 Backlog |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (**SP-096**) | 🔵 Backlog |
+| T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (**SP-096**) | 🔵 Backlog |
+| T-0377 | Cascade-prune on delete + load-time repair | EP-031 (**SP-097**) | 🔵 Backlog |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (**SP-097**) | 🔵 Backlog |
+| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (**SP-097**) | 🔵 Backlog |
+| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (**SP-097**) | 🔵 Backlog |
+| T-0381 | `.scrivworld` package + `world.json` + world index (**+ relocate `rule` to world scope**) | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0382 | `binding.json` + `worldID`-verified resolution + relink | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0385 | Cached world index entries → named pending entries | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0386 | Object cards (one implementation, per-kind config) | EP-031 (**SP-099**) | 🔵 Backlog |
+| T-0387 | Object picker (unfiltered) + type-ahead + "Create new…" | EP-031 (**SP-099**) | 🔵 Backlog |
+| T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (**SP-099**) | 🔵 Backlog |
+| T-0389 | Pending presentation + Worlds menu + warning view | EP-031 (**SP-099**) | 🔵 Backlog |
+| T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (**SP-100**) | 🔵 Backlog |
+| T-0391 | EP-031 verification + Epic close prep | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | ⚪ **Closed — OBE (2026-08-05, user-directed)** |
 | T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (SP-057) | 🔵 Backlog |
 | T-0234 | `[Linux]` **Shell flip** — `main.cpp` → `QApplication`+`QMainWindow` host, landing QML re-hosted via `QQuickWidget`; keep context props + `QFileDialog` picker + Quit; re-verify EP-021 loop over VNC | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
@@ -420,9 +421,17 @@ defaulting to **Writing**. Tab selection **does not follow the scene**. Persist 
 
 **T-0363 — `tags` + `todo` cards.** Scene-sidecar backed.
 **T-0364 — `outline` card.** Scene summary/synopsis.
-**T-0365 — `sources` card + `source` object kind.** Citations are **reusable across scenes** (ruled), so
-`source` is a real `objects/sources/<slug>.json`. ⚠️ Overlaps EP-031 T-0370 (`ObjectKind` additions) — coordinate
-at SP-091 planning.
+**T-0365 — `sources` card + `source` object kind.** ⚪ **Deferred with no sprint assigned (user ruling
+2026-08-12).** Sources are a **writing aid**, not worldbuilding, and may belong in the **Writing** tab rather
+than the worldbuilding tab — which is where Doc 2 §302 already places the card. Explicitly **not** in SP-095:
+no `source` kind is added and no `objects/sources/` path is created.
+
+⚠️ **Blocked on OQ-1 (open, undocumented).** The user's ruling adds a requirement no design doc currently
+states: *every worldbuilding object should be able to have **more than one** source associated with it.* The
+docs describe only `source → scene` edges (Doc 1 §3 l.98–100, §11 Q2; Doc 2 l.28/92/302/585). Object-to-source
+is a different edge shape — any object → many sources — which the SP-096 relationship graph supports natively,
+but **no relation type for it exists**. Likely resolution: a `cites` / `documented-by` type with
+`sourceKind: null` (any kind). **User is reviewing the existing `source` language before this is scheduled.**
 
 ### SP-092 — History card + Properties
 
@@ -445,6 +454,47 @@ in place of its content.
 > merge into a single **SP-094 — "EP-019 + EP-030 verification & Epic close."** Both Epics' ACs are verified
 > in one pass, then **closed independently** — each on its own direct user approval, and a failure in one
 > Epic's ACs does not block the other's close.
+
+---
+
+## EP-031 Worldbuilding Object Model & Relationship Graph Tasks (T-0370 – T-0391, T-0401)
+
+Design: `docs/Scrivi_Worldbuilding_Object_Model_v0_2.md` (Doc 1) + `docs/Scrivi_World_Data_Separation_v0_1.md`
+(Doc 3), both ✅ Approved 2026-08-05. Full sprint detail: `../Sprints/Sprint-active.md`.
+
+### SP-095 — Object kinds + fields + object index (🔵 Planning 2026-08-12)
+
+**T-0370 — `ObjectKind` additions + `objectKindSubdir` + schema table; retire `timeline`.** Adds 8 kinds
+(`building`, `vehicle`, `map` live; `artifact`, `chronicle`, `faction` **gated**; `world` declared but not
+creatable). ⚠️ **World-scoped kinds are declared but gated** (SP-095 §R1): Doc 1 §3 / Doc 3 §7.2 put
+`artifact`/`chronicle`/`faction`/`rule` at `worlds/<worldID>/…`, and world packages don't exist until SP-098 —
+so create returns `invalidArgument` naming the world requirement rather than writing to `objects/`. **`rule`
+is untouched** (it already ships project-scoped); relocation is T-0381's. Retires `ObjectKind::timeline`
+(T4=A) across 5 files. Also fixes `objectKindFromStr`'s silent `character` default (`scrivi_c_api.cpp:350`),
+a mis-dispatch that becomes reachable at 12 kinds.
+
+**T-0371 — `WorldObjectFields`: `subtitle`, `image`, `worldID`.** All additive, all defaulting empty; legacy
+5-kind files must parse unchanged. **`image` carries `assetID`/`thumbnailAssetID` only — never inline bytes**
+(Doc 1 §4.1); images live in `assets/` via `scrivi_import_asset`. `worldID` round-trips but carries no meaning
+until SP-098.
+
+**T-0372 — `objects/index.json` + `findByID` over the index.** `scrivi.object-index.v1`; replaces the O(n)
+scan-and-parse in `ObjectStore.cpp:20-55`. **Load-bearing, not an optimization** — SP-096's edges store bare
+`{id}` endpoints and cannot be rendered without it (Doc 1 §4.2, §5.2). Written atomically alongside every
+mutation, **after** the object write succeeds (a phantom entry is silently wrong; a missing entry self-heals).
+
+**T-0401 — Index rebuild + corruption coverage.** Doc 1 §4.2 calls the rebuild path "a correctness
+requirement, not a convenience." Five tests: missing index, corrupt index, stale index (hand-edited slug),
+idempotent rebuild, unparseable object file skipped-not-fatal. **The project must open in every case.**
+
+### SP-096 – SP-100 — outline
+
+Detail is written at each sprint's planning. **SP-096** relation types + `relationships.jsonl` + canonical
+normalization + compaction (T-0373–T-0376). **SP-097** cascade-prune, orphans, promotion, and ⚠️ **T-0380
+pending-vs-dangling — the Epic's highest-risk task**, the one failure that is silent and unrecoverable.
+**SP-098** `.scrivworld` packages, bindings, locking, epoch chain (T-0381–T-0385) — **and the `rule`
+relocation + the Package Structure §11 correction deferred from SP-095**. **SP-099** object cards on EP-030's
+framework (T-0386–T-0389). **SP-100** repair matrix + verification (T-0390, T-0391).
 
 ---
 

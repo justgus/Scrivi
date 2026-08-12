@@ -3,11 +3,9 @@
 
 namespace scrivi::schemas {
 
-static constexpr std::string_view kCharacterSchema = "scrivi.object.character.v1";
-static constexpr std::string_view kLocationSchema  = "scrivi.object.location.v1";
-static constexpr std::string_view kItemSchema      = "scrivi.object.item.v1";
-static constexpr std::string_view kRuleSchema      = "scrivi.object.rule.v1";
-static constexpr std::string_view kTimelineSchema  = "scrivi.object.timeline.v1";
+std::string objectSchemaTag(ObjectKind kind) {
+    return "scrivi.object." + objectKindName(kind) + ".v1";
+}
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -31,6 +29,7 @@ static std::string serializeFields(const WorldObjectFields& obj,
     root.setString("objectID",    obj.objectID.value);
     root.setString("slug",        obj.slug);
     root.setString("displayName", obj.displayName);
+    root.setString("subtitle",    obj.subtitle);
     root.setString("status",      obj.status);
     root.setString("createdAt",   obj.createdAt);
     root.setSubDoc("createdBy",   std::move(createdBy));
@@ -51,6 +50,21 @@ static std::string serializeFields(const WorldObjectFields& obj,
         root.appendToArray("attributes", std::move(attrDoc));
     }
 
+    // Optional blocks are written only when populated, so an object that
+    // carries neither round-trips byte-identically to the pre-SP-095 shape.
+    if (!obj.image.empty()) {
+        util::JsonDoc imageDoc;
+        imageDoc.setString("assetID", obj.image.assetID);
+        if (!obj.image.thumbnailAssetID.empty()) {
+            imageDoc.setString("thumbnailAssetID", obj.image.thumbnailAssetID);
+        }
+        root.setSubDoc("image", std::move(imageDoc));
+    }
+
+    if (!obj.worldID.empty()) {
+        root.setString("worldID", obj.worldID);
+    }
+
     return root.dump();
 }
 
@@ -65,6 +79,7 @@ static Result<WorldObjectFields> parseFields(std::string_view json,
     obj.objectID.value = doc.getString("objectID");
     obj.slug           = doc.getString("slug");
     obj.displayName    = doc.getString("displayName");
+    obj.subtitle       = doc.getString("subtitle");
     obj.status         = doc.getString("status");
     obj.createdAt      = doc.getString("createdAt");
     obj.modifiedAt     = doc.getString("modifiedAt");
@@ -92,131 +107,53 @@ static Result<WorldObjectFields> parseFields(std::string_view json,
         obj.attributes[attrDoc.getString("k")] = attrDoc.getString("v");
     }
 
+    // Absent optional keys default empty — this is what lets a legacy 5-kind
+    // file written before SP-095 parse unchanged.
+    auto imageDoc = doc.getSubDoc("image");
+    obj.image.assetID          = imageDoc.getString("assetID");
+    obj.image.thumbnailAssetID = imageDoc.getString("thumbnailAssetID");
+
+    obj.worldID = doc.getString("worldID");
+
     return Result<WorldObjectFields>::success(std::move(obj));
 }
 
 // ---------------------------------------------------------------------------
-// Character
-// ---------------------------------------------------------------------------
-
-std::string serializeCharacter(const CharacterObject& obj) {
-    return serializeFields(obj, kCharacterSchema);
-}
-
-Result<CharacterObject> parseCharacter(std::string_view json) {
-    auto r = parseFields(json, kCharacterSchema);
-    if (!r.ok()) { return Result<CharacterObject>::failure(r.error()); }
-    CharacterObject obj;
-    static_cast<WorldObjectFields&>(obj) = std::move(r.value());
-    return Result<CharacterObject>::success(std::move(obj));
-}
-
-// ---------------------------------------------------------------------------
-// Location
-// ---------------------------------------------------------------------------
-
-std::string serializeLocation(const LocationObject& obj) {
-    return serializeFields(obj, kLocationSchema);
-}
-
-Result<LocationObject> parseLocation(std::string_view json) {
-    auto r = parseFields(json, kLocationSchema);
-    if (!r.ok()) { return Result<LocationObject>::failure(r.error()); }
-    LocationObject obj;
-    static_cast<WorldObjectFields&>(obj) = std::move(r.value());
-    return Result<LocationObject>::success(std::move(obj));
-}
-
-// ---------------------------------------------------------------------------
-// Item
-// ---------------------------------------------------------------------------
-
-std::string serializeItem(const ItemObject& obj) {
-    return serializeFields(obj, kItemSchema);
-}
-
-Result<ItemObject> parseItem(std::string_view json) {
-    auto r = parseFields(json, kItemSchema);
-    if (!r.ok()) { return Result<ItemObject>::failure(r.error()); }
-    ItemObject obj;
-    static_cast<WorldObjectFields&>(obj) = std::move(r.value());
-    return Result<ItemObject>::success(std::move(obj));
-}
-
-// ---------------------------------------------------------------------------
-// Rule
-// ---------------------------------------------------------------------------
-
-std::string serializeRule(const RuleObject& obj) {
-    return serializeFields(obj, kRuleSchema);
-}
-
-Result<RuleObject> parseRule(std::string_view json) {
-    auto r = parseFields(json, kRuleSchema);
-    if (!r.ok()) { return Result<RuleObject>::failure(r.error()); }
-    RuleObject obj;
-    static_cast<WorldObjectFields&>(obj) = std::move(r.value());
-    return Result<RuleObject>::success(std::move(obj));
-}
-
-// ---------------------------------------------------------------------------
-// Timeline
-// ---------------------------------------------------------------------------
-
-std::string serializeTimeline(const TimelineObject& obj) {
-    return serializeFields(obj, kTimelineSchema);
-}
-
-Result<TimelineObject> parseTimeline(std::string_view json) {
-    auto r = parseFields(json, kTimelineSchema);
-    if (!r.ok()) { return Result<TimelineObject>::failure(r.error()); }
-    TimelineObject obj;
-    static_cast<WorldObjectFields&>(obj) = std::move(r.value());
-    return Result<TimelineObject>::success(std::move(obj));
-}
-
-// ---------------------------------------------------------------------------
-// WorldObject variant helpers
+// WorldObject variant
 // ---------------------------------------------------------------------------
 
 std::string serializeWorldObject(const WorldObject& obj) {
-    if (const auto* p = std::get_if<CharacterObject>(&obj)) { return serializeCharacter(*p); }
-    if (const auto* p = std::get_if<LocationObject>(&obj))  { return serializeLocation(*p); }
-    if (const auto* p = std::get_if<ItemObject>(&obj))      { return serializeItem(*p); }
-    if (const auto* p = std::get_if<RuleObject>(&obj))      { return serializeRule(*p); }
-    if (const auto* p = std::get_if<TimelineObject>(&obj))  { return serializeTimeline(*p); }
-    return "";
+    return serializeFields(worldObjectFields(obj),
+                           objectSchemaTag(worldObjectKind(obj)));
+}
+
+WorldObject makeWorldObject(ObjectKind kind, WorldObjectFields fields) {
+    auto as = []<typename T>(WorldObjectFields f) -> WorldObject {
+        T t;
+        static_cast<WorldObjectFields&>(t) = std::move(f);
+        return t;
+    };
+
+    switch (kind) {
+        case ObjectKind::character: return as.template operator()<CharacterObject>(std::move(fields));
+        case ObjectKind::location:  return as.template operator()<LocationObject>(std::move(fields));
+        case ObjectKind::item:      return as.template operator()<ItemObject>(std::move(fields));
+        case ObjectKind::building:  return as.template operator()<BuildingObject>(std::move(fields));
+        case ObjectKind::vehicle:   return as.template operator()<VehicleObject>(std::move(fields));
+        case ObjectKind::map:       return as.template operator()<MapObject>(std::move(fields));
+        case ObjectKind::rule:      return as.template operator()<RuleObject>(std::move(fields));
+        case ObjectKind::artifact:  return as.template operator()<ArtifactObject>(std::move(fields));
+        case ObjectKind::chronicle: return as.template operator()<ChronicleObject>(std::move(fields));
+        case ObjectKind::faction:   return as.template operator()<FactionObject>(std::move(fields));
+        case ObjectKind::world:     return as.template operator()<WorldContainerObject>(std::move(fields));
+    }
+    return as.template operator()<CharacterObject>(std::move(fields));
 }
 
 Result<WorldObject> parseWorldObject(std::string_view json, ObjectKind kind) {
-    switch (kind) {
-        case ObjectKind::character: {
-            auto r = parseCharacter(json);
-            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
-            return Result<WorldObject>::success(std::move(r.value()));
-        }
-        case ObjectKind::location: {
-            auto r = parseLocation(json);
-            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
-            return Result<WorldObject>::success(std::move(r.value()));
-        }
-        case ObjectKind::item: {
-            auto r = parseItem(json);
-            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
-            return Result<WorldObject>::success(std::move(r.value()));
-        }
-        case ObjectKind::rule: {
-            auto r = parseRule(json);
-            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
-            return Result<WorldObject>::success(std::move(r.value()));
-        }
-        case ObjectKind::timeline: {
-            auto r = parseTimeline(json);
-            if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
-            return Result<WorldObject>::success(std::move(r.value()));
-        }
-    }
-    return Result<WorldObject>::failure({.code = ErrorCode::invalidArgument, .message = "unknown ObjectKind"});
+    auto r = parseFields(json, objectSchemaTag(kind));
+    if (!r.ok()) { return Result<WorldObject>::failure(r.error()); }
+    return Result<WorldObject>::success(makeWorldObject(kind, std::move(r.value())));
 }
 
 } // namespace scrivi::schemas

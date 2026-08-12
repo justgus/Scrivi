@@ -3,8 +3,9 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🔵 **Planned 2026-08-05** — blocked on EP-030 (needs the card framework) but its ScriviCore half can
-start independently.
+**Status:** 🟡 **Active** — 1 of 6 sprints closed. **SP-095 ✅ closed 2026-08-12 (Human-approved)**; the
+object-model foundation is in place and **AC2 is fully met**. **SP-096** (relationship graph) is next, awaiting
+planning. Only SP-099 needs EP-030's card framework; SP-095–SP-098 are pure `[ScriviCore]`.
 **Goal:** Implement the approved object model — new kinds, the object index, the canonical relationship graph,
 world packages — then the worldbuilding-object cards on top of EP-030's framework.
 **Design:** `docs/Scrivi_Worldbuilding_Object_Model_v0_2.md` ✅ **Approved 2026-08-05** (T1–T6 ruled) +
@@ -14,10 +15,25 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ### Acceptance Criteria
 
-- [ ] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`, `source`)
-      round-trip; legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)
-- [ ] AC2 — `objects/index.json` is built on open, updated atomically, and **rebuilt from a scan** when
+- [ ] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
+      legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)
+      > **Amended 2026-08-12 at SP-095 planning (user-ruled).** Two changes. **(a) `source` removed from AC1** —
+      > sources are a *writing aid*, not worldbuilding, and may belong in the Writing tab; T-0365 is deferred
+      > with no sprint, blocked on **OQ-1** (worldbuilding objects carrying *multiple* sources — a requirement
+      > no design doc states and no relation type covers). **(b) Round-trip is staged, not simultaneous:** the
+      > world-scoped kinds (`artifact`, `chronicle`, `faction`) are *declared* in SP-095 but gated until
+      > SP-098 supplies a world package to hold them, because Doc 3 §7 forbids the relocation pass that
+      > creating them in `objects/` would require. AC1 is assessable only after SP-098.
+      >
+      > **SP-095 progress (Verified 2026-08-12):** enum complete at 11 kinds; `building`/`vehicle`/`map`
+      > round-trip through full CRUD; legacy 5-kind files load unchanged (explicit legacy-fixture test);
+      > **`timeline` retired** with `objects/timelines/timeline.meta.json` asserted intact. **Outstanding for
+      > SP-098:** round-trip for the 3 gated kinds + the `rule` relocation.
+- [x] AC2 — `objects/index.json` is built on open, updated atomically, and **rebuilt from a scan** when
       missing/stale/corrupt; `findByID` resolves via the index. (Doc 1 AC2–AC3)
+      ✅ **Met — SP-095 (T-0372 + T-0401), Verified 2026-08-12.** All three rebuild triggers covered (missing;
+      corrupt ×5 branches; stale ×2), plus idempotence and skip-not-fatal. The zero-scan property is proven
+      behaviorally by a `listDirectory`-counting filesystem decorator, not merely asserted.
 - [ ] AC3 — **One canonical edge** per relationship, created from either endpoint, with the inverse as a
       read-time label projection. Duplicate rejection tested for **asymmetric and symmetric** (faction↔faction)
       types. (Doc 1 AC4–AC5)
@@ -40,7 +56,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| SP-095 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | 🔵 Planning | — |
+| SP-095 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-095.md` | 2026-08-12 |
 | SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | 🔵 Planning | — |
 | SP-097 | Integrity: cascade-prune, orphans, promotion, pending-vs-dangling | 🔵 Planning | — |
 | SP-098 | World packages: `.scrivworld`, bindings, resolution, locking, epoch chain | 🔵 Planning | — |
@@ -50,16 +66,18 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 > **⚠️ Renumbered 2026-08-09 (SP-094–SP-099 → SP-095–SP-100).** EP-031's sprints were planned before the
 > 2026-08-07 ruling that made **SP-094** the merged *"EP-019 + EP-030 verification & Epic close"* sprint,
 > which collided with EP-031's first sprint. `Sprint-active.md:357` already sequenced EP-031 as
-> **SP-095–SP-100**; this table and the task assignments below are realigned to match. T-0365's deferral
-> target moves with it: **EP-031 SP-095**.
+> **SP-095–SP-100**; this table and the task assignments below are realigned to match. ~~T-0365's deferral
+> target moves with it: **EP-031 SP-095**.~~ **Superseded 2026-08-12:** T-0365 is deferred with **no sprint**
+> at all (user ruling) — see the AC1 amendment above and `../Sprints/Sprint-active.md` §R2.
 
 ### Tasks
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| T-0370 | `ObjectKind` additions + `objectKindSubdir` + schema table; retire `timeline` | SP-095 | 🔵 Backlog |
-| T-0371 | `WorldObjectFields` extensions: `subtitle`, `image`, `worldID` | SP-095 | 🔵 Backlog |
-| T-0372 | `objects/index.json` — build, atomic update, scan-rebuild; `findByID` over index | SP-095 | 🔵 Backlog |
+| T-0370 | `ObjectKind` additions + `objectKindSubdir` + schema table; retire `timeline` | SP-095 | ✅ **Verified 2026-08-12** |
+| T-0371 | `WorldObjectFields` extensions: `subtitle`, `image`, `worldID` | SP-095 | ✅ **Verified 2026-08-12** |
+| T-0372 | `objects/index.json` — build, atomic update, scan-rebuild; `findByID` over index | SP-095 | ✅ **Verified 2026-08-12** |
+| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — AC2 | SP-095 | ✅ **Verified 2026-08-12** |
 | T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-096 | 🔵 Backlog |
 | T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-096 | 🔵 Backlog |
 | T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | 🔵 Backlog |
@@ -87,7 +105,39 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-11 (**EP-019 ✅ CLOSED + EP-030 ✅ CLOSED (both Human-approved) — double Epic close.**
+*Last Updated: 2026-08-12 (**SP-095 ✅ CLOSED (Human-approved) — EP-031's first sprint delivered.**
+Archived to `../Sprints/Closed/Sprint-SP-095.md`; `Sprint-active.md` reset; the Sprint index's All-Sprints
+table repaired (SP-086–SP-094 and SP-101 had closed without ever being listed — it still ended at SP-085 and
+read "Next available: SP-086"; eleven rows reconstructed from `Closed/`, next available now **SP-102**).
+**Next: SP-096** — relationship graph. Delivery detail: all 4 tasks ✅ Verified,
+T-0370/T-0371/T-0372/T-0401. **AC2 is fully MET** — the object index builds,
+updates atomically, and rebuilds from a scan when missing/corrupt/stale, with the zero-scan property proven
+behaviorally by a `listDirectory`-counting filesystem decorator rather than asserted. **AC1 partially met**
+(enum complete; the 3 gated kinds + the `rule` relocation remain for SP-098). Suites: ctest **432/432 macOS**
++ **439/439 Linux (GCC 14, clean compile)**, interop **59 passed / 0 failed**, app **BUILD SUCCEEDED**.
+Two planning-time findings were both real and both landed in T-0370: `objects/timelines/` is **shared** with
+the live project timeline (deleting it would have broken every new project — Doc 1 §3.2's "legacy overlap"
+phrasing conceals this), and `ObjectStore.cpp:169` inferred kind **positionally**, now an exhaustive chain
+whose final `else` is a **`static_assert`**. `scrivi.h` untouched; no pbxproj change. **Next: SP-096**
+(relation types + `relationships.jsonl` + canonical edges + compaction). Prior note follows.)*
+
+*2026-08-12 (**EP-031 opened 🟡 Active; SP-095 planned.** Three scope rulings taken at planning,
+all user-approved. **R1 — world-scoped kinds declared but gated:** Doc 1 §3 / Doc 3 §7.2 put `artifact`,
+`chronicle`, `faction`, and `rule` at `worlds/<worldID>/…`, but world packages don't land until SP-098, and
+Doc 3 §7 forbids a later relocation pass ("created in world scope from the start"; Scrivi hasn't shipped, so
+**no migration code is written**). SP-095 therefore declares all 8 kinds but gives a working path to only the
+project-scoped ones; the rest error until SP-098. **`rule` is the live disagreement** — it ships project-scoped
+at `objects/rules/` today, contradicting the design; left untouched in SP-095, relocated by T-0381.
+**R2 — `source`/T-0365 removed from EP-031's near-term scope** (dropped from AC1, no sprint assigned): sources
+are a writing aid, not worldbuilding. Blocked on new **OQ-1** — *worldbuilding objects should carry multiple
+sources*, a requirement no doc states and no relation type covers; user is reviewing the existing `source`
+language (Doc 1 §3 l.98–100, §11 Q2; Doc 2 l.28/92/302/585). **R3 — T-0401 added** for index rebuild/corruption
+coverage, since Doc 1 §4.2 calls the rebuild path "a correctness requirement, not a convenience." Also fixed:
+`Task-backlog.md` rows T-0373–T-0391 still carried pre-renumbering sprint IDs from the 2026-08-09 realignment.
+Deferred to SP-098 and noted so it isn't lost: **Package Structure v0.1 §11 still documents `objects/rules/`**
+and must be corrected (Doc 3 §7.2). Prior note follows.)*
+
+*2026-08-11 (**EP-019 ✅ CLOSED + EP-030 ✅ CLOSED (both Human-approved) — double Epic close.**
 **EP-019** (Custom Undo/Redo History & Multiple Copy Buffers): AC1–AC8 all Verified across 7 sprints.
 AC2 was **amended** (auto-save retired as a commit trigger; 45 s idle-session boundary added) and design
 **§4.d relaxed** — disk may lead history by at most one open typing session — both explicitly user-approved

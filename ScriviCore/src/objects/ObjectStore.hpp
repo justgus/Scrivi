@@ -23,10 +23,25 @@ private:
 
     [[nodiscard]] static AbsolutePath kindDir(const AbsolutePath& projectRoot, ObjectKind kind);
 
-    // Scans kindDir to find the .json file whose parsed objectID matches id.
+    // Rejects kinds that cannot be stored under objects/ in this project:
+    // world-scoped kinds (no world package until SP-098) and the `world`
+    // container kind (created by scrivi_create_world, not here).
+    [[nodiscard]] static Result<void> checkKindStorable(ObjectKind kind);
+
+    // Resolves an object's file path via objects/index.json, falling back to a
+    // directory scan only when the index cannot answer (ObjectIndex::find
+    // rebuilds internally). `kind` is advisory — the index is authoritative on
+    // ID→kind, which is what lets SP-096 store bare {id} edge endpoints.
     [[nodiscard]] Result<AbsolutePath> findByID(const AbsolutePath& projectRoot,
                                                  ObjectKind kind,
                                                  const ObjectID& id) const;
+
+    // Legacy directory scan. Retained as the resolution path for objects the
+    // index cannot place (e.g. a slug renamed on disk under a kind whose
+    // rebuild skipped an unparseable sibling).
+    [[nodiscard]] Result<AbsolutePath> scanForID(const AbsolutePath& projectRoot,
+                                                  ObjectKind kind,
+                                                  const ObjectID& id) const;
 };
 
 } // namespace scrivi::objects

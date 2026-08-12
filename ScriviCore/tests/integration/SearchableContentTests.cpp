@@ -194,7 +194,9 @@ TEST_CASE("extractSearchableText - world objects map name/notes/tags",
     fix.makeObject(scrivi::ObjectKind::location, "Silver Mines", "Deep underground.", {});
     fix.makeObject(scrivi::ObjectKind::item,     "Pickaxe",      "", {});
     fix.makeObject(scrivi::ObjectKind::rule,     "Mining Law",   "", {});
-    fix.makeObject(scrivi::ObjectKind::timeline,  "Mine History", "", {});
+    fix.makeObject(scrivi::ObjectKind::building, "Guild Hall",   "", {});
+    fix.makeObject(scrivi::ObjectKind::vehicle,  "Ore Cart",     "", {});
+    fix.makeObject(scrivi::ObjectKind::map,      "Tunnel Map",   "", {});
 
     auto r = fix.extract();
 
@@ -202,7 +204,13 @@ TEST_CASE("extractSearchableText - world objects map name/notes/tags",
     CHECK(countKind(r, "location")  == 1);
     CHECK(countKind(r, "item")      == 1);
     CHECK(countKind(r, "rule")      == 1);
-    CHECK(countKind(r, "timeline")  == 1);
+    CHECK(countKind(r, "building")  == 1);
+    CHECK(countKind(r, "vehicle")   == 1);
+    CHECK(countKind(r, "map")       == 1);
+
+    // The retired `timeline` kind indexes nothing — the project timeline is
+    // not a world object (SP-095 T-0370).
+    CHECK(countKind(r, "timeline")  == 0);
 
     const auto* ch = find(r, "character:" + charID.value);
     REQUIRE(ch != nullptr);

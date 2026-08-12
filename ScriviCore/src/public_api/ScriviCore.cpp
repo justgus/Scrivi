@@ -1036,18 +1036,8 @@ Result<ExportProjectTimelineResult> ScriviCore::exportProjectTimeline(
 
 namespace {
 
-// Singular kind name used in uniqueIdentifier / the "kind" field
-// (objectKindSubdir returns the plural directory name).
-std::string objectKindName(ObjectKind kind) {
-    switch (kind) {
-        case ObjectKind::character: return "character";
-        case ObjectKind::location:  return "location";
-        case ObjectKind::item:      return "item";
-        case ObjectKind::rule:      return "rule";
-        case ObjectKind::timeline:  return "timeline";
-    }
-    return "character";
-}
+// NB: the singular kind name now comes from scrivi::objectKindName in
+// ObjectTypes.hpp — the local copy here was a second switch to keep in sync.
 
 // Appends one record per *.json world object in objects/<subdir>/ to `items`.
 // Best-effort: unparseable files are skipped (a malformed object should not
@@ -1145,9 +1135,14 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
     // A missing/empty manuscript is not fatal for indexing — degenerate projects
     // still yield the project record (and any world objects).
 
-    // 3. World-object records — character/location/item/rule/timeline.
+    // 3. World-object records — every project-scoped kind.
+    //
+    // `timeline` was retired as an ObjectKind in SP-095; the project timeline
+    // is not a world object and is indexed elsewhere. World-scoped kinds
+    // (artifact/chronicle/faction) are absent until SP-098 gives them a home.
     for (auto kind : {ObjectKind::character, ObjectKind::location, ObjectKind::item,
-                      ObjectKind::rule, ObjectKind::timeline}) {
+                      ObjectKind::building, ObjectKind::vehicle, ObjectKind::map,
+                      ObjectKind::rule}) {
         collectObjects(services_, request.projectRootPath, projectID, kind, out.items);
     }
 

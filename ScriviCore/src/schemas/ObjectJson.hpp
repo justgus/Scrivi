@@ -8,22 +8,16 @@
 
 namespace scrivi::schemas {
 
-std::string serializeCharacter(const CharacterObject& obj);
-Result<CharacterObject> parseCharacter(std::string_view json);
+// The `scrivi.object.<kind>.v1` schema tag for a kind.
+std::string objectSchemaTag(ObjectKind kind);
 
-std::string serializeLocation(const LocationObject& obj);
-Result<LocationObject> parseLocation(std::string_view json);
-
-std::string serializeItem(const ItemObject& obj);
-Result<ItemObject> parseItem(std::string_view json);
-
-std::string serializeRule(const RuleObject& obj);
-Result<RuleObject> parseRule(std::string_view json);
-
-std::string serializeTimeline(const TimelineObject& obj);
-Result<TimelineObject> parseTimeline(std::string_view json);
+// Builds the WorldObject alternative matching `kind`, carrying `fields` across.
+WorldObject makeWorldObject(ObjectKind kind, WorldObjectFields fields);
 
 // Serialize / parse any WorldObject variant.
+//
+// Per-kind wrappers were retired in SP-095: the 11 kinds share one field block
+// and differ only by schema tag, so the kind-keyed pair below is the whole API.
 std::string serializeWorldObject(const WorldObject& obj);
 Result<WorldObject> parseWorldObject(std::string_view json, ObjectKind kind);
 
