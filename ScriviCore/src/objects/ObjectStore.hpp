@@ -18,6 +18,29 @@ public:
     Result<SaveObjectResult>   save(const SaveObjectRequest& request);
     Result<DeleteObjectResult> remove(const DeleteObjectRequest& request);
 
+    // Promotion / demotion between scopes (SP-098 T-0379; §3.1).
+    //
+    //   item → artifact   moves objects/items/<slug>.json into the world's
+    //                     artifacts/ and SETS worldID
+    //   artifact → item   the exact inverse, through this same call
+    //
+    // ⚠️ `objectID` IS PRESERVED AND NO EDGE IS TOUCHED. This is the safety proof
+    // for the bare-endpoint ruling (§5.2): endpoints store `{id}` with no `kind`
+    // precisely so that promotion cannot stale them. An endpoint recording
+    // `{kind:"item", id:…}` would go wrong on every edge the moment the object
+    // changed kind; here the edge log is not even opened.
+    struct PromoteResult {
+        ObjectID     objectID;
+        ObjectKind   kind = ObjectKind::item;
+        std::string  worldID;      // empty after demotion
+        AbsolutePath fromPath;
+        AbsolutePath toPath;
+    };
+    [[nodiscard]] Result<PromoteResult> promote(const AbsolutePath& projectRoot,
+                                                 const ObjectID& objectID,
+                                                 ObjectKind targetKind,
+                                                 const std::string& worldID) const;
+
 private:
     CoreServices& services_;
 

@@ -1,11 +1,15 @@
 #include "manuscript/ChapterDeleter.hpp"
 
+#include "manuscript/SceneIndex.hpp"
+#include "objects/RelationshipStore.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
 #include <filesystem>
+#include <string>
+#include <vector>
 
 namespace scrivi::manuscript {
 
@@ -49,6 +53,16 @@ Result<DeleteChapterResult> ChapterDeleter::remove(const DeleteChapterRequest& r
     const std::string chMetaAbsPath = util::join(root, it->path);
     int scenesDeleted = 0;
 
+    // Every scene in this chapter is about to be removed with the directory, so
+    // collect their IDs FIRST — after remove_all there is nothing left to read
+    // them from, and each is a relationship endpoint that must be cascade-pruned
+    // (T-0377, Doc 1 §5.5). Identity is filesystem-authoritative (EP-027), so
+    // the IDs come from the scene sidecars rather than the chapter's cache.
+    std::vector<std::string> sceneIDs;
+    if (auto scenesR = listScenesByOrder(fs, root, it->path); scenesR.ok()) {
+        for (const auto& s : scenesR.value()) { sceneIDs.push_back(s.sceneID.value); }
+    }
+
     auto chTextR = fs.readTextFile(chMetaAbsPath);
     if (chTextR.ok()) {
         auto chParsed = schemas::parseChapterMeta(chTextR.value());
@@ -71,6 +85,15 @@ Result<DeleteChapterResult> ChapterDeleter::remove(const DeleteChapterRequest& r
         std::filesystem::path(chMetaAbsPath).parent_path();
     std::error_code ec;
     std::filesystem::remove_all(chapterDir, ec);
+
+    // 6. Cascade-prune every deleted scene's edges (T-0377). Best-effort: the
+    //    chapter is already gone, and a surviving edge is dangling, which
+    //    load-time repair drops. Edges into an unavailable world are held, not
+    //    pruned — cascadeDelete enforces that (Doc 3 §4.6).
+    objects::RelationshipStore graph{services_};
+    for (const auto& sceneID : sceneIDs) {
+        (void)graph.cascadeDelete(root, sceneID);
+    }
 
     DeleteChapterResult result;
     result.chapterID     = request.chapterID;

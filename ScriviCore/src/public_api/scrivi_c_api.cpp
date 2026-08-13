@@ -13,6 +13,8 @@
 #endif
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/ObjectJson.hpp"
+#include "objects/ObjectIndex.hpp"
+#include "objects/ObjectStore.hpp"
 #include "objects/RelationTypes.hpp"
 #include "objects/RelationshipStore.hpp"
 #include "worlds/WorldStore.hpp"
@@ -33,9 +35,11 @@
 #include <iomanip>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 // ---------------------------------------------------------------------------
 // Service implementations
@@ -357,13 +361,13 @@ static std::string_view repairKindToStr(scrivi::RepairActionKind k) {
 // unknown string. With 11 kinds at the boundary (SP-095) that default would
 // quietly create a character whenever a caller sent a typo or a retired kind
 // such as "timeline", so unknown input is now an error envelope instead.
+//
+// Delegates to objectKindFromName rather than repeating the kind list: SP-098's
+// `source` (T-0406) was added to the enum and to every other dispatch site, and
+// this second copy silently rejected it — a duplicated list is a list that goes
+// out of sync.
 static std::optional<scrivi::ObjectKind> objectKindFromStr(std::string_view s) {
-    using K = scrivi::ObjectKind;
-    for (auto k : {K::character, K::location, K::item, K::building, K::vehicle,
-                   K::map, K::rule, K::artifact, K::chronicle, K::faction, K::world}) {
-        if (scrivi::objectKindName(k) == s) { return k; }
-    }
-    return std::nullopt;
+    return scrivi::objectKindFromName(s);
 }
 
 static scrivi::Error unknownObjectKindError(std::string_view s) {
@@ -703,7 +707,8 @@ const char* scrivi_create_object(
     const char* slug,
     const char* identityID,
     const char* personaID,
-    const char* authorDisplayName)
+    const char* authorDisplayName,
+    const char* worldID)
 {
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
@@ -713,6 +718,7 @@ const char* scrivi_create_object(
     req.objectKind      = *kind;
     req.displayName     = S(displayName);
     req.slug            = S(slug);
+    req.worldID         = S(worldID);
     req.author = {
         scrivi::IdentityID{S(identityID)},
         scrivi::PersonaID {S(personaID)},
@@ -733,7 +739,8 @@ const char* scrivi_create_object(
 const char* scrivi_open_object(
     const char* projectRootPath,
     const char* objectKind,
-    const char* objectID)
+    const char* objectID,
+    const char* worldID)
 {
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
@@ -742,6 +749,7 @@ const char* scrivi_open_object(
     req.projectRootPath = S(projectRootPath);
     req.objectKind      = *kind;
     req.objectID        = scrivi::ObjectID{S(objectID)};
+    req.worldID         = S(worldID);
 
     auto r = core().openObject(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
@@ -789,7 +797,8 @@ const char* scrivi_save_object(
 const char* scrivi_delete_object(
     const char* projectRootPath,
     const char* objectKind,
-    const char* objectID)
+    const char* objectID,
+    const char* worldID)
 {
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
@@ -798,6 +807,7 @@ const char* scrivi_delete_object(
     req.projectRootPath = S(projectRootPath);
     req.objectKind      = *kind;
     req.objectID        = scrivi::ObjectID{S(objectID)};
+    req.worldID         = S(worldID);
 
     auto r = core().deleteObject(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
@@ -876,8 +886,141 @@ const char* scrivi_list_edges_for(
         item.setString("label",            v.label);
         item.setString("otherID",          v.otherID);
         item.setString("otherDisplayName", v.otherDisplayName);
+        // Pending far endpoint (T-0380): the name is the binding's cache, and
+        // the status tells the writer what to actually do about it.
+        item.setBool  ("otherPending",     v.otherPending);
+        if (v.otherPending) {
+            item.setString("otherWorldID",     v.otherWorldID);
+            item.setString("otherWorldStatus", v.otherWorldStatus);
+        }
         doc.appendToArray("edges", std::move(item));
     }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_pending_edges(const char* projectRootPath)
+{
+    auto svc = abiServices();
+    scrivi::objects::RelationshipStore store{svc};
+    auto r = store.listPending(S(projectRootPath));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& p : r.value()) {
+        scrivi::util::JsonDoc item;
+        item.setString("edgeID",            p.edge.edgeID);
+        item.setString("from",              p.edge.fromID);
+        item.setString("to",                p.edge.toID);
+        item.setString("relationType",      p.edge.relationType);
+        item.setString("note",              p.edge.note);
+        item.setString("pendingEndpointID", p.pendingEndpointID);
+        // AC-A7: a NAME, from binding.cachedIndex — never a bare ID.
+        item.setString("displayName",       p.displayName);
+        item.setString("worldID",           p.worldID);
+        item.setString("worldStatus",       p.worldStatus);
+        doc.appendToArray("pending", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+// ---------------------------------------------------------------------------
+// Object discovery (EP-031 SP-098 T-0378) — §5.5
+// ---------------------------------------------------------------------------
+
+namespace {
+
+void putObjectEntry(scrivi::util::JsonDoc& item,
+                    const scrivi::objects::ObjectIndexEntry& e) {
+    item.setString("objectID",    e.objectID.value);
+    item.setString("kind",        scrivi::objectKindName(e.kind));
+    item.setString("slug",        e.slug);
+    item.setString("displayName", e.displayName);
+    item.setString("worldID",     e.worldID);   // "" for project-scoped
+}
+
+} // namespace
+
+const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrNull)
+{
+    auto svc = abiServices();
+
+    const std::string kindFilter = S(kindOrNull);
+    std::optional<scrivi::ObjectKind> wanted;
+    if (!kindFilter.empty()) {
+        wanted = objectKindFromStr(kindFilter);
+        // An unrecognised kind is an error, never an empty listing — silently
+        // returning nothing would read as "you have no characters".
+        if (!wanted) return heap(errorEnvelope(unknownObjectKindError(kindFilter)));
+    }
+
+    scrivi::objects::ObjectIndex index{svc};
+    auto r = index.loadAllVisible(S(projectRootPath));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& e : r.value()) {
+        if (wanted && e.kind != *wanted) { continue; }
+        scrivi::util::JsonDoc item;
+        putObjectEntry(item, e);
+        doc.appendToArray("objects", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_list_orphaned_objects(const char* projectRootPath)
+{
+    auto svc = abiServices();
+    const std::string root = S(projectRootPath);
+
+    scrivi::objects::ObjectIndex index{svc};
+    auto objectsR = index.loadAllVisible(root);
+    if (!objectsR.ok()) return heap(errorEnvelope(objectsR.error()));
+
+    scrivi::objects::RelationshipStore graph{svc};
+    auto edgesR = graph.load(root);
+    if (!edgesR.ok()) return heap(errorEnvelope(edgesR.error()));
+
+    // §5.5: orphan = in the index, absent from EVERY endpoint in the edge map.
+    // Pure set membership over resident structures — O(n), no I/O.
+    std::unordered_set<std::string> related;
+    for (const auto& e : edgesR.value()) {
+        related.insert(e.fromID);
+        related.insert(e.toID);
+    }
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& e : objectsR.value()) {
+        if (related.contains(e.objectID.value)) { continue; }
+        scrivi::util::JsonDoc item;
+        putObjectEntry(item, e);
+        doc.appendToArray("objects", std::move(item));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_promote_object(const char* projectRootPath,
+                                  const char* objectID,
+                                  const char* targetKind,
+                                  const char* worldIDOrNull)
+{
+    auto kind = objectKindFromStr(S(targetKind));
+    if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(targetKind))));
+
+    auto svc = abiServices();
+    scrivi::objects::ObjectStore store{svc};
+    auto r = store.promote(S(projectRootPath), scrivi::ObjectID{S(objectID)},
+                           *kind, S(worldIDOrNull));
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    // The SAME objectID goes out that came in — callers can assert on it
+    // directly rather than having to re-resolve the object.
+    doc.setString("objectID", v.objectID.value);
+    doc.setString("kind",     scrivi::objectKindName(v.kind));
+    doc.setString("worldID",  v.worldID);
+    doc.setString("fromPath", v.fromPath);
+    doc.setString("path",     v.toPath);
     return heap(okEnvelope(std::move(doc)));
 }
 

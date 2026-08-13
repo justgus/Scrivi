@@ -2,6 +2,7 @@
 
 #include "manuscript/ChapterIndex.hpp"
 #include "manuscript/SceneIndex.hpp"
+#include "objects/RelationshipStore.hpp"
 #include "schemas/ChapterMetaJson.hpp"
 #include "schemas/ManuscriptMetaJson.hpp"
 #include "util/PathUtils.hpp"
@@ -55,6 +56,16 @@ Result<DeleteSceneResult> SceneDeleter::remove(const DeleteSceneRequest& request
         // Rebuild the chapter's scenes[] cache from disk (the scene is now gone).
         auto rb = rebuildChapterScenesIfInconsistent(fs, root, chMetaRel);
         if (!rb.ok()) { return Result<DeleteSceneResult>::failure(rb.error()); }
+
+        // Cascade-prune the scene's relationship edges (EP-031 SP-098 T-0377,
+        // Doc 1 §5.5 — scene delete, not only object delete). Scenes are valid
+        // edge endpoints, so a deleted scene leaves dangling edges otherwise.
+        //
+        // Best-effort: the scene files are already gone, and failing the delete
+        // over the edge log would report a failure that did not happen. A
+        // surviving edge is dangling and repairs at load.
+        objects::RelationshipStore graph{services_};
+        (void)graph.cascadeDelete(root, request.sceneID.value);
 
         DeleteSceneResult result;
         result.sceneID = request.sceneID;

@@ -228,13 +228,19 @@ public final class ScriviEngine: @unchecked Sendable {
     }
 
     // MARK: — Object CRUD
+    //
+    // `worldID` names the world a WORLD-SCOPED object (artifact / chronicle /
+    // faction / rule) lives in. It defaults to "" — the project scope every
+    // other kind uses — so existing call sites are unaffected (EP-031 SP-098
+    // T-0405 widened the three C entry points; I-0113).
 
     public func createObject(
         projectRootPath: String,
         objectKind: String,
         displayName: String,
         slug: String = "",
-        authorshipRef: AuthorshipRef
+        authorshipRef: AuthorshipRef,
+        worldID: String = ""
     ) throws -> CreateObjectResult {
         let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
@@ -243,7 +249,9 @@ public final class ScriviEngine: @unchecked Sendable {
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    scrivi_create_object(prp, ok, dn, s, iid, pid, adn)
+                                    worldID.withCString { wid in
+                                        scrivi_create_object(prp, ok, dn, s, iid, pid, adn, wid)
+                                    }
                                 }
                             }
                         }
@@ -257,12 +265,15 @@ public final class ScriviEngine: @unchecked Sendable {
     public func openObject(
         projectRootPath: String,
         objectKind: String,
-        objectID: String
+        objectID: String,
+        worldID: String = ""
     ) throws -> OpenObjectResult {
         let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
                 objectID.withCString { oid in
-                    scrivi_open_object(prp, ok, oid)
+                    worldID.withCString { wid in
+                        scrivi_open_object(prp, ok, oid, wid)
+                    }
                 }
             }
         }
@@ -294,12 +305,15 @@ public final class ScriviEngine: @unchecked Sendable {
     public func deleteObject(
         projectRootPath: String,
         objectKind: String,
-        objectID: String
+        objectID: String,
+        worldID: String = ""
     ) throws -> DeleteObjectResult {
         let raw = projectRootPath.withCString { prp in
             objectKind.withCString { ok in
                 objectID.withCString { oid in
-                    scrivi_delete_object(prp, ok, oid)
+                    worldID.withCString { wid in
+                        scrivi_delete_object(prp, ok, oid, wid)
+                    }
                 }
             }
         }

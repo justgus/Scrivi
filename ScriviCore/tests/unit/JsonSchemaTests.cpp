@@ -703,8 +703,8 @@ TEST_CASE("serializeWorldObject / parseWorldObject round-trip for every kind",
     // is scope-agnostic — the storage gate lives in ObjectStore, not here.
     for (auto kind : {ObjectKind::character, ObjectKind::location, ObjectKind::item,
                       ObjectKind::building,  ObjectKind::vehicle,  ObjectKind::map,
-                      ObjectKind::rule,      ObjectKind::artifact, ObjectKind::chronicle,
-                      ObjectKind::faction,   ObjectKind::world}) {
+                      ObjectKind::source,    ObjectKind::rule,     ObjectKind::artifact,
+                      ObjectKind::chronicle, ObjectKind::faction,  ObjectKind::world}) {
         CAPTURE(objectKindName(kind));
 
         auto fields = makeTestFields("wobj-" + objectKindName(kind));
@@ -729,6 +729,7 @@ TEST_CASE("each kind writes its own schema tag", "[schemas][T-0370]") {
     REQUIRE(objectSchemaTag(ObjectKind::building)  == "scrivi.object.building.v1");
     REQUIRE(objectSchemaTag(ObjectKind::vehicle)   == "scrivi.object.vehicle.v1");
     REQUIRE(objectSchemaTag(ObjectKind::map)       == "scrivi.object.map.v1");
+    REQUIRE(objectSchemaTag(ObjectKind::source)    == "scrivi.object.source.v1");
     REQUIRE(objectSchemaTag(ObjectKind::artifact)  == "scrivi.object.artifact.v1");
     REQUIRE(objectSchemaTag(ObjectKind::chronicle) == "scrivi.object.chronicle.v1");
     REQUIRE(objectSchemaTag(ObjectKind::faction)   == "scrivi.object.faction.v1");
@@ -748,6 +749,9 @@ TEST_CASE("world-scoped kinds are identified as such", "[schemas][T-0370]") {
     REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::building));
     REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::vehicle));
     REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::map));
+    // `source` is PROJECT-scoped (T-0406): a citation belongs to the work that
+    // makes it, not to a world that might be shared with another project.
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::source));
 
     // `rule` became world-scoped in SP-097 (T-0404): rules govern an
     // ENVIRONMENT, not a manuscript, so they live at worlds/<worldID>/rules/

@@ -55,7 +55,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: ScriviCore → SP-096/097; card → SP-099**) | 🔵 **Backlog — unblocked 2026-08-12** (OQ-1 closed; design amended). Source→scene deferred to **EP-032** |
+| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: `cites` type ✅ SP-096; `source` kind ✅ SP-098 as T-0406; card → SP-099**) | 🟡 **Two thirds done** — the `cites`/`documented-by` type (SP-096) and the `source` kind (SP-098 T-0406) are both ✅ Verified. **Only the aggregate `sources` card remains, in SP-099.** Source→scene deferred to **EP-032** |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
@@ -76,10 +76,12 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
 | T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
 | T-0376 | Compaction at 30% / 1,000 tombstones | EP-031 (**SP-096**) | ✅ **Verified (2026-08-12)** |
-| T-0377 | Cascade-prune on delete + load-time repair | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (**SP-098**) | 🔵 Backlog |
-| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (**SP-098**) | 🔵 Backlog |
+| T-0405 | ⚠️ **I-0113** — `worldID` on `scrivi_create/open/delete_object` (breaking ABI widen) | EP-031 (**SP-098**) | ✅ **Verified (2026-08-12)** |
+| T-0377 | Cascade-prune on object **and** scene delete + load-time repair | EP-031 (**SP-098**) | ✅ **Verified (2026-08-12)** |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | EP-031 (**SP-098**) | ✅ **Verified (2026-08-12)** |
+| T-0379 | `scrivi_promote_object` (item↔artifact) | EP-031 (**SP-098**) | ✅ **Verified (2026-08-12)** |
+| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | EP-031 (**SP-098**) | ✅ **Verified (2026-08-12)** |
+| T-0406 | `source` object kind (T-0365 ScriviCore half) — **closes EP-031 AC1** | EP-031 (**SP-098**) | ✅ **Verified (2026-08-12)** |
 | T-0403 | ⚠️ `FileSystem::createFileExclusive` — exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0381 | `.scrivworld` package + `world.json` + world index + `scrivi_create_world` | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0382 | `binding.json` + `worldID`-verified resolution + relink | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
@@ -424,15 +426,17 @@ defaulting to **Writing**. Tab selection **does not follow the scene**. Persist 
 
 **T-0363 — `tags` + `todo` cards.** Scene-sidecar backed.
 **T-0364 — `outline` card.** Scene summary/synopsis.
-**T-0365 — `sources` card + `source` object kind.** 🔵 **Backlog, unblocked — awaiting sprint assignment.**
-Not in SP-095 (no `source` kind was added there). **OQ-1 is CLOSED**: the design was amended 2026-08-12 and
-T-0365's scope is now fully specified. It should be **split across two sprints** when scheduled, because it is
-no longer one task:
+**T-0365 — `sources` card + `source` object kind.** 🟡 **Two thirds Verified; only the card remains (SP-099).**
+**OQ-1 is CLOSED**: the design was amended 2026-08-12 and T-0365's scope is fully specified. It was split
+across three sprints, because it was never one task:
 
-- **`[ScriviCore]` half → SP-096/SP-097.** Add the `source` **object kind** (project-scoped; the enum work
-  SP-095 deliberately left out) and the **`cites` / `documented-by`** relation type — the first type with
-  `sourceKind: null` **and** `targetKind: null`, since a citation may document any kind (Doc 1 §3.4, §5.1).
-  No new machinery: many-to-many falls out of the canonical-edge model unchanged.
+- ✅ **`[ScriviCore]` relation type → SP-096 (T-0373), Verified 2026-08-12.** The **`cites` / `documented-by`**
+  type — the first with `sourceKind: null` **and** `targetKind: null`, since a citation may document any kind
+  (Doc 1 §3.4, §5.1). No new machinery: many-to-many falls out of the canonical-edge model unchanged.
+- ✅ **`[ScriviCore]` object kind → SP-098 (T-0406), Verified 2026-08-12.** The `source` **object kind**
+  (project-scoped at `objects/sources/`; the enum work SP-095 deliberately left out), round-tripping through
+  the C ABI with its own schema tag and index participation. A `cites` edge relates a source to any kind
+  **across both partitions** — project character and world artifact alike. **This closed EP-031 AC1.**
 - **`[Apple]` half → SP-099.** The **one aggregate `sources` card** (Doc 2 §3.1.1) — lists sources reached via
   *this scene's* objects (scene → objects → sources), each entry naming the object(s) it came from, click →
   citation popup. **Worldbuilding-object cards surface their own sources with the same popup.**

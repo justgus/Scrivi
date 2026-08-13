@@ -55,12 +55,17 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
                 if (auto b = ws.loadBinding(projectRoot, worldID); b.ok()) {
                     for (const auto& e : b.value().cachedIndex) {
                         if (e.objectID == endpointID) {
-                            // ⚠️ NOT `found`: the object cannot be verified while
-                            // its world is away. SP-098's T-0380 turns this into
-                            // the explicit *pending* state; SP-097 only ensures
-                            // the name survives so the writer is never asked to
-                            // decide blind.
-                            out.displayName = e.displayName;
+                            // ⚠️ NOT `found` — and NOT dangling either. The object
+                            // cannot be VERIFIED while its world is away, but an
+                            // unavailable world naming it is positive evidence it
+                            // exists. This is the *pending* state (T-0380): hold,
+                            // never prune, never modify. The cached displayName
+                            // travels with it so the writer sees a name rather
+                            // than a bare UUID (AC-A7).
+                            out.worldPending = true;
+                            out.worldID      = worldID;
+                            out.worldStatus  = res.status;
+                            out.displayName  = e.displayName;
                             if (auto k = objectKindFromName(e.kind)) { out.kind = *k; }
                             return out;
                         }

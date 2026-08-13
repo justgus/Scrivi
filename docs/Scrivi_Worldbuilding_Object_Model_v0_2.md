@@ -541,6 +541,34 @@ New object kinds need **no** new CRUD endpoints: `scrivi_create/open/save/delete
 `objectKind` string and gain the new kinds in `ObjectKind` + `objectKindSubdir` + the schema table. The
 `image`/`subtitle`/`worldID` fields extend `WorldObjectFields` + `ObjectJson` additively.
 
+> ⚠️ **AMENDED 2026-08-12 (SP-098 planning audit).** The paragraph above is true of the *kind dispatch* but was
+> **wrong about the signatures** once kinds became scope-dependent. SP-097 made `artifact`/`chronicle`/
+> `faction`/`rule` live in a `.scrivworld` package, so storage now depends on **which world** — a fact no
+> `objectKind` string can carry. `CreateObjectRequest`/`OpenObjectRequest`/`DeleteObjectRequest` gained a
+> `worldID` field, but the **C entry points were not widened**, so `req.worldID` was always empty at the
+> boundary and every world-scoped create failed with *"a worldID is required."* Confirmed by probe:
+> world-scoped objects were **unreachable from Swift and Qt** while the C++ facade and its tests passed
+> (the tests call the facade directly, bypassing the ABI — which is why the suite stayed green).
+>
+> **Corrected signatures** (`worldID` empty ⇒ project scope):
+>
+> ```c
+> const char* scrivi_create_object(const char* projectRootPath, const char* objectKind,
+>                                  const char* displayName, const char* slug,
+>                                  const char* identityID, const char* personaID,
+>                                  const char* authorDisplayName,
+>                                  const char* worldID);          /* NEW */
+> const char* scrivi_open_object  (const char* projectRootPath, const char* objectKind,
+>                                  const char* objectID, const char* worldID);   /* NEW */
+> const char* scrivi_delete_object(const char* projectRootPath, const char* objectKind,
+>                                  const char* objectID, const char* worldID);   /* NEW */
+> /* scrivi_save_object is UNCHANGED — the object JSON it carries already holds worldID. */
+> ```
+>
+> Tracked as **I-0113**, fixed by **T-0405 (SP-098)**. This is the first breaking change to a shipped
+> `scrivi.h` signature in EP-031; it is taken now because the only in-tree callers are ScriviCore's own tests,
+> and the cost grows with every sprint that adopts the current shape.
+
 ---
 
 ## 7. Worlds — the partition boundary (T5 = A, expanded)
@@ -623,6 +651,25 @@ world epoch                ──(binding.epochOffsetMs)───▶  project ti
   "epochOffsetMs": -94608000000                     // → translates to the PROJECT timeline
 }
 ```
+
+> ⚠️ **AMENDED 2026-08-12 (SP-098 planning audit) — where a timeline's `epochOffsetMs` actually lives.**
+> The block above places it inside `historical-timelines/<slug>.json`. **As implemented (SP-097 T-0384) it is
+> stored in a project-local sidecar** — `worlds/<worldID>/timeline-offsets.json`, schema
+> `scrivi.world-timeline-offsets.v1`, an array of `{timelineID, epochOffsetMs}`.
+>
+> **Why the deviation stands (user-ruled).** SP-097 built the epoch chain, but historical-timeline **files do
+> not exist yet** — they arrive with world *content*, which belongs to the Timeline Panel's domain
+> (EP-016/EP-025), not to EP-031. There was nothing to write into. The sidecar holds the same value under the
+> same key, so the arithmetic in this section is unchanged:
+>
+> - the **value is still world-relative**, which is the load-bearing property (rebinding changes exactly one
+>   number — §7.0's rationale is untouched);
+> - the value **folds into `historical-timelines/<slug>.json`** when those files ship, at which point the
+>   sidecar is read once and retired.
+>
+> **What this does NOT change:** each timeline still owns its own epoch; offsets are still world-relative, not
+> project-relative; and editing a binding still never mutates `world.json`. Only the *file* differs, and only
+> until world content exists.
 
 Project-relative position of a historical event is therefore a **chain**:
 

@@ -25,8 +25,19 @@ resolution, write locking, epoch chain — **T-0381–T-0385 + T-0403 + T-0404**
 integrity tasks were verified unbuildable without worlds. Integrity moves to **SP-098**, built once against
 real worlds. Sprint IDs stayed in sequence. **EP-031 AC3 + AC6 + AC8 met** (AC3's faction↔faction clause
 closed). ⚠️ **10 additive `scrivi.h` endpoints**, all exported. Suites at close: ctest **477/477 macOS** +
-**484/484 Linux (GCC 14, zero warnings)**, interop **59 passed / 0 failed**. **Next: SP-098** (integrity —
-cascade-prune, orphans, promotion, ⚠️ **T-0380 pending-vs-dangling**, the Epic's highest-risk task).
+**484/484 Linux (GCC 14, zero warnings)**, interop **59 passed / 0 failed** *(that interop figure was later
+found stale — the true baseline at `2af8446` is **56**; nothing was lost)*.
+
+**No active sprint. SP-098 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-098.md`. Integrity:
+cascade-prune on object **and** scene **and** chapter delete + load-time repair, orphan queries,
+`objectID`-preserving promotion with the edge log **byte-identical**, ⚠️ **T-0380 pending-vs-dangling** (the
+Epic's highest-risk task — *absence is never deletion*), plus **T-0405** (⚠️ **I-0113**, world objects were
+unreachable through the C ABI) and **T-0406** (`source` kind). **T-0405 / T-0380 / T-0377 / T-0378 / T-0379 /
+T-0406 all Verified**, I-0113 Resolved-Verified. **EP-031 AC1 + AC4 + AC7 met** — 8 of 10.
+⚠️ **First breaking `scrivi.h` signature change in EP-031** (3 widened + 4 additive endpoints). Suites at
+close: ctest **510/510 macOS** + **517/517 Linux (GCC 14.2, zero warnings)**, interop **56 passed / 0 failed**.
+**33 new tests, all through `scrivi_*`** — a facade-only test cannot see a boundary gap, which is how I-0113
+shipped. **Next: SP-099** (Apple worldbuilding-object cards).
 
 **SP-095 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first
 sprint: `[ScriviCore]` object kinds + `WorldObjectFields` extensions + `objects/index.json`
@@ -198,13 +209,12 @@ closed, and SP-057 was superseded into SP-094.)*
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-098 | **Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling** (⇄ content swapped with SP-097) | EP-031 | 🔵 Planning (**next to plan & activate**) |
 | SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | EP-031 | 🔵 Planning |
 | SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **96 Sprints** (95 closed + 1 cancelled; SP-098–SP-100 are planned but not yet opened) |
+Currently: **97 Sprints** (96 closed + 1 cancelled; SP-099–SP-100 are planned but not yet opened) |
 Next available: **SP-102**
 
 > **Table repaired 2026-08-12.** SP-086–SP-094 and SP-101 had closed without ever being added to the table
@@ -312,6 +322,7 @@ Next available: **SP-102**
 | SP-095 | `[ScriviCore]` Object kinds + fields + object index | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 | SP-096 | `[ScriviCore]` Relationship graph — canonical edges, append-log, compaction | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 | SP-097 | `[ScriviCore]` World packages — bindings, resolution, locking, epoch chain | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
+| SP-098 | `[ScriviCore]` Graph integrity — cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 
 ## Statistics
 

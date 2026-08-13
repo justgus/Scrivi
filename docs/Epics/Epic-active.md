@@ -3,12 +3,21 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **3 of 6 sprints closed; 5 of 10 ACs met.** SP-095 ✅ (**AC2 met**) and SP-096 ✅ (**AC5 met**;
-**AC3 met but for its faction↔faction clause**, which needs world packages), both closed 2026-08-12 with user
-approval. **SP-097 ✅ closed 2026-08-12** — ⚠️ **content swapped with SP-098**: it was the **world packages** sprint,
-because two integrity tasks were verified unbuildable without worlds. **AC3 + AC6 + AC8 met.** **SP-098**
-(integrity, including ⚠️ **T-0380 pending-vs-dangling** — the Epic's highest-risk task) is next and fully
-unblocked. Only SP-099 needs EP-030's card framework; SP-095–SP-098 are pure `[ScriviCore]`.
+**Status:** 🟡 **Active** — **4 of 6 sprints closed; 8 of 10 ACs met.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
+SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC1 + AC4 + AC7**), all closed 2026-08-12 with user approval.
+⚠️ SP-097 and SP-098 had their **content swapped** — worlds landed first, because two integrity tasks were
+verified unbuildable without them; integrity was then built once, against real worlds.
+**The whole `[ScriviCore]` half of the Epic is now done.** What remains is `[Apple]`: **SP-099**
+(worldbuilding-object cards on EP-030's framework — closed 2026-08-11, so it is unblocked) and **SP-100**
+(Epic verification and close). Only **AC9** and **AC10** are outstanding.
+
+> ⚠️ **The Epic's highest-risk criterion is met.** AC7 — *absence is never deletion* — is the one failure
+> Doc 3 §4.6 calls **silent and unrecoverable**: a prune pass that reads "world unmounted" as "object deleted"
+> destroys every relationship into that world, errors nothing, and may go unnoticed for weeks. SP-098's T-0380
+> makes *pending* an explicit state distinct from *dangling*, freezes the graph toward an unavailable world in
+> both directions, and tests **both branches** — world present + endpoint missing prunes; world absent does
+> not, survives repeated opens, and returns on reattach.
+
 **Goal:** Implement the approved object model — new kinds, the object index, the canonical relationship graph,
 world packages — then the worldbuilding-object cards on top of EP-030's framework.
 **Design:** `docs/Scrivi_Worldbuilding_Object_Model_v0_2.md` ✅ **Approved 2026-08-05** (T1–T6 ruled) +
@@ -18,8 +27,9 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ### Acceptance Criteria
 
-- [ ] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
+- [x] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
       legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)
+      ✅ **Met — SP-095 + SP-097 + SP-098 (T-0406), Verified 2026-08-12.**
       > **Amended 2026-08-12 at SP-095 planning (user-ruled).** Two changes. **(a) `source` removed from AC1** —
       > sources are a *writing aid*, not worldbuilding, and belong in the Writing tab. **Updated 2026-08-12:
       > OQ-1 is closed and `source` is back in EP-031's scope** — as a full object kind with a
@@ -36,8 +46,16 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > asserted intact.
       > **SP-097 (✅ Verified 2026-08-12):** the 3 gated kinds — `artifact`/`chronicle`/`faction`
       > — now **round-trip in world scope** (T-0385), and `rule` relocated to `worlds/<worldID>/rules/`
-      > (T-0404). **AC1's staged round-trip is complete**; `source` remains outstanding (T-0365's ScriviCore
-      > half, SP-098), which is the only reason AC1 stays unticked.
+      > (T-0404). **AC1's staged round-trip is complete**; `source` remained outstanding (T-0365's ScriviCore
+      > half, SP-098), which was the only reason AC1 stayed unticked.
+      > **SP-098 (✅ Verified 2026-08-12) — T-0406:** `source` ships as a **project-scoped**
+      > kind at `objects/sources/` with its own schema tag and index participation, round-tripping through the
+      > C ABI, and a `cites` edge relates it to any kind across both partitions. **AC1 is now fully satisfiable
+      > — it ticks on verification.**
+      > ⚠️ En route, `source` exposed a **duplicated kind list**: `scrivi_c_api.cpp` carried its own copy of the
+      > kind table, so the new kind passed every enum, schema, and index site and was still rejected at the
+      > boundary. It now delegates to `objectKindFromName` — the same shape of defect as I-0113, a boundary
+      > re-stating what the core already knows.
 - [x] AC2 — `objects/index.json` is built on open, updated atomically, and **rebuilt from a scan** when
       missing/stale/corrupt; `findByID` resolves via the index. (Doc 1 AC2–AC3)
       ✅ **Met — SP-095 (T-0372 + T-0401), Verified 2026-08-12.** All three rebuild triggers covered (missing;
@@ -54,8 +72,19 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > ✅ **SP-097 closed the clause (Implemented, Not Verified 2026-08-12):** with `faction` creatable, the
       > **faction↔faction "at war with"** duplicate test now exists and passes — created from both ends, one
       > canonical edge, `detail == "duplicateEdge"`.
-- [ ] AC4 — Cascade-prune on delete; **orphans survive** and are findable; `objectID` preserved across
+- [x] AC4 — Cascade-prune on delete; **orphans survive** and are findable; `objectID` preserved across
       `item`→`artifact` promotion with **zero edges rewritten**. (Doc 1 AC6–AC8)
+      ✅ **Met — SP-098 (T-0377 + T-0378 + T-0379), Verified 2026-08-12.**
+      > **SP-098 (✅ Verified 2026-08-12) — T-0377 + T-0378 + T-0379.** All three clauses:
+      > cascade-prune fires on object **and** scene **and** chapter delete (the chapter path collects its scene
+      > IDs *before* `remove_all`, since afterwards there is nothing left to read them from), with a load-time
+      > repair pass behind it for the crash-between-write-and-tombstone case. Orphans are **retained**, not
+      > swept — deleting an object prunes the edge and leaves the far endpoint intact and findable via
+      > `scrivi_list_orphaned_objects`.
+      > **The promotion proof is asserted the strong way:** the test compares the relationship log
+      > **byte-for-byte** across an `item`→`artifact` promotion, not merely that edges still resolve. A rewrite
+      > that happened to produce working edges would still have falsified the bare-endpoint premise (§5.2).
+      > EP-027's existing scene/chapter delete suites stayed green throughout — the sprint's stated gate.
 - [x] AC5 — `relationships.jsonl` compacts at **30% or 1,000 tombstones**, whichever first; torn final line
       detected and truncated. (Doc 1 AC9) ✅ **Met — SP-096 (T-0374 + T-0376), Verified 2026-08-12.**
       > **SP-096 (✅ Verified 2026-08-12):** both triggers tested **independently** — a 6-record
@@ -70,9 +99,21 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > world-relative arithmetic **with no project involved**; rebinding changes **one** number and rewrites no
       > timeline offset. Plus: editing a binding **never mutates `world.json`**, asserted by byte-comparing the
       > file — the world's epoch is intrinsic and travels with it when shared.
-- [ ] AC7 — ⚠️ **Absence is never deletion:** an unavailable world holds edges **pending** — never pruned, never
+- [x] AC7 — ⚠️ **Absence is never deletion:** an unavailable world holds edges **pending** — never pruned, never
       modified, surviving save, restored on reattach. Status reports offline/unmounted/missing where
       determinable, else generic unavailable. (Doc 1 AC16–AC17, Doc 3 AC-A1–A7)
+      ✅ **Met — SP-098 (T-0380), Verified 2026-08-12.**
+      > **SP-098 (✅ Verified 2026-08-12) — T-0380.** `ResolvedEndpoint` now answers
+      > `pending()` and `dangling()` as **distinct** states rather than leaving callers to infer from `found`
+      > alone, and every prune path consults it first. AC-A1–A7 each have their own test, and **both branches of
+      > AC-A5 are tested explicitly**: world present + endpoint missing **prunes**; world absent does **not**,
+      > survives repeated opens, and returns on reattach with no repair pass.
+      > AC-A2 is asserted as "**verbatim**" — the edge log is byte-compared across a save with the world away,
+      > because a tombstone that was later compacted out would satisfy a weaker reading and still have lost the
+      > writer's data. AC-A4's freeze is symmetric: `scrivi_create_edge` **and** `scrivi_delete_edge` refuse with
+      > `detail == "worldPending:<status>"`, never a silent drop. AC-A7's names come from `binding.cachedIndex`.
+      > **Build order honoured (R2):** T-0380's guard was written, built, and tested *before* any prune code
+      > existed — T-0377's dangling-branch test failed until cascade-prune landed on top of it.
 - [x] AC8 — World packages: `worldID`-verified resolution, no search/registry, platform-neutral bindings,
       lock→write→unlock with stale-lock recovery. (Doc 3 AC-P1–P4, AC-L1–L5)
       ✅ **Met — SP-097 (T-0381/T-0382/T-0383 + T-0403), Verified 2026-08-12.**
@@ -94,7 +135,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-095 | Object kinds + fields (`subtitle`/`image`/`worldID`) + object index | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-095.md` | 2026-08-12 |
 | SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-096.md` | 2026-08-12 |
 | SP-097 | **World packages: `.scrivworld`, bindings, resolution, locking, epoch chain** | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-097.md` | 2026-08-12 |
-| SP-098 | **Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling** | 🔵 Planning | — |
+| SP-098 | **Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling** | ✅ **Closed 2026-08-12 (Human-approved)** | **AC1, AC4, AC7 met** |
 | SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | 🔵 Planning | — |
 | SP-100 | Verification & Epic close | 🔵 Planning | — |
 
@@ -129,10 +170,12 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0374 | `relationships.jsonl` append-log: create/delete/list, tombstones, torn-line recovery | SP-096 | ✅ **Verified (2026-08-12)** |
 | T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | ✅ **Verified (2026-08-12)** |
 | T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | ✅ **Verified (2026-08-12)** |
-| T-0377 | Cascade-prune on delete + load-time repair | SP-098 | 🔵 Backlog |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-098 | 🔵 Backlog |
-| T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-098 | 🔵 Backlog |
-| T-0380 | ⚠️ Pending-vs-dangling loader distinction + frozen graph toward unavailable worlds | SP-098 | 🔵 Backlog |
+| T-0405 | ⚠️ **I-0113** — `worldID` on `scrivi_create/open/delete_object`; world objects reachable through the ABI | SP-098 | ✅ **Verified (2026-08-12)** |
+| T-0377 | Cascade-prune on object **and** scene delete + load-time repair | SP-098 | ✅ **Verified (2026-08-12)** |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-098 | ✅ **Verified (2026-08-12)** |
+| T-0379 | `scrivi_promote_object` (item↔artifact), `objectID`-preserving | SP-098 | ✅ **Verified (2026-08-12)** |
+| T-0380 | ⚠️ Pending-vs-dangling loader distinction + frozen graph toward unavailable worlds | SP-098 | ✅ **Verified (2026-08-12)** |
+| T-0406 | `source` object kind (T-0365 ScriviCore half) — **closes AC1** | SP-098 | ✅ **Verified (2026-08-12)** |
 | T-0403 | ⚠️ `FileSystem::createFileExclusive` — the exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | SP-097 | ✅ **Verified (2026-08-12)** |
 | T-0381 | `.scrivworld` package + `world.json` + world index | SP-097 | ✅ **Verified (2026-08-12)** |
 | T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-097 | ✅ **Verified (2026-08-12)** |
@@ -147,14 +190,29 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | 🔵 Backlog |
 | T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-100 | 🔵 Backlog |
 
-> **Highest-risk task: T-0380.** The pending-vs-dangling distinction is the one failure in this Epic that is
-> *silent and unrecoverable* — a loader that reads "world unavailable" as "endpoint deleted" destroys every
-> relationship into that world with no error shown. Both branches need explicit test coverage before any
-> cascade-prune code ships.
+> ✅ **Highest-risk task: T-0380 — done and Verified (SP-098, 2026-08-12).** The pending-vs-dangling
+> distinction was the one failure in this Epic that is *silent and unrecoverable* — a loader that reads "world
+> unavailable" as "endpoint deleted" destroys every relationship into that world with no error shown. Both
+> branches have explicit coverage, and the guard was built and tested **before** any cascade-prune code
+> existed: T-0377's dangling-branch test failed until the prune landed on top of it.
 
 ---
 
-*Last Updated: 2026-08-12 (**SP-097 ✅ CLOSED (Human-approved) — worlds exist.** Archived to
+*Last Updated: 2026-08-12 (**SP-098 ✅ CLOSED (Human-approved) — the graph is self-consistent under deletion,
+and the `[ScriviCore]` half of EP-031 is complete.** Archived to `../Sprints/Closed/Sprint-SP-098.md`;
+`Sprint-active.md` reset. **4 of 6 sprints closed, 8 of 10 ACs met** — only AC9/AC10 (the Apple cards) remain.
+**Next: SP-099**, the Epic's first `[Apple]` sprint. All 6 tasks ✅ Verified: **T-0405** closes ⚠️ **I-0113** (world objects were unreachable through the
+C ABI); **T-0380** makes ⚠️ **pending ≠ dangling** an explicit state and freezes the graph toward an
+unavailable world in both directions; **T-0377** cascade-prunes on object, scene, and chapter delete with a
+load-time repair pass behind it; **T-0378** adds the object/orphan queries; **T-0379** proves promotion leaves
+the edge log **byte-identical**; **T-0406** lands `source`. **AC1, AC4, and AC7 are now satisfiable and tick on
+verification — 8 of 10.** ctest **510/510 macOS** (+33, all through `scrivi_*`) and **517/517 Linux
+(GCC 14.2, zero warnings)**, interop **56/56**. Two findings the plan missed: `ScriviEngine.swift` wrapped all three widened endpoints (R1 assumed only tests
+did — the Swift wrappers took a defaulted `worldID`), and a **duplicated kind list** in `scrivi_c_api.cpp`
+rejected `source` after every other site accepted it. Both are the I-0113 shape: a boundary restating what the
+core already knows. Prior note follows.)*
+
+*2026-08-12 (**SP-097 ✅ CLOSED (Human-approved) — worlds exist.** Archived to
 `../Sprints/Closed/Sprint-SP-097.md`; `Sprint-active.md` reset. **3 of 6 sprints closed, 5 of 10 ACs met.**
 **Next: SP-098** — integrity, including ⚠️ **T-0380 pending-vs-dangling**, the one failure Doc 3 §4.6 calls
 *silent and unrecoverable*; it is now fully buildable. Delivery detail follows.

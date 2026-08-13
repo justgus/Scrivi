@@ -141,6 +141,7 @@ WorldObject makeWorldObject(ObjectKind kind, WorldObjectFields fields) {
         case ObjectKind::building:  return as.template operator()<BuildingObject>(std::move(fields));
         case ObjectKind::vehicle:   return as.template operator()<VehicleObject>(std::move(fields));
         case ObjectKind::map:       return as.template operator()<MapObject>(std::move(fields));
+        case ObjectKind::source:    return as.template operator()<SourceObject>(std::move(fields));
         case ObjectKind::rule:      return as.template operator()<RuleObject>(std::move(fields));
         case ObjectKind::artifact:  return as.template operator()<ArtifactObject>(std::move(fields));
         case ObjectKind::chronicle: return as.template operator()<ChronicleObject>(std::move(fields));

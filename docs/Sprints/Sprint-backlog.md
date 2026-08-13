@@ -6,7 +6,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-098 | **Integrity: prune, orphans, promotion, ⚠️ pending-vs-dangling** (⇄ swapped) | EP-031 | 🔵 Planning |
 | SP-099 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
 | SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
 
@@ -17,7 +16,24 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 > and `../Epics/Closed/Epic-EP-019.md`.
 >
 > **EP-019 ✅ CLOSED** and **EP-030 ✅ CLOSED** (both 2026-08-11) → `../Epics/Closed/`.
-> EP-031's ScriviCore sprints (SP-095–SP-098) have no dependency on EP-030; only SP-099 needs the card framework.
+> EP-031's ScriviCore sprints (SP-095–SP-098) had no dependency on EP-030; **all four are now closed.**
+> SP-099 needs the card framework, which EP-030 delivered.
+
+> ✅ **SP-098 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-098.md`. Its Planning row had already
+> been removed at planning, per the standing rule. Integrity: cascade-prune on object **and** scene **and**
+> chapter delete + load-time repair, orphan queries, `objectID`-preserving promotion with the edge log
+> **byte-identical**, and ⚠️ **T-0380 pending-vs-dangling** — plus the two tasks added at planning, **T-0405**
+> (⚠️ **I-0113**, world objects unreachable through the C ABI) and **T-0406** (the `source` kind, closing
+> **AC1**). **All 6 Verified**, I-0113 Resolved-Verified. ctest **510/510 macOS** + **517/517 Linux
+> (GCC 14.2, zero warnings)**, interop **56 passed / 0 failed**; **33 new tests, all through `scrivi_*`**.
+> ⚠️ **First breaking `scrivi.h` signature change in EP-031** (3 widened + 4 additive).
+> **EP-031 AC1 + AC4 + AC7 met — 8 of 10, 4 of 6 sprints closed. Next up: SP-099** (the first `[Apple]`
+> sprint of the Epic; EP-030's card framework closed 2026-08-11, so it is unblocked).
+>
+> Two findings to carry into SP-099: R1's "the only in-tree callers are ScriviCore's own tests" was **wrong**
+> (`ScriviEngine.swift` wraps all three widened endpoints; they took a defaulted `worldID`), and a
+> **duplicated kind list** in `scrivi_c_api.cpp` rejected `source` after every other site accepted it — the
+> same defect shape as I-0113, found twice in one Epic.
 
 > ✅ **SP-097 closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-097.md`. ⚠️ **SP-097 and SP-098 had
 > their CONTENT SWAPPED** at planning: SP-097 became **world packages** (`.scrivworld`, bindings,

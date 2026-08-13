@@ -4,6 +4,7 @@
 #include "manuscript/SceneIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/SceneReader.hpp"
+#include "objects/RelationshipStore.hpp"
 #include "project_package/ProjectValidator.hpp"
 #include "schemas/ProjectJson.hpp"
 #include "util/PathUtils.hpp"
@@ -34,6 +35,24 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     manuscript::migrateChapterOrderKeys(fs, request.projectRootPath);
     manuscript::rebuildIndexIfInconsistent(fs, request.projectRootPath);
     manuscript::migrateScenes(fs, request.projectRootPath);
+
+    //    (d) relationship-graph repair (EP-031 SP-098 T-0377, Doc 1 §5.5): drops edges
+    //        whose endpoints no longer resolve. Runs AFTER scene migration, so an edge to
+    //        a scene that was merely relocated by (c) is not mistaken for a dangling one.
+    //
+    //        ⚠️ It never prunes an edge whose endpoint is PENDING — unreachable because
+    //        its world package is unavailable rather than because it was deleted (Doc 3
+    //        §4.6). That case is held indefinitely and reported by
+    //        scrivi_list_pending_edges. Pruning it would silently destroy every
+    //        relationship into an unmounted world, which is the one failure in this Epic
+    //        that no later pass can undo.
+    //
+    //        Best-effort like the passes above: a project must open even if the edge log
+    //        cannot be rewritten.
+    {
+        objects::RelationshipStore graph{services_};
+        (void)graph.repairDangling(request.projectRootPath);
+    }
 
     // 1. Validate project package structure
     ProjectValidator validator{services_};

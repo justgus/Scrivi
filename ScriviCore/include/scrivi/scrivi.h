@@ -91,6 +91,23 @@ const char* scrivi_create_snapshot(
     const char* label,
     const char* note);
 
+/* ---------------------------------------------------------------------------
+ * Object CRUD (EP-031)
+ *
+ * `worldID` (SP-098 T-0405, I-0113) names the world a WORLD-SCOPED object lives
+ * in — artifact / chronicle / faction / rule. Pass "" (or NULL) for the
+ * project-scoped kinds, which is every other kind.
+ *
+ * ⚠️ Widened in SP-098: SP-097 added `worldID` to the requests and routed
+ * storage through the world package, but these entry points were never widened,
+ * so world-scoped objects were unreachable through the ABI entirely. The
+ * facade-level tests passed throughout — they bypass this layer. Any test for a
+ * boundary change belongs HERE, against scrivi_*, not against the C++ facade.
+ *
+ * `scrivi_save_object` takes no `worldID`: the object JSON it carries already
+ * holds one.
+ * ------------------------------------------------------------------------- */
+
 const char* scrivi_create_object(
     const char* projectRootPath,
     const char* objectKind,
@@ -98,12 +115,14 @@ const char* scrivi_create_object(
     const char* slug,
     const char* identityID,
     const char* personaID,
-    const char* authorDisplayName);
+    const char* authorDisplayName,
+    const char* worldID);
 
 const char* scrivi_open_object(
     const char* projectRootPath,
     const char* objectKind,
-    const char* objectID);
+    const char* objectID,
+    const char* worldID);
 
 const char* scrivi_save_object(
     const char* projectRootPath,
@@ -116,7 +135,8 @@ const char* scrivi_save_object(
 const char* scrivi_delete_object(
     const char* projectRootPath,
     const char* objectKind,
-    const char* objectID);
+    const char* objectID,
+    const char* worldID);
 
 /* ---------------------------------------------------------------------------
  * Relationship graph (EP-031 SP-096) — scrivi.relationships.v1
@@ -142,10 +162,72 @@ const char* scrivi_delete_edge(
     const char* edgeID);
 
 /* Every edge touching endpointID in either direction, each carrying the label
- * that reads correctly from that endpoint. */
+ * that reads correctly from that endpoint. An edge whose far endpoint lives in
+ * an unavailable world still lists, flagged `otherPending` with its cached
+ * `otherDisplayName` and `otherWorldStatus`. */
 const char* scrivi_list_edges_for(
     const char* projectRootPath,
     const char* endpointID);
+
+/* ---------------------------------------------------------------------------
+ * Pending edges (EP-031 SP-098 T-0380) — World Data Separation v0.1 §4.6
+ *
+ * ⚠️ PENDING IS NOT DANGLING. An endpoint that fails to resolve because its
+ * WORLD is unavailable is *pending*: held, never pruned, never modified. An
+ * endpoint that fails to resolve while its world IS present is genuinely
+ * dangling and is repaired away. Conflating the two destroys a writer's
+ * relationships silently — the one failure in this Epic that is unrecoverable.
+ *
+ * Consequently the graph is FROZEN toward an unavailable world in both
+ * directions: scrivi_create_edge and scrivi_delete_edge refuse explicitly with
+ * error.detail == "worldPending:<status>", never a silent drop.
+ *
+ * This endpoint REPORTS; it repairs nothing. Each row carries the cached
+ * displayName from the binding (§6.3) rather than a bare ID, so a writer being
+ * asked whether to clear references is never deciding blind.
+ * ------------------------------------------------------------------------- */
+
+const char* scrivi_list_pending_edges(const char* projectRootPath);
+
+/* ---------------------------------------------------------------------------
+ * Object discovery (EP-031 SP-098 T-0378) — Worldbuilding Object Model v0.2 §5.5
+ *
+ * Both are pure reads over structures already resident — the object index and
+ * the in-memory edge map — so they are O(n) with no extra I/O.
+ *
+ * `kindOrNull` filters scrivi_list_objects by kind ("" / NULL = every kind).
+ * World objects appear when their world is available; when it is not, they are
+ * simply absent from the listing rather than reported as deleted.
+ *
+ * ORPHAN = present in the index, absent from every endpoint in the edge map.
+ * Orphans are DELIBERATELY RETAINED, never cleaned up: an object with no
+ * relationships is a legitimate creative state — a character sketched before
+ * they have a scene. Pruning the EDGE while keeping the now-unrelated OBJECT is
+ * the correct behaviour; this endpoint exists to make that state findable, not
+ * to offer a way to sweep it away.
+ * ------------------------------------------------------------------------- */
+
+const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrNull);
+const char* scrivi_list_orphaned_objects(const char* projectRootPath);
+
+/* ---------------------------------------------------------------------------
+ * Promotion / demotion (EP-031 SP-098 T-0379) — Object Model v0.2 §3.1
+ *
+ *   item → artifact  moves objects/items/<slug>.json into the world's artifacts/
+ *                    and sets worldID (pass it in `worldIDOrNull`)
+ *   artifact → item  the exact inverse through this same endpoint; worldID is
+ *                    cleared and `worldIDOrNull` is ignored
+ *
+ * ⚠️ `objectID` IS PRESERVED AND ZERO EDGES ARE REWRITTEN. This is the safety
+ * proof for storing bare `{id}` edge endpoints (§5.2): an endpoint that recorded
+ * `{kind:"item", id:…}` would be stale on every edge the instant the object was
+ * promoted. Here relationships.jsonl is not even opened.
+ * ------------------------------------------------------------------------- */
+
+const char* scrivi_promote_object(const char* projectRootPath,
+                                  const char* objectID,
+                                  const char* targetKind,
+                                  const char* worldIDOrNull);
 
 /* ---------------------------------------------------------------------------
  * Worlds (EP-031 SP-097) — scrivi.world.v1 / scrivi.world-binding.v1

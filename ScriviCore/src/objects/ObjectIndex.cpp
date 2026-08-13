@@ -3,6 +3,7 @@
 #include "schemas/ObjectJson.hpp"
 #include "util/Json.hpp"
 #include "util/PathUtils.hpp"
+#include "worlds/WorldStore.hpp"
 
 #include <algorithm>
 
@@ -23,6 +24,7 @@ constexpr ObjectKind kScannedKinds[] = {
     ObjectKind::building,
     ObjectKind::vehicle,
     ObjectKind::map,
+    ObjectKind::source,
 };
 
 // NB: kind parsing lives in ObjectTypes.hpp as objectKindFromName() — it
@@ -275,6 +277,38 @@ Result<ObjectIndexEntry> ObjectIndex::find(const AbsolutePath& projectRoot,
 
     return Result<ObjectIndexEntry>::failure(
         {.code = ErrorCode::ioError, .message = "object not found: " + id.value});
+}
+
+Result<std::vector<ObjectIndexEntry>>
+ObjectIndex::loadAllVisible(const AbsolutePath& projectRoot) const {
+    auto entriesR = load(projectRoot);
+    if (!entriesR.ok()) { return entriesR; }
+
+    auto entries = std::move(entriesR.value());
+
+    worlds::WorldStore ws{services_};
+    auto idsR = ws.listBoundWorldIDs(projectRoot);
+    // A project that never used worlds does no world work at all (Doc 3 §4.5) —
+    // listBoundWorldIDs returns empty for a missing worlds/ dir, so this loop
+    // simply does not run.
+    if (idsR.ok()) {
+        for (const auto& worldID : idsR.value()) {
+            auto res = ws.resolve(projectRoot, worldID);
+            if (res.status != worlds::WorldStatus::available) { continue; }
+
+            if (auto worldEntries = loadWorldIndex(res.packagePath); worldEntries.ok()) {
+                for (auto& e : worldEntries.value()) {
+                    // The world's own index records the kind and slug; stamp the
+                    // owning worldID so a caller can tell partitions apart
+                    // without a second lookup.
+                    if (e.worldID.empty()) { e.worldID = worldID; }
+                    entries.push_back(std::move(e));
+                }
+            }
+        }
+    }
+
+    return Result<std::vector<ObjectIndexEntry>>::success(std::move(entries));
 }
 
 Result<void> ObjectIndex::upsert(const AbsolutePath& projectRoot,

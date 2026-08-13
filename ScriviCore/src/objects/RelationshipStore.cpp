@@ -3,6 +3,7 @@
 #include "objects/EndpointResolver.hpp"
 #include "util/Json.hpp"
 #include "util/PathUtils.hpp"
+#include "worlds/WorldTypes.hpp"
 
 #include <algorithm>
 #include <set>
@@ -172,13 +173,32 @@ Result<Edge> RelationshipStore::create(const AbsolutePath& projectRoot,
 
     // 2. Both endpoints must resolve. Kind comes from the object index, NEVER
     //    from an ID prefix (T-0402) — every object ID begins "character_".
+    //
+    //    ⚠️ A pending endpoint is refused SEPARATELY from a missing one, and
+    //    explicitly (Doc 3 §4.6 rule 1, AC-A4): the graph is frozen toward an
+    //    unavailable world in both directions. Reporting "not found" here would
+    //    tell the writer their object is gone when it is merely unreachable —
+    //    the same conflation that makes cascade-prune dangerous.
     EndpointResolver resolver{services_};
+
+    auto refusePending = [](const ResolvedEndpoint& ep) {
+        return Error{
+            .code    = ErrorCode::invalidArgument,
+            .message = "cannot add an edge to '" + ep.displayName + "': its world is " +
+                       worlds::worldStatusName(ep.worldStatus) +
+                       " — the graph is frozen toward that world until it returns",
+            .path    = {},
+            .detail  = "worldPending:" + worlds::worldStatusName(ep.worldStatus)};
+    };
+
     auto fromEP = resolver.resolve(projectRoot, fromID);
+    if (fromEP.pending()) { return Result<Edge>::failure(refusePending(fromEP)); }
     if (!fromEP.found) {
         return Result<Edge>::failure(
             {.code = ErrorCode::invalidArgument, .message = "endpoint not found: " + fromID});
     }
     auto toEP = resolver.resolve(projectRoot, toID);
+    if (toEP.pending()) { return Result<Edge>::failure(refusePending(toEP)); }
     if (!toEP.found) {
         return Result<Edge>::failure(
             {.code = ErrorCode::invalidArgument, .message = "endpoint not found: " + toID});
@@ -278,16 +298,151 @@ Result<void> RelationshipStore::remove(const AbsolutePath& projectRoot,
     if (!replayed.ok()) { return Result<void>::failure(replayed.error()); }
 
     const auto& edges = replayed.value().edges;
-    const bool  known = std::any_of(edges.begin(), edges.end(),
-                                    [&](const Edge& e) { return e.edgeID == edgeID; });
-    if (!known) {
+    const auto  it    = std::find_if(edges.begin(), edges.end(),
+                                     [&](const Edge& e) { return e.edgeID == edgeID; });
+    if (it == edges.end()) {
         return Result<void>::failure(
             {.code = ErrorCode::invalidArgument, .message = "unknown edge: " + edgeID});
+    }
+
+    // ⚠️ Removal is as frozen as addition (Doc 3 §4.6 rule 1, AC-A4). Deleting
+    // an edge whose far end is in an unavailable world is a decision the writer
+    // cannot make on evidence they can see — and it is not reversible once the
+    // tombstone lands.
+    EndpointResolver resolver{services_};
+    for (const auto& endpointID : {it->fromID, it->toID}) {
+        auto ep = resolver.resolve(projectRoot, endpointID);
+        if (!ep.pending()) { continue; }
+        return Result<void>::failure(
+            {.code    = ErrorCode::invalidArgument,
+             .message = "cannot remove an edge to '" + ep.displayName + "': its world is " +
+                        worlds::worldStatusName(ep.worldStatus) +
+                        " — the graph is frozen toward that world until it returns",
+             .path    = {},
+             .detail  = "worldPending:" + worlds::worldStatusName(ep.worldStatus)});
     }
 
     const std::int64_t seq = replayed.value().maxSeq + 1;
     return fs.appendTextFile(logPath(projectRoot),
                              serializeTombRecord(edgeID, seq) + "\n");
+}
+
+Result<std::vector<PendingEdge>>
+RelationshipStore::listPending(const AbsolutePath& projectRoot) const {
+    auto loadedR = load(projectRoot);
+    if (!loadedR.ok()) { return Result<std::vector<PendingEdge>>::failure(loadedR.error()); }
+
+    EndpointResolver         resolver{services_};
+    std::vector<PendingEdge> out;
+
+    for (const auto& e : loadedR.value()) {
+        for (const auto& endpointID : {e.fromID, e.toID}) {
+            auto ep = resolver.resolve(projectRoot, endpointID);
+            if (!ep.pending()) { continue; }
+
+            PendingEdge p;
+            p.edge              = e;
+            p.pendingEndpointID = endpointID;
+            p.displayName       = ep.displayName;     // cached name, not a bare ID (AC-A7)
+            p.worldID           = ep.worldID;
+            p.worldStatus       = worlds::worldStatusName(ep.worldStatus);
+            out.push_back(std::move(p));
+        }
+    }
+
+    return Result<std::vector<PendingEdge>>::success(std::move(out));
+}
+
+Result<RelationshipStore::CascadeResult>
+RelationshipStore::cascadeDelete(const AbsolutePath& projectRoot,
+                                  const std::string& endpointID) const {
+    auto& fs = *services_.fileSystem;
+
+    if (endpointID.empty()) {
+        return Result<CascadeResult>::failure(
+            {.code = ErrorCode::invalidArgument, .message = "endpointID must not be empty"});
+    }
+
+    auto replayed = replay(projectRoot);
+    if (!replayed.ok()) { return Result<CascadeResult>::failure(replayed.error()); }
+
+    EndpointResolver resolver{services_};
+    CascadeResult    out;
+    std::string      body;
+    std::int64_t     seq = replayed.value().maxSeq;
+
+    for (const auto& e : replayed.value().edges) {
+        const bool touches = (e.fromID == endpointID || e.toID == endpointID);
+        if (!touches) { continue; }
+
+        // ⚠️ THE GUARD THIS WHOLE SPRINT IS ORDERED AROUND (Doc 3 §4.6 rule 1).
+        // The deleted endpoint is gone by definition — but the FAR one may be
+        // sitting in a world that is merely unmounted. Pruning that edge would
+        // silently destroy a relationship whose other end is perfectly intact,
+        // and nothing would error. Hold it instead; if the world never returns,
+        // load-time repair will still find it dangling later, when that is
+        // actually knowable.
+        const std::string& farID = (e.fromID == endpointID) ? e.toID : e.fromID;
+        if (resolver.resolve(projectRoot, farID).pending()) {
+            out.skippedPending.push_back(e.edgeID);
+            continue;
+        }
+
+        body += serializeTombRecord(e.edgeID, ++seq);
+        body += "\n";
+        out.tombstoned.push_back(e.edgeID);
+    }
+
+    // One append for the whole cascade — the delete and its tombstones land
+    // together or not at all, rather than leaving a half-pruned graph behind.
+    if (!body.empty()) {
+        if (auto r = fs.appendTextFile(logPath(projectRoot), body); !r.ok()) {
+            return Result<CascadeResult>::failure(r.error());
+        }
+    }
+
+    return Result<CascadeResult>::success(std::move(out));
+}
+
+Result<RelationshipStore::RepairResult>
+RelationshipStore::repairDangling(const AbsolutePath& projectRoot) const {
+    auto& fs = *services_.fileSystem;
+
+    auto replayed = replay(projectRoot);
+    if (!replayed.ok()) { return Result<RepairResult>::failure(replayed.error()); }
+
+    EndpointResolver resolver{services_};
+    RepairResult     out;
+    std::string      body;
+    std::int64_t     seq = replayed.value().maxSeq;
+
+    for (const auto& e : replayed.value().edges) {
+        const auto fromEP = resolver.resolve(projectRoot, e.fromID);
+        const auto toEP   = resolver.resolve(projectRoot, e.toID);
+
+        // ⚠️ PENDING WINS OVER DANGLING, unconditionally. If EITHER endpoint is
+        // merely unreachable, the edge is held — even if the other end is
+        // genuinely gone, because with the world away we cannot know whether the
+        // relationship still means something. Absence is never deletion.
+        if (fromEP.pending() || toEP.pending()) {
+            out.heldPendingEdgeIDs.push_back(e.edgeID);
+            continue;
+        }
+
+        if (fromEP.dangling() || toEP.dangling()) {
+            body += serializeTombRecord(e.edgeID, ++seq);
+            body += "\n";
+            out.prunedEdgeIDs.push_back(e.edgeID);
+        }
+    }
+
+    if (!body.empty()) {
+        if (auto r = fs.appendTextFile(logPath(projectRoot), body); !r.ok()) {
+            return Result<RepairResult>::failure(r.error());
+        }
+    }
+
+    return Result<RepairResult>::success(std::move(out));
 }
 
 Result<std::vector<EdgeView>>
@@ -322,10 +477,17 @@ RelationshipStore::listFor(const AbsolutePath& projectRoot,
             }
         }
 
-        // Best-effort: an unresolvable far endpoint still lists (SP-097 needs
-        // this to surface edges into an unavailable world).
-        if (auto ep = resolver.resolve(projectRoot, v.otherID); ep.found) {
+        // Best-effort: an unresolvable far endpoint still lists. A PENDING one
+        // carries its cached name and world status (AC-A7) so the inspector can
+        // render "⟨Midgard: Sword of Dawn — unavailable⟩" rather than a bare
+        // UUID the writer cannot act on.
+        if (auto ep = resolver.resolve(projectRoot, v.otherID); ep.found || ep.pending()) {
             v.otherDisplayName = ep.displayName;
+            if (ep.pending()) {
+                v.otherPending     = true;
+                v.otherWorldID     = ep.worldID;
+                v.otherWorldStatus = worlds::worldStatusName(ep.worldStatus);
+            }
         }
 
         out.push_back(std::move(v));

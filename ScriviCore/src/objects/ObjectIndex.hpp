@@ -66,6 +66,17 @@ public:
     [[nodiscard]] Result<ObjectIndexEntry> find(const AbsolutePath& projectRoot,
                                                 const ObjectID& id) const;
 
+    // Every object the project can currently SEE: its own index plus the index
+    // of each bound world that resolves (SP-098 T-0378).
+    //
+    // A world that is unavailable contributes nothing — deliberately. Listing an
+    // object the writer cannot open would be worse than omitting it, and the
+    // binding's cachedIndex exists to name PENDING EDGES, not to fake presence.
+    // Absence from this listing therefore means "not visible right now", never
+    // "deleted".
+    [[nodiscard]] Result<std::vector<ObjectIndexEntry>> loadAllVisible(
+        const AbsolutePath& projectRoot) const;
+
     // Mutations. Each reloads, applies, and rewrites atomically — callers run
     // these AFTER the object file write succeeds, never before: an entry for a
     // file that failed to write is silently wrong, whereas a missing entry for

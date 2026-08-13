@@ -1,8 +1,9 @@
 # Active Sprint
 
-**No active sprint.** **SP-097** ✅ closed 2026-08-12 (Human-approved) — worlds now exist. **SP-098**
-(integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling) is staged in `Sprint-backlog.md`,
-awaiting planning and activation. It is fully unblocked by SP-097.
+**No active sprint.** **SP-098** ✅ closed 2026-08-12 (Human-approved) — the relationship graph is now
+self-consistent under deletion, and ⚠️ **absence is never deletion**. **SP-099** (Apple worldbuilding-object
+cards, on EP-030's framework) is staged in `Sprint-backlog.md`, awaiting planning and activation. It is the
+first `[Apple]` sprint of EP-031 and is unblocked — EP-030's card framework closed 2026-08-11.
 
 ---
 
@@ -10,66 +11,44 @@ awaiting planning and activation. It is fully unblocked by SP-097.
 
 | Sprint | Title | Epic | Archive |
 | ------ | ----- | ---- | ------- |
+| SP-098 | `[ScriviCore]` Graph integrity — cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling | EP-031 | `Closed/Sprint-SP-098.md` |
 | SP-097 | `[ScriviCore]` World packages — `.scrivworld`, bindings, resolution, locking, epoch chain | EP-031 | `Closed/Sprint-SP-097.md` |
 | SP-096 | `[ScriviCore]` Relationship graph — canonical edges, append-log, compaction | EP-031 | `Closed/Sprint-SP-096.md` |
 | SP-095 | `[ScriviCore]` Object kinds + fields + object index | EP-031 | `Closed/Sprint-SP-095.md` |
 
-**✅ SP-097 CLOSED** (Human-approved) — T-0381 / T-0382 / T-0383 / T-0384 / T-0385 / **T-0403** / **T-0404**
-all Verified. Self-contained `.scrivworld` packages with their own object index; project-side bindings with
-platform-neutral references; **identity-verified resolution** (a same-named package with a different `worldID`
-is refused, never substituted); lock → write → unlock with 60 s stale recovery; and the three-layer epoch
-chain. ⚠️ **SP-097 and SP-098 had their content swapped** at planning — two integrity tasks were verified
-unbuildable without worlds; sprint IDs stayed in sequence.
+**✅ SP-098 CLOSED** (Human-approved) — T-0405 / T-0380 / T-0377 / T-0378 / T-0379 / T-0406 all Verified, plus
+**I-0113** Resolved-Verified. The graph now prunes itself on object, scene, **and** chapter delete with a
+load-time repair pass behind it; orphaned objects are **retained and findable**; `item`↔`artifact` promotion
+preserves `objectID` with the edge log **byte-identical**; and `source` landed, closing AC1.
 
-**Suites at close:** ScriviCore `ctest` **477/477 macOS** · **484/484 Linux (GCC 14, zero warnings)** ·
-macOS interop **59 passed / 0 failed**. ⚠️ **10 additive `scrivi.h` endpoints**, all confirmed exported.
+⚠️ **The load-bearing outcome is T-0380.** An endpoint that will not resolve because its **world is away** is
+*pending* — held, never pruned, never modified — and is now a distinct state from *dangling*, not something
+callers infer from `found`. The graph is **frozen** toward an unavailable world in both directions
+(`detail == "worldPending:<status>"`, never a silent drop), pending edges survive save verbatim, they return on
+reattach with no repair pass, and they display **names** from the binding's cache rather than bare IDs. Both
+branches of AC-A5 are tested explicitly. This is the failure Doc 3 §4.6 calls *silent and unrecoverable*; it is
+the reason T-0380 was built and tested **before** any prune code existed (R2).
 
-**EP-031 progress: AC2, AC3, AC5, AC6, AC8 met — 5 of 10.** 3 of 6 sprints closed.
+**Verification:** ctest **510/510 macOS** and **517/517 Linux (GCC 14.2, zero warnings)**; **33 new tests, all
+through `scrivi_*`** rather than the C++ facade — the standing habit the I-0113 audit asked for, since a
+facade-only test cannot see a boundary gap. macOS interop **56/56**. EP-027's shipped delete suites stayed
+green, which was the gate for reaching into them.
 
----
+**Two findings worth carrying forward:**
 
-## Carried forward — deliberately, not forgotten
+1. **R1's "the only in-tree callers are ScriviCore's own tests" was wrong** — `ScriviEngine.swift` wraps all
+   three widened endpoints. They took a defaulted `worldID: String = ""`, so every existing Swift call site is
+   source-compatible and the Apple layer gained world-scoped CRUD for free. *Treat "the only callers are X" as
+   a hypothesis; the sweep is what caught this.*
+2. ⚠️ **A duplicated kind list in `scrivi_c_api.cpp` rejected `source`** after the enum, schema, index, and
+   search extractor had all accepted it. It now delegates to `objectKindFromName`. **This is the same defect
+   shape as I-0113** — a boundary re-stating what the core already knows — found twice in one Epic.
+   *Before adding to `ObjectKind`, grep for other dispatch lists first.*
 
-1. **`source` is the only thing keeping EP-031 AC1 unticked.** Every kind named in AC1's original text now
-   round-trips, including the three that were gated. `source` was added to AC1 by the 2026-08-12 amendment and
-   is **T-0365's ScriviCore half → SP-098**. The `cites` relation type it pairs with already shipped in SP-096;
-   the aggregate `sources` card is SP-099.
-
-2. ⚠️ **`objects/timelines/` is a shared directory, and the docs got it wrong once already.** The `timeline`
-   *kind* is retired, but the directory holds the **live project timeline's** `timeline.meta.json`, written by
-   `ProjectCreator` into every new project. Package Structure §11 said "removed" until SP-097 corrected it to a
-   warning. A test asserts the file survives. Read that test before touching the directory.
-
-3. **The design docs have been wrong three sprints running** — §5.2's endpoint ID prefixes (SP-096 T-0402),
-   §6.5's `AtomicWrite` exclusive-create path (SP-097 T-0403), and §11's "removed" timelines directory. Each
-   was caught by checking shipped code at planning, none by reading the doc. **Keep budgeting planning time for
-   that check.**
-
-4. **The `platforms/linux` Qt Docker image cannot currently build** — the Docker VM's apt fails GPG
-   verification against every Ubuntu repo. Linux verification for SP-095/096/097 used Debian-based `gcc:14`
-   with no Qt (all three are pure ScriviCore), so this was not a blocker, but the next `[Linux]` sprint will
-   hit it directly. Environmental, not a code defect — no Issue opened.
-
-5. **T-0400 — history log-segment rotation.** 🟢 Nice-to-have (user ruling 2026-08-11), carried from EP-019.
-   Additive when done. No sprint assigned.
-
-6. **`HistoryCapture` is not in the test target** (EP-019 carry-over), so T-0396's timing logic has no
-   automated coverage; EP-019 AC2 items 5–8 rest on live verification alone.
+**EP-031 now has AC1, AC4, and AC7 met — 8 of 10, with 4 of 6 sprints closed.** Remaining: AC9/AC10 (the Apple
+cards, SP-099) and the Epic verification pass (SP-100).
 
 ---
 
-## Notes for SP-098
-
-- ⚠️ **T-0380 (pending-vs-dangling) is the Epic's highest-risk task** — Doc 3 §4.6 calls it the one failure
-  that is *silent and unrecoverable*: a prune pass that reads "world unavailable" as "endpoint deleted"
-  destroys every relationship into that world with nothing shown. It is now fully buildable and testable.
-- **`EndpointResolver` already distinguishes the two cases.** Its cached-index path deliberately leaves
-  `found == false` — the object is *named but unverified* while its world is away. **T-0380 should extend
-  that**, not introduce a parallel notion of pending.
-- **`WorldStatus` is the vocabulary for "why can't I see this?"** Cascade-prune must consult it *before*
-  pruning anything.
-- **`error.detail` is the discriminator scheme**: `worldUnavailable:<status>`, `worldIDMismatch`,
-  `worldLocked`, `duplicateEdge`, `alreadyExists`. Pending/dangling refusals should join it rather than have
-  callers string-match messages.
-- **Cascade-prune reaches into EP-027's shipped scene/chapter delete paths** (ruled at SP-097 planning:
-  both object *and* scene delete). That is a small, well-covered change — but it is shipped code.
+*Last Updated: 2026-08-12 (SP-098 closed, Human-approved. Sprint archived to `Closed/Sprint-SP-098.md`;
+this file reset for SP-099.)*

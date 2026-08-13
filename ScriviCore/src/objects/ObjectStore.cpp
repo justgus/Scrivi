@@ -2,6 +2,7 @@
 
 #include "domain/Slug.hpp"
 #include "objects/ObjectIndex.hpp"
+#include "objects/RelationshipStore.hpp"
 #include "worlds/WorldStore.hpp"
 #include "schemas/ObjectJson.hpp"
 #include "util/AtomicWrite.hpp"
@@ -390,10 +391,173 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
         (void)index.erase(request.projectRootPath, request.objectID);
     }
 
+    // Cascade-prune (T-0377, §5.5): the object's edges are tombstoned in the
+    // SAME operation, so the graph is never observed referencing a file that is
+    // already gone. Best-effort by design — the object IS deleted, and failing
+    // the whole call over the edge log would leave the caller believing nothing
+    // happened. A surviving edge is dangling, which load-time repair handles.
+    //
+    // ⚠️ cascadeDelete holds back any edge whose FAR end is in an unavailable
+    // world (Doc 3 §4.6). That is the guard, not an optimization.
+    RelationshipStore graph{services_};
+    (void)graph.cascadeDelete(request.projectRootPath, request.objectID.value);
+
     DeleteObjectResult result;
     result.objectID = request.objectID;
     result.deleted  = true;
     return Result<DeleteObjectResult>::success(std::move(result));
+}
+
+// ---------------------------------------------------------------------------
+// promote / demote (T-0379, §3.1)
+// ---------------------------------------------------------------------------
+
+Result<ObjectStore::PromoteResult>
+ObjectStore::promote(const AbsolutePath& projectRoot,
+                      const ObjectID& objectID,
+                      ObjectKind targetKind,
+                      const std::string& worldID) const
+{
+    auto& fs    = *services_.fileSystem;
+    auto& clock = *services_.clock;
+
+    if (auto r = checkKindStorable(targetKind); !r.ok()) {
+        return Result<PromoteResult>::failure(r.error());
+    }
+
+    // 1. Locate the object as it stands. The index is authoritative for ID→kind,
+    //    so the caller never has to tell us what the object currently IS —
+    //    which is the same property that keeps edges valid across this move.
+    //
+    //    Searched across BOTH partitions: demotion starts from an object living
+    //    in a world package, whose entry is in that world's index rather than
+    //    the project's (Doc 3 §6.1). A project-index-only lookup would make this
+    //    endpoint one-way.
+    ObjectIndex index{services_};
+    auto allR = index.loadAllVisible(projectRoot);
+    if (!allR.ok()) { return Result<PromoteResult>::failure(allR.error()); }
+
+    const ObjectIndexEntry* found = nullptr;
+    for (const auto& e : allR.value()) {
+        if (e.objectID.value == objectID.value) { found = &e; break; }
+    }
+    if (found == nullptr) {
+        return Result<PromoteResult>::failure(
+            {.code = ErrorCode::ioError, .message = "object not found: " + objectID.value});
+    }
+    const auto sourceKind    = found->kind;
+    const auto sourceWorldID = found->worldID;
+
+    if (sourceKind == targetKind) {
+        return Result<PromoteResult>::failure(
+            {.code    = ErrorCode::invalidArgument,
+             .message = "object is already a '" + objectKindName(targetKind) + "'",
+             .path    = {},
+             .detail  = "sameKind"});
+    }
+
+    // The target's scope decides which worldID applies: promotion needs one,
+    // demotion clears it.
+    const bool targetIsWorld = objectKindIsWorldScoped(targetKind);
+    const std::string destWorldID = targetIsWorld ? worldID : std::string{};
+    if (targetIsWorld && destWorldID.empty()) {
+        return Result<PromoteResult>::failure(
+            {.code    = ErrorCode::invalidArgument,
+             .message = "promoting to '" + objectKindName(targetKind) +
+                        "' requires a worldID",
+             .path    = {},
+             .detail  = "worldRequired"});
+    }
+
+    auto fromPathR = findByID(projectRoot, sourceKind, objectID, sourceWorldID);
+    if (!fromPathR.ok()) { return Result<PromoteResult>::failure(fromPathR.error()); }
+    const auto fromPath = fromPathR.value();
+
+    auto textR = fs.readTextFile(fromPath);
+    if (!textR.ok()) { return Result<PromoteResult>::failure(textR.error()); }
+
+    auto parseR = schemas::parseWorldObject(textR.value(), sourceKind);
+    if (!parseR.ok()) { return Result<PromoteResult>::failure(parseR.error()); }
+
+    // 2. Re-type the object, carrying every field across. ⚠️ objectID and slug
+    //    are copied UNCHANGED — the identity is the whole point, and the slug
+    //    keeps the file findable by the same name in its new home.
+    auto fields = worldObjectFields(parseR.value());
+    fields.worldID    = destWorldID;
+    fields.modifiedAt = clock.nowUTC();
+    const auto slug   = fields.slug;
+
+    auto dirR = kindDirFor(projectRoot, targetKind, destWorldID);
+    if (!dirR.ok()) { return Result<PromoteResult>::failure(dirR.error()); }
+    if (auto r = fs.createDirectories(dirR.value()); !r.ok()) {
+        return Result<PromoteResult>::failure(r.error());
+    }
+
+    const auto toPath = util::join(dirR.value(), slug + ".json");
+    if (auto ex = fs.exists(toPath); ex.ok() && ex.value()) {
+        return Result<PromoteResult>::failure(
+            {.code    = ErrorCode::invalidArgument,
+             .message = "an object with slug '" + slug + "' already exists in the destination",
+             .path    = toPath,
+             .detail  = "slugCollision"});
+    }
+
+    auto retyped = schemas::makeWorldObject(targetKind, std::move(fields));
+
+    // 3. WRITE THE DESTINATION BEFORE REMOVING THE SOURCE. If the write fails,
+    //    the object is still exactly where it was — the same ordering the rest
+    //    of the codebase uses for moves (I-0083's relocate-then-delete fix).
+    if (auto r = fs.atomicWriteTextFile(toPath, schemas::serializeWorldObject(retyped));
+        !r.ok()) {
+        return Result<PromoteResult>::failure(r.error());
+    }
+    if (auto r = fs.removeFile(fromPath); !r.ok()) {
+        // The destination exists but the source lingers — two files, one ID.
+        // Remove the copy so the object keeps a single home rather than leaving
+        // the index a choice of two.
+        (void)fs.removeFile(toPath);
+        return Result<PromoteResult>::failure(r.error());
+    }
+
+    // 4. Move the index entry between partitions. A world's index is its own
+    //    (Doc 3 §6.1), so this is an erase on one side and an upsert on the
+    //    other, never an in-place edit.
+    ObjectIndexEntry entry;
+    entry.objectID    = objectID;
+    entry.kind        = targetKind;
+    entry.slug        = slug;
+    entry.displayName = worldObjectFields(retyped).displayName;
+    entry.worldID     = destWorldID;
+
+    worlds::WorldStore ws{services_};
+    if (objectKindIsWorldScoped(sourceKind)) {
+        auto srcPkg = util::parent(util::parent(fromPath));
+        (void)index.eraseWorld(srcPkg, objectID);
+        (void)ws.refreshCachedIndex(projectRoot, sourceWorldID, srcPkg);
+    } else {
+        (void)index.erase(projectRoot, objectID);
+    }
+
+    if (targetIsWorld) {
+        auto dstPkg = util::parent(dirR.value());
+        (void)index.upsertWorld(dstPkg, entry);
+        (void)ws.refreshCachedIndex(projectRoot, destWorldID, dstPkg);
+    } else {
+        (void)index.upsert(projectRoot, entry);
+    }
+
+    // ⚠️ NOTE WHAT IS ABSENT: relationships.jsonl is never opened. Zero edges
+    // are read, rewritten, or tombstoned. That is the acceptance criterion
+    // (§9 AC8), not merely an implementation detail — every edge still resolves
+    // because it never named the kind in the first place.
+
+    PromoteResult result;
+    result.objectID = objectID;
+    result.kind     = targetKind;
+    result.worldID  = destWorldID;
+    result.fromPath = fromPath;
+    result.toPath   = toPath;
+    return Result<PromoteResult>::success(std::move(result));
 }
 
 } // namespace scrivi::objects

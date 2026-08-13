@@ -19,10 +19,11 @@ namespace scrivi {
 // Kinds are split by OWNERSHIP (Worldbuilding Object Model v0.2 §3):
 //
 //   PROJECT-scoped — live under objects/<subdir>/ in the .scrivi package.
-//   WORLD-scoped   — live under a world package (worlds/<worldID>/<subdir>/).
-//                    Declared here so the enum and the object index know the
-//                    complete kind set, but NOT creatable until EP-031 SP-098
-//                    supplies world packages. See objectKindIsWorldScoped.
+//   WORLD-scoped   — live inside a `.scrivworld` package (SP-097), reached
+//                    through the project's binding. Creatable since SP-098
+//                    widened the C ABI with `worldID` (T-0405, I-0113); before
+//                    that they were storable but unreachable at the boundary.
+//                    See objectKindIsWorldScoped.
 //
 // ObjectKind::timeline was retired in SP-095 (v0.2 §3.2, T4=A) — the Timeline
 // Panel owns story-time, not this enum. NOTE: retiring the KIND did not retire
@@ -38,8 +39,9 @@ enum class ObjectKind : std::uint8_t {
     building,
     vehicle,
     map,
+    source,     // a cited work — book, paper, interview (SP-098 T-0406)
 
-    // World-scoped (declared; gated until SP-098)
+    // World-scoped
     rule,
     artifact,
     chronicle,
@@ -61,6 +63,7 @@ inline std::string objectKindSubdir(ObjectKind kind) {
         case ObjectKind::building:  return "buildings";
         case ObjectKind::vehicle:   return "vehicles";
         case ObjectKind::map:       return "maps";
+        case ObjectKind::source:    return "sources";
         case ObjectKind::rule:      return "rules";
         case ObjectKind::artifact:  return "artifacts";
         case ObjectKind::chronicle: return "chronicles";
@@ -80,6 +83,7 @@ inline std::string objectKindName(ObjectKind kind) {
         case ObjectKind::building:  return "building";
         case ObjectKind::vehicle:   return "vehicle";
         case ObjectKind::map:       return "map";
+        case ObjectKind::source:    return "source";
         case ObjectKind::rule:      return "rule";
         case ObjectKind::artifact:  return "artifact";
         case ObjectKind::chronicle: return "chronicle";
@@ -94,8 +98,8 @@ inline std::string objectKindName(ObjectKind kind) {
 inline std::optional<ObjectKind> objectKindFromName(std::string_view name) {
     for (auto k : {ObjectKind::character, ObjectKind::location,  ObjectKind::item,
                    ObjectKind::building,  ObjectKind::vehicle,   ObjectKind::map,
-                   ObjectKind::rule,      ObjectKind::artifact,  ObjectKind::chronicle,
-                   ObjectKind::faction,   ObjectKind::world}) {
+                   ObjectKind::source,    ObjectKind::rule,      ObjectKind::artifact,
+                   ObjectKind::chronicle, ObjectKind::faction,   ObjectKind::world}) {
         if (objectKindName(k) == name) { return k; }
     }
     return std::nullopt;
@@ -174,6 +178,7 @@ struct ItemObject      : WorldObjectFields {};
 struct BuildingObject  : WorldObjectFields {};
 struct VehicleObject   : WorldObjectFields {};
 struct MapObject       : WorldObjectFields {};
+struct SourceObject    : WorldObjectFields {};
 struct RuleObject      : WorldObjectFields {};
 struct ArtifactObject  : WorldObjectFields {};
 struct ChronicleObject : WorldObjectFields {};
@@ -191,6 +196,7 @@ using WorldObject = std::variant<
     BuildingObject,
     VehicleObject,
     MapObject,
+    SourceObject,
     RuleObject,
     ArtifactObject,
     ChronicleObject,
@@ -220,6 +226,7 @@ inline ObjectKind worldObjectKind(const WorldObject& obj) {
         else if constexpr (std::is_same_v<U, BuildingObject>)  { return ObjectKind::building; }
         else if constexpr (std::is_same_v<U, VehicleObject>)   { return ObjectKind::vehicle; }
         else if constexpr (std::is_same_v<U, MapObject>)       { return ObjectKind::map; }
+        else if constexpr (std::is_same_v<U, SourceObject>)    { return ObjectKind::source; }
         else if constexpr (std::is_same_v<U, RuleObject>)      { return ObjectKind::rule; }
         else if constexpr (std::is_same_v<U, ArtifactObject>)  { return ObjectKind::artifact; }
         else if constexpr (std::is_same_v<U, ChronicleObject>) { return ObjectKind::chronicle; }

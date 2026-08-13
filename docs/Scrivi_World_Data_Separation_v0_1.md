@@ -429,6 +429,18 @@ Reads need no lock and never block (§4.4.2). Writes take an exclusive lock on t
 }
 ```
 
+> ⚠️ **AMENDED 2026-08-12 (SP-098 planning audit) — `holder.host` and `holder.pid` are placeholders.**
+> As implemented (SP-097 T-0383) the lock record writes `host: "local"` and `pid: 0`. **Neither is obtainable
+> from ScriviCore**: the hostname and process ID are platform facts, and `CoreServices` exposes no provider for
+> them (Architecture v0.3 keeps the core free of platform APIs). The fields are **diagnostic only** — nothing
+> in the protocol reads them — so the lock's correctness is unaffected: exclusivity comes from
+> `createFileExclusive`, and staleness from `heartbeatAt`, both of which work as specified.
+>
+> **The consequence is honest reporting, not safety.** A writer told "locked by another writer" cannot be told
+> *which* machine or process holds it. Populating them properly needs a `CoreServices` host/PID provider
+> supplied by each platform layer — worth doing when the warning surface (Doc 2 §7.2) is built and has
+> somewhere to display it, **not** before. Until then the fields stay honest placeholders rather than guesses.
+
 - **A lock file, not an OS advisory lock** — advisory-lock semantics differ across Scrivi's seven targets and
   behave poorly on network volumes, which is exactly where a shared world will live. A file is portable.
 - **Acquire** = atomic create-if-absent (`AtomicWrite`'s exclusive-create path). Losing the race means waiting.
@@ -527,6 +539,16 @@ const char* scrivi_set_timeline_epoch_offset(const char* projectRootPath, const 
 /* Pending edges (§4.6) */
 const char* scrivi_list_pending_edges(const char* projectRootPath);
 ```
+
+> **Implementation status after SP-098 (2026-08-12).** All of the above now ship, including
+> **`scrivi_list_pending_edges`** (T-0380) — each row carries the pending endpoint's **cached displayName**
+> (AC-A7), its `worldID`, and its status. `scrivi_list_edges_for` also flags a pending far endpoint
+> (`otherPending` + `otherWorldStatus`), and the graph is **frozen** toward an unavailable world in both
+> directions: create/delete edge refuse with `detail == "worldPending:<status>"`. `scrivi_get_world_binding` was added beyond this list (Doc 1 §6 declares it) and also ships.
+> Signatures match as written. `scrivi_import_world` was never implemented — see the note below.
+>
+> One naming note: this section's `worldPackagePath` parameter ships as `packagePath`; the meaning is
+> identical.
 
 `scrivi_import_world` (stubbed in Doc 1 §6) is **superseded** by `scrivi_add_world`, which references rather than
 copies — worlds are shared, not duplicated (W6=A).
