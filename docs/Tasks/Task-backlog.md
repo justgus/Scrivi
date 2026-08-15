@@ -55,7 +55,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: `cites` type ✅ SP-096; `source` kind ✅ SP-098 as T-0406; card → SP-099**) | 🟡 **Two thirds done** — the `cites`/`documented-by` type (SP-096) and the `source` kind (SP-098 T-0406) are both ✅ Verified. **Only the aggregate `sources` card remains, in SP-099.** Source→scene deferred to **EP-032** |
+| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: `cites` type ✅ SP-096; `source` kind ✅ SP-098 as T-0406; card → SP-102**) | 🟡 **Two thirds done** — the `cites`/`documented-by` type (SP-096) and the `source` kind (SP-098 T-0406) are both ✅ Verified. **Only the aggregate `sources` card remains, moved SP-099 → SP-102 at SP-099 planning (R2).** Source→scene deferred to **EP-032** |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
@@ -89,10 +89,14 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
-| T-0386 | Object cards (one implementation, per-kind config) | EP-031 (**SP-099**) | 🔵 Backlog |
-| T-0387 | Object picker (unfiltered) + type-ahead + "Create new…" | EP-031 (**SP-099**) | 🔵 Backlog |
-| T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (**SP-099**) | 🔵 Backlog |
-| T-0389 | Pending presentation + Worlds menu + warning view | EP-031 (**SP-099**) | 🔵 Backlog |
+| T-0407 | ⚠️ **`ScriviEngine` graph + world wrappers** — 14 endpoints (12 planned + `createWorld`/`addWorld`); **+ `detail` on `ScriviError` and the null-result decode fix** | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
+| T-0408 | **Worlds menu** — list / create / bind + picker scope line (new at R4; `listWorlds` had **zero** UI call sites) | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
+| T-0409 | ⚠️ **`objectKindIsWorldScoped` → all ten kinds world-scoped** (`source` excluded); update `ObjectStore` scope sites + C ABI kind table | EP-031 (**SP-103**) | 🔵 Backlog |
+| T-0411 | Core + interop test realignment to world scope; **re-verify EP-031 AC1** under the new table | EP-031 (**SP-103**) | 🔵 Backlog |
+| T-0386 | Object cards (ONE implementation, ten per-kind configurations) | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
+| T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point (disabled → T-0388) | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
+| T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (**SP-099** — ⬅ pulled back from SP-102 at R4) | 🟠 **Implemented - Not Verified (2026-08-13)** |
+| T-0389 | Pending presentation + Worlds menu + warning view (**⚠️ includes the unbuilt `offline`/`unmounted` status refinement — AC24**) | EP-031 (**SP-102** — split from SP-099, R2) | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0391 | EP-031 verification + Epic close prep | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | ⚪ **Closed — OBE (2026-08-05, user-directed)** |
@@ -591,8 +595,30 @@ Detail is written at each sprint's planning. **SP-098** (post-swap) — cascade-
 delete, orphan queries, `promote_object`, and ⚠️ **T-0380 pending-vs-dangling, the Epic's highest-risk task**,
 the one failure that is *silent and unrecoverable*; **plus T-0365's ScriviCore half** (the `source` object
 kind — the `cites` relation type itself already shipped in SP-096). All four are unblocked by SP-097's worlds.
-**SP-099** object cards on EP-030's framework (T-0386–T-0389) **plus T-0365's aggregate `sources` card**.
-**SP-100** repair matrix + verification (T-0390, T-0391).
+~~**SP-099** object cards on EP-030's framework (T-0386–T-0389) **plus T-0365's aggregate `sources` card**.~~
+⚠️ **SPLIT at SP-099 planning, 2026-08-13 (R2, user-approved).** The staged sprint carried 5 tasks plus an
+entire unplanned engine layer:
+
+- **SP-099** — **T-0407** (⚠️ new: the 12 graph/world endpoints have **no** `ScriviEngine` wrappers; **do
+  first**, tested through `scrivi_*`) + **T-0386** object cards + **T-0387** picker → **AC16/17/21/22**.
+- **SP-102** (new) — **T-0388** in-stack create/edit + **T-0389** pending presentation / Worlds menu / warning
+  view + **T-0365's aggregate `sources` card** → **AC18/19/20/23/24**. ⚠️ T-0389 also carries the
+  **`offline`/`unmounted` status refinement**, which is declared in `WorldTypes.hpp:68` but **produced
+  nowhere in `ScriviCore/src`** — AC24 rests on Apple-layer work no staged task named.
+
+**SP-100** repair matrix + verification (T-0390, T-0391) — **keeps its number**, runs last. EP-031 is now a
+**7-sprint** Epic.
+
+**T-0407 — ⚠️ `ScriviEngine` graph + world wrappers (do first).** All 12 endpoints — `create_edge`,
+`delete_edge`, `list_edges_for`, `list_pending_edges`, `list_objects`, `list_orphaned_objects`,
+`promote_object`, `list_worlds`, `get_world_status`, `relink_world`, `remove_world_reference`,
+`list_relation_types` — exist and are exported in `scrivi.h` and **grep to zero call sites** in
+`ScriviEngine.swift`, which has object CRUD only (`:237–318`). Follow the established `withCString` +
+`decodeC` pattern. `list_edges_for` rows must carry `otherPending` / `otherDisplayName` / `otherWorldStatus`
+into Swift **even though nothing consumes them until SP-102** — dropping them forces a second pass over the
+same decode. `detail == "worldPending:<status>"` must stay distinguishable in `ScriviError`, since SP-102's
+frozen-graph refusal reads it. **Tests go through `scrivi_*`**, per the I-0113 standing habit — a Swift-only
+test cannot see a boundary gap.
 
 ---
 

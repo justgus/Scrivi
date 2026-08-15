@@ -32,16 +32,21 @@ namespace scrivi {
 // -----------------------------------------------------------------------
 
 enum class ObjectKind : std::uint8_t {
-    // Project-scoped
+    // ⚠️ World-scoped as of SP-103 (2026-08-14) — these were project-scoped
+    // until the scope ruling in Doc 1 §3.0. They now live in the .scrivworld
+    // package. See objectKindIsWorldScoped.
     character,
     location,
     item,
     building,
     vehicle,
     map,
+
+    // Project-scoped — the ONLY one. A citation documents a real-world
+    // publication supporting THIS manuscript, not the invented world.
     source,     // a cited work — book, paper, interview (SP-098 T-0406)
 
-    // World-scoped
+    // World-scoped (and always were)
     rule,
     artifact,
     chronicle,
@@ -55,6 +60,30 @@ enum class ObjectKind : std::uint8_t {
 // Returns the subdirectory name for a given kind (e.g. "characters").
 // For world-scoped kinds this is the name WITHIN the world package; it is
 // never joined to objects/ (ObjectStore rejects those kinds first).
+// ⚠️ THE canonical list of storable kinds — every ObjectKind except the `world`
+// container. Anything that needs to iterate kinds (index rebuilds, package
+// scaffolding, scans) MUST use this rather than restating the set.
+//
+// Restated kind lists are this Epic's recurring defect: I-0113, SP-098's
+// `source` table, SP-103's index scan table, and SP-104's world-package
+// skeleton — four occurrences, each silently naming a stale partition. The
+// standing rule "grep before adding a kind" was not enough, because a list can
+// also go wrong when a kind's SCOPE changes and its own text stays untouched.
+// Derive from this list and `objectKindIsWorldScoped()`; never restate either.
+inline constexpr ObjectKind kAllStorableKinds[] = {
+    ObjectKind::character,
+    ObjectKind::location,
+    ObjectKind::item,
+    ObjectKind::building,
+    ObjectKind::vehicle,
+    ObjectKind::map,
+    ObjectKind::source,
+    ObjectKind::rule,
+    ObjectKind::artifact,
+    ObjectKind::chronicle,
+    ObjectKind::faction,
+};
+
 inline std::string objectKindSubdir(ObjectKind kind) {
     switch (kind) {
         case ObjectKind::character: return "characters";
@@ -111,16 +140,47 @@ inline std::optional<ObjectKind> objectKindFromName(std::string_view name) {
 // manuscript, so they live at worlds/<worldID>/rules/ (Doc 1 §3, Doc 3 §7.2).
 // No migration was written — Scrivi has not shipped, so there is no field data
 // at objects/rules/; developer fixtures were regenerated instead.
+// ⚠️ SP-103 / T-0409 (user ruling 2026-08-14, Doc 1 §3.0): EVERY worldbuilding
+// kind is world-scoped. `source` is the ONLY project-scoped object kind.
+//
+// Why the list inverted: a writer asked why a character she might reuse in
+// another project was stored in the PROJECT, noting she would have to "promote
+// her to the world first." She could not — there was no world-scoped character
+// kind, so promotion would have turned her into an `artifact`, a category error
+// rather than reuse. Cross-project character reuse had NO supported path.
+//
+// The model now says: a worldbuilding object IS a thing in a world. A project is
+// a MANUSCRIPT (scenes, chapters, structure, timeline) that REFERENCES world
+// objects through the relationship graph. Reuse falls out of binding the same
+// world — no promotion step, no duplication.
+//
+// `source` stays project-scoped on its own merits: a citation points at a
+// REAL-WORLD publication, or is a footnote/authorial comment on the manuscript.
+// It documents research supporting THIS manuscript, not a fact about the
+// invented world — and keeping it here stops a shared world from dragging one
+// project's bibliography into every project that binds it. `cites` edges still
+// cross the partition (SP-097 made cross-partition resolution work).
+//
+// Written as an explicit enumeration rather than `kind != source` so that adding
+// a kind forces a deliberate scope decision at this site.
 inline bool objectKindIsWorldScoped(ObjectKind kind) {
     switch (kind) {
         case ObjectKind::artifact:
+        case ObjectKind::building:
+        case ObjectKind::character:
         case ObjectKind::chronicle:
         case ObjectKind::faction:
+        case ObjectKind::item:
+        case ObjectKind::location:
+        case ObjectKind::map:
         case ObjectKind::rule:
+        case ObjectKind::vehicle:
             return true;
-        default:
+        case ObjectKind::source:   // the sole project-scoped object kind
+        case ObjectKind::world:    // container; created by scrivi_create_world
             return false;
     }
+    return false;
 }
 
 // -----------------------------------------------------------------------

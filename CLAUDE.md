@@ -133,6 +133,32 @@ Common pitfalls to avoid (Apple):
 
 ---
 
+## Standing rule: kind lists must be DERIVED, never restated
+
+**Any list that partitions or enumerates `ObjectKind` must derive from `scrivi::kAllStorableKinds`
+(`ScriviCore/include/scrivi/ObjectTypes.hpp`) and `objectKindIsWorldScoped()` — in C++, Swift, and QML
+alike. A restatement is a defect on sight, even when it is currently correct.**
+
+This is EP-031's most repeated defect: **seven occurrences** — I-0113 (C ABI kind gap), SP-098's `source`
+table, SP-103's `kScannedKinds`, SP-104's world-package skeleton, SP-104's Swift
+`ObjectCardKind.isWorldScoped` (which blocked object creation in the app entirely), the
+`extractSearchableText` caller list (I-0118 — this one silently cost Spotlight reach), and test
+fixtures hardcoding `objects/<subdir>`.
+
+Two things make it recur, both worth knowing before writing kind-handling code:
+
+1. **A list rots without being edited.** The earlier rule — "grep for other dispatch lists before adding a
+   kind" — misses the common case. Occurrences 4 and 5 broke with no kind added and neither list touched;
+   they went stale when a kind's *scope* changed and their own text still read correctly.
+2. **It is not only a C++ concern.** Occurrence 5 was in Swift. Scope decisions cross the ABI as data, so
+   any platform layer that hardcodes which kinds are world-scoped will drift the same way.
+
+When a kind's scope changes, grep every language for the kind names together
+(`character`, `location`, `item`, `building`, `vehicle`, `map`, `source`, `rule`, `artifact`,
+`chronicle`, `faction`) — not just for the enum.
+
+---
+
 ## Repository Structure
 
 ```

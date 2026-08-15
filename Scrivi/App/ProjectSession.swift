@@ -88,6 +88,8 @@ import os
     }
     var timelineVisible: Bool = true
     var showProjectSettings: Bool = false
+    /// Worlds manager sheet (EP-031 SP-099 T-0408).
+    var showWorlds: Bool = false
 
     init(engine: ScriviEngine,
          authorshipRef: AuthorshipRef?,
@@ -199,6 +201,7 @@ import os
         projectPreferences = nil
         timelineModel = nil
         showProjectSettings = false
+        showWorlds = false
         pendingNavigationSceneID = nil
     }
 

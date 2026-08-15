@@ -2158,6 +2158,12 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath) {
     doc.setString("domainIdentifier", v.domainIdentifier);
     doc.setString("projectRootPath",  v.projectRootPath);
 
+    // ⚠️ I-0118: the world domains present in `items`. The donor indexes these
+    // separately from the project domain; it must NEVER delete them (Q1).
+    for (const auto& d : v.worldDomainIdentifiers) {
+        doc.appendStringToArray("worldDomainIdentifiers", d);
+    }
+
     for (const auto& it : v.items) {
         scrivi::util::JsonDoc item;
         item.setString("uniqueIdentifier", it.uniqueIdentifier);
@@ -2168,6 +2174,9 @@ const char* scrivi_extract_searchable_text(const char* projectRootPath) {
         // Optional fields: omitted (not null) when empty, per the schema.
         if (!it.containerTitle.empty())    { item.setString("containerTitle", it.containerTitle); }
         if (!it.contentDescription.empty()){ item.setString("contentDescription", it.contentDescription); }
+        // ⚠️ Empty means "the result's domainIdentifier" (the project). Emitting
+        // it only when set keeps every project item byte-identical to before.
+        if (!it.domainIdentifier.empty())  { item.setString("domainIdentifier", it.domainIdentifier); }
         for (const auto& kw : it.keywords) { item.appendStringToArray("keywords", kw); }
         doc.appendToArray("items", std::move(item));
     }

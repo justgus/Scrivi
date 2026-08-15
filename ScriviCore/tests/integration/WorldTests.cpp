@@ -254,6 +254,55 @@ TEST_CASE("an unresolvable reference falls back to 'unavailable', never a guess"
     REQUIRE(res.status == WorldStatus::unavailable);
 }
 
+TEST_CASE("a new world package has a directory for EVERY world-scoped kind",
+          "[integration][SP-104]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+    const auto pkg = fix.pkg("Midgard");
+
+    // ⚠️ The skeleton was seven hardcoded literals naming the PRE-SP-104 scope,
+    // so a world created after T-0409 had no characters/ directory. Asserting
+    // the DERIVED set means a kind whose scope changes cannot leave it stale —
+    // this is the assertion the four earlier restatements never had.
+    for (auto kind : kAllStorableKinds) {
+        if (!objectKindIsWorldScoped(kind)) { continue; }
+        INFO("world-scoped kind: " << objectKindName(kind));
+        REQUIRE(fs::is_directory(fs::path(pkg) / objectKindSubdir(kind)));
+    }
+
+    // ...and the project-scoped kind must NOT get one here.
+    REQUIRE_FALSE(fs::exists(fs::path(pkg) / objectKindSubdir(ObjectKind::source)));
+}
+
+TEST_CASE("a PRESENT but UNREADABLE package is never reported as 'missing'",
+          "[integration][SP-104]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // ⚠️ THE SANDBOX CASE. The package is intact on disk, but unreadable — which
+    // is exactly what the macOS App Sandbox produces for a world outside the
+    // granted paths. Simulated here by removing read permission.
+    //
+    // This previously reported `missing`, because a failed read plus a readable
+    // PARENT was taken as proof of absence. A writer was told an intact world
+    // was gone — the precise error §4.6 forbids, since "missing" invites
+    // destructive remedies (clear the reference, restore from backup).
+    const auto pkg = fix.pkg("Midgard");
+    std::error_code ec;
+    fs::permissions(pkg, fs::perms::none, ec);
+    if (ec) { SUCCEED("cannot drop permissions here"); return; }
+
+    WorldStore store{fix.services};
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    // Restore before asserting, so a failure cannot leave the tree unremovable.
+    fs::permissions(pkg, fs::perms::owner_all, ec);
+
+    REQUIRE(res.status != WorldStatus::available);
+    REQUIRE(res.status != WorldStatus::missing);      // the defect
+    REQUIRE(res.status == WorldStatus::unavailable);  // the honest answer
+}
+
 TEST_CASE("relink verifies identity before accepting a new path",
           "[integration][T-0382]") {
     WorldFixture fix;
@@ -568,11 +617,15 @@ TEST_CASE("a cross-partition edge resolves like a same-partition one (AC10)",
     WorldFixture fix;
     auto w = fix.makeWorld();
 
-    // Project-scoped character…
+    // ⚠️ SP-104: the project-side endpoint is now `source`. A `character` is
+    // world-scoped since T-0409, so a character↔artifact pair is same-partition
+    // and could not exercise AC10 at all — the assertion would have passed
+    // while testing nothing. `source` is the sole project-scoped kind, which is
+    // what makes this pair genuinely cross-partition.
     CreateObjectRequest creq;
     creq.projectRootPath = fix.root();
-    creq.objectKind      = ObjectKind::character;
-    creq.displayName     = "Ada";
+    creq.objectKind      = ObjectKind::source;
+    creq.displayName     = "Ada's Field Notes";
     creq.author          = fix.author;
     auto ada = fix.core.createObject(creq);
     REQUIRE(ada.ok());

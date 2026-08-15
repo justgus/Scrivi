@@ -27,6 +27,7 @@
 #include "inbox/InboxStore.hpp"
 #include "platform/AppSupportLayout.hpp"
 #include "workspace/WorkspaceStateService.hpp"
+#include "worlds/WorldStore.hpp"
 #include "schemas/ExternalTimelineJson.hpp"
 #include "schemas/HistoricalEventJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
@@ -1039,16 +1040,25 @@ namespace {
 // NB: the singular kind name now comes from scrivi::objectKindName in
 // ObjectTypes.hpp — the local copy here was a second switch to keep in sync.
 
-// Appends one record per *.json world object in objects/<subdir>/ to `items`.
+// Appends one record per *.json world object in <baseDir>/<subdir>/ to `items`.
 // Best-effort: unparseable files are skipped (a malformed object should not
 // fail the whole index extraction).
+//
+// ⚠️ I-0118: `baseDir` used to be hardcoded as <project>/objects. It is now
+// passed in, because a world-scoped object lives in the .scrivworld package —
+// and since T-0409 that is every kind except `source`.
+//
+// `linkQuery` is the deep-link ownership clause ("project=<id>" or
+// "world=<id>") and `domain` the Spotlight domain; both are supplied by the
+// caller so this function never has to know which side it is scanning.
 void collectObjects(CoreServices& services,
-                    const AbsolutePath& projectRoot,
-                    const std::string& projectID,
+                    const AbsolutePath& baseDir,
+                    const std::string& linkQuery,
+                    const std::string& domain,
                     ObjectKind kind,
                     std::vector<SearchableItem>& items) {
     auto& fs  = *services.fileSystem;
-    auto  dir = util::join(util::join(projectRoot, "objects"), objectKindSubdir(kind));
+    auto  dir = util::join(baseDir, objectKindSubdir(kind));
 
     auto existsR = fs.exists(dir);
     if (!existsR.ok() || !existsR.value()) { return; }
@@ -1073,8 +1083,61 @@ void collectObjects(CoreServices& services,
         item.displayName        = f.displayName;
         item.contentDescription = f.notes;
         item.keywords           = f.tags;
-        item.deepLink           = "scrivi://open?project=" + projectID
+        item.deepLink           = "scrivi://open?" + linkQuery
                                 + "&item=" + item.uniqueIdentifier;
+        item.domainIdentifier   = domain;
+        items.push_back(std::move(item));
+    }
+}
+
+// Appends one record per *.json file in a world's NON-OBJECT directories
+// (Q4: index the whole package, not just object kinds).
+//
+// Deliberately schema-light: it reads `displayName`/`title`, `notes` and
+// `tags` if present and skips anything it cannot parse. A historical event and
+// an asset are shaped differently, and a hard parse per kind would make one
+// malformed file cost the rest — the same best-effort posture as collectObjects.
+void collectWorldExtras(CoreServices& services,
+                        const AbsolutePath& packagePath,
+                        const std::string& linkQuery,
+                        const std::string& domain,
+                        std::string_view subdir,
+                        std::string_view kindName,
+                        std::string_view idKey,
+                        std::vector<SearchableItem>& items) {
+    auto& fs  = *services.fileSystem;
+    auto  dir = util::join(packagePath, std::string{subdir});
+
+    auto existsR = fs.exists(dir);
+    if (!existsR.ok() || !existsR.value()) { return; }
+
+    auto listR = fs.listDirectory(dir);
+    if (!listR.ok()) { return; }
+
+    for (const auto& entry : listR.value()) {
+        if (util::extension(entry) != ".json") { continue; }
+        auto textR = fs.readTextFile(entry);
+        if (!textR.ok()) { continue; }
+        auto docR = util::parseJson(textR.value());
+        if (!docR.ok()) { continue; }
+        const auto& doc = docR.value();
+
+        auto id = doc.getString(std::string{idKey});
+        if (id.empty()) { continue; }   // no identity ⇒ nothing stable to index
+
+        auto name = doc.getString("displayName");
+        if (name.empty()) { name = doc.getString("title"); }
+        if (name.empty()) { continue; }
+
+        SearchableItem item;
+        item.uniqueIdentifier   = std::string{kindName} + ":" + id;
+        item.kind               = std::string{kindName};
+        item.title              = name;
+        item.displayName        = name;
+        item.contentDescription = doc.getString("notes");
+        item.deepLink           = "scrivi://open?" + linkQuery
+                                + "&item=" + item.uniqueIdentifier;
+        item.domainIdentifier   = domain;
         items.push_back(std::move(item));
     }
 }
@@ -1135,18 +1198,79 @@ Result<ExtractSearchableTextResult> ScriviCore::extractSearchableText(
     // A missing/empty manuscript is not fatal for indexing — degenerate projects
     // still yield the project record (and any world objects).
 
-    // 3. World-object records — every project-scoped kind.
+    // 3. World-object records.
     //
-    // `timeline` was retired as an ObjectKind in SP-095; the project timeline
-    // is not a world object and is indexed elsewhere. World-scoped kinds
-    // Project-scoped kinds only. `rule` joined the world-scoped set in SP-097, so
-    // it is no longer under objects/; indexing the contents of a world package is
-    // future work — a world is shared between projects, so whose search index it
-    // belongs to is a question this Epic has not answered.
-    for (auto kind : {ObjectKind::character, ObjectKind::location, ObjectKind::item,
-                      ObjectKind::building, ObjectKind::vehicle, ObjectKind::map,
-                      ObjectKind::source}) {
-        collectObjects(services_, request.projectRootPath, projectID, kind, out.items);
+    // `timeline` was retired as an ObjectKind in SP-095; the project timeline is
+    // not a world object and is indexed elsewhere.
+    //
+    // ⚠️ SP-104: this was a LITERAL kind list naming the pre-T-0409 partition —
+    // another restatement (see the standing rule in ObjectTypes.hpp). It is now
+    // derived, so a scope change cannot leave it stale.
+    //
+    const std::string projectQuery = "project=" + projectID;
+    const auto projectObjectsDir   = util::join(request.projectRootPath, "objects");
+
+    for (auto kind : kAllStorableKinds) {
+        if (objectKindIsWorldScoped(kind)) { continue; }
+        collectObjects(services_, projectObjectsDir, projectQuery, /*domain=*/{},
+                       kind, out.items);
+    }
+
+    // 4. World-object records (I-0118, ruled 2026-08-14).
+    //
+    // ⚠️ Each world's items are donated under their OWN domain, "world_<id>",
+    // never the project's. A world is shared between projects and outlives every
+    // one of them, so binding it to a project domain would mean one project's
+    // teardown wiping another's search results.
+    //
+    // ⚠️ Deep links are WORLD-scoped (Q2) — a character bound by three projects
+    // has no single owning project, and a project-scoped link would break as
+    // soon as that project was deleted.
+    //
+    // Unavailable worlds are SKIPPED, not pruned (Q3): their previously donated
+    // entries stay in Spotlight. A disconnected volume must never make a
+    // writer's cast vanish from search — the I-0115 principle, applied here.
+    // Consequently a hit may open into an unavailable world, which the open path
+    // reports honestly rather than pre-empting.
+    {
+        worlds::WorldStore ws{services_};
+        auto worldsR = ws.listWorlds(request.projectRootPath);
+        if (worldsR.ok()) {
+            for (const auto& w : worldsR.value()) {
+                if (w.status != worlds::WorldStatus::available) { continue; }
+
+                // ⚠️ The worldID ALREADY carries a "world_" prefix
+                // (WorldStore.cpp:101), so the domain is the worldID itself.
+                // Prefixing again produced "world_world_<uuid>" — cosmetic, but
+                // it would have been stamped into every donated Spotlight entry
+                // and is far cheaper to fix before any are in the index than
+                // after. Project domains are bare projectIDs, so the two
+                // namespaces stay disjoint without a synthetic prefix.
+                const std::string domain = w.worldID;
+                const std::string query  = "world=" + w.worldID;
+                out.worldDomainIdentifiers.push_back(domain);
+
+                for (auto kind : kAllStorableKinds) {
+                    if (!objectKindIsWorldScoped(kind)) { continue; }
+                    collectObjects(services_, w.packagePath, query, domain,
+                                   kind, out.items);
+                }
+
+                // Q4 — the whole package, not only object kinds. These are not
+                // ObjectKinds and have no subdir mapping, so they are named
+                // explicitly; `assets` carries per-file metadata sidecars.
+                collectWorldExtras(services_, w.packagePath, query, domain,
+                                   "historical-events", "historical-event",
+                                   "eventID", out.items);
+                collectWorldExtras(services_, w.packagePath, query, domain,
+                                   "historical-timelines", "historical-timeline",
+                                   "timelineID", out.items);
+                collectWorldExtras(services_, w.packagePath, query, domain,
+                                   "assets", "asset", "assetID", out.items);
+            }
+        }
+        // A world that cannot be listed costs its own records, never the
+        // project's — the project half above is already in `out.items`.
     }
 
     return Result<ExtractSearchableTextResult>::success(std::move(out));

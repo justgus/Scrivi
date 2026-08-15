@@ -21,6 +21,7 @@
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		C011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		C012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
@@ -30,6 +31,7 @@
 		C035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
 		C036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		C037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		C074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
 		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		C050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
 		C060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
@@ -40,6 +42,9 @@
 		C066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
 		C067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
 		C068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		C071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
+		C072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
+		C073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		C069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
@@ -56,6 +61,7 @@
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		D011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		D012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
@@ -64,6 +70,7 @@
 		D035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
 		D036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		D037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		D074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
 		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		D050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
 		D060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
@@ -74,6 +81,9 @@
 		D066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
 		D067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
 		D068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		D071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
+		D072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
+		D073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		D069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
@@ -90,6 +100,7 @@
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		E011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		E012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
@@ -98,6 +109,7 @@
 		E035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
 		E036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		E037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
+		E074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
 		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		E050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
 		E060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
@@ -108,6 +120,9 @@
 		E066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
 		E067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
 		E068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		E071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
+		E072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
+		E073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
 		E069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
 		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
@@ -116,6 +131,7 @@
 		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
 		F010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		F011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
+		F012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		F020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 /* End PBXBuildFile section */
 
@@ -133,6 +149,7 @@
 		ASSETS_REF /* Scrivi/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Scrivi/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		B010 /* ScriviEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngine.swift; path = Scrivi/Engine/ScriviEngine.swift; sourceTree = SOURCE_ROOT; };
 		B011 /* ScriviError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviError.swift; path = Scrivi/Engine/ScriviError.swift; sourceTree = SOURCE_ROOT; };
+		B012 /* ScriviEngineGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngineGraph.swift; path = Scrivi/Engine/ScriviEngineGraph.swift; sourceTree = SOURCE_ROOT; };
 		C001 /* ScriviApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviApp.swift; path = Scrivi/App/ScriviApp.swift; sourceTree = SOURCE_ROOT; };
 		C002 /* AppEnvironment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppEnvironment.swift; path = Scrivi/App/AppEnvironment.swift; sourceTree = SOURCE_ROOT; };
 		C003 /* LandingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LandingView.swift; path = Scrivi/Views/LandingView.swift; sourceTree = SOURCE_ROOT; };
@@ -150,6 +167,7 @@
 		C035 /* TimelineStripView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TimelineStripView.swift; path = Scrivi/Views/TimelineStripView.swift; sourceTree = SOURCE_ROOT; };
 		C036 /* SpotlightDonor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SpotlightDonor.swift; path = Scrivi/App/SpotlightDonor.swift; sourceTree = SOURCE_ROOT; };
 		C037 /* ProjectBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectBookmarkStore.swift; path = Scrivi/App/ProjectBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
+		C074 /* WorldBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldBookmarkStore.swift; path = Scrivi/App/WorldBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
 		C038 /* ScriviURL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviURL.swift; path = Scrivi/App/ScriviURL.swift; sourceTree = SOURCE_ROOT; };
 		C050 /* ProjectSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSession.swift; path = Scrivi/App/ProjectSession.swift; sourceTree = SOURCE_ROOT; };
 		C060 /* HistoryCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCapture.swift; path = Scrivi/App/HistoryCapture.swift; sourceTree = SOURCE_ROOT; };
@@ -160,6 +178,9 @@
 		C066 /* InspectorCardStackView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCardStackView.swift; path = Scrivi/Views/Inspector/InspectorCardStackView.swift; sourceTree = SOURCE_ROOT; };
 		C067 /* WritingToolCards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WritingToolCards.swift; path = Scrivi/Views/Inspector/WritingToolCards.swift; sourceTree = SOURCE_ROOT; };
 		C068 /* HistoryCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCard.swift; path = Scrivi/Views/Inspector/HistoryCard.swift; sourceTree = SOURCE_ROOT; };
+		C071 /* ObjectCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectCard.swift; path = Scrivi/Views/Inspector/ObjectCard.swift; sourceTree = SOURCE_ROOT; };
+		C072 /* ObjectPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectPickerView.swift; path = Scrivi/Views/Inspector/ObjectPickerView.swift; sourceTree = SOURCE_ROOT; };
+		C073 /* WorldsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldsView.swift; path = Scrivi/Views/WorldsView.swift; sourceTree = SOURCE_ROOT; };
 		C069 /* ScenePropertiesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScenePropertiesView.swift; path = Scrivi/Views/Inspector/ScenePropertiesView.swift; sourceTree = SOURCE_ROOT; };
 		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Scrivi/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
 		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
@@ -237,6 +258,7 @@
 			children = (
 				B010 /* ScriviEngine.swift */,
 				B011 /* ScriviError.swift */,
+				B012 /* ScriviEngineGraph.swift */,
 				C001 /* ScriviApp.swift */,
 				C002 /* AppEnvironment.swift */,
 				C003 /* LandingView.swift */,
@@ -254,6 +276,7 @@
 				C035 /* TimelineStripView.swift */,
 				C036 /* SpotlightDonor.swift */,
 				C037 /* ProjectBookmarkStore.swift */,
+				C074 /* WorldBookmarkStore.swift */,
 				C038 /* ScriviURL.swift */,
 				C050 /* ProjectSession.swift */,
 				C060 /* HistoryCapture.swift */,
@@ -264,6 +287,9 @@
 				C066 /* InspectorCardStackView.swift */,
 				C067 /* WritingToolCards.swift */,
 				C068 /* HistoryCard.swift */,
+				C071 /* ObjectCard.swift */,
+				C072 /* ObjectPickerView.swift */,
+				C073 /* WorldsView.swift */,
 				C069 /* ScenePropertiesView.swift */,
 				C051 /* OpenProjectRegistry.swift */,
 				C053 /* ProjectWindowManager.swift */,
@@ -467,6 +493,7 @@
 			files = (
 				C010_BF /* ScriviEngine.swift in Sources */,
 				C011_BF /* ScriviError.swift in Sources */,
+				C012_BF /* ScriviEngineGraph.swift in Sources */,
 				C001_BF /* ScriviApp.swift in Sources */,
 				C002_BF /* AppEnvironment.swift in Sources */,
 				C003_BF /* LandingView.swift in Sources */,
@@ -484,6 +511,7 @@
 				C035_BF /* TimelineStripView.swift in Sources */,
 				C036_BF /* SpotlightDonor.swift in Sources */,
 				C037_BF /* ProjectBookmarkStore.swift in Sources */,
+				C074_BF /* WorldBookmarkStore.swift in Sources */,
 				C038_BF /* ScriviURL.swift in Sources */,
 				C050_BF /* ProjectSession.swift in Sources */,
 				C060_BF /* HistoryCapture.swift in Sources */,
@@ -494,6 +522,9 @@
 				C066_BF /* InspectorCardStackView.swift in Sources */,
 				C067_BF /* WritingToolCards.swift in Sources */,
 				C068_BF /* HistoryCard.swift in Sources */,
+				C071_BF /* ObjectCard.swift in Sources */,
+				C072_BF /* ObjectPickerView.swift in Sources */,
+				C073_BF /* WorldsView.swift in Sources */,
 				C069_BF /* ScenePropertiesView.swift in Sources */,
 				C051_BF /* OpenProjectRegistry.swift in Sources */,
 				C053_BF /* ProjectWindowManager.swift in Sources */,
@@ -508,6 +539,7 @@
 			files = (
 				D010_BF /* ScriviEngine.swift in Sources */,
 				D011_BF /* ScriviError.swift in Sources */,
+				D012_BF /* ScriviEngineGraph.swift in Sources */,
 				D001_BF /* ScriviApp.swift in Sources */,
 				D002_BF /* AppEnvironment.swift in Sources */,
 				D003_BF /* LandingView.swift in Sources */,
@@ -525,6 +557,7 @@
 				D035_BF /* TimelineStripView.swift in Sources */,
 				D036_BF /* SpotlightDonor.swift in Sources */,
 				D037_BF /* ProjectBookmarkStore.swift in Sources */,
+				D074_BF /* WorldBookmarkStore.swift in Sources */,
 				D038_BF /* ScriviURL.swift in Sources */,
 				D050_BF /* ProjectSession.swift in Sources */,
 				D060_BF /* HistoryCapture.swift in Sources */,
@@ -535,6 +568,9 @@
 				D066_BF /* InspectorCardStackView.swift in Sources */,
 				D067_BF /* WritingToolCards.swift in Sources */,
 				D068_BF /* HistoryCard.swift in Sources */,
+				D071_BF /* ObjectCard.swift in Sources */,
+				D072_BF /* ObjectPickerView.swift in Sources */,
+				D073_BF /* WorldsView.swift in Sources */,
 				D069_BF /* ScenePropertiesView.swift in Sources */,
 				D051_BF /* OpenProjectRegistry.swift in Sources */,
 				D053_BF /* ProjectWindowManager.swift in Sources */,
@@ -549,6 +585,7 @@
 			files = (
 				E010_BF /* ScriviEngine.swift in Sources */,
 				E011_BF /* ScriviError.swift in Sources */,
+				E012_BF /* ScriviEngineGraph.swift in Sources */,
 				E001_BF /* ScriviApp.swift in Sources */,
 				E002_BF /* AppEnvironment.swift in Sources */,
 				E003_BF /* LandingView.swift in Sources */,
@@ -566,6 +603,7 @@
 				E035_BF /* TimelineStripView.swift in Sources */,
 				E036_BF /* SpotlightDonor.swift in Sources */,
 				E037_BF /* ProjectBookmarkStore.swift in Sources */,
+				E074_BF /* WorldBookmarkStore.swift in Sources */,
 				E038_BF /* ScriviURL.swift in Sources */,
 				E050_BF /* ProjectSession.swift in Sources */,
 				E060_BF /* HistoryCapture.swift in Sources */,
@@ -576,6 +614,9 @@
 				E066_BF /* InspectorCardStackView.swift in Sources */,
 				E067_BF /* WritingToolCards.swift in Sources */,
 				E068_BF /* HistoryCard.swift in Sources */,
+				E071_BF /* ObjectCard.swift in Sources */,
+				E072_BF /* ObjectPickerView.swift in Sources */,
+				E073_BF /* WorldsView.swift in Sources */,
 				E069_BF /* ScenePropertiesView.swift in Sources */,
 				E051_BF /* OpenProjectRegistry.swift in Sources */,
 				E053_BF /* ProjectWindowManager.swift in Sources */,

@@ -385,11 +385,18 @@ struct ScriviInteropTests {
     func createAndOpenCharacterObject() throws {
         let (engine, _, ref, projectDir, _) = try makeProjectFixture()
 
+        // ⚠️ T-0409: a character is world-scoped, so it needs a world.
+        let world = try engine.createWorld(
+            projectRootPath: projectDir.path,
+            packagePath: projectDir.url.appendingPathComponent("T10.scrivworld")
+                                       .path(percentEncoded: false),
+            displayName: "T10 World", epochLabel: "")
         let created = try engine.createObject(
             projectRootPath: projectDir.path,
             objectKind:      "character",
             displayName:     "Elara Voss",
-            authorshipRef:   ref
+            authorshipRef:   ref,
+            worldID:         world.worldID
         )
 
         #expect(!created.objectID.isEmpty)
@@ -398,7 +405,8 @@ struct ScriviInteropTests {
         let opened = try engine.openObject(
             projectRootPath: projectDir.path,
             objectKind:      "character",
-            objectID:        created.objectID
+            objectID:        created.objectID,
+            worldID:         world.worldID
         )
 
         #expect(!opened.objectJson.isEmpty)
@@ -409,17 +417,24 @@ struct ScriviInteropTests {
     func deleteCharacterObject() throws {
         let (engine, _, ref, projectDir, _) = try makeProjectFixture()
 
+        let world = try engine.createWorld(
+            projectRootPath: projectDir.path,
+            packagePath: projectDir.url.appendingPathComponent("T10d.scrivworld")
+                                       .path(percentEncoded: false),
+            displayName: "T10 World", epochLabel: "")
         let created = try engine.createObject(
             projectRootPath: projectDir.path,
             objectKind:      "character",
             displayName:     "Temp Character",
-            authorshipRef:   ref
+            authorshipRef:   ref,
+            worldID:         world.worldID
         )
 
         let deleted = try engine.deleteObject(
             projectRootPath: projectDir.path,
             objectKind:      "character",
-            objectID:        created.objectID
+            objectID:        created.objectID,
+            worldID:         world.worldID
         )
 
         #expect(deleted.deleted == true)
@@ -851,12 +866,21 @@ struct ScriviInteropTests {
             authorshipRef:     ref
         )
 
-        // Add a world object so a non-scene record appears.
+        // Add a world object so a non-scene record appears. ⚠️ Since T-0409 a
+        // character is world-scoped, so it needs a world to live in.
+        let world = try engine.createWorld(
+            projectRootPath: projectDir.path,
+            packagePath:     projectDir.url.appendingPathComponent("Interop.scrivworld")
+                                        .path(percentEncoded: false),
+            displayName:     "Interop World",
+            epochLabel:      ""
+        )
         _ = try engine.createObject(
             projectRootPath: projectDir.path,
             objectKind:      "character",
             displayName:     "Khaz'tul Miner",
-            authorshipRef:   ref
+            authorshipRef:   ref,
+            worldID:         world.worldID
         )
 
         let content = try engine.extractSearchableText(projectRootPath: projectDir.path)
@@ -879,6 +903,25 @@ struct ScriviInteropTests {
         let character = content.items.first { $0.kind == "character" }
         #expect(character != nil)
         #expect(character?.title == "Khaz'tul Miner")
+
+        // ⚠️ I-0118: the new fields must survive the JSON boundary into Swift.
+        // A serializer that emits them and a decoder that drops them look
+        // identical from the C++ side — this is the assertion that catches it.
+        #expect(character?.domainIdentifier == world.worldID)
+        #expect(content.worldDomainIdentifiers == [world.worldID])
+        // Q2 — world-scoped, and it must round-trip back through the parser the
+        // app actually uses when a Spotlight hit is tapped.
+        let charURL = try #require(URL(string: character?.deepLink ?? ""))
+        let charLink = try #require(ScriviDeepLink(url: charURL))
+        #expect(charLink.isWorldScoped)
+        #expect(charLink.worldID == world.worldID)
+        #expect(charLink.projectID.isEmpty)
+        #expect(charLink.itemID == character?.uniqueIdentifier)
+
+        // The project's own records keep the project domain — empty per-item
+        // domain means "the result's", so the two halves stay distinguishable.
+        #expect(project?.domainIdentifier.isEmpty == true)
+        #expect(sceneItem?.domainIdentifier.isEmpty == true)
     }
 
     // MARK: - Test 19: ScriviDeepLink parsing (T-0184)
@@ -900,11 +943,34 @@ struct ScriviInteropTests {
         #expect(link.targetSceneID == nil)
     }
 
-    @Test("ScriviDeepLink requires a non-empty project and the open host")
+    @Test("ScriviDeepLink requires an owner (project OR world) and the open host")
     func deepLinkRejectsInvalid() {
-        #expect(ScriviDeepLink(url: URL(string: "scrivi://open?item=scene:s1")!) == nil)      // no project
+        #expect(ScriviDeepLink(url: URL(string: "scrivi://open?item=scene:s1")!) == nil)      // no owner at all
         #expect(ScriviDeepLink(url: URL(string: "scrivi://other?project=p1")!) == nil)         // wrong host
         #expect(ScriviDeepLink(url: URL(string: "https://example.com?project=p1")!) == nil)    // wrong scheme
+    }
+
+    // ⚠️ I-0118 Q2 — the world-scoped form. Before this the parser required
+    // `project=`, so a world link returned nil and a tapped Spotlight hit for a
+    // character did nothing at all.
+    @Test("ScriviDeepLink parses a world-scoped deep link")
+    func deepLinkParsesWorld() throws {
+        let url = URL(string: "scrivi://open?world=world_abc&item=character:character_xyz")!
+        let link = try #require(ScriviDeepLink(url: url))
+        #expect(link.isWorldScoped)
+        #expect(link.worldID == "world_abc")
+        #expect(link.projectID.isEmpty)
+        #expect(link.itemID == "character:character_xyz")
+        // Not a scene, so there is nothing to navigate to within a manuscript.
+        #expect(link.targetSceneID == nil)
+    }
+
+    @Test("A project link is not world-scoped, and vice versa")
+    func deepLinkOwnershipIsExclusive() throws {
+        let project = try #require(ScriviDeepLink(
+            url: URL(string: "scrivi://open?project=project_abc&item=scene:s1")!))
+        #expect(project.isWorldScoped == false)
+        #expect(project.worldID.isEmpty)
     }
 
     @Test("ScriviDeepLink tolerates a missing item (project-only link)")
@@ -1522,5 +1588,771 @@ struct InspectorCardFailureTests {
 
         #expect(built == 2)
         #expect(failed == 1)
+    }
+}
+
+// MARK: — T-0407: the graph, object-discovery, and world wrappers (EP-031 SP-099)
+//
+// These go through `scrivi_*` end to end — a real project on disk, real objects,
+// real edges — rather than exercising Swift in isolation.
+//
+// ⚠️ That is deliberate and it is the I-0113 lesson: a test that stops at the
+// Swift side (or at the C++ facade) cannot see a boundary gap. I-0113 shipped
+// green precisely because `WorldTests.cpp` called the facade and never the ABI.
+// Every assertion below crosses the boundary.
+
+struct ScriviGraphInteropTests {
+
+    private final class TempDir: @unchecked Sendable {
+        let url: URL
+        init() throws {
+            url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("scrivi-graph-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+    private struct Fixture {
+        let engine:     ScriviEngine
+        let ref:        AuthorshipRef
+        let projectDir: TempDir
+        let appSupport: TempDir
+        let sceneID:    String
+        /// ⚠️ T-0409: every worldbuilding kind is world-scoped, so a fixture that
+        /// creates objects needs a world for them to live in. `source` is the
+        /// sole project-scoped kind and passes "" instead.
+        let worldID:    String
+        var root:       String { projectDir.path }
+    }
+
+    private func makeFixture() throws -> Fixture {
+        let appSupport = try TempDir()
+        let projectDir = try TempDir()
+        let engine = ScriviEngine()
+
+        let identity = try engine.ensureLocalIdentity(
+            displayName: "Graph Test Author",
+            appSupportRoot: appSupport.path
+        )
+        let ref = AuthorshipRef(
+            identityID:  identity.identityID,
+            personaID:   identity.defaultPersonaID,
+            displayName: identity.displayName
+        )
+        let created = try engine.createProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path,
+            title: "Graph Interop",
+            slug:  "graph-interop",
+            authorshipRef: ref
+        )
+        let opened = try engine.openProject(
+            projectRootPath: projectDir.path,
+            appSupportRoot:  appSupport.path,
+            identityID:      identity.identityID
+        )
+        // createProject seeds a first scene; either result can carry it.
+        let sceneID = opened.activeScene?.sceneID ?? created.firstScene.sceneID
+        #expect(!sceneID.isEmpty, "fixture needs a scene to relate objects to")
+
+        let world = try engine.createWorld(
+            projectRootPath: projectDir.path,
+            packagePath: projectDir.url.appendingPathComponent("Graph.scrivworld")
+                                       .path(percentEncoded: false),
+            displayName: "Graph World",
+            epochLabel: ""
+        )
+
+        return Fixture(engine: engine, ref: ref, projectDir: projectDir,
+                       appSupport: appSupport, sceneID: sceneID,
+                       worldID: world.worldID)
+    }
+
+    @discardableResult
+    private func makeCharacter(_ f: Fixture, _ name: String) throws -> String {
+        try f.engine.createObject(
+            projectRootPath: f.root,
+            objectKind: "character",
+            displayName: name,
+            authorshipRef: f.ref,
+            worldID: f.worldID
+        ).objectID
+    }
+
+    // MARK: Relation types
+
+    @Test("the seeded relation-type vocabulary decodes through the boundary")
+    func relationTypesDecode() throws {
+        let f = try makeFixture()
+        let types = try f.engine.listRelationTypes(projectRootPath: f.root).types
+
+        #expect(types.count >= 4)
+        let codes = Set(types.map(\.code))
+        #expect(codes.isSuperset(of: ["appears-in", "located-at", "sibling-of", "cites"]))
+
+        let appearsIn = try #require(types.first { $0.code == "appears-in" })
+        #expect(appearsIn.forwardLabel == "appears in")
+        #expect(appearsIn.inverseLabel == "has characters")
+        #expect(appearsIn.symmetric == false)
+
+        let siblingOf = try #require(types.first { $0.code == "sibling-of" })
+        #expect(siblingOf.symmetric)
+        #expect(siblingOf.canonicalDirection == "lexical")
+    }
+
+    @Test("an unconstrained relation type decodes nil kinds, meaning ANY kind")
+    func citesIsUnconstrainedOnBothEnds() throws {
+        let f = try makeFixture()
+        let types = try f.engine.listRelationTypes(projectRootPath: f.root).types
+        let cites = try #require(types.first { $0.code == "cites" })
+
+        // The C ABI OMITS these keys rather than emitting null, so nil here must
+        // mean "any kind" — never "failed to decode". A citation documents any kind.
+        #expect(cites.sourceKind == nil)
+        #expect(cites.targetKind == nil)
+        #expect(cites.acceptsSource(kind: "character"))
+        #expect(cites.acceptsTarget(kind: "artifact"))
+    }
+
+    // MARK: Edges
+
+    @Test("an edge created through the boundary lists from the scene with a label")
+    func createAndListEdge() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+
+        let edge = try f.engine.createEdge(
+            projectRootPath: f.root,
+            fromID: ada,
+            toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+        #expect(!edge.edgeID.isEmpty)
+        #expect(edge.relationType == "appears-in")
+
+        // The object card's actual read path: ask the SCENE for its edges.
+        let fromScene = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: f.sceneID
+        ).edges
+        let row = try #require(fromScene.first { $0.edgeID == edge.edgeID })
+
+        #expect(row.otherID == ada)
+        #expect(row.otherDisplayName == "Ada")
+        #expect(row.otherPending == false)
+        // Read from the scene, this is the INVERSE direction of a stored
+        // character→scene edge, and the label must read correctly from here.
+        #expect(row.isForward == false)
+        #expect(row.label == "has characters")
+    }
+
+    @Test("the SAME stored edge reads forward from the other endpoint (§5.2 projection)")
+    func labelProjectsBothWays() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+        let edge = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+
+        let fromObject = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: ada
+        ).edges
+        let row = try #require(fromObject.first { $0.edgeID == edge.edgeID })
+
+        // One record, two readings — never two stored edges.
+        #expect(row.isForward)
+        #expect(row.label == "appears in")
+        #expect(row.otherID == f.sceneID)
+    }
+
+    @Test("a duplicate edge is rejected from EITHER creation order (AC21)")
+    func duplicateRejectedFromBothOrders() throws {
+        let f = try makeFixture()
+        let ada  = try makeCharacter(f, "Ada")
+        let bram = try makeCharacter(f, "Bram")
+
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: bram,
+            relationTypeCode: "sibling-of"
+        )
+
+        // Same relationship, opposite order. `sibling-of` is symmetric, so this is
+        // the same canonical edge and must be refused rather than stored twice.
+        #expect(throws: ScriviError.self) {
+            _ = try f.engine.createEdge(
+                projectRootPath: f.root, fromID: bram, toID: ada,
+                relationTypeCode: "sibling-of"
+            )
+        }
+
+        let edges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: ada
+        ).edges.filter { $0.relationType == "sibling-of" }
+        #expect(edges.count == 1, "exactly one canonical edge, not two")
+    }
+
+    @Test("deleting an edge leaves BOTH objects alive and findable (AC22)")
+    func removeFromSceneDeletesEdgeOnly() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+        let edge = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+
+        let deleted = try f.engine.deleteEdge(projectRootPath: f.root, edgeID: edge.edgeID)
+        #expect(deleted.deleted)
+
+        // The edge is gone from the scene…
+        let sceneEdges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: f.sceneID
+        ).edges
+        #expect(!sceneEdges.contains { $0.edgeID == edge.edgeID })
+
+        // …and the OBJECT survives. This is the whole point of "Remove from
+        // scene" never being spelled "Delete".
+        let objects = try f.engine.listObjects(projectRootPath: f.root, kind: "character").objects
+        #expect(objects.contains { $0.objectID == ada })
+
+        // And it is findable as an orphan, not silently stranded (Doc 1 §5.5).
+        let orphans = try f.engine.listOrphanedObjects(projectRootPath: f.root).objects
+        #expect(orphans.contains { $0.objectID == ada })
+    }
+
+    @Test("a scene with no relationships decodes as empty, not as a failure")
+    func emptyEdgeListDecodes() throws {
+        let f = try makeFixture()
+        // The C ABI omits the `edges` key entirely here. An empty stack is the
+        // common case for a fresh scene and must not throw.
+        let edges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: f.sceneID
+        ).edges
+        #expect(edges.isEmpty)
+    }
+
+    // MARK: Object discovery
+
+    @Test("listObjects filters by kind and reports project scope")
+    func listObjectsByKind() throws {
+        let f = try makeFixture()
+        _ = try makeCharacter(f, "Ada")
+        _ = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "location",
+            displayName: "The Observatory", authorshipRef: f.ref,
+            worldID: f.worldID
+        )
+
+        let characters = try f.engine.listObjects(projectRootPath: f.root, kind: "character").objects
+        #expect(characters.count == 1)
+        let ada = try #require(characters.first)
+        #expect(ada.displayName == "Ada")
+        #expect(ada.kind == "character")
+        // ⚠️ INVERTED (SP-104/I-0114): a character IS world-scoped since T-0409
+        // and carries the world it lives in. The old expectation — no world, not
+        // world-scoped — is the pre-ruling model.
+        #expect(ada.worldID == f.worldID)
+        #expect(ada.isWorldScoped)
+
+        // Unfiltered lists every kind — what the picker shows (AC17).
+        let all = try f.engine.listObjects(projectRootPath: f.root).objects
+        #expect(all.count == 2)
+    }
+
+    @Test("an unrecognised kind throws rather than reporting an empty list")
+    func unknownKindThrows() throws {
+        let f = try makeFixture()
+        _ = try makeCharacter(f, "Ada")
+
+        // "you have no characters" must never be how a typo presents itself.
+        #expect(throws: ScriviError.self) {
+            _ = try f.engine.listObjects(projectRootPath: f.root, kind: "charcter")
+        }
+    }
+
+    @Test("a related object is not an orphan; an unrelated one is")
+    func orphansAreExactlyTheUnrelated() throws {
+        let f = try makeFixture()
+        let ada  = try makeCharacter(f, "Ada")
+        let bram = try makeCharacter(f, "Bram")
+
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+
+        let orphanIDs = Set(try f.engine.listOrphanedObjects(
+            projectRootPath: f.root).objects.map(\.objectID))
+        #expect(!orphanIDs.contains(ada))
+        #expect(orphanIDs.contains(bram))
+    }
+
+    // MARK: Worlds
+
+    @Test("a project with no worlds lists none, and that is not an error")
+    func noWorldsDecodes() throws {
+        // ⚠️ Deliberately NOT makeFixture(): since T-0409 that seeds a world so
+        // world-scoped kinds can be created. This test needs a project that
+        // genuinely has none — the empty-list case is the most common state in a
+        // new project and previously read as a backend error (F4).
+        let appSupport = try TempDir()
+        let projectDir = try TempDir()
+        let engine = ScriviEngine()
+        let identity = try engine.ensureLocalIdentity(
+            displayName: "No World Author", appSupportRoot: appSupport.path)
+        let ref = AuthorshipRef(identityID: identity.identityID,
+                                personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        _ = try engine.createProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+            title: "No Worlds", slug: "no-worlds", authorshipRef: ref)
+
+        let worlds = try engine.listWorlds(projectRootPath: projectDir.path).worlds
+        #expect(worlds.isEmpty)
+    }
+
+    @Test("a bound world reports available, and its objects reach the boundary")
+    func worldRoundTripsThroughTheBoundary() throws {
+        let f = try makeFixture()
+        let worldDir = try TempDir()
+        let packagePath = worldDir.url.appendingPathComponent("Midgard.scrivworld")
+            .path(percentEncoded: false)
+
+        let created = try f.engine.createWorld(
+            projectRootPath: f.root, packagePath: packagePath,
+            displayName: "Midgard", epochLabel: "Third Age"
+        )
+        #expect(created.displayName == "Midgard")
+
+        let worlds = try f.engine.listWorlds(projectRootPath: f.root).worlds
+        let midgard = try #require(worlds.first { $0.worldID == created.worldID })
+        #expect(midgard.worldStatus == .available)
+        #expect(midgard.worldStatus.isUnavailable == false)
+
+        let status = try f.engine.getWorldStatus(
+            projectRootPath: f.root, worldID: created.worldID)
+        #expect(status.worldStatus == .available)
+
+        // ⚠️ I-0113's exact shape: a WORLD-SCOPED object created through the C
+        // ABI. This is what was unreachable before SP-098 widened the entry
+        // points, and it is unreachable again the moment a wrapper drops worldID.
+        let sword = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "artifact",
+            displayName: "Sword of Dawn", authorshipRef: f.ref,
+            worldID: created.worldID
+        )
+        #expect(!sword.objectID.isEmpty)
+
+        let artifacts = try f.engine.listObjects(
+            projectRootPath: f.root, kind: "artifact").objects
+        let listed = try #require(artifacts.first { $0.objectID == sword.objectID })
+        #expect(listed.worldID == created.worldID)
+        #expect(listed.isWorldScoped)
+    }
+
+    @Test("a world binding carries the cached names a pending card needs")
+    func bindingCachesNames() throws {
+        let f = try makeFixture()
+        let worldDir = try TempDir()
+        let packagePath = worldDir.url.appendingPathComponent("Midgard.scrivworld")
+            .path(percentEncoded: false)
+
+        let created = try f.engine.createWorld(
+            projectRootPath: f.root, packagePath: packagePath,
+            displayName: "Midgard", epochLabel: "Third Age"
+        )
+        let binding = try f.engine.getWorldBinding(
+            projectRootPath: f.root, worldID: created.worldID)
+
+        #expect(binding.worldID == created.worldID)
+        #expect(binding.displayName == "Midgard")
+        // Without this cache a pending card can only show opaque IDs, and a
+        // writer cannot judge what she would lose (Doc 3 §5). The array may be
+        // empty for a world with no objects yet — decoding it is what matters.
+        #expect(binding.cachedIndex.count >= 0)
+    }
+
+    @Test("nothing is pending while every world is available")
+    func noPendingEdgesWhenWorldsPresent() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+
+        let pending = try f.engine.listPendingEdges(projectRootPath: f.root).pending
+        #expect(pending.isEmpty)
+    }
+
+    // MARK: Error detail (the prerequisite T-0407 had to fix first)
+
+    @Test("a ScriviError carries the backend's `detail` rather than dropping it")
+    func errorDetailSurvivesTheBoundary() throws {
+        let f = try makeFixture()
+        let ada  = try makeCharacter(f, "Ada")
+        let bram = try makeCharacter(f, "Bram")
+
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: bram,
+            relationTypeCode: "sibling-of"
+        )
+
+        // ⚠️ Before T-0407, `ErrorPayload` decoded only code+message, so every
+        // machine-readable discriminator the C ABI emits was discarded at the
+        // boundary. SP-102's frozen-graph refusal (detail == "worldPending:<status>")
+        // is unbuildable without this, so it is asserted here on the discriminator
+        // that IS reachable today.
+        do {
+            _ = try f.engine.createEdge(
+                projectRootPath: f.root, fromID: bram, toID: ada,
+                relationTypeCode: "sibling-of"
+            )
+            Issue.record("expected a duplicate-edge rejection")
+        } catch let error as ScriviError {
+            #expect(error.detail == "duplicateEdge",
+                    "detail was \(error.detail ?? "nil") — the discriminator must survive decode")
+            // A duplicate is not a pending-world refusal; the two must not be conflated.
+            #expect(error.isWorldPending == false)
+            #expect(error.pendingWorldStatus == nil)
+        }
+    }
+
+    @Test("worldPending detail parses into a typed status without guessing")
+    func pendingStatusParsing() {
+        // Pure parsing of the contract RelationshipStore.cpp:191,322 emits. The
+        // live pending path is verified in SP-102 against a real ejected volume
+        // (R3) — a fixture cannot show "restores with no writer intervention".
+        let offline = ScriviError(code: 1, message: "frozen", detail: "worldPending:offline")
+        #expect(offline.isWorldPending)
+        #expect(offline.pendingWorldStatus == .offline)
+
+        let missing = ScriviError(code: 1, message: "frozen", detail: "worldPending:missing")
+        #expect(missing.pendingWorldStatus == .missing)
+
+        // ⚠️ An unrecognised status falls back to the honest generic, never to a
+        // guess: a wrong "missing" invites restoring from backup when the NAS was
+        // merely unreachable (Doc 2 §7.2.1).
+        let future = ScriviError(code: 1, message: "frozen", detail: "worldPending:teleported")
+        #expect(future.pendingWorldStatus == .unavailable)
+
+        let ordinary = ScriviError(code: 1, message: "something else")
+        #expect(ordinary.isWorldPending == false)
+        #expect(ordinary.pendingWorldStatus == nil)
+    }
+}
+
+// MARK: — T-0386 / T-0387: object cards and picker (EP-031 SP-099)
+//
+// The AC-bearing behaviors that do not need a running UI: the one-implementation
+// parameterization, registration without stack placement, and sort semantics.
+// Live card interaction is verified in the app.
+
+@MainActor
+struct ObjectCardConfigurationTests {
+
+    @Test("ten object kinds, all served by ONE card implementation (AC: one card type)")
+    func oneImplementationTenConfigurations() {
+        #expect(ObjectCardKind.all.count == 10)
+
+        // Every kind resolves to the same body type. If adding a kind ever required
+        // a new card *implementation*, this is where it would show up.
+        let typeIDs = Set(ObjectCardKind.all.map(\.typeID))
+        #expect(typeIDs.count == 10, "typeIDs must be unique — they are schema keys")
+
+        let kinds = Set(ObjectCardKind.all.map(\.kind))
+        #expect(kinds.count == 10, "no kind is configured twice")
+    }
+
+    @Test("EVERY object card is world-scoped — `source` is the only project-scoped kind")
+    func worldScopedKindsAreMarked() {
+        // ⚠️ REWRITTEN (SP-104/I-0114). This asserted the PRE-T-0409 partition —
+        // exactly four world-scoped kinds — and was the Swift twin of the stale
+        // table that blocked object creation in the app. `isWorldScoped` is now
+        // DERIVED (`kind != "source"`), so this asserts the whole set rather than
+        // a restatement that can rot when a kind's scope changes.
+        let worldScoped = Set(ObjectCardKind.all.filter(\.isWorldScoped).map(\.kind))
+        #expect(worldScoped == Set(ObjectCardKind.all.map(\.kind)))
+        #expect(worldScoped.count == 10)
+        #expect(worldScoped.contains("character"))
+        #expect(worldScoped.contains("artifact"))
+        // `source` has no per-kind card at all (§3.1.1), so it cannot appear here.
+        #expect(worldScoped.contains("source") == false)
+    }
+
+    @Test("`source` is NOT a worldbuilding object card")
+    func sourceIsNotAnObjectCard() {
+        // §3.1.1: sources surface through ONE aggregate card in the Writing stack,
+        // never as a per-kind worldbuilding card. A per-source card would flood the
+        // stack in any project with real research.
+        #expect(!ObjectCardKind.all.contains { $0.kind == "source" })
+    }
+
+    @Test("every object card registers into the Worldbuilding stack, and none into Writing")
+    func objectCardsRegisterIntoWorldbuilding() {
+        InspectorCardRegistry.resetForTesting()
+        InspectorCardRegistry.registerBuiltIns()
+
+        for kind in ObjectCardKind.all {
+            let card = InspectorCardRegistry.card(for: kind.typeID)
+            #expect(card != nil, "\(kind.typeID) must be registered")
+            #expect(card?.stack == .worldbuilding)
+            #expect(card?.title == kind.title)
+        }
+    }
+
+    @Test("⚠️ registering object cards does NOT place any of them in a stack (AC7)")
+    func worldbuildingStackStillShipsEmpty() {
+        InspectorCardRegistry.resetForTesting()
+        InspectorCardRegistry.registerBuiltIns()
+
+        // Doc 2 AC7: no worldbuilding card ever appears without an explicit writer
+        // action. Registration makes a card OFFERABLE in the "+" menu — it must
+        // never make it PRESENT. This is easy to regress while developing cards
+        // you want to see on screen.
+        let offered = InspectorCardRegistry.available(in: .worldbuilding)
+        #expect(offered.count == 10, "all ten are offered in the + menu")
+
+        let layout = InspectorLayoutStore(projectRootPath: NSTemporaryDirectory())
+        let stack = layout.resolvedStack(sceneID: "scene-1", stack: .worldbuilding)
+        #expect(stack.entries.isEmpty, "the default Worldbuilding stack ships EMPTY")
+    }
+
+    @Test("the writing stack's three default cards are unaffected by object-card registration")
+    func writingDefaultsIntact() {
+        InspectorCardRegistry.resetForTesting()
+        InspectorCardRegistry.registerBuiltIns()
+
+        let writing = InspectorCardRegistry.available(in: .writing).map(\.typeID)
+        #expect(Set(writing).isSuperset(of: ["tags", "outline", "todo", "history"]))
+        // No object card leaked into the Writing stack.
+        #expect(!writing.contains { $0.hasPrefix("objects.") })
+    }
+}
+
+// MARK: — T-0388 / T-0408: in-place creation and worlds (EP-031 SP-099, R4)
+//
+// These cover the gap live verification found: the card could list objects but
+// nothing in the app could CREATE one, and no surface showed world context.
+
+struct ObjectCreationInteropTests {
+
+    private final class TempDir: @unchecked Sendable {
+        let url: URL
+        init() throws {
+            url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("scrivi-create-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+    private struct Fixture {
+        let engine: ScriviEngine
+        let ref: AuthorshipRef
+        let projectDir: TempDir
+        let appSupport: TempDir
+        let sceneID: String
+        /// ⚠️ T-0409: world-scoped kinds need a world to be created in.
+        let worldID: String
+        var root: String { projectDir.path }
+    }
+
+    private func makeFixture() throws -> Fixture {
+        let appSupport = try TempDir()
+        let projectDir = try TempDir()
+        let engine = ScriviEngine()
+        let identity = try engine.ensureLocalIdentity(
+            displayName: "Create Test", appSupportRoot: appSupport.path)
+        let ref = AuthorshipRef(identityID: identity.identityID,
+                                personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        let created = try engine.createProject(
+            projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+            title: "Create Interop", slug: "create-interop", authorshipRef: ref)
+        let world = try engine.createWorld(
+            projectRootPath: projectDir.path,
+            packagePath: projectDir.url.appendingPathComponent("Create.scrivworld")
+                                       .path(percentEncoded: false),
+            displayName: "Create World", epochLabel: "")
+        return Fixture(engine: engine, ref: ref, projectDir: projectDir,
+                       appSupport: appSupport, sceneID: created.firstScene.sceneID,
+                       worldID: world.worldID)
+    }
+
+    // ⚠️ I-0119 — the wrong-scene commit. Found in live use (2026-08-14): a
+    // location started in scene A and completed via the scene-change prompt was
+    // related to scene B, the scene the writer had just moved to. She had to
+    // repair it by hand.
+    //
+    // The app-side cause was that `ObjectCardModel` captures its `sceneID` at
+    // init and is REBUILT by `.task(id:)` the moment the scene changes, so the
+    // surviving draft committed against the new model. The draft now carries its
+    // own `originSceneID` and `createAndRelate` takes the target scene
+    // explicitly.
+    //
+    // This test pins the INVARIANT that fix must preserve — an edge written for
+    // scene A belongs to scene A and to no other — at the boundary, where it is
+    // checkable without driving SwiftUI.
+    @Test("an object related to scene A stays on scene A, never on a later scene (I-0119)")
+    func edgeLandsOnTheSceneItWasCreatedFor() throws {
+        let f = try makeFixture()
+        let opened = try f.engine.openProject(
+            projectRootPath: f.root, appSupportRoot: f.appSupport.path,
+            identityID: f.ref.identityID)
+        let sceneA = f.sceneID
+        let chapterID = try #require(opened.scenes.first?.chapterID)
+
+        let sceneB = try f.engine.createScene(
+            projectRootPath: f.root, appSupportRoot: f.appSupport.path,
+            projectID: opened.projectID, chapterID: chapterID,
+            afterSceneID: sceneA, authorshipRef: f.ref).sceneID
+        #expect(sceneA != sceneB)
+
+        // Exactly what commitDraft does for a draft STARTED in scene A, even
+        // though the writer is now looking at scene B.
+        let created = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "location",
+            displayName: "The Observatory", authorshipRef: f.ref,
+            worldID: f.worldID)
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: created.objectID,
+            toID: sceneA, relationTypeCode: "located-at")
+
+        // Scene A has it...
+        let aEdges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: sceneA).edges
+        #expect(aEdges.contains { $0.otherID == created.objectID })
+
+        // ...and scene B does NOT. This is the assertion that fails if a commit
+        // ever targets the live scene instead of the draft's origin.
+        let bEdges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: sceneB).edges
+        #expect(bEdges.contains { $0.otherID == created.objectID } == false)
+        #expect(bEdges.isEmpty)
+    }
+
+    @Test("creating a character and relating it makes it appear on the scene's card")
+    func createAndRelateSurfacesOnTheCard() throws {
+        let f = try makeFixture()
+
+        // Exactly what the card's "New Character" does: create, then relate.
+        let created = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "character",
+            displayName: "Ada", authorshipRef: f.ref, worldID: f.worldID)
+        _ = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: created.objectID,
+            toID: f.sceneID, relationTypeCode: "appears-in")
+
+        // The card's read path now shows her — the loop the user could not close
+        // before T-0388, because nothing in the app could perform the first step.
+        let edges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: f.sceneID).edges
+        #expect(edges.count == 1)
+        #expect(edges.first?.otherDisplayName == "Ada")
+
+        // And the picker would now offer her for other scenes.
+        let listed = try f.engine.listObjects(
+            projectRootPath: f.root, kind: "character").objects
+        #expect(listed.contains { $0.displayName == "Ada" })
+    }
+
+    @Test("a renamed object keeps its objectID and its edges (edit half of §4.6)")
+    func renamePreservesIdentityAndEdges() throws {
+        let f = try makeFixture()
+        let created = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "character",
+            displayName: "Ada", authorshipRef: f.ref, worldID: f.worldID)
+        let edge = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: created.objectID,
+            toID: f.sceneID, relationTypeCode: "appears-in")
+
+        // The rename path the card uses: open, patch displayName, save.
+        let opened = try f.engine.openObject(
+            projectRootPath: f.root, objectKind: "character",
+            objectID: created.objectID, worldID: f.worldID)
+        var json = try #require(try JSONSerialization.jsonObject(
+            with: Data(opened.objectJson.utf8)) as? [String: Any])
+        json["displayName"] = "Ada Lovelace"
+        let patched = try JSONSerialization.data(withJSONObject: json)
+        _ = try f.engine.saveObject(
+            projectRootPath: f.root, objectKind: "character",
+            objectJson: String(decoding: patched, as: UTF8.self),
+            authorshipRef: f.ref)
+
+        // ⚠️ Editing must not disturb identity — the edge still resolves, and it
+        // resolves to the NEW name. A rename that orphaned the edge would look to
+        // the writer exactly like her link vanishing.
+        let edges = try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: f.sceneID).edges
+        #expect(edges.count == 1)
+        #expect(edges.first?.edgeID == edge.edgeID)
+        #expect(edges.first?.otherID == created.objectID)
+        #expect(edges.first?.otherDisplayName == "Ada Lovelace")
+    }
+
+    @Test("a world-scoped kind cannot be created without a world")
+    func worldScopedKindRefusedWithoutWorld() throws {
+        let f = try makeFixture()
+        // This is why the draft editor disables Create until a world is chosen:
+        // the core refuses, and the card should never let her reach that error.
+        #expect(throws: ScriviError.self) {
+            _ = try f.engine.createObject(
+                projectRootPath: f.root, objectKind: "artifact",
+                displayName: "Sword of Dawn", authorshipRef: f.ref, worldID: "")
+        }
+    }
+
+    @Test("a created world appears in the list the Worlds menu reads (T-0408)")
+    func createdWorldIsListed() throws {
+        let f = try makeFixture()
+        let worldDir = try TempDir()
+        let packagePath = worldDir.url.appendingPathComponent("Midgard.scrivworld")
+            .path(percentEncoded: false)
+
+        // Before T-0408 nothing in the app called either of these.
+        let created = try f.engine.createWorld(
+            projectRootPath: f.root, packagePath: packagePath,
+            displayName: "Midgard", epochLabel: "")
+
+        // ⚠️ The fixture seeds its own world (T-0409), so assert that Midgard
+        // JOINS the list rather than that it is the only entry — the point of
+        // T-0408 is that a created world reaches the Worlds menu, not that a
+        // project has exactly one.
+        let worlds = try f.engine.listWorlds(projectRootPath: f.root).worlds
+        #expect(worlds.count == 2)
+        let midgard = try #require(worlds.first { $0.worldID == created.worldID })
+        #expect(midgard.displayName == "Midgard")
+        #expect(midgard.worldStatus == .available)
+
+        // And with a world bound, the world-scoped kind now works.
+        let artifact = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "artifact",
+            displayName: "Sword of Dawn", authorshipRef: f.ref,
+            worldID: created.worldID)
+        #expect(!artifact.objectID.isEmpty)
+    }
+}
+
+@MainActor
+struct ObjectCardScopeTests {
+
+    @Test("project-scoped kinds never ask for a world; world-scoped ones always do")
+    func scopeDeterminesWorldRequirement() {
+        // The writer-facing consequence of this split is the picker's scope line
+        // and the draft editor's world picker. Characters belonging to no world is
+        // correct, not an omission — which is what was unclear in the live check.
+        // ⚠️ INVERTED (SP-104/I-0114). This asserted a character belongs to NO
+        // world and called that "correct, not an omission." T-0409 reversed it:
+        // a character IS a world object — that was the whole point of the ruling
+        // (a character must be reusable across projects). The old expectation is
+        // what the shipped code believed, which is why creation was refused.
+        let characters = try! #require(ObjectCardKind.all.first { $0.kind == "character" })
+        #expect(characters.isWorldScoped)
+
+        let artifacts = try! #require(ObjectCardKind.all.first { $0.kind == "artifact" })
+        #expect(artifacts.isWorldScoped)
     }
 }

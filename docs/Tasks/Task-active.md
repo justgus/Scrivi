@@ -5,15 +5,15 @@
 **Sprint:** SP-097 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
 `../Sprints/Closed/Sprint-SP-097.md`. All 7 tasks Verified.
 
-| ID | Title | Status |
-| -- | ----- | ------ |
+| ID     | Title                                                                                                           | Status                      |
+| ------ | --------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | T-0403 | ⚠️ `FileSystem::createFileExclusive` — the exclusive-create primitive Doc 3 §6.5 assumed but that did not exist | ✅ **Verified (2026-08-12)** |
-| T-0381 | `.scrivworld` package + `world.json` + per-world object index | ✅ **Verified (2026-08-12)** |
-| T-0382 | `binding.json` + platform-neutral reference + `worldID`-verified resolution + relink | ✅ **Verified (2026-08-12)** |
-| T-0383 | Lock → write → unlock + heartbeat + 60 s stale-lock recovery | ✅ **Verified (2026-08-12)** |
-| T-0384 | Epoch chain: world / timeline / binding offsets + resolve endpoint | ✅ **Verified (2026-08-12)** |
-| T-0385 | `cachedIndex` → named pending entries; world-scoped kinds become creatable | ✅ **Verified (2026-08-12)** |
-| T-0404 | `rule` relocation to world scope + Package Structure §11 correction | ✅ **Verified (2026-08-12)** |
+| T-0381 | `.scrivworld` package + `world.json` + per-world object index                                                   | ✅ **Verified (2026-08-12)** |
+| T-0382 | `binding.json` + platform-neutral reference + `worldID`-verified resolution + relink                            | ✅ **Verified (2026-08-12)** |
+| T-0383 | Lock → write → unlock + heartbeat + 60 s stale-lock recovery                                                    | ✅ **Verified (2026-08-12)** |
+| T-0384 | Epoch chain: world / timeline / binding offsets + resolve endpoint                                              | ✅ **Verified (2026-08-12)** |
+| T-0385 | `cachedIndex` → named pending entries; world-scoped kinds become creatable                                      | ✅ **Verified (2026-08-12)** |
+| T-0404 | `rule` relocation to world scope + Package Structure §11 correction                                             | ✅ **Verified (2026-08-12)** |
 
 **Suites:** ctest **477/477 macOS** + **484/484 Linux (GCC 14, no warnings)**; interop **59 passed / 0 failed**.
 ⚠️ **10 additive `scrivi.h` endpoints**, all exported. No pbxproj change.
@@ -34,13 +34,13 @@ Full detail + retrospective: `../Sprints/Sprint-active.md` → archived copy.
 **Sprint:** SP-096 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
 `../Sprints/Closed/Sprint-SP-096.md`. All 5 tasks Verified.
 
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0402 | ⚠️ Endpoint-kind resolution via the object index (replaces §5.2's ID-prefix rule) + Doc 1 amendment | High | ✅ **Verified (2026-08-12)** |
-| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` + seeded vocabulary | High | ✅ **Verified (2026-08-12)** |
-| T-0374 | `relationships.jsonl` append-log + create/delete/list + torn-line recovery | High | ✅ **Verified (2026-08-12)** |
-| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | High | ✅ **Verified (2026-08-12)** |
-| T-0376 | Compaction at 30% / 1,000 tombstones | High | ✅ **Verified (2026-08-12)** |
+| ID     | Title                                                                                               | Priority | Status                      |
+| ------ | --------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
+| T-0402 | ⚠️ Endpoint-kind resolution via the object index (replaces §5.2's ID-prefix rule) + Doc 1 amendment | High     | ✅ **Verified (2026-08-12)** |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` + seeded vocabulary                      | High     | ✅ **Verified (2026-08-12)** |
+| T-0374 | `relationships.jsonl` append-log + create/delete/list + torn-line recovery                          | High     | ✅ **Verified (2026-08-12)** |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric)                        | High     | ✅ **Verified (2026-08-12)** |
+| T-0376 | Compaction at 30% / 1,000 tombstones                                                                | High     | ✅ **Verified (2026-08-12)** |
 
 **Suites:** ScriviCore ctest **455/455 macOS** + **462/462 Linux (GCC 14, no warnings)**; macOS interop
 **59 passed / 0 failed**. ⚠️ **First `scrivi.h` change since EP-029** — 5 additive endpoints, all confirmed
@@ -52,8 +52,8 @@ exported via `nm`. No pbxproj change (ScriviCore-only).
 **T-0402 is a design defect caught at planning, not a shipped bug.** Doc 1 §5.2 distinguished scene from object
 endpoints "by ID prefix"; `SystemUUIDProvider::newObjectID()` mints `character_…` for **every** kind, and the
 test mock uses `obj-`/`scene-` — so the rule was wrong in production, differently wrong under test, and
-**silent** either way. Endpoint kind now comes from `ObjectIndex` lookup; **Doc 1 §5.2 was amended in the same
-task** so design and code agree.
+**silent** either way. Endpoint kind now comes from `ObjectIndex` lookup; \*\*Doc 1 §5.2 was amended in the same
+task\*\* so design and code agree.
 
 **EP-031 AC5 met. AC3 met but for one clause at the time** — it names faction↔faction as the symmetric
 duplicate case, and `faction` was world-scoped and uncreatable; SP-096 covered the same-kind symmetric shape
@@ -68,12 +68,12 @@ Full detail + retrospective: `../Sprints/Sprint-active.md`.
 **Sprint:** SP-095 · **Epic:** EP-031 `[ScriviCore]` · ✅ **Closed 2026-08-12 (Human-approved)** →
 `../Sprints/Closed/Sprint-SP-095.md`. All 4 tasks Verified.
 
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | High | ✅ **Verified (2026-08-12)** |
-| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | High | ✅ **Verified (2026-08-12)** |
-| T-0372 | `objects/index.json` + `findByID` over the index | High | ✅ **Verified (2026-08-12)** |
-| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | High | ✅ **Verified (2026-08-12)** |
+| ID     | Title                                                                                                       | Priority | Status                      |
+| ------ | ----------------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
+| T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | High     | ✅ **Verified (2026-08-12)** |
+| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID`                                                         | High     | ✅ **Verified (2026-08-12)** |
+| T-0372 | `objects/index.json` + `findByID` over the index                                                            | High     | ✅ **Verified (2026-08-12)** |
+| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2                                 | High     | ✅ **Verified (2026-08-12)** |
 
 **Suites:** ScriviCore ctest **432/432 macOS** + **439/439 Linux (GCC 14, no warnings)**; macOS interop
 **59 passed / 0 failed**; app **BUILD SUCCEEDED**. `scrivi.h` untouched; no pbxproj change (ScriviCore-only).
@@ -97,9 +97,9 @@ Full detail + retrospective: `../Sprints/Sprint-active.md`.
 **Sprint:** SP-101 · **Epic:** EP-030 · **Opened 2026-08-11** from SP-094's verification pass.
 *(SP-095–SP-100 are EP-031's; this sprint takes the next free number rather than colliding with them.)*
 
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0399 | `[Apple]` Card **soft-failure isolation** as a framework guarantee + failing-card test fixture (EP-030 AC12, rescoped) | Medium | 🟠 **Implemented — Not Verified (2026-08-11)** |
+| ID     | Title                                                                                                                  | Priority | Status                                         |
+| ------ | ---------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------- |
+| T-0399 | `[Apple]` Card **soft-failure isolation** as a framework guarantee + failing-card test fixture (EP-030 AC12, rescoped) | Medium   | 🟠 **Implemented — Not Verified (2026-08-11)** |
 
 **T-0399 — what shipped.** AC12 was rescoped to **soft failures** (user-approved 2026-08-11) because SwiftUI
 cannot catch a trapping view body; Doc 2 §7.1 rewritten accordingly.
@@ -136,23 +136,23 @@ than by CI. ctest **413/413** · interop **53/53** · macOS BUILD SUCCEEDED.
 
 > **I-0107 was added mid-sprint**, found by the user's first live verify (2026-08-10) on Ch 2 Sc 6 of
 > `the-stairs-of-tintagael.scrivi`: the caret bolded the wrong row, two paragraphs could never be bolded, and
-> whitespace rows were unreachable. One root cause — change offsets are recorded at edit time and **never
-> rebased**, so hit zones drift as later text is inserted. **I-0106's fix was real but partial** (it corrected
+> whitespace rows were unreachable. One root cause — change offsets are recorded at edit time and \*\*never
+> rebased**, so hit zones drift as later text is inserted. **I-0106's fix was real but partial\*\* (it corrected
 > the tie-break and the deletion span, not the drift). Fixed in-sprint; needs re-verification of that scene.
 
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash over replayed text, not disk bytes | High | ✅ **Verified (2026-08-11, user-confirmed)** — EC1 passes; two launches, no new false notices |
-| I-0105 | `[Apple]` History card doesn't refresh on commit — new edits appear only after reopen | High | ✅ **Verified (2026-08-10, user-confirmed)** — EC6: the card refreshes on commit without a scene switch or relaunch. |
-| T-0396 | `[Apple]` Typing-session coalescing — deferred save-commit + 45 s idle timer (⚠️ §4.d relaxed) | High | ✅ **Verified (2026-08-10, user-confirmed)** — EC2–EC5: the reference sentence records as ONE entry; an autosave does not seal it; a pause beyond the idle threshold starts a new entry; backspace mid-word does not split. ⚠️ §4.d relaxed — T-0217 must document it. |
-| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows | Medium | ✅ **Verified (2026-08-10, user-confirmed)** — EC7 + EC9 (with [[I-0107]], which fixed the offset drift this alone did not). |
-| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows | Medium | ✅ **Verified (2026-08-10, user-confirmed)** — EC10: insertions and deletions are distinguishable at a glance. |
-| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)" | Low | ✅ **Verified (2026-08-10, user-confirmed)** — EC11: whitespace events read as named whitespace, never "(no text)". |
-| I-0107 | `[Cross]` Caret highlight uses **stale offsets** — hit zones drift; zero-span rows unreachable (found in live verify) | High | ✅ **Verified (2026-08-10, user-confirmed)** |
-| I-0108 | `[Apple]` Stale branches listed project-wide under "This scene only" — card now shows a **badge only**; purge lives in Project Settings | Low | ✅ **Verified (2026-08-11, user-confirmed)** |
-| I-0109 | `[Apple]` Navigator: Return does not open the arrow-key-selected scene (arrows stay browse-only) | Low | ✅ **Verified (2026-08-11, user-confirmed)** |
-| I-0110 | `[ScriviCore]` **History fails to open** — `unknown node` exception when a replayed purge contains the current node; project loses undo/redo | High | ✅ **Verified (2026-08-11, user-confirmed)** |
-| I-0111 | `[ScriviCore]` Prune-driven purges written with `seq 1` — log sequence numbers regressed (diagnostic only) | Low | ✅ **Verified (2026-08-11, user-approved)** — diagnostic-only; approved on test evidence |
+| ID     | Title                                                                                                                                        | Priority | Status                                                                                                                                                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I-0104 | `[ScriviCore]` `externalChange` fires every open — head hash over replayed text, not disk bytes                                              | High     | ✅ **Verified (2026-08-11, user-confirmed)** — EC1 passes; two launches, no new false notices                                                                                                                                                                          |
+| I-0105 | `[Apple]` History card doesn't refresh on commit — new edits appear only after reopen                                                        | High     | ✅ **Verified (2026-08-10, user-confirmed)** — EC6: the card refreshes on commit without a scene switch or relaunch.                                                                                                                                                   |
+| T-0396 | `[Apple]` Typing-session coalescing — deferred save-commit + 45 s idle timer (⚠️ §4.d relaxed)                                               | High     | ✅ **Verified (2026-08-10, user-confirmed)** — EC2–EC5: the reference sentence records as ONE entry; an autosave does not seal it; a pause beyond the idle threshold starts a new entry; backspace mid-word does not split. ⚠️ §4.d relaxed — T-0217 must document it. |
+| I-0106 | `[Apple]` Wrong entry bolded — caret-at-boundary + deletions match two rows                                                                  | Medium   | ✅ **Verified (2026-08-10, user-confirmed)** — EC7 + EC9 (with [[I-0107]], which fixed the offset drift this alone did not).                                                                                                                                           |
+| T-0398 | `[Cross]` Distinguish added vs. deleted text in history rows                                                                                 | Medium   | ✅ **Verified (2026-08-10, user-confirmed)** — EC10: insertions and deletions are distinguishable at a glance.                                                                                                                                                         |
+| T-0397 | `[Cross]` Whitespace-kind labels instead of "(no text)"                                                                                      | Low      | ✅ **Verified (2026-08-10, user-confirmed)** — EC11: whitespace events read as named whitespace, never "(no text)".                                                                                                                                                    |
+| I-0107 | `[Cross]` Caret highlight uses **stale offsets** — hit zones drift; zero-span rows unreachable (found in live verify)                        | High     | ✅ **Verified (2026-08-10, user-confirmed)**                                                                                                                                                                                                                           |
+| I-0108 | `[Apple]` Stale branches listed project-wide under "This scene only" — card now shows a **badge only**; purge lives in Project Settings      | Low      | ✅ **Verified (2026-08-11, user-confirmed)**                                                                                                                                                                                                                           |
+| I-0109 | `[Apple]` Navigator: Return does not open the arrow-key-selected scene (arrows stay browse-only)                                             | Low      | ✅ **Verified (2026-08-11, user-confirmed)**                                                                                                                                                                                                                           |
+| I-0110 | `[ScriviCore]` **History fails to open** — `unknown node` exception when a replayed purge contains the current node; project loses undo/redo | High     | ✅ **Verified (2026-08-11, user-confirmed)**                                                                                                                                                                                                                           |
+| I-0111 | `[ScriviCore]` Prune-driven purges written with `seq 1` — log sequence numbers regressed (diagnostic only)                                   | Low      | ✅ **Verified (2026-08-11, user-approved)** — diagnostic-only; approved on test evidence                                                                                                                                                                               |
 
 **Origin:** the SP-092 live-verify (2026-08-07). The user **verified** the "This scene only" filter and
 orphaned-entry deletion as working, then reported six further findings — all diagnosed to code, none a
@@ -160,15 +160,15 @@ SP-092 regression. The capture-granularity behaviour dates to SP-053; the histor
 visible. **Reference case:** one continuously-typed sentence recorded as three entries.
 
 **⚠️ Diagnosis corrected 2026-08-07.** The first draft blamed cursor-move flushes; the user had **not**
-moved the cursor (Shakespeare typed from muscle memory in one run). The real trigger is the **1 s autosave
-debounce** calling `flushThenSave()` (`ManuscriptTextView.swift:753-766`) — so an idle timer already exists
+moved the cursor (Shakespeare typed from muscle memory in one run). The real trigger is the \*\*1 s autosave
+debounce\*\* calling `flushThenSave()` (`ManuscriptTextView.swift:753-766`) — so an idle timer already exists
 and it is 1 second. Confirmed by the split falling **mid-word** (`"…made glo"` / `"rious…"`), which only a
 wall-clock timer produces. T-0396 is rescoped accordingly.
 
 **Decisions (user, 2026-08-07):** idle threshold **30–60 s** (writers ruminate; deliberately long) ·
 coalescing **app-side** (`HistoryService` stays pure) · `removedLength` **ships once** for I-0106 + T-0398 ·
-**SP-057 runs after SP-093** · **cursor-move, cut/paste, scene switch and sentence terminators are all
-KEPT** as commit triggers — they are intentional writer actions · **backspace must not commit** ("thinking
+**SP-057 runs after SP-093** · \*\*cursor-move, cut/paste, scene switch and sentence terminators are all
+KEPT\*\* as commit triggers — they are intentional writer actions · **backspace must not commit** ("thinking
 of a different word, not ending the typing session").
 
 **EP-019 AC2 — narrow amendment, not an overturn.** Every trigger AC2 names is kept, so AC2 is **not**
@@ -186,13 +186,13 @@ approval.
 
 **Sprint:** `../Sprints/Sprint-active.md` · **Epic:** EP-030 · **Awaiting go-ahead to activate.**
 
-| ID | Title | Priority | Status |
-| -- | ----- | -------- | ------ |
-| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` + ctest | High | 🟠 **Implemented — Not Verified** |
-| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` tree wrapper + interop test | High | 🟠 **Implemented — Not Verified** |
-| T-0366 | `[Apple]` `history` card (**supersedes T-0215**) — unblocks EP-019's close | High | 🟠 **Implemented — Not Verified** |
-| T-0367 | `[Apple]` Properties tab — field-driven view | Medium | 🟠 **Implemented — Not Verified** |
-| T-0368 | `[Apple]` Card failure isolation + inline warning | Medium | 🟠 **Implemented — Not Verified** |
+| ID     | Title                                                                                    | Priority | Status                            |
+| ------ | ---------------------------------------------------------------------------------------- | -------- | --------------------------------- |
+| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` + ctest | High     | 🟠 **Implemented — Not Verified** |
+| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` tree wrapper + interop test                    | High     | 🟠 **Implemented — Not Verified** |
+| T-0366 | `[Apple]` `history` card (**supersedes T-0215**) — unblocks EP-019's close               | High     | 🟠 **Implemented — Not Verified** |
+| T-0367 | `[Apple]` Properties tab — field-driven view                                             | Medium   | 🟠 **Implemented — Not Verified** |
+| T-0368 | `[Apple]` Card failure isolation + inline warning                                        | Medium   | 🟠 **Implemented — Not Verified** |
 
 **⚠️ Found at planning:** `scrivi_history_get_tree` **does not exist** (`scrivi.h:334` marks it deferred), so
 SP-092 is `[Cross]`. The engine work is done though — `HistoryService` already exposes `nodes()`/`rootID()`/
@@ -205,13 +205,13 @@ SP-092 is `[Cross]`. The engine work is done though — `HistoryService` already
 All four tasks Verified; **I-0101** found, fixed, and Verified in-sprint. Archived
 `../Sprints/Closed/Sprint-SP-091.md`.
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0392 | `[ScriviCore]` `scrivi.scene.v1` + `tags`/`outline`/`todo` (additive) | ✅ **Verified (2026-08-05)** |
-| T-0393 | `[ScriviCore]` C ABI: scene notes setters + `_get_scene_notes` | ✅ **Verified (2026-08-05)** |
-| T-0363 | `[Apple]` `tags` + `todo` cards | ✅ **Verified (2026-08-05)** |
-| T-0364 | `[Apple]` `outline` card | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` | 🔵 **Backlog — unblocked 2026-08-12** (OQ-1 closed; Doc 1 §3.4 + Doc 2 §3.1.1 amended). Splits: ScriviCore → SP-096/097, card → SP-099. Source→scene → **EP-032** |
+| ID     | Title                                                                 | Status                                                                                                                                                            |
+| ------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-0392 | `[ScriviCore]` `scrivi.scene.v1` + `tags`/`outline`/`todo` (additive) | ✅ **Verified (2026-08-05)**                                                                                                                                       |
+| T-0393 | `[ScriviCore]` C ABI: scene notes setters + `_get_scene_notes`        | ✅ **Verified (2026-08-05)**                                                                                                                                       |
+| T-0363 | `[Apple]` `tags` + `todo` cards                                       | ✅ **Verified (2026-08-05)**                                                                                                                                       |
+| T-0364 | `[Apple]` `outline` card                                              | ✅ **Verified (2026-08-05)**                                                                                                                                       |
+| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by`       | 🔵 **Backlog — unblocked 2026-08-12** (OQ-1 closed; Doc 1 §3.4 + Doc 2 §3.1.1 amended). Splits: ScriviCore → SP-096/097, card → SP-099. Source→scene → **EP-032** |
 
 ## ✅ SP-090 `[Apple]` — EP-030 card framework (CLOSED 2026-08-05)
 
@@ -233,8 +233,8 @@ Epic close"), which runs **after SP-093** (the EP-019 history-capture sprint), n
 
 **SP-085 task (Verified):**
 
-| ID | Title | Status |
-| -- | ----- | ------ |
+| ID     | Title                                                                                                                                               | Status                                                                     |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | T-0350 | **Design doc** — `scrivi.fragment.v1` schema, extract/paste-splice/cut-merge behaviour, buffer-schema evolution, trades T1–T4, milestone breakdown. | ✅ **Verified (2026-07-27)** — doc written + approved; T1–T4 ruled (all A). |
 
 **SP-056** `[Apple]` — multiple copy buffers (**AC6**) ✅ **CLOSED 2026-07-27 (Human-approved).** Delivered
@@ -242,9 +242,9 @@ vim/emacs-register-style copy buffers, refined at implementation to **three expl
 2026-07-25/27). Source of truth: `Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` §9 + Trades T3/T4 +
 Appendix A.3 (with the approved chord refinement noted in SP-056).
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0213 | **`[ScriviCore]`+`[Apple]` Copy-buffer store + C ABI + engine wrappers** — `BufferStore` owns `history/buffers.json` (`scrivi.buffers.v1`); C ABI `scrivi_buffers_load/_get/_list/_clear`; `ScriviEngine` wrappers + interop. | ✅ **Verified (2026-07-27)** |
+| ID     | Title                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status                      |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| T-0213 | **`[ScriviCore]`+`[Apple]` Copy-buffer store + C ABI + engine wrappers** — `BufferStore` owns `history/buffers.json` (`scrivi.buffers.v1`); C ABI `scrivi_buffers_load/_get/_list/_clear`; `ScriviEngine` wrappers + interop.                                                                                                                                                                                                                                                                                                                                                                                                                              | ✅ **Verified (2026-07-27)** |
 | T-0214 | **`[Apple]` Buffer UX — palette + Edit/Scene/Chapter menu items + explicit ⌘/⌃/⌥1–9 chords + history integration.** ⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut (buffer 0 = system pasteboard); app-global Copy Buffers palette (View ▸ Show Buffers / ⌥⌘B; per-project reload; modifier-sensitive action button + clear); Edit-menu Copy/Paste/Cut To Buffer + Scene/Chapter New/Merge menu items. Trade T3: copy = no event, paste = `paste` event, cut = `cut` event **tagged with bufferID** (backend `scrivi_history_record_event` + history-node schema extended). System pasteboard untouched; buffers persist per project + across relaunch. Closes **AC6**. | ✅ **Verified (2026-07-27)** |
 
 **Planning note (2026-07-27):** SP-056 is closed and **AC6 Verified**. Two follow-on tracks are queued:
@@ -257,8 +257,8 @@ Appendix A.3 (with the approved chord refinement noted in SP-056).
    behaves as one monolithic document — **structured** buffers (scene/chapter markers), **cut-that-merges**,
    **paste-that-splits**. Reuses EP-027 (identity/order) + EP-028 (`SceneMerger`/`ChapterMerger`). 5 sprints
    planned (SP-085 design → SP-086 extract → SP-087 paste-splice → SP-088 cut-merge → SP-089 Apple wiring).
-   **First task T-0350** (design doc, SP-085). Full plan: `../Epics/Epic-active.md` (EP-029). **Next available
-   Task: T-0351.**
+   **First task T-0350** (design doc, SP-085). Full plan: `../Epics/Epic-active.md` (EP-029). \*\*Next available
+   Task: T-0351.\*\*
 
 ---
 
@@ -266,13 +266,13 @@ Appendix A.3 (with the approved chord refinement noted in SP-056).
 `Closed/Sprint-SP-084.md`. Delivered **AC6b** — co-located dot **clustering**: the aggregate dot (larger core +
 member count + segmented arc ring + selection arc, Apple T-0174), **hover fan-out** into the hexagonal ring, and
 **zoom-resolve**. T-0346–T-0349 all ✅ Verified live over VNC. Four clustering findings fixed + re-verified same
-session — larger-diameter aggregate-of-aggregates clustering; the fan drawn as an **overlay** on a **grey backing
-disc**; a tighter fan **dismiss** (keep-region = the disc); and the **phantom double-draw** defect (the skip-set
+session — larger-diameter aggregate-of-aggregates clustering; the fan drawn as an **overlay** on a \*\*grey backing
+disc**; a tighter fan **dismiss\*\* (keep-region = the disc); and the **phantom double-draw** defect (the skip-set
 excluded the fanned aggregate → its members drew twice; fixed so all aggregate members are skipped from the
 baseline loops, the ring being the sole draw). All recorded as sprint findings (not I-numbers — caught
 mid-review of un-accepted tasks). Container green (216/216) + new `timeline_cluster_smoke` + 14 regression
-smokes + app-launch PASS; `scrivi.h` untouched (C ABI complete from EP-016); no pbxproj (Linux-only). **Key
-decision:** persistence needed no new smoke — existing smokes prove backend persistence + SP-083 proved zoom/pan;
+smokes + app-launch PASS; `scrivi.h` untouched (C ABI complete from EP-016); no pbxproj (Linux-only). \*\*Key
+decision:\*\* persistence needed no new smoke — existing smokes prove backend persistence + SP-083 proved zoom/pan;
 the live walkthrough confirmed the full close/reopen restore. New file: `timeline_cluster_smoke`.
 
 ---
@@ -346,8 +346,8 @@ all ✅ **Verified** live over VNC and archived with the sprint (`Closed/Sprint-
   the SP-077 menu bar.
 
 Post-verify user tweaks: inspector widths 240/280 → 120/200, window default 820×560 → 1020×760; rebuilt green.
-Qt/C++ UI only — no `scrivi_*`/`scrivi.h`/Apple change → no pbxproj. **All EP-024 ACs met; Epic closed in one
-sprint (mirroring Apple EP-014/SP-037). Next available Task: T-0321.**
+Qt/C++ UI only — no `scrivi_*`/`scrivi.h`/Apple change → no pbxproj. \*\*All EP-024 ACs met; Epic closed in one
+sprint (mirroring Apple EP-014/SP-037). Next available Task: T-0321.\*\*
 
 ---
 
@@ -365,8 +365,8 @@ All of T-0304–T-0317 are ✅ **Verified** and archived with their sprints:
   (flush-safe editor-leaving paths — closed a data-loss hole; removed the raw ‹ Close button), T-0317 (Ctrl+W
   closes the project).
 
-**EP-028 AC1–AC7 all Verified. Archived to `../Epics/Closed/Epic-EP-028.md`. No active Epic; next in line
-EP-024–EP-026 `[Linux]` (Draft). Next available Task: T-0318.**
+\*\*EP-028 AC1–AC7 all Verified. Archived to `../Epics/Closed/Epic-EP-028.md`. No active Epic; next in line
+EP-024–EP-026 `[Linux]` (Draft). Next available Task: T-0318.\*\*
 
 _The full T-0304–T-0317 detail lives in the two sprint archives above and the closed Epic; not re-listed here._
 
@@ -375,16 +375,16 @@ _The full T-0304–T-0317 detail lives in the two sprint archives above and the 
 **SP-074 ✅ closed 2026-07-21** (EP-028 `[ScriviCore]` — **Merge endpoints + filesystem-coherence fix**).
 Delivered `scrivi_merge_scene` (`SceneMerger`) + `scrivi_merge_chapter` (`ChapterMerger` — the atomic I-0083
 fix: relocates scene files into the predecessor BEFORE removing the emptied chapter) + `MergeSceneTests.cpp`
-(11 tests, incl. the I-0083 loss guard on the old `deleteChapter`-composed path). ctest **macOS 317/317 +
-Linux 324/324**; both C symbols exported in `libScriviCore.a`; `scrivi.h` boundary stayed pure C ABI. Fixed a
+(11 tests, incl. the I-0083 loss guard on the old `deleteChapter`-composed path). ctest \*\*macOS 317/317 +
+Linux 324/324\*\*; both C symbols exported in `libScriviCore.a`; `scrivi.h` boundary stayed pure C ABI. Fixed a
 stale `devops/docker/linux/Dockerfile` (missing `libssl-dev`). **I-0083 Resolved at core, Not Verified** — app
 adoption is SP-075 (this sprint) / SP-076. T-0298–T-0301 record: `Sprints/Closed/Sprint-SP-074.md`.
 **Next available T-0302.**
 
 ---
 
-**SP-073 ✅ closed 2026-07-19** (EP-023 `[Linux]` — chapter drag-reorder AC5 + full EP-023 verify; **this
-closed EP-023**). T-0294–T-0297 all ✅ Verified & archived to `Verified/Task-verified-0294-0297.md`; fixed
+**SP-073 ✅ closed 2026-07-19** (EP-023 `[Linux]` — chapter drag-reorder AC5 + full EP-023 verify; \*\*this
+closed EP-023\*\*). T-0294–T-0297 all ✅ Verified & archived to `Verified/Task-verified-0294-0297.md`; fixed
 & Verified en route: I-0080 (`[ScriviCore]` open-time migration undid chapter reorders), I-0081 (stale
 scene paths after drag), I-0082 (undraggable chapter rows). Sprint record:
 `Sprints/Closed/Sprint-SP-073.md`. **Next available T-0298.**
@@ -410,9 +410,9 @@ now unblocked).
 ---
 
 **SP-069** (EP-027 `[ScriviCore]` — **P1 rename primitive + P2 order-key/disk-authority + P3 migration**) is
-🟢 Implemented, Not Verified (2026-07-16). `scrivi.h` untouched; ctest green **290/290 macOS + Linux**. **I-0072
+🟢 Implemented, Not Verified (2026-07-16). `scrivi.h` untouched; ctest green **290/290 macOS + Linux**. \*\*I-0072
 root cause fixed + regression + open-time self-heal for existing damage + lazy migration of legacy `chapter-NNN`
-projects.** Full task table in `Sprints/Sprint-active.md` (T-0264 P1; T-0265–T-0269 P2; T-0270 P3). **Deferred:**
+projects.\*\* Full task table in `Sprints/Sprint-active.md` (T-0264 P1; T-0265–T-0269 P2; T-0270 P3). **Deferred:**
 drop `chapterID` from `ChapterRef` schema (self-healing cache — churn without gain; trade study §7.6).
 
 **Epic:** EP-027 `[ScriviCore]` — **Sprint:** SP-069 (`Sprints/Sprint-active.md`). (P6/SP-070 consumed
@@ -432,14 +432,14 @@ activation; next available **T-0264**.
 
 The SP-067 task table below is retained for reference until archived with the sprint.
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0258 | **Reorder bridge wrappers** — `ScriviBridge::reorderScene(...)` / `reorderChapter(...)` (`scrivi_reorder_scene`/`_chapter`, `parseEnvelope`, RAII `scrivi_free`, `errorOccurred`, `ready_` guard; no identity). | ✅ Done (not verified) |
-| T-0259 | **`SceneDocument::moveScene` re-splice** — lift a scene body span (+ one boundary) and re-insert at the destination with the correct heading/separator; re-promote/demote chapter-first scenes; fix all `bodyStart`s; `reflowAllChapterHeadings()`. Programmatic-window guarded. | ✅ Done (not verified) |
-| T-0260 | **`NavigatorTree` scene drag-drop + insertion-line highlight** — new `QTreeView` subclass: drag scene rows; drop indicator; `dragMoveEvent` legality gate; on drop resolve `(draggedSceneID, targetChapterID, afterSceneID)` → `sceneDropRequested`; `EditorShell::onSceneDropped` does `saveDirtyScenes()` + `bridge_->reorderScene` + `moveScene` + `rebuildNavigator()` + re-anchor caret. Chapter-row drag disabled (SP-068). | ✅ Done (not verified) |
-| T-0261 | **I-0064 — Ctrl+Shift+Return splits the chapter at the caret** — orchestrate `create_chapter` → `reorder_chapter(K, afterC)` → per-following-scene `reorder_scene` into K → (mid-scene) `save_scene` head/tail (end-of-scene w/ followers drops blank K0; no followers keeps it) → reload → `renumberCreatedChapters` → renumber confirmation. | 🔵 **Superseded → EP-027** (2026-07-16) — VNC: mid-scene worked, end-of-scene failed (I-0069/I-0070); the split path is rebuilt on EP-027's new on-disk model. Not verified on the old model. |
-| T-0262 | **I-0063 — renumber created chapters on structural change** — `renumberCreatedChapters()`: `renameChapter` each later chapter whose stored title matches `^Chapter \d+$` to its new ordinal (Option A); custom untouched; untitled already handled. Wired into `deleteChapterByID` + T-0261; also fixes `load()` to copy `chapterMetadataPath`. **Closes I-0063.** | ✅ Done (not verified) |
-| T-0263 | **Verify AC4 + I-0063/I-0064 + `scene_reorder_smoke`** — new headless smoke (within/cross-chapter move, chapter-first re-promotion, offset map well-formed, cross-chapter persistence, I-0064 split end/mid-scene, I-0063 renumber) + CMake target + CI step. **Docker build + `scene_reorder_smoke` + all prior smokes green (2026-07-15).** VNC walk-through user-pending; `scrivi.h` untouched; macOS/EP-020–022 + SP-065/066 unaffected. | ✅ Done (smokes green; VNC user-pending) |
+| ID     | Title                                                                                                                                                                                                                                                                                                                                                                                                                                        | Status                                                                                                                                                                                        |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-0258 | **Reorder bridge wrappers** — `ScriviBridge::reorderScene(...)` / `reorderChapter(...)` (`scrivi_reorder_scene`/`_chapter`, `parseEnvelope`, RAII `scrivi_free`, `errorOccurred`, `ready_` guard; no identity).                                                                                                                                                                                                                              | ✅ Done (not verified)                                                                                                                                                                         |
+| T-0259 | **`SceneDocument::moveScene` re-splice** — lift a scene body span (+ one boundary) and re-insert at the destination with the correct heading/separator; re-promote/demote chapter-first scenes; fix all `bodyStart`s; `reflowAllChapterHeadings()`. Programmatic-window guarded.                                                                                                                                                             | ✅ Done (not verified)                                                                                                                                                                         |
+| T-0260 | **`NavigatorTree` scene drag-drop + insertion-line highlight** — new `QTreeView` subclass: drag scene rows; drop indicator; `dragMoveEvent` legality gate; on drop resolve `(draggedSceneID, targetChapterID, afterSceneID)` → `sceneDropRequested`; `EditorShell::onSceneDropped` does `saveDirtyScenes()` + `bridge_->reorderScene` + `moveScene` + `rebuildNavigator()` + re-anchor caret. Chapter-row drag disabled (SP-068).            | ✅ Done (not verified)                                                                                                                                                                         |
+| T-0261 | **I-0064 — Ctrl+Shift+Return splits the chapter at the caret** — orchestrate `create_chapter` → `reorder_chapter(K, afterC)` → per-following-scene `reorder_scene` into K → (mid-scene) `save_scene` head/tail (end-of-scene w/ followers drops blank K0; no followers keeps it) → reload → `renumberCreatedChapters` → renumber confirmation.                                                                                               | 🔵 **Superseded → EP-027** (2026-07-16) — VNC: mid-scene worked, end-of-scene failed (I-0069/I-0070); the split path is rebuilt on EP-027's new on-disk model. Not verified on the old model. |
+| T-0262 | **I-0063 — renumber created chapters on structural change** — `renumberCreatedChapters()`: `renameChapter` each later chapter whose stored title matches `^Chapter \d+$` to its new ordinal (Option A); custom untouched; untitled already handled. Wired into `deleteChapterByID` + T-0261; also fixes `load()` to copy `chapterMetadataPath`. **Closes I-0063.**                                                                           | ✅ Done (not verified)                                                                                                                                                                         |
+| T-0263 | **Verify AC4 + I-0063/I-0064 + `scene_reorder_smoke`** — new headless smoke (within/cross-chapter move, chapter-first re-promotion, offset map well-formed, cross-chapter persistence, I-0064 split end/mid-scene, I-0063 renumber) + CMake target + CI step. **Docker build + `scene_reorder_smoke` + all prior smokes green (2026-07-15).** VNC walk-through user-pending; `scrivi.h` untouched; macOS/EP-020–022 + SP-065/066 unaffected. | ✅ Done (smokes green; VNC user-pending)                                                                                                                                                       |
 
 **Epic:** EP-023 `[Linux]` (Manuscript Structure Editing) — Active. **Sprint:** SP-067 (`Sprints/Sprint-active.md`).
 Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived to
@@ -447,7 +447,7 @@ Previous sprint SP-066 (rename) ✅ closed; T-0254–T-0257 Verified & archived 
 
 ---
 
-*Last Updated: 2026-08-09 (**Tracking-doc audit — cross-layer realignment.** Audited all four layers
+\*Last Updated: 2026-08-09 (**Tracking-doc audit — cross-layer realignment.** Audited all four layers
 (Task/Issue/Sprint/Epic) for status drift. **Structure was sound** — the reported "Issues in Task-active /
 Sprints in Task-active / Tasks in Sprint-active" filing is the established convention (sprint-grouped task
 tables; Issue rows appear as sprint scope while their authoritative entries live in `Issue-active.md`). The
@@ -457,29 +457,29 @@ SP-092) and **T-0365**'s deferral target (EP-031 SP-094 → **SP-095**). Next av
 T-0392 → **T-0399**. Companion fixes in `Task-backlog.md`, `Sprint-backlog.md`, `Epic-active.md`.
 **Still open, deliberately not touched** (needs user judgment): **I-0072** still reads "Root defect of EP-027"
 though EP-027 closed 2026-07-18; **I-0073** has sat "Open — needs triage" since mid-July; **I-0102**'s "(b)
-remains open" pointer now dead-ends at superseded I-0103. Prior note follows.)*
+remains open" pointer now dead-ends at superseded I-0103. Prior note follows.)\*
 
-*2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-029 opened + SP-085 planned.** T-0213 +
+\*2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-029 opened + SP-085 planned.** T-0213 +
 T-0214 both ✅ Verified live: multiple copy buffers delivered as explicit ⌘1–9/⌃1–9/⌥1–9 (copy/paste/cut) chords
 + app-global per-project palette + Edit/Scene/Chapter menu items + bufferID-tagged cut event (backend schema
 extended); ctest 327 + interop 43 green. EP-019 **held pending** SP-057 (AC2/AC7/AC8 verify + history panel +
 close). New Epic **EP-029** `[Cross]` (cross-boundary structured Cut/Copy/Paste — gap surfaced during SP-056
 verify) opened; design sprint **SP-085** planned (task T-0350, design doc first). Next available Task T-0351.
-Prior note follows.)*
+Prior note follows.)\*
 
-*2026-07-24 (**EP-019 `[Apple]` un-deferred + SP-056 activated** — resumed from the backlog (user
+\*2026-07-24 (**EP-019 `[Apple]` un-deferred + SP-056 activated** — resumed from the backlog (user
 request: lock copy buffers on Apple before Linux). SP-056 delivers **AC6** (multiple copy buffers): T-0213
 (`BufferStore` + `scrivi_buffers_*` C ABI + `ScriviEngine` wrappers + interop) + T-0214 (keyboard HUD + palette
 + Edit-menu UX + history integration; Trades T3/T4). Backend greenfield-but-small (peer to the built
-`HistoryStore`); Apple-only (Linux copy buffers = EP-026); build/test via `xcodebuild` + `ctest`. **Same day:
-SP-084 ✅ closed → EP-025 closed** (below). Next available Task after SP-056: **T-0350**. Prior notes below
-retained for reference.)*
+`HistoryStore`); Apple-only (Linux copy buffers = EP-026); build/test via `xcodebuild` + `ctest`. \*\*Same day:
+SP-084 ✅ closed → EP-025 closed\*\* (below). Next available Task after SP-056: **T-0350**. Prior notes below
+retained for reference.)\*
 
-*2026-07-24 (**SP-084 ✅ closed (Human-approved) — this closed EP-025.** The 5th and final EP-025
+\*2026-07-24 (**SP-084 ✅ closed (Human-approved) — this closed EP-025.** The 5th and final EP-025
 sprint delivered **AC6b**: co-located dot **clustering** (aggregate dot per Apple T-0174 — larger core + count +
 segmented arc ring + selection arc; hover fan-out; zoom-resolve) + a persistence sweep + full EP-025 verify;
 T-0346–T-0349 all Verified live; four clustering findings fixed + re-verified same session (incl. a phantom
 double-draw defect). Container green (216/216) + new `timeline_cluster_smoke` + 14 regression smokes PASS;
 `scrivi.h` untouched; no pbxproj. **EP-025 CLOSED** — AC1–AC6b all Verified across six sprints; archived
 `../Epics/Closed/Epic-EP-025.md`. **No active sprint or Epic**; next in line EP-026 `[Linux]` (Draft). Next
-available Task **T-0350**; next Sprint **SP-085**. Prior notes below retained for reference.)*
+available Task **T-0350**; next Sprint **SP-085**. Prior notes below retained for reference.)\*

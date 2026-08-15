@@ -43,7 +43,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **32 Epics** | Next available: **EP-033**
+Currently: **33 Epics** | Next available: **EP-034**
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -81,6 +81,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-030 | `[Apple]` Scene Inspector Card Framework (base cards) | ✅ Closed | 2026-08-05 | 2026-08-11 |
 | EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | 🟡 Active | 2026-08-12 | — |
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes) | 🔵 Proposed (backlog) | — | — |
+| EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
 
 ## Statistics
 
@@ -91,7 +92,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 - **Planned:** 0 🔵
 - **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0
-- **Proposed (backlog):** 1 🔵 (EP-032 `[Cross]` — Inline Object References, opened 2026-08-12)
+- **Proposed (backlog):** 2 🔵 (EP-032 `[Cross]` — Inline Object References, opened 2026-08-12; EP-033
+  `[Cross]` — World Lifecycle Management, opened 2026-08-14 from the I-0118 ruling)
 
 ---
 

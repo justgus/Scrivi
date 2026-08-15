@@ -13,6 +13,7 @@ struct InspectorCardStackView: View {
     let allSceneIDs: [String]
     let history: HistoryCapture?
     let caretByteOffset: Int?
+    let authorshipRef: AuthorshipRef?
     @Bindable var layout: InspectorLayoutStore
 
     var body: some View {
@@ -115,9 +116,14 @@ struct InspectorCardStackView: View {
                                     projectRootPath: projectRootPath,
                                     engine: engine,
                                     config: entry.config,
+                                    allSceneIDs: allSceneIDs,
                                     history: history,
                                     caretByteOffset: caretByteOffset,
-                                    historyRevision: history?.revision ?? 0
+                                    historyRevision: history?.revision ?? 0,
+                                    // C6: one sort for the whole stack, handed to
+                                    // every card rather than each owning its own.
+                                    sort: layout.sort(for: stack),
+                                    authorshipRef: authorshipRef
                                 ),
                                 onToggleCollapsed: {
                                     layout.setCollapsed(!entry.collapsed,

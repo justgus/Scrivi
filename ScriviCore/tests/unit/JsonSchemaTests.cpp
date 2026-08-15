@@ -740,24 +740,40 @@ TEST_CASE("each kind writes its own schema tag", "[schemas][T-0370]") {
     REQUIRE(parseWorldObject(json, ObjectKind::vehicle).ok() == false);
 }
 
-TEST_CASE("world-scoped kinds are identified as such", "[schemas][T-0370]") {
+TEST_CASE("world-scoped kinds are identified as such", "[schemas][T-0370][T-0409]") {
+    // ⚠️ REWRITTEN for SP-103 / T-0409 (user ruling 2026-08-14, Doc 1 §3.0).
+    // This test previously asserted the OPPOSITE for six kinds: character,
+    // location, item, building, vehicle and map were project-scoped. They are
+    // now world-scoped, because a worldbuilding object IS a thing in a world —
+    // which is what makes a character reusable across projects by binding the
+    // same world, rather than needing a promotion path that never existed.
+
+    // Every worldbuilding kind.
     REQUIRE(objectKindIsWorldScoped(ObjectKind::artifact));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::building));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::character));
     REQUIRE(objectKindIsWorldScoped(ObjectKind::chronicle));
     REQUIRE(objectKindIsWorldScoped(ObjectKind::faction));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::item));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::location));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::map));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::rule));
+    REQUIRE(objectKindIsWorldScoped(ObjectKind::vehicle));
 
-    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::character));
-    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::building));
-    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::vehicle));
-    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::map));
-    // `source` is PROJECT-scoped (T-0406): a citation belongs to the work that
-    // makes it, not to a world that might be shared with another project.
+    // `source` is the SOLE project-scoped object kind. A citation points at a
+    // real-world publication supporting THIS manuscript, not at a fact about the
+    // invented world — and keeping it project-scoped stops a shared world from
+    // dragging one project's bibliography into every project that binds it.
     REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::source));
 
-    // `rule` became world-scoped in SP-097 (T-0404): rules govern an
-    // ENVIRONMENT, not a manuscript, so they live at worlds/<worldID>/rules/
-    // (Doc 1 §3, Doc 3 §7.2). The subdir name is unchanged — only its parent is.
-    REQUIRE(objectKindIsWorldScoped(ObjectKind::rule));
-    REQUIRE(objectKindSubdir(ObjectKind::rule) == "rules");
+    // `world` is a container, created by scrivi_create_world, never stored as an
+    // object inside another world.
+    REQUIRE_FALSE(objectKindIsWorldScoped(ObjectKind::world));
+
+    // Relocating a kind changes its PARENT, never its subdirectory name.
+    REQUIRE(objectKindSubdir(ObjectKind::rule)      == "rules");
+    REQUIRE(objectKindSubdir(ObjectKind::character) == "characters");
+    REQUIRE(objectKindSubdir(ObjectKind::source)    == "sources");
 }
 
 // --- SP-095 T-0371: subtitle / image / worldID ------------------------------

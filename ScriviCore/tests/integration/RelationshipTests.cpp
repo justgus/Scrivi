@@ -11,6 +11,7 @@
 #include "objects/EndpointResolver.hpp"
 #include "objects/RelationTypes.hpp"
 #include "objects/RelationshipStore.hpp"
+#include "worlds/WorldStore.hpp"
 #include "scrivi/Requests.hpp"
 #include "scrivi/ScriviCore.hpp"
 
@@ -45,6 +46,9 @@ struct GraphFixture {
     ScriviCore                       core;
 
     SceneID firstSceneID;
+    // SP-103: worldbuilding kinds are world-scoped, so the graph fixture needs a
+    // world before it can create the objects it relates.
+    std::string worldID;
 
     const AuthorshipRef author{
         IdentityID{"identity-001"}, PersonaID{"persona-001"}, "Test Author"};
@@ -78,6 +82,13 @@ struct GraphFixture {
         auto r = core.createProject(req);
         REQUIRE(r.ok());
         firstSceneID = r.value().firstSceneID;
+
+        worlds::WorldStore ws{services};
+        auto w = ws.createWorld(projectDir.string(),
+                                (projectDir / "Graph.scrivworld").string(),
+                                "Graph World", "");
+        REQUIRE(w.ok());
+        worldID = w.value().worldID;
     }
 
     ~GraphFixture() {
@@ -103,6 +114,8 @@ struct GraphFixture {
         req.displayName     = name;
         req.slug            = slug;
         req.author          = author;
+        // Every worldbuilding kind is world-scoped (SP-103); `source` is not.
+        if (objectKindIsWorldScoped(kind)) { req.worldID = worldID; }
         auto r = core.createObject(req);
         REQUIRE(r.ok());
         return r.value().objectID;

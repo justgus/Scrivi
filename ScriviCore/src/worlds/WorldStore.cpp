@@ -106,8 +106,24 @@ Result<WorldRecord> WorldStore::createWorld(const AbsolutePath& projectRoot,
 
     // Package skeleton (§6.1) — self-contained: its own kind directories,
     // its own object index, its own assets.
-    for (const char* sub : {"artifacts", "rules", "chronicles", "factions",
-                            "historical-events", "historical-timelines", "assets"}) {
+    //
+    // ⚠️ DERIVED, never restated. This was a hardcoded list of seven literals
+    // naming the PRE-SP-104 world scope, so a world created after the ruling had
+    // no characters/ directory — the fourth instance of this Epic's restated-kind
+    // defect (I-0113, SP-098, SP-103, here). Driving it from kAllStorableKinds +
+    // objectKindIsWorldScoped means a kind whose scope changes cannot leave this
+    // skeleton stale.
+    for (auto kind : kAllStorableKinds) {
+        if (!objectKindIsWorldScoped(kind)) { continue; }
+        if (auto r = fs_.createDirectories(util::join(packagePath, objectKindSubdir(kind)));
+            !r.ok()) {
+            return Result<WorldRecord>::failure(r.error());
+        }
+    }
+
+    // Non-kind directories the package also owns (§6.1): historical time and
+    // binary assets are not ObjectKinds, so they stay explicit.
+    for (const char* sub : {"historical-events", "historical-timelines", "assets"}) {
         if (auto r = fs_.createDirectories(util::join(packagePath, sub)); !r.ok()) {
             return Result<WorldRecord>::failure(r.error());
         }
@@ -252,11 +268,22 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
     for (const auto& cand : candidates) {
         auto textR = fs_.readTextFile(worldJsonPath(cand));
         if (!textR.ok()) {
-            // Is the CONTAINING FOLDER present and readable? Only then can we
-            // positively say the package is missing rather than unreachable.
-            auto parentDir = util::parent(cand);
-            if (auto e = fs_.exists(parentDir); e.ok() && e.value()) {
-                sawContainerButNoPackage = true;
+            // ⚠️ A FAILED READ IS NOT EVIDENCE OF ABSENCE. It is equally the
+            // signature of an unreadable-but-present package — which is exactly
+            // what a sandboxed host produces when the package sits outside the
+            // granted paths. Deciding `missing` from a failed read + a readable
+            // PARENT reported a perfectly intact world as gone, because the
+            // parent (e.g. ~/Desktop) is reachable while the package is not.
+            //
+            // So require positive evidence that the package itself is absent:
+            // ask whether it exists. Only a definitive "no" establishes missing;
+            // an error (permission denied) leaves the honest `unavailable`.
+            auto pkgE = fs_.exists(cand);
+            if (pkgE.ok() && !pkgE.value()) {
+                auto parentDir = util::parent(cand);
+                if (auto e = fs_.exists(parentDir); e.ok() && e.value()) {
+                    sawContainerButNoPackage = true;
+                }
             }
             continue;
         }

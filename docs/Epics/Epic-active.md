@@ -3,13 +3,27 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **4 of 6 sprints closed; 8 of 10 ACs met.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
-SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC1 + AC4 + AC7**), all closed 2026-08-12 with user approval.
+**Status:** 🟡 **Active** — **4 of 8 sprints closed; 7 of 10 ACs met.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
+SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC4 + AC7**), all closed 2026-08-12 with user approval.
+⚠️ **AC1 was UNTICKED 2026-08-14** — the object scope model changed under it (Doc 1 §3.0); it is re-verified
+in **SP-103**.
 ⚠️ SP-097 and SP-098 had their **content swapped** — worlds landed first, because two integrity tasks were
 verified unbuildable without them; integrity was then built once, against real worlds.
-**The whole `[ScriviCore]` half of the Epic is now done.** What remains is `[Apple]`: **SP-099**
-(worldbuilding-object cards on EP-030's framework — closed 2026-08-11, so it is unblocked) and **SP-100**
-(Epic verification and close). Only **AC9** and **AC10** are outstanding.
+⚠️ **The `[ScriviCore]` half REOPENED 2026-08-14.** It was complete; a user ruling changed the object scope
+model, which is core work. What remains: **SP-099** (🟠 Review — engine wrappers + cards + picker + in-place
+creation + Worlds menu), **SP-103** (⚠️ **all worldbuilding kinds → world scope**, breaking, no migration),
+**SP-102** (pending presentation + warning view + `sources` card), and **SP-100** (verification and close).
+**AC1, AC9, and AC10** are outstanding.
+⚠️ **EP-031 is now an 8-sprint Epic.** SP-099 was split at planning (an entire unwrapped engine layer was
+hidden inside the staged tasks), then **grew T-0388 + T-0408 at R4** when live verification found the sprint
+had shipped a surface with no way to create data or see world context. **SP-103 was then opened** when the
+writer's follow-up question exposed that *no path existed for cross-project character reuse at all.*
+
+> ⚠️ **The scope ruling (2026-08-14) is the Epic's second model change, and it is breaking.** All ten
+> worldbuilding kinds move into the `.scrivworld` package; **`source` alone stays project-scoped**. A project
+> becomes a *manuscript* that references world objects through the graph. **No migration pass** — Doc 3 §7 is
+> retained and the test project is discarded, which is only defensible while no real data exists. See Doc 1
+> **§3.0**.
 
 > ⚠️ **The Epic's highest-risk criterion is met.** AC7 — *absence is never deletion* — is the one failure
 > Doc 3 §4.6 calls **silent and unrecoverable**: a prune pass that reads "world unmounted" as "object deleted"
@@ -27,9 +41,17 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ### Acceptance Criteria
 
-- [x] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
+- [ ] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
       legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)
-      ✅ **Met — SP-095 + SP-097 + SP-098 (T-0406), Verified 2026-08-12.**
+      ⚠️ **UNTICKED 2026-08-14 — must be RE-VERIFIED under the new scope model.** It was Verified 2026-08-12
+      against Doc 1 §3's old scope table, where `character`/`location`/`item`/`building`/`vehicle`/`map` were
+      **project**-scoped. The user ruled 2026-08-14 that **all ten worldbuilding kinds are world-scoped**
+      (`source` alone stays project-scoped) — see Doc 1 **§3.0**. The round-trip assertions therefore now
+      exercise the wrong partition, and "legacy 5-kind files load unchanged" needs restating: with **no
+      migration** (Doc 3 §7 retained, user-ruled), legacy project-scoped files are **not** carried forward.
+      **Re-verification is T-0411 in SP-103.** The 2026-08-12 evidence below is retained for the record but no
+      longer establishes this AC.
+      ~~✅ **Met — SP-095 + SP-097 + SP-098 (T-0406), Verified 2026-08-12.**~~
       > **Amended 2026-08-12 at SP-095 planning (user-ruled).** Two changes. **(a) `source` removed from AC1** —
       > sources are a *writing aid*, not worldbuilding, and belong in the Writing tab. **Updated 2026-08-12:
       > OQ-1 is closed and `source` is back in EP-031's scope** — as a full object kind with a
@@ -126,6 +148,26 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > `rename` overwrites, so a lock built on it would have let two writers both win.
 - [ ] AC9 — Worldbuilding-object cards on EP-030's framework: unfiltered picker, in-stack creation with no modal,
       "Remove from scene" deletes the edge only. (Doc 2 AC16–AC24)
+      🔵 **Split across two sprints at SP-099 planning (2026-08-13, R2):** **SP-099** delivers Doc 2
+      **AC16/17/21/22** (object cards, unfiltered picker, one canonical edge from either entrance, "Remove from
+      scene" deletes the edge only); **SP-102** delivers **AC18/19/20** (no-modal in-stack create/edit,
+      edit-state visuals, complete-or-discard at the scene boundary) and **AC23/24** (pending presentation).
+      **AC9 ticks only when both have landed.**
+      > ⚠️ **AC24 has unbuilt work under it that no staged task named.** `WorldStatus` declares five states, but
+      > **`offline` and `unmounted` are produced nowhere in `ScriviCore/src`** (`WorldTypes.hpp:68` comments
+      > them "platform-layer refinement") — the core emits only `missing`/`unavailable`. Since Doc 3 §4.4.1
+      > forbids a platform-specific *model*, the refinement is Apple-layer work feeding the neutral enum. It is
+      > scoped into **SP-102/T-0389** rather than discovered mid-sprint. The core's fallback is the honest
+      > behavior the design mandates — this is a gap in the *diagnostic*, not a defect.
+      >
+      > ✅ **Pending presentation itself needs no core work:** `scrivi_list_edges_for` already returns
+      > `otherPending`, `otherDisplayName`, and `otherWorldStatus` per row (`scrivi_c_api.cpp:891`), so Doc 2
+      > §7.2's named-not-bare-ID requirement is satisfiable from the shipped payload.
+      >
+      > **AC23 verification ruled at planning (R3):** a real `.scrivworld` on a mounted **disk image**, bound
+      > and related to a scene, then **ejected** — because AC23 requires that reattaching restores the card
+      > *with no writer intervention*, which a fixture cannot demonstrate. Moving the package aside covers the
+      > `missing` branch specifically; both branches need coverage since they report different statuses.
 - [ ] AC10 — No regression: `ctest` + interop suites green; existing projects open unchanged.
 
 ### Sprints
@@ -136,8 +178,26 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-096 | Relationship graph: canonical edges, relation types, append-log, compaction | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-096.md` | 2026-08-12 |
 | SP-097 | **World packages: `.scrivworld`, bindings, resolution, locking, epoch chain** | ✅ **Closed (Human-approved)** → `../Sprints/Closed/Sprint-SP-097.md` | 2026-08-12 |
 | SP-098 | **Integrity: cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling** | ✅ **Closed 2026-08-12 (Human-approved)** | **AC1, AC4, AC7 met** |
-| SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | 🔵 Planning | — |
+| SP-099 | **`[Apple]` Engine wrappers (T-0407) + object cards + picker** | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-099.md` | **AC16/17/21/22 + AC18/19/20 met; AC10 struck** |
+| SP-103 | ⚠️ **`[Cross]` All worldbuilding kinds → world scope** (breaking; no migration) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-103.md` | T-0409 + T-0411; **T-0410 removed OBE** |
+| SP-104 | ⚠️ **`[Cross]` Post-ruling fallout: world reachability + the restated-kind class** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-104.md` | I-0114–I-0117 |
+| SP-105 | **`[Cross]` World search indexing** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-105.md` | I-0118 |
+| SP-102 | **`[Apple]` Pending presentation + warning view + `sources` card** | 🔵 Planning | — |
 | SP-100 | Verification & Epic close | 🔵 Planning | — |
+
+> ⚠️ **SP-099 SPLIT at planning, 2026-08-13 (R2, user-approved) — EP-031 is now a 7-sprint Epic.** The staged
+> SP-099 carried 5 tasks *plus* an entire unplanned engine layer, mixing plumbing, CRUD UI, and failure-surface
+> work into one verification pass. **SP-099** takes the engine wrappers + object cards + picker
+> (**AC16/17/21/22** of AC9); **SP-102** takes in-stack create/edit, edit-state visuals, complete-or-discard,
+> pending presentation, the Worlds menu, the warning view, and T-0365's aggregate `sources` card
+> (**AC18/19/20/23/24**). **SP-100 keeps its number** and runs last. SP-102 was chosen because SP-101 is
+> already taken — the unplanned EP-030 AC12 sprint, closed 2026-08-11.
+>
+> **The finding that forced the split:** all 12 graph/world endpoints (`create_edge`, `list_edges_for`,
+> `list_worlds`, …) are exported in `scrivi.h` and **grep to zero call sites in `ScriviEngine.swift`**, which
+> has object CRUD only. The graph has never been reachable from Swift. Now **T-0407**, done first, tested
+> through `scrivi_*`. ⚠️ **This is SP-098's carried-forward lesson pointing the other way** — there Swift
+> wrapped *more* than assumed, here *less*; the sweep, not the hypothesis, produced the truth both times.
 
 > **⚠️ Renumbered 2026-08-09 (SP-094–SP-099 → SP-095–SP-100).** EP-031's sprints were planned before the
 > 2026-08-07 ruling that made **SP-094** the merged *"EP-019 + EP-030 verification & Epic close"* sprint,
@@ -183,10 +243,15 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0384 | Epoch chain: world/timeline/binding offsets + resolve endpoint | SP-097 | ✅ **Verified (2026-08-12)** |
 | T-0385 | Cached world index entries → named pending entries; **world-scoped kinds become creatable** (closes AC1's gated half + AC3's faction↔faction clause) | SP-097 | ✅ **Verified (2026-08-12)** |
 | T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | SP-097 | ✅ **Verified (2026-08-12)** |
-| T-0386 | Object cards (one implementation, per-kind config) on EP-030's framework | SP-099 | 🔵 Backlog |
-| T-0387 | Object picker (unfiltered, all worlds) + inline type-ahead + "Create new…" | SP-099 | 🔵 Backlog |
-| T-0388 | In-stack create/edit, edit-state visuals, scene-change complete-or-discard | SP-099 | 🔵 Backlog |
-| T-0389 | Pending presentation + Worlds menu + warning view under the timeline | SP-099 | 🔵 Backlog |
+| T-0407 | ⚠️ **`ScriviEngine` graph + world wrappers** — 14 endpoints + `ScriviError.detail` + null-result decode | SP-099 | ✅ **Verified (2026-08-15)** |
+| T-0386 | Object cards (ONE implementation, ten per-kind configurations) on EP-030's framework | SP-099 | ✅ **Verified (2026-08-15)** |
+| T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point | SP-099 | ✅ **Verified (2026-08-15)** |
+| T-0408 | **Worlds menu — list / create / bind + world context** (new at R4) | SP-099 | ✅ **Verified (2026-08-15)** |
+| T-0409 | ⚠️ **All ten kinds → world-scoped** (`source` excluded); `ObjectStore` + C ABI | SP-103 | ✅ **Verified (2026-08-15)** |
+| T-0411 | Test realignment under the new scope model | SP-103 | ✅ **Verified (2026-08-15)** — ⚠️ **AC1 re-verification split out to SP-100** |
+| T-0388 | In-stack create/edit, edit-state visuals, scene-change complete-or-discard | **SP-099** (⬅ R4) | ✅ **Verified (2026-08-15)** |
+| T-0389 | Pending presentation + Worlds menu + warning view (**+ the unbuilt `offline`/`unmounted` refinement**) | **SP-102** | 🔵 Backlog |
+| T-0365 | Aggregate `sources` card (final third; kind + relation type already ✅) | **SP-102** | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | 🔵 Backlog |
 | T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-100 | 🔵 Backlog |
 
@@ -198,7 +263,23 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-12 (**SP-098 ✅ CLOSED (Human-approved) — the graph is self-consistent under deletion,
+*Last Updated: 2026-08-13 (**SP-099 planned — EP-031's first `[Apple]` sprint; the Epic is now 7 sprints.**
+⚠️ **The audit found an entire engine layer hidden inside the staged tasks:** all 12 graph/world endpoints —
+`create_edge`, `delete_edge`, `list_edges_for`, `list_pending_edges`, `list_objects`,
+`list_orphaned_objects`, `promote_object`, `list_worlds`, `get_world_status`, `relink_world`,
+`remove_world_reference`, `list_relation_types` — are exported in `scrivi.h` and **grep to zero call sites in
+`ScriviEngine.swift`**, which carries object CRUD only. The graph has never been reachable from Swift. Issued
+as **T-0407**, done first, tested through `scrivi_*` per the I-0113 habit. **This is SP-098's carried-forward
+lesson pointing the other way** — there Swift wrapped *more* than R1 assumed, here *less*.
+⚠️ **Second finding: `WorldStatus::offline` and `::unmounted` are declared but produced nowhere** in
+`ScriviCore/src`, so **AC24 rests on unbuilt Apple-layer work** no staged task named; scoped into SP-102.
+✅ Recorded the other way: pending *presentation* needs **no** core work — `list_edges_for` already returns
+`otherPending`/`otherDisplayName`/`otherWorldStatus`. Three rulings: **R1** engine wrappers as their own first
+task; **R2** SP-099 **split**, **SP-102 created** (SP-101 was taken), SP-100 keeps its number and runs last;
+**R3** AC23 verified live via an **ejectable disk image**, ruled now so SP-102 does not stall. Prior note
+follows.)*
+
+*2026-08-12 (**SP-098 ✅ CLOSED (Human-approved) — the graph is self-consistent under deletion,
 and the `[ScriviCore]` half of EP-031 is complete.** Archived to `../Sprints/Closed/Sprint-SP-098.md`;
 `Sprint-active.md` reset. **4 of 6 sprints closed, 8 of 10 ACs met** — only AC9/AC10 (the Apple cards) remain.
 **Next: SP-099**, the Epic's first `[Apple]` sprint. All 6 tasks ✅ Verified: **T-0405** closes ⚠️ **I-0113** (world objects were unreachable through the

@@ -17,15 +17,16 @@ constexpr std::string_view kIndexSchema = "scrivi.object-index.v1";
 // (artifact/chronicle/faction/rule) live in .scrivworld packages and are carried
 // in the binding's cachedIndex instead (Doc 3 §6.3). `rule` left this list in
 // SP-097 when it became world-scoped (T-0404).
-constexpr ObjectKind kScannedKinds[] = {
-    ObjectKind::character,
-    ObjectKind::location,
-    ObjectKind::item,
-    ObjectKind::building,
-    ObjectKind::vehicle,
-    ObjectKind::map,
-    ObjectKind::source,
-};
+// ⚠️ SP-103 / T-0409: this was a THIRD copy of the kind list (after the enum and
+// the C ABI's) and it still named the pre-ruling project scope, so a rebuild
+// scanned for characters under objects/ where none can now live. It is now
+// derived from objectKindIsWorldScoped() rather than restated — the same defect
+// shape as I-0113 and the `source` kind table, found a third time.
+// ⚠️ SP-104: the list itself now lives in ObjectTypes.hpp beside the enum, as
+// `scrivi::kAllStorableKinds`. It was private to this file, which is precisely
+// why WorldStore::createWorld restated it — and shipped a world package with no
+// characters/ directory. One canonical list, reachable by everything that needs
+// it, is the only version of this rule that holds.
 
 // NB: kind parsing lives in ObjectTypes.hpp as objectKindFromName() — it
 // accepts world-scoped names too, so an index written by a later sprint is
@@ -92,6 +93,55 @@ ObjectIndex::load(const AbsolutePath& projectRoot) const {
     return rebuild(projectRoot);
 }
 
+// Scans one directory tree for object files. Shared by the project rebuild and
+// the world rebuild — the two differ only in WHICH kinds can live there and
+// where the subdirectories hang from.
+std::vector<ObjectIndexEntry>
+ObjectIndex::scanDir(const AbsolutePath& baseDir, bool worldScoped) const {
+    auto& fs = *services_.fileSystem;
+    std::vector<ObjectIndexEntry> entries;
+
+    for (auto kind : kAllStorableKinds) {
+        if (objectKindIsWorldScoped(kind) != worldScoped) { continue; }
+        auto dir     = util::join(baseDir, objectKindSubdir(kind));
+        auto existsR = fs.exists(dir);
+        if (!existsR.ok() || !existsR.value()) { continue; }
+
+        auto listR = fs.listDirectory(dir);
+        if (!listR.ok()) { continue; }
+
+        for (const auto& entry : listR.value()) {
+            if (util::extension(entry) != ".json") { continue; }
+
+            auto textR = fs.readTextFile(entry);
+            if (!textR.ok()) { continue; }
+
+            // Best-effort: one unparseable object file must not cost the index.
+            auto parseR = schemas::parseWorldObject(textR.value(), kind);
+            if (!parseR.ok()) { continue; }
+
+            const auto& f = worldObjectFields(parseR.value());
+            if (f.objectID.value.empty()) { continue; }
+
+            ObjectIndexEntry e;
+            e.objectID    = f.objectID;
+            e.kind        = kind;
+            e.slug        = f.slug;
+            e.displayName = f.displayName;
+            e.worldID     = f.worldID;
+            entries.push_back(std::move(e));
+        }
+    }
+
+    // Deterministic order so a rebuild is idempotent regardless of the order the
+    // filesystem hands back directory entries.
+    std::sort(entries.begin(), entries.end(),
+              [](const ObjectIndexEntry& a, const ObjectIndexEntry& b) {
+                  return a.objectID.value < b.objectID.value;
+              });
+    return entries;
+}
+
 Result<std::vector<ObjectIndexEntry>>
 ObjectIndex::rebuild(const AbsolutePath& projectRoot) const {
     auto& fs         = *services_.fileSystem;
@@ -99,7 +149,8 @@ ObjectIndex::rebuild(const AbsolutePath& projectRoot) const {
 
     std::vector<ObjectIndexEntry> entries;
 
-    for (auto kind : kScannedKinds) {
+    for (auto kind : kAllStorableKinds) {
+        if (objectKindIsWorldScoped(kind)) { continue; }
         auto dir     = util::join(objectsDir, objectKindSubdir(kind));
         auto existsR = fs.exists(dir);
         if (!existsR.ok() || !existsR.value()) { continue; }
@@ -184,9 +235,47 @@ ObjectIndex::loadWorldIndex(const AbsolutePath& packagePath) const {
             return Result<std::vector<ObjectIndexEntry>>::success(std::move(*parsed));
         }
     }
-    // Missing or unusable — an empty index, rebuilt by the next write. A world
-    // must stay openable regardless of its index's state.
-    return Result<std::vector<ObjectIndexEntry>>::success({});
+
+    // ⚠️ SP-103 / T-0409 — this used to return an EMPTY index here, under a
+    // comment claiming it would be "rebuilt by the next write." It is not: the
+    // next upsertWorld writes an index containing only the object it just added,
+    // silently dropping every other object in the world from the index.
+    //
+    // Verified by probe before fixing: three characters created, world index
+    // deleted, one more character created → scrivi_list_objects returned ONLY
+    // the new one. The other three files were still on disk and perfectly
+    // readable; they had simply become invisible. To a writer that is three
+    // characters vanishing.
+    //
+    // That was survivable while worlds held only artifacts/chronicles/factions.
+    // It is not now: with EVERY worldbuilding kind in the world (Doc 1 §3.0),
+    // this is where a whole cast disappears. The world index gets the same
+    // scan-rebuild guarantee the project index has always had (AC2).
+    auto entries = scanDir(packagePath, /*worldScoped=*/true);
+    if (auto r = writeWorldIndex(packagePath, entries); !r.ok()) {
+        return Result<std::vector<ObjectIndexEntry>>::failure(r.error());
+    }
+    return Result<std::vector<ObjectIndexEntry>>::success(std::move(entries));
+}
+
+// One writer for the world index, so the rebuild path and the upsert path can
+// never drift in schema or ordering.
+Result<void> ObjectIndex::writeWorldIndex(
+    const AbsolutePath& packagePath,
+    const std::vector<ObjectIndexEntry>& entries) const {
+    util::JsonDoc root;
+    root.setString("schema", std::string(kIndexSchema));
+    for (const auto& e : entries) {
+        util::JsonDoc item;
+        item.setString("objectID",    e.objectID.value);
+        item.setString("kind",        objectKindName(e.kind));
+        item.setString("slug",        e.slug);
+        item.setString("displayName", e.displayName);
+        item.setString("worldID",     e.worldID);
+        root.appendToArray("entries", std::move(item));
+    }
+    return services_.fileSystem->atomicWriteTextFile(
+        util::join(packagePath, "index.json"), root.dump());
 }
 
 Result<void> ObjectIndex::upsertWorld(const AbsolutePath& packagePath,
@@ -206,19 +295,7 @@ Result<void> ObjectIndex::upsertWorld(const AbsolutePath& packagePath,
                   return a.objectID.value < b.objectID.value;
               });
 
-    util::JsonDoc root;
-    root.setString("schema", std::string(kIndexSchema));
-    for (const auto& e : entries) {
-        util::JsonDoc item;
-        item.setString("objectID",    e.objectID.value);
-        item.setString("kind",        objectKindName(e.kind));
-        item.setString("slug",        e.slug);
-        item.setString("displayName", e.displayName);
-        item.setString("worldID",     e.worldID);
-        root.appendToArray("entries", std::move(item));
-    }
-    return services_.fileSystem->atomicWriteTextFile(
-        util::join(packagePath, "index.json"), root.dump());
+    return writeWorldIndex(packagePath, entries);
 }
 
 Result<void> ObjectIndex::eraseWorld(const AbsolutePath& packagePath,

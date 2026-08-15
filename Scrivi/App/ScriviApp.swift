@@ -159,6 +159,23 @@ struct ScriviApp: App {
             .disabled(focusedSession == nil)
         }
 
+        // Worlds menu (EP-031 SP-099 T-0408) — Doc 2 §7.3.
+        //
+        // ⚠️ This menu is where a writer SEES and CREATES worlds. Without it there
+        // was no way to tell which world a project used, or to make one at all, so
+        // the four world-scoped kinds (artifacts, chronicles, factions, rules) were
+        // unreachable in the UI.
+        //
+        // "Remove All World References" is DESTRUCTIVE to pending links and belongs
+        // here and nowhere else (§7.3) — never inline on a card, where it would read
+        // as routine tidying. It arrives with the pending surface in SP-102.
+        CommandMenu("Worlds") {
+            Button("Manage Worlds…") {
+                focusedSession?.showWorlds = true
+            }
+            .disabled(focusedSession == nil)
+        }
+
         // Scene / Chapter menus (EP-019 SP-056, T-0214) — mouse-accessible equivalents of
         // the manuscript's structural keyboard commands, for writers who prefer the menu.
         // We do NOT attach the ⌘↩/⌘⌫ key equivalents here: those chords are owned by the

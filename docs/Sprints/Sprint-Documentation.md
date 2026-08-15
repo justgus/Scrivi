@@ -209,13 +209,29 @@ closed, and SP-057 was superseded into SP-094.)*
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-099 | Worldbuilding-object cards (Apple, on EP-030's framework) | EP-031 | 🔵 Planning |
-| SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
+| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card | EP-031 | 🔵 Planning |
+| SP-100 | EP-031 verification & Epic close (**runs last**) | EP-031 | 🔵 Planning |
 
 ## All Sprints
 
-Currently: **97 Sprints** (96 closed + 1 cancelled; SP-099–SP-100 are planned but not yet opened) |
-Next available: **SP-102**
+Currently: **99 Sprints** (**99 closed** + 1 cancelled; SP-102 and SP-100 are planned but not yet
+opened) | Next available: **SP-106**
+
+> ✅ **SP-099, SP-104 and SP-105 all closed 2026-08-15 (user-approved).** Together they delivered EP-031's
+> `[Apple]` half and cleaned up after the T-0409 scope ruling — Issues **I-0114–I-0119**, `ctest`
+> **516/516**, macOS interop **86/86**. **SP-103 also closed** the same day — T-0410 was removed as OBE
+> (user-ruled: a worldless project operates silently; the prompt answered a problem that never occurred).
+> ⚠️ **EP-031 AC1 must be re-verified** against the new scope model — SP-100 owns that.
+
+> ⚠️ **SP-104 opened UNPLANNED 2026-08-14**, during live verification of SP-103's scope change — the user
+> could not create an object in the app. See [Sprint-SP-104.md](Sprint-SP-104.md). It carries four Issues
+> (I-0114–I-0117), of which **I-0114 is a class issue**: the 4th and 5th occurrence of a restated kind
+> list in this Epic. (SP-103 closed 2026-08-15: its 11 test realignments were finished in SP-104, and
+> T-0410 was removed as OBE.)
+
+> ⚠️ **SP-102 opened 2026-08-13 at SP-099 planning** (R2 — the SP-099 split; EP-031 is now a 7-sprint Epic).
+> It takes the number after SP-101 because SP-101 was already used by the unplanned EP-030 AC12 sprint, so
+> **SP-102 runs before SP-100 despite the higher number.** SP-100 keeps its number as the Epic close sprint.
 
 > **Table repaired 2026-08-12.** SP-086–SP-094 and SP-101 had closed without ever being added to the table
 > below, which still ended at SP-085 and read "Next available: SP-086". All eleven missing rows (including

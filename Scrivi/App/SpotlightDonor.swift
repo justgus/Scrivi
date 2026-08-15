@@ -42,9 +42,18 @@ enum SpotlightDonor {
                 attrs.relatedUniqueIdentifier = record.deepLink
             }
 
+            // ⚠️ I-0118: an item's domain is its OWN when it names one — a world
+            // item carries "world_<worldID>" — and the project's otherwise.
+            // Donating a world's objects under the project domain would mean
+            // closing one project deletes a shared world's entries out from
+            // under every other project that binds it.
+            let domain = record.domainIdentifier.isEmpty
+                ? content.domainIdentifier
+                : record.domainIdentifier
+
             let item = CSSearchableItem(
                 uniqueIdentifier: record.uniqueIdentifier,
-                domainIdentifier: content.domainIdentifier,   // projectID — delete-by-domain key
+                domainIdentifier: domain,
                 attributeSet: attrs
             )
             return item
@@ -68,8 +77,24 @@ enum SpotlightDonor {
     }
 
     // Removes every item for a project by its domain identifier (the projectID).
+    //
+    // ⚠️ **PROJECT DOMAINS ONLY — never a world's** (I-0118 Q1, user-ruled
+    // 2026-08-14). A world outlives every project that binds it and may be bound
+    // by several at once, so its entries must survive a project closing, being
+    // deleted, or unbinding the world. They are removed *only* on explicit
+    // instruction — an affordance that does not exist yet and is deferred to
+    // EP-033 (in-app view vs. dedicated world-management app).
+    //
+    // The guard below is not defensive noise: this is called on every project
+    // close, so a world domain reaching it would silently destroy shared search
+    // data with no user action and no way to notice.
     static func deleteProject(domainIdentifier: String) {
         guard !domainIdentifier.isEmpty else { return }
+        guard !domainIdentifier.hasPrefix("world_") else {
+            spotlightLog.error(
+                "REFUSED to delete a WORLD domain via deleteProject: \(domainIdentifier, privacy: .public) — worlds are never deleted as a side effect (I-0118)")
+            return
+        }
         spotlightLog.notice("delete: domain=\(domainIdentifier, privacy: .public)")
         CSSearchableIndex.default()
             .deleteSearchableItems(withDomainIdentifiers: [domainIdentifier]) { error in

@@ -10,6 +10,7 @@
 #include "scrivi/ObjectTypes.hpp"
 #include "scrivi/Requests.hpp"
 #include "scrivi/ScriviCore.hpp"
+#include "worlds/WorldStore.hpp"
 
 #include "mocks/DeterministicUUIDProvider.hpp"
 #include "mocks/FixedClock.hpp"
@@ -46,7 +47,12 @@ public:
 
     scrivi::Result<std::vector<scrivi::AbsolutePath>>
     listDirectory(const scrivi::AbsolutePath& p) override {
-        if (p.find("/objects/") != std::string::npos) { ++objectDirScans; }
+        // ⚠️ SP-103: object-kind directories now hang off the .scrivworld package
+        // as well as objects/, so matching "/objects/" alone would count ZERO
+        // scans for world objects — and the zero-scan proof would pass
+        // vacuously, which is worse than failing. Count either parent.
+        if (p.find("/objects/") != std::string::npos ||
+            p.find(".scrivworld/") != std::string::npos) { ++objectDirScans; }
         return inner_.listDirectory(p);
     }
 
@@ -63,6 +69,8 @@ struct IndexFixture {
     scrivi::mocks::FixedClock                clock{"2026-08-12T00:00:00Z"};
     scrivi::mocks::MockGitProvider           gitProvider;
     scrivi::mocks::MockSecureStore           secureStore;
+    // Declared before `core` so member init order matches the ctor list.
+    scrivi::CoreServices                     services;
     scrivi::ScriviCore                       core;
 
     const scrivi::AuthorshipRef author{
@@ -76,7 +84,7 @@ struct IndexFixture {
                      ("scrivi-objindex-" + std::to_string(
                          std::chrono::steady_clock::now().time_since_epoch().count())))
         , appSupportDir(projectDir / "appsupport")
-        , core([&]{
+        , services([&]{
             scrivi::CoreServices svc;
             svc.fileSystem   = &fileSystem;
             svc.uuidProvider = &uuidProvider;
@@ -86,6 +94,7 @@ struct IndexFixture {
             svc.logger       = nullptr;
             return svc;
           }())
+        , core(services)
     {
         fs::create_directories(projectDir);
         fs::create_directories(appSupportDir);
@@ -98,6 +107,14 @@ struct IndexFixture {
         req.author          = author;
         auto r = core.createProject(req);
         REQUIRE(r.ok());
+
+        // SP-103: worldbuilding kinds live in a world, so one must exist first.
+        scrivi::worlds::WorldStore ws{services};
+        auto w = ws.createWorld(projectDir.string(),
+                                (projectDir / "Index.scrivworld").string(),
+                                "Index World", "");
+        REQUIRE(w.ok());
+        worldID = w.value().worldID;
     }
 
     ~IndexFixture() {
@@ -105,8 +122,33 @@ struct IndexFixture {
         fs::remove_all(projectDir, ec);
     }
 
+    std::string worldID;
+
+    // ⚠️ SP-103: worldbuilding objects live in the WORLD's index
+    // (<package>/index.json), not the project's (<project>/objects/index.json).
+    // Same schema, same reader/writer — different parent. These tests exercise
+    // the index MECHANISM, so they follow the objects into the world package.
+    //
+    // The project index still exists and still governs `source`; it is asserted
+    // separately by projectIndexPath() below.
     [[nodiscard]] fs::path indexPath() const {
+        return projectDir / "Index.scrivworld" / "index.json";
+    }
+
+    [[nodiscard]] fs::path projectIndexPath() const {
         return projectDir / "objects" / "index.json";
+    }
+
+    // ⚠️ SP-104: the on-disk home of a kind's object files. World-scoped kinds
+    // live in the world package; only `source` remains under objects/. Tests
+    // that manipulate files directly MUST go through this rather than hardcoding
+    // projectDir/"objects"/<subdir> — that assumption is the pre-T-0409 layout
+    // and silently targets a directory that no longer holds anything.
+    [[nodiscard]] fs::path kindDir(scrivi::ObjectKind kind) const {
+        const auto sub = scrivi::objectKindSubdir(kind);
+        return scrivi::objectKindIsWorldScoped(kind)
+            ? projectDir / "Index.scrivworld" / sub
+            : projectDir / "objects" / sub;
     }
 
     [[nodiscard]] std::string readIndex() const {
@@ -129,6 +171,7 @@ struct IndexFixture {
         req.displayName     = displayName;
         req.slug            = slug;
         req.author          = author;
+        if (scrivi::objectKindIsWorldScoped(kind)) { req.worldID = worldID; }
         auto r = core.createObject(req);
         REQUIRE(r.ok());
         return r.value().objectID;
@@ -141,6 +184,7 @@ struct IndexFixture {
         req.projectRootPath = projectDir.string();
         req.objectKind      = kind;
         req.objectID        = id;
+        if (scrivi::objectKindIsWorldScoped(kind)) { req.worldID = worldID; }
         return core.openObject(req).ok();
     }
 };
@@ -167,15 +211,28 @@ TEST_CASE("saving an object refreshes its index entry", "[integration][T-0372]")
     auto id = fix.makeObject(scrivi::ObjectKind::character, "Ada", "ada");
 
     scrivi::OpenObjectRequest openReq;
+
+
     openReq.projectRootPath = fix.projectDir.string();
+
+
     openReq.objectKind      = scrivi::ObjectKind::character;
+
+
     openReq.objectID        = id;
+
+
+    openReq.worldID         = fix.worldID;
     auto opened = fix.core.openObject(openReq);
     REQUIRE(opened.ok());
 
     auto obj = opened.value().object;
     std::get<scrivi::CharacterObject>(obj).displayName = "Ada Thornwood";
-    std::get<scrivi::CharacterObject>(obj).worldID     = "world_01MIDGARD";
+    // ⚠️ SP-104: this used to overwrite worldID with the literal
+    // "world_01MIDGARD" — harmless when the field was inert data, but since
+    // T-0409 the save RESOLVES it, and a world that does not exist cannot be
+    // written to. Keep the object in the world it was actually created in.
+    REQUIRE(std::get<scrivi::CharacterObject>(obj).worldID == fix.worldID);
 
     scrivi::SaveObjectRequest saveReq;
     saveReq.projectRootPath = fix.projectDir.string();
@@ -184,8 +241,8 @@ TEST_CASE("saving an object refreshes its index entry", "[integration][T-0372]")
     REQUIRE(fix.core.saveObject(saveReq).ok());
 
     const auto body = fix.readIndex();
-    REQUIRE(body.find("Ada Thornwood")   != std::string::npos);
-    REQUIRE(body.find("world_01MIDGARD") != std::string::npos);
+    REQUIRE(body.find("Ada Thornwood") != std::string::npos);
+    REQUIRE(body.find(fix.worldID)     != std::string::npos);
 }
 
 TEST_CASE("deleting an object removes its index entry", "[integration][T-0372]") {
@@ -194,9 +251,18 @@ TEST_CASE("deleting an object removes its index entry", "[integration][T-0372]")
     auto drop = fix.makeObject(scrivi::ObjectKind::character, "Bram", "bram");
 
     scrivi::DeleteObjectRequest req;
+
+
     req.projectRootPath = fix.projectDir.string();
+
+
     req.objectKind      = scrivi::ObjectKind::character;
+
+
     req.objectID        = drop;
+
+
+    req.worldID         = fix.worldID;
     REQUIRE(fix.core.deleteObject(req).ok());
 
     const auto body = fix.readIndex();
@@ -260,7 +326,7 @@ TEST_CASE("a STALE index loses to disk", "[integration][T-0401]") {
 
     SECTION("hand-edited displayName in the object file") {
         // Edit the FILE, leaving the index advertising the old name.
-        const auto objPath = fix.projectDir / "objects" / "characters" / "ada.json";
+        const auto objPath = fix.kindDir(scrivi::ObjectKind::character) / "ada.json";
         std::string body;
         {
             std::ifstream in(objPath);
@@ -285,7 +351,7 @@ TEST_CASE("a STALE index loses to disk", "[integration][T-0401]") {
 
     SECTION("index points at a slug that no longer exists") {
         // The index still names ada.json; the real file is now renamed.json.
-        const auto dir = fix.projectDir / "objects" / "characters";
+        const auto dir = fix.kindDir(scrivi::ObjectKind::character);
         fs::rename(dir / "ada.json", dir / "renamed.json");
 
         // findByID must not return the stale path — it falls through to the
@@ -329,7 +395,7 @@ TEST_CASE("one unparseable object file does not cost the whole index",
 
     // Corrupt ONE object file, mirroring collectObjects' best-effort posture.
     {
-        std::ofstream out(fix.projectDir / "objects" / "characters" / "bram.json",
+        std::ofstream out(fix.kindDir(scrivi::ObjectKind::character) / "bram.json",
                           std::ios::trunc);
         out << "{ not a valid object ";
     }

@@ -16,6 +16,8 @@ struct SceneInspectorView: View {
     let allSceneIDs: [String]
     let history: HistoryCapture?
     let caretByteOffset: Int?
+    /// Attribution for objects created in a card (T-0388).
+    let authorshipRef: AuthorshipRef?
     @Bindable var layout: InspectorLayoutStore
 
     // Pane width is a per-device view preference (unlike the layout itself), so it
@@ -55,6 +57,7 @@ struct SceneInspectorView: View {
                                    allSceneIDs: allSceneIDs,
                                    history: history,
                                    caretByteOffset: caretByteOffset,
+                                   authorshipRef: authorshipRef,
                                    layout: layout)
         case .worldbuilding:
             InspectorCardStackView(stack: .worldbuilding,
@@ -64,6 +67,7 @@ struct SceneInspectorView: View {
                                    allSceneIDs: allSceneIDs,
                                    history: history,
                                    caretByteOffset: caretByteOffset,
+                                   authorshipRef: authorshipRef,
                                    layout: layout)
         case .properties:
             ScenePropertiesView(sceneID: sceneID,

@@ -5,6 +5,15 @@
 **Status:** ✅ **APPROVED 2026-08-05 (Human).** This is **Doc 1 of 3**. All six trades (T1–T6) and all §11
 questions are ruled. Implementation follows this doc; per CLAUDE.md any deviation must be surfaced and reconciled
 before it is built.
+**⚠️ AMENDED 2026-08-14 (user ruling) — ALL worldbuilding kinds are WORLD-scoped; `source` alone stays
+project-scoped.** The §3 scope column is superseded: `artifact`, `building`, `character`, `chronicle`,
+`faction`, `item`, `location`, `map`, `rule`, and `vehicle` are created/read/updated/deleted in the
+`.scrivworld` package. **Prompted by a writer asking why a character she might reuse was saved in the
+project** — and the model had no answer, because there was no world-scoped character kind to promote her into.
+A project is a *manuscript*; it references world objects through the graph. Consequences: a worldless project
+must prompt to create a world on first object creation; this is a **breaking on-disk change with NO migration**
+(Doc 3 §7 retained — the test project is discarded and recreated); T3's `item`/`artifact` scope rationale is
+half-dissolved but **both kinds are kept**; EP-031 **AC1 must be re-verified**. See **§3.0**.
 **⚠️ AMENDED 2026-08-12 (user ruling) — `source` relates to OBJECTS, not scenes.** The 2026-08-05 text said
 `source` was "related to scenes by ordinary edges"; **that clause is withdrawn** in §3 and §11 Q2. A citation
 documents an object, so `source` is a full object relatable to any other via **`cites`/`documented-by`** (the
@@ -85,18 +94,67 @@ by `sceneID`, but a scene is never an `objects/` file.
 
 ## 3. Object kinds
 
+### 3.0 ⚠️ Scope ruling — worldbuilding objects live in the world (ruled 2026-08-14)
+
+**All ten worldbuilding kinds are world-scoped. `source` is the sole project-scoped object kind.**
+
+**The question that produced this.** A writer created characters and locations, then asked why they were saved
+in the project: *"If I want to reuse a character in another project I need to promote her to the world first."*
+The premise was right and the model had no answer — **there is no world-scoped character kind to promote into.**
+The world-scoped kinds were `artifact`/`chronicle`/`faction`/`rule`, so "promoting" a character would have meant
+turning her into an artifact, which is a category error, not reuse. **There was no supported path for reusing a
+character across projects at all.**
+
+**The ruling.** Rather than inventing a parallel world-scoped kind per reusable type (doubling the kind list and
+forcing awkward names), the scope split is removed: a worldbuilding object *is* a thing in a world. A project is
+a **manuscript** — scenes, chapters, structure, timeline — and it *references* the world's objects through the
+relationship graph. Cross-project reuse then falls out of binding the same world (Doc 3 §4), with no promotion
+step and no duplication.
+
+**`source` stays project-scoped, and the reason is not symmetry-breaking.** A citation points at a **real-world
+publication** — a book, a paper, an interview — or is a footnote or authorial comment on the manuscript. It
+documents *research supporting this manuscript*, not a fact about the invented world. Keeping it project-scoped
+also keeps a shared world from dragging one project's bibliography into every other project that binds it.
+Sources remain relatable to world objects via `cites`/`documented-by`: those edges cross the
+project/world partition, which is already supported (SP-097 fixed cross-partition resolution).
+
+**Consequences, recorded so they are not rediscovered:**
+
+1. ⚠️ **A project with no world cannot hold worldbuilding objects.** `kindDirFor` refuses with
+   `detail == "worldRequired"`. **Ruled: prompt on first object creation** — the first "New Character" in a
+   worldless project offers to create a world inline and then proceeds. No wall, no silent setup. The prompt
+   must respect Doc 2 §4.6's no-modal rule (it is a creation affordance in the card, not a dialog that
+   interrupts writing).
+2. ⚠️ **This is a breaking on-disk change.** `objects/characters/…` becomes `<world>/characters/…`.
+   **Ruled: no migration pass** — Doc 3 §7's "created in world scope from the start" rule is **retained**, and
+   the existing test project is discarded and recreated by hand. This is only defensible while no real data
+   exists; it is the last point at which that is true.
+3. ⚠️ **T3's `item`/`artifact` rationale is half-dissolved.** The split was justified partly by scope
+   ("project noun" vs "world thing"); with both in the world, only the *backstory/prominence* distinction
+   remains. **Ruled: keep both kinds, re-rule the distinction separately** — see §3.1. Promotion (T-0379)
+   still functions and is not retired here.
+4. **AC1 of EP-031 is affected.** It asserts the kinds "round-trip" with legacy 5-kind files loading unchanged;
+   it was verified against the old scope table. It must be re-verified under this ruling.
+
+---
+
 **Worldbuilding object kinds** (become `objects/` files; can be inspector cards):
+
+> ⚠️ **AMENDED 2026-08-14 (user ruling) — ALL worldbuilding kinds are WORLD-scoped.** The scope column below
+> is superseded: `artifact`, `building`, `character`, `chronicle`, `faction`, `item`, `location`, `map`,
+> `rule`, and `vehicle` are **created, read, updated, and deleted in the `.scrivworld` package**, never in
+> `objects/`. **`source` alone remains project-scoped.** See **§3.0** for the ruling and its consequences.
 
 | Kind | Scope | Notes |
 | --- | --- | --- |
-| `character` | project | (exists) |
-| `location` | project | (exists) |
-| `building` | project | new |
-| `vehicle` | project | new |
-| `item` | **project** | (exists) — *a noun in this story*; no backstory required (T3) |
+| `character` | ~~project~~ → **world** | (exists) — **relocated 2026-08-14** |
+| `location` | ~~project~~ → **world** | (exists) — **relocated 2026-08-14** |
+| `building` | ~~project~~ → **world** | new — **world-scoped 2026-08-14** |
+| `vehicle` | ~~project~~ → **world** | new — **world-scoped 2026-08-14** |
+| `item` | ~~**project**~~ → **world** | (exists) — *a noun in this story*; no backstory required (T3). ⚠️ **World-scoped 2026-08-14**, which dissolves T3's scope-based half of the `item`/`artifact` split — see §3.1 |
 | `artifact` | **world** | new — *has a backstory*; may relate to a `chronicle` (T3) |
 | `rule` | **world** | (exists, but **relocates**) — magic systems, sci-fi physics. **Ruled 2026-08-04:** rules govern an *environment*, not a manuscript, so they live at `worlds/<worldID>/rules/` — **not** `objects/rules/`. There is no project-scoped `rule` and no promotion path; a writer defines a rule *in the context of a world*. This **supersedes** the legacy `objects/rules/` layout in Package Structure v0.1 §11 (migration: Doc 3). |
-| `map` | project | new — **image-bearing**; a writing AID that may depict a place that **does not exist**; need not bind to a `location` |
+| `map` | ~~project~~ → **world** | new — **image-bearing**; a writing AID that may depict a place that **does not exist**; need not bind to a `location`. **World-scoped 2026-08-14** |
 | `chronicle` | **world** | new — **narrative prose**; deep history-behind-the-history, may never appear in the manuscript |
 | `faction` | **world** | new (ruled 2026-08-05) — organizations, houses, guilds, orders. See §3.3 |
 | `source` | project | new (**promoted to this table 2026-08-12**) — citations/references. A **full object**, therefore relatable to any other object via `cites`/`documented-by`. Surfaced as a writing-tool card, but it is not a writing-tool-only artifact. See §3.4 |
@@ -116,6 +174,18 @@ writing-tool card (Doc 2 §3.1) but is a first-class object. See **§3.4** for w
 **project timeline**.
 
 ### 3.1 `item` vs `artifact`, and promotion (T3 = B refined)
+
+> ⚠️ **AMENDED 2026-08-14 — the scope half of this rationale no longer applies.** §3.0 makes **both** kinds
+> world-scoped, so "`item` is project-owned, `artifact` is world-owned" is no longer the difference between
+> them. What survives is the *backstory/prominence* distinction: an `item` is a brass key that opens a door in
+> chapter 3; an `artifact` has a history and may relate to a `chronicle`. **Ruled 2026-08-14: keep both kinds
+> and re-rule the distinction separately** — collapsing them would retire shipped, verified behavior
+> (T-0379 promotion) and stack a second breaking change on the first.
+>
+> **Open question for that later ruling:** with both in the world, does promotion still earn its keep, or is
+> the item/artifact difference better expressed as a field on one kind? Not decided here.
+>
+> The text below is the original T3 rationale, retained for the record; read its scope claims as superseded.
 
 v0.1 proposed renaming `item` → `artifact`. **Rejected.** The two kinds mean genuinely different things, and the
 distinction is **ownership**, not vocabulary:
@@ -540,6 +610,28 @@ Note `scrivi_create_edge` and `scrivi_list_edges_for` take **bare IDs** — no k
 New object kinds need **no** new CRUD endpoints: `scrivi_create/open/save/delete_object` already dispatch on an
 `objectKind` string and gain the new kinds in `ObjectKind` + `objectKindSubdir` + the schema table. The
 `image`/`subtitle`/`worldID` fields extend `WorldObjectFields` + `ObjectJson` additively.
+
+> ⚠️ **STANDING RULE — DERIVED KIND LISTS (added 2026-08-14, SP-104 / I-0114).** Supersedes the earlier
+> "grep for other dispatch lists before adding a kind," which **failed four times in this Epic**.
+>
+> **Any list that partitions or enumerates `ObjectKind` must be DERIVED from `scrivi::kAllStorableKinds`
+> and `objectKindIsWorldScoped()` — never restated, in any language.** A restatement is a defect on
+> sight, even when it is currently correct.
+>
+> **Why the old rule was not enough.** It asked people to check before *adding a kind*. But occurrences 4
+> and 5 broke with **no kind added and neither list edited** — they went stale when a kind's **scope**
+> changed underneath text that still read correctly. A list can rot without being touched.
+>
+> **Why it kept happening.** `kAllStorableKinds` lived in `ObjectIndex.cpp`'s anonymous namespace, so no
+> other translation unit could reference it; restating was the only option available. It now lives in
+> `ObjectTypes.hpp` beside the enum. **A rule that asks people to reuse a list they cannot reach is a
+> rule that will be broken.**
+>
+> **The seven occurrences:** I-0113 (C ABI kind gap) · SP-098 `source` table · SP-103 `kScannedKinds`
+> scan table · SP-104 `WorldStore::createWorld` package skeleton · SP-104 `ObjectCardKind.isWorldScoped`
+> (**Swift** — the first outside C++, where the C++-side habit had no reach) · SP-104
+> `extractSearchableText`'s caller list (I-0118) · SP-104 test fixtures hardcoding
+> `objects/<subdir>`.
 
 > ⚠️ **AMENDED 2026-08-12 (SP-098 planning audit).** The paragraph above is true of the *kind dispatch* but was
 > **wrong about the signatures** once kinds became scope-dependent. SP-097 made `artifact`/`chronicle`/

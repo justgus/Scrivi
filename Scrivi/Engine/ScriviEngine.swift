@@ -1260,7 +1260,9 @@ private struct FragmentCreatedIDs: Encodable {
 
 // Converts a heap-allocated const char* JSON result from scrivi_* into a
 // Swift Decodable value, calling scrivi_free() unconditionally before returning.
-private func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
+// `internal`, not `private`: ScriviEngineGraph.swift (T-0407) extends the engine
+// from a second file and decodes through the same helper. Still not public API.
+func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
     guard let ptr else {
         throw ScriviError(code: -1, message: "scrivi returned null")
     }
@@ -1269,10 +1271,29 @@ private func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
     let data = Data(json.utf8)
     let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
     if !envelope.ok {
-        let e = envelope.error ?? ErrorPayload(code: -1, message: "unknown error")
-        throw ScriviError(code: e.code, message: e.message)
+        let e = envelope.error
+            ?? ErrorPayload(code: -1, message: "unknown error", detail: nil, path: nil)
+        // T-0407: `detail` and `path` are carried through rather than dropped. The
+        // case that matters is detail == "worldPending:<status>" — the graph
+        // refusing a write toward an unavailable world, which the UI must present
+        // as protection rather than breakage (Doc 3 §4.6).
+        throw ScriviError(code: e.code, message: e.message, detail: e.detail, path: e.path)
     }
     guard let result = envelope.result else {
+        // ⚠️ T-0407: `ok:true` with a NULL result is not a failure — it is how the
+        // C ABI reports an EMPTY collection. An empty `JsonDoc` dumps as
+        // `"result": null` (verified by probe against libScriviCore.a), so every
+        // list endpoint returns null whenever it has nothing to list: a project
+        // with no worlds, a fresh scene with no relationships, a project with no
+        // objects. Those are the common cases, not errors.
+        //
+        // Decoding `{}` lets a result type whose fields are all defaulted (the
+        // list wrappers in ScriviEngineGraph.swift) materialize as empty, while a
+        // type with required fields still throws — so a genuinely missing result
+        // is still caught.
+        if let empty = try? JSONDecoder().decode(T.self, from: Data("{}".utf8)) {
+            return empty
+        }
         throw ScriviError(code: -1, message: "ok=true but result missing")
     }
     return result
@@ -1300,10 +1321,13 @@ public final class ScriviEngine: @unchecked Sendable {
     public func applyRepair(issueID: String, projectRootPath: String, appSupportRoot: String, actionKind: String, targetPath: String = "", authorshipRef: AuthorshipRef) throws -> ApplyRepairResult { try unavailable() }
     public func enableGitSnapshots(projectRootPath: String, authorshipRef: AuthorshipRef, initialSnapshotLabel: String = "Initial project") throws -> EnableGitResult { try unavailable() }
     public func createSnapshot(projectRootPath: String, authorshipRef: AuthorshipRef, label: String, note: String = "") throws -> CreateSnapshotResult { try unavailable() }
-    public func createObject(projectRootPath: String, objectKind: String, displayName: String, slug: String = "", authorshipRef: AuthorshipRef) throws -> CreateObjectResult { try unavailable() }
-    public func openObject(projectRootPath: String, objectKind: String, objectID: String) throws -> OpenObjectResult { try unavailable() }
+    // `worldID` mirrors the real engine (SP-098 T-0405 / I-0113). The stub had
+    // drifted: the three widened entry points were never widened here, so a
+    // world-scoped call site would fail to compile on visionOS alone.
+    public func createObject(projectRootPath: String, objectKind: String, displayName: String, slug: String = "", authorshipRef: AuthorshipRef, worldID: String = "") throws -> CreateObjectResult { try unavailable() }
+    public func openObject(projectRootPath: String, objectKind: String, objectID: String, worldID: String = "") throws -> OpenObjectResult { try unavailable() }
     public func saveObject(projectRootPath: String, objectKind: String, objectJson: String, authorshipRef: AuthorshipRef) throws -> SaveObjectResult { try unavailable() }
-    public func deleteObject(projectRootPath: String, objectKind: String, objectID: String) throws -> DeleteObjectResult { try unavailable() }
+    public func deleteObject(projectRootPath: String, objectKind: String, objectID: String, worldID: String = "") throws -> DeleteObjectResult { try unavailable() }
     public func importAsset(projectRootPath: String, sourcePath: String, category: String, title: String, authorshipRef: AuthorshipRef) throws -> ImportAssetResult { try unavailable() }
     public func listAssets(projectRootPath: String, category: String = "") throws -> ListAssetsResult { try unavailable() }
     public func removeAsset(projectRootPath: String, assetID: String) throws -> RemoveAssetResult { try unavailable() }
@@ -1382,6 +1406,25 @@ public final class ScriviEngine: @unchecked Sendable {
     public func fragmentCut(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentCutResult { try unavailable() }
     public func fragmentPaste(projectRootPath: String, appSupportRoot: String, projectID: String, fragmentJSON: String, caretSceneID: String, caretByteOffset: Int, authorshipRef: AuthorshipRef) throws -> FragmentPasteResult { try unavailable() }
     public func fragmentUncutPaste(projectRootPath: String, fragmentJSON: String, targetSceneID: String, createdSceneIDs: [String], createdChapterIDs: [String]) throws -> FragmentUncutPasteResult { try unavailable() }
+
+    // Relationship graph, object discovery, and worlds (EP-031 SP-099 T-0407) —
+    // unavailable on this platform. Mirrors ScriviEngineGraph.swift, whose real
+    // implementations are inside the same #if.
+    public func createEdge(projectRootPath: String, fromID: String, toID: String, relationTypeCode: String, note: String = "") throws -> EdgeResult { try unavailable() }
+    public func deleteEdge(projectRootPath: String, edgeID: String) throws -> DeleteEdgeResult { try unavailable() }
+    public func listEdgesFor(projectRootPath: String, endpointID: String) throws -> ListEdgesResult { try unavailable() }
+    public func listPendingEdges(projectRootPath: String) throws -> ListPendingEdgesResult { try unavailable() }
+    public func listObjects(projectRootPath: String, kind: String = "") throws -> ListObjectsResult { try unavailable() }
+    public func listOrphanedObjects(projectRootPath: String) throws -> ListObjectsResult { try unavailable() }
+    public func promoteObject(projectRootPath: String, objectID: String, targetKind: String, worldID: String = "") throws -> PromoteObjectResult { try unavailable() }
+    public func createWorld(projectRootPath: String, packagePath: String, displayName: String, epochLabel: String = "") throws -> WorldRecordResult { try unavailable() }
+    public func addWorld(projectRootPath: String, packagePath: String) throws -> WorldRecordResult { try unavailable() }
+    public func listWorlds(projectRootPath: String) throws -> ListWorldsResult { try unavailable() }
+    public func getWorldStatus(projectRootPath: String, worldID: String) throws -> WorldStatusResult { try unavailable() }
+    public func getWorldBinding(projectRootPath: String, worldID: String) throws -> WorldBindingResult { try unavailable() }
+    public func relinkWorld(projectRootPath: String, worldID: String, newPackagePath: String) throws -> RelinkWorldResult { try unavailable() }
+    public func removeWorldReference(projectRootPath: String, worldID: String) throws -> RemoveWorldReferenceResult { try unavailable() }
+    public func listRelationTypes(projectRootPath: String) throws -> ListRelationTypesResult { try unavailable() }
 }
 
 #endif
@@ -2005,6 +2048,11 @@ public struct SearchableItemResult: Decodable, Sendable {
     public let contentDescription: String   // plain text; "" when absent
     public let keywords:           [String]
     public let deepLink:           String
+    /// ⚠️ I-0118: the Spotlight domain THIS item belongs to. Empty means the
+    /// result's `domainIdentifier` (the project); a world's items carry
+    /// `"world_<worldID>"` so they are indexed — and deleted — independently of
+    /// any project that binds the world.
+    public let domainIdentifier:   String
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -2016,11 +2064,13 @@ public struct SearchableItemResult: Decodable, Sendable {
         contentDescription = try c.decodeIfPresent(String.self, forKey: .contentDescription) ?? ""
         keywords           = try c.decodeIfPresent([String].self, forKey: .keywords)         ?? []
         deepLink           = try c.decodeIfPresent(String.self, forKey: .deepLink)           ?? ""
+        domainIdentifier   = try c.decodeIfPresent(String.self, forKey: .domainIdentifier)   ?? ""
     }
 
     private enum CodingKeys: String, CodingKey {
         case uniqueIdentifier, kind, title, displayName,
-             containerTitle, contentDescription, keywords, deepLink
+             containerTitle, contentDescription, keywords, deepLink,
+             domainIdentifier
     }
 }
 
@@ -2029,6 +2079,10 @@ public struct SearchableContentResult: Decodable, Sendable {
     public let domainIdentifier: String   // projectID — Core Spotlight delete-by-domain key
     public let projectRootPath:  String
     public let items:            [SearchableItemResult]
+    /// ⚠️ I-0118: every distinct world domain present in `items`. Used to index
+    /// world entries under their own domain. **NOT a delete list** — a world's
+    /// entries are never removed as a side effect of anything a project does.
+    public let worldDomainIdentifiers: [String]
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -2036,10 +2090,12 @@ public struct SearchableContentResult: Decodable, Sendable {
         domainIdentifier = try c.decode(String.self, forKey: .domainIdentifier)
         projectRootPath  = try c.decodeIfPresent(String.self, forKey: .projectRootPath) ?? ""
         items            = try c.decodeIfPresent([SearchableItemResult].self, forKey: .items) ?? []
+        worldDomainIdentifiers =
+            try c.decodeIfPresent([String].self, forKey: .worldDomainIdentifiers) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case schema, domainIdentifier, projectRootPath, items
+        case schema, domainIdentifier, projectRootPath, items, worldDomainIdentifiers
     }
 }
 

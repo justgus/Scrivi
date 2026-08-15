@@ -327,7 +327,11 @@ private func makeModel(_ context: CardContext) -> SceneNotesModel {
 
 /// In-card failure presentation (Doc 2 §7.1) — the card reports its own problem and the
 /// rest of the stack keeps rendering.
-private struct CardErrorView: View {
+///
+/// `internal`, not `private`: shared card infrastructure. The object cards (T-0386) and
+/// the picker (T-0387) present their load failures the same way, so every card's error
+/// reads identically wherever it appears.
+struct CardErrorView: View {
     let message: String
 
     var body: some View {

@@ -116,11 +116,36 @@ struct CApiFixture {
         return id;
     }
 
-    // Creates a project-scoped object through the ABI, returning its objectID.
+    // ⚠️ SP-103: every worldbuilding kind is world-scoped, so this helper now
+    // routes them into a lazily-created default world. Only `source` is
+    // project-scoped and still passes an empty worldID.
+    //
+    // The world is created on FIRST use rather than in the fixture ctor because
+    // several tests here assert on a project that has no world bound yet
+    // (`worldRequired`, pending-vs-dangling); eagerly creating one would
+    // silently invalidate them.
+    std::string defaultWorldID;
+
+    std::string ensureDefaultWorld() {
+        if (defaultWorldID.empty()) { defaultWorldID = makeWorld("Default"); }
+        return defaultWorldID;
+    }
+
+    // ⚠️ SP-104: the index a world-scoped object actually lands in. Removing the
+    // PROJECT index no longer forces a rebuild for these kinds — it silently
+    // does nothing, so a test meaning to trigger a rescan would assert against
+    // an index that was never rebuilt.
+    fs::path worldIndexPath(const std::string& name = "Default") {
+        (void)ensureDefaultWorld();
+        return fs::path(pkg(name)) / "index.json";
+    }
+
+    // Creates an object through the ABI, returning its objectID.
     std::string makeObject(const std::string& kind, const std::string& displayName) {
+        const std::string worldID = (kind == "source") ? std::string{} : ensureDefaultWorld();
         auto r = okResult(scrivi_create_object(root(), kind.c_str(), displayName.c_str(), "",
                                                "identity-001", "persona-001", "Test Author",
-                                               ""));
+                                               worldID.c_str()));
         auto id = r.getString("objectID");
         REQUIRE_FALSE(id.empty());
         return id;
@@ -167,6 +192,57 @@ struct CApiFixture {
 };
 
 } // namespace
+
+// ---------------------------------------------------------------------------
+// I-0118 — world search records at the boundary
+//
+// ⚠️ THROUGH `scrivi_*`, NOT THE FACADE. `SearchableContentTests` covers the
+// same behavior against the C++ facade and stayed green all through I-0113 —
+// which is exactly how a boundary gap ships unnoticed. The per-item
+// `domainIdentifier` and `worldDomainIdentifiers` are new fields, and a
+// serializer that forgets one is invisible to any facade test.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("C ABI: world search items carry their own domain and a world deep link",
+          "[integration][I-0118]") {
+    CApiFixture fix;
+    const auto worldID = fix.ensureDefaultWorld();
+    const auto vance   = fix.makeObject("character", "Vance");
+    const auto notes   = fix.makeObject("source",    "Field Notes");
+
+    auto res = okResult(scrivi_extract_searchable_text(fix.root()));
+
+    // The world's domain crosses the boundary, so the donor can index it apart
+    // from the project's. Q1: it is advertised, never presented as deletable.
+    auto domains = res.getStringArray("worldDomainIdentifiers");
+    REQUIRE(domains.size() == 1);
+    REQUIRE(domains[0] == worldID);
+
+    bool sawCharacter = false;
+    bool sawSource    = false;
+    for (std::size_t i = 0; i < res.arraySize("items"); ++i) {
+        auto item = res.arrayItem("items", i);
+        const auto uid = item.getString("uniqueIdentifier");
+
+        if (uid == "character:" + vance) {
+            sawCharacter = true;
+            // Q1 — the WORLD's domain, not the project's.
+            REQUIRE(item.getString("domainIdentifier") == worldID);
+            // Q2 — a world-scoped deep link.
+            REQUIRE(item.getString("deepLink") ==
+                    "scrivi://open?world=" + worldID + "&item=" + uid);
+        }
+        if (uid == "source:" + notes) {
+            sawSource = true;
+            // `source` is project-scoped: no per-item domain (⇒ the project's)
+            // and a project-scoped link. The two halves must not collapse.
+            REQUIRE(item.getString("domainIdentifier").empty());
+            REQUIRE(item.getString("deepLink").find("project=") != std::string::npos);
+        }
+    }
+    REQUIRE(sawCharacter);
+    REQUIRE(sawSource);
+}
 
 // ---------------------------------------------------------------------------
 // T-0405 / I-0113 — worldID at the boundary
@@ -217,21 +293,25 @@ TEST_CASE("C ABI: an empty worldID still creates project-scoped kinds unchanged"
           "[integration][T-0405]") {
     CApiFixture fix;
 
-    auto created = okResult(scrivi_create_object(fix.root(), "character", "Vance", "",
+    // ⚠️ SP-103: `character` became world-scoped, so `source` is now the kind
+    // that exercises this ABI property — an empty worldID meaning project scope.
+    // The property under test is unchanged; only the kind that still has project
+    // scope has changed.
+    auto created = okResult(scrivi_create_object(fix.root(), "source", "Principia", "",
                                                  "identity-001", "persona-001", "Test Author",
                                                  ""));
     const auto objectID = created.getString("objectID");
     const auto path     = created.getString("path");
-    REQUIRE(path.find("/objects/characters/") != std::string::npos);
+    REQUIRE(path.find("/objects/sources/") != std::string::npos);
 
-    auto opened = okResult(scrivi_open_object(fix.root(), "character", objectID.c_str(), ""));
+    auto opened = okResult(scrivi_open_object(fix.root(), "source", objectID.c_str(), ""));
     auto objJson = parseJson(opened.getString("objectJson"));
     REQUIRE(objJson.ok());
     // Project-scoped objects carry NO worldID — the key is omitted entirely, so
     // a pre-SP-095 file still round-trips byte-identically.
     REQUIRE(objJson.value().getString("worldID").empty());
 
-    REQUIRE(okResult(scrivi_delete_object(fix.root(), "character", objectID.c_str(), ""))
+    REQUIRE(okResult(scrivi_delete_object(fix.root(), "source", objectID.c_str(), ""))
                 .getBool("deleted"));
 }
 
@@ -240,7 +320,7 @@ TEST_CASE("C ABI: a NULL worldID is treated as project scope, not as a crash",
     CApiFixture fix;
     // The ABI's S() maps NULL → "" everywhere; a caller in a language without a
     // natural empty string must not have to synthesize one.
-    auto created = okResult(scrivi_create_object(fix.root(), "location", "Ordo Keep", "",
+    auto created = okResult(scrivi_create_object(fix.root(), "source", "Ordo Annals", "",
                                                  "identity-001", "persona-001", "Test Author",
                                                  nullptr));
     REQUIRE_FALSE(created.getString("objectID").empty());
@@ -308,8 +388,14 @@ struct CrossPartitionGraph {
     std::string edgeID;
 
     CrossPartitionGraph() {
-        worldID     = fix.makeWorld();
-        characterID = fix.makeObject("character", "Vance");
+        worldID = fix.makeWorld();
+        // ⚠️ SP-103: `character` is world-scoped now, so a character would sit
+        // in a world too and this would no longer be CROSS-partition — and
+        // detaching one world would not make it pending. `source` is the sole
+        // project-scoped kind, so it is now the project-side endpoint. The
+        // `cites` type is unconstrained on both ends, which is exactly why it
+        // was chosen here originally.
+        characterID = fix.makeObject("source", "Vance's Memoirs");
         artifactID  = fix.makeWorldObject("artifact", "Sword of Dawn", worldID);
 
         auto e = okResult(scrivi_create_edge(fix.root(), characterID.c_str(),
@@ -446,7 +532,13 @@ TEST_CASE("AC-A1/A2: pending edges survive open and save verbatim",
     // Open the project (AC-A1: opens without blocking, prunes nothing) and save
     // an unrelated object, which is what a writer would actually be doing.
     okResult(scrivi_open_project(g.fix.root(), g.fix.appSupport(), "identity-001"));
-    okResult(scrivi_create_object(g.fix.root(), "location", "Ordo Keep", "",
+    // ⚠️ SP-104: this created a `location` with an empty worldID. Since T-0409
+    // that is world-scoped, and the world is DETACHED two lines above — so the
+    // create now fails and the test never reached its real assertion. `source`
+    // is the sole project-scoped kind, so it is the only "unrelated object" a
+    // writer can still save while a world is away, which is exactly the
+    // situation this test is about.
+    okResult(scrivi_create_object(g.fix.root(), "source", "Ordo Keep Notes", "",
                                   "identity-001", "persona-001", "Test Author", ""));
 
     std::string after;
@@ -488,13 +580,18 @@ TEST_CASE("AC-A3: reattaching the world restores pending edges with no repair pa
 TEST_CASE("AC-A1: a project with no worlds pays no world cost and reports no pending",
           "[integration][T-0380][AC-A1]") {
     CApiFixture fix;
-    const auto a = fix.makeObject("character", "Vance");
-    const auto b = fix.makeObject("character", "Ordo");
-    okResult(scrivi_create_edge(fix.root(), a.c_str(), b.c_str(), "sibling-of", ""));
+    // ⚠️ SP-103: every worldbuilding kind is world-scoped, so a project with NO
+    // world can only hold `source` objects. That makes `source` the only way to
+    // exercise "a project that never used worlds" — which is exactly the case
+    // §4.5 is about, and it still must cost nothing.
+    const auto a = fix.makeObject("source", "On the Origin of Species");
+    const auto b = fix.makeObject("source", "Principia");
+    okResult(scrivi_create_edge(fix.root(), a.c_str(), b.c_str(), "cites", ""));
 
     // §4.5: a project that never used worlds does no world work at all.
     REQUIRE(okResult(scrivi_list_pending_edges(fix.root())).arraySize("pending") == 0);
     REQUIRE_FALSE(fs::exists(fs::path(fix.projectDir) / "worlds"));
+    REQUIRE(fix.defaultWorldID.empty());   // nothing lazily created one
 }
 
 // ---------------------------------------------------------------------------
@@ -517,7 +614,8 @@ TEST_CASE("deleting an object tombstones every edge referencing it",
     okResult(scrivi_create_edge(fix.root(), vance.c_str(), keep.c_str(), "cites", ""));
     REQUIRE(edgeIDsFor(fix, vance).size() == 2);
 
-    okResult(scrivi_delete_object(fix.root(), "character", vance.c_str(), ""));
+    okResult(scrivi_delete_object(fix.root(), "character", vance.c_str(),
+                                 fix.ensureDefaultWorld().c_str()));
 
     // Both edges go in the SAME operation — the graph is never observed
     // referencing a file that is already gone.
@@ -589,9 +687,12 @@ TEST_CASE("load-time repair drops a genuinely dangling edge",
     // Delete Ordo's file BEHIND the API's back — the crash-between-write-and-
     // tombstone case, and the hand-edited-project case. Cascade-prune never ran,
     // so only the repair pass can catch this.
-    auto opened = okResult(scrivi_open_object(fix.root(), "character", ordo.c_str(), ""));
+    auto opened = okResult(scrivi_open_object(fix.root(), "character", ordo.c_str(),
+                                              fix.ensureDefaultWorld().c_str()));
     fs::remove(opened.getString("path"));
-    fs::remove(fs::path(fix.projectDir) / "objects" / "index.json");   // force a rebuild
+    // ⚠️ SP-104: characters index in the WORLD's index since T-0409, so removing
+    // the project index forced no rebuild at all and the stale entry survived.
+    fs::remove(fix.worldIndexPath());   // force a rebuild
 
     REQUIRE(edgeIDsFor(fix, vance).size() == 1);   // still there, still dangling
 
@@ -630,7 +731,7 @@ TEST_CASE("⚠️ cascade-prune holds an edge whose FAR endpoint is in an unavai
     // Deleting the project-side character is legitimate and must succeed — but
     // its edge to the pending artifact is NOT pruned: with the world away we
     // cannot know what that relationship still means, and a tombstone is final.
-    okResult(scrivi_delete_object(g.fix.root(), "character", g.characterID.c_str(), ""));
+    okResult(scrivi_delete_object(g.fix.root(), "source", g.characterID.c_str(), ""));
 
     auto pending = okResult(scrivi_list_pending_edges(g.fix.root()));
     REQUIRE(pending.arraySize("pending") == 1);
@@ -748,7 +849,8 @@ TEST_CASE("cascade-prune leaves the surviving endpoint as a retained orphan",
     const auto ordo  = fix.makeObject("character", "Ordo");
     okResult(scrivi_create_edge(fix.root(), vance.c_str(), ordo.c_str(), "sibling-of", ""));
 
-    okResult(scrivi_delete_object(fix.root(), "character", vance.c_str(), ""));
+    okResult(scrivi_delete_object(fix.root(), "character", vance.c_str(),
+                                 fix.ensureDefaultWorld().c_str()));
 
     // Deleting Vance prunes the edge — and leaves Ordo, now unrelated, intact.
     auto orphans = objectIDsIn(okResult(scrivi_list_orphaned_objects(fix.root())));
@@ -812,8 +914,12 @@ TEST_CASE("⚠️ promotion preserves objectID and rewrites ZERO edges (AC8)",
     REQUIRE(promoted.getString("kind")     == "artifact");
     REQUIRE(promoted.getString("worldID")  == worldID);
 
-    // The file MOVED: out of objects/items/, into the world's artifacts/.
-    REQUIRE(promoted.getString("fromPath").find("/objects/items/") != std::string::npos);
+    // The file MOVED: out of items/, into artifacts/.
+    // ⚠️ SP-103: `item` is world-scoped now, so promotion is world→world rather
+    // than project→world. The move is between subdirectories of the SAME
+    // package; what promotion preserves (objectID, and an untouched edge log)
+    // is unchanged by that.
+    REQUIRE(promoted.getString("fromPath").find("/items/") != std::string::npos);
     REQUIRE(promoted.getString("path").find("Midgard.scrivworld/artifacts/")
                 != std::string::npos);
     REQUIRE_FALSE(fs::exists(promoted.getString("fromPath")));
@@ -849,20 +955,31 @@ TEST_CASE("demotion is the exact inverse through the same endpoint",
     const auto before = readEdgeLog(fix);
 
     okResult(scrivi_promote_object(fix.root(), key.c_str(), "artifact", worldID.c_str()));
-    auto demoted = okResult(scrivi_promote_object(fix.root(), key.c_str(), "item", ""));
+    // ⚠️ SP-103: `item` is world-scoped now, so demotion needs a destination
+    // world just as promotion does — the scope is no longer CLEARED on the way
+    // back down. What demotion still guarantees is the inverse KIND change with
+    // the same objectID and an untouched edge log.
+    auto demoted = okResult(scrivi_promote_object(fix.root(), key.c_str(), "item",
+                                                  worldID.c_str()));
 
     REQUIRE(demoted.getString("objectID") == key);
     REQUIRE(demoted.getString("kind")     == "item");
-    REQUIRE(demoted.getString("worldID").empty());   // scope is CLEARED, not retained
-    REQUIRE(demoted.getString("path").find("/objects/items/") != std::string::npos);
+    REQUIRE(demoted.getString("worldID")  == worldID);
+    REQUIRE(demoted.getString("path").find("/items/") != std::string::npos);
 
     // A full round trip leaves the graph exactly as it found it.
     REQUIRE(readEdgeLog(fix) == before);
 
-    auto opened  = okResult(scrivi_open_object(fix.root(), "item", key.c_str(), ""));
+    // ⚠️ SP-104: opened from the world it was demoted INTO — `worldID` above, not
+    // the fixture's lazily-created default, which is a different world entirely.
+    auto opened  = okResult(scrivi_open_object(fix.root(), "item", key.c_str(),
+                                               worldID.c_str()));
     auto objJson = parseJson(opened.getString("objectJson"));
     REQUIRE(objJson.ok());
-    REQUIRE(objJson.value().getString("worldID").empty());
+    // The last assertion still demanded a CLEARED scope, contradicting this
+    // test's own comment above: `item` is world-scoped since T-0409, so a
+    // demoted object keeps its world rather than losing it.
+    REQUIRE(objJson.value().getString("worldID") == worldID);
 }
 
 TEST_CASE("a promoted object appears under its new kind in list_objects",
@@ -902,7 +1019,10 @@ TEST_CASE("promoting to the kind an object already has is refused",
           "[integration][T-0379]") {
     CApiFixture fix;
     const auto key = fix.makeObject("item", "Brass Key");
-    REQUIRE(errorOf(scrivi_promote_object(fix.root(), key.c_str(), "item", ""))
+    // The sameKind guard must fire BEFORE the worldRequired check, so passing a
+    // valid world still reports the real reason rather than a scope complaint.
+    REQUIRE(errorOf(scrivi_promote_object(fix.root(), key.c_str(), "item",
+                                          fix.defaultWorldID.c_str()))
                 .getString("detail") == "sameKind");
 }
 

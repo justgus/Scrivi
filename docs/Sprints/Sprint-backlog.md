@@ -6,8 +6,65 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-099 | Worldbuilding-object cards | EP-031 | 🔵 Planning |
+| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card | EP-031 | 🔵 Planning |
 | SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning |
+
+> ✅ **SP-103 IS COMPLETE (2026-08-15).** T-0409 (the scope change) and T-0411 (test realignment) are
+> done and user-verified; its fallout was cleaned up by SP-104/SP-105, both closed.
+>
+> ⛔️ **T-0410 REMOVED as OBE (user-ruled 2026-08-15).** It came from ruling (a) below — "a worldless
+> project prompts to create a world on first object creation" — recorded at the moment the scope ruling
+> was made, **before anyone had used that state.** In use the user found the behavior he actually wants
+> already shipped: **a worldless project operates silently**, and the only mention of a world is at the
+> point an operation genuinely needs one. **The task traced to no design section, no AC and no reported
+> defect** — it was a solution filed against a problem that never materialised. Ruling (a) is superseded
+> by the user's 2026-08-15 ruling: *operate worldless silently until an operation requires a world.*
+>
+> ⚠️ **SP-103 opened 2026-08-14 (user ruling) — the object scope model changed.** A writer asked why a
+> character she might reuse in another project was saved in the *project*, noting she would have to "promote
+> her to the world first." **The premise was right and the model had no answer:** there is no world-scoped
+> character kind, so promotion would have meant turning her into an `artifact` — a category error. **There was
+> no supported path for cross-project character reuse at all.**
+>
+> **Ruling:** all ten worldbuilding kinds (`artifact`, `building`, `character`, `chronicle`, `faction`,
+> `item`, `location`, `map`, `rule`, `vehicle`) become **world-scoped**; **`source` alone stays
+> project-scoped** — a citation points at a real-world publication, not at the invented world, and a shared
+> world must not drag one project's bibliography into every project that binds it. Cross-partition
+> `cites` edges already work (SP-097).
+>
+> **Design amended first:** `Scrivi_Worldbuilding_Object_Model_v0_2.md` **§3.0** (new), §3 table, §3.1, header.
+> Code must not run ahead of the spec — §3 previously said the opposite.
+>
+> **Three rulings taken at the same time:**
+> **(a)** A worldless project **prompts to create a world on first object creation** (no wall, no silent
+> setup) — respecting Doc 2 §4.6's no-modal rule.
+> **(b)** ⚠️ **NO migration pass.** Doc 3 §7's "created in world scope from the start" is **retained**; the
+> existing test project is **discarded and recreated by hand**. Only defensible while no real data exists —
+> this is the last moment that is true.
+> **(c)** `item`/`artifact` **both kept**; T3's scope-based rationale is half-dissolved and the remaining
+> backstory/prominence distinction is **re-ruled separately** rather than bundled in.
+>
+> ⚠️ **EP-031 AC1 was Verified against the OLD scope table and must be re-verified** (see §3.0 consequence 4).
+
+> 🔵 **SP-099 planned 2026-08-13 → `Sprint-active.md`.** Its Planning row is removed above per the standing
+> rule. ⚠️ **The sprint was SPLIT at planning (R2)** — the staged SP-099 carried 5 tasks plus an entire
+> unplanned engine layer, mixing plumbing, CRUD UI, and failure-surface work in one verification pass.
+> **SP-099** = engine wrappers (**T-0407**, new) + object cards + picker → **AC16/17/21/22**.
+> **SP-102** (new, above) = in-stack create/edit + edit-state visuals + complete-or-discard + pending
+> presentation + Worlds menu + warning view + T-0365's aggregate `sources` card → **AC18/19/20/23/24**.
+> **SP-100 keeps its number** as the Epic close sprint and simply runs last; **EP-031 becomes a 7-sprint
+> Epic.** SP-102 was chosen because SP-101 is already taken (the unplanned EP-030 AC12 sprint, closed
+> 2026-08-11).
+>
+> **Two planning findings, both carried into SP-102's scope:**
+> ⚠️ **None of the 12 graph/world endpoints (`create_edge`, `list_edges_for`, `list_worlds`, …) is wrapped in
+> `ScriviEngine.swift`** — all twelve grep to zero. This is SP-098's carried-forward lesson pointing the other
+> way: there Swift wrapped *more* than assumed, here *less*. Now **T-0407**, done first, tested through
+> `scrivi_*`.
+> ⚠️ **`WorldStatus::offline` and `::unmounted` are declared but never produced** anywhere in `ScriviCore/src`
+> — the core emits only `missing`/`unavailable`. **AC24 has unbuilt Apple-layer work under it** that no staged
+> task named. Conversely, pending *presentation* needs **no** core work: `scrivi_list_edges_for` already
+> returns `otherPending`/`otherDisplayName`/`otherWorldStatus`.
 
 > ✅ **SP-092, SP-093, SP-094, SP-101 all closed 2026-08-11 (Human-approved) — double Epic close.** Their rows
 > and Planning blocks were removed from this file in the same step (per the standing rule that closed sprints

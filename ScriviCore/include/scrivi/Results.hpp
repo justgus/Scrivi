@@ -385,20 +385,39 @@ struct ExportProjectTimelineResult        { std::string timelineJSON; };
 // containerTitle/keywords/contentDescription are optional (empty = omit on emit).
 struct SearchableItem {
     std::string uniqueIdentifier;   // "<kind>:<id>"
-    std::string kind;               // project|scene|character|location|item|rule|timeline
+    std::string kind;               // project|scene|character|location|item|rule|…
     std::string title;
     std::string displayName;
     std::string containerTitle;     // scenes only (chapter title)
     std::string contentDescription; // plain text (Markdown stripped for scenes)
     std::vector<std::string> keywords;
-    std::string deepLink;           // scrivi://open?project=<projectID>&item=<uid>
+    // Project items: scrivi://open?project=<projectID>&item=<uid>
+    // World items:   scrivi://open?world=<worldID>&item=<uid>   (I-0118 Q2)
+    std::string deepLink;
+
+    // ⚠️ I-0118: the Spotlight domain THIS item belongs to, which is no longer
+    // always the project. A world's items carry "world_<worldID>" so they can be
+    // donated and deleted independently of any project — a world outlives every
+    // project that binds it, and several projects may bind the same world.
+    //
+    // Empty means "the result's domainIdentifier" (the project), so every
+    // existing project-side item is unchanged and no call site has to set it.
+    std::string domainIdentifier;
 };
 
 struct ExtractSearchableTextResult {
     std::string schema = "scrivi.searchableContent.v1";
-    std::string domainIdentifier;   // projectID — the Spotlight delete-by-domain key
+    std::string domainIdentifier;   // projectID — the DEFAULT domain for items that name none
     AbsolutePath projectRootPath;
     std::vector<SearchableItem> items;
+
+    // ⚠️ I-0118: every distinct world domain present in `items`. The donor needs
+    // this to index world items under their own domain; it is NOT a delete list.
+    // Under the Q1 ruling world domains are never deleted as a side effect of
+    // anything a project does — not on close, not on unbind, not on a world
+    // going offline. Only an explicit instruction removes them (deferred to
+    // EP-033, which has no affordance yet).
+    std::vector<std::string> worldDomainIdentifiers;
 };
 
 } // namespace scrivi

@@ -47,6 +47,13 @@ private struct ManuscriptEditorView: View {
             ProjectSettingsSheet(prefs: prefs)
         }
         #endif
+        // Worlds manager (T-0408). Not platform-gated: the Worlds menu is macOS
+        // today, but nothing here is macOS-specific except the file panels.
+        .sheet(isPresented: Bindable(session).showWorlds) {
+            if let root = session.projectRootPath {
+                WorldsView(engine: env.engine, projectRootPath: root)
+            }
+        }
         // Forward a deep link's requested scene into local navigation, then clear
         // it. .onAppear covers a cold-start link set before this view existed;
         // .onChange covers a link that arrives while the editor is already shown.
@@ -193,6 +200,7 @@ private struct ManuscriptEditorView: View {
                 allSceneIDs: loader.segments.map(\.sceneID),
                 history: session.historyCapture,
                 caretByteOffset: loader.cursorByteOffset,
+                authorshipRef: env.authorshipRef,
                 layout: layout
             )
         }

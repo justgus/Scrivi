@@ -63,10 +63,58 @@ or edge migration is implied).
 
 ---
 
-*Last Updated: 2026-08-12 (**EP-032 `[Cross]` opened 🔵 Proposed** — inline object references in the
+## EP-033: [Cross] World Lifecycle Management — in-app view vs. dedicated application
+
+**Status:** 🔵 **Proposed** (opened 2026-08-14 from the I-0118 design ruling)
+**Codebase:** `[Cross]` — undetermined by design; **the product-boundary decision is the Epic's first
+deliverable**, and it decides whether this is a Scrivi view or a separate application.
+**Goal:** Answer where a **world** is managed across its whole life — created, deleted, shared between
+projects, repaired, and its search index maintained — and then build it.
+**Origin:** I-0118 Q1 (2026-08-14). The ruling was *"entries persist; never reference-counted, never
+deleted unless expressly instructed."* **No such instruction exists anywhere in the product**, and the
+user deferred inventing one pending this larger decision.
+
+**Why this is an Epic and not an affordance.** "Add a Remove-from-Spotlight button" was the small version
+of the question. The real one is **who owns a world**, and the current answer is nobody:
+
+- a world is **shared between projects** and outlives every one of them, so a per-project panel is
+  structurally the wrong home for its lifecycle — every binding project would offer the same destructive
+  action against shared state, with no coordination;
+- **deleting a world** has no home at all today: `scrivi_remove_world_reference` unbinds *this project's*
+  reference and deliberately never touches the package (`scrivi.h:264`), which is correct — but it means
+  nothing in Scrivi can delete a world, by design;
+- under the I-0118 ruling a world's **search entries are write-only** — donated, never removed, with no
+  affordance to clear them even when the package is gone from disk;
+- **a world with no project bound to it is unreachable.** Scrivi opens *projects*; a world is only ever
+  seen through one. A writer with a world and no project has no way in.
+
+**The fork to rule first:**
+
+| Option | Consequence |
+| --- | --- |
+| **A — a view inside Scrivi** | Cheapest; reuses the Worlds panel and identity/bookmark plumbing. But the per-project framing stays wrong for shared state, and it cannot manage a world with no project. |
+| **B — a dedicated world-management application** | Matches how worlds actually live: one owner, across projects, independent of any manuscript. Costs a second app (packaging, sandbox grants, identity, its own release), and Scrivi still needs *some* in-app surface for binding. |
+
+**Rough scope (either way):** world delete (package + index entries, with the "positively established"
+care of I-0115); explicit index-entry removal; a worlds registry or browse path that does not require a
+project; sharing/binding across projects; repair for a world whose package moved or died.
+
+**Depends on:** EP-031 (the world partition, bindings, and the world package format).
+**Explicitly deferred from:** I-0118, which ships world **indexing** and leaves **removal** to this Epic.
+
+---
+
+*Last Updated: 2026-08-14 (**EP-033 `[Cross]` opened 🔵 Proposed** — world lifecycle management, deferred
+out of I-0118 by user ruling. The I-0118 Q1 ruling ("entries persist; never deleted unless expressly
+instructed") has **no instruction to give** — nothing in Scrivi deletes a world or its index entries, and
+a world with no project bound is unreachable entirely. **The Epic's first deliverable is the product
+fork:** a view inside Scrivi vs. a dedicated world-management application. Backlog Epics 2 → 3 (EP-026
+`[Linux]`, EP-032 `[Cross]`, EP-033 `[Cross]`); next available Epic **EP-034**. Prior note follows.)*
+
+*2026-08-12 (**EP-032 `[Cross]` opened 🔵 Proposed** — inline object references in the
 manuscript, deferred out of EP-031 by user ruling: sources attach to objects now, source-in-manuscript
 (footnotes / pull quotes) needs a capability Scrivi does not have and is version-crossing. Backlog Epics
-1 → 2 (EP-026 `[Linux]`, EP-032 `[Cross]`); next available Epic **EP-033**. Prior note follows.)*
+1 → 2 (EP-026 `[Linux]`, EP-032 `[Cross]`); next available Epic **EP-033**.)*
 
 *2026-07-22 (**EP-025 [Linux] Timeline Panel promoted from this backlog to 🟡 Active** (full
 detail now in `Epic-active.md`); its first sprint SP-079 activated same day. The largest Linux Epic (full

@@ -292,6 +292,14 @@ import UniformTypeIdentifiers
             if let url = bookmarkURL {
                 ProjectBookmarkStore.record(projectID: result.projectID, url: url)
             }
+            // ⚠️ Re-acquire sandbox access to this project's WORLDS before anything
+            // reads them. A world lives outside the .scrivi package, so the project
+            // bookmark does not cover it; without this the package is unreadable and
+            // ScriviCore reports the world as unavailable — and since T-0409 made
+            // every worldbuilding kind world-scoped, that blocks creating a
+            // character at all. Best-effort: a world with no stored grant stays
+            // unavailable and is repairable via Worlds → "Locate…".
+            activateWorlds(for: session)
             persistOpenManifest()
             return session
         } catch let e as ScriviError {
@@ -301,6 +309,19 @@ import UniformTypeIdentifiers
             projectError = ScriviError(code: -1, message: error.localizedDescription)
             return nil
         }
+    }
+
+    // Re-acquires security-scoped access to every world this project binds.
+    //
+    // Called on the load path so the FIRST world read already sees a readable
+    // package. Listing worlds is itself safe without access — the bindings live
+    // inside the .scrivi package — so this can enumerate before activating.
+    private func activateWorlds(for session: ProjectSession) {
+        #if os(macOS)
+        guard let root = session.projectRootPath else { return }
+        guard let worlds = try? session.engine.listWorlds(projectRootPath: root).worlds else { return }
+        WorldBookmarkStore.activateAll(worldIDs: worlds.map(\.worldID))
+        #endif
     }
 
     // Ensures a project is open and its window is shown/focused (EP-018 / T-0194).
@@ -465,6 +486,35 @@ import UniformTypeIdentifiers
     func handleDeepLink(_ url: URL) async {
         guard let link = ScriviDeepLink(url: url) else {
             projectError = ScriviError(code: -1, message: "Unrecognized Scrivi link")
+            return
+        }
+
+        // ⚠️ I-0118: a WORLD-scoped link names no project, and Scrivi opens
+        // projects — a world is only ever reached through one that binds it.
+        // Routing this into the project path below would look up session("")
+        // and report a misleading "open this project once" error about a
+        // project the link never named.
+        //
+        // So: if exactly one open project binds the world, use it; otherwise say
+        // plainly what is missing. Opening a world in its own right is EP-033's
+        // question (in-app view vs. dedicated world-management app), not
+        // something to improvise here.
+        if link.isWorldScoped {
+            let binders = openProjects.sessions.filter { _, session in
+                guard let root = session.projectRootPath,
+                      let worlds = try? session.engine.listWorlds(projectRootPath: root).worlds
+                else { return false }
+                return worlds.contains { $0.worldID == link.worldID }
+            }
+            if binders.count == 1, let projectID = binders.keys.first {
+                requestOpenWindow(for: projectID)
+            } else {
+                projectError = ScriviError(
+                    code: -1,
+                    message: binders.isEmpty
+                        ? "Open a project that uses this world to see this item."
+                        : "Several open projects use this world — open the item from the project you want.")
+            }
             return
         }
 

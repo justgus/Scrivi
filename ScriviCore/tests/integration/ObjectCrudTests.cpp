@@ -9,6 +9,7 @@
 #include "mocks/MockGitProvider.hpp"
 #include "mocks/MockSecureStore.hpp"
 #include "platform/LocalFileSystem.hpp"
+#include "worlds/WorldStore.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -30,7 +31,12 @@ struct ObjectFixture {
     scrivi::mocks::FixedClock                clock{"2026-05-28T00:00:00Z"};
     scrivi::mocks::MockGitProvider           gitProvider;
     scrivi::mocks::MockSecureStore          secureStore;
+    // Declared before `core` so the member init order matches the ctor list.
+    scrivi::CoreServices                    services;
     scrivi::ScriviCore                      core;
+
+    // SP-103: the world every worldbuilding kind now lives in.
+    std::string worldID;
 
     const scrivi::AuthorshipRef author{
         scrivi::IdentityID{"identity-001"},
@@ -43,7 +49,7 @@ struct ObjectFixture {
                      ("scrivi-obj-test-" + std::to_string(
                          std::chrono::steady_clock::now().time_since_epoch().count())))
         , appSupportDir(projectDir / "appsupport")
-        , core([&]{
+        , services([&]{
             scrivi::CoreServices svc;
             svc.fileSystem   = &fileSystem;
             svc.uuidProvider = &uuidProvider;
@@ -53,6 +59,7 @@ struct ObjectFixture {
             svc.logger       = nullptr;
             return svc;
           }())
+        , core(services)
     {
         fs::create_directories(projectDir);
         fs::create_directories(appSupportDir);
@@ -64,6 +71,14 @@ struct ObjectFixture {
         req.slug            = "object-test-project";
         req.author          = author;
         (void)core.createProject(req);
+
+        // SP-103: every worldbuilding kind is world-scoped now.
+        scrivi::worlds::WorldStore ws{services};
+        auto w = ws.createWorld(projectDir.string(),
+                                (projectDir / "Obj.scrivworld").string(),
+                                "Object World", "");
+        REQUIRE(w.ok());
+        worldID = w.value().worldID;
     }
 
     ~ObjectFixture() { fs::remove_all(projectDir); }
@@ -79,6 +94,30 @@ struct ObjectFixture {
         req.displayName     = displayName;
         req.slug            = slug;
         req.author          = author;
+        if (scrivi::objectKindIsWorldScoped(kind)) { req.worldID = worldID; }
+        return req;
+    }
+
+    // SP-103: read/write requests need the worldID too, since the file now lives
+    // in the world package. Helpers keep that in ONE place rather than at every
+    // call site.
+    scrivi::OpenObjectRequest makeOpenReq(scrivi::ObjectKind kind,
+                                          const scrivi::ObjectID& id) const {
+        scrivi::OpenObjectRequest req;
+        req.projectRootPath = projectDir.string();
+        req.objectKind      = kind;
+        req.objectID        = id;
+        if (scrivi::objectKindIsWorldScoped(kind)) { req.worldID = worldID; }
+        return req;
+    }
+
+    scrivi::DeleteObjectRequest makeDeleteReq(scrivi::ObjectKind kind,
+                                              const scrivi::ObjectID& id) const {
+        scrivi::DeleteObjectRequest req;
+        req.projectRootPath = projectDir.string();
+        req.objectKind      = kind;
+        req.objectID        = id;
+        if (scrivi::objectKindIsWorldScoped(kind)) { req.worldID = worldID; }
         return req;
     }
 
@@ -129,10 +168,7 @@ TEST_CASE("openObject returns the created character with correct fields",
     auto created = fix.core.createObject(fix.makeCreateReq("Thomas Belacroix", "thomas"));
     REQUIRE(created.ok());
 
-    scrivi::OpenObjectRequest req;
-    req.projectRootPath = fix.projectDir.string();
-    req.objectKind      = scrivi::ObjectKind::character;
-    req.objectID        = created.value().objectID;
+    auto req = fix.makeOpenReq(scrivi::ObjectKind::character, created.value().objectID);
 
     auto opened = fix.core.openObject(req);
     REQUIRE(opened.ok());
@@ -152,10 +188,7 @@ TEST_CASE("saveObject updates displayName and modifiedAt on disk",
     auto created = fix.core.createObject(fix.makeCreateReq("Old Name", "old-name"));
     REQUIRE(created.ok());
 
-    scrivi::OpenObjectRequest openReq;
-    openReq.projectRootPath = fix.projectDir.string();
-    openReq.objectKind      = scrivi::ObjectKind::character;
-    openReq.objectID        = created.value().objectID;
+    auto openReq = fix.makeOpenReq(scrivi::ObjectKind::character, created.value().objectID);
     auto opened = fix.core.openObject(openReq);
     REQUIRE(opened.ok());
 
@@ -191,20 +224,14 @@ TEST_CASE("deleteObject removes the file; subsequent openObject fails",
     REQUIRE(created.ok());
     REQUIRE(fs::exists(created.value().path));
 
-    scrivi::DeleteObjectRequest delReq;
-    delReq.projectRootPath = fix.projectDir.string();
-    delReq.objectKind      = scrivi::ObjectKind::character;
-    delReq.objectID        = created.value().objectID;
+    auto delReq = fix.makeDeleteReq(scrivi::ObjectKind::character, created.value().objectID);
 
     auto deleted = fix.core.deleteObject(delReq);
     REQUIRE(deleted.ok());
     REQUIRE(deleted.value().deleted == true);
     REQUIRE_FALSE(fs::exists(created.value().path));
 
-    scrivi::OpenObjectRequest openReq;
-    openReq.projectRootPath = fix.projectDir.string();
-    openReq.objectKind      = scrivi::ObjectKind::character;
-    openReq.objectID        = created.value().objectID;
+    auto openReq = fix.makeOpenReq(scrivi::ObjectKind::character, created.value().objectID);
     auto reopened = fix.core.openObject(openReq);
     REQUIRE_FALSE(reopened.ok());
 }
@@ -242,10 +269,7 @@ static void runCrudCycle(ObjectFixture& fix,
     REQUIRE(created.value().path.find(subdir) != std::string::npos);
 
     // open
-    scrivi::OpenObjectRequest openReq;
-    openReq.projectRootPath = fix.projectDir.string();
-    openReq.objectKind      = kind;
-    openReq.objectID        = created.value().objectID;
+    auto openReq = fix.makeOpenReq(kind, created.value().objectID);
 
     auto opened = fix.core.openObject(openReq);
     REQUIRE(opened.ok());
@@ -277,10 +301,7 @@ static void runCrudCycle(ObjectFixture& fix,
     REQUIRE(rObj.tags[0]      == "test-tag");
 
     // delete
-    scrivi::DeleteObjectRequest delReq;
-    delReq.projectRootPath = fix.projectDir.string();
-    delReq.objectKind      = kind;
-    delReq.objectID        = created.value().objectID;
+    auto delReq = fix.makeDeleteReq(kind, created.value().objectID);
 
     auto deleted = fix.core.deleteObject(delReq);
     REQUIRE(deleted.ok());
@@ -340,31 +361,73 @@ TEST_CASE("MapObject full CRUD cycle", "[integration][T-0370]")
 }
 
 TEST_CASE("world-scoped kinds are refused when NO world is supplied",
-          "[integration][T-0370][T-0385]")
+          "[integration][T-0370][T-0385][T-0409]")
 {
     ObjectFixture fix;
 
-    // SP-097 made these creatable — but only INTO A WORLD. Without a worldID
-    // they must still be refused: World Data Separation v0.1 §7 writes no
-    // migration code, so an artifact created under objects/ could never be
-    // moved into world scope later. (Creation WITH a world is covered in
-    // WorldTests.cpp.)
+    // ⚠️ WIDENED for SP-103 / T-0409: this used to cover only the four
+    // originally-world-scoped kinds. ALL TEN worldbuilding kinds are now
+    // world-scoped (Doc 1 §3.0), so every one of them must refuse without a
+    // world — and the refusal must stay explicit, because World Data Separation
+    // v0.1 §7 still writes NO migration code. An object created under objects/
+    // could never be moved into world scope later, so a silent fallback would
+    // strand it permanently.
+    //
+    // The request is built by hand rather than via makeCreateReq(), which now
+    // supplies the fixture's world; the point here is the ABSENCE of one.
     for (auto kind : {scrivi::ObjectKind::artifact,
+                      scrivi::ObjectKind::building,
+                      scrivi::ObjectKind::character,
                       scrivi::ObjectKind::chronicle,
                       scrivi::ObjectKind::faction,
-                      scrivi::ObjectKind::rule}) {
+                      scrivi::ObjectKind::item,
+                      scrivi::ObjectKind::location,
+                      scrivi::ObjectKind::map,
+                      scrivi::ObjectKind::rule,
+                      scrivi::ObjectKind::vehicle}) {
         CAPTURE(scrivi::objectKindName(kind));
 
-        auto r = fix.core.createObject(fix.makeCreateReq(kind, "Thing", "thing"));
+        scrivi::CreateObjectRequest req;
+        req.projectRootPath = fix.projectDir.string();
+        req.objectKind      = kind;
+        req.displayName     = "Thing";
+        req.slug            = "thing";
+        req.author          = fix.author;
+        // req.worldID deliberately left EMPTY.
+
+        auto r = fix.core.createObject(req);
         REQUIRE_FALSE(r.ok());
         REQUIRE(r.error().code == scrivi::ErrorCode::invalidArgument);
         // The message must name the reason, not just fail.
         REQUIRE(r.error().message.find("world") != std::string::npos);
+        // And it must carry the machine-readable discriminator the app reads to
+        // offer "create a world" rather than showing a generic error (T-0410).
+        REQUIRE(r.error().detail == "worldRequired");
 
         // Nothing was written on the way to the refusal.
         REQUIRE_FALSE(fs::exists(fix.projectDir / "objects" /
                                  scrivi::objectKindSubdir(kind)));
     }
+}
+
+TEST_CASE("`source` is the sole kind creatable with NO world",
+          "[integration][T-0409]")
+{
+    ObjectFixture fix;
+
+    // The other half of the ruling: a citation documents a real-world
+    // publication supporting THIS manuscript, so it stays project-scoped and
+    // must NOT require a world.
+    scrivi::CreateObjectRequest req;
+    req.projectRootPath = fix.projectDir.string();
+    req.objectKind      = scrivi::ObjectKind::source;
+    req.displayName     = "On the Origin of Species";
+    req.slug            = "origin";
+    req.author          = fix.author;
+
+    auto r = fix.core.createObject(req);
+    REQUIRE(r.ok());
+    REQUIRE(fs::exists(fix.projectDir / "objects" / "sources"));
 }
 
 TEST_CASE("the world container kind is not creatable as an object",

@@ -54,6 +54,15 @@ public:
 
     // Rebuilds by scanning every project-scoped kind directory, then writes
     // the result atomically. This is the repair path AND the initial build.
+    // Scans a directory tree for object files (SP-103). `worldScoped` selects
+    // which kinds may live there; shared by the project and world rebuilds.
+    [[nodiscard]] std::vector<ObjectIndexEntry> scanDir(
+        const AbsolutePath& baseDir, bool worldScoped) const;
+
+    [[nodiscard]] Result<void> writeWorldIndex(
+        const AbsolutePath& packagePath,
+        const std::vector<ObjectIndexEntry>& entries) const;
+
     [[nodiscard]] Result<std::vector<ObjectIndexEntry>> rebuild(
         const AbsolutePath& projectRoot) const;
 

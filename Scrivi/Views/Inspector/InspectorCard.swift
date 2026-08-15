@@ -85,6 +85,12 @@ struct CardContext {
     let engine: ScriviEngine
     let config: CardConfig
 
+    /// Every scene in manuscript order (I-0119). A card that holds a draft across
+    /// a scene change needs to NAME the scene the draft belongs to — the writer
+    /// is looking at a different one by then, and "it will be saved" is otherwise
+    /// ambiguous between the two. Position in this array is the scene's number.
+    var allSceneIDs: [String] = []
+
     /// The project's undo/redo history, when open. Only the `history` card uses it;
     /// nil when history failed to open, in which case that card reports it in place
     /// rather than the stack failing (§7.1).
@@ -98,6 +104,19 @@ struct CardContext {
     /// history card folds it into its `.task(id:)` so a commit re-fetches the tree;
     /// reloading on `sceneID` alone left the card stale until the project reopened.
     var historyRevision: Int = 0
+
+    /// The **stack's** sort, applied by every card in it (C6 / §4.5 — sort is per
+    /// stack, never per card). Object cards order their contents by this; cards
+    /// with no orderable content ignore it.
+    ///
+    /// ⚠️ A card must not grow its own sort control. Three cards sorted by name
+    /// while two sort by date is exactly what the C6 ruling exists to prevent.
+    var sort: InspectorSort = .manual
+
+    /// Who to attribute created objects to. Nil when identity has not bootstrapped,
+    /// in which case a card must refuse to create rather than inventing authorship
+    /// (T-0388).
+    var authorshipRef: AuthorshipRef? = nil
 }
 
 /// A card the inspector can render. Conformers are registered in `InspectorCardRegistry`
@@ -199,6 +218,10 @@ enum InspectorCardRegistry {
         register(TodoCard.self)
         // History card (SP-092 T-0366) — supersedes EP-019's T-0215 panel.
         register(HistoryCard.self)
+        // Worldbuilding object cards (EP-031 SP-099 T-0386) — ten configurations
+        // of ONE implementation. Registering them only OFFERS them in the "+"
+        // menu; the Worldbuilding stack still ships empty (Doc 2 AC7).
+        InspectorCardRegistry.registerObjectCards()
     }
 
     #if DEBUG
