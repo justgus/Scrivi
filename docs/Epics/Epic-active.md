@@ -3,17 +3,39 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **4 of 8 sprints closed; 7 of 10 ACs met.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
-SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC4 + AC7**), all closed 2026-08-12 with user approval.
-⚠️ **AC1 was UNTICKED 2026-08-14** — the object scope model changed under it (Doc 1 §3.0); it is re-verified
-in **SP-103**.
+**Status:** 🟡 **Active** — **8 of 10 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
+SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC4 + AC7**) closed 2026-08-12; SP-099 ✅
+(**AC16/17/21/22 + AC18/19/20; AC10 struck**), SP-103 ✅ (the scope ruling), SP-104 ✅ (post-ruling
+fallout, I-0114–I-0117) and SP-105 ✅ (world search indexing, I-0118) all closed 2026-08-15, each with
+user approval. **Remaining: SP-102** (pending presentation + warning view + `sources` card) and
+**SP-100** (verification & Epic close, **runs last**), both 🔵 Planning.
+
+⚠️ **AC1 must be RE-VERIFIED — it is the Epic's one outstanding acceptance criterion.** It was UNTICKED
+2026-08-14 when the object scope model changed under it (Doc 1 §3.0), and although SP-103 delivered that
+change, **AC1 was ticked against the pre-T-0409 scope table, so its evidence no longer describes the
+shipped model.** Re-verification is **SP-100's** to own — *not* SP-103's, which is closed.
+
 ⚠️ SP-097 and SP-098 had their **content swapped** — worlds landed first, because two integrity tasks were
 verified unbuildable without them; integrity was then built once, against real worlds.
-⚠️ **The `[ScriviCore]` half REOPENED 2026-08-14.** It was complete; a user ruling changed the object scope
-model, which is core work. What remains: **SP-099** (🟠 Review — engine wrappers + cards + picker + in-place
-creation + Worlds menu), **SP-103** (⚠️ **all worldbuilding kinds → world scope**, breaking, no migration),
-**SP-102** (pending presentation + warning view + `sources` card), and **SP-100** (verification and close).
-**AC1, AC9, and AC10** are outstanding.
+
+⚠️ **The `[ScriviCore]` half REOPENED 2026-08-14** — it was complete, and a user ruling changed the object
+scope model, which is core work. That reopening is now resolved: SP-103 made the change, and SP-104/SP-105
+cleaned up its fallout.
+
+⚠️ **Every defect that mattered in SP-099/SP-103/SP-104/SP-105 was found by USE, not by the test suites**,
+which were green throughout. Worth remembering when SP-100's evidence is "all tests pass."
+
+**State at the 2026-08-15 close:** `ctest` **516/516** · macOS interop **86/86** · app **BUILD SUCCEEDED** ·
+Issues verified across these sprints: **I-0114–I-0119**.
+
+**Linux is untouched** by SP-104/SP-105. The `[ScriviCore]` fixes are cross-platform and covered by `ctest`;
+the `[Apple]` halves (Worlds menu, bookmarks, Spotlight donation) have no Qt counterpart, and the Linux app
+donates to no search index at all.
+
+**Spawned:** **EP-033** `[Cross]` — World Lifecycle Management (Epic backlog, 🔵 Proposed), opened from the
+I-0118 Q1 ruling. Nothing in Scrivi can delete a world or its search entries, and a world with no project
+bound is unreachable — Scrivi opens *projects*. Its first deliverable is the product fork: **a view inside
+Scrivi, or a dedicated world-management application.**
 ⚠️ **EP-031 is now an 8-sprint Epic.** SP-099 was split at planning (an entire unwrapped engine layer was
 hidden inside the staged tasks), then **grew T-0388 + T-0408 at R4** when live verification found the sprint
 had shipped a surface with no way to create data or see world context. **SP-103 was then opened** when the
