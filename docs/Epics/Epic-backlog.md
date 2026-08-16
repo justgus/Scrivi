@@ -11,13 +11,17 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 ## [Linux] App — Epic Family (EP-024–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was
-built Epic-by-Epic). **EP-020 `[Linux]` (Foundation), EP-021 `[Linux]` (Project Lifecycle & Landing),
-EP-022 `[Linux]` (Writing Surface & Scene Navigator), EP-023 `[Linux]` (Manuscript Structure Editing), and
-EP-024 `[Linux]` (Scene Inspector Panel) are all ✅ closed** (→ `Epics/Closed/`); **EP-025 `[Linux]`
-(Timeline Panel) is now 🟡 Active** (→ `Epics/Epic-active.md`). The Epic below is 🔵 Draft, promoted to Active
-when EP-025 lands. Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each targets
-near-parity with the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a
-`[ScriviCore]` note, not a separate Epic.
+built Epic-by-Epic). **EP-020 (Foundation), EP-021 (Project Lifecycle & Landing), EP-022 (Writing Surface &
+Scene Navigator), EP-023 (Manuscript Structure Editing), EP-024 (Scene Inspector Panel) and EP-025 (Timeline
+Panel) are all ✅ closed** (→ `Epics/Closed/`) — **EP-025 closed 2026-07-24**, the last of them.
+
+**EP-026 below is therefore the only `[Linux]` Epic left, and it is still 🔵 Draft** — it was never promoted
+when EP-025 landed, because `[Apple]`/`[Cross]` work (EP-027–EP-031) took priority. Promotion is a scheduling
+decision that has not yet been made.
+
+Each is verified in Docker+VNC (developer) then on real Ubuntu (alpha tester). Each targets near-parity with
+the named Apple Epic. Any new `scrivi_*` endpoint a screen needs is a Task with a `[ScriviCore]` note, not a
+separate Epic.
 
 ### EP-026: [Linux] Undo/Redo, Menus, Settings & Parity Verification
 

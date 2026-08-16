@@ -25,8 +25,11 @@ cleaned up its fallout.
 ⚠️ **Every defect that mattered in SP-099/SP-103/SP-104/SP-105 was found by USE, not by the test suites**,
 which were green throughout. Worth remembering when SP-100's evidence is "all tests pass."
 
-**State at the 2026-08-15 close:** `ctest` **516/516** · macOS interop **86/86** · app **BUILD SUCCEEDED** ·
-Issues verified across these sprints: **I-0114–I-0119**.
+**State at the 2026-08-15 close:** `ctest` **516/516** · macOS interop **86/86** · app **BUILD SUCCEEDED**.
+Issues carried across these sprints: **I-0114–I-0119** — of which **I-0118 and I-0119 are ✅ Verified**
+(archived to [`../Issues/Verified/Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md))
+and ⚠️ **I-0114–I-0117 remain 🟠 `Resolved - Not Verified`**, awaiting user verification in
+[`../Issues/Issue-active.md`](../Issues/Issue-active.md). **They are not evidence for any AC until verified.**
 
 **Linux is untouched** by SP-104/SP-105. The `[ScriviCore]` fixes are cross-platform and covered by `ctest`;
 the `[Apple]` halves (Worlds menu, bookmarks, Spotlight donation) have no Qt counterpart, and the Linux app
@@ -36,10 +39,14 @@ donates to no search index at all.
 I-0118 Q1 ruling. Nothing in Scrivi can delete a world or its search entries, and a world with no project
 bound is unreachable — Scrivi opens *projects*. Its first deliverable is the product fork: **a view inside
 Scrivi, or a dedicated world-management application.**
-⚠️ **EP-031 is now an 8-sprint Epic.** SP-099 was split at planning (an entire unwrapped engine layer was
-hidden inside the staged tasks), then **grew T-0388 + T-0408 at R4** when live verification found the sprint
-had shipped a surface with no way to create data or see world context. **SP-103 was then opened** when the
-writer's follow-up question exposed that *no path existed for cross-project character reuse at all.*
+⚠️ **EP-031 is now a 10-sprint Epic** (SP-095–SP-100 as planned, plus SP-102, SP-103, SP-104, SP-105).
+It grew three times, each time from use rather than from planning: SP-099 was **split** at planning (an entire
+unwrapped engine layer was hidden inside the staged tasks), then **grew T-0388 + T-0408 at R4** when live
+verification found the sprint had shipped a surface with no way to create data or see world context;
+**SP-103** was opened when the writer's follow-up question exposed that *no path existed for cross-project
+character reuse at all*; and **SP-104 + SP-105** were both unplanned, opened from the fallout of SP-103's
+ruling. ⚠️ **Earlier notes in this file calling EP-031 a "6-", "7-" or "8-sprint Epic" are superseded** —
+they were written before those sprints existed and are retained only as history.
 
 > ⚠️ **The scope ruling (2026-08-14) is the Epic's second model change, and it is breaking.** All ten
 > worldbuilding kinds move into the `.scrivworld` package; **`source` alone stays project-scoped**. A project
@@ -207,7 +214,8 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-102 | **`[Apple]` Pending presentation + warning view + `sources` card** | 🔵 Planning | — |
 | SP-100 | Verification & Epic close | 🔵 Planning | — |
 
-> ⚠️ **SP-099 SPLIT at planning, 2026-08-13 (R2, user-approved) — EP-031 is now a 7-sprint Epic.** The staged
+> ⚠️ **SP-099 SPLIT at planning, 2026-08-13 (R2, user-approved) — EP-031 became a 7-sprint Epic *at that
+> date*** (superseded: it is a **10-sprint** Epic as of 2026-08-15 — see the note above). The staged
 > SP-099 carried 5 tasks *plus* an entire unplanned engine layer, mixing plumbing, CRUD UI, and failure-surface
 > work into one verification pass. **SP-099** takes the engine wrappers + object cards + picker
 > (**AC16/17/21/22** of AC9); **SP-102** takes in-stack create/edit, edit-state visuals, complete-or-discard,
@@ -285,7 +293,16 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-13 (**SP-099 planned — EP-031's first `[Apple]` sprint; the Epic is now 7 sprints.**
+*Last Updated: 2026-08-16 (**Consistency audit — three corrections to this file.** (1) The close summary said
+*"Issues verified across these sprints: I-0114–I-0119"* — **only I-0118 and I-0119 are Verified; I-0114–I-0117
+remain `Resolved - Not Verified`** and are not evidence for any AC until the user verifies them. ⚠️ **A closed
+Sprint was being read as verifying its Issues.** (2) The file called EP-031 both an **8-sprint** Epic (top) and
+a **7-sprint** Epic (SP-099 split note) while its own sprint table listed **10** — the header now states 10 and
+the split note is date-scoped as history. (3) The same wrong I-0114–I-0119 claim was corrected in
+`../Sprints/Sprint-active.md` and `../Sprints/Sprint-Documentation.md`. **No AC state changed** — AC1 stays
+unticked and owned by SP-100, AC9/AC10 stay open. Prior note follows.)*
+
+*2026-08-13 (**SP-099 planned — EP-031's first `[Apple]` sprint; the Epic is now 7 sprints.**
 ⚠️ **The audit found an entire engine layer hidden inside the staged tasks:** all 12 graph/world endpoints —
 `create_edge`, `delete_edge`, `list_edges_for`, `list_pending_edges`, `list_objects`,
 `list_orphaned_objects`, `promote_object`, `list_worlds`, `get_world_status`, `relink_world`,

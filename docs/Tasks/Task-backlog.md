@@ -89,18 +89,11 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
-| T-0407 | ⚠️ **`ScriviEngine` graph + world wrappers** — 14 endpoints (12 planned + `createWorld`/`addWorld`); **+ `detail` on `ScriviError` and the null-result decode fix** | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
-| T-0408 | **Worlds menu** — list / create / bind + picker scope line (new at R4; `listWorlds` had **zero** UI call sites) | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
-| T-0409 | ⚠️ **`objectKindIsWorldScoped` → all ten kinds world-scoped** (`source` excluded); update `ObjectStore` scope sites + C ABI kind table | EP-031 (**SP-103**) | 🔵 Backlog |
-| T-0411 | Core + interop test realignment to world scope; **re-verify EP-031 AC1** under the new table | EP-031 (**SP-103**) | 🔵 Backlog |
-| T-0386 | Object cards (ONE implementation, ten per-kind configurations) | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
-| T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point (disabled → T-0388) | EP-031 (**SP-099**) | 🟠 **Implemented - Not Verified (2026-08-13)** |
-| T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | EP-031 (**SP-099** — ⬅ pulled back from SP-102 at R4) | 🟠 **Implemented - Not Verified (2026-08-13)** |
 | T-0389 | Pending presentation + Worlds menu + warning view (**⚠️ includes the unbuilt `offline`/`unmounted` status refinement — AC24**) | EP-031 (**SP-102** — split from SP-099, R2) | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0391 | EP-031 verification + Epic close prep | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | ⚪ **Closed — OBE (2026-08-05, user-directed)** |
-| T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (SP-057) | 🔵 Backlog |
+| T-0217 | Doc updates + EP-019 acceptance-criteria verification | EP-019 (**SP-094**, ⬅ SP-057 superseded) | ✅ **Verified 2026-08-11** — completed in SP-094 and closed with EP-019; record of truth [`Sprint-SP-094.md`](../Sprints/Closed/Sprint-SP-094.md) |
 | T-0234 | `[Linux]` **Shell flip** — `main.cpp` → `QApplication`+`QMainWindow` host, landing QML re-hosted via `QQuickWidget`; keep context props + `QFileDialog` picker + Quit; re-verify EP-021 loop over VNC | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
 | T-0235 | `[Linux]` **Editor shell + read-only continuous viewport** — one `QPlainTextEdit`/`QTextDocument` (read-only, undo disabled), all scene bodies via `openProject` + `scrivi_open_scene` loop, scene-boundary markers + per-scene start offsets (`sceneStartMap` seed) | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
 | T-0236 | `[Linux]` **Scene navigator** — ordered list + chapter grouping + live titles; click selects + scrolls viewport; display/select only (structure editing = EP-023) | EP-022 (SP-061) | ✅ Verified 2026-07-14 |
@@ -121,6 +114,26 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0295 | `[Linux]` **`EditorShell::onChapterDropped` + `SceneDocument::moveChapter`** — save dirty scene, bridge `reorderChapter`, contiguous chapter-block re-splice (bodies/caret/scroll preserved), navigator rebuild, **post-reslug path refresh** (reorder reslugs the chapter folder; envelope has no new path — strategy decided at SP-073 activation) | EP-023 (SP-073) | ✅ Verified → `Verified/Task-verified-0294-0297.md` |
 | T-0296 | `[Linux]` **Headless chapter-reorder smoke** — reorder among ≥3 chapters (incl. move-to-front / move-to-last), reopen, assert order + scene bodies intact + no stale paths; wired to CI | EP-023 (SP-073) | ✅ Verified → `Verified/Task-verified-0294-0297.md` |
 | T-0297 | `[Linux]` **Full EP-023 verify + Epic close prep** — AC6 create parity, AC7 full create→rename→reorder→delete→quit→reopen loop over VNC with on-disk checks, AC8 regression sweep (ctest both platforms, macOS build, EP-020–EP-022 flows), draft completion summary | EP-023 (SP-073) | ✅ Verified → `Verified/Task-verified-0294-0297.md` |
+
+### ⚠️ Removed 2026-08-16 — seven rows that went stale when their Sprint closed
+
+**T-0386, T-0387, T-0388, T-0407, T-0408** (SP-099) and **T-0409, T-0411** (SP-103) were removed from the
+table above. All seven are ✅ **Verified 2026-08-15**; their record of truth is
+[`Sprint-SP-099.md`](../Sprints/Closed/Sprint-SP-099.md) and
+[`Sprint-SP-103.md`](../Sprints/Closed/Sprint-SP-103.md), and they are indexed in
+[`Task-Documentation.md`](Task-Documentation.md).
+
+This file was showing five of them as 🟠 *Implemented - Not Verified (2026-08-13)* and two as 🔵 *Backlog* —
+i.e. **T-0409 and T-0411 appeared unstarted after they had shipped and been verified.** ⚠️ **This is the
+failure mode `Task-Documentation.md`'s own rebuild header names** (*"`Task-backlog.md` rows were found to go
+stale after their Sprint closed"*): the 2026-08-15 rebuild fixed the index but left these rows behind.
+**A Task's row must leave this file when its Sprint closes** — the Sprint archive is the record, and a
+backlog row that outlives its Sprint can only ever contradict it.
+
+Also corrected in the same pass: **T-0217** was listed 🔵 Backlog under the superseded SP-057, though it was
+completed in **SP-094** and closed with EP-019 on 2026-08-11.
+
+---
 
 ## Full Detail — Implemented Tasks Returned to Backlog
 
@@ -700,7 +713,15 @@ verification; prepare Epic for close (user approval required).
 
 ---
 
-*Last Updated: 2026-08-09 (**Tracking-doc audit — backlog realigned to the 2026-08-07 renumbering.** The
+*Last Updated: 2026-08-16 (**Consistency audit — eight stale rows removed or corrected.** Seven Tasks whose
+Sprint had closed were still listed here with pre-close status: **T-0386/T-0387/T-0388/T-0407/T-0408** (SP-099)
+as 🟠 *Implemented - Not Verified*, and **T-0409/T-0411** (SP-103) as 🔵 *Backlog* — all seven are ✅ Verified
+2026-08-15. **T-0217** was 🔵 *Backlog* under the superseded SP-057 despite being completed in SP-094 and
+closed with EP-019 on 2026-08-11. ⚠️ **This is exactly the staleness `Task-Documentation.md`'s rebuild header
+warns about**, and it is now the rule to enforce: **a Task's row leaves this file when its Sprint closes.**
+See the note above the "Full Detail" section. Prior note follows.)*
+
+*2026-08-09 (**Tracking-doc audit — backlog realigned to the 2026-08-07 renumbering.** The
 SP-093 → EP-019 renumbering and the T-0369 → SP-094 merge had been applied to `Task-active.md`,
 `Sprint-active.md` and `Epic-active.md` but never propagated here. Corrected: **T-0369** reassigned SP-093 →
 **SP-094** (table + detail heading); **T-0396** rewritten — the stale row still said "retire cursor-move as a

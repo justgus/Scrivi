@@ -11,52 +11,23 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No active sprint. SP-096 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-096.md`. EP-031's
-second sprint and the Epic's core deliverable: the relationship graph (relation types, `relationships.jsonl`
-append-log, canonical edges with duplicate rejection, compaction) — **T-0373, T-0374, T-0375, T-0376, T-0402**
-all Verified. **EP-031 AC5 met**; **AC3 met but for its faction↔faction clause** (needs world packages —
-scheduled in **SP-097** after the content swap). Planning found Doc 1 §5.2's endpoint **ID-prefix rule broken** (`newObjectID()` returns
-`character_…` for *every* kind), so **T-0402** resolved endpoint kind by object-index lookup and amended the
-design. ⚠️ **First `scrivi.h` change since EP-029** — 5 additive endpoints, all exported. Suites at close:
-ctest **455/455 macOS** + **462/462 Linux (GCC 14, zero warnings)**, interop **59 passed / 0 failed**.
-**No active sprint. SP-097 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-097.md`. ⚠️ **SP-097 ⇄
-SP-098 content swapped**: SP-097 was the **world packages** sprint (`.scrivworld`, bindings, identity-verified
-resolution, write locking, epoch chain — **T-0381–T-0385 + T-0403 + T-0404**, all Verified), because two
-integrity tasks were verified unbuildable without worlds. Integrity moves to **SP-098**, built once against
-real worlds. Sprint IDs stayed in sequence. **EP-031 AC3 + AC6 + AC8 met** (AC3's faction↔faction clause
-closed). ⚠️ **10 additive `scrivi.h` endpoints**, all exported. Suites at close: ctest **477/477 macOS** +
-**484/484 Linux (GCC 14, zero warnings)**, interop **59 passed / 0 failed** *(that interop figure was later
-found stale — the true baseline at `2af8446` is **56**; nothing was lost)*.
+**No Sprint is active.** SP-099, SP-103, SP-104 and SP-105 all closed 2026-08-15 (user-approved) →
+[`Closed/`](Closed/). Current Sprint status lives in [`Sprint-active.md`](Sprint-active.md); each closed
+Sprint's full record lives in its own archive file, and is **not** restated here.
 
-**No active sprint. SP-098 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-098.md`. Integrity:
-cascade-prune on object **and** scene **and** chapter delete + load-time repair, orphan queries,
-`objectID`-preserving promotion with the edge log **byte-identical**, ⚠️ **T-0380 pending-vs-dangling** (the
-Epic's highest-risk task — *absence is never deletion*), plus **T-0405** (⚠️ **I-0113**, world objects were
-unreachable through the C ABI) and **T-0406** (`source` kind). **T-0405 / T-0380 / T-0377 / T-0378 / T-0379 /
-T-0406 all Verified**, I-0113 Resolved-Verified. **EP-031 AC1 + AC4 + AC7 met** — 8 of 10.
-⚠️ **First breaking `scrivi.h` signature change in EP-031** (3 widened + 4 additive endpoints). Suites at
-close: ctest **510/510 macOS** + **517/517 Linux (GCC 14.2, zero warnings)**, interop **56 passed / 0 failed**.
-**33 new tests, all through `scrivi_*`** — a facade-only test cannot see a boundary gap, which is how I-0113
-shipped. **Next: SP-099** (Apple worldbuilding-object cards).
+**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **10 sprints, 8 closed** (SP-095, SP-096, SP-097,
+SP-098, SP-099, SP-103, SP-104, SP-105). Two remain, both 🔵 Planning:
 
-**SP-095 ✅ closed 2026-08-12 (Human-approved)** — `Closed/Sprint-SP-095.md`. EP-031's first
-sprint: `[ScriviCore]` object kinds + `WorldObjectFields` extensions + `objects/index.json`
-(**T-0370, T-0371, T-0372, T-0401** — all Verified). Suites at close: ScriviCore ctest **432/432 macOS** +
-**439/439 Linux (GCC 14, clean compile)**, macOS interop **59 passed / 0 failed**, app **BUILD SUCCEEDED**.
-**EP-031 AC2 fully met**; AC1 partially (the 3 gated world-scoped kinds and the `rule` relocation remain for
-**SP-097**, the world-packages sprint after the content swap). `scrivi.h` untouched; no pbxproj change. **Next: SP-096** (relationship graph — relation types,
-`relationships.jsonl`, canonical edges, compaction), awaiting planning. Three scope rulings were taken at
-SP-095 planning:
-world-scoped kinds (`artifact`/`chronicle`/`faction`) are **declared but gated** until a world package supplies
-somewhere to hold them, since Doc 3 §7 writes no migration code; **`source`/T-0365 is held out entirely**
-(later unblocked — OQ-1 closed 2026-08-12); and **T-0401** was added for index rebuild/corruption coverage.
-`rule`'s relocation and the Package Structure §11 correction are carried to **SP-097**.
+| Sprint | Scope | Order |
+| ------ | ----- | ----- |
+| **SP-102** | `[Apple]` pending presentation + warning view + `sources` card | runs next |
+| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | runs last |
 
-**EP-031** `[ScriviCore]` is 🟡 **Active** — six sprints, **SP-095–SP-100** (renumbered 2026-08-09 from
-SP-094–SP-099). SP-095–SP-098 are pure ScriviCore; only SP-099 needs EP-030's card framework.
+Epic-level status — acceptance criteria, the AC1 re-verification requirement, the Linux gap — belongs to
+EP-031 in [`../Epics/Epic-active.md`](../Epics/Epic-active.md) and is not duplicated here.
+
 **EP-019 and EP-030 both ✅ CLOSED 2026-08-11** (Human-approved, double Epic close) — sprints SP-092, SP-093,
-SP-094, SP-101 archived; suites at close **ctest 413/413 · macOS interop 56/56**. **EP-029** `[Cross]` ✅ fully
-closed 2026-08-03. **Next available Sprint: SP-102.**
+SP-094, SP-101 archived. **EP-029** `[Cross]` ✅ fully closed 2026-08-03. **Next available Sprint: SP-106.**
 
 Prior: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
 (Human-approved).** The final EP-029 sprint, which **closed the Epic**. Wired the manuscript editor's
@@ -214,11 +185,13 @@ closed, and SP-057 was superseded into SP-094.)*
 
 ## All Sprints
 
-Currently: **99 Sprints** (**99 closed** + 1 cancelled; SP-102 and SP-100 are planned but not yet
-opened) | Next available: **SP-106**
+Currently: **104 Sprint IDs issued** — **99 closed**, 2 in 🔵 Planning (SP-102, SP-100), 1 superseded
+(SP-057 → SP-094), 1 cancelled (SP-034), 1 ID skipped (SP-068) | Next available: **SP-106**
 
 > ✅ **SP-099, SP-104 and SP-105 all closed 2026-08-15 (user-approved).** Together they delivered EP-031's
-> `[Apple]` half and cleaned up after the T-0409 scope ruling — Issues **I-0114–I-0119**, `ctest`
+> `[Apple]` half and cleaned up after the T-0409 scope ruling — Issues **I-0114–I-0119** carried, of which
+> **I-0118 and I-0119 are ✅ Verified; I-0114–I-0117 remain 🟠 Resolved - Not Verified** and are listed in
+> [`../Issues/Issue-active.md`](../Issues/Issue-active.md). `ctest`
 > **516/516**, macOS interop **86/86**. **SP-103 also closed** the same day — T-0410 was removed as OBE
 > (user-ruled: a worldless project operates silently; the prompt answered a problem that never occurred).
 > ⚠️ **EP-031 AC1 must be re-verified** against the new scope model — SP-100 owns that.
@@ -229,7 +202,8 @@ opened) | Next available: **SP-106**
 > list in this Epic. (SP-103 closed 2026-08-15: its 11 test realignments were finished in SP-104, and
 > T-0410 was removed as OBE.)
 
-> ⚠️ **SP-102 opened 2026-08-13 at SP-099 planning** (R2 — the SP-099 split; EP-031 is now a 7-sprint Epic).
+> ⚠️ **SP-102 opened 2026-08-13 at SP-099 planning** (R2 — the SP-099 split; EP-031 became a 7-sprint Epic
+> *at that date* — superseded: SP-103/104/105 have since been added, making it a **10-sprint** Epic).
 > It takes the number after SP-101 because SP-101 was already used by the unplanned EP-030 AC12 sprint, so
 > **SP-102 runs before SP-100 despite the higher number.** SP-100 keeps its number as the Epic close sprint.
 
@@ -297,7 +271,7 @@ opened) | Next available: **SP-106**
 | SP-054 | Undo/Redo — persistence, sessions, capacity, settings | EP-019 | 2026-07-07 | 2026-07-09 | ✅ Closed |
 | SP-055 | Undo/Redo — branching: tree ops, fork popover, purge | EP-019 | 2026-07-10 | 2026-07-13 | ✅ Closed |
 | SP-056 | Copy buffers — store, ABI, palette/menu UX, ⌘/⌃/⌥1–9 chords, history integration (**AC6**) | EP-019 `[Apple]` | 2026-07-24 | 2026-07-27 | ✅ Closed |
-| SP-057 | Undo/Redo — **verification sprint**: AC2/AC7/AC8 live verify + perf fixtures + Epic close | EP-019 `[Apple]` | — | — | 🔵 Planning (**EP-019 held pending**; rescoped 2026-08-05) |
+| SP-057 | Undo/Redo — verification sprint: AC2/AC7/AC8 live verify + perf fixtures + Epic close | EP-019 `[Apple]` | — | — | ⚪ **Superseded into SP-094** (2026-08-11) — record in [`Sprint-SP-094.md`](Closed/Sprint-SP-094.md) |
 | SP-058 | `[Linux]` Docker/VNC harness + Qt6 skeleton + hello-ScriviCore slice + CI | EP-020 `[Linux]` | 2026-07-13 | 2026-07-13 | ✅ Closed |
 | SP-059 | `[Linux]` Project Lifecycle — appSupportRoot + recents + landing + create-project | EP-021 `[Linux]` | 2026-07-13 | 2026-07-14 | ✅ Closed |
 | SP-060 | `[Linux]` Project Lifecycle — Open + Close + full-loop Verify (EP-021 close half) | EP-021 `[Linux]` | 2026-07-14 | 2026-07-14 | ✅ Closed |
@@ -339,20 +313,40 @@ opened) | Next available: **SP-106**
 | SP-096 | `[ScriviCore]` Relationship graph — canonical edges, append-log, compaction | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 | SP-097 | `[ScriviCore]` World packages — bindings, resolution, locking, epoch chain | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
 | SP-098 | `[ScriviCore]` Graph integrity — cascade-prune, orphans, promotion, ⚠️ pending-vs-dangling | EP-031 `[ScriviCore]` | 2026-08-12 | 2026-08-12 | ✅ Closed |
+| SP-099 | `[Apple]` Engine wrappers, object cards, picker, in-place create/edit, Worlds menu | EP-031 `[ScriviCore]` | 2026-08-13 | 2026-08-15 | ✅ Closed |
+| SP-103 | ⚠️ `[Cross]` All worldbuilding kinds → world scope (breaking; no migration) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
+| SP-104 | ⚠️ `[Cross]` Post-ruling fallout — world reachability + the restated-kind class (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
+| SP-105 | `[Cross]` World search indexing (I-0118) (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprints:** 83 (SP-001–SP-085 issued; SP-068 skipped; SP-083 was brought forward ahead of SP-082)
-- **Closed:** 83 ✅ (incl. SP-085, closed 2026-07-27 — EP-029 design doc approved; SP-056 — EP-019 AC6)
-- **Active:** 0 🟡
-- **Planned:** 0 🔵 (SP-086 EP-029 `[Cross]` — extract-fragment; next to activate, not yet ticketed as a row)
-- **Planning:** 1 🔵 (SP-057 EP-019 `[Apple]` — history panel + verify + Epic close; **EP-019 held pending**)
+- **Total Sprint IDs issued:** 104 (SP-001–SP-105; **SP-068 skipped** — EP-027 claimed SP-069–SP-072 and its
+  scope shipped as SP-073; **SP-083 was brought forward** ahead of SP-082)
+- **Closed:** 99 ✅ (all have an archive in [`Closed/`](Closed/); most recent: SP-099, SP-103, SP-104, SP-105,
+  all closed 2026-08-15 user-approved)
+- **Active:** 0 🟡 — **no Sprint is active.**
+- **Planning:** 2 🔵 (**SP-102** `[Apple]` pending presentation + warning view + `sources` card — runs next;
+  **SP-100** EP-031 verification & Epic close — runs last, keeps its number)
+- **Superseded:** 1 ⚪ (SP-057 → SP-094)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
+- **Next available:** **SP-106**
 
 ---
 
-*Last Updated: 2026-07-27 (**SP-085 ✅ closed (Human-approved) — EP-029 design doc approved.** The EP-029
+*Last Updated: 2026-08-16 (**consistency audit — the All-Sprints table was missing the four Sprints that
+closed 2026-08-15.** SP-099, SP-103, SP-104 and SP-105 had archives in `Closed/` but no table row; the table
+ran SP-098 → SP-100 → SP-101 → SP-102. ⚠️ **This is the same defect the 2026-08-12 repair note records
+(SP-086–SP-094 and SP-101 closed without ever being listed) recurring at the very next close** — adding the
+row is evidently not happening as part of closing a Sprint. Also corrected: the Statistics block still read
+"Total Sprints: 83 / Closed: 83" from 2026-07-27 and listed SP-057 as the only Planning sprint; **SP-057's
+table row still showed 🔵 Planning under an Epic that closed 2026-08-11** and is now marked ⚪ Superseded into
+SP-094; the "Currently: 99 Sprints" line conflated IDs issued with sprints closed; and the **I-0114–I-0119
+verified** claim was wrong — **I-0118/I-0119 are Verified, I-0114–I-0117 are still `Resolved - Not Verified`**
+per `../Issues/Issue-active.md`. The Active-Sprints section carried five stale close-notes for archived
+Sprints and stated EP-031 was a six-sprint Epic; it now carries current status only. Prior note follows.)*
+
+*2026-07-27 (**SP-085 ✅ closed (Human-approved) — EP-029 design doc approved.** The EP-029
 `[Cross]` design sprint delivered + approved `Scrivi_Structured_CutCopyPaste_Design_v0_1.md`: the
 `scrivi.fragment.v1` ordered-pieces schema, extract / paste-splice / cut-merge behaviour (composing EP-027
 create/split + EP-028 merge), buffer-schema evolution, and a one-reversible-event history shape. Trades ruled

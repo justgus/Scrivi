@@ -13,10 +13,17 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 ## Active Epics
 
 Currently: **1 Active Epic + 1 Draft.** **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) 🟡 **Active 2026-08-12** — six sprints SP-095–SP-100, unblocked now that EP-030 has closed. **SP-095**
-(object kinds + fields + object index; T-0370/T-0371/T-0372/T-0401) is planned and scope-fixed, awaiting
-activation. AC1 was **amended at planning** (user-ruled): `source` dropped from it, and world-scoped kinds are
-declared-but-gated until SP-098, so AC1 is assessable only then.
+Graph) 🟡 **Active since 2026-08-12** — now a **10-sprint** Epic, **8 closed** (SP-095, SP-096, SP-097, SP-098,
+SP-099, SP-103, SP-104, SP-105). **No Sprint is currently active.** Two remain, both 🔵 Planning: **SP-102**
+(`[Apple]` pending presentation + warning view + `sources` card) runs next, and **SP-100** (verification &
+Epic close) runs last.
+
+⚠️ **AC1 must be RE-VERIFIED — the Epic's one outstanding acceptance criterion.** It was unticked
+2026-08-14 when the user's scope ruling (T-0409) moved all ten worldbuilding kinds into the world package;
+AC1 had been ticked against the pre-ruling scope table, so its evidence no longer describes the shipped
+model. **SP-100 owns the re-verification.** AC9 and AC10 are also outstanding.
+
+Full detail — acceptance criteria, sprint table, task assignments — in [Epic-active.md](Epic-active.md).
 
 **EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers) ✅ **CLOSED 2026-08-11** — AC1–AC8 all
 Verified across 7 sprints. AC2 amended (auto-save retired as a commit trigger; 45 s idle boundary added) and
@@ -34,10 +41,14 @@ See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **1 Backlog Epic** —
-- EP-026 `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft; **next in line after EP-019** — the last of the planned `[Linux]` family. (EP-023 ✅ closed 2026-07-19; EP-024 ✅ closed 2026-07-22; **EP-025 Timeline Panel ✅ closed 2026-07-24**.)
-
-_(EP-019 `[Apple]` Undo/Redo was **un-deferred back to Active 2026-07-24** — now in `Epic-active.md`, resuming at SP-056.)_
+Currently: **3 Backlog Epics** —
+- **EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft — the last of the planned
+  `[Linux]` family. (EP-023 ✅ closed 2026-07-19; EP-024 ✅ closed 2026-07-22; EP-025 Timeline Panel ✅ closed
+  2026-07-24.)
+- **EP-032** `[Cross]` (Inline Object References in the Manuscript — footnotes / pull quotes), 🔵 Proposed,
+  opened 2026-08-12 from an EP-031 design ruling. Depends on EP-031 + EP-029.
+- **EP-033** `[Cross]` (World Lifecycle Management — in-app view vs. dedicated application), 🔵 Proposed,
+  opened 2026-08-14 from the I-0118 Q1 ruling. Its first deliverable is the product fork itself.
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
@@ -85,10 +96,11 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 
 ## Statistics
 
-- **Total Epics:** 32
-- **Closed:** 28 ✅ (EP-019 + EP-030 both closed 2026-08-11)
+- **Total Epics:** 33 (EP-001–EP-033)
+- **Closed:** 29 ✅ (each has an archive in [`Closed/`](Closed/); most recent: EP-019 + EP-030, both 2026-08-11)
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model, SP-095–SP-100; SP-095 closed 2026-08-12)
+- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model; 8 of 10 sprints closed, **no Sprint
+  currently active**; SP-102 then SP-100 remain)
 - **Planned:** 0 🔵
 - **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0
@@ -97,7 +109,17 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 
 ---
 
-*Last Updated: 2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-019 held pending SP-057; EP-029 opened.**
+*Last Updated: 2026-08-16 (**Consistency audit — this index was three weeks stale and contradicted its own
+table.** Corrected: the Active-Epics section still described EP-031 as "six sprints SP-095–SP-100" with
+**SP-095 "awaiting activation"** — SP-095 closed 2026-08-12 and the Epic is now a **10-sprint** Epic with 8
+closed and none active; **"Total Epics: 32" vs "Currently: 33 Epics"** in the same file (33 is correct — the
+table has 33 rows); **"Closed: 28"** (29 is correct, matching 29 archives in `Closed/`); and **"1 Backlog
+Epic"** (3 — EP-026, EP-032, EP-033). The stale EP-019 "resuming at SP-056" note was dropped — EP-019 closed
+2026-08-11. ⚠️ **Every one of these was a count or status that drifted while the table beneath it stayed
+correct**, which is the argument for deriving these lines from the table rather than restating them.
+Prior note follows.)*
+
+*2026-07-27 (**SP-056 ✅ closed — EP-019 AC6 Verified; EP-019 held pending SP-057; EP-029 opened.**
 EP-019 SP-056 delivered multiple copy buffers (T-0213 + T-0214, both Verified live): explicit ⌘1–9/⌃1–9/⌥1–9
 copy/paste/cut chords, app-global per-project palette, Edit/Scene/Chapter menu items, bufferID-tagged cut event
 (backend schema extended); ctest 327 + interop 43 green. EP-019 is now **held pending** its final sprint SP-057

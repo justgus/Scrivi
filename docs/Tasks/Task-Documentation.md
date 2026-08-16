@@ -24,21 +24,21 @@ The complete register of every Task ID in the project.
 ## Statistics
 
 - **Total Task IDs:** **411** — T-0001 … T-0412 (T-0278 never assigned; T-0412 unassigned)
-- **✅ Verified:** 368
-- **🔵 Backlog:** 25
+- **✅ Verified:** 369
+- **🔵 Backlog:** 24
 - **🟠 Implemented - Not Verified:** 9
 - **⚪ Superseded:** 3
 - **⚪ Closed:** 2
 - **⛔️ Removed as OBE:** 2
 - **⚪ Never assigned:** 1
 - **⚪ Unassigned:** 1
-- **⚠️ Verified but UNFILED:** **179** — see the section below
+- **⚠️ Verified but UNFILED:** **180** — see the section below
 
 ---
 
 ## ⚠️ Verified but unfiled
 
-These **179** Tasks were completed and verified inside a Sprint that has since closed, but no
+These **180** Tasks were completed and verified inside a Sprint that has since closed, but no
 `Verified/Task-verified-XXXX.md` archive file was ever written for them. **Their record of truth is the
 Sprint archive named in each row** — this is unfiled work, not missing work.
 
@@ -82,6 +82,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0199 | SP-051 | EP-019 | [`Sprint-SP-051.md`](../Sprints/Closed/Sprint-SP-051.md) |
 | T-0213 | SP-056 | EP-019 | [`Sprint-SP-056.md`](../Sprints/Closed/Sprint-SP-056.md) |
 | T-0214 | SP-056 | EP-019 | [`Sprint-SP-056.md`](../Sprints/Closed/Sprint-SP-056.md) |
+| T-0217 | SP-094 | EP-019 | [`Sprint-SP-094.md`](../Sprints/Closed/Sprint-SP-094.md) |
 | T-0234 | SP-061 | EP-021 | [`Sprint-SP-061.md`](../Sprints/Closed/Sprint-SP-061.md) |
 | T-0235 | SP-061 | EP-022 | [`Sprint-SP-061.md`](../Sprints/Closed/Sprint-SP-061.md) |
 | T-0236 | SP-061 | EP-023 | [`Sprint-SP-061.md`](../Sprints/Closed/Sprint-SP-061.md) |
@@ -448,7 +449,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0214 | Buffer UX (HUD/palette/menus) + paste/cut history integration | SP-056 | EP-019 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-056.md` |
 | T-0215 | History panel (management surface) | SP-057 | EP-019 | ⚪ Superseded | — |
 | T-0216 | Perf/integration fixtures + gitignore migration | SP-057 | EP-019 | ⛔️ Removed as OBE | — |
-| T-0217 | Doc updates + EP-019 acceptance-criteria verification | SP-057 | EP-019 | 🔵 Backlog | — |
+| T-0217 | Doc updates + EP-019 acceptance-criteria verification | **SP-094** (⬅ SP-057 superseded) | EP-019 | ✅ Verified 2026-08-11 | ⚠️ *unfiled* — see [`Sprint-SP-094.md`](../Sprints/Closed/Sprint-SP-094.md) |
 | T-0218 | Qt6/QML CMake skeleton | SP-058 | EP-020 | ✅ Verified | [`Task-verified-0218-0222.md`](Verified/Task-verified-0218-0222.md) |
 | T-0219 | `ScriviBridge` | SP-058 | EP-020 | ✅ Verified | [`Task-verified-0218-0222.md`](Verified/Task-verified-0218-0222.md) |
 | T-0220 | Hello-ScriviCore slice | SP-058 | EP-020 | ✅ Verified | [`Task-verified-0218-0222.md`](Verified/Task-verified-0218-0222.md) |
@@ -647,5 +648,12 @@ archive files reconstructed after the fact from secondary sources.
 
 ---
 
-*Last Updated: 2026-08-15 (docs cleanup — index rebuilt from `Verified/`, `Closed/`, `Task-backlog.md` and
+*Last Updated: 2026-08-16 (consistency audit — **T-0217 corrected from 🔵 Backlog / SP-057 to ✅ Verified
+2026-08-11 / SP-094.** It was completed in SP-094 and closed with EP-019; the row had inherited SP-057, the
+sprint that was superseded into SP-094. ⚠️ **The 2026-08-15 rebuild took this row's status from
+`Task-backlog.md`, which was itself stale** — the one source the rebuild header warns against, used anyway
+where no closed-Sprint record was consulted. Counts follow: Verified 368 → **369**, Backlog 25 → **24**,
+verified-but-unfiled 179 → **180**. Prior note follows.)*
+
+*2026-08-15 (docs cleanup — index rebuilt from `Verified/`, `Closed/`, `Task-backlog.md` and
 every Sprint record; 239 → 411 Task IDs, with 179 verified-but-unfiled Tasks flagged.)*

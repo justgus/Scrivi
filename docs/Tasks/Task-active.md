@@ -51,9 +51,14 @@ both closed 2026-08-11 (Human-approved). T-0399 is ✅ Verified; SP-092's T-0368
 T-0399.
 
 **Carried forward, not lost:** T-0365 (`sources` card) remains 🔵 Backlog, unblocked 2026-08-12, and is
-scoped into SP-102. T-0217 (document the save-time commit + idle boundary in EP-019 AC2 and design §4.a)
-is still owed before EP-019 closes — tracked in [`Task-backlog.md`](Task-backlog.md) and under EP-019 in
-[`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+scoped into SP-102.
+
+⚠️ **Correction (2026-08-16):** this section previously said T-0217 "is still owed **before EP-019 closes**."
+That was impossible on its face — **EP-019 closed 2026-08-11**, five days before. T-0217 was in fact
+**completed in SP-094 and Verified 2026-08-11** (design §4.a/§4.a.1/§4.d/§12.2/§12.8/§14/§15,
+package-structure §16a, repair-matrix §6.21); its record of truth is
+[`Sprint-SP-094.md`](../Sprints/Closed/Sprint-SP-094.md). Nothing is owed. `Task-backlog.md` carried it as
+🔵 Backlog under the superseded SP-057 and has been corrected to match.
 
 ---
 
