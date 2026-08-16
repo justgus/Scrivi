@@ -172,7 +172,11 @@ std::vector<std::string> rebalancedKeys(std::size_t n) {
     if (n <= static_cast<std::size_t>(slots)) {
         int cur = lo;
         for (std::size_t i = 0; i < n; ++i) {
-            const int want = (n == 0)
+            // n == 1 is the divide-by-zero guard, NOT n == 0: the divisor is (n - 1), and
+            // n == 0 already returned above. A lone key takes the midpoint so there is room
+            // on both sides (I-0121). Integer division by zero is UB that traps on x86-64
+            // (SIGFPE) but silently yields 0 on arm64 — green on Apple, red on Linux CI.
+            const int want = (n == 1)
                 ? (lo + hi) / 2
                 : lo + static_cast<int>((static_cast<long long>(hi - lo)
                                          * static_cast<long long>(i))

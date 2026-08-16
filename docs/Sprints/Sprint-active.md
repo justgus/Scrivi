@@ -3,9 +3,15 @@
 **None.** SP-099, SP-103, SP-104 and SP-105 all closed 2026-08-15 (user-approved) →
 [`Closed/`](Closed/).
 
-The next Sprint is **SP-102** (`[Apple]` pending presentation + warning view + `sources` card), still
-🔵 Planning; **SP-100** (verification & Epic close) runs last. Both are scoped in
+The next Sprint is **SP-106** (⚠️ `[Cross]` **test integrity & CI trust** — I-0121, the sanitizer CI leg,
+macOS platform coverage), opened 🔵 Planning 2026-08-16. Then **SP-102** (`[Apple]` pending presentation +
+warning view + `sources` card), and **SP-100** (verification & Epic close) last. All three are scoped in
 [`Sprint-backlog.md`](Sprint-backlog.md).
+
+⚠️ **SP-106 runs first deliberately.** ScriviCore CI has been red since 2026-07-30 on a divide-by-zero that
+only traps on x86-64 (I-0121), so **six sprints closed on arm64-only evidence** — and SP-100's whole remit is
+Epic verification. The code fix is already applied; the sprint's substance is making the *class* of defect
+fail deterministically and closing the macOS platform-coverage gap.
 
 ---
 

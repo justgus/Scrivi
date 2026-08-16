@@ -13,10 +13,10 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 ## Active Epics
 
 Currently: **1 Active Epic + 1 Draft.** **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) 🟡 **Active since 2026-08-12** — now a **10-sprint** Epic, **8 closed** (SP-095, SP-096, SP-097, SP-098,
-SP-099, SP-103, SP-104, SP-105). **No Sprint is currently active.** Two remain, both 🔵 Planning: **SP-102**
-(`[Apple]` pending presentation + warning view + `sources` card) runs next, and **SP-100** (verification &
-Epic close) runs last.
+Graph) 🟡 **Active since 2026-08-12** — now an **11-sprint** Epic, **8 closed** (SP-095, SP-096, SP-097,
+SP-098, SP-099, SP-103, SP-104, SP-105). **No Sprint is currently active.** Three remain, all 🔵 Planning:
+**SP-106** (⚠️ `[Cross]` test integrity & CI trust) runs **first**, then **SP-102** (`[Apple]` pending
+presentation + warning view + `sources` card), then **SP-100** (verification & Epic close) last.
 
 ⚠️ **AC1 must be RE-VERIFIED — the Epic's one outstanding acceptance criterion.** It was unticked
 2026-08-14 when the user's scope ruling (T-0409) moved all ten worldbuilding kinds into the world package;
@@ -99,8 +99,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 - **Total Epics:** 33 (EP-001–EP-033)
 - **Closed:** 29 ✅ (each has an archive in [`Closed/`](Closed/); most recent: EP-019 + EP-030, both 2026-08-11)
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model; 8 of 10 sprints closed, **no Sprint
-  currently active**; SP-102 then SP-100 remain)
+- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model; 8 of 11 sprints closed, **no Sprint
+  currently active**; SP-106 → SP-102 → SP-100 remain, all 🔵 Planning)
 - **Planned:** 0 🔵
 - **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0

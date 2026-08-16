@@ -23,9 +23,9 @@ The complete register of every Task ID in the project.
 
 ## Statistics
 
-- **Total Task IDs:** **411** — T-0001 … T-0412 (T-0278 never assigned; T-0412 unassigned)
+- **Total Task IDs:** **414** — T-0001 … T-0415 (T-0278 never assigned; T-0415 unassigned)
 - **✅ Verified:** 369
-- **🔵 Backlog:** 24
+- **🔵 Backlog:** 27 (**+3 on 2026-08-16** — T-0412/T-0413/T-0414, SP-106)
 - **🟠 Implemented - Not Verified:** 9
 - **⚪ Superseded:** 3
 - **⚪ Closed:** 2
@@ -644,7 +644,10 @@ archive files reconstructed after the fact from secondary sources.
 | T-0409 | ⚠️ **`objectKindIsWorldScoped` → all ten kinds world-scoped** (`source` excluded); update `ObjectStore` scope sites + C ABI kind table | SP-103 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-103.md` |
 | T-0410 | Worldless-project world-creation prompt | SP-103 | EP-031 | ⛔️ Removed as OBE | — |
 | T-0411 | Core + interop test realignment to world scope; **re-verify EP-031 AC1** under the new table | SP-103 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-103.md` |
-| T-0412 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
+| T-0412 | **Confirm the I-0121 fix on x86-64** — ScriviCore CI green on both matrix legs (first time since 2026-07-30) | SP-106 | EP-031 | 🔵 Backlog | — |
+| T-0413 | ⚠️ **Sanitizer CI leg** — `-fsanitize=undefined` + `-fno-sanitize-recover=all`; may change the test configuration | SP-106 | EP-031 | 🔵 Backlog | — |
+| T-0414 | **macOS platform coverage** — Apple has zero platform-specific tests vs Linux's 7; start with `platformDefault` | SP-106 | EP-031 | 🔵 Backlog | — |
+| T-0415 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
 
 ---
 

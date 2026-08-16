@@ -38,10 +38,30 @@ See: [`Issue-active.md`](Issue-active.md)
 
 ---
 
+## Backlog Issues (open, no Sprint)
+
+Currently: **3.**
+
+| ID | Title | Severity | Status | Epic |
+| -- | ----- | -------- | ------ | ---- |
+| I-0121 | ⚠️ `[ScriviCore]` `rebalancedKeys(1)` divides by zero — **ScriviCore CI red on every commit since 2026-07-30** | High | 🟠 Resolved (code fix) - Not Verified | EP-031 (assigned; scope at next sprint planning) |
+| I-0018 | Scene Navigator shows no selection on app load | Low | 🔴 Open | — |
+| I-0017 | Window maximized state not restored on relaunch | Low | 🔴 Open | — |
+
+⚠️ **I-0058 and I-0112 were archived out of this backlog on 2026-08-16** (to batches 6 and 12). Both had been
+Verified — 2026-07-09 and 2026-08-11 — and left in the backlog for weeks. **A Verified Issue must be archived
+in the same step it is verified**, from *whichever* file it lives in; the 2026-08-15 cleanup applied that to
+`Issue-active.md` only.
+
+See: [`Issue-backlog.md`](Issue-backlog.md)
+
+---
+
 ## Verified Issues
 
-Currently: **93 verified Issues**, archived in decade batches. Counts below are the entries **physically in
-each file**, and they sum to 93.
+Currently: **95 verified Issues**, archived in decade batches. Counts below are the entries **physically in
+each file**, and they sum to 95. (**+2 on 2026-08-16** — I-0058 → batch 6 and I-0112 → batch 12, both archived
+late out of `Issue-backlog.md`.)
 
 ⚠️ **Batches 2 and 3 are misfiled and the counts say so.** `Issue-verified-0011-0020.md` physically contains
 **I-0021 – I-0024**, which belong in batch 3; batch 3 carries a pointer stub for them rather than the entries.
@@ -57,13 +77,13 @@ entries. Left in place rather than re-cut: moving verified archive entries risks
 | 3 | I-0021 – I-0030 | [`Issue-verified-0021-0030.md`](Verified/Issue-verified-0021-0030.md) | 6 ⚠️ |
 | 4 | I-0031 – I-0040 | [`Issue-verified-0031-0040.md`](Verified/Issue-verified-0031-0040.md) | 10 |
 | 5 | I-0041 – I-0050 | [`Issue-verified-0041-0050.md`](Verified/Issue-verified-0041-0050.md) | 9 |
-| 6 | I-0051 – I-0060 | [`Issue-verified-0051-0060.md`](Verified/Issue-verified-0051-0060.md) | 7 |
+| 6 | I-0051 – I-0060 | [`Issue-verified-0051-0060.md`](Verified/Issue-verified-0051-0060.md) | 8 |
 | 7 | I-0061 – I-0070 | [`Issue-verified-0061-0070.md`](Verified/Issue-verified-0061-0070.md) | 10 |
 | 8 | I-0071 – I-0080 | [`Issue-verified-0071-0080.md`](Verified/Issue-verified-0071-0080.md) | 6 |
 | 9 | I-0081 – I-0090 | [`Issue-verified-0081-0090.md`](Verified/Issue-verified-0081-0090.md) | 8 |
 | 10 | I-0091 – I-0100 | [`Issue-verified-0091-0100.md`](Verified/Issue-verified-0091-0100.md) | 8 |
 | 11 | I-0101 – I-0110 | [`Issue-verified-0101-0110.md`](Verified/Issue-verified-0101-0110.md) | 6 |
-| 12 | I-0111 – I-0120 | [`Issue-verified-0111-0120.md`](Verified/Issue-verified-0111-0120.md) | 3 |
+| 12 | I-0111 – I-0120 | [`Issue-verified-0111-0120.md`](Verified/Issue-verified-0111-0120.md) | 4 |
 
 ---
 
@@ -76,7 +96,11 @@ entries. Left in place rather than re-cut: moving verified archive entries risks
 
 ---
 
-*Last Updated: 2026-08-16 (consistency audit — verified total corrected **94 → 93**: batch 3's pointer stub
+*Last Updated: 2026-08-16 (**I-0121 opened** — `rebalancedKeys(1)` divides by zero, the cause of ScriviCore
+CI failing on every commit since 2026-07-30; assigned to EP-031, to be scoped at the next sprint's planning.
+A **Backlog Issues** section was added to this index, which previously listed only active and archived
+Issues — the backlog was unrepresented, and ⚠️ **two Issues filed there (I-0058, I-0112) are Verified but
+never archived.** Earlier the same day: consistency audit — verified total corrected **94 → 93**: batch 3's pointer stub
 for I-0021–I-0024 was being counted alongside batch 2's real entries for the same four Issues. Per-batch
 counts are now the entries physically present in each file, with the batch 2/3 misfiling flagged in place.
 The active list is unchanged at **10 `Resolved - Not Verified`**, and that figure was confirmed against

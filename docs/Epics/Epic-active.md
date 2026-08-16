@@ -3,12 +3,13 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **8 of 10 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
+**Status:** 🟡 **Active** — **8 of 11 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
 SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC4 + AC7**) closed 2026-08-12; SP-099 ✅
 (**AC16/17/21/22 + AC18/19/20; AC10 struck**), SP-103 ✅ (the scope ruling), SP-104 ✅ (post-ruling
 fallout, I-0114–I-0117) and SP-105 ✅ (world search indexing, I-0118) all closed 2026-08-15, each with
-user approval. **Remaining: SP-102** (pending presentation + warning view + `sources` card) and
-**SP-100** (verification & Epic close, **runs last**), both 🔵 Planning.
+user approval. **Remaining: SP-106** (⚠️ `[Cross]` test integrity & CI trust — **runs first**, opened
+2026-08-16), **SP-102** (pending presentation + warning view + `sources` card) and **SP-100** (verification &
+Epic close, **runs last**) — all three 🔵 Planning. **8 of 11 sprints closed.**
 
 ⚠️ **AC1 must be RE-VERIFIED — it is the Epic's one outstanding acceptance criterion.** It was UNTICKED
 2026-08-14 when the object scope model changed under it (Doc 1 §3.0), and although SP-103 delivered that
@@ -39,14 +40,20 @@ donates to no search index at all.
 I-0118 Q1 ruling. Nothing in Scrivi can delete a world or its search entries, and a world with no project
 bound is unreachable — Scrivi opens *projects*. Its first deliverable is the product fork: **a view inside
 Scrivi, or a dedicated world-management application.**
-⚠️ **EP-031 is now a 10-sprint Epic** (SP-095–SP-100 as planned, plus SP-102, SP-103, SP-104, SP-105).
-It grew three times, each time from use rather than from planning: SP-099 was **split** at planning (an entire
-unwrapped engine layer was hidden inside the staged tasks), then **grew T-0388 + T-0408 at R4** when live
-verification found the sprint had shipped a surface with no way to create data or see world context;
+⚠️ **EP-031 is now an 11-sprint Epic** (SP-095–SP-100 as planned, plus SP-102, SP-103, SP-104, SP-105,
+SP-106). It grew four times, each time from use rather than from planning: SP-099 was **split** at planning
+(an entire unwrapped engine layer was hidden inside the staged tasks), then **grew T-0388 + T-0408 at R4**
+when live verification found the sprint had shipped a surface with no way to create data or see world context;
 **SP-103** was opened when the writer's follow-up question exposed that *no path existed for cross-project
-character reuse at all*; and **SP-104 + SP-105** were both unplanned, opened from the fallout of SP-103's
-ruling. ⚠️ **Earlier notes in this file calling EP-031 a "6-", "7-" or "8-sprint Epic" are superseded** —
-they were written before those sprints existed and are retained only as history.
+character reuse at all*; **SP-104 + SP-105** were both unplanned, opened from the fallout of SP-103's ruling;
+and **SP-106** was opened 2026-08-16 when the user asked why GitHub had been reporting a CI error — a defect
+that had been red since 2026-07-30 and invisible to every local run. ⚠️ **Earlier notes in this file calling
+EP-031 a "6-", "7-", "8-" or "10-sprint Epic" are superseded** — they were written before those sprints
+existed and are retained only as history.
+
+⚠️ **Four of the eleven sprints were unplanned, and every one came from USE.** SP-104, SP-105 and SP-106 were
+not foreseen at any planning session; SP-099 doubled at R4. That is the Epic's most durable lesson, and it
+applies directly to SP-100's evidence standard.
 
 > ⚠️ **The scope ruling (2026-08-14) is the Epic's second model change, and it is breaking.** All ten
 > worldbuilding kinds move into the `.scrivworld` package; **`source` alone stays project-scoped**. A project
@@ -211,8 +218,9 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-103 | ⚠️ **`[Cross]` All worldbuilding kinds → world scope** (breaking; no migration) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-103.md` | T-0409 + T-0411; **T-0410 removed OBE** |
 | SP-104 | ⚠️ **`[Cross]` Post-ruling fallout: world reachability + the restated-kind class** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-104.md` | I-0114–I-0117 |
 | SP-105 | **`[Cross]` World search indexing** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-105.md` | I-0118 |
+| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | 🔵 **Planning — runs FIRST** | opened 2026-08-16 |
 | SP-102 | **`[Apple]` Pending presentation + warning view + `sources` card** | 🔵 Planning | — |
-| SP-100 | Verification & Epic close | 🔵 Planning | — |
+| SP-100 | Verification & Epic close | 🔵 Planning (**runs last**) | — |
 
 > ⚠️ **SP-099 SPLIT at planning, 2026-08-13 (R2, user-approved) — EP-031 became a 7-sprint Epic *at that
 > date*** (superseded: it is a **10-sprint** Epic as of 2026-08-15 — see the note above). The staged
@@ -284,6 +292,20 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0365 | Aggregate `sources` card (final third; kind + relation type already ✅) | **SP-102** | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | 🔵 Backlog |
 | T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-100 | 🔵 Backlog |
+
+### Assigned Issues
+
+| ID | Title | Severity | Sprint | Status |
+| -- | ----- | -------- | ------ | ------ |
+| I-0121 | ⚠️ `[ScriviCore]` **`rebalancedKeys(1)` divides by zero — ScriviCore CI has been red on every commit since 2026-07-30 (1c42838).** The `n == 0` ternary guard is unreachable while the divisor is `n - 1`; UB that **traps on x86-64 and is silent on arm64**, so local `ctest` is green (516/516) and `ubuntu-latest` crashes. Carries the CI **`-fsanitize=undefined`** work, which may change the test configuration. | High | **SP-106** | 🟠 **Resolved (code fix) - Not Verified (2026-08-16)** — guard applied, proven RED-then-GREEN under UBSan locally (516/516); ⚠️ **x86-64 confirmation + the sanitizer leg + macOS coverage remain** (T-0412/T-0413/T-0414) |
+
+> ⚠️ **I-0121 undermines the evidence behind several EP-031 sprint closes.** SP-093, SP-095, SP-096, SP-097,
+> SP-098 and SP-099 all pushed with ScriviCore CI failing; their "ctest N/N green" figures are **local arm64
+> results**, and the suite gated nothing on x86-64 for that window. This does not invalidate the work — the CI
+> log shows **522/523 passing**, a single crashing test, not a rotten suite — but it means *"all tests pass"*
+> has meant *"all tests pass on one architecture"* since 2026-07-30. **Worth weighing at SP-100**, whose job is
+> Epic verification. It compounds the standing observation that every defect that mattered in
+> SP-099/SP-103/SP-104/SP-105 was found by USE, not by the suites.
 
 > ✅ **Highest-risk task: T-0380 — done and Verified (SP-098, 2026-08-12).** The pending-vs-dangling
 > distinction was the one failure in this Epic that is *silent and unrecoverable* — a loader that reads "world

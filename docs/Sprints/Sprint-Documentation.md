@@ -15,11 +15,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 [`Closed/`](Closed/). Current Sprint status lives in [`Sprint-active.md`](Sprint-active.md); each closed
 Sprint's full record lives in its own archive file, and is **not** restated here.
 
-**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **10 sprints, 8 closed** (SP-095, SP-096, SP-097,
-SP-098, SP-099, SP-103, SP-104, SP-105). Two remain, both 🔵 Planning:
+**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 8 closed** (SP-095, SP-096, SP-097,
+SP-098, SP-099, SP-103, SP-104, SP-105). Three remain, all 🔵 Planning:
 
 | Sprint | Scope | Order |
 | ------ | ----- | ----- |
+| **SP-106** | ⚠️ `[Cross]` test integrity & CI trust — I-0121, sanitizer CI leg, macOS platform coverage | **runs first** |
 | **SP-102** | `[Apple]` pending presentation + warning view + `sources` card | runs next |
 | **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | runs last |
 
@@ -180,13 +181,19 @@ closed, and SP-057 was superseded into SP-094.)*
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
+| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121, sanitizer CI leg, macOS platform coverage | EP-031 | 🔵 Planning (**runs FIRST**) |
 | SP-102 | `[Apple]` Pending presentation + warning view + `sources` card | EP-031 | 🔵 Planning |
 | SP-100 | EP-031 verification & Epic close (**runs last**) | EP-031 | 🔵 Planning |
 
 ## All Sprints
 
 Currently: **104 Sprint IDs issued** — **99 closed**, 2 in 🔵 Planning (SP-102, SP-100), 1 superseded
-(SP-057 → SP-094), 1 cancelled (SP-034), 1 ID skipped (SP-068) | Next available: **SP-106**
+(SP-057 → SP-094), 1 cancelled (SP-034), 1 ID skipped (SP-068) | Next available: **SP-107**
+
+**SP-106 opened 🔵 Planning 2026-08-16** (`[Cross]` test integrity & CI trust — I-0121, the sanitizer CI leg,
+macOS platform coverage). ⚠️ **It runs FIRST, before SP-102 and SP-100**, because SP-100's Epic-verification
+remit rests on a suite that has not run clean on x86-64 since 2026-07-30. Scoped in
+[`Sprint-backlog.md`](Sprint-backlog.md).
 
 > ✅ **SP-099, SP-104 and SP-105 all closed 2026-08-15 (user-approved).** Together they delivered EP-031's
 > `[Apple]` half and cleaned up after the T-0409 scope ruling — Issues **I-0114–I-0119** carried, of which
@@ -320,13 +327,14 @@ Currently: **104 Sprint IDs issued** — **99 closed**, 2 in 🔵 Planning (SP-1
 
 ## Statistics
 
-- **Total Sprint IDs issued:** 104 (SP-001–SP-105; **SP-068 skipped** — EP-027 claimed SP-069–SP-072 and its
+- **Total Sprint IDs issued:** 105 (SP-001–SP-106; **SP-068 skipped** — EP-027 claimed SP-069–SP-072 and its
   scope shipped as SP-073; **SP-083 was brought forward** ahead of SP-082)
 - **Closed:** 99 ✅ (all have an archive in [`Closed/`](Closed/); most recent: SP-099, SP-103, SP-104, SP-105,
   all closed 2026-08-15 user-approved)
 - **Active:** 0 🟡 — **no Sprint is active.**
-- **Planning:** 2 🔵 (**SP-102** `[Apple]` pending presentation + warning view + `sources` card — runs next;
-  **SP-100** EP-031 verification & Epic close — runs last, keeps its number)
+- **Planning:** 3 🔵 (**SP-106** `[Cross]` test integrity & CI trust — **runs first**; **SP-102** `[Apple]`
+  pending presentation + warning view + `sources` card; **SP-100** EP-031 verification & Epic close — runs
+  last, keeps its number)
 - **Superseded:** 1 ⚪ (SP-057 → SP-094)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
