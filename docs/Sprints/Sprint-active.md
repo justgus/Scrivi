@@ -1,48 +1,141 @@
 # Active Sprint
 
-**None.** SP-099, SP-103, SP-104 and SP-105 all closed 2026-08-15 (user-approved) →
-[`Closed/`](Closed/).
+## SP-106 — `[Cross]` Test integrity & CI trust
 
-The next Sprint is **SP-106** (⚠️ `[Cross]` **test integrity & CI trust** — I-0121, the sanitizer CI leg,
-macOS platform coverage), opened 🔵 Planning 2026-08-16. Then **SP-102** (`[Apple]` pending presentation +
-warning view + `sources` card), and **SP-100** (verification & Epic close) last. All three are scoped in
-[`Sprint-backlog.md`](Sprint-backlog.md).
-
-⚠️ **SP-106 runs first deliberately.** ScriviCore CI has been red since 2026-07-30 on a divide-by-zero that
-only traps on x86-64 (I-0121), so **six sprints closed on arm64-only evidence** — and SP-100's whole remit is
-Epic verification. The code fix is already applied; the sprint's substance is making the *class* of defect
-fail deterministically and closing the macOS platform-coverage gap.
+**Status:** 🟠 **Implemented - Not Verified (2026-08-16).** All three tasks delivered; ScriviCore CI is green
+on x86-64 for the first time since 2026-07-30. **Awaiting user verification.**
+**Epic:** EP-031 `[ScriviCore]` Worldbuilding Object Model & Relationship Graph
+**Codebases:** `[ScriviCore]` + CI configuration
+**Activated:** 2026-08-16 · **Runs before** SP-102 and SP-100.
 
 ---
 
-## Recently closed
+## Why this sprint existed
 
-| Sprint | Title | Closed | Archive |
-| ------ | ----- | ------ | ------- |
-| SP-099 | `[Apple]` Engine wrappers, object cards, picker, in-place create/edit, Worlds menu | 2026-08-15 | [`Sprint-SP-099.md`](Closed/Sprint-SP-099.md) |
-| SP-103 | `[Cross]` Scope ruling (T-0409) + test realignment (T-0411); T-0410 removed OBE | 2026-08-15 | [`Sprint-SP-103.md`](Closed/Sprint-SP-103.md) |
-| SP-104 | `[Cross]` Post-ruling fallout — world reachability + the restated-kind class (I-0114–I-0117) | 2026-08-15 | [`Sprint-SP-104.md`](Closed/Sprint-SP-104.md) |
-| SP-105 | `[Cross]` World search indexing (I-0118) | 2026-08-15 | [`Sprint-SP-105.md`](Closed/Sprint-SP-105.md) |
+The user asked why GitHub had been reporting a CI error. **ScriviCore CI had been red on every commit since
+2026-07-30 (1c42838) — 17 days, 7 commits** — on a one-line divide-by-zero in `rebalancedKeys(1)`.
 
-**State at close:** `ctest` **516/516** · macOS interop **86/86** · app **BUILD SUCCEEDED**.
-
-Issues carried across these four sprints: **I-0114–I-0119**. ⚠️ **Not all are verified.** **I-0118 and
-I-0119 are ✅ Verified** and archived; **I-0114, I-0115, I-0116 and I-0117 remain 🟠 `Resolved - Not
-Verified`** in [`../Issues/Issue-active.md`](../Issues/Issue-active.md), awaiting user verification. Closing
-a Sprint does not verify its Issues — only the user does.
-
-⚠️ **Every defect that mattered in these sprints was found by USE, not by the test suites**, which were
-green throughout. Worth remembering when the next sprint's evidence is "all tests pass."
+⚠️ **The defect was not subtle; the reason it survived was.** Integer division by zero is UB, and UB is free
+to differ by target: arm64 `sdiv` quietly yields 0, x86-64 `idiv` raises `#DE` → SIGFPE. The developer's Mac
+and the `macos-latest` runner were **green**, `ubuntu-latest` **crashed**. So *"all tests pass"* had meant
+*"all tests pass on arm64"* since July, and six sprints closed on that evidence.
 
 ---
 
-*Last Updated: 2026-08-16 (consistency audit — the close summary claimed **"Issues verified across these four
-sprints: I-0114–I-0119."** Only **I-0118/I-0119** are Verified; **I-0114–I-0117** are still `Resolved - Not
-Verified` per `../Issues/Issue-active.md`. ⚠️ **A closed Sprint was being read as verifying its Issues** —
-it does not. The same wrong claim was corrected in `../Epics/Epic-active.md` and
-`Sprint-Documentation.md`. Prior note follows.)*
+## Tasks
 
-*2026-08-15 (docs cleanup — the "Where EP-031 stands" status block moved to EP-031 in
-[`../Epics/Epic-active.md`](../Epics/Epic-active.md), where Epic status belongs. The AC1 re-verification
-requirement, the Linux gap and the EP-033 spawn travelled with it. This file now carries Sprint status
-only.)*
+| ID | Title | Status |
+| -- | ----- | ------ |
+| T-0412 | Confirm the I-0121 fix on **x86-64** | 🟠 **Implemented - Not Verified (2026-08-16)** |
+| T-0413 | ⚠️ **Sanitizer CI leg** — `-fsanitize=undefined,address`, `-fno-sanitize-recover=all` | 🟠 **Implemented - Not Verified (2026-08-16)** |
+| T-0414 | **macOS platform coverage** — `platformDefault`'s Apple branch | 🟠 **Implemented - Not Verified (2026-08-16)** |
+
+## Assigned Issue
+
+| ID | Title | Severity | Status |
+| -- | ----- | -------- | ------ |
+| I-0121 | `rebalancedKeys(1)` divides by zero — CI red since 2026-07-30 | High | 🟠 **Resolved - Not Verified (2026-08-16)** |
+
+---
+
+## Delivery
+
+### T-0412 — the fix confirmed where it actually fails
+
+CI run [`31975883684`](https://github.com/justgus/Scrivi/actions/runs/31975883684): test #172 passes on
+**`ubuntu-latest` 523/523** and **`macos-latest` 516/516** — **the first green ScriviCore CI since
+2026-07-30.**
+
+⚠️ **The x86-64 result is the only one that counts for this defect.** A green arm64 run is what hid the bug
+for 17 days; it could never have distinguished fixed from broken.
+
+### T-0413 — UB now fails by diagnosis, not by architecture accident
+
+- `SCRIVI_ENABLE_SANITIZERS` (OFF by default) in the root `CMakeLists.txt`:
+  `-fsanitize=undefined,address -fno-sanitize-recover=all -fno-omit-frame-pointer`.
+- `scrivi-core-ci.yml` matrix is now **2×2 (os × sanitizers) = 4 legs**. The plain legs stay, because a
+  sanitized binary is not the artifact users run.
+- Each leg prints `os / arch / sanitizers` alongside its result.
+
+> ⚠️ **The sanitizer was proven to work, not assumed.** Reverting the `OrderKey` guard makes the sanitized
+> **arm64** build report `OrderKey.cpp:183:41: runtime error: division by zero` — i.e. it reproduces on arm64
+> the exact defect only x86-64 hardware trapped. **A sanitizer that has never gone red proves nothing**, so
+> this was demonstrated before being trusted (sprint exit criterion 2).
+
+### T-0414 — the macOS coverage gap
+
+Linux had **7** platform-specific tests; macOS had **zero**. `platformDefault()`'s Apple branch was covered
+only by a shared *"non-empty and ends in `Scrivi`"* assertion — which passes for **any** path ending in
+`Scrivi`, including the Linux one. ⚠️ **The asymmetry was invisible precisely because the shared test looked
+like coverage.**
+
+Three Apple tests added: the documented shape (`~/Library/Application Support/Scrivi`), `HOME` handling, and
+the previously untested `getpwuid()` fallback when `HOME` is unset.
+
+> **Verified RED before green:** mutating the Apple branch to the Linux rule fails **all 3** new tests while
+> **the pre-existing shared test stays green** — confirming the gap was real, and that the new tests close it.
+
+---
+
+## Suites at implementation
+
+| Configuration | Result |
+| ------------- | ------ |
+| macOS **arm64**, plain | **519/519** |
+| macOS **arm64**, ASan+UBSan | **519/519** (clean — no leaks, no UB) |
+| CI `ubuntu-latest` **x86-64** (pre-T-0413/0414 commit) | **523/523** |
+| CI `macos-latest` **arm64** (pre-T-0413/0414 commit) | **516/516** |
+
+⚠️ **Figures name their architecture deliberately.** "516/516 green" without a platform is the habit that let
+I-0121 run red for 17 days. 519 = 516 + T-0414's 3 new Apple tests; the x86-64 total is higher (523/526)
+because 7 tests are Linux-only.
+
+---
+
+## Rulings carried from planning
+
+**R1 — single-key position is the MIDPOINT** (user-ruled). `rebalancedKeys(1)` → `"H"`; `keyBefore("H")=="8"`,
+`keyAfter("H")=="Q"`.
+
+**R2 — a green arm64 run is NOT evidence for I-0121.** Acceptance required x86-64 or a sanitizer build.
+**This is the rule that would have caught the bug 17 days earlier.**
+
+**R3 — the 5 `EncryptedFileSecureStore` tests stay in C++, not Swift.** They are Linux-only because the
+*capability* is: `scrivi_c_api.cpp:94-106` falls back to the in-memory `PrototypeSecureStore` on Apple, so
+identity does not survive restart there. Four of the five assert the `SecureStore` **contract**, not OpenSSL —
+if Apple regains a persistent store they belong against the interface in Catch2, run on both platforms, **not
+duplicated in Swift**. *(Restoring Apple's persistent store was NOT in this sprint.)*
+
+**R4 — the 2 XDG tests are correctly Linux-only.** The Apple rule is *different*, not absent; T-0414 added it
+as new coverage rather than a port.
+
+---
+
+## Exit criteria
+
+| # | Criterion | State |
+| - | --------- | ----- |
+| 1 | ScriviCore CI green on both matrix legs — first time since 2026-07-30 | ✅ Met (run `31975883684`) |
+| 2 | Sanitizer **proven** to fail on reintroduced UB | ✅ Met — `OrderKey.cpp:183:41` reported on arm64 |
+| 3 | macOS `platformDefault` has real coverage; asymmetry closed or documented | ✅ Met — 3 tests, verified RED first |
+| 4 | `ctest` figures name their architecture | ✅ Met — in this record and in the CI leg names |
+
+---
+
+## Carried forward — NOT done in this sprint
+
+- ⚠️ **Apple has no persistent `SecureStore`.** Identity does not survive restart on Apple
+  (`PrototypeSecureStore` is in-memory). Known and pre-existing, surfaced by R3's analysis; **needs its own
+  Task** rather than being folded in here.
+- **The Apple/Linux coverage asymmetry is narrowed, not closed.** T-0414 covered `platformDefault`; Linux
+  still has 5 SecureStore tests with no Apple counterpart, and that is correct only while Apple has no
+  persistent store.
+- ⚠️ **The suite has been single-architecture for six sprints (SP-093 through SP-099).** Those closes quoted
+  local arm64 figures. Nothing is known to be wrong — the CI log showed 522/523, one crash — but **SP-100
+  should weigh what its verification rests on.**
+
+---
+
+*Last Updated: 2026-08-16 (SP-106 implemented — T-0412/T-0413/T-0414 all 🟠 Implemented - Not Verified;
+I-0121 🟠 Resolved - Not Verified. CI green on x86-64 for the first time since 2026-07-30. Awaiting user
+verification, then close approval.)*

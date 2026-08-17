@@ -73,10 +73,11 @@ TBD — needs a mechanism to determine the top-of-viewport scene after `NSTextVi
 
 ## I-0121: [ScriviCore] `rebalancedKeys(1)` divides by zero — ScriviCore CI has failed on every commit since 1c42838 (2026-07-30)
 
-**Status:** 🟠 **Resolved (code fix) - Not Verified (2026-08-16)** — the one-line guard is applied and proven
-locally (see Resolution). ⚠️ **The Issue is NOT complete:** the `-fsanitize=undefined` CI work and the macOS
-platform-coverage gap remain, and **the fix has not yet been observed green on x86-64**, which is the only
-platform that traps it. Full closure belongs to the sprint that takes this Issue.
+**Status:** 🟠 **Resolved - Not Verified (2026-08-16, SP-106)** — the guard is applied and **confirmed green
+on x86-64**, the platform that actually traps it: CI run `31975883684` shows test #172 passing on
+`ubuntu-latest` (**523/523**) and `macos-latest` (**516/516**) — **the first green ScriviCore CI since
+2026-07-30**. The sanitizer CI leg (T-0413) and macOS platform coverage (T-0414) also shipped.
+⚠️ **Awaiting user verification**, per the standing rule that only the user marks an Issue Verified.
 **Platform:** All platforms (UB — **traps** on x86-64 Linux; **silently survives** on arm64)
 **Component:** `ScriviCore/src/util/OrderKey.cpp:175–183` (`rebalancedKeys`)
 **Severity:** High — not for its runtime impact, but because **CI has been red for 17 days and 7 commits**, so
@@ -198,13 +199,16 @@ and why the bug is invisible on arm64. **Evidence:**
 4. **Single-key output checked directly:** `rebalancedKeys(1)` → `"H"`; `keyBefore("H") == "8"`,
    `keyAfter("H") == "Q"` — room on both sides, one character, as the test requires.
 
-**Verification (outstanding — for the sprint that takes this):**
-1. ⚠️ Test #172 passes on **x86-64 Linux**, the platform that actually traps. **A green arm64 run is not
-   evidence for this defect** — that is precisely what hid it for 17 days. The UBSan run above is the closest
-   local substitute, not a replacement.
-2. ScriviCore CI green on **both** matrix legs for the first time since 2026-07-30.
-3. `-fsanitize=undefined` added to the CI matrix so this class fails deterministically rather than by
-   architecture accident.
+**Verification (SP-106 — all three met 2026-08-16; user verification still required):**
+1. ✅ **Test #172 passes on x86-64 Linux** — the platform that actually traps. CI run
+   [`31975883684`](https://github.com/justgus/Scrivi/actions/runs/31975883684): `ubuntu-latest` **523/523**,
+   `macos-latest` **516/516**. ⚠️ A green arm64 run was never evidence for this defect — that is what hid it
+   for 17 days — so this x86-64 result is the one that counts.
+2. ✅ **ScriviCore CI green on both matrix legs for the first time since 2026-07-30.**
+3. ✅ **Sanitizers added to CI** (T-0413) — `SCRIVI_ENABLE_SANITIZERS` + a 2×2 matrix, so the class fails by
+   diagnosis rather than by architecture accident. **Proven to work, not assumed:** reverting the guard makes
+   the sanitized *arm64* build report `OrderKey.cpp:183:41: runtime error: division by zero` — the sanitizer
+   reproduces on arm64 exactly what only x86-64 hardware trapped.
 
 ---
 

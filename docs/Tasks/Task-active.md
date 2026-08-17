@@ -12,16 +12,20 @@ closes. Tasks that are implemented but awaiting user verification move to
 
 ---
 
-## Currently: **0 active Tasks**
-
-No Sprint is active. SP-099, SP-103, SP-104 and SP-105 all closed 2026-08-15 (user-approved); the next
-Sprint is **SP-102** (`[Apple]` pending presentation + warning view + `sources` card), still 🔵 Planning.
-Its tasks are defined in [`../Sprints/Sprint-backlog.md`](../Sprints/Sprint-backlog.md) and
-[`Task-backlog.md`](Task-backlog.md), and move here when SP-102 activates.
+## Currently: **3 active Tasks** — SP-106 `[Cross]` Test integrity & CI trust
 
 | ID | Title | Sprint | Priority | Status |
 | -- | ----- | ------ | -------- | ------ |
-| —  | None  | —      | —        | —      |
+| T-0412 | Confirm the I-0121 fix on **x86-64** — the platform that actually traps the defect | SP-106 | High | 🟠 **Implemented - Not Verified (2026-08-16)** |
+| T-0413 | ⚠️ **Sanitizer CI leg** — `SCRIVI_ENABLE_SANITIZERS` + 2×2 CI matrix | SP-106 | High | 🟠 **Implemented - Not Verified (2026-08-16)** |
+| T-0414 | **macOS platform coverage** — `platformDefault`'s Apple branch (Linux had 7 tests, macOS zero) | SP-106 | Medium | 🟠 **Implemented - Not Verified (2026-08-16)** |
+
+**Evidence:** ScriviCore CI green on **x86-64** for the first time since 2026-07-30 (run `31975883684`:
+`ubuntu-latest` 523/523, `macos-latest` 516/516). Local: **519/519** on macOS arm64, plain **and** ASan+UBSan.
+Both T-0413 and T-0414 were **proven RED before green** — the sanitizer reports the reintroduced
+divide-by-zero on arm64, and the new Apple tests fail when the Apple path rule is mutated.
+
+Full sprint record: [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md).
 
 ---
 
@@ -62,5 +66,5 @@ package-structure §16a, repair-matrix §6.21); its record of truth is
 
 ---
 
-*Last Updated: 2026-08-15 (docs cleanup — eight closed-Sprint sections removed; this file now holds Tasks
-only, with the Sprint layer referenced rather than restated. No active Tasks.)*
+*Last Updated: 2026-08-16 (SP-106 activated and implemented — T-0412/T-0413/T-0414 all 🟠 Implemented - Not
+Verified. This file carries active Tasks again for the first time since 2026-08-15.)*

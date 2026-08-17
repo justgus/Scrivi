@@ -218,7 +218,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-103 | ⚠️ **`[Cross]` All worldbuilding kinds → world scope** (breaking; no migration) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-103.md` | T-0409 + T-0411; **T-0410 removed OBE** |
 | SP-104 | ⚠️ **`[Cross]` Post-ruling fallout: world reachability + the restated-kind class** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-104.md` | I-0114–I-0117 |
 | SP-105 | **`[Cross]` World search indexing** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-105.md` | I-0118 |
-| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | 🔵 **Planning — runs FIRST** | opened 2026-08-16 |
+| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | 🟠 **Implemented - Not Verified** | 2026-08-16 |
 | SP-102 | **`[Apple]` Pending presentation + warning view + `sources` card** | 🔵 Planning | — |
 | SP-100 | Verification & Epic close | 🔵 Planning (**runs last**) | — |
 
@@ -297,15 +297,20 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0121 | ⚠️ `[ScriviCore]` **`rebalancedKeys(1)` divides by zero — ScriviCore CI has been red on every commit since 2026-07-30 (1c42838).** The `n == 0` ternary guard is unreachable while the divisor is `n - 1`; UB that **traps on x86-64 and is silent on arm64**, so local `ctest` is green (516/516) and `ubuntu-latest` crashes. Carries the CI **`-fsanitize=undefined`** work, which may change the test configuration. | High | **SP-106** | 🟠 **Resolved (code fix) - Not Verified (2026-08-16)** — guard applied, proven RED-then-GREEN under UBSan locally (516/516); ⚠️ **x86-64 confirmation + the sanitizer leg + macOS coverage remain** (T-0412/T-0413/T-0414) |
+| I-0121 | ⚠️ `[ScriviCore]` **`rebalancedKeys(1)` divides by zero — ScriviCore CI was red on every commit since 2026-07-30 (1c42838).** The `n == 0` ternary guard is unreachable while the divisor is `n - 1`; UB that **traps on x86-64 and is silent on arm64**, so local `ctest` stayed green while `ubuntu-latest` crashed. | High | **SP-106** | 🟠 **Resolved - Not Verified (2026-08-16)** — ✅ **confirmed green on x86-64** (run `31975883684`: ubuntu 523/523, macOS 516/516) — **first green ScriviCore CI since 2026-07-30**; sanitizer leg + macOS coverage also shipped |
 
-> ⚠️ **I-0121 undermines the evidence behind several EP-031 sprint closes.** SP-093, SP-095, SP-096, SP-097,
+> ⚠️ **I-0121 undermined the evidence behind several EP-031 sprint closes.** SP-093, SP-095, SP-096, SP-097,
 > SP-098 and SP-099 all pushed with ScriviCore CI failing; their "ctest N/N green" figures are **local arm64
 > results**, and the suite gated nothing on x86-64 for that window. This does not invalidate the work — the CI
-> log shows **522/523 passing**, a single crashing test, not a rotten suite — but it means *"all tests pass"*
-> has meant *"all tests pass on one architecture"* since 2026-07-30. **Worth weighing at SP-100**, whose job is
-> Epic verification. It compounds the standing observation that every defect that mattered in
-> SP-099/SP-103/SP-104/SP-105 was found by USE, not by the suites.
+> log showed **522/523 passing**, a single crashing test, not a rotten suite — but it means *"all tests pass"*
+> meant *"all tests pass on one architecture"* from 2026-07-30 to 2026-08-16.
+>
+> ✅ **SP-106 restored the gate** (2026-08-16): CI is green on x86-64 again, a sanitizer matrix leg now makes
+> UB fail by diagnosis rather than by which instruction set happens to trap, and every leg reports its
+> architecture. **SP-100 can now rest its verification on a suite that runs clean on both architectures** —
+> which it could not have done before. ⚠️ **What SP-100 should still weigh:** the six sprints above were
+> *closed* on single-architecture evidence, and re-running their suites today is the only way to know that
+> nothing else was hiding behind the crash.
 
 > ✅ **Highest-risk task: T-0380 — done and Verified (SP-098, 2026-08-12).** The pending-vs-dangling
 > distinction was the one failure in this Epic that is *silent and unrecoverable* — a loader that reads "world

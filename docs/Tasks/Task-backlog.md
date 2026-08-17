@@ -89,9 +89,6 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
-| T-0412 | **Confirm the I-0121 fix on x86-64** — ScriviCore CI green on **both** matrix legs for the first time since 2026-07-30. ⚠️ The code change is already applied; this is the verification the developer's arm64 machine cannot provide | EP-031 (**SP-106**) | 🔵 Backlog |
-| T-0413 | ⚠️ **Sanitizer CI leg** — `-fsanitize=undefined` (+ `address`?) with `-fno-sanitize-recover=all`, so UB fails deterministically instead of by instruction-set accident. **May change the test configuration**; root `CMakeLists.txt` sets no sanitizer/`-Werror`/build-type today | EP-031 (**SP-106**) | 🔵 Backlog |
-| T-0414 | **macOS platform coverage** — Apple has **zero** platform-specific tests vs Linux's 7; `platformDefault`'s Apple branch is untested (the shared test only asserts non-empty + ends in `Scrivi`) | EP-031 (**SP-106**) | 🔵 Backlog |
 | T-0389 | Pending presentation + Worlds menu + warning view (**⚠️ includes the unbuilt `offline`/`unmounted` status refinement — AC24**) | EP-031 (**SP-102** — split from SP-099, R2) | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0391 | EP-031 verification + Epic close prep | EP-031 (**SP-100**) | 🔵 Backlog |
