@@ -12,6 +12,7 @@
 #include "platform/LocalFileSystem.hpp"
 
 #include <chrono>
+#include <cstdlib>      // getenv / setenv / unsetenv — used by the platform tests below
 #include <filesystem>
 #include <string>
 
@@ -100,6 +101,62 @@ TEST_CASE("platformDefault - Linux falls back to ~/.local/share when XDG_DATA_HO
     CHECK(p.parent_path().parent_path().filename() == ".local");
 
     if (original) setenv("XDG_DATA_HOME", original, 1);
+}
+#endif
+
+// ---------------------------------------------------------------------------
+// Apple platform coverage (T-0414, SP-106)
+//
+// WHY THIS BLOCK EXISTS. Until SP-106 the Apple branch of platformDefault() had
+// NO test at all: Linux had 7 platform-specific tests and macOS had zero, so the
+// only assertion covering Apple was the shared "non-empty and ends in Scrivi"
+// case above — which passes for literally any path ending in "Scrivi", including
+// the Linux one. The asymmetry was invisible because the shared test looked like
+// coverage. These mirror the Linux XDG pair so both platforms assert the actual
+// location rule they promise, not merely the leaf name.
+// ---------------------------------------------------------------------------
+#if defined(__APPLE__)
+TEST_CASE("platformDefault - Apple returns ~/Library/Application Support/Scrivi",
+          "[integration][T-0057][T-0414][apple]") {
+    const char* original = std::getenv("HOME");
+    REQUIRE(original != nullptr);          // the fallback path is covered below
+
+    setenv("HOME", "/tmp/apple-home-test", 1);
+    auto result = scrivi::util::platformDefault();
+    REQUIRE(result.ok());
+    CHECK(result.value() == "/tmp/apple-home-test/Library/Application Support/Scrivi");
+
+    setenv("HOME", original, 1);
+}
+
+TEST_CASE("platformDefault - Apple honours HOME and lands under Application Support",
+          "[integration][T-0057][T-0414][apple]") {
+    auto result = scrivi::util::platformDefault();
+    REQUIRE(result.ok());
+    fs::path p{result.value()};
+
+    // Assert the whole documented shape, not just the leaf: .../Library/Application Support/Scrivi
+    CHECK(p.filename()                             == "Scrivi");
+    CHECK(p.parent_path().filename()               == "Application Support");
+    CHECK(p.parent_path().parent_path().filename() == "Library");
+    CHECK(p.is_absolute());
+}
+
+TEST_CASE("platformDefault - Apple falls back to the passwd home when HOME is unset",
+          "[integration][T-0057][T-0414][apple]") {
+    // The getpwuid() fallback is a real branch that nothing exercised. An empty
+    // HOME must behave like an unset one (the guard tests home[0] == '\0').
+    const char* original = std::getenv("HOME");
+    unsetenv("HOME");
+
+    auto result = scrivi::util::platformDefault();
+    REQUIRE(result.ok());
+    fs::path p{result.value()};
+    CHECK(p.filename()               == "Scrivi");
+    CHECK(p.parent_path().filename() == "Application Support");
+    CHECK(p.is_absolute());
+
+    if (original) setenv("HOME", original, 1);
 }
 #endif
 

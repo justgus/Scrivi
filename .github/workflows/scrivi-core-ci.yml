@@ -15,13 +15,27 @@ on:
       - '.github/workflows/scrivi-core-ci.yml'
 
 jobs:
+  # The matrix is deliberately 2x2 (os x sanitizers) — see T-0413 / I-0121.
+  #
+  # Both dimensions earn their place:
+  #   * os          — macOS is arm64, ubuntu-latest is x86-64. I-0121 was UB that
+  #                   ONLY traps on x86-64, so a single-OS matrix would have missed
+  #                   it entirely.
+  #   * sanitizers  — and the x86-64 leg only caught it BY LUCK, because that
+  #                   happens to be an architecture where `idiv` faults. The
+  #                   sanitized legs remove the luck: UB is diagnosed in the code,
+  #                   so the same defect fails on every target.
+  #
+  # Keeping the plain legs matters too: they are what ships, and a sanitized
+  # binary is not the artifact users run.
   build-and-test:
-    name: ${{ matrix.os }}
+    name: ${{ matrix.os }}${{ matrix.sanitizers == 'ON' && ' (sanitizers)' || '' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
+        sanitizers: ['OFF', 'ON']
 
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +48,20 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libssl-dev
 
       - name: Configure
-        run: cmake -S . -B build -DSCRIVI_BUILD_TESTS=ON
+        run: >
+          cmake -S . -B build
+          -DSCRIVI_BUILD_TESTS=ON
+          -DSCRIVI_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
 
       - name: Build
         run: cmake --build build --parallel
+
+      # Report the architecture with the result. "516/516 green" without a
+      # platform is precisely the habit that let I-0121 run red for 17 days.
+      - name: Report toolchain
+        run: |
+          echo "os=${{ matrix.os }}  arch=$(uname -m)  sanitizers=${{ matrix.sanitizers }}"
+          cmake --version | head -1
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
