@@ -143,8 +143,16 @@ TEST_CASE("split repro - createChapter(after C) + move-followers keeps files san
     // No two scene files anywhere share a filename (the collision you saw across folders).
     std::vector<std::string> allSceneFiles;
     for (auto& ch : chapters.value()) {
-        for (auto& e : scrivi::manuscript::listScenesByOrder(
-                 lfs, proj.str(), ch.chapterMetadataRelPath).value()) {
+        // The Result MUST be named. `Result::value()` returns a REFERENCE into the
+        // Result, so iterating `f(...).value()` directly leaves the loop walking a
+        // destroyed temporary: lifetime extension applies to the temporary bound to
+        // the range variable, not to the Result that owns the vector behind it.
+        // Found by AddressSanitizer (stack-use-after-scope) on the SP-106 CI leg —
+        // this test had been passing for weeks while reading freed stack memory.
+        auto scenesR = scrivi::manuscript::listScenesByOrder(
+            lfs, proj.str(), ch.chapterMetadataRelPath);
+        REQUIRE(scenesR.ok());
+        for (auto& e : scenesR.value()) {
             allSceneFiles.push_back(e.metadataFilename);
         }
     }

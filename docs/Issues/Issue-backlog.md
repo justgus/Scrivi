@@ -212,6 +212,59 @@ and why the bug is invisible on arm64. **Evidence:**
 
 ---
 
+## I-0122: [ScriviCore] Test iterates a destroyed temporary — `stack-use-after-scope` in `SceneSplitRepro`
+
+**Status:** 🟠 **Resolved - Not Verified (2026-08-16, SP-106)** — fixed by naming the `Result`; full sanitized
+suite **519/519** locally, x86-64 CI confirmation pending the next run.
+**Platform:** All platforms (UB — **reported on x86-64 ASan**; passes silently on arm64)
+**Component:** `ScriviCore/tests/integration/SceneSplitRepro.cpp:146` (test code; no shipping code affected)
+**Severity:** Medium — a **test** was reading freed stack memory, so its assertions were meaningless; no
+product code is implicated.
+**Sprint:** **SP-106**
+**Epic:** EP-031
+**Date Identified:** 2026-08-16
+
+⚠️ **This Issue exists because of T-0413.** It was found by the sanitizer CI leg **on its very first run** —
+the leg added hours earlier in the same sprint. It had been passing green for weeks.
+
+**Description:**
+
+```cpp
+for (auto& e : scrivi::manuscript::listScenesByOrder(...).value()) { ... }   // ← dangling
+```
+
+`Result::value()` returns a **reference into** the `Result` (`Result.hpp:32`). `listScenesByOrder` returns a
+temporary `Result`; the range-for binds to the *vector* the reference names, and C++ extends the lifetime of
+the temporary bound **directly** to the range variable — **not** the `Result` that owns that vector. The
+`Result` is destroyed at the end of the init-statement, so the loop iterates a freed stack buffer.
+
+**Actual Behavior:** AddressSanitizer on `ubuntu-latest`:
+`ERROR: AddressSanitizer: stack-use-after-scope ... READ of size 8`, in
+`__normal_iterator<SceneEntry*>` via `std::vector<SceneEntry>::begin()`.
+
+**Root Cause Analysis:**
+
+⚠️ **The same architecture split as [[I-0121]], one layer up.** Reading freed stack memory is UB: on arm64
+the bytes were still intact and the test passed; on x86-64 under ASan the poisoned redzone was detected.
+**Confirmed locally: the test passes on arm64 both before and after the fix** — only the x86-64 sanitized leg
+could tell the difference. This is the second defect in two days whose visibility depended on the host.
+
+**Scope — checked, not assumed.** A brace-matched scan of every range-for in `ScriviCore/src` and
+`ScriviCore/tests` found **exactly one** instance of iterating a *temporary* `Result`: this one. The ~20 other
+`for (... : xR.value())` sites all bind a **named** `Result` that outlives the loop and are correct.
+
+**Resolution:** bind the `Result` to a named local (`auto scenesR = ...; REQUIRE(scenesR.ok());`) and iterate
+that, with a comment recording why the name is load-bearing.
+
+**Files Affected:** `ScriviCore/tests/integration/SceneSplitRepro.cpp`
+
+**Verification:**
+1. ✅ Full suite under ASan+UBSan on arm64: **519/519**.
+2. ⏳ x86-64 sanitized CI leg green — the leg that found it. *(Pending the next CI run.)*
+3. ✅ Codebase-wide scan confirms no other range-for over a temporary `Result`.
+
+---
+
 *Last Updated: 2026-08-16, later same day (**I-0058 and I-0112 archived to `Verified/`; I-0121's code fix
 applied.** Both Issues had been Verified — 2026-07-09 and 2026-08-11 — and left sitting in this backlog.
 ⚠️ **The consistency audit earlier the same day did not catch them because it never opened this file**: it
