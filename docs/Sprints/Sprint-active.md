@@ -30,11 +30,28 @@ and the `macos-latest` runner were **green**, `ubuntu-latest` **crashed**. So *"
 | T-0413 | ⚠️ **Sanitizer CI leg** — `-fsanitize=undefined,address`, `-fno-sanitize-recover=all` | 🟠 **Implemented - Not Verified (2026-08-16)** |
 | T-0414 | **macOS platform coverage** — `platformDefault`'s Apple branch | 🟠 **Implemented - Not Verified (2026-08-16)** |
 
-## Assigned Issue
+## Assigned Issues
 
 | ID | Title | Severity | Status |
 | -- | ----- | -------- | ------ |
 | I-0121 | `rebalancedKeys(1)` divides by zero — CI red since 2026-07-30 | High | 🟠 **Resolved - Not Verified (2026-08-16)** |
+| I-0122 | ⚠️ **`stack-use-after-scope`** — test iterates a destroyed temporary `Result` | Medium | 🟠 **Resolved - Not Verified (2026-08-16)** |
+
+> ⚠️ **I-0122 was found BY T-0413, on the sanitizer leg's very first run** — hours after that leg was added,
+> in this same sprint. The test had been green for weeks while reading freed stack memory.
+>
+> **`Result::value()` returns a reference INTO the Result.** Iterating `listScenesByOrder(...).value()`
+> directly leaves the loop walking a destroyed temporary: lifetime extension covers the temporary bound
+> *directly* to the range variable, not the `Result` that owns the vector behind it.
+>
+> ⚠️ **Same architecture split as I-0121, one layer up.** The test passes on arm64 **both before and after**
+> the fix — the freed bytes happen to survive there. Only the **x86-64 sanitized** leg could tell the
+> difference. Two defects in two days whose visibility depended on the host.
+>
+> **Scope checked, not assumed:** a brace-matched scan of every range-for in `ScriviCore/src` and
+> `ScriviCore/tests` found **exactly one** iteration over a *temporary* `Result` — this one. The ~20 other
+> `for (... : xR.value())` sites bind a **named** `Result` and are correct. Test code only; no shipping code
+> affected.
 
 ---
 
@@ -61,6 +78,16 @@ for 17 days; it could never have distinguished fixed from broken.
 > **arm64** build report `OrderKey.cpp:183:41: runtime error: division by zero` — i.e. it reproduces on arm64
 > the exact defect only x86-64 hardware trapped. **A sanitizer that has never gone red proves nothing**, so
 > this was demonstrated before being trusted (sprint exit criterion 2).
+
+> ✅ **…and then it paid for itself immediately.** The sanitizer leg **failed on its very first CI run** —
+> not on the seeded defect, but on a **real, unknown** one: [[I-0122]], a `stack-use-after-scope` in
+> `SceneSplitRepro.cpp` that had been passing green for weeks while iterating freed stack memory.
+>
+> ⚠️ **This is the sprint's strongest result, and it argues against its own framing.** SP-106 was scoped as
+> *"fix a known defect and add tooling."* The tooling found a second defect within hours, with the same
+> architecture-dependent invisibility. **The suite was hiding more than one thing, and the only reason we
+> know is that we stopped trusting a single architecture.** What else is latent is now an empirical
+> question, not a rhetorical one — which is worth weighing at SP-100.
 
 ### T-0414 — the macOS coverage gap
 

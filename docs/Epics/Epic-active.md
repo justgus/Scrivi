@@ -298,6 +298,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
 | I-0121 | ⚠️ `[ScriviCore]` **`rebalancedKeys(1)` divides by zero — ScriviCore CI was red on every commit since 2026-07-30 (1c42838).** The `n == 0` ternary guard is unreachable while the divisor is `n - 1`; UB that **traps on x86-64 and is silent on arm64**, so local `ctest` stayed green while `ubuntu-latest` crashed. | High | **SP-106** | 🟠 **Resolved - Not Verified (2026-08-16)** — ✅ **confirmed green on x86-64** (run `31975883684`: ubuntu 523/523, macOS 516/516) — **first green ScriviCore CI since 2026-07-30**; sanitizer leg + macOS coverage also shipped |
+| I-0122 | ⚠️ `[ScriviCore]` **`stack-use-after-scope` — a test iterated a destroyed temporary `Result`** (`Result::value()` returns a reference *into* the Result; lifetime extension does not reach it). Test code only. **Found by SP-106's own sanitizer leg on its first run**, after weeks passing green. Same arm64/x86-64 visibility split as I-0121. | Medium | **SP-106** | 🟠 **Resolved - Not Verified (2026-08-16)** — named the `Result`; ASan+UBSan **519/519** locally; codebase scan found no other instance |
 
 > ⚠️ **I-0121 undermined the evidence behind several EP-031 sprint closes.** SP-093, SP-095, SP-096, SP-097,
 > SP-098 and SP-099 all pushed with ScriviCore CI failing; their "ctest N/N green" figures are **local arm64

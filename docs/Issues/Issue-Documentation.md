@@ -40,11 +40,12 @@ See: [`Issue-active.md`](Issue-active.md)
 
 ## Backlog Issues (open, no Sprint)
 
-Currently: **3.**
+Currently: **4** — 2 🔴 Open, 2 🟠 Resolved - Not Verified (both SP-106).
 
 | ID | Title | Severity | Status | Epic |
 | -- | ----- | -------- | ------ | ---- |
-| I-0121 | ⚠️ `[ScriviCore]` `rebalancedKeys(1)` divides by zero — **ScriviCore CI red on every commit since 2026-07-30** | High | 🟠 Resolved (code fix) - Not Verified | EP-031 (assigned; scope at next sprint planning) |
+| I-0121 | ⚠️ `[ScriviCore]` `rebalancedKeys(1)` divides by zero — **ScriviCore CI red on every commit since 2026-07-30** | High | 🟠 Resolved - Not Verified | EP-031 (**SP-106**) |
+| I-0122 | ⚠️ `[ScriviCore]` `stack-use-after-scope` — test iterates a destroyed temporary `Result`; **found by SP-106's new sanitizer leg on its first run** | Medium | 🟠 Resolved - Not Verified | EP-031 (**SP-106**) |
 | I-0018 | Scene Navigator shows no selection on app load | Low | 🔴 Open | — |
 | I-0017 | Window maximized state not restored on relaunch | Low | 🔴 Open | — |
 
