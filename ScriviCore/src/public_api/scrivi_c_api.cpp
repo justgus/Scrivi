@@ -886,6 +886,9 @@ const char* scrivi_list_edges_for(
         item.setString("label",            v.label);
         item.setString("otherID",          v.otherID);
         item.setString("otherDisplayName", v.otherDisplayName);
+        // ⚠️ I-0124: without this the far endpoint's kind never reaches Swift, and a
+        // PENDING edge cannot be attributed to a card. Empty for scene endpoints.
+        item.setString("otherKind",        v.otherKind);
         // Pending far endpoint (T-0380): the name is the binding's cache, and
         // the status tells the writer what to actually do about it.
         item.setBool  ("otherPending",     v.otherPending);

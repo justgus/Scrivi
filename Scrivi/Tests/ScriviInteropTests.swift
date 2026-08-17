@@ -1694,7 +1694,9 @@ struct ScriviGraphInteropTests {
 
         let appearsIn = try #require(types.first { $0.code == "appears-in" })
         #expect(appearsIn.forwardLabel == "appears in")
-        #expect(appearsIn.inverseLabel == "has characters")
+        // I-0125 / SP-102 R5: kind-neutral, because ANY kind may now appear in a
+        // scene — "has characters" was wrong the moment a chronicle used the type.
+        #expect(appearsIn.inverseLabel == "features")
         #expect(appearsIn.symmetric == false)
 
         let siblingOf = try #require(types.first { $0.code == "sibling-of" })
@@ -1744,7 +1746,7 @@ struct ScriviGraphInteropTests {
         // Read from the scene, this is the INVERSE direction of a stored
         // character→scene edge, and the label must read correctly from here.
         #expect(row.isForward == false)
-        #expect(row.label == "has characters")
+        #expect(row.label == "features")
     }
 
     @Test("the SAME stored edge reads forward from the other endpoint (§5.2 projection)")
@@ -2355,4 +2357,114 @@ struct ObjectCardScopeTests {
         let artifacts = try! #require(ObjectCardKind.all.first { $0.kind == "artifact" })
         #expect(artifacts.isWorldScoped)
     }
+}
+
+// MARK: — AC24: platform refinement of an unavailable world's status (SP-102 T-0389)
+
+/// ⚠️ **These tests encode a finding that cost a probe to discover.** The natural
+/// implementation of AC24 — key `unmounted` off `volumeIsRemovableKey` /
+/// `volumeIsEjectableKey` — is WRONG on the hardware this feature is verified against.
+/// The user's world lives on a 931 GB USB drive that reports:
+///
+///     volumeIsRemovable : false        (diskutil agrees: "Removable Media: Fixed")
+///     volumeIsEjectable : false
+///
+/// A `hdiutil` disk image reports `ejectable == true`, so a fixture-based test would
+/// have PASSED the broken rule. `WorldVolumeStatus` therefore uses volume-root mount
+/// presence instead, and these tests pin that choice.
+@Suite("World volume status refinement (EP-031 AC24)")
+@MainActor
+struct WorldVolumeStatusTests {
+
+    @Test("an available world is never re-diagnosed")
+    func availableIsUntouched() {
+        // Refinement answers "why can't I reach it" — a reachable world has no why.
+        #expect(WorldVolumeStatus.refine(
+            coreStatus: .available,
+            packagePath: "/Volumes/Nope/Gone.scrivworld") == .available)
+    }
+
+    @Test("a package on an unmounted volume reports unmounted, NOT missing")
+    func unmountedVolumeIsNotMissing() {
+        // ⚠️ The I-0115 rule in its most consequential form. "Missing" tells the
+        // writer to relink or restore from backup; "unmounted" tells her to plug the
+        // drive in. Reporting the first when the second is true invites her to
+        // rebuild a world that is sitting intact on a disconnected disk.
+        let status = WorldVolumeStatus.refine(
+            coreStatus: .missing,
+            packagePath: "/Volumes/Definitely Not Mounted 8Xz/Eskandar.scrivworld")
+        #expect(status == .unmounted)
+    }
+
+    @Test("core status stands for a path on the boot volume")
+    func bootVolumePathKeepsCoreStatus() {
+        // Not under /Volumes: there is no volume story to tell, so whatever the core
+        // concluded is the honest answer.
+        #expect(WorldVolumeStatus.refine(
+            coreStatus: .missing,
+            packagePath: "/Users/nobody/Desktop/Gone.scrivworld") == .missing)
+        #expect(WorldVolumeStatus.refine(
+            coreStatus: .unavailable,
+            packagePath: "/Users/nobody/Desktop/Gone.scrivworld") == .unavailable)
+    }
+
+    @Test("an empty package path never invents a diagnosis")
+    func emptyPathKeepsCoreStatus() {
+        #expect(WorldVolumeStatus.refine(
+            coreStatus: .unavailable, packagePath: "") == .unavailable)
+    }
+
+    @Test("a mounted volume does not report unmounted")
+    func mountedVolumeIsNotUnmounted() {
+        // The root volume is always mounted, so it stands in for "the volume is
+        // there" without depending on the user's external drive being connected.
+        let status = WorldVolumeStatus.refine(
+            coreStatus: .missing, packagePath: "/System/Volumes/Data/nothing.scrivworld")
+        #expect(status != .unmounted)
+    }
+}
+
+// MARK: — I-0129: world availability must not depend on app focus
+
+/// ⚠️ **The defect these pin was a MISSING TRIGGER, not wrong logic.**
+///
+/// `reconnectWorlds()` was driven only by `NSApplication.didBecomeActiveNotification`,
+/// which worked solely because ejecting a drive normally forces the writer out of the
+/// app. Plug a drive in while Scrivi is *already frontmost* and nothing fired: the
+/// world returned and the warning stayed up until some unrelated focus change happened
+/// to refresh it. The user found this by reversing the usual order — returning focus
+/// first, then plugging in.
+///
+/// The fix observes `NSWorkspace` mount/unmount directly. A timer was the obvious
+/// alternative and is strictly worse: it burns wakeups forever to catch an event the
+/// system already reports exactly.
+///
+/// These assert the *contract the fix depends on* — that the notifications exist and
+/// carry the volume URL. The observers themselves live in a SwiftUI view body, which a
+/// unit test cannot exercise; asserting they are "wired" would test nothing.
+@Suite("World mount observation (I-0129)")
+@MainActor
+struct WorldMountNotificationTests {
+
+    #if os(macOS)
+    @Test("NSWorkspace publishes mount and unmount, keyed by volume URL")
+    func mountNotificationsExist() {
+        // If Apple ever renamed these, the app would silently stop noticing drives —
+        // the exact failure the user reported, back again and just as invisible.
+        #expect(NSWorkspace.didMountNotification.rawValue == "NSWorkspaceDidMountNotification")
+        #expect(NSWorkspace.didUnmountNotification.rawValue == "NSWorkspaceDidUnmountNotification")
+        #expect(NSWorkspace.volumeURLUserInfoKey == "NSWorkspaceVolumeURLKey")
+    }
+
+    @Test("a volume path under /Volumes refines to unmounted once it is gone")
+    func unmountedVolumeRefines() {
+        // The end-to-end consequence of a mount event: after the volume disappears,
+        // the status must read `unmounted` — plug-the-drive-in advice — and never
+        // `missing`, which tells the writer to restore from backup (I-0115).
+        let status = WorldVolumeStatus.refine(
+            coreStatus: .missing,
+            packagePath: "/Volumes/ScriviMountProbe Gone/Eskandar.scrivworld")
+        #expect(status == .unmounted)
+    }
+    #endif
 }

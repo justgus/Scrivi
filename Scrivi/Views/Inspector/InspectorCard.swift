@@ -105,6 +105,18 @@ struct CardContext {
     /// reloading on `sceneID` alone left the card stale until the project reopened.
     var historyRevision: Int = 0
 
+    /// Monotonic counter bumped whenever world availability changes — a world is
+    /// reconnected, relinked, added, or removed (I-0128).
+    ///
+    /// ⚠️ **Object cards keyed on `sceneID` alone, so reconnecting a drive did not
+    /// refresh them.** The project-level warning cleared and the graph relinked, but
+    /// each card kept rendering the pending entries it had loaded while the world was
+    /// away, until the writer changed scenes and forced a rebuild. **This is exactly
+    /// I-0105 one layer over** — there a history commit left the card stale; here a
+    /// world reappearing does. Same cause: state changed somewhere the card's
+    /// `.task(id:)` could not observe.
+    var worldRevision: Int = 0
+
     /// The **stack's** sort, applied by every card in it (C6 / §4.5 — sort is per
     /// stack, never per card). Object cards order their contents by this; cards
     /// with no orderable content ignore it.

@@ -483,6 +483,10 @@ RelationshipStore::listFor(const AbsolutePath& projectRoot,
         // UUID the writer cannot act on.
         if (auto ep = resolver.resolve(projectRoot, v.otherID); ep.found || ep.pending()) {
             v.otherDisplayName = ep.displayName;
+            // Present for both found and pending endpoints: `EndpointResolver` fills
+            // `kind` from the object index in the first case and from the binding's
+            // cachedIndex in the second (EndpointResolver.cpp:69).
+            if (!ep.isScene) { v.otherKind = objectKindName(ep.kind); }
             if (ep.pending()) {
                 v.otherPending     = true;
                 v.otherWorldID     = ep.worldID;

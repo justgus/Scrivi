@@ -3,13 +3,13 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **8 of 11 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
+**Status:** 🟡 **Active** — **9 of 11 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
 SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC4 + AC7**) closed 2026-08-12; SP-099 ✅
 (**AC16/17/21/22 + AC18/19/20; AC10 struck**), SP-103 ✅ (the scope ruling), SP-104 ✅ (post-ruling
-fallout, I-0114–I-0117) and SP-105 ✅ (world search indexing, I-0118) all closed 2026-08-15, each with
-user approval. **Remaining: SP-106** (⚠️ `[Cross]` test integrity & CI trust — **runs first**, opened
-2026-08-16), **SP-102** (pending presentation + warning view + `sources` card) and **SP-100** (verification &
-Epic close, **runs last**) — all three 🔵 Planning. **8 of 11 sprints closed.**
+fallout, I-0114–I-0117) and SP-105 ✅ (world search indexing, I-0118) all closed 2026-08-15; **SP-106 ✅**
+(⚠️ `[Cross]` test integrity & CI trust — I-0121 + I-0122) closed **2026-08-17** — each with user approval.
+**Remaining: SP-102** 🟡 **Active** (activated 2026-08-17 — pending presentation + warning view + `sources`
+card, delivering **AC23 + AC24**) and **SP-100** 🔵 Planning (verification & Epic close, **runs last**).
 
 ⚠️ **AC1 must be RE-VERIFIED — it is the Epic's one outstanding acceptance criterion.** It was UNTICKED
 2026-08-14 when the object scope model changed under it (Doc 1 §3.0), and although SP-103 delivered that
@@ -184,17 +184,37 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > `rename` overwrites, so a lock built on it would have let two writers both win.
 - [ ] AC9 — Worldbuilding-object cards on EP-030's framework: unfiltered picker, in-stack creation with no modal,
       "Remove from scene" deletes the edge only. (Doc 2 AC16–AC24)
-      🔵 **Split across two sprints at SP-099 planning (2026-08-13, R2):** **SP-099** delivers Doc 2
-      **AC16/17/21/22** (object cards, unfiltered picker, one canonical edge from either entrance, "Remove from
-      scene" deletes the edge only); **SP-102** delivers **AC18/19/20** (no-modal in-stack create/edit,
-      edit-state visuals, complete-or-discard at the scene boundary) and **AC23/24** (pending presentation).
-      **AC9 ticks only when both have landed.**
+      🟡 **In progress — SP-102 active (2026-08-17).** Split across two sprints at SP-099 planning
+      (2026-08-13, R2): **SP-099** delivered Doc 2 **AC16/17/21/22** (object cards, unfiltered picker, one
+      canonical edge from either entrance, "Remove from scene" deletes the edge only) — **and also
+      AC18/19/20** (no-modal in-stack create/edit, edit-state visuals, complete-or-discard), which landed
+      early as T-0388 at R4. **SP-102 therefore has only AC23/24 left: pending presentation, the warning
+      view, and the `offline`/`unmounted` status refinement.** **AC9 ticks when SP-102 lands.**
+      > ⚠️ **The Worlds menu is NOT outstanding.** It is listed under T-0389 throughout this file's older
+      > notes, but it **shipped in SP-099 as T-0408** (added at R4, when live verification found the sprint had
+      > no way to create data or see world context) and was extended in **SP-104/I-0117** with per-row remove
+      > and "Locate…". Those notes predate R4 and are superseded.
       > ⚠️ **AC24 has unbuilt work under it that no staged task named.** `WorldStatus` declares five states, but
-      > **`offline` and `unmounted` are produced nowhere in `ScriviCore/src`** (`WorldTypes.hpp:68` comments
+      > **`offline` and `unmounted` are produced nowhere in `ScriviCore/src`** (`WorldTypes.hpp:67-68` comments
       > them "platform-layer refinement") — the core emits only `missing`/`unavailable`. Since Doc 3 §4.4.1
       > forbids a platform-specific *model*, the refinement is Apple-layer work feeding the neutral enum. It is
       > scoped into **SP-102/T-0389** rather than discovered mid-sprint. The core's fallback is the honest
       > behavior the design mandates — this is a gap in the *diagnostic*, not a defect.
+      > ✅ **Confirmed still unbuilt at SP-102 planning (2026-08-17)**, and **ruled (R2)**: refined via
+      > `URLResourceValues` volume keys against `WorldEntry.packagePath` — **both** states, degrading to
+      > `unavailable` whenever inspection is inconclusive, **never guessing `missing`** (I-0115's rule).
+      > **No ABI change required** — `packagePath` is already exposed (`ScriviEngineGraph.swift:416`).
+      >
+      > ⚠️ **SP-102 planning audit (2026-08-17) — most of AC9's remaining surface was already built.** Pending
+      > rows shown-not-hidden, **named** cached entries, the ⚠ badge, disabled-and-explained removal, the
+      > typed `worldPending:<status>` decode, and the Worlds menu all shipped in **SP-099** (T-0386/T-0407/
+      > T-0408) and **SP-104** (I-0117). What remains is the card-level **§7.2 footer** (the card names no
+      > world today — only a hover tooltip), the **warning view** (`listPendingEdges` has **zero call sites**),
+      > the AC24 refinement, and the `sources` card.
+      >
+      > ⚠️ **AC23 is therefore close to met in code and entirely unverified — and verification IS the
+      > criterion.** AC23 is not "pending rows render"; it is *"reattaching restores the card with no writer
+      > intervention"*. Split out as **T-0415** so it cannot be reported done on a fixture.
       >
       > ✅ **Pending presentation itself needs no core work:** `scrivi_list_edges_for` already returns
       > `otherPending`, `otherDisplayName`, and `otherWorldStatus` per row (`scrivi_c_api.cpp:891`), so Doc 2
@@ -204,6 +224,12 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > and related to a scene, then **ejected** — because AC23 requires that reattaching restores the card
       > *with no writer intervention*, which a fixture cannot demonstrate. Moving the package aside covers the
       > `missing` branch specifically; both branches need coverage since they report different statuses.
+      > ✅ **Carried into SP-102 as its own Task, T-0415** (2026-08-17) — and **no fixture is needed**: the
+      > rig already exists as the user's real setup, `~/Desktop/the-stairs-of-tintagael.scrivi` bound to
+      > `/Volumes/Scrivi Worlds/Eskandar.scrivworld` on a **931 GB USB external drive** (7 cached world
+      > entries, 9 edges). ⚠️ **The real drive is the harder test:** a `.dmg` reports
+      > `volumeIsEjectable == true`, but this drive reports **`false`** — so the disk-image fixture would have
+      > passed a status-detection rule that fails on the user's own hardware.
 - [ ] AC10 — No regression: `ctest` + interop suites green; existing projects open unchanged.
 
 ### Sprints
@@ -218,8 +244,8 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-103 | ⚠️ **`[Cross]` All worldbuilding kinds → world scope** (breaking; no migration) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-103.md` | T-0409 + T-0411; **T-0410 removed OBE** |
 | SP-104 | ⚠️ **`[Cross]` Post-ruling fallout: world reachability + the restated-kind class** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-104.md` | I-0114–I-0117 |
 | SP-105 | **`[Cross]` World search indexing** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-105.md` | I-0118 |
-| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | 🟠 **Implemented - Not Verified** | 2026-08-16 |
-| SP-102 | **`[Apple]` Pending presentation + warning view + `sources` card** | 🔵 Planning | — |
+| SP-106 | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | ✅ **Closed 2026-08-17 (user-approved)** → `../Sprints/Closed/Sprint-SP-106.md` | T-0412/T-0413/T-0414 + I-0121/I-0122 |
+| **SP-102** | **`[Apple]` Pending presentation + warning view + `sources` card** | 🟡 **Active (2026-08-17)** | **AC23 + AC24** — closes AC9 |
 | SP-100 | Verification & Epic close | 🔵 Planning (**runs last**) | — |
 
 > ⚠️ **SP-099 SPLIT at planning, 2026-08-13 (R2, user-approved) — EP-031 became a 7-sprint Epic *at that
@@ -288,8 +314,12 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0409 | ⚠️ **All ten kinds → world-scoped** (`source` excluded); `ObjectStore` + C ABI | SP-103 | ✅ **Verified (2026-08-15)** |
 | T-0411 | Test realignment under the new scope model | SP-103 | ✅ **Verified (2026-08-15)** — ⚠️ **AC1 re-verification split out to SP-100** |
 | T-0388 | In-stack create/edit, edit-state visuals, scene-change complete-or-discard | **SP-099** (⬅ R4) | ✅ **Verified (2026-08-15)** |
-| T-0389 | Pending presentation + Worlds menu + warning view (**+ the unbuilt `offline`/`unmounted` refinement**) | **SP-102** | 🔵 Backlog |
-| T-0365 | Aggregate `sources` card (final third; kind + relation type already ✅) | **SP-102** | 🔵 Backlog |
+| T-0412 | Confirm the I-0121 fix on **x86-64** — the platform that actually traps the defect | SP-106 | ✅ **Verified (2026-08-17)** |
+| T-0413 | ⚠️ **Sanitizer CI leg** — `SCRIVI_ENABLE_SANITIZERS` + 2×2 CI matrix (**found I-0122 on its first run**) | SP-106 | ✅ **Verified (2026-08-17)** |
+| T-0414 | **macOS platform coverage** — `platformDefault`'s Apple branch (Linux had 7 tests, macOS zero) | SP-106 | ✅ **Verified (2026-08-17)** |
+| T-0389 | Pending **footer** (the §7.2 world-named sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**) — ⚠️ **cut at planning; see the audit in `Sprint-active.md`** | **SP-102** | 🟠 **Implemented - Not Verified (2026-08-17)** |
+| T-0365 | Aggregate `sources` card + citation popup (final third; kind + relation type already ✅) | **SP-102** | 🟡 **Active (2026-08-17)** |
+| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**new at SP-102 planning**) | **SP-102** | 🟡 **Active (2026-08-17)** |
 | T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | 🔵 Backlog |
 | T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-100 | 🔵 Backlog |
 
@@ -297,8 +327,8 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0121 | ⚠️ `[ScriviCore]` **`rebalancedKeys(1)` divides by zero — ScriviCore CI was red on every commit since 2026-07-30 (1c42838).** The `n == 0` ternary guard is unreachable while the divisor is `n - 1`; UB that **traps on x86-64 and is silent on arm64**, so local `ctest` stayed green while `ubuntu-latest` crashed. | High | **SP-106** | 🟠 **Resolved - Not Verified (2026-08-16)** — ✅ **confirmed green on x86-64** (run `31975883684`: ubuntu 523/523, macOS 516/516) — **first green ScriviCore CI since 2026-07-30**; sanitizer leg + macOS coverage also shipped |
-| I-0122 | ⚠️ `[ScriviCore]` **`stack-use-after-scope` — a test iterated a destroyed temporary `Result`** (`Result::value()` returns a reference *into* the Result; lifetime extension does not reach it). Test code only. **Found by SP-106's own sanitizer leg on its first run**, after weeks passing green. Same arm64/x86-64 visibility split as I-0121. | Medium | **SP-106** | 🟠 **Resolved - Not Verified (2026-08-16)** — named the `Result`; ASan+UBSan **519/519** locally; codebase scan found no other instance |
+| I-0121 | ⚠️ `[ScriviCore]` **`rebalancedKeys(1)` divides by zero — ScriviCore CI was red on every commit since 2026-07-30 (1c42838).** The `n == 0` ternary guard is unreachable while the divisor is `n - 1`; UB that **traps on x86-64 and is silent on arm64**, so local `ctest` stayed green while `ubuntu-latest` crashed. | High | **SP-106** | ✅ **Resolved - Verified (2026-08-17)** → [`../Issues/Verified/Issue-verified-0121-0130.md`](../Issues/Verified/Issue-verified-0121-0130.md) |
+| I-0122 | ⚠️ `[ScriviCore]` **`stack-use-after-scope` — a test iterated a destroyed temporary `Result`** (`Result::value()` returns a reference *into* the Result; lifetime extension does not reach it). Test code only. **Found by SP-106's own sanitizer leg on its first run**, after weeks passing green. Same arm64/x86-64 visibility split as I-0121. | Medium | **SP-106** | ✅ **Resolved - Verified (2026-08-17)** → [`../Issues/Verified/Issue-verified-0121-0130.md`](../Issues/Verified/Issue-verified-0121-0130.md) |
 
 > ⚠️ **I-0121 undermined the evidence behind several EP-031 sprint closes.** SP-093, SP-095, SP-096, SP-097,
 > SP-098 and SP-099 all pushed with ScriviCore CI failing; their "ctest N/N green" figures are **local arm64
@@ -306,12 +336,19 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 > log showed **522/523 passing**, a single crashing test, not a rotten suite — but it means *"all tests pass"*
 > meant *"all tests pass on one architecture"* from 2026-07-30 to 2026-08-16.
 >
-> ✅ **SP-106 restored the gate** (2026-08-16): CI is green on x86-64 again, a sanitizer matrix leg now makes
-> UB fail by diagnosis rather than by which instruction set happens to trap, and every leg reports its
-> architecture. **SP-100 can now rest its verification on a suite that runs clean on both architectures** —
-> which it could not have done before. ⚠️ **What SP-100 should still weigh:** the six sprints above were
-> *closed* on single-architecture evidence, and re-running their suites today is the only way to know that
-> nothing else was hiding behind the crash.
+> ✅ **SP-106 restored the gate, and closed 2026-08-17 (user-approved).** CI is green on x86-64 again, a
+> sanitizer matrix leg now makes UB fail by diagnosis rather than by which instruction set happens to trap,
+> and every leg reports its architecture. **SP-100 can now rest its verification on a suite that runs clean on
+> both architectures** — which it could not have done before.
+>
+> ⚠️ **What SP-100 must still weigh, and SP-106 sharpened rather than settled.** The six sprints above were
+> *closed* on single-architecture evidence. SP-106's sanitizer leg found a **second, previously unknown**
+> defect (**I-0122**) on its very first run, after weeks of green — so "what else was hidden" is now an
+> **empirical** question with one confirmed answer already, not a rhetorical caution. Re-running those suites
+> on both architectures is the only way to know.
+>
+> **Standing practice adopted from SP-106's exit criterion 4:** ⚠️ **`ctest` figures must name their
+> architecture.** "516/516" without a platform is the habit that let I-0121 run red for 17 days.
 
 > ✅ **Highest-risk task: T-0380 — done and Verified (SP-098, 2026-08-12).** The pending-vs-dangling
 > distinction was the one failure in this Epic that is *silent and unrecoverable* — a loader that reads "world
@@ -321,7 +358,33 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-16 (**Consistency audit — three corrections to this file.** (1) The close summary said
+*Last Updated: 2026-08-17, later same day (**SP-102 planning completed — the sprint is smaller than its
+staged scope.** ⚠️ **A code audit found most of AC9's remaining surface already shipped** in SP-099
+(T-0386/T-0407/T-0408) and SP-104 (I-0117): pending rows shown-not-hidden, named cached entries, the ⚠ badge,
+disabled-and-explained removal, the typed status decode, and the Worlds menu. **AC18/19/20 also already
+landed** as T-0388 — the older notes in this file assigning them to SP-102 are superseded. **What remains:**
+the card-level §7.2 footer (the card names no world today), the warning view (`listPendingEdges` has zero call
+sites), the AC24 volume refinement, and the `sources` card.
+⚠️ **AC23 is close to met in code and entirely unverified — and verification is the criterion**, so it is
+split out as **T-0415**, a live ejectable-disk-image run. Two rulings: **R1** the warning view gets its own
+toggle rather than being anchored to the hidden-by-default Timeline (**Doc 3 §4.6 to be amended**); **R2**
+AC24 refined via URL volume keys for both states, degrading to `unavailable` and never guessing `missing` —
+**no ABI change required**. **No AC state changed.** Prior note follows.)*
+
+*2026-08-17 (**SP-106 ✅ CLOSED (user-approved) — 9 of 11 sprints closed; SP-102 activated.**
+All 3 Tasks (T-0412/T-0413/T-0414) and both Issues (**I-0121, I-0122**) ✅ Verified and archived —
+`../Tasks/Verified/Task-verified-0412-0414.md` and the new `../Issues/Verified/Issue-verified-0121-0130.md`.
+**ScriviCore CI is green on x86-64 for the first time since 2026-07-30**, a 2×2 sanitizer matrix now makes UB
+fail by diagnosis rather than architecture accident, and macOS gained its first `platformDefault` coverage.
+⚠️ **The sanitizer leg found a second unknown defect (I-0122) on its first run** — SP-100's evidence question
+is now empirical, with one confirmed answer.
+**SP-102 is now 🟡 Active**, delivering **AC23 + AC24**, the last two clauses of **AC9**. ⚠️ **Scope
+correction recorded in the AC9 note:** the Worlds menu is **not** outstanding under T-0389 — it shipped as
+SP-099/T-0408 and was extended by SP-104/I-0117; the older notes in this file predate SP-099's R4.
+**No AC state changed** — AC1 stays unticked and owned by SP-100, AC9 in progress, AC10 open. Prior note
+follows.)*
+
+*2026-08-16 (**Consistency audit — three corrections to this file.** (1) The close summary said
 *"Issues verified across these sprints: I-0114–I-0119"* — **only I-0118 and I-0119 are Verified; I-0114–I-0117
 remain `Resolved - Not Verified`** and are not evidence for any AC until the user verifies them. ⚠️ **A closed
 Sprint was being read as verifying its Issues.** (2) The file called EP-031 both an **8-sprint** Epic (top) and

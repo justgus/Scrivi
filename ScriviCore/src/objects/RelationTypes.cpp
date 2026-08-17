@@ -53,11 +53,24 @@ std::vector<RelationType> RelationTypeStore::seedTypes() {
     // seed all four, scene-endpoint types included).
     std::vector<RelationType> out;
 
+    // ⚠️ I-0125 (SP-102 R5, user-ruled 2026-08-17): `sourceKind` is deliberately
+    // UNSET — any kind may appear in a scene.
+    //
+    // It was `ObjectKind::character`, which meant only a character could ever be
+    // linked to a scene by this type. But the Apple layer gives `appears-in` to
+    // EIGHT of the ten object cards (chronicle, building, vehicle, item, map,
+    // artifact, faction, rule), so creating any of those from its card wrote the
+    // object to disk and then failed at the edge — reported to the writer as a
+    // failed creation, leaving an object she was told did not exist. Eight of ten
+    // cards could never link anything, and no test caught it because the suites
+    // exercise `character`.
+    //
+    // The inverse label is now kind-neutral: "has characters" was already wrong the
+    // moment a chronicle or a faction used the type.
     RelationType appearsIn;
     appearsIn.code          = "appears-in";
     appearsIn.forwardLabel  = "appears in";
-    appearsIn.inverseLabel  = "has characters";
-    appearsIn.sourceKind    = ObjectKind::character;
+    appearsIn.inverseLabel  = "features";
     appearsIn.targetIsScene = true;
     out.push_back(std::move(appearsIn));
 

@@ -13,10 +13,10 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 ## Active Epics
 
 Currently: **1 Active Epic + 1 Draft.** **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) 🟡 **Active since 2026-08-12** — now an **11-sprint** Epic, **8 closed** (SP-095, SP-096, SP-097,
-SP-098, SP-099, SP-103, SP-104, SP-105). **No Sprint is currently active.** Three remain, all 🔵 Planning:
-**SP-106** (⚠️ `[Cross]` test integrity & CI trust) runs **first**, then **SP-102** (`[Apple]` pending
-presentation + warning view + `sources` card), then **SP-100** (verification & Epic close) last.
+Graph) 🟡 **Active since 2026-08-12** — now an **11-sprint** Epic, **9 closed** (SP-095, SP-096, SP-097,
+SP-098, SP-099, SP-103, SP-104, SP-105, **SP-106** ✅ closed 2026-08-17). Two remain: **SP-102** 🟡 **Active**
+(`[Apple]` pending presentation + warning view + `sources` card — **AC23 + AC24**, activated 2026-08-17),
+then **SP-100** 🔵 Planning (verification & Epic close) last.
 
 ⚠️ **AC1 must be RE-VERIFIED — the Epic's one outstanding acceptance criterion.** It was unticked
 2026-08-14 when the user's scope ruling (T-0409) moved all ten worldbuilding kinds into the world package;
@@ -99,8 +99,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 - **Total Epics:** 33 (EP-001–EP-033)
 - **Closed:** 29 ✅ (each has an archive in [`Closed/`](Closed/); most recent: EP-019 + EP-030, both 2026-08-11)
 - **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model; 8 of 11 sprints closed, **no Sprint
-  currently active**; SP-106 → SP-102 → SP-100 remain, all 🔵 Planning)
+- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model; **9 of 11 sprints closed**;
+  **SP-102 🟡 Active**, SP-100 🔵 Planning and runs last)
 - **Planned:** 0 🔵
 - **Draft:** 1 🔵 (EP-026 `[Linux]`)
 - **Deferred (backlog):** 0
@@ -109,7 +109,14 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 
 ---
 
-*Last Updated: 2026-08-16 (**Consistency audit — this index was three weeks stale and contradicted its own
+*Last Updated: 2026-08-17 (**EP-031: SP-106 ✅ closed (user-approved), SP-102 activated — 9 of 11 sprints
+closed.** SP-106's 3 Tasks and both Issues (I-0121, I-0122) all ✅ Verified and archived. **SP-102 is now the
+active Sprint**, delivering **AC23 + AC24** — the last two clauses of AC9; **SP-100 runs last** and still owns
+the **AC1 re-verification**. This file said "no Sprint is currently active" and listed SP-106 → SP-102 →
+SP-100 as all 🔵 Planning; both statements are corrected above. **EP-031 remains 🟡 Active** — no Epic state
+changed. Prior note follows.)*
+
+*2026-08-16 (**Consistency audit — this index was three weeks stale and contradicted its own
 table.** Corrected: the Active-Epics section still described EP-031 as "six sprints SP-095–SP-100" with
 **SP-095 "awaiting activation"** — SP-095 closed 2026-08-12 and the Epic is now a **10-sprint** Epic with 8
 closed and none active; **"Total Epics: 32" vs "Currently: 33 Epics"** in the same file (33 is correct — the

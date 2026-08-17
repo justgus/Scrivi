@@ -55,7 +55,7 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | EP-030 (SP-090) | ✅ **Verified (2026-08-05)** |
 | T-0363 | `tags` + `todo` cards | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
 | T-0364 | `outline` card | EP-030 (SP-091) | ✅ **Verified (2026-08-05)** |
-| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: `cites` type ✅ SP-096; `source` kind ✅ SP-098 as T-0406; card → SP-102**) | 🟡 **Two thirds done** — the `cites`/`documented-by` type (SP-096) and the `source` kind (SP-098 T-0406) are both ✅ Verified. **Only the aggregate `sources` card remains, moved SP-099 → SP-102 at SP-099 planning (R2).** Source→scene deferred to **EP-032** |
+| T-0365 | `sources` card + `source` object kind + `cites`/`documented-by` relation type | EP-031 (**split: `cites` type ✅ SP-096; `source` kind ✅ SP-098 as T-0406; card → SP-102**) | 🟡 **Two thirds done** — the `cites`/`documented-by` type (SP-096) and the `source` kind (SP-098 T-0406) are both ✅ Verified. **Only the aggregate `sources` card remains, moved SP-099 → SP-102 at SP-099 planning (R2).** Source→scene deferred to **EP-032**. 🟡 **Active (SP-102, activated 2026-08-17)** |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | EP-030 (SP-092) | 🟠 **Implemented — Not Verified** |
@@ -89,7 +89,9 @@ New, unstarted tasks are listed as summary rows. Tasks that have been implemente
 | T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
 | T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | EP-031 (**SP-097**) | ✅ **Verified (2026-08-12)** |
-| T-0389 | Pending presentation + Worlds menu + warning view (**⚠️ includes the unbuilt `offline`/`unmounted` status refinement — AC24**) | EP-031 (**SP-102** — split from SP-099, R2) | 🔵 Backlog |
+| T-0389 | Pending **footer** (the §7.2 world-named status sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**). ⚠️ **Cut at SP-102 planning (2026-08-17):** the Worlds menu, ⚠ badge, named entries, disabled-and-explained removal and the typed status decode all already shipped in SP-099/SP-104 | EP-031 (**SP-102** — split from SP-099, R2) | 🟡 **Active (SP-102, planned 2026-08-17)** — detail in [`Task-active.md`](Task-active.md) |
+| T-0416 | ⚠️ **Seeded relation-type vocabulary does not reach existing projects.** `RelationTypeStore::load` re-seeds `objects/relation-types.json` **only** when the file is missing or unparseable (`RelationTypes.cpp:150-176`); a valid file is loaded verbatim, so **any change to the seeded vocabulary is invisible to every project already on disk**. Surfaced by [[I-0125]]: widening `appears-in` fixed new projects while the user's real project kept the old constrained type and kept failing chronicle creation. **Deferred by user ruling (2026-08-17)** — his project's file was patched by hand so the blocker cleared; the general mechanism is a separate decision. Options considered: reconcile seeded types on open (add missing, update changed, never touch writer-authored types); or a `seedVersion` in the file, re-seeding on version bump. ⚠️ **Whatever is chosen must not clobber a type a writer deliberately customized** — the file is writer-editable by design. | EP-031 (**unscheduled**) | 🔵 Backlog |
+| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — eject → pending, reattach → restored **with no writer intervention**; both `unmounted` and `missing` branches. **Split out of T-0389 at SP-102 planning** because a fixture cannot establish this | EP-031 (**SP-102**) | 🟡 **Active (SP-102, planned 2026-08-17)** |
 | T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0391 | EP-031 verification + Epic close prep | EP-031 (**SP-100**) | 🔵 Backlog |
 | T-0216 | Perf/integration fixtures (100k events, 500 KB scene); gitignore migration | EP-019 (SP-057) | ⚪ **Closed — OBE (2026-08-05, user-directed)** |
@@ -132,6 +134,14 @@ backlog row that outlives its Sprint can only ever contradict it.
 
 Also corrected in the same pass: **T-0217** was listed 🔵 Backlog under the superseded SP-057, though it was
 completed in **SP-094** and closed with EP-019 on 2026-08-11.
+
+### SP-106 (closed 2026-08-17) — no rows to remove
+
+**T-0412, T-0413, T-0414** never entered this table: SP-106 was an unplanned sprint, opened and implemented
+the same day (2026-08-16). All three are ✅ **Verified 2026-08-17** and archived to
+[`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md); the Sprint record is
+[`Sprint-SP-106.md`](../Sprints/Closed/Sprint-SP-106.md). Recorded here so the absence reads as deliberate
+rather than as another stale-row omission.
 
 ---
 

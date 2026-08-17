@@ -12,20 +12,43 @@ closes. Tasks that are implemented but awaiting user verification move to
 
 ---
 
-## Currently: **3 active Tasks** — SP-106 `[Cross]` Test integrity & CI trust
+## Currently: **3 active Tasks** — SP-102 `[Apple]` Pending presentation + warning view + `sources` card
 
 | ID | Title | Sprint | Priority | Status |
 | -- | ----- | ------ | -------- | ------ |
-| T-0412 | Confirm the I-0121 fix on **x86-64** — the platform that actually traps the defect | SP-106 | High | 🟠 **Implemented - Not Verified (2026-08-16)** |
-| T-0413 | ⚠️ **Sanitizer CI leg** — `SCRIVI_ENABLE_SANITIZERS` + 2×2 CI matrix | SP-106 | High | 🟠 **Implemented - Not Verified (2026-08-16)** |
-| T-0414 | **macOS platform coverage** — `platformDefault`'s Apple branch (Linux had 7 tests, macOS zero) | SP-106 | Medium | 🟠 **Implemented - Not Verified (2026-08-16)** |
+| T-0389 | Pending **footer** + warning view + the `offline`/`unmounted` refinement (**AC24**) | SP-102 | High | 🟠 **Implemented - Not Verified (2026-08-17)** |
+| T-0365 | Aggregate `sources` card + citation popup (final third — `cites` type ✅ SP-096, `source` kind ✅ SP-098) | SP-102 | Medium | 🔵 Planned |
+| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**new at planning**) | SP-102 | High | 🔵 Planned — **unblocked by T-0389** |
 
-**Evidence:** ScriviCore CI green on **x86-64** for the first time since 2026-07-30 (run `31975883684`:
-`ubuntu-latest` 523/523, `macos-latest` 516/516). Local: **519/519** on macOS arm64, plain **and** ASan+UBSan.
-Both T-0413 and T-0414 were **proven RED before green** — the sanitizer reports the reintroduced
-divide-by-zero on arm64, and the new Apple tests fail when the Apple path rule is mutated.
+**Delivers EP-031 AC23 + AC24**, the last two clauses of AC9. ✅ **Planning completed 2026-08-17.**
 
-Full sprint record: [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md).
+> ⚠️ **The planning audit cut T-0389 substantially — most of its staged scope already shipped.** Pending rows
+> shown-not-hidden, named cached entries, the ⚠ badge, disabled-and-explained removal, the typed
+> `worldPending:<status>` decode **and the Worlds menu** all landed in **SP-099** (T-0386/T-0407/T-0408) and
+> **SP-104** (I-0117). **AC18/19/20 also already landed** as T-0388.
+>
+> **What is genuinely unbuilt:** the card-level **§7.2 footer** (the card names no world today — only a
+> hover tooltip), the **warning view** (`listPendingEdges` is wrapped with **zero call sites**), the **AC24
+> volume refinement** (`offline`/`unmounted` are still declared-but-never-produced), and the **`sources`
+> card** (not registered; no citation popup).
+
+> **T-0415 is new.** AC23 verification was an exit-criterion line inside T-0389; it is now its own Task
+> because ⚠️ **only a live ejectable-volume run can establish "restores with no writer intervention"** — a
+> fixture cannot. Burying that inside an implementation task is how it gets reported done on a fixture.
+
+Full plan, rulings **R1/R2**, and the audit table: [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md).
+
+---
+
+## Closed: SP-106 `[Cross]` Test integrity & CI trust (2026-08-17)
+
+T-0412, T-0413 and T-0414 were all ✅ **Verified 2026-08-17** and archived to
+[`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md). Issues **I-0121** and **I-0122**
+were Verified in the same step → [`../Issues/Verified/Issue-verified-0121-0130.md`](../Issues/Verified/Issue-verified-0121-0130.md).
+Sprint record: [`../Sprints/Closed/Sprint-SP-106.md`](../Sprints/Closed/Sprint-SP-106.md).
+
+**Standing practice adopted from its exit criterion 4:** ⚠️ **`ctest` figures must name their architecture.**
+"516/516" without a platform is the habit that let a divide-by-zero run red on x86-64 CI for 17 days.
 
 ---
 
@@ -66,5 +89,15 @@ package-structure §16a, repair-matrix §6.21); its record of truth is
 
 ---
 
-*Last Updated: 2026-08-16 (SP-106 activated and implemented — T-0412/T-0413/T-0414 all 🟠 Implemented - Not
+*Last Updated: 2026-08-17, later same day (**SP-102 planning completed.** ⚠️ **A code audit found most of
+T-0389's staged scope already shipped in SP-099/SP-104** and struck it; **T-0415 added** for AC23 live
+verification. Two rulings: **R1** the warning view gets its own toggle rather than being anchored to the
+hidden-by-default Timeline; **R2** AC24 refined via URL volume keys, degrading to `unavailable` and never
+guessing `missing` — **no ABI change needed**. Prior note follows.)*
+
+*2026-08-17 (**SP-106 ✅ closed (user-approved) — T-0412/T-0413/T-0414 all Verified and
+archived**, together with Issues I-0121 + I-0122. **SP-102 activated**: T-0389 + T-0365, delivering EP-031
+AC23 + AC24. Prior note follows.)*
+
+*2026-08-16 (SP-106 activated and implemented — T-0412/T-0413/T-0414 all 🟠 Implemented - Not
 Verified. This file carries active Tasks again for the first time since 2026-08-15.)*

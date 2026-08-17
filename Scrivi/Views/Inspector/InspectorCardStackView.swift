@@ -13,6 +13,9 @@ struct InspectorCardStackView: View {
     let allSceneIDs: [String]
     let history: HistoryCapture?
     let caretByteOffset: Int?
+    /// Bumped when world availability changes (I-0128), so object cards re-read
+    /// after a drive is reconnected instead of waiting for a scene change.
+    var worldRevision: Int = 0
     let authorshipRef: AuthorshipRef?
     @Bindable var layout: InspectorLayoutStore
 
@@ -120,6 +123,7 @@ struct InspectorCardStackView: View {
                                     history: history,
                                     caretByteOffset: caretByteOffset,
                                     historyRevision: history?.revision ?? 0,
+                                    worldRevision: worldRevision,
                                     // C6: one sort for the whole stack, handed to
                                     // every card rather than each owning its own.
                                     sort: layout.sort(for: stack),

@@ -40,14 +40,18 @@ See: [`Issue-active.md`](Issue-active.md)
 
 ## Backlog Issues (open, no Sprint)
 
-Currently: **4** — 2 🔴 Open, 2 🟠 Resolved - Not Verified (both SP-106).
+Currently: **2** — both 🔴 Open.
 
 | ID | Title | Severity | Status | Epic |
 | -- | ----- | -------- | ------ | ---- |
-| I-0121 | ⚠️ `[ScriviCore]` `rebalancedKeys(1)` divides by zero — **ScriviCore CI red on every commit since 2026-07-30** | High | 🟠 Resolved - Not Verified | EP-031 (**SP-106**) |
-| I-0122 | ⚠️ `[ScriviCore]` `stack-use-after-scope` — test iterates a destroyed temporary `Result`; **found by SP-106's new sanitizer leg on its first run** | Medium | 🟠 Resolved - Not Verified | EP-031 (**SP-106**) |
 | I-0018 | Scene Navigator shows no selection on app load | Low | 🔴 Open | — |
 | I-0017 | Window maximized state not restored on relaunch | Low | 🔴 Open | — |
+
+✅ **I-0121 and I-0122 archived 2026-08-17, in the same step SP-106 closed** — both ✅ Verified
+(user-approved) → [`Verified/Issue-verified-0121-0130.md`](Verified/Issue-verified-0121-0130.md), a new
+batch 13. Their full entries left `Issue-backlog.md` at the same time. ⚠️ **This is the discipline the note
+below says was missed twice** (I-0058, I-0112): archive in the step the Issue is verified, don't leave it in
+the backlog.
 
 ⚠️ **I-0058 and I-0112 were archived out of this backlog on 2026-08-16** (to batches 6 and 12). Both had been
 Verified — 2026-07-09 and 2026-08-11 — and left in the backlog for weeks. **A Verified Issue must be archived
@@ -60,9 +64,10 @@ See: [`Issue-backlog.md`](Issue-backlog.md)
 
 ## Verified Issues
 
-Currently: **95 verified Issues**, archived in decade batches. Counts below are the entries **physically in
-each file**, and they sum to 95. (**+2 on 2026-08-16** — I-0058 → batch 6 and I-0112 → batch 12, both archived
-late out of `Issue-backlog.md`.)
+Currently: **97 verified Issues**, archived in decade batches. Counts below are the entries **physically in
+each file**, and they sum to 97. (**+2 on 2026-08-17** — I-0121 and I-0122 → the new batch 13, archived **at
+the SP-106 close** rather than late. **+2 on 2026-08-16** — I-0058 → batch 6 and I-0112 → batch 12, both
+archived late out of `Issue-backlog.md`.)
 
 ⚠️ **Batches 2 and 3 are misfiled and the counts say so.** `Issue-verified-0011-0020.md` physically contains
 **I-0021 – I-0024**, which belong in batch 3; batch 3 carries a pointer stub for them rather than the entries.
@@ -85,6 +90,7 @@ entries. Left in place rather than re-cut: moving verified archive entries risks
 | 10 | I-0091 – I-0100 | [`Issue-verified-0091-0100.md`](Verified/Issue-verified-0091-0100.md) | 8 |
 | 11 | I-0101 – I-0110 | [`Issue-verified-0101-0110.md`](Verified/Issue-verified-0101-0110.md) | 6 |
 | 12 | I-0111 – I-0120 | [`Issue-verified-0111-0120.md`](Verified/Issue-verified-0111-0120.md) | 4 |
+| 13 | I-0121 – I-0130 | [`Issue-verified-0121-0130.md`](Verified/Issue-verified-0121-0130.md) | 2 |
 
 ---
 
@@ -97,7 +103,13 @@ entries. Left in place rather than re-cut: moving verified archive entries risks
 
 ---
 
-*Last Updated: 2026-08-16 (**I-0121 opened** — `rebalancedKeys(1)` divides by zero, the cause of ScriviCore
+*Last Updated: 2026-08-17 (**SP-106 closed — I-0121 and I-0122 ✅ Verified (user-approved) and archived** to
+the new **batch 13**, `Verified/Issue-verified-0121-0130.md`, with their full entries removed from
+`Issue-backlog.md` in the same step. Counts: verified 95 → **97**; backlog 4 → **2** (I-0017 and I-0018, both
+🔴 Open and unassigned). The 10 `Resolved - Not Verified` Issues in `Issue-active.md` are unchanged.
+Prior note follows.)*
+
+*2026-08-16 (**I-0121 opened** — `rebalancedKeys(1)` divides by zero, the cause of ScriviCore
 CI failing on every commit since 2026-07-30; assigned to EP-031, to be scoped at the next sprint's planning.
 A **Backlog Issues** section was added to this index, which previously listed only active and archived
 Issues — the backlog was unrepresented, and ⚠️ **two Issues filed there (I-0058, I-0112) are Verified but

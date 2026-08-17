@@ -23,11 +23,13 @@ The complete register of every Task ID in the project.
 
 ## Statistics
 
-- **Total Task IDs:** **414** — T-0001 … T-0415 (T-0278 never assigned; T-0415 unassigned)
-- **✅ Verified:** 369
-- **🔵 Backlog:** 24
-- **🟠 Implemented - Not Verified:** 12 (**+3 on 2026-08-16** — T-0412/T-0413/T-0414, SP-106, awaiting user
-  verification)
+- **Total Task IDs:** **416** — T-0001 … T-0417 (T-0278 never assigned; **T-0415 + T-0416 assigned
+  2026-08-17**; T-0417 unassigned)
+- **✅ Verified:** 372 (**+3 on 2026-08-17** — T-0412/T-0413/T-0414, SP-106, user-approved and **filed** to
+  [`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md))
+- **🔵 Backlog:** 23 (**−2, +1 on 2026-08-17** — T-0389/T-0365 went Active; **T-0416** filed from I-0125)
+- **🟡 Active:** 3 (T-0389, T-0365, **T-0415** — SP-102; planning completed 2026-08-17)
+- **🟠 Implemented - Not Verified:** 9
 - **⚪ Superseded:** 3
 - **⚪ Closed:** 2
 - **⛔️ Removed as OBE:** 2
@@ -598,7 +600,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-090.md` |
 | T-0363 | `tags` + `todo` cards | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
 | T-0364 | `outline` card | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
-| T-0365 | `sources` card (aggregate) — `cites` type ✅ SP-096, `source` kind ✅ SP-098/T-0406; **only the card remains** | SP-102 | EP-031 | 🔵 Backlog | — |
+| T-0365 | `sources` card (aggregate) — `cites` type ✅ SP-096, `source` kind ✅ SP-098/T-0406; **only the card remains** | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
 | T-0367 | Properties tab — field-driven view | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
 | T-0368 | Card failure isolation + inline warning | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
@@ -622,7 +624,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0386 | Object cards (ONE implementation, ten per-kind configurations) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point (disabled → T-0388) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
-| T-0389 | Pending presentation + Worlds menu + warning view (**⚠️ includes the unbuilt `offline`/`unmounted` status refinement — AC24**) | SP-102 | EP-031 | 🔵 Backlog | — |
+| T-0389 | Pending **footer** (the §7.2 world-named status sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**). ⚠️ **Cut at planning:** the Worlds menu, ⚠ badge, named entries, disabled-and-explained removal and typed status decode all already shipped (SP-099/SP-104) | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
 | T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | EP-031 | 🔵 Backlog | — |
 | T-0391 | EP-031 verification + Epic close prep | SP-100 | EP-031 | 🔵 Backlog | — |
 | T-0392 | `[ScriviCore]` Extend `scrivi.scene.v1`: `tags`, `outline`, `todo` (additive) + `SceneMetaData` + round-trip tests | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
@@ -645,14 +647,30 @@ archive files reconstructed after the fact from secondary sources.
 | T-0409 | ⚠️ **`objectKindIsWorldScoped` → all ten kinds world-scoped** (`source` excluded); update `ObjectStore` scope sites + C ABI kind table | SP-103 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-103.md` |
 | T-0410 | Worldless-project world-creation prompt | SP-103 | EP-031 | ⛔️ Removed as OBE | — |
 | T-0411 | Core + interop test realignment to world scope; **re-verify EP-031 AC1** under the new table | SP-103 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-103.md` |
-| T-0412 | **Confirm the I-0121 fix on x86-64** — ScriviCore CI green on both matrix legs (first time since 2026-07-30) | SP-106 | EP-031 | 🟠 Implemented - Not Verified | — |
-| T-0413 | ⚠️ **Sanitizer CI leg** — `SCRIVI_ENABLE_SANITIZERS` + 2×2 CI matrix; proven RED on reintroduced UB | SP-106 | EP-031 | 🟠 Implemented - Not Verified | — |
-| T-0414 | **macOS platform coverage** — 3 Apple `platformDefault` tests; verified RED before green | SP-106 | EP-031 | 🟠 Implemented - Not Verified | — |
-| T-0415 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
+| T-0412 | **Confirm the I-0121 fix on x86-64** — ScriviCore CI green on both matrix legs (first time since 2026-07-30) | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
+| T-0413 | ⚠️ **Sanitizer CI leg** — `SCRIVI_ENABLE_SANITIZERS` + 2×2 CI matrix; proven RED on reintroduced UB (**found I-0122 on its first run**) | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
+| T-0414 | **macOS platform coverage** — 3 Apple `platformDefault` tests; verified RED before green | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
+| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — eject → pending, reattach → restored **with no writer intervention**; both `unmounted` and `missing` branches | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
+| T-0416 | ⚠️ **Seeded relation-type vocabulary does not reach existing projects** — `relation-types.json` re-seeds only when missing/unusable, so seeded-vocabulary changes are invisible to projects on disk (surfaced by I-0125; user's project hand-patched, general fix deferred) | unscheduled | EP-031 | 🔵 Backlog | — |
+| T-0417 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
 
 ---
 
-*Last Updated: 2026-08-16 (consistency audit — **T-0217 corrected from 🔵 Backlog / SP-057 to ✅ Verified
+*Last Updated: 2026-08-17, later same day (**SP-102 planning completed — T-0415 assigned.** The AC23 live
+verification was an exit-criterion line inside T-0389 and is now its own Task, because ⚠️ **only a live
+ejectable-volume run can establish "restores with no writer intervention"** — a fixture cannot. **T-0389 was
+cut substantially** by a code audit: the Worlds menu, ⚠ badge, named cached entries, disabled-and-explained
+removal and the typed `worldPending:<status>` decode all already shipped in SP-099/SP-104. Counts: Task IDs
+414 → **415**, Active 2 → **3**; next available is now **T-0416**. Prior note follows.)*
+
+*2026-08-17 (**SP-106 ✅ closed; SP-102 activated.** T-0412/T-0413/T-0414 → ✅ **Verified
+(user-approved)** and **filed** to [`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md)
+— written at the close, so the **verified-but-unfiled count stays 180**; these three did not join it.
+T-0389 and T-0365 → 🟡 **Active** under SP-102. ⚠️ **T-0389's scope corrected:** the Worlds menu is no longer
+part of it — that shipped as SP-099/T-0408 and was extended by SP-104/I-0117. Counts: Verified 369 → **372**,
+Backlog 24 → **22**, Implemented-Not-Verified 12 → **9**, new **Active: 2**. Prior note follows.)*
+
+*2026-08-16 (consistency audit — **T-0217 corrected from 🔵 Backlog / SP-057 to ✅ Verified
 2026-08-11 / SP-094.** It was completed in SP-094 and closed with EP-019; the row had inherited SP-057, the
 sprint that was superseded into SP-094. ⚠️ **The 2026-08-15 rebuild took this row's status from
 `Task-backlog.md`, which was itself stale** — the one source the rebuild header warns against, used anyway

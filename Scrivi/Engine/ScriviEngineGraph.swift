@@ -301,6 +301,14 @@ public struct EdgeView: Decodable, Sendable, Identifiable {
     public let otherID:          String
     /// Cached even while pending, so the far end always has a name.
     public let otherDisplayName: String
+    /// The far endpoint's kind ("character", "location", …). Empty for a scene.
+    ///
+    /// ⚠️ **Load-bearing for pending edges (I-0124).** A resolved object can be
+    /// attributed to a card via the object index, but a PENDING object is absent from
+    /// that index by definition — its world is away. Without the kind travelling on
+    /// the edge, every pending object appeared on every world-scoped card.
+    /// Optional so an older core's payload still decodes.
+    public let otherKind:        String?
 
     /// ⚠️ The far endpoint's world is unavailable: this edge is **pending, not
     /// dangling**. Show it, name it, and refuse to modify it — never hide it, which
@@ -418,8 +426,23 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
 
     public var id: String { worldID }
 
+    /// The world's status, **refined by the platform layer** (AC24).
+    ///
+    /// ScriviCore reports only `missing` or `unavailable` — `offline` and `unmounted`
+    /// need volume inspection that Doc 3 §4.4.1 keeps out of the shared model. This
+    /// accessor is the single place that refinement is applied, so every consumer
+    /// (`WorldsView`, the object cards, the warning view, `AppEnvironment`) reports
+    /// the same status without any of them restating the rule.
+    ///
+    /// ⚠️ **Refine here, never at the call sites.** Five sites read this; a per-site
+    /// copy is the restated-list defect in another costume, and this Epic has paid
+    /// for that seven times.
+    ///
+    /// The unknown-status fallback stays `.unavailable` rather than a guess: a status
+    /// string from a newer core must degrade honestly.
     public var worldStatus: WorldStatus {
-        WorldStatus(rawValue: status) ?? .unavailable
+        let reported = WorldStatus(rawValue: status) ?? .unavailable
+        return WorldVolumeStatus.refine(coreStatus: reported, packagePath: packagePath)
     }
 }
 

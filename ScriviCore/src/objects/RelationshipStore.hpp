@@ -44,6 +44,16 @@ struct EdgeView {
     std::string label;              // forwardLabel or inverseLabel accordingly
     std::string otherID;
     std::string otherDisplayName;
+    // The far endpoint's KIND ("character", "location", …), empty for a scene or an
+    // unresolvable endpoint.
+    //
+    // ⚠️ I-0124: the core has always known this — `ResolvedEndpoint::kind` backs the
+    // relation-type constraint check — but it was never carried across the boundary,
+    // so the Apple layer could not filter PENDING edges by kind and every pending
+    // object appeared on every world-scoped card. Resolved endpoints are filterable
+    // via the object index; pending ones are not in that index by definition, which
+    // is exactly why the kind has to travel with the edge.
+    std::string otherKind;
 
     // The far endpoint's world is unavailable (T-0380). `otherDisplayName` is
     // then the binding's cached name (AC-A7), never a bare ID — a writer being

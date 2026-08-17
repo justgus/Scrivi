@@ -309,7 +309,8 @@ TEST_CASE("ONE edge renders forward from one end and inverse from the other",
     REQUIRE(fromScene.ok());
     REQUIRE(fromScene.value().size() == 1);
     REQUIRE_FALSE(fromScene.value()[0].isForward);
-    REQUIRE(fromScene.value()[0].label == "has characters");
+    // I-0125/R5: kind-neutral, since any kind may now appear in a scene.
+    REQUIRE(fromScene.value()[0].label == "features");
 
     // Same edge, seen twice.
     REQUIRE(fromAda.value()[0].edge.edgeID == fromScene.value()[0].edge.edgeID);
@@ -477,12 +478,45 @@ TEST_CASE("create rejects bad input", "[integration][T-0375]") {
         REQUIRE_FALSE(store.create(fix.root(), ada.value, "ghost-id", "cites", "").ok());
     }
     SECTION("kind-constraint violation") {
+        // ⚠️ AMENDED (I-0125 / SP-102 R5, user-ruled 2026-08-17). This asserted that
+        // `appears-in` REFUSES location→scene, because the type was declared
+        // character→scene. That constraint was the defect: the Apple layer gives
+        // `appears-in` to eight of the ten object cards, so creating a chronicle,
+        // faction, artifact (etc.) from its card wrote the object and then failed at
+        // the edge — reported to the writer as a failed creation. `appears-in` is now
+        // unconstrained on its source: ANY kind may appear in a scene.
+        // The constraint machinery must still bite, or this section asserts nothing:
+        // `sibling-of` is character↔character, so a location on either end is
+        // refused. (That `appears-in` now ACCEPTS any kind is asserted in its own
+        // test below, which can commit an edge — this one ends by requiring the log
+        // to be empty.)
         auto loc = fix.makeObject(ObjectKind::location, "Vault", "vault");
-        // appears-in is character→scene; location→scene must be refused.
-        REQUIRE_FALSE(store.create(fix.root(), loc.value, fix.firstSceneID.value,
-                                   "appears-in", "").ok());
+        REQUIRE_FALSE(store.create(fix.root(), loc.value, ada.value,
+                                   "sibling-of", "").ok());
     }
     REQUIRE(store.load(fix.root()).value().empty());
+}
+
+// ⚠️ I-0125 (SP-102 R5): every worldbuilding kind must be linkable to a scene.
+//
+// Regression for a defect that made EIGHT of the ten object cards unable to create
+// anything: `appears-in` was declared character→scene while the Apple layer offers it
+// for chronicle, building, vehicle, item, map, artifact, faction and rule. The object
+// was written to disk, the edge was refused, and the writer was told creation failed.
+TEST_CASE("appears-in accepts every kind, not just characters (I-0125)",
+          "[integration][I-0125]") {
+    GraphFixture fix;
+    RelationshipStore store{fix.services};
+
+    for (const auto kind : {ObjectKind::chronicle, ObjectKind::faction,
+                            ObjectKind::artifact, ObjectKind::location,
+                            ObjectKind::item, ObjectKind::building}) {
+        const auto name = objectKindName(kind);
+        auto obj = fix.makeObject(kind, name, name);
+        INFO("kind = " << name);
+        REQUIRE(store.create(fix.root(), obj.value, fix.firstSceneID.value,
+                             "appears-in", "").ok());
+    }
 }
 
 TEST_CASE("an unconstrained type relates ANY two kinds", "[integration][T-0375]") {

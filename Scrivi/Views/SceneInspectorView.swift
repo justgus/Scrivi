@@ -16,6 +16,8 @@ struct SceneInspectorView: View {
     let allSceneIDs: [String]
     let history: HistoryCapture?
     let caretByteOffset: Int?
+    /// I-0128: world availability revision, so cards refresh on reconnect.
+    var worldRevision: Int = 0
     /// Attribution for objects created in a card (T-0388).
     let authorshipRef: AuthorshipRef?
     @Bindable var layout: InspectorLayoutStore
@@ -57,6 +59,7 @@ struct SceneInspectorView: View {
                                    allSceneIDs: allSceneIDs,
                                    history: history,
                                    caretByteOffset: caretByteOffset,
+                                   worldRevision: worldRevision,
                                    authorshipRef: authorshipRef,
                                    layout: layout)
         case .worldbuilding:
@@ -67,6 +70,7 @@ struct SceneInspectorView: View {
                                    allSceneIDs: allSceneIDs,
                                    history: history,
                                    caretByteOffset: caretByteOffset,
+                                   worldRevision: worldRevision,
                                    authorshipRef: authorshipRef,
                                    layout: layout)
         case .properties:

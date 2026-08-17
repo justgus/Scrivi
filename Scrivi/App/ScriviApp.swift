@@ -208,6 +208,9 @@ struct ScriviApp: App {
                     .keyboardShortcut("i", modifiers: [.command, .option])
                 Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
                     .keyboardShortcut("t", modifiers: [.command, .option])
+                // §7.3 (SP-102 R1): its own toggle, NOT tied to the Timeline. The
+                // strip still only renders when a world is actually unavailable.
+                Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
                 Toggle("Show Buffers", isOn: Bindable(env).buffersPaletteVisible)
                     .keyboardShortcut("b", modifiers: [.command, .option])
             } else {
@@ -216,6 +219,8 @@ struct ScriviApp: App {
                     .disabled(true)
                 Toggle("Show Timeline", isOn: .constant(false))
                     .keyboardShortcut("t", modifiers: [.command, .option])
+                    .disabled(true)
+                Toggle("Show World Warnings", isOn: .constant(false))
                     .disabled(true)
                 Toggle("Show Buffers", isOn: .constant(false))
                     .keyboardShortcut("b", modifiers: [.command, .option])
@@ -322,12 +327,15 @@ struct ScriviApp: App {
                     .keyboardShortcut("i", modifiers: [.command, .shift])
                 Toggle("Show Timeline", isOn: Bindable(session).timelineVisible)
                     .keyboardShortcut("t", modifiers: [.command, .shift])
+                Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
             } else {
                 Toggle("Show Scene Inspector", isOn: .constant(false))
                     .keyboardShortcut("i", modifiers: [.command, .shift])
                     .disabled(true)
                 Toggle("Show Timeline", isOn: .constant(false))
                     .keyboardShortcut("t", modifiers: [.command, .shift])
+                    .disabled(true)
+                Toggle("Show World Warnings", isOn: .constant(false))
                     .disabled(true)
             }
         }

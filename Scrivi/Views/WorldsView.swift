@@ -17,6 +17,9 @@ import UniformTypeIdentifiers
 struct WorldsView: View {
     let engine: ScriviEngine
     let projectRootPath: String
+    /// Re-acquires world access across open projects (I-0123). Injected rather than
+    /// reached for, because this view is handed its engine explicitly.
+    var onReconnect: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
 
@@ -82,6 +85,21 @@ struct WorldsView: View {
             // able to attach one it did not create.
             HStack {
                 Button("Add Existing World…", action: bindExistingWorld)
+
+                // ⚠️ I-0123, and the writer's own proposed remedy: *"An option on the
+                // world menu to 'refresh' this links would be a minimal intervention
+                // here and allow the app to relink easily."*
+                //
+                // Re-takes the sandbox grant for every bound world and re-reads their
+                // status, so a drive plugged in after launch is picked up WITHOUT a
+                // relaunch. Foregrounding does this automatically now; this is the
+                // explicit control for when it is needed on demand.
+                Button("Reconnect Worlds") {
+                    onReconnect()
+                    load()
+                }
+                .help("Re-check worlds that were unavailable — use after reconnecting a drive.")
+
                 Spacer()
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)

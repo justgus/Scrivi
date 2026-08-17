@@ -6,76 +6,38 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121, sanitizer CI leg, macOS platform coverage | EP-031 | 🔵 **Planning — runs FIRST** |
-| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card | EP-031 | 🔵 Planning |
-| SP-100 | EP-031 verification & Epic close | EP-031 | 🔵 Planning (**runs last**) |
+| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 🔵 Planning (**runs last**) |
+
+**SP-100 is the only Sprint in Planning** — and the last of EP-031's eleven.
 
 ---
 
-## SP-106 — `[Cross]` Test integrity & CI trust (🔵 Planning, opened 2026-08-16)
+> ✅ **SP-106 ✅ CLOSED 2026-08-17 (user-approved)** — `Closed/Sprint-SP-106.md`. Its Planning row and full
+> scoping block were removed from this file in the same step, per the standing rule. **All 3 Tasks
+> (T-0412/T-0413/T-0414) and both Issues (I-0121, I-0122) ✅ Verified.** ScriviCore CI is green on **x86-64**
+> for the first time since 2026-07-30 (run `31975883684`: `ubuntu-latest` **523/523**, `macos-latest`
+> **516/516**); a **2×2 sanitizer matrix** now makes UB fail by diagnosis rather than by which instruction set
+> happens to trap; and macOS gained its first 3 `platformDefault` tests against Linux's 7.
+>
+> ⚠️ **The sanitizer leg found a second, unknown defect on its very first run** — **I-0122**, a
+> `stack-use-after-scope` green for weeks. **The sprint was scoped as "fix a known defect and add tooling";
+> the tooling behaved as detection within hours.** What else is latent behind single-architecture evidence is
+> now an empirical question for SP-100, not a rhetorical one.
+>
+> **Standing practice adopted:** ⚠️ **`ctest` figures must name their architecture.**
 
-**Epic:** EP-031 · **Codebases:** `[ScriviCore]` + CI configuration · **Runs before SP-102 and SP-100**
-(user ruling 2026-08-16).
-
-**Why this is its own sprint.** The alternative was folding I-0121 into SP-102 — but SP-102 is an `[Apple]`
-UI sprint, and this is `[ScriviCore]` + build-configuration work. **That is the exact mixing that forced the
-SP-099 split at planning** (plumbing, CRUD UI and failure-surface work in one verification pass). Folding it
-into SP-100 instead would leave CI red through SP-102 and hand the Epic's verification sprint a build-config
-change on top of its own remit.
-
-⚠️ **SP-100 cannot do its job until this lands.** Its remit is EP-031 verification, and **the suite has not
-run clean on x86-64 since 2026-07-30** — six sprints closed on single-architecture evidence.
-
-### Goal
-
-Make "the tests pass" mean something on both architectures: fix the defect that has held CI red, make its
-whole class fail deterministically rather than by hardware accident, and close the macOS platform-coverage
-gap that lets Apple-side platform behavior go untested.
-
-### Assigned Issue
-
-| ID | Title | Severity | Status |
-| -- | ----- | -------- | ------ |
-| I-0121 | `rebalancedKeys(1)` divides by zero — ScriviCore CI red since 2026-07-30 | High | 🟠 **Resolved (code fix) - Not Verified** — guard applied 2026-08-16, proven RED-then-GREEN under UBSan locally; **x86-64 confirmation outstanding** |
-
-### Tasks
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| T-0412 | **Confirm the I-0121 fix on x86-64** — ScriviCore CI green on **both** matrix legs for the first time since 2026-07-30. ⚠️ The code change is already applied; this task is the *verification that the developer's machine cannot provide*. | 🔵 Backlog |
-| T-0413 | ⚠️ **Sanitizer CI leg** — add `-fsanitize=undefined` (consider `address` too) with `-fno-sanitize-recover=all` so UB fails deterministically instead of depending on which instruction set traps. **May change the test configuration** (user-flagged). Today the root `CMakeLists.txt` sets **no** sanitizer, no `-Werror`, no build-type flags. | 🔵 Backlog |
-| T-0414 | **macOS platform coverage** — the Apple side currently has **zero** platform-specific tests while Linux has 7. Close the `platformDefault` gap first (the shared test only asserts non-empty + ends in `Scrivi`; the Apple branch is untested). | 🔵 Backlog |
-
-### Rulings taken at opening (2026-08-16)
-
-**R1 — the single-key position is the MIDPOINT** (user-ruled). `rebalancedKeys(1)` → `"H"`
-(`(lo + hi) / 2 == 17`; the generator alphabet is 0-indexed). Verified `keyBefore("H") == "8"` and
-`keyAfter("H") == "Q"` — room on both sides. `lo` was the alternative and was not taken.
-
-**R2 — a green arm64 run is NOT evidence for I-0121.** The defect is invisible on arm64 by construction.
-Acceptance requires **x86-64**, or a sanitizer build that makes arm64 trap what x86-64 traps in hardware.
-⚠️ **This is the rule that would have caught the bug 17 days earlier.**
-
-**R3 — the 5 `EncryptedFileSecureStore` tests stay in C++ and are NOT ported to Swift.** They are Linux-only
-because the *capability* is Linux-only: `scrivi_c_api.cpp:94-106` shows Apple falling back to the in-memory
-`PrototypeSecureStore`, so identity does not survive restart there. Four of the five assert the `SecureStore`
-**contract**, not OpenSSL — if Apple ever regains a persistent store, they should be written against the
-interface in Catch2 and run on both platforms, **not duplicated in Swift**. A Swift test would have to reach
-through `scrivi_*` to observe C++-internal behavior, testing the wrapper rather than the store. *(Scope note:
-restoring Apple's persistent store is NOT in this sprint.)*
-
-**R4 — the 2 XDG `platformDefault` tests are correctly Linux-only.** They assert a Linux filesystem
-convention with no macOS analogue. The Apple equivalent is a **different** rule and belongs in T-0414 as new
-coverage, not as a port.
-
-### Exit criteria
-
-1. ScriviCore CI green on **both** matrix legs — the first time since 2026-07-30.
-2. A sanitizer configuration runs in CI and **fails** on reintroduced UB (prove it against the pre-fix
-   `OrderKey.cpp`, as was done locally — a sanitizer that has never gone red proves nothing).
-3. macOS `platformDefault` has real coverage; the Apple/Linux coverage asymmetry is documented or closed.
-4. ⚠️ **`ctest` figures quoted at close name their architecture.** "516/516" without a platform is the habit
-   that let this run for 17 days.
+> 🟡 **SP-102 ACTIVATED 2026-08-17** → [`Sprint-active.md`](Sprint-active.md). Its Planning row is removed
+> above per the standing rule. `[Apple]` pending presentation + warning view + the aggregate `sources` card —
+> **T-0389 + T-0365**, delivering **AC23 + AC24**, the last two clauses of EP-031 **AC9**.
+> ⚠️ **The Worlds menu is no longer in T-0389's scope**: it shipped early as **SP-099/T-0408** (R4) and was
+> extended by **SP-104/I-0117** (per-row remove + "Locate…").
+>
+> ✅ **Planning completed 2026-08-17.** ⚠️ **The audit found most of T-0389's staged scope already shipped** in
+> SP-099/SP-104 — pending rows, ⚠ badge, named entries, disabled-and-explained removal, typed status decode.
+> What remains is the card-level **§7.2 footer**, the **warning view** (`listPendingEdges` has zero call
+> sites), the **AC24 volume refinement**, and the **`sources` card**, plus new **T-0415** for the AC23 live
+> disk-image run. Rulings **R1** (warning view gets its own toggle; **Doc 3 §4.6 amended**) and **R2** (AC24
+> via URL volume keys, degrading to `unavailable`, never guessing `missing`; **no ABI change**).
 
 > ✅ **SP-103 IS COMPLETE (2026-08-15).** T-0409 (the scope change) and T-0411 (test realignment) are
 > done and user-verified; its fallout was cleaned up by SP-104/SP-105, both closed.
@@ -246,7 +208,11 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 > **SP-064 activated 2026-07-15**, ✅ **closed 2026-07-15** — `Closed/Sprint-SP-064.md` (EP-022 `[Linux]` cursor/focus polish (focus-on-open, caret normalization out of boundary gaps, non-deletable separator) + quit→reopen **surface restore** (last active scene + cursor + scroll via the `restored{}` payload + `save_scene` selection/scroll args — filled the 0/0/0.0 stub) + full EP-022 verify; **AC4-cursor/AC5/AC6/AC7** delivered & user-verified over VNC; T-0246–T-0248 Verified; no ScriviCore work, `scrivi.h` untouched). **This closed EP-022.** Next `[Linux]` Epic is **EP-023** (structure editing), drafted when the user activates it.
 
 
-*Last Updated: 2026-08-16 (**I-0121 flagged as unscoped work for the next planning session.** ScriviCore CI
+*Last Updated: 2026-08-17 (**SP-106 ✅ closed and SP-102 activated.** Both Planning rows removed from the
+table above in the same step, and SP-106's full scoping block removed with it — the standing rule. **SP-100 is
+now the only Sprint in Planning**, and the last of EP-031's eleven. Prior note follows.)*
+
+*2026-08-16 (**I-0121 flagged as unscoped work for the next planning session.** ScriviCore CI
 has been red since 2026-07-30 on a one-line divide-by-zero that only traps on x86-64; the sprint-sized half is
 adding `-fsanitize=undefined` to CI, which may change the test configuration. Recorded here — rather than
 silently folded into SP-102 — because **which sprint takes it is a planning decision**, and because SP-100's

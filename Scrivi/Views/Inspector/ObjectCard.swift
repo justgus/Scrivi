@@ -114,10 +114,13 @@ struct ObjectCardKind: Sendable, Hashable {
         let label:       String
         let sortIndex:   Double
         /// ⚠️ The far endpoint's world is unavailable. Show it, name it, refuse to
-        /// modify it — never hide it (§7.2). Full pending presentation is SP-102;
-        /// the flag is carried from day one so nothing has to be retrofitted.
+        /// modify it — never hide it (§7.2).
         let pending:     Bool
         let pendingStatus: WorldStatus?
+        /// Which world is away. Needed by the card footer, because §7.2 requires the
+        /// world to be **named** — "World «Eskandar» is on a disconnected volume",
+        /// not an anonymous warning. Present only when `pending`.
+        let pendingWorldID: String?
 
         var id: String { edgeID }
     }
@@ -153,10 +156,23 @@ struct ObjectCardKind: Sendable, Hashable {
                 // A pending endpoint cannot be confirmed against the index — its
                 // world is away, so it is absent from the listing. Trusting the
                 // index alone here would silently HIDE pending objects, which is
-                // precisely what §7.2 forbids. Keep them when the card is
-                // world-scoped and let the pending flag speak.
+                // precisely what §7.2 forbids.
+                //
+                // ⚠️ **I-0124: the pending branch must still check the KIND.** It
+                // previously read `edge.otherPending && cardKind.isWorldScoped` —
+                // but `isWorldScoped` is a property of THIS CARD, not of the object
+                // on the far end, so with a world away every pending object was
+                // admitted to all ten cards at once: locations and chronicles listed
+                // under Characters. The data was never wrong; only this filter was —
+                // which to a writer looks exactly like her world has been scrambled.
+                //
+                // `otherKind` now travels on the edge (it is the binding's cached
+                // kind for a pending endpoint), so the far end can be attributed
+                // without the index.
                 let known = ofKind.contains(edge.otherID)
-                guard known || (edge.otherPending && cardKind.isWorldScoped) else {
+                let pendingOfThisKind = edge.otherPending
+                    && edge.otherKind == cardKind.kind
+                guard known || pendingOfThisKind else {
                     return nil
                 }
                 return Entry(
@@ -166,7 +182,8 @@ struct ObjectCardKind: Sendable, Hashable {
                     label: edge.label,
                     sortIndex: edge.sortIndex,
                     pending: edge.otherPending,
-                    pendingStatus: edge.pendingStatus
+                    pendingStatus: edge.pendingStatus,
+                    pendingWorldID: edge.otherPending ? edge.otherWorldID : nil
                 )
             }
             loadError = nil
@@ -365,6 +382,9 @@ struct ObjectCardBody: View {
                                                 originSceneID: context.sceneID)
                         }
                     }
+                    // §7.2: name the world and say what is wrong with it. The rows
+                    // carry a ⚠ badge; only this says *which world* and *why*.
+                    PendingWorldFooter(entries: entries, worlds: worlds)
                 }
 
                 // §4.6: the edit state lives IN the card, in the stack. No modal,
@@ -387,7 +407,12 @@ struct ObjectCardBody: View {
                         // exactly how the wrong-scene surprise happened.
                         originLabel: originSceneLabel,
                         onCommit: { commitDraft() },
-                        onDiscard: { draft = nil }
+                        // ⚠️ I-0126: clear the failure notice too. A stale error
+                        // sitting on the card after Discard contradicts what the
+                        // writer can plainly see working, and it is what made
+                        // I-0125 so confusing to diagnose — she could not tell
+                        // which message described the current state.
+                        onDiscard: { draft = nil; commitError = nil }
                     )
                 }
 
@@ -444,8 +469,15 @@ struct ObjectCardBody: View {
                 ProgressView().controlSize(.small)
             }
         }
-        // Reload when the scene changes (C4=A: eager on scene select).
-        .task(id: context.sceneID) {
+        // Reload when the scene changes (C4=A: eager on scene select) OR when world
+        // availability changes (I-0128).
+        //
+        // ⚠️ `sceneID` alone left the card stale after a reconnect: the warning strip
+        // cleared and the graph relinked, but each card kept rendering the pending
+        // entries it loaded while the world was away until the writer switched scenes.
+        // Same fix as I-0105's `historyRevision` — fold the revision into the key so
+        // a change the card cannot otherwise observe still invalidates it.
+        .task(id: "\(context.sceneID)#\(context.worldRevision)") {
             model = ObjectCardModel(
                 engine: context.engine,
                 projectRootPath: context.projectRootPath,
@@ -488,6 +520,7 @@ struct ObjectCardBody: View {
             Button(pending.isNew ? "Discard New \(singularTitle)" : "Revert Changes",
                    role: .destructive) {
                 draft = nil
+                commitError = nil      // I-0126: the notice goes with the draft.
                 showUnfinishedPrompt = false
             }
         } message: { pending in
@@ -565,6 +598,7 @@ struct ObjectCardBody: View {
                 )
             }
             draft = nil
+            commitError = nil          // I-0126: a success clears the last failure.
         } catch {
             // Keep the draft open — her typing is not thrown away on a failed save.
             commitError = error.localizedDescription
@@ -671,6 +705,82 @@ private struct ObjectDraftEditor: View {
     /// creation is refused rather than failing at the boundary.
     private var needsWorld: Bool {
         cardKind.isWorldScoped && draft.worldID.isEmpty
+    }
+}
+
+/// The §7.2 pending block: a divider, then one line per unavailable world **naming
+/// it** and reporting its status.
+///
+/// ⚠️ **The rows alone are not enough, which is why this exists.** Before T-0389 a
+/// pending entry showed a ⚠ badge and a greyed name, and the only place the world
+/// and its status appeared was a `.help()` tooltip — hover-only, undiscoverable, and
+/// absent entirely on iPad. A writer could see that *something* was wrong and had no
+/// way to learn *which world* or *why*, which is precisely the state that invites the
+/// destructive remedy I-0115 warns about.
+///
+/// **Never offer a cleanup affordance here.** Anything that would drop pending links
+/// belongs solely to the Worlds menu (§7.2, §7.3); inline it reads as routine tidying.
+private struct PendingWorldFooter: View {
+    let entries: [ObjectCardModel.Entry]
+    /// Bound worlds, for resolving an ID to a display name.
+    let worlds: [WorldEntry]
+
+    /// One line per distinct world, so a card holding entries from two absent worlds
+    /// reports both rather than blaming whichever sorted first.
+    private var groups: [(worldID: String, name: String, status: WorldStatus, count: Int)] {
+        let pending = entries.filter(\.pending)
+        guard !pending.isEmpty else { return [] }
+
+        // An empty key covers the case where the core reported pending without a
+        // world ID: still reported, just not named. Silence would be worse.
+        let byWorld = Dictionary(grouping: pending) { $0.pendingWorldID ?? "" }
+        return byWorld.map { worldID, rows in
+            let name = worlds.first { $0.worldID == worldID }?.displayName
+            let status = rows.compactMap(\.pendingStatus).first ?? .unavailable
+            return (worldID: worldID,
+                    // ⚠️ Falling back to the ID is deliberate: an unnamed world is
+                    // still better than an unattributed warning.
+                    name: name ?? (worldID.isEmpty ? "" : worldID),
+                    status: status,
+                    count: rows.count)
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    var body: some View {
+        if !groups.isEmpty {
+            Divider().padding(.vertical, 2)
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(groups, id: \.worldID) { group in
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            // The icon is decorative; the sentence carries the meaning,
+                            // so it must not be announced twice.
+                            .accessibilityHidden(true)
+                        Text(sentence(for: group))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// ⚠️ Never says "missing" unless the core positively established it (I-0115), and
+    /// never implies the links are gone — they are **held**, which is the guarantee
+    /// AC7 makes and the one thing the writer most needs to know.
+    private func sentence(
+        for group: (worldID: String, name: String, status: WorldStatus, count: Int)
+    ) -> String {
+        let links = group.count == 1 ? "This link is" : "These \(group.count) links are"
+        let world = group.name.isEmpty
+            ? "That world"
+            : "World “\(group.name)”"
+        return "\(world) is \(group.status.writerDescription). \(links) held pending."
     }
 }
 

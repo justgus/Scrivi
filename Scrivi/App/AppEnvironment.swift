@@ -324,6 +324,36 @@ import UniformTypeIdentifiers
         #endif
     }
 
+    /// Re-acquires world access for **every open project**, then refreshes their
+    /// pending reports (I-0123).
+    ///
+    /// ⚠️ **Why this exists.** `activateWorlds` used to run in `loadProject` and
+    /// nowhere else — once, at open. A world whose volume was absent *at that moment*
+    /// therefore had no security-scoped grant, and **nothing ever tried again**: when
+    /// the writer plugged the drive back in, the package was physically present and
+    /// still unreadable to the sandbox. Links stayed pending, "Add Character" reported
+    /// no world, and only relaunching fixed it.
+    ///
+    /// The recovery capability was already complete — `WorldBookmarkStore.activate` is
+    /// idempotent and even refreshes a stale bookmark in place. **Only the trigger was
+    /// missing**, which is the same shape as I-0117 and SP-099's R4 finding: the
+    /// capability shipped, the surface did not.
+    ///
+    /// Cheap enough to run on every foreground: one `listWorlds` plus one bookmark
+    /// resolve per bound world, and `startAccessingSecurityScopedResource` on an
+    /// already-active URL is a no-op.
+    func reconnectWorlds() {
+        for (_, session) in openProjects.sessions {
+            activateWorlds(for: session)
+            session.worldWarning.reload(engine: session.engine,
+                                        projectRootPath: session.projectRootPath ?? "")
+            // I-0128: tell the inspector cards to re-read. They key on sceneID, which
+            // does not change when a drive comes back, so without this the writer had
+            // to switch scenes before her objects relinked on screen.
+            session.bumpWorldRevision()
+        }
+    }
+
     // Ensures a project is open and its window is shown/focused (EP-018 / T-0194).
     //   • already open → focus its existing window (R3).
     //   • not open → resolve the path from ProjectBookmarkStore, load, register, open a

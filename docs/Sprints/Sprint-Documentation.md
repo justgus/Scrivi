@@ -11,18 +11,24 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No Sprint is active.** SP-099, SP-103, SP-104 and SP-105 all closed 2026-08-15 (user-approved) →
-[`Closed/`](Closed/). Current Sprint status lives in [`Sprint-active.md`](Sprint-active.md); each closed
-Sprint's full record lives in its own archive file, and is **not** restated here.
+**SP-102 is active** (activated 2026-08-17) — `[Apple]` pending presentation + warning view + the aggregate
+`sources` card. **SP-106 closed 2026-08-17 (user-approved)** → [`Closed/Sprint-SP-106.md`](Closed/Sprint-SP-106.md).
+Current Sprint status lives in [`Sprint-active.md`](Sprint-active.md); each closed Sprint's full record lives
+in its own archive file, and is **not** restated here.
 
-**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 8 closed** (SP-095, SP-096, SP-097,
-SP-098, SP-099, SP-103, SP-104, SP-105). Three remain, all 🔵 Planning:
+**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 9 closed** (SP-095, SP-096, SP-097,
+SP-098, SP-099, SP-103, SP-104, SP-105, SP-106). Two remain:
 
 | Sprint | Scope | Order |
 | ------ | ----- | ----- |
-| **SP-106** | ⚠️ `[Cross]` test integrity & CI trust — I-0121, sanitizer CI leg, macOS platform coverage | **runs first** |
-| **SP-102** | `[Apple]` pending presentation + warning view + `sources` card | runs next |
-| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | runs last |
+| **SP-102** | `[Apple]` pending presentation + warning view + `sources` card — **AC23 + AC24** | 🟡 **Active** |
+| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🔵 Planning (runs last) |
+
+> ✅ **SP-106 delivered the evidence base SP-100 needs.** ScriviCore CI is green on **x86-64** for the first
+> time since 2026-07-30, a 2×2 sanitizer matrix makes UB fail by diagnosis rather than by architecture
+> accident, and every CI leg names its architecture. ⚠️ **The sanitizer found a second, unknown defect
+> (I-0122) on its first run** — so what else was hidden behind six sprints of single-architecture evidence is
+> an open empirical question for SP-100.
 
 Epic-level status — acceptance criteria, the AC1 re-verification requirement, the Linux gap — belongs to
 EP-031 in [`../Epics/Epic-active.md`](../Epics/Epic-active.md) and is not duplicated here.
@@ -176,24 +182,33 @@ on-disk model rather than fixed twice). Follow-on **I-0073** (VNC drag-hover lag
 
 See: [Sprint-backlog.md](Sprint-backlog.md)
 
-*(Refreshed 2026-08-12 — the previous contents were entirely stale: SP-086/SP-090/SP-085/SP-056 have all
-closed, and SP-057 was superseded into SP-094.)*
-
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| **SP-106** | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121, sanitizer CI leg, macOS platform coverage | EP-031 | 🔵 Planning (**runs FIRST**) |
-| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card | EP-031 | 🔵 Planning |
-| SP-100 | EP-031 verification & Epic close (**runs last**) | EP-031 | 🔵 Planning |
+| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 🔵 Planning (**runs last**) |
+
+⚠️ **This table is a copy of [`Sprint-backlog.md`](Sprint-backlog.md)'s, and copies go stale.** It was
+refreshed 2026-08-12 (SP-086/SP-090/SP-085/SP-056 had all closed; SP-057 was superseded into SP-094) and
+again **2026-08-17**, when it still listed **SP-106 as 🔵 Planning "runs FIRST" the day it closed** and
+**SP-102 as Planning after it was activated** — while the section above already said otherwise, in this same
+file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.**
 
 ## All Sprints
 
-Currently: **104 Sprint IDs issued** — **99 closed**, 2 in 🔵 Planning (SP-102, SP-100), 1 superseded
-(SP-057 → SP-094), 1 cancelled (SP-034), 1 ID skipped (SP-068) | Next available: **SP-107**
+Currently: **104 Sprint IDs issued** — **100 closed**, 1 🟡 Active (SP-102), 1 in 🔵 Planning (SP-100),
+1 superseded (SP-057 → SP-094), 1 cancelled (SP-034), 1 ID skipped (SP-068) | Next available: **SP-107**
 
-**SP-106 opened 🔵 Planning 2026-08-16** (`[Cross]` test integrity & CI trust — I-0121, the sanitizer CI leg,
-macOS platform coverage). ⚠️ **It runs FIRST, before SP-102 and SP-100**, because SP-100's Epic-verification
-remit rests on a suite that has not run clean on x86-64 since 2026-07-30. Scoped in
-[`Sprint-backlog.md`](Sprint-backlog.md).
+**SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
+SP-102 and SP-100, because SP-100's Epic-verification remit rested on a suite that had not run clean on
+x86-64 since 2026-07-30. **All 3 Tasks and both Issues (I-0121, I-0122) Verified.** Record:
+[`Closed/Sprint-SP-106.md`](Closed/Sprint-SP-106.md). ✅ **Its All-Sprints row was added in the same step as
+the close** — the step the 2026-08-12 and 2026-08-16 audits both found missing.
+
+**SP-102 activated 2026-08-17; planning completed the same day** → [`Sprint-active.md`](Sprint-active.md).
+⚠️ **The planning audit found most of T-0389's staged scope already shipped** in SP-099/SP-104 and cut it.
+What remains: the card-level §7.2 footer, the warning view (`listPendingEdges` has zero call sites), the AC24
+volume refinement, and the `sources` card — plus **T-0415**, the AC23 live disk-image verification, split out
+because a fixture cannot establish it. Two rulings (**R1** warning-view anchoring, **R2** AC24 via volume
+keys); **Doc 3 §4.6 amended at planning**, before any code.
 
 > ✅ **SP-099, SP-104 and SP-105 all closed 2026-08-15 (user-approved).** Together they delivered EP-031's
 > `[Apple]` half and cleaned up after the T-0409 scope ruling — Issues **I-0114–I-0119** carried, of which
@@ -324,25 +339,35 @@ remit rests on a suite that has not run clean on x86-64 since 2026-07-30. Scoped
 | SP-103 | ⚠️ `[Cross]` All worldbuilding kinds → world scope (breaking; no migration) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
 | SP-104 | ⚠️ `[Cross]` Post-ruling fallout — world reachability + the restated-kind class (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
 | SP-105 | `[Cross]` World search indexing (I-0118) (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
+| SP-106 | ⚠️ `[Cross]` Test integrity & CI trust — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | EP-031 `[Cross]` | 2026-08-16 | 2026-08-17 | ✅ Closed |
+| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card (**AC23 + AC24**) | EP-031 `[Apple]` | 2026-08-17 | — | 🟡 **Active** |
 
 ## Statistics
 
 - **Total Sprint IDs issued:** 105 (SP-001–SP-106; **SP-068 skipped** — EP-027 claimed SP-069–SP-072 and its
   scope shipped as SP-073; **SP-083 was brought forward** ahead of SP-082)
-- **Closed:** 99 ✅ (all have an archive in [`Closed/`](Closed/); most recent: SP-099, SP-103, SP-104, SP-105,
-  all closed 2026-08-15 user-approved)
-- **Active:** 0 🟡 — **no Sprint is active.**
-- **Planning:** 3 🔵 (**SP-106** `[Cross]` test integrity & CI trust — **runs first**; **SP-102** `[Apple]`
-  pending presentation + warning view + `sources` card; **SP-100** EP-031 verification & Epic close — runs
-  last, keeps its number)
+- **Closed:** 100 ✅ (all have an archive in [`Closed/`](Closed/); most recent: **SP-106**, closed 2026-08-17
+  user-approved)
+- **Active:** 1 🟡 — **SP-102** `[Apple]` pending presentation + warning view + `sources` card (activated
+  2026-08-17)
+- **Planning:** 1 🔵 (**SP-100** EP-031 verification & Epic close — runs last, keeps its number)
 - **Superseded:** 1 ⚪ (SP-057 → SP-094)
 - **Cancelled:** 1 ⚪ (SP-034)
 - **Paused:** 0 ⏸
-- **Next available:** **SP-106**
+- **Next available:** **SP-107**
 
 ---
 
-*Last Updated: 2026-08-16 (**consistency audit — the All-Sprints table was missing the four Sprints that
+*Last Updated: 2026-08-17 (**SP-106 ✅ CLOSED (user-approved) and SP-102 activated.** All 3 SP-106 Tasks
+(T-0412/T-0413/T-0414) and both Issues (**I-0121, I-0122**) ✅ Verified and archived in the same step —
+`../Tasks/Verified/Task-verified-0412-0414.md` and the new `../Issues/Verified/Issue-verified-0121-0130.md`.
+✅ **The All-Sprints row was added as part of closing**, which the 2026-08-12 and 2026-08-16 audits both found
+had been skipped at the previous closes; a row for the newly-active **SP-102** was added at the same time.
+Also corrected: **"Next available" read SP-106 in the Statistics block while the Currently line read SP-107** —
+both now say **SP-107**. Counts updated: 100 closed, 1 Active (SP-102), 1 Planning (SP-100). ⚠️ **SP-102's
+scope predates SP-104/SP-105/SP-106 and a planning pass is owed** before implementation. Prior note follows.)*
+
+*2026-08-16 (**consistency audit — the All-Sprints table was missing the four Sprints that
 closed 2026-08-15.** SP-099, SP-103, SP-104 and SP-105 had archives in `Closed/` but no table row; the table
 ran SP-098 → SP-100 → SP-101 → SP-102. ⚠️ **This is the same defect the 2026-08-12 repair note records
 (SP-086–SP-094 and SP-101 closed without ever being listed) recurring at the very next close** — adding the

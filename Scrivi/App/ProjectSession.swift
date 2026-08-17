@@ -91,6 +91,33 @@ import os
     /// Worlds manager sheet (EP-031 SP-099 T-0408).
     var showWorlds: Bool = false
 
+    /// The world-warning strip (EP-031 SP-102 T-0389, Doc 2 §7.3).
+    ///
+    /// ⚠️ **Deliberately NOT anchored to `timelineVisible`** (SP-102 R1). Doc 3 §4.6
+    /// originally placed this beneath the Timeline; the Timeline is toggled
+    /// independently, so that would hide the only project-wide pending report exactly
+    /// when the writer is not using the Timeline. Doc 3 §4.6 was amended to match.
+    ///
+    /// Defaults to shown because the strip renders **only when a world is actually
+    /// unavailable** — the model gates that, not this flag. A writer who dismisses it
+    /// sets this false; a newly-unavailable world sets it back.
+    var worldWarningVisible: Bool = true
+    /// Owns the pending report. Held on the session so every view in the window reads
+    /// one source rather than each polling the engine on its own schedule.
+    let worldWarning = WorldWarningModel()
+
+    /// Bumped whenever world availability may have changed (I-0128) — a reconnect, a
+    /// relink, a world added or removed.
+    ///
+    /// ⚠️ **This is what makes the inspector cards refresh.** They key their reload on
+    /// `sceneID`, which does not change when a drive is plugged back in, so without
+    /// this they kept showing pending entries after the world returned — the writer
+    /// had to switch scenes to see her objects relink. Same shape as I-0105's
+    /// `historyRevision`.
+    private(set) var worldRevision: Int = 0
+
+    func bumpWorldRevision() { worldRevision &+= 1 }
+
     init(engine: ScriviEngine,
          authorshipRef: AuthorshipRef?,
          appSupportRoot: String,

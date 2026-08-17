@@ -58,6 +58,10 @@ struct ObjectPickerView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                // Matches the list's minimum so the popover keeps one size as the
+                // writer types — a box that resizes on every keystroke is its own
+                // kind of unusable.
+                .frame(minHeight: 180, alignment: .top)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
@@ -74,7 +78,17 @@ struct ObjectPickerView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 240)
+                // ⚠️ **`maxHeight` alone collapsed this to a sliver** (I-0127). A
+                // `ScrollView` has no intrinsic height, and inside a popover — which
+                // sizes to its content rather than being given a height — a bare
+                // maximum let it shrink to barely one row. The writer could see a
+                // fraction of a single object and had to scroll blind through a list
+                // she could not survey, which defeats the point of an unfiltered
+                // picker (AC17).
+                //
+                // A MINIMUM is what actually reserves the space; the maximum then
+                // caps it so a large world does not produce an unusable popover.
+                .frame(minHeight: 180, maxHeight: 320)
             }
 
             Divider()
@@ -90,7 +104,7 @@ struct ObjectPickerView: View {
             .buttonStyle(.borderless)
         }
         .padding(12)
-        .frame(width: 280)
+        .frame(width: 320)
         .task { load() }
     }
 

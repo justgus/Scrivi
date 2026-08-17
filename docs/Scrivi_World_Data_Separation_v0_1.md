@@ -275,9 +275,26 @@ volume.
 
 - A **"Worlds" menu** carrying a global **"Remove All World References"** action — the writer's explicit escape
   hatch, never automatic.
-- A **warning surface** — in the Scene Inspector and/or a dedicated warning/log view beneath the Timeline view —
-  reporting that a world is unavailable and edges are pending.
+- A **warning surface** — in the Scene Inspector and/or a dedicated warning/log view ~~beneath the Timeline
+  view~~ **with its own visibility control** (amended 2026-08-17, see below) — reporting that a world is
+  unavailable and edges are pending.
 - Neither surface blocks writing. They inform; the writer decides if and when to act.
+
+> ⚠️ **Amended 2026-08-17 (user-ruled at SP-102 planning, R1) — the warning view is NOT anchored to the
+> Timeline.** This section originally placed it *"beneath the Timeline view"*. In the shipped Apple app the
+> Timeline is a **hidden-by-default strip** toggled via View ▸ Show Timeline, so anchoring the warning view to
+> it would make **the only project-wide pending report invisible exactly when the writer is not using the
+> Timeline** — i.e. most of the time. That defeats the surface's entire purpose, which is to ensure a writer
+> is never silently unaware that her world is away.
+>
+> **Ruled:** the warning view is a strip below the manuscript with its **own View-menu toggle**, independent
+> of the Timeline; it **auto-reveals when a bound world becomes unavailable**, is dismissible, and is absent
+> when nothing is pending. The *intent* of this section is unchanged — a passive, non-blocking report the
+> writer may ignore. Only the anchoring is corrected.
+>
+> **"Remove All World References" stays in the Worlds menu** and must **never** appear in the warning view:
+> placing a destructive global action inside the surface that appears automatically when something looks
+> broken is precisely the hazard §4.6 exists to prevent.
 - Repair/restore UI (relinking a moved world, reconciling a changed one) is **future work**, explicitly not
   designed here.
 
