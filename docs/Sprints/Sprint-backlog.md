@@ -26,19 +26,19 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 >
 > **Standing practice adopted:** ⚠️ **`ctest` figures must name their architecture.**
 
-> 🟡 **SP-102 ACTIVATED 2026-08-17** → [`Sprint-active.md`](Sprint-active.md). Its Planning row is removed
-> above per the standing rule. `[Apple]` pending presentation + warning view + the aggregate `sources` card —
-> **T-0389 + T-0365**, delivering **AC23 + AC24**, the last two clauses of EP-031 **AC9**.
-> ⚠️ **The Worlds menu is no longer in T-0389's scope**: it shipped early as **SP-099/T-0408** (R4) and was
-> extended by **SP-104/I-0117** (per-row remove + "Locate…").
+> ✅ **SP-102 ✅ CLOSED 2026-08-18 (user-approved)** — [`Closed/Sprint-SP-102.md`](Closed/Sprint-SP-102.md).
+> **All 4 Tasks Verified** (T-0389, T-0415, T-0417, T-0365) and **all 8 exit criteria closed**;
+> **EP-031 AC23 + AC24 delivered**. Suites at close: `ctest` **520/520 macOS arm64**, interop
+> **99/99 macOS arm64**.
 >
-> ✅ **Planning completed 2026-08-17.** ⚠️ **The audit found most of T-0389's staged scope already shipped** in
-> SP-099/SP-104 — pending rows, ⚠ badge, named entries, disabled-and-explained removal, typed status decode.
-> What remains is the card-level **§7.2 footer**, the **warning view** (`listPendingEdges` has zero call
-> sites), the **AC24 volume refinement**, and the **`sources` card**, plus new **T-0415** for the AC23 live
-> disk-image run. Rulings **R1** (warning view gets its own toggle; **Doc 3 §4.6 amended**) and **R2** (AC24
-> via URL volume keys, degrading to `unavailable`, never guessing `missing`; **no ABI change**).
-
+> ⚠️ **The live eject/reattach runs produced 8 Issues (I-0123–I-0130), all Verified** — they *are* the
+> AC23/AC24 evidence. **I-0129 is the no-intervention clause itself** and could only have been found
+> live: ejecting a drive normally forces a focus change, which masked the defect completely.
+>
+> ⚠️ **T-0365 closed as a PARTIAL delivery** (user ruling): the `sources` card is built, registered and
+> tested, but **nothing in the app creates a `source`**, so it renders only its empty state. Source
+> creation and §3.1.1's object-card popup entry point are owed to **EP-034 `[Cross]` Object Detail &
+> Media**, opened 2026-08-18 from the same finding.
 > ✅ **SP-103 IS COMPLETE (2026-08-15).** T-0409 (the scope change) and T-0411 (test realignment) are
 > done and user-verified; its fallout was cleaned up by SP-104/SP-105, both closed.
 >
@@ -208,7 +208,14 @@ Epic-level ACs: `docs/Epics/Epic-active.md` (EP-019). Task detail: `docs/Tasks/T
 > **SP-064 activated 2026-07-15**, ✅ **closed 2026-07-15** — `Closed/Sprint-SP-064.md` (EP-022 `[Linux]` cursor/focus polish (focus-on-open, caret normalization out of boundary gaps, non-deletable separator) + quit→reopen **surface restore** (last active scene + cursor + scroll via the `restored{}` payload + `save_scene` selection/scroll args — filled the 0/0/0.0 stub) + full EP-022 verify; **AC4-cursor/AC5/AC6/AC7** delivered & user-verified over VNC; T-0246–T-0248 Verified; no ScriviCore work, `scrivi.h` untouched). **This closed EP-022.** Next `[Linux]` Epic is **EP-023** (structure editing), drafted when the user activates it.
 
 
-*Last Updated: 2026-08-17 (**SP-106 ✅ closed and SP-102 activated.** Both Planning rows removed from the
+*Last Updated: 2026-08-18 (**SP-102 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-102.md`; its
+activation block above replaced with the closure record per the standing rule. **EP-031 AC23 + AC24
+delivered.** ⚠️ **SP-100 is now the ONLY Sprint left in EP-031's eleven** — it runs last, owns the AC1
+re-verification, and is still 🔵 Planning; activating it needs user approval. ⚠️ **T-0365 closed
+PARTIAL** — the `sources` card cannot show content until **EP-034 `[Cross]` Object Detail & Media**
+(opened 2026-08-18) provides source creation. Prior note follows.)*
+
+*2026-08-17 (**SP-106 ✅ closed and SP-102 activated.** Both Planning rows removed from the
 table above in the same step, and SP-106's full scoping block removed with it — the standing rule. **SP-100 is
 now the only Sprint in Planning**, and the last of EP-031's eleven. Prior note follows.)*
 

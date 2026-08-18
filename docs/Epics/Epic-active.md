@@ -3,13 +3,15 @@
 ## EP-031: [ScriviCore] Worldbuilding Object Model & Relationship Graph
 
 **Codebase:** `[ScriviCore]` primarily (C++ model, index, graph, C ABI) with `[Apple]` object cards on top.
-**Status:** 🟡 **Active** — **9 of 11 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
+**Status:** 🟡 **Active** — **10 of 11 sprints closed.** SP-095 ✅ (**AC2**), SP-096 ✅ (**AC5**),
 SP-097 ✅ (**AC3 + AC6 + AC8**) and SP-098 ✅ (**AC4 + AC7**) closed 2026-08-12; SP-099 ✅
 (**AC16/17/21/22 + AC18/19/20; AC10 struck**), SP-103 ✅ (the scope ruling), SP-104 ✅ (post-ruling
 fallout, I-0114–I-0117) and SP-105 ✅ (world search indexing, I-0118) all closed 2026-08-15; **SP-106 ✅**
-(⚠️ `[Cross]` test integrity & CI trust — I-0121 + I-0122) closed **2026-08-17** — each with user approval.
-**Remaining: SP-102** 🟡 **Active** (activated 2026-08-17 — pending presentation + warning view + `sources`
-card, delivering **AC23 + AC24**) and **SP-100** 🔵 Planning (verification & Epic close, **runs last**).
+(⚠️ `[Cross]` test integrity & CI trust — I-0121 + I-0122) closed **2026-08-17**, and **SP-102 ✅
+(AC23 + AC24 → AC9) closed 2026-08-18** — each with user approval.
+**Remaining: SP-100** 🔵 Planning (verification & Epic close, **runs last**; ⚠️ owns the **AC1
+re-verification**). ✅ **SP-102 closed 2026-08-18** → [`Sprint-SP-102.md`](../Sprints/Closed/Sprint-SP-102.md),
+delivering **AC23 + AC24** and therefore **AC9**. **10 of 11 sprints are closed.**
 
 ⚠️ **AC1 must be RE-VERIFIED — it is the Epic's one outstanding acceptance criterion.** It was UNTICKED
 2026-08-14 when the object scope model changed under it (Doc 1 §3.0), and although SP-103 delivered that
@@ -183,9 +185,18 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > contention that reports rather than hangs. ⚠️ Required a new **`createFileExclusive`** primitive
       > (**T-0403**) — Doc 3 §6.5 assumed an `AtomicWrite` exclusive-create path that does not exist, and
       > `rename` overwrites, so a lock built on it would have let two writers both win.
-- [ ] AC9 — Worldbuilding-object cards on EP-030's framework: unfiltered picker, in-stack creation with no modal,
+- [x] AC9 — Worldbuilding-object cards on EP-030's framework: unfiltered picker, in-stack creation with no modal,
       "Remove from scene" deletes the edge only. (Doc 2 AC16–AC24)
-      🟡 **In progress — SP-102 active (2026-08-17).** Split across two sprints at SP-099 planning
+      ✅ **MET — SP-102 closed 2026-08-18 (user-approved).** AC23 + AC24, its last two clauses, were
+      ✅ Verified 2026-08-17 on the real USB rig; the runs produced **I-0123–I-0130, all Verified**, of
+      which **I-0129 is the AC23 no-intervention clause itself**. Record:
+      [`Sprint-SP-102.md`](../Sprints/Closed/Sprint-SP-102.md).
+      ⚠️ **One clause of Doc 2 §3.1.1 is carried out, not delivered:** the `sources` card ships able to
+      render only its **empty state**, because nothing in the app creates a `source` object — owed to
+      **EP-034 `[Cross]` Object Detail & Media**. This does not affect AC9 (object cards), but
+      **SP-100 must not read the `sources` card as evidence of anything.**
+      *Prior in-progress note follows.*
+      🟡 ~~In progress — SP-102 active (2026-08-17).~~ Split across two sprints at SP-099 planning
       (2026-08-13, R2): **SP-099** delivered Doc 2 **AC16/17/21/22** (object cards, unfiltered picker, one
       canonical edge from either entrance, "Remove from scene" deletes the edge only) — **and also
       AC18/19/20** (no-modal in-stack create/edit, edit-state visuals, complete-or-discard), which landed
@@ -358,6 +369,15 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 > existed: T-0377's dangling-branch test failed until the prune landed on top of it.
 
 ---
+
+*Last Updated: 2026-08-18 (**SP-102 ✅ CLOSED (user-approved) — AC9 is MET**, its last two clauses
+(AC23 + AC24) Verified 2026-08-17 on the real USB rig. **10 of 11 sprints closed; only SP-100 remains**,
+which owns the **AC1 re-verification** and the **AC10** regression pass — the two ACs still unchecked.
+Suites at SP-102's close: `ctest` **520/520 macOS arm64**, interop **99/99 macOS arm64**.
+⚠️ **One clause is carried OUT of this Epic, not delivered:** the `sources` card (T-0365) renders only
+its empty state because **nothing in the app creates a `source`** — creation and §3.1.1's second popup
+entry point are owed to **EP-034 `[Cross]` Object Detail & Media**, opened 2026-08-18. **SP-100 must
+not read the `sources` card as evidence of anything.** Prior note follows.)*
 
 *Last Updated: 2026-08-17, later same day (**SP-102 planning completed — the sprint is smaller than its
 staged scope.** ⚠️ **A code audit found most of AC9's remaining surface already shipped** in SP-099

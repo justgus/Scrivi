@@ -11,18 +11,22 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**SP-102 is active** (activated 2026-08-17) — `[Apple]` pending presentation + warning view + the aggregate
-`sources` card. **SP-106 closed 2026-08-17 (user-approved)** → [`Closed/Sprint-SP-106.md`](Closed/Sprint-SP-106.md).
-Current Sprint status lives in [`Sprint-active.md`](Sprint-active.md); each closed Sprint's full record lives
-in its own archive file, and is **not** restated here.
+**No Sprint is currently active.** **SP-102 closed 2026-08-18 (user-approved)** →
+[`Closed/Sprint-SP-102.md`](Closed/Sprint-SP-102.md); **SP-106 closed 2026-08-17** →
+[`Closed/Sprint-SP-106.md`](Closed/Sprint-SP-106.md). Current Sprint status lives in
+[`Sprint-active.md`](Sprint-active.md); each closed Sprint's full record lives in its own archive file,
+and is **not** restated here.
 
-**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 9 closed** (SP-095, SP-096, SP-097,
-SP-098, SP-099, SP-103, SP-104, SP-105, SP-106). Two remain:
+**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 10 closed** (SP-095, SP-096,
+SP-097, SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains:**
 
 | Sprint | Scope | Order |
 | ------ | ----- | ----- |
-| **SP-102** | `[Apple]` pending presentation + warning view + `sources` card — **AC23 + AC24** | 🟡 **Active** |
-| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🔵 Planning (runs last) |
+| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🔵 Planning (**runs last** — activation needs user approval) |
+
+> ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
+> delivery** — the `sources` card renders only its empty state because nothing in the app creates a
+> `source`; creation is owed to **EP-034 `[Cross]` Object Detail & Media**, opened from that finding.
 
 > ✅ **SP-106 delivered the evidence base SP-100 needs.** ScriviCore CI is green on **x86-64** for the first
 > time since 2026-07-30, a 2×2 sanitizer matrix makes UB fail by diagnosis rather than by architecture
