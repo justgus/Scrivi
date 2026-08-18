@@ -35,8 +35,8 @@ The complete register of every Task ID in the project.
 
 ## Statistics
 
-- **Total Task IDs:** **416** — T-0001 … T-0417 (T-0278 never assigned; **T-0415 + T-0416 assigned
-  2026-08-17**; T-0417 unassigned)
+- **Total Task IDs:** **417** — T-0001 … T-0418 (T-0278 never assigned; **T-0415 + T-0416 assigned
+  2026-08-17**; **T-0417 assigned 2026-08-18**; T-0418 unassigned)
 - **✅ Verified:** 372 (**+3 on 2026-08-17** — T-0412/T-0413/T-0414, SP-106, user-approved and **filed** to
   [`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md))
 - **🔵 Backlog:** 23 (**−2, +1 on 2026-08-17** — T-0389/T-0365 went Active; **T-0416** filed from I-0125)
@@ -664,7 +664,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0414 | **macOS platform coverage** — 3 Apple `platformDefault` tests; verified RED before green | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
 | T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — eject → pending, reattach → restored **with no writer intervention**; both `unmounted` and `missing` branches | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
 | T-0416 | ⚠️ **Seeded relation-type vocabulary does not reach existing projects** — `relation-types.json` re-seeds only when missing/unusable, so seeded-vocabulary changes are invisible to projects on disk (surfaced by I-0125; user's project hand-patched, general fix deferred) | unscheduled | EP-031 | 🔵 Backlog | — |
-| T-0417 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
+| T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, **no key equivalent** (macOS keyspace exhausted) | SP-102 | EP-031 | 🟠 Implemented - Not Verified | [`Task-active.md`](Task-active.md) |
+| T-0418 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
 
 ---
 

@@ -59,6 +59,15 @@ import os
     var mergeSceneAction:   (() -> Void)?
     var mergeChapterAction: (() -> Void)?
 
+    // Scene/Chapter boundary navigation (2026-08-18). Menu-only for now — every
+    // conventional key equivalent is already taken (⌘↑/↓ document, ⌥↑/↓ paragraph,
+    // ⌃↑/↓ Mission Control), so the binding is an open question and these exist so the
+    // functions can be exercised meanwhile.
+    var sceneStartAction:   (() -> Void)?
+    var sceneEndAction:     (() -> Void)?
+    var chapterStartAction: (() -> Void)?
+    var chapterEndAction:   (() -> Void)?
+
     // Scene a pending deep link wants selected once the project is open.
     // EditorView observes this and forwards it into its navigation.
     var pendingNavigationSceneID: String?
@@ -151,10 +160,13 @@ import os
         // Resume at the last-edited scene / cursor / scroll from the previous session
         // (I-0058). The backend openProject flow returns these; wire them into the loader
         // so the editor reopens where the writer left off instead of at the first scene.
+        // ⚠️ `result.restored?.scroll` is deliberately not passed (I-0133, ruled
+        // 2026-08-18): the Apple layer centres the restored scene, so a document-wide
+        // scroll fraction has nothing to apply to and would fight the centring. The
+        // backend still returns it and `[Linux]` still consumes it.
         loader.loadAll(
             activeSceneID: result.activeScene?.sceneID,
-            restoredSelection: result.restored?.anchor,
-            restoredScroll: result.restored?.scroll
+            restoredSelection: result.restored?.anchor
         )
         viewportLoader = loader
         let prefs = ProjectPreferences(projectID: result.projectID)

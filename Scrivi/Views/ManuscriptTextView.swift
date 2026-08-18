@@ -51,8 +51,23 @@ struct ManuscriptTextView: NSViewRepresentable {
         context.coordinator.textView = textView
         // Register takeFocus with both the coordinator and the loader so any
         // caller (Navigator, delete handler) can transfer first-responder directly.
+        //
+        // ⚠️ **Deferred one pass, and that is all it needs (I-0132).** Called from a
+        // SwiftUI `onChange` on the selection, so it runs during a view update; hopping to
+        // the next runloop pass lets that update — and any responder change AppKit makes
+        // while completing the click — finish first.
+        //
+        // Earlier attempts fought a race here (synchronous call, then a claim/re-claim
+        // retry) because navigation itself was unreliable: the *real* defect was the
+        // one-shot `navigateToSceneID` trigger, not first-responder arbitration. With
+        // selection as the source of truth the call site is deterministic, so this does
+        // not need to defend itself.
         let takeFocus: () -> Void = { [weak textView] in
-            textView?.window?.makeFirstResponder(textView)
+            DispatchQueue.main.async {
+                guard let textView, let window = textView.window else { return }
+                if window.firstResponder === textView { return }
+                window.makeFirstResponder(textView)
+            }
         }
         context.coordinator.onTakeFocus = takeFocus
         loader.takeFocusHandler = takeFocus
@@ -80,6 +95,27 @@ struct ManuscriptTextView: NSViewRepresentable {
         session.createChapterAction = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateChapter() }
         session.mergeSceneAction    = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeScene() }
         session.mergeChapterAction  = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeChapter() }
+
+        // Scene/Chapter boundary navigation — menu-only until a key equivalent is ruled.
+        // Same take-focus-first discipline: a menu click leaves first responder alone, and
+        // moving the caret in an unfocused text view would hide the very thing the command
+        // exists to show.
+        session.sceneStartAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveToSceneBoundary(.start, in: tv)
+        }
+        session.sceneEndAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveToSceneBoundary(.end, in: tv)
+        }
+        session.chapterStartAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveToChapterBoundary(.start, in: tv)
+        }
+        session.chapterEndAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveToChapterBoundary(.end, in: tv)
+        }
 
         let scroll = NSScrollView()
         scroll.documentView = textView
@@ -1434,16 +1470,20 @@ struct ManuscriptTextView: NSViewRepresentable {
             loader.setViewportScene(sceneID)
 
             // Consume the one-shot restore state so it can't reapply on a later rebuild.
-            // ⚠️ `restoredScrollFraction` is deliberately NOT applied: it describes a
-            // document-wide fraction from the previous session, which contradicts
-            // centring the restored scene. It is cleared here only so it cannot leak
-            // into a later rebuild. (It is currently written and never read anywhere —
-            // see I-0133.)
+            //
+            // ⚠️ There is deliberately no scroll-fraction restore here (I-0133, ruled
+            // 2026-08-18). Restore *centres* the restored scene, and reapplying a
+            // document-wide fraction from the previous session would fight that — the
+            // exact edge-vs-centre disagreement I-0131 exists to eliminate. The Apple
+            // layer therefore ignores `restored.scroll` by design, not by omission.
+            // ⚠️ The schema field is NOT dead: `[Linux]` consumes it (T-0247,
+            // `EditorShell.cpp`), so it must stay in `scrivi.h` and the open envelope.
             loader.restoredSelectionOffset = nil
-            loader.restoredScrollFraction = nil
         }
 
-        // Navigate to a scene by ID — scrolls to that scene without moving the cursor.
+        // Navigate to a scene by ID — places the caret at the scene's first character,
+        // scrolls it into view, and (via the navigator's `takeFocus`) hands over the
+        // keyboard. §3 of the Current Scene Model.
         //
         // ⚠️ **I-0131: the scroll this triggers must not be allowed to overwrite the
         // destination.** `scrollRangeToVisible` emits scroll notifications, and the
@@ -1479,12 +1519,30 @@ struct ManuscriptTextView: NSViewRepresentable {
             scrollTask?.cancel()
             highlightTask?.cancel()
             navigationLockUntil = Date().addingTimeInterval(0.5)
+            // §3 of the Current Scene Model (ruled 2026-08-17): a navigator click SELECTS
+            // the scene — the caret moves to its first character, the manuscript scrolls
+            // there, and focus transfers to the manuscript. All three, or the writer
+            // cannot simply start typing.
+            //
+            // ⚠️ This deliberately **reverses SP-063's scroll-without-caret rule for
+            // navigator clicks specifically**; SP-063 still governs click-to-place *within*
+            // the manuscript, which is unchanged. An earlier comment here asserted the
+            // opposite ("navigateToScene deliberately does not move the caret") and was
+            // simply wrong against the ruling — the caret stayed wherever it had last
+            // been, which was invisible only because focus used to stay in the navigator.
+            // Once focus started transferring, the stale caret became visible immediately.
+            tv.setSelectedRange(NSRange(location: storageOffset, length: 0))
             // Centre rather than merely reveal, for the same reason as restore: a scene
             // parked at the viewport edge makes the scroll handler read a DIFFERENT
             // scene at the centre, and the navigator highlight follows that.
             tv.scrollRangeToVisible(NSRange(location: storageOffset, length: 0))
             centerStorageOffset(storageOffset, in: tv)
             parent.loader.setViewportScene(sceneID)
+            // Keep the caret-derived current scene in step with the click, so a later quit
+            // resumes here (I-0131's stamp reads cursorSceneID). `setCurrentIndex` moves
+            // `currentIndex` and `cursorSceneID` together — setting either alone is what
+            // let the two disagree in the first place (§1: there is ONE current scene).
+            parent.loader.setCurrentIndex(segIdx)
         }
 
         // Scroll so `storageOffset` sits near the VERTICAL CENTRE of the viewport.
@@ -1505,6 +1563,61 @@ struct ManuscriptTextView: NSViewRepresentable {
             let targetY = max(0, min(rect.midY - viewH / 2, max(0, docHeight - viewH)))
             clipView.scroll(to: NSPoint(x: 0, y: targetY))
             tv.enclosingScrollView?.reflectScrolledClipView(clipView)
+        }
+
+        // MARK: — Scene / Chapter boundary navigation
+        //
+        // Move the caret to the start or end of the scene or chapter the caret is
+        // currently in. Unlike `navigateToScene` (a survey gesture that scrolls without
+        // moving the caret), these are *editing* moves: they place the insertion point,
+        // because that is what "go to the start of this scene" means while writing.
+        //
+        // ⚠️ **No key equivalents — deliberately, pending a ruling (2026-08-18).** Every
+        // conventional candidate is already owned:
+        //   • ⌘↑/⌘↓  — document start/end (NSTextView)
+        //   • ⌥↑/⌥↓  — paragraph start/end (NSTextView)
+        //   • ⌃↑/⌃↓  — Mission Control (macOS, not ours to take)
+        // …and Shift with any of them extends the selection, so rebinding one would cost
+        // an existing text-editing behaviour. The menu items exist so the *functions* can
+        // be exercised and judged while the binding question stays open.
+
+        // Storage range of the scene containing `storageOffset`, boundaries recomputed.
+        private func sceneStorageRange(containing storageOffset: Int, in tv: NSTextView) -> NSRange? {
+            recomputeBoundaries(tv)
+            return sceneBoundaries.first { NSLocationInRange(storageOffset, $0)
+                || storageOffset == $0.location + $0.length }
+                ?? sceneBoundaries.last
+        }
+
+        func moveToSceneBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
+            let caret = tv.selectedRange().location
+            guard let range = sceneStorageRange(containing: caret, in: tv) else { return }
+            placeCursorAt(edge == .start ? range.location : range.location + range.length, in: tv)
+        }
+
+        func moveToChapterBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
+            let caret = tv.selectedRange().location
+            recomputeBoundaries(tv)
+            // Find the caret's scene, then widen to every contiguous scene sharing its
+            // chapter. Scene order in `segments` is manuscript order, so the chapter is a
+            // contiguous run — the same assumption the Linux chapter-reorder splice makes.
+            guard let segIdx = sceneBoundaries.firstIndex(where: {
+                NSLocationInRange(caret, $0) || caret == $0.location + $0.length
+            }) ?? (sceneBoundaries.isEmpty ? nil : sceneBoundaries.count - 1) else { return }
+            guard parent.loader.segments.indices.contains(segIdx) else { return }
+            let chapterID = parent.loader.segments[segIdx].chapterID
+
+            var first = segIdx, last = segIdx
+            while first > 0, parent.loader.segments[first - 1].chapterID == chapterID { first -= 1 }
+            while last < parent.loader.segments.count - 1,
+                  parent.loader.segments[last + 1].chapterID == chapterID { last += 1 }
+
+            guard sceneBoundaries.indices.contains(first),
+                  sceneBoundaries.indices.contains(last) else { return }
+            let target = edge == .start
+                ? sceneBoundaries[first].location
+                : sceneBoundaries[last].location + sceneBoundaries[last].length
+            placeCursorAt(target, in: tv)
         }
 
         // Place cursor at a given NSTextStorage offset and take focus.

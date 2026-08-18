@@ -99,18 +99,22 @@ struct SceneNavigatorView: View {
                     performMove(from: source, to: destination)
                 }
             }
-            .onChange(of: loader.viewportSceneID) { _, sceneID in
-                guard let sceneID else { return }
-                // Only scrolls when the row is out of view; SwiftUI no-ops otherwise, so
-                // this does not fight the writer scrolling the list by hand.
-                withAnimation(.easeOut(duration: 0.18)) {
-                    proxy.scrollTo("scene-\(sceneID)", anchor: .center)
-                }
-            }
             .onAppear {
+                // ⚠️ REVEAL ON LAUNCH ONLY — deliberately not on every selection change.
+                //
                 // Restore lands before this view is on screen, so the initial highlight
-                // needs an explicit reveal — without it the very first thing the writer
+                // needs an explicit reveal; without it the very first thing the writer
                 // sees is a selection she cannot find.
+                //
+                // An `onChange(of: viewportSceneID)` reveal was tried and REMOVED
+                // (I-0132, user-reported 2026-08-18). `scrollTo` is not a no-op for an
+                // already-visible row: it re-anchors the row to `.center`, so every
+                // navigator click nudged the list "a little bit up or down" depending on
+                // where the row sat. In practice the writer scrolls the list by hand and
+                // clicks a row she can already see, so the reveal had **no** case where it
+                // helped and one where it actively fought her. Scene-to-scene reveal is
+                // the manuscript's job (`navigateToScene` centres the text), not the
+                // list's.
                 if let sceneID = loader.viewportSceneID {
                     proxy.scrollTo("scene-\(sceneID)", anchor: .center)
                 }
@@ -126,15 +130,18 @@ struct SceneNavigatorView: View {
         // opened without going back to the mouse. Navigation was bound solely to
         // `onTapGesture` (see `sceneRow`), so no key path reached it.
         //
-        // macOS only: on iOS the `selection` binding already drives Master/Detail, so
-        // moving the highlight IS navigation there and a Return handler would be a
-        // redundant second trigger.
+        // ⚠️ **Both platforms are now selection-driven** (I-0132), so moving the highlight
+        // IS selecting, and selection drives the manuscript. The Return handler is kept
+        // only to give the *keyboard* an explicit commit that also transfers focus — a
+        // writer who arrowed to a scene should be able to press Return and start typing.
+        // It no longer guards on `selection == nil`, which is never true now and would
+        // have made this dead code.
         #if os(macOS)
         .onKeyPress(.return) {
-            guard selection == nil,                       // macOS highlight-only mode
-                  let rowID = highlightedRowID,
-                  rowID.hasPrefix("scene-") else { return .ignored }
-            navigate(to: String(rowID.dropFirst("scene-".count)))
+            guard let sceneID = selection?.wrappedValue ?? highlightedRowID
+                    .flatMap({ $0.hasPrefix("scene-") ? String($0.dropFirst("scene-".count)) : nil })
+            else { return .ignored }
+            navigate(to: sceneID)
             return .handled
         }
         #endif
@@ -147,7 +154,9 @@ struct SceneNavigatorView: View {
                     selection.wrappedValue = sceneID
                 }
             } else {
-                // macOS: highlight only — never triggers navigation.
+                // macOS: highlight only — must NOT navigate. Suppress the selection
+                // observer below for this programmatic write, or scrolling the manuscript
+                // would bounce back through navigate() and fight the writer's scroll.
                 highlightedRowID = sceneID.map { "scene-\($0)" }
             }
         }
@@ -229,11 +238,13 @@ struct SceneNavigatorView: View {
         NavigatorSceneRow(title: entry.title, isActive: isActive)
             .tag("scene-\(entry.sceneID)")
             .listRowBackground(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
-            // macOS navigates via explicit tap; iOS navigates via the List selection binding
-            // (a tap gesture here would swallow row selection), so only attach it off-iOS.
-            #if !os(iOS)
-            .onTapGesture { navigate(to: entry.sceneID) }
-            #endif
+            // ⚠️ **No tap gesture on either platform (I-0132, 2026-08-18).** Navigation is
+            // driven by the List's `selection` binding, which the `NSTableView` behind
+            // `List` updates on every click. Three earlier attempts tried to win a race
+            // against that table — synchronous `makeFirstResponder`, then a deferred one,
+            // then `simultaneousGesture` — and each was a smaller race rather than a fix.
+            // The selection was always correct; only the parallel state kept beside it
+            // was unreliable. So there is no longer any parallel state.
             .contextMenu {
                 Button("Rename") { renameTarget = .scene(entry) }
                 Divider()
@@ -267,8 +278,25 @@ struct SceneNavigatorView: View {
 
     // MARK: — Navigation
 
+    // Go to a scene. **Writes the selection** — the single source of truth — and lets the
+    // owning view's `onChange` do the rest: caret to the scene's first character (§3),
+    // scroll, and focus transfer. Callers must not also poke the manuscript directly, or
+    // the two paths can disagree.
+    //
+    // Falls back to `onNavigate` when no selection binding was supplied (a preview or a
+    // host that drives navigation itself).
     private func navigate(to sceneID: String) {
-        onNavigate(sceneID)
+        if let selection {
+            // Re-selecting the same row is a no-op by design: `onChange` won't fire, and a
+            // click on the scene you are already in should not re-scroll or move the caret.
+            selection.wrappedValue = sceneID
+            // Focus still transfers, so clicking the current scene is a usable way to get
+            // the keyboard back into the manuscript.
+            loader.takeFocus()
+        } else {
+            onNavigate(sceneID)
+            loader.takeFocus()
+        }
     }
 
     // MARK: — Rename
@@ -318,8 +346,10 @@ struct SceneNavigatorView: View {
                     sceneID: entry.sceneID
                 )
                 if let nextSceneID = loader.removeScene(sceneID: entry.sceneID) {
-                    // Navigate via binding so ManuscriptTextView places cursor using the map.
-                    onNavigate(nextSceneID)
+                    // Through `navigate` so the selection stays the source of truth —
+                    // calling `onNavigate` directly left the navigator selected on a
+                    // scene that no longer exists.
+                    navigate(to: nextSceneID)
                 }
                 // Transfer first-responder directly in AppKit.
                 onTakeFocus()
@@ -346,7 +376,7 @@ struct SceneNavigatorView: View {
                     chapterID: group.chapterID
                 )
                 if let nextSceneID = loader.removeChapter(chapterID: group.chapterID) {
-                    onNavigate(nextSceneID)
+                    navigate(to: nextSceneID)
                 }
                 if wasCurrentChapter {
                     onTakeFocus()

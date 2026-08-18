@@ -16,13 +16,14 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **3 active Tasks** — SP-102 `[Apple]` Pending presentation + warning view + `sources` card
+## Currently: **4 active Tasks** — SP-102 `[Apple]` Pending presentation + warning view + `sources` card
 
 | ID | Title | Sprint | Priority | Status |
 | -- | ----- | ------ | -------- | ------ |
 | T-0389 | Pending **footer** + warning view + the `offline`/`unmounted` refinement (**AC24**) | SP-102 | High | 🟠 **Implemented - Not Verified (2026-08-17)** |
 | T-0365 | Aggregate `sources` card + citation popup (final third — `cites` type ✅ SP-096, `source` kind ✅ SP-098) | SP-102 | Medium | 🔵 Planned |
 | T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**new at planning**) | SP-102 | High | 🔵 Planned — **unblocked by T-0389** |
+| T-0417 | `[Apple]` **Scene/Chapter boundary navigation** — Go to Scene Start/End + Chapter Start/End as **menu items with no key equivalent** (⚠️ the keyspace is exhausted — see below) | SP-102 (adopted 2026-08-18) | Low | 🟠 **Implemented - Not Verified (2026-08-18)** |
 
 **Delivers EP-031 AC23 + AC24**, the last two clauses of AC9. ✅ **Planning completed 2026-08-17.**
 
@@ -39,6 +40,28 @@ file. The backlog is for unstarted, unassigned work only.
 > **T-0415 is new.** AC23 verification was an exit-criterion line inside T-0389; it is now its own Task
 > because ⚠️ **only a live ejectable-volume run can establish "restores with no writer intervention"** — a
 > fixture cannot. Burying that inside an implementation task is how it gets reported done on a fixture.
+
+> **T-0417 is new (adopted 2026-08-18), and it is deliberately incomplete.** The user asked whether
+> Ctrl-Up/Ctrl-Down had been implemented for scene navigation, then established by direct trial that
+> **there is no free key combination for Scene/Chapter Start-End on macOS**:
+>
+> | Combination | Already owned by | Shift-variant |
+> | ----------- | ---------------- | ------------- |
+> | ⌘↑ / ⌘↓ | Document start / end (`NSTextView`) | extends selection |
+> | ⌥↑ / ⌥↓ | Paragraph start / end (`NSTextView`) | extends selection |
+> | ⌃↑ / ⌃↓ | **macOS Mission Control** — not ours to take | — |
+>
+> Every candidate costs an existing editing behaviour, so **the functions ship as menu items with no
+> key equivalent** (Scene menu → *Go to Scene Start / End*; Chapter menu → *Go to Chapter Start /
+> End*). ⚠️ **The binding remains an open question** — the menu items exist so the functions can be
+> exercised and judged while it is decided. Do not treat this Task as finished when the menu items
+> verify; it is the *behaviour* that is being tested, not the surface.
+>
+> Implementation: `Coordinator.moveToSceneBoundary(_:in:)` and `moveToChapterBoundary(_:in:)`
+> (`ManuscriptTextView.swift`), reached through four new `ProjectSession` actions. Chapter bounds are
+> derived by widening from the caret's scene across the contiguous run of segments sharing its
+> `chapterID`. Unlike `navigateToScene` these **do** move the caret — they are editing moves, not
+> survey gestures.
 
 Full plan, rulings **R1/R2**, and the audit table: [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md).
 

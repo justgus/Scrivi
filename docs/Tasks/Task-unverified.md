@@ -13,8 +13,9 @@ in the backlog carrying a 🟠 status.
 | ID | Title | Sprint | Epic | Implemented |
 | -- | ----- | ------ | ---- | ----------- |
 | T-0389 | Pending **footer** (§7.2 world-named status sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**) | SP-102 🟡 active | EP-031 | 🟠 2026-08-17 |
+| T-0417 | `[Apple]` Scene/Chapter boundary navigation — Go to Scene/Chapter Start/End as menu items; ⚠️ **no key equivalent, binding still open** | SP-102 🟡 active | EP-031 | 🟠 2026-08-18 |
 
-**1 Task awaiting verification.**
+**2 Tasks awaiting verification.**
 
 > T-0389 is also listed in [`Task-active.md`](Task-active.md) because **SP-102 is still active** — it
 > is implemented but its Sprint has not closed. It leaves both files on verification.

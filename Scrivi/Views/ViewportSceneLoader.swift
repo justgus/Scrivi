@@ -1,5 +1,11 @@
 import Foundation
 
+// Which end of a scene or chapter a navigation command targets.
+enum ManuscriptEdge {
+    case start
+    case end
+}
+
 // A scene segment held in memory by the viewport loader.
 struct SceneSegment: Identifiable {
     let id: String          // == sceneID
@@ -73,14 +79,32 @@ struct SceneSegment: Identifiable {
     @ObservationIgnored private(set) var scrollFraction: Double = 0
 
     // Restored writing surface from the last session (I-0058), consumed once by the
-    // editor on first appear to place the cursor and scroll. nil after consumption.
+    // editor on first appear to place the cursor. nil after consumption.
+    //
+    // ⚠️ No scroll fraction here (I-0133, ruled 2026-08-18): the Apple layer centres the
+    // restored scene instead, so a document-wide fraction has nothing to apply to. The
+    // field still exists in the schema and open envelope — `[Linux]` consumes it — it is
+    // simply not carried into this layer.
     @ObservationIgnored var restoredSelectionOffset: Int?
-    @ObservationIgnored var restoredScrollFraction: Double?
 
     // Set by ManuscriptTextView.Coordinator.makeNSView; used to forward takeFocus calls.
     var takeFocusHandler: (() -> Void)?
 
     func takeFocus() { takeFocusHandler?() }
+
+    // ⚠️ **Echo suppression for the navigator↔manuscript cycle (I-0132).**
+    //
+    // The two views form a loop by design: the manuscript scrolls → `setViewportScene` →
+    // the navigator mirrors it into its `selection` → `EditorView.onChange(selection)` →
+    // navigate the manuscript. Left open, a scroll would re-scroll itself and yank focus
+    // mid-gesture.
+    //
+    // This is set while the loader is pushing a viewport change OUT to the navigator, and
+    // marks any selection write that arrives during that window as an **echo** rather than
+    // a writer's choice. Suspending the notification is the fix; comparing values is not —
+    // an equality guard silently depends on which view happens to write first, and would
+    // start looping the day that order changed.
+    @ObservationIgnored private(set) var isMirroringViewportToSelection = false
 
     // Called by the Coordinator when the visible scene changes (scroll or cursor movement).
     // This is the only path that updates the Navigator highlight.
@@ -88,7 +112,15 @@ struct SceneSegment: Identifiable {
         if viewportSceneID != sceneID {
             NSLog("[SCRIVI-DIAG] setViewportScene: \(viewportSceneID ?? "nil") -> \(sceneID ?? "nil")")
         }
+        // The flag must be raised BEFORE the observable write, because the navigator's
+        // `onChange` (and the selection write it makes) run synchronously off it.
+        isMirroringViewportToSelection = true
         viewportSceneID = sceneID
+        // Lower it after the resulting view update has drained, so an echo that arrives on
+        // the next runloop pass is still recognised as one.
+        DispatchQueue.main.async { [weak self] in
+            self?.isMirroringViewportToSelection = false
+        }
     }
 
     init(
@@ -113,13 +145,12 @@ struct SceneSegment: Identifiable {
     // Navigator highlights it and the editor scrolls to it on first appear. When nil or
     // stale, behaviour is unchanged — resume at the first scene, no pre-selection.
     //
-    // `restoredSelectionOffset`/`restoredScrollFraction` are the scene-local cursor
-    // offset and document scroll fraction from the last session; the editor consumes
-    // them once on appear to place the cursor and scroll.
+    // `restoredSelection` is the scene-local cursor offset from the last session; the
+    // editor consumes it once on appear to place the cursor. The envelope's
+    // `restored.scroll` is deliberately not taken (I-0133) — see `restoredSelectionOffset`.
     func loadAll(
         activeSceneID: String? = nil,
-        restoredSelection: Int? = nil,
-        restoredScroll: Double? = nil
+        restoredSelection: Int? = nil
     ) {
         segments.removeAll()
         for i in allScenes.indices {
@@ -136,7 +167,6 @@ struct SceneSegment: Identifiable {
             cursorSceneID = activeSceneID
             viewportSceneID = activeSceneID
             restoredSelectionOffset = restoredSelection
-            restoredScrollFraction = restoredScroll
         } else {
             currentIndex = 0
             if let firstID = segments.first?.sceneID {

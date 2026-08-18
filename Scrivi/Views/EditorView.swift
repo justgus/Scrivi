@@ -28,13 +28,19 @@ private struct ManuscriptEditorView: View {
 
     @State private var navigateToSceneID: String? = nil
 
-    #if os(iOS)
-    // The scene selected in the Master (navigator). Drives both the Detail push on compact width
-    // (iPhone portrait) and the scroll-to-scene in the continuous manuscript. nil until a default
-    // is chosen on appear (restored viewport scene, else the first scene). Bound into the
-    // navigator's List selection so master and detail stay in sync, and so NavigationSplitView's
-    // two-column form triggers the detail column when an item is selected.
+    // The scene selected in the Master (navigator) — **the source of truth for which scene
+    // is current**, on every platform. Bound into the navigator's List selection, so the
+    // table that backs it writes here directly, and the manuscript follows from `onChange`.
+    // nil until a default is chosen on appear (restored viewport scene, else the first).
+    //
+    // ⚠️ **Shared by macOS as of I-0132 (2026-08-18).** macOS previously had no selection
+    // binding and pushed navigation through a tap-gesture callback into a one-shot
+    // trigger — parallel state that could silently disagree with the navigator, which is
+    // what produced the intermittent "click did nothing" and lost-focus reports. On iOS it
+    // additionally drives the Detail push on compact width.
     @State private var selectedSceneID: String? = nil
+
+    #if os(iOS)
     // Detail-column presence for the two-column NavigationSplitView selection contract. On compact
     // width a non-nil value pushes the detail; on regular width both columns show side by side.
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
@@ -149,12 +155,27 @@ private struct ManuscriptEditorView: View {
             if let id = newValue { navigateToSceneID = id }
         }
         #else
+        // ⚠️ **macOS uses the same selection-as-source-of-truth shape as iOS above
+        // (I-0132, 2026-08-18).** It previously passed navigation through a tap-gesture
+        // callback with no `selection` binding, which made it the only platform where the
+        // navigator's state and the manuscript's state were separate things kept in step
+        // by hand — and the only platform with the intermittent click failures.
+        //
+        // The failure was NOT gesture arbitration, which is what three earlier attempts
+        // assumed. `navigateToSceneID` is a **one-shot trigger** cleared asynchronously
+        // after use, so re-selecting the same scene wrote an unchanged value (SwiftUI
+        // coalesces it away, no `updateNSView`, no navigation, no focus transfer), and a
+        // fast second click could be clobbered by the previous click's pending `nil`.
+        // Selection is durable state, so it survives both cases.
         NavigationSplitView {
-            SceneNavigatorView(loader: loader, env: env, session: session, prefs: prefs) { sceneID in
-                navigateToSceneID = sceneID
-            } onTakeFocus: {
-                loader.takeFocus()
-            }
+            SceneNavigatorView(
+                loader: loader,
+                env: env,
+                session: session,
+                prefs: prefs,
+                onTakeFocus: { loader.takeFocus() },
+                selection: $selectedSceneID
+            )
         } detail: {
 #if os(visionOS)
 #else
@@ -165,17 +186,42 @@ private struct ManuscriptEditorView: View {
         }
         .frame(minWidth: 700, minHeight: 400)
         .navigationSplitViewStyle(.balanced)
+        // Same two rules as iOS, now that macOS is selection-driven too.
+        .onAppear { selectDefaultSceneIfNeeded() }
+        // Selecting a scene in the master scrolls the manuscript to it, places the caret
+        // at its first character (§3) and hands focus over. Firing on *change* means a
+        // click on the already-selected scene is correctly a no-op rather than a re-scroll.
+        .onChange(of: selectedSceneID) { _, newValue in
+            guard let id = newValue else { return }
+            // ⚠️ **Loop break, two layers (I-0132).** The navigator and the manuscript form
+            // a deliberate cycle: scroll → `setViewportScene` → navigator mirrors it into
+            // this selection → here → navigate the manuscript → scroll. Unbroken, a scroll
+            // re-scrolls itself and steals focus mid-gesture.
+            //
+            // 1. **Suspended notification (primary).** The loader raises a flag while it is
+            //    pushing a viewport change out to the navigator, so this write is *known*
+            //    to be an echo — no inference about who wrote first.
+            // 2. **Value equality (backstop).** Also skip when the selection merely equals
+            //    the viewport. On its own this was fragile: it assumed the scroll handler
+            //    had already written `viewportSceneID`, and would loop if that order ever
+            //    inverted. Kept as a second line, not the mechanism.
+            guard !loader.isMirroringViewportToSelection else { return }
+            guard id != loader.viewportSceneID else { return }
+            navigateToSceneID = id
+            loader.takeFocus()
+        }
         #endif
     }
 
-    #if os(iOS)
-    // On open, seed the Master/Detail selection so the detail has content: prefer the restored
-    // viewport scene (we already persist/restore it), otherwise the first scene (chapter one).
+    // On open, seed the selection so the navigator shows the current scene (and, on iOS,
+    // so the detail has content): prefer the restored viewport scene, else the first.
+    //
+    // ⚠️ Seeding it to the ALREADY-restored scene is what keeps this from double-navigating
+    // at launch — `onChange` fires, sees `id == loader.viewportSceneID`, and returns.
     private func selectDefaultSceneIfNeeded() {
         guard selectedSceneID == nil else { return }
         selectedSceneID = loader.viewportSceneID ?? loader.allScenes.first?.sceneID
     }
-    #endif
 
     // MARK: — Detail (manuscript + optional timeline/inspector)
 

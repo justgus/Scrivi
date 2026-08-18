@@ -2468,3 +2468,56 @@ struct WorldMountNotificationTests {
     }
     #endif
 }
+
+// MARK: — Navigator ↔ manuscript echo suppression (I-0132)
+//
+// The navigator and the manuscript are a deliberate cycle: the manuscript scrolls →
+// `setViewportScene` → the navigator mirrors that into its `selection` →
+// `EditorView.onChange(selection)` → navigate the manuscript. The loop is broken by a
+// suspended-notification flag on the loader, NOT by comparing values: an equality guard
+// silently depends on which view happens to write first and would start looping the day
+// that order changed.
+//
+// These pin the flag's contract. The live loop is verified in the app.
+
+@MainActor
+struct ViewportSelectionEchoTests {
+
+    private func makeLoader() -> ViewportSceneLoader {
+        ViewportSceneLoader(
+            engine: ScriviEngine(),
+            projectRootPath: "/tmp/echo-test",
+            appSupportRoot: "/tmp/echo-test-support",
+            projectID: "project_echo",
+            allScenes: []
+        )
+    }
+
+    @Test("a viewport push raises the mirroring flag, so the selection write it causes reads as an echo")
+    func viewportPushMarksMirroring() {
+        let loader = makeLoader()
+        #expect(loader.isMirroringViewportToSelection == false,
+                "idle loader must not suppress a writer's selection")
+
+        loader.setViewportScene("scene_alpha")
+
+        // Raised synchronously: the navigator's onChange — and the selection write it
+        // makes — run off the observable write, before any runloop hop.
+        #expect(loader.isMirroringViewportToSelection == true,
+                "the flag must be up BEFORE the observable write propagates, or the echo is missed")
+        #expect(loader.viewportSceneID == "scene_alpha")
+    }
+
+    @Test("the flag clears once the update has drained, so the next real click is not swallowed")
+    func mirroringFlagClearsAfterUpdate() async throws {
+        let loader = makeLoader()
+        loader.setViewportScene("scene_alpha")
+        #expect(loader.isMirroringViewportToSelection == true)
+
+        // The loader lowers it via a main-queue hop; yielding lets that land.
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(loader.isMirroringViewportToSelection == false,
+                "a stuck flag would silently swallow every navigator click after the first scroll")
+    }
+}

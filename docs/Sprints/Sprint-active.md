@@ -70,6 +70,14 @@ intervention**"*, which only a live ejectable-volume run can demonstrate (R3).
 | T-0389 | Pending **footer** + warning view + the `offline`/`unmounted` refinement (**AC24**) | 🟠 **Implemented - Not Verified (2026-08-17)** |
 | T-0365 | Aggregate `sources` card + citation popup (final third) | 🔵 Planned |
 | T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**no fixture needed**) | 🔵 Planned — **unblocked by T-0389** |
+| T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, ⚠️ **no key equivalent** (**adopted mid-sprint 2026-08-18**) | 🟠 **Implemented - Not Verified (2026-08-18)** |
+
+> **Adopted mid-sprint, out of the Epic's scope — T-0417 + the I-0132 fixes (2026-08-18).** Neither
+> serves EP-031; both came out of the user's live navigator testing during SP-102 and were fixed at
+> his direction, the same pattern as I-0131's adoption. Recorded here so the sprint's actual content
+> matches its record. ⚠️ **T-0417 ships deliberately incomplete:** the macOS keyspace for
+> Scene/Chapter Start-End is exhausted (⌘↑/↓ document, ⌥↑/↓ paragraph, ⌃↑/↓ Mission Control), so the
+> functions ship as menu items and **the key binding remains an open question.**
 
 ### T-0389 delivery (2026-08-17) — 🟠 Implemented, awaiting live verification
 
@@ -341,6 +349,26 @@ reporting, the sandbox grant surviving relaunch, and the Manage Worlds repair af
 the closed SP-104 and were never re-assigned here; verifying them opportunistically avoided a second sprint
 passing over the same ground. Archived to
 [`../Issues/Verified/Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md).
+
+### Adopted mid-sprint from live navigator testing (2026-08-18)
+
+⚠️ **None of these serve EP-031** — all came out of the user's live testing during SP-102 and were
+adopted at his direction, the same pattern as I-0131. Recorded so the sprint's record matches what it
+actually contains.
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| I-0131 | Resume scene only persisted when the scene was **dirty** — actual cause was a scroll-handler race, not the persistence guards | ✅ **Verified 2026-08-18** → [`Issue-verified-0131-0140.md`](../Issues/Verified/Issue-verified-0131-0140.md) |
+| I-0132 | Navigator never revealed the selected row; a click left focus stranded in the list | ⚠️ **SPLIT** — reveal half ✅ **Verified 2026-08-18**; **focus half 🟠 Resolved - Not Verified (second fix)**, returned to [`Issue-active.md`](../Issues/Issue-active.md) |
+| I-0133 | `restoredScrollFraction` written, cleared, never read — dead state on Apple | 🟠 **Resolved - Not Verified (2026-08-18)** — user ruled *delete Apple's copy, leave Linux alone* |
+| I-0134 | ⚠️ `[Cross]` **Apple and Linux disagree on what "restore where I was" means** | 🔴 **Open** — parity ruling needed; **no code changed** |
+
+> ⚠️ **I-0134 was surfaced by ruling I-0133 and is deliberately unresolved.** Linux applies the saved
+> scroll fraction *after* `centerCursor()`, overriding it (`EditorShell.cpp:364`, T-0247); Apple now
+> centres and ignores the fraction (I-0131). **Both were verified on their own platform** — Linux's
+> over VNC on 2026-07-15, closed with EP-022 — so neither is a defect in isolation. The defect is that
+> the same project reopens differently per platform. Settling it means re-verifying shipped EP-022
+> behaviour, so it belongs to **EP-026 parity**, not to a dead-code cleanup.
 
 ---
 

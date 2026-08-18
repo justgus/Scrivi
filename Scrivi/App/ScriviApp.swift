@@ -190,6 +190,17 @@ struct ScriviApp: App {
                 .disabled(focusedSession?.createSceneAction == nil)
             Button("Merge Scene with Previous  (⌘⌫)") { focusedSession?.mergeSceneAction?() }
                 .disabled(focusedSession?.mergeSceneAction == nil)
+
+            // ⚠️ No key equivalents yet (2026-08-18, user-raised). ⌘↑/⌘↓ are document
+            // start/end, ⌥↑/⌥↓ are paragraph start/end, and ⌃↑/⌃↓ belong to Mission
+            // Control — all three with Shift-variants that extend the selection. Taking
+            // any of them would cost an existing editing behaviour, so the functions ship
+            // as menu items first and the binding stays an open question.
+            Divider()
+            Button("Go to Scene Start") { focusedSession?.sceneStartAction?() }
+                .disabled(focusedSession?.sceneStartAction == nil)
+            Button("Go to Scene End") { focusedSession?.sceneEndAction?() }
+                .disabled(focusedSession?.sceneEndAction == nil)
         }
 
         CommandMenu("Chapter") {
@@ -197,6 +208,12 @@ struct ScriviApp: App {
                 .disabled(focusedSession?.createChapterAction == nil)
             Button("Merge Chapter with Previous  (⇧⌘⌫)") { focusedSession?.mergeChapterAction?() }
                 .disabled(focusedSession?.mergeChapterAction == nil)
+
+            Divider()
+            Button("Go to Chapter Start") { focusedSession?.chapterStartAction?() }
+                .disabled(focusedSession?.chapterStartAction == nil)
+            Button("Go to Chapter End") { focusedSession?.chapterEndAction?() }
+                .disabled(focusedSession?.chapterEndAction == nil)
         }
 
         // View menu — toggles act on the focused project window. Inspector/Timeline are
