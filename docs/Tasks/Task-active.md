@@ -10,6 +10,10 @@ closes. Tasks that are implemented but awaiting user verification move to
 
 **Claude may mark a Task `Implemented - Not Verified`. Only the user can mark it Verified.**
 
+⚠️ **Active Tasks live here, never in `Task-backlog.md`.** A Sprint may be **deactivated without
+deactivating its Tasks** — the Sprint's status changes on its own layer while its Tasks stay in this
+file. The backlog is for unstarted, unassigned work only.
+
 ---
 
 ## Currently: **3 active Tasks** — SP-102 `[Apple]` Pending presentation + warning view + `sources` card
@@ -89,7 +93,14 @@ package-structure §16a, repair-matrix §6.21); its record of truth is
 
 ---
 
-*Last Updated: 2026-08-17, later same day (**SP-102 planning completed.** ⚠️ **A code audit found most of
+*Last Updated: 2026-08-18 (**Documentation audit.** ⚠️ **`Task-backlog.md` was carrying this file's
+three active Tasks** (T-0389, T-0365, T-0415) as backlog rows, alongside ~60 Verified Tasks and 7
+unverified ones. The backlog was rebuilt to hold unstarted work only; the layer rule is now stated at
+the top of both files: **a Sprint may be deactivated without deactivating its Tasks.** Separately,
+**T-0218–T-0222** were listed in the backlog as "🟢 Active → `Task-active.md`" — they have been
+✅ Verified and archived since **2026-07-13**, and were never in this file. Prior note follows.)*
+
+*2026-08-17, later same day (**SP-102 planning completed.** ⚠️ **A code audit found most of
 T-0389's staged scope already shipped in SP-099/SP-104** and struck it; **T-0415 added** for AC23 live
 verification. Two rulings: **R1** the warning view gets its own toggle rather than being anchored to the
 hidden-by-default Timeline; **R2** AC24 refined via URL volume keys, degrading to `unavailable` and never

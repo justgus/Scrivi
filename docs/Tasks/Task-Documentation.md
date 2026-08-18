@@ -7,6 +7,18 @@ The complete register of every Task ID in the project.
 > Sprint had closed. Statuses are taken from each Task's **closed Sprint record** where one exists, since
 > `Task-backlog.md` rows were found to go stale after their Sprint closed.
 
+> ⚠️ **Audit 2026-08-18 — 54 Verified Tasks were archived and 52 index rows repaired.** The 2026-08-15
+> rebuild fixed *this* index but left the list files stale: `Task-backlog.md` was still carrying **~60
+> Verified Tasks, 3 Active Tasks and 7 Implemented — Not Verified Tasks**. Every Verified Task that
+> lacked an archive now has one, and the ⚠️ *unfiled* pointers for those 52 rows were replaced with
+> real `Verified/` links. **T-0394/T-0395** were promoted 🟠 → ✅ **Verified 2026-08-11** on user
+> ruling (their omission from SP-092's task table was clerical; that table has been repaired).
+>
+> **Known remaining gap — out of this audit's scope:** **133 rows still read ⚠️ *unfiled***, all older
+> Tasks (roughly T-0090–T-0357) whose Sprint archive is their only record. None of them appear in the
+> active or backlog lists, so they are not a source of contradiction — but they have no Task-level
+> archive. **Worth a dedicated pass; do not assume it was done here.**
+
 ## Organization
 
 | File | Holds |
@@ -448,11 +460,11 @@ archive files reconstructed after the fact from secondary sources.
 | T-0210 | / T-0211 / T-0212 — ✅ Verified (2026-07-13) | SP-055 | EP-019 | ✅ Verified | [`Task-verified-0210-0212.md`](Verified/Task-verified-0210-0212.md) |
 | T-0211 | Inline fork popover (Trade T2 core interaction) | SP-055 | EP-019 | ✅ Verified | [`Task-verified-0210-0212.md`](Verified/Task-verified-0210-0212.md) |
 | T-0212 | Stale-branch detection + user-confirmed purge | SP-055 | EP-019 | ✅ Verified | [`Task-verified-0210-0212.md`](Verified/Task-verified-0210-0212.md) |
-| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | SP-056 | EP-019 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-056.md` |
-| T-0214 | Buffer UX (HUD/palette/menus) + paste/cut history integration | SP-056 | EP-019 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-056.md` |
+| T-0213 | Copy-buffer store (`buffers.json`) + C ABI + engine wrappers | SP-056 | EP-019 | ✅ Verified | [`Task-verified-0213-0214.md`](Verified/Task-verified-0213-0214.md) |
+| T-0214 | Buffer UX (HUD/palette/menus) + paste/cut history integration | SP-056 | EP-019 | ✅ Verified | [`Task-verified-0213-0214.md`](Verified/Task-verified-0213-0214.md) |
 | T-0215 | History panel (management surface) | SP-057 | EP-019 | ⚪ Superseded | — |
 | T-0216 | Perf/integration fixtures + gitignore migration | SP-057 | EP-019 | ⛔️ Removed as OBE | — |
-| T-0217 | Doc updates + EP-019 acceptance-criteria verification | **SP-094** (⬅ SP-057 superseded) | EP-019 | ✅ Verified 2026-08-11 | ⚠️ *unfiled* — see [`Sprint-SP-094.md`](../Sprints/Closed/Sprint-SP-094.md) |
+| T-0217 | Doc updates + EP-019 acceptance-criteria verification | **SP-094** (⬅ SP-057 superseded) | EP-019 | ✅ Verified 2026-08-11 | [`Task-verified-0217.md`](Verified/Task-verified-0217.md) |
 | T-0218 | Qt6/QML CMake skeleton | SP-058 | EP-020 | ✅ Verified | [`Task-verified-0218-0222.md`](Verified/Task-verified-0218-0222.md) |
 | T-0219 | `ScriviBridge` | SP-058 | EP-020 | ✅ Verified | [`Task-verified-0218-0222.md`](Verified/Task-verified-0218-0222.md) |
 | T-0220 | Hello-ScriviCore slice | SP-058 | EP-020 | ✅ Verified | [`Task-verified-0218-0222.md`](Verified/Task-verified-0218-0222.md) |
@@ -469,21 +481,21 @@ archive files reconstructed after the fact from secondary sources.
 | T-0231 | Open flow (QML)  *(AC3)* | SP-060 | EP-021 | ✅ Verified | [`Task-verified-0230-0233.md`](Verified/Task-verified-0230-0233.md) |
 | T-0232 | Close → landing  *(AC6)* | SP-060 | EP-021 | ✅ Verified | [`Task-verified-0230-0233.md`](Verified/Task-verified-0230-0233.md) |
 | T-0233 | Full-loop verify + CI  *(AC7, AC8)* | SP-060 | EP-021 | ✅ Verified | [`Task-verified-0230-0233.md`](Verified/Task-verified-0230-0233.md) |
-| T-0234 | `[Linux]` **Shell flip** — `main.cpp` → `QApplication`+`QMainWindow` host, landing QML re-hosted via `QQuickWidget`; keep context props + `QFileDialog… | SP-061 | EP-021 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-061.md` |
-| T-0235 | `[Linux]` **Editor shell + read-only continuous viewport** — one `QPlainTextEdit`/`QTextDocument` (read-only, undo disabled), all scene bodies via `op… | SP-061 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-061.md` |
-| T-0236 | `[Linux]` **Scene navigator** — ordered list + chapter grouping + live titles; click selects + scrolls viewport; display/select only (structure editin… | SP-061 | EP-023 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-061.md` |
-| T-0237 | `[Linux]` **Verify AC1/AC2 + headless scene-load smoke** — multi-scene fixture asserts all bodies loaded, wired to CI; VNC click-through | SP-061 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-061.md` |
-| T-0238 | `[Linux]` **Editable viewport + dirty tracking** — `setReadOnly(false)`, edits mapped to owning scene via offset map, per-scene dirty flags, non-edita… | SP-062 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-062.md` |
-| T-0239 | `[Linux]` **Per-scene auto-save** — `scrivi_save_scene` on ~1.5s debounce + scene-switch + close/app-quit (VNC foreground-quit path); real `.md` on di… | SP-062 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-062.md` |
-| T-0240 | `[Linux]` **⌘↩ create scene** in-editor (Linux: **Ctrl+Return**) — save current, create-scene, insert boundary, caret into new segment, update offset… | SP-062 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-062.md` |
-| T-0241 | `[Linux]` **⌘⇧↩ create chapter** in-editor (Linux: **Ctrl+Shift+Return**) — save current, create-chapter, insert boundary, caret into new chapter's fi… | SP-062 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-062.md` |
-| T-0242 | `[Linux]` **Verify AC3 + headless save smoke** — edit→`save_scene`→reopen asserts new bytes; VNC type/switch/⌘↩/⌘⇧↩/quit-save | SP-062 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-062.md` |
-| T-0243 | `[Linux]` **Scroll → active-scene promotion** — visible region → active scene via offset map; boundary crossing promotes + saves departing scene | SP-063 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-063.md` |
-| T-0244 | `[Linux]` **Navigator ↔ scroll sync** — highlight follows scroll; navigator click takes caret to the clicked scene's start (scrolls into view); no fee… | SP-063 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-063.md` |
-| T-0245 | `[Linux]` **Verify AC1/AC4 (scroll)** — VNC scroll-through tracks active scene + highlight; departing scenes saved; navigator click lands caret at the… | SP-063 | EP-022 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-063.md` |
-| T-0246 | `[Linux]` **Cursor placement + focus** — editor takes focus on open, sensible caret, correct caret across boundaries (no jump-to-start), enforce non-e… | SP-064 | EP-022 | 🟠 Implemented - Not Verified | — |
-| T-0247 | `[Linux]` **Quit→reopen surface restore** — persist active scene + anchor/focus/scroll on close; apply `openProject` `restored{}` on reopen | SP-064 | EP-022 | 🔵 Backlog | — |
-| T-0248 | `[Linux]` **EP-022 verification + close prep** — full write→save→switch→scroll→quit→reopen loop VNC-verified; `.md` on disk; AC1–AC7 checklist; restor… | SP-064 | EP-022 | 🔵 Backlog | — |
+| T-0234 | `[Linux]` **Shell flip** — `main.cpp` → `QApplication`+`QMainWindow` host, landing QML re-hosted via `QQuickWidget`; keep context props + `QFileDialog… | SP-061 | EP-021 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0235 | `[Linux]` **Editor shell + read-only continuous viewport** — one `QPlainTextEdit`/`QTextDocument` (read-only, undo disabled), all scene bodies via `op… | SP-061 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0236 | `[Linux]` **Scene navigator** — ordered list + chapter grouping + live titles; click selects + scrolls viewport; display/select only (structure editin… | SP-061 | EP-023 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0237 | `[Linux]` **Verify AC1/AC2 + headless scene-load smoke** — multi-scene fixture asserts all bodies loaded, wired to CI; VNC click-through | SP-061 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0238 | `[Linux]` **Editable viewport + dirty tracking** — `setReadOnly(false)`, edits mapped to owning scene via offset map, per-scene dirty flags, non-edita… | SP-062 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0239 | `[Linux]` **Per-scene auto-save** — `scrivi_save_scene` on ~1.5s debounce + scene-switch + close/app-quit (VNC foreground-quit path); real `.md` on di… | SP-062 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0240 | `[Linux]` **⌘↩ create scene** in-editor (Linux: **Ctrl+Return**) — save current, create-scene, insert boundary, caret into new segment, update offset… | SP-062 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0241 | `[Linux]` **⌘⇧↩ create chapter** in-editor (Linux: **Ctrl+Shift+Return**) — save current, create-chapter, insert boundary, caret into new chapter's fi… | SP-062 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0242 | `[Linux]` **Verify AC3 + headless save smoke** — edit→`save_scene`→reopen asserts new bytes; VNC type/switch/⌘↩/⌘⇧↩/quit-save | SP-062 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0243 | `[Linux]` **Scroll → active-scene promotion** — visible region → active scene via offset map; boundary crossing promotes + saves departing scene | SP-063 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0244 | `[Linux]` **Navigator ↔ scroll sync** — highlight follows scroll; navigator click takes caret to the clicked scene's start (scrolls into view); no fee… | SP-063 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0245 | `[Linux]` **Verify AC1/AC4 (scroll)** — VNC scroll-through tracks active scene + highlight; departing scenes saved; navigator click lands caret at the… | SP-063 | EP-022 | ✅ Verified | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0246 | `[Linux]` **Cursor placement + focus** — editor takes focus on open, sensible caret, correct caret across boundaries (no jump-to-start), enforce non-e… | SP-064 | EP-022 | ✅ Verified 2026-07-15 [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0247 | `[Linux]` **Quit→reopen surface restore** — persist active scene + anchor/focus/scroll on close; apply `openProject` `restored{}` on reopen | SP-064 | EP-022 | ✅ Verified 2026-07-15 | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
+| T-0248 | `[Linux]` **EP-022 verification + close prep** — full write→save→switch→scroll→quit→reopen loop VNC-verified; `.md` on disk; AC1–AC7 checklist; restor… | SP-064 | EP-022 | ✅ Verified 2026-07-15 | [`Task-verified-0234-0248.md`](Verified/Task-verified-0234-0248.md) |
 | T-0249 | `[Linux]` **Manuscript navigation gestures** — Page Forward / Page Backward + jump to absolute manuscript start / end. Gestures/keystrokes **undecided… | SP-063 | EP-022 | 🔵 Backlog | — |
 | T-0250 | `delete_scene`/`delete_chapter` `ScriviBridge` wrappers — `ScriviBridge::deleteScene`/`deleteChapter` (`ScriviBridge.cpp:195/211`) following the `crea… | SP-065 | EP-023 | ✅ Verified | [`Task-verified-0250-0253.md`](Verified/Task-verified-0250-0253.md) |
 | T-0251 | Navigator context menu + delete confirmation dialogs — `EditorShell::onNavigatorContextMenu` (custom context-menu policy) → **Delete Scene** / **Delet… | SP-065 | EP-023 | ✅ Verified | [`Task-verified-0250-0253.md`](Verified/Task-verified-0250-0253.md) |
@@ -594,33 +606,33 @@ archive files reconstructed after the fact from secondary sources.
 | T-0356 | **Reversible structured undo (AC6)** — extend C++ `HistoryService` for `structuredCut`/`structuredPaste` inverse-op undo/redo + tests (must also resto… | SP-089 | EP-029 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-089.md` |
 | T-0357 | **Title-capture cut/paste + chapter promotion** (user ruling 2026-07-29, supersedes §4.3 for chapter-crossing cuts) — cross-chapter cut **promotes the… | SP-089 | EP-029 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-089.md` |
 | T-0358 | [ScriviCore] OrderKey caps-only generation + dotted keys + rebalance | — | EP-027 | ✅ Verified | [`Task-verified-0358.md`](Verified/Task-verified-0358.md) |
-| T-0359 | `InspectorCard` protocol + registry + `CardContext` | SP-090 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-090.md` |
-| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | SP-090 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-090.md` |
-| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | SP-090 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-090.md` |
-| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-090.md` |
-| T-0363 | `tags` + `todo` cards | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
-| T-0364 | `outline` card | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
+| T-0359 | `InspectorCard` protocol + registry + `CardContext` | SP-090 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
+| T-0360 | `inspector-layout.json` schema + load/save + unknown-`typeID` skip | SP-090 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
+| T-0361 | Bottom tabs + persisted `selectedTab` + menu hide/show; replace `SceneInspectorView` | SP-090 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
+| T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
+| T-0363 | `tags` + `todo` cards | SP-091 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
+| T-0364 | `outline` card | SP-091 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
 | T-0365 | `sources` card (aggregate) — `cites` type ✅ SP-096, `source` kind ✅ SP-098/T-0406; **only the card remains** | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
-| T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
-| T-0367 | Properties tab — field-driven view | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
+| T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | SP-092 | EP-030 | ✅ Verified | [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
+| T-0367 | Properties tab — field-driven view | SP-092 | EP-030 | ✅ Verified | [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
 | T-0368 | Card failure isolation + inline warning | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
 | T-0369 | EP-030 verification + Epic close prep | SP-094 | EP-030 | 🔵 Backlog | — |
-| T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | SP-095 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-095.md` |
-| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | SP-095 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-095.md` |
-| T-0372 | `objects/index.json` + `findByID` over index | SP-095 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-095.md` |
-| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-096 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-096.md` |
-| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | SP-096 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-096.md` |
-| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-096.md` |
-| T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-096.md` |
-| T-0377 | Cascade-prune on object **and** scene delete + load-time repair | SP-098 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-098.md` |
-| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-098 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-098.md` |
-| T-0379 | `scrivi_promote_object` (item↔artifact) | SP-098 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-098.md` |
-| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | SP-098 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-098.md` |
-| T-0381 | `.scrivworld` package + `world.json` + world index + `scrivi_create_world` | SP-097 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-097.md` |
-| T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-097 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-097.md` |
-| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | SP-097 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-097.md` |
-| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | SP-097 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-097.md` |
-| T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | SP-097 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-097.md` |
+| T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0372 | `objects/index.json` + `findByID` over index | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0373 | `relation-types.json` + `canonicalDirection` + `symmetric` | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0374 | `relationships.jsonl` append-log + tombstones + torn-line recovery | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0375 | Canonical normalization + duplicate rejection (asymmetric **and** symmetric) | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0376 | Compaction at 30% / 1,000 tombstones | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0377 | Cascade-prune on object **and** scene delete + load-time repair | SP-098 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0378 | `scrivi_list_objects` / `scrivi_list_orphaned_objects` | SP-098 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0379 | `scrivi_promote_object` (item↔artifact) | SP-098 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0380 | ⚠️ Pending-vs-dangling distinction + frozen graph toward unavailable worlds | SP-098 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0381 | `.scrivworld` package + `world.json` + world index + `scrivi_create_world` | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0382 | `binding.json` + `worldID`-verified resolution + relink | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0383 | Lock→write→unlock + heartbeat + stale-lock recovery | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0384 | Epoch chain (world/timeline/binding) + resolve endpoint | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0385 | Cached world index → named pending entries; **world-scoped kinds become creatable** (closes AC1 gated half + AC3 faction clause) | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0386 | Object cards (ONE implementation, ten per-kind configurations) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point (disabled → T-0388) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
@@ -629,19 +641,19 @@ archive files reconstructed after the fact from secondary sources.
 | T-0391 | EP-031 verification + Epic close prep | SP-100 | EP-031 | 🔵 Backlog | — |
 | T-0392 | `[ScriviCore]` Extend `scrivi.scene.v1`: `tags`, `outline`, `todo` (additive) + `SceneMetaData` + round-trip tests | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
 | T-0393 | `[ScriviCore]` C ABI: `scrivi_set_scene_tags` / `_outline` / `_todo` + `scrivi_get_scene_notes` + ctest | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
-| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | SP-092 | EP-030 | 🟠 Implemented - Not Verified | — |
-| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | SP-092 | EP-030 | 🟠 Implemented - Not Verified | — |
-| T-0396 | `[Apple]` **Typing-session coalescing** — autosave **defers** the commit (records nothing mid-session); entry seals at a real boundary or a **45 s** i… | SP-093 | EP-019 | 🟠 Implemented - Not Verified | — |
-| T-0397 | `[Cross]` **Whitespace-kind labels in history** — new `whitespaceKind` tree field (`"newline:2"`) → `whitespaceLabel` (`"⏎ new paragraph"`); `preview`… | SP-093 | EP-019 | 🟠 Implemented - Not Verified | — |
-| T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carr… | SP-093 | EP-019 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-093.md` |
-| T-0399 | `[Apple]` **Card soft-failure isolation** — framework backstop in `CardBodyBoundary` + throwing `makeContent` (default forwards) + failing-card test f… | SP-101 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-101.md` |
+| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | SP-092 | EP-030 | ✅ Verified 2026-08-11 [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
+| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | SP-092 | EP-030 | ✅ Verified 2026-08-11 [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
+| T-0396 | `[Apple]` **Typing-session coalescing** — autosave **defers** the commit (records nothing mid-session); entry seals at a real boundary or a **45 s** i… | SP-093 | EP-019 | ✅ Verified 2026-08-10 [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
+| T-0397 | `[Cross]` **Whitespace-kind labels in history** — new `whitespaceKind` tree field (`"newline:2"`) → `whitespaceLabel` (`"⏎ new paragraph"`); `preview`… | SP-093 | EP-019 | ✅ Verified 2026-08-10 [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
+| T-0398 | `[Cross]` **Distinguish added vs. deleted text in history rows** — `minus.circle` glyph + orange tint + "Deleted …" label prefix; `removedLength` carr… | SP-093 | EP-019 | ✅ Verified | [`Task-verified-0396-0398.md`](Verified/Task-verified-0396-0398.md) |
+| T-0399 | `[Apple]` **Card soft-failure isolation** — framework backstop in `CardBodyBoundary` + throwing `makeContent` (default forwards) + failing-card test f… | SP-101 | EP-030 | ✅ Verified | [`Task-verified-0399.md`](Verified/Task-verified-0399.md) |
 | T-0400 | `[ScriviCore]` **History log-segment rotation** — `activeSegment_` is hard-fixed to `log-000001.jsonl` (`HistoryStore.hpp:114`); nothing rotates it, s… | — | EP-019 | 🔵 Backlog | — |
-| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | SP-095 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-095.md` |
-| T-0402 | ⚠️ Endpoint-kind resolution via `ObjectIndex` — replaces §5.2's broken ID-prefix rule; amends Doc 1 | SP-096 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-096.md` |
-| T-0403 | ⚠️ `FileSystem::createFileExclusive` — exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | SP-097 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-097.md` |
-| T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | SP-095 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-095.md` |
-| T-0405 | ⚠️ **I-0113** — `worldID` on `scrivi_create/open/delete_object` (breaking ABI widen) | SP-098 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-098.md` |
-| T-0406 | `source` object kind (T-0365 ScriviCore half) — **closes EP-031 AC1** | SP-098 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-098.md` |
+| T-0401 | Index rebuild + corruption coverage (missing / corrupt / stale) — Doc 1 AC2 | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0402 | ⚠️ Endpoint-kind resolution via `ObjectIndex` — replaces §5.2's broken ID-prefix rule; amends Doc 1 | SP-096 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0403 | ⚠️ `FileSystem::createFileExclusive` — exclusive-create primitive Doc 3 §6.5 assumes but that does not exist | SP-097 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0404 | `rule` relocation to world scope + Package Structure §11 correction (deferred from SP-095) | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0405 | ⚠️ **I-0113** — `worldID` on `scrivi_create/open/delete_object` (breaking ABI widen) | SP-098 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
+| T-0406 | `source` object kind (T-0365 ScriviCore half) — **closes EP-031 AC1** | SP-098 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0407 | ⚠️ **`ScriviEngine` graph + world wrappers** — 14 endpoints (12 planned + `createWorld`/`addWorld`); **+ `detail` on `ScriviError` and the null-result… | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0408 | **Worlds menu** — list / create / bind + picker scope line (new at R4; `listWorlds` had **zero** UI call sites) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0409 | ⚠️ **`objectKindIsWorldScoped` → all ten kinds world-scoped** (`source` excluded); update `ObjectStore` scope sites + C ABI kind table | SP-103 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-103.md` |

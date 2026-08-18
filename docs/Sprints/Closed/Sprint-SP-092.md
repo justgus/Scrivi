@@ -22,9 +22,19 @@ new history logic.
 
 | ID | Title | Status |
 | -- | ----- | ------ |
+| T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | ✅ **Verified 2026-08-11** (see the recording note below) |
+| T-0395 | `[Apple]` `ScriviEngine`/`HistoryCapture` history-tree wrapper + interop | ✅ **Verified 2026-08-11** (see the recording note below) |
 | T-0366 | `[Apple]` `history` card — windowed tree, branch selection, stale badges, purge (**supersedes T-0215**) | ✅ **Verified 2026-08-11** (EP-030 AC5) |
 | T-0367 | `[Apple]` Properties tab — **field-driven** view (author, timestamps, metrics) | ✅ **Verified 2026-08-11** (EP-030 AC6) |
 | T-0368 | `[Apple]` Card failure isolation + inline warning presentation | ✅ **Closed 2026-08-11 — delivered by [[T-0399]]** (see below) |
+
+> ⚠️ **Recording note (added by the 2026-08-18 documentation audit).** **T-0394 and T-0395 were
+> missing from this table** — the sprint narrative names both and their deliverables appear as
+> satisfied exit criteria below, but no row and no verification date was ever recorded. They
+> consequently sat as 🟠 *Implemented — Not Verified* in `Task-backlog.md` and `Task-Documentation.md`
+> for a week after this Sprint closed. **User ruling 2026-08-18: both are Verified 2026-08-11 with
+> SP-092**, the omission being clerical. Rows added above; archive:
+> [`Task-verified-0394-0395-0366-0367.md`](../../Tasks/Verified/Task-verified-0394-0395-0366-0367.md).
 
 ### Exit criteria at close
 
