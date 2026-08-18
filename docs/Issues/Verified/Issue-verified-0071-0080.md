@@ -132,3 +132,29 @@ rejected by user: forbid the drag, or auto-delete the chapter.)
 
 > *Archived from the Issue-active.md table row (2026-08-15). This issue never had a separate
 > full entry; the row above is the complete record as written at the time.*
+
+## I-0076
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)**
+**Severity:** High
+**Sprint:** **EP-027**
+
+**Description / Resolution:**
+`[ScriviCore]` **EP-027 migration leaves legacy scenes with a stale `content.path` → "Missing scene content file" on open.** A legacy project whose scene sidecars carry a full `content.path = "manuscript/chapter-NNN/…md"` (pre-P6 shape) migrates its chapter folders to order-keys (`chapter-001`→`chapter-V`, …) but the scene `content.path` is **never normalised to a bare filename**, so it still points at the vanished `chapter-NNN` folder → `ProjectValidator` reports "Missing scene content file" and the app refuses to open. **Root cause:** `util::isOrderKey("001"/"002"/"003"/"004")` returns **true** (base-62 alphabet accepts digits; only a trailing `'0'` is rejected), so `SceneIndex::migrateScenes` Pass 2 classifies zero-padded numeric scene filenames as *already order-keyed* and **skips** them — `renameSceneFiles` (which rewrites `content.path` to a bare filename) never runs. Compounded by `renameChapterFolder`, which by design touches **zero** scene fields (it assumes `content.path` is already bare — true for P6-created projects, false for these legacy sidecars). Found in P5 on `the-twisted-remains-of-myself.scrivi` (13/14 chapters affected; only the un-migrated `chapter-004` had correct paths). ctest-invisible (fixtures already use bare content paths).
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17).*
+
+---
+
+## I-0077
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)**
+**Severity:** Medium
+**Sprint:** **EP-027**
+
+**Description / Resolution:**
+`[ScriviCore]` **EP-027 chapter migration skips a chapter whose index/sidecar `chapterID` disagree, leaving it half-migrated.** When `manuscript.meta.json` lists a chapter under one `chapterID` but the chapter's sidecar has a different one, `migrateChapterOrderKeys::keyForID` can't map the index id to any on-disk folder, so line 227 treats it as a **phantom index entry and drops it** from the migration set. That chapter keeps its legacy numeric folder (`chapter-004`) and old-scheme scene refs (`metadataPath`+`sceneID`) while every other chapter is reslugged to order-keys; because numerics sort before letters it also lands **first** in reading order (wrong position). Open-time self-heal then adopts the sidecar id into the index but does **not** re-run the folder migration, so the half-migrated state persists. Found in P5 (`chapter-004`, index `…942e…` vs sidecar `…9cdd…`).
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17).*
+
+---

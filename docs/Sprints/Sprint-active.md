@@ -234,6 +234,83 @@ accident**, so it matters more than the clean one.
 This closes the focus-coupling gap: **world availability no longer depends on app focus in either
 direction**, and [[I-0128]]'s card refresh rides the same trigger.
 
+#### ✅ AC23 `missing` branch verified (2026-08-17) — the second of the two required branches
+
+R3 requires **both** unavailability branches, because they report different statuses and point the writer at
+different remedies. The `unmounted` branch passed in the live runs above; this is the other one.
+
+**Method:** with the volume left **mounted**, the package was renamed aside (`Eskandar.scrivworld` →
+`.aside`), the core's verdict read through `scrivi_*`, then the package restored.
+
+| State | `scrivi_list_worlds` status |
+| ----- | --------------------------- |
+| Package present, volume mounted | `available` |
+| **Package renamed aside, volume still mounted** | ✅ **`missing`** |
+| Package restored | `available` |
+
+✅ **This is the correct discrimination and it exercises the I-0115 rule.** `missing` is reported *only* on
+positive proof of absence — a mounted, readable container with no package in it. `WorldVolumeStatus.refine`
+passes the core's verdict through untouched here (its `unmounted` branch requires the volume root to be gone),
+so the two statuses are cleanly separated: **unplug the drive → `unmounted`; delete/move the package →
+`missing`.** A writer is told to reconnect hardware in one case and to relink or restore in the other.
+
+✅ **Integrity proven, not assumed:** all **18** world files hashed before the rename and re-hashed after —
+**byte-identical**. The edge log holds **22** records and the binding's `cachedIndex` **16** entries, both
+consistent with the user's own added objects. Nothing was pruned by a world going absent — AC7 holding in a
+live run rather than a fixture.
+
+> ⚠️ **Two probe-harness artifacts, recorded so they are not mistaken for defects.** An earlier probe declared
+> `scrivi_open_project` with **one** parameter when it takes **three** (`projectRootPath`, `appSupportRoot`,
+> `identityID`), which segfaulted and also produced a spurious `nlohmann` *"invalid UTF-8 byte 0xF6"* throw.
+> Both vanished with a correct declaration. **Neither is a product defect**; a `.DS_Store` scan run at the same
+> time found the only invalid-UTF-8 files in the project and world are Finder's own `.DS_Store`, which
+> ScriviCore never parses.
+
+#### ✅ AC23 `missing` branch — LIVE test in the app (user, 2026-08-17)
+
+The core-level check above proved the *engine's* verdict; this proves what the **writer actually sees**, which
+is the point of the `missing`/`unmounted` distinction.
+
+| Step | Result |
+| ---- | ------ |
+| Quit, rename the world aside, restart | ✅ warning **and** Scene Inspector both report **missing** |
+| Quit, rename back, restart | ✅ warnings gone |
+| Rename aside **while the app is open** | ✅ updates on refocus |
+| Rename back while open | ✅ warnings clear |
+| Worlds ▸ Manage Worlds with the world absent | ✅ reports **missing** |
+| **"Locate…" → point at the renamed package** | ⚠️ **Scene Inspector cleared, but the main warning did NOT** until the scene changed → **[[I-0130]]** |
+
+✅ **Both AC23 branches now verified live in the UI** — `unmounted` (unplug) and `missing` (rename aside),
+each reporting its own status and each recovering. The remaining defect is a **refresh trigger, not a status
+error**: the world was genuinely repaired; one surface just kept reporting the old state.
+
+⚠️ **[[I-0130]] is the exact INVERSE of [[I-0128]].** There the cards went stale while the warning recovered;
+here the warning went stale while the cards recovered — because the two are refreshed by different triggers.
+The fix routes **all four** Worlds-sheet mutations (create, bind, relink, remove) through the one call that
+refreshes both, rather than patching the site that happened to be reported.
+
+#### ⚠️ Second finding, NOT this sprint's work — [[I-0131]]
+
+The user noticed Scrivi resumes on the wrong scene: clicking a scene in the navigator and quitting reopens on
+the *previous* scene, **unless he edits some text first**. That difference is the diagnosis — the resume point
+is persisted only as a **side effect of saving a dirty scene**. Two guards both decline for a clean scene
+(`isDirty` at `ViewportSceneLoader.swift:206`, and `vpID != cursorSceneID` at `:273-275`), so nothing is
+written at all.
+
+**Pre-existing EP-019 / I-0058 defect**, surfaced here only because world testing involved many quit/restart
+cycles. ⚠️ **Filed as out-of-scope, then ADOPTED into SP-102 at the user's direction** ("fix I-0131") and
+fixed the same day.
+
+**Fix:** the `vpID != cursorSceneID` guard is removed from `stampWritingSurfaceBlocking`, so the viewport
+scene is stamped on the quit path whether or not it is dirty and whether or not it holds the cursor. ⚠️ **The
+stamp now also persists the REAL cursor offset when the cursor is in that scene** — it hardcoded `0`, which
+was correct only under the old assumption that the cursor was elsewhere; keeping it would have discarded the
+caret position this call exists to preserve. `noteScenePersisted` still fires (I-0104), and the stamp is still
+the **last** write on the quit path, which is what makes it the recorded resume point.
+
+> ✅ **I-0130 VERIFIED by the user the same day** — Locate… now clears the main warning with no scene change;
+> archived to `Verified/Issue-verified-0121-0130.md`.
+
 > ⚠️ **MIGRATION GAP on I-0125 — the code fix alone does NOT help an existing project.**
 > `RelationTypeStore::load` re-seeds **only** when `relation-types.json` is missing or unusable
 > (`RelationTypes.cpp:150-176`); a valid file is loaded verbatim. The user's project therefore still carries
@@ -258,10 +335,12 @@ direction**, and [[I-0128]]'s card refresh rides the same trigger.
 
 ## Assigned Issues
 
-*None at activation.* ⚠️ **I-0114–I-0117 (SP-104) remain 🟠 `Resolved - Not Verified`** and live on the same
-world surface this sprint touches. They belong to the closed SP-104 and are **not** re-assigned here — but
-this sprint's live run will exercise them, so **offer them for verification when it happens** rather than
-letting a second sprint pass over the same ground.
+*None at activation.* ✅ **I-0114–I-0117 (SP-104) were VERIFIED 2026-08-17** (user-approved) off the back of
+this sprint's live runs, which exercised those exact surfaces — object creation into a world, world status
+reporting, the sandbox grant surviving relaunch, and the Manage Worlds repair affordances. They belonged to
+the closed SP-104 and were never re-assigned here; verifying them opportunistically avoided a second sprint
+passing over the same ground. Archived to
+[`../Issues/Verified/Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md).
 
 ---
 
@@ -475,7 +554,7 @@ fresh one, of **both** the project and the world package, before any run.
 5. **Assert `relationships.jsonl` is byte-identical** to the step-1 copy across the whole run — AC-A2's
    "verbatim" property. ⚠️ **This is the one that matters most:** a tombstone written and later compacted out
    would satisfy a weaker reading and still have destroyed the writer's links.
-6. **Opportunistic:** this run exercises I-0114–I-0117's surfaces — offer them for verification.
+6. **Opportunistic:** this run exercises I-0114–I-0117's surfaces — ✅ **done: all four Verified 2026-08-17.**
 
 ---
 

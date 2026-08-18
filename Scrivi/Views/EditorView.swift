@@ -52,7 +52,7 @@ private struct ManuscriptEditorView: View {
         .sheet(isPresented: Bindable(session).showWorlds) {
             if let root = session.projectRootPath {
                 WorldsView(engine: env.engine, projectRootPath: root,
-                           onReconnect: { env.reconnectWorlds() })
+                           onWorldsChanged: { env.reconnectWorlds() })
             }
         }
         // I-0128: every world mutation (add, remove, relink, create) happens inside

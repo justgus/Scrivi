@@ -74,18 +74,46 @@ struct SceneNavigatorView: View {
     }
 
     private var navigatorList: some View {
-        List(selection: listSelection) {
-            ForEach(flatRows, id: \.rowID) { row in
-                switch row {
-                case .chapterHeader(let group):
-                    chapterHeaderRow(for: group)
-                        .listRowSeparator(.hidden)
-                case .scene(let entry, let group):
-                    sceneRow(for: entry, in: group)
+        // ⚠️ **The list must scroll ITSELF to the selected row (I-0134).**
+        //
+        // Highlighting a row does not reveal it. On restore, and on any navigation to a
+        // scene outside the visible slice of the list, the writer saw an apparently
+        // empty selection and had to scroll the navigator by hand to find where she
+        // actually was. The manuscript centring fixed in I-0131 made this the last
+        // remaining half of "go to a scene": the text moved, the list did not.
+        ScrollViewReader { proxy in
+            List(selection: listSelection) {
+                ForEach(flatRows, id: \.rowID) { row in
+                    switch row {
+                    case .chapterHeader(let group):
+                        chapterHeaderRow(for: group)
+                            .listRowSeparator(.hidden)
+                    case .scene(let entry, let group):
+                        sceneRow(for: entry, in: group)
+                            // `id` is what `scrollTo` targets; it must match `rowID`,
+                            // which is also the List's selection identity.
+                            .id(row.rowID)
+                    }
+                }
+                .onMove { source, destination in
+                    performMove(from: source, to: destination)
                 }
             }
-            .onMove { source, destination in
-                performMove(from: source, to: destination)
+            .onChange(of: loader.viewportSceneID) { _, sceneID in
+                guard let sceneID else { return }
+                // Only scrolls when the row is out of view; SwiftUI no-ops otherwise, so
+                // this does not fight the writer scrolling the list by hand.
+                withAnimation(.easeOut(duration: 0.18)) {
+                    proxy.scrollTo("scene-\(sceneID)", anchor: .center)
+                }
+            }
+            .onAppear {
+                // Restore lands before this view is on screen, so the initial highlight
+                // needs an explicit reveal — without it the very first thing the writer
+                // sees is a selection she cannot find.
+                if let sceneID = loader.viewportSceneID {
+                    proxy.scrollTo("scene-\(sceneID)", anchor: .center)
+                }
             }
         }
         .listStyle(.inset)

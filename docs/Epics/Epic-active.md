@@ -27,10 +27,11 @@ cleaned up its fallout.
 which were green throughout. Worth remembering when SP-100's evidence is "all tests pass."
 
 **State at the 2026-08-15 close:** `ctest` **516/516** · macOS interop **86/86** · app **BUILD SUCCEEDED**.
-Issues carried across these sprints: **I-0114–I-0119** — of which **I-0118 and I-0119 are ✅ Verified**
-(archived to [`../Issues/Verified/Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md))
-and ⚠️ **I-0114–I-0117 remain 🟠 `Resolved - Not Verified`**, awaiting user verification in
-[`../Issues/Issue-active.md`](../Issues/Issue-active.md). **They are not evidence for any AC until verified.**
+Issues carried across these sprints: **I-0114–I-0119 — ✅ ALL SIX NOW VERIFIED.** I-0118 and I-0119 were
+verified 2026-08-14/15; **I-0114–I-0117 were verified 2026-08-17 (user-approved)** during the SP-102 / T-0415
+world-availability runs, which exercised those exact surfaces end to end. All six are archived to
+[`../Issues/Verified/Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md).
+✅ **They are now available as evidence for SP-100's AC pass** — previously they were not.
 
 **Linux is untouched** by SP-104/SP-105. The `[ScriviCore]` fixes are cross-platform and covered by `ctest`;
 the `[Apple]` halves (Worlds menu, bookmarks, Spotlight donation) have no Qt counterpart, and the Linux app

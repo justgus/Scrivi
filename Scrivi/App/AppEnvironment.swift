@@ -214,6 +214,7 @@ import UniformTypeIdentifiers
         // Synchronous on purpose: `applicationWillTerminate` does not wait for async
         // work, so a Task here would be cut off mid-write. The engine calls underneath
         // are synchronous C ABI calls, so this is a direct call, not a bridge.
+        NSLog("[SCRIVI-DIAG] === applicationWillTerminate ===")
         for session in openProjects.sessions.values {
             session.saveAllDirtyBlocking()
         }
@@ -571,6 +572,7 @@ import UniformTypeIdentifiers
     // Called by the application delegate on willResignActive. Saves every open session's
     // current scene, then refreshes each project's Spotlight index.
     func onAppResign() async {
+        NSLog("[SCRIVI-DIAG] === onAppResign (willResignActive) ===")
         for session in openProjects.sessions.values {
             await session.saveAllDirty()
         }

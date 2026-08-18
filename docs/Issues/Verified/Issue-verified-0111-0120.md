@@ -272,3 +272,60 @@ rather than filing a new Issue — the mechanism is identical.
 > audit did not open `Issue-backlog.md` either. Content is unchanged from the backlog entry.*
 
 ---
+
+
+## I-0114
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)** — verified live by the user during the SP-102 / T-0415 world-availability runs, which exercised these same surfaces end to end (object creation into a world, world status reporting, the sandbox grant surviving relaunch, and the Manage Worlds repair affordances).
+**Severity:** Critical
+**Sprint:** **SP-104**
+
+**Description / Resolution:**
+`[ScriviCore]`/`[Apple]` **⚠️ CLASS ISSUE — a kind list restated rather than derived, now the FOURTH and FIFTH occurrence in EP-031.** Found 2026-08-14 during SP-104 live troubleshooting, when the user could not create a character in the app at all. Two independent copies of the kind partition still named the **pre-T-0409 scope**: (a) `ObjectCardKind.all` (`Scrivi/Views/Inspector/ObjectCard.swift:33`) stored `isWorldScoped` **per kind** and marked `character`/`location`/`item`/`building`/`vehicle`/`map` as `false`, so `defaultWorldID` returned `""` at its guard, the in-card world picker never rendered, and `createObject` was called with an empty `worldID` → refused with `detail == "worldRequired"`. **This was the actual blocker.** (b) `WorldStore::createWorld` scaffolded the package from **seven hardcoded literals** (`artifacts`, `rules`, `chronicles`, `factions`, …) with no `characters`, so every world created after the ruling shipped without a `characters/` directory. **Confirmed by probe through `scrivi_*`, not the facade:** `create WITH worldID` → ok, wrote `/Volumes/Scrivi Worlds/Eskandar.scrivworld/characters/probe-ada.json`; `create WITHOUT worldID` → `{"detail":"worldRequired"}`. Note (b) alone was **not** blocking — `ObjectStore::create` calls `createDirectories` — which is why the two had to be separated. **Root cause of the class:** the canonical list `kAllStorableKinds` lived in `ObjectIndex.cpp`'s **anonymous namespace**, unreachable by any other translation unit, so callers restated it. Precedents: [[I-0113]] (the ABI kind gap), SP-098's `source` table, SP-103's `kScannedKinds` scan table. ⚠️ **The standing rule — "grep for other dispatch lists before adding a kind" — is insufficient and has now failed four times**, because a list also goes stale when a kind's *scope* changes and the list's own text is never touched. Occurrence (a) is additionally the **first in Swift**, where the C++-side rule was never in play. **Fix:** promote `kAllStorableKinds` to `ObjectTypes.hpp` beside the enum as the one canonical list; derive the world skeleton from it + `objectKindIsWorldScoped()`; make `ObjectCardKind.isWorldScoped` a computed property (`kind != "source"`) instead of a stored flag.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17). The row above is the
+> complete record as written at the time.*
+
+---
+
+## I-0115
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)** — verified live by the user during the SP-102 / T-0415 world-availability runs, which exercised these same surfaces end to end (object creation into a world, world status reporting, the sandbox grant surviving relaunch, and the Manage Worlds repair affordances).
+**Severity:** High
+**Sprint:** **SP-104**
+
+**Description / Resolution:**
+`[ScriviCore]` **A present-but-unreadable world package was reported as `missing`, the one status reserved for positive proof of absence.** Reported by the user 2026-08-14: *"The app tells me that Eskandar.scrivworld is missing. Yet it still exists on disk."* **Root cause:** `WorldStore::resolve` (`WorldStore.cpp:252–285`) inferred absence from a **failed read plus a readable parent directory** — but a failed read is equally the signature of an unreadable-but-present package, which is exactly what the macOS App Sandbox produces for a world outside the granted paths. With the package on `~/Desktop`, the parent resolved fine while the package itself did not, so `sawContainerButNoPackage` was set and an intact world was declared gone. **This violates the rule stated in the code itself** (`scrivi.h:241`, Doc 3 §4.6): `missing` is reported *only when positively established*, because a wrong `missing` invites destructive writer remedies — clearing references, restoring from backup — against a world that is perfectly fine. **Fix:** require positive evidence of absence — `exists()` on the package path must return a definitive **no**; an error (permission denied) leaves the honest `unavailable`. The identity-mismatch `missing` is untouched: reading a valid `world.json` with a different `worldID` *is* proof.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17). The row above is the
+> complete record as written at the time.*
+
+---
+
+## I-0116
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)** — verified live by the user during the SP-102 / T-0415 world-availability runs, which exercised these same surfaces end to end (object creation into a world, world status reporting, the sandbox grant surviving relaunch, and the Manage Worlds repair affordances).
+**Severity:** High
+**Sprint:** **SP-104**
+
+**Description / Resolution:**
+`[Apple]` **A world package outside the `.scrivi` bundle had no persisted sandbox grant, so it became unreadable on every relaunch.** Found 2026-08-14 while diagnosing [[I-0115]]. `ProjectBookmarkStore` records a security-scoped bookmark per **project**, but a world is by design a separate, movable, shareable package that several projects may bind — so the project's bookmark never covers it, and **no world bookmark handling existed anywhere in the app** (confirmed by grep: zero matches). The grant a world received from its `NSSavePanel`/`NSOpenPanel` died with the process. **Impact escalated sharply under T-0409:** with every worldbuilding kind now world-scoped, an unreadable world means characters, locations and items cannot be created or listed at all — so this is a blocker on Apple, not a nicety. Compounded by [[I-0115]], the writer was told the world was *missing*, inviting exactly the destructive remedy the design forbids. **Fix:** new `WorldBookmarkStore` (`Scrivi/App/WorldBookmarkStore.swift`) mirroring the project store, wired at four sites — record on `createWorld`, on `addWorld` (only **after** ScriviCore accepts the package, so a refused bind leaves no grant), on `relinkWorld` (a freshly-picked path carries a new grant), and `forget` on `removeWorldReference`; plus `activateWorlds` in `AppEnvironment.loadProject`, the single funnel every open path uses, so the first world read already sees a readable package. ⚠️ **Deliberate difference from projects:** a project's access is window-scoped, but a world may be bound by any open project, so access is acquired once and held for the process lifetime.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17). The row above is the
+> complete record as written at the time.*
+
+---
+
+## I-0117
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)** — verified live by the user during the SP-102 / T-0415 world-availability runs, which exercised these same surfaces end to end (object creation into a world, world status reporting, the sandbox grant surviving relaunch, and the Manage Worlds repair affordances).
+**Severity:** Medium
+**Sprint:** **SP-104**
+
+**Description / Resolution:**
+`[Apple]` **Manage Worlds could not remove or relocate a world — `scrivi_remove_world_reference` and `scrivi_relink_world` had no UI call site.** Reported by the user 2026-08-14: *"I currently do not have a way to remove a world, especially a missing one, from the Manage Worlds view."* Both endpoints existed in the C ABI (`scrivi.h:259,264`) **and** were already wrapped in Swift (`ScriviEngineGraph.swift:220,241`) — only the view was missing, leaving a writer permanently stuck with a broken binding and no repair path. **Same shape as the R4 finding** that `listWorlds` and `createObject` had no call sites: the capability shipped, the surface did not. **Fix:** a `−` button on every row (including unavailable ones) with a confirmation that names the consequence concretely — *the world package is not deleted, it stays on disk and can be added back* — since "Remove" next to a world a writer just built otherwise reads as "delete my world"; and a **"Locate…"** button offered **only on unavailable rows**, because relinking a healthy world is not a repair but a way to bind the wrong package. **Also corrected in the same edit:** the panel's own description text still described the pre-SP-104 scope ("A world holds artifacts, chronicles, factions, and rules… Characters, locations, and items belong to the project itself") — backwards under T-0409, and precisely the text a writer would use to decide where a character lives.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17). The row above is the
+> complete record as written at the time.*
+
+---

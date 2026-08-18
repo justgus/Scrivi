@@ -2,7 +2,7 @@
 
 Issues listed here are open and documented but not currently assigned to a Sprint.
 
-**Currently: 2.** I-0017 and I-0018 are 🔴 Open. Neither is assigned to a Sprint.
+**Currently: 1.** Only **I-0018** remains, 🟠 **partly fixed and rescoped** — not assigned to a Sprint.
 
 ⚠️ **Verified Issues do not belong in this file.** I-0058 (Verified 2026-07-09) and I-0112 (Verified
 2026-08-11) sat here for weeks after verification and were archived to `Verified/` on 2026-08-16. Archive an
@@ -12,71 +12,61 @@ Issue in the same step it is verified.
 [`Verified/Issue-verified-0121-0130.md`](Verified/Issue-verified-0121-0130.md). Both were Verified with the
 sprint. Their full entries were removed from this file rather than left behind, per the rule above.
 
----
-
-## I-0017: Window maximized state not restored on app relaunch
-
-**Status:** 🔴 Open
-**Platform:** macOS
-**Component:** `WindowFrameAutosave.swift`
-**Severity:** Medium
-**Sprint:** Not Assigned
-**Related:** I-0051 (multi-window per-project frame/position restore — Verified 2026-06-29, subsumes the position/size part of this); **I-0055** (multi-window maximize-restore defect — the same zoom-restore problem on the per-window model; fix the two together)
-
-**Description:**
-Window position, size, and maximized state are not fully restored between app launches. Frame and position restore correctly. Maximized state does not — the window always relaunches un-maximized regardless of saved zoom state.
-
-**Expected Behavior:**
-On relaunch, the window appears at the same size, position, and maximized state as when the user last quit. The Landing View and Editor share the same window — no resize occurs when transitioning between them.
-
-**Actual Behavior:**
-Frame and position restore correctly. Maximized state does not restore.
-
-**Steps to Reproduce:**
-1. Maximize the window.
-2. Quit the app.
-3. Relaunch — window opens un-maximized.
-
-**Date Identified:** 2026-06-08
-
-**Root Cause Analysis:**
-`window.zoom(nil)` fires too early — SwiftUI's `WindowGroup` continues async layout passes after the call and overrides it. Current approach uses `NSApplication.didFinishLaunchingNotification` as the trigger, but this has not resolved the issue. Requires deeper investigation.
-
-**Resolution:** TBD
+✅ **I-0017 archived 2026-08-17** → [`Verified/Issue-verified-0011-0020.md`](Verified/Issue-verified-0011-0020.md).
+⚠️ The user reports it was *"fixed ages ago and confirmed fixed"* — **it had simply never been moved out of
+this file**, so the backlog kept reporting an open defect that was not open. That is the third instance of
+exactly the rot the warning above describes (after I-0058 and I-0112), and the second found by the user
+rather than by an audit.
 
 ---
 
-## I-0018: Scene Navigator shows no selection on app load
+## I-0018: Manuscript does not scroll to the restored scene on app load
 
-**Status:** 🔴 Open
+**Status:** 🟠 **PARTLY FIXED — rescoped 2026-08-17 (user-verified).** The original complaint is **fixed**:
+the Navigator *does* now show the selection on load. What remains is a **different behaviour** the original
+report did not name — **the manuscript does not scroll to that selection**, so the writer is shown a
+highlighted scene in the navigator while the text view sits somewhere else.
 **Platform:** macOS
-**Component:** `SceneNavigatorView.swift`, `ViewportSceneLoader.swift`
+**Component:** `SceneNavigatorView.swift`, `ViewportSceneLoader.swift`, `ManuscriptTextView.swift`
 **Severity:** Low
 **Sprint:** Not Assigned
+**Date Identified:** 2026-06-08 · **Rescoped:** 2026-08-17
 
-**Description:**
-When the app loads a project, no scene is selected/highlighted in the Scene Navigator. The Navigator self-corrects on first scroll.
+**Fixed (original scope):**
+On load, no scene was selected/highlighted in the Navigator; it self-corrected only on first scroll. The root
+cause was `viewportSceneID` being left nil during `loadAll()`. `loadAll(activeSceneID:)` now sets
+`currentIndex`, `cursorSceneID` **and** `viewportSceneID` when the backend supplies a resume scene
+(`ViewportSceneLoader.swift:128-134`), so the highlight is present from the first frame.
 
-**Expected Behavior:**
-On load, the Navigator highlights the scene visible at the top of the manuscript viewport.
+**Still open (rescoped):**
+The manuscript viewport is not scrolled to the restored scene on load. The selection is shown; the text is
+not brought to it.
 
-**Actual Behavior:**
-No scene is highlighted until the first scroll event.
+⚠️ **Interacts with [[I-0131]] and [[I-0132]], and should be scoped with them.** All three are the same
+question in different guises — *what does it mean to "be at" a scene?* — and the answer has to be consistent
+across restore-on-load (this Issue), navigator click (I-0132's focus/caret question), and quit-time resume
+(I-0131). Fixing this one in isolation risks a fourth inconsistent behaviour. ⚠️ It also touches the code
+I-0131 just changed: `restoreWritingSurface` already scrolls and places the caret, so the likely fix is
+ensuring that path runs on load when a resume scene exists, rather than adding a second scroll mechanism.
 
-**Date Identified:** 2026-06-08
+**Resolution:** TBD — pending the keyboard/focus/caret model ruling that [[I-0132]] also needs.
 
-**Root Cause Analysis:**
-`viewportSceneID` is intentionally left nil during `loadAll()`. The scroll observer sets it on first scroll, but this hasn't fired at load time.
-
-**Resolution:**
-TBD — needs a mechanism to determine the top-of-viewport scene after `NSTextView` completes initial layout without triggering a spurious scroll notification.
+---
 
 ---
 
 
 ---
 
-*Last Updated: 2026-08-17 (**I-0121 and I-0122 ✅ Verified and archived** to
+*Last Updated: 2026-08-17, later same day (**I-0017 ✅ Verified and archived; I-0018 partly fixed and
+RESCOPED** — both on the user's report while reviewing this backlog. I-0017 had been fixed and confirmed long
+ago and was never filed. I-0018's original complaint (no selection shown on load) is **fixed**; the remaining
+behaviour — **the manuscript not scrolling to that selection** — is different from what was reported, so the
+Issue is retitled and rescoped rather than left implying the whole thing is broken. ⚠️ It is flagged to be
+scoped **together with I-0131 and I-0132**, which are the same underlying question — *what does it mean to
+"be at" a scene?* — across load, click, and quit. **Backlog is now 1.** Prior note follows.)*
+
+*2026-08-17 (**I-0121 and I-0122 ✅ Verified and archived** to
 `Verified/Issue-verified-0121-0130.md` at the SP-106 close — both full entries removed from this file in the
 same step, which is the discipline the 2026-08-16 note below says was missed twice. **Backlog is now 2:**
 I-0017 and I-0018, both 🔴 Open and unassigned. Prior note follows.)*

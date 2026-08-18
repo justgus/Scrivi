@@ -212,8 +212,9 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 
 > ✅ **SP-099, SP-104 and SP-105 all closed 2026-08-15 (user-approved).** Together they delivered EP-031's
 > `[Apple]` half and cleaned up after the T-0409 scope ruling — Issues **I-0114–I-0119** carried, of which
-> **I-0118 and I-0119 are ✅ Verified; I-0114–I-0117 remain 🟠 Resolved - Not Verified** and are listed in
-> [`../Issues/Issue-active.md`](../Issues/Issue-active.md). `ctest`
+> **I-0114–I-0119 are ✅ ALL Verified** — I-0118/I-0119 on 2026-08-14/15, and **I-0114–I-0117 on 2026-08-17**
+> (user-approved, verified live during the SP-102 / T-0415 world runs); all six archived to
+> [`../Issues/Verified/Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md). `ctest`
 > **516/516**, macOS interop **86/86**. **SP-103 also closed** the same day — T-0410 was removed as OBE
 > (user-ruled: a worldless project operates silently; the prompt answered a problem that never occurred).
 > ⚠️ **EP-031 AC1 must be re-verified** against the new scope model — SP-100 owns that.

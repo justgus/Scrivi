@@ -297,3 +297,28 @@ Two related bugs in `ManuscriptNSTextView`:
 ---
 
 *Last Updated: 2026-06-09 (I-0024 verified; batch 2 complete)*
+
+## I-0017 — Window maximized state not restored on app relaunch
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)** — the user reports this was *"fixed ages
+ago and confirmed fixed"*; it had simply never been moved out of `Issue-backlog.md`. ⚠️ **Exactly the rot
+this backlog's own header warns about** (I-0058 and I-0112 sat verified-but-unfiled for weeks): an Issue fixed
+in passing, verified in use, and never archived — so the backlog kept reporting an open defect that was not
+open. Superseded in practice by **I-0051** (per-project frame/position restore, Verified 2026-06-29) and
+**I-0055** (the multi-window zoom-restore defect), which together rebuilt window restore on the per-window
+model this Issue predates.
+**Severity:** Medium
+**Sprint:** Not assigned (fixed incidentally)
+**Platform:** macOS · **Component:** `WindowFrameAutosave.swift`
+
+**Original description (2026-06-08):**
+Window position, size, and maximized state were not fully restored between launches. Frame and position
+restored correctly; **maximized state did not** — the window always relaunched un-maximized.
+
+**Original root-cause note:** `window.zoom(nil)` fired too early — SwiftUI's `WindowGroup` continued async
+layout passes after the call and overrode it; `didFinishLaunchingNotification` was not a late enough trigger.
+
+> *Archived from `Issue-backlog.md` at verification (2026-08-17). Content above is the backlog entry as
+> written, with the verification status added.*
+
+---

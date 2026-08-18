@@ -17,9 +17,16 @@ import UniformTypeIdentifiers
 struct WorldsView: View {
     let engine: ScriviEngine
     let projectRootPath: String
-    /// Re-acquires world access across open projects (I-0123). Injected rather than
-    /// reached for, because this view is handed its engine explicitly.
-    var onReconnect: () -> Void = {}
+    /// Re-acquires world access across open projects and refreshes every surface that
+    /// reports world state — the warning strip and the inspector cards (I-0123, I-0130).
+    /// Injected rather than reached for, because this view is handed its engine
+    /// explicitly.
+    ///
+    /// ⚠️ **Every mutating action here must call this, not just `load()`.** `load()`
+    /// refreshes *this sheet's own list* and nothing else, so a relink repaired the
+    /// world while the project-wide warning kept insisting it was missing until the
+    /// writer changed scenes (I-0130).
+    var onWorldsChanged: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
 
@@ -95,7 +102,7 @@ struct WorldsView: View {
                 // relaunch. Foregrounding does this automatically now; this is the
                 // explicit control for when it is needed on demand.
                 Button("Reconnect Worlds") {
-                    onReconnect()
+                    onWorldsChanged()
                     load()
                 }
                 .help("Re-check worlds that were unavailable — use after reconnecting a drive.")
@@ -225,6 +232,10 @@ struct WorldsView: View {
             WorldBookmarkStore.record(worldID: created.worldID, url: url)
             newWorldName = ""
             actionError = nil
+            // ⚠️ I-0130: refresh the WHOLE app, not just this sheet. `load()` only
+            // re-reads the list in this panel; the warning strip and the inspector
+            // cards live elsewhere and would keep reporting the old state.
+            onWorldsChanged()
             load()
         } catch {
             actionError = error.localizedDescription
@@ -244,6 +255,10 @@ struct WorldsView: View {
             // this app holding access to a package nothing here binds any more.
             WorldBookmarkStore.forget(worldID: world.worldID)
             actionError = nil
+            // ⚠️ I-0130: refresh the WHOLE app, not just this sheet. `load()` only
+            // re-reads the list in this panel; the warning strip and the inspector
+            // cards live elsewhere and would keep reporting the old state.
+            onWorldsChanged()
             load()
         } catch {
             actionError = error.localizedDescription
@@ -271,6 +286,10 @@ struct WorldsView: View {
             // grant — record it or the repair would last only this session.
             WorldBookmarkStore.record(worldID: world.worldID, url: url)
             actionError = nil
+            // ⚠️ I-0130: refresh the WHOLE app, not just this sheet. `load()` only
+            // re-reads the list in this panel; the warning strip and the inspector
+            // cards live elsewhere and would keep reporting the old state.
+            onWorldsChanged()
             load()
         } catch {
             actionError = error.localizedDescription
@@ -296,6 +315,10 @@ struct WorldsView: View {
             // never leaves a grant behind for a world this project does not use.
             WorldBookmarkStore.record(worldID: bound.worldID, url: url)
             actionError = nil
+            // ⚠️ I-0130: refresh the WHOLE app, not just this sheet. `load()` only
+            // re-reads the list in this panel; the warning strip and the inspector
+            // cards live elsewhere and would keep reporting the old state.
+            onWorldsChanged()
             load()
         } catch {
             actionError = error.localizedDescription

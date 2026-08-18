@@ -146,6 +146,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         var parent: ManuscriptTextView
         weak var textView: NSTextView?
 
+        // ⚠️ I-0131: while set, scroll-driven viewport retargeting is suppressed.
+        // An explicit navigation (navigator click, deep link) sets it so the scroll it
+        // *causes* cannot overwrite the scene the writer actually asked for. Expires on
+        // its own, so hand-scrolling is unaffected a moment later.
+        var navigationLockUntil: Date?
+
         // Character range for each scene segment in the NSTextStorage.
         // Dividers occupy 1 character each between segments.
         var sceneBoundaries: [NSRange] = []
@@ -490,6 +496,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             scrollTask = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 120_000_000) // 120ms debounce
                 guard !Task.isCancelled else { return }
+                // I-0131: an explicit navigation owns the viewport for its lock window.
+                if let until = self.navigationLockUntil {
+                    if Date() < until { return }
+                    self.navigationLockUntil = nil
+                }
                 recomputeBoundaries(tv)
                 guard let layoutManager = tv.layoutManager,
                       let textContainer = tv.textContainer else { return }
@@ -1351,8 +1362,50 @@ struct ManuscriptTextView: NSViewRepresentable {
         // (fresh open at scene 0 — the existing scroll observer handles highlight).
         func restoreWritingSurface(in tv: NSTextView) {
             let loader = parent.loader
-            guard let sceneID = loader.viewportSceneID,
-                  let sceneStorageStart = loader.storageOffset(forSceneID: sceneID) else { return }
+            guard let sceneID = loader.viewportSceneID else {
+                NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: viewportSceneID is nil")
+                return
+            }
+            // ⚠️ **I-0131 root cause: two sources of truth for the same coordinate.**
+            //
+            // This used `loader.storageOffset(forSceneID:)`, which reads
+            // `sceneStorageOffsetMap` — built by `rebuildSceneStartMap()` from scene
+            // text plus 2 characters per separator, and **with no knowledge of chapter
+            // headings**. `rebuildStorage` inserts heading text into the same storage
+            // when "Show Chapter Titles" is on, and `recomputeBoundaries` skips over it
+            // (see `skipHeading`). So the map is short by the total heading length of
+            // every chapter before the target, and the caret landed roughly one scene
+            // early — which then made the delegate report a different scene and the
+            // scroll observer drift further still.
+            //
+            // Boundaries are computed from the REAL storage, so they are authoritative.
+            // Recompute FIRST, then resolve the offset from them.
+            recomputeBoundaries(tv)
+
+            guard let segIdx = loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else {
+                NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: scene not loaded \(sceneID)")
+                return
+            }
+            // ⚠️ Fall back to the map when boundaries are unavailable. `recomputeBoundaries`
+            // returns early on EMPTY storage (`fullLen > 0` guard), and **a brand-new
+            // project is exactly that** — ProjectCreator writes one empty scene .md. With
+            // no text there is also no heading run, so the map and the boundaries agree
+            // trivially; the fallback is correct, not a guess.
+            //
+            // The same holds with "Show Chapter Titles" OFF: no character carries
+            // `.scriviHeading`, `skipHeading` is a no-op, and boundaries == the map's
+            // arithmetic. The boundary path is preferred only because it is authoritative
+            // when headings ARE present.
+            let sceneStorageStart: Int
+            if sceneBoundaries.indices.contains(segIdx) {
+                sceneStorageStart = sceneBoundaries[segIdx].location
+            } else if let mapped = loader.storageOffset(forSceneID: sceneID) {
+                sceneStorageStart = mapped
+            } else {
+                NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: no offset for \(sceneID)")
+                return
+            }
+            NSLog("[SCRIVI-DIAG] restoreWritingSurface: scene=\(sceneID) idx=\(segIdx) boundaryStart=\(sceneStorageStart) mapSaid=\(loader.storageOffset(forSceneID: sceneID) ?? -1) tvLen=\(tv.string.count)")
 
             // Clamp the scene-local offset to the scene's text length so a shrunken
             // scene (edited externally) can't place the cursor past its bounds.
@@ -1361,23 +1414,97 @@ struct ManuscriptTextView: NSViewRepresentable {
             let clampedLocal = min(max(0, localOffset), sceneLen)
             let target = sceneStorageStart + clampedLocal
 
-            recomputeBoundaries(tv)
+            // ⚠️ **The scroll this causes must not retarget the current scene (I-0131).**
+            //
+            // `placeCursorAt` calls `scrollRangeToVisible`, whose notification wakes the
+            // debounced scroll handler; that handler recomputes the viewport from the
+            // CENTRE of the visible rect. `scrollRangeToVisible` scrolls *minimally*, so
+            // the restored scene sits at the viewport EDGE while the centre still shows
+            // an earlier scene — and the navigator highlight follows `viewportSceneID`
+            // (`SceneNavigatorView:200`), so the writer sees the wrong scene selected AND
+            // the wrong text. Deterministic, which is why it landed on the same wrong
+            // scene every run.
+            //
+            // Centre the restored scene rather than merely revealing it, so the viewport
+            // the writer sees and the scene we restored are the same thing (§1 of the
+            // Current Scene Model), then hold the scene against the resulting scroll.
+            navigationLockUntil = Date().addingTimeInterval(0.5)
             placeCursorAt(target, in: tv)
+            centerStorageOffset(target, in: tv)
             loader.setViewportScene(sceneID)
 
             // Consume the one-shot restore state so it can't reapply on a later rebuild.
+            // ⚠️ `restoredScrollFraction` is deliberately NOT applied: it describes a
+            // document-wide fraction from the previous session, which contradicts
+            // centring the restored scene. It is cleared here only so it cannot leak
+            // into a later rebuild. (It is currently written and never read anywhere —
+            // see I-0133.)
             loader.restoredSelectionOffset = nil
             loader.restoredScrollFraction = nil
         }
 
         // Navigate to a scene by ID — scrolls to that scene without moving the cursor.
+        //
+        // ⚠️ **I-0131: the scroll this triggers must not be allowed to overwrite the
+        // destination.** `scrollRangeToVisible` emits scroll notifications, and the
+        // handler for those recomputes the viewport scene from the CENTER of the
+        // visible rect after a 120 ms debounce. Cancelling `scrollTask` here is not
+        // enough — the cancelled task is the *old* one; the scroll we are about to
+        // cause schedules a NEW one that lands 120 ms later and wins.
+        //
+        // It also lands on the wrong scene: `scrollRangeToVisible` scrolls
+        // *minimally*, so the target sits at the edge of the viewport while its centre
+        // still shows earlier scenes. That is why navigating to scene 15 resumed at
+        // 10, and 22 resumed at 14 — the gap is however many scenes fit on screen.
+        //
+        // `navigationLockUntil` makes an explicit navigation authoritative for a short
+        // window, so the scroll it causes cannot retarget it. Scrolling by hand after
+        // that window behaves exactly as before.
         func navigateToScene(_ sceneID: String, in tv: NSTextView) {
-            guard let storageOffset = parent.loader.storageOffset(forSceneID: sceneID) else { return }
-            tv.scrollRangeToVisible(NSRange(location: storageOffset, length: 0))
-            // Update the Navigator highlight immediately for explicit navigation.
+            // ⚠️ Same defect as restoreWritingSurface (I-0131): `storageOffset(forSceneID:)`
+            // ignores chapter-heading text, so it scrolls short by the heading length of
+            // every chapter before the target. Use the boundaries computed from real
+            // storage instead.
+            recomputeBoundaries(tv)
+            guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else { return }
+            // Same fallback as restoreWritingSurface: boundaries are authoritative when
+            // they exist, but empty storage (a new project) leaves them unbuilt.
+            let storageOffset: Int
+            if sceneBoundaries.indices.contains(segIdx) {
+                storageOffset = sceneBoundaries[segIdx].location
+            } else if let mapped = parent.loader.storageOffset(forSceneID: sceneID) {
+                storageOffset = mapped
+            } else { return }
+            NSLog("[SCRIVI-DIAG] navigateToScene -> \(sceneID) boundaryStart=\(storageOffset) mapSaid=\(parent.loader.storageOffset(forSceneID: sceneID) ?? -1)")
             scrollTask?.cancel()
             highlightTask?.cancel()
+            navigationLockUntil = Date().addingTimeInterval(0.5)
+            // Centre rather than merely reveal, for the same reason as restore: a scene
+            // parked at the viewport edge makes the scroll handler read a DIFFERENT
+            // scene at the centre, and the navigator highlight follows that.
+            tv.scrollRangeToVisible(NSRange(location: storageOffset, length: 0))
+            centerStorageOffset(storageOffset, in: tv)
             parent.loader.setViewportScene(sceneID)
+        }
+
+        // Scroll so `storageOffset` sits near the VERTICAL CENTRE of the viewport.
+        //
+        // `scrollRangeToVisible` only guarantees visibility, which puts a target at the
+        // edge — and the scroll handler then reads the centre and concludes a different
+        // scene is current. Centring makes the two agree.
+        func centerStorageOffset(_ storageOffset: Int, in tv: NSTextView) {
+            guard let layoutManager = tv.layoutManager,
+                  let container = tv.textContainer,
+                  let clipView = tv.enclosingScrollView?.contentView else { return }
+            let loc = min(storageOffset, max(0, tv.string.count))
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: NSRange(location: loc, length: 0), actualCharacterRange: nil)
+            let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: container)
+            let docHeight = tv.bounds.height
+            let viewH = clipView.bounds.height
+            let targetY = max(0, min(rect.midY - viewH / 2, max(0, docHeight - viewH)))
+            clipView.scroll(to: NSPoint(x: 0, y: targetY))
+            tv.enclosingScrollView?.reflectScrolledClipView(clipView)
         }
 
         // Place cursor at a given NSTextStorage offset and take focus.

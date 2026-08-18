@@ -215,3 +215,16 @@ build + Linux smokes green.
 
 > *Archived from the Issue-active.md table row (2026-08-15). This issue never had a separate
 > full entry; the row above is the complete record as written at the time.*
+
+## I-0086
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)**
+**Severity:** Low
+**Sprint:** **SP-075**
+
+**Description / Resolution:**
+`[Apple]` **Build warnings: "Result of 'try?' is unused" at three call sites.** Fire-and-forget engine calls used `try?` on a non-Void-returning throwing function without discarding the result, tripping Swift's unused-result warning. Sites: `HistoryCapture.close()` (`historyClose`), `HistoryCapture.seedBaselineIfNeeded()` (`historySeedScene`), and `ProjectSettingsSheet.saveHistorySettings()` (`historySetSettings`). All three are intentional discards (a failure needs no handling here). **Fix:** prefix each with `_ = ` (matching the existing `_ = try?` at `HistoryCapture.swift:94`). One-token change per site; no behavior change.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17).*
+
+---

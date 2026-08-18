@@ -84,3 +84,42 @@
 
 > *Archived from the Issue-active.md table row (2026-08-15). This issue never had a separate
 > full entry; the row above is the complete record as written at the time.*
+
+## I-0102
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)**
+**Severity:** Medium
+**Sprint:** **SP-092**
+
+**Description / Resolution:**
+`[ScriviCore]` **Barrier nodes were never attributed to a scene — `recordBarrier` silently dropped `BarrierParams.sceneID`.** Found during the SP-092 history-card verify (2026-08-06): every row in a 900-event history read identically ("This scene was changed outside Scrivi…"), and per-scene filtering was impossible. **Diagnosis on the user's real project:** 947 nodes, of which **653 are barriers and 624 are `externalChange`** — arriving in per-open bursts of 26–39 (38 distinct minutes), i.e. one barrier per scene per project open. **Two distinct defects:** (a) `HistoryService::recordBarrier` copied `barrierKind`/`barrierNote`/`timestamp`/`structuralPayload` onto the node but **never `sceneID`** — in fact `BarrierParams` had no `sceneID` field at all, so no caller could supply one. Every barrier node therefore carried an empty `sceneID` (verified: 624/624), which is what made the card unfilterable and every row indistinguishable. (b) Separately, 5 of 59 scenes genuinely mismatch their stored head hash on every open — 2 of them by a **trailing newline** the app writes but history did not record — so those re-flag forever. **Fix (a):** add `sceneID` to `BarrierParams`; copy it in `recordBarrier`; set it in `HistoryStore::validateSceneHead`; thread it through `scrivi_history_record_barrier` → `ScriviEngine.historyRecordBarrier` → `HistoryCapture.recordBarrier` (defaulting to the pending scene, captured **before** `flush()` clears it). **(b) is NOT fixed here** — see the note below.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17).*
+
+---
+
+## I-0105
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)**
+**Severity:** Medium
+**Sprint:** **SP-093**
+
+**Description / Resolution:**
+`[Apple]` **The history card doesn't refresh when a new event is committed — new edits only appear after quit→reopen.** Reported in the SP-092 live-verify (2026-08-07): text changes are recorded correctly, but the card keeps showing a stale list until the project is reloaded. **Root cause:** `HistoryCardBody` reloads on **scene identity only** — `.task(id: context.sceneID) { reload() }` (`HistoryCard.swift:54`). Committing an event via `HistoryCapture.flush` mutates state entirely inside `HistoryCapture`/ScriviCore, neither of which is observable by the card, so nothing invalidates the view. The card re-renders on caret moves (because `CardContext.caretByteOffset` changes, `InspectorCardStackView.swift:119`) but `reload()` is not re-run, so `tree` — the actual data — is never re-fetched. Switching scenes and back also refreshes it, which is consistent with the diagnosis. **Fix:** a monotonically-increasing history revision counter bumped on every successful `flush`/undo/redo/barrier, exposed observably and folded into the card's `.task(id:)` so a commit re-fetches the tree.
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17).*
+
+---
+
+## I-0106
+
+**Status:** ✅ **Resolved - Verified (2026-08-17, user-approved)**
+**Severity:** Medium
+**Sprint:** **SP-093**
+
+**Description / Resolution:**
+`[Apple]` **The history card bolds the wrong entry — caret-at-boundary matches the neighbour, and a deletion matches two rows at once.** Found in the SP-092 live-verify (2026-08-07) on `the-stairs-of-tintagael.scrivi` Ch 1 Sc 4 ("Mara's Room"). Placing the caret at the **start** of the "Now is" entry bolds the *following* entry (" the winter of our discontent made glo") instead; and after deleting "is the" (a deletion spanning two entries), positioning the caret at "winter" bolds **both** " the winter of our…" **and** the "is the" deletion row (user-verified). **Root cause — two defects in one range model.** (a) `HistoryService::buildTree` sets `t.changeLength = n.diff.inserted.size()` (`HistoryService.cpp:700`) — the **inserted** length only. A pure deletion has `inserted.size() == 0`, so its `changeLength` is 0 and `HistoryTreeNode.contains(caret:)` (`ScriviEngine.swift:2239-2241`) falls into its degenerate `caret == changeOffsetUtf8` branch — which matches at the same offset an adjacent insertion node's half-open range `[start, start+len)` also contains. **Two rows bold.** (b) The half-open range means a caret at offset `start` of node N is *outside* node N−1 but *inside* N, while the writer perceives the boundary as belonging to the text just typed — so caret-at-start-of-entry bolds the wrong neighbour. No tie-break rule exists. **Fix:** carry `removedLength` (`diff.removed.size()`) through the tree payload alongside the insert length, give deletions a real caret-hit span, and define a deterministic boundary winner (most-recent node claims a shared boundary offset).
+
+> *Archived from the `Issue-active.md` table row at verification (2026-08-17).*
+
+---

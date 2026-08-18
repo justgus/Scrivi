@@ -85,6 +85,9 @@ struct SceneSegment: Identifiable {
     // Called by the Coordinator when the visible scene changes (scroll or cursor movement).
     // This is the only path that updates the Navigator highlight.
     func setViewportScene(_ sceneID: String?) {
+        if viewportSceneID != sceneID {
+            NSLog("[SCRIVI-DIAG] setViewportScene: \(viewportSceneID ?? "nil") -> \(sceneID ?? "nil")")
+        }
         viewportSceneID = sceneID
     }
 
@@ -125,8 +128,10 @@ struct SceneSegment: Identifiable {
         rebuildSceneStartMap()
 
         // Resume at the last-edited scene when the backend supplied one and it still exists.
+        NSLog("[SCRIVI-DIAG] loadAll: activeSceneID=\(activeSceneID ?? "nil") restoredSel=\(String(describing: restoredSelection)) segments=\(segments.count)")
         if let activeSceneID,
            let idx = segments.firstIndex(where: { $0.sceneID == activeSceneID }) {
+            NSLog("[SCRIVI-DIAG] loadAll: RESOLVED activeScene to index \(idx)")
             currentIndex = idx
             cursorSceneID = activeSceneID
             viewportSceneID = activeSceneID
@@ -165,12 +170,16 @@ struct SceneSegment: Identifiable {
     // Called by ManuscriptTextView on every caret move, so the history card can bold the
     // entry whose change the caret is sitting inside (user request, 2026-08-06).
     func setCursorByteOffset(_ offset: Int, sceneID: String) {
+        if cursorSceneID != sceneID {
+            NSLog("[SCRIVI-DIAG] cursorScene: \(cursorSceneID ?? "nil") -> \(sceneID)")
+        }
         cursorSceneID = sceneID
         cursorByteOffset = offset
     }
 
     // Called by ManuscriptTextView when the author's cursor moves into a different segment.
     func setCurrentIndex(_ index: Int) {
+        if index != currentIndex { NSLog("[SCRIVI-DIAG] setCurrentIndex: \(currentIndex) -> \(index)") }
         currentIndex = index
         if segments.indices.contains(index) {
             cursorSceneID = segments[index].sceneID
@@ -219,6 +228,7 @@ struct SceneSegment: Identifiable {
             scroll: isCurrent ? scrollFraction : 0,
             authorshipRef: ref
         )
+        NSLog("[SCRIVI-DIAG] saveSceneBlocking WROTE scene=\(seg.sceneID) isCurrent=\(isCurrent)")
         segments[index].isDirty = false
 
         // I-0104: tell history the bytes we just wrote. The head hash persisted at
@@ -250,6 +260,7 @@ struct SceneSegment: Identifiable {
 
     // Synchronous counterpart for the quit path (I-0104/I-0108).
     func saveAllDirtyBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
+        NSLog("[SCRIVI-DIAG] quit: currentIndex=\(currentIndex) cursorScene=\(cursorSceneID ?? "nil") viewportScene=\(viewportSceneID ?? "nil") dirty=\(segments.filter{$0.isDirty}.count) cursorOffset=\(currentSceneCursorOffset) scroll=\(scrollFraction)")
         for i in segments.indices where segments[i].isDirty && i != currentIndex {
             saveSceneBlocking(at: i, engine: engine, ref: ref)
         }
@@ -264,18 +275,41 @@ struct SceneSegment: Identifiable {
     // every saveScene; this forces one final save of the viewport scene so resume lands
     // on the scene the writer was *looking at*, not just the last one they edited.
     //
-    // No-op when the viewport scene is the same as the cursor scene (already stamped by
-    // the current-scene save above) or when the viewport scene isn't loaded.
+    // No-op only when the viewport scene isn't loaded.
     func stampWritingSurface(engine: ScriviEngine, ref: AuthorshipRef) async {
         stampWritingSurfaceBlocking(engine: engine, ref: ref)
     }
 
     func stampWritingSurfaceBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
         guard let vpID = viewportSceneID,
-              vpID != cursorSceneID,
               let seg = segments.first(where: { $0.sceneID == vpID }) else { return }
-        // Scroll fraction is meaningful; the cursor isn't in this scene, so send offset 0
-        // (§9.3: "scene changed / cursor not here" ⇒ restore scene + place cursor safely).
+
+        // ⚠️ **I-0131: this must NOT be conditional on the cursor being elsewhere.**
+        //
+        // The guard here used to be `vpID != cursorSceneID`, on the reasoning that a
+        // viewport scene which already holds the cursor was stamped by the
+        // current-scene save in `saveAllDirtyBlocking`. That is true only when that
+        // scene is DIRTY — `saveSceneBlocking` returns early otherwise, so for a clean
+        // scene both paths declined and **nothing was written at all**.
+        //
+        // ⚠️ That was a real hole but it was NOT the reported bug — see the root cause
+        // in `ManuscriptTextView.navigateToScene`. A navigator click does not move the
+        // caret (by design, SP-063's ruling is about click-to-place *within* the
+        // manuscript), so `viewportSceneID` and `cursorSceneID` genuinely differ and
+        // the old guard did fire. The scene it stamped was wrong because the debounced
+        // scroll handler had already overwritten `viewportSceneID`. Both are fixed;
+        // this one closes the clean-scene hole so the stamp cannot silently no-op.
+        //
+        // Writing unconditionally is safe: `saveScene` is idempotent for unchanged
+        // bytes, and this is one write on the quit path.
+        let cursorIsHere = (vpID == cursorSceneID)
+
+        // When the cursor IS in this scene, persist its real offset — sending 0 would
+        // throw away the caret position this call exists to preserve. When it is not,
+        // 0 is correct per §9.3 ("scene changed / cursor not here" ⇒ restore the scene
+        // and place the cursor safely).
+        let offset = cursorIsHere ? currentSceneCursorOffset : 0
+
         _ = try? engine.saveScene(
             projectID: projectID,
             projectRootPath: projectRootPath,
@@ -284,14 +318,15 @@ struct SceneSegment: Identifiable {
             sceneMetadataPath: seg.metadataPath,
             sceneContentPath: seg.contentPath,
             markdown: seg.text,
-            selectionAnchor: 0,
-            selectionFocus: 0,
+            selectionAnchor: offset,
+            selectionFocus: offset,
             scroll: scrollFraction,
             authorshipRef: ref
         )
+        NSLog("[SCRIVI-DIAG] stampWritingSurface WROTE scene=\(seg.sceneID) cursorIsHere=\(cursorIsHere) offset=\(offset)")
         // I-0104: this path writes the scene file too, so it must report the bytes it
-        // wrote — otherwise a scene stamped here (viewport ≠ cursor) keeps a stale
-        // baseline and re-flags as externally changed on the next open.
+        // wrote — otherwise a scene stamped here keeps a stale baseline and re-flags as
+        // externally changed on the next open.
         historyCapture?.noteScenePersisted(sceneID: seg.sceneID, diskText: seg.text)
     }
 
