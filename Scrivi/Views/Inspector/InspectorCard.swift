@@ -230,6 +230,9 @@ enum InspectorCardRegistry {
         register(TodoCard.self)
         // History card (SP-092 T-0366) — supersedes EP-019's T-0215 panel.
         register(HistoryCard.self)
+        // Sources card (SP-102 T-0365) — ONE aggregate card, not one per source
+        // (§3.1.1). Offered in the "+" menu; not in any default stack.
+        register(SourcesCard.self)
         // Worldbuilding object cards (EP-031 SP-099 T-0386) — ten configurations
         // of ONE implementation. Registering them only OFFERS them in the "+"
         // menu; the Worldbuilding stack still ships empty (Doc 2 AC7).

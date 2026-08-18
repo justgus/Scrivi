@@ -16,30 +16,48 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **4 active Tasks** — SP-102 `[Apple]` Pending presentation + warning view + `sources` card
+## Currently: **no active Tasks** — SP-102's four Tasks are all Verified
+
+✅ **T-0389 + T-0415** (AC23/AC24) Verified 2026-08-17 → [`Task-verified-0389-0415.md`](Verified/Task-verified-0389-0415.md)
+✅ **T-0417** (Scene/Chapter menu items) Verified 2026-08-18 → [`Task-verified-0417.md`](Verified/Task-verified-0417.md)
+✅ **T-0365** (`sources` card) Verified 2026-08-18 **as a PARTIAL delivery** → [`Task-verified-0365.md`](Verified/Task-verified-0365.md)
+⚠️ **The `sources` write half is owed to [EP-034](../Epics/Epic-backlog.md)** — nothing in the app
+creates a `source`, so the card can only render its empty state.
 
 | ID | Title | Sprint | Priority | Status |
 | -- | ----- | ------ | -------- | ------ |
-| T-0389 | Pending **footer** + warning view + the `offline`/`unmounted` refinement (**AC24**) | SP-102 | High | 🟠 **Implemented - Not Verified (2026-08-17)** |
-| T-0365 | Aggregate `sources` card + citation popup (final third — `cites` type ✅ SP-096, `source` kind ✅ SP-098) | SP-102 | Medium | 🔵 Planned |
-| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**new at planning**) | SP-102 | High | 🔵 Planned — **unblocked by T-0389** |
-| T-0417 | `[Apple]` **Scene/Chapter boundary navigation** — Go to Scene Start/End + Chapter Start/End as **menu items with no key equivalent** (⚠️ the keyspace is exhausted — see below) | SP-102 (adopted 2026-08-18) | Low | 🟠 **Implemented - Not Verified (2026-08-18)** |
 
-**Delivers EP-031 AC23 + AC24**, the last two clauses of AC9. ✅ **Planning completed 2026-08-17.**
+✅ **EP-031 AC23 + AC24 are DELIVERED and Verified (2026-08-17)** — the last two clauses of AC9.
+**T-0389 and T-0415** were archived 2026-08-18 → [`Task-verified-0389-0415.md`](Verified/Task-verified-0389-0415.md).
 
-> ⚠️ **The planning audit cut T-0389 substantially — most of its staged scope already shipped.** Pending rows
-> shown-not-hidden, named cached entries, the ⚠ badge, disabled-and-explained removal, the typed
-> `worldPending:<status>` decode **and the Worlds menu** all landed in **SP-099** (T-0386/T-0407/T-0408) and
-> **SP-104** (I-0117). **AC18/19/20 also already landed** as T-0388.
+> ⚠️ **Both were carried here as unverified for a day after they were verified.** SP-102's exit-criteria
+> table was written at planning on 2026-08-17, **before** that day's live USB runs, and never updated;
+> and `Issue-verified-0121-0130.md` listed only **3 of its 10** Issues, hiding I-0123–I-0129 — *the AC23
+> evidence*. The user challenged it directly (*"I thought that was already verified. It shows."*) and was
+> right. **The live eject/reattach cycle ran twice and produced eight Verified Issues**; I-0129 is the
+> no-intervention clause itself (refresh keyed to app focus rather than the mount event).
+
+> ⚠️ **T-0365 shipped its READ half and is not reachable (2026-08-18).** `SourcesCard.swift` is built,
+> registered in the Writing stack, and covered by 4 tests — and it **can only ever show an empty list**,
+> because **nothing in the app can create a `source` object or attach a `cites` edge.**
 >
-> **What is genuinely unbuilt:** the card-level **§7.2 footer** (the card names no world today — only a
-> hover tooltip), the **warning view** (`listPendingEdges` is wrapped with **zero call sites**), the **AC24
-> volume refinement** (`offline`/`unmounted` are still declared-but-never-produced), and the **`sources`
-> card** (not registered; no citation popup).
-
-> **T-0415 is new.** AC23 verification was an exit-criterion line inside T-0389; it is now its own Task
-> because ⚠️ **only a live ejectable-volume run can establish "restores with no writer intervention"** — a
-> fixture cannot. Burying that inside an implementation task is how it gets reported done on a fixture.
+> **Found by the user on first use:** *"I can show the sources card, but I can't create any sources. None
+> of the card interfaces allow it."* The cause is broader than sources: **object cards edit `displayName`
+> only** (one `TextField` at `ObjectCard.swift:647`), while `subtitle`, `notes` and `image` have shipped
+> in ScriviCore since **SP-095/T-0371** and are read by nothing. ⚠️ **Capability shipped, surface never
+> built** — the same shape as the SP-099 R4 audit, I-0117, and `listPendingEdges`-with-zero-call-sites.
+>
+> ⚠️ **Source creation was deliberately NOT added to the `sources` card** (user ruling 2026-08-18):
+> *"it would muddy the fact that the source must be associated with an object in the world."* A citation
+> documents an **object**; creating one from a scene-scoped aggregate card inverts Doc 1 §3.4.
+>
+> **The write half is owed to [EP-034 `[Cross]` Object Detail & Media](../Epics/Epic-backlog.md)**, opened
+> the same day. **EP-032 was checked and does not cover it** — that Epic is manuscript reference syntax.
+> The card **stays registered** (user ruling) so it goes live the moment creation exists; until then it
+> correctly reads *"No sources cited by this scene's objects."*
+>
+> **T-0365 must not be marked Verified on the card alone.** Its own design (§3.1.1) also owes the
+> object-card entry point to the shared `CitationPopover`, which is built but unwired.
 
 > **T-0417 is new (adopted 2026-08-18), and it is deliberately incomplete.** The user asked whether
 > Ctrl-Up/Ctrl-Down had been implemented for scene navigation, then established by direct trial that

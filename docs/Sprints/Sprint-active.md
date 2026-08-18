@@ -2,7 +2,14 @@
 
 ## SP-102 — `[Apple]` Pending presentation + warning view + `sources` card
 
-**Status:** 🟡 **Planned — ready to implement (planning completed 2026-08-17).**
+**Status:** ✅ **COMPLETE — awaiting user approval to close (2026-08-18).**
+**All four Tasks Verified. All eight exit criteria closed** — seven met, **criterion 6 accepted as a
+partial delivery** by user ruling 2026-08-18. **AC23 + AC24 ✅ Verified 2026-08-17**, which are the two
+clauses this sprint existed to deliver.
+⚠️ **Carried forward to [EP-034](../Epics/Epic-backlog.md), not lost:** source **creation** and
+§3.1.1's object-card entry point to `CitationPopover`. The `sources` card ships able to render only its
+empty state until then.
+**Claude cannot close a Sprint — this needs direct user approval.**
 **Epic:** EP-031 `[ScriviCore]` Worldbuilding Object Model & Relationship Graph
 **Codebases:** `[Apple]` only — ⚠️ **no `scrivi.h` change, no ScriviCore change, no pbxproj-invisible work**
 **Activated:** 2026-08-17 · **Runs before** SP-100 (which runs last and closes the Epic).
@@ -52,6 +59,12 @@ T-0389's stated scope already shipped**, and the sprint is much smaller than its
 criterion.** AC23 is not "pending rows render"; it is *"reattaching restores the card **with no writer
 intervention**"*, which only a live ejectable-volume run can demonstrate (R3).
 
+> ✅ **RESOLVED SAME DAY (2026-08-17) — this paragraph is the planning position, kept for the record.**
+> The live runs happened, twice, and **the no-intervention clause was exactly what failed and was fixed**:
+> [[I-0129]] found that refresh keyed off *app focus* rather than the mount event, so plugging the drive
+> back in while Scrivi was frontmost left the warning up. That is the clause this criterion exists to
+> protect, and it is now driven by `NSWorkspace.didMount/didUnmountNotification`.
+
 ### Genuinely unbuilt — this sprint's real work
 
 | # | Item | State today |
@@ -67,10 +80,40 @@ intervention**"*, which only a live ejectable-volume run can demonstrate (R3).
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0389 | Pending **footer** + warning view + the `offline`/`unmounted` refinement (**AC24**) | 🟠 **Implemented - Not Verified (2026-08-17)** |
-| T-0365 | Aggregate `sources` card + citation popup (final third) | 🔵 Planned |
-| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**no fixture needed**) | 🔵 Planned — **unblocked by T-0389** |
-| T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, ⚠️ **no key equivalent** (**adopted mid-sprint 2026-08-18**) | 🟠 **Implemented - Not Verified (2026-08-18)** |
+| T-0389 | Pending **footer** + warning view + the `offline`/`unmounted` refinement (**AC24**) | ✅ **Verified 2026-08-17** — established by the live eject/reattach runs that produced I-0123–I-0130, all user-approved |
+| T-0365 | Aggregate `sources` card + citation popup (final third) | ✅ **Verified 2026-08-18 as a PARTIAL delivery** (user-accepted) → [`Task-verified-0365.md`](../Tasks/Verified/Task-verified-0365.md); ⚠️ **write half + §3.1.1's second popup entry point → EP-034** |
+| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**no fixture needed**) | ✅ **Verified 2026-08-17** — ⚠️ **ran TWICE**; I-0128 records itself as found "in the T-0415 re-run". Both branches covered: `unmounted` reattach ([[I-0129]]) and `missing` relink ([[I-0130]]) |
+| T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, ⚠️ **no key equivalent** (**adopted mid-sprint 2026-08-18**) | ✅ **Verified 2026-08-18** → [`Task-verified-0417.md`](../Tasks/Verified/Task-verified-0417.md) |
+
+### ⚠️ T-0365 delivered its READ half only — EP-034 opened (2026-08-18)
+
+`SourcesCard.swift` is built, registered in the Writing stack, pbxproj'd across all three app targets,
+and covered by 4 tests. **It can only ever show an empty list.** Nothing in the app creates a `source`
+object or attaches a `cites` edge, so the card has no content to find.
+
+**Found by the user on first use:** *"I can show the sources card, but I can't create any sources. None
+of the card interfaces allow it."*
+
+⚠️ **The cause is bigger than sources, and it is this Epic's signature defect again.** Object cards edit
+**`displayName` only** — one `TextField` at `ObjectCard.swift:647` — while `subtitle`, `notes` and
+`image` shipped in **SP-095/T-0371** (✅ Verified 2026-08-12) and are read by **nothing**. That is
+*capability shipped, surface never built*: the SP-099 R4 audit, I-0117, and `listPendingEdges` with zero
+call sites are the same finding in different costumes. This is the largest remaining instance.
+
+**Four options were offered and the user rejected all of them**, correctly. Adding creation to the
+`sources` card *"would muddy the fact that the source must be associated with an object in the world"* —
+a citation documents an **object** (Doc 1 §3.4), so creating one from a scene-scoped aggregate card
+inverts the model. His framing: *"there should be a way to observe/edit the object detail and, from
+there, we should be able to create sources."*
+
+**→ [EP-034 `[Cross]` Object Detail & Media](../Epics/Epic-backlog.md) opened**, covering object
+detail/edit (`subtitle`/`notes`), image import + display (**a `map` is an image**), image attribution,
+source creation from the documented object, and `[Linux]` parity. ⚠️ **EP-032 was checked and does not
+cover this** — it is manuscript reference syntax (footnotes, pull quotes) on the fragment model.
+
+**The card stays registered** (user ruling), so it goes live the moment creation exists.
+⚠️ **T-0365 cannot be Verified on the card alone** — its write half is owed to EP-034, and §3.1.1's
+object-card entry point to the shared `CitationPopover` is built but unwired.
 
 > **Adopted mid-sprint, out of the Epic's scope — T-0417 + the I-0132 fixes (2026-08-18).** Neither
 > serves EP-031; both came out of the user's live navigator testing during SP-102 and were fixed at
@@ -359,7 +402,7 @@ actually contains.
 | ID | Title | Status |
 | -- | ----- | ------ |
 | I-0131 | Resume scene only persisted when the scene was **dirty** — actual cause was a scroll-handler race, not the persistence guards | ✅ **Verified 2026-08-18** → [`Issue-verified-0131-0140.md`](../Issues/Verified/Issue-verified-0131-0140.md) |
-| I-0132 | Navigator never revealed the selected row; a click left focus stranded in the list | ⚠️ **SPLIT** — reveal half ✅ **Verified 2026-08-18**; **focus half 🟠 Resolved - Not Verified (second fix)**, returned to [`Issue-active.md`](../Issues/Issue-active.md) |
+| I-0132 | Navigator never revealed the selected row; a click left focus stranded in the list | ✅ **Verified 2026-08-18** (both halves, after 4 attempts) → [`Issue-verified-0131-0140.md`](../Issues/Verified/Issue-verified-0131-0140.md) |
 | I-0133 | `restoredScrollFraction` written, cleared, never read — dead state on Apple | 🟠 **Resolved - Not Verified (2026-08-18)** — user ruled *delete Apple's copy, leave Linux alone* |
 | I-0134 | ⚠️ `[Cross]` **Apple and Linux disagree on what "restore where I was" means** | 🔴 **Open** — parity ruling needed; **no code changed** |
 
@@ -588,16 +631,24 @@ fresh one, of **both** the project and the world package, before any run.
 
 ## Exit criteria
 
-| # | Criterion | How it is established |
-| - | --------- | --------------------- |
-| 1 | A card whose world is unavailable renders the **§7.2 block**: named entries, ⚠ badge, **the world named**, and its status sentence — never hidden, never bare IDs | Live + interop |
-| 2 | Add/remove toward an unavailable world stays **disabled and explained**; no inline affordance can destroy pending links | Live |
-| 3 | ⚠️ **AC23**: eject → pending; reattach → **restored with no writer intervention**. Both `unmounted` and `missing` branches | **T-0415, live on the real USB rig — a fixture cannot establish this** |
-| 4 | **AC24**: `offline`/`unmounted` produced by the Apple layer into the neutral enum, **degrading to `unavailable`, never guessing `missing`** — and **correct on the user's own drive**, whose removable/ejectable flags both read `false` | Unit + live |
-| 5 | Warning view lists unavailable worlds + pending counts, non-blocking, own toggle, **no destructive action present** | Live |
-| 6 | `sources` card lists sources via this scene's objects, names the originating object(s), **dedupes** across objects, opens the shared citation popup; empty is not an error | Live + interop |
-| 7 | The edge log is **byte-identical** across an eject/reattach cycle | T-0415 step 5 |
-| 8 | `ctest` + macOS interop green, **each figure naming its architecture** | SP-106 standing practice |
+> ⚠️ **STATUS CORRECTED 2026-08-18.** This table was written at planning on 2026-08-17, **before** that
+> day's live runs on the real Eskandar USB rig, and was never updated afterward — so it still read as
+> though AC23/AC24 were owed. They are not. **The eject/reattach cycle was run twice** (I-0128 records
+> itself as found "in the T-0415 re-run") and produced **eight Issues, I-0123–I-0130, all ✅ Verified
+> user-approved the same day** → [`Issue-verified-0121-0130.md`](../Issues/Verified/Issue-verified-0121-0130.md).
+> Those Issues *are* the AC23/AC24 evidence. The "How established" column below is the plan; the
+> **Status** column is what actually happened.
+
+| # | Criterion | How it is established | Status |
+| - | --------- | --------------------- | ------ |
+| 1 | A card whose world is unavailable renders the **§7.2 block**: named entries, ⚠ badge, **the world named**, and its status sentence — never hidden, never bare IDs | Live + interop | ✅ **Verified 2026-08-17** — the live run that produced [[I-0124]] (per-card kind filtering) and [[I-0128]] (card refresh on reconnect) |
+| 2 | Add/remove toward an unavailable world stays **disabled and explained**; no inline affordance can destroy pending links | Live | ✅ **Verified 2026-08-17** |
+| 3 | ⚠️ **AC23**: eject → pending; reattach → **restored with no writer intervention**. Both `unmounted` and `missing` branches | **T-0415, live on the real USB rig — a fixture cannot establish this** | ✅ **Verified 2026-08-17** — run twice; **the no-intervention clause is exactly what [[I-0129]] fixed** (refresh was keyed to app focus, not to the mount event) and the `missing` branch is [[I-0130]] |
+| 4 | **AC24**: `offline`/`unmounted` produced by the Apple layer into the neutral enum, **degrading to `unavailable`, never guessing `missing`** — and **correct on the user's own drive**, whose removable/ejectable flags both read `false` | Unit + live | ✅ **Verified 2026-08-17** — 5 unit tests (one proven RED against the naive removable/ejectable rule) **plus** the live run on the drive whose flags both read `false` |
+| 5 | Warning view lists unavailable worlds + pending counts, non-blocking, own toggle, **no destructive action present** | Live | ✅ **Verified** — user-confirmed show/hide; [[I-0130]] fixed its staleness after relink |
+| 6 | `sources` card lists sources via this scene's objects, names the originating object(s), **dedupes** across objects, opens the shared citation popup; empty is not an error | Live + interop | ⚠️ **ACCEPTED PARTIAL 2026-08-18 (user ruling)** — implementation verified (registered, 4 tests, traversal + dedupe correct). **The live clause could NOT be established**: nothing creates a `source`, so only the empty state renders, and §3.1.1's object-card popup entry point is unwired. **Both → EP-034** |
+| 7 | The edge log is **byte-identical** across an eject/reattach cycle | T-0415 step 5 | ✅ **Accepted 2026-08-18 (user ruling)** — *"I'll call the existing test evidence sufficient"*. ⚠️ **No byte-comparison of `relationships.jsonl` was actually recorded**; the basis is the twice-run cycle plus AC7's core-level proof (SP-098/T-0380, pending edges never pruned). Stated plainly so the evidence is not later mistaken for a hash check |
+| 8 | `ctest` + macOS interop green, **each figure naming its architecture** | SP-106 standing practice | ✅ **Closed 2026-08-18** — `ctest` **520/520 macOS arm64**, interop **99/99 macOS arm64**, **BUILD SUCCEEDED**. ⚠️ `ctest` was re-run with `-DSCRIVI_BUILD_TESTS=ON`; the app build warns that a stale cached binary can otherwise report PASS |
 
 ---
 

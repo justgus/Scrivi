@@ -2521,3 +2521,52 @@ struct ViewportSelectionEchoTests {
                 "a stuck flag would silently swallow every navigator click after the first scroll")
     }
 }
+
+// MARK: — The aggregate `sources` card (T-0365, EP-031 SP-102)
+//
+// Design §3.1.1. Sources attach to OBJECTS, never to scenes, so the card renders an
+// indirect path: scene → objects → sources. These pin the parts that are decidable without
+// a running UI; the live card and citation popup are verified in the app.
+
+@MainActor
+struct SourcesCardTests {
+
+    @Test("`sources` is registered as ONE aggregate card, offered in the Writing stack")
+    func registeredOnce() {
+        InspectorCardRegistry.registerBuiltIns()
+        let card = InspectorCardRegistry.card(for: "sources")
+        #expect(card != nil, "the sources card must be registered or it cannot be added")
+        #expect(SourcesCard.stack == .writing)
+        // ⚠️ The ruling that matters: ONE card, never one per source. A per-source design
+        // would flood the stack and could not be shown/hidden as a unit in the picker.
+        #expect(SourcesCard.typeID == "sources")
+    }
+
+    @Test("a source reached through two objects is listed ONCE, naming both")
+    func deduplicatesAcrossObjects() {
+        // The attribution rule from §3.1.1: the writer needs to know *why* a citation
+        // surfaces on this scene, and two rows for one source reads as two sources.
+        let entry = SourceEntry(
+            sourceID: "source_1",
+            displayName: "Ellis, *Tidal Myths*",
+            viaObjects: ["Alanna Vex", "The Sunless Court"])
+        #expect(entry.attribution == "via Alanna Vex, The Sunless Court")
+    }
+
+    @Test("one citing object reads as a single attribution, not a list")
+    func singleAttribution() {
+        let entry = SourceEntry(sourceID: "source_2",
+                                displayName: "Field notes",
+                                viaObjects: ["Alanna Vex"])
+        #expect(entry.attribution == "via Alanna Vex")
+    }
+
+    @Test("the card queries the `cites` type and the `source` kind — the two SP-096/SP-098 halves")
+    func usesSeededVocabulary() {
+        // ⚠️ These are schema keys shared with ScriviCore: `cites` is seeded by
+        // RelationTypeStore (T-0373) and `source` is the one project-scoped kind (T-0406).
+        // Drift here silently empties the card rather than failing loudly.
+        #expect(SourcesCardModel.citesType == "cites")
+        #expect(SourcesCardModel.sourceKind == "source")
+    }
+}

@@ -108,7 +108,87 @@ project; sharing/binding across projects; repair for a world whose package moved
 
 ---
 
-*Last Updated: 2026-08-14 (**EP-033 `[Cross]` opened 🔵 Proposed** — world lifecycle management, deferred
+## EP-034: [Cross] Object Detail & Media
+
+**Status:** 🔵 **Proposed** (opened 2026-08-18 from a user finding during SP-102)
+**Codebase:** `[Cross]` — `[Apple]` first, `[Linux]` for parity. ⚠️ **Probably no ScriviCore change:**
+`WorldObjectFields` already carries `subtitle`, `notes` and `image` (`assetID`/`thumbnailAssetID`), and
+`scrivi_import_asset` / `scrivi_list_assets` already ship. **This is a missing surface, not a missing
+capability.**
+**Goal:** Let a writer **see and edit what an object actually is** — description, notes, and imagery —
+and attribute it, rather than only naming it.
+
+### Why this is an Epic
+
+**The finding (user, 2026-08-18):** trying to use the new `sources` card, *"I can show the sources card,
+but I can't create any sources. None of the card interfaces allow it."* True, and the cause is broader
+than sources:
+
+> ⚠️ **Object cards edit exactly ONE field — `displayName`.** There is a single `TextField("Name")` in
+> `ObjectCard.swift:647`, and rename is the only mutation the app performs on an object.
+> **`subtitle`, `notes` and `image` shipped in SP-095 (T-0371, ✅ Verified 2026-08-12) and the app reads
+> and writes none of them.**
+
+This is the same defect shape EP-031 has produced repeatedly — *capability shipped in the core, surface
+never built* (the SP-099 R4 audit, I-0117, and `listPendingEdges` with zero call sites). It is the
+largest remaining instance.
+
+**The writer's case, in his words:** *"A Chronicle must have an actual chronicle, that is, a story that
+it chronicles. Characters need more than just a name. A description and maybe even a picture, drawing,
+sketch. A Location needs a description to set the mood and maybe an image to set the right mood. A map
+is an image."*
+
+**And the attribution consequence, which is what ties sources to this Epic:** *"If we allow images into
+the App for worldbuilding, then we must also be able to cite the correct attribution of those images.
+Also, a chronicle may be sourced from another project, or another author's text. That text must be able
+to be attributed via a source."*
+
+### ⚠️ Why source creation belongs here and not on the `sources` card
+
+Adding a source *from* the aggregate `sources` card was considered and **rejected by the user**:
+*"it would muddy the fact that the source must be associated with an object in the world."*
+
+A citation documents an **object** — a map's image attribution belongs to the map, a chronicle's
+provenance belongs to the chronicle. The `sources` card is scene-scoped and aggregate, so creating from
+there inverts the relationship the model is built on (Doc 1 §3.4). **Creation belongs where the thing
+being documented lives: the object's own detail surface.**
+
+### ⚠️ EP-032 does not cover this
+
+Checked at opening. EP-032 is **reference syntax inside manuscript text** — footnotes and pull quotes,
+depending on the fragment model. Object detail has no home in any existing Epic; this work was
+genuinely unplanned.
+
+### Rough scope
+
+- An **object detail surface** — view and edit `displayName`, `subtitle`, `notes`; reachable from an
+  object card and from the object picker.
+- **Long-form text** for `notes`, sized for a chronicle's actual text rather than a one-line field.
+- **Image display and import** — `image.assetID` / `thumbnailAssetID` through the existing
+  `scrivi_import_asset`; thumbnails on cards, full image in detail. **A `map` is an image**, so this is
+  what makes that kind meaningful at all.
+- **Source creation + `cites` attachment from the documented object**, closing T-0365's write half and
+  making the `sources` card reachable.
+- **Attribution for imported images** — the case that forces sources and media into one Epic.
+- `[Linux]` parity.
+
+**Depends on:** EP-031 (object model, graph, world partition — `subtitle`/`notes`/`image` and the
+`source` kind all land there).
+**Unblocks:** **T-0365**, whose `sources` card ships in SP-102 read-only and **cannot show content until
+this Epic provides a way to create a source.**
+
+---
+
+*Last Updated: 2026-08-18 (**EP-034 `[Cross]` opened 🔵 Proposed** — object detail & media, from a user
+finding while testing T-0365's `sources` card: sources cannot be created anywhere in the app, and the
+cause is that **object cards edit `displayName` only** while `subtitle`/`notes`/`image` have shipped in
+ScriviCore since SP-095 and are read by nothing. ⚠️ **Source creation was deliberately NOT put on the
+`sources` card** — user ruling: a citation documents an object, so creating it from a scene-scoped
+aggregate card inverts the model. **EP-032 was checked and does not cover this** (it is manuscript
+reference syntax). Backlog Epics 3 → 4 (EP-026 `[Linux]`, EP-032, EP-033, EP-034); next available Epic
+**EP-035**. Prior note follows.)*
+
+*2026-08-14 (**EP-033 `[Cross]` opened 🔵 Proposed** — world lifecycle management, deferred
 out of I-0118 by user ruling. The I-0118 Q1 ruling ("entries persist; never deleted unless expressly
 instructed") has **no instruction to give** — nothing in Scrivi deletes a world or its index entries, and
 a world with no project bound is unreachable entirely. **The Epic's first deliverable is the product

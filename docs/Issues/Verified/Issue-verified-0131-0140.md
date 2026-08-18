@@ -6,14 +6,15 @@ Archived Issues, ✅ **Resolved - Verified** by the user. Batched in decades of 
 | ID | Title | Severity | Sprint | Verified |
 | -- | ----- | -------- | ------ | -------- |
 | I-0131 | `[Apple]` Resume scene only persisted as a side effect of saving a **dirty** scene | Medium | SP-102 | 2026-08-18 |
-| I-0132 | `[Apple]` Navigator never revealed the selected row, and a click left focus stranded in the list | Medium | SP-102 | ⚠️ **partial — see below** |
+| I-0132 | `[Apple]` Navigator never revealed the selected row, and a click left focus stranded in the list | Medium | SP-102 | 2026-08-18 |
 
-> ⚠️ **I-0132 WAS ARCHIVED HERE PREMATURELY (2026-08-18).** Its **reveal half (b)** is genuinely
-> verified. Its **focus half (a) was not** — the user's verification covered focus *on app launch*,
-> which he stated explicitly, and I recorded that as verifying click-to-focus as well. **It did not
-> work on click.** The Issue has been **returned to `Issue-active.md`** with the focus half
-> 🟠 *Resolved - Not Verified* pending a second fix. Half (b)'s record below stands; half (a)'s does
-> not. **Do not cite I-0132 as verified evidence for anything focus-related.**
+> ⚠️ **I-0132 was archived here prematurely once, then returned, then re-verified.** The first archive
+> (2026-08-18) claimed both halves verified when only the **reveal half** was: the user's evidence
+> covered focus *on app launch*, which he stated explicitly, and I credited it to click-to-focus as
+> well. It did not work on click. The Issue went back to `Issue-active.md` and took **four** attempts
+> to fix properly — the first three treated it as a first-responder race, which it was not.
+> **Both halves are now ✅ Verified 2026-08-18** on an extended live click-through by the user. The
+> record below documents every wrong turn, because the wrong turns are the reusable part.
 
 ---
 
@@ -88,33 +89,92 @@ perhaps it should advance the focus to the Manuscript View."*
 Navigating by click therefore required a **second, manual click** before the writer could type, and
 typing while focus remained in the list was interpreted as type-select rather than as text.
 
-⚠️ **A deliberate design point colliding with an incomplete one:** `navigateToScene` intentionally
-does not move the caret (scroll-without-caret is correct — a writer surveying her manuscript should
-not have her insertion point dragged around), but **nothing offered her a way to then commit to that
-scene.** `ViewportSceneLoader.takeFocus()` already existed and was wired (`onTakeFocus:`), so the
-capability was present and only the trigger was missing — the same shape as I-0117/I-0123.
+`ViewportSceneLoader.takeFocus()` already existed and was wired (`onTakeFocus:`), so the capability
+was present and only the trigger was missing — the same shape as I-0117/I-0123.
 
-**First fix — did not work, and was archived as verified in error.** `navigate(to:)` calls
-`loader.takeFocus()` (`SceneNavigatorView.swift:285`), which calls
-`window.makeFirstResponder(textView)` **synchronously**.
+⚠️ **A wrong premise carried through the first three attempts:** that `navigateToScene` should
+deliberately *not* move the caret ("a writer surveying her manuscript should not have her insertion
+point dragged around"). **`Scrivi_Current_Scene_Model_v0_1.md` §3 rules the opposite** — a navigator
+click moves the caret to the scene's **first character**, scrolls it into view, **and** transfers
+focus, all three. §3 was ruled 2026-08-17, before any of this code was written, and I cited that
+document in this Issue's own record without reading what it said about the caret. The defect surfaced
+the moment focus started transferring: the stale caret became visible, and the user reported it —
+*"the caret never changes position… it stays where it was last time I clicked."*
 
-⚠️ **The user reported it still broken 2026-08-18:** *"When I click a Scene in Scene Navigator it does
-not correctly change keyboard focus to the ManuscriptView. The Issues I verified all specifically
-stated that focus changes 'when the app loads' not 'when a scene is clicked'."*
+### ⚠️ Four attempts — the first three misdiagnosed it as a first-responder race
 
-**Cause:** SwiftUI's `List` is backed by an `NSTableView`, which claims first responder while
-completing its own mouse-down handling. A `makeFirstResponder` issued from inside `onTapGesture` runs
-**before** that, so the table takes focus straight back. **This is exactly why it appeared to work on
-launch but not on click** — launch-time focus has no competing responder change, so the synchronous
-call was never contested there. The verification evidence and the failing case were different code
-paths, and I did not distinguish them.
+**Attempt 1 — synchronous `makeFirstResponder`.** `navigate(to:)` called `loader.takeFocus()`, which
+called `window.makeFirstResponder(textView)` synchronously. **Archived as verified in error**; the
+user reported it still broken: *"When I click a Scene in Scene Navigator it does not correctly change
+keyboard focus to the ManuscriptView. The Issues I verified all specifically stated that focus changes
+'when the app loads' not 'when a scene is clicked'."*
 
-**Second fix (2026-08-18, awaiting verification):** `takeFocus` hops to the next runloop pass via
-`DispatchQueue.main.async` (`ManuscriptTextView.swift:54-70`) so the table finishes first and the
-focus transfer is the last word. Safe for the other eight `takeFocus()` callers: every one sets its
-selection *before* calling, and none reads focus state afterward.
+**Attempt 2 — defer one runloop pass.** `DispatchQueue.main.async` around the responder change.
+Worked *sometimes*. The user: *"intermittent and appears to be related to timing… twice the focus did
+not change"* — diagnosed by a detail I had not thought to use: **the navigator's selection highlight
+dims when it loses focus and stays bright when it keeps it.**
 
-**The caret is still not moved** — focus and caret position remain separate concerns.
+**Attempt 3 — `simultaneousGesture` + claim/verify/re-claim.** Also introduced a second report:
+*"sometimes when I click, the scene is not changed (although the selected scene in the Scene Navigator
+is always correct)."* Each attempt made the failure rarer, which read as progress and was not.
+
+> ⚠️ **All three were wrong, and the user stopped the fourth before it was written.** I was about to
+> add an `NSEvent` monitor — reaching further *below* SwiftUI to win a fight created by reaching below
+> it in the first place. His redirection: *"SwiftUI owns a lot of the interaction here… You may be
+> relying on a lower level interaction when a higher-level SwiftUI interaction will be correct. We
+> need to be certain we have the correct source of truth for the state we want to be in and that that
+> state is propagated properly through the View hierarchy."*
+
+### Actual cause — a one-shot trigger, not a responder race
+
+`navigateToSceneID` is a **one-shot binding** set on click and cleared asynchronously after use
+(`ManuscriptTextView.updateNSView`). Two failure modes fall out, both timing-dependent:
+
+- **Re-selecting the same scene** wrote an unchanged value → SwiftUI coalesced the update away → no
+  `updateNSView` → **no navigation and no focus transfer**.
+- **A fast second click** could be clobbered by the previous click's still-pending `nil` write.
+
+**The tell was in the user's own report and I missed it twice:** the navigator selection was *always*
+correct. The table maintained selection reliably; only the parallel one-shot trigger beside it was
+unreliable. Nothing was racing for first responder at all.
+
+### Fix — selection as the single source of truth (the shape iOS already had)
+
+macOS was the **only** platform without a `selection` binding, passing navigation through a
+tap-gesture callback into the one-shot trigger — parallel state kept in step by hand. It was also the
+only platform with these bugs. `EditorView` now binds `selectedSceneID` into the navigator's `List`
+on macOS exactly as on iOS, and the manuscript follows from `onChange`.
+
+Consequences, each of which was a latent bug of its own:
+- **Tap gesture removed entirely** — no parallel path left to disagree with the table's selection.
+- **`takeFocus` simplified** back to a single deferred call; the retry machinery was compensating for
+  unreliable navigation, not for responder arbitration.
+- **Delete paths rerouted** through `navigate(to:)` — they called `onNavigate` directly, which on
+  macOS is now a no-op default, so they would have silently stopped working.
+- **Launch double-navigation avoided** by seeding the selection to the already-restored scene.
+
+**The caret moves to the scene's first character** (§3) — see I-0131's entry for why that had to be
+added at the same time.
+
+### Loop audit — echo suppression (user-prompted)
+
+The user then asked for a cycle audit: *"one View sets a state, which triggers a function that resets
+the same state… in some cases the real fix is to temporarily suspend notifications."*
+
+One real cycle exists by design: manuscript scrolls → `setViewportScene` → navigator mirrors into
+`selection` → `EditorView.onChange` → navigate → scroll. It terminated, but **only by value
+equality** — a guard that silently assumed the scroll handler wrote `viewportSceneID` *before* the
+navigator's mirror write arrived. **Correct only until that order changed.**
+
+Replaced with the suspended-notification approach: `setViewportScene` raises
+`isMirroringViewportToSelection` **before** the observable write (the navigator's `onChange` runs
+synchronously off it) and lowers it once the update drains. An echo is now *known*, not inferred. The
+equality check is retained as a backstop, not as the mechanism.
+
+**Two regression tests added** (`ViewportSelectionEchoTests`), and verified non-vacuous: inverting the
+flag ordering made both fail; restoring it made both pass. ⚠️ **They pin the flag's contract, not the
+live loop** — they will catch someone breaking the mechanism, but not someone adding a new path that
+writes `selection` without going through `setViewportScene`.
 
 ⚠️ **Accepted trade, user-ruled 2026-08-18:** taking focus on click ends arrow-key browsing of the
 list after the first click. The user ruled this acceptable — *"Arrow browsing isn't strictly
@@ -146,8 +206,9 @@ the one moment reveal is needed, since restore sets the selection before the vie
 > it actively fought her. Scene-to-scene reveal is the manuscript's job (`navigateToScene` centres
 > the text), not the list's.
 
-**Evidence at verification:** **BUILD SUCCEEDED**, interop **93/93 macOS arm64**. User-verified live
-2026-08-18.
+**Evidence at verification:** **BUILD SUCCEEDED**, interop **95/95 macOS arm64** (93 + the two new
+echo tests). ✅ **User-verified 2026-08-18 on an extended live click-through** — *"I clicked about a
+lot and saw no missed clicks or focus changes"* — after which the loop audit above was completed.
 
 ---
 

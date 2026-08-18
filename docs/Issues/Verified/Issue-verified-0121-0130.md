@@ -7,7 +7,20 @@ Archived Issues, ✅ **Resolved - Verified** by the user. Batched in decades of 
 | -- | ----- | -------- | ------ | -------- |
 | I-0121 | `[ScriviCore]` `rebalancedKeys(1)` divides by zero — CI red since 2026-07-30 | High | SP-106 | 2026-08-17 |
 | I-0122 | `[ScriviCore]` `stack-use-after-scope` — test iterates a destroyed temporary `Result` | Medium | SP-106 | 2026-08-17 |
+| I-0123 | `[Apple]` A world that reappears while Scrivi is running is never re-activated — blind until relaunch | High | SP-102 | 2026-08-17 |
+| I-0124 | `[Apple]` While a world is unavailable, EVERY pending object appears on EVERY world-scoped card | High | SP-102 | 2026-08-17 |
+| I-0125 | `[Apple]`/`[ScriviCore]` Creating any object but character/location fails at the EDGE step — object orphaned | High | SP-102 | 2026-08-17 |
+| I-0126 | `[Apple]` A card's error message persists after the draft is dismissed, until the scene changes | Low | SP-102 | 2026-08-17 |
+| I-0127 | `[Apple]` The "Add \<Kind>…" picker popover is too short to use | Medium | SP-102 | 2026-08-17 |
+| I-0128 | `[Apple]` Scene Inspector cards did not refresh when a world reconnected | Medium | SP-102 | 2026-08-17 |
+| I-0129 | `[Apple]` World availability refreshed on app FOCUS, not on the drive actually mounting | Medium | SP-102 | 2026-08-17 |
 | I-0130 | `[Apple]` "Locate…" repaired the world but the project-wide warning stayed stale | Medium | SP-102 | 2026-08-17 |
+
+> ⚠️ **This table listed only I-0121, I-0122 and I-0130 until 2026-08-18** — the seven Issues between
+> them had full write-ups below and **no index rows**, so they were invisible to anyone reading the
+> summary. That is how the SP-102 exit-criteria table came to be read as "AC23/AC24 still owed" when
+> **I-0123–I-0130 are the record of the live eject/reattach runs that established them.** Detail
+> correct, index lying — the same failure class as the 2026-08-18 Task-backlog audit.
 
 ---
 
