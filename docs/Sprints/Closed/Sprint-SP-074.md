@@ -12,16 +12,16 @@ data-loss bug the current Swift-composed merge has under EP-027. Both platforms 
 
 | ID     | Title | Priority | Status |
 | ------ | ----- | -------- | ------ |
-| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | High | 🟢 Implemented, Not Verified |
-| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake | High | 🟢 Implemented, Not Verified |
-| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | High | 🟢 Implemented, Not Verified |
-| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | High | 🟢 Implemented, Not Verified |
+| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | High | ✅ **Verified (2026-08-19)** |
+| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake | High | ✅ **Verified (2026-08-19)** |
+| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | High | ✅ **Verified (2026-08-19)** |
+| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | High | ✅ **Verified (2026-08-19)** |
 
 ### Assigned Issues
 
 | ID     | Title | Severity | Status |
 | ------ | ----- | -------- | ------ |
-| I-0083 | Chapter-merge loses scenes on reopen (in-memory reassign + `deleteChapter` deletes on-disk scene files under EP-027) | High | 🟢 Resolved (core), Not Verified |
+| I-0083 | Chapter-merge loses scenes on reopen (in-memory reassign + `deleteChapter` deletes on-disk scene files under EP-027) | High | ✅ **Resolved - Verified** (core; app adoption SP-075/SP-076) |
 
 ### Implementation summary (2026-07-20 – 2026-07-21)
 
@@ -49,7 +49,7 @@ data-loss bug the current Swift-composed merge has under EP-027. Both platforms 
   manuscript-start / first-in-chapter no-op; empty/unknown ID errors; reopen round-trips via
   `ManuscriptOrderResolver`). Registered in `tests/CMakeLists.txt`.
 
-### Verification (developer-level; user verification pending)
+### Verification (developer-level at the time; ✅ **user-verified 2026-08-19**)
 
 - **ctest macOS: 317/317.** **ctest Linux (Ubuntu 24.04 / GCC 13.3, Docker container): 324/324** (Linux
   has +7 `EncryptedFileSecureStore` tests). All 10 merge tests confirmed passing under real GCC.
@@ -61,8 +61,10 @@ data-loss bug the current Swift-composed merge has under EP-027. Both platforms 
 ### Retrospective
 
 **Completed:**
-- T-0298, T-0299, T-0300, T-0301 — all 🟢 Implemented, Not Verified.
-- I-0083 — 🟢 Resolved at the CORE level (the endpoint proves no scene loss on reopen).
+- T-0298, T-0299, T-0300, T-0301 — all ✅ **Verified (2026-08-19, user ruling)** →
+  [`Task-verified-0298-0301.md`](../../Tasks/Verified/Task-verified-0298-0301.md).
+- I-0083 — ✅ **Resolved - Verified** at the CORE level (the endpoint proves no scene loss on reopen);
+  app adoption landed in SP-075 (Apple) and SP-076 (Linux), and **EP-028 closed 2026-07-22**.
 
 **Returned to Backlog:**
 - None. All sprint items delivered.
@@ -91,3 +93,27 @@ data-loss bug the current Swift-composed merge has under EP-027. Both platforms 
   `scenesRelocated`, `merged`.
 - Both ops relocate/rename files → any app consumer that captured paths must **refresh from the result**
   (the I-0081 stale-path contract). AC4/AC6 require the `sceneMerge`/`chapterMerge` history barriers.
+
+---
+
+## ⚠️ Task-status correction (2026-08-19)
+
+**This sprint's task table carried all four Tasks as 🟢 *Implemented, Not Verified* for four weeks after
+the sprint closed** (2026-07-21) **and after EP-028 closed** (2026-07-22). No `Verified/` file existed for
+any of them.
+
+The sprint's own retrospective (l.80) had set the gate: *"Do not close EP-028 or mark I-0083 fully
+Verified until app adoption lands and is user-verified."* **That gate was passed the very next day** —
+SP-075 (Apple adoption) and SP-076 (Linux parity) both closed, and EP-028 closed with them — **but nothing
+came back to update this record.**
+
+Surfaced by the **R-18 enumeration** during the 2026-08-19 audit and referred to the user, who ruled:
+*"You may record these Tasks as Verified and make sure they are properly archived. Also update SP-074 so
+that the Task state matches reality."*
+
+⚠️ **The lesson is the gate, not the delay:** a retrospective that defers verification to a later sprint
+must name **who closes the loop**. This one named the condition but no owner, so the condition was met and
+nobody returned.
+
+*Statuses corrected and [`Task-verified-0298-0301.md`](../../Tasks/Verified/Task-verified-0298-0301.md)
+written 2026-08-19 during audit remediation.*

@@ -329,3 +329,114 @@ rather than filing a new Issue — the mechanism is identical.
 > complete record as written at the time.*
 
 ---
+
+## I-0118 — World contents are not Spotlight-indexed (a regression in reach)
+
+> ⚠️ **RECONSTRUCTED 2026-08-19 under audit ruling [R-03](../../Audits/Audit-Rulings-20260819.md).**
+> This Issue was **Verified 2026-08-14** and cited as Verified in at least three files, but **no archive
+> entry was ever written** — audit finding **F-03**. Reconstructed under **QA observation** from surviving
+> **primary** sources: the user's own Q1–Q4 ruling text (previously parked in `Issue-active.md`) and
+> [`Sprint-SP-105.md`](../../Sprints/Closed/Sprint-SP-105.md).
+>
+> ⚠️ **Reconstruction ≠ back-filling (P3).** The record was **written and then lost**, and its ruling text
+> survives verbatim. This is *not* the bulk manufacture of never-written records, which remains refused
+> (see the 176 unfiled Tasks, R-26).
+
+**Status:** ✅ **Resolved - Verified (2026-08-14, user-approved)**
+**Platform:** macOS (`[Apple]`) + `[ScriviCore]`
+**Component:** `SearchableContent.cpp` (`collectObjects`, `extractSearchableText`), `scrivi_c_api.cpp`,
+`SpotlightDonor.swift`, `ScriviDeepLink.swift` / `ScriviURL.swift`
+**Severity:** Medium
+**Sprint:** **SP-105** (opened 2026-08-14 specifically to implement this Issue's rulings)
+**Date Identified:** 2026-08-14 · **Verified:** 2026-08-14
+
+---
+
+### Description
+
+⚠️ **After T-0409 made every worldbuilding kind world-scoped, nothing in a world was findable in
+Spotlight.** `extractSearchableText` only ever scanned `<project>/objects`, so once characters, locations
+and items moved into the `.scrivworld` package, **no character, location or item was indexed at all.**
+
+**This was a regression in reach, not a settled design** — the search behaviour that existed before the
+scope ruling silently stopped working.
+
+⚠️ **The test suite was CONCEALING it.** Two `SearchableContentTests` cases had been failing against the
+old expectations and were read as "realignment work" rather than as a signal.
+
+### The four rulings (user, 2026-08-14) — primary source, preserved verbatim in substance
+
+**Q1 — Whose index owns a shared world's contents? → WORLD-BOUND, never reference-counted.**
+The user's reframing — *"If I then delete all the projects on my system, how does that affect Spotlight's
+search indexes for the characters in the world?"* — answered **"Let them persist."**
+
+> **A world's search entries belong to the world, not to any project. They are never deleted as a side
+> effect of anything a project does — only on explicit instruction.**
+
+⚠️ **This dissolved the problem rather than solving it.** Q1 had been framed as a lifecycle problem
+requiring refcounted bindings. **If entries are never auto-deleted there is no lifecycle to track:** no
+refcount, no unbind hook, no "last project closed" detection, and no risk of one project's teardown
+destroying another's search. The world's domain is simply `world_<worldID>`, disjoint from every project
+domain; `SpotlightDonor.deleteProject` keeps deleting *project* domains only.
+
+**Q2 — Deep link shape → WORLD-SCOPED.** `scrivi://open?world=<worldID>&item=<kind>:<id>`, not
+`project=`. A character bound by three projects has no single owning project; a project-scoped link would
+pick one arbitrarily and break when that project was deleted.
+
+**Q3 — Offline/unmounted worlds → STALE ENTRIES STAY.** *"If Spotlight offers hits that can't open, so be
+it until the world reference is restored."* Consistent with Q1 and with I-0115: **a disconnected volume
+must never make a writer's cast vanish from search.**
+
+**Q4 — Scope → THE WHOLE WORLD PACKAGE**, not just object kinds — including `historical-events`,
+`historical-timelines` and `assets`.
+
+### Resolution — shipped in SP-105
+
+**`[ScriviCore]`:** `collectObjects` takes a base directory, deep-link ownership clause and domain instead
+of hardcoding `<project>/objects`; `extractSearchableText` resolves bound worlds via `WorldStore` and
+scans **available** ones; new `collectWorldExtras` indexes the non-`ObjectKind` package contents (Q4);
+`SearchableItem` gains a per-item `domainIdentifier` — **empty means "the project's"**, so every existing
+project-side record stayed byte-identical and no call site changed.
+⚠️ **The C ABI serializer was widened in the same step** — new C++ fields the boundary drops are invisible
+to every facade test, which is exactly how I-0113 shipped.
+
+**`[Apple]`:** `SpotlightDonor.donate` uses each record's own domain; ⚠️ **`deleteProject` refuses a world
+domain outright and logs it** — it runs on every project close, so a world domain reaching it would
+silently destroy shared search data with nothing to notice. `ScriviDeepLink` parses the `world=` form (Q2);
+previously a tapped Spotlight hit for a character **did nothing at all**.
+
+### Verification
+
+Probed against the **user's real project** through `scrivi_*`, not the facade:
+
+```
+projectDomain : project_019fa3be-dac9-7f2d-b2dd-23dbb3291a9e
+worldDomains  : ['world_character_01a000fb-539a-7402-802e-0d97eeb1e594']
+world items   : 4   (Petch, Myton, Veyra + 1 location)
+```
+
+**ctest 516/516** (513 → 516); **macOS interop 86/86**. The two SP-104 guard cases — written to fail
+loudly when indexing landed — **flipped from asserting zero to asserting reach.**
+
+⚠️ **A defect the probe caught that no test would have:** the domain first came out `world_world_<uuid>`,
+because `worldID` already carries a `world_` prefix and the code added another. **Every test passed with
+it, because the tests asserted the same expression the code computed.** It would have been stamped into
+every donated Spotlight entry.
+
+### Carried forward, deliberately
+
+⚠️ **Removal of world entries has no affordance and is deferred to EP-033** (in-app view vs. dedicated
+world-management application). Under Q1 nothing deletes entries automatically, so shipping the indexing
+half landed the system exactly where the ruling describes. **The gap, stated plainly: until EP-033 rules,
+a world's search entries are write-only from the writer's point of view.**
+
+**Linux** donates to no search index, so the `[Apple]` half has no counterpart; the `[ScriviCore]` half is
+cross-platform and covered by ctest.
+
+**Related:** I-0113 (the same boundary-drops-new-fields shape), I-0115 (never guess that something is
+gone), T-0409 (the scope ruling that caused the regression), **EP-033** (world lifecycle).
+
+---
+
+*I-0118 reconstructed and archived 2026-08-19 under audit ruling R-03, from primary sources, under QA
+observation.*

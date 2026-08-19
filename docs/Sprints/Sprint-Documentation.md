@@ -22,7 +22,7 @@ SP-097, SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains:*
 
 | Sprint | Scope | Order |
 | ------ | ----- | ----- |
-| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🔵 Planning (**runs last** — activation needs user approval) |
+| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🔵 Planning — ✅ **plan complete 2026-08-19** (**runs last** — activation needs user approval) |
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -33,6 +33,27 @@ SP-097, SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains:*
 > accident, and every CI leg names its architecture. ⚠️ **The sanitizer found a second, unknown defect
 > (I-0122) on its first run** — so what else was hidden behind six sprints of single-architecture evidence is
 > an open empirical question for SP-100.
+
+> ✅ **SP-100 PLANNED 2026-08-19 — still 🔵 Planning; activation needs direct user approval.** Three Tasks
+> in a load-bearing order: **T-0390** (repair-matrix world conditions) → **T-0418** (live-use pass on the
+> real USB rig, **new at planning**) → **T-0391** (the AC1–AC10 pass + close prep, which reads the other
+> two as evidence and cannot start early).
+>
+> ⚠️ **Planning found that AC1 and AC10 could not be re-verified as written.** Each carries a clause the
+> Epic's own §3.0 **no-migration** ruling superseded — *"legacy 5-kind files load unchanged"* and
+> *"existing projects open unchanged"* — so verifying either would have meant asserting a behaviour EP-031
+> deliberately chose **not** to build. **Both are amended (R1/R2, user-approved) and both remain UNTICKED.**
+> **AC10's amended form is stronger**, requiring both architectures **and** sanitizers — which is exactly
+> the evidence base SP-106 restored, and answers the empirical question above rather than deferring it.
+>
+> ⚠️ **The External Change Repair Matrix has ZERO world coverage** — 578 lines, 21 conditions, and not one
+> mention of `world` or `scrivworld`, because worlds landed in SP-097 three sprints after its last
+> revision. **A repair pass written against the current document could destroy a writer's entire
+> relationship graph and satisfy every rule in it.** That is T-0390's subject.
+>
+> ⚠️ **The live pass (R4) is required evidence, not polish.** Four of EP-031's eleven sprints were
+> unplanned and **every one came from USE**; SP-102's live runs alone produced eight Issues, one of which
+> (**I-0129**) *was* the AC23 clause and was invisible to every fixture.
 
 Epic-level status — acceptance criteria, the AC1 re-verification requirement, the Linux gap — belongs to
 EP-031 in [`../Epics/Epic-active.md`](../Epics/Epic-active.md) and is not duplicated here.
@@ -188,7 +209,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 🔵 Planning (**runs last**) |
+| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 🔵 Planning — **plan complete 2026-08-19, NOT activated** (**runs last**) |
 
 ⚠️ **This table is a copy of [`Sprint-backlog.md`](Sprint-backlog.md)'s, and copies go stale.** It was
 refreshed 2026-08-12 (SP-086/SP-090/SP-085/SP-056 had all closed; SP-057 was superseded into SP-094) and
@@ -198,8 +219,8 @@ file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.*
 
 ## All Sprints
 
-Currently: **104 Sprint IDs issued** — **100 closed**, 1 🟡 Active (SP-102), 1 in 🔵 Planning (SP-100),
-1 superseded (SP-057 → SP-094), 1 cancelled (SP-034), 1 ID skipped (SP-068) | Next available: **SP-107**
+⚠️ **This table is the single source for Sprint status (P7).** Counts are **not** restated here or in
+Statistics — read the rows. Next available ID: **SP-107**.
 
 **SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
 SP-102 and SP-100, because SP-100's Epic-verification remit rested on a suite that had not run clean on
@@ -345,25 +366,44 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | SP-104 | ⚠️ `[Cross]` Post-ruling fallout — world reachability + the restated-kind class (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
 | SP-105 | `[Cross]` World search indexing (I-0118) (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
 | SP-106 | ⚠️ `[Cross]` Test integrity & CI trust — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | EP-031 `[Cross]` | 2026-08-16 | 2026-08-17 | ✅ Closed |
-| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card (**AC23 + AC24**) | EP-031 `[Apple]` | 2026-08-17 | — | 🟡 **Active** |
+| SP-102 | `[Apple]` Pending presentation + warning view + `sources` card (**AC23 + AC24**) | EP-031 `[Apple]` | 2026-08-17 | 2026-08-18 | ✅ Closed |
 
 ## Statistics
 
-- **Total Sprint IDs issued:** 105 (SP-001–SP-106; **SP-068 skipped** — EP-027 claimed SP-069–SP-072 and its
-  scope shipped as SP-073; **SP-083 was brought forward** ahead of SP-082)
-- **Closed:** 100 ✅ (all have an archive in [`Closed/`](Closed/); most recent: **SP-106**, closed 2026-08-17
-  user-approved)
-- **Active:** 1 🟡 — **SP-102** `[Apple]` pending presentation + warning view + `sources` card (activated
-  2026-08-17)
-- **Planning:** 1 🔵 (**SP-100** EP-031 verification & Epic close — runs last, keeps its number)
-- **Superseded:** 1 ⚪ (SP-057 → SP-094)
-- **Cancelled:** 1 ⚪ (SP-034)
-- **Paused:** 0 ⏸
-- **Next available:** **SP-107**
+⚠️ **The All-Sprints table above is the SINGLE SOURCE for per-sprint status and counts (P7).** This
+section carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under
+audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
+by status, read the table.**
+
+- **Next available Sprint ID:** **SP-107**
+- **Total Sprint IDs issued:** 105 (SP-001–SP-106)
+- **IDs that are not sprints, and why:**
+  - **SP-034** — ⚪ Cancelled
+  - **SP-057** — ⚪ Superseded → SP-094
+  - **SP-068** — ⚪ **Skipped**; EP-027 claimed SP-069–SP-072 and its scope shipped as SP-073
+- **Out-of-sequence execution:** **SP-083 ran before SP-082**; **SP-102 ran before SP-100**, which keeps
+  its number as EP-031's close sprint and runs last.
+
+> ⚠️ **This drift recurred THREE times before it was fixed structurally** — the All-Sprints table and the
+> statistics disagreed in 2026-08-16, 2026-08-17 and 2026-08-19, each time because the summary restated
+> the table. The correct diagnosis was written down twice (here and in `Epic-Documentation.md`) and acted
+> on neither time. **Do not reintroduce per-status counts here.**
 
 ---
 
-*Last Updated: 2026-08-17 (**SP-106 ✅ CLOSED (user-approved) and SP-102 activated.** All 3 SP-106 Tasks
+*Last Updated: 2026-08-19 (**SP-100 planned — 🔵 Planning, NOT activated.** Plan in
+[`Sprint-active.md`](Sprint-active.md), banner-marked as not-yet-active. Three Tasks **T-0390 → T-0418 →
+T-0391** (**T-0418 new**); four user-approved rulings — **R1/R2** amend **AC1** and **AC10**, each of
+which carried a clause superseded by the §3.0 no-migration ruling and so **could not be re-verified as
+written**; **R3** T-0390 documents **and** tests, filing rather than fixing; **R4** a live-use pass on the
+real USB rig is **required evidence**. Both amended ACs **stay unticked**.
+⚠️ **Two stale rows in this file corrected in the same pass — SP-102 was still shown 🟡 Active in both the
+All-Sprints table (l.348) and the Statistics block**, though it closed 2026-08-18 and the Active-Sprints
+section at the top already said so. **This is the third time this file's lower tables have lagged its own
+header** (see the 2026-08-17 note below). Counts: **101 closed, 0 Active, 1 Planning (SP-100)**; next
+available **SP-107**. Prior note follows.)*
+
+*2026-08-17 (**SP-106 ✅ CLOSED (user-approved) and SP-102 activated.** All 3 SP-106 Tasks
 (T-0412/T-0413/T-0414) and both Issues (**I-0121, I-0122**) ✅ Verified and archived in the same step —
 `../Tasks/Verified/Task-verified-0412-0414.md` and the new `../Issues/Verified/Issue-verified-0121-0130.md`.
 ✅ **The All-Sprints row was added as part of closing**, which the 2026-08-12 and 2026-08-16 audits both found

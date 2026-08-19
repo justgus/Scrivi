@@ -7,6 +7,7 @@ Archived Issues, ✅ **Resolved - Verified** by the user. Batched in decades of 
 | -- | ----- | -------- | ------ | -------- |
 | I-0131 | `[Apple]` Resume scene only persisted as a side effect of saving a **dirty** scene | Medium | SP-102 | 2026-08-18 |
 | I-0132 | `[Apple]` Navigator never revealed the selected row, and a click left focus stranded in the list | Medium | SP-102 | 2026-08-18 |
+| I-0133 | `[Apple]` `restoredScrollFraction` was written, cleared, and **never read** — dead state | Low | SP-102 | 2026-08-19 |
 
 > ⚠️ **I-0132 was archived here prematurely once, then returned, then re-verified.** The first archive
 > (2026-08-18) claimed both halves verified when only the **reveal half** was: the user's evidence
@@ -212,4 +213,55 @@ lot and saw no missed clicks or focus changes"* — after which the loop audit a
 
 ---
 
-*Archived 2026-08-18 on user verification of both Issues.*
+## I-0133 — `restoredScrollFraction` was written, cleared, and never read
+
+**Severity:** Low · **Sprint:** SP-102 (adopted) · ✅ **Verified 2026-08-19**
+
+Found 2026-08-18 while instrumenting [[I-0131]]. `ViewportSceneLoader.restoredScrollFraction` was
+assigned in `loadAll` from the backend's `restored.scroll`, cleared in `restoreWritingSurface`, and
+**read nowhere.**
+
+⚠️ **ScriviCore's half was never broken.** The fraction is faithfully persisted by `saveScene` on
+every quit and returned by `scrivi_open_project` — so I-0058's backend work functions correctly.
+**The app simply dropped the value on the floor.**
+
+### Why the impact is low *by design*, not by luck
+
+Under the **Current Scene Model**, restore **centres** the restored scene ([[I-0131]]'s fix). That is
+a strictly better outcome than reapplying a document-wide scroll fraction, and ⚠️ **the two approaches
+contradict each other** — a centred scene and a restored fraction cannot both determine the viewport.
+The dead property was therefore not a missing feature; it was a **superseded** one that no longer had
+a caller.
+
+### Ruling and fix (user, 2026-08-18)
+
+> **Delete the Apple-side dead state; leave Linux alone.**
+
+Removed the property, its `loadAll` parameter, the write, the clear, and the `ProjectSession`
+plumbing. ⚠️ **Each removal site carries a comment recording that the omission is *by design*,** so a
+future reader does not file it as a bug and "restore" it.
+
+⚠️ **The schema field is NOT dead and was deliberately left in place** — `scrivi.h`, the open envelope
+and `saveScene` are untouched, because **Linux consumes it.**
+
+### What investigating this turned up
+
+⚠️ Linux applies the fraction **after** `centerCursor()`, deliberately overriding the centring
+(`EditorShell.cpp:364`). At the time this was filed as a parity defect ([[I-0134]]); **that framing
+was wrong and I-0134 is closed as a non-issue** — parity is directional and the Apple implementation
+is authoritative. See [`Issue-closed-0134.md`](../Closed/Issue-closed-0134.md).
+
+**Related:** [[I-0018]] — *"the manuscript does not scroll to the restored scene on load"*, ✅ Verified
+and archived 2026-08-19 → [`Issue-verified-0011-0020.md`](Issue-verified-0011-0020.md). It is the same
+*"what does it mean to be at a scene?"* cluster as this Issue, [[I-0131]] and [[I-0132]] — across **load,
+click and quit** — and all four were settled by the Current Scene Model's centring rule.
+
+**Evidence at verification:** **BUILD SUCCEEDED**, interop **93/93 macOS arm64**; `grep` for
+`restoredScrollFraction` returns **zero** references.
+✅ **User-verified 2026-08-19:** *"I verify that the code was removed. Therefore it is verified."*
+⚠️ **Nothing user-visible changes** — that *is* the verification: restore still lands centred on the
+correct scene.
+
+---
+
+*Archived 2026-08-18 (I-0131, I-0132); I-0133 archived 2026-08-19 under audit ruling **R-01**.*

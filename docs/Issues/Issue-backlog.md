@@ -2,40 +2,16 @@
 
 Issues listed here are open and documented but not currently assigned to a Sprint.
 
-**Currently: 1.** Only **I-0018** remains, 🟠 **partly fixed and rescoped** — not assigned to a Sprint.
+**Currently: 0.** The Issue backlog is **empty** — no open Issues are unassigned to a Sprint.
 
----
-
-## I-0018: Manuscript does not scroll to the restored scene on app load
-
-**Status:** 🟠 **PARTLY FIXED — rescoped 2026-08-17 (user-verified).** The original complaint is **fixed**:
-the Navigator *does* now show the selection on load. What remains is a **different behaviour** the original
-report did not name — **the manuscript does not scroll to that selection**, so the writer is shown a
-highlighted scene in the navigator while the text view sits somewhere else.
-**Platform:** macOS
-**Component:** `SceneNavigatorView.swift`, `ViewportSceneLoader.swift`, `ManuscriptTextView.swift`
-**Severity:** Low
-**Sprint:** Not Assigned
-**Date Identified:** 2026-06-08 · **Rescoped:** 2026-08-17
-
-**Fixed (original scope):**
-On load, no scene was selected/highlighted in the Navigator; it self-corrected only on first scroll. The root
-cause was `viewportSceneID` being left nil during `loadAll()`. `loadAll(activeSceneID:)` now sets
-`currentIndex`, `cursorSceneID` **and** `viewportSceneID` when the backend supplies a resume scene
-(`ViewportSceneLoader.swift:128-134`), so the highlight is present from the first frame.
-
-**Still open (rescoped):**
-The manuscript viewport is not scrolled to the restored scene on load. The selection is shown; the text is
-not brought to it.
-
-⚠️ **Interacts with [[I-0131]] and [[I-0132]], and should be scoped with them.** All three are the same
-question in different guises — *what does it mean to "be at" a scene?* — and the answer has to be consistent
-across restore-on-load (this Issue), navigator click (I-0132's focus/caret question), and quit-time resume
-(I-0131). Fixing this one in isolation risks a fourth inconsistent behaviour. ⚠️ It also touches the code
-I-0131 just changed: `restoreWritingSurface` already scrolls and places the caret, so the likely fix is
-ensuring that path runs on load when a resume scene exists, rather than adding a second scroll mechanism.
-
-**Resolution:** TBD — pending the keyboard/focus/caret model ruling that [[I-0132]] also needs.
+> ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified under audit ruling **R-02** →
+> [`Verified/Issue-verified-0011-0020.md`](Verified/Issue-verified-0011-0020.md). Its rescoped
+> behaviour was delivered by [[I-0131]]'s restore work (centring the restored scene), verified
+> 2026-08-18.
+>
+> ⚠️ **Recorded with it:** I-0018 **should never have been rescoped** — a retargeted ID destroys the
+> record of the defect it originally named. **P2: never rescope an Issue; verify and close the
+> original and open a new ID.**
 
 ---
 

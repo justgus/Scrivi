@@ -238,6 +238,29 @@ Epics → Sprints → Tasks / Issues
 - Claude can create Epics and mark them Complete
 - Claude can only close an Epic after direct user approval
 
+### Audits — documentation consistency (orthogonal to the four layers above)
+
+Audits operate **on** Issues/Tasks/Sprints/Epics rather than sitting inside the `Epics → Sprints →
+Tasks / Issues` chain. Guidelines: `docs/Audits/Audit-Guidelines.md`.
+
+- Process: `docs/Audits/Audit-Guidelines.md`
+- Phase 1 output: `docs/Audits/Audit-Findings-YYYYMMDD.md`
+- Phase 2 output: `docs/Audits/Audit-Rulings-YYYYMMDD.md`
+- Phase 3 output: `docs/Audits/Audit-Remediation-YYYYMMDD.md`
+
+**Three rules that are always in force:**
+
+1. ⚠️ **AN AUDIT BEGINS ONLY WHEN THE USER REQUESTS IT.** Claude **never** starts one automatically. If
+   Claude notices staleness, contradictions or drift, it **recommends** an audit and waits.
+2. ⚠️ **AN AUDIT CHANGES NOTHING.** Phase 1 produces findings; it does not fix them. **Phase 2 changes
+   nothing either** — a ruling is a decision recorded, not a fix applied. Only **Phase 3 (Remediation)**
+   edits tracking documents, and only from an approved rulings file, citing ruling numbers.
+3. **Each phase completes before the next begins.** Findings → Rulings → Remediation.
+
+**The Audit Check** is the lightweight alternative: a read-only, mechanical sweep (greps and counts) run
+**before an Epic close**. ⚠️ **It is not an Audit** — an Epic close does **not** trigger one. Its findings
+are ruled as part of that close.
+
 **When implementing fixes or features:**
 1. Document in the appropriate file (Issue or Task)
 2. Assign to the current Sprint if active

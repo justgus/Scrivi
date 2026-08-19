@@ -84,10 +84,32 @@ During delivery:
 
 When all planned Sprints are closed:
 
-1. Review acceptance criteria — are all conditions met and verified?
-2. Mark status 🟠 Complete.
-3. User reviews and explicitly approves closing the Epic.
-4. Move to `Closed/Epic-EP-XXX.md` and mark ✅ Closed.
+1. ⚠️ **Run an AUDIT CHECK** — see [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md).
+2. Review acceptance criteria — are all conditions met and verified?
+3. Mark status 🟠 Complete.
+4. User reviews and explicitly approves closing the Epic.
+5. Move to `Closed/Epic-EP-XXX.md` and mark ✅ Closed.
+
+### ⚠️ Step 1 — the Audit Check, and why it is first
+
+An Epic close **reads every tracking layer as evidence**, so the layers must be confirmed to agree with
+each other *before* the acceptance criteria are judged against them.
+
+**This is an Audit CHECK, not an Audit.** A Check is read-only and mechanical — greps and counts, minutes
+of work. ⚠️ **A full Audit is large, formal, and begins only when the user requests it. Closing an Epic
+does NOT trigger one.**
+
+**Findings from the Check are ruled as part of the Epic close**, not in a separate session. ⚠️ If a Check
+turns up something large or systemic, that is grounds to **recommend** a full Audit — which still only
+begins on user request.
+
+**Why this exists:** the 2026-08-19 audit found two defects that would have corrupted EP-031's close, both
+detectable by simple greps —
+
+- `Epic-Documentation.md` claimed **AC9 was outstanding**; it had been met two days earlier. **SP-100's
+  entire job is verifying AC1–AC10.**
+- **I-0118**, named in `Epic-active.md` as *"available as evidence for SP-100's AC pass"*, had **no archive
+  entry anywhere.**
 
 ## Authorization Rules
 
@@ -210,3 +232,28 @@ docs/Epics/
 ---
 
 **REMINDER:** Every Epic operation MUST update Epic-Documentation.md before marking work as complete.
+
+---
+
+## Related: the Audit layer
+
+Documentation consistency across all four tracking layers is maintained by **Audits** —
+see [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md).
+
+⚠️ **An Audit is large and formal, and begins ONLY when the user requests it.** Claude never starts one
+automatically; it may *recommend* one. A lightweight **Audit Check** — a read-only, mechanical sweep — is
+the instrument for routine verification.
+
+---
+
+## ⚠️ Standing principle P7 — derive it or delete it
+
+**A summary that restates a table will drift from it.** Keep in a statistics block **only what the table
+cannot express**: next available ID, IDs that are not sprints/Epics (cancelled, superseded, skipped) with
+reasons, and pointers to where detail lives.
+
+⚠️ **This is the single most repeated defect in the Scrivi tracking docs.** It recurred **three times**,
+and the correct diagnosis was written down — *"deriving these lines from the table rather than restating
+them"* — on **two** prior occasions before it was finally acted on in the 2026-08-19 audit.
+
+**Do not reintroduce per-status counts.** To count by status, read the table.

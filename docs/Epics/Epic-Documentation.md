@@ -13,15 +13,15 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 ## Active Epics
 
 Currently: **1 Active Epic + 1 Draft.** **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) 🟡 **Active since 2026-08-12** — now an **11-sprint** Epic, **9 closed** (SP-095, SP-096, SP-097,
-SP-098, SP-099, SP-103, SP-104, SP-105, **SP-106** ✅ closed 2026-08-17). Two remain: **SP-102** 🟡 **Active**
-(`[Apple]` pending presentation + warning view + `sources` card — **AC23 + AC24**, activated 2026-08-17),
-then **SP-100** 🔵 Planning (verification & Epic close) last.
+Graph) 🟡 **Active since 2026-08-12** — an **11-sprint** Epic, **10 closed** (SP-095, SP-096, SP-097,
+SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains: SP-100** 🔵 Planning
+(verification & Epic close), which **runs last**.
 
 ⚠️ **AC1 must be RE-VERIFIED — the Epic's one outstanding acceptance criterion.** It was unticked
 2026-08-14 when the user's scope ruling (T-0409) moved all ten worldbuilding kinds into the world package;
 AC1 had been ticked against the pre-ruling scope table, so its evidence no longer describes the shipped
-model. **SP-100 owns the re-verification.** AC9 and AC10 are also outstanding.
+model. **SP-100 owns the re-verification.** ⚠️ **AC9 was MET 2026-08-18** (SP-102 delivered AC23 + AC24); only
+**AC1 and AC10** are outstanding.
 
 Full detail — acceptance criteria, sprint table, task assignments — in [Epic-active.md](Epic-active.md).
 
@@ -41,7 +41,7 @@ See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **3 Backlog Epics** —
+Currently: **4 Backlog Epics** —
 - **EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft — the last of the planned
   `[Linux]` family. (EP-023 ✅ closed 2026-07-19; EP-024 ✅ closed 2026-07-22; EP-025 Timeline Panel ✅ closed
   2026-07-24.)
@@ -49,12 +49,16 @@ Currently: **3 Backlog Epics** —
   opened 2026-08-12 from an EP-031 design ruling. Depends on EP-031 + EP-029.
 - **EP-033** `[Cross]` (World Lifecycle Management — in-app view vs. dedicated application), 🔵 Proposed,
   opened 2026-08-14 from the I-0118 Q1 ruling. Its first deliverable is the product fork itself.
+- **EP-034** `[Cross]` (Object Detail & Media), 🔵 Proposed, opened 2026-08-18. ⚠️ **Owes source
+  creation** — nothing in the app can create a `source` or attach a `cites` edge, which is why T-0365
+  shipped as a PARTIAL delivery and the `sources` card can only render its empty state.
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
-Currently: **33 Epics** | Next available: **EP-034**
+⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
+Statistics — read the rows. Next available ID: **EP-035**.
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -93,19 +97,24 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | 🟡 Active | 2026-08-12 | — |
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes) | 🔵 Proposed (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
+| EP-034 | `[Cross]` Object Detail & Media — object fields beyond `displayName`; ⚠️ **owes source creation** | 🔵 Proposed (backlog) | — | — |
 
 ## Statistics
 
-- **Total Epics:** 33 (EP-001–EP-033)
-- **Closed:** 29 ✅ (each has an archive in [`Closed/`](Closed/); most recent: EP-019 + EP-030, both 2026-08-11)
-- **Complete (pending close):** 0 🟠
-- **Active:** 1 🟡 (EP-031 `[ScriviCore]` — Worldbuilding Object Model; **9 of 11 sprints closed**;
-  **SP-102 🟡 Active**, SP-100 🔵 Planning and runs last)
-- **Planned:** 0 🔵
-- **Draft:** 1 🔵 (EP-026 `[Linux]`)
-- **Deferred (backlog):** 0
-- **Proposed (backlog):** 2 🔵 (EP-032 `[Cross]` — Inline Object References, opened 2026-08-12; EP-033
-  `[Cross]` — World Lifecycle Management, opened 2026-08-14 from the I-0118 ruling)
+⚠️ **The All-Epics table above is the SINGLE SOURCE for per-Epic status and counts (P7).** This section
+carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
+ruling **R-23(②)**. **To count Epics by status, read the table.**
+
+- **Next available Epic ID:** **EP-035**
+- **Total Epic IDs issued:** 34 (EP-001–EP-034); none cancelled, skipped or superseded
+- **Where per-Epic detail lives:** [`Epic-active.md`](Epic-active.md) is authoritative for the **active**
+  Epic's acceptance criteria and sprint table. ⚠️ **This index does not restate AC state** — that is what
+  produced the *"AC9 and AC10 are also outstanding"* error, when AC9 had been met two days earlier.
+
+> ⚠️ **This file is where the correct diagnosis was FIRST written down** — *"every one of these was a
+> count or status that drifted while the table beneath it stayed correct, which is the argument for
+> deriving these lines from the table rather than restating them"* — and then **not acted on**. It has now
+> been acted on. **Do not reintroduce per-status counts here.**
 
 ---
 

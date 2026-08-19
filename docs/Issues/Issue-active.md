@@ -8,82 +8,18 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0133 | `[Apple]` **`restoredScrollFraction` was written, cleared, and never read — dead state.** Found 2026-08-18 while instrumenting [[I-0131]]. `ViewportSceneLoader.restoredScrollFraction` was assigned in `loadAll` from the backend's `restored.scroll`, cleared in `restoreWritingSurface`, and **read nowhere**. The fraction is faithfully persisted by `saveScene` on every quit and returned by `scrivi_open_project`, so ScriviCore's half of I-0058 works; the app simply dropped it. ⚠️ **Low impact BY DESIGN as of the Current Scene Model:** restore *centres* the restored scene (I-0131's fix), which is a better outcome than reapplying a document-wide fraction — the two contradict each other. **✅ RULED 2026-08-18 (user): delete the Apple-side dead state; leave Linux alone.** Removed the property, its `loadAll` parameter, the write, the clear and the `ProjectSession` plumbing; each removal site carries a comment recording that the omission is *by design*, so it does not read as a bug later. ⚠️ **The schema field is NOT dead and was deliberately left in place** — `scrivi.h`, the open envelope and `saveScene` are untouched. **Investigating this turned up something the original report missed, now filed as [[I-0134]]: `[Linux]` actively consumes the fraction and applies it *after* `centerCursor()`, deliberately overriding the centring** — i.e. the two platforms now disagree about what "restore where I was" means. That is a parity question, not a dead-code question, so it was **not** settled inside this cleanup. | Low | **SP-102** (adopted) | 🟠 **Resolved - Not Verified (2026-08-18)** — **BUILD SUCCEEDED**, interop **93/93 macOS arm64**; grep for `restoredScrollFraction` returns **zero** references. ⚠️ **Nothing user-visible should change** — that is the verification: restore still lands centred on the right scene. |
-| I-0134 | `[Cross]` ⚠️ **Apple and Linux disagree on what "restore where I was" means.** Found 2026-08-18 while ruling [[I-0133]]. **Apple** centres the restored scene and ignores `restored.scroll` entirely (I-0131's ruling, §1 of the Current Scene Model — a scene parked at the viewport edge makes the scroll handler read a *different* scene at the centre, and the navigator highlight follows that). **Linux** does the opposite: `EditorShell.cpp:364` calls `centerCursor()` and then **overrides it** with the saved fraction — *"Apply the saved scroll fraction over the whole document (overrides the centerCursor scroll when a real fraction was persisted)"*. ⚠️ **Both behaviours are deliberate and each was verified on its own platform** — Linux's is T-0247, VNC-verified 2026-07-15 and closed with EP-022; Apple's is I-0131, verified 2026-08-18. Neither is a defect in isolation; the defect is that **the same project reopens differently depending on which app you use**, which EP-026 (cross-platform parity) exists to prevent. ⚠️ **Do not "fix" this by reviving Apple's fraction** — I-0131 documents why edge-restore is wrong there. If parity resolves toward centring, Linux's override is what changes, and that means re-verifying a shipped, user-verified EP-022 behaviour over Docker+VNC. **Needs a ruling before either platform is touched.** | Low | **unassigned** (EP-026 candidate) | 🔴 **Open (2026-08-18)** — parity ruling needed; no code changed |
+
+**Currently: 0 Issues awaiting verification.**
+
+> **I-0133** ✅ Verified 2026-08-19 → [`Verified/Issue-verified-0131-0140.md`](Verified/Issue-verified-0131-0140.md) ·
+> **I-0134** ⚪ Closed as a **non-issue** 2026-08-19 → [`Closed/Issue-closed-0134.md`](Closed/Issue-closed-0134.md)
+> (erroneous parity premise — **Apple is authoritative; Linux conforms**). Both under audit ruling **R-01**.
 
 ---
 
 ## Full entries
 
-> The Issues above carry their detail in the table rows and in the sprint records cited there. No
-> separate full entries remain in this file. ⚠️ **Not all rows are `Resolved - Not Verified`** — read
-> each row's Status column; **I-0134 is 🔴 Open and awaiting a ruling**, with no code written.
-
----
-
-## I-0118 — design ruling (user, 2026-08-14)
-
-*Retained here as an active design ruling, not an open defect. I-0118 itself is ✅ Verified and archived
-to [`Verified/Issue-verified-0111-0120.md`](Verified/Issue-verified-0111-0120.md); the ruling text below
-governs ongoing world-scope work and is kept in front of the reader deliberately.*
-
-All four open questions ruled. **The ruling is simpler than any option offered**, and one answer removed a
-whole subsystem I had assumed was required.
-
-**Q1 — Whose index owns a shared world's contents? → WORLD-BOUND, and never reference-counted.**
-
-The user's question reframed the problem: *"If I then delete all the projects on my system, how does that
-affect Spotlight's search indexes for the characters in the world?"* — answered **"Let them persist."**
-
-> **A world's search entries belong to the world, not to any project. They are never deleted as a side
-> effect of anything a project does — only on explicit instruction.**
-
-⚠️ **This dissolves the problem that made the question hard.** I had framed Q1 as a lifecycle problem
-(unbinding from one project must not wipe another's results) and assumed the fix was refcounting bindings.
-**If entries are never auto-deleted, there is no lifecycle to track**: no refcount, no unbind hook, no
-"last project closed" detection, and no risk of one project's teardown destroying another's search. The
-world's `domainIdentifier` is simply `world_<worldID>`, disjoint from every project domain, and
-`SpotlightDonor.deleteProject` keeps deleting *project* domains only — untouched.
-
-The residue is deliberate and accepted: a world package deleted outside Scrivi leaves entries behind until
-the writer clears them. **That is the correct trade** — the same principle as I-0115, where guessing that
-something is gone is worse than admitting we cannot know. Orphaned hits are recoverable; destroyed indexes
-of a world still on disk are not.
-
-**Q2 — Deep link shape → WORLD-SCOPED.** `scrivi://open?world=<worldID>&item=<kind>:<id>`, not
-`project=`. A character bound by three projects has no single owning project, so a project-scoped link
-would have to pick one arbitrarily and would break when that project is deleted. **`ScriviURL` must gain a
-`world=` form** — today it parses `project=` only (`ScriviURL.swift:3`).
-
-**Q3 — Offline/unmounted worlds → STALE ENTRIES STAY.** *"If Spotlight offers hits that can't open, so be
-it until the world reference is restored."* Consistent with Q1 and with I-0115: a disconnected volume must
-never make a writer's cast vanish from search. The open path reports the world's status honestly instead.
-
-**Q4 — Scope → THE WHOLE WORLD PACKAGE**, not just object kinds. That includes `historical-events`,
-`historical-timelines`, and `assets`. **Verified buildable without new schema work** — parsers already
-exist (`HistoricalEventJson`, `ExternalTimelineJson`, `AssetMetaJson`).
-
-**Implementation shape (not yet built):** `collectObjects` takes a base directory instead of assuming
-`objects/`; `extractSearchableText` resolves bound worlds via `WorldStore` and scans **available** ones;
-`SearchableItem` carries a per-item domain so world items donate under `world_<id>` while project items
-keep `projectID`; the app donates world domains separately and never deletes them on project close;
-`ScriviURL` learns `world=`. Then flip the two `SearchableContentTests` expectations, which are written to
-fail loudly when this lands.
-
-⚠️ **Deferred to EP-033 (2026-08-14, user).** *What* the "express instruction" to delete a world's entries
-actually is has **no answer in the product today**. The user deferred it pending a larger decision —
-**whether world management is a view inside Scrivi or a dedicated world-management application** — and
-that fork is now tracked as **EP-033 `[Cross]` World Lifecycle Management** (Epic backlog, 🔵 Proposed).
-It is larger than this Issue: nothing in Scrivi can delete a world at all today (by design —
-`scrivi_remove_world_reference` unbinds only), and a world with no project bound to it is unreachable,
-because Scrivi opens projects rather than worlds.
-
-**This does NOT block I-0118's implementation.** Everything ruled above can be built now; only the
-*removal* affordance waits, and under the Q1 ruling nothing removes entries automatically anyway — so
-shipping the indexing half lands the system exactly where the ruling describes. The gap to state plainly:
-until EP-033 rules, a world's search entries are **write-only** from the writer's point of view.
-
----
+*None — there are no active Issues.*
 
 ---
 
@@ -92,11 +28,12 @@ until EP-033 rules, a world's search entries are **write-only** from the writer'
 | Range | Location |
 | ----- | -------- |
 | I-0001–I-0050 | `Verified/Issue-verified-0001-0010.md` … `-0041-0050.md` |
-| I-0051–I-0119 | `Verified/Issue-verified-0051-0060.md` … `-0111-0120.md` |
-| I-0121–I-0122, I-0130 | `Verified/Issue-verified-0121-0130.md` |
-| I-0131 | `Verified/Issue-verified-0131-0140.md` |
+| I-0051–I-0120 | `Verified/Issue-verified-0051-0060.md` … `-0111-0120.md` |
+| I-0121–I-0130 | `Verified/Issue-verified-0121-0130.md` |
+| I-0131–I-0133 | `Verified/Issue-verified-0131-0140.md` |
 | I-0019 | `Closed/Issue-closed-0019.md` |
 | I-0072, I-0073, I-0085, I-0103 | `Closed/Issue-closed-0072-0103.md` |
+| **I-0134** | `Closed/Issue-closed-0134.md` — ⚪ non-issue |
 
 ---
 

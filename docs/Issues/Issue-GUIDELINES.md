@@ -28,7 +28,7 @@ When a new Issue is created:
    15. **Verification:** Testing steps and results
 
 3. **Location**
-   2. File: `/Scrivi/Documentation/Issues/Issue-Documentation.md`
+   2. File: `docs/Issues/Issue-Documentation.md`
    3. Append new Issue Entries at the end
    4. Maintain separator line (`---`) between entries
 
@@ -105,10 +105,10 @@ When a new Issue is created:
 
 - 🔴 **Open** - Issue identified, in the Backlog, not assigned a Sprint
 - ⚠️ **In Progress** - Actively being investigated, assigned to a Sprint
-- 🟡 **Resolved - Not Verified** - Fixed but not validated by user
+- 🟠 **Resolved - Not Verified** - Fixed but not validated by user
 - ✅ **Resolved - Verified** - Fixed and verified by user
 
-**Authorization Note:** Claude is authorized to mark Issues as "Resolved - Not Verified" (🟡) when implementation is complete, but Claude can only mark an Issue as "Resolved - Verified" (✅) after the user’s explicit direction.
+**Authorization Note:** Claude is authorized to mark Issues as "Resolved - Not Verified" (🟠) when implementation is complete, but Claude can only mark an Issue as "Resolved - Verified" (✅) after the user’s explicit direction.
 
 ## Best Practices
 
@@ -132,13 +132,13 @@ When a new Issue is created:
 
 **Verified Issues are organized into batch files of 10 Issues each in the `Verified/` subfolder:**
 
-- **Verified/DR-verified-0001-0010.md** - DRs 1-10
-- **Verified/DR-verified-0011-0020.md** - DRs 11-20
-- **Verified/DR-verified-0021-0030.md** - DRs 21-30
-- **Verified/DR-verified-0031-0040.md** - DRs 31-40
+- **Verified/Issue-verified-0001-0010.md** — I-0001–I-0010
+- **Verified/Issue-verified-0011-0020.md** — I-0011–I-0020
+- **Verified/Issue-verified-0021-0030.md** — I-0021–I-0030
+- **Verified/Issue-verified-0031-0040.md** — I-0031–I-0040
 - *...and so on*
 
-**Rationale:** Keeps individual files manageable (\~800-1000 lines each) for easier navigation, editing, and version control. Subfolder organization keeps the main DR-Reports directory clean.
+**Rationale:** Keeps individual files manageable (\~800-1000 lines each) for easier navigation, editing, and version control. Subfolder organization keeps the main Issues directory clean.
 
 ### When to Create a New Batch File
 
@@ -168,16 +168,16 @@ When Issue-00X0 (the 10th Issue in a batch) is verified:
 
 ## File Naming Convention
 
-**Main DR-Reports directory (`Documentation/Issues/`):**
+**Main Issues directory (`docs/Issues/`):**
 - **Issue-Documentation.md** - Quick reference index (all DRs, always up-to-date).
 - **Issue-active.md** - Active issues awaiting resolution or verification.  Created when necessary
 - **Issue-GUIDELINES.md** - This file (documentation standards)
-- **Issue-backlog-XXXX-YYYY.md** - Archived open/deferred issues
+- **Issue-backlog.md** — Open Issues not assigned to a Sprint (a single file, not batched)
 
-**Issue-verified subfolder (`Documentation/Issues/Verified/`):**
+**Verified subfolder (`docs/Issues/Verified/`):**
 - **Issue-verified-XXXX-YYYY.md** - Verified issues in batches of 10
 
-**Issue-closed subfolder (`Documentation/Issues/Closed/`):**
+**Closed subfolder (`docs/Issues/Closed/`):**
 - **Issue-closed-XXX-XXX.md** - Closed issues (not verified, will not be verified)
 
 ### File Purpose Details
@@ -250,14 +250,14 @@ When Issue-00X0 (the 10th Issue in a batch) is verified:
 - [ ] "Last Updated" date updated
 
 ### When Verifying an Issue:
-- [ ] Issue moved from Issue-unverified.md to appropriate batch file in `Verified/` subfolder
+- [ ] Issue moved to the appropriate batch file in `Verified/` — ⚠️ **from `Issue-active.md` OR `Issue-backlog.md`** (there is no `Issue-unverified.md`; a Verified Issue is archived in the SAME step it is verified, from whichever file it lives in)
 - [ ] Issue removed from Unverified table in Issue-Documentation.md
 - [ ] Batch row status updated in Verified table (if batch completion changed)
 - [ ] Statistics updated
 - [ ] "Last Updated" date updated
 
 ### When Closing an Issue Without Verification:
-- [ ] Issue moved from Issue-unverified.md to appropriate file in `Closed/` subfolder
+- [ ] Issue moved to the appropriate file in `Closed/` — from `Issue-active.md` OR `Issue-backlog.md`
 - [ ] Issue removed from "Active Issues" table (if it was there)
 - [ ] Issue added to "Closed Issues (Not Verified)" section in Issue-Documentation.md
 - [ ] "Reason for Closure" documented in the closed Issue file
@@ -277,4 +277,43 @@ When Issue-00X0 (the 10th Issue in a batch) is verified:
 
 **REMINDER:** Every Issue operation MUST update Issue-Documentation.md before marking work as complete. This is not optional!
 
+---
 
+## Related: the Audit layer
+
+Documentation consistency across all four tracking layers is maintained by **Audits** —
+see [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md).
+
+⚠️ **An Audit is large and formal, and begins ONLY when the user requests it.** Claude never starts one
+automatically; it may *recommend* one. A lightweight **Audit Check** — a read-only, mechanical sweep — is
+the instrument for routine verification.
+
+---
+
+## ⚠️ Standing principles
+
+*Established by the 2026-08-19 audit. Each came from a defect, named in brackets.*
+
+### P1 — Parity is DIRECTIONAL
+**Apple is the source of truth; Linux conforms to Apple.** A difference between the two platforms is
+**not a defect** and must not be filed as an Issue. Linux work is scheduled as Linux work (EP-026 and
+successors). *[I-0134 was filed as a parity defect and closed as a non-issue.]*
+
+### P2 — NEVER rescope an Issue
+If the behaviour under investigation changes, **verify and close the original and open a NEW Issue ID.**
+An Issue ID is a permanent handle on one defect; retargeting it destroys the record of the defect it
+originally named. *[I-0018 was rescoped in August; the same behaviour had already consumed I-0016.]*
+
+### P4 — Table and entries are written in the SAME edit
+A batch file's summary table row without its entry is **a claim that a record exists when it does not** —
+the same defect as a lost archive, reached by a different route.
+
+> **Mechanical check, to be run on every batch file:** table rows **must equal** `grep -c '^## I-0'`.
+> A new batch file gets its index row **in the same edit that creates it**.
+
+*[This check found both a table advertising two missing entries and I-0118, Verified in three files with
+no archive entry anywhere.]*
+
+### Archive in the SAME STEP you verify
+From **whichever** file the Issue lives in — `Issue-active.md` **or** `Issue-backlog.md`. There is no
+`Issue-unverified.md`. *[Deferring it left I-0018 unarchived for weeks and I-0118 with no record at all.]*

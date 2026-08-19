@@ -26,7 +26,8 @@ status changes on its own layer.
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
 | T-0369 | EP-030 verification + Epic close prep | EP-030 (SP-094) | 🔵 Backlog |
 | T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (SP-100) | 🔵 Backlog |
-| T-0391 | EP-031 verification + Epic close prep | EP-031 (SP-100) | 🔵 Backlog |
+| T-0391 | EP-031 verification + Epic close prep (⚠️ **owns the AC1 re-verification**) | EP-031 (SP-100) | 🔵 Backlog |
+| T-0418 | ⚠️ **Live-use pass on the real rig** — all 10 world kinds, relate, eject/reattach, reopen | EP-031 (SP-100) | 🔵 Backlog |
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
 | T-0416 | ⚠️ Seeded relation-type vocabulary does not reach existing projects | EP-031 (unscheduled) | 🔵 Backlog |
 
@@ -35,7 +36,7 @@ status changes on its own layer.
 | Task | Disposition |
 | ---- | ----------- |
 | T-0175 | ⚪ **Superseded** by EP-017 (2026-06-23) — expanded into an Epic; no work tracked under this ID |
-| T-0185–T-0188 | ⚪ **Descoped** — I-0057, `CSImportExtension` non-functional on macOS |
+| T-0185–T-0188 | ⚪ **Descoped** — I-0057, `CSImportExtension` non-functional on macOS → [`Closed/Task-closed-0185-0188.md`](Closed/Task-closed-0185-0188.md) |
 | T-0191 | ✅ **Done** 2026-06-24 (throwaway spike, no archive — findings in `Sprint-SP-048.md` + design §3.2) |
 | T-0199 | ✅ **Done** 2026-07-06 (throwaway spike, no archive — findings in design §8/§12.6) |
 | T-0215 | ⚪ **Superseded → T-0366** — ships as the `history` card (EP-030 SP-092), not a standalone panel |
@@ -46,10 +47,49 @@ status changes on its own layer.
 
 ## Detail
 
-### T-0118 — Scroll bar fidelity
+### T-0118 — Scroll bar fidelity — per-scene character-ratio thumb position and size
 
-**Epic:** EP-011 · **Status:** 🔵 Backlog
-Per-scene character-ratio thumb position and size. Full detail: [`Task-0118.md`](Task-0118.md).
+**Epic:** EP-011 · **Status:** 🔵 Backlog · **Component:** `ViewportSceneLoader`, scroll bar overlay (new)
+**Priority:** Medium · **Date Requested:** 2026-06-08 · **Sprint Assigned:** **Not Assigned**
+
+> ⚠️ **Folded in from `Task-0118.md` on 2026-08-19** (audit ruling **R-27**) — it was the only per-Task
+> detail file outside `Verified/` and matched no documented pattern. **Content preserved verbatim.**
+> ⚠️ **One correction:** the file recorded *"Sprint Assigned: SP-034"* — **SP-034 was cancelled**, so the
+> Task is **Not Assigned**.
+
+**Rationale:**
+With the all-in-memory model (T-0114), the `NSScrollView` scroll bar will naturally reflect the full
+manuscript extent — the primary fidelity problem from the old load/release model is resolved. This task
+addresses residual fidelity issues and implements any remaining polish. Absorbs T-0096.
+
+**Current Behavior:**
+`NSScrollView` scroll bar thumb reflects only the loaded text buffer. With T-0114 complete this is largely
+fixed, but character-count-based proportional sizing and positioning may still need tuning.
+
+**Desired Behavior:**
+- Scroll bar thumb position and size reflect the author's true proportional position in the full manuscript.
+- Size ratio: `scene.charCount / manuscript.totalCharCount`
+- Position offset: sum of size ratios of all preceding scenes
+
+**Requirements:**
+1. Scene character counts are available from `sceneStartMap` (T-0115) or `scene.meta.json`
+2. Scroll bar thumb accurately reflects manuscript position for manuscripts with 2–20 scenes
+3. Approach (custom `NSScroller` subclass vs. overlay) chosen and documented
+
+**Design Approach:**
+With T-0114 (all-in-memory), `NSScrollView` may handle this automatically. Evaluate first; only implement
+custom logic if the native scroll bar is still inaccurate.
+
+**Dependencies:** T-0114 and T-0115 must be complete.
+
+**Test Steps:**
+1. Open a 5-scene project; scroll to the midpoint of Scene 3
+2. Confirm scroll bar thumb is near 50% (assuming equal-length scenes)
+3. Open a project where Scene 1 is very long; confirm thumb starts large
+
+**Notes:**
+If T-0114 (all-in-memory) makes the native `NSScrollView` scroll bar accurate by default, this task may be
+trivial to close. Evaluate before implementing custom logic.
 
 ### T-0197 — Core Spotlight donation on iOS/iPadOS
 
@@ -98,10 +138,42 @@ rather than assuming either way.**
 
 **Epic:** EP-031 (SP-100) · **Status:** 🔵 Backlog · Scheduled — SP-100 runs last.
 
+⚠️ **Greenfield, confirmed at SP-100 planning (2026-08-19):** the matrix
+(`Scrivi_External_Change_Repair_Matrix_v0_2.md`, 578 lines, conditions §6.1–§6.21) contains **zero
+occurrences of "world" or "scrivworld"**. Worlds landed in SP-097, three sprints after it was last
+revised. Scope: §6.22–§6.28 (package missing · `worldID` mismatch · corrupt `world.json` · permanently
+unresolvable binding · stale lock · object absent from the world index · worldless project) plus the §5
+state vocabulary. **Ruled (R3): document AND test against shipped behaviour; file disagreements as
+Issues rather than fixing them in a verification sprint.**
+
+⚠️ **§6.22 and §6.25 must state *absence is never deletion* in the document's own voice** — the matrix is
+where a maintainer looks to decide what a repair pass may delete, and **a pass written against the current
+document could destroy a writer's whole relationship graph and satisfy every rule in it.**
+
 ### T-0391 — EP-031 verification + Epic close prep
 
 **Epic:** EP-031 (SP-100) · **Status:** 🔵 Backlog · Scheduled — SP-100 runs last, and ⚠️ **owns the
 AC1 re-verification.**
+
+Per-AC pass over AC1–AC10 with named evidence. ⚠️ **AC1 and AC10 are AMENDED first, then verified**
+(SP-100 rulings R1/R2) — both carry clauses superseded by the §3.0 no-migration ruling. Also resolves the
+**T-0369 open question** below, and amends Doc 1 §3.0 consequence 4. **Claude cannot close the Epic.**
+
+### T-0418 — ⚠️ Live-use pass on the real rig
+
+**Epic:** EP-031 (SP-100) · **Status:** 🔵 Backlog · **New at SP-100 planning (2026-08-19, ruling R4).**
+
+Create an object in **each of the ten world kinds** plus a project-scoped `source`; relate them from both
+entrances including a symmetric and a cross-partition `cites` edge; **eject**; confirm pending
+presentation and that reattach restores **with no writer intervention** (I-0129's exact defect); quit and
+reopen with the drive present and absent.
+
+**Why it exists:** ⚠️ **four of EP-031's eleven sprints were unplanned and every one came from USE**, and
+SP-102's live runs produced eight Issues. Step 1 doubles as **AC1's re-verification performed by use**.
+
+⚠️ **Back up the rig first** — `~/Desktop/the-stairs-of-tintagael.scrivi` +
+`/Volumes/Scrivi Worlds/Eskandar.scrivworld` hold **real writing work**. Findings are **filed, not fixed**.
+⚠️ **May surface T-0416** (seeded relation types never reach existing projects) as a live blocker.
 
 ### T-0400 — `[ScriviCore]` History log-segment rotation
 

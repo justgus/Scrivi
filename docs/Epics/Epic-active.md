@@ -13,10 +13,18 @@ fallout, I-0114–I-0117) and SP-105 ✅ (world search indexing, I-0118) all clo
 re-verification**). ✅ **SP-102 closed 2026-08-18** → [`Sprint-SP-102.md`](../Sprints/Closed/Sprint-SP-102.md),
 delivering **AC23 + AC24** and therefore **AC9**. **10 of 11 sprints are closed.**
 
-⚠️ **AC1 must be RE-VERIFIED — it is the Epic's one outstanding acceptance criterion.** It was UNTICKED
-2026-08-14 when the object scope model changed under it (Doc 1 §3.0), and although SP-103 delivered that
-change, **AC1 was ticked against the pre-T-0409 scope table, so its evidence no longer describes the
-shipped model.** Re-verification is **SP-100's** to own — *not* SP-103's, which is closed.
+⚠️ **AC1 must be RE-VERIFIED, and it is now AMENDED.** It was UNTICKED 2026-08-14 when the object scope
+model changed under it (Doc 1 §3.0), and although SP-103 delivered that change, **AC1 was ticked against
+the pre-T-0409 scope table, so its evidence no longer describes the shipped model.** Re-verification is
+**SP-100's** to own — *not* SP-103's, which is closed.
+
+⚠️ **SP-100 planning (2026-08-19) found that AC1 and AC10 could not be re-verified AS WRITTEN** — each
+carries a clause the Epic's own §3.0 no-migration ruling superseded (*"legacy 5-kind files load
+unchanged"* and *"existing projects open unchanged"*). Verifying either would have meant asserting a
+behaviour EP-031 deliberately chose not to build. **Both are amended (rulings R1/R2, user-approved) and
+both remain UNTICKED** — the amendment is not the verification. **AC10's amendment makes it stronger**,
+requiring both architectures and sanitizers. See the AC entries below and
+[`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md).
 
 ⚠️ SP-097 and SP-098 had their **content swapped** — worlds landed first, because two integrity tasks were
 verified unbuildable without them; integrity was then built once, against real worlds.
@@ -80,8 +88,30 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ### Acceptance Criteria
 
-- [ ] AC1 — New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
-      legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)
+- [ ] AC1 — ⚠️ **AMENDED 2026-08-19 at SP-100 planning (user-approved, ruling R1).** Its verified form is now:
+      > **All 11 object kinds round-trip in their RULED SCOPE** — the ten worldbuilding kinds (`artifact`,
+      > `building`, `character`, `chronicle`, `faction`, `item`, `location`, `map`, `rule`, `vehicle`) in the
+      > `.scrivworld` package, and **`source` alone** project-scoped at `objects/sources/`. **`timeline`
+      > retired.**
+      >
+      > ⚠️ **The "legacy 5-kind files load unchanged" clause is STRUCK** — it contradicts a ruling the Epic
+      > already took. §3.0 consequence 2 ruled **no migration pass**: `objects/characters/…` became
+      > `<world>/characters/…` and the test project was *discarded and recreated by hand*. A legacy
+      > project-scoped object file is therefore **not** loaded, **by design**. Re-verifying the clause as
+      > written would mean asserting a behaviour EP-031 deliberately chose not to build.
+      >
+      > **What survives:** `JsonSchemaTests.cpp:812` ("a legacy object file without the SP-095 keys parses
+      > unchanged") is still valid and still passes — a *schema-level*, kind- and scope-agnostic assertion
+      > about absent optional keys. It was never evidence for the scope clause. Nothing else in
+      > `ScriviCore/tests/` tests legacy loading.
+
+      **Still UNTICKED — the amendment is not the verification.** Re-verification is **T-0391 in SP-100**,
+      and is also exercised by use in **T-0418** step 1. The 2026-08-12 evidence below is retained as
+      history and does **not** establish the amended AC.
+
+      *Original text and its 2026-08-14 untick follow, retained for the record.*
+      ~~New kinds (`building`, `vehicle`, `artifact`, `map`, `chronicle`, `faction`, `world`) round-trip;
+      legacy 5-kind files load unchanged; `timeline` kind retired. (Doc 1 AC1)~~
       ⚠️ **UNTICKED 2026-08-14 — must be RE-VERIFIED under the new scope model.** It was Verified 2026-08-12
       against Doc 1 §3's old scope table, where `character`/`location`/`item`/`building`/`vehicle`/`map` were
       **project**-scoped. The user ruled 2026-08-14 that **all ten worldbuilding kinds are world-scoped**
@@ -195,13 +225,12 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       render only its **empty state**, because nothing in the app creates a `source` object — owed to
       **EP-034 `[Cross]` Object Detail & Media**. This does not affect AC9 (object cards), but
       **SP-100 must not read the `sources` card as evidence of anything.**
-      *Prior in-progress note follows.*
-      🟡 ~~In progress — SP-102 active (2026-08-17).~~ Split across two sprints at SP-099 planning
-      (2026-08-13, R2): **SP-099** delivered Doc 2 **AC16/17/21/22** (object cards, unfiltered picker, one
-      canonical edge from either entrance, "Remove from scene" deletes the edge only) — **and also
-      AC18/19/20** (no-modal in-stack create/edit, edit-state visuals, complete-or-discard), which landed
-      early as T-0388 at R4. **SP-102 therefore has only AC23/24 left: pending presentation, the warning
-      view, and the `offline`/`unmounted` status refinement.** **AC9 ticks when SP-102 lands.**
+      **How it was delivered:** split across two sprints at SP-099 planning (2026-08-13, R2). **SP-099**
+      delivered Doc 2 **AC16/17/21/22** (object cards, unfiltered picker, one canonical edge from either
+      entrance, "Remove from scene" deletes the edge only) — **and also AC18/19/20** (no-modal in-stack
+      create/edit, edit-state visuals, complete-or-discard), which landed early as T-0388 at R4.
+      **SP-102 then delivered AC23/24**: pending presentation, the warning view, and the
+      `offline`/`unmounted` status refinement.
       > ⚠️ **The Worlds menu is NOT outstanding.** It is listed under T-0389 throughout this file's older
       > notes, but it **shipped in SP-099 as T-0408** (added at R4, when live verification found the sprint had
       > no way to create data or see world context) and was extended in **SP-104/I-0117** with per-row remove
@@ -242,7 +271,21 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
       > entries, 9 edges). ⚠️ **The real drive is the harder test:** a `.dmg` reports
       > `volumeIsEjectable == true`, but this drive reports **`false`** — so the disk-image fixture would have
       > passed a status-detection rule that fails on the user's own hardware.
-- [ ] AC10 — No regression: `ctest` + interop suites green; existing projects open unchanged.
+- [ ] AC10 — ⚠️ **AMENDED 2026-08-19 at SP-100 planning (user-approved, ruling R2).** Its verified form is now:
+      > **No regression:** `ctest` and the macOS interop suite are green **on BOTH architectures (arm64 +
+      > x86-64)** and **under sanitizers**, per SP-106's standing practice; the app builds.
+      >
+      > ⚠️ **The "existing projects open unchanged" clause is STRUCK** — it fails for the same reason as
+      > AC1's legacy clause (the §3.0 no-migration ruling), and additionally **has no subject**: Scrivi has
+      > not shipped, so no field projects exist. Reconstructing a pre-SP-103 project to test against would
+      > mean rebuilding the very thing the ruling discarded.
+      >
+      > ⚠️ **This amendment is only defensible because of SP-106**, which restored the x86-64 gate on
+      > 2026-08-17. Before that date there was no second architecture to name. **The amended AC10 is a
+      > STRONGER criterion than the one it replaces, not a weaker one.**
+
+      **Still UNTICKED.** Verification is **T-0391 in SP-100**.
+      *Original text: ~~No regression: `ctest` + interop suites green; existing projects open unchanged.~~*
 
 ### Sprints
 
@@ -258,7 +301,7 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | SP-105 | **`[Cross]` World search indexing** (unplanned) | ✅ **Closed 2026-08-15 (user-approved)** → `../Sprints/Closed/Sprint-SP-105.md` | I-0118 |
 | SP-106 | ⚠️ **`[Cross]` Test integrity & CI trust** — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | ✅ **Closed 2026-08-17 (user-approved)** → `../Sprints/Closed/Sprint-SP-106.md` | T-0412/T-0413/T-0414 + I-0121/I-0122 |
 | **SP-102** | **`[Apple]` Pending presentation + warning view + `sources` card** | 🟡 **Active (2026-08-17)** | **AC23 + AC24** — closes AC9 |
-| SP-100 | Verification & Epic close | 🔵 Planning (**runs last**) | — |
+| SP-100 | **Verification & Epic close** — ⚠️ owns the **AC1 re-verification**; **planned 2026-08-19** (T-0390 + **T-0418** + T-0391) | 🔵 **Planning — plan complete, NOT activated** (**runs last**) | — |
 
 > ⚠️ **SP-099 SPLIT at planning, 2026-08-13 (R2, user-approved) — EP-031 became a 7-sprint Epic *at that
 > date*** (superseded: it is a **10-sprint** Epic as of 2026-08-15 — see the note above). The staged
@@ -332,8 +375,9 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 | T-0389 | Pending **footer** (the §7.2 world-named sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**) — ⚠️ **cut at planning; see the audit in `Sprint-active.md`** | **SP-102** | 🟠 **Implemented - Not Verified (2026-08-17)** |
 | T-0365 | Aggregate `sources` card + citation popup (final third; kind + relation type already ✅) | **SP-102** | 🟡 **Active (2026-08-17)** |
 | T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — both branches (**new at SP-102 planning**) | **SP-102** | 🟡 **Active (2026-08-17)** |
-| T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | 🔵 Backlog |
-| T-0391 | EP-031 verification (AC1–AC10) + Epic close prep | SP-100 | 🔵 Backlog |
+| T-0390 | External Change Repair Matrix — world-package conditions (⚠️ **matrix has ZERO world coverage**) | SP-100 | 🔵 Backlog |
+| T-0418 | ⚠️ **Live-use pass on the real rig** — 10 world kinds, relate, eject/reattach, reopen (**new at SP-100 planning, R4**) | SP-100 | 🔵 Backlog |
+| T-0391 | EP-031 verification (AC1–AC10) + Epic close prep — ⚠️ **amends AC1 + AC10 before verifying them** | SP-100 | 🔵 Backlog |
 
 ### Assigned Issues
 
@@ -370,7 +414,22 @@ world packages — then the worldbuilding-object cards on top of EP-030's framew
 
 ---
 
-*Last Updated: 2026-08-18 (**SP-102 ✅ CLOSED (user-approved) — AC9 is MET**, its last two clauses
+*Last Updated: 2026-08-19 (**SP-100 PLANNED — 🔵 Planning, NOT activated; activating it needs direct user
+approval.** The last of EP-031's eleven sprints. **Four rulings, all user-approved.** ⚠️ **R1 + R2 are AC
+amendments, and they were forced by a finding:** AC1 and AC10 **could not be re-verified as written** —
+each carries a clause superseded by the Epic's own §3.0 no-migration ruling (*"legacy 5-kind files load
+unchanged"*, *"existing projects open unchanged"*), so verifying either would have asserted a behaviour
+EP-031 deliberately chose not to build. **AC1 is amended to the 11-kind ruled-scope round-trip; AC10 to
+its regression half, STRENGTHENED to require both architectures + sanitizers** (only defensible because
+SP-106 restored the x86-64 gate). ⚠️ **Both stay UNTICKED — amendment is not verification.**
+**R3:** T-0390 documents the world conditions **and** tests them against shipped behaviour, **filing**
+rather than fixing disagreements — ⚠️ the repair matrix has **ZERO world coverage** across 578 lines and
+21 conditions, and *"absence is never deletion"* appears in it nowhere. **R4: a live-use pass on the real
+USB rig is REQUIRED evidence** — ⚠️ **new Task T-0418** — because **four of this Epic's eleven sprints
+were unplanned and every one came from USE**, and SP-102's live runs alone produced eight Issues. **No AC
+state changed** beyond the two amendments. Prior note follows.)*
+
+*2026-08-18 (**SP-102 ✅ CLOSED (user-approved) — AC9 is MET**, its last two clauses
 (AC23 + AC24) Verified 2026-08-17 on the real USB rig. **10 of 11 sprints closed; only SP-100 remains**,
 which owns the **AC1 re-verification** and the **AC10** regression pass — the two ACs still unchecked.
 Suites at SP-102's close: `ctest` **520/520 macOS arm64**, interop **99/99 macOS arm64**.

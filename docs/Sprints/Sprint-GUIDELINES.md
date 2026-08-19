@@ -81,10 +81,42 @@ docs/Sprints/
 │   └── ...
 ```
 
-- **Sprint-Documentation.md** — Lean index. One row per Sprint, always up to date. Includes a Sprint Backlog summary table.
+- **Sprint-Documentation.md** — Lean index. ⚠️ **Its All-Sprints table is the SINGLE SOURCE for per-sprint
+  status and counts (P7).** Do **not** restate those counts in a Statistics block or a "Currently:" line —
+  a summary that restates a table will drift from it. Statistics carries only what the table cannot
+  express: next available ID, and IDs that are not sprints (cancelled / superseded / skipped) with reasons.
 - **Sprint-active.md** — Contains the single active Sprint in full detail. At most one Sprint is Active at a time.
-- **Sprint-backlog.md** — Full detail on Sprints in 🔵 Planning status. Sprints are defined here before activation and removed when activated (moved to Sprint-active.md) or cancelled.
+- **Sprint-backlog.md** — Sprints in 🔵 Planning status. ⚠️ **A Sprint leaves this file at ACTIVATION and
+  never returns. No closure note is written here** — whether a Sprint later closed is
+  `Closed/Sprint-SP-XXX.md`'s business and the All-Sprints table's. **The backlog contains Planning
+  Sprints and nothing else.**
 - **Closed/Sprint-SP-XXX.md** — Archive file per closed Sprint, including retrospective.
+
+⚠️ **Nothing else belongs in `docs/Sprints/`.** Anything that is not one of the four files above or
+`Closed/` is an orphan. *(The 2026-08-19 audit found **13** loose files there — 12 superseded planning
+drafts and one sprint whose only record was a draft still declaring "🔵 Planning" two months after it
+closed.)*
+
+### Planning drafts
+
+A planning document may be written while a Sprint is being assembled. ⚠️ **It is TRANSIENT.** It is either
+folded into `Sprint-active.md` at activation, or deleted at close — **in the same step the archive is
+written.** **No draft outlives its sprint's close.**
+
+⚠️ **A draft left behind reads as a current document.** `Sprint-SP-039.md` sat in `docs/Sprints/` for two
+months declaring *"🔵 Planning"* for a sprint that had closed — and it was the **only** sprint-level record
+of the entire timeline C ABI.
+
+### A Sprint may be fully planned while still 🔵 Planning
+
+A completed plan may occupy `Sprint-active.md` **before activation**, so the work can be reviewed as a
+whole. When it does:
+
+- ⚠️ It **MUST** carry a banner stating it is not yet active.
+- ⚠️ **Activation is a separate step and requires direct user approval.**
+- Its row stays in `Sprint-backlog.md` until it is activated.
+
+*(SP-100 was in exactly this state on 2026-08-19: plan complete, banner-marked, not activated.)*
 
 ## Sprint Entry Template
 
@@ -152,15 +184,84 @@ docs/Sprints/
 - [ ] "Last Updated" date updated
 
 ### When Closing a Sprint:
-- [ ] Sprint moved from Sprint-active.md to Closed/Sprint-SP-XXX.md
+
+⚠️ **A sprint close is the single most drift-producing event in the tracking system**, because a sprint's
+status is restated in every layer. **This checklist must name every file that restates it.** The
+2026-08-19 audit found SP-102's close left stale claims in **four** files — and **three of them were not
+on the old checklist at all.**
+
+**Sprint layer**
+- [ ] Sprint moved from `Sprint-active.md` to `Closed/Sprint-SP-XXX.md`
 - [ ] Retrospective section completed
+- [ ] ⚠️ **Every Task row in the sprint archive reflects its FINAL status** — not the planning-time value
+      *(SP-039 and SP-074 both closed with stale task tables; SP-074's sat wrong for four weeks)*
+- [ ] ⚠️ **Any planning draft for this sprint is DELETED** (see "Planning drafts" below)
 - [ ] Incomplete items returned to backlog (Sprint field cleared)
-- [ ] Status updated to ✅ Closed in Sprint-Documentation.md index
-- [ ] Status updated to ✅ Closed in the Epic's sprint table (Epic-active.md)
-- [ ] Sprint-active.md cleared (or set to next Sprint if immediately starting)
-- [ ] Statistics updated
-- [ ] "Last Updated" date updated
+- [ ] Status updated to ✅ Closed in `Sprint-Documentation.md`'s **All-Sprints table**
+- [ ] ⚠️ **`Sprint-backlog.md`** — the sprint's row is gone (it left at *activation*; **no closure note is
+      written there**)
+- [ ] `Sprint-active.md` cleared (or set to next Sprint if immediately starting)
+
+**Epic layer**
+- [ ] Status updated to ✅ Closed in the Epic's sprint table (`Epic-active.md`)
+- [ ] ⚠️ **`Epic-Documentation.md`** — Active-Epics prose and any AC state it names
+
+**Task layer** ⚠️ *(none of these were on the checklist before 2026-08-19)*
+- [ ] ⚠️ **`Task-active.md`** — the sprint's Tasks removed
+- [ ] ⚠️ **`Task-unverified.md`** — reflects reality, and **no prose contradicts its table**
+- [ ] ⚠️ **`Task-Documentation.md`** — every Task row's status, **and** its statistics **re-derived by
+      counting** (never adjusted to preserve a total)
+
+**Issue layer**
+- [ ] Every Issue verified in this sprint is **archived in the same step** — from `Issue-active.md` *or*
+      `Issue-backlog.md`
+- [ ] `Issue-Documentation.md` counts **re-derived**
+
+**Finally**
+- [ ] "Last Updated" date updated on each file actually changed
+
+> ⚠️ **If a retrospective defers verification to a later sprint, it must name WHO closes the loop.**
+> SP-074 wrote *"do not mark I-0083 fully Verified until app adoption lands"* — the condition was met the
+> next day, and **nobody came back for four weeks.** A condition without an owner is not a plan.
 
 ---
 
 **REMINDER:** Every Sprint operation MUST update Sprint-Documentation.md before marking work as complete.
+
+---
+
+## Related: the Audit layer
+
+Documentation consistency across all four tracking layers is maintained by **Audits** —
+see [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md).
+
+⚠️ **An Audit is large and formal, and begins ONLY when the user requests it.** Claude never starts one
+automatically; it may *recommend* one. A lightweight **Audit Check** — a read-only, mechanical sweep — is
+the instrument for routine verification.
+
+---
+
+## ⚠️ Standing principle P7 — derive it or delete it
+
+**A summary that restates a table will drift from it.** Keep in a statistics block **only what the table
+cannot express**: next available ID, IDs that are not sprints/Epics (cancelled, superseded, skipped) with
+reasons, and pointers to where detail lives.
+
+⚠️ **This is the single most repeated defect in the Scrivi tracking docs.** It recurred **three times**,
+and the correct diagnosis was written down — *"deriving these lines from the table rather than restating
+them"* — on **two** prior occasions before it was finally acted on in the 2026-08-19 audit.
+
+**Do not reintroduce per-status counts.** To count by status, read the table.
+
+---
+
+## ⚠️ Standing principle P3 — reconstruction ≠ back-filling
+
+Restoring a **deleted** record from surviving **primary** sources, under QA observation and **marked as
+reconstructed**, is legitimate. Manufacturing records that were **never written**, in bulk, from secondary
+sources, is not. ⚠️ **The distinction is *what happened to the record*, not *how old it is*.**
+
+*[SP-039 closed 2026-06-11 with no archive at all — its only record was a planning draft still declaring
+"🔵 Planning", for the sprint that delivered the entire timeline C ABI. It was reconstructed. By contrast,
+176 Verified Tasks with no archive file are **left as an indexed register**, because those records were
+never written.]*

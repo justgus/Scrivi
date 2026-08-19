@@ -1,6 +1,24 @@
 # SP-039: Timeline Persistence — ScriviCore Schema and API
 
-**Status:** 🔵 Planning
+> ⚠️ **RECONSTRUCTED 2026-08-19 under audit ruling [R-07](../../Audits/Audit-Rulings-20260819.md).**
+> **This sprint had NO archive.** It closed 2026-06-11 and its only record was this **planning draft**,
+> left loose in `docs/Sprints/` still declaring *"🔵 Planning"* — for a sprint that had closed two months
+> earlier (audit finding **F-07**).
+>
+> ⚠️ **No retrospective was ever written.** This document is the plan, recovered and relabelled under QA
+> observation — **not** a retrospective reconstructed after the fact. Precedent:
+> [`Sprint-SP-056.md`](Sprint-SP-056.md), likewise marked reconstructed.
+>
+> **Corroborating record of truth:** [`../../Epics/Closed/Epic-EP-016.md`](../../Epics/Closed/Epic-EP-016.md)
+> — l.42 records SP-039 ✅ Closed, and l.52-61 record **all ten Tasks (T-0139–T-0148) ✅ Verified**.
+> The shipped timeline C ABI (18 `timeline` symbols in `scrivi.h`) is the physical evidence.
+>
+> ⚠️ **Why this mattered enough to rescue:** SP-039 delivered the **entire timeline C ABI**.
+> `Epic-Documentation.md` rests EP-025's whole scope on it — *"The full timeline C ABI already exists
+> (EP-016/SP-039), so this is a pure `[Linux]` UI Epic."* **The only sprint-level record of that work said
+> the sprint was never started.**
+
+**Status:** ✅ **Closed 2026-06-11** *(status corrected from "🔵 Planning" under R-07)*
 **Epic:** EP-016 — Timeline Panel Full Implementation
 **Goal:** All timeline data has a defined home on disk and every ScriviCore operation that reads and writes timeline data is functional and tested. The Swift layer can call every new API operation. No UI changes in this sprint.
 
@@ -10,16 +28,16 @@
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | 🔵 Backlog |
-| T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | 🔵 Backlog |
-| T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | 🔵 Backlog |
-| T-0142 | `HistoricalEventJson` schema — read/write `historical-events/<id>.json` | 🔵 Backlog |
-| T-0143 | `ExternalTimelineJson` schema — read/write imported timeline files | 🔵 Backlog |
-| T-0144 | ScriviCore facade — timeline, story-time, and band-assignment operations | 🔵 Backlog |
-| T-0145 | ScriviCore facade — story structure, historical events, imported timelines, export | 🔵 Backlog |
-| T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | 🔵 Backlog |
-| T-0147 | Integration tests — timeline persistence round-trip | 🔵 Backlog |
-| T-0148 | `createProject` update — write `timeline.meta.json` on new project | 🔵 Backlog |
+| T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | ✅ **Verified** |
+| T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | ✅ **Verified** |
+| T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | ✅ **Verified** |
+| T-0142 | `HistoricalEventJson` schema — read/write `historical-events/<id>.json` | ✅ **Verified** |
+| T-0143 | `ExternalTimelineJson` schema — read/write imported timeline files | ✅ **Verified** |
+| T-0144 | ScriviCore facade — timeline, story-time, and band-assignment operations | ✅ **Verified** |
+| T-0145 | ScriviCore facade — story structure, historical events, imported timelines, export | ✅ **Verified** |
+| T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | ✅ **Verified** |
+| T-0147 | Integration tests — timeline persistence round-trip | ✅ **Verified** |
+| T-0148 | `createProject` update — write `timeline.meta.json` on new project | ✅ **Verified** |
 
 ---
 
@@ -61,7 +79,7 @@ T-0139 through T-0143 are the schema modules (pure data layer, no facade). T-014
 
 ### T-0139: `TimelineMetaJson` Schema — Read/Write `timeline.meta.json`
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -108,7 +126,7 @@ Result<TimelineMetaData> parseTimelineMeta(std::string_view json);
 
 ### T-0140: `SceneMetaJson` Extension — `storyTime` Block Read/Write
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -146,7 +164,7 @@ SceneStoryTime storyTime;
 
 ### T-0141: `StoryStructureJson` Schema — Read/Write `story-structure.json`
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -193,7 +211,7 @@ Result<StoryStructureData> parseStoryStructure(std::string_view json);
 
 ### T-0142: `HistoricalEventJson` Schema — Read/Write `historical-events/<id>.json`
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -242,7 +260,7 @@ Result<HistoricalEventData> parseHistoricalEvent(std::string_view json);
 
 ### T-0143: `ExternalTimelineJson` Schema — Read/Write Imported Timeline Files
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -296,7 +314,7 @@ Result<ExternalTimelineData> parseExternalTimeline(std::string_view json);
 
 ### T-0144: ScriviCore Facade — Timeline, Story-Time, and Band-Assignment Operations
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -371,7 +389,7 @@ Result<UnassignSceneFromBandResult>   unassignSceneFromBand(const UnassignSceneF
 
 ### T-0145: ScriviCore Facade — Story Structure, Historical Events, Imported Timelines, Export
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -484,7 +502,7 @@ Result<ExportProjectTimelineResult>         exportProjectTimeline(const ExportPr
 
 ### T-0146: C API + `ScriviEngine.swift` — Expose All Timeline Operations
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -606,7 +624,7 @@ public struct TimelineBoolResult: Decodable, Sendable {
 
 ### T-0147: Integration Tests — Timeline Persistence Round-Trip
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -641,7 +659,7 @@ Verifies all new ScriviCore API operations against real temporary directories, f
 
 ### T-0148: `createProject` Update — Write `timeline.meta.json` on New Project
 
-**Status:** 🔵 Backlog
+**Status:** ✅ **Verified** *(corrected from planning-time "🔵 Backlog" under audit R-07)*
 **Priority:** High
 **Epic:** EP-016
 **Sprint:** SP-039
@@ -723,3 +741,18 @@ All new `.cpp` files must be added to the `ScriviCore` target's source list in `
 ---
 
 *Last Updated: 2026-06-11 (SP-039 created)*
+
+
+---
+
+## ⚠️ Task-status reconciliation (audit R-07)
+
+The table above originally showed all ten Tasks **🔵 Backlog** — planning-time values, frozen when the
+draft was abandoned at activation. **All ten are ✅ Verified**, per
+[`Epic-EP-016.md`](../../Epics/Closed/Epic-EP-016.md) l.52-61, which is the record of truth.
+
+⚠️ **`Task-Documentation.md` still carried the same stale 🔵 Backlog rows** for T-0139–T-0148 — the same
+defect class as audit finding **F-01**: a closed sprint's outcomes never propagating to the index.
+Corrected in the same pass.
+
+*Archived 2026-08-19 under audit ruling R-07, reconstructed from the planning draft under QA observation.*

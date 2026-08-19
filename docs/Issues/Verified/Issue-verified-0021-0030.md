@@ -1,5 +1,14 @@
 # Verified Issues — I-0021 to I-0030
 
+> ⚠️ **This file's first heading is a POINTER STUB, not an Issue entry.** I-0021 – I-0024 are physically
+> filed in **batch 2** (`Issue-verified-0011-0020.md`); the stub records where they went. So this file
+> holds **6 real entries + 1 stub = 7 headings**.
+>
+> ⚠️ **The index counts 7** — raw headings — so the **P4 parity check (table rows == `grep -c '^## I-0'`)
+> stays purely mechanical.** A check with a hand-maintained exception is not a check.
+> **Deliberately left in place** (ruled 2026-08-16, reaffirmed 2026-08-19 under audit R-13).
+
+
 ---
 
 ## I-0021 through I-0024

@@ -74,9 +74,11 @@ or edge migration is implied).
 deliverable**, and it decides whether this is a Scrivi view or a separate application.
 **Goal:** Answer where a **world** is managed across its whole life — created, deleted, shared between
 projects, repaired, and its search index maintained — and then build it.
-**Origin:** I-0118 Q1 (2026-08-14). The ruling was *"entries persist; never reference-counted, never
-deleted unless expressly instructed."* **No such instruction exists anywhere in the product**, and the
-user deferred inventing one pending this larger decision.
+**Origin:** I-0118 Q1 (2026-08-14) — ✅ Verified, archived at
+[`Issue-verified-0111-0120.md`](../Issues/Verified/Issue-verified-0111-0120.md), which carries the full
+Q1–Q4 ruling text. The ruling was *"entries persist; never reference-counted, never deleted unless
+expressly instructed."* **No such instruction exists anywhere in the product**, and the user deferred
+inventing one pending this larger decision.
 
 **Why this is an Epic and not an affordance.** "Add a Remove-from-Spotlight button" was the small version
 of the question. The real one is **who owns a world**, and the current answer is nobody:

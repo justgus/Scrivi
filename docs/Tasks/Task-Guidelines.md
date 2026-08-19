@@ -7,11 +7,13 @@ The Task (T) system tracks planned improvements, new features, and requirement c
 ## Task Lifecycle
 
 ```
-Backlog → Active → Implemented → Verified
-   🔵         🟡            🟡           ✅
-	+	→ Closed
-			 [RED CIRCLE]
+🔵 Backlog → 🟡 Active → 🟠 Implemented-Not-Verified → ✅ Verified
+                  │
+                  └──────────────→ ⚪ Closed / Descoped
 ```
+
+⚠️ **`Closed/` is a live state, not a vestige** — `docs/Tasks/Closed/` holds Tasks closed **by decision**
+(descoped, superseded, will-not-implement). Only the user may close a Task.
 
 ### Status Definitions
 
@@ -26,7 +28,7 @@ Backlog → Active → Implemented → Verified
 2. **🟡 Active** - Enhancement is actively being worked on they are assigned to a Sprint
    3. Claude marks when starting implementation
 
-3. **🟡 Implemented - Not Verified** - Implementation complete, awaiting user verification
+3. **🟠 Implemented - Not Verified** - Implementation complete, awaiting user verification
    2. **ONLY CLAUDE** can mark as implemented
    3. Indicates code is written and ready for testing
    4. Must include test steps for verification
@@ -65,13 +67,13 @@ Backlog → Active → Implemented → Verified
 ```markdown
 ## T-XXXX: [Brief Title]
 
-**Status:** 🔵 Backlog / 🟡 Active / 🟡 Implemented - Not Verified / ✅ Implemented - Verified
+**Status:** 🔵 Backlog / 🟡 Active / 🟠 Implemented - Not Verified / ✅ Implemented - Verified
 **Component:** [Primary Component Name]
 **Priority:** Critical / High / Medium / Low
 **Date Requested:** YYYY-MM-DD
 **Date Implemented:** YYYY-MM-DD (if applicable)
 **Date Verified:** YYYY-MM-DD (if applicable)
-**Sprint Asigned:** [Sprint Number] / "Not Assigned"
+**Sprint Assigned:** [Sprint Number] / "Not Assigned"
 
 **Rationale:**
 [Why this enhancement is needed - business case, user benefit, technical debt reduction]
@@ -111,27 +113,27 @@ Backlog → Active → Implemented → Verified
 ### What Claude CAN Do:
 - ✅ Create backlog Tasks (🔵 Backlog)
 - ✅ Update Task status to Active (🟡 Active)
-- ✅ Mark Tasks as Implemented - Not Verified (🟡 Implemented - Not Verified)
+- ✅ Mark Tasks as Implemented - Not Verified (🟠)
 - ✅ Add implementation details and test steps
 - ✅ Update Task documentation and tracking files
 
 ### What Claude CANNOT Do:
-- ❌ Mark Tasks as Verified (✅ Implemented - Verified) without direct user aproval
+- ❌ Mark Tasks as Verified (✅ Implemented - Verified) without direct user approval
 - ❌ Skip the analysis and design phases
 - ❌ Implement without documenting requirements
 - ❌ Close Tasks without direct user approval
 
 ## File Organization and Workflow Management
 
-**Location:** All Task files are now located in `Documentation/Tasks/` (separate from Issues)
+**Location:** All Task files live in `docs/Tasks/` (separate from Issues)
 
 ### Active Work Files
 
 **Tasks are organized into active work files based on status in the main Task-Reports directory:**
 
 - **Task-backlog.md** - 🔵 Proposed enhancements awaiting assignment to a Sprint
-- **Task-active.md** - 🟡 Taskss actively being implemented (assigned to a Sprint)
-- **Task-unverified.md** - 🟡 Implemented and awaiting user verification
+- **Task-active.md** - 🟡 Tasks actively being implemented (assigned to a Sprint)
+- **Task-unverified.md** — 🟠 Implemented and awaiting user verification
 
 **Rationale:** This structure mirrors Agile workflow boards (Backlog → Active → Done) and makes it easy to see what's being worked on vs. what's planned. It also reduces file size for easier processing by Claude Code.
 
@@ -147,9 +149,9 @@ For long-term or lowerpriority Tasks
 
 **Verified Tasks are organized into files with flexible sizing in the `Tasks/Verified/` subfolder:**
 
-- **Tasks/Verified/Task-verified-0001.md** - Task T-0001
-- **Tasks/Verified/Task-verified-0002.md** - Task T-0002
-- **Tasks/Verified/Task-verified-0003.md** - Task T-0003
+- **Verified/Task-verified-0001.md** — Task T-0001
+- **Verified/Task-verified-0002.md** — Task T-0002
+- **Verified/Task-verified-0003.md** — Task T-0003
 - *...and so on*
 
 **Rationale:** Unlike Issues which use fixed batches of 10, Tasks use individual files for each enhancement since enhancements are typically more detailed and ideally occur less frequently. Subfolder organization keeps the main Tasks directory clean.
@@ -157,10 +159,10 @@ For long-term or lowerpriority Tasks
 ### Quick Reference Index
 
 **Task-Documentation.md serves as a lean index with three sections:**
-1. **Backlog Taskss** - Table of proposed enhancements (from Task-backlog.md)
-2. **Active Taskss** - Table of active work (from Task-active.md)
-3. **Complete Unverified Taskss** - Table of implemented but unverified (from Task-active.md)
-4. **Verified ERs** - Table of ER files (one row per batch, grows slowly)
+1. **Backlog Tasks** - Table of proposed enhancements (from Task-backlog.md)
+2. **Active Tasks** - Table of active work (from Task-active.md)
+3. **Complete Unverified Tasks** - Table of implemented but unverified (from Task-active.md)
+4. **Verified Tasks** — table of archived Task files
 5. **Statistics** - Current counts only (no history log)
 
 **MUST be updated whenever:**
@@ -174,17 +176,17 @@ For long-term or lowerpriority Tasks
 
 ## File Naming Convention
 
-**Main Task-Reports directory (`Documentation/Tasks/`):**
-- **Task-Documentation.md** - Quick reference index (all ERs, always up-to-date)
+**Main Tasks directory (`docs/Tasks/`):**
+- **Task-Documentation.md** — Quick reference index (all Tasks, always up to date)
 - **Task-backlog.md** - 🔵 Proposed enhancements (awaiting Sprint assignment)
 - **Task-active.md** - 🟡 Active development (In Progress)
-- **Task-unverified.md** - 🟡 Implemented but not yet verified by user
+- **Task-unverified.md** — 🟠 Implemented but not yet verified by user
 - **Task-Guidelines.md** - This file (documentation standards)
 
-**Task-verified subfolder (`Documentation/Tasks/Verified/`):**
+**Verified subfolder (`docs/Tasks/Verified/`):**
 - **Task-verified-XXXX.md** - Verified enhancements in sequential batches
 
-**Note:** Issues (I) are in a separate folder structure at `Documentation/Issues/` (see Issues/Issue-GUIDELINES.md)
+**Note:** Issues (I) live at `docs/Issues/` (see `Issue-GUIDELINES.md`).
 
 ## Best Practices
 
@@ -236,7 +238,7 @@ For long-term or lowerpriority Tasks
 
 ### When Marking Task as Implemented - Not Verified:
 - [ ] Task moved from Task-active.md to Task-unverified.md
-- [ ] Status changed to 🟡 Implemented - Not Verified
+- [ ] Status changed to 🟠 Implemented - Not Verified
 - [ ] Task moved from Active table to Unverified table in Task-Documentation.md
 - [ ] Statistics updated
 - [ ] "Last Updated" date updated
@@ -251,9 +253,9 @@ For long-term or lowerpriority Tasks
 - [ ] "Last Updated" date updated
 
 ### When Moving Task to Backlog (Optional):
-- [ ] ER moved from Task-active.md to Task-backlog.md
-- [ ] ER removed from Active table in Task-Documentation.md
-- [ ] ER added to Backlog table in Task-Documentation.md
+- [ ] Task moved from Task-active.md to Task-backlog.md
+- [ ] Task removed from Active table in Task-Documentation.md
+- [ ] Task added to Backlog table in Task-Documentation.md
 - [ ] Note added to Task explaining backlog reason
 - [ ] Active count decremented
 - [ ] Statistics updated
@@ -274,6 +276,38 @@ For long-term or lowerpriority Tasks
 
 ---
 
-*Version: 2.0*
-*Last Updated: 2026-01-10*
+*Version: 2.1*
+*Last Updated: 2026-08-19 (audit remediation — ruling R-19).*
 
+---
+
+## Related: the Audit layer
+
+Documentation consistency across all four tracking layers is maintained by **Audits** —
+see [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md).
+
+⚠️ **An Audit is large and formal, and begins ONLY when the user requests it.** Claude never starts one
+automatically; it may *recommend* one. A lightweight **Audit Check** — a read-only, mechanical sweep — is
+the instrument for routine verification.
+
+---
+
+## ⚠️ Standing principles
+
+*Established by the 2026-08-19 audit.*
+
+### P5 — A status file states its state ONCE
+If a table already answers the file's question, **prose restating the same fact is a second source of
+truth that will drift from the first. Do not narrate a table.** *[`Task-unverified.md` carried an empty
+table under prose insisting a Task was listed in it.]*
+
+### P6 — Statistics are DERIVED, never balanced
+Every line is **counted from the files it describes**. ⚠️ **A total that "comes out right" is not evidence
+the lines are right** — it is often evidence that one was adjusted to make it so.
+
+> When re-deriving, enumerate **every ID** and assign each exactly one status. If the derived lines do not
+> sum to the ID count, **that discrepancy is a finding**, not something to paper over.
+
+*[A statistics block summed to exactly 418 while claiming 9 unverified Tasks against a file holding 0.
+Enumerating all 417 IDs then found **three separate sets of stale rows** — 18 Tasks in total — that no
+audit finding had identified.]*

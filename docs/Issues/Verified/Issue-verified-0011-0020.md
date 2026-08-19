@@ -1,5 +1,13 @@
 # Verified Issues — I-0011 to I-0020
 
+> ⚠️ **This file also contains I-0021 – I-0024**, which belong to batch 3 by ID range. They were filed
+> here historically; batch 3 carries a **pointer stub** for them. **Deliberately left in place** — ruled
+> 2026-08-16 and reaffirmed 2026-08-19 (audit R-13): *moving verified archive entries risks more than the
+> tidiness buys.* **This is not a defect. Do not re-cut it.**
+>
+> ⚠️ Note also that **a decade file is named for its ID range, not its contents** — the last ID of a range
+> is often never assigned. I-0020 exists; I-0016 was ⚪ superseded into I-0018.
+
 ---
 
 ## I-0011: Chapter title headings editable; text leaks into scene content on toggle
@@ -322,3 +330,67 @@ layout passes after the call and overrode it; `didFinishLaunchingNotification` w
 > written, with the verification status added.*
 
 ---
+
+## I-0018: Manuscript does not scroll to the restored scene on app load
+
+**Status:** ✅ **Resolved - Verified (2026-08-19)**
+**Platform:** macOS
+**Component:** `SceneNavigatorView.swift`, `ViewportSceneLoader.swift`, `ManuscriptTextView.swift`
+**Severity:** Low
+**Sprint:** Not Assigned
+**Date Identified:** 2026-06-08 · **Rescoped:** 2026-08-17 · **Verified:** 2026-08-19
+**Archived under:** audit ruling **R-02** — [`../../Audits/Audit-Rulings-20260819.md`](../../Audits/Audit-Rulings-20260819.md)
+
+⚠️ **This ID covers TWO DIFFERENT DEFECTS, and that is itself an error of process.** Both are recorded
+below so the ID's history is legible. See *"The rescoping was wrong"* at the end.
+
+---
+
+### Behaviour 1 — the ORIGINAL complaint (filed 2026-06-08, fixed)
+
+**Description:** On load, no scene was selected or highlighted in the Navigator; the selection
+self-corrected only after the first scroll.
+
+**Root cause:** `viewportSceneID` was left `nil` during `loadAll()`.
+
+**Resolution:** `loadAll(activeSceneID:)` now sets `currentIndex`, `cursorSceneID` **and**
+`viewportSceneID` when the backend supplies a resume scene (`ViewportSceneLoader.swift:128-134`), so the
+highlight is present from the first frame.
+
+---
+
+### Behaviour 2 — the RESCOPED complaint (retargeted 2026-08-17, resolved)
+
+**Description:** The manuscript viewport was not scrolled to the restored scene on load. The selection
+was shown; the text was not brought to it.
+
+**Resolution:** ✅ Delivered by **I-0131**'s restore work, verified 2026-08-18. Restore now **centres**
+the restored scene (`centerStorageOffset`) rather than merely revealing it, so the viewport the writer
+sees and the scene that was restored are the same thing — §1 of the Current Scene Model.
+
+⚠️ The original entry predicted this: *"the likely fix is ensuring `restoreWritingSurface` runs on load
+when a resume scene exists, rather than adding a second scroll mechanism."* **That is what happened.**
+
+---
+
+### ⚠️ The rescoping was wrong — process finding
+
+**This Issue should never have been rescoped. It should have been given a new Issue number.**
+(User ruling, 2026-08-19; audit ruling **R-02**.)
+
+Retargeting a live ID at a different behaviour **destroys the record of the defect it originally named**:
+the fix that closed Behaviour 1 is filed under a title describing Behaviour 2, and the ID's verification
+history spans two unrelated defects.
+
+⚠️ **The same behaviour has now consumed two IDs and been retargeted once** — **I-0016** ("Navigator
+selection on load") was ⚪ *superseded by* I-0018 on 2026-06-08, and I-0018 was then rescoped in August.
+
+**Standing rule adopted (P2):** *never rescope an Issue. If the behaviour under investigation changes,
+verify and close the original and open a NEW Issue ID.*
+
+**Related:** [[I-0016]] (superseded into this one), [[I-0131]] (delivered Behaviour 2), [[I-0132]],
+[[I-0133]] — the same *"what does it mean to be at a scene?"* cluster across load, click and quit.
+
+---
+
+*I-0018 archived 2026-08-19 under audit ruling R-02.*

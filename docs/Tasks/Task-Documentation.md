@@ -35,25 +35,38 @@ The complete register of every Task ID in the project.
 
 ## Statistics
 
-- **Total Task IDs:** **417** — T-0001 … T-0418 (T-0278 never assigned; **T-0415 + T-0416 assigned
-  2026-08-17**; **T-0417 assigned 2026-08-18**; T-0418 unassigned)
-- **✅ Verified:** 372 (**+3 on 2026-08-17** — T-0412/T-0413/T-0414, SP-106, user-approved and **filed** to
-  [`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md))
-- **🔵 Backlog:** 23 (**−2, +1 on 2026-08-17** — T-0389/T-0365 went Active; **T-0416** filed from I-0125)
-- **🟡 Active:** 3 (T-0389, T-0365, **T-0415** — SP-102; planning completed 2026-08-17)
-- **🟠 Implemented - Not Verified:** 9
-- **⚪ Superseded:** 3
-- **⚪ Closed:** 2
-- **⛔️ Removed as OBE:** 2
-- **⚪ Never assigned:** 1
-- **⚪ Unassigned:** 1
-- **⚠️ Verified but UNFILED:** **180** — see the section below
+⚠️ **DERIVED 2026-08-19 by enumerating all 417 IDs from the All-Tasks table's Status column** (audit
+ruling **R-18**). **Never balanced to a total (P6)** — the lines are counted; the total is whatever they
+sum to.
+
+| Status | Count |
+| ------ | ----- |
+| ✅ **Verified** | **393** |
+| 🔵 Backlog | 11 |
+| 🟠 Implemented - Not Verified | **0** |
+| ⚪ Descoped | 4 |
+| ⚪ Superseded | 3 |
+| ⚪ Closed | 2 |
+| ⛔️ Removed as OBE | 2 |
+| ⚪ Never assigned | 1 |
+| ⚪ Unassigned *(T-0418, next available)* | 1 |
+| **Total Task IDs** | **417** — T-0001 … T-0418, T-0278 never assigned |
+
+- **⚠️ Verified but UNFILED:** **186** — see the section below.
+  *(180 → 176: T-0185–T-0188 left the register when correctly refiled as ⚪ Descoped.
+  176 → 186: **T-0139–T-0148** joined it — SP-039's ten Tasks, ✅ Verified per `Epic-EP-016.md` but shown
+  🔵 Backlog in this index until audit **R-07** reconstructed that sprint's archive.)*
+
+> ⚠️ **The previous statistics block summed to exactly 418 while contradicting `Task-unverified.md`** —
+> it claimed **9** Implemented-Not-Verified against a file holding **0**. A block that lands exactly on
+> its total while internally inconsistent was **balanced, not derived** (audit finding **F-18**). The
+> figures above replace it entirely.
 
 ---
 
 ## ⚠️ Verified but unfiled
 
-These **180** Tasks were completed and verified inside a Sprint that has since closed, but no
+These **186** Tasks were completed and verified inside a Sprint that has since closed, but no
 `Verified/Task-verified-XXXX.md` archive file was ever written for them. **Their record of truth is the
 Sprint archive named in each row** — this is unfiled work, not missing work.
 
@@ -79,6 +92,16 @@ archive files reconstructed after the fact from secondary sources.
 | T-0109 | SP-032 | EP-010 | [`Sprint-SP-032.md`](../Sprints/Closed/Sprint-SP-032.md) |
 | T-0110 | SP-032 | EP-010 | [`Sprint-SP-032.md`](../Sprints/Closed/Sprint-SP-032.md) |
 | T-0111 | SP-032 | EP-010 | [`Sprint-SP-032.md`](../Sprints/Closed/Sprint-SP-032.md) |
+| T-0139 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0140 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0141 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0142 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0143 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0144 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0145 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0146 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0147 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0148 | SP-039 | EP-016 | [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
 | T-0156 | SP-041 | EP-016 | [`Sprint-SP-041.md`](../Sprints/Closed/Sprint-SP-041.md) |
 | T-0157 | SP-041 | EP-016 | [`Sprint-SP-041.md`](../Sprints/Closed/Sprint-SP-041.md) |
 | T-0158 | SP-041 | EP-016 | [`Sprint-SP-041.md`](../Sprints/Closed/Sprint-SP-041.md) |
@@ -89,10 +112,6 @@ archive files reconstructed after the fact from secondary sources.
 | T-0163 | SP-042 | EP-016 | [`Sprint-SP-042.md`](../Sprints/Closed/Sprint-SP-042.md) |
 | T-0164 | SP-042 | EP-016 | [`Sprint-SP-042.md`](../Sprints/Closed/Sprint-SP-042.md) |
 | T-0165 | SP-042 | EP-016 | [`Sprint-SP-042.md`](../Sprints/Closed/Sprint-SP-042.md) |
-| T-0185 | SP-046 | EP-017 | [`Sprint-SP-046.md`](../Sprints/Closed/Sprint-SP-046.md) |
-| T-0186 | SP-046 | EP-017 | [`Sprint-SP-046.md`](../Sprints/Closed/Sprint-SP-046.md) |
-| T-0187 | SP-046 | EP-017 | [`Sprint-SP-046.md`](../Sprints/Closed/Sprint-SP-046.md) |
-| T-0188 | SP-046 | EP-017 | [`Sprint-SP-046.md`](../Sprints/Closed/Sprint-SP-046.md) |
 | T-0191 | SP-048 | EP-018 | [`Sprint-SP-048.md`](../Sprints/Closed/Sprint-SP-048.md) |
 | T-0199 | SP-051 | EP-019 | [`Sprint-SP-051.md`](../Sprints/Closed/Sprint-SP-051.md) |
 | T-0213 | SP-056 | EP-019 | [`Sprint-SP-056.md`](../Sprints/Closed/Sprint-SP-056.md) |
@@ -386,16 +405,16 @@ archive files reconstructed after the fact from secondary sources.
 | T-0135 | Timeline Integration into ManuscriptEditorView — Docking, Height, Collapse | SP-038 | EP-015 | ✅ Verified | [`Task-verified-0135.md`](Verified/Task-verified-0135.md) |
 | T-0136 | iPhone Exclusion — Timeline Absent on Phone Idiom | SP-038 | EP-015 | ✅ Verified | [`Task-verified-0136.md`](Verified/Task-verified-0136.md) |
 | T-0137 | EP-015 Verification | SP-038 | EP-015 | ✅ Verified | [`Task-verified-0137.md`](Verified/Task-verified-0137.md) |
-| T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0142 | `HistoricalEventJson` schema — read/write `historical-events/<id>.json` | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0143 | `ExternalTimelineJson` schema — read/write imported timeline files | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0144 | ScriviCore facade — timeline, story-time, and band-assignment operations | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0145 | ScriviCore facade — story structure, historical events, imported timelines, export | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0147 | Integration tests — timeline persistence round-trip | SP-039 | EP-016 | 🔵 Backlog | — |
-| T-0148 | `createProject` update — write `timeline.meta.json` on new project | SP-039 | EP-016 | 🔵 Backlog | — |
+| T-0139 | `TimelineMetaJson` schema — read/write `timeline.meta.json` | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0140 | `SceneMetaJson` extension — `storyTime` block read/write | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0141 | `StoryStructureJson` schema — read/write `story-structure.json` | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0142 | `HistoricalEventJson` schema — read/write `historical-events/<id>.json` | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0143 | `ExternalTimelineJson` schema — read/write imported timeline files | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0144 | ScriviCore facade — timeline, story-time, and band-assignment operations | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0145 | ScriviCore facade — story structure, historical events, imported timelines, export | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0146 | C API + `ScriviEngine.swift` — expose all timeline operations | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0147 | Integration tests — timeline persistence round-trip | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
+| T-0148 | `createProject` update — write `timeline.meta.json` on new project | SP-039 | EP-016 | ✅ Verified | ⚠️ *unfiled* — see [`Sprint-SP-039.md`](../Sprints/Closed/Sprint-SP-039.md) |
 | T-0149 | TimelineStripView Rebuild — Horizontal Line, Scene Dots, Manuscript-Order Layout | SP-040 | EP-016 | ✅ Verified | [`Task-verified-0149.md`](Verified/Task-verified-0149.md) |
 | T-0150 | Scene Dot Drag — Horizontal Gesture, Story-Time Update | SP-040 | EP-016 | ✅ Verified | [`Task-verified-0150.md`](Verified/Task-verified-0150.md) |
 | T-0151 | Time Delta Picker — Amount/Unit/Direction Spinner, Named Anchors, Dismiss Behavior | SP-040 | EP-016 | ✅ Verified | [`Task-verified-0151.md`](Verified/Task-verified-0151.md) |
@@ -432,10 +451,10 @@ archive files reconstructed after the fact from secondary sources.
 | T-0182 | Donate `CSSearchableItem`s on project open/save; delete-by-domain on close | SP-045 | EP-017 | ✅ Verified | [`Task-verified-0182.md`](Verified/Task-verified-0182.md) |
 | T-0183 | Markdown→plain-text extraction for body indexing | SP-045 | EP-017 | ✅ Verified | [`Task-verified-0183.md`](Verified/Task-verified-0183.md) |
 | T-0184 | Deep-Link — Spotlight Result Continuation (per-window model) | SP-045 | EP-017 | ✅ Verified | [`Task-verified-0184.md`](Verified/Task-verified-0184.md) |
-| T-0185 | New Spotlight importer app-extension target (Xcode-authored) | SP-046 | EP-017 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-046.md` |
-| T-0186 | Link ScriviCore into the extension (Option A build graph) | SP-046 | EP-017 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-046.md` |
-| T-0187 | Importer emits Spotlight attributes from facade JSON | SP-046 | EP-017 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-046.md` |
-| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | SP-046 | EP-017 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-046.md` |
+| T-0185 | New Spotlight importer app-extension target (Xcode-authored) | SP-046 | EP-017 | ⚪ **Descoped** | [`Task-closed-0185-0188.md`](Closed/Task-closed-0185-0188.md) — I-0057, `CSImportExtension` non-functional on macOS |
+| T-0186 | Link ScriviCore into the extension (Option A build graph) | SP-046 | EP-017 | ⚪ **Descoped** | [`Task-closed-0185-0188.md`](Closed/Task-closed-0185-0188.md) — I-0057, `CSImportExtension` non-functional on macOS |
+| T-0187 | Importer emits Spotlight attributes from facade JSON | SP-046 | EP-017 | ⚪ **Descoped** | [`Task-closed-0185-0188.md`](Closed/Task-closed-0185-0188.md) — I-0057, `CSImportExtension` non-functional on macOS |
+| T-0188 | Importer handles the `com.caposoft.scrivi.project` UTI; sandbox pass | SP-046 | EP-017 | ⚪ **Descoped** | [`Task-closed-0185-0188.md`](Closed/Task-closed-0185-0188.md) — I-0057, `CSImportExtension` non-functional on macOS |
 | T-0189 | End-to-end Spotlight verification (donor search, deep-link tap, donations succeed) | SP-047 | EP-017 | ✅ Verified | [`Task-verified-0189.md`](Verified/Task-verified-0189.md) |
 | T-0190 | iOS/iPadOS/visionOS Spotlight assessment (implement or defer) + EP-017 verification | SP-047 | EP-017 | ✅ Verified | [`Task-verified-0190.md`](Verified/Task-verified-0190.md) |
 | T-0191 | V1 spike: confirm `WindowGroup(for:)` de-dup/focus-by-value on macOS 26 (throwaway; gates R3) | SP-048 | EP-018 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-048.md` |
@@ -545,10 +564,10 @@ archive files reconstructed after the fact from secondary sources.
 | T-0295 | [Linux] `EditorShell::onChapterDropped` + `SceneDocument::moveChapter` | SP-073 | EP-023 | ✅ Verified | [`Task-verified-0294-0297.md`](Verified/Task-verified-0294-0297.md) |
 | T-0296 | [Linux] Headless chapter-reorder smoke | SP-073 | EP-023 | ✅ Verified | [`Task-verified-0294-0297.md`](Verified/Task-verified-0294-0297.md) |
 | T-0297 | [Linux] Full EP-023 verify + Epic close prep | SP-073 | EP-023 | ✅ Verified | [`Task-verified-0294-0297.md`](Verified/Task-verified-0294-0297.md) |
-| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | SP-074 | EP-028 | 🟠 Implemented - Not Verified | — |
-| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake | SP-074 | EP-028 | 🟠 Implemented - Not Verified | — |
-| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | SP-074 | EP-028 | 🟠 Implemented - Not Verified | — |
-| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | SP-074 | EP-028 | 🟠 Implemented - Not Verified | — |
+| T-0298 | Reproduce chapter-merge data-loss (`MergeSceneTests.cpp`) + confirm same-chapter scene-merge coherence | SP-074 | EP-028 | ✅ Verified | [`Task-verified-0298-0301.md`](Verified/Task-verified-0298-0301.md) |
+| T-0299 | `scrivi_merge_scene` — `SceneMerger`, request/result, facade, C ABI, `scrivi.h`, CMake | SP-074 | EP-028 | ✅ Verified | [`Task-verified-0298-0301.md`](Verified/Task-verified-0298-0301.md) |
+| T-0300 | `scrivi_merge_chapter` — atomic cross-folder relocation + emptied-chapter removal (fixes I-0083) | SP-074 | EP-028 | ✅ Verified | [`Task-verified-0298-0301.md`](Verified/Task-verified-0298-0301.md) |
+| T-0301 | Merge integration coverage + register in `tests/CMakeLists.txt`; `ctest` green macOS + Linux | SP-074 | EP-028 | ✅ Verified | [`Task-verified-0298-0301.md`](Verified/Task-verified-0298-0301.md) |
 | T-0302 | `[Apple]` `ScriviEngine.mergeScene` / `mergeChapter` wrappers — call `scrivi_merge_scene` / `scrivi_merge_chapter`, decode the JSON envelopes into `Me… | SP-075 | EP-028 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-075.md` |
 | T-0303 | `[Apple]` Point `ManuscriptTextView.handleMergeScene` / `handleMergeChapter` at the engine wrappers (replace the `ViewportSceneLoader` in-memory reass… | SP-075 | EP-028 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-075.md` |
 | T-0304 | `[Linux]` `ManuscriptEditor::keyPressEvent` — detect `Ctrl-Backspace` (scene) / `Ctrl-Shift-Backspace` (chapter) at the start of a scene/chapter and e… | SP-076 | EP-028 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-076.md` |
@@ -612,7 +631,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0362 | Card stack: add/remove/reorder, collapse, per-stack sort, "apply to all scenes" | SP-090 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
 | T-0363 | `tags` + `todo` cards | SP-091 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
 | T-0364 | `outline` card | SP-091 | EP-030 | ✅ Verified | [`Task-verified-0359-0364.md`](Verified/Task-verified-0359-0364.md) |
-| T-0365 | `sources` card (aggregate) — `cites` type ✅ SP-096, `source` kind ✅ SP-098/T-0406; **only the card remains** | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
+| T-0365 | `sources` card (aggregate) — `cites` type ✅ SP-096, `source` kind ✅ SP-098/T-0406; **only the card remains** | SP-102 | EP-031 | ✅ Verified (2026-08-18) — ⚠️ **PARTIAL** | — |
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | SP-092 | EP-030 | ✅ Verified | [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
 | T-0367 | Properties tab — field-driven view | SP-092 | EP-030 | ✅ Verified | [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
 | T-0368 | Card failure isolation + inline warning | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
@@ -636,7 +655,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0386 | Object cards (ONE implementation, ten per-kind configurations) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point (disabled → T-0388) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
-| T-0389 | Pending **footer** (the §7.2 world-named status sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**). ⚠️ **Cut at planning:** the Worlds menu, ⚠ badge, named entries, disabled-and-explained removal and typed status decode all already shipped (SP-099/SP-104) | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
+| T-0389 | Pending **footer** (the §7.2 world-named status sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**). ⚠️ **Cut at planning:** the Worlds menu, ⚠ badge, named entries, disabled-and-explained removal and typed status decode all already shipped (SP-099/SP-104) | SP-102 | EP-031 | ✅ Verified (2026-08-17) | — |
 | T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | EP-031 | 🔵 Backlog | — |
 | T-0391 | EP-031 verification + Epic close prep | SP-100 | EP-031 | 🔵 Backlog | — |
 | T-0392 | `[ScriviCore]` Extend `scrivi.scene.v1`: `tags`, `outline`, `todo` (additive) + `SceneMetaData` + round-trip tests | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
@@ -662,33 +681,11 @@ archive files reconstructed after the fact from secondary sources.
 | T-0412 | **Confirm the I-0121 fix on x86-64** — ScriviCore CI green on both matrix legs (first time since 2026-07-30) | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
 | T-0413 | ⚠️ **Sanitizer CI leg** — `SCRIVI_ENABLE_SANITIZERS` + 2×2 CI matrix; proven RED on reintroduced UB (**found I-0122 on its first run**) | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
 | T-0414 | **macOS platform coverage** — 3 Apple `platformDefault` tests; verified RED before green | SP-106 | EP-031 | ✅ Verified (2026-08-17) | [`Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md) |
-| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — eject → pending, reattach → restored **with no writer intervention**; both `unmounted` and `missing` branches | SP-102 | EP-031 | 🟡 Active (2026-08-17) | — |
+| T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — eject → pending, reattach → restored **with no writer intervention**; both `unmounted` and `missing` branches | SP-102 | EP-031 | ✅ Verified (2026-08-17) | — |
 | T-0416 | ⚠️ **Seeded relation-type vocabulary does not reach existing projects** — `relation-types.json` re-seeds only when missing/unusable, so seeded-vocabulary changes are invisible to projects on disk (surfaced by I-0125; user's project hand-patched, general fix deferred) | unscheduled | EP-031 | 🔵 Backlog | — |
-| T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, **no key equivalent** (macOS keyspace exhausted) | SP-102 | EP-031 | 🟠 Implemented - Not Verified | [`Task-active.md`](Task-active.md) |
+| T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, **no key equivalent** (macOS keyspace exhausted) | SP-102 | EP-031 | ✅ Verified (2026-08-18) | [`Task-active.md`](Task-active.md) |
 | T-0418 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
 
 ---
 
-*Last Updated: 2026-08-17, later same day (**SP-102 planning completed — T-0415 assigned.** The AC23 live
-verification was an exit-criterion line inside T-0389 and is now its own Task, because ⚠️ **only a live
-ejectable-volume run can establish "restores with no writer intervention"** — a fixture cannot. **T-0389 was
-cut substantially** by a code audit: the Worlds menu, ⚠ badge, named cached entries, disabled-and-explained
-removal and the typed `worldPending:<status>` decode all already shipped in SP-099/SP-104. Counts: Task IDs
-414 → **415**, Active 2 → **3**; next available is now **T-0416**. Prior note follows.)*
-
-*2026-08-17 (**SP-106 ✅ closed; SP-102 activated.** T-0412/T-0413/T-0414 → ✅ **Verified
-(user-approved)** and **filed** to [`Verified/Task-verified-0412-0414.md`](Verified/Task-verified-0412-0414.md)
-— written at the close, so the **verified-but-unfiled count stays 180**; these three did not join it.
-T-0389 and T-0365 → 🟡 **Active** under SP-102. ⚠️ **T-0389's scope corrected:** the Worlds menu is no longer
-part of it — that shipped as SP-099/T-0408 and was extended by SP-104/I-0117. Counts: Verified 369 → **372**,
-Backlog 24 → **22**, Implemented-Not-Verified 12 → **9**, new **Active: 2**. Prior note follows.)*
-
-*2026-08-16 (consistency audit — **T-0217 corrected from 🔵 Backlog / SP-057 to ✅ Verified
-2026-08-11 / SP-094.** It was completed in SP-094 and closed with EP-019; the row had inherited SP-057, the
-sprint that was superseded into SP-094. ⚠️ **The 2026-08-15 rebuild took this row's status from
-`Task-backlog.md`, which was itself stale** — the one source the rebuild header warns against, used anyway
-where no closed-Sprint record was consulted. Counts follow: Verified 368 → **369**, Backlog 25 → **24**,
-verified-but-unfiled 179 → **180**. Prior note follows.)*
-
-*2026-08-15 (docs cleanup — index rebuilt from `Verified/`, `Closed/`, `Task-backlog.md` and
-every Sprint record; 239 → 411 Task IDs, with 179 verified-but-unfiled Tasks flagged.)*
+*Last Updated: 2026-08-19 (audit remediation — rulings R-06, R-18, R-25, R-26, R-27).*
