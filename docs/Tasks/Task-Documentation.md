@@ -41,16 +41,17 @@ sum to.
 
 | Status | Count |
 | ------ | ----- |
-| ✅ **Verified** | **393** |
-| 🔵 Backlog | 11 |
-| 🟠 Implemented - Not Verified | **0** |
+| ✅ **Verified** | **394** |
+| 🟡 **Active** | **0** |
+| 🔵 Backlog | 8 |
+| 🟠 Implemented - Not Verified | **3** *(T-0390, T-0418, T-0391 — SP-100)* |
 | ⚪ Descoped | 4 |
 | ⚪ Superseded | 3 |
 | ⚪ Closed | 2 |
 | ⛔️ Removed as OBE | 2 |
 | ⚪ Never assigned | 1 |
-| ⚪ Unassigned *(T-0418, next available)* | 1 |
-| **Total Task IDs** | **417** — T-0001 … T-0418, T-0278 never assigned |
+| ⚪ Unassigned *(T-0419, next available)* | 1 |
+| **Total Task IDs** | **418** — T-0001 … T-0419; T-0278 never assigned; **T-0419 unassigned** |
 
 - **⚠️ Verified but UNFILED:** **186** — see the section below.
   *(180 → 176: T-0185–T-0188 left the register when correctly refiled as ⚪ Descoped.
@@ -635,7 +636,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0366 | `history` card — windowed tree, branches, stale badges, purge (**supersedes T-0215**) | SP-092 | EP-030 | ✅ Verified | [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
 | T-0367 | Properties tab — field-driven view | SP-092 | EP-030 | ✅ Verified | [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
 | T-0368 | Card failure isolation + inline warning | SP-092 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-092.md` |
-| T-0369 | EP-030 verification + Epic close prep | SP-094 | EP-030 | 🔵 Backlog | — |
+| T-0369 | EP-030 verification + Epic close prep | SP-094 | EP-030 | ✅ Verified | [`Task-verified-0369.md`](Verified/Task-verified-0369.md) |
 | T-0370 | `ObjectKind` additions (8) + `objectKindSubdir` + schema table; retire `timeline`; world-scoped kinds gated | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0371 | `WorldObjectFields`: `subtitle`, `image`, `worldID` | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
 | T-0372 | `objects/index.json` + `findByID` over index | SP-095 | EP-031 | ✅ Verified | [`Task-verified-0370-0406.md`](Verified/Task-verified-0370-0406.md) |
@@ -656,8 +657,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0387 | Object picker (unfiltered, all worlds) + "Create new…" entry point (disabled → T-0388) | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0388 | In-stack create/edit + edit-state visuals + complete-or-discard | SP-099 | EP-031 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-099.md` |
 | T-0389 | Pending **footer** (the §7.2 world-named status sentence) + **warning view** + the `offline`/`unmounted` refinement (**AC24**). ⚠️ **Cut at planning:** the Worlds menu, ⚠ badge, named entries, disabled-and-explained removal and typed status decode all already shipped (SP-099/SP-104) | SP-102 | EP-031 | ✅ Verified (2026-08-17) | — |
-| T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | EP-031 | 🔵 Backlog | — |
-| T-0391 | EP-031 verification + Epic close prep | SP-100 | EP-031 | 🔵 Backlog | — |
+| T-0390 | External Change Repair Matrix — world-package conditions | SP-100 | EP-031 | 🟠 Implemented - Not Verified | [`Task-active.md`](Task-active.md) |
+| T-0391 | EP-031 verification + Epic close prep | SP-100 | EP-031 | 🟠 Implemented - Not Verified | [`Task-active.md`](Task-active.md) |
 | T-0392 | `[ScriviCore]` Extend `scrivi.scene.v1`: `tags`, `outline`, `todo` (additive) + `SceneMetaData` + round-trip tests | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
 | T-0393 | `[ScriviCore]` C ABI: `scrivi_set_scene_tags` / `_outline` / `_todo` + `scrivi_get_scene_notes` + ctest | SP-091 | EP-030 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-091.md` |
 | T-0394 | `[ScriviCore]` `scrivi_history_get_tree` — windowed `{aroundNodeID?, maxNodes?}` | SP-092 | EP-030 | ✅ Verified 2026-08-11 [`Task-verified-0394-0395-0366-0367.md`](Verified/Task-verified-0394-0395-0366-0367.md) |
@@ -684,8 +685,9 @@ archive files reconstructed after the fact from secondary sources.
 | T-0415 | ⚠️ **AC23 live verification on the real USB world rig** — eject → pending, reattach → restored **with no writer intervention**; both `unmounted` and `missing` branches | SP-102 | EP-031 | ✅ Verified (2026-08-17) | — |
 | T-0416 | ⚠️ **Seeded relation-type vocabulary does not reach existing projects** — `relation-types.json` re-seeds only when missing/unusable, so seeded-vocabulary changes are invisible to projects on disk (surfaced by I-0125; user's project hand-patched, general fix deferred) | unscheduled | EP-031 | 🔵 Backlog | — |
 | T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, **no key equivalent** (macOS keyspace exhausted) | SP-102 | EP-031 | ✅ Verified (2026-08-18) | [`Task-active.md`](Task-active.md) |
-| T-0418 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
+| T-0418 | ⚠️ **Live-use pass on the real rig** — 10 world kinds, relate, eject/reattach, reopen | SP-100 | EP-031 | 🟠 Implemented - Not Verified | [`Task-active.md`](Task-active.md) |
+| T-0419 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
 
 ---
 
-*Last Updated: 2026-08-19 (audit remediation — rulings R-06, R-18, R-25, R-26, R-27).*
+*Last Updated: 2026-08-19 (audit remediation — R-06, R-18, R-25, R-26, R-27; **T-0418 assigned** + T-0419 opened; then 🟡 **SP-100 ACTIVATED** — T-0390 Active, T-0418/T-0391 assigned. Counts re-derived, 418 IDs.)*

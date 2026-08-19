@@ -120,7 +120,20 @@ Git state change
 merge conflict
 unsupported project version
 unknown issue
+
+world unavailable          ← added 2026-08-19 (T-0390)
+world missing              ← added 2026-08-19 (T-0390)
+world identity mismatch    ← added 2026-08-19 (T-0390)
+world locked               ← added 2026-08-19 (T-0390)
 ```
+
+⚠️ **`world unavailable` and `world missing` are DIFFERENT STATES and must not be collapsed.**
+`missing` is reported **only on positive evidence** that the package is absent; every other failure —
+unreadable, permission denied, volume gone — is `unavailable`. **Guessing `missing` invites destructive
+writer remedies for a world that is perfectly intact on an unreachable volume.** See **§6a.0**.
+
+⚠️ **No world state is a deletion state.** None of the four authorises pruning, modifying or tombstoning
+an edge into the world.
 
 ---
 
@@ -456,6 +469,241 @@ of a head-hash mismatch alone (see the causes note above).
 > to any single bad line.
 
 **Severity:** Info or Warning only.
+
+---
+
+## 6a. World-package conditions
+
+> **Added 2026-08-19 (EP-031 SP-100, T-0390).** ⚠️ **Before this section the matrix contained ZERO
+> occurrences of "world" or "scrivworld"** across 578 lines and 21 conditions — worlds landed in **SP-097**,
+> three sprints after its last revision. **A repair pass written against the document as it stood could
+> have destroyed a writer's entire relationship graph and satisfied every rule in it.**
+>
+> Every condition below is **asserted against shipped behaviour**, and each names the test that backs it.
+> Where the document and the code disagreed, the disagreement is **filed as an Issue, not fixed here**
+> (SP-100 ruling **R3** — a verification sprint that writes fixes stops being one).
+
+### ⚠️ 6a.0 The governing principle: ABSENCE IS NEVER DELETION
+
+**A world that cannot be read is not a world that has been deleted.** This is the single most destructive
+mistake available in this area, and it is *silent*: a repair pass that reads "world unavailable" as
+"objects deleted" prunes every relationship into that world, reports nothing, and may go unnoticed for
+weeks. `Scrivi_World_Data_Separation_v0_1.md` §4.6 names it explicitly.
+
+**Three rules follow, and every condition below obeys them:**
+
+1. ⚠️ **NEVER GUESS `missing`.** `missing` is reported **only on positive evidence** that the package is
+   absent — a definitive "does not exist" for the package while its container *does* exist
+   (`WorldStore.cpp:308-312`). Any other outcome, including a failed read, degrades to `unavailable`.
+2. ⚠️ **An unavailable world FREEZES its edges.** They are held **pending** — never pruned, never
+   modified, surviving save byte-for-byte, and restored on reattach with no repair pass.
+3. ⚠️ **Identity, not name, decides.** A package's `worldID` is its identity; its folder name is a label.
+
+---
+
+### 6a.1 (§6.22) World package missing entirely — volume unmounted, package moved or deleted
+
+**Classification:** `world unavailable` — or `world missing` **only if positively established**
+
+**Behavior:** `WorldStore::resolve` tries the binding's candidates in order: the **relative** path first
+(it survives moving a project and its worlds together), then the absolute one (`WorldStore.cpp:253-264`).
+If none yields a readable `world.json`:
+
+- Package **positively absent** *and* its parent directory readable → `WorldStatus::missing`
+- Anything else — unreadable, permission denied, volume gone → ⚠️ **`WorldStatus::unavailable`**
+
+**Automatic:** Report status. Cache the world's last-known object names so pending rows show **names, not
+bare IDs**.
+
+**Suggested user actions:** Reattach the volume · **Locate…** (relink, §6a.2) · continue working — the
+manuscript is fully editable with a world away.
+
+**Do not:** ⚠️ **Prune, modify or tombstone any edge into the world.** Do not report `missing` from a
+failed read. Do not offer "remove all references to this world" as a repair for a *transient* absence.
+
+**Backed by:** `WorldTests.cpp:218` (*an absent package reports a status, never an error*) ·
+`WorldTests.cpp:234` (*an unresolvable reference falls back to 'unavailable', never a guess*) ·
+`WorldTests.cpp:277` (⚠️ *a PRESENT but UNREADABLE package is never reported as 'missing'*)
+
+> ⚠️ **`WorldTests.cpp:277` exists because the naive rule shipped and was wrong.** Deciding `missing` from
+> a failed read plus a readable *parent* reported a perfectly intact world as gone — the parent
+> (`~/Desktop`) is reachable while a sandboxed package inside it is not.
+
+**Severity:** Warning. **Never Blocking** — a project opens and edits normally with a world away.
+
+---
+
+### 6a.2 (§6.23) ⚠️ `worldID` mismatch — a same-named package with a different identity
+
+**Classification:** `world identity mismatch`
+
+**Behavior:** Resolution reads the candidate's `world.json` and compares `worldID`. On mismatch it
+**stops and reports `missing`** rather than substituting (`WorldStore.cpp:295-300`). `relink` refuses
+outright with `detail == "worldIDMismatch"` (`WorldStore.cpp:330-338`).
+
+**Suggested user actions:** Locate the correct package · bind the different world as a *separate* world.
+
+**Do not:** ⚠️ **NEVER silently accept a same-named package.** Do not merge, and do not offer "use this
+one instead" without stating that it is a **different world**.
+
+> ⚠️ **This is the condition where a plausible convenience is catastrophic.** Two writers sharing a world
+> commonly have packages of the same name; substituting one for the other attaches a manuscript's cast to
+> a stranger's world, and every subsequent edge is written against the wrong identity.
+
+**Backed by:** `WorldTests.cpp:194` (⚠️ *a same-named package with a DIFFERENT worldID is not the world*) ·
+`WorldTests.cpp:306` (*relink verifies identity before accepting a new path*)
+
+**Severity:** Warning (resolution) · Blocking for the relink operation only.
+
+---
+
+### 6a.3 (§6.24) `world.json` corrupt, unparseable, or an unsupported version
+
+**Classification:** `corrupt metadata` (world scope)
+
+**Behavior:** `parseWorld` fails and resolution **continues to the next candidate**
+(`WorldStore.cpp:291-292`); if none parses, the status is `unavailable` — ⚠️ **not `missing`**, because a
+corrupt file is evidence the package *exists*.
+
+**Automatic:** Nothing. ⚠️ **A world package is never auto-repaired** — it may be shared by other
+projects and is not this project's to rewrite.
+
+**Suggested user actions:** Restore `world.json` from backup or version control · Locate a good copy ·
+work with the world unavailable.
+
+**Do not:** ⚠️ **Do not regenerate `world.json` from the binding's cached data.** The cache holds display
+names for pending rows, **not** the world's identity or epoch; regenerating would mint a *new* identity
+and orphan every existing edge. Do not delete the package. Do not prune edges.
+
+**Backed by:** the same `unavailable` fallback as 6a.1 (`WorldTests.cpp:234`).
+⚠️ **No test exercises a corrupt `world.json` specifically** — see the gap note in **6a.8**.
+
+**Severity:** Warning.
+
+---
+
+### 6a.4 (§6.25) Binding exists, world is permanently unresolvable
+
+**Classification:** `world unavailable` (persistent)
+
+**Behavior:** Identical to 6a.1 — ⚠️ **there is no "gave up" state, deliberately.** Edges stay **pending**
+across repeated opens for as long as it takes. `ResolvedEndpoint` answers `pending()` and `dangling()` as
+**distinct** states, and every prune path consults it first.
+
+**Suggested user actions:** Reattach or relink · **Remove world reference** — ⚠️ an explicit, user-initiated
+act that unbinds the world **and leaves the package untouched**.
+
+**Do not:** ⚠️ **Do not add a timeout, a retry limit, or an "unavailable too long → prune" rule.** A world
+on a drive in a drawer for a year is not a deleted world. Do not let *unbinding* delete anything.
+
+**Backed by:** `ObjectCApiTests.cpp:420` (*world present + endpoint missing is DANGLING, and prunes*) ·
+`ObjectCApiTests.cpp:436` (⚠️ *world absent is PENDING, and does NOT prune*) ·
+`ObjectCApiTests.cpp:518` (*pending edges survive open and save **verbatim***) ·
+`ObjectCApiTests.cpp:555` (*reattaching restores pending edges with no repair pass*) ·
+`ObjectCApiTests.cpp:493` (⚠️ *the graph is FROZEN toward an unavailable world — **both directions***) ·
+`WorldTests.cpp:326` (*removing a reference leaves the world package untouched*)
+
+> ⚠️ **Both branches of the prune decision are tested, and that pairing is the point.** A test proving
+> pending edges survive is worth little without its twin proving genuinely dangling edges still prune —
+> otherwise "never prune anything" would pass.
+
+**Severity:** Warning.
+
+---
+
+### 6a.5 (§6.26) Stale write lock in the world package
+
+**Classification:** `world locked`
+
+**Behavior:** World writes take `lock→write→unlock` with a heartbeat. A lock whose heartbeat is **older
+than 60 s** is presumed dead and **may be broken**, so a crashed writer blocks others for at most a minute
+rather than permanently (`WorldStore.cpp:586-588`). ⚠️ **An unparseable or undated lock is treated as
+stale, not as eternal** (`WorldStore.cpp:19-41`) — *"returns a large number when either is unparseable, so
+an undated lock is treated as stale rather than eternal."*
+
+**Automatic:** Break a lock older than 60 s; break an unparseable lock. Both are safe: the alternative is
+a package locked forever by a file nobody can read.
+
+**Suggested user actions:** Wait · retry. Contention **reports rather than hangs**.
+
+**Do not:** Break a **fresh** lock — another writer may hold it legitimately. Do not delete the package to
+clear a lock.
+
+**Backed by:** `WorldTests.cpp:356` (*exactly one writer holds the world lock*) ·
+`WorldTests.cpp:376` (*a stale lock is broken; a fresh one is not*) ·
+`WorldTests.cpp:405` (*an unparseable lock file does not lock a world forever*) ·
+`WorldTests.cpp:108` (*`createFileExclusive`: exactly one of two callers wins*)
+
+> ⚠️ **T-0403 exists because Doc 3 §6.5 assumed a primitive that did not exist.** `AtomicWrite` has no
+> exclusive-create path and `rename` **overwrites**, so a lock built on it would have let two writers both
+> "win". `createFileExclusive` was added for this.
+
+**Severity:** Info (transient) · Warning if a break was required.
+
+---
+
+### 6a.6 (§6.27) World object file present but absent from the world index
+
+**Classification:** `new unregistered file` (world scope)
+
+**Behavior:** The object index rebuilds **from a directory scan** when missing, corrupt or stale — the same
+guarantee as the project index, applied to the world package. One unparseable object file costs **only
+itself**, not the whole index.
+
+**Automatic:** Rebuild the index from the scan. ⚠️ This is **safe and expected**: the index is a cache, and
+the **files on disk are authoritative**.
+
+**Do not:** Delete an object file because it is unindexed. Fail the open because the index is bad.
+
+**Backed by:** `ObjectIndexTests.cpp:277` (*a MISSING index is rebuilt from a directory scan*) ·
+`:295` (*a CORRUPT index is rebuilt rather than failing the open*) · `:323` (*a STALE index loses to
+disk*) · `:390` (*one unparseable object file does not cost the whole index*) · `:363` (*rebuilding twice
+yields identical content*)
+
+**Severity:** Info.
+
+---
+
+### 6a.7 (§6.28) Worldless project — a world-scoped operation with no world bound
+
+**Classification:** not a defect — ⚠️ **an expected state**
+
+**Behavior:** All ten worldbuilding kinds are world-scoped (Doc 1 §3.0); only `source` is project-scoped.
+With no world bound, `kindDirFor` refuses with `detail == "worldRequired"`
+(`ObjectStore.cpp:52`, `:469`). ⚠️ **A worldless project otherwise operates silently and completely** —
+it opens, edits, saves and closes with no world-related prompt, warning or repair row.
+
+**Suggested user actions:** *(only at the point an operation genuinely needs a world)* Create a world ·
+bind an existing one.
+
+**Do not:** ⚠️ **Do not warn, prompt or stage a repair row for a project that simply has no world.**
+
+> ⚠️ **This was tried and withdrawn.** Ruling (a) of 2026-08-14 said a worldless project should prompt to
+> create a world on first object creation. **In use the user found the opposite behaviour was right**, and
+> the task (T-0410) was ⛔️ **removed as OBE 2026-08-15** — it traced to *no design section, no AC and no
+> reported defect*. Superseded by: **operate worldless silently until an operation requires a world.**
+
+**Backed by:** `WorldTests.cpp:338` (*a project with no worlds does nothing world-related*) ·
+`ObjectCApiTests.cpp:580` (*a project with no worlds pays no world cost and reports no pending*)
+
+**Severity:** None. **This condition stages no repair.**
+
+---
+
+### ⚠️ 6a.8 Gaps found while writing this section
+
+Per ruling **R3**, disagreements between document and code are **filed, not fixed**. Writing §6a surfaced
+the following. **None is a defect in shipped behaviour** — each is a coverage or diagnostic gap:
+
+| # | Gap | Disposition |
+| - | --- | ----------- |
+| 1 | **No test exercises a corrupt/unparseable `world.json`** (6a.3). The `unavailable` fallback is covered generically, but never for *this* cause. ✅ The **behaviour is correct** — `parseWorld` validates the schema tag and rejects an empty `worldID` (`WorldJson.cpp:31,43-46`) — but **nothing proves a corrupt world file is not auto-regenerated or treated as `missing`.** | ⚠️ **Coverage gap → [I-0135](../Issues/Issue-active.md)** |
+| 2 | ⚠️ **`formatVersion` is READ but NEVER COMPARED.** `parseWorld` reads it (`WorldJson.cpp:41`) and **no code anywhere compares it against a supported maximum** — `grep "formatVersion >"` returns nothing. A **newer** world package would be parsed as if current. §6.16 handles exactly this for project files; the world path has no equivalent. | ⚠️ **Behaviour gap → [I-0136](../Issues/Issue-active.md)** |
+| 3 | `WorldStatus::offline` and `::unmounted` are **produced nowhere in `ScriviCore/src`** — the core emits only `missing`/`unavailable`; the refinement is Apple-layer (`WorldTypes.hpp:67-68`). | ✅ **Known and by design** — Doc 3 §4.4.1 forbids a platform-specific *model*. Delivered as SP-102/T-0389. **Not an Issue.** |
+
+⚠️ **Gap 2 is the more serious of the two, and it is a behaviour gap rather than a coverage gap.** Forward
+compatibility is the one thing a shared, sync-carried package format cannot retrofit: **by the time a
+newer world file exists in the wild, the old readers that silently mis-parsed it have already shipped.**
 
 ---
 

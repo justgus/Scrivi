@@ -136,6 +136,27 @@ project/world partition, which is already supported (SP-097 fixed cross-partitio
 4. **AC1 of EP-031 is affected.** It asserts the kinds "round-trip" with legacy 5-kind files loading unchanged;
    it was verified against the old scope table. It must be re-verified under this ruling.
 
+   > ✅ **RESOLVED 2026-08-19 (EP-031 SP-100, T-0391) — AC1 was AMENDED, then re-verified.**
+   >
+   > ⚠️ **Re-verification alone was not possible, and the reason belongs here.** AC1's middle clause —
+   > *"legacy 5-kind files load unchanged"* — **contradicts consequence 2 of this very ruling.** With **no
+   > migration pass**, `objects/characters/…` became `<world>/characters/…` and a legacy project-scoped
+   > object file is **not** loaded, deliberately. **Verifying the clause as written would have meant
+   > asserting a behaviour EP-031 chose not to build.**
+   >
+   > **The clause is therefore STRUCK** (SP-100 ruling **R1**, user-approved 2026-08-19), and AC1's
+   > verified form is: *all **11** object kinds round-trip in their ruled scope — the ten worldbuilding
+   > kinds in the `.scrivworld` package, `source` alone project-scoped at `objects/sources/`; `timeline`
+   > retired.*
+   >
+   > **Evidence:** 9 targeted tests green (macOS arm64) **and** a live pass on the real rig in which all
+   > ten world-scoped kinds were created by hand and round-tripped. ⚠️ **`source` was not exercised live —
+   > no creation UI exists** (EP-034); it rests on ScriviCore + C ABI evidence.
+   >
+   > **What survives of the struck clause:** `JsonSchemaTests.cpp:812` — *"a legacy object file without the
+   > SP-095 keys parses unchanged"* — still valid and still passing. It is a **schema-level** assertion
+   > about absent optional keys, kind- and scope-agnostic, and **was never evidence for the scope clause.**
+
 ---
 
 **Worldbuilding object kinds** (become `objects/` files; can be inspector cards):

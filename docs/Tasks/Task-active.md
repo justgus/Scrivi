@@ -16,16 +16,28 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-102's four Tasks are all Verified
-
-✅ **T-0389 + T-0415** (AC23/AC24) Verified 2026-08-17 → [`Task-verified-0389-0415.md`](Verified/Task-verified-0389-0415.md)
-✅ **T-0417** (Scene/Chapter menu items) Verified 2026-08-18 → [`Task-verified-0417.md`](Verified/Task-verified-0417.md)
-✅ **T-0365** (`sources` card) Verified 2026-08-18 **as a PARTIAL delivery** → [`Task-verified-0365.md`](Verified/Task-verified-0365.md)
-⚠️ **The `sources` write half is owed to [EP-034](../Epics/Epic-backlog.md)** — nothing in the app
-creates a `source`, so the card can only render its empty state.
+## Currently: **SP-100** — EP-031 verification & Epic close (🟡 Active 2026-08-19)
 
 | ID | Title | Sprint | Priority | Status |
 | -- | ----- | ------ | -------- | ------ |
+| **T-0390** | External Change Repair Matrix — **world-package conditions** (§6a) + tests against shipped behaviour | SP-100 | High | 🟠 **Implemented - Not Verified (2026-08-19)** |
+| T-0418 | ⚠️ **Live-use pass on the real rig** — 10 world kinds, relate, eject/reattach, reopen | SP-100 | High | 🟠 **Run 2026-08-19 - Not Verified** |
+| T-0391 | EP-031 verification (AC1–AC10) + Epic close prep — ⚠️ owns the **AC1 re-verification** | SP-100 | High | 🟠 **Implemented - Not Verified** ⚠️ interop leg outstanding |
+
+⚠️ **The build order T-0390 → T-0418 → T-0391 is load-bearing, not a preference.** T-0390 runs first
+because it is the only task that can still surface a **core** defect — an Issue filed on day one can be
+scheduled; one filed at close cannot. **T-0391 reads the other two as evidence and cannot start early.**
+
+⚠️ **T-0418 preconditions:** the rig is **backed up** (user-confirmed 2026-08-19) —
+`~/Desktop/the-stairs-of-tintagael.scrivi` + `/Volumes/Scrivi Worlds/Eskandar.scrivworld` hold **real
+writing work**. Findings from the pass are **filed as Issues, not fixed** (ruling R3/R4).
+
+Full plan, rulings **R1–R4**, build order and exit criteria:
+[`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md).
+
+---
+
+## Prior: SP-102 (closed 2026-08-18) — all four Tasks Verified
 
 ✅ **EP-031 AC23 + AC24 are DELIVERED and Verified (2026-08-17)** — the last two clauses of AC9.
 **T-0389 and T-0415** were archived 2026-08-18 → [`Task-verified-0389-0415.md`](Verified/Task-verified-0389-0415.md).

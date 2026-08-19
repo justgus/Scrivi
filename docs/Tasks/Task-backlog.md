@@ -10,6 +10,10 @@ Tasks listed here are **documented, unstarted, and not assigned to an active Spr
 | 🟠 **Implemented — Not Verified** | [`Task-unverified.md`](Task-unverified.md) |
 | ✅ **Verified** | `Verified/Task-verified-XXXX.md` — removed from **both** list files |
 
+> ✅ **T-0390, T-0418 and T-0391 left this file 2026-08-19** when **SP-100 was activated** — they are
+> 🟡 Active / assigned and live in [`Task-active.md`](Task-active.md). Their detail sections below are
+> retained as the plan of record until the sprint closes.
+
 ⚠️ **A Task's row leaves this file when its Sprint closes.** The Sprint archive is the record of
 truth; a backlog row that outlives its Sprint can only ever contradict it. **A Sprint may be
 deactivated without deactivating its Tasks** — the Tasks stay in `Task-active.md` and the Sprint's
@@ -24,10 +28,6 @@ status changes on its own layer.
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
-| T-0369 | EP-030 verification + Epic close prep | EP-030 (SP-094) | 🔵 Backlog |
-| T-0390 | External Change Repair Matrix — world-package conditions | EP-031 (SP-100) | 🔵 Backlog |
-| T-0391 | EP-031 verification + Epic close prep (⚠️ **owns the AC1 re-verification**) | EP-031 (SP-100) | 🔵 Backlog |
-| T-0418 | ⚠️ **Live-use pass on the real rig** — all 10 world kinds, relate, eject/reattach, reopen | EP-031 (SP-100) | 🔵 Backlog |
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
 | T-0416 | ⚠️ Seeded relation-type vocabulary does not reach existing projects | EP-031 (unscheduled) | 🔵 Backlog |
 
@@ -117,26 +117,9 @@ gesture must never be the only path** to any of these actions.
 *EP-022 itself is ✅ Closed (2026-07-15); this is an unscheduled follow-up, likely landing with EP-026
 menus/parity.*
 
-### T-0369 — EP-030 verification + Epic close prep
-
-**Epic:** EP-030 (SP-094) · **Status:** 🔵 Backlog
-
-EP-030 verification (AC1–AC7) + Epic close prep. **User approval required to close.**
-
-> **Moved from SP-093 → SP-094** (user ruling, 2026-08-07). T-0369 and EP-019's SP-057 were both
-> one-task, no-build-work verification passes gated on the same live session and app build, so they
-> merged into a single **SP-094 — "EP-019 + EP-030 verification & Epic close."** Both Epics' ACs were
-> verified in one pass, then **closed independently** — each on its own direct user approval, a
-> failure in one not blocking the other.
-
-⚠️ **Status note:** EP-030 is recorded ✅ **Closed** in
-[`Epic-EP-030.md`](../Epics/Closed/Epic-EP-030.md), and SP-094 is closed. This row is retained
-because no Task-level verification record was written for T-0369 itself. **Resolve at the next audit
-rather than assuming either way.**
-
 ### T-0390 — External Change Repair Matrix: world-package conditions
 
-**Epic:** EP-031 (SP-100) · **Status:** 🔵 Backlog · Scheduled — SP-100 runs last.
+**Epic:** EP-031 (**SP-100 🟡 Active**) · **Status:** 🟡 **Active (2026-08-19)** — runs **first** in the build order.
 
 ⚠️ **Greenfield, confirmed at SP-100 planning (2026-08-19):** the matrix
 (`Scrivi_External_Change_Repair_Matrix_v0_2.md`, 578 lines, conditions §6.1–§6.21) contains **zero
@@ -152,8 +135,7 @@ document could destroy a writer's whole relationship graph and satisfy every rul
 
 ### T-0391 — EP-031 verification + Epic close prep
 
-**Epic:** EP-031 (SP-100) · **Status:** 🔵 Backlog · Scheduled — SP-100 runs last, and ⚠️ **owns the
-AC1 re-verification.**
+**Epic:** EP-031 (**SP-100 🟡 Active**) · **Status:** 🔵 Backlog — runs **last** in the build order; ⚠️ **owns the AC1 re-verification.**
 
 Per-AC pass over AC1–AC10 with named evidence. ⚠️ **AC1 and AC10 are AMENDED first, then verified**
 (SP-100 rulings R1/R2) — both carry clauses superseded by the §3.0 no-migration ruling. Also resolves the
@@ -161,7 +143,7 @@ Per-AC pass over AC1–AC10 with named evidence. ⚠️ **AC1 and AC10 are AMEND
 
 ### T-0418 — ⚠️ Live-use pass on the real rig
 
-**Epic:** EP-031 (SP-100) · **Status:** 🔵 Backlog · **New at SP-100 planning (2026-08-19, ruling R4).**
+**Epic:** EP-031 (**SP-100 🟡 Active**) · **Status:** 🔵 Backlog — runs **second** in the build order. ✅ **Rig backed up 2026-08-19 (user-confirmed).**
 
 Create an object in **each of the ten world kinds** plus a project-scoped `source`; relate them from both
 entrances including a symmetric and a cross-partition `cites` edge; **eject**; confirm pending

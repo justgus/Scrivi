@@ -1,13 +1,13 @@
 # Active Sprint
 
-> ⚠️ **SP-100 is 🔵 Planning, NOT Active.** This document is the completed plan; **activating it needs
-> direct user approval.** Nothing below has been started.
+> ✅ **SP-100 is 🟡 ACTIVE — activated 2026-08-19 (user-approved).**
+> ⚠️ **The rig has been backed up** (user-confirmed), which was T-0418's blocking precondition.
 
 ---
 
 ## SP-100: EP-031 verification & Epic close
 
-**Status:** 🔵 **Planning** (planned 2026-08-19)
+**Status:** 🟡 **ACTIVE** — activated 2026-08-19 (user-approved); planned same day
 **Epic:** EP-031 — `[ScriviCore]` Worldbuilding Object Model & Relationship Graph
 **Codebase:** `[Cross]` — documentation, ScriviCore tests, and a live `[Apple]` use pass. **No new
 feature code is planned.**
@@ -15,7 +15,7 @@ feature code is planned.**
 2026-08-14 scope model) and **AC10** (regression) — document the world-package conditions the External
 Change Repair Matrix has never covered, and establish by **use** rather than by suite that the Epic is
 done.
-**Start Date:** TBD (on activation)
+**Start Date:** 2026-08-19
 **End Date:** TBD
 **Capacity:** TBD
 
@@ -109,15 +109,23 @@ evidence alone would rest the close on precisely the standard the Epic itself di
 
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
-| **T-0390** | External Change Repair Matrix — **world-package conditions** (§6.22–§6.28) + tests against shipped behaviour | High | 🔵 Backlog |
-| **T-0418** | ⚠️ **Live-use pass on the real rig** — all 10 world kinds, relate, eject/reattach, reopen (**new at planning, R4**) | High | 🔵 Backlog |
-| **T-0391** | **EP-031 verification (AC1–AC10) + Epic close prep** — includes the **AC1 re-verification** | High | 🔵 Backlog |
+| **T-0390** | External Change Repair Matrix — **world-package conditions** (§6a) + tests against shipped behaviour | High | 🟠 **Implemented - Not Verified (2026-08-19)** |
+| **T-0418** | ⚠️ **Live-use pass on the real rig** — all 10 world kinds, relate, eject/reattach, reopen (**new at planning, R4**) | High | 🟠 **RUN 2026-08-19 — Not Verified** ⚠️ **steps 1–2 partially blocked** |
+| **T-0391** | **EP-031 verification (AC1–AC10) + Epic close prep** — includes the **AC1 re-verification** | High | 🟠 **Implemented - Not Verified (2026-08-19)** — ✅ all legs green |
 
 ### Assigned Issues
 
 | ID | Title | Severity | Status |
 | -- | ----- | -------- | ------ |
-| — | *None at planning.* | — | — |
+| **I-0135** | A corrupt/unparseable `world.json` has no test coverage | Low | 🔴 **Open** — T-0390, **not fixed** (R3) |
+| **I-0136** | ⚠️ `world.json`'s `formatVersion` is **read but never compared** | **Medium** | 🔴 **Open** — T-0390, **not fixed** (R3) |
+| **I-0137** | ⚠️ **AC24's refinement can NEVER FIRE** — `packagePath` empty for exactly the worlds it must diagnose | **High** | 🔴 **Open** — T-0418, **not fixed** (R4) |
+| **I-0138** | "Remove from scene" disabled for a pending object but **not explained** | Low | 🔴 **Open** — T-0418, **not fixed** (R4) |
+| **I-0139** | Clicking an object title opens the editor with no evident way back to viewing | Medium | 🔴 **Open** — T-0418, **not fixed** (R4) |
+
+⚠️ **Both were FILED, not fixed — ruling R3 working as intended.** Neither blocks SP-100, and **neither
+is a regression**: both were found by writing §6a against shipped behaviour rather than against
+assumption. **I-0136 is a behaviour gap**, not merely a coverage gap.
 
 > **I-0133 and I-0134 are not SP-100 work — both are CLOSED OUT as of 2026-08-19.**
 > **I-0133** (`restoredScrollFraction` dead state) is ✅ **Verified** and archived to
@@ -131,6 +139,197 @@ evidence alone would rest the close on precisely the standard the Epic itself di
 > 🔴 Open and awaiting a ruling. Both statements were read out of stale rows in `Issue-active.md`
 > (audit finding **F-01**) and propagated into this plan. Corrected under audit rulings **§0** and
 > **R-01**; the conclusion (neither is EP-031 work) stands, on these grounds instead.
+
+---
+
+## 2a. Delivered — T-0390 (2026-08-19) 🟠 Implemented - Not Verified
+
+**`docs/Scrivi_External_Change_Repair_Matrix_v0_2.md` — 578 → 809 lines. World mentions: 0 → 63.**
+
+New **§6a — World-package conditions**, seven conditions in the matrix's established format
+(*Classification / Behavior / Automatic / Suggested user actions / Do not*), each **asserted against
+shipped code** and each naming the test that backs it:
+
+| § | Condition | Backed by |
+| - | --------- | --------- |
+| **6a.0** | ⚠️ **The governing principle: ABSENCE IS NEVER DELETION** — three rules every condition obeys | — |
+| 6a.1 | World package missing entirely | `WorldTests.cpp:218,234,277` |
+| 6a.2 | ⚠️ `worldID` mismatch — a same-named package | `WorldTests.cpp:194,306` |
+| 6a.3 | `world.json` corrupt or unparseable | `WorldTests.cpp:234` ⚠️ *(gap — I-0135)* |
+| 6a.4 | Binding exists, world permanently unresolvable | `ObjectCApiTests.cpp:420,436,493,518,555` · `WorldTests.cpp:326` |
+| 6a.5 | Stale write lock | `WorldTests.cpp:108,356,376,405` |
+| 6a.6 | Object present but absent from the world index | `ObjectIndexTests.cpp:277,295,323,363,390` |
+| 6a.7 | Worldless project — ⚠️ **an expected state, not a defect** | `WorldTests.cpp:338` · `ObjectCApiTests.cpp:580` |
+
+**§5 state vocabulary extended** with `world unavailable`, `world missing`, `world identity mismatch`,
+`world locked` — and a note that ⚠️ **`unavailable` and `missing` must never be collapsed**, since
+guessing `missing` invites destructive remedies for an intact world on an unreachable volume.
+
+**Evidence:** ⚠️ **all 23 test citations were verified to resolve** to real `TEST_CASE`s with matching
+descriptions — a citation that did not resolve would be the very defect §6a documents. `ctest`
+**520/520 macOS arm64**, 0 failed.
+
+**Gaps found → FILED, not fixed (R3):** **I-0135** (no coverage for a corrupt `world.json`) and
+⚠️ **I-0136** (`formatVersion` read but **never compared** — a newer world package parses as current;
+`grep "formatVersion >"` returns nothing). **I-0136 is a behaviour gap and the more serious**: forward
+compatibility cannot be retrofitted, because by the time a newer package exists in the wild the readers
+that mis-parsed it have shipped — and world packages are **shared between projects and carried across
+machines**, which is exactly where version skew arises.
+
+⚠️ **Verification is the user's.** T-0390 is 🟠 Implemented - Not Verified.
+
+---
+
+## 2b. Run record — T-0418 (2026-08-19) 🟠 Not Verified
+
+**Run by the user on the real rig**, drive backed up beforehand.
+
+| Step | Result |
+| ---- | ------ |
+| **1. Create in all 10 world kinds** | ✅ **PASS** — all ten round-trip. ⚠️ **`source` NOT created — no UI exists** (known EP-034 gap) |
+| **2. Relate from both entrances** | ⛔️ **BLOCKED** — clicking a title opens the editor with no evident exit (**I-0139**); no relate UI reachable |
+| **3. Eject** | ✅ **PASS** — warnings appear, footers name the world, pending rows show **names**, removal disabled. ⚠️ Two defects: **I-0138**, **I-0137** |
+| **4. Reattach** | ✅ **PASS** — ⚠️ **AC23's no-intervention clause HELD.** All warnings cleared and items re-enabled **with no writer action** |
+| **5. Quit / reopen ×2** | ✅ **PASS** — restarts behave as expected, drive present and absent |
+
+### ✅ What this establishes
+
+⚠️ **AC23 is verified by use, on hardware, and it is the clause that could not be established any other
+way.** Step 4 is **I-0129's exact defect** — refresh keyed to app focus rather than the mount event — and
+it held: reattaching restored the cards **with no click, no menu, no relaunch.**
+
+**Step 1 is AC1's re-verification performed by use.** All ten world-scoped kinds round-tripped into the
+`.scrivworld` package. ⚠️ **Four directories (`buildings`, `items`, `maps`, `vehicles`) were absent
+beforehand** — the world was created 2026-08-14, one day before SP-104 fixed the skeleton — **and were
+created on demand** (`ObjectStore.cpp:194`). **The pre-SP-104 gap is cosmetic, not blocking, and this
+world is better evidence than a fresh one would have been.**
+
+### ⚠️ What it does NOT establish
+
+- **`source` round-trip** — no creation UI (EP-034). **AC1's eleventh kind is unverified by use**, though
+  it is covered at ScriviCore level (SP-098/T-0406).
+- **Step 2 entirely** — the two-entrance edge test, the symmetric type, and the cross-partition `cites`
+  edge **were not exercised.** ⚠️ **AC3's and AC9's from-either-entrance clauses therefore have no live
+  evidence from this pass**; they rest on their SP-096/SP-099 test coverage.
+
+### Findings — five open, filed not fixed
+
+**I-0137 (High)** is the one that bears on the Epic's close: ⚠️ **AC24's `unmounted`/`offline` refinement
+cannot fire on real hardware.** The refinement is correct, unit-tested and correctly wired — and
+`WorldStore::listWorlds` supplies `packagePath` **only when the world is `available`**, so the single
+input it needs is guaranteed absent in the only case it exists for. **Every warning surface said
+"unavailable"; `unmounted` appeared nowhere.**
+
+⚠️ **AC24 was marked Verified 2026-08-17.** Whether that verification stands is **T-0391's** question.
+
+---
+
+## 2c. AC pass — T-0391 (2026-08-19) 🟠 Not Verified
+
+### Per-AC result
+
+| AC | State | Evidence |
+| -- | ----- | -------- |
+| **AC1** | 🟠 **Satisfiable — ticks on user approval** | **9/9** targeted tests (arm64) **+ live**: all ten world kinds round-tripped on the real rig. ⚠️ `source` core-only — no creation UI (EP-034) |
+| AC2–AC8 | ✅ Met — **evidence confirmed, not re-derived** | Suites green; no change since their sprints |
+| **AC9** | ✅ Met — ⚠️ **with a recorded finding** | AC23 **held live**; ⚠️ **AC24's refinement cannot fire on real hardware (I-0137)** |
+| **AC10** | 🟠 **ALL 4 LEGS GREEN — ticks on approval** | arm64 **520/520** · x86-64 CI ✅ · sanitizers ✅ (2×2) · **BUILD SUCCEEDED** · **interop 99/99 in 10 suites, TEST SUCCEEDED** |
+
+### ✅ The outstanding leg — closed 2026-08-19
+
+The user quit Scrivi and the interop suite ran: **99/99 in 10 suites, macOS arm64, TEST SUCCEEDED.**
+**AC10's four legs are all green.**
+
+⚠️ **One observation from that run is worth more than the pass itself.** The suite contains
+*"World volume status refinement (EP-031 AC24)"* — **and it passes.** That does not contradict
+**I-0137**; it *is* I-0137. The refinement is correct and its tests prove it. ⚠️ **What no unit test can
+see is that its caller never supplies the input it needs.** *The tests pass and the feature does not reach
+the writer.*
+
+### ✅ User ruling on AC9 (2026-08-19)
+
+> *"The Task was verified. What was not is due to unimplemented software features."*
+
+⚠️ **T-0389 delivered its scope and its verification stands.** I-0137's cause is in
+`WorldStore::listWorlds` — a component T-0389 does not own. **Re-opening a verified Task because a
+different component starves it would make verification unfalsifiable.**
+**Ledger: T-0389 ✅ · AC24 ✅ · AC9 ✅ · I-0137 🔴 Open**, scheduled on its own terms.
+
+### Also completed under T-0391
+
+- ✅ **Doc 1 §3.0 consequence 4 amended** — records that AC1 was **amended then re-verified**, why
+  re-verification alone was impossible, and what survives of the struck clause.
+- ✅ **T-0369 RESOLVED** — ⚠️ **without a user ruling, because the archive answered it.**
+  `Epic-EP-030.md:8` states *"All acceptance criteria AC1–AC7 Verified"* with a dated per-AC table, and
+  `Sprint-SP-094.md:5` names T-0369 as their vehicle. **The record was missing, not the verification** →
+  [`Task-verified-0369.md`](../Tasks/Verified/Task-verified-0369.md). *(Contrast T-0298–T-0301, where the
+  archives genuinely did not answer and a user ruling was required.)*
+- ✅ **Two stale rows corrected in `Epic-active.md`** — SP-102 shown 🟡 Active (closed 2026-08-18) and
+  T-0389 shown 🟠 Not Verified (Verified 2026-08-17). ⚠️ **Both were found by this pass, not by the audit.**
+- ✅ **AUDIT CHECK run** (exit criterion 7) — **all seven checks pass.** One apparent failure was a **false
+  positive**: the grep matched R-23's *explanatory note about* the AC9 error, not the error itself.
+
+---
+
+## 2d. EP-031 close prep (T-0391) — ⚠️ DRAFT, awaiting user approval
+
+### Where the Epic stands
+
+**11 sprints, 10 closed. SP-100 is the eleventh and is 🟡 Active with all three Tasks implemented.**
+
+| AC | State |
+| -- | ----- |
+| **AC1** | 🟠 **Satisfiable — awaiting user tick.** Amended (R1), then verified by suite **and** by use |
+| AC2–AC8 | ✅ Met |
+| AC9 | ✅ Met — ⚠️ with **I-0137** recorded against it, user-ruled not to unseat it |
+| **AC10** | 🟠 **Satisfiable — awaiting user tick.** Amended (R2, **stronger**), all four legs green |
+
+⚠️ **Claude cannot tick an AC or close an Epic.** Both AC1 and AC10 are **evidenced and unticked**,
+awaiting direct user approval.
+
+### Suites at close prep
+
+`ctest` **520/520 macOS arm64** · x86-64 + sanitizers ✅ (CI 2×2, ScriviCore byte-identical) ·
+macOS interop **99/99 in 10 suites** · app **BUILD SUCCEEDED**.
+
+### ⚠️ Carried OUT of EP-031 — do not read as delivered
+
+| Item | Owed to |
+| ---- | ------- |
+| **Source creation** — nothing in the app creates a `source` or attaches a `cites` edge | **EP-034** |
+| §3.1.1's **second popup entry point** — object cards surfacing their own sources | **EP-034** |
+| **I-0137** — AC24's refinement starved of `packagePath` | unassigned |
+| **I-0135 / I-0136** — corrupt-`world.json` coverage; **`formatVersion` never compared** | unassigned |
+| **I-0138 / I-0139** — unexplained disabled removal; editor exit discoverability | unassigned |
+| **T-0416** — seeded relation types never reach existing projects | unscheduled |
+| **Key equivalents** for Scene/Chapter Start-End | unassigned |
+
+⚠️ **AC1's eleventh kind (`source`) is proven at the core and boundary but NOT by use** — no creation UI
+exists. **Stated plainly rather than glossed.**
+
+⚠️ **AC3's and AC9's from-either-entrance clauses have no live evidence from this Epic's final pass** —
+T-0418 step 2 was blocked by I-0139. They rest on SP-096/SP-099 suite coverage, which is green.
+
+### Retrospective — draft
+
+**What this sprint was for, and whether it worked.** SP-100 was scoped as verification, and ⚠️ **it found
+five defects — none of which the suites could see.** T-0390 found two by writing documentation against
+shipped code; T-0418 found three by using the app on real hardware. **The suites were green throughout,
+as they have been for every one of this Epic's unplanned sprints.**
+
+⚠️ **The Epic's signature defect appeared a fifth time, in its subtlest form.** I-0137 is
+*capability shipped, surface never built* — but here the capability, its unit tests **and** its call site
+all exist. **Only the data path is missing.** A suite named for the very AC passes while the feature
+cannot reach the writer.
+
+**What the rulings bought.** **R3** (document *and* test, file don't fix) and **R4** (the live pass is
+required evidence) were both contested at planning as possibly excessive. **Between them they produced
+every finding in this sprint.** R1/R2 — amending AC1 and AC10 rather than verifying them as written —
+prevented the Epic from certifying itself against clauses its own §3.0 ruling had superseded.
+
+**What to carry forward.** ⚠️ **A passing test suite named after an acceptance criterion is not evidence
+the criterion is met in the product.** I-0137 is the cleanest example this project has produced, and it
+was found by a writer ejecting a drive, not by CI.
 
 ---
 
@@ -233,10 +432,21 @@ not.**
   before changing the model.
 - **Amend Doc 1** (`Scrivi_Worldbuilding_Object_Model_v0_2.md`) §3.0 consequence 4, which currently says
   AC1 "must be re-verified" — it becomes *amended and re-verified*, with R1's reasoning recorded.
-- **Resolve the T-0369 open question.** `Task-backlog.md:92-95` flags that EP-030 is closed but no
-  Task-level verification record was written for T-0369, and asks that it be *"resolved at the next audit
-  rather than assuming either way."* **SP-100 is that audit.**
+- **Resolve the T-0369 open question.** EP-030 is ✅ Closed and SP-094 is closed, yet **T-0369 is still
+  🔵 Backlog** with no Task-level verification record. Its own note asks that it be *"resolved at the next
+  audit rather than assuming either way."*
+  ⚠️ **The 2026-08-19 audit did NOT resolve it** — it was not among the 31 findings, so no ruling covers
+  it. **It remains T-0391's, and it is the same shape as T-0298–T-0301**: a Task left unverified inside a
+  closed Epic, where the archive does not state whether the Epic's close verified it.
+  ⚠️ **Claude cannot decide this. Put it to the user**, as T-0298–T-0301 was.
 - **Epic close prep** — retrospective, sprint table final states, archive plan.
+
+> ⚠️ **Evidence note added 2026-08-19 (post-audit):** **I-0118's archive entry did not exist** when this
+> plan was written — it was Verified in three files with **no record anywhere** (audit finding F-03). It
+> has since been **reconstructed** into batch 12 from primary sources under QA observation.
+> `Epic-active.md` names it as *"available as evidence for SP-100's AC pass"*, so **T-0391 may now rely on
+> it** — but should read the reconstruction banner and treat it as what it is: a record rebuilt after the
+> fact, not a contemporaneous one.
 
 ⚠️ **Claude cannot close EP-031.** Close requires **direct user approval**, and so does marking any AC
 Verified.
@@ -272,7 +482,16 @@ and it is a scheduling decision, not a bug to fix mid-pass.
 5. **The app builds**, and ⚠️ **Scrivi is not running when `xcodebuild test` is invoked** (a live instance
    blocks the runner with a LaunchServices error — `pgrep` first).
 6. **Epic close prep drafted** — retrospective, archive plan, sprint table.
-7. ⚠️ **Nothing is marked Verified, and no Epic or Sprint is closed, without direct user approval.**
+7. ⚠️ **An AUDIT CHECK has been run** before the close prep is considered complete — now **required by
+   `Epic-GUIDELINES.md` step 1** (added 2026-08-19). It is **not** a full Audit: a read-only, mechanical
+   sweep (AC status agreement · evidence exists · sprint status agreement · counts re-derived ·
+   table/entry parity · orphan files · ID continuity). **Its findings are ruled as part of the Epic
+   close**, not in a separate session.
+   > **Why this is an exit criterion and not a nicety:** the 2026-08-19 audit found **two** defects that
+   > would have corrupted this Epic's close — `Epic-Documentation.md` claiming **AC9 was outstanding**
+   > when it had been met, and **I-0118 having no archive entry** while being named as evidence for this
+   > very AC pass. **Both were greps.**
+8. ⚠️ **Nothing is marked Verified, and no Epic or Sprint is closed, without direct user approval.**
 
 ---
 
@@ -309,7 +528,17 @@ T-0418 exists because the suites are not the place that question gets settled.
 
 ---
 
-*Last Updated: 2026-08-19 (**SP-100 planned — 🔵 Planning, NOT activated.** Four rulings taken, all
+*Last Updated: 2026-08-19, later same day (**post-audit reconciliation — the plan is unchanged in
+substance; four things were corrected or added.** (1) ⚠️ The I-0133/I-0134 exclusion note gave a **wrong
+reason**, read out of stale rows (audit F-01) — corrected. (2) **T-0369's framing was stale**: it said
+*"SP-100 is that audit"*, but an audit has since run and **did not resolve it** — it stays T-0391's, is
+the same shape as T-0298–T-0301, and ⚠️ **must be put to the user**. (3) **I-0118's archive entry did not
+exist** when this plan was written and has since been **reconstructed** — T-0391 may now rely on it,
+reading its reconstruction banner. (4) ⚠️ **New exit criterion 7: an AUDIT CHECK**, now required by
+`Epic-GUIDELINES.md` before an Epic close. **SP-100 remains 🔵 Planning; activating it still needs direct
+user approval.** Prior note follows.)*
+
+*2026-08-19 (**SP-100 planned — 🔵 Planning, NOT activated.** Four rulings taken, all
 user-approved: **R1** AC1's "legacy 5-kind files load unchanged" clause is **struck** as superseded by the
 §3.0 no-migration ruling and AC1 is **amended** to the 11-kind ruled-scope round-trip; **R2** AC10 is
 **amended** to its regression half, strengthened to require **both architectures + sanitizers**, its

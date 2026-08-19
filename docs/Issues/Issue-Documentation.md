@@ -19,10 +19,18 @@ The main index for all Scrivi Issues. Issues track bugs and unintended system be
 
 ## Active Issues
 
-Currently: **0 Issues awaiting verification.**
+Currently: **5 Issues open**, all filed 2026-08-19 by **SP-100** and all awaiting **triage**, not
+verification.
 
-| ID | Sprint |
-| -- | ------ |
+| ID | Title | Severity | Found by |
+| -- | ----- | -------- | -------- |
+| I-0135 | A corrupt/unparseable `world.json` has no test coverage | Low | T-0390 |
+| I-0136 | ⚠️ `world.json`'s `formatVersion` is read but **never compared** — a newer package parses as current | Medium | T-0390 |
+| **I-0137** | ⚠️ **AC24's `unmounted`/`offline` refinement can NEVER FIRE** — `packagePath` is empty for exactly the worlds it must diagnose | **High** | T-0418 |
+| I-0138 | "Remove from scene" disabled for a pending object but **not explained** | Low | T-0418 |
+| I-0139 | Clicking an object title opens the editor with no evident way back to viewing | Medium | T-0418 |
+
+⚠️ **Next available Issue ID: I-0140.**
 
 See: [`Issue-active.md`](Issue-active.md)
 
@@ -112,4 +120,4 @@ indistinguishable.
 
 ---
 
-*Last Updated: 2026-08-19 (audit remediation — rulings R-01…R-05, R-10, R-11, R-12, R-13, R-25).*
+*Last Updated: 2026-08-19 (audit remediation R-01…R-25; then **five Issues filed by SP-100** — I-0135/I-0136 by T-0390 and **I-0137/I-0138/I-0139 by T-0418's live pass**. ⚠️ **I-0137 is High**: AC24's refinement cannot fire on real hardware, which bears on an AC already marked Verified. Prior note: I-0135 + I-0136 by T-0390 — both found by writing repair-matrix §6a against shipped behaviour, both **filed not fixed** per SP-100 ruling R3.)*

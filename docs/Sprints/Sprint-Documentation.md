@@ -11,18 +11,16 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No Sprint is currently active.** **SP-102 closed 2026-08-18 (user-approved)** →
-[`Closed/Sprint-SP-102.md`](Closed/Sprint-SP-102.md); **SP-106 closed 2026-08-17** →
-[`Closed/Sprint-SP-106.md`](Closed/Sprint-SP-106.md). Current Sprint status lives in
-[`Sprint-active.md`](Sprint-active.md); each closed Sprint's full record lives in its own archive file,
-and is **not** restated here.
+🟡 **SP-100 is ACTIVE** — activated **2026-08-19** (user-approved). Full plan and status:
+[`Sprint-active.md`](Sprint-active.md). Each closed Sprint's record lives in its own archive file and is
+**not** restated here.
 
 **EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 10 closed** (SP-095, SP-096,
 SP-097, SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains:**
 
 | Sprint | Scope | Order |
 | ------ | ----- | ----- |
-| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🔵 Planning — ✅ **plan complete 2026-08-19** (**runs last** — activation needs user approval) |
+| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🟡 **Active 2026-08-19** — the Epic's **last** sprint |
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -34,7 +32,7 @@ SP-097, SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains:*
 > (I-0122) on its first run** — so what else was hidden behind six sprints of single-architecture evidence is
 > an open empirical question for SP-100.
 
-> ✅ **SP-100 PLANNED 2026-08-19 — still 🔵 Planning; activation needs direct user approval.** Three Tasks
+> 🟡 **SP-100 ACTIVATED 2026-08-19 (user-approved).** Three Tasks
 > in a load-bearing order: **T-0390** (repair-matrix world conditions) → **T-0418** (live-use pass on the
 > real USB rig, **new at planning**) → **T-0391** (the AC1–AC10 pass + close prep, which reads the other
 > two as evidence and cannot start early).
@@ -59,7 +57,7 @@ Epic-level status — acceptance criteria, the AC1 re-verification requirement, 
 EP-031 in [`../Epics/Epic-active.md`](../Epics/Epic-active.md) and is not duplicated here.
 
 **EP-019 and EP-030 both ✅ CLOSED 2026-08-11** (Human-approved, double Epic close) — sprints SP-092, SP-093,
-SP-094, SP-101 archived. **EP-029** `[Cross]` ✅ fully closed 2026-08-03. **Next available Sprint: SP-106.**
+SP-094, SP-101 archived. **EP-029** `[Cross]` ✅ fully closed 2026-08-03. *(Next-available Sprint ID is recorded in Statistics — **SP-107**.)*
 
 Prior: **SP-089** (EP-029 `[Cross]` — **`[Apple]` editor wiring**) — ✅ **closed 2026-08-03
 (Human-approved).** The final EP-029 sprint, which **closed the Epic**. Wired the manuscript editor's
@@ -209,7 +207,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 🔵 Planning — **plan complete 2026-08-19, NOT activated** (**runs last**) |
+| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 2026-08-19 | — | 🟡 **Active** |
 
 ⚠️ **This table is a copy of [`Sprint-backlog.md`](Sprint-backlog.md)'s, and copies go stale.** It was
 refreshed 2026-08-12 (SP-086/SP-090/SP-085/SP-056 had all closed; SP-057 was superseded into SP-094) and
@@ -391,7 +389,14 @@ by status, read the table.**
 
 ---
 
-*Last Updated: 2026-08-19 (**SP-100 planned — 🔵 Planning, NOT activated.** Plan in
+*Last Updated: 2026-08-19, later same day (🟡 **SP-100 ACTIVATED (user-approved)** — EP-031's eleventh
+and last sprint. Its row left `Sprint-backlog.md` in the same step (**that file is now empty**), per the
+rule that a Sprint leaves the backlog at activation and never returns. **T-0390 is 🟡 Active**; T-0418 and
+T-0391 stay 🔵 Backlog until the build order reaches them. ⚠️ **The rig is backed up** — T-0418's blocking
+precondition, user-confirmed. Also corrected here: a stale *"Next available Sprint: SP-106"* line, which
+contradicted the Statistics block's **SP-107** in the same file. Prior note follows.)*
+
+*2026-08-19 (**SP-100 planned — 🔵 Planning, NOT activated.** Plan in
 [`Sprint-active.md`](Sprint-active.md), banner-marked as not-yet-active. Three Tasks **T-0390 → T-0418 →
 T-0391** (**T-0418 new**); four user-approved rulings — **R1/R2** amend **AC1** and **AC10**, each of
 which carried a clause superseded by the §3.0 no-migration ruling and so **could not be re-verified as
