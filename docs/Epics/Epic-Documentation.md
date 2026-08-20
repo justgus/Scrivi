@@ -18,7 +18,7 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 **Design doc** `Scrivi_Object_Detail_Sheets_Design_v0_1.md` is 🟢 **APPROVED FOR PLANNING** — ✅ **all nine
 trades D1–D9 and all three decisions Q-a/Q-b/Q-c ruled.** AC1–AC12 written; 8 sprints estimated;
-**SP-115 🔵 Planning — the five Issues I-0135–I-0139 and nothing else.**
+**SP-115 ✅ CLOSED 2026-08-20** (user-approved) — 1 of 8 sprints; seven Tasks + six Issues Verified. **SP-116 next.**
 
 ⚠️ **Q-a: EP-034 precedes EP-032**, whose **SP-107–SP-114 stay reserved** — so **sprint IDs run out of
 sequence** (precedented: SP-083 before SP-082, SP-102 before SP-100). ⚠️ **Q-b: the Detail Sheet is
@@ -114,7 +114,18 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 ---
 
-*Last Updated: 2026-08-20 (**EP-034 `[Cross]` PROMOTED backlog → 🟡 ACTIVE and widened in place** — the
+*Last Updated: 2026-08-20 (**EP-034: SP-115 ✅ CLOSED, user-approved** — 1 of 8 sprints. All five carried
+EP-031 Issues fixed, plus **I-0142 found by the user during verification**. ⚠️ **Two items carried out**:
+T-0420's writer-facing surface (**unowned**) and I-0140/I-0141 (**SP-116**). EP-034 stays 🟡 Active. Prior
+note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 🟡 ACTIVATED** — EP-034's first sprint; six Tasks **T-0419–T-0424**
+created and Active, all five open Issues **I-0135–I-0139** assigned one Task each. ⚠️ Scope is those five
+**and nothing else**; the Detail Sheet begins **SP-116**. ⚠️ **T-0424 FILES two kind-list findings
+(I-0140, I-0141) rather than fixing them** — cured by D5 in SP-116. Next available: Sprint **SP-116**,
+Task **T-0425**, Issue **I-0142** (after T-0424 files two). Prior note follows.)*
+
+*2026-08-20 (**EP-034 `[Cross]` PROMOTED backlog → 🟡 ACTIVE and widened in place** — the
 Detail Sheet, relationship surface and Project↔World interaction. Design doc 🟢 **APPROVED FOR PLANNING**:
 ✅ **nine trades D1–D9 + three decisions Q-a/Q-b/Q-c all ruled.** AC1–AC12 written; **SP-115 🔵 Planning**
 (the five Issues, nothing else). ⚠️ **Q-a: EP-034 precedes EP-032** — its SP-107–SP-114 stay reserved and

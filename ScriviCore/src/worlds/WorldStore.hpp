@@ -18,6 +18,20 @@ struct WorldResolution {
     WorldStatus  status = WorldStatus::unavailable;
     AbsolutePath packagePath;      // valid only when status == available
     WorldRecord  world;            // populated only when status == available
+
+    // ⚠️ The best candidate path we TRIED, regardless of outcome (T-0419, I-0137).
+    //
+    // DELIBERATELY a separate field from `packagePath`, which means "verified"
+    // and is trusted as such by every caller. This one means only "where we
+    // looked" — it may not exist, may be unreadable, may belong to a different
+    // world. Widening `packagePath` to carry it would silently weaken a
+    // guarantee other code depends on; that is the mistake I-0115 taught.
+    //
+    // Why it must exist: WorldVolumeStatus.refine (Apple) distinguishes
+    // `unmounted` from `offline` by inspecting the path's volume — and it can
+    // only run on a world that is NOT available. Supplying only a verified path
+    // guaranteed the refinement could never fire for the one case it exists for.
+    AbsolutePath lastKnownPackagePath;
 };
 
 // One row for scrivi_list_worlds.
@@ -25,7 +39,9 @@ struct WorldSummary {
     std::string  worldID;
     std::string  displayName;      // live when available, else the binding's cache
     WorldStatus  status = WorldStatus::unavailable;
-    AbsolutePath packagePath;
+    AbsolutePath packagePath;      // set ONLY when status == available (verified)
+    // ⚠️ Set whenever a candidate was tried — see WorldResolution above (T-0419).
+    AbsolutePath lastKnownPackagePath;
     std::int64_t epochOffsetMs = 0;
 };
 

@@ -45,6 +45,13 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
                                 out.kind        = e.kind;
                                 out.displayName = e.displayName;
                                 out.slug        = e.slug;
+                                // ⚠️ I-0142: report the world for a REACHABLE
+                                // world object too, not only a pending one. The
+                                // field was previously set on the pending branch
+                                // alone, so a healthy world object resolved with
+                                // no world attributed — and the app could not
+                                // show which world it belongs to.
+                                out.worldID     = worldID;
                                 return out;
                             }
                         }

@@ -2,72 +2,69 @@
 
 **No Sprint is currently active.**
 
-**SP-100 was ✅ CLOSED 2026-08-19 (user-approved)** → [`Closed/Sprint-SP-100.md`](Closed/Sprint-SP-100.md).
-⚠️ **Its close closed EP-031** → [`../Epics/Closed/Epic-EP-031.md`](../Epics/Closed/Epic-EP-031.md).
+**SP-115 was ✅ CLOSED 2026-08-20 (user-approved)** → [`Closed/Sprint-SP-115.md`](Closed/Sprint-SP-115.md).
+**EP-034 remains 🟡 Active** — SP-116 is next.
 
 ---
 
-## What SP-100 delivered
+## What SP-115 delivered
 
-EP-031's **eleventh and last** sprint — planned, activated and closed on 2026-08-19.
+EP-034's **first** sprint — planned, activated, implemented, verified and closed on 2026-08-20.
 
-| Task | Outcome |
-| ---- | ------- |
-| **T-0390** | Repair-matrix world conditions — **§6a, 578 → 826 lines, world mentions 0 → 72** | ✅ Verified |
-| **T-0418** | ⚠️ Live-use pass on the real USB rig | ✅ Verified |
-| **T-0391** | AC1–AC10 verification + Epic close prep | ✅ Verified |
+**All seven Tasks and all six Issues ✅ Verified.** Scope was *"the five carried EP-031 Issues and nothing
+else"*; it grew by exactly one Task (**T-0425**) for a defect found **during verification**.
 
-**All ten ACs verified. AC1 and AC10 were AMENDED first** (rulings R1/R2) — each carried a clause the
-Epic's own §3.0 no-migration ruling had superseded, so verifying them as written would have asserted
-behaviour EP-031 deliberately chose not to build. ⚠️ **AC10's amended form is *stronger***, requiring both
-architectures and sanitizers.
+| Issue | Sev | Task | Outcome |
+| ----- | --- | ---- | ------- |
+| **I-0137** | **High** | T-0419 | ✅ ⚠️ **verified on the real rig, drive ejected** |
+| I-0136 | Medium | T-0420 | ✅ ⚠️ **at the CORE ONLY — surface owed** |
+| I-0139 | Medium | T-0421 | ✅ Verified |
+| I-0135 | Low | T-0422 | ✅ Verified |
+| I-0138 | Low | T-0423 | ✅ Verified |
+| **I-0142** | **High** | T-0425 | ✅ ⚠️ **found by the USER, not a suite** |
 
-**Suites at close:** `ctest` **520/520 macOS arm64** · x86-64 + sanitizers ✅ (CI 2×2; ScriviCore verified
-byte-identical to that run) · macOS interop **99/99 in 10 suites** · app **BUILD SUCCEEDED**.
-
----
-
-## ⚠️ Five Issues filed — none fixed, by design
-
-Rulings **R3** and **R4** required findings to be **filed, not fixed**: a verification sprint that writes
-fixes stops being one.
-
-| Issue | Severity | Found by |
-| ----- | -------- | -------- |
-| **I-0137** | **High** | T-0418 — ⚠️ **AC24's refinement cannot fire on real hardware** |
-| I-0136 | Medium | T-0390 — `formatVersion` read but never compared |
-| I-0139 | Medium | T-0418 — editor exit discoverability |
-| I-0135 | Low | T-0390 — no coverage for a corrupt `world.json` |
-| I-0138 | Low | T-0418 — disabled-but-unexplained removal |
-
-⚠️ **All five need triage. None blocked the Epic's close.**
+**Suites at close:** `ctest` **525/525** (was 520) · macOS interop **103/103 in 10 suites** (was 99) · app
+**BUILD SUCCEEDED**.
 
 ---
 
-## The finding that outlives the Epic
+## ⚠️ The lesson this sprint proved twice
 
-**I-0137.** `WorldVolumeStatus.refine` is correct, unit-tested and correctly wired — and guards on
-`packagePath.isEmpty`, while `WorldStore::listWorlds` supplies `packagePath` **only when the world is
-`available`**. ⚠️ **The one input it needs is guaranteed absent in the only case it exists for.**
+> **User, at close:** *"ctest, and unit tests, and integration tests are designed to test specific things.
+> But the true user experience can only be tested live, in app."*
 
-⚠️ **The interop suite contains a suite named *"World volume status refinement (EP-031 AC24)"* — and it
-passes.** That is not a contradiction; it *is* the defect. **What no unit test can see is that the caller
-never supplies the input.** *The tests pass and the feature does not reach the writer.*
+1. ⚠️ **I-0137 — a suite named after the acceptance criterion PASSED while the feature could not fire.**
+   `refine` was correct, unit-tested and correctly wired; the datum it needed never arrived, because
+   `packagePath` was populated only for *available* worlds — never for the case the refinement exists for.
+   **Only ejecting a real drive proved it.**
+2. ⚠️ **I-0142 — the user found in five minutes what 628 automated tests did not.** The visible symptom
+   (an empty world picker) was the lesser half: **renaming any world-scoped object was failing silently.**
 
 > ⚠️ **A passing test suite named after an acceptance criterion is not evidence the criterion is met in
-> the product.** This is the cleanest example the project has produced — and it was found by a writer
-> ejecting a drive, not by CI.
+> the product.**
+
+---
+
+## ⚠️ Carried out of SP-115 — do not read as delivered
+
+| Item | Owner |
+| ---- | ----- |
+| **T-0420 has no writer-facing surface** — a writer opening a too-new world sees *"unavailable"* with **no explanation**. ⚠️ `capability_without_surface`, shipped by the very sprint that fixed four instances of it | ⚠️ **unassigned — needs an owner** |
+| **I-0140 + I-0141** — filed by T-0424, fixed by neither, **by design** | **SP-116** (design-doc **D5**) |
 
 ---
 
 ## Next
 
-**No Epic is active.** Candidates in [`../Epics/Epic-backlog.md`](../Epics/Epic-backlog.md):
-**EP-034** `[Cross]` Object Detail & Media *(owes source creation — EP-031's largest carried gap)* ·
-**EP-032** · **EP-033** · **EP-026** `[Linux]`.
+**SP-116** — `[ScriviCore]` world assets + `assetPath` + the kind-scope endpoint (**D6, D7, D5**).
+⚠️ **D5 also retires I-0140 and I-0141.**
 
-**Next available:** Sprint **SP-107** · Task **T-0419** · Issue **I-0140** · Epic **EP-035**.
+⚠️ **SP-107–SP-114 remain RESERVED to EP-032** and are not available.
+
+**Next available:** Sprint **SP-116** · Task **T-0426** · Issue **I-0143**.
 
 ---
 
-*Last Updated: 2026-08-19 (SP-100 closed; EP-031 closed; no Sprint active.)*
+*Last Updated: 2026-08-20 (**SP-115 ✅ CLOSED, user-approved.** Seven Tasks + six Issues Verified and
+archived in the same step. ⚠️ **Two items carried out**: T-0420's missing surface (**unowned**) and
+I-0140/I-0141 (**SP-116**). Active Sprints 1 → 0; EP-034 stays 🟡 Active.)*

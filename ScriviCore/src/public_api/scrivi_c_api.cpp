@@ -892,8 +892,11 @@ const char* scrivi_list_edges_for(
         // Pending far endpoint (T-0380): the name is the binding's cache, and
         // the status tells the writer what to actually do about it.
         item.setBool  ("otherPending",     v.otherPending);
+        // ⚠️ I-0142: emitted whenever the endpoint has a world, pending or not.
+        // Gating it on `otherPending` meant a reachable world object crossed the
+        // boundary with no world attributed.
+        item.setString("otherWorldID",     v.otherWorldID);
         if (v.otherPending) {
-            item.setString("otherWorldID",     v.otherWorldID);
             item.setString("otherWorldStatus", v.otherWorldStatus);
         }
         doc.appendToArray("edges", std::move(item));
@@ -1085,6 +1088,9 @@ const char* scrivi_list_worlds(const char* projectRootPath)
         item.setString("displayName",   w.displayName);
         item.setString("status",        scrivi::worlds::worldStatusName(w.status));
         item.setString("packagePath",   w.packagePath);
+        // ⚠️ T-0419 (I-0137): "where we looked", carried regardless of status.
+        // NOT a verified path — see WorldResolution in WorldStore.hpp.
+        item.setString("lastKnownPackagePath", w.lastKnownPackagePath);
         item.setInt64 ("epochOffsetMs", w.epochOffsetMs);
         doc.appendToArray("worlds", std::move(item));
     }
@@ -1101,6 +1107,8 @@ const char* scrivi_get_world_status(const char* projectRootPath, const char* wor
     doc.setString("worldID",     S(worldID));
     doc.setString("status",      scrivi::worlds::worldStatusName(res.status));
     doc.setString("packagePath", res.packagePath);
+    // ⚠️ T-0419 (I-0137): carried regardless of status; NOT a verified path.
+    doc.setString("lastKnownPackagePath", res.lastKnownPackagePath);
     return heap(okEnvelope(std::move(doc)));
 }
 

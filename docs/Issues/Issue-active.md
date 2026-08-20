@@ -8,50 +8,64 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0135 | `[ScriviCore]` **A corrupt or unparseable `world.json` has no test coverage.** The `unavailable` fallback is covered generically (`WorldTests.cpp:234`) but **never for this cause**. ✅ The behaviour appears correct — `parseWorld` validates the schema tag and rejects an empty `worldID` (`WorldJson.cpp:31,43-46`), and resolution continues to the next candidate then degrades to `unavailable` (`WorldStore.cpp:291-292`) — ⚠️ **but nothing proves a corrupt world file is not auto-regenerated, deleted, or reported as `missing`.** §6a.0's *absence is never deletion* rule depends on that, and a corrupt file is **evidence the package EXISTS**, so reporting `missing` for it would be a guess of exactly the kind `WorldTests.cpp:277` was written to prevent. | Low | **unassigned** | 🔴 **Open (2026-08-19)** — found by **T-0390** while writing repair-matrix §6a.3; **filed, not fixed** (SP-100 ruling R3) |
-| I-0136 | `[ScriviCore]` ⚠️ **`world.json`'s `formatVersion` is read but NEVER compared against a supported maximum.** `parseWorld` reads it into the record (`WorldJson.cpp:41`) and **no code anywhere validates it** — `grep -rn "formatVersion >" ScriviCore/src/` returns **nothing**. **A world package written by a FUTURE version of Scrivi is parsed as if it were current**, silently, with any fields the current reader does not understand dropped. §6.16 of the repair matrix handles precisely this for *project* files (*"unsupported newer schema version"*); the world path has no equivalent. ⚠️ **This is the one class of defect that cannot be retrofitted:** by the time a newer world file exists in the wild, the old readers that mis-parsed it have already shipped — and a world package is **shared between projects and carried across machines**, which is exactly where version skew occurs. | **Medium** | **unassigned** | 🔴 **Open (2026-08-19)** — found by **T-0390**; **filed, not fixed** (SP-100 ruling R3) |
-| I-0137 | `[Apple]` ⚠️ **AC24's `unmounted`/`offline` refinement can NEVER FIRE — `packagePath` is empty for exactly the worlds it must diagnose.** Found by **T-0418** on the real USB rig: with the drive ejected, **every** warning surface said *"unavailable"*; `unmounted` appeared nowhere. **The refinement is not missing — it is unreachable.** `WorldVolumeStatus.refine` is correct, unit-tested (`ScriviInteropTests.swift:2377+`) and correctly wired at the single approved site (`ScriviEngineGraph.swift:445`). But it opens `guard !packagePath.isEmpty else { return coreStatus }`, and ⚠️ **`WorldStore::listWorlds` assigns `s.packagePath` ONLY when `status == available`** (`WorldStore.cpp`, listWorlds ll.17-18) — mirroring `resolve`, which sets `out.packagePath` only on its success branch. **So the one input the refinement needs is guaranteed absent in the one case it exists for.** Every consumer (`WorldsView`, object cards, `WorldWarningView`, `AppEnvironment`) reads the same unrefined value. ⚠️ **This is the "capability shipped, surface never built" pattern in a new costume** — the capability, its tests and its call site all exist, and the data path does not. ⚠️ **AC24 was marked Verified 2026-08-17 on evidence that could not have distinguished this**, because a fixture supplying a `packagePath` would pass while the real rig cannot. **Fix is likely one line in `listWorlds`** — carry the last-known candidate path regardless of status — but ⚠️ **`resolve` deliberately does not report a path it could not verify**, so the semantics need a ruling, not just an edit. ✅ **USER RULING 2026-08-19 — scope of blame settled:** *"The Task was verified. What was not is due to unimplemented software features."* ⚠️ **This Issue does NOT re-open T-0389 or unseat AC24/AC9.** The refinement T-0389 built is **correct and proven** — the interop suite's *"World volume status refinement (EP-031 AC24)"* passes. **The defect is in `WorldStore::listWorlds`, a component T-0389 does not own**, which starves it of `packagePath`. ⚠️ **The fix belongs to whoever owns the data path, not to the Apple layer that consumes it.** | **High** | **unassigned** | 🔴 **Open (2026-08-19)** — found by **T-0418**; **filed, not fixed** (R4) |
-| I-0138 | `[Apple]` **"Remove from scene" is disabled for a pending object but NOT explained.** `ObjectCard.swift:829` sets a **static** `.help("Remove from scene")` on the remove button, and `:833` disables it when `entry.pending`. ⚠️ **The code comment two lines above claims the opposite** — *"the affordance is disabled and explained, never simply absent (§7.2)"*. It is disabled and **unexplained**: hovering a greyed-out button yields the same tooltip as a working one, so the writer is told what the button *would* do and never why she cannot use it. `pendingHelp` (`:838`) already composes the right sentence — *"Held pending — this object's world is …"* — and is applied to a **different** control at `:800`. **§7.2 requires disabled-and-explained.** | Low | **unassigned** | 🔴 **Open (2026-08-19)** — found by **T-0418**; **filed, not fixed** (R4) |
-| I-0139 | `[Apple]` **Clicking an object's title opens the in-place editor with no evident way back to viewing.** Reported in T-0418 step 2: *"If I click the title of an object in a card it begins to edit the object. This panel cannot be dismissed."* ⚠️ **Partially a discoverability defect rather than a dead end** — the editor does carry a dismissal control: `ObjectDraftEditor` renders **Save/Create** (disabled until valid) and **Revert/Discard** (`ObjectCard.swift:674-679`), and `onDiscard` sets `draft = nil`, closing the panel (`:415`). **"Revert" is never disabled**, so the exit exists. The defect is that **a destructive-styled "Revert" does not read as "stop editing"**, and a single click on a title — with no explicit Edit affordance — puts the card into a mode whose exit is labelled as data loss. ⚠️ **Do not "fix" this by making the panel modal or adding a Cancel that bypasses the unfinished-work prompt** — §4.6 forbids the modal, and I-0119 shows how a commit route *around* that prompt filed an object into the wrong scene. | Medium | **unassigned** | 🔴 **Open (2026-08-19)** — found by **T-0418**; **filed, not fixed** (R4) |
+| I-0140 | `[Apple]` ⚠️ **Swift RESTATES the world-scope rule instead of deriving it.** `ObjectCard.swift:46` reads `var isWorldScoped: Bool { kind != "source" }` — a hand-written partition of `ObjectKind` in Swift. CLAUDE.md's standing rule calls this **"a defect on sight, even when it is currently correct"**, and it is correct *only* because `source` happens to be the sole project-scoped kind today. ⚠️ **This is the SAME SITE CLASS as SP-104's occurrence, which blocked object creation in the app entirely.** ⚠️ **The cause is STRUCTURAL, not careless:** `grep` over `scrivi.h` shows **no endpoint exposes a kind's scope at all** — there is no `scrivi_list_object_kinds` and no scope field anywhere in the ABI, so **Swift cannot derive what the boundary never tells it.** ✅ **Fix is already RULED — design doc D5:** ScriviCore exposes each kind and whether it is world-scoped, derived from `kAllStorableKinds` + `objectKindIsWorldScoped()`; Swift then derives. ⚠️ **Test against `scrivi_*`, not the facade** (`feedback_boundary_tests_not_facade`) — that is how I-0113 shipped green. | **Medium** | **SP-116** (D5) | 🔴 **Open (2026-08-20)** — filed by **T-0424**; ⚠️ **FILED, NOT FIXED by design** — fixing it inside a five-Issue sprint would blur SP-115's boundary |
+| I-0141 | `[ScriviCore]` ⚠️ **`scrivi.h:97-99`'s world-scope list has been STALE since 2026-08-14.** The Object-CRUD header comment still reads *"`worldID` … names the world a WORLD-SCOPED object lives in — artifact / chronicle / faction / rule. Pass "" (or NULL) for the project-scoped kinds, which is every other kind."* ⚠️ **SP-103 moved `character`, `location`, `item`, `building`, `vehicle` and `map` to world scope**, so the comment names **4 of 10** world-scoped kinds and its second sentence is now actively wrong — a reader who trusts it will pass `""` for a character and get `worldRequired`. ⚠️ **This is the documented failure mode exactly** — *"a list rots without being edited"*: nobody touched this comment; a kind's scope changed underneath it. **Occurrence EIGHT** of the restated-kind-list class. **Fix:** state the rule by reference to `objectKindIsWorldScoped()` rather than enumerating kinds, so it cannot rot again. | Low | **SP-116** | 🔴 **Open (2026-08-20)** — filed by **T-0424**; ⚠️ **FILED, NOT FIXED by design** (SP-115 scope ruling) |
 
-**Currently: 5 Issues open** — **I-0135/I-0136** filed by **T-0390**, **I-0137/I-0138/I-0139** by
-**T-0418**'s live pass. All awaiting **triage**, not verification.
+**Currently: 2 Issues open — both FILED by T-0424 for SP-116, neither fixed by design.**
 
-> ⚠️ **None is a regression, and none blocks SP-100.** All five were found by exercising shipped behaviour
-> rather than assuming it — which is exactly what rulings **R3** (document *and test*) and **R4** (the live
-> pass is required evidence) were written to produce.
->
-> ⚠️ **I-0137 is the most serious of the five and bears directly on the Epic's close.** AC24 was marked
-> **Verified 2026-08-17**, and the live pass shows its refinement **cannot fire on real hardware**. That is
-> a question for **T-0391's AC pass**, not something to settle here.
+| Issue | Sev | Sprint | What |
+| ----- | --- | ------ | ---- |
+| I-0140 | Medium | **SP-116** | Swift **restates** the world-scope rule (`ObjectCard.swift:46`) — ⚠️ structural: no ABI endpoint exposes kind scope |
+| I-0141 | Low | **SP-116** | `scrivi.h:97-99` world-scope list **stale since SP-103** — **occurrence eight** |
 
-> **I-0133** ✅ Verified 2026-08-19 → [`Verified/Issue-verified-0131-0140.md`](Verified/Issue-verified-0131-0140.md) ·
-> **I-0134** ⚪ Closed as a **non-issue** 2026-08-19 → [`Closed/Issue-closed-0134.md`](Closed/Issue-closed-0134.md)
-> (erroneous parity premise — **Apple is authoritative; Linux conforms**). Both under audit ruling **R-01**.
+⚠️ **Both are cured by the same fix** — design-doc **D5**'s kind-scope endpoint, which lets Swift *derive*
+scope instead of restating it. **Test it against `scrivi_*`, not the facade** — a facade test cannot see a
+boundary gap, which is how I-0113 shipped green.
 
 ---
 
-## Full entries
+## ✅ SP-115 — all six Issues Verified 2026-08-20
 
-> The five open Issues carry their detail in the table rows above, each citing `file:line`. ⚠️ **All five
-> are 🔴 Open and awaiting TRIAGE — none is `Resolved - Not Verified`.** They were filed by SP-100's
-> T-0390 and T-0418 under rulings R3/R4, which require findings to be **filed, not fixed**.
+| Issue | Sev | Task | Archive |
+| ----- | --- | ---- | ------- |
+| **I-0137** | **High** | T-0419 | [`Verified/Issue-verified-0131-0140.md`](Verified/Issue-verified-0131-0140.md) |
+| I-0136 | Medium | T-0420 | same |
+| I-0139 | Medium | T-0421 | same |
+| I-0135 | Low | T-0422 | same |
+| I-0138 | Low | T-0423 | same |
+| **I-0142** | **High** | T-0425 | [`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md) |
+
+⚠️ **I-0137 was verified on the REAL RIG** with the drive ejected — the check a passing suite genuinely
+cannot substitute for.
+
+⚠️ **I-0136 is Verified at the CORE ONLY.** Nothing in Scrivi surfaces `unsupportedWorldFormatVersion`, so
+a writer opening a too-new world still sees *"unavailable"* with **no explanation**. The core refuses
+correctly; **the writer-facing half does not exist** — `project_capability_without_surface` inside the very
+sprint that fixed four other instances. **Owed a surface in a later sprint.**
+
+⚠️ **I-0142 was found by the USER, not a suite** — and its unseen half (**renaming any world object
+failed**) was worse than the reported symptom.
 
 ---
 
-## Archive map
+*Last Updated: 2026-08-20 (**SP-115's six Issues ✅ VERIFIED by the user and ARCHIVED in the same step** —
+I-0135–I-0139 → `Verified/Issue-verified-0131-0140.md`, **I-0142 → a new decade file
+`Issue-verified-0141-0150.md`.** Open Issues 8 → 2 (**I-0140, I-0141** — filed for SP-116, unfixed by
+design). ⚠️ **I-0137 verified on the real rig, drive ejected.** ⚠️ **I-0136 verified at the CORE ONLY — its
+writer-facing surface does not exist and is owed.** Suites: ctest **525/525** · interop **103/103** · app
+**BUILD SUCCEEDED**. Next available Issue: **I-0143**. Prior note follows.)*
 
-| Range | Location |
-| ----- | -------- |
-| I-0001–I-0050 | `Verified/Issue-verified-0001-0010.md` … `-0041-0050.md` |
-| I-0051–I-0120 | `Verified/Issue-verified-0051-0060.md` … `-0111-0120.md` |
-| I-0121–I-0130 | `Verified/Issue-verified-0121-0130.md` |
-| I-0131–I-0133 | `Verified/Issue-verified-0131-0140.md` |
-| I-0019 | `Closed/Issue-closed-0019.md` |
-| I-0072, I-0073, I-0085, I-0103 | `Closed/Issue-closed-0072-0103.md` |
-| **I-0134** | `Closed/Issue-closed-0134.md` — ⚪ non-issue |
+*Last Updated: 2026-08-20 (**SP-115 implemented — all five Issues 🟢 Resolved - Not Verified**, and
+⚠️ **I-0140 + I-0141 FILED by T-0424** (restated-kind-list class, occurrence eight → **SP-116**, cured by
+D5). Suites: `ctest` **524/524** (was 520) · macOS interop **103/103 in 10 suites** (was 99) · app
+**BUILD SUCCEEDED**. ⚠️ **I-0137 still needs the REAL-RIG check** — drive ejected — before it can be
+Verified. Open Issues 5 → 7. Next available Issue: **I-0142**. Prior note follows.)*
 
----
+*Last Updated: 2026-08-20 (**All five open Issues ASSIGNED to SP-115** 🟡 Active under **EP-034** — one
+Task each, T-0419–T-0423. ✅ **Two carried rulings recorded**: **D9 = A** for I-0137
+(`lastKnownPackagePath`, distinctly named; `packagePath` NOT widened) and **Q-b** for I-0139 (**patch the
+control** — the Detail Sheet does **not** replace the inline editor, so it is a real fix). ⚠️ **I-0140 and
+I-0141 to be FILED by T-0424.** Next available Issue: **I-0142** after that filing. Prior note follows.)*
 
 *Last Updated: 2026-08-19 (**T-0390 + T-0418 filed five Issues — I-0135…I-0139.** The live pass on the
 real USB rig **passed steps 3, 4 and 5**: ⚠️ **AC23's no-intervention clause HELD** — reattaching the drive

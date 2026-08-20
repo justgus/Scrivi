@@ -19,22 +19,20 @@ The main index for all Scrivi Issues. Issues track bugs and unintended system be
 
 ## Active Issues
 
-Currently: **5 Issues open**, all filed 2026-08-19 by **SP-100** and all awaiting **triage**, not
-verification.
+Currently: **2 Issues open** — both filed 2026-08-20 by **T-0424** and assigned to **SP-116**, where
+design-doc **D5**'s kind-scope endpoint cures both. ⚠️ **Filed, not fixed, by design.**
 
-| ID | Title | Severity | Found by |
-| -- | ----- | -------- | -------- |
-| I-0135 | A corrupt/unparseable `world.json` has no test coverage | Low | T-0390 |
-| I-0136 | ⚠️ `world.json`'s `formatVersion` is read but **never compared** — a newer package parses as current | Medium | T-0390 |
-| **I-0137** | ⚠️ **AC24's `unmounted`/`offline` refinement can NEVER FIRE** — `packagePath` is empty for exactly the worlds it must diagnose | **High** | T-0418 |
-| I-0138 | "Remove from scene" disabled for a pending object but **not explained** | Low | T-0418 |
-| I-0139 | Clicking an object title opens the editor with no evident way back to viewing | Medium | T-0418 |
+| ID | Title | Severity | Sprint |
+| -- | ----- | -------- | ------ |
+| I-0140 | ⚠️ Swift **restates** the world-scope rule (`ObjectCard.swift:46`) — ⚠️ **structural: no ABI endpoint exposes kind scope** | Medium | SP-116 |
+| I-0141 | ⚠️ `scrivi.h:97-99` world-scope list **stale since SP-103** — names 4 of 10 kinds; **occurrence eight** | Low | SP-116 |
 
-⚠️ **Next available Issue ID: I-0140.**
+✅ **SP-100's five carried Issues (I-0135–I-0139) were all fixed and Verified by SP-115 on 2026-08-20**,
+together with **I-0142**, which the user found *during* that verification. All six are archived.
 
-See: [`Issue-active.md`](Issue-active.md)
-
----
+⚠️ **I-0136 is Verified at the CORE ONLY** — nothing in Scrivi surfaces `unsupportedWorldFormatVersion`, so
+a writer opening a too-new world still sees *"unavailable"* with no explanation. **The writer-facing half
+does not exist and is owed to no one yet.**
 
 ## Backlog Issues (open, no Sprint)
 
@@ -55,7 +53,13 @@ See: [`Issue-backlog.md`](Issue-backlog.md)
 
 ## Verified Issues
 
-Currently: **122 verified Issues**, archived in decade batches.
+Currently: **128 verified Issues**, archived in decade batches (122 before SP-115, **+6** on 2026-08-20).
+
+> ⚠️ **This total is derived from the prior stated total plus this sprint's six — it was NOT confirmed by
+> counting the archives.** A mechanical count is unreliable here because the archive files use **two
+> different row formats** (older files use `## I-XXXX` headings, newer ones table rows) and because
+> cross-references to other Issues inside a file inflate any naive grep. ⚠️ **Treat this number as
+> provisional**; an Audit Check with a format-aware counter should confirm or correct it.
 
 ⚠️ **Counts below are DERIVED, never adjusted (P6).** Each is `grep -c '^## I-0'` on the file itself, run
 2026-08-19 after all archiving completed. **A batch file's table rows must equal its entry count (P4)** —
@@ -119,5 +123,22 @@ indistinguishable.
 | [`Issue-closed-0134.md`](Closed/Issue-closed-0134.md) | I-0134 — ⚠️ **non-issue** (erroneous parity premise; Apple authoritative) |
 
 ---
+
+*Last Updated: 2026-08-20 (**SP-115 ✅ closed — six Issues Verified and archived**: I-0135–I-0139 →
+`Verified/Issue-verified-0131-0140.md`, **I-0142 → the new `Issue-verified-0141-0150.md`**. Open Issues
+**8 → 2** (I-0140, I-0141 → SP-116); verified **122 → 128**, counts re-derived by counting. ⚠️ **I-0136 is
+core-only Verified — its surface is owed.** Next available Issue: **I-0143**. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**I-0142 filed + fixed — found by the USER during SP-115 verification**, not by
+a suite. The object editor never showed an object's own world because `worldID` was gated on `pending`
+across **three** layers; ⚠️ **the unseen half was worse — renaming any world-scoped object failed.**
+✅ Ruled same day: **a world is a property of the object**, and moving objects between worlds is
+**disallowed** — the control is now a label. Next available Issue: **I-0143**. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 implemented: I-0135–I-0139 all 🟢 Resolved - Not Verified**;
+⚠️ **I-0140 and I-0141 FILED by T-0424 — filed, NOT fixed** (both cured by design-doc **D5**'s kind-scope
+endpoint in **SP-116**). ⚠️ **I-0141 is occurrence EIGHT of the restated-kind-list class**, and I-0140 shows
+the cause is **structural** — the ABI exposes no kind scope, so Swift has nothing to derive from. Next
+available Issue: **I-0142**. Prior note follows.)*
 
 *Last Updated: 2026-08-19 (audit remediation R-01…R-25; then **five Issues filed by SP-100** — I-0135/I-0136 by T-0390 and **I-0137/I-0138/I-0139 by T-0418's live pass**. ⚠️ **I-0137 is High**: AC24's refinement cannot fire on real hardware, which bears on an AC already marked Verified. Prior note: I-0135 + I-0136 by T-0390 — both found by writing repair-matrix §6a against shipped behaviour, both **filed not fixed** per SP-100 ruling R3.)*

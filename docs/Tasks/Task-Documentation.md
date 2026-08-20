@@ -50,8 +50,8 @@ sum to.
 | ⚪ Closed | 2 |
 | ⛔️ Removed as OBE | 2 |
 | ⚪ Never assigned | 1 |
-| ⚪ Unassigned *(T-0419, next available)* | 1 |
-| **Total Task IDs** | **418** — T-0001 … T-0419; T-0278 never assigned; **T-0419 unassigned** |
+| ⚪ Unassigned *(T-0426, next available)* | 1 |
+| **Total Task IDs** | **425** — T-0001 … T-0426; T-0278 never assigned; **T-0426 unassigned** |
 
 - **⚠️ Verified but UNFILED:** **186** — see the section below.
   *(180 → 176: T-0185–T-0188 left the register when correctly refiled as ⚪ Descoped.
@@ -686,8 +686,30 @@ archive files reconstructed after the fact from secondary sources.
 | T-0416 | ⚠️ **Seeded relation-type vocabulary does not reach existing projects** — `relation-types.json` re-seeds only when missing/unusable, so seeded-vocabulary changes are invisible to projects on disk (surfaced by I-0125; user's project hand-patched, general fix deferred) | unscheduled | EP-031 | 🔵 Backlog | — |
 | T-0417 | `[Apple]` Scene/Chapter boundary navigation — menu items, **no key equivalent** (macOS keyspace exhausted) | SP-102 | EP-031 | ✅ Verified (2026-08-18) | [`Task-active.md`](Task-active.md) |
 | T-0418 | ⚠️ **Live-use pass on the real rig** — 10 world kinds, relate, eject/reattach, reopen | SP-100 | EP-031 | ✅ Verified | [`Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md) |
-| T-0419 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
+| T-0419 | ⚠️ **`lastKnownPackagePath`** — carry the last-known candidate through `resolve`/`listWorlds`/ABI so AC24's world-status refinement can fire on real hardware (**I-0137**); ⚠️ `packagePath` keeps meaning "verified" | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0420 | `world.json` `formatVersion` compared against a supported maximum (I-0136) — ⚠️ cannot be retrofitted once newer files exist in the wild | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0421 | Inline object editor — a clear exit that does not read as data loss (I-0139); ⚠️ **no modal**, **no prompt-bypassing Cancel**, **editor stays** (Q-b) | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0422 | Corrupt `world.json` test coverage (I-0135) — ⚠️ must prove `unavailable`, **not** `missing` | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0423 | "Remove from scene" — disabled **and explained** (I-0138); ⚠️ keep the wording (AC22) | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0424 | ⚠️ **FILE (do not fix) the two kind-list findings** — `ObjectCard.swift:46`, `scrivi.h:97-99` → **I-0140, I-0141**; occurrence **eight**, cured by D5 in SP-116 | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0425 | ⚠️ **Object editor shows its object's OWN world, as a LABEL not a picker** (I-0142) — `worldID` was gated on `pending` in `EndpointResolver`, `RelationshipStore` and the C ABI; ⚠️ **rename of a world object failed** because `openObject` got `""`. ✅ User ruling: **moving between worlds is disallowed** | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
+| T-0426 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
 
 ---
+
+*Last Updated: 2026-08-20 (**T-0419–T-0425 ✅ Verified and archived** → `Verified/Task-verified-0419-0425.md`.
+⚠️ **T-0420 Verified at the CORE ONLY** — no writer-facing surface for `unsupportedWorldFormatVersion`;
+owed. Next available Task: **T-0426**. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**T-0425 added for I-0142** — user-found during verification; object editor
+world display + ⚠️ **broken rename of world objects**. Next available Task: **T-0426**. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 implemented — T-0419–T-0424 all 🟢 Implemented - Not Verified.**
+⚠️ **T-0424 FILED I-0140 + I-0141 rather than fixing them**, as scoped. ⚠️ **T-0419 awaits real-rig
+verification.** Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 activated for EP-034 — six Tasks T-0419–T-0424 created and Active.**
+⚠️ Scope is the five open Issues **and nothing else**; ⚠️ **T-0424 FILES two kind-list findings rather than
+fixing them** (cured by D5 in SP-116). Next available Task: **T-0425**. Prior note follows.)*
 
 *Last Updated: 2026-08-19 (audit remediation — R-06, R-18, R-25, R-26, R-27; **T-0418 assigned** + T-0419 opened; then 🟡 **SP-100 ACTIVATED** — T-0390 Active, T-0418/T-0391 assigned. Counts re-derived, 418 IDs.)*

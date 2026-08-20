@@ -121,6 +121,10 @@ struct ObjectCardKind: Sendable, Hashable {
         /// world to be **named** — "World «Eskandar» is on a disconnected volume",
         /// not an anonymous warning. Present only when `pending`.
         let pendingWorldID: String?
+        /// ⚠️ I-0142: the world this object BELONGS to, whether or not that world
+        /// is currently reachable. Distinct from `pendingWorldID`, which is about
+        /// a world being *away*. Empty for a project-scoped object.
+        let worldID: String
 
         var id: String { edgeID }
     }
@@ -183,7 +187,8 @@ struct ObjectCardKind: Sendable, Hashable {
                     sortIndex: edge.sortIndex,
                     pending: edge.otherPending,
                     pendingStatus: edge.pendingStatus,
-                    pendingWorldID: edge.otherPending ? edge.otherWorldID : nil
+                    pendingWorldID: edge.otherPending ? edge.otherWorldID : nil,
+                    worldID: edge.otherWorldID ?? ""
                 )
             }
             loadError = nil
@@ -351,7 +356,22 @@ struct ObjectCardBody: View {
         /// wrong scene and the writer had to repair it by hand.
         var originSceneID: String = ""
 
+        /// ⚠️ T-0421 (I-0139): the name this draft STARTED with, for an existing
+        /// object. It exists to answer one question — has the writer actually
+        /// changed anything? — because the exit button's meaning depends on it.
+        /// Empty for a new object, where `name` starting empty says the same.
+        var originalName: String = ""
+
         var isNew: Bool { objectID == nil }
+
+        /// True when leaving would discard real work. ⚠️ For an existing object
+        /// opened and not edited, this is FALSE — and that is the whole point of
+        /// I-0139: a single click on a title opened a mode whose only exit was
+        /// labelled as data loss, when there was no data to lose.
+        var hasUnsavedChanges: Bool {
+            name.trimmingCharacters(in: .whitespacesAndNewlines)
+                != originalName.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
     }
 
     var body: some View {
@@ -376,10 +396,15 @@ struct ObjectCardBody: View {
                         ObjectCardRow(entry: entry) {
                             model.removeFromScene(edgeID: entry.edgeID)
                         } onEdit: {
+                            // ⚠️ I-0142: seed the ACTUAL world. This was hardcoded
+                            // to "" , so the editor's world control always opened
+                            // on nothing — and because it was a Picker, choosing
+                            // the object's own world looked like a pending edit.
                             draft = ObjectDraft(objectID: entry.objectID,
                                                 name: entry.displayName,
-                                                worldID: "",
-                                                originSceneID: context.sceneID)
+                                                worldID: entry.worldID,
+                                                originSceneID: context.sceneID,
+                                                originalName: entry.displayName)
                         }
                     }
                     // §7.2: name the world and say what is wrong with it. The rows
@@ -653,7 +678,27 @@ private struct ObjectDraftEditor: View {
             // A world-scoped kind must be told where it lives; a project-scoped one
             // never asks, because the question would be meaningless.
             if cardKind.isWorldScoped {
-                if worlds.isEmpty {
+                // ⚠️ I-0142 / user ruling 2026-08-20. An object ALREADY IN A WORLD
+                // shows that world as a LABEL, never a picker.
+                //
+                // A picker here implied the world could be changed, and "Save"
+                // then offered to move the object between worlds. That opens a
+                // set of questions nobody has answered: do related objects
+                // migrate? are cross-world edges allowed? are they deleted,
+                // remapped to an equivalent target, or left dangling? Until those
+                // are ruled, the UI must not offer the operation at all.
+                //
+                // The picker survives ONLY for a genuinely unassigned object —
+                // creating a new one, where a world must be chosen.
+                if !draft.worldID.isEmpty {
+                    HStack(spacing: 4) {
+                        Text("World")
+                            .foregroundStyle(.secondary)
+                        Text(worldName(for: draft.worldID))
+                    }
+                    .font(.caption)
+                    .help("An object cannot be moved between worlds.")
+                } else if worlds.isEmpty {
                     Text("No world yet — add one from the Worlds menu first.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -675,10 +720,27 @@ private struct ObjectDraftEditor: View {
                 Button(commitTitle, action: onCommit)
                     .font(.caption)
                     .disabled(!canCommit || trimmedName.isEmpty || needsWorld)
-                // Named concretely per §4.6.1 — the two consequences differ.
-                Button(draft.isNew ? "Discard" : "Revert", role: .destructive,
+                // ⚠️ T-0421 (I-0139): the exit is named for what it ACTUALLY does,
+                // and is only destructive-styled when it actually destroys work.
+                //
+                // The defect: a single click on a title opens this editor, and its
+                // only way out read "Revert" in red — a label that means "throw
+                // away my changes" to a writer who has made none. She was told the
+                // exit was data loss, so she did not take it. The exit existed;
+                // it was mislabelled.
+                //
+                // ⚠️ Deliberately NOT fixed by making this panel modal (§4.6
+                // forbids it), by removing the inline editor (Q-b keeps it — the
+                // Detail Sheet is ADDITIVE), or by adding a Cancel that bypasses
+                // the unfinished-work prompt — that route is how I-0119 filed an
+                // object into the wrong scene.
+                //
+                // Named concretely per §4.6.1 — the consequences genuinely differ.
+                Button(exitTitle,
+                       role: draft.hasUnsavedChanges ? .destructive : nil,
                        action: onDiscard)
                     .font(.caption)
+                    .help(exitHelp)
                 Spacer()
             }
         }
@@ -689,6 +751,33 @@ private struct ObjectDraftEditor: View {
                 .strokeBorder(.tertiary, style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
         )
         .task { focused = true }
+    }
+
+    /// ⚠️ T-0421 (I-0139). Three cases, three honest labels:
+    ///   • a new object with nothing typed → "Cancel" (nothing is lost)
+    ///   • an existing object, unedited     → "Done" (viewing, not editing)
+    ///   • anything with real changes       → "Discard"/"Revert" (work IS lost)
+    /// The world's name for display. ⚠️ Falls back to the raw ID rather than a
+    /// blank or a guess: an unreachable world is still the object's world, and
+    /// saying nothing would reintroduce exactly the "which world?" gap I-0142 was.
+    private func worldName(for id: String) -> String {
+        worlds.first { $0.worldID == id }?.displayName ?? id
+    }
+
+    private var exitTitle: String {
+        if draft.hasUnsavedChanges { return draft.isNew ? "Discard" : "Revert" }
+        return draft.isNew ? "Cancel" : "Done"
+    }
+
+    private var exitHelp: String {
+        if draft.hasUnsavedChanges {
+            return draft.isNew
+                ? "Discard this new \(cardKind.title.lowercased()) without creating it."
+                : "Revert your changes and stop editing. The object is not deleted."
+        }
+        return draft.isNew
+            ? "Close without creating anything."
+            : "Stop editing. Nothing is changed and nothing is deleted."
     }
 
     private var commitTitle: String {
@@ -826,8 +915,19 @@ private struct ObjectCardRow: View {
             // ⚠️ AC22: the edge goes, the object stays. The wording is load-bearing
             // — "Delete" here would misdescribe what happens and scare a writer off
             // an action that is not destructive to her object.
-            .help("Remove from scene")
-            .accessibilityLabel("Remove \(entry.displayName) from scene")
+            //
+            // ⚠️ T-0423 (I-0138): when the button is DISABLED, the tooltip must say
+            // WHY. It previously read "Remove from scene" in both states, so
+            // hovering a greyed-out button told the writer what it would do and
+            // never why she could not use it — disabled and UNexplained, while the
+            // comment below claimed the opposite. §7.2 requires disabled-AND-
+            // explained. `pendingHelp` already composed the right sentence and was
+            // applied only to the ⚠ badge.
+            .help(entry.pending ? pendingHelp : "Remove from scene")
+            .accessibilityLabel(
+                entry.pending
+                    ? "Remove \(entry.displayName) from scene — unavailable. \(pendingHelp)"
+                    : "Remove \(entry.displayName) from scene")
             // The graph is frozen toward an unavailable world: the affordance is
             // disabled and explained, never simply absent (§7.2).
             .disabled(entry.pending)

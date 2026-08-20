@@ -4,56 +4,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-## SP-115: EP-034 — the five open Issues
-
-**Status:** 🔵 Planning
-**Epic:** EP-034 `[Cross]` Object Detail & Media — Detail Sheets & Project↔World Interaction
-**Goal:** Resolve the five Issues EP-031 filed and deliberately did not fix (I-0135–I-0139).
-⚠️ **This sprint fixes those five and NOTHING else** — user ruling 2026-08-20. No Detail Sheet work.
-**Start Date:** — (awaiting activation)
-**End Date:** —
-**Capacity:** TBD
-
-### Assigned Issues
-
-| ID | Sev | What | Ruling / approach |
-| -- | --- | ---- | ----------------- |
-| **I-0137** | **High** | AC24's world-status refinement **cannot fire on real hardware** — `packagePath` is empty for exactly the worlds it must diagnose | ✅ **D9 = A**: carry the last-known candidate in a **distinctly named** `lastKnownPackagePath`. ⚠️ **`packagePath` keeps meaning "verified" and is NOT widened** |
-| I-0136 | Medium | `world.json` `formatVersion` read but **never compared** | Compare against a supported maximum; §6.16 does this for project files. ⚠️ **D6 raises the stakes** — EP-034 adds world writes |
-| I-0139 | Medium | Title click opens an editor whose only exit reads "Revert" | ✅ **Q-b = patch the control.** ⚠️ **The Detail Sheet does NOT replace the inline editor** — it stays, so its defect is a real fix |
-| I-0135 | Low | No coverage for a **corrupt** `world.json` | Add the test. ⚠️ Must prove a corrupt file is **not** reported `missing` — it is evidence the package EXISTS |
-| I-0138 | Low | "Remove from scene" **disabled but unexplained** | `pendingHelp` already composes the right sentence (`ObjectCard.swift:838`); it is applied to a different control (`:829`) |
-
-### Assigned Tasks
-
-⚠️ **Two Issues to be FILED by this sprint** (design doc §10) — the restated-kind-list class, occurrence
-**eight**:
-
-| Finding | Where |
-| ------- | ----- |
-| Swift restates the world-scope rule — `var isWorldScoped: Bool { kind != "source" }` | `ObjectCard.swift:46` |
-| Header comment stale since SP-103 — lists 4 of 10 world-scoped kinds | `scrivi.h:97-99` |
-
-⚠️ **File them; do NOT fix them here.** Both are cured by **D5's kind-scope endpoint in SP-116**, and
-fixing them in a five-Issue sprint would repeat SP-100's mistake in reverse.
-
-### Sprint Notes
-
-⚠️ **Verify each Issue against ITS OWN trigger** (`feedback_verify_each_half_separately`) — I-0132 was
-wrongly credited once already, and **I-0137 is exactly the shape that fools a fixture**: its unit tests
-pass today while the feature cannot fire on real hardware.
-
-⚠️ **I-0137 must be verified on the REAL RIG** — the `tintagael` project + `Eskandar` world on USB, drive
-ejected. **A fixture supplying `packagePath` passes while the real rig cannot.** That is how this defect
-reached a Verified AC.
-
-⚠️ **Test boundary changes against `scrivi_*`, never the C++ facade** (`feedback_boundary_tests_not_facade`)
-— a facade test cannot see a boundary gap, which is how I-0113 shipped green.
-
-⚠️ **Check Scrivi is not running before `xcodebuild test`** (`feedback_check_scrivi_running_before_tests`).
-
----
-
 ## ⚠️ RESERVED Sprint IDs — SP-107–SP-114 (EP-032)
 
 **These are NOT in Planning, and none is ready to activate.** ⚠️ **EP-032 was returned to the Epic backlog
@@ -88,7 +38,11 @@ source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures
 
 **Next available Sprint ID for any OTHER work: SP-116** — ⚠️ **SP-115 is now taken** (EP-034).
 
-**Currently: 1 Sprint in Planning (SP-115); 8 IDs reserved (SP-107–SP-114).**
+**Currently: 0 Sprints in Planning; 8 IDs reserved (SP-107–SP-114).**
+
+> ✅ **SP-115 was ACTIVATED 2026-08-20 and left this file in the same step** — per the standing rule that
+> **a Sprint leaves the backlog at ACTIVATION and never returns.** Its plan and status live in
+> [`Sprint-active.md`](Sprint-active.md). ⚠️ **No closure note will be written here.**
 
 ⚠️ **SP-115 executes BEFORE SP-107–SP-114.** ✅ **Q-a ruled 2026-08-20: EP-034 precedes EP-032**, so sprint
 IDs run **out of sequence** — precedented (SP-083 ran before SP-082; SP-102 before SP-100). **Next
@@ -114,6 +68,11 @@ returns; whether it later closed is recorded in [`Closed/`](Closed/) and in
 > (the R-28 safeguard) — SP-095's gating ruling, SP-096's ID-prefix finding, SP-103's scope ruling and
 > T-0410's OBE removal, and the SP-097/098/099/102/105/106 rulings. **All present in `Closed/`.
 > Nothing was reconstructed because nothing was lost.**
+
+*Last Updated: 2026-08-20 (**SP-115 🟡 ACTIVATED and REMOVED from this file in the same step** — the
+standing rule: a Sprint leaves at activation and never returns. Its six Tasks **T-0419–T-0424** are Active;
+plan in [`Sprint-active.md`](Sprint-active.md). **0 Sprints in Planning; 8 IDs still reserved to EP-032.**
+Next available for other work: **SP-116**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**SP-115 added 🔵 Planning for EP-034 — the five open Issues I-0135–I-0139 and
 NOTHING else**, per user ruling; the Detail Sheet work starts at SP-116. ⚠️ **SP-115 executes BEFORE the

@@ -8,7 +8,7 @@ change** (world assets + asset path + kind-scope endpoint).
 **Goal:** Let a writer **see and edit what an object actually is** — description, notes, imagery,
 **and its relationships** — through a navigable **Detail Sheet**, and attribute it with sources.
 **Date Created:** 2026-08-18 · **Promoted to Active:** 2026-08-20
-**Target Close Date:** TBD — set when SP-115 closes
+**Target Close Date:** TBD — 1 of 8 sprints closed (SP-115 ✅ 2026-08-20)
 **Actual Close Date:** —
 
 **Design document:** [`../Scrivi_Object_Detail_Sheets_Design_v0_1.md`](../Scrivi_Object_Detail_Sheets_Design_v0_1.md)
@@ -92,8 +92,8 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
-| **SP-115** | ⚠️ **The five Issues, and nothing else** (I-0135–I-0139) | 🔵 **Planning** | — |
-| SP-116 | `[ScriviCore]` World assets + `assetPath` + kind-scope endpoint (D5, D6, D7) | ⚪ Planned | — |
+| **SP-115** | ⚠️ **The five Issues + I-0142 (user-found)** — all ✅ Verified | ✅ **Closed** | 2026-08-20 |
+| SP-116 | `[ScriviCore]` World assets + `assetPath` + kind-scope endpoint (D5, D6, D7) — ⚠️ **also retires I-0140 + I-0141** | 🔵 **Next** | — |
 | SP-117 | `[Apple]` Detail Sheet shell — pane, navigation, fields, save (D1, D2, D3) | ⚪ Planned | — |
 | SP-118 | `[Apple]` Related objects + relationship creation (D4) | ⚪ Planned | — |
 | SP-119 | `[Apple]` Images: import, display, card thumbnails (D8) | ⚪ Planned | — |
@@ -107,19 +107,35 @@ of the five additions came from USE, not planning.**
 ⚠️ **SP-107–SP-114 are RESERVED to EP-032 and stay reserved.** This Epic starts at **SP-115**, so
 ⚠️ **sprint IDs run OUT OF SEQUENCE** — precedented (SP-083 before SP-082; SP-102 before SP-100).
 
+### Tasks
+
+| ID | Title | Sprint | Priority | Status |
+| -- | ----- | ------ | -------- | ------ |
+| **T-0419** | ⚠️ `lastKnownPackagePath` (I-0137) | SP-115 | **High** | ✅ **Verified** |
+| T-0420 | `formatVersion` comparison (I-0136) | SP-115 | Medium | ✅ **Verified** |
+| T-0421 | Inline editor exit (I-0139) | SP-115 | Medium | ✅ **Verified** |
+| T-0422 | Corrupt `world.json` coverage (I-0135) | SP-115 | Low | ✅ **Verified** |
+| T-0423 | Disabled **and explained** (I-0138) | SP-115 | Low | ✅ **Verified** |
+| **T-0424** | ⚠️ **FILE** the two kind-list findings → I-0140, I-0141 | SP-115 | Medium | ✅ **Verified** |
+
 ### Issues
 
-| ID | Sev | Assigned |
+| ID | Sev | Outcome |
 | -- | --- | -------- |
-| **I-0137** | **High** | **SP-115** — D9 ruling: `lastKnownPackagePath` |
-| I-0136 | Medium | **SP-115** — `formatVersion` never compared ⚠️ **D6 raises the stakes** |
-| I-0139 | Medium | **SP-115** — ⚠️ **a real fix** (Q-b); patch the inline editor's exit |
-| I-0135 | Low | **SP-115** — corrupt `world.json` coverage |
-| I-0138 | Low | **SP-115** — disabled-but-unexplained removal |
+| **I-0137** | **High** | ✅ **Verified** — `lastKnownPackagePath`; ⚠️ **on the real rig, drive ejected** |
+| I-0136 | Medium | ✅ Verified at the **CORE ONLY** — ⚠️ **no writer-facing surface; owed** |
+| I-0139 | Medium | ✅ Verified — exit named for what it does |
+| I-0135 | Low | ✅ Verified — `unavailable`, never `missing` |
+| I-0138 | Low | ✅ Verified — disabled **and explained** |
 
-⚠️ **Two more to be FILED by SP-115** (design doc §10): the Swift scope restatement
+| **I-0142** | **High** | ✅ **Verified** — ⚠️ **found by the USER, not a suite**; world shown as a label, **moves disallowed** |
+
+✅ **All six archived 2026-08-20** → `../Issues/Verified/Issue-verified-0131-0140.md` and
+`../Issues/Verified/Issue-verified-0141-0150.md`.
+
+⚠️ **Two more were FILED by SP-115** (design doc §10): the Swift scope restatement
 (`ObjectCard.swift:46`) and the stale header comment (`scrivi.h:97-99`) — ⚠️ **occurrence eight** of the
-restated-kind-list class, both fixed by D5's endpoint.
+restated-kind-list class — **both 🔴 Open, assigned to SP-116**, where D5's endpoint cures them.
 
 ### Scope Notes
 
@@ -233,11 +249,23 @@ hand-authored fixtures — ⚠️ **the exact `capability_without_surface` failu
 
 ---
 
+*Last Updated: 2026-08-20 (**SP-115 ✅ CLOSED, user-approved — EP-034's first of 8 sprints done.** Seven
+Tasks + six Issues Verified and archived. ⚠️ **Carried out of SP-115 and NOT delivered:** T-0420's
+writer-facing surface (**unowned**), and **I-0140/I-0141** → **SP-116**. EP-034 remains 🟡 Active; **SP-116
+is next** (D6, D7, D5). Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 → 🟠 REVIEW — all seven Tasks + six Issues ✅ Verified and archived.**
+⚠️ **I-0142 was found by the USER during verification**, not a suite: the object editor never showed an
+object's own world, and **renaming a world object was broken outright**. ✅ **Ruled: objects cannot move
+between worlds** — the control is a label. ⚠️ **Carried out of SP-115: T-0420 has no writer-facing
+surface**; **I-0140/I-0141 stay open for SP-116**. Suites: ctest **525/525** · interop **103/103** · app
+**BUILD SUCCEEDED**. Next: **SP-116** (D5, D6, D7). Prior note follows.)*
+
 *Last Updated: 2026-08-20 (**EP-034 `[Cross]` PROMOTED backlog → 🟡 ACTIVE and widened in place**, per user
 ruling, from "object fields beyond `displayName`" to the full **Detail Sheet + relationship surface +
 Project↔World interaction**. Design doc `Scrivi_Object_Detail_Sheets_Design_v0_1.md` 🟢 **APPROVED FOR
 PLANNING** — ✅ **all nine trades D1–D9 and all three decisions Q-a/Q-b/Q-c ruled.** AC1–AC12 written;
-8 sprints estimated; **SP-115 🔵 Planning — the five Issues I-0135–I-0139 and nothing else.** ⚠️ **Q-a: this
+8 sprints estimated; **SP-115 🟡 ACTIVE — the five Issues I-0135–I-0139 and nothing else.** ⚠️ **Q-a: this
 Epic precedes EP-032**, whose SP-107–SP-114 stay reserved, so IDs run out of sequence. ⚠️ **Q-b: the Detail
 Sheet is ADDITIVE** — inline editor and list item remain, so **I-0139 is a real fix, not a disposition.**
 ⚠️ **Q-c: iOS/visionOS explicitly deferred**; `[Linux]` parity stays in scope. Active Epics 0 → 1.)*

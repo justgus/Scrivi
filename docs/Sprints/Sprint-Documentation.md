@@ -16,7 +16,9 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 **11 sprints are all closed**. Each closed Sprint's record lives in its own archive file and is **not**
 restated here.
 
-🟡 **EP-034** `[Cross]` is the active Epic (2026-08-20). **SP-115** 🔵 Planning — the five open Issues.
+🟡 **EP-034** `[Cross]` is the active Epic. **No Sprint is active** — **SP-115 ✅ CLOSED 2026-08-20**
+(user-approved), all seven Tasks and six Issues Verified. **SP-116** is next. Next available Sprint ID:
+**SP-116**. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032.**
 Next available Sprint ID: **SP-116**. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER
 EP-034 (Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**; see Statistics.
 
@@ -372,7 +374,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | SP-112 | ⚠️ **RESERVED (EP-032)** — `[Cross]` Deleted/pending targets + repair-matrix rows (AC6) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
 | SP-113 | ⚠️ **RESERVED (EP-032)** — `[Linux]` Parity (AC8) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
 | SP-114 | ⚠️ **RESERVED (EP-032)** — AC verification + live-use pass on the real rig + Epic close prep (AC7, AC10) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
-| SP-115 | ⚠️ **The five open Issues (I-0135–I-0139) and NOTHING else** | EP-034 `[Cross]` | — | — | 🔵 Planning |
+| SP-115 | ⚠️ **The five open Issues + I-0142 (user-found)** — all ✅ Verified | EP-034 `[Cross]` | 2026-08-20 | 2026-08-20 | ✅ Closed |
 
 ## Statistics
 
@@ -382,7 +384,7 @@ audit ruling **R-22(④)**, because a summary that restates a table will drift f
 by status, read the table.**
 
 - **Next available Sprint ID:** **SP-116** — ⚠️ **not SP-107.** See the reserved block below.
-- **Total Sprint IDs issued:** 114 (SP-001–SP-115) — 105 executed, **8 reserved (SP-107–SP-114)**, **1 in Planning (SP-115)**
+- **Total Sprint IDs issued:** 114 (SP-001–SP-115) — 106 executed, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -411,6 +413,21 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-20 (**SP-115 ✅ CLOSED, user-approved** — EP-034's first sprint; seven Tasks + six
+Issues Verified and archived in the same step → [`Closed/Sprint-SP-115.md`](Closed/Sprint-SP-115.md).
+⚠️ **I-0137 verified on the real rig, drive ejected**; ⚠️ **I-0142 found by the user, not a suite.**
+⚠️ **Carried out: T-0420's missing surface (unowned)** and **I-0140/I-0141 (SP-116)**. Suites: ctest
+**525/525** · interop **103/103** · app **BUILD SUCCEEDED**. Next: **SP-116**. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 → 🟠 REVIEW: all seven Tasks + six Issues ✅ Verified and archived in
+the same step.** ⚠️ **I-0137 verified on the real rig, drive ejected** — the check a suite cannot
+substitute for. ⚠️ **Carried out: T-0420 has no writer-facing surface**, and **I-0140/I-0141 stay open for
+SP-116.** ⚠️ **Claude cannot close a Sprint** — awaiting user approval. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**SP-115 🟡 ACTIVATED** — EP-034's first sprint; six Tasks T-0419–T-0424.
+⚠️ Scope is the five Issues **and nothing else**; the Detail Sheet begins SP-116. ⚠️ **SP-115 executes
+BEFORE the reserved SP-107–SP-114** (Q-a). Next available for other work: **SP-116**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**EP-034 activated → SP-115 🔵 Planning — the five open Issues I-0135–I-0139 and
 nothing else** (user ruling). ⚠️ **Q-a ruled EP-034 precedes EP-032**, so **SP-115+ executes BEFORE the

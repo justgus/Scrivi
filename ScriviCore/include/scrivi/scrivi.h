@@ -251,6 +251,21 @@ const char* scrivi_create_world(const char* projectRootPath,
 const char* scrivi_add_world(const char* projectRootPath,
                              const char* packagePath);
 
+/* Both emit `packagePath` AND `lastKnownPackagePath`, and ⚠️ THEY MEAN
+ * DIFFERENT THINGS (T-0419, I-0137):
+ *
+ *   packagePath           — a VERIFIED path. Non-empty ONLY when status ==
+ *                           "available". Callers may trust it exists and holds
+ *                           this world.
+ *   lastKnownPackagePath  — where resolution LOOKED, whatever the outcome. It
+ *                           may not exist, may be unreadable, or may hold a
+ *                           DIFFERENT world (the identity-mismatch case).
+ *                           ⚠️ NEVER treat it as proof of anything.
+ *
+ * Why the second exists: a host distinguishing "the volume is unmounted" from
+ * "the world is merely offline" needs a path in exactly the case `packagePath`
+ * is empty by design. Reusing one field for both would have widened a trusted
+ * guarantee — the mistake I-0115 was written about. */
 const char* scrivi_list_worlds(const char* projectRootPath);
 const char* scrivi_get_world_status(const char* projectRootPath, const char* worldID);
 const char* scrivi_get_world_binding(const char* projectRootPath, const char* worldID);

@@ -421,8 +421,30 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
     public let worldID:       String
     public let displayName:   String
     public let status:        String
+    /// A **verified** path. Non-empty only when `status == "available"`.
     public let packagePath:   String
+    /// ⚠️ Where resolution **looked**, whatever the outcome (T-0419, I-0137).
+    /// May not exist, may be unreadable, may hold a different world.
+    /// **Never treat it as proof of anything** — it exists so volume refinement
+    /// can run in exactly the case `packagePath` is empty by design.
+    /// Defaulted for tolerance of an older core that does not emit it.
+    public let lastKnownPackagePath: String
     public let epochOffsetMs: Int64
+
+    private enum CodingKeys: String, CodingKey {
+        case worldID, displayName, status, packagePath, lastKnownPackagePath, epochOffsetMs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        worldID       = try c.decodeIfPresent(String.self, forKey: .worldID) ?? ""
+        displayName   = try c.decodeIfPresent(String.self, forKey: .displayName) ?? ""
+        status        = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        packagePath   = try c.decodeIfPresent(String.self, forKey: .packagePath) ?? ""
+        lastKnownPackagePath =
+            try c.decodeIfPresent(String.self, forKey: .lastKnownPackagePath) ?? ""
+        epochOffsetMs = try c.decodeIfPresent(Int64.self, forKey: .epochOffsetMs) ?? 0
+    }
 
     public var id: String { worldID }
 
@@ -442,7 +464,12 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
     /// string from a newer core must degrade honestly.
     public var worldStatus: WorldStatus {
         let reported = WorldStatus(rawValue: status) ?? .unavailable
-        return WorldVolumeStatus.refine(coreStatus: reported, packagePath: packagePath)
+        // ⚠️ T-0419 (I-0137): refine from the LAST-KNOWN path, not the verified one.
+        // `packagePath` is empty by design for every world this refinement exists
+        // to diagnose, so passing it guaranteed the refinement could never fire.
+        // Fall back to `packagePath` so an older core still behaves as before.
+        let probe = lastKnownPackagePath.isEmpty ? packagePath : lastKnownPackagePath
+        return WorldVolumeStatus.refine(coreStatus: reported, packagePath: probe)
     }
 }
 
@@ -460,10 +487,32 @@ public struct ListWorldsResult: Decodable, Sendable {
 public struct WorldStatusResult: Decodable, Sendable {
     public let worldID:     String
     public let status:      String
+    /// A **verified** path — non-empty only when the world is available.
     public let packagePath: String
+    /// ⚠️ Where resolution looked, whatever the outcome (T-0419, I-0137).
+    public let lastKnownPackagePath: String
 
+    private enum CodingKeys: String, CodingKey {
+        case worldID, status, packagePath, lastKnownPackagePath
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        worldID     = try c.decodeIfPresent(String.self, forKey: .worldID) ?? ""
+        status      = try c.decodeIfPresent(String.self, forKey: .status) ?? ""
+        packagePath = try c.decodeIfPresent(String.self, forKey: .packagePath) ?? ""
+        lastKnownPackagePath =
+            try c.decodeIfPresent(String.self, forKey: .lastKnownPackagePath) ?? ""
+    }
+
+    /// ⚠️ Refined, exactly as `WorldEntry.worldStatus` is. This accessor
+    /// previously returned the RAW core status while its sibling refined —
+    /// two paths to "what status is this world in", disagreeing. Found while
+    /// fixing I-0137 (T-0419).
     public var worldStatus: WorldStatus {
-        WorldStatus(rawValue: status) ?? .unavailable
+        let reported = WorldStatus(rawValue: status) ?? .unavailable
+        let probe = lastKnownPackagePath.isEmpty ? packagePath : lastKnownPackagePath
+        return WorldVolumeStatus.refine(coreStatus: reported, packagePath: probe)
     }
 }
 

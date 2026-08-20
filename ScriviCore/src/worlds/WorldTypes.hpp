@@ -23,6 +23,19 @@ struct WorldRecord {
     std::string createdAt;
     std::string modifiedAt;
     int         formatVersion = 1;
+
+    // ⚠️ The highest world.json formatVersion this build understands (T-0420,
+    // I-0136). A package declaring a HIGHER version is refused rather than
+    // parsed as if current — see parseWorld.
+    //
+    // Forward compatibility is the one property a shared, sync-carried package
+    // format cannot retrofit: by the time a newer file exists in the wild, the
+    // old readers that silently mis-parsed it have already shipped. A world
+    // package is shared between projects and carried across machines, which is
+    // exactly where version skew occurs.
+    //
+    // ⚠️ RAISE THIS ONLY when this build can actually READ the newer shape.
+    static constexpr int kSupportedFormatVersion = 1;
 };
 
 // One cached world-object entry, mirrored into the project's binding (§6.3) so a

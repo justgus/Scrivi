@@ -263,6 +263,14 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
         candidates.push_back(b.reference.lastKnownAbsolutePath);
     }
 
+    // ⚠️ T-0419 (I-0137): record where we are about to look, BEFORE we know
+    // whether looking succeeds. The first candidate is the best one by §6.4's
+    // ordering (relative path first — it survives moving a project and its
+    // worlds together). This is "where we looked", never "what we verified".
+    if (!candidates.empty()) {
+        out.lastKnownPackagePath = candidates.front();
+    }
+
     bool sawContainerButNoPackage = false;
 
     for (const auto& cand : candidates) {
@@ -289,19 +297,40 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
         }
 
         auto parsedR = schemas::parseWorld(textR.value());
-        if (!parsedR.ok()) { continue; }
+        if (!parsedR.ok()) {
+            // ⚠️ T-0420 (I-0136): a package too NEW to parse is emphatically not
+            // absent — we just read its world.json. Falling through to the
+            // sawContainerButNoPackage logic could report `missing`, which
+            // §6a.0 forbids: absence is never deletion, and a wrong "missing"
+            // invites destructive writer remedies against an intact world.
+            //
+            // `unavailable` is the honest answer — the package is there and we
+            // cannot use it. The reason reaches the writer through the parse
+            // error's `unsupportedWorldFormatVersion` detail, not by pretending
+            // the world is gone.
+            if (parsedR.error().code == ErrorCode::unsupportedVersion) {
+                out.status = WorldStatus::unavailable;
+                out.lastKnownPackagePath = cand;
+                return out;
+            }
+            continue;
+        }
 
         // ⚠️ IDENTITY CHECK. A package whose worldID differs is NOT this world —
         // resolution stops rather than silently substituting a same-named
         // package. A world's name is a label; its worldID is its identity.
         if (parsedR.value().worldID != worldID) {
             out.status = WorldStatus::missing;
+            // T-0419: we DID reach a package here — it is simply not this world.
+            // Report where, without claiming it as a verified path for this ID.
+            out.lastKnownPackagePath = cand;
             return out;
         }
 
-        out.status      = WorldStatus::available;
-        out.packagePath = cand;
-        out.world       = std::move(parsedR.value());
+        out.status               = WorldStatus::available;
+        out.packagePath          = cand;
+        out.lastKnownPackagePath = cand;   // T-0419: the verified path IS the last known
+        out.world                = std::move(parsedR.value());
         return out;
     }
 
@@ -384,6 +413,11 @@ WorldStore::listWorlds(const AbsolutePath& projectRoot) const {
 
         auto res = resolve(projectRoot, id);
         s.status = res.status;
+        // ⚠️ T-0419 (I-0137): carried REGARDLESS of status — this is the whole
+        // point. `packagePath` below stays available-only; the refinement that
+        // distinguishes `unmounted` from `offline` needs a path precisely when
+        // the world is NOT available.
+        s.lastKnownPackagePath = res.lastKnownPackagePath;
         if (res.status == WorldStatus::available) {
             s.packagePath = res.packagePath;
             s.displayName = res.world.displayName;        // live name wins

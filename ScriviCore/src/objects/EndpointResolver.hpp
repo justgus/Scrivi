@@ -59,7 +59,12 @@ struct ResolvedEndpoint {
     // whole reason the cache exists: a writer asked whether to clear references
     // cannot decide blind.
     bool                worldPending = false;
-    std::string         worldID;                  // the world holding it, when pending
+    // The world holding this object, when it is world-scoped. ⚠️ Set for BOTH a
+    // reachable world object and a pending one (I-0142) — it answers "which
+    // world does this belong to", which is a fact about the object, not about
+    // whether its world happens to be reachable right now. Empty for a
+    // project-scoped object or a scene endpoint.
+    std::string         worldID;
     worlds::WorldStatus worldStatus = worlds::WorldStatus::available;
 
     // True when this endpoint must be treated as "unknowable, hold" rather than

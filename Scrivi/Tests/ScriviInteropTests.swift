@@ -2422,6 +2422,81 @@ struct WorldVolumeStatusTests {
             coreStatus: .missing, packagePath: "/System/Volumes/Data/nothing.scrivworld")
         #expect(status != .unmounted)
     }
+
+    // MARK: — T-0419 / I-0137: the DATA PATH, not the refinement
+
+    /// ⚠️ **Every test above passed while the feature could not fire on real
+    /// hardware.** They exercise `refine` directly, handing it a path — but the
+    /// product got its path from `WorldEntry`, which carried one **only when the
+    /// world was available**, i.e. never in the case refinement exists for.
+    ///
+    /// That is the shape of I-0137: capability, unit tests and call site all
+    /// correct, and the datum never arriving. **These tests decode the envelope
+    /// instead**, which is the only way to see the gap.
+    @Test("⚠️ an UNAVAILABLE world still carries a path to refine from (I-0137)")
+    func unavailableWorldCarriesLastKnownPath() throws {
+        // The envelope shape a world on an ejected drive produces: no verified
+        // packagePath, but a lastKnownPackagePath saying where it used to be.
+        let json = """
+        {"worlds":[{"worldID":"w-1","displayName":"Eskandar","status":"missing",
+        "packagePath":"",
+        "lastKnownPackagePath":"/Volumes/Definitely Not Mounted 8Xz/Eskandar.scrivworld",
+        "epochOffsetMs":0}]}
+        """
+        let result = try JSONDecoder().decode(ListWorldsResult.self,
+                                              from: Data(json.utf8))
+        let entry = try #require(result.worlds.first)
+
+        #expect(entry.packagePath.isEmpty)
+        #expect(!entry.lastKnownPackagePath.isEmpty)
+
+        // ⚠️ THE ASSERTION THAT WOULD HAVE CAUGHT I-0137. Before T-0419 this read
+        // `.missing`, because refine was handed an empty packagePath and returned
+        // the core status untouched.
+        #expect(entry.worldStatus == .unmounted)
+    }
+
+    @Test("an older core that omits the field still behaves exactly as before")
+    func missingFieldFallsBackToPackagePath() throws {
+        // Forward/backward tolerance: no lastKnownPackagePath key at all.
+        let json = """
+        {"worlds":[{"worldID":"w-1","displayName":"Old","status":"unavailable",
+        "packagePath":"","epochOffsetMs":0}]}
+        """
+        let result = try JSONDecoder().decode(ListWorldsResult.self,
+                                              from: Data(json.utf8))
+        let entry = try #require(result.worlds.first)
+        #expect(entry.lastKnownPackagePath.isEmpty)
+        #expect(entry.worldStatus == .unavailable)   // degrades honestly
+    }
+
+    @Test("an available world is unaffected by the new field")
+    func availableWorldUnaffected() throws {
+        let json = """
+        {"worlds":[{"worldID":"w-1","displayName":"Here","status":"available",
+        "packagePath":"/Users/nobody/Here.scrivworld",
+        "lastKnownPackagePath":"/Users/nobody/Here.scrivworld","epochOffsetMs":0}]}
+        """
+        let result = try JSONDecoder().decode(ListWorldsResult.self,
+                                              from: Data(json.utf8))
+        let entry = try #require(result.worlds.first)
+        #expect(entry.worldStatus == .available)
+    }
+
+    /// ⚠️ Found while fixing I-0137: `WorldStatusResult.worldStatus` returned the
+    /// RAW core status while its sibling `WorldEntry.worldStatus` refined — two
+    /// accessors answering "what status is this world in" and disagreeing. The
+    /// per-site-copy defect in yet another costume.
+    @Test("⚠️ get_world_status refines too — it previously did not")
+    func worldStatusResultRefines() throws {
+        let json = """
+        {"worldID":"w-1","status":"missing","packagePath":"",
+        "lastKnownPackagePath":"/Volumes/Definitely Not Mounted 8Xz/E.scrivworld"}
+        """
+        let result = try JSONDecoder().decode(WorldStatusResult.self,
+                                              from: Data(json.utf8))
+        #expect(result.worldStatus == .unmounted)
+    }
 }
 
 // MARK: — I-0129: world availability must not depend on app focus

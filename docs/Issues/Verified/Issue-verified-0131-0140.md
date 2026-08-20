@@ -8,6 +8,11 @@ Archived Issues, ✅ **Resolved - Verified** by the user. Batched in decades of 
 | I-0131 | `[Apple]` Resume scene only persisted as a side effect of saving a **dirty** scene | Medium | SP-102 | 2026-08-18 |
 | I-0132 | `[Apple]` Navigator never revealed the selected row, and a click left focus stranded in the list | Medium | SP-102 | 2026-08-18 |
 | I-0133 | `[Apple]` `restoredScrollFraction` was written, cleared, and **never read** — dead state | Low | SP-102 | 2026-08-19 |
+| I-0135 | Low | T-0422 | ✅ **Resolved - Verified (2026-08-20)** — SP-115 / T-0422 |
+| I-0136 | Medium | T-0420 | ✅ **Resolved - Verified (2026-08-20)** — SP-115 / T-0420 |
+| I-0137 | `[Apple]` ⚠️ **AC24's `unmounted`/`offline` refinement can NEVER FIRE — `packagePath` is empty for exactly the worlds it must diagnose.** Found by **T-0418** on the real USB rig: with the drive ejected, **every** warning surface said *"unavailable"*; `unmounted` appeared nowhere. **The refinement is not missing — it is unreachable.** `WorldVolumeStatus.refine` is correct, unit-tested (`ScriviInteropTests.swift:2377+`) and correctly wired at the single approved site (`ScriviEngineGraph.swift:445`). But it opens `guard !packagePath.isEmpty else { return coreStatus }`, and ⚠️ **`WorldStore::listWorlds` assigns `s.packagePath` ONLY when `status == available`** (`WorldStore.cpp`, listWorlds ll.17-18) — mirroring `resolve`, which sets `out.packagePath` only on its success branch. **So the one input the refinement needs is guaranteed absent in the one case it exists for.** Every consumer (`WorldsView`, object cards, `WorldWarningView`, `AppEnvironment`) reads the same unrefined value. ⚠️ **This is the "capability shipped, surface never built" pattern in a new costume** — the capability, its tests and its call site all exist, and the data path does not. ⚠️ **AC24 was marked Verified 2026-08-17 on evidence that could not have distinguished this**, because a fixture supplying a `packagePath` would pass while the real rig cannot. **Fix is likely one line in `listWorlds`** — carry the last-known candidate path regardless of status — but ⚠️ **`resolve` deliberately does not report a path it could not verify**, so the semantics need a ruling, not just an edit. ✅ **USER RULING 2026-08-19 — scope of blame settled:** *"The Task was verified. What was not is due to unimplemented software features."* ⚠️ **This Issue does NOT re-open T-0389 or unseat AC24/AC9.** The refinement T-0389 built is **correct and proven** — the interop suite's *"World volume status refinement (EP-031 AC24)"* passes. **The defect is in `WorldStore::listWorlds`, a component T-0389 does not own**, which starves it of `packagePath`. ⚠️ **The fix belongs to whoever owns the data path, not to the Apple layer that consumes it.** | **High** | **SP-115** (T-0419) | ✅ **Resolved - Verified (2026-08-20)** — SP-115 / T-0419 |
+| I-0138 | Low | T-0423 | ✅ **Resolved - Verified (2026-08-20)** — SP-115 / T-0423 |
+| I-0139 | Medium | T-0421 | ✅ **Resolved - Verified (2026-08-20)** — SP-115 / T-0421 |
 
 > ⚠️ **I-0132 was archived here prematurely once, then returned, then re-verified.** The first archive
 > (2026-08-18) claimed both halves verified when only the **reveal half** was: the user's evidence
@@ -265,3 +270,24 @@ correct scene.
 ---
 
 *Archived 2026-08-18 (I-0131, I-0132); I-0133 archived 2026-08-19 under audit ruling **R-01**.*
+
+---
+
+## SP-115 — the five EP-031 carried Issues, all ✅ Verified 2026-08-20
+
+**EP-031 filed these five and fixed none, by design** (SP-100 rulings R3/R4). **SP-115 existed to fix
+exactly them and nothing else**, and all five were verified against **their own triggers**.
+
+⚠️ **I-0137 was verified on the REAL RIG** — `tintagael` + `Eskandar` on USB, **drive ejected** — showing
+*"on a disconnected volume"* where it previously said only *"unavailable"*. **That check is the whole
+point:** a fixture supplying `packagePath` passes while the real rig cannot, which is exactly how AC24
+reached "Verified" with a refinement that could never fire.
+
+> ⚠️ **I-0136 is Verified at the CORE ONLY, and that is a knowingly incomplete state.** Nothing in Scrivi
+> surfaces `unsupportedWorldFormatVersion`, so a writer opening a too-new world sees *"unavailable"* with
+> **no explanation**. The core refuses correctly and never rewrites the file; **the writer-facing half does
+> not exist.** This is `project_capability_without_surface` appearing inside the very sprint that fixed
+> four other instances of it — recorded here so it is not mistaken for finished work.
+
+**Suites at verification:** `ctest` **525/525** · macOS interop **103/103 in 10 suites** · app
+**BUILD SUCCEEDED**.

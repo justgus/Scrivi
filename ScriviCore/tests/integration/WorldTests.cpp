@@ -12,6 +12,7 @@
 #include "objects/RelationshipStore.hpp"
 #include "scrivi/Requests.hpp"
 #include "scrivi/ScriviCore.hpp"
+#include "schemas/WorldJson.hpp"
 #include "worlds/WorldStore.hpp"
 
 #include "mocks/DeterministicUUIDProvider.hpp"
@@ -681,4 +682,190 @@ TEST_CASE("the cached index names world objects for pending display",
         if (e.displayName == "Sword of Dawn") { found = true; }
     }
     REQUIRE(found);
+}
+
+// ---------------------------------------------------------------------------
+// SP-115 — T-0419 (I-0137), T-0420 (I-0136), T-0422 (I-0135)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("⚠️ lastKnownPackagePath is carried when a world is UNAVAILABLE (I-0137)",
+          "[integration][SP-115][T-0419]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+    const auto pkg = fix.pkg("Midgard");
+
+    WorldStore store{fix.services};
+
+    // Available: both paths present and equal.
+    {
+        auto res = store.resolve(fix.root(), w.worldID);
+        REQUIRE(res.status == WorldStatus::available);
+        REQUIRE(fs::weakly_canonical(res.packagePath) == fs::weakly_canonical(pkg));
+        // On success the verified path IS the last-known one.
+        REQUIRE(res.lastKnownPackagePath == res.packagePath);
+    }
+
+    // ⚠️ THE DEFECT'S ACTUAL SHAPE. Move the package aside so the world becomes
+    // unreachable — the state a writer produces by ejecting a USB drive.
+    const auto stashed = fs::path(std::string(pkg) + "-stashed");
+    fs::rename(pkg, stashed);
+
+    auto res = store.resolve(fix.root(), w.worldID);
+    REQUIRE(res.status != WorldStatus::available);
+
+    // `packagePath` stays EMPTY — it means "verified", and nothing was verified.
+    REQUIRE(res.packagePath.empty());
+
+    // ⚠️ …but the last-known path IS reported. Before T-0419 this was empty too,
+    // so WorldVolumeStatus.refine — which distinguishes `unmounted` from
+    // `offline` by inspecting the path's volume — could never fire for the ONE
+    // case it exists for. The capability, its unit tests and its call site all
+    // existed; only this datum was missing.
+    REQUIRE_FALSE(res.lastKnownPackagePath.empty());
+    // Canonicalized: resolve() runs weakly_canonical on the relative candidate,
+    // and on macOS /var is a symlink to /private/var.
+    REQUIRE(fs::weakly_canonical(res.lastKnownPackagePath) == fs::weakly_canonical(pkg));
+
+    fs::rename(stashed, pkg);
+}
+
+TEST_CASE("⚠️ listWorlds carries lastKnownPackagePath regardless of status (I-0137)",
+          "[integration][SP-115][T-0419]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+    const auto pkg = fix.pkg("Midgard");
+
+    const auto stashed = fs::path(std::string(pkg) + "-stashed");
+    fs::rename(pkg, stashed);
+
+    WorldStore store{fix.services};
+    auto list = store.listWorlds(fix.root());
+    REQUIRE(list.ok());
+    REQUIRE(list.value().size() == 1);
+
+    const auto& s = list.value().front();
+    REQUIRE(s.status != WorldStatus::available);
+    REQUIRE(s.packagePath.empty());               // verified-only, still empty
+    REQUIRE(fs::weakly_canonical(s.lastKnownPackagePath)
+            == fs::weakly_canonical(pkg));        // ⚠️ the fix
+
+    fs::rename(stashed, pkg);
+}
+
+TEST_CASE("⚠️ a world.json from a NEWER Scrivi is refused, not parsed as current (I-0136)",
+          "[integration][SP-115][T-0420]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+    const auto pkg = fix.pkg("Midgard");
+    const auto wj  = fs::path(pkg) / "world.json";
+
+    // Rewrite world.json declaring a formatVersion this build cannot understand,
+    // and add a field it knows nothing about — the real shape of version skew,
+    // since a world package is shared between projects and carried across
+    // machines.
+    {
+        std::ifstream in(wj);
+        std::string   text((std::istreambuf_iterator<char>(in)), {});
+        in.close();
+
+        const auto pos = text.find("\"formatVersion\"");
+        REQUIRE(pos != std::string::npos);
+        const auto colon = text.find(':', pos);
+        const auto end   = text.find_first_of(",}", colon);
+        text = text.substr(0, colon + 1) + "99" + text.substr(end);
+
+        std::ofstream out(wj, std::ios::trunc);
+        out << text;
+    }
+
+    // ⚠️ Refused with unsupportedVersion — NOT parseError, NOT validationError.
+    // The file is not damaged; it is too new, and callers must tell those apart.
+    auto parsed = schemas::parseWorld([&]{
+        std::ifstream in(wj);
+        return std::string((std::istreambuf_iterator<char>(in)), {});
+    }());
+    REQUIRE_FALSE(parsed.ok());
+    REQUIRE(parsed.error().code == ErrorCode::unsupportedVersion);
+    REQUIRE(parsed.error().detail == "unsupportedWorldFormatVersion");
+
+    // ⚠️ AND resolution must NOT call it `missing`. The package is plainly there
+    // — we just read its world.json. Reporting `missing` invites destructive
+    // writer remedies against an intact world (§6a.0: absence is never deletion).
+    WorldStore store{fix.services};
+    auto res = store.resolve(fix.root(), w.worldID);
+    REQUIRE(res.status == WorldStatus::unavailable);
+    REQUIRE(res.status != WorldStatus::missing);
+    REQUIRE(fs::weakly_canonical(res.lastKnownPackagePath)
+            == fs::weakly_canonical(pkg));        // and we still say where it is
+}
+
+TEST_CASE("⚠️ a CORRUPT world.json degrades to unavailable and is left untouched (I-0135)",
+          "[integration][SP-115][T-0422]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+    const auto pkg = fix.pkg("Midgard");
+    const auto wj  = fs::path(pkg) / "world.json";
+
+    const std::string garbage = "{ this is not valid json at all";
+    { std::ofstream out(wj, std::ios::trunc); out << garbage; }
+
+    WorldStore store{fix.services};
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    // ⚠️ NOT `missing`. A corrupt file is EVIDENCE THE PACKAGE EXISTS — reporting
+    // it gone would be exactly the guess WorldTests' sandbox case was written to
+    // prevent, and would invite the writer to "restore from backup" over an
+    // intact world whose one file needs repair.
+    REQUIRE(res.status != WorldStatus::missing);
+    REQUIRE(res.status == WorldStatus::unavailable);
+
+    // ⚠️ And the file is NEITHER regenerated NOR deleted. §6a.0 depends on this:
+    // resolution reads, it never repairs behind the writer's back.
+    REQUIRE(fs::exists(wj));
+    std::ifstream in(wj);
+    std::string   after((std::istreambuf_iterator<char>(in)), {});
+    REQUIRE(after == garbage);
+}
+
+TEST_CASE("⚠️ a REACHABLE world object reports its world on the edge (I-0142)",
+          "[integration][SP-115][I-0142]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // A project-scoped source, and a world-scoped artifact in an AVAILABLE
+    // world — the healthy case, where nothing is pending.
+    CreateObjectRequest sreq;
+    sreq.projectRootPath = fix.root();
+    sreq.objectKind      = ObjectKind::source;
+    sreq.displayName     = "Field Notes";
+    sreq.author          = fix.author;
+    auto src = fix.core.createObject(sreq);
+    REQUIRE(src.ok());
+
+    CreateObjectRequest areq;
+    areq.projectRootPath = fix.root();
+    areq.objectKind      = ObjectKind::artifact;
+    areq.displayName     = "Sword of Dawn";
+    areq.author          = fix.author;
+    areq.worldID         = w.worldID;
+    auto sword = fix.core.createObject(areq);
+    REQUIRE(sword.ok());
+
+    objects::RelationshipStore edges{fix.services};
+    auto e = edges.create(fix.root(), src.value().objectID.value,
+                          sword.value().objectID.value, "cites", "");
+    REQUIRE(e.ok());
+
+    auto views = edges.listFor(fix.root(), src.value().objectID.value);
+    REQUIRE(views.ok());
+    REQUIRE(views.value().size() == 1);
+    const auto& v = views.value()[0];
+
+    // ⚠️ THE DEFECT. `otherWorldID` was populated ONLY on the pending branch, so
+    // a perfectly reachable world object crossed the boundary with no world
+    // attributed. Two consequences in the app: the object editor's world control
+    // opened on nothing every time, and RENAME of a world object broke outright,
+    // because openObject needs the worldID to locate the file.
+    REQUIRE_FALSE(v.otherPending);          // the world is available
+    REQUIRE(v.otherWorldID == w.worldID);   // ...and it is still named
 }

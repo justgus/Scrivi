@@ -44,6 +44,32 @@ Result<worlds::WorldRecord> parseWorld(std::string_view json) {
         return Result<worlds::WorldRecord>::failure(
             {.code = ErrorCode::validationError, .message = "world.json has no worldID"});
     }
+
+    // ⚠️ T-0420 (I-0136): REFUSE a package written by a newer Scrivi rather than
+    // parsing it as if it were current. Until now formatVersion was read and
+    // never compared, so unknown fields were silently dropped and the world was
+    // treated as fully understood.
+    //
+    // Repair matrix §6.16 ("unsupported newer schema version"): open read-only,
+    // warn, and NEVER rewrite the newer file. Refusing the parse is what makes
+    // "never rewrite" true — a caller that cannot construct the record cannot
+    // serialize over it.
+    //
+    // ⚠️ `unsupportedVersion`, NOT `parseError` or `validationError`. The file is
+    // not damaged; it is too new. Callers must be able to tell those apart, and
+    // resolution must NOT report such a world `missing` — the package plainly
+    // exists (§6a.0: absence is never deletion).
+    if (w.formatVersion > worlds::WorldRecord::kSupportedFormatVersion) {
+        return Result<worlds::WorldRecord>::failure(
+            {.code    = ErrorCode::unsupportedVersion,
+             .message = "world.json declares formatVersion " +
+                        std::to_string(w.formatVersion) +
+                        ", but this build supports at most " +
+                        std::to_string(worlds::WorldRecord::kSupportedFormatVersion) +
+                        " — update Scrivi to open this world",
+             .detail  = "unsupportedWorldFormatVersion"});
+    }
+
     return Result<worlds::WorldRecord>::success(std::move(w));
 }
 

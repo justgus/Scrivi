@@ -17,9 +17,12 @@ _No Tasks awaiting verification._
 
 > ⚠️ **T-0365 must not be Verified on the card alone.** It renders correctly and shows *"No sources cited
 > by this scene's objects"* — which is indistinguishable from working, because there is no way to create
-> a source to test it with. Its write half is owed to [EP-034](../Epics/Epic-backlog.md), and §3.1.1's
+> a source to test it with. Its write half is owed to [EP-034](../Epics/Epic-active.md) (🟡 **Active** since 2026-08-20), and §3.1.1's
 > object-card entry point to `CitationPopover` is built but unwired.
 
 ---
+
+*Last Updated: 2026-08-20 (**no Tasks awaiting verification** — SP-115's seven were Verified and archived
+the same day. Corrected a stale link: **EP-034 is now 🟡 Active**, not in the backlog. Prior note follows.)*
 
 *Last Updated: 2026-08-19 (audit remediation — rulings R-16, R-17).*

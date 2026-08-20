@@ -487,9 +487,14 @@ RelationshipStore::listFor(const AbsolutePath& projectRoot,
             // `kind` from the object index in the first case and from the binding's
             // cachedIndex in the second (EndpointResolver.cpp:69).
             if (!ep.isScene) { v.otherKind = objectKindName(ep.kind); }
+            // ⚠️ I-0142: the far endpoint's world is reported whenever it HAS
+            // one — a world object's home world is a property of the object, not
+            // a symptom of its world being away. This was previously inside the
+            // pending branch, so an editor could not show which world a healthy
+            // object belongs to.
+            v.otherWorldID = ep.worldID;
             if (ep.pending()) {
                 v.otherPending     = true;
-                v.otherWorldID     = ep.worldID;
                 v.otherWorldStatus = worlds::worldStatusName(ep.worldStatus);
             }
         }
