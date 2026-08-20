@@ -11,16 +11,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-🟡 **SP-100 is ACTIVE** — activated **2026-08-19** (user-approved). Full plan and status:
-[`Sprint-active.md`](Sprint-active.md). Each closed Sprint's record lives in its own archive file and is
-**not** restated here.
+**No Sprint is currently active.** **SP-100 closed 2026-08-19 (user-approved)** →
+[`Closed/Sprint-SP-100.md`](Closed/Sprint-SP-100.md) — ⚠️ **and its close closed EP-031**, whose
+**11 sprints are all closed**. Each closed Sprint's record lives in its own archive file and is **not**
+restated here.
 
-**EP-031** `[ScriviCore]` is the one 🟡 **Active** Epic — **11 sprints, 10 closed** (SP-095, SP-096,
-SP-097, SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains:**
-
-| Sprint | Scope | Order |
-| ------ | ----- | ----- |
-| **SP-100** | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | 🟡 **Active 2026-08-19** — the Epic's **last** sprint |
+**No Epic is active.** Next available Sprint ID: **SP-107**.
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -207,7 +203,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
-| SP-100 | EP-031 verification & Epic close (⚠️ **owns the AC1 re-verification**) | EP-031 | 2026-08-19 | — | 🟡 **Active** |
+| SP-100 | EP-031 verification & Epic close (⚠️ owned the **AC1 re-verification**) | EP-031 | 2026-08-19 | 2026-08-19 | ✅ Closed |
 
 ⚠️ **This table is a copy of [`Sprint-backlog.md`](Sprint-backlog.md)'s, and copies go stale.** It was
 refreshed 2026-08-12 (SP-086/SP-090/SP-085/SP-056 had all closed; SP-057 was superseded into SP-094) and

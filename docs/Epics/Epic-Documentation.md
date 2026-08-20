@@ -12,16 +12,18 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-Currently: **1 Active Epic + 1 Draft.** **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) 🟡 **Active since 2026-08-12** — an **11-sprint** Epic, **10 closed** (SP-095, SP-096, SP-097,
-SP-098, SP-099, SP-102, SP-103, SP-104, SP-105, SP-106). **One remains: SP-100** 🔵 Planning
-(verification & Epic close), which **runs last**.
+**No Epic is currently active.** ✅ **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
+Graph) **CLOSED 2026-08-19 (user-approved)** → [`Closed/Epic-EP-031.md`](Closed/Epic-EP-031.md) — **all 11
+sprints closed, all 10 ACs verified.**
 
-⚠️ **AC1 must be RE-VERIFIED — the Epic's one outstanding acceptance criterion.** It was unticked
-2026-08-14 when the user's scope ruling (T-0409) moved all ten worldbuilding kinds into the world package;
-AC1 had been ticked against the pre-ruling scope table, so its evidence no longer describes the shipped
-model. **SP-100 owns the re-verification.** ⚠️ **AC9 was MET 2026-08-18** (SP-102 delivered AC23 + AC24); only
-**AC1 and AC10** are outstanding.
+⚠️ **AC1 and AC10 were AMENDED before being verified** (SP-100 rulings R1/R2): each carried a clause the
+Epic's own §3.0 no-migration ruling had superseded, so verifying them as written would have asserted
+behaviour EP-031 deliberately chose not to build. **AC10's amended form is *stronger***, requiring both
+architectures and sanitizers.
+
+⚠️ **SP-100 filed five Issues and fixed none, by design** (rulings R3/R4) — **I-0137 (High)** is the one
+that outlives the Epic: AC24's refinement is correct and unit-tested, and **cannot fire on real hardware**
+because its caller never supplies `packagePath`.
 
 Full detail — acceptance criteria, sprint table, task assignments — in [Epic-active.md](Epic-active.md).
 
@@ -94,7 +96,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-028 | `[Cross]` Scene & Chapter Merging — Linux Parity & Filesystem-Coherence Fix | ✅ Closed | 2026-07-20 | 2026-07-22 |
 | EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | ✅ Closed | 2026-07-27 | 2026-08-03 |
 | EP-030 | `[Apple]` Scene Inspector Card Framework (base cards) | ✅ Closed | 2026-08-05 | 2026-08-11 |
-| EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | 🟡 Active | 2026-08-12 | — |
+| EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | ✅ Closed | 2026-08-12 | 2026-08-19 |
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes) | 🔵 Proposed (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
 | EP-034 | `[Cross]` Object Detail & Media — object fields beyond `displayName`; ⚠️ **owes source creation** | 🔵 Proposed (backlog) | — | — |
