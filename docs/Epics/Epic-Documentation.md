@@ -12,48 +12,42 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-**No Epic is currently active.** ✅ **EP-031** `[ScriviCore]` (Worldbuilding Object Model & Relationship
-Graph) **CLOSED 2026-08-19 (user-approved)** → [`Closed/Epic-EP-031.md`](Closed/Epic-EP-031.md) — **all 11
-sprints closed, all 10 ACs verified.**
+🟡 **EP-034** `[Cross]` **Object Detail & Media — Detail Sheets & Project↔World Interaction** — **ACTIVE
+2026-08-20**, promoted from the backlog and ⚠️ **widened in place** from "object fields beyond
+`displayName`" to the full Detail Sheet, relationship surface, and Project↔World interaction.
 
-⚠️ **AC1 and AC10 were AMENDED before being verified** (SP-100 rulings R1/R2): each carried a clause the
-Epic's own §3.0 no-migration ruling had superseded, so verifying them as written would have asserted
-behaviour EP-031 deliberately chose not to build. **AC10's amended form is *stronger***, requiring both
-architectures and sanitizers.
+**Design doc** `Scrivi_Object_Detail_Sheets_Design_v0_1.md` is 🟢 **APPROVED FOR PLANNING** — ✅ **all nine
+trades D1–D9 and all three decisions Q-a/Q-b/Q-c ruled.** AC1–AC12 written; 8 sprints estimated;
+**SP-115 🔵 Planning — the five Issues I-0135–I-0139 and nothing else.**
 
-⚠️ **SP-100 filed five Issues and fixed none, by design** (rulings R3/R4) — **I-0137 (High)** is the one
-that outlives the Epic: AC24's refinement is correct and unit-tested, and **cannot fire on real hardware**
-because its caller never supplies `packagePath`.
+⚠️ **Q-a: EP-034 precedes EP-032**, whose **SP-107–SP-114 stay reserved** — so **sprint IDs run out of
+sequence** (precedented: SP-083 before SP-082, SP-102 before SP-100). ⚠️ **Q-b: the Detail Sheet is
+ADDITIVE** — the inline editor and list item remain, so **I-0139 is a real fix, not a disposition.**
+⚠️ **Q-c: iOS/visionOS explicitly deferred**; `[Linux]` parity stays in scope.
 
-Full detail — acceptance criteria, sprint table, task assignments — in [Epic-active.md](Epic-active.md).
+> ⚠️ **The finding that reshaped it:** the object-editing backend **and its Swift binding already exist** —
+> `scrivi_save_object` takes full object JSON, every edge endpoint ships, and `ScriviEngine` wraps them all,
+> while the app exposes a single `TextField("Name")`. **`project_capability_without_surface` at its largest
+> scale yet.** The lesson, per the user: *"Ensure all core features have a UI the writer can reach!"*
 
-**EP-019** `[Apple]` (Custom Undo/Redo History & Multiple Copy Buffers) ✅ **CLOSED 2026-08-11** — AC1–AC8 all
-Verified across 7 sprints. AC2 amended (auto-save retired as a commit trigger; 45 s idle boundary added) and
-design **§4.d relaxed**, both user-approved as a design change. **EP-030** `[Apple]` (Scene Inspector Card
-Framework) ✅ **CLOSED 2026-08-11** — AC1–AC7 all Verified across 4 sprints; AC12 rescoped to soft failures
-and delivered by T-0399.
-**EP-029** `[Cross]` (Cross-Boundary Structured Cut/Copy/Paste) ✅ **closed 2026-08-03** — all 5 sprints (SP-085
-design → SP-086/087/088 ScriviCore → SP-089 Apple wiring) delivered; AC1–AC7 met; manuscript-as-monolithic
-copy/cut/paste with structured buffers, cut-that-merges, paste-that-splits, and reversible structured undo
-(`Closed/Epic-EP-029.md`). **EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification) 🔵 Draft — the
-last of the planned `[Linux]` family, sequenced after the Apple copy-buffer reference. **EP-025** `[Linux]` ✅
-**closed 2026-07-24**.
+**Previously active:** **EP-031** `[ScriviCore]` ✅ **CLOSED 2026-08-19** (user-approved) →
+[`Closed/Epic-EP-031.md`](Closed/Epic-EP-031.md) — 11 sprints, all 10 ACs verified. It filed
+**I-0135–I-0139** and fixed none by design; ⚠️ **all five are now assigned to EP-034's SP-115.**
+**EP-019** and **EP-030** `[Apple]` ✅ closed 2026-08-11; **EP-029** `[Cross]` ✅ closed 2026-08-03.
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **4 Backlog Epics** —
+Currently: **3 Backlog Epics** —
 - **EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft — the last of the planned
   `[Linux]` family. (EP-023 ✅ closed 2026-07-19; EP-024 ✅ closed 2026-07-22; EP-025 Timeline Panel ✅ closed
   2026-07-24.)
-- **EP-032** `[Cross]` (Inline Object References in the Manuscript — footnotes / pull quotes), 🔵 Proposed,
-  opened 2026-08-12 from an EP-031 design ruling. Depends on EP-031 + EP-029.
+- **EP-032** `[Cross]` (Inline Object References in the Manuscript — footnotes / pull quotes), 🔵 Draft,
+  opened 2026-08-12; **promoted and returned 2026-08-20**. ⚠️ **Retains a full planning pass** (AC1–AC10,
+  Q1–Q6) and ⚠️ **holds RESERVED sprint IDs SP-107–SP-114**. Owes a **Q5 export ruling** before promotion.
 - **EP-033** `[Cross]` (World Lifecycle Management — in-app view vs. dedicated application), 🔵 Proposed,
   opened 2026-08-14 from the I-0118 Q1 ruling. Its first deliverable is the product fork itself.
-- **EP-034** `[Cross]` (Object Detail & Media), 🔵 Proposed, opened 2026-08-18. ⚠️ **Owes source
-  creation** — nothing in the app can create a `source` or attach a `cites` edge, which is why T-0365
-  shipped as a PARTIAL delivery and the `sources` card can only render its empty state.
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
@@ -97,9 +91,9 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-029 | `[Cross]` Cross-Boundary Structured Cut / Copy / Paste | ✅ Closed | 2026-07-27 | 2026-08-03 |
 | EP-030 | `[Apple]` Scene Inspector Card Framework (base cards) | ✅ Closed | 2026-08-05 | 2026-08-11 |
 | EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | ✅ Closed | 2026-08-12 | 2026-08-19 |
-| EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes) | 🔵 Proposed (backlog) | — | — |
+| EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes); ⚠️ **holds reserved SP-107–SP-114** | 🔵 Draft (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
-| EP-034 | `[Cross]` Object Detail & Media — object fields beyond `displayName`; ⚠️ **owes source creation** | 🔵 Proposed (backlog) | — | — |
+| EP-034 | `[Cross]` Object Detail & Media — **Detail Sheets & Project↔World Interaction** (widened 2026-08-20) | 🟡 **Active** | 2026-08-20 | — |
 
 ## Statistics
 
@@ -120,7 +114,32 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 ---
 
-*Last Updated: 2026-08-17 (**EP-031: SP-106 ✅ closed (user-approved), SP-102 activated — 9 of 11 sprints
+*Last Updated: 2026-08-20 (**EP-034 `[Cross]` PROMOTED backlog → 🟡 ACTIVE and widened in place** — the
+Detail Sheet, relationship surface and Project↔World interaction. Design doc 🟢 **APPROVED FOR PLANNING**:
+✅ **nine trades D1–D9 + three decisions Q-a/Q-b/Q-c all ruled.** AC1–AC12 written; **SP-115 🔵 Planning**
+(the five Issues, nothing else). ⚠️ **Q-a: EP-034 precedes EP-032** — its SP-107–SP-114 stay reserved and
+**IDs run out of sequence.** ⚠️ **Q-b: additive** — inline editor stays, **I-0139 is a real fix.**
+⚠️ **Q-c: iOS/visionOS deferred**, `[Linux]` parity in scope. Backlog Epics 4 → 3; Active 0 → 1; next
+available Epic **EP-035**. Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**EP-032 RETURNED to the Epic backlog by user ruling** — promoted and returned
+the same day; **no Epic is active.** Its full planning pass (AC1–AC10, Q1–Q6, the code-verified claim table,
+the Q5 export gap) moved with it to `Epic-backlog.md` and was **not discarded**. ⚠️ **Sprint IDs
+SP-107–SP-114 remain RESERVED to EP-032** — next available Sprint for other work is **SP-115**, recorded in
+both Sprint files. Backlog Epics 3 → 4; next available Epic **EP-035**. Prior note follows.)*
+
+*2026-08-20 (**EP-032 `[Cross]` Inline Object References PROMOTED backlog → 🔵 Draft and is
+now the ACTIVE Epic** — EP-031 having closed 2026-08-19. The Active-Epics section above was REWRITTEN: it
+still carried EP-031's full body under a "No Epic is currently active" heading, which read as though the
+closed Epic were still live. That body survives intact at `Closed/Epic-EP-031.md` (769 lines); its Issues
+I-0135–I-0139 are in `../Issues/Issue-active.md` and T-0416 in `../Tasks/Task-backlog.md`. EP-032 carries
+**AC1–AC10** and **Q1–Q6** for its design sprint **SP-107** to rule. ⚠️ **Two promotion findings:** the
+`source`→`scene` "additive" claim **CONFIRMED** against `RelationTypes.hpp:40-43`, and the **"export
+behaviour"** scope item **has NO existing path** — `scrivi_export_project_timeline` is the only export
+endpoint in the C ABI and it exports the timeline, not the manuscript (now **Q5**). Backlog Epics 4 → 3;
+next available Epic **EP-035**. Prior note follows.)*
+
+*2026-08-17 (**EP-031: SP-106 ✅ closed (user-approved), SP-102 activated — 9 of 11 sprints
 closed.** SP-106's 3 Tasks and both Issues (I-0121, I-0122) all ✅ Verified and archived. **SP-102 is now the
 active Sprint**, delivering **AC23 + AC24** — the last two clauses of AC9; **SP-100 runs last** and still owns
 the **AC1 re-verification**. This file said "no Sprint is currently active" and listed SP-106 → SP-102 →

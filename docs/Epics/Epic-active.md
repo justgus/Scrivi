@@ -1,74 +1,243 @@
 # Active Epics
 
-**No Epic is currently active.**
+## EP-034: `[Cross]` Object Detail & Media — Detail Sheets & Project↔World Interaction
 
-**EP-031** `[ScriviCore]` Worldbuilding Object Model & Relationship Graph was ✅ **CLOSED 2026-08-19
-(user-approved)** → [`Closed/Epic-EP-031.md`](Closed/Epic-EP-031.md).
+**Status:** 🟡 **ACTIVE** (promoted from backlog 2026-08-20; ⚠️ **widened in place** by the design doc)
+**Codebase:** `[Cross]` — `[Apple]` first, `[Linux]` for parity, plus a **small, well-scoped ScriviCore
+change** (world assets + asset path + kind-scope endpoint).
+**Goal:** Let a writer **see and edit what an object actually is** — description, notes, imagery,
+**and its relationships** — through a navigable **Detail Sheet**, and attribute it with sources.
+**Date Created:** 2026-08-18 · **Promoted to Active:** 2026-08-20
+**Target Close Date:** TBD — set when SP-115 closes
+**Actual Close Date:** —
 
----
+**Design document:** [`../Scrivi_Object_Detail_Sheets_Design_v0_1.md`](../Scrivi_Object_Detail_Sheets_Design_v0_1.md)
+— 🟢 **APPROVED FOR PLANNING**: ✅ all nine trades **D1–D9** and all three decisions **Q-a/Q-b/Q-c** ruled
+2026-08-20.
 
-## What EP-031 delivered
-
-**All 10 acceptance criteria verified across 11 sprints** (2026-08-12 → 2026-08-19): the object model and
-its eleven kinds, the object index, the canonical relationship graph, `.scrivworld` packages with
-identity-verified resolution and write locking, the epoch chain, cascade-prune integrity, and the
-worldbuilding-object cards on EP-030's framework.
-
-⚠️ **Its highest-risk property held: *absence is never deletion*.** An unavailable world holds its edges
-**pending** — never pruned, never modified, surviving save byte-for-byte and restored on reattach. **That
-was confirmed live on real hardware**, not on a fixture.
-
-**Suites at close:** `ctest` **520/520 macOS arm64** · x86-64 + sanitizers ✅ (CI 2×2) · macOS interop
-**99/99 in 10 suites** · app **BUILD SUCCEEDED**.
-
-⚠️ **The Epic grew from 6 planned sprints to 11, and four of the five additions came from USE, not
-planning** — SP-103 from a writer's question that exposed no path for cross-project character reuse;
-SP-104 and SP-105 from that ruling's fallout; SP-106 from a CI error the user noticed, red for 17 days.
+**Depends on:** EP-031 ✅ closed (object model, graph, world partition).
+**Unblocks:** **T-0365** (the `sources` card cannot show content until R6 ships) and ⚠️ **EP-032**, whose
+AC5 depends on source creation — **which is why Q-a ruled this Epic runs FIRST.**
 
 ---
 
-## ⚠️ Carried out of EP-031 — do not read as delivered
+### ⚠️ The finding that inverts this Epic's expected shape
 
-| Item | Owed to |
-| ---- | ------- |
-| **Source creation** — nothing in the app creates a `source` or attaches a `cites` edge | **EP-034** |
-| §3.1.1's **second popup entry point** — object cards surfacing their own sources | **EP-034** |
-| **I-0135 · I-0136 · I-0137 · I-0138 · I-0139** — filed by SP-100, **none fixed by design** | unassigned |
-| **T-0416** — seeded relation types never reach existing projects | unscheduled |
-| **Key equivalents** for Scene/Chapter Start-End | unassigned |
+**The backend and its Swift binding ALREADY EXIST.** Verified against code 2026-08-20:
+`scrivi_save_object` takes **full object JSON** (so `subtitle`/`notes`/`image` are already writable), all
+edge endpoints ship, and `ScriviEngine`/`ScriviEngineGraph` already wrap every one of them.
 
-⚠️ **Two honest gaps in the AC evidence, stated rather than glossed:** AC1's eleventh kind (`source`) is
-proven at the core and boundary but **not by use**, because no creation UI exists; and **AC3/AC9's
-from-either-entrance clauses had no live evidence** from the final pass, because I-0139 blocked it. Both
-rest on green suite coverage.
+> ⚠️ **This is `project_capability_without_surface` at its largest scale yet** — the *entire* object-editing
+> capability shipped and verified while the app exposes a single `TextField("Name")`
+> (`ObjectCard.swift:647`).
+>
+> **The lesson, stated correctly (user):** *"Ensure all core features have a UI the writer can reach!"*
+> ⚠️ **NOT "ship less core"** — the core here is sound; the missing surface is the defect.
 
----
-
-## The lesson this Epic paid for five times
-
-**`project_capability_without_surface`** — a capability ships, its tests pass, and no writer can reach it.
-⚠️ **I-0137 is its subtlest form yet:** the capability, its unit tests **and** its call site all exist —
-only the data path is missing. An interop suite named *"World volume status refinement (EP-031 AC24)"*
-**passes**, while the feature never reaches the writer.
-
-> ⚠️ **A passing test suite named after an acceptance criterion is not evidence the criterion is met in
-> the product.**
+⚠️ **A first draft of the design claimed world-asset storage was "the single largest piece of backend work."
+That was WRONG and the user caught it.** `AssetStore` is **entirely root-agnostic** (`AssetStore.cpp:12-17`)
+— pass a world root and it works. **"No caller does X" is not evidence the core cannot do X.**
 
 ---
 
-## Next
+### ✅ Approved trade rulings (design doc §5)
 
-**No Epic is active.** Candidates in [`Epic-backlog.md`](Epic-backlog.md):
+| Trade | Ruling | Binding consequence |
+| ----- | ------ | ------------------- |
+| **D1** | **E** — non-modal editor-level pane; window = successor | ⚠️ **Build host-independent** |
+| **D2** | **B** — explicit back **and** forward history | D1-agnostic |
+| **D3** | **A** `TextEditor` now, Markdown later; ⚠️ **C ruled OUT** | C would pull EP-019's undo engine in |
+| **D4** | **A** — inline, reusing `ObjectPickerView` | Widen its scene-target filter; ✅ no ABI change |
+| **D5** | **A** — one layout; ⚠️ **ABI kind-scope endpoint IN SCOPE** | Retires `ObjectCard.swift:46` |
+| **D6** | **A** — assets in the world package **+ heartbeat during copy** | ⚠️ `kStaleSeconds` **not** raised |
+| **D7** | **D** — `assetPath` in `list_assets` + app-side thumbnails | ⚠️ **No image codecs in C++** |
+| **D8** | **A** — thumbnail only when an image exists | ⚠️ Async; never blocks a card |
+| **D9** | **A** — `lastKnownPackagePath`, distinctly named | ⚠️ `packagePath` keeps meaning "verified" |
 
-| Epic | Why it might be next |
-| ---- | -------------------- |
-| **EP-034** `[Cross]` Object Detail & Media | ⚠️ **Owes source creation** — EP-031's largest carried gap |
-| **EP-032** `[Cross]` Inline Object References | Depends on EP-031 (now closed) + EP-029 |
-| **EP-033** `[Cross]` World Lifecycle Management | Opened from the I-0118 Q1 ruling |
-| **EP-026** `[Linux]` Undo/Redo, Menus, Settings & Parity | The last planned `[Linux]` Epic |
-
-**Next available:** Epic **EP-035** · Sprint **SP-107** · Task **T-0419** · Issue **I-0140**.
+**Decisions:** ✅ **Q-a** — EP-034 precedes EP-032 (starts **SP-115**). ✅ **Q-b** — ⚠️ **the Detail Sheet
+is ADDITIVE**; the inline editor and list item **remain**, and **I-0139 is a real fix**. ✅ **Q-c** —
+iOS/visionOS **explicitly deferred**; `[Linux]` parity stays in scope.
 
 ---
 
-*Last Updated: 2026-08-19 (EP-031 ✅ CLOSED, user-approved. Active Epics 1 → 0.)*
+### Acceptance Criteria
+
+Written to be verifiable **by use** — per the lesson EP-031 paid for five times.
+
+- [ ] **AC1** — From a Kind Card list item, **double-click** and **right-click → "View Detail"** both open
+      the Detail Sheet. ⚠️ **A single click still does what it does today** (Q-b).
+- [ ] **AC2** — The sheet **views and edits** `displayName`, `subtitle`, `notes`, `tags`; edits persist
+      across app restart.
+- [ ] **AC3** — An image can be **imported, displayed, replaced, removed**; ⚠️ for a **world-scoped** object
+      it is stored **in the world package** and is present when that world is opened **from a different
+      project**.
+- [ ] **AC4** — Card list items show a **thumbnail when an image exists**, unchanged when none does.
+- [ ] **AC5** — The related-objects section lists this object's edges with labels reading correctly from
+      this endpoint.
+- [ ] **AC6** — A relationship can be **created from the sheet**; it appears from both endpoints and is
+      rejected as a duplicate from the second.
+- [ ] **AC7** — **Double-click** and **right-click → "Show"** push-navigate to a related object's sheet;
+      **back and forward** move through that history.
+- [ ] **AC8** — A **source can be created from the documented object** and a `cites` edge attached;
+      ⚠️ the `sources` card **then shows content for the first time**.
+- [ ] **AC9** — ⚠️ A **pending** object opens **read-only, explained, never written**; a world going
+      unavailable **while a sheet is open** is handled without data loss.
+- [ ] **AC10** — All five Issues **I-0135–I-0139** Resolved, ⚠️ **each verified against its own trigger**
+      (`feedback_verify_each_half_separately`).
+- [ ] **AC11** — `[Linux]` parity for AC1–AC9 in Docker+VNC. ⚠️ **No gesture-only affordances.**
+- [ ] **AC12** — `ctest` green macOS arm64 **and** x86-64 + sanitizers; interop green; Linux container
+      green; app **BUILD SUCCEEDED**.
+
+### Sprints
+
+| Sprint | Title | Status | Dates |
+| ------ | ----- | ------ | ----- |
+| **SP-115** | ⚠️ **The five Issues, and nothing else** (I-0135–I-0139) | 🔵 **Planning** | — |
+| SP-116 | `[ScriviCore]` World assets + `assetPath` + kind-scope endpoint (D5, D6, D7) | ⚪ Planned | — |
+| SP-117 | `[Apple]` Detail Sheet shell — pane, navigation, fields, save (D1, D2, D3) | ⚪ Planned | — |
+| SP-118 | `[Apple]` Related objects + relationship creation (D4) | ⚪ Planned | — |
+| SP-119 | `[Apple]` Images: import, display, card thumbnails (D8) | ⚪ Planned | — |
+| SP-120 | `[Apple]` Source creation + footnote text — ⚠️ **closes T-0365's write half** | ⚪ Planned | — |
+| SP-121 | `[Linux]` Parity (AC11) | ⚪ Planned | — |
+| SP-122 | AC verification + ⚠️ **live-use pass on the real rig** + Epic close prep | ⚪ Planned | — |
+
+⚠️ **Eight sprints is an estimate made BEFORE implementation.** EP-031 planned 6 and delivered 11 — **four
+of the five additions came from USE, not planning.**
+
+⚠️ **SP-107–SP-114 are RESERVED to EP-032 and stay reserved.** This Epic starts at **SP-115**, so
+⚠️ **sprint IDs run OUT OF SEQUENCE** — precedented (SP-083 before SP-082; SP-102 before SP-100).
+
+### Issues
+
+| ID | Sev | Assigned |
+| -- | --- | -------- |
+| **I-0137** | **High** | **SP-115** — D9 ruling: `lastKnownPackagePath` |
+| I-0136 | Medium | **SP-115** — `formatVersion` never compared ⚠️ **D6 raises the stakes** |
+| I-0139 | Medium | **SP-115** — ⚠️ **a real fix** (Q-b); patch the inline editor's exit |
+| I-0135 | Low | **SP-115** — corrupt `world.json` coverage |
+| I-0138 | Low | **SP-115** — disabled-but-unexplained removal |
+
+⚠️ **Two more to be FILED by SP-115** (design doc §10): the Swift scope restatement
+(`ObjectCard.swift:46`) and the stale header comment (`scrivi.h:97-99`) — ⚠️ **occurrence eight** of the
+restated-kind-list class, both fixed by D5's endpoint.
+
+### Scope Notes
+
+- ⚠️ **Additive, not replacing** (Q-b): list item + inline editor + Detail Sheet coexist.
+- ⚠️ **T-0416 may surface as a live blocker** in SP-118 — seeded relation types never reach existing
+  projects, so a writer relating objects in an existing project sees only that project's vocabulary.
+- **Not in scope:** iOS/iPadOS/visionOS (Q-c), manuscript reference syntax (EP-032), world lifecycle
+  (EP-033), any `item`/`artifact` re-ruling.
+
+### Completion Summary
+
+*(Filled in when the Epic reaches 🟠 Complete.)*
+
+---
+
+## ⚠️ EP-034 verification & closeout procedure (per `Epic-GUIDELINES.md`)
+
+**At each Sprint close:** archive Verified Tasks/Issues **in the same step** the Sprint closes; remove the
+Sprint from `../Sprints/Sprint-backlog.md`; update `Epic-Documentation.md`.
+
+**At Epic completion, in order:**
+
+1. ⚠️ **Run the AUDIT CHECK FIRST** — read-only, mechanical (greps + counts), per
+   [`../Audits/Audit-Guidelines.md`](../Audits/Audit-Guidelines.md). It runs **before** the ACs are judged.
+   ⚠️ **A Check is NOT an Audit; an Epic close does not trigger one.** Findings are ruled as part of this
+   close; something large or systemic → **recommend** a full Audit, which begins only on user request.
+2. **Judge AC1–AC12 against evidence BY USE**, never by suite name. ⚠️ **No AC is marked Verified on
+   fixture evidence alone** — EP-031's AC24 passed a fixture supplying an input the real product never
+   supplies (I-0137).
+3. Mark 🟠 **Complete**; draft the completion summary.
+4. ⚠️ **User reviews and explicitly approves the close. Claude cannot close an Epic.**
+5. On approval: move to `Closed/Epic-EP-034.md`, mark ✅ Closed, update `Epic-Documentation.md`, and
+   ⚠️ **strip this file's EP-034 detail to a pointer.**
+
+⚠️ **Claude may NOT:** mark ✅ Closed, defer the Epic, or remove an acceptance criterion.
+
+---
+
+### Original backlog rationale (retained — it carries the user findings that opened this Epic)
+
+### Why this is an Epic
+
+**The finding (user, 2026-08-18):** trying to use the new `sources` card, *"I can show the sources card,
+but I can't create any sources. None of the card interfaces allow it."* True, and the cause is broader
+than sources:
+
+> ⚠️ **Object cards edit exactly ONE field — `displayName`.** There is a single `TextField("Name")` in
+> `ObjectCard.swift:647`, and rename is the only mutation the app performs on an object.
+> **`subtitle`, `notes` and `image` shipped in SP-095 (T-0371, ✅ Verified 2026-08-12) and the app reads
+> and writes none of them.**
+
+This is the same defect shape EP-031 has produced repeatedly — *capability shipped in the core, surface
+never built* (the SP-099 R4 audit, I-0117, and `listPendingEdges` with zero call sites). It is the
+largest remaining instance.
+
+**The writer's case, in his words:** *"A Chronicle must have an actual chronicle, that is, a story that
+it chronicles. Characters need more than just a name. A description and maybe even a picture, drawing,
+sketch. A Location needs a description to set the mood and maybe an image to set the right mood. A map
+is an image."*
+
+**And the attribution consequence, which is what ties sources to this Epic:** *"If we allow images into
+the App for worldbuilding, then we must also be able to cite the correct attribution of those images.
+Also, a chronicle may be sourced from another project, or another author's text. That text must be able
+to be attributed via a source."*
+
+### ⚠️ Why source creation belongs here and not on the `sources` card
+
+Adding a source *from* the aggregate `sources` card was considered and **rejected by the user**:
+*"it would muddy the fact that the source must be associated with an object in the world."*
+
+A citation documents an **object** — a map's image attribution belongs to the map, a chronicle's
+provenance belongs to the chronicle. The `sources` card is scene-scoped and aggregate, so creating from
+there inverts the relationship the model is built on (Doc 1 §3.4). **Creation belongs where the thing
+being documented lives: the object's own detail surface.**
+
+### ⚠️ EP-032 does not cover this
+
+Checked at opening. EP-032 is **reference syntax inside manuscript text** — footnotes and pull quotes,
+depending on the fragment model. Object detail has no home in any existing Epic; this work was
+genuinely unplanned.
+
+### Rough scope
+
+- An **object detail surface** — view and edit `displayName`, `subtitle`, `notes`; reachable from an
+  object card and from the object picker.
+- **Long-form text** for `notes`, sized for a chronicle's actual text rather than a one-line field.
+- **Image display and import** — `image.assetID` / `thumbnailAssetID` through the existing
+  `scrivi_import_asset`; thumbnails on cards, full image in detail. **A `map` is an image**, so this is
+  what makes that kind meaningful at all.
+- **Source creation + `cites` attachment from the documented object**, closing T-0365's write half and
+  making the `sources` card reachable.
+- **Attribution for imported images** — the case that forces sources and media into one Epic.
+- `[Linux]` parity.
+
+**Depends on:** EP-031 (object model, graph, world partition — `subtitle`/`notes`/`image` and the
+`source` kind all land there).
+**Unblocks:** **T-0365**, whose `sources` card ships in SP-102 read-only and **cannot show content until
+this Epic provides a way to create a source.**
+
+---
+
+## ⚠️ EP-032's sprint IDs remain RESERVED
+
+**SP-107–SP-114 stay reserved to EP-032** (`Epic-backlog.md`) and must **NOT** be reissued.
+✅ **Q-a ruled 2026-08-20: EP-034 runs FIRST**, starting at **SP-115** — so ⚠️ **sprint IDs execute out of
+sequence.** Precedented: SP-083 ran before SP-082; SP-102 before SP-100.
+
+**Why EP-034 precedes EP-032:** EP-032's AC5 renders footnotes for `source` objects, and nothing in the app
+can create a source until EP-034's R6 ships. Running EP-032 first would make its AC5 verifiable only on
+hand-authored fixtures — ⚠️ **the exact `capability_without_surface` failure both Epics exist to avoid.**
+
+---
+
+*Last Updated: 2026-08-20 (**EP-034 `[Cross]` PROMOTED backlog → 🟡 ACTIVE and widened in place**, per user
+ruling, from "object fields beyond `displayName`" to the full **Detail Sheet + relationship surface +
+Project↔World interaction**. Design doc `Scrivi_Object_Detail_Sheets_Design_v0_1.md` 🟢 **APPROVED FOR
+PLANNING** — ✅ **all nine trades D1–D9 and all three decisions Q-a/Q-b/Q-c ruled.** AC1–AC12 written;
+8 sprints estimated; **SP-115 🔵 Planning — the five Issues I-0135–I-0139 and nothing else.** ⚠️ **Q-a: this
+Epic precedes EP-032**, whose SP-107–SP-114 stay reserved, so IDs run out of sequence. ⚠️ **Q-b: the Detail
+Sheet is ADDITIVE** — inline editor and list item remain, so **I-0139 is a real fix, not a disposition.**
+⚠️ **Q-c: iOS/visionOS explicitly deferred**; `[Linux]` parity stays in scope. Active Epics 0 → 1.)*

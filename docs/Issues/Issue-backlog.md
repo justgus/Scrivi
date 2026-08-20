@@ -4,23 +4,11 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 
 **Currently: 0.** The Issue backlog is **empty** — no open Issues are unassigned to a Sprint.
 
-> ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified under audit ruling **R-02** →
-> [`Verified/Issue-verified-0011-0020.md`](Verified/Issue-verified-0011-0020.md). Its rescoped
-> behaviour was delivered by [[I-0131]]'s restore work (centring the restored scene), verified
-> 2026-08-18.
->
-> ⚠️ **Recorded with it:** I-0018 **should never have been rescoped** — a retargeted ID destroys the
-> record of the defect it originally named. **P2: never rescope an Issue; verify and close the
-> original and open a new ID.**
-
 ---
 
----
+*Last Updated: 2026-08-20 Removed  references to I-0118 which is verified and does not belong here.  
 
-
----
-
-*Last Updated: 2026-08-17, later same day (*\*I-0017 ✅ Verified and archived; I-0018 partly fixed and
+2026-08-17, later same day (*\*I-0017 ✅ Verified and archived; I-0018 partly fixed and
 RESCOPED\*\* — both on the user's report while reviewing this backlog. I-0017 had been fixed and confirmed long
 ago and was never filed. I-0018's original complaint (no selection shown on load) is **fixed**; the remaining
 behaviour — **the manuscript not scrolling to that selection** — is different from what was reported, so the

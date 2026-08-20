@@ -16,7 +16,9 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 **11 sprints are all closed**. Each closed Sprint's record lives in its own archive file and is **not**
 restated here.
 
-**No Epic is active.** Next available Sprint ID: **SP-107**.
+🟡 **EP-034** `[Cross]` is the active Epic (2026-08-20). **SP-115** 🔵 Planning — the five open Issues.
+Next available Sprint ID: **SP-116**. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER
+EP-034 (Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**; see Statistics.
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -214,7 +216,8 @@ file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.*
 ## All Sprints
 
 ⚠️ **This table is the single source for Sprint status (P7).** Counts are **not** restated here or in
-Statistics — read the rows. Next available ID: **SP-107**.
+Statistics — read the rows. Next available ID: **SP-116** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
+(see the reserved-ID note in Statistics). **Do not reissue them.** ⚠️ **SP-115 runs BEFORE them** (Q-a).
 
 **SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
 SP-102 and SP-100, because SP-100's Epic-verification remit rested on a suite that had not run clean on
@@ -361,6 +364,15 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | SP-105 | `[Cross]` World search indexing (I-0118) (unplanned) | EP-031 `[ScriviCore]` | 2026-08-14 | 2026-08-15 | ✅ Closed |
 | SP-106 | ⚠️ `[Cross]` Test integrity & CI trust — I-0121 + sanitizer CI leg + macOS platform coverage (unplanned) | EP-031 `[Cross]` | 2026-08-16 | 2026-08-17 | ✅ Closed |
 | SP-102 | `[Apple]` Pending presentation + warning view + `sources` card (**AC23 + AC24**) | EP-031 `[Apple]` | 2026-08-17 | 2026-08-18 | ✅ Closed |
+| SP-107 | ⚠️ **RESERVED (EP-032)** — Design + trade rulings Q1–Q6, design doc; no implementation | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-108 | ⚠️ **RESERVED (EP-032)** — `[ScriviCore]` Reference syntax, parse/write, `source`→`scene` seed type (AC1, AC9) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-109 | ⚠️ **RESERVED (EP-032)** — `[ScriviCore]` Fragment-model support + cut/copy/paste (AC2) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-110 | ⚠️ **RESERVED (EP-032)** — `[Apple]` Rendering, resolution, atomic editing + undo (AC3, AC4) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-111 | ⚠️ **RESERVED (EP-032)** — `[Apple]` Footnote + pull-quote presentations, citation popup (AC5) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-112 | ⚠️ **RESERVED (EP-032)** — `[Cross]` Deleted/pending targets + repair-matrix rows (AC6) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-113 | ⚠️ **RESERVED (EP-032)** — `[Linux]` Parity (AC8) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-114 | ⚠️ **RESERVED (EP-032)** — AC verification + live-use pass on the real rig + Epic close prep (AC7, AC10) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
+| SP-115 | ⚠️ **The five open Issues (I-0135–I-0139) and NOTHING else** | EP-034 `[Cross]` | — | — | 🔵 Planning |
 
 ## Statistics
 
@@ -369,14 +381,29 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-107**
-- **Total Sprint IDs issued:** 105 (SP-001–SP-106)
+- **Next available Sprint ID:** **SP-116** — ⚠️ **not SP-107.** See the reserved block below.
+- **Total Sprint IDs issued:** 114 (SP-001–SP-115) — 105 executed, **8 reserved (SP-107–SP-114)**, **1 in Planning (SP-115)**
+- ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
+  - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
+    2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
+    that return — which is exactly what it was written for.** All eight are now ⚪ **Reserved, not
+    planned** (SP-107 was briefly 🔵 Planning); EP-032 has no active or planned sprint, and the later
+    IDs' content depends on SP-107's Q1–Q6 rulings, which have not happened.
+    > ⚠️ **These IDs must NOT be reissued to another Epic's sprints, and this reservation SURVIVES
+    > EP-032 being returned to the Epic backlog.** The reservation exists precisely for that case: work
+    > sequenced ahead of EP-032 takes **SP-115+**. Releasing any of these IDs is a **user ruling**, not a
+    > planning convenience.
+  - **Where their detail lives:** [`../Epics/Epic-backlog.md`](../Epics/Epic-backlog.md) — it **moved with
+    the Epic**, as designed. ⚠️ **It is deliberately NOT recorded in `Epic-active.md`**, so that a future
+    promotion/return cycle cannot strand it again.
 - **IDs that are not sprints, and why:**
   - **SP-034** — ⚪ Cancelled
   - **SP-057** — ⚪ Superseded → SP-094
   - **SP-068** — ⚪ **Skipped**; EP-027 claimed SP-069–SP-072 and its scope shipped as SP-073
 - **Out-of-sequence execution:** **SP-083 ran before SP-082**; **SP-102 ran before SP-100**, which keeps
-  its number as EP-031's close sprint and runs last.
+  its number as EP-031's close sprint and runs last; ⚠️ **SP-115+ (EP-034) runs BEFORE SP-107–SP-114
+  (EP-032)** — ✅ Q-a ruled 2026-08-20 that EP-034 precedes EP-032, because EP-032's AC5 needs the source
+  creation EP-034 delivers.
 
 > ⚠️ **This drift recurred THREE times before it was fixed structurally** — the All-Sprints table and the
 > statistics disagreed in 2026-08-16, 2026-08-17 and 2026-08-19, each time because the summary restated
@@ -384,6 +411,18 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-20 (**EP-034 activated → SP-115 🔵 Planning — the five open Issues I-0135–I-0139 and
+nothing else** (user ruling). ⚠️ **Q-a ruled EP-034 precedes EP-032**, so **SP-115+ executes BEFORE the
+reserved SP-107–SP-114** — recorded in the out-of-sequence note, alongside SP-083/SP-082 and SP-102/SP-100.
+**Next available for other work: SP-116.** ⚠️ **The EP-032 reservation is untouched and still holds.**
+Prior note follows.)*
+
+*Last Updated: 2026-08-20 (**EP-032 returned to the Epic backlog — SP-107 dropped 🔵 Planning → ⚪ Reserved;
+all 8 IDs SP-107–SP-114 now reserved, none planned. No Epic active, no Sprint active or planned.**
+⚠️ **The reservation survived the Epic's move**, which is what it was written for; its detail moved with
+EP-032 to `../Epics/Epic-backlog.md` and is deliberately not kept in `Epic-active.md`. **Next available
+Sprint for other work: SP-115 — not SP-107.** Prior note follows.)*
 
 *Last Updated: 2026-08-19, later same day (🟡 **SP-100 ACTIVATED (user-approved)** — EP-031's eleventh
 and last sprint. Its row left `Sprint-backlog.md` in the same step (**that file is now empty**), per the
