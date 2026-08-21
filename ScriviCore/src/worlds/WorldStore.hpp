@@ -8,6 +8,7 @@
 #include "scrivi/Services.hpp"
 #include "worlds/WorldTypes.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -173,6 +174,24 @@ public:
     // Refreshes heartbeatAt so a long write is not mistaken for a dead one.
     [[nodiscard]] Result<void> heartbeat();
 
+    // I-0146 (SP-116 T-0433) — reclaims `*.partial` files abandoned by a writer
+    // that died without cleaning up.
+    //
+    // ⚠️ WHY A SWEEP AND NOT A ROLLBACK. copyFileInBlocks removes its temporary
+    // on failure, but that cleanup CANNOT RUN when the failure is the volume
+    // going away or the process dying — there is no filesystem left to remove
+    // from. Observed on the real rig: a drive pulled mid-import left 459 MB of
+    // `.partial` inside a shared world, invisible to list_assets (which scans
+    // for *.meta.json) and therefore unreclaimable by any Scrivi operation.
+    //
+    // Safe because a `.partial` is only ever written while its author HOLDS THE
+    // LOCK. Reaching this code means we now hold the lock, so no live writer can
+    // own one — an abandoned partial can never be resumed, only deleted.
+    //
+    // Returns the number of files removed. Best-effort by design: a failure to
+    // sweep must never fail the write the caller actually came to do.
+    std::size_t sweepAbandonedPartials();
+
     [[nodiscard]] Result<void> release();
 
     [[nodiscard]] bool held() const { return held_; }
@@ -182,6 +201,51 @@ private:
     AbsolutePath  packagePath_;
     std::string   lockID_;
     bool          held_ = false;
+};
+
+// --- I-0144 (SP-116 T-0431): the guard that makes locking hard to forget -----
+//
+// ⚠️ WHY THIS EXISTS. WorldLock shipped in SP-097 fully implemented and tested —
+// and then NOTHING CALLED IT. Every object write into a shared world went
+// unserialised for three sprints, so two projects with the same world bound
+// could interleave writes and lose an edit with no error. The lock was not
+// broken; it was never acquired.
+//
+// A lock a caller must remember to take is a lock that will be forgotten. This
+// wraps the whole "is it a world? then resolve, lock, and release" decision in
+// one object, so a write path gets locking by CONSTRUCTION:
+//
+//     WorldWriteGuard guard{services, projectRoot, worldID, projectID};
+//     if (auto r = guard.status(); !r.ok()) { return failure(r.error()); }
+//     ... write ...                       // guard.heartbeat() for long writes
+//
+// An empty worldID is a PROJECT write: the guard is inert, takes no lock, and
+// succeeds. Callers therefore need no `if (world)` branch of their own — which
+// is precisely the branch that gets omitted.
+class WorldWriteGuard {
+public:
+    WorldWriteGuard(CoreServices& services,
+                    const AbsolutePath& projectRoot,
+                    const std::string& worldID,
+                    const std::string& projectID);
+
+    // ok() when the write may proceed. Carries worldUnavailable:<status> when
+    // the world is away and worldLocked when another writer holds it — the same
+    // details ObjectStore::kindDirFor and AssetStore already report.
+    [[nodiscard]] const Result<void>& status() const { return status_; }
+
+    // Refreshes the lock during a long write. No-op for a project write.
+    [[nodiscard]] Result<void> heartbeat();
+
+    // The resolved package path; empty for a project write.
+    [[nodiscard]] const AbsolutePath& packagePath() const { return packagePath_; }
+
+    [[nodiscard]] bool locksAWorld() const { return lock_.has_value(); }
+
+private:
+    std::optional<WorldLock> lock_;
+    AbsolutePath             packagePath_;
+    Result<void>             status_ = Result<void>::success();
 };
 
 } // namespace scrivi::worlds

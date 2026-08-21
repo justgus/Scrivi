@@ -5,6 +5,7 @@
 #include "scrivi/Types.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <cstdint>
 #include <string_view>
 #include <vector>
@@ -74,6 +75,35 @@ public:
     // does not arise for chapter/scene folders.
     virtual Result<void> renamePath(
         const AbsolutePath& from, const AbsolutePath& to)        = 0;
+
+    // --- Block transfer (SP-116 T-0432) -------------------------------------
+    //
+    // Copies `from` to `to` in blocks, invoking `onBlock` after each one. The
+    // callback is how a caller KICKS A WATCHDOG mid-transfer: a world-package
+    // write holds a lock whose heartbeat must be refreshed, and until this
+    // existed there was no point at which to refresh it — a whole-file
+    // atomicWriteTextFile is a single blocking call, so a large image on a slow
+    // volume could have its lock broken out from under it at kStaleSeconds.
+    //
+    // ⚠️ ADDITIVE ON PURPOSE. The 200-odd existing readTextFile/
+    // atomicWriteTextFile call sites all move small JSON documents, which
+    // whole-file writes suit exactly; rewriting them would be churn for no gain.
+    // This is for the one case whose duration depends on FILE SIZE.
+    //
+    // Returning a failure from `onBlock` ABORTS the transfer — that is how a
+    // caller that has lost its lock stops instead of writing on regardless. An
+    // aborted or failed transfer leaves NO destination file: the copy runs to a
+    // temporary and is renamed into place only on success, so a reader never
+    // sees a partial file and a crash leaves nothing to mistake for an asset.
+    //
+    // ⚠️ Cleanup of a temporary orphaned by a CRASH is not this call's job — it
+    // cannot run after its own process dies. That is what the stale-lock sweep
+    // is for.
+    virtual Result<void> copyFileInBlocks(
+        const AbsolutePath& from,
+        const AbsolutePath& to,
+        std::size_t blockSize,
+        const std::function<Result<void>()>& onBlock)            = 0;
 };
 
 class SecureStore {

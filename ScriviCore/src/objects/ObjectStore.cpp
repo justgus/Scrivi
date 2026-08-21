@@ -187,6 +187,20 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
             {.code=ErrorCode::invalidArgument, .message="could not derive slug from displayName"});
 }
 
+    // I-0144 (T-0431): a world-package write takes the package lock. Inert for a
+    // project write, so there is no `if (world)` branch here to forget.
+    //
+    // ⚠️ `projectID` is passed empty: it is holder metadata for diagnostics, not
+    // part of the exclusivity guarantee (that comes from createFileExclusive).
+    // Threading it here would mean widening three request structs and their ABI
+    // entry points for a field no correctness property reads — recorded rather
+    // than done, so the omission is deliberate and visible.
+    worlds::WorldWriteGuard guard{services_, request.projectRootPath,
+                                  request.worldID, ""};
+    if (auto r = guard.status(); !r.ok()) {
+        return Result<CreateObjectResult>::failure(r.error());
+}
+
     auto dirR = kindDirFor(request.projectRootPath, request.objectKind, request.worldID);
     if (!dirR.ok()) { return Result<CreateObjectResult>::failure(dirR.error());
 }
@@ -309,6 +323,14 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
         return Result<SaveObjectResult>::failure(r.error());
 }
 
+    // I-0144 (T-0431). The object carries its own worldID, so the guard reads it
+    // from there rather than from the request.
+    worlds::WorldWriteGuard guard{services_, request.projectRootPath,
+                                  fields.worldID, ""};
+    if (auto r = guard.status(); !r.ok()) {
+        return Result<SaveObjectResult>::failure(r.error());
+}
+
     auto pathR = findByID(request.projectRootPath, kind, fields.objectID, fields.worldID);
     if (!pathR.ok()) { return Result<SaveObjectResult>::failure(pathR.error());
 }
@@ -370,6 +392,13 @@ Result<DeleteObjectResult> ObjectStore::remove(const DeleteObjectRequest& reques
     auto& fs = *services_.fileSystem;
 
     if (auto r = checkKindStorable(request.objectKind); !r.ok()) {
+        return Result<DeleteObjectResult>::failure(r.error());
+}
+
+    // I-0144 (T-0431).
+    worlds::WorldWriteGuard guard{services_, request.projectRootPath,
+                                  request.worldID, ""};
+    if (auto r = guard.status(); !r.ok()) {
         return Result<DeleteObjectResult>::failure(r.error());
 }
 
@@ -468,6 +497,30 @@ ObjectStore::promote(const AbsolutePath& projectRoot,
              .path    = {},
              .detail  = "worldRequired"});
     }
+
+    // I-0144 (T-0431) — ⚠️ THIS PATH CAN TOUCH TWO WORLDS, and that is why it is
+    // locked differently from the others.
+    //
+    // A promote/demote reads from `sourceWorldID` and writes to `destWorldID`,
+    // which may be different packages. Taking both locks unordered would risk a
+    // DEADLOCK: two processes promoting in opposite directions between the same
+    // pair of worlds would each hold what the other waits for.
+    //
+    // ⚠️ WorldLock::acquire does NOT block — it fails fast with "worldLocked"
+    // (§4.5: a contended world write must never stall the writer). That turns the
+    // deadlock into a mutual refusal, which is survivable, but the guards are
+    // still acquired in a DETERMINISTIC ORDER (lexicographic by worldID) so two
+    // processes attempt them the same way round and one of them wins outright.
+    const std::string firstID  = std::min(sourceWorldID, destWorldID);
+    const std::string secondID = std::max(sourceWorldID, destWorldID);
+
+    worlds::WorldWriteGuard guardA{services_, projectRoot, firstID, ""};
+    if (auto r = guardA.status(); !r.ok()) { return Result<PromoteResult>::failure(r.error()); }
+    // Inert when both IDs are equal or the second is a project write, so the
+    // same-world case takes exactly one lock rather than deadlocking on itself.
+    worlds::WorldWriteGuard guardB{services_, projectRoot,
+                                   (secondID == firstID) ? std::string{} : secondID, ""};
+    if (auto r = guardB.status(); !r.ok()) { return Result<PromoteResult>::failure(r.error()); }
 
     auto fromPathR = findByID(projectRoot, sourceKind, objectID, sourceWorldID);
     if (!fromPathR.ok()) { return Result<PromoteResult>::failure(fromPathR.error()); }

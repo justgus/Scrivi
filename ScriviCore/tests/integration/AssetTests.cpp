@@ -145,7 +145,7 @@ TEST_CASE_METHOD(AssetFixture, "listAssets returns all imported assets",
 
     // Both assetIDs are present.
     std::vector<std::string> ids;
-    for (const auto& a : listResult.value().assets) ids.push_back(a.assetID);
+    for (const auto& a : listResult.value().assets) ids.push_back(a.meta.assetID);
     REQUIRE(std::find(ids.begin(), ids.end(), r1.value().assetID) != ids.end());
     REQUIRE(std::find(ids.begin(), ids.end(), r2.value().assetID) != ids.end());
 }
@@ -166,7 +166,7 @@ TEST_CASE_METHOD(AssetFixture, "listAssets with category filter returns only mat
     auto listResult = core.listAssets(listReq);
     REQUIRE(listResult.ok());
     REQUIRE(listResult.value().assets.size() == 1);
-    REQUIRE(listResult.value().assets[0].category == scrivi::AssetCategory::image);
+    REQUIRE(listResult.value().assets[0].meta.category == scrivi::AssetCategory::image);
 }
 
 // ---------------------------------------------------------------------------

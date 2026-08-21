@@ -16,6 +16,10 @@ public:
     Result<std::vector<AbsolutePath>> listDirectory(const AbsolutePath& path) override;
     Result<void> removeFile(const AbsolutePath& path) override;
     Result<void> renamePath(const AbsolutePath& from, const AbsolutePath& to) override;
+    Result<void> copyFileInBlocks(const AbsolutePath& from,
+                                  const AbsolutePath& to,
+                                  std::size_t blockSize,
+                                  const std::function<Result<void>()>& onBlock) override;
 };
 
 } // namespace scrivi::platform

@@ -16,11 +16,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 **11 sprints are all closed**. Each closed Sprint's record lives in its own archive file and is **not**
 restated here.
 
-🟡 **EP-034** `[Cross]` is the active Epic. **No Sprint is active** — **SP-115 ✅ CLOSED 2026-08-20**
-(user-approved), all seven Tasks and six Issues Verified. **SP-116** is next. Next available Sprint ID:
-**SP-116**. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032.**
-Next available Sprint ID: **SP-116**. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER
-EP-034 (Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**; see Statistics.
+🟡 **EP-034** `[Cross]` is the active Epic. **No Sprint is active** — **SP-116 ✅ CLOSED 2026-08-21**
+(user-approved), all eight Tasks and six Issues Verified → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).
+**SP-117** is next. **SP-115 ✅ CLOSED 2026-08-20** (user-approved), all seven
+Tasks and six Issues Verified. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER EP-034
+(Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**. **Next available ID is in Statistics** — recorded once,
+there, not restated here (P7).
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -218,7 +219,7 @@ file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.*
 ## All Sprints
 
 ⚠️ **This table is the single source for Sprint status (P7).** Counts are **not** restated here or in
-Statistics — read the rows. Next available ID: **SP-116** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
+Statistics — read the rows. Next available ID: **SP-117** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
 (see the reserved-ID note in Statistics). **Do not reissue them.** ⚠️ **SP-115 runs BEFORE them** (Q-a).
 
 **SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
@@ -375,6 +376,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | SP-113 | ⚠️ **RESERVED (EP-032)** — `[Linux]` Parity (AC8) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
 | SP-114 | ⚠️ **RESERVED (EP-032)** — AC verification + live-use pass on the real rig + Epic close prep (AC7, AC10) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
 | SP-115 | ⚠️ **The five open Issues + I-0142 (user-found)** — all ✅ Verified | EP-034 `[Cross]` | 2026-08-20 | 2026-08-20 | ✅ Closed |
+| **SP-116** | ⚠️ **`[Cross]`** World assets (D6) + `assetPath` (D7) + kind-scope endpoint (D5) — retired **six Issues** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
 
 ## Statistics
 
@@ -383,8 +385,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-116** — ⚠️ **not SP-107.** See the reserved block below.
-- **Total Sprint IDs issued:** 114 (SP-001–SP-115) — 106 executed, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-117** — ⚠️ **not SP-107.** See the reserved block below.
+- **Total Sprint IDs issued:** 116 (SP-001–SP-116) — 108 executed, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -413,6 +415,27 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-21, third pass (**SP-116 ✅ CLOSED, user-approved** — EP-034's second sprint; eight
+Tasks + six Issues Verified and archived in the same step → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).
+⚠️ **Two defects found by LIVE USE** (I-0144's never-called lock, I-0146's orphaned partial on a pulled USB
+drive) and **one accepted limitation** (I-0147, deferred to the network-worlds design). Suites: ctest
+**552/552** (arm64 · x86-64 · ASan) · Linux **556/9300** · interop **107/107** · **BUILD SUCCEEDED**.
+Next: **SP-117**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, second pass (**SP-116 🟡 ACTIVATED** — status flipped in the All-Sprints table,
+the header and Statistics; it left `Sprint-backlog.md` in the same step, so that file now holds **zero**
+Sprints in Planning. Five Tasks T-0426–T-0430 moved backlog → active. Next available Sprint ID: **SP-117**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-21 (**SP-116 CREATED 🔵 Planning** — EP-034's second sprint; five Tasks
+**T-0426–T-0430**, three Issues **I-0140, I-0141, I-0143**. Plan in
+[`Sprint-backlog.md`](Sprint-backlog.md). ⚠️ **Recorded as `[Cross]`, NOT `[ScriviCore]` as the Epic table
+first estimated** — D5's endpoint is adopted in Swift in the same sprint so **I-0140 is cured, not merely
+made curable**. ⚠️ **I-0143 filed at planning** (`scrivi_list_assets` cannot escape its own JSON) and fixed
+here, because **T-0427 is what makes it reachable**. ⚠️ **Two P7 restatements repaired in this file** — the
+header carried the "Next available Sprint ID" sentence **twice**, contradicting the rule that it is
+recorded once, in Statistics. Next available Sprint ID: **SP-117**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**SP-115 ✅ CLOSED, user-approved** — EP-034's first sprint; seven Tasks + six
 Issues Verified and archived in the same step → [`Closed/Sprint-SP-115.md`](Closed/Sprint-SP-115.md).

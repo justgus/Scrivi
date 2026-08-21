@@ -95,8 +95,18 @@ const char* scrivi_create_snapshot(
  * Object CRUD (EP-031)
  *
  * `worldID` (SP-098 T-0405, I-0113) names the world a WORLD-SCOPED object lives
- * in — artifact / chronicle / faction / rule. Pass "" (or NULL) for the
- * project-scoped kinds, which is every other kind.
+ * in. Pass "" (or NULL) for a project-scoped kind.
+ *
+ * ⚠️ WHICH KINDS ARE WHICH IS NOT WRITTEN HERE, DELIBERATELY (SP-116 T-0430,
+ * I-0141). Ask scrivi_list_object_kinds — it derives the answer from
+ * kAllStorableKinds + objectKindIsWorldScoped() and cannot go stale.
+ *
+ * This comment previously enumerated four kinds as world-scoped. SP-103 moved
+ * six more to world scope on 2026-08-14 and the sentence rotted where it stood:
+ * nobody edited it, the model changed underneath it, and a reader who trusted it
+ * would pass "" for a character and get `worldRequired`. That is the failure
+ * mode CLAUDE.md names — "a list rots without being edited" — so the list is
+ * gone rather than corrected. A corrected list would rot again.
  *
  * ⚠️ Widened in SP-098: SP-097 added `worldID` to the requests and routed
  * storage through the world package, but these entry points were never widened,
@@ -295,6 +305,23 @@ const char* scrivi_resolve_timeline_project_times(const char* projectRootPath,
                                                   const char* worldID,
                                                   const char* timelineID);
 
+/* Object kinds and their scope (SP-116 T-0429, D5).
+ *
+ * Returns { kinds: [ { kind, subdir, isWorldScoped } ], count }.
+ *
+ * ⚠️ THIS EXISTS SO NO CALLER EVER RESTATES THE KIND PARTITION AGAIN. Before it,
+ * nothing in the ABI exposed a kind's scope, so Swift restated it as
+ * `kind != "source"` — correct only by accident, and the eighth occurrence of a
+ * defect class that once blocked object creation in the app entirely.
+ *
+ * Derived core-side from kAllStorableKinds + objectKindIsWorldScoped(). Takes no
+ * project: a kind's scope is a property of the MODEL, not of any one project.
+ *
+ * `world` is absent — it is a container created by scrivi_create_world, not a
+ * storable object kind.
+ */
+const char* scrivi_list_object_kinds(void);
+
 /* RelationType vocabulary — scrivi.relation-types.v1 */
 const char* scrivi_list_relation_types(const char* projectRootPath);
 
@@ -302,6 +329,27 @@ const char* scrivi_upsert_relation_type(
     const char* projectRootPath,
     const char* relationTypeJson);
 
+/* Assets (EP-005; world scope added SP-116 T-0426, D6)
+ *
+ * `worldID` names the world whose package the asset lives in, so a world-scoped
+ * object's image TRAVELS WITH THE WORLD between projects. Pass "" (or NULL) for
+ * the project's own assets — that is the pre-D6 behaviour and remains the
+ * default, so existing callers and existing on-disk assets are unaffected.
+ *
+ * ⚠️ Which kinds are world-scoped is NOT restated here. Ask
+ * scrivi_list_object_kinds (T-0429) — a comment enumerating kinds is exactly
+ * what rotted in I-0141.
+ *
+ * A world write takes the package lock and fails with detail "worldLocked" when
+ * another writer holds it; an unavailable world fails with
+ * "worldUnavailable:<status>", byte-identical to the object endpoints.
+ *
+ * `projectID` identifies the lock holder; pass "" if unknown.
+ *
+ * scrivi_list_assets emits `assets` as a real JSON ARRAY of objects, each with
+ * assetID / filename / category / title / assetPath (T-0427, T-0428).
+ * ⚠️ It was a JSON-encoded STRING built without escaping until SP-116.
+ */
 const char* scrivi_import_asset(
     const char* projectRootPath,
     const char* sourcePath,
@@ -309,15 +357,20 @@ const char* scrivi_import_asset(
     const char* title,
     const char* identityID,
     const char* personaID,
-    const char* authorDisplayName);
+    const char* authorDisplayName,
+    const char* worldID,
+    const char* projectID);
 
 const char* scrivi_list_assets(
     const char* projectRootPath,
-    const char* category);
+    const char* category,
+    const char* worldID);
 
 const char* scrivi_remove_asset(
     const char* projectRootPath,
-    const char* assetID);
+    const char* assetID,
+    const char* worldID,
+    const char* projectID);
 
 const char* scrivi_add_comment(
     const char* projectRootPath,

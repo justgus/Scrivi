@@ -44,6 +44,11 @@ public:
     scrivi::Result<void> appendTextFile(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.appendTextFile(p, t); }
     scrivi::Result<void> removeFile(const scrivi::AbsolutePath& p) override { return inner_.removeFile(p); }
     scrivi::Result<void> renamePath(const scrivi::AbsolutePath& a, const scrivi::AbsolutePath& b) override { return inner_.renamePath(a, b); }
+    scrivi::Result<void> copyFileInBlocks(const scrivi::AbsolutePath& a, const scrivi::AbsolutePath& b,
+                                          std::size_t n,
+                                          const std::function<scrivi::Result<void>()>& cb) override {
+        return inner_.copyFileInBlocks(a, b, n, cb);
+    }
 
     scrivi::Result<std::vector<scrivi::AbsolutePath>>
     listDirectory(const scrivi::AbsolutePath& p) override {

@@ -322,12 +322,23 @@ public final class ScriviEngine: @unchecked Sendable {
 
     // MARK: — Assets
 
+    /// Imports a file into the project's — or a world's — asset store.
+    ///
+    /// Pass a non-empty `worldID` for a world-scoped object's asset so the bytes
+    /// live in the `.scrivworld` package and **travel with the world** to any
+    /// other project that binds it (SP-116 D6). Empty means this project, which
+    /// is the pre-D6 behaviour and the default.
+    ///
+    /// Throws `worldUnavailable:<status>` when the world is away — identical to
+    /// the object endpoints, so one handler serves both.
     public func importAsset(
         projectRootPath: String,
         sourcePath: String,
         category: String,
         title: String,
-        authorshipRef: AuthorshipRef
+        authorshipRef: AuthorshipRef,
+        worldID: String = "",
+        projectID: String = ""
     ) throws -> ImportAssetResult {
         let raw = projectRootPath.withCString { prp in
             sourcePath.withCString { sp in
@@ -336,7 +347,11 @@ public final class ScriviEngine: @unchecked Sendable {
                         authorshipRef.identityID.withCString { iid in
                             authorshipRef.personaID.withCString { pid in
                                 authorshipRef.displayName.withCString { adn in
-                                    scrivi_import_asset(prp, sp, cat, t, iid, pid, adn)
+                                    worldID.withCString { wid in
+                                        projectID.withCString { pid2 in
+                                            scrivi_import_asset(prp, sp, cat, t, iid, pid, adn, wid, pid2)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -349,11 +364,14 @@ public final class ScriviEngine: @unchecked Sendable {
 
     public func listAssets(
         projectRootPath: String,
-        category: String = ""
+        category: String = "",
+        worldID: String = ""
     ) throws -> ListAssetsResult {
         let raw = projectRootPath.withCString { prp in
             category.withCString { cat in
-                scrivi_list_assets(prp, cat)
+                worldID.withCString { wid in
+                    scrivi_list_assets(prp, cat, wid)
+                }
             }
         }
         return try decodeC(raw)
@@ -361,14 +379,35 @@ public final class ScriviEngine: @unchecked Sendable {
 
     public func removeAsset(
         projectRootPath: String,
-        assetID: String
+        assetID: String,
+        worldID: String = "",
+        projectID: String = ""
     ) throws -> RemoveAssetResult {
         let raw = projectRootPath.withCString { prp in
             assetID.withCString { aid in
-                scrivi_remove_asset(prp, aid)
+                worldID.withCString { wid in
+                    projectID.withCString { pid in
+                        scrivi_remove_asset(prp, aid, wid, pid)
+                    }
+                }
             }
         }
         return try decodeC(raw)
+    }
+
+    // MARK: — Object kinds (SP-116 T-0429, D5)
+
+    /// The storable object kinds and whether each is world-scoped, **derived by
+    /// ScriviCore** from `kAllStorableKinds` + `objectKindIsWorldScoped()`.
+    ///
+    /// ⚠️ **Call this instead of writing down which kinds are world-scoped.**
+    /// Swift restated that partition as `kind != "source"` until SP-116 (I-0140)
+    /// — correct only by accident, and the eighth occurrence of a defect class
+    /// that once blocked object creation in the app entirely. The restatement was
+    /// not carelessness: nothing in the ABI exposed scope, so Swift could not
+    /// derive what the boundary never told it. Now it can.
+    public func listObjectKinds() throws -> ListObjectKindsResult {
+        return try decodeC(scrivi_list_object_kinds())
     }
 
     // MARK: — Comments
@@ -1328,9 +1367,14 @@ public final class ScriviEngine: @unchecked Sendable {
     public func openObject(projectRootPath: String, objectKind: String, objectID: String, worldID: String = "") throws -> OpenObjectResult { try unavailable() }
     public func saveObject(projectRootPath: String, objectKind: String, objectJson: String, authorshipRef: AuthorshipRef) throws -> SaveObjectResult { try unavailable() }
     public func deleteObject(projectRootPath: String, objectKind: String, objectID: String, worldID: String = "") throws -> DeleteObjectResult { try unavailable() }
-    public func importAsset(projectRootPath: String, sourcePath: String, category: String, title: String, authorshipRef: AuthorshipRef) throws -> ImportAssetResult { try unavailable() }
-    public func listAssets(projectRootPath: String, category: String = "") throws -> ListAssetsResult { try unavailable() }
-    public func removeAsset(projectRootPath: String, assetID: String) throws -> RemoveAssetResult { try unavailable() }
+    // `worldID`/`projectID` mirror the real engine (SP-116 T-0426 / D6). Kept in
+    // step deliberately: the note above records that these stubs DRIFTED once
+    // already, and a stub that lags the engine breaks only visionOS, long after
+    // the change that caused it.
+    public func importAsset(projectRootPath: String, sourcePath: String, category: String, title: String, authorshipRef: AuthorshipRef, worldID: String = "", projectID: String = "") throws -> ImportAssetResult { try unavailable() }
+    public func listAssets(projectRootPath: String, category: String = "", worldID: String = "") throws -> ListAssetsResult { try unavailable() }
+    public func removeAsset(projectRootPath: String, assetID: String, worldID: String = "", projectID: String = "") throws -> RemoveAssetResult { try unavailable() }
+    public func listObjectKinds() throws -> ListObjectKindsResult { try unavailable() }
     public func addComment(projectRootPath: String, scopeKind: String, targetID: String, body: String, authorshipRef: AuthorshipRef) throws -> AddCommentResult { try unavailable() }
     public func listComments(projectRootPath: String, scopeKind: String, targetID: String) throws -> ListCommentsResult { try unavailable() }
     public func resolveComment(projectRootPath: String, scopeKind: String, targetID: String, commentID: String, authorshipRef: AuthorshipRef) throws -> ResolveCommentResult { try unavailable() }
@@ -1687,17 +1731,49 @@ public struct ImportAssetResult: Decodable, Sendable {
     public let sidecarPath: String
 }
 
+/// One asset as `scrivi_list_assets` reports it.
+///
+/// `assetPath` is the absolute path to the bytes (SP-116 T-0427, D7). ScriviCore
+/// deliberately ships **no image codecs** — turning this path into a thumbnail is
+/// the platform's job, using native imaging.
+///
+/// ⚠️ The path may be unreachable exactly when it is most wanted: a world on a
+/// removable volume that has been ejected. Treat a failed load as expected, never
+/// as corruption.
+public struct ListedAsset: Decodable, Sendable {
+    public let assetID:   String
+    public let filename:  String
+    public let category:  String
+    public let title:     String
+    public let assetPath: String
+}
+
 public struct ListAssetsResult: Decodable, Sendable {
     public let count:  Int
-    public let assets: String
+    public let assets: [ListedAsset]
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         count  = try c.decode(Int.self, forKey: .count)
-        assets = try c.decodeIfPresent(String.self, forKey: .assets) ?? "[]"
+        // ⚠️ Was `String` — the envelope used to carry a hand-concatenated JSON
+        // document inside a JSON string, and it escaped nothing (I-0143). It is
+        // a real array now, so this decodes to real values.
+        assets = try c.decodeIfPresent([ListedAsset].self, forKey: .assets) ?? []
     }
 
     private enum CodingKeys: String, CodingKey { case count, assets }
+}
+
+/// One object kind and its scope, as ScriviCore derives them (SP-116 T-0429, D5).
+public struct ObjectKindInfo: Decodable, Sendable {
+    public let kind:          String
+    public let subdir:        String
+    public let isWorldScoped: Bool
+}
+
+public struct ListObjectKindsResult: Decodable, Sendable {
+    public let count: Int
+    public let kinds: [ObjectKindInfo]
 }
 
 public struct RemoveAssetResult: Decodable, Sendable {

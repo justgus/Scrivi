@@ -464,6 +464,39 @@ struct ScriviInteropTests {
 
         let listed = try engine.listAssets(projectRootPath: projectDir.path)
         #expect(listed.count == 1)
+
+        // ⚠️ SP-116 T-0427/T-0428: `assets` used to be a JSON-encoded STRING built
+        // without escaping, so nothing here could read a title or a path. It is a
+        // real array now — and this is the first test that looks INSIDE it, which
+        // is why the escaping defect survived so long.
+        let asset = try #require(listed.assets.first)
+        #expect(asset.assetID == imported.assetID)
+        #expect(asset.title == "Cover Image")
+        #expect(asset.assetPath == imported.assetPath)
+        #expect(FileManager.default.fileExists(atPath: asset.assetPath))
+    }
+
+    @Test("a title containing quotes survives listAssets — I-0143")
+    func assetTitleWithQuotesRoundTrips() throws {
+        let (engine, _, ref, projectDir, _) = try makeProjectFixture()
+
+        let srcDir = try TempDir()
+        let srcURL = srcDir.url.appendingPathComponent("quoted.png")
+        try "FAKE_PNG".data(using: .utf8)!.write(to: srcURL)
+
+        let nasty = #"The "Sundered" Coast \ Vol. 2"#
+        let imported = try engine.importAsset(
+            projectRootPath: projectDir.path,
+            sourcePath:      srcURL.path(percentEncoded: false),
+            category:        "image",
+            title:           nasty,
+            authorshipRef:   ref
+        )
+
+        // Before SP-116 this envelope was malformed and the decode threw.
+        let listed = try engine.listAssets(projectRootPath: projectDir.path)
+        let asset  = try #require(listed.assets.first { $0.assetID == imported.assetID })
+        #expect(asset.title == nasty)
     }
 
     @Test("removeAsset deletes the asset and sidecar")
@@ -2069,11 +2102,12 @@ struct ObjectCardConfigurationTests {
 
     @Test("EVERY object card is world-scoped — `source` is the only project-scoped kind")
     func worldScopedKindsAreMarked() {
-        // ⚠️ REWRITTEN (SP-104/I-0114). This asserted the PRE-T-0409 partition —
-        // exactly four world-scoped kinds — and was the Swift twin of the stale
-        // table that blocked object creation in the app. `isWorldScoped` is now
-        // DERIVED (`kind != "source"`), so this asserts the whole set rather than
-        // a restatement that can rot when a kind's scope changes.
+        // ⚠️ REWRITTEN TWICE. It first asserted the PRE-T-0409 partition — exactly
+        // four world-scoped kinds — and was the Swift twin of the stale table that
+        // blocked object creation in the app (SP-104/I-0114). SP-116 then replaced
+        // the `kind != "source"` restatement behind `isWorldScoped` with a value
+        // DERIVED FROM SCRIVICORE (T-0429, I-0140), so this now asserts against a
+        // partition the core owns rather than one Swift wrote down.
         let worldScoped = Set(ObjectCardKind.all.filter(\.isWorldScoped).map(\.kind))
         #expect(worldScoped == Set(ObjectCardKind.all.map(\.kind)))
         #expect(worldScoped.count == 10)
@@ -2081,6 +2115,57 @@ struct ObjectCardConfigurationTests {
         #expect(worldScoped.contains("artifact"))
         // `source` has no per-kind card at all (§3.1.1), so it cannot appear here.
         #expect(worldScoped.contains("source") == false)
+    }
+
+    // MARK: — SP-116 T-0429 / I-0140: scope is DERIVED, not restated
+
+    @Test("the kind-scope table is populated FROM ScriviCore, not hardcoded in Swift")
+    func kindScopeComesFromTheCore() throws {
+        // ⚠️ The point of I-0140's fix. If this table were empty the app would
+        // still "work" (unknown kinds fall back to world-scoped), so an assertion
+        // that merely checks isWorldScoped values could pass with the endpoint
+        // never wired up at all. Assert the table itself was loaded.
+        let kinds = ObjectKindScope.allKinds
+        #expect(!kinds.isEmpty, "scope table is empty — the ABI call did not land")
+
+        // Eleven storable kinds: the ten worldbuilding cards plus `source`, which
+        // has no card. Compared against the ENDPOINT rather than a literal list.
+        let reported = try ScriviEngine().listObjectKinds()
+        #expect(reported.count == reported.kinds.count)
+        #expect(Set(kinds) == Set(reported.kinds.map(\.kind)))
+    }
+
+    @Test("every card's isWorldScoped matches what ScriviCore reports for that kind")
+    func cardScopeAgreesWithTheCore() throws {
+        // ⚠️ Written as a comparison against the endpoint, never against an
+        // expectation table. A table here would be the restated-kind-list defect
+        // reappearing inside the test for its own fix.
+        let reported = try ScriviEngine().listObjectKinds()
+        // `uniqueKeysWithValues` traps on a duplicate — deliberate HERE, where a
+        // trap is a failed assertion that the core emits each kind once.
+        // ⚠️ `ObjectKindScope` must NOT use it: in shipping code the same input
+        // would crash the app instead of degrading, so it folds duplicates.
+        let byKind = Dictionary(uniqueKeysWithValues: reported.kinds.map { ($0.kind, $0.isWorldScoped) })
+
+        for card in ObjectCardKind.all {
+            let expected = try #require(byKind[card.kind],
+                                        "core does not know kind \(card.kind)")
+            #expect(card.isWorldScoped == expected,
+                    "scope disagrees for \(card.kind)")
+        }
+
+        // `source` is the one storable kind with no card, and the one the core
+        // reports as project-scoped.
+        #expect(byKind["source"] == false)
+    }
+
+    @Test("`world` is not offered as a storable kind")
+    func worldIsNotAStorableKind() throws {
+        // It is a container created by scrivi_create_world. Offering it here
+        // would let a writer try to create a "world object" through the object
+        // endpoints, which the core refuses.
+        let reported = try ScriviEngine().listObjectKinds()
+        #expect(!reported.kinds.contains { $0.kind == "world" })
     }
 
     @Test("`source` is NOT a worldbuilding object card")

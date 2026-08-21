@@ -36,17 +36,27 @@ manuscript export has no existing path to attach to (`scrivi_export_project_time
 the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequencing question** — without
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
-**Next available Sprint ID for any OTHER work: SP-116** — ⚠️ **SP-115 is now taken** (EP-034).
+**Next available Sprint ID: SP-117** — ⚠️ **SP-115 (closed) and SP-116 (ACTIVE) are both taken** by EP-034.
 
-**Currently: 0 Sprints in Planning; 8 IDs reserved (SP-107–SP-114).**
+**8 IDs reserved (SP-107–SP-114)** for EP-032 — ⚠️ **reserved, not planned.**
+
+⚠️ **This file currently holds NO Sprint in Planning.** SP-116 activated 2026-08-21 and left in the same
+step, per the standing rule below.
+
+---
+
+> ✅ **SP-116 was ACTIVATED 2026-08-21 and left this file in the same step**, exactly as SP-115 did — per
+> the standing rule that **a Sprint leaves the backlog at ACTIVATION and never returns.** Its plan and
+> status now live in [`Sprint-active.md`](Sprint-active.md). ⚠️ **No closure note will be written here.**
 
 > ✅ **SP-115 was ACTIVATED 2026-08-20 and left this file in the same step** — per the standing rule that
 > **a Sprint leaves the backlog at ACTIVATION and never returns.** Its plan and status live in
 > [`Sprint-active.md`](Sprint-active.md). ⚠️ **No closure note will be written here.**
 
-⚠️ **SP-115 executes BEFORE SP-107–SP-114.** ✅ **Q-a ruled 2026-08-20: EP-034 precedes EP-032**, so sprint
-IDs run **out of sequence** — precedented (SP-083 ran before SP-082; SP-102 before SP-100). **Next
-available for other work: SP-116.**
+⚠️ **SP-115 and SP-116 both execute BEFORE SP-107–SP-114.** ✅ **Q-a ruled 2026-08-20: EP-034 precedes
+EP-032**, so sprint IDs run **out of sequence** — precedented (SP-083 ran before SP-082; SP-102 before
+SP-100). ⚠️ **Next available is recorded ONCE, at the top of this file** — restating it here is what let it
+go stale (P7).
 
 ⚠️ **The standing rule still holds:** a Sprint leaves this file at **activation** and never returns.
 SP-100 activated and left on 2026-08-19; it closed the same day (`Closed/Sprint-SP-100.md`). ⚠️ **The
@@ -68,6 +78,21 @@ returns; whether it later closed is recorded in [`Closed/`](Closed/) and in
 > (the R-28 safeguard) — SP-095's gating ruling, SP-096's ID-prefix finding, SP-103's scope ruling and
 > T-0410's OBE removal, and the SP-097/098/099/102/105/106 rulings. **All present in `Closed/`.
 > Nothing was reconstructed because nothing was lost.**
+
+*Last Updated: 2026-08-21, second pass (**SP-116 🟡 ACTIVATED and REMOVED from this file** in the same
+step — its plan moved verbatim to [`Sprint-active.md`](Sprint-active.md). ⚠️ **This file is back to zero
+Sprints in Planning**; the 8 reserved EP-032 IDs are untouched. Next available Sprint ID: **SP-117**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-21 (**SP-116 PLANNED 🔵** under EP-034 — five Tasks **T-0426–T-0430**, three
+Issues **I-0140, I-0141** and ⚠️ **I-0143 (filed at planning)**. ⚠️ **Scope WIDENED from the Epic table's
+`[ScriviCore]` to `[Cross]`, by two user rulings**: D5 reaches into Swift so **I-0140 is actually cured**
+rather than made curable — refusing to repeat `capability_without_surface` in the sprint curing occurrence
+*eight* of its sibling — and the `list_assets` escaping defect found while reading D7's target code is
+**filed AND fixed here**, because ⚠️ **D7 puts a filesystem path into the very array that cannot escape**.
+⚠️ **No UI ships in SP-116** — S1–S9 are core-and-boundary criteria and none proves a writer can do
+anything; the surfaces are SP-117–SP-120. Next available Sprint: **SP-117**; Task: **T-0431**; Issue:
+**I-0144**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**SP-115 🟡 ACTIVATED and REMOVED from this file in the same step** — the
 standing rule: a Sprint leaves at activation and never returns. Its six Tasks **T-0419–T-0424** are Active;

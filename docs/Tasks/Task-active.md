@@ -16,7 +16,21 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-115's seven are ✅ Verified and archived
+## Currently: **no active Tasks** — SP-116's eight are ✅ Verified and archived
+
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0426 – T-0433** | SP-116's eight Tasks — D5/D6/D7, four Issues, and ⚠️ **two more found while fixing them** (I-0144's uncalled lock, I-0146's orphaned partial) | SP-116 | 2026-08-21 → [`Verified/Task-verified-0426-0433.md`](Verified/Task-verified-0426-0433.md) |
+
+⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
+
+⚠️ **Two consequences carried out of SP-116:**
+
+- **No UI shipped**, by design — so **AC3 and AC9 remain open** and belong to **SP-117**.
+- **T-0420's missing surface is STILL UNOWNED** (carried from SP-115). ⚠️ **SP-117 is the first sprint that
+  could take it**, since it is the first to ship a writer-facing surface at all.
+
+## Previously: SP-115's seven Tasks — ✅ Verified and archived
 
 | ID | Title | Sprint | Verified |
 | -- | ----- | ------ | -------- |
@@ -33,6 +47,28 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-21, fourth pass (**SP-116's eight Tasks ✅ VERIFIED (user-approved) and ARCHIVED in
+the same step** → `Verified/Task-verified-0426-0433.md`. Active Tasks 8 → **0**. ⚠️ **T-0420's surface is
+still owed and still unowned.** Next available Task: **T-0434**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, third pass (**T-0431 + T-0432 ADDED by user ruling.** ⚠️ **T-0432 supersedes
+the `destExisted` rollback as the real answer to partial writes** — a rollback cannot run after a crash or a
+yanked drive; a lock that stops being kicked can. Active Tasks 5 → **7** (5 🟠 Implemented, 2 🔵 new).
+⚠️ **Network-hosted worlds are NOT in SP-116** — they need a locking model that does not rest on
+`createFileExclusive`. Next available Task: **T-0433**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, second pass (**all five Tasks IMPLEMENTED — 🟠 Not Verified.** ctest **536/536**
+(arm64 · x86-64 · ASan/UBSan), interop **107/107**, app **BUILD SUCCEEDED**; ⚠️ **the Linux container leg
+could not run — Docker unavailable.** ⚠️ **Only the user may mark these Verified**
+(`feedback_verification`), and ⚠️ **no UI shipped**, so there is nothing a writer can click to verify —
+these are core/boundary changes that SP-117 will surface. Prior note follows.)*
+
+*Last Updated: 2026-08-21 (**SP-116 ACTIVATED — T-0426–T-0430 moved here from the backlog** in the same
+step. Active Tasks 0 → **5**. ⚠️ **Detail lives in `../Sprints/Sprint-active.md`, not here** (P7).
+⚠️ **Ordering constraint recorded**: T-0428 lands before or with T-0427, because T-0427 is what makes
+I-0143 reachable. ⚠️ **T-0420's owed surface is still UNOWNED** and is **not** in SP-116 — this sprint
+ships no UI. Next available Task: **T-0431**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**SP-115's seven Tasks ✅ VERIFIED by the user and ARCHIVED in the same step**
 → `Verified/Task-verified-0419-0425.md`. Active Tasks 7 → 0. ⚠️ **T-0420 is core-only Verified — its

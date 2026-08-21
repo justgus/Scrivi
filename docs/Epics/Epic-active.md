@@ -8,7 +8,7 @@ change** (world assets + asset path + kind-scope endpoint).
 **Goal:** Let a writer **see and edit what an object actually is** — description, notes, imagery,
 **and its relationships** — through a navigable **Detail Sheet**, and attribute it with sources.
 **Date Created:** 2026-08-18 · **Promoted to Active:** 2026-08-20
-**Target Close Date:** TBD — 1 of 8 sprints closed (SP-115 ✅ 2026-08-20)
+**Target Close Date:** TBD — **2 of 8 sprints closed** (SP-115 ✅ 2026-08-20, SP-116 ✅ 2026-08-21)
 **Actual Close Date:** —
 
 **Design document:** [`../Scrivi_Object_Detail_Sheets_Design_v0_1.md`](../Scrivi_Object_Detail_Sheets_Design_v0_1.md)
@@ -93,8 +93,8 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 | Sprint | Title | Status | Dates |
 | ------ | ----- | ------ | ----- |
 | **SP-115** | ⚠️ **The five Issues + I-0142 (user-found)** — all ✅ Verified | ✅ **Closed** | 2026-08-20 |
-| SP-116 | `[ScriviCore]` World assets + `assetPath` + kind-scope endpoint (D5, D6, D7) — ⚠️ **also retires I-0140 + I-0141** | 🔵 **Next** | — |
-| SP-117 | `[Apple]` Detail Sheet shell — pane, navigation, fields, save (D1, D2, D3) | ⚪ Planned | — |
+| **SP-116** | ⚠️ **`[Cross]`** World assets + `assetPath` + kind-scope endpoint (D6, D7, D5) — retired **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** | ✅ **Closed** | 2026-08-21 |
+| SP-117 | `[Apple]` Detail Sheet shell — pane, navigation, fields, save (D1, D2, D3) | 🔵 **Next** | — |
 | SP-118 | `[Apple]` Related objects + relationship creation (D4) | ⚪ Planned | — |
 | SP-119 | `[Apple]` Images: import, display, card thumbnails (D8) | ⚪ Planned | — |
 | SP-120 | `[Apple]` Source creation + footnote text — ⚠️ **closes T-0365's write half** | ⚪ Planned | — |
@@ -117,6 +117,14 @@ of the five additions came from USE, not planning.**
 | T-0422 | Corrupt `world.json` coverage (I-0135) | SP-115 | Low | ✅ **Verified** |
 | T-0423 | Disabled **and explained** (I-0138) | SP-115 | Low | ✅ **Verified** |
 | **T-0424** | ⚠️ **FILE** the two kind-list findings → I-0140, I-0141 | SP-115 | Medium | ✅ **Verified** |
+| **T-0426** | **D6** — `worldID` on asset requests; resolve, refuse, lock, ⚠️ **heartbeat during copy** | SP-116 | **High** | ✅ **Verified** |
+| **T-0427** | **D7** — emit `assetPath` from `scrivi_list_assets` | SP-116 | **High** | ✅ **Verified** |
+| **T-0428** | ⚠️ **I-0143** — route the `list_assets` array through `JsonDoc` | SP-116 | **High** | ✅ **Verified** |
+| **T-0429** | **D5** — `scrivi_list_object_kinds`; ⚠️ **Swift adopts it, `ObjectCard.swift:46` deleted** | SP-116 | **High** | ✅ **Verified** |
+| **T-0430** | ⚠️ **I-0141** — `scrivi.h` states the rule **by reference** | SP-116 | Low | ✅ **Verified** |
+| **T-0431** | ⚠️ **I-0144** — lock **every** world-package write path | SP-116 | **High** | ✅ **Verified** |
+| **T-0432** | ⚠️ **Streaming/block transfer** + per-block watchdog + partial cleanup | SP-116 | **High** | ✅ **Verified** |
+| **T-0433** | ⚠️ **I-0146** — stale-lock sweep of abandoned `*.partial` files | SP-116 | **Medium** | ✅ **Verified** |
 
 ### Issues
 
@@ -129,6 +137,11 @@ of the five additions came from USE, not planning.**
 | I-0138 | Low | ✅ Verified — disabled **and explained** |
 
 | **I-0142** | **High** | ✅ **Verified** — ⚠️ **found by the USER, not a suite**; world shown as a label, **moves disallowed** |
+| **I-0143** | **Medium** | ✅ **Verified** — the array routes through `JsonDoc` now |
+| **I-0140** | **Medium** | ✅ **Verified** — Swift **derives** scope from the new endpoint |
+| **I-0141** | Low | ✅ **Verified** — the header's kind list is **gone, not corrected** |
+| **I-0145** | **Medium** | ✅ **Verified** — ⚠️ **pre-existing**: `AssetStore::remove` could strand unreclaimable bytes in a shared world; found by self-review, fixed in **T-0426** |
+| **I-0144** | **High** | ✅ **Verified** — every world write path now locks via `WorldWriteGuard`; ⚠️ **one deliberate exception**: the index rebuild, because `WorldLock` is not reentrant |
 
 ✅ **All six archived 2026-08-20** → `../Issues/Verified/Issue-verified-0131-0140.md` and
 `../Issues/Verified/Issue-verified-0141-0150.md`.
@@ -144,6 +157,30 @@ restated-kind-list class — **both 🔴 Open, assigned to SP-116**, where D5's 
   projects, so a writer relating objects in an existing project sees only that project's vocabulary.
 - **Not in scope:** iOS/iPadOS/visionOS (Q-c), manuscript reference syntax (EP-032), world lifecycle
   (EP-033), any `item`/`artifact` re-ruling.
+
+#### ⚠️ What SP-116's IMPLEMENTATION turned up (2026-08-21)
+
+- ⚠️ **I-0144 (High, unassigned): `WorldLock` has never been called in production.** Object writes into a
+  shared world take **no lock**, so two projects with the same world bound can silently lose each other's
+  edits. The lock was built in SP-097 for exactly this and never wired in — ⚠️ **`capability_without_surface`
+  again, and this Epic's own T-0426 is the first code ever to acquire it.** **Not fixed here**: it touches
+  every object write path.
+- ⚠️ **D6's "heartbeat during the copy" is not fully achievable** — `FileSystem` has no streaming write to
+  interleave with, so the heartbeat brackets each write instead of running inside it. ⚠️ **The ruling
+  described behaviour the interface cannot currently provide**; `kStaleSeconds` was **not** raised.
+- ⚠️ **S11 is incomplete** — the Linux container leg could not run (Docker unavailable here).
+
+#### ⚠️ SP-116 planning changed two things this table originally assumed (2026-08-21)
+
+1. ⚠️ **SP-116 is `[Cross]`, not `[ScriviCore]`.** D5's endpoint is **adopted in Swift in the same sprint**
+   — `ObjectCard.swift:46` is deleted, not left for SP-117. **Shipping the endpoint and stopping would
+   leave I-0140 open with its cure sitting unused on the shelf** — ⚠️ `project_capability_without_surface`,
+   committed by the sprint curing occurrence *eight* of its sibling defect. **User-ruled.** ⚠️ **No UI
+   ships**; the reach is a derivation swap at one property.
+2. ⚠️ **A third Issue, I-0143, was found at planning** — `scrivi_list_assets` concatenates JSON with **no
+   escaping**, and **T-0427 puts a filesystem path into that array.** Filed *and* fixed in SP-116 by user
+   ruling. ⚠️ **It was found by READING the code D7 modifies** — not by the design doc, and not by any
+   suite; `AssetTests.cpp` tests the facade and would pass regardless.
 
 ### Completion Summary
 

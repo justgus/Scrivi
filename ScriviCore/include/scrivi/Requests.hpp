@@ -128,22 +128,38 @@ struct DeleteObjectRequest {
 // Asset requests (EP-005 T-0041)
 // ---------------------------------------------------------------------------
 
+// Asset requests (SP-116 T-0426, D6).
+//
+// `worldID` names the world whose package the assets live in, so that a
+// world-scoped object's image TRAVELS WITH THE WORLD between projects. Empty
+// means the project itself, which is the pre-D6 behaviour and stays the default
+// — every existing caller and every asset already on disk is unaffected, and no
+// migration is required.
+//
+// Resolution mirrors ObjectStore::kindDirFor (ObjectStore.cpp:36-69) exactly,
+// including the "worldUnavailable:<status>" error detail, so both surfaces fail
+// identically and the app needs one handler rather than two.
 struct ImportAssetRequest {
     AbsolutePath  projectRootPath;
     AbsolutePath  sourcePath;         // absolute path to the file to import
     AssetCategory category;
     std::string   title;
     AuthorshipRef author;
+    std::string   worldID;            // empty = the project (D6)
+    std::string   projectID;          // lock holder identity; empty = "unknown"
 };
 
 struct ListAssetsRequest {
     AbsolutePath             projectRootPath;
     std::optional<AssetCategory> category;   // if set, filter by this category
+    std::string              worldID;        // empty = the project (D6)
 };
 
 struct RemoveAssetRequest {
     AbsolutePath projectRootPath;
     std::string  assetID;
+    std::string  worldID;             // empty = the project (D6)
+    std::string  projectID;           // lock holder identity; empty = "unknown"
 };
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <system_error>
+#include <vector>
 
 // Exclusive create needs a real O_EXCL — the C++ standard library offers no
 // portable "create only if absent" file mode (T-0403).
@@ -172,6 +173,82 @@ Result<void> LocalFileSystem::renamePath(const AbsolutePath& from, const Absolut
         // so this should not occur for chapter/scene folders).
         return Result<void>::failure({.code=ErrorCode::ioError, .message=ec.message(),
                                       .path=from, .detail=to});
+    }
+    return Result<void>::success();
+}
+
+
+Result<void> LocalFileSystem::copyFileInBlocks(
+    const AbsolutePath& from,
+    const AbsolutePath& to,
+    std::size_t blockSize,
+    const std::function<Result<void>()>& onBlock)
+{
+    if (blockSize == 0) { blockSize = 1u << 20; }   // 1 MiB default
+
+    std::ifstream in(from, std::ios::binary);
+    if (!in) {
+        return Result<void>::failure(
+            {.code = ErrorCode::ioError, .message = "cannot open source", .path = from});
+    }
+
+    // ⚠️ Copy to a TEMPORARY and rename on success. The destination must never
+    // exist in a partial state: list() would not see it (no sidecar yet), but a
+    // later import of the same filename would find bytes it did not write. The
+    // rename is atomic within a filesystem, so a reader sees all or nothing.
+    const AbsolutePath tmp = to + ".partial";
+    {
+        std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+        if (!out) {
+            return Result<void>::failure(
+                {.code = ErrorCode::ioError, .message = "cannot open destination", .path = tmp});
+        }
+
+        std::vector<char> buf(blockSize);
+        while (in) {
+            in.read(buf.data(), static_cast<std::streamsize>(blockSize));
+            const auto got = in.gcount();
+            if (got <= 0) { break; }
+
+            out.write(buf.data(), got);
+            if (!out) {
+                out.close();
+                std::error_code ec;
+                std::filesystem::remove(tmp, ec);
+                return Result<void>::failure(
+                    {.code = ErrorCode::ioError, .message = "write failed", .path = tmp});
+            }
+
+            // Kick the watchdog. A failure here means the caller has lost its
+            // lock (or otherwise wants out) — stop rather than write on, and
+            // leave nothing behind.
+            if (onBlock) {
+                if (auto r = onBlock(); !r.ok()) {
+                    out.close();
+                    std::error_code ec;
+                    std::filesystem::remove(tmp, ec);
+                    return r;
+                }
+            }
+        }
+
+        out.flush();
+        if (!out) {
+            out.close();
+            std::error_code ec;
+            std::filesystem::remove(tmp, ec);
+            return Result<void>::failure(
+                {.code = ErrorCode::ioError, .message = "flush failed", .path = tmp});
+        }
+    }
+
+    std::error_code ec;
+    std::filesystem::rename(tmp, to, ec);
+    if (ec) {
+        std::error_code rm;
+        std::filesystem::remove(tmp, rm);
+        return Result<void>::failure(
+            {.code = ErrorCode::ioError, .message = "rename failed: " + ec.message(), .path = to});
     }
     return Result<void>::success();
 }

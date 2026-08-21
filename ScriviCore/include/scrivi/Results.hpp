@@ -137,8 +137,18 @@ struct ImportAssetResult {
     AbsolutePath sidecarPath;  // absolute path to the .meta.json file
 };
 
+// T-0427 (D7): a listed asset is its persisted metadata PLUS the absolute path
+// its bytes currently live at. The path is deliberately NOT part of AssetMeta:
+// AssetMeta is the on-disk .meta.json schema, and an absolute path baked into a
+// sidecar would be wrong the moment the package moved or was opened on another
+// machine. It is resolved at list time from the root actually being scanned.
+struct ListedAsset {
+    AssetMeta    meta;
+    AbsolutePath assetPath;    // absolute path to the binary file
+};
+
 struct ListAssetsResult {
-    std::vector<AssetMeta> assets;
+    std::vector<ListedAsset> assets;
 };
 
 struct RemoveAssetResult {

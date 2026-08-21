@@ -36,6 +36,7 @@ add_executable(ScriviCoreTests
     integration/WorldTests.cpp
     integration/SceneNotesTests.cpp
     integration/AssetTests.cpp
+    integration/AssetCApiTests.cpp
     integration/CommentTests.cpp
     integration/InboxTests.cpp
     integration/MultiSceneTests.cpp

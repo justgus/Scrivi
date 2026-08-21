@@ -3,6 +3,7 @@
 #include "objects/ObjectIndex.hpp"
 #include "schemas/WorldJson.hpp"
 #include "util/Json.hpp"
+#include "scrivi/AssetTypes.hpp"
 #include "util/PathUtils.hpp"
 
 #include <algorithm>
@@ -614,6 +615,13 @@ Result<void> WorldLock::acquire(const std::string& projectID) {
     // across processes (T-0403).
     if (auto r = fs_.createFileExclusive(path, body); r.ok()) {
         held_ = true;
+        // I-0146: sweep on EVERY successful acquire, not only after breaking a
+        // stale lock. ⚠️ The observed failure orphaned the lock file AND the
+        // partial together — when the lock is later gone (removed, or on a
+        // volume that came back without it), the next writer acquires cleanly
+        // and never reaches a break path at all. Sweeping only on a break would
+        // therefore miss the exact case this Issue was filed for.
+        (void)sweepAbandonedPartials();
         return Result<void>::success();
     }
 
@@ -627,6 +635,9 @@ Result<void> WorldLock::acquire(const std::string& projectID) {
                 if (auto rm = fs_.removeFile(path); rm.ok()) {
                     if (auto r2 = fs_.createFileExclusive(path, body); r2.ok()) {
                         held_ = true;
+                        // The holder we just declared dead may have died
+                        // mid-copy; its partial is unresumable.
+                        (void)sweepAbandonedPartials();
                         return Result<void>::success();
                     }
                 }
@@ -637,6 +648,7 @@ Result<void> WorldLock::acquire(const std::string& projectID) {
             if (auto rm = fs_.removeFile(path); rm.ok()) {
                 if (auto r2 = fs_.createFileExclusive(path, body); r2.ok()) {
                     held_ = true;
+                    (void)sweepAbandonedPartials();
                     return Result<void>::success();
                 }
             }
@@ -682,6 +694,42 @@ Result<void> WorldLock::heartbeat() {
     return fs_.atomicWriteTextFile(path, doc.dump());
 }
 
+
+std::size_t WorldLock::sweepAbandonedPartials() {
+    if (!held_) { return 0; }   // only a lock HOLDER may sweep
+
+    auto& fs_ = *services_.fileSystem;
+    std::size_t removed = 0;
+
+    // Partials only ever appear beside their destination, i.e. under
+    // <package>/assets/<category>/. Derived from assetCategorySubdir rather than
+    // written out, so a new category cannot leave a directory unswept.
+    const auto assetsDir = util::join(packagePath_, "assets");
+    for (auto cat : {AssetCategory::image, AssetCategory::audio,
+                     AssetCategory::video, AssetCategory::document,
+                     AssetCategory::other}) {
+        const auto dir = util::join(assetsDir, assetCategorySubdir(cat));
+
+        auto existsR = fs_.exists(dir);
+        if (!existsR.ok() || !existsR.value()) { continue; }
+
+        auto listR = fs_.listDirectory(dir);
+        if (!listR.ok()) { continue; }
+
+        for (const auto& entry : listR.value()) {
+            constexpr std::string_view kSuffix = ".partial";
+            if (entry.size() <= kSuffix.size()) { continue; }
+            if (entry.compare(entry.size() - kSuffix.size(), kSuffix.size(),
+                              kSuffix) != 0) { continue; }
+
+            // Best-effort: a partial we cannot delete is not worth failing the
+            // caller's actual write over. It will be swept by the next holder.
+            if (auto rm = fs_.removeFile(entry); rm.ok()) { ++removed; }
+        }
+    }
+    return removed;
+}
+
 Result<void> WorldLock::release() {
     if (!held_) { return Result<void>::success(); }
     held_ = false;
@@ -699,6 +747,45 @@ Result<void> WorldLock::release() {
         }
     }
     return fs_.removeFile(path);
+}
+
+// --- WorldWriteGuard (I-0144, T-0431) ---------------------------------------
+
+WorldWriteGuard::WorldWriteGuard(CoreServices& services,
+                                 const AbsolutePath& projectRoot,
+                                 const std::string& worldID,
+                                 const std::string& projectID)
+{
+    // A project write needs no lock: project files have a single owning process
+    // by construction. Staying inert here is what lets callers drop their own
+    // `if (world)` branch — the branch that got forgotten for three sprints.
+    if (worldID.empty()) { return; }
+
+    WorldStore store{services};
+    auto res = store.resolve(projectRoot, worldID);
+    if (res.status != WorldStatus::available) {
+        // Same detail as ObjectStore::kindDirFor and AssetStore::assetRoot, so
+        // every world-write surface fails identically.
+        status_ = Result<void>::failure(
+            {.code = ErrorCode::invalidArgument,
+             .message = "world '" + worldID + "' is " + worldStatusName(res.status),
+             .detail = "worldUnavailable:" + worldStatusName(res.status)});
+        return;
+    }
+
+    packagePath_ = res.packagePath;
+    lock_.emplace(services, res.packagePath);
+    status_ = lock_->acquire(projectID.empty() ? "unknown" : projectID);
+    if (!status_.ok()) {
+        // Do not hold a half-acquired lock: releasing here keeps ~WorldLock from
+        // removing a lock file this guard never won.
+        lock_.reset();
+    }
+}
+
+Result<void> WorldWriteGuard::heartbeat() {
+    if (!lock_) { return Result<void>::success(); }
+    return lock_->heartbeat();
 }
 
 } // namespace scrivi::worlds

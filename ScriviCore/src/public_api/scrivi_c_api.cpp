@@ -1218,6 +1218,39 @@ const char* scrivi_resolve_timeline_project_times(const char* projectRootPath,
     return heap(okEnvelope(std::move(doc)));
 }
 
+const char* scrivi_list_object_kinds(void)
+{
+    // T-0429 (D5) — the cure for the restated-kind-list defect class, which has
+    // now appeared EIGHT times (I-0113, SP-098's `source` table, SP-103's
+    // kScannedKinds, SP-104's world skeleton, SP-104's Swift
+    // ObjectCardKind.isWorldScoped, extractSearchableText's caller list, test
+    // fixtures, and I-0141's header comment).
+    //
+    // ⚠️ The root cause was STRUCTURAL, not careless: nothing in the ABI exposed
+    // a kind's scope, so Swift could not derive what the boundary never told it,
+    // and restated it instead (`kind != "source"`, ObjectCard.swift:46).
+    //
+    // ⚠️ THIS LIST IS DERIVED AND MUST STAY DERIVED. It iterates
+    // kAllStorableKinds and asks objectKindIsWorldScoped() — it does not
+    // enumerate kinds, and it must never be "optimised" into a literal. A
+    // hardcoded list here would be occurrence nine, inside the fix for
+    // occurrence eight.
+    //
+    // `world` is deliberately absent: it is a container created by
+    // scrivi_create_world, not a storable object kind, which is exactly why
+    // kAllStorableKinds excludes it.
+    scrivi::util::JsonDoc doc;
+    for (auto kind : scrivi::kAllStorableKinds) {
+        scrivi::util::JsonDoc item;
+        item.setString("kind",         scrivi::objectKindName(kind));
+        item.setString("subdir",       scrivi::objectKindSubdir(kind));
+        item.setBool  ("isWorldScoped", scrivi::objectKindIsWorldScoped(kind));
+        doc.appendToArray("kinds", std::move(item));
+    }
+    doc.setInt("count", static_cast<int>(std::size(scrivi::kAllStorableKinds)));
+    return heap(okEnvelope(std::move(doc)));
+}
+
 const char* scrivi_list_relation_types(const char* projectRootPath)
 {
     auto svc = abiServices();
@@ -1289,13 +1322,17 @@ const char* scrivi_import_asset(
     const char* title,
     const char* identityID,
     const char* personaID,
-    const char* authorDisplayName)
+    const char* authorDisplayName,
+    const char* worldID,
+    const char* projectID)
 {
     scrivi::ImportAssetRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sourcePath      = S(sourcePath);
     req.category        = scrivi::assetCategoryFromString(S(category));
     req.title           = S(title);
+    req.worldID         = S(worldID);
+    req.projectID       = S(projectID);
     req.author = {
         scrivi::IdentityID{S(identityID)},
         scrivi::PersonaID {S(personaID)},
@@ -1315,10 +1352,12 @@ const char* scrivi_import_asset(
 
 const char* scrivi_list_assets(
     const char* projectRootPath,
-    const char* category)
+    const char* category,
+    const char* worldID)
 {
     scrivi::ListAssetsRequest req;
     req.projectRootPath = S(projectRootPath);
+    req.worldID         = S(worldID);
     std::string catStr  = S(category);
     if (!catStr.empty())
         req.category = scrivi::assetCategoryFromString(catStr);
@@ -1327,30 +1366,40 @@ const char* scrivi_list_assets(
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
-    std::string arr = "[";
-    bool first = true;
-    for (const auto& a : v.assets) {
-        if (!first) arr += ",";
-        first = false;
-        arr += "{\"assetID\":\"" + a.assetID + "\","
-               "\"filename\":\"" + a.filename + "\","
-               "\"category\":\"" + scrivi::assetCategoryString(a.category) + "\","
-               "\"title\":\"" + a.title + "\"}";
-    }
-    arr += "]";
     scrivi::util::JsonDoc doc;
-    doc.setString("assets", arr);
+    // I-0143 (SP-116 T-0428): this array was built by string concatenation and
+    // escaped nothing, so a title or filename containing a quote or backslash
+    // emitted a malformed envelope. It is a real JSON array via appendToArray
+    // now, like every other list endpoint in this file (see scrivi_list_scenes).
+    //
+    // T-0427 (D7) adds `assetPath`, which is what made the old form urgent
+    // rather than merely latent: a filesystem path is the value most likely to
+    // carry a backslash. The core already computed this path and returned it
+    // from scrivi_import_asset; it was simply never disclosed again.
+    for (const auto& a : v.assets) {
+        scrivi::util::JsonDoc item;
+        item.setString("assetID",   a.meta.assetID);
+        item.setString("filename",  a.meta.filename);
+        item.setString("category",  scrivi::assetCategoryString(a.meta.category));
+        item.setString("title",     a.meta.title);
+        item.setString("assetPath", a.assetPath);
+        doc.appendToArray("assets", std::move(item));
+    }
     doc.setInt("count", static_cast<int>(v.assets.size()));
     return heap(okEnvelope(std::move(doc)));
 }
 
 const char* scrivi_remove_asset(
     const char* projectRootPath,
-    const char* assetID)
+    const char* assetID,
+    const char* worldID,
+    const char* projectID)
 {
     scrivi::RemoveAssetRequest req;
     req.projectRootPath = S(projectRootPath);
     req.assetID         = S(assetID);
+    req.worldID         = S(worldID);
+    req.projectID       = S(projectID);
 
     auto r = core().removeAsset(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));

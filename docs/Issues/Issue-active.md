@@ -8,19 +8,25 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| I-0140 | `[Apple]` ⚠️ **Swift RESTATES the world-scope rule instead of deriving it.** `ObjectCard.swift:46` reads `var isWorldScoped: Bool { kind != "source" }` — a hand-written partition of `ObjectKind` in Swift. CLAUDE.md's standing rule calls this **"a defect on sight, even when it is currently correct"**, and it is correct *only* because `source` happens to be the sole project-scoped kind today. ⚠️ **This is the SAME SITE CLASS as SP-104's occurrence, which blocked object creation in the app entirely.** ⚠️ **The cause is STRUCTURAL, not careless:** `grep` over `scrivi.h` shows **no endpoint exposes a kind's scope at all** — there is no `scrivi_list_object_kinds` and no scope field anywhere in the ABI, so **Swift cannot derive what the boundary never tells it.** ✅ **Fix is already RULED — design doc D5:** ScriviCore exposes each kind and whether it is world-scoped, derived from `kAllStorableKinds` + `objectKindIsWorldScoped()`; Swift then derives. ⚠️ **Test against `scrivi_*`, not the facade** (`feedback_boundary_tests_not_facade`) — that is how I-0113 shipped green. | **Medium** | **SP-116** (D5) | 🔴 **Open (2026-08-20)** — filed by **T-0424**; ⚠️ **FILED, NOT FIXED by design** — fixing it inside a five-Issue sprint would blur SP-115's boundary |
-| I-0141 | `[ScriviCore]` ⚠️ **`scrivi.h:97-99`'s world-scope list has been STALE since 2026-08-14.** The Object-CRUD header comment still reads *"`worldID` … names the world a WORLD-SCOPED object lives in — artifact / chronicle / faction / rule. Pass "" (or NULL) for the project-scoped kinds, which is every other kind."* ⚠️ **SP-103 moved `character`, `location`, `item`, `building`, `vehicle` and `map` to world scope**, so the comment names **4 of 10** world-scoped kinds and its second sentence is now actively wrong — a reader who trusts it will pass `""` for a character and get `worldRequired`. ⚠️ **This is the documented failure mode exactly** — *"a list rots without being edited"*: nobody touched this comment; a kind's scope changed underneath it. **Occurrence EIGHT** of the restated-kind-list class. **Fix:** state the rule by reference to `objectKindIsWorldScoped()` rather than enumerating kinds, so it cannot rot again. | Low | **SP-116** | 🔴 **Open (2026-08-20)** — filed by **T-0424**; ⚠️ **FILED, NOT FIXED by design** (SP-115 scope ruling) |
+| **I-0147** | `[ScriviCore]` ⚠️ **KNOWN LIMITATION (user-ruled 2026-08-21, ACCEPTED — not to be fixed in SP-116).** ⚠️ **For up to `kStaleSeconds` (60 s) after an interrupted world write, the world is ENTIRELY UNWRITABLE and its abandoned `.partial` is unreclaimable.** When a volume vanishes mid-import the writer dies holding the lock, leaving `.lock` on disk with a **fresh** heartbeat. Reattach the drive quickly — the natural thing to do — and the next write is refused `worldLocked`; ⚠️ **T-0433's sweep runs only AFTER a successful acquire**, so the orphan survives until the lock ages out. **Observed on the real rig 2026-08-21**: drive pulled mid-import, reattached within ~60 s, next import refused and a **2.9 GB** `.partial` remained. ✅ **Both halves verified**: staged fresh lock + orphan → `worldLocked`, orphan stays; waited past 60 s → **acquired and swept**. ⚠️ **This is arguably CORRECT, which is why it is accepted:** `kStaleSeconds` exists precisely because the core cannot distinguish *"writer died"* from *"writer is briefly stalled"*, and guessing wrong means two processes writing a shared world at once. It **self-heals** within a minute and loses no data. **The stronger evidence available — the package's own VOLUME was unmounted, which is far better proof of a dead holder than a quiet heartbeat — is not currently used.** ⚠️ **Deferred to the network-worlds design**, which must revisit *"exactly one winner"* regardless; ruling that inside an asset sprint is how a locking model gets set by accident (the lesson of I-0144). ⚠️ **The eventual UI must not present the 60 s wait as an error** — it is a retryable state. | Low | ⚠️ **Deferred — network-worlds design** | 🟡 **Accepted limitation (2026-08-21)** — ⚠️ **found by the LIVE RIG PASS**; ⚠️ **my own earlier staged-orphan test PASSED because it created the orphan WITHOUT a matching fresh lock** — not the state a real crash leaves |
 
-**Currently: 2 Issues open — both FILED by T-0424 for SP-116, neither fixed by design.**
+## Currently: **one record — I-0147, an ACCEPTED limitation, not open work**
 
-| Issue | Sev | Sprint | What |
-| ----- | --- | ------ | ---- |
-| I-0140 | Medium | **SP-116** | Swift **restates** the world-scope rule (`ObjectCard.swift:46`) — ⚠️ structural: no ABI endpoint exposes kind scope |
-| I-0141 | Low | **SP-116** | `scrivi.h:97-99` world-scope list **stale since SP-103** — **occurrence eight** |
+✅ **SP-116 closed with ZERO open Issues.** Its six — **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** —
+were ✅ **Verified 2026-08-21 (user-approved) and archived in the same step** →
+[`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
 
-⚠️ **Both are cured by the same fix** — design-doc **D5**'s kind-scope endpoint, which lets Swift *derive*
-scope instead of restating it. **Test it against `scrivi_*`, not the facade** — a facade test cannot see a
-boundary gap, which is how I-0113 shipped green.
+**What the table cannot express:**
+
+- ⚠️ **I-0147 is a KNOWN LIMITATION, not a defect awaiting a fix** (user ruling, option 1). For up to 60 s
+  after an interrupted world write, the world is unwritable and its `.partial` unreclaimable, because the
+  dead writer's lock is not yet stale and the sweep only runs after a successful acquire. It **self-heals**
+  and loses no data. ⚠️ **A regression test ASSERTS this behaviour** — if someone later makes `acquire`
+  break fresh locks, it fails and forces the locking-model conversation rather than letting it happen by
+  accident (the lesson of I-0144).
+- ⚠️ **The eventual UI must never present the 60 s wait as an error** — it is a retryable state.
+- ⚠️ **Three of SP-116's six were found by no suite at all**: I-0143 by reading the code D7 was about to
+  modify, I-0144 by looking for a caller to mirror, and **I-0146 by physically pulling a USB drive**.
 
 ---
 
@@ -47,6 +53,82 @@ sprint that fixed four other instances. **Owed a surface in a later sprint.**
 failed**) was worse than the reported symptom.
 
 ---
+
+*Last Updated: 2026-08-21, tenth pass (✅ **SP-116's SIX ISSUES VERIFIED (user-approved) and ARCHIVED in
+the same step** → `Verified/Issue-verified-0141-0150.md` (`feedback_archive_on_close`). ⚠️ **I-0147 remains
+here as an ACCEPTED limitation** — deferred to the network-worlds design, with a regression test asserting
+it. **Open Issues: 0.** Next available Issue: **I-0148**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, ninth pass (⚠️ **I-0147 FILED AND ACCEPTED as a known limitation** (user ruled
+option 1): for up to 60 s after an interrupted world write the world is unwritable and its `.partial`
+unreclaimable, because the dead writer's lock is not yet stale and **the sweep only runs after a successful
+acquire**. ⚠️ **Found by the tidy end-to-end rig run** — drive pulled, reattached quickly, next write
+refused `worldLocked`, **2.9 GB orphan retained**. ✅ **Both halves verified** (fresh lock → refused; past
+60 s → acquired **and swept**). ⚠️ **My earlier staged-orphan test passed only because it omitted the
+matching fresh lock** — a setup subtly easier than reality; **fourth defect this Epic found only by live
+use**. **Deferred to the network-worlds design**, which must revisit "exactly one winner" anyway.
+Open Issues: **0** (I-0147 is Accepted, not open). Next available Issue: **I-0148**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, eighth pass (✅ **I-0146 ASSIGNED to SP-116 (T-0433) and RESOLVED** by user
+ruling. `WorldLock::sweepAbandonedPartials()` reclaims abandoned `*.partial` files whenever the lock is
+acquired. ⚠️ **Swept on EVERY successful acquire, not only after breaking a stale lock** — the rig showed
+the lock file and the partial are orphaned TOGETHER, so the next writer acquires cleanly and never reaches
+a break path; sweeping only on a break would have missed the exact case this Issue was filed for.
+⚠️ **Verified on real hardware**: 459 MB orphan on the USB volume reclaimed by a normal import, 476 MiB →
+12 MiB, real assets and `myton.json` untouched. Tests **551/551** (+4), ⚠️ **proven non-vacuous** —
+disabling the sweep fails two. **Open Issues: 0.** Next available Issue: **I-0147**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, seventh pass (⚠️ **I-0146 FILED — found by the LIVE RIG PASS, not by a suite.**
+Pulling a real USB drive mid-import left a **459 MB `.partial` orphan** inside the shared world: the
+cleanup in `copyFileInBlocks` cannot run when the failure IS the volume vanishing. ⚠️ **`list_assets`
+cannot see it, so nothing in Scrivi will ever reclaim it.** ✅ **The rest of the abort behaved correctly** —
+heartbeat detected the loss, transfer aborted, no destination file, existing assets byte-identical, stale
+lock breakable after 60 s. **Fix is the user's own stale-lock sweep**, which SP-116 did not implement.
+Open Issues: **1** (I-0146). Next available Issue: **I-0147**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, sixth pass (**I-0144 🟢 Resolved - Not Verified** — every world-package write
+path now takes the lock via `WorldWriteGuard`, ⚠️ **inert for project writes so there is no branch to
+forget**. ⚠️ **One deliberate exception recorded**: `ObjectIndex::loadWorldIndex`'s rebuild stays unlocked
+because `WorldLock` is NOT REENTRANT and `save`/`remove` reach it while holding the lock — a guard there
+would fail against itself and skip the rebuild. It is idempotent; the real fix is a reentrant lock, which
+belongs with the network-worlds design. **Open Issues: 0.** Next available Issue: **I-0146**. Prior note
+follows.)*
+
+*Last Updated: 2026-08-21, fifth pass (**I-0145 FILED — 🟢 Resolved - Not Verified.** ⚠️ **Pre-existing and
+shipped**: `AssetStore::remove` deleted the sidecar first and discarded both results, so a half-failed
+delete stranded **bytes with no sidecar — invisible to `list` and unfindable by any future `remove`**,
+unreclaimable for the life of the package, with `deleted: true` returned regardless. ⚠️ **D6 raises its
+severity**, since the junk now lands in a SHARED world. Found by **self-review**; ⚠️ **no test caught it**.
+✅ **Fixed in T-0426** (binary deleted first, both failures reported). ⚠️ **A sibling defect was
+deliberately NOT filed** — `ObjectKindScope`'s duplicate-key trap was written and fixed inside this sprint
+and never shipped. Open Issues: **1** (I-0144). Next available Issue: **I-0146**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, fourth pass (✅ **I-0144 ASSIGNED to SP-116** by user ruling → **T-0431**;
+⚠️ **it is a High-severity data-loss risk, not an asset defect** — every object write into a shared world
+is unserialised. Open Issues: **1**, now assigned. Next available Issue: **I-0145**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, third pass (**SP-116 IMPLEMENTED — I-0140, I-0141, I-0143 all 🟢 Resolved -
+Not Verified.** ⚠️ **I-0140 and I-0143 were each proven non-vacuous by reverting the fix** and watching the
+tests fail. ⚠️ **I-0144 FILED (High, unassigned)**: `WorldLock` has **no production caller** — world-package
+object writes are unserialised and have been since they shipped, so two projects sharing a world can lose
+each other's edits silently. Found while implementing T-0426, looking for a caller to mirror; **no test
+would have caught it**, since a missing lock is invisible single-threaded. ⚠️ **Not fixed in SP-116** — it
+touches every object write path, not assets. Open Issues: **1** (I-0144). Next available Issue: **I-0145**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-21, second pass (**SP-116 ACTIVATED** — all three open Issues are now assigned to
+an **active** Sprint, not a planned one; Sprint fields marked 🟡. ⚠️ **None is Resolved** — activation is
+not progress, and Claude may never mark an Issue Verified regardless
+(`feedback_verification`). Next available Issue: **I-0144**. Prior note follows.)*
+
+*Last Updated: 2026-08-21 (**I-0143 FILED at SP-116 planning** — ⚠️ `scrivi_list_assets` concatenates
+its JSON with **no escaping** (`scrivi_c_api.cpp:1330-1341`), while every sibling envelope uses `JsonDoc`.
+⚠️ **Found by reading the code D7 modifies, not by a test and not by the design doc** — and D7 is precisely
+what makes it reachable, since **T-0427 puts a filesystem path into that array**. ✅ **User ruled: file it
+AND fix it in SP-116** (T-0428), keeping T-0424's file-don't-fix-silently precedent while refusing to ship
+a corruption path the same sprint could prevent. ⚠️ **The restating summary table below the main table was
+REPLACED** with only what the table cannot express (P7). Open Issues 2 → **3**, all SP-116. Next available
+Issue: **I-0144**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**SP-115's six Issues ✅ VERIFIED by the user and ARCHIVED in the same step** —
 I-0135–I-0139 → `Verified/Issue-verified-0131-0140.md`, **I-0142 → a new decade file

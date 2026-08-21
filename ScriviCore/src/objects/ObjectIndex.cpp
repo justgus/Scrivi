@@ -252,6 +252,30 @@ ObjectIndex::loadWorldIndex(const AbsolutePath& packagePath) const {
     // this is where a whole cast disappears. The world index gets the same
     // scan-rebuild guarantee the project index has always had (AC2).
     auto entries = scanDir(packagePath, /*worldScoped=*/true);
+
+    // ⚠️ I-0144 (SP-116 T-0431) — A READ PATH THAT WRITES, DELIBERATELY LEFT
+    // UNLOCKED. Recorded here because the omission is a decision, not an
+    // oversight.
+    //
+    // This rebuild fires during what callers believe is a read
+    // (EndpointResolver.cpp:41, ObjectStore::findByID) and writes into a shared
+    // world package. It is the one world-package write T-0431 does NOT lock, for
+    // a reason that matters:
+    //
+    // ⚠️ WorldLock IS NOT REENTRANT. `save` and `remove` call findByID — which
+    // reaches here — while already holding the package lock. Acquiring again
+    // would fail with "worldLocked" against ITSELF, and the rebuild would be
+    // silently skipped in exactly the write paths that most need the index
+    // correct. A guard here would be worse than none.
+    //
+    // Why leaving it unlocked is tolerable: the rebuild is a full scan of the
+    // package and is IDEMPOTENT — two processes racing it write the same bytes,
+    // and atomicWriteTextFile is temp-write→rename, so no reader ever sees a
+    // torn file. The worst case is a redundant write, not a corrupt index.
+    //
+    // ⚠️ The proper fix is a reentrant/recursive world lock, which is a change to
+    // the locking MODEL and belongs with the network-worlds design that must
+    // already revisit "exactly one winner". Deliberately not invented here.
     if (auto r = writeWorldIndex(packagePath, entries); !r.ok()) {
         return Result<std::vector<ObjectIndexEntry>>::failure(r.error());
     }

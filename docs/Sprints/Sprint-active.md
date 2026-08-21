@@ -2,69 +2,79 @@
 
 **No Sprint is currently active.**
 
-**SP-115 was ✅ CLOSED 2026-08-20 (user-approved)** → [`Closed/Sprint-SP-115.md`](Closed/Sprint-SP-115.md).
-**EP-034 remains 🟡 Active** — SP-116 is next.
+**SP-116 was ✅ CLOSED 2026-08-21 (user-approved)** → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).
+**EP-034 remains 🟡 Active** — SP-117 is next.
 
 ---
 
-## What SP-115 delivered
+## What SP-116 delivered
 
-EP-034's **first** sprint — planned, activated, implemented, verified and closed on 2026-08-20.
+EP-034's **second** sprint: three design trades (**D5, D6, D7**), **four Issues fixed**, and ⚠️ **two more
+found while fixing them**.
 
-**All seven Tasks and all six Issues ✅ Verified.** Scope was *"the five carried EP-031 Issues and nothing
-else"*; it grew by exactly one Task (**T-0425**) for a defect found **during verification**.
+**All eight Tasks and all six Issues ✅ Verified.** Scope grew from five Tasks to eight — **every addition
+came from a defect found during the work**, none from re-planning.
 
-| Issue | Sev | Task | Outcome |
-| ----- | --- | ---- | ------- |
-| **I-0137** | **High** | T-0419 | ✅ ⚠️ **verified on the real rig, drive ejected** |
-| I-0136 | Medium | T-0420 | ✅ ⚠️ **at the CORE ONLY — surface owed** |
-| I-0139 | Medium | T-0421 | ✅ Verified |
-| I-0135 | Low | T-0422 | ✅ Verified |
-| I-0138 | Low | T-0423 | ✅ Verified |
-| **I-0142** | **High** | T-0425 | ✅ ⚠️ **found by the USER, not a suite** |
+| Task | Delivered |
+| ---- | --------- |
+| T-0426 | **D6** — world assets live in the `.scrivworld` package and **travel with the world** |
+| T-0427 | **D7** — `assetPath` from `list_assets` |
+| T-0428 | **I-0143** — the assets array routes through `JsonDoc` |
+| T-0429 | **D5** — `scrivi_list_object_kinds`, **derived**, and adopted in Swift |
+| T-0430 | **I-0141** — `scrivi.h` states the rule by reference |
+| T-0431 | ⚠️ **I-0144** — `WorldWriteGuard` locks **every** world-package write path |
+| T-0432 | ⚠️ **Block transfer + per-block watchdog** (user ruling) |
+| T-0433 | ⚠️ **I-0146** — stale-lock sweep of abandoned `*.partial` files |
 
-**Suites at close:** `ctest` **525/525** (was 520) · macOS interop **103/103 in 10 suites** (was 99) · app
-**BUILD SUCCEEDED**.
-
----
-
-## ⚠️ The lesson this sprint proved twice
-
-> **User, at close:** *"ctest, and unit tests, and integration tests are designed to test specific things.
-> But the true user experience can only be tested live, in app."*
-
-1. ⚠️ **I-0137 — a suite named after the acceptance criterion PASSED while the feature could not fire.**
-   `refine` was correct, unit-tested and correctly wired; the datum it needed never arrived, because
-   `packagePath` was populated only for *available* worlds — never for the case the refinement exists for.
-   **Only ejecting a real drive proved it.**
-2. ⚠️ **I-0142 — the user found in five minutes what 628 automated tests did not.** The visible symptom
-   (an empty world picker) was the lesser half: **renaming any world-scoped object was failing silently.**
-
-> ⚠️ **A passing test suite named after an acceptance criterion is not evidence the criterion is met in
-> the product.**
+**Suites at close:** `ctest` **552/552** macOS arm64 · x86-64 · ASan/UBSan (**was 525**) · **Linux 556
+cases / 9300 assertions** (GCC 13) · interop **107/107** · app **BUILD SUCCEEDED**.
 
 ---
 
-## ⚠️ Carried out of SP-115 — do not read as delivered
+## ⚠️ The lesson this sprint proved — twice more
+
+**Four defects in EP-034 have now been found by USE, not by tests** (I-0137, I-0142, I-0146, I-0147). Two
+were in this sprint.
+
+1. ⚠️ **I-0144 — a lock that shipped complete, correct, unit-tested, and was NEVER CALLED.** Every object
+   write into a shared world was unserialised for three sprints. **A green suite for a capability says
+   nothing about whether anything invokes it.**
+2. ⚠️ **I-0146 — a USB drive physically pulled mid-import left a 459 MB `.partial`** that no Scrivi
+   operation could ever reclaim. **The lab test asserting "no partial remains" passed throughout** — it can
+   only test failures the writing process *survives*.
+
+> ⚠️ **And three times my own test setup was easier than reality** — the staged orphan omitted the matching
+> fresh lock (twice), and the competing-writer rig used a clock whose heartbeat read as stale.
+>
+> **Staging the AFTERMATH of a failure is not staging the FAILURE.** It silently omits whatever else the
+> failure leaves behind — here, the very thing that blocked the fix.
+
+---
+
+## ⚠️ Carried out of SP-116 — do not read as delivered
 
 | Item | Owner |
 | ---- | ----- |
-| **T-0420 has no writer-facing surface** — a writer opening a too-new world sees *"unavailable"* with **no explanation**. ⚠️ `capability_without_surface`, shipped by the very sprint that fixed four instances of it | ⚠️ **unassigned — needs an owner** |
-| **I-0140 + I-0141** — filed by T-0424, fixed by neither, **by design** | **SP-116** (design-doc **D5**) |
+| ⚠️ **No UI shipped**, by design. S1–S14 are core-and-boundary criteria — **AC3 and AC9 cannot close** without the Detail Sheet | **SP-117** |
+| **T-0420's missing surface** — a writer opening a too-new world still sees *"unavailable"* with no explanation. ⚠️ Carried from **SP-115**, still unowned | ⚠️ **SP-117 is the first sprint that could take it** |
+| **I-0147** — the 60 s window after an interrupted world write where the world is unwritable and its orphan unreclaimable. ✅ **Accepted** (user-ruled); a regression test asserts it | **Network-worlds design** |
+| ⚠️ **`ObjectIndex::loadWorldIndex`'s rebuild is still UNLOCKED** — `WorldLock` is not reentrant and `save`/`remove` reach it while holding the lock | **Network-worlds design** (needs a reentrant lock) |
 
 ---
 
 ## Next
 
-**SP-116** — `[ScriviCore]` world assets + `assetPath` + the kind-scope endpoint (**D6, D7, D5**).
-⚠️ **D5 also retires I-0140 and I-0141.**
+**SP-117** — `[Apple]` Detail Sheet shell: pane, navigation, fields, save (**D1, D2, D3**).
+
+⚠️ **It is the first sprint of this Epic to ship a writer-facing surface**, which makes it the first that
+can close **AC3/AC9** — and the first that could take **T-0420's owed explanation**.
 
 ⚠️ **SP-107–SP-114 remain RESERVED to EP-032** and are not available.
 
-**Next available:** Sprint **SP-116** · Task **T-0426** · Issue **I-0143**.
+**Next available:** Sprint **SP-117** · Task **T-0434** · Issue **I-0148**.
 
 ---
 
-*Last Updated: 2026-08-20 (**SP-115 ✅ CLOSED, user-approved.** Seven Tasks + six Issues Verified and
-archived in the same step. ⚠️ **Two items carried out**: T-0420's missing surface (**unowned**) and
-I-0140/I-0141 (**SP-116**). Active Sprints 1 → 0; EP-034 stays 🟡 Active.)*
+*Last Updated: 2026-08-21 (**SP-116 ✅ CLOSED, user-approved.** Eight Tasks + six Issues Verified and
+archived in the same step. ⚠️ **Two defects found by live use** (I-0144, I-0146) and **one accepted
+limitation** (I-0147). Active Sprints 1 → 0; EP-034 stays 🟡 Active.)*

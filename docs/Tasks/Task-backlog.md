@@ -31,6 +31,10 @@ status changes on its own layer.
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
 | T-0416 | ⚠️ Seeded relation-type vocabulary does not reach existing projects | EP-031 (unscheduled) | 🔵 Backlog |
 
+> ✅ **T-0426–T-0430 LEFT this file 2026-08-21 when SP-116 was ACTIVATED** — they are 🟡 Active and live
+> in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
+> the standing rule that active Tasks never sit in the backlog.
+
 ### Not backlog — recorded here only as pointers
 
 | Task | Disposition |
@@ -205,6 +209,17 @@ worst case) are untested. `HistoryService` has unit + integration coverage at or
 task rather than reviving T-0216.
 
 ---
+
+*Last Updated: 2026-08-21, second pass (**T-0426–T-0430 REMOVED — SP-116 activated** and they moved to
+[`Task-active.md`](Task-active.md) in the same step. ⚠️ **The backlog is for unstarted, unassigned work
+only** (`feedback_task_layer_discipline`). Next available Task: **T-0431**. Prior note follows.)*
+
+*Last Updated: 2026-08-21 (**T-0426–T-0430 added for SP-116** 🔵 Planning under EP-034 — D6 world assets,
+D7 `assetPath`, ⚠️ **I-0143's escaping fix**, D5's kind-scope endpoint **including its Swift adoption**, and
+I-0141's rotted comment. ⚠️ **Detail lives in the Sprint entry, not here** (P7). ⚠️ **T-0429 reaches into
+Swift deliberately** — shipping the endpoint without adopting it would leave I-0140 open with its cure
+unused, which is `capability_without_surface` committed by the sprint curing occurrence *eight* of its
+sibling. Next available Task: **T-0431**. Prior note follows.)*
 
 *Last Updated: 2026-08-18 (**Documentation audit — this file was rebuilt.** It had grown to 744 lines
 carrying **~60 ✅ Verified Tasks, 3 🟢 Active Tasks and 7 🟠 Implemented — Not Verified Tasks**, none

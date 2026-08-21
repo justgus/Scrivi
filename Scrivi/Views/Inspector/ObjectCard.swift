@@ -31,19 +31,20 @@ struct ObjectCardKind: Sendable, Hashable {
     /// True for kinds stored inside a `.scrivworld` package, which are therefore
     /// subject to pending presentation when their world is away (§7.2).
     ///
-    /// ⚠️ **DERIVED, never stored per-kind.** This was a stored `Bool` that still
-    /// named the pre-SP-104 scope: `character`, `location`, `item`, `building`,
-    /// `vehicle` and `map` were all marked `false` after T-0409 made them
-    /// world-scoped. The card therefore passed an EMPTY `worldID` to
-    /// `createObject`, never showed the world picker, and every attempt to create
-    /// a character failed with `worldRequired` — the app-side half of the bug.
+    /// ⚠️ **ASKED OF SCRIVICORE, never written down here** (SP-116 T-0429, D5).
     ///
-    /// Since `source` is the only project-scoped kind (Doc 1 §3.0) and it has no
-    /// per-kind card at all, every card here is world-scoped by construction.
-    /// Deriving it means a future scope change cannot leave this stale — the
-    /// fifth instance of this Epic's restated-partition defect, and the first in
-    /// Swift.
-    var isWorldScoped: Bool { kind != "source" }
+    /// The history of this one property is the whole argument for the standing
+    /// rule. It began as a stored `Bool` that still named the pre-SP-104 scope,
+    /// so after T-0409 every worldbuilding card passed an EMPTY `worldID` to
+    /// `createObject` and **every attempt to create a character failed** — object
+    /// creation in the app was broken outright. The fix replaced it with
+    /// `kind != "source"`, which was *correct* but still a hand-written partition
+    /// of `ObjectKind` in Swift: I-0140, and the eighth occurrence of the class.
+    ///
+    /// ⚠️ The cause was **structural, not careless** — no ABI endpoint exposed a
+    /// kind's scope, so Swift could not derive what the boundary never told it.
+    /// `scrivi_list_object_kinds` now does, and this reads it.
+    var isWorldScoped: Bool { ObjectKindScope.isWorldScoped(kind) }
 
     /// The relation type code used when relating an object of this kind to a scene.
     ///
