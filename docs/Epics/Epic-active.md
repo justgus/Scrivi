@@ -8,7 +8,7 @@ change** (world assets + asset path + kind-scope endpoint).
 **Goal:** Let a writer **see and edit what an object actually is** — description, notes, imagery,
 **and its relationships** — through a navigable **Detail Sheet**, and attribute it with sources.
 **Date Created:** 2026-08-18 · **Promoted to Active:** 2026-08-20
-**Target Close Date:** TBD — **2 of 8 sprints closed** (SP-115 ✅ 2026-08-20, SP-116 ✅ 2026-08-21)
+**Target Close Date:** TBD — **3 of 8 sprints closed** (SP-115 ✅ · SP-116 ✅ · SP-117 ✅, all by 2026-08-21)
 **Actual Close Date:** —
 
 **Design document:** [`../Scrivi_Object_Detail_Sheets_Design_v0_1.md`](../Scrivi_Object_Detail_Sheets_Design_v0_1.md)
@@ -64,7 +64,7 @@ iOS/visionOS **explicitly deferred**; `[Linux]` parity stays in scope.
 
 Written to be verifiable **by use** — per the lesson EP-031 paid for five times.
 
-- [ ] **AC1** — From a Kind Card list item, **double-click** and **right-click → "View Detail"** both open
+- [x] ✅ **AC1** (verified by use, SP-117) — From a Kind Card list item, **double-click** and **right-click → "View Detail"** both open
       the Detail Sheet. ⚠️ **A single click still does what it does today** (Q-b).
 - [ ] **AC2** — The sheet **views and edits** `displayName`, `subtitle`, `notes`, `tags`; edits persist
       across app restart.
@@ -80,9 +80,11 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
       **back and forward** move through that history.
 - [ ] **AC8** — A **source can be created from the documented object** and a `cites` edge attached;
       ⚠️ the `sources` card **then shows content for the first time**.
-- [ ] **AC9** — ⚠️ A **pending** object opens **read-only, explained, never written**; a world going
-      unavailable **while a sheet is open** is handled without data loss.
-- [ ] **AC10** — All five Issues **I-0135–I-0139** Resolved, ⚠️ **each verified against its own trigger**
+- [~] ⚠️ **AC9 — HALF met (SP-117).** ✅ A **pending** object opens **read-only, explained, never written** —
+      **verified by use**, including drive removal *and* return, and the read-only state was hardened by
+      **I-0148**. ⚠️ **The remaining half — a world going unavailable WHILE A SHEET IS OPEN, handled
+      without data loss — is not yet demonstrated** and belongs with SP-119.
+- [x] ✅ **AC10** (SP-115) — All five Issues **I-0135–I-0139** Resolved, ⚠️ **each verified against its own trigger**
       (`feedback_verify_each_half_separately`).
 - [ ] **AC11** — `[Linux]` parity for AC1–AC9 in Docker+VNC. ⚠️ **No gesture-only affordances.**
 - [ ] **AC12** — `ctest` green macOS arm64 **and** x86-64 + sanitizers; interop green; Linux container
@@ -94,8 +96,8 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 | ------ | ----- | ------ | ----- |
 | **SP-115** | ⚠️ **The five Issues + I-0142 (user-found)** — all ✅ Verified | ✅ **Closed** | 2026-08-20 |
 | **SP-116** | ⚠️ **`[Cross]`** World assets + `assetPath` + kind-scope endpoint (D6, D7, D5) — retired **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** | ✅ **Closed** | 2026-08-21 |
-| SP-117 | `[Apple]` Detail Sheet shell — pane, navigation, fields, save (D1, D2, D3) | 🔵 **Next** | — |
-| SP-118 | `[Apple]` Related objects + relationship creation (D4) | ⚪ Planned | — |
+| **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) — ⚠️ **first writer-facing surface**; paid **T-0420's debt**; retired **I-0148** | ✅ **Closed** | 2026-08-21 |
+| SP-118 | `[Apple]` Related objects + relationship creation (D4) — ⚠️ **T-0416 may be a live blocker** | 🔵 **Next** | — |
 | SP-119 | `[Apple]` Images: import, display, card thumbnails (D8) | ⚪ Planned | — |
 | SP-120 | `[Apple]` Source creation + footnote text — ⚠️ **closes T-0365's write half** | ⚪ Planned | — |
 | SP-121 | `[Linux]` Parity (AC11) | ⚪ Planned | — |
@@ -125,6 +127,13 @@ of the five additions came from USE, not planning.**
 | **T-0431** | ⚠️ **I-0144** — lock **every** world-package write path | SP-116 | **High** | ✅ **Verified** |
 | **T-0432** | ⚠️ **Streaming/block transfer** + per-block watchdog + partial cleanup | SP-116 | **High** | ✅ **Verified** |
 | **T-0433** | ⚠️ **I-0146** — stale-lock sweep of abandoned `*.partial` files | SP-116 | **Medium** | ✅ **Verified** |
+| **T-0434** | **D1-E** — Detail Sheet pane, ⚠️ **host-independent** | SP-117 | **High** | ✅ **Verified** |
+| **T-0435** | **D2-B** — back/forward history | SP-117 | **High** | ✅ **Verified** |
+| **T-0436** | ⚠️ **Typed Swift object model** — none exists today | SP-117 | **High** | ✅ **Verified** |
+| **T-0437** | **D3-A** — fields; ⚠️ **save by PATCH** | SP-117 | **High** | ✅ **Verified** |
+| **T-0438** | **R7** — double-click **and** right-click | SP-117 | **High** | ✅ **Verified** |
+| **T-0439** | **R9** — pending: read-only, explained, never written | SP-117 | Medium | ✅ **Verified** |
+| **T-0440** | ⚠️ **T-0420's owed surface** | SP-117 | Medium | ✅ **Verified** |
 
 ### Issues
 

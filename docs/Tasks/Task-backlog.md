@@ -35,6 +35,9 @@ status changes on its own layer.
 > in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
 > the standing rule that active Tasks never sit in the backlog.
 
+> ✅ **T-0434–T-0440 LEFT this file 2026-08-21 when SP-117 was ACTIVATED** — they are 🟡 Active in
+> [`Task-active.md`](Task-active.md), exactly as the note that stood here said they would be.
+
 ### Not backlog — recorded here only as pointers
 
 | Task | Disposition |
@@ -209,6 +212,15 @@ worst case) are untested. `HistoryService` has unit + integration coverage at or
 task rather than reviving T-0216.
 
 ---
+
+*Last Updated: 2026-08-21, fourth pass (**T-0434–T-0440 REMOVED — SP-117 activated**; they moved to
+`Task-active.md` in the same step. Next available Task: **T-0441**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, third pass (**T-0434–T-0440 added for SP-117** 🔵 Planning under EP-034 — the
+Detail Sheet pane, back/forward history, ⚠️ **a typed Swift object model** (there is none today), the three
+plain fields, both entry points, pending read-only, and ⚠️ **T-0420's long-owed surface**. ⚠️ **Detail lives
+in the Sprint entry** (P7). ⚠️ **`tags` deliberately NOT here** — deferred to SP-119, so **R2/AC2 cannot
+close in SP-117**. Next available Task: **T-0441**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, second pass (**T-0426–T-0430 REMOVED — SP-116 activated** and they moved to
 [`Task-active.md`](Task-active.md) in the same step. ⚠️ **The backlog is for unstarted, unassigned work

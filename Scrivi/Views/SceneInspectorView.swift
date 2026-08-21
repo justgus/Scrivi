@@ -20,6 +20,9 @@ struct SceneInspectorView: View {
     var worldRevision: Int = 0
     /// Attribution for objects created in a card (T-0388).
     let authorshipRef: AuthorshipRef?
+    /// Forwarded to the card stacks so an object card can ask the editor to open
+    /// the Detail Sheet (SP-117 T-0438).
+    var openObjectDetail: ((String, String, String, String) -> Void)? = nil
     @Bindable var layout: InspectorLayoutStore
 
     // Pane width is a per-device view preference (unlike the layout itself), so it
@@ -61,6 +64,7 @@ struct SceneInspectorView: View {
                                    caretByteOffset: caretByteOffset,
                                    worldRevision: worldRevision,
                                    authorshipRef: authorshipRef,
+                                   openObjectDetail: openObjectDetail,
                                    layout: layout)
         case .worldbuilding:
             InspectorCardStackView(stack: .worldbuilding,
@@ -72,6 +76,7 @@ struct SceneInspectorView: View {
                                    caretByteOffset: caretByteOffset,
                                    worldRevision: worldRevision,
                                    authorshipRef: authorshipRef,
+                                   openObjectDetail: openObjectDetail,
                                    layout: layout)
         case .properties:
             ScenePropertiesView(sceneID: sceneID,

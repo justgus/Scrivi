@@ -406,6 +406,13 @@ struct ObjectCardBody: View {
                                                 worldID: entry.worldID,
                                                 originSceneID: context.sceneID,
                                                 originalName: entry.displayName)
+                        } onViewDetail: {
+                            // R7. ⚠️ A pending object still opens — R9 requires it
+                            // be shown, explained and read-only, never hidden.
+                            context.openObjectDetail?(entry.objectID,
+                                                      cardKind.kind,
+                                                      entry.worldID,
+                                                      entry.displayName)
                         }
                     }
                     // §7.2: name the world and say what is wrong with it. The rows
@@ -878,6 +885,12 @@ private struct ObjectCardRow: View {
     let entry: ObjectCardModel.Entry
     let onRemove: () -> Void
     let onEdit: () -> Void
+    /// Opens the Detail Sheet (EP-034 SP-117, T-0438 / R7).
+    ///
+    /// ⚠️ **ADDITIVE — this replaces nothing** (design Q-b). A single click still
+    /// opens the inline editor exactly as it did; the sheet is a third path
+    /// alongside the list item (identify) and the inline editor (capture).
+    var onViewDetail: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 6) {
@@ -903,7 +916,28 @@ private struct ObjectCardRow: View {
             // Editing happens in place too (§4.6) — a pending object cannot be
             // edited, because the graph is frozen toward its world.
             .contentShape(Rectangle())
+            // ⚠️ ORDER MATTERS. SwiftUI dispatches the LONGEST matching gesture,
+            // so the double-click modifier must come FIRST or a double click is
+            // delivered as two single clicks and opens the inline editor twice.
+            //
+            // ⚠️ This is the I-0132 class of bug — that Issue took FOUR attempts
+            // and three misdiagnoses, and the lesson recorded was to fix it in
+            // SwiftUI's own terms rather than reach beneath it with an NSEvent
+            // monitor. Do not "fix" a click problem here with an event monitor.
+            .onTapGesture(count: 2) { onViewDetail?() }
             .onTapGesture { if !entry.pending { onEdit() } }
+            .contextMenu {
+                // R7's discoverable half. Double-click is invisible until someone
+                // tries it; the menu is how a writer FINDS the sheet.
+                if let onViewDetail {
+                    Button("View Detail", systemImage: "square.text.square") {
+                        onViewDetail()
+                    }
+                }
+                Button("Remove from Scene", systemImage: "minus.circle",
+                       role: .destructive, action: onRemove)
+                    .disabled(entry.pending)
+            }
 
             Spacer(minLength: 4)
 

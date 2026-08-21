@@ -16,19 +16,22 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-116's eight are ✅ Verified and archived
+## Currently: **no active Tasks** — SP-117's seven are ✅ Verified and archived
 
 | ID | Title | Sprint | Verified |
 | -- | ----- | ------ | -------- |
-| ✅ **T-0426 – T-0433** | SP-116's eight Tasks — D5/D6/D7, four Issues, and ⚠️ **two more found while fixing them** (I-0144's uncalled lock, I-0146's orphaned partial) | SP-116 | 2026-08-21 → [`Verified/Task-verified-0426-0433.md`](Verified/Task-verified-0426-0433.md) |
+| ✅ **T-0434 – T-0440** | SP-117's seven — the Detail Sheet pane, history, ⚠️ **the app's first typed object model**, patch-based save, both entry points, pending read-only, and ⚠️ **T-0420's surface owed since SP-115** | SP-117 | 2026-08-21 → [`Verified/Task-verified-0434-0440.md`](Verified/Task-verified-0434-0440.md) |
 
 ⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
 
-⚠️ **Two consequences carried out of SP-116:**
+⚠️ **Carried out of SP-117:** `tags` is deferred to **SP-119** by user ruling, so **R2 is not fully met and
+AC2 cannot close**. AC3–AC8 belong to SP-118–SP-120.
 
-- **No UI shipped**, by design — so **AC3 and AC9 remain open** and belong to **SP-117**.
-- **T-0420's missing surface is STILL UNOWNED** (carried from SP-115). ⚠️ **SP-117 is the first sprint that
-  could take it**, since it is the first to ship a writer-facing surface at all.
+## Previously: SP-116's eight Tasks — ✅ Verified and archived
+
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0426 – T-0433** | SP-116's eight — D5/D6/D7 and six Issues | SP-116 | 2026-08-21 → [`Verified/Task-verified-0426-0433.md`](Verified/Task-verified-0426-0433.md) |
 
 ## Previously: SP-115's seven Tasks — ✅ Verified and archived
 
@@ -47,6 +50,20 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-21, seventh pass (**SP-117's seven Tasks ✅ VERIFIED (user-approved) and ARCHIVED in
+the same step** → `Verified/Task-verified-0434-0440.md`. Active Tasks 7 → **0**. ⚠️ **AC2 still cannot close
+— `tags` deferred to SP-119.** Next available Task: **T-0441**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, sixth pass (**all seven Tasks IMPLEMENTED — 🟠 Not Verified.** ctest
+**554/554**, Linux **558/9332**, interop **115/115**, app **BUILD SUCCEEDED**. ⚠️ **T-0440 forced a
+ScriviCore change** — the reason a world is unavailable was **discarded by `resolve()` and carried by no
+envelope**, so the app could not have explained it however it was written. ⚠️ **S9 (live click-through) is
+still owed** — only the user can supply it. Prior note follows.)*
+
+*Last Updated: 2026-08-21, fifth pass (**SP-117 ACTIVATED — T-0434–T-0440 moved here**. Active Tasks 0 →
+**7**. ⚠️ **T-0437 is the highest-risk item** (patch-don't-reconstruct); ⚠️ **T-0440 finally owns T-0420's
+surface.** Next available Task: **T-0441**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, fourth pass (**SP-116's eight Tasks ✅ VERIFIED (user-approved) and ARCHIVED in
 the same step** → `Verified/Task-verified-0426-0433.md`. Active Tasks 8 → **0**. ⚠️ **T-0420's surface is

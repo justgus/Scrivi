@@ -117,6 +117,20 @@ struct CardContext {
     /// `.task(id:)` could not observe.
     var worldRevision: Int = 0
 
+    /// Asks the HOST to open the Object Detail Sheet for this object
+    /// (EP-034 SP-117, T-0438 / R7).
+    ///
+    /// ⚠️ **A request, not a presentation.** D1-E ruled the sheet an
+    /// *editor-level* pane, and a card lives inside the 280pt inspector — the
+    /// width D1-C was rejected over. A card that presented the sheet itself would
+    /// either be confined to that strip or reach outside its own hierarchy.
+    ///
+    /// ⚠️ Optional, so a host that does not offer the sheet simply does not pass
+    /// one: the card then shows no "View Detail" affordance rather than offering
+    /// an action that goes nowhere.
+    var openObjectDetail: ((_ objectID: String, _ kind: String,
+                            _ worldID: String, _ displayName: String) -> Void)? = nil
+
     /// The **stack's** sort, applied by every card in it (C6 / §4.5 — sort is per
     /// stack, never per card). Object cards order their contents by this; cards
     /// with no orderable content ignore it.

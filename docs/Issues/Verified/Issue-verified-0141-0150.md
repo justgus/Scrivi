@@ -60,6 +60,7 @@ the defect rather than merely passing alongside it.
 *Last Updated: 2026-08-20 (decade opened — **I-0142 ✅ Verified**, found by the user during SP-115
 verification.)*
 
+| **I-0148** | `[Apple]` ⚠️ **`.disabled()` DOES NOT MAKE A `TextEditor` READ-ONLY — Notes stayed editable directly beneath a banner saying "read only".** In the Detail Sheet (SP-117 T-0439), a world-unavailable object correctly disabled `displayName` and `subtitle` — both `TextField` — while the `notes` `TextEditor` carried the identical `.disabled(isReadOnly(detail))` modifier and **ignored it**. ⚠️ **This is the app's FIRST disabled `TextEditor`**: the only other one in Scrivi (`WritingToolCards.swift:209`) is never disabled, so there was no precedent that would have exposed the behaviour. ✅ **NOT a write-safety defect** — `Save` is hidden entirely when read-only, so nothing could ever reach disk, and R9's *"never written"* guarantee held throughout. ⚠️ **The real cost was LOST TYPING:** `load()` overwrites `draftNotes` from disk, so a paragraph typed during a drive outage vanished **silently** on navigating away and back — no prompt, no warning. That is the class the inline editor already guards (I-0126 keeps a draft alive across a failed save). **Fix:** render `notes` as selectable TEXT when read-only rather than an inert editor, so the state is visible and not merely enforced. ⚠️ **User-ruled** (2026-08-21): disable it for simplicity and consistency, over the alternative of retaining drafts across an outage. | Low | **SP-117** (T-0439) | ✅ **Resolved - Verified (2026-08-21)** — ⚠️ **FOUND BY THE USER'S LIVE CLICK-THROUGH**, and ⚠️ **reported as an observation rather than a defect** — *"When the disk is unmounted, the Notes field is still editable"* sat inside an otherwise glowing pass |
 ---
 
 ## SP-116's six — and what verified them
@@ -92,3 +93,33 @@ reaching a SECOND project**, S3 honest refusal with the drive out, S4 ⚠️ **1
 *Last Updated: 2026-08-21 (**I-0140, I-0141, I-0143–I-0146 ✅ Verified (user-approved) and archived in the
 same step** at SP-116's close. ⚠️ **I-0147 is NOT archived** — it is an Accepted limitation, deferred to the
 network-worlds design.)*
+
+---
+
+## I-0148 — found by a user who did not know he was reporting a bug
+
+**SP-117's live click-through.** Amid a report that read *"I think you knocked this one out of the park"*
+sat one sentence:
+
+> *"When the disk is unmounted, the Notes field is still editable."*
+
+⚠️ **`.disabled()` does not make a `TextEditor` read-only.** The two `TextField`s above it honoured the
+identical modifier; the `TextEditor` ignored it — so Notes stayed editable directly beneath a banner saying
+*"read only until it is available again."* ⚠️ **The app's first disabled `TextEditor`**, so no precedent
+existed to expose it.
+
+✅ **Never a write-safety defect.** `Save` is hidden entirely when read-only; **nothing could reach disk**
+and R9's *"never written"* guarantee held. ⚠️ **The real cost was LOST TYPING** — `load()` overwrites the
+draft from disk, so a paragraph typed during an outage vanished **silently** on navigating away and back.
+
+⚠️ **Claude's first assessment ("R9 violated") was too strong, and the user corrected it.** The user's own
+framing (*"it is read only, in a sense"*) was also incomplete — **neither party had named the actual cost
+until the code was read.**
+
+**Fixed by user ruling** — disable it, for simplicity and consistency over inventing draft-retention rules.
+Notes now renders as **selectable text** when read-only, so the state is visible rather than merely
+enforced.
+
+---
+
+*Last Updated: 2026-08-21 (**I-0148 ✅ Verified** — SP-117's live-pass finding.)*

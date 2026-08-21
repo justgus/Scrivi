@@ -312,6 +312,13 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
             if (parsedR.error().code == ErrorCode::unsupportedVersion) {
                 out.status = WorldStatus::unavailable;
                 out.lastKnownPackagePath = cand;
+                // T-0440 (SP-117): carry WHY across the boundary. Until this
+                // line the reason died here and the writer saw a bare
+                // "unavailable" — the fix for I-0136 was Verified at the core
+                // while remaining invisible in the product for two sprints.
+                out.statusReason = parsedR.error().detail.empty()
+                    ? std::string{"unsupportedWorldFormatVersion"}
+                    : parsedR.error().detail;
                 return out;
             }
             continue;
@@ -419,6 +426,7 @@ WorldStore::listWorlds(const AbsolutePath& projectRoot) const {
         // distinguishes `unmounted` from `offline` needs a path precisely when
         // the world is NOT available.
         s.lastKnownPackagePath = res.lastKnownPackagePath;
+        s.statusReason         = res.statusReason;   // T-0440
         if (res.status == WorldStatus::available) {
             s.packagePath = res.packagePath;
             s.displayName = res.world.displayName;        // live name wins

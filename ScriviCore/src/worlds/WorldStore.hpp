@@ -33,6 +33,23 @@ struct WorldResolution {
     // only run on a world that is NOT available. Supplying only a verified path
     // guaranteed the refinement could never fire for the one case it exists for.
     AbsolutePath lastKnownPackagePath;
+
+    // ⚠️ WHY the world is not available, when the core knows (T-0440, SP-117).
+    //
+    // Empty means "no further detail" — the ordinary case, and what every
+    // pre-SP-117 caller effectively assumed. Non-empty carries a stable code the
+    // app can explain in its own words, e.g. "unsupportedWorldFormatVersion".
+    //
+    // ⚠️ WHY THIS FIELD HAD TO EXIST. T-0420 (I-0136) made resolve() report a
+    // too-new package as `unavailable` rather than the forbidden `missing`, and
+    // recorded that the reason "reaches the writer through the parse error's
+    // unsupportedWorldFormatVersion detail" — but resolve() RETURNS a status, not
+    // an error, so that detail was discarded here and never crossed the ABI. The
+    // core knew why and had no way to say so, which is why the fix was Verified
+    // at the core while a writer still saw a bare "unavailable" with no
+    // explanation for two sprints. ⚠️ `capability_without_surface`, caused by a
+    // missing FIELD rather than a missing view.
+    std::string statusReason;
 };
 
 // One row for scrivi_list_worlds.
@@ -44,6 +61,8 @@ struct WorldSummary {
     // ⚠️ Set whenever a candidate was tried — see WorldResolution above (T-0419).
     AbsolutePath lastKnownPackagePath;
     std::int64_t epochOffsetMs = 0;
+    // Why it is unavailable, when known — see WorldResolution::statusReason.
+    std::string  statusReason;
 };
 
 class WorldStore {

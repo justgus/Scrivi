@@ -797,6 +797,16 @@ TEST_CASE("⚠️ a world.json from a NEWER Scrivi is refused, not parsed as cur
     REQUIRE(res.status != WorldStatus::missing);
     REQUIRE(fs::weakly_canonical(res.lastKnownPackagePath)
             == fs::weakly_canonical(pkg));        // and we still say where it is
+
+    // ⚠️ T-0440 (SP-117): AND the REASON must survive resolution.
+    //
+    // This is what was missing for two sprints. Everything above passed while a
+    // writer opening this world saw a bare "unavailable" with no explanation:
+    // resolve() returns a STATUS, not an error, so the `unsupportedWorldFormatVersion`
+    // detail asserted 20 lines up died right here and never crossed the ABI.
+    // ⚠️ The fix for I-0136 was Verified at the core while remaining invisible in
+    // the product — `capability_without_surface` caused by a missing FIELD.
+    REQUIRE(res.statusReason == "unsupportedWorldFormatVersion");
 }
 
 TEST_CASE("⚠️ a CORRUPT world.json degrades to unavailable and is left untouched (I-0135)",

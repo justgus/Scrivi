@@ -36,14 +36,19 @@ manuscript export has no existing path to attach to (`scrivi_export_project_time
 the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequencing question** — without
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
-**Next available Sprint ID: SP-117** — ⚠️ **SP-115 (closed) and SP-116 (ACTIVE) are both taken** by EP-034.
+**Next available Sprint ID: SP-118** — ⚠️ **SP-115 and SP-116 closed; SP-117 ACTIVE**, all three EP-034's.
+
+⚠️ **This file holds NO Sprint in Planning.** SP-117 activated 2026-08-21 and left in the same step.
 
 **8 IDs reserved (SP-107–SP-114)** for EP-032 — ⚠️ **reserved, not planned.**
 
-⚠️ **This file currently holds NO Sprint in Planning.** SP-116 activated 2026-08-21 and left in the same
-step, per the standing rule below.
+---
 
 ---
+
+> ✅ **SP-117 was ACTIVATED 2026-08-21 and left this file in the same step**, per the standing rule that a
+> Sprint leaves the backlog at activation and never returns. Plan and status now live in
+> [`Sprint-active.md`](Sprint-active.md).
 
 > ✅ **SP-116 was ACTIVATED 2026-08-21 and left this file in the same step**, exactly as SP-115 did — per
 > the standing rule that **a Sprint leaves the backlog at ACTIVATION and never returns.** Its plan and
@@ -78,6 +83,18 @@ returns; whether it later closed is recorded in [`Closed/`](Closed/) and in
 > (the R-28 safeguard) — SP-095's gating ruling, SP-096's ID-prefix finding, SP-103's scope ruling and
 > T-0410's OBE removal, and the SP-097/098/099/102/105/106 rulings. **All present in `Closed/`.
 > Nothing was reconstructed because nothing was lost.**
+
+*Last Updated: 2026-08-21, fourth pass (**SP-117 🟡 ACTIVATED and REMOVED** — plan moved to
+`Sprint-active.md`. Zero Sprints in Planning. Next available: **SP-118**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, third pass (**SP-117 PLANNED 🔵** under EP-034 — seven Tasks **T-0434–T-0440**,
+**no open Issues**. ⚠️ **The first sprint of EP-034 that ships anything a writer can click** — two sprints
+have closed without a reachable surface, which is the very defect the Epic exists to cure. ⚠️ **Two
+planning rulings**: `tags` deferred to SP-119 (no chip-editor precedent in the app), so **R2/AC2 cannot
+close here**; and **both** R7 entry points ship (double-click *and* right-click). ⚠️ **T-0440 finally takes
+T-0420's owed surface** — unowned across two sprints because neither shipped UI. ⚠️ **S4 (patch-don't-
+reconstruct) is the likeliest silent defect** and **S8 (host-independence) protects D1's successor path**.
+Next available Sprint: **SP-118**; Task: **T-0441**; Issue: **I-0148**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, second pass (**SP-116 🟡 ACTIVATED and REMOVED from this file** in the same
 step — its plan moved verbatim to [`Sprint-active.md`](Sprint-active.md). ⚠️ **This file is back to zero

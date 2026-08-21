@@ -18,7 +18,7 @@ restated here.
 
 🟡 **EP-034** `[Cross]` is the active Epic. **No Sprint is active** — **SP-116 ✅ CLOSED 2026-08-21**
 (user-approved), all eight Tasks and six Issues Verified → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).
-**SP-117** is next. **SP-115 ✅ CLOSED 2026-08-20** (user-approved), all seven
+**SP-117 ✅ CLOSED 2026-08-21** (user-approved) → [`Closed/Sprint-SP-117.md`](Closed/Sprint-SP-117.md). **SP-118** is next. **SP-115 ✅ CLOSED 2026-08-20** (user-approved), all seven
 Tasks and six Issues Verified. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER EP-034
 (Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**. **Next available ID is in Statistics** — recorded once,
 there, not restated here (P7).
@@ -219,7 +219,7 @@ file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.*
 ## All Sprints
 
 ⚠️ **This table is the single source for Sprint status (P7).** Counts are **not** restated here or in
-Statistics — read the rows. Next available ID: **SP-117** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
+Statistics — read the rows. Next available ID: **SP-118** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
 (see the reserved-ID note in Statistics). **Do not reissue them.** ⚠️ **SP-115 runs BEFORE them** (Q-a).
 
 **SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
@@ -377,6 +377,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | SP-114 | ⚠️ **RESERVED (EP-032)** — AC verification + live-use pass on the real rig + Epic close prep (AC7, AC10) | EP-032 `[Cross]` | — | — | ⚪ **Reserved, not planned** |
 | SP-115 | ⚠️ **The five open Issues + I-0142 (user-found)** — all ✅ Verified | EP-034 `[Cross]` | 2026-08-20 | 2026-08-20 | ✅ Closed |
 | **SP-116** | ⚠️ **`[Cross]`** World assets (D6) + `assetPath` (D7) + kind-scope endpoint (D5) — retired **six Issues** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
+| **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) + **T-0440's ABI reason field** — ⚠️ **first writer-facing surface of EP-034** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
 
 ## Statistics
 
@@ -385,8 +386,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-117** — ⚠️ **not SP-107.** See the reserved block below.
-- **Total Sprint IDs issued:** 116 (SP-001–SP-116) — 108 executed, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-118** — ⚠️ **not SP-107**; See the reserved block below.
+- **Total Sprint IDs issued:** 117 (SP-001–SP-117) — 109 executed, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -415,6 +416,22 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-21, sixth pass (**SP-117 ✅ CLOSED, user-approved** — EP-034's third sprint and
+⚠️ **the first to ship a writer-facing surface**; seven Tasks + I-0148 Verified and archived. ⚠️ **Recorded
+`[Cross]`, not `[Apple]`** — T-0440 needed an ABI `statusReason` field because the reason a world is
+unavailable was discarded by `resolve()`. ⚠️ **The live click-through both VALIDATED the D1-E ruling and
+found I-0148** — the fifth EP-034 defect found by use. Suites: ctest **554/554** · Linux **558/9332** ·
+interop **115/115** · **BUILD SUCCEEDED**. Next: **SP-118**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, fifth pass (**SP-117 → 🟠 REVIEW** — all seven Tasks ✅ Verified (user-approved)
+and archived, plus I-0148. ⚠️ **Recorded as `[Cross]`, not `[Apple]`**: T-0440 required a ScriviCore
+`statusReason` field, because the reason a world is unavailable was discarded by `resolve()` and carried by
+no envelope. ⚠️ **Claude cannot close a Sprint** — awaiting user approval. Prior note follows.)*
+
+*Last Updated: 2026-08-21, fourth pass (**SP-117 CREATED 🔵 Planning** — EP-034's third sprint; seven
+Tasks T-0434–T-0440, no open Issues. ⚠️ **The first EP-034 sprint to ship a writer-facing surface.** Next
+available Sprint ID: **SP-118**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, third pass (**SP-116 ✅ CLOSED, user-approved** — EP-034's second sprint; eight
 Tasks + six Issues Verified and archived in the same step → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).

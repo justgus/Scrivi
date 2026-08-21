@@ -808,6 +808,67 @@ TEST_CASE("a partial left in a PROJECT (unlocked) import is still cleaned by rol
 }
 
 // ---------------------------------------------------------------------------
+// T-0440 — the REASON a world is unavailable must cross the boundary
+//
+// ⚠️ WHY THIS IS HERE AND NOT IN WorldTests.cpp. The facade-level assertion
+// (WorldTests: "a world.json from a NEWER Scrivi is refused") passed throughout
+// SP-115 and SP-116 while a writer opening such a world saw a bare "unavailable"
+// with no explanation — because the reason never reached an ENVELOPE. A test
+// that stops at resolve() cannot see that gap, which is the I-0113 lesson in a
+// different costume.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("C ABI: a too-new world reports WHY it is unavailable",
+          "[integration][SP-117][T-0440]") {
+    AssetCApiFixture fix;
+    const auto worldID = fix.makeWorld();
+    const auto wj = fs::path(fix.pkg("Eskandar")) / "world.json";
+
+    // Declare a formatVersion this build cannot understand.
+    {
+        std::ifstream in(wj);
+        std::string text((std::istreambuf_iterator<char>(in)), {});
+        in.close();
+        const auto pos = text.find("\"formatVersion\"");
+        REQUIRE(pos != std::string::npos);
+        const auto colon = text.find(':', pos);
+        const auto end   = text.find_first_of(",}", colon);
+        text = text.substr(0, colon + 1) + "99" + text.substr(end);
+        std::ofstream out(wj, std::ios::trunc);
+        out << text;
+    }
+
+    auto status = okResult(scrivi_get_world_status(fix.root(), worldID.c_str()));
+    REQUIRE(status.getString("status") == "unavailable");
+    // ⚠️ The line that makes an explanation possible in the app at all.
+    REQUIRE(status.getString("statusReason") == "unsupportedWorldFormatVersion");
+
+    // And through the LIST envelope too — the app reads worlds from here.
+    auto listed = okResult(scrivi_list_worlds(fix.root()));
+    bool found = false;
+    for (std::size_t i = 0; i < listed.arraySize("worlds"); ++i) {
+        auto w = listed.arrayItem("worlds", i);
+        if (w.getString("worldID") != worldID) { continue; }
+        found = true;
+        REQUIRE(w.getString("status") == "unavailable");
+        REQUIRE(w.getString("statusReason") == "unsupportedWorldFormatVersion");
+    }
+    REQUIRE(found);
+}
+
+TEST_CASE("C ABI: an ordinary available world carries no statusReason",
+          "[integration][SP-117][T-0440]") {
+    // ⚠️ Empty means "no further detail" — the ordinary case. A reason that
+    // appeared on healthy worlds would train the app to explain nothing.
+    AssetCApiFixture fix;
+    const auto worldID = fix.makeWorld();
+
+    auto status = okResult(scrivi_get_world_status(fix.root(), worldID.c_str()));
+    REQUIRE(status.getString("status") == "available");
+    REQUIRE(status.getString("statusReason").empty());
+}
+
+// ---------------------------------------------------------------------------
 // S7 — D5: the kind-scope endpoint, and that it stays DERIVED
 // ---------------------------------------------------------------------------
 

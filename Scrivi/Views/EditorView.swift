@@ -44,7 +44,25 @@ private struct ManuscriptEditorView: View {
     // Detail-column presence for the two-column NavigationSplitView selection contract. On compact
     // width a non-nil value pushes the detail; on regular width both columns show side by side.
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+
     #endif
+
+    // MARK: — Object Detail Sheet (EP-034 SP-117, D1-E)
+    //
+    // ⚠️ Hosted HERE, at editor level, not in the inspector. D1-C (pushing into
+    // the 280pt inspector pane) was rejected precisely because that width is
+    // wrong for long-form notes, and D1-B (a window) was deferred because Scrivi
+    // has no auxiliary window type and EP-018 documents what adding one costs.
+    //
+    // ⚠️ The history is owned HERE rather than by the pane, so it survives the
+    // pane being rebuilt — and so a window host could own it identically when
+    // D1-B's successor arrives.
+    //
+    // ⚠️ Declared OUTSIDE the iOS-only block above: the first draft put it
+    // inside, so it did not exist on macOS at all — the platform the sheet
+    // actually ships on this sprint.
+    @State private var detailHistory = ObjectDetailHistory()
+    @State private var showDetailSheet = false
 
     var body: some View {
         container
@@ -287,7 +305,37 @@ private struct ManuscriptEditorView: View {
                 inspector(loader: loader)
             }
             #endif
+
+            // D1-E: the Detail Sheet as an editor-level, NON-MODAL pane. It sits
+            // beside the manuscript rather than over it — §1's mode switch made
+            // visible, without a modal that Doc 2 §4.6 forbids for in-place work.
+            if showDetailSheet {
+                Divider()
+                ObjectDetailSheet(
+                    engine: env.engine,
+                    projectRootPath: session.projectRootPath ?? "",
+                    authorshipRef: env.authorshipRef ?? AuthorshipRef(identityID: "",
+                                                                      personaID: "",
+                                                                      displayName: ""),
+                    worlds: detailWorlds,
+                    onClose: {
+                        showDetailSheet = false
+                        detailHistory.reset()
+                    },
+                    history: detailHistory
+                )
+                .frame(minWidth: 420, idealWidth: 520, maxWidth: 720)
+                .transition(.move(edge: .trailing))
+            }
         }
+    }
+
+    /// Worlds for the Detail Sheet's read-only/pending logic (R9) and T-0440's
+    /// explanation. Read once here rather than by the pane, which keeps the pane
+    /// host-independent (S8) and testable with fixtures.
+    private var detailWorlds: [WorldEntry] {
+        guard let root = session.projectRootPath else { return [] }
+        return (try? env.engine.listWorlds(projectRootPath: root).worlds) ?? []
     }
 
     /// The Scene Inspector (EP-030 SP-090). The card stack is per-scene, so it follows
@@ -307,6 +355,15 @@ private struct ManuscriptEditorView: View {
                 // `.task(id:)` so pending entries relink without a scene change.
                 worldRevision: session.worldRevision,
                 authorshipRef: env.authorshipRef,
+                // T-0438 / R7: the card ASKS; the editor hosts. A card cannot
+                // present an editor-level pane from inside the 280pt inspector.
+                openObjectDetail: { objectID, kind, worldID, displayName in
+                    detailHistory.visit(.init(objectID: objectID,
+                                              kind: kind,
+                                              worldID: worldID,
+                                              displayName: displayName))
+                    showDetailSheet = true
+                },
                 layout: layout
             )
         }

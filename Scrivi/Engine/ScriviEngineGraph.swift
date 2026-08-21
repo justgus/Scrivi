@@ -430,9 +430,14 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
     /// Defaulted for tolerance of an older core that does not emit it.
     public let lastKnownPackagePath: String
     public let epochOffsetMs: Int64
+    /// ⚠️ WHY the world is unavailable, when ScriviCore knows (T-0440, SP-117).
+    /// Empty means no further detail — the ordinary case. Read it through
+    /// `unavailabilityExplanation`, never by comparing strings at a call site.
+    public let statusReason: String
 
     private enum CodingKeys: String, CodingKey {
-        case worldID, displayName, status, packagePath, lastKnownPackagePath, epochOffsetMs
+        case worldID, displayName, status, packagePath, lastKnownPackagePath,
+             epochOffsetMs, statusReason
     }
 
     public init(from decoder: Decoder) throws {
@@ -444,6 +449,7 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
         lastKnownPackagePath =
             try c.decodeIfPresent(String.self, forKey: .lastKnownPackagePath) ?? ""
         epochOffsetMs = try c.decodeIfPresent(Int64.self, forKey: .epochOffsetMs) ?? 0
+        statusReason  = try c.decodeIfPresent(String.self, forKey: .statusReason) ?? ""
     }
 
     public var id: String { worldID }
@@ -470,6 +476,31 @@ public struct WorldEntry: Decodable, Sendable, Identifiable {
         // Fall back to `packagePath` so an older core still behaves as before.
         let probe = lastKnownPackagePath.isEmpty ? packagePath : lastKnownPackagePath
         return WorldVolumeStatus.refine(coreStatus: reported, packagePath: probe)
+    }
+
+    /// A sentence explaining WHY this world cannot be used, or nil when there is
+    /// nothing more to say than its status (T-0440, SP-117).
+    ///
+    /// ⚠️ **This closes a debt owed since SP-115.** T-0420 fixed
+    /// `unsupportedWorldFormatVersion` in the core and was Verified there — while
+    /// a writer opening a too-new world still saw a bare "unavailable" with **no
+    /// explanation**, across two sprints. The core knew and could not say so; now
+    /// it says so and this turns it into words.
+    ///
+    /// ⚠️ **Explained here, once.** A per-call-site string comparison would be the
+    /// restated-list defect in another costume — the class this Epic has paid for
+    /// eight times.
+    ///
+    /// An unrecognised reason from a newer core degrades to nil rather than
+    /// showing the writer a raw code.
+    public var unavailabilityExplanation: String? {
+        switch statusReason {
+        case "unsupportedWorldFormatVersion":
+            return "This world was saved by a newer version of Scrivi. "
+                 + "Update Scrivi to open it. Your world has not been changed."
+        default:
+            return nil
+        }
     }
 }
 

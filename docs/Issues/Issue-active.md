@@ -12,6 +12,9 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 ## Currently: **one record — I-0147, an ACCEPTED limitation, not open work**
 
+✅ **I-0148 was Verified 2026-08-21 (user-approved) and archived** →
+[`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
+
 ✅ **SP-116 closed with ZERO open Issues.** Its six — **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** —
 were ✅ **Verified 2026-08-21 (user-approved) and archived in the same step** →
 [`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
@@ -25,6 +28,10 @@ were ✅ **Verified 2026-08-21 (user-approved) and archived in the same step** �
   break fresh locks, it fails and forces the locking-model conversation rather than letting it happen by
   accident (the lesson of I-0144).
 - ⚠️ **The eventual UI must never present the 60 s wait as an error** — it is a retryable state.
+- ⚠️ **I-0148 is the FIFTH defect in EP-034 found by use rather than by tests** (I-0137, I-0142, I-0146,
+  I-0147, I-0148) — and the first the user reported **without recognising it as a defect**, folded into an
+  otherwise positive report. ⚠️ **A satisfied user is not a green suite**: the observation mattered more
+  than the verdict attached to it.
 - ⚠️ **Three of SP-116's six were found by no suite at all**: I-0143 by reading the code D7 was about to
   modify, I-0144 by looking for a caller to mirror, and **I-0146 by physically pulling a USB drive**.
 
@@ -53,6 +60,19 @@ sprint that fixed four other instances. **Owed a surface in a later sprint.**
 failed**) was worse than the reported symptom.
 
 ---
+
+*Last Updated: 2026-08-21, twelfth pass (✅ **I-0148 VERIFIED (user-approved) and ARCHIVED in the same
+step.** ⚠️ **It was found by the user's live click-through and reported as an OBSERVATION, not a
+complaint** — the fifth defect in EP-034 found by use rather than by tests. **Open Issues: 0**; I-0147
+remains an Accepted limitation. Next available Issue: **I-0149**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, eleventh pass (⚠️ **I-0148 FILED AND RESOLVED — found by the user's LIVE
+CLICK-THROUGH of SP-117**, and ⚠️ **reported as an observation, not a complaint**: `.disabled()` does not
+make a `TextEditor` read-only, so Notes stayed editable beneath a "read only" banner. ✅ **Never a
+write-safety bug** — Save is hidden when read-only — ⚠️ **but typing during an outage was silently
+discarded on navigation**, since `load()` overwrites the draft. **User ruled: disable it**, for simplicity
+and consistency over draft retention. Notes now renders as selectable text when read-only. Next available
+Issue: **I-0149**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, tenth pass (✅ **SP-116's SIX ISSUES VERIFIED (user-approved) and ARCHIVED in
 the same step** → `Verified/Issue-verified-0141-0150.md` (`feedback_archive_on_close`). ⚠️ **I-0147 remains

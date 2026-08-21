@@ -1087,6 +1087,8 @@ const char* scrivi_list_worlds(const char* projectRootPath)
         item.setString("worldID",       w.worldID);
         item.setString("displayName",   w.displayName);
         item.setString("status",        scrivi::worlds::worldStatusName(w.status));
+        // T-0440: WHY, when the core knows. Empty = no further detail.
+        item.setString("statusReason",  w.statusReason);
         item.setString("packagePath",   w.packagePath);
         // ⚠️ T-0419 (I-0137): "where we looked", carried regardless of status.
         // NOT a verified path — see WorldResolution in WorldStore.hpp.
@@ -1106,6 +1108,7 @@ const char* scrivi_get_world_status(const char* projectRootPath, const char* wor
     scrivi::util::JsonDoc doc;
     doc.setString("worldID",     S(worldID));
     doc.setString("status",      scrivi::worlds::worldStatusName(res.status));
+    doc.setString("statusReason", res.statusReason);   // T-0440
     doc.setString("packagePath", res.packagePath);
     // ⚠️ T-0419 (I-0137): carried regardless of status; NOT a verified path.
     doc.setString("lastKnownPackagePath", res.lastKnownPackagePath);

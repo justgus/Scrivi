@@ -526,6 +526,183 @@ struct ScriviInteropTests {
         #expect(listed.count == 0)
     }
 
+    // MARK: — EP-034 SP-117: the Detail Sheet's data layer
+
+    @Suite("Object detail model (SP-117)")
+    struct ObjectDetailTests {
+
+        /// ⚠️ S4 — THE defect this sprint is most likely to ship silently.
+        ///
+        /// A sheet that RECONSTRUCTS an object from a Swift struct would drop
+        /// every field it does not model — `image`, `thumbnailAssetID`,
+        /// `attributes`, and anything a later core adds. The loss would be
+        /// invisible until a writer noticed her portrait gone.
+        ///
+        /// `ObjectCard.rename()` already patches for exactly this reason; this
+        /// asserts the Detail Sheet does the same.
+        @Test("editing notes PRESERVES fields the sheet never displays")
+        func patchPreservesUnknownFields() throws {
+            let original = """
+            {
+              "schema": "scrivi.object.character.v1",
+              "objectID": "character_test",
+              "slug": "mara",
+              "displayName": "Mara",
+              "subtitle": "",
+              "notes": "",
+              "status": "active",
+              "worldID": "world_test",
+              "image": { "assetID": "asset_portrait", "thumbnailAssetID": "asset_thumb" },
+              "attributes": [ { "k": "eyes", "v": "grey" } ],
+              "createdBy": { "identityID": "id1", "personaID": "p1",
+                             "displayNameAtCreation": "Author" },
+              "aFieldThisBuildHasNeverHeardOf": "must survive"
+            }
+            """
+
+            let detail = try ObjectDetail(json: original, kind: "character")
+            #expect(detail.imageAssetID == "asset_portrait")
+
+            let patched = try detail.applyingEdits(
+                displayName: "Mara",
+                subtitle: "Cartographer",
+                notes: "Born in the salt marches."
+            )
+
+            let root = try #require(try JSONSerialization.jsonObject(
+                with: Data(patched.utf8)) as? [String: Any])
+
+            // The edits landed...
+            #expect(root["subtitle"] as? String == "Cartographer")
+            #expect(root["notes"] as? String == "Born in the salt marches.")
+
+            // ...and NOTHING else was lost.
+            let image = try #require(root["image"] as? [String: Any])
+            #expect(image["assetID"] as? String == "asset_portrait")
+            #expect(image["thumbnailAssetID"] as? String == "asset_thumb")
+            #expect((root["attributes"] as? [[String: Any]])?.count == 1)
+            #expect(root["schema"] as? String == "scrivi.object.character.v1")
+            #expect(root["objectID"] as? String == "character_test")
+            #expect(root["worldID"] as? String == "world_test")
+            #expect(root["createdBy"] as? [String: Any] != nil)
+            // ⚠️ The unknown-field case, stated explicitly: a build that has never
+            // heard of a key must still carry it through.
+            #expect(root["aFieldThisBuildHasNeverHeardOf"] as? String == "must survive")
+        }
+
+        @Test("tags decode from their {\"v\": …} wire form, not a bare string array")
+        func tagsDecodeFromWireForm() throws {
+            // ⚠️ Tags serialize as [{"v": "..."}] (ObjectJson.cpp:40-44). Reading
+            // them as [String] yields an empty list and looks like "no tags" —
+            // a silent, plausible-looking wrong answer.
+            let json = """
+            { "objectID": "o1", "displayName": "Mara",
+              "tags": [ { "v": "protagonist" }, { "v": "cartographer" } ] }
+            """
+            let detail = try ObjectDetail(json: json, kind: "character")
+            #expect(detail.tags == ["protagonist", "cartographer"])
+        }
+
+        @Test("an object written by an older core opens with blank optional fields")
+        func olderCoreObjectStillOpens() throws {
+            // No subtitle, no notes, no image, no tags — legitimately absent.
+            // Refusing to open it would be worse than showing blanks.
+            let json = """
+            { "objectID": "o1", "slug": "vance", "displayName": "Vance" }
+            """
+            let detail = try ObjectDetail(json: json, kind: "character")
+            #expect(detail.displayName == "Vance")
+            #expect(detail.subtitle.isEmpty)
+            #expect(detail.notes.isEmpty)
+            #expect(detail.imageAssetID.isEmpty)
+            #expect(detail.tags.isEmpty)
+        }
+
+        @Test("a save does not stamp modifiedAt — ScriviCore owns that")
+        func patchDoesNotStampModified() throws {
+            let json = """
+            { "objectID": "o1", "displayName": "Mara",
+              "modifiedAt": "2020-01-01T00:00:00Z" }
+            """
+            let detail = try ObjectDetail(json: json, kind: "character")
+            let patched = try detail.applyingEdits(displayName: "Mara",
+                                                   subtitle: "", notes: "x")
+            let root = try #require(try JSONSerialization.jsonObject(
+                with: Data(patched.utf8)) as? [String: Any])
+            // ⚠️ Unchanged — ObjectStore::save stamps it. Writing it here would
+            // either be overwritten or disagree with the core's clock.
+            #expect(root["modifiedAt"] as? String == "2020-01-01T00:00:00Z")
+        }
+    }
+
+    @Suite("Detail Sheet navigation history (SP-117 T-0435)")
+    struct ObjectDetailHistoryTests {
+
+        private func entry(_ id: String) -> ObjectDetailHistory.Entry {
+            .init(objectID: id, kind: "character", worldID: "w", displayName: id)
+        }
+
+        @Test("back and forward move through the trail")
+        func backAndForward() {
+            let h = ObjectDetailHistory()
+            #expect(!h.canGoBack)
+            #expect(!h.canGoForward)
+
+            h.visit(entry("Mara"))
+            h.visit(entry("Vance"))
+            #expect(h.current?.objectID == "Vance")
+            #expect(h.canGoBack)
+            #expect(!h.canGoForward)
+
+            h.goBack()
+            #expect(h.current?.objectID == "Mara")
+            // ⚠️ FORWARD must now be reachable — this is the half NavigationStack
+            // cannot give, and the reason D2-B was ruled over D2-A.
+            #expect(h.canGoForward)
+
+            h.goForward()
+            #expect(h.current?.objectID == "Vance")
+            #expect(!h.canGoForward)
+        }
+
+        @Test("visiting a new object truncates forward history")
+        func visitTruncatesForward() {
+            let h = ObjectDetailHistory()
+            h.visit(entry("A"))
+            h.visit(entry("B"))
+            h.goBack()                    // at A, forward → B
+            #expect(h.canGoForward)
+
+            h.visit(entry("C"))           // the browser rule
+            #expect(h.current?.objectID == "C")
+            #expect(!h.canGoForward, "forward must not lead somewhere she never went")
+            h.goBack()
+            #expect(h.current?.objectID == "A")
+        }
+
+        @Test("re-visiting the object already shown is a no-op")
+        func revisitIsNoOp() {
+            // ⚠️ Without this, opening the same sheet twice stacks duplicates and
+            // "back" appears to do nothing — the shape of I-0132.
+            let h = ObjectDetailHistory()
+            h.visit(entry("Mara"))
+            h.visit(entry("Mara"))
+            #expect(h.entries.count == 1)
+            #expect(!h.canGoBack)
+        }
+
+        @Test("reset clears the trail")
+        func resetClears() {
+            let h = ObjectDetailHistory()
+            h.visit(entry("A"))
+            h.visit(entry("B"))
+            h.reset()
+            #expect(h.current == nil)
+            #expect(!h.canGoBack)
+            #expect(!h.canGoForward)
+        }
+    }
+
     // MARK: — Test 12: addComment / listComments / resolveComment
 
     @Test("addComment adds a comment and listComments returns count 1")
