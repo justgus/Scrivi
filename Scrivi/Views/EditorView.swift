@@ -62,6 +62,14 @@ private struct ManuscriptEditorView: View {
     // inside, so it did not exist on macOS at all — the platform the sheet
     // actually ships on this sprint.
     @State private var detailHistory = ObjectDetailHistory()
+    /// I-0155 — bumped when the Detail Sheet saves, so the Scene Inspector's cards
+    /// re-read and a rename does not leave two names on screen for one object.
+    @State private var objectRevision = 0
+    /// I-0161 — set when navigation comes from another surface, so the Scene
+    /// Navigator scrolls the target into view. ⚠️ Not set for the writer's own
+    /// clicks in the navigator, which must not move the list (I-0132).
+    @State private var revealRequest: SceneRevealRequest?
+    @State private var revealToken = 0
     @State private var showDetailSheet = false
 
     var body: some View {
@@ -154,7 +162,9 @@ private struct ManuscriptEditorView: View {
                 session: session,
                 prefs: prefs,
                 onTakeFocus: { loader.takeFocus() },
-                selection: $selectedSceneID
+                selection: $selectedSceneID,
+                // I-0161: only scenes reached from elsewhere are revealed.
+                revealRequest: revealRequest
             )
             .navigationTitle(projectTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -192,7 +202,13 @@ private struct ManuscriptEditorView: View {
                 session: session,
                 prefs: prefs,
                 onTakeFocus: { loader.takeFocus() },
-                selection: $selectedSceneID
+                selection: $selectedSceneID,
+                // ⚠️ I-0161: this is the macOS branch — the one actually running on
+                // this platform. The first fix passed `revealRequest` to the iOS
+                // call site ONLY, so on macOS it stayed `nil`, the reveal code never
+                // ran, and two rounds of diagnosis chased a behaviour change that
+                // was never in the build.
+                revealRequest: revealRequest
             )
         } detail: {
 #if os(visionOS)
@@ -318,6 +334,29 @@ private struct ManuscriptEditorView: View {
                                                                       personaID: "",
                                                                       displayName: ""),
                     worlds: detailWorlds,
+                    sceneNames: detailSceneNames(loader: loader),
+                    // ⚠️ I-0157: set SELECTION, not the one-shot trigger.
+                    //
+                    // This wrote `navigateToSceneID` directly, which scrolls the
+                    // manuscript but leaves the Navigator's selection untouched —
+                    // so the writer arrived at a scene the Navigator was not
+                    // highlighting, with no way to see where she now was.
+                    //
+                    // ⚠️ **I-0132 already ruled selection the source of truth** on
+                    // both platforms, precisely so the two cannot drift; the
+                    // `onChange(of: selectedSceneID)` above then drives
+                    // `navigateToSceneID`. Writing the trigger directly bypassed
+                    // that ruling and reintroduced the split it exists to prevent.
+                    onSelectScene: { sceneID in
+                        selectedSceneID = sceneID
+                        revealToken += 1
+                        revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                           token: revealToken)
+                    },
+                    // I-0155: a save here must reach the inspector, which is
+                    // showing the same object's name a few points to the left.
+                    onDidSave: { objectRevision += 1 },
+                    objectRevision: objectRevision,
                     onClose: {
                         showDetailSheet = false
                         detailHistory.reset()
@@ -328,6 +367,32 @@ private struct ManuscriptEditorView: View {
                 .transition(.move(edge: .trailing))
             }
         }
+    }
+
+    /// Writer-facing scene names for the Detail Sheet's related list (I-0151).
+    ///
+    /// ⚠️ **The Navigator's rule, applied to the same data** — title, else the
+    /// scene's live first words, else "Scene N". ⚠️ **Never an ID**: a bare
+    /// `scene_019faeb3-…` tells the writer nothing about which scene she is
+    /// looking at, which is exactly what she saw for the one scene in
+    /// `the-stairs-of-tintagael` with an empty title.
+    ///
+    /// ⚠️ Computed HERE, by the host that already owns the loader, and passed down
+    /// as plain data — the pane must not reach into `ViewportSceneLoader`, or D1-E's
+    /// host-independence condition (S8) is lost and a window host could not serve
+    /// the same sheet later.
+    private func detailSceneNames(loader: ViewportSceneLoader) -> [String: String] {
+        var names: [String: String] = [:]
+        for (i, info) in loader.allScenes.enumerated() {
+            if !info.title.trimmingCharacters(in: .whitespaces).isEmpty {
+                names[info.sceneID] = info.title
+            } else {
+                let live = (loader.liveTitles[info.sceneID] ?? "")
+                    .trimmingCharacters(in: .whitespaces)
+                names[info.sceneID] = live.isEmpty ? "Scene \(i + 1)" : live
+            }
+        }
+        return names
     }
 
     /// Worlds for the Detail Sheet's read-only/pending logic (R9) and T-0440's
@@ -354,6 +419,10 @@ private struct ManuscriptEditorView: View {
                 // I-0128: reconnecting a world bumps this, which re-keys each card's
                 // `.task(id:)` so pending entries relink without a scene change.
                 worldRevision: session.worldRevision,
+                objectRevision: objectRevision,
+                // I-0160: a rename in a card must reach a Detail Sheet open on the
+                // same object — the mirror of the sheet's own `onDidSave`.
+                onObjectChanged: { objectRevision += 1 },
                 authorshipRef: env.authorshipRef,
                 // T-0438 / R7: the card ASKS; the editor hosts. A card cannot
                 // present an editor-level pane from inside the 280pt inspector.

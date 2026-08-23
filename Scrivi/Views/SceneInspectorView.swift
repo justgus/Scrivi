@@ -18,6 +18,10 @@ struct SceneInspectorView: View {
     let caretByteOffset: Int?
     /// I-0128: world availability revision, so cards refresh on reconnect.
     var worldRevision: Int = 0
+    /// I-0155 — bumped by a Detail Sheet save so cards re-read.
+    var objectRevision: Int = 0
+    /// I-0160 — a card changed an object; the host refreshes the Detail Sheet.
+    var onObjectChanged: (() -> Void)? = nil
     /// Attribution for objects created in a card (T-0388).
     let authorshipRef: AuthorshipRef?
     /// Forwarded to the card stacks so an object card can ask the editor to open
@@ -63,6 +67,8 @@ struct SceneInspectorView: View {
                                    history: history,
                                    caretByteOffset: caretByteOffset,
                                    worldRevision: worldRevision,
+                                   objectRevision: objectRevision,
+                                   onObjectChanged: onObjectChanged,
                                    authorshipRef: authorshipRef,
                                    openObjectDetail: openObjectDetail,
                                    layout: layout)
@@ -75,6 +81,8 @@ struct SceneInspectorView: View {
                                    history: history,
                                    caretByteOffset: caretByteOffset,
                                    worldRevision: worldRevision,
+                                   objectRevision: objectRevision,
+                                   onObjectChanged: onObjectChanged,
                                    authorshipRef: authorshipRef,
                                    openObjectDetail: openObjectDetail,
                                    layout: layout)

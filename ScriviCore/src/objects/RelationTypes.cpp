@@ -39,6 +39,69 @@ void readKindConstraint(const util::JsonDoc& doc, std::string_view key,
     // raw empty (absent) or unrecognised → nullopt = any kind
 }
 
+// Whole-value equality. Used to decide whether reconciliation actually changed
+// anything — S3 requires that a project whose vocabulary is already current is
+// NOT rewritten, so this must compare every field the writer round-trips.
+bool sameType(const RelationType& a, const RelationType& b) {
+    return a.code == b.code
+        && a.forwardLabel == b.forwardLabel
+        && a.inverseLabel == b.inverseLabel
+        && a.sourceKind == b.sourceKind
+        && a.targetKind == b.targetKind
+        && a.sourceIsScene == b.sourceIsScene
+        && a.targetIsScene == b.targetIsScene
+        && a.canonicalDirection == b.canonicalDirection
+        && a.symmetric == b.symmetric;
+}
+
+// ⚠️ T-0416/T-0441 (SP-118) — reconcile the SEEDED types on load.
+//
+// The defect: `load()` re-seeded only when the file was missing or unparseable,
+// so a VALID file was taken verbatim and a seed change never reached an existing
+// project. I-0125 removed `appears-in`'s `sourceKind: character` constraint on
+// 2026-08-17 and fixed new projects only — every project created before that kept
+// the old vocabulary permanently, and `appears-in` is the type EIGHT OF THE TEN
+// object cards use. Confirmed on the rig 2026-08-21: the same operation succeeds
+// against a fresh seed and fails against the drifted one with "endpoints do not
+// satisfy the kind constraints of relation type 'appears-in'" — with the object
+// already written to disk, so the writer is told creation failed while it exists.
+//
+// ✅ RULED 2026-08-21: reconcile on open, seeded types only.
+//   - a seeded code missing from the file  → add it
+//   - a seeded code that DIFFERS from seed → replace it with the seed definition
+//   - anything else                        → left exactly as it is
+//   - nothing is ever deleted
+//
+// ⚠️ Accepted consequence, stated plainly: this OVERWRITES a seeded type the
+// writer deliberately edited. The user chose self-healing over preserving those
+// edits, because the alternative leaves a hand-edited `appears-in` broken forever
+// with no explanation.
+//
+// Returns true when `types` was modified — the caller writes ONLY then. An
+// unconditional rewrite would satisfy the repair criterion (S1) while touching
+// `relation-types.json` on every open, churning mtimes and Git status for no
+// reason (S3).
+bool reconcileSeeded(std::vector<RelationType>& types) {
+    bool changed = false;
+
+    for (const auto& seed : RelationTypeStore::seedTypes()) {
+        auto it = std::find_if(types.begin(), types.end(),
+                               [&](const RelationType& t) { return t.code == seed.code; });
+        if (it == types.end()) {
+            types.push_back(seed);
+            changed = true;
+        } else if (!sameType(*it, seed)) {
+            *it = seed;
+            changed = true;
+        }
+    }
+
+    // ⚠️ Deliberately no removal pass. A code this build does not seed is either
+    // writer-authored or seeded by a LATER build; deleting it would destroy the
+    // writer's vocabulary or corrupt a project opened by a newer Scrivi.
+    return changed;
+}
+
 } // namespace
 
 RelationTypeStore::RelationTypeStore(CoreServices& services)
@@ -171,6 +234,14 @@ RelationTypeStore::load(const AbsolutePath& projectRoot) const {
                         types.push_back(std::move(t));
                     }
                     if (!types.empty()) {
+                        // ⚠️ T-0441: repair the seeded vocabulary before handing it
+                        // back, and write ONLY if that changed something (S3).
+                        if (reconcileSeeded(types)) {
+                            // A failed write is not fatal: a read-only or absent
+                            // world still deserves a usable in-memory vocabulary,
+                            // and the repair simply retries on the next open.
+                            (void)write(projectRoot, types);
+                        }
                         return Result<std::vector<RelationType>>::success(std::move(types));
                     }
                 }

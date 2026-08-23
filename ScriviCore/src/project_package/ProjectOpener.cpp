@@ -4,6 +4,7 @@
 #include "manuscript/SceneIndex.hpp"
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/SceneReader.hpp"
+#include "objects/RelationTypes.hpp"
 #include "objects/RelationshipStore.hpp"
 #include "project_package/ProjectValidator.hpp"
 #include "schemas/ProjectJson.hpp"
@@ -49,6 +50,32 @@ Result<OpenProjectResult> ProjectOpener::open(const OpenProjectRequest& request)
     //
     //        Best-effort like the passes above: a project must open even if the edge log
     //        cannot be rewritten.
+    //    (e) ⚠️ relation-type vocabulary reconciliation (EP-034 SP-118, I-0149 /
+    //        T-0441). Repairs `objects/relation-types.json` so a seed change reaches
+    //        projects created before it — the ruling of 2026-08-21 is "reconcile ON
+    //        OPEN", and THIS is the open path.
+    //
+    //        ⚠️ **T-0441 put the reconciliation inside RelationTypeStore::load and
+    //        stopped there, which was NOT the ruling.** `load()` runs only when
+    //        something asks for the vocabulary — listing types, creating an edge,
+    //        opening the picker — and opening a project asks for none of those. On the
+    //        real rig `the-twisted-remains-of-myself.scrivi` opened cleanly with the
+    //        fix compiled in and its pre-I-0125 `appears-in` untouched, because the
+    //        project has an empty object index and no edge log, so nothing ever read
+    //        the file. The repair was correct and unreachable.
+    //
+    //        ⚠️ Runs BEFORE (d): repairDangling resolves edges through the vocabulary,
+    //        so reconciling first means it judges them against the CURRENT seed rather
+    //        than a drifted one.
+    //
+    //        Best-effort and idempotent like the passes above — `load()` writes only
+    //        when reconciliation actually changed something, so a project whose
+    //        vocabulary is already current is not rewritten on every open.
+    {
+        objects::RelationTypeStore types{services_};
+        (void)types.load(request.projectRootPath);
+    }
+
     {
         objects::RelationshipStore graph{services_};
         (void)graph.repairDangling(request.projectRootPath);

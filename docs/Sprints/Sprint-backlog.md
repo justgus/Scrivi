@@ -36,15 +36,20 @@ manuscript export has no existing path to attach to (`scrivi_export_project_time
 the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequencing question** — without
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
-**Next available Sprint ID: SP-118** — ⚠️ **SP-115 and SP-116 closed; SP-117 ACTIVE**, all three EP-034's.
-
-⚠️ **This file holds NO Sprint in Planning.** SP-117 activated 2026-08-21 and left in the same step.
+**Next available Sprint ID: SP-119** — ⚠️ **SP-115, SP-116 and SP-117 are closed and SP-118 is now
+🟡 ACTIVE**, all four EP-034's. ⚠️ **Zero Sprints in Planning.**
 
 **8 IDs reserved (SP-107–SP-114)** for EP-032 — ⚠️ **reserved, not planned.**
 
 ---
 
 ---
+
+---
+
+> ✅ **SP-118 was ACTIVATED 2026-08-22 and left this file in the same step**, per the standing rule that a
+> Sprint leaves the backlog at activation and never returns. Plan and status now live in
+> [`Sprint-active.md`](Sprint-active.md). ⚠️ **No closure note will be written here.**
 
 > ✅ **SP-117 was ACTIVATED 2026-08-21 and left this file in the same step**, per the standing rule that a
 > Sprint leaves the backlog at activation and never returns. Plan and status now live in
@@ -83,6 +88,19 @@ returns; whether it later closed is recorded in [`Closed/`](Closed/) and in
 > (the R-28 safeguard) — SP-095's gating ruling, SP-096's ID-prefix finding, SP-103's scope ruling and
 > T-0410's OBE removal, and the SP-097/098/099/102/105/106 rulings. **All present in `Closed/`.
 > Nothing was reconstructed because nothing was lost.**
+
+*Last Updated: 2026-08-22, sixth pass (**SP-118 🟡 ACTIVATED and REMOVED from this file** in the same step —
+its plan moved to [`Sprint-active.md`](Sprint-active.md). ⚠️ **This file is back to zero Sprints in
+Planning.** Next available Sprint: **SP-119**; Task: **T-0446**; Issue: **I-0149**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, fifth pass (**SP-118 PLANNED 🔵** under EP-034 — five Tasks **T-0441–T-0445**,
+no open Issues; **closes AC5 + AC6**. ⚠️ **T-0416 IS SCHEDULED (T-0441) AND WAS CONFIRMED ON THE RIG** —
+`the-twisted-remains-of-myself.scrivi` still carries the pre-I-0125 `appears-in`, and the same operation
+was proven to succeed on a fresh seed and fail on the drifted one. ✅ **User ruled: reconcile on open,
+seeded types only** — ⚠️ **accepted consequence: it overwrites a seeded type a writer edited.**
+⚠️ **`tintagael` is CLEAN, so the rig will NOT reproduce T-0416 by default** — S9 requires a deliberately
+drifted fixture or the sprint passes vacuously. Next available Sprint: **SP-119**; Task: **T-0446**;
+Issue: **I-0149**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, fourth pass (**SP-117 🟡 ACTIVATED and REMOVED** — plan moved to
 `Sprint-active.md`. Zero Sprints in Planning. Next available: **SP-118**. Prior note follows.)*

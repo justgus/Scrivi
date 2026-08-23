@@ -59,6 +59,18 @@ public:
     // malformed. Never fails because of file contents — a project must always be
     // able to relate things (same repair-before-validation posture as the object
     // index).
+    //
+    // ⚠️ **Also RECONCILES the seeded types** (T-0441, ruled 2026-08-21): every
+    // code in `seedTypes()` is added if missing and replaced if it differs, so a
+    // seed change reaches projects created before it. ⚠️ **Writer-authored codes
+    // are never touched and nothing is ever deleted**; the file is writer-editable
+    // by design. ⚠️ **Accepted consequence: a seeded type the writer deliberately
+    // edited is overwritten** — chosen over leaving a hand-edited `appears-in`
+    // broken forever with no explanation (I-0125's symptom, still live for old
+    // projects until this shipped).
+    //
+    // ⚠️ Writes ONLY when reconciliation actually changed something. An
+    // unconditional rewrite would churn mtimes and Git status on every open.
     [[nodiscard]] Result<std::vector<RelationType>> load(const AbsolutePath& projectRoot) const;
 
     [[nodiscard]] Result<void> write(const AbsolutePath& projectRoot,

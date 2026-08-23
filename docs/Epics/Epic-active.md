@@ -72,12 +72,15 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
       it is stored **in the world package** and is present when that world is opened **from a different
       project**.
 - [ ] **AC4** — Card list items show a **thumbnail when an image exists**, unchanged when none does.
-- [ ] **AC5** — The related-objects section lists this object's edges with labels reading correctly from
-      this endpoint.
-- [ ] **AC6** — A relationship can be **created from the sheet**; it appears from both endpoints and is
-      rejected as a duplicate from the second.
-- [ ] **AC7** — **Double-click** and **right-click → "Show"** push-navigate to a related object's sheet;
-      **back and forward** move through that history.
+- [x] **AC5** — The related-objects section lists this object's edges with labels reading correctly from
+      this endpoint. ✅ **CLOSED by SP-118**, verified by live use 2026-08-23.
+- [x] **AC6** — A relationship can be **created from the sheet**; it appears from both endpoints and is
+      rejected as a duplicate from the second. ✅ **CLOSED by SP-118** — verified by live use: a `sibling-of` edge
+      created from the sheet appeared from both endpoints and the second was refused as a duplicate.
+- [x] **AC7** — **Double-click** and **right-click → "Show"** push-navigate to a related object's sheet;
+      **back and forward** move through that history. ✅ **CLOSED by SP-118** — ⚠️ **both halves verified
+      separately**: back/forward in SP-117, and push-from-the-related-list here, which needed four Issues
+      (I-0151, I-0153, I-0157, I-0161) before it actually worked.
 - [ ] **AC8** — A **source can be created from the documented object** and a `cites` edge attached;
       ⚠️ the `sources` card **then shows content for the first time**.
 - [~] ⚠️ **AC9 — HALF met (SP-117).** ✅ A **pending** object opens **read-only, explained, never written** —
@@ -97,7 +100,7 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 | **SP-115** | ⚠️ **The five Issues + I-0142 (user-found)** — all ✅ Verified | ✅ **Closed** | 2026-08-20 |
 | **SP-116** | ⚠️ **`[Cross]`** World assets + `assetPath` + kind-scope endpoint (D6, D7, D5) — retired **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** | ✅ **Closed** | 2026-08-21 |
 | **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) — ⚠️ **first writer-facing surface**; paid **T-0420's debt**; retired **I-0148** | ✅ **Closed** | 2026-08-21 |
-| SP-118 | `[Apple]` Related objects + relationship creation (D4) — ⚠️ **T-0416 may be a live blocker** | 🔵 **Next** | — |
+| SP-118 | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) — ⚠️ **T-0416 fixed as T-0441 + I-0149** | ✅ **Closed 2026-08-23** — [record](../Sprints/Closed/Sprint-SP-118.md) | ✅ **AC5, AC6, AC7** — ⚠️ **13 Issues, all from the live pass** |
 | SP-119 | `[Apple]` Images: import, display, card thumbnails (D8) | ⚪ Planned | — |
 | SP-120 | `[Apple]` Source creation + footnote text — ⚠️ **closes T-0365's write half** | ⚪ Planned | — |
 | SP-121 | `[Linux]` Parity (AC11) | ⚪ Planned | — |
@@ -134,6 +137,11 @@ of the five additions came from USE, not planning.**
 | **T-0438** | **R7** — double-click **and** right-click | SP-117 | **High** | ✅ **Verified** |
 | **T-0439** | **R9** — pending: read-only, explained, never written | SP-117 | Medium | ✅ **Verified** |
 | **T-0440** | ⚠️ **T-0420's owed surface** | SP-117 | Medium | ✅ **Verified** |
+| ✅ **T-0441** | ⚠️ **T-0416** — reconcile seeded relation types on open | SP-118 | **High** | ✅ **Verified** |
+| ✅ **T-0442** | **R3** — related-objects section | SP-118 | **High** | ✅ **Verified** |
+| ✅ **T-0443** | **D4-A** — inline creation + picker widening | SP-118 | **High** | ✅ **Verified** — ⚠️ **deviation ruled IN FAVOUR** |
+| ✅ **T-0444** | **R5/R7** — push-navigation from the related list | SP-118 | **High** | ✅ **Verified** |
+| ✅ **T-0445** | ⚠️ **Pending far-endpoints** — named and explained | SP-118 | Medium | ✅ **Verified** |
 
 ### Issues
 
@@ -162,7 +170,10 @@ restated-kind-list class — **both 🔴 Open, assigned to SP-116**, where D5's 
 ### Scope Notes
 
 - ⚠️ **Additive, not replacing** (Q-b): list item + inline editor + Detail Sheet coexist.
-- ⚠️ **T-0416 may surface as a live blocker** in SP-118 — seeded relation types never reach existing
+- ✅ **T-0416 is FIXED (T-0441, SP-118, 2026-08-22)** — reconciliation on open, seeded types only, with the
+  negative control actually run. ⚠️ **Not user-Verified**, and ⚠️ **the drifted-project live pass is owed**:
+  `tintagael` is clean and will not reproduce it.
+- ⚠️ *(historical)* **T-0416 may surface as a live blocker** in SP-118 — seeded relation types never reach existing
   projects, so a writer relating objects in an existing project sees only that project's vocabulary.
 - **Not in scope:** iOS/iPadOS/visionOS (Q-c), manuscript reference syntax (EP-032), world lifecycle
   (EP-033), any `item`/`artifact` re-ruling.

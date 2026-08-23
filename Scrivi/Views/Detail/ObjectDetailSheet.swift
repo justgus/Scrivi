@@ -31,6 +31,29 @@ struct ObjectDetailSheet: View {
     /// Worlds as the app already knows them — passed in so this view never
     /// resolves world state itself (and so a caller can supply fixtures).
     let worlds: [WorldEntry]
+    /// Writer-facing scene names, keyed by sceneID (I-0151). Supplied by the host,
+    /// which already resolves them for the Navigator — ⚠️ **the pane must never
+    /// show a raw `scene_…` ID**, and must not reach into the loader to avoid it
+    /// (S8 host-independence). Missing keys fall back inside the section.
+    var sceneNames: [String: String] = [:]
+    /// I-0151 — take the writer to a related SCENE in the manuscript. A scene has
+    /// no Detail Sheet, so the sheet hands this back to its host.
+    var onSelectScene: (String) -> Void = { _ in }
+    /// I-0155 — announces a successful save so the host can refresh other surfaces
+    /// showing the same object (the Scene Inspector's cards).
+    ///
+    /// ⚠️ A callback, not a direct refresh: this pane must not know the inspector
+    /// exists (S8 host-independence).
+    var onDidSave: () -> Void = {}
+    /// I-0160 — bumped when the object is edited OUTSIDE this sheet (the Scene
+    /// Inspector's inline rename), so the sheet re-reads.
+    ///
+    /// ⚠️ **The mirror of `onDidSave`.** I-0155 made a sheet save refresh the
+    /// inspector and stopped there — the reverse direction was left broken, so an
+    /// inspector rename left the sheet showing the old name. ⚠️ **The same two
+    /// surfaces, the same stale-view bug, fixed in only one direction**, which is
+    /// the `feedback_verify_each_half_separately` trap: I tested the half I built.
+    var objectRevision: Int = 0
     let onClose: () -> Void
 
     /// Navigation state. Owned by the caller so it survives the pane being
@@ -64,6 +87,12 @@ struct ObjectDetailSheet: View {
         }
         .frame(minWidth: 420, minHeight: 320)
         .onChange(of: history.current) { _, _ in load() }
+        // ⚠️ I-0160: another surface changed this object — re-read.
+        //
+        // Safe against clobbering: `load()` only overwrites a draft field the
+        // writer has not edited (`hasChanges` distinguishes them), and the save
+        // path re-reads and merges per field anyway (I-0155).
+        .onChange(of: objectRevision) { _, _ in load() }
         .onAppear { load() }
     }
 
@@ -191,6 +220,28 @@ struct ObjectDetailSheet: View {
                 }
 
                 Divider()
+
+                // R3/R4/R5/R7 (SP-118): what this object is connected to, and
+                // where a writer connects it to something else. Self-contained so
+                // the sheet stays host-independent (S8) — it is handed the engine
+                // and the worlds the sheet already has, and hands navigation back.
+                ObjectRelationsSection(
+                    engine: engine,
+                    projectRootPath: projectRootPath,
+                    objectID: detail.objectID,
+                    worlds: worlds,
+                    sceneNames: sceneNames,
+                    isReadOnly: isReadOnly(detail),
+                    onSelectScene: onSelectScene,
+                    onNavigate: { entry in
+                        // ⚠️ `visit` truncates forward history and no-ops on a
+                        // re-visit of the object already showing; `load()` then
+                        // runs from `.onChange(of: history.current)`.
+                        history.visit(entry)
+                    }
+                )
+
+                Divider()
                 metadata(for: detail)
             }
             .padding(12)
@@ -311,13 +362,47 @@ struct ObjectDetailSheet: View {
         isSaving = true
         defer { isSaving = false }
         do {
-            // ⚠️ PATCH, never reconstruct — see ObjectDetail.applyingEdits. A
-            // rebuilt document would silently drop `image`, `attributes` and
-            // every field a later core adds.
-            let patched = try detail.applyingEdits(
-                displayName: draftName,
-                subtitle: draftSubtitle,
-                notes: draftNotes
+            // ⚠️ I-0155: PATCH THE DOCUMENT AS IT IS ON DISK RIGHT NOW, not the
+            // snapshot taken when this sheet opened.
+            //
+            // `detail.sourceJson` was read at open. If anything else edited the
+            // object since — the Scene Inspector's rename is the reachable case,
+            // because BOTH surfaces can be open on the same object at once —
+            // patching the stale copy writes the OLD value back over the newer one.
+            // Saving a note silently reverted a rename, and the sheet then showed
+            // the reverted name as though nothing had happened.
+            //
+            // ⚠️ Re-reading is what `ObjectCardModel.rename` already does
+            // (`ObjectCard.swift:280`) — it opens the object immediately before
+            // patching. This surface simply did not follow the same rule.
+            //
+            // ⚠️ Still a PATCH, never a reconstruction (ObjectDetail.applyingEdits):
+            // a rebuilt document would drop `image`, `attributes` and every field a
+            // later core adds.
+            let onDisk = try engine.openObject(
+                projectRootPath: projectRootPath,
+                objectKind: detail.kind,
+                objectID: detail.objectID,
+                worldID: detail.worldID
+            )
+            let current = try ObjectDetail(json: onDisk.objectJson, kind: detail.kind)
+
+            // ⚠️ Re-reading fixes the OVERWRITE, but it must not silently swap the
+            // conflict's direction. If a field changed on disk since this sheet
+            // opened AND the writer did not touch it here, her draft still holds
+            // the old value — patching it back is the same loss with the roles
+            // reversed. Take what she did not edit from disk instead.
+            let nameToWrite = (draftName == detail.displayName)
+                ? current.displayName : draftName
+            let subtitleToWrite = (draftSubtitle == detail.subtitle)
+                ? current.subtitle : draftSubtitle
+            let notesToWrite = (draftNotes == detail.notes)
+                ? current.notes : draftNotes
+
+            let patched = try current.applyingEdits(
+                displayName: nameToWrite,
+                subtitle: subtitleToWrite,
+                notes: notesToWrite
             )
             _ = try engine.saveObject(
                 projectRootPath: projectRootPath,
@@ -326,7 +411,8 @@ struct ObjectDetailSheet: View {
                 authorshipRef: authorshipRef
             )
             saveError = nil
-            load()   // re-read so the view shows what is actually on disk
+            load()        // re-read so the view shows what is actually on disk
+            onDidSave()   // I-0155: and tell the host, so the inspector agrees
         } catch {
             // Keep the drafts — her typing is not thrown away on a failed save.
             saveError = error.localizedDescription

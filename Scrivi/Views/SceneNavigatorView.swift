@@ -8,6 +8,13 @@ import SwiftUI
 //
 // Right-click (macOS) / long-press (iOS) on a row opens a context menu
 // with Rename and Delete actions.
+/// A request to scroll a scene into view (I-0161).
+struct SceneRevealRequest: Equatable {
+    let sceneID: String
+    /// Distinguishes two requests for the same scene.
+    let token: Int
+}
+
 struct SceneNavigatorView: View {
 
     var loader: ViewportSceneLoader
@@ -22,8 +29,20 @@ struct SceneNavigatorView: View {
     // iOS Master/Detail selection (bare sceneID). When provided, the List selection binds to it
     // so master and detail stay in sync and the compact-width detail push is selection-driven.
     var selection: Binding<String?>? = nil
+    /// I-0161 — a scene the writer was sent to from ANOTHER surface, which must be
+    /// scrolled into view. ⚠️ Deliberately distinct from `selection`: selecting a
+    /// row she clicked herself must NOT move the list (I-0132).
+    /// ⚠️ Carries a token as well as the ID, so navigating to the SAME scene twice
+    /// still fires. A bare `String?` would be an unchanged value the second time
+    /// and SwiftUI would coalesce it away — the exact shape of I-0132's
+    /// one-shot-trigger bug, which cost three failed attempts to diagnose.
+    var revealRequest: SceneRevealRequest? = nil
 
     // Rename sheet state
+    /// A scene asked for from another surface, awaiting the viewport catching up
+    /// (I-0161). ⚠️ Cleared on arrival so this reveals ONCE and never fights the
+    /// writer's own scrolling afterwards.
+    @State private var pendingReveal: String? = nil
     @State private var renameTarget: RenameTarget? = nil
     // Delete confirmation state
     @State private var deleteSceneTarget: SceneEntry? = nil
@@ -118,6 +137,54 @@ struct SceneNavigatorView: View {
                 if let sceneID = loader.viewportSceneID {
                     proxy.scrollTo("scene-\(sceneID)", anchor: .center)
                 }
+            }
+            // ⚠️ I-0161 — reveal a scene navigated to from OUTSIDE this list.
+            //
+            // ⚠️ This is NOT the reveal I-0132 removed, and the difference is the
+            // whole justification. That one fired on every selection change,
+            // including the writer clicking a row she was already looking at, and
+            // re-anchoring nudged the list under her hand — it had no case where it
+            // helped. **This fires only when something else drove the navigation**
+            // (today: double-clicking a scene in the Detail Sheet's related list),
+            // where the target is often far off-screen and she has no idea where
+            // she landed.
+            //
+            // ⚠️ `.anchor: nil` scrolls the MINIMUM distance to bring the row into
+            // view and does nothing when it is already visible — so it cannot
+            // reproduce I-0132's nudge even if the two paths ever overlap.
+            .onChange(of: revealRequest) { _, request in
+                guard let sceneID = request?.sceneID else { return }
+
+                // ⚠️ Record the request; do NOT scroll here.
+                //
+                // On macOS this list's highlight is driven ONLY by
+                // `loader.viewportSceneID`, which the manuscript publishes AFTER it
+                // finishes scrolling. Scrolling now would move the list to a row
+                // that is not the current one yet, and the highlight would appear
+                // somewhere else once the manuscript caught up — exactly what the
+                // writer saw: *"the ManuscriptView moves faithfully, but the Scene
+                // Navigator does not."*
+                //
+                // ⚠️ It is NOT a focus problem, which was the first guess. The
+                // reveal was racing the signal that makes the row current.
+                pendingReveal = sceneID
+
+                // ⚠️ Expire it. If the manuscript never reports arriving (a failed
+                // navigation, or a scene that vanished), a lingering request would
+                // fire on some UNRELATED later scroll and yank the list out from
+                // under the writer — the same class of surprise I-0132 removed.
+                // One navigation, one chance to reveal.
+                let requested = sceneID
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    if pendingReveal == requested { pendingReveal = nil }
+                }
+            }
+            // Reveal when the row actually BECOMES the highlighted one — the same
+            // signal the highlight itself uses, so the two can never disagree.
+            .onChange(of: loader.viewportSceneID) { _, sceneID in
+                guard let sceneID, sceneID == pendingReveal else { return }
+                pendingReveal = nil
+                proxy.scrollTo("scene-\(sceneID)", anchor: nil)
             }
         }
         .listStyle(.inset)

@@ -1928,6 +1928,173 @@ struct ScriviGraphInteropTests {
         #expect(cites.acceptsTarget(kind: "artifact"))
     }
 
+    // MARK: ⚠️ I-0150 — the test host must never restore a real project
+
+    @Test("⚠️ I-0150 — this very test process is detected as a test host")
+    func testHostIsDetected() {
+        // ⚠️ The whole point, asserted from inside the hazard: this assertion runs in
+        // the SAME hosted process that reopened the user's real projects, so if the
+        // detector ever stops working here, it has stopped working where it matters.
+        //
+        // ⚠️ There is deliberately NO test that flips the guard off and asserts the
+        // projects reopen. That negative control would re-enable, on a real machine
+        // with real bookmarks, exactly the behaviour that silently rewrote
+        // `the-twisted-remains-of-myself.scrivi`. The evidence for the fix is a
+        // before/after checksum of all 220 files in both real projects across a full
+        // `xcodebuild test` run — recorded in I-0150 — not a test that reproduces the
+        // damage to prove it was possible.
+        #expect(AppEnvironment.isRunningUnderTests)
+    }
+
+    // MARK: ⚠️ T-0441 — the drifted vocabulary, tested THROUGH THE BOUNDARY
+    //
+    // ⚠️ A facade test cannot see a boundary gap — that is how I-0113 shipped
+    // green (`feedback_boundary_tests_not_facade`). The C++ suite proves the
+    // repair; these prove the repaired vocabulary actually REACHES Swift, which is
+    // the half `capability_without_surface` keeps catching this Epic out on.
+
+    /// The pre-I-0125 `appears-in`, written straight to disk: `sourceKind:
+    /// "character"` (the constraint I-0125 removed) and the kind-specific
+    /// `inverseLabel`. ⚠️ Reproduces what is still on the rig in
+    /// `the-twisted-remains-of-myself.scrivi`.
+    private func driftVocabulary(_ f: Fixture) throws {
+        let path = f.root + "/objects/relation-types.json"
+        let drifted = """
+        {
+          "schema": "scrivi.relation-types.v1",
+          "types": [
+            {"code":"appears-in","forwardLabel":"appears in",
+             "inverseLabel":"has characters","sourceKind":"character",
+             "targetKind":"scene","canonicalDirection":"source-to-target",
+             "symmetric":false},
+            {"code":"cites","forwardLabel":"cites","inverseLabel":"documented by",
+             "canonicalDirection":"source-to-target","symmetric":false},
+            {"code":"sworn-enemy-of","forwardLabel":"sworn enemy of",
+             "inverseLabel":"sworn enemy of","canonicalDirection":"lexical",
+             "symmetric":true}
+          ]
+        }
+        """
+        try drifted.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    @Test("⚠️ T-0441 — a drifted seeded type is repaired before Swift ever sees it")
+    func driftedVocabularyIsRepairedAcrossTheBoundary() throws {
+        let f = try makeFixture()
+        try driftVocabulary(f)
+
+        let types = try f.engine.listRelationTypes(projectRootPath: f.root).types
+        let appearsIn = try #require(types.first { $0.code == "appears-in" })
+
+        // ⚠️ These are the exact values the app reads to decide what it may
+        // offer. Before T-0441 they arrived drifted and every object→object and
+        // object→scene affordance built on them was quietly wrong.
+        #expect(appearsIn.inverseLabel == "features")
+        #expect(appearsIn.sourceKind == nil)
+        #expect(appearsIn.acceptsSource(kind: "chronicle"))
+
+        // Nothing deleted: the writer's own type survives, and the seeded types
+        // missing from the drifted file are restored.
+        #expect(types.contains { $0.code == "sworn-enemy-of" })
+        #expect(Set(types.map(\.code)).isSuperset(
+            of: ["appears-in", "located-at", "sibling-of", "cites", "sworn-enemy-of"]))
+    }
+
+    @Test("⚠️ T-0441 — the relate that the drifted vocabulary BROKE now succeeds")
+    func driftedVocabularyNoLongerBlocksRelating() throws {
+        let f = try makeFixture()
+        try driftVocabulary(f)
+
+        // ⚠️ THE ACTUAL WRITER-FACING SYMPTOM. `appears-in` is the type EIGHT of
+        // the ten object cards use; against the drifted vocabulary this failed
+        // with "endpoints do not satisfy the kind constraints of relation type
+        // 'appears-in'" — with the object already written to disk, so she was
+        // told creation failed while it existed.
+        let chronicle = try f.engine.createObject(
+            projectRootPath: f.root,
+            objectKind: "chronicle",
+            displayName: "The Long Winter",
+            authorshipRef: f.ref,
+            worldID: f.worldID
+        ).objectID
+
+        let edge = try f.engine.createEdge(
+            projectRootPath: f.root,
+            fromID: chronicle,
+            toID: f.sceneID,
+            relationTypeCode: "appears-in"
+        )
+        #expect(!edge.edgeID.isEmpty)
+    }
+
+    // MARK: ⚠️ T-0443 — the scene sentinel
+
+    @Test("⚠️ the scene endpoint round-trips as the sentinel, so object→object is separable")
+    func sceneSentinelRoundTrips() throws {
+        let f = try makeFixture()
+        let types = try f.engine.listRelationTypes(projectRootPath: f.root).types
+
+        // ⚠️ No ABI change was needed for D4-A: scenes are not an ObjectKind
+        // (Doc 1 §8), so a constrained scene endpoint already crosses as the
+        // literal "scene" and comes back unchanged. This is the assertion that
+        // would catch the ABI starting to emit something else.
+        let appearsIn = try #require(types.first { $0.code == "appears-in" })
+        #expect(appearsIn.targetKind == RelationTypeEntry.sceneToken)
+        #expect(appearsIn.targetAcceptsScene)
+        #expect(!appearsIn.targetAcceptsObject)
+        #expect(!appearsIn.sourceIsScene)
+
+        // `located-at` is seeded scene→location: it cannot be created FROM an
+        // object, which is why the object picker excludes it.
+        let locatedAt = try #require(types.first { $0.code == "located-at" })
+        #expect(locatedAt.sourceIsScene)
+        #expect(locatedAt.targetAcceptsObject)
+        #expect(!locatedAt.targetAcceptsScene)
+
+        // ⚠️ An unconstrained type accepts BOTH — the two properties overlap on
+        // purpose and are not each other's negation.
+        let cites = try #require(types.first { $0.code == "cites" })
+        #expect(cites.targetAcceptsScene)
+        #expect(cites.targetAcceptsObject)
+    }
+
+    @Test("⚠️ object→object relating works end to end and rejects the duplicate")
+    func objectToObjectRelating() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+        let bea = try makeCharacter(f, "Bea")
+
+        // `sibling-of` is seeded character→character and symmetric — the shape
+        // AC4 calls "the one that regresses silently".
+        let edge = try f.engine.createEdge(
+            projectRootPath: f.root, fromID: ada, toID: bea,
+            relationTypeCode: "sibling-of")
+        #expect(!edge.edgeID.isEmpty)
+
+        // ⚠️ Visible from BOTH endpoints — one stored record, two renderings.
+        let fromAda = try f.engine.listEdgesFor(projectRootPath: f.root, endpointID: ada).edges
+        let fromBea = try f.engine.listEdgesFor(projectRootPath: f.root, endpointID: bea).edges
+        #expect(fromAda.contains { $0.otherID == bea })
+        #expect(fromBea.contains { $0.otherID == ada })
+
+        // ⚠️ The far endpoint's KIND travels on the edge (I-0124) — the section
+        // navigates on it, and a pending object is absent from the index.
+        let toBea = try #require(fromAda.first { $0.otherID == bea })
+        #expect(toBea.otherKind == "character")
+        #expect(toBea.otherDisplayName == "Bea")
+        #expect(!toBea.otherPending)
+
+        // AC6/AC21: creating it from the SECOND endpoint is rejected as a
+        // duplicate, not stored as a second record.
+        #expect(throws: (any Error).self) {
+            _ = try f.engine.createEdge(
+                projectRootPath: f.root, fromID: bea, toID: ada,
+                relationTypeCode: "sibling-of")
+        }
+        #expect(try f.engine.listEdgesFor(
+            projectRootPath: f.root, endpointID: ada).edges.filter { $0.otherID == bea }.count == 1)
+    }
+
     // MARK: Edges
 
     @Test("an edge created through the boundary lists from the scene with a label")

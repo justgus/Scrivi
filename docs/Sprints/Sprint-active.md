@@ -2,79 +2,82 @@
 
 **No Sprint is currently active.**
 
-**SP-117 was ✅ CLOSED 2026-08-21 (user-approved)** → [`Closed/Sprint-SP-117.md`](Closed/Sprint-SP-117.md).
-**EP-034 remains 🟡 Active** — SP-118 is next.
+**SP-118 was ✅ CLOSED 2026-08-23 (user-approved)** → [`Closed/Sprint-SP-118.md`](Closed/Sprint-SP-118.md).
+**EP-034 remains 🟡 Active** — SP-119 is next.
 
 ---
 
-## What SP-117 delivered
+## What SP-118 delivered
 
-EP-034's **third** sprint, and ⚠️ **the first to ship a writer-facing surface**. Two sprints had closed
-before it with their criteria met at the ABI and **nothing reachable in the product** — the very defect the
-Epic exists to cure.
-
-**All seven Tasks and I-0148 ✅ Verified.**
+EP-034's **fourth** sprint. **All five Tasks and thirteen Issues ✅ Verified.**
 
 | Task | Delivered |
 | ---- | --------- |
-| T-0434 | **D1-E** — the Detail Sheet as an editor-level, **non-modal** pane |
-| T-0435 | **D2-B** — explicit **back/forward** history |
-| T-0436 | ⚠️ **The app's FIRST typed object model** — `subtitle`/`notes` had been unreachable since SP-095 |
-| T-0437 | **D3-A** — fields + ⚠️ **patch-based save** |
-| T-0438 | **R7** — double-click **and** right-click → "View Detail" |
-| T-0439 | **R9** — pending objects read-only **and explained** |
-| T-0440 | ⚠️ **T-0420's surface, owed since SP-115** — finally paid |
+| T-0441 | ⚠️ **T-0416** — seeded relation types reconciled on open; ⚠️ **complete only with I-0149** |
+| T-0442 | **R3** — the related-objects section, labels **read** from the core and never recomputed |
+| T-0443 | **D4-A** — inline creation; ⚠️ **a second picker, RULED IN FAVOUR by the user** |
+| T-0444 | **R5/R7** — double-click **and** right-click → **"Show"** |
+| T-0445 | **Pending far-endpoints** — listed, named, explained, never dropped |
 
-**Suites at close:** `ctest` **554/554** (arm64 · x86-64 · ASan) · **Linux 558/9332** (GCC 13) · interop
-**115/115** · app **BUILD SUCCEEDED**.
+**Closes AC5, AC6 and AC7.**
 
----
-
-## ⚠️ The two things this sprint proved
-
-### 1. A trade can be ruled correctly and still not be understood until it exists
-
-> **The user, who chose D1-E:** *"I was expecting a popup. But I love the navigation push. I know it's what
-> I asked for, but I wasn't able to grasp the full interaction before I saw it."*
-
-⚠️ **The strongest argument yet against another core-only sprint.**
-
-### 2. `capability_without_surface` can be caused by a missing FIELD, not a missing view
-
-**T-0440 could not be done in Swift at all.** `WorldStore::resolve` **discarded** the reason a world was
-unavailable — it returns a *status*, not an error, so `unsupportedWorldFormatVersion` died in the core and
-**no envelope carried it**. ⚠️ **The app could not have explained it however it was written.**
-
-⚠️ **The fix for I-0136 was Verified at the core in SP-115 and stayed invisible in the product for two
-sprints**, while the facade test asserting it passed the whole time — because it stops at `resolve()`.
+**Suites at close:** `ctest` **561/561** (arm64 · x86-64 · ASan+UBSan) · **Linux 565/565** (GCC 13,
+non-root) · interop **120/120** · app **BUILD SUCCEEDED**.
 
 ---
 
-## ⚠️ Found by the LIVE CLICK-THROUGH — the fifth such defect in EP-034
+## ⚠️ The number that defines this sprint: 13 Issues, 0 found by tests
 
-**I-0148**, reported by the user as an *observation* inside an otherwise glowing report:
+Every one of **I-0149 – I-0161** was found by the user's **live click-through**, after the suites were
+green. ⚠️ **The suites were not wrong** — they assert edge creation, duplicate rejection, both-endpoint
+visibility and pending presentation, and all of it held up. **What no test covered was whether a writer
+could reach any of it.**
 
-> *"When the disk is unmounted, the Notes field is still editable."*
+⚠️ **Third occurrence of `capability_without_surface` in this Epic** — and the first at the **core**
+(I-0149) rather than in the UI.
 
-⚠️ **`.disabled()` does not make a `TextEditor` read-only.** ✅ Never a write-safety bug — Save is hidden
-when read-only — ⚠️ **but typing during an outage was silently discarded on navigation.**
+### ⚠️ Four of the thirteen were ONE failure: a rule already written in this repo
 
-⚠️ **Claude's first assessment ("R9 violated") was too strong and the user corrected it**; the user's own
-framing ("read only, in a sense") was also incomplete. **Neither party had named the real cost until the
-code was read.**
+| Issue | The rule that already existed |
+| ----- | ----------------------------- |
+| I-0152 | the Navigator names an untitled scene "Scene N", never an ID |
+| I-0155 | `ObjectCardModel.rename` re-reads before patching |
+| I-0157 | I-0132 ruled `selectedSceneID` the source of truth |
+| I-0158 | `SceneNavigatorView` uses `List(selection:)` |
 
-> ⚠️ **A satisfied user is not a green suite.** Five defects in this Epic have now been found by use
-> (I-0137, I-0142, I-0146, I-0147, I-0148) — and this is the first reported without being recognised as one.
+> ⚠️ *"A Swift standard List View handles all this automatically, which makes me wonder why it is so hard
+> for you."* — the user. It was not hard; new machinery was built beside machinery that already worked.
+
+### ⚠️ Standing guidance recorded at close — SwiftUI events are asynchronous
+
+> *"Many event detection operations do not occur in the 'intuitive' place in the codebase… they are run
+> asynchronously between the time they are triggered and the time they are actually executed. We need to
+> make sure we target the right callback function."* — the user
+
+⚠️ **The tell is "it works, but the other half of the UI doesn't agree."** Almost never focus, gesture
+arbitration or rendering — it is two views driven from different points in one async sequence.
 
 ---
 
-## ⚠️ Carried out of SP-117 — do not read as delivered
+## ⚠️ Two data-safety findings that outlive this sprint
+
+1. ⚠️ **`xcodebuild test` is NOT read-only on this project (I-0150).** It launches the hosted app, which
+   restores the writer's real projects from bookmarks and writes to them with just-compiled code — this is
+   what silently repaired `the-twisted-remains-of-myself.scrivi` while Scrivi was closed. Fixed
+   structurally. ⚠️ **`pgrep Scrivi` never protected against this and reads as though it does.**
+2. ⚠️ **A scroll region with no affordance is a data-loss report waiting to happen (I-0159).** Myton
+   appeared to show 3 of 8 relationships. **Whether rows are absent or merely unreachable-looking, the
+   writer concludes her work is gone.**
+
+---
+
+## ⚠️ Carried out of SP-118 — do not read as delivered
 
 | Item | Owner |
 | ---- | ----- |
 | ⚠️ **`tags` deferred** (user ruling) — **R2 not fully met, AC2 CANNOT CLOSE** | **SP-119** |
-| ⚠️ **AC9 is HALF met.** ✅ Pending objects read-only/explained, verified by use. ⚠️ **A world going away *while a sheet is open* is NOT demonstrated** — a different trigger from the one tested (`feedback_verify_each_half_separately`) | **SP-119** |
-| **AC3–AC8** — images, relationships, sources | **SP-118 – SP-120** |
+| ⚠️ **AC9's second half** — a world going away *while a sheet is open* is a DIFFERENT trigger from the one verified (`feedback_verify_each_half_separately`) | **SP-119** |
+| **AC3, AC4, AC8** — images and sources | **SP-119 – SP-120** |
 | **I-0147** — the 60 s post-crash lock window; ✅ **Accepted**, regression-tested | **Network-worlds design** |
 | ⚠️ **`ObjectIndex::loadWorldIndex`'s rebuild is still UNLOCKED** — `WorldLock` is not reentrant | **Network-worlds design** |
 
@@ -82,18 +85,19 @@ code was read.**
 
 ## Next
 
-**SP-118** — `[Apple]` Related objects + relationship creation (**D4**), closing **AC5** and **AC6**.
+⚠️ **No Sprint is planned.** SP-119 has not been defined — ⚠️ **Claude does not plan or activate one
+without the user's word.**
 
-> ⚠️ **T-0416 may surface as a LIVE BLOCKER here.** Seeded relation types never reach existing projects, so
-> a writer relating objects in an existing project (e.g. `tintagael`) may see only that project's
-> vocabulary. **Worth confirming on the real rig before SP-118 plans.**
+Its likely scope, carried from here: **`tags` (closing AC2)**, **AC9's second half**, and **AC3/AC4
+images**.
 
 ⚠️ **SP-107–SP-114 remain RESERVED to EP-032** and are not available.
 
-**Next available:** Sprint **SP-118** · Task **T-0441** · Issue **I-0149**.
+**Next available:** Sprint **SP-119** · Task **T-0446** · Issue **I-0162**.
 
 ---
 
-*Last Updated: 2026-08-21 (**SP-117 ✅ CLOSED, user-approved.** Seven Tasks + I-0148 Verified and archived in
-the same step. ⚠️ **The first EP-034 sprint a writer could use** — and the live pass both validated the D1-E
-ruling and found I-0148. Active Sprints 1 → 0; EP-034 stays 🟡 Active, **3 of 8 sprints closed**.)*
+*Last Updated: 2026-08-23 (**SP-118 ✅ CLOSED, user-approved.** Five Tasks + thirteen Issues Verified and
+archived in the same step. ⚠️ **Thirteen Issues, none found by any suite** — the strongest evidence yet
+that the live click-through is not optional. Active Sprints 1 → 0; EP-034 stays 🟡 Active, **4 of 8
+sprints closed**.)*

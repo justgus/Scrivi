@@ -24,6 +24,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <cstdlib>
 #include <iterator>
 #include <string>
 
@@ -250,18 +251,355 @@ TEST_CASE("relation-type validation protects the duplicate rule",
     REQUIRE_FALSE(RelationTypeStore::validate(a).ok());
 }
 
+// ---------------------------------------------------------------------------
+// T-0441 (SP-118) — ⚠️ T-0416: seeded relation types must reach EXISTING projects
+//
+// ⚠️ THESE TESTS MUST RUN AGAINST A DELIBERATELY DRIFTED FIXTURE. A fresh project
+// is already correct, so a test that merely seeds normally passes VACUOUSLY —
+// precisely how this defect survived from 2026-08-17 to 2026-08-21 with a green
+// suite. `writeDriftedVocabulary` reproduces the exact bytes found on the rig in
+// `the-twisted-remains-of-myself.scrivi`.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// The pre-I-0125 `appears-in`, verbatim: `sourceKind: "character"` (the constraint
+// I-0125 REMOVED) and the kind-specific `inverseLabel: "has characters"`. Carries
+// a writer-authored type alongside it so the same fixture proves S2.
+void writeDriftedVocabulary(const fs::path& p) {
+    std::ofstream(p, std::ios::trunc) << R"({
+  "schema": "scrivi.relation-types.v1",
+  "types": [
+    {
+      "code": "appears-in",
+      "forwardLabel": "appears in",
+      "inverseLabel": "has characters",
+      "sourceKind": "character",
+      "targetKind": "scene",
+      "canonicalDirection": "source-to-target",
+      "symmetric": false
+    },
+    {
+      "code": "located-at",
+      "forwardLabel": "takes place at",
+      "inverseLabel": "hosts",
+      "sourceKind": "scene",
+      "targetKind": "location",
+      "canonicalDirection": "source-to-target",
+      "symmetric": false
+    },
+    {
+      "code": "sibling-of",
+      "forwardLabel": "sibling of",
+      "inverseLabel": "sibling of",
+      "sourceKind": "character",
+      "targetKind": "character",
+      "canonicalDirection": "lexical",
+      "symmetric": true
+    },
+    {
+      "code": "cites",
+      "forwardLabel": "cites",
+      "inverseLabel": "documented by",
+      "canonicalDirection": "source-to-target",
+      "symmetric": false
+    },
+    {
+      "code": "sworn-enemy-of",
+      "forwardLabel": "sworn enemy of",
+      "inverseLabel": "sworn enemy of",
+      "canonicalDirection": "lexical",
+      "symmetric": true
+    }
+  ]
+})";
+}
+
+} // namespace
+
+TEST_CASE("S1 — a DRIFTED seeded type is repaired on open, and the relate it "
+          "broke then succeeds", "[integration][T-0441]") {
+    GraphFixture fix;
+    RelationTypeStore store{fix.services};
+    const auto p = fs::path(RelationTypeStore::path(fix.root()));
+
+    writeDriftedVocabulary(p);
+
+    // ⚠️ Precondition: the fixture really is broken. Without this the test could
+    // pass against an unchanged core simply because the drift never took.
+    {
+        auto raw = std::ifstream(p);
+        const std::string text{std::istreambuf_iterator<char>(raw),
+                               std::istreambuf_iterator<char>()};
+        REQUIRE(text.find("has characters") != std::string::npos);
+        REQUIRE(text.find("\"sourceKind\": \"character\"") != std::string::npos);
+    }
+
+    auto loaded = store.load(fix.root());
+    REQUIRE(loaded.ok());
+
+    // Repaired IN MEMORY …
+    auto found = store.find(fix.root(), "appears-in");
+    REQUIRE(found.ok());
+    REQUIRE(found.value().inverseLabel == "features");
+    REQUIRE_FALSE(found.value().sourceKind.has_value());   // I-0125's removal
+    REQUIRE_FALSE(found.value().sourceIsScene);
+    REQUIRE(found.value().targetIsScene);
+
+    // … and ON DISK, so the repair survives a reopen rather than being recomputed
+    // every time (the file, not a cache, is what the writer's other tools read).
+    {
+        auto raw = std::ifstream(p);
+        const std::string text{std::istreambuf_iterator<char>(raw),
+                               std::istreambuf_iterator<char>()};
+        REQUIRE(text.find("has characters") == std::string::npos);
+    }
+
+    // ⚠️ THE ACTUAL SYMPTOM. `appears-in` is what EIGHT of the ten object cards
+    // use; against the drifted vocabulary this failed with "endpoints do not
+    // satisfy the kind constraints of relation type 'appears-in'" — after the
+    // object had already been written to disk.
+    //
+    // ⚠️ This is the assertion that FAILS against the un-fixed core.
+    RelationshipStore edges{fix.services};
+    auto chronicleID = fix.makeObject(ObjectKind::chronicle, "The Long Winter",
+                                      "long-winter");
+    auto edge = edges.create(fix.root(), chronicleID.value,
+                             fix.firstSceneID.value, "appears-in", "");
+    REQUIRE(edge.ok());
+}
+
+TEST_CASE("S2 — reconciliation leaves writer-authored types alone and deletes "
+          "nothing", "[integration][T-0441]") {
+    GraphFixture fix;
+    RelationTypeStore store{fix.services};
+
+    writeDriftedVocabulary(fs::path(RelationTypeStore::path(fix.root())));
+
+    auto loaded = store.load(fix.root());
+    REQUIRE(loaded.ok());
+
+    // ⚠️ The file is writer-editable by design. A type this build does not seed is
+    // either hers or a LATER build's — removing it would destroy her vocabulary.
+    auto mine = store.find(fix.root(), "sworn-enemy-of");
+    REQUIRE(mine.ok());
+    REQUIRE(mine.value().forwardLabel == "sworn enemy of");
+    REQUIRE(mine.value().symmetric);
+    REQUIRE(mine.value().canonicalDirection == CanonicalDirection::lexical);
+
+    // 4 seeded + 1 authored. Nothing added twice, nothing dropped.
+    REQUIRE(loaded.value().size() == 5);
+}
+
+TEST_CASE("S3 — a project whose vocabulary is already current is NOT rewritten",
+          "[integration][T-0441]") {
+    GraphFixture fix;
+    RelationTypeStore store{fix.services};
+    const auto p = fs::path(RelationTypeStore::path(fix.root()));
+
+    // createProject already seeded it, so this project is current by construction.
+    REQUIRE(store.load(fix.root()).ok());
+
+    const auto before = fs::last_write_time(p);
+
+    // ⚠️ S1 alone would pass with an unconditional rewrite. S3 is what stops the
+    // fix from touching relation-types.json on EVERY open — churning mtimes and
+    // Git status in every project, forever, for no reason.
+    for (int i = 0; i < 3; ++i) {
+        REQUIRE(store.load(fix.root()).ok());
+    }
+
+    REQUIRE((fs::last_write_time(p) == before));
+}
+
+TEST_CASE("S1b — a MISSING seeded type is restored without disturbing the rest",
+          "[integration][T-0441]") {
+    GraphFixture fix;
+    RelationTypeStore store{fix.services};
+    const auto p = fs::path(RelationTypeStore::path(fix.root()));
+
+    // A valid file that simply lacks `cites` — the "seeded code absent" branch,
+    // which drift produces when a seed type is ADDED by a later build.
+    std::ofstream(p, std::ios::trunc) << R"({
+  "schema": "scrivi.relation-types.v1",
+  "types": [
+    {
+      "code": "appears-in",
+      "forwardLabel": "appears in",
+      "inverseLabel": "features",
+      "targetKind": "scene",
+      "canonicalDirection": "source-to-target",
+      "symmetric": false
+    }
+  ]
+})";
+
+    auto loaded = store.load(fix.root());
+    REQUIRE(loaded.ok());
+    REQUIRE(loaded.value().size() == 4);
+    for (const char* code : {"appears-in", "located-at", "sibling-of", "cites"}) {
+        CAPTURE(code);
+        REQUIRE(store.find(fix.root(), code).ok());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// I-0149 — ⚠️ the reconciliation must run ON OPEN, not merely on read
+//
+// ⚠️ T-0441's tests all called `store.load()` DIRECTLY. That proved the repair
+// worked and proved NOTHING about whether anything invokes it when a project
+// opens — which is what the 2026-08-21 ruling actually said. It does not: `load()`
+// runs only when something asks for the vocabulary, and opening a project asks for
+// none of those.
+//
+// ⚠️ Found on the real rig. `the-twisted-remains-of-myself.scrivi` opened cleanly
+// with the fix compiled into the running app and its pre-I-0125 `appears-in`
+// untouched — empty object index, no edge log, so nothing ever read the file.
+//
+// ⚠️ THIS TEST FAILS against T-0441-as-shipped. It is the one that was missing.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("I-0149 — opening a project repairs a drifted vocabulary with NOTHING "
+          "else touching it", "[integration][I-0149]") {
+    GraphFixture fix;
+    const auto p = fs::path(RelationTypeStore::path(fix.root()));
+
+    writeDriftedVocabulary(p);
+
+    // ⚠️ Precondition: the drift really is on disk.
+    {
+        std::ifstream in(p);
+        const std::string text{std::istreambuf_iterator<char>(in),
+                               std::istreambuf_iterator<char>()};
+        REQUIRE(text.find("has characters") != std::string::npos);
+    }
+
+    // ⚠️ THE WHOLE POINT: open the project, and touch the vocabulary in no other
+    // way. No RelationTypeStore, no find(), no createEdge — exactly what the app
+    // does when a writer opens a project with no objects and no edges.
+    OpenProjectRequest req;
+    req.projectRootPath = fix.root();
+    req.appSupportRoot  = fix.appSupportDir.string();
+    auto opened = fix.core.openProject(req);
+    REQUIRE(opened.ok());
+
+    // Repaired ON DISK by the act of opening.
+    {
+        std::ifstream in(p);
+        const std::string text{std::istreambuf_iterator<char>(in),
+                               std::istreambuf_iterator<char>()};
+        REQUIRE(text.find("has characters") == std::string::npos);
+        REQUIRE(text.find("features") != std::string::npos);
+    }
+
+    // ⚠️ And the writer-authored type still survives the open — reconciliation
+    // reaching a new call site must not have changed what it does.
+    RelationTypeStore store{fix.services};
+    REQUIRE(store.find(fix.root(), "sworn-enemy-of").ok());
+}
+
+TEST_CASE("I-0149 — opening a CURRENT project still does not rewrite the file",
+          "[integration][I-0149]") {
+    GraphFixture fix;
+    const auto p = fs::path(RelationTypeStore::path(fix.root()));
+
+    // ⚠️ S3's guarantee has to survive the new call site. Reconciling on EVERY
+    // open is exactly the churn S3 exists to prevent — every project's
+    // relation-types.json touched on every open, forever.
+    const auto before = fs::last_write_time(p);
+
+    for (int i = 0; i < 3; ++i) {
+        OpenProjectRequest req;
+        req.projectRootPath = fix.root();
+        req.appSupportRoot  = fix.appSupportDir.string();
+        REQUIRE(fix.core.openProject(req).ok());
+    }
+
+    REQUIRE((fs::last_write_time(p) == before));
+}
+
+// ⚠️ RIG CHECK — opt-in, hidden by default ([.rig]): points the real open path at
+// a COPY of an actual project on disk. Run with:
+//   ScriviCoreTests "[rig]" -- (env SCRIVI_RIG_PROJECT=/path/to/copy.scrivi)
+// Skipped silently when the env var is unset, so CI is unaffected.
+TEST_CASE("rig — opening a real drifted project repairs it", "[.rig]") {
+    const char* rigPath = std::getenv("SCRIVI_RIG_PROJECT");
+    if (rigPath == nullptr) { SUCCEED("SCRIVI_RIG_PROJECT unset — skipped"); return; }
+
+    const auto appSupport = fs::temp_directory_path() / "scrivi-rig-appsupport";
+    fs::create_directories(appSupport);
+
+    platform::LocalFileSystem        fileSystem;
+    mocks::DeterministicUUIDProvider uuidProvider;
+    mocks::FixedClock                clock{"2026-08-22T00:00:00Z"};
+    mocks::MockGitProvider           gitProvider;
+    mocks::MockSecureStore           secureStore;
+    CoreServices svc;
+    svc.fileSystem = &fileSystem; svc.uuidProvider = &uuidProvider;
+    svc.clock = &clock; svc.gitProvider = &gitProvider;
+    svc.secureStore = &secureStore; svc.logger = nullptr;
+    ScriviCore core{svc};
+
+    OpenProjectRequest req;
+    req.projectRootPath = rigPath;
+    req.appSupportRoot  = appSupport.string();
+    auto opened = core.openProject(req);
+    INFO("openProject: " << (opened.ok() ? "ok" : opened.error().message));
+    REQUIRE(opened.ok());
+
+    std::ifstream in(fs::path(rigPath) / "objects" / "relation-types.json");
+    const std::string text{std::istreambuf_iterator<char>(in),
+                           std::istreambuf_iterator<char>()};
+    REQUIRE(text.find("has characters") == std::string::npos);
+    REQUIRE(text.find("features") != std::string::npos);
+}
+
 TEST_CASE("upsert replaces by code", "[integration][T-0373]") {
     GraphFixture fix;
     RelationTypeStore store{fix.services};
 
+    // ⚠️ Upserts a WRITER-AUTHORED code. This test used to edit the seeded `cites`
+    // and assert the edit survived `load()`; T-0441's reconciliation now restores
+    // seeded types on every open, so that assertion contradicts the 2026-08-21
+    // ruling. The accepted consequence — "a seeded type a writer edited is
+    // overwritten" — is asserted directly below rather than left implicit here.
     RelationType t;
-    t.code = "cites"; t.forwardLabel = "references"; t.inverseLabel = "referenced by";
+    t.code = "references"; t.forwardLabel = "references"; t.inverseLabel = "referenced by";
     REQUIRE(store.upsert(fix.root(), t).ok());
 
     auto all = store.load(fix.root());
     REQUIRE(all.ok());
-    REQUIRE(all.value().size() == 4);                       // replaced, not appended
-    REQUIRE(store.find(fix.root(), "cites").value().forwardLabel == "references");
+    REQUIRE(all.value().size() == 5);                       // appended
+    REQUIRE(store.find(fix.root(), "references").value().forwardLabel == "references");
+
+    // Replaced, not appended, on a second upsert of the same code.
+    t.forwardLabel = "draws on";
+    REQUIRE(store.upsert(fix.root(), t).ok());
+    REQUIRE(store.load(fix.root()).value().size() == 5);
+    REQUIRE(store.find(fix.root(), "references").value().forwardLabel == "draws on");
+}
+
+TEST_CASE("⚠️ ACCEPTED CONSEQUENCE — an edited SEEDED type is overwritten on open",
+          "[integration][T-0441]") {
+    GraphFixture fix;
+    RelationTypeStore store{fix.services};
+
+    // The user was asked to choose and chose self-healing (2026-08-21). This test
+    // exists so the cost is visible in the suite rather than discovered by a
+    // writer whose relabelled `cites` quietly reverted: the alternative — never
+    // touching a modified seeded type — leaves a hand-edited `appears-in` broken
+    // forever with no explanation, which is I-0125's live symptom.
+    RelationType edited;
+    edited.code = "cites";
+    edited.forwardLabel = "references";
+    edited.inverseLabel = "referenced by";
+    REQUIRE(store.upsert(fix.root(), edited).ok());
+
+    // upsert() writes AFTER load(), so her edit is on disk right now …
+    REQUIRE(store.find(fix.root(), "cites").value().forwardLabel == "cites");
+    // … and gone the moment anything reads the vocabulary again. `find()` itself
+    // goes through load(), so the line above already reconciled it back.
+    REQUIRE(store.find(fix.root(), "cites").value().inverseLabel == "documented by");
 }
 
 // ---------------------------------------------------------------------------

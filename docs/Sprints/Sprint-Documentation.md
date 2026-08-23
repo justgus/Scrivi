@@ -18,7 +18,7 @@ restated here.
 
 🟡 **EP-034** `[Cross]` is the active Epic. **No Sprint is active** — **SP-116 ✅ CLOSED 2026-08-21**
 (user-approved), all eight Tasks and six Issues Verified → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).
-**SP-117 ✅ CLOSED 2026-08-21** (user-approved) → [`Closed/Sprint-SP-117.md`](Closed/Sprint-SP-117.md). **SP-118** is next. **SP-115 ✅ CLOSED 2026-08-20** (user-approved), all seven
+**SP-118 ✅ CLOSED 2026-08-23** (user-approved) → [`Closed/Sprint-SP-118.md`](Closed/Sprint-SP-118.md); five Tasks + **thirteen Issues** Verified, closing **AC5, AC6 and AC7**. ⚠️ **All thirteen Issues came from the live click-through and none from any suite.** **No Sprint is active or planned.** **SP-117 ✅ CLOSED 2026-08-21** (user-approved) → [`Closed/Sprint-SP-117.md`](Closed/Sprint-SP-117.md). **SP-115 ✅ CLOSED 2026-08-20** (user-approved), all seven
 Tasks and six Issues Verified. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER EP-034
 (Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**. **Next available ID is in Statistics** — recorded once,
 there, not restated here (P7).
@@ -219,7 +219,7 @@ file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.*
 ## All Sprints
 
 ⚠️ **This table is the single source for Sprint status (P7).** Counts are **not** restated here or in
-Statistics — read the rows. Next available ID: **SP-118** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
+Statistics — read the rows. Next available ID: **SP-119** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
 (see the reserved-ID note in Statistics). **Do not reissue them.** ⚠️ **SP-115 runs BEFORE them** (Q-a).
 
 **SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
@@ -378,6 +378,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | SP-115 | ⚠️ **The five open Issues + I-0142 (user-found)** — all ✅ Verified | EP-034 `[Cross]` | 2026-08-20 | 2026-08-20 | ✅ Closed |
 | **SP-116** | ⚠️ **`[Cross]`** World assets (D6) + `assetPath` (D7) + kind-scope endpoint (D5) — retired **six Issues** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
 | **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) + **T-0440's ABI reason field** — ⚠️ **first writer-facing surface of EP-034** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
+| **SP-118** | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) + **T-0416's reconciliation** — ⚠️ **13 Issues, ALL from the live pass, none from any suite** | EP-034 `[Cross]` | 2026-08-22 | 2026-08-23 | ✅ Closed |
 
 ## Statistics
 
@@ -386,8 +387,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-118** — ⚠️ **not SP-107**; See the reserved block below.
-- **Total Sprint IDs issued:** 117 (SP-001–SP-117) — 109 executed, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-119** — ⚠️ **not SP-107**; See the reserved block below.
+- **Total Sprint IDs issued:** 118 (SP-001–SP-118) — 110 executed, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -416,6 +417,26 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-23, ninth pass (**SP-118 ✅ CLOSED, user-approved** — five Tasks + **thirteen
+Issues** Verified and archived in the same step; closes **AC5, AC6, AC7**. ⚠️ **Thirteen Issues, ZERO found
+by any suite** — every one from the user's live click-through, which is now unambiguously this Epic's
+highest-value verification step. ⚠️ **Four were one failure: an existing correct pattern the new code did
+not follow.** ⚠️ **T-0443's deviation from the plan was RULED IN FAVOUR by the user.** `ctest` **561/561**
+arm64 · x86-64 · ASan; Linux **565/565** non-root; interop **120/120**; app **BUILD SUCCEEDED**. Active
+Sprints 1 → **0**; none in Planning. Prior note follows.)*
+
+*Last Updated: 2026-08-22, eighth pass (**SP-118 🟡 ACTIVATED** 2026-08-22 and implemented the same day —
+five Tasks ✅ Implemented — Not Verified. ⚠️ **AC5/AC6 are NOT closed**: they close on **S9**, the live
+click-through, which is the user's to run. ⚠️ **T-0441 required a DRIFTED fixture** — a fresh project is
+already correct, so a normally-seeded test passes vacuously; the negative control was run and both halves
+fail without the fix. ⚠️ **T-0443 deviates from the plan's letter** (a second picker rather than a
+mode-conditional `ObjectPickerView`) — **a ruling is owed**. ctest **559/559** arm64 · x86-64 · ASan; Linux
+**563/563** non-root; interop **119/119**; app **BUILD SUCCEEDED**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, seventh pass (**SP-118 CREATED 🔵 Planning** — EP-034's fourth sprint; five
+Tasks T-0441–T-0445, closes **AC5 + AC6**. ⚠️ **T-0416 confirmed on the rig and scheduled as T-0441.**
+Next available Sprint ID: **SP-119**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, sixth pass (**SP-117 ✅ CLOSED, user-approved** — EP-034's third sprint and
 ⚠️ **the first to ship a writer-facing surface**; seven Tasks + I-0148 Verified and archived. ⚠️ **Recorded

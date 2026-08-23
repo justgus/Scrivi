@@ -206,7 +206,12 @@ struct ObjectPickerView: View {
                exact.acceptsSource(kind: cardKind.kind) {
                 relationType = exact.code
             } else if let usable = types.first(where: {
-                $0.acceptsSource(kind: cardKind.kind) && ($0.targetKind == nil || $0.targetKind == "scene")
+                // ⚠️ This picker's target IS a scene — that is what the card does,
+                // and the filter is correct here. The object→object case does NOT
+                // reuse this line: it needs types whose target is NOT a scene, and
+                // narrowing it there would have offered the writer nothing.
+                // `ObjectRelationPicker` (SP-118 T-0443) carries that half.
+                $0.acceptsSource(kind: cardKind.kind) && $0.targetAcceptsScene
             }) {
                 relationType = usable.code
             } else {

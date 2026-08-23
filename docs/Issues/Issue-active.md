@@ -12,6 +12,12 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 ## Currently: **one record — I-0147, an ACCEPTED limitation, not open work**
 
+✅ **I-0149 – I-0161 were Verified 2026-08-23 (user-approved) and archived in the same step** →
+[`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md) (I-0149, I-0150) and
+[`Verified/Issue-verified-0151-0160.md`](Verified/Issue-verified-0151-0160.md) (I-0151 – I-0161).
+
+⚠️ **All thirteen came from SP-118's live click-through. None was found by any suite.**
+
 ✅ **I-0148 was Verified 2026-08-21 (user-approved) and archived** →
 [`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
 
@@ -20,6 +26,78 @@ were ✅ **Verified 2026-08-21 (user-approved) and archived in the same step** �
 [`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
 
 **What the table cannot express:**
+
+- ⚠️ **I-0161 took THREE attempts and is the sprint's clearest lesson in diagnosis order.** Attempt 1
+  scrolled at click time (wrong: raced the highlight). Attempt 2 fixed that correctly but ⚠️ **was never
+  compiled into the macOS build** — the edit reached one of two platform call sites. ⚠️ **Claude spent a
+  round explaining the behaviour of code that did not run**, exactly as I-0151 was caused by a comment
+  asserting behaviour never checked against the source.
+- ⚠️ **THE RULE: prove the new code is REACHED before explaining why it behaves oddly.** One log line, or
+  one grep for call sites, would have replaced a whole round of theory. ⚠️ **"It didn't change anything"
+  should first be read as "it isn't running", not as "it ran and was wrong."**
+- ✅ **Temporary `SCRIVI-DIAG` logging is what settled it** — and was removed once it had. Instrumenting a
+  path is cheaper than a third hypothesis.
+- ⚠️ **I-0158/I-0159 are one mistake with two faces: I hand-rolled a list.** A `VStack`/`ForEach` meant
+  reimplementing selection, the highlight and right-click targeting — each attempt wrong in a new way —
+  and ⚠️ **`SceneNavigatorView` was already doing it correctly with `List(selection:)` in the same
+  directory.** Switching to `List` fixed selection and broke layout; the answer was to take the selection
+  semantics and keep the app's existing scroll structure. ⚠️ **The user's question — "a Swift standard
+  List View handles all this automatically… which makes me wonder why it is so hard for you" — is the
+  right one**, and the answer is that I built new machinery instead of looking at what the app already had.
+- ⚠️ **THREE defects this sprint were "an existing correct pattern the new code did not follow"**: I-0155
+  (`ObjectCardModel.rename` re-read before patching), I-0157 (I-0132 ruled selection the source of truth),
+  I-0158 (`SceneNavigatorView` already used `List(selection:)`). ⚠️ **All three rules were written down,
+  in this repo, before the code that violated them was typed.**
+- ⚠️ **I-0155 is the most serious defect of the sprint, and it was reported as a hedge.** The user wrote
+  *"It isn't necessarily a defect. More like an unintended consequence… Maybe there is a defect here after
+  all."* ⚠️ **It was silent data loss** — a saved note reverting a saved rename. **The uncertainty in a
+  report is not a measure of its severity**, which is the same lesson as I-0148 and I-0154, now three
+  times in this Epic.
+- ⚠️ **I-0155 and I-0157 share a shape: an existing correct pattern that the new surface did not follow.**
+  `ObjectCardModel.rename` already re-read before patching; I-0132 already ruled selection the source of
+  truth. ⚠️ **Both rules were written down, both were violated by code added days later.** Grepping for
+  "how does the app already do this?" would have caught both — the same discipline as the
+  derive-never-restate rule, applied to behaviour instead of to lists.
+- ⚠️ **I-0151–I-0154 were ALL found by the SP-118 live click-through**, and none by any suite. ⚠️ **The
+  green run had asserted edge creation, duplicate rejection, both-endpoint visibility and pending
+  presentation** — every one of which held up. **What no test covered was whether a writer could reach any
+  of it**, which is `capability_without_surface` for the third time in this Epic.
+- ⚠️ **I-0151's cause was a COMMENT ASSERTING A FALSEHOOD.** I wrote *"`openObject` accepts '' and resolves
+  it"* next to the line that passed `""`, and never opened `ObjectStore.cpp` to check. ⚠️ **A confident
+  comment is not evidence**, and writing one is how an unchecked assumption gets laundered into an
+  apparent finding — the same failure as I-0150's misattribution, in a different medium.
+- ⚠️ **I-0152 is the one Claude got wrong twice.** Told the writer saw a raw ID, Claude confirmed the empty
+  title and concluded *"not a display bug"* — answering **why the data was empty** instead of **what the
+  writer was shown**. The user's correction was the point: the Navigator already solved this, so two
+  surfaces disagreed about one scene's name and the worse answer won.
+- ⚠️ **"The Lantern Foxes" is NOT a defect** — checked and closed. The stored edge is
+  `chronicle --appears-in--> scene`, so *"appears in"* from the chronicle's end and *"features"* from the
+  scene's end are **the same edge read from opposite endpoints** (Doc 1 §5.2), and `ObjectCard` passes
+  `label: edge.label` straight through without recomputing. ✅ **Both displays are correct.**
+- ⚠️ **I-0150 was found by the user REFUSING A PLAUSIBLE STORY.** Claude read a timestamp, concluded
+  *"you reopened Scrivi"*, and wrote a detailed accounting on that basis. ⚠️ **The user simply said he had
+  not** — and the real cause was Claude's own test command. ⚠️ **The failure mode was reaching for the
+  explanation that did not implicate my own actions**, and the evidence was in a file I had already been
+  told to update (`TEST_HOST` in `project.pbxproj`).
+- ⚠️ **I-0150 changes what "safe to test" means on this project.** `xcodebuild test` is **not** a read-only
+  operation: it is an app launch with full access to the writer's real projects through saved bookmarks.
+  ⚠️ **There is deliberately NO test that flips the guard off to prove the projects reopen** — that
+  negative control would re-enable the damaging behaviour on a real machine with real bookmarks. The
+  evidence is a before/after checksum of all 220 files, not a reproduction of the harm.
+- ⚠️ **I-0149 is the SIXTH EP-034 defect found by use rather than by tests** (I-0137, I-0142, I-0146,
+  I-0147, I-0148, I-0149) — ⚠️ **and the first found by a user asking whether the work had actually
+  happened.** The suite was green, the binary contained the fix, and the fix did nothing.
+- ⚠️ **The lesson is narrower and sharper than "test more".** T-0441 had a drifted fixture, a negative
+  control, and a passing assertion that the repair worked. ⚠️ **All of it tested the REPAIR and none of it
+  tested the TRIGGER.** A test that calls `load()` to check that `load()` repairs is a tautology wearing a
+  fixture; the missing test was *"open a project and touch nothing else."*
+- ⚠️ **"On open" is an EVENT, not a function.** The ruling named the event; the implementation picked a
+  function that seemed adjacent to it. ⚠️ **When a ruling names a moment, the test must reproduce that
+  moment** — not a call that usually accompanies it.
+- ⚠️ **A stale test binary nearly hid the fix too.** The Xcode app build reconfigures the shared `build/`
+  directory with `SCRIVI_BUILD_TESTS=OFF`, so `cmake --build` silently left a 28-minute-old
+  `ScriviCoreTests` in place and the new tests reported *"No tests ran"* — which reads like a filter typo,
+  not a stale binary (`project_linux_container_tests_off` is the same class on Linux).
 
 - ⚠️ **I-0147 is a KNOWN LIMITATION, not a defect awaiting a fix** (user ruling, option 1). For up to 60 s
   after an interrupted world write, the world is unwritable and its `.partial` unreclaimable, because the
@@ -60,6 +138,49 @@ sprint that fixed four other instances. **Owed a surface in a later sprint.**
 failed**) was worse than the reported symptom.
 
 ---
+
+*Last Updated: 2026-08-23, eighteenth pass (**I-0149 – I-0161 ✅ VERIFIED (user-approved) and ARCHIVED in
+the same step** at SP-118 close → `Verified/Issue-verified-0141-0150.md` and the new
+`Verified/Issue-verified-0151-0160.md`. Open Issues **13 → 0**; I-0147 remains an Accepted limitation, not
+open work. ⚠️ **All thirteen came from the live click-through and none from any suite.** ⚠️ **Four were one
+failure — an existing correct pattern the new code did not follow.** Next available Issue: **I-0162**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-22, seventeenth pass (⚠️ **I-0159: the related list LOOKED like it had lost rows** —
+a nested `List` inside the sheet's ScrollView hid 5 of Myton's 8 behind an invisible second scroll;
+⚠️ **the USER diagnosed it.** I-0160: ⚠️ **I-0155 had been fixed in one direction only.** I-0161: navigator
+reveal for navigation from another surface, ⚠️ **carefully distinguished from the reveal I-0132 removed.**
+Open Issues: **12**. Next available Issue: **I-0162**. Prior note follows.)*
+
+*Last Updated: 2026-08-22, sixteenth pass (⚠️ **I-0155 FILED — SILENT DATA LOSS**: a Detail Sheet save
+patched a snapshot from sheet-open, reverting a Scene Inspector rename. ⚠️ **Reported by the user as
+possibly not a defect at all.** Fixed in three parts, incl. per-field conflict resolution so the fix does
+not reverse the loss. I-0156: rows had no selection. I-0157: scene navigation bypassed I-0132's
+selection-is-truth ruling. Open Issues: **9**. Next available Issue: **I-0158**. Prior note follows.)*
+
+*Last Updated: 2026-08-22, fifteenth pass (⚠️ **I-0151–I-0154 FILED AND RESOLVED — all four found by the
+SP-118 LIVE CLICK-THROUGH, none by any suite.** ⚠️ **I-0151 broke navigation to every world-scoped object**
+and was caused by a comment asserting a falsehood I never checked. ⚠️ **I-0152 showed the writer a raw
+scene ID** where the Navigator already knew a useful name — ⚠️ **Claude dismissed it once and the user
+was right to reject that.** I-0153: scene rows were a dead affordance. I-0154: no right-click highlight.
+✅ **"The Lantern Foxes" checked and CLOSED as correct** — opposite endpoints of one edge. Open Issues:
+**6**. Next available Issue: **I-0155**. Prior note follows.)*
+
+*Last Updated: 2026-08-22, fourteenth pass (⚠️ **I-0150 FILED AND RESOLVED — `xcodebuild test` launches the
+real app and reopened the user's ACTUAL PROJECTS.** ⚠️ **This, not a user launch, is what modified
+`the-twisted-remains-of-myself.scrivi`; Claude had misattributed it to the user and was corrected.**
+✅ Fixed at the choke point in `restoreOpenProjects()`; ✅ **verified by checksums of 220 files across three
+full test runs — byte-identical**. ⚠️ **`pgrep Scrivi` never protected against this.** Open Issues: **2**
+(I-0149, I-0150). Next available Issue: **I-0151**. Prior note follows.)*
+
+*Last Updated: 2026-08-22, thirteenth pass (⚠️ **I-0149 FILED AND RESOLVED — found by the USER asking
+whether the migration had actually occurred**, after SP-118 reported green. ⚠️ **T-0441 reconciled on READ,
+not on OPEN** — the repair lived in `RelationTypeStore::load()`, which a project open never calls; the real
+rig opened a drifted project with the fix in the binary and changed nothing. ✅ **Fixed in
+`ProjectOpener::open`** as repair pass (e); ✅ **negative control run** (the new test fails against
+T-0441-as-shipped); ✅ **verified against a copy of the user's real project**. ⚠️ **T-0441 is NO LONGER
+"Implemented"** on its own — it is complete only with I-0149. `ctest` **561/561**. Open Issues: **1**
+(I-0149, Resolved - Not Verified). Next available Issue: **I-0150**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, twelfth pass (✅ **I-0148 VERIFIED (user-approved) and ARCHIVED in the same
 step.** ⚠️ **It was found by the user's live click-through and reported as an OBSERVATION, not a

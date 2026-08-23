@@ -117,6 +117,24 @@ struct CardContext {
     /// `.task(id:)` could not observe.
     var worldRevision: Int = 0
 
+    /// Bumped whenever an object is edited OUTSIDE the inspector — today, a save
+    /// in the Object Detail Sheet (I-0155).
+    ///
+    /// ⚠️ The two surfaces edit the same fields and can both be open at once. A
+    /// rename in the sheet left the card showing the old name until the writer
+    /// changed scenes, so the app displayed two names for one object and neither
+    /// was marked stale. Same mechanism as `worldRevision`: a token in the card's
+    /// `.task(id:)`, so a reload is a data dependency rather than a broadcast.
+    var objectRevision: Int = 0
+
+    /// Announces that a card CHANGED an object, so the host can refresh other
+    /// surfaces showing it — today the Object Detail Sheet (I-0160).
+    ///
+    /// ⚠️ The counterpart of `objectRevision`, which carries changes the other
+    /// way. Both directions are needed: the two surfaces edit the same fields and
+    /// can be open at once, so whichever one is not editing must be told.
+    var onObjectChanged: (() -> Void)? = nil
+
     /// Asks the HOST to open the Object Detail Sheet for this object
     /// (EP-034 SP-117, T-0438 / R7).
     ///

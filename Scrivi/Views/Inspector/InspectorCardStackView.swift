@@ -16,6 +16,11 @@ struct InspectorCardStackView: View {
     /// Bumped when world availability changes (I-0128), so object cards re-read
     /// after a drive is reconnected instead of waiting for a scene change.
     var worldRevision: Int = 0
+    /// I-0155 — bumped by a Detail Sheet save so cards re-read (passed through to
+    /// `InspectorCardContext`, which is what the cards' `.task(id:)` watches).
+    var objectRevision: Int = 0
+    /// I-0160 — a card changed an object; the host refreshes the Detail Sheet.
+    var onObjectChanged: (() -> Void)? = nil
     let authorshipRef: AuthorshipRef?
     /// Passed through to every card so an object card can ask the HOST to open
     /// the Detail Sheet (SP-117 T-0438). Optional end to end: a host that does
@@ -128,6 +133,8 @@ struct InspectorCardStackView: View {
                                     caretByteOffset: caretByteOffset,
                                     historyRevision: history?.revision ?? 0,
                                     worldRevision: worldRevision,
+                                    objectRevision: objectRevision,
+                                    onObjectChanged: onObjectChanged,
                                     // C6: one sort for the whole stack, handed to
                                     // every card rather than each owning its own.
                                     openObjectDetail: openObjectDetail,

@@ -29,7 +29,6 @@ status changes on its own layer.
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
-| T-0416 | ⚠️ Seeded relation-type vocabulary does not reach existing projects | EP-031 (unscheduled) | 🔵 Backlog |
 
 > ✅ **T-0426–T-0430 LEFT this file 2026-08-21 when SP-116 was ACTIVATED** — they are 🟡 Active and live
 > in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
@@ -177,7 +176,16 @@ so rotation is **additive, with no format change**. Documented as not-implemente
 
 ### T-0416 — ⚠️ Seeded relation-type vocabulary does not reach existing projects
 
-**Epic:** EP-031 (unscheduled) · **Status:** 🔵 Backlog · **Deferred by user ruling 2026-08-17.**
+**Epic:** EP-031 → **EP-034** · **Status:** ✅ **CLOSED — shipped as T-0441 + I-0149 (SP-118), Verified
+2026-08-23.** Deferred by user ruling 2026-08-17; scheduled 2026-08-21; shipped and verified 2026-08-23.
+
+⚠️ **Kept here for its history, not as open work**, and removed from the backlog table above. The record is
+[`../Sprints/Closed/Sprint-SP-118.md`](../Sprints/Closed/Sprint-SP-118.md) and
+[`Verified/Task-verified-0441-0445.md`](Verified/Task-verified-0441-0445.md).
+
+⚠️ **T-0441 alone did NOT fix it.** The reconciliation was placed in `RelationTypeStore::load()`, which a
+project open never calls — the repair shipped correct and unreachable, and **I-0149** is what actually
+made it run on open. ⚠️ **"On open" is an event, not a function.**
 
 `RelationTypeStore::load` re-seeds `objects/relation-types.json` **only** when the file is missing or
 unparseable (`RelationTypes.cpp:150-176`); a valid file is loaded verbatim, so **any change to the
@@ -190,8 +198,31 @@ file was patched by hand — so the general mechanism is a separate decision.
 **Options considered:** reconcile seeded types on open (add missing, update changed, never touch
 writer-authored types); or carry a `seedVersion` in the file and re-seed on version bump.
 
-⚠️ **Whatever is chosen must not clobber a type a writer deliberately customized** — the file is
-writer-editable by design.
+> ### ✅ CONFIRMED ON THE REAL RIG — 2026-08-21, and RULED
+>
+> ⚠️ **`the-twisted-remains-of-myself.scrivi` still carries the pre-I-0125 `appears-in`** —
+> `sourceKind: "character"` and `inverseLabel: "has characters"`. **Proven by running the same operation
+> against both vocabularies through `scrivi_*`:** a fresh seed creates the edge; the drifted one fails with
+> *"endpoints do not satisfy the kind constraints of relation type 'appears-in'"*.
+>
+> ⚠️ **`appears-in` is the type EIGHT of the ten object cards use**, and the object is written to disk
+> **before** the edge fails — so the writer is told creation failed while the object exists.
+>
+> ✅ **`tintagael` is CLEAN** (hand-patched at I-0125), ⚠️ **so the rig will not reproduce this by
+> default** — a drifted fixture is required or a test passes vacuously.
+>
+> ✅ **RULED (user, 2026-08-21): reconcile on open, seeded types only.** ⚠️ **Accepted consequence: it
+> overwrites a seeded type a writer deliberately edited** — chosen over leaving a hand-edited `appears-in`
+> broken forever with no explanation. **Scheduled as T-0441 in SP-118.**
+
+⚠️ **The earlier note here read "whatever is chosen must not clobber a type a writer deliberately
+customized."** ⚠️ **The 2026-08-21 ruling deliberately overrode that for SEEDED types** — it is the accepted
+consequence, chosen over leaving a hand-edited `appears-in` broken forever. It still holds in full for
+**writer-authored** codes, which reconciliation never touches and never deletes.
+
+✅ **As implemented (T-0441):** seeded codes are added if missing and replaced if they differ; every other
+code is left alone; nothing is deleted; and the file is written **only when something actually changed**
+(S3 — an unconditional rewrite would churn mtimes and Git status on every open).
 
 ---
 
@@ -212,6 +243,19 @@ worst case) are untested. `HistoryService` has unit + integration coverage at or
 task rather than reviving T-0216.
 
 ---
+
+*Last Updated: 2026-08-23, seventh pass (**T-0416 REMOVED from the backlog table** — ✅ shipped as T-0441 +
+I-0149 and Verified at SP-118 close; its detail block is kept for history only. Next available Task:
+**T-0446**. Prior note follows.)*
+
+*Last Updated: 2026-08-22, sixth pass (**T-0441–T-0445 MOVED to `Task-active.md`** — SP-118 activated
+2026-08-22, so they leave the backlog per layer discipline. **T-0416 is superseded by T-0441**, which is
+✅ Implemented — Not Verified. Next available Task: **T-0446**. Prior note follows.)*
+
+*Last Updated: 2026-08-21, fifth pass (**T-0441–T-0445 added for SP-118** 🔵 Planning; **AC5 + AC6** close
+there. ⚠️ **T-0416 CONFIRMED ON THE RIG and finally scheduled** as **T-0441** after being deferred since
+2026-08-17 — the drifted `appears-in` was proven to fail the exact operation SP-118 is about. Next
+available Task: **T-0446**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, fourth pass (**T-0434–T-0440 REMOVED — SP-117 activated**; they moved to
 `Task-active.md` in the same step. Next available Task: **T-0441**. Prior note follows.)*

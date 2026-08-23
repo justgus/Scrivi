@@ -241,6 +241,32 @@ import UniformTypeIdentifiers
     // project whose bookmark no longer resolves (moved/deleted) — best-effort. Called
     // once after bootstrap.
     func restoreOpenProjects() async {
+        // ⚠️ I-0150: NEVER restore a real project under a test run.
+        //
+        // `ScriviInteropTests` is a HOSTED bundle (`TEST_HOST = Scrivi.app/…/Scrivi`),
+        // so `xcodebuild test` does not merely link against the app — it LAUNCHES it.
+        // Launch called this, which resolved the writer's saved bookmarks and reopened
+        // her actual projects under whatever code had just been compiled.
+        //
+        // ⚠️ **This is how SP-118's reconciliation silently rewrote
+        // `the-twisted-remains-of-myself.scrivi` while the user had Scrivi closed** —
+        // a test run, not a launch, did it. The repair happened to be correct; a
+        // buggy core would have written the bug into her real writing with no
+        // launch, no prompt, and no record beyond a file mtime.
+        //
+        // ⚠️ Checking `pgrep Scrivi` before testing does NOT protect against this and
+        // reads as though it does. That check exists because a RUNNING instance
+        // blocks the test runner — the converse hazard, that the run STARTS the app,
+        // is the one that matters here.
+        //
+        // The environment variable is XCTest's own marker, set by the runner in the
+        // host process; Swift Testing runs inside the same XCTest-hosted bundle, so
+        // it is covered too.
+        guard !Self.isRunningUnderTests else {
+            print("[Scrivi] Test host detected — project restore suppressed (I-0150).")
+            return
+        }
+
         let saved = OpenSessionManifest.load()
         guard !saved.isEmpty else { return }
         for projectID in saved {
@@ -253,6 +279,21 @@ import UniformTypeIdentifiers
         // Rewrite the manifest to the set that actually came back.
         persistOpenManifest()
     }
+
+    /// True when this process is hosting a test bundle (I-0150).
+    ///
+    /// ⚠️ Deliberately a stored `let`, evaluated once at first use: a test could
+    /// legitimately mutate the environment, and a restore decision must not change
+    /// underneath the app mid-run.
+    ///
+    /// ⚠️ `nonisolated`: this reads only the process environment and touches no
+    /// actor state, so it must be checkable from anywhere — including a test that
+    /// asserts the guard is live, and any future non-main-actor caller that is about
+    /// to touch a real project.
+    nonisolated static let isRunningUnderTests: Bool =
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        || ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil
+        || ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil
 
     // Builds a fresh ProjectSession with the app-global dependencies injected.
     private func makeSession() -> ProjectSession {

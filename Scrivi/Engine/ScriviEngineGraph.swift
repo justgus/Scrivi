@@ -615,6 +615,37 @@ public struct RelationTypeEntry: Decodable, Sendable, Identifiable {
     public func acceptsTarget(kind: String) -> Bool {
         targetKind == nil || targetKind == kind
     }
+
+    /// ⚠️ **The scene sentinel.** ScriviCore cannot express "scene" as an
+    /// `ObjectKind` — scenes are not objects (Doc 1 §8) — so a constrained scene
+    /// endpoint crosses the ABI as the literal string `"scene"`
+    /// (`RelationTypes.cpp`, `kSceneToken`). It round-trips unchanged, so no ABI
+    /// change was needed to tell the two endpoint shapes apart (T-0443).
+    ///
+    /// ⚠️ Spelled out **once, here**, rather than compared inline at each call
+    /// site — the second such comparison is where a partition starts drifting.
+    public static let sceneToken = "scene"
+
+    /// True when this type may point at a **scene**. Includes the unconstrained
+    /// case: a type with no target constraint accepts anything, scenes included.
+    public var targetAcceptsScene: Bool {
+        targetKind == nil || targetKind == Self.sceneToken
+    }
+
+    /// True when this type may point at an **object** rather than a scene — what
+    /// object→object relating needs (T-0443, D4-A).
+    ///
+    /// ⚠️ Not the negation of `targetAcceptsScene`: an unconstrained type accepts
+    /// **both**, so the two are deliberately overlapping, not complementary.
+    public var targetAcceptsObject: Bool {
+        targetKind != Self.sceneToken
+    }
+
+    /// True when this type's SOURCE end is constrained to a scene — such a type
+    /// cannot be created *from* an object (`located-at` is the seeded example).
+    public var sourceIsScene: Bool {
+        sourceKind == Self.sceneToken
+    }
 }
 
 public struct ListRelationTypesResult: Decodable, Sendable {

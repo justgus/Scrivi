@@ -16,16 +16,25 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-117's seven are ✅ Verified and archived
+## Currently: **no active Tasks** — SP-118's five are ✅ Verified and archived
+
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0441 – T-0445** | SP-118's five — ⚠️ **T-0416's reconciliation (with I-0149)**, the related-objects section, inline creation, push-navigation, and pending far-endpoints | SP-118 | 2026-08-23 → [`Verified/Task-verified-0441-0445.md`](Verified/Task-verified-0441-0445.md) |
+
+⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
+
+⚠️ **Thirteen Issues (I-0149 – I-0161) were raised against these Tasks after the suites went green**, every
+one found by the user's live click-through and none by any suite. All ✅ Verified and archived with them.
+
+⚠️ **Carried out of SP-118, unchanged:** `tags` is deferred to **SP-119**, so **AC2 still cannot close**;
+AC9's second half ("a world goes away *while a sheet is open*") is also SP-119's.
+
+## Previously: SP-117's seven Tasks — ✅ Verified and archived
 
 | ID | Title | Sprint | Verified |
 | -- | ----- | ------ | -------- |
 | ✅ **T-0434 – T-0440** | SP-117's seven — the Detail Sheet pane, history, ⚠️ **the app's first typed object model**, patch-based save, both entry points, pending read-only, and ⚠️ **T-0420's surface owed since SP-115** | SP-117 | 2026-08-21 → [`Verified/Task-verified-0434-0440.md`](Verified/Task-verified-0434-0440.md) |
-
-⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
-
-⚠️ **Carried out of SP-117:** `tags` is deferred to **SP-119** by user ruling, so **R2 is not fully met and
-AC2 cannot close**. AC3–AC8 belong to SP-118–SP-120.
 
 ## Previously: SP-116's eight Tasks — ✅ Verified and archived
 
@@ -50,6 +59,20 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-23, ninth pass (**SP-118's five Tasks ✅ VERIFIED (user-approved) and ARCHIVED in
+the same step** → `Verified/Task-verified-0441-0445.md`. Active Tasks 5 → **0**. ⚠️ **T-0443's deviation
+from the plan was RULED IN FAVOUR by the user** — the second picker stays. ⚠️ **T-0441 is complete only
+with I-0149**, which is why "reconcile on open" needed a second fix. Next available Task: **T-0446**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-22, eighth pass (**SP-118 ACTIVATED — T-0441–T-0445 moved here from the backlog** in
+the same step, and all five ✅ **Implemented — Not Verified** the same day. Active Tasks 0 → **5**.
+⚠️ **T-0441 is the one that is genuinely proven** — negative control run, drifted fixture, both halves fail
+without the fix. ⚠️ **T-0442–T-0445 have not been seen by a writer**, and five EP-034 defects have been
+found by exactly that pass. ⚠️ **AC5/AC6 NOT closed** — they close on S9. ⚠️ **T-0443's deviation needs a
+ruling.** ctest **559/559** arm64 · x86-64 · ASan; Linux **563/563** non-root; interop **119/119**; app
+**BUILD SUCCEEDED**. Next available Task: **T-0446**. Prior note follows.)*
 
 *Last Updated: 2026-08-21, seventh pass (**SP-117's seven Tasks ✅ VERIFIED (user-approved) and ARCHIVED in
 the same step** → `Verified/Task-verified-0434-0440.md`. Active Tasks 7 → **0**. ⚠️ **AC2 still cannot close

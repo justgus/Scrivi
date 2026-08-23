@@ -407,6 +407,32 @@ struct ObjectCardBody: View {
                                                 originSceneID: context.sceneID,
                                                 originalName: entry.displayName)
                         } onViewDetail: {
+                            // ⚠️ I-0155: close this card's inline editor when the
+                            // Detail Sheet takes over the same object.
+                            //
+                            // Both surfaces edit the SAME fields and were happily
+                            // visible at once, each holding its own draft. Renaming
+                            // in one did not reach the other, and whichever saved
+                            // last silently won — the writer saw two truths and was
+                            // given no hint which one disk held.
+                            //
+                            // ⚠️ Only when it is the SAME object: a draft on a
+                            // DIFFERENT row is unrelated work and discarding it
+                            // would destroy typing she never put in question.
+                            //
+                            // ⚠️ An UNSAVED draft is never thrown away silently —
+                            // §4.6's complete-or-discard prompt owns that decision,
+                            // exactly as it does at a scene boundary. An untouched
+                            // draft (nothing typed) just closes.
+                            if let d = draft, d.objectID == entry.objectID {
+                                if d.name != d.originalName {
+                                    showUnfinishedPrompt = true
+                                } else {
+                                    draft = nil
+                                    commitError = nil
+                                }
+                            }
+
                             // R7. ⚠️ A pending object still opens — R9 requires it
                             // be shown, explained and read-only, never hidden.
                             context.openObjectDetail?(entry.objectID,
@@ -510,7 +536,7 @@ struct ObjectCardBody: View {
         // entries it loaded while the world was away until the writer switched scenes.
         // Same fix as I-0105's `historyRevision` — fold the revision into the key so
         // a change the card cannot otherwise observe still invalidates it.
-        .task(id: "\(context.sceneID)#\(context.worldRevision)") {
+        .task(id: "\(context.sceneID)#\(context.worldRevision)#\(context.objectRevision)") {
             model = ObjectCardModel(
                 engine: context.engine,
                 projectRootPath: context.projectRootPath,
@@ -632,6 +658,9 @@ struct ObjectCardBody: View {
             }
             draft = nil
             commitError = nil          // I-0126: a success clears the last failure.
+            // I-0160: tell the host, so a Detail Sheet open on this same object
+            // re-reads instead of showing the name we just replaced.
+            context.onObjectChanged?()
         } catch {
             // Keep the draft open — her typing is not thrown away on a failed save.
             commitError = error.localizedDescription
