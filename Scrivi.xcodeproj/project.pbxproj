@@ -26,6 +26,8 @@
 		C016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
 		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		C_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		C017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		C018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		C015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -77,6 +79,8 @@
 		D016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
 		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		D_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		D017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		D018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		D015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -127,6 +131,8 @@
 		E016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
 		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		E_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		E017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		E018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		E015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -169,6 +175,8 @@
 		F016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
 		F_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		F019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
+		F_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		F_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		F017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		F018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		F015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -195,6 +203,8 @@
 		B016 /* ObjectDetailSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailSheet.swift; path = Scrivi/Views/Detail/ObjectDetailSheet.swift; sourceTree = SOURCE_ROOT; };
 		B020 /* ExistingAssetPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ExistingAssetPicker.swift; path = Scrivi/Views/Detail/ExistingAssetPicker.swift; sourceTree = SOURCE_ROOT; };
 		B019 /* ObjectImageSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectImageSection.swift; path = Scrivi/Views/Detail/ObjectImageSection.swift; sourceTree = SOURCE_ROOT; };
+		B022 /* Citation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Citation.swift; path = Scrivi/Views/Detail/Citation.swift; sourceTree = SOURCE_ROOT; };
+		B021 /* ObjectSourcesSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectSourcesSection.swift; path = Scrivi/Views/Detail/ObjectSourcesSection.swift; sourceTree = SOURCE_ROOT; };
 		B017 /* ObjectRelationsSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationsSection.swift; path = Scrivi/Views/Detail/ObjectRelationsSection.swift; sourceTree = SOURCE_ROOT; };
 		B018 /* ObjectRelationPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationPicker.swift; path = Scrivi/Views/Detail/ObjectRelationPicker.swift; sourceTree = SOURCE_ROOT; };
 		B015 /* ObjectDetailHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailHistory.swift; path = Scrivi/Views/Detail/ObjectDetailHistory.swift; sourceTree = SOURCE_ROOT; };
@@ -315,6 +325,8 @@
 				B016 /* ObjectDetailSheet.swift */,
 				B020 /* ExistingAssetPicker.swift */,
 				B019 /* ObjectImageSection.swift */,
+				B022 /* Citation.swift */,
+				B021 /* ObjectSourcesSection.swift */,
 				B017 /* ObjectRelationsSection.swift */,
 				B018 /* ObjectRelationPicker.swift */,
 				B015 /* ObjectDetailHistory.swift */,
@@ -561,6 +573,8 @@
 				C016_BF /* ObjectDetailSheet.swift in Sources */,
 				C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
 				C019_BF /* ObjectImageSection.swift in Sources */,
+				C_CITE_BF /* Citation.swift in Sources */,
+				C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */,
 				C017_BF /* ObjectRelationsSection.swift in Sources */,
 				C018_BF /* ObjectRelationPicker.swift in Sources */,
 				C015_BF /* ObjectDetailHistory.swift in Sources */,
@@ -618,6 +632,8 @@
 				D016_BF /* ObjectDetailSheet.swift in Sources */,
 				D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
 				D019_BF /* ObjectImageSection.swift in Sources */,
+				D_CITE_BF /* Citation.swift in Sources */,
+				D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */,
 				D017_BF /* ObjectRelationsSection.swift in Sources */,
 				D018_BF /* ObjectRelationPicker.swift in Sources */,
 				D015_BF /* ObjectDetailHistory.swift in Sources */,
@@ -675,6 +691,8 @@
 				E016_BF /* ObjectDetailSheet.swift in Sources */,
 				E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
 				E019_BF /* ObjectImageSection.swift in Sources */,
+				E_CITE_BF /* Citation.swift in Sources */,
+				E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */,
 				E017_BF /* ObjectRelationsSection.swift in Sources */,
 				E018_BF /* ObjectRelationPicker.swift in Sources */,
 				E015_BF /* ObjectDetailHistory.swift in Sources */,

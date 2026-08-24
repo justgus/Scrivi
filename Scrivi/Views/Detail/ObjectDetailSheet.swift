@@ -392,6 +392,33 @@ struct ObjectDetailSheet: View {
 
                 Divider()
 
+                // ⚠️ R6 / AC8 (SP-120): the citation surface, placed between what
+                // the object IS (image, fields) and what it is connected to.
+                //
+                // ⚠️ **Deliberately its own section, not a row in the relations
+                // list.** A `cites` edge would otherwise appear there as an
+                // ordinary relationship — technically true, and useless: a
+                // citation is attribution, and burying it among "sibling-of" and
+                // "located-at" is what made source creation unreachable for four
+                // sprints. ⚠️ Uncited objects still show the relations list
+                // unchanged; nothing here replaces it (Q-b's additive rule).
+                ObjectSourcesSection(
+                    engine: engine,
+                    projectRootPath: projectRootPath,
+                    objectID: detail.objectID,
+                    objectDisplayName: detail.displayName,
+                    authorshipRef: authorshipRef,
+                    isReadOnly: isReadOnly(detail),
+                    onNavigate: { entry in requestNavigate(entry) },
+                    onChanged: {
+                        // The graph changed — let the host refresh the Scene
+                        // Inspector, whose `sources` card reads this same edge.
+                        onDidSave()
+                    }
+                )
+
+                Divider()
+
                 ObjectRelationsSection(
                     engine: engine,
                     projectRootPath: projectRootPath,

@@ -16,7 +16,19 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-119's seven are ✅ Verified and archived
+## Currently: **no active Tasks** — SP-120's six are ✅ Verified and archived
+
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0453 – T-0458** | SP-120's six — the `attributes` map, source creation, ⚠️ **cite-an-existing** (the I-0164 mirror), ⚠️ **T-0365's second entry point**, citation fields, and ⚠️ **S11 widened to OPERATIONS** | SP-120 | 2026-08-24 → [`Verified/Task-verified-0453-0458.md`](Verified/Task-verified-0453-0458.md) |
+
+⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
+
+⚠️ **Two Issues (I-0169, I-0170) were raised against these Tasks after the suites went green** — both from
+the user's live click-through, neither from any suite. Both ✅ Verified and archived with them.
+⚠️ **That is 22 consecutive Issues across SP-118, SP-119 and SP-120 with none found by a test.**
+
+## Previously: SP-119's seven Tasks — ✅ Verified and archived
 
 | ID | Title | Sprint | Verified |
 | -- | ----- | ------ | -------- |
@@ -57,6 +69,27 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-24, fourteenth pass (**SP-120's six Tasks ✅ VERIFIED (user-approved) and ARCHIVED
+in the same step** → `Verified/Task-verified-0453-0458.md`. Active Tasks 6 → **0**. ✅ **AC8 CLOSES**, and
+⚠️ **T-0365's write half is paid after four sprints** — the `sources` card rendered CONTENT for the first
+time since SP-102. ⚠️ **S11's widening to OPERATIONS earned its place immediately**: it found T-0455
+before a writer did, and caught `CitationPopover` being unable to SHOW the fields the sprint was adding.
+Next available Task: **T-0459**; Issue **I-0171**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, thirteenth pass (**all six SP-120 Tasks 🟠 IMPLEMENTED — Not Verified.**
+`ctest` **567/567** — ⚠️ **unchanged, confirming SP-120 touched no core code**; app **BUILD SUCCEEDED**;
+T-0453's logic **8/8 standalone incl. a negative control proving the `{"k","v"}` trap is real**.
+✅ **Interop 127/127** (up from 122 — the five T-0453 tests, each confirmed BY NAME), run after the user
+quit Scrivi. ⚠️ **ONE THING REMAINS OWED:** the **live click-through**, which is the only thing that has
+ever found this Epic's defects (20 Issues across SP-118+SP-119, **none from a suite**).
+⚠️ **AC8 is NOT closed.** Prior note follows.)*
+
+*Last Updated: 2026-08-24, twelfth pass (**SP-120 ACTIVATED — T-0453–T-0458 created directly as Active**
+in the same step. Active Tasks 0 → **6**. ⚠️ **They were never in `Task-backlog.md`** — they are new work
+defined at activation, and the backlog is for unstarted *unassigned* work. ⚠️ **T-0455 and T-0456 exist
+because of planning findings, not the AC**: AC8 names neither *attach an existing source* nor T-0365's
+owed second entry point. Next available Task: **T-0459**. Prior note follows.)*
 
 *Last Updated: 2026-08-24, eleventh pass (**SP-119's seven Tasks ✅ VERIFIED (user-approved) and ARCHIVED
 in the same step** → `Verified/Task-verified-0446-0452.md`. Active Tasks 7 → **0**. ✅ **AC2, AC3, AC4 and

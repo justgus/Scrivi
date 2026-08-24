@@ -29,6 +29,7 @@ status changes on its own layer.
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
+| **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
 
 > ✅ **T-0426–T-0430 LEFT this file 2026-08-21 when SP-116 was ACTIVATED** — they are 🟡 Active and live
 > in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
@@ -52,6 +53,73 @@ status changes on its own layer.
 ---
 
 ## Detail
+
+### T-0459 — ⚠️ `[Cross]` Per-citation reference markers belong on the EDGE, not the source
+
+**Epic:** EP-032 · **Status:** 🔵 Backlog · **Component:** `cites` edge `note`, `ObjectSourcesSection`,
+`CitationPopover`, `scrivi_c_api` · **Priority:** Medium · **Date Requested:** 2026-08-24
+**Sprint Assigned:** **Not Assigned** — ⚠️ **deliberately NOT folded into SP-120** (see below)
+
+#### The finding (user, 2026-08-24, from real citation work)
+
+> *"I currently have, in The Lone Golem, Myton sourced by 'The Stairs of Tintagael'. Myton appears on
+> almost every page of that document and so the entire document should be the source for Myton at 23.
+> However, Tintagael does not. We may only wish to highlight certain passages… to adequately reference
+> the location."*
+
+**One publication, two citations, different locators.** Myton's citation covers the whole work; Tintagael's
+covers specific passages.
+
+#### ✅ Ruling (user, 2026-08-24)
+
+**ONE `source` object per publication. The reference markers go on the `cites` edge.**
+
+⚠️ **A source object per reference was considered and rejected.** It would (1) assert five publications
+exist where one does, (2) ⚠️ **defeat the aggregate card's de-duplication**, which is *by source ID* and
+was an explicit T-0365 design point (*"two rows for one source reads as two sources"*), and (3) turn one
+publisher correction into N edits.
+
+✅ **Free text on the edge is sufficient** — *"I'll take what I have today for nothing."* ⚠️ **No structured
+page/chapter/paragraph fields.** The `note` field already exists on every edge and already round-trips.
+
+#### ⚠️ SP-120 put `page` in the WRONG PLACE, and said so at the time
+
+`attributes["page"]` is on the **source object**, so it holds **one value for every citation of that work**
+— Myton and Tintagael cannot differ. ⚠️ **SP-120's own S11 §5.2 flagged this and shipped it anyway:**
+
+> *"Belongs on the **edge** in a stricter model (two objects citing different pages of one book) —
+> ⚠️ **recorded as a known modelling limit**, not silently accepted."*
+
+⚠️ **The limit was hit ONE SPRINT LATER, by the first writer to do real citation work.** ✅ **Recording it
+is what made this a five-minute diagnosis instead of a rediscovery** — the S11 entry is the reason the
+answer was already written down.
+
+#### Scope — ⚠️ this is `[Cross]`, which is why it is not in SP-120
+
+| Piece | State |
+| ----- | ----- |
+| `note` on `scrivi_create_edge` | ✅ **Ships** — `EdgeView.note` round-trips; ⚠️ **SP-120 passes `""` at every call site and surfaces it nowhere** |
+| ⚠️ **`scrivi_update_edge`** | ❌ **DOES NOT EXIST.** Only create/delete/list (`scrivi.h:163-200`). ⚠️ **A locator cannot be corrected without deleting and recreating the edge**, which loses the edgeID |
+| Surface the note when citing | ❌ Not built — `ObjectSourcesSection` create + attach both pass `""` |
+| Show it in `CitationPopover` | ❌ Not built |
+| ⚠️ **Migrate `attributes["page"]`** | ❌ **A data decision, not just code** |
+
+⚠️ **Folding this into SP-120 was rejected by the user.** SP-120 is `[Apple]`-only and **verified by use**;
+adding a ScriviCore change after verification would make its record dishonest — the same reason SP-116 was
+re-ruled `[Cross]` **at planning** rather than quietly widened.
+
+#### ⚠️ Why EP-032 and not EP-034
+
+**EP-032's AC5 renders footnotes for `source` references, and a footnote needs THIS reference's locator**
+— not the work's single page number. ⚠️ **It is also adjacent to EP-032's own open question Q4** —
+*"Footnote vs. pull quote — where is the choice stored? Per-reference in the body, or per-source in the
+object?"* ⚠️ **That is the SAME per-reference-vs-per-source axis this Task resolves for locators**, so
+ruling them together is cheaper than ruling them apart, and ⚠️ **ruling them apart risks answering the
+same question two different ways.**
+
+Assigning it to EP-034 would widen that Epic a second time for work its own ACs do not name.
+
+---
 
 ### T-0118 — Scroll bar fidelity — per-scene character-ratio thumb position and size
 

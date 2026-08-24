@@ -50,6 +50,16 @@ struct SourceDetail: Sendable {
     let displayName: String
     let subtitle:    String
     let notes:       String
+    /// ⚠️ T-0457 (SP-120): the structured citation fields, read from the source's
+    /// `attributes` map.
+    ///
+    /// ⚠️ **Without this the popup could not show them.** It rendered
+    /// `displayName`/`subtitle`/`notes` and nothing else, so every citation field
+    /// a writer typed would have been written, stored, round-tripped — and
+    /// invisible in the very popup §3.1.1 calls *"the record"*. That is
+    /// `capability_without_surface` reappearing INSIDE the sprint curing it,
+    /// which is why S11 named it in advance.
+    var citation: CitationFields = CitationFields(attributes: [:])
 }
 
 @MainActor
@@ -146,10 +156,24 @@ final class SourcesCardModel {
                                 subtitle: "",
                                 notes: "This source could not be read from disk.")
         }
+        // ⚠️ `attributes` is an ARRAY of {"k","v"} pairs, never an object
+        // (`ObjectJson.cpp:46-50`) — the same wire form `tags` uses, and the same
+        // trap. `ObjectDetail` decodes it; this card parses raw JSON, so it must
+        // honour the shape here too.
+        var attributes: [String: String] = [:]
+        if let raw = json["attributes"] as? [[String: Any]] {
+            for pair in raw {
+                if let k = pair["k"] as? String, let v = pair["v"] as? String, !k.isEmpty {
+                    attributes[k] = v
+                }
+            }
+        }
+
         return SourceDetail(
             displayName: (json["displayName"] as? String) ?? entry.displayName,
             subtitle:    (json["subtitle"] as? String) ?? "",
-            notes:       (json["notes"] as? String) ?? "")
+            notes:       (json["notes"] as? String) ?? "",
+            citation:    CitationFields(attributes: attributes))
     }
 
     /// The relation type seeded by `RelationTypeStore` (SP-096/T-0373).
@@ -177,6 +201,24 @@ private struct SourcesCardBody: View {
     @State private var model: SourcesCardModel?
     @State private var detailEntry: SourceEntry?
 
+    /// ⚠️ I-0169 — open the source's own Detail Sheet.
+    ///
+    /// ⚠️ **The hook ALREADY EXISTED and this card simply never used it**:
+    /// `CardContext.openObjectDetail` (`InspectorCard.swift:149-150`) carries
+    /// exactly `(objectID, kind, worldID, displayName)`, and `ObjectCard` has
+    /// called it since SP-117. Nothing new was needed — which is the point, and
+    /// the rule (`feedback_look_for_existing_pattern_first`).
+    ///
+    /// ⚠️ `worldID` is **""** because `source` is the one project-scoped kind
+    /// (SP-098/T-0406). Passing a world would send `openObject` looking for a
+    /// package that does not hold it.
+    private func openDetail(_ entry: SourceEntry) {
+        context.openObjectDetail?(entry.sourceID,
+                                  SourcesCardModel.sourceKind,
+                                  "",
+                                  entry.displayName)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let error = model?.loadError {
@@ -185,23 +227,44 @@ private struct SourcesCardBody: View {
                     .foregroundStyle(.secondary)
             } else if let entries = model?.entries, !entries.isEmpty {
                 ForEach(entries) { entry in
-                    Button {
-                        detailEntry = entry
-                    } label: {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(entry.displayName)
-                                .font(.callout)
-                                .foregroundStyle(.primary)
-                            // Naming the citing object is required, not decorative: without
-                            // it the writer cannot tell why this source is on this scene.
-                            Text(entry.attribution)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.displayName)
+                            .font(.callout)
+                            .foregroundStyle(.primary)
+                        // Naming the citing object is required, not decorative: without
+                        // it the writer cannot tell why this source is on this scene.
+                        Text(entry.attribution)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    // ⚠️ I-0169: this card taught a DIFFERENT VERB from every other
+                    // object row in the app, and it was the writer's first instinct
+                    // that found it: *"I started by trying to show the data sheet
+                    // from the sources card in the Scene Inspector."*
+                    //
+                    // A source IS an object, so it must open its sheet the way every
+                    // other object does — double-click, and right-click → "View
+                    // Detail" (AC1 / R7, `ObjectCard.swift:1049-1058`). Single click
+                    // keeps opening the citation popup, which is this card's own
+                    // established behaviour and what §3.1.1 asks of it.
+                    //
+                    // ⚠️ ORDER IS LOAD-BEARING: `count: 2` must be registered FIRST or
+                    // the single tap consumes the event and the double-click never
+                    // fires — the same trap the relations section documents.
+                    .onTapGesture(count: 2) { openDetail(entry) }
+                    .onTapGesture { detailEntry = entry }
+                    .contextMenu {
+                        // R7's discoverable half. Double-click is invisible until
+                        // someone tries it; the menu is how a writer FINDS the sheet.
+                        Button("View Detail", systemImage: "square.text.square") {
+                            openDetail(entry)
+                        }
+                        Button("Show Citation", systemImage: "quote.opening") {
+                            detailEntry = entry
+                        }
+                    }
                 }
             } else {
                 // A scene whose objects carry no citations is a normal state (§3.1.1) —
@@ -248,6 +311,31 @@ struct CitationPopover: View {
             Text(attribution)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            // ⚠️ T-0457: the structured citation record. Shown above the notes
+            // because it is the citation; the notes are commentary ON it.
+            //
+            // ⚠️ **`url` is rendered as TEXT, never as a live link** (S11 §5.2) —
+            // opening an arbitrary URL out of project data is a trust decision
+            // nobody has ruled, and a citation is a record, not a launcher.
+            if !detail.citation.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(detail.citation.entries, id: \.label) { entry in
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(entry.label)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 70, alignment: .leading)
+                            Text(entry.value)
+                                .font(.caption)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+
             if !detail.notes.isEmpty {
                 Divider()
                 ScrollView {

@@ -186,6 +186,73 @@ closed the original behaviour is kept.
 
 ---
 
+## I-0169 — `[Apple]` The `sources` card had no route to the Detail Sheet
+
+**Severity:** Medium · **Sprint:** SP-120 · ✅ **Verified 2026-08-24** (user-approved, by use)
+
+⚠️ **Found by the user's live pass, and it was her FIRST instinct** — *"I started by trying to show the
+data sheet from the sources card in the Scene Inspector. Double click and Right-click 'View Detail' are
+not wired up on that sheet yet."*
+
+Every object row in the app opens its sheet on **double-click** and **right-click → "View Detail"**
+(AC1 / R7, `ObjectCard.swift:1049-1058`). The `sources` card row was a plain `Button` — single-click
+popup, **no `onTapGesture(count: 2)`, no `contextMenu`**. ⚠️ **So the one card in the app whose entire
+subject is an object taught a different verb from every other one.**
+
+✅ **Fixed** in `SourcesCard.swift`: double-click and right-click → "View Detail" open the sheet; single
+click still opens the citation popup, which is this card's own established behaviour (§3.1.1).
+
+> ⚠️ **The hook ALREADY EXISTED and this card simply never called it.** `CardContext.openObjectDetail`
+> (`InspectorCard.swift:149-150`) carries exactly `(objectID, kind, worldID, displayName)`, and
+> `ObjectCard` has used it since SP-117. **Nothing new was built.**
+>
+> ⚠️ **`feedback_look_for_existing_pattern_first` — the same shape as SP-118's four defects**, where each
+> violated a rule already written down in this repo before the offending code was typed.
+
+✅ **The hook was confirmed LIVE before the fix was called done**, not assumed: `SceneInspectorView.swift:73`
+supplies it to the **Writing** stack, which is where this card lives. ⚠️ An unplumbed hook would have made
+the fix silently dead — the exact failure mode of `capability_without_surface`, committed while fixing it.
+
+---
+
+## I-0170 — `[Apple]` A twice-cited source named only ONE citing object
+
+**Severity:** Low · **Sprint:** SP-120 · ✅ **Verified 2026-08-24** (user-approved, by use)
+
+⚠️ **Found by the user's live pass, on real data** — *"The source is actually included in the scene due to
+2 objects. The first is Myton at 23, and the second is Tintagael."* ⚠️ **Confirmed on disk**:
+`the-lone-golem.scrivi/objects/relationships.jsonl` holds two `cites` edges from one source — to a
+**character** and a **location**.
+
+`ObjectSourcesSection.attributionSentence` hardcoded `"Cited by \(objectDisplayName)"`, naming **only the
+object whose sheet was open**. Opened from Myton, the popup claimed one citing object where the writer
+had two.
+
+✅ **Fixed:** the sentence now walks outward **from the source** and names every citing object — *"Cited by
+Myton at 23, and by Tintagael."* ⚠️ **A pending far endpoint is NAMED, not skipped** — `otherDisplayName`
+is cached on the edge for exactly that reason, and omitting it would under-report the graph a second way
+(Doc 3: absence is never deletion).
+
+> ⚠️ **The SP-120 decision was right and its implementation was incomplete.** T-0456 ruled the aggregate
+> card's *"via …"* circular when read on the citing object itself — correct. But the reword **dropped
+> information instead of re-centring it**, and ⚠️ **the aggregate card had this right all along**:
+> de-duplicating across objects and naming both was an explicit T-0365 design point (*"two rows for one
+> source reads as two sources"*).
+>
+> ⚠️ **THE LESSON: a field-level review could not have caught this.** Every field was present and
+> populated; the surface was **quietly under-reporting the writer's own graph**, which reads as correct
+> and is not. It took real data with a source cited **twice, across two different kinds** — the case S11's
+> operations table pointed at (cite an existing source from a second object) but which only real use
+> produced.
+
+---
+
+*Last Updated: 2026-08-24, second pass (**I-0169 + I-0170 ✅ Verified, user-approved, from SP-120's live
+pass** — the sources card's missing sheet route, and a twice-cited source naming only one citing object.
+⚠️ **This decade file now closes at I-0170; the next Issue is I-0171 and opens a new decade file.**
+⚠️ **Both were found by clicking, neither by a suite** — which now holds for **22 consecutive Issues**
+across SP-118, SP-119 and SP-120. Prior note follows.)*
+
 *Last Updated: 2026-08-24 (**I-0162 – I-0168 ✅ Verified, user-approved, at SP-119 close.** ⚠️ **All seven
 came from the live click-through; none from any suite.** ⚠️ **Six are data-loss routes into one surface**,
 found by ejecting a drive or navigating away at six different moments. I-0161 is filed in the previous

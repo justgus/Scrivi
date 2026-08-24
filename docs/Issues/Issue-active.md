@@ -12,6 +12,16 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 ## Currently: **one record — I-0147, an ACCEPTED limitation, not open work**
 
+✅ **I-0169 + I-0170 were Verified 2026-08-24 (user-approved) and archived in the same step** →
+[`Verified/Issue-verified-0161-0170.md`](Verified/Issue-verified-0161-0170.md), which that pair **closes**.
+⚠️ **The next Issue is I-0171 and opens a new decade file.**
+
+⚠️ **Both came from SP-120's live click-through; neither from any suite** — which now holds for **22
+consecutive Issues** across SP-118, SP-119 and SP-120. ⚠️ **I-0169 was the writer's FIRST instinct**
+(the sources card had no route to the Detail Sheet, using a hook that already existed and was never
+called); ⚠️ **I-0170 was a surface quietly UNDER-REPORTING the graph** — every field present and
+populated, and still not true.
+
 ✅ **I-0162 – I-0168 were Verified 2026-08-24 (user-approved) and archived in the same step** →
 [`Verified/Issue-verified-0161-0170.md`](Verified/Issue-verified-0161-0170.md).
 

@@ -11,17 +11,18 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No Sprint is currently active.** **SP-100 closed 2026-08-19 (user-approved)** →
-[`Closed/Sprint-SP-100.md`](Closed/Sprint-SP-100.md) — ⚠️ **and its close closed EP-031**, whose
-**11 sprints are all closed**. Each closed Sprint's record lives in its own archive file and is **not**
-restated here.
+**No Sprint is currently active.** ⚠️ **SP-120 ✅ CLOSED 2026-08-24** (user-approved) →
+[`Closed/Sprint-SP-120.md`](Closed/Sprint-SP-120.md). **EP-034** `[Cross]` remains the active Epic with
+**SP-121** and **SP-122** still to run.
 
-🟡 **EP-034** `[Cross]` is the active Epic. **No Sprint is active** — **SP-116 ✅ CLOSED 2026-08-21**
-(user-approved), all eight Tasks and six Issues Verified → [`Closed/Sprint-SP-116.md`](Closed/Sprint-SP-116.md).
-**SP-118 ✅ CLOSED 2026-08-23** (user-approved) → [`Closed/Sprint-SP-118.md`](Closed/Sprint-SP-118.md); five Tasks + **thirteen Issues** Verified, closing **AC5, AC6 and AC7**. ⚠️ **All thirteen Issues came from the live click-through and none from any suite.** **No Sprint is active or planned.** **SP-117 ✅ CLOSED 2026-08-21** (user-approved) → [`Closed/Sprint-SP-117.md`](Closed/Sprint-SP-117.md). **SP-115 ✅ CLOSED 2026-08-20** (user-approved), all seven
-Tasks and six Issues Verified. ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which now runs AFTER EP-034
-(Q-a), so ⚠️ **IDs execute OUT OF SEQUENCE**. **Next available ID is in Statistics** — recorded once,
-there, not restated here (P7).
+⚠️ **Per-sprint status and closure detail belong to the All-Sprints table below (P7)** and to each
+Sprint's own archive in [`Closed/`](Closed/). ⚠️ **This section previously restated the closure of
+SP-115, SP-116, SP-117, SP-118 and SP-100 inline** — and had gone stale, still reading *"No Sprint is
+currently active"* and *"No Sprint is active or planned"* while listing five closures. **That is the exact
+drift R-22(④) removed the per-status totals for.** It now names only what is active.
+
+⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which runs AFTER EP-034 (Q-a), so ⚠️ **IDs execute OUT OF
+SEQUENCE**. **Next available ID is in Statistics** — recorded once, there, not restated here (P7).
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -380,6 +381,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) + **T-0440's ABI reason field** — ⚠️ **first writer-facing surface of EP-034** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
 | **SP-118** | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) + **T-0416's reconciliation** — ⚠️ **13 Issues, ALL from the live pass, none from any suite** | EP-034 `[Cross]` | 2026-08-22 | 2026-08-23 | ✅ Closed |
 | **SP-119** | ⚠️ **`[Cross]`** Images (D8) + `tags` + **AC9's second half** — ⚠️ **7 Issues, ALL from the live pass** | EP-034 `[Cross]` | 2026-08-23 | 2026-08-24 | ✅ Closed |
+| **SP-120** | ⚠️ **`[Apple]`** Source creation + footnote text (R6) — ✅ **closes AC8 and T-0365's write half**; ⚠️ **surface only — `ctest` unchanged at 567/567**; ⚠️ **2 Issues, both from the live pass** | EP-034 `[Cross]` | 2026-08-24 | 2026-08-24 | ✅ **Closed** |
 
 ## Statistics
 
@@ -388,8 +390,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-120** — ⚠️ **not SP-107**; See the reserved block below.
-- **Total Sprint IDs issued:** 119 (SP-001–SP-119) — 111 executed, **0 ACTIVE**, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-121** — ⚠️ **not SP-107**; See the reserved block below.
+- **Total Sprint IDs issued:** 120 (SP-001–SP-120) — 112 executed, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -418,6 +420,23 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-24, fourteenth pass (**SP-120 ✅ CLOSED, user-approved.** Active Sprints 1 → **0**.
+Six Tasks + two Issues Verified and archived in the same step; ✅ **AC8 closed by use** and ✅ **T-0365 is
+COMPLETE after four sprints.** Next available Sprint ID: **SP-121**; Task **T-0460**; Issue **I-0171**
+(⚠️ **opens a NEW decade file** — I-0170 closed the current one). Prior note follows.)*
+
+*Last Updated: 2026-08-24, thirteenth pass (**SP-120 → 🟠 REVIEW** — six Tasks + **I-0169/I-0170** all
+✅ Verified and archived in the same step; ✅ **AC8 closed by use**, and ⚠️ **T-0365's write half paid after
+four sprints.** ⚠️ **The sprint changed no core code and `ctest` held at 567/567 — that is the evidence
+the `[Apple]` scoping was right.** Next available Sprint ID: **SP-121**; Task **T-0459**; Issue
+**I-0171**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, twelfth pass (**SP-120 🟡 ACTIVATED** — EP-034's sixth of eight, `[Apple]`-only,
+six Tasks **T-0453–T-0458**. ⚠️ **Created directly as Active** — it was never a Planning row in
+`Sprint-backlog.md`, so nothing is removed from there. Active Sprints 0 → **1**. Also corrected here: the
+Statistics "Total Sprint IDs issued" line, which read **"0 ACTIVE" TWICE** — a duplicated field that could
+never have been read as anything but a defect. Next available Sprint ID: **SP-121**. Prior note follows.)*
 
 *Last Updated: 2026-08-24, eleventh pass (**SP-119 ✅ CLOSED, user-approved** — seven Tasks + **seven
 Issues** Verified and archived in the same step; closes **AC2, AC3, AC4** and **AC9's second half**.

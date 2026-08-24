@@ -618,6 +618,130 @@ struct ScriviInteropTests {
             #expect(detail.tags.isEmpty)
         }
 
+        // MARK: — EP-034 SP-120 T-0453: the `attributes` map
+
+        /// ⚠️ **THE test of this Task, and it is written FIRST.**
+        ///
+        /// `attributes` serializes as an ARRAY of `{"k":…,"v":…}` pairs
+        /// (`ObjectJson.cpp:46-50`), **not** as a JSON object. Writing
+        /// `{"author": "…"}` would parse back as an EMPTY map — every citation
+        /// field silently dropped, with the object file looking perfectly
+        /// reasonable to a human reading it.
+        ///
+        /// ⚠️ **This is not a hypothetical.** It is the identical shape trap
+        /// T-0449 hit with `tags`, where a plain string array read back empty.
+        /// The bug is invisible to any test that does not round-trip.
+        @Test("attributes survive a save→reopen round trip in their {k,v} wire form")
+        func attributesRoundTrip() throws {
+            let json = """
+            { "objectID": "source_1", "displayName": "A Wizard of Earthsea" }
+            """
+
+            let first = try ObjectDetail(json: json, kind: "source")
+            #expect(first.attributes.isEmpty)
+
+            let patched = try first.applyingEdits(
+                displayName: "A Wizard of Earthsea",
+                subtitle: "Le Guin, 1968",
+                notes: "Cited for the naming magic.",
+                attributes: ["author": "Ursula K. Le Guin", "year": "1968"]
+            )
+
+            // The wire form is an ARRAY of pairs — assert the shape, because an
+            // object would decode as nothing.
+            let root = try #require(try JSONSerialization.jsonObject(
+                with: Data(patched.utf8)) as? [String: Any])
+            let raw = try #require(root["attributes"] as? [[String: Any]])
+            #expect(raw.count == 2)
+            #expect(raw.allSatisfy { $0["k"] is String && $0["v"] is String })
+
+            // ...and it must come BACK. This is the half that catches the trap.
+            let reopened = try ObjectDetail(json: patched, kind: "source")
+            #expect(reopened.attributes["author"] == "Ursula K. Le Guin")
+            #expect(reopened.attributes["year"] == "1968")
+        }
+
+        /// ⚠️ Follows the `tags` precedent exactly: `nil` means "not edited".
+        ///
+        /// A caller that does not handle attributes must not be able to erase
+        /// them — the Detail Sheet's own name/subtitle/notes save passes no
+        /// attributes at all, and it saves an object that has them.
+        @Test("attributes: nil leaves existing keys untouched")
+        func attributesNilPreserves() throws {
+            let json = """
+            { "objectID": "source_1", "displayName": "Earthsea",
+              "attributes": [ { "k": "author", "v": "Le Guin" } ] }
+            """
+            let detail = try ObjectDetail(json: json, kind: "source")
+            #expect(detail.attributes["author"] == "Le Guin")
+
+            // No `attributes:` argument at all — the ordinary sheet save.
+            let patched = try detail.applyingEdits(displayName: "Earthsea",
+                                                   subtitle: "", notes: "")
+            let reopened = try ObjectDetail(json: patched, kind: "source")
+            #expect(reopened.attributes["author"] == "Le Guin")
+        }
+
+        /// Empty removes the key entirely, matching how the core writes an
+        /// object that has never had attributes — and matching `tags`.
+        @Test("attributes: an empty map removes the key rather than writing []")
+        func attributesEmptyRemovesKey() throws {
+            let json = """
+            { "objectID": "source_1", "displayName": "Earthsea",
+              "attributes": [ { "k": "author", "v": "Le Guin" } ] }
+            """
+            let detail = try ObjectDetail(json: json, kind: "source")
+            let patched = try detail.applyingEdits(displayName: "Earthsea",
+                                                   subtitle: "", notes: "",
+                                                   attributes: [:])
+            let root = try #require(try JSONSerialization.jsonObject(
+                with: Data(patched.utf8)) as? [String: Any])
+            #expect(root["attributes"] == nil)
+        }
+
+        /// ⚠️ Unknown keys are PRESERVED, not just unshown (S11 §5.2).
+        ///
+        /// The sheet edits six citation fields. An attribute written by a future
+        /// build — or by another platform — must survive a save by this one,
+        /// which is the same patch-don't-reconstruct rule applied one level down.
+        @Test("attributes this build does not display still survive an edit")
+        func unknownAttributeKeysSurvive() throws {
+            let json = """
+            { "objectID": "source_1", "displayName": "Earthsea",
+              "attributes": [ { "k": "isbn", "v": "978-0-14-303477-0" },
+                              { "k": "author", "v": "Le Guin" } ] }
+            """
+            let detail = try ObjectDetail(json: json, kind: "source")
+
+            // Edit only `author`, carrying the decoded map back — which is what
+            // the citation editor does.
+            var edited = detail.attributes
+            edited["author"] = "Ursula K. Le Guin"
+            let patched = try detail.applyingEdits(displayName: "Earthsea",
+                                                   subtitle: "", notes: "",
+                                                   attributes: edited)
+
+            let reopened = try ObjectDetail(json: patched, kind: "source")
+            #expect(reopened.attributes["author"] == "Ursula K. Le Guin")
+            #expect(reopened.attributes["isbn"] == "978-0-14-303477-0")
+        }
+
+        /// Blank values are dropped rather than stored as empty strings — an
+        /// unfilled citation field is absent, not present-and-empty.
+        @Test("attributes: blank values are dropped, and keys are trimmed")
+        func attributesDropBlanks() throws {
+            let json = """
+            { "objectID": "source_1", "displayName": "Earthsea" }
+            """
+            let detail = try ObjectDetail(json: json, kind: "source")
+            let patched = try detail.applyingEdits(
+                displayName: "Earthsea", subtitle: "", notes: "",
+                attributes: ["author": "Le Guin", "publisher": "   ", "year": ""])
+            let reopened = try ObjectDetail(json: patched, kind: "source")
+            #expect(reopened.attributes.count == 1)
+            #expect(reopened.attributes["author"] == "Le Guin")
+        }
+
         @Test("a save does not stamp modifiedAt — ScriviCore owns that")
         func patchDoesNotStampModified() throws {
             let json = """

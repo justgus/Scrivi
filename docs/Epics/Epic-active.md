@@ -8,8 +8,8 @@ change** (world assets + asset path + kind-scope endpoint).
 **Goal:** Let a writer **see and edit what an object actually is** — description, notes, imagery,
 **and its relationships** — through a navigable **Detail Sheet**, and attribute it with sources.
 **Date Created:** 2026-08-18 · **Promoted to Active:** 2026-08-20
-**Target Close Date:** TBD — **5 of 8 sprints closed** (SP-115 ✅ · SP-116 ✅ · SP-117 ✅ · SP-118 ✅ · SP-119 ✅);
-**SP-119 ✅ Closed**
+**Target Close Date:** TBD — **6 of 8 sprints closed**
+(SP-115 ✅ · SP-116 ✅ · SP-117 ✅ · SP-118 ✅ · SP-119 ✅ · SP-120 ✅); **SP-121 and SP-122 remain**
 **Actual Close Date:** —
 
 **Design document:** [`../Scrivi_Object_Detail_Sheets_Design_v0_1.md`](../Scrivi_Object_Detail_Sheets_Design_v0_1.md)
@@ -17,8 +17,10 @@ change** (world assets + asset path + kind-scope endpoint).
 2026-08-20.
 
 **Depends on:** EP-031 ✅ closed (object model, graph, world partition).
-**Unblocks:** **T-0365** (the `sources` card cannot show content until R6 ships) and ⚠️ **EP-032**, whose
-AC5 depends on source creation — **which is why Q-a ruled this Epic runs FIRST.**
+**Unblocks:** ✅ **T-0365 — PAID by SP-120 (2026-08-24)**, four sprints after it was accepted as a partial:
+the write half ships and the `sources` card shows content. ⚠️ **EP-032 is now UNBLOCKED** — its AC5
+depends on source creation, **which is why Q-a ruled this Epic runs FIRST**, and that sequencing is now
+vindicated rather than theoretical.
 
 ---
 
@@ -82,8 +84,13 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
       **back and forward** move through that history. ✅ **CLOSED by SP-118** — ⚠️ **both halves verified
       separately**: back/forward in SP-117, and push-from-the-related-list here, which needed four Issues
       (I-0151, I-0153, I-0157, I-0161) before it actually worked.
-- [ ] **AC8** — A **source can be created from the documented object** and a `cites` edge attached;
-      ⚠️ the `sources` card **then shows content for the first time**.
+- [x] ✅ **AC8 — CLOSED by SP-120**, verified by live use 2026-08-24 on `the-lone-golem.scrivi` against the
+      live **Eskandar** world. ⚠️ **The `sources` card rendered CONTENT for the first time since it
+      shipped in SP-102** — until now it could only draw its empty state, which is indistinguishable from
+      working correctly. ✅ **Both items SP-120 added that this AC never named also shipped**: citing an
+      **existing** source from a second object (the I-0164 mirror, found by S11's operations table), and
+      **T-0365's owed second entry point**. ⚠️ **Two Issues came out of the live pass — I-0169, I-0170 —
+      and neither from a suite.**
 - [x] ✅ **AC9 — FULLY met (SP-117 + SP-119).** ✅ A **pending** object opens **read-only, explained, never written** —
       **verified by use**, including drive removal *and* return, and the read-only state was hardened by
       **I-0148**. ✅ **The remaining half — a world going unavailable WHILE A SHEET IS OPEN, handled
@@ -105,7 +112,7 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 | **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) — ⚠️ **first writer-facing surface**; paid **T-0420's debt**; retired **I-0148** | ✅ **Closed** | 2026-08-21 |
 | SP-118 | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) — ⚠️ **T-0416 fixed as T-0441 + I-0149** | ✅ **Closed 2026-08-23** — [record](../Sprints/Closed/Sprint-SP-118.md) | ✅ **AC5, AC6, AC7** — ⚠️ **13 Issues, all from the live pass** |
 | SP-119 | ⚠️ **`[Cross]`** Images (D8) + `tags` + **AC9's second half** | ✅ **Closed 2026-08-24** — [record](../Sprints/Closed/Sprint-SP-119.md) | ✅ **AC2, AC3, AC4, AC9** — ⚠️ **7 Issues, all from the live pass** |
-| SP-120 | `[Apple]` Source creation + footnote text — ⚠️ **closes T-0365's write half** | ⚪ Planned | — |
+| **SP-120** | `[Apple]` Source creation + footnote text (R6) — ✅ **T-0365's write half PAID** | ✅ **Closed 2026-08-24** — [record](../Sprints/Closed/Sprint-SP-120.md) | ✅ **AC8** — ⚠️ **2 Issues, both from the live pass** |
 | SP-121 | `[Linux]` Parity (AC11) | ⚪ Planned | — |
 | SP-122 | AC verification + ⚠️ **live-use pass on the real rig** + Epic close prep | ⚪ Planned | — |
 
@@ -152,6 +159,12 @@ of the five additions came from USE, not planning.**
 | **T-0450** | ⚠️ **AC9's second half** — warn when unsaved edits are at risk (recover-and-save proven live) | SP-119 | **High** | ✅ **Verified** |
 | **T-0451** | **I-0164** — attach an asset already in the world | SP-119 | **High** | ✅ **Verified** |
 | **T-0452** | **I-0167 + I-0168** — Cancel, and a guarded exit on all six routes | SP-119 | **High** | ✅ **Verified** |
+| **T-0453** | ⚠️ **`attributes` read/write** — the `{"k","v"}` array shape; round-trip test first | SP-120 | **High** | ✅ **Verified** |
+| **T-0454** | **AC8** — create a `source` from the documented object + `cites` | SP-120 | **High** | ✅ **Verified** |
+| **T-0455** | ⚠️ **Attach an EXISTING source** — the I-0164 mirror | SP-120 | **High** | ✅ **Verified** |
+| **T-0456** | ⚠️ **T-0365's second entry point** — one popup, two entry points | SP-120 | **High** | ✅ **Verified** |
+| **T-0457** | **Citation fields**; ⚠️ **`CitationPopover` must SHOW them** | SP-120 | **High** | ✅ **Verified** |
+| **T-0458** | ⚠️ **S11 FIRST** — operations *and* fields | SP-120 | **High** | ✅ **Verified** |
 
 ### Issues
 
@@ -315,6 +328,33 @@ can create a source until EP-034's R6 ships. Running EP-032 first would make its
 hand-authored fixtures — ⚠️ **the exact `capability_without_surface` failure both Epics exist to avoid.**
 
 ---
+
+*Last Updated: 2026-08-24, third pass (**SP-120 ✅ CLOSED, user-approved** → `Closed/Sprint-SP-120.md`.
+**6 of 8 sprints closed**; EP-034 stays 🟡 Active with **SP-121 (`[Linux]` AC11)** and **SP-122 (AC12 +
+close prep)** remaining. ⚠️ **T-0459 filed to EP-032, NOT folded into SP-120** — per-citation locators
+belong on the `cites` EDGE, and ⚠️ **`scrivi_update_edge` does not exist**, so it is `[Cross]` work that
+would have made a verified `[Apple]` sprint's record dishonest. ⚠️ **SP-120's own S11 predicted the
+`page`-on-source limit and shipped it anyway; real citation work hit it one sprint later.** Prior note
+follows.)*
+
+*Last Updated: 2026-08-24, second pass (**SP-120 → 🟠 REVIEW — all six Tasks and BOTH Issues ✅ Verified
+and archived in the same step.** ✅ **AC8 CLOSES**, and ⚠️ **T-0365's write half is PAID after four
+sprints** — the `sources` card rendered content for the first time since SP-102. ✅ **EP-032 is now
+genuinely unblocked**, vindicating Q-a. ⚠️ **The sprint made NO core change and `ctest` stayed 567/567 —
+that is the evidence, not the absence of one.** ⚠️ **S11's widening to OPERATIONS earned its place three
+times**, including catching `CitationPopover` being unable to SHOW the fields the sprint was adding —
+`capability_without_surface` inside the sprint curing it. ⚠️ **2 Issues from the live pass, none from a
+suite — now 22 consecutive.** **6 of 8 sprints done; SP-121 (Linux parity) and SP-122 (close prep)
+remain.** Prior note follows.)*
+
+*Last Updated: 2026-08-24 (**SP-120 🟡 ACTIVATED** — EP-034's sixth of eight sprints; **5 of 8 closed**.
+Six Tasks **T-0453–T-0458**, `[Apple]`-only. ⚠️ **Verified against code at planning: every backend piece of
+AC8 already ships** — `source` kind, `cites` (unconstrained both ends), `create_object`, `create_edge`,
+and a round-tripping `attributes` map **read by nothing**. This sprint builds **surface only**, which is
+`capability_without_surface` for the THIRD time inside this Epic. ⚠️ **Three planning rulings:** citation
+data lives in `attributes` (no ABI change); **T-0365's second entry point is adopted here** though no AC
+named it; and **S11 enumerates OPERATIONS as well as fields**, with the I-0164 mirror named in advance as
+T-0455. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**SP-115 ✅ CLOSED, user-approved — EP-034's first of 8 sprints done.** Seven
 Tasks + six Issues Verified and archived. ⚠️ **Carried out of SP-115 and NOT delivered:** T-0420's

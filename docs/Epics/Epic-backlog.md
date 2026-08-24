@@ -114,6 +114,17 @@ A `source` reference renders in at least these two presentations, selectable per
 one opens **the same citation popup** Doc 2 §3.1.1 specifies — a third entry point onto one popup
 implementation, not a new one.
 
+> ✅ **UNBLOCKED 2026-08-24.** EP-034 SP-120 shipped source creation, so AC5 is no longer verifiable only
+> on hand-authored fixtures. ⚠️ **The "third entry point" wording is now literal**: the popup has **two**
+> live call sites (the aggregate `sources` card and the object's own sources section), and this AC adds
+> the third. ⚠️ **The second one was owed since SP-102 and was owned by no AC and no sprint** until SP-120
+> planning found it by grepping — ⚠️ **check this AC's own entry point is actually wired**, rather than
+> assuming a shipped popup is a reached one.
+>
+> ⚠️ **AC5 depends on [T-0459](../Tasks/Task-backlog.md)** — a footnote must render **THIS reference's**
+> locator, and today `page` sits on the source object where it can hold only one value for every citation
+> of that work. **Found by live use one sprint after SP-120's S11 predicted it.**
+
 **AC6 — Deleted and pending targets are handled, and never silently.**
 A reference whose object was **deleted** renders as dangling and is repairable; a reference whose object's
 **world is unavailable** renders as **pending** and is ⚠️ **never pruned, never rewritten** — EP-031's
@@ -146,7 +157,7 @@ These are the reason SP-107 is a **design sprint** and not a coding sprint.
 | **Q1** | **What is the reference syntax in a Markdown body?** | It is a permanent on-disk format decision. Everything else — parsing, fragments, export, repair — is downstream of it. |
 | **Q2** | **Does a reference store only `objectID`, or a cached display name too?** | Decides whether AC3 is free or needs invalidation. A cache makes stale text possible; no cache makes plain-Markdown readability worse. |
 | **Q3** | **What does a reference look like to a non-Scrivi reader of the `.md` file?** | Scene bodies are plain Markdown **by design**. A syntax that renders as noise breaks that property. |
-| **Q4** | **Footnote vs. pull quote — where is the choice stored?** | Per-reference in the body, or per-source in the object? Changes AC5's data model. |
+| **Q4** | **Footnote vs. pull quote — where is the choice stored?** | Per-reference in the body, or per-source in the object? Changes AC5's data model. ⚠️ **See T-0459 (2026-08-24): the SAME per-reference-vs-per-source axis has already been ruled for citation LOCATORS — per-reference, on the edge. Q4 should be ruled consistently with it or explicitly diverge.** |
 | **Q5** | ⚠️ **What manuscript export actually exists?** | **See the gap below. This one is a genuine hole in the Epic's stated scope.** |
 | **Q6** | **Does a reference participate in Spotlight indexing?** | EP-017/I-0118 precedent: `extractSearchableText`'s caller list is a known drift site (`project_capability_without_surface`). |
 

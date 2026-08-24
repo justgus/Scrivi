@@ -1,9 +1,18 @@
 # T-0365 — The Aggregate `sources` Card (EP-030 → EP-031, SP-091 → SP-096 → SP-098 → SP-102)
 
-**Status:** ✅ **Verified 2026-08-18 as a PARTIAL delivery** (user-accepted: *"Accept it. Verify its
-implementation."*)
-⚠️ **The read half is delivered and verified. The write half is NOT built and is owed to
-[EP-034](../../Epics/Epic-backlog.md).**
+**Status:** ✅ **COMPLETE as of 2026-08-24** — ⚠️ **no longer partial.**
+Verified 2026-08-18 as a **partial** delivery (read half); ✅ **the owed write half and the owed second
+entry point BOTH shipped in EP-034 SP-120** (T-0454–T-0457, Verified 2026-08-24) →
+[`Task-verified-0453-0458.md`](Task-verified-0453-0458.md).
+
+> ⚠️ **Both debts this file recorded are now paid**, four sprints after it was written:
+> 1. ✅ **Source creation + `cites` attachment** — from the documented object, per the user's ruling.
+> 2. ✅ **§3.1.1's second entry point** — an object surfaces its own sources and clicking one opens **the
+>    same `CitationPopover`**. ⚠️ **It was owned by no AC and no sprint** until SP-120 planning found it
+>    by grepping: the popup had exactly one call site, the card that declares it.
+>
+> ⚠️ **The warning below — *"do not read this Task's ✅ as 'the sources feature works'"* — no longer
+> applies.** It does now, verified by use on a real sequel project.
 **Sprint:** SP-102 · **Design:** `Scrivi_Scene_Inspector_Card_Framework_v0_1.md` §3.1.1 (ruled
 2026-08-12)
 
@@ -15,7 +24,7 @@ implementation."*)
 | ----- | ---- | ----- | ------ |
 | 1 | `cites` / `documented-by` **relation type** — the first unconstrained on **both** ends | SP-096 / T-0373 | ✅ Verified 2026-08-12 |
 | 2 | `source` **object kind** — project-scoped at `objects/sources/`; **closed EP-031 AC1** | SP-098 / T-0406 | ✅ Verified 2026-08-12 |
-| 3 | The **aggregate card** + citation popup | SP-102 | ✅ **Partial** — see below |
+| 3 | The **aggregate card** + citation popup | SP-102 | ✅ Read half; ⚠️ **write half + 2nd entry point → SP-120, ✅ 2026-08-24** |
 
 ## What was delivered (verified)
 
@@ -48,7 +57,7 @@ Design points implemented deliberately:
 
 **Evidence:** interop **99/99 macOS arm64**, `ctest` **520/520 macOS arm64**, **BUILD SUCCEEDED**.
 
-## ⚠️ What is NOT delivered
+## ⚠️ What was NOT delivered in SP-102 — ✅ **both items shipped in SP-120 (2026-08-24)**
 
 **1. The write half — nothing in the app can create a `source` or attach a `cites` edge.**
 
@@ -90,3 +99,16 @@ attachment, and the object-card entry point to `CitationPopover`.
 ---
 
 *Archived 2026-08-18 on user acceptance of the partial delivery.*
+
+---
+
+## ⚠️ Closing note added 2026-08-24 (EP-034 SP-120)
+
+The card went live exactly as this file predicted: *"the card goes live the moment EP-034 provides
+creation."* ⚠️ **It had rendered only its empty state for four sprints** — a state indistinguishable from
+working correctly, which is why the partial acceptance was recorded so explicitly.
+
+⚠️ **What this Task's history is now the best evidence for:** a capability shipped in the core and left
+without a surface is **not** half-done — it is **invisible**, and it stays invisible until someone tries
+to use it. `cites` shipped SP-096, the `source` kind SP-098, the card SP-102 — and no writer could create
+a single source until SP-120.

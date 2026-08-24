@@ -43,6 +43,18 @@ struct ObjectDetail: Sendable, Equatable {
     /// here so the deferral is a UI decision, not a data gap.
     let tags: [String]
 
+    /// Freeform key/value pairs the core round-trips (`ObjectTypes.hpp:224`).
+    ///
+    /// ⚠️ **Shipped since SP-095 and read by NOTHING until SP-120** — the third
+    /// `capability_without_surface` instance inside EP-034. T-0457 uses it to
+    /// store citation fields (author, url, publisher, year, page, accessed),
+    /// which is what keeps SP-120 `[Apple]`-only: no schema change, no ABI
+    /// change, no version decision.
+    ///
+    /// ⚠️ **Keys this build does not display are still carried here and written
+    /// back** — the patch rule applied one level down (S11 §5.2).
+    var attributes: [String: String]
+
     /// Present when the object has an image. ⚠️ Never written by this sprint —
     /// it exists so a save can be *verified* not to have dropped it, and so
     /// SP-119 has something to build on.
@@ -92,6 +104,21 @@ struct ObjectDetail: Sendable, Equatable {
             self.tags = []
         }
 
+        // ⚠️ T-0453: `attributes` serializes as an ARRAY of {"k","v"} pairs
+        // (`ObjectJson.cpp:46-50`), NOT as a JSON object — the identical wire
+        // form as `tags` above, and the identical trap. Reading it as a
+        // dictionary yields an empty map and looks like "this source has no
+        // citation details".
+        if let raw = root["attributes"] as? [[String: Any]] {
+            self.attributes = raw.reduce(into: [String: String]()) { table, pair in
+                guard let k = pair["k"] as? String, let v = pair["v"] as? String,
+                      !k.isEmpty else { return }
+                table[k] = v
+            }
+        } else {
+            self.attributes = [:]
+        }
+
         // `image` is an optional SUB-OBJECT, written only when populated
         // (`ObjectJson.cpp:55-62`).
         if let image = root["image"] as? [String: Any] {
@@ -116,7 +143,8 @@ struct ObjectDetail: Sendable, Equatable {
     func applyingEdits(displayName newName: String,
                        subtitle newSubtitle: String,
                        notes newNotes: String,
-                       tags newTags: [String]? = nil) throws -> String {
+                       tags newTags: [String]? = nil,
+                       attributes newAttributes: [String: String]? = nil) throws -> String {
         guard var root = try JSONSerialization.jsonObject(
             with: Data(sourceJson.utf8)) as? [String: Any] else {
             throw DecodeError.notAnObject
@@ -143,6 +171,34 @@ struct ObjectDetail: Sendable, Equatable {
                 root.removeValue(forKey: "tags")
             } else {
                 root["tags"] = cleaned.map { ["v": $0] }
+            }
+        }
+
+        // ⚠️ T-0453: attributes round-trip as `[{"k":…,"v":…}]`, NOT as an
+        // object (`ObjectJson.cpp:46-50`). Writing `{"author": "…"}` would parse
+        // back as an EMPTY map — every citation field silently dropped, with the
+        // file looking perfectly reasonable to a human. This is the same shape
+        // trap `tags` carries directly above, and it is why T-0453's round-trip
+        // test was written before this encoder.
+        //
+        // ⚠️ `nil` means "not edited" — a caller that does not handle attributes
+        // cannot erase them. The sheet's ordinary name/subtitle/notes save passes
+        // nothing here and must not wipe a source's citation record.
+        if let newAttributes {
+            let cleaned = newAttributes
+                .map { (k: $0.key.trimmingCharacters(in: .whitespacesAndNewlines),
+                        v: $0.value.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                .filter { !$0.k.isEmpty && !$0.v.isEmpty }
+                // Sorted so a save is deterministic: an unordered dictionary
+                // would rewrite the pairs in a different order every time and
+                // make every save look like a change to Git.
+                .sorted { $0.k < $1.k }
+            if cleaned.isEmpty {
+                // Absent rather than an empty array — matches how the core writes
+                // an object that has never had attributes, and matches `tags`.
+                root.removeValue(forKey: "attributes")
+            } else {
+                root["attributes"] = cleaned.map { ["k": $0.k, "v": $0.v] }
             }
         }
 
