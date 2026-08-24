@@ -45,6 +45,20 @@ struct ObjectDetailSheet: View {
     /// ⚠️ A callback, not a direct refresh: this pane must not know the inspector
     /// exists (S8 host-independence).
     var onDidSave: () -> Void = {}
+    /// Needed for world-package writes: the core records which project holds the
+    /// lock, so a shared world can name the holder rather than "unknown".
+    var projectID: String = ""
+    /// ⚠️ I-0162: bumped when a world's availability changes (mount/eject).
+    ///
+    /// The sheet re-reads on it, because `imagePath` and the read-only banner are
+    /// both **snapshots taken at load time** and a drive can vanish afterwards.
+    /// ⚠️ Without this the sheet kept a path to bytes that were no longer
+    /// reachable and reported *"This image could not be read from disk"* — a
+    /// damaged-file message for what is actually an outage.
+    ///
+    /// ⚠️ `session.worldRevision` ALREADY EXISTED for this (I-0128/I-0129); the
+    /// inspector's cards have watched it all along. This surface simply did not.
+    var worldRevision: Int = 0
     /// I-0160 — bumped when the object is edited OUTSIDE this sheet (the Scene
     /// Inspector's inline rename), so the sheet re-reads.
     ///
@@ -69,14 +83,51 @@ struct ObjectDetailSheet: View {
     @State private var draftName = ""
     @State private var draftSubtitle = ""
     @State private var draftNotes = ""
+    @State private var draftTags: [String] = []
+    @State private var newTag = ""
+    /// ⚠️ T-0452: a pending exit that would discard unsaved edits. Carries WHAT
+    /// the writer was trying to do, so answering the prompt completes it rather
+    /// than merely dismissing.
+    @State private var pendingExit: PendingExit?
+
+    /// ⚠️ I-0168: a navigation requested from OUTSIDE the sheet — the Scene
+    /// Inspector double-click, which calls the host directly.
+    ///
+    /// ⚠️ **The guard cannot live only in the sheet**, because the sheet is not
+    /// on that path: the host owns `ObjectDetailHistory` and the inspector asks
+    /// the host. So the host now hands the request HERE instead of applying it,
+    /// and the sheet either performs it or prompts first. Same veto, one owner.
+    var externalNavigation: ObjectDetailHistory.Entry?
+    /// Cleared by the sheet once the request has been consumed.
+    var onExternalNavigationHandled: () -> Void = {}
+
+    /// Where the writer was heading when unsaved edits stopped her.
+    private enum PendingExit: Equatable {
+        case close
+        case navigate(ObjectDetailHistory.Entry)
+        /// `target` is only for the prompt's wording; the step itself replays
+        /// through history so the cursor stays consistent.
+        case step(back: Bool, target: ObjectDetailHistory.Entry)
+    }
     @State private var isSaving = false
+    /// ⚠️ T-0447: the object's image path, resolved by the CORE at list time
+    /// (T-0446) rather than by this view. `ObjectDetail` carries only the
+    /// assetID — a path is not in the object file, and deliberately is not.
+    @State private var imagePath: String?
+    /// ⚠️ Set when the object could not be opened because its WORLD is away
+    /// (I-0166). Distinct from `loadError`, which means a real failure.
+    @State private var unavailableStatus: WorldStatus?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             toolbar
             Divider()
 
-            if let loadError {
+            if let unavailableStatus {
+                // ⚠️ Named and explained, never a code. The writer asked for a
+                // specific object; tell her about THAT object.
+                unavailableView(unavailableStatus)
+            } else if let loadError {
                 message(loadError, systemImage: "exclamationmark.triangle")
             } else if let detail {
                 content(for: detail)
@@ -86,13 +137,32 @@ struct ObjectDetailSheet: View {
             }
         }
         .frame(minWidth: 420, minHeight: 320)
+        // ⚠️ T-0452: closing or navigating away used to DISCARD unsaved edits
+        // silently — the third route into this Epic's recurring data loss
+        // (I-0155, I-0165b), and the only one the writer triggers herself.
+        .alert("Save your changes?", isPresented: showingExitPrompt) {
+            Button("Save") { resolveExit(saving: true) }
+            Button("Discard", role: .destructive) { resolveExit(saving: false) }
+            Button("Cancel", role: .cancel) { pendingExit = nil }
+        } message: {
+            Text("You have unsaved changes to “\(detail?.displayName ?? "this object")”. "
+                 + "Closing without saving will discard them.")
+        }
+        .onChange(of: externalNavigation) { _, entry in
+            guard let entry else { return }
+            onExternalNavigationHandled()
+            requestNavigate(entry)
+        }
         .onChange(of: history.current) { _, _ in load() }
         // ⚠️ I-0160: another surface changed this object — re-read.
         //
-        // Safe against clobbering: `load()` only overwrites a draft field the
-        // writer has not edited (`hasChanges` distinguishes them), and the save
-        // path re-reads and merges per field anyway (I-0155).
+        // ⚠️ This comment used to ASSERT that `load()` only overwrote unedited
+        // draft fields. It did not — it overwrote all three unconditionally, so
+        // every reload discarded the writer's typing (I-0165b). ✅ The property is
+        // now actually IMPLEMENTED in `load()`, not merely claimed here.
+        // The save path also re-reads and merges per field (I-0155).
         .onChange(of: objectRevision) { _, _ in load() }
+        .onChange(of: worldRevision) { _, _ in load() }
         .onAppear { load() }
     }
 
@@ -102,13 +172,15 @@ struct ObjectDetailSheet: View {
         HStack(spacing: 8) {
             // D2-B: back AND forward. `NavigationStack` gives only back, and the
             // writer asked for "standard NavigatorView buttons".
-            Button { navigate(history.goBack()) } label: {
+            // ⚠️ T-0452: these MUTATE history before load() runs, so an unguarded
+            // press discards edits with no prompt — the same exposure as the ✕.
+            Button { requestStep(back: true) } label: {
                 Image(systemName: "chevron.backward")
             }
             .disabled(!history.canGoBack)
             .help(history.backTarget.map { "Back to \($0.displayName)" } ?? "Back")
 
-            Button { navigate(history.goForward()) } label: {
+            Button { requestStep(back: false) } label: {
                 Image(systemName: "chevron.forward")
             }
             .disabled(!history.canGoForward)
@@ -117,12 +189,23 @@ struct ObjectDetailSheet: View {
             Spacer()
 
             if let detail, !isReadOnly(detail) {
+                // ⚠️ T-0452: revert to what is on disk.
+                //
+                // Deliberately NOT undo — no history, no per-keystroke state. The
+                // writer asked for exactly this: *"a Cancel option next to Save
+                // would allow me to just revert back to the saved version."*
+                // ⚠️ EP-019's sentence-granular history is for the manuscript and
+                // stays out of object editing (the D3-C ruling).
+                Button("Cancel") { revert() }
+                    .disabled(isSaving || !hasChanges)
+                    .help("Discard your changes and return to the saved version")
+
                 Button("Save") { save() }
                     .disabled(isSaving || !hasChanges)
                     .keyboardShortcut("s", modifiers: .command)
             }
 
-            Button { onClose() } label: { Image(systemName: "xmark") }
+            Button { requestClose() } label: { Image(systemName: "xmark") }
                 .help("Close the detail view")
         }
         .buttonStyle(.borderless)
@@ -146,6 +229,36 @@ struct ObjectDetailSheet: View {
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+                }
+
+                // ⚠️ T-0450 — AC9's second half: EDITS AT RISK.
+                //
+                // ✅ The recover-and-save path already worked and was verified by
+                // use: the world returns, the fields unlock, Save writes her
+                // typing. ⚠️ **What was missing is that she is never TOLD** her
+                // unsaved work is held only in memory — and if Scrivi quits before
+                // the world returns, it is gone.
+                //
+                // ⚠️ **Deliberately a SECOND banner, not a longer first one.** The
+                // read-only banner states a fact about the object; this states a
+                // risk to HER WORK, and folding them together buries the urgent one
+                // in the routine one.
+                //
+                // ⚠️ Shown only when edits actually exist (`hasChanges`) — a
+                // warning on an untouched sheet trains her to ignore it.
+                if isReadOnly(detail) && hasChanges {
+                    Label(
+                        "Your unsaved changes are held here only. "
+                        + "They will be saved when this object's world is available "
+                        + "again — but they will be lost if Scrivi quits first.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.orange.opacity(0.12),
+                                in: RoundedRectangle(cornerRadius: 6))
                 }
 
                 field("Name") {
@@ -202,14 +315,47 @@ struct ObjectDetailSheet: View {
                     }
                 }
 
-                // ⚠️ Read-only in SP-117 — tags editing is SP-119 (user ruling),
-                // so R2/AC2 do not close here. Shown rather than hidden: the data
-                // exists and concealing it would be a second capability gap.
-                if !detail.tags.isEmpty {
-                    field("Tags") {
-                        Text(detail.tags.joined(separator: ", "))
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                // ⚠️ T-0449 — EDITABLE at last, closing R2 and AC2.
+                //
+                // SP-117 deferred this "for want of a chip-editor precedent in the
+                // app". ⚠️ **The precedent was `WritingToolCards.swift` all along**
+                // — the scene Tags card has had `TagChip` and `FlowLayout` since
+                // T-0363. They are reused here rather than rewritten, which is the
+                // rule SP-118 paid for four times.
+                field("Tags") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if draftTags.isEmpty {
+                            Text(isReadOnly(detail) ? "No tags." : "No tags yet.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            FlowLayout(spacing: 6) {
+                                ForEach(draftTags, id: \.self) { tag in
+                                    if isReadOnly(detail) {
+                                        // ⚠️ I-0148's lesson: read-only must be
+                                        // ENFORCED, not merely styled. A chip whose
+                                        // ✕ still worked would discard a tag that
+                                        // could never be saved.
+                                        Text(tag)
+                                            .font(.caption)
+                                            .padding(.horizontal, 7)
+                                            .padding(.vertical, 3)
+                                            .background(.quaternary, in: Capsule())
+                                    } else {
+                                        TagChip(tag: tag) {
+                                            draftTags.removeAll { $0 == tag }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if !isReadOnly(detail) {
+                            TextField("Add a tag…", text: $newTag)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.callout)
+                                .onSubmit { addTag() }
+                        }
                     }
                 }
 
@@ -225,6 +371,27 @@ struct ObjectDetailSheet: View {
                 // where a writer connects it to something else. Self-contained so
                 // the sheet stays host-independent (S8) — it is handed the engine
                 // and the worlds the sheet already has, and hands navigation back.
+                // AC3 (T-0447): the image. Placed above relationships — what the
+                // object IS comes before what it is connected to.
+                ObjectImageSection(
+                    engine: engine,
+                    projectRootPath: projectRootPath,
+                    objectID: detail.objectID,
+                    objectKind: detail.kind,
+                    worldID: detail.worldID,
+                    projectID: projectID,
+                    authorshipRef: authorshipRef,
+                    isReadOnly: isReadOnly(detail),
+                    imagePath: imagePath,
+                    imageAssetID: detail.imageAssetID,
+                    onChanged: {
+                        load()        // re-read the object and its image path
+                        onDidSave()   // and let the host refresh the inspector
+                    }
+                )
+
+                Divider()
+
                 ObjectRelationsSection(
                     engine: engine,
                     projectRootPath: projectRootPath,
@@ -237,7 +404,7 @@ struct ObjectDetailSheet: View {
                         // ⚠️ `visit` truncates forward history and no-ops on a
                         // re-visit of the object already showing; `load()` then
                         // runs from `.onChange(of: history.current)`.
-                        history.visit(entry)
+                        requestNavigate(entry)
                     }
                 )
 
@@ -277,6 +444,49 @@ struct ObjectDetailSheet: View {
         .foregroundStyle(.secondary)
     }
 
+    /// The object exists; its world is temporarily out of reach (R9, I-0166).
+    ///
+    /// ⚠️ **Never says "not found" or shows an error code.** Doc 3: absence is
+    /// never deletion — and to a writer, "error -1" on a character she wrote is
+    /// indistinguishable from having lost her.
+    @ViewBuilder
+    private func unavailableView(_ status: WorldStatus) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: "externaldrive.badge.xmark")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+
+            // ⚠️ The NAME comes from history, which holds it precisely so a
+            // writer is never asked to recognise an ID (the AC-A7 rule again).
+            Text(history.current?.displayName ?? "This object")
+                .font(.headline)
+
+            Text(worldSentence(status))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Text("Its details will appear when the world is available again.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    /// ⚠️ The status is DIAGNOSTIC, not behavioural (Doc 2 §7.2.1): the behaviour
+    /// is identical for every value, but the remedy differs — so name the world
+    /// when we can, and never guess at a cause.
+    private func worldSentence(_ status: WorldStatus) -> String {
+        let name = history.current.map { worldName(for: $0.worldID) }
+        if let name, !name.isEmpty {
+            return "“\(name)” is \(status.writerDescription)."
+        }
+        return "This object's world is \(status.writerDescription)."
+    }
+
     private func message(_ text: String, systemImage: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: systemImage).font(.title2)
@@ -294,6 +504,7 @@ struct ObjectDetailSheet: View {
         return draftName != detail.displayName
             || draftSubtitle != detail.subtitle
             || draftNotes != detail.notes
+            || draftTags != detail.tags
     }
 
     /// ⚠️ R9: an object whose world is away is read-only. Doc 3 — *absence is
@@ -327,6 +538,88 @@ struct ObjectDetailSheet: View {
 
     // MARK: — Load / save
 
+    /// ⚠️ Duplicates are refused rather than appended — two identical chips are
+    /// unremovable individually, since the ✕ matches by value.
+    /// Bound rather than a plain Bool so dismissing the alert any other way
+    /// clears the pending exit instead of stranding it.
+    private var showingExitPrompt: Binding<Bool> {
+        Binding(get: { pendingExit != nil },
+                set: { if !$0 { pendingExit = nil } })
+    }
+
+    /// Discards the writer's edits and re-adopts what is on disk.
+    ///
+    /// ⚠️ Re-reads rather than restoring from the in-memory `detail`: another
+    /// surface may have written since (I-0155), and "the saved version" means
+    /// what is actually saved, not what this sheet last saw.
+    private func revert() {
+        guard let entry = history.current else { return }
+        detail = nil          // force load() to adopt disk wholesale
+        history.visit(entry)  // no-op for the same object; load() runs below
+        load()
+        saveError = nil
+    }
+
+    /// ⚠️ Every exit routes through here. A close or a navigation with unsaved
+    /// edits ASKS; without them it proceeds unchanged.
+    private func requestClose() {
+        if hasChanges && !isReadOnlyNow {
+            pendingExit = .close
+        } else {
+            onClose()
+        }
+    }
+
+    private func requestNavigate(_ entry: ObjectDetailHistory.Entry) {
+        if hasChanges && !isReadOnlyNow {
+            pendingExit = .navigate(entry)
+        } else {
+            history.visit(entry)
+        }
+    }
+
+    /// ⚠️ Read-only objects cannot be saved, so their drafts are already covered
+    /// by T-0450's at-risk banner — prompting here would offer a Save that is
+    /// disabled two points away.
+    private var isReadOnlyNow: Bool {
+        guard let detail else { return false }
+        return isReadOnly(detail)
+    }
+
+    /// Back/forward, guarded. ⚠️ The step is deferred until the prompt is
+    /// answered — asking *after* moving would strand the drafts on an object the
+    /// writer has already left.
+    private func requestStep(back: Bool) {
+        guard hasChanges && !isReadOnlyNow else {
+            navigate(back ? history.goBack() : history.goForward())
+            return
+        }
+        guard let target = back ? history.backTarget : history.forwardTarget else { return }
+        pendingExit = .step(back: back, target: target)
+    }
+
+    private func resolveExit(saving: Bool) {
+        let exit = pendingExit
+        pendingExit = nil
+        if saving { save() }
+        switch exit {
+        case .close:               onClose()
+        case .navigate(let entry): history.visit(entry)
+        case .step(let back, _):   navigate(back ? history.goBack() : history.goForward())
+        case .none:                break
+        }
+    }
+
+    private func addTag() {
+        let tag = newTag.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !tag.isEmpty, !draftTags.contains(tag) else {
+            newTag = ""
+            return
+        }
+        draftTags.append(tag)
+        newTag = ""
+    }
+
     private func navigate(_ entry: ObjectDetailHistory.Entry?) {
         guard entry != nil else { return }
         load()
@@ -339,6 +632,7 @@ struct ObjectDetailSheet: View {
         }
         loadError = nil
         saveError = nil
+        unavailableStatus = nil
         do {
             let opened = try engine.openObject(
                 projectRootPath: projectRootPath,
@@ -347,13 +641,84 @@ struct ObjectDetailSheet: View {
                 worldID: entry.worldID
             )
             let parsed = try ObjectDetail(json: opened.objectJson, kind: entry.kind)
+            // ⚠️ Resolved by the CORE, once, from the listing — not by walking the
+            // assets directory here. Empty is normal: no image, or its world is
+            // away (T-0446).
+            imagePath = (try? engine.listObjects(projectRootPath: projectRootPath)
+                .objects.first { $0.objectID == parsed.objectID }?.imagePath) ?? nil
+            // ⚠️ I-0165b: adopt disk ONLY for fields the writer has not edited.
+            //
+            // This used to overwrite all three unconditionally — and a comment on
+            // `onChange(of: objectRevision)` claimed the opposite ("load() only
+            // overwrites a draft field the writer has not edited"). ⚠️ **The claim
+            // was false and nothing enforced it**, so any reload — an Inspector
+            // rename (I-0160), a remount (I-0162) — silently discarded her typing.
+            // ⚠️ **A comment asserting a safety property is not that property**;
+            // the same failure as I-0151.
+            //
+            // `previous` is what disk said last time we read. A draft still equal
+            // to it is untouched, so taking the new value is right. A draft that
+            // differs is HER work and is kept — she decides at Save, which already
+            // merges per field (I-0155).
+            // ⚠️ Only when this is the SAME object. Navigating elsewhere must adopt
+            // disk wholesale — the drafts belong to the object we just left, and
+            // carrying them across would write one object's text onto another.
+            let previous = (detail?.objectID == parsed.objectID) ? detail : nil
+            let isSameObject = previous != nil
+
+            if !isSameObject || draftName == (previous?.displayName ?? draftName) {
+                draftName = parsed.displayName
+            }
+            if !isSameObject || draftSubtitle == (previous?.subtitle ?? draftSubtitle) {
+                draftSubtitle = parsed.subtitle
+            }
+            if !isSameObject || draftNotes == (previous?.notes ?? draftNotes) {
+                draftNotes = parsed.notes
+            }
+            if !isSameObject || draftTags == (previous?.tags ?? draftTags) {
+                draftTags = parsed.tags
+            }
             detail = parsed
-            draftName = parsed.displayName
-            draftSubtitle = parsed.subtitle
-            draftNotes = parsed.notes
         } catch {
-            detail = nil
-            loadError = error.localizedDescription
+            // ⚠️ I-0165: a failed re-read must NOT throw the sheet away.
+            //
+            // R9 requires that an object whose world is away stays **shown,
+            // read-only and explained** — never hidden. But `load()` also runs on
+            // `worldRevision` (I-0162), and ejecting the drive makes `openObject`
+            // fail — so this branch replaced the whole sheet with a raw
+            // "ScriviError -1", ⚠️ **and `detail = nil` DISCARDED THE WRITER'S
+            // UNSAVED EDITS**, which is the more serious half.
+            //
+            // ⚠️ The distinction that matters: **losing the ability to re-read is
+            // not the same as having nothing to show.** If we already have the
+            // object, keep it — `isReadOnly` will report the outage in words, the
+            // banner explains it, and her drafts survive until the world returns.
+            if detail != nil {
+                imagePath = nil   // the bytes are unreachable; stop pointing at them
+                // Deliberately NOT setting loadError: the read-only banner already
+                // says why, and two explanations of one outage read as two faults.
+            } else {
+                // ⚠️ I-0166: NOT "nothing to show" — the earlier comment here said
+                // that and it was wrong.
+                //
+                // `history.current` carries the object's NAME, kind and world, so
+                // we know exactly what she asked for and why it will not open.
+                // R9 requires it be shown, named and explained; a raw
+                // "ScriviApp:Scrivi Error -1" is none of those.
+                //
+                // ⚠️ This is the COLD-OPEN case: the drive was already away when
+                // she clicked Show. The earlier fix only covered a sheet that was
+                // already displaying an object, which is why this survived it.
+                detail = nil
+                if (error as? ScriviError)?.isWorldUnavailable == true {
+                    unavailableStatus =
+                        (error as? ScriviError)?.unavailableWorldStatus ?? .unavailable
+                    loadError = nil
+                } else {
+                    unavailableStatus = nil
+                    loadError = error.localizedDescription
+                }
+            }
         }
     }
 
@@ -398,11 +763,14 @@ struct ObjectDetailSheet: View {
                 ? current.subtitle : draftSubtitle
             let notesToWrite = (draftNotes == detail.notes)
                 ? current.notes : draftNotes
+            let tagsToWrite = (draftTags == detail.tags)
+                ? current.tags : draftTags
 
             let patched = try current.applyingEdits(
                 displayName: nameToWrite,
                 subtitle: subtitleToWrite,
-                notes: notesToWrite
+                notes: notesToWrite,
+                tags: tagsToWrite
             )
             _ = try engine.saveObject(
                 projectRootPath: projectRootPath,

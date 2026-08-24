@@ -8,7 +8,8 @@ change** (world assets + asset path + kind-scope endpoint).
 **Goal:** Let a writer **see and edit what an object actually is** — description, notes, imagery,
 **and its relationships** — through a navigable **Detail Sheet**, and attribute it with sources.
 **Date Created:** 2026-08-18 · **Promoted to Active:** 2026-08-20
-**Target Close Date:** TBD — **3 of 8 sprints closed** (SP-115 ✅ · SP-116 ✅ · SP-117 ✅, all by 2026-08-21)
+**Target Close Date:** TBD — **5 of 8 sprints closed** (SP-115 ✅ · SP-116 ✅ · SP-117 ✅ · SP-118 ✅ · SP-119 ✅);
+**SP-119 ✅ Closed**
 **Actual Close Date:** —
 
 **Design document:** [`../Scrivi_Object_Detail_Sheets_Design_v0_1.md`](../Scrivi_Object_Detail_Sheets_Design_v0_1.md)
@@ -66,12 +67,12 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 
 - [x] ✅ **AC1** (verified by use, SP-117) — From a Kind Card list item, **double-click** and **right-click → "View Detail"** both open
       the Detail Sheet. ⚠️ **A single click still does what it does today** (Q-b).
-- [ ] **AC2** — The sheet **views and edits** `displayName`, `subtitle`, `notes`, `tags`; edits persist
+- [x] **AC2** — The sheet **views and edits** `displayName`, `subtitle`, `notes`, `tags`; edits persist
       across app restart.
-- [ ] **AC3** — An image can be **imported, displayed, replaced, removed**; ⚠️ for a **world-scoped** object
+- [x] **AC3** — An image can be **imported, displayed, replaced, removed**; ⚠️ for a **world-scoped** object
       it is stored **in the world package** and is present when that world is opened **from a different
       project**.
-- [ ] **AC4** — Card list items show a **thumbnail when an image exists**, unchanged when none does.
+- [x] **AC4** — Card list items show a **thumbnail when an image exists**, unchanged when none does.
 - [x] **AC5** — The related-objects section lists this object's edges with labels reading correctly from
       this endpoint. ✅ **CLOSED by SP-118**, verified by live use 2026-08-23.
 - [x] **AC6** — A relationship can be **created from the sheet**; it appears from both endpoints and is
@@ -83,10 +84,12 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
       (I-0151, I-0153, I-0157, I-0161) before it actually worked.
 - [ ] **AC8** — A **source can be created from the documented object** and a `cites` edge attached;
       ⚠️ the `sources` card **then shows content for the first time**.
-- [~] ⚠️ **AC9 — HALF met (SP-117).** ✅ A **pending** object opens **read-only, explained, never written** —
+- [x] ✅ **AC9 — FULLY met (SP-117 + SP-119).** ✅ A **pending** object opens **read-only, explained, never written** —
       **verified by use**, including drive removal *and* return, and the read-only state was hardened by
-      **I-0148**. ⚠️ **The remaining half — a world going unavailable WHILE A SHEET IS OPEN, handled
-      without data loss — is not yet demonstrated** and belongs with SP-119.
+      **I-0148**. ✅ **The remaining half — a world going unavailable WHILE A SHEET IS OPEN, handled
+      without data loss — CLOSED by SP-119**, and it took six fixes: the sheet survives the outage,
+      explains it, warns that unsaved edits are held only in memory, and no longer discards them on
+      reload, close, or navigation (I-0162, I-0165, I-0165b, I-0166, I-0167, I-0168).
 - [x] ✅ **AC10** (SP-115) — All five Issues **I-0135–I-0139** Resolved, ⚠️ **each verified against its own trigger**
       (`feedback_verify_each_half_separately`).
 - [ ] **AC11** — `[Linux]` parity for AC1–AC9 in Docker+VNC. ⚠️ **No gesture-only affordances.**
@@ -101,7 +104,7 @@ Written to be verifiable **by use** — per the lesson EP-031 paid for five time
 | **SP-116** | ⚠️ **`[Cross]`** World assets + `assetPath` + kind-scope endpoint (D6, D7, D5) — retired **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** | ✅ **Closed** | 2026-08-21 |
 | **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) — ⚠️ **first writer-facing surface**; paid **T-0420's debt**; retired **I-0148** | ✅ **Closed** | 2026-08-21 |
 | SP-118 | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) — ⚠️ **T-0416 fixed as T-0441 + I-0149** | ✅ **Closed 2026-08-23** — [record](../Sprints/Closed/Sprint-SP-118.md) | ✅ **AC5, AC6, AC7** — ⚠️ **13 Issues, all from the live pass** |
-| SP-119 | `[Apple]` Images: import, display, card thumbnails (D8) | ⚪ Planned | — |
+| SP-119 | ⚠️ **`[Cross]`** Images (D8) + `tags` + **AC9's second half** | ✅ **Closed 2026-08-24** — [record](../Sprints/Closed/Sprint-SP-119.md) | ✅ **AC2, AC3, AC4, AC9** — ⚠️ **7 Issues, all from the live pass** |
 | SP-120 | `[Apple]` Source creation + footnote text — ⚠️ **closes T-0365's write half** | ⚪ Planned | — |
 | SP-121 | `[Linux]` Parity (AC11) | ⚪ Planned | — |
 | SP-122 | AC verification + ⚠️ **live-use pass on the real rig** + Epic close prep | ⚪ Planned | — |
@@ -142,6 +145,13 @@ of the five additions came from USE, not planning.**
 | ✅ **T-0443** | **D4-A** — inline creation + picker widening | SP-118 | **High** | ✅ **Verified** — ⚠️ **deviation ruled IN FAVOUR** |
 | ✅ **T-0444** | **R5/R7** — push-navigation from the related list | SP-118 | **High** | ✅ **Verified** |
 | ✅ **T-0445** | ⚠️ **Pending far-endpoints** — named and explained | SP-118 | Medium | ✅ **Verified** |
+| **T-0446** | ⚠️ **Carry the image (resolved path) in the object index**; unify `rebuild()` onto `scanDir()` | SP-119 | **High** | ✅ **Verified** |
+| **T-0447** | **AC3** — object image import/display/replace/remove | SP-119 | **High** | ✅ **Verified** |
+| **T-0448** | **AC4 / D8** — card thumbnails, async | SP-119 | **High** | ✅ **Verified** |
+| **T-0449** | **AC2** — `tags` editing (owed since SP-117) | SP-119 | **High** | ✅ **Verified** |
+| **T-0450** | ⚠️ **AC9's second half** — warn when unsaved edits are at risk (recover-and-save proven live) | SP-119 | **High** | ✅ **Verified** |
+| **T-0451** | **I-0164** — attach an asset already in the world | SP-119 | **High** | ✅ **Verified** |
+| **T-0452** | **I-0167 + I-0168** — Cancel, and a guarded exit on all six routes | SP-119 | **High** | ✅ **Verified** |
 
 ### Issues
 

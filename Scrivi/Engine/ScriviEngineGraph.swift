@@ -381,7 +381,33 @@ public struct ObjectEntry: Decodable, Sendable, Identifiable {
     public let displayName: String
     public let worldID:     String
 
+    /// ⚠️ **What a card row actually draws from** (T-0446, D8) — a resolved
+    /// on-disk path, thumbnail preferred over full size.
+    ///
+    /// ⚠️ **Resolved by the CORE at list time, once per call**, not per row: a
+    /// per-row lookup would be N directory scans in the 280pt inspector pane,
+    /// and D8 is explicit that *"a thumbnail that hangs the inspector would be a
+    /// worse defect than no thumbnail at all."*
+    ///
+    /// ⚠️ **Empty is normal and means "not resolvable right now"** — the object
+    /// has no image, or its world is away. It is never a wrong path: nothing
+    /// volume-dependent is persisted, precisely so a drive mounting elsewhere
+    /// cannot leave a stale one behind. **Render an empty path exactly as no
+    /// image at all.**
+    public let imagePath: String?
+
+    /// ⚠️ **Plumbing — identity for replace/remove. NEVER SHOWN TO THE WRITER.**
+    /// *"The writer is not going to care what the computer calls the image on the
+    /// inside"* (user ruling, 2026-08-23). Display uses `imagePath`.
+    public let imageAssetID: String?
+    public let imageThumbnailAssetID: String?
+
     public var id: String { objectID }
+
+    /// True when this object has an image the app can actually draw right now.
+    public var hasResolvableImage: Bool {
+        !(imagePath ?? "").isEmpty
+    }
 
     /// True for the world-scoped kinds — `artifact`, `chronicle`, `faction`, `rule`.
     public var isWorldScoped: Bool { !worldID.isEmpty }

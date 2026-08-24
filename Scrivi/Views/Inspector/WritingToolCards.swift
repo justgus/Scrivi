@@ -157,7 +157,13 @@ private struct TagsCardBody: View {
     }
 }
 
-private struct TagChip: View {
+/// One removable tag pill.
+///
+/// ⚠️ **Internal, not private — shared with the Object Detail Sheet** (T-0449).
+/// SP-117 deferred object tags for want of "a chip-editor precedent in the app";
+/// ⚠️ **the precedent was this file all along.** Writing a second chip would have
+/// been the SP-118 defect again — reimplementing what the app already had.
+struct TagChip: View {
     let tag: String
     let onRemove: () -> Void
 
@@ -348,7 +354,12 @@ struct CardErrorView: View {
 }
 
 /// Minimal wrapping layout for tag chips — SwiftUI has no built-in flow container.
-private struct FlowLayout: Layout {
+/// Wraps subviews onto as many lines as they need.
+///
+/// ⚠️ **Internal, not private — shared with the Object Detail Sheet** (T-0449).
+/// Tags are the one place in Scrivi where content width is unpredictable, so both
+/// tag surfaces need the same wrapping.
+struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

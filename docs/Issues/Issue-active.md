@@ -12,18 +12,12 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 ## Currently: **one record — I-0147, an ACCEPTED limitation, not open work**
 
-✅ **I-0149 – I-0161 were Verified 2026-08-23 (user-approved) and archived in the same step** →
-[`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md) (I-0149, I-0150) and
-[`Verified/Issue-verified-0151-0160.md`](Verified/Issue-verified-0151-0160.md) (I-0151 – I-0161).
+✅ **I-0162 – I-0168 were Verified 2026-08-24 (user-approved) and archived in the same step** →
+[`Verified/Issue-verified-0161-0170.md`](Verified/Issue-verified-0161-0170.md).
 
-⚠️ **All thirteen came from SP-118's live click-through. None was found by any suite.**
-
-✅ **I-0148 was Verified 2026-08-21 (user-approved) and archived** →
-[`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
-
-✅ **SP-116 closed with ZERO open Issues.** Its six — **I-0140, I-0141, I-0143, I-0144, I-0145, I-0146** —
-were ✅ **Verified 2026-08-21 (user-approved) and archived in the same step** →
-[`Verified/Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md).
+⚠️ **All seven came from SP-119's live click-through. None was found by any suite.** ⚠️ **Six were
+data-loss routes into a single surface** — the Object Detail Sheet — reachable by ejecting a drive or
+navigating away at six different moments.
 
 **What the table cannot express:**
 
@@ -138,6 +132,65 @@ sprint that fixed four other instances. **Owed a surface in a later sprint.**
 failed**) was worse than the reported symptom.
 
 ---
+
+*Last Updated: 2026-08-24, twenty-sixth pass (**I-0162 – I-0168 ✅ VERIFIED (user-approved) and ARCHIVED**
+at SP-119 close → the new `Verified/Issue-verified-0161-0170.md`. Open Issues **7 → 0**; I-0147 remains an
+Accepted limitation, not open work. ⚠️ **All seven came from the live click-through; six were data-loss
+routes into one surface.** Next available Issue: **I-0169**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, twenty-fifth pass (⚠️ **I-0168 FILED — the Scene Inspector bypassed T-0452's
+guard.** ⚠️ **The guard was in the wrong PLACE**: the host owns the history and the inspector asks the
+host, so the sheet was never consulted. ⚠️ **T-0452 swept the four exits that originate inside the sheet
+and could not see the one that originates outside it.** ✅ Fixed by moving the decision to a single owner
+rather than adding a fifth check; ✅ **every history mutation swept.** ⚠️ **Sixth data-loss route in this
+Epic** — the user has now found all six by ordinary use. Open Issues: **7**. Next available Issue:
+**I-0169**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, twenty-fourth pass (⚠️ **I-0167 FILED — the ✕ discarded unsaved edits with no
+prompt and no way to revert.** ⚠️ **Third route into this Epic's data loss**, and the only one a writer
+triggers with an ordinary click. ⚠️ **Back/forward and related-list navigation shared the exposure** and
+were fixed in the same pass rather than left for a later report. ✅ **Cancel + Save/Discard prompt**, to the
+user's own design; ⚠️ **explicitly NOT undo** per their ruling. Open Issues: **6**. Next available Issue:
+**I-0168**; Task: **T-0453**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, twenty-third pass (⚠️ **I-0166 FILED — cold-opening an object with its world
+away showed a raw error code**, R9 violated in the case R9 exists for. ⚠️ **I-0165's fix covered only the
+already-loaded sheet**, and its own comment claimed there was "nothing to show" when history carried the
+object's name all along. ✅ Fixed with a `worldUnavailable` accessor mirroring the existing
+`isWorldPending` idiom. ⚠️ **Fourth defect in one chain, each found by ejecting the drive at a different
+moment.** Open Issues: **5**. Next available Issue: **I-0167**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, twenty-second pass (⚠️ **I-0165 FILED — a REGRESSION FROM I-0162'S FIX.**
+Ejecting the drive replaced the whole Detail Sheet with a raw ScriviError and ⚠️ **discarded unsaved
+edits** — R9 violated outright. The new `worldRevision` reload hit `load()`'s catch branch, which had
+always been allowed to blank the sheet because it previously only ran on navigation. ✅ Fixed: a failed
+re-read keeps the object and lets the read-only banner explain the outage. ⚠️ **Found by the re-test of
+the very fix that caused it.** Open Issues: **4**. Next available Issue: **I-0166**. Prior note follows.)*
+
+*Last Updated: 2026-08-24, twenty-first pass (⚠️ **I-0164 FILED — OPEN, needs a ruling.** An asset already
+in a world **cannot be attached** to an object, and the only workaround — re-importing the same file —
+⚠️ **silently orphans the first assetID**, because both bytes and sidecar are named after the FILENAME.
+✅ **Proven by test**: one asset on disk, new ID listed, first ID unresolvable. ⚠️ **S11 missed it because
+it enumerated FIELDS, not OPERATIONS** — `listAssets` was marked "not surfaced" without asking what a
+writer would use it for. ✅ **The T-0447 chain itself is PROVEN WORKING** — the Tintagael location's image
+imports, links, indexes and displays correctly. Open Issues: **3**. Next available Issue: **I-0165**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-24, twentieth pass (⚠️ **I-0163 FILED — an image on disk in a world was invisible
+to the app.** ⚠️ **A derived cache written before a field exists never rebuilds itself**, and T-0446's
+tests could not see it because they always create their index with the current build. ✅ Fixed with an
+index `generation` marker; ⚠️ **bump it when adding an entry field.** ⚠️ **Claude chased a phantom
+failure for several rounds — the test had been passing and the binary was stale**
+(`feedback_prove_code_is_reached`, third occurrence). Open Issues: **2**. Next available Issue: **I-0164**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-24, nineteenth pass (⚠️ **I-0162 FILED — an ejected drive reported the writer's
+image as DAMAGED rather than absent**, found by the user's SP-119 step-7 click-through. ⚠️ **Two causes:
+the sheet never reloaded on a world-availability change** (`session.worldRevision` already existed and the
+inspector cards already watched it — ⚠️ **the fourth "existing pattern not followed" since SP-118**), and
+the outage branch was load-time only. ⚠️ **Claude's first two hypotheses were wrong**; the cause was
+settled by probing the core (`loadAllVisible` → count=0 for an unavailable world). Open Issues: **1**.
+Next available Issue: **I-0163**. Prior note follows.)*
 
 *Last Updated: 2026-08-23, eighteenth pass (**I-0149 – I-0161 ✅ VERIFIED (user-approved) and ARCHIVED in
 the same step** at SP-118 close → `Verified/Issue-verified-0141-0150.md` and the new

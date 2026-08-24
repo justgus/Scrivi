@@ -10,6 +10,36 @@
 
 namespace scrivi::objects {
 
+namespace {
+
+// ⚠️ T-0446 (SP-119): ONE place an index entry is built from a stored object.
+//
+// This field list existed THREE times — create, save, and promote — and adding
+// the image to only some of them is a silent, path-dependent bug: an image
+// attached at creation would show, one attached by a later save would not, and
+// the object file would be correct in both cases. ⚠️ **Found by an interop test,
+// not by the C++ suite** — the facade tests construct entries directly and never
+// exercise this join.
+//
+// Same defect class as the scan and serializer duplication removed in
+// `ObjectIndex.cpp`, and the same cure: state the fields once.
+ObjectIndexEntry makeIndexEntry(const ObjectID& objectID,
+                                ObjectKind kind,
+                                const WorldObjectFields& f) {
+    ObjectIndexEntry e;
+    e.objectID              = objectID;
+    e.kind                  = kind;
+    e.slug                  = f.slug;
+    e.displayName           = f.displayName;
+    e.worldID               = f.worldID;
+    e.imageAssetID          = f.image.assetID;
+    e.imageThumbnailAssetID = f.image.thumbnailAssetID;
+    return e;
+}
+
+} // namespace
+
+
 ObjectStore::ObjectStore(CoreServices& services)
     : services_(services) {}
 
@@ -252,12 +282,7 @@ Result<CreateObjectResult> ObjectStore::create(const CreateObjectRequest& reques
     // Index AFTER the object write succeeds — an entry for a file that never
     // landed is silently wrong, while a missing entry self-heals on rebuild.
     ObjectIndex index{services_};
-    ObjectIndexEntry entry;
-    entry.objectID    = stored.objectID;
-    entry.kind        = request.objectKind;
-    entry.slug        = stored.slug;
-    entry.displayName = stored.displayName;
-    entry.worldID     = stored.worldID;
+    auto entry = makeIndexEntry(stored.objectID, request.objectKind, stored);
     if (objectKindIsWorldScoped(request.objectKind)) {
         // World objects belong in the WORLD's index (Doc 3 §6.1), not the
         // project's — a world is self-contained. The project then caches the
@@ -362,12 +387,7 @@ Result<SaveObjectResult> ObjectStore::save(const SaveObjectRequest& request)
     // are carried in the index for the inspector's benefit.
     ObjectIndex index{services_};
     const auto& saved = worldObjectFields(updated);
-    ObjectIndexEntry entry;
-    entry.objectID    = saved.objectID;
-    entry.kind        = kind;
-    entry.slug        = saved.slug;
-    entry.displayName = saved.displayName;
-    entry.worldID     = saved.worldID;
+    auto entry = makeIndexEntry(saved.objectID, kind, saved);
     if (objectKindIsWorldScoped(kind)) {
         auto pkg = util::parent(util::parent(destPath));
         (void)index.upsertWorld(pkg, entry);
@@ -575,12 +595,12 @@ ObjectStore::promote(const AbsolutePath& projectRoot,
     // 4. Move the index entry between partitions. A world's index is its own
     //    (Doc 3 §6.1), so this is an erase on one side and an upsert on the
     //    other, never an in-place edit.
-    ObjectIndexEntry entry;
-    entry.objectID    = objectID;
-    entry.kind        = targetKind;
-    entry.slug        = slug;
-    entry.displayName = worldObjectFields(retyped).displayName;
-    entry.worldID     = destWorldID;
+    // ⚠️ Promotion keeps the object's identity and its image; only the KIND
+    // changes. Built through the shared helper so a field added later cannot be
+    // forgotten on this path (T-0446).
+    auto entry     = makeIndexEntry(objectID, targetKind, worldObjectFields(retyped));
+    entry.slug     = slug;
+    entry.worldID  = destWorldID;
 
     worlds::WorldStore ws{services_};
     if (objectKindIsWorldScoped(sourceKind)) {

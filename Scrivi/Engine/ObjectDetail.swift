@@ -115,7 +115,8 @@ struct ObjectDetail: Sendable, Equatable {
     /// overwritten or, worse, disagree with the core's clock.
     func applyingEdits(displayName newName: String,
                        subtitle newSubtitle: String,
-                       notes newNotes: String) throws -> String {
+                       notes newNotes: String,
+                       tags newTags: [String]? = nil) throws -> String {
         guard var root = try JSONSerialization.jsonObject(
             with: Data(sourceJson.utf8)) as? [String: Any] else {
             throw DecodeError.notAnObject
@@ -124,6 +125,26 @@ struct ObjectDetail: Sendable, Equatable {
         root["displayName"] = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         root["subtitle"]    = newSubtitle
         root["notes"]       = newNotes
+
+        // ⚠️ T-0449: tags round-trip as `[{"v": "..."}]`, NOT `["..."]`
+        // (`ObjectJson.cpp:40-44`). Writing a plain string array would parse back
+        // as an EMPTY list — every tag silently dropped on the next read, with
+        // the object file looking perfectly reasonable to a human.
+        //
+        // ⚠️ `nil` means "not edited" and leaves the key untouched, so a caller
+        // that does not handle tags cannot erase them.
+        if let newTags {
+            let cleaned = newTags
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            if cleaned.isEmpty {
+                // Absent rather than an empty array — matches how the core writes
+                // an object that has never had tags.
+                root.removeValue(forKey: "tags")
+            } else {
+                root["tags"] = cleaned.map { ["v": $0] }
+            }
+        }
 
         let data = try JSONSerialization.data(withJSONObject: root)
         return String(decoding: data, as: UTF8.self)

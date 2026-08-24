@@ -58,6 +58,34 @@ public extension ScriviError {
         return WorldStatus(rawValue: String(detail.dropFirst(Self.pendingPrefix.count)))
             ?? .unavailable
     }
+
+    /// The `worldUnavailable:` detail prefix the OBJECT endpoints use when a
+    /// world-scoped read or write cannot reach its package (`ObjectStore.cpp`).
+    private static let unavailablePrefix = "worldUnavailable:"
+
+    /// True when this error is *"the world is away"* rather than a real failure.
+    ///
+    /// ⚠️ **Distinct from `isWorldPending`**, which is the GRAPH refusing to
+    /// modify a frozen edge. This one is an object read/write that cannot reach
+    /// its package at all — `openObject` on an ejected drive is the everyday case.
+    ///
+    /// ⚠️ **It must never be reported as breakage** (R9). The writer's object is
+    /// not damaged and not missing; it is temporarily out of reach, and the UI
+    /// owes her that sentence instead of a raw error code (I-0166).
+    var isWorldUnavailable: Bool {
+        detail?.hasPrefix(Self.unavailablePrefix) ?? false
+    }
+
+    /// The world's status when `isWorldUnavailable` — nil for any other error.
+    ///
+    /// Diagnostic, not behavioral (Doc 2 §7.2.1): the behaviour is the same for
+    /// every status, but the REMEDY differs — reconnect a drive, find a moved
+    /// package — so the sentence must not guess.
+    var unavailableWorldStatus: WorldStatus? {
+        guard let detail, detail.hasPrefix(Self.unavailablePrefix) else { return nil }
+        return WorldStatus(rawValue: String(detail.dropFirst(Self.unavailablePrefix.count)))
+            ?? .unavailable
+    }
 }
 
 /// Why a world cannot be reached, as reported by ScriviCore

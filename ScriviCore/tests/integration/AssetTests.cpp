@@ -97,6 +97,54 @@ struct AssetFixture {
 // T-0042: importAsset - file and sidecar written
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// I-0164 (SP-119) — ⚠️ re-importing the SAME FILENAME orphans the first assetID
+//
+// Documents current behaviour so the cost is measured rather than assumed. This
+// test asserts what HAPPENS, not what should happen — the remedy is unruled.
+// ---------------------------------------------------------------------------
+
+TEST_CASE_METHOD(AssetFixture,
+                 "⚠️ I-0164 — re-importing the same filename makes the first assetID unresolvable",
+                 "[integration][I-0164]")
+{
+    auto src = writeSyntheticFile("portrait.png");
+
+    auto first = core.importAsset(makeImportReq(src, scrivi::AssetCategory::image, "Portrait"));
+    REQUIRE(first.ok());
+    const auto firstID = first.value().assetID;
+
+    // The writer picks the same file again — the ordinary way to "attach an image
+    // I already imported", because there is no other way to do it.
+    auto second = core.importAsset(makeImportReq(src, scrivi::AssetCategory::image, "Portrait"));
+    REQUIRE(second.ok());
+    const auto secondID = second.value().assetID;
+
+    // ⚠️ A NEW identity for the same bytes.
+    REQUIRE(firstID != secondID);
+
+    // ⚠️ And the sidecar is named after the FILENAME, so the second import
+    // overwrote it: the first assetID is now unresolvable. Any object still
+    // pointing at it dangles — silently, because nothing validates the link.
+    scrivi::ListAssetsRequest lr;
+    lr.projectRootPath = projectDir.string();
+    lr.category        = scrivi::AssetCategory::image;
+    auto listed = core.listAssets(lr);
+    REQUIRE(listed.ok());
+
+    bool firstStillListed = false, secondListed = false;
+    for (const auto& a : listed.value().assets) {
+        if (a.meta.assetID == firstID)  { firstStillListed = true; }
+        if (a.meta.assetID == secondID) { secondListed = true; }
+    }
+    REQUIRE(secondListed);
+    REQUIRE_FALSE(firstStillListed);   // ⚠️ the orphaning, demonstrated
+
+    // ⚠️ Exactly ONE asset on disk, not two — the bytes were overwritten rather
+    // than duplicated. So this is not wasted space; it is a lost REFERENCE.
+    REQUIRE(listed.value().assets.size() == 1);
+}
+
 TEST_CASE_METHOD(AssetFixture, "importAsset writes binary file and sidecar to assets/<category>/",
                  "[integration][T-0042]")
 {

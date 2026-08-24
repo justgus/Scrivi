@@ -17,6 +17,24 @@ struct ObjectIndexEntry {
     Slug        slug;
     std::string displayName;
     std::string worldID;    // empty for project-scoped objects
+
+    // T-0446 (SP-119): the object's image, so a card list knows an object HAS one
+    // without opening it — D8's thumbnails would otherwise cost one file read per
+    // row in a 280pt pane, and an image may live on a slow or absent volume.
+    //
+    // ⚠️ IDs ONLY — deliberately NOT a resolved path.
+    //
+    // Assets live at `assets/<category>/<filename>`, keyed by FILENAME, so an
+    // assetID resolves to a path only by reading the asset sidecars. Doing that
+    // during a rebuild would (a) persist a VOLUME-DEPENDENT value that goes stale
+    // the moment the drive mounts elsewhere, and (b) make rebuilding the object
+    // index depend on the assets directory being readable. ⚠️ **The index is a
+    // mirror of the object files and nothing else.**
+    //
+    // ✅ RULED 2026-08-23: resolution happens at LIST time — `scrivi_list_objects`
+    // scans assets ONCE per call and joins. One scan per list, not per row.
+    std::string imageAssetID;
+    std::string imageThumbnailAssetID;   // optional; preferred for a card row
 };
 
 // objects/index.json — the ID→object lookup backing findByID.

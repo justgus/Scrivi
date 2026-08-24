@@ -244,6 +244,15 @@ task rather than reviving T-0216.
 
 ---
 
+*Last Updated: 2026-08-23, ninth pass (**T-0446–T-0450 MOVED to `Task-active.md`** — SP-119 activated
+2026-08-23, so they leave the backlog per layer discipline. Next available Task: **T-0451**. Prior note
+follows.)*
+
+*Last Updated: 2026-08-23, eighth pass (**T-0446–T-0450 ADDED for SP-119** 🔵 Planning — images, tags and
+AC9's second half; **closes AC2, AC3, AC4**. ⚠️ **T-0446 is `[ScriviCore]`** by user ruling: the object
+index carries `image`, so a thumbnail is one read for the whole list rather than N reads in a 280pt pane.
+⚠️ **The asset stack has ZERO view callers today.** Next available Task: **T-0451**. Prior note follows.)*
+
 *Last Updated: 2026-08-23, seventh pass (**T-0416 REMOVED from the backlog table** — ✅ shipped as T-0441 +
 I-0149 and Verified at SP-118 close; its detail block is kept for history only. Next available Task:
 **T-0446**. Prior note follows.)*

@@ -1946,6 +1946,77 @@ struct ScriviGraphInteropTests {
         #expect(AppEnvironment.isRunningUnderTests)
     }
 
+    // MARK: ⚠️ T-0446 — the object's image crosses the boundary
+
+    @Test("⚠️ T-0446 — an object with no image decodes with an empty imagePath")
+    func objectWithoutImageDecodes() throws {
+        let f = try makeFixture()
+        _ = try makeCharacter(f, "Ada")
+
+        let objects = try f.engine.listObjects(projectRootPath: f.root).objects
+        let ada = try #require(objects.first { $0.displayName == "Ada" })
+
+        // ⚠️ The keys are ABSENT for an object with no image, so these must decode
+        // as nil rather than failing — the common case by far, and a decode error
+        // here would empty every card in the app.
+        #expect(ada.imagePath == nil || ada.imagePath?.isEmpty == true)
+        #expect(!ada.hasResolvableImage)
+        #expect(ada.imageAssetID == nil || ada.imageAssetID?.isEmpty == true)
+    }
+
+    @Test("⚠️ T-0446 — an imported image resolves to a path the app can draw")
+    func objectImageResolvesToPath() throws {
+        let f = try makeFixture()
+        let ada = try makeCharacter(f, "Ada")
+
+        // A real import, through the real endpoint — the bytes must exist.
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("t0446-\(UUID().uuidString).png")
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let imported = try f.engine.importAsset(
+            projectRootPath: f.root,
+            sourcePath: tmp.path,
+            category: "image",
+            title: "Portrait",
+            authorshipRef: f.ref,
+            worldID: f.worldID
+        )
+        #expect(!imported.assetID.isEmpty)
+
+        // Attach it to the object the way a save does: patch `image` into the
+        // object's own JSON and write it back.
+        let opened = try f.engine.openObject(
+            projectRootPath: f.root, objectKind: "character",
+            objectID: ada, worldID: f.worldID)
+        var json = try #require(try JSONSerialization.jsonObject(
+            with: Data(opened.objectJson.utf8)) as? [String: Any])
+        json["image"] = ["assetID": imported.assetID]
+        let patched = try JSONSerialization.data(withJSONObject: json)
+        _ = try f.engine.saveObject(
+            projectRootPath: f.root, objectKind: "character",
+            objectJson: String(decoding: patched, as: UTF8.self),
+            authorshipRef: f.ref)
+
+        // ⚠️ THE ASSERTION THAT MATTERS: the LIST — not openObject — hands the app
+        // a usable path. This is what a card row draws from, and the whole reason
+        // the index carries the image at all.
+        let listed = try f.engine.listObjects(projectRootPath: f.root).objects
+        let row = try #require(listed.first { $0.objectID == ada })
+        #expect(row.imageAssetID == imported.assetID)
+        #expect(row.hasResolvableImage)
+
+        // ⚠️ The path must be real, not merely non-empty — an unopenable path
+        // would render as a broken image, which is worse than none.
+        let path = try #require(row.imagePath)
+        #expect(FileManager.default.fileExists(atPath: path))
+
+        // ⚠️ AC3's storage rule: a world-scoped object's image lives INSIDE the
+        // world package, not under the project.
+        #expect(path.contains(".scrivworld"))
+    }
+
     // MARK: ⚠️ T-0441 — the drifted vocabulary, tested THROUGH THE BOUNDARY
     //
     // ⚠️ A facade test cannot see a boundary gap — that is how I-0113 shipped

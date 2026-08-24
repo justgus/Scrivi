@@ -20,6 +20,7 @@ add_executable(ScriviCoreTests
     unit/LocalFileSystemTests.cpp
     unit/OrderKeyTests.cpp
     unit/ChapterIndexTests.cpp
+    integration/GolemImportTool.cpp
     integration/AppSupportLayoutTests.cpp
     integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp

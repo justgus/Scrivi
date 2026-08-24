@@ -13,6 +13,24 @@ namespace {
 
 constexpr std::string_view kIndexSchema = "scrivi.object-index.v1";
 
+// ⚠️ I-0163 — the index is a DERIVED CACHE, and a cache written by an older build
+// is missing fields that build never knew about.
+//
+// T-0446 added `imageAssetID`. Every index already on disk predates it, and
+// `parse` accepted those files happily — so a world whose objects HAD images
+// reported none, forever, because nothing ever rescanned a cache that parsed.
+// ⚠️ **Found on the real rig: Myton's picture was in the world package and the
+// Detail Sheet showed no image.**
+//
+// The generation is bumped whenever a FIELD IS ADDED to an entry. A mismatch
+// makes `parse` return nullopt, which every caller already treats as "rebuild
+// from the object files" — the files are the truth (v0.2 §4.2), so this costs one
+// scan and can never lose data.
+//
+// ⚠️ Bump this when adding a field. Not bumping it is silent, and presents as
+// "the data is on disk but the app cannot see it."
+constexpr int kIndexGeneration = 2;   // 2 = T-0446 image fields
+
 // Kinds the PROJECT index scans — project-scoped only. World-scoped kinds
 // (artifact/chronicle/faction/rule) live in .scrivworld packages and are carried
 // in the binding's cachedIndex instead (Doc 3 §6.3). `rule` left this list in
@@ -48,6 +66,9 @@ ObjectIndex::parse(std::string_view json) const {
 
     auto& doc = docR.value();
     if (doc.getString("schema") != kIndexSchema) { return std::nullopt; }
+    // ⚠️ Absent reads as 0 — which is exactly right for every index written
+    // before this marker existed, and is the case that matters (I-0163).
+    if (doc.getInt("generation") != kIndexGeneration) { return std::nullopt; }
 
     std::vector<ObjectIndexEntry> entries;
     const auto count = doc.arraySize("entries");
@@ -65,6 +86,10 @@ ObjectIndex::parse(std::string_view json) const {
         e.kind        = *kind;
         e.slug        = item.getString("slug");
         e.displayName = item.getString("displayName");
+        // Absent for an object with no image, and for an index written by a
+        // build older than T-0446 — both read as empty, which is correct.
+        e.imageAssetID          = item.getString("imageAssetID");
+        e.imageThumbnailAssetID = item.getString("imageThumbnailAssetID");
         e.worldID     = item.getString("worldID");
         entries.push_back(std::move(e));
     }
@@ -91,6 +116,34 @@ ObjectIndex::load(const AbsolutePath& projectRoot) const {
     }
 
     return rebuild(projectRoot);
+}
+
+// ⚠️ T-0446 (SP-119): ONE serializer for an index entry.
+//
+// This existed as THREE byte-identical loops — in `write`, `writeWorldIndex` and
+// `upsertWorld`. ⚠️ **Adding the image field meant editing the same field list in
+// three places, and forgetting one would mean an object's image survives a project
+// rebuild but vanishes on a world upsert** — a silent, kind-dependent data loss
+// that no single test would obviously catch.
+//
+// Same defect class as the scan duplication removed above, and the same cure:
+// the field list exists once, so it cannot be half-updated.
+util::JsonDoc serializeEntry(const ObjectIndexEntry& e) {
+    util::JsonDoc item;
+    item.setString("objectID",    e.objectID.value);
+    item.setString("kind",        objectKindName(e.kind));
+    item.setString("slug",        e.slug);
+    item.setString("displayName", e.displayName);
+    // Written only when present, so an index for objects with no images stays
+    // byte-identical to what earlier builds produced.
+    if (!e.imageAssetID.empty()) {
+        item.setString("imageAssetID", e.imageAssetID);
+    }
+    if (!e.imageThumbnailAssetID.empty()) {
+        item.setString("imageThumbnailAssetID", e.imageThumbnailAssetID);
+    }
+    item.setString("worldID",     e.worldID);
+    return item;
 }
 
 // Scans one directory tree for object files. Shared by the project rebuild and
@@ -129,6 +182,11 @@ ObjectIndex::scanDir(const AbsolutePath& baseDir, bool worldScoped) const {
             e.slug        = f.slug;
             e.displayName = f.displayName;
             e.worldID     = f.worldID;
+            // T-0446: IDs only — see the note on ObjectIndexEntry. This is the
+            // ONE place entries are built from object files, which is why
+            // rebuild() was unified onto this scan first.
+            e.imageAssetID          = f.image.assetID;
+            e.imageThumbnailAssetID = f.image.thumbnailAssetID;
             entries.push_back(std::move(e));
         }
     }
@@ -144,50 +202,23 @@ ObjectIndex::scanDir(const AbsolutePath& baseDir, bool worldScoped) const {
 
 Result<std::vector<ObjectIndexEntry>>
 ObjectIndex::rebuild(const AbsolutePath& projectRoot) const {
-    auto& fs         = *services_.fileSystem;
-    auto  objectsDir = util::join(projectRoot, "objects");
-
-    std::vector<ObjectIndexEntry> entries;
-
-    for (auto kind : kAllStorableKinds) {
-        if (objectKindIsWorldScoped(kind)) { continue; }
-        auto dir     = util::join(objectsDir, objectKindSubdir(kind));
-        auto existsR = fs.exists(dir);
-        if (!existsR.ok() || !existsR.value()) { continue; }
-
-        auto listR = fs.listDirectory(dir);
-        if (!listR.ok()) { continue; }
-
-        for (const auto& entry : listR.value()) {
-            if (util::extension(entry) != ".json") { continue; }
-
-            auto textR = fs.readTextFile(entry);
-            if (!textR.ok()) { continue; }
-
-            // Best-effort, matching the posture elsewhere in the codebase: one
-            // unparseable object file must not cost the whole index.
-            auto parseR = schemas::parseWorldObject(textR.value(), kind);
-            if (!parseR.ok()) { continue; }
-
-            const auto& f = worldObjectFields(parseR.value());
-            if (f.objectID.value.empty()) { continue; }
-
-            ObjectIndexEntry e;
-            e.objectID    = f.objectID;
-            e.kind        = kind;
-            e.slug        = f.slug;
-            e.displayName = f.displayName;
-            e.worldID     = f.worldID;
-            entries.push_back(std::move(e));
-        }
-    }
-
-    // Deterministic order so a rebuild is idempotent regardless of the order
-    // the filesystem hands back directory entries.
-    std::sort(entries.begin(), entries.end(),
-              [](const ObjectIndexEntry& a, const ObjectIndexEntry& b) {
-                  return a.objectID.value < b.objectID.value;
-              });
+    // ⚠️ T-0446 (SP-119): this is ONE call to the shared scan.
+    //
+    // It used to carry a hand-inlined copy of `scanDir`'s loop — the same
+    // directory walk, the same best-effort parse, the same entry construction,
+    // the same sort — while `loadWorldIndex` called the helper. ⚠️ **The helper
+    // was written to be shared and this caller simply ignored it**, so the two
+    // scans could drift with nothing to catch it.
+    //
+    // ⚠️ That mattered the moment a FIELD was added: adding it to one scan and
+    // not the other presents as "it works in my project but not from a world" —
+    // exactly the asymmetry AC3 tests. Unifying first means the image field below
+    // is added in exactly one place and cannot be half-added.
+    //
+    // ⚠️ This is the derive-never-restate rule (CLAUDE.md) applied to control
+    // flow rather than to kind lists: the abstraction existed; a caller restated
+    // it.
+    auto entries = scanDir(util::join(projectRoot, "objects"), /*worldScoped=*/false);
 
     if (auto r = write(projectRoot, entries); !r.ok()) {
         return Result<std::vector<ObjectIndexEntry>>::failure(r.error());
@@ -205,15 +236,10 @@ Result<void> ObjectIndex::write(const AbsolutePath& projectRoot,
 
     util::JsonDoc root;
     root.setString("schema", std::string(kIndexSchema));
+    root.setInt("generation", kIndexGeneration);
 
     for (const auto& e : entries) {
-        util::JsonDoc item;
-        item.setString("objectID",    e.objectID.value);
-        item.setString("kind",        objectKindName(e.kind));
-        item.setString("slug",        e.slug);
-        item.setString("displayName", e.displayName);
-        item.setString("worldID",     e.worldID);
-        root.appendToArray("entries", std::move(item));
+        root.appendToArray("entries", serializeEntry(e));
     }
 
     return fs.atomicWriteTextFile(indexPath(projectRoot), root.dump());
@@ -289,14 +315,9 @@ Result<void> ObjectIndex::writeWorldIndex(
     const std::vector<ObjectIndexEntry>& entries) const {
     util::JsonDoc root;
     root.setString("schema", std::string(kIndexSchema));
+    root.setInt("generation", kIndexGeneration);
     for (const auto& e : entries) {
-        util::JsonDoc item;
-        item.setString("objectID",    e.objectID.value);
-        item.setString("kind",        objectKindName(e.kind));
-        item.setString("slug",        e.slug);
-        item.setString("displayName", e.displayName);
-        item.setString("worldID",     e.worldID);
-        root.appendToArray("entries", std::move(item));
+        root.appendToArray("entries", serializeEntry(e));
     }
     return services_.fileSystem->atomicWriteTextFile(
         util::join(packagePath, "index.json"), root.dump());
@@ -336,14 +357,9 @@ Result<void> ObjectIndex::eraseWorld(const AbsolutePath& packagePath,
 
     util::JsonDoc root;
     root.setString("schema", std::string(kIndexSchema));
+    root.setInt("generation", kIndexGeneration);
     for (const auto& e : entries) {
-        util::JsonDoc item;
-        item.setString("objectID",    e.objectID.value);
-        item.setString("kind",        objectKindName(e.kind));
-        item.setString("slug",        e.slug);
-        item.setString("displayName", e.displayName);
-        item.setString("worldID",     e.worldID);
-        root.appendToArray("entries", std::move(item));
+        root.appendToArray("entries", serializeEntry(e));
     }
     return services_.fileSystem->atomicWriteTextFile(
         util::join(packagePath, "index.json"), root.dump());

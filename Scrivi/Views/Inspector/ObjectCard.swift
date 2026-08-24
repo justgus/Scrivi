@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 // T-0386 — worldbuilding object cards (EP-031 SP-099).
 // Design: Scrivi_Scene_Inspector_Card_Framework_v0_1.md §3.1, §6, §7.2
@@ -126,6 +129,11 @@ struct ObjectCardKind: Sendable, Hashable {
         /// is currently reachable. Distinct from `pendingWorldID`, which is about
         /// a world being *away*. Empty for a project-scoped object.
         let worldID: String
+        /// ⚠️ T-0448 / D8: the object's image, **resolved by the core** in the same
+        /// listing this card already performs — one resolve per load, never per
+        /// row. Empty means no image, or a world that is away; both render as no
+        /// thumbnail, which is correct for each.
+        let imagePath: String
 
         var id: String { edgeID }
     }
@@ -156,6 +164,14 @@ struct ObjectCardKind: Sendable, Hashable {
                 projectRootPath: projectRootPath, kind: cardKind.kind
             ).objects
             let ofKind = Set(objects.map(\.objectID))
+            // T-0448: image paths from the SAME listing — no extra reads, and a
+            // pending object is simply absent from it (so no thumbnail, per D8).
+            let imagePaths = Dictionary(
+                objects.compactMap { o -> (String, String)? in
+                    guard let p = o.imagePath, !p.isEmpty else { return nil }
+                    return (o.objectID, p)
+                },
+                uniquingKeysWith: { first, _ in first })
 
             entries = edges.compactMap { edge -> Entry? in
                 // A pending endpoint cannot be confirmed against the index — its
@@ -189,7 +205,11 @@ struct ObjectCardKind: Sendable, Hashable {
                     pending: edge.otherPending,
                     pendingStatus: edge.pendingStatus,
                     pendingWorldID: edge.otherPending ? edge.otherWorldID : nil,
-                    worldID: edge.otherWorldID ?? ""
+                    worldID: edge.otherWorldID ?? "",
+                    // ⚠️ A PENDING object gets no thumbnail by construction — it is
+                    // absent from `objects`, so this is empty. D8: "a pending
+                    // object's row is unchanged."
+                    imagePath: imagePaths[edge.otherID] ?? ""
                 )
             }
             loadError = nil
@@ -910,6 +930,71 @@ private struct PendingWorldFooter: View {
     }
 }
 
+/// A card row's thumbnail (EP-034 SP-119, T-0448; trade **D8-A**).
+///
+/// ## ⚠️ It must NEVER block the card
+///
+/// D8 is explicit, and the reason is concrete: an object's image may live **on an
+/// unavailable world's volume** — a slow or failing read on the USB rig — and
+/// *"a thumbnail that hangs the inspector would be a worse defect than no
+/// thumbnail at all."* Doc 2's card-independence rule says the same: one card
+/// failing to load must not prevent others.
+///
+/// So decoding happens **off the main actor**, and the row renders immediately
+/// with nothing in the slot. A failed or slow load leaves the row exactly as it
+/// would have been with no image — ⚠️ **never a spinner, never a broken-image
+/// placeholder**, both of which draw the eye to a non-problem.
+///
+/// ⚠️ **A pending object never reaches here** — it is absent from the object
+/// listing, so its `imagePath` is empty and the row is unchanged (D8).
+private struct ObjectRowThumbnail: View {
+    let path: String
+
+    @State private var image: Image?
+
+    var body: some View {
+        Group {
+            if let image {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 20, height: 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            } else {
+                // ⚠️ Occupies the same space so the row does not JUMP when the
+                // image arrives — but stays invisible, so a load that never
+                // completes is indistinguishable from an object with no image.
+                Color.clear.frame(width: 20, height: 20)
+            }
+        }
+        .accessibilityHidden(true)   // the row's name carries the meaning
+        .task(id: path) { await load() }
+    }
+
+    /// ⚠️ `Task.detached` so the decode never runs on the main actor. A 4 MB PNG
+    /// on a sleeping USB drive can take seconds; the inspector must stay live.
+    private func load() async {
+        let wanted = path
+        let decoded: Image? = await Task.detached(priority: .utility) {
+            #if os(macOS)
+            guard FileManager.default.fileExists(atPath: wanted),
+                  let ns = NSImage(contentsOfFile: wanted) else { return nil }
+            return Image(nsImage: ns)
+            #else
+            guard FileManager.default.fileExists(atPath: wanted),
+                  let ui = UIImage(contentsOfFile: wanted) else { return nil }
+            return Image(uiImage: ui)
+            #endif
+        }.value
+
+        // ⚠️ The row may have been recycled onto a different object while this
+        // was decoding — LazyVStack reuses aggressively. Dropping a stale result
+        // is what stops one object's picture appearing on another's row.
+        guard wanted == path else { return }
+        image = decoded
+    }
+}
+
 private struct ObjectCardRow: View {
     let entry: ObjectCardModel.Entry
     let onRemove: () -> Void
@@ -923,6 +1008,14 @@ private struct ObjectCardRow: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            // ⚠️ D8-A: a thumbnail ONLY when an image exists — no reserved slot.
+            // The inspector is 280pt wide and most objects will never have an
+            // image; reserving space for all of them wastes the scarcest thing
+            // this pane has.
+            if !entry.imagePath.isEmpty {
+                ObjectRowThumbnail(path: entry.imagePath)
+            }
+
             if entry.pending {
                 // ⚠ badge — the card is showing something it cannot currently
                 // reach (§7.2). Named, never a bare ID.

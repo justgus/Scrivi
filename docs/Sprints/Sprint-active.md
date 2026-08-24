@@ -2,102 +2,86 @@
 
 **No Sprint is currently active.**
 
-**SP-118 was ✅ CLOSED 2026-08-23 (user-approved)** → [`Closed/Sprint-SP-118.md`](Closed/Sprint-SP-118.md).
-**EP-034 remains 🟡 Active** — SP-119 is next.
+**SP-119 was ✅ CLOSED 2026-08-24 (user-approved)** → [`Closed/Sprint-SP-119.md`](Closed/Sprint-SP-119.md).
+**EP-034 remains 🟡 Active** — SP-120 is next.
 
 ---
 
-## What SP-118 delivered
+## What SP-119 delivered
 
-EP-034's **fourth** sprint. **All five Tasks and thirteen Issues ✅ Verified.**
+EP-034's **fifth** sprint. **All seven Tasks and seven Issues ✅ Verified.**
 
 | Task | Delivered |
 | ---- | --------- |
-| T-0441 | ⚠️ **T-0416** — seeded relation types reconciled on open; ⚠️ **complete only with I-0149** |
-| T-0442 | **R3** — the related-objects section, labels **read** from the core and never recomputed |
-| T-0443 | **D4-A** — inline creation; ⚠️ **a second picker, RULED IN FAVOUR by the user** |
-| T-0444 | **R5/R7** — double-click **and** right-click → **"Show"** |
-| T-0445 | **Pending far-endpoints** — listed, named, explained, never dropped |
+| T-0446 | `image` in the object index — ⚠️ **exposed THREE duplications where one was predicted** |
+| T-0447 | **AC3** — import / display / replace / remove an object image; ✅ **S11 written first** |
+| T-0448 | **AC4 / D8** — card thumbnails, async, never blocking |
+| T-0449 | **AC2** — tags; ⚠️ **SP-117's deferral reason was wrong — the chip editor already existed** |
+| T-0450 | **AC9's second half** — unsaved edits at risk, warned |
+| T-0451 | **I-0164** — attach an asset already in the world |
+| T-0452 | **I-0167 + I-0168** — Cancel, and a guarded exit on all six routes |
 
-**Closes AC5, AC6 and AC7.**
+**Closes AC2, AC3, AC4 and AC9's second half.**
 
-**Suites at close:** `ctest` **561/561** (arm64 · x86-64 · ASan+UBSan) · **Linux 565/565** (GCC 13,
-non-root) · interop **120/120** · app **BUILD SUCCEEDED**.
-
----
-
-## ⚠️ The number that defines this sprint: 13 Issues, 0 found by tests
-
-Every one of **I-0149 – I-0161** was found by the user's **live click-through**, after the suites were
-green. ⚠️ **The suites were not wrong** — they assert edge creation, duplicate rejection, both-endpoint
-visibility and pending presentation, and all of it held up. **What no test covered was whether a writer
-could reach any of it.**
-
-⚠️ **Third occurrence of `capability_without_surface` in this Epic** — and the first at the **core**
-(I-0149) rather than in the UI.
-
-### ⚠️ Four of the thirteen were ONE failure: a rule already written in this repo
-
-| Issue | The rule that already existed |
-| ----- | ----------------------------- |
-| I-0152 | the Navigator names an untitled scene "Scene N", never an ID |
-| I-0155 | `ObjectCardModel.rename` re-reads before patching |
-| I-0157 | I-0132 ruled `selectedSceneID` the source of truth |
-| I-0158 | `SceneNavigatorView` uses `List(selection:)` |
-
-> ⚠️ *"A Swift standard List View handles all this automatically, which makes me wonder why it is so hard
-> for you."* — the user. It was not hard; new machinery was built beside machinery that already worked.
-
-### ⚠️ Standing guidance recorded at close — SwiftUI events are asynchronous
-
-> *"Many event detection operations do not occur in the 'intuitive' place in the codebase… they are run
-> asynchronously between the time they are triggered and the time they are actually executed. We need to
-> make sure we target the right callback function."* — the user
-
-⚠️ **The tell is "it works, but the other half of the UI doesn't agree."** Almost never focus, gesture
-arbitration or rendering — it is two views driven from different points in one async sequence.
+**Suites at close:** `ctest` **567/567** · interop **122/122** · app **BUILD SUCCEEDED**.
 
 ---
 
-## ⚠️ Two data-safety findings that outlive this sprint
+## ⚠️ Seven Issues, none found by any suite
 
-1. ⚠️ **`xcodebuild test` is NOT read-only on this project (I-0150).** It launches the hosted app, which
-   restores the writer's real projects from bookmarks and writes to them with just-compiled code — this is
-   what silently repaired `the-twisted-remains-of-myself.scrivi` while Scrivi was closed. Fixed
-   structurally. ⚠️ **`pgrep Scrivi` never protected against this and reads as though it does.**
-2. ⚠️ **A scroll region with no affordance is a data-loss report waiting to happen (I-0159).** Myton
-   appeared to show 3 of 8 relationships. **Whether rows are absent or merely unreachable-looking, the
-   writer concludes her work is gone.**
+SP-118 raised thirteen; SP-119 raised seven. ⚠️ **In both sprints, not one came from a test.** The suites
+were green throughout and were not wrong — they assert what the core does. **What no test covered was
+whether a writer could reach it, and what happened when the world moved under her.**
+
+### ⚠️ Six data-loss routes into ONE surface
+
+Stale image path (I-0162) · sheet destroyed on eject (I-0165) · every reload clobbered drafts, live since
+SP-117 (I-0165b) · cold open showed a raw error code (I-0166) · ✕/back/forward/related-list discarded
+edits (I-0167) · Scene Inspector bypassed the guard (I-0168).
+
+⚠️ **Claude's failure was consistent — fix the trigger in front of it, treat the class as closed.**
+✅ **What worked was moving the DECISION to one owner**, not adding another check.
 
 ---
 
-## ⚠️ Carried out of SP-118 — do not read as delivered
+## ⚠️ Two rulings that outlive this sprint
+
+**Core-before-surface is the CORRECT sequence, not a defect.** ScriviCore is the capability layer; the app
+is one surface over it. ⚠️ **The real risk is the design phase** — designing to the lowest common
+denominator rather than to the capability that exists. ✅ **S11 is the guard**, and it works;
+⚠️ **it must enumerate OPERATIONS as well as fields** (the gap that let I-0164 through).
+
+**An unlinked asset is a library entry, not debris.** An orphaned image may remain and be linked to other
+world objects as needed. **Asset deletion is unbuilt scope.**
+
+---
+
+## ⚠️ Carried out of SP-119
 
 | Item | Owner |
 | ---- | ----- |
-| ⚠️ **`tags` deferred** (user ruling) — **R2 not fully met, AC2 CANNOT CLOSE** | **SP-119** |
-| ⚠️ **AC9's second half** — a world going away *while a sheet is open* is a DIFFERENT trigger from the one verified (`feedback_verify_each_half_separately`) | **SP-119** |
-| **AC3, AC4, AC8** — images and sources | **SP-119 – SP-120** |
-| **I-0147** — the 60 s post-crash lock window; ✅ **Accepted**, regression-tested | **Network-worlds design** |
-| ⚠️ **`ObjectIndex::loadWorldIndex`'s rebuild is still UNLOCKED** — `WorldLock` is not reentrant | **Network-worlds design** |
+| **AC8** — source creation + footnote text (R6) | **SP-120** |
+| **AC11** — `[Linux]` parity | **SP-121** |
+| **AC12** — full suite verification + Epic close prep | **SP-122** |
+| ⚠️ **S11 must enumerate OPERATIONS as well as fields** | **SP-120** |
+| ⚠️ **Thumbnail generation** — `thumbnailAssetID` is read but never written | Unscheduled |
+| ⚠️ **Asset deletion** — ✅ ruled acceptable to omit | Unscheduled |
+| **I-0147** — the 60 s post-crash lock window; ✅ **Accepted** | **Network-worlds design** |
 
 ---
 
 ## Next
 
-⚠️ **No Sprint is planned.** SP-119 has not been defined — ⚠️ **Claude does not plan or activate one
-without the user's word.**
-
-Its likely scope, carried from here: **`tags` (closing AC2)**, **AC9's second half**, and **AC3/AC4
-images**.
+⚠️ **No Sprint is planned.** SP-120 has not been defined — ⚠️ **Claude does not plan or activate one
+without the user's word.** Its subject is **AC8**: source creation from the documented object, closing
+T-0365's write half and unblocking EP-032.
 
 ⚠️ **SP-107–SP-114 remain RESERVED to EP-032** and are not available.
 
-**Next available:** Sprint **SP-119** · Task **T-0446** · Issue **I-0162**.
+**Next available:** Sprint **SP-120** · Task **T-0453** · Issue **I-0169**.
 
 ---
 
-*Last Updated: 2026-08-23 (**SP-118 ✅ CLOSED, user-approved.** Five Tasks + thirteen Issues Verified and
-archived in the same step. ⚠️ **Thirteen Issues, none found by any suite** — the strongest evidence yet
-that the live click-through is not optional. Active Sprints 1 → 0; EP-034 stays 🟡 Active, **4 of 8
-sprints closed**.)*
+*Last Updated: 2026-08-24 (**SP-119 ✅ CLOSED, user-approved.** Seven Tasks + seven Issues Verified and
+archived in the same step. ⚠️ **Seven Issues, none from any suite; six were data-loss routes into one
+surface.** Active Sprints 1 → 0; EP-034 stays 🟡 Active, **5 of 8 sprints closed**.)*

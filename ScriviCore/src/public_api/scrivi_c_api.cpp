@@ -38,6 +38,10 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include "assets/AssetStore.hpp"
+
+#include <map>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -935,13 +939,86 @@ const char* scrivi_list_pending_edges(const char* projectRootPath)
 
 namespace {
 
+// ⚠️ T-0446 (SP-119): assetID → on-disk path, built ONCE per list call.
+//
+// Assets live at `assets/<category>/<filename>` — keyed by FILENAME, not by
+// assetID — so a path is only obtainable by reading the asset sidecars. ⚠️ **That
+// resolution is deliberately NOT persisted into the object index**: a path is
+// volume-dependent and would go stale the moment a world's drive mounts
+// elsewhere, and rebuilding the object index must not depend on the assets
+// directory being readable. The index mirrors object files and nothing else.
+//
+// ⚠️ Built per CALL, never per row. A per-row lookup would be N directory scans
+// in a 280pt inspector pane, which is exactly the cost D8 forbids: "a thumbnail
+// that hangs the inspector would be a worse defect than no thumbnail at all."
+//
+// ⚠️ A world that is away simply contributes nothing — its assets are absent from
+// the map, so `imagePath` comes back EMPTY rather than wrong. Empty means "not
+// resolvable right now", which is the truth, and the caller renders the row
+// exactly as it does for an object with no image at all.
+std::map<std::string, std::string> assetPathsByID(
+    const scrivi::CoreServices& svc,
+    const std::string& projectRoot,
+    const std::vector<scrivi::objects::ObjectIndexEntry>& entries) {
+
+    std::map<std::string, std::string> byID;
+
+    // Every distinct world touched by these entries, plus the project itself
+    // (empty worldID). Each root is scanned at most once.
+    std::set<std::string> roots;
+    for (const auto& e : entries) {
+        if (!e.imageAssetID.empty() || !e.imageThumbnailAssetID.empty()) {
+            roots.insert(e.worldID);
+        }
+    }
+    if (roots.empty()) { return byID; }   // no images anywhere: no scan at all
+
+    scrivi::assets::AssetStore store{const_cast<scrivi::CoreServices&>(svc)};
+    for (const auto& worldID : roots) {
+        scrivi::ListAssetsRequest req;
+        req.projectRootPath = projectRoot;
+        req.worldID         = worldID;
+        req.category        = scrivi::AssetCategory::image;
+        auto r = store.list(req);
+        if (!r.ok()) { continue; }        // unreadable root → those rows stay empty
+        for (const auto& a : r.value().assets) {
+            byID[a.meta.assetID] = a.assetPath;
+        }
+    }
+    return byID;
+}
+
 void putObjectEntry(scrivi::util::JsonDoc& item,
-                    const scrivi::objects::ObjectIndexEntry& e) {
+                    const scrivi::objects::ObjectIndexEntry& e,
+                    const std::map<std::string, std::string>* imagePaths = nullptr) {
     item.setString("objectID",    e.objectID.value);
     item.setString("kind",        scrivi::objectKindName(e.kind));
     item.setString("slug",        e.slug);
     item.setString("displayName", e.displayName);
     item.setString("worldID",     e.worldID);   // "" for project-scoped
+
+    // ⚠️ The IDs travel too, but they are PLUMBING — identity for replace/remove.
+    // ⚠️ **A writer never sees an assetID**: "the writer is not going to care what
+    // the computer calls the image on the inside" (user ruling, 2026-08-23). What
+    // the surface draws from is `imagePath`.
+    if (!e.imageAssetID.empty()) {
+        item.setString("imageAssetID", e.imageAssetID);
+    }
+    if (!e.imageThumbnailAssetID.empty()) {
+        item.setString("imageThumbnailAssetID", e.imageThumbnailAssetID);
+    }
+    if (imagePaths != nullptr) {
+        // ⚠️ Thumbnail PREFERRED for a list row (D8) — a card in a 280pt pane
+        // should never decode a full-size image when a thumbnail exists.
+        auto pick = [&](const std::string& id) -> std::string {
+            if (id.empty()) { return {}; }
+            auto it = imagePaths->find(id);
+            return it == imagePaths->end() ? std::string{} : it->second;
+        };
+        auto path = pick(e.imageThumbnailAssetID);
+        if (path.empty()) { path = pick(e.imageAssetID); }
+        if (!path.empty()) { item.setString("imagePath", path); }
+    }
 }
 
 } // namespace
@@ -963,11 +1040,20 @@ const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrN
     auto r = index.loadAllVisible(S(projectRootPath));
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
-    scrivi::util::JsonDoc doc;
+    // T-0446: resolve image paths ONCE for the whole listing, over only the
+    // entries actually being returned — a kind filter therefore also narrows how
+    // many asset roots get scanned.
+    std::vector<scrivi::objects::ObjectIndexEntry> visible;
     for (const auto& e : r.value()) {
         if (wanted && e.kind != *wanted) { continue; }
+        visible.push_back(e);
+    }
+    const auto imagePaths = assetPathsByID(svc, S(projectRootPath), visible);
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& e : visible) {
         scrivi::util::JsonDoc item;
-        putObjectEntry(item, e);
+        putObjectEntry(item, e, &imagePaths);
         doc.appendToArray("objects", std::move(item));
     }
     return heap(okEnvelope(std::move(doc)));

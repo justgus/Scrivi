@@ -36,8 +36,8 @@ manuscript export has no existing path to attach to (`scrivi_export_project_time
 the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequencing question** — without
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
-**Next available Sprint ID: SP-119** — ⚠️ **SP-115, SP-116 and SP-117 are closed and SP-118 is now
-🟡 ACTIVE**, all four EP-034's. ⚠️ **Zero Sprints in Planning.**
+**Next available Sprint ID: SP-120** — ⚠️ **SP-115–SP-118 are closed and SP-119 is now 🟡 ACTIVE**, all
+five EP-034's. ⚠️ **Zero Sprints in Planning.**
 
 **8 IDs reserved (SP-107–SP-114)** for EP-032 — ⚠️ **reserved, not planned.**
 
@@ -46,6 +46,12 @@ source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures
 ---
 
 ---
+
+---
+
+> ✅ **SP-119 was ACTIVATED 2026-08-23 and left this file in the same step**, per the standing rule that a
+> Sprint leaves the backlog at activation and never returns. Plan and status now live in
+> [`Sprint-active.md`](Sprint-active.md). ⚠️ **No closure note will be written here.**
 
 > ✅ **SP-118 was ACTIVATED 2026-08-22 and left this file in the same step**, per the standing rule that a
 > Sprint leaves the backlog at activation and never returns. Plan and status now live in
@@ -88,6 +94,29 @@ returns; whether it later closed is recorded in [`Closed/`](Closed/) and in
 > (the R-28 safeguard) — SP-095's gating ruling, SP-096's ID-prefix finding, SP-103's scope ruling and
 > T-0410's OBE removal, and the SP-097/098/099/102/105/106 rulings. **All present in `Closed/`.
 > Nothing was reconstructed because nothing was lost.**
+
+*Last Updated: 2026-08-23, ninth pass (**SP-119 🟡 ACTIVATED and REMOVED from this file** in the same step —
+its plan moved to [`Sprint-active.md`](Sprint-active.md). ⚠️ **Zero Sprints in Planning.** Next available
+Sprint: **SP-120**; Task: **T-0451**; Issue: **I-0162**. Prior note follows.)*
+
+*Last Updated: 2026-08-23, eighth pass (**SP-119 REVISED after user review.** ⚠️ **The
+`capability_without_surface` framing was WRONG and was corrected** — ScriviCore is the capability layer and
+the App is one surface; **core-before-UI is the CORRECT sequence**, and the real risk is designing the
+surface to the "lowest common denominator". ✅ **New criterion S11** makes that a checkable step.
+⚠️ **T-0446 corrected twice**: carry the **resolved image path**, not `imageAssetID` alone (*"the writer is
+not going to care what the computer calls the image on the inside"*); and ⚠️ **the "two rebuild paths"
+claim was imprecise** — `scanDir()` already IS the unified scan and `rebuild()` simply does not call it, so
+unification is small and comes FIRST. ✅ **T-0450 NARROWED — the user already tested it live:**
+recover-and-save works; ⚠️ **the real gap is no warning when unsaved edits are at risk**, and persisting
+them across quit is **ruled out of scope**. Prior note follows.)*
+
+*Last Updated: 2026-08-23, seventh pass (**SP-119 PLANNED 🔵** under EP-034 — five Tasks **T-0446–T-0450**,
+no open Issues; **closes AC2, AC3, AC4 and AC9's second half**. ⚠️ **Three user rulings at planning:**
+scope is images **+** tags **+** AC9 (not images alone); ⚠️ **`image` is carried in the OBJECT INDEX**
+rather than read per row, which makes this `[Cross]`; and ⚠️ **the user is creating the second Eskandar
+project** for AC3 — a precondition, not sprint work. ⚠️ **The asset stack has ZERO view callers** — the
+fourth and largest `capability_without_surface` in this Epic. Next available Sprint: **SP-120**; Task:
+**T-0451**; Issue: **I-0162**. Prior note follows.)*
 
 *Last Updated: 2026-08-22, sixth pass (**SP-118 🟡 ACTIVATED and REMOVED from this file** in the same step —
 its plan moved to [`Sprint-active.md`](Sprint-active.md). ⚠️ **This file is back to zero Sprints in

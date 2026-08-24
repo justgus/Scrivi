@@ -70,6 +70,9 @@ private struct ManuscriptEditorView: View {
     /// clicks in the navigator, which must not move the list (I-0132).
     @State private var revealRequest: SceneRevealRequest?
     @State private var revealToken = 0
+    /// I-0168 — a Scene Inspector navigation awaiting the sheet's unsaved-edits
+    /// guard. Nil except between the request and the sheet consuming it.
+    @State private var pendingDetailNavigation: ObjectDetailHistory.Entry?
     @State private var showDetailSheet = false
 
     var body: some View {
@@ -356,12 +359,18 @@ private struct ManuscriptEditorView: View {
                     // I-0155: a save here must reach the inspector, which is
                     // showing the same object's name a few points to the left.
                     onDidSave: { objectRevision += 1 },
+                    projectID: session.openProjectResult?.projectID ?? "",
+                    // I-0162: a mount/eject must reach the sheet, whose imagePath
+                    // and read-only state are load-time snapshots.
+                    worldRevision: session.worldRevision,
                     objectRevision: objectRevision,
                     onClose: {
                         showDetailSheet = false
                         detailHistory.reset()
                     },
-                    history: detailHistory
+                    history: detailHistory,
+                    externalNavigation: pendingDetailNavigation,
+                    onExternalNavigationHandled: { pendingDetailNavigation = nil }
                 )
                 .frame(minWidth: 420, idealWidth: 520, maxWidth: 720)
                 .transition(.move(edge: .trailing))
@@ -427,11 +436,24 @@ private struct ManuscriptEditorView: View {
                 // T-0438 / R7: the card ASKS; the editor hosts. A card cannot
                 // present an editor-level pane from inside the 280pt inspector.
                 openObjectDetail: { objectID, kind, worldID, displayName in
-                    detailHistory.visit(.init(objectID: objectID,
-                                              kind: kind,
-                                              worldID: worldID,
-                                              displayName: displayName))
-                    showDetailSheet = true
+                    let entry = ObjectDetailHistory.Entry(objectID: objectID,
+                                                          kind: kind,
+                                                          worldID: worldID,
+                                                          displayName: displayName)
+                    // ⚠️ I-0168: do NOT visit() directly when the sheet is already
+                    // open — it may be holding unsaved edits, and this path
+                    // bypassed T-0452's guard entirely because the guard lives in
+                    // the sheet while the navigation was decided out here.
+                    //
+                    // Hand it to the sheet, which performs it or prompts first.
+                    // ⚠️ When the sheet is CLOSED there is nothing to protect, so
+                    // the original behaviour is kept.
+                    if showDetailSheet {
+                        pendingDetailNavigation = entry
+                    } else {
+                        detailHistory.visit(entry)
+                        showDetailSheet = true
+                    }
                 },
                 layout: layout
             )

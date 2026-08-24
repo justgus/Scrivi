@@ -379,6 +379,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-116** | ⚠️ **`[Cross]`** World assets (D6) + `assetPath` (D7) + kind-scope endpoint (D5) — retired **six Issues** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
 | **SP-117** | ⚠️ **`[Cross]`** Detail Sheet shell (D1, D2, D3) + **T-0440's ABI reason field** — ⚠️ **first writer-facing surface of EP-034** | EP-034 `[Cross]` | 2026-08-21 | 2026-08-21 | ✅ Closed |
 | **SP-118** | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) + **T-0416's reconciliation** — ⚠️ **13 Issues, ALL from the live pass, none from any suite** | EP-034 `[Cross]` | 2026-08-22 | 2026-08-23 | ✅ Closed |
+| **SP-119** | ⚠️ **`[Cross]`** Images (D8) + `tags` + **AC9's second half** — ⚠️ **7 Issues, ALL from the live pass** | EP-034 `[Cross]` | 2026-08-23 | 2026-08-24 | ✅ Closed |
 
 ## Statistics
 
@@ -387,8 +388,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-119** — ⚠️ **not SP-107**; See the reserved block below.
-- **Total Sprint IDs issued:** 118 (SP-001–SP-118) — 110 executed, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-120** — ⚠️ **not SP-107**; See the reserved block below.
+- **Total Sprint IDs issued:** 119 (SP-001–SP-119) — 111 executed, **0 ACTIVE**, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -417,6 +418,20 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-24, eleventh pass (**SP-119 ✅ CLOSED, user-approved** — seven Tasks + **seven
+Issues** Verified and archived in the same step; closes **AC2, AC3, AC4** and **AC9's second half**.
+⚠️ **Seven Issues, ZERO found by any suite** — and **six were data-loss routes into a single surface**.
+✅ **Two rulings recorded that outlive the sprint**: core-before-surface is the correct sequence (the risk
+is the design phase), and an unlinked asset is a **library entry**, not debris. `ctest` **567/567**;
+interop **122/122**; app **BUILD SUCCEEDED**. Active Sprints 1 → **0**. Prior note follows.)*
+
+*Last Updated: 2026-08-23, tenth pass (**SP-119 CREATED 🔵 Planning** — EP-034's fifth sprint; five Tasks
+**T-0446–T-0450**, closing **AC2, AC3, AC4** and **AC9's second half**. ⚠️ **Three user rulings at
+planning**: scope is images **+** tags **+** AC9; `image` is carried in the **object index** (making this
+`[Cross]`, not `[Apple]`); and ⚠️ **the user creates the second Eskandar project** for AC3 — a
+precondition, not sprint work. ⚠️ **`grep` proves the asset stack has ZERO view callers** — the fourth and
+largest `capability_without_surface` in this Epic. Next available Sprint: **SP-120**. Prior note follows.)*
 
 *Last Updated: 2026-08-23, ninth pass (**SP-118 ✅ CLOSED, user-approved** — five Tasks + **thirteen
 Issues** Verified and archived in the same step; closes **AC5, AC6, AC7**. ⚠️ **Thirteen Issues, ZERO found

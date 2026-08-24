@@ -24,6 +24,8 @@
 		C012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		C013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
 		C016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		C017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		C018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		C015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -73,6 +75,8 @@
 		D012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		D013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
 		D016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		D017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		D018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		D015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -121,6 +125,8 @@
 		E012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		E013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
 		E016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		E017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		E018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		E015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -161,6 +167,8 @@
 		F012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		F013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
 		F016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
+		F_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		F019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		F017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		F018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		F015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
@@ -185,6 +193,8 @@
 		B012 /* ScriviEngineGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngineGraph.swift; path = Scrivi/Engine/ScriviEngineGraph.swift; sourceTree = SOURCE_ROOT; };
 		B013 /* ObjectKindScope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectKindScope.swift; path = Scrivi/Engine/ObjectKindScope.swift; sourceTree = SOURCE_ROOT; };
 		B016 /* ObjectDetailSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailSheet.swift; path = Scrivi/Views/Detail/ObjectDetailSheet.swift; sourceTree = SOURCE_ROOT; };
+		B020 /* ExistingAssetPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ExistingAssetPicker.swift; path = Scrivi/Views/Detail/ExistingAssetPicker.swift; sourceTree = SOURCE_ROOT; };
+		B019 /* ObjectImageSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectImageSection.swift; path = Scrivi/Views/Detail/ObjectImageSection.swift; sourceTree = SOURCE_ROOT; };
 		B017 /* ObjectRelationsSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationsSection.swift; path = Scrivi/Views/Detail/ObjectRelationsSection.swift; sourceTree = SOURCE_ROOT; };
 		B018 /* ObjectRelationPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationPicker.swift; path = Scrivi/Views/Detail/ObjectRelationPicker.swift; sourceTree = SOURCE_ROOT; };
 		B015 /* ObjectDetailHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailHistory.swift; path = Scrivi/Views/Detail/ObjectDetailHistory.swift; sourceTree = SOURCE_ROOT; };
@@ -303,6 +313,8 @@
 				B012 /* ScriviEngineGraph.swift */,
 				B013 /* ObjectKindScope.swift */,
 				B016 /* ObjectDetailSheet.swift */,
+				B020 /* ExistingAssetPicker.swift */,
+				B019 /* ObjectImageSection.swift */,
 				B017 /* ObjectRelationsSection.swift */,
 				B018 /* ObjectRelationPicker.swift */,
 				B015 /* ObjectDetailHistory.swift */,
@@ -547,6 +559,8 @@
 				C012_BF /* ScriviEngineGraph.swift in Sources */,
 				C013_BF /* ObjectKindScope.swift in Sources */,
 				C016_BF /* ObjectDetailSheet.swift in Sources */,
+				C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
+				C019_BF /* ObjectImageSection.swift in Sources */,
 				C017_BF /* ObjectRelationsSection.swift in Sources */,
 				C018_BF /* ObjectRelationPicker.swift in Sources */,
 				C015_BF /* ObjectDetailHistory.swift in Sources */,
@@ -602,6 +616,8 @@
 				D012_BF /* ScriviEngineGraph.swift in Sources */,
 				D013_BF /* ObjectKindScope.swift in Sources */,
 				D016_BF /* ObjectDetailSheet.swift in Sources */,
+				D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
+				D019_BF /* ObjectImageSection.swift in Sources */,
 				D017_BF /* ObjectRelationsSection.swift in Sources */,
 				D018_BF /* ObjectRelationPicker.swift in Sources */,
 				D015_BF /* ObjectDetailHistory.swift in Sources */,
@@ -657,6 +673,8 @@
 				E012_BF /* ScriviEngineGraph.swift in Sources */,
 				E013_BF /* ObjectKindScope.swift in Sources */,
 				E016_BF /* ObjectDetailSheet.swift in Sources */,
+				E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */,
+				E019_BF /* ObjectImageSection.swift in Sources */,
 				E017_BF /* ObjectRelationsSection.swift in Sources */,
 				E018_BF /* ObjectRelationPicker.swift in Sources */,
 				E015_BF /* ObjectDetailHistory.swift in Sources */,

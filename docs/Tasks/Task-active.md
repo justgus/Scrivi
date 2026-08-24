@@ -16,19 +16,17 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-118's five are ✅ Verified and archived
+## Currently: **no active Tasks** — SP-119's seven are ✅ Verified and archived
 
 | ID | Title | Sprint | Verified |
 | -- | ----- | ------ | -------- |
-| ✅ **T-0441 – T-0445** | SP-118's five — ⚠️ **T-0416's reconciliation (with I-0149)**, the related-objects section, inline creation, push-navigation, and pending far-endpoints | SP-118 | 2026-08-23 → [`Verified/Task-verified-0441-0445.md`](Verified/Task-verified-0441-0445.md) |
+| ✅ **T-0446 – T-0452** | SP-119's seven — the index image field, AC3's image UI, D8 thumbnails, tags (**closing AC2**), the at-risk warning (**AC9**), attach-existing, and the guarded exit | SP-119 | 2026-08-24 → [`Verified/Task-verified-0446-0452.md`](Verified/Task-verified-0446-0452.md) |
 
 ⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
 
-⚠️ **Thirteen Issues (I-0149 – I-0161) were raised against these Tasks after the suites went green**, every
-one found by the user's live click-through and none by any suite. All ✅ Verified and archived with them.
-
-⚠️ **Carried out of SP-118, unchanged:** `tags` is deferred to **SP-119**, so **AC2 still cannot close**;
-AC9's second half ("a world goes away *while a sheet is open*") is also SP-119's.
+⚠️ **Seven Issues (I-0162 – I-0168) were raised against these Tasks after the suites went green** — every
+one found by the user's live click-through, none by any suite. ⚠️ **Six were data-loss routes into a single
+surface.** All ✅ Verified and archived with them.
 
 ## Previously: SP-117's seven Tasks — ✅ Verified and archived
 
@@ -59,6 +57,15 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-24, eleventh pass (**SP-119's seven Tasks ✅ VERIFIED (user-approved) and ARCHIVED
+in the same step** → `Verified/Task-verified-0446-0452.md`. Active Tasks 7 → **0**. ✅ **AC2, AC3, AC4 and
+AC9's second half close.** ⚠️ **T-0449 disproved SP-117's own deferral reason** — the chip editor had
+existed since T-0363. Next available Task: **T-0453**. Prior note follows.)*
+
+*Last Updated: 2026-08-23, tenth pass (**SP-119 ACTIVATED — T-0446–T-0450 moved here from the backlog** in
+the same step. Active Tasks 0 → **5**. ⚠️ **T-0446 begins with the `scanDir()` unification** so the image
+field is added in exactly one place. Next available Task: **T-0451**. Prior note follows.)*
 
 *Last Updated: 2026-08-23, ninth pass (**SP-118's five Tasks ✅ VERIFIED (user-approved) and ARCHIVED in
 the same step** → `Verified/Task-verified-0441-0445.md`. Active Tasks 5 → **0**. ⚠️ **T-0443's deviation
