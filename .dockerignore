@@ -1,0 +1,27 @@
+# ⚠️ EP-034 SP-121 (T-0464) — keep HOST build artifacts out of the image.
+#
+# The Dockerfile does `COPY . /src` with no filter. A macOS `build/` directory in
+# the working tree therefore lands in the image, and its CMakeCache.txt records
+# the HOST path — so the in-container `cmake -S . -B build` aborts with:
+#
+#   "The current CMakeCache.txt directory /src/build/CMakeCache.txt is different
+#    than the directory /Users/.../build where CMakeCache.txt was created."
+#
+# ⚠️ This is why the container build is fragile rather than reproducible: it
+# succeeds under `--no-cache` (which regenerates the cache in place) and FAILS on
+# a cached rebuild. Anyone who has run `ctest` locally poisons their next
+# container build, and the error names CMake rather than the real cause.
+build/
+cmake-build-*/
+
+# Xcode / macOS artifacts — large, and meaningless inside a Linux image.
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+.DS_Store
+
+# VCS + editor noise.
+.git/
+.github/
+*.swp

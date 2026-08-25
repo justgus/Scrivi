@@ -19,13 +19,18 @@ The main index for all Scrivi Issues. Issues track bugs and unintended system be
 
 ## Active Issues
 
-Currently: **2 Issues open** — both filed 2026-08-20 by **T-0424** and assigned to **SP-116**, where
-design-doc **D5**'s kind-scope endpoint cures both. ⚠️ **Filed, not fixed, by design.**
+Currently: **2 records** — ⚠️ **I-0171 OPEN**, plus **I-0147**, an accepted limitation rather than open
+work. ✅ **I-0172 Verified + archived 2026-08-25.**
+
+⚠️ **CORRECTED 2026-08-25 (SP-122 T-0471 Audit Check).** This section had gone **four sprints stale**: it
+read *"2 Issues open"* and listed **I-0140/I-0141 as open in SP-116** — ⚠️ **both were fixed, Verified and
+archived on 2026-08-21** (`Verified/Issue-verified-0131-0140.md`, `Verified/Issue-verified-0141-0150.md`)
+when SP-116 closed. ⚠️ **The index was still describing them as pending work.**
 
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
-| I-0140 | ⚠️ Swift **restates** the world-scope rule (`ObjectCard.swift:46`) — ⚠️ **structural: no ABI endpoint exposes kind scope** | Medium | SP-116 |
-| I-0141 | ⚠️ `scrivi.h:97-99` world-scope list **stale since SP-103** — names 4 of 10 kinds; **occurrence eight** | Low | SP-116 |
+| **I-0171** | `[Build]` ⚠️ **Both `.dockerignore` files exclude only `build/` while FIVE build dirs exist** — container builds still poisoned by host `CMakeCache.txt`. ⚠️ **Reproduced live**; ⚠️ **SP-121's fix matched the one directory it had seen, not the pattern** | Medium | SP-122 |
+| I-0147 | `[ScriviCore]` ⚠️ **Accepted limitation (user-ruled 2026-08-21)** — a world is unwritable for up to 60 s after an interrupted write | Low | ⚠️ Deferred — network-worlds design |
 
 ✅ **SP-100's five carried Issues (I-0135–I-0139) were all fixed and Verified by SP-115 on 2026-08-20**,
 together with **I-0142**, which the user found *during* that verification. All six are archived.
@@ -53,7 +58,11 @@ See: [`Issue-backlog.md`](Issue-backlog.md)
 
 ## Verified Issues
 
-Currently: **128 verified Issues**, archived in decade batches (122 before SP-115, **+6** on 2026-08-20).
+Currently: **129 verified Issues**, archived in decade batches (122 before SP-115, **+6** on 2026-08-20,
+**+1** on 2026-08-25 — **I-0172**, which opens the new `0171-0180` decade file).
+
+⚠️ **129 is the prior provisional 128 plus one.** ⚠️ **It inherits that figure's uncertainty** — see the
+note below; incrementing a provisional number does not make it confirmed.
 
 > ⚠️ **This total is derived from the prior stated total plus this sprint's six — it was NOT confirmed by
 > counting the archives.** A mechanical count is unreliable here because the archive files use **two

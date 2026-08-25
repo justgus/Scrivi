@@ -45,6 +45,8 @@ Key documents:
 - `docs/Scrivi_Swift_Interop_Trade_Study_v0_1.md` — why JSON-over-string is the permanent boundary protocol
 - `docs/Scrivi_Timeline_Panel_Design_v0_3.md` — Timeline Panel requirements, interaction model, persistence schema, Story Structure integration, historical events, multi-row imported timelines, clustering, Time Delta Picker (supersedes v0.1, v0.2)
 - `docs/Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md` — EP-019 custom undo/redo: sentence-granular events, tree-structured per-project persistent history (branching, sessions, capacity/purge), multiple copy buffers, `scrivi.history.v1`/`scrivi.buffers.v1`, trade studies T1–T6 (supersedes I-0019, closed 2026-07-06)
+- `docs/Scrivi_Platform_Porting_Outline_v0_1.md` — **the reusable procedure for porting Scrivi to a new platform** (T-0465). Written for **five** platforms (Linux, iPad, iPhone, Windows, visionOS), not as a Linux retrospective: the layer order (ABI binding → data models → read-only surfaces → editing → navigation) and why, the 100-endpoint per-platform checklist, the platform-independent rules that must be re-honoured every time, and the defects a port re-earns if it does not. ⚠️ **Read this BEFORE starting any new platform layer.**
+- `docs/Scrivi_ABI_Binding_Gap_Audit_v0_1.md` — mechanical per-endpoint disposition of all **100** `scrivi_*` endpoints across Apple and Linux (T-0460). ⚠️ **The endpoint count is 100, not 102** — the earlier figure counted prose matches and `scrivi_free`.
 
 ### Backend: C++23 (ScriviCore)
 

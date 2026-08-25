@@ -378,6 +378,86 @@ public:
     // or identity). On failure emits errorOccurred, returns {}.
     Q_INVOKABLE QVariantMap exportProjectTimeline(const QString& projectRootPath);
 
+
+    // ================================================================
+    // EP-034 SP-121 (T-0461 / T-0462 / T-0463) — ABI parity completion
+    // ================================================================
+    //
+    // ⚠️ **47 endpoints, bridged so the Linux app CAN reach what ScriviCore
+    // already does.** Before this sprint `ScriviBridge` reached 34 of the 100
+    // endpoints in `scrivi.h`; Apple's `ScriviEngine` reached 96. The audit is
+    // `docs/Scrivi_ABI_Binding_Gap_Audit_v0_1.md` (T-0460).
+    //
+    // ⚠️ **NO UI CONSUMES THESE YET, AND THAT IS DELIBERATE — user-ruled
+    // 2026-08-24:** *"We are aware of the disparity. However, we are planning
+    // for that. We'll verify the backend with the ctests and the subsequent
+    // Epic will manage the surfacing of the capability in the Linux App."*
+    // The consumer is **EP-035**, already open in the Epic backlog carrying
+    // EP-034's AC11. ⚠️ This is staged work with a scheduled reader — not
+    // `capability_without_surface`, which is a dangling read with NO reader.
+    //
+    // ⚠️ **Identity is threaded by the BRIDGE, never by the caller.** Every
+    // endpoint taking identityID/personaID/authorDisplayName is given the
+    // bootstrapped identity here, exactly as Apple's `authorshipRef` does. A
+    // QML caller cannot pass the wrong author because it cannot pass one.
+    //
+    // ⚠️ **`scrivi_free` is handled by `ScriviString` (RAII)** — every one of
+    // these returns through it, so a leak is structurally impossible rather
+    // than a thing each method must remember.
+    //
+    // ⚠️ **19 `scrivi_history_*` / `scrivi_buffers_*` endpoints are
+    // DELIBERATELY ABSENT** — they belong to EP-019, whose Linux story has
+    // never been ruled. Bridging them here would set that direction by
+    // accident (the lesson of I-0144).
+
+    Q_INVOKABLE QVariantMap addComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& body);
+    Q_INVOKABLE QVariantMap addWorld(const QString& projectRootPath, const QString& packagePath);
+    Q_INVOKABLE QVariantMap applyRepair(const QString& issueID, const QString& projectRootPath, const QString& appSupportRoot, const QString& actionKind, const QString& targetPath);
+    Q_INVOKABLE QVariantMap clearSceneStoryTime(const QString& projectRootPath, const QString& sceneID);
+    Q_INVOKABLE QVariantMap createEdge(const QString& projectRootPath, const QString& fromID, const QString& toID, const QString& relationTypeCode, const QString& note);
+    Q_INVOKABLE QVariantMap createObject(const QString& projectRootPath, const QString& objectKind, const QString& displayName, const QString& slug, const QString& worldID);
+    Q_INVOKABLE QVariantMap createSnapshot(const QString& projectRootPath, const QString& displayName, const QString& label, const QString& note);
+    Q_INVOKABLE QVariantMap createWorld(const QString& projectRootPath, const QString& packagePath, const QString& displayName, const QString& epochLabel);
+    Q_INVOKABLE QVariantMap deleteEdge(const QString& projectRootPath, const QString& edgeID);
+    Q_INVOKABLE QVariantMap deleteObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID);
+    Q_INVOKABLE QVariantMap enableGitSnapshots(const QString& projectRootPath, const QString& displayName, const QString& initialSnapshotLabel);
+    Q_INVOKABLE QVariantMap extractSearchableText(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap fragmentCut(const QString& projectRootPath, const QString& spansJson);
+    Q_INVOKABLE QVariantMap fragmentExtract(const QString& projectRootPath, const QString& spansJson);
+    Q_INVOKABLE QVariantMap fragmentPaste(const QString& projectRootPath, const QString& appSupportRoot, const QString& projectID, const QString& fragmentJson, const QString& caretSceneID, long long caretByteOffset, const QString& displayName);
+    Q_INVOKABLE QVariantMap fragmentUncutPaste(const QString& projectRootPath, const QString& fragmentJson, const QString& targetSceneID, const QString& createdIDsJson);
+    Q_INVOKABLE QVariantMap getSceneNotes(const QString& projectRootPath, const QString& sceneID);
+    Q_INVOKABLE QVariantMap getWorldBinding(const QString& projectRootPath, const QString& worldID);
+    Q_INVOKABLE QVariantMap getWorldStatus(const QString& projectRootPath, const QString& worldID);
+    Q_INVOKABLE QVariantMap importAsset(const QString& projectRootPath, const QString& sourcePath, const QString& category, const QString& title, const QString& worldID, const QString& projectID);
+    Q_INVOKABLE QVariantMap importFromInbox(const QString& projectRootPath, const QString& filename, const QString& action, const QString& category);
+    Q_INVOKABLE QVariantMap listAssets(const QString& projectRootPath, const QString& category, const QString& worldID);
+    Q_INVOKABLE QVariantMap listComments(const QString& projectRootPath, const QString& scopeKind, const QString& targetID);
+    Q_INVOKABLE QVariantMap listEdgesFor(const QString& projectRootPath, const QString& endpointID);
+    Q_INVOKABLE QVariantMap listInbox(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap listObjectKinds();
+    Q_INVOKABLE QVariantMap listObjects(const QString& projectRootPath, const QString& kindOrNull);
+    Q_INVOKABLE QVariantMap listOrphanedObjects(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap listPendingEdges(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap listRelationTypes(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap listWorlds(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap openObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID);
+    Q_INVOKABLE QVariantMap promoteObject(const QString& projectRootPath, const QString& objectID, const QString& targetKind, const QString& worldIDOrNull);
+    Q_INVOKABLE QVariantMap relinkWorld(const QString& projectRootPath, const QString& worldID, const QString& newPackagePath);
+    Q_INVOKABLE QVariantMap removeAsset(const QString& projectRootPath, const QString& assetID, const QString& worldID, const QString& projectID);
+    Q_INVOKABLE QVariantMap removeWorldReference(const QString& projectRootPath, const QString& worldID);
+    Q_INVOKABLE QVariantMap resolveComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& commentID, const QString& resolverDisplayName);
+    Q_INVOKABLE QVariantMap resolveTimelineProjectTimes(const QString& projectRootPath, const QString& worldID, const QString& timelineID);
+    Q_INVOKABLE QVariantMap saveObject(const QString& projectRootPath, const QString& objectKind, const QString& objectJson);
+    Q_INVOKABLE QVariantMap scanForExternalChanges(const QString& projectRootPath, const QString& appSupportRoot, int includeGitStatus);
+    Q_INVOKABLE QVariantMap setSceneOutline(const QString& projectRootPath, const QString& sceneID, const QString& outline);
+    Q_INVOKABLE QVariantMap setSceneTags(const QString& projectRootPath, const QString& sceneID, const QString& tagsJson);
+    Q_INVOKABLE QVariantMap setSceneTodo(const QString& projectRootPath, const QString& sceneID, const QString& todoJson);
+    Q_INVOKABLE QVariantMap setTimelineEpochLabel(const QString& projectRootPath, const QString& label);
+    Q_INVOKABLE QVariantMap setTimelineEpochOffset(const QString& projectRootPath, const QString& worldID, const QString& timelineID, long long epochOffsetMs);
+    Q_INVOKABLE QVariantMap setWorldEpochOffset(const QString& projectRootPath, const QString& worldID, long long epochOffsetMs);
+    Q_INVOKABLE QVariantMap upsertRelationType(const QString& projectRootPath, const QString& relationTypeJson);
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);

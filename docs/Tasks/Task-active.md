@@ -16,17 +16,32 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks** — SP-120's six are ✅ Verified and archived
+## Currently: **no active Tasks**
+
+✅ **SP-122's T-0466–T-0471 were Verified 2026-08-25** and archived to
+[`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md).
+⚠️ **SP-122 itself is ✅ CLOSED** — [record](../Sprints/Closed/Sprint-SP-122.md).
+⚠️ **No Sprint is active and none is planned**, so no Tasks are in flight.
+
+| ID | Title | Sprint | Status |
+| -- | ----- | ------ | ------ |
+
+⚠️ **Issues found by T-0469 are a SUCCESS signal, not slippage.** EP-031 planned 6 sprints and delivered
+11 — four of the five additions came from USE.
+
+⚠️ **Detail lives in [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md), not here** (P7).
+
+⚠️ **T-0460 lands FIRST** — it is what turns "62 missing" from an estimate into a checked list, and it is
+where the two endpoints **Apple itself does not reach** get identified rather than rounded away.
+
+⚠️ **NO UI ships this sprint, so there is NO live click-through** — and that is a **real loss of signal**,
+not a saving: 22 consecutive Issues across SP-118–SP-120 came from clicking, none from a suite.
+
+## Previously: SP-120's six Tasks — ✅ Verified and archived
 
 | ID | Title | Sprint | Verified |
 | -- | ----- | ------ | -------- |
 | ✅ **T-0453 – T-0458** | SP-120's six — the `attributes` map, source creation, ⚠️ **cite-an-existing** (the I-0164 mirror), ⚠️ **T-0365's second entry point**, citation fields, and ⚠️ **S11 widened to OPERATIONS** | SP-120 | 2026-08-24 → [`Verified/Task-verified-0453-0458.md`](Verified/Task-verified-0453-0458.md) |
-
-⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
-
-⚠️ **Two Issues (I-0169, I-0170) were raised against these Tasks after the suites went green** — both from
-the user's live click-through, neither from any suite. Both ✅ Verified and archived with them.
-⚠️ **That is 22 consecutive Issues across SP-118, SP-119 and SP-120 with none found by a test.**
 
 ## Previously: SP-119's seven Tasks — ✅ Verified and archived
 
@@ -69,6 +84,48 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-25, second pass (**SP-122 EXECUTING** — ⚠️ **AC12's five legs are ALL GREEN**:
+arm64 567/567, ⚠️ **x86-64 567/567**, ⚠️ **sanitizers 567/567**, interop 127 + BUILD SUCCEEDED, ⚠️ **Linux
+571/571 NON-ROOT**. ⚠️ **The first run used Xcode 26.6 and was DISCARDED** — the project needs Xcode 27
+(`/Applications/Xcode-beta.app`), a different compiler. ✅ **I-0150 did NOT recur** — the mounted rig was
+fingerprinted before and after, unchanged. ⚠️ **I-0171 FILED: SP-121's `.dockerignore` fix is INCOMPLETE**
+— five build dirs exist, both ignore files match only `build/`. ⚠️ **The Audit Check found the Issue index
+FOUR SPRINTS STALE** (I-0140/I-0141 shown open in a sprint that closed 2026-08-21). ⚠️ **T-0469 (the live
+pass) and T-0470 are BLOCKED ON THE USER** — they need a human at the app and a physical USB pull.
+Prior note follows.)*
+
+*Last Updated: 2026-08-25, second pass (**SP-122 🟡 ACTIVATED — T-0466–T-0471 created**, EP-034's
+**eighth and LAST** sprint. ⚠️ **AC12 is the only AC still open.** ⚠️ **Two of its five legs — x86-64 and
+sanitizers — are rarely run.** ⚠️ **The LIVE-USE pass (T-0469) is the primary instrument**: 22 consecutive
+Issues came from clicking, none from a suite — so ⚠️ **Issues found here are SUCCESS, not slippage.**
+Next available Task: **T-0472**. Prior note follows.)*
+
+*Last Updated: 2026-08-25 (**Audit Check remediation, user-ruled** — seven findings F-1…F-7 applied.
+⚠️ **Endpoint count corrected 102 → 100** (`scrivi.h` declares 100 + `scrivi_free`; the old figure counted
+prose). ⚠️ **Apple coverage MEASURED at 96 of 100, not 98** — and ⚠️ **FOUR endpoints are unreached on
+Apple, not the two the plan assumed**: `resolve_timeline_project_times`, `set_timeline_epoch_offset`,
+`set_world_epoch_offset`, `upsert_relation_type`. ⚠️ **In-scope corrected 43 → 47.** Task statuses
+reconciled across the Epic/Sprint/Task layers; SP-121's six Tasks moved to `Task-unverified.md`.
+Prior note follows.)*
+
+*Last Updated: 2026-08-24, sixteenth pass (**all six SP-121 Tasks 🟠 IMPLEMENTED — Not Verified.**
+✅ **Linux `ScriviBridge` 34 → 81 of 100 endpoints**, verified by re-running the audit; the only 19 missing
+are the history/buffers set deferred to EP-019. ⚠️ **T-0460 CORRECTED the sprint's own scope** — 47
+in-scope endpoints, not the 43 planning estimated, because that estimate grepped prose as well as
+declarations. ✅ **`ctest` RAN ON LINUX, non-root: 571 cases / 9,439 assertions, all passed** — the leg
+SP-116 could never run. ✅ Linux smokes **17/17**; macOS `ctest` **567/567** unchanged. ⚠️ **A latent
+defect was found and fixed**: no `.dockerignore` existed, so a local macOS `build/` poisoned the container
+build — it passed under `--no-cache` and failed on a cached rebuild. Next available Task: **T-0466**.
+Prior note follows.)*
+
+*Last Updated: 2026-08-24, fifteenth pass (**SP-121 ACTIVATED — T-0460–T-0465 created directly as
+Active.** Active Tasks 0 → **6**. ⚠️ **The sprint's subject CHANGED at planning**: AC11 was found to be an
+entire Epic, not a parity sprint — the Linux app has **zero** object/edge/world/asset call sites and a
+**67-line stub** inspector. ✅ **User-ruled: AC11 → EP-035**; SP-121 completes `ScriviBridge` (43 of 62
+missing endpoints; 19 history/buffers excluded to EP-019). ⚠️ **T-0465, the Porting Outline, is the
+longest-lived deliverable here** — it is written to be run again for iPad, iPhone, Windows and visionOS.
+Next available Task: **T-0466**. Prior note follows.)*
 
 *Last Updated: 2026-08-24, fourteenth pass (**SP-120's six Tasks ✅ VERIFIED (user-approved) and ARCHIVED
 in the same step** → `Verified/Task-verified-0453-0458.md`. Active Tasks 6 → **0**. ✅ **AC8 CLOSES**, and

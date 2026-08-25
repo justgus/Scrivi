@@ -446,6 +446,33 @@ target_link_libraries(scrivi_linux_story_structure_smoke
 target_include_directories(scrivi_linux_story_structure_smoke PRIVATE src)
 target_compile_features(scrivi_linux_story_structure_smoke PRIVATE cxx_std_23)
 
+# --- Headless bridge-parity smoke (SP-121 / T-0464, EP-034) ----------------
+# ⚠️ Every endpoint SP-121 bridged, exercised THROUGH ScriviBridge — never the C
+# ABI directly. `feedback_boundary_tests_not_facade`: a facade test cannot see a
+# boundary gap, which is exactly how I-0113 shipped green.
+#
+# ⚠️ This is SP-121's ONLY acceptance evidence (user-ruled 2026-08-24): no UI
+# ships, so there is no live click-through. That signal is deferred to EP-035.
+# bridge_parity_smoke.sh.
+qt_add_executable(scrivi_linux_bridge_parity_smoke
+    tests/bridge_parity_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_bridge_parity_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_bridge_parity_smoke PRIVATE src)
+target_compile_features(scrivi_linux_bridge_parity_smoke PRIVATE cxx_std_23)
+
 # --- Headless timeline-events smoke (SP-082 / T-0344, EP-025 AC5) -----------
 # Historical events + imported timelines + export through the bridge (the layer
 # EditorShell's SP-082 slots call): create/update/delete a historical event (list

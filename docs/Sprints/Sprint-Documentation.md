@@ -11,9 +11,11 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-**No Sprint is currently active.** ⚠️ **SP-120 ✅ CLOSED 2026-08-24** (user-approved) →
-[`Closed/Sprint-SP-120.md`](Closed/Sprint-SP-120.md). **EP-034** `[Cross]` remains the active Epic with
-**SP-121** and **SP-122** still to run.
+⚠️ **No Sprint is currently active.** **SP-122** ✅ **CLOSED 2026-08-25** — EP-034's eighth and last.
+✅ **AC12 MET.** ⚠️ **EP-034 is 🟠 COMPLETE but NOT closed** — that approval is separate.
+⚠️ **The EIGHTH and LAST sprint of EP-034**; **AC12** is the only AC still open.
+⚠️ **Its subject was NOT AC11** — that moved to **EP-035** at planning. The closure record lives in
+[`Closed/Sprint-SP-121.md`](Closed/Sprint-SP-121.md) and is **not** restated here.
 
 ⚠️ **Per-sprint status and closure detail belong to the All-Sprints table below (P7)** and to each
 Sprint's own archive in [`Closed/`](Closed/). ⚠️ **This section previously restated the closure of
@@ -382,6 +384,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-118** | ⚠️ **`[Cross]`** Related objects + relationship creation (D4) + **T-0416's reconciliation** — ⚠️ **13 Issues, ALL from the live pass, none from any suite** | EP-034 `[Cross]` | 2026-08-22 | 2026-08-23 | ✅ Closed |
 | **SP-119** | ⚠️ **`[Cross]`** Images (D8) + `tags` + **AC9's second half** — ⚠️ **7 Issues, ALL from the live pass** | EP-034 `[Cross]` | 2026-08-23 | 2026-08-24 | ✅ Closed |
 | **SP-120** | ⚠️ **`[Apple]`** Source creation + footnote text (R6) — ✅ **closes AC8 and T-0365's write half**; ⚠️ **surface only — `ctest` unchanged at 567/567**; ⚠️ **2 Issues, both from the live pass** | EP-034 `[Cross]` | 2026-08-24 | 2026-08-24 | ✅ **Closed** |
+| **SP-121** | ⚠️ **`[Linux]`** Complete `ScriviBridge` to ABI parity (⚠️ **47** of 66 missing endpoints — ⚠️ **not 43; corrected by T-0460's audit**) + ⚠️ **the Porting Outline** — ⚠️ **NOT AC11, which moved to EP-035** | EP-034 `[Cross]` | 2026-08-24 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-121.md) |
+| **SP-122** | ⚠️ **`[Cross]`** AC verification + ⚠️ **the LIVE-USE pass on the real rig** + **EP-034 close prep** — ⚠️ **AC12 only; two of its five legs (x86-64, sanitizers) are rarely run** | EP-034 `[Cross]` | 2026-08-25 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-122.md) |
 
 ## Statistics
 
@@ -390,8 +394,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-121** — ⚠️ **not SP-107**; See the reserved block below.
-- **Total Sprint IDs issued:** 120 (SP-001–SP-120) — 112 executed, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-123** — ⚠️ **not SP-107**; See the reserved block below.
+- **Total Sprint IDs issued:** 122 (SP-001–SP-122) — 114 executed, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
@@ -420,6 +424,21 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-25 (**Audit Check remediation, user-ruled** — seven findings F-1…F-7 applied.
+⚠️ **Endpoint count corrected 102 → 100** (`scrivi.h` declares 100 + `scrivi_free`; the old figure counted
+prose). ⚠️ **Apple coverage MEASURED at 96 of 100, not 98** — and ⚠️ **FOUR endpoints are unreached on
+Apple, not the two the plan assumed**: `resolve_timeline_project_times`, `set_timeline_epoch_offset`,
+`set_world_epoch_offset`, `upsert_relation_type`. ⚠️ **In-scope corrected 43 → 47.** Task statuses
+reconciled across the Epic/Sprint/Task layers; SP-121's six Tasks moved to `Task-unverified.md`.
+Prior note follows.)*
+
+*Last Updated: 2026-08-24, fifteenth pass (**SP-121 🟡 ACTIVATED** — Active Sprints 0 → **1**.
+⚠️ **Its subject changed at planning: AC11 was found to be an entire Epic and MOVED to EP-035.** SP-121
+completes `ScriviBridge` instead — **100** endpoints exist (⚠️ **not 102**), Apple reaches 96, Linux 34; **47 in scope, 19
+history/buffers excluded to EP-019.** ⚠️ **No UI ships, so there is NO live click-through** — a real loss
+of signal, since 22 consecutive Issues came from clicking and none from a suite. Next available Sprint ID:
+**SP-122**; Task **T-0466**; Issue **I-0171**. Prior note follows.)*
 
 *Last Updated: 2026-08-24, fourteenth pass (**SP-120 ✅ CLOSED, user-approved.** Active Sprints 1 → **0**.
 Six Tasks + two Issues Verified and archived in the same step; ✅ **AC8 closed by use** and ✅ **T-0365 is

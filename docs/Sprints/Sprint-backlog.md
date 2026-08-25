@@ -36,8 +36,12 @@ manuscript export has no existing path to attach to (`scrivi_export_project_time
 the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequencing question** — without
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
-**Next available Sprint ID: SP-121** — ⚠️ **SP-115–SP-120 are ALL CLOSED**, all six EP-034's.
-⚠️ **Zero Sprints in Planning; zero active.**
+**Next available Sprint ID: SP-123** — ⚠️ **SP-115–SP-122 are ALL CLOSED** and **SP-122 is ✅ CLOSED**
+(⚠️ **the LAST sprint of EP-034**). ⚠️ **SP-122 never appeared in this file** — defined and activated in
+one step on 2026-08-25, like SP-120 and SP-121.
+⚠️ **Zero Sprints in Planning.**
+
+⚠️ **SP-121 never appeared in this file** — defined and activated in one step on 2026-08-24, like SP-120.
 
 ⚠️ **SP-120 never appeared in this file.** It was defined and activated in one step on 2026-08-24, so
 there is no Planning row to remove — recorded here because an ID vanishing from the sequence with no

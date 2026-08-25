@@ -309,6 +309,80 @@ require direct user approval.
 
 ---
 
+## EP-035: `[Linux]` Object Layer & Detail Surfaces — ⚠️ **the first PORT, and the template for four more**
+
+**Status:** 🔵 **Proposed** — opened 2026-08-24 by user ruling, splitting **AC11 out of EP-034**.
+**Codebase:** `[Linux]` — Qt/QML surfaces over `ScriviBridge`. ⚠️ **No ScriviCore change expected**; the
+capability all exists.
+**Goal:** Give the Linux app the **object layer it has never had** — kind cards, world binding, the object
+Detail Sheet, relationships, images and sources — reaching the parity **AC11 assumed already existed.**
+**Date Created:** 2026-08-24 · **Target Close Date:** — (not scheduled)
+
+**Depends on:** ⚠️ **SP-121** (EP-034) — `ScriviBridge` completion + the Porting Outline. **This Epic
+cannot start before it**, which is the whole reason SP-121 exists in that shape.
+
+---
+
+### ⚠️ Why this Epic exists — the finding that split AC11
+
+EP-034's **AC11** read *"`[Linux]` parity for AC1–AC9 in Docker+VNC."* ⚠️ **Verified at SP-121 planning,
+that is not a parity criterion — there was nothing to reach parity with:**
+
+| Check | Result |
+| ----- | ------ |
+| Object / edge / world / asset endpoints called anywhere in `platforms/linux/` | ⚠️ **ZERO** |
+| `SceneInspector.cpp` | ⚠️ **67 lines, a STUB** — *"wired to NO project data"*, unchanged since EP-024/SP-078 |
+| Apple surface AC1–AC9 covers | **~4,800 lines, 11 files** |
+
+⚠️ **AC1 presumes a Kind Card list item to double-click, and Linux has no Kind Cards.** Estimating that as
+one sprint is how a sprint runs five sprints long.
+
+⚠️ **This is NOT "Linux lagging."** Linux has a real Timeline Panel (1,422 lines), manuscript editor and
+navigator. **The object model landed in EP-031/EP-034 as Apple-only and no Linux sprint ever picked it
+up** — a scope fact, not a quality one.
+
+### ⚠️ This Epic is a TEMPLATE, not a one-off
+
+> *"We're going to have to do it all again for iPad, iPhone, Windows and eventually visionOS."* — user
+
+### ⚠️ Carried IN from EP-034's close (2026-08-25 rulings)
+
+| Item | Why it lands here |
+| ---- | ----------------- |
+| **T-0472** — surface for custom relationship types | ⚠️ **`scrivi_upsert_relation_type` is fully implemented and has NEVER had a caller on any platform.** ✅ **User-ruled a REAL FEATURE owed a UI**, not dead code. It belongs with this Epic's relationship work |
+| ⚠️ **SP-121's 47 bridged endpoints have NO live click-through** | ⚠️ **They are suite-proven ONLY.** This Epic is where a human first uses them |
+| ⚠️ **A C ABI test for `upsert_relation_type`** | ⚠️ **It has none** — `feedback_boundary_tests_not_facade` |
+
+⚠️ **T-0473 (`[Apple]` timeline parity) is NOT part of this Epic** — it carries no Epic by ruling.
+
+⚠️ **EP-035 is the first of five ports.** It must be executed **against** SP-121's
+`Scrivi_Platform_Porting_Outline_v0_1.md` and ⚠️ **must feed corrections BACK into it** — the outline is
+the deliverable that survives; this Epic is its first proving run.
+
+### Acceptance Criteria (draft — ⚠️ to be ruled at promotion)
+
+- **AC1** — ⚠️ **Inherits EP-034's AC1–AC9 verbatim**, re-verified on Linux in Docker+VNC.
+  ⚠️ **No gesture-only affordances** — VNC carries no Shift-combos or trackpad gestures
+  (`project_linux_vnc_input_constraints`), so ⚠️ **every action needs a button or menu path.**
+- **AC2** — ⚠️ **The Porting Outline is CORRECTED from this Epic's experience**, not merely followed.
+- **AC3** — ⚠️ **The platform-independent rules are re-honoured, not re-decided**: derive kind scope from
+  `list_object_kinds` (never restate it); read edge labels (never recompute); patch objects (never
+  reconstruct); absence is never deletion; disabled **and** explained.
+- **AC4** — `ctest` **actually runs** in the container, **non-root**, tests **ON**
+  (`project_linux_container_tests_off`).
+
+### ⚠️ Known traps this Epic will walk into
+
+- ⚠️ **The kind-list restatement would be occurrence NINE**, and ⚠️ **occurrence five was in SWIFT** — a
+  new platform layer is exactly where it recurs. Qt is no more immune than SwiftUI was.
+- ⚠️ **`capability_without_surface` in reverse**: SP-121 ships 43 bridged endpoints with **no reader**. If
+  this Epic does not run, that is what they stay.
+- ⚠️ **The live click-through is the only thing that has ever found these defects** — **22 consecutive
+  Issues** across SP-118–SP-120, none from a suite. ⚠️ **A Linux pass needs VNC and a real project**, and
+  is materially harder to run than the macOS one.
+
+---
+
 ## EP-033: [Cross] World Lifecycle Management — in-app view vs. dedicated application
 
 **Status:** 🔵 **Proposed** (opened 2026-08-14 from the I-0118 design ruling)

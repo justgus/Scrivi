@@ -71,8 +71,22 @@ final class ForkPopoverController {
         let host = NSHostingController(rootView: content)
         // Size the popover to the content's fitting size (bounded so long scenes
         // don't produce an oversized popover — the row previews are trimmed).
-        host.view.layoutSubtreeIfNeeded()
-        let fitting = host.view.fittingSize
+        //
+        // I-0172: measure via `sizeThatFits(in:)`, NOT `layoutSubtreeIfNeeded()` +
+        // `fittingSize`. The latter forces a layout pass on the host view, and when
+        // `show` is called from inside an existing pass AppKit logs
+        // "not legal to call -layoutSubtreeIfNeeded on a view which is already being
+        // laid out". `sizeThatFits` asks SwiftUI to measure the content directly, so
+        // no nested layout pass is provoked.
+        //
+        // ⚠️ Measured UNBOUNDED (`.greatestFiniteMagnitude`) to preserve the exact
+        // semantics of the `fittingSize` it replaces: the clamping below stays the
+        // single place bounds are applied. Passing a bounded proposal here would
+        // change the result — content wider than 420 would wrap and report a taller
+        // height instead of being clamped — which is a behaviour change, not a fix.
+        let unbounded = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                               height: CGFloat.greatestFiniteMagnitude)
+        let fitting = host.sizeThatFits(in: unbounded)
         pop.contentSize = NSSize(width: min(max(fitting.width, 260), 420),
                                  height: min(fitting.height, 320))
         pop.contentViewController = host

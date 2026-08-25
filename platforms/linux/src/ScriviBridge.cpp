@@ -642,6 +642,601 @@ QString ScriviBridge::chooseFolder(const QString& startDir)
     return dir;   // already an absolute local path (not a URL)
 }
 
+// ====================================================================
+// EP-034 SP-121 — ABI parity completion (T-0461 / T-0462 / T-0463)
+//
+// See the block comment in ScriviBridge.hpp for why these ship without a
+// UI consumer, and for the identity/`scrivi_free` contracts they follow.
+// ====================================================================
+
+QVariantMap ScriviBridge::addComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& body)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_add_comment(projectRootPath.toUtf8().constData(),
+                                        scopeKind.toUtf8().constData(),
+                                        targetID.toUtf8().constData(),
+                                        body.toUtf8().constData(),
+                                        identityID_.toUtf8().constData(),
+                                        personaID_.toUtf8().constData(),
+                                        displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::addWorld(const QString& projectRootPath, const QString& packagePath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_add_world(projectRootPath.toUtf8().constData(),
+                                      packagePath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::applyRepair(const QString& issueID, const QString& projectRootPath, const QString& appSupportRoot, const QString& actionKind, const QString& targetPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_apply_repair(issueID.toUtf8().constData(),
+                                         projectRootPath.toUtf8().constData(),
+                                         appSupportRoot.toUtf8().constData(),
+                                         actionKind.toUtf8().constData(),
+                                         targetPath.toUtf8().constData(),
+                                         identityID_.toUtf8().constData(),
+                                         personaID_.toUtf8().constData(),
+                                         displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::clearSceneStoryTime(const QString& projectRootPath, const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_clear_scene_story_time(projectRootPath.toUtf8().constData(),
+                                                   sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createEdge(const QString& projectRootPath, const QString& fromID, const QString& toID, const QString& relationTypeCode, const QString& note)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_create_edge(projectRootPath.toUtf8().constData(),
+                                        fromID.toUtf8().constData(),
+                                        toID.toUtf8().constData(),
+                                        relationTypeCode.toUtf8().constData(),
+                                        note.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createObject(const QString& projectRootPath, const QString& objectKind, const QString& displayName, const QString& slug, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_create_object(projectRootPath.toUtf8().constData(),
+                                          objectKind.toUtf8().constData(),
+                                          displayName.toUtf8().constData(),
+                                          slug.toUtf8().constData(),
+                                          identityID_.toUtf8().constData(),
+                                          personaID_.toUtf8().constData(),
+                                          displayName_.toUtf8().constData(),
+                                          worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createSnapshot(const QString& projectRootPath, const QString& displayName, const QString& label, const QString& note)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_create_snapshot(projectRootPath.toUtf8().constData(),
+                                            identityID_.toUtf8().constData(),
+                                            personaID_.toUtf8().constData(),
+                                            displayName.toUtf8().constData(),
+                                            label.toUtf8().constData(),
+                                            note.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::createWorld(const QString& projectRootPath, const QString& packagePath, const QString& displayName, const QString& epochLabel)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_create_world(projectRootPath.toUtf8().constData(),
+                                         packagePath.toUtf8().constData(),
+                                         displayName.toUtf8().constData(),
+                                         epochLabel.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::deleteEdge(const QString& projectRootPath, const QString& edgeID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_delete_edge(projectRootPath.toUtf8().constData(),
+                                        edgeID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::deleteObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_delete_object(projectRootPath.toUtf8().constData(),
+                                          objectKind.toUtf8().constData(),
+                                          objectID.toUtf8().constData(),
+                                          worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::enableGitSnapshots(const QString& projectRootPath, const QString& displayName, const QString& initialSnapshotLabel)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_enable_git_snapshots(projectRootPath.toUtf8().constData(),
+                                                 identityID_.toUtf8().constData(),
+                                                 personaID_.toUtf8().constData(),
+                                                 displayName.toUtf8().constData(),
+                                                 initialSnapshotLabel.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::extractSearchableText(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_extract_searchable_text(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::fragmentCut(const QString& projectRootPath, const QString& spansJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_fragment_cut(projectRootPath.toUtf8().constData(),
+                                         spansJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::fragmentExtract(const QString& projectRootPath, const QString& spansJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_fragment_extract(projectRootPath.toUtf8().constData(),
+                                             spansJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::fragmentPaste(const QString& projectRootPath, const QString& appSupportRoot, const QString& projectID, const QString& fragmentJson, const QString& caretSceneID, long long caretByteOffset, const QString& displayName)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_fragment_paste(projectRootPath.toUtf8().constData(),
+                                           appSupportRoot.toUtf8().constData(),
+                                           projectID.toUtf8().constData(),
+                                           fragmentJson.toUtf8().constData(),
+                                           caretSceneID.toUtf8().constData(),
+                                           caretByteOffset,
+                                           identityID_.toUtf8().constData(),
+                                           personaID_.toUtf8().constData(),
+                                           displayName.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::fragmentUncutPaste(const QString& projectRootPath, const QString& fragmentJson, const QString& targetSceneID, const QString& createdIDsJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_fragment_uncut_paste(projectRootPath.toUtf8().constData(),
+                                                 fragmentJson.toUtf8().constData(),
+                                                 targetSceneID.toUtf8().constData(),
+                                                 createdIDsJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getSceneNotes(const QString& projectRootPath, const QString& sceneID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_get_scene_notes(projectRootPath.toUtf8().constData(),
+                                            sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getWorldBinding(const QString& projectRootPath, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_get_world_binding(projectRootPath.toUtf8().constData(),
+                                              worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getWorldStatus(const QString& projectRootPath, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_get_world_status(projectRootPath.toUtf8().constData(),
+                                             worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::importAsset(const QString& projectRootPath, const QString& sourcePath, const QString& category, const QString& title, const QString& worldID, const QString& projectID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_import_asset(projectRootPath.toUtf8().constData(),
+                                         sourcePath.toUtf8().constData(),
+                                         category.toUtf8().constData(),
+                                         title.toUtf8().constData(),
+                                         identityID_.toUtf8().constData(),
+                                         personaID_.toUtf8().constData(),
+                                         displayName_.toUtf8().constData(),
+                                         worldID.toUtf8().constData(),
+                                         projectID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::importFromInbox(const QString& projectRootPath, const QString& filename, const QString& action, const QString& category)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_import_from_inbox(projectRootPath.toUtf8().constData(),
+                                              filename.toUtf8().constData(),
+                                              action.toUtf8().constData(),
+                                              category.toUtf8().constData(),
+                                              identityID_.toUtf8().constData(),
+                                              personaID_.toUtf8().constData(),
+                                              displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listAssets(const QString& projectRootPath, const QString& category, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_assets(projectRootPath.toUtf8().constData(),
+                                        category.toUtf8().constData(),
+                                        worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listComments(const QString& projectRootPath, const QString& scopeKind, const QString& targetID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_comments(projectRootPath.toUtf8().constData(),
+                                          scopeKind.toUtf8().constData(),
+                                          targetID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listEdgesFor(const QString& projectRootPath, const QString& endpointID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_edges_for(projectRootPath.toUtf8().constData(),
+                                           endpointID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listInbox(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_inbox(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listObjectKinds()
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_object_kinds());
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listObjects(const QString& projectRootPath, const QString& kindOrNull)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_objects(projectRootPath.toUtf8().constData(),
+                                         kindOrNull.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listOrphanedObjects(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_orphaned_objects(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listPendingEdges(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_pending_edges(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listRelationTypes(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_relation_types(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::listWorlds(const QString& projectRootPath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_list_worlds(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::openObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_open_object(projectRootPath.toUtf8().constData(),
+                                        objectKind.toUtf8().constData(),
+                                        objectID.toUtf8().constData(),
+                                        worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::promoteObject(const QString& projectRootPath, const QString& objectID, const QString& targetKind, const QString& worldIDOrNull)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_promote_object(projectRootPath.toUtf8().constData(),
+                                           objectID.toUtf8().constData(),
+                                           targetKind.toUtf8().constData(),
+                                           worldIDOrNull.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::relinkWorld(const QString& projectRootPath, const QString& worldID, const QString& newPackagePath)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_relink_world(projectRootPath.toUtf8().constData(),
+                                         worldID.toUtf8().constData(),
+                                         newPackagePath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::removeAsset(const QString& projectRootPath, const QString& assetID, const QString& worldID, const QString& projectID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_remove_asset(projectRootPath.toUtf8().constData(),
+                                         assetID.toUtf8().constData(),
+                                         worldID.toUtf8().constData(),
+                                         projectID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::removeWorldReference(const QString& projectRootPath, const QString& worldID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_remove_world_reference(projectRootPath.toUtf8().constData(),
+                                                   worldID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::resolveComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& commentID, const QString& resolverDisplayName)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_resolve_comment(projectRootPath.toUtf8().constData(),
+                                            scopeKind.toUtf8().constData(),
+                                            targetID.toUtf8().constData(),
+                                            commentID.toUtf8().constData(),
+                                            identityID_.toUtf8().constData(),
+                                            personaID_.toUtf8().constData(),
+                                            resolverDisplayName.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::resolveTimelineProjectTimes(const QString& projectRootPath, const QString& worldID, const QString& timelineID)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_resolve_timeline_project_times(projectRootPath.toUtf8().constData(),
+                                                           worldID.toUtf8().constData(),
+                                                           timelineID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::saveObject(const QString& projectRootPath, const QString& objectKind, const QString& objectJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_save_object(projectRootPath.toUtf8().constData(),
+                                        objectKind.toUtf8().constData(),
+                                        objectJson.toUtf8().constData(),
+                                        identityID_.toUtf8().constData(),
+                                        personaID_.toUtf8().constData(),
+                                        displayName_.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::scanForExternalChanges(const QString& projectRootPath, const QString& appSupportRoot, int includeGitStatus)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_scan_for_external_changes(projectRootPath.toUtf8().constData(),
+                                                      appSupportRoot.toUtf8().constData(),
+                                                      includeGitStatus));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setSceneOutline(const QString& projectRootPath, const QString& sceneID, const QString& outline)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_scene_outline(projectRootPath.toUtf8().constData(),
+                                              sceneID.toUtf8().constData(),
+                                              outline.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setSceneTags(const QString& projectRootPath, const QString& sceneID, const QString& tagsJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_scene_tags(projectRootPath.toUtf8().constData(),
+                                           sceneID.toUtf8().constData(),
+                                           tagsJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setSceneTodo(const QString& projectRootPath, const QString& sceneID, const QString& todoJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_scene_todo(projectRootPath.toUtf8().constData(),
+                                           sceneID.toUtf8().constData(),
+                                           todoJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setTimelineEpochLabel(const QString& projectRootPath, const QString& label)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_timeline_epoch_label(projectRootPath.toUtf8().constData(),
+                                                     label.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setTimelineEpochOffset(const QString& projectRootPath, const QString& worldID, const QString& timelineID, long long epochOffsetMs)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_timeline_epoch_offset(projectRootPath.toUtf8().constData(),
+                                                      worldID.toUtf8().constData(),
+                                                      timelineID.toUtf8().constData(),
+                                                      epochOffsetMs));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setWorldEpochOffset(const QString& projectRootPath, const QString& worldID, long long epochOffsetMs)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_world_epoch_offset(projectRootPath.toUtf8().constData(),
+                                                   worldID.toUtf8().constData(),
+                                                   epochOffsetMs));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::upsertRelationType(const QString& projectRootPath, const QString& relationTypeJson)
+{
+    if (!ready_) {
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_upsert_relation_type(projectRootPath.toUtf8().constData(),
+                                                 relationTypeJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::parseEnvelope(const QString& json)
 {
     QJsonParseError parseError;

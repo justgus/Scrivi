@@ -39,12 +39,19 @@ The complete register of every Task ID in the project.
 ruling **R-18**). **Never balanced to a total (P6)** — the lines are counted; the total is whatever they
 sum to.
 
+> ⚠️ **STALE BELOW T-0426 — flagged 2026-08-25, NOT recomputed.** The rows below were derived when
+> **T-0426** was the highest ID. **T-0427–T-0465 have since been issued** (next available **T-0466**) and
+> are **not reflected** in any row except 🟠 Implemented - Not Verified, which was re-derived today.
+> ⚠️ **The figures are NOT re-balanced to a new total** — inventing one is precisely the
+> "balanced, not derived" defect that audit finding **F-18** recorded. **A full re-derivation of all 465
+> IDs is owed and is a task in its own right.**
+
 | Status | Count |
 | ------ | ----- |
 | ✅ **Verified** | **397** |
-| 🟡 **Active** | **0** |
-| 🔵 Backlog | 8 |
-| 🟠 Implemented - Not Verified | **0** |
+| 🟡 **Active** | **0** — ⚠️ **re-derived 2026-08-25**: no Sprint is active (SP-122 closed) |
+| 🔵 Backlog | **10** — ⚠️ **re-derived 2026-08-25**: +T-0472, +T-0473 |
+| 🟠 **Implemented - Not Verified** | **0** — ⚠️ **re-derived 2026-08-25**: SP-122's six were Verified and archived the same day |
 | ⚪ Descoped | 4 |
 | ⚪ Superseded | 3 |
 | ⚪ Closed | 2 |
@@ -693,7 +700,22 @@ archive files reconstructed after the fact from secondary sources.
 | T-0423 | "Remove from scene" — disabled **and explained** (I-0138); ⚠️ keep the wording (AC22) | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
 | T-0424 | ⚠️ **FILE (do not fix) the two kind-list findings** — `ObjectCard.swift:46`, `scrivi.h:97-99` → **I-0140, I-0141**; occurrence **eight**, cured by D5 in SP-116 | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
 | T-0425 | ⚠️ **Object editor shows its object's OWN world, as a LABEL not a picker** (I-0142) — `worldID` was gated on `pending` in `EndpointResolver`, `RelationshipStore` and the C ABI; ⚠️ **rename of a world object failed** because `openObject` got `""`. ✅ User ruling: **moving between worlds is disallowed** | SP-115 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0419-0425.md`](Verified/Task-verified-0419-0425.md) | — |
-| T-0426 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — |
+| T-0427 … T-0459 | ⚠️ **NOT YET ENTERED IN THIS REGISTER** — issued across SP-116–SP-120; see those Sprints' closed records | SP-116–SP-120 | EP-034 | ⚠️ **Unfiled here** | — | — |
+| T-0460 | ⚠️ **The gap audit, MECHANICAL** — all **100** endpoints, each with a disposition | SP-121 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0460-0465.md`](Verified/Task-verified-0460-0465.md) | — |
+| T-0461 | **Objects + kinds + worlds** — ⚠️ **kind scope DERIVED, never restated** | SP-121 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0460-0465.md`](Verified/Task-verified-0460-0465.md) | — |
+| T-0462 | **Edges + relation types + assets** — ⚠️ **edge labels passed through, never recomputed** | SP-121 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0460-0465.md`](Verified/Task-verified-0460-0465.md) | — |
+| T-0463 | **Scene metadata, comments, inbox, repair, snapshots** — the long tail | SP-121 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0460-0465.md`](Verified/Task-verified-0460-0465.md) | — |
+| T-0464 | ⚠️ **Bridge tests — through `ScriviBridge`, NOT the C ABI** (I-0113's lesson) | SP-121 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0460-0465.md`](Verified/Task-verified-0460-0465.md) | — |
+| T-0465 | ⚠️ **THE PORTING OUTLINE** — written for **FIVE** platforms | SP-121 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0460-0465.md`](Verified/Task-verified-0460-0465.md) | — |
+| T-0466 | **L1 + L4** — arm64 ✅ 567/567, interop ✅ 127, app ✅ BUILD SUCCEEDED | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
+| T-0467 | ⚠️ **L2 + L3** — x86-64 ✅ 567/567 + sanitizers ✅ 567/567 | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
+| T-0468 | **L5** — Linux ✅ 571/571 NON-ROOT; ⚠️ **filed I-0171** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
+| T-0469 | ⚠️ **THE LIVE-USE PASS** — ✅ **user ran it, CLEAN** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
+| T-0470 | ⚠️ **Re-verify AC1–AC10 against their own triggers** — ✅ **no failures** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
+| T-0471 | **EP-034 close prep** — ✅ **Audit Check RUN**; summary drafted | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
+| T-0472 | ⚠️ **`[Linux]` Surface for custom relationship types** — `scrivi_upsert_relation_type` has NEVER had a caller | — | **EP-035** | 🔵 Backlog | — | — |
+| T-0473 | ⚠️ **`[Apple]` Timeline endpoint parity** — 3 endpoints unreached on Apple | — | ⚠️ **None** | 🔵 Backlog | — | — |
+| T-0474 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — | — |
 
 ---
 

@@ -30,6 +30,8 @@ status changes on its own layer.
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
+| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-035** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code** |
+| **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
 
 > ✅ **T-0426–T-0430 LEFT this file 2026-08-21 when SP-116 was ACTIVATED** — they are 🟡 Active and live
 > in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
@@ -291,6 +293,48 @@ consequence, chosen over leaving a hand-edited `appears-in` broken forever. It s
 ✅ **As implemented (T-0441):** seeded codes are added if missing and replaced if they differ; every other
 code is left alone; nothing is deleted; and the file is written **only when something actually changed**
 (S3 — an unconditional rewrite would churn mtimes and Git status on every open).
+
+---
+
+## ⚠️ T-0472 — `[Linux]` Surface for custom relationship types
+
+**Epic:** EP-035 · **Ruled:** 2026-08-25 (user) · **Origin:** EP-034 close / SP-121's ABI gap audit
+
+⚠️ **`scrivi_upsert_relation_type` is fully implemented and has zero callers on ANY platform.** The core
+writes custom relationship types into the project; `ProjectCreator` seeds the defaults
+(`RelationTypeStore::seedTypes()`); `scrivi_list_relation_types` READS them and the app uses it.
+⚠️ **Nothing can ADD one** — the write half has never been surfaced.
+
+✅ **User ruling: this is a REAL FEATURE owed a UI, not speculative code.** Custom relationship vocabulary
+is a legitimate worldbuilding capability — a DM wanting `sworn-enemy-of` or `liege-of` beyond the seeded
+set.
+
+⚠️ **Assigned to EP-035 because that Epic builds the Linux object layer**, where relationship creation
+already lands. ⚠️ **It is BACKLOG, not scheduled** — EP-035 is itself 🔵 Proposed.
+
+⚠️ **Also owed: a C ABI test.** `scrivi_upsert_relation_type` has **no ScriviCore test at the boundary**
+(`feedback_boundary_tests_not_facade` — a facade test cannot see a boundary gap; that is how I-0113
+shipped green).
+
+---
+
+## ⚠️ T-0473 — `[Apple]` Timeline endpoint parity
+
+**Epic:** ⚠️ **NONE — deliberately unassigned** · **Ruled:** 2026-08-25 (user)
+
+⚠️ **Three endpoints are unreached on Apple**: `resolve_timeline_project_times`,
+`set_timeline_epoch_offset`, `set_world_epoch_offset`. ✅ **All three are bridged on Linux** (SP-121), and
+⚠️ **the two epoch-offset endpoints have real core implementations AND core tests** (`WorldStore`) — so
+this is a missing Apple surface, not missing capability.
+
+⚠️ **Linux's Timeline Panel is 1,422 lines and is the mature surface; Apple's is thinner.** ⚠️ **This is
+a genuine platform asymmetry**, and the endpoints exist because Linux needed them first.
+
+✅ **User ruling: Apple parity IS owed — file it so it is tracked rather than rediscovered at each audit.**
+⚠️ **NOT scheduled, and carries NO Epic** — it is a tracked debt, and ⚠️ **must not be read as a
+commitment in any current Epic.**
+
+⚠️ **`resolve_timeline_project_times` has NO core test either** — unlike the two epoch setters.
 
 ---
 

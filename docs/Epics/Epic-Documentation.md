@@ -12,8 +12,8 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-🟡 **EP-034** `[Cross]` **Object Detail & Media — Detail Sheets & Project↔World Interaction** — **ACTIVE
-2026-08-20**, promoted from the backlog and ⚠️ **widened in place** from "object fields beyond
+⚠️ **No Epic is currently active.** **EP-034** `[Cross]` **Object Detail & Media** ✅ **CLOSED 2026-08-25**
+(active from **2026-08-20**), promoted from the backlog and ⚠️ **widened in place** from "object fields beyond
 `displayName`" to the full Detail Sheet, relationship surface, and Project↔World interaction.
 
 **Design doc** `Scrivi_Object_Detail_Sheets_Design_v0_1.md` is 🟢 **APPROVED FOR PLANNING** — ✅ **all nine
@@ -54,7 +54,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 ## All Epics
 
 ⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
-Statistics — read the rows. Next available ID: **EP-035**.
+Statistics — read the rows. Next available ID: **EP-036** (⚠️ **EP-035 is ISSUED** — `[Linux]` Object Layer, 🔵 Proposed).
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -93,7 +93,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-031 | `[ScriviCore]` Worldbuilding Object Model & Relationship Graph | ✅ Closed | 2026-08-12 | 2026-08-19 |
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes); ⚠️ **holds reserved SP-107–SP-114** | 🔵 Draft (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
-| EP-034 | `[Cross]` Object Detail & Media — **Detail Sheets & Project↔World Interaction** (widened 2026-08-20) | 🟡 **Active** | 2026-08-20 | — |
+| EP-034 | `[Cross]` Object Detail & Media — **Detail Sheets & Project↔World Interaction** — ⚠️ **AC11 moved to EP-035** | ✅ **Closed** — [record](Closed/Epic-EP-034.md) | 2026-08-20 | 2026-08-25 |
+| **EP-035** | ⚠️ **`[Linux]`** Object Layer & Detail Surfaces — ⚠️ **the first PORT, and the template for four more**; carries **EP-034's AC11** | 🔵 **Proposed** | 2026-08-24 | — |
 
 ## Statistics
 
@@ -101,8 +102,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-035**
-- **Total Epic IDs issued:** 34 (EP-001–EP-034); none cancelled, skipped or superseded
+- **Next available Epic ID:** **EP-036**
+- **Total Epic IDs issued:** 35 (EP-001–EP-035); none cancelled, skipped or superseded
 - **Where per-Epic detail lives:** [`Epic-active.md`](Epic-active.md) is authoritative for the **active**
   Epic's acceptance criteria and sprint table. ⚠️ **This index does not restate AC state** — that is what
   produced the *"AC9 and AC10 are also outstanding"* error, when AC9 had been met two days earlier.
@@ -113,6 +114,14 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-08-24 (**EP-035 🔵 OPENED**, carrying **EP-034's AC11**, which ⚠️ **was found at
+SP-121 planning to be an ENTIRE EPIC rather than a parity criterion**: the Linux app has **zero**
+object/edge/world/asset call sites and a **67-line stub** inspector, against ~4,800 lines of Apple
+surface. ⚠️ **EP-034 therefore closes on AC12 alone and must NOT be read as having delivered Linux
+parity.** ✅ **EP-034's SP-121 completes `ScriviBridge` first**, so EP-035 is a UI port and not bridge
+archaeology. ⚠️ **EP-035 is explicitly a TEMPLATE** — iPad, iPhone, Windows and visionOS re-run it against
+SP-121's Porting Outline. Next available Epic ID: **EP-036**. Prior note follows.)*
 
 *Last Updated: 2026-08-20 (**EP-034: SP-115 ✅ CLOSED, user-approved** — 1 of 8 sprints. All five carried
 EP-031 Issues fixed, plus **I-0142 found by the user during verification**. ⚠️ **Two items carried out**:
