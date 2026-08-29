@@ -458,6 +458,25 @@ public:
     Q_INVOKABLE QVariantMap setWorldEpochOffset(const QString& projectRootPath, const QString& worldID, long long epochOffsetMs);
     Q_INVOKABLE QVariantMap upsertRelationType(const QString& projectRootPath, const QString& relationTypeJson);
 
+    // Whether the MOST RECENT scrivi_* call through this bridge failed.
+    //
+    // ⚠️ An empty QVariantMap is AMBIGUOUS and always has been: parseEnvelope
+    // returns {} for a failed call, and an ok envelope also decodes to {} when
+    // its result carries no keys — which is exactly what every list endpoint
+    // emits for an EMPTY list, because JsonDoc::appendToArray only creates the
+    // array key when there is a first element to push. So `{}` from
+    // listEdgesFor() means EITHER "this scene has no edges" OR "the call
+    // failed", and the two are indistinguishable at the call site.
+    //
+    // Existing callers tolerate that by degrading silently (the timeline drops
+    // to scenes-only on a failed historical-events read). ⚠️ A surface that must
+    // tell "nothing here" apart from "we could not read it" — EP-035's T-0483,
+    // where absence is never deletion — cannot. This flag is how it does.
+    //
+    // Set by every call that goes through parseEnvelope, so it must be read
+    // IMMEDIATELY after the call it refers to.
+    bool lastCallFailed() const { return lastCallFailed_; }
+
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);
@@ -468,6 +487,9 @@ private:
     QVariantMap parseEnvelope(const QString& json);
 
     bool    ready_ = false;
+    // See lastCallFailed(). Starts false: no call has failed before the first
+    // call is made.
+    bool    lastCallFailed_ = false;
     QString identityID_;
     QString personaID_;
     QString displayName_;

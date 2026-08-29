@@ -11,7 +11,16 @@
 # succeeds under `--no-cache` (which regenerates the cache in place) and FAILS on
 # a cached rebuild. Anyone who has run `ctest` locally poisons their next
 # container build, and the error names CMake rather than the real cause.
+#
+# ⚠️ I-0171: `build/` alone is NOT enough — the host carries a FAMILY of build
+# trees (build-tests/, build-linux-tests/, build-iphoneos/,
+# build-iphonesimulator/), and any one of them entering the context reproduces
+# the failure above. Match the family, not the single name that existed when
+# this was written. (Filed in SP-122; hit again in SP-125.)
 build/
+build-*/
+**/build/
+**/build-*/
 cmake-build-*/
 
 # Xcode / macOS artifacts — large, and meaningless inside a Linux image.

@@ -107,10 +107,18 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // --- Inspector (right): EP-024 Scene Inspector panel ------------------
     // Docks as the THIRD pane of the same splitter (navigator | viewport |
     // inspector), the cleanest match for Apple's "between the manuscript surface
-    // and the window edge". A UI stub for now (no project data). Session-scoped
+    // and the window edge". SP-125 (EP-035) replaced its stub
+    // with the scene's real objects; it is given its project context in load()
+    // and follows the active scene through selectNavigatorScene(). Session-scoped
     // visibility (inspectorVisible_); defaults SHOWN (Apple parity — user decision
     // 2026-07-22). View ▸ Show Inspector (T-0320) toggles it.
     inspector_ = new SceneInspector(this);
+    // T-0482: opening an object is requested here and OWNED by the shell — the
+    // panel only reports the request. ⚠️ worldID travels with it and must be
+    // threaded through every subsequent call (omitting it is how SP-104 blocked
+    // object creation outright).
+    connect(inspector_, &SceneInspector::openObjectRequested,
+            this, &EditorShell::onOpenObjectRequested);
 
     splitter_ = new QSplitter(Qt::Horizontal, this);
     splitter_->addWidget(navigator_);
@@ -284,6 +292,13 @@ bool EditorShell::load(const QString& projectPath,
     appSupportRoot_ = appSupportRoot;
     activeSegment_  = -1;
     saveTimer_->stop();
+
+    // The inspector reads objects through the same bridge, for the same project
+    // (SP-125). Given here — after projectPath_ is set and before any scene is
+    // promoted — so the panel never queries a stale root.
+    if (inspector_ != nullptr) {
+        inspector_->setContext(bridge_, projectPath_);
+    }
 
     // Assemble the continuous document in manuscript (scenes[]) order. The active
     // scene's body already arrived in openProject; fetch every other body via
@@ -1001,6 +1016,15 @@ void EditorShell::selectNavigatorScene(const QString& sceneID)
     // so the timeline stays in sync with the navigator without a separate wiring.
     if (timeline_ != nullptr) {
         timeline_->setActiveScene(sceneID);
+    }
+
+    // Scene Inspector follows the active scene too (EP-035, T-0481). This is the
+    // SAME single hook promoteActiveScene and moveCaretToSegment already route
+    // through for the navigator highlight and the timeline dot, so the panel
+    // stays in sync without a separate wiring. setScene() is a no-op when the
+    // scene has not actually changed, so scroll traffic costs nothing.
+    if (inspector_ != nullptr) {
+        inspector_->setScene(sceneID);
     }
 
     // Highlight-only: find the matching child row and select it. No scroll, no caret.
@@ -1746,6 +1770,51 @@ void EditorShell::onDotDragged(const QString& sceneID, qint64 newOffsetMs)
 {
     // The drag proposes a new absolute offset; the picker opens seeded with it.
     showTimeDeltaPicker(sceneID, newOffsetMs);
+}
+
+void EditorShell::onOpenObjectRequested(const QString& objectKind,
+                                       const QString& objectID,
+                                       const QString& worldID)
+{
+    if (objectID.isEmpty()) {
+        return;
+    }
+
+    // ⚠️ Confirm the object is actually READABLE before claiming anything about
+    // it. openObject threads worldID through unchanged — EMPTY for a
+    // project-scoped object, the world's ID for a world-scoped one. Omitting it
+    // is what blocked object creation outright in SP-104, and this is the first
+    // Linux call site that has to get it right.
+    const QVariantMap opened =
+        bridge_->openObject(projectPath_, objectKind, objectID, worldID);
+    if (bridge_->lastCallFailed()) {
+        // The bridge already surfaced the reason through errorOccurred; do not
+        // paper over it with a second, vaguer message.
+        return;
+    }
+
+    // ⚠️ The object DETAIL SHEET is EP-036's deliverable, not this sprint's. The
+    // affordance is wired end-to-end and the object is genuinely read here — what
+    // is missing is the surface to show it in. Say exactly that: a dead
+    // double-click reads to a writer as a broken app, and inventing a partial
+    // sheet here would be building EP-036 badly and early.
+    // ⚠️ The open envelope carries {objectJson, path} only — there is no
+    // displayName key at this boundary. The name lives INSIDE the object's own
+    // JSON, which is also the form EP-036 will have to patch rather than
+    // reconstruct (T-0436/T-0437).
+    const QString objectJson = opened.value(QStringLiteral("objectJson")).toString();
+    const QString displayName =
+        QJsonDocument::fromJson(objectJson.toUtf8())
+            .object()
+            .value(QStringLiteral("displayName"))
+            .toString();
+    QMessageBox::information(
+        this,
+        tr("Open Object"),
+        tr("“%1” opened successfully (%2).\n\n"
+           "The object detail view is not built yet — it is the next Epic's work. "
+           "Nothing about this object has been changed.")
+            .arg(displayName.isEmpty() ? objectID : displayName, objectKind));
 }
 
 void EditorShell::onSetTimeDeltaRequested(const QString& sceneID)

@@ -35,6 +35,94 @@ tester. **Depends on:** EP-022 (and benefits from EP-023–EP-025).
 
 ---
 
+## EP-036: `[Linux]` Object Detail Sheet & Media — ⚠️ **the second of three port Epics**
+
+**Status:** 🔵 **Proposed** — created 2026-08-25 by the EP-035 three-way split.
+**Codebase:** `[Linux]` — Qt/QML over `ScriviBridge`. ⚠️ **No ScriviCore change expected.**
+**Goal:** A writer can **open an object and see and edit what it actually is** on Linux — fields, notes,
+tags, and imagery — and ⚠️ **never lose work when a world goes away.**
+**Depends on:** ⚠️ **EP-035** — kind cards and the object list are the entry point this Epic opens FROM.
+**Date Created:** 2026-08-25 · **Target Close:** — (⚠️ **3–4 sprints, estimated before implementation**)
+
+⚠️ **Apple equivalent: ~1,350 lines** (`ObjectDetailSheet.swift` 816, `ObjectImageSection.swift` 368,
+`ExistingAssetPicker.swift` 168) — ⚠️ **and that is the SwiftUI line count, not the Qt one.**
+
+### Acceptance Criteria (draft — ⚠️ to be ruled at promotion)
+
+- **AC1** — The sheet **views and edits** `displayName`, `subtitle`, `notes`, `tags`; ⚠️ **edits persist
+  across app restart.** ⚠️ **PATCH the object, never reconstruct it** (T-0436/T-0437) — a surface built
+  before its typed model drops fields.
+- **AC2** — An image can be **imported, displayed, replaced, removed**; ⚠️ for a **world-scoped** object
+  it is stored **in the world package** and is present when that world opens **from a different project.**
+- **AC3** — ⚠️ **A pending object opens READ-ONLY, explained, never written.**
+- **AC4** — ⚠️ **A world going unavailable WHILE A SHEET IS OPEN loses no data.**
+  ⚠️ **BLOCKED ON EP-038** — this AC cannot be written honestly until the real-hardware rig reports what
+  a Linux drive-loss actually does. ⚠️ **Do NOT specify it from the Apple implementation**; that code's
+  own header records that the documented API lied. ⚠️ **On Apple this took
+  SIX fixes** (I-0162, I-0165, I-0165b, I-0166, I-0167, I-0168): the sheet must survive the outage,
+  explain it, warn that unsaved edits are memory-only, and ⚠️ **not discard them on reload, close, or
+  navigation.** ⚠️ **Expect the same on Linux — this is the highest-risk AC in the port.**
+- **AC5** *(standing)* — ⚠️ **Porting Outline corrected from experience**, not merely followed.
+- **AC6** *(standing)* — ⚠️ **Platform-independent rules re-honoured, not re-decided.**
+- **AC7** *(standing)* — `ctest` **actually runs** in the container, ⚠️ **NON-ROOT, tests ON.**
+- **AC8** *(standing)* — ⚠️ **A LIVE VNC click-through per surface-shipping sprint** (user ruling
+  2026-08-25).
+
+### ⚠️ Known traps
+
+- ⚠️ **AC4 is where Apple bled.** Six separate data-loss routes into one surface, ⚠️ **all found by
+  ejecting a drive or navigating away — none by a suite.**
+- ⚠️ **`volumeIsRemovable`/`volumeIsEjectable` are UNRELIABLE** on the real rig; availability is decided
+  by **volume-root mount presence** (`project_test_rig_tintagael_eskandar`).
+
+---
+
+## EP-037: `[Linux]` Relationships & Sources — ⚠️ **the third of three port Epics**
+
+**Status:** 🔵 **Proposed** — created 2026-08-25 by the EP-035 three-way split.
+**Codebase:** `[Linux]` — Qt/QML over `ScriviBridge`. ⚠️ **One ScriviCore-adjacent item: a C ABI test.**
+**Goal:** The **relationship graph and citation apparatus** on Linux — related objects, relationship
+creation, push-navigation, and sources with footnote text.
+**Depends on:** ⚠️ **EP-036** — relationships and sources are sections OF the Detail Sheet.
+**Date Created:** 2026-08-25 · **Target Close:** — (⚠️ **3–4 sprints, estimated before implementation**)
+
+⚠️ **Apple equivalent: ~1,500 lines** (`ObjectSourcesSection` 604, `ObjectRelationsSection` 438,
+`ObjectRelationPicker` 259, `ObjectDetailHistory` 100, `Citation` 97).
+
+### Acceptance Criteria (draft — ⚠️ to be ruled at promotion)
+
+- **AC1** — The related-objects section lists this object's edges ⚠️ **with labels reading correctly FROM
+  THIS ENDPOINT.** ⚠️ **`list_edges_for` returns the label ALREADY RESOLVED — pass it through UNTOUCHED.**
+  ⚠️ **Recomputing direction in Qt is the same defect class as restating kind scope**, which this project
+  has paid for eight times.
+- **AC2** — A relationship can be **created from the sheet**; ⚠️ **it appears from BOTH endpoints** and is
+  **rejected as a duplicate from the second.**
+- **AC3** — **Push-navigation to a related object, with back and forward.** ⚠️ **On Apple this needed FOUR
+  Issues** (I-0151, I-0153, I-0157, I-0161) before it worked. ⚠️ **Verify both halves SEPARATELY** —
+  back/forward and push-from-the-related-list are different mechanisms
+  (`feedback_verify_each_half_separately`).
+- **AC4** — **Sources can be created from the object they document**, with citation detail and footnote
+  text. ⚠️ **Creation lives on the OBJECT's surface, never on the scene-scoped `sources` card** — user
+  ruling R6: *"it would muddy the fact that the source must be associated with an object in the world."*
+- **AC5** — ⚠️ **T-0472: a surface for CUSTOM RELATION TYPES**, calling `scrivi_upsert_relation_type`.
+  ⚠️ **That endpoint is fully implemented and has NEVER had a caller on any platform** — projects are
+  seeded with defaults and `list_relation_types` reads them, but ⚠️ **nothing can ADD one.**
+  ✅ **User-ruled a REAL FEATURE owed a UI** (2026-08-25).
+- **AC6** — ⚠️ **A C ABI test for `scrivi_upsert_relation_type`**, which ⚠️ **has NONE.**
+  ⚠️ **Through the boundary, not the facade** — `feedback_boundary_tests_not_facade`; a facade test
+  cannot see a boundary gap, and that is how I-0113 shipped green.
+- **AC7** *(standing)* — ⚠️ **Porting Outline corrected from experience.**
+- **AC8** *(standing)* — ⚠️ **Platform-independent rules re-honoured, not re-decided.**
+- **AC9** *(standing)* — `ctest` **NON-ROOT, tests ON**, actually run.
+- **AC10** *(standing)* — ⚠️ **A LIVE VNC click-through per surface-shipping sprint.**
+
+### ⚠️ At this Epic's close, the port is DONE — and so is the debt
+
+✅ **When EP-037 closes, SP-121's 47 bridged endpoints finally have readers** and the
+`capability_without_surface` risk EP-034 named at its own close is discharged. ⚠️ **Until then it stands.**
+
+---
+
 ## EP-032: `[Cross]` Inline Object References in the Manuscript
 
 **Status:** 🔵 **Draft** — ⚠️ **RETURNED to this backlog 2026-08-20 by user ruling**, the same day it was
@@ -306,80 +394,6 @@ closed Sprints from `../Sprints/Sprint-backlog.md`; update `Epic-Documentation.m
 
 ⚠️ **Claude may NOT:** mark ✅ Closed, defer the Epic, or remove an acceptance criterion — all three
 require direct user approval.
-
----
-
-## EP-035: `[Linux]` Object Layer & Detail Surfaces — ⚠️ **the first PORT, and the template for four more**
-
-**Status:** 🔵 **Proposed** — opened 2026-08-24 by user ruling, splitting **AC11 out of EP-034**.
-**Codebase:** `[Linux]` — Qt/QML surfaces over `ScriviBridge`. ⚠️ **No ScriviCore change expected**; the
-capability all exists.
-**Goal:** Give the Linux app the **object layer it has never had** — kind cards, world binding, the object
-Detail Sheet, relationships, images and sources — reaching the parity **AC11 assumed already existed.**
-**Date Created:** 2026-08-24 · **Target Close Date:** — (not scheduled)
-
-**Depends on:** ⚠️ **SP-121** (EP-034) — `ScriviBridge` completion + the Porting Outline. **This Epic
-cannot start before it**, which is the whole reason SP-121 exists in that shape.
-
----
-
-### ⚠️ Why this Epic exists — the finding that split AC11
-
-EP-034's **AC11** read *"`[Linux]` parity for AC1–AC9 in Docker+VNC."* ⚠️ **Verified at SP-121 planning,
-that is not a parity criterion — there was nothing to reach parity with:**
-
-| Check | Result |
-| ----- | ------ |
-| Object / edge / world / asset endpoints called anywhere in `platforms/linux/` | ⚠️ **ZERO** |
-| `SceneInspector.cpp` | ⚠️ **67 lines, a STUB** — *"wired to NO project data"*, unchanged since EP-024/SP-078 |
-| Apple surface AC1–AC9 covers | **~4,800 lines, 11 files** |
-
-⚠️ **AC1 presumes a Kind Card list item to double-click, and Linux has no Kind Cards.** Estimating that as
-one sprint is how a sprint runs five sprints long.
-
-⚠️ **This is NOT "Linux lagging."** Linux has a real Timeline Panel (1,422 lines), manuscript editor and
-navigator. **The object model landed in EP-031/EP-034 as Apple-only and no Linux sprint ever picked it
-up** — a scope fact, not a quality one.
-
-### ⚠️ This Epic is a TEMPLATE, not a one-off
-
-> *"We're going to have to do it all again for iPad, iPhone, Windows and eventually visionOS."* — user
-
-### ⚠️ Carried IN from EP-034's close (2026-08-25 rulings)
-
-| Item | Why it lands here |
-| ---- | ----------------- |
-| **T-0472** — surface for custom relationship types | ⚠️ **`scrivi_upsert_relation_type` is fully implemented and has NEVER had a caller on any platform.** ✅ **User-ruled a REAL FEATURE owed a UI**, not dead code. It belongs with this Epic's relationship work |
-| ⚠️ **SP-121's 47 bridged endpoints have NO live click-through** | ⚠️ **They are suite-proven ONLY.** This Epic is where a human first uses them |
-| ⚠️ **A C ABI test for `upsert_relation_type`** | ⚠️ **It has none** — `feedback_boundary_tests_not_facade` |
-
-⚠️ **T-0473 (`[Apple]` timeline parity) is NOT part of this Epic** — it carries no Epic by ruling.
-
-⚠️ **EP-035 is the first of five ports.** It must be executed **against** SP-121's
-`Scrivi_Platform_Porting_Outline_v0_1.md` and ⚠️ **must feed corrections BACK into it** — the outline is
-the deliverable that survives; this Epic is its first proving run.
-
-### Acceptance Criteria (draft — ⚠️ to be ruled at promotion)
-
-- **AC1** — ⚠️ **Inherits EP-034's AC1–AC9 verbatim**, re-verified on Linux in Docker+VNC.
-  ⚠️ **No gesture-only affordances** — VNC carries no Shift-combos or trackpad gestures
-  (`project_linux_vnc_input_constraints`), so ⚠️ **every action needs a button or menu path.**
-- **AC2** — ⚠️ **The Porting Outline is CORRECTED from this Epic's experience**, not merely followed.
-- **AC3** — ⚠️ **The platform-independent rules are re-honoured, not re-decided**: derive kind scope from
-  `list_object_kinds` (never restate it); read edge labels (never recompute); patch objects (never
-  reconstruct); absence is never deletion; disabled **and** explained.
-- **AC4** — `ctest` **actually runs** in the container, **non-root**, tests **ON**
-  (`project_linux_container_tests_off`).
-
-### ⚠️ Known traps this Epic will walk into
-
-- ⚠️ **The kind-list restatement would be occurrence NINE**, and ⚠️ **occurrence five was in SWIFT** — a
-  new platform layer is exactly where it recurs. Qt is no more immune than SwiftUI was.
-- ⚠️ **`capability_without_surface` in reverse**: SP-121 ships 43 bridged endpoints with **no reader**. If
-  this Epic does not run, that is what they stay.
-- ⚠️ **The live click-through is the only thing that has ever found these defects** — **22 consecutive
-  Issues** across SP-118–SP-120, none from a suite. ⚠️ **A Linux pass needs VNC and a real project**, and
-  is materially harder to run than the macOS one.
 
 ---
 

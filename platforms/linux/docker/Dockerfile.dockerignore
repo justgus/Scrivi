@@ -7,8 +7,18 @@
 # just an optimization.
 
 # CMake / build output (host-generated, absolute paths baked in)
+#
+# ⚠️ I-0171: `build/` alone is NOT enough. The host carries several build trees —
+# build/, build-tests/, build-linux-tests/, build-iphoneos/, build-iphonesimulator/
+# — and any ONE of them entering the context breaks the in-container configure
+# with "the source ... does not match the source ... used to generate cache".
+# The glob must cover the whole FAMILY, not the one name that happened to exist
+# when this file was written. (Filed in SP-122; hit again in SP-125, where it
+# blocked the ctest run outright.)
 build/
+build-*/
 **/build/
+**/build-*/
 cmake-build-*/
 
 # Apple/Xcode artifacts — irrelevant to the Linux image

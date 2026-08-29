@@ -40,9 +40,13 @@ qt_add_executable(scrivi_linux
     # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
-    # SP-078 (EP-024): the Scene Inspector side panel (UI stub).
+    # SP-078 (EP-024): the Scene Inspector side panel — data-backed by SP-125.
     src/SceneInspector.cpp
     src/SceneInspector.hpp
+    # SP-125 (EP-035): the object-kind scope partition, DERIVED from ScriviCore
+    # (scrivi_list_object_kinds) and never restated in Qt.
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
     # SP-079 (EP-025): the Timeline bottom strip (scene dots in story-time order).
     src/TimelinePanel.cpp
     src/TimelinePanel.hpp
@@ -544,3 +548,61 @@ target_link_libraries(scrivi_linux_quit_smoke
 
 target_include_directories(scrivi_linux_quit_smoke PRIVATE src)
 target_compile_features(scrivi_linux_quit_smoke PRIVATE cxx_std_23)
+
+# --- Headless Scene Inspector read-path smoke (SP-125 / T-0480–T-0483) ------
+# The Scene Inspector's read path through ScriviBridge + ObjectKindScope: the
+# kind partition DERIVED from the core and matched kind-for-kind against its own
+# answer (a restatement here would make the test itself occurrence nine); the
+# unknown-kind fallback being world-scoped on purpose; the edge label and far
+# endpoint's kind arriving ALREADY RESOLVED; and an EMPTY listing being
+# distinguishable from a FAILED one, which is what lets the panel tell "no
+# objects" from "could not read them" (T-0483, absence is never deletion).
+# The panel's rendering, double-click and context menu are verified LIVE (AC9).
+# scene_inspector_smoke.sh.
+qt_add_executable(scrivi_linux_scene_inspector_smoke
+    tests/scene_inspector_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_scene_inspector_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_scene_inspector_smoke PRIVATE src)
+target_compile_features(scrivi_linux_scene_inspector_smoke PRIVATE cxx_std_23)
+
+# --- Live-pass fixture builder (SP-125, EP-035 AC9) -------------------------
+# NOT a test — it asserts nothing. Builds a throwaway project whose first scene
+# has objects of several kinds related to it, so the AC9 live click-through runs
+# against real data instead of an empty panel (which would exercise only one of
+# the four states T-0483 separates). The kinds come from ObjectKindScope, so this
+# harness names none of them either.
+qt_add_executable(scrivi_linux_inspector_fixture
+    tests/inspector_fixture.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_inspector_fixture
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_inspector_fixture PRIVATE src)
+target_compile_features(scrivi_linux_inspector_fixture PRIVATE cxx_std_23)

@@ -16,26 +16,57 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **no active Tasks**
-
-✅ **SP-122's T-0466–T-0471 were Verified 2026-08-25** and archived to
-[`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md).
-⚠️ **SP-122 itself is ✅ CLOSED** — [record](../Sprints/Closed/Sprint-SP-122.md).
-⚠️ **No Sprint is active and none is planned**, so no Tasks are in flight.
+## Currently: **nine active Tasks** — SP-123 (EP-038) + SP-126 (EP-035), ⚠️ **in parallel**
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
+| **T-0474** | ⚠️ **Account + SSH key exchange + reachability** — ✅ **USER-IMPLEMENTED 2026-08-27** (`oathkeeper`, RDP + SSH) | SP-123 | ✅ **VERIFIED 2026-08-29 by Claude** — key auth, RDP active, Ubuntu 26.04.1 / x86_64 / 12 cores |
+| **T-0475** | **Toolchain + deps** — Qt ≥ 6.4 ⚠️ **CONFIRMED not assumed** (⚠️ **26.04 ships NEWER than the 6.4 pin**); ⚠️ **desktop + remote-desktop ALREADY EXIST**, so this is TOOLCHAIN ONLY | SP-123 | ✅ **VERIFIED 2026-08-29** — native build + 571/571 ctest + 18/18 smokes, non-root; ⚠️ **Qt 6.10.2 / GCC 15.2 / CMake 4.2.3, ZERO code changes** |
+| **T-0476** | **First NATIVE build** (⚠️ **no container**) + `ctest` non-root + ⚠️ **app launches on a REAL display** | SP-123 | ✅ **VERIFIED 2026-08-29** — ⚠️ **app LAUNCHED on the real display**, opened a project; navigator, manuscript + timeline all nominal. ⚠️ **3 Issues filed (I-0176–I-0178), user-ruled non-blocking** |
 
-⚠️ **Issues found by T-0469 are a SUCCESS signal, not slippage.** EP-031 planned 6 sprints and delivered
-11 — four of the five additions came from USE.
+⚠️ **OWNERSHIP IS SPLIT (user ruling 2026-08-29)** — ⚠️ **T-0474's verification direction is INVERTED:
+the USER implemented it, so CLAUDE verifies it.** ⚠️ **The standing rule "Claude may never mark a Task
+Verified" exists to stop Claude self-certifying its OWN work** — ✅ **it does not bar Claude from
+verifying the user's.** T-0475 is Claude's (over SSH); ⚠️ **T-0476 returns to the user** — it needs a
+human at a real display.
+
+⚠️ **T-0477 – T-0479 are SP-124's and are deliberately NOT here** — the sprint boundary is what keeps
+*instrument-before-implement* honest.
+
+### SP-126 (EP-035) — the three-tab Scene Inspector shell · **activated 2026-08-29**
+
+| ID | Title | Sprint | Status |
+| -- | ----- | ------ | ------ |
+| **T-0485** | **The three-tab shell** — ⚠️ **display order `Writing \| Worldbuilding \| Properties`**, defaulting to **Writing** | SP-126 | 🔵 Planned |
+| **T-0486** | ⚠️ **`inspector-layout.json` read + write** — ⚠️ **PATCH, never reconstruct**: round-trip `stackSort`/`defaultStacks`/`scenes` untouched | SP-126 | 🔵 Planned |
+| **T-0487** | **Writing tab** — tags / outline / todo (`setSceneTags`, `setSceneOutline`, `setSceneTodo`) | SP-126 | 🔵 Planned |
+| **T-0488** | **Properties tab** — ⚠️ **read-only DERIVED stats** from `getSceneNotes`; ⚠️ **read-only IN FACT** (I-0148) | SP-126 | 🔵 Planned |
+| **T-0489** | ⚠️ **MOVE SP-125's object list into Worldbuilding** — no behaviour change; ⚠️ **"Scene Entities" RETIRES** | SP-126 | 🔵 Planned |
+| **T-0490** | ⚠️ **LIVE pass** (EP-035 AC9) + `ctest` non-root — ⚠️ **file every Issue found** | SP-126 | 🔵 Planned |
+
+⚠️ **T-0486 carries this sprint's real risk.** Linux does not model `stackSort` or per-scene stacks, so
+it must round-trip them UNTOUCHED — ⚠️ **reconstructing the document would silently delete the writer's
+Apple-side card layout, invisibly until she reopened the project on the Mac.**
+
+⚠️ **T-0491 (per-stack sort + drag-reorder) is UNSCHEDULED and stays in the backlog** — user-ruled out
+of SP-126.
+
+⚠️ **SP-123 waits on the rig being awake; SP-126 is blocked on NOTHING** — ✅ **that asymmetry is why the
+two run in parallel**, the same reason SP-123/SP-125 did.
+
+## Previously: SP-125's five Tasks — ✅ Verified and archived
+
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0480 – T-0484** | SP-125's five — ⚠️ **the FIRST object surface Linux has ever had**: derived kind scope, the Scene Entities tab, both open affordances, the four explained states, and the live pass | SP-125 | 2026-08-28 → [`Verified/Task-verified-0480-0484.md`](Verified/Task-verified-0480-0484.md) |
+
+⚠️ **Archived in the SAME STEP they were verified** (`feedback_archive_on_close`).
+
+✅ **Verified by a USER CLICK-THROUGH against real writing work** — two projects sharing the Eskandar
+world. ⚠️ **Three Issues were raised against them (I-0173, I-0174, I-0175)**; ⚠️ **I-0174 was MY
+misdiagnosis, corrected by the user: opening a project is not a risk.**
 
 ⚠️ **Detail lives in [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md), not here** (P7).
-
-⚠️ **T-0460 lands FIRST** — it is what turns "62 missing" from an estimate into a checked list, and it is
-where the two endpoints **Apple itself does not reach** get identified rather than rounded away.
-
-⚠️ **NO UI ships this sprint, so there is NO live click-through** — and that is a **real loss of signal**,
-not a saving: 22 consecutive Issues across SP-118–SP-120 came from clicking, none from a suite.
 
 ## Previously: SP-120's six Tasks — ✅ Verified and archived
 
@@ -84,6 +115,24 @@ explanation. **The writer-facing surface is owed** — recorded so it is not mis
 [`Verified/Task-verified-0390-0418-0391.md`](Verified/Task-verified-0390-0418-0391.md).
 
 ---
+
+*Last Updated: 2026-08-28, second pass (**SP-125's five Tasks ✅ VERIFIED and ARCHIVED** →
+`Verified/Task-verified-0480-0484.md`, in the SAME STEP (`feedback_archive_on_close`). ✅ **User-approved
+after a live click-through against REAL writing work** — the "opened successfully" dialog confirmed on
+two projects sharing the Eskandar world. ✅ **I-0173 + I-0175 Verified; I-0174 CLOSED as NOT A DEFECT**
+(⚠️ **my misdiagnosis — opening a project is not a risk**). ⚠️ **Only SP-123's three Tasks remain active,
+all BLOCKED on physical access.** Next Task **T-0485**; next Issue **I-0176**. Prior note follows.)*
+
+*Last Updated: 2026-08-28 (**SP-125's five Tasks 🟠 IMPLEMENTED — Not Verified.** ✅ **The Linux app has
+its FIRST object surface**: `SceneInspector`'s 67-line EP-024 stub is gone, replaced by the scene's real
+objects grouped by kind. ✅ **`ctest` 571/571 NON-ROOT, tests ON**, matching SP-121/SP-122's figure
+exactly — ⚠️ **which required fixing I-0171 first, as it RECURRED and blocked the run outright.** ✅ **All
+18 Linux smokes pass**, including the new 23-check `scene_inspector_smoke`. ✅ **The LIVE VNC pass RAN**
+(EP-035 AC9) and ⚠️ **found I-0173 — a defect all 571 ctests and 23 smoke checks were green against**,
+because it is a defect in what a writer can READ. ⚠️ **T-0480's grep proof is clean**: no `ObjectKind`
+name appears anywhere in `platforms/linux/`. ⚠️ **T-0482's two halves were verified SEPARATELY** —
+double-click opened a WORLD-scoped `character`, the context menu a PROJECT-scoped `source`, so `worldID`
+is proven threaded in both directions. Prior note follows.)*
 
 *Last Updated: 2026-08-25, second pass (**SP-122 EXECUTING** — ⚠️ **AC12's five legs are ALL GREEN**:
 arm64 567/567, ⚠️ **x86-64 567/567**, ⚠️ **sanitizers 567/567**, interop 127 + BUILD SUCCEEDED, ⚠️ **Linux

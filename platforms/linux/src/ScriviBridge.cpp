@@ -66,6 +66,9 @@ QVariantMap ScriviBridge::createProject(const QString& projectRootPath,
                                         const QString& slug)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -85,6 +88,9 @@ QVariantMap ScriviBridge::openProject(const QString& projectRootPath,
                                       const QString& appSupportRoot)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -105,6 +111,9 @@ QVariantMap ScriviBridge::openScene(const QString& projectRootPath,
                                     const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -129,6 +138,9 @@ QVariantMap ScriviBridge::saveScene(const QString& projectID,
                                     double scroll)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -157,6 +169,9 @@ QVariantMap ScriviBridge::createScene(const QString& projectRootPath,
                                       const QString& afterSceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -180,6 +195,9 @@ QVariantMap ScriviBridge::createChapter(const QString& projectRootPath,
                                         const QString& afterChapterID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -201,6 +219,9 @@ QVariantMap ScriviBridge::deleteScene(const QString& projectRootPath,
                                       const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -217,6 +238,9 @@ QVariantMap ScriviBridge::deleteChapter(const QString& projectRootPath,
                                         const QString& chapterID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -236,6 +260,9 @@ QVariantMap ScriviBridge::reorderScene(const QString& projectRootPath,
                                        const QString& afterSceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -257,6 +284,9 @@ QVariantMap ScriviBridge::reorderChapter(const QString& projectRootPath,
                                          const QString& afterChapterID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -273,6 +303,9 @@ QVariantMap ScriviBridge::mergeScene(const QString& projectRootPath,
                                      const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -290,6 +323,9 @@ QVariantMap ScriviBridge::mergeChapter(const QString& projectRootPath,
                                        const QString& chapterID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -308,6 +344,9 @@ QVariantMap ScriviBridge::renameScene(const QString& projectRootPath,
                                       const QString& newTitle)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -327,6 +366,9 @@ QVariantMap ScriviBridge::renameChapter(const QString& projectRootPath,
                                         const QString& newTitle)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -343,6 +385,9 @@ QVariantMap ScriviBridge::renameChapter(const QString& projectRootPath,
 QVariantMap ScriviBridge::getTimeline(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -358,6 +403,9 @@ QVariantMap ScriviBridge::getSceneStoryTime(const QString& projectRootPath,
                                             const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -379,6 +427,9 @@ QVariantMap ScriviBridge::setSceneStoryTime(const QString& projectRootPath,
                                             const QString& durationSource)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -400,6 +451,9 @@ QVariantMap ScriviBridge::setSceneStoryTime(const QString& projectRootPath,
 QVariantMap ScriviBridge::getStoryStructure(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -413,6 +467,9 @@ QVariantMap ScriviBridge::setStoryStructure(const QString& projectRootPath,
                                             const QString& bandLayoutJSON)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -427,6 +484,9 @@ QVariantMap ScriviBridge::updateBandLayout(const QString& projectRootPath,
                                            const QString& bandLayoutJSON)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -439,6 +499,9 @@ QVariantMap ScriviBridge::updateBandLayout(const QString& projectRootPath,
 QVariantMap ScriviBridge::removeStoryStructure(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -452,6 +515,9 @@ QVariantMap ScriviBridge::assignSceneToBand(const QString& projectRootPath,
                                             const QString& bandID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -466,6 +532,9 @@ QVariantMap ScriviBridge::unassignSceneFromBand(const QString& projectRootPath,
                                                 const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -489,6 +558,9 @@ QVariantMap ScriviBridge::createHistoricalEvent(const QString& projectRootPath,
                                                 const QString& tagsJSON)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -510,6 +582,9 @@ QVariantMap ScriviBridge::updateHistoricalEvent(const QString& projectRootPath,
                                                 const QString& tagsJSON)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -527,6 +602,9 @@ QVariantMap ScriviBridge::deleteHistoricalEvent(const QString& projectRootPath,
                                                 const QString& eventID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -539,6 +617,9 @@ QVariantMap ScriviBridge::deleteHistoricalEvent(const QString& projectRootPath,
 QVariantMap ScriviBridge::listHistoricalEvents(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -553,6 +634,9 @@ QVariantMap ScriviBridge::importExternalTimeline(const QString& projectRootPath,
                                                  const QString& assignedGreyShade)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -569,6 +653,9 @@ QVariantMap ScriviBridge::updateImportedTimelineOffset(const QString& projectRoo
                                                        long long epochOffsetMs)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -584,6 +671,9 @@ QVariantMap ScriviBridge::setImportedTimelineVisible(const QString& projectRootP
                                                      bool visible)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -597,6 +687,9 @@ QVariantMap ScriviBridge::setImportedTimelineVisible(const QString& projectRootP
 QVariantMap ScriviBridge::listImportedTimelines(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -609,6 +702,9 @@ QVariantMap ScriviBridge::removeImportedTimeline(const QString& projectRootPath,
                                                  const QString& timelineID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -621,6 +717,9 @@ QVariantMap ScriviBridge::removeImportedTimeline(const QString& projectRootPath,
 QVariantMap ScriviBridge::exportProjectTimeline(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -652,6 +751,9 @@ QString ScriviBridge::chooseFolder(const QString& startDir)
 QVariantMap ScriviBridge::addComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& body)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -668,6 +770,9 @@ QVariantMap ScriviBridge::addComment(const QString& projectRootPath, const QStri
 QVariantMap ScriviBridge::addWorld(const QString& projectRootPath, const QString& packagePath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -679,6 +784,9 @@ QVariantMap ScriviBridge::addWorld(const QString& projectRootPath, const QString
 QVariantMap ScriviBridge::applyRepair(const QString& issueID, const QString& projectRootPath, const QString& appSupportRoot, const QString& actionKind, const QString& targetPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -696,6 +804,9 @@ QVariantMap ScriviBridge::applyRepair(const QString& issueID, const QString& pro
 QVariantMap ScriviBridge::clearSceneStoryTime(const QString& projectRootPath, const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -707,6 +818,9 @@ QVariantMap ScriviBridge::clearSceneStoryTime(const QString& projectRootPath, co
 QVariantMap ScriviBridge::createEdge(const QString& projectRootPath, const QString& fromID, const QString& toID, const QString& relationTypeCode, const QString& note)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -721,6 +835,9 @@ QVariantMap ScriviBridge::createEdge(const QString& projectRootPath, const QStri
 QVariantMap ScriviBridge::createObject(const QString& projectRootPath, const QString& objectKind, const QString& displayName, const QString& slug, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -738,6 +855,9 @@ QVariantMap ScriviBridge::createObject(const QString& projectRootPath, const QSt
 QVariantMap ScriviBridge::createSnapshot(const QString& projectRootPath, const QString& displayName, const QString& label, const QString& note)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -753,6 +873,9 @@ QVariantMap ScriviBridge::createSnapshot(const QString& projectRootPath, const Q
 QVariantMap ScriviBridge::createWorld(const QString& projectRootPath, const QString& packagePath, const QString& displayName, const QString& epochLabel)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -766,6 +889,9 @@ QVariantMap ScriviBridge::createWorld(const QString& projectRootPath, const QStr
 QVariantMap ScriviBridge::deleteEdge(const QString& projectRootPath, const QString& edgeID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -777,6 +903,9 @@ QVariantMap ScriviBridge::deleteEdge(const QString& projectRootPath, const QStri
 QVariantMap ScriviBridge::deleteObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -790,6 +919,9 @@ QVariantMap ScriviBridge::deleteObject(const QString& projectRootPath, const QSt
 QVariantMap ScriviBridge::enableGitSnapshots(const QString& projectRootPath, const QString& displayName, const QString& initialSnapshotLabel)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -804,6 +936,9 @@ QVariantMap ScriviBridge::enableGitSnapshots(const QString& projectRootPath, con
 QVariantMap ScriviBridge::extractSearchableText(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -814,6 +949,9 @@ QVariantMap ScriviBridge::extractSearchableText(const QString& projectRootPath)
 QVariantMap ScriviBridge::fragmentCut(const QString& projectRootPath, const QString& spansJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -825,6 +963,9 @@ QVariantMap ScriviBridge::fragmentCut(const QString& projectRootPath, const QStr
 QVariantMap ScriviBridge::fragmentExtract(const QString& projectRootPath, const QString& spansJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -836,6 +977,9 @@ QVariantMap ScriviBridge::fragmentExtract(const QString& projectRootPath, const 
 QVariantMap ScriviBridge::fragmentPaste(const QString& projectRootPath, const QString& appSupportRoot, const QString& projectID, const QString& fragmentJson, const QString& caretSceneID, long long caretByteOffset, const QString& displayName)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -854,6 +998,9 @@ QVariantMap ScriviBridge::fragmentPaste(const QString& projectRootPath, const QS
 QVariantMap ScriviBridge::fragmentUncutPaste(const QString& projectRootPath, const QString& fragmentJson, const QString& targetSceneID, const QString& createdIDsJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -867,6 +1014,9 @@ QVariantMap ScriviBridge::fragmentUncutPaste(const QString& projectRootPath, con
 QVariantMap ScriviBridge::getSceneNotes(const QString& projectRootPath, const QString& sceneID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -878,6 +1028,9 @@ QVariantMap ScriviBridge::getSceneNotes(const QString& projectRootPath, const QS
 QVariantMap ScriviBridge::getWorldBinding(const QString& projectRootPath, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -889,6 +1042,9 @@ QVariantMap ScriviBridge::getWorldBinding(const QString& projectRootPath, const 
 QVariantMap ScriviBridge::getWorldStatus(const QString& projectRootPath, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -900,6 +1056,9 @@ QVariantMap ScriviBridge::getWorldStatus(const QString& projectRootPath, const Q
 QVariantMap ScriviBridge::importAsset(const QString& projectRootPath, const QString& sourcePath, const QString& category, const QString& title, const QString& worldID, const QString& projectID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -918,6 +1077,9 @@ QVariantMap ScriviBridge::importAsset(const QString& projectRootPath, const QStr
 QVariantMap ScriviBridge::importFromInbox(const QString& projectRootPath, const QString& filename, const QString& action, const QString& category)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -934,6 +1096,9 @@ QVariantMap ScriviBridge::importFromInbox(const QString& projectRootPath, const 
 QVariantMap ScriviBridge::listAssets(const QString& projectRootPath, const QString& category, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -946,6 +1111,9 @@ QVariantMap ScriviBridge::listAssets(const QString& projectRootPath, const QStri
 QVariantMap ScriviBridge::listComments(const QString& projectRootPath, const QString& scopeKind, const QString& targetID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -958,6 +1126,9 @@ QVariantMap ScriviBridge::listComments(const QString& projectRootPath, const QSt
 QVariantMap ScriviBridge::listEdgesFor(const QString& projectRootPath, const QString& endpointID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -969,6 +1140,9 @@ QVariantMap ScriviBridge::listEdgesFor(const QString& projectRootPath, const QSt
 QVariantMap ScriviBridge::listInbox(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -979,6 +1153,9 @@ QVariantMap ScriviBridge::listInbox(const QString& projectRootPath)
 QVariantMap ScriviBridge::listObjectKinds()
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -989,6 +1166,9 @@ QVariantMap ScriviBridge::listObjectKinds()
 QVariantMap ScriviBridge::listObjects(const QString& projectRootPath, const QString& kindOrNull)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1000,6 +1180,9 @@ QVariantMap ScriviBridge::listObjects(const QString& projectRootPath, const QStr
 QVariantMap ScriviBridge::listOrphanedObjects(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1010,6 +1193,9 @@ QVariantMap ScriviBridge::listOrphanedObjects(const QString& projectRootPath)
 QVariantMap ScriviBridge::listPendingEdges(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1020,6 +1206,9 @@ QVariantMap ScriviBridge::listPendingEdges(const QString& projectRootPath)
 QVariantMap ScriviBridge::listRelationTypes(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1030,6 +1219,9 @@ QVariantMap ScriviBridge::listRelationTypes(const QString& projectRootPath)
 QVariantMap ScriviBridge::listWorlds(const QString& projectRootPath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1040,6 +1232,9 @@ QVariantMap ScriviBridge::listWorlds(const QString& projectRootPath)
 QVariantMap ScriviBridge::openObject(const QString& projectRootPath, const QString& objectKind, const QString& objectID, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1053,6 +1248,9 @@ QVariantMap ScriviBridge::openObject(const QString& projectRootPath, const QStri
 QVariantMap ScriviBridge::promoteObject(const QString& projectRootPath, const QString& objectID, const QString& targetKind, const QString& worldIDOrNull)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1066,6 +1264,9 @@ QVariantMap ScriviBridge::promoteObject(const QString& projectRootPath, const QS
 QVariantMap ScriviBridge::relinkWorld(const QString& projectRootPath, const QString& worldID, const QString& newPackagePath)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1078,6 +1279,9 @@ QVariantMap ScriviBridge::relinkWorld(const QString& projectRootPath, const QStr
 QVariantMap ScriviBridge::removeAsset(const QString& projectRootPath, const QString& assetID, const QString& worldID, const QString& projectID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1091,6 +1295,9 @@ QVariantMap ScriviBridge::removeAsset(const QString& projectRootPath, const QStr
 QVariantMap ScriviBridge::removeWorldReference(const QString& projectRootPath, const QString& worldID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1102,6 +1309,9 @@ QVariantMap ScriviBridge::removeWorldReference(const QString& projectRootPath, c
 QVariantMap ScriviBridge::resolveComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& commentID, const QString& resolverDisplayName)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1118,6 +1328,9 @@ QVariantMap ScriviBridge::resolveComment(const QString& projectRootPath, const Q
 QVariantMap ScriviBridge::resolveTimelineProjectTimes(const QString& projectRootPath, const QString& worldID, const QString& timelineID)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1130,6 +1343,9 @@ QVariantMap ScriviBridge::resolveTimelineProjectTimes(const QString& projectRoot
 QVariantMap ScriviBridge::saveObject(const QString& projectRootPath, const QString& objectKind, const QString& objectJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1145,6 +1361,9 @@ QVariantMap ScriviBridge::saveObject(const QString& projectRootPath, const QStri
 QVariantMap ScriviBridge::scanForExternalChanges(const QString& projectRootPath, const QString& appSupportRoot, int includeGitStatus)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1157,6 +1376,9 @@ QVariantMap ScriviBridge::scanForExternalChanges(const QString& projectRootPath,
 QVariantMap ScriviBridge::setSceneOutline(const QString& projectRootPath, const QString& sceneID, const QString& outline)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1169,6 +1391,9 @@ QVariantMap ScriviBridge::setSceneOutline(const QString& projectRootPath, const 
 QVariantMap ScriviBridge::setSceneTags(const QString& projectRootPath, const QString& sceneID, const QString& tagsJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1181,6 +1406,9 @@ QVariantMap ScriviBridge::setSceneTags(const QString& projectRootPath, const QSt
 QVariantMap ScriviBridge::setSceneTodo(const QString& projectRootPath, const QString& sceneID, const QString& todoJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1193,6 +1421,9 @@ QVariantMap ScriviBridge::setSceneTodo(const QString& projectRootPath, const QSt
 QVariantMap ScriviBridge::setTimelineEpochLabel(const QString& projectRootPath, const QString& label)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1204,6 +1435,9 @@ QVariantMap ScriviBridge::setTimelineEpochLabel(const QString& projectRootPath, 
 QVariantMap ScriviBridge::setTimelineEpochOffset(const QString& projectRootPath, const QString& worldID, const QString& timelineID, long long epochOffsetMs)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1217,6 +1451,9 @@ QVariantMap ScriviBridge::setTimelineEpochOffset(const QString& projectRootPath,
 QVariantMap ScriviBridge::setWorldEpochOffset(const QString& projectRootPath, const QString& worldID, long long epochOffsetMs)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1229,6 +1466,9 @@ QVariantMap ScriviBridge::setWorldEpochOffset(const QString& projectRootPath, co
 QVariantMap ScriviBridge::upsertRelationType(const QString& projectRootPath, const QString& relationTypeJson)
 {
     if (!ready_) {
+        // Never reaches parseEnvelope, so the flag is set here too — otherwise
+        // lastCallFailed() would report the PREVIOUS call.
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
         return {};
     }
@@ -1239,11 +1479,17 @@ QVariantMap ScriviBridge::upsertRelationType(const QString& projectRootPath, con
 
 QVariantMap ScriviBridge::parseEnvelope(const QString& json)
 {
+    // Cleared on entry and set on every failure path below, so lastCallFailed()
+    // describes exactly the call that just returned. See its declaration for why
+    // an empty result map alone cannot carry this.
+    lastCallFailed_ = false;
+
     QJsonParseError parseError;
     const QJsonDocument doc =
         QJsonDocument::fromJson(json.toUtf8(), &parseError);
 
     if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        lastCallFailed_ = true;
         emit errorOccurred(-1, QStringLiteral("Malformed ScriviCore envelope: %1")
                                    .arg(parseError.errorString()));
         return {};
@@ -1253,6 +1499,7 @@ QVariantMap ScriviBridge::parseEnvelope(const QString& json)
 
     if (!root.value(QStringLiteral("ok")).toBool()) {
         const QJsonObject err = root.value(QStringLiteral("error")).toObject();
+        lastCallFailed_ = true;
         emit errorOccurred(err.value(QStringLiteral("code")).toInt(),
                            err.value(QStringLiteral("message")).toString(
                                QStringLiteral("Unknown ScriviCore error")));

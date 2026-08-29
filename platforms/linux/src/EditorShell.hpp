@@ -165,6 +165,22 @@ private slots:
     // the picker seeded with the scene's CURRENT offset (no drag).
     void onSetTimeDeltaRequested(const QString& sceneID);
 
+    // --- EP-035 objects (SP-125, T-0482) ----------------------------------
+    // A writer asked to open an object from the Scene Inspector — by double-click
+    // or by its context menu. Both routes land here; the panel does not decide
+    // what "open" means.
+    //
+    // ⚠️ The object DETAIL SHEET is EP-036, not this Epic. Until it exists this
+    // reports what was opened rather than doing nothing: a dead affordance reads
+    // to a writer as a broken app, and a silent one is worse than an honest
+    // "not built yet".
+    //
+    // ⚠️ `worldID` is EMPTY for a project-scoped object and must be threaded
+    // through unchanged into every call that follows (SP-104).
+    void onOpenObjectRequested(const QString& objectKind,
+                               const QString& objectID,
+                               const QString& worldID);
+
     // --- EP-025 story structure (SP-081, T-0330/0331/0332) ----------------
     // Band borders re-proportioned (TimelinePanel::bandProportionsChanged): apply the
     // new proportions to the current bands + persist via updateBandLayout.

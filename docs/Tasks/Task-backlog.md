@@ -30,8 +30,11 @@ status changes on its own layer.
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
 | T-0400 | `[ScriviCore]` History log-segment rotation | EP-019 (deferred) | 🟢 **Nice to have** — no sprint assigned |
 | **T-0459** | ⚠️ **`[Cross]` Per-citation reference markers on the `cites` EDGE** — surface the edge `note`, and ⚠️ **move `page` off the source object** | **EP-032** | 🔵 **Backlog** — ⚠️ **found by live use, SP-120** |
-| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-035** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code** |
+| **T-0472** | ⚠️ **`[Linux]` Surface for custom relationship types** — build the UI that calls `scrivi_upsert_relation_type`. ⚠️ **The endpoint is fully implemented and has NEVER had a caller on any platform** | **EP-037** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: a REAL FEATURE owed a surface, not dead code**; ⚠️ **moved EP-035 → EP-037 by the three-way split** |
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
+| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION — findings ONLY, no code.** What `/proc/mounts`, `statfs`, open FDs and the kernel report on a PHYSICAL pull | **EP-038** (SP-124) | 🔵 **Backlog** — ⚠️ **gated on SP-123** |
+| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux**, written **against T-0477's findings** — ⚠️ **NEVER from documentation** | **EP-038** (SP-124) | 🔵 **Backlog** — ⚠️ **gated on T-0477** |
+| **T-0479** | ⚠️ **Correct Porting Outline §9** from what the rig actually taught | **EP-038** (SP-124) | 🔵 **Backlog** |
 
 > ✅ **T-0426–T-0430 LEFT this file 2026-08-21 when SP-116 was ACTIVATED** — they are 🟡 Active and live
 > in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
@@ -298,7 +301,8 @@ code is left alone; nothing is deleted; and the file is written **only when some
 
 ## ⚠️ T-0472 — `[Linux]` Surface for custom relationship types
 
-**Epic:** EP-035 · **Ruled:** 2026-08-25 (user) · **Origin:** EP-034 close / SP-121's ABI gap audit
+**Epic:** **EP-037** (⚠️ **was EP-035 — moved by the 2026-08-25 three-way split**) · **Ruled:** 2026-08-25 (user)
+**Origin:** EP-034 close / SP-121's ABI gap audit
 
 ⚠️ **`scrivi_upsert_relation_type` is fully implemented and has zero callers on ANY platform.** The core
 writes custom relationship types into the project; `ProjectCreator` seeds the defaults
@@ -309,8 +313,8 @@ writes custom relationship types into the project; `ProjectCreator` seeds the de
 is a legitimate worldbuilding capability — a DM wanting `sworn-enemy-of` or `liege-of` beyond the seeded
 set.
 
-⚠️ **Assigned to EP-035 because that Epic builds the Linux object layer**, where relationship creation
-already lands. ⚠️ **It is BACKLOG, not scheduled** — EP-035 is itself 🔵 Proposed.
+⚠️ **Assigned to EP-037**, the Epic that builds Linux relationships — ⚠️ **it was EP-035 until the
+2026-08-25 split moved relationship work into EP-037.** ⚠️ **It is BACKLOG, not scheduled.**
 
 ⚠️ **Also owed: a C ABI test.** `scrivi_upsert_relation_type` has **no ScriviCore test at the boundary**
 (`feedback_boundary_tests_not_facade` — a facade test cannot see a boundary gap; that is how I-0113
@@ -411,3 +415,11 @@ wholesale. Prior note follows.)*
 *2026-08-16 (Consistency audit — eight stale rows removed or corrected: T-0386/T-0387/T-0388/T-0407/
 T-0408 (SP-099) and T-0409/T-0411 (SP-103), all ✅ Verified 2026-08-15; and T-0217, carried 🔵 Backlog
 under the superseded SP-057 despite completing in SP-094.)*
+
+## Unscheduled — EP-035, filed 2026-08-29
+
+| ID | Title | Priority | Status |
+| -- | ----- | -------- | ------ |
+| **T-0491** | ⚠️ **`[Linux]` Per-stack SORT + card drag-reorder** — Apple's `InspectorSort` (manual/name/recentlyAdded) and card reordering. ⚠️ **User-ruled OUT of SP-126** as a larger surface. ⚠️ **`manual` order depends on the GRAPH's `sortIndex`, not a UI list.** ⚠️ **Drag-reorder must ALSO have a button/menu path** — `project_linux_vnc_input_constraints` is NOT retired by the RDP rig. ✅ **`stackSort` is round-tripped by T-0486 meanwhile**, so nothing is lost by deferring | **Medium** | ⚪ **Unscheduled** |
+
+---

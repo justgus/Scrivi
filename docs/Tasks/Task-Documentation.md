@@ -49,8 +49,8 @@ sum to.
 | Status | Count |
 | ------ | ----- |
 | ✅ **Verified** | **397** |
-| 🟡 **Active** | **0** — ⚠️ **re-derived 2026-08-25**: no Sprint is active (SP-122 closed) |
-| 🔵 Backlog | **10** — ⚠️ **re-derived 2026-08-25**: +T-0472, +T-0473 |
+| 🟡 **Active** | **8** — ⚠️ **re-derived 2026-08-25**: SP-123's T-0474–T-0476 + SP-125's T-0480–T-0484 |
+| 🔵 Backlog | **13** — ⚠️ **re-derived 2026-08-25**: +T-0472, +T-0473, +T-0477–T-0479 |
 | 🟠 **Implemented - Not Verified** | **0** — ⚠️ **re-derived 2026-08-25**: SP-122's six were Verified and archived the same day |
 | ⚪ Descoped | 4 |
 | ⚪ Superseded | 3 |
@@ -713,9 +713,20 @@ archive files reconstructed after the fact from secondary sources.
 | T-0469 | ⚠️ **THE LIVE-USE PASS** — ✅ **user ran it, CLEAN** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
 | T-0470 | ⚠️ **Re-verify AC1–AC10 against their own triggers** — ✅ **no failures** | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
 | T-0471 | **EP-034 close prep** — ✅ **Audit Check RUN**; summary drafted | SP-122 | EP-034 | ✅ **Implemented - Verified** | [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) | — |
-| T-0472 | ⚠️ **`[Linux]` Surface for custom relationship types** — `scrivi_upsert_relation_type` has NEVER had a caller | — | **EP-035** | 🔵 Backlog | — | — |
+| T-0472 | ⚠️ **`[Linux]` Surface for custom relationship types** — `scrivi_upsert_relation_type` has NEVER had a caller | — | **EP-037** | 🔵 Backlog | — | — |
 | T-0473 | ⚠️ **`[Apple]` Timeline endpoint parity** — 3 endpoints unreached on Apple | — | ⚠️ **None** | 🔵 Backlog | — | — |
-| T-0474 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — | — |
+| T-0474 | ⚠️ **Account + SSH + reachability** — ⚠️ **USER, physical access**; gates EP-038 | SP-123 | **EP-038** | ⚠️ **Blocked — user** | — | — |
+| T-0475 | **Toolchain + deps** — ⚠️ **Qt ≥ 6.4 confirmed**; real desktop, ⚠️ **not xvfb** | SP-123 | **EP-038** | ⚪ Blocked | — | — |
+| T-0476 | **First NATIVE build** + `ctest` non-root + ⚠️ **app on a real display** | SP-123 | **EP-038** | ⚪ Blocked | — | — |
+| T-0477 | ⚠️ **DRIVE-LOSS INSTRUMENTATION — findings only, NO code** | SP-124 | **EP-038** | 🔵 Backlog | — | — |
+| T-0478 | ⚠️ **`WorldVolumeStatus` for Linux**, against T-0477's findings | SP-124 | **EP-038** | 🔵 Backlog | — | — |
+| T-0479 | ⚠️ **Correct Porting Outline §9** from experience | SP-124 | **EP-038** | 🔵 Backlog | — | — |
+| T-0480 | ⚠️ **Kind scope DERIVED from `listObjectKinds`** — ⚠️ **occurrence-NINE territory** | SP-125 | **EP-035** | 🔵 Planned | — | — |
+| T-0481 | **Scene Entities tab lists objects by kind** — replaces the EP-024 stub | SP-125 | **EP-035** | 🔵 Planned | — | — |
+| T-0482 | ⚠️ **Double-click AND context-menu** — ⚠️ **no gesture-only path** | SP-125 | **EP-035** | 🔵 Planned | — | — |
+| T-0483 | ⚠️ **Empty / unavailable / pending DISTINCT and explained** | SP-125 | **EP-035** | 🔵 Planned | — | — |
+| T-0484 | ⚠️ **LIVE pass** + `ctest` + ⚠️ **correct the Epic's Qt/QML wording** | SP-125 | **EP-035** | 🔵 Planned | — | — |
+| T-0485 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — | — |
 
 ---
 

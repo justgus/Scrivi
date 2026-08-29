@@ -12,8 +12,10 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-⚠️ **No Epic is currently active.** **EP-034** `[Cross]` **Object Detail & Media** ✅ **CLOSED 2026-08-25**
-(active from **2026-08-20**), promoted from the backlog and ⚠️ **widened in place** from "object fields beyond
+⚠️ **TWO Epics are ACTIVE, in parallel by user ruling 2026-08-25:**
+🟡 **EP-035** `[Linux]` **Object Foundations** (⚠️ **split three ways** → EP-036, EP-037) ·
+🟡 **EP-038** `[Linux]` **The Real Hardware Rig** (SP-123 🟡, SP-124 🔵).
+**EP-034** ✅ **CLOSED 2026-08-25**, promoted from the backlog and ⚠️ **widened in place** from "object fields beyond
 `displayName`" to the full Detail Sheet, relationship surface, and Project↔World interaction.
 
 **Design doc** `Scrivi_Object_Detail_Sheets_Design_v0_1.md` is 🟢 **APPROVED FOR PLANNING** — ✅ **all nine
@@ -54,7 +56,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 ## All Epics
 
 ⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
-Statistics — read the rows. Next available ID: **EP-036** (⚠️ **EP-035 is ISSUED** — `[Linux]` Object Layer, 🔵 Proposed).
+Statistics — read the rows. Next available ID: **EP-039**.
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -94,7 +96,10 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes); ⚠️ **holds reserved SP-107–SP-114** | 🔵 Draft (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
 | EP-034 | `[Cross]` Object Detail & Media — **Detail Sheets & Project↔World Interaction** — ⚠️ **AC11 moved to EP-035** | ✅ **Closed** — [record](Closed/Epic-EP-034.md) | 2026-08-20 | 2026-08-25 |
-| **EP-035** | ⚠️ **`[Linux]`** Object Layer & Detail Surfaces — ⚠️ **the first PORT, and the template for four more**; carries **EP-034's AC11** | 🔵 **Proposed** | 2026-08-24 | — |
+| **EP-035** | ⚠️ **`[Linux]`** **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11** | 🟡 **ACTIVE** | 2026-08-24 | — |
+| **EP-036** | ⚠️ **`[Linux]`** **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
+| **EP-037** | ⚠️ **`[Linux]`** **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
+| **EP-038** | ⚠️ **`[Linux]`** **The Real Hardware Rig** — native Ubuntu + ⚠️ **drive-loss GROUND TRUTH**; writes the Porting Outline's **§9**. ⚠️ **Docker is structurally blind to this** | 🟡 **ACTIVE** — SP-123, SP-124 | 2026-08-25 | — |
 
 ## Statistics
 
@@ -102,8 +107,11 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-036**
-- **Total Epic IDs issued:** 35 (EP-001–EP-035); none cancelled, skipped or superseded
+- **Next available Epic ID:** **EP-039**
+- **Total Epic IDs issued:** 38 (EP-001–EP-038); none cancelled, skipped or superseded
+  - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
+    ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a
+    surface Apple took EP-030 + EP-031 (planned 6, delivered **11**) + EP-034 (**8 sprints**) to build.
 - **Where per-Epic detail lives:** [`Epic-active.md`](Epic-active.md) is authoritative for the **active**
   Epic's acceptance criteria and sprint table. ⚠️ **This index does not restate AC state** — that is what
   produced the *"AC9 and AC10 are also outstanding"* error, when AC9 had been met two days earlier.

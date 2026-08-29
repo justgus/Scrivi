@@ -36,7 +36,30 @@ manuscript export has no existing path to attach to (`scrivi_export_project_time
 the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequencing question** — without
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
-**Next available Sprint ID: SP-123** — ⚠️ **SP-115–SP-122 are ALL CLOSED** and **SP-122 is ✅ CLOSED**
+## SP-124 — `[Linux]` ⚠️ **Drive-loss ground truth + the Linux refinement**
+
+**Status:** 🔵 **Planned** — ⚠️ **GATED on SP-123.** Cannot start until the rig is reachable and building.
+**Epic:** EP-038 · **sprint 2 of 2** · **Closes:** AC4, AC5, AC6, AC7
+**Tasks:** **T-0477 – T-0479**
+
+⚠️ **The sprint boundary between SP-123 and SP-124 is DELIBERATE and load-bearing** — and the boundary
+inside this sprint matters just as much:
+
+| Task | ⚠️ The rule |
+| ---- | ---------- |
+| **T-0477** | ⚠️ **INSTRUMENT ONLY — findings, NO code.** Pull a real drive; record what `/proc/mounts`, `statfs`, open FDs and the kernel actually report |
+| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux, written AGAINST T-0477's findings** — ⚠️ **never from documentation** |
+| **T-0479** | ⚠️ **CORRECT Porting Outline §9** from experience — ⚠️ **a §9 that survives unchanged is evidence it was not tested** |
+
+⚠️ **The drive pull is PHYSICAL and needs the user.** ✅ **No remote path substitutes for it.**
+
+⚠️ **Expect the obvious API to lie.** On Apple, `volumeIsRemovable` and `volumeIsEjectable` both read
+**false** on a hand-unplugged drive. ⚠️ **Whatever Linux's equivalent surprise is, T-0477 is how we find
+it** — and ⚠️ **EP-036's AC4 stays unspecifiable until it reports.**
+
+---
+
+**Next available Sprint ID: SP-127** — ⚠️ **SP-115–SP-122 and SP-125 are ALL CLOSED**; **SP-123** (EP-038, ⚠️ **waiting on the rig**) and **SP-126** (EP-035, ✅ **blocked on nothing**) are 🟡 **ACTIVE**; **SP-124 is 🔵 Planned** (EP-038)
 (⚠️ **the LAST sprint of EP-034**). ⚠️ **SP-122 never appeared in this file** — defined and activated in
 one step on 2026-08-25, like SP-120 and SP-121.
 ⚠️ **Zero Sprints in Planning.**

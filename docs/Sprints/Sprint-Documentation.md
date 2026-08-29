@@ -11,8 +11,12 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ## Active Sprints
 
-⚠️ **No Sprint is currently active.** **SP-122** ✅ **CLOSED 2026-08-25** — EP-034's eighth and last.
-✅ **AC12 MET.** ⚠️ **EP-034 is 🟠 COMPLETE but NOT closed** — that approval is separate.
+⚠️ **TWO Sprints are ACTIVE, in parallel:** 🟡 **SP-123** (EP-038, the rig — ⚠️ **blocked on physical
+access**) and 🟡 **SP-126** (EP-035, the three-tab shell — ✅ **blocked on nothing**). ✅ **SP-125 CLOSED 2026-08-29.**
+
+🟡 **SP-123** — `[Linux]` ⚠️ **Rig reachable + building natively**, under **EP-038**.
+⚠️ **T-0474 (account + SSH) is BLOCKED ON THE USER and gates the sprint.** **SP-124** 🔵 Planned, gated on it.
+✅ **EP-034 CLOSED 2026-08-25**; **EP-035** and **EP-038** now run in parallel.
 ⚠️ **The EIGHTH and LAST sprint of EP-034**; **AC12** is the only AC still open.
 ⚠️ **Its subject was NOT AC11** — that moved to **EP-035** at planning. The closure record lives in
 [`Closed/Sprint-SP-121.md`](Closed/Sprint-SP-121.md) and is **not** restated here.
@@ -386,6 +390,10 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-120** | ⚠️ **`[Apple]`** Source creation + footnote text (R6) — ✅ **closes AC8 and T-0365's write half**; ⚠️ **surface only — `ctest` unchanged at 567/567**; ⚠️ **2 Issues, both from the live pass** | EP-034 `[Cross]` | 2026-08-24 | 2026-08-24 | ✅ **Closed** |
 | **SP-121** | ⚠️ **`[Linux]`** Complete `ScriviBridge` to ABI parity (⚠️ **47** of 66 missing endpoints — ⚠️ **not 43; corrected by T-0460's audit**) + ⚠️ **the Porting Outline** — ⚠️ **NOT AC11, which moved to EP-035** | EP-034 `[Cross]` | 2026-08-24 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-121.md) |
 | **SP-122** | ⚠️ **`[Cross]`** AC verification + ⚠️ **the LIVE-USE pass on the real rig** + **EP-034 close prep** — ⚠️ **AC12 only; two of its five legs (x86-64, sanitizers) are rarely run** | EP-034 `[Cross]` | 2026-08-25 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-122.md) |
+| **SP-123** | ⚠️ **`[Linux]`** Rig reachable + building natively — ⚠️ **NO application code**; ⚠️ **real X session, NOT xvfb** | EP-038 `[Linux]` | 2026-08-25 | — | 🟡 **ACTIVE** |
+| **SP-124** | ⚠️ **`[Linux]`** Drive-loss GROUND TRUTH + `WorldVolumeStatus` — ⚠️ **instrument BEFORE implement** | EP-038 `[Linux]` | — | — | 🔵 **Planned** — gated on SP-123 |
+| **SP-125** | ⚠️ **`[Linux]`** **Scene Inspector wired to real objects** — ⚠️ **replaces the 67-line EP-024 stub**; ⚠️ **Qt WIDGETS, not QML**. ⚠️ **Wired Apple's DELETED "Scene Entities" placeholder — SP-126 builds the real 3-tab shell** | EP-035 `[Linux]` | 2026-08-25 | 2026-08-29 | ✅ **CLOSED** → [`Closed/Sprint-SP-125.md`](Closed/Sprint-SP-125.md) |
+| **SP-126** | ⚠️ **`[Linux]`** **The three-tab Scene Inspector shell** — ⚠️ **Writing · Worldbuilding · Properties** (**AC10**, ⚠️ **user-found gap**); ⚠️ **`inspector-layout.json` PATCHED, not reconstructed** | EP-035 `[Linux]` | 2026-08-29 | — | 🟡 **ACTIVE** |
 
 ## Statistics
 
@@ -394,8 +402,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-123** — ⚠️ **not SP-107**; See the reserved block below.
-- **Total Sprint IDs issued:** 122 (SP-001–SP-122) — 114 executed, **0 ACTIVE**, **0 in Planning**, **8 reserved (SP-107–SP-114)**
+- **Next available Sprint ID:** **SP-127** — ⚠️ **not SP-107**; See the reserved block below. (**SP-126** is now PLANNED.)
+- **Total Sprint IDs issued:** 126 (SP-001–SP-126) — 115 executed, **2 ACTIVE (SP-123 ⚠️ waiting on the rig, SP-126 ✅ blocked on nothing)**, **1 in Planning (SP-124)**, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED
