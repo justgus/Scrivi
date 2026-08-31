@@ -1,10 +1,13 @@
 #include "ScriviWindow.hpp"
 
+#include "ScriviBuildStamp.hpp"
+
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFont>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
@@ -36,7 +39,11 @@ ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot)
     : landing_(landing), appSupportRoot_(std::move(appSupportRoot))
 {
     setWindowTitle(QStringLiteral("Scrivi — Linux (alpha)"));
-    resize(1020, 760);   // 820×560 + 200 each (user pref 2026-07-22)
+    // ⚠️ 1220×760 (user ruling 2026-08-30): 240 navigator + 580 manuscript + 400
+    // inspector. ⚠️ Widened from 1020 in the SAME step the inspector doubled, so
+    // the extra panel width comes out of the WINDOW rather than out of the
+    // writing surface.
+    resize(1220, 760);
 
     stack_ = new QStackedWidget(this);
     // The QQuickWidget resizes with the view so the QML fills the window.
@@ -221,6 +228,49 @@ void ScriviWindow::buildMenuBar()
         dlg.exec();
     });
     editorOnlyActions_.append(settings);
+
+    // --- Help ▸ About Scrivi ---------------------------------------------
+    //
+    // ⚠️ Exists to answer "WHICH BUILD am I running?" from inside the app.
+    // ⚠️ On a remote rig that question previously had no answer short of
+    // comparing file timestamps over SSH — and on 2026-08-30 the rig was found
+    // running a DAY-OLD binary that predated an entire sprint.
+    //
+    // ⚠️ NOT gated on a project being open (deliberately absent from
+    // `editorOnlyActions_`): the most likely moment to ask "is this the right
+    // build?" is at the landing screen, before opening anything.
+    QMenu* help = bar->addMenu(tr("&Help"));
+    QAction* about = help->addAction(tr("About Scrivi"));
+    connect(about, &QAction::triggered, this, [this]() {
+        QDialog dlg(this);
+        dlg.setWindowTitle(tr("About Scrivi"));
+        auto* layout = new QVBoxLayout(&dlg);
+
+        auto* name = new QLabel(tr("Scrivi"), &dlg);
+        QFont nameFont = name->font();
+        nameFont.setBold(true);
+        nameFont.setPointSize(nameFont.pointSize() + 4);
+        name->setFont(nameFont);
+        layout->addWidget(name);
+
+        // ⚠️ From the GENERATED stamp header, refreshed on EVERY build — not
+        // __DATE__/__TIME__, which only move when this file recompiles.
+        auto* build = new QLabel(
+            tr("Build %1\n%2\nQt %3")
+                .arg(QString::number(SCRIVI_BUILD_NUMBER),
+                     QLatin1String(SCRIVI_BUILD_STAMP),
+                     QLatin1String(qVersion())),
+            &dlg);
+        // Selectable so a tester can copy the stamp into a bug report.
+        build->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(build);
+
+        auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dlg);
+        connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+        connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+        layout->addWidget(buttons);
+        dlg.exec();
+    });
 }
 
 void ScriviWindow::updateMenuState(bool editorActive)

@@ -5,22 +5,50 @@
 #include <QString>
 #include <QWidget>
 
+#include "InspectorLayoutStore.hpp"
+
 class QLabel;
+class QLineEdit;
 class QTabWidget;
+class QTextEdit;
 class QTreeWidget;
 class QTreeWidgetItem;
 class ScriviBridge;
 
 // SceneInspector — the Linux Scene Inspector panel.
 //
-// EP-024 / SP-078 (T-0318) built the panel and its tab structure as a UI SKELETON
-// wired to NO project data. EP-035 / SP-125 (T-0481–T-0483) replaces that stub
-// with the scene's real objects — the FIRST object surface the Linux app has
-// ever had.
+// EP-024 / SP-078 (T-0318) built a UI SKELETON wired to no project data.
+// EP-035 / SP-125 (T-0481–T-0483) gave it the scene's real objects — the first
+// object surface the Linux app ever had. EP-035 / SP-126 (T-0485–T-0489) gives
+// it the THREE-TAB SHELL it should always have had.
 //
 // A hideable, tabbed side panel docking to the RIGHT of the manuscript surface in
 // EditorShell (the third pane of its QSplitter). Visibility is owned by
 // EditorShell (setInspectorVisible), toggled from View ▸ Show Inspector (T-0320).
+//
+// ## ⚠️ "Scene Entities" was never a real tab
+//
+// SP-125 wired a tab named "Scene Entities". ⚠️ **That is the name of Apple's
+// SP-090 PLACEHOLDER, which Apple itself deleted** — `SceneInspectorView.swift:6`
+// records SP-090 as *"replaces the SP-090 placeholder (a single segmented tab
+// over a stub 'Scene Entities' body)"*. ⚠️ **EP-024 copied the placeholder rather
+// than its successor**, and SP-125 then wired the copy. It retires here.
+//
+// ## The three tabs, and two different orderings
+//
+// ⚠️ **DISPLAY order is Writing | Worldbuilding | Properties**, defaulting to
+// Writing. That is Apple's `InspectorTab` DECLARATION order
+// (InspectorCard.swift:19-22), which is what `allCases` — and therefore the tab
+// bar (SceneInspectorView.swift:100) — iterates.
+//
+// ⚠️ **BUILD order was Writing → Properties → Worldbuilding** (user ruling): the
+// cheap surfaces prove the shell before the expensive one sits on it. ⚠️ **These
+// are different orderings and must not be conflated** — SP-126's own draft got
+// the display order wrong by assuming they were the same.
+//
+// ⚠️ **The selected tab persists at PROJECT level and does NOT follow the scene.**
+// Switching scenes reloads the current tab's content for the new scene; it never
+// changes which tab is showing.
 //
 // ## The read path — ASK THE SCENE, never infer
 //
@@ -77,6 +105,26 @@ public:
     // graph or the object set behind the panel's back.
     void reload();
 
+private:
+    // The tabs, in Apple's DISPLAY order. Index order here IS the on-screen
+    // order, so it must stay Writing, Worldbuilding, Properties.
+    enum Tab { TabWriting = 0, TabWorldbuilding = 1, TabProperties = 2 };
+
+    // Tab identifier as the layout file spells it, and the inverse. Kept next to
+    // the enum so the two can never drift.
+    static QString tabID(int index);
+    static int     tabIndex(const QString& id);
+
+public:
+
+protected:
+    // ⚠️ QTextEdit has NO editingFinished signal — unlike QLineEdit — so the
+    // outline and todo fields commit on FOCUS-OUT, caught here. Without this
+    // they only ever save when the scene changes, and a writer who types a note
+    // and then clicks into the manuscript loses it. (Found by typing into the
+    // real panel; the build was green and every smoke passed.)
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 signals:
     // A writer asked to open an object — by double-click or by the context menu
     // (T-0482: both affordances, no gesture-only path). EditorShell owns what
@@ -93,6 +141,18 @@ private slots:
     void onItemActivated(QTreeWidgetItem* item, int column);
     void onContextMenuRequested(const QPoint& pos);
 
+    // Tab changed by the writer. Persists the choice at PROJECT level and loads
+    // the newly-shown tab's content for the current scene.
+    void onTabChanged(int index);
+
+    // --- Writing tab (T-0487) -------------------------------------------
+    // Each commits on focus-out / editing-finished rather than per keystroke:
+    // a scene note is not worth a disk write per character, and the scene-switch
+    // flush below is what guarantees nothing is lost.
+    void onTagsEdited();
+    void onOutlineEdited();
+    void onTodoEdited();
+
 private:
     // One row as the panel renders it — the far endpoint of one of the scene's
     // edges, already resolved by the core.
@@ -108,7 +168,25 @@ private:
         QString pendingStatus;  // core's WorldStatus name when pending
     };
 
-    QWidget* buildSceneEntitiesTab();
+    // Tab bodies, built once in the constructor.
+    QWidget* buildWritingTab();
+    QWidget* buildWorldbuildingTab();
+    QWidget* buildPropertiesTab();
+
+    // Load the scene's notes once and populate BOTH the Writing and Properties
+    // tabs from that single read — they are two views of one `getSceneNotes`
+    // result, so reading twice would be pure waste.
+    void loadSceneNotes();
+
+    // Enable/disable the Writing fields. ⚠️ Disabled IN FACT when the scene's
+    // notes could not be read — typing into a field we failed to load would
+    // save over notes we never saw.
+    void setWritingEnabled(bool on);
+
+    // ⚠️ Flush any pending Writing-tab edit to disk NOW. Called before the scene
+    // changes, because the commit-on-focus-out model otherwise loses an edit
+    // when the writer clicks straight from a note into another scene.
+    void flushPendingEdits();
 
     // Rebuild the tree from `entries_`, grouped by kind in the core's kind order.
     void rebuildTree();
@@ -130,13 +208,36 @@ private:
     QString worldDisplayName(const QString& worldID);
 
     QTabWidget*  tabs_    = nullptr;
-    QTreeWidget* tree_    = nullptr;
+    QTreeWidget* tree_    = nullptr;   // Worldbuilding: the scene's objects
     QLabel*      title_   = nullptr;
     QLabel*      status_  = nullptr;   // the explained empty/pending/error line
+
+    // --- Writing tab widgets (T-0487) ------------------------------------
+    QLineEdit*  tagsEdit_    = nullptr;   // comma-separated; the core owns the array
+    QTextEdit*  outlineEdit_ = nullptr;
+    QTextEdit*  todoEdit_    = nullptr;   // one item per line, "[x] " = done
+    QLabel*     writingStatus_ = nullptr;
+
+    // --- Properties tab widgets (T-0488) ---------------------------------
+    // ⚠️ Every one is READ-ONLY IN FACT, not merely styled — see the .cpp.
+    QLabel* propTitle_    = nullptr;
+    QLabel* propWords_    = nullptr;
+    QLabel* propChars_    = nullptr;
+    QLabel* propCreated_  = nullptr;
+    QLabel* propModified_ = nullptr;
+    QLabel* propStatus_   = nullptr;
+
+    // Guards the programmatic population of the Writing tab, so filling the
+    // widgets from disk does not immediately look like a writer edit and
+    // schedule a save.
+    bool loadingNotes_ = false;
 
     ScriviBridge* bridge_ = nullptr;
     QString projectRootPath_;
     QString sceneID_;
+
+    // Tab selection persists HERE, at project level (T-0486).
+    InspectorLayoutStore layout_;
 
     QList<Entry> entries_;
     // worldID → display name, refreshed per load from listWorlds.

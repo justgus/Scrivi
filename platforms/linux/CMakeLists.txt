@@ -47,6 +47,12 @@ qt_add_executable(scrivi_linux
     # (scrivi_list_object_kinds) and never restated in Qt.
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp
+    # SP-126 (EP-035): inspector-layout.json read+write. ⚠️ PATCHES the document,
+    # never reconstructs it — Linux does not model stackSort/defaultStacks/scenes
+    # and must round-trip them untouched or the writer's Apple-side card layout
+    # is silently deleted.
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
     # SP-079 (EP-025): the Timeline bottom strip (scene dots in story-time order).
     src/TimelinePanel.cpp
     src/TimelinePanel.hpp
@@ -88,6 +94,27 @@ target_link_libraries(scrivi_linux
 # emitted at the build-tree root and #includes "ScriviBridge.hpp" by bare name.
 # On Qt 6.4 it doesn't inherit per-file include dirs, so add src/ explicitly so
 # both that generated file and our own sources resolve the header.
+# --- Build stamp -----------------------------------------------------------
+#
+# ⚠️ The stamp header is written by the DEPLOY SCRIPT, not by CMake.
+#
+# ⚠️ Two CMake-side attempts failed on 2026-08-30, both in misleading ways:
+#   1. A custom TARGET touching main.cpp — Ninja computes its dependency graph
+#      BEFORE any build step runs, so the touch was only noticed on the NEXT
+#      build. The stamp trailed reality by exactly one build, which looks like it
+#      works until you check it carefully.
+#   2. A custom COMMAND generating the header — Ninja saw the output already
+#      existed and never re-ran the step at all, so the number froze at 1.
+#
+# ✅ The question being answered is "did the source I just pushed reach the rig?",
+# so ⚠️ **the counter belongs to the PUSH, not to the compile.**
+# `platforms/linux/deploy-to-rig.sh` increments it and ships the header with the
+# source, which makes the number change exactly when the code does.
+#
+# ⚠️ A checked-in fallback header keeps a plain `cmake --build` working for anyone
+# who never uses the deploy script (the Docker image, a fresh clone).
+target_include_directories(scrivi_linux PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+
 target_include_directories(scrivi_linux PRIVATE src)
 
 # Match ScriviCore's C++ standard so the shared headers compile identically.
@@ -606,3 +633,26 @@ target_link_libraries(scrivi_linux_inspector_fixture
 
 target_include_directories(scrivi_linux_inspector_fixture PRIVATE src)
 target_compile_features(scrivi_linux_inspector_fixture PRIVATE cxx_std_23)
+
+# --- Headless inspector-layout round-trip smoke (SP-126 / T-0486) -----------
+# ⚠️ THE SPRINT'S DATA-LOSS TEST. `inspector-layout.json` is a SHARED, app-side
+# schema that Apple already populates. Linux does not model stackSort,
+# defaultStacks or per-scene stacks — so the store must PATCH the decoded
+# document, never reconstruct it from a typed struct. This asserts an
+# Apple-written layout survives a Linux write with every key intact, including
+# keys this build has never heard of; plus unknown-tab degradation, missing-file
+# defaults, and that a CORRUPT file is left untouched rather than overwritten.
+# inspector_layout_smoke.sh.
+qt_add_executable(scrivi_linux_inspector_layout_smoke
+    tests/inspector_layout_smoke.cpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+)
+
+target_link_libraries(scrivi_linux_inspector_layout_smoke
+    PRIVATE
+        Qt6::Core
+)
+
+target_include_directories(scrivi_linux_inspector_layout_smoke PRIVATE src)
+target_compile_features(scrivi_linux_inspector_layout_smoke PRIVATE cxx_std_23)

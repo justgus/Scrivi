@@ -182,3 +182,50 @@ is added.**
 
 *I-0171 archived 2026-08-29 on user verification, in the same step SP-125 was closed
 (`feedback_archive_on_close`).*
+
+---
+
+## I-0179 — `[Linux]` The relationship label was wrong, and then redundant
+
+**Severity:** Low · **Sprint:** SP-126 · **Verified:** 2026-08-30 (build 8)
+
+⚠️ **FOUND BY THE USER in the live pass**, on real data. ⚠️ **The fix took THREE rounds, and only the
+third addressed the actual defect** — worth recording, because the first two looked like fixes.
+
+### Round 1 — the message quoted the wrong string
+
+Double-clicking a pending character produced *«"Myton at 23 — features" can't be opened yet…»*.
+⚠️ **The message recovered the name by string-surgery on the ROW TEXT**, which renders as
+`"<name> — <label>"`, so the label came along. ✅ Fixed by carrying the display name in its own item
+role. ⚠️ **A row's visible text is a PRESENTATION; parsing it back apart to recover data is the bug.**
+
+### Round 2 — the row itself still read wrong
+
+⚠️ **The user pointed out the display had the same fault**, not just the message. *"Myton at 23 —
+features"* implies Myton features something. He does not: the stored edge is *Myton **appears in**
+scene*, and the core projects the inverse for the queried endpoint — ⚠️ **so the label describes what
+the SCENE does.** Stacking name over label (Apple's layout) fixed the grammar.
+
+### ⚠️ Round 3 — the user found the REAL defect: it was redundant
+
+⚠️ **Stacking kept the duplication.** A scene relates to its objects the same way every time, so the
+identical word repeated down the whole list while distinguishing nothing.
+
+✅ **User ruling: hoist the label to the GROUP HEADER** — `characters (2) (features)` — and drop the
+per-row line entirely. ✅ **Says it once, compacts the list, loses nothing.**
+
+⚠️ **My supporting analysis was ALSO wrong and the user corrected it.** I claimed labels varied per
+kind, having counted `cites` edges — ⚠️ **but `cites` runs source→object and NEVER touches a scene**,
+so it is not a scene predicate at all and surfaces on the Sources card. ✅ **Verified against the real
+project.** Of the seeded vocabulary only **two** types constrain to a scene (`appears-in` → *features*,
+`located-at` → *takes place at*), so labels are collected from the rows and all present are named.
+
+### ⚠️ What it cost elsewhere
+
+✅ **The same defect was found in the macOS app** (`ObjectCard.swift:1032-1036`), ⚠️ **shipping since
+EP-031 and never noticed** → **I-0180**. ✅ **Building the surface a second time is what exposed it.**
+
+---
+
+*I-0179 archived 2026-08-30 on user verification. ⚠️ **This entry CLOSES the 0171–0180 decade**; the
+next Issue is I-0181.*

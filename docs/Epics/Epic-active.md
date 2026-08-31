@@ -97,7 +97,9 @@ THREE Epics**, not deliverables of one.
 - [ ] **AC4** — **Object CRUD round-trips**: create, open, save, delete, promote — ⚠️ **with `worldID`
       threaded through every call.** ⚠️ **Omitting it is how SP-104 blocked object creation outright.**
 - [ ] **AC5** — ⚠️ **Card list items show a thumbnail when an image exists**, unchanged when none does.
-- [ ] **AC10** — ⚠️ **ADDED 2026-08-29 (user-found gap, see §3a).** **The Scene Inspector is a THREE-TAB
+- [x] ✅ **AC10 — CLOSED by SP-126 (2026-08-30).** The three-tab shell ships, ⚠️ **"Scene Entities" is
+      retired**, and ⚠️ **`inspector-layout.json` round-trips Apple's keys intact (17/17).**
+      ⚠️ **ADDED 2026-08-29 (user-found gap, see §3a).** **The Scene Inspector is a THREE-TAB
       panel — Writing · Properties · Worldbuilding — matching Apple's `InspectorTab`.**
       ⚠️ **"Scene Entities" is NOT a tab**; it is the placeholder Apple's SP-090 deleted, and Linux
       inherited it by mistake. ⚠️ **DISPLAY order is `Writing | Worldbuilding | Properties`**
@@ -231,7 +233,7 @@ the thing being mirrored is the FINISHED surface or a placeholder that Apple lat
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
 | **SP-125** | ⚠️ **Scene Inspector wired to real objects** — replaces the 67-line EP-024 stub. ⚠️ **Scene-scoped only** | ✅ **ALL FIVE TASKS VERIFIED 2026-08-28** — ⚠️ **awaiting user approval to CLOSE** |
-| **SP-126** | ⚠️ **The THREE-TAB shell** (AC10) — ⚠️ **display order Writing \| Worldbuilding \| Properties**; Writing + Properties populated, ⚠️ **today's object list MOVED into Worldbuilding**; ⚠️ **`inspector-layout.json` read+write, PATCHED not reconstructed** | 🟡 **ACTIVE** — activated 2026-08-29 (T-0485–T-0490) |
+| **SP-126** | ⚠️ **The THREE-TAB shell** (AC10) — ⚠️ **display order Writing \| Worldbuilding \| Properties**; Writing + Properties populated, ⚠️ **today's object list MOVED into Worldbuilding**; ⚠️ **`inspector-layout.json` read+write, PATCHED not reconstructed** | ✅ **CLOSED 2026-08-30** → [`Closed/Sprint-SP-126.md`](../Sprints/Closed/Sprint-SP-126.md) |
 | — | ⚠️ **Project-wide object browser** (AC2's other half) | ⚪ **Not planned** |
 | — | **Object CRUD** (AC4) + **world binding UI** (AC3) | ⚪ **Not planned** |
 | — | **Card thumbnails** (AC5) — ⚠️ **needs EP-036's image work** | ⚪ **Not planned** |
@@ -248,7 +250,7 @@ the thing being mirrored is the FINISHED surface or a placeholder that Apple lat
 **Goal:** Stand up a **real Ubuntu machine** as a first-class test rig, then ⚠️ **establish what ACTUALLY
 happens when a drive carrying a world is physically unmounted** — and implement the platform refinement
 against that ground truth rather than against documentation.
-**Date Created:** 2026-08-24 · **Promoted:** 2026-08-25 · **Sprints:** **SP-123**, **SP-124**
+**Date Created:** 2026-08-24 · **Promoted:** 2026-08-25 · **Sprints:** ✅ **SP-123 (CLOSED 2026-08-29)**, 🔵 **SP-124**
 **Tasks:** **T-0474 – T-0479** (six)
 **Blocks:** ⚠️ **EP-036's AC4 is UNSPECIFIABLE until T-0477 reports.**
 **Runs in PARALLEL with EP-035** — ⚠️ **user ruling 2026-08-25** (see §3).
@@ -346,11 +348,15 @@ T-0478 (implement) because a sprint boundary separates them.**
 
 ## 6. Acceptance Criteria
 
-- [ ] **AC1** — ⚠️ **The Ubuntu box is reachable over SSH** with key auth and a documented path.
+- [x] ✅ **AC1 — CLOSED by SP-123 (2026-08-29).** ⚠️ **The Ubuntu box is reachable over SSH** with key
+      auth and a documented path → `docs/Scrivi_Linux_Rig_Setup_v0_1.md` §2.
       ⚠️ **NO passwords, keys or hostnames in any tracked file.**
-- [ ] **AC2** — ⚠️ **The Qt app BUILDS AND RUNS NATIVELY on Ubuntu** — ⚠️ **not in Docker** — and `ctest`
+- [x] ✅ **AC2 — CLOSED by SP-123 (2026-08-29):** native build **outside** a container, `ctest`
+      **571/571 NON-ROOT** plus 18/18 smokes, ⚠️ **on Qt 6.10.2 / GCC 15.2 / CMake 4.2.3 with ZERO code
+      changes.** ⚠️ **The Qt app BUILDS AND RUNS NATIVELY on Ubuntu** — ⚠️ **not in Docker** — and `ctest`
       runs **non-root, tests ON**.
-- [ ] **AC3** — ⚠️ **The app displays on a REAL X session** and is drivable both at the machine and
+- [x] ✅ **AC3 — CLOSED by SP-123 (2026-08-29):** the app launched on a real session over RDP and
+      opened a project; navigator, manuscript and timeline all nominal. ⚠️ **The app displays on a REAL X session** and is drivable both at the machine and
       remotely. ⚠️ **Xvfb is NOT acceptable for this AC.**
 - [ ] **AC4** — ⚠️ **A real removable drive carrying a world copy is mounted, and its PHYSICAL loss is
       OBSERVED and RECORDED** — ⚠️ **whatever the findings turn out to be**, including *"the obvious

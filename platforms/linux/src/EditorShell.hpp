@@ -165,6 +165,12 @@ private slots:
     // the picker seeded with the scene's CURRENT offset (no drag).
     void onSetTimeDeltaRequested(const QString& sceneID);
 
+    // Turn a core error into something a WRITER can act on. ⚠️ Only the
+    // unavailable-world case is rephrased (it names a raw UUID otherwise);
+    // everything else passes through verbatim, because inventing friendly text
+    // for errors we have not seen would HIDE real faults.
+    QString writerFacingError(int code, const QString& message) const;
+
     // --- EP-035 objects (SP-125, T-0482) ----------------------------------
     // A writer asked to open an object from the Scene Inspector — by double-click
     // or by its context menu. Both routes land here; the panel does not decide

@@ -218,6 +218,73 @@ find <dest> \( -name '._*' -o -name '.DS_Store' \) -delete
 
 ---
 
+## 4a. ⚠️ Confirming WHICH BUILD is on the rig
+
+⚠️ **This has bitten once already.** On 2026-08-30 the rig was found running a **day-old binary that
+predated an entire sprint** — a live pass against it would have reported on the wrong code, and there
+was no way to tell from inside the app.
+
+✅ **The app now stamps itself**, and the stamp cannot drift because `__DATE__`/`__TIME__` are baked in
+by the **preprocessor** at compile time:
+
+```bash
+~/Dev/Scrivi/build-native/platforms/linux/scrivi_linux --version
+# Scrivi (Linux) — built Aug 30 2026 15:35:32, Qt 6.10.2
+```
+
+✅ **Also in the GUI: Help ▸ About Scrivi** — ⚠️ **deliberately NOT gated on a project being open**,
+because the moment you most want to ask "is this the right build?" is at the landing screen.
+
+⚠️ **`--version` is handled BEFORE `QApplication` is constructed**, so it works over plain SSH where
+there is no `DISPLAY`.
+
+### ✅ The deploy loop — ONE command
+
+```bash
+platforms/linux/deploy-to-rig.sh            # push + build + verify
+platforms/linux/deploy-to-rig.sh --test     # …and ctest + the 19 smokes
+```
+
+It packages the **working tree** (⚠️ **including uncommitted and untracked files** — that is what you
+are testing), ships it, builds natively, and ⚠️ **fails loudly if the deployed binary does not carry
+the build number it just shipped.**
+
+Host defaults to `oathkeeper` (`SCRIVI_RIG`); path to `~/Dev/Scrivi` (`SCRIVI_RIG_PATH`).
+
+### ⚠️ The build NUMBER — and why it belongs to the PUSH, not the compile
+
+✅ **The script prints the number to expect; the app shows the number it has.** They match or they do
+not — ⚠️ **no clock arithmetic, which is what made a bare timestamp hard to use.**
+
+```
+==> Deployed:  Scrivi (Linux) — build 4 (2026-08-30 19:59:07 UTC), Qt 6.10.2
+    ┌────────────────────────────────────────────────┐
+    │  Check the app reports:  BUILD 4               │
+    └────────────────────────────────────────────────┘
+```
+
+In the app: **Help ▸ About Scrivi** (⚠️ **not gated on a project being open**), or
+`scrivi_linux --version` over SSH.
+
+⚠️ **TWO CMake-side attempts to generate this during the BUILD both failed, in misleading ways:**
+
+1. ⚠️ **A custom TARGET touching `main.cpp`** — Ninja computes its dependency graph **before** any
+   build step runs, so the touch was only seen on the **next** build. ⚠️ **The stamp trailed reality by
+   exactly one build, which looks like it works until you check it carefully.**
+2. ⚠️ **A custom COMMAND generating a header** — Ninja saw the output already existed and never re-ran
+   the step, so ⚠️ **the number froze at 1.**
+
+✅ **The question is "did the source I just pushed reach the rig?", so the counter belongs to the
+PUSH.** The script increments it and ships the header with the source, so ⚠️ **the number changes
+exactly when the code does.** A local `cmake --build` with no deploy leaves it unchanged — correct,
+because nothing was pushed.
+
+⚠️ **The counter lives at `~/.scrivi-rig-build-number`, outside the repo**, so it never conflicts. The
+generated header is committed as a fallback for anyone who never runs the script (the Docker image, a
+fresh clone), where it reads `build 0 (local build — not deployed)`.
+
+---
+
 ## 5. Running the app
 
 ⚠️ **Launch from a terminal INSIDE the RDP session.** ⚠️ **Over SSH there is no `DISPLAY` and it will

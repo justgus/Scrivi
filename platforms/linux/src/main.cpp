@@ -1,10 +1,13 @@
 #include <QApplication>
+#include <cstdio>
 #include <QDir>
 #include <QFileInfo>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickWidget>
 #include <QUrl>
+
+#include "ScriviBuildStamp.hpp"
 
 #include "AppSupport.hpp"
 #include "RecentsStore.hpp"
@@ -27,8 +30,46 @@
 // appSupportRoot (SP-059 / T-0223) is resolved here and injected as a context
 // property so QML passes the same stable path into every scrivi_* call and the
 // recents store — no path logic in QML.
+// ⚠️ Build stamp — so a human can tell WHICH BUILD they are running.
+//
+// ⚠️ This exists because a real question had no answer: with the app pushed to a
+// remote rig, "am I testing the build you just changed?" could only be answered
+// by comparing file timestamps over SSH. ⚠️ On 2026-08-30 the rig was found to
+// be running a DAY-OLD binary that predated the whole sprint — a live pass
+// against it would have reported on the wrong code entirely.
+//
+// ⚠️ SCRIVI_BUILD_STAMP comes from a GENERATED header (ScriviBuildStamp.hpp,
+// written by cmake/WriteBuildStamp.cmake on every build). ⚠️ Deliberately NOT
+// `__DATE__`/`__TIME__` of this file: those only update when main.cpp itself
+// recompiles, so a build that changed other files left the stamp reading the
+// PREVIOUS build's time — a version check that reports "unchanged" after a real
+// change, which is worse than none.
+namespace {
+QString buildStamp()
+{
+    // ⚠️ The BUILD NUMBER leads, because it is the unambiguous half: "build 48"
+    // either matches what the deploy printed or it does not, with no clock
+    // arithmetic. The timestamp follows as context.
+    return QStringLiteral("Scrivi (Linux) — build %1 (%2), Qt %3")
+        .arg(QString::number(SCRIVI_BUILD_NUMBER),
+             QLatin1String(SCRIVI_BUILD_STAMP),
+             QLatin1String(qVersion()));
+}
+} // namespace
+
 int main(int argc, char* argv[])
 {
+    // ⚠️ Handled BEFORE QApplication is constructed, so `--version` works with no
+    // display at all — over plain SSH, where there is no DISPLAY and a
+    // QApplication would abort.
+    for (int i = 1; i < argc; ++i) {
+        const QString arg = QString::fromLocal8Bit(argv[i]);
+        if (arg == QLatin1String("--version") || arg == QLatin1String("-v")) {
+            std::printf("%s\n", buildStamp().toUtf8().constData());
+            return 0;
+        }
+    }
+
     // QApplication (Widgets): the host shell is a QMainWindow, and the New Project
     // folder picker uses a Qt Widgets QFileDialog (ScriviBridge::chooseFolder).
     QApplication app(argc, argv);

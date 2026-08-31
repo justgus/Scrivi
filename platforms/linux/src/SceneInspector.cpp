@@ -5,25 +5,42 @@
 
 #include <QAction>
 #include <QFont>
+#include <QFormLayout>
 #include <QHeaderView>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QSet>
 #include <QTabWidget>
+#include <QTextEdit>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QEvent>
+#include <QSignalBlocker>
+#include <QStringList>
 
 #include <algorithm>
 
 // The panel lives in EditorShell's QSplitter, so the minimum is a hard floor and
-// the default is applied by the splitter's initial sizes. Narrower than Apple's
-// 240/280 by user preference (2026-07-22): 120 min / 200 default keeps the writing
-// surface wider.
+// the default is applied by the splitter's initial sizes.
+//
+// ⚠️ WIDENED 2026-08-30 (user ruling) from 120/200 to 240/400. The earlier
+// 120/200 came from a 2026-07-22 preference for a wider writing surface — ⚠️ but
+// that predates the THREE-TAB shell, and at 200px the three tab labels truncate
+// to "W… / Worldb… / Prop…". ✅ **"You need at least that much to view all three
+// tabs without truncating."**
+//
+// ⚠️ Label elision (setElideMode, below) is still kept as the SAFETY NET, not as
+// the answer: a writer may drag the splitter narrower, and the tabs must stay
+// clickable rather than collapsing into scroll arrows when she does.
 namespace {
-constexpr int kMinWidth     = 120;
-constexpr int kDefaultWidth = 200;
+constexpr int kMinWidth     = 240;
+constexpr int kDefaultWidth = 400;
 
 // Roles carrying an entry's identity on its tree item. A kind GROUP row carries
 // none of these, which is what distinguishes it from an object row.
@@ -31,6 +48,13 @@ constexpr int kRoleObjectID = Qt::UserRole + 1;
 constexpr int kRoleKind     = Qt::UserRole + 2;
 constexpr int kRoleWorldID  = Qt::UserRole + 3;
 constexpr int kRolePending  = Qt::UserRole + 4;
+// ⚠️ The object's display name ALONE. The row's visible text is
+// "<name> — <label>" (plus a ⚠ badge when pending), so recovering the name by
+// string-surgery on the row text is wrong — and it shipped wrong: a pending
+// message read «"Myton at 23 — features" can't be opened», with the EDGE LABEL
+// glued to the character's name. ✅ Carry the name as data instead of parsing
+// the presentation back apart.
+constexpr int kRoleDisplayName = Qt::UserRole + 5;
 } // namespace
 
 SceneInspector::SceneInspector(QWidget* parent) : QWidget(parent)
@@ -45,21 +69,132 @@ SceneInspector::SceneInspector(QWidget* parent) : QWidget(parent)
     // North tab bar mirrors Apple's segmented Picker sitting above the tab body.
     tabs_->setTabPosition(QTabWidget::North);
     tabs_->setDocumentMode(true);
-    tabs_->addTab(buildSceneEntitiesTab(), tr("Scene Entities"));
+
+    // ⚠️ ADDED IN DISPLAY ORDER, and the order is Apple's, not a preference:
+    // the tab bar iterates `InspectorTab.allCases`, which follows the enum's
+    // declaration order `writing, worldbuilding, properties`
+    // (InspectorCard.swift:19-22). The indices must match the Tab enum.
+    tabs_->addTab(buildWritingTab(),       tr("Writing"));
+    tabs_->addTab(buildWorldbuildingTab(), tr("Worldbuilding"));
+    tabs_->addTab(buildPropertiesTab(),    tr("Properties"));
+    tabs_->setCurrentIndex(TabWriting);   // Apple's default until a layout loads
+
+    // ⚠️ At the panel's 200px default width, three full tab labels do NOT fit,
+    // and QTabWidget's answer is a pair of ~8px scroll arrows. ⚠️ That makes
+    // Properties reachable ONLY by a tiny arrow target — which is a gesture-only
+    // affordance in all but name, and fails the same rule as T-0482
+    // (`project_linux_vnc_input_constraints`: every action needs a real target,
+    // and a remote pass may drop precision as well as modifiers).
+    //
+    // ✅ Elide the labels instead: all three tabs stay visible and clickable at
+    // any width, shortening rather than disappearing. ⚠️ Found by LOOKING at the
+    // panel — the build was green and every smoke passed with the tab
+    // unreachable, because no test renders a tab bar.
+    tabs_->setUsesScrollButtons(false);
+    tabs_->setElideMode(Qt::ElideRight);
+
+    connect(tabs_, &QTabWidget::currentChanged, this, &SceneInspector::onTabChanged);
 
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
     root->addWidget(tabs_);
 }
 
-QWidget* SceneInspector::buildSceneEntitiesTab()
+QString SceneInspector::tabID(int index)
 {
+    switch (index) {
+        case TabWriting:       return QStringLiteral("writing");
+        case TabWorldbuilding: return QStringLiteral("worldbuilding");
+        case TabProperties:    return QStringLiteral("properties");
+    }
+    return QStringLiteral("writing");
+}
+
+int SceneInspector::tabIndex(const QString& id)
+{
+    if (id == QLatin1String("worldbuilding")) { return TabWorldbuilding; }
+    if (id == QLatin1String("properties"))    { return TabProperties; }
+    return TabWriting;   // unknown degrades to the ruled default
+}
+
+void SceneInspector::onTabChanged(int index)
+{
+    // ⚠️ PROJECT-level, and deliberately not per-scene: switching scenes reloads
+    // the current tab's content, it never changes which tab is showing.
+    layout_.setSelectedTab(tabID(index));
+}
+
+QWidget* SceneInspector::buildWritingTab()
+{
+    // T-0487 — the Writing stack: tags, outline, todo. Apple ships these three
+    // as the DEFAULT writing cards for a fresh project
+    // (InspectorLayoutStore.swift:81-85), so they are the right three here.
+    //
+    // ⚠️ Rendered as a plain form, NOT as Apple's collapsible card stack. Card
+    // collapse/reorder/sort is T-0491 and is user-ruled OUT of this sprint; the
+    // layout file's `stackSort` and `defaultStacks` are round-tripped untouched
+    // meanwhile, so nothing is lost by the simpler presentation.
+    auto* tab = new QWidget;
+    auto* layout = new QVBoxLayout(tab);
+    layout->setContentsMargins(12, 12, 12, 12);
+    layout->setSpacing(6);
+
+    auto boldLabel = [tab](const QString& text) {
+        auto* l = new QLabel(text, tab);
+        QFont f = l->font();
+        f.setBold(true);
+        l->setFont(f);
+        return l;
+    };
+
+    layout->addWidget(boldLabel(tr("Tags")));
+    tagsEdit_ = new QLineEdit(tab);
+    tagsEdit_->setPlaceholderText(tr("comma, separated, tags"));
+    // Commit on editing-finished (Return or focus-out), not per keystroke — a
+    // scene note is not worth a disk write per character.
+    connect(tagsEdit_, &QLineEdit::editingFinished, this, &SceneInspector::onTagsEdited);
+    layout->addWidget(tagsEdit_);
+
+    layout->addWidget(boldLabel(tr("Outline")));
+    outlineEdit_ = new QTextEdit(tab);
+    outlineEdit_->setAcceptRichText(false);   // the core stores plain text
+    outlineEdit_->setPlaceholderText(tr("What happens in this scene?"));
+    // ⚠️ Commit on focus-out — see eventFilter(). QTextEdit has no
+    // editingFinished, so without this the note is only saved when the scene
+    // changes, and typing then clicking into the manuscript LOSES it.
+    outlineEdit_->installEventFilter(this);
+    layout->addWidget(outlineEdit_, 2);
+
+    layout->addWidget(boldLabel(tr("To-do")));
+    todoEdit_ = new QTextEdit(tab);
+    todoEdit_->setAcceptRichText(false);
+    // ⚠️ One item per line; a leading "[x] " marks it done. The core models todo
+    // as {text, done} pairs, so this is a TEXT PRESENTATION of that structure —
+    // the parse is explicit in onTodoEdited() rather than implied here.
+    todoEdit_->setPlaceholderText(tr("One item per line.\n[x] done item"));
+    todoEdit_->installEventFilter(this);   // commit on focus-out, as above
+    layout->addWidget(todoEdit_, 2);
+
+    writingStatus_ = new QLabel(tab);
+    writingStatus_->setWordWrap(true);
+    writingStatus_->setEnabled(false);
+    layout->addWidget(writingStatus_);
+
+    return tab;
+}
+
+QWidget* SceneInspector::buildWorldbuildingTab()
+{
+    // T-0489 — SP-125's object list, MOVED here unchanged. ⚠️ This is the tab it
+    // always belonged in; "Scene Entities" was never a real tab (see the header).
+    // ⚠️ NO behaviour change: same read path, same two open affordances, same
+    // four explained states.
     auto* tab = new QWidget;
     auto* layout = new QVBoxLayout(tab);
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(8);
 
-    title_ = new QLabel(tr("Scene Entities"), tab);
+    title_ = new QLabel(tr("Objects in this scene"), tab);
     QFont titleFont = title_->font();
     titleFont.setBold(true);
     title_->setFont(titleFont);
@@ -70,35 +205,86 @@ QWidget* SceneInspector::buildSceneEntitiesTab()
     tree_->setHeaderHidden(true);
     tree_->setColumnCount(1);
     tree_->setRootIsDecorated(true);
+    // Rows are single-line again (the label moved to the header), so uniform
+    // heights are both correct and faster.
     tree_->setUniformRowHeights(true);
     tree_->setSelectionMode(QAbstractItemView::SingleSelection);
     // T-0482: the context menu is a FIRST-CLASS path to open, not a convenience
-    // duplicate of the double-click. The VNC input path carries no Shift-combos
-    // and no trackpad gestures (project_linux_vnc_input_constraints), so every
-    // action needs a button or menu route.
+    // duplicate of the double-click. The VNC/RDP input path carries no
+    // Shift-combos and no trackpad gestures, so every action needs a button or
+    // menu route. ⚠️ The rig does NOT retire this rule — remote passes may still
+    // drop modifiers.
     tree_->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(tree_, &QTreeWidget::itemDoubleClicked,
             this, &SceneInspector::onItemActivated);
-    // itemActivated covers Return/Enter on the keyboard — the same open, reachable
-    // without a pointer at all.
+    // itemActivated covers Return/Enter — the same open, reachable with no
+    // pointer at all.
     connect(tree_, &QTreeWidget::itemActivated,
             this, &SceneInspector::onItemActivated);
     connect(tree_, &QTreeWidget::customContextMenuRequested,
             this, &SceneInspector::onContextMenuRequested);
     layout->addWidget(tree_, 1);
 
-    // ⚠️ T-0483: the panel's one explanatory line. A scene with no objects, an
-    // unavailable world, a pending object and an unreachable core are DIFFERENT
-    // states and each gets its own sentence here. It is never left blank while
-    // the tree is empty.
+    // ⚠️ T-0483: the panel's one explanatory line. Empty, unavailable, pending
+    // and unreadable-index are DIFFERENT states and each gets its own sentence.
+    // It is never left blank while the tree is empty.
     status_ = new QLabel(tab);
     status_->setWordWrap(true);
     status_->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(status_);
 
-    // Nothing is known until setContext/setScene arrive; say so rather than
-    // showing a bare empty list.
     setStatusLine(tr("No project open."), false);
+    return tab;
+}
+
+QWidget* SceneInspector::buildPropertiesTab()
+{
+    // T-0488 — Apple's Properties tab is a FIXED view, not a card stack
+    // (`InspectorTab.stack` returns nil for it), showing derived scene facts.
+    //
+    // ⚠️ Everything here is READ-ONLY IN FACT, not merely styled. QLabel cannot
+    // be edited at all, which is the point: I-0148 recorded a disabled SwiftUI
+    // `TextEditor` on Apple that was STILL EDITABLE. A read-only state must be
+    // ENFORCED by the widget choice, never by an `setEnabled(false)` that a
+    // future refactor can quietly flip.
+    //
+    // ⚠️ Costs NO extra backend call — every value comes from the same
+    // `getSceneNotes` result the Writing tab already reads.
+    auto* tab = new QWidget;
+    auto* outer = new QVBoxLayout(tab);
+    outer->setContentsMargins(12, 12, 12, 12);
+    outer->setSpacing(8);
+
+    auto* form = new QFormLayout;
+    form->setLabelAlignment(Qt::AlignLeft | Qt::AlignTop);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+
+    auto makeValue = [tab]() {
+        auto* l = new QLabel(tab);
+        l->setWordWrap(true);
+        // Selectable so a writer can copy a timestamp; still not editable.
+        l->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        return l;
+    };
+
+    propTitle_    = makeValue();
+    propWords_    = makeValue();
+    propChars_    = makeValue();
+    propCreated_  = makeValue();
+    propModified_ = makeValue();
+
+    form->addRow(tr("Title"),         propTitle_);
+    form->addRow(tr("Words"),         propWords_);
+    form->addRow(tr("Characters"),    propChars_);
+    form->addRow(tr("Created"),       propCreated_);
+    form->addRow(tr("Last modified"), propModified_);
+    outer->addLayout(form);
+    outer->addStretch(1);
+
+    propStatus_ = new QLabel(tab);
+    propStatus_->setWordWrap(true);
+    propStatus_->setEnabled(false);
+    outer->addWidget(propStatus_);
 
     return tab;
 }
@@ -112,7 +298,18 @@ void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRoot
     entries_.clear();
     worldNames_.clear();
     loadError_.clear();
+
+    // T-0486: restore the PROJECT's tab selection. ⚠️ Loading the layout must not
+    // itself look like a writer choosing a tab, or opening a project would
+    // rewrite the file with the value it just read — so the signal is blocked.
+    layout_.load(projectRootPath);
+    if (tabs_ != nullptr) {
+        const QSignalBlocker block(tabs_);
+        tabs_->setCurrentIndex(tabIndex(layout_.selectedTab()));
+    }
+
     rebuildTree();
+    loadSceneNotes();
 }
 
 void SceneInspector::setScene(const QString& sceneID)
@@ -120,8 +317,15 @@ void SceneInspector::setScene(const QString& sceneID)
     if (sceneID == sceneID_) {
         return;   // scroll traffic re-reports the same scene constantly
     }
+    // ⚠️ Flush BEFORE the scene changes. The Writing tab commits on focus-out,
+    // and clicking from a note straight into another scene never fires that —
+    // so without this the edit is lost. Same shape as I-0119 on Apple, where a
+    // draft completed at a scene boundary attached to the wrong scene.
+    flushPendingEdits();
+
     sceneID_ = sceneID;
     reload();
+    loadSceneNotes();
 }
 
 void SceneInspector::reload()
@@ -294,8 +498,33 @@ void SceneInspector::rebuildTree()
             return a.displayName.localeAwareCompare(b.displayName) < 0;
         });
 
+        // ⚠️ THE RELATIONSHIP LABEL BELONGS HERE, not on every row (user ruling
+        // 2026-08-30). A scene relates to its objects the same way each time —
+        // every character "appears in" it — so a per-row label repeats one word
+        // down the whole list while saying nothing that distinguishes the rows.
+        //
+        // ✅ "characters (2) (appears in)" says it ONCE, compacts the list, and
+        // loses nothing.
+        //
+        // ⚠️ The labels are READ from the core's projection, never recomputed —
+        // and they are collected from the ROWS rather than assumed, because a
+        // group CAN legitimately hold more than one. Of the seeded vocabulary,
+        // two types constrain to a scene: `appears-in` (scene "features" X) and
+        // `located-at` (scene "takes place at" a location), so a Locations group
+        // can hold both. ⚠️ When that happens ALL of them are named — narrowing
+        // to the first would silently misdescribe the others.
+        QStringList groupLabels;
+        for (const Entry& e : rows) {
+            if (!e.label.isEmpty() && !groupLabels.contains(e.label)) {
+                groupLabels.append(e.label);
+            }
+        }
         auto* group = new QTreeWidgetItem(tree_);
-        group->setText(0, tr("%1 (%2)").arg(kind, QString::number(rows.size())));
+        const QString countText = tr("%1 (%2)").arg(kind, QString::number(rows.size()));
+        group->setText(0, groupLabels.isEmpty()
+                              ? countText
+                              : tr("%1 (%2)").arg(countText,
+                                                  groupLabels.join(QStringLiteral(", "))));
         QFont groupFont = group->font(0);
         groupFont.setBold(true);
         group->setFont(0, groupFont);
@@ -305,10 +534,25 @@ void SceneInspector::rebuildTree()
 
         for (const Entry& e : rows) {
             auto* item = new QTreeWidgetItem(group);
-            // The label is the core's, already resolved for this scene.
-            const QString rowText = e.label.isEmpty()
-                                        ? e.displayName
-                                        : tr("%1 — %2").arg(e.displayName, e.label);
+
+            // ⚠️ THE ROW IS THE NAME ALONE. The relationship label lives on the
+            // GROUP HEADER — see rebuildTree()'s header construction.
+            //
+            // ⚠️ User ruling 2026-08-30, and it corrects two of my mistakes:
+            //
+            //  1. ⚠️ "Myton at 23 — features" reads as though *Myton* features
+            //     something. He does not. The stored edge is "Myton APPEARS IN
+            //     scene"; asked from the SCENE's side the core projects the
+            //     inverse, "scene FEATURES Myton". ⚠️ **The label describes what
+            //     the SCENE does**, so rendering it beside the OBJECT's name
+            //     inverts its meaning.
+            //  2. ⚠️ Stacking it on a second line fixed the grammar and kept the
+            //     REDUNDANCY: every row in a group repeats the identical word,
+            //     because a scene relates to its objects the same way each time.
+            //
+            // ✅ Hoisting it to the header says it ONCE, compacts the list, and
+            // loses nothing.
+            const QString rowText = e.displayName;
             item->setText(0, rowText);
             // ⚠️ I-0173: the panel is ~200px by default, so a row of the form
             // "<name> — <relationship>" ELIDES to "character 1 — doc…" and the
@@ -321,19 +565,24 @@ void SceneInspector::rebuildTree()
             // this is a supplement to a readable row, not a hover-only
             // affordance. Apple learned that one the hard way — T-0389 exists
             // because a pending object's world appeared ONLY in a tooltip.
+            // ⚠️ The tooltip is the NAME only — the label is on the header, so
+            // repeating it here would reintroduce exactly the duplication the
+            // header hoist removed. The tooltip still earns its place: a long
+            // name elides in a narrow panel (I-0173).
             item->setToolTip(0, rowText);
             item->setData(0, kRoleObjectID, e.objectID);
             item->setData(0, kRoleKind,     e.kind);
             item->setData(0, kRoleWorldID,  e.worldID);
             item->setData(0, kRolePending,  e.pending);
+            item->setData(0, kRoleDisplayName, e.displayName);
             if (e.pending) {
                 // ⚠️ Shown, named, and not modifiable — never hidden. The sentence
                 // in the status line below names the world; this marks the row.
-                item->setText(0, tr("⚠ %1").arg(item->text(0)));
+                item->setText(0, tr("⚠ %1").arg(e.displayName));
                 // Both facts, not one replacing the other: a pending row still
                 // needs its full label readable (I-0173).
                 item->setToolTip(0, tr("%1\n\nHeld pending — this object's world is %2.")
-                                        .arg(rowText, writerDescription(e.pendingStatus)));
+                                        .arg(e.displayName, writerDescription(e.pendingStatus)));
             }
             ++shown;
         }
@@ -448,6 +697,191 @@ QString SceneInspector::worldDisplayName(const QString& worldID)
     return name.isEmpty() ? worldID : name;
 }
 
+bool SceneInspector::eventFilter(QObject* watched, QEvent* event)
+{
+    // ⚠️ The ONLY reliable commit point for a QTextEdit. QLineEdit has
+    // editingFinished; QTextEdit has nothing equivalent, so focus-out is where
+    // an edit becomes a save.
+    //
+    // ⚠️ Deliberately NOT textChanged: that would write to disk on every
+    // keystroke. And deliberately not only-on-scene-change: a writer who types a
+    // note and clicks into the manuscript never changes scene, so the note would
+    // sit in the widget and be discarded on the next load.
+    if (event != nullptr && event->type() == QEvent::FocusOut) {
+        if (watched == outlineEdit_) {
+            onOutlineEdited();
+        } else if (watched == todoEdit_) {
+            onTodoEdited();
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void SceneInspector::loadSceneNotes()
+{
+    // ⚠️ ONE read feeds BOTH the Writing and Properties tabs — they are two
+    // views of the same `getSceneNotes` result, so reading twice would be waste.
+    loadingNotes_ = true;
+
+    auto clearAll = [this](const QString& why) {
+        if (tagsEdit_)     { tagsEdit_->clear(); }
+        if (outlineEdit_)  { outlineEdit_->clear(); }
+        if (todoEdit_)     { todoEdit_->clear(); }
+        for (QLabel* l : {propTitle_, propWords_, propChars_, propCreated_, propModified_}) {
+            if (l) { l->clear(); }
+        }
+        // ⚠️ Never leave both tabs blank and silent — the same rule T-0483
+        // applies to the object list applies here.
+        if (writingStatus_) { writingStatus_->setText(why); }
+        if (propStatus_)    { propStatus_->setText(why); }
+    };
+
+    const bool haveContext = bridge_ != nullptr && !projectRootPath_.isEmpty();
+    if (!haveContext) {
+        clearAll(tr("No project open."));
+        setWritingEnabled(false);
+        loadingNotes_ = false;
+        return;
+    }
+    if (sceneID_.isEmpty()) {
+        clearAll(tr("No scene selected."));
+        setWritingEnabled(false);
+        loadingNotes_ = false;
+        return;
+    }
+
+    const QVariantMap notes = bridge_->getSceneNotes(projectRootPath_, sceneID_);
+    if (bridge_->lastCallFailed()) {
+        // ⚠️ Distinguish "could not read" from "nothing written yet" — an empty
+        // outline and an unreadable scene must never look the same. And DISABLE
+        // editing: writing into fields we could not load would overwrite notes
+        // we never saw.
+        clearAll(tr("This scene's notes could not be read."));
+        setWritingEnabled(false);
+        loadingNotes_ = false;
+        return;
+    }
+    setWritingEnabled(true);
+
+    // --- Writing tab ------------------------------------------------------
+    QStringList tags;
+    for (const QVariant& t : notes.value(QStringLiteral("tags")).toList()) {
+        tags << t.toString();
+    }
+    if (tagsEdit_) { tagsEdit_->setText(tags.join(QStringLiteral(", "))); }
+
+    if (outlineEdit_) {
+        outlineEdit_->setPlainText(notes.value(QStringLiteral("outline")).toString());
+    }
+
+    if (todoEdit_) {
+        QStringList lines;
+        for (const QVariant& v : notes.value(QStringLiteral("todo")).toList()) {
+            const QVariantMap item = v.toMap();
+            const QString text = item.value(QStringLiteral("text")).toString();
+            lines << (item.value(QStringLiteral("done")).toBool()
+                          ? QStringLiteral("[x] ") + text
+                          : text);
+        }
+        todoEdit_->setPlainText(lines.join(QStringLiteral("\n")));
+    }
+    if (writingStatus_) { writingStatus_->clear(); }
+
+    // --- Properties tab ---------------------------------------------------
+    // ⚠️ DERIVED values only. Nothing here is editable, and nothing here is
+    // recomputed in Qt — the counts are the core's.
+    if (propTitle_)    { propTitle_->setText(notes.value(QStringLiteral("title")).toString()); }
+    if (propWords_)    { propWords_->setText(QString::number(notes.value(QStringLiteral("wordCount")).toInt())); }
+    if (propChars_)    { propChars_->setText(QString::number(notes.value(QStringLiteral("characterCount")).toInt())); }
+    if (propCreated_) {
+        const QString by = notes.value(QStringLiteral("createdByDisplayName")).toString();
+        const QString at = notes.value(QStringLiteral("createdAt")).toString();
+        propCreated_->setText(by.isEmpty() ? at : tr("%1 — %2").arg(at, by));
+    }
+    if (propModified_) {
+        const QString by = notes.value(QStringLiteral("modifiedByDisplayName")).toString();
+        const QString at = notes.value(QStringLiteral("modifiedAt")).toString();
+        propModified_->setText(by.isEmpty() ? at : tr("%1 — %2").arg(at, by));
+    }
+    if (propStatus_) { propStatus_->clear(); }
+
+    loadingNotes_ = false;
+}
+
+void SceneInspector::setWritingEnabled(bool on)
+{
+    // ⚠️ The Writing fields are genuinely disabled when the scene could not be
+    // read — not merely styled. Typing into a field we failed to load would
+    // save over notes we never saw.
+    if (tagsEdit_)    { tagsEdit_->setEnabled(on); }
+    if (outlineEdit_) { outlineEdit_->setReadOnly(!on); }
+    if (todoEdit_)    { todoEdit_->setReadOnly(!on); }
+}
+
+void SceneInspector::flushPendingEdits()
+{
+    if (loadingNotes_ || bridge_ == nullptr || sceneID_.isEmpty()) {
+        return;
+    }
+    // The two QTextEdits have no editingFinished signal, so their commit happens
+    // here and on focus-out. Tags commit through their own signal.
+    onOutlineEdited();
+    onTodoEdited();
+}
+
+void SceneInspector::onTagsEdited()
+{
+    if (loadingNotes_ || bridge_ == nullptr || sceneID_.isEmpty() || tagsEdit_ == nullptr) {
+        return;
+    }
+    // Comma-separated in the UI; an ARRAY on disk. ⚠️ The core owns the storage
+    // shape — this is a presentation choice, and the split is explicit rather
+    // than smuggled into the widget.
+    QJsonArray arr;
+    for (const QString& raw : tagsEdit_->text().split(QLatin1Char(','), Qt::SkipEmptyParts)) {
+        const QString t = raw.trimmed();
+        if (!t.isEmpty()) { arr.append(t); }
+    }
+    bridge_->setSceneTags(projectRootPath_, sceneID_,
+                          QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact)));
+}
+
+void SceneInspector::onOutlineEdited()
+{
+    if (loadingNotes_ || bridge_ == nullptr || sceneID_.isEmpty() || outlineEdit_ == nullptr) {
+        return;
+    }
+    bridge_->setSceneOutline(projectRootPath_, sceneID_, outlineEdit_->toPlainText());
+}
+
+void SceneInspector::onTodoEdited()
+{
+    if (loadingNotes_ || bridge_ == nullptr || sceneID_.isEmpty() || todoEdit_ == nullptr) {
+        return;
+    }
+    // One item per line; a leading "[x] " (or "[X] ") marks it done. ⚠️ A blank
+    // line is DROPPED rather than stored as an empty todo — otherwise every
+    // stray Return would accumulate an invisible item.
+    QJsonArray arr;
+    const QStringList lines = todoEdit_->toPlainText().split(QLatin1Char('\n'));
+    for (const QString& raw : lines) {
+        QString line = raw.trimmed();
+        if (line.isEmpty()) { continue; }
+        bool done = false;
+        if (line.startsWith(QLatin1String("[x] "), Qt::CaseInsensitive)) {
+            done = true;
+            line = line.mid(4).trimmed();
+        }
+        if (line.isEmpty()) { continue; }
+        QJsonObject item;
+        item.insert(QStringLiteral("text"), line);
+        item.insert(QStringLiteral("done"), done);
+        arr.append(item);
+    }
+    bridge_->setSceneTodo(projectRootPath_, sceneID_,
+                          QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact)));
+}
+
 void SceneInspector::onItemActivated(QTreeWidgetItem* item, int column)
 {
     Q_UNUSED(column);
@@ -461,6 +895,30 @@ void SceneInspector::onItemActivated(QTreeWidgetItem* item, int column)
         item->setExpanded(!item->isExpanded());
         return;
     }
+
+    // ⚠️ A PENDING object cannot be opened — its world is away, so `openObject`
+    // fails at the core and the writer gets a raw error naming a world UUID.
+    //
+    // ⚠️ THE CONTEXT MENU ALREADY GUARDED THIS AND DOUBLE-CLICK DID NOT — the two
+    // halves of T-0482 disagreed, which is exactly the split
+    // `feedback_verify_each_half_separately` warns about: I verified both
+    // affordances OPENED an object and never verified both REFUSED one.
+    // (Reported by the user 2026-08-30.)
+    //
+    // ✅ Explain in the panel, where the writer is already looking, rather than
+    // firing a call we know will fail.
+    if (item->data(0, kRolePending).toBool()) {
+        const QString worldID = item->data(0, kRoleWorldID).toString();
+        const QString name = worldDisplayName(worldID);
+        setStatusLine(tr("“%1” can't be opened yet — %2 is unavailable. "
+                         "Its links are held; nothing has been lost.")
+                          .arg(item->data(0, kRoleDisplayName).toString(),
+                               name.isEmpty() ? tr("its world")
+                                              : tr("world “%1”").arg(name)),
+                      true);
+        return;
+    }
+
     emit openObjectRequested(item->data(0, kRoleKind).toString(),
                              objectID,
                              item->data(0, kRoleWorldID).toString());

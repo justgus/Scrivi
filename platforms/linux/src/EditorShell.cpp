@@ -129,7 +129,12 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     splitter_->setStretchFactor(2, 0);   // inspector — fixed-ish
     // Keep the inspector from being dragged away entirely; hide it via the menu.
     splitter_->setCollapsible(2, false);
-    splitter_->setSizes({240, 580, 200});   // 200 = default inspector width (user pref)
+    // ⚠️ 400 = default inspector width (user ruling 2026-08-30, doubled from 200 so
+    // the three tab labels fit untruncated). The window grew by the same amount
+    // (ScriviWindow.cpp) so the writing surface is NOT squeezed to pay for it —
+    // ✅ "if it bothers you that it takes up one third of the window you can make
+    // the default window size larger as well. The screens can handle it."
+    splitter_->setSizes({240, 580, 400});
 
     // --- Timeline (bottom): EP-025 Timeline strip -------------------------
     // Docks as a resizable BOTTOM strip below the panels (user decision 2026-07-22,
@@ -235,9 +240,20 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
             this, &EditorShell::onMergeChapterRequested);
 
     // Surface bridge errors inline rather than silently failing.
+    //
+    // ⚠️ The core's message is written for a DEVELOPER and names raw identifiers.
+    // A writer who double-clicked a character saw:
+    //   "Error 1: world 'world_character_01a000fb-539a-…' is unavailable."
+    // ⚠️ A 36-character UUID tells her nothing, and "Error 1" reads as a crash
+    // rather than as a drive she can plug back in. (User-reported 2026-08-30.)
+    //
+    // ✅ The unavailable-world case is REPHRASED — it is common, expected, and
+    // recoverable. ⚠️ Everything else is passed through UNCHANGED: inventing
+    // friendly text for errors we have not seen would hide real faults, which is
+    // worse than an ugly message.
     connect(bridge_, &ScriviBridge::errorOccurred, this,
             [this](int code, const QString& message) {
-                errorLabel_->setText(tr("Error %1: %2").arg(code).arg(message));
+                errorLabel_->setText(writerFacingError(code, message));
                 errorLabel_->show();
             });
 }
@@ -1770,6 +1786,44 @@ void EditorShell::onDotDragged(const QString& sceneID, qint64 newOffsetMs)
 {
     // The drag proposes a new absolute offset; the picker opens seeded with it.
     showTimeDeltaPicker(sceneID, newOffsetMs);
+}
+
+QString EditorShell::writerFacingError(int code, const QString& message) const
+{
+    // ⚠️ ONLY the unavailable-world case is rewritten. It is the one a writer
+    // meets routinely (a world on a drive that is not plugged in), and the core's
+    // phrasing names a UUID she has no way to interpret.
+    //
+    // ⚠️ Matched on the message TEXT rather than the code, because the code is
+    // generic. That is fragile if the core rewords, and it is deliberately
+    // fail-safe: an unmatched message falls through to the raw text, so a
+    // reworded core loses the friendly phrasing but never HIDES the error.
+    if (message.contains(QLatin1String("is unavailable"))
+        && message.contains(QLatin1String("world"))) {
+        // Recover the world's display name from the binding cache when we can —
+        // ⚠️ §7.2 requires the world to be NAMED, not anonymously warned about.
+        QString name;
+        const QVariantMap worlds = bridge_->listWorlds(projectPath_);
+        if (!bridge_->lastCallFailed()) {
+            for (const QVariant& w : worlds.value(QStringLiteral("worlds")).toList()) {
+                const QVariantMap m = w.toMap();
+                if (message.contains(m.value(QStringLiteral("worldID")).toString())) {
+                    name = m.value(QStringLiteral("displayName")).toString();
+                    break;
+                }
+            }
+        }
+        // ⚠️ Never implies the links are gone — they are HELD, which is the
+        // guarantee the writer most needs to hear.
+        return name.isEmpty()
+                   ? tr("That object's world is unavailable — its links are held, "
+                        "and nothing has been lost.")
+                   : tr("World “%1” is unavailable — its links are held, and "
+                        "nothing has been lost.").arg(name);
+    }
+    // ⚠️ Everything else passes through verbatim. An unfamiliar error must stay
+    // legible to whoever has to diagnose it.
+    return tr("Error %1: %2").arg(code).arg(message);
 }
 
 void EditorShell::onOpenObjectRequested(const QString& objectKind,

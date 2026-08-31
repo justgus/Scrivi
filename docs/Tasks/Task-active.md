@@ -16,43 +16,35 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **nine active Tasks** — SP-123 (EP-038) + SP-126 (EP-035), ⚠️ **in parallel**
+## Currently: **NO active Tasks**
+
+⚠️ **All three recent Sprints are closed** (SP-123, SP-125, SP-126). ⚠️ **T-0491 (per-stack sort +
+drag-reorder) remains UNSCHEDULED in the backlog**; the next Sprint has not been chosen.
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| **T-0474** | ⚠️ **Account + SSH key exchange + reachability** — ✅ **USER-IMPLEMENTED 2026-08-27** (`oathkeeper`, RDP + SSH) | SP-123 | ✅ **VERIFIED 2026-08-29 by Claude** — key auth, RDP active, Ubuntu 26.04.1 / x86_64 / 12 cores |
-| **T-0475** | **Toolchain + deps** — Qt ≥ 6.4 ⚠️ **CONFIRMED not assumed** (⚠️ **26.04 ships NEWER than the 6.4 pin**); ⚠️ **desktop + remote-desktop ALREADY EXIST**, so this is TOOLCHAIN ONLY | SP-123 | ✅ **VERIFIED 2026-08-29** — native build + 571/571 ctest + 18/18 smokes, non-root; ⚠️ **Qt 6.10.2 / GCC 15.2 / CMake 4.2.3, ZERO code changes** |
-| **T-0476** | **First NATIVE build** (⚠️ **no container**) + `ctest` non-root + ⚠️ **app launches on a REAL display** | SP-123 | ✅ **VERIFIED 2026-08-29** — ⚠️ **app LAUNCHED on the real display**, opened a project; navigator, manuscript + timeline all nominal. ⚠️ **3 Issues filed (I-0176–I-0178), user-ruled non-blocking** |
-
-⚠️ **OWNERSHIP IS SPLIT (user ruling 2026-08-29)** — ⚠️ **T-0474's verification direction is INVERTED:
-the USER implemented it, so CLAUDE verifies it.** ⚠️ **The standing rule "Claude may never mark a Task
-Verified" exists to stop Claude self-certifying its OWN work** — ✅ **it does not bar Claude from
-verifying the user's.** T-0475 is Claude's (over SSH); ⚠️ **T-0476 returns to the user** — it needs a
-human at a real display.
 
 ⚠️ **T-0477 – T-0479 are SP-124's and are deliberately NOT here** — the sprint boundary is what keeps
 *instrument-before-implement* honest.
 
-### SP-126 (EP-035) — the three-tab Scene Inspector shell · **activated 2026-08-29**
+## Previously: SP-126's six Tasks — ✅ Verified and archived
 
-| ID | Title | Sprint | Status |
-| -- | ----- | ------ | ------ |
-| **T-0485** | **The three-tab shell** — ⚠️ **display order `Writing \| Worldbuilding \| Properties`**, defaulting to **Writing** | SP-126 | 🔵 Planned |
-| **T-0486** | ⚠️ **`inspector-layout.json` read + write** — ⚠️ **PATCH, never reconstruct**: round-trip `stackSort`/`defaultStacks`/`scenes` untouched | SP-126 | 🔵 Planned |
-| **T-0487** | **Writing tab** — tags / outline / todo (`setSceneTags`, `setSceneOutline`, `setSceneTodo`) | SP-126 | 🔵 Planned |
-| **T-0488** | **Properties tab** — ⚠️ **read-only DERIVED stats** from `getSceneNotes`; ⚠️ **read-only IN FACT** (I-0148) | SP-126 | 🔵 Planned |
-| **T-0489** | ⚠️ **MOVE SP-125's object list into Worldbuilding** — no behaviour change; ⚠️ **"Scene Entities" RETIRES** | SP-126 | 🔵 Planned |
-| **T-0490** | ⚠️ **LIVE pass** (EP-035 AC9) + `ctest` non-root — ⚠️ **file every Issue found** | SP-126 | 🔵 Planned |
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0485 – T-0490** | SP-126's six — ⚠️ **the three-tab shell** (Writing · Worldbuilding · Properties), the layout round-trip, and ⚠️ **the live pass that found three defects no suite could see** | SP-126 | 2026-08-30 → [`Verified/Task-verified-0485-0490.md`](Verified/Task-verified-0485-0490.md) |
 
-⚠️ **T-0486 carries this sprint's real risk.** Linux does not model `stackSort` or per-scene stacks, so
-it must round-trip them UNTOUCHED — ⚠️ **reconstructing the document would silently delete the writer's
-Apple-side card layout, invisibly until she reopened the project on the Mac.**
+⚠️ **Archived in the SAME STEP SP-126 closed** (`feedback_archive_on_close`).
+
+## Previously: SP-123's three Tasks — ✅ Verified and archived
+
+| ID | Title | Sprint | Verified |
+| -- | ----- | ------ | -------- |
+| ✅ **T-0474 – T-0476** | SP-123's three — ⚠️ **the rig, the toolchain, and the FIRST real-hardware launch**; ⚠️ **T-0474's verification direction was INVERTED (the user implemented, Claude verified)** | SP-123 | 2026-08-29 → [`Verified/Task-verified-0474-0476.md`](Verified/Task-verified-0474-0476.md) |
+
+⚠️ **Archived in the SAME STEP SP-123 closed** (`feedback_archive_on_close`).
 
 ⚠️ **T-0491 (per-stack sort + drag-reorder) is UNSCHEDULED and stays in the backlog** — user-ruled out
 of SP-126.
-
-⚠️ **SP-123 waits on the rig being awake; SP-126 is blocked on NOTHING** — ✅ **that asymmetry is why the
-two run in parallel**, the same reason SP-123/SP-125 did.
 
 ## Previously: SP-125's five Tasks — ✅ Verified and archived
 
