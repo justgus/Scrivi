@@ -14,7 +14,9 @@
 # Qt.labs.folderlistmodel runtime module.
 # QuickWidgets provides QQuickWidget — the SP-061 Widgets-host embeds the landing
 # QML in a QQuickWidget inside a QMainWindow (the shell flip).
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets)
+# ⚠️ Test is needed by package_folder_smoke, which drives a REAL double-click
+# (I-0185) — the pure-function checks all passed while the dialog still descended.
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets Test)
 
 # Qt's AUTOMOC etc. are enabled per-target below via qt_standard_project_setup.
 qt_standard_project_setup(REQUIRES 6.4)
@@ -53,6 +55,24 @@ qt_add_executable(scrivi_linux
     # is silently deleted.
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
+    # SP-127 (EP-035 AC3): the Worlds surface — Manage Worlds + RELINK.
+    # ⚠️ Closes `capability_without_surface` for worlds: addWorld / relinkWorld /
+    # getWorldStatus / getWorldBinding were bridged with ZERO callers, so a
+    # project whose world had MOVED could not be repaired from the app at all.
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    # Writer-facing WorldStatus phrasing, HOISTED out of SceneInspector when the
+    # Worlds dialog became a second reader. ⚠️ Header-only and shared on purpose —
+    # a second copy of the wording would rot silently (CLAUDE.md's derive rule).
+    src/WorldStatusText.hpp
+    # ⚠️ I-0186: secondary-text colours DERIVED from the live palette. Shared for
+    # the same reason as the wording above — `palette(mid)` was used as a text
+    # colour in BOTH surfaces and was invisible (1.07:1) in the real dark theme.
+    src/ThemeColours.hpp
+    # ⚠️ I-0185: a package-aware directory chooser. `.scrivi`/`.scrivworld` are
+    # DIRECTORIES, so an ordinary picker walks INTO them. Shared by the Worlds
+    # dialog and the Open Project path — ⚠️ NOT by "choose where to create".
+    src/PackageFolderDialog.hpp
     # SP-079 (EP-025): the Timeline bottom strip (scene dots in story-time order).
     src/TimelinePanel.cpp
     src/TimelinePanel.hpp
@@ -656,3 +676,57 @@ target_link_libraries(scrivi_linux_inspector_layout_smoke
 
 target_include_directories(scrivi_linux_inspector_layout_smoke PRIVATE src)
 target_compile_features(scrivi_linux_inspector_layout_smoke PRIVATE cxx_std_23)
+
+# ⚠️ I-0184 — the Worlds row's PATH must be READABLE at the width the row gets.
+# It elided against a hardcoded 360 px, ONCE, at construction: a narrow row showed
+# little more than an ellipsis and widening the dialog never revealed more. The
+# user reported the row as name+status only — the path was there and unreadable.
+# ⚠️ A LAYOUT defect, so only laying the widget out at real widths catches it;
+# the string was correct the whole time. worlds_path_smoke.sh.
+qt_add_executable(scrivi_linux_worlds_path_smoke
+    tests/worlds_path_smoke.cpp
+)
+
+target_link_libraries(scrivi_linux_worlds_path_smoke
+    PRIVATE
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_worlds_path_smoke PRIVATE src)
+target_compile_features(scrivi_linux_worlds_path_smoke PRIVATE cxx_std_23)
+
+# ⚠️ I-0186 — secondary text must be LEGIBLE under a REAL theme. `palette(mid)`
+# measured 1.07:1 in Yaru-dark and 1.03:1 in Yaru light; the world path was
+# invisible in both. ⚠️ Qt's no-theme fallback renders those roles as readable
+# greys, which is exactly why offscreen tests and screenshots missed it — so the
+# wrapper forces the gtk3 platform theme. theme_contrast_smoke.sh.
+qt_add_executable(scrivi_linux_theme_contrast_smoke
+    tests/theme_contrast_smoke.cpp
+)
+
+target_link_libraries(scrivi_linux_theme_contrast_smoke
+    PRIVATE
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_theme_contrast_smoke PRIVATE src)
+target_compile_features(scrivi_linux_theme_contrast_smoke PRIVATE cxx_std_23)
+
+# ⚠️ I-0185 — a package is a LEAF. `.scrivi`/`.scrivworld` are directories, so an
+# ordinary picker walks into them and the writer lands in the package's plumbing.
+# ⚠️ It still WORKED, which is why nothing caught it. package_folder_smoke.sh.
+qt_add_executable(scrivi_linux_package_folder_smoke
+    tests/package_folder_smoke.cpp
+)
+
+target_link_libraries(scrivi_linux_package_folder_smoke
+    PRIVATE
+        Qt6::Widgets
+        # ⚠️ Qt6::Test is for QTest::mouseDClick — the smoke drives a REAL
+        # double-click, because the pure-function checks all passed while the
+        # dialog still descended.
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_package_folder_smoke PRIVATE src)
+target_compile_features(scrivi_linux_package_folder_smoke PRIVATE cxx_std_23)

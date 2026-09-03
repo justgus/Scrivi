@@ -330,7 +330,7 @@ private struct ManuscriptEditorView: View {
             // visible, without a modal that Doc 2 §4.6 forbids for in-place work.
             if showDetailSheet {
                 Divider()
-                ObjectDetailSheet(
+                ObjectDetailSheetSo I (
                     engine: env.engine,
                     projectRootPath: session.projectRootPath ?? "",
                     authorshipRef: env.authorshipRef ?? AuthorshipRef(identityID: "",

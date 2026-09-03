@@ -38,7 +38,17 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
             for (const auto& worldID : ids.value()) {
                 auto res = ws.resolve(projectRoot, worldID);
                 if (res.status == worlds::WorldStatus::available) {
-                    if (auto entries = index.loadWorldIndex(res.packagePath); entries.ok()) {
+                    // ⚠️ I-0183 — "available" is NOT a promise the object set is
+                    // readable. `resolve` establishes availability from
+                    // `world.json`, a SMALL file that can still be served from a
+                    // client cache while a LARGER `index.json` on the same mount
+                    // fails EBADF. That asymmetry is not hypothetical: it
+                    // destroyed 10 of 12 relationships in a real project
+                    // (the-lone-golem, 2026-09-01) when a pulled SMB volume left
+                    // the mount serving a phantom listing.
+                    bool indeterminate = false;
+                    if (auto entries = index.loadWorldIndex(res.packagePath, &indeterminate);
+                        entries.ok() && !indeterminate) {
                         for (const auto& e : entries.value()) {
                             if (e.objectID.value == endpointID) {
                                 out.found       = true;
@@ -56,10 +66,24 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
                             }
                         }
                     }
-                    continue;
+                    // ⚠️ I-0183 — the world SAID available but its objects could
+                    // not be read. Fall through to the cached index below: a
+                    // cache hit yields `pending` (hold), and a miss yields
+                    // `worldIndeterminate` (also hold). ⚠️ NEVER `dangling`,
+                    // which would license a prune on evidence we do not have.
+                    if (!indeterminate) { continue; }
                 }
-                // World unavailable — fall back to the cached names.
+                // World unavailable, OR available-but-unreadable (I-0183) — fall
+                // back to the cached names.
                 if (auto b = ws.loadBinding(projectRoot, worldID); b.ok()) {
+                    // ⚠️ I-0183: a world we could not READ cannot license a
+                    // prune, whether or not its cache happens to name this
+                    // endpoint. Mark it before the lookup so a cache MISS is held
+                    // too — the cache is a display aid, never a census.
+                    if (res.status == worlds::WorldStatus::available) {
+                        out.worldIndeterminate = true;
+                        out.worldID            = worldID;
+                    }
                     for (const auto& e : b.value().cachedIndex) {
                         if (e.objectID == endpointID) {
                             // ⚠️ NOT `found` — and NOT dangling either. The object

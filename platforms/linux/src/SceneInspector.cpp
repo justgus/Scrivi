@@ -1,5 +1,8 @@
 #include "SceneInspector.hpp"
 
+#include "ThemeColours.hpp"
+#include "WorldStatusText.hpp"
+
 #include "ObjectKindScope.hpp"
 #include "ScriviBridge.hpp"
 
@@ -668,22 +671,26 @@ void SceneInspector::setStatusLine(const QString& text, bool warning)
     // Muted for an ordinary empty state; a warning colour when something is
     // actually wrong. The SENTENCE carries the meaning either way — colour alone
     // is never the signal.
-    status_->setStyleSheet(warning ? QStringLiteral("color: palette(link-visited);")
-                                   : QString());
-    status_->setEnabled(!warning ? false : true);
+    // ⚠️ I-0186: DERIVED, never a named palette role. `palette(link-visited)`
+    // resolved to MAGENTA under both Yaru themes, and the muted branch's
+    // `setEnabled(false)` below is itself theme-dependent. See ThemeColours.hpp.
+    ThemeColours::applyTextColour(
+        status_, warning ? ThemeColours::attention(status_->palette())
+                         : ThemeColours::deemphasised(status_->palette()));
+    // ⚠️ I-0186: previously `setEnabled(false)` was used to MUTE the ordinary
+    // state. That routes the label through the palette's DISABLED group, which
+    // overrides the colour set above and is itself theme-dependent — the same
+    // class of bug. The colour above now carries the emphasis, so the widget
+    // stays enabled and its text stays selectable.
+    status_->setEnabled(true);
 }
 
 QString SceneInspector::writerDescription(const QString& statusName)
 {
-    // Mirrors Apple's WorldStatus.writerDescription (ScriviError.swift:115) word
-    // for word. ⚠️ "missing" is only ever reported when the CORE positively
-    // established it; anything undetermined arrives as "unavailable" and must be
-    // repeated as such, never upgraded.
-    if (statusName == QLatin1String("available"))   { return tr("available"); }
-    if (statusName == QLatin1String("offline"))     { return tr("offline"); }
-    if (statusName == QLatin1String("unmounted"))   { return tr("on a disconnected volume"); }
-    if (statusName == QLatin1String("missing"))     { return tr("missing"); }
-    return tr("unavailable");
+    // ⚠️ HOISTED to WorldStatusText (SP-127, T-0492) when the Worlds dialog became
+    // a second reader. The wording lives in ONE place now; this stays only as the
+    // call site the inspector already had.
+    return WorldStatusText::writerDescription(statusName);
 }
 
 QString SceneInspector::worldDisplayName(const QString& worldID)

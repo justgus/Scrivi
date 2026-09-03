@@ -57,8 +57,14 @@ public:
     // A world package keeps its own index at <package>/index.json, using the
     // SAME schema (Doc 3 §6.1), so a world is self-contained and its index
     // rebuilds by the same scan. These operate on that file instead.
+    // ⚠️ I-0183 — `indeterminate`, when given, reports that the package's object
+    // set could NOT be positively established: the index was unreadable AND the
+    // directory scan hit I/O errors. ⚠️ An empty result with `indeterminate ==
+    // true` means "I could not read this world", NEVER "this world is empty" —
+    // and a caller that prunes must treat the two differently or it destroys
+    // relationships into a world that is merely unreadable.
     [[nodiscard]] Result<std::vector<ObjectIndexEntry>> loadWorldIndex(
-        const AbsolutePath& packagePath) const;
+        const AbsolutePath& packagePath, bool* indeterminate = nullptr) const;
     [[nodiscard]] Result<void> upsertWorld(const AbsolutePath& packagePath,
                                            const ObjectIndexEntry& entry) const;
     [[nodiscard]] Result<void> eraseWorld(const AbsolutePath& packagePath,
@@ -74,8 +80,14 @@ public:
     // the result atomically. This is the repair path AND the initial build.
     // Scans a directory tree for object files (SP-103). `worldScoped` selects
     // which kinds may live there; shared by the project and world rebuilds.
+    // ⚠️ I-0183: `sawIOError`, when given, is set true if ANY kind directory or
+    // object file could not be read. The scan is best-effort by design (one bad
+    // file must not cost the index) — ⚠️ but that same tolerance makes an
+    // UNREADABLE tree scan as an EMPTY one, so callers that draw conclusions
+    // from emptiness must ask.
     [[nodiscard]] std::vector<ObjectIndexEntry> scanDir(
-        const AbsolutePath& baseDir, bool worldScoped) const;
+        const AbsolutePath& baseDir, bool worldScoped,
+        bool* sawIOError = nullptr) const;
 
     [[nodiscard]] Result<void> writeWorldIndex(
         const AbsolutePath& packagePath,

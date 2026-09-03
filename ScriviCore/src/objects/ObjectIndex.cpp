@@ -150,24 +150,38 @@ util::JsonDoc serializeEntry(const ObjectIndexEntry& e) {
 // the world rebuild — the two differ only in WHICH kinds can live there and
 // where the subdirectories hang from.
 std::vector<ObjectIndexEntry>
-ObjectIndex::scanDir(const AbsolutePath& baseDir, bool worldScoped) const {
+ObjectIndex::scanDir(const AbsolutePath& baseDir, bool worldScoped,
+                      bool* sawIOError) const {
     auto& fs = *services_.fileSystem;
     std::vector<ObjectIndexEntry> entries;
+    if (sawIOError != nullptr) { *sawIOError = false; }
+
+    // ⚠️ I-0183: every `continue` below is a swallowed failure. That tolerance is
+    // correct for building an index — one unreadable file must not cost the rest
+    // — ⚠️ but it makes an UNREADABLE tree and an EMPTY one produce identical
+    // results. Record that we hit I/O trouble so callers who infer "absent" from
+    // "not in the scan" can refuse to.
+    const auto noteIOError = [sawIOError]() {
+        if (sawIOError != nullptr) { *sawIOError = true; }
+    };
 
     for (auto kind : kAllStorableKinds) {
         if (objectKindIsWorldScoped(kind) != worldScoped) { continue; }
         auto dir     = util::join(baseDir, objectKindSubdir(kind));
         auto existsR = fs.exists(dir);
-        if (!existsR.ok() || !existsR.value()) { continue; }
+        // ⚠️ A FAILED exists() is not "no such directory" — it is "I could not
+        // tell", which is exactly the EBADF a dead network mount returns.
+        if (!existsR.ok()) { noteIOError(); continue; }
+        if (!existsR.value()) { continue; }
 
         auto listR = fs.listDirectory(dir);
-        if (!listR.ok()) { continue; }
+        if (!listR.ok()) { noteIOError(); continue; }
 
         for (const auto& entry : listR.value()) {
             if (util::extension(entry) != ".json") { continue; }
 
             auto textR = fs.readTextFile(entry);
-            if (!textR.ok()) { continue; }
+            if (!textR.ok()) { noteIOError(); continue; }
 
             // Best-effort: one unparseable object file must not cost the index.
             auto parseR = schemas::parseWorldObject(textR.value(), kind);
@@ -252,9 +266,11 @@ Result<void> ObjectIndex::write(const AbsolutePath& projectRoot,
 // rather than a second implementation that could drift.
 
 Result<std::vector<ObjectIndexEntry>>
-ObjectIndex::loadWorldIndex(const AbsolutePath& packagePath) const {
+ObjectIndex::loadWorldIndex(const AbsolutePath& packagePath,
+                             bool* indeterminate) const {
     auto& fs = *services_.fileSystem;
     auto  p  = util::join(packagePath, "index.json");
+    if (indeterminate != nullptr) { *indeterminate = false; }
 
     if (auto textR = fs.readTextFile(p); textR.ok()) {
         if (auto parsed = parse(textR.value())) {
@@ -277,7 +293,19 @@ ObjectIndex::loadWorldIndex(const AbsolutePath& packagePath) const {
     // It is not now: with EVERY worldbuilding kind in the world (Doc 1 §3.0),
     // this is where a whole cast disappears. The world index gets the same
     // scan-rebuild guarantee the project index has always had (AC2).
-    auto entries = scanDir(packagePath, /*worldScoped=*/true);
+    bool scanHadIOError = false;
+    auto entries = scanDir(packagePath, /*worldScoped=*/true, &scanHadIOError);
+
+    // ⚠️ I-0183 — DO NOT persist a scan we could not trust, and tell the caller.
+    //
+    // ⚠️ This path fires when index.json is unreadable. Over a dead network mount
+    // that read fails AND the rescan fails, so `entries` comes back EMPTY — and
+    // writing that empty index into the package would make the loss PERMANENT,
+    // outliving the mount that caused it. Report and return without writing.
+    if (scanHadIOError) {
+        if (indeterminate != nullptr) { *indeterminate = true; }
+        return Result<std::vector<ObjectIndexEntry>>::success(std::move(entries));
+    }
 
     // ⚠️ I-0144 (SP-116 T-0431) — A READ PATH THAT WRITES, DELIBERATELY LEFT
     // UNLOCKED. Recorded here because the omission is a decision, not an

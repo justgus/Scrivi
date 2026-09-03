@@ -16,16 +16,27 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **NO active Tasks**
+## Currently: **SP-127** — EP-035 AC3, ⚠️ **the Worlds surface**
 
-⚠️ **All three recent Sprints are closed** (SP-123, SP-125, SP-126). ⚠️ **T-0491 (per-stack sort +
-drag-reorder) remains UNSCHEDULED in the backlog**; the next Sprint has not been chosen.
+⚠️ **Activated 2026-08-31**, preempting SP-124 by user ruling. ⏸️ **SP-124's three Tasks are PAUSED**
+(below), ✅ **not abandoned — its S1 baseline is captured and the rig mount is intact.**
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
 
-⚠️ **T-0477 – T-0479 are SP-124's and are deliberately NOT here** — the sprint boundary is what keeps
-*instrument-before-implement* honest.
+✅ **`ctest` 571/571 non-root on the rig**; ✅ **clean build under GCC 15 / Qt 6.10.2.**
+
+⚠️ **The I-0130 trap was REAL and was caught in the code, not by a suite:** ⚠️ **`setScene()`
+early-returns when the sceneID has not changed** (`SceneInspector.cpp:319`) — ⚠️ **which after a relink
+is exactly the case.** ✅ **`reload()` is the correct hook** and is documented for precisely this.
+
+## ⏸️ Paused: SP-124's three Tasks
+
+| ID | Title | Sprint | Status |
+| -- | ----- | ------ | ------ |
+| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION** — S1/S2/S3 | **SP-124** | ⏸️ **PAUSED** — ✅ **S1 baseline captured; `cifs` mount intact on the rig** |
+| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** | **SP-124** | ⏸️ **PAUSED** — ⚠️ **still HARD-GATED on T-0477** |
+| **T-0479** | ⚠️ **Correct Porting Outline §9** | **SP-124** | ⏸️ **PAUSED** |
 
 ## Previously: SP-126's six Tasks — ✅ Verified and archived
 

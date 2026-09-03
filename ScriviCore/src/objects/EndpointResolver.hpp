@@ -67,13 +67,33 @@ struct ResolvedEndpoint {
     std::string         worldID;
     worlds::WorldStatus worldStatus = worlds::WorldStatus::available;
 
+    // ⚠️ I-0183 — set when a bound world reported itself AVAILABLE but its object
+    // set could NOT be positively established (the index was unreadable and the
+    // directory scan found nothing). ⚠️ An empty scan is INDISTINGUISHABLE from
+    // "this world has no objects", so it is NOT evidence of absence.
+    //
+    // ⚠️ This is the hole that made `available` unsafe. The three states below
+    // assumed a reachable world always yields a readable object set — true for a
+    // local disk, FALSE over a network mount whose small files (`world.json`)
+    // still read from cache while larger ones (`index.json`) fail EBADF. The
+    // world answered "available", the object set came back empty, and every edge
+    // into it was classified `dangling` and tombstoned.
+    bool worldIndeterminate = false;
+
     // True when this endpoint must be treated as "unknowable, hold" rather than
     // "gone, prune". The graph is frozen toward it in BOTH directions.
-    [[nodiscard]] bool pending() const { return !found && worldPending; }
+    // ⚠️ I-0183: an indeterminate world is held too — "I could not read it" and
+    // "it is away" are the same instruction to a prune pass.
+    [[nodiscard]] bool pending() const {
+        return !found && (worldPending || worldIndeterminate);
+    }
 
-    // True only when the endpoint is positively absent: nothing resolved it AND
-    // no unavailable world claims it. This — and only this — licenses a prune.
-    [[nodiscard]] bool dangling() const { return !found && !worldPending; }
+    // True only when the endpoint is positively absent: nothing resolved it, no
+    // unavailable world claims it, ⚠️ AND every bound world's object set was
+    // actually READ. This — and only this — licenses a prune.
+    [[nodiscard]] bool dangling() const {
+        return !found && !worldPending && !worldIndeterminate;
+    }
 };
 
 class EndpointResolver {

@@ -83,17 +83,20 @@ THREE Epics**, not deliverables of one.
       SCENE's objects grouped by kind, in the core's own kind order. ⚠️ **The PROJECT-wide browser is
       still owed.** **An object list shows the project's objects**, grouped by kind, ⚠️ **with kind scope
       DERIVED from `scrivi_list_object_kinds`** — ⚠️ **never restated in C++ or QML.**
-- [ ] **AC3** — **World binding works from the Linux app**: a world can be added, its status read, and
-      ⚠️ **an unavailable world is DISABLED AND EXPLAINED**, never silently empty.
-      ⚠️ **MEASURED 2026-08-29 — there is NO world UI on Linux at all.** `addWorld`, `listWorlds`,
-      `getWorldStatus` and `relinkWorld` are all **bridged and unreached**; the only non-bridge caller
-      is SP-125's read-only status line in `SceneInspector`. ⚠️ **Apple has a "Locate…" button
-      (`WorldsView.swift:176`) and Linux has no Worlds view whatsoever.**
-      ⚠️ **CONSEQUENCE, confirmed by the rig copy:** a project whose world moved opens with the pending
-      state working **correctly** — world named, links held, nothing lost — ⚠️ **and NO WAY TO FIX IT
-      from the app.** ✅ **That is `capability_without_surface` in its exact form**, and it is what AC3
-      exists to close. ⚠️ **RELINK is the first thing AC3's sprint should build**, not an afterthought:
-      it is the only affordance that turns an honest error message into a recoverable one.
+- [x] ✅ **AC3 — CLOSED by SP-127 (2026-09-02).** **World binding works from the Linux app**: a world
+      can be added, its status read, and ⚠️ **an unavailable world is DISABLED AND EXPLAINED**, never
+      silently empty. ✅ **`Project ▸ Manage Worlds…` ships**, with **Locate…** offered ⚠️ **only for a
+      non-available world**, add-existing, and remove-reference.
+      ✅ **`capability_without_surface` is CLOSED for worlds** — `addWorld`, `relinkWorld`,
+      `getWorldStatus` and `getWorldBinding` had been bridged with **ZERO callers**; ⚠️ **a project
+      whose world moved could not be repaired from the app at all.** ✅ **It can now**, verified by the
+      user on the real rig: wrong world rejected, correct world accepted, pending notices cleared.
+      ⚠️ **THE PASS THAT CLOSED THIS AC FOUND FOUR DEFECTS, ONE OF THEM 🔴 DATA LOSS** (I-0183 —
+      10 of 12 relationships destroyed in a real project by an available-but-UNREADABLE world).
+      ⚠️ **All four are Verified** → [`Issue-verified-0181-0190.md`](../Issues/Verified/Issue-verified-0181-0190.md).
+      ⚠️ **World CREATION is NOT part of this AC and remains open as T-0497** — ⚠️ **and the pass
+      RAISED its priority: a Linux-only writer whose project has no world has nothing to add or
+      relink, and the AC's own test could not be completed without the Apple app.**
 - [ ] **AC4** — **Object CRUD round-trips**: create, open, save, delete, promote — ⚠️ **with `worldID`
       threaded through every call.** ⚠️ **Omitting it is how SP-104 blocked object creation outright.**
 - [ ] **AC5** — ⚠️ **Card list items show a thumbnail when an image exists**, unchanged when none does.
@@ -250,7 +253,7 @@ the thing being mirrored is the FINISHED surface or a placeholder that Apple lat
 **Goal:** Stand up a **real Ubuntu machine** as a first-class test rig, then ⚠️ **establish what ACTUALLY
 happens when a drive carrying a world is physically unmounted** — and implement the platform refinement
 against that ground truth rather than against documentation.
-**Date Created:** 2026-08-24 · **Promoted:** 2026-08-25 · **Sprints:** ✅ **SP-123 (CLOSED 2026-08-29)**, 🔵 **SP-124**
+**Date Created:** 2026-08-24 · **Promoted:** 2026-08-25 · **Sprints:** ✅ **SP-123 (CLOSED 2026-08-29)**, 🟡 **SP-124 (ACTIVE 2026-08-31)**
 **Tasks:** **T-0474 – T-0479** (six)
 **Blocks:** ⚠️ **EP-036's AC4 is UNSPECIFIABLE until T-0477 reports.**
 **Runs in PARALLEL with EP-035** — ⚠️ **user ruling 2026-08-25** (see §3).
@@ -325,8 +328,8 @@ VNC and again on real hardware.
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
-| **SP-123** | ⚠️ **Rig reachable + building natively** — T-0474 – T-0476 | 🔵 **Planned** |
-| **SP-124** | ⚠️ **Ground truth + refinement** — T-0477 – T-0479 | ⚪ **Not planned** — ⚠️ **gated on SP-123** |
+| **SP-123** | ⚠️ **Rig reachable + building natively** — T-0474 – T-0476 | ✅ **CLOSED 2026-08-29** |
+| **SP-124** | ⚠️ **Ground truth + refinement** — T-0477 – T-0479 | 🟡 **ACTIVE 2026-08-31** — ⚠️ **scope WIDENED to three scenarios; blocked on the rig being AWAKE** |
 
 ⚠️ **The sprint seam is deliberately AT the blocking point.** ✅ **T-0477 (instrument) cannot leak into
 T-0478 (implement) because a sprint boundary separates them.**
@@ -361,8 +364,14 @@ T-0478 (implement) because a sprint boundary separates them.**
 - [ ] **AC4** — ⚠️ **A real removable drive carrying a world copy is mounted, and its PHYSICAL loss is
       OBSERVED and RECORDED** — ⚠️ **whatever the findings turn out to be**, including *"the obvious
       signal lies,"* which is what Apple found.
+      ⚠️ **WIDENED 2026-08-31 by user ruling — THREE scenarios, not one:** **S1** clean `umount`,
+      ⚠️ **S2 a network share killed AT THE SOURCE**, and **S3** the physical USB yank.
+      ⚠️ **S2 and S3 do NOT substitute for each other** — a clean unmount cannot strand an FD, and a
+      stranded FD is the state that cost Apple six Issues. ✅ **The physical pull is JOINED, not replaced.**
 - [ ] **AC5** — ⚠️ **`WorldVolumeStatus` for Linux distinguishes `unmounted` / `offline` / `missing`**,
       ⚠️ **verified against the REAL drive**, not a bind-mount.
+      ⚠️ **`offline` is DEFINED by the NETWORK case** — ⚠️ **the pre-widening plan would have shipped it
+      UNTESTED**, since a USB-only pass exercises `unmounted` alone.
 - [ ] **AC6** — ⚠️ **The Porting Outline's §9 is CORRECTED from experience**, not merely confirmed.
       ⚠️ **A §9 that survives contact unchanged is evidence it was not tested.**
 - [ ] **AC7** — ⚠️ **The Windows rig procedure is DERIVABLE from §9** — the next rig Epic ⚠️ **EXECUTES a

@@ -71,6 +71,14 @@ public:
     // `startDir` is the initial directory (absolute path); empty = platform default.
     Q_INVOKABLE QString chooseFolder(const QString& startDir);
 
+    // Opens a package-aware chooser for picking an EXISTING `.scrivi` project
+    // (I-0185). ⚠️ A package is a DIRECTORY, so `chooseFolder` above walks into
+    // it; this one treats it as a leaf and selects it, while still resolving
+    // upward if the writer descends anyway. Returns "" on cancel.
+    // ⚠️ Use `chooseFolder` for "where should the NEW project go" — descending is
+    // correct there.
+    Q_INVOKABLE QString choosePackage(const QString& startDir);
+
     // Opens an existing .scrivi project (SP-060 / T-0230). Fills appSupportRoot +
     // the bootstrapped identityID, calls scrivi_open_project, and returns the ok
     // "result" object to QML — which carries "mode":

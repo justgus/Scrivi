@@ -74,6 +74,17 @@ public:
     void copySelection();  // Edit ▸ Copy     → viewport copy()
     void pasteClipboard(); // Edit ▸ Paste    → viewport paste()
 
+    // --- EP-035 AC3 Worlds surface (SP-127, T-0494) -----------------------
+    //
+    // Project ▸ Manage Worlds… — opens the Worlds dialog for THIS project.
+    //
+    // ⚠️ Lives on the shell rather than the window because the shell owns both
+    // the bootstrapped bridge and the project path, and because it owns the
+    // Scene Inspector that must be refreshed after a relink (I-0130). Reaching
+    // into the shell from the window for all three would spread one concern
+    // across two classes.
+    void manageWorlds();
+
     // --- EP-024 Scene Inspector (SP-078, T-0319) --------------------------
     //
     // Show/hide the Scene Inspector panel (the third pane of the splitter, right

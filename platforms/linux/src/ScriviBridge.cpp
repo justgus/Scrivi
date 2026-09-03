@@ -1,5 +1,7 @@
 #include "ScriviBridge.hpp"
 
+#include "PackageFolderDialog.hpp"
+
 #include <QFileDialog>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -733,12 +735,28 @@ QString ScriviBridge::chooseFolder(const QString& startDir)
     // Widgets QFileDialog in directory mode: selects the folder itself (not a
     // child) and offers "New Folder", so the user can pick an empty dir or make
     // one. ShowDirsOnly keeps files out of the view. Returns "" on cancel.
+    //
+    // ⚠️ I-0185: this is the CREATE-LOCATION picker and it is deliberately left
+    // package-UNAWARE. Here the writer is choosing an ordinary parent directory
+    // to put a new project in, so descending into folders is exactly right.
+    // ⚠️ Choosing an EXISTING project is a different question — see
+    // choosePackage() below.
     const QString dir = QFileDialog::getExistingDirectory(
         nullptr,
         QStringLiteral("Choose Project Location"),
         startDir,
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     return dir;   // already an absolute local path (not a URL)
+}
+
+QString ScriviBridge::choosePackage(const QString& startDir)
+{
+    // ⚠️ I-0185: a `.scrivi` project is a DIRECTORY, so the ordinary picker walks
+    // INTO it and the writer finds herself looking at `manuscript/` and
+    // `objects/` rather than at the project she just double-clicked. It still
+    // worked — the dialog returns the directory it is viewing — but it makes her
+    // doubt she chose the right thing, on the app's single most common action.
+    return PackageFolderDialog::choose(nullptr, QStringLiteral("Open Project"), startDir);
 }
 
 // ====================================================================

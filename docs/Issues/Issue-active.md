@@ -13,11 +13,50 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 | **I-0176** | `[Linux]` **A project open at Quit does NOT reopen on next launch.** ⚠️ **Found by the USER on the REAL RIG (T-0476), 2026-08-29** — the first time the Linux app has ever run on real hardware. Linux persists a **recents LIST only** (`RecentsStore`: `addOrUpdate`/`remove`, `recents.json`) — ⚠️ **there is no "was open at quit" state and no session concept at all.** ✅ **Apple has `AppEnvironment.restoreOpenProjects()`** — *"restores all project windows that were open at last quit (R4 / T-0195)… skips any project whose bookmark no longer resolves"*. ⚠️ **Linux has no equivalent.** ⚠️ **Note the Apple version carries an I-0150 guard against restoring real projects under a test run** — ⚠️ **any Linux implementation MUST carry the same guard**, or the rig reopens the user's real work under whatever was just compiled. | Low | SP-123 (found) → ⚠️ **needs an Epic** | 🔵 **Open** |
 | **I-0177** | `[Linux]` **A maximized window does not reopen maximized.** ⚠️ **Found by the USER on the REAL RIG, 2026-08-29.** ⚠️ **No window geometry is persisted anywhere in `platforms/linux/`** — not size, position, maximized state, nor the splitter sizes (`EditorShell.cpp:124` hardcodes `{240, 580, 200}` on every launch). ⚠️ **So the inspector/navigator/timeline proportions a writer sets are ALSO lost each launch** — the user reported the window, but the panel layout has the same defect and is arguably more annoying. ⚠️ **Session-scoped-only was a DELIBERATE choice for visibility flags** (SP-078/T-0320 — "a member, not persisted to disk"), ⚠️ **but nothing ruled that GEOMETRY should be discarded**; it was simply never built. ✅ **`QSettings` or the existing `recents.json` are both plausible homes.** | Low | SP-123 (found) → ⚠️ **needs an Epic** | 🔵 **Open** |
 | **I-0178** | `[Linux]` ⚠️ **Only ONE project can be open at a time.** ⚠️ **Found by the USER on the REAL RIG, 2026-08-29.** ⚠️ **This is NOT a small gap — it is an entire Apple EPIC missing.** ✅ **EP-018 (R1–R5, verified 2026-06-25) delivered exactly this on Apple**: *"multiple distinct projects open at once, one per window"*, via an `OpenProjectRegistry` and a per-window `ProjectSession`. ⚠️ **The Linux app is single-window by construction** — `ScriviWindow` is one `QMainWindow` hosting a `QStackedWidget` that swaps landing ↔ editor, and `EditorShell` owns ONE `bridge_`, ONE `projectPath_`, ONE `sceneDoc_`. ⚠️ **Multi-project is therefore a STRUCTURAL rework of the shell, not a feature toggle** — and ⚠️ **it is the natural parent of I-0176 and I-0177**, since "restore what was open" and "restore geometry" are both per-window concepts that need a window registry to hang from. ⚠️ **Sizing it as one Issue would repeat the EP-035 AC1 error** (nine ACs collapsed into one); ✅ **it wants its own Epic, scoped from EP-018's actual delivery.** | Medium | SP-123 (found) → ⚠️ **needs its OWN Epic** | 🔵 **Open** |
+| **I-0181** | `[ScriviCore]` ⚠️ **An UNMOUNTED volume can be resolved as `missing` — the one status reserved for positive proof of absence.** ⚠️ **Found by INSTRUMENTATION (SP-124 / T-0477), 2026-08-31.** **Root cause:** `WorldStore::resolve` (`WorldStore.cpp:330-348`) decides *package absent **AND** parent directory exists → `missing`*. ⚠️ **An unmounted volume satisfies BOTH whenever the mountpoint directory survives** — ✅ **and a mountpoint is just a directory, whose pre-mount contents reappear.** ✅ **MEASURED on macOS with a hand-specified mountpoint: directory survives, old contents return, `st_dev` matches parent, `statvfs` succeeds — IDENTICAL to Linux.** ⚠️ **The `/Volumes` vs `/media` difference is automounter POLICY (`diskarbitrationd` tidies what it created), NOT an OS semantic** — ⚠️ **so Apple is MASKED by convention, not protected.** ⚠️ **SCOPE CORRECTED TWICE, both by user ruling (2026-08-31):** filed `[Linux]`, re-scoped `[Cross]`, ⚠️ **now `[ScriviCore]` — because it is a CORE RESOLUTION defect, and ⚠️ neither platform currently misreports it to a writer.** ⚠️ **On Linux there is NO world surface at all**: `addWorld`/`relinkWorld`/`getWorldStatus`/`getWorldBinding` are bridged with ⚠️ **ZERO callers**, and the sole `listWorlds` consumer (`EditorShell.cpp:1806`) only recovers a display NAME, always saying *"unavailable"* — ✅ **so the false `missing` cannot reach a Linux writer.** ⚠️ **On Apple the surface exists but `/Volumes` cleanup hides the case.** ✅ **The fix direction is the user's:** ⚠️ **directory EXISTENCE is the wrong question** — ✅ **`st_dev` vs the parent is the indicator that a device is actually mounted there.** ⚠️ **Fix belongs in the CORE's resolve, not in a platform refinement.** | **Medium** | ⚠️ **Unassigned** — ⚠️ **NOT SP-124's** | 🔵 **Open** — ⚠️ **latent; no writer-visible symptom on either platform TODAY** |
+| **I-0182** | `[Linux]` **A world object that can't be opened is named by its raw objectID, when its NAME is cached locally and available.** ⚠️ **Found by the USER on the REAL RIG during the SP-127 live pass, 2026-09-01** — the drive was pulled, a character double-clicked, and the panel reported the object as `character_01a0011f-af73-…` instead of *Myton*. ⚠️ **The name was NEVER unavailable.** ✅ **`binding.json` — which lives INSIDE the project, on local disk, NOT on the removed volume — carries `displayName: "Eskandar"` and a `cachedIndex` of all 35 objects with their `displayName`s** (`Myton`, `Veyra`, `Petch`, `Tintagael`, …). ⚠️ **So the app fell back to an ID while the answer sat in a file it had already read.** **Mechanism:** `SceneInspector.cpp:907-915` builds the pending-object message from `kRoleDisplayName`, and `worldDisplayName()` (`:686-695`) falls back to the raw `worldID` when `worldNames_` misses. ⚠️ **`worldNames_` is populated ONLY in the `refresh` path (`:393-402`) from `listWorlds`** — so any entry not present at that moment degrades to an ID. ⚠️ **The `:690` comment — *"Falling back to the ID is deliberate: an unnamed world is still better than an unattributed warning"* — is sound for a world that was NEVER named, but wrong here**, where a name is cached and simply not consulted. ✅ **Fix direction: resolve display names from the binding's `cachedIndex` (already local, already read) before falling back to any ID** — and ⚠️ **an ID should be the LAST resort, not the first fallback.** ⚠️ **A raw UUID is unreadable to a writer**, which is the whole point of the cache existing. ⚠️ **Related to [I-0181]** — both concern honest reporting when a world is away, but ⚠️ **this one is NOT latent: it was seen by the user on real hardware.** | Low | ⚠️ **Unassigned** — found during SP-127 live pass | 🔵 **Open** |
+## Currently: **eight records** — I-0147 (accepted limitation) + ⚠️ **I-0176, I-0177, I-0178, I-0180, I-0181, I-0182 — all OPEN**
 
-## Currently: **five records** — I-0147 (accepted limitation) + ⚠️ **I-0176, I-0177, I-0178, I-0180 — all OPEN**
+✅ **I-0183, I-0184, I-0185 and I-0186 VERIFIED 2026-09-02 (user-approved) and archived** in the same
+step → [`Verified/Issue-verified-0181-0190.md`](Verified/Issue-verified-0181-0190.md), ⚠️ **which OPENS
+a new decade file.**
+
+⚠️ **ALL FOUR came from ONE live pass (T-0496, SP-127), and NONE was caught by a suite.** ⚠️ **Two of
+the four needed the USER TO CORRECT MY DIAGNOSIS before the real defect came into view** — I-0184
+(I blamed a 360 px constant; the cause was the row layout **clipping**) and I-0185 (⚠️ **my first fix
+made descending RECOVERABLE when the requirement was that it be IMPOSSIBLE** — and it passed every
+test I had written for it). ⚠️ **Compare `feedback_live_pass_finds_what_suites_cannot` and
+`feedback_prove_code_is_reached`: a green suite never means usable, and a test written from a wrong
+diagnosis certifies the wrong thing.
+
+✅ **I-0184 and I-0186 VERIFIED 2026-09-02 (user-approved) and archived** in the same step →
+[`Verified/Issue-verified-0181-0190.md`](Verified/Issue-verified-0181-0190.md), ⚠️ **which OPENS a new
+decade file.**
+
+⚠️ **I-0186's root cause was a TESTING BLIND SPOT, not the code alone.** ⚠️ **Qt's no-theme fallback
+made every offscreen check — and a screenshot produced as evidence — show a readable path that no real
+user ever saw.** ✅ **The user found it by looking at their own screen.** ⚠️ **Compare
+`feedback_live_pass_finds_what_suites_cannot`: a green suite never means usable, and this one was
+green *because* it was headless.**
+
+⚠️ **I-0183 is the most serious Issue in this file: it is DATA LOSS, and it was found by a LIVE PASS doing exactly what the sprint's own risk table said to test** — ✅ *"Relink accepting the wrong package → the CORE verifies `worldID`"* — ⚠️ **the mitigation was written, implemented, and is INSUFFICIENT, because a copy shares the `worldID`.** ⚠️ **A green suite never showed this** (`feedback_live_pass_finds_what_suites_cannot`).
+
+⚠️ **I-0181 opens the new decade** and is ⚠️ **the first Issue in this project found by INSTRUMENTATION
+rather than by use or by a suite.** ✅ **It was found BEFORE the surface that would have shown it was
+written** — which is what *instrument-before-implement* is for.
+
+⚠️ **It was RE-SCOPED TWICE in one day, both times by user ruling** — `[Linux]` → `[Cross]` →
+⚠️ **`[ScriviCore]`.** ⚠️ **My "macOS is immune" claim did not survive a hand-specified mountpoint**;
+⚠️ **then my framing as a REPORTING defect did not survive the observation that Linux has no world
+surface to report through at all.** ✅ **"The app won't incorrectly represent the mount point until it
+can correctly represent the mount point"** — ⚠️ **so this is a LATENT CORE defect, not a live one**,
+and ⚠️ **it is NOT SP-124's to fix.**
+
+⚠️ **NOT fixed**, and ⚠️ **must not be fixed from container evidence**: the container establishes the
+CLEAN unmount case, and ⚠️ **the physical-yank case may differ.**
 
 ✅ **I-0179 VERIFIED 2026-08-30 and archived** → [`Verified/Issue-verified-0171-0180.md`](Verified/Issue-verified-0171-0180.md), ⚠️ **which CLOSES that decade file.**
-⚠️ **The next Issue is I-0181 and opens a new decade.**
+⚠️ **The next Issue is I-0187.**
 
 ⚠️ **I-0180 is an APPLE defect found by reviewing the LINUX mirror.** ✅ **That is the port paying a
 dividend back**: building the same surface a second time exposed a wrong label that had been shipping

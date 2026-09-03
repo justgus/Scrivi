@@ -35,6 +35,7 @@
 #include "ManuscriptEditor.hpp"
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
+#include "WorldsDialog.hpp"
 #include "ScriviBridge.hpp"
 #include "StoryStructures.hpp"
 #include "TimeDeltaPicker.hpp"
@@ -1610,6 +1611,38 @@ void EditorShell::copySelection()  { viewport_->copy(); }
 void EditorShell::pasteClipboard() { viewport_->paste(); }
 
 // --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------
+
+void EditorShell::manageWorlds()
+{
+    // ⚠️ Guarded rather than assumed: the menu action is in editorOnlyActions_ and
+    // so is disabled without a project, but a public method must not rely on its
+    // only current caller's discipline.
+    if (bridge_ == nullptr || projectPath_.isEmpty()) {
+        return;
+    }
+
+    WorldsDialog dlg(bridge_, projectPath_, this);
+
+    // ⚠️ THE I-0130 WIRING, and it is the reason this lives on the shell.
+    //
+    // Apple shipped the defect this prevents: a relink repaired the world while
+    // the project-wide warning kept insisting it was missing until the writer
+    // changed scenes. The dialog reloading its own list is NOT enough — the Scene
+    // Inspector is a different widget reading the same core state.
+    //
+    // ⚠️ inspector_->reload(), NOT setScene(): setScene() early-returns when the
+    // sceneID has not changed (SceneInspector.cpp:319), which after a relink is
+    // exactly the case — the scene is the same, only the world's status moved.
+    // Routing through setScene here would be a silent no-op and would look like
+    // the relink had failed.
+    connect(&dlg, &WorldsDialog::worldsChanged, this, [this]() {
+        if (inspector_ != nullptr) {
+            inspector_->reload();
+        }
+    });
+
+    dlg.exec();
+}
 
 void EditorShell::setInspectorVisible(bool visible)
 {

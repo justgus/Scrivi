@@ -229,6 +229,25 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(settings);
 
+    // --- Project ▸ Manage Worlds… (EP-035 AC3, SP-127 / T-0494) ----------
+    //
+    // ⚠️ The surface that closes `capability_without_surface` for worlds:
+    // addWorld / relinkWorld / getWorldStatus / getWorldBinding were all bridged
+    // with ZERO callers, so a project whose world had MOVED could not be repaired
+    // from the Linux app at all.
+    //
+    // ⚠️ Gated on a project being open (editorOnlyActions_) — unlike Help ▸ About,
+    // worlds are a property OF a project and the action is meaningless without one.
+    QAction* worldsAction = project->addAction(tr("Manage Worlds…"));
+    connect(worldsAction, &QAction::triggered, this, [this]() {
+        if (editor_ != nullptr) {
+            editor_->manageWorlds();
+        }
+    });
+    editorOnlyActions_.append(worldsAction);
+
+
+
     // --- Help ▸ About Scrivi ---------------------------------------------
     //
     // ⚠️ Exists to answer "WHICH BUILD am I running?" from inside the app.

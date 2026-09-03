@@ -991,3 +991,78 @@ TEST_CASE("a missing relationships.jsonl is an empty graph, not an error",
     REQUIRE(r.ok());
     REQUIRE(r.value().empty());
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// I-0183 — a world that is AVAILABLE but UNREADABLE must never license a prune.
+//
+// ⚠️ This is the regression for real DATA LOSS: the-lone-golem lost 10 of 12
+// relationships on 2026-09-01. A pulled SMB volume left the mount serving a
+// phantom directory listing, so `world.json` (small, cached) still read and the
+// world resolved AVAILABLE, while `index.json` (larger) failed EBADF. The scan
+// fallback swallowed the errors and returned an EMPTY object set, every edge
+// into the world classified `dangling`, and repairDangling tombstoned them all.
+//
+// ⚠️ The prune logic was already correct ("PENDING WINS OVER DANGLING,
+// unconditionally"). The hole was upstream: `dangling` was reported for a world
+// whose objects were never actually read.
+//
+// Reproduced here with a real unreadable directory rather than a mock, because
+// the defect is precisely that an I/O FAILURE is indistinguishable from an
+// EMPTY RESULT.
+// ─────────────────────────────────────────────────────────────────────────────
+TEST_CASE("⚠️ I-0183: an UNREADABLE world package does NOT prune its edges",
+          "[integration][I-0183][dataloss]") {
+    GraphFixture fix;
+    RelationshipStore store{fix.services};
+
+    // A world object, edged to a scene. This is the relationship that was lost.
+    auto artifact = fix.makeObject(ObjectKind::artifact, "Sword of Dawn", "sword-of-dawn");
+    auto edge = store.create(fix.root(), artifact.value, fix.firstSceneID.value,
+                             "appears-in", "");
+    REQUIRE(edge.ok());
+    REQUIRE(store.load(fix.root()).value().size() == 1);
+
+    const fs::path pkg = fix.projectDir / "Graph.scrivworld";
+    REQUIRE(fs::exists(pkg / "world.json"));
+
+    // Make the object set UNREADABLE while leaving world.json readable — exactly
+    // the asymmetry a dead network mount produces. chmod 000 on the kind
+    // directories defeats both index.json and the rescan behind it.
+    fs::remove(pkg / "index.json");
+    std::vector<fs::path> locked;
+    for (const auto& d : fs::directory_iterator(pkg)) {
+        if (d.is_directory()) {
+            fs::permissions(d.path(), fs::perms::none, fs::perm_options::replace);
+            locked.push_back(d.path());
+        }
+    }
+
+    // Restore permissions no matter how the assertions below exit.
+    struct Unlock {
+        std::vector<fs::path>* p;
+        ~Unlock() {
+            for (const auto& d : *p) {
+                std::error_code ec;
+                fs::permissions(d, fs::perms::owner_all, fs::perm_options::replace, ec);
+            }
+        }
+    } unlock{&locked};
+
+    // The world still resolves AVAILABLE — world.json is readable. That is the
+    // trap: availability is not a promise the objects can be read.
+    worlds::WorldStore ws{fix.services};
+    const auto res = ws.resolve(fix.root(), fix.worldID);
+    REQUIRE(res.status == worlds::WorldStatus::available);
+
+    // ⚠️ THE ASSERTION THAT WOULD HAVE CAUGHT THE DATA LOSS.
+    auto repaired = store.repairDangling(fix.root());
+    REQUIRE(repaired.ok());
+    CHECK(repaired.value().prunedEdgeIDs.empty());          // nothing destroyed
+    CHECK(repaired.value().heldPendingEdgeIDs.size() == 1); // held instead
+
+    // And the edge is still there to be recovered when the world comes back.
+    auto after = store.load(fix.root());
+    REQUIRE(after.ok());
+    CHECK(after.value().size() == 1);
+}
+

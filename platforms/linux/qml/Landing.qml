@@ -115,7 +115,7 @@ Item {
         function onOpenProjectRequested() {
             window.landingError = ""
             stack.pop(landingPage)
-            var picked = bridge.chooseFolder(defaultProjectsFolder)
+            var picked = bridge.choosePackage(defaultProjectsFolder)
             window.openPath(picked)
         }
     }
@@ -204,7 +204,7 @@ Item {
                             window.landingError = ""
                             // Pick an existing .scrivi directory with the Widgets
                             // QFileDialog (reused from the create flow), then open it.
-                            var picked = bridge.chooseFolder(defaultProjectsFolder)
+                            var picked = bridge.choosePackage(defaultProjectsFolder)
                             window.openPath(picked)
                         }
                     }
