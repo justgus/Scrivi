@@ -323,12 +323,76 @@ one layer further out: a green suite never means usable, and ⚠️ neither does
 
 ---
 
+## 2f. ✅ **S2 IS DONE (2026-09-07)** — ⚠️ **two passes, and TWO ASSUMPTIONS FELL**
+
+✅ **The share was killed at the SERVING Mac while the rig held it mounted**, twice:
+`cache=strict`, then `cache=none`. ⚠️ **Full findings:** `platforms/linux/tools/T-0477-FINDINGS-S2.md`
+(⚠️ **3,110 lines of capture**).
+
+✅ **NO DRIVE WAS NEEDED** — the world was a copy on the Mac's local disk, served through `ScriviLinux`.
+⚠️ **This is why S2 was runnable while the USB drive was out and the rig's workstation was in use.**
+
+### ⚠️ The confound the USER caught before the run
+
+⚠️ **The served share carries `projects/` and `appsupport/` as well as `worlds/`.** ⚠️ **Killing it would
+have taken the project and the appSupportRoot too**, and the run would have measured *"everything
+vanished"* rather than *"a world went offline."* ✅ **The user asked the right question — *"Will
+unmounting it also cause the base app to miss the Scrivi data as well?"*** — ⚠️ **and it was not in the
+plan.** ✅ **Isolation was verified first**: project and appSupportRoot both on LOCAL disk.
+
+### ⚠️ **FINDING 1 — the ~10-second block. A DESIGN constraint for T-0478.**
+
+⚠️ **Every call against the dead share BLOCKS ~10 s before returning `EHOSTDOWN` (112)** — ⚠️ **and it is
+IDENTICAL under `cache=strict` and `cache=none`, with `soft` set in both.** ⚠️ **`soft` prevents an
+unkillable hang; it does NOT prevent a ten-second stall.**
+
+⚠️ **§6's risk table predicted hangs for NFS HARD mounts and treated `cifs` as the safe case.
+⚠️ IT IS NOT.** ⚠️ **The cost COMPOUNDS**: `scrivi_world_probe` makes several core calls per run and
+degraded to ⚠️ **43-second intervals.** ✅ **The healthy path is 0.090 s** — ⚠️ **~110× faster**, so a
+timeout is cheap and discriminating.
+
+✅ **CONSEQUENCE: the app MUST NOT call the core synchronously on the UI thread for world status.**
+
+### ⚠️ **FINDING 2 — `offline` was NEVER produced by the case that DEFINES it**
+
+⚠️ **S2 exists because `WorldStatus::offline` is defined by the network case.** ⚠️ **The core returned
+`unavailable` — in BOTH passes, within ~1 s.** ⚠️ **`offline` has still never been observed in this
+project.**
+
+⚠️ **T-0478 must RULE on the enum** — ✅ **retire it, emit it (⚠️ `EHOSTDOWN` is a promising and
+currently-unused signal), or document it as unreachable** — ⚠️ **but it must NOT quietly ship a Linux
+mapping that never emits it.** ⚠️ **That is the documented-lie state EP-038 exists to prevent.**
+
+### ⚠️ **FINDING 3 — `cache=none` made the CORE's answer WORSE**
+
+⚠️ **Under `cache=strict` the core returned an honest `unavailable` within ~1 s. Under `cache=none` the
+probe returned NO STATUS AT ALL** — the loop shell stayed alive while every invocation blocked.
+⚠️ **The client cache was the only thing answering fast enough.** ✅ **`cache=none` remains CORRECT for
+§2c's phantom listing** — ⚠️ **but it is not a free improvement, and neither setting is safe alone.**
+
+### ✅ **FINDINGS 4 & 5 — the phantom listing reproduced; recovery is AUTOMATIC**
+
+⚠️ **`mountpoint -q` said YES throughout; `ls` of `worlds/` SUCCEEDED with ZEROED sizes while one level
+deeper failed.** ✅ **Confirms §2c on a DIFFERENT trigger** (§2c: volume pulled behind a live server;
+S2: the server itself). ⚠️ **Any check trusting a listing is defeated.**
+
+✅ **Recovery needed NO intervention — no zombie mount, no `umount -l`**, ⚠️ **unlike §2c.**
+⚠️ **The distinction is SERVER vs VOLUME; do not generalise either to the other.**
+
+### ⚠️ Not measured, not inferred
+
+⚠️ **The "network off / black hole" variant** (only "File Sharing OFF" — a refused connection — was
+run) · ⚠️ **NFS** · ⚠️ **a held-open FD across the kill** · ⚠️ **what the APP shows a writer** (this was
+an ABI-level run; ⚠️ **the DoD's live pass is still owed**).
+
+---
+
 ## 3. Tasks
 
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
-| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION — FINDINGS ONLY, NO CODE.** ⚠️ **THREE scenarios (S1/S2/S3)**; ⚠️ **the USER pulls, Claude instruments** | **High** | 🟡 **In Progress** — ✅ **S1 captured; S3 ✅ DONE 2026-09-07** (`T-0477-FINDINGS-S3.md`) — ⚠️ **S2 still owed.** ⚠️ **S3 was observed BY HAND; the probe contributed nothing (see §2e)** |
-| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** — `unmounted` / `offline` / `missing`, ⚠️ **written AGAINST T-0477's findings, NEVER from documentation** | **High** | 🔵 **Not started** — ⚠️ **HARD-GATED on T-0477 reporting** |
+| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION — FINDINGS ONLY, NO CODE.** ⚠️ **THREE scenarios (S1/S2/S3)**; ⚠️ **the USER pulls, Claude instruments** | **High** | ✅ **ALL THREE OBSERVED 2026-09-07** — S1 captured · **S3** (`T-0477-FINDINGS-S3.md`) · ✅ **S2** (`T-0477-FINDINGS-S2.md`, ⚠️ **two passes, 3,110 lines**). ⚠️ **NOT closed: the rig doc §7 and the writer-facing live pass are still owed by the DoD** |
+| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** — `unmounted` / `offline` / `missing`, ⚠️ **written AGAINST T-0477's findings, NEVER from documentation** | **High** | 🟢 **UNGATED 2026-09-07 — T-0477 has reported.** ⚠️ **Two findings CONSTRAIN it before a line is written:** ⚠️ **(1) `offline` was NEVER produced by the network case that DEFINES it** — the enum needs a ruling, ⚠️ **not a quiet omission**; ⚠️ **(2) the core BLOCKS ~10 s per call against a dead share** — ⚠️ **so it MUST NOT be called synchronously on the UI thread** |
 | **T-0479** | ⚠️ **Correct Porting Outline §9** from what the rig actually taught | **Medium** | 🔵 **Not started** |
 | **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from DIRECTORY EXISTENCE** — [I-0181]. ✅ **Add a device-identity primitive to `FileSystem`**; require *package absent* **AND** *same device as parent* before `missing`. ⚠️ **CORE fix, not a platform refinement** | **Medium** | 🔵 **Not started** — ⚠️ **GATED on T-0477 S3** (see §3a) |
 

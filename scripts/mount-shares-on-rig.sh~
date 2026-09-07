@@ -5,7 +5,7 @@
 # Run this FROM THE MAC. It drives oathkeeper over SSH and mounts:
 #
 #   //<mac>/ScriviLinux   -> /mnt/scrivi-net      (projects + appsupport + worlds subdir)
-#   //<mac>/ScriviWorlds  -> /mnt/scrivi-worlds   (the "Scrivi-Worlds" USB volume)
+#   //<mac>/ScriviWorlds  -> /mnt/scrivi-worlds   (the "Scrivi Worlds" USB volume)
 #
 # Credentials come from a root-only file on the RIG (/etc/scrivi-share.creds),
 # created by --setup-creds. The password is never written into this script, into
@@ -14,14 +14,6 @@
 #   ./scripts/mount-shares-on-rig.sh --setup-share   # publish the Worlds share (sudo, this Mac)
 #   ./scripts/mount-shares-on-rig.sh --setup-creds   # once, prompts for password
 #   ./scripts/mount-shares-on-rig.sh                 # mount both shares
-#   ./scripts/mount-shares-on-rig.sh --no-worlds     # mount ONLY ScriviLinux
-#
-# ⚠️ --no-worlds (or SCRIVI_SKIP_WORLDS=1) exists because the Worlds share lives
-# on a REMOVABLE volume, and a scenario that does not need it should not be
-# blocked by its absence. T-0477's S2 (share killed at the source) serves its
-# world from ~/ScriviLinux/worlds/ on LOCAL disk precisely so it can run with the
-# drive unplugged — ⚠️ and deliberately keeps real writing work OUT of the blast
-# radius of a test that kills a share mid-use.
 #   ./scripts/mount-shares-on-rig.sh --status        # what is mounted right now
 #   ./scripts/mount-shares-on-rig.sh --unmount       # unmount both
 #
@@ -41,13 +33,10 @@ MOUNT_WORLDS="${SCRIVI_MOUNT_WORLDS:-/mnt/scrivi-worlds}"
 
 CREDS="/etc/scrivi-share.creds"
 
-# ⚠️ Skip the ScriviWorlds share entirely. Set by --no-worlds, or exported.
-SKIP_WORLDS="${SCRIVI_SKIP_WORLDS:-0}"
-
 # The Mac-side directory published as the Worlds share. It lives on a REMOVABLE
 # volume, and macOS drops a share point whose volume is absent — so this has to be
 # re-checked (and sometimes re-created) every time the drive comes back.
-WORLDS_VOLUME="${SCRIVI_WORLDS_VOLUME:-/Volumes/Scrivi-Worlds}"
+WORLDS_VOLUME="${SCRIVI_WORLDS_VOLUME:-/Volumes/Scrivi Worlds}"
 
 SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
 
@@ -86,7 +75,7 @@ preflight() {
 
 # share_exists <smb-share-name>  — is it published on THIS Mac right now?
 # Matches the SMB name (the name the rig mounts), which is NOT always the record
-# name: the record for the Worlds volume is "Scrivi-Worlds" while its smb_name is
+# name: the record for the Worlds volume is "Scrivi Worlds" while its smb_name is
 # "ScriviWorlds".
 share_exists() {
     # NOT `| grep -q`: grep exits on first match, `sharing` takes SIGPIPE, and
@@ -104,7 +93,7 @@ share_exists() {
 
 # share_path <smb-share-name>  — the directory behind that SMB name, or empty.
 # Read from the JSON, because the plain listing cannot be parsed safely: the real
-# path contains a SPACE ("/Volumes/Scrivi-Worlds") and whitespace-splitting
+# path contains a SPACE ("/Volumes/Scrivi Worlds") and whitespace-splitting
 # truncates it to "/Volumes/Scrivi".
 share_path() {
     sharing -l -f json 2>/dev/null | python3 -c '
@@ -121,24 +110,6 @@ for rec in shares.values():
 ' "$1" 2>/dev/null
 }
 
-# share_record <smb-share-name>  — the RECORD name for an SMB share name.
-#
-# ⚠️ THESE ARE DIFFERENT NAMES AND `sharing -r` TAKES THE RECORD NAME.
-# `sharing -a <path> -S <smb-name>` sets the SMB name, but the RECORD is named
-# after the directory — so a volume renamed on disk leaves a record still called
-# by the OLD name while the SMB name is unchanged.
-#
-# ⚠️ Observed 2026-09-07: after "Scrivi Worlds" was renamed "Scrivi-Worlds", the
-# record was still `Scrivi Worlds` and `sudo sharing -r ScriviWorlds` failed with
-# "unable to find share point record" — advice this script itself had printed.
-share_record() {
-    /usr/sbin/sharing -l 2>/dev/null | awk -v want="$1" '
-        /^name:/        { rec = $0; sub(/^name:[ \t]*/, "", rec) }
-        /^[ \t]*name:/  { smb = $0; sub(/^[ \t]*name:[ \t]*/, "", smb)
-                          if (smb == want) { print rec; exit } }
-    '
-}
-
 # Verify the ScriviWorlds share exists and points at the mounted volume,
 # creating it if it does not. Requires sudo ON THIS MAC.
 ensure_worlds_share() {
@@ -147,8 +118,7 @@ ensure_worlds_share() {
     if [ ! -d "$WORLDS_VOLUME" ]; then
         die "the Worlds volume is not mounted at:  $WORLDS_VOLUME
     It is a REMOVABLE drive — plug it in / mount it, then re-run.
-    (Override the path with SCRIVI_WORLDS_VOLUME=...)
-    ⚠️ If this scenario does not NEED the removable volume, use --no-worlds."
+    (Override the path with SCRIVI_WORLDS_VOLUME=...)"
     fi
     say "  volume present: $WORLDS_VOLUME"
 
@@ -160,18 +130,7 @@ ensure_worlds_share() {
         if [ -n "$actual" ] && [ "$actual" != "$WORLDS_VOLUME" ]; then
             warn "  share '$SHARE_WORLDS' exists but points at: $actual"
             warn "  expected: $WORLDS_VOLUME"
-            # ⚠️ Quote it: the record name is the OLD DIRECTORY name and usually
-            # contains a space. Naming the SMB share here is what made this
-            # advice fail on 2026-09-07.
-            local rec
-            rec="$(share_record "$SHARE_WORLDS")"
-            if [ -n "$rec" ]; then
-                warn "  Remove and recreate it with:"
-                warn "      sudo sharing -r \"$rec\""
-                warn "      $0 --setup-share"
-            else
-                warn "  Remove it by RECORD name (see: sharing -l), then --setup-share"
-            fi
+            warn "  Remove and recreate it with:  sudo sharing -r $SHARE_WORLDS"
             return 1
         fi
         say "  share '$SHARE_WORLDS' already published -> $WORLDS_VOLUME"
@@ -312,21 +271,12 @@ mount_share() {
 
 do_mount() {
     preflight
+    ensure_worlds_share
     require_creds
 
     local failed=0
-
-    # ⚠️ ScriviLinux is mounted FIRST and unconditionally. It lives on LOCAL disk,
-    # so it must never be blocked by the removable Worlds volume being absent —
-    # which is exactly what happened before --no-worlds existed.
     mount_share "$SHARE_LINUX"  "$MOUNT_LINUX"   || failed=1
-
-    if [ "$SKIP_WORLDS" = "1" ]; then
-        say "skipping the '$SHARE_WORLDS' share (--no-worlds)"
-    else
-        ensure_worlds_share
-        mount_share "$SHARE_WORLDS" "$MOUNT_WORLDS"  || failed=1
-    fi
+    mount_share "$SHARE_WORLDS" "$MOUNT_WORLDS"  || failed=1
 
     echo
     do_status
@@ -337,7 +287,7 @@ do_mount() {
         warn "  1. The share is not published on the Mac.  Check with:  sharing -l"
         warn "     A share point whose VOLUME WAS ABSENT can be dropped by macOS and"
         warn "     needs re-adding after the drive comes back."
-        warn "  2. The '$SHARE_WORLDS' share lives on the removable 'Scrivi-Worlds'"
+        warn "  2. The '$SHARE_WORLDS' share lives on the removable 'Scrivi Worlds'"
         warn "     volume — confirm it is mounted here:  ls /Volumes/"
         warn "  3. Wrong password in $CREDS — re-run with --setup-creds."
         warn "  4. 'mount error(16): Device or resource busy' means a STALE mount still"
@@ -387,9 +337,8 @@ case "${1:-}" in
     --setup-share) ensure_worlds_share ;;
     --status)      preflight; do_status ;;
     --unmount|-u)  do_unmount ;;
-    --no-worlds)   SKIP_WORLDS=1; do_mount ;;
     --help|-h)
-        sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'
         ;;
     "")            do_mount ;;
     *)             die "unknown option: $1  (try --help)" ;;

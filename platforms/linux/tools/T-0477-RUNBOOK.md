@@ -136,23 +136,108 @@ it succeed\*\*, which would change the event being measured.
 
 ## 4. S2 — the share killed AT THE SOURCE ⚠️ **`offline`'s only real evidence**
 
-⚠️ **This is the scenario the original plan did not have**, and ⚠️ \*\*`WorldStatus::offline` is defined
-by it.\*\* Without S2, `offline` ships untested.
+⚠️ **This is the scenario the original plan did not have**, and ⚠️ **`WorldStatus::offline` is defined by
+it.** ⚠️ **Without S2, `offline` ships UNTESTED** — and ⚠️ **EP-038 AC5 requires `WorldVolumeStatus` to
+distinguish `unmounted` / `offline` / `missing`.**
 
-Re-mount as in §3, then **on the SERVING Mac** — ⚠️ **do NOT unmount on the rig**:
+✅ **NO DRIVE IS NEEDED.** ✅ **NO CONSOLE ACCESS IS NEEDED.** ⚠️ **Everything below is either on the Mac
+or over SSH** — ✅ **which is why S2 is runnable while the USB drive is out and the rig's workstation is
+in use by someone else.**
 
-- **Either** turn File Sharing OFF, **or** take the Mac off the network (Wi-Fi off / unplug).
-- ⚠️ **Try BOTH if there is time. They are different events**: sharing-off is a refused connection,
-  network-off is a black hole, ⚠️ **and a black hole is where hangs live.**
+### ✅ 4.0 Already prepared (2026-09-07)
+
+| ✅ Done | Where |
+| ------- | ----- |
+| ✅ **A copy of `Eskandar.scrivworld` placed in the served share** | 🍎 `~/ScriviLinux/worlds/Eskandar.scrivworld` — ⚠️ **57/57 files, `worldID` VERIFIED to match the binding** (`world_character_01a000fb-…`) |
+| ✅ **`ScriviLinux` share already published** | 🍎 `sharing -l` → `/Users/justgus/ScriviLinux` — ⚠️ **on LOCAL disk, so it survives the drive being out** |
+| ✅ **`scrivi_world_probe` built on the rig** | 🐧 `~/Dev/Scrivi/build-native/ScriviCore/scrivi_world_probe` |
+
+⚠️ **The `ScriviWorlds` share still points at `/Volumes/Scrivi Worlds` and is DEAD while the drive is
+out.** ✅ **S2 does not use it** — the world is served through `ScriviLinux` instead.
+
+### 4.1 🐧 Mount the share on the rig
 
 ```bash
-platforms/linux/tools/volume-loss-probe.sh /mnt/scrivi-net S2-killed-at-source
+# 🍎 Flitwick-5 — drives the rig over SSH
+./scripts/mount-shares-on-rig.sh --status     # what is mounted now
+./scripts/mount-shares-on-rig.sh              # mount both shares
 ```
+
+⚠️ **CONFIRM THE MOUNT OPTIONS BEFORE PROBING.** ⚠️ **§2c's phantom-listing finding was caused by
+`noserverino` + `cache=strict`** — ✅ **the script now uses `serverino,cache=none`**, ⚠️ **but a run that
+does not verify this is measuring the CLIENT CACHE, not the server going away:**
+
+```bash
+# 🐧 oathkeeper
+findmnt -T /mnt/scrivi-net -o TARGET,SOURCE,FSTYPE,OPTIONS
+```
+
+### 4.2 ✅ Point a project at the SERVED world — ⚠️ **and capture the BEFORE**
+
+⚠️ **The world must resolve through the SHARE, not through the rig's local `~/ScriviWorlds` copy** —
+⚠️ **otherwise the kill at the source changes nothing and the scenario measures itself.**
+
+```bash
+# 🐧 oathkeeper — relink the project's binding to the mounted share
+#    (or open the project in the app and use Manage Worlds ▸ Relink)
+# Then confirm the core sees it as AVAILABLE:
+cd ~/Dev/Scrivi
+./build-native/ScriviCore/scrivi_world_probe \
+    ~/ScriviProjects/the-stairs-of-tintagael.scrivi
+```
+
+⚠️ **DO NOT PROCEED UNTIL `status` READS `available`.** ⚠️ **A run that starts from `unavailable`
+proves nothing** — ✅ **the whole point is watching a HEALTHY world go `offline`.**
+
+### 4.3 🐧 Start the probes, then 🍎 kill the share
+
+```bash
+# 🐧 oathkeeper — terminal 1: the mount-layer probe
+platforms/linux/tools/volume-loss-probe.sh /mnt/scrivi-net S2-killed-at-source
+
+# 🐧 oathkeeper — terminal 2: the CORE's verdict, SAMPLED
+cd ~/Dev/Scrivi
+while true; do
+  printf '%s ' "$(date +%H:%M:%S)"
+  ./build-native/ScriviCore/scrivi_world_probe \
+      ~/ScriviProjects/the-stairs-of-tintagael.scrivi 2>&1 \
+      | grep -m1 '"status"'
+  sleep 2
+done | tee ~/scrivi-probe/S2-world-status.txt
+```
+
+⚠️ **The second loop is NEW and is the half S3 could not run.** ⚠️ **It answers the question S3 left
+open — does the core's verdict DECAY or PERSIST?** — ✅ **and it is the direct input to T-0478.**
+
+**Then, 🍎 ON THE SERVING MAC — ⚠️ do NOT unmount on the rig:**
+
+- **Either** System Settings ▸ General ▸ Sharing ▸ **File Sharing OFF**
+- **Or** take the Mac off the network (Wi-Fi off / unplug)
+
+⚠️ **Try BOTH if there is time. They are DIFFERENT events**: sharing-off is a **refused connection**,
+network-off is a **black hole**, ⚠️ **and a black hole is where hangs live.**
+
+### 4.4 ⚠️ What to watch for
 
 ⚠️ **WATCH FOR A HANG.** ⚠️ **A `cifs` mount typically errors; an `nfs` HARD mount BLOCKS FOREVER** —
 ✅ **and a hang is a FINDING, not a failed experiment**, because it would freeze the app's UI thread.
-⚠️ **If the probe stops printing, that IS the result** — note the wall-clock time it stopped and how
-long until it recovered (if ever).
+⚠️ **If a probe stops printing, THAT IS THE RESULT** — note the wall-clock time it stopped and how long
+until it recovered, if ever.
+
+| ⚠️ Question | ✅ Why it matters |
+| ----------- | ----------------- |
+| ⚠️ **Does the core report `offline`, or `unavailable`, or `missing`?** | ⚠️ **`offline` has NEVER been observed.** ⚠️ **If it never appears, that is a finding about the STATUS MODEL, not a failed run** |
+| ⚠️ **Does the verdict DECAY or PERSIST?** | ⚠️ **The question S3 left open (I-0192)** — ✅ **over `cifs` this measures the CLIENT cache, which is NOT the local page cache, so record it as such** |
+| ⚠️ **Does anything HANG?** | ⚠️ **A frozen UI thread is worse than a wrong status** |
+| ⚠️ **Does `/proc/mounts` go stale?** | ✅ **§2c already saw a ZOMBIE mount blocking remount (`EBUSY`, cleared by `umount -l`)** — ⚠️ **confirm or contradict** |
+
+### 4.5 ✅ Afterwards
+
+```bash
+# 🍎 Flitwick-5 — turn File Sharing back on, then:
+./scripts/mount-shares-on-rig.sh --status
+./scripts/mount-shares-on-rig.sh --unmount    # if a zombie mount blocks remount
+```
 
 ⚠️ **If time allows, repeat S2 over NFS** — the failure modes genuinely differ and T-0478 must know
 which it is being handed.
