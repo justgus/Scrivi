@@ -79,6 +79,19 @@ Result<AbsolutePath> platformDefault() {
 
 Result<void> bootstrapAppSupport(const AbsolutePath& appSupportRoot,
                                  FileSystem& fs) {
+    // I-0191 / AC1: validate BEFORE creating anything.
+    //
+    // This function used to `mkdir -p` whatever string it was handed. An empty
+    // or relative root resolves against the process working directory, so a bad
+    // `appSupportRoot` silently created the app-support skeleton in the CWD --
+    // the repository root, for a dev build -- and reported success.
+    //
+    // Rejecting up front also guarantees we never create part of the tree and
+    // then fail: a refused root leaves the filesystem untouched.
+    if (auto v = validateRootPath(appSupportRoot, "appSupportRoot"); !v.ok()) {
+        return v;
+    }
+
     static constexpr std::array<const char*, 5> kSubdirs = {
         "identity",
         "state/projects",

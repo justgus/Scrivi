@@ -200,6 +200,44 @@ static std::string errorEnvelope(scrivi::ErrorCode code, std::string_view messag
     return root.dump();
 }
 
+// I-0191 / AC3: NULL is NOT a valid value for a REQUIRED path parameter.
+//
+// `S()` maps NULL to "" — that is the documented ABI contract (scrivi.h:20) and
+// is correct for the many genuinely optional parameters where "" means "not
+// set" (afterSceneID, kindOrNull, fragmentJson, ...). It is WRONG for a required
+// path: an empty root is relative, so it resolves against the process working
+// directory and the core would create its tree in the CWD while reporting
+// success. That is how junk app-support directories landed in the repo root.
+//
+// `requiredPathError` returns a populated envelope when `p` is unusable, or an
+// empty string when it is fine. Deliberately NOT folded into `S()`: silently
+// rejecting NULL everywhere would break the optional parameters above.
+static std::string requiredPathError(const char* p, const char* name) {
+    if (p == nullptr) {
+        return errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                             std::string(name) + " must not be NULL");
+    }
+    if (*p == '\0') {
+        return errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                             std::string(name) + " must not be empty");
+    }
+    if (scrivi::util::containsControlCharacter(p)) {
+        return errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                             std::string(name) + " contains unprintable "
+                             "characters; this usually means an uninitialised "
+                             "or dangling string crossed the C ABI");
+    }
+    return {};
+}
+
+// Guard for the entry points that take an appSupportRoot. Returns a heap error
+// envelope to hand straight back to the caller, or nullptr when the root is OK.
+#define SCRIVI_REQUIRE_PATH(p, name)                                   \
+    do {                                                               \
+        std::string _e = requiredPathError((p), (name));               \
+        if (!_e.empty()) { return heap(_e); }                          \
+    } while (0)
+
 // Exception firewall for the C ABI boundary. A C++ exception must NEVER cross the
 // plain-C boundary — doing so calls std::terminate and kills the host app (I-0065:
 // a mismatched/stale history diff threw std::length_error out of scrivi_history_open
@@ -397,6 +435,7 @@ const char* scrivi_ensure_local_identity(
 {
     scrivi::EnsureIdentityRequest req;
     req.requestedDisplayName = S(displayName);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot       = S(appSupportRoot);
 
     auto r = core().ensureLocalIdentity(req);
@@ -422,6 +461,7 @@ const char* scrivi_create_project(
 {
     scrivi::CreateProjectRequest req;
     req.projectRootPath = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     req.title           = S(title);
     req.slug            = S(slug);
@@ -452,6 +492,7 @@ const char* scrivi_open_project(
 {
     scrivi::OpenProjectRequest req;
     req.projectRootPath = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     if (identityID && identityID[0] != '\0')
         req.currentIdentityID = scrivi::IdentityID{identityID};
@@ -521,6 +562,7 @@ const char* scrivi_open_scene(
 {
     scrivi::OpenSceneRequest req;
     req.projectRootPath = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     req.projectID       = scrivi::ProjectID{S(projectID)};
     req.sceneID         = scrivi::SceneID  {S(sceneID)};
@@ -560,6 +602,7 @@ const char* scrivi_save_scene(
     scrivi::SaveSceneRequest req;
     req.projectID         = scrivi::ProjectID{S(projectID)};
     req.projectRootPath   = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot    = S(appSupportRoot);
     req.sceneID           = scrivi::SceneID{S(sceneID)};
     req.sceneMetadataPath = S(sceneMetadataPath);
@@ -594,6 +637,7 @@ const char* scrivi_scan_for_external_changes(
 {
     scrivi::ExternalChangeScanRequest req;
     req.projectRootPath  = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot   = S(appSupportRoot);
     req.includeGitStatus = includeGitStatus != 0;
 
@@ -623,6 +667,7 @@ const char* scrivi_apply_repair(
     scrivi::ApplyRepairRequest req;
     req.issueID         = S(issueID);
     req.projectRootPath = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     req.actionKind      = repairKindFromStr(S(actionKind));
     req.targetPath      = S(targetPath);
@@ -1654,6 +1699,7 @@ const char* scrivi_create_scene(
 {
     scrivi::CreateSceneRequest req;
     req.projectRootPath = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     req.projectID       = scrivi::ProjectID{S(projectID)};
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
@@ -1688,6 +1734,7 @@ const char* scrivi_create_chapter(
 {
     scrivi::CreateChapterRequest req;
     req.projectRootPath = S(projectRootPath);
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     req.projectID       = scrivi::ProjectID{S(projectID)};
     req.author = {
@@ -2974,6 +3021,7 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
 
     scrivi::manuscript::PasteFragmentRequest req;
     req.projectRootPath = root;
+    SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
     req.appSupportRoot  = S(appSupportRoot);
     req.projectID       = scrivi::ProjectID{S(projectID)};
     req.author          = { scrivi::IdentityID{S(identityID)},

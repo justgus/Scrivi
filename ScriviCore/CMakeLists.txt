@@ -116,3 +116,17 @@ target_link_libraries(ScriviCore
 if(SCRIVI_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
+
+# T-0477 (EP-038 / SP-124) — drive-loss INSTRUMENTATION, not product code.
+#
+# ⚠️ Qt-FREE BY DESIGN: links ScriviCore alone, so it builds on a rig with no Qt
+# configured. SP-124 §4 requires capturing what `scrivi_get_world_status`
+# returns at each phase of a volume event — the core's verdict is the INPUT to
+# T-0478 — and nothing else in the tree can produce it.
+#
+# Built with the core by default; -DSCRIVI_BUILD_TOOLS=OFF opts out.
+option(SCRIVI_BUILD_TOOLS "Build ScriviCore instrumentation tools" ON)
+if(SCRIVI_BUILD_TOOLS)
+    add_executable(scrivi_world_probe tools/scrivi_world_probe.cpp)
+    target_link_libraries(scrivi_world_probe PRIVATE ScriviCore)
+endif()

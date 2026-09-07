@@ -11,10 +11,12 @@
 #include "platform/AppSupportLayout.hpp"
 #include "platform/LocalFileSystem.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>      // getenv / setenv / unsetenv — used by the platform tests below
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -289,4 +291,113 @@ TEST_CASE("bootstrap - openProject triggers bootstrap on fresh appSupportRoot",
     REQUIRE(result.ok());
     CHECK(freshAppSupport.hasDir("state/projects"));
     CHECK(freshAppSupport.hasDir("cache/projects"));
+}
+
+// ---------------------------------------------------------------------------
+// I-0191 — an invalid appSupportRoot must be REJECTED, not created
+// ---------------------------------------------------------------------------
+//
+// Three directories named from raw control bytes appeared in the repository root
+// on 2026-08-17, each holding the full app-support skeleton. `bootstrapAppSupport`
+// validated its root in no way: an empty or relative path resolves against the
+// process working directory, so a bad root created the tree in the CWD and
+// reported SUCCESS.
+//
+// These are RED-then-GREEN against that exact byte string.
+
+namespace {
+
+// The literal name of one of the observed directories: \020 v \017 k \001.
+const std::string kJunkBytes = std::string("\x10v\x0Fk\x01", 5);
+
+// Entries directly under the CWD, so a test can prove it created nothing there.
+std::vector<std::string> cwdEntries() {
+    std::vector<std::string> names;
+    std::error_code ec;
+    for (const auto& e : fs::directory_iterator(fs::current_path(), ec)) {
+        names.push_back(e.path().filename().string());
+    }
+    std::sort(names.begin(), names.end());
+    return names;
+}
+
+} // namespace
+
+TEST_CASE("bootstrapAppSupport - rejects a root of unprintable bytes and creates NOTHING",
+          "[integration][I-0191]") {
+    scrivi::platform::LocalFileSystem lfs;
+
+    const auto before = cwdEntries();
+
+    auto r = scrivi::util::bootstrapAppSupport(kJunkBytes, lfs);
+
+    REQUIRE_FALSE(r.ok());
+    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
+
+    // The whole point: nothing was created anywhere, least of all in the CWD.
+    CHECK_FALSE(fs::exists(fs::path(kJunkBytes)));
+    CHECK(cwdEntries() == before);
+}
+
+TEST_CASE("bootstrapAppSupport - rejects an EMPTY root instead of writing to the CWD",
+          "[integration][I-0191]") {
+    scrivi::platform::LocalFileSystem lfs;
+
+    // An empty root is what the C ABI's S(NULL) used to produce. `join("", "identity")`
+    // is the RELATIVE path "identity", so this once created ./identity in the CWD.
+    const auto before = cwdEntries();
+
+    auto r = scrivi::util::bootstrapAppSupport("", lfs);
+
+    REQUIRE_FALSE(r.ok());
+    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
+    CHECK_FALSE(fs::exists("identity"));
+    CHECK_FALSE(fs::exists("logs"));
+    CHECK(cwdEntries() == before);
+}
+
+TEST_CASE("bootstrapAppSupport - rejects a RELATIVE root", "[integration][I-0191]") {
+    scrivi::platform::LocalFileSystem lfs;
+
+    const auto before = cwdEntries();
+
+    auto r = scrivi::util::bootstrapAppSupport("some-relative-dir", lfs);
+
+    REQUIRE_FALSE(r.ok());
+    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
+    CHECK_FALSE(fs::exists("some-relative-dir"));
+    CHECK(cwdEntries() == before);
+}
+
+TEST_CASE("LocalFileSystem - refuses to create ANY directory holding control characters",
+          "[integration][I-0191]") {
+    scrivi::platform::LocalFileSystem lfs;
+    TempDir tmp;
+
+    // AC2 is enforced at the FileSystem chokepoint, so it holds for every core
+    // write path — not just app-support bootstrap. An absolute, otherwise-valid
+    // parent with a junk leaf must still be refused.
+    const auto target = (tmp.path / kJunkBytes).string();
+
+    auto r = lfs.createDirectories(target);
+
+    REQUIRE_FALSE(r.ok());
+    CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
+    CHECK_FALSE(fs::exists(fs::path(target)));
+}
+
+TEST_CASE("LocalFileSystem - still accepts a valid non-ASCII (UTF-8) directory name",
+          "[integration][I-0191]") {
+    scrivi::platform::LocalFileSystem lfs;
+    TempDir tmp;
+
+    // Guards the signedness trap: UTF-8 continuation bytes are >= 0x80 and would
+    // sign-extend negative on a platform with signed `char`, tripping a naive
+    // `c < 0x20` test and rejecting perfectly legitimate paths.
+    const auto target = (tmp.path / "Ünïcode-Ω-世界").string();
+
+    auto r = lfs.createDirectories(target);
+
+    REQUIRE(r.ok());
+    CHECK(fs::is_directory(fs::path(target)));
 }

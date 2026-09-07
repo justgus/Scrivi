@@ -10,37 +10,57 @@
 
 ---
 
+## ⚠️ 0a. WHICH MACHINE — read this before running ANYTHING
+
+⚠️ **THIS SESSION SPANS TWO COMPUTERS, AND EVERY COMMAND BELONGS TO EXACTLY ONE OF THEM.**
+
+| Tag | Machine | What runs there |
+| --- | ------- | --------------- |
+| 🐧 **`oathkeeper`** | ⚠️ **The Ubuntu rig** | ⚠️ **The drive plugs in HERE.** The app runs here. Every `lsblk` / `/run/media` / `/mnt` / `dmesg` / `udevadm` / `mount` command. ⚠️ **The probe scripts.** ⚠️ **NO Xcode, NO dev environment** |
+| 🍎 **`Flitwick-5`** | ⚠️ **The MacBook Pro** | Xcode and the dev environment; the Mac side of an SMB share (S2); ⚠️ **building binaries that must then be COPIED to the rig.** ⚠️ **NEVER run a Linux path here** |
+
+⚠️ **AN EARLIER VERSION OF THIS RUNBOOK DID NOT SAY.** ⚠️ **On 2026-09-07 that cost a whole S3 attempt:**
+`volume-loss-probe.sh` was run on 🍎 **`Flitwick-5`** against `/run/media/justgus/SCRIVI-OTHE` — ⚠️ **a
+Linux path that does not exist on macOS** — so it watched nothing, produced noise, and had to be killed
+by hand. ⚠️ **§5.1 also told the user to BUILD A BINARY on 🐧 `oathkeeper`, which has no dev
+environment**, and ⚠️ **to build one that did not exist in the repo at all.**
+
+✅ **Every command block below is tagged 🐧 or 🍎.** ⚠️ **If a block is untagged, it is a BUG in this
+document — fix it before running it.**
+
+---
+
 ## 0. Before the trip — what is already known
 
-| | |
-| - | - |
-| ⚠️ **WOL appears disarmed** | Magic packets (broadcast + subnet-directed, ports 9/7/0) drew no response; `nmcli` shows `wake-on-lan: --`. ⚠️ **`ethtool` needs `sudo`, so this is the USER's to settle.** ⚠️ **Do NOT read `uptime` as evidence about sleep** — suspend-to-RAM does not stop the kernel clock |
-| ⚠️ **`ScriviWorlds` is AFP** | ⚠️ **Do not plan to mount it on Linux.** AFP is dead there (`afpfs-ng` unmaintained). ✅ **Use SMB or NFS** |
-| ✅ **The probe is written and dry-run** | `platforms/linux/tools/volume-loss-probe.sh` — ⚠️ **validated on macOS only; that is NOT a Linux finding** |
+|                                        |                                                                                                                                                                                                                                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⚠️ **WOL appears disarmed**            | Magic packets (broadcast + subnet-directed, ports 9/7/0) drew no response; `nmcli` shows `wake-on-lan: --`. ⚠️ **`ethtool` needs `sudo`, so this is the USER's to settle.** ⚠️ **Do NOT read `uptime` as evidence about sleep** — suspend-to-RAM does not stop the kernel clock |
+| ⚠️ **`ScriviWorlds` is AFP**           | ⚠️ **Do not plan to mount it on Linux.** AFP is dead there (`afpfs-ng` unmaintained). ✅ **Use SMB or NFS**                                                                                                                                                                      |
+| ✅ **The probe is written and dry-run** | `platforms/linux/tools/volume-loss-probe.sh` — ⚠️ **validated on macOS only; that is NOT a Linux finding**                                                                                                                                                                      |
 
 ---
 
 ## 0b. ⚠️ What the container pass ALREADY established — and the questions it HANDED to this session
 
-⚠️ **A preliminary container pass ran 2026-08-31** (`T-0477-PRELIMINARY-container.md`). ⚠️ **It answers
-KERNEL-SEMANTICS questions only and closes no AC.** ✅ **Its value here is that this session now has
-SPECIFIC PREDICTIONS TO FALSIFY rather than open-ended observation.**
+⚠️ **A preliminary container pass ran 2026-08-31** (`T-0477-PRELIMINARY-container.md`). ⚠️ \*\*It answers
+KERNEL-SEMANTICS questions only and closes no AC.\*\* ✅ \*\*Its value here is that this session now has
+SPECIFIC PREDICTIONS TO FALSIFY rather than open-ended observation.\*\*
 
 ⚠️ **Each row below is a question to ANSWER, not a fact to confirm. If the rig disagrees, THE RIG WINS.**
 
-| ⚠️ Prediction from the container | ⚠️ What THIS session must check |
-| ------------------------------- | ------------------------------ |
-| `statvfs` **succeeds** on an unmounted path, reporting the ROOT fs | ⚠️ **Does it also lie after a PHYSICAL yank**, or does it error there? |
-| The mountpoint dir **survives** a clean `umount` | ⚠️ **THE KEY QUESTION: does `/media/<user>/<label>` survive a YANK?** ⚠️ **udisks2 may remove it** — ⚠️ **and that single fact decides whether I-0181 fires on real hardware** |
-| A held FD survived `umount -l` entirely (read+write OK) | ⚠️ **A yank should give `EIO`/`ESTALE` — but that is a PREDICTION.** ⚠️ **MEASURE IT** |
-| `st_dev` vs parent is the reliable signal | ⚠️ **Does it still hold when the device is GONE rather than cleanly detached?** |
-| `fsync` lied on **macOS** (OK on a dead device); never failed in the Linux container | ⚠️ **Watch this cell specifically on the yank** |
+| ⚠️ Prediction from the container                                                     | ⚠️ What THIS session must check                                                                                                                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `statvfs` **succeeds** on an unmounted path, reporting the ROOT fs                   | ⚠️ **Does it also lie after a PHYSICAL yank**, or does it error there?                                                                                                         |
+| The mountpoint dir **survives** a clean `umount`                                     | ⚠️ **THE KEY QUESTION: does `/media/<user>/<label>` survive a YANK?** ⚠️ **udisks2 may remove it** — ⚠️ **and that single fact decides whether I-0181 fires on real hardware** |
+| A held FD survived `umount -l` entirely (read+write OK)                              | ⚠️ **A yank should give `EIO`/`ESTALE` — but that is a PREDICTION.** ⚠️ **MEASURE IT**                                                                                         |
+| `st_dev` vs parent is the reliable signal                                            | ⚠️ **Does it still hold when the device is GONE rather than cleanly detached?**                                                                                                |
+| `fsync` lied on **macOS** (OK on a dead device); never failed in the Linux container | ⚠️ **Watch this cell specifically on the yank**                                                                                                                                |
 
 ### ⚠️ I-0181 — filed, NOT fixed
 
 ⚠️ **An unmounted volume is reported `missing`** because the core's *package-absent + parent-exists*
-rule (`WorldStore.cpp:330-348`) is satisfied by Linux's surviving mountpoint. ⚠️ **macOS is NOT exposed
-— it removes `/Volumes/<name>`.**
+rule (`WorldStore.cpp:330-348`) is satisfied by Linux's surviving mountpoint. ⚠️ \*\*macOS is NOT exposed
+— it removes `/Volumes/<name>`.\*\*
 
 ⚠️ **Whether this fires on the REAL rig depends entirely on the mountpoint question above.**
 ✅ **Answer that first; the fix is T-0478's.**
@@ -109,15 +129,15 @@ sudo umount /mnt/scrivi-net
 ```
 
 ⚠️ **If `umount` returns `EBUSY`, that is a FINDING** — the probe's own held FD is a legitimate cause,
-and it is exactly what an open manuscript would do. ⚠️ **Record it; do NOT reach for `-l` (lazy) to make
-it succeed**, which would change the event being measured.
+and it is exactly what an open manuscript would do. ⚠️ \*\*Record it; do NOT reach for `-l` (lazy) to make
+it succeed\*\*, which would change the event being measured.
 
 ---
 
 ## 4. S2 — the share killed AT THE SOURCE ⚠️ **`offline`'s only real evidence**
 
-⚠️ **This is the scenario the original plan did not have**, and ⚠️ **`WorldStatus::offline` is defined
-by it.** Without S2, `offline` ships untested.
+⚠️ **This is the scenario the original plan did not have**, and ⚠️ \*\*`WorldStatus::offline` is defined
+by it.\*\* Without S2, `offline` ships untested.
 
 Re-mount as in §3, then **on the SERVING Mac** — ⚠️ **do NOT unmount on the rig**:
 
@@ -139,40 +159,50 @@ which it is being handed.
 
 ---
 
-## 5. S3 — ⚠️ **the PHYSICAL USB yank**
+## 5. S3 — ✅ **DONE 2026-09-07** — ⚠️ **the PHYSICAL USB yank**
 
-⚠️ **The one AC4 names explicitly, and the only source of stranded-FD behaviour.**
+> ✅ **S3 IS COMPLETE. Do NOT re-run these steps to "confirm" it.**
+> ⚠️ **Findings:** [`T-0477-FINDINGS-S3.md`](T-0477-FINDINGS-S3.md)
 
-```bash
-# plug the USB drive in; note where it lands
-lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,TRAN
-cp -a ~/Dev/probe-worlds/<world>.scrivworld /media/<user>/<label>/
-```
+### ✅ The result, in three lines
 
-```bash
-platforms/linux/tools/volume-loss-probe.sh /media/<user>/<label> S3-physical-yank
-```
+- ⚠️ **A physical yank of a udisks2-automounted volume is SILENT** — no error, no warning.
+- ✅ **The mountpoint `/run/media/<user>/<label>` is REMOVED**, so ⚠️ **I-0181's false `missing` is NOT
+  reached on that path.**
+- ⚠️ **Scrivi kept reporting the world AVAILABLE — and a double-click still SUCCEEDED — until a scene
+  change forced a re-resolve.** ⚠️ **The OS was honest; the APP was stale.** ⚠️ **That is a NEW defect
+  class the sprint was not looking for.**
 
-⚠️ **Then PULL THE DRIVE OUT BY HAND.** ⚠️ **Do NOT eject it first** — ✅ **a clean eject is S1, and
-it is already covered.** Wait ~15s, Ctrl-C.
+### ⚠️ How it was actually gathered — and the lesson
 
-### ⚠️ The two questions S3 exists to answer
+⚠️ **BY THE USER, BY HAND, WATCHING THE APP.** ⚠️ **The instrumentation contributed NOTHING** — it was
+run on the wrong machine because ⚠️ **this document did not say which machine.** ✅ **See §0a, which
+exists because of this failure.**
 
-1. ⚠️ **Does `/proc/mounts` keep a STALE entry?** — ✅ **Apple's `isMounted()` exists precisely because a
-   stale `/Volumes/<name>` outlives an unclean unmount and reads as "mounted."**
-2. ⚠️ **What do the held FDs return** — `EIO`? `ESTALE`? ⚠️ **Or a false success**, as `fsync` gave on
-   macOS in the dry run?
+⚠️ **The most valuable finding of the whole scenario — app staleness — came from a human noticing that
+a double-click still said SUCCESS.** ⚠️ **No probe in §4's table would have caught it**, because every
+one of them questions the OS, and ✅ **the OS was telling the truth the entire time.**
 
-### ⚠️ Optional but valuable — the torn write
+### ✅ The `/mnt` hand-mounted half — ⚠️ **RULED NOT WORTH RUNNING** (user, 2026-09-07)
 
-⚠️ **Only if the first three went smoothly.** Start a large write to the drive, then yank mid-write:
+⚠️ **DELIBERATELY NOT RUN, and this is NOT an untested branch.** ⚠️ **A hand-created `/mnt` directory is
+an ordinary directory the operator owns; nothing has any mandate to delete it.** ✅ **udisks2 removes
+`/run/media/...` precisely BECAUSE it created it.** ⚠️ **The mountpoint surviving is what "I made this
+directory" MEANS — not a behaviour to be discovered.**
 
-```bash
-dd if=/dev/urandom of=/media/<user>/<label>/torn-test.bin bs=1M count=500 &
-# yank at roughly 50%
-```
-⚠️ **Re-mount afterwards and check what survived** — ✅ **Doc 2's repair path depends on whether
-partial writes are visible, and this is the only way to know.**
+⚠️ **T-0498 keeps its justification**: ✅ **the `/mnt` path is real and reachable** (`fstab` mounts,
+server deployments, hand-mounts), ⚠️ **and there the parent SURVIVES and the false `missing` DOES fire.**
+
+### ⚠️ Debt carried forward — NOT claimed as measured
+
+⚠️ **Unmeasured**: held-FD errno across the yank · `dmesg`/`udevadm`'s account · torn-write visibility ·
+`scrivi_get_world_status` envelopes as TEXT.
+
+✅ **`scrivi_world_probe` NOW EXISTS** (`ScriviCore/tools/scrivi_world_probe.cpp`, Qt-free) — ⚠️ **it did
+not when this runbook first told the user to run it.** ⚠️ **It needs a dev environment, which
+🐧 `oathkeeper` does not have** — ✅ **build it on 🍎 `Flitwick-5` and COPY it over, or leave the debt open.**
+
+⚠️ **None of this blocks T-0478.**
 
 ---
 
@@ -185,17 +215,17 @@ ls ~/scrivi-probe/
 tar czf ~/scrivi-probe-findings.tgz ~/scrivi-probe/
 ```
 
-⚠️ **Claude pulls these over SSH and writes them up into the rig doc's §7** — ⚠️ **which is
-DELIBERATELY EMPTY until this session happens.**
+⚠️ **Claude pulls these over SSH and writes them up into the rig doc's §7** — ⚠️ \*\*which is
+DELIBERATELY EMPTY until this session happens.\*\*
 
 ---
 
 ## 7. ⚠️ What must NOT happen in this session
 
-| ⚠️ Do not | Why |
-| --------- | --- |
-| ⚠️ **Write any of `WorldVolumeStatus`** | ⚠️ **That is T-0478, and the GATE is the sprint's point** |
-| ⚠️ **Infer S3 from S2, or S2 from S3** | ⚠️ **They are different events.** ✅ **A clean unmount cannot strand an FD** |
-| ⚠️ **Use the live `ScriviWorlds` content** | ⚠️ **Real writing work.** ✅ **Copies only** |
-| ⚠️ **"Tidy" a surprising result** | ⚠️ **The surprise IS the deliverable.** ⚠️ **Apple's headline was that the obvious API lied** |
-| ⚠️ **Report "nothing surprising" as a non-result** | ⚠️ **State it as a RESULT** — it is a claim about Linux, and T-0478 depends on it |
+| ⚠️ Do not                                          | Why                                                                                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| ⚠️ **Write any of `WorldVolumeStatus`**            | ⚠️ **That is T-0478, and the GATE is the sprint's point**                                     |
+| ⚠️ **Infer S3 from S2, or S2 from S3**             | ⚠️ **They are different events.** ✅ **A clean unmount cannot strand an FD**                   |
+| ⚠️ **Use the live `ScriviWorlds` content**         | ⚠️ **Real writing work.** ✅ **Copies only**                                                   |
+| ⚠️ **"Tidy" a surprising result**                  | ⚠️ **The surprise IS the deliverable.** ⚠️ **Apple's headline was that the obvious API lied** |
+| ⚠️ **Report "nothing surprising" as a non-result** | ⚠️ **State it as a RESULT** — it is a claim about Linux, and T-0478 depends on it             |

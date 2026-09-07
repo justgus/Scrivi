@@ -1,6 +1,7 @@
 #include "LocalFileSystem.hpp"
 
 #include "util/AtomicWrite.hpp"
+#include "util/PathUtils.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -41,6 +42,24 @@ Result<bool> LocalFileSystem::isDirectory(const AbsolutePath& path) {
 }
 
 Result<void> LocalFileSystem::createDirectories(const AbsolutePath& path) {
+    // I-0191 / AC2: ScriviCore must NEVER create a directory whose name holds
+    // unprintable characters. Enforced HERE rather than at the call sites --
+    // this is the single virtual chokepoint every core directory write passes
+    // through, so one check covers all of them and cannot go stale the way a
+    // restated per-caller rule would.
+    //
+    // Such a name is never a legitimate request. It is the signature of a
+    // dangling or uninitialised `const char*` crossing the C ABI, and creating
+    // it silently turns a memory-safety bug into filesystem litter (three such
+    // directories appeared in the repo root on 2026-08-17).
+    if (util::containsControlCharacter(path)) {
+        return Result<void>::failure({
+            .code    = ErrorCode::invalidArgument,
+            .message = "refusing to create a directory whose path contains "
+                       "unprintable characters",
+            .path    = path});
+    }
+
     std::error_code ec;
     fs::create_directories(path, ec);
     if (ec) { return Result<void>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});

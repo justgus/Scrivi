@@ -51,7 +51,7 @@ BUILT, GREEN, and runs the app on real hardware.
 **Codebase:** `[Linux]` — ⚠️ **one Qt/C++ deliverable (T-0478); T-0477 ships NO code**
 **Date Activated:** 2026-08-31
 **Closes:** **AC4, AC5, AC6, AC7**
-**Tasks:** **T-0477 – T-0479** (three) · **Next available:** T-0497 · Issues **I-0181**, ⚠️ **I-0182** (found by the SP-127 live pass; see §2c)
+**Tasks:** **T-0477 – T-0479** (three) + ⚠️ **T-0498** (`[ScriviCore]`, see §3a) · **Next available:** T-0499 · Issues **I-0181** (⚠️ **now ASSIGNED — T-0498**), ⚠️ **I-0182** (found by the SP-127 live pass; see §2c)
 
 ⚠️ **GATE SATISFIED:** SP-123 closed 2026-08-29 — the rig is reachable, builds natively, and runs the
 app on a real display.
@@ -156,8 +156,9 @@ exists* (`WorldStore.cpp:330-348`); ⚠️ **an unmounted Linux volume satisfies
 reading it would have shipped this defect.** ⚠️ **`missing` is the one status that invites DESTRUCTIVE
 remedies against an intact world** (Doc 2 §7.2.1) — ⚠️ **[[I-0115]]'s class, re-earned via a new trigger.**
 
-⚠️ **NOT FIXED.** ⚠️ **S3 must first establish whether the mountpoint survives a PHYSICAL yank** —
-udisks2 may remove it, which changes which branch fires.
+⚠️ **NOT FIXED — but now ASSIGNED: [T-0498](#3a-t-0498--the-core-resolution-fix-for-i-0181).**
+⚠️ **S3 must first establish whether the mountpoint survives a PHYSICAL yank** — udisks2 may remove it,
+which changes which branch fires. ⚠️ **That is why T-0498 is GATED on T-0477, not started alongside it.**
 
 ---
 
@@ -219,16 +220,195 @@ is CONFIRMING evidence for the table**, ⚠️ **but over `cifs`, which is not w
 
 ---
 
+## 2d. ✅ THE S3 DRIVE IS PROVISIONED (2026-09-07) — ⚠️ **and the filesystem is a RECORDED VARIABLE**
+
+⚠️ **`Scrivi-Worlds` is APFS. Ubuntu cannot mount it** — the rig reported *"apfs is not configured for
+this kernel"*, which is correct and not a misconfiguration.
+
+⚠️ **An APFS driver was CONSIDERED AND REJECTED.** `apfs-fuse` is read-only (⚠️ **so it cannot produce a
+torn write at all**) and `linux-apfs-rw` is out-of-tree and explicitly experimental — ⚠️ **not to be
+pointed at 931 GB of real manuscripts.** ✅ **The deciding argument is methodological, not practical:**
+⚠️ **a FUSE driver fails through the FUSE layer, not the block layer**, so S3 would have measured the
+DRIVER and inferred the kernel — ⚠️ **the exact substitution this Epic exists to stop.**
+
+✅ **THE USER PARTITIONED THE DRIVE (2026-09-07):** the APFS partition ⚠️ **keeps the real files,
+untouched**, and a second **`MS-DOS (FAT)`** partition — ⚠️ **FAT32 (`vfat`)**, which Disk Utility's
+plain "MS-DOS (FAT)" produces at this size — carries ✅ **a COPY of the world** for S3.
+⚠️ **Confirm with `lsblk -f` on the rig rather than trusting this note.**
+
+| ✅ What this BUYS | ⚠️ What it COSTS |
+| ----------------- | ---------------- |
+| ✅ **`vfat` is IN-KERNEL** — no driver, no FUSE layer between the yank and the observation | ⚠️ **`vfat` has NO POSIX ownership or permissions** — uid/gid/mode come from mount options |
+| ✅ **The real drive stays APFS and stays on the Mac** — no 931 GB destroy-and-restore | ⚠️ **Any permission-shaped observation is an ARTEFACT**, exactly like VirtioFS's `root:root` flattening in §2b |
+| ✅ **Block-layer behaviour — stranded FDs, stale mounts, torn writes — is filesystem-agnostic and stays VALID** | ⚠️ **The world under test is a COPY on a different filesystem than Apple's** — ⚠️ **`WorldVolumeStatus` is read on both** |
+
+⚠️ **§2 already rules that the protocol is "a variable to RECORD, not a detail to gloss."** ✅ **The same
+applies to the local filesystem** — ⚠️ **T-0477's findings MUST state that S3 ran on `vfat`.**
+
+### ✅ Two artifacts added (2026-09-07)
+
+| Artifact | ⚠️ The gap it closes |
+| -------- | -------------------- |
+| ✅ **`platforms/linux/tools/s3-baseline-capture.sh`** | ⚠️ **§4 requires BEFORE/DURING/AFTER; `volume-loss-probe.sh` covers only during and after.** ⚠️ **NOTHING captured `scrivi_get_world_status`** — which §4 itself calls ⚠️ **THE INPUT TO T-0478.** ⚠️ **It exits non-zero and refuses to pass silently when that probe is unavailable.** ✅ **Also takes per-file checksums — the ORACLE without which the torn-write test is unfalsifiable.** |
+| ✅ **`T-0477-RUNBOOK.md` §5.0–5.3** | ⚠️ **Records the APFS/FAT32 decision, and makes the MOUNTPOINT-OWNERSHIP question deliberate** — ⚠️ **`/media/*` (udisks2, likely REMOVED) vs `/mnt/*` (hand-mounted, likely SURVIVES).** ⚠️ **§2b says this decides WHICH BRANCH of T-0498 fires**, so ✅ **both must be measured, not whichever the drive happened to land on.** |
+
+⚠️ **NEITHER closes an AC.** ⚠️ **T-0477 remains In Progress and T-0478 remains HARD-GATED** — ✅ **these
+are instrumentation, and the sprint's rule is that the findings win.**
+
+---
+
+## 2e. ✅ **S3 IS DONE (2026-09-07)** — ⚠️ **and it overturned an assumption while finding a defect nobody was hunting**
+
+✅ **THE USER PULLED THE DRIVE ON `oathkeeper`.** ⚠️ **Full findings:**
+`platforms/linux/tools/T-0477-FINDINGS-S3.md`
+
+| ✅ Observed | ⚠️ Consequence |
+| ----------- | -------------- |
+| ⚠️ **The yank was SILENT** — no error, no warning | ⚠️ **The predicted `EIO`/`ESTALE` storm did NOT occur** |
+| ✅ **udisks2 REMOVED the mountpoint `/run/media/<user>/<label>`** | ✅ **I-0181's false `missing` is NOT REACHED on the automounted path** — ⚠️ **the parent is gone, so the core resolves the honest `unavailable`, exactly as macOS does** |
+| ⚠️ **Scrivi still said AVAILABLE, and a double-click still SUCCEEDED** | ⚠️ **NEW DEFECT — [I-0192]** |
+| ✅ **A scene change flipped it to `unavailable`** | ✅ **The core is honest WHEN ASKED** |
+
+### ⚠️ The assumption that fell
+
+⚠️ **§2b established that Linux KEEPS the mountpoint where macOS removes it, making the false `missing`
+a Linux-specific trap.** ✅ **That is TRUE for a hand-mounted path and FALSE for the automounted one** —
+⚠️ **and the automounted path is what a real writer's machine uses.**
+
+✅ **The `/mnt` half was RULED NOT WORTH RUNNING (user, 2026-09-07)**, and ⚠️ **the ruling is not a gap**:
+⚠️ **a hand-created `/mnt` directory is an ordinary directory the operator owns, and nothing has any
+mandate to delete it.** ✅ **udisks2 removes `/run/media/...` precisely BECAUSE it created it.**
+⚠️ **T-0498 keeps its justification** — ✅ **the `/mnt` path is real and reachable, and there the false
+`missing` DOES fire** — ⚠️ **its trigger is simply narrower than this sprint assumed.**
+
+### ⚠️ **[I-0192] — the finding the sprint was NOT looking for**
+
+⚠️ **A world on a physically-removed drive kept reporting AVAILABLE, and a double-click kept returning
+SUCCESS, until a scene change forced a re-resolve.** ⚠️ **This INVERTS the failure mode the Epic was
+built around:** ⚠️ **§2b and §2c are about lower layers LYING** — ✅ **here the kernel and the core were
+both honest and on time, and the APP simply never asked.** ⚠️ **A CACHED STATUS WITH NO INVALIDATION,
+which T-0498 does not touch.**
+
+### ⚠️ **The instrumentation did NOT produce any of this** — ⚠️ **and that is a process finding**
+
+⚠️ **`volume-loss-probe.sh` was run on `Flitwick-5` (the MacBook) against a `/run/media/...` path that
+does not exist on macOS**, because ⚠️ **the runbook never said WHICH MACHINE each command belonged to.**
+⚠️ **§5.1 also instructed the user to BUILD A BINARY on `oathkeeper`, which has no dev environment** —
+⚠️ **and a binary that did not exist in the repo at the time.**
+
+✅ **Fixed:** ⚠️ **runbook §0a now tags EVERY command 🐧 `oathkeeper` or 🍎 `Flitwick-5`**, and
+✅ **`scrivi_world_probe` now exists** (`ScriviCore/tools/scrivi_world_probe.cpp`, ⚠️ **Qt-free**, so it
+builds without the Linux app configured).
+
+⚠️ **THE LESSON IS SHARPER THAN THE FIX:** ⚠️ **no probe in §4's table would have caught I-0192 even had
+it run correctly** — ✅ **every one of them questions the OS, and the OS was truthful throughout.**
+✅ **A human noticed that a double-click still said SUCCESS.** ⚠️ **`feedback_live_pass_finds_what_suites_cannot`,
+one layer further out: a green suite never means usable, and ⚠️ neither does correct instrumentation.**
+
+---
+
 ## 3. Tasks
 
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
-| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION — FINDINGS ONLY, NO CODE.** ⚠️ **THREE scenarios (S1/S2/S3)**; ⚠️ **the USER pulls, Claude instruments** | **High** | 🟡 **In Progress** — ⚠️ **blocked on the rig being AWAKE** |
+| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION — FINDINGS ONLY, NO CODE.** ⚠️ **THREE scenarios (S1/S2/S3)**; ⚠️ **the USER pulls, Claude instruments** | **High** | 🟡 **In Progress** — ✅ **S1 captured; S3 ✅ DONE 2026-09-07** (`T-0477-FINDINGS-S3.md`) — ⚠️ **S2 still owed.** ⚠️ **S3 was observed BY HAND; the probe contributed nothing (see §2e)** |
 | **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** — `unmounted` / `offline` / `missing`, ⚠️ **written AGAINST T-0477's findings, NEVER from documentation** | **High** | 🔵 **Not started** — ⚠️ **HARD-GATED on T-0477 reporting** |
 | **T-0479** | ⚠️ **Correct Porting Outline §9** from what the rig actually taught | **Medium** | 🔵 **Not started** |
+| **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from DIRECTORY EXISTENCE** — [I-0181]. ✅ **Add a device-identity primitive to `FileSystem`**; require *package absent* **AND** *same device as parent* before `missing`. ⚠️ **CORE fix, not a platform refinement** | **Medium** | 🔵 **Not started** — ⚠️ **GATED on T-0477 S3** (see §3a) |
 
 ⚠️ **T-0478 MUST NOT START BEFORE T-0477 REPORTS.** ⚠️ **The gate is the POINT of the sprint, not
 ceremony.** ✅ **If T-0477's findings contradict this plan, the findings win.**
+
+---
+
+## 3a. T-0498 — ⚠️ **the CORE resolution fix for [I-0181]**
+
+**Codebase:** ⚠️ **`[ScriviCore]`** — ⚠️ **NOT `[Linux]`.** This is the sprint's only cross-platform
+deliverable; it lands in the shared core and changes what BOTH platforms report.
+
+### The defect, precisely
+
+`WorldStore::resolve` (`ScriviCore/src/worlds/WorldStore.cpp:290-296`) establishes `missing` from two
+facts:
+
+```cpp
+auto pkgE = fs_.exists(cand);
+if (pkgE.ok() && !pkgE.value()) {           // package definitively absent
+    auto parentDir = util::parent(cand);
+    if (auto e = fs_.exists(parentDir); e.ok() && e.value()) {
+        sawContainerButNoPackage = true;    // → missing
+    }
+}
+```
+
+⚠️ **An unmounted volume satisfies BOTH.** ✅ **A mountpoint is just a directory**; when the device goes
+away the directory survives and its pre-mount contents reappear. So the container "exists", the package
+does not, and ⚠️ **an intact world on a pulled drive gets the ONE status reserved for positive proof of
+absence** — the status Doc 2 §7.2.1 says invites DESTRUCTIVE writer remedies.
+
+### ⚠️ **This is the THIRD leak of the same inference**
+
+✅ **The file's own comments record the prior two**, both narrowings of this exact block:
+
+| Prior fix | What it excluded | Why it was still wrong afterwards |
+| --------- | ---------------- | --------------------------------- |
+| **T-0419** | a sandboxed host: package unreadable but PRESENT | narrowed the READ, not the CONTAINER question |
+| **T-0420 / [I-0136]** | a package too NEW to parse | ditto — parse-level, not container-level |
+| ⚠️ **T-0498** | ⚠️ **an unmounted volume** | ⚠️ **directory EXISTENCE was the wrong question all three times** |
+
+⚠️ **Each fix narrowed a symptom and left the inference intact.** ✅ **T-0498 attacks the inference.**
+
+### ✅ The fix direction — ⚠️ **the user's ruling, and 2b's measurement**
+
+⚠️ **`exists()` cannot answer "is a device mounted here".** ✅ **`st_dev` vs the parent's can** — 2b
+measured it working on a real Linux kernel, and I-0181 records the identical result on macOS with a
+hand-specified mountpoint.
+
+⚠️ **`FileSystem` has NO device-identity primitive** (`ScriviCore/include/scrivi/Services.hpp:38`). One
+must be added — e.g. `Result<std::uint64_t> deviceID(const AbsolutePath&)`.
+
+✅ **Blast radius is SMALL — exactly two implementations:**
+
+| Implementation | Change |
+| -------------- | ------ |
+| `platform/LocalFileSystem` | real `stat`, populating `st_dev` |
+| `ScanCountingFileSystem` (`tests/integration/ObjectIndexTests.cpp:36`) | ⚠️ **a pure forwarding decorator** — one added line |
+
+⚠️ **`statvfs` MUST NOT be used.** ✅ **2b measured it SUCCEEDING on an unmounted path**, reporting the
+root filesystem's block counts — ⚠️ **a confident success with a plausible number**, which is worse than
+a failure.
+
+### ⚠️ **The gate, and why it is real**
+
+⚠️ **T-0498 is GATED on T-0477's S3** (physical yank), for the reason §2b already states: ⚠️ **udisks2
+may REMOVE the mountpoint on a physical yank**, which changes ⚠️ **which branch fires** — and therefore
+whether this fix is reached at all in the case that matters most.
+
+⚠️ **2b's own caveat cuts the other way too:** ✅ **`st_dev` proves "not a mount NOW", NOT "a volume went
+away".** ⚠️ **A directory that NEVER held a mount matches identically** — ✅ **which is the ordinary
+world-deleted case and MUST still report `missing`.** ⚠️ **So the fix cannot key on `st_dev` alone as
+proof of a departed volume; it uses the match to WITHHOLD `missing`, never to assert absence.**
+
+### Success criteria
+
+- [ ] `FileSystem` gains a device-identity primitive; ⚠️ **both implementations supply it**
+- [ ] `resolve` sets `sawContainerButNoPackage` ⚠️ **only when package-absent AND same-device-as-parent**
+- [ ] ⚠️ **Anything else resolves `unavailable`**, never `missing`
+- [ ] ✅ **A mock `FileSystem` returning a MISMATCHED deviceID proves the new branch** (unit)
+- [ ] ✅ **Every existing `missing` test in `WorldTests.cpp` still passes** — ⚠️ **same-device absence is STILL positively established absence**
+- [ ] ⚠️ **VERIFIED BY A REAL DRIVE PULL on the rig, not by the mock alone**
+
+⚠️ **The mock proves the LOGIC; only the rig proves the PREMISE.** ⚠️ **This Issue was found BY
+INSTRUMENTATION** — ✅ **its fix earns the same standard.**
+
+### ⚠️ Latency — stated honestly
+
+⚠️ **This defect reaches NO writer on EITHER platform today**, and T-0498 does not claim otherwise:
+
+- ⚠️ **Linux has no Worlds READ path that surfaces status to a writer.** ⚠️ **SP-127 built the Scene Inspector and a `Manage Worlds…` dialog** — ⚠️ **an earlier note in §2 of this sprint claimed SP-127 satisfied I-0181's gate; that is TRUE for the surface's existence, and the false `missing` is now REACHABLE there.**
+- ⚠️ **On Apple the surface exists but `diskarbitrationd` TIDIES `/Volumes` mountpoints it created** — ✅ **so Apple is MASKED BY CONVENTION, not protected.** ⚠️ **A hand-specified mountpoint defeats the masking**, which is exactly what I-0181 measured.
+
+✅ **Fixed on the merits: a latent trap in the shared core, removed before the surfaces grow into it.**
 
 ---
 
@@ -308,6 +488,17 @@ assumed.**
 ---
 ---
 
+
+*Last Updated: 2026-09-04 (⚠️ **T-0498 WRITTEN into SP-124** — `[ScriviCore]`, the core resolution fix
+for **[I-0181]**, ⚠️ **which is no longer Unassigned.** ✅ **The fix attacks the INFERENCE, not a third
+symptom**: `resolve` establishes `missing` from DIRECTORY EXISTENCE, which an unmounted volume
+satisfies — ⚠️ **and T-0419 and T-0420/[I-0136] each narrowed this same block without touching the
+question it asks.** ✅ **`FileSystem` gains a device-identity primitive; blast radius is TWO
+implementations.** ⚠️ **`statvfs` is RULED OUT — 2b measured it succeeding on an unmounted path.**
+⚠️ **GATED on T-0477's S3**, because udisks2 may remove the mountpoint on a physical yank and change
+which branch fires. ⚠️ **SP-124 remains PAUSED — writing a Task into it does NOT activate it.**
+⚠️ **Next available Task is T-0499, NOT T-0492** — the older notes below say T-0492 and were correct
+when written; T-0492–T-0497 have since been taken. Prior note follows.)*
 
 *Last Updated: 2026-08-30, second pass (**SP-126 ✅ CLOSED — user-approved**, archived to
 [`Closed/Sprint-SP-126.md`](Closed/Sprint-SP-126.md) with its six Tasks verified and archived in the

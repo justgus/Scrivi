@@ -4,7 +4,19 @@ Issues listed here are open and documented but not currently assigned to a Sprin
 
 **Currently: 0.** The Issue backlog is **empty** — no open Issues are unassigned to a Sprint.
 
+✅ **I-0191 moved to `Issue-active.md` 2026-09-07** — fixed the same day it was filed; ⚠️ **awaiting user verification.**
+
 ---
+---
+
+*Last Updated: 2026-09-07 — **I-0191 opened** on the user's report of an unexplained folder in the
+repo root. ⚠️ **Three garbage-named, EMPTY app-support trees** (dated 2026-08-17) were deleted; ⚠️ **the
+mechanism that creates them was NOT fixed.** ✅ **Root cause found by reading the code and REPRODUCED**:
+`bootstrapAppSupport` validates `appSupportRoot` in no way, `AbsolutePath` is a bare `std::string`, and
+the C ABI's `S()` turns NULL into `""`. ✅ **Test-suite audit (user-requested) came back CLEAN** — every
+fixture cleans up via RAII and roots at an absolute `temp_directory_path()`, so ⚠️ **the suite is not the
+source**; its real gap is that it can only see its OWN temp dir (AC4). ⚠️ **The exact call site that made
+these three folders is NOT identified — recorded as an open question, not guessed.** Prior note follows.*
 
 *Last Updated: 2026-08-20 Removed  references to I-0118 which is verified and does not belong here.  
 

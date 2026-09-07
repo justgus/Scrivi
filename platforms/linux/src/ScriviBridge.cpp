@@ -31,6 +31,36 @@ private:
 };
 } // namespace
 
+// ---------------------------------------------------------------------------
+// I-0191 / AC6 — the `qstring.toUtf8().constData()` pattern is SAFE AS WRITTEN.
+// ---------------------------------------------------------------------------
+//
+// Every scrivi_* call below passes `qstring.toUtf8().constData()`: a pointer into
+// a TEMPORARY QByteArray. That shape is the classic dangling-pointer bug, and
+// I-0191 asked whether it was the source of the junk `appSupportRoot` bytes that
+// produced control-character directories in the repo root.
+//
+// Audited 2026-09-07: it is NOT. A temporary lives until the end of the FULL
+// EXPRESSION that created it, which here is the scrivi_* call itself — so every
+// pointer is valid for the whole duration of the callee. Checked mechanically
+// across platforms/linux/src: all 265 occurrences are direct call arguments, and
+// NONE is ever bound to a variable, captured by a lambda, or kept past the call.
+//
+// ⚠️ The rule that keeps it safe: NEVER hoist one of these into a local.
+//
+//     const char* p = s.toUtf8().constData();   // ⚠️ DANGLING — QByteArray dies here
+//     scrivi_foo(p);                            //    reads freed memory
+//
+// Bind the QByteArray first if a pointer must outlive the expression:
+//
+//     const QByteArray bytes = s.toUtf8();
+//     scrivi_foo(bytes.constData());            // ✅ valid while `bytes` is in scope
+//
+// Compare I-0122 (commit b3a86ce): a stack-use-after-scope that stayed green for
+// weeks because arm64 happened to leave the freed bytes intact, and only the
+// x86-64 sanitized CI leg could see it. A local repro on the dev Mac is not
+// evidence for this class of defect.
+
 ScriviBridge::ScriviBridge(QObject* parent) : QObject(parent) {}
 
 void ScriviBridge::bootstrap(const QString& displayName,
