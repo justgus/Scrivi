@@ -133,6 +133,15 @@ target_link_libraries(scrivi_linux
 #
 # ⚠️ A checked-in fallback header keeps a plain `cmake --build` working for anyone
 # who never uses the deploy script (the Docker image, a fresh clone).
+# ⚠️ CONSEQUENCE, stated plainly: a build that does NOT go through the deploy
+# script reports the LAST DEPLOYED number, not its own. ✅ That is the right
+# trade for the question being asked ("is the rig running what I just pushed?"),
+# ⚠️ but it means the number is NOT evidence for a locally-built binary.
+#
+# ⚠️ A `cmake/WriteBuildStamp.cmake` from failed attempt #2 was committed on
+# 2026-09-07 while rescuing rig-only files, and DELETED the same day: it was
+# never referenced, and leaving it invited exactly the re-wiring this comment
+# block warns against. The lessons above are the part worth keeping.
 target_include_directories(scrivi_linux PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/generated)
 
 target_include_directories(scrivi_linux PRIVATE src)

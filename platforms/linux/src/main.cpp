@@ -38,8 +38,16 @@
 // be running a DAY-OLD binary that predated the whole sprint — a live pass
 // against it would have reported on the wrong code entirely.
 //
-// ⚠️ SCRIVI_BUILD_STAMP comes from a GENERATED header (ScriviBuildStamp.hpp,
-// written by cmake/WriteBuildStamp.cmake on every build). ⚠️ Deliberately NOT
+// ⚠️ SCRIVI_BUILD_STAMP comes from a GENERATED header
+// (platforms/linux/generated/ScriviBuildStamp.hpp), written by
+// platforms/linux/deploy-to-rig.sh — ⚠️ by the DEPLOY, NOT by CMake. The counter
+// belongs to the PUSH, because the question being answered is "did the source I
+// just pushed reach the rig?" See the rationale in platforms/linux/CMakeLists.txt:
+// two CMake-side attempts were tried on 2026-08-30 and BOTH failed misleadingly
+// (a custom target trailed by one build; a custom command froze at 1).
+// ⚠️ A checked-in fallback keeps a plain `cmake --build` working for a fresh
+// clone or the Docker image — ⚠️ so a build that never runs the deploy script
+// reports the LAST DEPLOYED number, not its own. Deliberately NOT
 // `__DATE__`/`__TIME__` of this file: those only update when main.cpp itself
 // recompiles, so a build that changed other files left the stamp reading the
 // PREVIOUS build's time — a version check that reports "unchanged" after a real
