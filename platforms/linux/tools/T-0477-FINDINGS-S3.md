@@ -46,7 +46,7 @@ Scrivi running with the project open.
 | - | -------------- | --------------- |
 | **1** | ⚠️ **NO error. NO warning. Nothing.** The drive *"just unmounted, which is what USB is supposed to do"* | ⚠️ **The predicted `EIO`/`ESTALE` storm DID NOT HAPPEN** |
 | **2** | ⚠️ **The ENTIRE mountpoint directory `/run/media/justgus/SCRIVI-OTHE` was REMOVED** | ✅ **udisks2 cleans up the mountpoint it created** |
-| **3** | ⚠️ **Scrivi CONTINUED to report the world AVAILABLE**, and a double-click on a world object ⚠️ **still returned the SUCCESS message** | ⚠️ **THE APP WAS STALE WHILE THE OS WAS ALREADY HONEST** |
+| **3** | ⚠️ **Scrivi CONTINUED to report the world AVAILABLE**, and a double-click on a world object ⚠️ **still returned the SUCCESS message** | ⚠️ **A GENUINE READ SUCCEEDED against a removed volume** — see §4. ⚠️ **NOT staleness: the app performs a real `openObject` and the core caches no verdict** |
 | **4** | ✅ **On a SCENE CHANGE, the world flipped to `unavailable`** — and **Manage Worlds** agreed | ✅ **The status is correct once RE-RESOLVED** |
 
 ---
@@ -97,7 +97,7 @@ is simply narrower than the sprint assumed.**
 
 ---
 
-## 4. ⚠️ FINDING 2 — **THE APP IS STALE UNTIL SOMETHING FORCES A RE-RESOLVE**
+## 4. ⚠️ FINDING 2 — **A REMOVED VOLUME STILL READ SUCCESSFULLY**
 
 ⚠️ **THIS IS THE MOST IMPORTANT RESULT OF S3, AND THE SPRINT WAS NOT LOOKING FOR IT.**
 
@@ -105,36 +105,91 @@ is simply narrower than the sprint assumed.**
 AVAILABLE, and a double-click on a world object STILL RETURNED SUCCESS.** ⚠️ **Only a SCENE CHANGE
 flipped it to `unavailable`.**
 
-✅ **The OS was honest IMMEDIATELY. The core is honest WHEN ASKED. ⚠️ The APP DID NOT ASK.**
+### ⚠️ **FIRST DIAGNOSIS WITHDRAWN — the code disproved it (2026-09-07)**
 
-⚠️ **So the staleness is NOT a mount-layer lie** — ⚠️ **it is a CACHED STATUS with no invalidation.**
-⚠️ **Note how this INVERTS the failure mode the Epic was hunting:** §2b and the SMB pass are about the
-OS reporting something FALSE; ✅ **here every layer beneath the app was telling the truth on time.**
+⚠️ **This was first written up as an APP-LAYER defect: a cached status with no invalidation, and a
+placeholder dialog reusing a name it already held.** ⚠️ **Both are FALSE**, and the truth is worse:
 
-### ⚠️ Why this matters more than it looks
+| ⚠️ Claimed | ✅ What the code actually does |
+| ---------- | ----------------------------- |
+| The dialog reuses a cached name | ⚠️ **`EditorShell::onOpenObjectRequested` calls `bridge_->openObject(...)`, checks `lastCallFailed()`, and PARSES THE NAME FROM THE RETURNED `objectJson`.** Its own comment: *"the object is genuinely read here"* |
+| The app caches world status | ⚠️ **It does not.** ✅ **The read is guarded end-to-end**: `ObjectStore::open` → `findByID` → `kindDirFor`, which calls `WorldStore::resolve()` and ⚠️ **refuses unless `available`** |
+| `resolve` served a stale verdict | ⚠️ **It caches NO verdict.** ✅ **`available` is set only after READING AND PARSING `world.json`** (`WorldStore.cpp:337-342`) |
 
-- ⚠️ **A writer who does not change scenes is told their world is fine while it is gone.** ⚠️ **The
-  double-click SUCCESS is the sharp edge** — it is an affirmative claim, not a stale label.
-- ⚠️ **Any future "is the world there?" check that trusts cached status inherits this**, whatever
-  T-0498 does to `resolve`. ✅ **T-0498 fixes what the core CONCLUDES; it does not make the app ASK.**
-- ⚠️ **A green suite cannot see this** — it is about WHEN a question is asked, not what the answer is.
-  ✅ **Compare `feedback_live_pass_finds_what_suites_cannot`.**
+✅ **So there is no staleness anywhere in the chain.** ⚠️ **THE FILESYSTEM ITSELF ANSWERED SUCCESSFULLY
+FOR A VOLUME THAT WAS PHYSICALLY GONE**, and every layer above correctly trusted a correct answer.
 
-### ⚠️ What is NOT yet known — do not guess these
+### ⚠️ The likely mechanism — ⚠️ **and 2b already measured its stronger form**
 
-- ⚠️ **What the refresh trigger actually is.** *"Change scenes"* is what the user did; ⚠️ **whether it
-  is scene selection specifically, any navigator action, or an unrelated periodic refresh is UNMEASURED.**
-- ⚠️ **Whether the double-click SUCCESS came from cache or from a real read that spuriously succeeded.**
-  ⚠️ **These are different defects with different fixes** — ⚠️ **a page-cache hit is I-0174's territory;
-  a cached STATUS is not.**
-- ⚠️ **Whether an open FD was stranded.** ⚠️ **Unmeasured — the probe never ran on the rig.** ⚠️ **Note
-  the 2b container pass found a held FD surviving `umount -l` ENTIRELY**, so *"the editor still works"*
-  ⚠️ **is NOT evidence the volume is present.**
+⚠️ **Page cache / unreaped dentries.** ✅ **SP-124 §2b recorded a held FD surviving `umount -l` +
+`losetup -D` ENTIRELY** — reading AND writing fine while the PATH broke instantly — and drew the rule
+⚠️ ***"the writer's editor still works" is NOT evidence the volume is present.*** ⚠️ **This is the same
+rule, one call up.**
 
-⚠️ **These want their own Issue and probably their own instrumentation run.** ⚠️ **Do NOT fold them into
-T-0498, which is a CORE resolution fix and does not touch when the app asks.**
+### ⚠️ **This is I-0181's SIBLING, not its opposite**
 
----
+| | ⚠️ The wrong question | ⚠️ The wrong conclusion |
+| - | -------------------- | ----------------------- |
+| **I-0181** | *"does the directory exist?"* | ⚠️ **Infers ABSENCE it cannot prove** → false `missing` |
+| ⚠️ **I-0192** | *"did the read succeed?"* | ⚠️ **Infers PRESENCE it cannot prove** → false `available` |
+
+✅ **Both are `resolve` reasoning from a filesystem answer that does not mean what it appears to mean.**
+⚠️ **T-0498's `st_dev` primitive is PLAUSIBLY the fix for both directions** — ⚠️ **but that must be
+MEASURED, not assumed.**
+
+### ✅ **HOW TO SETTLE IT — the probe run**
+
+⚠️ **NOT YET SETTLED. Do not fold this into T-0498 until measured** — ⚠️ **fixing `resolve` from a
+reading of the code is precisely what I-0181's history warns against.**
+
+✅ **`scrivi_world_probe` now exists and builds on the rig** (`ScriviCore/tools/scrivi_world_probe.cpp`,
+⚠️ **Qt-free**). ⚠️ **It did not exist when S3 ran — which is why S3 could not answer this.**
+
+| Phase | Command (🐧 `oathkeeper`) | ⚠️ What it settles |
+| ----- | ------------------------ | ------------------ |
+| **BEFORE** | `scrivi_world_probe <project>` | Healthy baseline envelope |
+| ⚠️ **IMMEDIATELY AFTER the yank** | ⚠️ **same command, REPEATED every ~2 s** | ⚠️ **Does `resolve` still say `available` — and for HOW LONG?** |
+| **AFTER a scene change** | same command | Confirms the flip from the ABI, not the screen |
+
+⚠️ **The decisive row is the second, and it must be SAMPLED, not snapshotted** — ✅ **same reason
+`volume-loss-probe.sh` streams.**
+
+| ⚠️ If the probe shows… | ✅ Then |
+| ---------------------- | ------- |
+| `available` ⚠️ **DECAYING** on its own | ✅ **The core is CORRECT** — page cache was answering; the only defect is that nothing re-asks promptly. ⚠️ **NOT T-0498's** |
+| `available` ⚠️ **PERSISTING** | ⚠️ **`resolve` asserts presence it cannot prove** — ✅ **T-0498 fixes BOTH directions**; I-0192 folds into it |
+
+### ✅ **PARTIAL MEASUREMENT TAKEN 2026-09-07 — over SSH, drive already gone, no console needed**
+
+⚠️ **The decay/persist question was NOT fully answered** (that needs sampling ACROSS the yank, and the
+drive was already out). ✅ **But the STEADY-STATE half was measured directly with `scrivi_world_probe`,
+and it CLEARS the core:**
+
+```
+### scrivi_get_world_status — world_character_01a000fb-…
+{ "ok": true, "result": {
+    "lastKnownPackagePath": "/run/media/justgus/SCRIVI-OTHE/Eskandar.scrivworld",
+    "packagePath": "",
+    "status": "unavailable" } }
+```
+
+| ✅ Measured | ⚠️ What it establishes |
+| ----------- | ---------------------- |
+| ⚠️ **`status` is `unavailable`** with the drive gone | ✅ **NOT `missing`** — ⚠️ **I-0181's false `missing` is confirmed NOT to fire on the udisks2 path**, now from the ABI rather than from reasoning about §2 |
+| ✅ **`packagePath` EMPTY, `lastKnownPackagePath` PRESERVED** | ✅ **Exactly the honest split the design intends** — the path is remembered without being claimed |
+| ✅ **`binding.json` stores NO status key** (`cachedIndex`, `displayName`, `epochOffsetMs`, `reference`, `schema`, `worldID`) | ⚠️ **There is NO persisted verdict to go stale** — ✅ **corroborates the code reading** |
+| ✅ **Stable across 3 repeated calls** | ⚠️ **Not a transient** |
+
+⚠️ **WHAT THIS DOES NOT SETTLE:** ⚠️ **whether `available` PERSISTS or DECAYS in the seconds immediately
+after a yank.** ⚠️ **That is still the deciding measurement**, and it still needs the sampled run above.
+✅ **But the steady state is correct**, so ⚠️ **whatever I-0192 turns out to be, it is a TRANSIENT
+window, not a stuck verdict** — which materially lowers its severity.
+
+### ⚠️ Still unmeasured — do not guess
+
+- ⚠️ **What the refresh trigger actually is.** *"Change scenes"* is what the user did; ⚠️ **whether it is
+  scene selection, any navigator action, or a periodic refresh is UNKNOWN.**
+- ⚠️ **Whether an FD was stranded.** ⚠️ **The probe never ran on the rig.**
 
 ## 5. ⚠️ What S3 did NOT produce — stated as a RESULT
 
@@ -162,7 +217,7 @@ here.** ✅ **That is consistent with §2c's own caveat**: those were `cifs` cli
 | Is the mountpoint reliable evidence? | ⚠️ **NO — it depends ENTIRELY on who mounted it.** ⚠️ **udisks2 removes it; a hand-mount does not.** ⚠️ **`WorldVolumeStatus` MUST NOT assume either** |
 | Does Linux need a stale-mount defence like Apple's? | ⚠️ **NOT on the automounted path** — ✅ **there is no stale entry.** ⚠️ **Still owed for `/mnt` and for `cifs` (§2c's zombie mount)** |
 | Is `unavailable` reachable honestly today? | ✅ **YES** — ⚠️ **the core resolved it correctly once asked** |
-| ⚠️ **Is a correct core enough?** | ⚠️ **NO.** ⚠️ **§4's staleness is an APP-LAYER defect that a correct `resolve` does not fix** |
+| ⚠️ **Can `resolve` trust a successful READ?** | ⚠️ **UNKNOWN — §4 is NOT SETTLED.** ⚠️ **A read succeeded on a removed volume**; ⚠️ **whether that decays (page cache) or persists (`resolve` asserting presence it cannot prove) decides whether this is T-0498's.** ✅ **Settle it with the `scrivi_world_probe` run in §4** |
 
 ---
 

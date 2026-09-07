@@ -266,7 +266,7 @@ are instrumentation, and the sprint's rule is that the findings win.**
 | ----------- | -------------- |
 | ⚠️ **The yank was SILENT** — no error, no warning | ⚠️ **The predicted `EIO`/`ESTALE` storm did NOT occur** |
 | ✅ **udisks2 REMOVED the mountpoint `/run/media/<user>/<label>`** | ✅ **I-0181's false `missing` is NOT REACHED on the automounted path** — ⚠️ **the parent is gone, so the core resolves the honest `unavailable`, exactly as macOS does** |
-| ⚠️ **Scrivi still said AVAILABLE, and a double-click still SUCCEEDED** | ⚠️ **NEW DEFECT — [I-0192]** |
+| ⚠️ **Scrivi still said AVAILABLE, and a double-click still SUCCEEDED** | ⚠️ **NEW DEFECT — [I-0192]**, ⚠️ **and NOT the one first filed** |
 | ✅ **A scene change flipped it to `unavailable`** | ✅ **The core is honest WHEN ASKED** |
 
 ### ⚠️ The assumption that fell
@@ -281,13 +281,29 @@ mandate to delete it.** ✅ **udisks2 removes `/run/media/...` precisely BECAUSE
 ⚠️ **T-0498 keeps its justification** — ✅ **the `/mnt` path is real and reachable, and there the false
 `missing` DOES fire** — ⚠️ **its trigger is simply narrower than this sprint assumed.**
 
-### ⚠️ **[I-0192] — the finding the sprint was NOT looking for**
+### ⚠️ **[I-0192] — the finding the sprint was NOT looking for** — ⚠️ **RE-DIAGNOSED 2026-09-07**
 
 ⚠️ **A world on a physically-removed drive kept reporting AVAILABLE, and a double-click kept returning
-SUCCESS, until a scene change forced a re-resolve.** ⚠️ **This INVERTS the failure mode the Epic was
-built around:** ⚠️ **§2b and §2c are about lower layers LYING** — ✅ **here the kernel and the core were
-both honest and on time, and the APP simply never asked.** ⚠️ **A CACHED STATUS WITH NO INVALIDATION,
-which T-0498 does not touch.**
+SUCCESS, until a scene change forced a re-resolve.**
+
+⚠️ **THE FIRST DIAGNOSIS — "a cached status with no invalidation" — IS WITHDRAWN.** ✅ **Reading the code
+disproved it:** the double-click performs a ⚠️ **genuine `openObject` through the ABI** and parses the
+name from the returned `objectJson`; ⚠️ **there is no app-side status cache**, and ✅ **`WorldStore::resolve`
+caches no verdict either** — it returns `available` only after reading and parsing `world.json`
+(`WorldStore.cpp:337-342`). ⚠️ **Re-scoped `[Linux]` → `[ScriviCore]`.**
+
+⚠️ **So THE FILESYSTEM ANSWERED SUCCESSFULLY for a volume that was physically gone**, and every layer
+above correctly trusted a correct answer. ⚠️ **Likely the PAGE CACHE** — ✅ **§2b already measured the
+stronger form**, a held FD outliving `umount -l` + `losetup -D` entirely.
+
+⚠️ **This is I-0181's SIBLING, not its opposite:** ⚠️ **I-0181 infers ABSENCE it cannot prove** (directory
+exists → `missing`); ⚠️ **I-0192 infers PRESENCE it cannot prove** (read succeeded → `available`).
+✅ **T-0498's `st_dev` primitive is plausibly the fix for BOTH directions.**
+
+⚠️ **NOT SETTLED, and MUST NOT be folded into T-0498 on inference** — ⚠️ **that is exactly how I-0181's
+block was narrowed three times without fixing it.** ✅ **The deciding measurement is a `scrivi_world_probe`
+run SAMPLED every ~2 s across a yank:** ⚠️ **a verdict that DECAYS is the page cache and is not T-0498's;
+one that PERSISTS is `resolve` asserting presence, and folds in.**
 
 ### ⚠️ **The instrumentation did NOT produce any of this** — ⚠️ **and that is a process finding**
 
