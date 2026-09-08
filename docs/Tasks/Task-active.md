@@ -36,7 +36,6 @@ is exactly the case.** ✅ **`reload()` is the correct hook** and is documented 
 | -- | ----- | ------ | ------ |
 | **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION** — S1/S2/S3 | **SP-124** | ⏸️ **PAUSED** — ✅ **S1 baseline captured; `cifs` mount intact on the rig** |
 | **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** | **SP-124** | ⏸️ **PAUSED** — ⚠️ **still HARD-GATED on T-0477** |
-| **T-0479** | ⚠️ **Correct Porting Outline §9** | **SP-124** | ⏸️ **PAUSED** |
 | **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from directory existence** — [I-0181]; ✅ **device-identity primitive on `FileSystem`** | **SP-124** | 🔵 **Not started** — ⚠️ **GATED on T-0477 S3** (Sprint §3a) |
 
 ## Previously: SP-126's six Tasks — ✅ Verified and archived

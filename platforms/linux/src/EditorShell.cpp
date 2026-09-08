@@ -1831,8 +1831,20 @@ QString EditorShell::writerFacingError(int code, const QString& message) const
     // generic. That is fragile if the core rewords, and it is deliberately
     // fail-safe: an unmatched message falls through to the raw text, so a
     // reworded core loses the friendly phrasing but never HIDES the error.
-    if (message.contains(QLatin1String("is unavailable"))
-        && message.contains(QLatin1String("world"))) {
+    // ⚠️ T-0478 widened this. `WorldStatus::offline` had never been PRODUCED by
+    // anything until SP-124, so matching only "is unavailable" was complete when
+    // written. It stopped being complete the moment the core learned to say
+    // "offline" — a world on a dead network share would have fallen through to
+    // the raw "world 'world_character_01a0…' is offline", which is exactly the
+    // UUID-shaped message this function exists to prevent.
+    //
+    // ⚠️ The message is built from `worldStatusName`, so these two strings are
+    // the core's vocabulary for "not usable but not deleted". `missing` is
+    // deliberately NOT here: it means the package was positively established
+    // absent, which is a different thing to tell a writer.
+    const bool unusableWorld = message.contains(QLatin1String("is unavailable"))
+                            || message.contains(QLatin1String("is offline"));
+    if (unusableWorld && message.contains(QLatin1String("world"))) {
         // Recover the world's display name from the binding cache when we can —
         // ⚠️ §7.2 requires the world to be NAMED, not anonymously warned about.
         QString name;
@@ -1846,8 +1858,24 @@ QString EditorShell::writerFacingError(int code, const QString& message) const
                 }
             }
         }
+        // ⚠️ T-0478: `offline` is SHARPER than `unavailable` and the writer is
+        // told which. "Offline" points at the network; "unavailable" stays
+        // deliberately vague because the core genuinely does not know why.
+        // ⚠️ Saying "offline" for an unplugged USB drive would be a new wrong
+        // answer, which is why the core only emits it on a positive errno.
+        const bool offline = message.contains(QLatin1String("is offline"));
+
         // ⚠️ Never implies the links are gone — they are HELD, which is the
         // guarantee the writer most needs to hear.
+        if (offline) {
+            return name.isEmpty()
+                       ? tr("That object's world is offline — the server sharing "
+                            "it can't be reached. Its links are held, and nothing "
+                            "has been lost.")
+                       : tr("World “%1” is offline — the server sharing it can't "
+                            "be reached. Its links are held, and nothing has been "
+                            "lost.").arg(name);
+        }
         return name.isEmpty()
                    ? tr("That object's world is unavailable — its links are held, "
                         "and nothing has been lost.")

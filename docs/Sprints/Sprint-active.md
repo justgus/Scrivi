@@ -51,7 +51,7 @@ BUILT, GREEN, and runs the app on real hardware.
 **Codebase:** `[Linux]` — ⚠️ **one Qt/C++ deliverable (T-0478); T-0477 ships NO code**
 **Date Activated:** 2026-08-31
 **Closes:** **AC4, AC5, AC6, AC7**
-**Tasks:** **T-0477 – T-0479** (three) + ⚠️ **T-0498** (`[ScriviCore]`, see §3a) · **Next available:** T-0499 · Issues **I-0181** (⚠️ **now ASSIGNED — T-0498**), ⚠️ **I-0182** (found by the SP-127 live pass; see §2c)
+**Tasks:** **T-0477 – T-0479** (three) + ⚠️ **T-0498** (`[ScriviCore]`, see §3a) · **Next available:** T-0499 · Issues **I-0181** (⚠️ **now ASSIGNED — T-0498**), ⚠️ **I-0182** (found by the SP-127 live pass; see §2c) · ⚠️ **I-0193**, ⚠️ **I-0194** and ⚠️ **I-0195** (✅ **filed 2026-09-08 from T-0478's LIVE PASS**; see §3b)
 
 ⚠️ **GATE SATISFIED:** SP-123 closed 2026-08-29 — the rig is reachable, builds natively, and runs the
 app on a real display.
@@ -392,8 +392,8 @@ an ABI-level run; ⚠️ **the DoD's live pass is still owed**).
 | ID | Title | Priority | Status |
 | -- | ----- | -------- | ------ |
 | **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION — FINDINGS ONLY, NO CODE.** ⚠️ **THREE scenarios (S1/S2/S3)**; ⚠️ **the USER pulls, Claude instruments** | **High** | ✅ **ALL THREE OBSERVED 2026-09-07** — S1 captured · **S3** (`T-0477-FINDINGS-S3.md`) · ✅ **S2** (`T-0477-FINDINGS-S2.md`, ⚠️ **two passes, 3,110 lines**). ⚠️ **NOT closed: the rig doc §7 and the writer-facing live pass are still owed by the DoD** |
-| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** — `unmounted` / `offline` / `missing`, ⚠️ **written AGAINST T-0477's findings, NEVER from documentation** | **High** | 🟢 **UNGATED 2026-09-07 — T-0477 has reported.** ⚠️ **Two findings CONSTRAIN it before a line is written:** ⚠️ **(1) `offline` was NEVER produced by the network case that DEFINES it** — the enum needs a ruling, ⚠️ **not a quiet omission**; ⚠️ **(2) the core BLOCKS ~10 s per call against a dead share** — ⚠️ **so it MUST NOT be called synchronously on the UI thread** |
-| **T-0479** | ⚠️ **Correct Porting Outline §9** from what the rig actually taught | **Medium** | 🔵 **Not started** |
+| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** — `unmounted` / `offline` / `missing`, ⚠️ **written AGAINST T-0477's findings, NEVER from documentation** | **High** | 🟡 **Implemented - Not Verified (2026-09-08).** ✅ **CORE VERIFIED ON REAL HARDWARE** — ⚠️ **`offline`/`hostUnreachable` emitted for the FIRST TIME EVER** (§3b). ⚠️ **BUT the live pass FOUND [I-0193] (High — 102 s UI freeze → Force Quit) and [I-0194]**, ⚠️ **and the writer-facing string is STILL UNREAD.** ⚠️ **Ruled on the enum rather than omitting it, which FINDING 2 demanded.** ⚠️ **Original gating note: UNGATED 2026-09-07 — T-0477 has reported.** ⚠️ **Two findings CONSTRAIN it before a line is written:** ⚠️ **(1) `offline` was NEVER produced by the network case that DEFINES it** — the enum needs a ruling, ⚠️ **not a quiet omission**; ⚠️ **(2) the core BLOCKS ~10 s per call against a dead share** — ⚠️ **so it MUST NOT be called synchronously on the UI thread** |
+| **T-0479** | ⚠️ **Correct Porting Outline §9** from what the rig actually taught | **Medium** | ✅ **DONE 2026-09-07** — ⚠️ **§9's RULE held; FOUR of its PREDICTIONS did not** (§§9.1–9.5, each naming prediction vs measurement). ⚠️ **Checklist grew 6 → 8 items.** ✅ **A §9 that survived unchanged would have been evidence it was never tested** |
 | **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from DIRECTORY EXISTENCE** — [I-0181]. ✅ **Add a device-identity primitive to `FileSystem`**; require *package absent* **AND** *same device as parent* before `missing`. ⚠️ **CORE fix, not a platform refinement** | **Medium** | 🔵 **Not started** — ⚠️ **GATED on T-0477 S3** (see §3a) |
 
 ⚠️ **T-0478 MUST NOT START BEFORE T-0477 REPORTS.** ⚠️ **The gate is the POINT of the sprint, not
@@ -492,6 +492,89 @@ INSTRUMENTATION** — ✅ **its fix earns the same standard.**
 
 ---
 
+## 3b. ✅ **T-0478's LIVE PASS (2026-09-08)** — ⚠️ **what it PROVED and what it BROKE**
+
+**Rig:** 🐧 `oathkeeper`, `the-stairs-of-tintagael.scrivi` (LOCAL disk) bound to `Eskandar.scrivworld`
+on `/mnt/scrivi-net` — ⚠️ **a `cifs` share served from the workstation, killed by turning File Sharing
+OFF.** ✅ **Isolation VERIFIED FIRST** (the confound the user caught before S2): ⚠️ **the share also
+carries `projects/` and `appsupport/`, but the app used NEITHER** — project in `~/ScriviProjects`,
+appSupportRoot at `~/.local/share/Scrivi`, ✅ **so the kill removed the WORLD ONLY.**
+
+✅ **Build under test CONFIRMED before the pull** (`feedback_confirm_the_build_under_test`): the running
+binary contains `hostUnreachable` and the writer-facing `"is offline"` strings, built 2026-09-07 17:12,
+process started 2026-09-08 16:13 — ⚠️ **not the day-stale binary the rig ran once before.**
+
+### ✅ **PROVED — `offline` EXISTS, for the first time in this project's history**
+
+| Phase | `status` | `statusReason` | `packagePath` | ⏱ |
+| ----- | -------- | -------------- | ------------- | -- |
+| **BEFORE** | `available` | — | ✅ `/mnt/scrivi-net/worlds/Eskandar.scrivworld` | ✅ **0.087 s** |
+| ⚠️ **SHARE KILLED** | ✅ **`offline`** | ✅ **`hostUnreachable`** | ✅ **empty** | ⚠️ **1m42.2 s** |
+| ⚠️ **repeat** | ✅ **`offline`** | ✅ **`hostUnreachable`** | ✅ **empty** | ⚠️ **1m42.4 s** |
+
+✅ **Both endpoints agree** (`scrivi_list_worlds` and `scrivi_get_world_status`), ⚠️ **reproducibly.**
+✅ **This closes FINDING 2**: `offline` is no longer a documented lie — ⚠️ **it is emitted, on a positive
+`EHOSTDOWN`, from real hardware rather than a decorator.**
+
+### ⚠️ **BROKE — the feature is NOT USABLE, and the live pass is what proved it**
+
+⚠️ **The user clicked a SCENE. The app froze, showed "not responding" after ~6 s, stayed frozen ~4–5
+MINUTES, and was FORCE QUIT.** → ✅ **[I-0193], High.**
+
+⚠️ **FINDING 1 WAS UNDERSTATED TWICE, and both corrections matter more than the confirmation:**
+
+1. ⚠️ **The magnitude.** Finding 1 measured ~10 s. ⚠️ **This mount blocks 102 s** — ✅ **~1,175× the
+   healthy path.** ⚠️ **The mount options differ** (`cache=none,actimeo=1,closetimeo=1`), ⚠️ **so the
+   cost is MOUNT-TUNING DEPENDENT and ~10 s is NOT a ceiling.**
+2. ⚠️ **The reach.** Finding 1 read as a Worlds-dialog concern. ⚠️ **The blocking call is on
+   `setScene`** — `EditorShell.cpp:1029` → `SceneInspector.cpp:318` → `:330` → ⚠️ **`listWorlds` at
+   `:395`.** ✅ **So ORDINARY NAVIGATION freezes the app**, not an occasional dialog.
+
+⚠️ **`WorldsDialog::reload()` has the SAME defect** (`WorldsDialog.cpp:176-180`) and ⚠️ **was simply not
+the path hit.** ✅ **Any fix must cover BOTH, and needs a TIMEOUT as well as a thread.**
+
+### ⚠️ **ALSO FOUND — a path defect only the offline route produces** → ✅ **[I-0194], Medium**
+
+⚠️ **`lastKnownPackagePath` came back UNNORMALIZED when offline:**
+`…/the-stairs-of-tintagael.scrivi/../../../../../../mnt/scrivi-net/worlds/Eskandar.scrivworld`
+— ⚠️ **six `../` segments**, against ✅ **a CLEAN path in the healthy baseline minutes earlier.**
+⚠️ **It is writer-facing**: `displayPath()` passes it through with no normalization.
+
+### ⚠️ **ALSO REPORTED — the SAME gap, in the HEALTHY case** → ✅ **[I-0195], Medium**
+
+⚠️ **After the share was restored, the user reported project open ~10× slower.** ✅ **Diagnosed as the
+`cache=none` remount, NOT a code regression** — ⚠️ **world resolve measured `0.05–0.08 s` throughout.**
+
+⚠️ **But the user's ruling reframed it, correctly:** ⚠️ **an earlier reading of mine called this "mount
+configuration, not an app defect." ⚠️ THAT WAS WRONG.** ✅ **The app blocks the UI for the whole read
+whatever the reason for the slowness** — ⚠️ **so a slow mount EXPOSES the defect rather than causing
+it**, ⚠️ **and `cache=strict` MASKS it rather than fixing it.**
+
+⚠️ **The cost is UNBOUNDED**: worlds grow, ⚠️ **a project may bind SEVERAL**, and ⚠️ **project and
+worlds may BOTH be on slow network storage.** ✅ **User ruling: waiting is fine; a FROZEN SILENT UI is
+not.** ✅ **And the design is determinate — the FILE COUNT is known early**, so
+`files read / files to read` is a real percentage, ⚠️ **not a spinner.**
+
+⚠️ **[I-0193] and [I-0195] share ONE root cause and must NOT be fixed separately:**
+
+| | ⚠️ Case | ✅ Needs |
+| - | ------- | -------- |
+| **[I-0193]** | ⚠️ **Volume UNREACHABLE** — blocks ~102 s | ⚠️ **A TIMEOUT** |
+| **[I-0195]** | ⚠️ **Volume REACHABLE but SLOW** — completes correctly | ⚠️ **PROGRESS** |
+
+⚠️ **A timeout alone would ABORT a legitimate slow load. A progress bar alone would show a bar that
+never finishes.** ✅ **Both presuppose the read is OFF THE UI THREAD** — ⚠️ **the gap FINDING 1 named,
+which T-0478 did not close.**
+
+### ⚠️ **STILL OPEN — the DoD item this pass was meant to close**
+
+⚠️ **The writer-facing string was NEVER READ.** ⚠️ **The freeze prevented reaching the Worlds dialog and
+the object error**, so ⚠️ **"a LIVE PASS — the writer-facing string is READ" remains UNTICKED**, and
+⚠️ **[I-0193] BLOCKS IT.** ✅ **Recorded honestly rather than ticked from the ABI evidence** — ⚠️ **the
+ABI returning `offline` is NOT the same claim as a writer reading it.**
+
+---
+
 ## 4. T-0477 — what gets captured, per scenario
 
 ⚠️ **Capture BEFORE, DURING and AFTER for every scenario.** ⚠️ **"After" alone cannot show a stale
@@ -527,17 +610,33 @@ assumed.**
 
 ## 5. Definition of Done
 
-- [ ] ⚠️ **S1, S2 and S3 each OBSERVED on the real rig** and captured before/during/after
-- [ ] ⚠️ **The rig doc's §7 is WRITTEN — from the pull, not from documentation** — including the
-      runnable steps to reproduce all three on a fresh rig
-- [ ] ⚠️ **Which Linux signal is AUTHORITATIVE for `unmounted` vs `offline` vs `missing` is RECORDED,
-      with the signals that LIE named explicitly**
-- [ ] `WorldVolumeStatus` exists for Linux and ⚠️ **is verified against the REAL volume**, not a fixture
+- [x] ⚠️ **S1, S2 and S3 each OBSERVED on the real rig** — ✅ **all three, 2026-09-07.**
+      ⚠️ **PARTIAL on "before/during/after": S2 has full streamed capture (3,110 lines, two passes);
+      ⚠️ S3 was observed BY HAND with NO probe running** (it was started on the wrong machine),
+      ⚠️ **so S3 has no during-capture and the drive is now out.** ⚠️ **Recorded honestly rather than
+      ticked clean — see `T-0477-FINDINGS-S3.md` §0.**
+- [x] ✅ **The rig doc's §7 is WRITTEN — from the rig, not from documentation** (2026-09-07, v0.2),
+      ✅ **including the runnable steps for all three scenarios, machine-tagged 🐧/🍎.**
+- [x] ⚠️ **Which Linux signal is AUTHORITATIVE — and which LIE — is RECORDED** (rig doc §7.4).
+      ⚠️ **FIVE signals lie**: `mountpoint -q`, a directory listing (⚠️ **zeroed sizes**), `statvfs`,
+      a successful `read` (transiently), and ⚠️ **a held FD (survived `umount -l` + `losetup -D`).**
+      ✅ **`st_dev` works** (⚠️ with a stated limit); ✅ **`EHOSTDOWN` (112) is the strongest UNUSED signal.**
+- [x] ✅ **`WorldVolumeStatus` exists for Linux and IS verified against the REAL volume** (2026-09-08, §3b) — ⚠️ **`offline`/`hostUnreachable` produced from a killed `cifs` share on the rig, reproducibly, at BOTH endpoints.** ✅ **First time `offline` has ever been emitted.**
 - [ ] ⚠️ **Every inconclusive branch returns the core's status** — ⚠️ **a wrong `missing` is worse than
       an honest `unavailable`** (Doc 2 §7.2.1; I-0115 was this defect shipped)
-- [ ] ⚠️ **Porting Outline §9 CORRECTED** — ⚠️ **a §9 that survives unchanged is evidence it was not tested**
-- [ ] `ctest` + Linux smokes GREEN on the rig, ⚠️ **non-root, tests ON**
-- [ ] ⚠️ **A LIVE PASS on the rig** — ⚠️ **the writer-facing string is READ, not just returned**
+- [x] ✅ **Porting Outline §9 CORRECTED** (2026-09-07, T-0479) — ⚠️ **FOUR predictions overturned**,
+      ⚠️ **each recorded as prediction-vs-measurement**; ⚠️ **the checklist grew from six items to eight.**
+      ⚠️ **Had T-0478 been written from §9 as it stood, it would have shipped a stale-mount defence that
+      is not needed, an `EIO`/`ESTALE` handler for errors that never arrive, no timeout at all, and an
+      `offline` branch that never fires.**
+- [x] ✅ **`ctest` + Linux smokes GREEN on the rig, non-root** (2026-09-07): ✅ **583/583 ctest** and
+      ✅ **22/22 smokes**, at HEAD `065fd24`. ⚠️ **This is the first run of I-0191's 11 new tests on
+      LINUX/x86-64** — they had only ever passed on macOS/arm64, ⚠️ **and I-0121/I-0122 are the
+      precedent for that distinction mattering.**
+- [ ] ⚠️ **A LIVE PASS on the rig** — ⚠️ **the writer-facing string is READ, not just returned.**
+      ⚠️ **ATTEMPTED 2026-09-08 and BLOCKED by [I-0193]**: ⚠️ **the app froze ~4–5 min on a scene
+      click and was Force Quit, so the string was NEVER REACHED.** ⚠️ **The ABI returning `offline`
+      is NOT this item** — ✅ **that is the item above.**
 - [ ] ⚠️ **Whether the rig answers WOL is settled and recorded** (NIC vs firmware)
 
 ---

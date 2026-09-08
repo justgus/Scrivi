@@ -3,6 +3,7 @@
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
 
+#include <cerrno>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -24,6 +25,49 @@
 namespace scrivi::platform {
 
 namespace fs = std::filesystem;
+
+namespace {
+
+// T-0478 -- map errno to a STABLE, machine-readable discriminator for Error::detail.
+//
+// ⚠️ Only the values a platform layer can ACT on are named. Everything else
+// returns "" and the caller keeps the honest generic failure: inventing a
+// discriminator for an errno nobody handles would grow a vocabulary that drifts
+// out of sync with its readers.
+//
+// ⚠️ EHOSTDOWN/EHOSTUNREACH/ENETDOWN/ENETUNREACH are the SERVER-IS-GONE family.
+// SP-124's S2 measured `EHOSTDOWN` (112) from a `cifs` mount whose serving host
+// stopped sharing -- ✅ specific evidence of a REMOTE volume being unreachable,
+// which is exactly what `WorldStatus::offline` means and what nothing has ever
+// been able to prove before.
+//
+// ⚠️ ESTALE and EIO are DELIBERATELY NOT in that family. A stale handle or an I/O
+// error can equally mean a LOCAL device vanished, and `offline` asserts something
+// stronger -- that the volume is remote. Reporting `offline` for a pulled USB
+// stick would be a new wrong answer, not a sharper one.
+std::string errnoDetail(int err) {
+    if (err == 0) { return {}; }
+
+    // ⚠️ Compared as VALUES, not `case` labels: MSVC does not define EHOSTDOWN at
+    // all, and several of these alias one another on some platforms -- duplicate
+    // `case` labels would not compile. A chain of `if`s is portable and lets each
+    // constant be guarded independently.
+#ifdef EHOSTDOWN
+    if (err == EHOSTDOWN)    { return "hostUnreachable"; }
+#endif
+#ifdef EHOSTUNREACH
+    if (err == EHOSTUNREACH) { return "hostUnreachable"; }
+#endif
+#ifdef ENETDOWN
+    if (err == ENETDOWN)     { return "hostUnreachable"; }
+#endif
+#ifdef ENETUNREACH
+    if (err == ENETUNREACH)  { return "hostUnreachable"; }
+#endif
+    return {};
+}
+
+} // namespace
 
 Result<bool> LocalFileSystem::exists(const AbsolutePath& path) {
     std::error_code ec;
@@ -68,14 +112,35 @@ Result<void> LocalFileSystem::createDirectories(const AbsolutePath& path) {
 }
 
 Result<Utf8Text> LocalFileSystem::readTextFile(const AbsolutePath& path) {
+    // T-0478: errno is captured BEFORE anything else can clobber it.
+    //
+    // ⚠️ `std::ifstream` discards the reason a file could not be opened -- every
+    // failure arrives as a bare "could not open file". That flattening is why a
+    // DEAD NETWORK SERVER was indistinguishable from a deleted package, and why
+    // `WorldStatus::offline` has never been produced by any platform (SP-124 S2
+    // measured the network case returning `unavailable`, twice).
+    //
+    // ⚠️ errno is only meaningful immediately after the failing call, so it is
+    // read on the very next line -- not after constructing an Error, not after a
+    // log call. See `errnoDetail` for what survives into the envelope.
+    errno = 0;
     std::ifstream in(path, std::ios::binary);
-    if (!in) { return Result<Utf8Text>::failure({.code=ErrorCode::ioError, .message="could not open file", .path=path});
-}
+    if (!in) {
+        const int err = errno;
+        return Result<Utf8Text>::failure({.code    = ErrorCode::ioError,
+                                          .message = "could not open file",
+                                          .path    = path,
+                                          .detail  = errnoDetail(err)});
+    }
     std::ostringstream ss;
     ss << in.rdbuf();
     if (!in && !in.eof()) {
-        return Result<Utf8Text>::failure({.code=ErrorCode::ioError, .message="read failed", .path=path});
-}
+        const int err = errno;
+        return Result<Utf8Text>::failure({.code    = ErrorCode::ioError,
+                                          .message = "read failed",
+                                          .path    = path,
+                                          .detail  = errnoDetail(err)});
+    }
     return Result<Utf8Text>::success(ss.str());
 }
 

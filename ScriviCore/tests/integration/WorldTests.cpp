@@ -879,3 +879,157 @@ TEST_CASE("⚠️ a REACHABLE world object reports its world on the edge (I-0142
     REQUIRE_FALSE(v.otherPending);          // the world is available
     REQUIRE(v.otherWorldID == w.worldID);   // ...and it is still named
 }
+
+// ---------------------------------------------------------------------------
+// T-0478 (SP-124) — `offline` at last has evidence
+// ---------------------------------------------------------------------------
+//
+// ⚠️ WHY THESE TESTS EXIST. `WorldStatus::offline` was declared in WorldTypes.hpp
+// and produced NOWHERE, on any platform, for the life of the project. SP-124's S2
+// ran the network case that DEFINES it — an SMB share killed at the serving host,
+// twice, with different cache settings — and the core returned `unavailable` both
+// times, because `std::ifstream` flattens every failure into "could not open file"
+// and the reason died there.
+//
+// The measured signal is errno EHOSTDOWN (112). `errnoDetail` lifts it to the
+// stable discriminator "hostUnreachable" at the FileSystem boundary, and resolve()
+// turns that into `offline`.
+//
+// ⚠️ A FileSystem DECORATOR is used rather than a live share: the point under test
+// is resolve()'s decision, and a test that needs a server to be killed by hand is
+// a test that never runs. The rig measured the errno; these prove what the core
+// does with it.
+
+namespace {
+
+// Forwards everything to a real LocalFileSystem, but fails readTextFile for one
+// path with the errno detail a dead server produces.
+class HostDownFileSystem final : public FileSystem {
+public:
+    HostDownFileSystem(FileSystem& inner, std::string failSuffix)
+        : inner_(inner), failSuffix_(std::move(failSuffix)) {}
+
+    Result<Utf8Text> readTextFile(const AbsolutePath& path) override {
+        if (matches(path)) {
+            return Result<Utf8Text>::failure({.code    = ErrorCode::ioError,
+                                              .message = "could not open file",
+                                              .path    = path,
+                                              .detail  = "hostUnreachable"});
+        }
+        return inner_.readTextFile(path);
+    }
+
+    // ⚠️ `exists` must ALSO fail for the unreachable path. A server that is gone
+    // cannot answer an existence question either, and letting it succeed would
+    // let resolve() positively establish absence — the false `missing` this
+    // whole area exists to prevent.
+    Result<bool> exists(const AbsolutePath& path) override {
+        if (matches(path)) {
+            return Result<bool>::failure({.code    = ErrorCode::ioError,
+                                          .message = "could not stat",
+                                          .path    = path,
+                                          .detail  = "hostUnreachable"});
+        }
+        return inner_.exists(path);
+    }
+
+    // Pure forwarding below — the decorator only intercepts the two calls above.
+    Result<bool> isDirectory(const AbsolutePath& p) override { return inner_.isDirectory(p); }
+    Result<void> createDirectories(const AbsolutePath& p) override { return inner_.createDirectories(p); }
+    Result<void> atomicWriteTextFile(const AbsolutePath& p, std::string_view t) override {
+        return inner_.atomicWriteTextFile(p, t);
+    }
+    Result<void> createFileExclusive(const AbsolutePath& p, std::string_view t) override {
+        return inner_.createFileExclusive(p, t);
+    }
+    Result<void> appendTextFile(const AbsolutePath& p, std::string_view t) override {
+        return inner_.appendTextFile(p, t);
+    }
+    Result<std::vector<AbsolutePath>> listDirectory(const AbsolutePath& p) override {
+        return inner_.listDirectory(p);
+    }
+    Result<void> removeFile(const AbsolutePath& p) override { return inner_.removeFile(p); }
+    Result<void> renamePath(const AbsolutePath& a, const AbsolutePath& b) override {
+        return inner_.renamePath(a, b);
+    }
+    Result<void> copyFileInBlocks(const AbsolutePath& a, const AbsolutePath& b,
+                                  std::size_t blockSize,
+                                  const std::function<Result<void>()>& onBlock) override {
+        return inner_.copyFileInBlocks(a, b, blockSize, onBlock);
+    }
+
+private:
+    bool matches(const AbsolutePath& path) const {
+        return path.find(failSuffix_) != std::string::npos;
+    }
+    FileSystem& inner_;
+    std::string failSuffix_;
+};
+
+} // namespace
+
+TEST_CASE("⚠️ an UNREACHABLE HOST resolves `offline`, not `unavailable` (T-0478)",
+          "[integration][SP-124][T-0478]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // Everything resolves normally until the world's own package turns unreachable.
+    HostDownFileSystem hostDown{fix.fileSystem, fix.pkg("Midgard")};
+    CoreServices svc = fix.services;
+    svc.fileSystem = &hostDown;
+
+    WorldStore store{svc};
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    // ⚠️ THE POINT: before T-0478 this was `unavailable`, and `offline` had never
+    // been produced by anything.
+    REQUIRE(res.status == WorldStatus::offline);
+
+    // ⚠️ The REASON must cross the boundary too. T-0440 (I-0136) is the precedent:
+    // a status fixed at the core stayed invisible in the product for two sprints
+    // because the reason died at this line.
+    REQUIRE(res.statusReason == "hostUnreachable");
+
+    // `packagePath` means VERIFIED, and nothing was verified.
+    REQUIRE(res.packagePath.empty());
+    REQUIRE_FALSE(res.lastKnownPackagePath.empty());
+}
+
+TEST_CASE("⚠️ `offline` NEVER overrides a positively-established `missing` (T-0478)",
+          "[integration][SP-124][T-0478]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // Delete the package outright: absence is positively established on a
+    // reachable path.
+    fs::remove_all(fix.pkg("Midgard"));
+
+    // …while some OTHER path is unreachable. ⚠️ The unreachable host must not
+    // soften a real absence into "probably just offline" — that would be a new
+    // way to hide a deleted world, which is the inverse of I-0115's defect.
+    HostDownFileSystem hostDown{fix.fileSystem, "definitely-not-this-world"};
+    CoreServices svc = fix.services;
+    svc.fileSystem = &hostDown;
+
+    WorldStore store{svc};
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    REQUIRE(res.status == WorldStatus::missing);
+}
+
+TEST_CASE("⚠️ an ordinary read failure still resolves `unavailable`, never `offline` (T-0478)",
+          "[integration][SP-124][T-0478]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // A world.json that cannot be parsed is NOT a host problem. ⚠️ `offline`
+    // asserts something specific — the volume is REMOTE and gone — and must not
+    // widen into a general "something went wrong".
+    std::ofstream(fs::path(fix.pkg("Midgard")) / "world.json", std::ios::trunc) << "{ not json";
+
+    WorldStore store{fix.services};
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    REQUIRE(res.status == WorldStatus::unavailable);
+    REQUIRE(res.status != WorldStatus::offline);
+}

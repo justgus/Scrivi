@@ -256,8 +256,16 @@ the work it describes.
 
 ## 9. ⚠️ The rig is a BUILD-ONCE PREREQUISITE, and a container is not one
 
-⚠️ **Added 2026-08-25 by user ruling, BEFORE EP-038 runs.** ⚠️ **This section is a PLAN, not a
-retrospective** — it must be corrected by the first Epic that executes it.
+⚠️ **Added 2026-08-25 by user ruling, BEFORE EP-038 ran.** ✅ **CORRECTED 2026-09-07 from the Linux rig
+(SP-124 / T-0477 / T-0479)** — ⚠️ **this is no longer a plan.**
+
+⚠️ **THE RULE HELD. FOUR OF ITS PREDICTIONS DID NOT.** ✅ **Both halves matter**: the section was right
+that only hardware can answer these questions, and ⚠️ **wrong about most of the answers it guessed.**
+⚠️ **Each correction below names what was predicted and what was measured** — ✅ **a §9 that survived
+contact unchanged would have been evidence it was never tested.**
+
+**Sources:** `docs/Scrivi_Linux_Rig_Setup_v0_1.md` §7 (⚠️ **written from the rig**) ·
+`platforms/linux/tools/T-0477-FINDINGS-S3.md` · `platforms/linux/tools/T-0477-FINDINGS-S2.md`.
 
 ### ⚠️ The rule
 
@@ -266,12 +274,13 @@ retrospective** — it must be corrected by the first Epic that executes it.
 
 ### ⚠️ What a container is structurally blind to
 
-| Failure mode | Container | Real hardware |
-| ------------ | --------- | ------------- |
-| **Removable drive unplugged mid-write** | ⚠️ **cannot reproduce** — a bind-mount stop is clean | ⚠️ `EIO`/`ESTALE`, vanished mount entry, possible stale mount point |
-| Volume identity / mount semantics | synthetic | ⚠️ **what the OS actually reports** |
+| Failure mode | Container | ⚠️ **Real hardware — MEASURED 2026-09-07** |
+| ------------ | --------- | ------------------------------------------- |
+| **Removable drive unplugged mid-write** | ⚠️ **cannot reproduce** — a bind-mount stop is clean | ⚠️ **PREDICTED `EIO`/`ESTALE` + a stale mount entry. ⚠️ NEITHER HAPPENED.** ✅ **The yank was SILENT and udisks2 REMOVED the mountpoint** |
+| Volume identity / mount semantics | synthetic | ⚠️ **what the OS actually reports** — ✅ **and it differs by WHO MOUNTED IT** (§9.1) |
 | Display, input, gesture availability | ⚠️ **VNC drops Shift-combos and trackpad gestures** | native |
 | Power / sleep / device removal events | absent | real |
+| ⚠️ **A dead network server** | ⚠️ **a stopped container is instant** | ⚠️ **~10 s BLOCK per call** before `EHOSTDOWN` — ✅ **the finding no one predicted** (§9.2) |
 
 ### ✅ The evidence this rule is built on — Apple's, and it is unambiguous
 
@@ -297,6 +306,14 @@ produced it**, and a container would have reported success either way.
 5. ⚠️ **Instrumentation FIRST** — record what the OS reports on removal ⚠️ **BEFORE writing the platform
    refinement.**
 6. **Real project data** — a genuine manuscript, not a fixture. ⚠️ **Back it up; it is real work.**
+7. ⚠️ **EVERY command in the rig procedure is TAGGED with the machine it runs on** (added 2026-09-07 —
+   ⚠️ **an untagged command cost a whole S3 attempt**; see §9.5). ⚠️ **Record what CANNOT cross:
+   architectures differ, so SOURCE ships and the RIG compiles.**
+8. ⚠️ **A world copy on LOCAL disk, served separately from the removable one** (added 2026-09-07).
+   ⚠️ **The network-loss scenario must be runnable with the drive UNPLUGGED and the rig's console in
+   use** — ✅ **that is what made S2 possible on a day when S3 was not.** ⚠️ **And verify the served
+   share does not ALSO carry the project or the appSupportRoot**, or the kill removes those too and
+   the run measures nothing (⚠️ **caught by the user, 2026-09-07; it was not in the plan**).
 
 ### ⚠️ The ordering rule that matters most
 
@@ -306,12 +323,95 @@ produced it**, and a container would have reported success either way.
 (`WorldStore.hpp:28-35` calls it a *"platform-layer refinement"*). ⚠️ **Each platform gets this wrong in
 its own way**, and only its own hardware will say how.
 
+✅ **VINDICATED, and by a margin.** ⚠️ **Had T-0478 been written from this section as it stood, it would
+have shipped: a stale-mount defence that is not needed on the automounted path, an `EIO`/`ESTALE`
+handler for errors that never arrive, no timeout at all, and an `offline` branch that never fires.**
+⚠️ **Every one of those is a plausible reading of the documentation.**
+
+---
+
+### 9.1 ⚠️ **CORRECTION — WHO MOUNTED IT decides what a yank leaves behind**
+
+⚠️ **Predicted:** *"possible stale mount point"* — one behaviour.
+✅ **Measured:** ⚠️ **two behaviours, and which one you get depends on the mount's OWNER.**
+
+| Mount path | Owner | ⚠️ On physical yank |
+| ---------- | ----- | ------------------- |
+| `/run/media/<user>/<label>` | **udisks2** (desktop automount) | ✅ **Mountpoint REMOVED** — parent gone |
+| `/mnt/<name>` | the operator | ⚠️ **Mountpoint SURVIVES** — it is an ordinary directory nothing has a mandate to delete |
+
+⚠️ **THIS DECIDES WHETHER A CORE DEFECT IS REACHABLE.** The core establishes `missing` from *package
+absent AND parent exists*; ⚠️ **an automounted yank removes the parent, so the false `missing` is NOT
+reached** — ⚠️ **while a hand-mounted one leaves it fully reachable.**
+
+⚠️ **A port that tests only one mount style will conclude the other cannot happen.** ✅ **Test both, and
+record which is which.** ⚠️ **A writer's real machine uses the automounted path.**
+
+### 9.2 ⚠️ **CORRECTION — a dead SERVER BLOCKS. `soft` does not save you.**
+
+⚠️ **Predicted:** hangs were treated as an **NFS hard-mount** concern; `cifs` with `soft` was assumed
+safe.
+⚠️ **Measured: `cifs` + `soft` BLOCKS ~10 s per filesystem call against a dead server**, returning
+`EHOSTDOWN` (errno 112). ⚠️ **Identical under `cache=strict` and `cache=none`.**
+
+⚠️ **`soft` prevents an UNKILLABLE hang. It does NOT prevent a ten-second stall.**
+
+✅ **Healthy call: 0.090 s. Degraded: ~10 s — ⚠️ ~110× slower**, so a timeout discriminates cheaply.
+⚠️ **The cost COMPOUNDS**: a probe making several core calls per run degraded to ⚠️ **43-second
+intervals.**
+
+> ⚠️ **RULE FOR EVERY PLATFORM LAYER: never call the core synchronously on the UI thread for world
+> status.** ⚠️ **A frozen UI is worse than a wrong status.**
+
+⚠️ **This applies to Windows (SMB is its native network filesystem) at least as strongly as to Linux.**
+
+### 9.3 ⚠️ **CORRECTION — name the signals that LIE, per platform**
+
+⚠️ **§9 carried ONE lying signal — Apple's `volumeIsRemovable`.** ⚠️ **Linux has FIVE.**
+
+| Signal | ⚠️ Verdict on Linux |
+| ------ | ------------------- |
+| ⚠️ **`mountpoint -q`** | ⚠️ **LIES on server loss** — said YES throughout |
+| ⚠️ **A directory listing** | ⚠️ **LIES** — succeeded one level deep with ⚠️ **ZEROED sizes**; the level below failed |
+| ⚠️ **`statvfs`** | ⚠️ **LIES** — ✅ **succeeds on an unmounted path**, reporting the ROOT filesystem's blocks |
+| ⚠️ **A successful `read`** | ⚠️ **LIES transiently** — page cache answered for a removed volume |
+| ⚠️ **A held FD** | ⚠️ **LIES completely** — ✅ **survived `umount -l` + `losetup -D` entirely** |
+| ✅ **`st_dev` vs the parent's** | ✅ **WORKS** — ⚠️ **but proves "not a mount NOW", NOT "a volume went away"** |
+| ✅ **`errno` — `EHOSTDOWN` (112)** | ✅ **SPECIFIC to a dead server** — ⚠️ **and currently UNUSED** |
+
+⚠️ **THE PATTERN GENERALISES EVEN THOUGH THE SIGNALS DO NOT:** ⚠️ **on both platforms the OBVIOUS API
+lied, and the working signal was found only by breaking real hardware.** ⚠️ **Expect Windows to have
+its own liars** — ✅ **and budget the instrumentation pass to find them.**
+
+### 9.4 ⚠️ **CORRECTION — a status the model defines may never be PRODUCED**
+
+⚠️ **`WorldStatus::offline` is DEFINED by the network case.** ⚠️ **The network case was run — twice —
+and returned `unavailable`.** ⚠️ **`offline` has never been observed on any platform.**
+
+⚠️ **A port must RULE on such a status — retire it, emit it, or document it unreachable** — ⚠️ **and must
+NOT quietly ship a mapping that never emits it.** ⚠️ **That ships a documented lie, which is the state
+this whole document exists to prevent.**
+
+### 9.5 ✅ **CORRECTION — the checklist needs a SEVENTH item, and it is a process one**
+
+⚠️ **The 2026-09-07 session lost an entire S3 attempt because the runbook did not say WHICH MACHINE each
+command belonged to.** ⚠️ **The probe was run on the workstation against a rig-only path**, watched
+nothing, and produced noise — ⚠️ **while the drive was pulled, unrepeatably.**
+
+⚠️ **A rig session spans TWO computers by construction** (the workstation builds and serves; the rig
+runs and observes). ⚠️ **Add to the checklist:**
+
+> **7. ⚠️ EVERY command in a rig procedure is TAGGED with the machine it runs on.** ⚠️ **An untagged
+> command is a defect in the procedure.** ⚠️ **Also record what CANNOT cross**: ⚠️ **architectures differ
+> (arm64 workstation vs x86-64 rig), so SOURCE ships and the RIG compiles — never copy a binary.**
+> ⚠️ **And `sudo` over `ssh` needs a TTY (`ssh -t`), or it fails with *"a terminal is required."***
+
 ### Per-platform rig status
 
 | Platform | Rig | State |
 | -------- | --- | ----- |
 | **macOS** | ✅ **Exists** — the real Tintagael/Eskandar rig on USB | ✅ **Proven** — found 22 Issues |
-| **Linux** | ⚠️ **BEING BUILT** — native Ubuntu box | ⚠️ **EP-038.** ⚠️ **Docker was the rig and is blind to drive loss** |
+| **Linux** | ✅ **BUILT AND EXERCISED** — native Ubuntu box (`oathkeeper`) | ✅ **EP-038.** ✅ **All three loss scenarios observed 2026-09-07**; ✅ **583/583 ctest + 22/22 smokes non-root.** ⚠️ **Docker was the rig and was blind to every finding above** |
 | **Windows** | ⚠️ **Box exists on the network; NO rig** | ⚠️ **Later Epic — should EXECUTE this section, not re-derive it.** ⚠️ **The Windows app does not exist yet** |
 | **iPad / iPhone / visionOS** | ⚠️ **None** | ⚠️ **Unsolved: removable media is not the failure mode there** — ⚠️ **do NOT assume this checklist transfers** |
 
@@ -325,5 +425,18 @@ there, not inherited.**
 
 *T-0465, EP-034 SP-121. First edition — unproven until EP-035 runs against it.*
 
-*⚠️ **§9 added 2026-08-25** by user ruling, from the finding that ⚠️ **Docker cannot validate drive loss**.
-⚠️ **§9 is a PLAN and is itself unproven** — **EP-038** is its first execution and owes it corrections.*
+*⚠️ **§9 added 2026-08-25** by user ruling, from the finding that ⚠️ **Docker cannot validate drive loss**.*
+
+*✅ **§9 CORRECTED 2026-09-07 (T-0479, SP-124) from the Linux rig — its debt is PAID.** ⚠️ **The RULE
+held; FOUR of its PREDICTIONS did not**, and each correction names the prediction beside the
+measurement (§§9.1–9.5). ⚠️ **Headlines:** ⚠️ **(1)** what a yank leaves behind depends on WHO MOUNTED
+IT — udisks2 removes the mountpoint, a hand-mount does not, ⚠️ **and that decides whether a core defect
+is reachable at all**; ⚠️ **(2)** a dead SMB server ⚠️ **BLOCKS ~10 s per call even with `soft`** — hangs
+are not an NFS-only concern, and ✅ **no platform layer may call the core synchronously on the UI
+thread**; ⚠️ **(3)** Linux has ⚠️ **FIVE lying signals** where §9 listed one; ⚠️ **(4)** `WorldStatus::offline`
+⚠️ **has never been produced by the case that defines it.** ⚠️ **The checklist grew from six items to
+eight** — ⚠️ **machine-tagging every command, and a locally-served world copy** — ✅ **both earned by
+losing a scenario to their absence.*** 
+
+*⚠️ **The Windows rig EXECUTES this section. It does not re-derive it** — ⚠️ **and it should expect its
+own liars, not inherit Linux's.***

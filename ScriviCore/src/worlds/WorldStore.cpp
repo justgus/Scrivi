@@ -274,9 +274,29 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
 
     bool sawContainerButNoPackage = false;
 
+    // T-0478 (SP-124). Set when a read failed because the SERVING HOST is
+    // unreachable -- the evidence `WorldStatus::offline` requires and has never
+    // had. Kept separate from `sawContainerButNoPackage` because it answers a
+    // different question: that flag asks "is the package absent?", this one asks
+    // "is the volume REMOTE and gone?".
+    bool sawHostUnreachable = false;
+
     for (const auto& cand : candidates) {
         auto textR = fs_.readTextFile(worldJsonPath(cand));
         if (!textR.ok()) {
+            // ⚠️ A dead network server is a DIFFERENT failure from an absent
+            // package, and until T-0478 the core could not tell them apart --
+            // both arrived as a bare read failure and both resolved
+            // `unavailable`. SP-124's S2 measured EHOSTDOWN from a cifs mount
+            // whose host stopped sharing; `errnoDetail` turns that into
+            // "hostUnreachable" at the FileSystem boundary.
+            //
+            // ⚠️ Recorded, NOT returned here. The loop must still finish: a later
+            // candidate may resolve successfully, and one unreachable path must
+            // never veto a world that is present somewhere else.
+            if (textR.error().detail == "hostUnreachable") {
+                sawHostUnreachable = true;
+            }
             // ⚠️ A FAILED READ IS NOT EVIDENCE OF ABSENCE. It is equally the
             // signature of an unreadable-but-present package — which is exactly
             // what a sandboxed host produces when the package sits outside the
@@ -345,8 +365,30 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
     // ⚠️ `missing` ONLY when positively established (§4.6). Otherwise the honest
     // default: a wrong "missing" invites destructive writer remedies when the
     // world may be perfectly intact on an unreachable volume. NEVER GUESS.
-    out.status = sawContainerButNoPackage ? WorldStatus::missing
-                                          : WorldStatus::unavailable;
+    if (sawContainerButNoPackage) {
+        out.status = WorldStatus::missing;
+        return out;
+    }
+
+    // T-0478: `offline` at last has evidence.
+    //
+    // ⚠️ ORDER MATTERS, and this branch is deliberately BELOW `missing`. If the
+    // package was positively established absent on a reachable path, that is the
+    // stronger fact and it wins -- a host being unreachable on some OTHER
+    // candidate must not soften a real absence into "probably just offline".
+    //
+    // ⚠️ `offline` is strictly SHARPER than `unavailable`, never broader: it is
+    // reached only from a positive errno saying the serving host is gone. Every
+    // other inconclusive path still falls through to `unavailable`, which is the
+    // rule I-0115 was written about -- a wrong status that suggests the writer
+    // act is worse than an honest "I don't know".
+    if (sawHostUnreachable) {
+        out.status       = WorldStatus::offline;
+        out.statusReason = "hostUnreachable";
+        return out;
+    }
+
+    out.status = WorldStatus::unavailable;
     return out;
 }
 

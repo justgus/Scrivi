@@ -95,7 +95,60 @@ count toward the server's `MaxAuthTries`.
 ⚠️ **A key's COMMENT is a label, not evidence of origin.** ⚠️ **Compare FINGERPRINTS against
 `~/.ssh/*.pub`** — a comment reading another machine's name proves nothing.
 
-### 2.2 ⚠️ Right-Shift + D DISCONNECTS the session
+### 2.2 ✅ THE CONNECT COMMAND — ⚠️ **the one you will come back for**
+
+✅ **This is the command. Everything it needs lives in the file:**
+
+```bash
+sdl-freerdp /args-from:file:$HOME/.scrivi-rdp-creds
+```
+
+⚠️ **`/args-from` CANNOT be combined with any other argument** — not even `/clipboard`. FreeRDP
+rejects the whole line with *"can not be used in combination with other arguments"*. ✅ **Anything you
+want added goes IN THE FILE.**
+
+⚠️ **The file takes ONE ARGUMENT PER LINE.** ⚠️ **A single space-separated line FAILS**, and the error
+names only the first option, which reads like `/v:` being malformed rather than the format being
+wrong:
+
+```
+[ERROR] parse_command_line: Command line parsing failed at 'v' value
+        '192.168.1.165 /u:rdp-user /p:Grindelwald /cert:ignore /size:2560x1440 /smart-sizing'
+```
+
+✅ **`~/.scrivi-rdp-creds` (mode `0600` — it holds the password):**
+
+```
+/v:192.168.1.165
+/u:rdp-user
+/p:Grindelwald
+/cert:ignore
+/size:2560x1440
+/smart-sizing
+/clipboard
+```
+
+⚠️ **Corrected 2026-09-08.** ⚠️ **The file had been one-line since it was created (2026-08-27) and had
+therefore NEVER worked** — every real connection in shell history used the explicit form below. ⚠️ **So
+a `/args-from` failure is not a regression; it had simply never run.**
+
+✅ **Known-good fallback**, if the file form ever misbehaves:
+
+```bash
+sdl-freerdp /v:oathkeeper /ipv4 /u:rdp-user /p:Grindelwald /cert:ignore \
+  /size:2560x1440 /smart-sizing /clipboard
+```
+
+⚠️ **`/v:` in the file is the IP, not the hostname.** ⚠️ **If the rig's address moves, the failure will
+look like the rig being DOWN rather than the address being stale** — ✅ **check `ping oathkeeper`
+before diagnosing anything else.**
+
+⚠️ **Expect the two-stage login** (§2, item 4 — GDM asks for the real system password after the RDP
+credentials) and ⚠️ **do NOT quit with `Cmd+Q`** (§2.3).
+
+---
+
+### 2.3 ⚠️ Right-Shift + D DISCONNECTS the session
 
 ⚠️ **`sdl-freerdp`'s shortcut modifier defaults to `KMOD_RSHIFT` ALONE**, with single-letter actions:
 ⚠️ **`D` disconnect**, `M` minimize, `G` grab, `Return` fullscreen. ⚠️ **In a writing application,
@@ -338,30 +391,185 @@ that silently fails sends the next typed string INTO THE MANUSCRIPT**, and the i
 
 ---
 
-## 7. ⚠️ Drive dismount — NOT YET WRITTEN
+## 7. ✅ Drive dismount and share loss — **WRITTEN FROM THE RIG (2026-09-07)**
 
-⚠️ **This section is deliberately empty.** ✅ **It is SP-124 / T-0477's deliverable**, and it must be
-written **from an actual drive pull on this rig**, not from documentation.
+⚠️ **Written from THREE OBSERVED EVENTS on `oathkeeper`, not from documentation.** ⚠️ **Where a
+prediction failed, the prediction is recorded alongside the result** — that contrast is the point.
 
-⚠️ **The precedent that makes this non-negotiable:** on Apple, `volumeIsRemovable` and
-`volumeIsEjectable` BOTH read **false** on a drive unplugged by hand — ⚠️ **the documented API lied**,
-and the signal that worked (`volumeIsLocal`) was found only by pulling a real drive.
-⚠️ **Drive-loss-while-editing cost Apple SIX Issues, every one found by ejecting a drive and NONE by a
-suite.**
+**Findings in full:** `platforms/linux/tools/T-0477-FINDINGS-S3.md` (physical yank) ·
+`platforms/linux/tools/T-0477-FINDINGS-S2.md` (share killed at source, ⚠️ **two passes**).
 
-**What this section must eventually record:**
+### 7.1 ⚠️ The three events are DIFFERENT. Do not infer one from another.
 
-- ⚠️ What the kernel and `/proc/mounts` actually do on unplug — including whether a **stale mount
-  point** is left behind
-- ⚠️ What open file descriptors return (`EIO`? `ESTALE`?) and what ScriviCore does with that
-- ⚠️ Which Linux signal reliably distinguishes **`unmounted`** from **`offline`** from
-  **`unavailable`** — ⚠️ **and which plausible-looking signals LIE**, as Apple's did
-- ⚠️ Whether a write in flight is torn, and what the repair path does about it
-- ✅ The **runnable steps** to reproduce the whole scenario on a fresh rig
+| | **S1** clean `umount` | **S3** ⚠️ **physical USB yank** | **S2** ⚠️ **server killed** |
+| - | --------------------- | ------------------------------- | --------------------------- |
+| Mountpoint dir | removed | ⚠️ **REMOVED by udisks2** | ⚠️ **SURVIVES** |
+| `mountpoint -q` | honest | honest | ⚠️ **LIES — says YES** |
+| Directory listing | gone | gone | ⚠️ **SUCCEEDS, sizes ZEROED** |
+| Call latency | normal | normal | ⚠️ **~10 s per call** |
+| Core verdict | `unavailable` | ✅ **`unavailable`** | ✅ **`unavailable`** |
+| Recovery | remount | replug | ✅ **AUTOMATIC, no `umount -l`** |
 
-⚠️ **Do NOT populate this from `WorldStore.hpp` or from Apple's implementation.** ⚠️ **The whole
-purpose of the sprint boundary between SP-123 and SP-124 is to keep
-*instrument-before-implement* honest.**
+### 7.2 ⚠️ What a PHYSICAL YANK actually does (S3)
+
+⚠️ **It is SILENT.** ⚠️ **No error, no warning, no kernel complaint reached the user** — the drive
+*"just unmounted, which is what USB is supposed to do."*
+
+✅ **udisks2 REMOVES the mountpoint it created** (`/run/media/<user>/<label>` vanished entirely).
+⚠️ **This was NOT predicted** — the working assumption was that Linux KEEPS the mountpoint where macOS
+removes it. ✅ **For an automounted volume that assumption is FALSE**, and it matters: the core's
+`missing` rule needs *parent exists*, so ⚠️ **a false `missing` is NOT REACHED on this path.**
+
+⚠️ **A HAND-MOUNTED `/mnt/<name>` behaves the OPPOSITE way** — ✅ **the directory is yours and nothing
+deletes it** — ⚠️ **so the false `missing` IS reachable there.** ⚠️ **Which path you mount on changes
+which defect you can hit.**
+
+⚠️ **A read SUCCEEDED against the removed volume** for a short window (page cache / unreaped dentries),
+⚠️ **long enough that the app reported the world available and an object opened successfully.**
+✅ **The steady state is correct** — ⚠️ **the transient is not.** ⚠️ **Whether it decays or persists is
+STILL UNMEASURED** (needs sampling ACROSS a yank).
+
+### 7.3 ⚠️ What a SERVER GOING AWAY does (S2) — ⚠️ **the ~10-second block**
+
+⚠️ **THE MOST IMPORTANT OPERATIONAL FINDING OF THE WHOLE SPRINT.**
+
+⚠️ **Every filesystem call against a dead SMB share BLOCKS for ~10 s before returning `EHOSTDOWN`
+(errno 112).** ⚠️ **Measured identically under `cache=strict` AND `cache=none`, with `soft` set in
+both.**
+
+⚠️ **`soft` prevents an unkillable hang. It does NOT prevent a ten-second stall.** ⚠️ **The pre-run
+assumption — that hangs were an NFS-hard-mount problem and `cifs` was the safe choice — IS WRONG.**
+
+✅ **Healthy call: 0.090 s. Degraded call: ~10 s. ⚠️ ~110× slower**, so a timeout is cheap to
+discriminate. ⚠️ **The cost COMPOUNDS**: a probe making several core calls degraded to ⚠️ **43-second
+intervals.**
+
+⚠️ **CONSEQUENCE FOR ANY PLATFORM LAYER: do NOT call the core synchronously on the UI thread for world
+status.** ⚠️ **A frozen UI is worse than a wrong status.**
+
+### 7.4 ⚠️ The signals that LIE — ⚠️ **name them, as Apple's did**
+
+| Signal | ⚠️ Verdict |
+| ------ | ---------- |
+| ⚠️ **`mountpoint -q`** | ⚠️ **LIES on server loss** — reported YES throughout S2 |
+| ⚠️ **A directory listing** | ⚠️ **LIES** — succeeded one level deep with **ZEROED sizes**; the level below failed `EHOSTDOWN`. ⚠️ **"The world folder is still there" is DEFEATED** |
+| ⚠️ **`statvfs`** | ⚠️ **LIES** — ✅ **measured SUCCEEDING on an unmounted path**, reporting the ROOT filesystem's block counts. ⚠️ **A confident success with a plausible number** |
+| ⚠️ **A successful `read`** | ⚠️ **LIES transiently** — ⚠️ **S3's page-cache window**, and ⚠️ **a held FD survived `umount -l` + `losetup -D` ENTIRELY** in the container pass |
+| ✅ **`st_dev` vs the parent's** | ✅ **WORKS** — ⚠️ **but proves "not a mount NOW", NOT "a volume went away"**; a directory that never held a mount matches identically |
+| ✅ **`errno` — `EHOSTDOWN` (112)** | ✅ **SPECIFIC to a dead server** — ⚠️ **and currently UNUSED by `resolve`.** ⚠️ **This is the strongest unexploited signal for `offline`** |
+
+### 7.5 ⚠️ `WorldStatus::offline` has NEVER been observed
+
+⚠️ **S2 IS the network case that DEFINES `offline`, and the core returned `unavailable`** — in both
+passes, within ~1 s. ⚠️ **Not once has any scenario produced `offline`.**
+
+⚠️ **This is a finding about the STATUS MODEL, and it must be RULED on, not quietly omitted.**
+
+### 7.6 ⚠️ Cache options trade one failure for another
+
+| | ⚠️ `cache=strict` | ⚠️ `cache=none` |
+| - | ----------------- | --------------- |
+| Phantom/stale listing | ⚠️ **YES** (§2c's defect) | ✅ **Suppressed** |
+| Core's answer while down | ✅ **honest `unavailable` in ~1 s** | ⚠️ **NO ANSWER AT ALL** — every call blocked |
+| ⚠️ **Project OPEN, share HEALTHY** | ✅ **baseline** | ⚠️ **~10× SLOWER** (user-reported 2026-09-08) |
+
+⚠️ **The client cache was the ONLY thing answering fast enough for a prompt honest verdict.**
+⚠️ **Neither setting is safe alone** — ✅ **the app needs its own timeout regardless.**
+
+### 7.6.1 ⚠️ **The THIRD cost of `cache=none` — measured 2026-09-08, and NOT predicted**
+
+⚠️ **§7.6 was written expecting `cache=none` to cost the OFFLINE VERDICT. It also costs EVERYDAY
+SPEED, on a perfectly healthy share** — ⚠️ **which is the cost a writer actually feels, every single
+open.**
+
+⚠️ **Measured on the rig, `Eskandar.scrivworld`, share UP:**
+
+| | ⏱ |
+| - | -- |
+| Recursive listing (`ls -R`) | ⚠️ **0.47 s** |
+| Reading all **57** files | ⚠️ **1.49 s** |
+| World resolve (core only) | ✅ **0.05–0.08 s** — ⚠️ **so the core is NOT the cost** |
+
+⚠️ **The user reported project open as ~10× slower and was RIGHT to call it a defect** — ⚠️ **an
+earlier reading of mine dismissed it as "mount configuration, not an app defect." ⚠️ THAT WAS WRONG,
+and the correction is the useful part:** ✅ **the app blocks the UI for the whole read regardless of
+WHY the I/O is slow**, ⚠️ **so a slow mount does not CAUSE the defect — it EXPOSES one.**
+
+⚠️ **The cost is UNBOUNDED and grows on three axes:** ⚠️ **worlds accumulate objects** (57 files is a
+TEST world), ⚠️ **a project may bind SEVERAL worlds**, and ⚠️ **project and worlds may BOTH be on slow
+network storage.**
+
+✅ **Recorded as [I-0195]** — ⚠️ **a PERFORMANCE defect (the data always loads correctly)** requiring
+⚠️ **an async read plus a determinate progress indicator**, ✅ **which is achievable because the FILE
+COUNT is known early enough to drive a real percentage rather than a spinner.**
+
+⚠️ **For ordinary rig use, prefer `cache=strict`** — ⚠️ **but understand you are MASKING [I-0195], not
+fixing it**, ✅ **and re-earning §2c's phantom listing.**
+
+### 7.7 ✅ Runnable steps — reproducing all three on a fresh rig
+
+⚠️ **Every command is tagged 🐧 `oathkeeper` (the rig) or 🍎 the workstation.** ⚠️ **Not saying which
+machine cost an entire S3 attempt on 2026-09-07** — the probe was run on the Mac against a Linux path
+and watched nothing.
+
+```bash
+# 🍎  Build the Qt-free probe, then deploy source to the rig (it compiles THERE —
+#     the two machines are different architectures; never copy binaries).
+cmake --build build-tests --target scrivi_world_probe
+platforms/linux/deploy-to-rig.sh          # or: git push, then git pull on the rig
+```
+
+**S3 — physical yank** (⚠️ needs a real removable device):
+
+```bash
+# 🐧  Note where it lands, and WHICH mountpoint owner you are testing:
+lsblk -f -o NAME,SIZE,TYPE,FSTYPE,LABEL,MOUNTPOINT,TRAN,RM
+#     /run/media/<user>/<label>  = udisks2  → mountpoint REMOVED on yank
+#     /mnt/<name>                = yours    → mountpoint SURVIVES
+platforms/linux/tools/s3-baseline-capture.sh /run/media/$USER/<label> ~/ScriviProjects/<p>.scrivi
+platforms/linux/tools/volume-loss-probe.sh   /run/media/$USER/<label> S3-physical-yank
+#     …then PULL THE DRIVE BY HAND. Do NOT eject first — a clean eject is S1.
+```
+
+**S2 — share killed at the source** (✅ **no drive needed, no console needed**):
+
+```bash
+# 🍎  Serve a COPY of a world from LOCAL disk, and mount WITHOUT the removable share:
+cp -a <world>.scrivworld ~/ScriviLinux/worlds/
+./scripts/mount-shares-on-rig.sh --no-worlds
+
+# 🐧  ⚠️ VERIFY ISOLATION FIRST — the share also carries projects/ and appsupport/.
+#     The project and appSupportRoot MUST be on LOCAL disk, or the kill removes
+#     them too and you measure "everything vanished" instead of "a world went away".
+ls ~/ScriviProjects/            # project: local
+echo "${XDG_DATA_HOME:-<unset>}"  # appSupportRoot: ~/.local/share/Scrivi, local
+
+# 🐧  Point the project's binding at /mnt/scrivi-net/worlds/<world>.scrivworld,
+#     then CONFIRM the world reads "available" before touching anything:
+~/Dev/Scrivi/build-native/ScriviCore/scrivi_world_probe ~/ScriviProjects/<p>.scrivi
+
+# 🐧  Sample the CORE's verdict every 2 s (this is the input to WorldVolumeStatus):
+while true; do printf '%s ' "$(date +%H:%M:%S)"; \
+  ~/Dev/Scrivi/build-native/ScriviCore/scrivi_world_probe ~/ScriviProjects/<p>.scrivi \
+  2>&1 | grep -m1 '"status"'; sleep 2; done | tee ~/scrivi-probe/S2-world-status.txt
+
+# 🍎  THEN: System Settings ▸ General ▸ Sharing ▸ File Sharing → OFF.  Wait ~60 s.
+```
+
+⚠️ **Read the gaps between samples, not just the values.** ⚠️ **The loop sleeps 2 s; anything longer is
+the CALL BLOCKING**, and that latency is the finding.
+
+⚠️ **`sudo` on the rig needs a TTY.** ⚠️ **`ssh oathkeeper 'sudo …'` FAILS with *"a terminal is required
+for reauthentication"*** — ✅ **use `ssh -t`, or run it in an interactive session.**
+
+### 7.8 ⚠️ Still owed
+
+- ⚠️ **The "network off / black hole" S2 variant** — ⚠️ **only "File Sharing OFF" (a REFUSED connection)
+  was run.** ⚠️ **A black hole is where hangs live; the ~10 s block may be far worse.**
+- ⚠️ **NFS** — ⚠️ **`cifs` only so far.**
+- ⚠️ **A held-open FD across a yank** — ⚠️ **the probes re-open by path each time.**
+- ⚠️ **Torn writes** — ⚠️ **no write was in flight.**
+- ⚠️ **Whether S3's successful read DECAYS or PERSISTS** — ⚠️ **needs sampling ACROSS a yank.**
 
 ---
 
@@ -376,5 +584,12 @@ purpose of the sprint boundary between SP-123 and SP-124 is to keep
 
 ---
 
-*v0.1 — 2026-08-29. Written as-run during SP-123. ⚠️ **§7 is owed by SP-124 (T-0477)**; ⚠️ **T-0479
-must correct Porting Outline §9 from this document**, not from memory.*
+*v0.2 — 2026-09-07. ✅ **§7 WRITTEN from three observed events on the rig** (S1 clean `umount`, S3
+physical yank, S2 server killed — ⚠️ **two cache passes**), closing the deliverable SP-124 / T-0477
+owed. ⚠️ **Two pre-run assumptions FELL and are recorded as such**: udisks2 REMOVES an automounted
+mountpoint on a yank (so I-0181's false `missing` is not reached there), and ⚠️ **`cifs` with `soft`
+BLOCKS ~10 s per call against a dead server** — hangs are not an NFS-only concern. ⚠️ **`WorldStatus::offline`
+has never been observed and needs a ruling.** ⚠️ **T-0479 must correct Porting Outline §9 from this
+document**, not from memory.*
+
+*v0.1 — 2026-08-29. Written as-run during SP-123.*
