@@ -16,7 +16,15 @@
 # QML in a QQuickWidget inside a QMainWindow (the shell flip).
 # ⚠️ Test is needed by package_folder_smoke, which drives a REAL double-click
 # (I-0185) — the pure-function checks all passed while the dialog still descended.
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets Test)
+# ⚠️ Concurrent (I-0193/I-0195, SP-124): world and project reads MUST NOT run on
+# the UI thread. Measured on the real rig 2026-09-08, a world on a dead cifs share
+# blocked a single core call for 1m42s -- the app froze on an ordinary scene click
+# and the writer's only escape was Force Quit.
+#
+# ⚠️ A QTimer cannot fix that: the UI thread is INSIDE a blocking read(), so no
+# timer fires. Getting the call OFF the thread is what makes a timeout expressible
+# at all -- the async move is the mechanism, not preparation for it.
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets Test Concurrent)
 
 # Qt's AUTOMOC etc. are enabled per-target below via qt_standard_project_setup.
 qt_standard_project_setup(REQUIRES 6.4)
@@ -108,6 +116,7 @@ target_link_libraries(scrivi_linux
         Qt6::Quick
         Qt6::Widgets        # QFileDialog picker + QMainWindow/QPlainTextEdit shell
         Qt6::QuickWidgets   # QQuickWidget host for the landing QML (shell flip)
+        Qt6::Concurrent     # I-0193: world/project reads off the UI thread
 )
 
 # The qmltyperegistrar-generated TU (scrivi_linux_qmltyperegistrations.cpp) is

@@ -291,18 +291,74 @@ because the moment you most want to ask "is this the right build?" is at the lan
 ⚠️ **`--version` is handled BEFORE `QApplication` is constructed**, so it works over plain SSH where
 there is no `DISPLAY`.
 
-### ✅ The deploy loop — ONE command
+### ✅ The deploy loop — ⚠️ **GIT IS THE DEFAULT TRANSPORT**
+
+⚠️ **USE GIT. It is the normal way to update the rig.**
+
+```bash
+# 🍎  Mac
+git push
+
+# 🐧  rig
+cd ~/Dev/Scrivi && git pull && cmake --build build-native --parallel
+```
+
+✅ **The rig stays CLEAN, so `git pull` always works and NO RESET IS EVER NEEDED.**
+
+⚠️ **For work that is not ready for `main`, use a WIP BRANCH — NOT a file copy:**
+
+```bash
+# 🍎  Mac
+git checkout -b wip/<task> && git commit -am "wip" && git push -u origin wip/<task>
+
+# 🐧  rig
+git fetch && git checkout wip/<task> && git pull && cmake --build build-native --parallel
+```
+
+✅ **Squash into a real commit on `main` when the work lands.** ⚠️ **Still no reset.**
+
+#### ⚠️ `deploy-to-rig.sh` — the EXCEPTION, not the default
 
 ```bash
 platforms/linux/deploy-to-rig.sh            # push + build + verify
 platforms/linux/deploy-to-rig.sh --test     # …and ctest + the 19 smokes
 ```
 
-It packages the **working tree** (⚠️ **including uncommitted and untracked files** — that is what you
-are testing), ships it, builds natively, and ⚠️ **fails loudly if the deployed binary does not carry
-the build number it just shipped.**
+It packages the **working tree** (⚠️ **including uncommitted and untracked files**), ships it, builds
+natively, and ⚠️ **fails loudly if the deployed binary does not carry the build number it just
+shipped.** Host defaults to `oathkeeper` (`SCRIVI_RIG`); path to `~/Dev/Scrivi` (`SCRIVI_RIG_PATH`).
 
-Host defaults to `oathkeeper` (`SCRIVI_RIG`); path to `~/Dev/Scrivi` (`SCRIVI_RIG_PATH`).
+⚠️ **IT UNTARS OVER THE CHECKOUT WITHOUT TOUCHING GIT'S INDEX.** ⚠️ **So it leaves the rig's working
+tree DIRTY BY DESIGN** — tracked files overwritten, HEAD unmoved — ✅ **which is correct for its
+purpose and a trap for everything else.**
+
+⚠️ **THE FAILURE THIS CAUSES, observed 2026-09-08:**
+
+1. ⚠️ A deploy ships the working tree; the rig's tree now diverges from its HEAD.
+2. ⚠️ The work is committed **on the Mac** and pushed.
+3. ⚠️ **`git pull` on the rig ABORTS** — the incoming commit touches files the deploy locally
+   modified, ⚠️ **and git will not overwrite local changes it cannot reconcile.**
+4. ⚠️ **The only way out is a RESET**, ⚠️ **which is exactly what git exists to make unnecessary.**
+
+✅ **RULE: DO NOT MIX THE TWO IN ONE SESSION.** ⚠️ **Deploying uncommitted work means never pulling on
+the rig; pulling means never deploying.**
+
+⚠️ **Reserve the script for when git genuinely cannot be used** — ⚠️ **no network to the remote, or
+debugging something that will never be committed.** ⚠️ **Whoever runs it should SAY SO**, because the
+dirty tree it leaves is a surprise to the next person — ⚠️ **or to the same person the next day.**
+
+✅ **Crossing back to git afterwards** (⚠️ **commit on the Mac FIRST — the reset discards the rig's
+copy, and after a deploy that copy may be the only one**):
+
+```bash
+# 🐧  rig
+git reset --hard origin/main
+git pull
+```
+
+⚠️ **KEEP THE BUILD-STAMP CHECK EITHER WAY.** ⚠️ **`git pull` does NOT rebuild, and neither does a
+reset** — ⚠️ **the tree moves while `build-native/` does not.** ✅ **Rebuild, then confirm with
+`scrivi_linux --version` or Help ▸ About** (`feedback_confirm_the_build_under_test`).
 
 ### ⚠️ The build NUMBER — and why it belongs to the PUSH, not the compile
 
@@ -516,7 +572,8 @@ and watched nothing.
 # 🍎  Build the Qt-free probe, then deploy source to the rig (it compiles THERE —
 #     the two machines are different architectures; never copy binaries).
 cmake --build build-tests --target scrivi_world_probe
-platforms/linux/deploy-to-rig.sh          # or: git push, then git pull on the rig
+git push        # 🐧 then on the rig:  git pull && cmake --build build-native --parallel
+#     (⚠️ deploy-to-rig.sh only for UNCOMMITTED work — it leaves the rig dirty; see §5)
 ```
 
 **S3 — physical yank** (⚠️ needs a real removable device):

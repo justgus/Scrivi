@@ -257,7 +257,25 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
     if (!b.reference.lastKnownPath.empty()) {
         std::error_code ec;
         auto abs = fs::weakly_canonical(fs::path(projectRoot) / b.reference.lastKnownPath, ec);
-        candidates.push_back(ec ? (fs::path(projectRoot) / b.reference.lastKnownPath).string()
+        // I-0194: the fallback MUST still be normalized.
+        //
+        // ⚠️ `weakly_canonical` TOUCHES THE FILESYSTEM, so it FAILS exactly when
+        // the volume is unreachable -- which is precisely when this path is shown
+        // to a writer as "where we looked". The raw concatenation it falls back to
+        // keeps every `..` segment from the stored relative reference, and on the
+        // rig that surfaced as a six-`../` traversal escaping the project package
+        // (measured 2026-09-08 against a dead cifs share).
+        //
+        // ⚠️ `lexically_normal` is PURELY TEXTUAL -- no stat, no resolution. That
+        // is the requirement here, not a limitation: the volume is by definition
+        // ABSENT when this branch runs, so anything that touches the filesystem
+        // would fail the same way `weakly_canonical` just did.
+        //
+        // ⚠️ It deliberately does NOT resolve symlinks. `a/b/../c` and `a/c` can
+        // differ if `b` is a symlink -- but this value is a DISPLAY HINT ("where
+        // we looked"), never a path we open, so textual normalization is correct.
+        candidates.push_back(ec ? (fs::path(projectRoot) / b.reference.lastKnownPath)
+                                      .lexically_normal().string()
                                 : abs.string());
     }
     if (!b.reference.lastKnownAbsolutePath.empty()) {

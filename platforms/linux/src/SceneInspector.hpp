@@ -105,6 +105,12 @@ public:
     // graph or the object set behind the panel's back.
     void reload();
 
+    // I-0193: `reload()` GATHERS on a worker thread; `applyReload` is the UI-thread
+    // half that parses the payload and rebuilds the tree. ⚠️ Split so the blocking
+    // core reads cannot freeze the UI -- measured at 1m42s against a dead share.
+    struct ReloadPayload;
+    void applyReload(const ReloadPayload& payload);
+
 private:
     // The tabs, in Apple's DISPLAY order. Index order here IS the on-screen
     // order, so it must stay Writing, Worldbuilding, Properties.

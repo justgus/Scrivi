@@ -1,5 +1,7 @@
 #include "SceneInspector.hpp"
 
+#include "AsyncCall.hpp"   // I-0193: core reads off the UI thread
+
 #include "ThemeColours.hpp"
 #include "WorldStatusText.hpp"
 
@@ -331,6 +333,26 @@ void SceneInspector::setScene(const QString& sceneID)
     loadSceneNotes();
 }
 
+// I-0193 (SP-124): the three core reads below, GATHERED ON A WORKER THREAD.
+//
+// ⚠️ ALL THREE can touch a world's volume, so all three must move -- not just the
+// obvious `listWorlds`. `listEdgesFor` resolves each endpoint's world through
+// RelationshipStore -> WorldStore::resolve, and `listObjects` reports each
+// object's world the same way. Moving only `listWorlds` would have left the
+// freeze in place and looked like a fix.
+//
+// ⚠️ This runs on a WORKER THREAD: C ABI calls and locals ONLY. No widgets, no
+// models, no member writes. Everything it learns comes back in this struct and is
+// applied on the UI thread by `applyReload`.
+struct SceneInspector::ReloadPayload {
+    QVariantMap edgesResult;
+    QVariantMap objectsResult;
+    QVariantMap worldsResult;
+    bool edgesFailed   = true;
+    bool objectsFailed = true;
+    bool worldsFailed  = true;
+};
+
 void SceneInspector::reload()
 {
     entries_.clear();
@@ -346,16 +368,65 @@ void SceneInspector::reload()
         return;
     }
 
+    // ⚠️ Captured BY VALUE for the worker. `bridge_` is a raw pointer owned by the
+    // UI thread, but the C ABI it wraps is call-thread-safe and the bridge holds
+    // no mutable state across a call except `lastCallFailed_`, which is read here
+    // on the worker and copied into the payload before returning.
+    ScriviBridge* bridge = bridge_;
+    const QString root   = projectRootPath_;
+    const QString scene  = sceneID_;
+
+    // ⚠️ Tell the writer we are working BEFORE the wait, not after. Without this
+    // the panel simply sits there looking broken.
+    setStatusLine(tr("Loading this scene's objects…"), false);
+
+    AsyncCall::run<ReloadPayload>(
+        this,
+        [bridge, root, scene]() -> ReloadPayload {
+            ReloadPayload p;
+            p.edgesResult   = bridge->listEdgesFor(root, scene);
+            p.edgesFailed   = bridge->lastCallFailed();
+            p.objectsResult = bridge->listObjects(root, QString());
+            p.objectsFailed = bridge->lastCallFailed();
+            p.worldsResult  = bridge->listWorlds(root);
+            p.worldsFailed  = bridge->lastCallFailed();
+            return p;
+        },
+        [this, scene](const ReloadPayload& p) {
+            // ⚠️ The active scene may have changed while we waited. Applying a
+            // stale payload would show one scene's objects under another's name.
+            if (scene != sceneID_) { return; }
+            applyReload(p);
+        },
+        [this, scene]() {
+            if (scene != sceneID_) { return; }
+            // ⚠️ HONEST, and NOT a claim about the data. The world may be
+            // perfectly intact on a volume we cannot reach -- saying anything
+            // stronger invites the destructive remedies I-0115 warns about.
+            loadError_ = tr("This scene's objects are taking longer than expected "
+                            "to read — a world may be on a disconnected or "
+                            "unreachable volume. Nothing has been lost.");
+            entries_.clear();
+            rebuildTree();
+        });
+}
+
+void SceneInspector::applyReload(const ReloadPayload& payload)
+{
+    entries_.clear();
+    loadError_.clear();
+    indexUnreadable_ = false;
+
     // 1 — the SCENE's edges. Each carries its far endpoint already resolved,
     //     including the label projected for THIS endpoint.
-    const QVariantMap edgesResult = bridge_->listEdgesFor(projectRootPath_, sceneID_);
+    const QVariantMap& edgesResult = payload.edgesResult;
     // ⚠️ An empty map does NOT mean "no edges". JsonDoc::appendToArray creates
     // the "edges" key only when there is a first element to push, so a scene with
     // no edges produces {"ok":true,"result":{}} — byte-identical to what
     // parseEnvelope returns for a FAILED call. Testing isEmpty() here would
     // report every objectless scene as unreadable, which is the same
     // silent-conflation of states, just inverted. Ask the bridge which it was.
-    if (bridge_->lastCallFailed()) {
+    if (payload.edgesFailed) {
         loadError_ = tr("This scene's objects could not be read.");
         rebuildTree();
         return;
@@ -366,8 +437,8 @@ void SceneInspector::reload()
     QSet<QString> knownIDs;
     QHash<QString, QString> worldByObjectID;
     indexUnreadable_ = false;
-    const QVariantMap objectsResult = bridge_->listObjects(projectRootPath_, QString());
-    const bool objectsReadable = !bridge_->lastCallFailed();
+    const QVariantMap& objectsResult = payload.objectsResult;
+    const bool objectsReadable = !payload.objectsFailed;
     indexUnreadable_ = !objectsReadable;
     if (objectsReadable) {
         const QVariantList objects = objectsResult.value(QStringLiteral("objects")).toList();
@@ -392,8 +463,8 @@ void SceneInspector::reload()
     // 3 — bound worlds, so a pending world can be NAMED rather than warned about
     //     anonymously.
     worldNames_.clear();
-    const QVariantMap worldsResult = bridge_->listWorlds(projectRootPath_);
-    if (!bridge_->lastCallFailed()) {
+    const QVariantMap& worldsResult = payload.worldsResult;
+    if (!payload.worldsFailed) {
         const QVariantList worlds = worldsResult.value(QStringLiteral("worlds")).toList();
         for (const QVariant& w : worlds) {
             const QVariantMap m = w.toMap();

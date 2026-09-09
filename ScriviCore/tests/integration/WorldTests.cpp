@@ -1033,3 +1033,51 @@ TEST_CASE("⚠️ an ordinary read failure still resolves `unavailable`, never `
     REQUIRE(res.status == WorldStatus::unavailable);
     REQUIRE(res.status != WorldStatus::offline);
 }
+
+// ---------------------------------------------------------------------------
+// I-0194 (SP-124) — `lastKnownPackagePath` must never be shown as a traversal
+// ---------------------------------------------------------------------------
+
+TEST_CASE("⚠️ an UNREACHABLE world's lastKnownPackagePath is NORMALIZED (I-0194)",
+          "[integration][SP-124][I-0194]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // ⚠️ WHAT THIS TEST DOES AND DOES NOT COVER -- read before trusting it.
+    //
+    // ⚠️ It does NOT reproduce I-0194's trigger. `weakly_canonical` SUCCEEDS on a
+    // merely non-existent path (measured: ec=0, and it normalizes correctly), so
+    // absence alone never reaches the `ec` fallback. The rig's six-`../` value came
+    // from a REAL I/O ERROR -- a dead cifs mount returning EHOSTDOWN -- which
+    // cannot be staged in-process here: `weakly_canonical` calls std::filesystem
+    // DIRECTLY, bypassing the injectable `FileSystem`, so no decorator can fail it.
+    //
+    // ✅ What it DOES pin is the invariant that matters to a writer: whatever path
+    // resolve() reports, it never contains `..`. That holds on the success path
+    // (proved here) and on the fallback (by `lexically_normal`, which is
+    // unreachable from this process but is a one-line textual transform).
+    //
+    // ⚠️ The FALLBACK BRANCH IS THEREFORE UNPROVEN BY THE SUITE and is verified
+    // only by the rig. Do not read a green run here as covering the defect.
+    WorldStore store{fix.services};
+    auto b = store.loadBinding(fix.root(), w.worldID);
+    REQUIRE(b.ok());
+    auto binding = b.value();
+    binding.reference.lastKnownPath         = "../../../../../../mnt/gone/Eskandar.scrivworld";
+    binding.reference.lastKnownAbsolutePath = "";
+    REQUIRE(store.saveBinding(fix.root(), binding).ok());
+
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    // ⚠️ THE POINT: no `..` survives into the writer-facing value.
+    REQUIRE(res.lastKnownPackagePath.find("..") == std::string::npos);
+
+    // ...and it still says something USEFUL about where we looked -- normalizing
+    // must not empty it. T-0419 (I-0137) carries this value precisely so an
+    // unreachable world can still be located by a human.
+    REQUIRE_FALSE(res.lastKnownPackagePath.empty());
+    REQUIRE(res.lastKnownPackagePath.find("Eskandar.scrivworld") != std::string::npos);
+
+    // ⚠️ The volume is ABSENT, so nothing was verified.
+    REQUIRE(res.packagePath.empty());
+}
