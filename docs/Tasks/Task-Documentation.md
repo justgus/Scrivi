@@ -719,7 +719,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0475 | **Toolchain + deps** — ⚠️ **Qt ≥ 6.4 confirmed**; real desktop, ⚠️ **not xvfb** | SP-123 | **EP-038** | ⚪ Blocked | — | — |
 | T-0476 | **First NATIVE build** + `ctest` non-root + ⚠️ **app on a real display** | SP-123 | **EP-038** | ⚪ Blocked | — | — |
 | T-0477 | ⚠️ **DRIVE-LOSS INSTRUMENTATION — findings only, NO code** | SP-124 | **EP-038** | 🔵 Backlog | — | — |
-| T-0478 | ⚠️ **`WorldVolumeStatus` for Linux**, against T-0477's findings | SP-124 | **EP-038** | 🔵 Backlog | — | — |
+| T-0478 | ⚠️ **`WorldVolumeStatus` for Linux**, against T-0477's findings | SP-124 | **EP-038** | ✅ **Verified** | 2026-09-10 | [`Verified/Task-verified-0475-0479.md`](Verified/Task-verified-0475-0479.md) |
 | T-0479 | ⚠️ **Correct Porting Outline §9** from experience | SP-124 | **EP-038** | 🔵 Backlog | — | — |
 | T-0480 | ⚠️ **Kind scope DERIVED from `listObjectKinds`** — ⚠️ **occurrence-NINE territory** | SP-125 | **EP-035** | 🔵 Planned | — | — |
 | T-0481 | **Scene Entities tab lists objects by kind** — replaces the EP-024 stub | SP-125 | **EP-035** | 🔵 Planned | — | — |
