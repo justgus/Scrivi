@@ -2,6 +2,7 @@
 
 #include <QDialog>
 #include <QString>
+#include <QVariantMap>
 #include <QVector>
 
 class ScriviBridge;
@@ -64,7 +65,17 @@ private:
         QString lastKnownPackagePath;    // ⚠️ where we LOOKED; never proof
     };
 
+    // The result of one off-thread world read (I-0193). ⚠️ `failed` is captured
+    // ON THE WORKER THREAD immediately after the call: `lastCallFailed()` is
+    // per-bridge state, and reading it back on the UI thread could report some
+    // LATER call's outcome (project_envelope_empty_vs_failed).
+    struct WorldsPayload {
+        QVariantMap result;
+        bool        failed = false;
+    };
+
     void reload();
+    void applyWorlds(const WorldsPayload& payload);
     void rebuildRows();
     QWidget* makeRow(const Entry& e);
 
@@ -81,6 +92,10 @@ private:
     QString       projectRootPath_;
 
     QVector<Entry> worlds_;
+
+    // ⚠️ True while a world read is in flight (I-0193). An empty list means "no
+    // worlds" ONLY when this is false -- see rebuildRows().
+    bool loading_ = false;
 
     QVBoxLayout* rowsLayout_ = nullptr;
     QLabel*      emptyLabel_ = nullptr;

@@ -1,5 +1,7 @@
 #include "WorldsDialog.hpp"
 
+#include "AsyncCall.hpp"
+
 #include "ScriviBridge.hpp"
 #include "PackageFolderDialog.hpp"
 #include "ThemeColours.hpp"
@@ -175,19 +177,61 @@ WorldsDialog::WorldsDialog(ScriviBridge* bridge, QString projectRootPath, QWidge
 
 void WorldsDialog::reload()
 {
+    // ⚠️ I-0193, SECOND CALL SITE. This ran SYNCHRONOUSLY on the UI thread until
+    // 2026-09-09, and it is called straight from the constructor -- so opening
+    // Project > Manage Worlds with a world on a dead `cifs` share froze the whole
+    // app for ~102 s and had to be Force Quit. ⚠️ The Issue named this site from
+    // the start; the first fix (SceneInspector) simply did not reach it, and the
+    // rig pass on build 34 froze here EXACTLY as before.
+    //
+    // ⚠️ Note this dialog exists precisely TO show unreachable worlds, so the slow
+    // path is not an edge case here -- it is the main reason a writer opens it.
+    worlds_.clear();
+    loading_ = true;
+    rebuildRows();
+
+    ScriviBridge* bridge = bridge_;
+    const QString root   = projectRootPath_;
+
+    AsyncCall::run<WorldsPayload>(
+        this,
+        [bridge, root]() -> WorldsPayload {
+            WorldsPayload p;
+            p.result = bridge->listWorlds(root);
+            // ⚠️ An empty envelope is AMBIGUOUS — appendToArray omits the key
+            // entirely for an empty list, so `{}` means "no worlds" OR "the call
+            // failed" (project_envelope_empty_vs_failed). lastCallFailed() is the
+            // only way to tell, and it MUST be read on this thread, immediately
+            // after the call, before any other call can overwrite it.
+            p.failed = bridge->lastCallFailed();
+            return p;
+        },
+        [this](const WorldsPayload& p) { applyWorlds(p); },
+        [this]() {
+            // ⚠️ HONEST, and NOT a claim about the data: the worlds may be
+            // perfectly intact on a volume we cannot reach. I-0115 -- a
+            // wrong-but-confident status invites destructive remedies.
+            loading_ = false;
+            worlds_.clear();
+            showActionError(tr("This project's worlds are taking longer than "
+                               "expected to read — one may be on a disconnected "
+                               "or unreachable volume. Nothing has been lost."));
+            rebuildRows();
+        });
+}
+
+void WorldsDialog::applyWorlds(const WorldsPayload& payload)
+{
+    loading_ = false;
     worlds_.clear();
 
-    const QVariantMap result = bridge_->listWorlds(projectRootPath_);
-    // ⚠️ An empty envelope is AMBIGUOUS — appendToArray omits the key entirely for
-    // an empty list, so `{}` means "no worlds" OR "the call failed"
-    // (project_envelope_empty_vs_failed). lastCallFailed() is the only way to tell.
-    if (bridge_->lastCallFailed()) {
+    if (payload.failed) {
         showActionError(tr("Could not read this project's worlds."));
         rebuildRows();
         return;
     }
 
-    const QVariantList list = result.value(QStringLiteral("worlds")).toList();
+    const QVariantList list = payload.result.value(QStringLiteral("worlds")).toList();
     for (const QVariant& v : list) {
         const QVariantMap m = v.toMap();
         Entry e;
@@ -211,7 +255,16 @@ void WorldsDialog::rebuildRows()
         delete item;
     }
 
-    emptyLabel_->setVisible(worlds_.isEmpty());
+    // ⚠️ While a read is in flight the list is empty but "this project has no
+    // worlds" is NOT true, and saying so to a writer whose world is on a
+    // temporarily unreachable volume is a false claim about her data.
+    if (loading_) {
+        emptyLabel_->setText(tr("Reading this project's worlds…"));
+        emptyLabel_->setVisible(true);
+    } else {
+        emptyLabel_->setText(tr("This project uses no worlds yet."));
+        emptyLabel_->setVisible(worlds_.isEmpty());
+    }
 
     for (const Entry& e : worlds_) {
         rowsLayout_->insertWidget(rowsLayout_->count() - 1, makeRow(e));

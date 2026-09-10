@@ -462,15 +462,19 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
 
     // 3 — bound worlds, so a pending world can be NAMED rather than warned about
     //     anonymously.
-    worldNames_.clear();
     const QVariantMap& worldsResult = payload.worldsResult;
     if (!payload.worldsFailed) {
+        worldNames_.clear();
         const QVariantList worlds = worldsResult.value(QStringLiteral("worlds")).toList();
         for (const QVariant& w : worlds) {
             const QVariantMap m = w.toMap();
             worldNames_.insert(m.value(QStringLiteral("worldID")).toString(),
                                m.value(QStringLiteral("displayName")).toString());
         }
+        // ⚠️ I-0193: hand the names to EditorShell so writerFacingError() can NAME
+        // a world without calling the core. ✅ Only on success -- see the signal's
+        // declaration: a failed read must not clear names that are still true.
+        emit worldNamesResolved(worldNames_);
     }
 
     const QVariantList edges = edgesResult.value(QStringLiteral("edges")).toList();

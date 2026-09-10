@@ -121,6 +121,12 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     connect(inspector_, &SceneInspector::openObjectRequested,
             this, &EditorShell::onOpenObjectRequested);
 
+    // ⚠️ I-0193: keep a LOCAL copy of the bound worlds' names, so an error message
+    // can name a world without calling the core on the UI thread. The inspector
+    // has already read them on the worker thread; this is the same data, free.
+    connect(inspector_, &SceneInspector::worldNamesResolved, this,
+            [this](const QHash<QString, QString>& names) { worldNames_ = names; });
+
     splitter_ = new QSplitter(Qt::Horizontal, this);
     splitter_->addWidget(navigator_);
     splitter_->addWidget(viewport_);
@@ -1847,15 +1853,25 @@ QString EditorShell::writerFacingError(int code, const QString& message) const
     if (unusableWorld && message.contains(QLatin1String("world"))) {
         // Recover the world's display name from the binding cache when we can —
         // ⚠️ §7.2 requires the world to be NAMED, not anonymously warned about.
+        //
+        // ⚠️ I-0193: this used to call `bridge_->listWorlds(projectPath_)` HERE,
+        // synchronously, on the UI thread. ⚠️ That is the single worst place in
+        // the app to do it: this branch runs ONLY when a world is already known
+        // unusable, so the call was GUARANTEED to hit the dead volume every time
+        // it executed -- blocking ~102 s (measured on the rig, 2026-09-08) while
+        // composing the sentence that explains that very failure. ⚠️ The error
+        // handler froze the app to explain the error.
+        //
+        // ✅ The name never needed the volume. It is cached from every successful
+        // listWorlds and kept in `worldNames_`, which is local memory. ⚠️ A miss
+        // is HARMLESS by construction -- every branch below already has a
+        // `name.isEmpty()` form, so an unknown world degrades to the anonymous
+        // phrasing instead of blocking.
         QString name;
-        const QVariantMap worlds = bridge_->listWorlds(projectPath_);
-        if (!bridge_->lastCallFailed()) {
-            for (const QVariant& w : worlds.value(QStringLiteral("worlds")).toList()) {
-                const QVariantMap m = w.toMap();
-                if (message.contains(m.value(QStringLiteral("worldID")).toString())) {
-                    name = m.value(QStringLiteral("displayName")).toString();
-                    break;
-                }
+        for (auto it = worldNames_.cbegin(); it != worldNames_.cend(); ++it) {
+            if (message.contains(it.key())) {
+                name = it.value();
+                break;
             }
         }
         // ⚠️ T-0478: `offline` is SHARPER than `unavailable` and the writer is

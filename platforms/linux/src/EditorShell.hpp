@@ -365,6 +365,19 @@ private:
     QTimer*             saveTimer_ = nullptr;   // idle-save debounce (~1.5s)
     QSplitter*          splitter_  = nullptr;   // navigator | viewport | inspector
     SceneInspector*     inspector_ = nullptr;   // EP-024 right-side panel
+    // World display names, cached from every SUCCESSFUL listWorlds (I-0193).
+    //
+    // ⚠️ WHY THIS EXISTS: writerFacingError() used to call listWorlds() to
+    // recover a world's NAME for its message. That call runs on the UI thread
+    // and only ever fires when a world is ALREADY known unusable -- so it hit a
+    // dead share EVERY time it executed, blocking ~102 s while composing the
+    // sentence explaining that very failure. The error handler froze the app to
+    // explain the error.
+    //
+    // ✅ The name is knowable WITHOUT the volume: it is cached in the project's
+    // own binding, which is local. Reading it from here is a hash lookup, and the
+    // volume is by definition ABSENT when the message matters.
+    QHash<QString, QString> worldNames_;
     QSplitter*          outerSplitter_ = nullptr;  // (panels) above | timeline below
     TimelinePanel*      timeline_  = nullptr;   // EP-025 bottom strip
     // Per-scene story-time cached on each reloadTimeline (SP-080): sceneID → resolved

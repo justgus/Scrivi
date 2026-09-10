@@ -143,6 +143,17 @@ signals:
                              const QString& objectID,
                              const QString& worldID);
 
+    // The bound worlds' display names, emitted after every SUCCESSFUL world read
+    // (I-0193). ⚠️ EditorShell needs them to NAME a world in an error message
+    // without calling the core -- see EditorShell::writerFacingError, where doing
+    // so blocked ~102 s on a dead share. ✅ This carries names the panel has
+    // ALREADY paid for, so it adds no core call.
+    //
+    // ⚠️ NOT emitted when the read fails: a failed listing must never be allowed
+    // to CLEAR names that were valid a moment ago, which is precisely when the
+    // writer most needs them.
+    void worldNamesResolved(const QHash<QString, QString>& namesByWorldID);
+
 private slots:
     void onItemActivated(QTreeWidgetItem* item, int column);
     void onContextMenuRequested(const QPoint& pos);
