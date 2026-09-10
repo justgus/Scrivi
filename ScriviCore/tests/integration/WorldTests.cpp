@@ -933,6 +933,21 @@ public:
         return inner_.exists(path);
     }
 
+    // ⚠️ Same reasoning for deviceID (T-0498): an unreachable host cannot answer
+    // a stat, so it must FAIL rather than report a device. Returning the inner
+    // value here would hand resolve() a confident device identity for a path it
+    // cannot reach -- the same class of lie `statvfs` tells, which is why the
+    // real primitive refuses to use it.
+    Result<std::uint64_t> deviceID(const AbsolutePath& path) override {
+        if (matches(path)) {
+            return Result<std::uint64_t>::failure({.code    = ErrorCode::ioError,
+                                                   .message = "could not stat",
+                                                   .path    = path,
+                                                   .detail  = "hostUnreachable"});
+        }
+        return inner_.deviceID(path);
+    }
+
     // Pure forwarding below — the decorator only intercepts the two calls above.
     Result<bool> isDirectory(const AbsolutePath& p) override { return inner_.isDirectory(p); }
     Result<void> createDirectories(const AbsolutePath& p) override { return inner_.createDirectories(p); }
@@ -1080,4 +1095,126 @@ TEST_CASE("⚠️ an UNREACHABLE world's lastKnownPackagePath is NORMALIZED (I-0
 
     // ⚠️ The volume is ABSENT, so nothing was verified.
     REQUIRE(res.packagePath.empty());
+}
+
+// ---------------------------------------------------------------------------
+// T-0498 (SP-124) — `missing` must not be inferred from DIRECTORY EXISTENCE
+// ---------------------------------------------------------------------------
+//
+// [I-0181]. The old test was "package absent AND parent exists", and an UNMOUNTED
+// VOLUME satisfies both: the package is gone, and the mountpoint directory the
+// operator created is still there. An intact world on a pulled drive was reported
+// MISSING -- which invites the writer to relink, recreate, or delete.
+//
+// ⚠️ SCOPE, measured on the rig 2026-09-07 (T-0477 S3): udisks2 REMOVES the
+// mountpoint it created, so `/run/media/<user>/<label>` -- the automounted path a
+// real writer's drive uses -- never reaches this branch. This guards the
+// HAND-MOUNTED `/mnt` case: fstab entries, server deployments, mounting by hand.
+// The `/mnt` half was deliberately NOT run on the rig (a hand-made directory is
+// an ordinary directory; nothing has a mandate to delete it), so it is proven
+// HERE instead.
+
+namespace {
+
+// Reports a chosen directory as being on its OWN device -- which is what a
+// directory with a volume MOUNTED ON IT looks like.
+class MountedVolumeFileSystem final : public FileSystem {
+public:
+    MountedVolumeFileSystem(FileSystem& inner, AbsolutePath mountPoint)
+        : inner_(inner), mountPoint_(std::move(mountPoint)) {}
+
+    Result<std::uint64_t> deviceID(const AbsolutePath& path) override {
+        // A device of its own ⇒ something is mounted here.
+        if (path == mountPoint_) { return Result<std::uint64_t>::success(4242); }
+        return inner_.deviceID(path);
+    }
+
+    Result<bool> exists(const AbsolutePath& p) override { return inner_.exists(p); }
+    Result<bool> isDirectory(const AbsolutePath& p) override { return inner_.isDirectory(p); }
+    Result<void> createDirectories(const AbsolutePath& p) override { return inner_.createDirectories(p); }
+    Result<Utf8Text> readTextFile(const AbsolutePath& p) override { return inner_.readTextFile(p); }
+    Result<void> atomicWriteTextFile(const AbsolutePath& p, std::string_view t) override { return inner_.atomicWriteTextFile(p, t); }
+    Result<void> createFileExclusive(const AbsolutePath& p, std::string_view t) override { return inner_.createFileExclusive(p, t); }
+    Result<void> appendTextFile(const AbsolutePath& p, std::string_view t) override { return inner_.appendTextFile(p, t); }
+    Result<std::vector<AbsolutePath>> listDirectory(const AbsolutePath& p) override { return inner_.listDirectory(p); }
+    Result<void> removeFile(const AbsolutePath& p) override { return inner_.removeFile(p); }
+    Result<void> renamePath(const AbsolutePath& a, const AbsolutePath& b) override { return inner_.renamePath(a, b); }
+    Result<void> copyFileInBlocks(const AbsolutePath& a, const AbsolutePath& b, std::size_t n,
+                                  const std::function<Result<void>()>& cb) override {
+        return inner_.copyFileInBlocks(a, b, n, cb);
+    }
+
+private:
+    FileSystem&  inner_;
+    AbsolutePath mountPoint_;
+};
+
+} // namespace
+
+TEST_CASE("⚠️ a world under an UNEXPECTED MOUNTED volume is NOT reported missing (T-0498, I-0181)",
+          "[integration][SP-124][T-0498][I-0181]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // ⚠️ WHAT THIS PINS, stated exactly -- read before trusting it.
+    //
+    // The container has its OWN device: SOMETHING IS MOUNTED THERE. The package is
+    // absent from it. ✅ That is NOT proof the world is gone -- it is proof the
+    // world is not on THIS volume, which is a different and weaker claim (a
+    // different drive, a remount, a stale automount). ⚠️ Reporting `missing` here
+    // is the [I-0181] defect: a confident claim that invites a writer to relink,
+    // recreate, or delete an intact world.
+    const AbsolutePath mountPoint = (fs::path(fix.root()) / "mnt-scrivi-worlds").string();
+    const AbsolutePath pkg        = (fs::path(mountPoint) / "Eskandar.scrivworld").string();
+
+    WorldStore setup{fix.services};
+    auto b = setup.loadBinding(fix.root(), w.worldID);
+    REQUIRE(b.ok());
+    auto binding = b.value();
+    binding.reference.lastKnownPath         = "";
+    binding.reference.lastKnownAbsolutePath = pkg;
+    REQUIRE(setup.saveBinding(fix.root(), binding).ok());
+
+    // The container EXISTS and the package DOES NOT -- the OLD test's two
+    // conditions, both satisfied. Before T-0498 that alone yielded `missing`.
+    REQUIRE(fix.fileSystem.createDirectories(mountPoint).ok());
+    REQUIRE(fix.fileSystem.exists(mountPoint).value());
+    REQUIRE_FALSE(fix.fileSystem.exists(pkg).value());
+
+    MountedVolumeFileSystem mounted{fix.fileSystem, mountPoint};
+    CoreServices svc = fix.services;
+    svc.fileSystem   = &mounted;
+    WorldStore store{svc};
+
+    auto res = store.resolve(fix.root(), w.worldID);
+
+    REQUIRE(res.status != WorldStatus::missing);
+    REQUIRE(res.status == WorldStatus::unavailable);
+}
+
+TEST_CASE("⚠️ an ORDINARY deleted world still reports missing (T-0498 must not over-withhold)",
+          "[integration][SP-124][T-0498][I-0181]") {
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    // ⚠️ THE CONTROL, and the reason `st_dev` may only WITHHOLD and never assert:
+    // a directory that NEVER held a mount matches its parent's device identically.
+    // That is this case -- an ordinary folder whose world was deleted -- and it
+    // MUST still report `missing`, or T-0498 would have traded one false status
+    // for another. This runs against the REAL filesystem, no decorator.
+    const AbsolutePath container = (fs::path(fix.root()) / "ordinary-folder").string();
+    const AbsolutePath pkg       = (fs::path(container) / "Gone.scrivworld").string();
+
+    WorldStore store{fix.services};
+    auto b = store.loadBinding(fix.root(), w.worldID);
+    REQUIRE(b.ok());
+    auto binding = b.value();
+    binding.reference.lastKnownPath         = "";
+    binding.reference.lastKnownAbsolutePath = pkg;
+    REQUIRE(store.saveBinding(fix.root(), binding).ok());
+
+    REQUIRE(fix.fileSystem.createDirectories(container).ok());
+
+    auto res = store.resolve(fix.root(), w.worldID);
+    REQUIRE(res.status == WorldStatus::missing);
 }

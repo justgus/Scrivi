@@ -36,8 +36,8 @@ is exactly the case.** ✅ **`reload()` is the correct hook** and is documented 
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION** — S1/S2/S3 | **SP-124** | ⏸️ **PAUSED** — ✅ **S1 baseline captured; `cifs` mount intact on the rig** |
-| **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from directory existence** — [I-0181]; ✅ **device-identity primitive on `FileSystem`** | **SP-124** | 🔵 **Not started** — ⚠️ **GATED on T-0477 S3** (Sprint §3a) |
+| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION** — S1/S2/S3 | **SP-124** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **all three scenarios OBSERVED on real hardware; rig doc §7 WRITTEN FROM THE RIG (183 lines).** ⚠️ **`before/during/after` RETIRED as a phantom requirement (user ruling) — S3 will NOT be re-run.** ⚠️ **§7.8's open questions (black-hole S2, NFS, held FD, torn writes) are UNKNOWNS, not blockers.** |
+| **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from directory existence** — [I-0181]; ✅ **device-identity primitive on `FileSystem`** | **SP-124** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **gate opened; `deviceID` added; `ctest` 585/585; new test proven failing without the fix.** ⚠️ **KNOWN RESIDUAL: a surviving mountpoint is indistinguishable from an ordinary directory by `st_dev`** — ✅ **does not affect the automounted path (T-0477 S3).** |
 
 ## Previously: SP-126's six Tasks — ✅ Verified and archived
 

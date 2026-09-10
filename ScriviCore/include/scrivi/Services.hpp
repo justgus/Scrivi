@@ -40,6 +40,28 @@ public:
     virtual ~FileSystem() = default;
     virtual Result<bool> exists(const AbsolutePath& path)        = 0;
     virtual Result<bool> isDirectory(const AbsolutePath& path)   = 0;
+    // Identifies the DEVICE a path lives on (POSIX `st_dev`; the volume serial on
+    // Windows). Two paths with the same value are on the same mounted filesystem.
+    // Returns an error when the path cannot be stat'd -- which is NOT "different
+    // device", and callers must not read it as one.
+    //
+    // ⚠️ T-0498 (SP-124) added this for ONE purpose: to stop `WorldStore::resolve`
+    // inferring `missing` from DIRECTORY EXISTENCE. A world package sitting on an
+    // unmounted volume leaves its parent directory perfectly present, so "package
+    // absent AND parent exists" -- the old test -- reported an INTACT world as
+    // MISSING, which invites a writer to reach for destructive remedies ([I-0181]).
+    //
+    // ⚠️ WHAT IT PROVES, AND WHAT IT DOES NOT. `st_dev` proves "this directory is
+    // NOT A MOUNT POINT RIGHT NOW". It does NOT prove "a volume went away" -- a
+    // directory that NEVER held a mount matches its parent identically, and that
+    // is the ordinary world-deleted case which MUST still report `missing`.
+    // ✅ So the match is used to WITHHOLD `missing`, never to assert absence.
+    //
+    // ⚠️ `statvfs` IS RULED OUT for this job and must not be substituted: SP-124's
+    // S2 measured it SUCCEEDING on an unmounted path, reporting the ROOT
+    // filesystem's block counts -- a confident success with a plausible number,
+    // which is worse than a failure.
+    virtual Result<std::uint64_t> deviceID(const AbsolutePath& path) = 0;
     virtual Result<void> createDirectories(const AbsolutePath& path) = 0;
     virtual Result<Utf8Text> readTextFile(const AbsolutePath& path) = 0;
     virtual Result<void> atomicWriteTextFile(

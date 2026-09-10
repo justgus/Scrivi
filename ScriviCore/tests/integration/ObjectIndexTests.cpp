@@ -39,6 +39,7 @@ public:
 
     scrivi::Result<bool> exists(const scrivi::AbsolutePath& p) override { return inner_.exists(p); }
     scrivi::Result<bool> isDirectory(const scrivi::AbsolutePath& p) override { return inner_.isDirectory(p); }
+    scrivi::Result<std::uint64_t> deviceID(const scrivi::AbsolutePath& p) override { return inner_.deviceID(p); }
     scrivi::Result<void> createDirectories(const scrivi::AbsolutePath& p) override { return inner_.createDirectories(p); }
     scrivi::Result<scrivi::Utf8Text> readTextFile(const scrivi::AbsolutePath& p) override { return inner_.readTextFile(p); }
     scrivi::Result<void> atomicWriteTextFile(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.atomicWriteTextFile(p, t); }

@@ -4,6 +4,11 @@
 #include "util/PathUtils.hpp"
 
 #include <cerrno>
+#include <cstdint>
+
+#if !defined(_WIN32)
+#include <sys/stat.h>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -75,6 +80,39 @@ Result<bool> LocalFileSystem::exists(const AbsolutePath& path) {
     if (ec) { return Result<bool>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});
 }
     return Result<bool>::success(result);
+}
+
+Result<std::uint64_t> LocalFileSystem::deviceID(const AbsolutePath& path) {
+    // T-0498 (SP-124), for [I-0181]. See Services.hpp for what this proves and,
+    // more importantly, what it does NOT.
+    //
+    // ⚠️ Deliberately NOT std::filesystem: it has no device-identity call at all.
+    // POSIX `stat` is the primitive that carries `st_dev`, and it is what the
+    // sprint's measurements were taken against.
+    //
+    // ⚠️ `statvfs` IS RULED OUT and must not be swapped in here: SP-124's S2
+    // measured it SUCCEEDING on an unmounted path, reporting the ROOT
+    // filesystem's block counts. A confident success with a plausible number is
+    // worse than a failure, because nothing downstream can tell it is wrong.
+#if defined(_WIN32)
+    // ⚠️ UNIMPLEMENTED ON WINDOWS, and failing is the CORRECT behaviour rather
+    // than a stub returning 0: every caller treats an error as "I could not
+    // tell" and falls back to the honest `unavailable`. A stubbed 0 would make
+    // every path compare EQUAL, which would silently suppress `missing`
+    // everywhere -- the opposite defect, and a harder one to notice.
+    // ✅ The Windows port implements this with GetFileInformationByHandle's
+    // dwVolumeSerialNumber when platforms/windows is stood up.
+    return Result<std::uint64_t>::failure({.code=ErrorCode::ioError,
+        .message="deviceID is not implemented on Windows", .path=path});
+#else
+    struct ::stat st{};
+    if (::stat(path.c_str(), &st) != 0) {
+        // ⚠️ An error is NOT "different device". Callers must not read it as one.
+        return Result<std::uint64_t>::failure({.code=ErrorCode::ioError,
+            .message=std::generic_category().message(errno), .path=path});
+    }
+    return Result<std::uint64_t>::success(static_cast<std::uint64_t>(st.st_dev));
+#endif
 }
 
 Result<bool> LocalFileSystem::isDirectory(const AbsolutePath& path) {

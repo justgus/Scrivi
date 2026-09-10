@@ -329,7 +329,46 @@ WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
             if (pkgE.ok() && !pkgE.value()) {
                 auto parentDir = util::parent(cand);
                 if (auto e = fs_.exists(parentDir); e.ok() && e.value()) {
-                    sawContainerButNoPackage = true;
+                    // ⚠️ T-0498 (SP-124), for [I-0181]. "Package absent AND parent
+                    // exists" IS NOT ENOUGH -- this is the THIRD narrowing of this
+                    // block (T-0419 and T-0420/[I-0136] each tightened it without
+                    // questioning what it ASKS).
+                    //
+                    // ✅ THE RULE (sprint §3a): require package absent AND the
+                    // container on the SAME DEVICE as its parent before `missing`.
+                    //
+                    // ⚠️ WHY THAT POLARITY, because it is easy to get backwards --
+                    // I did, and the control test below caught it. A container with
+                    // its OWN device has SOMETHING MOUNTED ON IT. If a volume is
+                    // mounted there and the package still is not present, we are
+                    // looking at an UNEXPECTED volume (a different drive, a remount,
+                    // a stale automount) -- ⚠️ we cannot confirm the world is gone,
+                    // only that it is not on THIS volume. ✅ Same device ⇒ the
+                    // container is an ordinary directory on the filesystem we are
+                    // already reading ⇒ absence there is REAL and `missing` is honest.
+                    //
+                    // ⚠️ WHAT `st_dev` CANNOT DO, recorded because the comment above
+                    // it used to claim otherwise: it proves "not a mount point NOW",
+                    // NOT "a volume went away". A pulled drive whose mountpoint
+                    // SURVIVES is INDISTINGUISHABLE by device identity from an
+                    // ordinary directory -- both read same-as-parent. ✅ That case is
+                    // not handled here and does not need to be: T-0477 S3 MEASURED
+                    // udisks2 REMOVING the mountpoint it created, so the automounted
+                    // path (`/run/media/<user>/<label>`) never reaches this branch --
+                    // the parent does not exist and `unavailable` is already returned.
+                    // ⚠️ The hand-mounted `/mnt` case remains a KNOWN RESIDUAL RISK.
+                    const auto containerDev = fs_.deviceID(parentDir);
+                    const auto grandDev     = fs_.deviceID(util::parent(parentDir));
+
+                    // ⚠️ An ERROR is "I could not tell", NOT "same device". An
+                    // indeterminate answer WITHHOLDS `missing` -- §4.6's NEVER GUESS.
+                    const bool sameDeviceAsParent =
+                        containerDev.ok() && grandDev.ok()
+                        && containerDev.value() == grandDev.value();
+
+                    if (sameDeviceAsParent) {
+                        sawContainerButNoPackage = true;
+                    }
                 }
             }
             continue;

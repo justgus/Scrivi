@@ -8,6 +8,7 @@ class LocalFileSystem final : public FileSystem {
 public:
     Result<bool> exists(const AbsolutePath& path) override;
     Result<bool> isDirectory(const AbsolutePath& path) override;
+    Result<std::uint64_t> deviceID(const AbsolutePath& path) override;
     Result<void> createDirectories(const AbsolutePath& path) override;
     Result<Utf8Text> readTextFile(const AbsolutePath& path) override;
     Result<void> atomicWriteTextFile(const AbsolutePath& path, std::string_view utf8Text) override;

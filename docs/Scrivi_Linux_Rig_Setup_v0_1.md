@@ -514,12 +514,33 @@ status.** ⚠️ **A frozen UI is worse than a wrong status.**
 | ✅ **`st_dev` vs the parent's** | ✅ **WORKS** — ⚠️ **but proves "not a mount NOW", NOT "a volume went away"**; a directory that never held a mount matches identically |
 | ✅ **`errno` — `EHOSTDOWN` (112)** | ✅ **SPECIFIC to a dead server** — ⚠️ **and currently UNUSED by `resolve`.** ⚠️ **This is the strongest unexploited signal for `offline`** |
 
-### 7.5 ⚠️ `WorldStatus::offline` has NEVER been observed
+### 7.5 ✅ `WorldStatus::offline` — ⚠️ **was never observed, then WAS.** ✅ **RULED and SHIPPED.**
 
-⚠️ **S2 IS the network case that DEFINES `offline`, and the core returned `unavailable`** — in both
-passes, within ~1 s. ⚠️ **Not once has any scenario produced `offline`.**
+⚠️ **AS FIRST WRITTEN (2026-09-07), this section read "`offline` has NEVER been observed":** ⚠️ **S2 is
+the network case that DEFINES `offline`, and the core returned `unavailable`** — both passes, within
+~1 s. ⚠️ **It said the finding must be RULED on, not quietly omitted.**
 
-⚠️ **This is a finding about the STATUS MODEL, and it must be RULED on, not quietly omitted.**
+✅ **IT WAS RULED, AND THE RULING WAS TO MAKE IT REAL** (T-0478, 2026-09-08). ⚠️ **The reason `offline`
+had never appeared was NOT that the case does not happen** — ✅ **it was that no code path could produce
+it.** ⚠️ **`offline` was a documented lie: an enum value with no emitter.**
+
+| Phase | `status` | `statusReason` | ⏱ |
+| ----- | -------- | -------------- | -- |
+| **BEFORE** | `available` | — | ✅ **0.087 s** |
+| ⚠️ **share killed** | ✅ **`offline`** | ✅ **`hostUnreachable`** | ⚠️ **1m42.2 s** |
+| ⚠️ **repeat** | ✅ **`offline`** | ✅ **`hostUnreachable`** | ⚠️ **1m42.4 s** |
+
+✅ **Emitted from a REAL killed `cifs` share on this rig, reproducibly, at BOTH endpoints**
+(`scrivi_list_worlds` and `scrivi_get_world_status`), ⚠️ **on a positive `EHOSTDOWN` (112)** — ✅ **the
+strongest signal §7.4 found UNUSED.** ⚠️ **First time `offline` has ever been emitted in this project.**
+
+⚠️ **THE SAME PASS CONDEMNED THE FEATURE IT PROVED.** ⚠️ **102 s is not a detail — it is ~1,175× the
+healthy path**, ⚠️ **and the app called this SYNCHRONOUSLY on the UI thread**, so an ordinary scene
+click froze the app to Force Quit ([I-0193], now fixed and verified). ⚠️ **Anything reading world status
+on Linux MUST be off the UI thread and MUST have a timeout** — ✅ **see `platforms/linux/src/AsyncCall.hpp`.**
+
+⚠️ **The 102 s is MOUNT-TUNING DEPENDENT** (`cache=none,actimeo=1,closetimeo=1`) — ⚠️ **§7.3's earlier
+"~10 s" is NOT a ceiling.**
 
 ### 7.6 ⚠️ Cache options trade one failure for another
 
@@ -619,14 +640,34 @@ the CALL BLOCKING**, and that latency is the finding.
 ⚠️ **`sudo` on the rig needs a TTY.** ⚠️ **`ssh oathkeeper 'sudo …'` FAILS with *"a terminal is required
 for reauthentication"*** — ✅ **use `ssh -t`, or run it in an interactive session.**
 
-### 7.8 ⚠️ Still owed
+### 7.8 ⚠️ Still owed — ⚠️ **and what is DELIBERATELY NOT owed**
+
+⚠️ **These are OPEN QUESTIONS, not gaps blocking anything.** ✅ **SP-124 closed without them by user
+ruling (2026-09-10); record them as unknowns and do not treat any as a prerequisite.**
 
 - ⚠️ **The "network off / black hole" S2 variant** — ⚠️ **only "File Sharing OFF" (a REFUSED connection)
-  was run.** ⚠️ **A black hole is where hangs live; the ~10 s block may be far worse.**
-- ⚠️ **NFS** — ⚠️ **`cifs` only so far.**
+  was run.** ⚠️ **A black hole is where hangs live; ⚠️ the measured block is already 102 s on a REFUSED
+  connection, so the black-hole figure could be far worse.** ✅ **`AsyncCall`'s timeout is the defence
+  and does not depend on knowing the number.**
+- ⚠️ **NFS** — ⚠️ **`cifs` only so far.** ⚠️ **They fail DIFFERENTLY; an NFS `hard` mount is the known
+  hazard** — ✅ **and `soft` is the load-bearing premise of AsyncCall's "parked, not leaked" claim.**
 - ⚠️ **A held-open FD across a yank** — ⚠️ **the probes re-open by path each time.**
 - ⚠️ **Torn writes** — ⚠️ **no write was in flight.**
 - ⚠️ **Whether S3's successful read DECAYS or PERSISTS** — ⚠️ **needs sampling ACROSS a yank.**
+
+#### ⚠️ **NOT OWED — retired 2026-09-10 by user ruling**
+
+⚠️ **"BEFORE / DURING / AFTER capture for every scenario" is RETIRED as a PHANTOM REQUIREMENT.**
+⚠️ **It cannot be accurately measured for a PHYSICAL YANK:** ✅ **the event is instantaneous and
+operator-driven**, ⚠️ **and the during-window is exactly when the machine is least able to report on
+itself.** ⚠️ **S3 was observed BY HAND with no probe running** (the probe was started on the wrong
+machine) — ✅ **and the finding it produced was CORRECT and load-bearing anyway**: ⚠️ **udisks2 removes
+the mountpoint, so I-0181 is not reached on the automounted path.**
+
+✅ **THE LESSON THAT SURVIVES IS ABOUT EVIDENCE, NOT CADENCE:** ⚠️ **a finding must state HOW it was
+gathered** — ✅ **"the user watched the screen" is legitimate evidence, and is stronger than instrumented
+output pointed at the wrong machine.** ⚠️ **Do not re-add a before/during/after checkbox to a future
+platform's rig work.**
 
 ---
 
