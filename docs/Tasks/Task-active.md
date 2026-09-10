@@ -35,7 +35,7 @@ is exactly the case.** ✅ **`reload()` is the correct hook** and is documented 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
 | **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION** — S1/S2/S3 | **SP-124** | ⏸️ **PAUSED** — ✅ **S1 baseline captured; `cifs` mount intact on the rig** |
-| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** | **SP-124** | ⏸️ **PAUSED** — ⚠️ **still HARD-GATED on T-0477** |
+| **T-0478** | ⚠️ **`WorldVolumeStatus` for Linux** | **SP-124** | 🟡 **Implemented - Not Verified (2026-09-08)** — ⚠️ **this row read `PAUSED — still HARD-GATED on T-0477` until 2026-09-10; ✅ that was STALE — the Sprint recorded it UNGATED on 2026-09-07 when T-0477 reported.** ✅ **CORE VERIFIED ON REAL HARDWARE** — `offline`/`hostUnreachable` emitted for the first time ever. ✅ **[I-0193] VERIFIED + ARCHIVED 2026-09-10 and the writer-facing string HAS BEEN READ** — both live-pass blockers cleared. ✅ **[I-0194] RESOLVED 2026-09-09 (`e978360`); ✅ WOL settled 2026-09-10 (not pursued — rig is powered off at night).** ⚠️ **NOT verifiable yet: BOTH core fixes have OFFLINE branches no suite can reach** — ⚠️ **[I-0194]'s `weakly_canonical` fallback needs a real I/O error, [I-0193]'s timeout needs a real blocking mount** — ✅ **ONE rig pass against a dead share verifies both.** ⚠️ **One DoD item also unticked (inconclusive-branch status), which OVERLAPS T-0498.** |
 | **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from directory existence** — [I-0181]; ✅ **device-identity primitive on `FileSystem`** | **SP-124** | 🔵 **Not started** — ⚠️ **GATED on T-0477 S3** (Sprint §3a) |
 
 ## Previously: SP-126's six Tasks — ✅ Verified and archived
