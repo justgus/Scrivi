@@ -9,6 +9,7 @@
 #include "ScriviBridge.hpp"
 
 #include <QAction>
+#include <QFileInfo>
 #include <QFont>
 #include <QFormLayout>
 #include <QHeaderView>
@@ -302,6 +303,10 @@ void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRoot
     sceneID_.clear();
     entries_.clear();
     worldNames_.clear();
+    // ⚠️ I-0182: cleared HERE, on a PROJECT change, because another project's
+    // package paths are not ours. ⚠️ It is deliberately NOT cleared on a failed
+    // reload -- that is precisely when it is the only readable identity we have.
+    worldPaths_.clear();
     loadError_.clear();
 
     // T-0486: restore the PROJECT's tab selection. ⚠️ Loading the layout must not
@@ -468,8 +473,14 @@ void SceneInspector::applyReload(const ReloadPayload& payload)
         const QVariantList worlds = worldsResult.value(QStringLiteral("worlds")).toList();
         for (const QVariant& w : worlds) {
             const QVariantMap m = w.toMap();
-            worldNames_.insert(m.value(QStringLiteral("worldID")).toString(),
-                               m.value(QStringLiteral("displayName")).toString());
+            const QString wid = m.value(QStringLiteral("worldID")).toString();
+            worldNames_.insert(wid, m.value(QStringLiteral("displayName")).toString());
+            // ⚠️ I-0182: remember WHERE we looked, not just what it is called.
+            // `lastKnownPackagePath` is carried regardless of status (T-0419), so
+            // this is populated on the healthy pass and is still true later, when
+            // the volume is gone and the name is what we can no longer read.
+            const QString pkg = m.value(QStringLiteral("lastKnownPackagePath")).toString();
+            if (!pkg.isEmpty()) { worldPaths_.insert(wid, pkg); }
         }
         // ⚠️ I-0193: hand the names to EditorShell so writerFacingError() can NAME
         // a world without calling the core. ✅ Only on success -- see the signal's
@@ -773,10 +784,44 @@ QString SceneInspector::worldDisplayName(const QString& worldID)
     if (worldID.isEmpty()) {
         return {};
     }
-    // ⚠️ Falling back to the ID is deliberate: an unnamed world is still better
-    // than an unattributed warning.
     const QString name = worldNames_.value(worldID);
-    return name.isEmpty() ? worldID : name;
+    if (!name.isEmpty()) { return name; }
+
+    // ⚠️ I-0182. The ORIGINAL comment here read: "Falling back to the ID is
+    // deliberate: an unnamed world is still better than an unattributed
+    // warning." ✅ That reasoning is sound for a world that was NEVER named --
+    // ⚠️ but it is WRONG in the case that actually reaches this line.
+    //
+    // ⚠️ `worldNames_` is filled ONLY when `listWorlds` SUCCEEDS (see applyReload).
+    // When the volume is down that call FAILS, the map is EMPTY, and every
+    // pending world fell through to its raw `worldID` -- ⚠️ so a writer whose
+    // share had just died read `World "world_01a0011f-af73-..." is offline`,
+    // a UUID in the very sentence whose job is to explain the outage.
+    // ⚠️ Found by the USER on the REAL RIG (SP-127 live pass, 2026-09-01).
+    //
+    // ✅ The package's FOLDER NAME is a far better fallback, and we have it
+    // WITHOUT the volume: `lastKnownPackagePath` is where resolution LOOKED,
+    // carried regardless of status (T-0419/[I-0137]) and cached here on the last
+    // healthy read. ⚠️ It is the name the WRITER chose for the package, so
+    // "Eskandar.scrivworld" identifies the world to the person reading the
+    // message in a way a UUID never can.
+    const QString pkg = worldPaths_.value(worldID);
+    if (!pkg.isEmpty()) {
+        // ⚠️ The FOLDER NAME, not the whole path: the status line is one line in
+        // a narrow panel, and a six-segment absolute path would swamp the
+        // sentence it is meant to clarify. Suffix stripped -- ".scrivworld" is
+        // machinery, and the writer named the thing before it.
+        QString leaf = QFileInfo(pkg).fileName();
+        if (leaf.endsWith(QStringLiteral(".scrivworld"), Qt::CaseInsensitive)) {
+            leaf.chop(QStringLiteral(".scrivworld").size());
+        }
+        if (!leaf.isEmpty()) { return leaf; }
+    }
+
+    // ⚠️ LAST resort, and now genuinely last: no cached name, no cached path.
+    // Returning the ID keeps the warning ATTRIBUTED, which the original comment
+    // was right about -- it is only wrong as a FIRST fallback.
+    return worldID;
 }
 
 bool SceneInspector::eventFilter(QObject* watched, QEvent* event)

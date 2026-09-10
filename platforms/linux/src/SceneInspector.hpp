@@ -259,6 +259,15 @@ private:
     QList<Entry> entries_;
     // worldID → display name, refreshed per load from listWorlds.
     QHash<QString, QString> worldNames_;
+    // worldID → the package path resolution LOOKED AT, whatever the outcome
+    // (`lastKnownPackagePath`; T-0419/[I-0137] carries it regardless of status).
+    //
+    // ⚠️ I-0182: `worldNames_` is filled ONLY when `listWorlds` SUCCEEDS, so when
+    // the volume is down the map is empty and the status line named the world by
+    // its raw `worldID` -- a UUID, in the very message whose job is to explain
+    // the outage. ✅ The package's FOLDER NAME is readable, is what the writer
+    // chose, and is what we tried to open, so it degrades far better than an ID.
+    QHash<QString, QString> worldPaths_;
     // Set when the last load failed outright, so an empty tree is never reported
     // as "no objects" when it is really "we could not read them".
     QString loadError_;
