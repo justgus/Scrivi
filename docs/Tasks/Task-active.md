@@ -30,14 +30,12 @@ file. The backlog is for unstarted, unassigned work only.
 early-returns when the sceneID has not changed** (`SceneInspector.cpp:319`) — ⚠️ **which after a relink
 is exactly the case.** ✅ **`reload()` is the correct hook** and is documented for precisely this.
 
-## ⏸️ Paused: SP-124's Tasks — ⚠️ **now THREE** (T-0478 verified + archived 2026-09-10)
+## ✅ SP-124's Tasks — ⚠️ **ALL FOUR VERIFIED 2026-09-10** (T-0477, T-0478, T-0479, T-0498)
 
-✅ **T-0478 VERIFIED 2026-09-10 (user-approved) and ARCHIVED** → [`Verified/Task-verified-0475-0479.md`](Verified/Task-verified-0475-0479.md). ⚠️ **Both defects its own live pass filed against it are closed** — ✅ **[I-0193] Verified, [I-0194] Resolved** — ✅ **and its two remaining DoD items were settled by user ruling** (WOL not pursued; the inconclusive-branch item satisfied, its residue owned by T-0498).
+✅ **ALL FOUR SP-124 TASKS VERIFIED AND ARCHIVED 2026-09-10 (user-approved).** → **T-0477, T-0478, T-0479** in [`Verified/Task-verified-0475-0479.md`](Verified/Task-verified-0475-0479.md); → **T-0498** in [`Verified/Task-verified-0497-0499.md`](Verified/Task-verified-0497-0499.md) ⚠️ **(new decade file).** ✅ **[I-0193] Verified, [I-0194] and [I-0181] Resolved.** ✅ **Three DoD items were settled by USER RULING rather than by more work** — ⚠️ **WOL not pursued** (the rig is powered off at night, so no NIC can answer), ⚠️ **`before/during/after` retired as a phantom requirement** (it cannot be measured for an instantaneous operator-driven event; ⚠️ **S3 will not be re-run**), ⚠️ **and the inconclusive-branch item satisfied** (the messages already report unreachable as unreachable, never damaged).
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| **T-0477** | ⚠️ **DRIVE-LOSS INSTRUMENTATION** — S1/S2/S3 | **SP-124** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **all three scenarios OBSERVED on real hardware; rig doc §7 WRITTEN FROM THE RIG (183 lines).** ⚠️ **`before/during/after` RETIRED as a phantom requirement (user ruling) — S3 will NOT be re-run.** ⚠️ **§7.8's open questions (black-hole S2, NFS, held FD, torn writes) are UNKNOWNS, not blockers.** |
-| **T-0498** | ⚠️ **`[ScriviCore]` Stop inferring `missing` from directory existence** — [I-0181]; ✅ **device-identity primitive on `FileSystem`** | **SP-124** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **gate opened; `deviceID` added; `ctest` 585/585; new test proven failing without the fix.** ⚠️ **KNOWN RESIDUAL: a surviving mountpoint is indistinguishable from an ordinary directory by `st_dev`** — ✅ **does not affect the automounted path (T-0477 S3).** |
 
 ## Previously: SP-126's six Tasks — ✅ Verified and archived
 

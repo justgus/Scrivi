@@ -46,7 +46,7 @@ governs anything is a second source of truth.
 
 ---
 
-**Next available Sprint ID: SP-128** — ⚠️ **SP-115–SP-123 and SP-125–SP-127 are ALL CLOSED**; ⏸️ **SP-124** (EP-038) is PAUSED and resumable, and ⚠️ **NO Sprint is currently ACTIVE.**
+**Next available Sprint ID: SP-128** — ⚠️ **SP-115–SP-123 and SP-125–SP-127 are ALL CLOSED**; ✅ **SP-124** (EP-038) is **COMPLETE 2026-09-10 and awaiting close approval**, and ⚠️ **NO Sprint is currently ACTIVE.**
 and ⚠️ **the LAST sprint of EP-038.** ⚠️ **SP-122 never appeared in this file** — defined and activated
 in one step on 2026-08-25, like SP-120 and SP-121; ⚠️ **it was EP-034's last.**
 ⚠️ **Zero Sprints in Planning.**

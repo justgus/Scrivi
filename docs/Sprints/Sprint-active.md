@@ -46,7 +46,20 @@ BUILT, GREEN, and runs the app on real hardware.
 
 ## SP-124 — `[Linux]` ⚠️ **Drive-loss ground truth + the Linux refinement**
 
-**Status:** ⏸️ **PAUSED 2026-08-31** — ✅ **GATE NOW SATISFIED: SP-127 delivered the Worlds surface (closed 2026-09-02), so this sprint's scenarios can be verified against something a writer can actually read.** ✅ **S1 baseline captured; the rig's `cifs` mount is INTACT.**
+**Status:** ✅ **COMPLETE 2026-09-10** — ⚠️ **AWAITING USER APPROVAL TO CLOSE.** ✅ **All FOUR Tasks VERIFIED and ARCHIVED** (T-0477, T-0478, T-0479, T-0498). ✅ **All FOUR ACs CLOSED** (EP-038 AC4–AC7). ✅ **All DoD items settled** — ⚠️ **three of them by USER RULING rather than by more work** (see below). ✅ **Issues: [I-0193] VERIFIED; [I-0194] and [I-0181] RESOLVED.** ⚠️ **[I-0195] remains OPEN and is NOT this sprint's to close** — ✅ **it is the REACHABLE-BUT-SLOW case needing PROGRESS, distinct from [I-0193]'s UNREACHABLE case needing a TIMEOUT** — ⚠️ **and it now has [I-0193]'s `AsyncCall` machinery to build on rather than re-derive.** ⚠️ **[I-0182] also remains open.**
+
+### ✅ What this sprint actually proved — ⚠️ **and what it cost to find out**
+
+⚠️ **THE OBVIOUS SIGNALS LIE — FIVE OF THEM** (`mountpoint -q`, a directory listing with zeroed sizes, `statvfs`, a transiently successful `read`, ⚠️ **and a held FD that survived `umount -l` + `losetup -D`**). ✅ **That is the Linux counterpart to Apple's `volumeIsRemovable == false` on a hand-unplugged drive**, ⚠️ **and finding it is the POINT of a real rig.**
+
+✅ **`offline` was EMITTED FOR THE FIRST TIME IN THIS PROJECT'S HISTORY** — ⚠️ **it had been a documented lie, an enum value no code path could produce.**
+
+⚠️ **THE LIVE PASS CONDEMNED THE FEATURE IT PROVED, IN THE SAME SESSION** — ✅ **and that is the sprint's most valuable output.** ⚠️ **Two defects were filed against T-0478's OWN output by T-0478's OWN pass, NEITHER findable from any suite** ([I-0193] 102 s freeze → Force Quit; [I-0194] a six-`../` writer-facing path). ⚠️ **A THIRD ([I-0181]) was a wrong `missing` on an unmounted volume.** ✅ **All three are fixed.**
+
+⚠️ **THREE RECURRING LESSONS, each earned the hard way here:**
+1. ⚠️ **An Issue that names TWO call sites is not closed by fixing ONE** — ✅ **however well the first is proven** ([I-0193] took two rig passes).
+2. ⚠️ **A finding must state HOW it was gathered** — ✅ **"the user watched the screen" is legitimate evidence, and here it BEAT instrumented output pointed at the wrong machine.**
+3. ⚠️ **A caveat written in a plan is not a caveat honoured in code** — ✅ **T-0498's polarity was implemented BACKWARDS despite the sprint predicting exactly that trap; the CONTROL TEST caught it.**
 **Epic:** [EP-038](../Epics/Epic-active.md) — `[Linux]` The Real Hardware Rig · **sprint 2 of 2**
 **Codebase:** `[Linux]` — ⚠️ **one Qt/C++ deliverable (T-0478); T-0477 ships NO code**
 **Date Activated:** 2026-08-31

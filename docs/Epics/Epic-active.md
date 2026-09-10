@@ -361,21 +361,42 @@ T-0478 (implement) because a sprint boundary separates them.**
 - [x] ✅ **AC3 — CLOSED by SP-123 (2026-08-29):** the app launched on a real session over RDP and
       opened a project; navigator, manuscript and timeline all nominal. ⚠️ **The app displays on a REAL X session** and is drivable both at the machine and
       remotely. ⚠️ **Xvfb is NOT acceptable for this AC.**
-- [ ] **AC4** — ⚠️ **A real removable drive carrying a world copy is mounted, and its PHYSICAL loss is
+- [x] ✅ **AC4 — CLOSED by SP-124 (T-0477, 2026-09-07).** ✅ **ALL THREE scenarios OBSERVED on real
+      hardware**: S1 clean `umount`, ⚠️ **S2 a `cifs` share killed at the source** (full streamed
+      capture, two passes, 3,110 lines), ⚠️ **S3 the physical USB yank** (observed BY HAND — the probe
+      was started on the wrong machine, ✅ **and the finding it produced was correct and load-bearing
+      anyway**). ⚠️ **`before/during/after` for every scenario was RETIRED 2026-09-10 as a PHANTOM
+      REQUIREMENT** — ✅ **it cannot be accurately measured for an instantaneous operator-driven event.**
+      ✅ **THE OBVIOUS SIGNALS DID LIE, as Apple found:** ⚠️ **FIVE of them** — `mountpoint -q`, a
+      directory listing with zeroed sizes, `statvfs`, a transiently successful `read`, and ⚠️ **a held FD
+      that survived `umount -l` + `losetup -D`.** ✅ **`st_dev` works, with a stated limit.**
+      ⚠️ **ORIGINAL TEXT: A real removable drive carrying a world copy is mounted, and its PHYSICAL loss is
       OBSERVED and RECORDED** — ⚠️ **whatever the findings turn out to be**, including *"the obvious
       signal lies,"* which is what Apple found.
       ⚠️ **WIDENED 2026-08-31 by user ruling — THREE scenarios, not one:** **S1** clean `umount`,
       ⚠️ **S2 a network share killed AT THE SOURCE**, and **S3** the physical USB yank.
       ⚠️ **S2 and S3 do NOT substitute for each other** — a clean unmount cannot strand an FD, and a
       stranded FD is the state that cost Apple six Issues. ✅ **The physical pull is JOINED, not replaced.**
-- [ ] **AC5** — ⚠️ **`WorldVolumeStatus` for Linux distinguishes `unmounted` / `offline` / `missing`**,
+- [x] ✅ **AC5 — CLOSED by SP-124 (T-0478, verified 2026-09-10).** ✅ **`offline`/`hostUnreachable`
+      EMITTED FOR THE FIRST TIME IN THIS PROJECT'S HISTORY**, from a real killed `cifs` share,
+      reproducibly, at BOTH endpoints, ⚠️ **on a positive `EHOSTDOWN` (112).** ⚠️ **Before this, `offline`
+      was a documented lie — an enum value no code path could produce.** ⚠️ **The same live pass
+      CONDEMNED the feature it proved** — ✅ **[I-0193] (102 s UI freeze → Force Quit) and [I-0194], both
+      now fixed** — ⚠️ **and `missing` was ALSO wrong on an unmounted volume** ([I-0181]/T-0498).
+      ⚠️ **ORIGINAL TEXT: `WorldVolumeStatus` for Linux distinguishes `unmounted` / `offline` / `missing`**,
       ⚠️ **verified against the REAL drive**, not a bind-mount.
       ⚠️ **`offline` is DEFINED by the NETWORK case** — ⚠️ **the pre-widening plan would have shipped it
       UNTESTED**, since a USB-only pass exercises `unmounted` alone.
-- [ ] **AC6** — ⚠️ **The Porting Outline's §9 is CORRECTED from experience**, not merely confirmed.
-      ⚠️ **A §9 that survives contact unchanged is evidence it was not tested.**
-- [ ] **AC7** — ⚠️ **The Windows rig procedure is DERIVABLE from §9** — the next rig Epic ⚠️ **EXECUTES a
-      recipe, it does not re-derive one.**
+- [x] ✅ **AC6 — CLOSED by SP-124 (T-0479, 2026-09-07).** ✅ **§9's RULE held; ⚠️ FOUR of its PREDICTIONS
+      did NOT**, each recorded as prediction-vs-measurement. ⚠️ **The checklist grew from six items to
+      eight.** ✅ **Had T-0478 been written from §9 as it stood, it would have shipped a stale-mount
+      defence that is not needed, an `EIO`/`ESTALE` handler for errors that never arrive, no timeout at
+      all, and an `offline` branch that never fires.**
+- [x] ✅ **AC7 — CLOSED by SP-124 (2026-09-10).** ✅ **The rig doc's §7 is WRITTEN FROM THE RIG** — 183
+      lines, eight subsections, ⚠️ **including §7.4's five lying signals and §7.7's runnable steps for all
+      three scenarios, machine-tagged 🐧/🍎.** ⚠️ **THE WINDOWS RIG MUST EXECUTE IT, NOT RE-DERIVE IT.**
+      ⚠️ **§7.8 records what is STILL OPEN as UNKNOWNS blocking nothing** (black-hole S2 variant, NFS,
+      held FD across a yank, torn writes) — ✅ **and what is DELIBERATELY NOT OWED.**
 
 ---
 

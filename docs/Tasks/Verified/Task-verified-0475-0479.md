@@ -1,13 +1,13 @@
-# Verified Tasks — T-0478, T-0479 (SP-124, EP-038)
+# Verified Tasks — T-0477, T-0478, T-0479 (SP-124, EP-038)
 
 **Sprint:** SP-124 — `[Linux]` Drive-loss ground truth + the Linux refinement
 **Epic:** [EP-038](../../Epics/Epic-active.md) — `[Linux]` The Real Hardware Rig (sprint 2 of 2)
 **Verified:** 2026-09-07 — **user-approved after review** (*"mark T-0479 verified. my review is complete."*)
 **Codebase:** ⚠️ **Documentation only — this Task ships NO code.**
 
-⚠️ **This file OPENS the 0475–0479 decade.** ✅ **T-0478 was ADDED 2026-09-10** (verified after its two
-rig-found defects were fixed). ⚠️ **T-0475–T-0477 are NOT here**: T-0477 remains open in SP-124;
-T-0475/T-0476 belong to earlier sprints.
+⚠️ **This file OPENS the 0475–0479 decade.** ✅ **T-0478 and T-0477 were ADDED 2026-09-10.**
+⚠️ **T-0475/T-0476 are NOT here** — they belong to earlier sprints. ✅ **SP-124's Tasks are now all
+verified** (T-0477, T-0478, T-0479 here; ⚠️ **T-0498 archives to the 0495–0499 decade**).
 
 ---
 
@@ -141,3 +141,70 @@ REACHED and something EXPECTED is missing or something UNEXPECTED is present.**
 that DoD item. ⚠️ THEY ARE NOT** — ✅ **both were wrong-status defects inside the core's RESOLUTION
 logic, both fixed, and neither was the app telling a writer their world was corrupt.** ⚠️ **What remains
 of that class belongs to [I-0181]/T-0498.**
+
+
+---
+
+## T-0477 — ✅ **Drive-loss instrumentation (S1 / S2 / S3)**
+
+**Verified:** 2026-09-10 — **user-approved**
+**Codebase:** ⚠️ **FINDINGS ONLY — this Task ships NO code.**
+
+### What it delivered
+
+✅ **THREE loss scenarios OBSERVED ON REAL HARDWARE**, widened from one by user ruling at activation —
+⚠️ **and the widening was load-bearing**: **S1** a clean `umount`, ⚠️ **S2 a `cifs` share killed AT THE
+SOURCE** (full streamed capture, two passes, 3,110 lines), ⚠️ **S3 the physical USB yank.**
+⚠️ **S2 and S3 do NOT substitute for each other** — ✅ **a clean unmount cannot strand an FD, and a
+stranded FD is the state that cost Apple six Issues.**
+
+✅ **THE HEADLINE FINDING IS THAT THE OBVIOUS SIGNALS LIE — FIVE OF THEM**, which is the Linux
+counterpart to Apple's `volumeIsRemovable == false` on a hand-unplugged drive:
+
+| ⚠️ Signal | ⚠️ The lie |
+| -------- | --------- |
+| `mountpoint -q` | ⚠️ reports mounted after the device is gone |
+| a directory listing | ⚠️ succeeds, with **zeroed sizes** |
+| `statvfs` | ⚠️ **SUCCEEDS on an unmounted path**, reporting the ROOT filesystem's block counts — ⚠️ **a confident success with a plausible number** |
+| a successful `read` | ⚠️ transiently correct |
+| ⚠️ **a held FD** | ⚠️ **survived `umount -l` + `losetup -D` ENTIRELY** |
+
+✅ **`st_dev` works** (⚠️ **with a stated limit — see T-0498**); ✅ **`EHOSTDOWN` (112) was the strongest
+UNUSED signal** — ⚠️ **and T-0478 then built `offline` on it.**
+
+✅ **S3 PRODUCED THE FINDING THAT NARROWED T-0498:** ⚠️ **udisks2 REMOVES the mountpoint it created**, so
+`/run/media/<user>/<label>` — ✅ **what a real writer's automounted drive uses** — ⚠️ **never reaches the
+defective branch at all.** ✅ **The `/mnt` half was RULED not worth running** (a hand-made directory is
+an ordinary directory; nothing has a mandate to delete it) — ⚠️ **recorded as a REASONED RULING, not an
+untested branch.**
+
+### ⚠️ **How S3 was gathered — and the process defect it exposed**
+
+⚠️ **THE INSTRUMENTATION DID NOT PRODUCE THE S3 FINDING. THE USER DID.** ⚠️ **`volume-loss-probe.sh` ran
+on the WRONG MACHINE** — on the MacBook, pointed at a Linux path that does not exist there — ⚠️ **so it
+watched nothing and its output was discarded.**
+
+⚠️ **THE CAUSE WAS MY INSTRUCTIONS, NOT THE USER'S EXECUTION.** ⚠️ **The runbook never said WHICH MACHINE
+each command belonged to**, ⚠️ **and it told the user to build a binary that did not exist in the
+repository yet, on a box with no dev environment.** ⚠️ **`s3-baseline-capture.sh` then redirected its own
+failure into a FILE instead of stdout**, ✅ **so the run appeared to proceed while its most important
+probe had already failed.** ✅ **The machine-discipline table in `T-0477-FINDINGS-S3.md` §0 is the fix.**
+
+### ✅ **`before/during/after` RETIRED as a PHANTOM REQUIREMENT** — user ruling, 2026-09-10
+
+⚠️ **The DoD required BEFORE/DURING/AFTER capture for every scenario. ✅ It is RETIRED — it cannot be
+accurately measured for a PHYSICAL YANK:** ✅ **the event is instantaneous and operator-driven**, ⚠️ **and
+the during-window is exactly when the machine is least able to report on itself.** ⚠️ **S3 WILL NOT BE
+RE-RUN.**
+
+✅ **THE LESSON THAT SURVIVES IS ABOUT EVIDENCE, NOT CADENCE:** ⚠️ **a finding must state HOW it was
+gathered** — ✅ **"the user watched the screen" is legitimate evidence, and here it was STRONGER than
+instrumented output pointed at the wrong machine.** ⚠️ **Do not re-add this checkbox to a future
+platform's rig work** (rig doc §7.8).
+
+### ⚠️ Open questions, recorded as UNKNOWNS blocking nothing (rig doc §7.8)
+
+⚠️ **The "network off / black hole" S2 variant** (only a REFUSED connection was run — ⚠️ **and that
+already blocks 102 s**); ⚠️ **NFS** (`cifs` only — ⚠️ **an NFS `hard` mount is the known hazard, and
+`soft` is the load-bearing premise of `AsyncCall`'s "parked, not leaked" claim**); ⚠️ **a held FD across
+a yank**; ⚠️ **torn writes**; ⚠️ **whether S3's successful read DECAYS or PERSISTS.**

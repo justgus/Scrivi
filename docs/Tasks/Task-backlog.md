@@ -34,9 +34,11 @@ status changes on its own layer.
 | **T-0473** | ⚠️ **`[Apple]` Timeline endpoint parity** — reach `resolve_timeline_project_times`, `set_timeline_epoch_offset`, `set_world_epoch_offset`. ⚠️ **Unreached on Apple; bridged on Linux by SP-121** | ⚠️ **None — no Epic** | 🔵 **Backlog** — ⚠️ **user ruling 2026-08-25: tracked, NOT scheduled** |
 | **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 
-> ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED** — they are 🟡 Active and
-> live in [`Task-active.md`](Task-active.md), per the standing rule that active Tasks never sit in the
-> backlog.
+> ✅ **T-0477 – T-0479 LEFT this file 2026-08-31 when SP-124 was ACTIVATED**, per the standing rule that
+> active Tasks never sit in the backlog. ✅ **They are now VERIFIED (2026-09-10) and ARCHIVED** →
+> [`Verified/Task-verified-0475-0479.md`](Verified/Task-verified-0475-0479.md), ⚠️ **together with
+> T-0498** → [`Verified/Task-verified-0497-0499.md`](Verified/Task-verified-0497-0499.md).
+> ⚠️ **This note said "they are 🟡 Active" until 2026-09-10 — ✅ corrected here rather than left to rot.**
 
 > ✅ **T-0426–T-0430 LEFT this file 2026-08-21 when SP-116 was ACTIVATED** — they are 🟡 Active and live
 > in [`Task-active.md`](Task-active.md). ⚠️ **Exactly as the note that stood here said they would**, per
