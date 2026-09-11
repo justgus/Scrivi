@@ -107,7 +107,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-040** (⚠️ **EP-039 created 2026-09-10 → `Epic-backlog.md`**)
+- **Next available Epic ID:** **EP-040** (⚠️ **EP-039 created AND PROMOTED TO ACTIVE 2026-09-10**; ⚠️ **EP-035 deferred to the backlog and EP-038 marked Complete in the same ruling**)
 - **Total Epic IDs issued:** 38 (EP-001–EP-038); none cancelled, skipped or superseded
   - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
     ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a

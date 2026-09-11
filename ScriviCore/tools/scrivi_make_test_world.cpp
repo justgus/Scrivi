@@ -26,6 +26,7 @@
 #include "scrivi/scrivi.h"
 
 #include "DumasCorpus.hpp"
+#include "DumasProseOutline.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -103,6 +104,14 @@ int main(int argc, char** argv)
         ? std::string(argv[3])
         : (fs::path(projectPath).parent_path() / "Dumas-France.scrivworld").string();
     const int scale = (argc > 4) ? std::max(1, std::atoi(argv[4])) : 1;
+
+    // ⚠️ --prose is OPT-IN. The measured 321 s baseline used EMPTY bodies, and a
+    // fixture that silently changed shape would invalidate every before/after
+    // number in [I-0196].
+    bool prose = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--prose") { prose = true; }
+    }
 
     // ⚠️ REFUSES to touch an existing project (I-0150).
     if (fs::exists(projectPath)) {
@@ -211,6 +220,34 @@ int main(int argc, char** argv)
     //
     // ⚠️ A chapter is born WITH its first scene, so each chapter contributes
     // 1 + (kSceneTitles - 1) scenes.
+    // ⚠️ STAGE 1 prose: outline-derived, ~130 words/scene, 384 scenes => ~50k
+    // words at scale 1. Later stages widen each chapter individually.
+    auto sceneProse = [&](std::size_t chIdx, std::size_t scIdx) -> std::string {
+        using namespace scrivi::testcorpus::prose;
+        const auto& ch = kChapterOutlines[chIdx % countOf(kChapterOutlines)];
+        const char* topic = kSceneTopics[scIdx % countOf(kSceneTopics)];
+        std::string s;
+        s.reserve(1024);
+        s += "## "; s += topic; s += "\n\n";
+        s += ch.thesis; s += "\n\n";
+        s += "Considered under the heading of "; s += topic;
+        s += ", the question is less whether Dumas intended the parallel than "
+             "whether the text sustains it. He wrote at speed, for serial "
+             "publication, and paid by the line; the pattern that criticism "
+             "later calls design was often the working habit of a writer who "
+             "needed a chapter by Thursday. That does not make the pattern "
+             "unreal. A habit repeated across three long novels becomes a "
+             "structure whether or not its author would have named it one.\n\n";
+        s += "What the passage rewards is attention to what the characters "
+             "actually do rather than what the adaptations remember them doing. "
+             "The sword is present but rarely decisive; the letter, the debt and "
+             "the introduction do more work. Read this way, "; s += ch.title;
+        s += " is less an episode of adventure than an argument about who is "
+             "permitted to act, and on whose authority, and at what price to the "
+             "one who acts.\n";
+        return s;
+    };
+
     int scenes = 0;
     std::string lastChapterID;
     for (int rep = 0; rep < scale; ++rep) {
