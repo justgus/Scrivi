@@ -329,9 +329,20 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
         // whether it worked -- the answer is not known when it returns. The view
         // stack switches from HERE instead.
         //
-        // ⚠️ UniqueConnection because showEditor() can run again for another
-        // project; without it the handler would stack and switch the view once
-        // per past open.
+        // ⚠️ NO Qt::UniqueConnection HERE, AND THAT IS THE FIX FOR [I-0198].
+        //
+        // ⚠️ `UniqueConnection` IS NOT SUPPORTED WITH A LAMBDA. Qt REJECTS the
+        // whole connection and says so at runtime:
+        //     QObject::connect(EditorShell, ScriviWindow): unique connections
+        //     require a pointer to member function of a QObject subclass
+        // ⚠️ So the handler was NEVER CONNECTED. The load succeeded, `onDone`
+        // fired with ok=1, `loadFinished` was emitted -- and NOTHING WAS
+        // LISTENING, so the view stack never switched. ✅ THAT is why a recents
+        // click only reordered the list and the editor never appeared.
+        //
+        // ⚠️ My original comment claimed UniqueConnection prevented stacked
+        // handlers. ✅ It is not needed at all: this connect is INSIDE
+        // `if (editor_ == nullptr)`, which runs exactly once per window.
         connect(editor_, &EditorShell::loadFinished, this,
                 [this](bool ok) {
                     qInfo("[SCRIVI-TRACE] loadFinished ok=%d", (int)ok);
@@ -341,7 +352,7 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
                     }
                     stack_->setCurrentWidget(editor_);
                     updateMenuState(/*editorActive=*/true);
-                }, Qt::UniqueConnection);
+                });
         stack_->addWidget(editor_);   // page 1 — editor
     }
 
