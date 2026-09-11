@@ -11,6 +11,7 @@ class NavigatorTree;
 class QStandardItemModel;
 class QStandardItem;
 class QLabel;
+class QProgressBar;
 class QTimer;
 class QSplitter;
 class ScriviBridge;
@@ -46,10 +47,19 @@ public:
     explicit EditorShell(QWidget* parent = nullptr);
 
     // Open `projectPath` into the editor. `appSupportRoot` is the injected stable
-    // path; `title` is the display title (from recents). Returns true if the
-    // project opened "ready" and the viewport was populated; false otherwise (an
-    // error label is shown and closeRequested is NOT emitted — the caller decides).
-    bool load(const QString& projectPath,
+    // path; `title` is the display title (from recents).
+    //
+    // ⚠️ T-0499 ([I-0195]): THIS IS NOW ASYNCHRONOUS AND RETURNS void. It used to
+    // return bool, and the caller switched the view stack on that value -- which
+    // it can no longer do, because the answer is not known when this returns.
+    // ✅ Listen for `loadFinished(bool)` instead.
+    //
+    // ⚠️ WHY: the reads this performs are 1 openProject + ONE openScene PER SCENE,
+    // all sequential and all blocking. On a slow mount that froze the UI for the
+    // whole read with no progress and no way to cancel -- measured on the rig at
+    // ~10x slower than local, and the cost is UNBOUNDED (worlds grow, a project
+    // may bind several, and both may sit on slow network storage).
+    void load(const QString& projectPath,
               const QString& appSupportRoot,
               const QString& title);
 
@@ -125,7 +135,24 @@ signals:
     // The user asked to leave the editor (‹ Close). The shell returns to landing.
     void closeRequested();
 
+    // T-0499 ([I-0195]): `load()` finished. `ok` is what `load()` used to return.
+    // ⚠️ The caller MUST switch its view stack from here, not from load()'s return.
+    void loadFinished(bool ok);
+
+    // T-0500 ([I-0195]): progress through the per-scene body reads.
+    //
+    // ✅ DETERMINATE BY CONSTRUCTION, and this is a RULING, not an aspiration
+    // (Sprint SP-128 §2a): `total` is `scenes[].size()`, which `openProject`
+    // returns BEFORE the expensive per-scene loop begins. ⚠️ It is a COUNT, never
+    // an estimate -- filesystem calls are deterministic and the package layout is
+    // OURS. ⚠️ A spinner here would be a REGRESSION against a settled decision.
+    void loadProgress(int done, int total);
+
 private slots:
+    // T-0500 ([I-0195]): update the determinate open-progress strip.
+    // ⚠️ Queued from the worker thread — see the loadProgress signal.
+    void onLoadProgress(int done, int total);
+
     void onNavigatorActivated(const QModelIndex& index);
     // Right-click on a navigator row (T-0251): build a context menu with Delete for
     // the row under the cursor — scene rows and chapter rows both. `pos` is in the
@@ -238,6 +265,34 @@ private slots:
     void onRemoveImportedTimelineRequested(const QString& timelineID);
 
 private:
+    // T-0499 ([I-0195]) — everything the WORKER THREAD reads, carried back to the
+    // UI thread in one payload.
+    //
+    // ⚠️ Plain data ONLY. This crosses a thread boundary, so it must hold no
+    // widget, no model, and nothing owned by the UI thread (AsyncCall.hpp states
+    // the rule; violating it is the classic way an async refactor introduces a
+    // crash that only appears under load).
+    struct LoadPayload {
+        bool                       ok = false;
+        QString                    failureMessage;   // writer-facing, already composed
+        QString                    projectID;
+        QString                    activeSceneID;
+        QList<SceneDocument::Input> inputs;          // assembled, bodies included
+        int                        restoredAnchor = 0;
+        int                        restoredFocus  = 0;
+        double                     restoredScroll = 0.0;
+    };
+
+    // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY
+    // exit from a load -- success, failure and timeout alike -- or a finished
+    // load leaves a stalled bar on screen claiming to still be working.
+    void hideLoadProgress();
+
+    // Phase B: build the document from an already-read payload. ⚠️ UI THREAD ONLY.
+    void applyLoadedProject(const QString& projectPath,
+                            const QString& appSupportRoot,
+                            const LoadPayload& payload);
+
     // Load the imported-timeline rows into the panel (T-0342). Reads listImportedTimelines
     // for metadata + each stored file in objects/imported-timelines/ for the per-event
     // dots (the list projection omits events). Called from reloadTimeline.
@@ -362,6 +417,15 @@ private:
     NavigatorTree*      navigator_ = nullptr;
     QStandardItemModel* navModel_  = nullptr;
     QLabel*             errorLabel_ = nullptr;
+    // T-0500 ([I-0195]) — the DETERMINATE project-open progress strip.
+    //
+    // ⚠️ Shown only while a load is in flight, and only once it has lasted long
+    // enough to be worth mentioning: a local project opens in well under a
+    // second, and flashing a bar for 200 ms is noise, not information.
+    QWidget*      progressRow_   = nullptr;
+    QProgressBar* progressBar_   = nullptr;
+    QLabel*       progressLabel_ = nullptr;
+    QTimer*       progressDelay_ = nullptr;
     QTimer*             saveTimer_ = nullptr;   // idle-save debounce (~1.5s)
     QSplitter*          splitter_  = nullptr;   // navigator | viewport | inspector
     SceneInspector*     inspector_ = nullptr;   // EP-024 right-side panel

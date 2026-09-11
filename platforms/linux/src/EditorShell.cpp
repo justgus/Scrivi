@@ -1,5 +1,8 @@
 #include "EditorShell.hpp"
 
+#include "AsyncCall.hpp"
+#include "ThemeColours.hpp"
+
 #include <QAction>
 #include <QDebug>
 #include <QDir>
@@ -7,6 +10,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
+#include <QProgressBar>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QJsonArray>
@@ -45,6 +49,22 @@
 namespace story = scrivi::linux_app::story;
 
 namespace {
+
+// ⚠️ T-0499/[I-0195] — the LAST-RESORT backstop for project open, NOT a latency
+// policy.
+//
+// ⚠️ DELIBERATELY NOT `AsyncCall::kDefaultTimeoutMs` (5 s). That figure was tuned
+// for [I-0193] to separate a ~0.09 s healthy call from a ~102 s DEAD share, where
+// aborting is the right answer. ⚠️ Applying it to project open would ABORT the
+// legitimate slow load [I-0195] exists to support -- and the user's ruling is
+// explicit that waiting is ACCEPTABLE, only frozen silence is not.
+//
+// ✅ 10 minutes is chosen to be beyond any plausible honest read (the rig's
+// slowest measured project open is seconds, not minutes) while still bounding a
+// genuinely hung volume, so the writer is never stuck forever with no way out.
+// ⚠️ PROGRESS, not this timeout, is the answer to slowness.
+constexpr int kProjectOpenTimeoutMs = 600000;
+
 // Custom data roles on navigator items (shared with NavigatorTree's drop resolution):
 // scene rows carry kSceneIDRole; chapter rows carry kChapterIDRole.
 constexpr int kSceneIDRole   = navigator::kSceneIDRole;
@@ -209,10 +229,48 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     errorLabel_->setWordWrap(true);
     errorLabel_->hide();
 
+    // T-0500 ([I-0195]) — the DETERMINATE open-progress strip.
+    //
+    // ✅ `files read / files to read`, a REAL fraction (SP-128 §2a): the scene
+    // count arrives with `openProject`, BEFORE the per-scene body reads that cost
+    // the time. ⚠️ It is a COUNT, never an estimate -- filesystem calls are
+    // deterministic and the package layout is OURS, not an unknown user tree.
+    // ⚠️ A spinner here would be a REGRESSION against a settled ruling.
+    progressRow_   = new QWidget(this);
+    progressBar_   = new QProgressBar(progressRow_);
+    progressLabel_ = new QLabel(progressRow_);
+    progressBar_->setTextVisible(false);
+    // ⚠️ Theme-derived, NOT a hardcoded colour. I-0186: `palette(mid)` measured
+    // 1.07:1 on the rig's real dark theme, and a stylesheet colour overrides the
+    // theme permanently and ignores a runtime light/dark switch.
+    ThemeColours::applyTextColour(progressLabel_,
+                                  ThemeColours::deemphasised(palette()));
+    {
+        auto* row = new QHBoxLayout(progressRow_);
+        row->setContentsMargins(8, 4, 8, 4);
+        row->addWidget(progressLabel_);
+        row->addWidget(progressBar_, /*stretch=*/1);
+    }
+    progressRow_->hide();
+
+    // ⚠️ A local project opens in well under a second. Flashing a bar for 200 ms
+    // is noise, not information -- so the strip appears only if the load is still
+    // running after this delay. ✅ The writer sees it exactly when it tells them
+    // something they did not already know.
+    progressDelay_ = new QTimer(this);
+    progressDelay_->setSingleShot(true);
+    progressDelay_->setInterval(400);
+    connect(progressDelay_, &QTimer::timeout, this, [this]() {
+        if (progressRow_ != nullptr) { progressRow_->show(); }
+    });
+
+    connect(this, &EditorShell::loadProgress, this, &EditorShell::onLoadProgress);
+
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
     root->addLayout(toolbar);
     root->addWidget(outerSplitter_, /*stretch=*/1);
+    root->addWidget(progressRow_);
     root->addWidget(errorLabel_);
 
     // Idle-save debounce (T-0239): (re)armed on each edit; fires one saveDirtyScenes.
@@ -265,7 +323,7 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
             });
 }
 
-bool EditorShell::load(const QString& projectPath,
+void EditorShell::load(const QString& projectPath,
                        const QString& appSupportRoot,
                        const QString& title)
 {
@@ -282,34 +340,192 @@ bool EditorShell::load(const QString& projectPath,
     if (!bridge_->ready()) {
         errorLabel_->setText(tr("Could not resolve identity to open the project."));
         errorLabel_->show();
-        return false;
+        hideLoadProgress();
+        emit loadFinished(false);
+        return;
     }
 
-    const QVariantMap opened = bridge_->openProject(projectPath, appSupportRoot);
-    if (opened.value(QStringLiteral("mode")).toString() != QStringLiteral("ready")) {
-        // repairRequired / cannotOpen were already handled by the landing flow;
-        // reaching here in a non-ready state is unexpected — show and bail.
-        if (!errorLabel_->isVisible()) {
-            errorLabel_->setText(tr("This project could not be opened into the editor."));
+    // ⚠️ T-0499 ([I-0195]) — THE READS BELOW RUN ON A WORKER THREAD.
+    //
+    // ⚠️ WHAT THIS COSTS, and why it had to move: the load is `openProject` plus
+    // ONE `openScene` PER SCENE, sequential and blocking. Every one of those ran
+    // on the UI thread. On a `cache=none` mount the rig measured project open at
+    // ~10x local, ⚠️ and the cost is UNBOUNDED -- a world accumulates objects over
+    // a project's life, a project may bind SEVERAL worlds, and project and worlds
+    // may BOTH sit on slow network storage.
+    //
+    // ✅ USER RULING (2026-09-08): waiting is ACCEPTABLE; waiting with a FROZEN,
+    // SILENT UI is NOT. So the fix is to get off the thread and REPORT, not to
+    // make the read faster.
+    //
+    // ⚠️ THIS IS NOT [I-0193]'s CASE AND MUST NOT BE TREATED AS ONE. That was the
+    // UNREACHABLE volume, which needs a TIMEOUT. This is the REACHABLE-BUT-SLOW
+    // volume, which needs PROGRESS -- ⚠️ and a timeout here would ABORT a
+    // legitimate slow load, which is a WORSE defect than the freeze it replaced.
+    // ✅ Hence the deliberately large budget below.
+    // T-0500: arm the delayed reveal. ⚠️ Reset to a clean state first -- a second
+    // open must not inherit the last one's fraction.
+    if (progressBar_ != nullptr) {
+        progressBar_->setRange(0, 0);
+        progressBar_->setValue(0);
+        progressLabel_->setText(tr("Opening this project…"));
+    }
+    if (progressRow_ != nullptr) { progressRow_->hide(); }
+    if (progressDelay_ != nullptr) { progressDelay_->start(); }
+
+    ScriviBridge* bridge = bridge_;
+    const QString path   = projectPath;
+    const QString appSup = appSupportRoot;
+
+    // ⚠️ Progress is emitted FROM THE WORKER THREAD, so it is queued to the UI
+    // thread rather than called directly. A direct call would touch widgets from
+    // the wrong thread.
+    auto* self = this;
+
+    AsyncCall::run<LoadPayload>(
+        this,
+        [bridge, path, appSup, self]() -> LoadPayload {
+            LoadPayload out;
+
+            const QVariantMap opened = bridge->openProject(path, appSup);
+            if (opened.value(QStringLiteral("mode")).toString()
+                != QStringLiteral("ready")) {
+                // repairRequired / cannotOpen were already handled by the landing
+                // flow; reaching here in a non-ready state is unexpected.
+                out.ok = false;
+                out.failureMessage =
+                    tr("This project could not be opened into the editor.");
+                return out;
+            }
+
+            out.projectID = opened.value(QStringLiteral("projectID")).toString();
+            const QVariantList scenes = opened.value(QStringLiteral("scenes")).toList();
+            const QVariantMap active  = opened.value(QStringLiteral("activeScene")).toMap();
+            out.activeSceneID = active.value(QStringLiteral("sceneID")).toString();
+            const QString activeMarkdown =
+                active.value(QStringLiteral("markdown")).toString();
+
+            // Restored surface state for the active scene (T-0247).
+            const QVariantMap restored = opened.value(QStringLiteral("restored")).toMap();
+            out.restoredAnchor = restored.value(QStringLiteral("anchor")).toInt();
+            out.restoredFocus  = restored.value(QStringLiteral("focus")).toInt();
+            out.restoredScroll = restored.value(QStringLiteral("scroll")).toDouble();
+
+            // ✅ T-0500: THE TOTAL IS KNOWN HERE, BEFORE THE EXPENSIVE PART.
+            // ⚠️ `openProject` has already returned the scene list, so this is a
+            // COUNT, not an estimate -- which is exactly what makes the progress
+            // bar DETERMINATE rather than a spinner (SP-128 §2a).
+            const int total = scenes.size();
+            int done = 0;
+            emit self->loadProgress(done, total);
+
+            out.inputs.reserve(scenes.size());
+            for (const QVariant& v : scenes) {
+                const QVariantMap s = v.toMap();
+                const QString sceneID = s.value(QStringLiteral("sceneID")).toString();
+
+                SceneDocument::Input in;
+                in.sceneID      = sceneID;
+                in.chapterID    = s.value(QStringLiteral("chapterID")).toString();
+                in.title        = s.value(QStringLiteral("title")).toString();
+                in.chapterTitle = s.value(QStringLiteral("chapterTitle")).toString();
+                in.slug         = s.value(QStringLiteral("slug")).toString();
+                in.metadataPath = s.value(QStringLiteral("metadataPath")).toString();
+                in.contentPath  = s.value(QStringLiteral("contentPath")).toString();
+                // The chapter's own sidecar path (needed by rename + I-0063
+                // renumber). Every scene entry carries its chapterMetadataPath.
+                in.chapterMetadataPath =
+                    s.value(QStringLiteral("chapterMetadataPath")).toString();
+
+                if (sceneID == out.activeSceneID) {
+                    in.markdown = activeMarkdown;   // already have it — no round-trip
+                } else {
+                    const QVariantMap sc = bridge->openScene(path, appSup,
+                                                             out.projectID, sceneID);
+                    in.markdown = sc.value(QStringLiteral("markdown")).toString();
+                }
+                out.inputs.append(in);
+
+                // ⚠️ Emitted per scene, so the fraction MOVES on a slow mount --
+                // which is the whole point. A bar that only appears at the end
+                // reports history, not progress.
+                emit self->loadProgress(++done, total);
+            }
+
+            out.ok = true;
+            return out;
+        },
+        [this, projectPath, appSupportRoot](const LoadPayload& payload) {
+            hideLoadProgress();
+            if (!payload.ok) {
+                if (!errorLabel_->isVisible()) {
+                    errorLabel_->setText(payload.failureMessage);
+                    errorLabel_->show();
+                }
+                emit loadFinished(false);
+                return;
+            }
+            applyLoadedProject(projectPath, appSupportRoot, payload);
+            emit loadFinished(true);
+        },
+        [this]() {
+            hideLoadProgress();
+            // ⚠️ HONEST, and NOT a claim about the data (I-0115). Reaching here
+            // means the read exceeded even the generous budget below -- the
+            // volume is likely unreachable rather than merely slow.
+            errorLabel_->setText(
+                tr("This project is taking longer than expected to open — it or "
+                   "one of its worlds may be on a disconnected or unreachable "
+                   "volume. Nothing has been lost."));
             errorLabel_->show();
-        }
-        return false;
-    }
+            emit loadFinished(false);
+        },
+        // ⚠️ NOT AsyncCall::kDefaultTimeoutMs. That is 5 s, tuned to separate a
+        // healthy call from a DEAD share ([I-0193]). ⚠️ Applying it here would
+        // abort exactly the legitimate slow load [I-0195] exists to support.
+        // ✅ This budget is a LAST-RESORT backstop for a hung volume, not a
+        // latency policy -- progress, not a timeout, is the answer to slowness.
+        kProjectOpenTimeoutMs);
+}
 
-    const QString projectID = opened.value(QStringLiteral("projectID")).toString();
-    const QVariantList scenes = opened.value(QStringLiteral("scenes")).toList();
-    const QVariantMap active = opened.value(QStringLiteral("activeScene")).toMap();
-    const QString activeSceneID = active.value(QStringLiteral("sceneID")).toString();
-    const QString activeMarkdown = active.value(QStringLiteral("markdown")).toString();
+void EditorShell::hideLoadProgress()
+{
+    if (progressDelay_ != nullptr) { progressDelay_->stop(); }
+    if (progressRow_ != nullptr)   { progressRow_->hide(); }
+}
 
-    // Restored surface state for the active scene (T-0247): scene-local cursor
-    // offsets + a scroll fraction. Applied after the document is assembled.
-    const QVariantMap restored = opened.value(QStringLiteral("restored")).toMap();
-    const int restoredAnchor = restored.value(QStringLiteral("anchor")).toInt();
-    const int restoredFocus  = restored.value(QStringLiteral("focus")).toInt();
-    const double restoredScroll = restored.value(QStringLiteral("scroll")).toDouble();
+void EditorShell::onLoadProgress(int done, int total)
+{
+    if (progressBar_ == nullptr) { return; }
 
-    // Stash identity for the save path (T-0239); reset save state for the new project.
+    // ⚠️ A total of 0 or 1 is not worth a bar: a single-scene project has one
+    // read, and there is no meaningful fraction to show.
+    if (total <= 1) { return; }
+
+    progressBar_->setRange(0, total);
+    progressBar_->setValue(done);
+    // ✅ The NUMBERS are shown, not just a bar. A writer waiting on a slow mount
+    // can see that it is MOVING and roughly how much is left -- which is the
+    // difference between waiting and wondering whether it has hung.
+    progressLabel_->setText(tr("Opening this project… %1 of %2 scenes")
+                                .arg(done).arg(total));
+}
+
+void EditorShell::applyLoadedProject(const QString& projectPath,
+                                     const QString& appSupportRoot,
+                                     const LoadPayload& payload)
+{
+    // ⚠️ UI THREAD ONLY. Everything below touches widgets and the document.
+    const QString projectID     = payload.projectID;
+    const QString activeSceneID = payload.activeSceneID;
+    const int restoredAnchor    = payload.restoredAnchor;
+    const int restoredFocus     = payload.restoredFocus;
+    const double restoredScroll = payload.restoredScroll;
+    const QList<SceneDocument::Input>& inputs = payload.inputs;
+
+    // Stash identity for the save path (T-0239); reset save state for the new
+    // project. ⚠️ Set HERE, on the UI thread, before anything reads it -- these
+    // members belong to the UI thread and must never be written from the worker.
     projectID_      = projectID;
     projectPath_    = projectPath;
     appSupportRoot_ = appSupportRoot;
@@ -321,38 +537,6 @@ bool EditorShell::load(const QString& projectPath,
     // promoted — so the panel never queries a stale root.
     if (inspector_ != nullptr) {
         inspector_->setContext(bridge_, projectPath_);
-    }
-
-    // Assemble the continuous document in manuscript (scenes[]) order. The active
-    // scene's body already arrived in openProject; fetch every other body via
-    // scrivi_open_scene (Open Question #2's resolved path — no payload extension).
-    QList<SceneDocument::Input> inputs;
-    inputs.reserve(scenes.size());
-    for (const QVariant& v : scenes) {
-        const QVariantMap s = v.toMap();
-        const QString sceneID = s.value(QStringLiteral("sceneID")).toString();
-
-        SceneDocument::Input in;
-        in.sceneID      = sceneID;
-        in.chapterID    = s.value(QStringLiteral("chapterID")).toString();
-        in.title        = s.value(QStringLiteral("title")).toString();
-        in.chapterTitle = s.value(QStringLiteral("chapterTitle")).toString();
-        in.slug         = s.value(QStringLiteral("slug")).toString();
-        in.metadataPath = s.value(QStringLiteral("metadataPath")).toString();
-        in.contentPath  = s.value(QStringLiteral("contentPath")).toString();
-        // The chapter's own sidecar path (needed by rename + I-0063 renumber). Every
-        // scene entry in open_project carries its chapter's chapterMetadataPath.
-        in.chapterMetadataPath =
-            s.value(QStringLiteral("chapterMetadataPath")).toString();
-
-        if (sceneID == activeSceneID) {
-            in.markdown = activeMarkdown;   // already have it — skip the round-trip
-        } else {
-            const QVariantMap sc =
-                bridge_->openScene(projectPath, appSupportRoot, projectID, sceneID);
-            in.markdown = sc.value(QStringLiteral("markdown")).toString();
-        }
-        inputs.append(in);
     }
 
     // Assemble the document under the loading_ guard so the programmatic inserts
@@ -425,8 +609,6 @@ bool EditorShell::load(const QString& projectPath,
     // EP-025: build the timeline dots from the backend story-time now that the
     // segments + activeSegment are set.
     reloadTimeline();
-
-    return true;
 }
 
 void EditorShell::showEvent(QShowEvent* event)

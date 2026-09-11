@@ -205,15 +205,45 @@ struct WorldsView: View {
         }
     }
 
+    /// The `.scrivworld` package UTI (declared in Info.plist), with a package
+    /// fallback if Launch Services has not registered it yet.
+    ///
+    /// ⚠️ WHY THE PANELS NEED THIS. A `.scrivworld` is a DIRECTORY. Without a
+    /// content-type filter an `NSOpenPanel` with `canChooseDirectories = true`
+    /// lets the writer DESCEND INTO the package — `index.json`, the kind
+    /// subdirectories, `world.json` — instead of choosing it.
+    ///
+    /// ⚠️ That is [I-0185] on the world side: *"the writer must perceive the
+    /// folder structure as if it were a single file… in the app it must appear
+    /// as if it were an atomic thing."* The project's panels were fixed; the
+    /// world's were not, because a world is picked from a different sheet.
+    private var scriviWorldType: UTType {
+        UTType("com.caposoft.scrivi.world") ?? .package
+    }
+
     private func createWorld() {
         let name = newWorldName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
 
+        // ⚠️ APPKIT ONLY. `NSSavePanel`/`NSOpenPanel` do not exist on iOS or
+        // visionOS, and this file had NO platform conditionals at all — it was
+        // written macOS-first, so the iOS/visionOS targets could not compile it.
+        //
+        // ⚠️ The non-macOS branch below REFUSES HONESTLY rather than doing
+        // nothing: a button that silently no-ops is worse than one that says it
+        // is not built yet. The iOS surface needs `fileImporter`/`fileExporter`
+        // (SwiftUI, sandbox-friendly), which is a real piece of work, not a
+        // shim — see the note in each branch.
+        #if os(macOS)
         // The writer chooses where the package lives — a world is a real, movable,
         // shareable package on disk, not hidden project-internal state (Doc 3 §4.1).
         let panel = NSSavePanel()
         panel.title = "Create World"
         panel.nameFieldStringValue = "\(name).scrivworld"
+        // ⚠️ Declaring the type keeps the `.scrivworld` extension attached even
+        // if the writer edits the name field, so a world cannot be born as a
+        // plain directory the app will not recognise later.
+        panel.allowedContentTypes = [scriviWorldType]
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
@@ -240,6 +270,12 @@ struct WorldsView: View {
         } catch {
             actionError = error.localizedDescription
         }
+        #else
+        // ⚠️ NOT IMPLEMENTED, and said so. Creating a world needs a
+        // writer-chosen location; on iOS that is `fileExporter` plus a
+        // security-scoped grant, not an NSSavePanel.
+        actionError = "Creating a world is not available on this platform yet."
+        #endif
     }
 
     /// Drops this project's reference. The package on disk is untouched, which is
@@ -269,10 +305,16 @@ struct WorldsView: View {
     /// accepting the package, so picking the wrong one is refused rather than
     /// silently substituted (AC8) — the error surfaces in place.
     private func relinkWorld(_ world: WorldEntry) {
+        #if os(macOS)
         let panel = NSOpenPanel()
         panel.title = "Locate “\(world.displayName)”"
+        // ⚠️ The package must be pickable AS AN ATOM, not traversed into.
+        // `allowedContentTypes` is what stops the panel descending; leaving
+        // `canChooseDirectories` true alone made every `.scrivworld` a folder
+        // the writer could open and get lost inside (I-0185's class).
+        panel.allowedContentTypes = [scriviWorldType]
         panel.canChooseDirectories = true
-        panel.canChooseFiles = true
+        panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
@@ -294,13 +336,21 @@ struct WorldsView: View {
         } catch {
             actionError = error.localizedDescription
         }
+        #else
+        // ⚠️ NOT IMPLEMENTED, and said so rather than no-opping.
+        // Needs `fileImporter` + a security-scoped grant on iOS.
+        actionError = "Relinking a world is not available on this platform yet."
+        #endif
     }
 
     private func bindExistingWorld() {
+        #if os(macOS)
         let panel = NSOpenPanel()
         panel.title = "Add Existing World"
+        // ⚠️ Same as relink: choose the package, never wander inside it.
+        panel.allowedContentTypes = [scriviWorldType]
         panel.canChooseDirectories = true
-        panel.canChooseFiles = true
+        panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
@@ -323,5 +373,10 @@ struct WorldsView: View {
         } catch {
             actionError = error.localizedDescription
         }
+        #else
+        // ⚠️ NOT IMPLEMENTED, and said so rather than no-opping.
+        // Needs `fileImporter` + a security-scoped grant on iOS.
+        actionError = "Adding an existing world is not available on this platform yet."
+        #endif
     }
 }

@@ -253,8 +253,8 @@ the thing being mirrored is the FINISHED surface or a placeholder that Apple lat
 **Goal:** Stand up a **real Ubuntu machine** as a first-class test rig, then ⚠️ **establish what ACTUALLY
 happens when a drive carrying a world is physically unmounted** — and implement the platform refinement
 against that ground truth rather than against documentation.
-**Date Created:** 2026-08-24 · **Promoted:** 2026-08-25 · **Sprints:** ✅ **SP-123 (CLOSED 2026-08-29)**, 🟡 **SP-124 (ACTIVE 2026-08-31)**
-**Tasks:** **T-0474 – T-0479** (six)
+**Date Created:** 2026-08-24 · **Promoted:** 2026-08-25 · **Sprints:** ✅ **SP-123 (CLOSED 2026-08-29)**, ✅ **SP-124 (COMPLETE 2026-09-10, awaiting close)**, 🟡 **SP-128 (ACTIVE 2026-09-10)**
+**Tasks:** **T-0474 – T-0479** (six) + ⚠️ **T-0498** (`[ScriviCore]`, SP-124) + 🔵 **T-0499 – T-0501** (SP-128) — ⚠️ **nine plus one**
 **Blocks:** ⚠️ **EP-036's AC4 is UNSPECIFIABLE until T-0477 reports.**
 **Runs in PARALLEL with EP-035** — ⚠️ **user ruling 2026-08-25** (see §3).
 
@@ -329,7 +329,8 @@ VNC and again on real hardware.
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
 | **SP-123** | ⚠️ **Rig reachable + building natively** — T-0474 – T-0476 | ✅ **CLOSED 2026-08-29** |
-| **SP-124** | ⚠️ **Ground truth + refinement** — T-0477 – T-0479 | 🟡 **ACTIVE 2026-08-31** — ⚠️ **scope WIDENED to three scenarios; blocked on the rig being AWAKE** |
+| **SP-124** | ⚠️ **Ground truth + refinement** — T-0477 – T-0479 | ✅ **COMPLETE 2026-09-10 — awaiting close approval** — ⚠️ **scope WIDENED to three scenarios; blocked on the rig being AWAKE** |
+| 🟡 **SP-128** | ⚠️ **Honest waiting** — T-0499 – T-0501 — ⚠️ **[I-0195] progress UI + [I-0182] rig verification** | 🟡 **ACTIVE 2026-09-10** — ⚠️ **added by USER RULING: EP-038's ACs are all closed, but the rig's own findings are not** |
 
 ⚠️ **The sprint seam is deliberately AT the blocking point.** ✅ **T-0477 (instrument) cannot leak into
 T-0478 (implement) because a sprint boundary separates them.**

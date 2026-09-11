@@ -48,6 +48,24 @@
 				<string>com.caposoft.scrivi.project</string>
 			</array>
 		</dict>
+		<!-- A WORLD is a package too, but it is NOT a document this app opens on
+		     its own: a world is always reached THROUGH a project that binds it
+		     (Doc 3). So it is declared Viewer/Alternate, never Editor/Owner —
+		     claiming Owner would put Scrivi on the "Open With" default for a
+		     file double-clicking it cannot actually open. The declaration exists
+		     so Finder and every NSOpenPanel treat the folder as ONE ATOM. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleTypeIconFile</key>
+			<string></string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.caposoft.scrivi.world</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -78,6 +96,40 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>scrivi</string>
+				</array>
+			</dict>
+		</dict>
+		<!-- The WORLD package (SP-128, 2026-09-10).
+
+		     ⚠️ WHY THIS MATTERS, and it is not cosmetic: a `.scrivworld` is a
+		     DIRECTORY. Without this declaration Finder shows it as a folder the
+		     writer can open and rummage through — manuscript-adjacent JSON,
+		     `index.json`, kind subdirectories — and, worse, every NSOpenPanel
+		     lets them DESCEND INTO it instead of choosing it.
+
+		     ⚠️ That is exactly [I-0185] on the project side: "the writer must
+		     perceive the folder structure as if it were a single file… in the
+		     app it must appear as if it were an atomic thing." The project got
+		     that treatment; the world never did, so `Add Existing World` and
+		     `Locate…` (WorldsView.swift:272, :300) still open panels that
+		     traverse the package.
+
+		     ✅ `com.apple.package` is what makes Finder and the panels treat the
+		     directory as ONE ATOM. -->
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.caposoft.scrivi.world</string>
+			<key>UTTypeDescription</key>
+			<string>Scrivi World</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scrivworld</string>
 				</array>
 			</dict>
 		</dict>

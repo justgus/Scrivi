@@ -390,6 +390,9 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-122** | ⚠️ **`[Cross]`** AC verification + ⚠️ **the LIVE-USE pass on the real rig** + **EP-034 close prep** — ⚠️ **AC12 only; two of its five legs (x86-64, sanitizers) are rarely run** | EP-034 `[Cross]` | 2026-08-25 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-122.md) |
 | **SP-123** | ⚠️ **`[Linux]`** Rig reachable + building natively — ⚠️ **NO application code**; ⚠️ **real X session, NOT xvfb** | EP-038 `[Linux]` | 2026-08-25 | 2026-08-29 | ✅ **CLOSED** → [`Closed/Sprint-SP-123.md`](Closed/Sprint-SP-123.md) |
 | **SP-124** | ⚠️ **`[Linux]`** Drive-loss GROUND TRUTH + `WorldVolumeStatus` — ⚠️ **instrument BEFORE implement** | EP-038 `[Linux]` | — | — | ✅ **COMPLETE 2026-09-10** — ⚠️ **awaiting close approval.** ✅ **All 4 Tasks verified; EP-038 AC4–AC7 closed.** ⚠️ **Found FIVE lying signals; `offline` emitted for the first time ever** |
+| **SP-128** | ⚠️ **`[Linux]`** Honest waiting — ⚠️ **[I-0195] determinate progress + [I-0182] rig verification** | EP-038 `[Linux]` | — | — | 🟡 **ACTIVE** — ✅ **activated 2026-09-10** |
+| **SP-129** | ⚠️ **`[Apple]`** The four unbuilt surfaces — ⚠️ **and the direct-filesystem bypass in `loadImportedTimelines`** | EP-039 `[Cross]` | — | — | 🔵 **PLANNING** — created 2026-09-10, ⚠️ **not activated** |
+| **SP-130** | ⚠️ **`[Apple]`+`[ScriviCore]`** Close the ScriviCore bypasses — ⚠️ **[I-0197]; `inspector-layout.json` is written by SWIFT into a package the CORE owns** | EP-039 `[Cross]` | — | — | 🔵 **PLANNING** — created 2026-09-10, ⚠️ **not activated** |
 | **SP-125** | ⚠️ **`[Linux]`** **Scene Inspector wired to real objects** — ⚠️ **replaces the 67-line EP-024 stub**; ⚠️ **Qt WIDGETS, not QML**. ⚠️ **Wired Apple's DELETED "Scene Entities" placeholder — SP-126 builds the real 3-tab shell** | EP-035 `[Linux]` | 2026-08-25 | 2026-08-29 | ✅ **CLOSED** → [`Closed/Sprint-SP-125.md`](Closed/Sprint-SP-125.md) |
 | **SP-126** | ⚠️ **`[Linux]`** **The three-tab Scene Inspector shell** — ⚠️ **Writing · Worldbuilding · Properties** (**AC10**, ⚠️ **user-found gap**); ⚠️ **`inspector-layout.json` PATCHED, not reconstructed** | EP-035 `[Linux]` | 2026-08-29 | 2026-08-30 | ✅ **CLOSED** → [`Closed/Sprint-SP-126.md`](Closed/Sprint-SP-126.md) |
 
@@ -401,7 +404,7 @@ audit ruling **R-22(④)**, because a summary that restates a table will drift f
 by status, read the table.**
 
 - **Next available Sprint ID:** **SP-127** — ⚠️ **not SP-107**; See the reserved block below. (**SP-126** is now PLANNED.)
-- **Total Sprint IDs issued:** 127 (SP-001–SP-127) — 118 executed, **0 ACTIVE**, ✅ **SP-124 COMPLETE 2026-09-10 (awaiting close approval)**, **8 reserved (SP-107–SP-114)**
+- **Total Sprint IDs issued:** 130 (SP-001–SP-130) — 118 executed, ⚠️ **1 ACTIVE (SP-128)**, ✅ **SP-124 COMPLETE 2026-09-10 (awaiting close approval)**, **8 reserved (SP-107–SP-114)**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED

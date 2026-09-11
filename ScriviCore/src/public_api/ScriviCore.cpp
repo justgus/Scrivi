@@ -78,23 +78,21 @@ Result<OpenSceneResult> ScriviCore::openScene(
         return Result<OpenSceneResult>::failure(r.error());
     }
 
-    // 1. Resolve manuscript order to find the requested scene
+    // 1. Locate the requested scene.
+    //
+    // ⚠️ [I-0196]: this used to call `resolver.resolve()`, which reads AND
+    // JSON-PARSES EVERY scene sidecar in the manuscript, then linear-searched the
+    // result for ONE scene. ⚠️ The app calls `openScene` once per scene when
+    // opening a project, so a full open was N resolves x N parses -- ~1.33 MILLION
+    // read+parse operations at 1,152 scenes, MEASURED at 263 SECONDS of blocking
+    // work. ⚠️ The cost is QUADRATIC: invisible at 16 scenes, fatal at 1,152.
+    //
+    // ✅ `findScene` stops at the match and pays for exactly one chapter+scene
+    // parse. It is equally filesystem-authoritative (see its header).
     manuscript::ManuscriptOrderResolver resolver{services_};
-    auto scenesR = resolver.resolve(request.projectRootPath);
-    if (!scenesR.ok()) { return Result<OpenSceneResult>::failure(scenesR.error()); }
-
-    const manuscript::ResolvedScene* found = nullptr;
-    for (auto& s : scenesR.value()) {
-        if (s.sceneID.value == request.sceneID.value) {
-            found = &s;
-            break;
-        }
-    }
-    if (found == nullptr) {
-        return Result<OpenSceneResult>::failure(
-            Error{.code = ErrorCode::invalidArgument,
-                  .message = "Scene not found: " + request.sceneID.value});
-    }
+    auto foundR = resolver.findScene(request.projectRootPath, request.sceneID);
+    if (!foundR.ok()) { return Result<OpenSceneResult>::failure(foundR.error()); }
+    const manuscript::ResolvedScene* found = &foundR.value();
 
     // 2. Read scene content
     manuscript::SceneReader reader{services_};

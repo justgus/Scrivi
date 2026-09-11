@@ -56,7 +56,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 ## All Epics
 
 ⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
-Statistics — read the rows. Next available ID: **EP-039**.
+Statistics — read the rows. Next available ID: **EP-040**.
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -107,7 +107,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-039**
+- **Next available Epic ID:** **EP-040** (⚠️ **EP-039 created 2026-09-10 → `Epic-backlog.md`**)
 - **Total Epic IDs issued:** 38 (EP-001–EP-038); none cancelled, skipped or superseded
   - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
     ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a

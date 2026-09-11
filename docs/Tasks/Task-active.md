@@ -16,13 +16,25 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **SP-127** — EP-035 AC3, ⚠️ **the Worlds surface**
+## Currently: **SP-128** — EP-038, ⚠️ **honest waiting**
 
-⚠️ **Activated 2026-08-31**, preempting SP-124 by user ruling. ⏸️ **SP-124's three Tasks are PAUSED**
-(below), ✅ **not abandoned — its S1 baseline is captured and the rig mount is intact.**
+✅ **ACTIVATED 2026-09-10.** ⚠️ **This heading read `SP-127 — the Worlds surface` until 2026-09-10 —
+✅ that was STALE**: SP-127 closed 2026-09-02 and SP-124 completed 2026-09-10.
+
+⚠️ **SP-128 closes NO new EP-038 AC** — ✅ **AC1–AC7 are all closed** — ⚠️ **it exists to finish the two
+Issues the rig SURFACED but did not fix**: ✅ **[I-0195]** (project open freezes the UI, no progress) and
+✅ **[I-0182]** (an unreachable world named by its UUID — ⚠️ **fixed, but never READ by a writer**).
+
+✅ **THE COUNT IS KNOWABLE — user ruling 2026-09-10, and the question is CLOSED:** ⚠️ **filesystem calls
+are DETERMINISTIC by nature**, ✅ **and the `.scrivworld` package is a layout WE define and write, not an
+unknown user tree we search.** ⚠️ **`index.json` is the fallback oracle for the count.** ⚠️ **A spinner
+would be a REGRESSION against a settled decision, not a pragmatic fallback** (Sprint §2a).
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
+| **T-0499** | ⚠️ **`[Linux]` Project open OFF the UI thread** — [I-0195] | **SP-128** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **`EditorShell::load()` is ASYNC**: `openProject` + the **one-`openScene`-per-scene** loop now run on a worker via `AsyncCall`. ⚠️ **`load()` returned `bool` and no longer can** — ✅ **`loadFinished(bool)` replaces it and `ScriviWindow` switches the view stack from the signal.** ⚠️ **Timeout is 10 min, NOT `kDefaultTimeoutMs` (5 s)** — ✅ **that figure was tuned to abort a DEAD share ([I-0193]); using it here would ABORT the legitimate slow load this Issue exists to support.** ✅ **Docker build clean; 23/23 smokes.** |
+| **T-0500** | ⚠️ **`[Linux]` DETERMINATE progress** — [I-0195] | **SP-128** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **A real `QProgressBar` + `n of m scenes` label**, ⚠️ **revealed only after 400 ms** (a local project opens in well under a second; flashing a bar is noise). ✅ **The total arrives with `openProject`, BEFORE the per-scene reads** — ⚠️ **a COUNT, not an estimate.** ✅ **NEW SMOKE `open_progress_smoke` asserts the total is known at the FIRST report, never changes, never goes backwards, and ends EXACTLY at the total** — ⚠️ **and was VERIFIED FAILING against a deliberately estimate-style implementation** (*"the total NEVER changes mid-load"*). ✅ **Colour is THEME-DERIVED** (`ThemeColours`), ⚠️ **not a hardcoded stylesheet — I-0186's defect class.** |
+| **T-0501** | ⚠️ **LIVE PASS on the real rig** — ⚠️ **[I-0182] READ with the share DOWN**, ⚠️ **[I-0195] progress WATCHED on `cache=none`.** ✅ **Plus `ctest` + smokes non-root ON THE RIG** | **SP-128** | 🔴 **BLOCKED — the rig is POWERED OFF** (`ssh` times out, 2026-09-10). ✅ **EXPECTED, not a fault**: the operator powers it off at night (WOL settled, not pursued). ⚠️ **Needs the machine powered on by hand.** ⚠️ **Nothing else can verify either Issue** — ✅ **[I-0182]'s branch needs `listWorlds` to FAIL and [I-0195]'s cost needs a SLOW mount; Docker can stage neither.** |
 
 ✅ **`ctest` 571/571 non-root on the rig**; ✅ **clean build under GCC 15 / Qt 6.10.2.**
 

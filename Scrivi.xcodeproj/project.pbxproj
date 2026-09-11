@@ -45,6 +45,7 @@
 		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		C050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
 		C060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
 		C062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		C063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
@@ -97,6 +98,7 @@
 		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		D050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
 		D060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
 		D062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		D063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
@@ -149,6 +151,7 @@
 		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		E050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
+		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
 		E060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
 		E062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		E063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
@@ -248,6 +251,7 @@
 		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
 		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Scrivi/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
 		C055 /* ProjectWindowFrameStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowFrameStore.swift; path = Scrivi/App/ProjectWindowFrameStore.swift; sourceTree = SOURCE_ROOT; };
+		C099 /* ScriviDiag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviDiag.swift; path = Scrivi/App/ScriviDiag.swift; sourceTree = SOURCE_ROOT; };
 		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -352,6 +356,7 @@
 				C075 /* WorldVolumeStatus.swift */,
 				C038 /* ScriviURL.swift */,
 				C050 /* ProjectSession.swift */,
+				C099 /* ScriviDiag.swift */,
 				C060 /* HistoryCapture.swift */,
 				C062 /* BufferService.swift */,
 				C063 /* BuffersPalette.swift */,
@@ -600,6 +605,7 @@
 				C075_BF /* WorldVolumeStatus.swift in Sources */,
 				C038_BF /* ScriviURL.swift in Sources */,
 				C050_BF /* ProjectSession.swift in Sources */,
+				C099_BF /* ScriviDiag.swift in Sources */,
 				C060_BF /* HistoryCapture.swift in Sources */,
 				C062_BF /* BufferService.swift in Sources */,
 				C063_BF /* BuffersPalette.swift in Sources */,
@@ -659,6 +665,7 @@
 				D075_BF /* WorldVolumeStatus.swift in Sources */,
 				D038_BF /* ScriviURL.swift in Sources */,
 				D050_BF /* ProjectSession.swift in Sources */,
+				D099_BF /* ScriviDiag.swift in Sources */,
 				D060_BF /* HistoryCapture.swift in Sources */,
 				D062_BF /* BufferService.swift in Sources */,
 				D063_BF /* BuffersPalette.swift in Sources */,
@@ -718,6 +725,7 @@
 				E075_BF /* WorldVolumeStatus.swift in Sources */,
 				E038_BF /* ScriviURL.swift in Sources */,
 				E050_BF /* ProjectSession.swift in Sources */,
+				E099_BF /* ScriviDiag.swift in Sources */,
 				E060_BF /* HistoryCapture.swift in Sources */,
 				E062_BF /* BufferService.swift in Sources */,
 				E063_BF /* BuffersPalette.swift in Sources */,

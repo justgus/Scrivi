@@ -568,6 +568,16 @@ struct ManuscriptTextView: NSViewRepresentable {
                 isRebuilding = false
             }
 
+            // ⚠️ [I-0196] instrumentation. This is the prime suspect for the hang
+            // AFTER loadAll: it builds ONE NSTextStorage across every segment,
+            // and the chapter-heading lookup below is O(N) PER SEGMENT (see the
+            // tick inside the loop).
+            NSLog("[SCRIVI-TIMING] >>> entering: rebuildStorage segments=\(segments.count)")
+            let rebuildStart = Date()
+            defer {
+                NSLog(String(format: "[SCRIVI-TIMING] <<< rebuildStorage took %.1f s",
+                             Date().timeIntervalSince(rebuildStart)))
+            }
             let storage = tv.textStorage!
             storage.beginEditing()
             storage.setAttributedString(NSAttributedString(string: ""))
@@ -585,6 +595,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             var offset = 0
 
             for (i, seg) in segments.enumerated() {
+                ScriviDiag.tick("rebuildStorage", i, of: segments.count)
                 let isChapterBoundary = i == 0 || segments[i - 1].chapterID != seg.chapterID
 
                 if i > 0 {

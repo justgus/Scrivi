@@ -142,11 +142,11 @@ import os
     // preferences, timeline model, and Spotlight donation are all established.
     @discardableResult
     func load(at path: String) throws -> OpenProjectResult {
-        let result = try engine.openProject(
+        let result = try ScriviDiag.measure("engine.openProject (C ABI)") { try engine.openProject(
             projectRootPath: path,
             appSupportRoot: appSupportRoot,
             identityID: identityID
-        )
+        ) }
         projectRootPath = path
         openProjectResult = result
 
@@ -164,11 +164,30 @@ import os
         // 2026-08-18): the Apple layer centres the restored scene, so a document-wide
         // scroll fraction has nothing to apply to and would fight the centring. The
         // backend still returns it and `[Linux]` still consumes it.
-        loader.loadAll(
-            activeSceneID: result.activeScene?.sceneID,
-            restoredSelection: result.restored?.anchor
-        )
-        viewportLoader = loader
+        ScriviDiag.measure("loader.loadAll (TOTAL)") {
+            loader.loadAll(
+                activeSceneID: result.activeScene?.sceneID,
+                restoredSelection: result.restored?.anchor
+            )
+        }
+        // ⚠️ [I-0196] The first instrumented run PROVED loadAll finishes: 69.5 s,
+        // essentially all of it inside the C ABI. ⚠️ The window STILL never
+        // appeared and the app beachballed — so the freeze is AFTER this point.
+        // Everything below is timed for that reason.
+        // ⚠️ [I-0196] RUN 2 STOPPED EXACTLY HERE. The last output was
+        // `loadAll: RESOLVED activeScene to index 1152` — the final line of
+        // loadAll — and then nothing, forever. So the hang is at or just after
+        // this point, NOT in the loading loop (which completed in 69.5 s).
+        //
+        // ⚠️ `viewportLoader` is an @Observable property, so assigning it can
+        // drive SwiftUI to build the editor view over 1,153 segments
+        // SYNCHRONOUSLY. Timed separately from the plain-data work below so the
+        // table can say which of the two it is.
+        NSLog("[SCRIVI-TIMING] >>> entering: viewportLoader assignment")
+        ScriviDiag.measure("viewportLoader = loader (@Observable)") {
+            viewportLoader = loader
+        }
+        NSLog("[SCRIVI-TIMING] <<< done: viewportLoader assignment")
         let prefs = ProjectPreferences(projectID: result.projectID)
         // Show the real project.json title instead of "Untitled" (I-0093). The backend now returns
         // it in the open envelope; seed the display title from it when the writer hasn't set one on
@@ -177,15 +196,22 @@ import os
         projectPreferences = prefs
 
         let tlModel = TimelineViewModel()
-        tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
+        NSLog("[SCRIVI-TIMING] >>> entering: TimelineViewModel.load")
+        ScriviDiag.measure("TimelineViewModel.load") {
+            tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
+        }
         timelineModel = tlModel
 
         // Open the undo/redo history for this project (best-effort — never blocks open).
+        NSLog("[SCRIVI-TIMING] >>> entering: HistoryCapture.open")
         let capture = HistoryCapture(engine: engine, projectRootPath: path)
-        capture.open()
+        ScriviDiag.measure("HistoryCapture.open") { capture.open() }
         // Head-hash validation (§6.b): flag any scene changed outside Scrivi since
         // last close with an externalChange barrier (never modifies the manuscript).
-        capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
+        NSLog("[SCRIVI-TIMING] >>> entering: HistoryCapture.validateScenes")
+        ScriviDiag.measure("HistoryCapture.validateScenes") {
+            capture.validateScenes(loader.segments.map { ($0.sceneID, $0.text) })
+        }
         historyCapture = capture
         // I-0104: let the save path report the bytes it writes, so the head hash
         // persisted at close describes disk and the next open compares like with
@@ -195,12 +221,18 @@ import os
 
         // Multiple copy buffers (EP-019 SP-056): mirror the persistent slots 1–9 for
         // this project. Reads history/buffers.json (empty when none loaded yet).
-        bufferService = BufferService(engine: engine, projectRootPath: path)
+        NSLog("[SCRIVI-TIMING] >>> entering: BufferService init")
+        bufferService = ScriviDiag.measure("BufferService init") {
+            BufferService(engine: engine, projectRootPath: path)
+        }
 
         // Scene Inspector card layout (EP-030 SP-090). Project-level and Git-visible;
         // absent on first open, in which case the ruled defaults apply (Worldbuilding
         // empty, Writing = tags/outline/todo).
-        let layout = InspectorLayoutStore(projectRootPath: path)
+        NSLog("[SCRIVI-TIMING] >>> entering: InspectorLayoutStore init")
+        let layout = ScriviDiag.measure("InspectorLayoutStore init") {
+            InspectorLayoutStore(projectRootPath: path)
+        }
         // Restore the persisted hide/show state (Doc 2 AC4) BEFORE publishing the store,
         // so `inspectorVisible`'s didSet has no store to write back to. Otherwise
         // restoring would immediately re-save the value we just read.
@@ -208,7 +240,14 @@ import os
         inspectorLayout = layout
 
         // Donate the project's indexable content to Spotlight (best-effort).
-        donateSpotlight(projectRootPath: path)
+        NSLog("[SCRIVI-TIMING] >>> entering: donateSpotlight")
+        ScriviDiag.measure("donateSpotlight") {
+            donateSpotlight(projectRootPath: path)
+        }
+        // ⚠️ Printed at the TRUE end of load(). If the app still beachballs after
+        // this table appears, the cost is in VIEW CONSTRUCTION / AppKit layout,
+        // not in session loading — and that is the next place to instrument.
+        ScriviDiag.report("project open: \(path)")
         return result
     }
 

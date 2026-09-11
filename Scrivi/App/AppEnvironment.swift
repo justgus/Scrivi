@@ -550,12 +550,79 @@ import UniformTypeIdentifiers
         }
     }
 
+    /// Opens a `.scrivi` package the writer double-clicked in Finder (or dropped
+    /// on the app icon).
+    ///
+    /// ⚠️ A `.scrivworld` can arrive here too, because the app DECLARES that type
+    /// (Info.plist) so Finder will treat the package as an atom. ⚠️ Declaring it
+    /// does NOT mean the app can open one: a world is only ever reached through a
+    /// project that binds it, which is why the world type is declared
+    /// Viewer/Alternate rather than Editor/Owner. ✅ Saying so plainly beats
+    /// opening the last project and looking like it worked.
+    @MainActor
+    private func openProjectFile(at url: URL) async {
+        let path = url.path(percentEncoded: false)
+
+        // ⚠️ Decided by EXTENSION, not by probing the directory: a world on an
+        // unreachable volume cannot be read, and this message must not depend on
+        // the volume being present.
+        if url.pathExtension.lowercased() == "scrivworld" {
+            projectError = ScriviError(
+                code: -1,
+                message: "“\(url.lastPathComponent)” is a Scrivi world, not a project. "
+                       + "Open a project that uses it, then manage it from Project ▸ Worlds.")
+            return
+        }
+
+        // Already open? Focus the existing window instead of opening a second
+        // session on the same project.
+        if let existing = openProjects.sessions.first(where: { _, session in
+            session.projectRootPath == path
+        }) {
+            requestOpenWindow(for: existing.key)
+            return
+        }
+
+        let session = await loadProject(at: path, bookmarkURL: url)
+        if let result = session?.openProjectResult, result.mode == "repairRequired",
+           let issue = result.repairIssues.first {
+            // Repair required — do not open a window; tear the session back down.
+            if let pid = result.projectID as String?, !pid.isEmpty {
+                closeProject(projectID: pid)
+            }
+            projectError = ScriviError(code: -1, message: "Repair required: \(issue.title)")
+        } else if let projectID = session?.openProjectResult?.projectID {
+            requestOpenWindow(for: projectID)
+        }
+    }
+
     // Handles a scrivi://open?project=…&item=… deep link (URL scheme or Spotlight
     // continuation). Opens or focuses the target project's window (R3 via the registry),
     // then asks that window's editor to select the target scene. Best-effort and
     // user-facing on error.
     @MainActor
     func handleDeepLink(_ url: URL) async {
+        // ⚠️ A FINDER DOUBLE-CLICK ARRIVES HERE AS A `file://` URL, NOT a
+        // `scrivi://` one — and `ScriviDeepLink.init?` requires
+        // `url.scheme == "scrivi"` (ScriviURL.swift:34). So every
+        // double-clicked `.scrivi` package failed the guard below, reported
+        // "Unrecognized Scrivi link", and returned WITHOUT OPENING ANYTHING.
+        //
+        // ⚠️ THE SYMPTOM HID THE CAUSE: the app was already showing the restored
+        // session, so double-clicking a project looked like it "opened to the
+        // last project" rather than like a failure. Registering the package UTI
+        // is what made this reachable at all — before that, Finder never sent
+        // the app a `.scrivi` at all.
+        //
+        // ✅ File URLs route to the SAME path the Open Project panel uses
+        // (`presentOpenProjectPanel` → `loadProject(at:bookmarkURL:)`), so the
+        // security-scoped grant and the repairRequired handling are identical
+        // rather than a second, divergent open path.
+        if url.isFileURL {
+            await openProjectFile(at: url)
+            return
+        }
+
         guard let link = ScriviDeepLink(url: url) else {
             projectError = ScriviError(code: -1, message: "Unrecognized Scrivi link")
             return

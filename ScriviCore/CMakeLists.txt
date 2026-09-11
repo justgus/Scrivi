@@ -129,4 +129,12 @@ option(SCRIVI_BUILD_TOOLS "Build ScriviCore instrumentation tools" ON)
 if(SCRIVI_BUILD_TOOLS)
     add_executable(scrivi_world_probe tools/scrivi_world_probe.cpp)
     target_link_libraries(scrivi_world_probe PRIVATE ScriviCore)
+
+    # SP-128 / T-0501 ([I-0195]) — builds a deliberately LARGE test project +
+    # world so the live pass has a load that is genuinely slow. Qt-free, so it
+    # runs anywhere the core builds (the macOS workstation included, which is
+    # where a corpus is most conveniently generated before being copied to a
+    # slow mount). ⚠️ NOT a test — it asserts nothing.
+    add_executable(scrivi_make_test_world tools/scrivi_make_test_world.cpp)
+    target_link_libraries(scrivi_make_test_world PRIVATE ScriviCore)
 endif()

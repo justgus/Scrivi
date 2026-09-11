@@ -323,14 +323,26 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
         editor_ = new EditorShell(this);
         connect(editor_, &EditorShell::closeRequested,
                 this, &ScriviWindow::showLanding);
+        // ⚠️ T-0499 ([I-0195]): `load()` is ASYNCHRONOUS and no longer returns
+        // whether it worked -- the answer is not known when it returns. The view
+        // stack switches from HERE instead.
+        //
+        // ⚠️ UniqueConnection because showEditor() can run again for another
+        // project; without it the handler would stack and switch the view once
+        // per past open.
+        connect(editor_, &EditorShell::loadFinished, this,
+                [this](bool ok) {
+                    if (!ok) {
+                        // The editor shows its own inline error; stay on landing.
+                        return;
+                    }
+                    stack_->setCurrentWidget(editor_);
+                    updateMenuState(/*editorActive=*/true);
+                }, Qt::UniqueConnection);
         stack_->addWidget(editor_);   // page 1 — editor
     }
 
-    if (editor_->load(projectPath, appSupportRoot_, title)) {
-        stack_->setCurrentWidget(editor_);
-        updateMenuState(/*editorActive=*/true);
-    }
-    // On failure the editor shows its own inline error and we stay on landing.
+    editor_->load(projectPath, appSupportRoot_, title);
 }
 
 void ScriviWindow::showLanding()

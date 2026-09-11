@@ -46,7 +46,131 @@ governs anything is a second source of truth.
 
 ---
 
-**Next available Sprint ID: SP-128** — ⚠️ **SP-115–SP-123 and SP-125–SP-127 are ALL CLOSED**; ✅ **SP-124** (EP-038) is **COMPLETE 2026-09-10 and awaiting close approval**, and ⚠️ **NO Sprint is currently ACTIVE.**
+## SP-129 — `[Apple]` ⚠️ **The four unbuilt surfaces** — and the direct-filesystem bypass they exposed
+
+**Status:** 🔵 **PLANNING — not activated.**
+**Epic:** [EP-039](../Epics/Epic-backlog.md) — `[Cross]` Project Load Performance · ⚠️ **sprint 1 of N**
+**Codebase:** `[Apple]` — ⚠️ **Swift/SwiftUI only.** ✅ **No ScriviCore change expected** (the endpoints
+all exist and are live on Linux).
+**Date Created:** 2026-09-10
+**Tasks:** **T-0502 – T-0506** (five) · **Next available:** T-0507
+
+### ⚠️ Why this is in the PERFORMANCE Epic, not a parity Epic
+
+⚠️ **User ruling 2026-09-10: integrate this with the performance work.** ✅ **The reason is not
+scheduling — it is that ONE of these four is ALREADY a performance defect of exactly the kind EP-039
+exists to fix.**
+
+⚠️ **`TimelineViewModel.loadImportedTimelines` (`TimelineStripView.swift:395-420`) DOES NOT CALL THE CORE
+AT ALL.** ⚠️ **It reads `objects/imported-timelines/` with `FileManager.contentsOfDirectory`, then
+`Data(contentsOf:)` and `JSONDecoder` per file, IN SWIFT** — ⚠️ **while `scrivi_list_imported_timelines`
+exists, is bound in `ScriviEngine` (`:924`), and is what Linux calls.**
+
+⚠️ **THIS VIOLATES A STANDING ARCHITECTURAL RULE** (CLAUDE.md): *"No backend logic is reimplemented in
+Swift. Swift is responsible for UI only."* ⚠️ **It also runs on the timeline's load path — the SAME path
+measured at `251 s` in [I-0196]** — ✅ **so it is squarely EP-039's business.**
+
+✅ **MEASURED SCOPE: only 3 direct-filesystem call sites exist in `Scrivi/Views` + `Scrivi/App`.**
+⚠️ **Contained, not systemic — which is exactly why it is worth closing NOW, before it spreads.**
+
+### ⚠️ The four endpoints are NOT equivalent — they split two ways
+
+✅ **AUDITED 2026-09-10.** ⚠️ **Two have a REAL, FINISHED Linux surface to mirror; two have NO UI on
+either platform.** ⚠️ **Treating all four the same would re-earn
+`feedback_mirror_the_finished_surface_not_the_placeholder`.**
+
+| endpoint | Linux UI | ⚠️ What Apple needs |
+| -------- | -------- | ------------------ |
+| `listImportedTimelines` | ✅ **YES** — `EditorShell::reloadImportedTimelines` | ⚠️ **Apple has a surface but BYPASSES the core to feed it** |
+| `updateImportedTimelineOffset` | ✅ **YES** — `EpochOffsetDialog` (`EditorShell.cpp:2606`) | ⚠️ **No Apple surface at all** |
+| `setTimelineEpochLabel` | ⚠️ **NO** — bridge method only | ⚠️ **NEITHER platform has a surface** |
+| `promoteObject` | ⚠️ **NO** — bridge method only | ⚠️ **NEITHER platform has a surface** |
+
+⚠️ **THE LAST TWO ARE NOT A PARITY GAP.** ✅ **They are `project_capability_without_surface`: a shipped
+core capability NO platform ever surfaced.** ⚠️ **Building an Apple UI for them means DESIGNING one, not
+mirroring one** — ⚠️ **and a design invented to close a checkbox is how placeholder surfaces get built.**
+
+### Tasks
+
+| ID | Task | Priority | Status |
+| -- | ---- | -------- | ------ |
+| **T-0502** | ⚠️ **`[Apple]` Route `loadImportedTimelines` THROUGH `scrivi_list_imported_timelines`** — ⚠️ **delete the `FileManager`/`JSONDecoder` bypass.** ✅ **The endpoint is already bound at `ScriviEngine:924`** | **High** | 🔵 Not started |
+| **T-0503** | ⚠️ **`[Apple]` Imported-timeline OFFSET editing** — mirror Linux's `EpochOffsetDialog`; calls `updateImportedTimelineOffset` | **Medium** | 🔵 Not started |
+| **T-0504** | ⚠️ **`[Apple]` Epoch-label editing** — `setTimelineEpochLabel`. ⚠️ **DESIGN REQUIRED: no platform has this surface** | **Low** | 🔵 Not started — ⚠️ **needs a design ruling first** |
+| **T-0505** | ⚠️ **`[Apple]` Object promotion** — `promoteObject` (project-scoped → world-scoped). ⚠️ **DESIGN REQUIRED: no platform has this surface**, ⚠️ **and it MOVES a writer's object between packages — the failure modes need ruling BEFORE a button exists** | **Low** | 🔵 Not started — ⚠️ **needs a design ruling first** |
+| **T-0506** | ⚠️ **Audit the remaining 2 direct-filesystem call sites** in `Scrivi/Views` + `Scrivi/App`; ✅ **route through the core or record WHY not** | **Medium** | 🔵 Not started |
+
+### Definition of Done
+
+- [ ] ⚠️ **No Swift code reads project files directly** where a `scrivi_*` endpoint exists — ✅ **or the
+      exception is RECORDED with its reason.**
+- [ ] ⚠️ **T-0504/T-0505 are either BUILT from a ruled design, or DEFERRED with the design question
+      written down** — ⚠️ **NOT built as placeholders to close a checkbox.**
+- [ ] ⚠️ **A LIVE PASS** — ⚠️ **each new surface is USED by a writer, not just compiled**
+      (`feedback_live_pass_finds_what_suites_cannot`).
+- [ ] ⚠️ **`xcodebuild` green for macOS, iOS AND visionOS** — ⚠️ **iOS/visionOS regressed once already
+      because a view was written macOS-first** (2026-09-10).
+
+### ⚠️ Risks
+
+| Risk | ⚠️ Mitigation |
+| ---- | ------------ |
+| ⚠️ **T-0504/T-0505 get built as placeholders** | ✅ **They are explicitly gated on a DESIGN RULING.** ⚠️ **A surface invented to close a checkbox is the defect `feedback_mirror_the_finished_surface_not_the_placeholder` names** |
+| ⚠️ **`promoteObject` moves data between packages** | ⚠️ **It relocates a writer's object.** ✅ **Rule the failure modes (world unavailable mid-promote, duplicate identity) BEFORE any button exists** |
+| ⚠️ **T-0502 changes the timeline load path** | ⚠️ **That path is [I-0196]'s `251 s`.** ✅ **Measure before AND after with `ScriviDiag`, so a "fix" cannot quietly make it slower** |
+
+---
+
+## SP-130 — `[Apple]`+`[ScriviCore]` ⚠️ **Close the ScriviCore bypasses** — [I-0197]
+
+**Status:** 🔵 **PLANNING — not activated.**
+**Epic:** [EP-039](../Epics/Epic-backlog.md) — `[Cross]` Project Load Performance
+**Codebase:** `[Apple]` ⚠️ **+ `[ScriviCore]`** — ⚠️ **Class B needs a NEW ENDPOINT; it is not an app-only sprint**
+**Date Created:** 2026-09-10 · **Issues:** ✅ **[I-0197]**
+**Tasks:** **T-0507 – T-0510** (four) · **Next available:** T-0511
+**Depends on:** ⚠️ **[SP-129]'s T-0502 already closes CLASS A** — ⚠️ **do not do it twice**
+
+### ⚠️ The rule being enforced
+
+⚠️ **CLAUDE.md, non-negotiable:** *"No backend logic is reimplemented in Swift. Swift is responsible for
+UI only."* ⚠️ **Every bypass is a place the CORE'S GUARANTEES DO NOT APPLY** — ✅ no atomic-write
+discipline, no repair path, no external-change detection, no `soft`-mount timeout, ⚠️ **and no
+Linux/Windows equivalent.**
+
+✅ **MEASURED: 35 hits, 11 files, THREE CLASSES.** ⚠️ **They are NOT equally wrong and must not be fixed
+uniformly.**
+
+### Tasks
+
+| ID | Task | Priority | Status |
+| -- | ---- | -------- | ------ |
+| **T-0507** | ⚠️ **CLASS B — `inspector-layout.json`.** ⚠️ **`InspectorLayoutStore` READS AND ATOMICALLY WRITES a file INSIDE the project package** (`:156`, `:173`, `:304`) ⚠️ **and the core has ZERO endpoints for it.** ✅ **Add them; route Swift through them.** ⚠️ **THE CORE OWNS PACKAGE LAYOUT, VALIDATION AND REPAIR — today it cannot even SEE this file** | **High** | 🔵 Not started |
+| **T-0508** | ⚠️ **CLASS C — RULE the `fileExists` asset checks** (`ObjectCard:980,984`, `ObjectImageSection:106,137`, `ExistingAssetPicker:130`). ⚠️ **Decide: legitimate UI presence-check, or a core question?** ⚠️ **On an unreachable volume a bare `fileExists` is the BLOCKING-STAT pattern that cost [I-0193] 102 s** — ✅ **whatever is ruled, it must not block the UI thread** | **Medium** | 🔵 Not started |
+| **T-0509** | ⚠️ **Sweep the remaining hits** in the 11 files; ✅ **each is ROUTED or RECORDED with its reason.** ⚠️ **A recorded exception is acceptable; an unexamined one is not** | **Medium** | 🔵 Not started |
+| **T-0510** | ⚠️ **A REGRESSION GUARD.** ✅ **A test or CI grep that FAILS when Swift touches a project-package path directly**, ⚠️ **with an explicit allow-list carrying T-0509's recorded reasons** — ⚠️ **otherwise this class returns the moment someone is in a hurry** | **Medium** | 🔵 Not started |
+
+### Definition of Done
+
+- [ ] ⚠️ **No Swift code reads or writes a PROJECT-PACKAGE file** where the core owns that file — ✅ **or the
+      exception is recorded WITH ITS REASON.**
+- [ ] ⚠️ **`inspector-layout.json` is CORE-OWNED** — ✅ **readable and repairable by the core, and reachable
+      by Linux/Windows**, ⚠️ **which cannot read it today.**
+- [ ] ⚠️ **The Class C ruling is WRITTEN DOWN**, ⚠️ **not left implicit in whatever the code ends up doing.**
+- [ ] ⚠️ **A guard exists** so the class cannot silently return.
+- [ ] ⚠️ **`xcodebuild` green for macOS, iOS AND visionOS.**
+
+### ⚠️ Risks
+
+| Risk | ⚠️ Mitigation |
+| ---- | ------------ |
+| ⚠️ **Treating all 35 hits as one defect** | ✅ **Three classes, three treatments.** ⚠️ **Most hits are app-support/bookmark paths and are NOT violations at all** |
+| ⚠️ **`inspector-layout.json` is Git-visible project state** | ⚠️ **Changing who writes it touches a file already on disk in real projects.** ✅ **The core must READ the existing format, not require a migration** |
+| ⚠️ **Class C "fixed" by adding a blocking core call** | ⚠️ **That would trade an architectural defect for a FREEZE** ([I-0193]). ✅ **Rule the question first** |
+| ⚠️ **Overlap with [SP-129] T-0502** | ✅ **Class A is SP-129's.** ⚠️ **This sprint must not redo it** |
+
+---
+
+**Next available Sprint ID: SP-131** — ⚠️ **SP-115–SP-123 and SP-125–SP-127 are ALL CLOSED**; ✅ **SP-124** (EP-038) is **COMPLETE 2026-09-10 and awaiting close approval**; 🟡 **SP-128** (EP-038) is **ACTIVE — activated 2026-09-10** and lives in [`Sprint-active.md`](Sprint-active.md). ⚠️ **SP-128 never entered this file**, per the standing rule that a Sprint leaves the backlog at activation and never returns.
 and ⚠️ **the LAST sprint of EP-038.** ⚠️ **SP-122 never appeared in this file** — defined and activated
 in one step on 2026-08-25, like SP-120 and SP-121; ⚠️ **it was EP-034's last.**
 ⚠️ **Zero Sprints in Planning.**

@@ -130,8 +130,19 @@ private struct HistoryCardBody: View {
     /// list is short rather than assuming history was lost.
     private func scopeToggle(shown: Int, total: Int) -> some View {
         HStack(spacing: 6) {
+            // ⚠️ `.checkbox` is macOS-ONLY and does not exist on iOS/visionOS —
+            // it is an AppKit control style, and naming it unconditionally is
+            // what stopped those targets compiling.
+            //
+            // ✅ `.switch` is the platform-correct counterpart, not a fallback:
+            // a checkbox is the macOS idiom for a scope filter and a switch is
+            // the iOS one. Neither platform gets the other's control.
             Toggle("This scene only", isOn: $sceneOnly)
+                #if os(macOS)
                 .toggleStyle(.checkbox)
+                #else
+                .toggleStyle(.switch)
+                #endif
                 .font(.caption)
             Spacer(minLength: 0)
             Text(sceneOnly ? "\(shown) of \(total)" : "\(total)")

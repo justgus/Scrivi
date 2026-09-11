@@ -152,11 +152,21 @@ struct SceneSegment: Identifiable {
         activeSceneID: String? = nil,
         restoredSelection: Int? = nil
     ) {
+        // ⚠️ [I-0196] instrumentation. This loop is ONE `scrivi_open_scene` PER
+        // SCENE, and the tick below reports the RATE, not just the total —
+        // a rising avg is what proves the cost is quadratic, and a total alone
+        // is what made the first (wrong) diagnosis possible.
+        ScriviDiag.reset()
         segments.removeAll()
-        for i in allScenes.indices {
-            loadScene(at: i, insertAt: .end)
+        ScriviDiag.measure("loadAll: scene loop") {
+            for i in allScenes.indices {
+                loadScene(at: i, insertAt: .end)
+                ScriviDiag.tick("scenes loaded", i, of: allScenes.count)
+            }
         }
-        rebuildSceneStartMap()
+        ScriviDiag.measure("loadAll: rebuildSceneStartMap") {
+            rebuildSceneStartMap()
+        }
 
         // Resume at the last-edited scene when the backend supplied one and it still exists.
         NSLog("[SCRIVI-DIAG] loadAll: activeSceneID=\(activeSceneID ?? "nil") restoredSel=\(String(describing: restoredSelection)) segments=\(segments.count)")
@@ -883,12 +893,18 @@ struct SceneSegment: Identifiable {
     private func loadScene(at allIdx: Int, insertAt position: InsertPosition) {
         let info = allScenes[allIdx]
         let text: String
-        if let result = try? engine.openScene(
-            projectRootPath: projectRootPath,
-            appSupportRoot: appSupportRoot,
-            projectID: projectID,
-            sceneID: info.sceneID
-        ) {
+        // ⚠️ Timed SEPARATELY from the Swift work below so the report can say
+        // whether the cost is in the CORE or in the app — the question the
+        // I-0196 stack could not settle on its own.
+        let loaded = ScriviDiag.measure("  engine.openScene (C ABI)") {
+            try? engine.openScene(
+                projectRootPath: projectRootPath,
+                appSupportRoot: appSupportRoot,
+                projectID: projectID,
+                sceneID: info.sceneID
+            )
+        }
+        if let result = loaded {
             text = result.markdown
         } else {
             text = ""
@@ -902,9 +918,10 @@ struct SceneSegment: Identifiable {
             text: text
         )
 
-        let firstLine = text
-            .components(separatedBy: .newlines)
-            .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+        let firstLine = ScriviDiag.measure("  firstLine scan") {
+            text.components(separatedBy: .newlines)
+                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+        }
         if !firstLine.isEmpty {
             liveTitles[info.sceneID] = firstLine
         }

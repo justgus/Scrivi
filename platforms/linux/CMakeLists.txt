@@ -645,6 +645,123 @@ target_link_libraries(scrivi_linux_scene_inspector_smoke
 target_include_directories(scrivi_linux_scene_inspector_smoke PRIVATE src)
 target_compile_features(scrivi_linux_scene_inspector_smoke PRIVATE cxx_std_23)
 
+# --- Dumas world fixture (SP-128, T-0501, [I-0195]) -------------------------
+# NOT a test — it asserts nothing. Builds a LARGE throwaway project + world so
+# the [I-0195] live pass has a load that legitimately takes a long time.
+# ⚠️ An artificial delay would prove only that a bar animates; it would not
+# exercise the real cost (one openScene round trip PER SCENE over the mount).
+# The setting is Alexandre Dumas' France (public domain — Dumas d. 1870).
+# dumas_world_fixture.sh.
+qt_add_executable(scrivi_linux_dumas_world_fixture
+    tests/dumas_world_fixture.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/EditorShell.cpp
+    src/EditorShell.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_dumas_world_fixture
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_dumas_world_fixture PRIVATE src ${CMAKE_SOURCE_DIR}/ScriviCore/tools)
+target_compile_features(scrivi_linux_dumas_world_fixture PRIVATE cxx_std_23)
+
+# --- Open-progress smoke (SP-128, T-0500, [I-0195]) -------------------------
+# Drives a REAL EditorShell::load() and asserts the progress it reports is
+# DETERMINATE: the total arrives with the FIRST report (before the per-scene
+# reads), never changes mid-load, never goes backwards, and ends exactly at the
+# total. ⚠️ That is the arithmetic under SP-128 §2a's ruling -- a count, not an
+# estimate. ⚠️ It does NOT cover responsiveness on a slow mount: Docker has no
+# such mount, and that is T-0501's live pass.
+# open_progress_smoke.sh.
+qt_add_executable(scrivi_linux_open_progress_smoke
+    tests/open_progress_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/EditorShell.cpp
+    src/EditorShell.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_open_progress_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_open_progress_smoke PRIVATE src)
+target_compile_features(scrivi_linux_open_progress_smoke PRIVATE cxx_std_23)
+
 # --- Live-pass fixture builder (SP-125, EP-035 AC9) -------------------------
 # NOT a test — it asserts nothing. Builds a throwaway project whose first scene
 # has objects of several kinds related to it, so the AC9 live click-through runs

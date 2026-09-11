@@ -427,3 +427,4 @@ under the superseded SP-057 despite completing in SP-094.)*
 | **T-0491** | ⚠️ **`[Linux]` Per-stack SORT + card drag-reorder** — Apple's `InspectorSort` (manual/name/recentlyAdded) and card reordering. ⚠️ **User-ruled OUT of SP-126** as a larger surface. ⚠️ **`manual` order depends on the GRAPH's `sortIndex`, not a UI list.** ⚠️ **Drag-reorder must ALSO have a button/menu path** — `project_linux_vnc_input_constraints` is NOT retired by the RDP rig. ✅ **`stackSort` is round-tripped by T-0486 meanwhile**, so nothing is lost by deferring | **Medium** | ⚪ **Unscheduled** |
 
 ---
+

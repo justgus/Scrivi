@@ -356,3 +356,121 @@ TEST_CASE("openScene - returns error for unknown sceneID",
     CHECK_FALSE(result.ok());
     CHECK(result.error().code == scrivi::ErrorCode::invalidArgument);
 }
+
+// ---------------------------------------------------------------------------
+// [I-0196] — openScene must not resolve the WHOLE manuscript
+// ---------------------------------------------------------------------------
+//
+// ⚠️ THE DEFECT WAS ALGORITHMIC, so this test pins the COMPLEXITY, not a
+// duration. A timing assertion would be flaky on a loaded machine and would say
+// nothing about WHY it is fast.
+//
+// `openScene` called `ManuscriptOrderResolver::resolve()`, which reads and
+// JSON-parses the sidecar of EVERY scene, then linear-searched for one. The app
+// calls `openScene` ONCE PER SCENE when opening a project, so a full open was
+// N resolves x N parses. ⚠️ At 1,152 scenes: ~1.33 MILLION read+parse ops and a
+// MEASURED 263 SECONDS of blocking main-thread work — the user's hard freeze.
+//
+// ✅ What must hold: reading ONE scene must not cost work proportional to how
+// many OTHER scenes exist. This adds a second scene and asserts that opening the
+// FIRST one does not read the second one's sidecar at all.
+
+namespace {
+
+// Records every path read, so a test can ask what the core actually touched.
+class ReadRecordingFileSystem final : public scrivi::FileSystem {
+public:
+    explicit ReadRecordingFileSystem(scrivi::FileSystem& inner) : inner_(inner) {}
+
+    std::vector<std::string> reads;
+
+    scrivi::Result<scrivi::Utf8Text> readTextFile(const scrivi::AbsolutePath& p) override {
+        reads.push_back(p);
+        return inner_.readTextFile(p);
+    }
+
+    scrivi::Result<bool> exists(const scrivi::AbsolutePath& p) override { return inner_.exists(p); }
+    scrivi::Result<bool> isDirectory(const scrivi::AbsolutePath& p) override { return inner_.isDirectory(p); }
+    scrivi::Result<std::uint64_t> deviceID(const scrivi::AbsolutePath& p) override { return inner_.deviceID(p); }
+    scrivi::Result<void> createDirectories(const scrivi::AbsolutePath& p) override { return inner_.createDirectories(p); }
+    scrivi::Result<void> atomicWriteTextFile(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.atomicWriteTextFile(p, t); }
+    scrivi::Result<void> createFileExclusive(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.createFileExclusive(p, t); }
+    scrivi::Result<void> appendTextFile(const scrivi::AbsolutePath& p, std::string_view t) override { return inner_.appendTextFile(p, t); }
+    scrivi::Result<std::vector<scrivi::AbsolutePath>> listDirectory(const scrivi::AbsolutePath& p) override { return inner_.listDirectory(p); }
+    scrivi::Result<void> removeFile(const scrivi::AbsolutePath& p) override { return inner_.removeFile(p); }
+    scrivi::Result<void> renamePath(const scrivi::AbsolutePath& a, const scrivi::AbsolutePath& b) override { return inner_.renamePath(a, b); }
+    scrivi::Result<void> copyFileInBlocks(const scrivi::AbsolutePath& a, const scrivi::AbsolutePath& b, std::size_t n, const std::function<scrivi::Result<void>()>& cb) override { return inner_.copyFileInBlocks(a, b, n, cb); }
+
+private:
+    scrivi::FileSystem& inner_;
+};
+
+}  // namespace
+
+TEST_CASE("openScene does NOT read every other scene's sidecar (I-0196)",
+          "[integration][I-0196]")
+{
+    TempDir projectDir;
+    TempDir appSupportDir;
+
+    scrivi::platform::LocalFileSystem        lfs;
+    scrivi::mocks::DeterministicUUIDProvider uuids;
+    scrivi::mocks::FixedClock                clock{"2026-06-01T00:00:00Z"};
+    scrivi::mocks::MockSecureStore           store;
+    scrivi::mocks::MockGitProvider           git;
+
+    auto services = makeServices(lfs, uuids, clock, store, git);
+    scrivi::ScriviCore core{services};
+
+    scrivi::CreateProjectRequest req;
+    req.projectRootPath = projectDir.str();
+    req.appSupportRoot  = appSupportDir.str();
+    req.title           = "Two Scene Novel";
+    req.slug            = "two-scene-novel";
+    req.author          = {
+        scrivi::IdentityID{"identity-001"},
+        scrivi::PersonaID {"persona-001"},
+        "Test Author"
+    };
+    auto created = core.createProject(req);
+    REQUIRE(created.ok());
+
+    const auto scene1ID = created.value().firstSceneID;
+    addSecondScene(projectDir.str(), created.value());
+
+    // Re-run the open through a recording filesystem.
+    ReadRecordingFileSystem recorder{lfs};
+    auto recServices = services;
+    recServices.fileSystem = &recorder;
+    scrivi::ScriviCore recCore{recServices};
+
+    scrivi::OpenSceneRequest openReq;
+    openReq.projectRootPath = projectDir.str();
+    openReq.appSupportRoot  = appSupportDir.str();
+    openReq.projectID       = created.value().project.projectID;
+    openReq.sceneID         = scene1ID;
+
+    auto result = recCore.openScene(openReq);
+    REQUIRE(result.ok());
+    CHECK(result.value().scene.sceneID.value == scene1ID.value);
+
+    // ⚠️ THE POINT. The SECOND scene's metadata must not be PARSED to open the
+    // first. `listScenesByOrder` still reads sidecars to establish authoritative
+    // identity (EP-027 §8.1) — that is the ordering contract and is not the
+    // defect. What must not happen is building a fully-parsed entry for every
+    // scene in the manuscript on every single-scene open.
+    //
+    // Before the fix `resolve()` read the second scene's CONTENT-bearing sidecar
+    // as part of constructing its ResolvedScene; after it, only the requested
+    // scene's is read for that purpose.
+    int secondSceneMetaReads = 0;
+    for (const auto& p : recorder.reads) {
+        if (p.find("002-second-scene.meta.json") != std::string::npos) {
+            ++secondSceneMetaReads;
+        }
+    }
+
+    // ⚠️ At most ONE read — the identity scan that establishes manuscript order.
+    // Two or more means the full-resolve path is back.
+    CHECK(secondSceneMetaReads <= 1);
+}
