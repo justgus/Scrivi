@@ -28,6 +28,8 @@ ShellController::ShellController(ScriviWindow* window, QString appSupportRoot)
 
 void ShellController::openEditor(const QString& projectPath, const QString& title)
 {
+    // ⚠️ [I-0198] TRACE — is the QML click even reaching C++?
+    qInfo("[SCRIVI-TRACE] ShellController::openEditor path=%s", qPrintable(projectPath));
     if (window_ != nullptr) {
         window_->showEditor(projectPath, title);
     }
@@ -332,6 +334,7 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
         // per past open.
         connect(editor_, &EditorShell::loadFinished, this,
                 [this](bool ok) {
+                    qInfo("[SCRIVI-TRACE] loadFinished ok=%d", (int)ok);
                     if (!ok) {
                         // The editor shows its own inline error; stay on landing.
                         return;
@@ -342,6 +345,7 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
         stack_->addWidget(editor_);   // page 1 — editor
     }
 
+    qInfo("[SCRIVI-TRACE] showEditor -> calling load()");
     editor_->load(projectPath, appSupportRoot_, title);
 }
 
