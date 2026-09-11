@@ -354,10 +354,6 @@ void EditorShell::load(const QString& projectPath,
     errorLabel_->hide();
     errorLabel_->clear();
 
-    // ⚠️ [I-0198] TRACE. The fix for the queued connections did NOT restore the
-    // open path (rig, build 39). Reading the code twice produced two wrong
-    // guesses, so the app now SAYS where it stops.
-    qInfo("[SCRIVI-TRACE] load() ENTER path=%s", qPrintable(projectPath));
 
     if (auto* t = findChild<QLabel*>(QStringLiteral("editorTitle"))) {
         t->setText(title.isEmpty() ? tr("Project") : title);
@@ -366,7 +362,6 @@ void EditorShell::load(const QString& projectPath,
     // Bootstrap identity for this bridge (idempotent; resolves the same identity as
     // the landing bridge because it points at the same appSupportRoot).
     bridge_->bootstrap(QStringLiteral("Scrivi"), appSupportRoot);
-    qInfo("[SCRIVI-TRACE] bootstrap done, ready=%d", (int)bridge_->ready());
     if (!bridge_->ready()) {
         errorLabel_->setText(tr("Could not resolve identity to open the project."));
         errorLabel_->show();
@@ -412,16 +407,12 @@ void EditorShell::load(const QString& projectPath,
     // the wrong thread.
     auto* self = this;
 
-    qInfo("[SCRIVI-TRACE] dispatching AsyncCall::run");
     AsyncCall::run<LoadPayload>(
         this,
         [bridge, path, appSup, self]() -> LoadPayload {
             LoadPayload out;
-            qInfo("[SCRIVI-TRACE] WORKER entered");
 
             const QVariantMap opened = bridge->openProject(path, appSup);
-            qInfo("[SCRIVI-TRACE] WORKER openProject returned, mode=%s",
-                  qPrintable(opened.value(QStringLiteral("mode")).toString()));
             if (opened.value(QStringLiteral("mode")).toString()
                 != QStringLiteral("ready")) {
                 // repairRequired / cannotOpen were already handled by the landing
@@ -487,11 +478,9 @@ void EditorShell::load(const QString& projectPath,
             }
 
             out.ok = true;
-            qInfo("[SCRIVI-TRACE] WORKER done, scenes=%lld", (long long)out.inputs.size());
             return out;
         },
         [this, projectPath, appSupportRoot](const LoadPayload& payload) {
-            qInfo("[SCRIVI-TRACE] onDone ok=%d", (int)payload.ok);
             hideLoadProgress();
             if (!payload.ok) {
                 if (!errorLabel_->isVisible()) {
@@ -505,7 +494,6 @@ void EditorShell::load(const QString& projectPath,
             emit loadFinished(true);
         },
         [this]() {
-            qInfo("[SCRIVI-TRACE] onTIMEOUT fired");
             hideLoadProgress();
             // ⚠️ HONEST, and NOT a claim about the data (I-0115). Reaching here
             // means the read exceeded even the generous budget below -- the

@@ -28,8 +28,6 @@ ShellController::ShellController(ScriviWindow* window, QString appSupportRoot)
 
 void ShellController::openEditor(const QString& projectPath, const QString& title)
 {
-    // ⚠️ [I-0198] TRACE — is the QML click even reaching C++?
-    qInfo("[SCRIVI-TRACE] ShellController::openEditor path=%s", qPrintable(projectPath));
     if (window_ != nullptr) {
         window_->showEditor(projectPath, title);
     }
@@ -345,18 +343,36 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
         // `if (editor_ == nullptr)`, which runs exactly once per window.
         connect(editor_, &EditorShell::loadFinished, this,
                 [this](bool ok) {
-                    qInfo("[SCRIVI-TRACE] loadFinished ok=%d", (int)ok);
                     if (!ok) {
-                        // The editor shows its own inline error; stay on landing.
+                        // ⚠️ [I-0199]: the editor is ALREADY showing (we switch
+                        // before loading, so the progress bar is visible), so a
+                        // failure must actively RETURN to landing rather than
+                        // "stay" there. ⚠️ The editor surfaces its own inline
+                        // error before this runs.
+                        showLanding();
                         return;
                     }
-                    stack_->setCurrentWidget(editor_);
+                    // Already on the editor page; nothing to switch.
                     updateMenuState(/*editorActive=*/true);
                 });
         stack_->addWidget(editor_);   // page 1 — editor
     }
 
-    qInfo("[SCRIVI-TRACE] showEditor -> calling load()");
+    // ⚠️ [I-0199] SWITCH TO THE EDITOR **BEFORE** LOADING, NOT AFTER.
+    //
+    // ⚠️ The progress bar lives INSIDE EditorShell. Switching the stack only in
+    // the `loadFinished` handler meant the editor page was HIDDEN for the entire
+    // load -- ✅ so the bar dutifully showed itself on a page nobody could see,
+    // and was hidden again the instant the page finally appeared.
+    // ⚠️ It could never be seen AT ANY PROJECT SIZE.
+    //
+    // ✅ Showing the editor first is also what the writer expects: the window
+    // they asked for appears immediately, with an honest "opening…" instead of a
+    // dead landing page. ⚠️ On FAILURE the handler returns to landing (below),
+    // so a failed open still lands somewhere sensible.
+    stack_->setCurrentWidget(editor_);
+    updateMenuState(/*editorActive=*/true);
+
     editor_->load(projectPath, appSupportRoot_, title);
 }
 
