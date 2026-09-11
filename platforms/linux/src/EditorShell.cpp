@@ -264,7 +264,22 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
         if (progressRow_ != nullptr) { progressRow_->show(); }
     });
 
-    connect(this, &EditorShell::loadProgress, this, &EditorShell::onLoadProgress);
+    // ⚠️ Qt::QueuedConnection is LOAD-BEARING, not a style choice.
+    //
+    // ⚠️ `loadProgress` is emitted FROM THE WORKER THREAD (T-0499). Sender and
+    // receiver are both `this`, so Qt's AUTO connection resolves to a DIRECT
+    // call -- ✅ which would run `onLoadProgress` ON THE WORKER THREAD and touch
+    // `progressBar_`/`progressLabel_` from off the UI thread.
+    //
+    // ⚠️ THAT IS EXACTLY WHAT SHIPPED, and it is why the progress bar never
+    // appeared and why opening a project became unreliable (reported 2026-09-11:
+    // a recent-projects click only reordered the list; the editor never showed).
+    // ⚠️ `AsyncCall.hpp`'s own header states the rule this violated: the callable
+    // may touch ONLY the C ABI and its own locals -- never a widget.
+    //
+    // ✅ QUEUED forces delivery on the receiver's thread, which is the UI thread.
+    connect(this, &EditorShell::loadProgress, this, &EditorShell::onLoadProgress,
+            Qt::QueuedConnection);
 
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
@@ -316,11 +331,20 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // recoverable. ⚠️ Everything else is passed through UNCHANGED: inventing
     // friendly text for errors we have not seen would hide real faults, which is
     // worse than an ugly message.
+    // ⚠️ QUEUED for the same reason as `loadProgress` above, and it is the SECOND
+    // half of the same defect.
+    //
+    // ⚠️ `ScriviBridge::openProject`/`openScene` EMIT `errorOccurred` on failure
+    // (`ScriviBridge.cpp:126`), and T-0499 moved those calls ONTO A WORKER
+    // THREAD. Sender and receiver are both UI-thread objects, so AUTO resolves
+    // to DIRECT -- ⚠️ this lambda would then call `errorLabel_->setText()` and
+    // `->show()` FROM THE WORKER, which is undefined behaviour in Qt and can
+    // wedge the open path outright.
     connect(bridge_, &ScriviBridge::errorOccurred, this,
             [this](int code, const QString& message) {
                 errorLabel_->setText(writerFacingError(code, message));
                 errorLabel_->show();
-            });
+            }, Qt::QueuedConnection);
 }
 
 void EditorShell::load(const QString& projectPath,
