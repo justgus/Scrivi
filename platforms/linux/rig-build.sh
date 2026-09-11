@@ -171,5 +171,22 @@ if [ "$DO_RUN" -eq 1 ]; then
     echo "    log: ${RIG}:/tmp/scrivi.log"
 fi
 
+# --- 9. THE LAST WORD -------------------------------------------------------
+#
+# ⚠️ `scrivi_linux --version` RUNS AGAIN HERE, LIVE, as the final act.
+#
+# ⚠️ NOT a cached echo of the string captured at step 6. Steps 7 and 8 can run
+# the test suite and LAUNCH THE APP in between, and the only claim worth making
+# at the end of a deploy is one measured AFTER everything else finished.
+#
+# ✅ This is the line to copy into a Task, an Issue, or a live-pass note: it is
+# the answer to "which build did you actually test?" -- the question that has
+# gone wrong here more than once (feedback_confirm_the_build_under_test).
 echo
-echo "✅ Done. The rig is on ${REMOTE_SHA:0:8} with ${VERSION_LINE}"
+echo "=============================================================="
+echo " RUNNING ON THE RIG"
+echo "=============================================================="
+echo "  commit : ${REMOTE_SHA}"
+printf '  '
+$SSH "$RIG" "~/${RIG_PATH}/build-native/platforms/linux/scrivi_linux --version"
+echo "=============================================================="
