@@ -1360,45 +1360,71 @@ struct ManuscriptTextView: NSViewRepresentable {
         // not immediately after the divider. recomputeBoundaries must skip heading runs
         // the same way rebuildStorage does, otherwise boundaries point into heading text
         // and textDidChange extracts heading characters into seg.text.
+        // Recomputes each scene's range in the text storage, from the storage itself.
+        //
+        // ⚠️ **THIS WAS THE INTERACTION FREEZE.** [I-0200] / EP-039.
+        //
+        // ⚠️ The previous implementation walked the storage ONE CHARACTER AT A TIME —
+        // `storage.attribute(.attachment, at: pos, …)` with `pos += 1` in the common
+        // branch. ⚠️ On the measured 1,153-scene manuscript that is **1,823,706 attribute
+        // lookups PER CALL**, and it is called from NINE sites including the navigator
+        // click path and the scroll handler.
+        // ✅ MEASURED SYMPTOM: AppKit logged
+        // `NSTableView.doubleTapGestureRecognizer has been in possible phase for
+        // 48.06 seconds` — the table blocked while this ran on the main thread.
+        //
+        // ✅ NOW: `enumerateAttribute` jumps between attribute RUNS, so the cost is
+        // proportional to the number of SCENES (~1,153 dividers), not to the number of
+        // CHARACTERS. ⚠️ Same output, same authority — the storage is still the single
+        // source of truth for boundaries (I-0131), this only stops re-deriving it the
+        // slowest possible way.
         func recomputeBoundaries(_ tv: NSTextView) {
             guard let storage = tv.textStorage else { return }
             let fullLen = storage.length
             guard fullLen > 0 else { return }
+            let whole = NSRange(location: 0, length: fullLen)
 
-            // Skip forward past any scriviHeading-attributed characters at `pos`.
+            // Attachment (scene divider) positions, found by RUN, not by character.
+            var dividers: [Int] = []
+            storage.enumerateAttribute(.attachment, in: whole, options: []) { value, range, _ in
+                if value != nil { dividers.append(range.location) }
+            }
+
+            // Ranges carrying chapter-heading text, so a segment can start AFTER one.
+            // ⚠️ `skipHeading`'s job, expressed once up front instead of per position.
+            var headings: [NSRange] = []
+            storage.enumerateAttribute(.scriviHeading, in: whole, options: []) { value, range, _ in
+                if value != nil { headings.append(range) }
+            }
+
+            // First position at or after `pos` that is not inside a heading run.
             func skipHeading(from pos: Int) -> Int {
                 var p = pos
-                while p < fullLen {
-                    var effectiveRange = NSRange(location: p, length: 1)
-                    let val = storage.attribute(.scriviHeading, at: p, effectiveRange: &effectiveRange)
-                    if val != nil {
-                        p = effectiveRange.location + effectiveRange.length
-                    } else {
-                        break
+                var moved = true
+                while moved {
+                    moved = false
+                    for h in headings where h.location <= p && p < h.location + h.length {
+                        p = h.location + h.length
+                        moved = true
                     }
                 }
-                return p
+                return min(p, fullLen)
             }
 
-            // First segment starts at position 0, after any opening heading.
-            var segStart = skipHeading(from: 0)
             var newBoundaries: [NSRange] = []
-            var pos = segStart
+            newBoundaries.reserveCapacity(dividers.count + 1)
+            var segStart = skipHeading(from: 0)
 
-            while pos < fullLen {
-                if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil {
-                    // Found a divider — close the current segment boundary.
-                    newBoundaries.append(NSRange(location: segStart, length: pos - segStart))
-                    pos += 2  // skip attachment + \n
-                    // Skip any heading text that follows the divider.
-                    segStart = skipHeading(from: pos)
-                    pos = segStart
-                } else {
-                    pos += 1
-                }
+            for divider in dividers {
+                // ⚠️ A divider inside the leading heading run cannot close a segment.
+                guard divider >= segStart else { continue }
+                newBoundaries.append(NSRange(location: segStart, length: divider - segStart))
+                // Skip the attachment + its trailing newline, then any heading after it.
+                segStart = skipHeading(from: divider + 2)
             }
             // Last (or only) segment runs to end of storage.
-            newBoundaries.append(NSRange(location: segStart, length: fullLen - segStart))
+            newBoundaries.append(NSRange(location: segStart,
+                                         length: max(0, fullLen - segStart)))
 
             sceneBoundaries = newBoundaries
         }

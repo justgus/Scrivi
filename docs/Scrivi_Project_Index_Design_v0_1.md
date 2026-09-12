@@ -1,6 +1,7 @@
 # Scrivi — In-Memory Project Index (design v0.1)
 
-**Status:** 🔵 **DRAFT — for user ruling.** Nothing is implemented.
+**Status:** ✅ **RULED — §5 (invalidation) is settled and [EP-039] AC5 is satisfied.** ⚠️ **Nothing is
+implemented.** ✅ **SP-131 is UNGATED.**
 **Date:** 2026-09-10
 **Origin:** [I-0196] root-cause analysis. ⚠️ **Every figure here is MEASURED, not estimated.**
 
@@ -125,26 +126,124 @@ or both is an OPEN QUESTION, and guessing is what cost this investigation its fi
 
 ---
 
-## 5. ⚠️ THE HARD PART — invalidation. This is where such designs fail.
+## 5. ✅ INVALIDATION — RULED. This is where such designs fail.
 
 ⚠️ **An index that goes stale silently is WORSE than no index**, because every layer above
 it correctly trusts a correct-looking answer — ✅ **which is precisely how [I-0183] destroyed
 10 of 12 relationships** (a world resolved `available` while its index was unreadable).
 
-⚠️ **Open questions that must be RULED, not assumed:**
+⚠️ **This section GATES the index sprint.** ✅ **[EP-039] AC5.**
 
-1. ⚠️ **What invalidates?** Scene create/delete/rename/reorder, chapter ditto, fragment
-   cut/paste — ✅ **all go through the core and can update the index.** ⚠️ **But an edit made
-   OUTSIDE Scrivi (git checkout, Finder rename, a sync client) does not.**
-2. ⚠️ **How is external change noticed?** mtime per file? A directory-level generation
-   counter? ⚠️ **Doc 2's repair matrix already owns this question for open — the index must
-   NOT invent a second answer.**
-3. ⚠️ **What is the scope?** Per open project (a session), or per process? ⚠️ **Multi-window
-   opens the same project ONCE (R3, EP-018), so per-project is natural.**
-4. ⚠️ **Memory.** 1,153 scenes × identity+paths ≈ tens of KB — ✅ **trivial.** ⚠️ **The TEXT
-   prong is NOT trivial and is why §3.4 is deferred.**
+### 5.0 ✅ Two facts that narrow every question below
 
----
+⚠️ **Established by reading the code, not assumed:**
+
+1. ✅ **SCRIVI HAS NO FILESYSTEM WATCHING OF ANY KIND.** ⚠️ **Zero hits for `FSEvents`, `inotify`,
+   `kqueue`, `DispatchSource` or `last_write_time` across `ScriviCore`, `Scrivi/` and
+   `platforms/linux/`.** ⚠️ **So *"the repair matrix already owns external change"* is true AT OPEN
+   and UNDEFINED MID-SESSION** — ✅ **there is no first answer for the index to defer to.**
+2. ✅ **SCRIVI'S EXISTING ANSWER TO EXTERNAL CHANGE IS CONTENT-COMPARE, ON USE — NOT WATCHING.**
+   ⚠️ **`scrivi_history_validate_scene` takes the CURRENT DISK TEXT and compares it against the
+   history head, returning `externalChange: true` on mismatch** (`scrivi_c_api.cpp:2745`).
+   ✅ **The app already calls it at open** (`HistoryCapture.validateScenes`).
+
+✅ **PRIOR ART — `ObjectIndex`, and it is CLOSER than §2 credits.** ⚠️ **Its header already states
+the whole pattern:** *"A DERIVED CACHE, NEVER AUTHORITATIVE… When the index is missing, corrupt, or
+disagrees with disk, it is rebuilt by scanning… A hand-edited file or a resolved merge conflict costs
+one rebuild, never data."* ✅ **And it carries [I-0183]'s lesson IN THE TYPE** — the `indeterminate`
+out-param that separates ⚠️ ***"I could not read this"*** from ⚠️ ***"this is empty."***
+
+⚠️ **ONE DIFFERENCE, AND IT REDUCES THE RISK:** ⚠️ **`ObjectIndex` is PERSISTED (`objects/index.json`)**
+— ✅ **so it can be hand-edited, merge-conflicted, or left stale between runs.** ✅ **The three indexes
+here are IN-MEMORY and built at open**, ⚠️ **so they cannot be edited, cannot survive a crash, and die
+with the session.** ✅ **Their staleness exposure is STRICTLY SMALLER than a pattern already shipped.**
+
+### 5.1 ✅ RULED — what invalidates (the WRITE path)
+
+✅ **Mutations that go THROUGH THE CORE update the index at the point of write** — scene
+create/delete/rename/reorder, chapter ditto, fragment cut/paste. ⚠️ **Ordering is already ruled by §4
+and is not re-opened: WRITE TO DISK FIRST, then update the index FROM WHAT WAS WRITTEN.**
+
+✅ **RULING — ANY DOUBT ⇒ DROP THE WHOLE INDEX; the next query rebuilds it from disk.**
+
+⚠️ **"Any doubt" means: the index update failed, the write partially succeeded, or ANY inconsistency
+is observed.** ⚠️ **It is NOT per-entry.**
+
+| ✅ Why whole-index, not per-entry | |
+| - | - |
+| ⚠️ **Per-entry requires reasoning about which entries a partial write COULD have touched** | ✅ **Getting that wrong IS the silent-staleness failure mode this section exists to prevent** |
+| ✅ **A rebuild is ONE TRAVERSAL** | ✅ **Exactly the cost already paid once at open — and after AC1–AC4 that cost is small** |
+| ✅ **It is impossible to HALF-TRUST** | ⚠️ **A half-valid index is the state no caller can reason about** |
+| ✅ **Matches `ObjectIndex`** | *"costs one rebuild, never data"* |
+
+⚠️ **REJECTED: fail the write if the index cannot be updated.** ⚠️ **That lets a DERIVED ACCELERATOR
+block a real user edit**, ✅ **which inverts the disposability rule in §4 and would make an
+optimisation into a data-entry hazard.**
+
+### 5.2 ✅ RULED — external change (the READ path)
+
+✅ **RULING — BOUNDED STALENESS + VALIDATE-ON-USE. NO FILESYSTEM WATCHING.**
+
+⚠️ **THE INDEX IS AUTHORITATIVE FOR *LOCATION ONLY* — never for CONTENT and never for EXISTENCE.**
+
+✅ **The contract, in three lines:**
+
+1. ✅ **An index hit yields a PATH — a hypothesis about where something lives, nothing more.**
+2. ⚠️ **Any core call that USES that hit MUST still open the file.** ✅ **The open is the validation.**
+3. ⚠️ **A MISS, or an open that fails, FALLS BACK TO A REAL TRAVERSAL and rebuilds the index** —
+   ⚠️ **NEVER to a negative claim.** ✅ ***Absence is never deletion*** ([I-0183], [I-0181]).
+
+✅ **THE STALENESS WINDOW IS THEREFORE BOUNDED BY "UNTIL YOU ACTUALLY TOUCH IT"** — ⚠️ **and touching
+it is what corrects it.** ✅ **A stale path cannot produce a WRONG ANSWER; it can only produce an
+EXTRA TRAVERSAL.** ⚠️ **That is the whole point of ruling it this way.**
+
+⚠️ **REJECTED: filesystem watching (FSEvents / inotify).** ⚠️ **A genuinely new cross-platform
+capability, with its own failure modes — event coalescing, missed events, watch limits** — ⚠️ **and it
+is WEAKEST ON NETWORK MOUNTS, which is exactly where Scrivi already hurts** ([I-0193], [I-0195]).
+✅ **It would add risk to buy accuracy the validate-on-use rule already provides.**
+
+⚠️ **REJECTED: a directory generation counter.** ⚠️ **A directory's mtime does NOT change when a
+FILE'S CONTENTS change** — ✅ **so it catches renames/adds/deletes and MISSES EDITS**, ⚠️ **which is
+the change a writer is most likely to make outside Scrivi.** ⚠️ **A check that silently misses the
+common case is worse than no check, because it invites trust.**
+
+### 5.3 ✅ RULED — scope
+
+✅ **PER OPEN PROJECT.** ⚠️ **Lifetime is the open session; the index dies with it.**
+
+⚠️ **Not per-process, and this is forced, not chosen:** ⚠️ **a `sceneID` is unique WITHIN a package**,
+✅ **so a process-wide index would need every key re-qualified by project root.** ✅ **EP-018 R3 already
+opens a given project ONCE regardless of window count**, ⚠️ **so per-project is also what the app's
+own lifetime model already provides.** ✅ **EP-027's filesystem-authoritative ruling is per-package.**
+
+### 5.4 ✅ RULED — memory
+
+✅ **UNBOUNDED FOR THE JSON PRONG, because it is provably small.**
+
+| index | 1,153 scenes |
+| ----- | ------------ |
+| `SceneLocationIndex` | ⚠️ identity + paths ≈ **tens of KB** |
+| `SceneStoryTimeIndex` | ⚠️ a small fixed struct per scene |
+| `ManuscriptOrderIndex` | ⚠️ ordinals + titles + chapter membership |
+| **total** | ✅ **well under 1 MB** |
+
+⚠️ **NO EVICTION, NO LRU, NO CAP for these three.** ✅ **A cache policy on a sub-megabyte structure
+would add a staleness mode to buy nothing.**
+
+⚠️ **MEMORY BOUNDS APPLY TO THE BLOB PRONG ONLY**, ✅ **where [EP-039] AC7's rule already governs:
+LOCATION AND SHAPE ONLY, never the bytes; bytes on demand; LRU bounded by MEMORY, not by count.**
+
+### 5.5 ✅ The ACs this section yields
+
+⚠️ **These are DERIVED from 5.1–5.4 and are added to [EP-039].** ✅ **Each is testable.**
+
+| # | Criterion |
+| - | --------- |
+| **AC5a** | ✅ **An index hit that points at a MISSING or UNREADABLE file causes a REAL TRAVERSAL and a rebuild** — ⚠️ **never an empty or negative result.** ✅ **Test: build the index, delete a scene file behind the core's back, query it.** |
+| **AC5b** | ✅ **A failed index update DROPS THE WHOLE INDEX**; ⚠️ **the next query rebuilds and returns the CORRECT answer.** ✅ **Test: inject an index-update failure after a successful disk write.** |
+| **AC5c** | ⚠️ **An index update NEVER fails a write.** ✅ **Test: inject an index-update failure; the write still reports `ok`.** |
+| **AC5d** | ✅ **External mid-session change is CORRECTED ON USE.** ✅ **Test: rename a scene file externally, then query — the answer is right, having paid one traversal.** |
+| **AC5e** | ✅ **Two projects open at once do not share or collide in index state.** ✅ **Test: same `sceneID` value present in two packages.** |
 
 ## 6. ⚠️ What this does NOT fix — stated so it is not assumed
 

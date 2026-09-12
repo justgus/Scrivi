@@ -28,6 +28,7 @@ target_sources(ScriviCore
         src/project_package/ProjectValidator.cpp
         src/project_package/ProjectOpener.cpp
         src/manuscript/ManuscriptOrderResolver.cpp
+        src/manuscript/ProjectIndex.cpp
         src/manuscript/ChapterIndex.cpp
         src/manuscript/SceneIndex.cpp
         src/manuscript/ChapterCreator.cpp

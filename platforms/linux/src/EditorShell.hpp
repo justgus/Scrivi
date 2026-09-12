@@ -69,6 +69,16 @@ public:
     // process). Safe to call with nothing dirty (no-op).
     void saveDirtyScenes();
 
+    // Releases the core's in-memory state for the currently-open project (EP-039
+    // T-0512). Call when the project is CLOSED (the landing page returns), not on
+    // every scene change.
+    //
+    // ⚠️ Without this the core LEAKS ONE INDEX PER PROJECT OPENED: closing a project
+    // and opening another leaves the first one's index resident for the life of the
+    // process. ✅ A no-op when nothing is open, and never writes to the project —
+    // everything released is derived and rebuildable from disk.
+    void releaseProject();
+
     // --- SP-077 menu-bar triggers (T-0310/T-0311) -------------------------
     //
     // Public entry points so the ScriviWindow menu bar can invoke the same operations

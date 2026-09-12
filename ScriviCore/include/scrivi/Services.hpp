@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <optional>
 #include <cstdint>
 #include <string_view>
 #include <vector>
@@ -164,6 +165,52 @@ public:
     virtual Result<GitStatus> status(const AbsolutePath& rootPath)   = 0;
 };
 
+// EP-039 AC1/AC5 (SP-131) — the index seam.
+//
+// ⚠️ WHY AN INTERFACE RATHER THAN AN INDEX MEMBER ON ScriviCore. The core is
+// STATELESS by design and that is not being changed: EP-027 made the filesystem
+// authoritative, and a core that owns cached project state reintroduces exactly
+// the invalidation questions that ruling settled. ✅ Instead the SESSION-OWNING
+// LAYER (the C ABI, which keys a ProjectIndex by project root) supplies a
+// locator, and the core consults it as a HINT.
+//
+// ⚠️ THIS IS AUTHORITATIVE FOR *LOCATION ONLY* — never for CONTENT and never for
+// EXISTENCE. A hit is a HYPOTHESIS about where a scene lives:
+//
+//   1. A hit yields a path; ⚠️ THE CALLER STILL OPENS THE FILE.
+//   2. ✅ The open IS the validation.
+//   3. ⚠️ A miss, or an open that fails, falls back to a REAL TRAVERSAL —
+//      ⚠️ NEVER to a negative claim. *Absence is never deletion* (I-0183
+//      destroyed 10 of 12 relationships by reading an unreadable index as an
+//      empty one).
+//
+// ✅ THE CONSEQUENCE: a stale hint cannot produce a WRONG ANSWER, only an EXTRA
+// TRAVERSAL. That is what makes this safe with no filesystem watching — of which
+// Scrivi has none, on any platform.
+//
+// ⚠️ ALWAYS OPTIONAL. `CoreServices::sceneLocator` is null for every direct core
+// user (tests, tools, any caller that has not opted in), and every consulting
+// site must behave identically when it is null. ✅ A null locator means "traverse
+// as before", never "not found".
+class SceneLocator {
+public:
+    virtual ~SceneLocator() = default;
+
+    // Relative metadata path for `sceneID` within `projectRoot`, or std::nullopt.
+    // ⚠️ std::nullopt means "I have no hint" — it does NOT mean the scene is absent.
+    virtual std::optional<RelativePath> locateSceneMeta(const AbsolutePath& projectRoot,
+                                                        const SceneID&      sceneID) = 0;
+
+    // Both of a scene's paths, for callers that need the CONTENT file too
+    // (`openScene`). Same contract as locateSceneMeta in every respect.
+    struct SceneHint {
+        RelativePath metadataPath;
+        RelativePath contentPath;
+    };
+    virtual std::optional<SceneHint> locateScene(const AbsolutePath& projectRoot,
+                                                 const SceneID&      sceneID) = 0;
+};
+
 enum class LogLevel : std::uint8_t { debug, info, warning, error };
 
 class Logger {
@@ -179,6 +226,9 @@ struct CoreServices {
     UUIDProvider* uuidProvider = nullptr;
     GitProvider*  gitProvider  = nullptr;
     Logger*       logger       = nullptr;
+    // ⚠️ OPTIONAL ACCELERATOR, null by default (EP-039 AC1). See SceneLocator:
+    // a hint about WHERE a scene lives, never about whether it exists.
+    SceneLocator* sceneLocator = nullptr;
 };
 
 } // namespace scrivi

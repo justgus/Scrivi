@@ -9,6 +9,20 @@ import CoreSpotlight
 // arriving after the first window interaction). `application(_:open:)` receives every
 // scrivi:// URL at the process level regardless of window state (EP-018 / T-0194).
 #if os(macOS)
+// ⚠️ **DO NOT ADD LAUNCH ARGUMENTS TO THIS APP. USE AN ENVIRONMENT VARIABLE.** [I-0201]
+//
+// ⚠️ Scrivi declares `CFBundleDocumentTypes` in Info.plist, so AppKit treats a
+// non-option launch argument as a DOCUMENT TO OPEN: it resolves the argument as a file
+// path, finds nothing, and ABANDONS THE LAUNCH before the app initialises.
+//
+// ⚠️ THE FAILURE IS TOTAL AND SILENT — no window, no console output, no crash report,
+// and NO THREADS in the Debug Navigator (memory flat, CPU idle). ✅ It looks exactly
+// like an app-code hang, which is why it cost a full working-tree bisect to find.
+//
+// ✅ Environment variables never reach that path and work normally — see
+// `SCRIVI_DIAG_TIMING` and `SCRIVI_NO_PROJECT_LOAD` (AppEnvironment).
+// ⚠️ Adding a `CommandLine.arguments` check does NOT help: the app never runs to read it.
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // Set by ScriviApp at launch; routes incoming URLs to the environment. Main-actor
     // isolated — both the setter (in a MainActor task) and application(_:open:) (called

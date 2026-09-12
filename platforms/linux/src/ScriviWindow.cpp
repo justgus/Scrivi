@@ -378,6 +378,13 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
 
 void ScriviWindow::showLanding()
 {
+    // ⚠️ This IS "Close Project" on Linux — the editor page is left behind and a
+    // DIFFERENT project may be opened next, in the same process.
+    // ✅ EP-039 T-0512: release the core's in-memory index for the outgoing project,
+    // or every project opened in a session stays resident. No-op when none is open.
+    if (editor_ != nullptr) {
+        editor_->releaseProject();
+    }
     stack_->setCurrentWidget(landing_);
     updateMenuState(/*editorActive=*/false);
 }

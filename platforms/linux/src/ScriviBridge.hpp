@@ -90,6 +90,16 @@ public:
     Q_INVOKABLE QVariantMap openProject(const QString& projectRootPath,
                                         const QString& appSupportRoot);
 
+    // Releases the core's in-memory state for a project (EP-039 T-0512) — today the
+    // ProjectIndex that accelerates scene lookup.
+    //
+    // ⚠️ WITHOUT THIS THE CORE LEAKS ONE INDEX PER PROJECT OPENED: nothing else
+    // removes a registry entry, and this app can close a project and open another in
+    // the same process ("Close Project" → landing → Open).
+    // ✅ Closing a project the core never indexed is a NO-OP, not an error, so this is
+    // safe to call unconditionally on a teardown path. Never writes to the project.
+    Q_INVOKABLE void closeProject(const QString& projectRootPath);
+
     // Loads a single scene's body (SP-061 / T-0235). Calls scrivi_open_scene and
     // returns its ok "result": {scene{sceneID,chapterID,title,slug,metadataPath,
     // contentPath}, markdown}. Used by the editor shell to fetch the bodies of the

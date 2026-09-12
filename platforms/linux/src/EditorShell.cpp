@@ -1315,6 +1315,15 @@ bool EditorShell::saveScene(int segmentIndex)
     return !r.isEmpty() && r.value(QStringLiteral("saved")).toBool();
 }
 
+void EditorShell::releaseProject()
+{
+    // EP-039 T-0512. ⚠️ Order matters: the core is keyed by the project ROOT, so this
+    // must run while `projectPath_` still holds it.
+    if (bridge_ != nullptr && !projectPath_.isEmpty()) {
+        bridge_->closeProject(projectPath_);
+    }
+}
+
 void EditorShell::saveDirtyScenes()
 {
     if (dirtyScenes_.isEmpty()) {

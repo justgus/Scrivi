@@ -40,6 +40,37 @@ const char* scrivi_open_project(
     const char* appSupportRoot,
     const char* identityID);
 
+/* Releases the in-memory state a project accumulated while open -- today the
+ * ProjectIndex (EP-039 AC1-AC3), which is built lazily on first use.
+ *
+ * WARNING: an app that opens projects and never calls this LEAKS ONE INDEX PER
+ * PROJECT OPENED, for the life of the process. Call it when a project window
+ * closes, alongside scrivi_history_close.
+ *
+ * Closing a project that was never opened -- or was already closed -- is a
+ * NO-OP, not an error: `{"ok":true,"result":{"closed":false}}`. This mirrors
+ * scrivi_history_close, so a caller can close unconditionally on a teardown
+ * path without first asking whether there is anything to close.
+ *
+ * This does NOT write to the project. Everything it drops is derived and
+ * rebuildable from disk (EP-027: the filesystem is authoritative). */
+const char* scrivi_close_project(const char* projectRootPath);
+
+/* Every scene whose story time is EXPLICITLY SET, in manuscript order.
+ *
+ * SPARSE: scenes sitting on the derived default chain are OMITTED -- their
+ * offsets follow from FR-022m and cost nothing to leave out. "Set" means
+ * offsetSource != "default", or durationSource != "default", or a non-empty
+ * bandID.
+ *
+ * WARNING: AN EMPTY RESULT IS THE COMMON CASE, NOT AN ERROR. On a project where
+ * nobody has pinned a scene in time, this returns zero records -- and the
+ * envelope OMITS the "storyTimes" key entirely, because an empty array is not
+ * serialised. Callers MUST decide success from the envelope's "ok" field and
+ * NEVER from emptiness; "count" is always present for the same reason.
+ * Treating empty as failure makes a real timeline draw as blank. */
+const char* scrivi_list_story_times(const char* projectRootPath);
+
 const char* scrivi_open_scene(
     const char* projectRootPath,
     const char* appSupportRoot,

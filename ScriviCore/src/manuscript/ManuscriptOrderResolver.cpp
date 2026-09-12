@@ -68,6 +68,7 @@ Result<std::vector<ResolvedScene>> ManuscriptOrderResolver::resolve(
             // §8.1: sidecar contentPath is a bare filename — resolve against the chapter dir.
             rs.contentPath          = chDir + "/" + sParsed.value().contentPath;
             rs.chapterMetadataPath  = chapterRelPath;
+            rs.storyTime            = sParsed.value().storyTime;   // EP-039 AC2
             scenes.push_back(std::move(rs));
         }
     }

@@ -267,6 +267,29 @@ import UniformTypeIdentifiers
             return
         }
 
+        // ⚠️ `SCRIVI_NO_PROJECT_LOAD=1` — DELIBERATELY SUPPRESS SESSION RESTORE.
+        //
+        // Launch to the Welcome window with no project open, whatever was open at last
+        // quit. ✅ The manifest is NOT rewritten, so a normal launch afterwards restores
+        // exactly what it would have.
+        //
+        // ⚠️ WHY IT EXISTS: measuring or reproducing anything against a CHOSEN project is
+        // hampered when the app reopens the previous one on top of it — and the obvious
+        // workaround (open the real project once to clear it) is precisely what must not
+        // happen when the previous project is the writer's real work.
+        //
+        // ⚠️ IT IS AN ENVIRONMENT VARIABLE AND **MUST NOT** BECOME A LAUNCH ARGUMENT.
+        // ⚠️ [I-0201]: Scrivi declares `CFBundleDocumentTypes`, so AppKit treats a
+        // non-option launch argument as a DOCUMENT TO OPEN — it resolves the argument as
+        // a file path, finds nothing, and ABANDONS THE LAUNCH before the app initialises.
+        // ⚠️ The symptom is total and silent: no window, no console, no crash, no threads.
+        // ✅ This shipped once as `--no-project-load` and cost an afternoon's bisect.
+        // ✅ Environment variables never reach that path.
+        guard !Self.suppressProjectRestore else {
+            print("[Scrivi] SCRIVI_NO_PROJECT_LOAD — session restore suppressed; manifest intact.")
+            return
+        }
+
         let saved = OpenSessionManifest.load()
         guard !saved.isEmpty else { return }
         for projectID in saved {
@@ -294,6 +317,25 @@ import UniformTypeIdentifiers
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         || ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil
         || ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil
+
+    /// True when the operator asked for a launch with NO project restored.
+    ///
+    /// Set `SCRIVI_NO_PROJECT_LOAD=1` (Product ▸ Scheme ▸ Edit Scheme ▸ Run ▸ Arguments ▸
+    /// Environment Variables), or export it before launching from a shell.
+    ///
+    /// ⚠️ **ENVIRONMENT VARIABLE ONLY — there is deliberately no launch-argument form.**
+    /// ⚠️ See [I-0201]: this app declares `CFBundleDocumentTypes`, so ANY unrecognised
+    /// launch argument makes AppKit abandon the launch silently. ⚠️ Adding a
+    /// `CommandLine.arguments` check here would not help — the app never runs to read it.
+    ///
+    /// ⚠️ Suppresses the RESTORE only. Opening a project by hand, by deep link, or from
+    /// Recent Projects all still work — ✅ the app simply starts empty, and the
+    /// open-session manifest is left UNTOUCHED, so this cannot lose the writer's windows.
+    ///
+    /// ⚠️ Stored `let` for the same reason as `isRunningUnderTests`: the decision must not
+    /// change underneath the app mid-run.
+    nonisolated static let suppressProjectRestore: Bool =
+        ProcessInfo.processInfo.environment["SCRIVI_NO_PROJECT_LOAD"] != nil
 
     // Builds a fresh ProjectSession with the app-global dependencies injected.
     private func makeSession() -> ProjectSession {

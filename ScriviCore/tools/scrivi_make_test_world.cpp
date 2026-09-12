@@ -230,10 +230,18 @@ int main(int argc, char** argv)
         s.reserve(1024);
         s += "## "; s += topic; s += "\n\n";
         s += ch.thesis; s += "\n\n";
+        // ⚠️ LENGTH IS NOT CAPPED AT 50k, and an earlier revision wrongly trimmed
+        // it to hit that number. ✅ USER RULING 2026-09-12: "the goal is to create
+        // average sized content for the use case (large novel)" -- 60k, 70k and
+        // 171k are all acceptable. ⚠️ So this favours FULLER prose: a real
+        // manuscript is long, and a fixture that is artificially short tests the
+        // app under conditions no writer will meet.
+        //
+        // ~190 words/scene x 384 scenes ~= 73k at scale 1; ~219k at scale 3.
         s += "Considered under the heading of "; s += topic;
         s += ", the question is less whether Dumas intended the parallel than "
              "whether the text sustains it. He wrote at speed, for serial "
-             "publication, and paid by the line; the pattern that criticism "
+             "publication, and was paid by the line; the pattern that criticism "
              "later calls design was often the working habit of a writer who "
              "needed a chapter by Thursday. That does not make the pattern "
              "unreal. A habit repeated across three long novels becomes a "
@@ -244,25 +252,93 @@ int main(int argc, char** argv)
              "the introduction do more work. Read this way, "; s += ch.title;
         s += " is less an episode of adventure than an argument about who is "
              "permitted to act, and on whose authority, and at what price to the "
-             "one who acts.\n";
+             "one who acts.\n\n";
+        s += "The objection writes itself: that this is hindsight, that a "
+             "serialist reaching for the next instalment cannot be held to a "
+             "thesis he never stated. It is a fair objection and it does not "
+             "quite land. Dumas returned to these people across decades and "
+             "thousands of pages, and what he returned to was not the swordplay "
+             "but the arrangement -- the friend who knows, the patron who owes, "
+             "the enemy who is merely doing his office. Whatever we call that, "
+             "it survived him, and it is still being rewritten.\n";
         return s;
     };
+
+    // ⚠️ `scrivi_create_chapter` returns `firstSceneMetadataPath` but NOT the
+    // content path, while `scrivi_create_scene` returns both. ✅ The convention is
+    // stable and visible on disk: same directory, same stem, `.md` instead of
+    // `.meta.json` (e.g. `001-opening-scene.meta.json` -> `001-opening-scene.md`).
+    auto contentPathFor = [](const std::string& metaRel) -> std::string {
+        const std::string suffix = ".meta.json";
+        if (metaRel.size() > suffix.size()
+            && metaRel.compare(metaRel.size() - suffix.size(), suffix.size(), suffix) == 0) {
+            return metaRel.substr(0, metaRel.size() - suffix.size()) + ".md";
+        }
+        return metaRel;   // unexpected shape: let save_scene reject it loudly
+    };
+
+    // Writes one scene body THROUGH THE CORE (never by touching the file), so the
+    // fixture exercises the same path the app uses and the sidecar's stats stay
+    // consistent with the text on disk.
+    long long proseWords = 0;
+    auto writeBody = [&](const std::string& sceneID, const std::string& metaRel,
+                         const std::string& contentRel, const std::string& body) {
+        Owned r{scrivi_save_scene(projectID.c_str(), projectPath.c_str(),
+                                  appSupport.c_str(), sceneID.c_str(),
+                                  metaRel.c_str(), contentRel.c_str(), body.c_str(),
+                                  0, 0, 0.0,
+                                  identityID.c_str(), personaID.c_str(),
+                                  "Dumas Fixture")};
+        if (field(r.view(), "sceneID").empty() && r.view().find("\"ok\":true") == std::string_view::npos) {
+            return false;
+        }
+        for (char c : body) { if (c == ' ') { ++proseWords; } }
+        return true;
+    };
+
+    // ⚠️ `scrivi_create_project` creates chapter-001 WITH an opening scene, before
+    // this loop runs -- so it is not covered by either write below and shipped
+    // EMPTY on the first --prose run. ✅ Fill it from the project's own open
+    // envelope, which carries its metadata and content paths.
+    if (prose) {
+        Owned op{scrivi_open_project(projectPath.c_str(), appSupport.c_str(),
+                                     identityID.c_str())};
+        const std::string v(op.view());
+        const std::string sid  = field(v, "sceneID");
+        const std::string meta = field(v, "metadataPath");
+        const std::string cont = field(v, "contentPath");
+        if (!sid.empty() && !meta.empty()) {
+            writeBody(sid, meta, cont.empty() ? contentPathFor(meta) : cont,
+                      sceneProse(0, 0));
+        }
+    }
 
     int scenes = 0;
     std::string lastChapterID;
     for (int rep = 0; rep < scale; ++rep) {
         for (unsigned long c = 0; c < countOf(kChapters); ++c) {
             std::string chapterID;
+            std::string rTextForChapter;
             {
                 Owned r{scrivi_create_chapter(projectPath.c_str(), appSupport.c_str(),
                                               projectID.c_str(),
                                               identityID.c_str(), personaID.c_str(),
                                               kChapters[c], lastChapterID.c_str())};
-                chapterID = field(r.view(), "chapterID");
+                chapterID       = field(r.view(), "chapterID");
+                rTextForChapter = std::string(r.view());
             }
             if (chapterID.empty()) { continue; }
             lastChapterID = chapterID;
             ++scenes;                       // the chapter's own first scene
+
+            if (prose) {
+                const std::string fsID   = field(rTextForChapter, "firstSceneID");
+                const std::string fsMeta = field(rTextForChapter, "firstSceneMetadataPath");
+                if (!fsID.empty() && !fsMeta.empty()) {
+                    writeBody(fsID, fsMeta, contentPathFor(fsMeta),
+                              sceneProse(c, 0));
+                }
+            }
 
             std::string lastSceneID;
             for (unsigned long s = 1; s < countOf(kSceneTitles); ++s) {
@@ -275,6 +351,16 @@ int main(int argc, char** argv)
                 if (id.empty()) { continue; }
                 lastSceneID = id;
                 ++scenes;
+
+                if (prose) {
+                    const std::string meta    = field(r.view(), "metadataPath");
+                    const std::string content = field(r.view(), "contentPath");
+                    if (!meta.empty()) {
+                        writeBody(id, meta,
+                                  content.empty() ? contentPathFor(meta) : content,
+                                  sceneProse(c, s));
+                    }
+                }
             }
         }
         std::printf("scenes:  running total %d\n", scenes);
@@ -301,6 +387,11 @@ int main(int argc, char** argv)
     std::printf("objects:       %d\n", objects);
     std::printf("scenes:        %d   <- the progress bar counts THESE\n", scenes);
     std::printf("relationships: %d\n", edges);
+    if (prose) {
+        std::printf("prose words:   ~%lld   (--prose)\n", proseWords);
+    } else {
+        std::printf("prose words:   0   ⚠️ bodies are EMPTY (pass --prose for ~50k words)\n");
+    }
     std::printf(
         "\n⚠️  BULK ALONE IS FAST. To make opening SLOW, put the WORLD on a\n"
         "    high-latency mount (the rig's cache=none,actimeo=1,closetimeo=1\n"

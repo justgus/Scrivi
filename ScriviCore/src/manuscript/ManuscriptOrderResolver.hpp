@@ -1,5 +1,6 @@
 #pragma once
 
+#include "schemas/SceneMetaJson.hpp"
 #include "scrivi/Result.hpp"
 #include "scrivi/Services.hpp"
 #include "scrivi/Types.hpp"
@@ -18,6 +19,12 @@ struct ResolvedScene {
     RelativePath metadataPath;
     RelativePath contentPath;
     RelativePath chapterMetadataPath;
+
+    // EP-039 AC2 (SP-131). `resolve()` already reads and parses every scene sidecar, so
+    // the story-time block is ALREADY IN HAND -- carrying it costs nothing here and saves
+    // `SceneStoryTimeIndex` a second full walk. ⚠️ Adding a second traversal to populate
+    // it would reintroduce the very cost this Epic exists to remove.
+    schemas::SceneStoryTime storyTime;
 };
 
 // Walks the on-disk project structure (manuscript.meta.json → chapter.meta.json

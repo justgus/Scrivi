@@ -89,10 +89,38 @@ Result<OpenSceneResult> ScriviCore::openScene(
     //
     // ✅ `findScene` stops at the match and pays for exactly one chapter+scene
     // parse. It is equally filesystem-authoritative (see its header).
-    manuscript::ManuscriptOrderResolver resolver{services_};
-    auto foundR = resolver.findScene(request.projectRootPath, request.sceneID);
-    if (!foundR.ok()) { return Result<OpenSceneResult>::failure(foundR.error()); }
-    const manuscript::ResolvedScene* found = &foundR.value();
+    // ✅ EP-039 AC1: when the session layer supplies an index, this is a hash lookup and
+    // ONE existence check instead of a chapter walk. ⚠️ `findScene` STILL reads every
+    // chapter's scene listing until it matches, so it reduced the CONSTANT but not the
+    // COMPLEXITY -- MEASURED still rising 12.4 → 53.3 ms across a 1,153-scene load.
+    //
+    // ⚠️ The hint is validated by USE (AC5a): if the metadata file it names is not there,
+    // we discard it and traverse. A bad hint costs a traversal, never a wrong answer.
+    manuscript::ResolvedScene         hinted;
+    const manuscript::ResolvedScene*  found = nullptr;
+    Result<manuscript::ResolvedScene> foundR = Result<manuscript::ResolvedScene>::failure(
+        {.code = ErrorCode::invalidArgument, .message = "unresolved"});
+
+    if (services_.sceneLocator != nullptr) {
+        if (auto hint = services_.sceneLocator->locateScene(request.projectRootPath,
+                                                            request.sceneID)) {
+            auto metaAbs  = util::join(request.projectRootPath, hint->metadataPath);
+            auto existsR  = services_.fileSystem->exists(metaAbs);
+            if (existsR.ok() && existsR.value()) {
+                hinted.sceneID      = request.sceneID;
+                hinted.metadataPath = hint->metadataPath;
+                hinted.contentPath  = hint->contentPath;
+                found               = &hinted;
+            }
+        }
+    }
+
+    if (found == nullptr) {
+        manuscript::ManuscriptOrderResolver resolver{services_};
+        foundR = resolver.findScene(request.projectRootPath, request.sceneID);
+        if (!foundR.ok()) { return Result<OpenSceneResult>::failure(foundR.error()); }
+        found = &foundR.value();
+    }
 
     // 2. Read scene content
     manuscript::SceneReader reader{services_};
@@ -435,9 +463,36 @@ Result<SetTimelineEpochLabelResult> ScriviCore::setTimelineEpochLabel(
     return Result<SetTimelineEpochLabelResult>::success({.updated = true});
 }
 
-// Helper: find scene metadata path by sceneID using ManuscriptOrderResolver.
+// Helper: find scene metadata path by sceneID.
+//
+// ⚠️ [I-0196] / EP-039 AC1. This resolved the ENTIRE manuscript to turn one sceneID into
+// one path -- reading and JSON-parsing every scene sidecar -- and it has SIX call sites
+// that the app drives per scene. ✅ MEASURED: 234-251 s of a ~300 s project open.
+//
+// ✅ The index seam (CoreServices::sceneLocator) turns the common case into a hash lookup
+// plus ONE file open. ⚠️ THE FALLBACK IS NOT AN OPTIMISATION DETAIL — IT IS THE
+// CORRECTNESS ARGUMENT (AC5a):
+//
+//   * a hint is a HYPOTHESIS about location; we still `exists()` the file it names;
+//   * ⚠️ if the hint misses, or names a file that is not there, we TRAVERSE;
+//   * ⚠️ we NEVER turn a bad hint into "scene not found".
+//
+// ✅ So a stale index costs an extra traversal and never a wrong answer -- which is why
+// this needs no filesystem watching (Design §5.2).
 static Result<std::string> findSceneMetaPath(
     const AbsolutePath& projectRoot, const SceneID& sceneID, CoreServices& services) {
+    if (services.sceneLocator != nullptr) {
+        if (auto hint = services.sceneLocator->locateSceneMeta(projectRoot, sceneID)) {
+            auto abs = util::join(projectRoot, *hint);
+            // ⚠️ THE OPEN IS THE VALIDATION. A hint that no longer names a real file is
+            // discarded here and we fall through to the traversal below.
+            auto existsR = services.fileSystem->exists(abs);
+            if (existsR.ok() && existsR.value()) {
+                return Result<std::string>::success(std::move(abs));
+            }
+        }
+    }
+
     manuscript::ManuscriptOrderResolver resolver{services};
     auto scenesR = resolver.resolve(projectRoot);
     if (!scenesR.ok()) { return Result<std::string>::failure(scenesR.error()); }

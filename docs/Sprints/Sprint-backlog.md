@@ -49,7 +49,9 @@ governs anything is a second source of truth.
 ## SP-129 — `[Apple]` ⚠️ **The four unbuilt surfaces** — and the direct-filesystem bypass they exposed
 
 **Status:** 🔵 **PLANNING — not activated.**
-**Epic:** [EP-039](../Epics/Epic-backlog.md) — `[Cross]` Project Load Performance · ⚠️ **sprint 1 of N**
+**Epic:** [EP-039](../Epics/Epic-active.md) — `[Cross]` Project Load Performance · ⚠️ **NOT sprint 1**
+— ✅ **corrected 2026-09-12:** ⚠️ **this sprint does NOT make a project open faster.** ✅ **The index
+work (AC1–AC4) sequences AHEAD of it.**
 **Codebase:** `[Apple]` — ⚠️ **Swift/SwiftUI only.** ✅ **No ScriviCore change expected** (the endpoints
 all exist and are live on Linux).
 **Date Created:** 2026-09-10
@@ -124,7 +126,7 @@ mirroring one** — ⚠️ **and a design invented to close a checkbox is how pl
 ## SP-130 — `[Apple]`+`[ScriviCore]` ⚠️ **Close the ScriviCore bypasses** — [I-0197]
 
 **Status:** 🔵 **PLANNING — not activated.**
-**Epic:** [EP-039](../Epics/Epic-backlog.md) — `[Cross]` Project Load Performance
+**Epic:** [EP-039](../Epics/Epic-active.md) — `[Cross]` Project Load Performance
 **Codebase:** `[Apple]` ⚠️ **+ `[ScriviCore]`** — ⚠️ **Class B needs a NEW ENDPOINT; it is not an app-only sprint**
 **Date Created:** 2026-09-10 · **Issues:** ✅ **[I-0197]**
 **Tasks:** **T-0507 – T-0510** (four) · **Next available:** T-0511
@@ -170,7 +172,12 @@ uniformly.**
 
 ---
 
-**Next available Sprint ID: SP-131** — ⚠️ **SP-115–SP-123 and SP-125–SP-127 are ALL CLOSED**; ✅ **SP-124** (EP-038) is **COMPLETE 2026-09-10 and awaiting close approval**; 🟡 **SP-128** (EP-038) is **ACTIVE — activated 2026-09-10** and lives in [`Sprint-active.md`](Sprint-active.md). ⚠️ **SP-128 never entered this file**, per the standing rule that a Sprint leaves the backlog at activation and never returns.
+**Next available Sprint ID: SP-133.** ✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
+(→ [`Closed/`](Closed/)). ⚠️ **SP-129 and SP-130 above are PLANNING and NOT activated.**
+🟡 **SP-132 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md).
+🟡 **SP-131 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md) — ⚠️ **it left this file at
+activation and never returns.** ⚠️ **SP-129/SP-130 sequence BEHIND it and behind the `[Apple]` async
+sprint.** ⚠️ **Next available Task: T-0525.**
 and ⚠️ **the LAST sprint of EP-038.** ⚠️ **SP-122 never appeared in this file** — defined and activated
 in one step on 2026-08-25, like SP-120 and SP-121; ⚠️ **it was EP-034's last.**
 ⚠️ **Zero Sprints in Planning.**

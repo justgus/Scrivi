@@ -22,6 +22,7 @@
 #include "history/HistoryService.hpp"
 #include "history/HistoryStore.hpp"
 #include "manuscript/FragmentCutter.hpp"
+#include "manuscript/ProjectIndex.hpp"
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
 #include "util/PathUtils.hpp"
@@ -109,6 +110,27 @@ static std::unique_ptr<scrivi::SecureStore> makeSecureStore() {
     return std::make_unique<PrototypeSecureStore>();
 }
 
+// EP-039 AC1 (SP-131 T-0514) — the ABI's SceneLocator.
+//
+// ⚠️ Defined here but IMPLEMENTED below `projectIndexRegistry()`, because it reads that
+// registry. ✅ Stateless and shared: it holds no index of its own, it only ASKS the
+// registry, so one instance serves every project.
+//
+// ⚠️ It is a HINT SOURCE. Returning std::nullopt means "no hint" and sends the caller to
+// a real traversal — ⚠️ it NEVER means "no such scene" (AC5a, I-0183).
+class RegistrySceneLocator final : public scrivi::SceneLocator {
+public:
+    std::optional<scrivi::RelativePath> locateSceneMeta(
+        const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) override;
+    std::optional<SceneHint> locateScene(
+        const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) override;
+};
+
+static RegistrySceneLocator& registrySceneLocator() {
+    static RegistrySceneLocator l;
+    return l;
+}
+
 struct CoreSingleton {
     scrivi::platform::LocalFileSystem    fileSystem;
     scrivi::platform::SystemUUIDProvider uuidProvider;
@@ -125,6 +147,7 @@ struct CoreSingleton {
         svc.clock        = &clock;
         svc.gitProvider  = &gitProvider;
         svc.logger       = nullptr;
+        svc.sceneLocator = &registrySceneLocator();
         core = std::make_unique<scrivi::ScriviCore>(svc);
     }
 };
@@ -150,6 +173,7 @@ scrivi::CoreServices abiServices() {
     svc.clock        = &s.clock;
     svc.gitProvider  = &s.gitProvider;
     svc.logger       = nullptr;
+    svc.sceneLocator = &registrySceneLocator();
     return svc;
 }
 
@@ -274,6 +298,132 @@ struct HistoryRegistry {
 static HistoryRegistry& historyRegistry() {
     static HistoryRegistry r;
     return r;
+}
+
+// ---------------------------------------------------------------------------
+// Project index registry (EP-039 AC1-AC3, AC5 — SP-131 T-0511)
+// ---------------------------------------------------------------------------
+// One ProjectIndex per OPEN PROJECT, keyed by projectRootPath. ⚠️ DELIBERATELY
+// MIRRORS HistoryRegistry above rather than inventing a second session
+// mechanism — same shape, same mutex, same reason for the mutex.
+//
+// ⚠️ WHY A REGISTRY AND NOT A ScriviCore MEMBER. `core()` builds a ScriviCore
+// per call (`abiServices()`), so an index held as a member would be constructed
+// and destroyed inside a single endpoint call — ✅ strictly SLOWER than the
+// traversal it replaces. The index must outlive the call, and a project-keyed
+// registry is what AC5's "per open project" scope ruling asks for.
+//
+// ⚠️ WHY KEYED BY PROJECT AND NOT PROCESS-WIDE. A sceneID is unique WITHIN a
+// package, so one process-wide map would need every key re-qualified by root.
+// ✅ EP-018 R3 already opens a given project once regardless of window count.
+//
+// ⚠️ Guarded by a mutex because ScriviEngine may call from arbitrary Swift
+// threads — the same reason HistoryRegistry carries one.
+//
+// ⚠️ THE INDEX IS DERIVED AND DISPOSABLE. Any doubt ⇒ erase the entry; the next
+// query rebuilds from disk (AC5b). ⚠️ An index update NEVER fails a write
+// (AC5c) — a derived accelerator must not be able to block a real user edit.
+
+struct ProjectIndexRegistry {
+    std::mutex mutex;
+    std::unordered_map<std::string, std::unique_ptr<scrivi::manuscript::ProjectIndex>> byRoot;
+};
+
+static ProjectIndexRegistry& projectIndexRegistry() {
+    static ProjectIndexRegistry r;
+    return r;
+}
+
+// Drops a project's index. ✅ Dropping the WHOLE index rather than patching
+// entries is AC5b's ruling: per-entry invalidation requires reasoning about
+// which entries a partial write could have touched, ⚠️ and getting that wrong
+// IS the silent-staleness failure mode. ✅ A rebuild is ONE traversal — the cost
+// already paid once at open.
+static void invalidateProjectIndex(const std::string& projectRootPath) {
+    auto& reg = projectIndexRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    reg.byRoot.erase(projectRootPath);
+}
+
+// RAII invalidation for a mutating endpoint. ⚠️ DROPS THE INDEX ON BOTH SIDES OF
+// THE WORK, and BOTH ARE LOAD-BEARING:
+//
+//   * BEFORE — so a write that fails PART-WAY cannot leave a confident index
+//     describing a state that no longer exists.
+//   * AFTER  — ⚠️ BECAUSE THE WORK ITSELF REPOPULATES THE CACHE. Nearly every
+//     mutation calls `findSceneMetaPath` to locate its target, and that goes
+//     through the locator, ✅ which REBUILDS the index FROM PRE-WRITE DISK
+//     STATE. Invalidating only up front therefore leaves a freshly-built STALE
+//     index behind the moment the write lands.
+//
+// ⚠️ THIS WAS A REAL DEFECT, NOT A HYPOTHETICAL: with before-only invalidation,
+// `scrivi_set_scene_story_time` wrote correctly to disk and
+// `scrivi_list_story_times` then reported `count:0` — ✅ caught by
+// [EP-039] AC5b's test, which is why that test asserts through an INDEX-SERVED
+// endpoint rather than through `openScene` (whose validate-on-use fallback
+// silently repairs staleness and hides exactly this).
+struct ProjectIndexInvalidation {
+    std::string root;
+    explicit ProjectIndexInvalidation(std::string r) : root(std::move(r)) {
+        invalidateProjectIndex(root);
+    }
+    ~ProjectIndexInvalidation() { invalidateProjectIndex(root); }
+    ProjectIndexInvalidation(const ProjectIndexInvalidation&)            = delete;
+    ProjectIndexInvalidation& operator=(const ProjectIndexInvalidation&) = delete;
+};
+
+// Runs `fn` against a valid index for `projectRootPath`, building one if this
+// project has none yet.
+//
+// ⚠️ THE FALLBACK IS THE WHOLE POINT (AC5a). If the index cannot be built, `fn`
+// is NOT called and the caller performs a REAL TRAVERSAL. ⚠️ A build failure
+// must NEVER become a negative answer — *absence is never deletion* (I-0183).
+// ✅ Returns false when the caller must fall back.
+template <typename Fn>
+static bool withProjectIndex(const std::string& projectRootPath,
+                             scrivi::CoreServices& services,
+                             Fn&& fn) {
+    auto& reg = projectIndexRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(projectRootPath);
+    if (it == reg.byRoot.end()) {
+        auto built = scrivi::manuscript::ProjectIndex::build(projectRootPath, services);
+        if (!built.ok()) { return false; }   // ⚠️ caller traverses
+        it = reg.byRoot.emplace(projectRootPath,
+                 std::make_unique<scrivi::manuscript::ProjectIndex>(
+                     std::move(built.value()))).first;
+    }
+    if (!it->second || !it->second->valid()) { return false; }
+
+    fn(*it->second);
+    return true;
+}
+
+std::optional<scrivi::RelativePath> RegistrySceneLocator::locateSceneMeta(
+    const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) {
+    std::optional<scrivi::RelativePath> out;
+    auto services = abiServices();
+    // ⚠️ Do NOT let the locator's own services carry a locator — that would recurse
+    // through any core call made during a build.
+    services.sceneLocator = nullptr;
+    withProjectIndex(projectRoot, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
+        if (auto loc = idx.findScene(sceneID)) { out = loc->metadataPath; }
+    });
+    return out;   // ⚠️ nullopt ⇒ "no hint", NEVER "no such scene"
+}
+
+std::optional<scrivi::SceneLocator::SceneHint> RegistrySceneLocator::locateScene(
+    const scrivi::AbsolutePath& projectRoot, const scrivi::SceneID& sceneID) {
+    std::optional<SceneHint> out;
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    withProjectIndex(projectRoot, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
+        if (auto loc = idx.findScene(sceneID)) {
+            out = SceneHint{loc->metadataPath, loc->contentPath};
+        }
+    });
+    return out;
 }
 
 // UTF-8-scalar-safe v7-style ID minter for history nodes/sessions. Kept local
@@ -554,6 +704,28 @@ const char* scrivi_open_project(
     return heap(okEnvelope(std::move(doc)));
 }
 
+const char* scrivi_close_project(const char* projectRootPath) {
+    // EP-039 AC1-AC3 (SP-131 T-0512). ⚠️ WITHOUT THIS THE REGISTRY LEAKS: an
+    // index is built per project root and nothing else ever removes it, so a
+    // session that opens two projects holds two indexes for the life of the
+    // process. ⚠️ The user's own reported session did exactly that — opened one
+    // project, closed it, opened another.
+    //
+    // ✅ Closing an unopened project is a NO-OP, not an error, so a teardown
+    // path can call it unconditionally (mirrors scrivi_history_close).
+    const std::string root = S(projectRootPath);
+    auto& reg = projectIndexRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+
+    auto it = reg.byRoot.find(root);
+    const bool wasOpen = it != reg.byRoot.end();
+    if (wasOpen) { reg.byRoot.erase(it); }
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("closed", wasOpen);
+    return heap(okEnvelope(std::move(doc)));
+}
+
 const char* scrivi_open_scene(
     const char* projectRootPath,
     const char* appSupportRoot,
@@ -664,6 +836,11 @@ const char* scrivi_apply_repair(
     const char* personaID,
     const char* displayName)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::ApplyRepairRequest req;
     req.issueID         = S(issueID);
     req.projectRootPath = S(projectRootPath);
@@ -982,6 +1159,18 @@ const char* scrivi_list_pending_edges(const char* projectRootPath)
 // Object discovery (EP-031 SP-098 T-0378) — §5.5
 // ---------------------------------------------------------------------------
 
+// ⚠️ C++ HELPERS INSIDE THE FILE'S `extern "C"` BLOCK.
+//
+// ⚠️ An anonymous namespace does NOT restore C++ linkage, so without this
+// `extern "C++"` these inherit C linkage and Clang warns that they return types
+// incompatible with C (-Wreturn-type-c-linkage) — here `std::map<std::string,
+// std::string>`. ✅ Harmless in practice (nothing calls them across a C boundary),
+// ⚠️ but it is a real linkage mismatch and it makes the app build noisy.
+//
+// ⚠️ SAME DEFECT, SAME FIX as the block below (fixed 2026-08-06) — ✅ this one was
+// simply missed. ⚠️ Any future helper added inside this file's `extern "C"` span
+// (lines 576-3520) needs the same wrapper.
+extern "C++" {
 namespace {
 
 // ⚠️ T-0446 (SP-119): assetID → on-disk path, built ONCE per list call.
@@ -1067,6 +1256,7 @@ void putObjectEntry(scrivi::util::JsonDoc& item,
 }
 
 } // namespace
+} // extern "C++"
 
 const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrNull)
 {
@@ -1165,6 +1355,11 @@ const char* scrivi_promote_object(const char* projectRootPath,
 // Worlds (EP-031 SP-097)
 // ---------------------------------------------------------------------------
 
+// C++ helper, not part of the C ABI — see the note on the first helper block.
+// ⚠️ `putWorld` returns void, so it does NOT trip -Wreturn-type-c-linkage today.
+// ✅ Wrapped anyway: the linkage mismatch is real either way, and leaving one block
+// unwrapped is how the next helper added here inherits C linkage silently.
+extern "C++" {
 namespace {
 
 void putWorld(scrivi::util::JsonDoc& doc, const scrivi::worlds::WorldRecord& w) {
@@ -1176,6 +1371,7 @@ void putWorld(scrivi::util::JsonDoc& doc, const scrivi::worlds::WorldRecord& w) 
 }
 
 } // namespace
+} // extern "C++"
 
 const char* scrivi_create_world(const char* projectRootPath,
                                 const char* packagePath,
@@ -1697,6 +1893,11 @@ const char* scrivi_create_scene(
     const char* personaID,
     const char* displayName)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::CreateSceneRequest req;
     req.projectRootPath = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -1732,6 +1933,11 @@ const char* scrivi_create_chapter(
     const char* displayName,
     const char* afterChapterID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::CreateChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -1762,6 +1968,11 @@ const char* scrivi_delete_scene(
     const char* projectRootPath,
     const char* sceneID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::DeleteSceneRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID         = scrivi::SceneID{S(sceneID)};
@@ -1780,6 +1991,11 @@ const char* scrivi_delete_chapter(
     const char* projectRootPath,
     const char* chapterID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::DeleteChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
@@ -1802,6 +2018,11 @@ const char* scrivi_reorder_scene(
     const char* targetChapterID,
     const char* afterSceneID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::ReorderSceneRequest req;
     req.projectRootPath  = S(projectRootPath);
     req.sceneID          = scrivi::SceneID  {S(sceneID)};
@@ -1829,6 +2050,11 @@ const char* scrivi_reorder_chapter(
     const char* chapterID,
     const char* afterChapterID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::ReorderChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
@@ -1850,6 +2076,11 @@ const char* scrivi_rename_scene(
     const char* metadataPath,
     const char* newTitle)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::RenameSceneRequest req;
     req.projectRootPath = S(projectRootPath);
     req.metadataPath    = S(metadataPath);
@@ -1871,6 +2102,11 @@ const char* scrivi_rename_chapter(
     const char* metadataPath,
     const char* newTitle)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::RenameChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.metadataPath    = S(metadataPath);
@@ -1893,6 +2129,11 @@ const char* scrivi_merge_scene(
     const char* projectRootPath,
     const char* sceneID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::MergeSceneRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID         = scrivi::SceneID{S(sceneID)};
@@ -1916,6 +2157,11 @@ const char* scrivi_merge_chapter(
     const char* projectRootPath,
     const char* chapterID)
 {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::MergeChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
@@ -1964,6 +2210,11 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
                                          int64_t offsetMs, const char* source,
                                          int64_t gapMs,
                                          int64_t durationMs, const char* durationSource) {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::SetSceneStoryTimeRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2052,6 +2303,78 @@ const char* scrivi_set_scene_todo(const char* projectRootPath, const char* scene
     return heap(okEnvelope(std::move(doc)));
 }
 
+const char* scrivi_list_story_times(const char* projectRootPath) {
+  return guarded([&]() -> const char* {
+    // EP-039 AC4 (SP-131 T-0515) — THE SPARSE BULK CALL.
+    //
+    // ⚠️ WHAT THIS REPLACES: the timeline called `scrivi_get_scene_story_time` ONCE PER
+    // SCENE, and each of those resolved the WHOLE manuscript to locate one sidecar.
+    // ✅ MEASURED at 234-251 s on a 1,153-scene manuscript — 78% of a ~300 s frozen open.
+    //
+    // ⚠️ SPARSE BY DESIGN. A record is returned ONLY for a scene whose story time is
+    // EXPLICITLY SET. Scenes on the default chain are OMITTED — their offsets are
+    // DERIVED (FR-022m) and cost nothing to omit.
+    //
+    // ⚠️ AN EMPTY RESULT IS THE COMMON CASE AND IS NOT AN ERROR. MEASURED on the
+    // 1,203-sidecar fixture: ZERO scenes have a storyTime block — the key is `null`.
+    // ✅ So this returns an EMPTY ARRAY and the timeline draws its default chain with NO
+    // per-scene I/O at all. ⚠️ 234-251 s was spent discovering that nothing is set.
+    //
+    // ⚠️ THE EMPTY-ARRAY TRAP APPLIES, AND HERE EMPTY IS THE NORM.
+    // `appendToArray` OMITS THE KEY ENTIRELY for an empty list, so a bare `{}` result is
+    // ambiguous between "none set" and "the call failed". ✅ THE CALLER MUST USE THE
+    // FAILURE SIGNAL (`ok`/`ScriviBridge::lastCallFailed()`), NEVER emptiness — reading
+    // empty as failure would make a real timeline draw as blank.
+    // ✅ `count` is emitted UNCONDITIONALLY below so the key is always present.
+    const std::string root = S(projectRootPath);
+    if (root.empty()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    }
+
+    auto services = abiServices();
+    services.sceneLocator = nullptr;   // no recursion through the locator
+
+    std::vector<std::pair<scrivi::SceneID, scrivi::manuscript::SceneStoryTime>> found;
+    bool served = withProjectIndex(root, services,
+        [&](const scrivi::manuscript::ProjectIndex& idx) {
+            found = idx.explicitStoryTimes();
+        });
+
+    if (!served) {
+        // ⚠️ The index could not be built. ✅ FALL BACK TO A REAL TRAVERSAL — never
+        // report "nothing is set", which is what an empty array would claim (AC5a).
+        scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+        auto scenesR = resolver.resolve(root);
+        if (!scenesR.ok()) return heap(errorEnvelope(scenesR.error()));
+        for (const auto& sc : scenesR.value()) {
+            if (scrivi::manuscript::storyTimeIsExplicitlySet(sc.storyTime)) {
+                found.emplace_back(sc.sceneID, sc.storyTime);
+            }
+        }
+    }
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& [sceneID, st] : found) {
+        scrivi::util::JsonDoc item;
+        item.setString("sceneID",        sceneID.value);
+        item.setInt("offsetMs",          st.offsetMs);
+        item.setString("offsetSource",   st.offsetSource);
+        item.setInt("gapMs",             st.gapMs);
+        item.setInt("durationMs",        st.durationMs);
+        item.setString("durationSource", st.durationSource);
+        item.setString("inferenceHint",  st.inferenceHint);
+        item.setString("bandID",         st.bandID);
+        item.setString("bandAssignedAt", st.bandAssignedAt);
+        doc.appendToArray("storyTimes", std::move(item));
+    }
+    // ⚠️ ALWAYS PRESENT, even at zero — this is the unambiguous "the call ran" signal,
+    // because `storyTimes` itself vanishes when the list is empty.
+    doc.setInt("count", static_cast<long long>(found.size()));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
 const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID) {
     scrivi::GetSceneNotesRequest req;
     req.projectRootPath = S(projectRootPath);
@@ -2104,6 +2427,11 @@ const char* scrivi_get_scene_story_time(const char* projectRootPath, const char*
 }
 
 const char* scrivi_clear_scene_story_time(const char* projectRootPath, const char* sceneID) {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
     scrivi::ClearSceneStoryTimeRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2933,6 +3261,11 @@ const char* scrivi_fragment_extract(const char* projectRootPath, const char* spa
 // extracted fragment (for the buffer / undo) + the survivingSceneID + the removed scene/chapter
 // IDs (for undo, §5).
 const char* scrivi_fragment_cut(const char* projectRootPath, const char* spansJson) {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -3006,6 +3339,11 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
                                   const char* identityID,
                                   const char* personaID,
                                   const char* displayName) {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -3056,6 +3394,11 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
                                         const char* fragmentJson,
                                         const char* targetSceneID,
                                         const char* createdIDsJson) {
+    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
+    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
+    // sides — the work itself re-reads through the locator and would otherwise
+    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
+    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())

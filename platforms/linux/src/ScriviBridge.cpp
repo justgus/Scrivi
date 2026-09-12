@@ -137,6 +137,18 @@ QVariantMap ScriviBridge::openProject(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+void ScriviBridge::closeProject(const QString& projectRootPath)
+{
+    // EP-039 T-0512. ⚠️ Deliberately does NOT check `ready_` and does NOT emit
+    // errorOccurred: this runs on a TEARDOWN path, where the useful behaviour is to
+    // release whatever the core is holding and say nothing. ✅ Closing a project the
+    // core never indexed is a no-op by design, so there is no failure to report.
+    if (projectRootPath.isEmpty()) { return; }
+    const ScriviString envelope(
+        scrivi_close_project(projectRootPath.toUtf8().constData()));
+    Q_UNUSED(envelope);
+}
+
 QVariantMap ScriviBridge::openScene(const QString& projectRootPath,
                                     const QString& appSupportRoot,
                                     const QString& projectID,
