@@ -99,7 +99,7 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | **EP-035** | ⚠️ **`[Linux]`** **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11** | 🟡 **ACTIVE** | 2026-08-24 | — |
 | **EP-036** | ⚠️ **`[Linux]`** **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
 | **EP-037** | ⚠️ **`[Linux]`** **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
-| **EP-038** | ⚠️ **`[Linux]`** **The Real Hardware Rig** — native Ubuntu + ⚠️ **drive-loss GROUND TRUTH**; writes the Porting Outline's **§9**. ⚠️ **Docker is structurally blind to this** | 🟡 **ACTIVE** — SP-123, SP-124 | 2026-08-25 | — |
+| **EP-038** | ⚠️ **`[Linux]`** **The Real Hardware Rig** — native Ubuntu + ⚠️ **drive-loss GROUND TRUTH**; writes the Porting Outline's **§9**. ⚠️ **Docker is structurally blind to this** | 🟡 **ACTIVE** — SP-123, SP-124 | 2026-08-25 | ✅ **CLOSED 2026-09-11** — user-approved |
 
 ## Statistics
 

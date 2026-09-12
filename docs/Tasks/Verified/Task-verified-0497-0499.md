@@ -1,4 +1,4 @@
-# Verified Tasks — T-0498 (SP-124, EP-038)
+# Verified Tasks — T-0498 (SP-124) · T-0499–T-0501 (SP-128) — EP-038
 
 ⚠️ **New decade file.** The previous file closed at **T-0496**
 ([`Task-verified-0492-0496.md`](Task-verified-0492-0496.md)).
@@ -69,3 +69,31 @@ not exist and `unavailable` is already returned.**
 ⚠️ **pre-T-0498 behaviour restored → `missing`; fix restored → `unavailable`** — ✅ **with a CONTROL
 proving an ordinary deleted world STILL reports `missing`**, ⚠️ **so T-0498 did not trade one false
 status for another.**
+
+
+---
+
+## T-0499 – T-0501 — ✅ **SP-128: honest waiting** (`[Linux]`)
+
+**Verified:** 2026-09-11 — **user-approved.** **Sprint:** SP-128 · **Epic:** EP-038
+
+| Task | What it delivered |
+| ---- | ----------------- |
+| **T-0499** | ✅ **`EditorShell::load()` runs OFF the UI thread** via `AsyncCall` — ⚠️ **reusing [I-0193]'s machinery, not a second mechanism.** ⚠️ **`load()` returned `bool` and could no longer; `loadFinished(bool)` replaced it.** ⚠️ **Timeout 10 min, deliberately NOT `kDefaultTimeoutMs` (5 s)** — ✅ **that figure aborts a DEAD share; here it would abort the legitimate slow load the Issue exists to support.** |
+| **T-0500** | ✅ **A DETERMINATE progress bar** — `n of m scenes`, revealed after 400 ms. ✅ **The total is a COUNT, not an estimate: `openProject` returns the scene list BEFORE the per-scene reads.** ✅ **New smoke `open_progress_smoke` asserts the total never changes and never goes backwards** — ⚠️ **verified FAILING against a deliberately estimate-style implementation.** |
+| **T-0501** | ✅ **LIVE PASS on the rig, build 42** — all three observations made by the user. |
+
+### ⚠️ **THE LIVE PASS FOUND TWO DEFECTS IN THIS SPRINT'S OWN WORK**
+
+⚠️ **And `23/23` smokes were GREEN through BOTH of them.** ✅ **That is the sprint's most useful finding.**
+
+| Defect | ⚠️ Why no suite could see it |
+| ------ | --------------------------- |
+| **[I-0198]** ⚠️ **`Qt::UniqueConnection` SILENTLY REJECTS lambda connections** — ✅ **Qt printed the warning on every launch** — ⚠️ **so `loadFinished` had NO LISTENER and a recents click only reordered the list** | ⚠️ **The load SUCCEEDED (`onDone ok=1`); nothing was listening.** ⚠️ **Two rounds of reading the code produced two WRONG diagnoses; `qInfo` breadcrumbs found it in ONE run** |
+| **[I-0199]** ⚠️ **The progress bar rendered on a HIDDEN PAGE** — the stack switched to the editor only in `loadFinished`, i.e. AFTER the load | ⚠️ **It could NEVER be seen at ANY project size.** ⚠️ **"The widget was shown" is true even when its PAGE is hidden**; ✅ **fix: switch to the editor BEFORE loading** |
+
+### ✅ Verification (measured on the rig, non-root)
+
+✅ **`ctest` 590/590** · ✅ **smokes 23/23** · ✅ **build 42 (2026-09-11 22:35:36 UTC), Qt 6.10.2**, read from the binary ON the rig (`feedback_confirm_the_build_under_test`).
+
+⚠️ **NOT this sprint's, and carried by [EP-039]:** ⚠️ **a ~5 s open with one not-responding dialog on a 71-scene / 50-edge / 2-world project on a share.** ✅ **That is the stateless core's per-item traversal cost, exactly as EP-039's rationale predicts** — ⚠️ **scene count is NOT the only driver.**

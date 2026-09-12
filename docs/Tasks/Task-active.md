@@ -16,7 +16,13 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: **SP-128** — EP-038, ⚠️ **honest waiting**
+## Currently: ⚠️ **NO ACTIVE SPRINT** — ✅ **SP-128 CLOSED 2026-09-11**
+
+✅ **SP-128's three Tasks (T-0499–T-0501) are VERIFIED and ARCHIVED** → [`Verified/Task-verified-0497-0499.md`](Verified/Task-verified-0497-0499.md).
+
+⚠️ **[EP-039] is the ACTIVE Epic** and has two Sprints in PLANNING ([SP-129], [SP-130]); ⚠️ **neither is activated.**
+
+### (former SP-128 notes follow)
 
 ✅ **ACTIVATED 2026-09-10.** ⚠️ **This heading read `SP-127 — the Worlds surface` until 2026-09-10 —
 ✅ that was STALE**: SP-127 closed 2026-09-02 and SP-124 completed 2026-09-10.
@@ -32,9 +38,6 @@ would be a REGRESSION against a settled decision, not a pragmatic fallback** (Sp
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| **T-0499** | ⚠️ **`[Linux]` Project open OFF the UI thread** — [I-0195] | **SP-128** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **`EditorShell::load()` is ASYNC**: `openProject` + the **one-`openScene`-per-scene** loop now run on a worker via `AsyncCall`. ⚠️ **`load()` returned `bool` and no longer can** — ✅ **`loadFinished(bool)` replaces it and `ScriviWindow` switches the view stack from the signal.** ⚠️ **Timeout is 10 min, NOT `kDefaultTimeoutMs` (5 s)** — ✅ **that figure was tuned to abort a DEAD share ([I-0193]); using it here would ABORT the legitimate slow load this Issue exists to support.** ✅ **Docker build clean; 23/23 smokes.** |
-| **T-0500** | ⚠️ **`[Linux]` DETERMINATE progress** — [I-0195] | **SP-128** | 🟡 **Implemented - Not Verified (2026-09-10)** — ✅ **A real `QProgressBar` + `n of m scenes` label**, ⚠️ **revealed only after 400 ms** (a local project opens in well under a second; flashing a bar is noise). ✅ **The total arrives with `openProject`, BEFORE the per-scene reads** — ⚠️ **a COUNT, not an estimate.** ✅ **NEW SMOKE `open_progress_smoke` asserts the total is known at the FIRST report, never changes, never goes backwards, and ends EXACTLY at the total** — ⚠️ **and was VERIFIED FAILING against a deliberately estimate-style implementation** (*"the total NEVER changes mid-load"*). ✅ **Colour is THEME-DERIVED** (`ThemeColours`), ⚠️ **not a hardcoded stylesheet — I-0186's defect class.** |
-| **T-0501** | ⚠️ **LIVE PASS on the real rig** — ⚠️ **[I-0182] READ with the share DOWN**, ⚠️ **[I-0195] progress WATCHED on `cache=none`.** ✅ **Plus `ctest` + smokes non-root ON THE RIG** | **SP-128** | 🟢 **READY TO RUN — the rig is DEPLOYED and VERIFIED (2026-09-11).** ✅ **Build 38 (`2026-09-11 21:23:01 UTC`, Qt 6.10.2) is on the rig**, ⚠️ **and rig HEAD `a59fa7c` MATCHES local HEAD** — ✅ **confirmed by `scrivi_linux --version` on the machine itself**, not assumed (`feedback_confirm_the_build_under_test`). ✅ **Deployed via the new `platforms/linux/rig-build.sh` (git-pull route).** ⚠️ **EARLIER BLOCKERS, both CLEARED:** ⚠️ **(a) "rig powered off" was WRONG — `ssh` merely answers slowly (>6 s) and an 8 s timeout misread that as dead;** ⚠️ **(b) the rig was 7 commits behind, missing [I-0182]'s fix.** ⚠️ **BLOCKED AGAIN 2026-09-11 BY [I-0198]** — ⚠️ **a REGRESSION IN THIS SPRINT'S OWN WORK ([T-0499]): two worker-thread signals were delivered by DIRECT connection and touched widgets off the UI thread.** ⚠️ **The user found it trying to run this very pass: a recents click only reordered the list and the editor never opened, and the [T-0500] progress bar never appeared at all.** ✅ **Fixed (both connections now `Qt::QueuedConnection`) — ⚠️ but NOT VERIFIED, and the smokes CANNOT verify it (23/23 passed BEFORE the fix too).** ⚠️ **T-0501 cannot run until [I-0198] is confirmed on the rig.** ⚠️ **THE TASK ITSELF IS NOT DONE.** ⚠️ **Deploying the build is the PREREQUISITE; the Task is the two OBSERVATIONS, and neither has been made:** ⚠️ **(1) [I-0182] — kill File Sharing and READ the Scene Inspector status line: it must name the world `Dumas-France`, NOT a raw `world_…` UUID;** ⚠️ **(2) [I-0195] — open a project with its world on a `cache=none` mount and WATCH the progress bar advance while the window stays responsive.** ✅ **Plus `ctest` + smokes non-root on the rig.** ⚠️ **Neither is stageable in Docker** (`feedback_live_pass_finds_what_suites_cannot`). ⚠️ **Nothing else can verify either Issue** — ✅ **[I-0182]'s branch needs `listWorlds` to FAIL and [I-0195]'s cost needs a SLOW mount; Docker can stage neither.** |
 
 ✅ **`ctest` 571/571 non-root on the rig**; ✅ **clean build under GCC 15 / Qt 6.10.2.**
 
