@@ -172,12 +172,12 @@ uniformly.**
 
 ---
 
-**Next available Sprint ID: SP-133.** ✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
+**Next available Sprint ID: SP-134.** ✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
 (→ [`Closed/`](Closed/)). ⚠️ **SP-129 and SP-130 above are PLANNING and NOT activated.**
-🟡 **SP-132 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md).
+🟡 **SP-132 and SP-133 are ACTIVE** and live in [`Sprint-active.md`](Sprint-active.md).
 🟡 **SP-131 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md) — ⚠️ **it left this file at
 activation and never returns.** ⚠️ **SP-129/SP-130 sequence BEHIND it and behind the `[Apple]` async
-sprint.** ⚠️ **Next available Task: T-0525.**
+sprint.** ⚠️ **Next available Task: T-0532.**
 and ⚠️ **the LAST sprint of EP-038.** ⚠️ **SP-122 never appeared in this file** — defined and activated
 in one step on 2026-08-25, like SP-120 and SP-121; ⚠️ **it was EP-034's last.**
 ⚠️ **Zero Sprints in Planning.**

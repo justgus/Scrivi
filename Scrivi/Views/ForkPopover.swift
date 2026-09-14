@@ -114,11 +114,21 @@ final class ForkPopoverController {
         let caretRange = NSRange(location: sel.location, length: 0)
         // Screen rect for the caret, then map back into the text view.
         let screenRect = textView.firstRect(forCharacterRange: caretRange, actualRange: nil)
-        if screenRect == .zero, let lm = textView.layoutManager, let tc = textView.textContainer {
-            let glyphRange = lm.glyphRange(forCharacterRange: caretRange, actualCharacterRange: nil)
-            let bounds = lm.boundingRect(forGlyphRange: glyphRange, in: tc)
-            return bounds.offsetBy(dx: textView.textContainerOrigin.x,
-                                   dy: textView.textContainerOrigin.y)
+        if screenRect == .zero,
+           let lm = textView.textLayoutManager,
+           let content = lm.textContentManager,
+           let loc = content.location(content.documentRange.location, offsetBy: caretRange.location),
+           let fragment = lm.textLayoutFragment(for: loc) {
+            // ⚠️ EP-039 T-0525/T-0527 — WAS `textView.layoutManager` (TextKit 1).
+            //
+            // ⚠️ THIS LINE SILENTLY UNDID THE WHOLE TEXTKIT 2 MIGRATION. Reading
+            // `.layoutManager` PERMANENTLY DOWNGRADES the text view, and Swift evaluates it
+            // as part of the `if let` chain — ⚠️ so it fired on EVERY call to this method,
+            // not only when the fallback was taken.
+            // ⚠️ It is in a DIFFERENT FILE from the manuscript view, which is exactly why the
+            // CI guard (T-0527) checks `Scrivi/Views` as a whole rather than one file.
+            return fragment.layoutFragmentFrame.offsetBy(dx: textView.textContainerOrigin.x,
+                                                         dy: textView.textContainerOrigin.y)
         }
         // screen → window → view.
         if let window = textView.window {

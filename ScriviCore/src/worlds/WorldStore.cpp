@@ -201,13 +201,36 @@ Result<WorldRecord> WorldStore::addWorld(const AbsolutePath& projectRoot,
 // ---------------------------------------------------------------------------
 
 Result<WorldBindingRecord> WorldStore::loadBinding(const AbsolutePath& projectRoot,
-                                                     const std::string& worldID) const {
-    auto textR = services_.fileSystem->readTextFile(bindingPath(projectRoot, worldID));
-    if (!textR.ok()) {
-        return Result<WorldBindingRecord>::failure(
-            {.code = ErrorCode::invalidArgument, .message = "world not bound: " + worldID});
+                                                     const std::string& worldID,
+                                                     BindingCache* cache) const {
+    // I-0207: the cache is keyed on the RESOLVED PATH, not on `worldID` alone —
+    // the same worldID under a different projectRoot is a different binding, and
+    // keying on the ID would return one project's record for another's.
+    const auto path = bindingPath(projectRoot, worldID);
+
+    if (cache != nullptr) {
+        if (auto it = cache->entries.find(path); it != cache->entries.end()) {
+            return it->second;
+        }
     }
-    return schemas::parseWorldBinding(textR.value());
+
+    auto compute = [&]() -> Result<WorldBindingRecord> {
+        auto textR = services_.fileSystem->readTextFile(path);
+        if (!textR.ok()) {
+            return Result<WorldBindingRecord>::failure(
+                {.code = ErrorCode::invalidArgument, .message = "world not bound: " + worldID});
+        }
+        return schemas::parseWorldBinding(textR.value());
+    };
+
+    auto result = compute();
+
+    // ⚠️ FAILURES ARE CACHED TOO, deliberately. "world not bound" is the COMMON
+    // case in the hot loop (an unavailable world), and re-deriving it per endpoint
+    // is exactly the cost I-0207 exists to remove. Caching it is safe only because
+    // the cache's lifetime is one read-only operation — see BindingCache.
+    if (cache != nullptr) { cache->entries.emplace(path, result); }
+    return result;
 }
 
 Result<void> WorldStore::saveBinding(const AbsolutePath& projectRoot,

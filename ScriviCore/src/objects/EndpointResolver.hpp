@@ -28,6 +28,7 @@
 #include "scrivi/ObjectTypes.hpp"
 #include "scrivi/Result.hpp"
 #include "scrivi/Services.hpp"
+#include "worlds/WorldStore.hpp"
 #include "worlds/WorldTypes.hpp"
 
 #include <string>
@@ -103,8 +104,17 @@ public:
     // Never fails on an unknown ID — returns {found = false} so callers can
     // distinguish "no such endpoint" from an I/O error, and `pending()` /
     // `dangling()` to distinguish the two ways of not resolving.
+    //
+    // ⚠️ I-0207: `bindingCache` is an OPTIONAL ACCELERATOR for callers that
+    // resolve MANY endpoints in one operation (`RelationshipStore::listPending`
+    // resolves two per edge). Without it every endpoint re-read and re-parsed the
+    // same `binding.json`. Passing nullptr is the uncached path and is identical
+    // in RESULT — see `WorldStore::BindingCache` for why it must not be hoisted
+    // to a longer lifetime.
     [[nodiscard]] ResolvedEndpoint resolve(const AbsolutePath& projectRoot,
-                                           const std::string& endpointID) const;
+                                           const std::string& endpointID,
+                                           worlds::WorldStore::BindingCache* bindingCache
+                                               = nullptr) const;
 
 private:
     CoreServices& services_;

@@ -8,6 +8,7 @@
 #include "scrivi/Services.hpp"
 #include "worlds/WorldTypes.hpp"
 
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -92,9 +93,44 @@ public:
     [[nodiscard]] Result<WorldRecord> addWorld(const AbsolutePath& projectRoot,
                                                 const AbsolutePath& packagePath) const;
 
+    // --- I-0207: binding parse cache ----------------------------------------
+    //
+    // ⚠️ WHY THIS IS A CALLER-OWNED CACHE AND NOT A MEMBER.
+    //
+    // `WorldStore` is constructed FRESH per operation — every C ABI entry point
+    // does `WorldStore store{svc}`, and `EndpointResolver::resolve` constructs one
+    // PER ENDPOINT. A member cache would be destroyed on every iteration and save
+    // nothing. `CoreServices` is not the place either: it is a bundle of abstract
+    // service pointers with no state, and putting a mutable cache in it would
+    // change that contract for every consumer.
+    //
+    // So the cache is an explicit object the LOOPING caller owns and passes in.
+    // Its lifetime is exactly one logical operation (one `listPending`), which is
+    // the window in which re-reading the same `binding.json` is provably
+    // redundant — and it CANNOT outlive that operation to serve a stale record.
+    //
+    // ⚠️ Measured cost without it (I-0207, `sample` 2026-09-14): `listPending`
+    // re-read and re-parsed the SAME `binding.json` once per endpoint —
+    // ~860 JSON-parse samples per activation, 81% of the main thread across two
+    // activations.
+    //
+    // ⚠️ A null pointer means "no caching" and MUST behave identically to the
+    // uncached path. Every existing caller passes nothing and is unaffected.
+    struct BindingCache {
+        std::map<std::string, Result<WorldBindingRecord>> entries;
+    };
+
     // --- T-0382: bindings + resolution --------------------------------------
+    //
+    // ⚠️ `cache` is an ACCELERATOR ONLY. Passing one must never change the RESULT,
+    // only how many times the file is read. Writes (`saveBinding`, `removeReference`)
+    // do not invalidate it — they cannot, since the cache is not reachable from
+    // them — which is safe ONLY because a cache never outlives one read-only
+    // operation. ⚠️ Do NOT hoist one to a longer lifetime without adding
+    // invalidation; that would resurrect a deleted or superseded binding.
     [[nodiscard]] Result<WorldBindingRecord> loadBinding(const AbsolutePath& projectRoot,
-                                                          const std::string& worldID) const;
+                                                          const std::string& worldID,
+                                                          BindingCache* cache = nullptr) const;
     [[nodiscard]] Result<void> saveBinding(const AbsolutePath& projectRoot,
                                             const WorldBindingRecord& binding) const;
 

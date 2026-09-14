@@ -51,6 +51,62 @@ import SwiftUI
 
     private var lastSeenWorldIDs: Set<String> = []
 
+    /// T-0523 / [I-0207] half (b) — the off-main-thread reload.
+    ///
+    /// ⚠️ **WHY THIS EXISTS.** `listPendingEdges` is a SYNCHRONOUS C ABI sweep that
+    /// resolves every endpoint of every edge. Measured by `sample` 2026-09-14 at
+    /// **81% of the main thread**, producing a 1–3 s beachball on every click back
+    /// into the app. [T-0533] cut the per-endpoint re-parsing and [T-0534] stopped it
+    /// running once per window; this stops it blocking the UI at all.
+    ///
+    /// ⚠️ **NO PROGRESS BAR HERE, DELIBERATELY** (ruled with T-0523's merge). The
+    /// LOAD is a one-shot with a determinate count, so a bar is right for it. This is
+    /// a RECURRING refresh on every activation and mount — a bar flashing on every
+    /// click back into the app would be worse than the stall it replaces. It simply
+    /// finishes late and updates the strip.
+    ///
+    /// ⚠️ Same [I-0198] discipline as the load: the worker returns PLAIN VALUES and
+    /// every mutation of observable state happens after the `await`, on the main actor.
+    func reloadAsync(engine: ScriviEngine, projectRootPath: String) async {
+        guard !projectRootPath.isEmpty else { rows = []; return }
+
+        let computed: Result<([Row], Void), Error> = await Task.detached(priority: .utility) {
+            do {
+                let worlds  = try engine.listWorlds(projectRootPath: projectRootPath).worlds
+                let pending = try engine.listPendingEdges(projectRootPath: projectRootPath).pending
+
+                var counts: [String: Int] = [:]
+                for edge in pending { counts[edge.worldID, default: 0] += 1 }
+
+                let rows = worlds
+                    .filter { $0.worldStatus.isUnavailable }
+                    .map { world in
+                        Row(worldID: world.worldID,
+                            displayName: world.displayName.isEmpty ? world.worldID : world.displayName,
+                            status: world.worldStatus,
+                            pendingCount: counts[world.worldID] ?? 0)
+                    }
+                    .sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+                return .success((rows, ()))
+            } catch {
+                return .failure(error)
+            }
+        }.value
+
+        switch computed {
+        case .success(let (newRows, _)):
+            rows = newRows
+            // Auto-reveal when a world we had not previously flagged goes away.
+            let ids = Set(rows.map(\.worldID))
+            if !ids.subtracting(lastSeenWorldIDs).isEmpty { dismissed = false }
+            lastSeenWorldIDs = ids
+            loadError = nil
+        case .failure(let error):
+            rows = []
+            loadError = error.localizedDescription
+        }
+    }
+
     func reload(engine: ScriviEngine, projectRootPath: String) {
         guard !projectRootPath.isEmpty else { rows = []; return }
         do {

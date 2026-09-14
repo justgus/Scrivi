@@ -108,8 +108,11 @@ private struct ManuscriptEditorView: View {
         // whole AC23 scenario: the drive is ejected under a running app. Re-checking
         // on foreground is what makes the strip appear then, rather than only at
         // open. T-0415 exercises exactly this path.
-        .onAppear { session.worldWarning.reload(engine: env.engine,
-                                                projectRootPath: session.projectRootPath ?? "") }
+        // T-0523 / [I-0207](b): async, same as the activation path — this runs on
+        // every editor appearance and must not block the window showing itself.
+        .task { await session.worldWarning.reloadAsync(
+            engine: env.engine,
+            projectRootPath: session.projectRootPath ?? "") }
         #if os(macOS)
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -117,7 +120,13 @@ private struct ManuscriptEditorView: View {
             // warning alone would only restate "unavailable" for a drive that is
             // physically back — the sandbox grant has to be re-taken before ScriviCore
             // can read the package at all. `reconnectWorlds` does both.
-            env.reconnectWorlds()
+            //
+            // ⚠️ I-0207: this view is PER WINDOW but `reconnectWorlds` loops EVERY
+            // session, so N windows ran N sweeps over N sessions on one activation —
+            // measured at 81% of the main thread and a 1–3 s beachball per click.
+            // `coalescedReconnectWorlds` collapses a burst to one run.
+            // ⚠️ Do NOT call `env.reconnectWorlds()` directly from an observer.
+            env.coalescedReconnectWorlds()
         }
         // ⚠️ I-0129: focus is NOT the event we actually care about — mounting is.
         //
@@ -132,11 +141,12 @@ private struct ManuscriptEditorView: View {
         // granularity: a world package cannot appear or vanish without one.
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(
             for: NSWorkspace.didMountNotification)) { _ in
-            env.reconnectWorlds()
+            // I-0207: same per-window duplication as didBecomeActive above.
+            env.coalescedReconnectWorlds()
         }
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(
             for: NSWorkspace.didUnmountNotification)) { _ in
-            env.reconnectWorlds()
+            env.coalescedReconnectWorlds()
         }
         #endif
         #if os(macOS)
@@ -244,8 +254,13 @@ private struct ManuscriptEditorView: View {
             //    inverted. Kept as a second line, not the mechanism.
             guard !loader.isMirroringViewportToSelection else { return }
             guard id != loader.viewportSceneID else { return }
+            // T-0531 DIAGNOSTIC — the navigator click ENTERS here. `[SCRIVI-NAV]` in
+            // ManuscriptTextView is the END of the chain; anything between the two is
+            // SwiftUI's update pass.
+            NSLog("[SCRIVI-CLICK] selection onChange -> navigateToSceneID=%@", id as NSString)
             navigateToSceneID = id
             loader.takeFocus()
+            NSLog("[SCRIVI-CLICK] onChange returned (takeFocus queued)")
         }
         #endif
     }

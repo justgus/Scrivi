@@ -15,11 +15,15 @@ answering per-item questions with full-tree traversals.**
 **Design:** [`../Scrivi_Project_Index_Design_v0_1.md`](../Scrivi_Project_Index_Design_v0_1.md)
 **Date Created:** 2026-09-10 · **Target Close:** — (⚠️ **estimated 3–4 sprints**)
 
-**Sprints:** ✅ **SP-131 VERIFIED** (`[ScriviCore]` the indexes — **AC1–AC5, AC8**; T-0511–T-0517).
-🔵 **SP-132** (`[Apple]` the interaction cost + the async gap — **AC6, AC9, AC10**, ⚠️ **[I-0200]**;
-T-0518–T-0524) · 🔵 **SP-129** · 🔵 **SP-130** — ✅ **all three in `Sprint-backlog.md`, NOT activated.**
+**Sprints:** 🟡 **SP-133 ACTIVE** (`[Apple]` **TextKit 2** — [I-0200]'s remaining half; T-0525–T-0531).
+✅ **SP-131 VERIFIED** (`[ScriviCore]` the indexes — **AC1–AC5, AC8**; T-0511–T-0517). ⚠️ **SP-132 open,
+its unlanded tasks superseded.**
+🔵 **SP-129** · 🔵 **SP-130** — ✅ **both in `Sprint-backlog.md`, NOT activated.**
 
-**Order of work:** ✅ ~~SP-131 (indexes)~~ → **SP-132** (interaction + async) → **SP-129 / SP-130**.
+**Order of work:** ✅ ~~SP-131 (indexes)~~ → 🟡 **SP-133 (TextKit 2)** → ⚠️ **SP-132's remainder**
+(**AC6** async, **AC9** batching, **AC10** Spotlight) → **SP-129 / SP-130**.
+⚠️ **SP-133 was inserted AHEAD of SP-132's remainder because the measurement said so:** ✅ **the
+manuscript surface is O(DOCUMENT) on TextKit 1, and async would only make that watchable.**
 
 ✅ **THE OPEN IS FIXED AND VERIFIED: `~300 s` → `1.06 s`** (user console, 2026-09-12).
 ⚠️ **THE APP IS STILL UNUSABLE, AND THAT IS A DIFFERENT SET OF DEFECTS** — ✅ **[I-0200]:** ⚠️ **the

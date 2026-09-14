@@ -76,12 +76,26 @@ enum ScriviDiag {
     ///
     /// ⚠️ This is the line that would have caught the bad 263 s projection: a
     /// rising per-item cost is visible here and invisible in a total.
+    // ⚠️ Per-LOOP start times. EP-039 — THE PROBE USED TO LIE, AND DID SO AGAIN.
+    //
+    // ⚠️ `elapsed` was measured from `runStart` (the start of the whole OPEN), not from the
+    // start of the loop being ticked. ✅ Correct for `loadAll`, which begins at open;
+    // ⚠️ pure fiction for any loop that starts later.
+    // ⚠️ OBSERVED 2026-09-13, on a scene split: `rebuildStorage` printed `elapsed=328.2s` on
+    // EVERY line and `projected=3788s`, while its own closing line said `took 0.0 s`.
+    // ⚠️ THIS FIX WAS WRITTEN ONCE IN SP-132, LOST IN A BISECT, AND NEVER REAPPLIED —
+    // ✅ which is why the misleading numbers came back.
+    nonisolated(unsafe) private static var loopStarts: [String: Date] = [:]
+
     static func tick(_ phase: String, _ index: Int, of total: Int, every: Int = 100) {
-        guard timingEnabled, index % every == 0 else { return }
-        let elapsed = runStart.map { Date().timeIntervalSince($0) } ?? 0
+        guard timingEnabled else { return }
+        if index == 0 || loopStarts[phase] == nil { loopStarts[phase] = Date() }
+        guard index % every == 0 else { return }
+        let elapsed = Date().timeIntervalSince(loopStarts[phase] ?? Date())
         let per = index > 0 ? elapsed / Double(index) : 0
         NSLog(String(format: "[SCRIVI-TIMING] %@ %d/%d  elapsed=%.1fs  avg=%.1fms/item  projected=%.0fs",
                      phase, index, total, elapsed, per * 1000, per * Double(total)))
+        if index >= total - every { loopStarts[phase] = nil }   // ready for a re-run
     }
 
     /// Prints the table. Call at the end of the operation being measured.
@@ -119,6 +133,7 @@ enum ScriviDiag {
     static func reset() {
         phases.removeAll()
         order.removeAll()
+        loopStarts.removeAll()
         runStart = nil
     }
 }

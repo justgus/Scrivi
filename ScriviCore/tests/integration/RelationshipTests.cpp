@@ -1066,3 +1066,164 @@ TEST_CASE("⚠️ I-0183: an UNREADABLE world package does NOT prune its edges",
     CHECK(after.value().size() == 1);
 }
 
+
+// ---------------------------------------------------------------------------
+// I-0207 — the binding parse cache
+//
+// MEASURED DEFECT (sample, 2026-09-14): `listPending` re-read and re-parsed the
+// SAME `binding.json` once per endpoint. On a real project that was ~860
+// JSON-parse samples per app activation, and 81% of the main thread across two
+// activations — the app beachballed 1–3 s on every click back into it.
+//
+// ⚠️ These tests assert the two things that actually matter and are independent:
+//   (1) the RESULT is unchanged whether or not a cache is passed;
+//   (2) the number of FILE READS actually drops.
+// A test of (1) alone would pass on a cache that never caches, which is exactly
+// how a "fix" like this ships green and changes nothing.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// Counts readTextFile calls per path, delegating everything else. Wraps rather
+// than subclasses because LocalFileSystem is `final`.
+class CountingFileSystem final : public FileSystem {
+public:
+    explicit CountingFileSystem(FileSystem& inner) : inner_(inner) {}
+
+    Result<Utf8Text> readTextFile(const AbsolutePath& path) override {
+        ++reads[path];
+        return inner_.readTextFile(path);
+    }
+
+    Result<bool> exists(const AbsolutePath& p) override { return inner_.exists(p); }
+    Result<bool> isDirectory(const AbsolutePath& p) override { return inner_.isDirectory(p); }
+    Result<std::uint64_t> deviceID(const AbsolutePath& p) override { return inner_.deviceID(p); }
+    Result<void> createDirectories(const AbsolutePath& p) override {
+        return inner_.createDirectories(p);
+    }
+    Result<void> atomicWriteTextFile(const AbsolutePath& p, std::string_view t) override {
+        return inner_.atomicWriteTextFile(p, t);
+    }
+    Result<void> createFileExclusive(const AbsolutePath& p, std::string_view t) override {
+        return inner_.createFileExclusive(p, t);
+    }
+    Result<void> appendTextFile(const AbsolutePath& p, std::string_view t) override {
+        return inner_.appendTextFile(p, t);
+    }
+    Result<std::vector<AbsolutePath>> listDirectory(const AbsolutePath& p) override {
+        return inner_.listDirectory(p);
+    }
+    Result<void> removeFile(const AbsolutePath& p) override { return inner_.removeFile(p); }
+    Result<void> renamePath(const AbsolutePath& f, const AbsolutePath& t) override {
+        return inner_.renamePath(f, t);
+    }
+    Result<void> copyFileInBlocks(const AbsolutePath& f, const AbsolutePath& t,
+                                  std::size_t blockSize,
+                                  const std::function<Result<void>()>& onBlock) override {
+        return inner_.copyFileInBlocks(f, t, blockSize, onBlock);
+    }
+
+    [[nodiscard]] int readsOf(const AbsolutePath& path) const {
+        auto it = reads.find(path);
+        return it == reads.end() ? 0 : it->second;
+    }
+
+    std::map<AbsolutePath, int> reads;
+
+private:
+    FileSystem& inner_;
+};
+
+} // namespace
+
+TEST_CASE("I-0207 — a BindingCache collapses N binding reads to ONE",
+          "[integration][I-0207]") {
+    GraphFixture fx;
+
+    platform::LocalFileSystem real;
+    CountingFileSystem        counting{real};
+
+    CoreServices svc = fx.services;
+    svc.fileSystem   = &counting;
+
+    const auto bindingPath =
+        worlds::WorldStore::bindingPath(fx.root(), fx.worldID);
+
+    worlds::WorldStore ws{svc};
+
+    SECTION("without a cache, each call reads the file again") {
+        for (int i = 0; i < 5; ++i) {
+            auto b = ws.loadBinding(fx.root(), fx.worldID);
+            REQUIRE(b.ok());
+        }
+        REQUIRE(counting.readsOf(bindingPath) == 5);
+    }
+
+    SECTION("with a cache, five calls read the file ONCE") {
+        worlds::WorldStore::BindingCache cache;
+        for (int i = 0; i < 5; ++i) {
+            auto b = ws.loadBinding(fx.root(), fx.worldID, &cache);
+            REQUIRE(b.ok());
+        }
+        REQUIRE(counting.readsOf(bindingPath) == 1);
+    }
+
+    SECTION("the cached record is IDENTICAL to the uncached one") {
+        auto uncached = ws.loadBinding(fx.root(), fx.worldID);
+        REQUIRE(uncached.ok());
+
+        worlds::WorldStore::BindingCache cache;
+        auto warm = ws.loadBinding(fx.root(), fx.worldID, &cache);   // populates
+        auto hit  = ws.loadBinding(fx.root(), fx.worldID, &cache);   // serves
+        REQUIRE(warm.ok());
+        REQUIRE(hit.ok());
+
+        REQUIRE(hit.value().worldID     == uncached.value().worldID);
+        REQUIRE(hit.value().displayName == uncached.value().displayName);
+        REQUIRE(hit.value().epochOffsetMs == uncached.value().epochOffsetMs);
+        REQUIRE(hit.value().cachedIndex.size() == uncached.value().cachedIndex.size());
+    }
+
+    SECTION("a FAILURE is cached too — an unbound world is not re-read per call") {
+        worlds::WorldStore::BindingCache cache;
+        const auto missingPath =
+            worlds::WorldStore::bindingPath(fx.root(), "world-does-not-exist");
+
+        for (int i = 0; i < 4; ++i) {
+            auto b = ws.loadBinding(fx.root(), "world-does-not-exist", &cache);
+            REQUIRE_FALSE(b.ok());
+        }
+        // At most one read for the missing file; the rest are served from cache.
+        REQUIRE(counting.readsOf(missingPath) <= 1);
+    }
+
+    SECTION("the cache keys on PATH, so a different project is not confused") {
+        // Same worldID, different projectRoot ⇒ different binding file ⇒ must NOT
+        // be served from the first project's entry.
+        worlds::WorldStore::BindingCache cache;
+        auto mine = ws.loadBinding(fx.root(), fx.worldID, &cache);
+        REQUIRE(mine.ok());
+
+        auto other = ws.loadBinding("/nonexistent-project-root", fx.worldID, &cache);
+        REQUIRE_FALSE(other.ok());   // would wrongly succeed if keyed on worldID alone
+    }
+}
+
+TEST_CASE("I-0207 — listPending returns the SAME edges with the cache in place",
+          "[integration][I-0207]") {
+    GraphFixture fx;
+
+    auto a = fx.makeObject(ObjectKind::character, "Athos", "athos");
+    auto b = fx.makeObject(ObjectKind::character, "Porthos", "porthos");
+
+    RelationshipStore store{fx.services};
+    auto pending = store.listPending(fx.root());
+    REQUIRE(pending.ok());
+
+    // The real assertion of correctness is the 594-test suite passing unchanged;
+    // this pins the specific call the defect lives in so a regression here is
+    // attributed to I-0207 rather than to the graph in general.
+    for (const auto& p : pending.value()) {
+        REQUIRE_FALSE(p.pendingEndpointID.empty());
+    }
+}

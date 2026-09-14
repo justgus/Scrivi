@@ -148,6 +148,92 @@ struct SceneSegment: Identifiable {
     // `restoredSelection` is the scene-local cursor offset from the last session; the
     // editor consumes it once on appear to place the cursor. The envelope's
     // `restored.scroll` is deliberately not taken (I-0133) — see `restoredSelectionOffset`.
+    /// T-0523 / AC6 — the off-main-thread half of `loadAll`.
+    ///
+    /// ⚠️ **WHY THIS IS A `nonisolated static` FUNCTION AND NOT A METHOD.**
+    /// `ViewportSceneLoader` is `@MainActor` and `@Observable`: touching `self`
+    /// from a worker would either fail to compile or (worse, the [I-0198] shape)
+    /// mutate observable state off the UI thread. So the expensive part takes only
+    /// `Sendable` inputs, returns plain values, and touches NOTHING on the loader.
+    /// The caller publishes the result on the main actor in one assignment.
+    ///
+    /// ⚠️ `ScriviEngine` is `@unchecked Sendable` and each `openScene` is an
+    /// independent C ABI read, which is what makes this legal at all.
+    ///
+    /// `onProgress` is called from the WORKER — it must not touch UI directly.
+    nonisolated static func loadSegmentsOffMain(
+        engine: ScriviEngine,
+        projectRootPath: String,
+        appSupportRoot: String,
+        projectID: String,
+        allScenes: [SceneInfo],
+        onProgress: @Sendable (Int, Int) -> Void
+    ) -> (segments: [SceneSegment], liveTitles: [String: String]) {
+        var segments: [SceneSegment] = []
+        var liveTitles: [String: String] = [:]
+        segments.reserveCapacity(allScenes.count)
+
+        for (i, info) in allScenes.enumerated() {
+            let loaded = try? engine.openScene(
+                projectRootPath: projectRootPath,
+                appSupportRoot: appSupportRoot,
+                projectID: projectID,
+                sceneID: info.sceneID
+            )
+            let text = loaded?.markdown ?? ""
+            segments.append(SceneSegment(
+                id: info.sceneID,
+                sceneID: info.sceneID,
+                chapterID: info.chapterID,
+                metadataPath: info.metadataPath,
+                contentPath: info.contentPath,
+                text: text
+            ))
+            let firstLine = text.components(separatedBy: .newlines)
+                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+            if !firstLine.isEmpty { liveTitles[info.sceneID] = firstLine }
+
+            onProgress(i + 1, allScenes.count)
+        }
+        return (segments, liveTitles)
+    }
+
+    /// T-0523 — publishes a set of segments computed off-main, then finishes the
+    /// same bookkeeping `loadAll` does. ⚠️ Everything here is main-actor work and
+    /// is deliberately kept SMALL: it is the part the writer waits through after
+    /// the bar reaches 100%.
+    func adoptLoadedSegments(
+        _ loaded: (segments: [SceneSegment], liveTitles: [String: String]),
+        activeSceneID: String? = nil,
+        restoredSelection: Int? = nil
+    ) {
+        segments = loaded.segments
+        liveTitles = loaded.liveTitles
+        rebuildSceneStartMap()
+        resolveActiveScene(activeSceneID: activeSceneID, restoredSelection: restoredSelection)
+    }
+
+    /// Shared by `loadAll` and `adoptLoadedSegments` so the resume-at-last-scene
+    /// rule cannot drift between the sync and async paths.
+    private func resolveActiveScene(activeSceneID: String?, restoredSelection: Int?) {
+        NSLog("[SCRIVI-DIAG] loadAll: activeSceneID=\(activeSceneID ?? "nil") restoredSel=\(String(describing: restoredSelection)) segments=\(segments.count)")
+        if let activeSceneID,
+           let idx = segments.firstIndex(where: { $0.sceneID == activeSceneID }) {
+            NSLog("[SCRIVI-DIAG] loadAll: RESOLVED activeScene to index \(idx)")
+            currentIndex = idx
+            cursorSceneID = activeSceneID
+            viewportSceneID = activeSceneID
+            restoredSelectionOffset = restoredSelection
+        } else {
+            currentIndex = 0
+            if let firstID = segments.first?.sceneID {
+                cursorSceneID = firstID
+                // viewportSceneID intentionally left nil — no scene is pre-selected
+                // in the Navigator on load. The scroll observer sets it on first scroll.
+            }
+        }
+    }
+
     func loadAll(
         activeSceneID: String? = nil,
         restoredSelection: Int? = nil
@@ -169,22 +255,7 @@ struct SceneSegment: Identifiable {
         }
 
         // Resume at the last-edited scene when the backend supplied one and it still exists.
-        NSLog("[SCRIVI-DIAG] loadAll: activeSceneID=\(activeSceneID ?? "nil") restoredSel=\(String(describing: restoredSelection)) segments=\(segments.count)")
-        if let activeSceneID,
-           let idx = segments.firstIndex(where: { $0.sceneID == activeSceneID }) {
-            NSLog("[SCRIVI-DIAG] loadAll: RESOLVED activeScene to index \(idx)")
-            currentIndex = idx
-            cursorSceneID = activeSceneID
-            viewportSceneID = activeSceneID
-            restoredSelectionOffset = restoredSelection
-        } else {
-            currentIndex = 0
-            if let firstID = segments.first?.sceneID {
-                cursorSceneID = firstID
-                // viewportSceneID intentionally left nil — no scene is pre-selected
-                // in the Navigator on load. The scroll observer sets it on first scroll.
-            }
-        }
+        resolveActiveScene(activeSceneID: activeSceneID, restoredSelection: restoredSelection)
     }
 
     // Replace the entire scene set from a fresh on-disk list and reload all segment bodies

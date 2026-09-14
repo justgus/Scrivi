@@ -49,6 +49,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         textView.textContainerInset = NSSize(width: 60, height: 40)
         textView.delegate = context.coordinator
         context.coordinator.textView = textView
+
+        // T-0531 DIAGNOSTIC — report which layout engine this view ACTUALLY uses.
+        // ⚠️ Reading `.layoutManager` to check would itself cause the downgrade, so the
+        // test is `textLayoutManager != nil` — present ⇒ TextKit 2, nil ⇒ TextKit 1.
+        NSLog("[SCRIVI-TK] engine at construction: %@",
+              textView.textLayoutManager != nil ? "TextKit 2" : "TextKit 1 (DOWNGRADED)")
         // Register takeFocus with both the coordinator and the loader so any
         // caller (Navigator, delete handler) can transfer first-responder directly.
         //
@@ -145,8 +151,19 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Rebuild text storage when the segment list, the chapter-title toggle, or any chapter
         // title changes. A rename leaves the segment IDs identical (same scenes, new heading text),
         // so the title fingerprint is what forces the heading to refresh after a rename (I-0095).
+        // T-0531 DIAGNOSTIC — updateNSView runs on EVERY SwiftUI update, and the GUARD
+        // below is O(N): a 1,156-element map plus a full allScenes walk.
+        let __u0 = Date()
         let segIDs = loader.segments.map(\.id)
         let chapterTitleFingerprint = coordinator.chapterHeadingFingerprint(for: loader)
+        let __uGuard = Date()
+        defer {
+            let total = Date().timeIntervalSince(__u0) * 1000
+            if total > 0.5 {
+                NSLog(String(format: "[SCRIVI-UPD] updateNSView total=%.1f  guard=%.1f ms",
+                             total, __uGuard.timeIntervalSince(__u0) * 1000))
+            }
+        }
         if segIDs != coordinator.lastSegmentIDs
             || showChapterTitles != coordinator.lastShowChapterTitles
             || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint {
@@ -538,16 +555,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                     self.navigationLockUntil = nil
                 }
                 recomputeBoundaries(tv)
-                guard let layoutManager = tv.layoutManager,
-                      let textContainer = tv.textContainer else { return }
-                let centerPoint = NSPoint(x: 0, y: centerY)
-                let glyphIdx = layoutManager.glyphIndex(
-                    for: centerPoint,
-                    in: textContainer,
-                    fractionOfDistanceThroughGlyph: nil
-                )
-                let charIdx = layoutManager.characterIndexForGlyph(at: glyphIdx)
-                guard let segIdx = segmentIndex(for: charIdx),
+                guard let charIdx = self.characterIndex(atPoint: NSPoint(x: 0, y: centerY), in: tv),
+                      let segIdx = segmentIndex(for: charIdx),
                       loader.segments.indices.contains(segIdx) else { return }
                 let sceneID = loader.segments[segIdx].sceneID
                 loader.setViewportScene(sceneID)
@@ -572,6 +581,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             // AFTER loadAll: it builds ONE NSTextStorage across every segment,
             // and the chapter-heading lookup below is O(N) PER SEGMENT (see the
             // tick inside the loop).
+            NSLog("[SCRIVI-TK] engine at rebuildStorage: %@ (segments=%d)",
+                  tv.textLayoutManager != nil ? "TextKit 2" : "TextKit 1 (DOWNGRADED)",
+                  segments.count)
             NSLog("[SCRIVI-TIMING] >>> entering: rebuildStorage segments=\(segments.count)")
             let rebuildStart = Date()
             defer {
@@ -785,20 +797,37 @@ struct ManuscriptTextView: NSViewRepresentable {
             if !isHistoryApply { forkPopover.close() }
             let loc = tv.selectedRange().location
 
+            // T-0531 DIAGNOSTIC — per-keystroke cost, by step.
+            let __k0 = Date()
             // Recompute boundaries from live storage — they shift with every keystroke.
             recomputeBoundaries(tv)
+            let __kBounds = Date()
 
             guard let segIdx = segmentIndex(for: loc) else { return }
+            let __kSeg = Date()
 
             // Extract this segment's text from storage.
             let range = sceneBoundaries[segIdx]
             let extracted = (tv.string as NSString).substring(with: range)
+            let __kExtract = Date()
 
             // The scene's text *before* this edit (for first-edit baseline seeding).
             let preEditText = loader(for: segIdx)?.text ?? ""
 
             // Update loader in-memory; segment stays loaded.
             parent.loader.updateText(extracted, at: segIdx)
+            let __kUpdate = Date()
+            defer {
+                let ms = { (a: Date, b: Date) in b.timeIntervalSince(a) * 1000 }
+                let total = Date().timeIntervalSince(__k0) * 1000
+                if total > 0.5 {
+                    NSLog(String(format:
+                        "[SCRIVI-KEY] total=%.1f  bounds=%.1f  segIdx=%.1f  extract=%.1f  update=%.1f  rest=%.1f (len=%d)",
+                        total, ms(__k0,__kBounds), ms(__kBounds,__kSeg), ms(__kSeg,__kExtract),
+                        ms(__kExtract,__kUpdate), Date().timeIntervalSince(__kUpdate) * 1000,
+                        tv.textStorage?.length ?? -1))
+                }
+            }
 
             if segIdx != lastCursorSegmentIndex {
                 lastCursorSegmentIndex = segIdx
@@ -1360,6 +1389,63 @@ struct ManuscriptTextView: NSViewRepresentable {
         // not immediately after the divider. recomputeBoundaries must skip heading runs
         // the same way rebuildStorage does, otherwise boundaries point into heading text
         // and textDidChange extracts heading characters into seg.text.
+        // MARK: — TextKit 2 geometry (EP-039 SP-133, T-0525)
+        //
+        // ⚠️ **NEVER TOUCH `tv.layoutManager` FROM ANYWHERE IN THIS FILE.**
+        //
+        // ⚠️ `NSTextView` starts on TEXTKIT 2, which lays out only the VIEWPORT. Reading the
+        // TextKit-1 `.layoutManager` property makes AppKit PERMANENTLY DOWNGRADE the view to
+        // TextKit 1, which lays out the WHOLE DOCUMENT. ✅ VERIFIED EMPIRICALLY: a fresh
+        // `NSTextView` reports `textLayoutManager != nil`; after one `_ = tv.layoutManager`
+        // it reports `nil`.
+        //
+        // ✅ MEASURED ON THE REAL MANUSCRIPT (1,831,770 chars, 14,985 paragraphs):
+        //   initial layout   TextKit 1 = 272.8 ms   →   TextKit 2 = 0.9 ms
+        //   window resize    TextKit 1 = 222.5 ms   →   viewport-bounded
+        //   rebuildStorage   TextKit 1 = 270.0 ms   →   viewport-bounded
+        //
+        // ⚠️ These two helpers are the ONLY places that convert between a character offset
+        // and screen geometry. ⚠️ Two lines in this file were the entire downgrade; keeping
+        // the conversion in one pair is what stops a third appearing.
+        //
+        // ⚠️ TEXTKIT 2'S LAZINESS IS PER PARAGRAPH: a manuscript that is ONE enormous
+        // paragraph collapses to TextKit 1 numbers (measured 201 ms). ✅ Real prose is ~15k
+        // paragraphs, so this is a shape risk, not a normal one (T-0530 measures it).
+
+        /// Character index at `point` in `tv`'s coordinate space, or nil.
+        /// ⚠️ Returns nil rather than guessing — the caller must not treat that as index 0.
+        func characterIndex(atPoint point: NSPoint, in tv: NSTextView) -> Int? {
+            guard let lm = tv.textLayoutManager,
+                  let content = lm.textContentManager else { return nil }
+            // ⚠️ The text view insets its container; fragment coordinates are container-relative.
+            let p = NSPoint(x: point.x - tv.textContainerInset.width,
+                            y: point.y - tv.textContainerInset.height)
+            guard let fragment = lm.textLayoutFragment(for: p) else {
+                // ⚠️ Below the last laid-out fragment (e.g. past the end) — clamp to the end
+                // rather than failing, so a scroll to the bottom still resolves a scene.
+                return tv.string.count
+            }
+            let loc = fragment.rangeInElement.location
+            return content.offset(from: content.documentRange.location, to: loc)
+        }
+
+        /// Bounding rect (in `tv`'s coordinate space) of the line containing `charIndex`.
+        func boundingRect(forCharacterIndex charIndex: Int, in tv: NSTextView) -> NSRect? {
+            guard let lm = tv.textLayoutManager,
+                  let content = lm.textContentManager,
+                  let loc = content.location(content.documentRange.location, offsetBy: charIndex)
+            else { return nil }
+            // ⚠️ ensureLayout is REQUIRED: the target may be outside the laid-out viewport,
+            // and TextKit 2 will not have positioned it yet. ✅ It lays out only up to the
+            // requested range, not the document.
+            lm.ensureLayout(for: NSTextRange(location: loc))
+            guard let fragment = lm.textLayoutFragment(for: loc) else { return nil }
+            let f = fragment.layoutFragmentFrame
+            return NSRect(x: f.origin.x + tv.textContainerInset.width,
+                          y: f.origin.y + tv.textContainerInset.height,
+                          width: f.width, height: f.height)
+        }
+
         // Recomputes each scene's range in the text storage, from the storage itself.
         //
         // ⚠️ **THIS WAS THE INTERACTION FREEZE.** [I-0200] / EP-039.
@@ -1568,13 +1654,23 @@ struct ManuscriptTextView: NSViewRepresentable {
             // simply wrong against the ruling — the caret stayed wherever it had last
             // been, which was invisible only because focus used to stay in the navigator.
             // Once focus started transferring, the stale caret became visible immediately.
+            let __n0 = Date()
             tv.setSelectedRange(NSRange(location: storageOffset, length: 0))
+            let __nSel = Date()
             // Centre rather than merely reveal, for the same reason as restore: a scene
             // parked at the viewport edge makes the scroll handler read a DIFFERENT
             // scene at the centre, and the navigator highlight follows that.
             tv.scrollRangeToVisible(NSRange(location: storageOffset, length: 0))
+            let __nScroll = Date()
             centerStorageOffset(storageOffset, in: tv)
+            let __nCenter = Date()
             parent.loader.setViewportScene(sceneID)
+            NSLog(String(format:
+                "[SCRIVI-NAV] setSel=%.1f  scrollToVisible=%.1f  center=%.1f  setViewport=%.1f ms",
+                __nSel.timeIntervalSince(__n0) * 1000,
+                __nScroll.timeIntervalSince(__nSel) * 1000,
+                __nCenter.timeIntervalSince(__nScroll) * 1000,
+                Date().timeIntervalSince(__nCenter) * 1000))
             // Keep the caret-derived current scene in step with the click, so a later quit
             // resumes here (I-0131's stamp reads cursorSceneID). `setCurrentIndex` moves
             // `currentIndex` and `cursorSceneID` together — setting either alone is what
@@ -1588,13 +1684,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         // edge — and the scroll handler then reads the centre and concludes a different
         // scene is current. Centring makes the two agree.
         func centerStorageOffset(_ storageOffset: Int, in tv: NSTextView) {
-            guard let layoutManager = tv.layoutManager,
-                  let container = tv.textContainer,
-                  let clipView = tv.enclosingScrollView?.contentView else { return }
+            guard let clipView = tv.enclosingScrollView?.contentView else { return }
             let loc = min(storageOffset, max(0, tv.string.count))
-            let glyphRange = layoutManager.glyphRange(
-                forCharacterRange: NSRange(location: loc, length: 0), actualCharacterRange: nil)
-            let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: container)
+            guard let rect = self.boundingRect(forCharacterIndex: loc, in: tv) else { return }
             let docHeight = tv.bounds.height
             let viewH = clipView.bounds.height
             let targetY = max(0, min(rect.midY - viewH / 2, max(0, docHeight - viewH)))
@@ -1694,9 +1786,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         }
 
         private func makeDividerAttachment() -> NSTextAttachment {
-            let attachment = NSTextAttachment()
-            attachment.attachmentCell = DividerAttachmentCell()
-            return attachment
+            // ⚠️ EP-039 T-0526: was `attachment.attachmentCell = DividerAttachmentCell()`.
+            // ✅ `NSTextAttachmentCell` is TEXTKIT 1 **and APPKIT-ONLY** — it has no UIKit
+            // equivalent, so it blocked the iOS port independently of performance.
+            // ✅ `DividerTextAttachment` overrides the TextKit 2 sizing/imaging API, which is
+            // `macos(12.0), ios(15.0)` — the SAME type on both platforms.
+            return DividerTextAttachment()
         }
 
         // MARK: — Cross-boundary Cut/Copy/Paste support (EP-029 SP-089, T-0354)
@@ -1933,7 +2028,23 @@ struct ManuscriptTextView: NSViewRepresentable {
 // Subclass so we can intercept ⌘↩ and ⌘⇧↩ before the text system handles them.
 final class ManuscriptNSTextView: NSTextView {
 
+    // T-0531 DIAGNOSTIC — the OUTERMOST edit boundary AppKit gives us.
+    // ⚠️ `[SCRIVI-KEY]` covers `textDidChange` only. If a keystroke is slow but KEY is
+    // fast, the cost is BETWEEN these two — i.e. in AppKit's own edit/layout/display
+    // work, not in Scrivi's delegate.
+    override func didChangeText() {
+        let t0 = Date()
+        super.didChangeText()
+        let ms = Date().timeIntervalSince(t0) * 1000
+        if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] didChangeText=%.1f ms", ms)) }
+    }
+
     override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        let __t0 = Date()
+        defer {
+            let ms = Date().timeIntervalSince(__t0) * 1000
+            if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] shouldChangeText=%.1f ms", ms)) }
+        }
         guard let storage = textStorage, affectedCharRange.length > 0 || (replacementString?.isEmpty == false) else {
             return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
         }
@@ -2046,6 +2157,18 @@ final class ManuscriptNSTextView: NSTextView {
     }
 
     override func keyDown(with event: NSEvent) {
+        // T-0531 DIAGNOSTIC — the OUTERMOST boundary for a keystroke.
+        // ⚠️ If this is slow while `[SCRIVI-KEY]` (textDidChange) is fast, the cost is in
+        // AppKit's own edit/layout/display work, NOT in Scrivi's delegate.
+        let __t0 = Date()
+        defer {
+            let ms = Date().timeIntervalSince(__t0) * 1000
+            if ms > 0.5 {
+                NSLog(String(format: "[SCRIVI-EDIT] keyDown(%@ code=%d)=%.1f ms",
+                             (event.charactersIgnoringModifiers ?? "?") as NSString,
+                             Int(event.keyCode), ms))
+            }
+        }
         let isReturn    = event.keyCode == 36  // kVK_Return
         let isDelete    = event.keyCode == 51  // kVK_Delete (backspace)
         let cmd         = event.modifierFlags.contains(.command)
@@ -2143,54 +2266,56 @@ final class ManuscriptNSTextView: NSTextView {
 // No text, no label — purely visual separation.
 private let dividerCellHeight: CGFloat = 24
 
-private final class DividerAttachmentCell: NSTextAttachmentCell {
+// Renders a 1pt horizontal rule across the full text column — the scene divider.
+// No text, no label; purely visual separation.
+//
+// ⚠️ EP-039 T-0526 — REPLACES `DividerAttachmentCell: NSTextAttachmentCell`.
+// ⚠️ `NSTextAttachmentCell` is TextKit 1 AND APPKIT-ONLY: there is no UIKit counterpart, so
+// it blocked the iOS port on its own, before any performance question.
+// ✅ `attachmentBounds(for:location:textContainer:proposedLineFragment:position:)` and
+// `image(forBounds:attributes:location:textContainer:)` are `macos(12.0), ios(15.0)` — the
+// SAME API on both platforms, so this class ports with only its drawing primitives changed.
+//
+// ⚠️ `recomputeBoundaries` finds dividers by the `.attachment` ATTRIBUTE, which is unchanged
+// — ✅ so scene boundary detection is unaffected by this swap.
+private final class DividerTextAttachment: NSTextAttachment {
 
-    override func cellFrame(
-        for textContainer: NSTextContainer,
-        proposedLineFragment lineFrag: NSRect,
-        glyphPosition position: NSPoint,
-        characterIndex charIndex: Int
-    ) -> NSRect {
-        let width = textContainer.size.width
-        return NSRect(x: 0, y: 0, width: width, height: dividerCellHeight)
+    override func attachmentBounds(
+        for attributes: [NSAttributedString.Key: Any],
+        location: any NSTextLocation,
+        textContainer: NSTextContainer?,
+        proposedLineFragment: CGRect,
+        position: CGPoint
+    ) -> CGRect {
+        // ⚠️ Full column width, as the cell did. `proposedLineFragment` is the authority
+        // under TextKit 2; the container may not be sized yet on first layout.
+        let width = proposedLineFragment.width > 0
+            ? proposedLineFragment.width
+            : (textContainer?.size.width ?? 0)
+        return CGRect(x: 0, y: 0, width: width, height: dividerCellHeight)
     }
 
-    override func draw(withFrame cellFrame: NSRect, in controlView: NSView?) {
-        // I-0112: NSColor.separatorColor is semantic, but an NSTextAttachmentCell does
-        // not reliably inherit the hosting view's appearance context, so it can resolve
-        // against the wrong appearance. Draw inside the control view's effective
-        // appearance so the divider tracks Light/Dark with the rest of the manuscript.
-        let stroke = {
-            let lineY = cellFrame.midY
+    override func image(
+        for bounds: CGRect,
+        attributes: [NSAttributedString.Key: Any],
+        location: any NSTextLocation,
+        textContainer: NSTextContainer?
+    ) -> NSImage? {
+        // ⚠️ [I-0112]: `NSColor.separatorColor` is semantic and must be resolved against the
+        // right appearance. ✅ An `NSImage` drawn with a handler resolves against the CURRENT
+        // appearance at draw time, which the text view sets — so Light/Dark tracks correctly
+        // without the cell's `controlView` dance.
+        let size = NSSize(width: max(bounds.width, 1), height: max(bounds.height, 1))
+        return NSImage(size: size, flipped: false) { rect in
+            let lineY = rect.midY
             let path = NSBezierPath()
             path.lineWidth = 1.0
-            path.move(to: NSPoint(x: cellFrame.minX + 20, y: lineY))
-            path.line(to: NSPoint(x: cellFrame.maxX - 20, y: lineY))
+            path.move(to: NSPoint(x: rect.minX + 20, y: lineY))
+            path.line(to: NSPoint(x: rect.maxX - 20, y: lineY))
             NSColor.separatorColor.setStroke()
             path.stroke()
+            return true
         }
-        if let appearance = controlView?.effectiveAppearance {
-            appearance.performAsCurrentDrawingAppearance(stroke)
-        } else {
-            stroke()
-        }
-    }
-
-    override func draw(
-        withFrame cellFrame: NSRect,
-        in controlView: NSView?,
-        characterIndex charIndex: Int
-    ) {
-        draw(withFrame: cellFrame, in: controlView)
-    }
-
-    override func draw(
-        withFrame cellFrame: NSRect,
-        in controlView: NSView?,
-        characterIndex charIndex: Int,
-        layoutManager: NSLayoutManager
-    ) {
-        draw(withFrame: cellFrame, in: controlView)
     }
 }
 

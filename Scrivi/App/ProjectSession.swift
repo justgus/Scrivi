@@ -140,6 +140,76 @@ import os
     // Loads the project at `path` into this session. Returns the result on success (so
     // the caller can inspect repair mode), or throws ScriviError. On success the loader,
     // preferences, timeline model, and Spotlight donation are all established.
+    /// T-0523 / AC6 — the asynchronous load.
+    ///
+    /// ⚠️ **WHAT IS AND IS NOT OFF THE MAIN THREAD.** The two genuinely expensive
+    /// parts — `engine.openProject` and the per-scene `openScene` loop — run on a
+    /// worker. Everything that touches `@Observable` state (the loader, prefs, the
+    /// timeline model, Spotlight) stays on the main actor, because this class and
+    /// `ViewportSceneLoader` are both `@MainActor`.
+    ///
+    /// ⚠️ **[I-0198] IS THE TRAP THIS SHAPE EXISTS TO AVOID.** On Linux the same
+    /// change emitted progress from the worker into handlers that touched widgets
+    /// directly, because Qt resolved the connection to a direct call. The Swift
+    /// equivalent would be mutating `@Observable` state from the worker. Here the
+    /// worker returns PLAIN VALUES and every publish is an explicit main-actor hop;
+    /// `onProgress` is `@Sendable` and only forwards numbers.
+    ///
+    /// `onProgress` receives (scenesLoaded, sceneCount) from the WORKER.
+    @discardableResult
+    func loadAsync(
+        at path: String,
+        onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }
+    ) async throws -> OpenProjectResult {
+        let engine = self.engine
+        let appSupportRoot = self.appSupportRoot
+        let identityID = self.identityID
+
+        // Off the main thread: open the project, then read every scene.
+        let (result, loaded) = try await Task.detached(priority: .userInitiated) {
+            let result = try engine.openProject(
+                projectRootPath: path,
+                appSupportRoot: appSupportRoot,
+                identityID: identityID
+            )
+            let loaded = ViewportSceneLoader.loadSegmentsOffMain(
+                engine: engine,
+                projectRootPath: path,
+                appSupportRoot: appSupportRoot,
+                projectID: result.projectID,
+                allScenes: result.scenes,
+                onProgress: onProgress
+            )
+            return (result, loaded)
+        }.value
+
+        // ---- main actor from here down ----
+        projectRootPath = path
+        openProjectResult = result
+
+        let loader = ViewportSceneLoader(
+            engine: engine,
+            projectRootPath: path,
+            appSupportRoot: appSupportRoot,
+            projectID: result.projectID,
+            allScenes: result.scenes
+        )
+        loader.adoptLoadedSegments(
+            loaded,
+            activeSceneID: result.activeScene?.sceneID,
+            restoredSelection: result.restored?.anchor
+        )
+        finishLoad(result: result, loader: loader)
+        return result
+    }
+
+    /// ⚠️ **T-0523: the SYNCHRONOUS load. No caller remains — `loadAsync` replaced
+    /// the only one (`AppEnvironment.loadProject`).** Kept rather than deleted because
+    /// it is the reference implementation of the load ORDER, and because deleting a
+    /// working path in the same change that introduces its async replacement removes
+    /// the fallback if the async one has to be reverted. ⚠️ **If it is still unused at
+    /// SP-133 close, delete it — an unused second path WILL drift from `finishLoad`.**
+    @available(*, deprecated, message: "T-0523: use loadAsync(at:onProgress:). Delete at SP-133 close if still unused.")
     @discardableResult
     func load(at path: String) throws -> OpenProjectResult {
         let result = try ScriviDiag.measure("engine.openProject (C ABI)") { try engine.openProject(
@@ -179,10 +249,21 @@ import os
         // loadAll — and then nothing, forever. So the hang is at or just after
         // this point, NOT in the loading loop (which completed in 69.5 s).
         //
-        // ⚠️ `viewportLoader` is an @Observable property, so assigning it can
-        // drive SwiftUI to build the editor view over 1,153 segments
-        // SYNCHRONOUSLY. Timed separately from the plain-data work below so the
-        // table can say which of the two it is.
+        finishLoad(result: result, loader: loader)
+        return result
+    }
+
+    /// T-0523 — the main-actor tail of a load, shared by `load(at:)` and
+    /// `loadAsync(at:onProgress:)`.
+    ///
+    /// ⚠️ **EXTRACTED RATHER THAN DUPLICATED ON PURPOSE.** Two copies of this
+    /// sequence would drift, and the order here is load-bearing: `validateScenes`
+    /// must run before `loader.historyCapture` is set (it establishes the session's
+    /// baseline from disk), and `inspectorVisible` must be restored BEFORE
+    /// `inspectorLayout` is published or the didSet writes the value straight back.
+    private func finishLoad(result: OpenProjectResult, loader: ViewportSceneLoader) {
+        // Both callers set `projectRootPath` before calling this.
+        let path = projectRootPath ?? ""
         NSLog("[SCRIVI-TIMING] >>> entering: viewportLoader assignment")
         ScriviDiag.measure("viewportLoader = loader (@Observable)") {
             viewportLoader = loader
@@ -248,7 +329,6 @@ import os
         // this table appears, the cost is in VIEW CONSTRUCTION / AppKit layout,
         // not in session loading — and that is the next place to instrument.
         ScriviDiag.report("project open: \(path)")
-        return result
     }
 
     // Tears down this session's project: deletes Spotlight items by domain, releases any

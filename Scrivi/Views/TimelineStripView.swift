@@ -199,7 +199,20 @@ private struct ImportedTimelineFile: Decodable {
         var bandID: String
     }
 
-    private(set) var dots: [SceneDot] = []
+    // I-0204: `dots` and `historicalEvents` feed four derived values that the timeline's
+    // layout path reads thousands of times per frame (`minOffsetMs`, `maxEndMs`, `spanMs`,
+    // and the view's `smallestMainRowGapMs()`). Recomputing them per access cost ~33 s of
+    // main thread per layout pass on a 1,156-scene project. They are now computed ONCE per
+    // mutation via `didSet` and read from storage.
+    //
+    // ⚠️ `didSet` is the correct hook and not merely convenient: both arrays are
+    // `private(set)`, so EVERY mutation — whole-array assignment, `append`, `removeAll`, and
+    // in-place element writes like `historicalEvents[idx].offsetMs = …` — happens inside this
+    // class and fires it. A cache keyed off `load()` alone would go stale on the in-place
+    // element writes (`updateHistoricalEventOffset`), which move a dot's offset.
+    private(set) var dots: [SceneDot] = [] {
+        didSet { recomputeDerivedBounds() }
+    }
     private(set) var epochLabel: String = "Story Open"
     private(set) var defaultSceneDurationMs: Int64 = 3_600_000
 
@@ -210,7 +223,9 @@ private struct ImportedTimelineFile: Decodable {
     var hoveredImportedEventKey: String? = nil   // "timelineID:eventID"
 
     // Historical events
-    private(set) var historicalEvents: [HistoricalEventDot] = []
+    private(set) var historicalEvents: [HistoricalEventDot] = [] {
+        didSet { recomputeDerivedBounds() }
+    }
 
     // Imported timelines
     private(set) var importedTimelines: [ImportedTimelineRow] = []
@@ -219,17 +234,40 @@ private struct ImportedTimelineFile: Decodable {
     private(set) var activeBands: [StoryBand] = []          // empty == no structure active
     private(set) var activeStructureID: String = ""
 
-    var minOffsetMs: Int64 {
+    // I-0204: read from the cache; recomputed only on mutation. The bodies below are the
+    // ORIGINAL expressions, moved verbatim into `recomputeDerivedBounds()` — the values are
+    // unchanged, only their frequency is.
+    private(set) var minOffsetMs: Int64 = 0
+    private(set) var maxEndMs: Int64 = 1
+    private(set) var spanMs: Int64 = 1
+
+    // I-0204: smallest non-zero gap between consecutive main-row item offsets (scenes +
+    // historical events). Lives on the model rather than the view because it depends only on
+    // model data; the view's `smallestMainRowGapMs()` now reads this.
+    private(set) var smallestMainRowGapMs: Int64 = 0
+
+    private func recomputeDerivedBounds() {
         let sceneMin = dots.map(\.offsetMs).min() ?? 0
         let heMin    = historicalEvents.map(\.offsetMs).min() ?? sceneMin
-        return min(sceneMin, heMin)
-    }
-    var maxEndMs: Int64 {
+        minOffsetMs = min(sceneMin, heMin)
+
         let sceneMax = dots.map { $0.offsetMs + $0.durationMs }.max() ?? 1
         let heMax    = historicalEvents.map(\.offsetMs).max() ?? sceneMax
-        return max(sceneMax, heMax)
+        maxEndMs = max(sceneMax, heMax)
+
+        spanMs = max(maxEndMs - minOffsetMs, 1)
+
+        // Verbatim from the view's former `smallestMainRowGapMs()`; 0 means "no non-zero gap",
+        // which the view translates to its own floor (it owns `minVisibleSpanFloorMs`).
+        var offsets: [Int64] = dots.map(\.offsetMs) + historicalEvents.map(\.offsetMs)
+        offsets.sort()
+        var smallest: Int64 = .max
+        for i in 1..<max(offsets.count, 1) where i < offsets.count {
+            let gap = offsets[i] - offsets[i - 1]
+            if gap > 0 { smallest = min(smallest, gap) }
+        }
+        smallestMainRowGapMs = (smallest == .max) ? 0 : smallest
     }
-    var spanMs: Int64 { max(maxEndMs - minOffsetMs, 1) }
 
     // I-0048: Story Structure bands span the story from the FIRST scene to the LAST scene in
     // manuscript order (dots[0] → dots.last), NOT min/max offset. A flashback scene in the
@@ -636,15 +674,14 @@ struct TimelineStripView: View {
 
     // Smallest non-zero gap between consecutive main-row item offsets (scenes + historical
     // events), so max zoom can always separate the tightest pair by more than one diameter.
+    //
+    // I-0204: this used to BUILD AND SORT a 1,156-element array on every call, and `maxZoom`
+    // calls it — so it ran thousands of times per layout pass. The sort now happens once per
+    // model mutation (`TimelineViewModel.recomputeDerivedBounds`); this reads the result.
+    // The model reports 0 for "no non-zero gap"; the floor stays here because the view owns it.
     private func smallestMainRowGapMs() -> Int64 {
-        var offsets: [Int64] = model.dots.map(\.offsetMs) + model.historicalEvents.map(\.offsetMs)
-        offsets.sort()
-        var smallest: Int64 = .max
-        for i in 1..<max(offsets.count, 1) where i < offsets.count {
-            let gap = offsets[i] - offsets[i - 1]
-            if gap > 0 { smallest = min(smallest, gap) }
-        }
-        return smallest == .max ? minVisibleSpanFloorMs : smallest
+        let gap = model.smallestMainRowGapMs
+        return gap == 0 ? minVisibleSpanFloorMs : gap
     }
 
     // Effective zoom including any in-progress pinch gesture.
@@ -1385,28 +1422,39 @@ struct TimelineStripView: View {
     // regular diameter) to be merged. This stops adjacent aggregates from overlapping when
     // their gap exceeds a regular diameter but is smaller than an aggregate's width.
     private func buildClusters(usable: CGFloat, panelW: CGFloat) -> [DotCluster] {
-        var allItems: [MainRowItem] = model.dots.map { .scene($0) }
+        // I-0204: decorate-sort-undecorate. `itemX` was previously called INSIDE the sort
+        // comparator, so an n=1,156 sort made ~11,600 comparisons × 2 calls ≈ 23,000 `itemX`
+        // calls — and each one re-derived the zoom by sorting the full offset array. Computing
+        // x ONCE per item and sorting on the stored value makes it 1,156 calls.
+        //
+        // ⚠️ The x values are only valid for THIS (usable, panelW, zoom, scroll) combination,
+        // which is exactly the scope of one call — they are deliberately local, not cached
+        // across calls, because a pan or zoom changes every one of them.
+        let allItems: [MainRowItem] = model.dots.map { .scene($0) }
             + model.historicalEvents.map { .historical($0) }
-        allItems.sort { itemX($0, usable: usable, panelW: panelW) < itemX($1, usable: usable, panelW: panelW) }
+        var positioned: [(item: MainRowItem, x: CGFloat)] = allItems.map {
+            ($0, itemX($0, usable: usable, panelW: panelW))
+        }
+        positioned.sort { $0.x < $1.x }
 
         var clusters: [DotCluster] = []
         var i = 0
-        while i < allItems.count {
-            let anchor = allItems[i]
-            var members = [anchor]
-            var clusterMaxX = itemX(anchor, usable: usable, panelW: panelW)
+        while i < positioned.count {
+            let anchor = positioned[i]
+            var members = [anchor.item]
+            var clusterMaxX = anchor.x
             var j = i + 1
-            while j < allItems.count {
-                let ox = itemX(allItems[j], usable: usable, panelW: panelW)
+            while j < positioned.count {
+                let ox = positioned[j].x
                 if ox - clusterMaxX <= mergeThreshold(currentSize: members.count) {
-                    members.append(allItems[j])
+                    members.append(positioned[j].item)
                     clusterMaxX = ox
                     j += 1
                 } else {
                     break
                 }
             }
-            clusters.append(DotCluster(centerItemID: anchor.id, members: members))
+            clusters.append(DotCluster(centerItemID: anchor.item.id, members: members))
             i = j
         }
         return clusters

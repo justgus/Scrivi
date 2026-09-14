@@ -34,6 +34,43 @@ import UniformTypeIdentifiers
     // LandingView / NewProjectSheet. Distinct from a session's own runtime state.
     var projectError: ScriviError?
 
+    // MARK: - T-0523 / AC6 — load progress
+    //
+    // ⚠️ **I-0199 IS THE REASON THIS LIVES ON `AppEnvironment` AND NOT IN THE EDITOR.**
+    // Linux put its progress bar inside the editor shell, but the editor page was not
+    // the visible page until the load FINISHED — so the bar rendered where nobody
+    // could see it and was hidden the instant its page appeared. It could never be
+    // seen at any project size.
+    //
+    // On Apple the same trap is present in a different shape: every caller does
+    // `await loadProject(...)` and only THEN `requestOpenWindow(...)`, so the editor
+    // window DOES NOT EXIST while the load runs. The only surface reliably on screen
+    // is the one the writer is already looking at — `LandingView` (or the previously
+    // focused window). Publishing progress here lets that visible surface show it.
+    //
+    // ⚠️ Read on the main actor only; written from the worker via `await MainActor.run`.
+    var loadProgress: LoadProgress?
+
+    struct LoadProgress: Equatable {
+        var projectName: String
+        var scenesLoaded: Int
+        var sceneCount: Int
+        /// ⚠️ False until the load has been slow enough to be worth showing (AC6 surface
+        /// rule, user-ruled 2026-09-14): a ~1 s local open must not flash a bar. The
+        /// worker keeps COUNTING from the first scene either way, so when the bar does
+        /// appear it is already honest rather than starting at zero mid-load.
+        var isVisible: Bool = false
+
+        var fraction: Double {
+            sceneCount > 0 ? Double(scenesLoaded) / Double(sceneCount) : 0
+        }
+    }
+
+    /// How long a load must run before its progress bar is shown (T-0523).
+    /// ⚠️ A threshold, NOT a debounce: the work starts immediately and is timed from
+    /// the first scene; only the SURFACE waits.
+    private static let progressRevealDelay: Duration = .milliseconds(250)
+
     #if os(macOS)
     // Owns the AppKit NSWindow for each open project (deterministic lifecycle; replaces
     // the abandoned WindowGroup(for:) which cached dead windows). T-0194.
@@ -360,7 +397,34 @@ import UniformTypeIdentifiers
         projectError = nil
         let session = makeSession()
         do {
-            let result = try session.load(at: path)
+            // T-0523 / AC6: the load runs on a worker; progress is published to the
+            // surface the writer is ALREADY looking at (see `loadProgress`).
+            let name = (path as NSString).lastPathComponent
+            loadProgress = LoadProgress(projectName: name, scenesLoaded: 0, sceneCount: 0)
+
+            // ⚠️ The bar is revealed only if the load is still running after the delay.
+            // A fast local open therefore shows NOTHING rather than a flash; a slow or
+            // network open shows an already-accurate bar because counting started at
+            // scene one regardless (see LoadProgress.isVisible).
+            let reveal = Task { @MainActor in
+                try? await Task.sleep(for: Self.progressRevealDelay)
+                guard !Task.isCancelled, loadProgress != nil else { return }
+                loadProgress?.isVisible = true
+            }
+            defer { reveal.cancel(); loadProgress = nil }
+
+            let result = try await session.loadAsync(at: path) { done, total in
+                // ⚠️ Called from the WORKER. [I-0198] is exactly this boundary: it must
+                // not touch observable state directly. Hop to the main actor, and only
+                // for every 25th scene so a 1,156-scene load posts ~46 updates, not 1,156.
+                guard done == total || done % 25 == 0 else { return }
+                Task { @MainActor in
+                    guard var p = self.loadProgress else { return }
+                    p.scenesLoaded = done
+                    p.sceneCount   = total
+                    self.loadProgress = p
+                }
+            }
             // R3: if this project is already open, reuse the registered session and
             // discard the one we just loaded.
             if let existing = openProjects.session(for: result.projectID) {
@@ -423,20 +487,70 @@ import UniformTypeIdentifiers
     /// missing**, which is the same shape as I-0117 and SP-099's R4 finding: the
     /// capability shipped, the surface did not.
     ///
+    /// ⚠️ **I-0207: the "cheap enough to run on every foreground" claim below was
+    /// WRONG, and it is corrected here rather than deleted because it is exactly
+    /// what stopped this function being suspected.** The estimate counted
+    /// `listWorlds` + one bookmark resolve per world and **omitted
+    /// `worldWarning.reload`**, which is where ~99% of the measured cost actually
+    /// is: `reload` calls `listPendingEdges`, a synchronous C ABI sweep that
+    /// resolves *every endpoint of every edge*. Measured by `sample` 2026-09-14 at
+    /// **81% of the main thread**, producing a 1–3 s beachball on every click back
+    /// into the app.
+    ///
+    /// ⚠️ **AND IT RAN ONCE PER OPEN WINDOW.** The `didBecomeActive` observer lived
+    /// on `ManuscriptEditorView` — a **per-window** view — while this function loops
+    /// **every session**. With N windows open that is N sweeps × N sessions = **N²
+    /// session-reloads per activation**. `coalescedReconnectWorlds()` below is the
+    /// fix; ⚠️ **call that from notification observers, never this directly.**
+    ///
     /// Cheap enough to run on every foreground: one `listWorlds` plus one bookmark
     /// resolve per bound world, and `startAccessingSecurityScopedResource` on an
     /// already-active URL is a no-op.
     func reconnectWorlds() {
         for (_, session) in openProjects.sessions {
             activateWorlds(for: session)
-            session.worldWarning.reload(engine: session.engine,
-                                        projectRootPath: session.projectRootPath ?? "")
+            // T-0523 / [I-0207] half (b): the pending-edge sweep is the expensive part
+            // and it now runs OFF the main thread. `activateWorlds` above stays
+            // synchronous and FIRST — [I-0123] exists because the sandbox grant must be
+            // re-taken before anything tries to read the package.
+            let s = session
+            Task { @MainActor in
+                await s.worldWarning.reloadAsync(engine: s.engine,
+                                                 projectRootPath: s.projectRootPath ?? "")
+            }
             // I-0128: tell the inspector cards to re-read. They key on sceneID, which
             // does not change when a drive comes back, so without this the writer had
             // to switch scenes before her objects relinked on screen.
             session.bumpWorldRevision()
         }
     }
+
+    /// I-0207: coalesces bursts of `reconnectWorlds()` into one run.
+    ///
+    /// ⚠️ **Why coalescing rather than moving the observer.** The obvious fix is to
+    /// subscribe once at app level instead of per window. That is necessary but NOT
+    /// sufficient: `didBecomeActive` is legitimately delivered more than once around
+    /// a single activation (the sample shows it arriving both nested inside the
+    /// click's `_NXFinishActivation` and again as the standalone activation event),
+    /// and mount/unmount can coincide with a foreground. ⚠️ **Deduplicating the
+    /// SUBSCRIBER without deduplicating the CALL would still double-run.**
+    ///
+    /// ⚠️ **Why a flag and not a timer.** A debounce would DELAY the world
+    /// re-acquisition, and [I-0123] exists precisely because that work happened too
+    /// late. This runs on the **first** call of a burst and suppresses only the
+    /// redundant repeats within the same run-loop turn, so the writer's drive comes
+    /// back exactly as fast as before.
+    func coalescedReconnectWorlds() {
+        if reconnectScheduled { return }
+        reconnectScheduled = true
+        // Cleared at the end of the current run-loop turn, so a later, genuinely new
+        // activation is never suppressed.
+        DispatchQueue.main.async { [weak self] in self?.reconnectScheduled = false }
+        reconnectWorlds()
+    }
+
+    /// True only within one run-loop turn of a `coalescedReconnectWorlds()` call.
+    private var reconnectScheduled = false
 
     // Ensures a project is open and its window is shown/focused (EP-018 / T-0194).
     //   • already open → focus its existing window (R3).

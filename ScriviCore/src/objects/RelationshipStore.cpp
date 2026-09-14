@@ -1,6 +1,7 @@
 #include "objects/RelationshipStore.hpp"
 
 #include "objects/EndpointResolver.hpp"
+#include "worlds/WorldStore.hpp"
 #include "util/Json.hpp"
 #include "util/PathUtils.hpp"
 #include "worlds/WorldTypes.hpp"
@@ -335,9 +336,15 @@ RelationshipStore::listPending(const AbsolutePath& projectRoot) const {
     EndpointResolver         resolver{services_};
     std::vector<PendingEdge> out;
 
+    // I-0207: ONE cache for the whole sweep. Every endpoint below would otherwise
+    // re-read and re-parse the same `binding.json`; measured at ~860 JSON-parse
+    // samples per activation on a real project. Its lifetime ends with this
+    // function, which is what makes caching failures safe too.
+    worlds::WorldStore::BindingCache bindingCache;
+
     for (const auto& e : loadedR.value()) {
         for (const auto& endpointID : {e.fromID, e.toID}) {
-            auto ep = resolver.resolve(projectRoot, endpointID);
+            auto ep = resolver.resolve(projectRoot, endpointID, &bindingCache);
             if (!ep.pending()) { continue; }
 
             PendingEdge p;

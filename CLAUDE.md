@@ -52,6 +52,13 @@ Key documents:
   toolchain, build/test, running the app, and test data. ⚠️ **§7 (drive dismount) is DELIBERATELY EMPTY**
   — it is SP-124/T-0477's, and must be written from a real drive pull, not from documentation.
   ⚠️ **The Windows rig must EXECUTE this, not re-derive it.**
+- `docs/Scrivi_Apple_UI_Conformance_Trade_Study_v0_1.md` — ⚠️ **DRAFT, awaiting ruling.** Assesses the
+  **whole Apple UI surface** against macOS 26/27's actual design system, occasioned by I-0203/I-0205.
+  ⚠️ **Every API claim carries a fetched Apple URL** — ✅ and §0 records the route that works
+  (Apple's doc pages are JS-rendered; use `developer.apple.com/tutorials/data/documentation/<path>.json`).
+  ✅ Core finding: **bars are `VStack` siblings throughout**, where macOS 26+ provides `safeAreaBar`
+  and `NSSplitViewItemAccessoryViewController` — ⚠️ and the project window has **no `NSToolbar` at all**
+  while asking SwiftUI for `.navigationTitle`.
 - `docs/Scrivi_ABI_Binding_Gap_Audit_v0_1.md` — mechanical per-endpoint disposition of all **100** `scrivi_*` endpoints across Apple and Linux (T-0460). ⚠️ **The endpoint count is 100, not 102** — the earlier figure counted prose matches and `scrivi_free`.
 
 ### Backend: C++23 (ScriviCore)

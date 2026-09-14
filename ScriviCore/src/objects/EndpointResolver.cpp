@@ -10,7 +10,8 @@ EndpointResolver::EndpointResolver(CoreServices& services)
     : services_(services) {}
 
 ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
-                                            const std::string& endpointID) const {
+                                            const std::string& endpointID,
+                                            worlds::WorldStore::BindingCache* bindingCache) const {
     ResolvedEndpoint out;
     if (endpointID.empty()) { return out; }
 
@@ -75,7 +76,7 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
                 }
                 // World unavailable, OR available-but-unreadable (I-0183) — fall
                 // back to the cached names.
-                if (auto b = ws.loadBinding(projectRoot, worldID); b.ok()) {
+                if (auto b = ws.loadBinding(projectRoot, worldID, bindingCache); b.ok()) {
                     // ⚠️ I-0183: a world we could not READ cannot license a
                     // prune, whether or not its cache happens to name this
                     // endpoint. Mark it before the lookup so a cache MISS is held

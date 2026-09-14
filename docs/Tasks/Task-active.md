@@ -16,11 +16,27 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
-## Currently: ⚠️ **NO ACTIVE SPRINT** — ✅ **SP-128 CLOSED 2026-09-11**
+## Currently: 🟡 **SP-133 ACTIVE** (`[Apple]` TextKit 2) — ✅ **[EP-039]**
 
-✅ **SP-128's three Tasks (T-0499–T-0501) are VERIFIED and ARCHIVED** → [`Verified/Task-verified-0497-0499.md`](Verified/Task-verified-0497-0499.md).
+⚠️ **Sprint plan lives in [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md) and is NOT
+duplicated here.**
 
-⚠️ **[EP-039] is the ACTIVE Epic** and has two Sprints in PLANNING ([SP-129], [SP-130]); ⚠️ **neither is activated.**
+| ID | Title | Sprint | Status |
+| -- | ----- | ------ | ------ |
+| **T-0525** | ✅ **Replace the TWO TextKit 1 call sites** (`ManuscriptTextView.swift:541`, `:1591`) with `textLayoutFragment(for:)` + fragment geometry | SP-133 | 🟡 **Active** |
+| **T-0526** | ✅ **Port the scene divider off `NSTextAttachmentCell`** → `NSTextAttachmentViewProvider`. ⚠️ **AppKit-ONLY today, so it blocks iOS independently** | SP-133 | 🟡 **Active** |
+| **T-0527** | ✅ **CI guard against the TextKit 1 downgrade returning** (5.7 ruling). ⚠️ **Lands WITH the migration** | SP-133 | 🟡 **Active** |
+| **T-0528** | ✅ **Verify `sceneBoundaries` + the nine `recomputeBoundaries` callers survive** — ⚠️ **a wrong boundary misplaces the caret ([I-0131])** | SP-133 | 🟡 **Active** |
+| **T-0529** | ✅ **Measure before/after on the real fixture** — ⚠️ **including a LIVE window drag and a scene split/merge** | SP-133 | 🟡 **Active** |
+| **T-0530** | ⚠️ **Measure the LONG-PARAGRAPH case deliberately** — ✅ **TextKit 2's laziness is PER PARAGRAPH** | SP-133 | 🟡 **Active** |
+| **T-0531** | ✅ **Re-test [I-0203] and `_NSDetectedLayoutRecursion`** — ⚠️ **hypothesised symptoms of main-thread starvation** | SP-133 | 🟡 **Active** |
+
+⚠️ **SP-132 (T-0518–T-0524) is still open.** ✅ **What LANDED in `a50ebc9`: the `recomputeBoundaries`
+rewrite (`40.8 ms` → `0.202 ms`) and `SCRIVI_NO_PROJECT_LOAD`.** ⚠️ **What did NOT land: T-0519/T-0520
+(reverted — they removed the app's window), T-0522 (change-driven Spotlight) and T-0524's batching.**
+⚠️ **T-0522 remains worth doing (`355 ms` blocking per resign, MEASURED) — ✅ as SP-132 close-out.**
+
+---
 
 ### (former SP-128 notes follow)
 
