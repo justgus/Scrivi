@@ -743,6 +743,22 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    /// EP-039 AC4 — ONE crossing for every explicitly-set story time in the project.
+    ///
+    /// ⚠️ **THIS REPLACES A PER-SCENE READ.** `TimelineViewModel` called
+    /// `getSceneStoryTime` once per scene — 1,174 synchronous crossings on the main
+    /// actor, MEASURED at ~950 ms inside a chapter create and ~113 ms at open (I-0213).
+    /// The core endpoint shipped in SP-131 but was never bound in Swift, so no Apple
+    /// surface could call it.
+    ///
+    /// ⚠️ **EMPTY IS NORMAL.** See `StoryTimesResult` — a throw is the ONLY failure
+    /// signal; an empty list means "no scene has an explicit story time", which on a
+    /// default-chain manuscript is the expected answer.
+    public func listStoryTimes(projectRootPath: String) throws -> StoryTimesResult {
+        let raw = projectRootPath.withCString { prp in scrivi_list_story_times(prp) }
+        return try decodeC(raw)
+    }
+
     public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult {
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in scrivi_clear_scene_story_time(prp, sid) }
@@ -1392,6 +1408,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func setTimelineEpochLabel(projectRootPath: String, label: String) throws -> TimelineBoolResult { try unavailable() }
     public func setSceneStoryTime(projectRootPath: String, sceneID: String, offsetMs: Int64, source: String, gapMs: Int64 = 0, durationMs: Int64 = 3_600_000, durationSource: String = "default") throws -> SceneStoryTimeResult { try unavailable() }
     public func getSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func listStoryTimes(projectRootPath: String) throws -> StoryTimesResult { try unavailable() }
     public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
     public func getSceneNotes(projectRootPath: String, sceneID: String) throws -> SceneNotesResult { try unavailable() }
     @discardableResult public func setSceneTags(projectRootPath: String, sceneID: String, tags: [String]) throws -> SceneNotesUpdateResult { try unavailable() }
@@ -2018,6 +2035,46 @@ public struct SceneStoryTimeResult: Decodable, Sendable {
     public let inferenceConfidence: Double
     public let bandID:              String
     public let bandAssignedAt:      String
+}
+
+/// EP-039 AC4 — the SPARSE bulk story-time read (`scrivi_list_story_times`).
+///
+/// ⚠️ **SPARSE BY DESIGN.** A record comes back ONLY for a scene whose story time is
+/// EXPLICITLY SET; scenes on the default chain are OMITTED because their offsets are
+/// derived and cost nothing to omit.
+///
+/// ⚠️ **AN EMPTY RESULT IS THE COMMON CASE, NOT AN ERROR.** Measured on the 1,203-sidecar
+/// fixture, ZERO scenes carry a `storyTime` block. The C ABI omits the `storyTimes` key
+/// entirely for an empty list, so its ABSENCE must decode to `[]`; `count` is emitted
+/// UNCONDITIONALLY as the unambiguous "the call ran" signal.
+/// ⛔ NEVER read emptiness as failure — a throw is the only failure signal, and treating
+/// empty as failure would make a real timeline draw as blank.
+public struct StoryTimesResult: Decodable, Sendable {
+    public let storyTimes: [SceneStoryTimeEntry]
+    public let count:      Int
+
+    private enum CodingKeys: String, CodingKey { case storyTimes, count }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        storyTimes = try c.decodeIfPresent([SceneStoryTimeEntry].self, forKey: .storyTimes) ?? []
+        count      = try c.decodeIfPresent(Int.self, forKey: .count) ?? storyTimes.count
+    }
+}
+
+/// One explicitly-set story time. Field names mirror `scrivi_list_story_times` exactly.
+/// ⚠️ `inferenceConfidence` is NOT emitted by the bulk call (unlike the per-scene read),
+/// so it is absent here rather than defaulted to a number that was never measured.
+public struct SceneStoryTimeEntry: Decodable, Sendable {
+    public let sceneID:        String
+    public let offsetMs:       Int64
+    public let offsetSource:   String
+    public let gapMs:          Int64
+    public let durationMs:     Int64
+    public let durationSource: String
+    public let inferenceHint:  String
+    public let bandID:         String
+    public let bandAssignedAt: String
 }
 
 // Scene writing-tool card content (EP-030 SP-091) — tags / outline / todo.

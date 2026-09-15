@@ -954,6 +954,15 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // Cmd-Enter: split scene at cursor, or append empty scene if at end.
         func handleCreateScene() {
+            // ⚠️ I-0213 — TIME THE STRUCTURAL OP ITSELF.
+            // The ⌘-chord paths RETURN EARLY from `keyDown`, so its `defer` timer never
+            // sees them. A 2.7 s hang was logged against a PLAIN Return and could not be
+            // attributed to any action; this makes each op report its own cost.
+            let __t0 = Date()
+            defer {
+                let ms = Date().timeIntervalSince(__t0) * 1000
+                if ms > 0.5 { NSLog("[SCRIVI-STRUCT] createScene=%.1f ms", ms) }
+            }
             guard let tv = textView else { return }
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }
@@ -1041,9 +1050,21 @@ struct ManuscriptTextView: NSViewRepresentable {
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     }
 
+                    // ⚠️ I-0213 — the other untimed block on this path. `reloadSceneDots`
+                    // does one `getSceneStoryTime` C ABI call PER SCENE (1,174 of them),
+                    // so it is a candidate for the remaining 2.1 s. Measured, not assumed.
+                    // ⚠️ I-0213 — TIMED SEPARATELY. One timer spanning BOTH was misleading:
+                    // it was labelled `reloadSceneDots` while most of the cost was actually
+                    // in `updateDotTitles`, which `load()` never calls.
+                    let __r0 = Date()
                     session.timelineModel?.reloadSceneDots(
                         engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+                    let __rMs = Date().timeIntervalSince(__r0) * 1000
+                    let __t0t = Date()
                     session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                    let __tMs = Date().timeIntervalSince(__t0t) * 1000
+                    if __rMs > 0.5 { NSLog("[SCRIVI-STRUCT]   reloadSceneDots=%.1f ms", __rMs) }
+                    if __tMs > 0.5 { NSLog("[SCRIVI-STRUCT]   updateDotTitles=%.1f ms", __tMs) }
                 } catch {
                     print("[Scrivi] createScene failed: \(error)")
                 }
@@ -1052,6 +1073,16 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // Shift-Cmd-Enter: split at cursor creating a new chapter, or append empty chapter at end.
         func handleCreateChapter() {
+            // ⚠️ I-0213 — DO **NOT** TIME THE WHOLE FUNCTION HERE.
+            //
+            // It did, and the number was MEANINGLESS: `handleCreateChapter` shows a
+            // CONFIRMATION MODAL (`alert.runModal()`, below) that blocks until the user
+            // clicks. The logged 2959.5 / 2092.5 / 3638.6 ms were dominated by HUMAN
+            // REACTION TIME — which is also why they varied so wildly, and why the
+            // apparent "29% improvement" after the batching fixes was noise, not signal.
+            //
+            // ✅ The work is timed from AFTER the modal instead (see `__w0`), so the
+            // number reports computation only.
             guard let tv = textView else { return }
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }
@@ -1090,6 +1121,10 @@ struct ManuscriptTextView: NSViewRepresentable {
                 guard alert.runModal() == .alertFirstButtonReturn else { return }
             }
 
+            // ✅ I-0213 — the timer starts AFTER the modal, so it measures WORK, not the
+            // user's click latency. Reported at the end of the async block below.
+            let __w0 = Date()
+
             Task { @MainActor in
                 guard let ref = env.authorshipRef,
                       let rootPath = session.projectRootPath,
@@ -1103,12 +1138,22 @@ struct ManuscriptTextView: NSViewRepresentable {
                 session.historyCapture?.recordBarrier(kind: "chapterSplit", note: "Can't undo past creating a chapter")
 
                 do {
+                    // ⚠️ I-0213 — the C ABI call is SYNCHRONOUS ON THE MAIN ACTOR and was
+                    // untimed. After batching the loader mutations, createChapter fell
+                    // 2959.5 → 2092.5 ms — a real 29% gain, but 2.1 s remains unexplained.
+                    // This splits the engine call out from the Swift-side work so the next
+                    // run says WHICH it is, instead of another inference.
+                    let __e0 = Date()
                     let result = try env.engine.createChapter(
                         projectRootPath: rootPath,
                         appSupportRoot: env.appSupportRoot,
                         projectID: proj.projectID,
                         authorshipRef: ref
                     )
+                    let __eMs = Date().timeIntervalSince(__e0) * 1000
+                    if __eMs > 0.5 {
+                        NSLog("[SCRIVI-STRUCT]   engine.createChapter (C ABI)=%.1f ms", __eMs)
+                    }
 
                     if isAtEnd {
                         // Append empty chapter after current — original behaviour.
@@ -1166,9 +1211,27 @@ struct ManuscriptTextView: NSViewRepresentable {
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     }
 
+                    // ⚠️ I-0213 — the other untimed block on this path. `reloadSceneDots`
+                    // does one `getSceneStoryTime` C ABI call PER SCENE (1,174 of them),
+                    // so it is a candidate for the remaining 2.1 s. Measured, not assumed.
+                    // ⚠️ I-0213 — TIMED SEPARATELY. One timer spanning BOTH was misleading:
+                    // it was labelled `reloadSceneDots` while most of the cost was actually
+                    // in `updateDotTitles`, which `load()` never calls.
+                    let __r0 = Date()
                     session.timelineModel?.reloadSceneDots(
                         engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
+                    let __rMs = Date().timeIntervalSince(__r0) * 1000
+                    let __t0t = Date()
                     session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+                    let __tMs = Date().timeIntervalSince(__t0t) * 1000
+                    if __rMs > 0.5 { NSLog("[SCRIVI-STRUCT]   reloadSceneDots=%.1f ms", __rMs) }
+                    if __tMs > 0.5 { NSLog("[SCRIVI-STRUCT]   updateDotTitles=%.1f ms", __tMs) }
+
+                    // ✅ WORK ONLY — excludes the confirmation modal (see `__w0`).
+                    let __wMs = Date().timeIntervalSince(__w0) * 1000
+                    if __wMs > 0.5 {
+                        NSLog("[SCRIVI-STRUCT] createChapter WORK=%.1f ms (modal excluded)", __wMs)
+                    }
                 } catch {
                     print("[Scrivi] createChapter failed: \(error)")
                 }
@@ -1178,6 +1241,15 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Cmd-Backspace: merge scene with previous scene (only if cursor at position 0 of scene,
         // and the scene is not the first scene in its chapter).
         func handleMergeScene() {
+            // ⚠️ I-0213 — TIME THE STRUCTURAL OP ITSELF.
+            // The ⌘-chord paths RETURN EARLY from `keyDown`, so its `defer` timer never
+            // sees them. A 2.7 s hang was logged against a PLAIN Return and could not be
+            // attributed to any action; this makes each op report its own cost.
+            let __t0 = Date()
+            defer {
+                let ms = Date().timeIntervalSince(__t0) * 1000
+                if ms > 0.5 { NSLog("[SCRIVI-STRUCT] mergeScene=%.1f ms", ms) }
+            }
             guard let tv = textView else { return }
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }
@@ -1253,6 +1325,15 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Shift-Cmd-Backspace: merge chapter with previous chapter (only if cursor at position 0
         // of the first scene of a chapter, and not in the first chapter).
         func handleMergeChapter() {
+            // ⚠️ I-0213 — TIME THE STRUCTURAL OP ITSELF.
+            // The ⌘-chord paths RETURN EARLY from `keyDown`, so its `defer` timer never
+            // sees them. A 2.7 s hang was logged against a PLAIN Return and could not be
+            // attributed to any action; this makes each op report its own cost.
+            let __t0 = Date()
+            defer {
+                let ms = Date().timeIntervalSince(__t0) * 1000
+                if ms > 0.5 { NSLog("[SCRIVI-STRUCT] mergeChapter=%.1f ms", ms) }
+            }
             guard let tv = textView else { return }
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }

@@ -46,7 +46,7 @@ governs anything is a second source of truth.
 
 ---
 
-## SP-129 — `[Apple]` ⚠️ **The four unbuilt surfaces** — and the direct-filesystem bypass they exposed
+## ⚠️ SP-129 — **MOVED TO [EP-040] 2026-09-15 (user ruling) — ✅ NO LONGER A BACKLOG SPRINT.** ⚠️ **Its Epic is now [EP-040], NOT [EP-039] (closed).** ✅ **Retained here for its planning detail only; ⛔ the authoritative status is EP-040's Sprint table.** ---- ORIGINAL: `[Apple]` ⚠️ **The four unbuilt surfaces** — and the direct-filesystem bypass they exposed
 
 **Status:** 🔵 **PLANNING — not activated.**
 **Epic:** [EP-039](../Epics/Epic-active.md) — `[Cross]` Project Load Performance · ⚠️ **NOT sprint 1**
@@ -123,7 +123,7 @@ mirroring one** — ⚠️ **and a design invented to close a checkbox is how pl
 
 ---
 
-## SP-130 — `[Apple]`+`[ScriviCore]` ⚠️ **Close the ScriviCore bypasses** — [I-0197]
+## ⚠️ SP-130 — **MOVED TO [EP-040] 2026-09-15 (user ruling) — ✅ NO LONGER A BACKLOG SPRINT.** ⚠️ **Its Epic is now [EP-040], NOT [EP-039] (closed).** ✅ **Retained here for its planning detail only; ⛔ the authoritative status is EP-040's Sprint table.** ---- ORIGINAL: `[Apple]`+`[ScriviCore]` ⚠️ **Close the ScriviCore bypasses** — [I-0197]
 
 **Status:** 🔵 **PLANNING — not activated.**
 **Epic:** [EP-039](../Epics/Epic-active.md) — `[Cross]` Project Load Performance
@@ -173,7 +173,7 @@ uniformly.**
 ---
 
 **Next available Sprint ID: SP-134.** ✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
-(→ [`Closed/`](Closed/)). ⚠️ **SP-129 and SP-130 above are PLANNING and NOT activated.**
+(→ [`Closed/`](Closed/)). ⚠️ **SP-129 and SP-130 above MOVED TO [EP-040] 2026-09-15** — ✅ **their status is owned by EP-040's Sprint table, not by this file.**
 🟡 **SP-132 and SP-133 are ACTIVE** and live in [`Sprint-active.md`](Sprint-active.md).
 🟡 **SP-131 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md) — ⚠️ **it left this file at
 activation and never returns.** ⚠️ **SP-129/SP-130 sequence BEHIND it and behind the `[Apple]` async

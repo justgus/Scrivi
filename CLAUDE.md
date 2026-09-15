@@ -52,6 +52,20 @@ Key documents:
   toolchain, build/test, running the app, and test data. ⚠️ **§7 (drive dismount) is DELIBERATELY EMPTY**
   — it is SP-124/T-0477's, and must be written from a real drive pull, not from documentation.
   ⚠️ **The Windows rig must EXECUTE this, not re-derive it.**
+- `docs/Scrivi_Timeline_Clustering_Design_v0_1.md` — ⚠️ **DRAFT.** The user's ruling on what timeline dot
+  clustering must RESOLVE TO (extends Timeline Panel v0.3, which only says clustering exists).
+  ✅ **R1** axis always spans the viewport · ✅ **R2** cluster COUNT is the controlled variable (as many
+  aggregates as fit across the width) · ✅ **R3** zoom refines monotonically to single dots.
+  ⚠️ Today's proximity chaining is transitive with an 18px cap, so 1,158 scenes collapse to ONE dot
+  ([I-0208]); ✅ the fix is capacity-based bucketing, plus an INDEPENDENT popover size bound.
+- `docs/Scrivi_Apple_App_Shape_Trade_Study_v0_1.md` — ⚠️ **DRAFT, awaiting ruling.** Answers **what
+  kind of app Scrivi is** and how to restructure top-down as that kind. ✅ **It is a SINGLE-DOCUMENT
+  editor with a navigable OUTLINE and a contextual inspector (the Xcode/Scrivener shape) — NOT
+  master/detail**: proven because the Inspector tracks `viewportSceneID` (what you scrolled to), not
+  `selectedSceneID` (what you clicked). ⚠️ **It is SIX surfaces, not three.** ⚠️ **Font/style toolbar
+  controls DO NOT FIT** — `isRichText = false` and the canonical body is Markdown (`.md`), so
+  character-level styling has nowhere to persist. ✅ The toolbar is mostly a **surfacing** job: the
+  verbs already exist in the menu bar as callable closures.
 - `docs/Scrivi_Apple_UI_Conformance_Trade_Study_v0_1.md` — ⚠️ **DRAFT, awaiting ruling.** Assesses the
   **whole Apple UI surface** against macOS 26/27's actual design system, occasioned by I-0203/I-0205.
   ⚠️ **Every API claim carries a fetched Apple URL** — ✅ and §0 records the route that works

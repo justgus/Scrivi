@@ -16,6 +16,26 @@ file. The backlog is for unstarted, unassigned work only.
 
 ---
 
+## Currently: ⚠️ **EP-039 CLOSED 2026-09-15** — ✅ **SP-133's verified Tasks are ARCHIVED**
+
+✅ **ARCHIVED at the EP-039 close** → [`Verified/Task-verified-0525-0534.md`](Verified/Task-verified-0525-0534.md):
+**T-0525, T-0526, T-0527, T-0532, T-0534** (⚠️ **the five the user VERIFIED**).
+
+⚠️ **AUDIT-CHECK FINDING F1, REMEDIATED HERE 2026-09-15:** ⚠️ **T-0521, T-0523, T-0532, T-0533 and
+T-0534 existed ONLY in `Sprint-active.md` and in NO task-layer file at all** — ⚠️ **including
+[T-0523], which is [AC6]'s own task, the one the user verified.** ✅ **They are registered below.**
+
+⚠️ **NOT ARCHIVED, and why:** ⚠️ **T-0528 / T-0530 / T-0531 reached a conclusion but were never
+user-verified.** ⚠️ **T-0529 is HALF-verified — ✅ the live window drag, ⛔ NOT the `rebuildStorage`
+split/merge case that [I-0213] came from.** ✅ **All four remain below rather than being archived as
+done work.**
+
+| ID | Task | Sprint | Status |
+| -- | ---- | ------ | ------ |
+| **T-0521** | ✅ **Remove `rebuildStorage`'s O(N²) chapter lookup** ([I-0196]'s third defect) | SP-132 | 🟢 **Implemented - Not Verified** |
+| **T-0523** | ✅ **[AC6] — the load runs OFF the main thread, with a determinate progress bar** | SP-132 | ✅ **VERIFIED 2026-09-14 (AC6)** |
+| **T-0533** | ✅ **[I-0207] half (a) — cache the parsed world binding** | SP-133 | 🟢 **Implemented - Not Verified** |
+
 ## Currently: 🟡 **SP-133 ACTIVE** (`[Apple]` TextKit 2) — ✅ **[EP-039]**
 
 ⚠️ **Sprint plan lives in [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md) and is NOT
@@ -23,9 +43,6 @@ duplicated here.**
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| **T-0525** | ✅ **Replace the TWO TextKit 1 call sites** (`ManuscriptTextView.swift:541`, `:1591`) with `textLayoutFragment(for:)` + fragment geometry | SP-133 | 🟡 **Active** |
-| **T-0526** | ✅ **Port the scene divider off `NSTextAttachmentCell`** → `NSTextAttachmentViewProvider`. ⚠️ **AppKit-ONLY today, so it blocks iOS independently** | SP-133 | 🟡 **Active** |
-| **T-0527** | ✅ **CI guard against the TextKit 1 downgrade returning** (5.7 ruling). ⚠️ **Lands WITH the migration** | SP-133 | 🟡 **Active** |
 | **T-0528** | ✅ **Verify `sceneBoundaries` + the nine `recomputeBoundaries` callers survive** — ⚠️ **a wrong boundary misplaces the caret ([I-0131])** | SP-133 | 🟡 **Active** |
 | **T-0529** | ✅ **Measure before/after on the real fixture** — ⚠️ **including a LIVE window drag and a scene split/merge** | SP-133 | 🟡 **Active** |
 | **T-0530** | ⚠️ **Measure the LONG-PARAGRAPH case deliberately** — ✅ **TextKit 2's laziness is PER PARAGRAPH** | SP-133 | 🟡 **Active** |

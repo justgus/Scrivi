@@ -243,13 +243,42 @@ struct SceneSegment: Identifiable {
         // a rising avg is what proves the cost is quadratic, and a total alone
         // is what made the first (wrong) diagnosis possible.
         ScriviDiag.reset()
-        segments.removeAll()
+
+        // ⚠️ AC9 / T-0524 — NOTIFICATION BATCHING.
+        //
+        // This loop called `loadScene`, which writes BOTH `segments` and `liveTitles`
+        // — two `@Observable` properties — ONCE PER SCENE. On the 1,174-scene fixture
+        // that is ~2,348 observation notifications during a single open, which is the
+        // measured `1135.66 notifications/second` and the `harmful notification post
+        // rate` warning.
+        //
+        // ✅ Accumulate into LOCALS, then assign ONCE. Two notifications for the whole
+        // load instead of two per scene — so volume no longer scales with scene count,
+        // which is the AC's actual requirement (the AC is the BATCHING, not the number).
+        //
+        // ⚠️ `segments` is `private(set)` and observation fires on the SETTER, so the
+        // local array must be built and assigned wholesale; appending to `self.segments`
+        // in the loop is what produced the storm.
+        var builtSegments: [SceneSegment] = []
+        builtSegments.reserveCapacity(allScenes.count)
+        var builtTitles: [String: String] = [:]
+
         ScriviDiag.measure("loadAll: scene loop") {
             for i in allScenes.indices {
-                loadScene(at: i, insertAt: .end)
+                buildScene(at: i, into: &builtSegments, titles: &builtTitles)
                 ScriviDiag.tick("scenes loaded", i, of: allScenes.count)
             }
         }
+
+        segments = builtSegments
+        // ⚠️ MERGE, do not replace. The original loop wrote `liveTitles[id] = firstLine`
+        // per scene and never cleared the dictionary, so a title already present for a
+        // scene this pass derives no first line for SURVIVED. Both of today's callers
+        // happen to enter with it empty (`replaceScenes` clears it at :289; a fresh open
+        // starts empty), which makes replace and merge equivalent RIGHT NOW — but that is
+        // incidental, and a future caller would silently lose titles. Keep the original
+        // semantics: one notification, same result.
+        liveTitles.merge(builtTitles) { _, new in new }
         ScriviDiag.measure("loadAll: rebuildSceneStartMap") {
             rebuildSceneStartMap()
         }
@@ -699,8 +728,13 @@ struct SceneSegment: Identifiable {
     // Returns the index of the new (tail) scene, which is inserted at index+1.
     // The caller must have already saved `result` to disk and written the tail text to the new scene's file.
     func splitScene(_ result: CreateSceneResult, at index: Int, headText: String, tailText: String) -> Int {
-        segments[index].text = headText
-        segments[index].isDirty = false  // already saved by caller
+        // ⚠️ I-0213 — batch the `@Observable` writes. This made FOUR separate mutations
+        // (two to `segments`, one `firstIndex` scan, one `allScenes.insert`), each able
+        // to drive its own SwiftUI update pass; on the chapter-split path they stack with
+        // `splitChapter`'s. Build locally, assign once each.
+        var newSegments = segments
+        newSegments[index].text = headText
+        newSegments[index].isDirty = false  // already saved by caller
 
         let newSeg = SceneSegment(
             id: result.sceneID,
@@ -712,10 +746,11 @@ struct SceneSegment: Identifiable {
             isDirty: false  // tail was saved by caller
         )
         let insertIdx = index + 1
-        segments.insert(newSeg, at: insertIdx)
+        newSegments.insert(newSeg, at: insertIdx)
 
-        if let allIdx = allScenes.firstIndex(where: { $0.sceneID == segments[index].sceneID }) {
-            let predecessor = allScenes[allIdx]
+        var newAll = allScenes
+        if let allIdx = newAll.firstIndex(where: { $0.sceneID == newSegments[index].sceneID }) {
+            let predecessor = newAll[allIdx]
             let info = SceneInfo(
                 sceneID: result.sceneID,
                 chapterID: result.chapterID,
@@ -726,8 +761,11 @@ struct SceneSegment: Identifiable {
                 contentPath: result.contentPath,
                 chapterMetadataPath: predecessor.chapterMetadataPath
             )
-            allScenes.insert(info, at: allIdx + 1)
+            newAll.insert(info, at: allIdx + 1)
         }
+
+        segments = newSegments
+        allScenes = newAll
         rebuildSceneStartMap()
         return insertIdx
     }
@@ -767,24 +805,46 @@ struct SceneSegment: Identifiable {
         let startChapterID = segments[segmentIndex].chapterID
         guard let startOrdinalIdx = orderedChapterIDs.firstIndex(of: startChapterID) else { return }
 
-        // Rewrite chapterTitle for every scene in every chapter from startOrdinalIdx onward.
+        // ⚠️ I-0213 — THIS WAS O(chapters × scenes) WITH ONE `@Observable` WRITE PER SCENE.
+        //
+        // ✅ MEASURED 2026-09-14: `[SCRIVI-STRUCT] createChapter=2959.5 ms` on 1,174 scenes
+        // in 52 chapters, against a SCENE create in the same run that cost < 0.5 ms.
+        // `renumberChapterTitlesFrom` is the only heavy call the chapter path makes that
+        // the scene path does not.
+        //
+        // ⚠️ THE OLD SHAPE: the inner loop scanned ALL 1,174 scenes for EVERY chapter from
+        // the split point on — ~47,000 iterations — and each match did
+        // `allScenes[j] = SceneInfo(...)`, a write to an `@Observable` property. That is
+        // ~1,174 observation notifications, each able to drive a SwiftUI update pass.
+        //
+        // ✅ TWO CHANGES, both structural rather than micro-optimisation:
+        //   1. ONE PASS over `allScenes` instead of one pass PER CHAPTER — a chapterID →
+        //      new-title map turns O(chapters × scenes) into O(scenes).
+        //   2. Build into a LOCAL and assign ONCE — one notification for the whole
+        //      renumber instead of one per scene. Same discipline as AC9's `loadAll`.
+        var titleForChapter: [String: String] = [:]
+        titleForChapter.reserveCapacity(orderedChapterIDs.count - startOrdinalIdx)
         for ordinalIdx in startOrdinalIdx ..< orderedChapterIDs.count {
-            let chID = orderedChapterIDs[ordinalIdx]
-            let newTitle = "Chapter \(ordinalIdx + 1)"
-            for j in allScenes.indices where allScenes[j].chapterID == chID {
-                let old = allScenes[j]
-                allScenes[j] = SceneInfo(
-                    sceneID: old.sceneID,
-                    chapterID: old.chapterID,
-                    title: old.title,
-                    chapterTitle: newTitle,
-                    slug: old.slug,
-                    metadataPath: old.metadataPath,
-                    contentPath: old.contentPath,
-                    chapterMetadataPath: old.chapterMetadataPath
-                )
-            }
+            titleForChapter[orderedChapterIDs[ordinalIdx]] = "Chapter \(ordinalIdx + 1)"
         }
+
+        var rebuilt = allScenes
+        for j in rebuilt.indices {
+            guard let newTitle = titleForChapter[rebuilt[j].chapterID],
+                  rebuilt[j].chapterTitle != newTitle else { continue }
+            let old = rebuilt[j]
+            rebuilt[j] = SceneInfo(
+                sceneID: old.sceneID,
+                chapterID: old.chapterID,
+                title: old.title,
+                chapterTitle: newTitle,
+                slug: old.slug,
+                metadataPath: old.metadataPath,
+                contentPath: old.contentPath,
+                chapterMetadataPath: old.chapterMetadataPath
+            )
+        }
+        allScenes = rebuilt
     }
 
     // Move scenes from `movingFrom` onward that still belong to `oldChapterID` into the new chapter.
@@ -792,38 +852,56 @@ struct SceneSegment: Identifiable {
     // `movingFrom` is the index of the first scene of the new chapter (already has new chapterID).
     // Subsequent scenes in the old chapter (at movingFrom+1, +2, ...) are re-assigned here.
     func splitChapter(_ result: CreateChapterResult, movingFrom index: Int, oldChapterID: String) {
-        // Re-assign any remaining scenes at index+1... that still belong to oldChapterID.
+        // ⚠️ I-0213 — THIS WAS O(N²) AND WROTE `@Observable` STATE PER SCENE.
+        //
+        // The second loop scanned `allScenes` (1,174) and, for EVERY match, ran
+        // `segments.firstIndex(where:)` — a LINEAR scan of 1,174 segments. Up to ~1.4 M
+        // comparisons for one chapter split, plus one observable write per match.
+        // Combined with `splitScene` and `insertChapterFirstScene`, the split path made
+        // ~26 separate writes to `segments`/`allScenes`, each able to drive its own
+        // SwiftUI update pass — and `updateNSView` re-derives a 1,174-element ID array
+        // plus a chapter fingerprint on every one of them. That is the doubled (and
+        // worse) `rebuildStorage` visible in the 2026-09-14 log.
+        //
+        // ✅ Build both arrays LOCALLY, assign ONCE each: two notifications for the whole
+        // split. The `sceneID → segment index` map removes the nested scan.
+        var newSegments = segments
         var i = index + 1
-        while i < segments.count && segments[i].chapterID == oldChapterID {
-            segments[i] = SceneSegment(
-                id: segments[i].id,
-                sceneID: segments[i].sceneID,
+        while i < newSegments.count && newSegments[i].chapterID == oldChapterID {
+            newSegments[i] = SceneSegment(
+                id: newSegments[i].id,
+                sceneID: newSegments[i].sceneID,
                 chapterID: result.chapterID,
-                metadataPath: segments[i].metadataPath,
-                contentPath: segments[i].contentPath,
-                text: segments[i].text,
-                isDirty: segments[i].isDirty
+                metadataPath: newSegments[i].metadataPath,
+                contentPath: newSegments[i].contentPath,
+                text: newSegments[i].text,
+                isDirty: newSegments[i].isDirty
             )
             i += 1
         }
 
-        // Mirror in allScenes for the same scenes (index+1 onward in old chapter).
-        for j in allScenes.indices where allScenes[j].chapterID == oldChapterID {
-            if let segIdx = segments.firstIndex(where: { $0.sceneID == allScenes[j].sceneID }),
-               segIdx > index {
-                allScenes[j] = SceneInfo(
-                    sceneID: allScenes[j].sceneID,
-                    chapterID: result.chapterID,
-                    title: allScenes[j].title,
-                    chapterTitle: allScenes[j].chapterTitle,
-                    slug: allScenes[j].slug,
-                    metadataPath: allScenes[j].metadataPath,
-                    contentPath: allScenes[j].contentPath,
-                    chapterMetadataPath: result.chapterMetadataPath
-                )
-            }
+        // ✅ One map build (O(N)) replaces a `firstIndex` scan per matching scene (O(N²)).
+        var segIndexByScene: [String: Int] = [:]
+        segIndexByScene.reserveCapacity(newSegments.count)
+        for (idx, seg) in newSegments.enumerated() { segIndexByScene[seg.sceneID] = idx }
+
+        var newAll = allScenes
+        for j in newAll.indices where newAll[j].chapterID == oldChapterID {
+            guard let segIdx = segIndexByScene[newAll[j].sceneID], segIdx > index else { continue }
+            newAll[j] = SceneInfo(
+                sceneID: newAll[j].sceneID,
+                chapterID: result.chapterID,
+                title: newAll[j].title,
+                chapterTitle: newAll[j].chapterTitle,
+                slug: newAll[j].slug,
+                metadataPath: newAll[j].metadataPath,
+                contentPath: newAll[j].contentPath,
+                chapterMetadataPath: result.chapterMetadataPath
+            )
         }
 
+        segments = newSegments
+        allScenes = newAll
         rebuildSceneStartMap()
     }
 
@@ -961,12 +1039,14 @@ struct SceneSegment: Identifiable {
         sceneStorageOffsetMap = newStorageMap
     }
 
-    private func loadScene(at allIdx: Int, insertAt position: InsertPosition) {
+    /// AC9 — the bulk-load counterpart of `loadScene`: does the SAME per-scene work but
+    /// writes into caller-owned storage, so a full load posts no observation notification
+    /// until the caller assigns. `loadScene` is retained for incremental single-scene
+    /// inserts, where one notification is correct.
+    private func buildScene(at allIdx: Int,
+                            into out: inout [SceneSegment],
+                            titles: inout [String: String]) {
         let info = allScenes[allIdx]
-        let text: String
-        // ⚠️ Timed SEPARATELY from the Swift work below so the report can say
-        // whether the cost is in the CORE or in the app — the question the
-        // I-0196 stack could not settle on its own.
         let loaded = ScriviDiag.measure("  engine.openScene (C ABI)") {
             try? engine.openScene(
                 projectRootPath: projectRootPath,
@@ -975,33 +1055,23 @@ struct SceneSegment: Identifiable {
                 sceneID: info.sceneID
             )
         }
-        if let result = loaded {
-            text = result.markdown
-        } else {
-            text = ""
-        }
-        let seg = SceneSegment(
+        let text = loaded?.markdown ?? ""
+        out.append(SceneSegment(
             id: info.sceneID,
             sceneID: info.sceneID,
             chapterID: info.chapterID,
             metadataPath: info.metadataPath,
             contentPath: info.contentPath,
             text: text
-        )
-
+        ))
         let firstLine = ScriviDiag.measure("  firstLine scan") {
             text.components(separatedBy: .newlines)
                 .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
         }
         if !firstLine.isEmpty {
-            liveTitles[info.sceneID] = firstLine
-        }
-
-        switch position {
-        case .end:       segments.append(seg)
-        case .beginning: segments.insert(seg, at: 0)
+            titles[info.sceneID] = firstLine
         }
     }
 
-    private enum InsertPosition { case end, beginning }
+
 }

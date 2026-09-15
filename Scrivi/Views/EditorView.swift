@@ -312,7 +312,26 @@ private struct ManuscriptEditorView: View {
                         projectRootPath: prp,
                         authorshipRef: env.authorshipRef,
                         loader: loader,
-                        onSelectScene: { sceneID in navigateToSceneID = sceneID }
+                        // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
+                        //
+                        // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
+                        // leaves the Navigator's selection and scroll position untouched,
+                        // so the writer lands in a scene the list is not showing — the
+                        // same defect I-0157 fixed for the Detail Sheet, which is why
+                        // that call site (below) already does it this way.
+                        //
+                        // I-0132 ruled selection the source of truth on both platforms;
+                        // `onChange(of: selectedSceneID)` then drives the manuscript.
+                        // `revealRequest` is what scrolls the list, and it is deliberately
+                        // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
+                        // it until the manuscript reports arriving, and uses `anchor: nil`
+                        // so an already-visible row is not nudged (I-0132).
+                        onSelectScene: { sceneID in
+                            selectedSceneID = sceneID
+                            revealToken += 1
+                            revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                               token: revealToken)
+                        }
                     )
                 }
                 #else
@@ -325,7 +344,26 @@ private struct ManuscriptEditorView: View {
                         projectRootPath: prp,
                         authorshipRef: env.authorshipRef,
                         loader: loader,
-                        onSelectScene: { sceneID in navigateToSceneID = sceneID }
+                        // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
+                        //
+                        // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
+                        // leaves the Navigator's selection and scroll position untouched,
+                        // so the writer lands in a scene the list is not showing — the
+                        // same defect I-0157 fixed for the Detail Sheet, which is why
+                        // that call site (below) already does it this way.
+                        //
+                        // I-0132 ruled selection the source of truth on both platforms;
+                        // `onChange(of: selectedSceneID)` then drives the manuscript.
+                        // `revealRequest` is what scrolls the list, and it is deliberately
+                        // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
+                        // it until the manuscript reports arriving, and uses `anchor: nil`
+                        // so an already-visible row is not nudged (I-0132).
+                        onSelectScene: { sceneID in
+                            selectedSceneID = sceneID
+                            revealToken += 1
+                            revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                               token: revealToken)
+                        }
                     )
                 }
                 #endif

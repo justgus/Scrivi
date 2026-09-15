@@ -387,10 +387,30 @@ import os
 
     func saveAllDirty() async {
         guard let loader = viewportLoader, let ref = authorshipRef else { return }
+
+        // AC10 / T-0522 — Spotlight re-indexing is CHANGE-DRIVEN, not lifecycle-driven.
+        //
+        // ⚠️ Captured BEFORE the saves, because saving clears `isDirty`. Reading it
+        // afterwards always sees zero and would skip forever — the mirror of the bug
+        // this gate replaces.
+        //
+        // ⚠️ Gating on "did we write anything" does NOT work: `saveAllDirtyBlocking`
+        // always writes the CURRENT scene to carry the cursor (I-0058), so a write
+        // always happens even when no body changed. The question is specifically
+        // whether a scene BODY changed, which is what Spotlight indexes.
+        //
+        // Measured cost of getting this wrong: `scrivi_extract_searchable_text` re-read
+        // all 1,159 scene bodies on every `willResignActive` with `dirty=0` — 280 ms of
+        // blocking main-thread work per resign, to discover nothing had changed.
+        let hadDirtyBodies = loader.segments.contains { $0.isDirty }
+
         await loader.saveAllDirty(engine: engine, ref: ref)
-        // Re-donate after saving so indexed content reflects the latest edits.
-        if let path = projectRootPath {
+
+        // Re-donate ONLY when a scene body actually changed.
+        if hadDirtyBodies, let path = projectRootPath {
             donateSpotlight(projectRootPath: path)
+        } else {
+            NSLog("[SCRIVI-DIAG] spotlight: SKIPPED re-index (no dirty scene bodies)")
         }
     }
 

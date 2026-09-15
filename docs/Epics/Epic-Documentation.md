@@ -56,7 +56,13 @@ See: [Epic-backlog.md](Epic-backlog.md)
 ## All Epics
 
 ⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
-Statistics — read the rows. Next available ID: **EP-040**.
+Statistics — read the rows. Next available ID: **EP-041**.
+⚠️ **INDEX GAP FOUND 2026-09-14 while adding EP-040: this table stopped at EP-034** — ⚠️ **EP-035
+through EP-039 were never added, including the CURRENTLY ACTIVE [EP-039].** ✅ **Rows added from
+verifiable records.** ⚠️ **EP-038's row is reconstructed from the 2026-09-10 ruling note and the
+CLAUDE.md doc reference — ⛔ it has NO Epic record file**, ⚠️ **and EP-035–EP-037 carry no start/close
+dates because none were recorded.** ⚠️ **This is worth an Audit; ✅ it is NOT one, and nothing here was
+invented to fill a blank.**
 Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
 Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
 
@@ -96,6 +102,12 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes); ⚠️ **holds reserved SP-107–SP-114** | 🔵 Draft (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
 | EP-034 | `[Cross]` Object Detail & Media — **Detail Sheets & Project↔World Interaction** — ⚠️ **AC11 moved to EP-035** | ✅ **Closed** — [record](Closed/Epic-EP-034.md) | 2026-08-20 | 2026-08-25 |
+| EP-035 | `[Linux]` Object Foundations — the first PORT | 🔵 **Deferred to backlog** (2026-09-10) | 2026-08-25 | — |
+| EP-036 | `[Linux]` Object Detail Sheet & Media | 🔵 Proposed (backlog) | — | — |
+| EP-037 | `[Linux]` Relationships & Sources | 🔵 Proposed (backlog) | — | — |
+| EP-038 | `[Linux]` Linux Test Rig | 🟠 **Complete** (2026-09-10 ruling) — ⚠️ **no Epic record file** | — | — |
+| EP-039 | `[Cross]` Project Load Performance | ✅ **Closed** (user-approved) — [record](Epic-active.md) | 2026-09-10 | 2026-09-15 |
+| EP-040 | `[Apple]` **The Editor Shell** — build Scrivi as the kind of app it actually is | 🟡 **ACTIVE** — [record](Epic-active.md) | 2026-09-15 | — |
 | **EP-035** | ⚠️ **`[Linux]`** **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11** | 🟡 **ACTIVE** | 2026-08-24 | — |
 | **EP-036** | ⚠️ **`[Linux]`** **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
 | **EP-037** | ⚠️ **`[Linux]`** **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
@@ -107,8 +119,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-040** (⚠️ **EP-039 created AND PROMOTED TO ACTIVE 2026-09-10**; ⚠️ **EP-035 deferred to the backlog and EP-038 marked Complete in the same ruling**)
-- **Total Epic IDs issued:** 38 (EP-001–EP-038); none cancelled, skipped or superseded
+- **Next available Epic ID:** **EP-041** (⚠️ **EP-040 `[Apple]` The Editor Shell created as 🔵 DRAFT 2026-09-14**, ⚠️ **NOT activated — [EP-039]/[SP-133] hold the floor**)
+- **Total Epic IDs issued:** **40** (EP-001–EP-040); none cancelled, skipped or superseded. ⚠️ **Was stated as 38 until 2026-09-14** — ✅ **stale since EP-039.**
   - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
     ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a
     surface Apple took EP-030 + EP-031 (planned 6, delivered **11**) + EP-034 (**8 sprints**) to build.

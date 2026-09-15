@@ -228,7 +228,14 @@ private struct ImportedTimelineFile: Decodable {
     }
 
     // Imported timelines
-    private(set) var importedTimelines: [ImportedTimelineRow] = []
+    // ⚠️ I-0211 — imported timelines are FRAMING REFERENCES for the main timeline.
+    //
+    // `didSet` so the derived bounds recompute when rows are loaded, shown, hidden or
+    // removed — the same discipline `dots` and `historicalEvents` already use. Without
+    // it the span ignores imports entirely and every imported event lands off-panel.
+    private(set) var importedTimelines: [ImportedTimelineRow] = [] {
+        didSet { recomputeDerivedBounds() }
+    }
 
     // Story structure state — loaded from disk via ScriviEngine
     private(set) var activeBands: [StoryBand] = []          // empty == no structure active
@@ -254,6 +261,30 @@ private struct ImportedTimelineFile: Decodable {
         let sceneMax = dots.map { $0.offsetMs + $0.durationMs }.max() ?? 1
         let heMax    = historicalEvents.map(\.offsetMs).max() ?? sceneMax
         maxEndMs = max(sceneMax, heMax)
+
+        // ⚠️ I-0211 — IMPORTED TIMELINES FRAME THE MAIN TIMELINE (user ruling 2026-09-14).
+        //
+        // ⚠️ THE DEFECT THIS FIXES: the span was computed from scene dots and historical
+        // events ONLY. A manuscript whose scenes all carry the DEFAULT story time spans
+        // `sceneCount × 1h` — on the 1,174-scene Dumas fixture that is **48.9 days**,
+        // while its imported historical events sit 77x to 1,799x beyond the right edge.
+        // The row filter (`x >= 16 && x <= panelW - 16`) then discarded EVERY event, so
+        // all four imported rows rendered as bare lines and looked EMPTY.
+        //
+        // ✅ THE RULE: once a timeline is imported it becomes a FRAMING REFERENCE —
+        // the earliest moment across all VISIBLE imported timelines is the main
+        // timeline's start, and the latest is its end. The manuscript's scenes are then
+        // placed WITHIN that frame rather than defining it.
+        //
+        // ⚠️ VISIBLE ROWS ONLY: hiding a row must actually narrow the frame, or the
+        // writer cannot use visibility to focus on one period.
+        let importedOffsets = importedTimelines
+            .filter(\.visible)
+            .flatMap { $0.events.map(\.projectOffsetMs) }
+        if let impMin = importedOffsets.min(), let impMax = importedOffsets.max() {
+            minOffsetMs = min(minOffsetMs, impMin)
+            maxEndMs    = max(maxEndMs, impMax)
+        }
 
         spanMs = max(maxEndMs - minOffsetMs, 1)
 
@@ -284,9 +315,14 @@ private struct ImportedTimelineFile: Decodable {
     func load(engine: ScriviEngine, projectRootPath: String, scenes: [SceneInfo]) {
         epochLabel = (try? engine.getTimeline(projectRootPath: projectRootPath))?.epochLabel ?? "Story Open"
 
+        // ✅ EP-039 AC4 ADOPTED (I-0213) — ONE bulk crossing instead of one per scene.
+        // This path cost `TimelineViewModel.load = 113 ms` at open on 1,174 scenes.
+        // ⚠️ Empty is normal, not failure — see `explicitStoryTimes`.
+        let explicitByScene = Self.explicitStoryTimes(engine: engine,
+                                                      projectRootPath: projectRootPath)
+
         var raw: [SceneDot] = scenes.enumerated().map { idx, info in
-            let st = try? engine.getSceneStoryTime(
-                projectRootPath: projectRootPath, sceneID: info.sceneID)
+            let st = explicitByScene[info.sceneID]
             let dur = st?.durationMs ?? defaultSceneDurationMs
             return SceneDot(
                 id: info.sceneID,
@@ -313,11 +349,26 @@ private struct ImportedTimelineFile: Decodable {
     // Used after scene/chapter creation, split, or merge so the timeline stays in sync
     // without resetting historical events, imported timelines, or story structure.
     func reloadSceneDots(engine: ScriviEngine, projectRootPath: String, scenes: [SceneInfo]) {
+        // ✅ EP-039 AC4 ADOPTED (I-0213). This made ONE `getSceneStoryTime` C ABI call
+        // PER SCENE — 1,174 synchronous crossings on the main actor, MEASURED at
+        // ~950 ms inside a chapter create. `scrivi_list_story_times` shipped in SP-131
+        // to replace exactly this, but was never bound in Swift; it is now.
+        //
+        // ⚠️ EMPTY IS NORMAL AND IS NOT FAILURE. On a default-chain manuscript NO scene
+        // has an explicit story time, so the sparse list is legitimately empty and every
+        // dot takes its defaults. A throw is the only failure signal — and on a throw we
+        // keep going with defaults rather than drawing a blank timeline.
+        let explicitByScene = Self.explicitStoryTimes(engine: engine,
+                                                      projectRootPath: projectRootPath)
+
+        // ⚠️ `dots.first(where:)` INSIDE the map was a second O(N²). One map instead.
+        var bandByScene: [String: String] = [:]
+        bandByScene.reserveCapacity(dots.count)
+        for d in dots where !d.bandID.isEmpty { bandByScene[d.sceneID] = d.bandID }
+
         var raw: [SceneDot] = scenes.enumerated().map { idx, info in
-            // Preserve any existing dot's bandID so band assignments survive the reload.
-            let existingBandID = dots.first(where: { $0.sceneID == info.sceneID })?.bandID ?? ""
-            let st = try? engine.getSceneStoryTime(
-                projectRootPath: projectRootPath, sceneID: info.sceneID)
+            let st = explicitByScene[info.sceneID]
+            let existingBandID = bandByScene[info.sceneID] ?? ""
             let dur = st?.durationMs ?? defaultSceneDurationMs
             return SceneDot(
                 id: info.sceneID,
@@ -336,27 +387,70 @@ private struct ImportedTimelineFile: Decodable {
         dots = raw
     }
 
+    /// EP-039 AC4 — one bulk crossing, keyed by sceneID for O(1) lookup.
+    ///
+    /// ⚠️ **THE EMPTY-ARRAY TRAP IS HANDLED HERE, ONCE.** The C ABI omits `storyTimes`
+    /// entirely when nothing is set, and that is the COMMON case — so an empty result
+    /// means "every scene is on the default chain", NOT "the call failed".
+    /// ⛔ Only a THROW is failure, and even then the caller proceeds with defaults:
+    /// drawing a blank timeline because a read failed would hide the writer's story.
+    static func explicitStoryTimes(engine: ScriviEngine,
+                                   projectRootPath: String) -> [String: SceneStoryTimeEntry] {
+        guard let result = try? engine.listStoryTimes(projectRootPath: projectRootPath) else {
+            return [:]
+        }
+        var byScene: [String: SceneStoryTimeEntry] = [:]
+        byScene.reserveCapacity(result.storyTimes.count)
+        for st in result.storyTimes { byScene[st.sceneID] = st }
+        return byScene
+    }
+
     // Patch dot titles to match the Scene Navigator's display logic exactly:
     //   1. Explicit engine title (info.title non-empty) → use it unchanged.
     //   2. No explicit title → use liveTitles first-line text if available.
     //   3. Neither → keep the existing "Scene N" ordinal fallback on the dot.
     // `allScenes` is passed so we can check info.title without a separate lookup path.
     func updateDotTitles(liveTitles: [String: String], allScenes: [SceneInfo]) {
-        for i in dots.indices {
-            let sceneID = dots[i].sceneID
-            // Find the canonical title from allScenes.
-            if let info = allScenes.first(where: { $0.sceneID == sceneID }) {
-                if !info.title.trimmingCharacters(in: .whitespaces).isEmpty {
-                    // Explicit title always wins.
-                    dots[i].title = info.title
-                } else if let live = liveTitles[sceneID],
-                          !live.trimmingCharacters(in: .whitespaces).isEmpty {
-                    // No explicit title — use first-line live text.
-                    dots[i].title = live
-                }
-                // Otherwise leave the "Scene N" fallback already on the dot.
+        // ⚠️ I-0213 — THIS WAS THE REMAINING ~745 ms, NOT `reloadSceneDots`.
+        //
+        // ✅ MEASURED: after AC4's bulk read landed, `load()` — which builds the SAME dots
+        // — fell to 3.5 ms, while the block timed as "reloadSceneDots" stayed at ~745 ms.
+        // The difference is THIS function, which `load()` never calls. My timer spanned
+        // both, so the label was misleading.
+        //
+        // ⚠️ IT WAS DOUBLY O(N²):
+        //   1. `allScenes.first(where:)` — a 1,177-element LINEAR SCAN **per dot**,
+        //      ~1.4 M comparisons;
+        //   2. `dots[i].title = …` — an `@Observable` write **per dot**, so up to 1,177
+        //      notifications, each able to drive its own SwiftUI update pass.
+        //
+        // ✅ One `sceneID → SceneInfo` map (O(N)), and one assignment to `dots` at the end.
+        var infoByScene: [String: SceneInfo] = [:]
+        infoByScene.reserveCapacity(allScenes.count)
+        for info in allScenes { infoByScene[info.sceneID] = info }
+
+        var updated = dots
+        var changed = false
+        for i in updated.indices {
+            let sceneID = updated[i].sceneID
+            guard let info = infoByScene[sceneID] else { continue }
+            let newTitle: String?
+            if !info.title.trimmingCharacters(in: .whitespaces).isEmpty {
+                newTitle = info.title                      // Explicit title always wins.
+            } else if let live = liveTitles[sceneID],
+                      !live.trimmingCharacters(in: .whitespaces).isEmpty {
+                newTitle = live                            // Else the first-line live text.
+            } else {
+                newTitle = nil                             // Else keep "Scene N".
+            }
+            if let newTitle, updated[i].title != newTitle {
+                updated[i].title = newTitle
+                changed = true
             }
         }
+        // ⚠️ Skip the write entirely when nothing changed — a no-op reload should not
+        // post an observation notification at all.
+        if changed { dots = updated }
     }
 
     // MARK: Historical events
@@ -708,11 +802,24 @@ struct TimelineStripView: View {
     // it opens a popover with a circle-of-dots. The popover stays open (hover is just the
     // opener) and dismisses on outside-click or member selection. Keyed by centerItemID.
     @State private var openAggregateID: String? = nil
+    /// I-0212 — title of the member hovered inside the open aggregate popover.
+    @State private var hoveredMemberTitle: String? = nil
     // Imported-row aggregate popover, keyed by "timelineID:centerEventID".
     @State private var openImportedAggregateID: String? = nil
     // Aggregate core dot is notably larger than a regular dot (dotRadius 3.5) so the count
     // number fits and it reads clearly as a group, distinct from placement / band rings.
     private let aggregateDotRadius: CGFloat = 11
+    // I-0208 — visual separation between adjacent aggregate dots. With
+    // `aggregateDotRadius`, this sets the bucket pitch and therefore how many distinct
+    // aggregates fit across the width (design §3.1; gap value is design Q2, not yet ruled).
+    private let clusterBucketGap: CGFloat = 4
+    /// I-0210 — the full hit frame of `AggregateDotView`, which is what must not overlap.
+    /// Kept in step with that view's own `.frame(width: ringDiameter + 8, …)`, where
+    /// `ringDiameter = radius * 2 + 12`. Slice pitch derives from THIS, never from the
+    /// visual dot diameter, or adjacent aggregates occlude one another's hit areas.
+    private var aggregateHitFrame: CGFloat {
+        AggregateDotView<EmptyView>.hitFrame(radius: aggregateDotRadius)
+    }
 
     private var minPanelHeight: CGFloat {
         let bandExtra: CGFloat = model.activeBands.isEmpty ? 0 : labelRowHeight
@@ -798,7 +905,15 @@ struct TimelineStripView: View {
                     // renders as the normal individual dot.
                     let clusters = buildClusters(usable: usable, panelW: panelW)
                     ForEach(clusters, id: \.centerItemID) { cluster in
-                        let centerX = itemX(cluster.members[0], usable: usable, panelW: panelW)
+                        // I-0208 — place the aggregate at its SLICE anchor, not at its
+                        // first member. A cluster is a fixed partition of the story, so
+                        // its dot must hold position as membership varies; anchoring to
+                        // a member would make it jitter whenever the set changed.
+                        // A single-member cluster still draws at the member's own x, so
+                        // a lone dot sits exactly on its scene's story time.
+                        let centerX = cluster.members.count == 1
+                            ? itemX(cluster.members[0], usable: usable, panelW: panelW)
+                            : eventX(offsetMs: cluster.anchorOffsetMs, usable: usable, panelW: panelW)
                         if cluster.members.count == 1 {
                             memberDot(cluster.members[0], at: CGPoint(x: centerX, y: lineY),
                                       usable: usable, panelW: panelW)
@@ -808,7 +923,39 @@ struct TimelineStripView: View {
                                 radius: aggregateDotRadius,
                                 selectedSceneID: loader?.viewportSceneID,
                                 isPopoverOpen: openAggregateID == cluster.centerItemID,
-                                onHover: { openAggregateID = cluster.centerItemID },
+                                onHover: {
+                                    if ScriviDiag.timingEnabled {
+                                        NSLog("[SCRIVI-TL] hover aggregate id=%@ x=%.1f members=%d open=%@",
+                                              cluster.centerItemID as NSString,
+                                              Double(centerX), cluster.members.count,
+                                              (openAggregateID ?? "nil") as NSString)
+                                    }
+                                    // ⚠️ I-0210 — DISMISS THE OPEN POPOVER BEFORE PRESENTING THE NEXT.
+                                    //
+                                    // `openAggregateID` is a SINGLE SLOT. Overwriting it directly
+                                    // moved presentation to the new dot while the old popover was
+                                    // still tearing down — SwiftUI will not present a second
+                                    // popover mid-dismissal, so the new one silently never
+                                    // appeared. Whether it worked depended on timing, which is
+                                    // the ALTERNATING failure the user reported: hover A (opens),
+                                    // hover B (swallowed), hover C (opens)…
+                                    //
+                                    // ⚠️ The direct write also BYPASSED `onPopoverDismiss`, which
+                                    // fires only from the binding's setter — so the old dot never
+                                    // learned it had been closed.
+                                    //
+                                    // Clearing first, then setting on the next runloop turn, gives
+                                    // the dismissal a chance to complete.
+                                    if openAggregateID != nil,
+                                       openAggregateID != cluster.centerItemID {
+                                        openAggregateID = nil
+                                        DispatchQueue.main.async {
+                                            openAggregateID = cluster.centerItemID
+                                        }
+                                    } else {
+                                        openAggregateID = cluster.centerItemID
+                                    }
+                                },
                                 popoverContent: {
                                     AggregateMembersPopover(
                                         members: cluster.members,
@@ -819,11 +966,20 @@ struct TimelineStripView: View {
                                                              onSelect: {
                                                                  selectMember(item)
                                                                  openAggregateID = nil
+                                                                 hoveredMemberTitle = nil
+                                                             },
+                                                             onHoverChanged: { hovered in
+                                                                 hoveredMemberTitle =
+                                                                     hovered ? memberLabel(item) : nil
                                                              })
-                                        }
+                                        },
+                                        hoveredTitle: hoveredMemberTitle
                                     )
                                 },
-                                onPopoverDismiss: { openAggregateID = nil }
+                                onPopoverDismiss: {
+                                    openAggregateID = nil
+                                    hoveredMemberTitle = nil
+                                }
                             )
                             .position(x: centerX, y: lineY)
                         }
@@ -881,7 +1037,20 @@ struct TimelineStripView: View {
                                     radius: importedRadius + 4,
                                     dotRadius: importedRadius,
                                     isPopoverOpen: openImportedAggregateID == aggKey,
-                                    onHover: { openImportedAggregateID = aggKey },
+                                    // I-0210 — same single-slot handoff as the main row above:
+                                    // dismiss the open popover before presenting the next, or
+                                    // SwiftUI swallows the second presentation.
+                                    onHover: {
+                                        if openImportedAggregateID != nil,
+                                           openImportedAggregateID != aggKey {
+                                            openImportedAggregateID = nil
+                                            DispatchQueue.main.async {
+                                                openImportedAggregateID = aggKey
+                                            }
+                                        } else {
+                                            openImportedAggregateID = aggKey
+                                        }
+                                    },
                                     onPopoverDismiss: { openImportedAggregateID = nil }
                                 )
                                 .position(x: iCenterX, y: rowY)
@@ -1293,9 +1462,24 @@ struct TimelineStripView: View {
     // T-0174: one non-draggable member dot for the aggregate popover. Looks like the timeline
     // dot (band ring, placement ring, selection highlight); grows on hover with a native
     // tooltip; click selects and dismisses. No drag, no context menu, no picker.
+    /// I-0212 — the human-readable label for a popover member, used by the caption.
+    /// Scenes carry their chapter so a repeated scene title is still locatable;
+    /// historical events say what they are, since they have no chapter.
+    private func memberLabel(_ item: MainRowItem) -> String {
+        switch item {
+        case .scene(let dot):
+            let title = dot.title.isEmpty ? "Untitled scene" : dot.title
+            return dot.chapterTitle.isEmpty ? title : "\(title) — \(dot.chapterTitle)"
+        case .historical(let event):
+            let title = event.title.isEmpty ? "Historical event" : event.title
+            return "\(title) — historical event"
+        }
+    }
+
     @ViewBuilder
     private func popoverMemberDot(_ item: MainRowItem, isSelected: Bool,
-                                  onSelect: @escaping () -> Void) -> some View {
+                                  onSelect: @escaping () -> Void,
+                                  onHoverChanged: @escaping (Bool) -> Void = { _ in }) -> some View {
         switch item {
         case .scene(let dot):
             PopoverMemberDotView(
@@ -1306,7 +1490,8 @@ struct TimelineStripView: View {
                 placementSource: dot.offsetSource,
                 tooltip: dot.title.isEmpty ? "Untitled scene" : dot.title,
                 subtitle: dot.chapterTitle,
-                onSelect: onSelect
+                onSelect: onSelect,
+                onHoverChanged: onHoverChanged
             )
         case .historical(let event):
             PopoverMemberDotView(
@@ -1317,7 +1502,8 @@ struct TimelineStripView: View {
                 placementSource: "manual",
                 tooltip: event.title.isEmpty ? "Historical event" : event.title,
                 subtitle: "Historical event",
-                onSelect: {}                       // historical events aren't selectable scenes
+                onSelect: {},                      // historical events aren't selectable scenes
+                onHoverChanged: onHoverChanged
             )
         }
     }
@@ -1358,9 +1544,12 @@ struct TimelineStripView: View {
                 return false
             }
             if alreadyMember { continue }
-            let cx = itemX(cluster.members[0], usable: usable, panelW: panelW)
+            // I-0208 — hit-test against the cluster's DRAWN position (its slice anchor),
+            // not its first member. They diverge now that a cluster is a fixed partition,
+            // and testing the member would snap to a point the dot does not occupy.
+            let cx = eventX(offsetMs: cluster.anchorOffsetMs, usable: usable, panelW: panelW)
             if abs(cx - finalPanelX) <= snapRadius {
-                return cluster.members[0].offsetMs
+                return cluster.anchorOffsetMs
             }
         }
         return nil
@@ -1412,6 +1601,10 @@ struct TimelineStripView: View {
     struct DotCluster {
         let centerItemID: String
         let members: [MainRowItem]
+        /// I-0208 — the story-time centre of this cluster's SLICE, not of its members.
+        /// A cluster is a fixed partition of the story, so its anchor must not drift as
+        /// membership varies; the view maps this through `eventX` to place the dot.
+        let anchorOffsetMs: Int64
         var ringCount: Int { members.count <= 1 ? 0 : members.count <= 7 ? 1 : 2 }
     }
 
@@ -1437,25 +1630,96 @@ struct TimelineStripView: View {
         }
         positioned.sort { $0.x < $1.x }
 
-        var clusters: [DotCluster] = []
-        var i = 0
-        while i < positioned.count {
-            let anchor = positioned[i]
-            var members = [anchor.item]
-            var clusterMaxX = anchor.x
-            var j = i + 1
-            while j < positioned.count {
-                let ox = positioned[j].x
-                if ox - clusterMaxX <= mergeThreshold(currentSize: members.count) {
-                    members.append(positioned[j].item)
-                    clusterMaxX = ox
-                    j += 1
-                } else {
-                    break
-                }
+        // I-0208 ROUND 3 — BUCKETS PARTITION THE STORY, NOT THE VIEWPORT.
+        //
+        // ⚠️ TWO EARLIER ATTEMPTS WERE WRONG, BOTH FALSIFIED BY THE USER ON THE RIG:
+        //   1. Proximity chaining was TRANSITIVE (A merges B, B merges C, unbounded),
+        //      so 1,158 items at sub-pixel spacing became ONE dot for the whole story.
+        //   2. Screen-space bucketing fixed the count but made buckets STATIONARY
+        //      SCREEN SLOTS — the dots flowed THROUGH them as you panned, so a bucket
+        //      meant "whatever is under these pixels right now", a viewport artifact
+        //      rather than a fact about the story. The user put it exactly:
+        //      *"The buckets stay clamped in place and the dots flow through them."*
+        //
+        // ✅ THE RULED MODEL (user, 2026-09-14): buckets are EQUAL STORY-TIME SLICES
+        // across the WHOLE story. Zoom decides how many slices exist and where they sit;
+        // that assignment is then FIXED. Panning slides the viewport across a stable
+        // layout — it NEVER re-forms the buckets.
+        //
+        // ⚠️ THE KEY CONSEQUENCE: the partition is computed in STORY-TIME space, so it
+        // is INDEPENDENT OF SCROLL BY CONSTRUCTION. Nothing here reads `scrollOffsetFraction`.
+        // Panning changes only WHICH slices are visible, never their membership.
+        //
+        // ⚠️ Equal TIME slices, not equal scene COUNTS (ruled): dots are positioned by
+        // `offsetMs`, so a time-sliced bucket always sits where its members actually are.
+        // Counts therefore VARY — a dense month yields a fat bucket, a quiet year a thin
+        // one — and that is the truthful reading. Manually placed dots stay consistent
+        // with their bucket, which equal-count partitioning could not guarantee.
+        // ⚠️ I-0210 — PITCH MUST BE THE HIT FRAME, NOT THE VISUAL DIAMETER.
+        //
+        // This read `aggregateDotRadius * 2 + gap` = 26pt. But `AggregateDotView` frames
+        // itself at `ringDiameter + 8` = `(radius*2 + 12) + 8` = 42pt, and that frame
+        // carries the `.contentShape` — so the HIT AREA is 42pt while slices were only
+        // 26pt apart: a 16pt overlap between EVERY adjacent pair, 8pt each side.
+        //
+        // Later siblings in a `ForEach` paint (and hit-test) above earlier ones, so each
+        // dot was partly covered by its right-hand neighbour. Whether a dot kept any
+        // exposed area depended on how the overlaps stacked — which is exactly the
+        // ALTERNATING failure the user observed: *"every other popup will show and the
+        // others will not"*, worst when clusters hold 4-5 members.
+        //
+        // ✅ Deriving pitch from the frame guarantees slices are never closer than a dot
+        // is wide, so no aggregate can ever occlude its neighbour's hit area.
+        let pitch = aggregateHitFrame + clusterBucketGap
+
+        // Slice count is set by how many aggregates fit across the FULL zoomed extent —
+        // i.e. the viewport width times the zoom — so zooming in yields more, finer
+        // slices (R3) while the visible count stays bounded by what fits (R2).
+        let fullExtent = usable * effectiveZoom
+        let sliceCount = max(1, Int((fullExtent / pitch).rounded(.down)))
+
+        let storySpan = max(model.spanMs, 1)
+        let storyMin  = model.minOffsetMs
+        let sliceMs   = max(storySpan / Int64(sliceCount), 1)
+
+        var buckets: [Int: [MainRowItem]] = [:]
+        var bucketOrder: [Int] = []
+        for p in positioned {
+            let rel = p.item.offsetMs - storyMin
+            let idx = min(max(Int(rel / sliceMs), 0), sliceCount - 1)
+            if buckets[idx] == nil {
+                buckets[idx] = []
+                bucketOrder.append(idx)
             }
-            clusters.append(DotCluster(centerItemID: anchor.item.id, members: members))
-            i = j
+            buckets[idx]?.append(p.item)
+        }
+        // ⚠️ The clamp above is SAFE here, unlike round 2: `rel` is bounded by the STORY
+        // span (every item lies within it by definition of `minOffsetMs`/`maxEndMs`), so
+        // it only catches the final boundary item, never off-viewport accumulation.
+
+        // Empty slices produce NO cluster (ruled) — the timeline shows only where story is.
+        // `bucketOrder` is ascending because `positioned` is sorted by x.
+        let allClusters: [DotCluster] = bucketOrder.compactMap { idx in
+            guard let members = buckets[idx], let first = members.first else { return nil }
+            // Anchor at the SLICE centre so the dot does not drift as membership varies.
+            let anchor = storyMin + Int64(idx) * sliceMs + sliceMs / 2
+            return DotCluster(centerItemID: first.id,
+                              members: members,
+                              anchorOffsetMs: anchor)
+        }
+
+        // Drawing is viewport-limited, but MEMBERSHIP is not: a cluster whose anchor lies
+        // outside the visible span is simply not drawn, and is reached by panning.
+        let vMin = visibleMinMs()
+        let vMax = vMin + visibleSpanMs()
+        let clusters = allClusters.filter { $0.anchorOffsetMs >= vMin && $0.anchorOffsetMs <= vMax }
+
+        if ScriviDiag.timingEnabled {
+            let maxMembers = clusters.map(\.members.count).max() ?? 0
+            let shown = clusters.reduce(0) { $0 + $1.members.count }
+            NSLog("[SCRIVI-TL] visible=%d slices=%d maxMembers=%d shown=%d items=%d zoom=%.2f usable=%.0f",
+                  clusters.count, sliceCount, maxMembers, shown, positioned.count,
+                  Double(effectiveZoom), Double(usable))
         }
         return clusters
     }
@@ -1493,11 +1757,24 @@ struct TimelineStripView: View {
     private func buildImportedRowClusters(events: [ImportedEventDot],
                                           usable: CGFloat, panelW: CGFloat,
                                           radius: CGFloat) -> [ImportedRowCluster] {
-        // T-0174: size-aware threshold (see buildClusters) — once ≥2, use the imported
-        // aggregate footprint (radius + 4, as rendered) so adjacent aggregates don't overlap.
-        let aggRadius = radius + 4
+        // ⚠️ I-0210 — THE THRESHOLD MUST BE THE HIT FRAME, NOT THE DOT GEOMETRY.
+        //
+        // This computed `(aggRadius) + radius + 2` = 12pt from dot radii, and its comment
+        // claimed that stopped adjacent aggregates overlapping. It did not.
+        // `ImportedAggregateDotView` is rendered with `radius: importedRadius + 4` and
+        // frames itself at `(radius*2 + 8) + 8` — a **30pt** hit area. Two aggregates
+        // could therefore sit 12pt apart while each claimed 30pt: an 18pt mutual overlap.
+        //
+        // Later siblings in a `ForEach` hit-test above earlier ones, so a covered dot
+        // never receives hover and its popover silently never opens — the same failure
+        // the user reported on the MAIN row, where the numbers were 42pt vs 26pt.
+        //
+        // ✅ Deriving the multi-member threshold from the view's own `hitFrame` keeps the
+        // two in step by construction. The single-dot case keeps its original geometry:
+        // a lone imported dot really is only `radius` wide.
+        let aggHitFrame = ImportedAggregateDotView.hitFrame(radius: radius + 4)
         func threshold(currentSize: Int) -> CGFloat {
-            (currentSize >= 2 ? aggRadius : radius) + radius + 2
+            currentSize >= 2 ? aggHitFrame : (radius + radius + 2)
         }
         let sorted = events.sorted {
             eventX(offsetMs: $0.projectOffsetMs, usable: usable, panelW: panelW)
@@ -1825,6 +2102,12 @@ private struct AggregateDotView<Popover: View>: View {
     private let minSegmentDegrees: Double = 6
     private var count: Int { members.count }
 
+    /// I-0210 — the hit frame this view claims, and the SINGLE SOURCE for it.
+    /// `TimelineStripView` derives its slice pitch from this; if the two ever drift,
+    /// adjacent aggregates overlap one another's hit areas and popovers silently stop
+    /// opening for some dots (the alternating failure the user reported 2026-09-14).
+    static func hitFrame(radius: CGFloat) -> CGFloat { radius * 2 + 12 + 8 }
+
     private var selectedIndex: Int? {
         guard let sid = selectedSceneID else { return nil }
         return members.firstIndex {
@@ -1849,7 +2132,7 @@ private struct AggregateDotView<Popover: View>: View {
         }
         .scaleEffect(isHovered ? 1.15 : 1.0)               // grow on hover like scene dots
         .animation(.easeOut(duration: 0.1), value: isHovered)
-        .frame(width: ringDiameter + 8, height: ringDiameter + 8)
+        .frame(width: Self.hitFrame(radius: radius), height: Self.hitFrame(radius: radius))
         .contentShape(Circle())
         .onHover { hovered in
             isHovered = hovered
@@ -1915,21 +2198,74 @@ private struct AggregateDotView<Popover: View>: View {
 // The popover content: members laid out as a circle of dots around the centre, the radius
 // scaling with member count. Each member is rendered by the caller's `memberContent` builder
 // (so they look exactly like timeline dots). Display-only positions — dots are not draggable.
+// I-0208 — bounds for the aggregate popover. File-scope rather than static members
+// because `AggregateMembersPopover` is generic, and generic types cannot hold static
+// stored properties.
+private let kAggregatePopoverMaxRingMembers = 12
+private let kAggregatePopoverMaxGridHeight: CGFloat = 260
+
 private struct AggregateMembersPopover<Member: View>: View {
 
     let members: [TimelineStripView.MainRowItem]
     let selectedSceneID: String?
     let dotRadius: CGFloat
     @ViewBuilder let memberContent: (TimelineStripView.MainRowItem, Bool) -> Member
+    /// I-0212 — title of the member currently hovered, supplied by the host so the
+    /// popover can show it as READABLE TEXT. `.help()` is a system tooltip and macOS
+    /// does not reliably present those inside a popover.
+    var hoveredTitle: String? = nil
 
     private var count: Int { members.count }
 
+    /// A always-present caption line. Reserving the row keeps the popover from
+    /// resizing as the pointer moves between members, which would chase the cursor.
+    @ViewBuilder
+    var captionLine: some View {
+        Text(hoveredTitle ?? "\(count) items — hover to read, click to go")
+            .font(.caption)
+            .foregroundStyle(hoveredTitle == nil ? .secondary : .primary)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 260)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // I-0208 defect (2) — THE RING MUST BE BOUNDED.
+    //
+    // ⚠️ `ringR = count * spacing / 2π` is LINEAR IN MEMBER COUNT and was unbounded.
+    // On `dumas-prose` one cluster held 1,158 members: ringR ≈ 3,300pt, canvas ≈ 6,600pt
+    // — a panel larger than any screen, with its dots on a ring almost entirely
+    // off-screen. It read as "a giant blank semi-translucent panel", and because it
+    // exceeded the screen there was no reachable outside-click target, so it could only
+    // be dismissed by resigning app focus.
+    //
+    // ⚠️ THIS BOUND IS REQUIRED EVEN WITH CAPACITY BUCKETING (§3.3 of the design):
+    // bucketing makes a huge cluster unlikely, NOT impossible — N scenes sharing one
+    // story-time offset land in one bucket at ANY zoom.
+    //
+    // Beyond `maxRingMembers` the ring is abandoned for a scrollable grid, which is
+    // bounded by construction.
+
     var body: some View {
-        // Ring radius grows so adjacent dots keep at least ~one diameter of arc spacing.
+        // I-0212 — the caption is OUTSIDE the two layouts so both get it, and so the
+        // popover's size does not change as the pointer moves between members.
+        VStack(spacing: 8) {
+            if count <= kAggregatePopoverMaxRingMembers {
+                ringBody
+            } else {
+                gridBody
+            }
+            captionLine
+        }
+        .padding(12)
+    }
+
+    // The original circle-of-dots, now only for counts it actually suits.
+    private var ringBody: some View {
         let spacing = dotRadius * 2 + 8
         let ringR = max(spacing, CGFloat(count) * spacing / (2 * .pi))
         let canvas = (ringR + spacing) * 2
-        ZStack {
+        return ZStack {
             ForEach(Array(members.enumerated()), id: \.element.id) { i, item in
                 let angle = -90.0 + (Double(i) / Double(count)) * 360.0
                 let rad   = angle * .pi / 180.0
@@ -1940,7 +2276,26 @@ private struct AggregateMembersPopover<Member: View>: View {
             }
         }
         .frame(width: canvas, height: canvas)
-        .padding(12)
+    }
+
+    // Overflow presentation: a bounded, SCROLLABLE grid. The member count is shown
+    // because at this size the writer cannot count the dots, and a dense cluster is
+    // itself information ("these 300 scenes share a story time").
+    private var gridBody: some View {
+        let cell = dotRadius * 2 + 10
+        return VStack(alignment: .leading, spacing: 6) {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: cell), spacing: 6)],
+                          spacing: 6) {
+                    ForEach(members, id: \.id) { item in
+                        memberContent(item, isSelected(item))
+                            .frame(width: cell, height: cell)
+                    }
+                }
+            }
+            .frame(maxHeight: kAggregatePopoverMaxGridHeight)
+        }
+        .frame(width: 300)
     }
 
     private func isSelected(_ item: TimelineStripView.MainRowItem) -> Bool {
@@ -1965,6 +2320,10 @@ private struct PopoverMemberDotView: View {
     let tooltip: String
     let subtitle: String
     let onSelect: () -> Void
+    /// I-0212 — report hover so the popover can show a READABLE label.
+    /// `.help()` alone is a SYSTEM tooltip and macOS does not reliably present those
+    /// for views inside a popover, which is exactly this case.
+    var onHoverChanged: ((Bool) -> Void)? = nil
 
     @State private var isHovered = false
 
@@ -1993,7 +2352,10 @@ private struct PopoverMemberDotView: View {
         }
         .frame(width: radius * 2 + 14, height: radius * 2 + 14)
         .contentShape(Circle())
-        .onHover { isHovered = $0 }
+        .onHover { hovered in
+            isHovered = hovered
+            onHoverChanged?(hovered)
+        }
         .onTapGesture { onSelect() }
         .help("\(tooltip)\n\(subtitle)")
     }
@@ -2016,6 +2378,17 @@ private struct ImportedAggregateDotView: View {
     let onPopoverDismiss: () -> Void
 
     @State private var isHovered = false
+    /// I-0212 — title of the member hovered inside this popover, shown as readable text.
+    /// `.help()` is a system tooltip and macOS does not reliably present those inside a
+    /// popover — which made imported timelines unreadable, since an imported event has
+    /// no click-through that would reveal what it is.
+    @State private var hoveredTitle: String? = nil
+
+    /// I-0210 — the hit frame this view claims, and the SINGLE SOURCE for it.
+    /// `buildImportedRowClusters` must space aggregates by at least this, or adjacent
+    /// dots occlude one another's hit areas and popovers stop opening for some of them.
+    /// Mirrors `AggregateDotView.hitFrame` but with this view's OWN ring (+8, not +12).
+    static func hitFrame(radius: CGFloat) -> CGFloat { radius * 2 + 8 + 8 }
 
     var body: some View {
         let ringDiameter = radius * 2 + 8
@@ -2032,7 +2405,7 @@ private struct ImportedAggregateDotView: View {
         }
         .scaleEffect(isHovered ? 1.15 : 1.0)
         .animation(.easeOut(duration: 0.1), value: isHovered)
-        .frame(width: ringDiameter + 8, height: ringDiameter + 8)
+        .frame(width: Self.hitFrame(radius: radius), height: Self.hitFrame(radius: radius))
         .contentShape(Circle())
         .onHover { hovered in
             isHovered = hovered
@@ -2045,7 +2418,41 @@ private struct ImportedAggregateDotView: View {
         .help("\(count) events here — hover to open")
     }
 
+    // I-0208 defect (2), imported row — THE RING MUST BE BOUNDED.
+    //
+    // `ringR = count * spacing / 2π` is LINEAR IN MEMBER COUNT. On the main row this
+    // produced a 6,600pt panel that exceeded the screen and could only be dismissed by
+    // resigning app focus. An imported timeline can carry just as many co-located events,
+    // so the same bound applies here.
     private var popover: some View {
+        VStack(spacing: 8) {
+            if count <= kAggregatePopoverMaxRingMembers {
+                AnyView(ringPopover)
+            } else {
+                AnyView(gridPopover)
+            }
+            captionLine
+        }
+        .padding(12)
+    }
+
+    /// I-0212 — always-present caption. Reserving the row stops the popover resizing
+    /// as the pointer moves between events, which would chase the cursor.
+    private var captionLine: some View {
+        Text(hoveredTitle ?? "\(count) events — hover to read")
+            .font(.caption)
+            .foregroundStyle(hoveredTitle == nil ? .secondary : .primary)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 260)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func label(_ ev: ImportedEventDot) -> String {
+        ev.title.isEmpty ? "Event" : ev.title
+    }
+
+    private var ringPopover: some View {
         let spacing = dotRadius * 2 + 8
         let ringR = max(spacing, CGFloat(count) * spacing / (2 * .pi))
         let canvas = (ringR + spacing) * 2
@@ -2056,13 +2463,38 @@ private struct ImportedAggregateDotView: View {
                 let x = canvas / 2 + ringR * CGFloat(cos(rad))
                 let y = canvas / 2 + ringR * CGFloat(sin(rad))
                 ImportedEventDotView(ev: ev, color: color, radius: dotRadius,
-                                     onHoverChanged: { _ in })
-                    .help(ev.title.isEmpty ? "Event" : ev.title)
+                                     onHoverChanged: { hovered in
+                                         hoveredTitle = hovered ? label(ev) : nil
+                                     })
+                    .help(label(ev))
                     .position(x: x, y: y)
             }
         }
         .frame(width: canvas, height: canvas)
-        .padding(12)
+    }
+
+    private var gridPopover: some View {
+        let cell = dotRadius * 2 + 10
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("\(count) events")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: cell), spacing: 6)],
+                          spacing: 6) {
+                    ForEach(members, id: \.id) { ev in
+                        ImportedEventDotView(ev: ev, color: color, radius: dotRadius,
+                                             onHoverChanged: { hovered in
+                                                 hoveredTitle = hovered ? label(ev) : nil
+                                             })
+                            .help(label(ev))
+                            .frame(width: cell, height: cell)
+                    }
+                }
+            }
+            .frame(maxHeight: kAggregatePopoverMaxGridHeight)
+        }
+        .frame(width: 300)
     }
 }
 
