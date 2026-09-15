@@ -30,23 +30,16 @@ user-verified.** ⚠️ **T-0529 is HALF-verified — ✅ the live window drag, 
 split/merge case that [I-0213] came from.** ✅ **All four remain below rather than being archived as
 done work.**
 
-| ID | Task | Sprint | Status |
-| -- | ---- | ------ | ------ |
-| **T-0521** | ✅ **Remove `rebuildStorage`'s O(N²) chapter lookup** ([I-0196]'s third defect) | SP-132 | 🟢 **Implemented - Not Verified** |
-| **T-0523** | ✅ **[AC6] — the load runs OFF the main thread, with a determinate progress bar** | SP-132 | ✅ **VERIFIED 2026-09-14 (AC6)** |
-| **T-0533** | ✅ **[I-0207] half (a) — cache the parsed world binding** | SP-133 | 🟢 **Implemented - Not Verified** |
 
-## Currently: 🟡 **SP-133 ACTIVE** (`[Apple]` TextKit 2) — ✅ **[EP-039]**
+## Currently: ⛔ **NO ACTIVE SPRINT** — ✅ **SP-133 CLOSED 2026-09-15; all its Tasks verified and archived**
+
+⚠️ **[EP-040] is the active Epic; ✅ its next Sprints (SP-129, SP-130) are not yet activated, so no Task rows belong here yet.**
 
 ⚠️ **Sprint plan lives in [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md) and is NOT
 duplicated here.**
 
 | ID | Title | Sprint | Status |
 | -- | ----- | ------ | ------ |
-| **T-0528** | ✅ **Verify `sceneBoundaries` + the nine `recomputeBoundaries` callers survive** — ⚠️ **a wrong boundary misplaces the caret ([I-0131])** | SP-133 | 🟡 **Active** |
-| **T-0529** | ✅ **Measure before/after on the real fixture** — ⚠️ **including a LIVE window drag and a scene split/merge** | SP-133 | 🟡 **Active** |
-| **T-0530** | ⚠️ **Measure the LONG-PARAGRAPH case deliberately** — ✅ **TextKit 2's laziness is PER PARAGRAPH** | SP-133 | 🟡 **Active** |
-| **T-0531** | ✅ **Re-test [I-0203] and `_NSDetectedLayoutRecursion`** — ⚠️ **hypothesised symptoms of main-thread starvation** | SP-133 | 🟡 **Active** |
 
 ⚠️ **SP-132 (T-0518–T-0524) is still open.** ✅ **What LANDED in `a50ebc9`: the `recomputeBoundaries`
 rewrite (`40.8 ms` → `0.202 ms`) and `SCRIVI_NO_PROJECT_LOAD`.** ⚠️ **What did NOT land: T-0519/T-0520
