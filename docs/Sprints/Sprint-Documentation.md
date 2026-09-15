@@ -395,6 +395,10 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-130** | ⚠️ **`[Apple]`+`[ScriviCore]`** Close the ScriviCore bypasses — ⚠️ **[I-0197]; `inspector-layout.json` is written by SWIFT into a package the CORE owns** | EP-039 `[Cross]` | — | — | 🔵 **PLANNING** — created 2026-09-10, ⚠️ **not activated** |
 | **SP-125** | ⚠️ **`[Linux]`** **Scene Inspector wired to real objects** — ⚠️ **replaces the 67-line EP-024 stub**; ⚠️ **Qt WIDGETS, not QML**. ⚠️ **Wired Apple's DELETED "Scene Entities" placeholder — SP-126 builds the real 3-tab shell** | EP-035 `[Linux]` | 2026-08-25 | 2026-08-29 | ✅ **CLOSED** → [`Closed/Sprint-SP-125.md`](Closed/Sprint-SP-125.md) |
 | **SP-126** | ⚠️ **`[Linux]`** **The three-tab Scene Inspector shell** — ⚠️ **Writing · Worldbuilding · Properties** (**AC10**, ⚠️ **user-found gap**); ⚠️ **`inspector-layout.json` PATCHED, not reconstructed** | EP-035 `[Linux]` | 2026-08-29 | 2026-08-30 | ✅ **CLOSED** → [`Closed/Sprint-SP-126.md`](Closed/Sprint-SP-126.md) |
+| **SP-127** | ⚠️ **`[Linux]`** **The Worlds surface** — Manage Worlds + RELINK; Issue **I-0187** | EP-035 `[Linux]` | ✅ **Closed** — [record](Closed/Sprint-SP-127.md) |
+| **SP-131** | ✅ **`[ScriviCore]`** **The project indexes** — ⚠️ **project open `~300 s` → `1.06 s`** | EP-039 `[Cross]` | ✅ **Closed 2026-09-15** — [record](Closed/Sprint-SP-131.md) |
+| **SP-132** | ⚠️ **`[Apple]`** **The interaction cost + the async gap** — ⚠️ **PARTIAL: T-0519/T-0520 REVERTED (shipped a build with no window); T-0521 never started** | EP-039 `[Cross]` | ✅ **Closed 2026-09-15** — [record](Closed/Sprint-SP-132.md) |
+| **SP-133** | ✅ **`[Apple]`** **TextKit 2** — ⚠️ **layout `272.8 ms` → `0.0 s`; `rebuildStorage` `270 ms` → `0.0 s`** | EP-039 `[Cross]` | ✅ **Closed 2026-09-15** — [record](Closed/Sprint-SP-133.md) |
 
 ## Statistics
 
@@ -403,8 +407,8 @@ section carries **only what the table cannot express** — per-status totals wer
 audit ruling **R-22(④)**, because a summary that restates a table will drift from it. **To count Sprints
 by status, read the table.**
 
-- **Next available Sprint ID:** **SP-127** — ⚠️ **not SP-107**; See the reserved block below. (**SP-126** is now PLANNED.)
-- **Total Sprint IDs issued:** 130 (SP-001–SP-130) — 118 executed, ⚠️ **0 ACTIVE**, ✅ **SP-124 COMPLETE 2026-09-10 (awaiting close approval)**, **8 reserved (SP-107–SP-114)**
+- ⛔ **REMOVED 2026-09-15 — Audit ruling [R-02] / [R-15].** ⚠️ **This carried *"Next available Sprint ID: SP-127"* and *"Total Sprint IDs issued: 130"*.** ⚠️ **BOTH WERE WRONG** — ✅ **SP-134 had been issued and SP-131–133 were closed.** ✅ **The figures are NOT re-derived: a restated summary drifts from the table it summarises, which is why the same removal was applied to the Epic layer in 2026-08-19's R-22(④).** ⚠️ **[R-15] broadened that rule to ALL FOUR LAYERS.**
+- ✅ **TO FIND THE NEXT AVAILABLE SPRINT ID:** ⚠️ **read the All-Sprints table above (highest row + 1), or `Sprint-active.md`, which states it for the current working set.** ⛔ **It is deliberately NOT restated here.**
 - ⚠️ **IDs RESERVED to an Epic that is not executing them yet:**
   - **SP-107–SP-114** — reserved to **EP-032** `[Cross]` (Inline Object References) at its promotion on
     2026-08-20. ⚠️ **EP-032 was RETURNED to the Epic backlog the same day, and the reservation SURVIVED

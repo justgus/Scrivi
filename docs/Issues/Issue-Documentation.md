@@ -120,6 +120,15 @@ indistinguishable.
 | **I-0099** | ⚪ **Never assigned** | **Zero commits** touch it in any form |
 | **I-0016** | ⚪ **Superseded → I-0018** | `8e64bfe` (SP-033), 2026-06-08: *"I-0016 \| Navigator selection on load \| ⚪ Superseded by I-0018"* |
 | I-0050, I-0060, I-0100, I-0120 | ⚪ **Never assigned** | End-of-range IDs; appear only in filenames and range labels |
+| **I-0181** | ⚪ **Never assigned** — ✅ **added 2026-09-15, audit ruling [R-04]** | ⚠️ **NOT in `Issue-verified-0181-0190.md` despite that filename**, ⛔ **and in no other file.** ⚠️ **NOT reconstructed: the user ruled the information is not in git** |
+| **I-0187** | ⚪ **Never assigned** — ✅ **[R-04]** | ⚠️ **CITED AS REAL by `Closed/Sprint-SP-127.md:81`** (*"Issue **I-0187**"*), ⚠️ **but no Issue record exists anywhere.** ✅ **The citation is preserved here so a reader finds the reference rather than concluding the sprint cited nothing** |
+| **I-0188, I-0189** | ⚪ **Never assigned** — ✅ **[R-04]** | ⛔ **Appear NOWHERE in `docs/` in any form** — ⚠️ **not even as a range label** |
+| **I-0190** | ⚪ **Never assigned** — ✅ **[R-04]** | ⚠️ **Referenced as a decade boundary by `Issue-verified-0191-0200.md:3`** (*"The previous decade closed at **I-0190**"*), ⚠️ **but no record exists** |
+
+⚠️ **ON `Issue-verified-0181-0190.md`: ITS NAME DOES NOT MATCH ITS CONTENTS, AND THAT IS DELIBERATE.**
+✅ **The file holds only I-0182–I-0186.** ⛔ **Audit ruling [R-04] PROHIBITS renaming it:** ⚠️ **a
+filename that admits the gap SURFACES the loss; one that matches its contents HIDES it.** ✅ **The name
+stands as a marker.**
 
 ---
 

@@ -117,7 +117,14 @@ the single most reliable place to find staleness.
 agree. ⚠️ **The lower tables of a long index drift while its own header stays correct** — always read the
 whole file, not the top.
 
-**ID continuity.** For each of I/T/SP/EP, enumerate every ID from 1 to the highest issued and account for
+**ID continuity.** ⚠️ **THE CHECK MUST RECOGNISE BOTH ROW FORMATS** — ✅ **added 2026-09-15, audit
+ruling [R-13].** ⚠️ **Archived entries use `## I-0xxx:` HEADINGS; active and backlog entries use
+`| **I-0xxx** |` TABLE ROWS.** ⛔ **A checker that knows only one format reports a catastrophe that is
+not there:** ⚠️ **the 2026-09-15 audit's first pass reported 167 MISSING ISSUES — every archived one —
+and a false finding of that size could prompt a destructive "repair".** ✅ **Re-run with both patterns
+before recording ANY missing-ID finding.**
+
+For each of I/T/SP/EP, enumerate every ID from 1 to the highest issued and account for
 each one: filed, archived, closed, superseded, skipped, or ⚠️ **unaccounted**. An ID that appears nowhere
 is either a lost record or a numbering error, and both matter.
 

@@ -59,12 +59,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 Statistics — read the rows. Next available ID: **EP-041**.
 ⚠️ **INDEX GAP FOUND 2026-09-14 while adding EP-040: this table stopped at EP-034** — ⚠️ **EP-035
 through EP-039 were never added, including the CURRENTLY ACTIVE [EP-039].** ✅ **Rows added from
-verifiable records.** ⚠️ **EP-038's row is reconstructed from the 2026-09-10 ruling note and the
-CLAUDE.md doc reference — ⛔ it has NO Epic record file**, ⚠️ **and EP-035–EP-037 carry no start/close
-dates because none were recorded.** ⚠️ **This is worth an Audit; ✅ it is NOT one, and nothing here was
-invented to fill a blank.**
-Codebase tags (`[ScriviCore]`/`[Apple]`/`[Linux]`/`[Windows]`/`[Cross]`) per `Epic-GUIDELINES.md`.
-Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-convention); tagged going forward.
+verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠️ **EP-038's row previously claimed *"no Epic record file"*; ⛔ THAT WAS FALSE — `Closed/Epic-EP-038.md` exists and is now linked.** ⚠️ **The claim was written 2026-09-14 by asserting from the index WITHOUT opening `Epics/Closed/`.** ✅ **[R-06] required re-checking EP-035–EP-037, added in the same edit: ✅ ALL THREE ARE CORRECT — they are backlog Epics and rightly claim no closed record.**
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -105,8 +100,8 @@ Existing EP-001–EP-018 are all `[Apple]`/`[ScriviCore]` era work (pre-conventi
 | EP-035 | `[Linux]` Object Foundations — the first PORT | 🔵 **Deferred to backlog** (2026-09-10) | 2026-08-25 | — |
 | EP-036 | `[Linux]` Object Detail Sheet & Media | 🔵 Proposed (backlog) | — | — |
 | EP-037 | `[Linux]` Relationships & Sources | 🔵 Proposed (backlog) | — | — |
-| EP-038 | `[Linux]` Linux Test Rig | 🟠 **Complete** (2026-09-10 ruling) — ⚠️ **no Epic record file** | — | — |
-| EP-039 | `[Cross]` Project Load Performance | ✅ **Closed** (user-approved) — [record](Epic-active.md) | 2026-09-10 | 2026-09-15 |
+| EP-038 | `[Linux]` Linux Test Rig | 🟠 **Complete** (2026-09-10 ruling) — ✅ **[record](Closed/Epic-EP-038.md)** | — | — |
+| EP-039 | `[Cross]` Project Load Performance | ✅ **Closed** (user-approved) — [record](Closed/Epic-EP-039.md) | 2026-09-10 | 2026-09-15 |
 | EP-040 | `[Apple]` **The Editor Shell** — build Scrivi as the kind of app it actually is | 🟡 **ACTIVE** — [record](Epic-active.md) | 2026-09-15 | — |
 | **EP-035** | ⚠️ **`[Linux]`** **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11** | 🟡 **ACTIVE** | 2026-08-24 | — |
 | **EP-036** | ⚠️ **`[Linux]`** **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |

@@ -14,10 +14,21 @@ The complete register of every Task ID in the project.
 > real `Verified/` links. **T-0394/T-0395** were promoted 🟠 → ✅ **Verified 2026-08-11** on user
 > ruling (their omission from SP-092's task table was clerical; that table has been repaired).
 >
-> **Known remaining gap — out of this audit's scope:** **133 rows still read ⚠️ *unfiled***, all older
-> Tasks (roughly T-0090–T-0357) whose Sprint archive is their only record. None of them appear in the
-> active or backlog lists, so they are not a source of contradiction — but they have no Task-level
-> archive. **Worth a dedicated pass; do not assume it was done here.**
+> ✅ **GAP CLOSED 2026-09-15 — audit ruling [R-09] / [R-11].** ⚠️ **This note previously read
+> *"133 rows still read ⚠️ unfiled … Worth a dedicated pass; do not assume it was done here."*
+> ✅ **The actual figure was 139, and the pass has now been done.**
+>
+> ✅ **All 139 are ✅ Verified work whose only record was a closed Sprint archive** — ⚠️ **a FILING gap,
+> never unfinished work.** ✅ **They are backfilled as `Verified/Task-verified-backfill-EP-0XX.md`,
+> batched by Epic** (⚠️ **13 files; EP-025 and EP-027 carry 29 each**).
+>
+> ⚠️ **24 of the 139 carry an UNCERTAIN Epic attribution and are marked ⚠️ in those files** — ✅ **their
+> Sprint archive has no declared `**Epic:**` header, so the Epic was inferred.** ⛔ **[R-11] prohibits
+> writing an inference as fact.**
+>
+> ⚠️ **HOW IT RECURRED: the 2026-08-19 audit recorded and scoped this out; ✅ my 2026-09-15 Audit CHECK
+> re-raised it as if new because I did not read the prior findings file first** — ⚠️ **which the
+> guidelines require precisely so recurrence is visible rather than re-discovered.**
 
 ## Organization
 
@@ -49,16 +60,16 @@ sum to.
 | Status | Count |
 | ------ | ----- |
 | ✅ **Verified** | **397** |
-| 🟡 **Active** | **8** — ⚠️ **re-derived 2026-08-25**: SP-123's T-0474–T-0476 + SP-125's T-0480–T-0484 |
-| 🔵 Backlog | **13** — ⚠️ **re-derived 2026-08-25**: +T-0472, +T-0473, +T-0477–T-0479 |
-| 🟠 **Implemented - Not Verified** | **0** — ⚠️ **re-derived 2026-08-25**: SP-122's six were Verified and archived the same day |
+| ⛔ **Active count REMOVED** | **[R-11]** — ⚠️ **was stale; ✅ read the layer file** |
+| ⛔ **Backlog count REMOVED** | **[R-11]** — ⚠️ **was stale; ✅ read the layer file** |
+| ⛔ **INV count REMOVED** | **[R-11]** — ⚠️ **was stale; ✅ read the layer file** |
 | ⚪ Descoped | 4 |
 | ⚪ Superseded | 3 |
 | ⚪ Closed | 2 |
 | ⛔️ Removed as OBE | 2 |
-| ⚪ Never assigned | 1 |
+| ⚪ Never assigned | **2** — ⚠️ **corrected 2026-09-15, audit ruling [R-05]: was `1`.** ✅ **T-0278 AND T-0138; ⚠️ the file named only T-0278 while T-0138 was equally absent.** |
 | ⚪ Unassigned *(T-0426, next available)* | 1 |
-| **Total Task IDs** | **425** — T-0001 … T-0426; T-0278 never assigned; **T-0426 unassigned** |
+| ⛔ **REMOVED 2026-09-15** | **Audit rulings [R-03] / [R-11] / [R-15].** ⚠️ **This row claimed *"425 — T-0001 … T-0426"*; ✅ **the highest ID issued was T-0534.** ⚠️ **Per-status totals above are removed for the same reason.** ✅ **To count Tasks by status, read the layer files; ✅ to find the next ID, read `Sprint-active.md`.** ⛔ **Restated summaries drift — [R-15] applies the 2026-08-19 R-22(④) rule to ALL FOUR LAYERS.** |
 
 - **⚠️ Verified but UNFILED:** **186** — see the section below.
   *(180 → 176: T-0185–T-0188 left the register when correctly refiled as ⚪ Descoped.
@@ -553,6 +564,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0276 | **Scene consumers updated** — `SceneDeleter`, `SceneRenamer.findSceneMetadataPath`, `ManuscriptOrderResolver`, `ProjectValidator`, `ExternalChangeScan… | SP-070 | EP-027 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-070.md` |
 | T-0277 | **Scene migration + orphan repair wired into `ProjectOpener` (before validation)** + 5 integration tests `[EP-027][scenes]`. Full suite 298/298 macOS. | SP-070 | EP-027 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-070.md` |
 | T-0278 | (never assigned — ID skipped) | — | — | ⚪ Never assigned | — |
+| T-0138 | ⚠️ **(never assigned — ID skipped)** — ✅ **added 2026-09-15 by audit ruling [R-05].** ⚠️ **FOUND BY ID-CONTINUITY: T-0137 and T-0139 both exist; T-0138 appears NOWHERE in `docs/`.** ⛔ **Its history was NOT reconstructed — the user ruled the information is not in git, so this is recorded as a GAP, not investigated.** | — | — | ⚪ Never assigned | — |
 | T-0279 | **`CreateChapterRequest.afterChapterID`** (empty = append). | SP-071 | EP-027 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-071.md` |
 | T-0280 | **`ChapterCreator` create-in-place** — `(lo,hi)` window + `keyBetween`; guard empty-key error. | SP-071 | EP-027 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-071.md` |
 | T-0281 | **C ABI + facade** — `scrivi_create_chapter` trailing `afterChapterID` (additive; `scrivi.h` updated); facade passthrough. | SP-071 | EP-027 | ✅ Verified | ⚠️ *unfiled* — see `../Sprints/Closed/Sprint-SP-071.md` |

@@ -317,3 +317,33 @@ no archive entry anywhere.]*
 ### Archive in the SAME STEP you verify
 From **whichever** file the Issue lives in — `Issue-active.md` **or** `Issue-backlog.md`. There is no
 `Issue-unverified.md`. *[Deferring it left I-0018 unarchived for weeks and I-0118 with no record at all.]*
+
+## ⚠️ THREE STANDING RULES — audit rulings [R-14], [R-15], [R-16] (2026-09-15)
+
+### [R-14] ⛔ **Do NOT preserve prior text that states STATE**
+
+⚠️ **Preserved prior text is as destructive as omitting it, when what it states is STATE** — ✅ **counts,
+statuses, "next available" IDs, verification claims.**
+⚠️ **PROOF: `Issue-active.md` carried SIX stacked *"Currently: N records"* lines — twenty-three,
+twenty-two, twenty-one, twenty, eighteen, seventeen — ⛔ and NONE was correct** (the real count was 25).
+⚠️ **A reader cannot tell which preserved line is current, so preservation MISLEADS.**
+✅ **DELETE superseded state. ✅ PRESERVE rationale — *why* a decision was made — which does not decay.**
+
+### [R-15] ⛔ **No restated summary counts, in ANY layer**
+
+⚠️ **2026-08-19 removed per-status totals from the EPIC layer (R-22④, R-23②).** ⛔ **That fix was scoped
+too narrowly:** ✅ **the Task and Sprint layers kept theirs, and those are exactly the two that drifted
+into the 2026-09-15 audit's criticals** (⚠️ **Sprint claimed next-ID SP-127 when SP-134 was issued;
+Task claimed 425 IDs when the highest was T-0534**).
+✅ **THE RULE NOW APPLIES TO ALL FOUR LAYERS.** ⚠️ **A summary that restates a table WILL drift from it.**
+✅ **Counts are obtained by READING THE ROWS.** ⚠️ **ID-accounting tables are NOT counts and are RETAINED
+— they distinguish an unassigned ID from a lost record.**
+
+### [R-16] ⛔ **Do NOT surface status mid-investigation**
+
+✅ **A status line is written when the investigation CONCLUDES, not while it runs.**
+⚠️ **PROOF, both caught by the USER and not by Claude:** ⚠️ **[T-0529]'s row claimed a test was "STILL
+UNEXERCISED" for a full day AFTER the user had exercised it;** ⚠️ **[T-0521]'s row read
+"Implemented - Not Verified" while the code was untouched.**
+✅ **An in-flight finding may be recorded as NARRATIVE.** ⛔ **It must NOT be written into a status cell
+that a later reader will treat as current.**

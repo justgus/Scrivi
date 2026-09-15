@@ -265,3 +265,46 @@ sources, is not. ⚠️ **The distinction is *what happened to the record*, not 
 "🔵 Planning", for the sprint that delivered the entire timeline C ABI. It was reconstructed. By contrast,
 176 Verified Tasks with no archive file are **left as an indexed register**, because those records were
 never written.]*
+
+## ⚠️ A table declared authoritative MUST reach the highest issued ID
+
+✅ **Added 2026-09-15 — audit ruling [R-12]** (`../Audits/Audit-Rulings-20260915.md`).
+
+⚠️ **THE CHECK IS ONE LINE: the highest row in the table == the highest Sprint ID issued.**
+
+⚠️ **WHY: this defect has now occurred in TWO layers.** ⚠️ **2026-08-19 F-08 — EP-034 missing from the
+Epic index entirely.** ⚠️ **2026-09-15 F-01 — the All-Sprints table, which declares itself the SINGLE
+SOURCE, had no row for SP-127 or SP-131–133 while claiming to be complete.**
+
+⛔ **A table that silently stops is worse than no table: a reader trusts it BECAUSE it is declared
+authoritative.** ✅ **Run the check whenever a Sprint is closed or created.**
+
+## ⚠️ THREE STANDING RULES — audit rulings [R-14], [R-15], [R-16] (2026-09-15)
+
+### [R-14] ⛔ **Do NOT preserve prior text that states STATE**
+
+⚠️ **Preserved prior text is as destructive as omitting it, when what it states is STATE** — ✅ **counts,
+statuses, "next available" IDs, verification claims.**
+⚠️ **PROOF: `Issue-active.md` carried SIX stacked *"Currently: N records"* lines — twenty-three,
+twenty-two, twenty-one, twenty, eighteen, seventeen — ⛔ and NONE was correct** (the real count was 25).
+⚠️ **A reader cannot tell which preserved line is current, so preservation MISLEADS.**
+✅ **DELETE superseded state. ✅ PRESERVE rationale — *why* a decision was made — which does not decay.**
+
+### [R-15] ⛔ **No restated summary counts, in ANY layer**
+
+⚠️ **2026-08-19 removed per-status totals from the EPIC layer (R-22④, R-23②).** ⛔ **That fix was scoped
+too narrowly:** ✅ **the Task and Sprint layers kept theirs, and those are exactly the two that drifted
+into the 2026-09-15 audit's criticals** (⚠️ **Sprint claimed next-ID SP-127 when SP-134 was issued;
+Task claimed 425 IDs when the highest was T-0534**).
+✅ **THE RULE NOW APPLIES TO ALL FOUR LAYERS.** ⚠️ **A summary that restates a table WILL drift from it.**
+✅ **Counts are obtained by READING THE ROWS.** ⚠️ **ID-accounting tables are NOT counts and are RETAINED
+— they distinguish an unassigned ID from a lost record.**
+
+### [R-16] ⛔ **Do NOT surface status mid-investigation**
+
+✅ **A status line is written when the investigation CONCLUDES, not while it runs.**
+⚠️ **PROOF, both caught by the USER and not by Claude:** ⚠️ **[T-0529]'s row claimed a test was "STILL
+UNEXERCISED" for a full day AFTER the user had exercised it;** ⚠️ **[T-0521]'s row read
+"Implemented - Not Verified" while the code was untouched.**
+✅ **An in-flight finding may be recorded as NARRATIVE.** ⛔ **It must NOT be written into a status cell
+that a later reader will treat as current.**
