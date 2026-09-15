@@ -168,10 +168,30 @@ int main(int argc, char* argv[])
                   "imported timeline kept its grey shade");
             check(o.value(QStringLiteral("eventCount")).toInt() == 2,
                   "imported timeline reports 2 events");
+
+            // SP-129/T-0502: the projection must carry the EVENTS THEMSELVES, not just
+            // a count. ⚠️ Before SP-129 it carried only `eventCount`, which is why BOTH
+            // platforms re-read the stored file to draw their dots. If this regresses,
+            // the panel silently draws an EMPTY imported row rather than failing.
+            const QJsonArray evs = o.value(QStringLiteral("events")).toArray();
+            check(evs.size() == 2, "projection carries the 2 events");
+            if (evs.size() == 2) {
+                const QJsonObject e0 = evs.first().toObject();
+                check(e0.contains(QStringLiteral("projectOffsetMs")),
+                      "event carries projectOffsetMs");
+                // ⚠️ Pre-RESOLVED by the core (offsetMs + epochOffsetMs), so no platform
+                // recomputes it. Assert the sum, not merely the field's presence.
+                check(e0.value(QStringLiteral("projectOffsetMs")).toDouble()
+                          == e0.value(QStringLiteral("offsetMs")).toDouble()
+                             + o.value(QStringLiteral("epochOffsetMs")).toDouble(),
+                      "projectOffsetMs == offsetMs + epochOffsetMs");
+            }
         }
     }
 
-    // The stored file exists on disk with its events (the read path the panel uses).
+    // The stored file exists on disk with its events.
+    // ⚠️ SP-129/T-0502: this is NO LONGER "the read path the panel uses" — the panel now
+    // reads the list projection. This asserts PERSISTENCE only.
     {
         const QDir dir(projectPath + QStringLiteral("/objects/imported-timelines"));
         check(dir.exists(), "imported-timelines dir created");

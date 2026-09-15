@@ -27,9 +27,20 @@ printf "  verified:   %s files\n" "$(ls docs/Tasks/Verified/ 2>/dev/null | wc -l
 
 echo
 echo "═══ ⚠️ TASKS CLAIMING 'Implemented' BUT NEVER VERIFIED ═══"
-grep -h "Implemented - Not Verified" docs/Tasks/*.md docs/Sprints/Sprint-active.md 2>/dev/null \
-  | grep -oE "T-0[0-9]{3}" | sort -u | tr '\n' ' '; echo
-echo "  ⚠️ VERIFY THESE AGAINST THE CODE, NOT THE ROW."
+# ⚠️ A claim is only OPEN if the ID is not ALSO archived under Verified/.
+# 2026-09-15: the earlier version omitted this subtraction and reported T-0419 as
+# missing when it was archived all along (Verified/ is a SUBDIRECTORY — docs/Tasks/*.md
+# never reached it). Report a gap only after looking where the answer would live.
+claimed=$(grep -h "Implemented - Not Verified" docs/Tasks/*.md docs/Sprints/Sprint-active.md 2>/dev/null \
+  | grep -oE "T-0[0-9]{3}" | sort -u)
+archived=$(grep -rhoE "T-0[0-9]{3}" docs/Tasks/Verified/ 2>/dev/null | sort -u)
+open_claims=$(comm -23 <(echo "$claimed") <(echo "$archived") | tr '\n' ' ')
+if [ -n "${open_claims// /}" ]; then
+  echo "$open_claims"
+  echo "  ⚠️ VERIFY THESE AGAINST THE CODE, NOT THE ROW."
+else
+  echo "  ✅ none — every 'Implemented' claim is archived under Verified/."
+fi
 
 echo
 echo "═══ ⚠️ OPEN ISSUES ═══"

@@ -2,6 +2,11 @@
 
 ⛔ **NO SPRINT IS CURRENTLY ACTIVE.**
 
+✅ **[SP-129] CLOSED 2026-09-15 (user-approved)** → [`Closed/Sprint-SP-129.md`](Closed/Sprint-SP-129.md).
+✅ **T-0502 / T-0503 / T-0506 + [I-0214] VERIFIED by the user's LIVE PASS** — ⚠️ **all five checks passed,
+✅ plus hide/unhide, which was NOT in the written script.**
+⛔ **T-0504 / T-0505 DEFERRED** — ⚠️ **design questions, not unfinished work.**
+
 🟡 **[EP-040] is the ACTIVE Epic** — `[Apple]` **The Editor Shell** (activated 2026-09-15).
 ✅ **Its next Sprints, per its own Sprint table:** ⚠️ **[SP-129]** (the four unbuilt Apple surfaces +
 the `loadImportedTimelines` bypass) — ✅ **user-ruled NEXT UP** — then ⚠️ **[SP-130]** (close the

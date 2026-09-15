@@ -1,5 +1,12 @@
 # Active Tasks
 
+
+## ✅ SP-129 — ARCHIVED 2026-09-15
+
+✅ **T-0502 / T-0503 / T-0506 ✅ VERIFIED** (user live pass) → [`Verified/Task-verified-0502-0506.md`](Verified/Task-verified-0502-0506.md).
+⛔ **T-0504 / T-0505 DEFERRED** with their design questions — ✅ **recorded in the same file and in [`Sprint-SP-129.md`](../Sprints/Sprint-SP-129.md).**
+✅ **[I-0214] ✅ VERIFIED** — ⚠️ **found by the USER when the live pass could not start.**
+
 Tasks currently being worked by an **active Sprint**. Each row names the Sprint it belongs to; the
 Sprint's own documentation lives in [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md) and is
 **not** duplicated here.

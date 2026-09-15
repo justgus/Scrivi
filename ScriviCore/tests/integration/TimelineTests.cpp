@@ -12,6 +12,7 @@
 #include "schemas/TimelineMetaJson.hpp"
 #include "schemas/SceneMetaJson.hpp"
 #include "schemas/StoryStructureJson.hpp"
+#include "util/Json.hpp"
 #include "schemas/HistoricalEventJson.hpp"
 #include "schemas/ExternalTimelineJson.hpp"
 
@@ -436,6 +437,140 @@ TEST_CASE("importExternalTimeline / listImportedTimelines / removeImportedTimeli
     auto lr2 = core.listImportedTimelines(lreq);
     REQUIRE(lr2.ok());
     CHECK(lr2.value().count == 0);
+}
+
+// ---------------------------------------------------------------------------
+// SP-129 / T-0502: the list projection must carry the EVENTS, not just a count.
+//
+// ⚠️ WHY THIS TEST EXISTS. Before SP-129 the projection emitted `eventCount` only,
+// so every platform re-opened and re-parsed the stored file to draw its dots —
+// Apple with FileManager+JSONDecoder (a standing-rule violation) and Linux with
+// readImportedTimelineFile. Both are being deleted; if this projection ever stops
+// carrying events, BOTH platforms silently draw EMPTY imported timelines rather
+// than failing, so this asserts the contract at the boundary, not at the facade.
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// [I-0214]: a file that cannot be parsed must be REPORTED, not silently skipped.
+//
+// ⚠️ WHY THIS EXISTS. Four hand-authored fixture files lacked the `schema` key. The
+// core skipped all four with a bare `continue`, so the panel drew NOTHING and said
+// NOTHING — the writer could not tell "never imported" from "broken". The old Swift
+// bypass had accepted them (it never checked `schema`), so routing through the core
+// made four timelines vanish with no diagnostic at all.
+//
+// ⛔ A bad file must NOT fail the whole call — one corrupt import cannot be allowed
+// to hide every good one — but it must not be INVISIBLE either.
+// ---------------------------------------------------------------------------
+TEST_CASE("listImportedTimelines REPORTS files it cannot parse", "[integration][I-0214]") {
+    TempDir proj, app;
+    scrivi::platform::LocalFileSystem        fs_;
+    scrivi::mocks::DeterministicUUIDProvider uuids;
+    scrivi::mocks::FixedClock                clock{"2026-06-11T00:00:00Z"};
+    scrivi::mocks::MockSecureStore           store;
+    scrivi::mocks::MockGitProvider           git;
+    auto core = makeCore(fs_, uuids, clock, store, git);
+    createProject(core, proj.str(), app.str());
+
+    // One GOOD timeline, imported the supported way.
+    scrivi::schemas::ExternalTimelineData tl;
+    tl.timelineID         = "ext-good";
+    tl.sourceProjectTitle = "Good Timeline";
+    tl.exportedAt         = "2026-06-11T00:00:00Z";
+    scrivi::schemas::ExternalTimelineEvent ev;
+    ev.eventID = "e1"; ev.title = "One"; ev.offsetMs = 0; ev.kind = "historical";
+    tl.events.push_back(ev);
+    scrivi::ImportExternalTimelineRequest ireq;
+    ireq.projectRootPath   = proj.str();
+    ireq.timelineJSON      = scrivi::schemas::serializeExternalTimeline(tl);
+    ireq.epochOffsetMs     = 0;
+    ireq.assignedGreyShade = "#8A8A8A";
+    REQUIRE(core.importExternalTimeline(ireq).ok());
+
+    // ⚠️ A file with NO `schema` key — exactly the fixture defect found 2026-09-15.
+    //    Well-formed JSON, plausible content, and REJECTED.
+    const auto badPath = proj.str() + "/objects/imported-timelines/hand-written.scrivi-timeline.json";
+    REQUIRE(fs_.atomicWriteTextFile(badPath,
+        R"({"timelineID":"ext-bad","sourceProjectTitle":"Hand Written",)"
+        R"("epochOffsetMs":0,"visible":true,"events":[{"eventID":"x","title":"X",)"
+        R"("offsetMs":0,"kind":"historical"}]})").ok());
+
+    scrivi::ListImportedTimelinesRequest lreq;
+    lreq.projectRootPath = proj.str();
+    auto lr = core.listImportedTimelines(lreq);
+    REQUIRE(lr.ok());
+
+    // ✅ The good one still loads — a bad file does not poison the call.
+    CHECK(lr.value().count == 1);
+
+    // ✅ …and the bad one is NAMED, with a reason. This is the whole defect.
+    REQUIRE(lr.value().rejected.size() == 1);
+    CHECK(lr.value().rejected[0].path.find("hand-written") != std::string::npos);
+    CHECK_FALSE(lr.value().rejected[0].reason.empty());
+}
+
+TEST_CASE("listImportedTimelines projects events with resolved projectOffsetMs",
+          "[integration][T-0502][SP-129]") {
+    TempDir proj, app;
+    scrivi::platform::LocalFileSystem        fs_;
+    scrivi::mocks::DeterministicUUIDProvider uuids;
+    scrivi::mocks::FixedClock                clock{"2026-06-11T00:00:00Z"};
+    scrivi::mocks::MockSecureStore           store;
+    scrivi::mocks::MockGitProvider           git;
+    auto core = makeCore(fs_, uuids, clock, store, git);
+    createProject(core, proj.str(), app.str());
+
+    scrivi::schemas::ExternalTimelineData tl;
+    tl.timelineID         = "ext-timeline-evt";
+    tl.sourceProjectTitle = "The Iron Chronicles";
+    tl.sourceProjectID    = "proj-ext-evt";
+    tl.exportedAt         = "2026-06-11T00:00:00Z";
+    tl.epochLabel         = "The First Age";
+    for (int i = 0; i < 3; ++i) {
+        scrivi::schemas::ExternalTimelineEvent ev;
+        ev.eventID  = "event-00" + std::to_string(i);
+        ev.title    = "Event " + std::to_string(i);
+        ev.offsetMs = static_cast<int64_t>(i) * 1000;
+        ev.kind     = "historical";
+        ev.notes    = "note-" + std::to_string(i);
+        tl.events.push_back(ev);
+    }
+
+    constexpr int64_t kEpochOffset = -94'608'000'000LL;
+    scrivi::ImportExternalTimelineRequest ireq;
+    ireq.projectRootPath   = proj.str();
+    ireq.timelineJSON      = scrivi::schemas::serializeExternalTimeline(tl);
+    ireq.epochOffsetMs     = kEpochOffset;
+    ireq.assignedGreyShade = "#8A8A8A";
+    REQUIRE(core.importExternalTimeline(ireq).ok());
+
+    scrivi::ListImportedTimelinesRequest lreq;
+    lreq.projectRootPath = proj.str();
+    auto lr = core.listImportedTimelines(lreq);
+    REQUIRE(lr.ok());
+    REQUIRE(lr.value().count == 1);
+
+    auto parsed = scrivi::util::parseJson(lr.value().timelinesJSON);
+    REQUIRE(parsed.ok());
+    REQUIRE(parsed.value().arraySize("timelines") == 1);
+    const auto tl0 = parsed.value().arrayItem("timelines", 0);
+
+    // eventCount is retained (existing callers read it) AND events are now present.
+    CHECK(tl0.getInt("eventCount") == 3);
+    REQUIRE(tl0.arraySize("events") == 3);
+
+    const auto ev0 = tl0.arrayItem("events", 0);
+    const auto ev2 = tl0.arrayItem("events", 2);
+    CHECK(ev0.getString("eventID") == "event-000");
+    CHECK(ev0.getString("title")   == "Event 0");
+    CHECK(ev0.getString("kind")    == "historical");
+    CHECK(ev0.getString("notes")   == "note-0");
+
+    // ⚠️ The epoch offset must be APPLIED, not merely carried: this sum is what a
+    // platform would otherwise recompute by hand (both did, identically).
+    CHECK(ev0.getInt64("offsetMs")        == 0);
+    CHECK(ev0.getInt64("projectOffsetMs") == kEpochOffset);
+    CHECK(ev2.getInt64("offsetMs")        == 2000);
+    CHECK(ev2.getInt64("projectOffsetMs") == kEpochOffset + 2000);
 }
 
 // ---------------------------------------------------------------------------

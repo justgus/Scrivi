@@ -383,7 +383,12 @@ struct ListHistoricalEventsResult  { std::string eventsJSON; int count = 0; };
 struct ImportExternalTimelineResult       { std::string timelineID; bool imported = false; };
 struct UpdateImportedTimelineOffsetResult { std::string timelineID; bool updated  = false; };
 struct SetImportedTimelineVisibleResult   { std::string timelineID; bool updated  = false; };
-struct ListImportedTimelinesResult        { std::string timelinesJSON; int count = 0; };
+// [I-0214] `rejected` carries the files that could NOT be read or parsed. ⚠️ They were
+// previously skipped in silence, so a writer saw an empty panel and was told nothing —
+// unable to tell "never imported" from "broken". A platform MUST surface these.
+struct ImportedTimelineRejection      { std::string path; std::string reason; };
+struct ListImportedTimelinesResult        { std::string timelinesJSON; int count = 0;
+                                            std::vector<ImportedTimelineRejection> rejected; };
 struct RemoveImportedTimelineResult       { std::string timelineID; bool removed = false; };
 struct ExportProjectTimelineResult        { std::string timelineJSON; };
 

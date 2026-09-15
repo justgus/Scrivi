@@ -2482,39 +2482,41 @@ void EditorShell::onExportTimelineRequested()
 
 // --- EP-025 imported timelines (SP-082, T-0342) ---------------------------
 
-namespace {
-// Find the stored imported-timeline file for `timelineID` and return its parsed object,
-// or an empty object on any miss. Files live in objects/imported-timelines/ and each
-// carries the full record (metadata + events + epochOffsetMs/visible/assignedGreyShade),
-// which the list endpoint does not — so reads go straight to disk (Apple's pattern).
-QJsonObject readImportedTimelineFile(const QString& projectPath, const QString& timelineID)
-{
-    const QDir dir(projectPath + QStringLiteral("/objects/imported-timelines"));
-    if (!dir.exists()) {
-        return {};
-    }
-    const QStringList files = dir.entryList({QStringLiteral("*.json")}, QDir::Files);
-    for (const QString& f : files) {
-        QFile file(dir.filePath(f));
-        if (!file.open(QIODevice::ReadOnly)) {
-            continue;
-        }
-        const QJsonObject o = QJsonDocument::fromJson(file.readAll()).object();
-        if (o.value(QStringLiteral("timelineID")).toString() == timelineID) {
-            return o;
-        }
-    }
-    return {};
-}
-} // namespace
+// SP-129/T-0502: `readImportedTimelineFile` WAS HERE and is DELETED. It existed only
+// because the list projection omitted events, and its own comment justified itself as
+// "Apple's pattern" — ⚠️ Apple's pattern was a standing-rule violation, now also gone.
+// The core projection carries events with `projectOffsetMs` pre-resolved; ⛔ do not
+// reintroduce a direct read of objects/imported-timelines/.
 
 void EditorShell::reloadImportedTimelines()
 {
     QList<TimelinePanel::ImportedRow> rows;
 
-    // Metadata (incl. timelineID, visible, greyShade) from the list endpoint; the
-    // per-event dots come from each stored file (the list projection omits events).
+    // SP-129/T-0502: metadata AND per-event dots both come from the list endpoint.
+    // The projection used to omit events, so this re-opened and re-parsed every stored
+    // file the core had already parsed; it now carries `events` with `projectOffsetMs`
+    // pre-resolved, so the epoch arithmetic lives in the core instead of here.
     const QVariantMap li = bridge_->listImportedTimelines(projectPath_);
+
+    // [I-0214] Files the core could not read or parse. ⚠️ They were previously discarded
+    // in silence, so an empty panel was indistinguishable from "nothing imported".
+    // ⚠️ LOGGED ONLY, DELIBERATELY: Linux has no passive warning strip (Apple uses one,
+    // mirroring WorldWarningView), and a QMessageBox here would be MODAL on every single
+    // load — worse than the silence it replaces. ⛔ The Linux surface is a KNOWN GAP,
+    // recorded in [I-0214]; do not close it with a modal.
+    const int rejectedCount = li.value(QStringLiteral("rejectedCount")).toInt();
+    if (rejectedCount > 0) {
+        // ⚠️ `rejected` is a NESTED ARRAY in the envelope; parseEnvelope's toVariantMap()
+        // preserves it as a QVariantList of QVariantMap — NOT as a JSON string.
+        qWarning("[I-0214] %d imported timeline file(s) could not be loaded:", rejectedCount);
+        for (const QVariant& v : li.value(QStringLiteral("rejected")).toList()) {
+            const QVariantMap rm = v.toMap();
+            qWarning("  %s — %s",
+                     qUtf8Printable(rm.value(QStringLiteral("path")).toString()),
+                     qUtf8Printable(rm.value(QStringLiteral("reason")).toString()));
+        }
+    }
+
     const QString timelinesJSON = li.value(QStringLiteral("timelinesJSON")).toString();
     if (!timelinesJSON.isEmpty()) {
         const QJsonArray arr = QJsonDocument::fromJson(timelinesJSON.toUtf8())
@@ -2527,16 +2529,14 @@ void EditorShell::reloadImportedTimelines()
             row.greyShade  = meta.value(QStringLiteral("assignedGreyShade")).toString();
             row.visible    = meta.value(QStringLiteral("visible")).toBool(true);
 
-            // Per-event dots from the stored file: projectOffset = own offset + epochOffset.
-            const QJsonObject file = readImportedTimelineFile(projectPath_, row.timelineID);
-            const qint64 epochOffset = static_cast<qint64>(
-                file.value(QStringLiteral("epochOffsetMs")).toDouble());
-            for (const QJsonValue& ev : file.value(QStringLiteral("events")).toArray()) {
+            // Per-event dots, straight from the projection. `projectOffsetMs` is
+            // already offset + epochOffset — NOT recomputed here.
+            for (const QJsonValue& ev : meta.value(QStringLiteral("events")).toArray()) {
                 const QJsonObject eo = ev.toObject();
                 TimelinePanel::ImportedEvent e;
                 e.title = eo.value(QStringLiteral("title")).toString();
                 e.projectOffsetMs = static_cast<qint64>(
-                    eo.value(QStringLiteral("offsetMs")).toDouble()) + epochOffset;
+                    eo.value(QStringLiteral("projectOffsetMs")).toDouble());
                 row.events.append(e);
             }
             rows.append(row);
@@ -2618,7 +2618,20 @@ void EditorShell::onImportTimelineRequested()
 
 void EditorShell::onEditImportedOffsetRequested(const QString& timelineID)
 {
-    const QJsonObject file = readImportedTimelineFile(projectPath_, timelineID);
+    // SP-129/T-0502: from the list projection, not the stored file. ⚠️ This wants the
+    // SOURCE offsets (`offsetMs`), not `projectOffsetMs` — the dialog's whole job is to
+    // choose the epoch offset that maps source time onto story time.
+    const QVariantMap li = bridge_->listImportedTimelines(projectPath_);
+    const QJsonArray all = QJsonDocument::fromJson(
+        li.value(QStringLiteral("timelinesJSON")).toString().toUtf8())
+        .object().value(QStringLiteral("timelines")).toArray();
+    QJsonObject file;
+    for (const QJsonValue& v : all) {
+        if (v.toObject().value(QStringLiteral("timelineID")).toString() == timelineID) {
+            file = v.toObject();
+            break;
+        }
+    }
     if (file.isEmpty()) {
         return;
     }

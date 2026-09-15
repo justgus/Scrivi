@@ -970,14 +970,29 @@ Result<ListImportedTimelinesResult> ScriviCore::listImportedTimelines(
     if (!existsR.ok()) { return Result<ListImportedTimelinesResult>::failure(existsR.error()); }
     util::JsonDoc root;
     int count = 0;
+    std::vector<ImportedTimelineRejection> result_rejected;
     if (existsR.value()) {
         auto entriesR = services_.fileSystem->listDirectory(dir);
         if (!entriesR.ok()) { return Result<ListImportedTimelinesResult>::failure(entriesR.error()); }
         for (const auto& p : entriesR.value()) {
+            // [I-0214] A file that cannot be read or parsed is RECORDED, not swallowed.
+            // ⚠️ Both of these were bare `continue`s: four malformed files produced an
+            // empty panel and total silence, and the writer had no way to tell that
+            // from having imported nothing at all.
+            // ⛔ Still not a FAILURE of the call — one bad file must not hide the good
+            // ones — but it is no longer INVISIBLE.
             auto textR = services_.fileSystem->readTextFile(p);
-            if (!textR.ok()) { continue; }
+            if (!textR.ok()) {
+                result_rejected.push_back({p, textR.error().message.empty()
+                                              ? "could not be read" : textR.error().message});
+                continue;
+            }
             auto parseR = schemas::parseExternalTimeline(textR.value());
-            if (!parseR.ok()) { continue; }
+            if (!parseR.ok()) {
+                result_rejected.push_back({p, parseR.error().message.empty()
+                                              ? "could not be parsed" : parseR.error().message});
+                continue;
+            }
             const auto& d = parseR.value();
             util::JsonDoc item;
             item.setString("timelineID",         d.timelineID);
@@ -987,6 +1002,28 @@ Result<ListImportedTimelinesResult> ScriviCore::listImportedTimelines(
             item.setBool("visible",               d.visible);
             item.setString("assignedGreyShade",   d.assignedGreyShade);
             item.setInt("eventCount",             static_cast<int>(d.events.size()));
+
+            // SP-129/T-0502: the events themselves, so no PLATFORM has to read the
+            // stored file to draw imported dots. The projection previously emitted
+            // `eventCount` only, which forced BOTH Apple (FileManager + JSONDecoder)
+            // and Linux (readImportedTimelineFile) to re-open and re-parse every file
+            // this loop has ALREADY parsed. That is backend logic in the UI layer, and
+            // on Apple it violated the standing rule outright.
+            //
+            // `projectOffsetMs` is emitted PRE-RESOLVED (offsetMs + epochOffsetMs)
+            // because that sum is the whole point of an epoch offset, and both callers
+            // were computing it identically by hand.
+            for (const auto& ev : d.events) {
+                util::JsonDoc evDoc;
+                evDoc.setString("eventID",        ev.eventID);
+                evDoc.setString("title",          ev.title);
+                evDoc.setInt64("offsetMs",        ev.offsetMs);
+                evDoc.setInt64("projectOffsetMs", ev.offsetMs + d.epochOffsetMs);
+                evDoc.setString("kind",           ev.kind);
+                evDoc.setString("notes",          ev.notes);
+                item.appendToArray("events", std::move(evDoc));
+            }
+
             root.appendToArray("timelines", std::move(item));
             ++count;
         }
@@ -994,6 +1031,7 @@ Result<ListImportedTimelinesResult> ScriviCore::listImportedTimelines(
     ListImportedTimelinesResult result;
     result.timelinesJSON = root.dump();
     result.count         = count;
+    result.rejected      = std::move(result_rejected);
     return Result<ListImportedTimelinesResult>::success(std::move(result));
 }
 

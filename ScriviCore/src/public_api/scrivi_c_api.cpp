@@ -2644,6 +2644,16 @@ const char* scrivi_list_imported_timelines(const char* projectRootPath) {
     scrivi::util::JsonDoc doc;
     doc.setInt("count",           r.value().count);
     doc.setString("timelinesJSON", r.value().timelinesJSON);
+    // [I-0214] Files that could not be read or parsed. ⚠️ `rejectedCount` is emitted
+    // ALWAYS — including 0 — so a caller can branch on it without the empty-array trap
+    // (an omitted key is indistinguishable from a failed call: project_envelope_empty_vs_failed).
+    doc.setInt("rejectedCount", static_cast<int>(r.value().rejected.size()));
+    for (const auto& rej : r.value().rejected) {
+        scrivi::util::JsonDoc rd;
+        rd.setString("path",   rej.path);
+        rd.setString("reason", rej.reason);
+        doc.appendToArray("rejected", std::move(rd));
+    }
     return heap(okEnvelope(std::move(doc)));
 }
 

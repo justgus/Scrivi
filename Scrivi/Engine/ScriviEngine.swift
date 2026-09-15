@@ -2154,9 +2154,29 @@ public struct HistoricalEventsListResult: Decodable, Sendable {
     public let eventsJSON: String
 }
 
+public struct ImportedTimelineRejection: Decodable, Sendable {
+    public let path:   String
+    public let reason: String
+}
+
 public struct ImportedTimelinesListResult: Decodable, Sendable {
     public let count:         Int
     public let timelinesJSON: String
+    /// [I-0214] Files in `objects/imported-timelines/` that could not be read or parsed.
+    /// ⚠️ These were previously discarded in SILENCE — a writer saw an empty panel and
+    /// could not tell "never imported" from "broken".
+    public let rejected:      [ImportedTimelineRejection]
+
+    private enum CodingKeys: String, CodingKey { case count, timelinesJSON, rejected }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        count         = (try? c.decode(Int.self,    forKey: .count)) ?? 0
+        timelinesJSON = (try? c.decode(String.self, forKey: .timelinesJSON)) ?? ""
+        // ⚠️ Absent `rejected` means NOTHING was rejected — the writer omits an empty
+        // array entirely. `rejectedCount` is always emitted, but this decoder does not
+        // need it: an empty list and an absent key mean the same thing HERE.
+        rejected      = (try? c.decode([ImportedTimelineRejection].self, forKey: .rejected)) ?? []
+    }
 }
 
 public struct ExportTimelineResult: Decodable, Sendable {

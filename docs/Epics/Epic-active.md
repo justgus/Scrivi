@@ -106,7 +106,7 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 | **SP-136** | **S4** | ⚠️ **The Inspector as a real column** (`.inspector`) | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
 | **SP-137** | **S6** | ⚠️ **The Object Detail Sheet** — ⚠️ **hosting RULING first, then chrome** | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
 | **SP-138** | **S5** | ⛔ **`NSSplitViewController` rebuild** | ⛔ **NOT SCHEDULED** | ⛔ **HIGH** |
-| **SP-129** | — | ⚠️ **The four unbuilt Apple surfaces + the `loadImportedTimelines` bypass** (T-0502–T-0506) | 🟡 **MOVED HERE 2026-09-15 — ✅ NEXT UP** | ⚠️ **See scope note** |
+| **SP-129** | ✅ **T-0502, T-0503, T-0506 + [I-0214]** (⛔ **T-0504/T-0505 deferred**) | ⚠️ **The unbuilt surfaces + the `loadImportedTimelines` bypass** — ⚠️ **scope GREW to `[ScriviCore]`+`[Linux]`.** ✅ **Core projection extended; both bypasses deleted** | ✅ **CLOSED 2026-09-15** — [record](../Sprints/Closed/Sprint-SP-129.md) | ✅ **VERIFIED by user LIVE PASS** |
 | **SP-130** | — | ⚠️ **Close the ScriviCore bypasses** — [I-0197] | 🟡 **MOVED HERE 2026-09-15** | ⚠️ **Depends on SP-129's T-0502** |
 
 ⚠️ **SCOPE NOTE ON SP-129 / SP-130 — ✅ MOVED BY USER RULING 2026-09-15; ⚠️ THEY DO NOT FIT THIS

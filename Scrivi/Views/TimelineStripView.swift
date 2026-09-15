@@ -149,35 +149,68 @@ struct ImportedEventDot: Identifiable {
 }
 
 // Decodable shape of a stored .scrivi-timeline.json file (import format).
-private struct ImportedTimelineFile: Decodable {
-    struct Event: Decodable {
-        let eventID: String
-        let title: String
-        let offsetMs: Int64
-        let kind: String
-        var notes: String?
-    }
-    let timelineID: String
-    let sourceProjectTitle: String
-    let epochLabel: String
-    let epochOffsetMs: Int64
-    let visible: Bool
-    let assignedGreyShade: String
-    let events: [Event]
+// SP-129 / T-0502 — the shape `scrivi_list_imported_timelines` returns.
+//
+// ⚠️ **THIS REPLACED A DIRECT FILESYSTEM READ.** Until SP-129 this file decoded the
+// STORED `.scrivi-timeline.json` files itself — `FileManager.contentsOfDirectory`
+// plus `Data(contentsOf:)` plus `JSONDecoder`, per file, on the timeline load path.
+// That is backend logic in the UI layer, which CLAUDE.md forbids outright ("Swift is
+// responsible for UI only"), and it re-parsed files the core had ALREADY parsed.
+//
+// ✅ The core projection now carries `events` with `projectOffsetMs` PRE-RESOLVED,
+// so this decodes one envelope instead of walking a directory.
+private struct ImportedTimelinesPayload: Decodable {
+    struct Timeline: Decodable {
+        struct Event: Decodable {
+            let eventID: String
+            let title: String
+            let offsetMs: Int64
+            let projectOffsetMs: Int64
+            let kind: String
 
-    private enum CodingKeys: String, CodingKey {
-        case timelineID, sourceProjectTitle, epochLabel, epochOffsetMs, visible,
-             assignedGreyShade, events
+            private enum CodingKeys: String, CodingKey {
+                case eventID, title, offsetMs, projectOffsetMs, kind
+            }
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                eventID         = (try? c.decode(String.self, forKey: .eventID)) ?? ""
+                title           = (try? c.decode(String.self, forKey: .title)) ?? ""
+                offsetMs        = (try? c.decode(Int64.self,  forKey: .offsetMs)) ?? 0
+                projectOffsetMs = (try? c.decode(Int64.self,  forKey: .projectOffsetMs)) ?? offsetMs
+                kind            = (try? c.decode(String.self, forKey: .kind)) ?? ""
+            }
+        }
+        let timelineID: String
+        let sourceProjectTitle: String
+        let epochLabel: String
+        let epochOffsetMs: Int64
+        let visible: Bool
+        let assignedGreyShade: String
+        let events: [Event]
+
+        private enum CodingKeys: String, CodingKey {
+            case timelineID, sourceProjectTitle, epochLabel, epochOffsetMs, visible,
+                 assignedGreyShade, events
+        }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            timelineID         = try c.decode(String.self, forKey: .timelineID)
+            sourceProjectTitle = (try? c.decode(String.self, forKey: .sourceProjectTitle)) ?? ""
+            epochLabel         = (try? c.decode(String.self, forKey: .epochLabel)) ?? "Story Open"
+            epochOffsetMs      = (try? c.decode(Int64.self,  forKey: .epochOffsetMs)) ?? 0
+            visible            = (try? c.decode(Bool.self,   forKey: .visible)) ?? true
+            assignedGreyShade  = (try? c.decode(String.self, forKey: .assignedGreyShade)) ?? ""
+            // ⚠️ Absent `events` is an EMPTY LIST, not a failure — same trap AC4 hit:
+            // the JSON writer omits an empty array entirely.
+            events             = (try? c.decode([Event].self, forKey: .events)) ?? []
+        }
     }
+    let timelines: [Timeline]
+
+    private enum CodingKeys: String, CodingKey { case timelines }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        timelineID         = try c.decode(String.self, forKey: .timelineID)
-        sourceProjectTitle = (try? c.decode(String.self, forKey: .sourceProjectTitle)) ?? ""
-        epochLabel         = (try? c.decode(String.self, forKey: .epochLabel)) ?? "Story Open"
-        epochOffsetMs      = (try? c.decode(Int64.self,  forKey: .epochOffsetMs)) ?? 0
-        visible            = (try? c.decode(Bool.self,   forKey: .visible)) ?? true
-        assignedGreyShade  = (try? c.decode(String.self, forKey: .assignedGreyShade)) ?? ""
-        events             = (try? c.decode([Event].self, forKey: .events)) ?? []
+        timelines = (try? c.decode([Timeline].self, forKey: .timelines)) ?? []
     }
 }
 
@@ -233,6 +266,16 @@ private struct ImportedTimelineFile: Decodable {
     // `didSet` so the derived bounds recompute when rows are loaded, shown, hidden or
     // removed — the same discipline `dots` and `historicalEvents` already use. Without
     // it the span ignores imports entirely and every imported event lands off-panel.
+    /// [I-0214] Imported-timeline files the CORE could not read or parse.
+    ///
+    /// ⚠️ **WHY THIS EXISTS.** These files were discarded in silence: the panel simply
+    /// drew nothing, and a writer could not tell "I never imported that" from "my
+    /// import is broken". ✅ **The core now names each file and why it was rejected.**
+    ///
+    /// ⛔ **This is NOT an error state for the panel.** Good timelines still draw; this
+    /// reports only what was left out (same discipline as `WorldWarningModel`).
+    private(set) var rejectedImports: [ImportedTimelineRejection] = []
+
     private(set) var importedTimelines: [ImportedTimelineRow] = [] {
         didSet { recomputeDerivedBounds() }
     }
@@ -342,7 +385,7 @@ private struct ImportedTimelineFile: Decodable {
 
         loadStoryStructure(engine: engine, projectRootPath: projectRootPath)
         loadHistoricalEvents(engine: engine, projectRootPath: projectRootPath)
-        loadImportedTimelines(projectRootPath: projectRootPath)
+        loadImportedTimelines(projectRootPath: projectRootPath, engine: engine)
     }
 
     // Reload only the scene dots from an updated scene list.
@@ -522,35 +565,51 @@ private struct ImportedTimelineFile: Decodable {
 
     // MARK: Imported timelines
 
-    // Reads imported timeline metadata from engine, then reads full event arrays from disk
-    // (the stored files include events; listImportedTimelines returns metadata only).
-    func loadImportedTimelines(projectRootPath: String) {
-        let dir = projectRootPath + "/objects/imported-timelines"
-        guard let entries = try? FileManager.default.contentsOfDirectory(atPath: dir) else {
+    /// SP-129 / T-0502 — imported timelines, THROUGH THE CORE.
+    ///
+    /// ⚠️ **WHAT THIS REPLACED.** This function used to walk
+    /// `objects/imported-timelines/` with `FileManager.contentsOfDirectory`, then
+    /// `Data(contentsOf:)` + `JSONDecoder` per file — ⚠️ **on the timeline load path,
+    /// the same path measured at `251 s` in [I-0196]**, and in plain violation of the
+    /// standing rule that no backend logic is reimplemented in Swift.
+    ///
+    /// ⚠️ **WHY IT COULD NOT SIMPLY BE SWAPPED.** `listImportedTimelines` projected
+    /// `eventCount` but NOT the events, so the endpoint alone could not feed the dots —
+    /// which is exactly why Linux reads the files too. ✅ **SP-129 extended the CORE
+    /// projection to carry events with `projectOffsetMs` pre-resolved**, so this is now
+    /// one crossing and the offset arithmetic lives in one place instead of two.
+    ///
+    /// ⛔ A THROW leaves the existing rows ALONE rather than blanking them: a failed
+    /// read must not look to a writer like "your imported timelines are gone".
+    func loadImportedTimelines(projectRootPath: String, engine: ScriviEngine) {
+        guard let result = try? engine.listImportedTimelines(projectRootPath: projectRootPath) else {
+            return
+        }
+        // [I-0214] Record what the core refused, so the panel can say so.
+        rejectedImports = result.rejected
+        guard let data = result.timelinesJSON.data(using: .utf8),
+              let payload = try? JSONDecoder().decode(ImportedTimelinesPayload.self, from: data) else {
+            // ⚠️ `timelinesJSON` is "{}" when there are no imported timelines — the
+            // empty-array trap again. Decoding yields zero rows, which IS the answer.
             importedTimelines = []
             return
         }
-        var rows: [ImportedTimelineRow] = []
-        for filename in entries where filename.hasSuffix(".scrivi-timeline.json") {
-            let path = dir + "/" + filename
-            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-                  let json = try? JSONDecoder().decode(ImportedTimelineFile.self, from: data) else {
-                continue
-            }
-            let events = json.events.map { ev in
-                ImportedEventDot(
-                    id: ev.eventID, eventID: ev.eventID, title: ev.title,
-                    sourceOffsetMs: ev.offsetMs, kind: ev.kind,
-                    projectOffsetMs: ev.offsetMs + json.epochOffsetMs)
-            }
-            rows.append(ImportedTimelineRow(
-                id: json.timelineID, timelineID: json.timelineID,
-                sourceName: json.sourceProjectTitle.isEmpty ? "Imported Timeline" : json.sourceProjectTitle,
-                epochLabel: json.epochLabel, epochOffsetMs: json.epochOffsetMs,
-                visible: json.visible, greyShade: json.assignedGreyShade.isEmpty ? "#8A8A8A" : json.assignedGreyShade,
-                events: events))
+
+        importedTimelines = payload.timelines.map { tl in
+            ImportedTimelineRow(
+                id: tl.timelineID, timelineID: tl.timelineID,
+                sourceName: tl.sourceProjectTitle.isEmpty ? "Imported Timeline" : tl.sourceProjectTitle,
+                epochLabel: tl.epochLabel, epochOffsetMs: tl.epochOffsetMs,
+                visible: tl.visible,
+                greyShade: tl.assignedGreyShade.isEmpty ? "#8A8A8A" : tl.assignedGreyShade,
+                events: tl.events.map { ev in
+                    ImportedEventDot(
+                        id: ev.eventID, eventID: ev.eventID, title: ev.title,
+                        sourceOffsetMs: ev.offsetMs, kind: ev.kind,
+                        // ✅ Pre-resolved by the core; NOT recomputed here.
+                        projectOffsetMs: ev.projectOffsetMs)
+                })
         }
-        importedTimelines = rows
     }
 
     func setImportedTimelineVisible(timelineID: String, visible: Bool,
@@ -720,6 +779,10 @@ struct TimelineStripView: View {
     var onSelectScene: ((String) -> Void)? = nil
 
     @State private var showEpochOffsetDialog = false
+    // SP-129/T-0503 — editing an ALREADY-IMPORTED timeline's epoch offset. Non-nil
+    // means the dialog is in EDIT mode for that timelineID; nil means import mode.
+    // ⚠️ Mirrors Linux's `onEditImportedOffsetRequested`, which is the finished surface.
+    @State private var editingOffsetTimelineID: String?
     @State private var pendingImportJSON: String = ""
     @State private var pendingImportName: String = ""
     @State private var pendingImportEpochLabel: String = ""
@@ -830,11 +893,52 @@ struct TimelineStripView: View {
     }
 
 
+    /// [I-0214] Says what the core REFUSED to load, instead of drawing nothing.
+    ///
+    /// ⚠️ **PASSIVE AND NON-BLOCKING, like `WorldWarningView`** — never a sheet, never an
+    /// alert, and it takes no focus from the manuscript. ⛔ **Nothing destructive lives
+    /// here:** the files are the writer's, they may be hand-authored or from another
+    /// tool, and this surface must not offer to delete what it merely failed to read.
+    ///
+    /// ⚠️ It names the FILE, because "an import failed" is unactionable — the writer
+    /// needs to know WHICH one.
+    @ViewBuilder
+    private var rejectedImportsBanner: some View {
+        if !model.rejectedImports.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                    Text(model.rejectedImports.count == 1
+                         ? "1 imported timeline could not be loaded"
+                         : "\(model.rejectedImports.count) imported timelines could not be loaded")
+                        .font(.caption).fontWeight(.medium)
+                    Spacer(minLength: 8)
+                }
+                ForEach(model.rejectedImports, id: \.path) { rej in
+                    Text("\((rej.path as NSString).lastPathComponent) — \(rej.reason)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.orange.opacity(0.10))
+            .overlay(alignment: .bottom) { Divider() }
+            .accessibilityElement(children: .contain)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             topEdgeHandle
             Divider()
             panelHeader
+            rejectedImportsBanner
             GeometryReader { geo in
                 let panelW = geo.size.width
                 let usable = panelW - 32
@@ -998,6 +1102,28 @@ struct TimelineStripView: View {
                             .foregroundStyle(timeline.swiftUIColor)
                             .lineLimit(1)
                             .position(x: 50, y: rowY)
+                            // SP-129/T-0503 — the imported row's own actions. Until now
+                            // the epoch offset could only be set AT IMPORT, so a writer
+                            // who misjudged it had to remove and re-import.
+                            .contextMenu {
+                                Button("Adjust Epoch Offset…") {
+                                    pendingImportName       = timeline.sourceName
+                                    pendingImportEpochLabel = timeline.epochLabel
+                                    editingOffsetTimelineID = timeline.timelineID
+                                    showEpochOffsetDialog   = true
+                                }
+                                Divider()
+                                Button("Hide This Timeline") {
+                                    model.setImportedTimelineVisible(
+                                        timelineID: timeline.timelineID, visible: false,
+                                        engine: engine, projectRootPath: projectRootPath)
+                                }
+                                Button("Remove Imported Timeline") {
+                                    model.removeImportedTimeline(
+                                        timelineID: timeline.timelineID,
+                                        engine: engine, projectRootPath: projectRootPath)
+                                }
+                            }
                         // Dividing line
                         Rectangle()
                             .fill(Color.secondary.opacity(0.2))
@@ -1238,15 +1364,30 @@ struct TimelineStripView: View {
                 sourceName: pendingImportName,
                 sourceEpochLabel: pendingImportEpochLabel,
                 onCommit: { offsetMs, greyShade in
-                    _ = try? engine.importExternalTimeline(
-                        projectRootPath: projectRootPath,
-                        timelineJSON: pendingImportJSON,
-                        epochOffsetMs: offsetMs,
-                        assignedGreyShade: greyShade)
-                    model.loadImportedTimelines(projectRootPath: projectRootPath)
+                    // SP-129/T-0503: the SAME dialog serves import and edit. ⚠️ In edit
+                    // mode the grey shade is NOT reassigned — it is how the writer
+                    // recognises the row, and changing it on an offset edit would be a
+                    // silent second change she did not ask for.
+                    if let editID = editingOffsetTimelineID {
+                        _ = try? engine.updateImportedTimelineOffset(
+                            projectRootPath: projectRootPath,
+                            timelineID: editID,
+                            epochOffsetMs: offsetMs)
+                    } else {
+                        _ = try? engine.importExternalTimeline(
+                            projectRootPath: projectRootPath,
+                            timelineJSON: pendingImportJSON,
+                            epochOffsetMs: offsetMs,
+                            assignedGreyShade: greyShade)
+                    }
+                    model.loadImportedTimelines(projectRootPath: projectRootPath, engine: engine)
+                    editingOffsetTimelineID = nil
                     showEpochOffsetDialog = false
                 },
-                onCancel: { showEpochOffsetDialog = false }
+                onCancel: {
+                    editingOffsetTimelineID = nil
+                    showEpochOffsetDialog = false
+                }
             )
         }
         .sheet(isPresented: $showHistoricalEventEditor) {

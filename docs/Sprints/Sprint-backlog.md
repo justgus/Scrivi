@@ -46,80 +46,12 @@ governs anything is a second source of truth.
 
 ---
 
-## ⚠️ SP-129 — **MOVED TO [EP-040] 2026-09-15 (user ruling) — ✅ NO LONGER A BACKLOG SPRINT.** ⚠️ **Its Epic is now [EP-040], NOT [EP-039] (closed).** ✅ **Retained here for its planning detail only; ⛔ the authoritative status is EP-040's Sprint table.** ---- ORIGINAL: `[Apple]` ⚠️ **The four unbuilt surfaces** — and the direct-filesystem bypass they exposed
+## ✅ SP-129 — **CLOSED 2026-09-15 (user-approved).** ⛔ **NO LONGER A BACKLOG SPRINT.**
 
-**Status:** 🔵 **PLANNING — not activated.**
-**Epic:** [EP-039](../Epics/Epic-active.md) — `[Cross]` Project Load Performance · ⚠️ **NOT sprint 1**
-— ✅ **corrected 2026-09-12:** ⚠️ **this sprint does NOT make a project open faster.** ✅ **The index
-work (AC1–AC4) sequences AHEAD of it.**
-**Codebase:** `[Apple]` — ⚠️ **Swift/SwiftUI only.** ✅ **No ScriviCore change expected** (the endpoints
-all exist and are live on Linux).
-**Date Created:** 2026-09-10
-**Tasks:** **T-0502 – T-0506** (five) · **Next available:** T-0507
-
-### ⚠️ Why this is in the PERFORMANCE Epic, not a parity Epic
-
-⚠️ **User ruling 2026-09-10: integrate this with the performance work.** ✅ **The reason is not
-scheduling — it is that ONE of these four is ALREADY a performance defect of exactly the kind EP-039
-exists to fix.**
-
-⚠️ **`TimelineViewModel.loadImportedTimelines` (`TimelineStripView.swift:395-420`) DOES NOT CALL THE CORE
-AT ALL.** ⚠️ **It reads `objects/imported-timelines/` with `FileManager.contentsOfDirectory`, then
-`Data(contentsOf:)` and `JSONDecoder` per file, IN SWIFT** — ⚠️ **while `scrivi_list_imported_timelines`
-exists, is bound in `ScriviEngine` (`:924`), and is what Linux calls.**
-
-⚠️ **THIS VIOLATES A STANDING ARCHITECTURAL RULE** (CLAUDE.md): *"No backend logic is reimplemented in
-Swift. Swift is responsible for UI only."* ⚠️ **It also runs on the timeline's load path — the SAME path
-measured at `251 s` in [I-0196]** — ✅ **so it is squarely EP-039's business.**
-
-✅ **MEASURED SCOPE: only 3 direct-filesystem call sites exist in `Scrivi/Views` + `Scrivi/App`.**
-⚠️ **Contained, not systemic — which is exactly why it is worth closing NOW, before it spreads.**
-
-### ⚠️ The four endpoints are NOT equivalent — they split two ways
-
-✅ **AUDITED 2026-09-10.** ⚠️ **Two have a REAL, FINISHED Linux surface to mirror; two have NO UI on
-either platform.** ⚠️ **Treating all four the same would re-earn
-`feedback_mirror_the_finished_surface_not_the_placeholder`.**
-
-| endpoint | Linux UI | ⚠️ What Apple needs |
-| -------- | -------- | ------------------ |
-| `listImportedTimelines` | ✅ **YES** — `EditorShell::reloadImportedTimelines` | ⚠️ **Apple has a surface but BYPASSES the core to feed it** |
-| `updateImportedTimelineOffset` | ✅ **YES** — `EpochOffsetDialog` (`EditorShell.cpp:2606`) | ⚠️ **No Apple surface at all** |
-| `setTimelineEpochLabel` | ⚠️ **NO** — bridge method only | ⚠️ **NEITHER platform has a surface** |
-| `promoteObject` | ⚠️ **NO** — bridge method only | ⚠️ **NEITHER platform has a surface** |
-
-⚠️ **THE LAST TWO ARE NOT A PARITY GAP.** ✅ **They are `project_capability_without_surface`: a shipped
-core capability NO platform ever surfaced.** ⚠️ **Building an Apple UI for them means DESIGNING one, not
-mirroring one** — ⚠️ **and a design invented to close a checkbox is how placeholder surfaces get built.**
-
-### Tasks
-
-| ID | Task | Priority | Status |
-| -- | ---- | -------- | ------ |
-| **T-0502** | ⚠️ **`[Apple]` Route `loadImportedTimelines` THROUGH `scrivi_list_imported_timelines`** — ⚠️ **delete the `FileManager`/`JSONDecoder` bypass.** ✅ **The endpoint is already bound at `ScriviEngine:924`** | **High** | 🔵 Not started |
-| **T-0503** | ⚠️ **`[Apple]` Imported-timeline OFFSET editing** — mirror Linux's `EpochOffsetDialog`; calls `updateImportedTimelineOffset` | **Medium** | 🔵 Not started |
-| **T-0504** | ⚠️ **`[Apple]` Epoch-label editing** — `setTimelineEpochLabel`. ⚠️ **DESIGN REQUIRED: no platform has this surface** | **Low** | 🔵 Not started — ⚠️ **needs a design ruling first** |
-| **T-0505** | ⚠️ **`[Apple]` Object promotion** — `promoteObject` (project-scoped → world-scoped). ⚠️ **DESIGN REQUIRED: no platform has this surface**, ⚠️ **and it MOVES a writer's object between packages — the failure modes need ruling BEFORE a button exists** | **Low** | 🔵 Not started — ⚠️ **needs a design ruling first** |
-| **T-0506** | ⚠️ **Audit the remaining 2 direct-filesystem call sites** in `Scrivi/Views` + `Scrivi/App`; ✅ **route through the core or record WHY not** | **Medium** | 🔵 Not started |
-
-### Definition of Done
-
-- [ ] ⚠️ **No Swift code reads project files directly** where a `scrivi_*` endpoint exists — ✅ **or the
-      exception is RECORDED with its reason.**
-- [ ] ⚠️ **T-0504/T-0505 are either BUILT from a ruled design, or DEFERRED with the design question
-      written down** — ⚠️ **NOT built as placeholders to close a checkbox.**
-- [ ] ⚠️ **A LIVE PASS** — ⚠️ **each new surface is USED by a writer, not just compiled**
-      (`feedback_live_pass_finds_what_suites_cannot`).
-- [ ] ⚠️ **`xcodebuild` green for macOS, iOS AND visionOS** — ⚠️ **iOS/visionOS regressed once already
-      because a view was written macOS-first** (2026-09-10).
-
-### ⚠️ Risks
-
-| Risk | ⚠️ Mitigation |
-| ---- | ------------ |
-| ⚠️ **T-0504/T-0505 get built as placeholders** | ✅ **They are explicitly gated on a DESIGN RULING.** ⚠️ **A surface invented to close a checkbox is the defect `feedback_mirror_the_finished_surface_not_the_placeholder` names** |
-| ⚠️ **`promoteObject` moves data between packages** | ⚠️ **It relocates a writer's object.** ✅ **Rule the failure modes (world unavailable mid-promote, duplicate identity) BEFORE any button exists** |
-| ⚠️ **T-0502 changes the timeline load path** | ⚠️ **That path is [I-0196]'s `251 s`.** ✅ **Measure before AND after with `ScriviDiag`, so a "fix" cannot quietly make it slower** |
+✅ **Record: [`Closed/Sprint-SP-129.md`](Closed/Sprint-SP-129.md).** ⚠️ **Its planning detail lived
+here; ✅ the closed record supersedes it** — ⛔ **a closed Sprint must not keep a planning block in the
+backlog** (`feedback_sprint_backlog_cleanup`).
+✅ **T-0502 / T-0503 / T-0506 + [I-0214] VERIFIED;** ⛔ **T-0504 / T-0505 DEFERRED as design questions.**
 
 ---
 

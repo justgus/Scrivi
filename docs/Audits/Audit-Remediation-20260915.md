@@ -159,5 +159,4 @@ attributed by inference.**
    at sprint close; ✅ `/state` addresses it on demand.**
 2. ✅ **CLOSED 2026-09-15 — all 24 inferred Epic attributions VERIFIED against their sprint archives.**
    ⚠️ **16 were right; ⛔ 8 were WRONG.** ✅ **See "Attribution verification" below.**
-3. ⚠️ **SP-132's unfinished work** — [T-0521] never started, [T-0519]/[T-0520] reverted. ✅ **Recorded in
-   `Task-unverified.md` and in the closed Sprint record;** ⛔ **no Epic owns them.**
+3. ✅ **CLOSED 2026-09-15 — SP-132 has NO unfinished work.** ✅ **User-ruled after evidence:** ✅ **[T-0521] VERIFIED** (the `!t.isEmpty` guard means the O(N) rebuild never runs), ✅ **[T-0520] LANDED** as `Hasher` digests, ⛔ **[T-0519] SUPERSEDED** by [EP-039]. ⛔ **No mitigation Sprint.** ⚠️ **A prior claim on this line that T-0521 was "NOT STARTED" was WRONG and is retracted — it read code SHAPE, not CONTROL FLOW.**
