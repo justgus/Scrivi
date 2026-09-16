@@ -79,10 +79,14 @@ changing it on an offset edit would be a second change she did not ask for.**
 ### T-0506 — the remaining call sites
 
 ✅ **ONE remains: `InspectorLayoutStore.swift:173` reads `inspector-layout.json`.**
-✅ **RECORDED EXCEPTION, and it is correct:** ⚠️ **no `scrivi_*` endpoint covers inspector layout
-because it is UI STATE, not project data** — ✅ **the core has no opinion about which inspector cards
-a writer has open.** ✅ **It already fails safe: a corrupt file falls back to defaults, reports the
-error, and ⛔ does NOT overwrite the file.**
+⛔ **THIS WAS RULED A "CORRECT EXCEPTION" AND THAT RULING IS RETRACTED (2026-09-15, at SP-130's
+activation).** ⚠️ **The original reasoning — "inspector layout is UI STATE, not project data, so the
+core has no opinion" — REASONED FROM WHAT THE DATA MEANS INSTEAD OF WHERE IT LIVES.**
+✅ **The file is INSIDE the project package** (`InspectorLayoutStore.layoutURL` → `<projectRoot>/inspector-layout.json`),
+⛔ **and there are ALREADY TWO implementations writing it — Apple's Swift store AND Linux's
+`InspectorLayoutStore.cpp`** — ⚠️ **the exact drift the standing rule exists to prevent.**
+✅ **The FINDING (one call site remains) was correct; ⛔ the DISPOSITION was not.**
+✅ **It is now [SP-130]'s T-0507.**
 
 ⛔ **ZERO direct-filesystem reads of PROJECT DATA remain in `Scrivi/Views` + `Scrivi/App`.**
 

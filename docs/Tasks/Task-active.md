@@ -1,6 +1,20 @@
 # Active Tasks
 
 
+## 🟡 SP-130 — `[Apple]` (EP-040, activated 2026-09-15)
+
+| ID | Task | Sprint | Status |
+| -- | ---- | ------ | ------ |
+| **T-0508** | ⚠️ **CLASS C — RULE the 5 `fileExists` asset sites.** ✅ **2 are ALREADY off-thread; 3 already degrade gracefully** — ⚠️ **so this is a RULING to record, not a fix** | SP-130 | 🟡 **Active** |
+
+⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled).
+✅ **ONLY T-0508 IS ACTIVE.** ⚠️ **T-0536 / T-0507 / T-0537 / T-0510 belong to PLANNED sprints
+(SP-140 – SP-143) and live in those records** — ⛔ **NOT in this file, which holds ACTIVE work only**
+(`feedback_task_layer_discipline`). ✅ **Their planning detail:
+[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
+
+⛔ **T-0509 STRUCK 2026-09-15** — ✅ **re-measurement proved its remainder is ZERO; ⛔ not deferred, there is no work behind it.**
+
 ## ✅ SP-129 — ARCHIVED 2026-09-15
 
 ✅ **T-0502 / T-0503 / T-0506 ✅ VERIFIED** (user live pass) → [`Verified/Task-verified-0502-0506.md`](Verified/Task-verified-0502-0506.md).

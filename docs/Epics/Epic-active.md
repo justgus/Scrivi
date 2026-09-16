@@ -107,7 +107,11 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 | **SP-137** | **S6** | ⚠️ **The Object Detail Sheet** — ⚠️ **hosting RULING first, then chrome** | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
 | **SP-138** | **S5** | ⛔ **`NSSplitViewController` rebuild** | ⛔ **NOT SCHEDULED** | ⛔ **HIGH** |
 | **SP-129** | ✅ **T-0502, T-0503, T-0506 + [I-0214]** (⛔ **T-0504/T-0505 deferred**) | ⚠️ **The unbuilt surfaces + the `loadImportedTimelines` bypass** — ⚠️ **scope GREW to `[ScriviCore]`+`[Linux]`.** ✅ **Core projection extended; both bypasses deleted** | ✅ **CLOSED 2026-09-15** — [record](../Sprints/Closed/Sprint-SP-129.md) | ✅ **VERIFIED by user LIVE PASS** |
-| **SP-130** | — | ⚠️ **Close the ScriviCore bypasses** — [I-0197] | 🟡 **MOVED HERE 2026-09-15** | ⚠️ **Depends on SP-129's T-0502** |
+| **SP-130** | ✅ **T-0508** | ⚠️ **Rule the 5 `fileExists` asset sites** (Class C of [I-0197]) | 🟡 **ACTIVE** (2026-09-15) | ✅ **LOW** — ⛔ **blocks on nothing** |
+| **SP-140** | ✅ **T-0536** | ⛔ **[I-0215] Apple DROPS unknown `inspector-layout.json` keys — LIVE data loss** | 🔵 **Planned** | ✅ **LOW** — ⛔ **blocks on nothing; ✅ parallel to SP-130** |
+| **SP-141** | ✅ **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🔵 **Planned** | ⚠️ **HIGH** — ⛔ **needs an ENDPOINT-SHAPE ruling** |
+| **SP-142** | ✅ **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | 🔵 **Planned** | ⚠️ **MEDIUM** — ⛔ **blocks on SP-141** |
+| **SP-143** | ✅ **T-0510** | ⚠️ **The regression guard — closes [I-0197]** | 🔵 **Planned** | ✅ **LOW** — ⛔ **blocks on SP-141 AND SP-142** |
 
 ⚠️ **SCOPE NOTE ON SP-129 / SP-130 — ✅ MOVED BY USER RULING 2026-09-15; ⚠️ THEY DO NOT FIT THIS
 EPIC'S STATED SUBJECT, AND THAT IS SAID PLAINLY RATHER THAN BURIED.** ⚠️ **This Epic is the WINDOW
@@ -129,7 +133,13 @@ created with closures that already exist.** ⚠️ **Splitting them ships an EMP
 ⚠️ **AND S5 IS RECORDED, NOT SCHEDULED** — ✅ **the app-shape study marks it "NOT NOW", and an Epic that
 schedules it reverses its own design ruling.** ✅ **It is the DESTINATION; ⚠️ it earns a Sprint only if
 S1–S4+S6 leave something unfixed, which is a decision for the Epic close, not now.**
-✅ **So: FOUR Sprints of planned work (SP-134–SP-137) + ONE recorded-not-scheduled (SP-138).**
+✅ **So: FOUR Sprints of planned EDITOR-SHELL work (SP-134–SP-137) + ONE recorded-not-scheduled (SP-138).**
+
+⚠️ **PLUS the [I-0197] BYPASS CHAIN: [SP-130] (active) + [SP-140]–[SP-143].** ⚠️ **SP-130 was ONE
+sprint of four tasks until 2026-09-15, when the user's sizing questions forced a re-measurement:**
+⛔ **T-0509's remainder was ZERO, ⛔ T-0510 could not ship before SP-141, and ⚠️ T-0507 proved to be a
+two-codebase ownership change, not a routing fix.** ✅ **Rationale:
+[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
 
 ### ⚠️ Sequencing constraints — ✅ these are NOT preferences
 

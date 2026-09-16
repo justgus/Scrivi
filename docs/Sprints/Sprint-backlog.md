@@ -55,52 +55,10 @@ backlog** (`feedback_sprint_backlog_cleanup`).
 
 ---
 
-## ⚠️ SP-130 — **MOVED TO [EP-040] 2026-09-15 (user ruling) — ✅ NO LONGER A BACKLOG SPRINT.** ⚠️ **Its Epic is now [EP-040], NOT [EP-039] (closed).** ✅ **Retained here for its planning detail only; ⛔ the authoritative status is EP-040's Sprint table.** ---- ORIGINAL: `[Apple]`+`[ScriviCore]` ⚠️ **Close the ScriviCore bypasses** — [I-0197]
+## ✅ SP-130 — **ACTIVATED 2026-09-15.** ⛔ **NO LONGER A BACKLOG SPRINT.**
 
-**Status:** 🔵 **PLANNING — not activated.**
-**Epic:** [EP-039](../Epics/Epic-active.md) — `[Cross]` Project Load Performance
-**Codebase:** `[Apple]` ⚠️ **+ `[ScriviCore]`** — ⚠️ **Class B needs a NEW ENDPOINT; it is not an app-only sprint**
-**Date Created:** 2026-09-10 · **Issues:** ✅ **[I-0197]**
-**Tasks:** **T-0507 – T-0510** (four) · **Next available:** T-0511
-**Depends on:** ⚠️ **[SP-129]'s T-0502 already closes CLASS A** — ⚠️ **do not do it twice**
-
-### ⚠️ The rule being enforced
-
-⚠️ **CLAUDE.md, non-negotiable:** *"No backend logic is reimplemented in Swift. Swift is responsible for
-UI only."* ⚠️ **Every bypass is a place the CORE'S GUARANTEES DO NOT APPLY** — ✅ no atomic-write
-discipline, no repair path, no external-change detection, no `soft`-mount timeout, ⚠️ **and no
-Linux/Windows equivalent.**
-
-✅ **MEASURED: 35 hits, 11 files, THREE CLASSES.** ⚠️ **They are NOT equally wrong and must not be fixed
-uniformly.**
-
-### Tasks
-
-| ID | Task | Priority | Status |
-| -- | ---- | -------- | ------ |
-| **T-0507** | ⚠️ **CLASS B — `inspector-layout.json`.** ⚠️ **`InspectorLayoutStore` READS AND ATOMICALLY WRITES a file INSIDE the project package** (`:156`, `:173`, `:304`) ⚠️ **and the core has ZERO endpoints for it.** ✅ **Add them; route Swift through them.** ⚠️ **THE CORE OWNS PACKAGE LAYOUT, VALIDATION AND REPAIR — today it cannot even SEE this file** | **High** | 🔵 Not started |
-| **T-0508** | ⚠️ **CLASS C — RULE the `fileExists` asset checks** (`ObjectCard:980,984`, `ObjectImageSection:106,137`, `ExistingAssetPicker:130`). ⚠️ **Decide: legitimate UI presence-check, or a core question?** ⚠️ **On an unreachable volume a bare `fileExists` is the BLOCKING-STAT pattern that cost [I-0193] 102 s** — ✅ **whatever is ruled, it must not block the UI thread** | **Medium** | 🔵 Not started |
-| **T-0509** | ⚠️ **Sweep the remaining hits** in the 11 files; ✅ **each is ROUTED or RECORDED with its reason.** ⚠️ **A recorded exception is acceptable; an unexamined one is not** | **Medium** | 🔵 Not started |
-| **T-0510** | ⚠️ **A REGRESSION GUARD.** ✅ **A test or CI grep that FAILS when Swift touches a project-package path directly**, ⚠️ **with an explicit allow-list carrying T-0509's recorded reasons** — ⚠️ **otherwise this class returns the moment someone is in a hurry** | **Medium** | 🔵 Not started |
-
-### Definition of Done
-
-- [ ] ⚠️ **No Swift code reads or writes a PROJECT-PACKAGE file** where the core owns that file — ✅ **or the
-      exception is recorded WITH ITS REASON.**
-- [ ] ⚠️ **`inspector-layout.json` is CORE-OWNED** — ✅ **readable and repairable by the core, and reachable
-      by Linux/Windows**, ⚠️ **which cannot read it today.**
-- [ ] ⚠️ **The Class C ruling is WRITTEN DOWN**, ⚠️ **not left implicit in whatever the code ends up doing.**
-- [ ] ⚠️ **A guard exists** so the class cannot silently return.
-- [ ] ⚠️ **`xcodebuild` green for macOS, iOS AND visionOS.**
-
-### ⚠️ Risks
-
-| Risk | ⚠️ Mitigation |
-| ---- | ------------ |
-| ⚠️ **Treating all 35 hits as one defect** | ✅ **Three classes, three treatments.** ⚠️ **Most hits are app-support/bookmark paths and are NOT violations at all** |
-| ⚠️ **`inspector-layout.json` is Git-visible project state** | ⚠️ **Changing who writes it touches a file already on disk in real projects.** ✅ **The core must READ the existing format, not require a migration** |
-| ⚠️ **Class C "fixed" by adding a blocking core call** | ⚠️ **That would trade an architectural defect for a FREEZE** ([I-0193]). ✅ **Rule the question first** |
-| ⚠️ **Overlap with [SP-129] T-0502** | ✅ **Class A is SP-129's.** ⚠️ **This sprint must not redo it** |
+✅ **Lives in [`Sprint-active.md`](Sprint-active.md); record: [`Sprint-SP-130.md`](Sprint-SP-130.md).**
+⚠️ **A Sprint leaves this file at activation and never returns** (`feedback_sprint_backlog_cleanup`).
 
 ---
 

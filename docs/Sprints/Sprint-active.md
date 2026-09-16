@@ -1,11 +1,18 @@
 # Active Sprints
 
-⛔ **NO SPRINT IS CURRENTLY ACTIVE.**
+## SP-130 — `[Apple]` Rule the asset presence-checks (Class C of [I-0197])
 
-✅ **[SP-129] CLOSED 2026-09-15 (user-approved)** → [`Closed/Sprint-SP-129.md`](Closed/Sprint-SP-129.md).
-✅ **T-0502 / T-0503 / T-0506 + [I-0214] VERIFIED by the user's LIVE PASS** — ⚠️ **all five checks passed,
-✅ plus hide/unhide, which was NOT in the written script.**
-⛔ **T-0504 / T-0505 DEFERRED** — ⚠️ **design questions, not unfinished work.**
+🟡 **ACTIVE — activated 2026-09-15.** ✅ **Record: [`Sprint-SP-130.md`](Sprint-SP-130.md). Task: T-0508.**
+⚠️ **RESTRUCTURED 2026-09-15 (user-ruled): SP-130 was ONE sprint of four tasks; ⚠️ it is now FIVE.**
+✅ **Rationale: [`Sprint-SP-130-RESTRUCTURE.md`](Sprint-SP-130-RESTRUCTURE.md).**
+⛔ **T-0509 STRUCK — its remainder is provably ZERO** (10 hits partition exactly into T-0507's 3,
+T-0508's 5, and 2 recorded non-violations).
+
+✅ **THE OTHER FOUR ARE PLANNED, NOT ACTIVE:**
+🔵 **[SP-140]** — [I-0215] unknown-key drop (**T-0536**) — ⛔ **blocks on NOTHING; ✅ can run parallel to SP-130.**
+🔵 **[SP-141]** — core endpoints + Apple adoption (**T-0507**) — ⛔ **BLOCKED ON AN ENDPOINT-SHAPE RULING.**
+🔵 **[SP-142]** — retire Linux's duplicate (**T-0537**) — ⛔ **blocks on SP-141.**
+🔵 **[SP-143]** — the regression guard (**T-0510**) — ⛔ **blocks on SP-141 AND SP-142.**
 
 🟡 **[EP-040] is the ACTIVE Epic** — `[Apple]` **The Editor Shell** (activated 2026-09-15).
 ✅ **Its next Sprints, per its own Sprint table:** ⚠️ **[SP-129]** (the four unbuilt Apple surfaces +
