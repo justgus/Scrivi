@@ -3,6 +3,14 @@
 ## SP-130 — `[Apple]` Rule the asset presence-checks (Class C of [I-0197])
 
 🟡 **ACTIVE — activated 2026-09-15.** ✅ **Record: [`Sprint-SP-130.md`](Sprint-SP-130.md). Task: T-0508.**
+✅ **T-0508 IMPLEMENTED 2026-09-16 — ⛔ NOT VERIFIED.** ⚠️ **The Sprint CANNOT close until the user
+verifies it** (`feedback_verification`). ✅ **Ruling: [`../Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../Scrivi_Asset_Presence_Check_Ruling_v0_1.md).**
+⚠️ **ITS OWN PREMISE DID NOT HOLD:** ⚠️ **this was planned as "a RULING to record, not a defect to
+fix"** — ⛔ **and one of the five sites (`ExistingAssetPicker.swift:130`) was a REAL blocking-stat
+defect**, ✅ **found precisely BY writing the ruling, which split "degrades gracefully" (architecture)
+from "blocks the main actor" (cost).** ⚠️ **The 2026-09-15 re-measurement cleared it on the first
+question alone.** ✅ **`xcodebuild` green ×3 schemes; 127 interop tests pass** — ⛔ **neither exercises
+the defect; ✅ a LIVE rig pass is what verifies it.**
 ⚠️ **RESTRUCTURED 2026-09-15 (user-ruled): SP-130 was ONE sprint of four tasks; ⚠️ it is now FIVE.**
 ✅ **Rationale: [`Sprint-SP-130-RESTRUCTURE.md`](Sprint-SP-130-RESTRUCTURE.md).**
 ⛔ **T-0509 STRUCK — its remainder is provably ZERO** (10 hits partition exactly into T-0507's 3,

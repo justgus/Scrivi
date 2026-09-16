@@ -124,28 +124,10 @@ struct ExistingAssetPicker: View {
     /// A small preview. ⚠️ **A failed load is expected, not corruption** — the
     /// bytes may be on a volume that has just gone away — so this degrades to an
     /// icon rather than reporting an error.
-    @ViewBuilder
+    ///
+    /// ⚠️ **The load is OFF the main actor** — see `AssetThumbnail` (SP-130 / T-0508).
     private func thumbnail(_ path: String) -> some View {
-        #if os(macOS)
-        if FileManager.default.fileExists(atPath: path),
-           let nsImage = NSImage(contentsOfFile: path) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-        } else {
-            Image(systemName: "photo")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .frame(width: 32, height: 32)
-        }
-        #else
-        Image(systemName: "photo")
-            .font(.caption)
-            .foregroundStyle(.tertiary)
-            .frame(width: 32, height: 32)
-        #endif
+        AssetThumbnail(path: path)
     }
 
     private func load() {
@@ -164,5 +146,73 @@ struct ExistingAssetPicker: View {
             loadError = (error as? ScriviError)?.message ?? "\(error)"
         }
         didLoad = true
+    }
+}
+
+/// One row's 32pt thumbnail, loaded **off the main actor** (SP-130 / T-0508, ruling
+/// **R2**).
+///
+/// ## ⚠️ Why this is not an inline `if FileManager.fileExists(…)`
+///
+/// It was, until SP-130. ⚠️ **That version ran a `fileExists` AND a full
+/// `NSImage(contentsOfFile:)` decode synchronously in a `LazyVStack` row builder —
+/// per visible row, on the main actor.** ⚠️ **These bytes live in a WORLD PACKAGE by
+/// construction**, so they are exactly the removable/network case: on a dead mount a
+/// single stat is [I-0193]'s 102 s freeze, and this surface did one per asset.
+///
+/// ⚠️ **The old code's comment — *"a failed load is expected, not corruption"* — was
+/// correct and answered the WRONG QUESTION.** ✅ **Degrading gracefully says the app
+/// tells the writer the truth; it says nothing about whether the window still
+/// responds while it decides what to say.**
+///
+/// ## ✅ This is `ObjectCard.ObjectRowThumbnail`'s shape, deliberately
+///
+/// ⚠️ **Not a second mechanism.** That view already solved this under EP-034 trade
+/// **D8-A** and states the rule: *"a 4 MB PNG on a sleeping USB drive can take
+/// seconds; the inspector must stay live."* ✅ **The placeholder behaviour is
+/// UNCHANGED** — a failed or slow load still shows the `photo` icon, ⚠️ **never a
+/// spinner and never a broken-image glyph**, both of which draw the eye to a
+/// non-problem. ✅ **The only user-visible difference: the icon is drawn IMMEDIATELY
+/// rather than after the volume answers.**
+private struct AssetThumbnail: View {
+    let path: String
+
+    @State private var image: Image?
+
+    var body: some View {
+        Group {
+            if let image {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
+                Image(systemName: "photo")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 32, height: 32)
+            }
+        }
+        .task(id: path) { await load() }
+    }
+
+    private func load() async {
+        #if os(macOS)
+        let wanted = path
+        let decoded: Image? = await Task.detached(priority: .utility) {
+            guard FileManager.default.fileExists(atPath: wanted),
+                  let ns = NSImage(contentsOfFile: wanted) else { return nil }
+            return Image(nsImage: ns)
+        }.value
+
+        // ⚠️ The row may have been recycled onto a different asset while this was
+        // decoding — `LazyVStack` reuses aggressively. Dropping a stale result is
+        // what stops one asset's picture appearing on another's row.
+        guard wanted == path else { return }
+        image = decoded
+        #endif
+        // ⛔ Non-macOS draws the icon unconditionally and never touches the
+        // filesystem — unchanged from before SP-130.
     }
 }

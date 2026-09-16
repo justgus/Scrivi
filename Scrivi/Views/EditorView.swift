@@ -462,7 +462,18 @@ private struct ManuscriptEditorView: View {
     /// host-independent (S8) and testable with fixtures.
     private var detailWorlds: [WorldEntry] {
         guard let root = session.projectRootPath else { return [] }
-        return (try? env.engine.listWorlds(projectRootPath: root).worlds) ?? []
+        do {
+            return try env.engine.listWorlds(projectRootPath: root).worlds
+        } catch {
+            // ⚠️ SP-130: this was `try?`, which swallowed the throw and returned
+            // an empty array — and `ObjectDetailSheet.isReadOnly` reads an empty
+            // `worlds` as "bound to a world this project cannot see", so EVERY
+            // object silently became read-only with NO banner and no way to tell
+            // a failed call from an unavailable world. The failure is now named.
+            NSLog("[Scrivi] detailWorlds: listWorlds failed — every world-scoped "
+                  + "object will read as read-only: \(error)")
+            return []
+        }
     }
 
     /// The Scene Inspector (EP-030 SP-090). The card stack is per-scene, so it follows

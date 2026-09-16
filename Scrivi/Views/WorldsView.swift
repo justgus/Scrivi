@@ -312,9 +312,17 @@ struct WorldsView: View {
         // `allowedContentTypes` is what stops the panel descending; leaving
         // `canChooseDirectories` true alone made every `.scrivworld` a folder
         // the writer could open and get lost inside (I-0185's class).
+        //
+        // ⚠️ I-0217: `canChooseFiles` MUST be `true`. A `.scrivworld` conforms to
+        // `com.apple.package`, so AppKit presents it as a FILE — with
+        // `canChooseFiles = false` every package greyed out and only a
+        // double-click could force selection. `treatsFilePackagesAsDirectories
+        // = false` is what actually keeps it an atom, and it is the pattern the
+        // working Open Project panel already uses (AppEnvironment.swift).
         panel.allowedContentTypes = [scriviWorldType]
+        panel.canChooseFiles = true
         panel.canChooseDirectories = true
-        panel.canChooseFiles = false
+        panel.treatsFilePackagesAsDirectories = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
@@ -347,10 +355,13 @@ struct WorldsView: View {
         #if os(macOS)
         let panel = NSOpenPanel()
         panel.title = "Add Existing World"
-        // ⚠️ Same as relink: choose the package, never wander inside it.
+        // ⚠️ Same as relink: choose the package, never wander inside it —
+        // including I-0217's `canChooseFiles = true` (a package IS a file to
+        // AppKit; see the fuller note in `relinkWorld`).
         panel.allowedContentTypes = [scriviWorldType]
+        panel.canChooseFiles = true
         panel.canChooseDirectories = true
-        panel.canChooseFiles = false
+        panel.treatsFilePackagesAsDirectories = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
 

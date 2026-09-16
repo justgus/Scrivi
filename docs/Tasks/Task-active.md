@@ -5,7 +5,16 @@
 
 | ID | Task | Sprint | Status |
 | -- | ---- | ------ | ------ |
-| **T-0508** | ⚠️ **CLASS C — RULE the 5 `fileExists` asset sites.** ✅ **2 are ALREADY off-thread; 3 already degrade gracefully** — ⚠️ **so this is a RULING to record, not a fix** | SP-130 | 🟡 **Active** |
+| **T-0508** | ⚠️ **CLASS C — RULE the 5 `fileExists` asset sites.** ⚠️ **The planning text said "2 off-thread, 3 degrade gracefully, so this is a ruling not a fix" — ⛔ that was WRONG on one site** | SP-130 | 🟢 **Implemented - Not Verified (2026-09-16)** — ✅ **moved to [`Task-unverified.md`](Task-unverified.md)** |
+
+⚠️ **T-0508's PREMISE DID NOT SURVIVE CONTACT.** ✅ **The ruling is written
+([`Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../Scrivi_Asset_Presence_Check_Ruling_v0_1.md)) —
+⚠️ but writing it SPLIT the question in two and the fifth site failed the second half.**
+✅ **"Degrades gracefully" answers ARCHITECTURE (is this backend logic in Swift?);**
+⛔ **it does NOT answer COST (does it block the main actor?).**
+⚠️ **`ExistingAssetPicker.swift:130` ran `fileExists` AND a full `NSImage` decode SYNCHRONOUSLY,
+per row, in a `LazyVStack`, on bytes that live in a world package by construction** — ✅ **fixed by
+adopting `ObjectCard.ObjectRowThumbnail`'s already-proven off-thread shape.**
 
 ⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled).
 ✅ **ONLY T-0508 IS ACTIVE.** ⚠️ **T-0536 / T-0507 / T-0537 / T-0510 belong to PLANNED sprints

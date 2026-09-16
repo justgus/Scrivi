@@ -80,16 +80,23 @@ Key documents:
 The approved architecture uses a **shared C++23 static library (ScriviCore)** as the single backend core across all platforms. SwiftData is not the data layer — project data is stored as JSON files on disk inside a `.scrivi` project package, managed entirely by ScriviCore.
 
 - All project I/O, schema read/write, identity management, Git snapshots, and external change detection live in C++.
-- The Apple platform (Swift) calls into ScriviCore through `ScriviCoreAdapter` — a permanent C++ shim that serializes results to `std::string` JSON. No Objective-C bridging.
-- The boundary protocol is **JSON-over-`std::string`**, permanent. Swift/C++ direct struct interop with ScriviCore public headers is not the boundary strategy.
+- The Apple platform (Swift) calls into ScriviCore through the **pure C ABI** (`scrivi_*` functions in
+  `ScriviCore/include/scrivi/scrivi.h`, exposed to Swift by `ScriviCore/include/scrivi/module.modulemap`).
+  The app links `libScriviCore.a` and does `import ScriviCore`. No Objective-C bridging.
+- ⚠️ **There is NO `ScriviCoreAdapter` and no `Scrivi/Adapter/` directory.** The C++ adapter shim was
+  **retired in SP-026**; anything describing it (including `Scrivi_Apple_Wrapper_Design_v0_1.md`) is
+  historical. Swift/C++ direct struct interop is still **not** the strategy.
+- The boundary protocol is **JSON-over-string**, permanent — results cross the C ABI as JSON `char*`.
 - No backend logic is reimplemented in Swift. Swift is responsible for UI only.
 
 ### Apple Platform Layer
 
-The Swift/Apple layer is a thin wrapper over ScriviCore via `ScriviCoreAdapter`. All Apple-platform source lives in `Scrivi/` at the repo root, owned directly by `Scrivi.xcodeproj`. There is no SPM package.
+The Swift/Apple layer is a thin wrapper over ScriviCore's **C ABI**. All Apple-platform source lives in `Scrivi/` at the repo root, owned directly by `Scrivi.xcodeproj`. There is no SPM package (`platforms/apple/` is stale).
 
-- `ScriviCoreAdapter` (C++, `Scrivi/Adapter/`) accepts `const char*` inputs, returns `std::string` JSON results by value. Built as a static library target inside Xcode.
-- `ScriviEngine.swift` (`Scrivi/Engine/`) holds the adapter reference, converts Swift types, decodes JSON envelopes, throws `ScriviError`. Built as a framework target inside Xcode.
+- `ScriviEngine.swift` (`Scrivi/Engine/`) calls the `scrivi_*` C functions directly, converts Swift types, decodes JSON envelopes, throws `ScriviError`.
+- ⚠️ **SecureStore is NOT persistent on Apple** — `makeSecureStore()` (`scrivi_c_api.cpp`) is gated to Linux,
+  so macOS falls back to the in-memory `PrototypeSecureStore` and the local identity is re-minted every
+  launch. ✅ **[I-0216]**, unruled. Apple's `KeychainSecureStore` was **deleted** and does not exist.
 - App source in `Scrivi/App/` and `Scrivi/Views/`. Interop tests in `Scrivi/Tests/`.
 - `Scrivi.xcworkspace` is the entry point — open this, not the xcodeproj directly.
 - SwiftUI for all UI on Apple platforms (macOS active; iOS/visionOS targets stubbed, in progress)
@@ -195,7 +202,7 @@ Scrivi/
 ├── Scrivi.xcworkspace           ← Open this in Xcode (entry point)
 ├── Scrivi.xcodeproj             ← Xcode project (all Apple targets)
 ├── Scrivi/                      ← Apple platform Swift + Adapter source
-│   ├── Adapter/                 ← ScriviCoreAdapter.cpp/.hpp, KeychainSecureStore, module.modulemap
+│   │                              (⚠️ NO Adapter/ — the C++ adapter was retired; see the note below)
 │   ├── Engine/                  ← ScriviEngine.swift, ScriviError.swift
 │   ├── App/                     ← ScriviApp.swift, AppEnvironment.swift, Info.plist, entitlements
 │   ├── Views/                   ← All SwiftUI views

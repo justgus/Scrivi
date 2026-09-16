@@ -12,7 +12,28 @@ in the backlog carrying a 🟠 status.
 
 | ID | Title | Sprint | Epic | Implemented |
 | -- | ----- | ------ | ---- | ----------- |
-_No Tasks awaiting verification._
+| **T-0508** | ⚠️ **Rule the 5 `fileExists` asset sites (Class C of [I-0197])** — ✅ **ruling written; ⛔ one site was a REAL defect and is fixed** | [SP-130] | [EP-040] | ✅ **2026-09-16** |
+
+### ⚠️ What a verification pass should actually look at
+
+⛔ **The build being green proves almost nothing here** — ✅ **four of the five sites did not change,
+and the fifth changes only WHEN work happens, not WHAT is drawn.**
+
+✅ **The ruling:** [`Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../Scrivi_Asset_Presence_Check_Ruling_v0_1.md).
+✅ **The one code change:** `Scrivi/Views/Detail/ExistingAssetPicker.swift` — ⚠️ **`thumbnail(_:)`
+became `AssetThumbnail`, loading off the main actor.**
+
+⚠️ **THE USER-VISIBLE TEST, and it needs the REAL RIG** (`project_test_rig_tintagael_eskandar`):
+✅ **open an object in the Detail Sheet, press *Choose Existing…*, and watch the popover.**
+- ✅ **Expected: it opens IMMEDIATELY, rows drawn with the `photo` icon, pictures filling in after.**
+- ⛔ **Before the fix: the popover did not appear until every visible thumbnail had been stat'd AND
+  decoded** — ⚠️ **and on a sleeping or disconnected USB volume that is [I-0193]'s freeze, once per row.**
+- ⚠️ **The adversarial case is the one worth running: pull the drive, THEN open the picker.**
+  ✅ **The window must stay live.**
+
+⚠️ **`xcodebuild` green on all three schemes (macOS / iOS / visionOS) and 127 interop tests passing
+are recorded, ⛔ but NEITHER exercises this path** — ✅ **there is no test that opens the picker
+against an unreachable volume, and none is claimed.**
 
 ⚠️ **SP-122's T-0466–T-0471 were ✅ Verified 2026-08-25** and archived to
 [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) in the same step SP-122 closed.
