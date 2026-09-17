@@ -58,6 +58,11 @@ Result<std::vector<SceneEntry>> listScenesByOrder(
     std::vector<SceneEntry> entries;
     for (const auto& absEntry : listR.value()) {
         const std::string name = util::filename(absEntry);
+        // I-0221: an OS artifact is not project content. Checked FIRST, because
+        // `._<scene>.meta.json` satisfies every test below -- it carries the
+        // `.meta.json` suffix and yields a non-empty order key -- and then fails
+        // to parse, which aborted the entire project open.
+        if (util::isIgnorableFilesystemArtifact(name)) { continue; }
         if (name == "chapter.meta.json") { continue; }
         if (name.size() <= kMetaSuffix.size() ||
             name.compare(name.size() - kMetaSuffix.size(),

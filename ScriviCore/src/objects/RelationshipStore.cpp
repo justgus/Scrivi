@@ -189,7 +189,7 @@ Result<Edge> RelationshipStore::create(const AbsolutePath& projectRoot,
                        worlds::worldStatusName(ep.worldStatus) +
                        " — the graph is frozen toward that world until it returns",
             .path    = {},
-            .detail  = "worldPending:" + worlds::worldStatusName(ep.worldStatus)};
+            .detail  = worlds::worldUnavailableDetail(ep.worldStatus)};
     };
 
     auto fromEP = resolver.resolve(projectRoot, fromID);
@@ -320,7 +320,7 @@ Result<void> RelationshipStore::remove(const AbsolutePath& projectRoot,
                         worlds::worldStatusName(ep.worldStatus) +
                         " — the graph is frozen toward that world until it returns",
              .path    = {},
-             .detail  = "worldPending:" + worlds::worldStatusName(ep.worldStatus)});
+             .detail  = worlds::worldUnavailableDetail(ep.worldStatus)});
     }
 
     const std::int64_t seq = replayed.value().maxSeq + 1;

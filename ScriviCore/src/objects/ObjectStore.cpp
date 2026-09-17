@@ -92,7 +92,7 @@ Result<AbsolutePath> ObjectStore::kindDirFor(const AbsolutePath& projectRoot,
             {.code = ErrorCode::invalidArgument,
              .message = "world '" + worldID + "' is " +
                         worlds::worldStatusName(res.status),
-             .detail = "worldUnavailable:" + worlds::worldStatusName(res.status)});
+             .detail = worlds::worldUnavailableDetail(res.status)});
     }
 
     return Result<AbsolutePath>::success(

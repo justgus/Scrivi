@@ -26,6 +26,7 @@ add_executable(ScriviCoreTests
     integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp
     integration/OpenProjectTests.cpp
+    integration/AppleDoubleSidecarTests.cpp
     integration/SaveSceneTests.cpp
     integration/ExternalChangeTests.cpp
     integration/GitSnapshotTests.cpp

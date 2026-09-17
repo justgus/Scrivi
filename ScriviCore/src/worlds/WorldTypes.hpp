@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace scrivi::worlds {
@@ -91,6 +92,33 @@ inline std::string worldStatusName(WorldStatus s) {
         case WorldStatus::unavailable: return "unavailable";
     }
     return "unavailable";
+}
+
+// ---------------------------------------------------------------------------
+// The error `detail` discriminator for "this world is not reachable" (I-0222)
+// ---------------------------------------------------------------------------
+//
+// ⚠️ THERE IS EXACTLY ONE SPELLING, and it is defined here rather than written
+// as a literal at each throw site. Five sites previously spelled this by hand and
+// they drifted into TWO vocabularies: `RelationshipStore` said `worldPending:`
+// while `ObjectStore`, `AssetStore` and `WorldStore` said `worldUnavailable:`.
+// Both were decodable and both were decoded -- but a reader comparing three
+// agreeing sites had no way to see that two others disagreed.
+//
+// ✅ USER RULING 2026-09-17: `worldUnavailable:` is the single prefix --
+// "there will be no ambiguity in this message."
+//
+// ⚠️ The distinction the two spellings used to carry -- a graph write REFUSED
+// versus a read that could not REACH the package -- is deliberately not encoded
+// here: the writer's remedy is the same either way (reconnect the world). It
+// survives in `ErrorCode` and in the human-readable `message`, which still say
+// which operation failed.
+inline constexpr std::string_view kWorldUnavailableDetailPrefix = "worldUnavailable:";
+
+// The full `detail` string for an unreachable world: prefix + status name.
+// ⚠️ Call this instead of concatenating the prefix by hand.
+inline std::string worldUnavailableDetail(WorldStatus s) {
+    return std::string(kWorldUnavailableDetailPrefix) + worldStatusName(s);
 }
 
 } // namespace scrivi::worlds

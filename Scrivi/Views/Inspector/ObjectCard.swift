@@ -330,10 +330,15 @@ struct ObjectCardKind: Sendable, Hashable {
         do {
             _ = try engine.deleteEdge(projectRootPath: projectRootPath, edgeID: edgeID)
             load()
-        } catch let error as ScriviError where error.isWorldPending {
+        } catch let error as ScriviError where error.isWorldUnavailable {
             // The graph is frozen toward an unavailable world (Doc 3 §4.6). This is
             // protection, not breakage, and must read that way.
-            let status = error.pendingWorldStatus ?? .unavailable
+            //
+            // ⚠️ I-0222: this read `isWorldPending` until 2026-09-17. The two
+            // discriminators were merged to one spelling; this call site had to
+            // move in the SAME change or the app's only correct pending message
+            // would have silently stopped matching.
+            let status = error.unavailableWorldStatus ?? .unavailable
             loadError = "This link is held pending — its world is \(status.writerDescription). "
                       + "Reconnect the world to change it."
         } catch {

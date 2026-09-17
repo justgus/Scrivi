@@ -244,12 +244,33 @@ Result<void> LocalFileSystem::appendTextFile(const AbsolutePath& path, std::stri
     return Result<void>::success();
 }
 
+// I-0221. Every directory scan in the core funnels through here, so this is the
+// one place where "a file the OS made" can be excluded once instead of being
+// re-derived by each caller.
+//
+// ⚠️ WHY THE FILTER LIVES AT THE CHOKEPOINT, not at the scans. Three scans
+// restated "what counts as a scene file" independently, and the three behaved
+// DIFFERENTLY on the same AppleDouble sidecar: SceneIndex aborted the entire
+// project open, RepairHandlers skipped it by accident, and ExternalChangeScanner
+// reported it to the writer as an unregistered file needing repair. ⚠️ Twenty-odd
+// other call sites were never audited at all. A filter at each scan would have to
+// be added to every one of them and kept there.
+//
+// ⚠️ WHAT THIS DELIBERATELY DOES NOT DO. It does not touch `removeDirectory`
+// (which recurses on its own and must still delete sidecars along with the
+// package) and it does not hide anything from a path a caller names directly --
+// only from enumeration. A caller that needs the raw entries does not exist
+// today; if one appears, give it a separate explicitly-named method rather than
+// removing this filter.
 Result<std::vector<AbsolutePath>> LocalFileSystem::listDirectory(const AbsolutePath& path) {
     std::error_code ec;
     std::vector<AbsolutePath> entries;
     for (const auto& entry : fs::directory_iterator(path, ec)) {
         if (ec) { return Result<std::vector<AbsolutePath>>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});
 }
+        if (util::isIgnorableFilesystemArtifact(entry.path().filename().string())) {
+            continue;
+        }
         entries.push_back(entry.path().generic_string());
     }
     if (ec) { return Result<std::vector<AbsolutePath>>::failure({.code=ErrorCode::ioError, .message=ec.message(), .path=path});

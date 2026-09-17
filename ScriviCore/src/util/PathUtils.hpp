@@ -46,4 +46,34 @@ bool containsControlCharacter(std::string_view s);
 // root never leaves a partial tree behind.
 Result<void> validateRootPath(const AbsolutePath& path, std::string_view label);
 
+// ---------------------------------------------------------------------------
+// Filesystem artifacts that are not project content (I-0221)
+// ---------------------------------------------------------------------------
+//
+// True when `filename` names a file the OS created beside real content -- never
+// something Scrivi wrote and never something a scan should read.
+//
+// ⚠️ THE CASE THAT MADE THIS NECESSARY. On any volume without native extended
+// attributes (FAT32, exFAT, most SMB shares), macOS stores xattrs in an
+// "AppleDouble" sidecar named `._<original>`. So `001-scene.meta.json` acquires
+// a binary companion `._001-scene.meta.json` -- which ENDS IN `.meta.json` and
+// therefore passed every suffix test in the manuscript scan. `parseSceneMeta`
+// was handed an AppleDouble blob (magic 0x00051607) and the whole project open
+// failed with a JSON error naming no file.
+//
+// ⚠️ IT IS NOT A ONE-TIME IMPORT ARTIFACT, which is why ignoring it is the only
+// available fix. Scrivi is sandboxed, so macOS stamps `com.apple.quarantine` on
+// every file it writes to a user-selected location; on a volume with no xattr
+// support that stamp MATERIALISES A NEW SIDECAR. Measured 2026-09-17: a plain
+// write creates none, setting any xattr creates one instantly, and files Scrivi
+// had just written carried `com.apple.quarantine: 0082;...;Scrivi;`.
+// ⚠️ So the app REGENERATED the files that stopped it opening: clean them by
+// hand and the next save re-created them. They cannot be prevented from a
+// sandboxed app -- they can only be ignored on read.
+//
+// ⚠️ DO NOT RE-IMPLEMENT THIS TEST AT A CALL SITE. Three scans restated "what
+// counts as a scene file" independently and only one of them was fatal, which is
+// precisely why the defect was so hard to see. Call this instead.
+bool isIgnorableFilesystemArtifact(std::string_view filename);
+
 } // namespace scrivi::util

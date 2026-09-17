@@ -30,7 +30,7 @@ public extension ScriviEngine {
     /// design exists to prevent.
     ///
     /// - Throws: `ScriviError` with `detail == "duplicateEdge"` if the relationship
-    ///   already exists, or `isWorldPending == true` if either endpoint's world is
+    ///   already exists, or `isWorldUnavailable == true` if either endpoint's world is
     ///   unavailable (the graph is frozen toward it, Doc 3 §4.6).
     func createEdge(
         projectRootPath: String,

@@ -899,7 +899,7 @@ WorldWriteGuard::WorldWriteGuard(CoreServices& services,
         status_ = Result<void>::failure(
             {.code = ErrorCode::invalidArgument,
              .message = "world '" + worldID + "' is " + worldStatusName(res.status),
-             .detail = "worldUnavailable:" + worldStatusName(res.status)});
+             .detail = worldUnavailableDetail(res.status)});
         return;
     }
 

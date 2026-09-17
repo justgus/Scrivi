@@ -478,6 +478,11 @@ Result<ApplyRepairResult> handleRegenerateMetadata(const HandlerContext& ctx) {
     for (auto& entry : listR.value()) {
         // A scene metadata file ends in .meta.json (but is not chapter.meta.json)
         auto fname = util::filename(entry);
+        // I-0221: skip OS artifacts EXPLICITLY. This loop already skipped them by
+        // accident -- an AppleDouble blob fails `parseSceneMeta` and hits the
+        // `continue` below -- but that same path also swallows a genuinely corrupt
+        // scene file, so "it happened to work" was never the same as "it is right".
+        if (util::isIgnorableFilesystemArtifact(fname)) { continue; }
         if (fname == "chapter.meta.json") { continue; }
         if (util::extension(entry) != ".json") { continue; }
         // Quick check: try to parse it as scene metadata

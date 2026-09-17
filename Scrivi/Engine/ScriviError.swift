@@ -3,14 +3,15 @@ import Foundation
 // ScriviError — the single error type thrown by ScriviEngine.
 // Carries the numeric error code and message from the C++ ScriviCore backend.
 
-public struct ScriviError: Error, Sendable {
+public struct ScriviError: Error, LocalizedError, Sendable {
     public let code:    Int
     public let message: String
 
     /// Machine-readable discriminator, when the code alone is not specific enough
     /// (`scrivi_c_api.cpp:164`). The case that matters today is
-    /// `"worldPending:<status>"` — the graph refusing a write toward an unavailable
-    /// world (`RelationshipStore.cpp:191,322`).
+    /// `"worldUnavailable:<status>"` — a world-scoped read or write that cannot
+    /// reach its package, and the graph refusing to modify an edge toward it
+    /// (`worlds::worldUnavailableDetail`).
     ///
     /// ⚠️ EP-031 SP-099 / T-0407: this was previously **dropped at the boundary**.
     /// The C ABI has always emitted it; `ErrorPayload` simply never decoded it, so
@@ -27,47 +28,54 @@ public struct ScriviError: Error, Sendable {
         self.detail  = detail
         self.path    = path
     }
+
+    /// What `error.localizedDescription` returns (I-0222).
+    ///
+    /// ⚠️ **WITHOUT `LocalizedError` CONFORMANCE THIS TYPE RENDERED AS
+    /// `"The operation couldn't be completed. ScriviApp.ScriviError 1"`.** Foundation
+    /// falls back to `<Module>.<Type> <code>` for a plain `Error`, so the `message`
+    /// the C ABI had already composed — *"world '…' is unmounted"* — was built,
+    /// carried across the boundary, decoded, and then thrown away at the last step.
+    ///
+    /// ⚠️ **It is not one screen's problem.** ~15 call sites across `WorldsView`,
+    /// `ObjectCard`, `WritingToolCards`, `ObjectPickerView` and `WorldWarningView`
+    /// display `error.localizedDescription` directly, so EVERY error this app has
+    /// shown a writer has been rendered this way.
+    ///
+    /// ⚠️ The `path` is appended only when the backend named one AND it is not
+    /// already quoted in the message: the core's messages frequently embed the
+    /// identifier themselves, and repeating it reads like two separate faults.
+    public var errorDescription: String? {
+        guard let path, !path.isEmpty, !message.contains(path) else { return message }
+        return "\(message) (\(path))"
+    }
 }
 
-// MARK: — Pending-world discrimination (Doc 3 §4.6)
+// MARK: — Unreachable-world discrimination (Doc 3 §4.6)
+//
+// ⚠️ **THERE WAS A SECOND TRIO HERE — `pendingPrefix` / `isWorldPending` /
+// `pendingWorldStatus` — MATCHING `"worldPending:"`. It was RETIRED 2026-09-17
+// (I-0222) on the user's ruling: "there will be no ambiguity in this message."**
+//
+// ⚠️ **Both trios worked.** The core emitted both spellings and Swift decoded
+// both correctly; neither was broken. The defect was that ONE writer-visible
+// condition — *"the world is away, reconnect it"* — was expressed as TWO
+// concepts, so a view had to know which store its error came from in order to
+// ask the right question. ⛔ **The card list asked neither, which is how a
+// perfectly decodable error reached the writer as `ScriviError 1`.**
 
 public extension ScriviError {
-    /// The `worldPending:` detail prefix the graph uses when it refuses a write
-    /// because an endpoint's world is unavailable.
-    private static let pendingPrefix = "worldPending:"
-
-    /// True when this error is the graph **refusing to modify a frozen edge**,
-    /// rather than a genuine failure.
-    ///
-    /// ⚠️ **This is not an error to report as breakage.** Doc 3 §4.6: an absent
-    /// world holds its edges pending — never pruned, never modified. A refusal
-    /// here means the writer's data is being *protected*, and the UI must say so
-    /// (and disable the affordance) rather than showing a generic failure.
-    var isWorldPending: Bool {
-        detail?.hasPrefix(Self.pendingPrefix) ?? false
-    }
-
-    /// The world's status when `isWorldPending` — `offline`, `unmounted`,
-    /// `missing`, or `unavailable`; nil for any other error.
-    ///
-    /// The distinction is **diagnostic, not behavioral** (Doc 2 §7.2.1): pending
-    /// behavior is identical in all cases, but the remedies are completely
-    /// different, so the sentence shown to the writer must not guess.
-    var pendingWorldStatus: WorldStatus? {
-        guard let detail, detail.hasPrefix(Self.pendingPrefix) else { return nil }
-        return WorldStatus(rawValue: String(detail.dropFirst(Self.pendingPrefix.count)))
-            ?? .unavailable
-    }
-
     /// The `worldUnavailable:` detail prefix the OBJECT endpoints use when a
     /// world-scoped read or write cannot reach its package (`ObjectStore.cpp`).
     private static let unavailablePrefix = "worldUnavailable:"
 
     /// True when this error is *"the world is away"* rather than a real failure.
     ///
-    /// ⚠️ **Distinct from `isWorldPending`**, which is the GRAPH refusing to
-    /// modify a frozen edge. This one is an object read/write that cannot reach
-    /// its package at all — `openObject` on an ejected drive is the everyday case.
+    /// ⚠️ **This is the SINGLE discriminator for an unreachable world** (I-0222).
+    /// It covers both a graph write refused toward a frozen edge and an object
+    /// read that cannot reach its package at all — `openObject` on an ejected
+    /// drive is the everyday case. ✅ The two were separate spellings until
+    /// 2026-09-17; the writer's remedy was always identical.
     ///
     /// ⚠️ **It must never be reported as breakage** (R9). The writer's object is
     /// not damaged and not missing; it is temporarily out of reach, and the UI

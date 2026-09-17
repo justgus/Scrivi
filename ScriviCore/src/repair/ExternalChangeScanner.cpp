@@ -290,6 +290,14 @@ Result<ExternalChangeScanResult> ExternalChangeScanner::scan(
             for (auto& filePath : filesR.value()) {
                 const auto ext = util::extension(filePath);
 
+                // I-0221: OS artifacts are not project content. ⚠️ This scan had a
+                // DIFFERENT symptom from the fatal one in SceneIndex: `._001-scene.md`
+                // takes the `.md` branch below and is reported as an UNREGISTERED FILE,
+                // so a project on a FAT/exFAT/SMB volume grows a phantom repair issue
+                // for every sidecar -- offering the writer repairs for files that are
+                // not theirs and must not be touched.
+                if (util::isIgnorableFilesystemArtifact(util::filename(filePath))) { continue; }
+
                 if (ext == ".md") {
                     std::string rel = filePath.substr(request.projectRootPath.size() + 1);
                     if (!registeredContentPaths.contains(rel)) {

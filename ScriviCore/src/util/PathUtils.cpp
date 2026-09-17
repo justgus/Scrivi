@@ -80,4 +80,45 @@ Result<void> validateRootPath(const AbsolutePath& path, std::string_view label) 
     return Result<void>::success();
 }
 
+bool isIgnorableFilesystemArtifact(std::string_view filename) {
+    if (filename.empty()) { return true; }
+
+    // AppleDouble sidecars (I-0221). The `.` and `..` directory entries share the
+    // prefix test's first character but never reach it: they are excluded here so
+    // a caller that passes them through gets `true` (ignore) rather than a name
+    // that looks like content.
+    if (filename == "." || filename == "..") { return true; }
+    if (filename.starts_with("._")) { return true; }
+
+    // Per-directory metadata written by desktop shells. None is project content;
+    // all of them appear inside real `.scrivi` packages on shared volumes.
+    //
+    // ⚠️ Compared case-INSENSITIVELY for the Windows-shell names: FAT and SMB
+    // volumes are routinely case-insensitive, and `THUMBS.DB` is the same file as
+    // `Thumbs.db`. The macOS names are matched exactly, as macOS writes them.
+    if (filename == ".DS_Store") { return true; }
+    if (filename == ".localized") { return true; }
+
+    constexpr std::string_view kShellNames[] = {"thumbs.db", "ehthumbs.db", "desktop.ini"};
+    std::string lowered;
+    lowered.reserve(filename.size());
+    for (const char c : filename) {
+        lowered.push_back(static_cast<char>(
+            (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c));
+    }
+    for (const auto& name : kShellNames) {
+        if (lowered == name) { return true; }
+    }
+
+    // Volume-level bookkeeping directories. These sit at a volume root rather than
+    // inside a package, but a scan rooted at a volume will meet them.
+    if (filename == ".Spotlight-V100") { return true; }
+    if (filename == ".fseventsd") { return true; }
+    if (filename == ".TemporaryItems") { return true; }
+    if (filename == ".Trashes") { return true; }
+    if (filename == ".DocumentRevisions-V100") { return true; }
+
+    return false;
+}
+
 } // namespace scrivi::util
