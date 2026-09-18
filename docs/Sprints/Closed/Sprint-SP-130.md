@@ -1,17 +1,21 @@
 ---
 sprint: SP-130
 epic: EP-040
-status: Active
+status: CLOSED 2026-09-18 (user-approved)
 platform: Apple
 ---
 
-# Sprint SP-130 — `[Apple]` Rule the asset presence-checks (Class C of [I-0197])
+# Closed Sprint — SP-130 — `[Apple]` Rule the asset presence-checks (Class C of [I-0197])
 
-**Epic:** [EP-040](../Epics/Epic-active.md) · **Activated:** 2026-09-15 · **Status:** 🟡 **ACTIVE**
-**Task:** **T-0508** · **Issue:** [I-0197] (Class C only)
+**Epic:** [EP-040](../../Epics/Epic-active.md) — `[Apple]` The Editor Shell
+**Activated:** 2026-09-15 · **Closed:** 2026-09-18 · **Status:** ✅ **CLOSED — user-approved**
+**Task:** **T-0508** ✅ **VERIFIED** · **Issue:** [I-0197] (Class C only — ⛔ **A and B remain OPEN**)
+
+✅ **T-0508 VERIFIED by the user's LIVE PASS** → [`../../Tasks/Verified/Task-verified-0508.md`](../../Tasks/Verified/Task-verified-0508.md).
+⛔ **T-0509 STRUCK** — its remainder was provably zero.
 
 ⚠️ **RESTRUCTURED 2026-09-15 (user-ruled).** ✅ **SP-130 was ONE sprint of four tasks; ⚠️ it is now
-FIVE sprints** — ✅ **see [`Sprint-SP-130-RESTRUCTURE.md`](Sprint-SP-130-RESTRUCTURE.md) for why.**
+FIVE sprints** — ✅ **see [`Sprint-SP-130-RESTRUCTURE.md`](../Sprint-SP-130-RESTRUCTURE.md) for why.**
 ✅ **This sprint keeps ONLY T-0508**, ⚠️ **the one piece that blocks on nothing and decides nothing.**
 
 ## ⛔ T-0509 IS STRUCK — its remainder is provably ZERO
@@ -46,7 +50,7 @@ the ruling must be WRITTEN, because "whatever the code happens to do" is how it 
 
 ## ⚠️ OUTCOME (2026-09-16) — ⛔ **THE ABOVE PARAGRAPH IS ITSELF WRONG, AND THAT IS THE SPRINT'S RESULT**
 
-✅ **The ruling is written: [`../Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../Scrivi_Asset_Presence_Check_Ruling_v0_1.md).**
+✅ **The ruling is written: [`../Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../../Scrivi_Asset_Presence_Check_Ruling_v0_1.md).**
 ⚠️ **Writing it forced the question to SPLIT IN TWO, and the split is what found the defect:**
 
 | question | asks | ✅ answered by |
@@ -146,7 +150,7 @@ what this Sprint changed.**
 press *Choose Existing…*"** — ⛔ **untestable: the Detail Sheet goes read-only the moment the world
 vanishes and DISABLES the button under test**, ⚠️ **so the picker never opens and the changed code is
 never reached.** ✅ **A pass that way would have been a FALSE GREEN.** ✅ **Correct order, and the one
-actually run: OPEN THE PICKER FIRST, THEN PULL THE DRIVE.** ✅ **[`Sprint-SP-130-VERIFICATION.md`](Sprint-SP-130-VERIFICATION.md) corrected.**
+actually run: OPEN THE PICKER FIRST, THEN PULL THE DRIVE.** ✅ **[`Sprint-SP-130-VERIFICATION.md`](../Sprint-SP-130-VERIFICATION.md) corrected.**
 
 ✅ **OBSERVED, with the drive pulled out from under an open 206-row picker:**
 
@@ -182,7 +186,7 @@ Sprint changed but is the surrounding behaviour it depends on** ([EP-031] AC23/A
 
 ## ✅ Verification procedure
 
-✅ **Setup / Test / Teardown: [`Sprint-SP-130-VERIFICATION.md`](Sprint-SP-130-VERIFICATION.md).**
+✅ **Setup / Test / Teardown: [`Sprint-SP-130-VERIFICATION.md`](../Sprint-SP-130-VERIFICATION.md).**
 
 ⚠️ **TWO THINGS IT FOUND BEFORE IT COULD BE WRITTEN, both blocking:**
 1. ⛔ **Eskandar does NOT currently resolve.** ⚠️ **`binding.json` records
@@ -198,3 +202,54 @@ Sprint changed but is the surrounding behaviour it depends on** ([EP-031] AC23/A
 ⛔ **NO GUARD IN THIS SPRINT.** ✅ **T-0510 is [SP-143]** — ⚠️ **a guard written now would have to
 allow-list `InspectorLayoutStore`, then be EDITED when [SP-141] removes it.** ⚠️ **It would pass green
 across the very change it exists to police.**
+
+---
+
+## ✅ CLOSE — 2026-09-18, user-approved
+
+✅ **T-0508 ✅ VERIFIED** (user live pass) → [`../../Tasks/Verified/Task-verified-0508.md`](../../Tasks/Verified/Task-verified-0508.md).
+⛔ **T-0509 STRUCK 2026-09-15** — ✅ **re-measurement proved its remainder is ZERO; not deferred.**
+
+### ⚠️ What this Sprint actually taught, which is not what it set out to do
+
+⛔ **IT WAS PLANNED AS A RULING TO RECORD, NOT A DEFECT TO FIX — and that premise was wrong.**
+✅ **Writing the ruling is what found the defect**, by splitting one question into two:
+⚠️ *"degrades gracefully"* answers **ARCHITECTURE**; ⛔ **it does not answer COST.**
+✅ **`ExistingAssetPicker.swift:130` said exactly the right thing to the writer while blocking the main
+actor to decide it** — ⚠️ **which is how it passed the 2026-09-15 re-measurement.**
+
+✅ **THE GENERAL LESSON, worth carrying into SP-134–SP-143:** ⚠️ **a re-measurement that asks only one
+of two questions will clear a site that fails the other.**
+
+### ⚠️ The verification pass produced two Issues the Sprint did not plan for
+
+⛔ **The drive-pull test had been deferred as "informational." It was not.**
+
+| Issue | Severity | Outcome |
+| ----- | -------- | ------- |
+| **[I-0221]** | ⛔ **Critical** | A project on ANY non-APFS volume was unopenable, **repeatedly** — the app regenerated the AppleDouble sidecars that broke it. ✅ **Fixed + Verified.** |
+| **[I-0222]** | **High** | An unavailable world reported `ScriviError 1` instead of naming the world. ✅ **Fixed + Verified.** |
+
+✅ **Both archived** → [`../../Issues/Verified/Issue-verified-0221-0230.md`](../../Issues/Verified/Issue-verified-0221-0230.md).
+
+✅ **AND IT CONFIRMED THE PENDING-WORLD ARCHITECTURE WORKS** — ⚠️ **the more important half of the
+result**: the manuscript stayed usable with the volume gone, edges were held pending rather than
+pruned, and everything restored on reattach with **no repair prompt and no data loss.**
+
+### ⛔ What this Sprint did NOT close
+
+⚠️ **[I-0197] REMAINS OPEN.** ✅ **Class C is closed by ruling; ⛔ Classes A and B are not.**
+⚠️ **The bypass chain continues in [SP-140] → [SP-141] → [SP-142] → [SP-143].**
+
+⚠️ **TWO RULINGS WERE RAISED AND DELIBERATELY NOT TAKEN**, recorded so they are not lost:
+1. ⛔ **`SceneIndex` aborts an entire project open on ANY unparseable file**, where its two sibling
+   scanners `continue` past one. ✅ **No sidecar reaches the parser now**, ⚠️ **but whether one
+   malformed REAL scene should deny access to a whole manuscript is a product question.**
+2. ⛔ **The core's parse errors name no file.** ⚠️ **Worth doing properly, not incidentally.**
+
+### ⚠️ Scope note, restated at close as the Epic's own table requires
+
+⚠️ **SP-130 does NOT fit EP-040's stated subject** (the window and pane structure) — ✅ **it is
+boundary work, parked here by user ruling 2026-09-15 because [EP-039] closed without doing it.**
+⚠️ **So this Epic's goal line does not answer for this Sprint**, ✅ **which was said when it was moved
+and is repeated here rather than quietly dropped.**

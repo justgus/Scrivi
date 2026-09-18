@@ -10,30 +10,13 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-| ID | Title | Sprint | Epic | Implemented |
-| -- | ----- | ------ | ---- | ----------- |
-| **T-0508** | ⚠️ **Rule the 5 `fileExists` asset sites (Class C of [I-0197])** — ✅ **ruling written; ⛔ one site was a REAL defect and is fixed** | [SP-130] | [EP-040] | ✅ **2026-09-16** |
+**Currently: none.** ✅ **T-0536 was user-Verified 2026-09-18** and archived to
+[`Verified/Task-verified-0536.md`](Verified/Task-verified-0536.md) **in the same step**
+(`feedback_archive_on_close`, `feedback_task_layer_discipline`).
 
-### ⚠️ What a verification pass should actually look at
-
-⛔ **The build being green proves almost nothing here** — ✅ **four of the five sites did not change,
-and the fifth changes only WHEN work happens, not WHAT is drawn.**
-
-✅ **The ruling:** [`Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../Scrivi_Asset_Presence_Check_Ruling_v0_1.md).
-✅ **The one code change:** `Scrivi/Views/Detail/ExistingAssetPicker.swift` — ⚠️ **`thumbnail(_:)`
-became `AssetThumbnail`, loading off the main actor.**
-
-⚠️ **THE USER-VISIBLE TEST, and it needs the REAL RIG** (`project_test_rig_tintagael_eskandar`):
-✅ **open an object in the Detail Sheet, press *Choose Existing…*, and watch the popover.**
-- ✅ **Expected: it opens IMMEDIATELY, rows drawn with the `photo` icon, pictures filling in after.**
-- ⛔ **Before the fix: the popover did not appear until every visible thumbnail had been stat'd AND
-  decoded** — ⚠️ **and on a sleeping or disconnected USB volume that is [I-0193]'s freeze, once per row.**
-- ⚠️ **The adversarial case is the one worth running: pull the drive, THEN open the picker.**
-  ✅ **The window must stay live.**
-
-⚠️ **`xcodebuild` green on all three schemes (macOS / iOS / visionOS) and 127 interop tests passing
-are recorded, ⛔ but NEITHER exercises this path** — ✅ **there is no test that opens the picker
-against an unreachable volume, and none is claimed.**
+✅ **T-0508 was user-Verified 2026-09-18** and archived to
+[`Verified/Task-verified-0508.md`](Verified/Task-verified-0508.md) **in the same step**
+(`feedback_archive_on_close`, `feedback_task_layer_discipline`).
 
 ⚠️ **SP-122's T-0466–T-0471 were ✅ Verified 2026-08-25** and archived to
 [`Verified/Task-verified-0466-0471.md`](Verified/Task-verified-0466-0471.md) in the same step SP-122 closed.
@@ -47,6 +30,11 @@ against an unreachable volume, and none is claimed.**
 > object-card entry point to `CitationPopover` is built but unwired.
 
 ---
+
+*Last Updated: 2026-09-18 (**no Tasks awaiting verification** — ✅ **T-0508 Verified and archived the
+same day**, together with the two Issues its drive-pull test produced, [I-0221] and [I-0222].
+✅ **SP-130's only Task is now complete, so the Sprint is closable on the user's approval.**
+Prior note follows.)*
 
 *Last Updated: 2026-08-25, fourth pass (**no Tasks awaiting verification** — SP-122's six ✅ Verified and
 archived the same day. Prior note follows.)*

@@ -148,6 +148,25 @@ struct ResolvedStack {
     private(set) var document: InspectorLayoutDocument
     private let fileURL: URL?
 
+    /// The file exactly as it was read, including every key this build does not
+    /// understand (T-0536, [I-0215]).
+    ///
+    /// ⚠️ **WITHOUT THIS, A ROUND TRIP THROUGH APPLE DESTROYED DATA.**
+    /// `InspectorLayoutDocument` is a fixed `Codable` struct, so decoding discarded
+    /// any key it did not declare and the next `save()` wrote the file back without
+    /// them. The same projects are opened on Linux, whose store deliberately keeps
+    /// the whole document (`InspectorLayoutStore.cpp:97-100`: *"THE WHOLE DOCUMENT is
+    /// kept … This is what makes the round trip lossless"*), so Apple was silently
+    /// deleting what the other platform preserved.
+    ///
+    /// ⚠️ **IT IS A SOURCE FOR UNKNOWN KEYS ONLY.** For the keys this build owns, the
+    /// typed `document` is always authoritative — see `mergedForSave()`. Reading a
+    /// known value back out of here would resurrect a setting the writer just changed.
+    ///
+    /// `nil` when no file was read (absent, or unreadable): there is nothing to
+    /// preserve, and `save()` then writes the typed document alone.
+    private var rawDocument: [String: Any]?
+
     /// Last load's unreadable-file error, if any. Non-nil means the store fell back to
     /// defaults; the UI can note it rather than silently discarding the writer's layout.
     private(set) var loadError: String?
@@ -172,6 +191,12 @@ struct ResolvedStack {
         do {
             let data = try Data(contentsOf: url)
             self.document = try JSONDecoder().decode(InspectorLayoutDocument.self, from: data)
+            // T-0536: keep the file as written so `save()` can put back the keys the
+            // typed decode above just dropped. Parsed SECOND and non-fatally — a
+            // document that decoded cleanly must still load even if this does not
+            // produce an object, in which case we simply have nothing extra to keep.
+            self.rawDocument = (try? JSONSerialization.jsonObject(with: data))
+                as? [String: Any]
         } catch {
             // Corrupt or unreadable: fall back to defaults and REPORT it. We do not
             // overwrite the bad file here — the writer's layout may be recoverable by
@@ -291,18 +316,63 @@ struct ResolvedStack {
 
     // MARK: — Persistence
 
+    /// The bytes to write: the typed document, with any keys the build does not
+    /// understand carried over from the file as it was read (T-0536, [I-0215]).
+    ///
+    /// ⚠️ **DIRECTION MATTERS.** The typed document is encoded first and then written
+    /// OVER the retained raw object — never the other way round. Every key this build
+    /// owns therefore takes the value the writer just set, and only keys the typed
+    /// encode did not produce survive from the old file.
+    ///
+    /// ⚠️ **Preservation is TOP-LEVEL, and that is a deliberate limit, not an
+    /// oversight.** A merge deep enough to preserve an unknown key *inside* a card
+    /// entry would have to reconcile arrays the writer may have reordered, inserted
+    /// into, or deleted from — with no identity to match on, that reconciliation can
+    /// silently reattach a stale value to the wrong card. Losing an unknown key
+    /// inside a card is bad; putting one on the wrong card is worse. ✅ The nested
+    /// case belongs with the schema work in [SP-141], which can give entries identity.
+    private func mergedForSave() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+        guard let rawDocument, !rawDocument.isEmpty else {
+            return try encoder.encode(document)
+        }
+
+        // Round-trip the typed document through JSON so the merge compares like with
+        // like — `Codable` key names, not Swift property names.
+        let typedData = try encoder.encode(document)
+        guard let typed = try JSONSerialization.jsonObject(with: typedData)
+                as? [String: Any] else {
+            return typedData
+        }
+
+        var merged = rawDocument
+        for (key, value) in typed { merged[key] = value }
+
+        // `.sortedKeys` is not available for JSONSerialization, so sort explicitly:
+        // this file is Git-visible project state and unstable key order would churn
+        // the diff on every save.
+        return try JSONSerialization.data(
+            withJSONObject: merged,
+            options: [.prettyPrinted, .sortedKeys])
+    }
+
     func save() {
         guard let url = fileURL else { return }
         do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let data = try encoder.encode(document)
+            let data = try mergedForSave()
             // Atomic: write a sibling temp then replace, so an interrupted save cannot
             // truncate the live file.
             let tmp = url.deletingLastPathComponent()
                 .appendingPathComponent(".inspector-layout.json.tmp")
             try data.write(to: tmp, options: .atomic)
             _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+            // T-0536: the file on disk is now what we just merged, so the retained
+            // copy must track it. Without this a SECOND save in the same session
+            // would merge against the state at load and could resurrect a top-level
+            // key the writer's first save had legitimately removed.
+            rawDocument = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         } catch {
             loadError = "Could not save inspector-layout.json (\(error.localizedDescription))."
         }

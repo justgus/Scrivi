@@ -56,7 +56,7 @@ See: [Epic-backlog.md](Epic-backlog.md)
 ## All Epics
 
 ⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
-Statistics — read the rows. Next available ID: **EP-041**.
+Statistics — read the rows. Next available ID: **EP-042**.
 ⚠️ **INDEX GAP FOUND 2026-09-14 while adding EP-040: this table stopped at EP-034** — ⚠️ **EP-035
 through EP-039 were never added, including the CURRENTLY ACTIVE [EP-039].** ✅ **Rows added from
 verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠️ **EP-038's row previously claimed *"no Epic record file"*; ⛔ THAT WAS FALSE — `Closed/Epic-EP-038.md` exists and is now linked.** ⚠️ **The claim was written 2026-09-14 by asserting from the index WITHOUT opening `Epics/Closed/`.** ✅ **[R-06] required re-checking EP-035–EP-037, added in the same edit: ✅ ALL THREE ARE CORRECT — they are backlog Epics and rightly claim no closed record.**
@@ -114,7 +114,12 @@ verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠�
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-041** (⚠️ **EP-040 `[Apple]` The Editor Shell created as 🔵 DRAFT 2026-09-14**, ⚠️ **NOT activated — [EP-039]/[SP-133] hold the floor**)
+- **Next available Epic ID:** **EP-042**
+- ⚠️ **TWO ACTIVE EPICS as of 2026-09-18:** 🟡 **[EP-040]** `[Apple]` The Editor Shell (SP-134–SP-137)
+  and 🟡 **[EP-041]** `[Cross]` **The Boundary** → [`Epic-EP-041.md`](Epic-EP-041.md) (SP-140–SP-143).
+  ✅ **EP-041 was SPLIT OUT of EP-040 2026-09-18** (user ruling) — ⚠️ **[I-0197]'s bypass chain is
+  boundary work, not chrome**, ✅ **which EP-040's own scope note had already flagged.**
+  ⛔ **[SP-129]/[SP-130] did NOT move** — ✅ **a closed Sprint keeps the provenance of the Epic it ran under.**
 - **Total Epic IDs issued:** **40** (EP-001–EP-040); none cancelled, skipped or superseded. ⚠️ **Was stated as 38 until 2026-09-14** — ✅ **stale since EP-039.**
   - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
     ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a

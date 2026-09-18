@@ -2575,7 +2575,7 @@ struct ScriviGraphInteropTests {
 
         // ⚠️ Before T-0407, `ErrorPayload` decoded only code+message, so every
         // machine-readable discriminator the C ABI emits was discarded at the
-        // boundary. SP-102's frozen-graph refusal (detail == "worldPending:<status>")
+        // boundary. SP-102's frozen-graph refusal (detail == "worldUnavailable:<status>")
         // is unbuildable without this, so it is asserted here on the discriminator
         // that IS reachable today.
         do {
@@ -2587,33 +2587,134 @@ struct ScriviGraphInteropTests {
         } catch let error as ScriviError {
             #expect(error.detail == "duplicateEdge",
                     "detail was \(error.detail ?? "nil") — the discriminator must survive decode")
-            // A duplicate is not a pending-world refusal; the two must not be conflated.
-            #expect(error.isWorldPending == false)
-            #expect(error.pendingWorldStatus == nil)
+            // A duplicate is not a world-away refusal; the two must not be conflated.
+            #expect(error.isWorldUnavailable == false)
+            #expect(error.unavailableWorldStatus == nil)
         }
     }
 
-    @Test("worldPending detail parses into a typed status without guessing")
-    func pendingStatusParsing() {
-        // Pure parsing of the contract RelationshipStore.cpp:191,322 emits. The
-        // live pending path is verified in SP-102 against a real ejected volume
-        // (R3) — a fixture cannot show "restores with no writer intervention".
-        let offline = ScriviError(code: 1, message: "frozen", detail: "worldPending:offline")
-        #expect(offline.isWorldPending)
-        #expect(offline.pendingWorldStatus == .offline)
+    @Test("worldUnavailable detail parses into a typed status without guessing")
+    func unavailableStatusParsing() {
+        // ⚠️ PURE PARSING ONLY. This asserts the decoder's behaviour on inputs it
+        // constructs itself, which is useful for the FALLBACK rules below and
+        // useless for proving the core actually emits this spelling.
+        // ✅ `worldUnavailableDetailCrossesTheBoundary` is the test that does that.
+        let offline = ScriviError(code: 1, message: "frozen", detail: "worldUnavailable:offline")
+        #expect(offline.isWorldUnavailable)
+        #expect(offline.unavailableWorldStatus == .offline)
 
-        let missing = ScriviError(code: 1, message: "frozen", detail: "worldPending:missing")
-        #expect(missing.pendingWorldStatus == .missing)
+        let missing = ScriviError(code: 1, message: "frozen", detail: "worldUnavailable:missing")
+        #expect(missing.unavailableWorldStatus == .missing)
 
         // ⚠️ An unrecognised status falls back to the honest generic, never to a
         // guess: a wrong "missing" invites restoring from backup when the NAS was
         // merely unreachable (Doc 2 §7.2.1).
-        let future = ScriviError(code: 1, message: "frozen", detail: "worldPending:teleported")
-        #expect(future.pendingWorldStatus == .unavailable)
+        let future = ScriviError(code: 1, message: "frozen", detail: "worldUnavailable:teleported")
+        #expect(future.unavailableWorldStatus == .unavailable)
 
         let ordinary = ScriviError(code: 1, message: "something else")
-        #expect(ordinary.isWorldPending == false)
-        #expect(ordinary.pendingWorldStatus == nil)
+        #expect(ordinary.isWorldUnavailable == false)
+        #expect(ordinary.unavailableWorldStatus == nil)
+
+        // ⚠️ I-0222: `worldPending:` was the OTHER spelling until 2026-09-17 and is
+        // now retired. A core still emitting it would be a regression, and this
+        // asserts the merged decoder does NOT quietly accept it.
+        let retired = ScriviError(code: 1, message: "frozen", detail: "worldPending:unmounted")
+        #expect(retired.isWorldUnavailable == false,
+                "worldPending: was retired by the I-0222 ruling — the core must emit one spelling")
+    }
+
+    /// ⚠️ **THE TEST I-0222 EXISTED FOR.** The previous suite asserted the decoder
+    /// against a string the TEST wrote, so it could never discover which spelling
+    /// the CORE actually emits. This one takes `detail` from a real `scrivi_*` call.
+    ///
+    /// ⚠️ **It uses `openObject`, NOT `listObjects`** — ✅ measured 2026-09-17:
+    /// `listObjects` does not fail on an unreachable world at all
+    /// (`ObjectIndex::loadAllVisible` skips it and returns `ok:true`), so it cannot
+    /// carry the discriminator. `openObject` goes through `ObjectStore::kindDirFor`,
+    /// which is the site that actually produces `worldUnavailable:<status>`.
+    @Test("worldUnavailable detail crosses the C ABI from a real unreachable world")
+    func worldUnavailableDetailCrossesTheBoundary() throws {
+        let f = try makeFixture()
+        let worldDir = try TempDir()
+        let packagePath = worldDir.url.appendingPathComponent("Vanishing.scrivworld")
+            .path(percentEncoded: false)
+
+        let created = try f.engine.createWorld(
+            projectRootPath: f.root, packagePath: packagePath,
+            displayName: "Vanishing", epochLabel: "Age of Loss"
+        )
+
+        let relic = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "artifact",
+            displayName: "Relic", authorshipRef: f.ref, worldID: created.worldID
+        )
+
+        // It opens while the package is present.
+        _ = try f.engine.openObject(
+            projectRootPath: f.root, objectKind: "artifact",
+            objectID: relic.objectID, worldID: created.worldID)
+
+        // ⚠️ Remove the PACKAGE while the binding still points at it — the fixture
+        // equivalent of pulling the drive. The binding is project-local and stays.
+        try FileManager.default.removeItem(atPath: packagePath)
+
+        do {
+            _ = try f.engine.openObject(
+                projectRootPath: f.root, objectKind: "artifact",
+                objectID: relic.objectID, worldID: created.worldID)
+            Issue.record("expected a world-unavailable failure once the package was removed")
+        } catch let error as ScriviError {
+            // ✅ THE ASSERTION THAT WOULD HAVE CAUGHT I-0222: the discriminator the
+            // CORE emits must be the one the Swift decoder matches. Before the
+            // merge, RelationshipStore said `worldPending:` and this said
+            // `worldUnavailable:`, and no test compared them.
+            #expect(error.isWorldUnavailable,
+                    "the core's detail spelling must match the Swift decoder")
+            #expect(error.unavailableWorldStatus != nil)
+            #expect(error.unavailableWorldStatus != .available)
+
+            // ✅ And the writer-facing string must be the core's own message, not
+            // Foundation's "<Module>.<Type> <code>" fallback (the LocalizedError gap).
+            #expect(error.localizedDescription.contains("ScriviError") == false,
+                    "localizedDescription leaked the type name — LocalizedError conformance is missing")
+            #expect(error.localizedDescription == error.message
+                    || error.localizedDescription.hasPrefix(error.message),
+                    "localizedDescription must be built from the core's message")
+        }
+    }
+
+    /// ⚠️ **THE OTHER HALF, and the more surprising one.** ✅ An unreachable world
+    /// makes `listObjects` return FEWER OBJECTS, not an error — so a card that
+    /// renders only what the index returns goes silently empty with nothing to
+    /// report. ⛔ **This is why the writer saw empty lists**, and any future
+    /// "show pending rows" work must not assume an error arrives to trigger it.
+    @Test("listObjects silently omits an unreachable world's objects, without failing")
+    func listObjectsOmitsUnreachableWorldWithoutError() throws {
+        let f = try makeFixture()
+        let worldDir = try TempDir()
+        let packagePath = worldDir.url.appendingPathComponent("Fading.scrivworld")
+            .path(percentEncoded: false)
+
+        let created = try f.engine.createWorld(
+            projectRootPath: f.root, packagePath: packagePath,
+            displayName: "Fading", epochLabel: "Dusk"
+        )
+        _ = try f.engine.createObject(
+            projectRootPath: f.root, objectKind: "artifact",
+            displayName: "Lantern", authorshipRef: f.ref, worldID: created.worldID
+        )
+
+        let before = try f.engine.listObjects(projectRootPath: f.root, kind: "artifact").objects
+        #expect(before.isEmpty == false, "the object must list while its world is present")
+
+        try FileManager.default.removeItem(atPath: packagePath)
+
+        // ⚠️ NOT a throw. This is the measured behaviour, asserted so a future
+        // change to it is a deliberate decision rather than a surprise.
+        let after = try f.engine.listObjects(projectRootPath: f.root, kind: "artifact").objects
+        #expect(after.isEmpty,
+                "an unreachable world's objects are omitted from the listing, not reported")
     }
 }
 
@@ -2743,6 +2844,143 @@ struct ObjectCardConfigurationTests {
         let layout = InspectorLayoutStore(projectRootPath: NSTemporaryDirectory())
         let stack = layout.resolvedStack(sceneID: "scene-1", stack: .worldbuilding)
         #expect(stack.entries.isEmpty, "the default Worldbuilding stack ships EMPTY")
+    }
+
+    // MARK: — T-0536 / [I-0215]: the layout round trip must be lossless
+
+    /// ⚠️ **THE TEST THE SPRINT EXISTS FOR.** ⛔ A test that writes a key this build
+    /// KNOWS and reads it back proves nothing — it passed before the fix. This one
+    /// uses a key the build has never heard of, which is the only thing that was
+    /// being destroyed.
+    @Test("an unknown inspector-layout.json key survives a load→mutate→save cycle")
+    func unknownLayoutKeysSurviveRoundTrip() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("scrivi-t0536-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("inspector-layout.json")
+
+        // A file this build can read, carrying a key it cannot: exactly what a newer
+        // Scrivi — or Linux, which preserves the whole document — leaves behind.
+        let onDisk: [String: Any] = [
+            "schema": "scrivi.inspector-layout.v1",
+            "selectedTab": "writing",
+            "inspectorHidden": false,
+            "defaultStacks": ["writing": [], "worldbuilding": []],
+            "stackSort": ["writing": "manual", "worldbuilding": "manual"],
+            "scenes": [:],
+            // ⚠️ THE KEY UNDER TEST.
+            "futureCardOrder": ["scene_x": ["a", "b"]],
+        ]
+        try JSONSerialization.data(withJSONObject: onDisk, options: [.prettyPrinted])
+            .write(to: url)
+
+        let store = InspectorLayoutStore(projectRootPath: dir.path)
+        #expect(store.loadError == nil, "the fixture must load cleanly")
+
+        // Mutate a key this build DOES own, then save.
+        store.setInspectorHidden(true)
+
+        let reread = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
+            as? [String: Any]
+        let survivor = reread?["futureCardOrder"] as? [String: [String]]
+
+        // ✅ THE ASSERTION I-0215 WAS FILED FOR.
+        #expect(survivor?["scene_x"] == ["a", "b"],
+                "a key this build does not understand must survive the round trip")
+
+        // ⚠️ AND THE OTHER HALF, WITHOUT WHICH THIS TEST IS WORTHLESS: a "fix" that
+        // preserved unknown keys by never re-encoding anything would satisfy the
+        // check above while silently ending all layout saves.
+        #expect(reread?["inspectorHidden"] as? Bool == true,
+                "the mutated known property must also have been written")
+    }
+
+    /// ⚠️ **THE CROSS-PLATFORM CASE, run against a REAL project's layout file.**
+    ///
+    /// ⛔ **A first attempt at this test took the project path from an environment
+    /// variable and `guard`ed on it. The variable never reached the test runner, so
+    /// the test returned early and PASSED WITHOUT RUNNING THE STORE** — caught only by
+    /// checking the file on disk afterwards. ✅ **This version stages its own fixture
+    /// from bytes it controls, so there is no path by which it can pass vacuously.**
+    ///
+    /// ⚠️ The fixture is a REAL `inspector-layout.json` shape (39 KB of scene entries
+    /// in production) reduced to its structure, plus two keys this build has never
+    /// heard of — what a newer Scrivi, or a future Linux build, leaves behind.
+    @Test("unknown keys survive alongside a populated scenes map, as on a shared project")
+    func unknownKeysSurviveAlongsidePopulatedScenes() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("scrivi-t0536c-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("inspector-layout.json")
+
+        let onDisk: [String: Any] = [
+            "schema": "scrivi.inspector-layout.v1",
+            "selectedTab": "worldbuilding",
+            "inspectorHidden": false,
+            "defaultStacks": ["writing": [["type": "tags", "collapsed": false]],
+                              "worldbuilding": []],
+            "stackSort": ["writing": "manual", "worldbuilding": "manual"],
+            // A populated scenes map: the merge must not disturb it.
+            "scenes": [
+                "scene_019fa3be": ["writing": [["type": "outline", "collapsed": true]],
+                                   "worldbuilding": [["type": "objects.character",
+                                                      "collapsed": false]]],
+            ],
+            // ⚠️ THE KEYS UNDER TEST — neither is in `InspectorLayoutDocument`.
+            "futureCardOrder": ["scene_x": ["a", "b"]],
+            "linuxOnlyPreference": ["paneWidth": 320],
+        ]
+        try JSONSerialization.data(withJSONObject: onDisk, options: [.prettyPrinted])
+            .write(to: url)
+
+        let store = InspectorLayoutStore(projectRootPath: dir.path)
+        #expect(store.loadError == nil, "the fixture must load cleanly")
+
+        store.setInspectorHidden(true)
+        store.setSelectedTab(.writing)
+
+        let back = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
+            as? [String: Any]
+
+        // ✅ Both unknown keys survive, with their values intact.
+        #expect((back?["futureCardOrder"] as? [String: [String]])?["scene_x"] == ["a", "b"])
+        #expect((back?["linuxOnlyPreference"] as? [String: Int])?["paneWidth"] == 320)
+
+        // ⚠️ AND the store actually wrote — ⛔ without these the test passes vacuously
+        // if the store is never exercised at all.
+        #expect(back?["inspectorHidden"] as? Bool == true, "the store must have written")
+        #expect(back?["selectedTab"] as? String == "writing")
+
+        // ✅ The populated scenes map is preserved through the merge, not flattened.
+        let scenes = back?["scenes"] as? [String: Any]
+        #expect(scenes?["scene_019fa3be"] != nil, "existing scene layouts must survive")
+    }
+
+    @Test("a layout file with no unknown keys still round-trips, and stays sorted")
+    func knownOnlyLayoutRoundTripsUnchanged() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("scrivi-t0536b-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // No file on disk: the store falls back to defaults and has nothing to
+        // preserve. ⚠️ This is the path where `rawDocument` is nil — it must still save.
+        let store = InspectorLayoutStore(projectRootPath: dir.path)
+        store.setInspectorHidden(true)
+
+        let url = dir.appendingPathComponent("inspector-layout.json")
+        #expect(FileManager.default.fileExists(atPath: url.path),
+                "a store with no prior file must still write one")
+
+        let text = try String(contentsOf: url, encoding: .utf8)
+        // ⚠️ Git-visible project state: unstable key order would churn the diff on
+        // every save, so sorting is a requirement rather than a nicety.
+        let schemaIdx = try #require(text.range(of: "\"schema\"")).lowerBound
+        let tabIdx = try #require(text.range(of: "\"selectedTab\"")).lowerBound
+        #expect(schemaIdx < tabIdx, "keys must be written in sorted order")
     }
 
     @Test("the writing stack's three default cards are unaffected by object-card registration")

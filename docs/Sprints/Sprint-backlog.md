@@ -55,9 +55,10 @@ backlog** (`feedback_sprint_backlog_cleanup`).
 
 ---
 
-## ✅ SP-130 — **ACTIVATED 2026-09-15.** ⛔ **NO LONGER A BACKLOG SPRINT.**
+## ✅ SP-130 — **CLOSED 2026-09-18 (user-approved).** ⛔ **NOT A BACKLOG SPRINT.**
 
-✅ **Lives in [`Sprint-active.md`](Sprint-active.md); record: [`Sprint-SP-130.md`](Sprint-SP-130.md).**
+✅ **Record: [`Closed/Sprint-SP-130.md`](Closed/Sprint-SP-130.md).** ✅ **T-0508 Verified; ⛔ T-0509 struck.**
+⚠️ **[I-0197] is NOT closed by it** — ✅ **Class C only; the chain continues in [SP-140]–[SP-143].**
 ⚠️ **A Sprint leaves this file at activation and never returns** (`feedback_sprint_backlog_cleanup`).
 
 ---

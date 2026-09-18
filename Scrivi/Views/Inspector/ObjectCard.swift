@@ -161,15 +161,16 @@ struct ObjectCardKind: Sendable, Hashable {
             // Resolving the far endpoint's kind needs the object index; one listing
             // per load rather than a lookup per edge.
             //
-            // ⚠️ **I-0222: THIS CALL IS THE ONE THAT FAILS WHEN A WORLD GOES AWAY**,
-            // because a world-scoped kind lives in the `.scrivworld` package
-            // (`ObjectStore::kindDirFor`). `listEdgesFor` above CANNOT fail that way
-            // — edges are project-local — ⚠️ **so at this point the pending endpoint
-            // names are already in hand.**
+            // ⚠️ **I-0222 — DEFENSIVE, NOT THE OBSERVED FAILURE.** ✅ Measured
+            // 2026-09-17 against a real unreachable world: `scrivi_list_objects`
+            // does NOT fail. `ObjectIndex::loadAllVisible` skips an unavailable
+            // world (`ObjectIndex.cpp:442`) and returns `ok:true` with the world's
+            // objects simply absent — so this catch does not fire today.
             //
-            // ⛔ Letting this throw emptied the whole card and showed a raw
-            // `ScriviError 1`, which to a writer is indistinguishable from "your
-            // characters are gone". ✅ An unreachable world means only that the
+            // ⚠️ It is kept because the endpoint is ONE refactor away from calling
+            // `kindDirFor`, which DOES return `worldUnavailable:` — and the cost of
+            // being wrong is a card that empties with a raw code, which is exactly
+            // what this Issue is about. ✅ An unreachable world means only that the
             // INDEX is unavailable: every edge still lists, every pending row still
             // renders by its cached name, and no thumbnail resolves (D8).
             let objects: [ObjectEntry]

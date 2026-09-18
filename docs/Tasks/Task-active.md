@@ -1,33 +1,35 @@
 # Active Tasks
 
 
-## 🟡 SP-130 — `[Apple]` (EP-040, activated 2026-09-15)
+## ✅ SP-140 — all Tasks complete 2026-09-18 (EP-041)
 
-| ID | Task | Sprint | Status |
-| -- | ---- | ------ | ------ |
-| **T-0508** | ⚠️ **CLASS C — RULE the 5 `fileExists` asset sites.** ⚠️ **The planning text said "2 off-thread, 3 degrade gracefully, so this is a ruling not a fix" — ⛔ that was WRONG on one site** | SP-130 | 🟢 **Implemented - Not Verified (2026-09-16)** — ✅ **moved to [`Task-unverified.md`](Task-unverified.md)** |
+✅ **T-0536 ✅ VERIFIED 2026-09-18** → [`Verified/Task-verified-0536.md`](Verified/Task-verified-0536.md).
+⚠️ **SP-140 has NO remaining Task and is closable on the user's approval** — ⛔ **Claude may not close a Sprint.**
+✅ **It closed [I-0215]**; ⚠️ **[I-0197] Classes A/B continue in [SP-141]–[SP-143].**
 
-⚠️ **T-0508's PREMISE DID NOT SURVIVE CONTACT.** ✅ **The ruling is written
-([`Scrivi_Asset_Presence_Check_Ruling_v0_1.md`](../Scrivi_Asset_Presence_Check_Ruling_v0_1.md)) —
-⚠️ but writing it SPLIT the question in two and the fifth site failed the second half.**
-✅ **"Degrades gracefully" answers ARCHITECTURE (is this backend logic in Swift?);**
-⛔ **it does NOT answer COST (does it block the main actor?).**
-⚠️ **`ExistingAssetPicker.swift:130` ran `fileExists` AND a full `NSImage` decode SYNCHRONOUSLY,
-per row, in a `LazyVStack`, on bytes that live in a world package by construction** — ✅ **fixed by
-adopting `ObjectCard.ObjectRowThumbnail`'s already-proven off-thread shape.**
+## ✅ SP-130 — all Tasks complete 2026-09-18 (EP-040)
 
-⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled).
-✅ **ONLY T-0508 IS ACTIVE.** ⚠️ **T-0536 / T-0507 / T-0537 / T-0510 belong to PLANNED sprints
-(SP-140 – SP-143) and live in those records** — ⛔ **NOT in this file, which holds ACTIVE work only**
-(`feedback_task_layer_discipline`). ✅ **Their planning detail:
-[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
+✅ **T-0508 ✅ VERIFIED 2026-09-18** (user live pass) → [`Verified/Task-verified-0508.md`](Verified/Task-verified-0508.md).
+⚠️ **SP-130 has NO remaining Task and is closable on the user's approval** — ⛔ **Claude may not close a Sprint.**
+
+⚠️ **T-0508's PREMISE DID NOT SURVIVE CONTACT** — ✅ **recorded in the archive**: it was planned as a
+ruling to write, and writing it split the question in two (architecture vs. cost), which exposed a real
+main-actor block at `ExistingAssetPicker.swift:130`.
+
+✅ **Its drive-pull test produced [I-0221] (Critical) and [I-0222]**, both Verified and archived to
+[`../Issues/Verified/Issue-verified-0221-0230.md`](../Issues/Verified/Issue-verified-0221-0230.md).
 
 ⛔ **T-0509 STRUCK 2026-09-15** — ✅ **re-measurement proved its remainder is ZERO; ⛔ not deferred, there is no work behind it.**
+
+⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled). ⚠️ **T-0536 / T-0507 / T-0537 /
+T-0510 belong to PLANNED sprints (SP-140 – SP-143) and live in those records** — ⛔ **NOT in this file,
+which holds ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning detail:
+[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
 
 ## ✅ SP-129 — ARCHIVED 2026-09-15
 
 ✅ **T-0502 / T-0503 / T-0506 ✅ VERIFIED** (user live pass) → [`Verified/Task-verified-0502-0506.md`](Verified/Task-verified-0502-0506.md).
-⛔ **T-0504 / T-0505 DEFERRED** with their design questions — ✅ **recorded in the same file and in [`Sprint-SP-129.md`](../Sprints/Sprint-SP-129.md).**
+⛔ **T-0504 / T-0505 DEFERRED** with their design questions — ✅ **recorded in the same file and in [`Sprint-SP-129.md`](../Sprints/Closed/Sprint-SP-129.md).**
 ✅ **[I-0214] ✅ VERIFIED** — ⚠️ **found by the USER when the live pass could not start.**
 
 Tasks currently being worked by an **active Sprint**. Each row names the Sprint it belongs to; the
