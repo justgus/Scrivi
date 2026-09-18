@@ -160,9 +160,28 @@ struct ObjectCardKind: Sendable, Hashable {
 
             // Resolving the far endpoint's kind needs the object index; one listing
             // per load rather than a lookup per edge.
-            let objects = try engine.listObjects(
-                projectRootPath: projectRootPath, kind: cardKind.kind
-            ).objects
+            //
+            // ⚠️ **I-0222: THIS CALL IS THE ONE THAT FAILS WHEN A WORLD GOES AWAY**,
+            // because a world-scoped kind lives in the `.scrivworld` package
+            // (`ObjectStore::kindDirFor`). `listEdgesFor` above CANNOT fail that way
+            // — edges are project-local — ⚠️ **so at this point the pending endpoint
+            // names are already in hand.**
+            //
+            // ⛔ Letting this throw emptied the whole card and showed a raw
+            // `ScriviError 1`, which to a writer is indistinguishable from "your
+            // characters are gone". ✅ An unreachable world means only that the
+            // INDEX is unavailable: every edge still lists, every pending row still
+            // renders by its cached name, and no thumbnail resolves (D8).
+            let objects: [ObjectEntry]
+            var worldAway: WorldStatus? = nil
+            do {
+                objects = try engine.listObjects(
+                    projectRootPath: projectRootPath, kind: cardKind.kind
+                ).objects
+            } catch let error as ScriviError where error.isWorldUnavailable {
+                objects   = []
+                worldAway = error.unavailableWorldStatus ?? .unavailable
+            }
             let ofKind = Set(objects.map(\.objectID))
             // T-0448: image paths from the SAME listing — no extra reads, and a
             // pending object is simply absent from it (so no thumbnail, per D8).
@@ -212,7 +231,23 @@ struct ObjectCardKind: Sendable, Hashable {
                     imagePath: imagePaths[edge.otherID] ?? ""
                 )
             }
-            loadError = nil
+            // ⚠️ An away world is NOT an error state: the rows below are real and
+            // the writer's data is intact. Say where the world is, and say it as a
+            // status rather than a failure (R9, I-0166).
+            if let worldAway {
+                loadError = "This world is \(worldAway.writerDescription) — "
+                          + "its entries are shown from the last time it was open."
+            } else {
+                loadError = nil
+            }
+        } catch let error as ScriviError where error.isWorldUnavailable {
+            // The edge listing itself failed with a world error. Rarer than the
+            // `listObjects` case above, and there is genuinely nothing to show —
+            // but it is still not breakage, so it must not read as breakage.
+            entries = []
+            let status = error.unavailableWorldStatus ?? .unavailable
+            loadError = "This world is \(status.writerDescription). "
+                      + "Reconnect it to see these entries."
         } catch {
             // Report in place; the stack keeps rendering (§7.1).
             entries = []
