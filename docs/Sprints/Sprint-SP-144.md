@@ -409,3 +409,68 @@ so, and AC4's code is what unblocks it.**
 ✅ **AC3** (25 → 1 binding reads, `strace`-confirmed), ✅ **AC7** (read-count
 guards, verified failing with the fix reverted) — ⚠️ **all measured, and all
 re-checked on Linux: `ctest` 617/617, 23/23 smokes.**
+
+
+---
+
+## ✅ AC6 — **PASSED ON THE REAL RIG** (2026-09-20, user-run)
+
+✅ **🐧 `Oathkeeper`, build 45, the user's REAL project
+`/mnt/scrivi-worlds/the-stairs-of-tintagael.scrivi`, on the CIFS share.**
+✅ **Mount CONFIRMED by the probe itself:**
+
+```
+cifs rw,relatime,vers=3.0,cache=none,…,soft,actimeo=1,closetimeo=1
+```
+
+⚠️ **`cache=none` — the AC6 condition, reported by the tool rather than assumed.**
+
+| | ⚠️ BEFORE | ✅ AFTER | |
+| - | --------- | -------- | - |
+| ⚠️ **Wall-clock** | ⚠️ **24.01 s** | ✅ **13.46 s** | ⚠️ **−44%** |
+| ⚠️ **Syscalls** | ⚠️ **5,002** | ✅ **2,999** | ⚠️ **−40%** |
+| ⚠️ **`binding.json` opens (AC3)** | ⚠️ **188** (original measurement) | ✅ **2** | ⚠️ **−99%** |
+
+✅ **AC6 asked for wall-clock AND read counts on the same project under
+`cache=none`. Both are here, both improved, and the mount is on the record.**
+
+✅ **AC3 CONFIRMED ON REAL DATA**, not just in the fixture: the empty world
+directory that cost 188 `ENOENT` opens now costs 2.
+
+### ⚠️ The user's UI pass, same session
+
+✅ **"The load only appears to happen once"** — AC5 on real data.
+✅ **Both progress bars appear and update** — AC4; ⚠️ **indeterminate on the
+launch screen, then determinate in the editor, which is the handoff working.**
+✅ **"Takes much less time to load."**
+✅ **Drive pull still asserts correctly** — ⚠️ **no regression to
+[I-0193]/[I-0181]/[I-0221] from this Sprint's changes.**
+
+---
+
+## ⛔ A DEFECT THE RIG PASS FOUND — ✅ [I-0235], fixed same day
+
+⚠️ **The user's no-typing resume check did exactly what it was written to do.**
+⚠️ **Reported: "returned me to the same place I was at when I left, minus one
+line."**
+
+⛔ **CAUSE — MINE, introduced in this Sprint.** `EditorShell::stampWritingSurface()`
+delegated to `saveScene(activeSegment_)`. ⚠️ **`saveScene` writes the caret AND
+the scroll fraction ONLY when the CARET is inside the segment being saved**, and
+otherwise deliberately writes `0/0/0.0` so a background flush cannot clobber a
+real cursor with a stale one. ✅ **Correct for a background flush.** ⛔ **Wrong for
+the stamp, whose entire purpose is the writer who SCROLLED and never typed** —
+so the caret sat in the previous scene and ⚠️ **the scroll was persisted as
+`0.0`**, restoring to the top of the scene rather than the exact offset.
+
+✅ **FIXED by mirroring Apple exactly** (`ViewportSceneLoader.swift:424`, which
+passes `scrollFraction` UNCONDITIONALLY): the stamp now saves directly, carrying
+the REAL scroll always and the caret offset only when the caret really is in that
+scene.
+
+✅ **APPLE WAS NEVER AFFECTED** — its stamp always passed the true fraction.
+⚠️ **This was Linux-only, and only in code written today.**
+
+⚠️ **THE LESSON: "delegate to the existing save" looked like reuse and was not.**
+✅ **The standing rule held — Linux must adopt Apple's shape** — ⛔ **and this was
+a case of adopting the CALL without the BEHAVIOUR behind it.**

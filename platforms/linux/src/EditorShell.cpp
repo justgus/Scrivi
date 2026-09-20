@@ -1346,16 +1346,68 @@ void EditorShell::stampWritingSurface()
     // lacked. See the header for why removing `openScene`'s implicit write made
     // it necessary.
     //
-    // ⚠️ `saveScene` already writes the caret + scroll for the scene the caret is
-    // in, and the backend stamps `lastWritingSurface` on every save — so one save
-    // of the ACTIVE scene is exactly the stamp, with no new endpoint.
+    // ⚠️ THIS DOES NOT DELEGATE TO `saveScene(activeSegment_)`, AND THE FIRST CUT
+    // OF IT DID — which the user caught on the rig (2026-09-20): scrolling to a
+    // scene WITHOUT TYPING and reopening landed "minus one line".
     //
-    // ⛔ Deliberately NOT conditional on the scene being dirty: the whole point is
-    // the writer who navigated somewhere and never typed.
+    // ⚠️ WHY. `saveScene` writes the caret AND the scroll fraction ONLY when the
+    // CARET is inside the segment being saved; otherwise it deliberately writes
+    // `0/0/0.0`, so a background flush cannot clobber a real cursor with a stale
+    // one. ✅ Correct for a background flush. ⛔ WRONG HERE: the case this
+    // function exists for is precisely the writer who SCROLLED somewhere and
+    // never typed, so the caret is in the OLD scene and the scroll was being
+    // written as `0.0` — restoring to the top of the scene instead of where they
+    // were looking.
+    //
+    // ✅ Apple gets this right and this now mirrors it exactly
+    // (`ViewportSceneLoader.swift:424`): stamp the SCROLLED-TO scene, carry the
+    // REAL scroll fraction always, and carry the caret offset only when the caret
+    // really is in that scene (0 otherwise, per §9.3 — "scene changed / cursor
+    // not here" ⇒ restore the scene and place the cursor safely).
+    //
+    // ⛔ Deliberately NOT conditional on the scene being dirty: `saveScene`
+    // returns early for a clean scene, so delegating would silently no-op — the
+    // exact "clean-scene hole" [I-0131] closed on Apple.
     if (activeSegment_ < 0 || activeSegment_ >= sceneDoc_.segments().size()) {
         return;   // nothing loaded — no surface to record
     }
-    (void)saveScene(activeSegment_);
+    if (bridge_ == nullptr || viewport_ == nullptr) { return; }
+
+    const SceneSegment& seg = sceneDoc_.segments().at(activeSegment_);
+
+    // ✅ The scroll fraction ALWAYS — this is the value being preserved.
+    double scroll = 0.0;
+    if (QScrollBar* vsb = viewport_->verticalScrollBar()) {
+        const int range = vsb->maximum() - vsb->minimum();
+        scroll = range > 0
+                     ? double(vsb->value() - vsb->minimum()) / double(range)
+                     : 0.0;
+    }
+
+    // ⚠️ The caret offset ONLY when the caret is genuinely in this scene. Sending
+    // a caret from a DIFFERENT scene would place the cursor at a meaningless
+    // offset in this one.
+    long long selectionAnchor = 0;
+    long long selectionFocus  = 0;
+    const QTextCursor caret = viewport_->textCursor();
+    if (sceneDoc_.sceneIndexForCaret(caret.position()) == activeSegment_) {
+        selectionAnchor = qMax(0, caret.anchor()   - seg.bodyStart);
+        selectionFocus  = qMax(0, caret.position() - seg.bodyStart);
+    }
+
+    // ⚠️ Writes the scene BYTES too, exactly as Apple's stamp does — the backend
+    // stamps `lastWritingSurface` on every `saveScene`, and there is no
+    // surface-only endpoint. ✅ Idempotent for unchanged bytes, and this is one
+    // write on the teardown path, not one per scene on load.
+    const QVariantMap r = bridge_->saveScene(
+        projectID_, projectPath_, appSupportRoot_,
+        seg.sceneID, seg.metadataPath, seg.contentPath,
+        sceneDoc_.bodyText(activeSegment_),
+        selectionAnchor, selectionFocus, scroll);
+    Q_UNUSED(r);
+
+    // The scene is now on disk; do not re-flush it on a later debounce.
+    dirtyScenes_.remove(seg.sceneID);
 }
 
 void EditorShell::saveDirtyScenes()
