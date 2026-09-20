@@ -352,3 +352,60 @@ one.** ✅ **It trained this Sprint to read 611/612 as success, which is precise
 the slot a real regression would hide in.**
 
 ✅ **BOTH SUITES ARE NOW FULLY GREEN: macOS 613/613 · Linux 617/617 · 23/23 smokes.**
+
+
+---
+
+## ⚠️ WHAT REMAINS TO BE VERIFIED — the complete list (2026-09-20)
+
+### ✅ What the user's stated Linux pass already covers
+
+| Covers | AC | ⚠️ Note |
+| ------ | -- | ------- |
+| ✅ The load happens ONCE | **AC5** | ✅ **"appears to happen once" + "much less time to load" IS the AC5 evidence** |
+| ✅ Both progress bars appear and update | **AC4** | ⚠️ **INDETERMINATE on the launch screen (landing has no scene count yet), then DETERMINATE `n of m scenes` in the editor. Seeing BOTH is the point — one alone means the handoff broke** |
+| ✅ Launch screen stays responsive | **AC4** | ✅ **This is [I-0232]'s whole defect: 155 s frozen and silent** |
+| ✅ Drive pull asserts correctly | — | ✅ **Guards [I-0193]/[I-0181]/[I-0221] against regression from this Sprint's changes** |
+
+### ⛔ WHAT IS NOT COVERED BY WATCHING THE UI
+
+**1. ⛔ AC6 — the NUMBERS. ⚠️ THE ONE THING STILL OUTSTANDING.**
+⚠️ **AC6 does not ask "is it faster"; it asks for BEFORE/AFTER WALL-CLOCK *AND*
+READ COUNTS for the SAME project under `cache=none`.** ⛔ **A stopwatch cannot
+produce the read counts, and the read counts are the half that survives a
+faster machine.** ✅ **Run:**
+
+```bash
+platforms/linux/tools/sp144-open-cost-probe.sh \
+    /mnt/scrivi-worlds/the-stairs-of-tintagael.scrivi
+```
+
+✅ **It reports the MOUNT OPTIONS first and says plainly when the mount is not
+`cache=none`** — ⚠️ **because `cache=strict` MASKS this defect and a run under it
+is not AC6 evidence.** ✅ **It runs the OLD path first (the unflattering order, on
+purpose) and prints AC3's `binding.json` count.**
+
+**2. ⚠️ A NEW RISK THIS SPRINT INTRODUCED — ✅ cheap to check while you are there.**
+⚠️ **[I-0234] removed `openScene`'s implicit surface stamp, and Linux had no
+replacement until `EditorShell::stampWritingSurface()` was added in the same
+work.** ⛔ **The failure mode is SILENT — no error, the writer simply reopens on
+the wrong scene.** ✅ **Check: scroll to a scene WITHOUT TYPING, quit, reopen —
+it must land where you left it.** ⚠️ **Do it without typing; typing marks the
+scene dirty and would pass for the wrong reason.**
+
+**3. ⚠️ [I-0233] — Apple, not Linux.** ✅ **`scrivi_close_project` is now called
+from `ProjectSession.close()`.** ⚠️ **Needs a macOS pass: open project A, close
+it (red button / tab ✕ / File ▸ Close Project), open project B — memory should
+not retain A's index.** ⛔ **Not verifiable on Linux; Linux always did this.**
+
+### ⚠️ What CANNOT be closed by this Sprint
+
+⚠️ **[I-0195] is Verifiable ONLY once AC6 passes** — ✅ **its own status line says
+so, and AC4's code is what unblocks it.**
+
+### ✅ Everything else is already evidenced
+
+✅ **AC1** (the per-pass attribution table), ✅ **AC2** (622 → 196 calls/open),
+✅ **AC3** (25 → 1 binding reads, `strace`-confirmed), ✅ **AC7** (read-count
+guards, verified failing with the fix reverted) — ⚠️ **all measured, and all
+re-checked on Linux: `ctest` 617/617, 23/23 smokes.**
