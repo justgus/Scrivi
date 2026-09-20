@@ -1,6 +1,7 @@
 # SP-144 — ⚠️ **Project open cost: the amplification and the blocked thread**
 
-**Status:** 🟡 **IN PROGRESS — work began 2026-09-20.** ⚠️ **ACTIVATION NOT YET USER-APPROVED — ⛔ Claude may not activate a Sprint.**
+**Status:** ✅ **ALL SEVEN ACs MET AND ALL FIVE ISSUES VERIFIED (2026-09-20, user rig pass).**
+⚠️ **AWAITING USER APPROVAL TO CLOSE — ⛔ Claude may not close a Sprint.**
 **Epic:** 🟡 **[EP-042]** `[Cross]` **Project Open Cost** → [`../Epics/Epic-EP-042.md`](../Epics/Epic-EP-042.md)
 **Codebase:** `[Cross]` — `[ScriviCore]` **+** `[Linux]`
 **Issues:** ⚠️ **[I-0231]** (`[ScriviCore]`, High) · ⚠️ **[I-0232]** (`[Linux]`, High)
@@ -474,3 +475,57 @@ scene.
 ⚠️ **THE LESSON: "delegate to the existing save" looked like reuse and was not.**
 ✅ **The standing rule held — Linux must adopt Apple's shape** — ⛔ **and this was
 a case of adopting the CALL without the BEHAVIOUR behind it.**
+
+
+---
+
+## ✅ SPRINT OUTCOME — all ACs met, 2026-09-20
+
+| AC | | Evidence |
+| -- | - | -------- |
+| **AC1** | ✅ | Per-pass attribution table (`CountingFileSystem`), six walks located BY MEASUREMENT |
+| **AC2** | ✅ | 622 → 196 calls per open; worst file 8 → 2 reads |
+| **AC3** | ✅ | Absent `binding.json` 25 → 1 in test; ⚠️ **188 → 2 on the REAL project** |
+| **AC4** | ✅ | `openProjectAsync`; ⚠️ **user confirmed BOTH bars appear and update, launch screen responsive** |
+| **AC5** | ✅ | Landing hands its envelope over; ⚠️ **user confirmed "the load only appears to happen once"** |
+| **AC6** | ✅ | ⚠️ **Real rig, `cache=none` (mount confirmed by the tool): 24.01 s → 13.46 s, 5,002 → 2,999 syscalls** |
+| **AC7** | ✅ | Read-count guards, ⚠️ **each verified FAILING with its fix reverted** |
+
+✅ **Issues: [I-0231], [I-0232], [I-0233], [I-0234], [I-0235] — ALL VERIFIED and
+ARCHIVED.** ✅ **[I-0195] verified in the same pass, unblocked exactly as
+predicted by AC4.**
+
+✅ **Suites: macOS `ctest` 613/613 · Linux `ctest` 617/617 · 23/23 Linux smokes ·
+`xcodebuild` BUILD SUCCEEDED.** ⚠️ **`AC-A4` — reported as "pre-existing" for
+several messages — was a STALE TEST from the [I-0222] ruling and is now fixed;
+both suites are fully green for the first time this Sprint.**
+
+---
+
+## ⚠️ What this Sprint learned that outlives it
+
+⚠️ **1. THE MEASUREMENT MANDATE WORKED.** ⛔ AC1 forbade locating the defect by
+reading the code, ✅ **and none of the four candidate call sites the Sprint listed
+in advance was the answer.** ⚠️ **The redundancy was not inside any pass — each
+genuinely needed what it read — it was in the REPETITION ACROSS passes.**
+
+⚠️ **2. THE USER'S OBSERVATION REFRAMED THE EPIC.** ✅ *"None of the projects I've
+loaded lately have been large"* ⛔ **falsified the working theory** and pointed at
+a per-scene WRITE ([I-0234]) rather than a per-file read. ⚠️ **Without it this
+Sprint would have shipped a real but partial fix and called it done.**
+
+⚠️ **3. THE TWO PLATFORMS HAD DRIFTED, IN BOTH DIRECTIONS.** ⚠️ **Linux opened
+twice where Apple opened once ([I-0232]); Apple leaked an index where Linux
+released it ([I-0233]).** ✅ **Now a standing rule: Linux must ALWAYS adopt
+Apple's shape, and a shape change on Apple must be made the same way on Linux, in
+the same work.**
+
+⚠️ **4. A LIVE PASS FOUND WHAT NO SUITE COULD.** ✅ **[I-0235] — scroll without
+typing, quit, reopen — was a regression THIS Sprint introduced**, ⛔ **invisible
+to 617 green tests**, ✅ **and caught by a human doing the one thing the code
+assumed nobody would.**
+
+⚠️ **5. "PRE-EXISTING" IS NOT A DISPOSITION.** ⛔ **`AC-A4` was reported as
+pre-existing for three days while the CODE WAS CORRECT and the TEST was stale.**
+⚠️ **A known-red test trains everyone to read 612/613 as success — which is
+exactly the slot a real regression hides in.**

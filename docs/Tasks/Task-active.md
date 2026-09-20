@@ -1,59 +1,20 @@
 # Active Tasks
 
-## 🟡 SP-144 — T-0538 in progress (EP-042)
+## ✅ SP-144 — T-0538 ✅ VERIFIED 2026-09-20 (EP-042)
 
-🟡 **T-0538 — `[Cross]` Project open cost** — ⚠️ **[I-0231] + [I-0232]**, work begun 2026-09-20.
+✅ **T-0538 ✅ VERIFIED 2026-09-20 (user rig pass)** → [`Verified/Task-verified-0538.md`](Verified/Task-verified-0538.md).
+⚠️ **SP-144 has NO remaining Task and is closable on the user's approval** — ⛔ **Claude may not close a Sprint.**
 
-✅ **[I-0231] RESOLVED - Not Verified (core).** ⚠️ **AC1 located the amplification BY MEASUREMENT**
-(`CountingFileSystem`, a decorator over the real `FileSystem`): ⚠️ **six independent passes walk the
-same manuscript, every chapter sidecar read 8x and every scene sidecar 6x per open.**
-✅ **Fixed by `util::ReadThroughCache` (scoped to ONE `openProject`, write-invalidating) plus a shared
-`BindingCache` in `repairDangling`** — ⚠️ **the pass [I-0207] missed while fixing `listPending`.**
-✅ **MEASURED: 622 → 196 calls/open, 444 → 85 reads, absent `binding.json` 25 → 1.**
-✅ **4 new read-count guards; suite 607/608** (⚠️ **the one failure is PRE-EXISTING, confirmed by stash**).
+✅ **All SEVEN ACs met.** ✅ **Five Issues VERIFIED and archived** ([I-0231], [I-0232], [I-0233], [I-0234], [I-0235]),
+✅ **plus [I-0195], which this Sprint unblocked exactly as AC4 predicted.**
 
-✅ **[I-0232] RESOLVED - Not Verified, INCLUDING AC5.** ✅ **AC4: `openProjectAsync` + `Landing.qml` converted, reusing `AsyncCall`.**
-✅ **AC5: the project is now opened ONCE** — ⚠️ **the landing HANDS ITS ENVELOPE to `EditorShell::load`**, ✅ **which is APPLE'S shape
-(`ProjectSession.loadAsync` always did this); ⚠️ Linux had drifted.** ⚠️ **The earlier "narrowed / deferred" framing was WRONG and is withdrawn.**
+⚠️ **MEASURED ON THE REAL RIG under `cache=none`:** ⚠️ **24.01 s → 13.46 s**, ⚠️ **5,002 → 2,999 syscalls**,
+⚠️ **`binding.json` 188 → 2 opens.**
 
-✅ **[I-0234] RESOLVED - Not Verified** — ⚠️ **the reason SMALL projects loaded slowly.** ⚠️ **The viewport's bulk load stamped
-`lastWritingSurface` ONCE PER SCENE** — 61 atomic read-modify-writes to record a value only the last of which survives.
-✅ **Fixed by `scrivi_open_scene_for_bulk_load`** (⚠️ **a separate endpoint; changing `scrivi_open_scene` would break every caller at once**).
-
-✅ **[I-0233] RESOLVED - Not Verified** — ⚠️ **Apple never called `scrivi_close_project`.** ✅ **Now released from `ProjectSession.close()`**,
-⚠️ **the single chokepoint the red button, a fullscreen tab's ✕, ⌘W and both File ▸ Close Project commands all reach.**
-
-⚠️ **A REGRESSION CAUGHT IN FLIGHT:** ⚠️ **[I-0234]'s change was safe on Apple (`stampWritingSurfaceBlocking`, [I-0058]/[I-0131])
-but NOT on Linux, which saved only DIRTY scenes.** ✅ **Linux gained `EditorShell::stampWritingSurface()` (called from `flushEditor()`)
-so navigating without typing still records the writer's place.**
-
-### ✅ MEASURED END-TO-END (61 scenes, shipped ABI, `strace -c -f`, landing→editor)
-
-| | Before | After |
-| - | ------ | ----- |
-| ⚠️ **`write`** | ⚠️ **62** | ✅ **1** |
-| **Total syscalls** | **1,966** | ✅ **1,479** (⚠️ **−25%**) |
-
-### ✅ LARGE projects: the writes were O(scenes), now O(1)
-
-| Scenes | Syscalls before | after | ⚠️ **Writes before** | ✅ **after** |
-| ------ | --------------- | ----- | -------------------- | ------------ |
-| 60 | 1,966 | 1,479 | ⚠️ **62** | ✅ **1** |
-| 120 | 3,706 | 2,799 | ⚠️ **122** | ✅ **1** |
-| 240 | 7,186 | 5,439 | ⚠️ **242** | ✅ **1** |
-
-✅ **The load is now LINEAR**: 4× the scenes costs 3.7× the syscalls, per-scene cost FALLING (24.6 → 22.7).
-⛔ **No quadratic term remains.** ✅ **Guarded by `[SP-144][I-0234][scaling]`.**
-
-✅ **`AC-A4` FIXED — it was a STALE TEST, not a defect.** ⚠️ **The [I-0222] ruling (2026-09-17) unified the error detail
-to `worldUnavailable:`; Apple's suite was updated and `ObjectCApiTests.cpp` was missed**, ⛔ **so both suites failed for
-three days while the code was correct.** ✅ **Fixed by DERIVING the expectation from `kWorldUnavailableDetailPrefix`.**
-
-✅ **BOTH SUITES FULLY GREEN: macOS `ctest` 613/613 · Linux `ctest` 617/617 · 23/23 Linux smokes · `xcodebuild` BUILD SUCCEEDED.**
-⚠️ **Linux is BUILD 44** — ✅ **confirm in `Help ▸ About` before testing.**
-
-⚠️ **[I-0195] REMAINS BLOCKED FROM VERIFY.**
-
+⚠️ **THE TASK'S PREMISE DID NOT SURVIVE CONTACT, and that is the record worth keeping**: it was planned as
+"kill the read amplification + get the landing open off the UI thread". ✅ **Both were real and both were done** —
+⛔ **but the user's observation that recent projects were SMALL yet still slow falsified the working theory**,
+✅ **and the dominant cost turned out to be a per-scene WRITE ([I-0234]), not a per-file read.**
 
 ## ✅ SP-140 — all Tasks complete 2026-09-18 (EP-041)
 

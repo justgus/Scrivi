@@ -19,7 +19,7 @@ endpoints take the OPAQUE DOCUMENT GET/PUT shape.** ⚠️ **See the ruling reco
 🟡 **[EP-040]** — `[Apple]` **The Editor Shell** — ✅ **[SP-134] is unblocked and LOW risk.**
 
 ✅ **THE [SP-141] RULING IS MADE AND [SP-141] IS NOW ACTIVE.** ✅ **[SP-134] remains activatable.**
-⚠️ **[SP-144] is NEW and UNSTARTED** — ✅ **it carries [I-0231]/[I-0232] under the new [EP-042].**
+✅ **[SP-144] IS COMPLETE — all 7 ACs met 2026-09-20 and SIX Issues VERIFIED on the real rig** ([I-0195], [I-0231], [I-0232], [I-0233], [I-0234], [I-0235]). ⚠️ **AWAITING USER APPROVAL TO CLOSE.** ✅ **[EP-042] is COMPLETE with it, also awaiting close approval.**
 
 ---
 

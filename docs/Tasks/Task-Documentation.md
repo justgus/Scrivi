@@ -742,6 +742,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0499 | ⚠️ **`[Linux]` Project open OFF the UI thread** — [I-0195]; reuse `AsyncCall` | SP-128 | **EP-038** | 🟡 **Implemented - Not Verified** | — | — |
 | T-0500 | ⚠️ **`[Linux]` DETERMINATE progress** — [I-0195]; `files read / files to read` | SP-128 | **EP-038** | 🟡 **Implemented - Not Verified** | — | — |
 | T-0501 | ⚠️ **LIVE PASS on the rig** — [I-0182] + [I-0195] verification | SP-128 | **EP-038** | 🔴 **Blocked — rig powered off** | — | — |
+| **T-0538** | ⚠️ **`[Cross]` Project open cost** — [I-0231] + [I-0232]; ⚠️ **the premise did not survive contact: the dominant cost was a per-scene WRITE ([I-0234]), not a per-file read** | **SP-144** | ⚠️ **EP-042** | ✅ **VERIFIED 2026-09-20** | — | — |
 | T-0502 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — | — |
 
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).

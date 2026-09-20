@@ -1,6 +1,6 @@
 # EP-042 — `[Cross]` ⚠️ **Project Open Cost**
 
-**Status:** 🟡 **ACTIVE — created 2026-09-18 (user-approved).**
+**Status:** ✅ **COMPLETE — all Issues Verified 2026-09-20.** ⚠️ **AWAITING USER APPROVAL TO CLOSE — ⛔ Claude may not close an Epic.**
 **Codebase:** `[Cross]` — ⚠️ **`ScriviCore/src/manuscript/` (`SceneIndex`, `ChapterIndex`,
 `ManuscriptOrderResolver`), `ScriviCore/src/objects/`, `ScriviCore/src/worlds/WorldStore.cpp`,
 `platforms/linux/qml/Landing.qml`, `platforms/linux/src/EditorShell.cpp`.**
@@ -65,7 +65,7 @@ itself wrong** — ⛔ **but its stated REASON is no longer true and must not be
 
 | Sprint | Task | Title | Status | ⛔ Blocks on |
 | ------ | ---- | ----- | ------ | ----------- |
-| 🔵 **[SP-144]** | **T-0538** | ⚠️ **Kill the read amplification in project open; get Linux's landing open off the UI thread** | 🔵 **Planned** | ⛔ **nothing** |
+| ✅ **[SP-144]** | **T-0538** | ⚠️ **Kill the read amplification in project open; get Linux's landing open off the UI thread** | ✅ **ALL 7 ACs MET — awaiting close approval** | ⛔ **nothing** |
 
 ⚠️ **ONE Sprint so far, deliberately.** ✅ **The measurement is in hand and the two defects are
 understood** — ⛔ **but the FIX shape for [I-0231] is not yet chosen, and choosing it is [SP-144]'s
@@ -77,9 +77,12 @@ first job, not this Epic's.**
 
 | ID | Title | Severity | Sprint |
 | -- | ----- | -------- | ------ |
-| ⚠️ **[I-0231]** | ⚠️ **Project open re-reads every sidecar ~96× — 55,574 reads for 150 files** | **High** | ✅ **[SP-144]** |
-| ⚠️ **[I-0232]** | ⚠️ **Linux's landing-flow `openProject` is synchronous on the UI thread** | **High** | ✅ **[SP-144]** |
-| ⚠️ **[I-0195]** | ⚠️ **Project open blocks the UI with no progress** (`RESOLVED - Not Verified`) | **Medium** | ⚠️ **[SP-128] — ⛔ blocked from Verify by [I-0232]** |
+| ✅ **[I-0231]** | ⚠️ **Project open re-reads every sidecar ~96×** | **High** | ✅ **[SP-144] — ✅ VERIFIED 2026-09-20** |
+| ✅ **[I-0232]** | ⚠️ **Linux's landing-flow `openProject` is synchronous on the UI thread** | **High** | ✅ **[SP-144] — ✅ VERIFIED 2026-09-20** |
+| ✅ **[I-0195]** | ⚠️ **Project open blocks the UI with no progress** | **Medium** | ✅ **[SP-128] — ✅ VERIFIED 2026-09-20 under [SP-144], exactly as AC4 predicted** |
+| ✅ **[I-0233]** | ⚠️ **Apple never called `scrivi_close_project` — the index registry leaked** | **Medium** | ✅ **[SP-144] — ✅ VERIFIED 2026-09-20** |
+| ✅ **[I-0234]** | ⚠️ **Bulk load wrote `workspace-state.json` once per scene** | **High** | ✅ **[SP-144] — ✅ VERIFIED 2026-09-20** |
+| ✅ **[I-0235]** | ⚠️ **Resume lost the scroll offset when the writer scrolled without typing** | **Medium** | ✅ **[SP-144] — ✅ VERIFIED 2026-09-20** |
 
 ---
 
@@ -97,3 +100,28 @@ directory are IN scope as a read-count defect** — ⛔ **but what an unbound wo
 ⛔ **It does not promise a number.** ⚠️ **No target figure is stated here** — ✅ **[SP-144] sets one
 from its own measurement**, ⚠️ **and a goal invented before the fix shape is chosen is a guess wearing
 a target's clothes.**
+
+
+---
+
+## ✅ EPIC OUTCOME — 2026-09-20
+
+✅ **GOAL MET: "Opening a project costs what its DATA costs, not a multiple of
+it — and no platform layer blocks its UI thread while that cost is paid."**
+
+⚠️ **MEASURED ON THE REAL RIG, `cache=none`, the user's own project:**
+⚠️ **24.01 s → 13.46 s (−44%)**, ⚠️ **5,002 → 2,999 syscalls (−40%)**,
+⚠️ **`binding.json` 188 → 2 opens.**
+
+⚠️ **THE EPIC FOUND MORE THAN IT WAS FILED FOR.** ✅ **It opened with two Issues
+and closed with six**: ⚠️ **[I-0233]** (Apple leaked an index Linux released),
+⚠️ **[I-0234]** (the per-scene write that made SMALL projects slow — ⛔ **the
+defect the Epic's own framing had missed**), and ⚠️ **[I-0235]** (a regression
+the Epic itself introduced, caught by a live pass).
+
+⚠️ **ITS CENTRAL LESSON IS ABOUT EVIDENCE, NOT PERFORMANCE.** ✅ **[EP-039]
+CLOSED having measured and fixed what it could SEE — on LOCAL DISK, where the
+page cache absorbed the real defect.** ⚠️ **This Epic existed because a user
+report made the invisible visible.** ✅ **AC6 therefore refused Docker and local
+disk as evidence**, ⛔ **and was right to: the rig pass is what turned five
+"Resolved - Not Verified" rows into Verified ones.**
