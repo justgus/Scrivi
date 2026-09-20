@@ -423,9 +423,24 @@ RelationshipStore::repairDangling(const AbsolutePath& projectRoot) const {
     std::string      body;
     std::int64_t     seq = replayed.value().maxSeq;
 
+    // SP-144 / [I-0231] AC3 — ONE cache for the whole sweep, exactly as
+    // `listPending` above does for the same reason ([I-0207]).
+    //
+    // ⚠️ [I-0207] FIXED `listPending` AND MISSED THIS ONE, which is the more
+    // expensive miss: `listPending` runs when the writer opens the pending-edge
+    // view, but `repairDangling` runs on EVERY PROJECT OPEN. Without a cache it
+    // re-reads and re-parses the same `binding.json` twice per edge — MEASURED on
+    // the rig at 188 probes of a single ABSENT binding, every one an ENOENT, and
+    // on a `cache=none` mount every one a network round-trip for an answer the
+    // first probe already gave.
+    //
+    // ⚠️ Its lifetime is exactly this function, which is what makes caching a
+    // FAILED resolve safe too — see BindingCache's header. ⛔ Do not hoist it.
+    worlds::WorldStore::BindingCache bindingCache;
+
     for (const auto& e : replayed.value().edges) {
-        const auto fromEP = resolver.resolve(projectRoot, e.fromID);
-        const auto toEP   = resolver.resolve(projectRoot, e.toID);
+        const auto fromEP = resolver.resolve(projectRoot, e.fromID, &bindingCache);
+        const auto toEP   = resolver.resolve(projectRoot, e.toID, &bindingCache);
 
         // ⚠️ PENDING WINS OVER DANGLING, unconditionally. If EITHER endpoint is
         // merely unreachable, the edge is held — even if the other end is

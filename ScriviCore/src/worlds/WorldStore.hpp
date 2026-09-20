@@ -143,8 +143,21 @@ public:
     // worldID wins; a different worldID is NOT the world.
     //
     // Never fails: an unreachable world is a status, not an error (§6.4).
+    //
+    // ⚠️ `cache` accelerates the BINDING READ ONLY, exactly as on `loadBinding`,
+    // and carries the same contract: it must never change the RESULT, only how
+    // many times `binding.json` is read, and it must not outlive one logical
+    // operation.
+    //
+    // ⚠️ SP-144 / [I-0231]: this overload exists because `EndpointResolver`
+    // calls `resolve` for EVERY endpoint x EVERY bound world while looking for a
+    // world object. [I-0207] threaded a cache into the `loadBinding` call on the
+    // PENDING branch but not into this one, so the common path kept re-reading
+    // the same binding — MEASURED on the rig at 188 reads of a single ABSENT
+    // `binding.json` during one project open, every one an ENOENT round-trip.
     [[nodiscard]] WorldResolution resolve(const AbsolutePath& projectRoot,
-                                           const std::string& worldID) const;
+                                           const std::string& worldID,
+                                           BindingCache* cache = nullptr) const;
 
     // Re-points a moved world, VERIFYING worldID before accepting the new path.
     [[nodiscard]] Result<void> relink(const AbsolutePath& projectRoot,

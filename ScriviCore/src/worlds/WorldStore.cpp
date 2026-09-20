@@ -266,11 +266,12 @@ WorldStore::listBoundWorldIDs(const AbsolutePath& projectRoot) const {
 }
 
 WorldResolution WorldStore::resolve(const AbsolutePath& projectRoot,
-                                     const std::string& worldID) const {
+                                     const std::string& worldID,
+                                     BindingCache* cache) const {
     auto& fs_ = *services_.fileSystem;
     WorldResolution out;
 
-    auto bindingR = loadBinding(projectRoot, worldID);
+    auto bindingR = loadBinding(projectRoot, worldID, cache);
     if (!bindingR.ok()) { return out; }          // not bound ⇒ unavailable
     const auto& b = bindingR.value();
 

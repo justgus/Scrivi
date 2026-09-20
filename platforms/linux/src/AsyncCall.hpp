@@ -55,6 +55,25 @@ namespace AsyncCall {
 // gets aborted is a worse defect than the freeze it replaced.
 inline constexpr int kDefaultTimeoutMs = 5000;
 
+// The budget for a PROJECT OPEN — a last-resort backstop, NOT a latency policy.
+//
+// ⚠️ DELIBERATELY NOT `kDefaultTimeoutMs`. 5 s separates a ~0.09 s healthy call
+// from a ~102 s DEAD share ([I-0193]), where aborting is right. ⛔ Applying it to
+// project open would ABORT the legitimate slow load [I-0195] exists to support,
+// against the user's explicit ruling that waiting is ACCEPTABLE and only frozen
+// silence is not.
+//
+// ⚠️ SP-144 CORRECTS THE REASON THIS NUMBER USED TO CARRY. `EditorShell.cpp`
+// justified it as "beyond any plausible honest read (the rig's slowest measured
+// project open is seconds, not minutes)". ⛔ THAT IS NO LONGER TRUE: [EP-042]
+// measured an HONEST open at 371 s on a `cache=none` CIFS mount. ✅ The 10-minute
+// figure still stands and still never fired — but it is now only ~1.6x the
+// slowest real read, not the vast margin the old comment implied, so it must not
+// be cited as evidence that opens are fast.
+//
+// ✅ PROGRESS, not this timeout, is the answer to slowness.
+inline constexpr int kProjectOpenTimeoutMs = 600000;
+
 // Run `work` on a worker thread.
 //
 //   onDone(result)  -- called ON THE UI THREAD if `work` finished in time.

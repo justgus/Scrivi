@@ -39,6 +39,7 @@
 #include "util/Json.hpp"
 #include "util/MarkdownStrip.hpp"
 #include "util/PathUtils.hpp"
+#include "util/ReadThroughCache.hpp"
 
 namespace scrivi {
 
@@ -68,7 +69,25 @@ Result<OpenProjectResult> ScriviCore::openProject(
     if (auto r = util::bootstrapAppSupport(request.appSupportRoot, *services_.fileSystem); !r.ok()) {
         return Result<OpenProjectResult>::failure(r.error());
     }
-    project_package::ProjectOpener opener{services_};
+
+    // SP-144 / [I-0231] — open runs SIX passes over the same manuscript, and
+    // MEASURED (AC1) each chapter sidecar was read 8x and each scene sidecar 6x
+    // per open, for bytes that do not change between the first read and the
+    // last. On local disk the page cache hid it; on a `cache=none` network mount
+    // every repeat was a round-trip, and one open took 154 s.
+    //
+    // ✅ The cache lives HERE, for the length of THIS CALL, and dies with it.
+    // ⛔ It is deliberately NOT a member: the filesystem is authoritative
+    // (EP-027) and Scrivi does no filesystem watching on any platform, so a
+    // cache that outlived the call could not know when it went stale.
+    //
+    // ⚠️ The passes below still REPAIR — they rewrite sidecars — so the cache
+    // invalidates on every write and rename. See ReadThroughCache's header.
+    util::ReadThroughCache cachedFs{*services_.fileSystem};
+    CoreServices cachedServices = services_;
+    cachedServices.fileSystem   = &cachedFs;
+
+    project_package::ProjectOpener opener{cachedServices};
     return opener.open(request);
 }
 

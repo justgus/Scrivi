@@ -90,6 +90,31 @@ public:
     Q_INVOKABLE QVariantMap openProject(const QString& projectRootPath,
                                         const QString& appSupportRoot);
 
+    // SP-144 / [I-0232] — the SAME call, OFF THE UI THREAD.
+    //
+    // ⚠️ WHY THIS EXISTS. `openProject` above is blocking, and `Landing.qml`
+    // called it directly. MEASURED on the rig 2026-09-18 (build 43, `cache=none`
+    // CIFS, sampling `/proc/<pid>` every 2 s): 155 s in state `D` on ONE thread
+    // — the launch screen frozen and silent, "Scrivi is not Responding" every
+    // 5 s — BEFORE [I-0195]'s progress bar could appear, because the chain
+    // `openPath → openEditor → showEditor → EditorShell::load` only goes async
+    // AFTER this call has already returned.
+    //
+    // ✅ [I-0195] built the machinery and converted `EditorShell::load`.
+    // ⚠️ [I-0232] IS NOT A MISSING MECHANISM; IT IS AN UNCONVERTED CALL SITE.
+    //
+    // Emits EXACTLY ONE of:
+    //   • projectOpened(result)  — the same map `openProject` returns
+    //   • projectOpenFailed()    — `errorOccurred` has already fired with detail
+    //   • projectOpenTimedOut()  — the budget elapsed; the worker is still parked
+    //
+    // ⚠️ THE BUDGET IS `EditorShell`'s 10 MINUTES, NOT `AsyncCall`'s 5 s DEFAULT.
+    // 5 s is tuned to abort a DEAD share ([I-0193]); applying it here would abort
+    // the legitimate slow load that [I-0195] exists to support. A 371 s honest
+    // open is MEASURED, so the budget must sit well above it.
+    Q_INVOKABLE void openProjectAsync(const QString& projectRootPath,
+                                      const QString& appSupportRoot);
+
     // Releases the core's in-memory state for a project (EP-039 T-0512) — today the
     // ProjectIndex that accelerates scene lookup.
     //
@@ -498,6 +523,11 @@ public:
 signals:
     void readyChanged();
     void errorOccurred(int code, const QString& message);
+
+    // SP-144 / [I-0232] — outcomes of `openProjectAsync`. Exactly one fires.
+    void projectOpened(const QVariantMap& result);
+    void projectOpenFailed();
+    void projectOpenTimedOut();
 
 private:
     // Parse a scrivi_* envelope string. On ok, returns the "result" object.

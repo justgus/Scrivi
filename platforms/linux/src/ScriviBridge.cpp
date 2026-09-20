@@ -1,5 +1,6 @@
 #include "ScriviBridge.hpp"
 
+#include "AsyncCall.hpp"
 #include "PackageFolderDialog.hpp"
 
 #include <QFileDialog>
@@ -135,6 +136,69 @@ QVariantMap ScriviBridge::openProject(const QString& projectRootPath,
     // repairRequired) or, for a cannotOpen / other error envelope, emits
     // errorOccurred and returns {}.
     return parseEnvelope(envelope.toQString());
+}
+
+void ScriviBridge::openProjectAsync(const QString& projectRootPath,
+                                    const QString& appSupportRoot)
+{
+    // SP-144 / [I-0232]. See the header for the measurement this removes.
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        emit projectOpenFailed();
+        return;
+    }
+
+    // ⚠️ ONLY THE C ABI CALL CROSSES TO THE WORKER THREAD. `AsyncCall`'s header
+    // states the rule: the callable may touch the C ABI and its own locals, and
+    // NOTHING owned by the UI thread. ✅ So the worker returns the RAW envelope
+    // STRING, and `parseEnvelope` — which emits `errorOccurred` and mutates
+    // `lastCallFailed_` — runs in `onDone`, back on the UI thread.
+    //
+    // ⚠️ THAT SPLIT IS THE WHOLE POINT, and getting it wrong is [I-0199]: the
+    // shipped [I-0195] fix touched `progressBar_` from off the UI thread, which
+    // is why its progress bar never appeared.
+    //
+    // ⚠️ Captured BY VALUE — a QString reference into a QML frame can dangle
+    // long before the worker finishes.
+    const QByteArray rootUtf8     = projectRootPath.toUtf8();
+    const QByteArray appSupUtf8   = appSupportRoot.toUtf8();
+    const QByteArray identityUtf8 = identityID_.toUtf8();
+
+    AsyncCall::run<QString>(
+        this,
+        [rootUtf8, appSupUtf8, identityUtf8]() -> QString {
+            const ScriviString envelope(
+                scrivi_open_project(rootUtf8.constData(),
+                                    appSupUtf8.constData(),
+                                    identityUtf8.constData()));
+            return envelope.toQString();
+        },
+        // ⚠️ Takes QString BY VALUE, matching `AsyncCall::run`'s
+        // `std::function<void(T)>` exactly — a `const T&` parameter does not
+        // deduce against it.
+        [this](QString envelope) {
+            const QVariantMap result = parseEnvelope(envelope);
+
+            // ⚠️ AN EMPTY MAP IS AMBIGUOUS AND MUST NOT BE THE TEST. `parseEnvelope`
+            // returns {} both for a FAILED call and for an ok envelope with an
+            // empty result — `appendToArray` omits a key entirely for an empty
+            // list, so `{}` is a legitimate success shape. ✅ `lastCallFailed()`
+            // exists precisely to separate the two, and is set by the
+            // `parseEnvelope` call immediately above.
+            if (lastCallFailed()) {
+                // errorOccurred already fired with the detail.
+                emit projectOpenFailed();
+                return;
+            }
+            emit projectOpened(result);
+        },
+        [this]() {
+            // ⚠️ The worker is still parked inside a blocking read — it is not
+            // cancelled and must not be re-fired in a loop. See AsyncCall.hpp.
+            emit projectOpenTimedOut();
+        },
+        AsyncCall::kProjectOpenTimeoutMs);
 }
 
 void ScriviBridge::closeProject(const QString& projectRootPath)

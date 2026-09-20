@@ -37,7 +37,10 @@ ResolvedEndpoint EndpointResolver::resolve(const AbsolutePath& projectRoot,
         worlds::WorldStore ws{services_};
         if (auto ids = ws.listBoundWorldIDs(projectRoot); ids.ok()) {
             for (const auto& worldID : ids.value()) {
-                auto res = ws.resolve(projectRoot, worldID);
+                // SP-144 / [I-0231]: share the caller's binding cache here too.
+                // This runs for EVERY endpoint x EVERY bound world, so it — not the
+                // pending branch below — is where the repeated binding reads were.
+                auto res = ws.resolve(projectRoot, worldID, bindingCache);
                 if (res.status == worlds::WorldStatus::available) {
                     // ⚠️ I-0183 — "available" is NOT a promise the object set is
                     // readable. `resolve` establishes availability from

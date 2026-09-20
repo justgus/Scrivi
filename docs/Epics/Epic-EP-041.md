@@ -12,6 +12,8 @@ activated: 2026-09-18
 **Primary Issue:** [I-0197] (Classes A and B) · **Also:** ✅ [I-0215] (closed) · ⚠️ [I-0223] (unassigned)
 
 ⚠️ **STATUS 2026-09-18: [SP-140] CLOSED — ⛔ the Epic's only unblocked Sprint is done.**
+✅ **[SP-141]'s ENDPOINT-SHAPE RULING WAS MADE 2026-09-18 (user): ONE OPAQUE DOCUMENT GET/PUT.**
+⚠️ **[SP-141] IS NOW ACTIVE.** ⚠️ **Superseded text follows, kept for its reasoning:**
 ⛔ **[SP-141] needs an ENDPOINT-SHAPE RULING before it can start, and [SP-142]/[SP-143] queue behind
 it** — ⚠️ **so this Epic is currently BLOCKED ON A DECISION, not on work.**
 
@@ -106,7 +108,7 @@ prose paragraph instead of a check.**
 | Sprint | Task | Title | Status | ⛔ Blocks on |
 | ------ | ---- | ----- | ------ | ----------- |
 | ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — the layout round trip is lossless** | ✅ **CLOSED 2026-09-18** — [record](../Sprints/Closed/Sprint-SP-140.md) | ✅ **was unblocked** |
-| 🔵 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🔵 **Planned** | ⛔ **an ENDPOINT-SHAPE RULING** |
+| 🟢 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟢 **ACTIVE 2026-09-18** | ✅ **RULING MADE 2026-09-18 — opaque get/put** |
 | 🔵 **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | 🔵 **Planned** | ⛔ **[SP-141]** |
 | 🔵 **[SP-143]** | **T-0510** | ⚠️ **The regression guard — closes [I-0197]** | 🔵 **Planned** | ⛔ **[SP-141] AND [SP-142]** |
 
@@ -130,6 +132,16 @@ are not equivalent and the choice is not Claude's:**
 - ⚠️ **One opaque document get/put** — ✅ **the core owns atomicity and repair, the app owns meaning;
   ⛔ the core cannot validate what it is storing.**
 - ⚠️ **A hybrid** — ✅ **typed where the core must reason, opaque for the rest.**
+
+---
+
+### ✅ **RULED 2026-09-18 (user): ONE OPAQUE DOCUMENT GET/PUT**
+
+✅ **The core owns atomicity, durability and repair; the APP owns meaning.** ⛔ **The core does NOT
+validate the document's interior and does NOT know what a card kind is.** ✅ **This is the option the
+[SP-140] lossless rule does not fight** — ⚠️ **unknown keys survive BY CONSTRUCTION, because the core
+never interprets them.** ⚠️ **ACCEPTED COST, recorded so it is not later rediscovered as a defect:
+the core CANNOT validate what it stores here; a malformed layout is the app's to detect.**
 
 ⚠️ **THE LOSSLESS RULE FROM [SP-140] CONSTRAINS ALL THREE** — ✅ **whatever shape is chosen must keep
 keys it does not understand**, ⚠️ **which argues against the fully-typed option.**

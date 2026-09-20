@@ -50,20 +50,10 @@ namespace story = scrivi::linux_app::story;
 
 namespace {
 
-// ⚠️ T-0499/[I-0195] — the LAST-RESORT backstop for project open, NOT a latency
-// policy.
-//
-// ⚠️ DELIBERATELY NOT `AsyncCall::kDefaultTimeoutMs` (5 s). That figure was tuned
-// for [I-0193] to separate a ~0.09 s healthy call from a ~102 s DEAD share, where
-// aborting is the right answer. ⚠️ Applying it to project open would ABORT the
-// legitimate slow load [I-0195] exists to support -- and the user's ruling is
-// explicit that waiting is ACCEPTABLE, only frozen silence is not.
-//
-// ✅ 10 minutes is chosen to be beyond any plausible honest read (the rig's
-// slowest measured project open is seconds, not minutes) while still bounding a
-// genuinely hung volume, so the writer is never stuck forever with no way out.
-// ⚠️ PROGRESS, not this timeout, is the answer to slowness.
-constexpr int kProjectOpenTimeoutMs = 600000;
+// ⚠️ T-0499/[I-0195] — the project-open budget now lives in `AsyncCall.hpp`,
+// because SP-144 / [I-0232] gave `ScriviBridge::openProjectAsync` a SECOND call
+// site for it. ⛔ Two copies of a tuned timeout drift apart silently.
+using AsyncCall::kProjectOpenTimeoutMs;
 
 // Custom data roles on navigator items (shared with NavigatorTree's drop resolution):
 // scene rows carry kSceneIDRole; chapter rows carry kChapterIDRole.

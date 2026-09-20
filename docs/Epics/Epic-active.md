@@ -2,8 +2,13 @@
 
 🟡 **EP-040** — `[Apple]` **The Editor Shell** (activated 2026-09-15) — ✅ **now SP-134–SP-137 only.**
 🟡 **EP-041** — `[Cross]` **The Boundary** (activated 2026-09-18) → [`Epic-EP-041.md`](Epic-EP-041.md).
+🟡 **EP-042** — `[Cross]` **Project Open Cost** (activated 2026-09-18) → [`Epic-EP-042.md`](Epic-EP-042.md).
 
-⚠️ **TWO ACTIVE EPICS as of 2026-09-18 (user-ruled).** ✅ **EP-041 was split OUT of EP-040** because
+⚠️ **THREE ACTIVE EPICS as of 2026-09-18 (user-ruled).** ✅ **[EP-042] was created 2026-09-18**
+from a user report that a real project opened "empty" on Linux — ⚠️ **it did not; it took 6m11s.**
+⛔ **[EP-039] `Project Load Performance` was NOT reopened** (⚠️ **user: *"I'm not going backwards"***);
+✅ **a closed Epic keeps its record.** ⚠️ **EP-039 measured on LOCAL DISK, where the page cache hides
+the amplification [EP-042] exists to remove.** ✅ **EP-041 was split OUT of EP-040** because
 [I-0197]'s bypass chain ([SP-140]–[SP-143]) is BOUNDARY work, not chrome — ⚠️ **EP-040's own scope note
 had already said its goal line would not answer for it.** ⛔ **[SP-129] and [SP-130] did NOT move:**
 ✅ **a CLOSED Sprint keeps the provenance of the Epic it ran under** (user ruling 2026-09-18);

@@ -53,28 +53,80 @@ Item {
     //   • ready          → record in recents + hand off to the native editor (shell)
     //   • repairRequired → list the issues in a dialog; DO NOT enter the project
     //   • cannotOpen / error → the bridge emits errorOccurred (shown inline); {}
+    // ⚠️ SP-144 / [I-0232] — THIS IS ASYNCHRONOUS NOW. It STARTS the open and
+    // returns immediately; the branching happens in the Connections block below.
+    //
+    // ⚠️ WHAT IT USED TO DO: `var result = bridge.openProject(path, ...)`, a
+    // BLOCKING call on the UI thread. MEASURED on the rig 2026-09-18 against
+    // `the-stairs-of-tintagael.scrivi` on a `cache=none` CIFS mount: 155 s frozen
+    // on this line, launch screen silent, "Scrivi is not Responding" every 5 s.
+    // ✅ [I-0195] had already moved `EditorShell::load` off the thread — but that
+    // runs AFTER this returns, so its progress bar could not appear until the
+    // freeze was over.
+    //
+    // ⚠️ THE PROJECT IS STILL OPENED TWICE (here, then in `EditorShell::load`).
+    // ✅ That is a RULED, DELIBERATE narrowing (SP-144 AC5, user 2026-09-20):
+    // handing this result to `EditorShell` would rework the one half that
+    // currently works, and [I-0231] made each open ~3x cheaper. ⚠️ Both opens are
+    // now off the UI thread, so neither freezes — the remaining cost is
+    // duplicated WORK, not duplicated FREEZE.
+    property bool opening: false
+    property string openingPath: ""
+
     function openPath(path) {
         if (!path || path.length === 0)
             return
+        if (window.opening)
+            return   // already opening; never fire a second blocking read
         window.landingError = ""
-        var result = bridge.openProject(path, appSupportRoot)
-        if (!result || result.mode === undefined) {
-            // cannotOpen or a malformed/other error — errorOccurred already fired.
-            return
+        window.openingPath = path
+        window.opening = true
+        bridge.openProjectAsync(path, appSupportRoot)
+    }
+
+    // ⚠️ Exactly ONE of these fires per `openProjectAsync` (AsyncCall guarantees
+    // it), so every branch must clear `opening` or the landing stays stuck.
+    Connections {
+        target: bridge
+
+        function onProjectOpened(result) {
+            var path = window.openingPath
+            window.opening = false
+            window.openingPath = ""
+
+            if (!result || result.mode === undefined)
+                return
+
+            if (result.mode === "repairRequired") {
+                repairDialog.projectPath = path
+                repairDialog.issues = result.repairIssues || []
+                repairDialog.open()
+                return
+            }
+
+            // ready — record in recents (moves to front) and hand off to the
+            // native editor shell (SP-061 / T-0234).
+            var title = recentTitleFor(path)
+            recents.addOrUpdate(path, title)
+            shell.openEditor(path, title)
         }
-        if (result.mode === "repairRequired") {
-            repairDialog.projectPath = path
-            repairDialog.issues = result.repairIssues || []
-            repairDialog.open()
-            return
+
+        function onProjectOpenFailed() {
+            // `errorOccurred` already set landingError with the detail.
+            window.opening = false
+            window.openingPath = ""
         }
-        // ready — record in recents (moves to front) and hand off to the native
-        // editor shell (SP-061 / T-0234): the QMainWindow swaps its central widget
-        // from this landing QML to the EditorShell, which re-opens the project and
-        // populates the navigator + read-only viewport.
-        var title = recentTitleFor(path)
-        recents.addOrUpdate(path, title)
-        shell.openEditor(path, title)
+
+        function onProjectOpenTimedOut() {
+            window.opening = false
+            window.openingPath = ""
+            // ⚠️ Honest wording: the worker is still parked inside the read and
+            // the project is NOT known to be broken. ⛔ Never say "missing" or
+            // "damaged" here — a wrong-but-confident status invites destructive
+            // remedies ([I-0115]).
+            window.landingError =
+                qsTr("This project is taking longer than expected to open and was left alone. It may be on a slow or unreachable drive.")
+        }
     }
 
     // Best-effort display title for a path: the existing recents title if we have
@@ -191,7 +243,7 @@ Item {
                     Item { Layout.fillWidth: true }
                     Button {
                         text: qsTr("New Project")
-                        enabled: bridge.ready
+                        enabled: bridge.ready && !window.opening
                         onClicked: {
                             window.landingError = ""
                             stack.push(newProjectDialog)
@@ -199,7 +251,7 @@ Item {
                     }
                     Button {
                         text: qsTr("Open Project")
-                        enabled: bridge.ready
+                        enabled: bridge.ready && !window.opening
                         onClicked: {
                             window.landingError = ""
                             // Pick an existing .scrivi directory with the Widgets
@@ -214,6 +266,35 @@ Item {
                         // the container's foreground process, so quitting also
                         // tears the container down (run-vnc.sh waits on the app).
                         onClicked: Qt.quit()
+                    }
+                }
+
+                // ⚠️ SP-144 / [I-0232] — the launch screen's HONEST WAIT.
+                //
+                // ⚠️ Before this, opening a project from here froze the whole
+                // window for the entire read with NOTHING shown — 155 s of it on
+                // the rig. ✅ The bar is INDETERMINATE on purpose: the landing has
+                // no scene count to divide by (that arrives WITH the open it is
+                // waiting for), and [I-0195]'s ruling was that a spinner must not
+                // pretend to be a percentage. ✅ The DETERMINATE `n of m scenes`
+                // bar appears next, in EditorShell, once the count is real.
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: window.opening
+                    spacing: 12
+
+                    BusyIndicator {
+                        running: window.opening
+                        implicitWidth: 24
+                        implicitHeight: 24
+                    }
+                    Label {
+                        text: qsTr("Opening this project…")
+                        opacity: 0.8
+                    }
+                    ProgressBar {
+                        Layout.fillWidth: true
+                        indeterminate: true
                     }
                 }
 
@@ -256,7 +337,11 @@ Item {
                         delegate: ItemDelegate {
                             required property var modelData
                             width: ListView.view ? ListView.view.width : 0
-                            enabled: bridge.ready
+                            // ⚠️ SP-144 / [I-0232]: also disabled DURING an open.
+                            // `openPath` guards re-entry anyway, but a row that
+                            // still looks clickable while nothing happens reads as
+                            // a hang — which is the defect this Sprint is about.
+                            enabled: bridge.ready && !window.opening
                             // Click a recent to open it (SP-060 / T-0231).
                             onClicked: window.openPath(modelData.path)
 

@@ -26,6 +26,7 @@ add_executable(ScriviCoreTests
     integration/IdentityTests.cpp
     integration/CreateProjectTests.cpp
     integration/OpenProjectTests.cpp
+    integration/OpenProjectReadAmplificationTests.cpp
     integration/AppleDoubleSidecarTests.cpp
     integration/SaveSceneTests.cpp
     integration/ExternalChangeTests.cpp
@@ -61,6 +62,31 @@ add_executable(ScriviCoreTests
     integration/FragmentPasteTests.cpp
     integration/FragmentCutTests.cpp
     integration/EncryptedSecureStoreTests.cpp
+)
+
+# SP-144 / [I-0231] — the read-amplification bounds live HERE, not in the test
+# source, so that tightening one is a visible, reviewable change rather than an
+# edit buried in an assertion.
+#
+# ⚠️ EVERY VALUE BELOW IS A POST-FIX MEASUREMENT PLUS STATED HEADROOM.
+# ⛔ Raising one to make a test pass is the defect, not the fix — the Sprint
+# requires a recorded REASON, not a quiet bump.
+target_compile_definitions(ScriviCoreTests PRIVATE
+    # MEASURED 2: `migrateScenes` reads a chapter sidecar, then REWRITES it when
+    # it rebuilds the scenes[] cache, and the rewrite correctly invalidates the
+    # cached copy — so the next pass re-reads the NEW bytes. ✅ That second read
+    # is the repair working, not amplification. Was 8 before the fix.
+    SCRIVI_AMP_MAX_READS_PER_FILE=3
+
+    # MEASURED 1 across a 24-resolution sweep (12 edges x 2 endpoints x 1 bound
+    # world). ⚠️ Was 25 — verified by reverting the fix, not assumed.
+    SCRIVI_AMP_MAX_ABSENT_PROBES=2
+
+    # MEASURED 1.71 calls/file small vs 1.56 large — per-file cost FALLS as the
+    # manuscript grows. 1.25 leaves room for fixture noise while still failing
+    # on any return of per-scene re-resolution, whose signature is a RISING
+    # per-file cost ([I-0196]).
+    SCRIVI_AMP_SCALING_TOLERANCE=1.25
 )
 
 # EncryptedFileSecureStore is Linux-only (SP-059 / AC4). Its symbols live in the

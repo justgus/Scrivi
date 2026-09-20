@@ -1,6 +1,8 @@
 # Active Sprints
 
-⛔ **NO SPRINT IS ACTIVE.**
+🟢 **[SP-141] ACTIVE — activated 2026-09-18 (user-approved)** under 🟡 **[EP-041]**.
+✅ **ITS BLOCKING RULING WAS MADE THE SAME DAY (user, 2026-09-18): the `inspector-layout.json`
+endpoints take the OPAQUE DOCUMENT GET/PUT shape.** ⚠️ **See the ruling record below.**
 
 ✅ **[SP-140] CLOSED 2026-09-18 (user-approved)** → [`Closed/Sprint-SP-140.md`](Closed/Sprint-SP-140.md)
 — ⚠️ **planned, implemented, verified and closed in ONE DAY.** ✅ **T-0536 and [I-0215] both Verified.**
@@ -16,7 +18,26 @@
 ⚠️ **[SP-141] CANNOT be activated without an endpoint-shape ruling; SP-142/143 queue behind it.**
 🟡 **[EP-040]** — `[Apple]` **The Editor Shell** — ✅ **[SP-134] is unblocked and LOW risk.**
 
-⛔ **SO THE DOCKET HAS EXACTLY ONE ACTIVATABLE SPRINT ([SP-134]) AND ONE PENDING RULING ([SP-141]).**
+✅ **THE [SP-141] RULING IS MADE AND [SP-141] IS NOW ACTIVE.** ✅ **[SP-134] remains activatable.**
+⚠️ **[SP-144] is NEW and UNSTARTED** — ✅ **it carries [I-0231]/[I-0232] under the new [EP-042].**
+
+---
+
+## ✅ THE [SP-141] ENDPOINT-SHAPE RULING — user, 2026-09-18
+
+✅ **RULED: ONE OPAQUE DOCUMENT GET/PUT.** ⛔ **NOT typed-per-property; ⛔ NOT the hybrid.**
+
+⚠️ **WHAT THIS DECIDES:** ✅ **the CORE owns atomicity, durability and repair of
+`inspector-layout.json`; ✅ the APP owns its MEANING.** ⛔ **The core does NOT validate the document's
+interior and does NOT know what a card kind is.**
+
+✅ **WHY THIS SHAPE** — ⚠️ **it is the one the [SP-140] lossless rule does not fight.** ✅ **Keys the
+core does not understand survive BY CONSTRUCTION**, ⚠️ **because the core never interprets them at
+all** — ⛔ **whereas typed-per-property would put the inspector's SCHEMA in the core and make every new
+card kind a core change.** ⚠️ **THE ACCEPTED COST, stated so it is not rediscovered as a defect: the
+core CANNOT validate what it stores here.** ✅ **A malformed layout is the app's to detect.**
+
+⚠️ **[SP-142] and [SP-143] are UNBLOCKED by this ruling** (they queued on [SP-141] only).
 
 ---
 
@@ -67,14 +88,12 @@ manuscript stayed usable with the volume gone and everything restored on reattac
 | Sprint | Task | Title | ⛔ Blocks on |
 | ------ | ---- | ----- | ----------- |
 | ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — Apple's layout round trip is lossless** | ✅ **CLOSED 2026-09-18** |
-| **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | ⛔ **an ENDPOINT-SHAPE ruling** |
-| **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | ⛔ **SP-141** |
+| 🟢 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | ✅ **RULING MADE 2026-09-18 — ACTIVE** |
+| **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | ⛔ **SP-141 (now ACTIVE)** |
 | **[SP-143]** | **T-0510** | ⚠️ **The regression guard — closes [I-0197]** | ⛔ **SP-141 AND SP-142** |
 
-✅ **[SP-140] CLOSED 2026-09-18** — ⚠️ **it was this track's only unblocked Sprint.**
-⛔ **[SP-141] CANNOT BE ACTIVATED AS-IS: it needs an ENDPOINT-SHAPE RULING first** — ✅ **the three
-options and the constraint SP-140 puts on them are written up in
-[`../Epics/Epic-EP-041.md`](../Epics/Epic-EP-041.md).** ⚠️ **SP-142 and SP-143 both queue behind it.**
+✅ **[SP-140] CLOSED 2026-09-18.** ✅ **[SP-141] IS NOW ACTIVE — its ENDPOINT-SHAPE RULING was made
+2026-09-18 (opaque document get/put; recorded above).** ✅ **SP-142 and SP-143 are unblocked in turn.**
 
 ---
 
@@ -97,7 +116,8 @@ options and the constraint SP-140 puts on them are written up in
 ✅ **[SP-132]** → [`Closed/Sprint-SP-132.md`](Closed/Sprint-SP-132.md) — ⚠️ **PARTIAL; T-0519/T-0520 reverted.**
 ✅ **[SP-133]** → [`Closed/Sprint-SP-133.md`](Closed/Sprint-SP-133.md) — TextKit 2; all tasks verified.
 
-✅ **Next available Sprint ID: SP-134 · next available Task: T-0535.**
+✅ **Next available Sprint ID: SP-145 · next available Task: T-0539.**
+⚠️ **Corrected 2026-09-18** — ⛔ **this line read `SP-134 · T-0535` while SP-143 and T-0537 already existed.**
 
 ⚠️ **WHERE THINGS STAND (2026-09-18):** ✅ **Project open is DONE and measured: `~300 s` → `0.34 s` on
 1,174 scenes, and the app is USABLE.** ⚠️ **WHAT REMAINS IS SHAPE, NOT SPEED** — ✅ **the window has no

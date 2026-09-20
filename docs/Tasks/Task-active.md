@@ -1,5 +1,28 @@
 # Active Tasks
 
+## 🟡 SP-144 — T-0538 in progress (EP-042)
+
+🟡 **T-0538 — `[Cross]` Project open cost** — ⚠️ **[I-0231] + [I-0232]**, work begun 2026-09-20.
+
+✅ **[I-0231] RESOLVED - Not Verified (core).** ⚠️ **AC1 located the amplification BY MEASUREMENT**
+(`CountingFileSystem`, a decorator over the real `FileSystem`): ⚠️ **six independent passes walk the
+same manuscript, every chapter sidecar read 8x and every scene sidecar 6x per open.**
+✅ **Fixed by `util::ReadThroughCache` (scoped to ONE `openProject`, write-invalidating) plus a shared
+`BindingCache` in `repairDangling`** — ⚠️ **the pass [I-0207] missed while fixing `listPending`.**
+✅ **MEASURED: 622 → 196 calls/open, 444 → 85 reads, absent `binding.json` 25 → 1.**
+✅ **4 new read-count guards; suite 607/608** (⚠️ **the one failure is PRE-EXISTING, confirmed by stash**).
+
+🟡 **[I-0232] IMPLEMENTED - NOT COMPILED.** ✅ **AC4: `openProjectAsync` + `Landing.qml` converted,
+reusing `AsyncCall`.** ⚠️ **AC5: the double open REMAINS by user ruling — the landing's open was
+narrowed, not handed off** (✅ **both are now off the UI thread, so neither freezes**).
+⛔ **Docker unavailable — the Qt half is UNBUILT.**
+
+⛔ **AC6 NOT MET — everything measured is macOS LOCAL DISK.** ⚠️ **The rig under `cache=none` is the
+only thing that can verify either Issue**, ✅ **and that gap is exactly what let [I-0195] be marked
+resolved while still broken.**
+
+⚠️ **[I-0195] REMAINS BLOCKED FROM VERIFY.**
+
 
 ## ✅ SP-140 — all Tasks complete 2026-09-18 (EP-041)
 
@@ -21,10 +44,28 @@ main-actor block at `ExistingAssetPicker.swift:130`.
 
 ⛔ **T-0509 STRUCK 2026-09-15** — ✅ **re-measurement proved its remainder is ZERO; ⛔ not deferred, there is no work behind it.**
 
-⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled). ⚠️ **T-0536 / T-0507 / T-0537 /
-T-0510 belong to PLANNED sprints (SP-140 – SP-143) and live in those records** — ⛔ **NOT in this file,
-which holds ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning detail:
+⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled). ⚠️ **T-0537 / T-0510 belong
+to PLANNED sprints (SP-142 – SP-143) and live in those records** — ⛔ **NOT in this file, which holds
+ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning detail:
 [`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
+✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 MOVED INTO THIS FILE 2026-09-18 when [SP-141]
+was activated.**
+
+---
+
+## 🟢 SP-141 — ACTIVE (EP-041), activated 2026-09-18
+
+| Task | Title | Sprint | Status |
+| ---- | ----- | ------ | ------ |
+| **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟢 **[SP-141]** | 🔵 **NOT STARTED** |
+
+✅ **ITS BLOCKING RULING IS MADE (user, 2026-09-18): ONE OPAQUE DOCUMENT GET/PUT.** ✅ **The core owns
+atomicity, durability and repair; the APP owns meaning.** ⛔ **The core does NOT validate the
+document's interior.** ⚠️ **ACCEPTED COST: the core cannot validate what it stores here.**
+⚠️ **Full ruling: [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md) and
+[`../Epics/Epic-EP-041.md`](../Epics/Epic-EP-041.md).**
+⚠️ **It must honour [SP-140]'s LOSSLESS rule** — ✅ **keys the core does not understand SURVIVE**,
+which the opaque shape gives by construction.
 
 ## ✅ SP-129 — ARCHIVED 2026-09-15
 
