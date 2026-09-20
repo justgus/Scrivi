@@ -1,7 +1,8 @@
 # SP-144 — ⚠️ **Project open cost: the amplification and the blocked thread**
 
-**Status:** ✅ **ALL SEVEN ACs MET AND ALL FIVE ISSUES VERIFIED (2026-09-20, user rig pass).**
-⚠️ **AWAITING USER APPROVAL TO CLOSE — ⛔ Claude may not close a Sprint.**
+**Status:** ✅ **CLOSED 2026-09-20 — user-approved.** ✅ **All SEVEN ACs met; SIX Issues VERIFIED
+on the real rig under `cache=none`** ([I-0195], [I-0231], [I-0232], [I-0233], [I-0234], [I-0235]).
+✅ **T-0538 VERIFIED and archived.** ✅ **macOS `ctest` 613/613 · Linux 617/617 · 23/23 smokes.**
 **Epic:** 🟡 **[EP-042]** `[Cross]` **Project Open Cost** → [`../Epics/Epic-EP-042.md`](../Epics/Epic-EP-042.md)
 **Codebase:** `[Cross]` — `[ScriviCore]` **+** `[Linux]`
 **Issues:** ⚠️ **[I-0231]** (`[ScriviCore]`, High) · ⚠️ **[I-0232]** (`[Linux]`, High)
@@ -529,3 +530,57 @@ assumed nobody would.**
 pre-existing for three days while the CODE WAS CORRECT and the TEST was stale.**
 ⚠️ **A known-red test trains everyone to read 612/613 as success — which is
 exactly the slot a real regression hides in.**
+
+
+---
+
+## ✅ AUDIT CHECK — run before this close (2026-09-20)
+
+⚠️ **Read-only and mechanical, per `Audit-Guidelines.md`.** ⛔ **This was a CHECK,
+not an Audit** — an Epic close does not trigger one.
+
+| # | Check | Result |
+| - | ----- | ------ |
+| 1 | AC status agreement | ✅ **Pass** — all 7 ACs consistent across Sprint/Epic |
+| 2 | Evidence exists (archive entries) | ✅ **Pass** — all six Issues + T-0538 have exactly ONE archive row each |
+| 3 | Sprint status agreement | ⚠️ **ONE FINDING** — see below |
+| 4 | Counts re-derived | ✅ **Pass** — 27 active Issue rows; ⚠️ no stated count in the file, correct per **[R-14]** |
+| 5 | Table/entry parity | ✅ **Pass** |
+| 6 | Orphan files | ✅ **Pass** — all files in `Sprints/`/`Epics/` are named by the guidelines |
+| — | ⚠️ **Epic index completeness** (found while closing) | ⚠️ **SECOND FINDING** — see below |
+| 7 | ID continuity | ✅ **Pass** — I-0231…I-0235 all archived; ✅ **next free: I-0236** |
+
+### ⚠️ FINDING (Check 3) — ✅ **RULED AND FIXED AS PART OF THIS CLOSE**
+
+⚠️ **`Task-Documentation.md` still showed T-0499/T-0500 as 🟡 *Implemented - Not
+Verified* and T-0501 as 🔴 *Blocked — rig powered off*** — ⚠️ **while all three
+were ✅ Verified and archived in `Task-verified-0497-0499.md` when [SP-128]
+closed on 2026-09-11.**
+
+✅ **The WORK was fine; the INDEX was stale.** ⚠️ **It went stale because
+[T-0501]'s blocker ("rig powered off") was recorded in the index but never
+cleared when the rig came back and the pass ran.** ✅ **Corrected in place to
+✅ Verified with archive links.**
+
+⚠️ **This is exactly the class the Audit Check exists to catch** — ✅ **and it is
+the SECOND time in this Sprint that a stale record outlived the work it
+described** (the first was `AC-A4`, red for three days after the [I-0222]
+ruling). ⛔ **Neither was a code defect; both made a green state look wrong or a
+wrong state look green.**
+
+
+### ⚠️ SECOND FINDING (found during the close itself) — ✅ **FIXED**
+
+⚠️ **`Epic-Documentation.md`'s All-Epics table — declared the SINGLE SOURCE for
+per-Epic status under ruling [P7] — was MISSING BOTH [EP-041] AND [EP-042].**
+✅ **Added in the same step, with their real dates and statuses.**
+
+⚠️ **THIS IS THE SECOND TIME THIS TABLE HAS GONE STALE.** ✅ **A note inside it
+records the first: *"INDEX GAP FOUND 2026-09-14 while adding EP-040: this table
+stopped at EP-034."*** ⛔ **A table that is declared the single source and then
+silently skipped twice is not yet a reliable one** — ⚠️ **worth watching, and
+grounds to RECOMMEND a full Audit if it recurs.** ⛔ **A Check may only
+recommend; an Audit begins when the user asks.**
+
+⚠️ **Both findings in this close share one shape: the WORK was correct and the
+INDEX describing it was not.** ✅ **Neither would have been caught by any test.**

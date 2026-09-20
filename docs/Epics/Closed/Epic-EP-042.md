@@ -1,12 +1,14 @@
 # EP-042 — `[Cross]` ⚠️ **Project Open Cost**
 
-**Status:** ✅ **COMPLETE — all Issues Verified 2026-09-20.** ⚠️ **AWAITING USER APPROVAL TO CLOSE — ⛔ Claude may not close an Epic.**
+**Status:** ✅ **CLOSED 2026-09-20 — user-approved.** ✅ **Goal met and PROVEN on the real rig under
+`cache=none`: 24.01 s → 13.46 s, 5,002 → 2,999 syscalls, `binding.json` 188 → 2 opens.**
+✅ **One Sprint ([SP-144]), one Task (T-0538), SIX Issues Verified.**
+**Date Created:** 2026-09-18 · **Date Closed:** 2026-09-20
 **Codebase:** `[Cross]` — ⚠️ **`ScriviCore/src/manuscript/` (`SceneIndex`, `ChapterIndex`,
 `ManuscriptOrderResolver`), `ScriviCore/src/objects/`, `ScriviCore/src/worlds/WorldStore.cpp`,
 `platforms/linux/qml/Landing.qml`, `platforms/linux/src/EditorShell.cpp`.**
 **Goal:** ⚠️ **Opening a project costs what its DATA costs, not a multiple of it** — ✅ **and no
 platform layer blocks its UI thread while that cost is paid.**
-**Date Created:** 2026-09-18 · **Target Close:** —
 
 ---
 

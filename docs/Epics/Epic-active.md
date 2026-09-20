@@ -2,10 +2,8 @@
 
 🟡 **EP-040** — `[Apple]` **The Editor Shell** (activated 2026-09-15) — ✅ **now SP-134–SP-137 only.**
 🟡 **EP-041** — `[Cross]` **The Boundary** (activated 2026-09-18) → [`Epic-EP-041.md`](Epic-EP-041.md).
-🟡 **EP-042** — `[Cross]` **Project Open Cost** (activated 2026-09-18) → [`Epic-EP-042.md`](Epic-EP-042.md).
 
-⚠️ **THREE ACTIVE EPICS as of 2026-09-18 (user-ruled).** ✅ **[EP-042] was created 2026-09-18**
-from a user report that a real project opened "empty" on Linux — ⚠️ **it did not; it took 6m11s.**
+⚠️ **TWO ACTIVE EPICS as of 2026-09-20.** ✅ **[EP-042] CLOSED 2026-09-20** (see below).
 ⛔ **[EP-039] `Project Load Performance` was NOT reopened** (⚠️ **user: *"I'm not going backwards"***);
 ✅ **a closed Epic keeps its record.** ⚠️ **EP-039 measured on LOCAL DISK, where the page cache hides
 the amplification [EP-042] exists to remove.** ✅ **EP-041 was split OUT of EP-040** because
@@ -13,6 +11,14 @@ the amplification [EP-042] exists to remove.** ✅ **EP-041 was split OUT of EP-
 had already said its goal line would not answer for it.** ⛔ **[SP-129] and [SP-130] did NOT move:**
 ✅ **a CLOSED Sprint keeps the provenance of the Epic it ran under** (user ruling 2026-09-18);
 ✅ **their outcomes are credited in EP-041's class table.**
+
+✅ **EP-042** `[Cross]` Project Open Cost — **CLOSED 2026-09-20 (user-approved)**
+→ [`Closed/Epic-EP-042.md`](Closed/Epic-EP-042.md).
+✅ **Created 2026-09-18 from a user report that a real project opened "empty" on Linux** — ⚠️ **it did
+not; it took 6m11s.** ✅ **Goal MET and proven on the real rig at `cache=none`: 24.01 s → 13.46 s,
+5,002 → 2,999 syscalls, `binding.json` 188 → 2 opens.** ⚠️ **It opened with TWO Issues and closed with
+SIX** — ✅ **[I-0234], the per-scene write that made SMALL projects slow, was found only because the
+user reported that recent projects were NOT large, which falsified the working theory.**
 
 ✅ **EP-039** `[Cross]` Project Load Performance — **CLOSED 2026-09-15**
 → [`Closed/Epic-EP-039.md`](Closed/Epic-EP-039.md) (⚠️ **moved 2026-09-15, audit ruling [R-07]**).

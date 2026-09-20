@@ -103,6 +103,8 @@ verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠�
 | EP-038 | `[Linux]` Linux Test Rig | 🟠 **Complete** (2026-09-10 ruling) — ✅ **[record](Closed/Epic-EP-038.md)** | — | — |
 | EP-039 | `[Cross]` Project Load Performance | ✅ **Closed** (user-approved) — [record](Closed/Epic-EP-039.md) | 2026-09-10 | 2026-09-15 |
 | EP-040 | `[Apple]` **The Editor Shell** — build Scrivi as the kind of app it actually is | 🟡 **ACTIVE** — [record](Epic-active.md) | 2026-09-15 | — |
+| EP-041 | `[Cross]` **The Boundary** — close [I-0197]'s Swift-bypass chain; the app talks to the core, never the package | 🟡 **ACTIVE** — [record](Epic-EP-041.md) | 2026-09-18 | — |
+| EP-042 | `[Cross]` **Project Open Cost** — ⚠️ **opening a project costs what its DATA costs, not a multiple of it** | ✅ **CLOSED** — [record](Closed/Epic-EP-042.md) | 2026-09-18 | 2026-09-20 |
 | **EP-035** | ⚠️ **`[Linux]`** **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11** | 🟡 **ACTIVE** | 2026-08-24 | — |
 | **EP-036** | ⚠️ **`[Linux]`** **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
 | **EP-037** | ⚠️ **`[Linux]`** **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
@@ -115,8 +117,13 @@ carries **only what the table cannot express** — per-status totals were remove
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 - **Next available Epic ID:** **EP-043**
-- ⚠️ **TWO ACTIVE EPICS as of 2026-09-18:** 🟡 **[EP-040]** `[Apple]` The Editor Shell (SP-134–SP-137)
+- ⚠️ **TWO ACTIVE EPICS as of 2026-09-20:** 🟡 **[EP-040]** `[Apple]` The Editor Shell (SP-134–SP-137)
   and 🟡 **[EP-041]** `[Cross]` **The Boundary** → [`Epic-EP-041.md`](Epic-EP-041.md) (SP-140–SP-143).
+  ✅ **[EP-042] `[Cross]` Project Open Cost CLOSED 2026-09-20** after ONE Sprint ([SP-144]), ONE Task
+  (T-0538) and SIX Verified Issues — ⚠️ **proven on the real rig at `cache=none`, not in Docker.**
+  ⚠️ **INDEX GAP FOUND 2026-09-20 during [SP-144]'s Audit Check: EP-041 and EP-042 were BOTH missing
+  from the All-Epics table above** — ✅ **added in the same step, the second such gap this table has
+  had (the first stopped at EP-034, found 2026-09-14).**
   ✅ **EP-041 was SPLIT OUT of EP-040 2026-09-18** (user ruling) — ⚠️ **[I-0197]'s bypass chain is
   boundary work, not chrome**, ✅ **which EP-040's own scope note had already flagged.**
   ⛔ **[SP-129]/[SP-130] did NOT move** — ✅ **a closed Sprint keeps the provenance of the Epic it ran under.**
