@@ -28,10 +28,23 @@ APPSUP="${2:-$HOME/.local/share/Scrivi}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PROBE_SRC="$REPO_ROOT/platforms/linux/tools/sp144_open_cost_probe.cpp"
 PROBE_BIN="${TMPDIR:-/tmp}/sp144_open_cost_probe"
-LIB="$REPO_ROOT/build/ScriviCore/libScriviCore.a"
+
+# ⚠️ THE RIG BUILDS INTO `build-native/`, the container and macOS into `build/`.
+# ✅ Look for both rather than hardcoding one — an earlier cut assumed `build/`
+# and the script silently found nothing on the rig.
+LIB=""
+for cand in "$REPO_ROOT/build-native/ScriviCore/libScriviCore.a" \
+            "$REPO_ROOT/build/ScriviCore/libScriviCore.a"; do
+    [ -f "$cand" ] && { LIB="$cand"; break; }
+done
 
 [ -d "$PROJECT" ] || { echo "⛔ not a directory: $PROJECT" >&2; exit 1; }
-[ -f "$LIB" ]     || { echo "⛔ missing $LIB — build ScriviCore on the rig first" >&2; exit 1; }
+if [ -z "$LIB" ]; then
+    echo "⛔ libScriviCore.a not found under build-native/ or build/ in $REPO_ROOT" >&2
+    echo "   Build it first:  cmake --build build-native --parallel" >&2
+    exit 1
+fi
+echo "libScriviCore: $LIB"
 command -v strace >/dev/null || { echo "⛔ strace not installed" >&2; exit 1; }
 
 echo "=== SP-144 AC6 — project open cost on the REAL rig ==="
