@@ -71,6 +71,31 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — closeProject
+
+    /// Releases the core's in-memory state for a project — today the `ProjectIndex`
+    /// that accelerates scene lookup (EP-039 T-0512).
+    ///
+    /// ⚠️ **[I-0233]: THIS WAS MISSING ON APPLE ENTIRELY.** T-0512 was recorded as
+    /// Verified claiming both platforms were wired; only Linux actually was. The
+    /// registry is keyed by project root path with **no eviction**, so without this
+    /// every project opened in a session keeps a full index (every scene's location
+    /// and story time) resident for the life of the process — including projects the
+    /// writer has closed.
+    ///
+    /// ⚠️ Deliberately **does not throw**. This runs on a teardown path, where the
+    /// useful behaviour is to release what the core holds and say nothing: closing a
+    /// project the core never indexed is a no-op by design, not an error, and a
+    /// window must never fail to close because a cache could not be dropped.
+    /// ✅ It never writes to the project.
+    public func closeProject(projectRootPath: String) {
+        let raw = projectRootPath.withCString { prp in
+            scrivi_close_project(prp)
+        }
+        // The envelope carries nothing we act on; free it and move on.
+        if let raw { scrivi_free(raw) }
+    }
+
     // MARK: — openScene
 
     public func openScene(
@@ -84,6 +109,41 @@ public final class ScriviEngine: @unchecked Sendable {
                 projectID.withCString { pid in
                     sceneID.withCString { sid in
                         scrivi_open_scene(prp, asr, pid, sid)
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    // MARK: — openSceneForBulkLoad
+
+    /// `openScene` for the viewport's BULK LOAD — identical, except it does **not**
+    /// record the scene as the project's last writing surface.
+    ///
+    /// ⚠️ The viewport calls `openScene` once per scene to assemble the continuous
+    /// editor. Through the plain call that was one atomic read-modify-write of
+    /// `workspace-state.json` **per scene**, recording a value only the last of
+    /// which survives. ⚠️ MEASURED through the C ABI (61 scenes, strace): the
+    /// workspace file accounted for 62 opens + 61 `.tmp` opens + 61 renames of a
+    /// 1,662-syscall load, while every manuscript sidecar was opened just 3 times.
+    /// On a network volume each write is a temp+write+rename round-trip — which is
+    /// why even a SMALL project loaded slowly.
+    ///
+    /// ⛔ Use ``openScene(projectRootPath:appSupportRoot:projectID:sceneID:)`` for a
+    /// scene the writer **navigated to**; that call is what records where they are.
+    /// ✅ The restore is unaffected: `restored` comes back either way.
+    public func openSceneForBulkLoad(
+        projectRootPath: String,
+        appSupportRoot: String,
+        projectID: String,
+        sceneID: String
+    ) throws -> OpenSceneResult {
+        let raw = projectRootPath.withCString { prp in
+            appSupportRoot.withCString { asr in
+                projectID.withCString { pid in
+                    sceneID.withCString { sid in
+                        scrivi_open_scene_for_bulk_load(prp, asr, pid, sid)
                     }
                 }
             }

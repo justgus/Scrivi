@@ -234,6 +234,27 @@ QVariantMap ScriviBridge::openScene(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::openSceneForBulkLoad(const QString& projectRootPath,
+                                               const QString& appSupportRoot,
+                                               const QString& projectID,
+                                               const QString& sceneID)
+{
+    // SP-144 — see the header. Differs from openScene ONLY in the endpoint it
+    // calls; the envelope, the error handling and the restore are identical.
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+
+    const ScriviString envelope(
+        scrivi_open_scene_for_bulk_load(projectRootPath.toUtf8().constData(),
+                                        appSupportRoot.toUtf8().constData(),
+                                        projectID.toUtf8().constData(),
+                                        sceneID.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::saveScene(const QString& projectID,
                                     const QString& projectRootPath,
                                     const QString& appSupportRoot,

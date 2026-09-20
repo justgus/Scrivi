@@ -174,7 +174,8 @@ struct SceneSegment: Identifiable {
         segments.reserveCapacity(allScenes.count)
 
         for (i, info) in allScenes.enumerated() {
-            let loaded = try? engine.openScene(
+            // ⚠️ SP-144 — BULK variant: no per-scene workspace-state write.
+            let loaded = try? engine.openSceneForBulkLoad(
                 projectRootPath: projectRootPath,
                 appSupportRoot: appSupportRoot,
                 projectID: projectID,
@@ -1047,8 +1048,10 @@ struct SceneSegment: Identifiable {
                             into out: inout [SceneSegment],
                             titles: inout [String: String]) {
         let info = allScenes[allIdx]
-        let loaded = ScriviDiag.measure("  engine.openScene (C ABI)") {
-            try? engine.openScene(
+        // ⚠️ SP-144 — BULK variant (this IS the bulk-load counterpart of
+        // `loadScene`, per the doc comment above): no per-scene workspace write.
+        let loaded = ScriviDiag.measure("  engine.openSceneForBulkLoad (C ABI)") {
+            try? engine.openSceneForBulkLoad(
                 projectRootPath: projectRootPath,
                 appSupportRoot: appSupportRoot,
                 projectID: projectID,

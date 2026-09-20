@@ -215,6 +215,33 @@ struct OpenSceneRequest {
     AbsolutePath appSupportRoot;
     ProjectID    projectID;
     SceneID      sceneID;
+
+    // SP-144 — ⚠️ SUPPRESS THE "last writing surface" WRITE for a BULK LOAD.
+    //
+    // ⚠️ WHY THIS EXISTS. `openScene` records the opened scene as the project's
+    // last writing surface, which is what restores a writer's cursor and scroll
+    // when they come back. ✅ Correct for a scene the writer NAVIGATED TO.
+    // ⛔ WRONG, and expensive, for the viewport's bulk load: both platforms call
+    // `openScene` ONCE PER SCENE to assemble the continuous editor, so opening a
+    // 60-scene project performed 60 read-modify-write cycles on
+    // `workspace-state.json` to record a value only the LAST of which survives.
+    //
+    // ⚠️ MEASURED through the SHIPPED C ABI (SP-144, 61 scenes, Linux/strace):
+    // of 1,662 syscalls in a full load, the workspace file accounted for
+    // **62 opens + 61 `.tmp` opens + 61 renames** — every manuscript sidecar, by
+    // contrast, was opened just 3 times. ⚠️ On a network volume each of those 61
+    // atomic writes is a temp-create + write + rename round-trip, which is why a
+    // SMALL project still loads slowly.
+    //
+    // ✅ `true` (the default) preserves the existing behaviour exactly, so every
+    // caller that does not opt out is unaffected. ⚠️ A bulk loader sets this
+    // false and the surface is then recorded ONCE, by whoever actually navigates.
+    //
+    // ⛔ IT SUPPRESSES ONLY THE WRITE. The RESTORE is unaffected: the request
+    // still reads workspace state and still returns `restoredSelection` /
+    // `restoredScroll`, so a bulk load can place the writer's cursor exactly as
+    // before.
+    bool recordAsWritingSurface = true;
 };
 
 // ---------------------------------------------------------------------------

@@ -131,6 +131,23 @@ public:
     // non-active scenes when assembling the continuous viewport (the active scene's
     // body already comes back inside openProject). On failure emits errorOccurred
     // and returns {}. Requires bootstrap() to have succeeded first.
+    // SP-144 — `openScene` for the viewport's BULK LOAD. Identical, except it
+    // does NOT record the scene as the last writing surface.
+    //
+    // ⚠️ `EditorShell::load` calls this once per scene to assemble the continuous
+    // editor. Through plain `openScene` that was 61 atomic read-modify-writes of
+    // `workspace-state.json` for a 61-scene project — MEASURED as 62 opens + 61
+    // `.tmp` opens + 61 renames of a 1,662-syscall load, while every manuscript
+    // sidecar was opened just 3 times. ⚠️ Each write is a temp+write+rename
+    // round-trip on a network volume, which is why a SMALL project loaded slowly.
+    //
+    // ⛔ Use plain `openScene` for a scene the writer NAVIGATED TO — that call is
+    // what records where they are. ✅ The restore is unaffected either way.
+    Q_INVOKABLE QVariantMap openSceneForBulkLoad(const QString& projectRootPath,
+                                                 const QString& appSupportRoot,
+                                                 const QString& projectID,
+                                                 const QString& sceneID);
+
     Q_INVOKABLE QVariantMap openScene(const QString& projectRootPath,
                                       const QString& appSupportRoot,
                                       const QString& projectID,

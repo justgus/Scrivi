@@ -3,6 +3,7 @@
 #include <QHash>
 #include <QSet>
 #include <QString>
+#include <QVariantMap>
 #include <QWidget>
 
 #include "SceneDocument.hpp"
@@ -59,15 +60,50 @@ public:
     // whole read with no progress and no way to cancel -- measured on the rig at
     // ~10x slower than local, and the cost is UNBOUNDED (worlds grow, a project
     // may bind several, and both may sit on slow network storage).
+    // ⚠️ SP-144 ([I-0232] AC5) — `openedProject` is the envelope the LANDING
+    // already obtained from `openProject`, handed over so this load does NOT open
+    // the project a SECOND time.
+    //
+    // ⚠️ THE DEFECT IT REMOVES: the landing opened the project to decide whether
+    // it was `ready`, then this method opened the SAME project again at full
+    // cost. MEASURED: a second `openProject` costs ~79% of the first (196 → 155
+    // filesystem calls), and NOTHING absorbed it — `ProjectIndex` accelerates
+    // `openScene`, but `ProjectOpener` never consults it.
+    //
+    // ✅ THIS IS APPLE'S PROVEN SHAPE, NOT A NEW MECHANISM. `ProjectSession.loadAsync`
+    // opens once on a worker and passes `result.scenes` straight into the scene
+    // loop; Linux was the platform that had drifted.
+    //
+    // ⚠️ Pass an EMPTY map to open here instead — that path is retained because a
+    // reload (`Scene ▸ …` structural edits) legitimately has no landing envelope
+    // to hand over. ⛔ It must stay behaviourally identical to the handed-over
+    // path; the only difference is WHO performed the open.
     void load(const QString& projectPath,
               const QString& appSupportRoot,
-              const QString& title);
+              const QString& title,
+              const QVariantMap& openedProject = {});
 
     // Flush any pending edits to disk immediately (T-0239). Called by the shell on
     // Close and by the host on app-quit so no edit is lost on the way out — the
     // Docker/VNC quit path in particular (the app is the container's foreground
     // process). Safe to call with nothing dirty (no-op).
     void saveDirtyScenes();
+
+    // ⚠️ SP-144 — record the ACTIVE scene as the project's `lastWritingSurface`,
+    // even when nothing is dirty. ✅ THIS IS APPLE'S `stampWritingSurface`
+    // (`ViewportSceneLoader.swift:414`, from [I-0058]/[I-0131]); Linux never had it.
+    //
+    // ⚠️ WHY IT IS NEEDED NOW. `openScene` used to stamp the surface as a SIDE
+    // EFFECT of reading a scene, and the viewport's bulk load called it once per
+    // scene — which is the write amplification [I-0234] removed. ⛔ But Linux's
+    // save path only writes DIRTY scenes, so without this a writer who NAVIGATES
+    // and never edits would have nothing recording where they were, and reopening
+    // would land them somewhere else.
+    //
+    // ✅ The backend stamps `lastWritingSurface` on every `saveScene`, so this
+    // forces ONE save of the active scene. ⚠️ Cheap and bounded: one write on
+    // close/quit, not one per scene on load.
+    void stampWritingSurface();
 
     // Releases the core's in-memory state for the currently-open project (EP-039
     // T-0512). Call when the project is CLOSED (the landing page returns), not on

@@ -15,6 +15,10 @@
 
 #include "scrivi/scrivi.h"
 #include "util/Json.hpp"
+// ⚠️ [I-0222]: the error `detail` prefix is DERIVED from the one place that
+// defines it, never restated as a literal here. Restating it is exactly how the
+// two spellings drifted apart in the first place.
+#include "worlds/WorldTypes.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -172,6 +176,25 @@ struct CApiFixture {
     // ⚠️ The PENDING BEHAVIOUR IS IDENTICAL in all unavailable states — only the
     // reported status differs — so this exercises the pending path in full.
     static constexpr const char* kDetachedStatus = "missing";
+
+    // The `detail` a refused graph write carries when this fixture's world is
+    // detached.
+    //
+    // ⚠️ [I-0222] / USER RULING 2026-09-17: there is exactly ONE spelling,
+    // `worldUnavailable:`. Before that ruling `RelationshipStore` said
+    // `worldPending:` while `ObjectStore`, `AssetStore` and `WorldStore` said
+    // `worldUnavailable:` — ⛔ and THIS TEST kept asserting the retired spelling
+    // long after the core stopped emitting it, so it failed on both platforms
+    // for three days while the CODE WAS CORRECT.
+    //
+    // ✅ Derived from `kWorldUnavailableDetailPrefix` rather than written out, so
+    // the test cannot drift from the core again. ⚠️ Apple's suite
+    // (`ScriviInteropTests.swift:2619`) already asserts the old spelling is
+    // retired; this is the core-side counterpart that was missed.
+    static std::string worldUnavailableDetail() {
+        return std::string(scrivi::worlds::kWorldUnavailableDetailPrefix)
+             + kDetachedStatus;
+    }
 
     void detachWorld(const std::string& name = "Midgard") {
         fs::rename(pkg(name), pkg(name + "-detached"));
@@ -501,15 +524,13 @@ TEST_CASE("⚠️ AC-A4: the graph is FROZEN toward an unavailable world — bot
     // artifact was deleted.
     auto addErr = errorOf(scrivi_create_edge(g.fix.root(), secondID.c_str(),
                                              g.artifactID.c_str(), "cites", ""));
-    REQUIRE(addErr.getString("detail") ==
-            std::string("worldPending:") + CApiFixture::kDetachedStatus);
+    REQUIRE(addErr.getString("detail") == CApiFixture::worldUnavailableDetail());
     REQUIRE(addErr.getString("message").find("Sword of Dawn") != std::string::npos);
 
     // Removing an existing edge is exactly as frozen: a tombstone is not
     // reversible, and the writer cannot see what they would be discarding.
     auto delErr = errorOf(scrivi_delete_edge(g.fix.root(), g.edgeID.c_str()));
-    REQUIRE(delErr.getString("detail") ==
-            std::string("worldPending:") + CApiFixture::kDetachedStatus);
+    REQUIRE(delErr.getString("detail") == CApiFixture::worldUnavailableDetail());
 
     // Neither refusal was a silent drop — the edge is still there, alone.
     REQUIRE(edgeIDsFor(g.fix, g.characterID).size() == 1);

@@ -19,6 +19,16 @@ is APFS, where the OS never creates AppleDouble sidecars.
 (`ScriviError(detail: "worldPending:offline")`) — ⚠️ **a test that writes the string it then parses can
 never discover that the core spells it differently.** `feedback_boundary_tests_not_facade`.
 
+⚠️ **[I-0222]'s REMEDIATION WAS INCOMPLETE AND STAYED RED FOR THREE DAYS — closed 2026-09-20 under
+[SP-144].** ✅ **Apple's suite was updated for the ruling** (`ScriviInteropTests.swift:2619` explicitly
+asserts `worldPending:` is RETIRED) — ⛔ **but `ObjectCApiTests.cpp` (`AC-A4`) was NOT**, and kept
+asserting the retired spelling. ⚠️ **So `ctest` failed on BOTH platforms while the CODE WAS CORRECT**,
+and the failure was repeatedly reported as "pre-existing" rather than fixed. ⚠️ **A known-red test is
+indistinguishable from a tolerated one: it trains everyone to read 611/612 as success.**
+✅ **FIXED by DERIVING the expectation from `kWorldUnavailableDetailPrefix`** — ⛔ **not by writing the
+new literal**, ✅ **since restating it is exactly how the two spellings drifted apart.**
+✅ **Both suites are now fully green (macOS 613/613, Linux 615/615).**
+
 ⚠️ **The drive-pull test that produced I-0222 had been deferred as "informational."** ✅ **It was not:
 it produced a Critical and a High, and it confirmed the pending-world architecture works.**
 

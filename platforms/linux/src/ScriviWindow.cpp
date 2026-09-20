@@ -26,10 +26,11 @@ ShellController::ShellController(ScriviWindow* window, QString appSupportRoot)
 {
 }
 
-void ShellController::openEditor(const QString& projectPath, const QString& title)
+void ShellController::openEditor(const QString& projectPath, const QString& title,
+                                 const QVariantMap& openedProject)
 {
     if (window_ != nullptr) {
-        window_->showEditor(projectPath, title);
+        window_->showEditor(projectPath, title, openedProject);
     }
 }
 
@@ -65,8 +66,12 @@ void ScriviWindow::buildMenuBar()
     //
     // DATA-SAFETY INVARIANT: edits must never be lost through any writer action. Every
     // path that LEAVES an open editor — Close, New, Open — flushes pending edits FIRST
-    // (flushEditor() == editor_->saveDirtyScenes(), safe when nothing is open). Quit is
-    // already covered by the aboutToQuit → flushEditor hook in main().
+    // (flushEditor(), safe when nothing is open). Quit is already covered by the
+    // aboutToQuit → flushEditor hook in main().
+    //
+    // ⚠️ SP-144: flushEditor() is now saveDirtyScenes() + stampWritingSurface() —
+    // edits AND the writer's place, since [I-0234] removed openScene's implicit
+    // per-read surface stamp.
     QMenu* file = bar->addMenu(tr("&File"));
     QAction* newProj = file->addAction(tr("New Project…"));
     newProj->setShortcut(QKeySequence::New);
@@ -317,7 +322,8 @@ void ScriviWindow::updateMenuState(bool editorActive)
     }
 }
 
-void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
+void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
+                              const QVariantMap& openedProject)
 {
     if (editor_ == nullptr) {
         editor_ = new EditorShell(this);
@@ -373,7 +379,9 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title)
     stack_->setCurrentWidget(editor_);
     updateMenuState(/*editorActive=*/true);
 
-    editor_->load(projectPath, appSupportRoot_, title);
+    // ⚠️ SP-144 ([I-0232] AC5): pass the landing's envelope through so the editor
+    // does NOT re-open the project. Empty ⇒ the editor opens it itself (reload).
+    editor_->load(projectPath, appSupportRoot_, title, openedProject);
 }
 
 void ScriviWindow::showLanding()
@@ -393,6 +401,17 @@ void ScriviWindow::flushEditor()
 {
     if (editor_ != nullptr) {
         editor_->saveDirtyScenes();
+        // ⚠️ SP-144 — then record WHERE THE WRITER WAS, even if nothing was dirty.
+        //
+        // ✅ Mirrors Apple's `saveAllDirtyBlocking`, which saves the dirty scenes
+        // and THEN calls `stampWritingSurface` ([I-0058]/[I-0131]) so a scene the
+        // writer scrolled to but never edited still resumes correctly.
+        //
+        // ⚠️ Linux needs this now because [I-0234] removed `openScene`'s implicit
+        // per-read stamp, and Linux's save path only writes DIRTY scenes — so
+        // without it, navigating without typing would leave nothing recording the
+        // writer's place. ✅ ONE write on teardown, not one per scene on load.
+        editor_->stampWritingSurface();
     }
 }
 

@@ -726,11 +726,16 @@ const char* scrivi_close_project(const char* projectRootPath) {
     return heap(okEnvelope(std::move(doc)));
 }
 
-const char* scrivi_open_scene(
+// SP-144 — the shared body of scrivi_open_scene and
+// scrivi_open_scene_for_bulk_load. ⚠️ ONE implementation so the two cannot drift:
+// they differ by a single bool, and a copy-paste pair would diverge the first
+// time either envelope gained a field.
+static const char* openSceneImpl(
     const char* projectRootPath,
     const char* appSupportRoot,
     const char* projectID,
-    const char* sceneID)
+    const char* sceneID,
+    bool        recordAsWritingSurface)
 {
     scrivi::OpenSceneRequest req;
     req.projectRootPath = S(projectRootPath);
@@ -738,6 +743,7 @@ const char* scrivi_open_scene(
     req.appSupportRoot  = S(appSupportRoot);
     req.projectID       = scrivi::ProjectID{S(projectID)};
     req.sceneID         = scrivi::SceneID  {S(sceneID)};
+    req.recordAsWritingSurface = recordAsWritingSurface;
 
     auto r = core().openScene(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
@@ -754,6 +760,30 @@ const char* scrivi_open_scene(
     doc.setSubDoc("scene",    std::move(scene));
     doc.setString("markdown", v.markdown);
     return heap(okEnvelope(std::move(doc)));
+}
+
+const char* scrivi_open_scene(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* projectID,
+    const char* sceneID)
+{
+    // ✅ Unchanged behaviour: a scene the writer NAVIGATED TO is recorded as the
+    // last writing surface, which is what restores their cursor next session.
+    return openSceneImpl(projectRootPath, appSupportRoot, projectID, sceneID,
+                         /*recordAsWritingSurface=*/true);
+}
+
+const char* scrivi_open_scene_for_bulk_load(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* projectID,
+    const char* sceneID)
+{
+    // ⚠️ SP-144: the viewport's per-scene loop. See the header for the
+    // measurement — 61 atomic workspace writes per 61-scene load.
+    return openSceneImpl(projectRootPath, appSupportRoot, projectID, sceneID,
+                         /*recordAsWritingSurface=*/false);
 }
 
 const char* scrivi_save_scene(

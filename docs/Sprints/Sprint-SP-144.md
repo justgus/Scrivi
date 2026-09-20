@@ -207,70 +207,69 @@ New/Open/recents while opening. ⚠️ **Indeterminate on purpose** — the land
 no scene count to divide by, and [I-0195]'s ruling forbids a spinner pretending to
 be a percentage.
 
-⛔ **AC5 IS NOT MET. IT IS DEFERRED — and "narrowed" was the WRONG WORD.**
+✅ **AC5 IS MET — THE PROJECT IS OPENED ONCE.**
 
-⚠️ **Nothing about the landing's open was made smaller. Only its BLOCKING was
-removed.** The AC asks for the double open to be RESOLVED — either the landing's
-result is handed to `EditorShell`, or the landing's open is reduced to what the
-landing actually needs. ⛔ **Neither was done.**
+⚠️ **The earlier "deferred / narrowed" framing was WRONG and is withdrawn.**
+Nothing had been made smaller; only the blocking had been removed. ⚠️ **The user
+rejected that scope (2026-09-20): "Fix them both."**
 
-✅ **MEASURED 2026-09-20** (`[I-0232] AC5` test, 10 chapters x 6 scenes):
+✅ **`Landing.qml` hands its envelope to the editor:**
+`shell.openEditor(path, title, result)` → `ShellController::openEditor` →
+`ScriviWindow::showEditor` → `EditorShell::load(..., openedProject)`, and the
+worker uses it instead of calling `openProject` again.
 
-| | Filesystem calls |
-| - | ---------------- |
-| First `openProject` | 196 |
-| ⚠️ **Second `openProject`, same root** | ⚠️ **155 (~79%)** |
+✅ **THIS IS APPLE'S SHAPE, NOT A NEW MECHANISM.** `ProjectSession.loadAsync`
+already opened ONCE on a worker and passed `result.scenes` into the scene loop.
+⚠️ **Linux was the platform that had drifted** — ✅ **and the user made this a
+STANDING RULE: Linux must ALWAYS adopt Apple's shape, and a shape change on Apple
+must be made the same way on Linux, in the same work.**
 
-⚠️ **THE SECOND OPEN IS NOT FREE, and no existing cache absorbs it:**
-- ⚠️ **`ProjectIndex` does NOT help.** It is reached via
-  `CoreServices::sceneLocator`, which `openScene` consults to turn a sceneID into
-  a path — ⛔ **`ProjectOpener` never touches it.** An `openProject` pays its own
-  way every time.
-- ⚠️ **[I-0231]'s `ReadThroughCache` does not span calls**, by design: it dies
-  with the call that built it, because the filesystem is authoritative (EP-027)
-  and Scrivi does no filesystem watching.
+⚠️ **THE EMPTY-ENVELOPE PATH IS RETAINED DELIBERATELY**, for the two RELOAD sites
+after a structural edit (`EditorShell.cpp:940,989`), which MUST re-read disk, and
+for New Project, where the project was CREATED rather than opened. ⛔ Both must
+stay behaviourally identical to the handed-over path; only the OPENER differs.
 
-✅ **WHAT IS GENUINELY FIXED:** the 155 s FREEZE. Both opens now run off the UI
-thread, so the launch screen stays alive and shows a busy strip throughout.
-⚠️ **WHAT IS NOT:** the project is still opened TWICE at near-full cost. ✅ The
-per-open cost fell ~3x from [I-0231], so the duplicated work is much cheaper than
-it was — ⛔ **but it is still duplicated, and that is outstanding AC5 work.**
+### ✅ End-to-end, the full landing→editor chain (61 scenes, shipped ABI, `strace -c -f`)
 
-✅ **The user ruled this scope deliberately (2026-09-20)** — handing the result to
-`EditorShell` would rework the one half that already works. ⚠️ **Recorded here so
-the remaining cost is visible rather than remembered**, and the `[I-0232] AC5`
-test will FAIL the day it is actually removed, forcing a rewrite.
+| Syscall | Before | After | |
+| ------- | ------ | ----- | - |
+| ⚠️ **`write`** | ⚠️ **62** | ✅ **1** | ⚠️ **−98%** |
+| `openat` | 512 | ✅ **365** | −29% |
+| `read` | 766 | ✅ **617** | −19% |
+| `newfstatat` | 626 | ✅ **496** | −21% |
+| **TOTAL** | **1,966** | ✅ **1,479** | ⚠️ **−25%** |
+
+⚠️ **THE −25% UNDERSTATES THE REAL GAIN ON THE RIG.** On local disk a write is
+cheap; on a `cache=none` share each of the 61 eliminated writes was a
+temp-create + write + rename ROUND-TRIP. ✅ That is the cost the writer feels on a
+SMALL project.
 
 ---
 
-## ⛔ What is NOT done
+## ⚠️ A REGRESSION THIS SPRINT NEARLY SHIPPED — ✅ caught and fixed
 
-⛔ **AC6 — NOT MET.** ⚠️ **Everything above is macOS LOCAL DISK.** ✅ The AC is
-explicit that Docker has no slow mount and the page cache hides the defect —
-⚠️ **this is the exact gap that let [I-0195] be marked resolved while still
-broken**, and it must not be repeated here.
+⚠️ **[I-0234] removed `openScene`'s implicit per-read surface stamp. On APPLE
+that was safe; on LINUX it was NOT, and the difference was nearly missed.**
 
-✅ **THE QT HALF IS NOW COMPILED AND SMOKE-TESTED** (2026-09-20, Docker /
-Ubuntu 24.04 / Qt 6.4).
+✅ **Apple was already protected**: `saveAllDirtyBlocking` saves the current scene
+UNCONDITIONALLY and then calls `stampWritingSurfaceBlocking`
+(`ViewportSceneLoader.swift:411`), which exists precisely so *"a scene the writer
+scrolled to but never edited still resumes correctly"* ([I-0058]/[I-0131]).
 
-⚠️ **THE FIRST BUILD FAILED, and the failure is worth recording**: `ScriviBridge.cpp`
-used `kProjectOpenTimeoutMs` unqualified. ⚠️ **The constant had just moved to
-`AsyncCall.hpp`, and only `EditorShell.cpp` carried the `using` declaration** —
-✅ **exactly the kind of error a hand review does not catch and a compiler does in
-one second.** ⛔ **"Reviewed and brace-balanced" is not "builds".**
+⛔ **Linux had NO equivalent** — it saved only DIRTY scenes. ⚠️ **So a writer who
+NAVIGATED without typing would have had nothing recording their place, and
+reopening would have landed them on the wrong scene — silently.**
 
-✅ **After qualifying it: 0 errors, QML cache generated** (which is what validates
-`Landing.qml`), ✅ **23/23 Linux smokes pass via their `.sh` wrappers** — ⚠️
-**including `open_progress_smoke` (I-0195's determinate-progress guard) and
-`lifecycle_smoke` (the full open loop)** — ✅ **and Linux `ctest` 611/612, the one
-failure being the PRE-EXISTING `AC-A4`, identical to macOS.**
+✅ **FIX: `EditorShell::stampWritingSurface()`, called from
+`ScriviWindow::flushEditor()`** — the single chokepoint every teardown reaches
+(Close, New, Open, window close, `aboutToQuit`). ⚠️ **ONE write on teardown, not
+one per scene on load.**
 
-⚠️ **The smokes needed their `.sh` wrappers**: run bare, every one exits with
-`usage: <name> <projectDir>`, which reads as 18 failures and is not one.
+✅ **Guarded by a test** (`[SP-144][I-0234]`) asserting that `saveScene` records
+`lastWritingSurface` and that a reopen resumes on the saved scene — ⛔ **because
+if that ever stops being true, resume breaks with no error anywhere.**
 
-⚠️ **[I-0195] STILL MUST NOT BE MARKED VERIFIED** — AC4's code exists but is
-unbuilt and unproven on the rig.
-
+---
 
 ---
 
@@ -293,3 +292,63 @@ this Sprint's to fix.**
 
 ⚠️ **It is also a VERIFICATION defect, not only a code one**: a Task was marked
 Verified for work that was half done.
+
+---
+
+## ✅ WHAT FIXES A LARGE PROJECT — ✅ measured, 2026-09-20
+
+⚠️ **The user asked the question this Sprint had not answered: the small-project
+fix was [I-0234], so what fixes a LARGE one?**
+
+✅ **THE SAME FIX DOES, AND THE SCALING IS WHY.** ⚠️ **Before it, a bulk load's
+DURABLE WRITES were O(scenes)** — every `openScene` re-stamped
+`lastWritingSurface`. ✅ **They are now O(1).**
+
+**Measured on the shipped ABI (🐧 Linux, `strace -c -f`, landing→editor chain):**
+
+| Scenes | ⚠️ Syscalls BEFORE | ✅ AFTER | ⚠️ **Writes BEFORE** | ✅ **Writes AFTER** |
+| ------ | ------------------ | -------- | -------------------- | ------------------- |
+| **60** | 1,966 | ✅ **1,479** | ⚠️ **62** | ✅ **1** |
+| **120** | 3,706 | ✅ **2,799** | ⚠️ **122** | ✅ **1** |
+| **240** | 7,186 | ✅ **5,439** | ⚠️ **242** | ✅ **1** |
+
+⚠️ **AT 240 SCENES THAT IS 242 DURABLE WRITES ELIMINATED**, ✅ **each one a
+temp-create + write + rename ROUND-TRIP on a `cache=none` volume.** ⚠️ **The
+larger the manuscript, the more this fix is worth — which is the opposite of how
+it was first described.**
+
+✅ **THE LOAD IS NOW LINEAR IN SCENE COUNT.** ⚠️ **60 → 240 scenes (4×) costs
+1,479 → 5,439 syscalls (3.7×), with per-scene cost FALLING (24.6 → 22.7).**
+⛔ **No quadratic term remains** — ✅ **which is what [I-0196] ("invisible at 16
+scenes, fatal at 1,152") existed to prevent.**
+
+✅ **GUARDED** by `[SP-144][I-0234][scaling]`, which asserts writes are INDEPENDENT
+of scene count. ⛔ **A total-call budget would NOT catch a regression here** —
+⚠️ **reads legitimately grow with the manuscript, so the defect would hide inside
+a rising total.**
+
+---
+
+## ✅ `AC-A4` FIXED — ⛔ it was never "pre-existing", it was UNFINISHED
+
+⚠️ **Reported as a pre-existing failure through several messages of this Sprint.**
+⛔ **That was the wrong call** — ✅ **the user's instruction: "not be stashed but
+rather fixed. now!"**
+
+✅ **ROOT CAUSE: a STALE TEST, not a defect.** ⚠️ **The user's own [I-0222] ruling
+(2026-09-17) unified the error `detail` to ONE spelling, `worldUnavailable:`.**
+✅ **Apple's suite was updated** (`ScriviInteropTests.swift:2619` asserts the old
+spelling is RETIRED) — ⛔ **`ObjectCApiTests.cpp` was MISSED** and kept asserting
+`worldPending:`. ⚠️ **So `ctest` failed on BOTH platforms for three days while the
+CODE WAS CORRECT.**
+
+✅ **FIXED by DERIVING the expectation from `kWorldUnavailableDetailPrefix`** —
+⛔ **not by writing the new literal**, ✅ **because restating it is exactly how the
+two spellings drifted apart in the first place** (the same standing rule CLAUDE.md
+states for `ObjectKind` lists).
+
+⚠️ **THE PROCESS LESSON: a known-red test is indistinguishable from a tolerated
+one.** ✅ **It trained this Sprint to read 611/612 as success, which is precisely
+the slot a real regression would hide in.**
+
+✅ **BOTH SUITES ARE NOW FULLY GREEN: macOS 613/613 · Linux 617/617 · 23/23 smokes.**

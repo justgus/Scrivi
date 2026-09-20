@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QObject>
 #include <QString>
+#include <QVariantMap>
 
 class QAction;
 class QQuickWidget;
@@ -39,7 +40,15 @@ public:
     // Called from Landing.qml on a successful "ready" open, in place of pushing the
     // old placeholder ProjectWindow. Swaps the central stack to the editor and
     // loads the project into it.
-    Q_INVOKABLE void openEditor(const QString& projectPath, const QString& title);
+    // ⚠️ SP-144 ([I-0232] AC5): `openedProject` is the envelope Landing.qml
+    // ALREADY obtained from `openProjectAsync`. Handing it over is what stops the
+    // editor opening the same project a SECOND time (~79% of the first open's
+    // cost). ✅ This mirrors Apple's `ProjectSession.loadAsync`, which opens once
+    // and passes `result.scenes` into the scene loop.
+    // ⚠️ QML passes it as a plain JS object; an empty map means "not supplied"
+    // and the editor opens the project itself (the reload path).
+    Q_INVOKABLE void openEditor(const QString& projectPath, const QString& title,
+                                const QVariantMap& openedProject = {});
 
     // Ask the landing QML to open the New Project panel (SP-077, T-0314). The File ▸
     // New Project menu action emits this; Landing.qml listens via a Connections block
@@ -72,7 +81,8 @@ public:
 
     // Build (lazily) + show the editor page for `projectPath`. Returns to landing
     // if the load fails.
-    void showEditor(const QString& projectPath, const QString& title);
+    void showEditor(const QString& projectPath, const QString& title,
+                    const QVariantMap& openedProject = {});
 
     // Return the central stack to the landing page (editor Close). File ▸ Open/Close
     // route here — the landing page hosts the full Open UI + the ScriviBridge, so the

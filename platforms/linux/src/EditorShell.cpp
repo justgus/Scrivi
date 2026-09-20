@@ -339,7 +339,8 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
 
 void EditorShell::load(const QString& projectPath,
                        const QString& appSupportRoot,
-                       const QString& title)
+                       const QString& title,
+                       const QVariantMap& openedProject)
 {
     errorLabel_->hide();
     errorLabel_->clear();
@@ -392,6 +393,22 @@ void EditorShell::load(const QString& projectPath,
     const QString path   = projectPath;
     const QString appSup = appSupportRoot;
 
+    // ⚠️ SP-144 ([I-0232] AC5) — THE PROJECT IS OPENED ONCE, NOT TWICE.
+    //
+    // ⚠️ The landing has already called `openProject` to decide whether the
+    // project is `ready`; it hands that envelope here rather than letting this
+    // load repeat the work. MEASURED: a second open costs ~79% of the first
+    // (196 → 155 filesystem calls) and nothing absorbed it — `ProjectIndex`
+    // accelerates `openScene`, but `ProjectOpener` never consults it.
+    //
+    // ✅ This is APPLE'S shape (`ProjectSession.loadAsync` opens once and passes
+    // `result.scenes` into the scene loop), not a new mechanism.
+    //
+    // ⚠️ An EMPTY map means "no envelope was handed over" — a reload after a
+    // structural edit — and the worker opens the project itself. ⛔ Both paths
+    // must stay behaviourally identical; only the OPENER differs.
+    const QVariantMap handedOver = openedProject;
+
     // ⚠️ Progress is emitted FROM THE WORKER THREAD, so it is queued to the UI
     // thread rather than called directly. A direct call would touch widgets from
     // the wrong thread.
@@ -399,10 +416,14 @@ void EditorShell::load(const QString& projectPath,
 
     AsyncCall::run<LoadPayload>(
         this,
-        [bridge, path, appSup, self]() -> LoadPayload {
+        [bridge, path, appSup, self, handedOver]() -> LoadPayload {
             LoadPayload out;
 
-            const QVariantMap opened = bridge->openProject(path, appSup);
+            // ✅ Use the landing's envelope when it handed one over; open only
+            // when it did not (the reload path).
+            const QVariantMap opened = handedOver.isEmpty()
+                ? bridge->openProject(path, appSup)
+                : handedOver;
             if (opened.value(QStringLiteral("mode")).toString()
                 != QStringLiteral("ready")) {
                 // repairRequired / cannotOpen were already handled by the landing
@@ -455,8 +476,13 @@ void EditorShell::load(const QString& projectPath,
                 if (sceneID == out.activeSceneID) {
                     in.markdown = activeMarkdown;   // already have it — no round-trip
                 } else {
-                    const QVariantMap sc = bridge->openScene(path, appSup,
-                                                             out.projectID, sceneID);
+                    // ⚠️ SP-144 — BULK variant: does not record this scene as the
+                    // last writing surface. Through plain `openScene` this loop
+                    // performed one atomic read-modify-write of
+                    // `workspace-state.json` PER SCENE, to record a value only
+                    // the last of which survives.
+                    const QVariantMap sc = bridge->openSceneForBulkLoad(
+                        path, appSup, out.projectID, sceneID);
                     in.markdown = sc.value(QStringLiteral("markdown")).toString();
                 }
                 out.inputs.append(in);
@@ -1312,6 +1338,24 @@ void EditorShell::releaseProject()
     if (bridge_ != nullptr && !projectPath_.isEmpty()) {
         bridge_->closeProject(projectPath_);
     }
+}
+
+void EditorShell::stampWritingSurface()
+{
+    // SP-144 — Apple's `stampWritingSurface` ([I-0058]/[I-0131]), which Linux
+    // lacked. See the header for why removing `openScene`'s implicit write made
+    // it necessary.
+    //
+    // ⚠️ `saveScene` already writes the caret + scroll for the scene the caret is
+    // in, and the backend stamps `lastWritingSurface` on every save — so one save
+    // of the ACTIVE scene is exactly the stamp, with no new endpoint.
+    //
+    // ⛔ Deliberately NOT conditional on the scene being dirty: the whole point is
+    // the writer who navigated somewhere and never typed.
+    if (activeSegment_ < 0 || activeSegment_ >= sceneDoc_.segments().size()) {
+        return;   // nothing loaded — no surface to record
+    }
+    (void)saveScene(activeSegment_);
 }
 
 void EditorShell::saveDirtyScenes()

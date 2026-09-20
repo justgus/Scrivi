@@ -353,6 +353,31 @@ import os
         // a closing project (writes are already flushed — each mutation saves eagerly).
         inspectorLayout = nil
 
+        // ⚠️ [I-0233] — RELEASE THE CORE'S INDEX FOR THIS PROJECT.
+        //
+        // ⚠️ ORDER MATTERS: the core registry is keyed by the project ROOT PATH, so
+        // this must run while `projectRootPath` still holds it — the line below
+        // clears it.
+        //
+        // ⚠️ THIS WAS MISSING ENTIRELY ON APPLE. T-0512 added `scrivi_close_project`
+        // and was recorded Verified claiming both platforms were wired; only Linux
+        // actually was, so every project opened in a macOS session kept a full
+        // `ProjectIndex` resident for the life of the process — including projects
+        // the writer had closed.
+        //
+        // ✅ `close()` is the single chokepoint every close path reaches: the red
+        // button, a fullscreen tab's ✕ and ⌘W all arrive via
+        // `windowWillClose → handleWindowClosed → didCloseProjectWindow`, and both
+        // File ▸ Close Project commands funnel here too (macOS through
+        // `windows.closeWindow`, iOS directly). ⚠️ Putting the release anywhere else
+        // would cover some paths and silently miss others.
+        //
+        // ✅ Never throws and never writes: releasing a project the core never
+        // indexed is a no-op, and a window must not fail to close over a cache.
+        if let path = projectRootPath {
+            engine.closeProject(projectRootPath: path)
+        }
+
         openProjectResult = nil
         projectRootPath = nil
         viewportLoader = nil

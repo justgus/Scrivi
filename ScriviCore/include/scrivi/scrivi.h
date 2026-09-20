@@ -77,6 +77,33 @@ const char* scrivi_open_scene(
     const char* projectID,
     const char* sceneID);
 
+/* SP-144 — `scrivi_open_scene` for a BULK VIEWPORT LOAD.
+ *
+ * Identical to scrivi_open_scene in every respect EXCEPT that it does NOT record
+ * the scene as the project's "last writing surface".
+ *
+ * ⚠️ WHY IT EXISTS. Both platforms call open_scene ONCE PER SCENE to assemble the
+ * continuous editor. Each such call read-modify-WROTE `workspace-state.json`, so
+ * opening a 61-scene project performed 61 atomic writes to record a value only
+ * the last of which survives. MEASURED through this ABI (61 scenes, Linux,
+ * strace): the workspace file accounted for 62 opens + 61 `.tmp` opens + 61
+ * renames of a 1,662-syscall load, while every manuscript sidecar was opened
+ * just 3 times. On a network volume each write is a temp+write+rename
+ * round-trip, which is why a SMALL project still loaded slowly.
+ *
+ * ⚠️ A SEPARATE ENDPOINT RATHER THAN A NEW PARAMETER: changing open_scene's
+ * signature would break every existing caller on both platforms at once.
+ *
+ * ⛔ IT SUPPRESSES ONLY THE WRITE. The restore is unaffected — the result still
+ * carries `restored` (selection + scroll) exactly as open_scene does, so a bulk
+ * load can still place the writer's cursor. Use scrivi_open_scene for a scene the
+ * writer NAVIGATED TO; that call is what records where they are. */
+const char* scrivi_open_scene_for_bulk_load(
+    const char* projectRootPath,
+    const char* appSupportRoot,
+    const char* projectID,
+    const char* sceneID);
+
 const char* scrivi_save_scene(
     const char* projectID,
     const char* projectRootPath,

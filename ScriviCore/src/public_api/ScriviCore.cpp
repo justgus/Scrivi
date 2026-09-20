@@ -166,17 +166,30 @@ Result<OpenSceneResult> ScriviCore::openScene(
         }
     }
 
-    // Update last writing surface to the newly opened scene
-    LastWritingSurface lws;
-    lws.sceneID     = found->sceneID;
-    lws.contentPath = found->contentPath;
-    lws.selection   = restoredSelection;
-    lws.scroll      = restoredScroll;
-    ws.projectID    = request.projectID;
-    ws.lastWritingSurface = lws;
+    // Update last writing surface to the newly opened scene.
+    //
+    // ⚠️ SP-144 — SKIPPED FOR A BULK LOAD. The viewport opens EVERY scene to
+    // assemble the continuous editor, and recording each one as "the last
+    // writing surface" is both wrong (only the last would survive) and the
+    // dominant cost of a load: MEASURED at 61 atomic read-modify-write cycles on
+    // `workspace-state.json` for a 61-scene project, against just 3 opens of any
+    // manuscript sidecar. ⚠️ On a network volume each is a temp+write+rename
+    // round-trip — which is why a SMALL project still loaded slowly.
+    //
+    // ✅ The RESTORE above still ran, so `restoredSelection`/`restoredScroll` are
+    // returned either way; only the WRITE is suppressed.
+    if (request.recordAsWritingSurface) {
+        LastWritingSurface lws;
+        lws.sceneID     = found->sceneID;
+        lws.contentPath = found->contentPath;
+        lws.selection   = restoredSelection;
+        lws.scroll      = restoredScroll;
+        ws.projectID    = request.projectID;
+        ws.lastWritingSurface = lws;
 
-    if (auto r = wsService.save(request.appSupportRoot, ws); !r.ok()) {
-        return Result<OpenSceneResult>::failure(r.error());
+        if (auto r = wsService.save(request.appSupportRoot, ws); !r.ok()) {
+            return Result<OpenSceneResult>::failure(r.error());
+        }
     }
 
     // 4. Assemble result

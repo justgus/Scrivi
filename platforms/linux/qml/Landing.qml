@@ -106,9 +106,19 @@ Item {
 
             // ready — record in recents (moves to front) and hand off to the
             // native editor shell (SP-061 / T-0234).
+            //
+            // ⚠️ SP-144 ([I-0232] AC5) — THE ENVELOPE GOES WITH IT. `result` is
+            // the open we just paid for; handing it over is what stops the editor
+            // opening the SAME project a second time. MEASURED: a second open
+            // costs ~79% of the first (196 → 155 filesystem calls), and nothing
+            // absorbed it — `ProjectIndex` accelerates `openScene`, but
+            // `ProjectOpener` never consults it.
+            //
+            // ✅ This is APPLE'S shape: `ProjectSession.loadAsync` opens once and
+            // passes `result.scenes` straight into the scene loop.
             var title = recentTitleFor(path)
             recents.addOrUpdate(path, title)
-            shell.openEditor(path, title)
+            shell.openEditor(path, title, result)
         }
 
         function onProjectOpenFailed() {
@@ -396,6 +406,10 @@ Item {
                 // the native editor shell (SP-061 / T-0234). The just-created
                 // project opens straight into the navigator + viewport.
                 stack.pop(null)
+                // ⚠️ NO envelope here, deliberately: the project was just CREATED,
+                // not opened, so there is nothing to hand over and the editor
+                // performs the one and only open. ⛔ Do not "fix" this by calling
+                // openProject first — that would reintroduce the double open.
                 shell.openEditor(path, title)
             }
         }

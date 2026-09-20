@@ -474,24 +474,31 @@ TEST_CASE("[I-0231] AC7 — calls per file do not grow with manuscript size",
 }
 
 // ---------------------------------------------------------------------------
-// SP-144 / [I-0232] AC5 — WHAT THE SECOND OPEN ACTUALLY COSTS
+// SP-144 / [I-0232] AC5 — WHY THE APP MUST NOT OPEN A PROJECT TWICE
 // ---------------------------------------------------------------------------
 //
-// ⚠️ THE USER'S CHALLENGE, ANSWERED WITH A NUMBER RATHER THAN A CLAIM: if the
-// landing opens the project and `EditorShell::load` opens it AGAIN, is the
-// second open free (absorbed by the `ProjectIndex` the ABI caches per project
-// root) or is it paid twice?
+// ⚠️ THIS MEASURES THE CORE, AND THE CORE HAS NOT CHANGED: two `openProject`
+// calls on the same root cost roughly the same each time. ✅ THAT IS THE POINT —
+// it is the evidence for why the APP layer must open once and hand the result
+// on, which is what [I-0232] AC5 now does.
 //
-// ⚠️ `ProjectIndex` DOES NOT HELP HERE. It is consulted through
-// `CoreServices::sceneLocator`, which `openScene` uses to turn a sceneID into a
-// path — ⛔ but `ProjectOpener` NEVER TOUCHES IT. So an `openProject` pays its
-// own way every time it is called, and this test records that fact so nobody has
-// to re-derive it from the code.
+// ⛔ NOTHING ABSORBS A SECOND OPEN, and this is the part that is easy to assume
+// wrongly:
+//   * `ProjectIndex` accelerates `openScene` (via `CoreServices::sceneLocator`)
+//     — ⚠️ `ProjectOpener` NEVER CONSULTS IT.
+//   * [I-0231]'s `ReadThroughCache` dies with the call that built it, by design:
+//     the filesystem is authoritative (EP-027) and Scrivi does no filesystem
+//     watching, so a cache that outlived the call could not know when it went
+//     stale.
 //
-// ✅ [I-0231]'s ReadThroughCache does not span calls either, BY DESIGN: it dies
-// with the call that created it, because the filesystem is authoritative and
-// Scrivi does no filesystem watching.
-TEST_CASE("[I-0232] AC5 — a second openProject costs the same as the first",
+// ✅ So "open once" has to be an APP-LAYER discipline. Apple's
+// `ProjectSession.loadAsync` always had it; Linux now hands `Landing.qml`'s
+// envelope through to `EditorShell::load` rather than re-opening.
+//
+// ⚠️ IF A FUTURE CHANGE MAKES A SECOND OPEN CHEAP (a cross-call cache, say),
+// THIS TEST WILL FAIL — and that is a prompt to re-read the EP-027 authority
+// ruling before relaxing anything, not to delete the assertion.
+TEST_CASE("[I-0232] AC5 — a second openProject is NOT free, so the app opens once",
           "[integration][SP-144][I-0232][AC5]")
 {
     Harness h;
@@ -505,16 +512,277 @@ TEST_CASE("[I-0232] AC5 — a second openProject costs the same as the first",
     REQUIRE(h.open().ok());
     const auto second = h.counting.total().total();
 
-    std::cout << "\n=== [I-0232] AC5 — double open ===\n"
+    std::cout << "\n=== [I-0232] AC5 — cost of a SECOND open ===\n"
               << "  first  openProject : " << first  << " filesystem calls\n"
               << "  second openProject : " << second << " filesystem calls\n"
-              << "  ⚠️ the second open is NOT free\n" << std::endl;
+              << "  ⚠️ not free — which is why the app hands the envelope over\n"
+              << std::endl;
 
     INFO("first=" << first << " second=" << second);
-
-    // ⚠️ THIS ASSERTS THE DEFECT, NOT A FIX. The second open costs essentially
-    // what the first did. ✅ Recording it as a test means AC5's remaining work is
-    // visible and measured rather than remembered — and the day the double open
-    // is actually removed, THIS TEST WILL FAIL and must be rewritten.
     CHECK(second >= first / 2);
+}
+
+// ---------------------------------------------------------------------------
+// SP-144 — WHERE THE TIME ACTUALLY GOES IN A FULL APP LOAD
+// ---------------------------------------------------------------------------
+//
+// ⚠️ THE USER'S OBSERVATION THAT FORCED THIS MEASUREMENT (2026-09-20): "none of
+// the projects I've loaded lately have been large", ⚠️ **yet the load still takes
+// too long.** ⛔ That falsifies "it is slow because the manuscript is big".
+//
+// ✅ The app's load is NOT one call. It is `openProject` followed by ONE
+// `openScene` PER SCENE (`EditorShell.cpp:455`), because the Linux editor builds
+// a CONTINUOUS viewport holding every scene's body. ⚠️ The rig measured the whole
+// load at 371 s of which the landing open was 155 s — ✅ so the per-scene loop is
+// the LARGER half, and it scales with SCENE COUNT, not project size on disk.
+//
+// ⚠️ THIS TEST DOES NOT ASSERT A BUDGET. It PRINTS the split, so the next fix is
+// aimed by evidence rather than at whichever half was most recently discussed.
+TEST_CASE("[SP-144] where a full app load spends its filesystem calls",
+          "[integration][SP-144][load-shape]")
+{
+    Harness h;
+    h.build(/*chapters=*/10, /*scenesPerChapter=*/6);
+
+    // Phase 1 — the open itself.
+    h.counting.reset();
+    auto opened = h.open();
+    REQUIRE(opened.ok());
+    const auto openCalls  = h.counting.total().total();
+    const auto sceneCount = opened.value().scenes.size();
+
+    // Phase 2 — the per-scene body reads the editor performs next.
+    h.counting.reset();
+    {
+        scrivi::ScriviCore core{h.services};
+        for (const auto& s : opened.value().scenes) {
+            scrivi::OpenSceneRequest req;
+            req.projectRootPath = h.root();
+            req.appSupportRoot  = h.appSupport();
+            req.projectID       = scrivi::ProjectID{h.projectID};
+            req.sceneID         = s.sceneID;
+            (void)core.openScene(req);
+        }
+    }
+    const auto sceneCalls = h.counting.total().total();
+
+    // ⚠️ WHERE those per-scene calls go — the hottest paths across the whole loop.
+    std::cout << "\n  -- 8 hottest paths across the openScene loop --\n";
+    for (const auto& [path, c] : h.counting.hottestPaths(8)) {
+        std::cout << "    " << c.total() << "x (read=" << c.readTextFile
+                  << " exists=" << c.exists << " list=" << c.listDirectory << ") "
+                  << path.substr(path.find("/manuscript") == std::string::npos
+                                 ? 0 : path.find("/manuscript"))
+                  << "\n";
+    }
+
+    std::cout << "\n=== [SP-144] full app load shape ===\n"
+              << "  scenes                       : " << sceneCount << "\n"
+              << "  openProject                  : " << openCalls  << " calls\n"
+              << "  openScene x " << sceneCount << " (the loop)    : " << sceneCalls << " calls\n"
+              << "  per scene                    : "
+              << (sceneCount ? static_cast<double>(sceneCalls) / static_cast<double>(sceneCount) : 0.0)
+              << " calls\n"
+              << "  TOTAL                        : " << (openCalls + sceneCalls) << " calls\n"
+              << "  ⚠️ the loop is "
+              << (openCalls ? static_cast<double>(sceneCalls) / static_cast<double>(openCalls) : 0.0)
+              << "x the open\n" << std::endl;
+
+    REQUIRE(sceneCount > 0);
+    REQUIRE(sceneCalls > 0);
+}
+
+// ---------------------------------------------------------------------------
+// SP-144 — the bulk-load variant performs NO workspace write
+// ---------------------------------------------------------------------------
+//
+// ⚠️ WHAT THIS DEFENDS. `openScene` records the opened scene as the project's
+// last writing surface — correct for a scene the writer NAVIGATED TO, and the
+// dominant cost of a bulk load, where it fires once per scene to record a value
+// only the last of which survives. ✅ MEASURED through the shipped C ABI (61
+// scenes, Linux/strace): 62 opens + 61 `.tmp` opens + 61 renames of
+// `workspace-state.json`, against 3 opens of any manuscript sidecar.
+//
+// ⛔ THE RESTORE MUST SURVIVE THE FIX. Suppressing the write must not suppress
+// the READ — a bulk load still has to return the writer's cursor and scroll, or
+// the optimisation would silently cost them their place in the manuscript.
+TEST_CASE("[SP-144] bulk-load openScene writes nothing, but still restores",
+          "[integration][SP-144][bulk-load]")
+{
+    Harness h;
+    h.build(/*chapters=*/4, /*scenesPerChapter=*/4);
+
+    auto opened = h.open();
+    REQUIRE(opened.ok());
+    REQUIRE_FALSE(opened.value().scenes.empty());
+    const auto sceneID = opened.value().scenes.front().sceneID;
+
+    scrivi::ScriviCore core{h.services};
+
+    auto makeRequest = [&](bool record) {
+        scrivi::OpenSceneRequest req;
+        req.projectRootPath = h.root();
+        req.appSupportRoot  = h.appSupport();
+        req.projectID       = scrivi::ProjectID{h.projectID};
+        req.sceneID         = sceneID;
+        req.recordAsWritingSurface = record;
+        return req;
+    };
+
+    // --- the DEFAULT still writes (no existing caller changes behaviour) -----
+    h.counting.reset();
+    auto recorded = core.openScene(makeRequest(/*record=*/true));
+    REQUIRE(recorded.ok());
+    // ⚠️ Compared against the RECORDING path, so "empty" can never be blamed on
+    // the flag when it is really a property of the fixture.
+    const bool recordedMarkdownEmpty = recorded.value().markdown.empty();
+    const auto writesWhenRecording =
+        h.counting.total().atomicWrite + h.counting.total().renamePath;
+    INFO("writes when recording: " << writesWhenRecording);
+    CHECK(writesWhenRecording > 0);
+
+    // --- the BULK variant writes NOTHING AT ALL ------------------------------
+    h.counting.reset();
+    auto bulk = core.openScene(makeRequest(/*record=*/false));
+    REQUIRE(bulk.ok());
+
+    const auto& t = h.counting.total();
+    const auto writes = t.atomicWrite + t.appendTextFile + t.renamePath
+                      + t.createExclusive + t.removeFile;
+
+    std::cout << "\n=== [SP-144] bulk-load openScene ===\n"
+              << "  writes when RECORDING : " << writesWhenRecording << "\n"
+              << "  writes when BULK      : " << writes << "\n"
+              << "  total calls when BULK : " << t.total() << "\n" << std::endl;
+
+    // ⚠️ THE WHOLE POINT: a bulk read is a READ.
+    CHECK(writes == 0);
+
+    // ⛔ ...and the bulk variant returns EXACTLY what the recording one does.
+    // ⚠️ Asserted as EQUIVALENCE, not as non-emptiness: these fixture scenes are
+    // created through the core and their bodies are legitimately empty, so
+    // "not empty" would be testing the fixture rather than the change.
+    CHECK(bulk.value().markdown.empty() == recordedMarkdownEmpty);
+    CHECK(bulk.value().scene.sceneID.value == sceneID.value);
+}
+
+// ---------------------------------------------------------------------------
+// SP-144 — the SAVE path still records the writing surface
+// ---------------------------------------------------------------------------
+//
+// ⚠️ WHAT THIS DEFENDS, AND WHY IT IS NOT OBVIOUS. [I-0234] stopped the bulk
+// load stamping `lastWritingSurface` once per scene. ⛔ That is only safe because
+// something ELSE still records where the writer is — `saveScene` does, on every
+// save (`SceneWriter.cpp:37`), which is what both platforms' teardown paths rely
+// on (Apple: `stampWritingSurfaceBlocking`, [I-0058]/[I-0131]; Linux: the
+// `stampWritingSurface` added alongside this change).
+//
+// ⛔ IF THIS EVER STOPS BEING TRUE, RESUME BREAKS SILENTLY: the writer reopens
+// their project and lands on the wrong scene, with no error anywhere. ✅ A test
+// here is much cheaper than rediscovering that from a bug report.
+TEST_CASE("[SP-144] saveScene records lastWritingSurface (what resume depends on)",
+          "[integration][SP-144][I-0234]")
+{
+    Harness h;
+    h.build(/*chapters=*/3, /*scenesPerChapter=*/3);
+
+    auto opened = h.open();
+    REQUIRE(opened.ok());
+    REQUIRE(opened.value().scenes.size() > 1);
+
+    // Pick a scene that is NOT the one the open already made active, so a pass
+    // cannot be an artefact of openProject's own stamping.
+    const auto& target = opened.value().scenes.back();
+    REQUIRE(target.sceneID.value != opened.value().activeScene->sceneID.value);
+
+    scrivi::ScriviCore core{h.services};
+
+    scrivi::SaveSceneRequest save;
+    save.projectID         = scrivi::ProjectID{h.projectID};
+    save.projectRootPath   = h.root();
+    save.appSupportRoot    = h.appSupport();
+    save.sceneID           = target.sceneID;
+    save.sceneMetadataPath = target.metadataPath;
+    save.sceneContentPath  = target.contentPath;
+    save.markdown          = "The writer typed this.\n";
+    save.selection         = {7, 7};
+    save.scroll            = {0.5};
+    save.author            = {scrivi::IdentityID{"identity-001"},
+                              scrivi::PersonaID{"persona-001"},
+                              "Test Author"};
+    REQUIRE(core.saveScene(save).ok());
+
+    // Reopening must now resume on the SAVED scene, not the original active one.
+    auto reopened = h.open();
+    REQUIRE(reopened.ok());
+    REQUIRE(reopened.value().activeScene.has_value());
+
+    INFO("resumed on " << reopened.value().activeScene->sceneID.value
+         << ", expected " << target.sceneID.value);
+    CHECK(reopened.value().activeScene->sceneID.value == target.sceneID.value);
+}
+
+// ---------------------------------------------------------------------------
+// SP-144 — a full load's WRITES must be O(1), not O(scenes)
+// ---------------------------------------------------------------------------
+//
+// ⚠️ THIS IS THE LARGE-PROJECT GUARD, and it is about WRITES specifically.
+// [I-0231]'s bound (AC2/AC7) covers reads-per-file; this covers the other axis,
+// which is what actually scaled with manuscript size.
+//
+// ⚠️ MEASURED on the shipped ABI (Linux, `strace -c -f`) BEFORE the fix, writes
+// grew exactly with scene count — 60 scenes: 62 writes; 120: 122; 240: 242 —
+// because every `openScene` re-stamped `lastWritingSurface`. ✅ AFTER: 1 write at
+// every size.
+//
+// ⚠️ On a `cache=none` network volume each eliminated write was a temp-create +
+// write + rename ROUND-TRIP, so this is the axis a large project feels most.
+//
+// ⛔ A TOTAL-CALL BUDGET WOULD NOT CATCH THIS: reads legitimately grow with the
+// manuscript, so the regression would hide inside a rising total. ✅ The
+// assertion is that writes DO NOT grow with scene count.
+TEST_CASE("[SP-144] a bulk load's writes do not grow with scene count",
+          "[integration][SP-144][I-0234][scaling]")
+{
+    auto writesForFullLoad = [](int chapters, int scenesPerChapter,
+                                std::size_t& sceneCountOut) {
+        Harness h;
+        h.build(chapters, scenesPerChapter);
+
+        auto opened = h.open();
+        REQUIRE(opened.ok());
+        sceneCountOut = opened.value().scenes.size();
+
+        // Count ONLY the per-scene loop, which is where the growth was.
+        h.counting.reset();
+        scrivi::ScriviCore core{h.services};
+        for (const auto& s : opened.value().scenes) {
+            scrivi::OpenSceneRequest req;
+            req.projectRootPath = h.root();
+            req.appSupportRoot  = h.appSupport();
+            req.projectID       = scrivi::ProjectID{h.projectID};
+            req.sceneID         = s.sceneID;
+            req.recordAsWritingSurface = false;   // the bulk-load path
+            (void)core.openScene(req);
+        }
+        const auto& t = h.counting.total();
+        return t.atomicWrite + t.appendTextFile + t.renamePath
+             + t.createExclusive + t.removeFile;
+    };
+
+    std::size_t smallScenes = 0, largeScenes = 0;
+    const auto smallWrites = writesForFullLoad(3, 3, smallScenes);
+    const auto largeWrites = writesForFullLoad(10, 8, largeScenes);
+
+    std::cout << "\n=== [SP-144] write scaling across a bulk load ===\n"
+              << "  " << smallScenes << " scenes → " << smallWrites << " writes\n"
+              << "  " << largeScenes << " scenes → " << largeWrites << " writes\n"
+              << "  ⚠️ before the fix this was ~1 write PER SCENE\n" << std::endl;
+
+    REQUIRE(largeScenes > smallScenes * 2);   // the sizes really do differ
+
+    // ✅ THE ASSERTION: writes are independent of manuscript size.
+    INFO("small=" << smallWrites << " (" << smallScenes << " scenes), "
+         << "large=" << largeWrites << " (" << largeScenes << " scenes)");
+    CHECK(largeWrites == smallWrites);
 }
