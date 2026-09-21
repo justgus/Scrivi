@@ -405,6 +405,22 @@ public:
     // errorOccurred, returns {}.
     Q_INVOKABLE QVariantMap listHistoricalEvents(const QString& projectRootPath);
 
+    // Inspector layout (EP-041 / SP-142, T-0537) — `inspector-layout.json`, owned by
+    // ScriviCore since [SP-141].
+    //
+    // ⚠️ getInspectorLayout ALWAYS SUCCEEDS and reports what it found:
+    //   status "ok"         → `documentJSON` holds the document
+    //   status "absent"     → no file. ⚠️ NORMAL — the app applies its own defaults.
+    //   status "unreadable" → corrupt. ⛔ The core did NOT overwrite it; `message` says why.
+    // ⛔ Do not collapse `absent` and `unreadable`: the app defaults for both but can
+    // only WARN about the second.
+    //
+    // ⚠️ The document is OPAQUE across the boundary — the core never interprets it, so
+    // keys this build does not understand survive BY CONSTRUCTION ([I-0215]).
+    Q_INVOKABLE QVariantMap getInspectorLayout(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap putInspectorLayout(const QString& projectRootPath,
+                                               const QString& documentJson);
+
     // Imports an external timeline. `timelineJSON` is the file body; `epochOffsetMs`
     // shifts every event; `assignedGreyShade` is the row's per-source grey (hex). On
     // failure emits errorOccurred, returns {}.

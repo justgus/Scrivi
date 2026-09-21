@@ -511,6 +511,12 @@ private:
         QString title;
         QString description;
         qint64  offsetMs = 0;
+        // ⚠️ T-0542 / [I-0241]: tags come from the LIST PROJECTION now.
+        // ⛔ They used to be re-read off disk per lookup by
+        // `readHistoricalEventTagsFromDisk`, which listed and parsed EVERY file in
+        // `objects/historical-events/` to recover this one field — and returned an
+        // EMPTY list on any failure, so the drag path could silently erase them.
+        QStringList tags;
     };
     QHash<QString, HistEventCache> histEvents_;
     SceneDocument       sceneDoc_;

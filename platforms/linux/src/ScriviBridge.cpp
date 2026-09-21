@@ -743,6 +743,32 @@ QVariantMap ScriviBridge::deleteHistoricalEvent(const QString& projectRootPath,
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::getInspectorLayout(const QString& projectRootPath)
+{
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_get_inspector_layout(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::putInspectorLayout(const QString& projectRootPath,
+                                             const QString& documentJson)
+{
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(
+        scrivi_put_inspector_layout(projectRootPath.toUtf8().constData(),
+                                    documentJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::listHistoricalEvents(const QString& projectRootPath)
 {
     if (!ready_) {

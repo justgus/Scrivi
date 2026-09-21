@@ -798,15 +798,24 @@ target_compile_features(scrivi_linux_inspector_fixture PRIVATE cxx_std_23)
 # keys this build has never heard of; plus unknown-tab degradation, missing-file
 # defaults, and that a CORRUPT file is left untouched rather than overwritten.
 # inspector_layout_smoke.sh.
+# ⚠️ T-0537: this target gained ScriviBridge + ScriviCore. The store no longer
+# opens `inspector-layout.json` itself — it goes through [SP-141]'s core endpoints
+# — so the smoke needs a bootstrapped bridge to exercise it at all.
+# ⛔ Its ASSERTIONS did not change: they were always about the SCHEMA's behaviour.
 qt_add_executable(scrivi_linux_inspector_layout_smoke
     tests/inspector_layout_smoke.cpp
     src/InspectorLayoutStore.cpp
     src/InspectorLayoutStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
 )
 
 target_link_libraries(scrivi_linux_inspector_layout_smoke
     PRIVATE
+        ScriviCore
         Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
 )
 
 target_include_directories(scrivi_linux_inspector_layout_smoke PRIVATE src)

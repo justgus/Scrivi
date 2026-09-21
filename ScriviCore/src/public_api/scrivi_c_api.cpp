@@ -2678,6 +2678,32 @@ const char* scrivi_remove_story_structure(const char* projectRootPath) {
     return heap(okEnvelope(std::move(doc)));
 }
 
+// ⚠️ T-0542 / [I-0241] — historical-event `tagsJSON`, parsed in ONE place.
+//
+// ⛔ THE BUG THIS REPLACES: both endpoints called `getStringArray("tags")` on the
+// PARSED document. That reads an array held UNDER the key "tags" — so it worked for
+// the wrapped form and returned EMPTY for the bare array the header documented.
+// A dead `arraySize("tags")` block sat beside it, showing the gap was noticed and
+// not closed.
+//
+// ⚠️ BOTH SHAPES ARE ACCEPTED DELIBERATELY, and this is not indecision:
+//   • `{"tags":["a","b"]}` is what Linux ACTUALLY SENDS (`tagsToJson`,
+//     EditorShell.cpp) and what Apple's `tagsJSON: String = "{}"` default implies.
+//   • `["a","b"]` is what `scrivi.h` DOCUMENTS.
+// ⛔ Narrowing to either one alone breaks a live caller or the published contract.
+// ✅ The header is corrected to say both.
+extern "C++" {
+namespace {
+std::vector<std::string> parseHistoricalEventTags(const std::string& tagsJSON) {
+    auto parsed = scrivi::util::parseJson(tagsJSON);
+    if (!parsed.ok()) { return {}; }           // absent/unparseable ⇒ no tags
+    auto wrapped = parsed.value().getStringArray("tags");
+    if (!wrapped.empty()) { return wrapped; }
+    return parsed.value().rootStringArray();
+}
+} // namespace
+} // extern "C++"
+
 const char* scrivi_create_historical_event(const char* projectRootPath,
                                              const char* title, int64_t offsetMs,
                                              const char* description, const char* tagsJSON,
@@ -2693,16 +2719,7 @@ const char* scrivi_create_historical_event(const char* projectRootPath,
         .personaID   = scrivi::PersonaID{S(personaID)},
         .displayName = S(displayName)
     };
-    // Parse tagsJSON as a flat string array: ["tag1","tag2"]
-    auto tagsR = scrivi::util::parseJson(S(tagsJSON));
-    if (tagsR.ok()) {
-        req.tags = tagsR.value().getStringArray("tags");
-        // Also try root-level array
-        if (req.tags.empty()) {
-            const auto n = tagsR.value().arraySize("tags");
-            (void)n; // getStringArray already handles this
-        }
-    }
+    req.tags = parseHistoricalEventTags(S(tagsJSON));
     auto r = core().createHistoricalEvent(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
     scrivi::util::JsonDoc doc;
@@ -2720,8 +2737,7 @@ const char* scrivi_update_historical_event(const char* projectRootPath, const ch
     req.title           = S(title);
     req.offsetMs        = offsetMs;
     req.description     = S(description);
-    auto tagsR = scrivi::util::parseJson(S(tagsJSON));
-    if (tagsR.ok()) { req.tags = tagsR.value().getStringArray("tags"); }
+    req.tags = parseHistoricalEventTags(S(tagsJSON));
     auto r = core().updateHistoricalEvent(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
     scrivi::util::JsonDoc doc;

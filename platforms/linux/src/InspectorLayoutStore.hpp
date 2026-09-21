@@ -3,42 +3,42 @@
 #include <QJsonObject>
 #include <QString>
 
-// InspectorLayoutStore — reads and writes `inspector-layout.json` at a project
-// root (EP-035 / SP-126, T-0486). The Qt counterpart of Apple's
-// Scrivi/App/InspectorLayoutStore.swift.
+// InspectorLayoutStore — the inspector layout, THROUGH ScriviCore
+// (EP-041 / SP-142, T-0537). Originally EP-035 / SP-126, T-0486.
 //
-// ## ⚠️ This schema is SHARED, ALREADY EXISTS, and is APP-SIDE
+// ## ⛔ THIS CLASS NO LONGER TOUCHES THE FILESYSTEM
 //
-// `scrivi.inspector-layout.v1` sits at the project root. ⚠️ **There is NO
-// `scrivi_*` endpoint for it** — `SceneMetaJson.hpp:53` calls it "view
-// configuration" and deliberately keeps it out of scene metadata, so Apple reads
-// and writes the file directly and so must Linux.
+// ⚠️ It used to read and write `inspector-layout.json` itself, because there was
+// no `scrivi_*` endpoint for the schema. ✅ [SP-141] built one
+// (`scrivi_get_inspector_layout` / `scrivi_put_inspector_layout`) and converted
+// Apple; ✅ T-0537 converts Linux, so ⛔ `scrivi.inspector-layout.v1` now has
+// exactly ONE owner.
 //
-// ⚠️ **Apple already populates it in real projects.** A writer's project carries
-// `selectedTab`, `inspectorHidden`, `defaultStacks`, `stackSort` and a per-scene
-// `scenes` map before Linux ever opens it.
+// ⚠️ **THE DUPLICATION WAS NOT THEORETICAL.** [I-0215]: this class preserved keys
+// it did not understand and Apple's Swift store DROPPED them — same file, same
+// schema, two behaviours. ✅ Linux was the one that had it right.
+// ⛔ **DO NOT REINTRODUCE `QFile`/`QSaveFile` HERE.**
+// ⚠️ ENFORCED, NOT ADVISORY: `scripts/check-package-boundary.sh` (EP-041 / T-0541)
+// fails CI on `QFile`/`QSaveFile` anywhere in `platforms/linux/src/` outside its
+// reasoned allow-list.
 //
-// ## ⚠️ PATCH, NEVER RECONSTRUCT — the whole point of this class
+// ## ✅ What this class still owns: MEANING
 //
-// ⚠️ **Linux does not model `stackSort`, `defaultStacks` or per-scene stacks in
-// this sprint.** Building a typed struct and serialising it back would therefore
-// DELETE every one of those keys.
+// The core owns atomicity, durability and repair; ⛔ it does NOT interpret the
+// document and does not know what a tab is. ✅ So the app still owns:
+//   • the DEFAULTS for a project that has no layout yet (Apple's ruled defaults);
+//   • which tab strings this build recognises, and the degrade-to-Writing rule;
+//   • what to do about an `unreadable` document.
 //
-// ⚠️ **The loss would be silent and invisible until the writer reopened the
-// project on the Mac** and found her card layout gone. That is the T-0436/T-0437
-// "patch, never reconstruct" rule (Porting Outline §4.3) applied to view
-// configuration rather than to an object — the failure mode is identical.
+// ## ⚠️ PATCH, NEVER RECONSTRUCT — still the rule
 //
-// ✅ **So this class keeps the WHOLE decoded document** and mutates only the keys
-// it understands. Everything else round-trips untouched, including keys a future
-// Scrivi adds that this build has never heard of.
-//
-// ## ⚠️ Accepted risk, recorded deliberately
-//
-// ⚠️ **Two app-side implementations of one schema, with no core to arbitrate.**
-// ⚠️ **If a THIRD platform needs this file, move the schema into ScriviCore
-// rather than writing a third parser** — that is the point at which the
-// duplication stops being affordable.
+// ⚠️ Linux does not model `stackSort`, `defaultStacks` or per-scene stacks.
+// ✅ This class keeps the WHOLE decoded document and mutates only the keys it
+// understands, so everything else round-trips untouched — including keys a future
+// Scrivi adds. ⚠️ The core reinforces this (it never interprets the document), but
+// ⛔ it cannot save a caller that reconstructs one.
+class ScriviBridge;
+
 class InspectorLayoutStore
 {
 public:
@@ -47,10 +47,19 @@ public:
     // `selectedTab` is not trusted.
     static constexpr const char* kSchemaID = "scrivi.inspector-layout.v1";
 
-    // Point the store at a project root and load its layout. A missing or
-    // unreadable file is NOT an error — it yields Apple's ruled defaults, which
-    // is what a project created before this file existed should see.
-    void load(const QString& projectRootPath);
+    // Point the store at a project and load its layout THROUGH THE CORE.
+    //
+    // ⚠️ `bridge` must outlive this store (the shell owns both).
+    // ✅ An ABSENT or UNREADABLE document is NOT an error — it yields Apple's ruled
+    // defaults, which is what a project created before this file existed should see.
+    // ⛔ An unreadable one additionally leaves the damaged file untouched on disk:
+    // the core does not overwrite it, and neither do we until the writer acts.
+    void load(ScriviBridge* bridge, const QString& projectRootPath);
+
+    // True when the last load found a document the core could not parse. The
+    // layout shown is defaults; ⚠️ the writer's real layout may be recoverable by
+    // hand, so a caller may wish to say so rather than silently proceed.
+    [[nodiscard]] bool loadWasUnreadable() const { return unreadable_; }
 
     // The persisted tab selection, or "writing" when absent/unknown.
     //
@@ -69,14 +78,14 @@ public:
     void setSelectedTab(const QString& tab);
 
 private:
-    // Write the (patched) document back atomically. Called by the setters.
-    //
-    // ⚠️ Writes via a temporary + rename so an interrupted write cannot leave a
-    // truncated layout file — losing the file degrades gracefully, but a HALF
-    // file would not parse and would take the writer's Apple-side layout with it.
+    // Hand the (patched) document to the core. ✅ ATOMICITY IS THE CORE'S JOB now —
+    // it writes a temp and renames, the same discipline this class used to
+    // implement itself. ⛔ Do not reintroduce a write here.
     bool save() const;
 
-    QString     path_;      // <projectRoot>/inspector-layout.json
+    ScriviBridge* bridge_ = nullptr;   // not owned
+    QString     projectRootPath_;
     QJsonObject document_;  // ⚠️ THE WHOLE DOCUMENT — see "patch, never reconstruct"
     bool        loaded_ = false;
+    bool        unreadable_ = false;
 };

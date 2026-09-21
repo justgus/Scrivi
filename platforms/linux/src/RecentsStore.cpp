@@ -67,7 +67,7 @@ void RecentsStore::load()
 {
     entries_.clear();
 
-    QFile file(filePath_);
+    QFile file(filePath_);   // boundary-ok: recents.json under appSupportRoot, not a package
     if (!file.exists() || !file.open(QIODevice::ReadOnly)) {
         // Missing file is normal on first launch — start empty.
         emit entriesChanged();
@@ -119,7 +119,7 @@ void RecentsStore::save() const
     }
 
     // Atomic write so a crash mid-save never corrupts the recents file.
-    QSaveFile out(filePath_);
+    QSaveFile out(filePath_);   // boundary-ok: recents.json under appSupportRoot, not a package
     if (!out.open(QIODevice::WriteOnly)) {
         return;   // best-effort; a failed persist is not fatal to the session
     }

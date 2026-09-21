@@ -1,10 +1,12 @@
 #include "InspectorLayoutStore.hpp"
 
-#include <QDir>
-#include <QFile>
+#include "ScriviBridge.hpp"
+
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QSaveFile>
+// ⛔ NO <QFile>, <QSaveFile> or <QDir>: T-0537 moved every byte of this file's I/O
+// into ScriviCore. Reintroducing one of these includes is the tell that the
+// [I-0197] bypass is coming back.
 
 namespace {
 
@@ -59,45 +61,54 @@ QJsonObject makeDefaultDocument()
 
 } // namespace
 
-void InspectorLayoutStore::load(const QString& projectRootPath)
+void InspectorLayoutStore::load(ScriviBridge* bridge, const QString& projectRootPath)
 {
-    path_.clear();
+    bridge_ = bridge;
+    projectRootPath_ = projectRootPath;
     document_ = QJsonObject{};
     loaded_ = false;
+    unreadable_ = false;
 
-    if (projectRootPath.isEmpty()) {
+    if (!bridge_ || projectRootPath.isEmpty()) {
         return;
     }
-    path_ = QDir(projectRootPath).filePath(QStringLiteral("inspector-layout.json"));
 
-    QFile f(path_);
-    if (!f.open(QIODevice::ReadOnly)) {
-        // ⚠️ A MISSING file is not an error — a project created before this file
-        // existed has none, and Apple's own loader falls back the same way.
-        // Defaults are held in memory and only reach disk if something is set.
+    const QVariantMap r = bridge_->getInspectorLayout(projectRootPath);
+    if (bridge_->lastCallFailed()) {
+        // ⚠️ The CALL failed, not the document. Defaults in memory, and ⛔ `loaded_`
+        // stays false so no setter can write over a layout we never saw.
+        document_ = makeDefaultDocument();
+        return;
+    }
+
+    const QString status = r.value(QStringLiteral("status")).toString();
+
+    if (status == QLatin1String("absent")) {
+        // ✅ NORMAL, NOT AN ERROR. A project created before this file existed has
+        // no layout; so does one whose inspector has never been touched. Defaults
+        // are held in memory and only reach disk if something is actually set.
         document_ = makeDefaultDocument();
         loaded_ = true;
         return;
     }
 
-    QJsonParseError err{};
-    const QJsonDocument parsed = QJsonDocument::fromJson(f.readAll(), &err);
-    f.close();
-
-    if (err.error != QJsonParseError::NoError || !parsed.isObject()) {
-        // ⚠️ A CORRUPT file is deliberately NOT overwritten with defaults here.
-        // `loaded_` stays false, which makes every setter a no-op, so a damaged
-        // layout is left exactly as found for a human to look at rather than
-        // being silently replaced. Losing a layout is annoying; destroying the
-        // evidence of how it broke is worse.
+    if (status != QLatin1String("ok")) {
+        // ⚠️ "unreadable" (or anything unrecognised). ⛔ `loaded_` STAYS FALSE, which
+        // makes every setter a no-op — so a damaged layout is left exactly as found
+        // for a human to look at. The core did not overwrite it either.
+        // ✅ Losing a layout is annoying; destroying the evidence of how it broke is
+        // worse.
         document_ = makeDefaultDocument();
+        unreadable_ = (status == QLatin1String("unreadable"));
         return;
     }
 
     // ⚠️ THE WHOLE DOCUMENT is kept, including every key this build does not
     // understand (`stackSort`, `defaultStacks`, `scenes`, and anything a future
     // Scrivi adds). This is what makes the round trip lossless.
-    document_ = parsed.object();
+    // ✅ The core hands it back verbatim — it never interprets it.
+    const QVariantMap doc = r.value(QStringLiteral("document")).toMap();
+    document_ = QJsonObject::fromVariantMap(doc);
     loaded_ = true;
 }
 
@@ -129,17 +140,14 @@ void InspectorLayoutStore::setSelectedTab(const QString& tab)
 
 bool InspectorLayoutStore::save() const
 {
-    if (path_.isEmpty() || !loaded_) {
+    if (!bridge_ || projectRootPath_.isEmpty() || !loaded_) {
         return false;
     }
-    // QSaveFile writes to a temporary and renames on commit, so a crash or a
-    // full disk cannot leave a truncated layout file behind.
-    QSaveFile f(path_);
-    if (!f.open(QIODevice::WriteOnly)) {
-        return false;
-    }
-    // Indented to match Apple's output, so a project that moves between
-    // platforms does not churn the file's formatting in version control.
-    f.write(QJsonDocument(document_).toJson(QJsonDocument::Indented));
-    return f.commit();
+    // ✅ ATOMICITY IS THE CORE'S JOB (EP-041): it writes a temp and renames, the
+    // same discipline `QSaveFile` gave us here before T-0537.
+    // ⛔ Do not reintroduce a write — that is the [I-0197] bypass.
+    const QString json =
+        QString::fromUtf8(QJsonDocument(document_).toJson(QJsonDocument::Compact));
+    bridge_->putInspectorLayout(projectRootPath_, json);
+    return !bridge_->lastCallFailed();
 }

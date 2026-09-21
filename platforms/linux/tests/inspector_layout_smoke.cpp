@@ -34,6 +34,7 @@
 #include <cstdio>
 
 #include "InspectorLayoutStore.hpp"
+#include "ScriviBridge.hpp"
 
 namespace {
 
@@ -105,6 +106,26 @@ int main(int argc, char* argv[])
     }
     const QString base = QString::fromUtf8(argv[1]);
 
+    // ⚠️ T-0537: THE SUBJECT CHANGED, THE ASSERTIONS DID NOT.
+    //
+    // The store no longer opens `inspector-layout.json` itself — it goes through
+    // ScriviCore ([SP-141]'s endpoints). ✅ So this test now needs a bootstrapped
+    // bridge. ⛔ EVERY assertion below is unchanged: they were always about the
+    // SCHEMA's behaviour (lossless round trip, unknown tab degrades, missing file
+    // defaults, corrupt file untouched), never about the Qt class.
+    //
+    // ✅ That is deliberate — a test that keeps its assertions and changes only its
+    // subject is the independent witness this Epic has twice paid for lacking
+    // ([I-0214], [I-0215]).
+    const QString appSupport = QDir(base).filePath(QStringLiteral("appsupport"));
+    QDir().mkpath(appSupport);
+    ScriviBridge bridge;
+    bridge.bootstrap(QStringLiteral("Inspector Layout Tester"), appSupport);
+    if (!bridge.ready()) {
+        std::fprintf(stderr, "FAIL: identity did not bootstrap\n");
+        return 1;
+    }
+
     // ================================================================
     // 1 — ⚠️ THE ROUND TRIP: an Apple document survives a write
     // ================================================================
@@ -116,7 +137,7 @@ int main(int argc, char* argv[])
         const QJsonObject before = readFile(path);
 
         InspectorLayoutStore store;
-        store.load(root);
+        store.load(&bridge, root);
         check(store.selectedTab() == QLatin1String("worldbuilding"),
               "selectedTab is read from the Apple document");
 
@@ -158,7 +179,7 @@ int main(int argc, char* argv[])
         const QString root = QDir(base).filePath(QStringLiteral("unknowntab"));
         writeFile(root, R"({"schema":"scrivi.inspector-layout.v1","selectedTab":"holodeck"})");
         InspectorLayoutStore store;
-        store.load(root);
+        store.load(&bridge, root);
         // ⚠️ A newer Scrivi may name a tab this build lacks. Refusing to open the
         // project over that would be far worse than showing Writing.
         check(store.selectedTab() == QLatin1String("writing"),
@@ -172,13 +193,13 @@ int main(int argc, char* argv[])
         const QString root = QDir(base).filePath(QStringLiteral("nofile"));
         QDir().mkpath(root);
         InspectorLayoutStore store;
-        store.load(root);
+        store.load(&bridge, root);
         check(store.selectedTab() == QLatin1String("writing"),
               "a missing layout file yields Apple's ruled default");
 
         store.setSelectedTab(QStringLiteral("properties"));
         InspectorLayoutStore reread;
-        reread.load(root);
+        reread.load(&bridge, root);
         check(reread.selectedTab() == QLatin1String("properties"),
               "a layout file is created on first write and reads back");
     }
@@ -190,7 +211,7 @@ int main(int argc, char* argv[])
         const QString root = QDir(base).filePath(QStringLiteral("corrupt"));
         const QString path = writeFile(root, "{ this is not json");
         InspectorLayoutStore store;
-        store.load(root);
+        store.load(&bridge, root);
         store.setSelectedTab(QStringLiteral("worldbuilding"));
 
         QFile f(path);

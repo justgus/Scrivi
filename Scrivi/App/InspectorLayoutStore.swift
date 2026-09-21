@@ -147,6 +147,11 @@ struct ResolvedStack {
 /// ⛔ DO NOT REINTRODUCE FILE I/O HERE. The core owns atomicity, durability and
 /// repair; this class owns MEANING — the typed document, the defaults, and the
 /// decision of what an absent or damaged layout should look like on screen.
+///
+/// ⚠️ THIS IS ENFORCED, NOT ADVISORY: `scripts/check-package-boundary.sh`
+/// (EP-041 / T-0541) fails CI on `.write(to:)`, `Data(contentsOf:)`,
+/// `String(contentsOf:)` or `FileHandle` anywhere in `Scrivi/` outside its
+/// reasoned allow-list.
 @Observable @MainActor final class InspectorLayoutStore {
 
     private(set) var document: InspectorLayoutDocument

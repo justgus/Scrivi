@@ -8,13 +8,13 @@ activated: 2026-09-18
 # EP-041: `[Cross]` ⚠️ **The Boundary** — ✅ **make ScriviCore the only writer of project state**
 
 **Status:** 🟡 **ACTIVE — activated 2026-09-18 (user-ruled)**
-**Sprints:** [SP-140] · [SP-141] · [SP-142] · [SP-143]
-**Primary Issue:** [I-0197] (Classes A and B) · **Also:** ✅ [I-0215] (closed) · ⚠️ [I-0223] (unassigned)
+**Sprints:** ✅ [SP-140] · ✅ [SP-141] · 🔵 [SP-142] · 🔵 [SP-149] · 🔵 [SP-143]
+**Primary Issue:** [I-0197] (Classes A and B) · **Also:** ✅ [I-0215] (closed) · ⚠️ [I-0223] (unassigned) ·
+⚠️ **[I-0241]** (`[Linux]`, filed 2026-09-21 while planning [SP-149]) → ✅ **[SP-142] / T-0542**
 
-⚠️ **STATUS 2026-09-21 (end of day): ✅ T-0507 IS USER-VERIFIED; 🟠 [SP-141] IS COMPLETE, awaiting
-close approval.** ✅ **AC2 is MET.** ⚠️ **HALF of [I-0197] Class B is closed** — ⛔ **Linux's duplicate
+⚠️ **STATUS 2026-09-21: ✅ [SP-141] CLOSED (user-approved); T-0507 VERIFIED.** ✅ **AC2 is MET.** ⚠️ **HALF of [I-0197] Class B is closed** — ⛔ **Linux's duplicate
 store is untouched until [SP-142], which is now UNBLOCKED.**
-✅ **Two Sprints remain: [SP-142] (planned, unblocked) and [SP-143] (the guard).**
+✅ **Three Sprints remain: 🟢 [SP-142] (ACTIVE 2026-09-21, two Tasks), 🔵 [SP-149] (the guard MECHANISM — fully ruled, blocks on nothing) and 🔵 [SP-143] (verify + close).**
 ⚠️ **Q1 was answered BEFORE T-0507 implemented, not after** — ✅ **it surfaced from planning the
 then-BLOCKED [SP-142], which is why it cost nothing.** ⚠️ **The pre-implementation status follows:**
 
@@ -108,15 +108,39 @@ atomic-write guarantees actually cover the files a project contains.**
       an injected [I-0215]-shaped defect.** *(→ [SP-141] / [T-0507])*
 - [ ] **AC3** — ⛔ **Linux's duplicate `InspectorLayoutStore.cpp` is RETIRED**, not left as a second
       implementation of the same rule. *(→ [SP-142] / [T-0537])*
-- [ ] **AC4** — ✅ **A regression guard prevents a new bypass from landing.** ⚠️ **Mechanism NOT yet
-      designed** — ⛔ **it must be SPECIFIED before it is promised**, the way [T-0527] guards the
-      TextKit downgrade. *(→ [SP-143] / [T-0510])*
+- [~] **AC4** — 🟢 **IMPLEMENTED 2026-09-21 ([SP-149]/T-0541), ⛔ NOT USER-VERIFIED.**
+      ✅ **`scripts/check-package-boundary.sh` + `.github/workflows/scrivi-apple-ci.yml`** —
+      ⚠️ **`Scrivi/`'s FIRST CI of any kind** — ✅ **with `check-textkit2.sh` wired in beside it
+      (it had run in NO automation since SP-133), and the Linux half in `scrivi-linux-ci.yml`.**
+      ✅ **VERIFIED FAILING FOUR WAYS.** ⛔ **The workflows have never run on GitHub.**
+      ✅ **A regression guard prevents a new bypass from landing.**
+      ✅ **[SP-149] CREATED 2026-09-21 TO OWN THE MECHANISM** — ⚠️ **the design half blocks on nothing
+      and was at risk of never being done deliberately.** *(→ [SP-149] / [T-0541]; verified by
+      [SP-143] / [T-0510])*
+      ⚠️ **THREE FINDINGS RESHAPE THIS AC** (measured 2026-09-21): ⛔ **`check-textkit2.sh` — the
+      precedent this AC names — IS NOT WIRED INTO ANY CI;** ⛔ **NO workflow covers `Scrivi/` at all,
+      so a Swift-only change runs ZERO CI** — ⚠️ **and that is exactly the change that introduces a
+      bypass;** ✅ **the surface is 12 hits in 6 files with ZERO package writes left**, ⚠️ **so the
+      baseline is clean and this is the cheapest moment to install a guard.**
+      ✅ **MECHANISM RULED IN FULL 2026-09-21 (user):** ⚠️ **narrow API pattern** (`.write(to:`,
+      `Data/String(contentsOf:)`, `FileHandle`; ⛔ **NOT `fileExists` — Class C is already ruled**) ·
+      ✅ **a NEW lint-only `scrivi-apple-ci.yml` on `Scrivi/**`, which is that tree's FIRST CI** ·
+      ✅ **`check-textkit2.sh` wired in beside it** · ✅ **ONE script, TWO pattern sets, BOTH workflows** ·
+      ✅ **[SP-149] rules AND builds; [SP-143] stays the independent witness.**
+      ⚠️ **PLANNING IT FOUND A LIVE BYPASS NOTHING ELSE HAD: [I-0241].**
 - [ ] **AC5** — ✅ **[I-0197] CLOSES.** ⚠️ **Classes A and C are already closed** (by [SP-129] and
       [SP-130] under EP-040); ⛔ **AC5 is met only when Class B is too.**
+      ⚠️ **STATUS 2026-09-21: Class B's CODE is done on BOTH platforms** — ✅ **`InspectorLayoutStore`
+      touches the package on NEITHER** — ⛔ **but [SP-142] is not user-Verified and the guard
+      ([SP-149]) is not built, so AC5 stays OPEN.**
 
 ⚠️ **AC4 IS THE ONE THAT CAN SLIP QUIETLY.** ✅ **AC1–AC3 are concrete; AC4 is a design problem with no
 mechanism yet** — ⚠️ **and an Epic that promises a guard without specifying it will close with a
 prose paragraph instead of a check.**
+
+✅ **ACTED ON 2026-09-21: [SP-149] now owns the mechanism**, ⚠️ **split out of [SP-143] precisely
+because the DESIGN half blocks on nothing while the VERIFY half blocks on two Sprints** — ⛔ **bundled,
+the design would not start until the blockers cleared, which is how it slips to the end.**
 
 ---
 
@@ -125,9 +149,10 @@ prose paragraph instead of a check.**
 | Sprint | Task | Title | Status | ⛔ Blocks on |
 | ------ | ---- | ----- | ------ | ----------- |
 | ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — the layout round trip is lossless** | ✅ **CLOSED 2026-09-18** — [record](../Sprints/Closed/Sprint-SP-140.md) | ✅ **was unblocked** |
-| 🟠 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟠 **COMPLETE 2026-09-21 — ✅ T-0507 VERIFIED; ⛔ awaiting close approval** | ✅ **BOTH rulings made (shape 09-18, absence 09-21)** |
-| 🔵 **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | 🔵 **PLANNED 2026-09-21** — [plan](../Sprints/Sprint-SP-142.md) | ✅ **UNBLOCKED 2026-09-21 — [SP-141] is done** |
-| 🔵 **[SP-143]** | **T-0510** | ⚠️ **The regression guard — closes [I-0197]** | 🔵 **Planned** | ⛔ **[SP-141] AND [SP-142]** |
+| ✅ **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | ✅ **CLOSED 2026-09-21** — [record](../Sprints/Closed/Sprint-SP-141.md) | ✅ **BOTH rulings made (shape 09-18, absence 09-21)** |
+| 🟢 **[SP-142]** | **T-0537** · **T-0542** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** · ⚠️ **[I-0241] historical-event tags off disk** | 🟢 **ACTIVE 2026-09-21** — [plan](../Sprints/Sprint-SP-142.md) | ✅ **was unblocked by [SP-141]** |
+| 🟢 **[SP-149]** | **T-0541** | ✅ **The guard MECHANISM — BUILT and WIRED** | 🟢 **ALL 7 ACs MET 2026-09-21 — ⛔ awaiting verification** — [plan](../Sprints/Sprint-SP-149.md) | ✅ **was unblocked** |
+| 🔵 **[SP-143]** | **T-0510** | ⚠️ **WITNESS the guard red-before / green-after; closes [I-0197]** | 🔵 **PLANNED — ⚠️ rescoped 2026-09-21** — [plan](../Sprints/Sprint-SP-143.md) | ⛔ **[SP-142]'s LIVE PASS AND [SP-149]'s guard** |
 
 ⚠️ **THE CHAIN IS MOSTLY SERIAL, and that is a real schedule risk.** ✅ **Only [SP-140] blocks on
 nothing.** ⛔ **[SP-141] cannot start without a ruling that has not been made** — ⚠️ **and SP-142 and

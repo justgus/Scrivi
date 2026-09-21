@@ -48,6 +48,16 @@ public:
     void appendStringToArray(std::string_view key, std::string_view value);
     [[nodiscard]] std::vector<std::string> getStringArray(std::string_view key) const;
 
+    // The document itself as a string array, for a ROOT-LEVEL array like
+    // `["a","b"]` — as distinct from `getStringArray(key)`, which reads an array
+    // held UNDER a key.
+    //
+    // ⚠️ T-0542: this existed nowhere, and its absence was a real defect. The
+    // historical-event endpoints document `tagsJSON` as `["tag1","tag2"]` and then
+    // called `getStringArray("tags")` on it — which can only ever return empty for
+    // a root array, so tags never reached the core AT ALL through the C ABI.
+    [[nodiscard]] std::vector<std::string> rootStringArray() const;
+
     // Embeds a nested JsonDoc as a sub-object under key.
     void setSubDoc(std::string_view key, JsonDoc sub);
 

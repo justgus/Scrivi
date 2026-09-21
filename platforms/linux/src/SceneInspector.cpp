@@ -312,7 +312,8 @@ void SceneInspector::setContext(ScriviBridge* bridge, const QString& projectRoot
     // T-0486: restore the PROJECT's tab selection. ⚠️ Loading the layout must not
     // itself look like a writer choosing a tab, or opening a project would
     // rewrite the file with the value it just read — so the signal is blocked.
-    layout_.load(projectRootPath);
+    // ✅ T-0537: THROUGH THE CORE. ⛔ The store no longer opens the file itself.
+    layout_.load(bridge_, projectRootPath);
     if (tabs_ != nullptr) {
         const QSignalBlocker block(tabs_);
         tabs_->setCurrentIndex(tabIndex(layout_.selectedTab()));

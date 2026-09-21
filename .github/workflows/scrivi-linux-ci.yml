@@ -9,6 +9,9 @@ on:
       - 'platforms/linux/**'
       - 'ScriviCore/**'
       - 'CMakeLists.txt'
+      # ⚠️ T-0541: the guard itself, so editing it re-runs it HERE too and the
+      # two workflows cannot disagree about what the rule is.
+      - 'scripts/check-package-boundary.sh'
       - '.github/workflows/scrivi-linux-ci.yml'
   pull_request:
     branches: [main]
@@ -16,6 +19,9 @@ on:
       - 'platforms/linux/**'
       - 'ScriviCore/**'
       - 'CMakeLists.txt'
+      # ⚠️ T-0541: the guard itself, so editing it re-runs it HERE too and the
+      # two workflows cannot disagree about what the rule is.
+      - 'scripts/check-package-boundary.sh'
       - '.github/workflows/scrivi-linux-ci.yml'
 
 jobs:
@@ -25,6 +31,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # ⚠️ EP-041 SP-149 / T-0541 — the [I-0197] boundary guard, LINUX HALF.
+      #
+      # ⚠️ ONE script, TWO pattern sets, BOTH workflows (user ruling Q3,
+      # 2026-09-21): a single place to state the rule, so the two platforms cannot
+      # drift in what they consider a violation — which is the very failure
+      # [I-0197] and [I-0215] are about.
+      #
+      # ⚠️ IT RUNS FIRST, BEFORE THE ~3-MINUTE Qt INSTALL. A boundary violation is
+      # knowable from the source alone; making a contributor wait for a full Qt
+      # toolchain to be told about a grep hit would be backwards.
+      #
+      # ⚠️ [I-0241] is why the Linux half is not optional: EditorShell listed and
+      # parsed EVERY file in `objects/historical-events/` to recover ONE field the
+      # core's projection dropped — a bypass Apple had already retired, re-earned
+      # on Linux, and found by NOTHING for months.
+      - name: ScriviCore boundary guard
+        run: scripts/check-package-boundary.sh
 
       # Qt 6.4 + QML modules from apt — matches the Docker/alpha toolchain pin.
       - name: Install Qt6 + build deps

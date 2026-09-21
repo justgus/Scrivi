@@ -1,0 +1,63 @@
+name: Scrivi Apple CI
+
+# EP-041 SP-149 / T-0541 — ⚠️ `Scrivi/`'s FIRST CI OF ANY KIND.
+#
+# ⚠️ WHY IT EXISTS. Until this file, NO workflow covered `Scrivi/` at all:
+# scrivi-core-ci.yml filters to `ScriviCore/**` and scrivi-linux-ci.yml to
+# `platforms/linux/**`. A Swift-only change ran ZERO checks — and that is exactly
+# the change that introduces an [I-0197] boundary bypass. T-0507's Apple half was
+# Swift-only; so was every site [I-0197] found.
+#
+# ⚠️ LINT ONLY, DELIBERATELY (user ruling Q2, 2026-09-21). There is no `xcodebuild`
+# here. Adding a build to CI is its own decision with its own cost — a macOS runner
+# is the slowest and dearest GitHub offers — and it is NOT smuggled in under a
+# guard. Greps are seconds on any runner, which is why `ubuntu-latest` is correct
+# below: none of these checks needs a Mac.
+#
+# ⚠️ IT CARRIES TWO GUARDS, and the second is the reason this file is not just
+# about [I-0197]:
+#   • check-package-boundary.sh — the [I-0197] guard this Sprint builds.
+#   • check-textkit2.sh — [T-0527]'s TextKit 2 guard, written in SP-133 and
+#     ⛔ WIRED INTO NOTHING since. It was a real, working, verified-failing guard
+#     that no automation has ever run. Adding a second unrun guard beside it would
+#     have been absurd, so it is wired in here too.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Scrivi/**'
+      - 'scripts/check-package-boundary.sh'
+      - 'scripts/check-textkit2.sh'
+      - '.github/workflows/scrivi-apple-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Scrivi/**'
+      - 'scripts/check-package-boundary.sh'
+      - 'scripts/check-textkit2.sh'
+      - '.github/workflows/scrivi-apple-ci.yml'
+
+jobs:
+  guards:
+    name: boundary + TextKit guards
+    # ⚠️ ubuntu, not macos: these are greps over source. A macOS runner would cost
+    # ~10x for an identical result. If a future job here needs `xcodebuild`, it
+    # belongs in its own job with its own runner — not by widening this one.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ⚠️ [I-0197]: no app-side reads or writes of a project package. The script
+      # carries its own allow-list, and every entry in it names a reason.
+      - name: ScriviCore boundary guard
+        run: scripts/check-package-boundary.sh
+
+      # ⚠️ [T-0527]: reading TextKit 1's `.layoutManager` PERMANENTLY downgrades an
+      # NSTextView to whole-document layout. Measured on the real 1.8M-char
+      # manuscript: 272.8 ms → 0.9 ms initial layout. The downgrade is one line and
+      # it is silent. It had already happened THREE times in TWO files before the
+      # guard existed — and the guard has never run in CI until now.
+      - name: TextKit 2 guard
+        run: scripts/check-textkit2.sh

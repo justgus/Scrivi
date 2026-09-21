@@ -925,6 +925,16 @@ Result<ListHistoricalEventsResult> ScriviCore::listHistoricalEvents(
             item.setString("description", d.description);
             item.setString("createdAt",   d.createdAt);
             item.setString("modifiedAt",  d.modifiedAt);
+            // T-0542 / [I-0241]: tags are PROJECTED. They were parsed into `d` and
+            // then dropped here, so an app that needed them had no way to get them
+            // through the ABI — while `create`/`update` both ACCEPT `tagsJSON`.
+            // ⚠️ Linux answered that gap by reading the files itself
+            // (`EditorShell.cpp`, `readHistoricalEventTagsFromDisk`), listing and
+            // parsing EVERY event to recover one field — the same bypass Apple
+            // retired in SP-129. ⛔ Do not remove this without removing that need.
+            for (const auto& tag : d.tags) {
+                item.appendStringToArray("tags", tag);
+            }
             root.appendToArray("events", std::move(item));
             ++count;
         }

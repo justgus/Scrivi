@@ -614,6 +614,11 @@ const char* scrivi_set_story_structure(const char* projectRootPath, const char* 
 const char* scrivi_update_band_layout(const char* projectRootPath, const char* bandLayoutJSON);
 const char* scrivi_remove_story_structure(const char* projectRootPath);
 
+/* Historical events. `tagsJSON` accepts EITHER `["a","b"]` OR `{"tags":["a","b"]}`
+   — ⚠️ both are live: Linux sends the wrapped form, this header long documented the
+   bare one, and T-0542 found that the bare form had NEVER worked. An absent or
+   unparseable value means "no tags". `scrivi_list_historical_events` PROJECTS tags
+   back (it did not before T-0542, which is why Linux read the package directly). */
 const char* scrivi_create_historical_event(const char* projectRootPath,
                                              const char* title, int64_t offsetMs,
                                              const char* description, const char* tagsJSON,

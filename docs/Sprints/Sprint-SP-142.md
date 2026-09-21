@@ -1,14 +1,15 @@
 ---
 sprint: SP-142
 epic: EP-041
-status: Planning
+status: Active
+activated: 2026-09-21
 task: T-0537
 planned: 2026-09-21
 ---
 
 # SP-142 — ⚠️ **Retire Linux's duplicate `InspectorLayoutStore`**
 
-**Status:** 🔵 **PLANNING — ⛔ NOT ACTIVATED.** ✅ **UNBLOCKED 2026-09-21: [SP-141] is IMPLEMENTED.**
+**Status:** 🟢 **ACTIVE — activated 2026-09-21 (user-approved).** ✅ **T-0537 and T-0542 both issued.**
 
 ✅ **Q1 WAS ANSWERED BEFORE [SP-141] IMPLEMENTED, exactly as this plan asked** — ⚠️ **ruled
 2026-09-21, "core reports, app decides":** `status` = `ok` | `absent` | `unreadable`, ⛔ **the core
@@ -27,10 +28,17 @@ rewrite would otherwise have lost them:** ✅ **the drift is ALREADY PROVEN by [
 [SP-141] (§Goal).** ⚠️ **It also named the Apple store as 310 lines; ✅ measured 2026-09-21 it is
 **380** (`InspectorLayoutStore.swift`) against Linux's **145 + 82**.**
 **Epic:** 🟡 [EP-041] `[Cross]` **The Boundary** → [`../Epics/Epic-EP-041.md`](../Epics/Epic-EP-041.md)
-**Task:** **T-0537** — ⚠️ **ID reserved, not yet issued into `Task-active.md`** (issued at activation).
+**Tasks:** **T-0537** (retire the duplicate store) · **T-0542** (⚠️ **[I-0241]** — historical-event
+tags off disk) — ✅ **both ISSUED 2026-09-21 at activation.**
 **Serves:** **[EP-041] AC3** · contributes to **AC5** ([I-0197] Class B)
-**Codebase:** `[Linux]` — ⚠️ **`platforms/linux/` only.** ⛔ **No ScriviCore change: [SP-141] builds the
-endpoints; ✅ this Sprint only CONSUMES them.**
+**Codebase:** `[Linux]` + ⚠️ **a ONE-LINE `[ScriviCore]` change for T-0542.**
+⛔ **T-0537 needs NO core change** — ✅ **[SP-141] built its endpoints; this Sprint only CONSUMES them.**
+⚠️ **T-0542 DOES need one** — ✅ **and that is the point: the fix for [I-0241] belongs in the core, not
+in a better Qt parser** (the mistake [SP-129] corrected on Apple).
+
+⚠️ **T-0542 WAS ADDED 2026-09-21 by user ruling, as its OWN Task — ⛔ NOT folded into T-0537.**
+✅ **They share a tree, a live pass and a boundary principle; ⛔ they share no file, schema or
+endpoint** — ⚠️ **so folding them would hide a data-loss fix inside a refactor's diff.**
 
 ---
 
@@ -73,6 +81,11 @@ two writers still.**
 ✅ **[I-0197] CLASS B CLOSES HERE, NOT IN [SP-141].** ⚠️ **Stated explicitly because the Apple half
 lands first and will look like the finish.**
 
+⚠️ **AND THE SPRINT CARRIES A SECOND, SEPARATE JOB: T-0542 / [I-0241]** — ✅ **the same bypass SHAPE in
+the same tree, found while designing [SP-149]'s guard.** ⛔ **It is NOT Class B and NOT part of
+T-0537** — ✅ **it rides here because it is a one-line core change plus a deletion, in a tree this
+Sprint is already touching, provable by the same live pass.**
+
 ---
 
 ## ⚠️ What is actually being retired — measured 2026-09-21, not estimated
@@ -93,6 +106,55 @@ plainly: this is a ~145-line class with THREE call sites.**
 ⚠️ **ONLY TWO BEHAVIOURS ARE IN USE: `selectedTab()` and `setSelectedTab()`.** ✅ **Everything else in
 that 145-line class exists to protect keys Linux does not model** — ⚠️ **which is precisely the job
 moving into the core.**
+
+---
+
+## ⚠️ T-0542 — **[I-0241]: historical-event tags read STRAIGHT OFF DISK**
+
+⚠️ **FOUND 2026-09-21 while designing [SP-149]'s guard** — ⛔ **not by a test, not by a review, and in
+no tracking layer until then.** ✅ **It is the [I-0197] bypass shape, on Linux.**
+
+### ⛔ What it is
+
+✅ **`readHistoricalEventTagsFromDisk()` — `platforms/linux/src/EditorShell.cpp:2459`.**
+⚠️ **It lists `objects/historical-events/`, opens and parses EVERY `*.json` in it, and stops when one
+matches `eventID`** — ✅ **to recover ONE field.** ⚠️ **Unbounded work per lookup on a directory that
+grows with the project** (`project_read_amplification_class`).
+
+⚠️ **ITS OWN COMMENT NAMES ITS SOURCE:** *"the same read-the-file pattern Apple uses for
+imported-timeline events"* — ⛔ **and APPLE RETIRED THAT PATTERN** in [SP-129]/[T-0502]
+(tombstone at `TimelineStripView.swift:567-577`). ✅ **Linux is carrying a bypass Apple has already
+removed** — ⚠️ **the drift `feedback_linux_adopts_apple_shape` exists to prevent.**
+
+### ⛔ TWO CALLERS — ⚠️ **and the second is a LATENT DATA-LOSS PATH**
+
+| Caller | What it does | ⚠️ Risk |
+| ------ | ------------ | ------ |
+| `onEditHistoricalEventRequested` (`:2518`) | prefills the Edit dialog's tag field | ✅ **wrong/missing tags shown** |
+| `onHistoricalEventDragged` (`:2495`) | re-reads tags ONLY to re-send them | ⛔ **SILENT TAG LOSS** |
+
+⚠️ **THE DRAG PATH IS THE SERIOUS ONE.** ✅ **`updateHistoricalEvent` OVERWRITES ALL FIELDS**, ⚠️ **so
+the drag handler re-reads tags purely to avoid blanking them — the code says so itself:** *"a partial
+update would blank them."*
+
+⛔ **`readHistoricalEventTagsFromDisk` RETURNS AN EMPTY LIST ON EVERY FAILURE** — a renamed file, a
+permissions error, an unparseable sidecar — ⚠️ **and the caller CANNOT DISTINGUISH "no tags" from
+"could not read."** ✅ **`project_envelope_empty_vs_failed`, precisely.**
+⛔ **SO DRAGGING A DOT CAN SILENTLY ERASE THAT EVENT'S TAGS.**
+
+### ✅ The fix is ONE LINE IN THE CORE
+
+⚠️ **`ScriviCore.cpp:905-930` ALREADY reads and parses every event file** and projects **seven**
+fields — `eventID`, `title`, `offsetMs`, `offsetSource`, `description`, `createdAt`, `modifiedAt`.
+⛔ **It simply DROPS `tags`.** ✅ **The data is in hand and thrown away.**
+
+⚠️ **AND THE ASYMMETRY IS THE REAL DEFECT:** ✅ **`scrivi_create_historical_event` and
+`scrivi_update_historical_event` BOTH ACCEPT `tagsJSON`** — ⛔ **so tags can be WRITTEN and never READ
+BACK through the ABI.** ✅ **`project_capability_without_surface` in its narrow form.**
+
+⛔ **DO NOT FIX THIS WITH A BETTER QT PARSER.** ✅ **[SP-129] fixed Apple's counterpart by EXTENDING
+THE CORE**, ⚠️ **and Apple's tombstone predicted this exact case:** *"which is exactly why Linux reads
+the files too."*
 
 ---
 
@@ -120,6 +182,17 @@ moving into the core.**
       ✅ **confirm the tab came back** — ⚠️ **then open the SAME project on the Mac and confirm the card
       layout is intact.** ⚠️ **Confirm the build first** (`scrivi_linux --version`,
       `feedback_confirm_the_build_under_test`).
+
+### ⚠️ T-0542 / [I-0241] — its own ACs
+
+- [ ] **AC8** *(T-0542)* — ✅ **`scrivi_list_historical_events` PROJECTS `tags`**, ⚠️ **and a C ABI
+      test asserts it** — ✅ **through `scrivi_*`, not the facade** (`feedback_boundary_tests_not_facade`).
+      ⚠️ **VERIFY IT FAILING against the unprojected core first**, ⛔ **or it proves nothing.**
+- [ ] **AC9** *(T-0542)* — ⛔ **`readHistoricalEventTagsFromDisk` IS DELETED**, ✅ **both callers use
+      the endpoint, and a TOMBSTONE names [SP-129]'s precedent** (⚠️ **AC5's form**).
+- [ ] **AC10** *(T-0542)* — ⚠️ **THE DRAG PATH NO LONGER BLANKS TAGS.** ✅ **Drag an event that HAS
+      tags; confirm they survive.** ⛔ **This is the data-loss half and it needs its OWN check** —
+      ⚠️ **`feedback_verify_each_half_separately`: the prefill and the drag are different mechanisms.**
 
 ---
 
@@ -189,8 +262,11 @@ one, ✅ AC2's defaults move into Qt and this test must say so.** ⚠️ **That 
 | **S3b** | ⚠️ **Leave the TOMBSTONE comment at the deletion site** | ⚠️ **AC5** — ✅ **[SP-129]'s form, `EditorShell.cpp:2571`** |
 | **S4** | ✅ Repoint `inspector_layout_smoke` at the new path | ⛔ **Assertions UNCHANGED** — ⚠️ **AC3** |
 | **S5** | ✅ CMake: reconcile the four blocks | ✅ Mechanical |
+| **T1** | ✅ **T-0542:** project `tags` in `ScriviCore.cpp`'s event loop + a C ABI test, ⚠️ **verified failing first** | ⚠️ **AC8** |
+| **T2** | ✅ **T-0542:** both callers → the endpoint; ⛔ delete the disk walk; leave a tombstone | ⚠️ **AC9** |
 | **S6** | ✅ Docker build + `ctest` NON-ROOT, tests ON | ⚠️ **AC6** |
 | **S7** | ⚠️ **Live pass on the rig, incl. the Mac cross-check** | ⚠️ **AC7 — the only thing that proves AC3 for a writer** |
+| **T3** | ⚠️ **Live pass: DRAG an event that HAS tags, confirm they survive** | ⚠️ **AC10 — ⛔ a separate check from the prefill** |
 
 ---
 
@@ -206,17 +282,26 @@ one, ✅ AC2's defaults move into Qt and this test must say so.** ⚠️ **That 
   survive Linux; ✅ only the MAC CROSS-CHECK proves the writer's layout survived.**
   ⚠️ **`feedback_live_pass_finds_what_suites_cannot`.**
 - ⚠️ **Four CMake blocks, not one.** ✅ **Easy to fix three and miss the fourth** (lines 64, 675, 734, 803).
+- ⚠️ **T-0542's data-loss half declared green on the prefill alone.** ⛔ **The Edit dialog showing the
+  right tags does NOT prove the DRAG path stopped blanking them** — ✅ **different mechanism, own check
+  (AC10).** ⚠️ **`feedback_verify_each_half_separately` — this is the defect that cost I-0132 an
+  un-archive.**
+- ⚠️ **T-0542 widening the Sprint.** ✅ **It is a one-line core change plus a deletion** — ⛔ **if it
+  grows beyond that, it should leave and become its own Sprint rather than delay T-0537.**
 
 ---
 
 ## ⛔ Out of scope
 
-- ⛔ **The regression guard** — ✅ **[SP-143] / T-0510.** ⚠️ **Deliberately separate: a guard written by
+- ⛔ **The regression guard** — ✅ **[SP-149] / T-0541 BUILDS it; [SP-143] / T-0510 WITNESSES it**
+  (⚠️ **split 2026-09-21**). ⚠️ **Deliberately separate: a guard written by
   the same change it polices has no independent witness**, ✅ **and its allow-list must contain
   `InspectorLayoutStore` BEFORE this Sprint and not after** — ⚠️ **so writing it here would make it pass
   green across the very change it exists to detect.**
 - ⛔ **Apple-side work** — ✅ **[SP-141] / T-0507.**
-- ⛔ **Any other [I-0197] bypass site.** ⚠️ **Class B is this file only.**
+- ⛔ **Any other [I-0197] bypass site.** ⚠️ **Class B is `inspector-layout.json` only** — ✅ **[I-0241]
+  is in this Sprint as T-0542 because it is the same SHAPE and the same tree, ⛔ not because it is
+  Class B.**
 - ⛔ **Nested-key identity inside card entries** — ⚠️ **[SP-140]'s AC1 deferred it to [SP-141].**
 
 ---
@@ -224,6 +309,8 @@ one, ✅ AC2's defaults move into Qt and this test must say so.** ⚠️ **That 
 ## ⚠️ Estimate
 
 ✅ **ONE short sprint — S2–S5 are ~a day of mechanical work over a 145-line class with three call sites.**
+✅ **T-0542 adds roughly half a day: ⚠️ one line of core projection, one C ABI test, two callers
+switched, one function deleted.**
 ⚠️ **S1 and S7 are the real cost**: ⛔ **S1 is a dependency that does not exist yet**, and ⚠️ **S7 needs
 the rig AND a Mac cross-check.**
 ⚠️ **STATED PLAINLY: the tracking overhead here is large relative to the code** — ✅ **the restructure

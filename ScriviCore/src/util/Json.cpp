@@ -104,6 +104,18 @@ void JsonDoc::appendStringToArray(std::string_view key, std::string_view value) 
     impl_->data[k].push_back(std::string(value));
 }
 
+std::vector<std::string> JsonDoc::rootStringArray() const {
+    std::vector<std::string> result;
+    if (impl_->data.is_array()) {
+        for (const auto& elem : impl_->data) {
+            if (elem.is_string()) {
+                result.push_back(elem.get<std::string>());
+            }
+        }
+    }
+    return result;
+}
+
 std::vector<std::string> JsonDoc::getStringArray(std::string_view key) const {
     std::vector<std::string> result;
     auto k = std::string(key);

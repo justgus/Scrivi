@@ -91,7 +91,41 @@ backlog** (`feedback_sprint_backlog_cleanup`).
 
 ---
 
-**Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was
+## 🔵 SP-149 — **PLANNED 2026-09-21** ([EP-041]) — ⚠️ **the AC4 guard MECHANISM**
+
+✅ **Plan: [`Sprint-SP-149.md`](Sprint-SP-149.md).** ⛔ **Not activated.** ✅ **Blocks on NOTHING** —
+⚠️ **it is design work and can run in parallel with [SP-142].**
+
+⚠️ **Split out of [SP-143] 2026-09-21**, ✅ **because the guard's DESIGN half blocks on nothing while
+its VERIFY half blocks on two Sprints** — ⛔ **bundled, the design would not begin until the blockers
+cleared**, ⚠️ **which is exactly how [EP-041]'s own record predicted AC4 would slip: *"an Epic that
+promises a guard without specifying it will close with a prose paragraph instead of a check."***
+
+⚠️ **IT WAS DRAFTED AS SP-145 AND RENUMBERED** — ✅ **SP-145–SP-148 are reserved for [EP-043] above**,
+⛔ **the exact collision that reservation block exists to prevent.**
+
+⚠️ **Its central finding is not a lint question:** ⛔ **no CI workflow covers `Scrivi/` at all**, ✅ **and
+`check-textkit2.sh` — the precedent [EP-041] AC4 names — is wired into nothing.**
+
+✅ **FULLY RULED 2026-09-21 (user) — ⚠️ AC1 is MET BEFORE ACTIVATION**, ⛔ **which is the whole reason
+it was split out of [SP-143]:** ✅ **narrow API pattern (⛔ not `fileExists` — Class C is ruled) ·
+a NEW lint-only `scrivi-apple-ci.yml` on `Scrivi/**` (that tree's FIRST CI) with `check-textkit2.sh`
+wired in beside it · ONE script, TWO pattern sets, BOTH workflows · [SP-149] rules AND builds, with
+[SP-143] as the independent witness.**
+
+✅ **[I-0241] IS NOW ASSIGNED to [SP-142] as T-0542** (user ruling 2026-09-21), ⚠️ **its own Task, NOT
+folded into T-0537.** ⚠️ **Detail below; ⛔ [SP-149] still only ALLOW-LISTS it.**
+
+⚠️ **PLANNING [SP-149] FOUND A LIVE BYPASS NOTHING ELSE HAD — [I-0241]:** ⛔ **`EditorShell.cpp:2469` reads
+`objects/historical-events/*.json` straight off disk, scanning every file per lookup** — ✅ **a pattern
+Apple RETIRED in [SP-129], still live on Linux.** ⛔ **Not fixed here; allow-listed with its Issue
+number, because the fix needs a CORE change.**
+
+---
+
+**Next available Sprint ID: SP-150.** ⚠️ **SP-149 is PLANNED (above); SP-145–SP-148 reserved for [EP-043].**
+
+⚠️ **Prior line, kept for provenance:** **Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was
 STALE:** ✅ **SP-134–SP-137 belong to [EP-040], SP-140–SP-143 to [EP-041], and SP-144 has CLOSED.**
 ⚠️ **SP-145–SP-148 are now RESERVED for [EP-043]** (see the reservation block below).
 
@@ -100,7 +134,9 @@ STALE:** ✅ **SP-134–SP-137 belong to [EP-040], SP-140–SP-143 to [EP-041], 
 🟡 **SP-132 and SP-133 are ACTIVE** and live in [`Sprint-active.md`](Sprint-active.md).
 🟡 **SP-131 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md) — ⚠️ **it left this file at
 activation and never returns.** ⚠️ **SP-129/SP-130 sequence BEHIND it and behind the `[Apple]` async
-sprint.** ⚠️ **Next available Task: T-0532.**
+sprint.** ⚠️ **Next available Task: T-0543** — ⛔ **CORRECTED 2026-09-21; read `T-0532` and was stale by nine.**
+⚠️ **T-0541 is RESERVED for [SP-149]; ✅ T-0542 for [SP-142] ([I-0241], assigned by user ruling
+2026-09-21).** ⛔ **Neither is issued until its Sprint activates.**
 and ⚠️ **the LAST sprint of EP-038.** ⚠️ **SP-122 never appeared in this file** — defined and activated
 in one step on 2026-08-25, like SP-120 and SP-121; ⚠️ **it was EP-034's last.**
 ⚠️ **Zero Sprints in Planning.**

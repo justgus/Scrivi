@@ -2062,10 +2062,16 @@ void EditorShell::reloadTimeline()
             h.description = o.value(QStringLiteral("description")).toString();
             h.offsetMs    = static_cast<qint64>(
                 o.value(QStringLiteral("offsetMs")).toDouble());
-            // tags are omitted by the list projection — read from disk on demand in the
-            // Edit slot. The cache still feeds title/description/offset for drag + edit.
+            // ✅ T-0542 / [I-0241]: tags come FROM THE PROJECTION now (the core gained
+            // them in the same Task). ⛔ They were previously re-read off disk per
+            // lookup — see the tombstone where that function used to live.
+            QStringList tags;
+            for (const QJsonValue& t : o.value(QStringLiteral("tags")).toArray()) {
+                tags.append(t.toString());
+            }
             histDots.append(h);
-            histEvents_.insert(h.eventID, {h.title, h.description, h.offsetMs});
+            histEvents_.insert(h.eventID,
+                               {h.title, h.description, h.offsetMs, tags});
         }
     }
     timeline_->setHistoricalEvents(histDots);
@@ -2452,35 +2458,26 @@ QString tagsToJson(const QStringList& tags)
     return QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact));
 }
 
-// Read a historical event's tags straight off disk (the list endpoint drops them, so
-// the Edit dialog reads the stored file to prefill accurately — the same
-// read-the-file pattern Apple uses for imported-timeline events). Returns empty on any
-// miss. `projectPath`/objects/historical-events/<id>-<slug>.json holds a "tags" array.
-QStringList readHistoricalEventTagsFromDisk(const QString& projectPath,
-                                            const QString& eventID)
-{
-    QStringList out;
-    const QDir dir(projectPath + QStringLiteral("/objects/historical-events"));
-    if (!dir.exists()) {
-        return out;
-    }
-    const QStringList files = dir.entryList({QStringLiteral("*.json")}, QDir::Files);
-    for (const QString& f : files) {
-        QFile file(dir.filePath(f));
-        if (!file.open(QIODevice::ReadOnly)) {
-            continue;
-        }
-        const QJsonObject o = QJsonDocument::fromJson(file.readAll()).object();
-        if (o.value(QStringLiteral("eventID")).toString() != eventID) {
-            continue;
-        }
-        for (const QJsonValue& v : o.value(QStringLiteral("tags")).toArray()) {
-            out.append(v.toString());
-        }
-        break;
-    }
-    return out;
-}
+// ⛔ T-0542 / [I-0241]: `readHistoricalEventTagsFromDisk` WAS HERE and is DELETED.
+//
+// It listed and parsed EVERY file in `objects/historical-events/` to recover ONE
+// field, because `scrivi_list_historical_events` did not project `tags`. ⚠️ Its own
+// comment justified itself as "the same read-the-file pattern Apple uses for
+// imported-timeline events" — ⛔ and Apple had ALREADY RETIRED that pattern in
+// SP-129/T-0502 by extending the core, which is exactly what T-0542 did here.
+//
+// ⚠️ IT WAS ALSO A DATA-LOSS PATH. `onHistoricalEventDragged` re-read tags only to
+// re-send them (updateHistoricalEvent overwrites all fields), and the function
+// returned an EMPTY list on every failure — so a read that failed for any reason
+// silently erased that event's tags.
+//
+// ⛔ Do not reintroduce a direct read of objects/historical-events/. Tags arrive in
+// the list projection and live in `histEvents_`.
+// ⚠️ ENFORCED: `scripts/check-package-boundary.sh` (EP-041 / T-0541) fails CI on a
+// `QFile`/`QSaveFile` added here. ⚠️ The two allow-listed sites in this file are the
+// QFileDialog export/import ONLY, and they are listed BY LINE, not by file — so a
+// package read added anywhere else here is caught.
+
 } // namespace
 
 void EditorShell::onHistoricalEventDragged(const QString& eventID, qint64 newOffsetMs)
@@ -2492,9 +2489,12 @@ void EditorShell::onHistoricalEventDragged(const QString& eventID, qint64 newOff
         return;   // unknown event (stale strip) — ignore rather than blank-write
     }
     const HistEventCache h = histEvents_.value(eventID);
-    const QStringList tags = readHistoricalEventTagsFromDisk(projectPath_, eventID);
+    // ✅ T-0542: tags come from the cache, which the list projection filled.
+    // ⚠️ They are STILL re-sent because updateHistoricalEvent overwrites all fields —
+    // ⛔ but a cache miss is now impossible for an event that is on the strip, whereas
+    // the old disk read returned empty on any failure and blanked them.
     bridge_->updateHistoricalEvent(projectPath_, eventID, h.title, newOffsetMs,
-                                   h.description, tagsToJson(tags));
+                                   h.description, tagsToJson(h.tags));
     reloadTimeline();
 }
 
@@ -2515,9 +2515,9 @@ void EditorShell::onEditHistoricalEventRequested(const QString& eventID)
         return;
     }
     const HistEventCache h = histEvents_.value(eventID);
-    const QStringList tags = readHistoricalEventTagsFromDisk(projectPath_, eventID);
+    // ✅ T-0542: prefilled from the cache (list projection), not from a disk walk.
     HistoricalEventDialog dlg(tr("Edit Historical Event"),
-                              h.title, h.description, tags, this);
+                              h.title, h.description, h.tags, this);
     if (dlg.exec() != QDialog::Accepted) {
         return;
     }
@@ -2557,7 +2557,7 @@ void EditorShell::onExportTimelineRequested()
     if (path.isEmpty()) {
         return;   // cancelled
     }
-    QFile file(path);
+    QFile file(path);   // boundary-ok: QFileDialog export, writer-chosen path
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         QMessageBox::warning(this, tr("Export Timeline"),
                              tr("Could not write to:\n%1").arg(path));
@@ -2662,7 +2662,7 @@ void EditorShell::onImportTimelineRequested()
     if (path.isEmpty()) {
         return;   // cancelled
     }
-    QFile file(path);
+    QFile file(path);   // boundary-ok: QFileDialog import, writer-chosen path
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(this, tr("Import Timeline"),
                              tr("Could not read:\n%1").arg(path));

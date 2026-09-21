@@ -42,8 +42,140 @@ ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning deta
 [`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
 ✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 is VERIFIED 2026-09-21 and has LEFT this file**
 → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
-⚠️ **ZERO Tasks are currently active in this file** — ✅ **[SP-141]'s only Task is done, and
-[SP-142]/[SP-143] issue theirs at ACTIVATION, not before** (`feedback_task_layer_discipline`).
+✅ **TWO Tasks are active: T-0537 and T-0542**, ⚠️ **both issued 2026-09-21 when [SP-142] activated.**
+⛔ **[SP-143] and [SP-149] issue theirs at THEIR activation, not before** (`feedback_task_layer_discipline`).
+
+---
+
+## 🟢 SP-149 — ACTIVE (EP-041), activated 2026-09-21
+
+| Task | Title | Sprint | Status |
+| ---- | ----- | ------ | ------ |
+| **T-0541** | ⚠️ **The [I-0197] regression guard — BUILD it and WIRE it into CI** | 🟢 **[SP-149]** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
+
+✅ **AC1 (the mechanism ruling) was MET BEFORE ACTIVATION** — ⚠️ **Q1–Q4 ruled by the user 2026-09-21.**
+⚠️ **Its central finding is not a lint question:** ⛔ **NO CI workflow covers `Scrivi/` at all**, ✅ **and
+`check-textkit2.sh` — the precedent [EP-041] AC4 names — is wired into nothing.**
+✅ **Full plan: [`../Sprints/Sprint-SP-149.md`](../Sprints/Sprint-SP-149.md).**
+
+### 🟢 T-0541 IMPLEMENTED 2026-09-21 — ⚠️ **NOT USER-VERIFIED**
+
+✅ **`scripts/check-package-boundary.sh`** — ⚠️ **ONE script, TWO pattern sets, BOTH platforms.**
+✅ **`.github/workflows/scrivi-apple-ci.yml`** — ⚠️ **`Scrivi/`'s FIRST CI OF ANY KIND**, ⛔ **lint-only
+(no `xcodebuild`), on `ubuntu-latest` because greps do not need a Mac.**
+✅ **`check-textkit2.sh` WIRED IN BESIDE IT** — ⚠️ **it had been written, verified and then run by
+NOTHING since SP-133.**
+✅ **The Linux half is wired into `scrivi-linux-ci.yml`, FIRST, before the ~3-min Qt install.**
+
+⚠️ **THE ALLOW-LIST MECHANISM CHANGED MID-SPRINT, ON EVIDENCE.** ⛔ **Line numbers were tried and were
+wrong WITHIN MINUTES: the very next edit (a four-line tombstone) shifted two legitimate sites and the
+guard went red on them.** ✅ **Replaced with a trailing `// boundary-ok: <reason>` marker AT the site**
+— ⚠️ **a line number here is a second copy of a fact the source already knows (P7)**, ✅ **while a
+marker moves with the code and is visible to the next reader.**
+✅ **A marker with NO reason after the colon FAILS THE GUARD** — ⚠️ **that is what stops the allow-list
+becoming the dumping ground [SP-143]'s plan names as its first risk.**
+
+⚠️ **VERIFIED FAILING — FOUR WAYS, ⛔ not assumed:**
+1. ✅ **Apple bypass** (`Data(contentsOf:)` in `InspectorLayoutStore.swift`) → exit 1, line named.
+2. ✅ **Linux bypass** (`QFile` in `InspectorLayoutStore.cpp`) → exit 1, with the [I-0241] advice.
+3. ✅ **Bypass INSIDE an allow-listed file** (`TimelineStripView.swift`) → exit 1 — ⚠️ **the blind
+   spot a whole-file exemption would have created, in the file [SP-129] already had to clean once.**
+4. ✅ **A `boundary-ok:` marker with no reason** → exit 1.
+
+✅ **Both guards run clean in a BARE `ubuntu:24.04` container with no toolchain** — ⚠️ **which is what
+proves the lint-only job actually works on the runner it is configured for.**
+✅ **No regression: macOS build clean, `ctest` 626/626; Linux Docker build clean, smokes pass.**
+
+⛔ **NOT VERIFIED: the workflows have never run on GitHub.** ⚠️ **YAML is valid and the scripts are
+proven locally, but a workflow's TRIGGERS are only really tested by a push** — ✅ **the first PR
+touching `Scrivi/` is the proof.**
+
+---
+
+## 🟢 SP-142 — ACTIVE (EP-041), activated 2026-09-21
+
+| Task | Title | Sprint | Status |
+| ---- | ----- | ------ | ------ |
+| **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore`** — ✅ **route it through [SP-141]'s core endpoints** | 🟢 **[SP-142]** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
+| **T-0542** | ⚠️ **[I-0241]** — ✅ **project `tags` from the core; ⛔ DELETE Linux's historical-event disk walk** | 🟢 **[SP-142]** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
+
+---
+
+### 🟢 STATUS 2026-09-21 — ✅ **BOTH TASKS IMPLEMENTED AND BUILT ON BOTH PLATFORMS**
+
+✅ **EVIDENCE:**
+| Check | Result |
+| ----- | ------ |
+| `ctest` macOS | ✅ **626/626** (was 621 — **5 new ABI tests**) |
+| `ctest` **LINUX, NON-ROOT, tests ON** | ✅ **630/630** — ⚠️ **a SECOND image**, `project_linux_container_tests_off` |
+| Linux Docker app build | ✅ **318/318 targets, ZERO warnings** |
+| Linux smokes | ✅ **24/24** (⚠️ `dumas_world_fixture` is a FIXTURE, not a test — it needs a 2nd arg) |
+| `xcodebuild build` / `test` | ✅ **clean / 132/132** |
+
+✅ **ALL 13 NEW ABI TESTS CONFIRMED RUNNING ON LINUX** (`ctest -N`, #310–#322).
+
+⚠️ **THREE INJECTED-DEFECT PROOFS — ⛔ a green test that cannot fail is not evidence:**
+1. ✅ **Core, ABI:** remove the `tags` projection → **3 of 5 fail**; restored → pass.
+2. ✅ **Linux, smoke:** make the store RECONSTRUCT instead of patch (the [I-0215] shape) →
+   **9 of 17 fail**, ⚠️ **naming `stackSort`, `scenes`, `defaultStacks` and the unknown key** —
+   ✅ **exactly what a writer would lose.**
+3. ✅ **Linux, drag path:** remove the projection → **both new T-0542 assertions fail**, ⚠️ **including
+   *"tags SURVIVED the drag"*.**
+
+#### ✅ T-0542 — the CORE half is done and PROVEN
+
+⚠️ **THE DEFECT WAS BIGGER THAN [I-0241] SAID.** ✅ **Two independent bugs, both fixed:**
+1. ⛔ **`listHistoricalEvents` DROPPED `tags`** — ✅ **now projected** (`ScriviCore.cpp`).
+2. ⛔ **`create`/`update` NEVER STORED THEM EITHER.** ⚠️ **Both called `getStringArray("tags")` on the
+   parsed payload — which reads an array UNDER a key "tags", while the header documents a ROOT array.**
+   ✅ **So the documented shape could never work, and a dead `arraySize("tags")` block beside it shows
+   the gap was noticed and left.**
+
+⚠️ **AND FIXING IT NAIVELY WOULD HAVE BROKEN LINUX.** ⛔ **Linux sends `{"tags":[…]}` (`tagsToJson`),
+which the OLD BUGGY CODE happened to read correctly** — ✅ **so narrowing the parse to the documented
+root array would have silently broken the only live producer.** ✅ **Both shapes are now accepted, via
+ONE helper, and a test asserts each.** ✅ **`scrivi.h` corrected to document both.**
+
+✅ **Also added `JsonDoc::rootStringArray()`** — ⚠️ **the accessor whose absence caused bug 2.**
+
+✅ **5 ABI tests, PROVEN FAILING: 3/5 fail with the projection removed; ✅ both halves verified
+load-bearing independently.**
+
+#### 🟡 T-0537 — code complete, UNBUILT
+
+✅ **`ScriviBridge` gained `getInspectorLayout`/`putInspectorLayout`.**
+✅ **`InspectorLayoutStore` GUTTED — ⛔ zero `QFile`/`QSaveFile`/`QDir`; it now calls the bridge and
+keeps only MEANING (defaults, tab vocabulary, the `unreadable` decision).** ✅ **Class KEPT and gutted,
+per the Q2 ruling.**
+✅ **`load()` handles all three statuses;** ⚠️ **`unreadable` keeps `loaded_ = false` so no setter can
+overwrite a damaged file** — ✅ **the pre-existing behaviour, preserved deliberately.**
+✅ **Smoke test REPOINTED, ⛔ assertions UNCHANGED** — ⚠️ **and its CMake target gained `ScriviBridge` +
+`ScriviCore`, which it did not link before.**
+
+#### ✅ AC10 — the DRAG test landed
+
+✅ **Added to `timeline_events_smoke.cpp`**, ⚠️ **deliberately SEPARATE from the Edit-dialog prefill**
+(`feedback_verify_each_half_separately`). ✅ **It asserts the full loop the drag performs: list → read
+tags → re-send with a new offset → they are still there.** ✅ **Verified failing.**
+
+#### ⛔ What is NOT done — ⚠️ **the live pass**
+
+- ⛔ **AC7: THE LIVE PASS ON THE REAL RIG, incl. the MAC CROSS-CHECK.** ⚠️ **The only thing that proves
+  AC3 for a writer** — ✅ **switch inspector tabs, quit, relaunch, confirm the tab returns; then open
+  the SAME project on the Mac and confirm the card layout is intact.**
+  ⚠️ **Also drag a historical event that HAS tags and confirm they survive.**
+  ⚠️ **Confirm the build first** (`scrivi_linux --version`, `feedback_confirm_the_build_under_test`).
+- ⚠️ **`feedback_live_pass_finds_what_suites_cannot`: a green suite never means usable.**
+
+⚠️ **T-0542 IS A SIBLING, NOT A SUB-TASK** (user ruling 2026-09-21). ✅ **Same tree, same live pass,
+same boundary principle;** ⛔ **different file, schema and endpoint** — ⚠️ **folding it into T-0537
+would hide a data-loss fix inside a refactor's diff.**
+
+⚠️ **T-0542 CARRIES A LATENT DATA-LOSS PATH:** ⛔ **`onHistoricalEventDragged` re-reads tags off disk
+ONLY to re-send them**, ✅ **because `updateHistoricalEvent` overwrites all fields** — ⚠️ **so a failed
+read silently ERASES that event's tags.** ✅ **Its own AC (AC10) and its own live-pass step.**
+
+✅ **Full plan: [`../Sprints/Sprint-SP-142.md`](../Sprints/Sprint-SP-142.md)** — ⛔ **not duplicated here.**
 
 ---
 

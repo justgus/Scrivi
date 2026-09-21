@@ -127,6 +127,68 @@ int main(int argc, char* argv[])
         check(found, "updateHistoricalEvent persisted the new title + offset");
     }
 
+    // ================================================================
+    // T-0542 / [I-0241] — ⚠️ TAGS SURVIVE A DRAG
+    // ================================================================
+    //
+    // ⚠️ THE DATA-LOSS PATH THIS TASK CLOSED. `onHistoricalEventDragged` re-times an
+    // event by calling updateHistoricalEvent, which OVERWRITES ALL FIELDS — so it must
+    // re-send the tags. It used to recover them by reading every file in
+    // `objects/historical-events/` off disk (`readHistoricalEventTagsFromDisk`), and
+    // that function returned an EMPTY list on any failure, ⛔ so a failed read
+    // SILENTLY ERASED the writer's tags.
+    //
+    // ✅ Tags now arrive in the LIST PROJECTION (T-0542's core half) and live in the
+    // shell's `histEvents_` cache. This asserts the full loop the drag performs:
+    // list → read tags → re-send with a new offset → they are still there.
+    //
+    // ⚠️ VERIFIED SEPARATELY FROM THE EDIT-DIALOG PREFILL on purpose — they are
+    // different mechanisms (`feedback_verify_each_half_separately`).
+    {
+        // The projection must carry them at all — before T-0542 this was empty.
+        QStringList tagsFromList;
+        const QVariantMap list = bridge.listHistoricalEvents(projectPath);
+        const QJsonArray arr = innerArray(list, "eventsJSON", "events");
+        for (const QJsonValue& v : arr) {
+            const QJsonObject o = v.toObject();
+            if (o.value(QStringLiteral("eventID")).toString() == ev2) {
+                for (const QJsonValue& t : o.value(QStringLiteral("tags")).toArray()) {
+                    tagsFromList.append(t.toString());
+                }
+            }
+        }
+        check(tagsFromList == QStringList{QStringLiteral("origin")},
+              "T-0542: listHistoricalEvents PROJECTS tags");
+
+        // The drag: re-send the cached title/description + THOSE tags, new offset.
+        QJsonArray reArr;
+        for (const QString& t : tagsFromList) { reArr.append(t); }
+        QJsonObject reObj;
+        reObj.insert(QStringLiteral("tags"), reArr);
+        bridge.updateHistoricalEvent(
+            projectPath, ev2, QStringLiteral("The Founding"), 86400000LL,
+            QStringLiteral(""),
+            QString::fromUtf8(QJsonDocument(reObj).toJson(QJsonDocument::Compact)));
+
+        QStringList after;
+        qint64 movedTo = 0;
+        const QVariantMap list2 = bridge.listHistoricalEvents(projectPath);
+        const QJsonArray arr2 = innerArray(list2, "eventsJSON", "events");
+        for (const QJsonValue& v : arr2) {
+            const QJsonObject o = v.toObject();
+            if (o.value(QStringLiteral("eventID")).toString() == ev2) {
+                movedTo = static_cast<qint64>(
+                    o.value(QStringLiteral("offsetMs")).toDouble());
+                for (const QJsonValue& t : o.value(QStringLiteral("tags")).toArray()) {
+                    after.append(t.toString());
+                }
+            }
+        }
+        check(movedTo == 86400000LL, "T-0542: the drag moved the event");
+        check(after == QStringList{QStringLiteral("origin")},
+              "T-0542: tags SURVIVED the drag (they used to be silently erased)");
+    }
+
     // Delete #2.
     bridge.deleteHistoricalEvent(projectPath, ev2);
     {

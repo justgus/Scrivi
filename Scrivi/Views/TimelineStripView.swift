@@ -1974,7 +1974,7 @@ struct TimelineStripView: View {
         panel.message = "Select a .scrivi-timeline.json file to import"
         panel.begin { response in
             guard response == .OK, let url = panel.url,
-                  let jsonStr = try? String(contentsOf: url, encoding: .utf8) else { return }
+                  let jsonStr = try? String(contentsOf: url, encoding: .utf8) else { return }   // boundary-ok: NSPanel, writer-chosen path outside any package
             // Parse source name and epoch label for the dialog
             struct Peek: Decodable {
                 let sourceProjectTitle: String?
@@ -2001,7 +2001,7 @@ struct TimelineStripView: View {
         panel.nameFieldStringValue = "timeline.scrivi-timeline.json"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            try? result.timelineJSON.write(to: url, atomically: true, encoding: .utf8)
+            try? result.timelineJSON.write(to: url, atomically: true, encoding: .utf8)   // boundary-ok: NSPanel, writer-chosen path outside any package
         }
         #endif
     }
