@@ -2841,7 +2841,7 @@ struct ObjectCardConfigurationTests {
         let offered = InspectorCardRegistry.available(in: .worldbuilding)
         #expect(offered.count == 10, "all ten are offered in the + menu")
 
-        let layout = InspectorLayoutStore(projectRootPath: NSTemporaryDirectory())
+        let layout = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: NSTemporaryDirectory())
         let stack = layout.resolvedStack(sceneID: "scene-1", stack: .worldbuilding)
         #expect(stack.entries.isEmpty, "the default Worldbuilding stack ships EMPTY")
     }
@@ -2876,7 +2876,7 @@ struct ObjectCardConfigurationTests {
         try JSONSerialization.data(withJSONObject: onDisk, options: [.prettyPrinted])
             .write(to: url)
 
-        let store = InspectorLayoutStore(projectRootPath: dir.path)
+        let store = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
         #expect(store.loadError == nil, "the fixture must load cleanly")
 
         // Mutate a key this build DOES own, then save.
@@ -2936,7 +2936,7 @@ struct ObjectCardConfigurationTests {
         try JSONSerialization.data(withJSONObject: onDisk, options: [.prettyPrinted])
             .write(to: url)
 
-        let store = InspectorLayoutStore(projectRootPath: dir.path)
+        let store = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
         #expect(store.loadError == nil, "the fixture must load cleanly")
 
         store.setInspectorHidden(true)
@@ -2968,7 +2968,7 @@ struct ObjectCardConfigurationTests {
 
         // No file on disk: the store falls back to defaults and has nothing to
         // preserve. ⚠️ This is the path where `rawDocument` is nil — it must still save.
-        let store = InspectorLayoutStore(projectRootPath: dir.path)
+        let store = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
         store.setInspectorHidden(true)
 
         let url = dir.appendingPathComponent("inspector-layout.json")

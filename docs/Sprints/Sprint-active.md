@@ -1,6 +1,28 @@
 # Active Sprints
 
-🟢 **[SP-141] ACTIVE — activated 2026-09-18 (user-approved)** under 🟡 **[EP-041]**.
+🟠 **[SP-141] COMPLETE 2026-09-21 — ⛔ AWAITING USER APPROVAL TO CLOSE** (activated 2026-09-18) under
+🟡 **[EP-041]**. ⚠️ **NO SPRINT IS CURRENTLY ACTIVE.**
+✅ **Its ONLY Task is Verified and archived** → [`../Tasks/Verified/Task-verified-0507.md`](../Tasks/Verified/Task-verified-0507.md).
+⚠️ **Claude cannot close a Sprint** — ✅ **this one is ready when you are.**
+✅ **[EP-041] AC2 is MET. ✅ [SP-142] is UNBLOCKED.**
+
+⚠️ **Prior status line, kept for the record:** 🟢 **IMPLEMENTED 2026-09-21.** ✅ **Both endpoints ship; Apple is converted;
+`InspectorLayoutStore.swift` has ZERO direct file I/O left.** ✅ **`ctest` 621/621 (was 613 — 8 new ABI
+tests), `xcodebuild test` 132/132 in 12 suites.** ⚠️ **The 8 new tests were PROVEN TO FAIL against an
+injected [I-0215]-shaped defect** — ✅ **a green test that cannot fail is not evidence.**
+✅ **A SECOND RULING WAS MADE (user, 2026-09-21): ABSENCE SEMANTICS — "core reports, app decides"**
+(`status` = `ok` | `absent` | `unreadable`). ✅ **[SP-142] IS NOW UNBLOCKED.**
+⛔ **A LIVE PASS IS STILL OWED** — ⚠️ **switch tabs, quit, relaunch, confirm the layout returns.**
+
+⚠️ **PRIOR STATUS, kept because it is what made the plan for [SP-142] worth writing:**
+⛔ **NOT STARTED AS OF 2026-09-21 (morning).** ✅ **Verified three ways:** **T-0507 is 🔵 NOT STARTED**
+(`../Tasks/Task-active.md:52`); ⛔ **no `inspector_layout` endpoint exists in `scrivi.h`**; and
+⚠️ **`Scrivi/App/InspectorLayoutStore.swift` STILL does its own file I/O** (`:175`, `:192`,
+`:368-370`) — ✅ **which is the [I-0197] bypass T-0507 exists to remove.**
+⚠️ **Nothing has been implemented in [EP-041] since [SP-140] closed on 2026-09-18.**
+✅ **[SP-142] was PLANNED 2026-09-21** → [`Sprint-SP-142.md`](Sprint-SP-142.md); ⚠️ **it owes [SP-141]
+a question (Q1: what the core returns for a MISSING or CORRUPT layout document), ⛔ which must be
+answered BEFORE T-0507 implements, not after.**
 ✅ **ITS BLOCKING RULING WAS MADE THE SAME DAY (user, 2026-09-18): the `inspector-layout.json`
 endpoints take the OPAQUE DOCUMENT GET/PUT shape.** ⚠️ **See the ruling record below.**
 
@@ -90,12 +112,14 @@ manuscript stayed usable with the volume gone and everything restored on reattac
 | Sprint | Task | Title | ⛔ Blocks on |
 | ------ | ---- | ----- | ----------- |
 | ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — Apple's layout round trip is lossless** | ✅ **CLOSED 2026-09-18** |
-| 🟢 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | ✅ **RULING MADE 2026-09-18 — ACTIVE** |
-| **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | ⛔ **SP-141 (now ACTIVE)** |
+| 🟠 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟠 **COMPLETE 2026-09-21 — ✅ T-0507 VERIFIED; ⛔ awaiting close approval** |
+| 🔵 **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | ✅ **UNBLOCKED 2026-09-21** — [plan](Sprint-SP-142.md) |
 | **[SP-143]** | **T-0510** | ⚠️ **The regression guard — closes [I-0197]** | ⛔ **SP-141 AND SP-142** |
 
-✅ **[SP-140] CLOSED 2026-09-18.** ✅ **[SP-141] IS NOW ACTIVE — its ENDPOINT-SHAPE RULING was made
-2026-09-18 (opaque document get/put; recorded above).** ✅ **SP-142 and SP-143 are unblocked in turn.**
+✅ **[SP-140] CLOSED 2026-09-18.** 🟠 **[SP-141] IS COMPLETE 2026-09-21 — ✅ T-0507 user-verified by
+live pass; ⛔ awaiting close approval.** ✅ **[SP-142] IS UNBLOCKED AND PLANNED**;
+⚠️ **[SP-143] still queues behind [SP-142]** — ✅ **its guard must see Linux's duplicate PRESENT before
+and ABSENT after, so it cannot run first.**
 
 ---
 

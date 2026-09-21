@@ -1,16 +1,46 @@
 ---
 sprint: SP-141
-epic: EP-040
-status: Planned
+epic: EP-041
+status: Complete
+task: T-0507
+verified: 2026-09-21
 platform: Apple + ScriviCore
 ---
 
 # Sprint SP-141 — `[Apple]`+`[ScriviCore]` Core-owned `inspector-layout.json` — endpoints + Apple adoption
 
-**Epic:** [EP-040](../Epics/Epic-active.md) · **Status:** 🔵 **PLANNED — ⛔ BLOCKED ON A RULING**
-**Task:** **T-0507** · **Issue:** [I-0197] (Class B)
-**Blocks on:** ⚠️ **an ENDPOINT-SHAPE RULING (below)** · ✅ **[SP-140] should land first** (lossless
-round trip becomes the core's contract, not a thing to reinvent).
+**Epic:** [EP-041](../Epics/Epic-EP-041.md) · **Status:** 🟠 **COMPLETE 2026-09-21 — ⛔ awaiting user
+approval to close.**
+**Task:** **T-0507** ✅ **VERIFIED 2026-09-21** → [`../Tasks/Verified/Task-verified-0507.md`](../Tasks/Verified/Task-verified-0507.md)
+**Issue:** [I-0197] (Class B — ⚠️ **HALF closed; Linux's duplicate awaits [SP-142]**)
+
+---
+
+## ✅ OUTCOME — 2026-09-21
+
+✅ **BOTH RULINGS WERE MADE AND THE SPRINT DELIVERED.**
+⚠️ **Everything below this line is the PRE-IMPLEMENTATION PLAN**, ⛔ **including a "blocked on a
+ruling" status that is no longer true and an `epic: EP-040` front-matter that was stale from the
+2026-09-18 split.** ✅ **Kept for its reasoning, which is why the plan is not deleted.**
+
+| Ruling | Date | ✅ Outcome |
+| ------ | ---- | --------- |
+| **Endpoint shape** | 2026-09-18 | ✅ **ONE OPAQUE DOCUMENT GET/PUT** |
+| **Absence semantics** | 2026-09-21 | ✅ **"core reports, app decides"** — `ok` \| `absent` \| `unreadable` |
+
+⚠️ **THE PLAN BELOW ASKS "WHICH OF FOURTEEN MUTATORS?" — ✅ AND THE OPAQUE RULING DISSOLVED THAT
+QUESTION ENTIRELY.** ✅ **TWO endpoints serve all fourteen**, ⚠️ **because the core never interprets
+the document and therefore does not need one entry point per property.** ✅ **That is the clearest
+evidence the shape ruling was the right one.**
+
+✅ **Shipped:** `scrivi_get_inspector_layout` / `scrivi_put_inspector_layout`; `JsonDoc::isObject()`;
+`ScriviEngine.getInspectorLayout` / `.putInspectorLayout`; `InspectorLayoutStore.swift` converted with
+⛔ **ZERO direct file I/O left.**
+✅ **Evidence:** `ctest` **621/621** (was 613 — 8 new ABI tests), `xcodebuild test` **132/132**,
+⚠️ **and the new tests PROVEN FAILING against an injected [I-0215]-shaped defect.**
+✅ **User live pass 2026-09-21: all checks pass.**
+
+---
 
 ## ⛔ THE RULING THIS SPRINT CANNOT START WITHOUT
 

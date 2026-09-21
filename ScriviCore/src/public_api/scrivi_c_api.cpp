@@ -25,6 +25,7 @@
 #include "manuscript/ProjectIndex.hpp"
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
+#include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
 #include "util/Json.hpp"
 
@@ -2433,6 +2434,137 @@ const char* scrivi_get_scene_notes(const char* projectRootPath, const char* scen
         doc.appendToArray("todo", std::move(t));
     }
     return heap(okEnvelope(std::move(doc)));
+}
+
+// --- Inspector layout (EP-041 / SP-141, T-0507) -----------------------------
+//
+// ⚠️ These two close the [I-0197] Class B bypass. Before them, the Swift app and
+// the Qt app EACH read and wrote `inspector-layout.json` themselves — and they had
+// already drifted ([I-0215]: Linux preserved unknown keys, Apple dropped them).
+//
+// ⚠️ THE DOCUMENT IS OPAQUE HERE, BY RULING (2026-09-18). We parse it only far
+// enough to prove it is a JSON object, then hand it back or store it verbatim. We
+// never look inside. That is what makes unknown keys survive BY CONSTRUCTION
+// rather than by a preservation mechanism someone has to remember to maintain —
+// which is precisely the mechanism Apple failed to have in [I-0215].
+
+// ⚠️ `extern "C++"` is REQUIRED here, not decoration: this helper sits inside the
+// file's `extern "C"` span, and an anonymous namespace does NOT restore C++
+// linkage. Without it Clang warns -Wreturn-type-c-linkage (it returns a
+// std::string alias). ⚠️ The file already says this twice, at lines ~1193 and
+// ~3341, and asks that any future helper in this span carry the same wrapper —
+// ✅ this is that case, hit exactly as predicted.
+extern "C++" {
+namespace {
+
+// The layout file's path for a project root. One definition, so the two endpoints
+// cannot disagree about where the file lives.
+scrivi::AbsolutePath inspectorLayoutPath(const std::string& projectRootPath) {
+    return scrivi::util::join(projectRootPath, "inspector-layout.json");
+}
+
+} // namespace
+} // extern "C++"
+
+const char* scrivi_get_inspector_layout(const char* projectRootPath) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    }
+
+    auto services = abiServices();
+    const auto path = inspectorLayoutPath(root);
+
+    // ⚠️ ABSENT IS NOT AN ERROR (ruled 2026-09-21). Every project created before
+    // this file existed has no layout, so `absent` is the NORMAL first answer for
+    // a real writer's project — reporting it as a failure would make the common
+    // case look broken ([I-0222] precedent).
+    auto existsR = services.fileSystem->exists(path);
+    if (!existsR.ok()) return heap(errorEnvelope(existsR.error()));
+    if (!existsR.value()) {
+        scrivi::util::JsonDoc doc;
+        doc.setString("status", "absent");
+        return heap(okEnvelope(std::move(doc)));
+    }
+
+    auto textR = services.fileSystem->readTextFile(path);
+    if (!textR.ok()) {
+        // ⛔ UNREADABLE IS REPORTED, NOT REPAIRED, AND NOT OVERWRITTEN. The
+        // writer's layout may be recoverable by hand; destroying it on open would
+        // remove that chance. The app defaults AND warns — it cannot do the second
+        // half if we collapse this into `absent`.
+        scrivi::util::JsonDoc doc;
+        doc.setString("status",  "unreadable");
+        doc.setString("message", textR.error().message);
+        return heap(okEnvelope(std::move(doc)));
+    }
+
+    auto parsed = scrivi::util::parseJson(textR.value());
+    if (!parsed.ok()) {
+        scrivi::util::JsonDoc doc;
+        doc.setString("status",  "unreadable");
+        doc.setString("message", parsed.error().message);
+        return heap(okEnvelope(std::move(doc)));
+    }
+
+    scrivi::util::JsonDoc doc;
+    doc.setString("status", "ok");
+    doc.setSubDoc("document", std::move(parsed.value()));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_put_inspector_layout(const char* projectRootPath,
+                                         const char* documentJson) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    }
+
+    const std::string text = S(documentJson);
+    if (text.empty()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "documentJson is required"));
+    }
+
+    // ⚠️ THE ONE THING WE VALIDATE, AND WHY. The document's INTERIOR is the app's
+    // business, but "is it an object at all" is ours: a non-object here would make
+    // the file unreadable to every future GET, so storing it would manufacture the
+    // corruption the read path exists to report. This is the boundary of the
+    // opaque ruling, not an exception to it.
+    auto parsed = scrivi::util::parseJson(text);
+    if (!parsed.ok()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "documentJson is not valid JSON: "
+                                      + parsed.error().message));
+    }
+    // A JSON array, number or string parses cleanly and is still unusable here.
+    // ⚠️ An EMPTY OBJECT is LEGAL — a writer may legitimately clear their layout —
+    // so the test is the document's SHAPE, not whether it has any keys.
+    if (!parsed.value().isObject()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "documentJson must be a JSON object"));
+    }
+
+    // ⚠️ WRITING OVER AN UNREADABLE FILE IS ALLOWED. The read path leaves damage
+    // alone; a PUT is the writer's explicit act and must not be blocked by the
+    // state of what it replaces.
+    //
+    // Atomic (temp + rename), the same discipline every other schema here uses: an
+    // interrupted save must not truncate the live file. A HALF file would not parse
+    // and would take the writer's whole card layout with it.
+    auto wrote = scrivi::util::atomicWriteTextFile(inspectorLayoutPath(root),
+                                                   parsed.value().dump(2));
+    if (!wrote.ok()) return heap(errorEnvelope(wrote.error()));
+
+    scrivi::util::JsonDoc doc;
+    doc.setBool("saved", true);
+    return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 const char* scrivi_get_scene_story_time(const char* projectRootPath, const char* sceneID) {

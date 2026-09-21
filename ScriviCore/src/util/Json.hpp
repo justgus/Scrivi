@@ -22,6 +22,12 @@ public:
 
     [[nodiscard]] bool contains(std::string_view key) const;
 
+    // True when this document is a JSON OBJECT (as opposed to an array, number,
+    // string, bool or null). A parsed-but-not-object document is legal JSON that
+    // most callers here cannot use, and `contains`/`getString` answer falsely
+    // rather than loudly for one — so ask this before trusting either.
+    [[nodiscard]] bool isObject() const;
+
     // Member key names of this object (empty if not an object). Order is
     // implementation-defined; callers must not depend on it.
     [[nodiscard]] std::vector<std::string> objectKeys() const;

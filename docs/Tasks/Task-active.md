@@ -40,24 +40,30 @@ main-actor block at `ExistingAssetPicker.swift:130`.
 to PLANNED sprints (SP-142 – SP-143) and live in those records** — ⛔ **NOT in this file, which holds
 ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning detail:
 [`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
-✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 MOVED INTO THIS FILE 2026-09-18 when [SP-141]
-was activated.**
+✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 is VERIFIED 2026-09-21 and has LEFT this file**
+→ [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
+⚠️ **ZERO Tasks are currently active in this file** — ✅ **[SP-141]'s only Task is done, and
+[SP-142]/[SP-143] issue theirs at ACTIVATION, not before** (`feedback_task_layer_discipline`).
 
 ---
 
-## 🟢 SP-141 — ACTIVE (EP-041), activated 2026-09-18
+## ✅ SP-141 — T-0507 VERIFIED 2026-09-21, ARCHIVED
 
-| Task | Title | Sprint | Status |
-| ---- | ----- | ------ | ------ |
-| **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟢 **[SP-141]** | 🔵 **NOT STARTED** |
+✅ **T-0507 ✅ VERIFIED** by the user's live pass → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
+⚠️ **It LEFT THIS FILE in the same step it was verified** (`feedback_task_layer_discipline`,
+`feedback_archive_on_close`) — ⛔ **a Verified Task must not linger in the active file.**
 
-✅ **ITS BLOCKING RULING IS MADE (user, 2026-09-18): ONE OPAQUE DOCUMENT GET/PUT.** ✅ **The core owns
-atomicity, durability and repair; the APP owns meaning.** ⛔ **The core does NOT validate the
-document's interior.** ⚠️ **ACCEPTED COST: the core cannot validate what it stores here.**
-⚠️ **Full ruling: [`../Sprints/Sprint-active.md`](../Sprints/Sprint-active.md) and
-[`../Epics/Epic-EP-041.md`](../Epics/Epic-EP-041.md).**
-⚠️ **It must honour [SP-140]'s LOSSLESS rule** — ✅ **keys the core does not understand SURVIVE**,
-which the opaque shape gives by construction.
+✅ **What it closed:** ⚠️ **[I-0197] Class B on the APPLE side** — ⛔ **`InspectorLayoutStore.swift`
+has ZERO direct file I/O left.** ✅ **[EP-041] AC2 is MET.**
+⚠️ **Class B is only HALF closed: Linux's duplicate `InspectorLayoutStore.cpp` is UNTOUCHED** —
+✅ **that is [SP-142] / T-0537, now UNBLOCKED.**
+
+✅ **Two rulings were made for it:** ⚠️ **endpoint SHAPE (2026-09-18, opaque get/put)** and
+⚠️ **ABSENCE SEMANTICS (2026-09-21, "core reports, app decides")** — ✅ **the second surfaced from
+planning the BLOCKED [SP-142], which is why it cost nothing.**
+
+✅ **Evidence: `ctest` 621/621, `xcodebuild test` 132/132** — ⚠️ **and the 8 new ABI tests were PROVEN
+FAILING against an injected [I-0215]-shaped defect.**
 
 ## ✅ SP-129 — ARCHIVED 2026-09-15
 

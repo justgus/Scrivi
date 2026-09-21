@@ -139,14 +139,30 @@ struct ResolvedStack {
     var unknownTypeIDs: [String] = []
 }
 
-/// Loads and saves `inspector-layout.json` in the project package.
+/// Loads and saves `inspector-layout.json` — THROUGH ScriviCore (EP-041 / T-0507).
 ///
-/// Writes are atomic (temp file + replace) so a crash mid-save cannot leave a truncated
-/// layout — matching the AtomicWrite discipline ScriviCore uses for its own schemas.
+/// ⚠️ This class used to read and write the file itself. That was [I-0197] Class B:
+/// the same schema had two app-side owners, Swift and Qt, and they had already
+/// drifted ([I-0215] — Linux preserved unknown keys, Apple dropped them).
+/// ⛔ DO NOT REINTRODUCE FILE I/O HERE. The core owns atomicity, durability and
+/// repair; this class owns MEANING — the typed document, the defaults, and the
+/// decision of what an absent or damaged layout should look like on screen.
 @Observable @MainActor final class InspectorLayoutStore {
 
     private(set) var document: InspectorLayoutDocument
-    private let fileURL: URL?
+    /// The project this layout belongs to; `nil` when there is no project (the
+    /// store then serves defaults and never persists).
+    ///
+    /// ⚠️ EP-041 / T-0507: this replaced a `fileURL`. The app no longer knows where
+    /// `inspector-layout.json` lives — that is ScriviCore's business now, and the
+    /// path exists in exactly one place (`inspectorLayoutPath`, scrivi_c_api.cpp).
+    private let projectRootPath: String?
+
+    /// ⚠️ EP-041 / T-0507: the store now talks to ScriviCore instead of the
+    /// filesystem, so it needs an engine. INJECTED, matching `BufferService` —
+    /// `feedback_look_for_existing_pattern_first`; there is no `ScriviEngine.shared`
+    /// in this app and inventing one would be a second way to reach the core.
+    private let engine: ScriviEngine
 
     /// The file exactly as it was read, including every key this build does not
     /// understand (T-0536, [I-0215]).
@@ -171,39 +187,64 @@ struct ResolvedStack {
     /// defaults; the UI can note it rather than silently discarding the writer's layout.
     private(set) var loadError: String?
 
-    static func layoutURL(projectRootPath: String) -> URL {
-        URL(fileURLWithPath: projectRootPath).appendingPathComponent("inspector-layout.json")
-    }
-
-    init(projectRootPath: String?) {
+    init(engine: ScriviEngine, projectRootPath: String?) {
+        self.engine = engine
         guard let root = projectRootPath else {
-            self.fileURL = nil
+            self.projectRootPath = nil
             self.document = .makeDefault()
             return
         }
-        let url = Self.layoutURL(projectRootPath: root)
-        self.fileURL = url
+        self.projectRootPath = root
 
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            self.document = .makeDefault()
-            return
-        }
+        let fetched: InspectorLayoutFetch
         do {
-            let data = try Data(contentsOf: url)
-            self.document = try JSONDecoder().decode(InspectorLayoutDocument.self, from: data)
-            // T-0536: keep the file as written so `save()` can put back the keys the
-            // typed decode above just dropped. Parsed SECOND and non-fatally — a
-            // document that decoded cleanly must still load even if this does not
-            // produce an object, in which case we simply have nothing extra to keep.
-            self.rawDocument = (try? JSONSerialization.jsonObject(with: data))
-                as? [String: Any]
+            fetched = try engine.getInspectorLayout(projectRootPath: root)
         } catch {
-            // Corrupt or unreadable: fall back to defaults and REPORT it. We do not
-            // overwrite the bad file here — the writer's layout may be recoverable by
-            // hand, and clobbering it on open would destroy that chance.
+            // The CALL itself failed (not the document). Defaults + report, same as
+            // an unreadable document: we still have no layout to show.
             self.document = .makeDefault()
             self.loadError = "Could not read inspector-layout.json (\(error.localizedDescription)). "
                 + "Using default inspector layout; the existing file was left untouched."
+            return
+        }
+
+        switch fetched.status {
+        case .absent:
+            // ⚠️ NORMAL, NOT AN ERROR. Every project created before this file existed
+            // has no layout; so does every project a writer has never opened the
+            // inspector in. No `loadError` — there is nothing wrong to report.
+            self.document = .makeDefault()
+
+        case .unreadable:
+            // ⛔ The core reported damage and deliberately did NOT overwrite it. We
+            // default and SAY SO — this is the case the writer may be able to
+            // recover by hand, and it is why `unreadable` is distinct from `absent`.
+            self.document = .makeDefault()
+            self.loadError = "Could not read inspector-layout.json (\(fetched.message ?? "unreadable")). "
+                + "Using default inspector layout; the existing file was left untouched."
+
+        case .ok:
+            guard let json = fetched.documentJSON else {
+                self.document = .makeDefault()
+                return
+            }
+            let data = Data(json.utf8)
+            do {
+                self.document = try JSONDecoder().decode(InspectorLayoutDocument.self, from: data)
+            } catch {
+                // The document is valid JSON (the core parsed it) but does not fit
+                // our typed shape. Defaults, and keep the raw copy below so a later
+                // save does not destroy what we could not read.
+                self.document = .makeDefault()
+                self.loadError = "Could not read inspector-layout.json (\(error.localizedDescription)). "
+                    + "Using default inspector layout; the existing file was left untouched."
+            }
+            // T-0536: keep the document as the core returned it so `save()` can put
+            // back the keys the typed decode above just dropped. Parsed SECOND and
+            // non-fatally — a document that decoded cleanly must still load even if
+            // this does not produce an object.
+            self.rawDocument = (try? JSONSerialization.jsonObject(with: data))
+                as? [String: Any]
         }
     }
 
@@ -359,15 +400,17 @@ struct ResolvedStack {
     }
 
     func save() {
-        guard let url = fileURL else { return }
+        guard let root = projectRootPath else { return }
         do {
             let data = try mergedForSave()
-            // Atomic: write a sibling temp then replace, so an interrupted save cannot
-            // truncate the live file.
-            let tmp = url.deletingLastPathComponent()
-                .appendingPathComponent(".inspector-layout.json.tmp")
-            try data.write(to: tmp, options: .atomic)
-            _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+            guard let json = String(data: data, encoding: .utf8) else {
+                loadError = "Could not save inspector-layout.json (not UTF-8)."
+                return
+            }
+            // ⚠️ ATOMICITY IS THE CORE'S JOB NOW (EP-041 ruling): it writes a temp
+            // and renames, the same discipline this method used to implement itself.
+            // ⛔ Do not reintroduce a write here — that is the [I-0197] bypass.
+            try engine.putInspectorLayout(projectRootPath: root, documentJson: json)
             // T-0536: the file on disk is now what we just merged, so the retained
             // copy must track it. Without this a SECOND save in the same session
             // would merge against the state at load and could resurrect a top-level

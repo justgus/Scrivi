@@ -570,6 +570,40 @@ const char* scrivi_set_scene_todo(const char* projectRootPath, const char* scene
 /* Returns all three in one envelope so a card stack costs one call, not three. */
 const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID);
 
+/* Inspector layout — `inspector-layout.json` at the project root (EP-041 SP-141,
+   T-0507). Closes the [I-0197] Class B bypass: before these, BOTH the Swift and Qt
+   apps read and wrote this file themselves, and they had already drifted apart
+   ([I-0215] — Linux preserved unknown keys, Apple dropped them).
+
+   ⚠️ THE DOCUMENT IS OPAQUE TO THE CORE (ruled 2026-09-18). The core owns
+   atomicity, durability and repair; the APP owns meaning. The core does not
+   validate the document's interior and does not know what a card kind or a tab is.
+   Unknown keys therefore survive BY CONSTRUCTION — the core never interprets them.
+   ⚠️ ACCEPTED COST, recorded so it is not later rediscovered as a defect: the core
+   CANNOT validate what it stores here. A malformed layout is the app's to detect.
+
+   ⚠️ ABSENCE SEMANTICS (ruled 2026-09-21) — "core reports, app decides".
+   The GET always SUCCEEDS and reports what it found:
+     {"ok":true,"result":{"status":"ok","document":{...}}}
+     {"ok":true,"result":{"status":"absent"}}
+     {"ok":true,"result":{"status":"unreadable","message":"..."}}
+   A missing layout is NORMAL, not an error — every project created before this
+   file existed has none — so it must not be reported as one. `absent` and
+   `unreadable` stay DISTINCT so the app can warn about a recoverable corrupt file
+   while silently defaulting for an absent one.
+   ⛔ The core NEVER invents defaults (it cannot: it does not know what a tab is)
+   and NEVER overwrites a corrupt file on read — the writer's layout may be
+   recoverable by hand, and clobbering it on open would destroy that chance. */
+const char* scrivi_get_inspector_layout(const char* projectRootPath);
+
+/* Replaces the whole document. `documentJson` must be a JSON OBJECT; anything else
+   is rejected as invalidArgument rather than written, since a non-object would make
+   the file unreadable to every future GET.
+   ⚠️ Writing over an `unreadable` file SUCCEEDS — that is the writer's explicit act,
+   as distinct from the read path, which leaves damage alone. */
+const char* scrivi_put_inspector_layout(const char* projectRootPath,
+                                         const char* documentJson);
+
 const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char* sceneID,
                                          const char* bandID);
 const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const char* sceneID);

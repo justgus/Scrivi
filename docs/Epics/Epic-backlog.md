@@ -8,6 +8,45 @@ Epics listed here are fully defined but have no active sprint. Epics that were p
 
 _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now in `Epic-active.md`.)_
 
+---
+
+## EP-043: `[Linux]` ⚠️ **The Session** — many projects, each in its own window, restored where the writer left it
+
+**Status:** 🔵 **Draft** — created 2026-09-21. ⛔ **No Sprint assigned; not activated.**
+**Full record:** → [`Epic-EP-043.md`](Epic-EP-043.md) — ⚠️ **goal, AC R1–R8, 4 Sprints, 4 owed rulings.**
+**Closes:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (window + splitter geometry)
+**Apple precedent:** ✅ **[EP-018]** → [`Closed/Epic-EP-018.md`](Closed/Epic-EP-018.md), R1–R5
+user-verified 2026-06-25 in **3 Sprints**. ⚠️ **This is scoped at 4.**
+
+**Goal:** A writer can keep **several Scrivi projects open at once on Linux, one per window**; opening
+an already-open project **focuses its window** instead of duplicating it; and on relaunch the app
+**reopens every window that was open at quit, at the size, position and panel proportions it had.**
+
+⚠️ **All three Issues were found by the USER on the REAL RIG on 2026-08-29** — ✅ **the first day the
+Linux app ran on real hardware.** ⛔ **No suite found any of them**, and none can be verified by one:
+⚠️ **"was it still there after a quit?" is not a question a headless smoke can ask.**
+
+⚠️ **They are ONE missing concept, not three defects.** ✅ **[I-0178] says so itself** — *"the natural
+parent of I-0176 and I-0177, since 'restore what was open' and 'restore geometry' are both per-window
+concepts that need a window registry to hang from."*
+
+**Rough scope:** Extract a per-project session out of the 2,783-line `EditorShell` (⚠️ **behaviour-
+preserving**, its own Sprint — ✅ **the whole risk of the Epic lives here**); an authoritative
+open-project registry; one window per project; an open-session manifest + launch restore; per-project
+geometry **and splitter proportions**; ⚠️ **a test/headless guard that ships in the SAME Sprint as the
+restore** ([I-0150]: `xcodebuild test` once launched Apple's app and **rewrote a real project**).
+
+⚠️ **Four rulings are owed before [SP-145] can activate** — ✅ **`QSettings` vs `recents.json`;
+path-keyed vs projectID-keyed windows; what becomes of the stacked landing page; and whether the
+deliberately session-scoped visibility flags (SP-078/T-0320) now persist.** ⛔ **Recorded up front so
+they are not discovered mid-Sprint, the way [SP-141]'s endpoint-shape ruling was.**
+
+⛔ **OUT of scope:** any ScriviCore/C ABI change · any Apple-side work · [I-0181] · deep links ·
+[EP-026]'s undo/menus/settings parity.
+
+**Sprints (IDs reserved, none in Planning):** [SP-145] session split · [SP-146] the windows ·
+[SP-147] the persistence · [SP-148] verification + live pass. ⚠️ **The chain is SERIAL.**
+
 ## [Linux] App — Epic Family (EP-024–EP-026)
 
 The Ubuntu Qt/QML port of the macOS app, split one Epic per capability (mirroring how the Apple app was

@@ -312,7 +312,7 @@ import os
         // empty, Writing = tags/outline/todo).
         NSLog("[SCRIVI-TIMING] >>> entering: InspectorLayoutStore init")
         let layout = ScriviDiag.measure("InspectorLayoutStore init") {
-            InspectorLayoutStore(projectRootPath: path)
+            InspectorLayoutStore(engine: engine, projectRootPath: path)
         }
         // Restore the persisted hide/show state (Doc 2 AC4) BEFORE publishing the store,
         // so `inspectorVisible`'s didSet has no store to write back to. Otherwise

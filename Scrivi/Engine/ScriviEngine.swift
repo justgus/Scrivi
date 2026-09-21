@@ -836,6 +836,36 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — Inspector layout (EP-041 SP-141, T-0507)
+
+    /// Reads `inspector-layout.json` through the core.
+    ///
+    /// ⚠️ The document is OPAQUE across this boundary by ruling (2026-09-18): the core
+    /// owns atomicity, durability and repair; the APP owns meaning. So the payload
+    /// arrives as raw JSON and is decoded HERE, not in C++ — which is exactly what
+    /// makes keys this build has never heard of survive a round trip ([I-0215]).
+    ///
+    /// ⚠️ `status` distinguishes three outcomes and the caller must honour all three:
+    /// `ok` (use `document`), `absent` (no file — NORMAL, use defaults), `unreadable`
+    /// (corrupt — use defaults AND warn; the file is deliberately left on disk).
+    public func getInspectorLayout(projectRootPath: String) throws -> InspectorLayoutFetch {
+        let raw = projectRootPath.withCString { prp in scrivi_get_inspector_layout(prp) }
+        return try decodeC(raw)
+    }
+
+    /// Replaces `inspector-layout.json` wholesale, atomically, through the core.
+    ///
+    /// `documentJson` must be a JSON object; the core rejects anything else rather
+    /// than writing a file no future read could parse.
+    @discardableResult
+    public func putInspectorLayout(projectRootPath: String,
+                                   documentJson: String) throws -> InspectorLayoutSave {
+        let raw = projectRootPath.withCString { prp in
+            documentJson.withCString { dj in scrivi_put_inspector_layout(prp, dj) }
+        }
+        return try decodeC(raw)
+    }
+
     @discardableResult
     public func setSceneTags(projectRootPath: String, sceneID: String,
                              tags: [String]) throws -> SceneNotesUpdateResult {
@@ -1471,6 +1501,8 @@ public final class ScriviEngine: @unchecked Sendable {
     public func listStoryTimes(projectRootPath: String) throws -> StoryTimesResult { try unavailable() }
     public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
     public func getSceneNotes(projectRootPath: String, sceneID: String) throws -> SceneNotesResult { try unavailable() }
+    public func getInspectorLayout(projectRootPath: String) throws -> InspectorLayoutFetch { try unavailable() }
+    @discardableResult public func putInspectorLayout(projectRootPath: String, documentJson: String) throws -> InspectorLayoutSave { try unavailable() }
     @discardableResult public func setSceneTags(projectRootPath: String, sceneID: String, tags: [String]) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneOutline(projectRootPath: String, sceneID: String, outline: String) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneTodo(projectRootPath: String, sceneID: String, todo: [SceneTodoItem]) throws -> SceneNotesUpdateResult { try unavailable() }
@@ -2196,6 +2228,99 @@ public struct SceneNotesResult: Decodable, Sendable {
 public struct SceneNotesUpdateResult: Decodable, Sendable {
     public let sceneID: String
     public let updated: Bool
+}
+
+// MARK: — Inspector layout (EP-041 SP-141, T-0507)
+
+/// What the core found at `inspector-layout.json`.
+///
+/// ⚠️ THREE OUTCOMES, AND THEY ARE NOT INTERCHANGEABLE (ruled 2026-09-21):
+/// `absent` is the NORMAL first answer for any project created before this file
+/// existed, while `unreadable` means a real document is damaged — the app defaults
+/// for both but can only WARN about the second. Collapsing them loses that.
+public enum InspectorLayoutStatus: String, Decodable, Sendable {
+    case ok, absent, unreadable
+}
+
+/// The result of a layout read.
+///
+/// ⚠️ `document` is held as RAW JSON, deliberately. Decoding it into a fixed struct
+/// at this boundary would drop every key this build does not declare — which is
+/// precisely the defect [I-0215] recorded, where Apple destroyed what Linux kept.
+/// The typed decode happens one layer up, in `InspectorLayoutStore`, which keeps
+/// this raw copy alongside it so a save can put the unknown keys back.
+public struct InspectorLayoutFetch: Decodable, Sendable {
+    public let status: InspectorLayoutStatus
+    /// The document verbatim, present only when `status == .ok`.
+    public let documentJSON: String?
+    /// Why the document could not be read; present only when `status == .unreadable`.
+    public let message: String?
+
+    private enum CodingKeys: String, CodingKey { case status, document, message }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status  = (try? c.decode(InspectorLayoutStatus.self, forKey: .status)) ?? .absent
+        message = try? c.decodeIfPresent(String.self, forKey: .message)
+
+        // Re-encode the opaque sub-document back to JSON text. `JSONValue` preserves
+        // arbitrary structure, so nothing is lost between the C string and here.
+        if let value = try? c.decodeIfPresent(JSONValue.self, forKey: .document),
+           let data = try? JSONEncoder().encode(value) {
+            documentJSON = String(data: data, encoding: .utf8)
+        } else {
+            documentJSON = nil
+        }
+    }
+}
+
+public struct InspectorLayoutSave: Decodable, Sendable {
+    public let saved: Bool
+}
+
+/// A JSON value of any shape, used to carry a document the app must not reshape.
+///
+/// ⚠️ This exists so an opaque document can cross `Codable` WITHOUT a schema. Swift's
+/// `Decodable` cannot express "any JSON" natively, and the obvious shortcuts all lose
+/// data: `[String: String]` flattens nesting, and a typed struct drops unknown keys —
+/// the [I-0215] defect exactly.
+indirect enum JSONValue: Codable, Sendable {
+    case null
+    case bool(Bool)
+    case number(Double)
+    case string(String)
+    case array([JSONValue])
+    case object([String: JSONValue])
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null; return }
+        if let v = try? c.decode(Bool.self)   { self = .bool(v);   return }
+        if let v = try? c.decode(Double.self) { self = .number(v); return }
+        if let v = try? c.decode(String.self) { self = .string(v); return }
+        if let v = try? c.decode([JSONValue].self) { self = .array(v); return }
+        if let v = try? c.decode([String: JSONValue].self) { self = .object(v); return }
+        throw DecodingError.dataCorruptedError(in: c, debugDescription: "unrepresentable JSON")
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .null:          try c.encodeNil()
+        case .bool(let v):   try c.encode(v)
+        case .number(let v):
+            // Write whole numbers as integers: this file is Git-visible project
+            // state, and rendering 0 as 0.0 would churn the diff on every save.
+            if v == v.rounded(), abs(v) < 9.007_199_254_740_992e15 {
+                try c.encode(Int64(v))
+            } else {
+                try c.encode(v)
+            }
+        case .string(let v): try c.encode(v)
+        case .array(let v):  try c.encode(v)
+        case .object(let v): try c.encode(v)
+        }
+    }
 }
 
 public struct StoryStructureResult: Decodable, Sendable {

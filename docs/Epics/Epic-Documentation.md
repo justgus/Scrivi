@@ -12,54 +12,54 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 
 ## Active Epics
 
-⚠️ **TWO Epics are ACTIVE, in parallel by user ruling 2026-08-25:**
-🟡 **EP-035** `[Linux]` **Object Foundations** (⚠️ **split three ways** → EP-036, EP-037) ·
-🟡 **EP-038** `[Linux]` **The Real Hardware Rig** (SP-123 🟡, SP-124 🔵).
-**EP-034** ✅ **CLOSED 2026-08-25**, promoted from the backlog and ⚠️ **widened in place** from "object fields beyond
-`displayName`" to the full Detail Sheet, relationship surface, and Project↔World interaction.
+⚠️ **THIS SECTION NAMES THE ACTIVE EPICS ONLY.** ⛔ **It does not restate their status, ACs or sprint
+tables** — ✅ **the All-Epics table below and each Epic's own record are authoritative (P7).**
 
-**Design doc** `Scrivi_Object_Detail_Sheets_Design_v0_1.md` is 🟢 **APPROVED FOR PLANNING** — ✅ **all nine
-trades D1–D9 and all three decisions Q-a/Q-b/Q-c ruled.** AC1–AC12 written; 8 sprints estimated;
-**SP-115 ✅ CLOSED 2026-08-20** (user-approved) — 1 of 8 sprints; seven Tasks + six Issues Verified. **SP-116 next.**
+🟡 **EP-040** `[Apple]` **The Editor Shell** (activated 2026-09-15) — SP-134–SP-137 → [`Epic-active.md`](Epic-active.md)
+🟡 **EP-041** `[Cross]` **The Boundary** (activated 2026-09-18) — SP-140–SP-143 → [`Epic-EP-041.md`](Epic-EP-041.md)
 
-⚠️ **Q-a: EP-034 precedes EP-032**, whose **SP-107–SP-114 stay reserved** — so **sprint IDs run out of
-sequence** (precedented: SP-083 before SP-082, SP-102 before SP-100). ⚠️ **Q-b: the Detail Sheet is
-ADDITIVE** — the inline editor and list item remain, so **I-0139 is a real fix, not a disposition.**
-⚠️ **Q-c: iOS/visionOS explicitly deferred**; `[Linux]` parity stays in scope.
-
-> ⚠️ **The finding that reshaped it:** the object-editing backend **and its Swift binding already exist** —
-> `scrivi_save_object` takes full object JSON, every edge endpoint ships, and `ScriviEngine` wraps them all,
-> while the app exposes a single `TextField("Name")`. **`project_capability_without_surface` at its largest
-> scale yet.** The lesson, per the user: *"Ensure all core features have a UI the writer can reach!"*
-
-**Previously active:** **EP-031** `[ScriviCore]` ✅ **CLOSED 2026-08-19** (user-approved) →
-[`Closed/Epic-EP-031.md`](Closed/Epic-EP-031.md) — 11 sprints, all 10 ACs verified. It filed
-**I-0135–I-0139** and fixed none by design; ⚠️ **all five are now assigned to EP-034's SP-115.**
-**EP-019** and **EP-030** `[Apple]` ✅ closed 2026-08-11; **EP-029** `[Cross]` ✅ closed 2026-08-03.
+⚠️ **CORRECTED 2026-09-21.** ⛔ **This section had gone BADLY stale: it claimed EP-035 and EP-038 were
+the two active Epics "by user ruling 2026-08-25"** — ⚠️ **EP-038 CLOSED 2026-09-11 and EP-035 was
+DEFERRED to the backlog 2026-09-10.** ⚠️ **It also carried EP-034's full design-doc and Q-a/Q-b/Q-c
+planning narrative, months after EP-034 closed (2026-08-25).** ✅ **That narrative is not lost — it
+lives in [`Closed/Epic-EP-034.md`](Closed/Epic-EP-034.md), which is where a closed Epic's reasoning
+belongs.** ⚠️ **This is the THIRD staleness defect found in this index** (the table stopped at EP-034,
+found 2026-09-14; EP-041/EP-042 were missing, found 2026-09-20) — ✅ **and the first to be found in the
+prose rather than the table.**
 
 See: [Epic-active.md](Epic-active.md)
 
 ## Backlog Epics
 
-Currently: **3 Backlog Epics** —
-- **EP-026** `[Linux]` (Undo/Redo, Menus, Settings & Parity Verification), 🔵 Draft — the last of the planned
-  `[Linux]` family. (EP-023 ✅ closed 2026-07-19; EP-024 ✅ closed 2026-07-22; EP-025 Timeline Panel ✅ closed
-  2026-07-24.)
-- **EP-032** `[Cross]` (Inline Object References in the Manuscript — footnotes / pull quotes), 🔵 Draft,
-  opened 2026-08-12; **promoted and returned 2026-08-20**. ⚠️ **Retains a full planning pass** (AC1–AC10,
-  Q1–Q6) and ⚠️ **holds RESERVED sprint IDs SP-107–SP-114**. Owes a **Q5 export ruling** before promotion.
-- **EP-033** `[Cross]` (World Lifecycle Management — in-app view vs. dedicated application), 🔵 Proposed,
-  opened 2026-08-14 from the I-0118 Q1 ruling. Its first deliverable is the product fork itself.
+⛔ **No count is stated here** — ✅ **read the All-Epics table below.** ⚠️ **A restated count is what
+went stale: this section said "Currently: 3 Backlog Epics" and listed three, when there are SEVEN.**
+
+🔵 **EP-026** `[Linux]` · 🔵 **EP-032** `[Cross]` · 🔵 **EP-033** `[Cross]` · 🔵 **EP-035** `[Linux]` ·
+🔵 **EP-036** `[Linux]` · 🔵 **EP-037** `[Linux]` · 🔵 **EP-043** `[Linux]`
+
+⚠️ **Full entries — goal, scope and any owed rulings — are in
+[`Epic-backlog.md`](Epic-backlog.md);** ⛔ **they are NOT summarised here.**
 
 See: [Epic-backlog.md](Epic-backlog.md)
 
 ## All Epics
 
 ⚠️ **This table is the single source for Epic status (P7).** Counts are not restated here or in
-Statistics — read the rows. Next available ID: **EP-043**.
+Statistics — read the rows. ⚠️ **The next available ID is recorded ONCE, in Statistics below** —
+⛔ **this line used to restate it and had gone STALE (it still read `EP-043` after EP-043 was created);
+✅ removed 2026-09-21. Restating it is the P7 defect this very paragraph warns about.**
 ⚠️ **INDEX GAP FOUND 2026-09-14 while adding EP-040: this table stopped at EP-034** — ⚠️ **EP-035
 through EP-039 were never added, including the CURRENTLY ACTIVE [EP-039].** ✅ **Rows added from
 verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠️ **EP-038's row previously claimed *"no Epic record file"*; ⛔ THAT WAS FALSE — `Closed/Epic-EP-038.md` exists and is now linked.** ⚠️ **The claim was written 2026-09-14 by asserting from the index WITHOUT opening `Epics/Closed/`.** ✅ **[R-06] required re-checking EP-035–EP-037, added in the same edit: ✅ ALL THREE ARE CORRECT — they are backlog Epics and rightly claim no closed record.**
+
+⚠️ **DUPLICATE ROWS REMOVED 2026-09-21 (user-requested cleanup).** ⛔ **EP-035, EP-036, EP-037 and
+EP-038 each appeared TWICE** — ✅ **once in the ordered sequence, and again in a trailing block
+appended by the 2026-09-14 gap-fill, which never removed what it duplicated.** ⚠️ **The two copies
+DISAGREED: the trailing EP-035 read 🟡 ACTIVE while the ordered row read 🔵 Deferred (2026-09-10), and
+the trailing EP-038 carried a close date the ordered row was missing.** ✅ **Resolution: ONE row each,
+keeping the CORRECT status from the ordered rows and the DETAIL from the trailing ones**; ✅ **EP-038's
+row rebuilt from [`Closed/Epic-EP-038.md`](Closed/Epic-EP-038.md) itself (CLOSED 2026-09-11,
+user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbroken sequence, EP-001–EP-043.**
 
 | Epic   | Title | Status | Start | Close |
 | ------ | ----- | ------ | ----- | ----- |
@@ -97,18 +97,15 @@ verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠�
 | EP-032 | `[Cross]` Inline Object References in the Manuscript (footnotes / pull quotes); ⚠️ **holds reserved SP-107–SP-114** | 🔵 Draft (backlog) | — | — |
 | EP-033 | `[Cross]` World Lifecycle Management — in-app view vs. dedicated application | 🔵 Proposed (backlog) | — | — |
 | EP-034 | `[Cross]` Object Detail & Media — **Detail Sheets & Project↔World Interaction** — ⚠️ **AC11 moved to EP-035** | ✅ **Closed** — [record](Closed/Epic-EP-034.md) | 2026-08-20 | 2026-08-25 |
-| EP-035 | `[Linux]` Object Foundations — the first PORT | 🔵 **Deferred to backlog** (2026-09-10) | 2026-08-25 | — |
-| EP-036 | `[Linux]` Object Detail Sheet & Media | 🔵 Proposed (backlog) | — | — |
-| EP-037 | `[Linux]` Relationships & Sources | 🔵 Proposed (backlog) | — | — |
-| EP-038 | `[Linux]` Linux Test Rig | 🟠 **Complete** (2026-09-10 ruling) — ✅ **[record](Closed/Epic-EP-038.md)** | — | — |
+| EP-035 | `[Linux]` **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11**. ⚠️ **2 of 4 ACs verified and NOT lost** | 🔵 **Deferred to backlog** (2026-09-10, preempted by [EP-039]) | 2026-08-25 | — |
+| EP-036 | `[Linux]` **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 Proposed (backlog) | 2026-08-25 | — |
+| EP-037 | `[Linux]` **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 Proposed (backlog) | 2026-08-25 | — |
+| EP-038 | `[Linux]` **The Real Hardware Rig** — native Ubuntu + ⚠️ **drive-loss GROUND TRUTH**; writes the Porting Outline's §9 | ✅ **CLOSED** (user-approved) — [record](Closed/Epic-EP-038.md) | 2026-08-24 | 2026-09-11 |
 | EP-039 | `[Cross]` Project Load Performance | ✅ **Closed** (user-approved) — [record](Closed/Epic-EP-039.md) | 2026-09-10 | 2026-09-15 |
 | EP-040 | `[Apple]` **The Editor Shell** — build Scrivi as the kind of app it actually is | 🟡 **ACTIVE** — [record](Epic-active.md) | 2026-09-15 | — |
 | EP-041 | `[Cross]` **The Boundary** — close [I-0197]'s Swift-bypass chain; the app talks to the core, never the package | 🟡 **ACTIVE** — [record](Epic-EP-041.md) | 2026-09-18 | — |
 | EP-042 | `[Cross]` **Project Open Cost** — ⚠️ **opening a project costs what its DATA costs, not a multiple of it** | ✅ **CLOSED** — [record](Closed/Epic-EP-042.md) | 2026-09-18 | 2026-09-20 |
-| **EP-035** | ⚠️ **`[Linux]`** **Object Foundations** — kind cards, object list, world binding, object CRUD. ⚠️ **The first PORT and the template for four more**; carries **EP-034's AC11** | 🟡 **ACTIVE** | 2026-08-24 | — |
-| **EP-036** | ⚠️ **`[Linux]`** **Object Detail Sheet & Media** — fields, images, pending/unavailable states. ⚠️ **Second of the three-way EP-035 split** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
-| **EP-037** | ⚠️ **`[Linux]`** **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 **Proposed** (backlog) | 2026-08-25 | — |
-| **EP-038** | ⚠️ **`[Linux]`** **The Real Hardware Rig** — native Ubuntu + ⚠️ **drive-loss GROUND TRUTH**; writes the Porting Outline's **§9**. ⚠️ **Docker is structurally blind to this** | 🟡 **ACTIVE** — SP-123, SP-124 | 2026-08-25 | ✅ **CLOSED 2026-09-11** — user-approved |
+| EP-043 | `[Linux]` **The Session** — many projects, one window each, restored where the writer left them. ⚠️ **Closes [I-0176]/[I-0177]/[I-0178]**; ports ✅ **[EP-018]** | 🔵 **Draft** (backlog) — [record](Epic-EP-043.md) | 2026-09-21 | — |
 
 ## Statistics
 
@@ -116,7 +113,8 @@ verifiable records.** ✅ **CORRECTED 2026-09-15 — audit ruling [R-06].** ⚠�
 carries **only what the table cannot express** — per-status totals were removed 2026-08-19 under audit
 ruling **R-23(②)**. **To count Epics by status, read the table.**
 
-- **Next available Epic ID:** **EP-043**
+- **Next available Epic ID:** **EP-044** — ⚠️ **EP-043 `[Linux]` The Session was created 2026-09-21**
+  into the backlog (🔵 Draft, no Sprint): → [`Epic-EP-043.md`](Epic-EP-043.md).
 - ⚠️ **TWO ACTIVE EPICS as of 2026-09-20:** 🟡 **[EP-040]** `[Apple]` The Editor Shell (SP-134–SP-137)
   and 🟡 **[EP-041]** `[Cross]` **The Boundary** → [`Epic-EP-041.md`](Epic-EP-041.md) (SP-140–SP-143).
   ✅ **[EP-042] `[Cross]` Project Open Cost CLOSED 2026-09-20** after ONE Sprint ([SP-144]), ONE Task
@@ -127,7 +125,11 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
   ✅ **EP-041 was SPLIT OUT of EP-040 2026-09-18** (user ruling) — ⚠️ **[I-0197]'s bypass chain is
   boundary work, not chrome**, ✅ **which EP-040's own scope note had already flagged.**
   ⛔ **[SP-129]/[SP-130] did NOT move** — ✅ **a closed Sprint keeps the provenance of the Epic it ran under.**
-- **Total Epic IDs issued:** **40** (EP-001–EP-040); none cancelled, skipped or superseded. ⚠️ **Was stated as 38 until 2026-09-14** — ✅ **stale since EP-039.**
+- **Total Epic IDs issued:** **43** (EP-001–EP-043); none cancelled, skipped or superseded.
+  ⚠️ **CORRECTED 2026-09-21 — read `40 (EP-001–EP-040)` and was stale by three.** ⚠️ **It had ALREADY
+  been corrected once for the same reason** (stated as 38 until 2026-09-14, stale since EP-039) —
+  ✅ **a hand-maintained total that has now gone stale TWICE is a candidate for deletion, not a third
+  correction**, ⚠️ **since the table's own last row already answers it.
   - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
     ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a
     surface Apple took EP-030 + EP-031 (planned 6, delivered **11**) + EP-034 (**8 sprints**) to build.

@@ -46,6 +46,34 @@ governs anything is a second source of truth.
 
 ---
 
+## ⚠️ RESERVED Sprint IDs — SP-145–SP-148 ([EP-043] `[Linux]` The Session)
+
+⛔ **These are NOT in Planning, and none is ready to activate.** ✅ **[EP-043] was created 2026-09-21
+into the Epic backlog** (🔵 Draft) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
+⚠️ **The IDs are recorded here ONLY so they are not reissued** — ✅ **the same precaution taken for
+EP-032's SP-107–SP-114 above**, and for the same reason the user gave when ordering that one.
+
+| Sprint | Step | Provisional scope | ACs |
+| ------ | ---- | ----------------- | --- |
+| **SP-145** | S1 | ✅ **The session split** — per-project state out of the 2,783-line `EditorShell`; ⚠️ **behaviour-preserving**; registry introduced | — (foundation) |
+| **SP-146** | S2 | ✅ **The windows** — one window per project; R3 focus-existing; quit flushes ALL; per-window `scrivi_close_project` | R1 R2 R3 R7 R8 |
+| **SP-147** | S3 | ✅ **The persistence** — open-session manifest + launch restore; per-project geometry **and splitters**; ⚠️ **the test guard lands HERE** | R4 R5 R6 |
+| **SP-148** | S4 | ✅ **Verification** — AC sweep, Docker `ctest` as non-root, ⚠️ **live pass on the real rig**, close prep | AC-build AC-live |
+
+⚠️ **THE CHAIN IS SERIAL** — ✅ **for a real reason (⛔ you cannot persist per-window state before there
+are per-window identities)** — ⚠️ **but a stall in SP-145 stalls the whole Epic.** ✅ **[EP-018]
+delivered the Apple equivalent in THREE Sprints; ⚠️ the fourth here is SP-145**, because ⚠️ **Apple
+extracted `ProjectSession` from an `AppEnvironment` that was ALREADY a separate object, whereas Linux's
+per-project state lives inside the widget itself.**
+
+⚠️ **FOUR RULINGS ARE OWED before SP-145 can activate** — ✅ **listed in the Epic record, not restated
+here** (P7: a second copy is what goes stale).
+
+⚠️ **A reserved ID becomes a real 🔵 Planning entry only when its Epic is active and its turn comes**,
+then leaves this file at activation and never returns.
+
+---
+
 ## ✅ SP-129 — **CLOSED 2026-09-15 (user-approved).** ⛔ **NO LONGER A BACKLOG SPRINT.**
 
 ✅ **Record: [`Closed/Sprint-SP-129.md`](Closed/Sprint-SP-129.md).** ⚠️ **Its planning detail lived
@@ -63,7 +91,11 @@ backlog** (`feedback_sprint_backlog_cleanup`).
 
 ---
 
-**Next available Sprint ID: SP-134.** ✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
+**Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was
+STALE:** ✅ **SP-134–SP-137 belong to [EP-040], SP-140–SP-143 to [EP-041], and SP-144 has CLOSED.**
+⚠️ **SP-145–SP-148 are now RESERVED for [EP-043]** (see the reservation block below).
+
+✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
 (→ [`Closed/`](Closed/)). ⚠️ **SP-129 and SP-130 above MOVED TO [EP-040] 2026-09-15** — ✅ **their status is owned by EP-040's Sprint table, not by this file.**
 🟡 **SP-132 and SP-133 are ACTIVE** and live in [`Sprint-active.md`](Sprint-active.md).
 🟡 **SP-131 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md) — ⚠️ **it left this file at

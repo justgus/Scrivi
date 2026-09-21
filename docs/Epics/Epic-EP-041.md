@@ -11,7 +11,21 @@ activated: 2026-09-18
 **Sprints:** [SP-140] · [SP-141] · [SP-142] · [SP-143]
 **Primary Issue:** [I-0197] (Classes A and B) · **Also:** ✅ [I-0215] (closed) · ⚠️ [I-0223] (unassigned)
 
-⚠️ **STATUS 2026-09-18: [SP-140] CLOSED — ⛔ the Epic's only unblocked Sprint is done.**
+⚠️ **STATUS 2026-09-21 (end of day): ✅ T-0507 IS USER-VERIFIED; 🟠 [SP-141] IS COMPLETE, awaiting
+close approval.** ✅ **AC2 is MET.** ⚠️ **HALF of [I-0197] Class B is closed** — ⛔ **Linux's duplicate
+store is untouched until [SP-142], which is now UNBLOCKED.**
+✅ **Two Sprints remain: [SP-142] (planned, unblocked) and [SP-143] (the guard).**
+⚠️ **Q1 was answered BEFORE T-0507 implemented, not after** — ✅ **it surfaced from planning the
+then-BLOCKED [SP-142], which is why it cost nothing.** ⚠️ **The pre-implementation status follows:**
+
+⛔ **[SP-141] WAS ACTIVATED BUT NOT STARTED — T-0507 is 🔵 NOT STARTED, no core
+endpoint exists (`grep inspector_layout scrivi.h` → nothing), and `InspectorLayoutStore.swift` still
+does its own file I/O (:175, :192, :368-370).** ⚠️ **NOTHING HAS BEEN IMPLEMENTED IN THIS EPIC SINCE
+[SP-140] CLOSED ON 2026-09-18.** ✅ **[SP-142] was PLANNED 2026-09-21 anyway**
+→ [`../Sprints/Sprint-SP-142.md`](../Sprints/Sprint-SP-142.md) — ⚠️ **it raises Q1 (absence semantics
+for a missing/corrupt layout document), ⛔ which [SP-141] must answer BEFORE it implements.**
+
+⚠️ **PRIOR STATUS 2026-09-18: [SP-140] CLOSED — ⛔ the Epic's only unblocked Sprint is done.**
 ✅ **[SP-141]'s ENDPOINT-SHAPE RULING WAS MADE 2026-09-18 (user): ONE OPAQUE DOCUMENT GET/PUT.**
 ⚠️ **[SP-141] IS NOW ACTIVE.** ⚠️ **Superseded text follows, kept for its reasoning:**
 ⛔ **[SP-141] needs an ENDPOINT-SHAPE RULING before it can start, and [SP-142]/[SP-143] queue behind
@@ -86,9 +100,12 @@ atomic-write guarantees actually cover the files a project contains.**
       by a test demonstrated to FAIL without the fix** (3 assertions across 2 tests).
       ⚠️ **TOP-LEVEL keys only** — ⛔ **a key nested inside a card entry is still lost**, ✅ **deliberately
       deferred to [SP-141]**, which can give entries identity. *(→ [SP-140] / [I-0215] ✅ Verified)*
-- [ ] **AC2** — ✅ **ScriviCore owns `inspector-layout.json`**: core endpoints exist, and ⚠️ **Apple
+- [x] **AC2** — ✅ **MET 2026-09-21, USER-VERIFIED.** ✅ **ScriviCore owns `inspector-layout.json`**: core endpoints exist, and ⚠️ **Apple
       calls them instead of `FileManager`.** ⛔ **Zero `.write(to:atomic)` into the package from Swift.**
-      *(→ [SP-141] / [T-0507])*
+      ✅ **VERIFIED by the user's live pass 2026-09-21** — ✅ **`scrivi_get_inspector_layout` /
+      `scrivi_put_inspector_layout`; `InspectorLayoutStore.swift` has ZERO direct file I/O left;
+      `ctest` 621/621, `xcodebuild test` 132/132, and the 8 new ABI tests were PROVEN FAILING against
+      an injected [I-0215]-shaped defect.** *(→ [SP-141] / [T-0507])*
 - [ ] **AC3** — ⛔ **Linux's duplicate `InspectorLayoutStore.cpp` is RETIRED**, not left as a second
       implementation of the same rule. *(→ [SP-142] / [T-0537])*
 - [ ] **AC4** — ✅ **A regression guard prevents a new bypass from landing.** ⚠️ **Mechanism NOT yet
@@ -108,8 +125,8 @@ prose paragraph instead of a check.**
 | Sprint | Task | Title | Status | ⛔ Blocks on |
 | ------ | ---- | ----- | ------ | ----------- |
 | ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — the layout round trip is lossless** | ✅ **CLOSED 2026-09-18** — [record](../Sprints/Closed/Sprint-SP-140.md) | ✅ **was unblocked** |
-| 🟢 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟢 **ACTIVE 2026-09-18** | ✅ **RULING MADE 2026-09-18 — opaque get/put** |
-| 🔵 **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | 🔵 **Planned** | ⛔ **[SP-141]** |
+| 🟠 **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | 🟠 **COMPLETE 2026-09-21 — ✅ T-0507 VERIFIED; ⛔ awaiting close approval** | ✅ **BOTH rulings made (shape 09-18, absence 09-21)** |
+| 🔵 **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | 🔵 **PLANNED 2026-09-21** — [plan](../Sprints/Sprint-SP-142.md) | ✅ **UNBLOCKED 2026-09-21 — [SP-141] is done** |
 | 🔵 **[SP-143]** | **T-0510** | ⚠️ **The regression guard — closes [I-0197]** | 🔵 **Planned** | ⛔ **[SP-141] AND [SP-142]** |
 
 ⚠️ **THE CHAIN IS MOSTLY SERIAL, and that is a real schedule risk.** ✅ **Only [SP-140] blocks on
@@ -145,6 +162,36 @@ the core CANNOT validate what it stores here; a malformed layout is the app's to
 
 ⚠️ **THE LOSSLESS RULE FROM [SP-140] CONSTRAINS ALL THREE** — ✅ **whatever shape is chosen must keep
 keys it does not understand**, ⚠️ **which argues against the fully-typed option.**
+
+---
+
+### ✅ **RULED 2026-09-21 (user): ABSENCE SEMANTICS — "CORE REPORTS, APP DECIDES"**
+
+⚠️ **THE SECOND RULING [SP-141] NEEDED.** ✅ **The 2026-09-18 ruling settled the SHAPE; ⛔ it did NOT
+settle what a GET returns when the document is MISSING or CORRUPT** — ⚠️ **and both platforms answer
+that in app code today, with behaviour their tests already assert.**
+
+✅ **RULED: the GET always succeeds (`ok:true`) and reports a `status` of `ok` | `absent` |
+`unreadable`.**
+
+| Case | ✅ Core returns | ✅ App does |
+| ---- | -------------- | ---------- |
+| present | `status:"ok"` + `document` | use it |
+| missing | `status:"absent"` | ⚠️ **its own defaults** |
+| corrupt | `status:"unreadable"` + `message` | defaults **+ warn** |
+
+⛔ **THE CORE NEVER INVENTS DEFAULTS** — ✅ **it does not know what a tab is, which is the same
+reasoning that produced the opaque shape.** ⛔ **THE CORE NEVER OVERWRITES A CORRUPT FILE on read**;
+✅ **a PUT onto one SUCCEEDS, because that is the writer's explicit act.**
+
+✅ **WHY NOT AN ERROR:** ⚠️ **a missing layout is NORMAL — every project created before this file
+existed has none.** ⛔ **An error would also collapse `absent` and `unreadable` into one signal**,
+⚠️ **so the app could not warn about a RECOVERABLE corrupt file.** ✅ **[I-0222] is precedent: an
+unavailable world reporting `ScriviError 1` was itself filed as a defect.**
+
+✅ **WHY NOT AN EMPTY DOCUMENT:** ⚠️ **that is exactly the ambiguity `project_envelope_empty_vs_failed`
+records** — ⛔ **and the app would then save `{}` over the writer's damaged layout**, ⚠️ **destroying
+evidence the Linux smoke test explicitly protects.**
 
 ---
 
