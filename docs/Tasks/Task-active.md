@@ -42,11 +42,64 @@ ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning deta
 [`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
 ✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 is VERIFIED 2026-09-21 and has LEFT this file**
 → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
-⛔ **NO Tasks are active.** ✅ **T-0510 and T-0541 both VERIFIED and archived 2026-09-22 with
-[SP-143]'s and [SP-149]'s closes.** ⚠️ **[EP-041] is COMPLETE, awaiting close approval.** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
+✅ **ONE Task is active: T-0544** ([I-0243], [EP-040]). ✅ **T-0543 VERIFIED and archived 2026-09-22 with [SP-134]'s close;
+✅ T-0510 and T-0541 likewise; ✅ [EP-041] CLOSED.**
+⚠️ **[EP-040] remains ACTIVE — ✅ [SP-135] is next and owns [I-0243].** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
 with [SP-142]'s close.** ✅ **[SP-143] activated and closed 2026-09-22 — [EP-041]'s last Sprint.**
 
 ---
+
+## 🟢 [I-0243] — T-0544 issued 2026-09-22 (EP-040, unsprinted)
+
+| Task | Title | Sprint | Status |
+| ---- | ----- | ------ | ------ |
+| **T-0544** | ✅ **[I-0243]** — ⚠️ **the project title renders THREE times; leave ONE** | ⚠️ **none — [EP-040] direct** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
+
+⚠️ **ISSUED WITHOUT A SPRINT, by user direction 2026-09-22:** ✅ **[EP-040] AC1 cannot be fully met
+while [I-0243] is open**, ⛔ **and the fix is two edits — smaller than [SP-135]'s subject.**
+✅ **User ruled OPTION A: windows only (`tabbingMode = .disallowed`).**
+
+⚠️ **NOT the one-to-two lines first estimated:** ✅ **the tab header IS one line**, ⛔ **but deleting
+`projectHeader` orphans `SceneNavigatorView.prefs` — its ONLY reader** — ⚠️ **so the property and two
+call sites would also go.** ✅ **RULED: KEEP `prefs`** (see the Task record) — ⛔ **removing a parameter
+from both platform branches is churn beyond this Issue's scope.**
+
+### 🟢 T-0544 IMPLEMENTED 2026-09-22 — ⚠️ **NOT USER-VERIFIED**
+
+✅ **TWO EDITS, THREE TITLES → ONE:**
+- ✅ **`window.tabbingMode = .disallowed`** (`ProjectWindowManager.swift:114`) — ⛔ **removes the tab
+  header**, ⚠️ **and with it the windowed-vs-fullscreen inconsistency in *Open Project*.**
+- ⛔ **`projectHeader` DELETED** (`SceneNavigatorView.swift`) — ⚠️ **a TOMBSTONE marks the site.**
+- ✅ **`.navigationTitle` survives as the ONE title.**
+
+✅ **`prefs` KEPT** — ⚠️ **now unread, and the comment says WHY**: ⛔ **removing it means changing the
+initialiser and BOTH platform call sites in `EditorView`.** ✅ **Build is clean with no unused-property
+warning.**
+
+⚠️ **EVIDENCE: build SUCCEEDED · `ctest` 626/626 · boundary guard clean.**
+⛔ **`xcodebuild test` COULD NOT LAUNCH** — ✅ **the user's app is running again** (PID 77253);
+⛔ **NOT a code failure, and the app was NOT killed.**
+
+⚠️ **AND MY OWN CHECK WAS WRONG:** ⛔ **`pgrep -c "Scrivi.app"` returns 0 even while the app runs** —
+✅ **`-c` matches the process NAME, not the command line.** ⚠️ **It gave me a false all-clear before
+the run.** ✅ **CORRECT CHECK: `pgrep -f "Scrivi.app/Contents/MacOS"`.**
+
+⛔ **THE LIVE PASS IS OWED, and it is the only thing that can judge this:** ✅ **the title should appear
+ONCE; ⚠️ *Open Project* should make a NEW WINDOW in full screen as it does windowed; ⚠️ and the Scene
+Navigator should look right with no header above the list.**
+
+---
+
+## ✅ SP-134 — T-0543 VERIFIED 2026-09-22, ARCHIVED
+
+✅ **T-0543 ✅ VERIFIED** by the user's live pass → [`Verified/Task-verified-0543.md`](Verified/Task-verified-0543.md).
+✅ **[SP-134] CLOSED** → [`../Sprints/Closed/Sprint-SP-134.md`](../Sprints/Closed/Sprint-SP-134.md).
+✅ **[EP-040] AC2 and AC3 MET.**
+
+⚠️ **SIX ROUNDS OF LIVE-PASS DEFECTS, and the build was GREEN through every one** —
+✅ `feedback_live_pass_finds_what_suites_cannot`.
+⚠️ **It produced [I-0243]** (⛔ **the project title renders THREE times**) — ✅ **filed, not absorbed.**
+⚠️ **AC7's iOS/visionOS half DEFERRED** — ⛔ **the app cannot RUN there.**
 
 ## ✅ SP-143 — T-0510 VERIFIED 2026-09-22, ARCHIVED
 

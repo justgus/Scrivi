@@ -20,6 +20,10 @@ struct SceneNavigatorView: View {
     var loader: ViewportSceneLoader
     var env: AppEnvironment
     var session: ProjectSession
+    // ⚠️ T-0544: `projectHeader` was this property's ONLY reader, and it is gone. `prefs` is
+    // KEPT deliberately — ⛔ removing it would mean changing the initialiser and both platform
+    // call sites in `EditorView`, which is churn beyond [I-0243]'s scope, and a navigator that
+    // knows its project's preferences is a plausible near-term need.
     var prefs: ProjectPreferences
     // macOS: tap-to-navigate within the continuous manuscript. Unused on iOS, where the List
     // selection binding (`selection`) is the navigation source of truth so NavigationSplitView
@@ -54,23 +58,22 @@ struct SceneNavigatorView: View {
     @State private var highlightedRowID: String? = nil
 
     var body: some View {
+        // ⚠️ T-0544 / [I-0243]: there is NO project-title header here any more. The title is the
+        // WINDOW's (`.navigationTitle`), rendered once, by the platform.
+        // ⛔ Do not reintroduce one — it was the third of three renderings of the same string.
         VStack(spacing: 0) {
-            projectHeader
-            Divider()
             navigatorList
         }
     }
 
-    private var projectHeader: some View {
-        Text(prefs.projectTitle.trimmingCharacters(in: .whitespaces).isEmpty
-             ? "Untitled" : prefs.projectTitle)
-            .font(.headline)
-            .lineLimit(2)
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-    }
+    // ⛔ T-0544 / [I-0243]: `projectHeader` WAS HERE and is DELETED.
+    //
+    // It drew the project title above the scene list, pinned so it never scrolled — the THIRD
+    // simultaneous rendering of that one string, alongside the window's `.navigationTitle` and
+    // the tab header (the latter removed in the same Task by `tabbingMode = .disallowed`).
+    // ⚠️ Three mechanisms, one fact, which is why no single deletion fixed it.
+    //
+    // ⛔ Do not reintroduce it. The window owns the project's identity.
 
     // List selection bound to rowID ("scene-<id>"). On iOS this maps to/from the parent's bare
     // sceneID `selection` so the List drives Master/Detail; on macOS it tracks viewportSceneID

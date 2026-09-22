@@ -131,6 +131,16 @@ number, because the fix needs a CORE change.**
 
 ---
 
+## ✅ SP-134 — **CLOSED 2026-09-22 (user-approved).** ⛔ **NO LONGER A BACKLOG SPRINT.**
+
+✅ **Record: [`Closed/Sprint-SP-134.md`](Closed/Sprint-SP-134.md).** ⚠️ **Its planning detail lived
+here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
+✅ **T-0543 VERIFIED by the user's live pass; ✅ [EP-040] AC2/AC3 met.**
+⚠️ **It produced [I-0243]** (⛔ **the project title renders THREE times**) — ✅ **[SP-135]'s.**
+
+---
+
+
 **Next available Sprint ID: SP-150.** ✅ **SP-149 CLOSED 2026-09-22; ⚠️ SP-145–SP-148 reserved for [EP-043].**
 
 ⚠️ **Prior line, kept for provenance:** **Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was
@@ -142,7 +152,7 @@ STALE:** ✅ **SP-134–SP-137 belong to [EP-040], SP-140–SP-143 to [EP-041], 
 🟡 **SP-132 and SP-133 are ACTIVE** and live in [`Sprint-active.md`](Sprint-active.md).
 🟡 **SP-131 is ACTIVE** and lives in [`Sprint-active.md`](Sprint-active.md) — ⚠️ **it left this file at
 activation and never returns.** ⚠️ **SP-129/SP-130 sequence BEHIND it and behind the `[Apple]` async
-sprint.** ⚠️ **Next available Task: T-0543** — ⛔ **CORRECTED 2026-09-21; read `T-0532` and was stale by nine.**
+sprint.** ⚠️ **Next available Task: T-0544.** ✅ **T-0543 was issued to [SP-134] and is now VERIFIED and archived** (2026-09-22). ⛔ **This line read `T-0532` and was corrected 2026-09-21.**
 ⚠️ **T-0541 is RESERVED for [SP-149]; ✅ T-0542 for [SP-142] ([I-0241], assigned by user ruling
 2026-09-21).** ⛔ **Neither is issued until its Sprint activates.**
 and ⚠️ **the LAST sprint of EP-038.** ⚠️ **SP-122 never appeared in this file** — defined and activated

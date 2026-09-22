@@ -233,7 +233,20 @@ struct ScriviApp: App {
         // View menu — toggles act on the focused project window. Inspector/Timeline are
         // per-window (session); the buffers palette is app-global (one panel that follows
         // the frontmost project), so its toggle binds to AppEnvironment, not the session.
-        CommandMenu("View") {
+        // ⚠️ SP-134 / T-0543 — `CommandGroup`, NOT `CommandMenu`.
+        //
+        // ⛔ THIS WAS `CommandMenu("View")` AND IT PRODUCED **TWO** VIEW MENUS: macOS already
+        // synthesizes one (Show Tab Bar, Enter Full Screen), and `CommandMenu` ADDS A NEW MENU
+        // rather than contributing to the existing one. A writer saw the app's toggles in one
+        // "View" and the system's items in another. Found by the user's live pass 2026-09-22.
+        //
+        // ⚠️ THE iOS BRANCH ALREADY KNEW. Its own note (below, at `iosCommands`) records:
+        // "No CommandMenu("View") — iOS already synthesizes a "View" menu; adding our own
+        // duplicated it." ✅ The same trap, diagnosed on the other platform, never applied here.
+        //
+        // ✅ `CommandGroup(after: .sidebar)` INSERTS into the system View menu, next to the
+        // sidebar/toolbar items it belongs beside.
+        CommandGroup(after: .sidebar) {
             if let session = focusedSession {
                 Toggle("Show Scene Inspector", isOn: Bindable(session).inspectorVisible)
                     .keyboardShortcut("i", modifiers: [.command, .option])

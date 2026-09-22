@@ -1,6 +1,14 @@
 # Active Sprints
 
-⛔ **NO SPRINT IS ACTIVE.** ✅ **[EP-041] CLOSED 2026-09-22 (user-approved)** →
+✅ **[SP-134] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-134.md`](Closed/Sprint-SP-134.md).
+✅ **T-0543 VERIFIED by live pass.** ✅ **[EP-040] AC2 and AC3 MET.**
+⚠️ **It produced [I-0243]** — ⛔ **the project title renders THREE times, from three independent
+sources** — ✅ **filed for [SP-135], which already owns the title area.**
+✅ **User ruled OPTION A for the tab bar: windows only (`tabbingMode = .disallowed`).**
+
+⛔ **NO SPRINT IS ACTIVE.** ⚠️ **[EP-040] is the only active Epic; ✅ [SP-135] is next.**
+
+⛔ **PRIOR STATE:** ✅ **[EP-041] CLOSED 2026-09-22 (user-approved)** →
 [`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md) — ⚠️ **all five of its Sprints,
 six Tasks and [I-0197] closed with it.**
 ⚠️ **ONE ACTIVE EPIC REMAINS: 🟡 [EP-040]** `[Apple]` **The Editor Shell** — ✅ **[SP-134] is

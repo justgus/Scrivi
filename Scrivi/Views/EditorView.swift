@@ -40,12 +40,20 @@ private struct ManuscriptEditorView: View {
     // additionally drives the Detail push on compact width.
     @State private var selectedSceneID: String? = nil
 
-    #if os(iOS)
     // Detail-column presence for the two-column NavigationSplitView selection contract. On compact
     // width a non-nil value pushes the detail; on regular width both columns show side by side.
+    //
+    // ⚠️ SP-134 / T-0543 (EP-040 AC4): this was `#if os(iOS)` ONLY, and that is why the Scene
+    // Navigator was the one pane a writer could not get back ([I-0203]). The Inspector and the
+    // Timeline are plain `Bool`s this app owns, so the View menu could always toggle them; the
+    // Navigator's visibility belonged to SwiftUI and the app could neither READ nor SET it.
+    // Binding it here is what lets a toolbar control restore the sidebar at all.
+    //
+    // ⚠️ `.automatic` is deliberate — it is what SwiftUI applied implicitly before this binding
+    // existed, so introducing the binding does NOT change first-open behaviour. ⛔ `.all` would
+    // FORCE the sidebar open and `.detailOnly` would hide it, either of which would be a
+    // behaviour change smuggled in under a structural sprint.
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
-
-    #endif
 
     // MARK: — Object Detail Sheet (EP-034 SP-117, D1-E)
     //
@@ -208,7 +216,11 @@ private struct ManuscriptEditorView: View {
         // coalesces it away, no `updateNSView`, no navigation, no focus transfer), and a
         // fast second click could be clobbered by the previous click's pending `nil`.
         // Selection is durable state, so it survives both cases.
-        NavigationSplitView {
+        // ⚠️ SP-134 (EP-040 AC4): `columnVisibility` is BOUND on macOS as of T-0543. Before
+        // that this call site had no binding at all, so when the sidebar went away the app
+        // had no state to read and nothing to set — which is [I-0203]: "the Scene Navigator
+        // hid itself and I couldn't see it." ⛔ Do not drop the binding.
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             SceneNavigatorView(
                 loader: loader,
                 env: env,

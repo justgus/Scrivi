@@ -92,12 +92,12 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 
 ### Acceptance Criteria
 
-- [ ] **AC1** — ✅ **The project window has a real `NSToolbar`**, ⚠️ **and the window title/subtitle
+- [~] **AC1** — ✅ **SUBSTANTIALLY MET 2026-09-22 ([SP-134])** — ⛔ **NOT fully judged: [I-0243] (the title renders THREE times) is open, assigned to [SP-135].** ✅ **The project window has a real `NSToolbar`**, ⚠️ **and the window title/subtitle
       render in it** rather than as a stray in-content band. ✅ **Closes conformance F1.**
-- [ ] **AC2** — ✅ **The toolbar surfaces the EXISTING verbs** (Scene: New/Merge · Chapter: New/Merge ·
+- [x] **AC2** — ✅ **MET 2026-09-22 ([SP-134], live-pass Verified).** ✅ **The toolbar surfaces the EXISTING verbs** (Scene: New/Merge · Chapter: New/Merge ·
       pane toggles), ⚠️ **calling the SAME `focusedSession?.<verb>Action?()` closures the menu bar
       calls.** ⛔ **No duplicated logic.**
-- [ ] **AC3** — ⚠️ **A writer who loses the Navigator, Inspector or Timeline can bring it back FROM THE
+- [x] **AC3** — ✅ **MET 2026-09-22.** ⚠️ **THE ROOT CAUSE WAS NOT A MISSING BUTTON:** ⛔ **the Navigator had NO visibility state at all** (`columnVisibility` was `#if os(iOS)` only), ✅ **so [SP-134] BOUND it.** ⚠️ **A writer who loses the Navigator, Inspector or Timeline can bring it back FROM THE
       WINDOW**, ✅ **not only from a menu.** ⚠️ **This is [I-0203]'s *"no affordance to bring it back"*.**
 - [ ] **AC4** — ✅ **The banner, Timeline and Inspector tab bar are `safeAreaBar`s** (or split-item
       accessories), ⚠️ **NOT `VStack` siblings.** ✅ **Closes conformance F3.**
@@ -106,7 +106,7 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 - [ ] **AC6** — ✅ **The Scene Inspector is a REAL trailing column**, ⚠️ **not an `HStack` member with a
       hand-rolled resize handle.** ⚠️ **User-resizable width MUST survive the conversion** (⚠️ **today
       `@AppStorage("inspectorPaneWidth")`, 220–560pt**).
-- [ ] **AC7** — ✅ **The toolbar has DECLARED SLOTS for Export and a text-size lens**, ⚠️ **left
+- [x] **AC7** — ✅ **MET 2026-09-22 — slots declared and documented unimplemented.** ✅ **The toolbar has DECLARED SLOTS for Export and a text-size lens**, ⚠️ **left
       unimplemented and documented as such.** ⛔ **Building them is out of scope.**
 - [ ] **AC8** — ✅ **The Object Detail Sheet no longer hand-builds window chrome**, ⚠️ **per a RULED
       hosting decision (a/b/c in app-shape §4.4).**
@@ -128,7 +128,7 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 
 | Sprint | Step | Title | Status | ⚠️ Risk |
 | ------ | ---- | ----- | ------ | ------ |
-| **SP-134** | **S1+S2** | ✅ **The toolbar** — `NSToolbar` + title/subtitle + existing verbs | 🔵 **Proposed** | ✅ **LOW** |
+| **SP-134** | **S1+S2** | ✅ **The toolbar** — `NSToolbar` + title/subtitle + existing verbs | ✅ **CLOSED 2026-09-22** — [record](../Sprints/Closed/Sprint-SP-134.md) · **T-0543 Verified** | ✅ **LOW** |
 | **SP-135** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ⚠️ **closes [I-0203]** | 🔵 **Proposed** | ✅ **MEDIUM** |
 | **SP-136** | **S4** | ⚠️ **The Inspector as a real column** (`.inspector`) | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
 | **SP-137** | **S6** | ⚠️ **The Object Detail Sheet** — ⚠️ **hosting RULING first, then chrome** | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
@@ -157,6 +157,21 @@ created with closures that already exist.** ⚠️ **Splitting them ships an EMP
 schedules it reverses its own design ruling.** ✅ **It is the DESTINATION; ⚠️ it earns a Sprint only if
 S1–S4+S6 leave something unfixed, which is a decision for the Epic close, not now.**
 ✅ **So: FOUR Sprints of planned EDITOR-SHELL work (SP-134–SP-137) + ONE recorded-not-scheduled (SP-138).**
+
+⚠️ **[SP-134] PLANNED 2026-09-22 → [`../Sprints/Sprint-SP-134.md`](../Sprints/Sprint-SP-134.md).**
+⛔ **PLANNING FOUND THAT THE NAVIGATOR HAS NO VISIBILITY STATE AT ALL.** ✅ **Inspector and Timeline are
+`Bool`s on `ProjectSession` that the View menu already toggles** (`:92`, `:98`) — ⚠️ **but the Navigator
+is a `NavigationSplitView` sidebar and the macOS branch binds NO `columnVisibility`**
+(`EditorView.swift:211`), ⛔ **so its state is neither observable nor settable.**
+⚠️ **THAT IS WHY IT IS THE PANE THE USER LOST** ([I-0203]) — ✅ **the two panes with app-owned state
+were recoverable from the View menu; the one without was not.**
+⚠️ **AC3 therefore cannot be met for all three panes by wiring alone.**
+✅ **RULED 2026-09-22 (user): BIND `columnVisibility` on the macOS branch**, ⚠️ **as the iOS branch
+already does** — ⛔ **so AC3 IS met for all three panes in [SP-134].**
+✅ **Two more rulings:** ⚠️ **the toolbar is a SwiftUI `.toolbar` in `ProjectWindowContent`** (⛔ **an
+AppKit `NSToolbar` would need `env.frontmostSession` plumbing for EVERY item, because AppKit windows
+do not feed `@FocusedValue`** — `ScriviApp.swift:77`), ✅ **and the subtitle stays `projectSubtitle`,
+the persisted field the writer already edits** — ⚠️ **making S1 a pure relocation.**
 ✅ **AS OF 2026-09-18 THAT IS THE WHOLE OF THIS EPIC'S REMAINING WORK** — ⚠️ **the bypass chain moved to [EP-041].**
 
 ⛔ **THE [I-0197] BYPASS CHAIN LEFT THIS EPIC 2026-09-18.** ✅ **[SP-140]–[SP-143] now belong to
