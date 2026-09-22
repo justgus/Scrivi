@@ -141,6 +141,18 @@ here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
 ---
 
 
+## 🔵 SP-135 — **PLANNED 2026-09-22** ([EP-040]) — ✅ **the bars**
+
+✅ **Plan: [`Sprint-SP-135.md`](Sprint-SP-135.md).** ⛔ **Not activated.**
+⛔ **BLOCKS ON A RULING: [I-0205] gates the banner** ([EP-040] AC9).
+✅ **THE EVIDENCE IS NOW IN** — ⚠️ **the code was read 2026-09-22 for the first time** —
+✅ **and it answers (a) vs (b): the banner is CORRECT, not false.** ⛔ **So the remaining question is
+a PRODUCT one: is an unavailable world worth a banner at all?**
+
+⚠️ **Task T-0545 is RESERVED, not issued.**
+
+---
+
 **Next available Sprint ID: SP-150.** ✅ **SP-149 CLOSED 2026-09-22; ⚠️ SP-145–SP-148 reserved for [EP-043].**
 
 ⚠️ **Prior line, kept for provenance:** **Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was

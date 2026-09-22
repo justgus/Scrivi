@@ -42,53 +42,59 @@ ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning deta
 [`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
 ✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 is VERIFIED 2026-09-21 and has LEFT this file**
 → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
-✅ **ONE Task is active: T-0544** ([I-0243], [EP-040]). ✅ **T-0543 VERIFIED and archived 2026-09-22 with [SP-134]'s close;
+✅ **ONE Task is active: T-0545** ([SP-135]). ✅ **T-0544 and T-0543 both VERIFIED and archived 2026-09-22;
 ✅ T-0510 and T-0541 likewise; ✅ [EP-041] CLOSED.**
 ⚠️ **[EP-040] remains ACTIVE — ✅ [SP-135] is next and owns [I-0243].** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
 with [SP-142]'s close.** ✅ **[SP-143] activated and closed 2026-09-22 — [EP-041]'s last Sprint.**
 
 ---
 
-## 🟢 [I-0243] — T-0544 issued 2026-09-22 (EP-040, unsprinted)
+## 🟢 SP-135 — ACTIVE (EP-040), activated 2026-09-22
 
 | Task | Title | Sprint | Status |
 | ---- | ----- | ------ | ------ |
-| **T-0544** | ✅ **[I-0243]** — ⚠️ **the project title renders THREE times; leave ONE** | ⚠️ **none — [EP-040] direct** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
+| **T-0545** | ✅ **The bars** — `safeAreaBar` conversion (S3); ⚠️ **closes [I-0203]** | 🟢 **[SP-135]** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
 
-⚠️ **ISSUED WITHOUT A SPRINT, by user direction 2026-09-22:** ✅ **[EP-040] AC1 cannot be fully met
-while [I-0243] is open**, ⛔ **and the fix is two edits — smaller than [SP-135]'s subject.**
-✅ **User ruled OPTION A: windows only (`tabbingMode = .disallowed`).**
+✅ **Q1–Q3 RULED BEFORE ACTIVATION** — ⚠️ **keep the banner · banner BELOW the timeline · convert all
+three bars.** ⛔ **The [I-0205] gate is discharged.**
+⚠️ **AC2 IS THE SPRINT:** ✅ **showing or dismissing the banner must disturb NOTHING else** —
+⛔ **and it cannot be verified without a REAL UNMOUNT.**
+✅ **Full plan: [`../Sprints/Sprint-SP-135.md`](../Sprints/Sprint-SP-135.md).**
 
-⚠️ **NOT the one-to-two lines first estimated:** ✅ **the tab header IS one line**, ⛔ **but deleting
-`projectHeader` orphans `SceneNavigatorView.prefs` — its ONLY reader** — ⚠️ **so the property and two
-call sites would also go.** ✅ **RULED: KEEP `prefs`** (see the Task record) — ⛔ **removing a parameter
-from both platform branches is churn beyond this Issue's scope.**
+### 🟢 T-0545 IMPLEMENTED 2026-09-22 — ⚠️ **NOT USER-VERIFIED**
 
-### 🟢 T-0544 IMPLEMENTED 2026-09-22 — ⚠️ **NOT USER-VERIFIED**
+✅ **ALL THREE BARS CONVERTED:**
+- ✅ **World warning** — ⚠️ **OUTERMOST bottom bar** (Q2), ⛔ **reversing the old ABOVE-the-Timeline
+  order; the stale comment asserting that order was REWRITTEN, not left.**
+- ✅ **Timeline strip** — ⚠️ **inner bottom bar, nearer the content.**
+- ✅ **Inspector tab bar** — ✅ **converted HERE per Q3**, ⚠️ **with its `Divider` moved INSIDE the bar
+  (it is the bar's top edge, not a separator between stack members).**
 
-✅ **TWO EDITS, THREE TITLES → ONE:**
-- ✅ **`window.tabbingMode = .disallowed`** (`ProjectWindowManager.swift:114`) — ⛔ **removes the tab
-  header**, ⚠️ **and with it the windowed-vs-fullscreen inconsistency in *Open Project*.**
-- ⛔ **`projectHeader` DELETED** (`SceneNavigatorView.swift`) — ⚠️ **a TOMBSTONE marks the site.**
-- ✅ **`.navigationTitle` survives as the ONE title.**
+✅ **AC4 CHECKED, NOT ASSUMED: the two visibility conditions remain SEPARATE**
+(`session.timelineVisible` at `:322`/`:354`, `session.worldWarningVisible` at `:409`) — ⛔ **SP-102 R1's
+deliberate independence survives the conversion.**
 
-✅ **`prefs` KEPT** — ⚠️ **now unread, and the comment says WHY**: ⛔ **removing it means changing the
-initialiser and BOTH platform call sites in `EditorView`.** ✅ **Build is clean with no unused-property
-warning.**
+⚠️ **EVIDENCE: build clean · `TEST SUCCEEDED` 132/132 · `ctest` 626/626.**
 
-⚠️ **EVIDENCE: build SUCCEEDED · `ctest` 626/626 · boundary guard clean.**
-⛔ **`xcodebuild test` COULD NOT LAUNCH** — ✅ **the user's app is running again** (PID 77253);
-⛔ **NOT a code failure, and the app was NOT killed.**
+⛔ **AC2 IS NOT VERIFIED AND CANNOT BE FROM HERE.** ⚠️ **The banner only renders when a bound world is
+genuinely unavailable** — ✅ **so the live pass REQUIRES A REAL UNMOUNT.** ⛔ **A pass that never saw
+the banner proves nothing, and [I-0203] is entirely about what happens WHILE IT IS UP.**
+⚠️ **`project_test_rig_tintagael_eskandar` is the rig; ⛔ BACK UP FIRST — it is real work.**
 
-⚠️ **AND MY OWN CHECK WAS WRONG:** ⛔ **`pgrep -c "Scrivi.app"` returns 0 even while the app runs** —
-✅ **`-c` matches the process NAME, not the command line.** ⚠️ **It gave me a false all-clear before
-the run.** ✅ **CORRECT CHECK: `pgrep -f "Scrivi.app/Contents/MacOS"`.**
-
-⛔ **THE LIVE PASS IS OWED, and it is the only thing that can judge this:** ✅ **the title should appear
-ONCE; ⚠️ *Open Project* should make a NEW WINDOW in full screen as it does windowed; ⚠️ and the Scene
-Navigator should look right with no header above the list.**
+⚠️ **ALSO OWED: AC3** — ✅ **[I-0205]'s answer must be written into the ISSUE, not only this plan**
+(⛔ **a diagnosis that lives in a Sprint record is lost when the Sprint closes**).
 
 ---
+
+## ✅ [I-0243] — T-0544 VERIFIED 2026-09-22, ARCHIVED
+
+✅ **T-0544 ✅ VERIFIED** by the user's live pass → [`Verified/Task-verified-0544.md`](Verified/Task-verified-0544.md).
+✅ **[I-0243] VERIFIED and archived** → [`../Issues/Verified/Issue-verified-0241-0250.md`](../Issues/Verified/Issue-verified-0241-0250.md).
+✅ **[EP-040] AC1 is now FULLY MET.**
+
+⚠️ **Issued WITHOUT a Sprint by user direction** — ✅ **two edits, smaller than [SP-135]'s subject.**
+✅ **All three user claims confirmed:** the triplication gone · the tab bar gone · *Open Project* in
+full screen opens a NEW WINDOW.
 
 ## ✅ SP-134 — T-0543 VERIFIED 2026-09-22, ARCHIVED
 

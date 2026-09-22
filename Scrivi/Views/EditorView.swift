@@ -301,84 +301,116 @@ private struct ManuscriptEditorView: View {
                     showChapterTitles: prefs.showChapterTitles
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
 
-                // §7.3: the project-wide pending report. Sits directly under the
-                // manuscript and ABOVE the Timeline, so it is visible whether or not
-                // the Timeline is shown (SP-102 R1 — it has its own visibility).
-                //
-                // It renders only when a bound world is actually unavailable, so in
-                // normal use this strip does not exist and costs no vertical space.
+            // ⚠️ T-0545 / [I-0203] — THE TIMELINE IS A `safeAreaBar` TOO.
+            //
+            // ⛔ It was a `VStack` sibling of the manuscript, so showing it SHRANK the text by
+            // taking stack space. ✅ As a bar it INSETS instead — the manuscript keeps its
+            // layout and simply has less visible height.
+            //
+            // ⚠️ INSIDE the world-warning bar (attached after this one, so nearer the content):
+            // the Timeline is FURNITURE a writer leaves on, the warning is TRANSIENT. Q2 ruled
+            // the transient bar outermost so its appearance moves the fewest stable surfaces.
+            //
+            // ⚠️ Its visibility remains its OWN (`session.timelineVisible`) and is deliberately
+            // NOT tied to the warning strip (SP-102 R1). Converting both to bars must not couple
+            // them, and AC4 exists to check that.
+            .safeAreaBar(edge: .bottom) {
+            #if os(iOS)
+            if UIDevice.current.userInterfaceIdiom != .phone,
+               session.timelineVisible,
+               let tlModel = session.timelineModel,
+               let prp = session.projectRootPath {
+                TimelineStripView(
+                    model: tlModel,
+                    engine: env.engine,
+                    projectRootPath: prp,
+                    authorshipRef: env.authorshipRef,
+                    loader: loader,
+                    // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
+                    //
+                    // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
+                    // leaves the Navigator's selection and scroll position untouched,
+                    // so the writer lands in a scene the list is not showing — the
+                    // same defect I-0157 fixed for the Detail Sheet, which is why
+                    // that call site (below) already does it this way.
+                    //
+                    // I-0132 ruled selection the source of truth on both platforms;
+                    // `onChange(of: selectedSceneID)` then drives the manuscript.
+                    // `revealRequest` is what scrolls the list, and it is deliberately
+                    // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
+                    // it until the manuscript reports arriving, and uses `anchor: nil`
+                    // so an already-visible row is not nudged (I-0132).
+                    onSelectScene: { sceneID in
+                        selectedSceneID = sceneID
+                        revealToken += 1
+                        revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                           token: revealToken)
+                    }
+                )
+            }
+            #else
+            if session.timelineVisible,
+               let tlModel = session.timelineModel,
+               let prp = session.projectRootPath {
+                TimelineStripView(
+                    model: tlModel,
+                    engine: env.engine,
+                    projectRootPath: prp,
+                    authorshipRef: env.authorshipRef,
+                    loader: loader,
+                    // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
+                    //
+                    // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
+                    // leaves the Navigator's selection and scroll position untouched,
+                    // so the writer lands in a scene the list is not showing — the
+                    // same defect I-0157 fixed for the Detail Sheet, which is why
+                    // that call site (below) already does it this way.
+                    //
+                    // I-0132 ruled selection the source of truth on both platforms;
+                    // `onChange(of: selectedSceneID)` then drives the manuscript.
+                    // `revealRequest` is what scrolls the list, and it is deliberately
+                    // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
+                    // it until the manuscript reports arriving, and uses `anchor: nil`
+                    // so an already-visible row is not nudged (I-0132).
+                    onSelectScene: { sceneID in
+                        selectedSceneID = sceneID
+                        revealToken += 1
+                        revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                           token: revealToken)
+                    }
+                )
+            }
+            #endif
+            }
+            // ⚠️ T-0545 / [I-0203] — THE BANNER IS A `safeAreaBar`, NOT A STACK SIBLING.
+            //
+            // ⛔ IT USED TO SIT INSIDE THE VSTACK ABOVE, between the manuscript and the Timeline.
+            // A sibling TAKES vertical space from the stack it joins, so the banner appearing
+            // pushed on everything sharing that stack — which is why [I-0203] read as FOUR bugs
+            // (Nav Bar, Inspector tab bar, Timeline and a stray title panel all moving at once)
+            // rather than one structural mistake.
+            //
+            // ✅ A safe-area bar INSETS the content instead. The manuscript gets smaller; nothing
+            // else moves.
+            //
+            // ⚠️ BELOW THE TIMELINE, DELIBERATELY (user ruling Q2, 2026-09-22). This REVERSES the
+            // old order — the previous comment read "ABOVE the Timeline" — because a warning is
+            // TRANSIENT and the Timeline is FURNITURE: putting the transient thing outermost means
+            // its appearance disturbs the fewest stable surfaces, which is exactly AC2's subject.
+            // ⚠️ The old note's reasoning (visible whether or not the Timeline shows) is satisfied
+            // either way, and still holds: this bar has its OWN visibility (SP-102 R1) and is not
+            // tied to the Timeline's.
+            //
+            // ⚠️ It renders only when a bound world is actually unavailable, so in normal use the
+            // bar does not exist and costs no space at all.
+            .safeAreaBar(edge: .bottom) {
                 if session.worldWarningVisible, session.worldWarning.isVisible {
                     WorldWarningView(model: session.worldWarning) {
                         session.showWorlds = true
                     }
                 }
-                #if os(iOS)
-                if UIDevice.current.userInterfaceIdiom != .phone,
-                   session.timelineVisible,
-                   let tlModel = session.timelineModel,
-                   let prp = session.projectRootPath {
-                    TimelineStripView(
-                        model: tlModel,
-                        engine: env.engine,
-                        projectRootPath: prp,
-                        authorshipRef: env.authorshipRef,
-                        loader: loader,
-                        // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
-                        //
-                        // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
-                        // leaves the Navigator's selection and scroll position untouched,
-                        // so the writer lands in a scene the list is not showing — the
-                        // same defect I-0157 fixed for the Detail Sheet, which is why
-                        // that call site (below) already does it this way.
-                        //
-                        // I-0132 ruled selection the source of truth on both platforms;
-                        // `onChange(of: selectedSceneID)` then drives the manuscript.
-                        // `revealRequest` is what scrolls the list, and it is deliberately
-                        // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
-                        // it until the manuscript reports arriving, and uses `anchor: nil`
-                        // so an already-visible row is not nudged (I-0132).
-                        onSelectScene: { sceneID in
-                            selectedSceneID = sceneID
-                            revealToken += 1
-                            revealRequest = SceneRevealRequest(sceneID: sceneID,
-                                                               token: revealToken)
-                        }
-                    )
-                }
-                #else
-                if session.timelineVisible,
-                   let tlModel = session.timelineModel,
-                   let prp = session.projectRootPath {
-                    TimelineStripView(
-                        model: tlModel,
-                        engine: env.engine,
-                        projectRootPath: prp,
-                        authorshipRef: env.authorshipRef,
-                        loader: loader,
-                        // ⚠️ I-0209 — set SELECTION + REVEAL, not the one-shot trigger.
-                        //
-                        // Writing `navigateToSceneID` directly scrolls the MANUSCRIPT but
-                        // leaves the Navigator's selection and scroll position untouched,
-                        // so the writer lands in a scene the list is not showing — the
-                        // same defect I-0157 fixed for the Detail Sheet, which is why
-                        // that call site (below) already does it this way.
-                        //
-                        // I-0132 ruled selection the source of truth on both platforms;
-                        // `onChange(of: selectedSceneID)` then drives the manuscript.
-                        // `revealRequest` is what scrolls the list, and it is deliberately
-                        // the OUTSIDE-DRIVEN reveal path (I-0161): the navigator defers
-                        // it until the manuscript reports arriving, and uses `anchor: nil`
-                        // so an already-visible row is not nudged (I-0132).
-                        onSelectScene: { sceneID in
-                            selectedSceneID = sceneID
-                            revealToken += 1
-                            revealRequest = SceneRevealRequest(sceneID: sceneID,
-                                                               token: revealToken)
-                        }
-                    )
-                }
-                #endif
             }
             #if os(iOS)
             if UIDevice.current.userInterfaceIdiom != .phone && session.inspectorVisible {

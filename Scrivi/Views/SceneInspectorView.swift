@@ -45,9 +45,24 @@ struct SceneInspectorView: View {
 
                 selectedTabContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                Divider()
-                tabBar
+            }
+            // ⚠️ T-0545 / [I-0203] — THE TAB BAR IS A `safeAreaBar`, NOT A STACK SIBLING.
+            //
+            // ⛔ It was the last member of the VStack above, so it competed for vertical space
+            // with the card content. ✅ As a bar it INSETS that content instead.
+            //
+            // ⚠️ CONVERTED HERE RATHER THAN IN [SP-136] (user ruling Q3, 2026-09-22), even though
+            // that Sprint rebuilds this pane as a real `.inspector` column and may touch it again.
+            // ⛔ The reason is that [SP-135]'s acceptance test is "showing a bar disturbs NOTHING
+            // else" — and that is unfalsifiable while any bar is still a stack sibling.
+            //
+            // ✅ The Divider stays INSIDE the bar: it is the bar's top edge, not a separator
+            // between two stack members.
+            .safeAreaBar(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    tabBar
+                }
             }
         }
         .frame(width: paneWidth)

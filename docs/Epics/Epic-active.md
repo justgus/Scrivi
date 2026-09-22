@@ -92,7 +92,7 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 
 ### Acceptance Criteria
 
-- [~] **AC1** — ✅ **SUBSTANTIALLY MET 2026-09-22 ([SP-134])** — ⛔ **NOT fully judged: [I-0243] (the title renders THREE times) is open, assigned to [SP-135].** ✅ **The project window has a real `NSToolbar`**, ⚠️ **and the window title/subtitle
+- [x] **AC1** — ✅ **FULLY MET 2026-09-22, live-pass VERIFIED.** ✅ **[SP-134] built the toolbar; ✅ [T-0544] closed [I-0243]** — ⚠️ **the title had been rendering THREE times from three independent sources** — ✅ **and now renders ONCE, in the toolbar.** ✅ **The project window has a real `NSToolbar`**, ⚠️ **and the window title/subtitle
       render in it** rather than as a stray in-content band. ✅ **Closes conformance F1.**
 - [x] **AC2** — ✅ **MET 2026-09-22 ([SP-134], live-pass Verified).** ✅ **The toolbar surfaces the EXISTING verbs** (Scene: New/Merge · Chapter: New/Merge ·
       pane toggles), ⚠️ **calling the SAME `focusedSession?.<verb>Action?()` closures the menu bar
@@ -129,7 +129,7 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 | Sprint | Step | Title | Status | ⚠️ Risk |
 | ------ | ---- | ----- | ------ | ------ |
 | **SP-134** | **S1+S2** | ✅ **The toolbar** — `NSToolbar` + title/subtitle + existing verbs | ✅ **CLOSED 2026-09-22** — [record](../Sprints/Closed/Sprint-SP-134.md) · **T-0543 Verified** | ✅ **LOW** |
-| **SP-135** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ⚠️ **closes [I-0203]** | 🔵 **Proposed** | ✅ **MEDIUM** |
+| **SP-135** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ⚠️ **closes [I-0203]** | 🔵 **PLANNED 2026-09-22** — [plan](../Sprints/Sprint-SP-135.md) · **T-0545** | ✅ **MEDIUM** |
 | **SP-136** | **S4** | ⚠️ **The Inspector as a real column** (`.inspector`) | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
 | **SP-137** | **S6** | ⚠️ **The Object Detail Sheet** — ⚠️ **hosting RULING first, then chrome** | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
 | **SP-138** | **S5** | ⛔ **`NSSplitViewController` rebuild** | ⛔ **NOT SCHEDULED** | ⛔ **HIGH** |
