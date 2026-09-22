@@ -1,21 +1,24 @@
 ---
 sprint: SP-149
 epic: EP-041
-status: Active
+status: CLOSED 2026-09-22 (user-approved)
 activated: 2026-09-21
+closed: 2026-09-22
 task: T-0541
 planned: 2026-09-21
 platform: Apple + Linux (tooling)
 ---
 
-# SP-149 — ⚠️ **The guard MECHANISM** — ✅ **design and rule it, then build it**
+# Closed Sprint — SP-149 — ⚠️ **The guard MECHANISM**
 
-**Status:** 🟢 **ACTIVE — ⚠️ ALL SEVEN ACs MET 2026-09-21; ⛔ AWAITING USER VERIFICATION.**
-✅ **T-0541 implemented.** ⛔ **The workflows have never run on GitHub** — ⚠️ **a workflow's TRIGGERS
-are only really tested by a push; the first PR touching `Scrivi/` is the proof.**
+**Status:** ✅ **CLOSED 2026-09-22 — user-approved.** ✅ **All SEVEN ACs met; T-0541 VERIFIED** →
+[`../../Tasks/Verified/Task-verified-0541.md`](../../Tasks/Verified/Task-verified-0541.md).
+✅ **THE PROOF ARRIVED THE WAY THIS PLAN SAID IT WOULD HAVE TO: a GREEN GitHub Actions run**
+("Scrivi Apple CI #1", `a25e106`, 2026-09-21 18:19 EDT). ⚠️ **The plan recorded that local evidence
+could not settle it** — ✅ **and the first push touching `Scrivi/` settled it.**
 ✅ **AC1 was already MET at activation: all four mechanism questions were ruled by the user
 2026-09-21, BEFORE the Sprint started** — ⛔ **which is the whole reason it was split out of [SP-143].**
-**Epic:** 🟡 [EP-041] `[Cross]` **The Boundary** → [`../Epics/Epic-EP-041.md`](../Epics/Epic-EP-041.md)
+**Epic:** 🟡 [EP-041] `[Cross]` **The Boundary** → [`../Epics/Epic-EP-041.md`](../../Epics/Epic-EP-041.md)
 **Task:** **T-0541** — ⚠️ **ID reserved, not issued** (Tasks issue at activation).
 **Serves:** **[EP-041] AC4** — ⚠️ **the only AC with no mechanism.**
 **Blocks on:** ⛔ **NOTHING.** ✅ **It is design work and can run in parallel with [SP-142].**
@@ -299,3 +302,33 @@ never being done deliberately.**
 ✅ **SHORT — the code is a grep and a workflow file.** ⚠️ **The cost is S1 (a ruling) and S4 (the CI
 gap), not the script.** ⛔ **If Q2 rules "new workflow", that is a first for `Scrivi/`** — ✅ **worth
 doing on its own merits, ⚠️ but it makes this Sprint infrastructure work, not just lint.**
+
+
+---
+
+## ✅ Outcome
+
+✅ **`Scrivi/` HAS CI FOR THE FIRST TIME.** ⚠️ **Before this Sprint, a Swift-only change ran ZERO
+checks** — ⛔ **and that is exactly the change that introduces an [I-0197] bypass.**
+✅ **`check-textkit2.sh` — written, verified-failing, and then run by NOTHING since SP-133 — now
+actually executes somewhere.**
+
+⚠️ **AC7 WAS MET BY BECOMING UNNECESSARY.** ✅ **It required [I-0241] on the allow-list as a tracked
+debt; ⛔ [SP-142]/T-0542 FIXED it first, so the site is gone and the allow-list is smaller.**
+
+⚠️ **THE SPRINT FOUND A DEFECT BEFORE ITS OWN GUARD EXISTED.** ✅ **[I-0241] surfaced while DESIGNING
+the guard — the exercise of asking "what would this catch?" caught it.** ⛔ **No test, review or
+tracking layer had it in the months it lived.**
+
+## ⚠️ Audit-check findings, ruled as part of this close
+
+⚠️ **ONE THING REMAINS UNPROVEN AND IS NOT CLAIMED HERE:** ⛔ **that CI goes RED on a violation.**
+✅ **Proven LOCALLY four ways; ⛔ never through GitHub.** ⚠️ **A guard written when the code was already
+clean has only ever seen green** — ✅ **which is precisely [SP-143]'s D1, and why that Sprint was kept
+separate rather than folded in.**
+
+✅ **Every layer agreed at close: T-0541 archived, no stale plan file, nothing left in the backlog.**
+
+---
+
+*Closed 2026-09-22 with user approval. All seven ACs met; T-0541 verified by a green CI run.*

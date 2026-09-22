@@ -91,7 +91,15 @@ backlog** (`feedback_sprint_backlog_cleanup`).
 
 ---
 
-## 🔵 SP-149 — **PLANNED 2026-09-21** ([EP-041]) — ⚠️ **the AC4 guard MECHANISM**
+## ✅ SP-149 — **CLOSED 2026-09-22 (user-approved).** ⛔ **NO LONGER A BACKLOG SPRINT.**
+
+✅ **Record: [`Closed/Sprint-SP-149.md`](Closed/Sprint-SP-149.md).** ⚠️ **Its planning detail lived
+here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
+✅ **T-0541 VERIFIED by a green GitHub run.** ⚠️ **Found 2026-09-22 by [EP-041]'s Audit Check.**
+
+⚠️ **Superseded planning text follows.**
+
+### (as planned)
 
 ✅ **Plan: [`Sprint-SP-149.md`](Sprint-SP-149.md).** ⛔ **Not activated.** ✅ **Blocks on NOTHING** —
 ⚠️ **it is design work and can run in parallel with [SP-142].**
@@ -123,7 +131,7 @@ number, because the fix needs a CORE change.**
 
 ---
 
-**Next available Sprint ID: SP-150.** ⚠️ **SP-149 is PLANNED (above); SP-145–SP-148 reserved for [EP-043].**
+**Next available Sprint ID: SP-150.** ✅ **SP-149 CLOSED 2026-09-22; ⚠️ SP-145–SP-148 reserved for [EP-043].**
 
 ⚠️ **Prior line, kept for provenance:** **Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was
 STALE:** ✅ **SP-134–SP-137 belong to [EP-040], SP-140–SP-143 to [EP-041], and SP-144 has CLOSED.**

@@ -1,15 +1,27 @@
 ---
 sprint: SP-143
 epic: EP-041
-status: Planned
+status: CLOSED 2026-09-22 (user-approved)
+activated: 2026-09-22
+closed: 2026-09-22
 task: T-0510
 platform: Cross
 ---
 
-# Sprint SP-143 — `[Cross]` The regression guard ([I-0197] closure)
+# Closed Sprint — SP-143 — `[Cross]` The regression guard ([I-0197] closure)
 
-**Epic:** [EP-041](../Epics/Epic-EP-041.md) — `[Cross]` **The Boundary** · **Status:** 🔵 **PLANNED**
-**Task:** **T-0510** · **Blocks on:** ⛔ **[SP-142]'s VERIFICATION and [SP-149]'s guard.**
+**Epic:** [EP-041](../../Epics/Epic-EP-041.md) — `[Cross]` **The Boundary**
+**Status:** ✅ **CLOSED 2026-09-22 — user-approved.** ✅ **All four DoD items met; T-0510 VERIFIED** →
+[`../../Tasks/Verified/Task-verified-0510.md`](../../Tasks/Verified/Task-verified-0510.md).
+✅ **[I-0197] IS CLOSED** → [`../../Issues/Verified/Issue-verified-0191-0200.md`](../../Issues/Verified/Issue-verified-0191-0200.md).
+⚠️ **THIS WAS [EP-041]'s LAST SPRINT.**
+**Task:** **T-0510** · **Blocks on:** ✅ **NOTHING — both dependencies are CLOSED:**
+✅ **[SP-142] CLOSED 2026-09-21** (live pass passed, T-0537/T-0542 Verified) ·
+✅ **[SP-149] CLOSED 2026-09-22** (T-0541 Verified by a green CI run).
+
+✅ **D1 HAS A CLEAN TARGET NOW:** ⚠️ **`a25e106` is the SP-149 commit, so
+`git show a25e106~1:platforms/linux/src/InspectorLayoutStore.cpp` is the PRE-RETIREMENT file.**
+⛔ **Do not reconstruct it by hand — the real thing is in history.**
 
 ⚠️ **FRONT-MATTER CORRECTED 2026-09-21: this read `epic: EP-040`** — ✅ **stale since the 2026-09-18
 split that moved the [I-0197] chain into [EP-041].** ⚠️ **[SP-141] and [SP-142] carried the same
@@ -93,7 +105,7 @@ T-0541.** ⚠️ **Leaving the old wording would have had two Tasks claiming to 
 
 ⛔ **MOVED TO [SP-149] — ⚠️ do not re-do them here:** building the script · wiring it into CI ·
 the allow-list and its reasons · proving it fails on an introduced defect.
-✅ **Their status lives in [`Sprint-SP-149.md`](Sprint-SP-149.md)**, ⚠️ **not restated here** (P7).
+✅ **Their status lives in [`Sprint-SP-149.md`](Closed/Sprint-SP-149.md)**, ⚠️ **not restated here** (P7).
 
 ## ⚠️ Risk
 
@@ -103,3 +115,37 @@ the allow-list and its reasons · proving it fails on an introduced defect.
 | ⚠️ **A grep-based guard is brittle** | ✅ **Accepted: it is a TRIPWIRE, not a type system.** ⚠️ **Its job is to make the class LOUD when it returns, not to prove absence** |
 | ⛔ **D1 quietly skipped as "obviously fine"** | ⚠️ **IT IS THE WHOLE SPRINT.** ✅ **A guard that has only ever seen clean code is untested against the defect it exists for** — ⛔ **and reconstructing the pre-[SP-142] store takes minutes (`git show`)** |
 | ⚠️ **Running before [SP-142] is user-Verified** | ⛔ **The subject would be unconfirmed.** ✅ **If the live pass forces another change, D1/D2 were asserted against code that then moved** |
+
+
+---
+
+## ✅ Outcome — the witness held
+
+✅ **D1 IS THE RESULT WORTH KEEPING.** ⚠️ **The target was chosen from HISTORY, not reconstructed:**
+✅ **`78a739f~1` is the last commit where BOTH owners existed** — ⛔ **`a25e106~1` would have been
+WRONG, since [SP-141] had already retired Apple there.** ⚠️ **A witness run against the wrong commit
+would have proven only half of what it claimed.**
+
+✅ **The guard went RED and named all four sites.** ⚠️ **AND it caught [I-0241]'s disk walk at
+`EditorShell.cpp:2469`** — ⛔ **a defect that lived for months** — ✅ **proof it would have surfaced at
+the commit that introduced it.**
+
+✅ **D2 was checked, not assumed:** ⛔ **`InspectorLayoutStore` is absent from the allow-list entirely**
+— ⚠️ **green because the code is clean, NOT because it was excused.**
+
+✅ **D3 was met by becoming unnecessary** — ⚠️ **[SP-142]/T-0542 fixed [I-0241]'s site before the guard
+existed, so the tracked DEBT [SP-149] AC7 anticipated never had to be written.**
+
+## ⚠️ Audit-check findings, ruled as part of this close
+
+⚠️ **ONE RESIDUAL, STATED SO IT IS NOT MISTAKEN FOR COVERAGE:** ⛔ **CI has never been observed going
+RED.** ✅ **The guard's red behaviour is proven LOCALLY (five ways now, including D1's real historical
+code); ✅ its GREEN behaviour is proven on GitHub (Apple CI #1, `a25e106`).** ⚠️ **The combination —
+a violation pushed to GitHub failing the run — has not been observed and is not claimed.**
+✅ **Acceptable: the guard is a TRIPWIRE, and both halves are independently evidenced.**
+
+⚠️ **[I-0242] REMAINS OPEN** — ⛔ **not this Epic's** — ✅ **it is [EP-036] AC4a/AC4b.**
+
+---
+
+*Closed 2026-09-22 with user approval. [I-0197] closed; [EP-041]'s final Sprint.*

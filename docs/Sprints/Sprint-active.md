@@ -1,32 +1,28 @@
 # Active Sprints
 
-🟢 **[SP-149] ACTIVE — activated 2026-09-21 (user-approved)** under 🟡 **[EP-041]** →
-[`Sprint-SP-149.md`](Sprint-SP-149.md). ✅ **T-0541 issued and IMPLEMENTED; ALL SEVEN ACs MET.**
-✅ **`Scrivi/` HAS CI FOR THE FIRST TIME** (lint-only), ⚠️ **and `check-textkit2.sh` — written and
-verified in SP-133 — now actually RUNS somewhere.**
-⛔ **AWAITING USER VERIFICATION.** ⚠️ **The workflows have never run on GitHub: YAML is valid and the
-scripts are proven locally, but TRIGGERS are only really tested by a push.**
+⛔ **NO SPRINT IS ACTIVE.** ✅ **[EP-041] CLOSED 2026-09-22 (user-approved)** →
+[`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md) — ⚠️ **all five of its Sprints,
+six Tasks and [I-0197] closed with it.**
+⚠️ **ONE ACTIVE EPIC REMAINS: 🟡 [EP-040]** `[Apple]` **The Editor Shell** — ✅ **[SP-134] is
+unblocked and LOW risk.**
 
-🟢 **[SP-142] ACTIVE — activated 2026-09-21 (user-approved)** under 🟡 **[EP-041]** →
-[`Sprint-SP-142.md`](Sprint-SP-142.md). ✅ **TWO Tasks issued: T-0537 (retire Linux's duplicate
-`InspectorLayoutStore`) and T-0542 ([I-0241] — historical-event tags read off disk).**
-⚠️ **T-0542 is NOT part of T-0537** — ✅ **a sibling by user ruling; they share a tree and a live pass,
-⛔ not a file or an endpoint.**
-⚠️ **It left `Sprint-backlog.md` at activation and never returns** (`feedback_sprint_backlog_cleanup`).
+✅ **[SP-143] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-143.md`](Closed/Sprint-SP-143.md)
+— ⚠️ **the Epic's LAST.** ✅ **T-0510 VERIFIED; ✅ [I-0197] CLOSED.**
+⚠️ **D1 held:** ✅ **the guard went RED against `78a739f~1`** — ⛔ **the last commit where both owners
+of `inspector-layout.json` existed** — ✅ **and caught [I-0241]'s disk walk as a bonus.**
 
-🟢 **BOTH TASKS IMPLEMENTED 2026-09-21 — ⛔ NOT USER-VERIFIED.**
-✅ **`ctest` macOS 626/626 · LINUX NON-ROOT, tests ON 630/630 · Linux Docker app build 318/318 with
-ZERO warnings · Linux smokes 24/24 · `xcodebuild test` 132/132.**
-⚠️ **THREE INJECTED-DEFECT PROOFS** — ✅ **the core projection (3/5 ABI tests fail), the Linux store
-reconstructing instead of patching (9/17 smoke checks fail, naming the keys a writer loses), and the
-drag path (both new assertions fail).**
-⚠️ **T-0542 FOUND A SECOND BUG: tags never crossed the ABI AT ALL** — ⛔ **`create`/`update` parsed the
-payload with the wrong accessor, so the shape `scrivi.h` documents could never work.**
-⛔ **AC7's LIVE PASS ON THE RIG IS STILL OWED**, ⚠️ **including the MAC CROSS-CHECK — the only thing
-that proves the lossless round trip for a writer.**
+✅ **[SP-149] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-149.md`](Closed/Sprint-SP-149.md).
+✅ **T-0541 VERIFIED by a GREEN GitHub run** (Apple CI #1, `a25e106`) — ⚠️ **the evidence local
+testing could not produce.** ✅ **`Scrivi/` has CI for the first time.**
+
+✅ **[SP-142] CLOSED 2026-09-21 (user-approved)** → [`Closed/Sprint-SP-142.md`](Closed/Sprint-SP-142.md).
+✅ **All TEN ACs met; live pass PASSED on BOTH Apple and Ubuntu.** ✅ **T-0537, T-0542 and [I-0241]
+VERIFIED and archived.** ✅ **[EP-041] AC3 MET — [I-0197] Class B closed on both platforms.**
+⚠️ **The pass also produced [I-0242]** — ⛔ **Linux never reads the writer's card stack** — ✅ **filed
+unassigned; [EP-036] gained AC4a/AC4b.**
 
 ✅ **[SP-141] CLOSED 2026-09-21 (user-approved)** → [`Closed/Sprint-SP-141.md`](Closed/Sprint-SP-141.md)
-under 🟡 **[EP-041]**. ✅ **T-0507 VERIFIED by live pass; [EP-041] AC2 MET.**
+under ✅ **[EP-041]** (now CLOSED). ✅ **T-0507 VERIFIED by live pass; [EP-041] AC2 MET.**
 ⚠️ **ITS BODY IS NOT KEPT HERE** — ✅ **the closed record supersedes it** (`Epic-GUIDELINES.md`:
 *"strip the active-file entry down to a pointer"*).
 
@@ -44,7 +40,7 @@ WITNESSES the guard (red-before / green-after), ⛔ it no longer builds one.**
 
 ## ⚠️ Two Epics are active
 
-🟡 **[EP-041]** — `[Cross]` **The Boundary** — ✅ **[SP-140] and [SP-141] CLOSED.**
+✅ **[EP-041]** — `[Cross]` **The Boundary** — **CLOSED 2026-09-22**; ✅ **all five Sprints closed.**
 ⚠️ **[SP-142] is PLANNED and UNBLOCKED; [SP-143] queues behind it.**
 🟡 **[EP-040]** — `[Apple]` **The Editor Shell** — ✅ **[SP-134] is unblocked and LOW risk.**
 
@@ -119,7 +115,7 @@ manuscript stayed usable with the volume gone and everything restored on reattac
 | ------ | ---- | ----- | ----------- |
 | ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — Apple's layout round trip is lossless** | ✅ **CLOSED 2026-09-18** |
 | ✅ **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | ✅ **CLOSED 2026-09-21** — [record](Closed/Sprint-SP-141.md) |
-| 🔵 **[SP-142]** | **T-0537** | ⚠️ **Retire Linux's duplicate `InspectorLayoutStore.cpp`** | ✅ **UNBLOCKED 2026-09-21** — [plan](Sprint-SP-142.md) |
+| ✅ **[SP-142]** | **T-0537** · **T-0542** | ✅ **CLOSED 2026-09-21** — [record](Closed/Sprint-SP-142.md) | ✅ **done** |
 | 🟢 **[SP-149]** | **T-0541** | ✅ **The guard MECHANISM — BUILT; all 7 ACs met** | ✅ **was unblocked** |
 | 🔵 **[SP-143]** | **T-0510** | ⚠️ **WITNESS the guard across the retirement — closes [I-0197]** | ⛔ **[SP-142]'s LIVE PASS + [SP-149]** |
 

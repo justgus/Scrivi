@@ -1,9 +1,11 @@
 # Active Epics
 
 🟡 **EP-040** — `[Apple]` **The Editor Shell** (activated 2026-09-15) — ✅ **now SP-134–SP-137 only.**
-🟡 **EP-041** — `[Cross]` **The Boundary** (activated 2026-09-18) → [`Epic-EP-041.md`](Epic-EP-041.md).
+✅ **EP-041** — `[Cross]` **The Boundary** — **CLOSED 2026-09-22 (user-approved)**
+→ [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md). ⚠️ **ONE ACTIVE EPIC REMAINS: EP-040.**
 
-⚠️ **TWO ACTIVE EPICS as of 2026-09-20.** ✅ **[EP-042] CLOSED 2026-09-20** (see below).
+⚠️ **ONE ACTIVE EPIC as of 2026-09-22: [EP-040].** ✅ **[EP-041] CLOSED 2026-09-22; ✅ [EP-042] CLOSED
+2026-09-20** (both below). ⛔ **The "TWO ACTIVE EPICS" line here was stale and is corrected.**
 ⛔ **[EP-039] `Project Load Performance` was NOT reopened** (⚠️ **user: *"I'm not going backwards"***);
 ✅ **a closed Epic keeps its record.** ⚠️ **EP-039 measured on LOCAL DISK, where the page cache hides
 the amplification [EP-042] exists to remove.** ✅ **EP-041 was split OUT of EP-040** because
@@ -11,6 +13,13 @@ the amplification [EP-042] exists to remove.** ✅ **EP-041 was split OUT of EP-
 had already said its goal line would not answer for it.** ⛔ **[SP-129] and [SP-130] did NOT move:**
 ✅ **a CLOSED Sprint keeps the provenance of the Epic it ran under** (user ruling 2026-09-18);
 ✅ **their outcomes are credited in EP-041's class table.**
+
+✅ **EP-041 CLOSED 2026-09-22 (user-approved)** → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md).
+✅ **Five Sprints, six Tasks, [I-0197] closed.** ⚠️ **THE FINDING WORTH CARRYING: THREE defects of ONE
+shape — capability shipped with no reader** ([I-0215], [I-0241], [I-0242]) — ⛔ **and NOT ONE was found
+by a test suite.** ✅ **[I-0242] is now [EP-036]'s (AC4a/AC4b); ⚠️ [I-0223] is unassigned.**
+⚠️ **Its Audit Check RECOVERED [I-0223]**, ✅ **which had been referenced in five documents and present
+in none since 2026-09-18** — ⛔ **the same class as [I-0118] in the 2026-08-19 audit.**
 
 ✅ **EP-042** `[Cross]` Project Open Cost — **CLOSED 2026-09-20 (user-approved)**
 → [`Closed/Epic-EP-042.md`](Closed/Epic-EP-042.md).

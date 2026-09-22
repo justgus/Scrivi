@@ -10,6 +10,42 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ---
 
+## EP-044: `[ScriviCore]` ⚠️ **World Resolution** — know where a world really is, or say you don't
+
+**Status:** 🔵 **Draft** — created 2026-09-22. ⛔ **No Sprint assigned; not activated.**
+**Full record:** → [`Epic-EP-044.md`](Epic-EP-044.md) — ⚠️ **AC1–AC8 and FOUR owed rulings.**
+**Issues:** ⚠️ **[I-0223]** · ⚠️ **[I-0192]** · ⚠️ **[I-0181]'s KNOWN RESIDUAL** (✅ the Issue is Verified;
+⛔ its residual was explicitly not fixed by [T-0498]).
+
+**Goal:** ⚠️ **The core stops giving CONFIDENT WRONG ANSWERS about where a world is.**
+
+⚠️ **THREE DEFECTS, ONE SHAPE — and every one is a wrong answer, not a missing one:**
+⛔ **[I-0192]** a PHYSICALLY REMOVED volume resolved `available` and a full object read SUCCEEDED
+through it · ⛔ **[I-0181]'s residual** a pulled drive whose MOUNTPOINT SURVIVED still reports
+`missing`, the status reserved for positive proof of deletion · ⛔ **[I-0223]** a world on a DIFFERENT
+VOLUME can bind to a plausible WRONG LOCATION in `$HOME` **and report success.**
+
+✅ **"World not found" is honest and recoverable.** ⛔ **"Here is your world" when it is gone, deleted,
+or a DIFFERENT WORLD is not.**
+
+**Rough scope:** Skip a relative candidate when project and world are on different devices (✅ **using
+[T-0498]'s `deviceID`, already built**); ⚠️ **verify a resolved package IS the bound world, not merely
+one that parses**; answer or explicitly accept the hand-mounted `/mnt` case; ⚠️ **and make every status
+carry evidence the core actually has.**
+
+⚠️ **FOUR RULINGS OWED** — ✅ **what identifies a world (a backup copy has the same ID); what a
+wrong-identity match should report; whether `available` may be cached at all; and whether any app
+surface is touched.** ⛔ **Recorded up front.**
+
+⛔ **OUT of scope:** world LIFECYCLE (✅ **[EP-033]** — ⚠️ **this must not wait on its product-boundary
+decision**) · app-surface work unless a new status is ruled · [I-0218] · read-amplification tuning.
+
+⚠️ **It CANNOT close on synthetic evidence** — ✅ **every defect in it came from a physical drive yank
+or a first-principles question about real hardware**, ⛔ **and the automounted path HIDES the
+hand-mounted one, so a USB-stick test will not exercise AC4.**
+
+---
+
 ## EP-043: `[Linux]` ⚠️ **The Session** — many projects, each in its own window, restored where the writer left it
 
 **Status:** 🔵 **Draft** — created 2026-09-21. ⛔ **No Sprint assigned; not activated.**
@@ -321,6 +357,9 @@ the thing being mirrored is the FINISHED surface or a placeholder that Apple lat
 ## EP-036: `[Linux]` Object Detail Sheet & Media — ⚠️ **the second of three port Epics**
 
 **Status:** 🔵 **Proposed** — created 2026-08-25 by the EP-035 three-way split.
+⚠️ **WIDENED 2026-09-21 from the user's [SP-142] live pass: AC4a + AC4b** — ✅ **the writer's card
+stack must be HONOURED (membership, order, and empty cards rendered), and there must be a PICKER to
+compose it.** ⛔ **AC4b was in NO Epic at all.** ✅ **AC4a closes [I-0242].**
 **Codebase:** `[Linux]` — Qt/QML over `ScriviBridge`. ⚠️ **No ScriviCore change expected.**
 **Goal:** A writer can **open an object and see and edit what it actually is** on Linux — fields, notes,
 tags, and imagery — and ⚠️ **never lose work when a world goes away.**
@@ -345,6 +384,26 @@ tags, and imagery — and ⚠️ **never lose work when a world goes away.**
   SIX fixes** (I-0162, I-0165, I-0165b, I-0166, I-0167, I-0168): the sheet must survive the outage,
   explain it, warn that unsaved edits are memory-only, and ⚠️ **not discard them on reload, close, or
   navigation.** ⚠️ **Expect the same on Linux — this is the highest-risk AC in the port.**
+- **AC4a** — ⚠️ **THE WRITER'S CARD STACK IS HONOURED — read from `inspector-layout.json`, not
+  derived from what the scene happens to contain.** ⚠️ **ADDED 2026-09-21 from the user's live pass**
+  (⚠️ see **[I-0242]**, which this AC closes). ✅ **USER RULING:** *"The writer chooses which Card
+  elements to display and in what order they appear. Therefore, if the writer chooses to display an
+  empty card in the stack, then it should be displayed with an appropriate 'No Objects to Display'
+  message. Apple already does this. Linux must as well."*
+  ⛔ **Three parts, all required:** ✅ **the stack's MEMBERSHIP** comes from `defaultStacks` / per-scene
+  `scenes`; ✅ **its ORDER** likewise; ✅ **an EMPTY card still RENDERS**, with Apple's message
+  (`ObjectCard.swift:450` — ⚠️ *"empty is a normal state, not an error"*).
+  ⚠️ **THE DOCUMENT IS ALREADY THERE AND ALREADY LOSSLESS** — ✅ **[T-0537] proved Linux round-trips
+  `defaultStacks` and `scenes` intact** — ⛔ **`InspectorLayoutStore` simply exposes only
+  `selectedTab`.** ✅ **So this is a READER, not a new schema.**
+- **AC4b** — ⚠️ **THE STACK PICKER: a writer can ADD and REMOVE cards from a stack on Linux.**
+  ⚠️ **ADDED 2026-09-21 — it was MISSING FROM EVERY EPIC**, ✅ **found by the same live pass.**
+  ⚠️ **Apple's card registry exists specifically to offer cards in a "+" menu**
+  (`InspectorCard.swift:266` — *"Offered in the '+' menu; not in any default stack"*), ⛔ **and Linux
+  has no such control at all**, ⚠️ **so a Linux writer cannot compose a stack even once AC4a lets one
+  be read.** ✅ **`project_capability_without_surface`.**
+  ⛔ **AC4b DEPENDS ON AC4a** — ⚠️ **a picker that writes into a document nothing reads changes
+  nothing on screen.**
 - **AC5** *(standing)* — ⚠️ **Porting Outline corrected from experience**, not merely followed.
 - **AC6** *(standing)* — ⚠️ **Platform-independent rules re-honoured, not re-decided.**
 - **AC7** *(standing)* — `ctest` **actually runs** in the container, ⚠️ **NON-ROOT, tests ON.**

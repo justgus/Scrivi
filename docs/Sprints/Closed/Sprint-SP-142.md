@@ -1,15 +1,29 @@
 ---
 sprint: SP-142
 epic: EP-041
-status: Active
+status: CLOSED 2026-09-21 (user-approved)
 activated: 2026-09-21
+closed: 2026-09-21
 task: T-0537
 planned: 2026-09-21
 ---
 
-# SP-142 — ⚠️ **Retire Linux's duplicate `InspectorLayoutStore`**
+# Closed Sprint — SP-142 — ⚠️ **Retire Linux's duplicate `InspectorLayoutStore`**
 
-**Status:** 🟢 **ACTIVE — activated 2026-09-21 (user-approved).** ✅ **T-0537 and T-0542 both issued.**
+**Status:** ✅ **CLOSED 2026-09-21 — user-approved.** ✅ **All TEN ACs met; live pass PASSED on BOTH
+Apple and Ubuntu.** ✅ **T-0537 and T-0542 VERIFIED** →
+[`../../Tasks/Verified/Task-verified-0537-0542.md`](../../Tasks/Verified/Task-verified-0537-0542.md).
+✅ **[I-0241] VERIFIED** → [`../../Issues/Verified/Issue-verified-0241-0250.md`](../../Issues/Verified/Issue-verified-0241-0250.md).
+✅ **[EP-041] AC3 MET.**
+
+⚠️ **THE LIVE PASS ALSO FOUND SOMETHING THE SPRINT DID NOT PLAN FOR — ✅ [I-0242].** ⚠️ **The user
+reported Factions missing from the Worldbuilding tab;** ⛔ **the symptom was not the defect.**
+✅ **Linux CAN render factions** (it derives kinds from the core) — ⛔ **but it NEVER ASKS WHAT THE
+WRITER CHOSE:** ⚠️ **`inspector-layout.json` holds `defaultStacks` and per-scene `scenes`, ✅ T-0537
+just proved Linux round-trips both LOSSLESSLY, ⛔ and NOTHING READS THEM.**
+⚠️ **So this Sprint made Linux a faithful custodian of a document it does not consult** —
+✅ **`project_capability_without_surface`, found the day the custody was proven.**
+✅ **Filed as [I-0242]; ✅ EP-036 gained AC4a (honour the stack) and AC4b (the picker).**
 
 ✅ **Q1 WAS ANSWERED BEFORE [SP-141] IMPLEMENTED, exactly as this plan asked** — ⚠️ **ruled
 2026-09-21, "core reports, app decides":** `status` = `ok` | `absent` | `unreadable`, ⛔ **the core
@@ -27,7 +41,7 @@ rewrite would otherwise have lost them:** ✅ **the drift is ALREADY PROVEN by [
 ✅ **the TOMBSTONE requirement (AC5);** and ✅ **the rule that [I-0197] Class B closes HERE, not in
 [SP-141] (§Goal).** ⚠️ **It also named the Apple store as 310 lines; ✅ measured 2026-09-21 it is
 **380** (`InspectorLayoutStore.swift`) against Linux's **145 + 82**.**
-**Epic:** 🟡 [EP-041] `[Cross]` **The Boundary** → [`../Epics/Epic-EP-041.md`](../Epics/Epic-EP-041.md)
+**Epic:** 🟡 [EP-041] `[Cross]` **The Boundary** → [`../Epics/Epic-EP-041.md`](../../Epics/Epic-EP-041.md)
 **Tasks:** **T-0537** (retire the duplicate store) · **T-0542** (⚠️ **[I-0241]** — historical-event
 tags off disk) — ✅ **both ISSUED 2026-09-21 at activation.**
 **Serves:** **[EP-041] AC3** · contributes to **AC5** ([I-0197] Class B)
@@ -160,37 +174,41 @@ the files too."*
 
 ## Acceptance Criteria
 
-- [ ] **AC1** — ⛔ **`platforms/linux/` contains ZERO direct reads or writes of `inspector-layout.json`.**
+- [x] **AC1** — ✅ **MET.** ⛔ **`platforms/linux/` contains ZERO direct reads or writes of `inspector-layout.json`.**
       ✅ **Provable by grep**, ⚠️ **and the grep is the AC, not a description of it:**
       `grep -rn "inspector-layout" platforms/linux/src/` returns **only** comments or nothing.
-- [ ] **AC2** — ✅ **Tab selection still persists across an app restart on Linux**, ⚠️ **via the core.**
+- [x] **AC2** — ✅ **MET (live pass).** ✅ **Tab selection still persists across an app restart on Linux**, ⚠️ **via the core.**
       ⛔ **Behaviour is UNCHANGED from the writer's point of view — this is a refactor, not a feature.**
-- [ ] **AC3** — ⚠️ **THE LOSSLESS RULE STILL HOLDS, PROVEN AGAINST A REAL APPLE DOCUMENT.**
+- [x] **AC3** — ✅ **MET — smoke 17/17 AND the Mac cross-check.** ⚠️ **THE LOSSLESS RULE STILL HOLDS, PROVEN AGAINST A REAL APPLE DOCUMENT.**
       ✅ **An Apple-written layout carrying `stackSort`, `defaultStacks` and per-scene `scenes`
       round-trips through a Linux tab change with EVERY key intact.** ⛔ **This is the AC that must not
       be weakened; see "the test" below.**
-- [ ] **AC4** — ✅ **`InspectorLayoutStore.cpp`'s file I/O is GONE** (⛔ **no `QFile`, no temp+rename**),
+- [x] **AC4** — ✅ **MET.** ✅ **`InspectorLayoutStore.cpp`'s file I/O is GONE** (⛔ **no `QFile`, no temp+rename**),
       ✅ **and the four CMake blocks agree with whatever remains.**
-- [ ] **AC5** — ⚠️ **A TOMBSTONE COMMENT is left where the duplicate was**, ✅ **in the form [SP-129]
+- [x] **AC5** — ✅ **MET.** ⚠️ **A TOMBSTONE COMMENT is left where the duplicate was**, ✅ **in the form [SP-129]
       used at `EditorShell.cpp:2571`** (*"`readImportedTimelineFile` WAS HERE and is DELETED… ⛔ do not
       reintroduce a direct read"*). ⚠️ **It must name the Sprint/Task, say what replaced it, and forbid
       reintroduction** — ✅ **the whole point is that the next porter finds the rule at the site.**
-- [ ] **AC6** — ✅ **Docker build clean; `ctest` green ON LINUX, run NON-ROOT with tests ON.**
+- [x] **AC6** — ✅ **MET — Linux ctest 630/630 NON-ROOT; smokes 24/24.** ✅ **Docker build clean; `ctest` green ON LINUX, run NON-ROOT with tests ON.**
       ⚠️ **`project_linux_container_tests_off`: the Dockerfile builds `SCRIVI_BUILD_TESTS=OFF`, so
       "the container is green" does NOT mean `ctest` ran.** ⛔ **Run it in the second image.**
-- [ ] **AC7** — ⚠️ **A LIVE PASS ON THE REAL RIG:** open a project, switch inspector tabs, quit, relaunch,
+- [x] **AC7** — ✅ **PASSED — USER LIVE PASS 2026-09-21, on BOTH Apple and Ubuntu.** ✅ **The tab
+      survived a quit; ✅ THE MAC CROSS-CHECK CONFIRMED the card layout intact** — ⚠️ **the half no
+      suite can report on, and the exact failure [I-0215] was.** ⚠️ **Original text:**
+      ⚠️ **A LIVE PASS ON THE REAL RIG:** open a project, switch inspector tabs, quit, relaunch,
       ✅ **confirm the tab came back** — ⚠️ **then open the SAME project on the Mac and confirm the card
       layout is intact.** ⚠️ **Confirm the build first** (`scrivi_linux --version`,
       `feedback_confirm_the_build_under_test`).
 
 ### ⚠️ T-0542 / [I-0241] — its own ACs
 
-- [ ] **AC8** *(T-0542)* — ✅ **`scrivi_list_historical_events` PROJECTS `tags`**, ⚠️ **and a C ABI
+- [x] **AC8** *(T-0542)* ✅ **MET.** — ✅ **`scrivi_list_historical_events` PROJECTS `tags`**, ⚠️ **and a C ABI
       test asserts it** — ✅ **through `scrivi_*`, not the facade** (`feedback_boundary_tests_not_facade`).
       ⚠️ **VERIFY IT FAILING against the unprojected core first**, ⛔ **or it proves nothing.**
-- [ ] **AC9** *(T-0542)* — ⛔ **`readHistoricalEventTagsFromDisk` IS DELETED**, ✅ **both callers use
+- [x] **AC9** *(T-0542)* ✅ **MET.** — ⛔ **`readHistoricalEventTagsFromDisk` IS DELETED**, ✅ **both callers use
       the endpoint, and a TOMBSTONE names [SP-129]'s precedent** (⚠️ **AC5's form**).
-- [ ] **AC10** *(T-0542)* — ⚠️ **THE DRAG PATH NO LONGER BLANKS TAGS.** ✅ **Drag an event that HAS
+- [x] **AC10** *(T-0542)* — ✅ **PASSED — user live pass 2026-09-21.** ⚠️ **THE DRAG PATH NO LONGER
+      BLANKS TAGS.** ✅ **Drag an event that HAS
       tags; confirm they survive.** ⛔ **This is the data-loss half and it needs its OWN check** —
       ⚠️ **`feedback_verify_each_half_separately`: the prefill and the drag are different mechanisms.**
 
@@ -317,3 +335,23 @@ the rig AND a Mac cross-check.**
 record already conceded this** (*"more tracking overhead for ~450 lines of production code"*), ⚠️ **and
 the defensible alternative of folding [SP-143] in was considered and rejected for the witness reason
 above.**
+
+
+---
+
+## ⚠️ Audit-check findings, ruled as part of this close
+
+⚠️ **THE LIVE PASS PRODUCED AN ISSUE THE SPRINT DID NOT PLAN FOR — ✅ [I-0242], filed unassigned.**
+⛔ **Linux never reads the writer's card stack** (`defaultStacks`, per-scene `scenes`) — ⚠️ **the very
+document this Sprint proved it round-trips losslessly.** ✅ **Ruled into [EP-036] as AC4a/AC4b.**
+
+⚠️ **THAT IS THE SECOND DANGLING READ FOUND IN TWO DAYS**, ✅ **both by a human and neither by a
+suite:** [I-0241] (planning [SP-149]'s guard) and [I-0242] (this live pass).
+✅ **Not systemic enough to recommend a full Audit** — ⚠️ **but worth naming as a pattern before
+[EP-036] is scheduled: this port has repeatedly shipped CUSTODY of data without a READER for it.**
+
+✅ **Every other layer agreed at close: Tasks archived, Issue archived, nothing stale in the backlog.**
+
+---
+
+*Closed 2026-09-21 with user approval. Ten ACs met; T-0537, T-0542 and [I-0241] user-Verified.*
