@@ -72,6 +72,12 @@ struct ObjectDetailSheet: View {
 
     /// Navigation state. Owned by the caller so it survives the pane being
     /// rebuilt, and so a window host could own it identically later.
+    /// ⚠️ [T-0547] — THE HOST'S HANDOFF ONLY. ⛔ No longer the navigation model.
+    ///
+    /// ✅ `EditorView` writes the first object here before presenting; this sheet seeds
+    /// its `trail` from it on appear and the STACK owns everything after.
+    /// ⚠️ Kept as the handoff rather than a plain `Entry` parameter because the host
+    /// also calls `reset()` on close, and [I-0168]'s guarded re-entry depends on it.
     @Bindable var history: ObjectDetailHistory
 
     @State private var detail: ObjectDetail?
@@ -105,11 +111,43 @@ struct ObjectDetailSheet: View {
     private enum PendingExit: Equatable {
         case close
         case navigate(ObjectDetailHistory.Entry)
-        /// `target` is only for the prompt's wording; the step itself replays
-        /// through history so the cursor stays consistent.
-        case step(back: Bool, target: ObjectDetailHistory.Entry)
+        /// ⚠️ [T-0547] — THE POP HAS ALREADY HAPPENED. This is not a request to
+        /// navigate; it is a decision owed about the drafts left behind.
+        /// ⛔ Two-way only (user ruling): Save or Discard, never Cancel.
+        case navigatedAway(from: ObjectDetailHistory.Entry)
     }
     @State private var isSaving = false
+
+    /// ⚠️ [I-0246] — WHAT JUST HAPPENED, because the sheet no longer closes to say it.
+    ///
+    /// ⛔ Save and Cancel deliberately keep the sheet open ([I-0245]): Save writes and
+    /// stays so the writer can keep working; Cancel REVERTS (T-0452). ⚠️ With no exit
+    /// to mark the moment, **a Save that worked and a Save that did nothing look
+    /// identical** — the user's own observation.
+    ///
+    /// ✅ Cleared the instant `hasChanges` goes true again, so the banner can never
+    /// describe a state the writer has already typed past.
+    @State private var actionStatus: ActionStatus?
+
+    /// The two outcomes worth reporting. ⛔ NOT a general message channel — failures
+    /// have their own surface (`saveError`), which is louder and stays put.
+    private enum ActionStatus {
+        case saved, reverted
+
+        var text: String {
+            switch self {
+            case .saved:    "Changes saved"
+            case .reverted: "Changes reverted"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .saved:    "checkmark.circle.fill"
+            case .reverted: "arrow.uturn.backward.circle.fill"
+            }
+        }
+    }
     /// ⚠️ T-0447: the object's image path, resolved by the CORE at list time
     /// (T-0446) rather than by this view. `ObjectDetail` carries only the
     /// assetID — a path is not in the object file, and deliberately is not.
@@ -118,11 +156,74 @@ struct ObjectDetailSheet: View {
     /// (I-0166). Distinct from `loadError`, which means a real failure.
     @State private var unavailableStatus: WorldStatus?
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            toolbar
-            Divider()
+    /// ⚠️ [T-0547] — THE STACK OWNS NAVIGATION. The path is the source of truth.
+    ///
+    /// ⛔ This replaced a hand-rolled cursor. `NavigationStack(path:)` draws the bar,
+    /// the title and the back chevron; we contribute only the actions that are ours.
+    @State private var path = NavigationPath()
 
+    /// ⚠️ The labels behind the path, kept in step with it.
+    ///
+    /// ⛔ `NavigationPath` is TYPE-ERASED — `count` is readable, the VALUES are not — so
+    /// nothing in SwiftUI can say what the object one step back is CALLED. ✅ This can.
+    /// ⛔ It decides nothing: a pop is already a fact by the time we consult it.
+    @State private var trail: [ObjectDetailHistory.Entry] = []
+
+    var body: some View {
+        // ⚠️ [T-0547] — THE `NavigationStack` OWNS THE BAR, THE TITLE AND THE CHEVRON.
+        //
+        // ⚠️ **THIS TOOK FOUR ATTEMPTS. The wrong turns, so they are not re-earned:**
+        // ⛔ (1) `.toolbar` on a bare sheet — the SHEET WINDOW has no `NSToolbar`
+        //        (`w.toolbar == nil`, measured), so every item was dropped SILENTLY,
+        //        taking `.keyboardShortcut(.cancelAction)` with it → [I-0248].
+        // ⛔ (2) A hand-built `VStack` bar — ⚠️ it rendered, but it hand-built chrome
+        //        the platform provides, in the Epic that exists to STOP that.
+        // ⛔ (3) A `NavigationStack` whose bar we still populated entirely ourselves —
+        //        ⚠️ the stack was present but was never allowed to DO anything.
+        // ✅ (4) This: the stack owns navigation. We push an `Entry`; it draws the
+        //        title and the back chevron and manages the transition.
+        //
+        // ✅ PLACEMENT IS THE PLATFORM'S (user: *"put them where they are supposed to
+        // go"*). On macOS: `.cancellationAction` sits trailing BEFORE confirmation, and
+        // `.confirmationAction` is TRAILING-MOST.
+        // ⚠️ **CLOSE IS THE CONFIRMATION ACTION** (user ruling) — it is what DISMISSES.
+        // ⛔ Save does not dismiss ([I-0245]), so it sits BESIDE the dismissing item.
+        // ⚠️ **[I-0249] — THE EDITOR RENDERS AT EVERY LEVEL; THE OBSERVERS RUN ONCE.**
+        //
+        // ⛔ TWO WRONG SHAPES BEFORE THIS ONE, both recorded because each looked right:
+        //   (1) `sheetContent` — the editor AND its whole `.onChange` chain — returned
+        //       from BOTH the root and the destination. Two live copies, each calling
+        //       `load()` on a pop.
+        //   (2) A `Color.clear` destination, to stop the duplication. ⛔ THAT BLANKED
+        //       THE PUSHED OBJECT: the stack shows the DESTINATION, so pushing Colm
+        //       displayed nothing. ⚠️ A fix built on an unconfirmed theory, which broke
+        //       a working surface.
+        // ✅ THE SPLIT: `editorSurface` is the visible editor and renders at both
+        // levels — the writer must see Colm when she pushes him. The OBSERVERS
+        // (`load`, the banner rules, the exit prompts) hang on the STACK, so they exist
+        // exactly once no matter how deep the trail goes.
+        sheetObservers(
+        NavigationStack(path: $path) {
+            editorSurface
+                .navigationTitle(currentEntry?.displayName ?? "Object")
+                .navigationDestination(for: ObjectDetailHistory.Entry.self) { entry in
+                    // ✅ The SAME editor. ⚠️ It reads `detail`/the drafts, which live on
+                    // this sheet above the stack — so both levels show the object the
+                    // trail currently names, and neither owns state.
+                    editorSurface
+                        .navigationTitle(entry.displayName)
+                }
+                .toolbar { detailToolbar }
+        }
+        // ⚠️ THE OBSERVER CHAIN — ⛔ DELIBERATELY OUT HERE, not on `editorSurface`.
+        // ✅ One instance, whatever the stack depth. See [I-0249].
+        )
+
+    }
+
+    /// ⚠️ THE VISIBLE EDITOR — ⛔ NO observers. See `SheetObservers`.
+    private var editorSurface: some View {
+        VStack(alignment: .leading, spacing: 0) {
             if let unavailableStatus {
                 // ⚠️ Named and explained, never a code. The writer asked for a
                 // specific object; tell her about THAT object.
@@ -135,6 +236,112 @@ struct ObjectDetailSheet: View {
                 message("Select an object to see its details.",
                         systemImage: "square.dashed")
             }
+
+            // ⚠️ [I-0246] — bottom status banner. See `actionStatus`.
+            //
+            // ⚠️ OUTSIDE the content branch deliberately: it belongs to the SHEET, so
+            // it pins to the bottom edge whatever the body is showing, and it is the
+            // last thing in reading order — where the writer's eye lands after
+            // pressing a button in the toolbar above.
+            if let actionStatus {
+                Divider()
+                Label(actionStatus.text, systemImage: actionStatus.symbol)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .transition(.opacity)
+                    // ⚠️ Announced, not just drawn — the writer may not be looking
+                    // at the bottom of the sheet when she hits ⌘S.
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: actionStatus)
+    }
+
+    /// ⚠️ [I-0249] — every `.onChange`/`.alert` the sheet needs, applied ONCE.
+    ///
+    /// ⛔ These used to hang on the editor itself, which the stack renders at EVERY
+    /// level — so a two-deep trail ran each of them twice, and a pop produced two
+    /// synchronous `load()` calls inside one layout pass.
+    /// ✅ Applied to the `NavigationStack`, they exist once whatever the depth.
+    @ViewBuilder
+    private func sheetObservers(_ content: some View) -> some View {
+        content
+        // ⚠️ **THE TWO-WAY PROMPT — THE USER'S RULING, 2026-09-23:**
+        // *"This confirmation dialog shouldn't attempt to 'Cancel' the navigation …
+        // rather it should require either a save or a revert."*
+        //
+        // ✅ **THAT RULING IS WHAT MAKES THIS POSSIBLE AT ALL.** ⛔ No SwiftUI hook can
+        // ARREST a pop — the macOS 27 SDK has no navigation function taking a closure.
+        // ⚠️ An earlier design tried to re-push the popped view to "undo" the
+        // navigation; ⛔ that flickers, and it asks a Cancel question about a view the
+        // writer has already left. ✅ A settled pop needs no interception — only a
+        // decision about the orphaned drafts, and those are still in hand.
+        //
+        // ⚠️ **ORDERING IS LOAD-BEARING AND MEASURED:** `path.count` changes BEFORE the
+        // popped view's `onDisappear`, so the prompt is raised while the drafts live.
+        .onChange(of: path.count) { old, new in
+            guard new < old else { return }          // a push needs no decision
+
+            // ⚠️ OFF-BY-ONE, CAUGHT BY MEASUREMENT (2026-09-23): the ROOT lives at
+            // `path.count == 0` but is `trail[0]`, so the trail is always ONE LONGER
+            // than the path. ⛔ `trail[new]` therefore names the object ARRIVED AT, not
+            // the one departed — the first run of this prompt said "Myton" when the
+            // writer had been editing Brother Colm.
+            // ✅ The departed level is the trail's TAIL, before it is trimmed.
+            let departed = trail.last
+            trail = Array(trail.prefix(new + 1))
+            let needsPrompt = hasChanges && !isReadOnlyNow && departed != nil
+
+            // ⚠️ **DEFER OFF THE LAYOUT PASS — [I-0249].**
+            //
+            // ⛔ This handler runs INSIDE AppKit's layout, and `loadCurrent()` sets
+            // `detail = nil` and re-reads from disk. Doing that synchronously mutates
+            // state mid-layout, re-dirties constraints, and AppKit loops:
+            //   "It's not legal to call -layoutSubtreeIfNeeded on a view which is
+            //    already being laid out."
+            // ✅ [T-0548]'s DEBUG ASSERTION CAUGHT THIS — 65 Update-Constraints passes
+            // in one run-loop turn, trapped before AppKit's own limit. ⚠️ The guard's
+            // message names the [I-0245] HStack shape, which is NOT this cause: the
+            // guard detects the runaway, it does not diagnose it.
+            //
+            // ✅ A hop to the next run-loop turn lets the pop's layout FINISH first.
+            // ⛔ NOT `withAnimation` or a state flag — the problem is the TIMING, not
+            // the animation, and a flag would still mutate inside the same pass.
+            // ⛔ NO `loadCurrent()` HERE. ⚠️ Trimming `trail` above changes
+            // `currentEntry`, whose own observer re-reads — calling it here too gave
+            // TWO loads per pop, which is half of what [I-0249] was.
+            if needsPrompt, let departed {
+                Task { @MainActor in pendingExit = .navigatedAway(from: departed) }
+            }
+        }
+        // ⚠️ Save-or-revert. ⛔ NO Cancel: the navigation has already happened, and
+        // offering to undo it would promise something the platform cannot deliver.
+        .alert("Unsaved changes", isPresented: showingNavigatedAwayPrompt) {
+            Button("Save Changes") { resolveNavigatedAway(saving: true) }
+            Button("Discard Changes", role: .destructive) {
+                resolveNavigatedAway(saving: false)
+            }
+        } message: {
+            Text("You have unsaved changes to “\(navigatedAwayName)”.")
+        }
+        // ⚠️ [I-0246] — THE DISMISSAL RULE, and why it is `hasChanges` and not a timer.
+        //
+        // ✅ The user's ruling: *"Once more changes are detected … the message should be
+        // dismissed. That way the writer is not confused by the message and the changes
+        // she is making."*
+        //
+        // ✅ `hasChanges` is ALREADY the truth here — it is what enables Save and Cancel,
+        // and it compares the drafts against `detail`, which `load()` refreshes from disk
+        // after a save. So it goes false on save/revert and true again on the next
+        // keystroke, with no extra state to drift.
+        // ⛔ NOT a timed auto-hide: a banner that vanishes on its own is missed by a
+        // writer who looked away, and one that lingers past new typing is the confusion
+        // this rule exists to prevent.
+        .onChange(of: hasChanges) { _, changed in
+            if changed { actionStatus = nil }
         }
         .frame(minWidth: 420, minHeight: 320)
         // ⚠️ T-0452: closing or navigating away used to DISCARD unsaved edits
@@ -153,7 +360,22 @@ struct ObjectDetailSheet: View {
             onExternalNavigationHandled()
             requestNavigate(entry)
         }
-        .onChange(of: history.current) { _, _ in load() }
+        // ⚠️ [I-0246]: a status belongs to the object it happened to. Clear it when
+        // the sheet moves to a DIFFERENT object, or "Changes saved" would follow the
+        // writer onto an object she has not touched.
+        // ⛔ NOT inside `load()` — `save()` and `revert()` both call that, so clearing
+        // there would wipe the banner before it ever appeared.
+        // ⚠️ **[I-0249] — DEFERRED OFF THE LAYOUT PASS.** A pop trims `trail` while
+        // AppKit is laying out, so this observer fires mid-pass; `load()` mutates
+        // `detail`, which re-dirties constraints and loops
+        // (*"not legal to call -layoutSubtreeIfNeeded on a view which is already being
+        // laid out"*). ✅ A hop to the next turn lets the pop's layout finish.
+        .onChange(of: currentEntry) { _, _ in
+            Task { @MainActor in
+                actionStatus = nil
+                load()
+            }
+        }
         // ⚠️ I-0160: another surface changed this object — re-read.
         //
         // ⚠️ This comment used to ASSERT that `load()` only overwrote unedited
@@ -163,54 +385,141 @@ struct ObjectDetailSheet: View {
         // The save path also re-reads and merges per field (I-0155).
         .onChange(of: objectRevision) { _, _ in load() }
         .onChange(of: worldRevision) { _, _ in load() }
-        .onAppear { load() }
+        // ⚠️ [T-0547] — SEED THE TRAIL FROM THE HOST'S HANDOFF.
+        //
+        // ⛔ Without this the stack has no root and the sheet opens blank: `trail` is
+        // `@State` and starts empty, while the object the writer double-clicked was
+        // recorded on `history` BEFORE the sheet was presented.
+        .onAppear {
+            if trail.isEmpty, let seed = history.current { trail = [seed] }
+            load()
+        }
+        // ✅ **[I-0250] — ESC, AT THE LEVEL THE KEY ACTUALLY ARRIVES.**
+        //
+        // ⚠️ *"The user generates an exit command by pressing the Menu button on tvOS,
+        // or the escape key on macOS"* — and it fires on the FOCUSED view, which is the
+        // sheet's content. ⛔ A `.keyboardShortcut(.cancelAction)` on a toolbar item
+        // does NOT get there: SwiftUI's sheet dismissal takes the key first.
+        // ✅ Routing through `requestClose()` means Esc honours the unsaved-changes
+        // guard exactly as clicking ✕ does.
+        .onExitCommand { requestClose() }
+        // ⚠️ **THE TRIPWIRE — [I-0250].** ⛔ If the sheet is ever torn down with unsaved
+        // edits still present, something bypassed the guard and the writer just lost
+        // work SILENTLY. ✅ This session found TWO separate routes into that state
+        // ([I-0248], [I-0250]), so the condition is worth naming loudly rather than
+        // trusting it cannot recur.
+        // ⛔ DELIBERATELY LOGS RATHER THAN AUTOSAVES: a silent write is the opposite
+        // failure, and T-0452's whole point is that the writer decides. ⚠️ If this ever
+        // appears in a log, it is a DEFECT — find the route, do not add a save here.
+        .onDisappear {
+            if hasChanges && !isReadOnlyNow {
+                NSLog("[SCRIVI-GUARD] ⛔ Detail Sheet dismissed with UNSAVED CHANGES to "
+                      + "'\(currentEntry?.displayName ?? "unknown")' — the exit guard was "
+                      + "BYPASSED. This is [I-0250]'s class; the writer lost edits.")
+            }
+        }
     }
 
     // MARK: — Chrome
 
-    private var toolbar: some View {
-        HStack(spacing: 8) {
-            // D2-B: back AND forward. `NavigationStack` gives only back, and the
-            // writer asked for "standard NavigatorView buttons".
-            // ⚠️ T-0452: these MUTATE history before load() runs, so an unguarded
-            // press discards edits with no prompt — the same exposure as the ✕.
-            Button { requestStep(back: true) } label: {
-                Image(systemName: "chevron.backward")
+    /// Save · Undo (beside the dismissing item) · Close (trailing-most).
+    ///
+    /// ⛔ **NO BACK ITEM.** ✅ The stack draws its own chevron, hides it at the root,
+    /// and labels it with the previous title — all of which this used to hand-roll.
+    ///
+    /// ⚠️ **ICONS, WORDS ON `.help()`** (user ruling: *"I would now prefer if they use
+    /// standard icons"*). ⛔ The labels are not lost — they move to tooltips, so
+    /// assistive technology still reads them.
+    @ToolbarContentBuilder
+    private var detailToolbar: some ToolbarContent {
+
+        // ⚠️ SAVE SITS BESIDE THE DISMISSING ITEM (user ruling). It does NOT dismiss:
+        // Save writes, re-reads disk and KEEPS THE SHEET OPEN ([I-0245]) — which is why
+        // [I-0246]'s status banner exists to report it.
+        // ✅ Enable/disable belongs HERE (user ruling).
+        ToolbarItemGroup(placement: .cancellationAction) {
+            // ⚠️ `internaldrive` is a DISK (user correction, 2026-09-23).
+            // ⛔ NOT `square.and.arrow.down` — that is the DOWNLOAD/export glyph, and
+            // it says "bring this in", not "commit this to storage".
+            Button { save() } label: {
+                Image(systemName: "internaldrive")
             }
-            .disabled(!history.canGoBack)
-            .help(history.backTarget.map { "Back to \($0.displayName)" } ?? "Back")
+            .disabled(isSaving || !hasChanges)
+            .keyboardShortcut("s", modifiers: .command)
+            .help("Save Changes")
 
-            Button { requestStep(back: false) } label: {
-                Image(systemName: "chevron.forward")
+            // ⚠️ T-0452: revert to what is on disk. Deliberately NOT undo — no history,
+            // no per-keystroke state. The writer asked for exactly this: *"a Cancel
+            // option next to Save would allow me to just revert back to the saved
+            // version."* ⚠️ EP-019's sentence-granular history is for the manuscript and
+            // stays out of object editing (the D3-C ruling).
+            Button { revert() } label: {
+                Image(systemName: "arrow.uturn.backward")
             }
-            .disabled(!history.canGoForward)
-            .help(history.forwardTarget.map { "Forward to \($0.displayName)" } ?? "Forward")
-
-            Spacer()
-
-            if let detail, !isReadOnly(detail) {
-                // ⚠️ T-0452: revert to what is on disk.
-                //
-                // Deliberately NOT undo — no history, no per-keystroke state. The
-                // writer asked for exactly this: *"a Cancel option next to Save
-                // would allow me to just revert back to the saved version."*
-                // ⚠️ EP-019's sentence-granular history is for the manuscript and
-                // stays out of object editing (the D3-C ruling).
-                Button("Cancel") { revert() }
-                    .disabled(isSaving || !hasChanges)
-                    .help("Discard your changes and return to the saved version")
-
-                Button("Save") { save() }
-                    .disabled(isSaving || !hasChanges)
-                    .keyboardShortcut("s", modifiers: .command)
-            }
-
-            Button { requestClose() } label: { Image(systemName: "xmark") }
-                .help("Close the detail view")
+            .disabled(isSaving || !hasChanges)
+            .help("Undo Changes — discard your edits and return to the saved version")
         }
-        .buttonStyle(.borderless)
-        .padding(8)
+
+        // ⚠️ **CLOSE IS THE CONFIRMATION ACTION** — it is what dismisses the sheet.
+        //
+        // ⚠️ [I-0245] — close KEEPS its THREE-WAY prompt (user ruling): Save · Discard
+        // · Cancel. ✅ Cancel is meaningful HERE — she may not want to close at all —
+        // ⛔ where on a navigation it would offer to undo something already done.
+        //
+        // ⛔ **NO `.keyboardShortcut(.cancelAction)` HERE — [I-0250].** ⚠️ MEASURED: a
+        // `.cancelAction` on a TOOLBAR item never receives Esc. SwiftUI's own sheet
+        // dismissal consumes the key first, and that path bypasses `requestClose()`
+        // entirely — the probe logged `sheet DISAPPEARED hasChanges=true` with the
+        // button's action NEVER firing, and the writer's edits died with the view.
+        // ⚠️ `.interactiveDismissDisabled()` does NOT stop it: that governs INTERACTIVE
+        // dismissal (click-outside, drag), not the Escape key.
+        // ✅ Esc is handled by `.onExitCommand` on the CONTENT, which is the level the
+        // key actually reaches. See `sheetObservers`.
+        ToolbarItem(placement: .confirmationAction) {
+            Button { requestClose() } label: {
+                Image(systemName: "xmark")
+            }
+            .help("Close the detail view (Esc)")
+        }
     }
+
+    // MARK: — Chrome
+
+    // ⚠️⚰️ TOMBSTONE — T-0547 (EP-040 AC8, app-shape §4.4), 2026-09-23.
+    //
+    // ⛔ REMOVED: `private var toolbar: some View` — an `HStack(spacing: 8)` of
+    // `.borderless` buttons (back · forward · Spacer · Cancel · Save · ✕) rendered as
+    // the FIRST child of the sheet's `VStack`, above a `Divider()`.
+    //
+    // ⚠️ WHY IT WAS WRONG: it was WINDOW CHROME INSIDE A CONTENT PANE — navigation
+    // history, a save affordance and a CLOSE BUTTON, all hand-drawn where the platform
+    // provides `.toolbar`. The same class as [SP-134]'s missing `NSToolbar` and
+    // [SP-135]'s `VStack` bars: *the app hand-builds what the platform already gives it.*
+    //
+    // ✅ REPLACED BY, in two places and deliberately not one:
+    //   • `detailToolbar` (above) — Back · Save · Undo · Close, at PLATFORM placements.
+    //   • `confirmationFooter` (below) — Cancel · Save, at the CONTENT'S FOOT.
+    //
+    // ⚠️ THE SPLIT IS THE Q2 RULING (user, 2026-09-23): **Save and Cancel are NOT
+    // window chrome.** They are DOCUMENT ACTIONS, and a sheet's convention is
+    // confirmation at the foot of its content. ⛔ Moving them into the toolbar would
+    // have been a change of behaviour dressed up as a conformance fix.
+
+    // ⚠️⚰️ TOMBSTONE — `confirmationFooter(for:)`, added and removed the same day.
+    //
+    // ⛔ [T-0547] first placed Save/Cancel at the CONTENT'S FOOT, on the reading that a
+    // sheet conventionally puts confirmation there and that they are document actions
+    // rather than window chrome.
+    // ✅ **THE USER RULED OTHERWISE (2026-09-23):** *"The toolbar should contain the
+    // Cancel Save buttons. Although, since they do not dismiss the panel, they should
+    // be centered."* ⚠️ The premise was right — they are not dismissal — but the
+    // conclusion was placement, and placement was the user's to make.
+    // ✅ They now live in `detailToolbar` at `.cancellationAction`, BESIDE the
+    // dismissing item, as icons with their words on `.help()`.
+    // ⚠️ Two wrong turns on the way, both recorded on `body`: a `.principal` centred
+    // pair (dropped because the sheet window has no toolbar — but the NAVIGATION STACK
+    // does, which was the real answer), and a hand-built `VStack` bar (⛔ chrome this
+    // Epic exists to remove).
 
     // MARK: — Content
 
@@ -430,7 +739,7 @@ struct ObjectDetailSheet: View {
                     onNavigate: { entry in
                         // ⚠️ `visit` truncates forward history and no-ops on a
                         // re-visit of the object already showing; `load()` then
-                        // runs from `.onChange(of: history.current)`.
+                        // runs from `.onChange(of: currentEntry)`.
                         requestNavigate(entry)
                     }
                 )
@@ -486,7 +795,7 @@ struct ObjectDetailSheet: View {
 
             // ⚠️ The NAME comes from history, which holds it precisely so a
             // writer is never asked to recognise an ID (the AC-A7 rule again).
-            Text(history.current?.displayName ?? "This object")
+            Text(currentEntry?.displayName ?? "This object")
                 .font(.headline)
 
             Text(worldSentence(status))
@@ -507,7 +816,7 @@ struct ObjectDetailSheet: View {
     /// is identical for every value, but the remedy differs — so name the world
     /// when we can, and never guess at a cause.
     private func worldSentence(_ status: WorldStatus) -> String {
-        let name = history.current.map { worldName(for: $0.worldID) }
+        let name = currentEntry.map { worldName(for: $0.worldID) }
         if let name, !name.isEmpty {
             return "“\(name)” is \(status.writerDescription)."
         }
@@ -569,9 +878,49 @@ struct ObjectDetailSheet: View {
     /// unremovable individually, since the ✕ matches by value.
     /// Bound rather than a plain Bool so dismissing the alert any other way
     /// clears the pending exit instead of stranding it.
+    /// ⚠️ The THREE-WAY prompt — close only (user ruling, 2026-09-23).
+    /// ⛔ Deliberately excludes `.navigatedAway`, which gets its own two-way alert:
+    /// Cancel is meaningful when closing (she may not want to) and MEANINGLESS after a
+    /// pop that has already happened.
     private var showingExitPrompt: Binding<Bool> {
-        Binding(get: { pendingExit != nil },
-                set: { if !$0 { pendingExit = nil } })
+        Binding(get: {
+            if case .navigatedAway = pendingExit { return false }
+            return pendingExit != nil
+        }, set: { if !$0 { pendingExit = nil } })
+    }
+
+    /// ⚠️ The TWO-WAY prompt — a navigation that is already a fact.
+    private var showingNavigatedAwayPrompt: Binding<Bool> {
+        Binding(get: {
+            if case .navigatedAway = pendingExit { return true }
+            return false
+        }, set: { if !$0 { pendingExit = nil } })
+    }
+
+    /// The object the drafts belong to — named, never an ID.
+    private var navigatedAwayName: String {
+        if case .navigatedAway(let entry) = pendingExit { return entry.displayName }
+        return "this object"
+    }
+
+    /// ⚠️ Save or discard the drafts orphaned by a pop, then adopt the object the
+    /// stack has ALREADY moved to. ⛔ Neither branch navigates: that is settled.
+    private func resolveNavigatedAway(saving: Bool) {
+        pendingExit = nil
+        if saving { save() }
+        loadCurrent()
+    }
+
+    /// ⚠️ WHAT THE STACK IS SHOWING — the trail's last entry.
+    ///
+    /// ⛔ Replaces `history.current`. The stack owns position; `trail` owns the labels,
+    /// and its tail is by construction the level on screen.
+    private var currentEntry: ObjectDetailHistory.Entry? { trail.last }
+
+    /// Re-reads whatever the stack is now showing.
+    private func loadCurrent() {
+        detail = nil          // force `load()` to adopt disk wholesale
+        load()
     }
 
     /// Discards the writer's edits and re-adopts what is on disk.
@@ -580,11 +929,11 @@ struct ObjectDetailSheet: View {
     /// surface may have written since (I-0155), and "the saved version" means
     /// what is actually saved, not what this sheet last saw.
     private func revert() {
-        guard let entry = history.current else { return }
+        guard currentEntry != nil else { return }
         detail = nil          // force load() to adopt disk wholesale
-        history.visit(entry)  // no-op for the same object; load() runs below
         load()
         saveError = nil
+        actionStatus = .reverted   // [I-0246]: the sheet stays open, so it must say so
     }
 
     /// ⚠️ Every exit routes through here. A close or a navigation with unsaved
@@ -597,11 +946,13 @@ struct ObjectDetailSheet: View {
         }
     }
 
+    /// ⚠️ A double-click on a related object. ⛔ Still guarded THREE-WAY: nothing has
+    /// moved yet, so Cancel is meaningful — unlike a pop, which is already a fact.
     private func requestNavigate(_ entry: ObjectDetailHistory.Entry) {
         if hasChanges && !isReadOnlyNow {
             pendingExit = .navigate(entry)
         } else {
-            history.visit(entry)
+            pushEntry(entry)
         }
     }
 
@@ -613,27 +964,42 @@ struct ObjectDetailSheet: View {
         return isReadOnly(detail)
     }
 
-    /// Back/forward, guarded. ⚠️ The step is deferred until the prompt is
-    /// answered — asking *after* moving would strand the drafts on an object the
-    /// writer has already left.
-    private func requestStep(back: Bool) {
-        guard hasChanges && !isReadOnlyNow else {
-            navigate(back ? history.goBack() : history.goForward())
-            return
-        }
-        guard let target = back ? history.backTarget : history.forwardTarget else { return }
-        pendingExit = .step(back: back, target: target)
-    }
+    // ⚠️⚰️ TOMBSTONE — `requestStep()`, removed by [T-0547] 2026-09-23.
+    //
+    // ⛔ It guarded a hand-built Back button, deferring the pop until the writer
+    // answered a THREE-WAY prompt. ✅ The stack now owns the chevron, so there is no
+    // button to guard and no pop to defer — the pop happens, and `onChange(of:
+    // path.count)` raises the TWO-WAY prompt about the drafts left behind.
+    // ⚠️ That is the user's ruling: *"This confirmation dialog shouldn't attempt to
+    // 'Cancel' the navigation … rather it should require either a save or a revert."*
 
+    /// ⚠️ Resolves the THREE-WAY close prompt only. ⛔ `.navigatedAway` never reaches
+    /// here — it has its own two-way alert and `resolveNavigatedAway`.
     private func resolveExit(saving: Bool) {
         let exit = pendingExit
         pendingExit = nil
         if saving { save() }
         switch exit {
         case .close:               onClose()
-        case .navigate(let entry): history.visit(entry)
-        case .step(let back, _):   navigate(back ? history.goBack() : history.goForward())
+        case .navigate(let entry): pushEntry(entry)
+        case .navigatedAway:       break   // handled by resolveNavigatedAway
         case .none:                break
+        }
+    }
+
+    /// ⚠️ Pushes onto the STACK, and records the label beside it.
+    ///
+    /// ⛔ `NavigationPath` is type-erased, so `trail` is the only thing that can
+    /// afterwards say what each level is CALLED.
+    private func pushEntry(_ entry: ObjectDetailHistory.Entry) {
+        guard trail.last?.objectID != entry.objectID else { return }
+        if trail.isEmpty {
+            // ⚠️ The ROOT is not a push — it is what the stack already shows.
+            trail = [entry]
+            loadCurrent()
+        } else {
+            trail.append(entry)
+            path.append(entry)
         }
     }
 
@@ -653,7 +1019,7 @@ struct ObjectDetailSheet: View {
     }
 
     private func load() {
-        guard let entry = history.current else {
+        guard let entry = currentEntry else {
             detail = nil
             return
         }
@@ -728,7 +1094,7 @@ struct ObjectDetailSheet: View {
                 // ⚠️ I-0166: NOT "nothing to show" — the earlier comment here said
                 // that and it was wrong.
                 //
-                // `history.current` carries the object's NAME, kind and world, so
+                // `currentEntry` carries the object's NAME, kind and world, so
                 // we know exactly what she asked for and why it will not open.
                 // R9 requires it be shown, named and explained; a raw
                 // "ScriviApp:Scrivi Error -1" is none of those.
@@ -808,6 +1174,7 @@ struct ObjectDetailSheet: View {
             saveError = nil
             load()        // re-read so the view shows what is actually on disk
             onDidSave()   // I-0155: and tell the host, so the inspector agrees
+            actionStatus = .saved   // [I-0246]: the sheet stays open, so it must say so
         } catch {
             // Keep the drafts — her typing is not thrown away on a failed save.
             saveError = error.localizedDescription

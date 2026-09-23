@@ -33,6 +33,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // manifest can be frozen to the still-open set BEFORE windows tear down (R4 / T-0195).
     @MainActor static var onWillTerminate: (() -> Void)?
 
+    // ⚠️ T-0546 — AN UNCAUGHT-EXCEPTION HANDLER, so a layout fault does not take the
+    // writer's work with it silently.
+    //
+    // ⛔ THIS DOES NOT PREVENT THE CRASH. An ObjC exception thrown through Swift frames
+    // cannot be caught and resumed — `NSSetUncaughtExceptionHandler` runs just before
+    // termination. ✅ What it buys is the two things that matter to a writer:
+    //   1. the still-open projects are FROZEN to the session manifest, so relaunch
+    //      restores them (the same `onWillTerminate` path a clean quit uses); and
+    //   2. the exception NAME, REASON and STACK reach the log in one place, instead of
+    //      the reader having to reconstruct them from AppKit's own output.
+    //
+    // ⚠️ IT EXISTS BECAUSE A REAL CRASH GOT HERE (2026-09-23): an inspector/timeline
+    // layout cycle threw `NSGenericException` mid-session. ✅ The cycle itself is fixed
+    // at its source (TimelineStripView, `requiredClusterHeight`) — ⛔ this is the net
+    // under the next one, not a substitute for fixing it.
+    //
+    // ⚠️ SCENE CONTENT IS ALREADY SAFE INDEPENDENTLY: edits flush on a cadence and on
+    // resign-active. ⛔ Do NOT add a save here — writing to a project package from an
+    // exception handler, with the app in an unknown state, risks corrupting the thing
+    // it is trying to protect.
+    static func installUncaughtExceptionHandler() {
+        NSSetUncaughtExceptionHandler { exception in
+            NSLog("[SCRIVI-FATAL] %@: %@",
+                  exception.name.rawValue,
+                  exception.reason ?? "(no reason)")
+            for line in exception.callStackSymbols {
+                NSLog("[SCRIVI-FATAL]   %@", line)
+            }
+            // Best effort, and deliberately guarded: the handler runs on whatever thread
+            // threw, and the app is already going down.
+            MainActor.assumeIsolated {
+                AppDelegate.onWillTerminate?()
+            }
+        }
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        AppDelegate.installUncaughtExceptionHandler()
+
+        // ⚠️⚰️ TOMBSTONE — `LayoutConvergenceGuard.install()`, REMOVED 2026-09-23 by
+        // user ruling. ⛔ DO NOT REINSTATE without re-reading this.
+        //
+        // ⚠️ T-0548 built it as the RUNTIME half of the [I-0245] guard: a DEBUG
+        // assertion counting Update-Constraints passes per window, trapping past 64.
+        //
+        // ✅ **THE USER'S RULING, in their own words:** *"This is no longer necessary
+        // since the Detail Sheet was made a modal sheet. Also it causes the
+        // NavigationStack to crash on pop."* — ⚠️ and *"I will not be putting the guard
+        // back in."*
+        //
+        // ⚠️ **BOTH HALVES OF THAT ARE LOAD-BEARING:**
+        // ⛔ It FIRED TWICE on real work and MISDIAGNOSED BOTH TIMES. Its message
+        //    asserts width contention between `HStack` siblings and tells the reader to
+        //    "present it as a .sheet" — ⚠️ but by then the sheet ALREADY WAS one, and
+        //    the second firing was inside its navigation stack with no width contention
+        //    at all. ⛔ A guard that names one cause confidently sends the next reader
+        //    chasing the wrong thing; this one cost a day ([I-0249]).
+        // ⛔ It TURNED A LAYOUT WARNING INTO A CRASH. `preconditionFailure` on a
+        //    threshold makes a recoverable condition fatal — and the threshold was
+        //    crossed by ordinary back-navigation.
+        //
+        // ✅ **WHAT ACTUALLY CLOSED [I-0245]: the modal `.sheet` itself.** A sheet is
+        // presented ABOVE the window and joins NO width negotiation, so the ring cannot
+        // form. ⚠️ That is structural and needs no runtime watchdog.
+        // ✅ The STATIC half — `scripts/check-layout-convergence.sh` — REMAINS and runs
+        // in CI on every push. It guards the SHAPE, costs nothing at runtime, and
+        // cannot crash the app.
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         MainActor.assumeIsolated {
             AppDelegate.onOpenURLs?(urls)

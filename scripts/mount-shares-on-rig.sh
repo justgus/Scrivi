@@ -6,6 +6,11 @@
 #
 #   //<mac>/ScriviLinux   -> /mnt/scrivi-net      (projects + appsupport + worlds subdir)
 #   //<mac>/ScriviWorlds  -> /mnt/scrivi-worlds   (the "Scrivi-Worlds" USB volume)
+#   //<mac>/ScriviOther   -> /mnt/scrivi-other    (the "SCRIVI-OTHE" USB volume)
+#
+# ⚠️ THE REMOVABLE VOLUMES ARE A LIST AND MOUNT INDEPENDENTLY. Either or both can
+# be mounted at once; a drive that is NOT ATTACHED is skipped with a note, never
+# an error, so one unplugged volume cannot block the others.
 #
 # Credentials come from a root-only file on the RIG (/etc/scrivi-share.creds),
 # created by --setup-creds. The password is never written into this script, into
@@ -15,6 +20,7 @@
 #   ./scripts/mount-shares-on-rig.sh --setup-creds   # once, prompts for password
 #   ./scripts/mount-shares-on-rig.sh                 # mount both shares
 #   ./scripts/mount-shares-on-rig.sh --no-worlds     # mount ONLY ScriviLinux
+#   ./scripts/mount-shares-on-rig.sh --only ScriviOther   # ScriviLinux + ONE removable
 #
 # ⚠️ --no-worlds (or SCRIVI_SKIP_WORLDS=1) exists because the Worlds share lives
 # on a REMOVABLE volume, and a scenario that does not need it should not be
@@ -34,20 +40,47 @@ MAC_HOST="${SCRIVI_MAC_HOST:-$(scutil --get LocalHostName 2>/dev/null || hostnam
 SMB_USER="${SCRIVI_SMB_USER:-$(id -un)}"
 
 SHARE_LINUX="${SCRIVI_SHARE_LINUX:-ScriviLinux}"
-SHARE_WORLDS="${SCRIVI_SHARE_WORLDS:-ScriviWorlds}"
-
 MOUNT_LINUX="${SCRIVI_MOUNT_LINUX:-/mnt/scrivi-net}"
-MOUNT_WORLDS="${SCRIVI_MOUNT_WORLDS:-/mnt/scrivi-worlds}"
 
 CREDS="/etc/scrivi-share.creds"
 
-# ⚠️ Skip the ScriviWorlds share entirely. Set by --no-worlds, or exported.
+# ⚠️ Skip ALL removable volumes. Set by --no-worlds, or exported.
 SKIP_WORLDS="${SCRIVI_SKIP_WORLDS:-0}"
 
-# The Mac-side directory published as the Worlds share. It lives on a REMOVABLE
-# volume, and macOS drops a share point whose volume is absent — so this has to be
-# re-checked (and sometimes re-created) every time the drive comes back.
-WORLDS_VOLUME="${SCRIVI_WORLDS_VOLUME:-/Volumes/Scrivi-Worlds}"
+# --- REMOVABLE VOLUMES -------------------------------------------------------
+#
+# ⚠️ THERE IS MORE THAN ONE, AND THEY MOUNT INDEPENDENTLY (2026-09-22).
+#
+# This was a single `Scrivi-Worlds` volume until a live pass needed
+# `SCRIVI-OTHE` — the drive holding the real test projects
+# (the-stairs-of-tintagael, Eskandar.scrivworld, the-lone-golem). Reusing the
+# single slot would have silently displaced the Worlds mount, so the volumes are
+# a LIST and any subset can be mounted at once.
+#
+# Each entry is:   <macOS volume path>|<SMB share name>|<rig mount point>
+#
+# ⚠️ These live on REMOVABLE drives, and macOS DROPS a share point whose volume
+# is absent — so each has to be re-checked (and sometimes re-created) every time
+# its drive comes back. That is what ensure_share() does.
+#
+# ⚠️ A volume that is not attached is SKIPPED WITH A NOTE, not an error: mounting
+# one drive must not be blocked by another being unplugged. That is the same
+# lesson --no-worlds encoded for a single volume.
+REMOVABLES=(
+    "${SCRIVI_WORLDS_VOLUME:-/Volumes/Scrivi-Worlds}|${SCRIVI_SHARE_WORLDS:-ScriviWorlds}|${SCRIVI_MOUNT_WORLDS:-/mnt/scrivi-worlds}"
+    "${SCRIVI_OTHER_VOLUME:-/Volumes/SCRIVI-OTHE}|${SCRIVI_SHARE_OTHER:-ScriviOther}|${SCRIVI_MOUNT_OTHER:-/mnt/scrivi-other}"
+)
+
+# Restrict to ONE removable by name (--only <share>), for a scenario that must
+# not have the other drive in its blast radius.
+ONLY_SHARE="${SCRIVI_ONLY_SHARE:-}"
+
+# All rig mount points this script manages, for --status and --unmount.
+all_mounts() {
+    printf '%s\n' "$MOUNT_LINUX"
+    local entry
+    for entry in "${REMOVABLES[@]}"; do printf '%s\n' "${entry##*|}"; done
+}
 
 SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
 
@@ -141,30 +174,33 @@ share_record() {
 
 # Verify the ScriviWorlds share exists and points at the mounted volume,
 # creating it if it does not. Requires sudo ON THIS MAC.
-ensure_worlds_share() {
-    say "Checking the '$SHARE_WORLDS' share on this Mac."
+# ensure_share <volume-path> <smb-share-name>
+#
+# ⚠️ Returns 2 when the VOLUME IS ABSENT — deliberately NOT an error. A drive that
+# is unplugged must not stop the others mounting; the caller reports and moves on.
+ensure_share() {
+    local vol="$1" share="$2"
+    say "Checking the '$share' share on this Mac."
 
-    if [ ! -d "$WORLDS_VOLUME" ]; then
-        die "the Worlds volume is not mounted at:  $WORLDS_VOLUME
-    It is a REMOVABLE drive — plug it in / mount it, then re-run.
-    (Override the path with SCRIVI_WORLDS_VOLUME=...)
-    ⚠️ If this scenario does not NEED the removable volume, use --no-worlds."
+    if [ ! -d "$vol" ]; then
+        warn "  volume not attached: $vol  — skipping '$share'"
+        return 2
     fi
-    say "  volume present: $WORLDS_VOLUME"
+    say "  volume present: $vol"
 
-    if share_exists "$SHARE_WORLDS"; then
+    if share_exists "$share"; then
         # It exists — make sure it still points where we think it does. A share
         # point that survived a remount can be stale.
         local actual
-        actual="$(share_path "$SHARE_WORLDS")"
-        if [ -n "$actual" ] && [ "$actual" != "$WORLDS_VOLUME" ]; then
-            warn "  share '$SHARE_WORLDS' exists but points at: $actual"
-            warn "  expected: $WORLDS_VOLUME"
+        actual="$(share_path "$share")"
+        if [ -n "$actual" ] && [ "$actual" != "$vol" ]; then
+            warn "  share '$share' exists but points at: $actual"
+            warn "  expected: $vol"
             # ⚠️ Quote it: the record name is the OLD DIRECTORY name and usually
             # contains a space. Naming the SMB share here is what made this
             # advice fail on 2026-09-07.
             local rec
-            rec="$(share_record "$SHARE_WORLDS")"
+            rec="$(share_record "$share")"
             if [ -n "$rec" ]; then
                 warn "  Remove and recreate it with:"
                 warn "      sudo sharing -r \"$rec\""
@@ -174,18 +210,18 @@ ensure_worlds_share() {
             fi
             return 1
         fi
-        say "  share '$SHARE_WORLDS' already published -> $WORLDS_VOLUME"
+        say "  share '$share' already published -> $vol"
         return 0
     fi
 
     say "  not published — creating it (sudo on THIS MAC will prompt)."
     # -s 001 / -g 000: SMB on, guest OFF. We authenticate with the credentials
     # file on the rig, so guest access is unnecessary exposure for real writing work.
-    sudo sharing -a "$WORLDS_VOLUME" -S "$SHARE_WORLDS" -n "$SHARE_WORLDS" -s 001 -g 000 \
-        || die "could not create the '$SHARE_WORLDS' share point"
+    sudo sharing -a "$vol" -S "$share" -n "$share" -s 001 -g 000 \
+        || die "could not create the '$share' share point"
 
-    if share_exists "$SHARE_WORLDS"; then
-        say "  created '$SHARE_WORLDS' -> $WORLDS_VOLUME"
+    if share_exists "$share"; then
+        say "  created '$share' -> $vol"
     else
         die "created the share but it does not appear in \`sharing -l\` — check System Settings ▸ Sharing"
     fi
@@ -261,7 +297,7 @@ clear_stale() {
 
 # mount_share <share-name> <mount-point>
 mount_share() {
-    local share="$1" mp="$2"
+    local share="$1" mp="$2"   # $3 = "removable" for a pulled-drive volume
 
     if rig "mountpoint -q '$mp'" 2>/dev/null; then
         say "already mounted: $mp"
@@ -296,7 +332,11 @@ mount_share() {
 
     # The removable share gets no caching at all, so a pulled drive fails loudly
     # and immediately rather than being papered over by the client cache.
-    if [ "$mp" = "$MOUNT_WORLDS" ]; then
+    # ⚠️ EVERY REMOVABLE gets cache=none, not just one of them. A pulled drive must
+    # fail loudly and immediately rather than be papered over by the client cache
+    # (see the 2026-09-01 phantom-listing note above). `$3` is set by the caller for
+    # a removable share and empty for ScriviLinux, which lives on local disk.
+    if [ "${3:-}" = "removable" ]; then
         opts="$opts,cache=none"
     fi
 
@@ -322,10 +362,27 @@ do_mount() {
     mount_share "$SHARE_LINUX"  "$MOUNT_LINUX"   || failed=1
 
     if [ "$SKIP_WORLDS" = "1" ]; then
-        say "skipping the '$SHARE_WORLDS' share (--no-worlds)"
+        say "skipping ALL removable volumes (--no-worlds)"
     else
-        ensure_worlds_share
-        mount_share "$SHARE_WORLDS" "$MOUNT_WORLDS"  || failed=1
+        local entry vol share mp rc
+        for entry in "${REMOVABLES[@]}"; do
+            vol="${entry%%|*}"
+            mp="${entry##*|}"
+            share="${entry#*|}"; share="${share%%|*}"
+
+            if [ -n "$ONLY_SHARE" ] && [ "$share" != "$ONLY_SHARE" ]; then
+                say "skipping '$share' (--only $ONLY_SHARE)"
+                continue
+            fi
+
+            # ⚠️ rc=2 means the DRIVE IS NOT ATTACHED. That is a skip, not a failure:
+            # one unplugged volume must not stop the others mounting.
+            ensure_share "$vol" "$share"; rc=$?
+            [ "$rc" -eq 2 ] && continue
+            [ "$rc" -ne 0 ] && { failed=1; continue; }
+
+            mount_share "$share" "$mp" removable || failed=1
+        done
     fi
 
     echo
@@ -337,13 +394,13 @@ do_mount() {
         warn "  1. The share is not published on the Mac.  Check with:  sharing -l"
         warn "     A share point whose VOLUME WAS ABSENT can be dropped by macOS and"
         warn "     needs re-adding after the drive comes back."
-        warn "  2. The '$SHARE_WORLDS' share lives on the removable 'Scrivi-Worlds'"
-        warn "     volume — confirm it is mounted here:  ls /Volumes/"
+        warn "  2. A removable share's volume may be unplugged — confirm with:  ls /Volumes/"
+        warn "     A volume that is ABSENT is skipped with a note, not an error."
         warn "  3. Wrong password in $CREDS — re-run with --setup-creds."
         warn "  4. 'mount error(16): Device or resource busy' means a STALE mount still"
         warn "     holds the path. This script clears those automatically; if one"
         warn "     survives, clear it by hand:"
-        warn "       ssh -t $RIG \"sudo umount -l $MOUNT_WORLDS\""
+        warn "       ssh -t $RIG \"sudo umount -l <mount-point>\""
         return 1
     fi
 }
@@ -354,7 +411,7 @@ do_status() {
     say "Mounted on $RIG:"
     # STALE is reported separately from "not mounted": they look identical to
     # `mountpoint` but need different fixes, and only STALE causes EBUSY.
-    rig "for mp in '$MOUNT_LINUX' '$MOUNT_WORLDS'; do
+    rig "for mp in $(all_mounts | sed "s/^/'/;s/$/'/" | tr '\n' ' '); do
             if mountpoint -q \"\$mp\" 2>/dev/null; then
                 printf '    %-22s MOUNTED   (%s entries)\n' \"\$mp\" \"\$(ls -1 \"\$mp\" 2>/dev/null | wc -l | tr -d ' ')\"
             elif grep -q \" \$mp \" /proc/mounts 2>/dev/null; then
@@ -367,7 +424,7 @@ do_status() {
 
 do_unmount() {
     preflight
-    for mp in "$MOUNT_LINUX" "$MOUNT_WORLDS"; do
+    for mp in $(all_mounts); do
         if rig "mountpoint -q '$mp'" 2>/dev/null; then
             say "unmounting $mp"
             # lazy unmount as a fallback: a soft cifs mount can still be busy if
@@ -382,12 +439,25 @@ do_unmount() {
 
 # --- main --------------------------------------------------------------------
 
+# ensure_all_shares — publish every ATTACHED removable volume's share.
+ensure_all_shares() {
+    local entry vol share
+    for entry in "${REMOVABLES[@]}"; do
+        vol="${entry%%|*}"
+        share="${entry#*|}"; share="${share%%|*}"
+        [ -n "$ONLY_SHARE" ] && [ "$share" != "$ONLY_SHARE" ] && continue
+        ensure_share "$vol" "$share" || true
+    done
+}
+
 case "${1:-}" in
     --setup-creds) setup_creds ;;
-    --setup-share) ensure_worlds_share ;;
+    --setup-share) ensure_all_shares ;;
     --status)      preflight; do_status ;;
     --unmount|-u)  do_unmount ;;
     --no-worlds)   SKIP_WORLDS=1; do_mount ;;
+    --only)        [ -n "${2:-}" ] || die "--only needs a share name (see --help)"
+                   ONLY_SHARE="$2"; do_mount ;;
     --help|-h)
         sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
         ;;

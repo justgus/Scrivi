@@ -64,6 +64,32 @@ reporting the ROOT filesystem's block counts.**
 
 ---
 
+## ✅ MEASURED 2026-09-22 — ⚠️ **THE CORRECT CASE WORKS, ON BOTH PLATFORMS**
+
+⚠️ **RECORDED BEFORE ANY WORK STARTS, so that fixing [I-0223] cannot break it.**
+
+✅ **THE USER RAN THE POSITIVE TEST:** `dumas-prose-timelines.scrivi` with its world **adjacent in the
+same folder**, copied to the `SCRIVI-OTHE` volume, then opened **on both platforms at DIFFERENT MOUNT
+POINTS** — ⚠️ **`/Volumes/SCRIVI-OTHE` on Apple, `/mnt/scrivi-other` on Linux.**
+✅ **BOTH FOUND THE WORLD VIA THE RELATIVE PATH.**
+
+✅ **THAT IS THE CASE RELATIVE-FIRST EXISTS FOR, AND IT IS NOW MEASURED RATHER THAN ASSUMED.**
+⚠️ **The mechanism is mount-point-independent BY CONSTRUCTION** — `WorldStore.cpp:300-303` builds the
+candidate from `projectRoot`, not from any absolute prefix — ✅ **and the test proves it end to end,
+across two operating systems and two mount points.**
+
+⛔ **SO THE FIX MUST NOT REVERSE THE ORDERING.** ⚠️ **"Try absolute first" would be the obvious-looking
+correction to [I-0223] and it would BREAK THIS** — ✅ **a project and its world moved together is the
+COMMON case, and the one a writer on removable media hits every day.**
+✅ **AC1 is worded accordingly: skip a relative candidate only when it CANNOT be meaningful (different
+device), ⛔ never demote it.**
+
+⚠️ **THIS DOES NOT WEAKEN [I-0223].** ✅ **That defect needs the project and world on DIFFERENT
+VOLUMES; ⚠️ this test had them ADJACENT.** ⛔ **The two coexist: one is the behaviour to preserve, the
+other the behaviour to fix.**
+
+---
+
 ## Acceptance Criteria
 
 - [ ] **AC1** — ⛔ **A relative candidate is NOT TRIED when it cannot be meaningful.** ✅ **When the

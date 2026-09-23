@@ -31,41 +31,79 @@ struct SceneInspectorView: View {
 
     // Pane width is a per-device view preference (unlike the layout itself), so it
     // stays in UserDefaults rather than inspector-layout.json.
-    @AppStorage("inspectorPaneWidth") private var paneWidth: Double = 300
+    // ⛔ T-0546: `@AppStorage("inspectorPaneWidth")` IS RETIRED. The platform owns the
+    // inspector's width now (`.inspector` + `inspectorColumnWidth`, applied in
+    // EditorView). ⚠️ The key is still READ ONCE, below, so a writer who had dragged
+    // the pane keeps her setting — ⛔ dropping it silently would have reset her.
 
     private static let minWidth: Double = 220
     private static let maxWidth: Double = 560
 
-    var body: some View {
-        HStack(spacing: 0) {
-            resizeHandle
+    /// The `ideal:` width for `.inspector`, migrated from the retired
+    /// `@AppStorage("inspectorPaneWidth")` (T-0546 / Q2).
+    ///
+    /// ⚠️ READ DIRECTLY FROM `UserDefaults`, not via `@AppStorage`, deliberately: this
+    /// is a ONE-WAY migration of a value the platform now owns, not live state. An
+    /// `@AppStorage` here would re-establish the app as an owner of the width and
+    /// invite the two to drift.
+    ///
+    /// ⚠️ `UserDefaults.double(forKey:)` returns 0 for a MISSING key, which is not a
+    /// width — so an absent or out-of-range value falls back to the 300 the retired
+    /// property defaulted to, and anything a writer really set is clamped into the
+    /// same 220–560 band the hand-rolled handle enforced.
+    static var migratedIdealWidth: Double {
+        let stored = UserDefaults.standard.double(forKey: "inspectorPaneWidth")
+        guard stored > 0 else { return 300 }
+        return min(max(stored, minWidth), maxWidth)
+    }
 
+    var body: some View {
+        // ⛔ T-0546: the `resizeHandle` that used to lead this view is GONE — the
+        // platform draws and drives the inspector's divider now.
+        //
+        // ⚠️ AND THE WRAPPING `HStack` IS GONE TOO, WHICH IS NOT COSMETIC — IT CRASHED.
+        //
+        // Leaving it as a single-child wrapper put a flexible container between
+        // `.inspector`'s `SplitViewChildController` and content declaring
+        // `.frame(maxWidth: .infinity)`. The column asked the content for a size, the
+        // content answered "as wide as you like", the controller reported a new
+        // min/max back to the hosting view, that invalidated layout, and the cycle
+        // repeated. AppKit counts constraint passes and throws once they exceed the
+        // view count:
+        //
+        //   NSGenericException: The window has been marked as needing another Update
+        //   Constraints in Window pass, but it has already had more … than there are
+        //   views in the window.
+        //   … SplitViewChildController.hostingView(_:didUpdateMinSize:maxSize:)
+        //
+        // ⚠️ It only fired when the writer RESIZED the inspector and then opened the
+        // Detail Sheet — two size negotiations in flight at once.
+        //
+        // ⛔ DO NOT reintroduce a flexible-width wrapper here, and ⛔ do not give this
+        // view a width constraint of any kind. The COLUMN owns its width
+        // (`inspectorColumnWidth` in EditorView); this view fills whatever it is given.
+        VStack(spacing: 0) {
+            Divider()
+
+            selectedTabContent
+                .frame(maxHeight: .infinity)
+        }
+        // ⚠️ T-0545 / [I-0203] — THE TAB BAR IS A `safeAreaBar`, NOT A STACK SIBLING.
+        //
+        // ⛔ It was the last member of the VStack above, so it competed for vertical space
+        // with the card content. ✅ As a bar it INSETS that content instead.
+        //
+        // ⚠️ CONVERTED IN [SP-135] (user ruling Q3) and PRESERVED through [SP-136]'s
+        // re-host — ✅ [SP-135] AC5 requires exactly that.
+        //
+        // ✅ The Divider stays INSIDE the bar: it is the bar's top edge, not a separator
+        // between two stack members.
+        .safeAreaBar(edge: .bottom) {
             VStack(spacing: 0) {
                 Divider()
-
-                selectedTabContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            // ⚠️ T-0545 / [I-0203] — THE TAB BAR IS A `safeAreaBar`, NOT A STACK SIBLING.
-            //
-            // ⛔ It was the last member of the VStack above, so it competed for vertical space
-            // with the card content. ✅ As a bar it INSETS that content instead.
-            //
-            // ⚠️ CONVERTED HERE RATHER THAN IN [SP-136] (user ruling Q3, 2026-09-22), even though
-            // that Sprint rebuilds this pane as a real `.inspector` column and may touch it again.
-            // ⛔ The reason is that [SP-135]'s acceptance test is "showing a bar disturbs NOTHING
-            // else" — and that is unfalsifiable while any bar is still a stack sibling.
-            //
-            // ✅ The Divider stays INSIDE the bar: it is the bar's top edge, not a separator
-            // between two stack members.
-            .safeAreaBar(edge: .bottom) {
-                VStack(spacing: 0) {
-                    Divider()
-                    tabBar
-                }
+                tabBar
             }
         }
-        .frame(width: paneWidth)
     }
 
     // MARK: — Tab content
@@ -139,24 +177,17 @@ struct SceneInspectorView: View {
 
     // MARK: — Resize handle
 
-    private var resizeHandle: some View {
-        Rectangle()
-            .fill(Color.clear)
-            .frame(width: 5)
-            .contentShape(Rectangle())
-            .overlay(Divider(), alignment: .leading)
-            #if os(macOS)
-            .onHover { inside in
-                if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
-            }
-            #endif
-            .gesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        // Dragging the LEFT edge: moving left widens the pane.
-                        let proposed = paneWidth - value.translation.width
-                        paneWidth = min(max(proposed, Self.minWidth), Self.maxWidth)
-                    }
-            )
-    }
+    // ⛔ T-0546 / [EP-040] AC6: `resizeHandle` WAS HERE and is DELETED.
+    //
+    // It was a 5pt `Rectangle` with a `Divider` overlay, an `.onHover` that pushed and
+    // popped `NSCursor.resizeLeftRight`, and a `DragGesture` that clamped
+    // `paneWidth` between 220 and 560 — three pieces of platform behaviour
+    // re-implemented by hand, on a pane the platform has been able to present since
+    // macOS 14.0.
+    //
+    // ✅ `.inspector(isPresented:)` + `inspectorColumnWidth(min:ideal:max:)` in
+    // EditorView now own the column, its divider, its cursor and its width.
+    // ⛔ Do not reintroduce a hand-rolled handle. If the inspector needs a different
+    // width range, change the `inspectorColumnWidth` bounds.
+
 }

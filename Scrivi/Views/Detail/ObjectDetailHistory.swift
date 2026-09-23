@@ -1,100 +1,83 @@
 import Foundation
 
-/// Explicit back/forward navigation history for the Detail Sheet
-/// (EP-034 SP-117, T-0435; design trade **D2-B**).
+/// The object the host hands to the Detail Sheet when it opens it.
 ///
-/// ## Why explicit rather than `NavigationStack`
+/// ## ⚠️ THIS IS NOT A NAVIGATION MODEL. It used to be.
 ///
-/// D2-A (`NavigationStack` push/pop) gives **back** natively but **not forward**,
-/// and the user asked for *"standard NavigatorView buttons"* — back *and*
-/// forward. Forward needs exactly this machinery regardless, so it is built
-/// openly instead of bolted onto a stack that half-does it.
+/// ⛔ Until [T-0547] (2026-09-23) this was a browser-style CURSOR — `entries` plus an
+/// `index`, with `canGoBack`/`canGoForward`, `backTarget`/`forwardTarget` and
+/// `goBack()`/`goForward()`. The Detail Sheet drove it from hand-built chrome.
 ///
-/// ## ⚠️ Deliberately host-independent (S8)
+/// ✅ **`NavigationStack` OWNS NAVIGATION NOW.** It draws the bar, the title and the
+/// back chevron, holds the real stack in a `NavigationPath`, and manages the
+/// transitions. ⛔ Nothing here participates in that.
 ///
-/// This type knows nothing about panes, windows, SwiftUI environments or the
-/// editor. That is what keeps **D1-B (a real window)** available later without a
-/// rewrite — the D1-E ruling requires the sheet be *"a self-contained, navigable
-/// component that does not depend on its host."* The same history object serves a
-/// pane today and a window tomorrow.
+/// ## ⚠️ Two requirements retired, in order — ⛔ do not reinstate either casually
 ///
-/// ## The model
+/// ⛔ **FORWARD (user ruling, 2026-09-23):** *"Forward buttons are not required. We have
+/// navigate forward by double clicking the object reference. That will also be much
+/// easier to implement on iOS and visionOS as it is a standard UI metaphor."*
+/// ⚠️ Forward was the ONLY reason this was ever a cursor rather than a stack:
+/// `NavigationPath`'s entire API is `append` · `removeLast` · `count` · `isEmpty`, and
+/// no SwiftUI, AppKit or UIKit component offers a forward affordance. ✅ That is why
+/// browsers hand-roll one — and why, with forward gone, push/pop is the whole job.
 ///
-/// A cursor into an array, exactly like a browser:
+/// ⛔ **ARRESTING A POP (user ruling, 2026-09-23):** an earlier design tried to INTERCEPT
+/// the back chevron so the unsaved-changes prompt could offer Cancel. ✅ No such hook
+/// exists — verified against the macOS 27 SDK's own `SwiftUI.swiftinterface`: no
+/// navigation or dismissal function takes a closure, and `navigationTransition` takes a
+/// STYLE, not an action. ✅ The user's ruling dissolved the need: *"This confirmation
+/// dialog shouldn't attempt to 'Cancel' the navigation … rather it should require either
+/// a save or a revert."* ⚠️ A settled pop needs no interception — only a decision about
+/// the drafts left behind, and those live on the SHEET, above the stack.
 ///
-/// ```
-///   entries: [Mara, Eskandar, Vance]
-///   index:              ^ 1              back → Mara, forward → Vance
-/// ```
+/// ## ✅ What survives, and why
 ///
-/// ⚠️ **Visiting a NEW object truncates everything ahead of the cursor** — the
-/// browser rule. Keeping the old forward entries would offer a "forward" that
-/// leads somewhere the writer never went from here.
+/// ⚠️ The sheet is presented by `EditorView`, so the first object has to be recorded
+/// somewhere BEFORE the sheet exists to hold it. ✅ That is this type's whole remaining
+/// job: the host calls `visit(_:)` before presenting, the sheet seeds its `trail` from
+/// `current` on appear, and the host calls `reset()` on close so the next open starts
+/// clean ([I-0168]'s guarded re-entry depends on that).
+///
+/// ⚠️ `Entry` is also the shared vocabulary for "which object" across
+/// `ObjectRelationsSection`, `ObjectSourcesSection` and the inspector cards — ⛔ which is
+/// the main reason this file is not simply deleted.
 @Observable
 final class ObjectDetailHistory {
 
-    /// One visited object. Identity only — the sheet re-reads from disk on
-    /// arrival, so history never serves stale field values.
-    struct Entry: Equatable, Sendable {
+    /// One object, by identity.
+    ///
+    /// ⚠️ `Hashable` since [T-0547]: `NavigationPath.append` requires it, and the sheet's
+    /// `navigationDestination(for:)` keys on this type.
+    struct Entry: Equatable, Hashable, Sendable {
         let objectID: String
         let kind: String
         let worldID: String
-        /// For the back/forward tooltips, so a writer can see where she is going.
+        /// ⚠️ Carried so a writer is never shown an ID — the Back tooltip, the sheet's
+        /// title and the unsaved-changes prompt all name the object (the AC-A7 rule).
         let displayName: String
     }
 
-    private(set) var entries: [Entry] = []
-    private(set) var index: Int = -1
+    /// ⚠️ The handoff. ⛔ NOT a trail: the sheet keeps its own, in step with the
+    /// `NavigationPath`, because a type-erased path cannot be read back.
+    private(set) var current: Entry?
 
     init() {}
 
-    /// The object currently on screen, or nil before the first visit.
-    var current: Entry? {
-        guard index >= 0, index < entries.count else { return nil }
-        return entries[index]
-    }
-
-    var canGoBack: Bool { index > 0 }
-    var canGoForward: Bool { index >= 0 && index + 1 < entries.count }
-
-    /// Where "Back" would land — used for the control's tooltip.
-    var backTarget: Entry? { canGoBack ? entries[index - 1] : nil }
-    var forwardTarget: Entry? { canGoForward ? entries[index + 1] : nil }
-
-    /// Navigates to an object, truncating any forward history.
+    /// Records the object the sheet should open on.
     ///
-    /// ⚠️ Re-visiting the object already on screen is a NO-OP rather than a new
-    /// entry. Without this, opening the same sheet twice would stack duplicates
-    /// and "back" would appear to do nothing — the shape of I-0132, where a
-    /// re-selection wrote an unchanged value and the update was coalesced away.
+    /// ⚠️ Called by the host BEFORE presenting. ⛔ Re-visiting the same object is a
+    /// no-op, which is what stops a double-click stacking duplicates (the shape of
+    /// [I-0132], where a re-selection wrote an unchanged value and the update was
+    /// coalesced away).
     func visit(_ entry: Entry) {
-        if let current, current.objectID == entry.objectID { return }
-
-        if index < entries.count - 1 {
-            entries.removeSubrange((index + 1)...)
-        }
-        entries.append(entry)
-        index = entries.count - 1
+        guard current?.objectID != entry.objectID else { return }
+        current = entry
     }
 
-    @discardableResult
-    func goBack() -> Entry? {
-        guard canGoBack else { return nil }
-        index -= 1
-        return entries[index]
-    }
-
-    @discardableResult
-    func goForward() -> Entry? {
-        guard canGoForward else { return nil }
-        index += 1
-        return entries[index]
-    }
-
-    /// Clears history — used when the sheet closes, so reopening starts fresh
-    /// rather than resuming a trail the writer has left behind.
+    /// Clears the handoff when the sheet closes, so reopening starts fresh rather than
+    /// resuming a trail the writer has left behind.
     func reset() {
-        entries.removeAll()
-        index = -1
+        current = nil
     }
 }

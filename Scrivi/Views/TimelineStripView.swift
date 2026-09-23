@@ -1279,8 +1279,36 @@ struct TimelineStripView: View {
                     }
                 }
                 // I-0045: feed the tallest current ring stack to the auto-grow state.
+                //
+                // ⚠️ T-0546 — THIS WRITE CLOSES A LAYOUT CYCLE AND MUST BE DEFERRED.
+                //
+                // The loop: GeometryReader reads the width → `tallestClusterStack(usable:)`
+                // re-clusters → this writes `requiredClusterHeight` → `minPanelHeight` grows
+                // → the strip is a `safeAreaBar` (SP-135), so the content inset changes → the
+                // Inspector is a real `.inspector` column (SP-136), so
+                // `SplitViewChildController` reports a new min/max → layout invalidates →
+                // the width is re-read. AppKit counts the passes and throws:
+                //
+                //   NSGenericException: … more Update Constraints in Window passes than
+                //   there are views in the window
+                //   … SplitViewChildController.hostingView(_:didUpdateMinSize:maxSize:)
+                //
+                // ⚠️ NEITHER SPRINT CAUSED THIS ALONE. SP-135 made the strip a bar; SP-136
+                // made the Inspector a column. Each was fine; together they closed the ring.
+                // ⛔ The log tells the story: `usable` oscillated 222 → 264 → 232 → 167 and
+                // repeated, three stable states, forever.
+                //
+                // ✅ `Task { @MainActor }` moves the write OUT of the current layout pass, so
+                // the height settles on the next runloop turn instead of re-entering this one.
+                // ⚠️ The guard is what makes it terminate: once the height stops changing the
+                // chain stops, so the deferral costs one extra pass, not a permanent tick.
+                // ⛔ Do not "simplify" this back to a direct assignment.
                 .onChange(of: tallestStack, initial: true) { _, newValue in
-                    if requiredClusterHeight != newValue { requiredClusterHeight = newValue }
+                    guard requiredClusterHeight != newValue else { return }
+                    Task { @MainActor in
+                        guard requiredClusterHeight != newValue else { return }
+                        requiredClusterHeight = newValue
+                    }
                 }
                 // T-0173: when the selected scene changes elsewhere (Navigator click, manuscript
                 // cursor), pan the timeline so the matching dot is visible. The highlight itself

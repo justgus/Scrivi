@@ -141,15 +141,30 @@ here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
 ---
 
 
-## 🔵 SP-135 — **PLANNED 2026-09-22** ([EP-040]) — ✅ **the bars**
+## ✅ SP-135 — **CLOSED 2026-09-22 (user-approved).** ⛔ **NO LONGER A BACKLOG SPRINT.**
 
-✅ **Plan: [`Sprint-SP-135.md`](Sprint-SP-135.md).** ⛔ **Not activated.**
-⛔ **BLOCKS ON A RULING: [I-0205] gates the banner** ([EP-040] AC9).
-✅ **THE EVIDENCE IS NOW IN** — ⚠️ **the code was read 2026-09-22 for the first time** —
-✅ **and it answers (a) vs (b): the banner is CORRECT, not false.** ⛔ **So the remaining question is
-a PRODUCT one: is an unavailable world worth a banner at all?**
+✅ **Record: [`Closed/Sprint-SP-135.md`](Closed/Sprint-SP-135.md).** ⚠️ **Its planning detail lived
+here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
+✅ **All 8 ACs met; T-0545 VERIFIED; [I-0203] and [I-0205] resolved.**
 
-⚠️ **Task T-0545 is RESERVED, not issued.**
+## 🔵 SP-137 — **PLANNED 2026-09-23** ([EP-040]) — ⚠️ **the Object Detail Sheet's real chrome**
+
+✅ **Plan: [`Sprint-SP-137.md`](Sprint-SP-137.md).** ⛔ **Not activated.**
+⚠️ **[EP-040]'s LAST Sprint.** ✅ **Serves EP-040 AC8** (*the sheet no longer hand-builds window chrome*).
+
+✅ **THREE RULINGS TAKEN 2026-09-23, so the Sprint starts decided:** ⚠️ **Q1 hosting — KEEP THE MODAL
+SHEET** (⛔ **§4.4's option (a) is VOID: [I-0245] proved D1-E's beside-pane cannot coexist with the
+Inspector column, and the app crashed**); ⚠️ **Q2 scope — ALL the chrome** (back/forward + close become
+real `.toolbar` items; ✅ **Save/Cancel STAY as content-level actions — they are not window chrome**);
+⚠️ **Q3 — a layout-convergence GUARD, its own Task** ([SP-149]'s precedent).
+
+⚠️ **ONE QUESTION REMAINS OWED (Q4): what SHAPE the guard takes.** ✅ **Recommendation in the plan:
+a static `scripts/` check + a debug assertion.**
+
+✅ **Tasks: T-0547** (real sheet chrome) · **T-0548** (the guard). ✅ **8 ACs.**
+
+⚠️ **CLOSES [I-0247]**, which was raised deliberately at [SP-136]'s close so D1-E's superseded intent
+would be RULED, not absorbed silently.
 
 ---
 

@@ -85,6 +85,11 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
   schema AND Linux/Qt parity: ✅ it is a SEPARATE ruling, not a toolbar decision.**
 - ⛔ **NOT a performance Epic.** ✅ **That is [EP-039].** ⚠️ **S1–S3 deliberately do NOT touch
   `ManuscriptTextView`'s internals.**
+- ⛔ **NOT LINUX.** ⚠️ **Scoped `[Apple]` deliberately** — ✅ **but the divergence is now tracked:
+  [I-0244]** (raised 2026-09-22 from the user's live pass). ⛔ **Linux has ZERO of this Epic's shell
+  work**, ⚠️ **and `feedback_linux_adopts_apple_shape` says a shape change on Apple should be made the
+  same way on Linux in the SAME work.** ✅ **It is NOT being done here; ⚠️ it now has a record instead
+  of only being understood.**
 - ⛔ **NOT iOS/iPadOS/visionOS.** ⚠️ **The iOS branch ALREADY has `.toolbar` (`EditorView.swift:189`)
   and a different shape.** ✅ **It needs its own pass and is explicitly deferred.**
 - ⛔ **NOT new features.** ⚠️ **Export and the text-size lens are what the toolbar makes ROOM for** —
@@ -99,18 +104,18 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
       calls.** ⛔ **No duplicated logic.**
 - [x] **AC3** — ✅ **MET 2026-09-22.** ⚠️ **THE ROOT CAUSE WAS NOT A MISSING BUTTON:** ⛔ **the Navigator had NO visibility state at all** (`columnVisibility` was `#if os(iOS)` only), ✅ **so [SP-134] BOUND it.** ⚠️ **A writer who loses the Navigator, Inspector or Timeline can bring it back FROM THE
       WINDOW**, ✅ **not only from a menu.** ⚠️ **This is [I-0203]'s *"no affordance to bring it back"*.**
-- [ ] **AC4** — ✅ **The banner, Timeline and Inspector tab bar are `safeAreaBar`s** (or split-item
+- [x] **AC4** — ✅ **MET 2026-09-22 ([SP-135]), live-pass VERIFIED.** ✅ **The banner, Timeline and Inspector tab bar are `safeAreaBar`s** (or split-item
       accessories), ⚠️ **NOT `VStack` siblings.** ✅ **Closes conformance F3.**
-- [ ] **AC5** — ⚠️ **Showing or dismissing the world-warning banner does NOT disturb any other
+- [x] **AC5** — ✅ **MET 2026-09-22 — BOTH HALVES checked separately.** ✅ **Appearing: no deformation. ✅ Dismissing: *only the Timeline resized*, which is correct — it is the INNER bar.** ⚠️ **Showing or dismissing the world-warning banner does NOT disturb any other
       surface.** ✅ **This is [I-0203]'s acceptance test and it is the Epic's headline outcome.**
-- [ ] **AC6** — ✅ **The Scene Inspector is a REAL trailing column**, ⚠️ **not an `HStack` member with a
+- [x] **AC6** — ✅ **MET 2026-09-23 by [SP-136]** (T-0546 VERIFIED; width migrated from the retired `@AppStorage`). ✅ **The Scene Inspector is a REAL trailing column**, ⚠️ **not an `HStack` member with a
       hand-rolled resize handle.** ⚠️ **User-resizable width MUST survive the conversion** (⚠️ **today
       `@AppStorage("inspectorPaneWidth")`, 220–560pt**).
 - [x] **AC7** — ✅ **MET 2026-09-22 — slots declared and documented unimplemented.** ✅ **The toolbar has DECLARED SLOTS for Export and a text-size lens**, ⚠️ **left
       unimplemented and documented as such.** ⛔ **Building them is out of scope.**
 - [ ] **AC8** — ✅ **The Object Detail Sheet no longer hand-builds window chrome**, ⚠️ **per a RULED
       hosting decision (a/b/c in app-shape §4.4).**
-- [ ] **AC9** — ⚠️ **[I-0205] is ANSWERED before the banner is restyled** — ✅ **is it correct-but-ugly,
+- [x] **AC9** — ✅ **MET 2026-09-22 — [I-0205] answered from CODE and ruled by the user BEFORE the restyle; ✅ the diagnosis is in the ISSUE, not only a Sprint record.** ⚠️ **[I-0205] is ANSWERED before the banner is restyled** — ✅ **is it correct-but-ugly,
       or FALSE?** ⚠️ **These lead to OPPOSITE fixes and the evidence does not yet distinguish them.**
 - [ ] **AC11** — ⚠️ **CARRIED FROM [EP-039] (user ruling 2026-09-15): the manuscript surface's
       remaining O(DOCUMENT) costs are addressed or ACCEPTED AS LIMITATIONS with a measurement.**
@@ -129,9 +134,9 @@ OUTLINE and a CONTEXTUAL INSPECTOR — the Xcode/Scrivener shape.** ⚠️ **It 
 | Sprint | Step | Title | Status | ⚠️ Risk |
 | ------ | ---- | ----- | ------ | ------ |
 | **SP-134** | **S1+S2** | ✅ **The toolbar** — `NSToolbar` + title/subtitle + existing verbs | ✅ **CLOSED 2026-09-22** — [record](../Sprints/Closed/Sprint-SP-134.md) · **T-0543 Verified** | ✅ **LOW** |
-| **SP-135** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ⚠️ **closes [I-0203]** | 🔵 **PLANNED 2026-09-22** — [plan](../Sprints/Sprint-SP-135.md) · **T-0545** | ✅ **MEDIUM** |
-| **SP-136** | **S4** | ⚠️ **The Inspector as a real column** (`.inspector`) | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
-| **SP-137** | **S6** | ⚠️ **The Object Detail Sheet** — ⚠️ **hosting RULING first, then chrome** | 🔵 **Proposed** | ⚠️ **MED-HIGH** |
+| **SP-135** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ✅ **CLOSED [I-0203]** | ✅ **CLOSED 2026-09-22** — [record](../Sprints/Closed/Sprint-SP-135.md) · **T-0545 Verified** | ✅ **MEDIUM** |
+| **SP-136** | **S4** | ✅ **The Inspector as a real column** (`.inspector`) | ✅ **CLOSED 2026-09-23** — [record](../Sprints/Closed/Sprint-SP-136.md) · **T-0546 VERIFIED** | ⚠️ **MED-HIGH** |
+| 🟢 **SP-137** | **S6** | ✅ **The Object Detail Sheet** — ✅ **hosting RULED (keep the modal sheet); real chrome + a layout guard.** ✅ **Q4 RULED 2026-09-23: static guard + debug assertion** | 🟢 **ACTIVE 2026-09-23** ⚠️ **not started** | ⚠️ **MEDIUM** |
 | **SP-138** | **S5** | ⛔ **`NSSplitViewController` rebuild** | ⛔ **NOT SCHEDULED** | ⛔ **HIGH** |
 | **SP-129** | ✅ **T-0502, T-0503, T-0506 + [I-0214]** (⛔ **T-0504/T-0505 deferred**) | ⚠️ **The unbuilt surfaces + the `loadImportedTimelines` bypass** — ⚠️ **scope GREW to `[ScriviCore]`+`[Linux]`.** ✅ **Core projection extended; both bypasses deleted** | ✅ **CLOSED 2026-09-15** — [record](../Sprints/Closed/Sprint-SP-129.md) | ✅ **VERIFIED by user LIVE PASS** |
 | **SP-130** | ✅ **T-0508** | ⚠️ **Rule the 5 `fileExists` asset sites** (Class C of [I-0197]) — ⛔ **its premise did NOT hold: one site was a REAL main-actor block** | ✅ **CLOSED 2026-09-18** — [record](../Sprints/Closed/Sprint-SP-130.md) | ✅ **VERIFIED by user LIVE PASS** — ⚠️ **which also produced [I-0221] (Critical) + [I-0222]** |

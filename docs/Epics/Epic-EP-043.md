@@ -207,6 +207,19 @@ claim on IDs.**
 
 ---
 
+## ⚠️ Adjacent, and worth sequencing together — [I-0244]
+
+⚠️ **[I-0244] (filed 2026-09-22) records that Linux has NONE of [EP-040]'s editor shell** — ⛔ **no
+toolbar, no navigator-visibility state, no `safeAreaBar` equivalents.**
+
+✅ **IT IS A DIFFERENT EPIC'S SUBJECT:** ⚠️ **this Epic is the SESSION (multi-window, restore,
+geometry); ⛔ that is the SHELL (toolbar, bars, panes).**
+⚠️ **BUT BOTH REWORK `EditorShell`** — ✅ **this Epic's [SP-145] extracts a per-project session out of
+its 2,783 lines, and the shell work would touch the same file** — ⚠️ **so doing them in sequence, or
+at least deciding their order deliberately, avoids paying the extraction cost twice.**
+
+---
+
 ## Scope Notes
 
 ✅ **This Epic is the SECOND half of what the real-rig day produced.** ⚠️ **The first half — the drive-loss

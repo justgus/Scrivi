@@ -1,24 +1,27 @@
 ---
 sprint: SP-135
 epic: EP-040
-status: Active
+status: CLOSED 2026-09-22 (user-approved)
 activated: 2026-09-22
+closed: 2026-09-22
 task: T-0545
 planned: 2026-09-22
 platform: Apple
 ---
 
-# SP-135 — ✅ **The bars** — `safeAreaBar`, and the end of [I-0203]
+# Closed Sprint — SP-135 — ✅ **The bars** — `safeAreaBar`, and the end of [I-0203]
 
-**Status:** 🟢 **ACTIVE — activated 2026-09-22 (user-approved).** ✅ **T-0545 issued.**
+**Status:** ✅ **CLOSED 2026-09-22 — user-approved.** ✅ **All EIGHT ACs met, live-pass verified.**
+✅ **T-0545 VERIFIED** → [`../../Tasks/Verified/Task-verified-0545.md`](../../Tasks/Verified/Task-verified-0545.md).
+✅ **[I-0203] and [I-0205] both RESOLVED; ✅ [EP-040] AC4 and AC5 MET.**
 ✅ **Q1–Q3 ruled before activation; ⛔ the [I-0205] gate is DISCHARGED.**
-**Epic:** 🟡 [EP-040](../Epics/Epic-active.md) — `[Apple]` **The Editor Shell**
+**Epic:** 🟡 [EP-040](../../Epics/Epic-active.md) — `[Apple]` **The Editor Shell**
 **Task:** **T-0545** — ✅ **ISSUED 2026-09-22 at activation.**
 **Step:** **S3** of the app-shape study §4.3 · **conformance F3**
 **Serves:** **[EP-040] AC4, AC5, AC9** · closes **[I-0203]** · answers **[I-0205]**
 **Blocks on:** ✅ **NOTHING — the [I-0205] gate was discharged by the Q1 ruling 2026-09-22.**
-**Design:** ✅ [`../Scrivi_Apple_App_Shape_Trade_Study_v0_1.md`](../Scrivi_Apple_App_Shape_Trade_Study_v0_1.md) §4.3 ·
-[`../Scrivi_Apple_UI_Conformance_Trade_Study_v0_1.md`](../Scrivi_Apple_UI_Conformance_Trade_Study_v0_1.md) F3
+**Design:** ✅ [`../Scrivi_Apple_App_Shape_Trade_Study_v0_1.md`](../../Scrivi_Apple_App_Shape_Trade_Study_v0_1.md) §4.3 ·
+[`../Scrivi_Apple_UI_Conformance_Trade_Study_v0_1.md`](../../Scrivi_Apple_UI_Conformance_Trade_Study_v0_1.md) F3
 
 ---
 
@@ -84,25 +87,35 @@ condition"*).** ✅ **That is a PRODUCT decision and it is Q1.**
 
 ## Acceptance Criteria
 
-- [ ] **AC1** — ✅ **The three bars are `safeAreaBar`s** (or split-item accessories), ⛔ **not `VStack`
+- [x] **AC1** — ✅ **MET, live-pass VERIFIED 2026-09-22.** ✅ **The three bars are `safeAreaBar`s** (or split-item accessories), ⛔ **not `VStack`
       siblings.** ✅ **Closes conformance F3; ✅ [EP-040] AC4.**
-- [ ] **AC2** — ⚠️ **SHOWING OR DISMISSING THE BANNER DISTURBS NOTHING ELSE.** ✅ **This is [I-0203]'s
+- [x] **AC2** — ✅ **MET, live-pass VERIFIED 2026-09-22 — BOTH HALVES, CHECKED SEPARATELY.**
+      ✅ **APPEARING:** *"The banners all appeared in the correct places and did not deform the UI."*
+      ✅ **DISMISSING:** *"I closed the banner and only the timeline adjusted its size."*
+      ⚠️ **THAT DETAIL IS THE PROOF, not a caveat.** ✅ **The Timeline is the INNER bar and the banner
+      the OUTER one, so the Timeline reclaiming the freed inset is exactly correct** — ⛔ **and NOTHING
+      above it moved: Navigator, Inspector tab bar and toolbar all held.**
+      ⛔ **Under the old `VStack` that was impossible** — ⚠️ **every sibling shared one vertical budget,
+      so removing the banner pushed on all of them.** ✅ **That is [I-0203], and it is gone.**
+      ✅ **It also validates the Q2 ruling: the transient bar outermost means its removal disturbs ONE
+      piece of furniture instead of several.**
+      ⚠️ **Original text:** ⚠️ **SHOWING OR DISMISSING THE BANNER DISTURBS NOTHING ELSE.** ✅ **This is [I-0203]'s
       acceptance test and [EP-040] AC5** — ⚠️ **and it is the Sprint's headline outcome.**
       ✅ **PROVE IT BY DOING IT: with the banner up, the Navigator, the Inspector tab bar, the Timeline
       and the toolbar are ALL still present and unmoved.**
-- [ ] **AC3** — ✅ **[I-0205] IS ANSWERED IN THE RECORD** (⚠️ **not merely in this plan**), ✅ **and the
+- [x] **AC3** — ✅ **MET 2026-09-22 — [I-0205]'s row now carries the diagnosis, the evidence and the ruling.** ✅ **[I-0205] IS ANSWERED IN THE RECORD** (⚠️ **not merely in this plan**), ✅ **and the
       banner's behaviour matches the Q1 ruling.** ⚠️ **[EP-040] AC9.**
-- [ ] **AC4** — ⛔ **THE TIMELINE'S OWN VISIBILITY IS UNCHANGED.** ⚠️ **SP-102 R1 ruled the warning
+- [x] **AC4** — ✅ **MET — user toggled the Timeline with the banner up; ⛔ no coupling.** ⛔ **THE TIMELINE'S OWN VISIBILITY IS UNCHANGED.** ⚠️ **SP-102 R1 ruled the warning
       strip has its OWN toggle, deliberately NOT tied to the Timeline** — ✅ **converting both to bars
       must not quietly couple them.**
-- [ ] **AC5** — ✅ **The Inspector's tab bar still selects tabs, and its selection still persists at
+- [x] **AC5** — ✅ **MET, live-pass VERIFIED 2026-09-22:** *"I verified the Inspector's tabs all select and the selection persists across launch."* ⚠️ **The PERSISTENCE half matters most — the tab bar moved into a `safeAreaBar`, and its selection round-trips through `inspector-layout.json` via [SP-141]'s core endpoints.** ✅ **The Inspector's tab bar still selects tabs, and its selection still persists at
       PROJECT level** (⚠️ **not per scene — the [SP-141] ruling**).
-- [ ] **AC6** — ⛔ **NOTHING ELSE MOVES.** ⚠️ **The Inspector is still an `HStack` member until
+- [x] **AC6** — ✅ **MET — verified from the DIFF, not asserted:** ⛔ **`ManuscriptTextView` appears ZERO times in the implementation commit (`8586582`)**, ✅ **and `SceneInspectorView` still opens with `HStack(spacing: 0)`.** ⛔ **NOTHING ELSE MOVES.** ⚠️ **The Inspector is still an `HStack` member until
       [SP-136]; ⛔ `ManuscriptTextView`'s internals are untouched** (app-shape §4.3).
-- [ ] **AC7** — ✅ **`xcodebuild` build + test clean on macOS.** ⚠️ **iOS/visionOS remain DEFERRED**
+- [x] **AC7** — ✅ **MET — build clean, `TEST SUCCEEDED` 132/132, `ctest` 626/626.** ✅ **`xcodebuild` build + test clean on macOS.** ⚠️ **iOS/visionOS remain DEFERRED**
       (user ruling 2026-09-22 — ⛔ **the app cannot RUN there**), ✅ **but this Sprint touches
       `EditorView`'s shared body and must not break their compile if it is ever restored.**
-- [ ] **AC8** — ⚠️ **A LIVE PASS.** ✅ **Force a world unavailable (unmount the test volume), confirm
+- [x] **AC8** — ✅ **MET 2026-09-22 — the user forced a world unavailable and exercised both halves.** ⚠️ **A LIVE PASS.** ✅ **Force a world unavailable (unmount the test volume), confirm
       the banner appears, confirm NOTHING else moves, dismiss it, confirm nothing moves back.**
       ⚠️ **`project_test_rig_tintagael_eskandar` is the rig; ⛔ back up first — it is real work.**
 
@@ -202,3 +215,35 @@ again.** ✅ **Judged worth it** — ⛔ **a partial conversion is the thing tha
 ✅ **MEDIUM — the study's own rating.** ⚠️ **Three conversions are mechanical; ⛔ the cost is Q1 (a
 product ruling) and AC8 (a live pass that needs a REAL UNMOUNT).**
 ⚠️ **AC2 is the Sprint** — ✅ **everything else is in service of "showing a bar disturbs nothing".**
+
+
+---
+
+## ✅ Outcome
+
+✅ **[I-0203] IS STRUCTURALLY FIXED.** ⚠️ **Its root cause — bars as `VStack` siblings — was read in the
+hierarchy, exactly as that record demanded before anyone fixed it from the description.**
+⛔ **One structural mistake had read as four bugs.**
+
+✅ **[I-0205] IS FULLY RESOLVED, BOTH HALVES.** ⚠️ **It had sat UNDIAGNOSED for eight days with its own
+record forbidding citation of unread code.** ✅ **Reading it settled (a) vs (b) — the banner is CORRECT,
+not false — ✅ the user ruled to keep it, and after the layout fix: *"The banner's look is perfect."***
+
+## ⚠️ Audit-check findings, ruled as part of this close
+
+⚠️ **[I-0203] WAS STILL MARKED 🔵 OPEN at close time**, ✅ **with a caveat saying the root cause had not
+been read in the code.** ⛔ **That caveat had been answered by this Sprint and the row never updated.**
+✅ **Corrected in the same step** — ⚠️ **the same class as [I-0223], which was referenced in five
+documents and present in none.**
+
+✅ **THE PLAN'S OWN RISK LIST PROVED ACCURATE ON ONE POINT WORTH KEEPING:** ⚠️ **AC2 could not have
+been verified without forcing the condition.** ⛔ **A pass that never saw the banner proves nothing**,
+✅ **and the user's dismissal observation — *only the Timeline resized* — is the single most
+informative sentence in the Sprint.**
+
+⚠️ **ONE THING THIS SPRINT DELIBERATELY DID NOT DO:** ⛔ **no Linux counterpart.** ✅ **Now tracked as
+[I-0244]** — ⚠️ **four Sprints of Apple shell work with no `[Linux]` record until 2026-09-22.**
+
+---
+
+*Closed 2026-09-22 with user approval. Eight ACs met; T-0545 Verified; [I-0203] and [I-0205] resolved.*

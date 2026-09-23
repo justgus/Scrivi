@@ -6,7 +6,35 @@
 sources** — ✅ **filed for [SP-135], which already owns the title area.**
 ✅ **User ruled OPTION A for the tab bar: windows only (`tabbingMode = .disallowed`).**
 
-⛔ **NO SPRINT IS ACTIVE.** ⚠️ **[EP-040] is the only active Epic; ✅ [SP-135] is next.**
+✅ **[SP-135] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-135.md`](Closed/Sprint-SP-135.md).
+✅ **All EIGHT ACs met; T-0545 VERIFIED.** ✅ **[EP-040] AC4, AC5 and AC9 MET.**
+✅ **[I-0203] STRUCTURALLY FIXED** — ⚠️ **bars were `VStack` siblings, which is why ONE mistake read as
+FOUR bugs.** ✅ **[I-0205] FULLY RESOLVED, both halves.**
+
+🟢 **[SP-137] IS ACTIVE — activated 2026-09-23 (user-approved)** → [`Sprint-SP-137.md`](Sprint-SP-137.md).
+✅ **ALL EIGHT ACs MET; AC2 and AC8 USER-VERIFIED 2026-09-23.** ⚠️ **Closable on the user's approval.**
+⚠️ **T-0547 took FOUR implementations and produced THREE Issues** — ✅ **[I-0248]** (a `.toolbar` renders
+nothing on a macOS sheet) · ✅ **[I-0249]** (min-width contention between adjacent views; ⛔ the runtime
+guard REMOVED by user ruling) · ✅ **[I-0250]** (`.cancelAction` on a toolbar item never receives Esc) —
+✅ **all resolved; [I-0250] VERIFIED.**
+✅ **`xcodebuild test` 134/134 · `ctest` 626/626 · all three guards green.**
+✅ **ALL FOUR questions are RULED, so it starts decided:** ✅ **Q1 hosting — KEEP THE MODAL SHEET**
+(⛔ §4.4's option (a) is VOID; this closes **[I-0247]**) · ✅ **Q2 chrome — ALL OF IT** (back/forward
+and close become real `.toolbar` items; ⚠️ **Save/Cancel stay content-level — they are document
+actions, not window chrome**) · ✅ **Q3 — the guard is its OWN Task** ([SP-149] precedent) ·
+✅ **Q4 (2026-09-23) — the guard is (iii) + (i): a `scripts/` STATIC GUARD plus a DEBUG ASSERTION.**
+⛔ **(ii) the headless layout test is DECLINED** — ⚠️ **SwiftUI layout under test is fragile and AC6
+requires the guard be proven RED by injection.**
+✅ **TWO Tasks: T-0547** (real chrome, AC1–AC5) · **T-0548** (the guard, AC6). ⚠️ **EIGHT ACs.**
+⚠️ **[SP-137] is [EP-040]'s LAST planned Sprint** — ✅ **on its close the Epic's remaining ACs are
+swept, and an Audit Check is owed** (⛔ **not an Audit**).
+
+✅ **[SP-136] CLOSED 2026-09-23 (user-approved)** → [`Closed/Sprint-SP-136.md`](Closed/Sprint-SP-136.md).
+⚠️ **All 9 ACs VERIFIED by the user's live pass; T-0546 VERIFIED and archived.** ⚠️ **THREE Issues came
+out of that pass and NONE from any suite:** ✅ **[I-0245]** (the Detail Sheet's `HStack` shape made the
+window's widths unsatisfiable and CRASHED the app — now a real `.sheet`) and ✅ **[I-0246]** (a status
+banner, since the sheet no longer closes on Save) are **VERIFIED**; ⛔ **[I-0247]** (D1-E's NON-MODAL
+intent is superseded) is **OPEN for [SP-137] to rule.**
 
 ⛔ **PRIOR STATE:** ✅ **[EP-041] CLOSED 2026-09-22 (user-approved)** →
 [`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md) — ⚠️ **all five of its Sprints,
@@ -109,7 +137,7 @@ manuscript stayed usable with the volume gone and everything restored on reattac
 | ✅ **[SP-134]** | **S1+S2** | ✅ **The toolbar** — `NSToolbar` + title/subtitle + existing verbs | ✅ **LOW** |
 | **[SP-135]** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ⚠️ **closes [I-0203]** | ✅ **MEDIUM** |
 | **[SP-136]** | **S4** | ⚠️ **The Inspector as a real column** (`.inspector`) | ⚠️ **MED-HIGH** |
-| **[SP-137]** | **S6** | ⚠️ **The Object Detail Sheet** — ⚠️ **hosting RULING first, then chrome** | ⚠️ **MED-HIGH** |
+| 🟢 **[SP-137]** | **S6** | ⚠️ **The Object Detail Sheet** — ✅ **ACTIVE; all four questions RULED** | ⚠️ **MED-HIGH** |
 | ⛔ **[SP-138]** | **S5** | ⛔ **`NSSplitViewController` rebuild** | ⛔ **HIGH — RECORDED, NOT SCHEDULED** |
 
 ✅ **[SP-134] is the natural next Sprint**: ⛔ **it blocks on nothing**, ✅ **it is LOW risk**, and
@@ -153,7 +181,8 @@ and ABSENT after, so it cannot run first.**
 ✅ **[SP-132]** → [`Closed/Sprint-SP-132.md`](Closed/Sprint-SP-132.md) — ⚠️ **PARTIAL; T-0519/T-0520 reverted.**
 ✅ **[SP-133]** → [`Closed/Sprint-SP-133.md`](Closed/Sprint-SP-133.md) — TextKit 2; all tasks verified.
 
-✅ **Next available Sprint ID: SP-145 · next available Task: T-0539.**
+✅ **Next available Sprint ID: SP-150 · next available Task: T-0549.**
+⚠️ **Corrected 2026-09-23** — ⛔ **this line read `SP-145 · T-0539` while SP-149 and T-0548 already existed.**
 ⚠️ **Corrected 2026-09-18** — ⛔ **this line read `SP-134 · T-0535` while SP-143 and T-0537 already existed.**
 
 ⚠️ **WHERE THINGS STAND (2026-09-18):** ✅ **Project open is DONE and measured: `~300 s` → `0.34 s` on

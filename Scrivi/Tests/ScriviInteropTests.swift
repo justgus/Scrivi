@@ -759,71 +759,68 @@ struct ScriviInteropTests {
         }
     }
 
-    @Suite("Detail Sheet navigation history (SP-117 T-0435)")
+    @Suite("Detail Sheet handoff (SP-117 T-0435, reduced by T-0547)")
     struct ObjectDetailHistoryTests {
 
         private func entry(_ id: String) -> ObjectDetailHistory.Entry {
             .init(objectID: id, kind: "character", worldID: "w", displayName: id)
         }
 
-        @Test("back and forward move through the trail")
-        func backAndForward() {
+        // ⚠️ THIS SUITE USED TO TEST A BROWSER CURSOR — back, forward, and the
+        // truncation rule. ⛔ All of it is GONE: `NavigationStack` owns navigation since
+        // [T-0547], and the user retired forward from the requirements entirely.
+        // ✅ What is left to test is what is left to break: the HANDOFF.
+        // ⛔ Tests for a retired requirement are not coverage — they read as proof while
+        // proving nothing (`feedback_fix_red_tests_dont_label_them`).
+
+        @Test("the handoff carries the object the sheet should open on")
+        func handoffCarries() {
             let h = ObjectDetailHistory()
-            #expect(!h.canGoBack)
-            #expect(!h.canGoForward)
+            #expect(h.current == nil)
 
-            h.visit(entry("Mara"))
-            h.visit(entry("Vance"))
-            #expect(h.current?.objectID == "Vance")
-            #expect(h.canGoBack)
-            #expect(!h.canGoForward)
-
-            h.goBack()
-            #expect(h.current?.objectID == "Mara")
-            // ⚠️ FORWARD must now be reachable — this is the half NavigationStack
-            // cannot give, and the reason D2-B was ruled over D2-A.
-            #expect(h.canGoForward)
-
-            h.goForward()
-            #expect(h.current?.objectID == "Vance")
-            #expect(!h.canGoForward)
+            h.visit(entry("Myton"))
+            #expect(h.current?.objectID == "Myton")
+            #expect(h.current?.displayName == "Myton", "the NAME travels — never an ID")
         }
 
-        @Test("visiting a new object truncates forward history")
-        func visitTruncatesForward() {
-            let h = ObjectDetailHistory()
-            h.visit(entry("A"))
-            h.visit(entry("B"))
-            h.goBack()                    // at A, forward → B
-            #expect(h.canGoForward)
-
-            h.visit(entry("C"))           // the browser rule
-            #expect(h.current?.objectID == "C")
-            #expect(!h.canGoForward, "forward must not lead somewhere she never went")
-            h.goBack()
-            #expect(h.current?.objectID == "A")
-        }
-
-        @Test("re-visiting the object already shown is a no-op")
+        @Test("re-visiting the object already handed off is a no-op")
         func revisitIsNoOp() {
-            // ⚠️ Without this, opening the same sheet twice stacks duplicates and
-            // "back" appears to do nothing — the shape of I-0132.
+            // ⚠️ Without this, opening the same sheet twice would re-seed and the
+            // writer's trail would restart under her — the shape of [I-0132], where a
+            // re-selection wrote an unchanged value and the update was coalesced away.
             let h = ObjectDetailHistory()
-            h.visit(entry("Mara"))
-            h.visit(entry("Mara"))
-            #expect(h.entries.count == 1)
-            #expect(!h.canGoBack)
+            h.visit(entry("Myton"))
+            h.visit(entry("Myton"))
+            #expect(h.current?.objectID == "Myton")
         }
 
-        @Test("reset clears the trail")
-        func resetClears() {
+        @Test("a DIFFERENT object replaces the handoff")
+        func differentObjectReplaces() {
             let h = ObjectDetailHistory()
-            h.visit(entry("A"))
-            h.visit(entry("B"))
+            h.visit(entry("Myton"))
+            h.visit(entry("Brother Colm"))
+            #expect(h.current?.objectID == "Brother Colm")
+        }
+
+        @Test("reset clears the handoff so the next open starts fresh")
+        func resetClears() {
+            // ⚠️ [I-0168]'s guarded re-entry depends on this: the host calls `reset()`
+            // on close, so reopening does not resume a trail the writer has left.
+            let h = ObjectDetailHistory()
+            h.visit(entry("Myton"))
             h.reset()
             #expect(h.current == nil)
-            #expect(!h.canGoBack)
-            #expect(!h.canGoForward)
+        }
+
+        @Test("Entry is Hashable — NavigationPath requires it")
+        func entryIsHashable() {
+            // ⚠️ [T-0547]: the sheet pushes `Entry` onto a `NavigationPath` and keys
+            // `navigationDestination(for:)` on the type. ⛔ Dropping Hashable would break
+            // navigation at runtime, not at compile time in the sheet.
+            let a = entry("Myton"), b = entry("Myton"), c = entry("Brother Colm")
+            #expect(a == b)
+            #expect(a.hashValue == b.hashValue)
+            #expect(Set([a, b, c]).count == 2)
         }
     }
 

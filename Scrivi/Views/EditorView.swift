@@ -300,7 +300,10 @@ private struct ManuscriptEditorView: View {
                     navigateToSceneID: $navigateToSceneID,
                     showChapterTitles: prefs.showChapterTitles
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // ⚠️ T-0548: THE MANUSCRIPT ITSELF — the view that SHOULD absorb
+                // whatever width is left. [I-0245] was about a SECOND claimant beside
+                // it, never about this one.
+                .frame(maxWidth: .infinity, maxHeight: .infinity)  // layout-ok: the manuscript absorbs the remaining width; it IS the axis, not a claimant on it
             }
 
             // ⚠️ T-0545 / [I-0203] — THE TIMELINE IS A `safeAreaBar` TOO.
@@ -416,63 +419,146 @@ private struct ManuscriptEditorView: View {
             if UIDevice.current.userInterfaceIdiom != .phone && session.inspectorVisible {
                 inspector(loader: loader)
             }
-            #else
-            if session.inspectorVisible {
-                inspector(loader: loader)
-            }
             #endif
+            // ⚠️ macOS: the Inspector is NOT an HStack member — see the `.inspector`
+            // modifier applied to this HStack below (T-0546). It is a REAL trailing
+            // column, which is what `.inspector(isPresented:)` presents.
+            // ⛔ Do not re-add a macOS branch here.
 
-            // D1-E: the Detail Sheet as an editor-level, NON-MODAL pane. It sits
-            // beside the manuscript rather than over it — §1's mode switch made
-            // visible, without a modal that Doc 2 §4.6 forbids for in-place work.
-            if showDetailSheet {
-                Divider()
-                ObjectDetailSheet(
-                    engine: env.engine,
-                    projectRootPath: session.projectRootPath ?? "",
-                    authorshipRef: env.authorshipRef ?? AuthorshipRef(identityID: "",
-                                                                      personaID: "",
-                                                                      displayName: ""),
-                    worlds: detailWorlds,
-                    sceneNames: detailSceneNames(loader: loader),
-                    // ⚠️ I-0157: set SELECTION, not the one-shot trigger.
-                    //
-                    // This wrote `navigateToSceneID` directly, which scrolls the
-                    // manuscript but leaves the Navigator's selection untouched —
-                    // so the writer arrived at a scene the Navigator was not
-                    // highlighting, with no way to see where she now was.
-                    //
-                    // ⚠️ **I-0132 already ruled selection the source of truth** on
-                    // both platforms, precisely so the two cannot drift; the
-                    // `onChange(of: selectedSceneID)` above then drives
-                    // `navigateToSceneID`. Writing the trigger directly bypassed
-                    // that ruling and reintroduced the split it exists to prevent.
-                    onSelectScene: { sceneID in
-                        selectedSceneID = sceneID
-                        revealToken += 1
-                        revealRequest = SceneRevealRequest(sceneID: sceneID,
-                                                           token: revealToken)
-                    },
-                    // I-0155: a save here must reach the inspector, which is
-                    // showing the same object's name a few points to the left.
-                    onDidSave: { objectRevision += 1 },
-                    projectID: session.openProjectResult?.projectID ?? "",
-                    // I-0162: a mount/eject must reach the sheet, whose imagePath
-                    // and read-only state are load-time snapshots.
-                    worldRevision: session.worldRevision,
-                    objectRevision: objectRevision,
-                    onClose: {
-                        showDetailSheet = false
-                        detailHistory.reset()
-                    },
-                    history: detailHistory,
-                    externalNavigation: pendingDetailNavigation,
-                    onExternalNavigationHandled: { pendingDetailNavigation = nil }
-                )
-                .frame(minWidth: 420, idealWidth: 520, maxWidth: 720)
-                .transition(.move(edge: .trailing))
-            }
+            // ⚠️ T-0546 / [I-0245] — THE DETAIL SHEET IS A REAL SHEET, AND LIVES BELOW.
+            //
+            // ⛔ D1-E PUT IT HERE, AS AN `HStack` SIBLING of the manuscript — a
+            // "non-modal pane beside the text". ⛔ THAT SHAPE CRASHES THE APP:
+            // opening it demands more width than the window has, so the manuscript,
+            // the pane and the `.inspector` column can NEVER all clear their
+            // minimums. AppKit shuffles the overflow between them forever and throws
+            // `NSGenericException: … more Update Constraints in Window passes than
+            // there are views in the window`.
+            //
+            // ⛔ A FIXED `.frame(width: 520)` DID NOT FIX IT — the demand is still
+            // unsatisfiable; only the jitter pattern changed. ⛔ Zeroing the minimums
+            // WAS REJECTED: it resolves the arithmetic by letting the manuscript
+            // collapse to nothing, and re-opens the same negotiation for every future
+            // pane. ✅ A real sheet has NO width negotiation at all.
+            //
+            // ⛔ Do not re-add a detail pane to this HStack.
         }
+        #if os(macOS)
+        // ⚠️ T-0546 / [EP-040] AC6 — THE INSPECTOR IS A REAL TRAILING COLUMN.
+        //
+        // ⛔ IT USED TO BE AN `HStack` MEMBER with a hand-rolled resize handle: a
+        // `Rectangle` with a `DragGesture` and manual `NSCursor.resizeLeftRight`
+        // push/pop, plus `.frame(width:)` fed by `@AppStorage`. That is three pieces
+        // of platform behaviour re-implemented by hand — the defect class this Epic
+        // exists to remove, after the toolbar (SP-134) and the bars (SP-135).
+        //
+        // ✅ `.inspector(isPresented:)` has existed since macOS 14.0 — SIX major
+        // versions below this app's deployment target, so availability was never the
+        // obstacle. It presents the trailing column, owns the drag, owns the cursor,
+        // and restores its own width.
+        //
+        // ⚠️ `isPresented` binds to the SAME `session.inspectorVisible` the View menu
+        // and the toolbar already share (SP-134 AC3), so all three cannot disagree.
+        // ⛔ `InspectorCommands()` was considered and DECLINED (Q3): it would add a
+        // SECOND control path over state that already has one.
+        // ⚠️ T-0548: the ONE `.inspector` column ([SP-136]). It is a real split-view
+        // item, not an `HStack` sibling — AppKit negotiates it against the content as a
+        // pair, which is exactly what D1-E's third view broke. ⛔ A SECOND one WOULD
+        // contend, and this guard must fail on it.
+        .inspector(isPresented: Bindable(session).inspectorVisible) {  // layout-ok: the single split-view Inspector ([SP-136]); a SECOND column would contend and must fail
+            inspector(loader: loader)
+                // ⚠️ Q2: the PLATFORM owns the width now. `ideal:` is seeded ONCE from
+                // the retired `@AppStorage("inspectorPaneWidth")` so a writer who had
+                // dragged the pane keeps her setting — ⛔ retiring the key without
+                // migrating it would silently reset her, which AC2 forbids.
+                // ✅ The 220/560 bounds are the ones the hand-rolled handle enforced.
+                .inspectorColumnWidth(min: 220,
+                                      ideal: SceneInspectorView.migratedIdealWidth,
+                                      max: 560)
+        }
+        #endif
+        // ⚠️ T-0546 / [I-0245] — THE OBJECT DETAIL SHEET, AS A REAL SHEET.
+        //
+        // ⛔ IT WAS AN `HStack` SIBLING (D1-E). That made three views — manuscript,
+        // pane, `.inspector` column — compete for a width that could not satisfy all
+        // three minimums, and AppKit crashed trying. See the note at its old site.
+        //
+        // ✅ A sheet is presented ABOVE the window: it takes part in no width
+        // negotiation, so the ring cannot form. ⚠️ The Timeline strip sat at its floor
+        // (`usable=126`, `visible=2`) for the entire failing run — proof the window had
+        // no space left to give.
+        //
+        // ⚠️ `interactiveDismissDisabled()` — THE USER'S RULING: the sheet stays up
+        // until it is dismissed DELIBERATELY (the X, Cancel, or Save), all of which run
+        // `onClose`. ✅ Safe precisely because it cannot appear by accident: reaching it
+        // takes a DOUBLE-CLICK on an object.
+        .sheet(isPresented: $showDetailSheet) {
+            ObjectDetailSheet(
+                engine: env.engine,
+                projectRootPath: session.projectRootPath ?? "",
+                authorshipRef: env.authorshipRef ?? AuthorshipRef(identityID: "",
+                                                                  personaID: "",
+                                                                  displayName: ""),
+                worlds: detailWorlds,
+                sceneNames: detailSceneNames(loader: loader),
+                // ⚠️ I-0157: set SELECTION, not the one-shot trigger.
+                //
+                // This wrote `navigateToSceneID` directly, which scrolls the
+                // manuscript but leaves the Navigator's selection untouched —
+                // so the writer arrived at a scene the Navigator was not
+                // highlighting, with no way to see where she now was.
+                //
+                // ⚠️ **I-0132 already ruled selection the source of truth** on
+                // both platforms, precisely so the two cannot drift; the
+                // `onChange(of: selectedSceneID)` above then drives
+                // `navigateToSceneID`. Writing the trigger directly bypassed
+                // that ruling and reintroduced the split it exists to prevent.
+                onSelectScene: { sceneID in
+                    selectedSceneID = sceneID
+                    revealToken += 1
+                    revealRequest = SceneRevealRequest(sceneID: sceneID,
+                                                       token: revealToken)
+                },
+                // I-0155: a save here must reach the inspector, which is
+                // showing the same object's name a few points to the left.
+                onDidSave: { objectRevision += 1 },
+                projectID: session.openProjectResult?.projectID ?? "",
+                // I-0162: a mount/eject must reach the sheet, whose imagePath
+                // and read-only state are load-time snapshots.
+                worldRevision: session.worldRevision,
+                objectRevision: objectRevision,
+                onClose: {
+                    showDetailSheet = false
+                    detailHistory.reset()
+                },
+                history: detailHistory,
+                externalNavigation: pendingDetailNavigation,
+                onExternalNavigationHandled: { pendingDetailNavigation = nil }
+            )
+            // ⚠️ A macOS sheet hugs its content, so it needs an explicit size or it
+            // renders cramped. 520 was the pane's `idealWidth`; the height is the
+            // window's usual working height.
+            // ⚠️ T-0548: this sizes the SHEET, which is presented ABOVE the window and
+            // takes part in NO width negotiation — the [I-0245] fix itself, and the
+            // shape [SP-137] Q1 ruled intended.
+            .frame(minWidth: 520, idealWidth: 620, minHeight: 520, idealHeight: 680)  // layout-ok: sizes a .sheet, presented above the window; it joins no width negotiation
+        }
+        // ⚠️ [I-0245] — THIS BLOCKS CLICK-OUTSIDE, AND THE SHEET GIVES ESC BACK ITSELF.
+        //
+        // ⛔ SwiftUI's built-in dismissal (Esc, click-outside) BYPASSES
+        // `ObjectDetailSheet.requestClose()`, which is where the unsaved-changes
+        // guard lives — so a stray click would discard the writer's typing with no
+        // prompt. Disabling it is what keeps that guard on the only exit.
+        //
+        // ⚠️ **Esc IS REQUIRED** — the user's ruling: *"Escape to cancel is correct,
+        // it is expected behavior and people would notice if it didn't."*
+        // ✅ The sheet's own X button carries `.keyboardShortcut(.cancelAction)`, so
+        // Esc closes it THROUGH the guard. ⛔ Do not re-enable interactive dismissal
+        // to get Esc back — that reintroduces silent data loss on click-outside.
+        //
+        // ⚠️ `Cancel` and `Save` do NOT close, by design: Cancel REVERTS to the saved
+        // version (T-0452) and Save keeps the sheet open to keep working.
+        .interactiveDismissDisabled()
     }
 
     /// Writer-facing scene names for the Detail Sheet's related list (I-0151).

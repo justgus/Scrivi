@@ -1,5 +1,48 @@
 # Active Tasks
 
+## 🟢 SP-137 — T-0547 · T-0548 (EP-040) — ✅ **IMPLEMENTED 2026-09-23, NOT VERIFIED**
+
+✅ **Both Tasks COMPLETE** → [`../Sprints/Sprint-SP-137.md`](../Sprints/Sprint-SP-137.md).
+✅ **All EIGHT ACs met; AC2 and AC8 USER-VERIFIED 2026-09-23.**
+⚠️ **T-0548 shipped BOTH halves, ⛔ but the runtime assertion was REMOVED by user ruling** ([I-0249]) —
+✅ **the static CI guard remains.**
+✅ **`xcodebuild test` 134/134 · `ctest` 626/626 · boundary + TextKit + layout guards all green.**
+
+⚠️ **TWO THINGS THE IMPLEMENTATION FOUND THAT NO SUITE WOULD HAVE:**
+⛔ **The debug assertion's first version could NEVER have fired** — ⚠️ **it tested
+`window.contentView === self`, but AppKit drives the pass from `NSThemeFrame` (the content view's
+SUPERVIEW).** ✅ **A probe caught it; `superview == nil` is the correct test.** ⚠️ **It built clean,
+installed clean, and logged nothing.**
+⛔ **TWO `DerivedData` directories exist** — ⚠️ **the first probe run launched an HOUR-STALE binary,
+which presents exactly like "the code is not reached".**
+
+### ✅ **T-0547 — Real sheet chrome for the Object Detail Sheet** (AC1–AC5) — **IMPLEMENTED**
+
+⚠️ **The hand-built `toolbar` `HStack` in `ObjectDetailSheet.swift` is window chrome inside a content
+pane.** ✅ **Back/forward and close become REAL `.toolbar` items, with a tombstone naming the
+replacement.** ⛔ **Save and Cancel do NOT move** — ⚠️ **they are document actions, and Q2 ruled they
+stay content-level.**
+
+⚠️ **THE TRAP (AC2):** ⛔ **if the close control moves to a toolbar,
+`.keyboardShortcut(.cancelAction)` MUST move with it and `.interactiveDismissDisabled()` MUST stay on
+the host** — ✅ **otherwise Esc silently bypasses `requestClose()` and the unsaved-changes prompt
+stops firing** ([I-0245]). ⚠️ **Verify with UNSAVED EDITS present.**
+
+### ✅ **T-0548 — A layout-convergence guard for the [I-0245] class** (AC6) — **IMPLEMENTED**
+
+✅ **Q4 RULED 2026-09-23 (user): (iii) + (i) — BOTH halves, neither alone.**
+✅ **(iii) STATIC GUARD** — ⚠️ **a `scripts/` check that fails if a flexible-width view is added as an
+`HStack` sibling in `manuscriptDetail`.** ✅ **Runs in CI on every push** ([SP-149] precedent);
+⚠️ **it guards the SHAPE, not the property.**
+✅ **(i) DEBUG ASSERTION** — ⚠️ **counts Update-Constraints passes per window and traps past a sane
+bound.** ✅ **Catches the general case on any surface;** ⛔ **debug-only, so CI never sees it.**
+⛔ **(ii) a headless layout test is DECLINED** — ⚠️ **SwiftUI layout under test is fragile and least
+likely to reproduce the defect.**
+
+⚠️ **AC6 APPLIES TO EACH HALF: both must be proven by INJECTING the [I-0245] shape and watching them
+go red / trap.** ⛔ **A green test that cannot fail is not evidence** — ⚠️ **[I-0245] took FOUR
+attempts with `xcodebuild test` 134/134 and `ctest` 626/626 GREEN throughout.**
+
 ## ✅ SP-144 — T-0538 ✅ VERIFIED 2026-09-20 (EP-042)
 
 ✅ **T-0538 ✅ VERIFIED 2026-09-20 (user rig pass)** → [`Verified/Task-verified-0538.md`](Verified/Task-verified-0538.md).
@@ -42,49 +85,36 @@ ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning deta
 [`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
 ✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 is VERIFIED 2026-09-21 and has LEFT this file**
 → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
-✅ **ONE Task is active: T-0545** ([SP-135]). ✅ **T-0544 and T-0543 both VERIFIED and archived 2026-09-22;
+⛔ **NO Task is active.** ✅ **T-0546 VERIFIED and archived 2026-09-23 with [SP-136]'s close** → [`Verified/Task-verified-0546.md`](Verified/Task-verified-0546.md). ✅ **T-0545 VERIFIED and archived 2026-09-22.** ✅ **T-0544 and T-0543 both VERIFIED and archived 2026-09-22;
 ✅ T-0510 and T-0541 likewise; ✅ [EP-041] CLOSED.**
-⚠️ **[EP-040] remains ACTIVE — ✅ [SP-135] is next and owns [I-0243].** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
+⚠️ **[EP-040] remains ACTIVE — ✅ [SP-137] (Object Detail Sheet) is its LAST Sprint, and owns [I-0247].** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
 with [SP-142]'s close.** ✅ **[SP-143] activated and closed 2026-09-22 — [EP-041]'s last Sprint.**
 
 ---
 
-## 🟢 SP-135 — ACTIVE (EP-040), activated 2026-09-22
+## ✅ SP-136 — T-0546 VERIFIED 2026-09-23, ARCHIVED
 
-| Task | Title | Sprint | Status |
-| ---- | ----- | ------ | ------ |
-| **T-0545** | ✅ **The bars** — `safeAreaBar` conversion (S3); ⚠️ **closes [I-0203]** | 🟢 **[SP-135]** | 🟢 **IMPLEMENTED — NOT VERIFIED** |
+✅ **T-0546** (the Inspector as a real `.inspector` column) **VERIFIED by the user's live pass and
+archived** → [`Verified/Task-verified-0546.md`](Verified/Task-verified-0546.md).
+✅ **[SP-136] CLOSED 2026-09-23 (user-approved)** →
+[`../Sprints/Closed/Sprint-SP-136.md`](../Sprints/Closed/Sprint-SP-136.md).
 
-✅ **Q1–Q3 RULED BEFORE ACTIVATION** — ⚠️ **keep the banner · banner BELOW the timeline · convert all
-three bars.** ⛔ **The [I-0205] gate is discharged.**
-⚠️ **AC2 IS THE SPRINT:** ✅ **showing or dismissing the banner must disturb NOTHING else** —
-⛔ **and it cannot be verified without a REAL UNMOUNT.**
-✅ **Full plan: [`../Sprints/Sprint-SP-135.md`](../Sprints/Sprint-SP-135.md).**
+⚠️ **A WORKING DIAGNOSIS OF [I-0245] LIVED HERE AND WAS WRONG — it has been REMOVED, not left to rot.**
+⛔ **It blamed a Timeline width→height→inset ring and "fixed" it by deferring the height write.**
+✅ **The real cause, which the user named:** ⚠️ **opening the Detail Sheet demanded more width than the
+window has, so manuscript + pane + `.inspector` column could NEVER all clear their minimums.**
+⛔ **The Timeline was a PASSENGER — it sat at its FLOOR (`usable=126`) throughout.**
+✅ **The full account is in the closed records; ⛔ a superseded theory must not sit in a live file
+implying it was the answer.**
 
-### 🟢 T-0545 IMPLEMENTED 2026-09-22 — ⚠️ **NOT USER-VERIFIED**
+## ✅ SP-135 — T-0545 VERIFIED 2026-09-22, ARCHIVED
 
-✅ **ALL THREE BARS CONVERTED:**
-- ✅ **World warning** — ⚠️ **OUTERMOST bottom bar** (Q2), ⛔ **reversing the old ABOVE-the-Timeline
-  order; the stale comment asserting that order was REWRITTEN, not left.**
-- ✅ **Timeline strip** — ⚠️ **inner bottom bar, nearer the content.**
-- ✅ **Inspector tab bar** — ✅ **converted HERE per Q3**, ⚠️ **with its `Divider` moved INSIDE the bar
-  (it is the bar's top edge, not a separator between stack members).**
+✅ **T-0545 ✅ VERIFIED** by the user's live pass → [`Verified/Task-verified-0545.md`](Verified/Task-verified-0545.md).
+✅ **[SP-135] CLOSED** → [`../Sprints/Closed/Sprint-SP-135.md`](../Sprints/Closed/Sprint-SP-135.md).
+✅ **[EP-040] AC4 and AC5 MET.** ✅ **[I-0203] and [I-0205] both RESOLVED - Not Verified.**
 
-✅ **AC4 CHECKED, NOT ASSUMED: the two visibility conditions remain SEPARATE**
-(`session.timelineVisible` at `:322`/`:354`, `session.worldWarningVisible` at `:409`) — ⛔ **SP-102 R1's
-deliberate independence survives the conversion.**
-
-⚠️ **EVIDENCE: build clean · `TEST SUCCEEDED` 132/132 · `ctest` 626/626.**
-
-⛔ **AC2 IS NOT VERIFIED AND CANNOT BE FROM HERE.** ⚠️ **The banner only renders when a bound world is
-genuinely unavailable** — ✅ **so the live pass REQUIRES A REAL UNMOUNT.** ⛔ **A pass that never saw
-the banner proves nothing, and [I-0203] is entirely about what happens WHILE IT IS UP.**
-⚠️ **`project_test_rig_tintagael_eskandar` is the rig; ⛔ BACK UP FIRST — it is real work.**
-
-⚠️ **ALSO OWED: AC3** — ✅ **[I-0205]'s answer must be written into the ISSUE, not only this plan**
-(⛔ **a diagnosis that lives in a Sprint record is lost when the Sprint closes**).
-
----
+⚠️ **AC2 was checked in BOTH halves** (`feedback_verify_each_half_separately`) — ✅ **and the dismissal
+result is the proof: *only the Timeline resized*, because it is the INNER bar.**
 
 ## ✅ [I-0243] — T-0544 VERIFIED 2026-09-22, ARCHIVED
 
@@ -156,7 +186,7 @@ has ZERO direct file I/O left.** ✅ **[EP-041] AC2 is MET.**
 ⚠️ **ABSENCE SEMANTICS (2026-09-21, "core reports, app decides")** — ✅ **the second surfaced from
 planning the BLOCKED [SP-142], which is why it cost nothing.**
 
-✅ **Evidence: `ctest` 621/621, `xcodebuild test` 132/132** — ⚠️ **and the 8 new ABI tests were PROVEN
+✅ **Evidence: `ctest` 621/621, `xcodebuild test` 134/134** — ⚠️ **and the 8 new ABI tests were PROVEN
 FAILING against an injected [I-0215]-shaped defect.**
 
 ## ✅ SP-129 — ARCHIVED 2026-09-15
