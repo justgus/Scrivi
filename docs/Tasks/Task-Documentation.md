@@ -743,7 +743,14 @@ archive files reconstructed after the fact from secondary sources.
 | T-0500 | ⚠️ **`[Linux]` DETERMINATE progress** — [I-0195]; `files read / files to read` | SP-128 | **EP-038** | ✅ **Verified** → [`Verified/Task-verified-0497-0499.md`](Verified/Task-verified-0497-0499.md) | — | — |
 | T-0501 | ⚠️ **LIVE PASS on the rig** — [I-0182] + [I-0195] verification | SP-128 | **EP-038** | ✅ **Verified** → [`Verified/Task-verified-0497-0499.md`](Verified/Task-verified-0497-0499.md) | — | — |
 | **T-0538** | ⚠️ **`[Cross]` Project open cost** — [I-0231] + [I-0232]; ⚠️ **the premise did not survive contact: the dominant cost was a per-scene WRITE ([I-0234]), not a per-file read** | **SP-144** | ⚠️ **EP-042** | ✅ **VERIFIED 2026-09-20** | — | — |
-| T-0502 | (next available Task ID — unassigned) | — | — | ⚪ Unassigned | — | — |
+| T-0549 | ⚠️ **`[ScriviCore]` [I-0213] Class A — PATCH the index for single-scene ops that do NOT change manuscript order** (`set/clear_scene_story_time`, `rename_scene`) | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
+| T-0550 | ⚠️ **`[ScriviCore]` [I-0213] Class B — rebuild ONLY the affected chapter for order/membership ops** (13 endpoints) — ⛔ **BLOCKED ON T-0549** | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
+
+⚠️ **NO NEXT-AVAILABLE MARKER ROW (user ruling 2026-09-24).** ✅ **IDs are allocated from
+[`../tools/next-ids.json`](../tools/next-ids.json) via `python3 docs/tools/next-id.py task`.**
+⛔ **THE MARKER THAT USED TO SIT HERE READ `T-0502` WHILE T-0503–T-0548 HAD ALL BEEN ISSUED** —
+✅ **exactly the drift the allocator removes.**
+⛔ **The T-0502–T-0548 rows are NOT reconstructed here — that is a separate sweep, not this Sprint's work.**
 
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 

@@ -1,48 +1,68 @@
 # Active Tasks
 
-## 🟢 SP-137 — T-0547 · T-0548 (EP-040) — ✅ **IMPLEMENTED 2026-09-23, NOT VERIFIED**
+## ✅ SP-150 — T-0549 + T-0550 ✅ VERIFIED 2026-09-24, ARCHIVED
 
-✅ **Both Tasks COMPLETE** → [`../Sprints/Sprint-SP-137.md`](../Sprints/Sprint-SP-137.md).
-✅ **All EIGHT ACs met; AC2 and AC8 USER-VERIFIED 2026-09-23.**
-⚠️ **T-0548 shipped BOTH halves, ⛔ but the runtime assertion was REMOVED by user ruling** ([I-0249]) —
-✅ **the static CI guard remains.**
-✅ **`xcodebuild test` 134/134 · `ctest` 626/626 · boundary + TextKit + layout guards all green.**
+✅ **BOTH TASKS VERIFIED by the user's live pass on the USB rig and ARCHIVED** →
+[`Verified/Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md).
+✅ **[SP-150] CLOSED 2026-09-24 (user-approved).** ✅ **[EP-040] AC12 and AC13 MET.**
+✅ **HEADLINE: `reloadSceneDots` ~235 ms → `1.4 ms` on 1,178 scenes (~170x), measured on the USB mount.**
+⚠️ **The remaining `createChapter WORK` (~316 ms inserting at the START) is `renumberChapterTitlesFrom`,
+✅ position-dependent BY DESIGN and Swift-side — ⛔ it was hidden behind the dot reload, not caused by it.**
 
-⚠️ **TWO THINGS THE IMPLEMENTATION FOUND THAT NO SUITE WOULD HAVE:**
-⛔ **The debug assertion's first version could NEVER have fired** — ⚠️ **it tested
-`window.contentView === self`, but AppKit drives the pass from `NSThemeFrame` (the content view's
-SUPERVIEW).** ✅ **A probe caught it; `superview == nil` is the correct test.** ⚠️ **It built clean,
-installed clean, and logged nothing.**
-⛔ **TWO `DerivedData` directories exist** — ⚠️ **the first probe run launched an HOUR-STALE binary,
-which presents exactly like "the code is not reached".**
+---
 
-### ✅ **T-0547 — Real sheet chrome for the Object Detail Sheet** (AC1–AC5) — **IMPLEMENTED**
+### ✅ LIVE PASS 2026-09-24 — user tested a chapter create at the START of the manuscript
 
-⚠️ **The hand-built `toolbar` `HStack` in `ObjectDetailSheet.swift` is window chrome inside a content
-pane.** ✅ **Back/forward and close become REAL `.toolbar` items, with a tombstone naming the
-replacement.** ⛔ **Save and Cancel do NOT move** — ⚠️ **they are document actions, and Q2 ruled they
-stay content-level.**
+⚠️ **SAME RIG AS THE [I-0213] VERIFICATION: `dumas-prose-timelines` on the `/Volumes/SCRIVI-OTHE` USB
+mount, 1,177 → 1,178 scenes.** ✅ **User's call: *"Performed ok."***
 
-⚠️ **THE TRAP (AC2):** ⛔ **if the close control moves to a toolbar,
-`.keyboardShortcut(.cancelAction)` MUST move with it and `.interactiveDismissDisabled()` MUST stay on
-the host** — ✅ **otherwise Esc silently bypasses `requestClose()` and the unsaved-changes prompt
-stops firing** ([I-0245]). ⚠️ **Verify with UNSAVED EDITS present.**
+| Figure | Before (2026-09-24 USB) | After T-0549 + T-0550 |
+| ------ | ----------------------- | --------------------- |
+| ⚠️ **`reloadSceneDots`** | **235.9 ms** (629.2 cold) | ✅ **`1.4 ms`** |
+| ✅ `updateDotTitles` | 1.1–1.2 ms | ✅ `1.2 ms` (held) |
+| ⚠️ `engine.createChapter` (C ABI) | 70.6–113.6 ms | ⚠️ `80.5 ms` |
+| ⚠️ **`createChapter WORK`** | **396.7 ms** | ⚠️ **`316.3 ms`** |
 
-### ✅ **T-0548 — A layout-convergence guard for the [I-0245] class** (AC6) — **IMPLEMENTED**
+✅ **`reloadSceneDots` — THE LINE T-0550 TARGETED — COLLAPSED ~235 ms → `1.4 ms`, ABOUT 170x.**
+✅ **That is the index rebuild leaving the structural-op path, measured on the worst-case medium.**
 
-✅ **Q4 RULED 2026-09-23 (user): (iii) + (i) — BOTH halves, neither alone.**
-✅ **(iii) STATIC GUARD** — ⚠️ **a `scripts/` check that fails if a flexible-width view is added as an
-`HStack` sibling in `manuscriptDetail`.** ✅ **Runs in CI on every push** ([SP-149] precedent);
-⚠️ **it guards the SHAPE, not the property.**
-✅ **(i) DEBUG ASSERTION** — ⚠️ **counts Update-Constraints passes per window and traps past a sane
-bound.** ✅ **Catches the general case on any surface;** ⛔ **debug-only, so CI never sees it.**
-⛔ **(ii) a headless layout test is DECLINED** — ⚠️ **SwiftUI layout under test is fragile and least
-likely to reproduce the defect.**
+⛔ **BUT `createChapter WORK` ONLY FELL 396.7 → 316.3 ms (~20%), AND THE ARITHMETIC SAYS WHY.**
+⚠️ **`reloadSceneDots` was ~235 ms of ~397 ms; removing it should have landed near `160 ms`.**
+⚠️ **It did not, so ~155 ms of `WORK` is SOMETHING ELSE, and that something was ALWAYS there —
+✅ previously HIDDEN BEHIND the dot reload rather than caused by it.**
+⛔ **DO NOT ATTRIBUTE IT WITHOUT MEASURING** — ⚠️ **the timed region also spans `splitScene`,
+`splitChapter`, `renumberChapterTitlesFrom`, `setCurrentIndex` and `insertDividerAndMoveCursor`,
+✅ all @Observable mutators over ~1,178 segments, ⚠️ and `engine.createChapter` (`80.5 ms`) is itself
+~25% of the remainder.** ⛔ **Three code-read diagnoses were wrong on this Issue already.**
 
-⚠️ **AC6 APPLIES TO EACH HALF: both must be proven by INJECTING the [I-0245] shape and watching them
-go red / trap.** ⛔ **A green test that cannot fail is not evidence** — ⚠️ **[I-0245] took FOUR
-attempts with `xcodebuild test` 134/134 and `ctest` 626/626 GREEN throughout.**
+⚠️ **ONE CAVEAT ON THIS PASS, STATED RATHER THAN GLOSSED: it is a SINGLE create, made shortly after
+open.** ✅ **T-0550's per-chapter path needs a warm index, so the FIRST structural op in a session
+still pays a full build to populate the cache** — ⚠️ **a second and third create in the same session
+are the ones that should show the partial path, and they were NOT exercised here.**
+✅ **`reloadSceneDots=1.4 ms` on the FIRST op is nonetheless conclusive for T-0550's own claim.**
 
+⚠️ **ALSO IN THIS LOG, NOT A REGRESSION:** ⚠️ **`keyDown(⏎)=3875.1 ms`** — ✅ **that is the MODAL
+waiting on the user's click** (⚠️ *the confirmation dialog this create required*), ⛔ **which is why
+`WORK` exists and is measured from AFTER `alert.runModal()`.** ⚠️ **The same shape invalidated the
+`2959.5 / 2092.5 / 3638.6 ms` figures earlier in [I-0213]'s history.**
+✅ **`TimelineViewModel.load` at open: `16.2 ms`** (⚠️ *was `3.5 ms` on internal storage, `~113 ms`
+before AC4 adoption* — ✅ **USB, and still well inside the open's `0.39 s` wall clock**).
+
+🟠 **BOTH TASKS REMAIN "IMPLEMENTED — NOT VERIFIED": ⛔ Claude may not mark them Verified.**
+
+
+⛔ **NEITHER TASK MAY REMOVE THE INVALIDATION.** ✅ **It fixed a REAL defect ([EP-039] AC5b): with
+before-only invalidation, `scrivi_set_scene_story_time` wrote correctly to disk and
+`scrivi_list_story_times` then reported `count:0`, because the mutation's own locator lookup rebuilt
+the index FROM PRE-WRITE STATE.** ✅ **Both keep patch-or-drop: any partial path that fails or is
+uncertain FALLS BACK to dropping the whole index.**
+
+⚠️ **A TEST FOR EITHER TASK MUST ASSERT THROUGH AN INDEX-SERVED ENDPOINT**, ⛔ **NOT through
+`openScene`** — ✅ **whose validate-on-use fallback silently repairs staleness and would hide exactly
+the defect AC5b exists to catch.** ⚠️ **ASSERT ON READ COUNT, NOT ELAPSED TIME**
+(`project_read_amplification_class`).
+
+---
 ## ✅ SP-144 — T-0538 ✅ VERIFIED 2026-09-20 (EP-042)
 
 ✅ **T-0538 ✅ VERIFIED 2026-09-20 (user rig pass)** → [`Verified/Task-verified-0538.md`](Verified/Task-verified-0538.md).
@@ -87,7 +107,7 @@ ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning deta
 → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
 ⛔ **NO Task is active.** ✅ **T-0546 VERIFIED and archived 2026-09-23 with [SP-136]'s close** → [`Verified/Task-verified-0546.md`](Verified/Task-verified-0546.md). ✅ **T-0545 VERIFIED and archived 2026-09-22.** ✅ **T-0544 and T-0543 both VERIFIED and archived 2026-09-22;
 ✅ T-0510 and T-0541 likewise; ✅ [EP-041] CLOSED.**
-⚠️ **[EP-040] remains ACTIVE — ✅ [SP-137] (Object Detail Sheet) is its LAST Sprint, and owns [I-0247].** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
+✅ **[EP-040] CLOSED 2026-09-24 (user-approved)** → [`../Epics/Closed/Epic-EP-040.md`](../Epics/Closed/Epic-EP-040.md). ⚠️ **Superseded line: "[EP-040] remains ACTIVE — [SP-137] is its LAST Sprint"** — ⛔ **[SP-150] followed it.** ✅ **T-0537 and T-0542 VERIFIED and archived 2026-09-21
 with [SP-142]'s close.** ✅ **[SP-143] activated and closed 2026-09-22 — [EP-041]'s last Sprint.**
 
 ---

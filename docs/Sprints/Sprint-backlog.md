@@ -168,11 +168,16 @@ would be RULED, not absorbed silently.
 
 ---
 
-**Next available Sprint ID: SP-150.** ✅ **SP-149 CLOSED 2026-09-22; ⚠️ SP-145–SP-148 reserved for [EP-043].**
+⛔ **NEXT-AVAILABLE IDs ARE NO LONGER RECORDED IN ANY TRACKING DOCUMENT (user ruling 2026-09-24).**
+✅ **They live in [`../tools/next-ids.json`](../tools/next-ids.json), allocated by
+[`../tools/next-id.py`](../tools/next-id.py)** — ⚠️ **`python3 docs/tools/next-id.py --peek` to look.**
+⛔ **THE LINE REMOVED FROM HERE READ `Next available Sprint ID: SP-150` WHILE SP-150 WAS ALREADY TAKEN
+AND CLOSED** (✅ **Audit Check 2026-09-24, finding F-2**) — ⚠️ **and it had been corrected twice before,
+from `SP-134` and from `SP-149`.** ✅ **A figure the reader does not need and the writer kept getting wrong.**
 
-⚠️ **Prior line, kept for provenance:** **Next available Sprint ID: SP-149.** ⚠️ **CORRECTED 2026-09-21 — this line read `SP-134` and was
-STALE:** ✅ **SP-134–SP-137 belong to [EP-040], SP-140–SP-143 to [EP-041], and SP-144 has CLOSED.**
-⚠️ **SP-145–SP-148 are now RESERVED for [EP-043]** (see the reservation block below).
+✅ **WHAT IS STILL TRUE AND IS KEPT:** ⚠️ **SP-134–SP-137 and SP-150 belong to [EP-040]; SP-140–SP-143
+to [EP-041]; SP-144 has CLOSED; ⚠️ SP-145–SP-148 are RESERVED for [EP-043]** (see the reservation
+block below).
 
 ✅ **SP-115 through SP-128 are ALL CLOSED and ARCHIVED**
 (→ [`Closed/`](Closed/)). ⚠️ **SP-129 and SP-130 above MOVED TO [EP-040] 2026-09-15** — ✅ **their status is owned by EP-040's Sprint table, not by this file.**

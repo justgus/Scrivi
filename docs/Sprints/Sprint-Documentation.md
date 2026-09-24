@@ -13,6 +13,10 @@ This is the main index for all Scrivi Sprints. Sprints are fixed-duration iterat
 
 ⚠️ **NO Sprint is currently ACTIVE.**
 
+✅ **SP-150 CLOSED 2026-09-24 (user-approved)** — **[EP-040]**, ⚠️ **[I-0213]'s accepted remainder.**
+✅ **T-0549 + T-0550 VERIFIED; AC11, AC12 and AC13 MET.** ✅ **`reloadSceneDots` ~235 ms → `1.4 ms`
+on 1,178 scenes, measured on the user's USB rig.**
+
 ✅ **SP-123, SP-125 and SP-126 all CLOSED (2026-08-29 / 2026-08-30).** ⚠️ **The Linux app now has a
 three-tab Scene Inspector running on REAL HARDWARE.** **SP-124** (EP-038, ⚠️ **the drive pull**) is
 🔵 **Planned and UNBLOCKED** — ⚠️ **EP-036's AC4 is UNSPECIFIABLE until it reports.**
@@ -213,6 +217,7 @@ See: [Sprint-backlog.md](Sprint-backlog.md)
 
 | Sprint | Title | Epic | Status |
 | ------ | ----- | ---- | ------ |
+| ✅ SP-150 | ⚠️ **[I-0213]'s accepted remainder** — stop a structural op re-walking the whole manuscript (T-0549 + T-0550) | EP-040 | ✅ **Closed 2026-09-24** |
 | SP-100 | EP-031 verification & Epic close (⚠️ owned the **AC1 re-verification**) | EP-031 | 2026-08-19 | 2026-08-19 | ✅ Closed |
 
 ⚠️ **This table is a copy of [`Sprint-backlog.md`](Sprint-backlog.md)'s, and copies go stale.** It was
@@ -392,11 +397,11 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-124** | ⚠️ **`[Linux]`** Drive-loss GROUND TRUTH + `WorldVolumeStatus` — ⚠️ **instrument BEFORE implement** | EP-038 `[Linux]` | — | — | ✅ **COMPLETE 2026-09-10** — ⚠️ **awaiting close approval.** ✅ **All 4 Tasks verified; EP-038 AC4–AC7 closed.** ⚠️ **Found FIVE lying signals; `offline` emitted for the first time ever** |
 | **SP-128** | ⚠️ **`[Linux]`** Honest waiting — ⚠️ **[I-0195] determinate progress + [I-0182] rig verification** | EP-038 `[Linux]` | — | — | ✅ **CLOSED 2026-09-11 — user-approved.** ✅ **All 3 Tasks verified; rig 590/590 ctest + 23/23 smokes, build 42.** ⚠️ **Its live pass found TWO defects in its OWN work ([I-0198], [I-0199]) that 23/23 smokes were green through** |
 | **SP-129** | ⚠️ **`[Apple]`+`[ScriviCore]`+`[Linux]`** The unbuilt surfaces — ⚠️ **and the bypass they exposed** | EP-040 `[Apple]` | — | — | ✅ **CLOSED 2026-09-15 — user-approved** → [record](Closed/Sprint-SP-129.md) |
-| **SP-130** | ⚠️ **`[Apple]`** Rule the asset presence-checks — Class C of [I-0197] | EP-040 `[Apple]` | — | — | 🟡 **ACTIVE 2026-09-15** → [record](Sprint-SP-130.md) |
+| **SP-130** | ⚠️ **`[Apple]`** Rule the asset presence-checks — Class C of [I-0197] | EP-040 `[Apple]` | 2026-09-15 | 2026-09-18 | ✅ **CLOSED 2026-09-18 — user-approved** → [record](Closed/Sprint-SP-130.md). ✅ **T-0508 VERIFIED**; ⛔ **[I-0197] Classes A and B remain OPEN** |
 | **SP-140** | ⚠️ **`[Apple]`** Stop discarding unknown `inspector-layout.json` keys — [I-0215] | ⚠️ **EP-041** `[Cross]` | 2026-09-18 | 2026-09-18 | ✅ **CLOSED** → [record](Closed/Sprint-SP-140.md) |
-| **SP-141** | ⚠️ **`[Apple]`+`[ScriviCore]`** Core-owned `inspector-layout.json` — endpoints + Apple | ⚠️ **EP-041** `[Cross]` | 2026-09-18 | — | 🟢 **ACTIVE** (✅ **ruling made 2026-09-18: opaque get/put**) → [record](Sprint-SP-141.md) |
-| **SP-142** | ⚠️ **`[Linux]`** Retire the duplicate `InspectorLayoutStore` | ⚠️ **EP-041** `[Cross]` | — | — | 🔵 **Planned** → [record](Sprint-SP-142.md) |
-| **SP-143** | ⚠️ **`[Cross]`** The regression guard — closes [I-0197] | ⚠️ **EP-041** `[Cross]` | — | — | 🔵 **Planned** → [record](Sprint-SP-143.md) |
+| **SP-141** | ⚠️ **`[Apple]`+`[ScriviCore]`** Core-owned `inspector-layout.json` — endpoints + Apple | ⚠️ **EP-041** `[Cross]` | 2026-09-18 | 2026-09-21 | ✅ **CLOSED 2026-09-21 — user-approved** (✅ **ruling 2026-09-18: opaque get/put**) → [record](Closed/Sprint-SP-141.md) |
+| **SP-142** | ⚠️ **`[Linux]`** Retire the duplicate `InspectorLayoutStore` | ⚠️ **EP-041** `[Cross]` | — | 2026-09-21 | ✅ **CLOSED 2026-09-21 — user-approved** → [record](Closed/Sprint-SP-142.md) |
+| **SP-143** | ⚠️ **`[Cross]`** The regression guard — closes [I-0197] | ⚠️ **EP-041** `[Cross]` | — | 2026-09-22 | ✅ **CLOSED 2026-09-22 — user-approved** → [record](Closed/Sprint-SP-143.md) |
 | **SP-144** | ⚠️ **`[Cross]`** **Project open cost** — ⚠️ **[I-0231] read amplification (~370×) + [I-0232] Linux landing open blocks the UI 155 s** | ⚠️ **EP-042** `[Cross]` | — | — | ✅ **CLOSED 2026-09-20 — user-approved.** ✅ **SIX Issues VERIFIED on the REAL rig at `cache=none`** — ⚠️ **24.01 s → 13.46 s, 5,002 → 2,999 syscalls, `binding.json` 188 → 2.** ⚠️ **It opened with TWO Issues and closed with SIX**: ✅ **[I-0234] — the per-scene write that made SMALL projects slow — was found ONLY because the user reported that recent projects were NOT large.** → [record](Closed/Sprint-SP-144.md) |
 | **SP-125** | ⚠️ **`[Linux]`** **Scene Inspector wired to real objects** — ⚠️ **replaces the 67-line EP-024 stub**; ⚠️ **Qt WIDGETS, not QML**. ⚠️ **Wired Apple's DELETED "Scene Entities" placeholder — SP-126 builds the real 3-tab shell** | EP-035 `[Linux]` | 2026-08-25 | 2026-08-29 | ✅ **CLOSED** → [`Closed/Sprint-SP-125.md`](Closed/Sprint-SP-125.md) |
 | **SP-126** | ⚠️ **`[Linux]`** **The three-tab Scene Inspector shell** — ⚠️ **Writing · Worldbuilding · Properties** (**AC10**, ⚠️ **user-found gap**); ⚠️ **`inspector-layout.json` PATCHED, not reconstructed** | EP-035 `[Linux]` | 2026-08-29 | 2026-08-30 | ✅ **CLOSED** → [`Closed/Sprint-SP-126.md`](Closed/Sprint-SP-126.md) |
@@ -404,6 +409,12 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-131** | ✅ **`[ScriviCore]`** **The project indexes** — ⚠️ **project open `~300 s` → `1.06 s`** | EP-039 `[Cross]` | ✅ **Closed 2026-09-15** — [record](Closed/Sprint-SP-131.md) |
 | **SP-132** | ⚠️ **`[Apple]`** **The interaction cost + the async gap** — ⚠️ **PARTIAL: T-0519/T-0520 REVERTED (shipped a build with no window); T-0521 never started** | EP-039 `[Cross]` | ✅ **Closed 2026-09-15** — [record](Closed/Sprint-SP-132.md) |
 | **SP-133** | ✅ **`[Apple]`** **TextKit 2** — ⚠️ **layout `272.8 ms` → `0.0 s`; `rebuildStorage` `270 ms` → `0.0 s`** | EP-039 `[Cross]` | ✅ **Closed 2026-09-15** — [record](Closed/Sprint-SP-133.md) |
+| **SP-134** | ✅ **`[Apple]`** **The toolbar** — `NSToolbar` + title/subtitle + existing verbs surfaced | EP-040 `[Apple]` | — | 2026-09-22 | ✅ **CLOSED 2026-09-22 — user-approved** → [record](Closed/Sprint-SP-134.md). ✅ **T-0543 VERIFIED** |
+| **SP-135** | ✅ **`[Apple]`** **The bars** — `safeAreaBar` conversion; ✅ **closes [I-0203]**, answers [I-0205] | EP-040 `[Apple]` | — | 2026-09-22 | ✅ **CLOSED 2026-09-22 — user-approved** → [record](Closed/Sprint-SP-135.md). ✅ **T-0545 VERIFIED; all EIGHT ACs** |
+| **SP-136** | ✅ **`[Apple]`** **The Inspector as a real `.inspector` column** | EP-040 `[Apple]` | — | 2026-09-23 | ✅ **CLOSED 2026-09-23 — user-approved** → [record](Closed/Sprint-SP-136.md). ✅ **T-0546 VERIFIED; all 9 ACs** |
+| **SP-137** | ✅ **`[Apple]`** **The Object Detail Sheet** — real chrome + a layout guard | EP-040 `[Apple]` | — | 2026-09-23 | ✅ **CLOSED 2026-09-23 — user-approved** → [record](Closed/Sprint-SP-137.md). ⚠️ **produced [I-0248] · [I-0249] · [I-0250]** |
+| **SP-149** | ⚠️ **`[Cross]`** — ⚠️ **[EP-041]'s last Sprint** | ⚠️ **EP-041** `[Cross]` | — | 2026-09-22 | ✅ **CLOSED 2026-09-22 — user-approved** → [record](Closed/Sprint-SP-149.md) |
+| **SP-150** | ✅ **`[ScriviCore]`** **[I-0213]'s accepted remainder** — ⚠️ **stop a structural op re-walking the WHOLE manuscript** | EP-040 `[Apple]` | 2026-09-24 | 2026-09-24 | ✅ **CLOSED 2026-09-24 — user-approved** → [record](Closed/Sprint-SP-150.md). ✅ **T-0549 + T-0550 VERIFIED; `reloadSceneDots` ~235 ms → `1.4 ms`** |
 
 ## Statistics
 

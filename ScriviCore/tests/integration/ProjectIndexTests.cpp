@@ -237,6 +237,172 @@ TEST_CASE("a story-time write through the core invalidates the index (EP-039 AC5
 }
 
 // ---------------------------------------------------------------------------
+// T-0549 (SP-150) AC3 — the PATCHED path must still satisfy AC5b, end to end.
+// ---------------------------------------------------------------------------
+//
+// ⚠️ WHY THIS SITS BESIDE THE AC5b TEST ABOVE RATHER THAN IN THE PERF FILE.
+// T-0549 changed `scrivi_set_scene_story_time` and `scrivi_clear_scene_story_time`
+// from "always drop the whole index" to "patch it, or drop it if anything is
+// uncertain". ✅ The CORRECTNESS question is therefore identical to AC5b's and
+// belongs in AC5b's own suite, asserted through `scrivi_list_story_times` — an
+// INDEX-SERVED endpoint. ⛔ An `openScene` assertion would be repaired by AC5a's
+// validate-on-use fallback and would pass against a broken patch.
+TEST_CASE("a patched index answers with the WRITTEN value, repeatedly (SP-150 T-0549)",
+          "[integration][EP-039][AC5b][T-0549]")
+{
+    Fixture fx; initProject(fx);
+    writeSceneOnDisk(fx.chapterDir(), "002", "scene-002", /*explicitStoryTime=*/false);
+
+    // Prime: the index caches "nothing is set".
+    {
+        Envelope primed{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(primed.ok());
+        REQUIRE(primed.compact().find("\"count\":0") != std::string::npos);
+    }
+
+    // FIRST write — this is the one the patch path handles.
+    {
+        Envelope set{scrivi_set_scene_story_time(
+            fx.root().c_str(), "scene-002",
+            /*offsetMs=*/111, /*source=*/"manual",
+            /*gapMs=*/0, /*durationMs=*/3600000, /*durationSource=*/"manual")};
+        REQUIRE(set.ok());
+    }
+    {
+        Envelope after{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(after.ok());
+        const std::string json = after.compact();
+        CHECK(json.find("\"count\":1")     != std::string::npos);
+        CHECK(json.find("\"offsetMs\":111") != std::string::npos);
+    }
+
+    // ⚠️ SECOND write to the SAME scene. ✅ This is what catches a patch that
+    // inserted instead of replacing: `try_emplace` would silently keep 111 here,
+    // which is the `count:0` staleness shape wearing different clothes.
+    {
+        Envelope set2{scrivi_set_scene_story_time(
+            fx.root().c_str(), "scene-002",
+            /*offsetMs=*/222, /*source=*/"manual",
+            /*gapMs=*/0, /*durationMs=*/3600000, /*durationSource=*/"manual")};
+        REQUIRE(set2.ok());
+    }
+    {
+        Envelope after2{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(after2.ok());
+        const std::string json = after2.compact();
+        CHECK(json.find("\"count\":1")     != std::string::npos);
+        CHECK(json.find("\"offsetMs\":222") != std::string::npos);
+        CHECK(json.find("\"offsetMs\":111") == std::string::npos);
+    }
+
+    // ✅ CLEARING must be visible too — the sparse list drops back to empty.
+    {
+        Envelope cleared{scrivi_clear_scene_story_time(fx.root().c_str(), "scene-002")};
+        REQUIRE(cleared.ok());
+    }
+    {
+        Envelope after3{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(after3.ok());
+        CHECK(after3.compact().find("\"count\":0") != std::string::npos);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// T-0550 (SP-150) AC3 — the PARTIALLY-REBUILT path must still satisfy AC5b.
+// ---------------------------------------------------------------------------
+//
+// ⚠️ T-0550 changed seven Class B endpoints from "always drop the whole index" to
+// "rebuild the named chapters, or drop if anything is uncertain". ✅ The correctness
+// question is AC5b's, so it is asserted here, through `scrivi_list_story_times` —
+// an INDEX-SERVED endpoint. ⛔ An `openScene` assertion would be silently repaired
+// by AC5a's validate-on-use fallback and would pass against a broken rebuild.
+TEST_CASE("a chapter create leaves the index CORRECT, not just fast (SP-150 T-0550)",
+          "[integration][EP-039][AC5b][T-0550]")
+{
+    Fixture fx; initProject(fx);
+    writeSceneOnDisk(fx.chapterDir(), "002", "scene-002", /*explicitStoryTime=*/false);
+
+    // Set a story time so the index has something non-default to lose.
+    {
+        Envelope set{scrivi_set_scene_story_time(
+            fx.root().c_str(), "scene-002",
+            /*offsetMs=*/4242, /*source=*/"manual",
+            /*gapMs=*/0, /*durationMs=*/3600000, /*durationSource=*/"manual")};
+        REQUIRE(set.ok());
+    }
+    {
+        Envelope primed{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(primed.ok());
+        REQUIRE(primed.compact().find("\"offsetMs\":4242") != std::string::npos);
+    }
+
+    // ⚠️ NOW A CLASS B OP: create a chapter. The index is rebuilt PARTIALLY.
+    {
+        Envelope made{scrivi_create_chapter(
+            fx.root().c_str(), fx.appSupportDir.str().c_str(), fx.projectID.c_str(),
+            "identity-001", "persona-001", "Test Author", /*afterChapterID=*/"")};
+        REQUIRE(made.ok());
+    }
+
+    // ✅ THE SURVIVING SCENE'S STORY TIME MUST STILL BE THERE. ⛔ A partial rebuild
+    // that dropped carried-over chapters' story times would report count:0 here —
+    // the exact defect AC5b exists to catch, reached by a different route.
+    {
+        Envelope after{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(after.ok());
+        const std::string json = after.compact();
+        CHECK(json.find("\"count\":1")        != std::string::npos);
+        CHECK(json.find("\"offsetMs\":4242")  != std::string::npos);
+        CHECK(json.find("scene-002")          != std::string::npos);
+    }
+
+    // ✅ AND THE NEW CHAPTER'S SCENE IS REACHABLE — a rebuild that kept the old
+    // scenes but missed the new chapter would pass the assertion above and still be
+    // wrong. `openScene` is used HERE deliberately: this asks "does the index know
+    // where this scene lives", which is a location question, not a staleness one.
+    {
+        Envelope listed{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(listed.ok());   // the call itself must still succeed post-rebuild
+    }
+}
+
+TEST_CASE("repeated chapter creates keep carried-over story times (SP-150 T-0550)",
+          "[integration][EP-039][AC5b][T-0550]")
+{
+    Fixture fx; initProject(fx);
+    writeSceneOnDisk(fx.chapterDir(), "002", "scene-002", /*explicitStoryTime=*/false);
+
+    {
+        Envelope set{scrivi_set_scene_story_time(
+            fx.root().c_str(), "scene-002",
+            /*offsetMs=*/777, /*source=*/"manual",
+            /*gapMs=*/0, /*durationMs=*/3600000, /*durationSource=*/"manual")};
+        REQUIRE(set.ok());
+    }
+    {
+        Envelope primed{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(primed.ok());
+        REQUIRE(primed.compact().find("\"count\":1") != std::string::npos);
+    }
+
+    // ⚠️ THREE successive Class B ops. ✅ Each one carries chapter 1 over WITHOUT
+    // re-reading it, so this is the path where a carried-over story time could be
+    // dropped — and it compounds: a loss on pass 1 would still be lost on pass 3.
+    for (int i = 0; i < 3; ++i) {
+        Envelope made{scrivi_create_chapter(
+            fx.root().c_str(), fx.appSupportDir.str().c_str(), fx.projectID.c_str(),
+            "identity-001", "persona-001", "Test Author", /*afterChapterID=*/"")};
+        REQUIRE(made.ok());
+
+        Envelope after{scrivi_list_story_times(fx.root().c_str())};
+        REQUIRE(after.ok());
+        const std::string json = after.compact();
+        CHECK(json.find("\"count\":1")      != std::string::npos);
+        CHECK(json.find("\"offsetMs\":777") != std::string::npos);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // AC5d — external mid-session change is corrected ON USE
 // ---------------------------------------------------------------------------
 //

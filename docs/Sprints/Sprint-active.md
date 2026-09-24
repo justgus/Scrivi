@@ -11,23 +11,30 @@ sources** — ✅ **filed for [SP-135], which already owns the title area.**
 ✅ **[I-0203] STRUCTURALLY FIXED** — ⚠️ **bars were `VStack` siblings, which is why ONE mistake read as
 FOUR bugs.** ✅ **[I-0205] FULLY RESOLVED, both halves.**
 
-🟢 **[SP-137] IS ACTIVE — activated 2026-09-23 (user-approved)** → [`Sprint-SP-137.md`](Sprint-SP-137.md).
-✅ **ALL EIGHT ACs MET; AC2 and AC8 USER-VERIFIED 2026-09-23.** ⚠️ **Closable on the user's approval.**
-⚠️ **T-0547 took FOUR implementations and produced THREE Issues** — ✅ **[I-0248]** (a `.toolbar` renders
-nothing on a macOS sheet) · ✅ **[I-0249]** (min-width contention between adjacent views; ⛔ the runtime
-guard REMOVED by user ruling) · ✅ **[I-0250]** (`.cancelAction` on a toolbar item never receives Esc) —
-✅ **all resolved; [I-0250] VERIFIED.**
-✅ **`xcodebuild test` 134/134 · `ctest` 626/626 · all three guards green.**
-✅ **ALL FOUR questions are RULED, so it starts decided:** ✅ **Q1 hosting — KEEP THE MODAL SHEET**
-(⛔ §4.4's option (a) is VOID; this closes **[I-0247]**) · ✅ **Q2 chrome — ALL OF IT** (back/forward
-and close become real `.toolbar` items; ⚠️ **Save/Cancel stay content-level — they are document
-actions, not window chrome**) · ✅ **Q3 — the guard is its OWN Task** ([SP-149] precedent) ·
-✅ **Q4 (2026-09-23) — the guard is (iii) + (i): a `scripts/` STATIC GUARD plus a DEBUG ASSERTION.**
-⛔ **(ii) the headless layout test is DECLINED** — ⚠️ **SwiftUI layout under test is fragile and AC6
-requires the guard be proven RED by injection.**
-✅ **TWO Tasks: T-0547** (real chrome, AC1–AC5) · **T-0548** (the guard, AC6). ⚠️ **EIGHT ACs.**
-⚠️ **[SP-137] is [EP-040]'s LAST planned Sprint** — ✅ **on its close the Epic's remaining ACs are
-swept, and an Audit Check is owed** (⛔ **not an Audit**).
+✅ **[SP-137] CLOSED 2026-09-23 (user-approved)** → [`Closed/Sprint-SP-137.md`](Closed/Sprint-SP-137.md).
+✅ **ALL EIGHT ACs met; AC2 and AC8 USER-VERIFIED.** ✅ **T-0547 and T-0548 VERIFIED and archived.**
+⚠️ **IT PRODUCED THREE ISSUES, ALL FROM ONE TASK** — ✅ **[I-0248]** (a `.toolbar` renders NOTHING on a
+macOS sheet) · ✅ **[I-0250]** (`.cancelAction` on a toolbar item never receives Esc — ⛔ silent data
+loss) · ✅ **[I-0249]** (min-width contention between adjacent views; ⛔ the runtime guard REMOVED by
+user ruling) — ⚠️ **all archived with the close.**
+⛔ **T-0547 TOOK FOUR IMPLEMENTATIONS, each building clean and passing every suite** — ✅ **the lesson
+is recorded in [`../Tasks/Verified/Task-verified-0547-0548.md`](../Tasks/Verified/Task-verified-0547-0548.md).**
+
+✅ **[SP-150] CLOSED 2026-09-24 (user-approved)** → [`Closed/Sprint-SP-150.md`](Closed/Sprint-SP-150.md).
+✅ **T-0549 and T-0550 VERIFIED and archived.** ✅ **[EP-040] AC11, AC12 and AC13 MET.**
+✅ **`reloadSceneDots` ~235 ms → `1.4 ms` on 1,178 scenes (~170x), measured on the user's USB rig.**
+⛔ **NO SPRINT IS ACTIVE.**
+⚠️ **[SP-137] was [EP-040]'s last PLANNED Sprint** — ✅ **the Epic's
+remaining ACs can now be swept.** ⚠️ **AN AUDIT CHECK IS OWED BEFORE THE EPIC CLOSES** (⛔ **it is NOT
+an Audit — the lightweight mechanical sweep**).
+⚠️ **[EP-040] AC11** (⚠️ *the carried performance clause: the manuscript surface's remaining
+O(DOCUMENT) costs are addressed OR accepted as limitations WITH a measurement*) **carried [I-0206]**
+(⚠️ *offset-linear `setSelectedRange`, `57–81 ms` near the end of a 1.85 MB document*) **and [I-0213]**
+(⚠️ *chapter create froze the app ~2.7 s on 1,174 scenes*) **from [EP-039]** (⚠️ *Project Load
+Performance — it replaced a ~300 s frozen open*) — ⛔ **neither is this Sprint's.**
+✅ **[I-0213] IS SETTLED AND ITS REMAINDER IS NOW FIXED** — ✅ **[SP-150] (T-0549 + T-0550) closed
+2026-09-24; `reloadSceneDots` ~235 ms → `1.4 ms` on the USB rig.** ⚠️ **[I-0206] STILL
+must be RULED at the Epic close: addressed, or ACCEPTED AS A LIMITATION with a measurement.**
 
 ✅ **[SP-136] CLOSED 2026-09-23 (user-approved)** → [`Closed/Sprint-SP-136.md`](Closed/Sprint-SP-136.md).
 ⚠️ **All 9 ACs VERIFIED by the user's live pass; T-0546 VERIFIED and archived.** ⚠️ **THREE Issues came
@@ -39,7 +46,7 @@ intent is superseded) is **OPEN for [SP-137] to rule.**
 ⛔ **PRIOR STATE:** ✅ **[EP-041] CLOSED 2026-09-22 (user-approved)** →
 [`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md) — ⚠️ **all five of its Sprints,
 six Tasks and [I-0197] closed with it.**
-⚠️ **ONE ACTIVE EPIC REMAINS: 🟡 [EP-040]** `[Apple]` **The Editor Shell** — ✅ **[SP-134] is
+✅ **[EP-040] CLOSED 2026-09-24 — ⛔ NO EPIC IS ACTIVE.** ⚠️ **Superseded line: "ONE ACTIVE EPIC REMAINS: [EP-040]"** `[Apple]` **The Editor Shell** — ✅ **[SP-134] is
 unblocked and LOW risk.**
 
 ✅ **[SP-143] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-143.md`](Closed/Sprint-SP-143.md)
@@ -73,12 +80,13 @@ WITNESSES the guard (red-before / green-after), ⛔ it no longer builds one.**
 ✅ **[SP-130] CLOSED 2026-09-18 (user-approved)** → [`Closed/Sprint-SP-130.md`](Closed/Sprint-SP-130.md).
 
 ---
+---
 
 ## ⚠️ Two Epics are active
 
 ✅ **[EP-041]** — `[Cross]` **The Boundary** — **CLOSED 2026-09-22**; ✅ **all five Sprints closed.**
 ⚠️ **[SP-142] is PLANNED and UNBLOCKED; [SP-143] queues behind it.**
-🟡 **[EP-040]** — `[Apple]` **The Editor Shell** — ✅ **[SP-134] is unblocked and LOW risk.**
+✅ **[EP-040]** — `[Apple]` **The Editor Shell** — ✅ **CLOSED 2026-09-24.** ⚠️ *(historical: [SP-134] was unblocked and LOW risk)*
 
 ✅ **[SP-144] CLOSED 2026-09-20 (user-approved)** → [`Closed/Sprint-SP-144.md`](Closed/Sprint-SP-144.md).
 ✅ **All 7 ACs met; SIX Issues VERIFIED on the real rig under `cache=none`.**
@@ -181,13 +189,20 @@ and ABSENT after, so it cannot run first.**
 ✅ **[SP-132]** → [`Closed/Sprint-SP-132.md`](Closed/Sprint-SP-132.md) — ⚠️ **PARTIAL; T-0519/T-0520 reverted.**
 ✅ **[SP-133]** → [`Closed/Sprint-SP-133.md`](Closed/Sprint-SP-133.md) — TextKit 2; all tasks verified.
 
-✅ **Next available Sprint ID: SP-150 · next available Task: T-0549.**
-⚠️ **Corrected 2026-09-23** — ⛔ **this line read `SP-145 · T-0539` while SP-149 and T-0548 already existed.**
-⚠️ **Corrected 2026-09-18** — ⛔ **this line read `SP-134 · T-0535` while SP-143 and T-0537 already existed.**
+⚠️ **NEXT-AVAILABLE IDs ARE NO LONGER RECORDED IN ANY TRACKING DOCUMENT (user ruling 2026-09-24).**
+✅ **They live in [`../tools/next-ids.json`](../tools/next-ids.json), allocated by
+[`../tools/next-id.py`](../tools/next-id.py)** — ⚠️ **`python3 docs/tools/next-id.py --peek` to look,
+`… next-id.py task` to allocate.**
+⛔ **THE FIGURE WAS RESTATED AND KEPT GOING STALE:** ⚠️ **this line read `SP-145 · T-0539` while SP-149
+and T-0548 already existed (corrected 2026-09-23), and `SP-134 · T-0535` while SP-143 and T-0537 did
+(corrected 2026-09-18).** ✅ **A counter the reader does not need, and the writer kept getting wrong.**
 
 ⚠️ **WHERE THINGS STAND (2026-09-18):** ✅ **Project open is DONE and measured: `~300 s` → `0.34 s` on
 1,174 scenes, and the app is USABLE.** ⚠️ **WHAT REMAINS IS SHAPE, NOT SPEED** — ✅ **the window has no
 `NSToolbar`, the bars are `VStack` siblings, and the Inspector hand-rolls a column.**
-⚠️ **FOUR DEFECTS ARE CARRIED INTO [EP-040], NOT FIXED: [I-0203]** (chrome vanishes behind the banner),
+⚠️ **FOUR DEFECTS WERE CARRIED INTO [EP-040], NOT FIXED: [I-0203]** (chrome vanishes behind the banner),
 **[I-0205]** (the banner itself), **[I-0206]** (offset-linear `setSel`, `57–81 ms` near the document end),
-**[I-0213]** (chapter create `~305 ms`).
+**[I-0213]** (⚠️ *chapter create, originally a 2.7 s freeze, now `~305–400 ms` of work*).
+✅ **[I-0213] IS NOW VERIFIED (2026-09-24) and ARCHIVED** →
+[`../Issues/Verified/Issue-verified-0211-0220.md`](../Issues/Verified/Issue-verified-0211-0220.md);
+⚠️ **the other three remain.**

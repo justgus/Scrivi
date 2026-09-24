@@ -106,6 +106,61 @@ public:
     // the COMMON case, not an error (AC4).
     [[nodiscard]] std::vector<std::pair<SceneID, SceneStoryTime>> explicitStoryTimes() const;
 
+    // T-0549 (SP-150) — ✅ PATCH ONE SCENE'S STORY TIME IN PLACE.
+    //
+    // ⚠️ THE EXISTING RULING THIS ANSWERS. `invalidateProjectIndex` carries AC5b's
+    // reasoning that per-entry invalidation "requires reasoning about which entries a
+    // partial write could have touched, and getting that wrong IS the silent-staleness
+    // failure mode". ✅ THAT OBJECTION IS CORRECT IN GENERAL and this method does NOT
+    // weaken it — it narrows to the ONE case where the answer is not a judgement call:
+    //
+    //   ✅ the caller has the sceneID the write SUCCEEDED on (the endpoint echoes it
+    //     back in its own result envelope, so it is not inferred);
+    //   ✅ a story-time write touches ONE sidecar's `storyTime` block and NOTHING else —
+    //     no file is created, moved, renamed or removed;
+    //   ⛔ so ordinals, paths, chapter membership and every OTHER scene are provably
+    //     unaffected. There is no "which entries might this have touched?" to get wrong.
+    //
+    // ⚠️ RETURNS FALSE when the sceneID is not in this index. ⛔ The caller MUST then
+    // drop the whole index rather than proceed — a scene the index does not know about
+    // means the index is already wrong about something, and that is not patchable.
+    //
+    // ⛔ DO NOT GENERALISE THIS TO ORDER OR MEMBERSHIP CHANGES. Anything that creates,
+    // deletes, moves, merges or reorders belongs to T-0550's per-chapter rebuild, where
+    // ordinals genuinely do shift and the "which entries" question is real.
+    [[nodiscard]] bool patchStoryTime(const SceneID& sceneID, const SceneStoryTime& st);
+
+    // T-0550 (SP-150) — ✅ REBUILD ONLY THE CHAPTERS THAT CHANGED.
+    //
+    // ⚠️ MEASURED REASON: a `createChapter` costs ~50 filesystem calls, but the FULL
+    // rebuild it forces costs 866 on a 400-scene project (~17x) and SCALES with
+    // manuscript size while the op does not. ✅ Re-listing chapters is ONE directory
+    // scan plus one sidecar read each (~21 calls on 20 chapters); only the NAMED
+    // chapters re-read their scene sidecars.
+    //
+    // ⚠️ WHY THE CHAPTER LIST IS RE-READ EVERY TIME, NOT REUSED. Manuscript order is
+    // FILESYSTEM-AUTHORITATIVE (EP-027 B3) and a Class B op can rename a chapter
+    // folder, add one, or remove one. ⛔ Reusing the cached chapter order would be the
+    // "reason about what the write touched" trap `invalidateProjectIndex` warns
+    // against. ✅ Re-listing makes chapter order OBSERVED rather than assumed, and it
+    // is the cheap half of the traversal.
+    //
+    // ✅ SCENES OF UNAFFECTED CHAPTERS ARE CARRIED OVER FROM THIS INDEX, in their
+    // existing order, which is what makes this cheaper than `build`.
+    //
+    // ⚠️ `ordinal` IS RECOMPUTED ACROSS THE WHOLE VECTOR — free (no I/O) and REQUIRED:
+    // splicing a chapter shifts every later scene's position, and `scenesInOrder()`
+    // would otherwise disagree with the ordinals it hands out.
+    //
+    // ⚠️ RETURNS FALSE when the result cannot be TRUSTED — a failed listing, a chapter
+    // that must be re-read but whose scenes will not resolve, or a scene this index has
+    // never seen appearing in an UNAFFECTED chapter (which means the index was already
+    // wrong). ⛔ The caller MUST then drop the whole index. ✅ On false this index is
+    // left UNTOUCHED, never half-updated.
+    [[nodiscard]] bool rebuildChapters(const AbsolutePath& projectRoot,
+                                       CoreServices&       services,
+                                       const std::vector<ChapterID>& changed);
+
     [[nodiscard]] bool        valid() const { return valid_; }
     [[nodiscard]] std::size_t sceneCount() const { return scenes_.size(); }
 

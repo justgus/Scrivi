@@ -12,6 +12,7 @@
 #include "platform/EncryptedFileSecureStore.hpp"
 #endif
 #include "schemas/RepairIssueJson.hpp"
+#include "schemas/SceneMetaJson.hpp"   // T-0549 — patch re-reads the one changed sidecar
 #include "schemas/ObjectJson.hpp"
 #include "objects/ObjectIndex.hpp"
 #include "objects/ObjectStore.hpp"
@@ -371,6 +372,195 @@ struct ProjectIndexInvalidation {
     ~ProjectIndexInvalidation() { invalidateProjectIndex(root); }
     ProjectIndexInvalidation(const ProjectIndexInvalidation&)            = delete;
     ProjectIndexInvalidation& operator=(const ProjectIndexInvalidation&) = delete;
+};
+
+// T-0549 (SP-150) — ✅ PATCH-OR-DROP for a write that changes ONE scene's story
+// time and nothing else.
+//
+// ⚠️ MEASURED REASON THIS EXISTS: a structural op costs ~50 filesystem calls, but
+// the index rebuild it FORCES costs 866 on a 400-scene project (~17x the op) and
+// SCALES with manuscript size while the op does not. ✅ On a warm local page cache
+// that is invisible; ⚠️ on the user's USB rig every one of those reads is real.
+// ✅ Figures from `StructuralOpIndexRebuildTests.cpp`.
+//
+// ⛔ THIS DOES NOT WEAKEN AC5b. The index is still dropped on BOTH sides of the
+// write by default; the patch is attempted ONLY after the write has SUCCEEDED and
+// ONLY with the sceneID the endpoint itself echoed back. ✅ ANY doubt drops the
+// whole index:
+//
+//   ⚠️ the write failed              → drop (the guard's destructor runs as before)
+//   ⚠️ no index cached right now     → drop (nothing to patch; next read builds)
+//   ⚠️ the index does not know this scene → drop (it is already wrong about something)
+//   ⚠️ the patch returns false       → drop
+//
+// ⚠️ THE ORDER MATTERS. `patchAfterWrite` must be called while the endpoint's
+// `ProjectIndexInvalidation` guard is STILL ALIVE, so the BEFORE-drop has already
+// happened and the work's own locator lookups have already repopulated a PRE-WRITE
+// index. ✅ This replaces that stale index's story-time entry with the written one
+// and then CANCELS the destructor's drop. ⛔ Cancelling without patching would
+// reintroduce exactly the `count:0` defect AC5b caught.
+struct StoryTimePatchGuard {
+    std::string root;
+    bool        cancelled = false;
+
+    explicit StoryTimePatchGuard(std::string r) : root(std::move(r)) {
+        invalidateProjectIndex(root);
+    }
+    ~StoryTimePatchGuard() { if (!cancelled) { invalidateProjectIndex(root); } }
+
+    StoryTimePatchGuard(const StoryTimePatchGuard&)            = delete;
+    StoryTimePatchGuard& operator=(const StoryTimePatchGuard&) = delete;
+
+    // ✅ Returns true when the cached index now holds the WRITTEN story time for
+    // `sceneID` and the end-of-scope drop has been cancelled. ⚠️ False means
+    // "dropped" -- correct, just not cheap.
+    //
+    // ⛔ THE VALUE IS RE-READ FROM THE SIDECAR, NEVER RECONSTRUCTED FROM THE
+    // ENDPOINT'S ARGUMENTS. `setSceneStoryTime` PRESERVES fields the caller did not
+    // supply -- `bandID`, `bandAssignedAt`, and `durationMs` when the request passes
+    // 0 -- so rebuilding the value from the C arguments would write a story time the
+    // disk does not hold. ✅ That is the `count:0` failure shape wearing different
+    // clothes, and re-reading the ONE file that changed costs ONE read against the
+    // 866 a full rebuild costs.
+    bool patchAfterWrite(const scrivi::SceneID& sceneID) {
+        auto services = abiServices();
+        services.sceneLocator = nullptr;   // no recursion through the locator
+
+        auto& reg = projectIndexRegistry();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+
+        auto it = reg.byRoot.find(root);
+        // ⚠️ NOT an error: no cached index simply means the next read builds a
+        // FRESH one, which is already correct. ✅ Nothing to do, nothing to cancel.
+        if (it == reg.byRoot.end() || !it->second || !it->second->valid()) {
+            return false;
+        }
+
+        // ⚠️ The index's OWN record of where this scene lives. ⛔ If it does not know
+        // the scene, it is already wrong about something -- drop, do not patch.
+        const auto loc = it->second->findScene(sceneID);
+        if (!loc) { return false; }
+
+        const auto metaPath = scrivi::util::join(scrivi::AbsolutePath{root},
+                                                 loc->metadataPath);
+        auto textR = services.fileSystem->readTextFile(metaPath);
+        if (!textR.ok()) { return false; }
+        auto parsed = scrivi::schemas::parseSceneMeta(textR.value());
+        if (!parsed.ok()) { return false; }
+
+        if (!it->second->patchStoryTime(sceneID, parsed.value().storyTime)) {
+            return false;
+        }
+
+        cancelled = true;
+        return true;
+    }
+};
+
+// T-0550 (SP-150) — ✅ PER-CHAPTER REBUILD for a write that changes manuscript ORDER
+// or MEMBERSHIP.
+//
+// ⚠️ THE SAME PATCH-OR-DROP CONTRACT AS `StoryTimePatchGuard`, with a wider unit of
+// work: the index is still dropped on BOTH sides by default, and the partial rebuild
+// is attempted ONLY after the write SUCCEEDED, using the chapter ids the endpoint
+// ITSELF reported. ✅ Every Class B result already carries them
+// (`CreateSceneResult.chapterID`, `MergeChapterResult.survivorChapterID` +
+// `mergedChapterID`, and so on), ⛔ so the affected scope is OBSERVED, not inferred.
+//
+// ⚠️ ANY doubt drops the whole index, exactly as before:
+//   ⚠️ the write failed                 → drop
+//   ⚠️ no index cached right now        → drop (nothing to update; next read builds)
+//   ⚠️ the chapter listing fails        → drop
+//   ⚠️ a re-read chapter will not parse → drop
+//   ⚠️ a carried-over scene has no story-time entry → drop (already inconsistent)
+//
+// ⛔ THE CHAPTER LIST IS RE-OBSERVED ON EVERY CALL, never reused from the cached
+// index — a Class B op can rename, add or remove a chapter folder, and manuscript
+// order is FILESYSTEM-AUTHORITATIVE (EP-027 B3).
+// ⛔ SIX CLASS B ENDPOINTS DELIBERATELY STILL DROP THE WHOLE INDEX, AND THAT IS A
+// RULING, NOT AN OVERSIGHT. `rebuildAfterWrite` needs the AFFECTED CHAPTER IDS from
+// the write's own result. These six do not report them:
+//
+//   `scrivi_delete_scene`      — `DeleteSceneResult` carries sceneID + deleted only.
+//   `scrivi_rename_scene`      — `RenameSceneResult` carries a path + title only.
+//   `scrivi_rename_chapter`    — `RenameChapterResult` likewise.
+//   `scrivi_fragment_cut`      — spans across arbitrary scenes; no chapter scope.
+//   `scrivi_fragment_paste`    — same.
+//   `scrivi_fragment_uncut_paste` — same.
+//   `scrivi_apply_repair`      — can move, add or remove anything, by design.
+//
+// ⚠️ THE TEMPTING WRONG FIX IS TO LOOK THE CHAPTER UP FROM THE CACHED INDEX BEFORE
+// THE WRITE. ⛔ That is precisely the "reason about which entries the write could
+// have touched" trap `invalidateProjectIndex` warns against: the answer would come
+// from PRE-WRITE state, which is the same shape as the `count:0` defect AC5b caught.
+// ✅ Widening those result structs is the honest fix, and it is a SEPARATE piece of
+// work — the structs are public API and `fragment_*`/`apply_repair` genuinely have
+// manuscript-wide scope.
+//
+// ✅ MEANWHILE THEY ARE CORRECT, just not cheap — which is the right default.
+struct ChapterRebuildGuard {
+    std::string root;
+    bool        cancelled = false;
+
+    // ⚠️ THE CONSTRUCTOR TAKES THE INDEX RATHER THAN MERELY ERASING IT.
+    //
+    // ⛔ MEASURED PROBLEM, FOUND BY PROBE NOT BY READING: the before-drop is
+    // load-bearing for AC5b, but it also destroyed the very index the partial
+    // rebuild needs. Every structural op therefore saw an EMPTY cache and fell back
+    // to a full build — the fast path NEVER RAN on the op it was written for, while
+    // the index-layer perf test still reported 13.7x. ✅ A change that looks right,
+    // builds clean, and does nothing.
+    //
+    // ✅ TAKING IT IS EXACTLY AS SAFE AS ERASING IT: the registry is left with NO
+    // index for this project either way, so any concurrent reader misses and
+    // traverses, and a failure anywhere below simply drops `taken_` on scope exit.
+    // ⚠️ The pre-write snapshot is used ONLY as a source of carried-over chapters,
+    // and every chapter named by the write is RE-READ FROM POST-WRITE DISK.
+    explicit ChapterRebuildGuard(std::string r) : root(std::move(r)) {
+        auto& reg = projectIndexRegistry();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+        auto it = reg.byRoot.find(root);
+        if (it != reg.byRoot.end()) {
+            taken_ = std::move(it->second);
+            reg.byRoot.erase(it);
+        }
+    }
+    // ⚠️ `taken_` is destroyed with the guard, so a failure path needs no explicit
+    // erase — the index is simply gone. ✅ The erase still runs for the case where
+    // the WORK ITSELF repopulated the registry through the locator.
+    ~ChapterRebuildGuard() { if (!cancelled) { invalidateProjectIndex(root); } }
+
+private:
+    std::unique_ptr<scrivi::manuscript::ProjectIndex> taken_;
+
+public:
+
+    ChapterRebuildGuard(const ChapterRebuildGuard&)            = delete;
+    ChapterRebuildGuard& operator=(const ChapterRebuildGuard&) = delete;
+
+    // ✅ Returns true when the cached index has been brought up to date for `changed`
+    // and the end-of-scope drop has been cancelled. ⚠️ False means "dropped".
+    bool rebuildAfterWrite(const std::vector<scrivi::ChapterID>& changed) {
+        if (changed.empty()) { return false; }   // ⛔ unknown scope ⇒ drop
+
+        auto services = abiServices();
+        services.sceneLocator = nullptr;   // no recursion through the locator
+
+        // ⚠️ No pre-write snapshot ⇒ nothing to carry over. ✅ Correct, just not
+        // cheap: the drop stands and the next read builds a fresh index.
+        if (!taken_ || !taken_->valid()) { return false; }
+
+        if (!taken_->rebuildChapters(scrivi::AbsolutePath{root}, services, changed)) {
+            return false;   // ⛔ `taken_` is discarded on scope exit; index dropped
+        }
+
+        auto& reg = projectIndexRegistry();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+        reg.byRoot.insert_or_assign(root, std::move(taken_));
+
+        cancelled = true;
+        return true;
+    }
 };
 
 // Runs `fn` against a valid index for `projectRootPath`, building one if this
@@ -1924,11 +2114,11 @@ const char* scrivi_create_scene(
     const char* personaID,
     const char* displayName)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::CreateSceneRequest req;
     req.projectRootPath = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -1945,6 +2135,9 @@ const char* scrivi_create_scene(
 
     auto r = core().createScene(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ One chapter gained a scene; every other chapter is carried over.
+    (void)scriviIndexGuard.rebuildAfterWrite({r.value().chapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -1964,11 +2157,11 @@ const char* scrivi_create_chapter(
     const char* displayName,
     const char* afterChapterID)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::CreateChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -1984,6 +2177,10 @@ const char* scrivi_create_chapter(
 
     auto r = core().createChapter(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ The NEW chapter is not in the index yet; `rebuildChapters` reads it fresh
+    // and carries every other chapter over.
+    (void)scriviIndexGuard.rebuildAfterWrite({r.value().chapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -2022,17 +2219,21 @@ const char* scrivi_delete_chapter(
     const char* projectRootPath,
     const char* chapterID)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::DeleteChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
 
     auto r = core().deleteChapter(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ The chapter is GONE from disk; `listChaptersByOrder` will not return it, so
+    // its scenes fall out of the rebuilt vector without being named.
+    (void)scriviIndexGuard.rebuildAfterWrite({r.value().chapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -2049,11 +2250,11 @@ const char* scrivi_reorder_scene(
     const char* targetChapterID,
     const char* afterSceneID)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::ReorderSceneRequest req;
     req.projectRootPath  = S(projectRootPath);
     req.sceneID          = scrivi::SceneID  {S(sceneID)};
@@ -2063,6 +2264,12 @@ const char* scrivi_reorder_scene(
 
     auto r = core().reorderScene(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ⚠️ A reorder can MOVE A SCENE BETWEEN CHAPTERS, so BOTH ends must be re-read.
+    // ⛔ Naming only the target would leave the source chapter still listing a scene
+    // that has left it.
+    (void)scriviIndexGuard.rebuildAfterWrite(
+        {r.value().sourceChapterID, r.value().targetChapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -2081,11 +2288,11 @@ const char* scrivi_reorder_chapter(
     const char* chapterID,
     const char* afterChapterID)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::ReorderChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
@@ -2093,6 +2300,11 @@ const char* scrivi_reorder_chapter(
 
     auto r = core().reorderChapter(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ The folder was renamed, so every scene path inside it changed — that chapter
+    // is re-read. ⚠️ Its POSITION change is picked up by re-listing chapters, which
+    // `rebuildChapters` always does.
+    (void)scriviIndexGuard.rebuildAfterWrite({r.value().chapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -2160,17 +2372,21 @@ const char* scrivi_merge_scene(
     const char* projectRootPath,
     const char* sceneID)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::MergeSceneRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID         = scrivi::SceneID{S(sceneID)};
 
     auto r = core().mergeScene(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ Both scenes belonged to the SAME chapter (the result says so), so one
+    // chapter covers the merge.
+    (void)scriviIndexGuard.rebuildAfterWrite({r.value().chapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -2188,17 +2404,22 @@ const char* scrivi_merge_chapter(
     const char* projectRootPath,
     const char* chapterID)
 {
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
+    // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
+    // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
+    // ids the core itself reported. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::MergeChapterRequest req;
     req.projectRootPath = S(projectRootPath);
     req.chapterID       = scrivi::ChapterID{S(chapterID)};
 
     auto r = core().mergeChapter(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ⚠️ Scenes RELOCATED out of the merged chapter into the survivor, so BOTH are
+    // named. ✅ The merged chapter is gone from disk and simply stops being listed.
+    (void)scriviIndexGuard.rebuildAfterWrite(
+        {r.value().survivorChapterID, r.value().mergedChapterID});
 
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
@@ -2245,7 +2466,8 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
     // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0549 (SP-150) — ✅ patch-or-drop instead of an unconditional whole-index drop.
+    StoryTimePatchGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::SetSceneStoryTimeRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2255,7 +2477,12 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
     req.durationMs      = durationMs;
     req.durationSource  = S(durationSource);
     auto r = core().setSceneStoryTime(req);
+    // ⚠️ A FAILED write never patches -- the guard drops as before.
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ Patch with the sceneID the CORE echoed back, not the one the caller passed.
+    (void)scriviIndexGuard.patchAfterWrite(r.value().sceneID);
+
     scrivi::util::JsonDoc doc;
     doc.setString("sceneID", r.value().sceneID.value);
     doc.setBool("updated",   r.value().updated);
@@ -2593,12 +2820,19 @@ const char* scrivi_clear_scene_story_time(const char* projectRootPath, const cha
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
     // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // T-0549 (SP-150) — ✅ patch-or-drop instead of an unconditional whole-index drop.
+    StoryTimePatchGuard scriviIndexGuard{S(projectRootPath)};
     scrivi::ClearSceneStoryTimeRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
     auto r = core().clearSceneStoryTime(req);
+    // ⚠️ A FAILED write never patches -- the guard drops as before.
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+
+    // ✅ Re-reads the cleared sidecar, so the index holds the DEFAULTS that were
+    // actually written rather than an assumption about what "cleared" means.
+    (void)scriviIndexGuard.patchAfterWrite(r.value().sceneID);
+
     scrivi::util::JsonDoc doc;
     doc.setString("sceneID", r.value().sceneID.value);
     doc.setBool("cleared",   r.value().cleared);

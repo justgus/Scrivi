@@ -9,11 +9,12 @@
 | **Planned** | **2026-09-23** |
 | **Size** | ⚠️ **MEDIUM** |
 
-**Status:** 🟢 **ACTIVE — ALL EIGHT ACs MET, ⚠️ AC2 and AC8 USER-VERIFIED 2026-09-23.**
+**Status:** ✅ **CLOSED 2026-09-23 (user-approved).** ⚠️ **ALL EIGHT ACs MET; AC2 and AC8 USER-VERIFIED.**
+✅ **[EP-040]'s LAST Sprint.** ⚠️ **An Audit Check is owed before the Epic closes** (⛔ **not an Audit**).
 ⚠️ **T-0547 took FOUR implementations and produced THREE Issues** ([I-0248] · [I-0249] · [I-0250]),
 ✅ **all three resolved; [I-0250] user-VERIFIED.**
 ⛔ **T-0548's RUNTIME half was REMOVED by user ruling** — ✅ **its static half remains in CI.**
-⚠️ **The Sprint is closable on the user's approval** — ⛔ **Claude may not close a Sprint.**
+✅ **T-0547 and T-0548 COMPLETE; [I-0248] · [I-0249] · [I-0250] all resolved, TWO user-VERIFIED.**
 ✅ **All FOUR questions RULED (Q1–Q4).** ⚠️ **AC1, AC3–AC7 met; ⛔ AC2 FAILED the live pass ([I-0248]) and is re-implemented, not re-verified.**
 ✅ **`xcodebuild test` 134/134 · `ctest` 626/626 · all THREE guards green.**
 

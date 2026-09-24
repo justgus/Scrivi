@@ -15,9 +15,9 @@ This is the main index for all Scrivi Epics. Epics are strategic milestones that
 ⚠️ **THIS SECTION NAMES THE ACTIVE EPICS ONLY.** ⛔ **It does not restate their status, ACs or sprint
 tables** — ✅ **the All-Epics table below and each Epic's own record are authoritative (P7).**
 
-🟡 **EP-040** `[Apple]` **The Editor Shell** (activated 2026-09-15) — SP-134–SP-137 → [`Epic-active.md`](Epic-active.md)
+✅ **EP-040** `[Apple]` **The Editor Shell** — **CLOSED 2026-09-24** (SP-134–SP-137 · SP-150) → [`Closed/Epic-EP-040.md`](Closed/Epic-EP-040.md)
 ✅ **EP-041** `[Cross]` **The Boundary** — **CLOSED 2026-09-22** → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md)
-⚠️ **ONE ACTIVE EPIC REMAINS: [EP-040].**
+⛔ **NO EPIC IS ACTIVE as of 2026-09-24** — ✅ **[EP-040] CLOSED 2026-09-24 (user-approved).**
 
 ⚠️ **CORRECTED 2026-09-21.** ⛔ **This section had gone BADLY stale: it claimed EP-035 and EP-038 were
 the two active Epics "by user ruling 2026-08-25"** — ⚠️ **EP-038 CLOSED 2026-09-11 and EP-035 was
@@ -103,7 +103,7 @@ user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbrok
 | EP-037 | `[Linux]` **Relationships & Sources** — edges, navigation, citations, **T-0472** custom relation types. ⚠️ **Third of the split; its close DISCHARGES SP-121's no-reader debt** | 🔵 Proposed (backlog) | 2026-08-25 | — |
 | EP-038 | `[Linux]` **The Real Hardware Rig** — native Ubuntu + ⚠️ **drive-loss GROUND TRUTH**; writes the Porting Outline's §9 | ✅ **CLOSED** (user-approved) — [record](Closed/Epic-EP-038.md) | 2026-08-24 | 2026-09-11 |
 | EP-039 | `[Cross]` Project Load Performance | ✅ **Closed** (user-approved) — [record](Closed/Epic-EP-039.md) | 2026-09-10 | 2026-09-15 |
-| EP-040 | `[Apple]` **The Editor Shell** — build Scrivi as the kind of app it actually is | 🟡 **ACTIVE** — [record](Epic-active.md) | 2026-09-15 | — |
+| EP-040 | `[Apple]` **The Editor Shell** — build Scrivi as the kind of app it actually is | ✅ **CLOSED** — [record](Closed/Epic-EP-040.md) | 2026-09-15 | 2026-09-24 |
 | EP-041 | `[Cross]` **The Boundary** — close [I-0197]'s Swift-bypass chain; the app talks to the core, never the package | ✅ **CLOSED** (user-approved) — [record](Closed/Epic-EP-041.md) | 2026-09-18 | 2026-09-22 |
 | EP-042 | `[Cross]` **Project Open Cost** — ⚠️ **opening a project costs what its DATA costs, not a multiple of it** | ✅ **CLOSED** — [record](Closed/Epic-EP-042.md) | 2026-09-18 | 2026-09-20 |
 | EP-044 | `[ScriviCore]` **World Resolution** — ⚠️ **the core stops giving CONFIDENT WRONG ANSWERS about where a world is.** ⚠️ **[I-0223] + [I-0192] + [I-0181]'s residual** | 🔵 **Draft** (backlog) — [record](Epic-EP-044.md) | 2026-09-22 | — |
@@ -119,7 +119,7 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
   referenced in five documents and present in none since 2026-09-18.**
 - **Next available Epic ID:** **EP-045** — ⚠️ **EP-044 `[ScriviCore]` World Resolution created 2026-09-22** (🔵 Draft, no Sprint). — ⚠️ **EP-043 `[Linux]` The Session was created 2026-09-21**
   into the backlog (🔵 Draft, no Sprint): → [`Epic-EP-043.md`](Epic-EP-043.md).
-- ⚠️ **TWO ACTIVE EPICS as of 2026-09-20:** 🟡 **[EP-040]** `[Apple]` The Editor Shell (SP-134–SP-137)
+- ✅ **[EP-040] CLOSED 2026-09-24** `[Apple]` The Editor Shell (SP-134–SP-137 · SP-150). ⚠️ **Prior line read "TWO ACTIVE EPICS as of 2026-09-20"**
   ✅ **[EP-041] `[Cross]` The Boundary CLOSED 2026-09-22** → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md)
   (SP-140 · SP-141 · SP-142 · SP-149 · SP-143). ⚠️ **That line read "TWO ACTIVE EPICS"; ✅ only [EP-040] is.**
   ✅ **[EP-042] `[Cross]` Project Open Cost CLOSED 2026-09-20** after ONE Sprint ([SP-144]), ONE Task
