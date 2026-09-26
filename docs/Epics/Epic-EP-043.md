@@ -1,13 +1,27 @@
 ---
 epic: EP-043
-status: Draft
+status: Active
 platform: Linux
 created: 2026-09-21
+activated: 2026-09-25
 ---
 
 # EP-043: `[Linux]` ⚠️ **The Session** — ✅ **many projects, each in its own window, restored where the writer left it**
 
-**Status:** 🔵 **DRAFT — on the [Epic backlog](Epic-backlog.md). ⛔ Not activated; no Sprint assigned.**
+**Status:** 🟡 **ACTIVE — activated 2026-09-25 (user-approved).** ⛔ **No Sprint is active yet.**
+⚠️ **[SP-145] MAY NOT ACTIVATE UNTIL THE FOUR RULINGS BELOW ARE ANSWERED** (✅ **§Rulings owed**) —
+⛔ **Q1 and Q2 decide where persistence lives and what keys a window; ✅ picking them late means writing
+the persistence twice, which is the exact cost this Epic recorded them to avoid.**
+✅ **ACTIVATION RATIONALE (2026-09-25): it blocks on nothing, it is fully planned, and Apple's [EP-018]
+is FINISHED AND VERIFIED so this port reads an outcome rather than inventing one.**
+⚠️ **IT WAS ALSO CHOSEN OVER [EP-035] ON A FILE COLLISION, MEASURED NOT ASSUMED:** ⛔ **[SP-145]
+extracts per-project state out of `EditorShell.cpp` (2,783 lines), and [EP-035]'s open **AC4** (object
+CRUD) attaches to that SAME owner** — ✅ **`EditorShell::onOpenObjectRequested` (`EditorShell.cpp:2214`,
+wired from `SceneInspector` at `:131`, commented *"opening an object is requested here and OWNED by the
+shell"*).** ⚠️ **Running [EP-035] first would write CRUD into `EditorShell` and have [SP-145]
+immediately relocate it** — ✅ **the "paying the extraction cost twice" this Epic already predicted for
+[I-0244].** ⚠️ **[EP-035]'s AC5 (thumbnails) does NOT collide** (✅ `SceneInspector.cpp`) — ⛔ **and its
+EP-039 blocker EXPIRED when [EP-039] closed 2026-09-15.**
 **Sprints (planned, IDs reserved):** [SP-145] · [SP-146] · [SP-147] · [SP-148]
 **Primary Issues:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (geometry)
 **Codebase:** `[Linux]` — ⚠️ **`platforms/linux/` ONLY.** ✅ **No ScriviCore change is expected.**
@@ -217,6 +231,15 @@ geometry); ⛔ that is the SHELL (toolbar, bars, panes).**
 ⚠️ **BUT BOTH REWORK `EditorShell`** — ✅ **this Epic's [SP-145] extracts a per-project session out of
 its 2,783 lines, and the shell work would touch the same file** — ⚠️ **so doing them in sequence, or
 at least deciding their order deliberately, avoids paying the extraction cost twice.**
+
+⚠️ **A FIFTH RULING IS THEREFORE OWED, AND IT IS THIS EPIC'S TO ASK** (✅ **user confirmed 2026-09-25
+that [I-0244] will be addressed in an upcoming Epic/Sprint**): ⛔ **does [I-0244] become a SIBLING Epic
+sequenced after this one, or ACs INSIDE this Epic?** ⚠️ **The two records currently disagree** —
+✅ **this section calls it *"a different Epic's subject"*; ⛔ [I-0244]'s own row says *"wants its own
+`[Linux]` Epic, sequenced with or after [EP-043]"*.** ⚠️ **BOTH AGREE THEY MUST SEQUENCE TOGETHER.**
+⛔ **IT CHANGES [SP-145]'s EXTRACTION SCOPE, so it must be answered with Q1–Q4, not after them:**
+✅ **if the shell work is folded in, the extraction should carve out visibility state at the same time
+rather than twice.**
 
 ---
 

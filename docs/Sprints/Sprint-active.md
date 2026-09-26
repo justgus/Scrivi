@@ -33,8 +33,12 @@ O(DOCUMENT) costs are addressed OR accepted as limitations WITH a measurement*) 
 (⚠️ *chapter create froze the app ~2.7 s on 1,174 scenes*) **from [EP-039]** (⚠️ *Project Load
 Performance — it replaced a ~300 s frozen open*) — ⛔ **neither is this Sprint's.**
 ✅ **[I-0213] IS SETTLED AND ITS REMAINDER IS NOW FIXED** — ✅ **[SP-150] (T-0549 + T-0550) closed
-2026-09-24; `reloadSceneDots` ~235 ms → `1.4 ms` on the USB rig.** ⚠️ **[I-0206] STILL
-must be RULED at the Epic close: addressed, or ACCEPTED AS A LIMITATION with a measurement.**
+2026-09-24; `reloadSceneDots` ~235 ms → `1.4 ms` on the USB rig.**
+✅ **[I-0206] WAS RULED 2026-09-25, AFTER the Epic close — ⛔ and NEITHER branch of AC11 is what it
+took.** ⚠️ **It is CLOSED AS NOT-A-DEFECT** → [`../Issues/Closed/Issue-closed-0206.md`](../Issues/Closed/Issue-closed-0206.md):
+⛔ **`docs/` states NO keystroke or latency requirement for it to violate**, ✅ **so its figures are
+MEASUREMENTS, not a limitation.** ⚠️ **Re-open condition: if `setSelectedRange`'s offset-linear cost
+becomes a problem in real use.**
 
 ✅ **[SP-136] CLOSED 2026-09-23 (user-approved)** → [`Closed/Sprint-SP-136.md`](Closed/Sprint-SP-136.md).
 ⚠️ **All 9 ACs VERIFIED by the user's live pass; T-0546 VERIFIED and archived.** ⚠️ **THREE Issues came
@@ -46,8 +50,7 @@ intent is superseded) is **OPEN for [SP-137] to rule.**
 ⛔ **PRIOR STATE:** ✅ **[EP-041] CLOSED 2026-09-22 (user-approved)** →
 [`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md) — ⚠️ **all five of its Sprints,
 six Tasks and [I-0197] closed with it.**
-✅ **[EP-040] CLOSED 2026-09-24 — ⛔ NO EPIC IS ACTIVE.** ⚠️ **Superseded line: "ONE ACTIVE EPIC REMAINS: [EP-040]"** `[Apple]` **The Editor Shell** — ✅ **[SP-134] is
-unblocked and LOW risk.**
+✅ **[EP-040] CLOSED 2026-09-24.** ✅ **[EP-043] `[Linux]` The Session ACTIVATED 2026-09-25 (above).**
 
 ✅ **[SP-143] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-143.md`](Closed/Sprint-SP-143.md)
 — ⚠️ **the Epic's LAST.** ✅ **T-0510 VERIFIED; ✅ [I-0197] CLOSED.**
@@ -69,10 +72,6 @@ under ✅ **[EP-041]** (now CLOSED). ✅ **T-0507 VERIFIED by live pass; [EP-041
 ⚠️ **ITS BODY IS NOT KEPT HERE** — ✅ **the closed record supersedes it** (`Epic-GUIDELINES.md`:
 *"strip the active-file entry down to a pointer"*).
 
-✅ **[SP-142] IS ACTIVE (above).** ✅ **[SP-149] is PLANNED, fully ruled and blocks on nothing.**
-⚠️ **[SP-143] queues behind [SP-142]'s LIVE PASS and [SP-149]'s guard** — ⚠️ **rescoped 2026-09-21: it
-WITNESSES the guard (red-before / green-after), ⛔ it no longer builds one.**
-
 ✅ **[SP-140] CLOSED 2026-09-18 (user-approved)** → [`Closed/Sprint-SP-140.md`](Closed/Sprint-SP-140.md)
 — ⚠️ **planned, implemented, verified and closed in ONE DAY.** ✅ **T-0536 and [I-0215] both Verified.**
 ⚠️ **It also produced [I-0223]**, ✅ **filed unassigned.**
@@ -82,15 +81,21 @@ WITNESSES the guard (red-before / green-after), ⛔ it no longer builds one.**
 ---
 ---
 
-## ⚠️ Two Epics are active
+## 🟡 **[EP-043]** `[Linux]` **The Session** IS ACTIVE — ✅ **activated 2026-09-25**
 
-✅ **[EP-041]** — `[Cross]` **The Boundary** — **CLOSED 2026-09-22**; ✅ **all five Sprints closed.**
-⚠️ **[SP-142] is PLANNED and UNBLOCKED; [SP-143] queues behind it.**
-✅ **[EP-040]** — `[Apple]` **The Editor Shell** — ✅ **CLOSED 2026-09-24.** ⚠️ *(historical: [SP-134] was unblocked and LOW risk)*
+✅ **Record:** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md). ⛔ **NO SPRINT IS ACTIVE.**
+⚠️ **[SP-145] (the session split — extract per-project state out of `EditorShell.cpp`'s 2,783 lines)
+MAY NOT ACTIVATE until FIVE rulings are answered** — ✅ **Q1–Q4 in that record, plus the [I-0244]
+scope question.** ⚠️ **Its chain is SERIAL: [SP-145] → [SP-146] → [SP-147] → [SP-148]**, ⛔ **so a
+stall in [SP-145] stalls the Epic.**
 
-✅ **[SP-144] CLOSED 2026-09-20 (user-approved)** → [`Closed/Sprint-SP-144.md`](Closed/Sprint-SP-144.md).
-✅ **All 7 ACs met; SIX Issues VERIFIED on the real rig under `cache=none`.**
-✅ **[EP-042] CLOSED with it** → [`../Epics/Closed/Epic-EP-042.md`](../Epics/Closed/Epic-EP-042.md).
+### ⛔ Previously closed Epics
+
+✅ **[EP-040]** `[Apple]` **The Editor Shell** — **CLOSED 2026-09-24** → [`../Epics/Closed/Epic-EP-040.md`](../Epics/Closed/Epic-EP-040.md).
+✅ **[EP-041]** `[Cross]` **The Boundary** — **CLOSED 2026-09-22** → [`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md).
+✅ **[EP-042]** `[Cross]` **Project Open Cost** — **CLOSED 2026-09-20** → [`../Epics/Closed/Epic-EP-042.md`](../Epics/Closed/Epic-EP-042.md),
+⚠️ **closed with [SP-144]** → [`Closed/Sprint-SP-144.md`](Closed/Sprint-SP-144.md) (✅ **all 7 ACs met;
+SIX Issues VERIFIED on the real rig under `cache=none`**).
 
 ---
 
@@ -106,7 +111,8 @@ source of truth going stale.** ✅ **They remain BINDING on [SP-142] and [SP-143
 2. ✅ **ABSENCE SEMANTICS (2026-09-21): "core reports, app decides"** — `status` = `ok` | `absent` |
    `unreadable`. ⛔ **The core never invents defaults and never overwrites a corrupt file on read.**
 
-⚠️ **[SP-142] must honour BOTH** — ✅ **its plan already does.**
+⚠️ **[SP-142] and [SP-143] honoured BOTH; ✅ both are CLOSED.** ⚠️ **The rulings REMAIN BINDING on any
+future work against that endpoint pair.**
 
 ---
 
@@ -130,43 +136,22 @@ had been deferred as "informational" and was not:**
 ✅ **It also CONFIRMED the pending-world architecture works** — ⚠️ **the more important half**: the
 manuscript stayed usable with the volume gone and everything restored on reattach.
 
-⛔ **[I-0197] IS NOT CLOSED.** ✅ **Class C only.** ⚠️ **Classes A and B continue in Track 2 below.**
+⛔ **[I-0197] WAS NOT CLOSED BY [SP-130]** — ✅ **Class C only.** ⚠️ **Classes A and B continued under
+[EP-041]** — ✅ **and [I-0197] CLOSED with [SP-143] on 2026-09-22.**
 
 ---
 
-## 🔵 What is available to activate next
+## ✅ Sprints that were queued here — ⚠️ **ALL CLOSED**
 
-⚠️ **TWO INDEPENDENT TRACKS. ⛔ Claude does not choose between them — the user activates.**
-
-### ✅ Track 1 — the Epic's actual subject (the editor shell)
-
-| Sprint | Step | Title | ⚠️ Risk |
-| ------ | ---- | ----- | ------ |
-| ✅ **[SP-134]** | **S1+S2** | ✅ **The toolbar** — `NSToolbar` + title/subtitle + existing verbs | ✅ **LOW** |
-| **[SP-135]** | **S3** | ✅ **The bars** — `safeAreaBar` conversion; ⚠️ **closes [I-0203]** | ✅ **MEDIUM** |
-| **[SP-136]** | **S4** | ⚠️ **The Inspector as a real column** (`.inspector`) | ⚠️ **MED-HIGH** |
-| 🟢 **[SP-137]** | **S6** | ⚠️ **The Object Detail Sheet** — ✅ **ACTIVE; all four questions RULED** | ⚠️ **MED-HIGH** |
-| ⛔ **[SP-138]** | **S5** | ⛔ **`NSSplitViewController` rebuild** | ⛔ **HIGH — RECORDED, NOT SCHEDULED** |
-
-✅ **[SP-134] is the natural next Sprint**: ⛔ **it blocks on nothing**, ✅ **it is LOW risk**, and
-⚠️ **it is mostly a SURFACING job** — ✅ **the verbs already exist in the menu bar as callable closures**
-(`Scrivi_Apple_App_Shape_Trade_Study_v0_1.md`). ⚠️ **S1 and S2 are ONE Sprint deliberately** —
-⛔ **splitting them ships an EMPTY TOOLBAR as a milestone.**
-
-### ⚠️ Track 2 — ✅ **NOW [EP-041]** — the [I-0197] bypass chain (boundary work)
-
-| Sprint | Task | Title | ⛔ Blocks on |
-| ------ | ---- | ----- | ----------- |
-| ✅ **[SP-140]** | **T-0536** | ✅ **[I-0215] CLOSED — Apple's layout round trip is lossless** | ✅ **CLOSED 2026-09-18** |
-| ✅ **[SP-141]** | **T-0507** | ⚠️ **Core endpoints for `inspector-layout.json` + Apple adoption** | ✅ **CLOSED 2026-09-21** — [record](Closed/Sprint-SP-141.md) |
-| ✅ **[SP-142]** | **T-0537** · **T-0542** | ✅ **CLOSED 2026-09-21** — [record](Closed/Sprint-SP-142.md) | ✅ **done** |
-| 🟢 **[SP-149]** | **T-0541** | ✅ **The guard MECHANISM — BUILT; all 7 ACs met** | ✅ **was unblocked** |
-| 🔵 **[SP-143]** | **T-0510** | ⚠️ **WITNESS the guard across the retirement — closes [I-0197]** | ⛔ **[SP-142]'s LIVE PASS + [SP-149]** |
-
-✅ **[SP-140] CLOSED 2026-09-18.** ✅ **[SP-141] CLOSED 2026-09-21 (user-approved)** — ✅ **T-0507
-Verified by live pass; [EP-041] AC2 MET.** ✅ **[SP-142] IS UNBLOCKED AND PLANNED**;
-⚠️ **[SP-143] still queues behind [SP-142]** — ✅ **its guard must see Linux's duplicate PRESENT before
-and ABSENT after, so it cannot run first.**
+⛔ **NOTHING IS AVAILABLE TO ACTIVATE FROM THIS FILE.** ✅ **Both tracks finished:**
+⚠️ **Track 1 (the editor shell) closed with [EP-040]** → [`../Epics/Closed/Epic-EP-040.md`](../Epics/Closed/Epic-EP-040.md)
+— ✅ **[SP-134] · [SP-135] · [SP-136] · [SP-137] · [SP-150].** ⛔ **[SP-138]** (`NSSplitViewController`
+rebuild, **S5**) was **RECORDED, NEVER SCHEDULED, and NEVER CREATED** — ⚠️ **it exists ONLY as a row in
+[`../Epics/Closed/Epic-EP-040.md`](../Epics/Closed/Epic-EP-040.md) (`:160`, `:278`); ⛔ it is NOT in
+[`Sprint-backlog.md`](Sprint-backlog.md).** ✅ **Reviving S5 means planning it fresh.**
+⚠️ **Track 2 (the [I-0197] bypass chain) closed with [EP-041]** → [`../Epics/Closed/Epic-EP-041.md`](../Epics/Closed/Epic-EP-041.md)
+— ✅ **[SP-140] · [SP-141] · [SP-142] · [SP-143] · [SP-149]; [I-0197] CLOSED.**
+✅ **The per-Sprint records in [`Closed/`](Closed/) are the source of truth for both.**
 
 ---
 
@@ -201,8 +186,10 @@ and T-0548 already existed (corrected 2026-09-23), and `SP-134 · T-0535` while 
 1,174 scenes, and the app is USABLE.** ⚠️ **WHAT REMAINS IS SHAPE, NOT SPEED** — ✅ **the window has no
 `NSToolbar`, the bars are `VStack` siblings, and the Inspector hand-rolls a column.**
 ⚠️ **FOUR DEFECTS WERE CARRIED INTO [EP-040], NOT FIXED: [I-0203]** (chrome vanishes behind the banner),
-**[I-0205]** (the banner itself), **[I-0206]** (offset-linear `setSel`, `57–81 ms` near the document end),
+**[I-0205]** (the banner itself), **[I-0206]** (offset-linear `setSel`, `57–81 ms` near the document end
+— ✅ **CLOSED 2026-09-25 as NOT-A-DEFECT**),
 **[I-0213]** (⚠️ *chapter create, originally a 2.7 s freeze, now `~305–400 ms` of work*).
 ✅ **[I-0213] IS NOW VERIFIED (2026-09-24) and ARCHIVED** →
 [`../Issues/Verified/Issue-verified-0211-0220.md`](../Issues/Verified/Issue-verified-0211-0220.md);
-⚠️ **the other three remain.**
+✅ **[I-0203] and [I-0205] are VERIFIED (2026-09-24) and ARCHIVED; ✅ [I-0206] is CLOSED (2026-09-25).**
+⛔ **NONE OF THE FOUR REMAIN OPEN.**

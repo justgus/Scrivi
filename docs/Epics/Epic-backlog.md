@@ -13,7 +13,9 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 ## EP-044: `[ScriviCore]` ⚠️ **World Resolution** — know where a world really is, or say you don't
 
 **Status:** 🔵 **Draft** — created 2026-09-22. ⛔ **No Sprint assigned; not activated.**
-**Full record:** → [`Epic-EP-044.md`](Epic-EP-044.md) — ⚠️ **AC1–AC8 and FOUR owed rulings.**
+**Full record:** → [`Epic-EP-044.md`](Epic-EP-044.md) — ⚠️ **AC1, AC2, AC2b, AC3–AC8 and FOUR owed
+rulings.** ⛔ **AC1 and AC2 were REWRITTEN 2026-09-25 (user ruling) and AC2b added; ✅ the void
+originals are kept in that record.**
 **Issues:** ⚠️ **[I-0223]** · ⚠️ **[I-0192]** · ⚠️ **[I-0181]'s KNOWN RESIDUAL** (✅ the Issue is Verified;
 ⛔ its residual was explicitly not fixed by [T-0498]).
 
@@ -22,20 +24,26 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 ⚠️ **THREE DEFECTS, ONE SHAPE — and every one is a wrong answer, not a missing one:**
 ⛔ **[I-0192]** a PHYSICALLY REMOVED volume resolved `available` and a full object read SUCCEEDED
 through it · ⛔ **[I-0181]'s residual** a pulled drive whose MOUNTPOINT SURVIVED still reports
-`missing`, the status reserved for positive proof of deletion · ⛔ **[I-0223]** a world on a DIFFERENT
-VOLUME can bind to a plausible WRONG LOCATION in `$HOME` **and report success.**
+`missing`, the status reserved for positive proof of deletion · ⚠️ **[I-0223]** a world binds to a
+DIFFERENT VERSION of itself, silently, because `worldID` is IDENTITY and nothing records STATE.
 
 ✅ **"World not found" is honest and recoverable.** ⛔ **"Here is your world" when it is gone, deleted,
-or a DIFFERENT WORLD is not.**
+or AT A STATE YOU NEVER BOUND is not.**
 
-**Rough scope:** Skip a relative candidate when project and world are on different devices (✅ **using
-[T-0498]'s `deviceID`, already built**); ⚠️ **verify a resolved package IS the bound world, not merely
-one that parses**; answer or explicitly accept the hand-mounted `/mnt` case; ⚠️ **and make every status
-carry evidence the core actually has.**
+⚠️ **[I-0223] WAS REWRITTEN AND DROPPED TO `Low` 2026-09-25** — ⛔ **its original "binds the WRONG
+WORLD in `$HOME`" claim was FALSE:** ✅ **`WorldStore.cpp:428` already rejects a different world on
+`worldID`.** ⚠️ **[I-0192] and [I-0181]'s residual are UNCHANGED and are now this Epic's sharpest.**
 
-⚠️ **FOUR RULINGS OWED** — ✅ **what identifies a world (a backup copy has the same ID); what a
-wrong-identity match should report; whether `available` may be cached at all; and whether any app
-surface is touched.** ⛔ **Recorded up front.**
+**Rough scope:** ⚠️ **Give a world package a VERSION and record it in the binding** (⛔ **a schema
+change to `scrivi.world.v1` and `scrivi.world-binding.v1`, with migration**); ✅ **report a version
+mismatch honestly WITH its direction, and treat a COPY as the same world**; ⚠️ **answer or explicitly
+accept the hand-mounted `/mnt` case; and make every status carry evidence the core actually has.**
+⛔ **The relative-first candidate ordering is NOT touched** — ✅ **it is correct and measured.**
+
+⚠️ **FOUR RULINGS OWED** — ✅ **what identifies a world (⚠️ the COPY half is RULED 2026-09-25: a copy is
+the same world and binding to it is fine; ⛔ the VERSION mechanism is still open); what a version
+mismatch should report; whether `available` may be cached at all; and whether any app surface is
+touched.** ⛔ **Recorded up front.**
 
 ⛔ **OUT of scope:** world LIFECYCLE (✅ **[EP-033]** — ⚠️ **this must not wait on its product-boundary
 decision**) · app-surface work unless a new status is ruled · [I-0218] · read-amplification tuning.
@@ -46,42 +54,15 @@ hand-mounted one, so a USB-stick test will not exercise AC4.**
 
 ---
 
-## EP-043: `[Linux]` ⚠️ **The Session** — many projects, each in its own window, restored where the writer left it
+## ✅ EP-043 — ACTIVATED 2026-09-25, no longer on this backlog
 
-**Status:** 🔵 **Draft** — created 2026-09-21. ⛔ **No Sprint assigned; not activated.**
-**Full record:** → [`Epic-EP-043.md`](Epic-EP-043.md) — ⚠️ **goal, AC R1–R8, 4 Sprints, 4 owed rulings.**
-**Closes:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (window + splitter geometry)
-**Apple precedent:** ✅ **[EP-018]** → [`Closed/Epic-EP-018.md`](Closed/Epic-EP-018.md), R1–R5
-user-verified 2026-06-25 in **3 Sprints**. ⚠️ **This is scoped at 4.**
+⚠️ **[EP-043] `[Linux]` The Session MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-09-25
+(user-approved).** ✅ **Its full record is [`Epic-EP-043.md`](Epic-EP-043.md)** — ⛔ **the body that used
+to be restated here is deleted rather than kept, because a second copy is what goes stale**
+(`Epic-GUIDELINES.md`: *"strip the active-file entry down to a pointer"*).
+⚠️ **[SP-145] MAY NOT ACTIVATE until FIVE rulings are answered** — ✅ **Q1–Q4 in that record, plus the
+[I-0244] scope question added on activation.**
 
-**Goal:** A writer can keep **several Scrivi projects open at once on Linux, one per window**; opening
-an already-open project **focuses its window** instead of duplicating it; and on relaunch the app
-**reopens every window that was open at quit, at the size, position and panel proportions it had.**
-
-⚠️ **All three Issues were found by the USER on the REAL RIG on 2026-08-29** — ✅ **the first day the
-Linux app ran on real hardware.** ⛔ **No suite found any of them**, and none can be verified by one:
-⚠️ **"was it still there after a quit?" is not a question a headless smoke can ask.**
-
-⚠️ **They are ONE missing concept, not three defects.** ✅ **[I-0178] says so itself** — *"the natural
-parent of I-0176 and I-0177, since 'restore what was open' and 'restore geometry' are both per-window
-concepts that need a window registry to hang from."*
-
-**Rough scope:** Extract a per-project session out of the 2,783-line `EditorShell` (⚠️ **behaviour-
-preserving**, its own Sprint — ✅ **the whole risk of the Epic lives here**); an authoritative
-open-project registry; one window per project; an open-session manifest + launch restore; per-project
-geometry **and splitter proportions**; ⚠️ **a test/headless guard that ships in the SAME Sprint as the
-restore** ([I-0150]: `xcodebuild test` once launched Apple's app and **rewrote a real project**).
-
-⚠️ **Four rulings are owed before [SP-145] can activate** — ✅ **`QSettings` vs `recents.json`;
-path-keyed vs projectID-keyed windows; what becomes of the stacked landing page; and whether the
-deliberately session-scoped visibility flags (SP-078/T-0320) now persist.** ⛔ **Recorded up front so
-they are not discovered mid-Sprint, the way [SP-141]'s endpoint-shape ruling was.**
-
-⛔ **OUT of scope:** any ScriviCore/C ABI change · any Apple-side work · [I-0181] · deep links ·
-[EP-026]'s undo/menus/settings parity.
-
-**Sprints (IDs reserved, none in Planning):** [SP-145] session split · [SP-146] the windows ·
-[SP-147] the persistence · [SP-148] verification + live pass. ⚠️ **The chain is SERIAL.**
 
 ## [Linux] App — Epic Family (EP-024–EP-026)
 
@@ -112,7 +93,17 @@ tester. **Depends on:** EP-022 (and benefits from EP-023–EP-025).
 
 ## EP-035: `[Linux]` Object Foundations — ⚠️ **the first PORT, and the template for four more**
 
-**Status:** 🔵 **DEFERRED TO BACKLOG 2026-09-10 by user ruling** — ⚠️ **preempted by [EP-039]**, ✅ **which the user ruled "the most important thing right now."** ⚠️ **2 of 4 ACs remain open (AC4 object CRUD, AC5 card thumbnails); ✅ 2 are verified and are NOT lost.** ⚠️ **AC5 (thumbnails) is DEPENDENT ON EP-039's AC7** — ✅ **the blob-index rule that the index holds LOCATION AND SHAPE, never the bytes** — ⚠️ **so building AC5 first would design the memory behaviour twice, and the second design would have to undo the first.** ⚠️ **Original status line follows.** — 🟡 **ACTIVE** — promoted 2026-08-25 by user ruling, ⚠️ **and SPLIT into three Epics in the
+**Status:** 🔵 **BACKLOG.** ⚠️ **DEFERRED 2026-09-10 by user ruling, preempted by [EP-039]** (✅ *"the
+most important thing right now"*) — ⛔ **BUT THAT DEFERRAL REASON HAS EXPIRED: [EP-039] CLOSED
+2026-09-15.** ✅ **AC5's stated blocker (EP-039's AC7 blob-index rule) IS GONE.**
+⚠️ **NOT ACTIVATED 2026-09-25 for a DIFFERENT reason — a file collision with [EP-043]:** ⛔ **its open
+**AC4** (object CRUD) attaches to `EditorShell::onOpenObjectRequested` (`EditorShell.cpp:2214`), and
+[EP-043]'s [SP-145] is extracting per-project state out of that same 2,783-line file.** ✅ **Running
+AC4 first would have [SP-145] relocate it immediately.** ✅ **AC5 (thumbnails, `SceneInspector.cpp`)
+does NOT collide and could run alongside [EP-043].**
+⚠️ **ALSO OUTSTANDING: T-0497 (world CREATION)** — ✅ **the SP-127 pass RAISED its priority: a
+Linux-only writer whose project has no world has nothing to add or relink.**
+⚠️ **Original status line follows.** ⚠️ **2 of 4 ACs remain open (AC4 object CRUD, AC5 card thumbnails); ✅ 2 are verified and are NOT lost.** ⚠️ **AC5 (thumbnails) is DEPENDENT ON EP-039's AC7** — ✅ **the blob-index rule that the index holds LOCATION AND SHAPE, never the bytes** — ⚠️ **so building AC5 first would design the memory behaviour twice, and the second design would have to undo the first.** ⚠️ **Original status line follows.** — 🟡 **ACTIVE** — promoted 2026-08-25 by user ruling, ⚠️ **and SPLIT into three Epics in the
 same step** (see §1).
 **Codebase:** `[Linux]` — ✅ **Qt WIDGETS over `ScriviBridge`** (✅ **CORRECTION CONFIRMED BY
 IMPLEMENTATION 2026-08-28**: SP-125 built the first object surface as QWidgets — a `QTreeWidget` inside

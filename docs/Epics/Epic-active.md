@@ -1,6 +1,35 @@
 # Active Epics
 
-⛔ **NO EPIC IS ACTIVE as of 2026-09-24.**
+## 🟡 **[EP-043]** — `[Linux]` **The Session** — ✅ **ACTIVATED 2026-09-25 (user-approved)**
+
+✅ **Full record:** → [`Epic-EP-043.md`](Epic-EP-043.md) (⚠️ **R1–R8, four Sprints, FIVE owed rulings**).
+**Goal:** ⚠️ **many projects, each in its own window, restored where the writer left it.**
+**Closes:** ✅ **[I-0178]** (multi-project) · ✅ **[I-0176]** (reopen at launch) · ✅ **[I-0177]** (window
++ splitter geometry) — ⚠️ **all three found by the USER on the REAL RIG 2026-08-29, the first day the
+Linux app ran on real hardware; ⛔ NONE by a test suite.**
+**Codebase:** ⚠️ **`platforms/linux/` ONLY.** ✅ **No ScriviCore change expected.**
+**Apple precedent:** ✅ **[EP-018]** → [`Closed/Epic-EP-018.md`](Closed/Epic-EP-018.md), R1–R5
+user-verified 2026-06-25 in **3 Sprints**. ⚠️ **This is scoped at 4** — ✅ **the extra is [SP-145]'s
+extraction.**
+
+⛔ **NO SPRINT IS ACTIVE, AND [SP-145] MAY NOT ACTIVATE YET.** ⚠️ **FIVE RULINGS ARE OWED FIRST:**
+✅ **Q1** where session state lives on disk (`QSettings` vs the existing `recents.json`) · ✅ **Q2** the
+window identity key (⚠️ *path is simpler and WRONG the moment a project moves; `projectID` needs a
+resolver Linux does not have*) · ✅ **Q3** what happens to the landing surface (⚠️ *a visible UX
+decision*) · ✅ **Q4** whether the session-scoped visibility flags become persistent · ✅ **Q5
+(ADDED ON ACTIVATION)** whether **[I-0244]** becomes a sibling Epic or ACs inside this one.
+⚠️ **Q1, Q2 and Q5 all change [SP-145]'s scope** — ⛔ **picking them late means writing the persistence
+twice, which is the cost this Epic recorded them to avoid.**
+
+✅ **WHY THIS EPIC AND NOT [EP-035]** (⚠️ **the other ready `[Linux]` Epic**): ⛔ **a FILE COLLISION,
+measured not assumed.** ⚠️ **[SP-145] extracts per-project state out of `EditorShell.cpp` (2,783
+lines), and [EP-035]'s open **AC4** (object CRUD) attaches to that SAME owner** — ✅
+**`EditorShell::onOpenObjectRequested` (`EditorShell.cpp:2214`, wired from `SceneInspector` at `:131`).**
+⛔ **[EP-035] first would write CRUD into `EditorShell` and have [SP-145] relocate it immediately.**
+✅ **[EP-035]'s AC5 (thumbnails) does NOT collide** (⚠️ `SceneInspector.cpp`) — ✅ **it could run
+alongside if object work is wanted sooner.**
+
+---
 
 ✅ **EP-040** — `[Apple]` **The Editor Shell** — **CLOSED 2026-09-24 (user-approved)**
 → [`Closed/Epic-EP-040.md`](Closed/Epic-EP-040.md). ✅ **Five Sprints: SP-134 · SP-135 · SP-136 ·
@@ -10,8 +39,12 @@ SP-137 · SP-150.** ⚠️ **Twelve ACs MET; ✅ AC10 RULED OBE.** ✅ **An Audi
 → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md).
 ✅ **[EP-042] CLOSED 2026-09-20** (below).
 
-⛔ **[I-0206] and [I-0244] REMAIN OPEN and were NOT closed by [EP-040]** — ✅ **[I-0206] was accepted as
-a limitation WITH a measurement (AC11's second branch); ⚠️ [I-0244] is the Linux shell gap.**
+⛔ **[I-0244] REMAINS OPEN and was NOT closed by [EP-040]** — ⚠️ **it is the Linux shell gap; ✅ the
+user has ruled it will be addressed in an upcoming Epic/Sprint (2026-09-25).**
+✅ **[I-0206] IS NOW CLOSED 2026-09-25 (user-approved)** → [`../Issues/Closed/Issue-closed-0206.md`](../Issues/Closed/Issue-closed-0206.md)
+— ⛔ **NOT as a limitation, and NOT as work done: ⚠️ CLOSED AS NOT-A-DEFECT, because `docs/` states NO
+keystroke or latency REQUIREMENT for it to violate.** ✅ **Its measurements are preserved in the closed
+record, with a re-open condition on `setSelectedRange`'s offset-linear cost.**
 ⛔ **[EP-039] `Project Load Performance` was NOT reopened** (⚠️ **user: *"I'm not going backwards"***);
 ✅ **a closed Epic keeps its record.** ⚠️ **EP-039 measured on LOCAL DISK, where the page cache hides
 the amplification [EP-042] exists to remove.** ✅ **EP-041 was split OUT of EP-040** because
@@ -37,7 +70,8 @@ user reported that recent projects were NOT large, which falsified the working t
 
 ✅ **EP-039** `[Cross]` Project Load Performance — **CLOSED 2026-09-15**
 → [`Closed/Epic-EP-039.md`](Closed/Epic-EP-039.md) (⚠️ **moved 2026-09-15, audit ruling [R-07]**).
-⚠️ **[I-0206]** (⚠️ *every keystroke costs ~59 ms inside AppKit and `setSelectedRange` is LINEAR IN DOCUMENT OFFSET*) **and [I-0213]** (⚠️ *chapter create froze the app ~2.7 s on 1,174 scenes*) **were CARRIED from it into EP-040;** ✅ **[I-0213] is now VERIFIED (2026-09-24); ⚠️ [I-0206] remains OPEN.**
+⚠️ **[I-0206]** (⚠️ *every keystroke costs ~59 ms inside AppKit and `setSelectedRange` is LINEAR IN DOCUMENT OFFSET*) **and [I-0213]** (⚠️ *chapter create froze the app ~2.7 s on 1,174 scenes*) **were CARRIED from it into EP-040;** ✅ **[I-0213] is now VERIFIED (2026-09-24); ✅ [I-0206] is CLOSED 2026-09-25 as NOT-A-DEFECT** (⚠️ **no
+requirement exists for it to violate**) → [`../Issues/Closed/Issue-closed-0206.md`](../Issues/Closed/Issue-closed-0206.md).
 
 ⚠️ **Every other Epic is in [`Epic-backlog.md`](Epic-backlog.md).**
 ⛔ **No count is stated here** — ✅ **audit ruling [R-15]; read the rows.**
