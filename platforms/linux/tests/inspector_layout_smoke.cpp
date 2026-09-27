@@ -173,6 +173,87 @@ int main(int argc, char* argv[])
     }
 
     // ================================================================
+    // 1b — ⚠️ `inspectorHidden` PERSISTS, AND LOSES NOTHING DOING IT
+    //      (EP-043 / SP-145 T-0553, [I-0251]; Sprint AC6)
+    // ================================================================
+    //
+    // ⛔ THE DEFECT THIS GUARDS: the store wrote `inspectorHidden: false` into its
+    // default document and NOTHING read it or wrote it back, so a writer who hid
+    // the inspector got it back on every launch — ⚠️ while Apple persisted the same
+    // key in the same file to satisfy Doc 2 AC4.
+    //
+    // ⚠️ IT IS TESTED HERE, beside the `selectedTab` round trip, DELIBERATELY: this
+    // file is the schema's data-loss test, and `inspectorHidden` is now a second
+    // writer to the same document. ⛔ A second writer is exactly what [I-0215] cost
+    // once, so it is held to the same lossless standard, not a weaker one.
+    {
+        const QString root = QDir(base).filePath(QStringLiteral("hidden"));
+        const QString path = writeFile(root, kAppleLayout);
+        check(!path.isEmpty(), "fixture: Apple layout written for the hidden test");
+
+        const QJsonObject before = readFile(path);
+
+        InspectorLayoutStore store;
+        store.load(&bridge, root);
+
+        // The fixture says `false`, so that is what a fresh read must report.
+        check(!store.inspectorHidden(),
+              "inspectorHidden is read from the Apple document (false)");
+
+        store.setInspectorHidden(true);
+
+        const QJsonObject after = readFile(path);
+        check(after.value(QStringLiteral("inspectorHidden")).toBool() == true,
+              "inspectorHidden was PERSISTED — the writer's choice survives a quit");
+
+        // ⚠️ THE SAME LOSSLESS BAR AS SECTION 1. A second writer to this document
+        // must carry every other key through untouched.
+        for (const QString& key : before.keys()) {
+            if (key == QLatin1String("inspectorHidden")) { continue; }
+            const bool same = after.contains(key) && after.value(key) == before.value(key);
+            if (!same) {
+                std::fprintf(stderr, "  lost or altered key: %s\n", key.toUtf8().constData());
+            }
+            check(same, "an Apple key survived an inspectorHidden write");
+        }
+        check(after.contains(QStringLiteral("futureKeyFromANewerScrivi")),
+              "an unmodelled key survives an inspectorHidden write too");
+
+        // ⚠️ A re-read must AGREE with what was written. ✅ This is the half that
+        // actually proves persistence: writing the file is not the same as being
+        // able to read the value back, and [I-0242] is what "written but never read"
+        // costs.
+        InspectorLayoutStore reread;
+        reread.load(&bridge, root);
+        check(reread.inspectorHidden(),
+              "a re-opened project reports the inspector as hidden");
+
+        // ⛔ A NO-OP MUST NOT WRITE. ⚠️ `setInspectorVisible` is called on EVERY
+        // project open (to restore), so a store that wrote unconditionally would add
+        // a write to the open path of every project — the [I-0234] class.
+        const QJsonObject beforeNoop = readFile(path);
+        reread.setInspectorHidden(true);   // already true
+        check(readFile(path) == beforeNoop,
+              "setting the SAME value writes nothing");
+    }
+
+    // ================================================================
+    // 1c — ⚠️ an ABSENT `inspectorHidden` means SHOWN, not hidden
+    // ================================================================
+    //
+    // ⛔ THE FAILURE THIS FORBIDS: defaulting a missing key to `true` would hide the
+    // inspector on every project written before this key existed — a silent
+    // regression for every existing manuscript, on first open after the fix ships.
+    {
+        const QString root = QDir(base).filePath(QStringLiteral("hidden-absent"));
+        writeFile(root, R"({"schema":"scrivi.inspector-layout.v1","selectedTab":"writing"})");
+        InspectorLayoutStore store;
+        store.load(&bridge, root);
+        check(!store.inspectorHidden(),
+              "an ABSENT inspectorHidden reads as SHOWN (pre-existing projects keep their pane)");
+    }
+
+    // ================================================================
     // 2 — an UNKNOWN tab degrades rather than failing
     // ================================================================
     {

@@ -77,6 +77,29 @@ public:
     // No-op when nothing is loaded or the value is unchanged.
     void setSelectedTab(const QString& tab);
 
+    // ---- Inspector visibility (EP-043 / SP-145 T-0553, [I-0251]) ---------
+    //
+    // ⚠️ WHETHER THE INSPECTOR PANE IS HIDDEN — a PROJECT-level property, persisted
+    // in this document exactly as Apple persists it.
+    //
+    // ⛔ THE DEFECT THIS CLOSES: this store WROTE `inspectorHidden: false` into its
+    // default document and NOTHING ever read it or wrote it back. ⚠️ Apple's
+    // `ProjectSession` writes `setInspectorHidden(!inspectorVisible)` into this same
+    // file to satisfy Doc 2 AC4 — *"the hide/show state must persist"* — so a writer
+    // who hid the inspector found it back on every launch, on Linux only.
+    //
+    // ✅ THE FIELD ALREADY ROUND-TRIPPED (patch-never-reconstruct), so this adds a
+    // READ and a WRITE-BACK and no new schema.
+    //
+    // ⚠️ ABSENT means NOT hidden: a project written before this key existed, and
+    // Apple's own default, are both "inspector shown". ⛔ Do not treat a missing key
+    // as hidden — that would hide the pane on every pre-existing project.
+    [[nodiscard]] bool inspectorHidden() const;
+
+    // Persist the pane's hidden state, patching in place. No-op when nothing is
+    // loaded or the value is unchanged (so showing an already-shown pane is free).
+    void setInspectorHidden(bool hidden);
+
 private:
     // Hand the (patched) document to the core. ✅ ATOMICITY IS THE CORE'S JOB now —
     // it writes a temp and renames, the same discipline this class used to

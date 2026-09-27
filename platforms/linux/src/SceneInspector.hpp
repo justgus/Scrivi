@@ -91,6 +91,25 @@ public:
     // panel in its "no project" state rather than showing a bare empty list.
     void setContext(ScriviBridge* bridge, const QString& projectRootPath);
 
+    // ---- Persisted pane visibility (EP-043 / SP-145 T-0553, [I-0251]) -----
+    //
+    // ⚠️ THE PANEL OWNS THE LAYOUT DOCUMENT, SO IT OWNS THIS ACCESS. `EditorShell`
+    // decides whether the pane is SHOWN (it owns the splitter); this class is the
+    // only thing that can read or write `inspector-layout.json`.
+    // ⛔ Do NOT move `layout_` to the shell to "simplify" this — one owner per
+    // schema is the [I-0215] lesson, and the panel is that owner.
+    //
+    // ⚠️ Valid only AFTER setContext() has loaded the layout. Before that it
+    // reports "not hidden", which is the correct default for a project with no
+    // stored preference.
+    [[nodiscard]] bool storedInspectorHidden() const { return layout_.inspectorHidden(); }
+
+    // Record the writer's show/hide choice for THIS project. ⚠️ Called by the shell
+    // when visibility actually changes, ⛔ never while restoring it (that would
+    // rewrite the file with the value just read — the same trap `setSelectedTab`
+    // avoids with a signal blocker at load).
+    void setStoredInspectorHidden(bool hidden) { layout_.setInspectorHidden(hidden); }
+
     // Follow the active scene. EditorShell routes BOTH the caret hook and the
     // scroll hook through selectNavigatorScene(), which is the single existing
     // active-scene notification point — the same hook the navigator highlight and

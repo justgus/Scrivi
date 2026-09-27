@@ -138,6 +138,35 @@ void InspectorLayoutStore::setSelectedTab(const QString& tab)
     save();
 }
 
+bool InspectorLayoutStore::inspectorHidden() const
+{
+    // ⚠️ ABSENT → false (shown). ✅ That is Apple's default AND the right answer for
+    // a project written before this key existed. ⛔ Defaulting to `true` would hide
+    // the pane on every pre-existing project on first open after this ships.
+    // ⚠️ `toBool(false)` also covers a non-boolean value written by something else:
+    // a corrupt type degrades to "shown", never to a hidden pane the writer cannot
+    // explain.
+    return document_.value(QStringLiteral("inspectorHidden")).toBool(false);
+}
+
+void InspectorLayoutStore::setInspectorHidden(bool hidden)
+{
+    if (!loaded_) {
+        return;
+    }
+    if (inspectorHidden() == hidden) {
+        return;   // no write for a no-op toggle
+    }
+    // ⚠️ ONE key is touched — same discipline as setSelectedTab. Everything else in
+    // `document_` is carried through untouched, including keys this build has never
+    // heard of ([I-0215] is what dropping them cost).
+    document_.insert(QStringLiteral("inspectorHidden"), hidden);
+    if (!document_.contains(QStringLiteral("schema"))) {
+        document_.insert(QStringLiteral("schema"), QLatin1String(kSchemaID));
+    }
+    save();
+}
+
 bool InspectorLayoutStore::save() const
 {
     if (!bridge_ || projectRootPath_.isEmpty() || !loaded_) {

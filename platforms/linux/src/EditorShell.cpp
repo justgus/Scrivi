@@ -68,6 +68,9 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
 {
     bridge_    = new ScriviBridge(this);
     navModel_  = new QStandardItemModel(this);
+    // SP-145 / T-0551 — the session holds the per-project state; the bridge is
+    // still OWNED here (Qt parenting) and only borrowed by the session.
+    session_.setBridge(bridge_);
 
     // --- Title bar --------------------------------------------------------
     // The project title only. Leaving the editor (Close/New/Open) is now driven by the
@@ -120,9 +123,18 @@ EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
     // inspector), the cleanest match for Apple's "between the manuscript surface
     // and the window edge". SP-125 (EP-035) replaced its stub
     // with the scene's real objects; it is given its project context in load()
-    // and follows the active scene through selectNavigatorScene(). Session-scoped
-    // visibility (inspectorVisible_); defaults SHOWN (Apple parity — user decision
-    // 2026-07-22). View ▸ Show Inspector (T-0320) toggles it.
+    // and follows the active scene through selectNavigatorScene(). Defaults SHOWN
+    // (Apple parity — user decision 2026-07-22). View ▸ Show Inspector (T-0320)
+    // toggles it.
+    //
+    // ⚠️ SP-145 / T-0553: visibility is PER-PROJECT STATE on `session_` and the
+    // inspector's value PERSISTS through the core ([I-0251]).
+    // ⛔ THIS COMMENT PREVIOUSLY READ "Session-scoped visibility (inspectorVisible_)"
+    // — ⚠️ and there was NO SUCH MEMBER; visibility was read off the widget. ✅ That
+    // phantom member is what [EP-043]'s [R-Q5] was written against, which is why the
+    // ruling had to be amended (see the Epic's §Rulings amendment 2026-09-27).
+    // ⚠️ A comment naming state that does not exist is the defect class CLAUDE.md's
+    // standing rule describes: it read correctly and was false.
     inspector_ = new SceneInspector(this);
     // T-0482: opening an object is requested here and OWNED by the shell — the
     // panel only reports the request. ⚠️ worldID travels with it and must be
@@ -564,20 +576,53 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     const double restoredScroll = payload.restoredScroll;
     const QList<SceneDocument::Input>& inputs = payload.inputs;
 
+    // ⚠️ SP-145 / T-0552: captured BEFORE `projectID_` is overwritten, so the
+    // registry can drop the id this shell was previously registered under.
+    const QString previousProjectID = projectID_;
+
     // Stash identity for the save path (T-0239); reset save state for the new
     // project. ⚠️ Set HERE, on the UI thread, before anything reads it -- these
     // members belong to the UI thread and must never be written from the worker.
+    // ⚠️ SP-145 / T-0551: these names are now REFERENCES into `session_`, so these
+    // four assignments write the session's state. ✅ Deliberately unchanged
+    // statements — the extraction moved WHERE the state lives, not what runs.
     projectID_      = projectID;
     projectPath_    = projectPath;
     appSupportRoot_ = appSupportRoot;
     activeSegment_  = -1;
     saveTimer_->stop();
 
+    // ⚠️ SP-145 / T-0552 — REGISTER the session under its projectID ([R-Q2]).
+    //
+    // ⚠️ Registered HERE, not in load(), because this is the first point where the
+    // project's IDENTITY is known: `load()` has only a path, and a path is not an
+    // identity. ✅ A failed load never reaches this function, so a failed open
+    // never registers — which is what the registry's empty-ID guard also enforces.
+    //
+    // ⚠️ THE REGISTRY HOLDS AT MOST ONE SESSION IN THIS SPRINT. ✅ Re-loading a
+    // DIFFERENT project into this same shell must not leave the previous id behind
+    // (this shell has exactly one session, so the old id would be a phantom "open"
+    // project and R3 would refuse to reopen it). ⛔ So deregister the old id first.
+    if (registry_.session(previousProjectID) == &session_) {
+        registry_.deregister(previousProjectID);
+    }
+    registry_.registerSession(&session_);
+
     // The inspector reads objects through the same bridge, for the same project
     // (SP-125). Given here — after projectPath_ is set and before any scene is
     // promoted — so the panel never queries a stale root.
     if (inspector_ != nullptr) {
         inspector_->setContext(bridge_, projectPath_);
+
+        // ⚠️ SP-145 / T-0553 ([I-0251]) — RESTORE the writer's pane choice for THIS
+        // project. ✅ setContext() has just loaded the layout document, so the stored
+        // value is available now and not before.
+        //
+        // ⚠️ THE GUARD IS NOT OPTIONAL: `setInspectorVisible` persists, so restoring
+        // without it writes the file on every open with the value just read.
+        restoringPaneVisibility_ = true;
+        setInspectorVisible(!inspector_->storedInspectorHidden());
+        restoringPaneVisibility_ = false;
     }
 
     // Assemble the document under the loading_ guard so the programmatic inserts
@@ -1338,6 +1383,14 @@ void EditorShell::releaseProject()
     if (bridge_ != nullptr && !projectPath_.isEmpty()) {
         bridge_->closeProject(projectPath_);
     }
+
+    // ⚠️ SP-145 / T-0552 — DEREGISTER. ✅ The project is no longer open, so R3 must
+    // stop reporting it as open; otherwise reopening it would be refused forever.
+    // ⛔ The session object itself is NOT destroyed (this shell outlives one
+    // project), so this is a registry removal, not a lifetime change.
+    if (!projectID_.isEmpty()) {
+        registry_.deregister(projectID_);
+    }
 }
 
 void EditorShell::stampWritingSurface()
@@ -1959,12 +2012,34 @@ void EditorShell::setInspectorVisible(bool visible)
     }
     // setVisible() on the pane collapses/restores it inside the splitter; the
     // viewport (stretch=1) reclaims the freed width, so there is no dead space
-    // when hidden. Session-scoped: no on-disk persistence (Apple parity).
+    // when hidden.
     inspector_->setVisible(visible);
+
+    // ⚠️ SP-145 / T-0553 ([I-0251]) — PER-PROJECT STATE, AND IT PERSISTS.
+    //
+    // ⛔ THIS USED TO BE SESSION-SCOPED with the comment "no on-disk persistence
+    // (Apple parity)" — ⚠️ and that parity claim was WRONG. Apple's
+    // `ProjectSession.inspectorVisible` writes straight through to
+    // `inspector-layout.json` to satisfy Doc 2 AC4; ⛔ Linux read the key's default
+    // and never wrote it back, so the writer's choice died at every quit.
+    //
+    // ✅ The value is recorded on the session (the project owns it) and written
+    // THROUGH THE CORE by the panel that owns the document.
+    session_.setInspectorVisible(visible);
+    if (!restoringPaneVisibility_) {
+        // ⚠️ Guarded: while RESTORING at load we must not write back the value we
+        // just read. ⛔ Without this, opening a project rewrites its layout file on
+        // every open — the same trap `setSelectedTab` avoids with a signal blocker.
+        inspector_->setStoredInspectorHidden(!visible);
+    }
 }
 
 bool EditorShell::isInspectorVisible() const
 {
+    // ⚠️ Still answered by the WIDGET, deliberately. ✅ The widget is the truth about
+    // what the writer can see; the session records the INTENT. ⛔ They can differ
+    // legitimately for one moment — before a project is loaded there is no pane to
+    // show — and the menu check-state must follow what is actually on screen.
     return inspector_ != nullptr && inspector_->isVisible();
 }
 
@@ -1976,8 +2051,17 @@ void EditorShell::setTimelineVisible(bool visible)
         return;
     }
     // Collapse/restore the bottom pane; the panels above (stretch=1) reclaim the
-    // height when hidden. Session-scoped — no on-disk persistence (matches inspector).
+    // height when hidden.
     timeline_->setVisible(visible);
+
+    // ⚠️ SP-145 / T-0553 — recorded on the session, ⛔ but NOT persisted.
+    //
+    // ✅ THE ASYMMETRY WITH THE INSPECTOR IS DELIBERATE AND RULED ([R-Q4]):
+    // ⚠️ Apple does NOT persist `timelineVisible` either (`ProjectSession.swift:98`),
+    // so SP-078/T-0320's "session-scoped" ruling STANDS for the timeline and is
+    // superseded ONLY for the inspector. ⛔ Do not "make these consistent" without
+    // a ruling — the inconsistency is the parity.
+    session_.setTimelineVisible(visible);
 }
 
 bool EditorShell::isTimelineVisible() const

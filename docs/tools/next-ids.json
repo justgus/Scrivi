@@ -1,16 +1,17 @@
 {
   "_comment": "Authoritative next-available tracking IDs. Claude assigns from here; the tracking documents no longer restate these figures. Inspect this file, or run `python3 docs/tools/next-id.py --peek`, to see what is next.",
-  "_updated": "2026-09-24",
+  "_updated": "2026-09-27",
   "next": {
     "epic": 45,
-    "sprint": 151,
-    "task": 551,
-    "issue": 251
+    "sprint": 146,
+    "task": 554,
+    "issue": 252
   },
   "format": {
     "epic": "EP-%03d",
     "sprint": "SP-%03d",
     "task": "T-%04d",
     "issue": "I-%04d"
-  }
+  },
+  "_reserved": "SP-146\u2013SP-148 are RESERVED for [EP-043]'s serial chain (S2 windows, S3 persistence, S4 verification) and are allocated IN ORDER as each activates. \u26a0 The sprint counter is a HIGH-WATER MARK, not a free-list: it read 152 on 2026-09-27 because SP-149/SP-150 were created for EP-040/EP-041 work while SP-145\u2013148 sat reserved and unused. \u26d4 Do NOT 'correct' it upward again \u2014 an Epic's reserved block is named in its own record and in Sprint-backlog.md, and honouring those beats a counter."
 }

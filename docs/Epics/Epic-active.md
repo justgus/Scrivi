@@ -2,7 +2,8 @@
 
 ## 🟡 **[EP-043]** — `[Linux]` **The Session** — ✅ **ACTIVATED 2026-09-25 (user-approved)**
 
-✅ **Full record:** → [`Epic-EP-043.md`](Epic-EP-043.md) (⚠️ **R1–R8, four Sprints, FIVE owed rulings**).
+✅ **Full record:** → [`Epic-EP-043.md`](Epic-EP-043.md) (⚠️ **R1–R8, four Sprints**; ✅ **all five owed
+rulings ANSWERED 2026-09-26**).
 **Goal:** ⚠️ **many projects, each in its own window, restored where the writer left it.**
 **Closes:** ✅ **[I-0178]** (multi-project) · ✅ **[I-0176]** (reopen at launch) · ✅ **[I-0177]** (window
 + splitter geometry) — ⚠️ **all three found by the USER on the REAL RIG 2026-08-29, the first day the
@@ -12,14 +13,24 @@ Linux app ran on real hardware; ⛔ NONE by a test suite.**
 user-verified 2026-06-25 in **3 Sprints**. ⚠️ **This is scoped at 4** — ✅ **the extra is [SP-145]'s
 extraction.**
 
-⛔ **NO SPRINT IS ACTIVE, AND [SP-145] MAY NOT ACTIVATE YET.** ⚠️ **FIVE RULINGS ARE OWED FIRST:**
-✅ **Q1** where session state lives on disk (`QSettings` vs the existing `recents.json`) · ✅ **Q2** the
-window identity key (⚠️ *path is simpler and WRONG the moment a project moves; `projectID` needs a
-resolver Linux does not have*) · ✅ **Q3** what happens to the landing surface (⚠️ *a visible UX
-decision*) · ✅ **Q4** whether the session-scoped visibility flags become persistent · ✅ **Q5
-(ADDED ON ACTIVATION)** whether **[I-0244]** becomes a sibling Epic or ACs inside this one.
-⚠️ **Q1, Q2 and Q5 all change [SP-145]'s scope** — ⛔ **picking them late means writing the persistence
-twice, which is the cost this Epic recorded them to avoid.**
+⛔ **NO SPRINT IS ACTIVE** — ✅ **but [SP-145] IS NOW UNBLOCKED: ALL FIVE OWED RULINGS WERE ANSWERED
+2026-09-26 (user-approved).** ✅ **Full text in the Epic record's §Rulings.** The five, in one line each:
+✅ **[R-Q1]** session state → **`<appSupportRoot>/session.ini`** via `QSettings`, mirroring the existing
+`timeline-view.ini` · ✅ **[R-Q2]** key by **`projectID`**, with `path` as a stored ATTRIBUTE (⚠️ *a moved
+project is skipped for one launch but KEEPS its geometry*) · ✅ **[R-Q3]** a **SEPARATE Landing window**;
+project windows are editor-only; `File ▸ New`/`Open` RAISE Landing; ⛔ **closing the last project shows
+Landing and never quits** · ✅ **[R-Q4]** inspector visibility persists **THROUGH THE CORE** (Apple
+parity), timeline stays session-scoped · ✅ **[R-Q5]** **[I-0244]** becomes a **SIBLING Epic, AFTER this
+one**, with a named carve-out in [SP-145].
+
+⚠️ **THREE OF THE FIVE QUESTIONS WERE FRAMED ON A PREMISE THE CODE CONTRADICTED**, and in each case the
+correction changed the ANSWER: ⛔ *"Apple used `UserDefaults`"* (✅ **it SPLITS — per-project document
+state goes through the core, which is what [R-Q4] needed**) · ⛔ *"projectID needs a resolver Linux does
+not have"* (✅ **`EditorShell.cpp:2087` already keys persisted state by `projectID`**) · ⛔ *"should Linux
+reverse SP-078?"* (✅ **not a reversal — Apple already persists inspector; Linux is simply out of
+parity**). ✅ **The superseded text is kept in §Rulings because the error is the instructive part.**
+✅ **[R-Q4] FILED [I-0251]** (⚠️ *Linux reads `inspectorHidden`'s default and never writes it back*)
+**against [SP-145].**
 
 ✅ **WHY THIS EPIC AND NOT [EP-035]** (⚠️ **the other ready `[Linux]` Epic**): ⛔ **a FILE COLLISION,
 measured not assumed.** ⚠️ **[SP-145] extracts per-project state out of `EditorShell.cpp` (2,783
@@ -39,8 +50,10 @@ SP-137 · SP-150.** ⚠️ **Twelve ACs MET; ✅ AC10 RULED OBE.** ✅ **An Audi
 → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md).
 ✅ **[EP-042] CLOSED 2026-09-20** (below).
 
-⛔ **[I-0244] REMAINS OPEN and was NOT closed by [EP-040]** — ⚠️ **it is the Linux shell gap; ✅ the
-user has ruled it will be addressed in an upcoming Epic/Sprint (2026-09-25).**
+⛔ **[I-0244] REMAINS OPEN and was NOT closed by [EP-040]** — ⚠️ **it is the Linux shell gap.**
+✅ **RULED 2026-09-26 ([EP-043] [R-Q5]): it becomes its OWN `[Linux]` Epic, sequenced AFTER [EP-043]** —
+⛔ **NOT ACs inside it** (⚠️ *it is four Apple Sprints deep; folding it in would repeat the [EP-035] AC1
+collapse*). ✅ **[SP-145] carries a named carve-out so the extraction is paid ONCE.**
 ✅ **[I-0206] IS NOW CLOSED 2026-09-25 (user-approved)** → [`../Issues/Closed/Issue-closed-0206.md`](../Issues/Closed/Issue-closed-0206.md)
 — ⛔ **NOT as a limitation, and NOT as work done: ⚠️ CLOSED AS NOT-A-DEFECT, because `docs/` states NO
 keystroke or latency REQUIREMENT for it to violate.** ✅ **Its measurements are preserved in the closed

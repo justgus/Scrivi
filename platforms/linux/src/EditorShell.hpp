@@ -6,6 +6,8 @@
 #include <QVariantMap>
 #include <QWidget>
 
+#include "OpenProjectRegistry.hpp"
+#include "ProjectSession.hpp"
 #include "SceneDocument.hpp"
 
 class NavigatorTree;
@@ -519,20 +521,65 @@ private:
         QStringList tags;
     };
     QHash<QString, HistEventCache> histEvents_;
-    SceneDocument       sceneDoc_;
+    // --- PER-PROJECT STATE — now owned by ProjectSession (SP-145, T-0551) ---
+    //
+    // ⚠️ THE STATE BELOW MOVED INTO `session_`. ✅ The members that follow are
+    // REFERENCES INTO IT, deliberately keeping their original names.
+    //
+    // ⚠️ WHY REFERENCES AND NOT `session_.projectPath()` AT EVERY CALL SITE:
+    // ⛔ there are ~300 uses of these seven members across 2,783 lines. ✅ Rewriting
+    // every one would produce a diff in which a genuine behaviour change is
+    // invisible — and [SP-145]'s ONE mandate is that it is behaviour-preserving
+    // (⚠️ [EP-018]'s equivalent Sprint, T-0192, carried the same word).
+    // ✅ Binding the names instead means the state genuinely lives in the session —
+    // which is what [SP-146] needs — while every existing statement still reads,
+    // and provably does, exactly what it did before.
+    //
+    // ⚠️ THE REFERENCES ARE NOT THE END STATE. ✅ [SP-146] gives each window its own
+    // session; at that point these bindings are replaced by whatever the window
+    // holds. ⛔ Until then they are the seam, and they are cheap to remove because
+    // the names are unchanged.
+    //
+    // ⚠️ ORDER MATTERS: `session_` is declared FIRST so the references below are
+    // bound to a live object in the constructor's init list. ⛔ Do not reorder.
+    ProjectSession      session_;
+
+    // --- The open-project registry (SP-145, T-0552) -----------------------
+    //
+    // ⚠️ IT LIVES HERE ONLY FOR NOW, AND THAT IS A KNOWN SEAM. ✅ The registry is
+    // conceptually APP-GLOBAL — Apple's is on `AppEnvironment`, not on a window —
+    // ⛔ but this Sprint changes no window code, and `ScriviWindow` owns exactly one
+    // `EditorShell`, so a registry here is observably identical to an app-global one
+    // with a single entry.
+    // ⚠️ [SP-146] MUST MOVE THIS UP to the app/window-manager level as its FIRST
+    // step: a per-shell registry cannot answer R3 across windows, which is the
+    // entire point of having one. ✅ Recorded in [SP-146]'s scope, not left implied.
+    OpenProjectRegistry registry_;
+
+    SceneDocument&      sceneDoc_ = session_.sceneDoc();
 
     // Identity of the open project, stashed on load() for the save path.
-    QString             projectID_;
-    QString             projectPath_;
-    QString             appSupportRoot_;
+    // ⚠️ `projectID_` is the project's IDENTITY ([R-Q2]) — the registry and, in
+    // [SP-147], the persisted geometry both key by it. `projectPath_` RESOLVES it.
+    //
+    // ⚠️ THESE FOUR ARE BOUND BY REFERENCE TOO, AND THAT NEEDS A WORD. A `QString&`
+    // to a member of `session_` cannot be RESEATED — so every write through it
+    // writes into the session, which is exactly the intent. ✅ `session_` is never
+    // replaced (it is reset in place by `resetForLoad()`), so the bindings stay
+    // valid for the shell's whole life. ⛔ If [SP-146] ever swaps the session
+    // OBJECT rather than resetting it, these references must go first — they are
+    // the seam, and that is the moment to remove them.
+    QString&            projectID_      = session_.projectIDRef();
+    QString&            projectPath_    = session_.projectPathRef();
+    QString&            appSupportRoot_ = session_.appSupportRootRef();
 
     // Dirty-scene tracking (T-0238): sceneIDs whose body changed since the last
     // save. saveDirtyScenes() (T-0239) drains this set. Populated by onContentsChange.
-    QSet<QString>       dirtyScenes_;
+    QSet<QString>&      dirtyScenes_ = session_.dirtyScenes();
 
     // The segment index the caret last sat in — so onCursorMoved can detect a
     // scene switch and save the departing scene. -1 = none yet.
-    int                 activeSegment_ = -1;
+    int&                activeSegment_ = session_.activeSegmentRef();
 
     // True while load() is programmatically assembling the document, so the
     // contentsChange / cursor hooks ignore those (non-user) events.
@@ -542,4 +589,15 @@ private:
     // shell is programmatically scrolling/selecting the viewport (navigator click,
     // caret move) so onScrolled doesn't re-promote/re-scroll off its own change.
     bool                programmaticViewportChange_ = false;
+
+    // ⚠️ SP-145 / T-0553 ([I-0251]) — set while RESTORING the persisted pane
+    // visibility at load, so `setInspectorVisible` records the value on the session
+    // WITHOUT writing it straight back to disk.
+    // ⛔ Without this, every project open rewrites `inspector-layout.json` with the
+    // value it just read — a pointless write on the open path, which is exactly the
+    // class [I-0234] removed (a per-scene write that made small projects slow).
+    // ✅ Same shape as `loading_` and `programmaticViewportChange_`: a "this change
+    // is MINE, not the writer's" flag, which is how this shell already distinguishes
+    // programmatic from user-driven change.
+    bool                restoringPaneVisibility_ = false;
 };

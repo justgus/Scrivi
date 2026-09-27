@@ -42,6 +42,15 @@ qt_add_executable(scrivi_linux
     src/ScriviWindow.hpp
     src/EditorShell.cpp
     src/EditorShell.hpp
+    # EP-043 / SP-145 — the session split (T-0551) + the open-project registry
+    # (T-0552). ProjectSession is header-only (it holds state and does not act).
+    # ⚠️ OpenProjectRegistry.cpp MUST accompany EditorShell.cpp in EVERY target:
+    # `applyLoadedProject` calls `registerSession`, so a target that compiles the
+    # shell without the registry fails to LINK. ⛔ Two smoke targets did exactly
+    # that on the first build of this Sprint.
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
     # SP-062 (EP-022): the editable writing surface with boundary integrity.
@@ -662,6 +671,10 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/ScriviBridge.hpp
     src/EditorShell.cpp
     src/EditorShell.hpp
+    # SP-145 — required by EditorShell::applyLoadedProject (registerSession).
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
     src/ManuscriptEditor.cpp
@@ -721,6 +734,10 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/ScriviBridge.hpp
     src/EditorShell.cpp
     src/EditorShell.hpp
+    # SP-145 — required by EditorShell::applyLoadedProject (registerSession).
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
     src/SceneDocument.cpp
     src/SceneDocument.hpp
     src/ManuscriptEditor.cpp

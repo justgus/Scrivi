@@ -10,7 +10,29 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-**Currently: none.** ✅ **T-0536 was user-Verified 2026-09-18** and archived to
+## 🟠 [SP-145] — T-0551 · T-0552 · T-0553 — ✅ **Implemented 2026-09-27, NOT VERIFIED**
+
+✅ **Sprint record (the detail lives there, not here):** →
+[`../Sprints/Sprint-SP-145.md`](../Sprints/Sprint-SP-145.md). ✅ **[EP-043] S1.**
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| **T-0551** | ✅ **Introduce `ProjectSession`** — the seven per-project state members out of `EditorShell`; ⚠️ **behaviour-preserving** | ✅ **Implemented - Not Verified** |
+| **T-0552** | ✅ **Introduce `OpenProjectRegistry`** — `projectID` → live session ([EP-043] [R-Q2]) | ✅ **Implemented - Not Verified** |
+| **T-0553** | ⚠️ **[I-0251]** — pane visibility becomes per-project state; inspector visibility persists THROUGH THE CORE ([R-Q4]) | ✅ **Implemented - Not Verified** |
+
+✅ **RUN, not asserted:** ⚠️ **`ctest` 641/641 as NON-ROOT** · ✅ **24/24 Linux smokes** · ✅ **boundary
+guard GREEN** · ✅ **Apple `BUILD SUCCEEDED`** · ⚠️ **AC2 proven mechanically: 81 insertions, ⛔ 0
+deletions in `tests/`.**
+⚠️ **THE GUARD WAS PROVEN BY BREAKING IT** — ✅ **the T-0553 fix was removed, the smoke went RED with the
+two right failures, then green on restore.**
+⛔ **WHAT BLOCKS VERIFICATION: no live pass on the rig.** ⚠️ **T-0553 is a *"does it survive a quit?"*
+fix, and `feedback_live_pass_finds_what_suites_cannot` says plainly that a green suite cannot answer
+that.** ✅ **[SP-148] owns the Epic's live pass.**
+
+---
+
+**Previously: none.** ✅ **T-0536 was user-Verified 2026-09-18** and archived to
 [`Verified/Task-verified-0536.md`](Verified/Task-verified-0536.md) **in the same step**
 (`feedback_archive_on_close`, `feedback_task_layer_discipline`).
 

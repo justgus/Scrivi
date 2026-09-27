@@ -46,16 +46,25 @@ governs anything is a second source of truth.
 
 ---
 
-## ⚠️ RESERVED Sprint IDs — SP-145–SP-148 ([EP-043] `[Linux]` The Session)
+## ⚠️ RESERVED Sprint IDs — SP-146–SP-148 ([EP-043] `[Linux]` The Session)
 
-⛔ **These are NOT in Planning, and none is ready to activate.** ✅ **[EP-043] was created 2026-09-21
-into the Epic backlog** (🔵 Draft) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
+✅ **[SP-145] IS NO LONGER RESERVED — it is ACTIVE (2026-09-27)** →
+[`Sprint-SP-145.md`](Sprint-SP-145.md). ⚠️ **Its row below is kept struck for the chain's shape only.**
+⛔ **SP-146–SP-148 are NOT in Planning, and none is ready to activate** — ✅ **the chain is SERIAL, so
+[SP-146] waits on [SP-145] being verified.**
+✅ **[EP-043] is ACTIVE** (activated 2026-09-25) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
 ⚠️ **The IDs are recorded here ONLY so they are not reissued** — ✅ **the same precaution taken for
 EP-032's SP-107–SP-114 above**, and for the same reason the user gave when ordering that one.
 
+⚠️ **AND THE PRECAUTION EARNED ITS KEEP.** ⛔ **On 2026-09-27 `next-id.py sprint` returned SP-151, not
+SP-145** — ✅ **because the counter is a HIGH-WATER MARK and had moved past this block when SP-149/SP-150
+were created for EP-040/EP-041 work.** ✅ **User ruled: honour the reservation.** ⚠️ **The registry was
+reset to 146 and now carries a `_reserved` note** — ⛔ **so the next reader does not "correct" it upward
+and reissue SP-146–148 to something else.**
+
 | Sprint | Step | Provisional scope | ACs |
 | ------ | ---- | ----------------- | --- |
-| **SP-145** | S1 | ✅ **The session split** — per-project state out of the 2,783-line `EditorShell`; ⚠️ **behaviour-preserving**; registry introduced | — (foundation) |
+| ~~**SP-145**~~ | ~~S1~~ | ⛔ ~~The session split~~ — ✅ **ACTIVE 2026-09-27, no longer reserved** → [`Sprint-SP-145.md`](Sprint-SP-145.md) | — (foundation) |
 | **SP-146** | S2 | ✅ **The windows** — one window per project; R3 focus-existing; quit flushes ALL; per-window `scrivi_close_project` | R1 R2 R3 R7 R8 |
 | **SP-147** | S3 | ✅ **The persistence** — open-session manifest + launch restore; per-project geometry **and splitters**; ⚠️ **the test guard lands HERE** | R4 R5 R6 |
 | **SP-148** | S4 | ✅ **Verification** — AC sweep, Docker `ctest` as non-root, ⚠️ **live pass on the real rig**, close prep | AC-build AC-live |
@@ -66,8 +75,8 @@ delivered the Apple equivalent in THREE Sprints; ⚠️ the fourth here is SP-14
 extracted `ProjectSession` from an `AppEnvironment` that was ALREADY a separate object, whereas Linux's
 per-project state lives inside the widget itself.**
 
-⚠️ **FOUR RULINGS ARE OWED before SP-145 can activate** — ✅ **listed in the Epic record, not restated
-here** (P7: a second copy is what goes stale).
+✅ **ALL FIVE OWED RULINGS WERE ANSWERED 2026-09-26** — ✅ **recorded in the Epic record, not restated
+here** (P7: a second copy is what goes stale). ✅ **[SP-145] activated on that basis 2026-09-27.**
 
 ⚠️ **A reserved ID becomes a real 🔵 Planning entry only when its Epic is active and its turn comes**,
 then leaves this file at activation and never returns.

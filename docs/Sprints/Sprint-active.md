@@ -82,12 +82,39 @@ under ✅ **[EP-041]** (now CLOSED). ✅ **T-0507 VERIFIED by live pass; [EP-041
 ---
 
 ## 🟡 **[EP-043]** `[Linux]` **The Session** IS ACTIVE — ✅ **activated 2026-09-25**
+✅ **Record:** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
 
-✅ **Record:** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md). ⛔ **NO SPRINT IS ACTIVE.**
-⚠️ **[SP-145] (the session split — extract per-project state out of `EditorShell.cpp`'s 2,783 lines)
-MAY NOT ACTIVATE until FIVE rulings are answered** — ✅ **Q1–Q4 in that record, plus the [I-0244]
-scope question.** ⚠️ **Its chain is SERIAL: [SP-145] → [SP-146] → [SP-147] → [SP-148]**, ⛔ **so a
-stall in [SP-145] stalls the Epic.**
+## 🟡 **[SP-145]** `[Linux]` **The Session Split** IS ACTIVE — ✅ **2026-09-27**
+
+✅ **Record:** → [`Sprint-SP-145.md`](Sprint-SP-145.md). ✅ **ALL THREE TASKS IMPLEMENTED; ALL EIGHT ACs
+MET** (T-0551 · T-0552 · T-0553). ⚠️ **AWAITING USER VERIFICATION.**
+✅ **`ProjectSession` + `OpenProjectRegistry` exist; ⚠️ [I-0251] fixed (the writer's inspector choice now
+persists through the core).**
+✅ **VERIFIED BY RUNNING:** ⚠️ **`ctest` 641/641 as NON-ROOT** · ✅ **all 24 Linux smokes PASS** ·
+✅ **boundary guard GREEN** · ✅ **Apple `BUILD SUCCEEDED`** · ⚠️ **AC2 proven MECHANICALLY (81
+insertions, ⛔ 0 deletions in `tests/` — not one existing assertion altered).**
+⚠️ **THE GUARD WAS PROVEN, NOT ASSUMED:** ✅ **the [I-0251] fix was temporarily REMOVED and the smoke
+went RED with the two right failures, then green on restore** — ⛔ **a test that cannot fail proves
+nothing.**
+⛔ **NO LIVE PASS ON THE RIG YET** — ⚠️ **and *"does it survive a quit?"* is exactly what a green suite
+cannot answer** (`feedback_live_pass_finds_what_suites_cannot`). ✅ **[SP-148] owns the Epic's live pass.**
+⚠️ **ONE FINDING FOR [SP-146]:** ⛔ **`registry_` sits on `EditorShell` and must be LIFTED to the
+app/window level as [SP-146]'s FIRST step** — ✅ **a per-shell registry cannot answer R3 across windows,
+which is the whole reason to have one.**
+⚠️ **ID NOTE:** ✅ **`next-id.py` offered SP-151; the reservation in five documents said SP-145.**
+✅ **User ruled 2026-09-27: honour the reservation.** ⚠️ **The counter is a HIGH-WATER MARK, now reset to
+146 with a `_reserved` note so it is not "corrected" upward again.**
+
+---
+
+⚠️ **PRIOR STATE (rulings, 2026-09-26):** ⚠️ **all FIVE owed rulings were answered
+2026-09-26 (user-approved);** ✅ **full text in that record's §Rulings.** ⚠️ **What [SP-145] now carries
+that it did not before:** ✅ **the registry is keyed by `projectID` ([R-Q2])** · ✅ **the extraction takes
+`inspectorVisible_` + `timelineVisible_` onto the session object ([R-Q5]'s carve-out, so the shell Epic
+does not re-open `EditorShell`)** · ⚠️ **plus [I-0251] as a SEPARATE, NAMED Task** — ⛔ **it is a real
+behaviour CHANGE inside a behaviour-preserving Sprint and must not be folded into the extraction.**
+⚠️ **Its chain is SERIAL: [SP-145] → [SP-146] → [SP-147] → [SP-148]**, ⛔ **so a stall in [SP-145]
+stalls the Epic.**
 
 ### ⛔ Previously closed Epics
 
