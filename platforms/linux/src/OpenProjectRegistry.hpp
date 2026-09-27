@@ -36,6 +36,20 @@ class ProjectSession;
 // ⛔ No windows. ⛔ No persistence. ⛔ No opening or closing of projects.
 // ✅ It is a map with an opinion about its key.
 //
+// ## ⛔ IT DOES NOT BELONG ON `EditorShell`, AND [SP-146] MOVES IT
+//
+// ⚠️ THIS CLASS IS INSTANTIATED ON `EditorShell` TODAY, AND THAT IS WRONG FOR MORE
+// THAN ONE WINDOW. ✅ Apple's lives on `AppEnvironment` — app-global — because the
+// question "is this project already open?" is asked BEFORE a window exists, and no
+// single shell can answer it about its siblings.
+// ⚠️ It is observably correct today (one shell, one project), ⛔ but it must be
+// lifted to an app-level owner in [SP-146].
+//
+// ⛔ AND THERE IS NO SUCH OWNER YET. ⚠️ Measured 2026-09-27: `platforms/linux/src/`
+// has NO `AppEnvironment` equivalent — app-global state is LOCAL VARIABLES in
+// `main()`. ✅ So [SP-146] must CREATE one; ⛔ this is not a one-line move.
+// ✅ The scoped plan is in the Epic: `docs/Epics/Epic-EP-043.md` §The app-level owner.
+//
 // ⚠️ IT HOLDS AT MOST ONE SESSION IN [SP-145], AND THAT IS DELIBERATE — not an
 // unfinished state. ✅ [EP-018] shipped its registry (T-0193) one Sprint BEFORE
 // per-window sessions (T-0194) for the same reason: the registry is the thing the
@@ -46,11 +60,16 @@ class ProjectSession;
 //
 // ## ⚠️ OWNERSHIP
 //
-// ⛔ The registry does NOT own its sessions — it holds borrowed pointers. ✅ In
-// [SP-145] `EditorShell` owns the single session; in [SP-146] each project window
-// will own its own. ⚠️ A registered session MUST be deregistered before it dies,
-// or this map holds a dangling pointer. ✅ That is [SP-146]'s contract to honour
-// per-window, alongside R8's `scrivi_close_project`.
+// ⛔ The registry does NOT own its sessions — it holds borrowed pointers.
+// ✅ In [SP-145] `EditorShell` owns the single session.
+// ⚠️ IN [SP-146] THE OWNER BECOMES `AppEnvironment`, **NOT** THE WINDOW — ✅ Apple's
+// `AppEnvironment` CREATES its sessions (`makeSession()`), and the window is merely
+// HANDED one. ⛔ An earlier draft of this comment said "each project window will own
+// its own", which is the inversion this Epic is removing: a window that owns the
+// project's identity cannot be asked about its siblings.
+// ⚠️ A registered session MUST be deregistered before it dies, or this map holds a
+// dangling pointer. ✅ That is [SP-146]'s contract, alongside R8's
+// `scrivi_close_project`.
 class OpenProjectRegistry
 {
 public:

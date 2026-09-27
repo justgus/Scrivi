@@ -29,8 +29,14 @@ class ScriviBridge;
 //   • `EditorShell` keeps **the widgets SHOWING it** — viewport, navigator,
 //     splitters, inspector, timeline, the progress row.
 //
-// ⚠️ [SP-146] then puts one session in each window. ⛔ THIS Sprint does not:
-// there is still exactly one session at a time, and `EditorShell` still holds it.
+// ⚠️ [SP-146] then SHOWS one session per window. ⛔ THIS Sprint does not: there is
+// still exactly one session at a time, and `EditorShell` still holds it.
+// ⚠️ NOTE THE OWNERSHIP DIRECTION, because it is the point of the Epic: in [SP-146]
+// the sessions are owned by an app-level `AppEnvironment` (which Linux does not yet
+// have) and a window is HANDED one — ⛔ the window does NOT own the project's
+// identity. ✅ Apple does exactly this (`AppEnvironment.makeSession()`), and the
+// current inversion is what makes a second project impossible.
+// ✅ Scoped in `docs/Epics/Epic-EP-043.md` §The app-level owner.
 //
 // ## ⚠️ IDENTITY IS `projectID`, NOT PATH — [EP-043] [R-Q2]
 //

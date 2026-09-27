@@ -143,7 +143,7 @@ behaviour-preserving mandate.**
 | Sprint | Step | Scope | ACs | ⚠️ Risk | ⛔ Blocked by |
 | ------ | ---- | ----- | --- | ------ | ------------ |
 | **[SP-145]** | **S1** | ✅ **The session split** — extract per-project state out of `EditorShell` into a `ProjectSession` equivalent; ⚠️ **BEHAVIOUR-PRESERVING, still one window.** ✅ **Introduce the registry (projectID → session), keyed by `projectID` per [R-Q2].** ⚠️ **[R-Q5] CARVE-OUT: take `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ per-project state, NOT per-widget). ⚠️ **PLUS [I-0251] as a SEPARATE, NAMED Task** — ⛔ **it is a real behaviour CHANGE inside a behaviour-preserving Sprint, so it must not be folded into the extraction Task.** | — (foundation) · ⚠️ **[I-0251]** | ⚠️ **MED-HIGH** | ✅ **nothing** |
-| **[SP-146]** | **S2** | ✅ **The windows** — one window per open project; landing/editor relationship reworked; **R3 focus-existing**; quit flushes all; close calls `scrivi_close_project`. | **R1 R2 R3 R7 R8** | ⛔ **HIGH** | **[SP-145]** |
+| **[SP-146]** | **S2** | ⚠️ **THE APP OBJECT *AND* THE WINDOWS — renamed 2026-09-27, see §The app-level owner.** ⛔ **Linux has NO app-global state owner at all**, so S2 must FIRST create one (Apple's `AppEnvironment`) and move the registry + session OWNERSHIP onto it. ✅ Then: one window per open project; separate Landing window ([R-Q3]); **R3 focus-existing**; quit flushes the REGISTRY; close calls `scrivi_close_project`. | **R1 R2 R3 R7 R8** | ⛔ **HIGH** | **[SP-145]** |
 | **[SP-147]** | **S3** | ✅ **The persistence** — open-session manifest + launch restore; **per-project geometry AND splitter state**; ⚠️ **the test guard lands HERE, with the first line of restore code.** | **R4 R5 R6** | ✅ **MEDIUM** | **[SP-146]** |
 | **[SP-148]** | **S4** | ✅ **Verification** — AC sweep, Docker `ctest`, ⚠️ **the live pass on the real rig**, Epic close prep. | **AC-build AC-live** | ✅ **LOW** | **[SP-147]** |
 
@@ -172,7 +172,7 @@ in `Task-backlog.md` is exactly the layer-discipline defect `feedback_task_layer
 | Sprint | Planned work |
 | ------ | ------------ |
 | **[SP-145]** | Extract `ProjectSession` from `EditorShell` (behaviour-preserving), ⚠️ **carrying `inspectorVisible_` + `timelineVisible_` with it ([R-Q5])** · Introduce `OpenProjectRegistry` equivalent, ✅ **keyed by `projectID` ([R-Q2])** · ⚠️ **[I-0251] — load `inspectorHidden` from the core and write it back on change (SEPARATE Task, [R-Q4])** |
-| **[SP-146]** | One window per project + ✅ **SEPARATE Landing window ([R-Q3])**; ⚠️ **`File ▸ New`/`Open` in a project window RAISE Landing; closing the last project SHOWS Landing and never quits** · R3 focus-existing guard · ⚠️ **quit flushes THE REGISTRY, not a window** — ⛔ **`main.cpp`'s `aboutToQuit → ScriviWindow::flushEditor` is SINGULAR BY CONSTRUCTION and must be rewired here (R7)** · per-window `scrivi_close_project` · ⚠️ **budget N menu bars: `buildMenuBar()`/`updateMenuState()` become per-window, including the inspector/timeline check-state sync** |
+| **[SP-146]** | ⚠️ **FIRST: create `AppEnvironment`** (⛔ **Linux has no app-level owner; `main()` hand-threads everything**) · ⚠️ **move `OpenProjectRegistry` AND `ProjectSession` OWNERSHIP onto it** — ✅ **this removes [SP-145]'s reference-binding seam** · ⚠️ **add the R3 check in `AppEnvironment::openProject`** · ✅ **THEN** one window per project + ✅ **SEPARATE Landing window ([R-Q3])**; ⚠️ **`File ▸ New`/`Open` in a project window RAISE Landing; closing the last project SHOWS Landing and never quits** · R3 focus-existing guard · ⚠️ **quit flushes THE REGISTRY, not a window** — ⛔ **`main.cpp`'s `aboutToQuit → ScriviWindow::flushEditor` is SINGULAR BY CONSTRUCTION and must be rewired here (R7)** · per-window `scrivi_close_project` · ⚠️ **budget N menu bars: `buildMenuBar()`/`updateMenuState()` become per-window, including the inspector/timeline check-state sync** |
 | **[SP-147]** | Open-session manifest + launch restore · per-project geometry store (frame + maximized) · splitter-proportion persistence — ✅ **ALL THREE in `<appSupportRoot>/session.ini` via `QSettings`, `[project/<projectID>]` with `path` as an attribute ([R-Q1]/[R-Q2]); ⚠️ carry the `settings.sync()` habit** · ⚠️ **the test/headless guard** — ✅ **FIRST evaluate `XDG_DATA_HOME` redirection (see §Known traps) before inventing a `--no-restore` flag** |
 | **[SP-148]** | AC sweep · Docker `ctest` as non-root · ⚠️ **live pass on the rig** · close prep |
 
@@ -337,6 +337,97 @@ just answer the question" is the habit worth keeping.**
 4. ⛔ ~~*"Q4 — SP-078 ruled them non-persistent; reversing it must be SAID."*~~ → ✅ **not a reversal:
    Apple already persists inspector through the core, and Linux is simply out of parity.**
 5. ✅ *"Q5 — sibling Epic or ACs inside?"* → ⚠️ **premise held** (✅ **added on activation**).
+
+---
+
+## ⚠️ The app-level owner — [SP-146]'s FIRST step (added 2026-09-27)
+
+⚠️ **RAISED BY [SP-145] AND MEASURED, not inferred.** ✅ **[SP-145] put `OpenProjectRegistry` on
+`EditorShell` because that Sprint changes no window code and one shell holds one project — ⛔ but that
+is WRONG for more than one window, and the user agreed 2026-09-27.**
+
+⛔ **THE REGISTRY CANNOT LIVE ON A WIDGET.** ⚠️ **Its whole purpose is to answer *"is this project
+already open?"* BEFORE a window is created** — ✅ **a decision about the app's siblings, which no single
+shell can make about the others.**
+
+### ⛔ THE PROBLEM IS BIGGER THAN A MOVE: Linux has NO app-level owner
+
+⚠️ **Measured 2026-09-27: there is no `AppEnvironment` equivalent anywhere in `platforms/linux/src/`.**
+⛔ **No app singleton, no `Q_GLOBAL_STATIC`, no `qApp` property.** ✅ **App-global state is LOCAL
+VARIABLES IN `main()`** — `appSupportRoot` is resolved at `main.cpp:87` and hand-threaded into the QML
+context, `ScriviWindow`, and `ShellController` separately.
+⚠️ **So [SP-146] does not "move a member." ✅ It CREATES Linux's first app-level state owner** — ⛔ **and
+[SP-145]'s own note calling this SP-146's "first step" understated it: it is a real Task, not a
+preamble.**
+
+### ✅ WHAT APPLE DOES — and why it is the shape to copy
+
+⚠️ **I checked every reader of Apple's registry. ✅ ALL OF THEM are inside `AppEnvironment`;
+⛔ NOT ONE is in a view.** ✅ **That is the load-bearing fact:**
+
+| Apple piece | Owns | ⚠️ Note |
+| --- | --- | --- |
+| `AppEnvironment` | ✅ the engine, identity, **`openProjects` registry**, ⚠️ **and it CREATES the sessions** (`makeSession()`, `AppEnvironment.swift:378`) | ⛔ the registry never leaves this class |
+| `ProjectWindowManager` | ✅ `[String: ProjectWindowController]` — **keyed by `projectID`** | ⚠️ a SEPARATE map from the registry |
+| the window | ✅ shows a session it is HANDED | ⛔ **never owns one** |
+
+⛔ **LINUX HAS THIS INVERTED TODAY:** ⚠️ **`EditorShell` owns the session AND the registry.**
+✅ **That inversion IS the defect.**
+
+### ✅ The target shape
+
+```
+AppEnvironment                     ← NEW (SP-146): app-global state
+├── appSupportRoot                 ← today: a local in main()
+├── OpenProjectRegistry            ← today: wrongly on EditorShell
+├── owns the ProjectSession objects (one per open project)
+└── openProject(path) → session*   ← THE R3 CHECK LIVES HERE
+
+ProjectWindowManager               ← projectID → window
+EditorShell                        ← is HANDED a session; owns no identity
+```
+
+### ⚠️ Three steps, in order
+
+1. ✅ **Create `AppEnvironment`**; move `appSupportRoot` onto it; construct it in `main()`.
+   ⚠️ **Mechanical, no behaviour change** — ✅ **do it first and alone, so the rest has a home.**
+2. ⚠️ **Move the registry AND session OWNERSHIP onto it.** ✅ **`EditorShell` takes a `ProjectSession*`
+   instead of holding one by value.** ✅ **THIS IS WHERE [SP-145]'s REFERENCE-BINDING SEAM IS REMOVED** —
+   ⚠️ **it was built for exactly this moment.** ⛔ **This step changes `EditorShell`'s lifetime contract
+   and deserves its own Task.**
+3. ✅ **Add the R3 check in `AppEnvironment::openProject`** — ⚠️ **the first point where the registry does
+   real work, because it is the first time two windows can exist.**
+
+### ⚠️ ALSO ON THIS CLASS: Apple's R6 guard already exists — do NOT invent a third mechanism
+
+✅ **`AppEnvironment.swift:374` has `SCRIVI_NO_PROJECT_LOAD`, plus `isRunningUnderTests`** (`:353`), ⚠️
+**and it deliberately leaves the open-session manifest INTACT while suppressing restore** — ✅ **so a
+test run cannot lose the writer's windows.** ⚠️ **That is a better-specified precedent than the
+`XDG_DATA_HOME` redirection floated in [SP-145]'s notes.** ⛔ **[SP-147] must read Apple's guard before
+planning R6** (⚠️ **`feedback_look_for_existing_pattern_first`**) — ✅ **and it belongs on this same new
+class, which is another reason to build it in [SP-146] rather than later.**
+
+### ⛔ WHAT IS **NOT** PART OF THIS — the bridge duplication, INVESTIGATED AND DISMISSED
+
+⚠️ **[SP-145] flagged that Linux constructs TWO `ScriviBridge` instances** (`Landing.qml:32` and
+`EditorShell.cpp:69`), **each calling `bootstrap()`, and proposed filing it as an Issue.**
+⛔ **MEASURED 2026-09-27, AND IT IS NOT A DEFECT. NO ISSUE WAS FILED.** ✅ **Three findings:**
+
+1. ⚠️ **THE COST IS NOTHING.** ✅ **Benchmarked through the C ABI in the Linux container: the first
+   `scrivi_ensure_local_identity` costs `0.78–5.0 ms`; ⛔ the SECOND costs `0.024–0.037 ms`, the third
+   `0.018 ms`.** ⚠️ **The claim that each bridge "bootstraps identity separately" implied a cost that
+   does not exist.**
+2. ✅ **THERE IS NO DIVERGENCE RISK.** ⚠️ **`CoreSingleton` is ONE per process
+   (`scrivi_c_api.cpp:157`), so both bridges share ONE `SecureStore` and resolve the SAME identity.**
+3. ✅ **TWO INSTANCES IS THE CORRECT DESIGN.** ⚠️ **Their `errorOccurred` handlers are DELIBERATELY
+   DIFFERENT surfaces: the landing sets `window.landingError`; the editor sets `errorLabel_` and must do
+   so via a `QueuedConnection` because its calls run on a worker (T-0499).** ⛔ **Merging them would
+   route worker-thread errors into the QML landing — a regression, not a cleanup.**
+
+⚠️ **RECORDED BECAUSE THE INVESTIGATION IS THE RESULT.** ✅ **"Two instances of a boundary class" LOOKS
+like the duplication class this Epic's siblings keep finding ([I-0215], [I-0241], [I-0242])** — ⛔ **and
+it is not one.** ⚠️ **A measurement is what told the difference, and filing it on the resemblance would
+have cost a Sprint's attention for no defect.**
 
 ---
 

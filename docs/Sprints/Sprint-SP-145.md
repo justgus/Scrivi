@@ -214,10 +214,31 @@ counts, which is why they are here.**
 ⚠️ **That belongs to the user on the rig** — ✅ **and [SP-148] owns the Epic's live pass.**
 ⚠️ **Confirm the build first** (`scrivi_linux --version`, `feedback_confirm_the_build_under_test`).
 
-### ⚠️ ONE FINDING FOR [SP-146], recorded now
+### ⚠️ ONE FINDING FOR [SP-146] — ✅ **RULED AND SCOPED 2026-09-27**
 
-⛔ **`registry_` currently lives on `EditorShell`, and that is wrong for more than one window.**
-✅ **Apple's is on `AppEnvironment`** — ⚠️ **app-global, because a per-shell registry cannot answer R3
-ACROSS windows, which is the entire reason to have one.** ✅ **It is observably correct today (one
-shell, one project), ⛔ but [SP-146]'s FIRST step must be to lift it to the app/window-manager level.**
-✅ **Written into the class's own header comment as well as here.**
+⛔ **`registry_` lives on `EditorShell`, and that is wrong for more than one window.** ✅ **User agreed
+2026-09-27; ✅ the fix is now scoped in the Epic** → §*The app-level owner*.
+
+⚠️ **THE FINDING WAS BIGGER THAN [SP-145] STATED.** ⛔ **This record first called it [SP-146]'s "first
+step," which reads like a preparatory move.** ✅ **MEASURED 2026-09-27: Linux has NO app-level state
+owner at all** — ⛔ **no `AppEnvironment` equivalent, no singleton; `appSupportRoot` is a LOCAL IN
+`main()` (`main.cpp:87`) hand-threaded into three consumers.** ✅ **So [SP-146] must CREATE Linux's first
+app-global owner, which is a real Task, not a preamble.** ⚠️ **[SP-146] is therefore re-scoped as *"the
+app object AND the windows."***
+✅ **[SP-145]'s reference-binding seam is removed in that Sprint's step 2** — ⚠️ **it was built for
+exactly that moment.**
+
+### ⛔ A SECOND "FINDING" THIS SPRINT RAISED AND THEN RETRACTED — the bridge duplication
+
+⚠️ **[SP-145] observed TWO `ScriviBridge` instances (`Landing.qml:32`, `EditorShell.cpp:69`), each
+calling `bootstrap()`, and I proposed filing an Issue.** ⛔ **INVESTIGATED 2026-09-27: NOT A DEFECT, and
+NO ISSUE WAS FILED.** ✅ **Benchmarked through the C ABI in the container — the second
+`scrivi_ensure_local_identity` costs `0.024–0.037 ms` against the first's `0.78–5.0 ms`;
+✅ `CoreSingleton` is one per process so both bridges share one `SecureStore` and one identity;
+✅ and their two `errorOccurred` handlers are DELIBERATELY different surfaces (the editor's needs a
+`QueuedConnection` because its calls run on a worker, T-0499).** ⛔ **Merging them would be a
+regression.**
+⚠️ **WORTH RECORDING AS A LESSON:** ✅ **"two instances of a boundary class" RESEMBLES the duplication
+class this Epic's siblings keep finding ([I-0215], [I-0241], [I-0242])** — ⛔ **and a resemblance is not
+a defect.** ✅ **A measurement is what told them apart; ⛔ filing on the resemblance would have spent a
+Sprint's attention on nothing.** ⚠️ **Full detail in the Epic's §The app-level owner.**
