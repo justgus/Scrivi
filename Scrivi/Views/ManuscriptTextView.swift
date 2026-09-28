@@ -2386,14 +2386,42 @@ private final class DividerTextAttachment: NSTextAttachment {
         // right appearance. ✅ An `NSImage` drawn with a handler resolves against the CURRENT
         // appearance at draw time, which the text view sets — so Light/Dark tracks correctly
         // without the cell's `controlView` dance.
+        //
+        // ✅ [I-0252] (T-0554, 2026-09-28): THAT COMMENT IS CORRECT AND WAS VERIFIED BY
+        // MEASUREMENT — a harness rasterising this exact handler under each appearance got
+        // `rgba(1,1,1,0.047)` under Dark and `rgba(0,0,0,0.047)` under Light. ⛔ The appearance
+        // was NEVER the bug.
+        //
+        // ⛔ THE BUG WAS THE COLOUR. `separatorColor` is `white @ 9.8% alpha` in Dark, which
+        // COMPOSITES over the editor background to a contrast ratio of **1.34 : 1** — against
+        // `16.67 : 1` for body text. It is a chrome hairline meant to divide CONTROLS, and it
+        // is invisible as a content mark inside a writing surface. ⚠️ It measures `1.25 : 1`
+        // in Light too, so this was never a Dark Mode defect — Dark is only where it was
+        // noticed.
+        //
+        // ✅ `secondaryLabelColor` measures `5.89 : 1` (Dark) and `3.95 : 1` (Light): visible
+        // as a structural mark without competing with prose. ⚠️ `tertiaryLabelColor` was
+        // measured too and rejected at `2.26 : 1` — still too faint for a 1 px rule.
+        //
+        // ⚠️ THIS IS A VISIBILITY FIX, NOT THE FINAL DESIGN. The scene break is to become a
+        // typeset `* * *` mark (the writer must be able to SEE that the caret is at a scene
+        // boundary, because operations depend on it) — see
+        // `docs/Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md` §1.5. ⛔ Do not elaborate
+        // this drawing code in the meantime; it is scheduled to be replaced.
         let size = NSSize(width: max(bounds.width, 1), height: max(bounds.height, 1))
         return NSImage(size: size, flipped: false) { rect in
-            let lineY = rect.midY
+            // ⚠️ [I-0252] SECOND DEFECT, also measured: a 1 pt line centred on an INTEGRAL
+            // y straddles the pixel grid, so antialiasing splits it across TWO rows at
+            // HALF alpha each — measured `0.275 / 0.275` instead of one row at `0.549`.
+            // ⛔ That halved the line's contrast on its own, independently of the colour.
+            // ✅ Offsetting by half a point puts the 1 pt stroke inside ONE pixel row:
+            // measured `0.549` on a single row.
+            let lineY = rect.midY.rounded() + 0.5
             let path = NSBezierPath()
             path.lineWidth = 1.0
             path.move(to: NSPoint(x: rect.minX + 20, y: lineY))
             path.line(to: NSPoint(x: rect.maxX - 20, y: lineY))
-            NSColor.separatorColor.setStroke()
+            NSColor.secondaryLabelColor.setStroke()
             path.stroke()
             return true
         }

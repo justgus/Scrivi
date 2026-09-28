@@ -32,6 +32,7 @@ on:
       - 'scripts/check-package-boundary.sh'
       - 'scripts/check-textkit2.sh'
       - 'scripts/check-layout-convergence.sh'
+      - 'scripts/check-engine-stub-parity.sh'
       - '.github/workflows/scrivi-apple-ci.yml'
   pull_request:
     branches: [main]
@@ -40,11 +41,12 @@ on:
       - 'scripts/check-package-boundary.sh'
       - 'scripts/check-textkit2.sh'
       - 'scripts/check-layout-convergence.sh'
+      - 'scripts/check-engine-stub-parity.sh'
       - '.github/workflows/scrivi-apple-ci.yml'
 
 jobs:
   guards:
-    name: boundary + TextKit + layout guards
+    name: boundary + TextKit + layout + stub-parity guards
     # ⚠️ ubuntu, not macos: these are greps over source. A macOS runner would cost
     # ~10x for an identical result. If a future job here needs `xcodebuild`, it
     # belongs in its own job with its own runner — not by widening this one.
@@ -76,3 +78,14 @@ jobs:
       # that split is the Q4 ruling, and neither half alone is the guard.
       - name: Layout convergence guard
         run: scripts/check-layout-convergence.sh
+
+      # ⚠️ [I-0253]: `ScriviEngine` is `#if os(macOS) || os(iOS)` with a visionOS
+      # STUB under `#else`. A method added to the engine and not the stub breaks
+      # ONLY visionOS — and ⛔ nothing here builds visionOS (this workflow is
+      # LINT-ONLY by user ruling Q2, 2026-09-21), so the break surfaces later, as a
+      # compile error in a file unrelated to the change that caused it.
+      # ⚠️ IT HAPPENED THREE TIMES. The stub's own comment warned it would recur —
+      # ✅ and a comment is not a guard. On its first run this script found FOUR
+      # further latent gaps beyond the two that were breaking the build.
+      - name: Engine stub parity guard
+        run: scripts/check-engine-stub-parity.sh

@@ -394,6 +394,7 @@ struct ObjectDetailSheet: View {
             if trail.isEmpty, let seed = history.current { trail = [seed] }
             load()
         }
+        #if os(macOS)
         // ✅ **[I-0250] — ESC, AT THE LEVEL THE KEY ACTUALLY ARRIVES.**
         //
         // ⚠️ *"The user generates an exit command by pressing the Menu button on tvOS,
@@ -403,6 +404,7 @@ struct ObjectDetailSheet: View {
         // ✅ Routing through `requestClose()` means Esc honours the unsaved-changes
         // guard exactly as clicking ✕ does.
         .onExitCommand { requestClose() }
+        #endif
         // ⚠️ **THE TRIPWIRE — [I-0250].** ⛔ If the sheet is ever torn down with unsaved
         // edits still present, something bypassed the guard and the writer just lost
         // work SILENTLY. ✅ This session found TWO separate routes into that state

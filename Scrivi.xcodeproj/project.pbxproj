@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -17,21 +17,17 @@
 		C005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
 		C006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
-		C061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		C011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		C012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		C013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
+		C014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		C015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
 		C016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
-		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
-		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
-		C_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
-		C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		C017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		C018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
-		C015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
-		C014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
@@ -41,12 +37,14 @@
 		C035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
 		C036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		C037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
-		C074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
-		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		C038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		C050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
-		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		C054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
+		C055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
 		C060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		C061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
 		C062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		C063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
 		C064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
@@ -54,16 +52,18 @@
 		C066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
 		C067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
 		C068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		C069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		C071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
 		C072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
 		C073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
+		C074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
+		C075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		C076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		C077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
-		C069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
-		C051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
-		C053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
-		C054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
-		C055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
+		C099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		C_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		C_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		C_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		D001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		D002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		D003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -71,21 +71,17 @@
 		D005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
 		D006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
-		D061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		D011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		D012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		D013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
+		D014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		D015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
 		D016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
-		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
-		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
-		D_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
-		D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		D017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		D018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
-		D015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
-		D014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
@@ -94,12 +90,14 @@
 		D035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
 		D036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		D037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
-		D074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
-		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		D038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		D050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
-		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		D054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
+		D055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
 		D060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		D061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
 		D062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		D063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
 		D064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
@@ -107,16 +105,18 @@
 		D066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
 		D067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
 		D068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		D069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		D071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
 		D072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
 		D073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
+		D074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
+		D075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		D076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		D077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
-		D069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
-		D051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
-		D053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
-		D054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
-		D055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
+		D099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		D_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		D_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		D_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		E001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		E002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		E003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -124,21 +124,17 @@
 		E005_BF /* NewProjectSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C005 /* NewProjectSheet.swift */; };
 		E006_BF /* ViewportSceneLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C006 /* ViewportSceneLoader.swift */; };
 		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
-		E061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
 		E011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
 		E012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
 		E013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
+		E014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		E015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
 		E016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
-		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
-		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
-		E_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
-		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		E017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
 		E018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
-		E015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
-		E014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
+		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
@@ -147,12 +143,14 @@
 		E035_BF /* TimelineStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C035 /* TimelineStripView.swift */; };
 		E036_BF /* SpotlightDonor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C036 /* SpotlightDonor.swift */; };
 		E037_BF /* ProjectBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037 /* ProjectBookmarkStore.swift */; };
-		E074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
-		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		E038_BF /* ScriviURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = C038 /* ScriviURL.swift */; };
 		E050_BF /* ProjectSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C050 /* ProjectSession.swift */; };
-		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
+		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
+		E054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
+		E055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
 		E060_BF /* HistoryCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C060 /* HistoryCapture.swift */; };
+		E061_BF /* ForkPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C061 /* ForkPopover.swift */; };
 		E062_BF /* BufferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C062 /* BufferService.swift */; };
 		E063_BF /* BuffersPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C063 /* BuffersPalette.swift */; };
 		E064_BF /* InspectorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C064 /* InspectorCard.swift */; };
@@ -160,30 +158,19 @@
 		E066_BF /* InspectorCardStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C066 /* InspectorCardStackView.swift */; };
 		E067_BF /* WritingToolCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = C067 /* WritingToolCards.swift */; };
 		E068_BF /* HistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C068 /* HistoryCard.swift */; };
+		E069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
 		E071_BF /* ObjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C071 /* ObjectCard.swift */; };
 		E072_BF /* ObjectPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C072 /* ObjectPickerView.swift */; };
 		E073_BF /* WorldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C073 /* WorldsView.swift */; };
+		E074_BF /* WorldBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C074 /* WorldBookmarkStore.swift */; };
+		E075_BF /* WorldVolumeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C075 /* WorldVolumeStatus.swift */; };
 		E076_BF /* WorldWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C076 /* WorldWarningView.swift */; };
 		E077_BF /* SourcesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C077 /* SourcesCard.swift */; };
-		E069_BF /* ScenePropertiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C069 /* ScenePropertiesView.swift */; };
-		E051_BF /* OpenProjectRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C051 /* OpenProjectRegistry.swift */; };
-		E053_BF /* ProjectWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C053 /* ProjectWindowManager.swift */; };
-		E054_BF /* OpenSessionManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C054 /* OpenSessionManifest.swift */; };
-		E055_BF /* ProjectWindowFrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055 /* ProjectWindowFrameStore.swift */; };
+		E099_BF /* ScriviDiag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099 /* ScriviDiag.swift */; };
+		E_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
+		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
+		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
-		F010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
-		F011_BF /* ScriviError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* ScriviError.swift */; };
-		F012_BF /* ScriviEngineGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* ScriviEngineGraph.swift */; };
-		F013_BF /* ObjectKindScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = B013 /* ObjectKindScope.swift */; };
-		F016_BF /* ObjectDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* ObjectDetailSheet.swift */; };
-		F_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
-		F019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
-		F_CITE_BF /* Citation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B022 /* Citation.swift */; };
-		F_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
-		F017_BF /* ObjectRelationsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B017 /* ObjectRelationsSection.swift */; };
-		F018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
-		F015_BF /* ObjectDetailHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* ObjectDetailHistory.swift */; };
-		F014_BF /* ObjectDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014 /* ObjectDetail.swift */; };
 		F020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 /* End PBXBuildFile section */
 
@@ -203,15 +190,15 @@
 		B011 /* ScriviError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviError.swift; path = Scrivi/Engine/ScriviError.swift; sourceTree = SOURCE_ROOT; };
 		B012 /* ScriviEngineGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviEngineGraph.swift; path = Scrivi/Engine/ScriviEngineGraph.swift; sourceTree = SOURCE_ROOT; };
 		B013 /* ObjectKindScope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectKindScope.swift; path = Scrivi/Engine/ObjectKindScope.swift; sourceTree = SOURCE_ROOT; };
+		B014 /* ObjectDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetail.swift; path = Scrivi/Engine/ObjectDetail.swift; sourceTree = SOURCE_ROOT; };
+		B015 /* ObjectDetailHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailHistory.swift; path = Scrivi/Views/Detail/ObjectDetailHistory.swift; sourceTree = SOURCE_ROOT; };
 		B016 /* ObjectDetailSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailSheet.swift; path = Scrivi/Views/Detail/ObjectDetailSheet.swift; sourceTree = SOURCE_ROOT; };
-		B020 /* ExistingAssetPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ExistingAssetPicker.swift; path = Scrivi/Views/Detail/ExistingAssetPicker.swift; sourceTree = SOURCE_ROOT; };
-		B019 /* ObjectImageSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectImageSection.swift; path = Scrivi/Views/Detail/ObjectImageSection.swift; sourceTree = SOURCE_ROOT; };
-		B022 /* Citation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Citation.swift; path = Scrivi/Views/Detail/Citation.swift; sourceTree = SOURCE_ROOT; };
-		B021 /* ObjectSourcesSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectSourcesSection.swift; path = Scrivi/Views/Detail/ObjectSourcesSection.swift; sourceTree = SOURCE_ROOT; };
 		B017 /* ObjectRelationsSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationsSection.swift; path = Scrivi/Views/Detail/ObjectRelationsSection.swift; sourceTree = SOURCE_ROOT; };
 		B018 /* ObjectRelationPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectRelationPicker.swift; path = Scrivi/Views/Detail/ObjectRelationPicker.swift; sourceTree = SOURCE_ROOT; };
-		B015 /* ObjectDetailHistory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetailHistory.swift; path = Scrivi/Views/Detail/ObjectDetailHistory.swift; sourceTree = SOURCE_ROOT; };
-		B014 /* ObjectDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectDetail.swift; path = Scrivi/Engine/ObjectDetail.swift; sourceTree = SOURCE_ROOT; };
+		B019 /* ObjectImageSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectImageSection.swift; path = Scrivi/Views/Detail/ObjectImageSection.swift; sourceTree = SOURCE_ROOT; };
+		B020 /* ExistingAssetPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ExistingAssetPicker.swift; path = Scrivi/Views/Detail/ExistingAssetPicker.swift; sourceTree = SOURCE_ROOT; };
+		B021 /* ObjectSourcesSection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectSourcesSection.swift; path = Scrivi/Views/Detail/ObjectSourcesSection.swift; sourceTree = SOURCE_ROOT; };
+		B022 /* Citation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Citation.swift; path = Scrivi/Views/Detail/Citation.swift; sourceTree = SOURCE_ROOT; };
 		C001 /* ScriviApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviApp.swift; path = Scrivi/App/ScriviApp.swift; sourceTree = SOURCE_ROOT; };
 		C002 /* AppEnvironment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppEnvironment.swift; path = Scrivi/App/AppEnvironment.swift; sourceTree = SOURCE_ROOT; };
 		C003 /* LandingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LandingView.swift; path = Scrivi/Views/LandingView.swift; sourceTree = SOURCE_ROOT; };
@@ -219,7 +206,6 @@
 		C005 /* NewProjectSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NewProjectSheet.swift; path = Scrivi/Views/NewProjectSheet.swift; sourceTree = SOURCE_ROOT; };
 		C006 /* ViewportSceneLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewportSceneLoader.swift; path = Scrivi/Views/ViewportSceneLoader.swift; sourceTree = SOURCE_ROOT; };
 		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Scrivi/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
-		C061 /* ForkPopover.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ForkPopover.swift; path = Scrivi/Views/ForkPopover.swift; sourceTree = SOURCE_ROOT; };
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
 		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Scrivi/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
 		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Scrivi/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
@@ -229,11 +215,14 @@
 		C035 /* TimelineStripView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TimelineStripView.swift; path = Scrivi/Views/TimelineStripView.swift; sourceTree = SOURCE_ROOT; };
 		C036 /* SpotlightDonor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SpotlightDonor.swift; path = Scrivi/App/SpotlightDonor.swift; sourceTree = SOURCE_ROOT; };
 		C037 /* ProjectBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectBookmarkStore.swift; path = Scrivi/App/ProjectBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
-		C074 /* WorldBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldBookmarkStore.swift; path = Scrivi/App/WorldBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
-		C075 /* WorldVolumeStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldVolumeStatus.swift; path = Scrivi/App/WorldVolumeStatus.swift; sourceTree = SOURCE_ROOT; };
 		C038 /* ScriviURL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviURL.swift; path = Scrivi/App/ScriviURL.swift; sourceTree = SOURCE_ROOT; };
 		C050 /* ProjectSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSession.swift; path = Scrivi/App/ProjectSession.swift; sourceTree = SOURCE_ROOT; };
+		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Scrivi/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
+		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Scrivi/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
+		C055 /* ProjectWindowFrameStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowFrameStore.swift; path = Scrivi/App/ProjectWindowFrameStore.swift; sourceTree = SOURCE_ROOT; };
 		C060 /* HistoryCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCapture.swift; path = Scrivi/App/HistoryCapture.swift; sourceTree = SOURCE_ROOT; };
+		C061 /* ForkPopover.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ForkPopover.swift; path = Scrivi/Views/ForkPopover.swift; sourceTree = SOURCE_ROOT; };
 		C062 /* BufferService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BufferService.swift; path = Scrivi/App/BufferService.swift; sourceTree = SOURCE_ROOT; };
 		C063 /* BuffersPalette.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BuffersPalette.swift; path = Scrivi/Views/BuffersPalette.swift; sourceTree = SOURCE_ROOT; };
 		C064 /* InspectorCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCard.swift; path = Scrivi/Views/Inspector/InspectorCard.swift; sourceTree = SOURCE_ROOT; };
@@ -241,16 +230,14 @@
 		C066 /* InspectorCardStackView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = InspectorCardStackView.swift; path = Scrivi/Views/Inspector/InspectorCardStackView.swift; sourceTree = SOURCE_ROOT; };
 		C067 /* WritingToolCards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WritingToolCards.swift; path = Scrivi/Views/Inspector/WritingToolCards.swift; sourceTree = SOURCE_ROOT; };
 		C068 /* HistoryCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HistoryCard.swift; path = Scrivi/Views/Inspector/HistoryCard.swift; sourceTree = SOURCE_ROOT; };
+		C069 /* ScenePropertiesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScenePropertiesView.swift; path = Scrivi/Views/Inspector/ScenePropertiesView.swift; sourceTree = SOURCE_ROOT; };
 		C071 /* ObjectCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectCard.swift; path = Scrivi/Views/Inspector/ObjectCard.swift; sourceTree = SOURCE_ROOT; };
 		C072 /* ObjectPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ObjectPickerView.swift; path = Scrivi/Views/Inspector/ObjectPickerView.swift; sourceTree = SOURCE_ROOT; };
 		C073 /* WorldsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldsView.swift; path = Scrivi/Views/WorldsView.swift; sourceTree = SOURCE_ROOT; };
+		C074 /* WorldBookmarkStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldBookmarkStore.swift; path = Scrivi/App/WorldBookmarkStore.swift; sourceTree = SOURCE_ROOT; };
+		C075 /* WorldVolumeStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldVolumeStatus.swift; path = Scrivi/App/WorldVolumeStatus.swift; sourceTree = SOURCE_ROOT; };
 		C076 /* WorldWarningView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WorldWarningView.swift; path = Scrivi/Views/WorldWarningView.swift; sourceTree = SOURCE_ROOT; };
 		C077 /* SourcesCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SourcesCard.swift; path = Scrivi/Views/Inspector/SourcesCard.swift; sourceTree = SOURCE_ROOT; };
-		C069 /* ScenePropertiesView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScenePropertiesView.swift; path = Scrivi/Views/Inspector/ScenePropertiesView.swift; sourceTree = SOURCE_ROOT; };
-		C051 /* OpenProjectRegistry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenProjectRegistry.swift; path = Scrivi/App/OpenProjectRegistry.swift; sourceTree = SOURCE_ROOT; };
-		C053 /* ProjectWindowManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowManager.swift; path = Scrivi/App/ProjectWindowManager.swift; sourceTree = SOURCE_ROOT; };
-		C054 /* OpenSessionManifest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = OpenSessionManifest.swift; path = Scrivi/App/OpenSessionManifest.swift; sourceTree = SOURCE_ROOT; };
-		C055 /* ProjectWindowFrameStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectWindowFrameStore.swift; path = Scrivi/App/ProjectWindowFrameStore.swift; sourceTree = SOURCE_ROOT; };
 		C099 /* ScriviDiag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviDiag.swift; path = Scrivi/App/ScriviDiag.swift; sourceTree = SOURCE_ROOT; };
 		C_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -258,9 +245,9 @@
 		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Scrivi/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
 		F_PRODUCT /* ScriviInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriviInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		GRP_SCRIVI /* Scrivi */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Scrivi; sourceTree = SOURCE_ROOT; };
+		LINUX_PLATFORM_REF /* platforms/linux */ = {isa = PBXFileReference; lastKnownFileType = folder; path = platforms/linux; sourceTree = SOURCE_ROOT; };
 		SCRIVI_CORE_LIB /* libScriviCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libScriviCore.a; path = build/ScriviCore/libScriviCore.a; sourceTree = SOURCE_ROOT; };
 		SCRIVI_CORE_REF /* ScriviCore */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ScriviCore; sourceTree = SOURCE_ROOT; };
-		LINUX_PLATFORM_REF /* platforms/linux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "platforms/linux"; path = platforms/linux; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -463,7 +450,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2700;
-				LastUpgradeCheck = 2700;
+				LastUpgradeCheck = 2710;
 				TargetAttributes = {
 					C_TARGET = {
 						SystemCapabilities = {
@@ -798,7 +785,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -854,7 +841,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/build/ScriviCore";
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -1014,6 +1001,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -1067,6 +1055,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;

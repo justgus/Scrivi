@@ -1461,6 +1461,27 @@ public final class ScriviEngine: @unchecked Sendable {
     public func createProject(projectRootPath: String, appSupportRoot: String, title: String, slug: String, authorshipRef: AuthorshipRef) throws -> CreateProjectResult { try unavailable() }
     public func openProject(projectRootPath: String, appSupportRoot: String, identityID: String = "") throws -> OpenProjectResult { try unavailable() }
     public func openScene(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
+    // ⚠️ **[I-0253] — THE FOUR THAT DRIFTED, AND THE THIRD TIME THIS STUB HAS.**
+    //
+    // ⛔ `closeProject` and `openSceneForBulkLoad` BROKE THE visionOS BUILD OUTRIGHT:
+    // both are called from files that compile on EVERY platform
+    // (`ProjectSession.swift:378`, `ViewportSceneLoader.swift:178`/`:1053`), so their
+    // absence here was a hard compile error — ⚠️ and it went unnoticed because
+    // nothing builds visionOS routinely.
+    //
+    // ⚠️ `mergeScene`/`mergeChapter` were LATENT, not breaking: their only call sites
+    // are in `ManuscriptTextView.swift`, which is `#if os(macOS)`. ✅ They are added
+    // anyway — ⛔ the moment the iOS/visionOS manuscript surface is built (it is a
+    // stub today, `:2431`), they would have become the next two errors.
+    //
+    // ⚠️ THE NOTE BELOW ABOUT `createObject`/`openObject` ALREADY WARNED THIS WOULD
+    // RECUR: *"a stub that lags the engine breaks only visionOS, long after the
+    // change that caused it."* ✅ It did. ⛔ The warning is not the fix — see [I-0253]
+    // for the guard that makes drift impossible to ship silently.
+    public func closeProject(projectRootPath: String) { /* no-op: nothing was ever opened */ }
+    public func openSceneForBulkLoad(projectRootPath: String, appSupportRoot: String, projectID: String, sceneID: String) throws -> OpenSceneResult { try unavailable() }
+    public func mergeScene(projectRootPath: String, sceneID: String) throws -> MergeSceneResult { try unavailable() }
+    public func mergeChapter(projectRootPath: String, chapterID: String) throws -> MergeChapterResult { try unavailable() }
     public func saveScene(projectID: String, projectRootPath: String, appSupportRoot: String, sceneID: String, sceneMetadataPath: String, sceneContentPath: String, markdown: String, selectionAnchor: Int = 0, selectionFocus: Int = 0, scroll: Double = 0, authorshipRef: AuthorshipRef) throws -> SaveSceneResult { try unavailable() }
     public func scanForExternalChanges(projectRootPath: String, appSupportRoot: String, includeGitStatus: Bool = true) throws -> ScanResult { try unavailable() }
     public func applyRepair(issueID: String, projectRootPath: String, appSupportRoot: String, actionKind: String, targetPath: String = "", authorshipRef: AuthorshipRef) throws -> ApplyRepairResult { try unavailable() }

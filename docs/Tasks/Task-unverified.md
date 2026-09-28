@@ -10,6 +10,59 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0555 — `[Apple]` ✅ **Engine stub parity ([I-0253])** — **Implemented 2026-09-28, NOT VERIFIED**
+
+⚠️ **NO SPRINT** — ✅ **raised by the user from a symptom they had patched themselves.**
+
+✅ **THE FIX (two parts, and the second matters more):**
+1. ✅ **Four methods added to the visionOS stub** in `Scrivi/Engine/ScriviEngine.swift`:
+   `closeProject` (a no-op — it is non-throwing and runs on teardown), `openSceneForBulkLoad`,
+   `mergeScene`, `mergeChapter`.
+2. ✅ **`scripts/check-engine-stub-parity.sh`** — ⚠️ **the guard, wired into `scrivi-apple-ci.yml`**
+   (step + both path filters). ⛔ **Because the stub's own comment already predicted this recurrence
+   and a comment cannot fail a build.**
+
+⚠️ **THE GUARD WAS PROVEN BY BREAKING IT:** ✅ **`mergeScene` was removed from the stub, the guard went
+RED naming it, and green on restore.**
+
+⛔ **I GOT THE GUARD WRONG ONCE, AND IT BROKE THE BUILD — recorded because it is the instructive part.**
+⚠️ **The first pattern anchored on whitespace-then-`public func`, so it MISSED every
+`@discardableResult public func` in the stub and reported FOUR methods as absent that were ALREADY
+THERE** (`:1536-1539`). ⛔ **Acting on that phantom added duplicates and broke the visionOS build — the
+exact build the guard exists to protect.** ✅ **Fixed to skip leading attributes; the reverted additions
+are gone.** ⚠️ **A check that reports a phantom is worse than no check: it invites a "fix" that breaks
+something real.**
+
+✅ **VERIFIED BY BUILDING: `ScriviApp` ✅ · `ScriviApp-iOS` ✅ · `ScriviApp-visionOS` ✅ — all BUILD
+SUCCEEDED.** ✅ **All four guards green.**
+⛔ **NOT VERIFIED: the app was not RUN on visionOS** — ⚠️ **it cannot usefully be: the stub throws by
+design because ScriviCore is not linked for visionOS ([I-0053]).** ✅ **This Task restores COMPILATION,
+which is what it claims.**
+
+---
+
+## 🟠 T-0554 — `[Apple]` ✅ **Divider visibility ([I-0252])** — **Implemented 2026-09-28, NOT VERIFIED**
+
+⚠️ **NO SPRINT** — ✅ **a standalone fix taken while [EP-043]/[SP-145] awaits rig verification and the
+manuscript-rendering trade study awaits rulings.** ⛔ **Deliberately NOT folded into the renderer work:
+the writer is impeded in Dark Mode today.**
+
+✅ **`Scrivi/Views/ManuscriptTextView.swift` — `DividerTextAttachment.image(for:)`.** ⚠️ **TWO measured
+defects, ⛔ neither the one first theorised:**
+1. ⚠️ **Colour:** `separatorColor` → `secondaryLabelColor`. ⛔ **`1.34 : 1` was a CHROME hairline used as
+   a content mark.**
+2. ⚠️ **Pixel straddling:** a 1 pt line on an integral `y` antialiased across TWO rows at half alpha
+   (`0.275 / 0.275` vs `0.549`). ✅ **`rect.midY.rounded() + 0.5`.**
+
+✅ **MEASURED RESULT: Dark `1.34 → 5.89 : 1` (4.4x); Light `1.25 → 3.95 : 1` (3.2x).**
+✅ **`xcodebuild -scheme ScriviApp build` → BUILD SUCCEEDED.**
+⛔ **NOT VERIFIED: no visual confirmation in the running app.** ⚠️ **Scrivi was RUNNING during this work,
+so `xcodebuild test` was NOT run** (`feedback_check_scrivi_running_before_tests` / [I-0150]: the test
+runner LAUNCHES the app and once rewrote a real project). ✅ **The user is in Dark Mode and can confirm
+by eye.**
+
+---
+
 ## 🟠 [SP-145] — T-0551 · T-0552 · T-0553 — ✅ **Implemented 2026-09-27, NOT VERIFIED**
 
 ✅ **Sprint record (the detail lives there, not here):** →
