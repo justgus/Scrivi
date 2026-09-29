@@ -23,12 +23,18 @@ LIVE PASS PASSED on the rig** (*"the live test passed. hide inspector survived a
 defect on BOTH platforms)** · ⚠️ **the Navigator is hidden by collapsing its splitter to 0, ⛔ not by a
 new control ([I-0256]) — ✅ and index 0 already collapses, so no widget change is needed.**
 
-🟡 **[SP-146] IS ACTIVE (2026-09-29, user-approved)** →
-[`../Sprints/Sprint-SP-146.md`](../Sprints/Sprint-SP-146.md) — ⚠️ **S2: the app-level owner, one window
-per project, the separate Landing window ([R-Q3]), R7 quit-flushes-the-registry, and
-`scrivi_close_project` per window (R8).** ⚠️ **T-0558 · T-0559 · T-0560, ⛔ strictly serial, none
-started.** ⛔ **NOT behaviour-preserving — ⚠️ unlike [SP-145], assertions WILL change and each must be
-named.** ⚠️ **[I-0256] is a fold-in candidate, ⛔ deliberately not in the ACs.**
+✅ **[SP-146] CLOSED 2026-09-29 (user-approved) — ⚠️ S2 of 4 COMPLETE** →
+[`../Sprints/Closed/Sprint-SP-146.md`](../Sprints/Closed/Sprint-SP-146.md). ✅ **ALL ELEVEN ACs MET;
+⚠️ LIVE PASS PASSED on the rig.** ✅ **T-0558–T-0562 VERIFIED and archived** →
+[`../Tasks/Verified/Task-verified-0558-0562.md`](../Tasks/Verified/Task-verified-0558-0562.md);
+✅ **[I-0257] VERIFIED.**
+⚠️ **HEADLINE: ✅ Linux opens TWO projects in TWO windows — ⛔ [I-0178], the defect this Epic exists
+for.** ⚠️ **The user's FIRST rig pass confirmed AC9 and FOUND [I-0257]** (⛔ a quit that left windows
+open non-deterministically, ⚠️ a regression from [T-0561]) — ✅ **reproduced, fixed, re-verified.**
+
+⛔ **NO SPRINT IS ACTIVE.** ✅ **[SP-147] IS NEXT and UNBLOCKED** — ⚠️ **S3: the open-session manifest,
+launch restore, per-project geometry AND splitter state ([R-Q1] `session.ini`, R4/R5/R6).**
+⚠️ **[I-0256] remains a fold-in candidate** (⛔ still not built).
 
 ⚠️ **PRIOR STATE — ✅ ALL FIVE OWED RULINGS WERE ANSWERED 2026-09-26 (user-approved).** ✅ **Full text in the Epic record's §Rulings.** The five, in one line each:
 ✅ **[R-Q1]** session state → **`<appSupportRoot>/session.ini`** via `QSettings`, mirroring the existing

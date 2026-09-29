@@ -1,18 +1,24 @@
 ---
 sprint: SP-146
 epic: EP-043
-status: Active
+status: Closed
 platform: Linux
 created: 2026-09-29
 activated: 2026-09-29
+closed: 2026-09-29
 ---
 
 # SP-146 — `[Linux]` **The App Object and the Windows** (S2 of [EP-043])
 
-**Status:** 🟡 **ACTIVE — 2026-09-29 (user-approved).**
-**Epic:** ✅ **[EP-043]** `[Linux]` **The Session** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md)
+**Status:** ✅ **CLOSED 2026-09-29 (user-approved).**
+✅ **ALL ELEVEN ACs MET.** ⚠️ **USER-VERIFIED BY LIVE PASS ON THE RIG** — ✅ ***"I tested it on the rig
+and it passed."***
+✅ **T-0558 · T-0559 · T-0560 · T-0561 · T-0562 VERIFIED and ARCHIVED** →
+[`../Tasks/Verified/Task-verified-0558-0562.md`](../../Tasks/Verified/Task-verified-0558-0562.md).
+✅ **[I-0257] VERIFIED.** ✅ **[EP-043] S2 of 4 COMPLETE.**
+**Epic:** ✅ **[EP-043]** `[Linux]` **The Session** → [`../Epics/Epic-EP-043.md`](../../Epics/Epic-EP-043.md)
 **Serves:** ✅ **R1 · R2 · R3 · R7 · R8**
-**Depends on:** ✅ **[SP-145] CLOSED 2026-09-29** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md)
+**Depends on:** ✅ **[SP-145] CLOSED 2026-09-29** → [`Closed/Sprint-SP-145.md`](Sprint-SP-145.md)
 **Size:** ⛔ **HIGH** — ⚠️ **the Epic's biggest Sprint, and the planning already said so.**
 
 ---
@@ -73,9 +79,9 @@ T-0560 cannot start before ownership is on the app object.**
 - [x] **AC3** — ⚠️ **[R2/R3]** ✅ **Opening a project that is ALREADY open RAISES its existing window**
       and does NOT create a second one. ⚠️ **The check lives in `AppEnvironment::openProject`** —
       ⛔ **the first point where the registry does real work.**
-- [ ] **AC4** — ⚠️ **[R1]** ✅ **Two different projects open in TWO windows simultaneously**, each with
+- [x] **AC4** — ⚠️ **[R1]** ✅ **Two different projects open in TWO windows simultaneously**, each with
       its own navigator, editor, inspector and timeline. ✅ **[T-0561] — MET; ⚠️ proven by a harness
-      (9/9), ⛔ NOT yet on the rig.**
+      (9/9), ✅ and USER-VERIFIED ON THE RIG 2026-09-29.**
 - [x] **AC5** — ⚠️ **[R-Q3]** ✅ **[T-0561] — MET.** ✅ **Landing is its OWN window.** ⚠️ **Project windows are editor-only.**
       ✅ **`File ▸ New` / `File ▸ Open` from a project window RAISE Landing and trigger its EXISTING
       flow** — ⛔ **the flow is NOT reimplemented.**

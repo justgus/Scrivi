@@ -8,14 +8,17 @@ activated: 2026-09-25
 
 # EP-043: `[Linux]` ⚠️ **The Session** — ✅ **many projects, each in its own window, restored where the writer left it**
 
-**Status:** 🟡 **ACTIVE — activated 2026-09-25 (user-approved).** 🟡 **[SP-146] IS ACTIVE (2026-09-29).**
+**Status:** 🟡 **ACTIVE — activated 2026-09-25 (user-approved).** ✅ **S1 and S2 COMPLETE; ⚠️ [SP-147] NEXT.**
 ✅ **ALL FIVE OWED RULINGS ARE ANSWERED — 2026-09-26 (user-approved)** (✅ **§Rulings**).
 ✅ **[SP-145] CLOSED 2026-09-29 (user-approved) — ⚠️ S1 of 4 COMPLETE** →
 [`../Sprints/Closed/Sprint-SP-145.md`](../Sprints/Closed/Sprint-SP-145.md).
 ✅ **All eight ACs MET; ⚠️ LIVE PASS PASSED on the rig** (*"hide inspector survived a restart"*).
 ✅ **T-0551/T-0552/T-0553 VERIFIED and archived; [I-0251] VERIFIED.**
-✅ **[SP-146] IS NOW ACTIVE (2026-09-29, user-approved)** →
-[`../Sprints/Sprint-SP-146.md`](../Sprints/Sprint-SP-146.md) — ⚠️ **T-0558 · T-0559 · T-0560.**
+✅ **[SP-146] CLOSED 2026-09-29 (user-approved) — ⚠️ S2 of 4 COMPLETE** →
+[`../Sprints/Closed/Sprint-SP-146.md`](../Sprints/Closed/Sprint-SP-146.md).
+✅ **ALL ELEVEN ACs MET; ⚠️ LIVE PASS PASSED on the rig.** ✅ **T-0558–T-0562 VERIFIED and archived;
+[I-0257] VERIFIED.** ⚠️ **HEADLINE: ✅ Linux opens TWO projects in TWO windows — ⛔ [I-0178], the
+defect this Epic exists for.** ✅ **[SP-147] IS NOW UNBLOCKED.**
 
 ⚠️ **THE PASS PRODUCED FOUR ITEMS, ⛔ NONE a regression in [SP-145]:** ✅ **[I-0255]** (⛔ timeline
 visibility does not persist — ⚠️ **it was AS DESIGNED per AC5, ✅ and the user RULED 2026-09-29 that it
@@ -41,7 +44,7 @@ shell"*).** ⚠️ **Running [EP-035] first would write CRUD into `EditorShell` 
 immediately relocate it** — ✅ **the "paying the extraction cost twice" this Epic already predicted for
 [I-0244].** ⚠️ **[EP-035]'s AC5 (thumbnails) does NOT collide** (✅ `SceneInspector.cpp`) — ⛔ **and its
 EP-039 blocker EXPIRED when [EP-039] closed 2026-09-15.**
-**Sprints:** ✅ **[SP-145] CLOSED 2026-09-29** · 🟡 **[SP-146] ACTIVE 2026-09-29** · [SP-147] · [SP-148]
+**Sprints:** ✅ **[SP-145] CLOSED** · ✅ **[SP-146] CLOSED 2026-09-29** · [SP-147] (⚠️ **NEXT**) · [SP-148]
 **Primary Issues:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (geometry)
 **Codebase:** `[Linux]` — ⚠️ **`platforms/linux/` ONLY.** ✅ **No ScriviCore change is expected.**
 **Apple precedent:** [EP-018](Closed/Epic-EP-018.md) — *Per-Window / Per-Project Window Model*,
@@ -159,7 +162,7 @@ behaviour-preserving mandate.**
 | Sprint | Step | Scope | ACs | ⚠️ Risk | ⛔ Blocked by |
 | ------ | ---- | ----- | --- | ------ | ------------ |
 | ✅ **[SP-145]** ⚠️ **CLOSED 2026-09-29** | **S1** | ✅ **The session split** — extract per-project state out of `EditorShell` into a `ProjectSession` equivalent; ⚠️ **BEHAVIOUR-PRESERVING, still one window.** ✅ **Introduce the registry (projectID → session), keyed by `projectID` per [R-Q2].** ⚠️ **[R-Q5] CARVE-OUT: take `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ per-project state, NOT per-widget). ⚠️ **PLUS [I-0251] as a SEPARATE, NAMED Task** — ⛔ **it is a real behaviour CHANGE inside a behaviour-preserving Sprint, so it must not be folded into the extraction Task.** | ✅ **all 8 MET** · ✅ **[I-0251] VERIFIED** | ⚠️ **MED-HIGH** | ✅ **nothing** |
-| 🟡 **[SP-146]** ⚠️ **ACTIVE 2026-09-29** | **S2** | ⚠️ **THE APP OBJECT *AND* THE WINDOWS — renamed 2026-09-27, see §The app-level owner.** ⛔ **Linux has NO app-global state owner at all**, so S2 must FIRST create one (Apple's `AppEnvironment`) and move the registry + session OWNERSHIP onto it. ✅ Then: one window per open project; separate Landing window ([R-Q3]); **R3 focus-existing**; quit flushes the REGISTRY; close calls `scrivi_close_project`. | **R1 R2 R3 R7 R8** | ⛔ **HIGH** | **[SP-145]** |
+| ✅ **[SP-146]** ⚠️ **CLOSED 2026-09-29** | **S2** | ⚠️ **THE APP OBJECT *AND* THE WINDOWS — renamed 2026-09-27, see §The app-level owner.** ⛔ **Linux has NO app-global state owner at all**, so S2 must FIRST create one (Apple's `AppEnvironment`) and move the registry + session OWNERSHIP onto it. ✅ Then: one window per open project; separate Landing window ([R-Q3]); **R3 focus-existing**; quit flushes the REGISTRY; close calls `scrivi_close_project`. | ✅ **all 11 MET** | ⛔ **HIGH** | ✅ **done** |
 | **[SP-147]** | **S3** | ✅ **The persistence** — open-session manifest + launch restore; **per-project geometry AND splitter state**; ⚠️ **the test guard lands HERE, with the first line of restore code.** | **R4 R5 R6** | ✅ **MEDIUM** | **[SP-146]** |
 | **[SP-148]** | **S4** | ✅ **Verification** — AC sweep, Docker `ctest`, ⚠️ **the live pass on the real rig**, Epic close prep. | **AC-build AC-live** | ✅ **LOW** | **[SP-147]** |
 

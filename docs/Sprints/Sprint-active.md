@@ -1,28 +1,21 @@
 # Active Sprints
 
-## 🟡 **[SP-146]** `[Linux]` **The App Object and the Windows** — ✅ **ACTIVE 2026-09-29**
+✅ **[SP-146] CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md).
+✅ **ALL ELEVEN ACs MET; ⚠️ LIVE PASS PASSED on the rig** — ✅ ***"I tested it on the rig and it
+passed."*** ✅ **T-0558 · T-0559 · T-0560 · T-0561 · T-0562 VERIFIED and archived** →
+[`../Tasks/Verified/Task-verified-0558-0562.md`](../Tasks/Verified/Task-verified-0558-0562.md).
+✅ **[I-0257] VERIFIED.** ✅ **[EP-043] S2 of 4 COMPLETE.**
+⚠️ **HEADLINE: Linux opens TWO projects in TWO windows** — ⛔ **[I-0178], the defect this Epic exists
+for.** ⚠️ **The user's FIRST rig pass confirmed AC9 and FOUND [I-0257]** (⛔ a quit that left windows
+open non-deterministically) — ✅ **fixed in [T-0562] and re-verified.**
 
-✅ **Record:** → [`Sprint-SP-146.md`](Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
-⚠️ **T-0558 · T-0559 · T-0560 · T-0561 — ✅ ALL FOUR IMPLEMENTED (not user-verified).**
-✅ **ALL ELEVEN ACs MET** — ⚠️ **AC9 confirmed by the user's live pass 2026-09-29.**
-⚠️ **THAT PASS ALSO FOUND [I-0257]** (⛔ `File ▸ Quit` left windows open non-deterministically —
-⚠️ **a REGRESSION from [T-0561]**): ✅ **reproduced in a harness, fixed in [T-0562], re-verified 5/5.**
-⛔ **NOTHING IS USER-VERIFIED YET** — ✅ **[SP-148] owns the Epic's live pass.**
-⚠️ **T-0560 WAS SPLIT 2026-09-29 (user-approved)** — ✅ **the plumbing (`ProjectWindowManager`, R3, R7,
-R8) landed and verifies; ⛔ the Landing-window split became [T-0561]** (⚠️ **AC4/AC5/AC6/AC9 unmet**).
-✅ **Serves R1 · R2 · R3 · R7 · R8.** ⛔ **Size: HIGH — the Epic's biggest Sprint.**
-
-⛔ **NOT BEHAVIOUR-PRESERVING, and that is the point:** ⚠️ **one window becomes N; a local in `main()`
-becomes an app object; a singular quit hook becomes a registry flush.**
-⚠️ **⛔ SO [SP-145]'s PROOF DOES NOT TRANSFER:** ✅ **that Sprint could show *"0 deletions in `tests/`"*;
-⛔ this one cannot.** ✅ **Every changed assertion must be NAMED and JUSTIFIED, ⛔ not silently edited.**
-
-⚠️ **PLANNING WAS NOT RE-DERIVED** — ✅ **[EP-043] §"The app-level owner" (`:358`) already carries the
-design, MEASURED 2026-09-27.** ⛔ **Read it before writing code.**
-⚠️ **[I-0256] is a FOLD-IN CANDIDATE, ⛔ deliberately NOT in the ACs** — ✅ **take it only if the three
-Tasks land with room to spare.**
+⛔ **NO SPRINT IS ACTIVE.** ✅ **[SP-147] IS NEXT** — ⚠️ **[EP-043] S3: the open-session manifest,
+launch restore, and per-project geometry AND splitter state ([R-Q1] `session.ini`, R4/R5/R6).**
+⚠️ **The R6 test guard lands there, with the first line of restore code** — ✅ **and Apple's
+`SCRIVI_NO_PROJECT_LOAD` guard is the precedent to read first.**
 
 ---
+
 
 ✅ **[SP-145] CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md).
 ✅ **ALL EIGHT ACs MET; ⚠️ LIVE PASS PASSED on the rig** — ✅ ***"the live test passed. hide inspector

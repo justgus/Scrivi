@@ -2,77 +2,20 @@
 
 ---
 
-## 🟡 [SP-146] — T-0558 · T-0559 · T-0560 · T-0561 — ⚠️ **ACTIVE 2026-09-29**
+## ✅ [SP-146] — T-0558 · T-0559 · T-0560 · T-0561 · T-0562 — ✅ **VERIFIED 2026-09-29, ARCHIVED**
 
-⚠️ **T-0560 WAS SPLIT 2026-09-29 (user-approved)** — ⛔ **as planned it was too big, ✅ and that was
-found by BUILDING it rather than by guessing.** ⚠️ **Five of its six parts verify cleanly; ⛔ the sixth
-(a separate Landing window, so a SECOND project window can exist) is comparable in size to the other
-five combined and touches the QML boundary.** ✅ **T-0560 keeps the plumbing; [T-0561] takes the
-windows.** ⛔ **AC4, AC5, AC6 and AC9 are therefore NOT met by [T-0560].**
-✅ **[T-0561] THEN MET AC4, AC5 and AC6** (⚠️ **AC4 proven by a throwaway harness, 9/9 — ⛔ not on the
-rig**). ✅ **AC9 IS NOW MET — ⚠️ CONFIRMED BY THE USER'S LIVE PASS 2026-09-29** (*"I can hide/show either or
-both in one project window and it does not effect the other project window"*). ⛔ **It works BY
-CONSTRUCTION, not by luck: [T-0553] made pane visibility per-session.**
-✅ **ALL ELEVEN ACs ARE NOW MET.**
-⚠️ **THAT SAME LIVE PASS FOUND [I-0257]** — ⛔ **`File ▸ Quit` left windows open non-deterministically,
-a REGRESSION from [T-0561]** — ✅ **reproduced, fixed in [T-0562], and re-verified 5/5.**
+✅ **All five USER-VERIFIED by live pass on the rig and ARCHIVED** →
+[`Verified/Task-verified-0558-0562.md`](Verified/Task-verified-0558-0562.md) **in the same step
+[SP-146] closed** (`feedback_archive_on_close`, `feedback_task_layer_discipline`).
+✅ **[SP-146] CLOSED 2026-09-29 (user-approved)** →
+[`../Sprints/Closed/Sprint-SP-146.md`](../Sprints/Closed/Sprint-SP-146.md).
+✅ **ALL ELEVEN ACs MET.** ✅ **[I-0257] VERIFIED.** ✅ **[EP-043] S2 of 4 COMPLETE.**
 
-✅ **Sprint record (the detail lives there, not here):** →
-[`../Sprints/Sprint-SP-146.md`](../Sprints/Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
-⛔ **STRICTLY SERIAL** — ⚠️ **each Task needs the previous one's structure to exist.**
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| **T-0558** | ✅ **Create `AppEnvironment`** — ⚠️ **Linux's FIRST app-level state owner**; move `appSupportRoot` onto it | ✅ **Implemented - Not Verified** (2026-09-29) |
-| **T-0559** | ✅ **Move `OpenProjectRegistry` OWNERSHIP onto it** — ⚠️ `EditorShell` holds a non-owning `AppEnvironment*` | ✅ **Implemented - Not Verified** (2026-09-29) |
-| **T-0560** | ✅ **The multi-window PLUMBING** — `ProjectWindowManager` · R3 at the open funnel · R7 quit-flushes-every-window · R8 per-window release | ✅ **Implemented - Not Verified** (2026-09-29) |
-| **T-0561** | ✅ **Landing as its OWN window + a SECOND project window** — ✅ [R-Q3], AC4, AC5, AC6 | ✅ **Implemented - Not Verified** (2026-09-29) |
-| **T-0562** | ⛔ **[I-0257]** — ⚠️ **`File ▸ Quit` left windows open, non-deterministically.** ✅ **Explicit `quitApplication()`** | ✅ **Implemented - Not Verified** (2026-09-29) |
-
-⛔ **THIS SPRINT IS NOT BEHAVIOUR-PRESERVING — ⚠️ and that inverts [SP-145]'s discipline.**
-✅ **[SP-145] could prove itself with *"0 deletions in `tests/`"*; ⛔ this one cannot.**
-⚠️ **Assertions WILL change because behaviour changes** — ✅ **so every changed assertion must be NAMED
-and JUSTIFIED in the progress log, ⛔ not silently edited.**
-
-⚠️ **PLANNING WAS NOT RE-DERIVED.** ✅ **[EP-043]'s record §"The app-level owner" (`:358`) already
-carried the design, MEASURED 2026-09-27** — ⛔ **read it before writing code.**
-
-## 🔴 T-0554 — `[Apple]` ⛔ **Divider visibility ([I-0252]) — RETURNED TO ACTIVE 2026-09-29**
-
-⛔ **MOVED BACK FROM `Task-unverified.md` BY USER INSTRUCTION 2026-09-29.** ⚠️ **It was sitting as
-*"Implemented - Not Verified"*, ✅ but the user had ALREADY tested it and reported *"they are still
-invisible."*** ⛔ **A Task the user has tested and found wanting is NOT awaiting verification — it is
-UNFINISHED**, ⚠️ **and leaving it in the unverified file made a failed fix read as pending work.**
-
-✅ **WHAT SHIPPED AND IS STILL IN THE CODE** (`ManuscriptTextView.swift:2424`, commit `9387d5c`):
-⚠️ **`separatorColor` → `secondaryLabelColor` and half-pixel alignment (`rect.midY.rounded() + 0.5`).**
-✅ **The contrast arithmetic was RIGHT — Dark `1.34 → 5.89 : 1`, Light `1.25 → 3.95 : 1`.**
-⛔ **AND THE LINE STILL DOES NOT APPEAR, so the cause is UPSTREAM OF THE COLOUR.**
-
-⛔ **DO NOT SHIP A THIRD SPECULATIVE COLOUR CHANGE.** ⚠️ **Two diagnoses have now been spent, each
-measured correctly, each answering the wrong question.**
-
-✅ **THE OPEN QUESTION:** ⚠️ **does the attachment draw AT ALL under TextKit 2?** ⛔ **`image(for:)` is
-the TextKit 1-era hook; ⚠️ TK2 renders attachments via `NSTextAttachmentViewProvider`, and an
-attachment with neither a set `image` property nor a view provider may draw NOTHING while
-`attachmentBounds` still reserves its 24 pt** — ✅ **which would present as a GAP, not a faint line.**
-⛔ **THAT IS A HYPOTHESIS. ⚠️ A harness built to test it returned CONTRADICTORY results across runs
-(0 calls, then 2, then 0 with an opaque red bar that never reached the canvas), so NO conclusion may be
-drawn from it.**
-
-✅ **NEXT STEP IS A LIVE DIAGNOSTIC, NOT A FIX** (`feedback_prove_code_is_reached`): ⚠️ **run the app,
-look at the manuscript, and determine whether there is a 24 pt GAP (⛔ nothing draws) or a faint LINE
-(⚠️ a colour problem the fix did not reach).** ⛔ **The two have different causes and only one is a
-colour question.**
-
-⚠️ **RELATIONSHIP TO [EP-045]:** ✅ **this is [EP-045] AC2, and AC2's design says the same thing —
-diagnose live first.** ⛔ **It is NOT folded into that Epic: ⚠️ the writer is impeded TODAY, and
-[EP-045] is not activated.**
-⚠️ **SUPERSESSION NOTE:** ✅ **the user has ruled the scene break becomes a CONFIGURABLE GLYPH (ruled
-line / `- - -` / `* * *`), which replaces this drawing code entirely** — ⛔ **so the fix here must be
-the SMALLEST thing that makes the writer unblocked, ⚠️ not a rebuild of the divider.**
+⚠️ **HEADLINE: Linux can now open TWO projects in TWO windows** — ⛔ **which is [I-0178], the defect
+this Epic exists for.**
 
 ---
+
 
 ## ✅ SP-150 — T-0549 + T-0550 ✅ VERIFIED 2026-09-24, ARCHIVED
 

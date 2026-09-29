@@ -50,8 +50,9 @@ governs anything is a second source of truth.
 
 ✅ **[SP-145] IS CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md).
 ⚠️ **Its row below is kept struck for the chain's shape only.**
-✅ **[SP-146] IS NOW ACTIVE (2026-09-29)** → [`Sprint-SP-146.md`](Sprint-SP-146.md).
-⛔ **SP-147–SP-148 remain reserved and are NOT in Planning** — ⚠️ **the chain is SERIAL.**
+✅ **[SP-146] IS CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md).
+✅ **[SP-147] IS NOW UNBLOCKED** — ⚠️ **the chain is SERIAL and S1/S2 are both verified and closed.**
+⛔ **SP-148 remains reserved and is NOT in Planning.**
 ✅ **[EP-043] is ACTIVE** (activated 2026-09-25) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
 ⚠️ **The IDs are recorded here ONLY so they are not reissued** — ✅ **the same precaution taken for
 EP-032's SP-107–SP-114 above**, and for the same reason the user gave when ordering that one.
@@ -65,7 +66,7 @@ and reissue SP-146–148 to something else.**
 | Sprint | Step | Provisional scope | ACs |
 | ------ | ---- | ----------------- | --- |
 | ~~**SP-145**~~ | ~~S1~~ | ✅ **CLOSED 2026-09-29** — the session split → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md) | ✅ **all 8 MET** |
-| ~~**SP-146**~~ | ~~S2~~ | ✅ **ACTIVE 2026-09-29, no longer reserved** → [`Sprint-SP-146.md`](Sprint-SP-146.md) | R1 R2 R3 R7 R8 |
+| ~~**SP-146**~~ | ~~S2~~ | ✅ **CLOSED 2026-09-29** — the app object + the windows → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md) | ✅ **all 11 MET** |
 | **SP-147** | S3 | ✅ **The persistence** — open-session manifest + launch restore; per-project geometry **and splitters**; ⚠️ **the test guard lands HERE** | R4 R5 R6 |
 | **SP-148** | S4 | ✅ **Verification** — AC sweep, Docker `ctest` as non-root, ⚠️ **live pass on the real rig**, close prep | AC-build AC-live |
 
