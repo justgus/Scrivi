@@ -1,11 +1,11 @@
 {
   "_comment": "Authoritative next-available tracking IDs. Claude assigns from here; the tracking documents no longer restate these figures. Inspect this file, or run `python3 docs/tools/next-id.py --peek`, to see what is next.",
-  "_updated": "2026-09-27",
+  "_updated": "2026-09-29",
   "next": {
-    "epic": 45,
+    "epic": 49,
     "sprint": 146,
     "task": 556,
-    "issue": 254
+    "issue": 255
   },
   "format": {
     "epic": "EP-%03d",

@@ -1,7 +1,8 @@
 # Scrivi — The Manuscript as a Rendered Surface: A Trade Study v0.1
 
-**Status:** 🟡 **DRAFT — for ruling.** ⚠️ **NOT an approved design document.**
-**Date:** 2026-09-28
+**Status:** 🟢 **RULED — all of §10 answered by the user 2026-09-29.** ⚠️ **Still NOT an approved
+design document: ✅ the DECISIONS are made, ⛔ the Epics they imply are not yet created.**
+**Date:** 2026-09-28 · ✅ **rulings 2026-09-29**
 **Codebase:** `[Apple]` first — `Scrivi/Views/ManuscriptTextView.swift` (2,422 lines) — ⚠️ **but the
 format questions are `[Cross]` and bind Linux permanently.**
 **Occasioned by:** ✅ **user request 2026-09-28**, two topics raised together:
@@ -13,6 +14,33 @@ format questions are `[Cross]` and bind Linux permanently.**
 [`Scrivi_Apple_App_Shape_Trade_Study_v0_1.md`](Scrivi_Apple_App_Shape_Trade_Study_v0_1.md)
 — ⚠️ **that study concluded font/style controls "DO NOT FIT" because `isRichText = false`.**
 ⛔ **§6 shows that conclusion rests on a misreading of `isRichText` and must be revised.**
+
+⛔ **USER RULINGS 2026-09-29 — ✅ §10 IS NOW A RECORD, NOT A QUESTION LIST.** ⚠️ **Two of them were
+VOLUNTEERED and are the largest in the study:**
+1. ⛔ **ALL TYPED MARKDOWN RESERVED CHARACTERS ARE ESCAPED** — ✅ **§3A.0. ⚠️ Markup is authored ONLY by
+   command; ⛔ §3A.4 is WITHDRAWN.**
+2. ⛔ **THE CARET POSITION IS NOT THE FILE OFFSET** — ✅ **§3.4A. ⚠️ A SOURCE↔PRESENTED mapping is a
+   REQUIRED E1 component.**
+✅ **And the cost driver is settled: ⛔ Q2 = MODEL B (WYSIWYG), §4.3 — knowingly the dear one.**
+
+✅ **THE Q10 SPIKE WAS RUN 2026-09-29 AT USER CHALLENGE — ✅ §4B.** ⚠️ ***"You need to determine if
+`AttributedString(markdown:)` will also remove escapes. Let's not add work that isn't needed."***
+⛔ **It answered FOUR things and CORRECTED THIS STUDY TWICE:** ⛔ **escapes ARE stripped and are NOT
+located for you (⚠️ but a ~12-line scanner reproduces the parser exactly)** · ⛔ **markdown.org's 16 is
+NOT Apple's set — ⚠️ Apple escapes all 32 ASCII punctuation marks, so WRITE and READ are DIFFERENT
+LISTS** · ✅ **the single-`\n` paragraph merge is FREE (§3A.6's warning was unnecessary)** · ⛔ **and the
+user's trailing-space hazard is REAL and reproduces exactly as they predicted.**
+✅ **RULED: ⛔ escape ALL 32 ASCII punctuation marks (*"use the READ set"*) — ⚠️ one list, no drift.**
+
+⛔ **A FURTHER SPIKE (§4C) FOUND THE ONE THING NOBODY WAS LOOKING FOR:** ⚠️ **interior spaces are NOT
+conflated by the parser (⛔ the user's premise, measured false — ✅ eleven spaces stay eleven), ⛔ **and
+≥4 LEADING spaces turn a paragraph into a `codeBlock`** — ⚠️ **a BLOCK-TYPE change a novelist can
+trigger by indenting.**
+
+✅ **⛔ AND §4D CLOSED IT THE SAME DAY, ⚠️ with the user turning a defect into a FEATURE:** ⛔ **a TAB is
+WORSE than four spaces (⚠️ ONE tab trips it — measured), ✅ so indentation becomes a `paragraphIndent`
+PROJECT PREFERENCE rendered via `firstLineHeadIndent`** — ⚠️ **ZERO characters in the `.md`, ✅ and the
+writer never has a reason to type the hazardous sequence at all.**
 
 ⚠️ **THE USER HAS RULED THAT THIS STUDY MUST ANSWER THE [EP-032] QUESTION** (2026-09-28) — ✅ **§8.**
 ✅ **THE Q7 SPIKE WAS RUN 2026-09-28 AT USER REQUEST — ✅ §4A.** ⚠️ **It answered both halves and
@@ -106,6 +134,37 @@ competing with prose.** ⛔ **`tertiaryLabelColor` (`2.26 : 1`) is probably stil
 accurate history — ⛔ but neither is the cause, and [I-0112] itself said the divider *"was never
 reported as misrendering"* and its guard was *"precautionary"*.** ✅ **It was precautionary AND
 unnecessary; the real defect was always the colour choice.**
+
+### 1.4A ⛔ **THE COLOUR FIX SHIPPED AND DID NOT WORK — 2026-09-28**
+
+⚠️ **USER, after the change was in: *"they are still invisible."*** ⛔ **So §1.3's diagnosis, though its
+arithmetic was correct, ANSWERED THE WRONG QUESTION.**
+
+✅ **WHAT IS STILL TRUE:** ⚠️ **`separatorColor` really did measure `1.34 : 1`, and the half-pixel
+straddle really did halve it.** ⛔ **WHAT IS NOW KNOWN: fixing both changed nothing on screen**, ✅ **so
+a cause UPSTREAM OF THE COLOUR is operative and was never tested.**
+
+⚠️ **THE LEADING HYPOTHESIS — ⛔ AND IT IS ONLY THAT:** ✅ **`image(for:)` is the TextKit **1**-era
+attachment hook.** ⚠️ **TextKit 2 renders attachments through `NSTextAttachmentViewProvider`, and an
+attachment with neither a set `image` PROPERTY nor a custom view provider may draw NOTHING — while
+`attachmentBounds` still reserves its 24 pt, producing a silent GAP between scenes rather than a line.**
+⚠️ **That would also explain why the divider was never *reported* as working: it may never have drawn
+since [T-0526] moved this class to TextKit 2.**
+
+⛔ **A HARNESS BUILT TO TEST THIS RETURNED CONTRADICTORY RESULTS ACROSS RUNS** — ⚠️ **`image(for:)`
+called 0 times, then 2, then 0 again with an opaque RED bar that never reached the canvas.** ✅ **A
+harness that disagrees with itself is evidence about the harness, not the app**, ⛔ **so NOTHING is
+concluded from it and the hypothesis stands unproven.**
+✅ **IT MUST BE SETTLED IN THE RUNNING APP** (`feedback_prove_code_is_reached`).
+
+⚠️ **THE LESSON, AND IT IS THIS STUDY'S SECOND OF THE SAME KIND:** ⛔ **§1.3 replaced one wrong theory
+(the appearance bake) with another (the colour), and BOTH were measured carefully.** ✅ **Neither
+measurement was of the thing that actually decides whether a writer sees a line.**
+⚠️ **`feedback_prove_code_is_reached` exists for exactly this: "it didn't change anything" usually means
+the code is not running** — ⛔ **and that check was skipped, twice.**
+
+✅ **THIS IS NOW MOOT FOR THE PRODUCT, THOUGH NOT FOR THE LESSON:** ⚠️ **the user has ruled the scene
+break becomes a CONFIGURABLE GLYPH (§1.6), which replaces this drawing code outright.**
 
 ### 1.5 ✅ But the user has already redefined what the divider IS
 
@@ -236,6 +295,51 @@ document is not parsed on load; only what is on screen is.**
 ✅ **Parsing is lazy and viewport-scoped via the validator.**
 ⚠️ **The markers remain VISIBLE as characters unless something further is done** — ✅ **which is §4.**
 
+### 3.4A ⛔ **USER RULING 2026-09-29 — THE CARET POSITION IS NO LONGER THE FILE OFFSET**
+
+⚠️ **The user, 2026-09-29:** ***"The manuscript view cursor position is now no longer its position in
+the .md file. It must be maintained independently because the rendered manuscript will be removing
+tokens from the on disk text when the attributes are rendered."***
+
+✅ **RULED. ⛔ This overturns an assumption §3.4 carried silently** — ⚠️ **§3.4 said "the `.md` bytes stay
+in storage byte-for-byte", which is still TRUE of the FILE, ⛔ but the user is ruling on what the CARET
+means, and that is a different axis.**
+
+#### ⚠️ What the ruling requires
+
+⚠️ **Once a marker is hidden (Q2 = Model B, §10), the manuscript presents FEWER positions than the file
+has.** ✅ **There are now TWO coordinate spaces and they must be named and converted explicitly:**
+
+| Space | What it counts | Who owns it |
+| ----- | -------------- | ----------- |
+| ⚠️ **SOURCE offset** | every character in the `.md`, ✅ **including hidden markers and escape backslashes** | ✅ **the save path (§2), `byteOffset(charOffset:in:)` `:1933`, [EP-019] undo, the core** |
+| ✅ **PRESENTED offset** | only what the writer can see and land on | ✅ **the caret, selection, arrow keys, click targeting, `setSelectedRange`** |
+
+⛔ **TODAY THESE ARE THE SAME NUMBER, AND EVERY CALL SITE ASSUMES SO.** ⚠️ **That assumption is what
+the user has just withdrawn.**
+
+#### ⛔ What this makes NON-OPTIONAL
+
+1. ⛔ **A SOURCE↔PRESENTED mapping is now a REQUIRED component, not an implementation detail.**
+   ⚠️ **It did not appear in §9's Epic split and it must** — ✅ **it belongs in **E1 Foundations**, beside
+   the typed-attachment fix (§2.3), because E2 cannot be built without it and E1's `* * *` mark already
+   needs it.**
+2. ⚠️ **Hidden characters must be skipped by CARET MOVEMENT, not merely made invisible.** ⛔ **A
+   zero-width `**` that the arrow keys still step through twice is a worse surface than a visible one** —
+   ✅ **this is precisely the "dead zone" complaint writers make about half-built Markdown editors.**
+3. ⛔ **[I-0206] IS NOW MORE LIKELY TO RE-OPEN, NOT LESS.** ⚠️ **§7 already flagged
+   `setSelectedRange` as OFFSET-LINEAR at `~59 ms`/keystroke; ⛔ a mapping layer adds work to EVERY
+   caret move, on top of a call that is already the measured cost.** ✅ **Q5 is ruled "no re-open, file a
+   new Issue if it bites" — ⚠️ **but the mapping layer is the most probable trigger and E1 should
+   MEASURE it, per `project_read_amplification_class` (a cost measured in isolation is not a cost
+   measured in place).**
+4. ✅ **The save path is UNAFFECTED and that is the good news.** ⚠️ **It slices SOURCE offsets out of
+   storage (§2), and storage keeps every character** — ⛔ **so the mapping is a READ-SIDE concern only.**
+
+⚠️ **⛔ NOT DESIGNED HERE.** ✅ **Whether the mapping is a per-fragment table, a run-length skip list, or
+an `NSTextLayoutFragment` that owns its own presented geometry is an E1 design question** — ⚠️ **this
+section records only that the SEPARATION IS RULED and that it has an owner.**
+
 ---
 
 ## 3A. ⚠️ THE USER'S PROPOSAL, TAKEN SERIOUSLY — "why not?"
@@ -250,6 +354,71 @@ AttributedString. We would use it as a rendering mechanism, not necessarily as a
 ✅ **THE FRAMING IS RIGHT AND IT CHANGES THE STUDY'S SHAPE.** ⚠️ **§2 concluded *"`AttributedString`
 CANNOT be used"* — ⛔ **that was too strong, and it conflated TWO uses.** ✅ **The distinction the user
 draws — RENDERER vs EDITOR — is exactly the one that makes it work.**
+
+### 3A.0 ⛔ **USER RULING 2026-09-29 — TYPED MARKUP IS ALWAYS ESCAPED. THE USER ANSWERED THEIR OWN QUESTION, AND THE ANSWER IS "NO".**
+
+⚠️ **The user, 2026-09-29:** ***"I'm going to answer my own question here and my answer is based on your
+output determined during the Q7 spike. If the user types something like `2 * 3 * 4` markdown may
+interpret that as a command to embolden the 3. Therefore I propose that ANY markdown reserved character
+that the user types be automatically escaped and simply displayed in the manuscript. We can provide
+controls for the user to make selected text "bold", "italic", "heading", "list" or other markdown
+rendering capabilities, and we can therefore limit the capabilities we expose in version 1. So `**`
+that the user types never becomes bold. `#` never becomes a heading."***
+
+✅ **RULED, AND IT REVERSES §3A's PREMISE.** ⛔ **§3A.4 ("type the marker, see the effect") is
+WITHDRAWN.** ⚠️ **The user is not narrowing that proposal — they are replacing it with the opposite
+one, on evidence this study produced.**
+
+#### ✅ THE RULE
+
+| The writer... | ⚠️ What lands in the `.md` | ✅ What the manuscript shows |
+| ------------- | ------------------------- | --------------------------- |
+| ✅ **TYPES** `2 * 3 * 4` | ⚠️ `2 \* 3 \* 4` — **escaped at input** | ✅ **`2 * 3 * 4`, literally. ⛔ No emphasis, ever** |
+| ✅ **TYPES** `**bold**` | ⚠️ `\*\*bold\*\*` | ✅ **`**bold**`, literally** |
+| ✅ **TYPES** `# Chapter` | ⚠️ `\# Chapter` | ✅ **`# Chapter`, literally** |
+| ✅ **SELECTS text, invokes BOLD** | ✅ `**bold**` — **unescaped, real Markdown, written by Scrivi** | ✅ **bold** |
+
+⛔ **MARKUP IS NEVER AUTHORED BY TYPING. IT IS ONLY EVER AUTHORED BY A COMMAND.**
+
+#### ✅ WHY THIS IS THE STRONGER DESIGN — ⚠️ three consequences, and one of them is large
+
+1. ✅ **IT MAKES THE PARSE UNAMBIGUOUS BY CONSTRUCTION.** ⚠️ **§4A.3 measured that `2 * 3 * 4` and `5*6`
+   break a naive scanner and that Apple's parser survives them.** ⛔ **Under this ruling NEITHER PARSER
+   EVER SEES THOSE INPUTS** — ✅ **they arrive pre-escaped, and the only unescaped markers in the file
+   are ones Scrivi itself wrote.**
+2. ✅ **IT MAKES [I-0206]'s CLASS OF PROBLEM SMALLER, AND MODEL B SAFER.** ⚠️ **Hiding a `**` is only
+   safe if every `**` means emphasis.** ⛔ **Under free typing it does not; ✅ under this ruling it does,
+   because Scrivi is the sole author of unescaped markup.**
+3. ⛔ **BUT IT ADDS CHARACTERS TO HIDE, IT DOES NOT REMOVE THEM.** ⚠️ **`\*` is TWO source characters
+   rendering as ONE presented character.** ✅ **§3.4A's SOURCE↔PRESENTED mapping is therefore required
+   for ESCAPES ALONE — ⛔ even under Model A, ⛔ even if no marker is ever hidden.**
+   ✅ **⚠️ MEASURED 2026-09-29 (§4B), AT THE USER'S INSISTENCE — *"let's not add work that isn't
+   needed"*:** ⛔ **the parser DOES remove escape backslashes and does NOT say where they were
+   (a naive linear map misplaces up to 25 of 31 characters), ✅ BUT a ~12-line scanner reproduces the
+   parser exactly.** ✅ **So the cost is REAL but SMALL — ⛔ ~12 lines, not a subsystem.**
+
+#### ⚠️ WHAT THIS RULING DOES **NOT** SETTLE — ⛔ for E1 design, flagged, not decided
+
+- ✅ **WHICH characters are "reserved" — ⛔ RULED + MEASURED 2026-09-29. ⚠️ IT IS TWO LISTS, NOT ONE.**
+  ⚠️ **The user directed the escape set to [markdown.org's Escaping section](https://markdown.org/basics/)
+  — ✅ *"Only Markdown commands should be escaped (commas are not part of that list)"*** — ✅ **fetched:
+  **16 characters**, `` \ ` * _ { } [ ] ( ) # + - . ! | ``. ✅ **The user is right that `,` is absent.**
+  ⛔ **BUT §4B.4 MEASURED APPLE'S PARSER AND IT ESCAPES ALL 32 ASCII PUNCTUATION MARKS** — ⚠️ **the 16
+  are a strict SUBSET.** ✅ **So:** ✅ **WRITE set = the 16 (policy, keeps the `.md` readable);**
+  ⛔ **READ set = all 32 (not a choice — it is what the parser does, and the caret mapping must match
+  it).** ⚠️ **Treating them as one list is a defect — ✅ §4B.4's E10 probe caught exactly that.**
+- ⛔ **PASTE.** ⚠️ **Typing is one door; ✅ pasting is another, and the ruling's words are *"that the user
+  types"*.** ⚠️ **Pasting a block of Markdown from elsewhere must either be escaped identically (safe,
+  and surprising to anyone pasting real Markdown) or offered as a choice.** ⛔ **UNRULED.**
+- ⛔ **EXISTING MANUSCRIPTS.** ⚠️ **Scene files written before this rule contain unescaped `*` typed as
+  arithmetic or emphasis.** ✅ **They will render as emphasis under the new renderer** — ⛔ **a silent
+  appearance change to existing prose, with no migration.** ⚠️ **Whether that is acceptable, or needs a
+  one-time escape pass, is a ruling this study owes but does not make.**
+- ✅ **THE V1 SURFACE IS NOW THE USER'S TO SET, AND IT IS SMALL BY DESIGN** — ⚠️ **the user's own words:
+  *"we can therefore limit the capabilities we expose in version 1"*.** ✅ **Their named list is
+  **bold, italic, heading, list**; ⚠️ **§4A.3 also exercised strikethrough and code.** ⛔ **E1 must
+  enumerate the exposed verbs EXPLICITLY rather than inherit "whatever CommonMark does"** —
+  ✅ `feedback_design_to_capability_not_lcd`.
 
 ### 3A.1 ✅ What `AttributedString` can and cannot be here
 
@@ -298,7 +467,14 @@ normally the better engineering choice.** ⛔ **P1's advantage (full CommonMark)
 we intend to render full CommonMark, and the user has not asked for that.**
 ✅ **A SPIKE SHOULD DECIDE IT** (§10 Q7).
 
-### 3A.4 ⚠️ "Type `**` and it becomes bold" — what that actually requires
+### 3A.4 ⛔ ~~"Type `**` and it becomes bold"~~ — **WITHDRAWN BY USER RULING 2026-09-29 (§3A.0)**
+
+⛔ **THIS SECTION IS SUPERSEDED.** ✅ **The user has ruled that typed markup is ESCAPED and never
+becomes formatting (§3A.0).** ⚠️ **Formatting is applied by COMMAND over a SELECTION.** ✅ **The text
+below is retained as the record of the proposal that was considered and rejected, ⛔ not as a
+recommendation.**
+
+#### ~~What that actually required~~
 
 ✅ **The user's mental model is: type the marker, see the effect.** ⚠️ **Under §3's architecture that is
 NATURAL, not special** — ✅ **the validator re-parses the fragment on the next layout pass and the run
@@ -325,15 +501,18 @@ title, and a `#` line in the first scene's prose.** ⛔ **That is the duplicatio
 filed repeatedly ([I-0215] and its siblings), and here it would be worse: ⚠️ renaming a chapter in the
 navigator and renaming it in the prose would disagree, with no rule for which wins.**
 
-✅ **THE CLEAN SPLIT, RECOMMENDED:**
+✅ **THE CLEAN SPLIT — ⛔ RULED BY THE USER 2026-09-29 (Q8 = NO). ✅ THE STUDY'S RECOMMENDATION IS
+ADOPTED:**
 - ⛔ **`#` is NOT a chapter title.** ✅ **Chapter titles stay metadata, rendered by the view.**
   ⚠️ **They can still RENDER as a heading — that is F2 typography (§5) and needs no syntax at all.**
 - ✅ **`##`/`###` (and `#` if the writer types it) are ORDINARY IN-SCENE HEADINGS** — ✅ **real Markdown,
   saved in the body, rendered as headings.** ⚠️ **A writer who wants a section break inside a scene gets
   one, and nothing competes for ownership.**
 
-⚠️ **THIS IS A RULING THE USER OWES (§10 Q8)** — ✅ **the study recommends the split above, ⛔ but the
-user asked the question and it is theirs to settle.**
+⛔ **RULED 2026-09-29: `#` IS NOT A CHAPTER HEADING.** ✅ **Chapter titles remain metadata, rendered by
+the view, and stay toggleable.** ⚠️ **⛔ AND UNDER §3A.0 A TYPED `#` IS ESCAPED AND NEVER BECOMES A
+HEADING AT ALL** — ✅ **so the two-owners hazard is closed twice over: once by this ruling, and once by
+the escaping rule.** ⚠️ **In-scene headings exist, ⛔ but only via the Heading COMMAND.**
 
 ### 3A.6 ✅ "Enter means a new paragraph" — ⚠️ mostly free, one wrinkle
 
@@ -345,7 +524,40 @@ user asked the question and it is theirs to settle.**
 - ✅ **(b) INSERT `\n\n` on Enter** — ✅ **trivial, honest, and the file stays canonical Markdown.**
   ⚠️ **But it changes what the writer's Backspace does, and [EP-019]'s sentence-granular undo sees it.**
 
-⚠️ **(b) IS THE SAFER ANSWER; ⛔ neither is free.** ✅ **Flagged as part of Q2.**
+#### ⛔ **RULED 2026-09-29 — (b). ENTER INSERTS `\n\n`. ✅ AND THE USER RULED THE BACKSPACE CASE TOO.**
+
+⚠️ **The user:** ***"Enter should insert `\n\n`. It would be disorientating if the user typed enter
+only to find nothing happened until she types enter again. However, from the start of a paragraph,
+Backspace should, in fact, delete only one `\n`, thus merging the paragraph with the previous one. The
+single `\n` is rendered as whitespace and so a subsequent backspace will remove it correctly. That is
+expected behavior, I think the cost is acceptable there."***
+
+✅ **THE ASYMMETRY IS DELIBERATE AND IS THE RIGHT CALL.** ⚠️ **Enter is SYMMETRIC-BY-FEEL (one press,
+one visible paragraph break); ⛔ Backspace is SYMMETRIC-BY-CHARACTER (one press, one character).**
+✅ **The user has weighed that trade explicitly and accepted it.**
+
+| Keystroke | ⚠️ Source effect | ✅ What the writer sees |
+| --------- | ---------------- | ---------------------- |
+| ✅ **Enter** | ⚠️ inserts **two** `\n` | ✅ **a new paragraph, immediately.** ⛔ Never "nothing happened" |
+| ✅ **Backspace at paragraph start** | ⚠️ deletes **one** `\n` | ✅ **the paragraph merges upward** |
+| ✅ **Backspace again** | ⚠️ deletes the remaining `\n` | ✅ **the soft break closes up** |
+
+#### ✅ **⛔ MEASURED 2026-09-29 (§4B.5) — THE MERGE IS FREE, ⚠️ AND THE REAL HAZARD IS THE ONE THE USER NAMED**
+
+⚠️ **v0.1 warned that E1 "must get right" that a single `\n` joins two lines.** ✅ **MEASURED: Apple's
+parser ALREADY DOES.** ⛔ **`"first para.\nsecond para."` presents as `"first para.␣second para."` —
+the `\n` becomes a literal SPACE (`INLINE(64)` soft break), one paragraph.** ✅ **So the user's point 3
+is confirmed exactly: *"the writer is happy, ScriviCore is happy."*** ⚠️ **Nothing to build.**
+
+⛔ **THE HAZARD IS THE USER'S, NOT THIS ONE — ✅ TWO TRAILING SPACES.** ⚠️ **`"first para.␣␣\nsecond
+para."` presents as a HARD line break (`INLINE(128)`), ⛔ and so does a trailing `\`.**
+✅ **RULED by the user and recorded in §4B.6** — ⚠️ **normalise trailing spaces on Enter (⛔ to AT MOST
+ONE, not "delete one" — §4B.6's amendment), ✅ and collapse a trailing `\\` to `\` as a deliberate
+hard break.**
+
+⚠️ **[EP-019] INTERACTION IS UNCHANGED BUT MUST BE RE-CHECKED:** ⛔ **sentence-granular undo now sees a
+two-character insert where the writer made one gesture.** ✅ **Whether Enter coalesces into one undo
+step is an E1 question, ⛔ not answered here.**
 
 ---
 
@@ -384,9 +596,30 @@ Model B needs a DIFFERENT mechanism (a layout-fragment override), which is mater
 | **B — markers hidden unless the caret is inside** (Obsidian / Bear / Typora) | `**bold**` shows as **bold**; ✅ **the `**` reappears when the caret enters** | ⛔ **BLOCKED ON §4.1.** ⚠️ Needs zero-width markers — a layout change. ✅ If rendering attributes cannot, this needs an `NSTextLayoutFragment` subclass |
 | **C — markers never shown; separate source view** | true WYSIWYG | ⛔ **Two views of one document.** ⚠️ Largest build; ⛔ makes "where is the caret?" harder, not easier |
 
-⚠️ **THE USER'S WORDS POINT AT B.** ✅ **An INCREMENTAL PATH EXISTS: ship A, then B per element type as
-§4.1 is settled.** ⚠️ **Whole-LINE markers (`#`, `##`) are much easier to hide than INLINE ones (`**`),
-because a line prefix can be handled by paragraph-level layout rather than glyph suppression.**
+### 4.3 ⛔ **RULED 2026-09-29 — MODEL B. ✅ "My inclination is to wysiwyg."**
+
+⚠️ **The user, 2026-09-29, on §4.2:** ***"my inclination is to wysiwyg."*** ✅ **Q2 = B.**
+
+⛔ **THIS IS THE EXPENSIVE ANSWER AND THE STUDY SAID SO BEFORE IT WAS GIVEN** — ✅ **§4A.1 measured that
+rendering attributes CANNOT hide a marker, so B needs STORAGE attributes (and must survive `:358-369`)
+or an `NSTextLayoutFragment` subclass.** ⚠️ **The ruling stands; ✅ what follows is what it now COSTS,
+stated once, here.**
+
+| ⚠️ What Model B now requires | ✅ Source | ⛔ Status |
+| --------------------------- | -------- | --------- |
+| ✅ **SOURCE↔PRESENTED offset mapping** | §3.4A (user ruling) | ⛔ **REQUIRED — moves into E1** |
+| ✅ **Caret movement that SKIPS hidden runs** | §3.4A | ⛔ **not optional; a stepped-through zero-width marker is worse than a visible one** |
+| ✅ **Hiding ESCAPE backslashes too** (`\*` → `*`) | §3A.0 | ⛔ **NEW — escaping made this universal, not marker-only** |
+| ✅ **A storage-attribute route that survives the undo path** | §4A.2, `:358-369` | ⛔ **READ, NOT RUN — §11 still lists this as untested** |
+| ⚠️ **Re-entry behaviour: markers reappear when the caret enters** | §4.2 Model B | ⛔ **UNDESIGNED** |
+
+✅ **THE INCREMENTAL PATH SURVIVES THE RULING AND SHOULD BE TAKEN:** ⚠️ **ship **A** in E1 (it works
+today, storage untouched, and it makes the renderer seam real), then **B** per element type in E2.**
+⛔ **A is not a competing model under this ruling — it is B's first milestone.**
+
+⚠️ **AND ONE ORDERING FACT IS NOW FIXED:** ✅ **whole-LINE markers (`#`, `##`, list bullets) are much
+easier to hide than INLINE ones (`**`), because a line prefix can be handled by paragraph-level layout
+rather than glyph suppression.** ✅ **E2 should take them in that order.**
 
 ---
 
@@ -516,6 +749,441 @@ TIME, so the operative number is the viewport column: `0.136 ms`.** ⚠️ **Tha
 
 ---
 
+## 4B. ✅ **Q10 SPIKE — RUN 2026-09-29. ⛔ THE ESCAPE RULING'S COST WAS MEASURED, AND IT IS SMALLER THAN §3A.0 FEARED.**
+
+⚠️ **Occasioned by the user, 2026-09-29:** ***"You need to determine if `AttributedString(markdown:)`
+will also remove escapes. Let's not add work that isn't needed."*** ✅ **Correct challenge — §3A.0
+asserted a cost without measuring it.** ⛔ **Six programs, `swiftc -O`, Swift 6.4 / macOS 27.2.**
+
+---
+
+### 4B.1 ⛔ **Q10(a): YES — the parser REMOVES escape backslashes. Measured.**
+
+✅ **Every escaped input loses its backslashes in the presented string:**
+
+| Probe | Source | Presented | ⚠️ Δ |
+| ----- | ------ | --------- | --- |
+| **A1** | `2 \* 3 \* 4` (11) | ✅ `2 * 3 * 4` (9) | **−2** |
+| **A2 CONTROL** | `2 * 3 * 4` (9) | ✅ `2 * 3 * 4` (9) | **0** — ⚠️ **no emphasis either way** |
+| **A3** | `\*\*bold\*\*` (12) | ✅ `**bold**` (8) | **−4** — ⛔ **no emphasis** |
+| **A4 CONTROL** | `**bold**` (8) | ⚠️ `bold` (4) | **−4** — ✅ **emphasis applied** |
+| **A5** | `\# Heading` (10) | ✅ `# Heading` (9) | **−1** |
+| **A6** | `a \\ b` (6) | ✅ `a \ b` (5) | **−1** |
+| **A7** | `snake\_case\_word` | ✅ `snake_case_word` | **−2** |
+
+✅ **A3 vs A4 IS THE WHOLE RULING, PROVEN IN TWO LINES:** ⚠️ **the same eight visible characters, and
+escaping is what decides whether they are bold.** ✅ **§3A.0 works mechanically.**
+
+### 4B.2 ⛔ **AND THE BACKSLASH IS NOT LOCATED FOR YOU — this is the real cost**
+
+⚠️ **A run's `markdownSourcePosition` gives a SPAN, ⛔ with NO interior marker for where inside it a
+backslash was removed.** ✅ **Measured — source columns exceed presented characters:**
+
+| Probe | Run | ⚠️ cols vs chars |
+| ----- | --- | ---------------- |
+| **B1** | `"2 * 3 and "` | ⛔ **11 cols / 10 chars** |
+| **B3** | `"a * b "` · `" d * e"` | ⛔ **7/6 each** |
+| **B4** | `"*not* but "` | ⛔ **12 cols / 10 chars** |
+
+⛔ **A NAIVE LINEAR MAP (`runStart + offsetInRun`) IS WRONG — MEASURED:**
+
+| Probe | ⛔ characters landing on the WRONG source character |
+| ----- | -------------------------------------------------- |
+| **D1** | **8 / 26** |
+| **D2** | **7 / 13** |
+| **D3** | **10 / 13** |
+| **D4** | ⛔ **25 / 31** |
+| **D5 CONTROL** (no escapes) | ✅ **0 / 29** |
+
+✅ **D5 IS WHY THIS MATTERS:** ⚠️ **with no escapes the naive map is PERFECT** — ⛔ **so this is a cost
+that §3A.0's ruling CREATES, exactly as §3A.0's consequence 3 predicted.** ✅ **The prediction was right;
+⚠️ what was unknown was how dear it is.**
+
+### 4B.3 ✅ **⛔ BUT IT IS CHEAP — A 12-LINE SCANNER REPRODUCES THE PARSER EXACTLY**
+
+⚠️ **An INDEPENDENT oracle — walk the source, skip a backslash before an escapable character — was
+checked against Apple's parser on escape-only inputs:**
+
+| Probe | Input | ✅ Oracle reproduces parser EXACTLY? |
+| ----- | ----- | ----------------------------------- |
+| **E1–E9** | `\*`, `\*\*`, `\#`, `\_`, `\\`, `` \` ``, `\[ \]`, `\( \{ \|`, `\+ \- \. \!` | ✅ **YES — 9/9** |
+| **E10** | `Mr\. Smith said \"hi\"` | ⛔ **NO** — ✅ **and the disagreement is the ORACLE's fault, not the parser's (§4B.4)** |
+
+✅ **SO THE MAPPING IS NOT A RESEARCH PROBLEM.** ⚠️ **Scrivi does NOT need the parser to locate escapes —
+⛔ it can compute them itself, deterministically, in one pass over the fragment it is already scanning.**
+✅ **THE ANSWER TO THE USER'S CHALLENGE: escaping DOES add work, ⛔ but ~12 lines of it, not a subsystem.**
+
+⚠️ **⛔ ONE CAVEAT, AND IT IS THE `feedback_boundary_tests_not_facade` CLASS:** ✅ **the oracle agreeing
+with the parser on 9 inputs is not the same as agreeing on all inputs.** ⚠️ **E10 found a disagreement
+on the TENTH try.** ✅ **E1 must TEST the oracle against the parser over a corpus, ⛔ not assume it.**
+
+### 4B.4 ⛔ **Q10(f): markdown.org's 16 IS NOT APPLE'S SET. ✅ APPLE ESCAPES ALL 32 ASCII PUNCTUATION MARKS.**
+
+⚠️ **The user directed the escape list to markdown.org's Escaping section** — ✅ **fetched, and it lists
+exactly 16: `` \ ` * _ { } [ ] ( ) # + - . ! | ``.** ⛔ **APPLE'S PARSER DOES NOT IMPLEMENT THAT LIST.**
+
+✅ **MEASURED — every ASCII punctuation character, `x\<c>y` → is the backslash consumed?**
+
+| | Result |
+| - | ------ |
+| ✅ **Backslash consumed** | ⛔ **32 / 32** — `` !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ `` |
+| ⛔ **Backslash NOT consumed** | ✅ **0** |
+| ⚠️ **Escapable by Apple, ABSENT from markdown.org's 16** | ⛔ **16:** `` "$%&',/:;<=>?@^~ `` |
+| ✅ **On markdown.org's 16 but NOT escapable by Apple** | ✅ **0 — the 16 are a strict SUBSET** |
+
+⚠️ **THIS IS CommonMark's RULE, NOT A BUG** — ✅ **CommonMark escapes ALL ASCII punctuation; markdown.org
+is describing ORIGINAL Markdown (2004), which Apple does not implement.**
+
+#### ⛔ **THE CONSEQUENCE FOR THE RULING — ✅ it SPLITS into two different lists**
+
+⚠️ **§3A.0 conflated two sets that the measurement now separates:**
+
+| List | ⚠️ What it is | ✅ Size | ⚠️ Who it serves |
+| ---- | ------------- | ------ | ---------------- |
+| ✅ **WRITE set** — what Scrivi ESCAPES on input | ⚠️ **a POLICY choice** — only what would change the parse | ⚠️ **markdown.org's 16 is a defensible answer; ⛔ the user's "commas are not on that list" is CORRECT** | ✅ **the writer — keeps the `.md` readable** |
+| ⛔ **READ set** — what Scrivi must UNESCAPE when mapping | ⛔ **NOT a choice — it is whatever the parser does** | ⛔ **ALL 32** | ✅ **the SOURCE↔PRESENTED mapping (§3.4A)** |
+
+⛔ **E10 IS EXACTLY THIS CONFUSION, CAUGHT BY MEASUREMENT.** ⚠️ **The oracle used the 16-char list, hit
+`\"`, and disagreed with the parser** — ✅ **because `"` is escapable in CommonMark and absent from
+markdown.org's 16.** ⛔ **A reader who took markdown.org as the READ set would have shipped that
+off-by-one into the caret mapping.**
+
+#### ⛔ **RULED 2026-09-29 — ✅ USE THE READ SET. ONE LIST: ALL 32.**
+
+⚠️ **The user, on being shown the split:** ***"use the READ set."***
+
+✅ **RULED, AND IT COLLAPSES THE TWO LISTS BACK INTO ONE** — ⛔ **Scrivi escapes, and unescapes, ALL 32
+ASCII punctuation characters.** ⚠️ **markdown.org's 16 is recorded as the list that was CONSIDERED, ⛔
+not the list that is used.**
+
+| | ✅ **RULED BEHAVIOUR** |
+| - | -------------------- |
+| ✅ **What Scrivi ESCAPES on input** | ⛔ **all 32:** `` !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ `` |
+| ✅ **What Scrivi UNESCAPES when mapping** | ⛔ **the same 32** |
+| ✅ **Risk of the two drifting** | ✅ **NONE — ⚠️ there is only one list** |
+
+✅ **WHY THIS IS THE RIGHT CALL, EVEN THOUGH IT ESCAPES MORE THAN MARKDOWN NEEDS:** ⚠️ **the WRITE set
+is a policy choice but the READ set is NOT — ⛔ it is dictated by the parser.** ✅ **Matching the write
+set to it makes the round trip EXACT by construction: ⚠️ every backslash Scrivi writes is one the parser
+will consume, and every one the parser consumes is one Scrivi wrote.** ⛔ **The alternative — escaping
+16 and unescaping 32 — is correct only so long as two lists stay in agreement, ✅ and this project has
+filed that class of defect repeatedly (the `kAllStorableKinds` standing rule).**
+
+⚠️ **⛔ THE ACCEPTED COST, STATED PLAINLY:** ✅ **a typed `Mr. Smith, in "quotes" — really?` is stored as
+`Mr\. Smith\, in \"quotes\" — really\?`.** ⛔ **The `.md` is NOISIER to a human reading the raw file
+than it would be under the 16.** ⚠️ **It is still VALID CommonMark and renders identically** — ✅ **the
+cost is legibility of the source, ⛔ not correctness.** ⚠️ **The user has the information and has ruled.**
+
+#### ✅ **⛔ AND THE RULING WAS RE-MEASURED, NOT ASSUMED — 10/10**
+
+⚠️ **§4B.3's oracle failed ONE probe (E10, `Mr\. Smith said \"hi\"`) because it used the 16.**
+✅ **The oracle was re-run with the RULED all-32 set:**
+
+| | ⚠️ Oracle with the 16 | ✅ Oracle with the ruled 32 |
+| - | --------------------- | -------------------------- |
+| ✅ **Probes reproducing Apple's parser EXACTLY** | ⚠️ **9 / 10** | ✅ **10 / 10** |
+| ⛔ **E10 (`\"` — escapable in CommonMark, absent from the 16)** | ⛔ **oracle 30 vs parser 28** | ✅ **28 vs 28** |
+
+✅ **SO THE RULING IS NOT MERELY TIDIER — ⚠️ IT FIXED THE ONE MEASURED DISAGREEMENT.**
+⛔ **The §4B.3 caveat still stands in reduced form:** ⚠️ **10 probes is not a proof, ✅ and E1 still owes
+a corpus test** — ⛔ **but the known failure is gone, not argued away.**
+
+### 4B.5 ✅ **Q10(c): THE USER'S TRAILING-SPACE CORNER CASE IS REAL — ⛔ MEASURED, AND WORSE THAN STATED**
+
+⚠️ **The user, 2026-09-29:** ***"Markdown will render two trailing spaces followed by one `\n` as an
+"in paragraph" line break… If the writer ends sentences with two spaces (which is proper), then this may
+become a problem because a backspace that eliminates the first `\n` of a `\n\n` will create exactly this
+issue."***
+
+✅ **CONFIRMED BY MEASUREMENT, at block level (`interpretedSyntax: .full`):**
+
+| Source | ✅ Presented | ⚠️ Structure |
+| ------ | ----------- | ------------ |
+| `"first para.\n\nsecond para."` | `"first para.second para."` | ✅ **TWO `paragraph` blocks** |
+| ⚠️ `"first para.\nsecond para."` | ✅ **`"first para. second para."`** | ✅ **ONE paragraph** — ⚠️ **the `\n` became a SPACE, `INLINE(64)` soft break** |
+| ⛔ **`"first para.  \nsecond para."`** | ⛔ **`"first para.\nsecond para."`** | ⛔ **ONE paragraph, ⚠️ but `INLINE(128)` — a HARD LINE BREAK** |
+| ⛔ **`"first line.\\\nsecond line."`** | ⛔ **`"first line.\nsecond line."`** | ⛔ **`INLINE(128)` — ⚠️ identical to the two-space form** |
+
+✅ **THE USER'S DIAGNOSIS IS EXACTLY RIGHT, AND BOTH FORMS THEY NAMED BEHAVE IDENTICALLY** — ⚠️ **two
+trailing spaces and a trailing backslash both produce `INLINE(128)`.**
+
+#### ⛔ **THIS CORRECTS §3A.6 — the study said the soft break "renders as whitespace"; ✅ it renders as a SPACE, which is stronger**
+
+⚠️ **§3A.6 warned that E1 "must get right" that a single `\n` joins two lines.** ✅ **MEASURED: Apple's
+parser ALREADY DOES THIS** — ⛔ **`"first para.\nsecond para."` presents as `"first para. second para."`,
+with the `\n` replaced by a literal SPACE.** ✅ **So the user's point 3 is confirmed: *"the writer is
+happy, ScriviCore is happy"* — ⚠️ the merge is free, not a thing E1 must build.**
+
+⛔ **THE HAZARD IS NARROWER THAN §3A.6 IMPLIED, AND SHARPER:** ⚠️ **it is not "will the lines join" —
+✅ they will — ⛔ it is "did the writer leave two spaces before the `\n`", in which case they DON'T.**
+
+### 4B.6 ✅ **THE USER'S RULING ON THE CORNER CASE — ⛔ ADOPTED, with one measured amendment**
+
+⚠️ **The user:** ***"if the user has typed two spaces and then types enter (for which we will insert
+`\n\n`), we should silently eliminate one of those spaces. It can, however, become part of the history
+if necessary. If the user types a backslash (escaped as `\\`) followed by enter (`\n\n`), we should
+silently convert it to a single backslash (`\`) which will remove it from the rendering, and leave the
+paragraph "broken" at that character. That is a deliberate sequence the writer typed herself and so will
+be expecting the behavior."***
+
+✅ **RULED. ⚠️ Both halves are sound and the measurement supports them:**
+
+| ⚠️ Writer types | ✅ Scrivi writes | ⚠️ After a Backspace merges the paragraphs | ✅ Why |
+| --------------- | ---------------- | ------------------------------------------ | ----- |
+| `…text.` + `␣␣` + **Enter** | ⛔ **`…text.␣\n\n`** — ✅ **ONE space dropped** | ✅ **`…text.␣\n` → renders as one paragraph** | ⛔ **Two spaces would have become `INLINE(128)`, a hard break the writer never asked for** |
+| `…text.` + `\\` + **Enter** | ⛔ **`…text.\\n\n`** — ✅ **`\\` collapsed to `\`** | ⚠️ **`…text.\\n` → `INLINE(128)`, a DELIBERATE hard break** | ✅ **The writer typed a backslash on purpose; ✅ the break is the expected result** |
+
+✅ **THE ASYMMETRY IS PRINCIPLED:** ⚠️ **two spaces are an ARTEFACT of sentence-spacing habit (the writer
+does not mean "line break"); ⛔ a trailing backslash is UNAMBIGUOUS INTENT.** ✅ **The ruling reads
+intent correctly in both cases.**
+
+#### ⚠️ **⛔ ONE AMENDMENT THE MEASUREMENT FORCES — the rule must be "≥2 spaces", not "two"**
+
+⛔ **MEASURED: `"first line. \nsecond line."` (ONE trailing space) is NOT a hard break** — ✅ **it stays
+a soft break.** ⚠️ **So dropping to exactly one space is SAFE, ✅ which is what the ruling does.**
+⛔ **BUT CommonMark's hard-break rule is TWO OR MORE spaces** — ⚠️ **a writer who typed three (or a
+stray trailing space after two) still produces `INLINE(128)` after the merge.** ✅ **E1 must implement
+*"reduce trailing spaces to at most one"*, ⛔ NOT *"delete one space"*.**
+
+⚠️ **⛔ AND THE INVERSE CASE IS UNRULED:** ✅ **the ruling covers spaces present when Enter is pressed.**
+⛔ **It does not cover a writer who presses Enter FIRST and later adds spaces at the end of the previous
+line** — ⚠️ **the hazard reappears and nothing catches it.** ✅ **E1 should decide whether the
+normalisation runs on Enter only, or on the BACKSPACE-MERGE as well** — ⛔ **the merge is where the
+damage actually manifests, and normalising there catches every route.**
+
+✅ **[EP-019] NOTE, per the user's *"it can become part of the history if necessary"*:** ⚠️ **the dropped
+space is a real edit and should be undoable** — ⛔ **but coalesced into the Enter, not as a separate
+step, or Undo after Enter will restore a space the writer never saw.**
+
+---
+
+### 4B.7 ⚠️ **SPIKE PROVENANCE**
+
+✅ **Six programs, `swiftc -O`, Apple Swift 6.4 / macOS 27.2** (`scratchpad/spike2/q10a…q10f.swift`).
+⚠️ **THROWAWAY AND NOT COMMITTED**, ✅ **[EP-018]/[T-0191] precedent, same as §4A.**
+⛔ **Their NUMBERS are recorded above; ⚠️ their code is not meant to survive** — ✅ **but the ORACLE in
+`q10d`/`q10e` is the ~12 lines E1 will re-write, and §4B.3's caveat applies: ⛔ it is verified on 9
+inputs, not proven.**
+
+⚠️ **ONE METHOD NOTE, recorded because it cost a build:** ⛔ **`#"…"#` raw strings in Swift treat `\#`
+as an escape sequence**, ✅ **so probes containing `\#` need `##"…"##`.** ⚠️ **A study about escaping
+was itself bitten by escaping.**
+
+---
+
+## 4C. ⛔ **Q13/Q14 SPIKE — RUN 2026-09-29. ⚠️ THE "SPACES COLLAPSE" PREMISE IS FALSE, AND ONE CASE IS A BLOCK-TYPE CHANGE.**
+
+⚠️ **The user, 2026-09-29, reasoning forward from §4B.6:** ***"let's say the writer goes to the last
+valid character of the paragraph before the break, enters 3 or six or eleven spaces and then starts
+typing. Well, AttributedString will simply conflate that to a single space and move on. Writer happy,
+scrivicore happy."***
+
+⛔ **MEASURED, AND IT DOES NOT.** ✅ **The reasoning was sound — ⚠️ it is what HTML does, and what most
+Markdown renderers do — ⛔ but Apple's parser does not collapse interior spaces.**
+
+### 4C.1 ⛔ **Q13: INTERIOR SPACES ARE PRESERVED, NOT CONFLATED**
+
+| Probe | Source | ⛔ `.full` output | ⚠️ Spaces |
+| ----- | ------ | ----------------- | -------- |
+| **I1** | `word␣␣␣word` | ⛔ `word␣␣␣word` | **3 → 3 PRESERVED** |
+| **I2** | `word␣␣␣␣␣␣word` | ⛔ `word␣␣␣␣␣␣word` | **6 → 6 PRESERVED** |
+| **I3** | ⚠️ **`word` + ELEVEN spaces + `word`** | ⛔ **unchanged** | **11 → 11 PRESERVED** |
+| **I4** | `Sentence one.␣␣Sentence two.` | ✅ `Sentence one.␣␣Sentence two.` | **PRESERVED** |
+
+⛔ **SO THE WRITER'S ELEVEN SPACES STAY ELEVEN SPACES, ON SCREEN, MID-PARAGRAPH.**
+✅ **THE USER'S OWN CLOSING SENTENCE IS THEREFORE THE CORRECT READ OF THE SITUATION** — ⚠️ ***"the writer
+will not be certain about the number of spaces at the end of her paragraph, or that there may be eleven
+spaces somewhere in the middle of her paragraph."*** ⛔ **She will not be certain, AND the spaces will be
+visible. ⚠️ The parser does not rescue this.**
+
+⚠️ **⛔ AND I4 IS THE ONE THAT MAKES NORMALISATION UNSAFE AS A GENERAL RULE:** ✅ **two spaces after a
+period is PROPER sentence spacing and the writer means it.** ⛔ **A blanket "collapse runs of spaces"
+would silently rewrite her prose everywhere, ⚠️ which is a far worse defect than the one it fixes.**
+✅ **This is why §4B.6's normalisation is scoped to the END OF A LINE ON ENTER and nowhere else.**
+
+### 4C.2 ✅ **WHERE SPACES *ARE* COLLAPSED — ⚠️ and `.full` vs `.inlineOnlyPreservingWhitespace` DISAGREE**
+
+| Probe | Source | ⚠️ `.full` | ✅ `.inlineOnlyPreservingWhitespace` |
+| ----- | ------ | ---------- | ----------------------------------- |
+| **I5** | `end of para.` + 11 trailing | ⛔ **trailing spaces DROPPED** | ✅ **PRESERVED** |
+| **I8** | 2 LEADING spaces | ⛔ **DROPPED** | ✅ **PRESERVED** |
+| **I9** | ⛔ **11 LEADING spaces** | ⛔ **`"       eleven leading\n"`** | ✅ **PRESERVED** |
+
+⛔ **THE TWO SYNTAX MODES BEHAVE DIFFERENTLY ON WHITESPACE, AND THE STUDY HAS BEEN QUOTING BOTH.**
+⚠️ **§4A.3 and §4B used `.inlineOnlyPreservingWhitespace`; ✅ §4B.5's paragraph work used `.full`.**
+⛔ **E1 MUST PICK ONE AND STATE IT** — ⚠️ **the whitespace answers are not the same, and a study that
+mixes them will mislead.**
+
+### 4C.3 ⛔ **Q14: ELEVEN LEADING SPACES IS NOT A COSMETIC SURPRISE — ⚠️ IT SILENTLY BECOMES A CODE BLOCK**
+
+⚠️ **I9's output (`"       eleven leading\n"` — SEVEN spaces and a trailing newline) had the shape of an
+indented code block.** ✅ **Confirmed directly by reading `presentationIntent`:**
+
+| Leading spaces | ⚠️ Block type | Output |
+| -------------- | ------------- | ------ |
+| **0** | ✅ `paragraph` | `normal paragraph` |
+| **1** | ✅ `paragraph` | ✅ space dropped |
+| **3** | ✅ `paragraph` | ✅ spaces dropped |
+| ⛔ **4** | ⛔ **`codeBlock`** | ⛔ **`"four leading spaces\n"`** |
+| ⛔ **11** (the user's number) | ⛔ **`codeBlock`** | ⛔ **`"       eleven leading\n"`** |
+
+⛔ **CommonMark's INDENTED CODE BLOCK rule is FOUR OR MORE LEADING SPACES**, ✅ **and Apple implements
+it.** ⚠️ **So a writer who indents a paragraph with spaces — ⛔ a thing writers do by reflex — turns her
+prose into a code block:** ⛔ **monospace, no emphasis rendering, no wrapping.**
+
+✅ **THE GOOD NEWS, MEASURED (P1):** ⚠️ **an indented SECOND line of an existing paragraph is safe** —
+⛔ `"First line.\n␣␣␣␣indented second line."` stays ONE `paragraph`, ✅ **because CommonMark's lazy
+continuation absorbs it.** ⚠️ **The hazard is a line that STARTS a block.**
+
+### 4C.4 ⛔ **WHAT THIS ADDS TO THE RULING — ✅ one new normalisation, and it is NOT the one the user proposed**
+
+⚠️ **§4B.6 normalises TRAILING spaces on Enter. ⛔ Q14 shows LEADING spaces are the sharper hazard,
+because they change the BLOCK TYPE rather than merely inserting a break.**
+
+| ⚠️ Hazard | ⛔ Consequence | ✅ Proposed handling |
+| --------- | -------------- | ------------------- |
+| ✅ **≥2 TRAILING spaces before `\n`** | ⚠️ unwanted hard line break (`INLINE(128)`) | ✅ **RULED §4B.6** — reduce to at most one on Enter |
+| ⛔ **≥4 LEADING spaces on a line** | ⛔ **the paragraph becomes a `codeBlock`** | ✅ **RULED 2026-09-29 — §4D.4: suppress unexposed block intents + a `paragraphIndent` preference** |
+| ⚠️ **3–11 INTERIOR spaces** | ⚠️ **visible, preserved, untidy** | ⛔ **DO NOTHING — ✅ I4 proves collapsing them would destroy proper sentence spacing** |
+
+⚠️ **⛔ THE STUDY RECOMMENDS, BUT DOES NOT RULE, ON LEADING SPACES:** ✅ **under §3A.0 the writer's typed
+text is escaped anyway — ⛔ but a SPACE IS NOT AN ESCAPABLE CHARACTER, so §3A.0 does NOT cover this.**
+⚠️ **Three options, each with a real cost:**
+
+1. ✅ **Normalise leading spaces to at most three on a line that starts a block.** ⛔ **Silently changes
+   what she typed, ⚠️ and §4C.1's I4 lesson says silent whitespace rewriting is dangerous.**
+2. ✅ **Leave the source alone and suppress the `codeBlock` INTENT in the renderer.** ⚠️ **Scrivi does not
+   expose code blocks in v1 anyway (the user's list is bold/italic/heading/list), ⛔ so an intent it
+   never renders is harmless.** ✅ **THIS IS THE STUDY'S PREFERENCE — it touches no bytes.**
+3. ⛔ **Do nothing and let indented prose render as code.** ⚠️ **Honest to Markdown, ⛔ astonishing to a
+   novelist.**
+
+✅ **OPTION 2 GENERALISES:** ⚠️ **the v1 verb list is CLOSED (§3A.0), so ANY block intent Scrivi does not
+expose — `codeBlock`, `blockQuote`, `table` — can be rendered as ordinary prose rather than fought at
+the byte level.** ⛔ **That is a design decision E1 owes, ✅ and it is cheaper than every alternative.**
+
+---
+
+## 4D. ✅ **Q14 RULED + Q15/Q16 SPIKE — 2026-09-29. ⛔ THE TAB IS THE WORST OPTION, ✅ AND THE BEST ONE COSTS ZERO CHARACTERS.**
+
+⚠️ **The user, 2026-09-29:** ***"according to copilot, in markdown a codeblock is surrounded by three
+single tics. However, it looks like apple is treating 4 or more spaces as a codeblock… we do Q14 option
+2, we normalise a paragraph indent. In fact, we can add another project preference with regard to
+paragraph indentations that would apply globally to all paragraphs… should we insert a tab character in
+place of spaces? or is it possible to simply format the paragraphs with leading spaces? That way, the
+writer has set her preference at the beginning and does not need to type leading spaces at each
+paragraph. Reducing the temptation to enter a character sequence that would lead to unintended
+results."***
+
+### 4D.1 ✅ **BOTH THE USER AND COPILOT ARE RIGHT — ⚠️ CommonMark HAS TWO CODE-BLOCK FORMS**
+
+⛔ **THIS IS NOT A DISAGREEMENT TO RESOLVE; ✅ they are describing different constructs.**
+
+| Form | Syntax | ✅ Measured (§4C, §4D.2) |
+| ---- | ------ | ----------------------- |
+| ✅ **FENCED** — what Copilot described | ` ``` ` … ` ``` ` | ✅ **`codeBlock` — CONFIRMED (probe F1)** |
+| ⛔ **INDENTED** — what Apple applied to the user's prose | ⚠️ **≥4 leading spaces, or ONE TAB** | ⛔ **`codeBlock` — CONFIRMED (§4C.3)** |
+
+✅ **THE INDENTED FORM IS THE OLDER ONE** (Markdown 1.0, 2004) ⚠️ **and CommonMark kept it for
+compatibility.** ⛔ **It is the one that ambushes prose, ✅ and the user's read of WHY is exactly right:**
+⚠️ ***"This would make sense if you were writing technical documentation with inserts. In Scrivi's case,
+not so much."*** ✅ **Scrivi's v1 verb list (§3A.0) exposes NEITHER form.**
+
+### 4D.2 ⛔ **Q15: A TAB IS *WORSE* THAN FOUR SPACES — ⚠️ ONE TAB IS ENOUGH. MEASURED.**
+
+⚠️ **The user asked whether to *"insert a tab character in place of spaces"*.** ⛔ **MEASURED, AND THE
+ANSWER IS NO:**
+
+| Probe | Source | ⛔ Block type |
+| ----- | ------ | ------------- |
+| ⛔ **T1** | ⚠️ **ONE tab** | ⛔ **`codeBlock`** |
+| ⛔ **T2** | two tabs | ⛔ **`codeBlock`** (⚠️ and the second tab survives into the output) |
+| ⛔ **S4** | four spaces | ⛔ **`codeBlock`** |
+| ✅ **S3** | three spaces | ✅ **`paragraph`** |
+| ⛔ **T3** | ⚠️ **a tab on a LATER paragraph** | ⛔ **`codeBlock`** |
+
+✅ **CommonMark COUNTS A TAB AS FOUR COLUMNS OF INDENTATION**, ⚠️ **so a single tab meets the indented-code
+threshold on its own.** ⛔ **THE TAB IS THEREFORE THE MOST DANGEROUS OF THE THREE OPTIONS, NOT THE
+SAFEST** — ⚠️ **it reaches the hazard in ONE keystroke where spaces need four.**
+
+⛔ **RULED OUT: ✅ Scrivi must NOT insert a tab for paragraph indentation.**
+
+### 4D.3 ✅ **Q16: THE USER'S THIRD OPTION WORKS — ⛔ AND IT PUTS ZERO CHARACTERS IN THE FILE**
+
+⚠️ **The user asked: *"or is it possible to simply format the paragraphs with leading spaces?"***
+✅ **YES — `NSParagraphStyle.firstLineHeadIndent`, MEASURED in a real TextKit 2 layout:**
+
+| Configuration | line 1 x | line 2 x | ⚠️ Verdict |
+| ------------- | -------- | -------- | --------- |
+| baseline (no indent) | `5.00` | `5.00` | — |
+| ✅ **STORAGE `firstLineHeadIndent = 28`** | ✅ **`33.00`** | ✅ **`5.00`** | ✅ **FIRST LINE ONLY — ⚠️ exactly how a novel indents** |
+| ⛔ **RENDERING `firstLineHeadIndent = 28`** | ⛔ `5.00` | `5.00` | ⛔ **NO EFFECT — ✅ §4A.1's rule holds again** |
+
+✅ **THIS IS THE ANSWER TO THE USER'S QUESTION AND IT IS THE BEST OF THE THREE:**
+
+| Option | ⚠️ Characters in the `.md` | ⛔ Code-block risk | ✅ Wrapped lines |
+| ------ | -------------------------- | ------------------ | ---------------- |
+| ⛔ **Tab** | ⚠️ 1 per paragraph | ⛔ **YES — immediately** | ⛔ **indents the WRAP too** |
+| ⚠️ **Leading spaces** | ⚠️ 3 max (⛔ 4 trips it) | ⚠️ **at 4+** | ⛔ **indents the WRAP too** |
+| ✅ **`firstLineHeadIndent`** | ✅ **ZERO** | ✅ **NONE — ⛔ nothing to parse** | ✅ **wrap stays at the margin** |
+
+⛔ **AND THE THIRD COLUMN IS NOT A TIE-BREAKER, IT IS DISQUALIFYING FOR THE OTHER TWO:** ⚠️ **leading
+characters indent only the FIRST line because the rest is soft-wrapped** — ✅ **which happens to look
+right** — ⛔ **but only until the writer edits earlier in the paragraph and the wrap moves.** ⚠️ **The
+characters do not follow. `firstLineHeadIndent` is defined in terms of the paragraph, ✅ so it always
+follows.**
+
+### 4D.4 ✅ **RULED — Q14 OPTION 2, ⚠️ AND THE PREFERENCE IS THE BETTER HALF OF THE RULING**
+
+✅ **THE USER RULED Q14 = OPTION 2** (suppress block intents Scrivi does not expose, §4C.4)
+⚠️ **AND ADDED A PROJECT PREFERENCE FOR PARAGRAPH INDENTATION.** ⛔ **The two are separate mechanisms
+and both are needed:**
+
+| | ⚠️ What it does | ✅ Why it is needed |
+| - | --------------- | ------------------- |
+| ✅ **(a) Suppress unexposed block intents** | ⚠️ **the renderer ignores `codeBlock`/`blockQuote`/`table` and draws prose** | ⛔ **DEFENSIVE — ✅ catches indentation that already exists in files, or arrives by paste** |
+| ✅ **(b) `paragraphIndent` preference + `firstLineHeadIndent`** | ✅ **the writer never types an indent at all** | ✅ **PREVENTIVE — ⚠️ exactly the user's reasoning: *"reducing the temptation to enter a character sequence that would lead to unintended results"*** |
+
+✅ **(b) IS THE STRONGER IDEA AND IT GENERALISES BEYOND THIS DEFECT.** ⚠️ **It is the same move §3A.0
+made: ⛔ do not ask the writer to type structure, ✅ give her a control and let Scrivi own the bytes.**
+⚠️ **⛔ BUT (a) IS STILL REQUIRED** — ✅ **a preference cannot retroactively fix a scene file that already
+has four leading spaces in it.**
+
+#### ✅ **WHERE THE PREFERENCE LIVES — ⚠️ the pattern already exists**
+
+✅ **`ProjectPreferences` ALREADY persists per-project display settings** (⚠️ `showChapterTitles`, §5's
+F1 row) — ⛔ **so this is not new machinery.** ✅ **`paragraphIndent` joins it as a points value,
+⚠️ defaulting to `0` so no existing project changes appearance.**
+
+⛔ **⚠️ AND IT IS F1'S SIBLING, WHICH MATTERS FOR SCOPE:** ✅ **§5.1 ruled Q3 = F1 (the writer picks the
+typeface).** ⚠️ **Paragraph indent is the SAME KIND of thing — ✅ a display preference that never touches
+the `.md`** — ⛔ **so it belongs in **E3**, not E1, ⚠️ except that E1 needs (a) regardless.**
+
+#### ⛔ **ONE CODE-LEVEL CONSTRAINT, READ NOT GUESSED**
+
+⚠️ **`firstLineHeadIndent` must live in STORAGE (§4D.3), ⛔ and this app STRIPS storage attributes on
+undo.** ✅ **READ — `ManuscriptTextView.swift:366-369` sets exactly two attributes:**
+
+```swift
+let attrs: [NSAttributedString.Key: Any] = [
+    .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+    .foregroundColor: NSColor.textColor
+]
+storage.replaceCharacters(in: range, with: NSAttributedString(string: change.newText, attributes: attrs))
+```
+
+⛔ **A `.paragraphStyle` WOULD BE DROPPED BY EVERY UNDO/REDO** — ⚠️ **the same guard §4A.2 flagged for
+Model B.** ✅ **THE FIX IS CHEAP HERE, unlike Model B's:** ⚠️ **the indent is UNIFORM across the
+document (it is a preference, not a per-run decision), ⛔ so it is one more entry in this dictionary,
+not a re-derivation.** ✅ **E1/E3 must add it; ⚠️ omitting it means paragraphs lose their indent after
+an undo, which reads as a rendering bug and is not.**
+
+⚠️ **⛔ ALSO NOT CHECKED: `rebuildStorage` (`:568-600`) builds body attributes too** — ✅ **the indent
+must be applied there as well, ⛔ or it will vanish on the next rebuild rather than on undo.**
+⚠️ **Both sites, or neither.**
+
+---
+
 ## 5. ⚠️ "Multiple fonts" — the question that needs splitting
 
 ⚠️ **The user: *"I'd like to provide the ManuscriptView with the ability to display its text in multiple
@@ -527,6 +1195,20 @@ study's objection applies to only ONE of them.**
 | **F1 — the writer picks the manuscript typeface** (one font for the surface) | ✅ **a preference** — `ProjectPreferences` already persists per-project display settings (`showChapterTitles`) | ✅ **NO FORMAT PROBLEM.** ⚠️ The `.md` is unaffected |
 | **F2 — different ELEMENTS render in different fonts** (headings serif, body serif, code mono) | ✅ **nowhere — it is DERIVED from the Markdown structure** | ✅ **NO FORMAT PROBLEM.** ✅ This is just §3's rendering attributes with a font in them |
 | **F3 — per-passage font choice by the writer** ("this paragraph in Courier") | ⛔ **NOWHERE.** ⚠️ Markdown has no syntax for it | ⛔ **THIS is what the App Shape study means by "does not fit."** ⚠️ It needs either a format extension or a sidecar, and both are real decisions |
+
+### 5.1 ⛔ **RULED 2026-09-29 — Q3 = F1 ONLY.**
+
+✅ **The user ruled `f1`.** ⚠️ **So "multiple fonts" means ONE THING: ✅ the writer picks the manuscript
+typeface, as a preference. ⛔ F3 is OUT — no per-passage font choice, and the format question it would
+have forced does not arise.**
+
+⚠️ **⛔ ONE THING THE RULING LEAVES AMBIGUOUS, AND IT IS WORTH A SENTENCE:** ✅ **F2 (headings render
+differently from body) is not really a separate FEATURE — it is what "render Markdown" MEANS.**
+⛔ **A heading that renders in the body face at body size is not rendered at all.** ⚠️ **So E1's
+heading typography proceeds as the mechanism of rendering; ✅ F1 is the ruled user-facing capability,
+and F3 is closed.** ⛔ **If the user intends F2 to be excluded as well, that would empty §9's E1/E3 of
+their content and should be said** — ⚠️ **the study reads `f1` as "the font FEATURE is F1", not as "do
+not style headings".**
 
 ⚠️ **F1 AND F2 ARE THE BULK OF WHAT "TYPESET" MEANS, AND NEITHER THREATENS THE FORMAT.**
 ⛔ **F3 IS A SEPARATE RULING** and should not be smuggled in with them.
@@ -608,8 +1290,14 @@ renderer must also preserve.**
 a DIFFERENT question from "what Markdown does the renderer understand" — ⚠️ but the two must be ruled
 COMPATIBLY, and this study is where that compatibility is asserted.**
 
-✅ **PROPOSED RULING (§10 Q1): renderer first; [EP-032] unblocked and improved by it; ⛔ its
+⛔ **RULED 2026-09-29 (Q1 = YES): renderer first; [EP-032] unblocked and improved by it; ⛔ its
 SP-107–SP-114 reservation is NOT released and its planning is NOT discarded.**
+
+⚠️ **AND §3A.0 STRENGTHENS THE CASE THE RULING ACCEPTS:** ✅ **under the escaping rule, an [EP-032]
+reference token can only ever be written BY SCRIVI, never typed by accident** — ⛔ **so [EP-032]'s AC1
+("still valid Markdown for every reader that does not understand it") gains a guarantee it did not have
+when it was written.** ⚠️ **[EP-032]'s SP-107 still owns the reference SYNTAX; ✅ it must now also
+honour the escape rule, which is a constraint SP-107 did not previously carry.**
 
 ---
 
@@ -627,25 +1315,100 @@ SP-107–SP-114 reservation is NOT released and its planning is NOT discarded.**
 | **E4** | ⚠️ **`[Linux]` parity** | ✅ the same surface on `QPlainTextEdit`/Qt | ⚠️ **`feedback_linux_adopts_apple_shape` requires it; ⛔ Qt's text stack is NOT TextKit and the mechanism will differ** |
 | — | ⚠️ **[EP-032]** | ✅ unchanged scope | ✅ **Follows E1/E2 (§8)** |
 
+### 9.1 ⛔ **WHAT THE 2026-09-29 RULINGS CHANGE ABOUT THIS SPLIT**
+
+⚠️ **The table above predates the rulings. ✅ It survives, ⛔ but three of its rows change content:**
+
+| Epic | ⚠️ What moved | ✅ Why |
+| ---- | ------------- | ----- |
+| **E1** | ✅ **GAINS the SOURCE↔PRESENTED offset mapping** (§3.4A) · ✅ **GAINS the input-escaping layer** (§3A.0) · ⚠️ **`* * *` is re-read as "make the divider visible" + "a scene-SPLIT command"** (§10.1) | ⛔ **Escapes need the mapping even under Model A, so it cannot wait for E2** |
+| **E2** | ⚠️ **NARROWS to marker hiding + the formatting COMMANDS** | ✅ **No input-side parsing of typed markup — §3A.0 removed that whole problem** |
+| **E3** | ⛔ **SHRINKS to F1 — ✅ then REGAINS the `paragraphIndent` preference** (§4D.4) | ✅ **Q3 ruled F1; ⚠️ F2 is E1's rendering, not a separate Epic. ✅ Indent is F1's sibling: a display preference that never touches the `.md`** |
+| **E1** ⚠️ *(second entry)* | ✅ **ALSO GAINS "suppress unexposed block intents"** (§4C.4 / §4D.4a) | ⛔ **DEFENSIVE and cannot wait for E3 — ⚠️ a preference cannot fix scene files that ALREADY contain four leading spaces** |
+
+⚠️ **⛔ AND ONE ITEM HAS NO OWNER IN THE TABLE:** ✅ **the formatting COMMANDS themselves (Bold, Italic,
+Heading, List, Scene Break) are now the ONLY way markup is authored (§3A.0)** — ⛔ **so they are not a
+nicety in E2, they are the feature's entire input surface.** ⚠️ **`project_scrivi_app_shape` already
+found that *"the toolbar is mostly a SURFACING job: the verbs already exist in the menu bar as callable
+closures"*** — ✅ **but these particular verbs do NOT exist yet, and that study's cheapness finding does
+not transfer to them.**
+
 ⚠️ **E4 IS NOT OPTIONAL AND IS NOT FREE.** ⛔ **`feedback_linux_adopts_apple_shape` says a shape change
 on Apple must be made the same way on Linux IN THE SAME WORK.** ✅ **Naming it as its own Epic is how
 that rule is honoured without blocking Apple on Qt** — ⚠️ **but it must be SCHEDULED, not assumed.**
 
 ---
 
-## 10. ⚠️ Questions this study CANNOT answer — for user ruling
+## 10. ✅ **RULED BY THE USER 2026-09-29 — ⚠️ SIXTEEN QUESTIONS, ✅ ALL ANSWERED**
 
-| # | Question | ⚠️ Why it is the user's |
-| - | -------- | ---------------------- |
-| **Q1** | ✅ **Does the renderer sequence BEFORE [EP-032]?** (§8 recommends **yes**) | ⚠️ **A priority call.** ✅ The study's job was to surface that they collide at Q1/Q3 — it does |
-| **Q2** | ⚠️ **Which marker model (§4): A, B, or A-then-B per element?** | ⛔ **The single biggest cost driver.** ⚠️ B is what "WYSIWYG" usually means and where the engineering is |
-| **Q3** | ⚠️ **Which "multiple fonts" (§5): F1, F2, F3 — or all three?** | ⛔ **F3 needs a format decision Markdown cannot express.** ✅ F1/F2 are nearly free |
-| **Q4** | ⚠️ **Is `* * *` rendered from an EXISTING Markdown token (`***`/`---` thematic break) in the scene body, or a UI-only mark between scenes?** | ⛔ **Format decision.** ⚠️ Today the break is STRUCTURAL (scenes are separate files) and NOT in the text at all — ✅ so rendering it is free, ⛔ but authoring it as text would change the on-disk model |
-| **Q5** | ⚠️ **Does [I-0206] re-open?** (§7) | ✅ **Its closure carries an explicit re-open condition, and this feature is the likeliest trigger** |
-| **Q6** | ⚠️ **Fix the divider NOW (R1) or fold it into E1?** | ✅ **Study recommends NOW** — ⚠️ the user is impeded in Dark Mode today |
-| ~~**Q7**~~ | ✅ **ANSWERED BY SPIKE, 2026-09-28 — §4A.** ⛔ **(a) rendering attributes CANNOT hide a marker** (measured; mechanism proven live) · ✅ **(b) use `AttributedString` as the parser** (the hand-written scanner lost on correctness) | ✅ **CLOSED.** ⚠️ **It changed two of this study's own recommendations — §3A.3 is WITHDRAWN and Model B is dearer than assumed** |
-| **Q8** | ⚠️ **Is `#` a CHAPTER heading (§3A.5)?** ✅ **Study recommends NO** — chapter titles stay metadata; `#`/`##`/`###` are ordinary in-scene headings | ⛔ **`#` as chapter title creates TWO OWNERS of one fact** — ⚠️ the navigator title and the prose would disagree with no rule for which wins |
-| **Q9** | ⚠️ **Does Enter insert `\n\n` (real paragraph) or render a single `\n` as spaced (§3A.6)?** | ⚠️ **Rendering it needs `NSParagraphStyle`, which affects LAYOUT and is stripped by the undo path.** ✅ Inserting `\n\n` is honest, ⛔ but changes Backspace and interacts with [EP-019] undo |
+⚠️ **This section was "Questions this study CANNOT answer."** ✅ **It no longer is. ⛔ Every question is
+ruled; the table below is the RECORD, not a proposal.** ⚠️ **Q1–Q9 were the study's own; ✅ Q10–Q14 arose
+from the user's 2026-09-29 challenges and were settled by MEASUREMENT (§4B, §4C), not by ruling alone.**
+✅ **Q14 was OPENED and CLOSED in the same pass** — ⚠️ **it was not known to exist before the spike;
+⛔ it is a block-type change, not a cosmetic one; ✅ and the user's ruling on it (§4D.4) removes the
+writer's REASON to type the hazard rather than merely tolerating it.**
+
+| # | Question | ✅ **RULING** | ⚠️ Where it lands |
+| - | -------- | ------------ | ----------------- |
+| **Q1** | Does the renderer sequence BEFORE [EP-032]? | ✅ **YES** | ✅ §8.2. ⚠️ [EP-032] keeps SP-107–SP-114 and its planning; ⛔ its SP-107 must now honour §3A.0's escape rule |
+| **Q2** | Which marker model — A, B, or A-then-B? | ✅ **B (WYSIWYG)** — ⚠️ *"my inclination is to wysiwyg"* | ✅ §4.3. ⛔ **The expensive answer, knowingly taken.** ✅ A ships in E1 as B's first milestone, not as a rival |
+| **Q3** | Which "multiple fonts" — F1, F2, F3? | ✅ **F1** | ✅ §5.1. ⛔ **F3 closed** — no per-passage fonts, no format extension needed. ⚠️ F2 read as part of rendering, not as a separate capability |
+| **Q4** | Is `* * *` an existing Markdown token in the body, or a UI-only mark? | ⛔ **NEITHER, AS ASKED — a COMMAND** | ✅ §10.1 below |
+| **Q5** | Does [I-0206] re-open? | ⛔ **NO** — ⚠️ *"no, let's create a new issue if necessary"* | ✅ §10.2 below |
+| **Q6** | Fix the divider NOW (R1) or fold it into E1? | ✅ **NOW** | ⚠️ §9's R1 stands as a standalone ISSUE, ⛔ not an Epic. ✅ **But see §1.4A — the colour fix already shipped and DID NOT WORK; the cause is still unidentified** |
+| ~~**Q7**~~ | Marker hiding + parser choice | ✅ **CLOSED BY SPIKE 2026-09-28** — §4A | ⛔ **(a) rendering attributes cannot hide a marker** · ✅ **(b) `AttributedString` is the parser** |
+| **Q8** | Is `#` a CHAPTER heading? | ✅ **NO** | ✅ §3A.5. ⚠️ **Doubly closed: chapter titles stay metadata, ⛔ and a typed `#` is escaped anyway (§3A.0)** |
+| **Q9** | Enter → `\n\n`, or render a single `\n` as spaced? | ✅ **YES — Enter inserts `\n\n`** | ✅ §3A.6. ⚠️ **Plus a ruling not asked for: Backspace at paragraph start deletes ONE `\n`** |
+| ✅ **NEW** | ⚠️ **Does typed markup become formatting?** | ⛔ **NO — ALL typed reserved characters are ESCAPED** | ✅ **§3A.0. ⚠️ The user's own ruling, volunteered, on Q7 spike evidence. ⛔ It is the largest ruling in this pass** |
+| ✅ **NEW** | ⚠️ **Is the caret position the file offset?** | ⛔ **NO — they are separate spaces** | ✅ **§3.4A. ⚠️ Volunteered. ⛔ It makes a SOURCE↔PRESENTED mapping a REQUIRED E1 component** |
+| ✅ **Q10** | ⚠️ **Does `AttributedString(markdown:)` also remove ESCAPES?** — ⛔ *"let's not add work that isn't needed"* | ✅ **YES, it removes them; ⛔ and it does NOT say where they were** | ✅ **§4B.1–4B.3, MEASURED 2026-09-29. ⚠️ Cost is REAL but ~12 lines, ⛔ not a subsystem** |
+| ✅ **Q11** | ⚠️ **Which characters get escaped?** | ⛔ **ALL 32 — *"use the READ set"*** | ✅ **§4B.4. ⚠️ ONE list, not two; ⛔ accepted cost is a noisier raw `.md`. ✅ Re-measured: the oracle goes 9/10 → 10/10** |
+| ✅ **Q12** | ⚠️ **Trailing spaces + Enter → an unwanted hard break?** | ✅ **CONFIRMED. ⛔ Normalise on Enter** | ✅ **§4B.5–4B.6. ⚠️ User ruled both halves; ⛔ study amends "delete one space" → "reduce to at most one"** |
+| ⛔ **Q13** | ⚠️ **Does the parser conflate interior runs of spaces?** | ⛔ **NO — they are PRESERVED** | ✅ **§4C.1, MEASURED. ⚠️ The user's forward reasoning was sound but the parser does not do it; ⛔ eleven spaces stay eleven** |
+| ✅ **Q14** | ⚠️ **Are leading spaces merely untidy?** | ⛔ **NO — ≥4 (or ONE TAB) makes it a `codeBlock`.** ✅ **RULED: OPTION 2 + an indent PREFERENCE** | ✅ **§4C.3, §4D. ⚠️ Suppress unexposed block intents (defensive) ✅ AND give the writer a `paragraphIndent` preference (preventive)** |
+| ⛔ **Q15** | ⚠️ **Insert a TAB for paragraph indentation?** | ⛔ **NO — ⚠️ ONE tab triggers a code block** | ✅ **§4D.2, MEASURED. ⛔ The tab is the WORST option — it reaches the hazard in one keystroke where spaces need four** |
+| ✅ **Q16** | ⚠️ **Can indentation be pure formatting, no characters?** | ✅ **YES — `firstLineHeadIndent` in STORAGE** | ✅ **§4D.3, MEASURED. ✅ ZERO characters in the `.md`, ⚠️ first line only, ✅ wrap stays at the margin** |
+
+### 10.1 ⚠️ **Q4 ruled — `* * *` IS A STRUCTURAL SCENE BREAK, AUTHORED BY COMMAND**
+
+⚠️ **The user:** ***"No. The `* * *` is a scene break, which has a structural definition in Scrivi
+external to Markdown. If the writer wants to insert a break we should provide the capability as with
+"Bold" "Italic" etc."***
+
+✅ **⛔ THE QUESTION AS POSED OFFERED A FALSE CHOICE, AND THE USER REJECTED BOTH HORNS.** ⚠️ **Q4 asked
+"body token OR UI-only mark"; ✅ the answer is that the break is STRUCTURE — it already exists in Scrivi
+as the boundary between scene FILES — ⛔ and the writer's need is a COMMAND that creates that structure,
+not a glyph.**
+
+| ⚠️ What Q4 assumed | ✅ What was ruled |
+| ------------------ | ---------------- |
+| ⛔ the writer would type `***` or `---` into the prose | ✅ **the writer invokes a SCENE BREAK command** |
+| ⛔ the renderer's job is to recognise a token | ✅ **the renderer's job is to DRAW the structural boundary that already exists** |
+| ⚠️ it was a FORMAT decision | ✅ **it is not — ⛔ nothing new goes into the `.md` at all** |
+
+✅ **THIS IS CONSISTENT WITH §2.2 AND COSTS NOTHING NEW:** ⚠️ **scene dividers ALREADY render outside
+`sceneBoundaries` and are already invisible to the save path.** ✅ **The divider IS the `* * *`.**
+⛔ **So §9's E1 item *"`* * *` scene break"* is re-read: it is **(a)** make the existing divider VISIBLE
+(that is R1 / §1.4A, still unsolved) and **(b)** add a command that SPLITS a scene at the caret.**
+
+⚠️ **⛔ AND (b) IS NOT A RENDERING FEATURE — it is a scene-split operation in the core.** ✅ **Scrivi
+already has the inverse (`scrivi_merge_scene`, `project_sp074_merge_endpoints`).** ⛔ **Whether a split
+endpoint exists was NOT CHECKED in this pass and E1 must check it before scoping.**
+
+### 10.2 ⚠️ **Q5 ruled — [I-0206] STAYS CLOSED; ✅ a NEW Issue if it bites**
+
+⚠️ **The user:** ***"no, lets create a new issue if necessary."***
+
+✅ **RULED, AND IT IS THE RIGHT LAYER DISCIPLINE** — ⚠️ **re-opening a closed Issue on a PREDICTION
+would make its record say something the evidence did not.** ✅ **A new Issue, filed against measured
+behaviour under the renderer, is the honest artefact.**
+
+⛔ **BUT THE STUDY OWES ONE WARNING IT WILL NOT SOFTEN:** ⚠️ **[I-0206] measured `~59 ms` per keystroke
+at `setSelectedRange`, offset-linear, on a 1.85 MB document.** ⛔ **Q2 = B and §3.4A's mapping BOTH add
+work to that exact path.** ✅ **E1 must MEASURE the caret path against a real 1.85 MB manuscript before
+E2 commits** — ⚠️ **`project_read_amplification_class`: a cost measured in isolation is not a cost
+measured in place.** ✅ **If that measurement is skipped, the "new Issue if necessary" will be filed by
+the user against their own manuscript rather than by a test.**
 
 ---
 
@@ -692,5 +1455,26 @@ and the UTF-8 phrasing describes how COLUMNS are counted.**
   measured in place.**
 - ⛔ **Model B's storage-attribute route was NOT tried against the undo path.** ⚠️ **§4A.2 reasons that
   `:358-369` would strip it; ✅ that is READ, not RUN.**
+- ✅ **ANSWERED 2026-09-29 (§4B) — THE ESCAPE COST WAS MEASURED, at the user's challenge.** ⛔ **The
+  parser DOES strip escapes and does NOT locate them; ✅ a ~12-line scanner reproduces it exactly.**
+  ⚠️ **WRITE set = markdown.org's 16 (user-directed); ⛔ READ set = all 32 ASCII punctuation (measured).**
+  ⛔ **STILL OWED: the oracle is verified on 9 inputs, ⚠️ and its 10th disagreed** — ✅ **E1 must test it
+  against the parser over a CORPUS (`feedback_boundary_tests_not_facade`), ⛔ not assume it.**
+- ⛔ **NEW 2026-09-29 — PASTE IS UNRULED.** ⚠️ **The ruling's words are *"that the user types"*; ✅ paste
+  is a second door and is not covered.**
+- ⛔ **NEW 2026-09-29 — EXISTING MANUSCRIPTS ARE UNMIGRATED.** ⚠️ **Scene files already contain
+  unescaped `*` typed as arithmetic or emphasis; ✅ under the new renderer they will silently change
+  appearance.** ⛔ **Whether a one-time escape pass is owed is not ruled.**
+- ⛔ **NEW 2026-09-29 — A SCENE-SPLIT ENDPOINT WAS NOT LOOKED FOR.** ⚠️ **§10.1 makes the scene-break
+  COMMAND a core operation; ✅ the merge side exists (`scrivi_merge_scene`), ⛔ the split side was not
+  checked.**
+- ⛔ **NEW 2026-09-29 — `rebuildStorage` WAS NOT READ FOR THE INDENT.** ⚠️ **§4D.4 READ the undo path
+  (`:366-369`) and confirmed a `.paragraphStyle` would be stripped; ⛔ it did NOT read `rebuildStorage`
+  (`:568-600`), which builds body attributes too.** ✅ **Both sites must apply the indent, ⛔ or it
+  vanishes on rebuild instead of on undo.**
+- ⛔ **NEW 2026-09-29 — THE TWO PARSING MODES DISAGREE ON WHITESPACE AND THE STUDY QUOTES BOTH.**
+  ⚠️ **§4A.3/§4B used `.inlineOnlyPreservingWhitespace`; §4B.5/§4C/§4D used `.full`.** ⛔ **Trailing and
+  leading spaces are DROPPED by one and PRESERVED by the other (§4C.2).** ✅ **E1 must pick ONE and
+  state it** — ⚠️ **a study that mixes them will mislead, and this one currently does.**
 - ⛔ **No export impact assessed.** ⚠️ **[EP-032]'s Q5 already records that manuscript export has no
   existing path; ✅ the same gap applies here and is not re-litigated.**

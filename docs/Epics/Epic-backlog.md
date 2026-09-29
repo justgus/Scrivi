@@ -10,6 +10,114 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ---
 
+## EP-045: `[Apple]` ⚠️ **The Manuscript Renderer — Foundations**
+
+**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **No Sprint assigned; not activated.**
+**Full record:** → [`Epic-EP-045.md`](Epic-EP-045.md) — ⚠️ **AC1–AC10 and TWO owed rulings.**
+**Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
+**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)
+(✅ **sixteen questions RULED 2026-09-29**).
+
+**Goal:** ✅ **Make a RENDERED manuscript possible, and pay the data-loss debt that blocks it.**
+
+⚠️ **IT RENDERS ALMOST NOTHING THE WRITER ASKED FOR, AND THAT IS DELIBERATE.** ✅ **Typed attachments
+(⛔ a live corruption path — ⚠️ every attachment is currently treated as a scene divider, and
+`sceneBoundaries` is what the save path slices with) · the SOURCE↔PRESENTED caret mapping · the escape
+layer · Enter/Backspace · block-intent suppression · and the divider restored.**
+
+⛔ **THE DIVIDER'S CAUSE IS STILL UNKNOWN AFTER TWO FAILED FIXES** — ✅ **AC2 diagnoses LIVE before it
+fixes.** ⚠️ **First: [T-0526] dropping [I-0112]'s appearance guard — ⛔ DISPROVEN by measurement.
+Then: `separatorColor` at 1.34:1 — ⛔ FIXED, and the user reported *"they are still invisible."***
+
+⚠️ **TWO RULINGS OWED:** ⛔ **PASTE** (⚠️ the escape ruling's words were *"that the user types"*) ·
+⛔ **EXISTING MANUSCRIPTS** (⚠️ they hold unescaped `*` and will change appearance).
+
+⛔ **VERIFIED GAP:** ✅ **`scrivi_merge_scene` exists (`scrivi.h:533`); ⛔ `scrivi_split_scene` DOES
+NOT.** ⚠️ **The ruled scene-break COMMAND needs a core endpoint nobody has written — ✅ `[Cross]` work,
+⛔ not in this Epic.**
+
+✅ **SEQUENCES BEFORE [EP-032]** — ⚠️ **user ruling (study §8, Q1): ⛔ two Epics answering the same
+FORMAT question independently will diverge, ✅ and [EP-032] cannot be built safely on today's
+attachment handling anyway.** ✅ **[EP-032] keeps SP-107–SP-114 and its planning.**
+
+---
+
+## EP-046: `[Apple]` ⚠️ **The Manuscript Renderer — Inline Rendering** (WYSIWYG)
+
+**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-045].**
+**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §4.3, §4A.
+
+**Goal:** ⚠️ **What the user actually asked for — *"my inclination is to wysiwyg."*** ✅ **Bold, italic
+and headings RENDER; ⚠️ markers hide unless the caret is inside them (Model B).**
+✅ **Plus the formatting COMMANDS — ⛔ which under the escape ruling are the feature's ENTIRE input
+surface, ⚠️ not a toolbar nicety.**
+
+⛔ **THIS IS THE EXPENSIVE ONE AND THE STUDY MEASURED WHY.** ✅ **[Q7 SPIKE, 2026-09-28]: rendering
+attributes CANNOT hide a marker** — ⚠️ **`.font(0.01)` and `.kern(-100)` as RENDERING attributes left
+layout at `184.83 pt`, identical to baseline; ✅ the SAME font in STORAGE collapsed it to `152.71 pt`.**
+⛔ **So Model B needs STORAGE attributes (⚠️ which `ManuscriptTextView.swift:366-369` STRIPS on every
+undo) or an `NSTextLayoutFragment` subclass. ✅ Measured, not feared.**
+
+⚠️ **Whole-LINE markers (`#`, `##`, bullets) are much easier to hide than INLINE ones (`**`)** —
+✅ **take them in that order.**
+
+⛔ **OUT:** ⚠️ **the scene-SPLIT command** (✅ needs a core endpoint — see [EP-045]).
+
+---
+
+## EP-047: `[Apple]` ⚠️ **Manuscript Typography & Preferences**
+
+**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Independent of [EP-046]; ⚠️ needs [EP-045]'s seam.**
+**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §5.1, §4D.
+
+**Goal:** ✅ **The writer sets how her manuscript LOOKS, once, and never types formatting to get it.**
+
+✅ **TWO preferences, both display-only, ⛔ neither touching the `.md`:**
+- ✅ **F1 — the manuscript TYPEFACE** (⚠️ user ruling Q3 = *"f1"*; ⛔ F3 per-passage fonts CLOSED).
+- ✅ **`paragraphIndent` — a global first-line indent**, ⚠️ user's own proposal, ✅ rendered via
+  `NSParagraphStyle.firstLineHeadIndent`.
+
+⛔ **THE INDENT PREFERENCE IS A DEFECT TURNED INTO A FEATURE.** ⚠️ **MEASURED (study §4C.3/§4D.2):
+≥4 leading spaces — ⛔ or ONE TAB — turns a paragraph into a `codeBlock`** (monospace, no emphasis, no
+wrapping). ✅ **MEASURED (§4D.3): `firstLineHeadIndent = 28` in STORAGE indents line 1 to x=33 and
+leaves the wrap at x=5** — ⚠️ **exactly how a novel sets prose, ✅ with ZERO characters in the file.**
+✅ **The user's reasoning, recorded: *"reducing the temptation to enter a character sequence that would
+lead to unintended results."***
+
+⛔ **AN OPEN DESIGN QUESTION FOUND WHILE READING FOR [EP-045]:** ⚠️ **`ProjectPreferences` persists to
+`UserDefaults`, NOT into the `.scrivi` package** (✅ read: `ProjectPreferences.swift`, key
+`"scrivi.project.<id>.preferences"`). ⛔ **So an indent set on one machine would NOT travel with the
+project.** ⚠️ **Whether that is acceptable is this Epic's to answer.**
+
+⛔ **TRAP:** ⚠️ **`firstLineHeadIndent` must live in STORAGE, ⛔ and BOTH the undo path (`:366-369`) and
+`rebuildStorage` (`:568-668`) rebuild body attributes.** ✅ **Both sites or neither** — ⚠️ **otherwise
+the indent vanishes on undo, or on the next rebuild, and reads as a rendering bug.**
+
+---
+
+## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
+
+**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-045]/[EP-046]. ⚠️ NOT SCOPED.**
+**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
+
+**Goal:** ✅ **The same manuscript surface on Linux.**
+
+⚠️ **THIS EPIC EXISTS TO HONOUR A RULE, NOT BECAUSE IT IS UNDERSTOOD.** ✅ **`feedback_linux_adopts_apple_shape`:
+a shape change on Apple must be made the same way on Linux.** ⛔ **Naming it is how that is honoured
+without blocking Apple on Qt** — ⚠️ **but it MUST be scheduled, ⛔ not assumed.**
+
+⛔ **NOTHING HERE IS MEASURED.** ⚠️ **Qt's text stack is NOT TextKit: ⛔ there is no
+`setRenderingAttributes`, no `NSTextLayoutFragment`, and the format decisions (escaping, `\n\n`,
+block-intent suppression) are `[Cross]` and bind Linux permanently — ✅ while the MECHANISM is entirely
+different.** ⛔ **Assuming parity is cheap would be the error `feedback_design_to_capability_not_lcd`
+warns about.**
+
+⚠️ **ALSO UNKNOWN: ⛔ Linux has no Markdown parser chosen.** ✅ **Apple's `AttributedString(markdown:)`
+won the Q7(b) spike on CORRECTNESS** — ⚠️ **Linux gets no such gift and must pick one, ⛔ or re-earn the
+`2 * 3 * 4` class of defect the spike caught.**
+
+---
+
 ## EP-044: `[ScriviCore]` ⚠️ **World Resolution** — know where a world really is, or say you don't
 
 **Status:** 🔵 **Draft** — created 2026-09-22. ⛔ **No Sprint assigned; not activated.**
