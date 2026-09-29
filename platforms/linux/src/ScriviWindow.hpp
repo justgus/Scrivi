@@ -6,6 +6,7 @@
 #include <QString>
 #include <QVariantMap>
 
+class AppEnvironment;
 class QAction;
 class QQuickWidget;
 class QStackedWidget;
@@ -77,7 +78,11 @@ class ScriviWindow : public QMainWindow
 public:
     // `landing` is the QQuickWidget hosting Landing.qml (page 0). `appSupportRoot`
     // is forwarded to the editor when a project opens.
-    ScriviWindow(QQuickWidget* landing, QString appSupportRoot);
+    // ⚠️ [SP-146] T-0559 — `env` is the app-global owner, constructed in `main()`.
+    // ⛔ NOT owned here. ⚠️ nullptr is tolerated so tests can build a window without
+    // an app environment; the registry is simply not consulted then.
+    ScriviWindow(QQuickWidget* landing, QString appSupportRoot,
+                 AppEnvironment* env = nullptr);
 
     // Build (lazily) + show the editor page for `projectPath`. Returns to landing
     // if the load fails.
@@ -119,6 +124,10 @@ private:
     EditorShell*      editor_      = nullptr;
     ShellController*  shell_       = nullptr;   // QML boundary (New Project panel)
     QString           appSupportRoot_;
+
+    // ⚠️ [SP-146] T-0559 — the app-global owner, handed down from `main()`.
+    // ⛔ NOT owned: it outlives this window. ✅ Passed on to each `EditorShell`.
+    AppEnvironment*   env_ = nullptr;
 
     // Actions that are only meaningful with a project open in the editor.
     QList<QAction*> editorOnlyActions_;

@@ -1,5 +1,64 @@
 # Active Tasks
 
+---
+
+## 🟡 [SP-146] — T-0558 · T-0559 · T-0560 — ⚠️ **ACTIVE 2026-09-29, NOT STARTED**
+
+✅ **Sprint record (the detail lives there, not here):** →
+[`../Sprints/Sprint-SP-146.md`](../Sprints/Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
+⛔ **STRICTLY SERIAL** — ⚠️ **each Task needs the previous one's structure to exist.**
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| **T-0558** | ✅ **Create `AppEnvironment`** — ⚠️ **Linux's FIRST app-level state owner**; move `appSupportRoot` onto it | 🔵 **Not started** |
+| **T-0559** | ✅ **Move `OpenProjectRegistry` + `ProjectSession` OWNERSHIP onto it** — ⚠️ `EditorShell` takes a `ProjectSession*` | 🔵 **Not started** |
+| **T-0560** | ✅ **N windows + separate Landing window** — ⚠️ R3 focus-existing · R7 quit flushes the REGISTRY · R8 per-window `scrivi_close_project` · ⛔ N menu bars | 🔵 **Not started** |
+
+⛔ **THIS SPRINT IS NOT BEHAVIOUR-PRESERVING — ⚠️ and that inverts [SP-145]'s discipline.**
+✅ **[SP-145] could prove itself with *"0 deletions in `tests/`"*; ⛔ this one cannot.**
+⚠️ **Assertions WILL change because behaviour changes** — ✅ **so every changed assertion must be NAMED
+and JUSTIFIED in the progress log, ⛔ not silently edited.**
+
+⚠️ **PLANNING WAS NOT RE-DERIVED.** ✅ **[EP-043]'s record §"The app-level owner" (`:358`) already
+carried the design, MEASURED 2026-09-27** — ⛔ **read it before writing code.**
+
+## 🔴 T-0554 — `[Apple]` ⛔ **Divider visibility ([I-0252]) — RETURNED TO ACTIVE 2026-09-29**
+
+⛔ **MOVED BACK FROM `Task-unverified.md` BY USER INSTRUCTION 2026-09-29.** ⚠️ **It was sitting as
+*"Implemented - Not Verified"*, ✅ but the user had ALREADY tested it and reported *"they are still
+invisible."*** ⛔ **A Task the user has tested and found wanting is NOT awaiting verification — it is
+UNFINISHED**, ⚠️ **and leaving it in the unverified file made a failed fix read as pending work.**
+
+✅ **WHAT SHIPPED AND IS STILL IN THE CODE** (`ManuscriptTextView.swift:2424`, commit `9387d5c`):
+⚠️ **`separatorColor` → `secondaryLabelColor` and half-pixel alignment (`rect.midY.rounded() + 0.5`).**
+✅ **The contrast arithmetic was RIGHT — Dark `1.34 → 5.89 : 1`, Light `1.25 → 3.95 : 1`.**
+⛔ **AND THE LINE STILL DOES NOT APPEAR, so the cause is UPSTREAM OF THE COLOUR.**
+
+⛔ **DO NOT SHIP A THIRD SPECULATIVE COLOUR CHANGE.** ⚠️ **Two diagnoses have now been spent, each
+measured correctly, each answering the wrong question.**
+
+✅ **THE OPEN QUESTION:** ⚠️ **does the attachment draw AT ALL under TextKit 2?** ⛔ **`image(for:)` is
+the TextKit 1-era hook; ⚠️ TK2 renders attachments via `NSTextAttachmentViewProvider`, and an
+attachment with neither a set `image` property nor a view provider may draw NOTHING while
+`attachmentBounds` still reserves its 24 pt** — ✅ **which would present as a GAP, not a faint line.**
+⛔ **THAT IS A HYPOTHESIS. ⚠️ A harness built to test it returned CONTRADICTORY results across runs
+(0 calls, then 2, then 0 with an opaque red bar that never reached the canvas), so NO conclusion may be
+drawn from it.**
+
+✅ **NEXT STEP IS A LIVE DIAGNOSTIC, NOT A FIX** (`feedback_prove_code_is_reached`): ⚠️ **run the app,
+look at the manuscript, and determine whether there is a 24 pt GAP (⛔ nothing draws) or a faint LINE
+(⚠️ a colour problem the fix did not reach).** ⛔ **The two have different causes and only one is a
+colour question.**
+
+⚠️ **RELATIONSHIP TO [EP-045]:** ✅ **this is [EP-045] AC2, and AC2's design says the same thing —
+diagnose live first.** ⛔ **It is NOT folded into that Epic: ⚠️ the writer is impeded TODAY, and
+[EP-045] is not activated.**
+⚠️ **SUPERSESSION NOTE:** ✅ **the user has ruled the scene break becomes a CONFIGURABLE GLYPH (ruled
+line / `- - -` / `* * *`), which replaces this drawing code entirely** — ⛔ **so the fix here must be
+the SMALLEST thing that makes the writer unblocked, ⚠️ not a rebuild of the divider.**
+
+---
+
 ## ✅ SP-150 — T-0549 + T-0550 ✅ VERIFIED 2026-09-24, ARCHIVED
 
 ✅ **BOTH TASKS VERIFIED by the user's live pass on the USB rig and ARCHIVED** →

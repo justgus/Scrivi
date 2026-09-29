@@ -41,49 +41,30 @@ which is what it claims.**
 
 ---
 
-## 🟠 T-0554 — `[Apple]` ✅ **Divider visibility ([I-0252])** — **Implemented 2026-09-28, NOT VERIFIED**
+## ⛔ T-0554 — MOVED BACK TO `Task-active.md` 2026-09-29
 
-⚠️ **NO SPRINT** — ✅ **a standalone fix taken while [EP-043]/[SP-145] awaits rig verification and the
-manuscript-rendering trade study awaits rulings.** ⛔ **Deliberately NOT folded into the renderer work:
-the writer is impeded in Dark Mode today.**
-
-✅ **`Scrivi/Views/ManuscriptTextView.swift` — `DividerTextAttachment.image(for:)`.** ⚠️ **TWO measured
-defects, ⛔ neither the one first theorised:**
-1. ⚠️ **Colour:** `separatorColor` → `secondaryLabelColor`. ⛔ **`1.34 : 1` was a CHROME hairline used as
-   a content mark.**
-2. ⚠️ **Pixel straddling:** a 1 pt line on an integral `y` antialiased across TWO rows at half alpha
-   (`0.275 / 0.275` vs `0.549`). ✅ **`rect.midY.rounded() + 0.5`.**
-
-✅ **MEASURED RESULT: Dark `1.34 → 5.89 : 1` (4.4x); Light `1.25 → 3.95 : 1` (3.2x).**
-✅ **`xcodebuild -scheme ScriviApp build` → BUILD SUCCEEDED.**
-⛔ **NOT VERIFIED: no visual confirmation in the running app.** ⚠️ **Scrivi was RUNNING during this work,
-so `xcodebuild test` was NOT run** (`feedback_check_scrivi_running_before_tests` / [I-0150]: the test
-runner LAUNCHES the app and once rewrote a real project). ✅ **The user is in Dark Mode and can confirm
-by eye.**
+⚠️ **The user had ALREADY tested it and reported *"they are still invisible."*** ⛔ **A Task the user
+has tested and found wanting is UNFINISHED, not awaiting verification** — ✅ **full entry in
+[`Task-active.md`](Task-active.md)** (`feedback_task_layer_discipline`).
 
 ---
 
-## 🟠 [SP-145] — T-0551 · T-0552 · T-0553 — ✅ **Implemented 2026-09-27, NOT VERIFIED**
 
-✅ **Sprint record (the detail lives there, not here):** →
-[`../Sprints/Sprint-SP-145.md`](../Sprints/Sprint-SP-145.md). ✅ **[EP-043] S1.**
+## ✅ [SP-145] — T-0551 · T-0552 · T-0553 — ✅ **VERIFIED 2026-09-29, ARCHIVED**
 
-| ID | Title | Status |
-| -- | ----- | ------ |
-| **T-0551** | ✅ **Introduce `ProjectSession`** — the seven per-project state members out of `EditorShell`; ⚠️ **behaviour-preserving** | ✅ **Implemented - Not Verified** |
-| **T-0552** | ✅ **Introduce `OpenProjectRegistry`** — `projectID` → live session ([EP-043] [R-Q2]) | ✅ **Implemented - Not Verified** |
-| **T-0553** | ⚠️ **[I-0251]** — pane visibility becomes per-project state; inspector visibility persists THROUGH THE CORE ([R-Q4]) | ✅ **Implemented - Not Verified** |
+✅ **All three USER-VERIFIED by live pass on the rig and ARCHIVED** →
+[`Verified/Task-verified-0551-0553.md`](Verified/Task-verified-0551-0553.md) **in the same step
+[SP-145] closed** (`feedback_archive_on_close`, `feedback_task_layer_discipline`).
+✅ **[SP-145] CLOSED 2026-09-29 (user-approved)** →
+[`../Sprints/Closed/Sprint-SP-145.md`](../Sprints/Closed/Sprint-SP-145.md).
+✅ **[EP-043] S1 of 4 COMPLETE.**
 
-✅ **RUN, not asserted:** ⚠️ **`ctest` 641/641 as NON-ROOT** · ✅ **24/24 Linux smokes** · ✅ **boundary
-guard GREEN** · ✅ **Apple `BUILD SUCCEEDED`** · ⚠️ **AC2 proven mechanically: 81 insertions, ⛔ 0
-deletions in `tests/`.**
-⚠️ **THE GUARD WAS PROVEN BY BREAKING IT** — ✅ **the T-0553 fix was removed, the smoke went RED with the
-two right failures, then green on restore.**
-⛔ **WHAT BLOCKS VERIFICATION: no live pass on the rig.** ⚠️ **T-0553 is a *"does it survive a quit?"*
-fix, and `feedback_live_pass_finds_what_suites_cannot` says plainly that a green suite cannot answer
-that.** ✅ **[SP-148] owns the Epic's live pass.**
+⚠️ **ONE Task still awaits verification: ✅ [T-0555]** (`[Apple]` engine stub parity) — ⚠️ **above.**
+⛔ **[T-0554] was RETURNED to [`Task-active.md`](Task-active.md) 2026-09-29** — ✅ **the user had
+already tested it and reported the fix did not work, ⛔ so it is UNFINISHED, not pending.**
 
 ---
+
 
 **Previously: none.** ✅ **T-0536 was user-Verified 2026-09-18** and archived to
 [`Verified/Task-verified-0536.md`](Verified/Task-verified-0536.md) **in the same step**

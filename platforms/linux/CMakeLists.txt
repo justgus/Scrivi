@@ -33,6 +33,7 @@ qt_add_executable(scrivi_linux
     src/main.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -177,6 +178,7 @@ qt_add_executable(scrivi_linux_persistence_smoke
     tests/persistence_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -203,6 +205,7 @@ qt_add_executable(scrivi_linux_lifecycle_smoke
     tests/lifecycle_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -230,6 +233,7 @@ qt_add_executable(scrivi_linux_scene_load_smoke
     tests/scene_load_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -278,6 +282,7 @@ qt_add_executable(scrivi_linux_scene_save_smoke
     tests/scene_save_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -302,6 +307,7 @@ qt_add_executable(scrivi_linux_scene_create_smoke
     tests/scene_create_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -331,6 +337,7 @@ qt_add_executable(scrivi_linux_scene_delete_smoke
     tests/scene_delete_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -360,6 +367,7 @@ qt_add_executable(scrivi_linux_scene_rename_smoke
     tests/scene_rename_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -392,6 +400,7 @@ qt_add_executable(scrivi_linux_scene_reorder_smoke
     tests/scene_reorder_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -421,6 +430,7 @@ qt_add_executable(scrivi_linux_chapter_reorder_smoke
     tests/chapter_reorder_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -451,6 +461,7 @@ qt_add_executable(scrivi_linux_scene_merge_smoke
     tests/scene_merge_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -481,6 +492,7 @@ qt_add_executable(scrivi_linux_timeline_story_time_smoke
     tests/timeline_story_time_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -507,6 +519,7 @@ qt_add_executable(scrivi_linux_story_structure_smoke
     tests/story_structure_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/StoryStructures.cpp
@@ -536,6 +549,7 @@ qt_add_executable(scrivi_linux_bridge_parity_smoke
     tests/bridge_parity_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -563,6 +577,7 @@ qt_add_executable(scrivi_linux_timeline_events_smoke
     tests/timeline_events_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -637,6 +652,7 @@ qt_add_executable(scrivi_linux_scene_inspector_smoke
     tests/scene_inspector_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp
     src/ScriviBridge.cpp
@@ -665,6 +681,7 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     tests/dumas_world_fixture.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -728,6 +745,7 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     tests/open_progress_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -789,6 +807,7 @@ qt_add_executable(scrivi_linux_inspector_fixture
     tests/inspector_fixture.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
+    src/AppEnvironment.hpp
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp
     src/ScriviBridge.cpp

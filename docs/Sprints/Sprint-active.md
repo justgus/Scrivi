@@ -1,5 +1,40 @@
 # Active Sprints
 
+## 🟡 **[SP-146]** `[Linux]` **The App Object and the Windows** — ✅ **ACTIVE 2026-09-29**
+
+✅ **Record:** → [`Sprint-SP-146.md`](Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
+⚠️ **T-0558 · T-0559 · T-0560 — ⛔ STRICTLY SERIAL, none started.**
+✅ **Serves R1 · R2 · R3 · R7 · R8.** ⛔ **Size: HIGH — the Epic's biggest Sprint.**
+
+⛔ **NOT BEHAVIOUR-PRESERVING, and that is the point:** ⚠️ **one window becomes N; a local in `main()`
+becomes an app object; a singular quit hook becomes a registry flush.**
+⚠️ **⛔ SO [SP-145]'s PROOF DOES NOT TRANSFER:** ✅ **that Sprint could show *"0 deletions in `tests/`"*;
+⛔ this one cannot.** ✅ **Every changed assertion must be NAMED and JUSTIFIED, ⛔ not silently edited.**
+
+⚠️ **PLANNING WAS NOT RE-DERIVED** — ✅ **[EP-043] §"The app-level owner" (`:358`) already carries the
+design, MEASURED 2026-09-27.** ⛔ **Read it before writing code.**
+⚠️ **[I-0256] is a FOLD-IN CANDIDATE, ⛔ deliberately NOT in the ACs** — ✅ **take it only if the three
+Tasks land with room to spare.**
+
+---
+
+✅ **[SP-145] CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md).
+✅ **ALL EIGHT ACs MET; ⚠️ LIVE PASS PASSED on the rig** — ✅ ***"the live test passed. hide inspector
+survived a restart."*** ✅ **T-0551, T-0552 and T-0553 VERIFIED and archived** →
+[`../Tasks/Verified/Task-verified-0551-0553.md`](../Tasks/Verified/Task-verified-0551-0553.md).
+✅ **[I-0251] VERIFIED.** ✅ **[EP-043] S1 of 4 COMPLETE.**
+⚠️ **THE PASS PRODUCED FOUR ITEMS, ⛔ NONE a regression:** ✅ **[I-0255]** (⛔ timeline visibility does
+not persist — ⚠️ **RULED 2026-09-29 that it SHOULD, ⛔ making it a `[Cross]` defect on BOTH platforms**)
+· ✅ **[I-0256]** (⛔ no Navigator control on Linux — ⚠️ **RULED: collapse the splitter to 0, ✅ which
+already works; `setCollapsible(false)` is applied to the inspector only**) · ✅ **[T-0556]**
+(`View ▸ Hide All` / `Restore All`, ⚠️ **RULED to PERSIST across a restart**) · ✅ **[T-0557]**
+(⚠️ buffers palette per-session — ⛔ **excluded from this Sprint: the palette is macOS-only and this
+Sprint is `[Linux]`**).
+
+✅ **[SP-146] IS NOW ACTIVE (above), created and activated 2026-09-29.**
+
+---
+
 ✅ **[SP-134] CLOSED 2026-09-22 (user-approved)** → [`Closed/Sprint-SP-134.md`](Closed/Sprint-SP-134.md).
 ✅ **T-0543 VERIFIED by live pass.** ✅ **[EP-040] AC2 and AC3 MET.**
 ⚠️ **It produced [I-0243]** — ⛔ **the project title renders THREE times, from three independent
@@ -84,26 +119,21 @@ under ✅ **[EP-041]** (now CLOSED). ✅ **T-0507 VERIFIED by live pass; [EP-041
 ## 🟡 **[EP-043]** `[Linux]` **The Session** IS ACTIVE — ✅ **activated 2026-09-25**
 ✅ **Record:** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
 
-## 🟡 **[SP-145]** `[Linux]` **The Session Split** IS ACTIVE — ✅ **2026-09-27**
+## ✅ **[SP-145]** `[Linux]` **The Session Split** — ✅ **CLOSED 2026-09-29 (user-approved)**
 
-✅ **Record:** → [`Sprint-SP-145.md`](Sprint-SP-145.md). ✅ **ALL THREE TASKS IMPLEMENTED; ALL EIGHT ACs
-MET** (T-0551 · T-0552 · T-0553). ⚠️ **AWAITING USER VERIFICATION.**
-✅ **`ProjectSession` + `OpenProjectRegistry` exist; ⚠️ [I-0251] fixed (the writer's inspector choice now
-persists through the core).**
-✅ **VERIFIED BY RUNNING:** ⚠️ **`ctest` 641/641 as NON-ROOT** · ✅ **all 24 Linux smokes PASS** ·
-✅ **boundary guard GREEN** · ✅ **Apple `BUILD SUCCEEDED`** · ⚠️ **AC2 proven MECHANICALLY (81
-insertions, ⛔ 0 deletions in `tests/` — not one existing assertion altered).**
-⚠️ **THE GUARD WAS PROVEN, NOT ASSUMED:** ✅ **the [I-0251] fix was temporarily REMOVED and the smoke
-went RED with the two right failures, then green on restore** — ⛔ **a test that cannot fail proves
-nothing.**
-⛔ **NO LIVE PASS ON THE RIG YET** — ⚠️ **and *"does it survive a quit?"* is exactly what a green suite
-cannot answer** (`feedback_live_pass_finds_what_suites_cannot`). ✅ **[SP-148] owns the Epic's live pass.**
-⚠️ **ONE FINDING FOR [SP-146]:** ⛔ **`registry_` sits on `EditorShell` and must be LIFTED to the
-app/window level as [SP-146]'s FIRST step** — ✅ **a per-shell registry cannot answer R3 across windows,
-which is the whole reason to have one.**
-⚠️ **ID NOTE:** ✅ **`next-id.py` offered SP-151; the reservation in five documents said SP-145.**
-✅ **User ruled 2026-09-27: honour the reservation.** ⚠️ **The counter is a HIGH-WATER MARK, now reset to
-146 with a `_reserved` note so it is not "corrected" upward again.**
+✅ **Record:** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md). ✅ **ALL EIGHT ACs MET; ✅ LIVE
+PASS PASSED.** ✅ **T-0551 · T-0552 · T-0553 VERIFIED and archived** →
+[`../Tasks/Verified/Task-verified-0551-0553.md`](../Tasks/Verified/Task-verified-0551-0553.md).
+⚠️ **The detail lives in the closed record** (`Epic-GUIDELINES.md`: *"strip the active-file entry down
+to a pointer"*) — ✅ **what follows is kept HERE only because [SP-146] needs it.**
+
+⛔ **THE ONE FINDING [SP-146] MUST NOT LOSE:** ⚠️ **`registry_` sits on `EditorShell` and must be
+LIFTED to the app/window level as [SP-146]'s FIRST step** — ✅ **a per-shell registry cannot answer R3
+across windows, which is the whole reason to have one.**
+
+⚠️ **ID NOTE, still in force:** ✅ **`next-id.py` offered SP-151; the reservation in five documents said
+SP-145.** ✅ **User ruled 2026-09-27: honour the reservation.** ⚠️ **The counter is a HIGH-WATER MARK,
+reset to 146 with a `_reserved` note so it is not "corrected" upward again.**
 
 ---
 

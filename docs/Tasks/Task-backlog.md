@@ -427,3 +427,190 @@ under the superseded SP-057 despite completing in SP-094.)*
 | **T-0491** | ⚠️ **`[Linux]` Per-stack SORT + card drag-reorder** — Apple's `InspectorSort` (manual/name/recentlyAdded) and card reordering. ⚠️ **User-ruled OUT of SP-126** as a larger surface. ⚠️ **`manual` order depends on the GRAPH's `sortIndex`, not a UI list.** ⚠️ **Drag-reorder must ALSO have a button/menu path** — `project_linux_vnc_input_constraints` is NOT retired by the RDP rig. ✅ **`stackSort` is round-tripped by T-0486 meanwhile**, so nothing is lost by deferring | **Medium** | ⚪ **Unscheduled** |
 
 ---
+
+## 🔵 T-0556 — `[Cross]` ✅ **Focus Mode — View ▸ Hide All / Restore All**
+
+**Status:** 🔵 **Backlog** — filed 2026-09-29 from a user request during [SP-145]'s live pass.
+⛔ **NO SPRINT.** ⚠️ **`[Cross]` — ⛔ it must NOT ship on one platform only** (`feedback_linux_adopts_apple_shape`).
+
+⚠️ **THE USER, 2026-09-29:** ***"in both platforms I think the View menu should have a "Hide All"
+option that gets rid of everything except the ManuscriptView (focus mode) and a "Restore all" option
+that remembers what was hidden/viewed and restores that state upon request."***
+
+### ✅ What it is
+
+⚠️ **TWO menu items that operate on the SET of panes, not on any one of them:**
+- ✅ **`Hide All`** — ⛔ **everything except the Manuscript goes away.** ⚠️ **Focus mode.**
+- ✅ **`Restore All`** — ⚠️ **puts back EXACTLY what was showing before `Hide All`** — ⛔ **not a
+  blanket "show everything."**
+
+⛔ **THE REMEMBERING IS THE WHOLE FEATURE, AND IT IS THE PART THAT IS EASY TO GET WRONG.**
+⚠️ **The user said *"remembers what was hidden/viewed"*** — ✅ **so a writer who had the Timeline hidden
+and the Inspector shown gets THAT back, ⛔ not all three panes.**
+
+### ⚠️ What "everything" is — ⛔ and the two platforms do NOT have the same list
+
+✅ **READ — Apple's View menu (`ScriviApp.swift:318-341`) currently offers FOUR toggles:**
+
+| Pane | ✅ Apple toggle | ⚠️ Linux |
+| ---- | -------------- | -------- |
+| ✅ **Scene Inspector** | ✅ `⌥⌘I` | ✅ **exists; ✅ persists as of [T-0553]** |
+| ✅ **Timeline** | ✅ `⌥⌘T` | ⚠️ **exists; ⛔ does NOT persist ([I-0255])** |
+| ✅ **World Warnings** | ✅ **yes** | ⛔ **NOT CHECKED** |
+| ✅ **Buffers palette** | ⚠️ `⌥⌘B` — ⛔ **APP-GLOBAL, not per-window** | ⛔ **NOT CHECKED** |
+| ⛔ **Scene Navigator** | ⛔ **NOT IN THE VIEW MENU** — ⚠️ it is a `NavigationSplitView` column bound via `columnVisibility` ([T-0543]) | ⛔ **NO CONTROL AT ALL ([I-0256])** |
+
+⛔ **SO THIS TASK CANNOT BE BUILT FIRST ON EITHER PLATFORM.** ✅ **It depends on — ⚠️ both RULED
+2026-09-29, ⛔ neither yet BUILT:**
+- ✅ **[I-0256] RULED** — ⛔ **do NOT build a hide control; ⚠️ collapse the splitter to width 0.**
+  ✅ **Cheaper than assumed: `EditorShell.cpp:160` applies `setCollapsible(false)` ONLY to the inspector,
+  ⚠️ so the navigator (index 0) already collapses.** ⛔ **But the pre-collapse WIDTH must be remembered.**
+- ✅ **[I-0255] RULED — ⛔ timeline visibility PERSISTS.** ⚠️ **HARD dependency: `Restore All` cannot
+  restore a pane whose state does not survive a quit.**
+- ⚠️ **The Navigator on Apple is not a `Bool` this app owns** — ✅ **it is
+  `NavigationSplitViewVisibility` (`.all` / `.doubleColumn` / `.detailOnly`).** ⛔ **BUT THE USER'S
+  RULING APPLIES HERE TOO:** ✅ ***"on macOS the mechanism is similar, you are just sliding the
+  navigator away so it doesn't show by operating its button"*** — ⚠️ **so `Hide All` uses
+  `.detailOnly`, which is the existing button's own effect, ⛔ not a new mechanism.**
+
+### ✅ RULED 2026-09-29 — ⛔ IT PERSISTS. OPTION 2.
+
+⚠️ **THE USER:** ***"Focus mode should also persist across a restart, so the app comes up exactly the
+way the writer left it. And Restore All must therefore persist its memory through a restart."***
+
+⛔ **THE STUDY RECOMMENDED OPTION 1 (session-only) AND WAS OVERRULED** — ✅ **recorded because the
+reasoning that lost is worth keeping: it argued focus mode is a *working posture, not a document
+property*.** ⚠️ **The user's principle is stronger and simpler: ✅ *"the app comes up exactly the way
+the writer left it"*** — ⛔ **which is [EP-018]'s whole thesis and [EP-043]'s reason to exist.**
+
+✅ **SO THE REMEMBERED SET GOES THROUGH THE CORE**, ⚠️ **beside `inspectorHidden`
+(`scrivi_get/put_inspector_layout`)** — ✅ **the route [T-0553] just proved on Linux and Apple has used
+since [EP-018] Doc 2 AC4.**
+
+| ⚠️ What must persist | ✅ Why |
+| -------------------- | ----- |
+| ✅ **Whether focus mode is ON** | ⚠️ **so the app REOPENS in focus mode** — ⛔ the user's explicit words |
+| ✅ **The remembered SET** (what was showing before `Hide All`) | ⚠️ **so `Restore All` works AFTER a restart, ⛔ not just within a session** |
+| ✅ **The Navigator's pre-collapse WIDTH** | ⛔ **[I-0256]'s ruling collapses it to 0, which DISCARDS the width** — ⚠️ without this, restore lands on an arbitrary default |
+
+⛔ **THIS MAKES [I-0255] A HARD DEPENDENCY, NOT A SOFT ONE.** ⚠️ **`Restore All` cannot restore a
+timeline whose visibility is not persisted** — ✅ **and [I-0255] was RULED the same day to persist,
+⛔ so the two must land together or `Restore All` silently forgets one pane.**
+
+⚠️ **⛔ ONE SCHEMA WARNING, INHERITED:** ✅ **these keys go in the EXISTING `inspector-layout.json`
+document through the EXISTING endpoint pair** — ⛔ **NOT a second file.** ⚠️ **[I-0215] is what two
+owners of one schema cost once, ✅ and `InspectorLayoutStore`'s *"PATCH, NEVER RECONSTRUCT"* header
+(`:36-42`) is the rule that keeps unknown keys alive.**
+
+#### ⛔ **A GAP THE PERSISTENCE RULING EXPOSES ON APPLE — ✅ found by reading, not assumed**
+
+⚠️ **`EditorView.swift:56` declares `@State private var columnVisibility: NavigationSplitViewVisibility
+= .automatic`.** ⛔ **`@State` IS PER-VIEW AND IN-MEMORY** — ✅ **it is bound on BOTH the compact and
+regular branches (`:179`, `:223`) as of [T-0543], ⚠️ so the app can READ and SET it — ⛔ but nothing
+persists it.**
+
+✅ **SO APPLE'S NAVIGATOR HAS THE SAME SHAPE AS ITS TIMELINE ([I-0255]): ⚠️ a control exists, ⛔ and the
+writer's choice dies at quit.** ⚠️ **Under *"the app comes up exactly the way the writer left it"*, that
+is now in scope** — ✅ **and it is the reason `columnVisibility` must move off `@State` onto the
+session, ⛔ not merely be toggled by `Hide All`.**
+
+⚠️ **✅ THE EXISTING COMMENT AT `:53-55` IS STILL BINDING AND MUST NOT BE BROKEN:** ⛔ ***"`.automatic`
+is deliberate — it is what SwiftUI applied implicitly before this binding existed, so introducing the
+binding does NOT change first-open behaviour."*** ✅ **A restored value must therefore be ABSENT-MEANS-
+`.automatic`, ⛔ never a written default of `.all` or `.detailOnly`.**
+
+### ⚠️ Traps
+
+- ⛔ **`CommandGroup`, NOT `CommandMenu`, on Apple.** ✅ **`ScriviApp.swift:307-317` records that
+  `CommandMenu("View")` produced TWO View menus and was found by a live pass 2026-09-22.**
+- ✅ **THE BUFFERS-PALETTE TRAP IS BEING REMOVED, ⚠️ not worked around.** ⛔ **It was APP-GLOBAL
+  (`ScriviApp.swift:327`, `AppEnvironment.swift:102`), so `Hide All` in one window would have hidden it
+  for every window.** ✅ **USER RULED 2026-09-29: visibility becomes PER-SESSION — [T-0557].**
+  ⚠️ **SEQUENCE: [T-0557] BEFORE this Task's Apple half**, ⛔ **or `Hide All` ships with the defect the
+  ruling exists to prevent.** ⚠️ **Linux has no palette at all (`#if os(macOS)`), ✅ so its `Hide All`
+  is unaffected either way.**
+- ⚠️ **`Restore All` after a pane was toggled INDIVIDUALLY while hidden.** ⛔ **Undefined today** —
+  ✅ **the remembered set must either update or be invalidated.**
+
+---
+
+## 🔵 T-0557 — `[Apple]` ⚠️ **Copy Buffers palette visibility becomes PER-SESSION**
+
+**Status:** 🔵 **Backlog** — filed 2026-09-29 by user ruling. ⛔ **NO SPRINT.**
+**Platform:** ⚠️ **`[Apple]` / macOS ONLY** — ✅ **the palette is `#if os(macOS)`
+(`AppEnvironment.swift:92`, `:125`); ⛔ it does not exist on iOS, visionOS or Linux.**
+**Sequenced with:** ✅ **[T-0556]** (Focus Mode) — ⚠️ **this removes T-0556's app-global trap.**
+
+⚠️ **USER RULING 2026-09-29:** ✅ **make palette visibility per-session (per-project) rather than
+app-global**, ⛔ **so `View ▸ Hide All` in one window does not hide the palette in every window.**
+
+### ⛔ WHY THIS IS NOT A ONE-LINE MOVE
+
+⚠️ **The palette is app-global BY DESIGN, not by accident** — ✅ **`AppEnvironment.swift:93-97` states
+the reason: *"ONE panel that always mirrors the frontmost project's buffers — rather than one per
+window, so switching projects (window or tab) re-points it at the front project's slots."*
+⛔ **THAT DESIGN IS NOT BEING REVERSED.** ✅ **There is still ONE `BuffersPanelController` (`:98`).**
+⚠️ **What moves is the VISIBILITY FLAG, not the panel.**
+
+| | ✅ Today | ⚠️ After |
+| - | ------- | -------- |
+| ✅ **The panel object** | ⚠️ **ONE, on `AppEnvironment`** | ✅ **UNCHANGED — still one** |
+| ⚠️ **The buffer DATA** | ✅ **per-session (`ProjectSession.bufferService`)** | ✅ **UNCHANGED** |
+| ⛔ **The visibility flag** | ⛔ **`AppEnvironment.buffersPaletteVisible`** | ✅ **`ProjectSession.buffersPaletteVisible`** |
+
+### ✅ THE MECHANISM ALREADY EXISTS — ⚠️ this is why the change is tractable
+
+✅ **READ — `AppEnvironment.swift:88-90`:**
+
+```swift
+var frontmostSession: ProjectSession? {
+    didSet { syncBuffersPalette() }   // re-point the palette at the new front project
+}
+```
+
+✅ **FOCUS CHANGE ALREADY DRIVES `syncBuffersPalette()`.** ⚠️ **So per-session visibility hooks the
+SAME path** — ⛔ **`syncBuffersPalette()` reads the flag off `frontmostSession` instead of off
+`self`:**
+
+```swift
+guard frontmostSession?.buffersPaletteVisible == true,
+      let service = frontmostSession?.bufferService else { buffersPanel.close(); return }
+```
+
+### ⚠️ THE BEHAVIOUR CHANGE THE USER IS ACCEPTING — ⛔ stated plainly
+
+⛔ **THE PALETTE WILL APPEAR AND DISAPPEAR AS THE WRITER SWITCHES WINDOWS.** ⚠️ **Project A with the
+palette open and Project B without it means the panel flicks in and out on every focus change** —
+✅ **which is CORRECT per the ruling, ⛔ but it is a visible difference from today and must not be
+mistaken for a defect later.**
+
+✅ **THE EXISTING "no project in front" BEHAVIOUR IS THE PRECEDENT AND IT IS ALREADY THIS SHAPE:**
+⚠️ **`AppEnvironment.swift:106-110` — *"when the front window has no project (Welcome) the panel hides
+but the toggle state is kept, so returning to a project restores it."*** ✅ **Per-session visibility is
+the same rule applied one level finer.**
+
+### ⚠️ Call sites that must ALL move — ⛔ there are three and a stub
+
+| Site | ⚠️ What it does |
+| ---- | --------------- |
+| ✅ **`AppEnvironment.swift:102-104`** | ⛔ **the flag + its `didSet`** — ⚠️ **moves to `ProjectSession`** |
+| ✅ **`AppEnvironment.swift:112`** | ⚠️ **`syncBuffersPalette()`'s guard** — ⛔ **reads the front session's flag** |
+| ✅ **`ScriviApp.swift:327`** | ⚠️ **`View ▸ Show Buffers` (`⌥⌘B`)** — ⛔ **binds `Bindable(session)`, ⚠️ and gains the `focusedSession == nil` disabled branch the other three toggles already have (`:329-341`)** |
+| ✅ **`ProjectWindowManager.swift:417`** | ⚠️ **a second `Toggle` on `Bindable(env)`** — ⛔ **MUST move too** |
+| ⚠️ **`AppEnvironment.swift:125-131`** | ✅ **the `#else` no-op stub for iOS/visionOS** — ⛔ **KEEP IT** |
+
+⛔ **`ProjectWindowManager.swift:417` IS THE ONE THAT WILL BE MISSED.** ⚠️ **It is a SECOND binding to
+the same flag in a different file; ✅ leaving it on `env` would give two toggles that disagree.**
+
+### ⛔ Traps
+
+- ⛔ **DO NOT create a second `BuffersPanelController`.** ⚠️ **`AppEnvironment.swift:96` says the single
+  panel exists so it *"outlives any one window and follows focus"*** — ✅ **that stays true.**
+- ⛔ **THE `#if os(macOS)` STUB MUST SURVIVE.** ✅ **`AppEnvironment.swift:126-129` records that removing
+  it broke iOS/visionOS with *"Cannot find 'syncBuffersPalette' in scope"* (an EP-019/SP-056
+  regression, fixed 2026-08-06)** — ⚠️ **and [I-0253] is the THIRD time the visionOS stub has drifted.**
+  ✅ **`scripts/check-engine-stub-parity.sh` ([T-0555]) guards the ENGINE stub, ⛔ not this one.**
+- ⚠️ **`AppEnvironment.swift:690`** (`if frontmostSession === session { frontmostSession = nil }`)
+  ⛔ **runs on project close** — ✅ **confirm the panel closes cleanly when the last project goes.**
+- ⚠️ **Persistence is NOT in scope.** ⛔ **The flag is in-memory today and stays in-memory** — ✅ **if it
+  should survive a quit, that is [I-0255]'s ruling and [T-0556]'s question, not this Task's.**

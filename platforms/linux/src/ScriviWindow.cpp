@@ -1,3 +1,4 @@
+#include "AppEnvironment.hpp"
 #include "ScriviWindow.hpp"
 
 #include "ScriviBuildStamp.hpp"
@@ -36,8 +37,9 @@ void ShellController::openEditor(const QString& projectPath, const QString& titl
 
 // ---- ScriviWindow -----------------------------------------------------------
 
-ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot)
-    : landing_(landing), appSupportRoot_(std::move(appSupportRoot))
+ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot,
+                           AppEnvironment* env)
+    : landing_(landing), appSupportRoot_(std::move(appSupportRoot)), env_(env)
 {
     setWindowTitle(QStringLiteral("Scrivi — Linux (alpha)"));
     // ⚠️ 1220×760 (user ruling 2026-08-30): 240 navigator + 580 manuscript + 400
@@ -326,7 +328,9 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
                               const QVariantMap& openedProject)
 {
     if (editor_ == nullptr) {
-        editor_ = new EditorShell(this);
+        // ⚠️ [SP-146] T-0559 — hand the shell the app-global owner so the
+        // registry it registers into is the APP's, not its own.
+        editor_ = new EditorShell(this, env_);
         connect(editor_, &EditorShell::closeRequested,
                 this, &ScriviWindow::showLanding);
         // ⚠️ T-0499 ([I-0195]): `load()` is ASYNCHRONOUS and no longer returns

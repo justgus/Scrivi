@@ -6,6 +6,7 @@
 #include <QVariantMap>
 #include <QWidget>
 
+#include "AppEnvironment.hpp"
 #include "OpenProjectRegistry.hpp"
 #include "ProjectSession.hpp"
 #include "SceneDocument.hpp"
@@ -47,7 +48,9 @@ class EditorShell : public QWidget
     Q_OBJECT
 
 public:
-    explicit EditorShell(QWidget* parent = nullptr);
+    // ⚠️ [SP-146] T-0559 — `env` is the app-global owner, or nullptr in tests.
+    // ⛔ NOT owned here; it outlives this widget.
+    explicit EditorShell(QWidget* parent = nullptr, AppEnvironment* env = nullptr);
 
     // Open `projectPath` into the editor. `appSupportRoot` is the injected stable
     // path; `title` is the display title (from recents).
@@ -544,17 +547,21 @@ private:
     // bound to a live object in the constructor's init list. ⛔ Do not reorder.
     ProjectSession      session_;
 
-    // --- The open-project registry (SP-145, T-0552) -----------------------
+    // --- The app-level owner (SP-146, T-0559) -----------------------------
     //
-    // ⚠️ IT LIVES HERE ONLY FOR NOW, AND THAT IS A KNOWN SEAM. ✅ The registry is
-    // conceptually APP-GLOBAL — Apple's is on `AppEnvironment`, not on a window —
-    // ⛔ but this Sprint changes no window code, and `ScriviWindow` owns exactly one
-    // `EditorShell`, so a registry here is observably identical to an app-global one
-    // with a single entry.
-    // ⚠️ [SP-146] MUST MOVE THIS UP to the app/window-manager level as its FIRST
-    // step: a per-shell registry cannot answer R3 across windows, which is the
-    // entire point of having one. ✅ Recorded in [SP-146]'s scope, not left implied.
-    OpenProjectRegistry registry_;
+    // ✅ THE REGISTRY MOVED OUT. ⛔ It used to be an `OpenProjectRegistry` MEMBER
+    // here, which [SP-145] flagged as a known seam: a per-shell registry cannot
+    // answer R3 across windows, which is the entire point of having one.
+    //
+    // ⚠️ `env_` is the app-global owner (`AppEnvironment`), constructed in `main()`
+    // and handed down. ⛔ NOT owned by this widget — it outlives every shell.
+    // ✅ Apple's shape exactly: every reader of the registry is inside the app
+    // environment, and the window is merely handed what it needs.
+    //
+    // ⚠️ MAY BE NULLPTR IN TESTS. ✅ Several smoke binaries construct an
+    // `EditorShell` directly with no app environment; ⛔ they never exercise the
+    // registry, so every use below is guarded rather than assumed.
+    AppEnvironment*     env_ = nullptr;
 
     SceneDocument&      sceneDoc_ = session_.sceneDoc();
 

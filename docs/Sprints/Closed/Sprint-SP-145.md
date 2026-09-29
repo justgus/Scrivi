@@ -1,23 +1,58 @@
 ---
 sprint: SP-145
 epic: EP-043
-status: Active
+status: Closed
 platform: Linux
 created: 2026-09-27
 activated: 2026-09-27
+closed: 2026-09-29
 ---
 
 # SP-145 — `[Linux]` **The Session Split** (S1 of [EP-043])
 
-**Status:** 🟡 **ACTIVE — 2026-09-27.** ✅ **All three Tasks IMPLEMENTED; all eight ACs MET.**
-⚠️ **AWAITING USER VERIFICATION** — ⛔ **no live pass on the rig yet.**
-**Epic:** [EP-043](../Epics/Epic-EP-043.md) `[Linux]` **The Session** — ⚠️ **S1 of a SERIAL chain
+**Status:** ✅ **CLOSED 2026-09-29 (user-approved).** ✅ **All three Tasks VERIFIED and ARCHIVED** →
+[`../Tasks/Verified/Task-verified-0551-0553.md`](../../Tasks/Verified/Task-verified-0551-0553.md).
+✅ **All eight ACs MET.** ✅ **[EP-043] S1 of 4 COMPLETE.**
+✅ **LIVE PASS PASSED 2026-09-29 — ⚠️ USER-VERIFIED ON THE RIG.**
+
+✅ **THE USER, 2026-09-29:** ***"the live test passed. hide inspector survived a restart."***
+✅ **[I-0251] / AC5 / AC6 CONFIRMED IN THE RUNNING APP** — ⚠️ **which is the one thing the green suite
+could not answer** (`feedback_live_pass_finds_what_suites_cannot`).
+
+⚠️ **THE PASS ALSO FOUND TWO THINGS, ⛔ NEITHER A REGRESSION IN THIS SPRINT:**
+- ⚠️ **[I-0255]** — ⛔ **hide TIMELINE did not survive a restart.** ✅ **AS DESIGNED — AC5 says so
+  explicitly (*"TIMELINE stays session-scoped — Apple does not persist it either"*), ✅ and
+  `ProjectSession.swift:98` confirms Apple is the same.** ⚠️ **Filed `[Cross]`; ⛔ it needs a RULING,
+  not a fix.**
+- ⚠️ **[I-0256]** — ⛔ **there is NO control to hide the Scene Navigator on Linux at all.** ✅ **Apple
+  gained one in [T-0543] by binding `columnVisibility`; ⛔ Linux's Navigator is a `QSplitter` pane with
+  no equivalent, ⚠️ so the control must be BUILT.**
+
+⚠️ **THE PASS ALSO PRODUCED A FEATURE REQUEST:** ✅ **[T-0556]** — ⛔ **`View ▸ Hide All` (focus mode)
+and `Restore All`, on BOTH platforms.**
+
+### ⚠️ HELD OPEN BRIEFLY 2026-09-29, THEN CLOSED THE SAME DAY — ✅ historical, kept for the reasoning
+
+✅ **Every AC is met and the live pass PASSED.** ⚠️ **The user first held the Sprint open to consider
+folding the buffers-palette change into it, ✅ then ruled it a separate Task ([T-0557]) and closed this
+Sprint.** ⛔ **NOTHING WAS ADDED — ✅ so the live pass of 2026-09-29 covers this Sprint in full.**
+
+⛔ **WHAT THAT COSTS, STATED SO IT IS A CHOICE AND NOT A SURPRISE:** ⚠️ **the live pass of 2026-09-29
+covers WHAT WAS IN THIS SPRINT AT THAT MOMENT — ✅ T-0551, T-0552, T-0553.** ⛔ **Any Task added now is
+NOT covered by it**, ⚠️ **and adding one would also break AC2's mandate, which is BEHAVIOUR-PRESERVING
+and was proven mechanically (81 insertions, ⛔ 0 deletions in `tests/`).**
+
+✅ **THE BUFFERS-PALETTE WORK WAS CONSIDERED FOR THIS SPRINT AND IS NOT IN IT** — ⚠️ **it became
+[T-0557], `[Apple]`-only.** ⛔ **It could not have come here: ✅ the palette is `#if os(macOS)`
+(`AppEnvironment.swift:92`) and this Sprint is `[Linux]`** — ⚠️ **there is nothing in
+`platforms/linux/src/` for it to change.**
+**Epic:** [EP-043](../../Epics/Epic-EP-043.md) `[Linux]` **The Session** — ⚠️ **S1 of a SERIAL chain
 [SP-145] → [SP-146] → [SP-147] → [SP-148]**; ⛔ **a stall here stalls the Epic.**
 **Goal:** ✅ **Separate "the project's state" from "the widget showing it"** — ⚠️ **so that [SP-146] can
 put one project in each window.** ⛔ **NO window changes in this Sprint.**
 **ACs contributed:** — ✅ **foundation only** (⚠️ **R1–R8 are [SP-146]/[SP-147]'s**) · ⚠️ **[I-0251]**
 **Rulings in force:** ✅ **[R-Q2]** (identity = `projectID`) · ✅ **[R-Q4]** ([I-0251]) · ✅ **[R-Q5]**
-(the visibility carve-out) — → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md) §Rulings.
+(the visibility carve-out) — → [`../Epics/Epic-EP-043.md`](../../Epics/Epic-EP-043.md) §Rulings.
 
 ⚠️ **ID NOTE:** ✅ **This Sprint is SP-145 because [EP-043] and `Sprint-backlog.md` reserved that ID for
 it in five places.** ⛔ **`next-id.py sprint` returned SP-151** — ⚠️ **the counter is a HIGH-WATER MARK

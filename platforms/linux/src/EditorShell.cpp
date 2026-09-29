@@ -64,7 +64,8 @@ constexpr int kChapterIDRole = navigator::kChapterIDRole;
 constexpr int kSaveDebounceMs = 1500;
 } // namespace
 
-EditorShell::EditorShell(QWidget* parent) : QWidget(parent)
+EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
+    : QWidget(parent), env_(env)
 {
     bridge_    = new ScriviBridge(this);
     navModel_  = new QStandardItemModel(this);
@@ -603,10 +604,17 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // DIFFERENT project into this same shell must not leave the previous id behind
     // (this shell has exactly one session, so the old id would be a phantom "open"
     // project and R3 would refuse to reopen it). ⛔ So deregister the old id first.
-    if (registry_.session(previousProjectID) == &session_) {
-        registry_.deregister(previousProjectID);
+    //
+    // ⚠️ [SP-146] T-0559 — THE REGISTRY NOW LIVES ON `AppEnvironment`, not here.
+    // ✅ Same two calls, same order, same meaning; ⛔ only the owner changed.
+    // ⚠️ GUARDED: tests construct an `EditorShell` with no app environment.
+    if (env_ != nullptr) {
+        OpenProjectRegistry& registry = env_->openProjects();
+        if (registry.session(previousProjectID) == &session_) {
+            registry.deregister(previousProjectID);
+        }
+        registry.registerSession(&session_);
     }
-    registry_.registerSession(&session_);
 
     // The inspector reads objects through the same bridge, for the same project
     // (SP-125). Given here — after projectPath_ is set and before any scene is
@@ -1388,8 +1396,9 @@ void EditorShell::releaseProject()
     // stop reporting it as open; otherwise reopening it would be refused forever.
     // ⛔ The session object itself is NOT destroyed (this shell outlives one
     // project), so this is a registry removal, not a lifetime change.
-    if (!projectID_.isEmpty()) {
-        registry_.deregister(projectID_);
+    // ⚠️ [SP-146] T-0559 — registry now on `AppEnvironment`; guarded for tests.
+    if (env_ != nullptr && !projectID_.isEmpty()) {
+        env_->openProjects().deregister(projectID_);
     }
 }
 

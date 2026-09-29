@@ -13,8 +13,24 @@ Linux app ran on real hardware; ⛔ NONE by a test suite.**
 user-verified 2026-06-25 in **3 Sprints**. ⚠️ **This is scoped at 4** — ✅ **the extra is [SP-145]'s
 extraction.**
 
-⛔ **NO SPRINT IS ACTIVE** — ✅ **but [SP-145] IS NOW UNBLOCKED: ALL FIVE OWED RULINGS WERE ANSWERED
-2026-09-26 (user-approved).** ✅ **Full text in the Epic record's §Rulings.** The five, in one line each:
+✅ **[SP-145] CLOSED 2026-09-29 (user-approved) — ⚠️ S1 of 4 COMPLETE.** ✅ **All eight ACs MET; the
+LIVE PASS PASSED on the rig** (*"the live test passed. hide inspector survived a restart"*).
+✅ **T-0551/T-0552/T-0553 VERIFIED and archived** →
+[`../Tasks/Verified/Task-verified-0551-0553.md`](../Tasks/Verified/Task-verified-0551-0553.md);
+✅ **[I-0251] VERIFIED.**
+⚠️ **The pass produced [I-0255], [I-0256], [T-0556] and [T-0557] — ⛔ none a regression.**
+✅ **TWO WERE RULED THE SAME DAY:** ⛔ **timeline visibility SHOULD persist ([I-0255], now a `[Cross]`
+defect on BOTH platforms)** · ⚠️ **the Navigator is hidden by collapsing its splitter to 0, ⛔ not by a
+new control ([I-0256]) — ✅ and index 0 already collapses, so no widget change is needed.**
+
+🟡 **[SP-146] IS ACTIVE (2026-09-29, user-approved)** →
+[`../Sprints/Sprint-SP-146.md`](../Sprints/Sprint-SP-146.md) — ⚠️ **S2: the app-level owner, one window
+per project, the separate Landing window ([R-Q3]), R7 quit-flushes-the-registry, and
+`scrivi_close_project` per window (R8).** ⚠️ **T-0558 · T-0559 · T-0560, ⛔ strictly serial, none
+started.** ⛔ **NOT behaviour-preserving — ⚠️ unlike [SP-145], assertions WILL change and each must be
+named.** ⚠️ **[I-0256] is a fold-in candidate, ⛔ deliberately not in the ACs.**
+
+⚠️ **PRIOR STATE — ✅ ALL FIVE OWED RULINGS WERE ANSWERED 2026-09-26 (user-approved).** ✅ **Full text in the Epic record's §Rulings.** The five, in one line each:
 ✅ **[R-Q1]** session state → **`<appSupportRoot>/session.ini`** via `QSettings`, mirroring the existing
 `timeline-view.ini` · ✅ **[R-Q2]** key by **`projectID`**, with `path` as a stored ATTRIBUTE (⚠️ *a moved
 project is skipped for one launch but KEEPS its geometry*) · ✅ **[R-Q3]** a **SEPARATE Landing window**;

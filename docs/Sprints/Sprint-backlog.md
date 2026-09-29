@@ -46,12 +46,12 @@ governs anything is a second source of truth.
 
 ---
 
-## ⚠️ RESERVED Sprint IDs — SP-146–SP-148 ([EP-043] `[Linux]` The Session)
+## ⚠️ RESERVED Sprint IDs — SP-147–SP-148 ([EP-043] `[Linux]` The Session)
 
-✅ **[SP-145] IS NO LONGER RESERVED — it is ACTIVE (2026-09-27)** →
-[`Sprint-SP-145.md`](Sprint-SP-145.md). ⚠️ **Its row below is kept struck for the chain's shape only.**
-⛔ **SP-146–SP-148 are NOT in Planning, and none is ready to activate** — ✅ **the chain is SERIAL, so
-[SP-146] waits on [SP-145] being verified.**
+✅ **[SP-145] IS CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md).
+⚠️ **Its row below is kept struck for the chain's shape only.**
+✅ **[SP-146] IS NOW ACTIVE (2026-09-29)** → [`Sprint-SP-146.md`](Sprint-SP-146.md).
+⛔ **SP-147–SP-148 remain reserved and are NOT in Planning** — ⚠️ **the chain is SERIAL.**
 ✅ **[EP-043] is ACTIVE** (activated 2026-09-25) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
 ⚠️ **The IDs are recorded here ONLY so they are not reissued** — ✅ **the same precaution taken for
 EP-032's SP-107–SP-114 above**, and for the same reason the user gave when ordering that one.
@@ -64,8 +64,8 @@ and reissue SP-146–148 to something else.**
 
 | Sprint | Step | Provisional scope | ACs |
 | ------ | ---- | ----------------- | --- |
-| ~~**SP-145**~~ | ~~S1~~ | ⛔ ~~The session split~~ — ✅ **ACTIVE 2026-09-27, no longer reserved** → [`Sprint-SP-145.md`](Sprint-SP-145.md) | — (foundation) |
-| **SP-146** | S2 | ✅ **The windows** — one window per project; R3 focus-existing; quit flushes ALL; per-window `scrivi_close_project` | R1 R2 R3 R7 R8 |
+| ~~**SP-145**~~ | ~~S1~~ | ✅ **CLOSED 2026-09-29** — the session split → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md) | ✅ **all 8 MET** |
+| ~~**SP-146**~~ | ~~S2~~ | ✅ **ACTIVE 2026-09-29, no longer reserved** → [`Sprint-SP-146.md`](Sprint-SP-146.md) | R1 R2 R3 R7 R8 |
 | **SP-147** | S3 | ✅ **The persistence** — open-session manifest + launch restore; per-project geometry **and splitters**; ⚠️ **the test guard lands HERE** | R4 R5 R6 |
 | **SP-148** | S4 | ✅ **Verification** — AC sweep, Docker `ctest` as non-root, ⚠️ **live pass on the real rig**, close prep | AC-build AC-live |
 
@@ -110,7 +110,7 @@ here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
 
 ### (as planned)
 
-✅ **Plan: [`Sprint-SP-149.md`](Sprint-SP-149.md).** ⛔ **Not activated.** ✅ **Blocks on NOTHING** —
+✅ **Plan: [`Closed/Sprint-SP-149.md`](Closed/Sprint-SP-149.md).** ✅ **CLOSED 2026-09-22 — ⚠️ this backlog row is STALE and kept only for the chain shape.** ✅ **Blocks on NOTHING** —
 ⚠️ **it is design work and can run in parallel with [SP-142].**
 
 ⚠️ **Split out of [SP-143] 2026-09-21**, ✅ **because the guard's DESIGN half blocks on nothing while
@@ -158,7 +158,7 @@ here; ✅ the closed record supersedes it** (`feedback_sprint_backlog_cleanup`).
 
 ## 🔵 SP-137 — **PLANNED 2026-09-23** ([EP-040]) — ⚠️ **the Object Detail Sheet's real chrome**
 
-✅ **Plan: [`Sprint-SP-137.md`](Sprint-SP-137.md).** ⛔ **Not activated.**
+✅ **Plan: [`Closed/Sprint-SP-137.md`](Closed/Sprint-SP-137.md).** ✅ **CLOSED 2026-09-23 — ⚠️ this backlog row is STALE and kept only for the chain shape.**
 ⚠️ **[EP-040]'s LAST Sprint.** ✅ **Serves EP-040 AC8** (*the sheet no longer hand-builds window chrome*).
 
 ✅ **THREE RULINGS TAKEN 2026-09-23, so the Sprint starts decided:** ⚠️ **Q1 hosting — KEEP THE MODAL

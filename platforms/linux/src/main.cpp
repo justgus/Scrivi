@@ -9,6 +9,7 @@
 
 #include "ScriviBuildStamp.hpp"
 
+#include "AppEnvironment.hpp"
 #include "AppSupport.hpp"
 #include "RecentsStore.hpp"
 #include "ScriviWindow.hpp"
@@ -84,7 +85,24 @@ int main(int argc, char* argv[])
     QApplication::setApplicationName(QStringLiteral("Scrivi"));
     QApplication::setOrganizationName(QStringLiteral("Caposoft"));
 
-    const QString appSupportRoot = scrivi::linux_app::appSupportRoot();
+    // ⚠️ [SP-146] T-0558 — Linux's FIRST app-level state owner.
+    //
+    // ⛔ BEFORE THIS, app-global state was LOCAL VARIABLES HERE: `appSupportRoot`
+    // was resolved on this line and hand-threaded into the QML context,
+    // `ScriviWindow` and `ShellController` SEPARATELY (Epic §The app-level owner).
+    // ⚠️ That is why `OpenProjectRegistry` ended up on `EditorShell` in [SP-145] —
+    // ⛔ there was nowhere else for app-global state to live.
+    //
+    // ✅ `env` is constructed ONCE and handed down by pointer. ⛔ It is NOT a
+    // singleton: Apple constructs its `AppEnvironment` explicitly and passes it,
+    // and making the ownership graph explicit is the point of this Epic.
+    //
+    // ⚠️ T-0558 IS MECHANICAL: `appSupportRoot` keeps its name and value, and every
+    // existing consumer is handed the SAME string it was handed before. ✅ The
+    // registry and session ownership arrive in T-0559; ⛔ nothing reads `env`'s
+    // registry yet.
+    AppEnvironment env(scrivi::linux_app::appSupportRoot());
+    const QString  appSupportRoot = env.appSupportRoot();
 
     // Where the New Project folder picker opens by default. In the Docker/VNC
     // harness, /projects is a host-shared bind mount (see build-and-run.sh) — a
@@ -104,7 +122,9 @@ int main(int argc, char* argv[])
                                                defaultProjectsFolder);
 
     // The window owns the stacked landing/editor central widget.
-    ScriviWindow window(landing, appSupportRoot);
+    // ⚠️ [SP-146] T-0559 — the window is handed `env` so every `EditorShell` it
+    // builds registers into the APP's registry, not a per-shell one.
+    ScriviWindow window(landing, appSupportRoot, &env);
 
     // The landing's Quit button calls Qt.quit(), which emits QQmlEngine::quit().
     // Under the old QQmlApplicationEngine bootstrap that signal was auto-wired to
