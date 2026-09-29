@@ -142,6 +142,23 @@ public:
     // is shown — ⛔ the app never quits implicitly on a window close ([R-Q3]).
     void projectWindowClosing(ScriviWindow* window);
 
+    // ---- QUIT ([I-0257], T-0562) ----------------------------------------
+    //
+    // ⛔ `File ▸ Quit` MUST NOT go straight to `QApplication::quit()`.
+    // ⚠️ MEASURED 2026-09-29: `quit()` exits the event loop and DOES NOT CLOSE
+    // WINDOWS — with `WA_DeleteOnClose` windows, nothing tears them down.
+    // ⛔ AND `closeAllWindows()` ALONE IS NOT ENOUGH EITHER: it walks a SNAPSHOT,
+    // and this class's own teardown MUTATES the window set mid-walk (a closing
+    // project window re-shows Landing), which ABORTS the cascade.
+    // ✅ So quitting is explicit: flush everything, tear down OUR windows from OUR
+    // OWN map, then quit. ⚠️ `quitting_` suppresses the re-show while it runs.
+    void quitApplication();
+
+    // ✅ True while `quitApplication()` is tearing down — ⚠️ read by
+    // `projectWindowClosing()` and `LandingWindow::closeEvent` so neither fights
+    // the teardown.
+    [[nodiscard]] bool isQuitting() const { return quitting_; }
+
     // ⚠️ The QML↔C++ boundary controller, owned by the Landing window.
     // ✅ Handed to every project window it creates, so `File ▸ New` / `File ▸ Open`
     // from ANY window can drive the landing QML's existing flow ([R-Q3]) —
@@ -156,6 +173,7 @@ public:
 private:
     QString             appSupportRoot_;
     LandingWindow*      landing_ = nullptr;   // NOT owned — main() owns it
+    bool                quitting_ = false;   // ⚠️ [I-0257] — teardown in progress
     OpenProjectRegistry openProjects_;
     ProjectWindowManager windows_;
 };

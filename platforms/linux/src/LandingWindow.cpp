@@ -44,7 +44,10 @@ void LandingWindow::closeEvent(QCloseEvent* event)
     //
     // ✅ So: HIDE instead of closing whenever any project window is still open.
     // ⚠️ `File ▸ New` / `File ▸ Open` bring it straight back (`raiseToFront`).
-    if (env_ != nullptr && !env_->windows().isEmpty()) {
+    // ⛔ [I-0257] — NEVER ignore the close while the app is QUITTING. ⚠️ That
+    // ignore is what stopped Landing dying, ✅ and it is right for a writer
+    // tidying up — ⛔ but during teardown it left the app half-closed.
+    if (env_ != nullptr && !env_->isQuitting() && !env_->windows().isEmpty()) {
         hide();
         event->ignore();
         return;

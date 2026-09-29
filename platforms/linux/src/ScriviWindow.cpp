@@ -182,7 +182,18 @@ void ScriviWindow::buildMenuBar()
     file->addSeparator();
     QAction* quit = file->addAction(tr("Quit"));
     quit->setShortcut(QKeySequence::Quit);
-    connect(quit, &QAction::triggered, qApp, &QApplication::quit);
+    // ⛔ [I-0257] — NOT `qApp, &QApplication::quit` ANY MORE.
+    // ⚠️ MEASURED: `quit()` exits the event loop and does NOT close windows, so
+    // with `WA_DeleteOnClose` project windows they simply stayed on screen.
+    // ✅ `quitApplication()` flushes everything, then tears down from the app's own
+    // window map. ⚠️ The `env_ == nullptr` fallback keeps single-window tests working.
+    connect(quit, &QAction::triggered, this, [this]() {
+        if (env_ != nullptr) {
+            env_->quitApplication();
+        } else {
+            QApplication::quit();
+        }
+    });
 
     // --- Edit -------------------------------------------------------------
     // Cut/Copy/Paste forward to the focused writing surface (QPlainTextEdit slots).

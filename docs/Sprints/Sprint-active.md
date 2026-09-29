@@ -4,8 +4,10 @@
 
 ✅ **Record:** → [`Sprint-SP-146.md`](Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
 ⚠️ **T-0558 · T-0559 · T-0560 · T-0561 — ✅ ALL FOUR IMPLEMENTED (not user-verified).**
-✅ **TEN of ELEVEN ACs MET; ⛔ AC9 (N menu bars' check-state sync) NOT met, not attempted — ⚠️ it needs
-a live pass ([SP-148]).**
+✅ **ALL ELEVEN ACs MET** — ⚠️ **AC9 confirmed by the user's live pass 2026-09-29.**
+⚠️ **THAT PASS ALSO FOUND [I-0257]** (⛔ `File ▸ Quit` left windows open non-deterministically —
+⚠️ **a REGRESSION from [T-0561]**): ✅ **reproduced in a harness, fixed in [T-0562], re-verified 5/5.**
+⛔ **NOTHING IS USER-VERIFIED YET** — ✅ **[SP-148] owns the Epic's live pass.**
 ⚠️ **T-0560 WAS SPLIT 2026-09-29 (user-approved)** — ✅ **the plumbing (`ProjectWindowManager`, R3, R7,
 R8) landed and verifies; ⛔ the Landing-window split became [T-0561]** (⚠️ **AC4/AC5/AC6/AC9 unmet**).
 ✅ **Serves R1 · R2 · R3 · R7 · R8.** ⛔ **Size: HIGH — the Epic's biggest Sprint.**

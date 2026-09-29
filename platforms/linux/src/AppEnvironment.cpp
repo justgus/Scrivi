@@ -1,5 +1,7 @@
 #include "AppEnvironment.hpp"
 
+#include <QApplication>
+
 #include "LandingWindow.hpp"
 #include "ScriviWindow.hpp"
 
@@ -93,9 +95,71 @@ void AppEnvironment::projectWindowClosing(ScriviWindow* window)
 {
     windows_.deregisterWindow(window);
 
+    // ⛔ [I-0257] — DO NOT RE-SHOW LANDING WHILE QUITTING. ⚠️ Re-showing a window
+    // during a teardown is what aborted `closeAllWindows()`'s cascade and left
+    // windows standing.
+    if (quitting_) {
+        return;
+    }
+
     // ⚠️ THE CLOSING WINDOW IS ALREADY OUT OF THE MAP, so "empty" means this was
     // the last one.
     if (windows_.isEmpty()) {
         showLanding();
     }
+}
+
+// ⚠️ [SP-146] T-0562 ([I-0257]) — QUIT, DONE EXPLICITLY.
+//
+// ⛔ `File ▸ Quit` USED TO CALL `QApplication::quit()` DIRECTLY, and that is the
+// defect the user found: ⚠️ *"sometimes only closes one or two of the open
+// windows… I cannot discern a pattern."*
+//
+// ✅ TWO MEASURED CAUSES, and the fix addresses both:
+//
+//   ⛔ (1) `QApplication::quit()` DOES NOT CLOSE WINDOWS. ⚠️ It exits the event
+//          loop. With `WA_DeleteOnClose` windows, nothing tears them down — so
+//          they simply stayed on screen. MEASURED: landing + 2 projects → quit →
+//          both project windows still visible.
+//
+//   ⛔ (2) `QApplication::closeAllWindows()` WALKS A SNAPSHOT, and our own
+//          teardown MUTATES the window set inside that walk: a closing project
+//          window calls `projectWindowClosing()`, which RE-SHOWS Landing, while
+//          `LandingWindow::closeEvent` ignores its own close whenever a project
+//          window remains. ⚠️ The cascade aborts partway. MEASURED: it closed ONE
+//          of TWO project windows.
+//
+// ✅ THAT IS THE "NO PATTERN": ⚠️ the outcome depends on where the mutation lands
+// in the snapshot's order — ⛔ neither "last clicked" nor "last opened", exactly as
+// the user reported. ⚠️ A second Quit cleared the rest because fewer windows then
+// remained to perturb the walk.
+//
+// ✅ SO: flush everything FIRST (R7 — never lose edits), then close OUR windows
+// from OUR OWN map (⛔ not from Qt's snapshot), then quit.
+void AppEnvironment::quitApplication()
+{
+    // ⚠️ Re-entrant Quit (the writer clicks twice) must not restart the teardown.
+    if (quitting_) {
+        return;
+    }
+    quitting_ = true;
+
+    // ✅ R7 FIRST, AND UNCONDITIONALLY. ⚠️ Flushing before any window dies means a
+    // teardown that goes wrong still cannot lose edits.
+    flushAllWindows();
+
+    // ✅ Close from OUR map, which we control, rather than Qt's snapshot.
+    // ⚠️ `allWindows()` returns a VALUE list, so deregistration during the loop
+    // cannot invalidate what we are iterating.
+    const QList<ScriviWindow*> windows = windows_.allWindows();
+    for (ScriviWindow* window : windows) {
+        if (window != nullptr) {
+            window->close();
+        }
+    }
+
+    if (landing_ != nullptr) {
+        landing_->close();
+    }
+    QApplication::quit();
 }

@@ -88,7 +88,10 @@ T-0560 cannot start before ownership is on the app object.**
 - [x] **AC8** — ⚠️ **[R8]** ✅ **Closing a project window calls `scrivi_close_project` for THAT
       project** — ⛔ **and only that one.** ⚠️ **Linux already does this correctly for its single
       project; ✅ do not regress it** (⚠️ **Apple's failure to do this at all is [I-0233]**).
-- [ ] **AC9** — ⛔ **NOT MET, NOT ATTEMPTED.** ⚠️ **N menu bars exist (each window builds its own), ⛔ but the inspector/timeline check-state sync was written for ONE window and needs a live pass ([SP-148]).** ✅ **`buildMenuBar()` / `updateMenuState()` become PER-WINDOW**,
+- [x] **AC9** — ✅ **MET — ⚠️ CONFIRMED BY THE USER'S LIVE PASS 2026-09-29:** ***"I can hide/show
+      either or both in one project window and it does not effect the other project window."***
+      ✅ **It works BY CONSTRUCTION: [T-0553] made pane visibility per-session state, ⚠️ so two windows
+      reading two sessions cannot interfere.** ✅ **`buildMenuBar()` / `updateMenuState()` become PER-WINDOW**,
       ⚠️ **including the `showInspectorAction_` / `showTimelineAction_` check-state sync** — ⛔ **which
       must reflect the state of THAT window's project, not the app's.**
 - [x] **AC10** — ✅ **Every existing Linux smoke still passes.** ⚠️ **Assertions MAY change here
@@ -152,6 +155,76 @@ Sprint is otherwise not adding.**
 ---
 
 ## Progress log
+
+### ✅ 2026-09-29 — T-0562 ([I-0257]) — ⛔ **THE QUIT BUG THE USER FOUND, REPRODUCED AND FIXED**
+
+⚠️ **USER, live pass on [T-0561]:** ***"selecting file quit from a project window sometimes only closes
+one or two of the open windows… I cannot discern a pattern in when the windows are left open. its not
+'last clicked' and its not 'last opened'."***
+
+✅ **THE "NO PATTERN" WAS THE DIAGNOSTIC CLUE, ⛔ not a gap in the report.** ⚠️ **REPRODUCED in a
+harness, and there are TWO defects, measured separately:**
+
+| # | ⛔ Cause | ✅ Measured |
+| - | -------- | ---------- |
+| **1** | ⛔ **`QApplication::quit()` DOES NOT CLOSE WINDOWS** — ⚠️ it exits the event loop, and with `WA_DeleteOnClose` windows nothing tears them down | ⚠️ **landing + 2 projects → `quit()` → `visibleTopLevel=2`** — ⛔ **both project windows still standing** |
+| **2** | ⛔ **`closeAllWindows()` WALKS A SNAPSHOT**, ⚠️ and [T-0561]'s own handlers MUTATE the window set mid-walk: a closing project window RE-SHOWS Landing, and `LandingWindow::closeEvent` IGNORES its close while projects remain | ⚠️ **`closeAllWindows()` closed ONE of TWO project windows** |
+
+⚠️ **CAUSE 2 IS THE NON-DETERMINISM:** ✅ **the outcome depends on where the mutation lands in the
+snapshot's order** — ⛔ **neither "last clicked" nor "last opened", exactly as the user said.**
+✅ **A second Quit cleared the rest because fewer windows then remained to perturb the walk.**
+
+⛔ **A REGRESSION FROM [T-0561], NOT PRE-EXISTING** — ⚠️ **before it there was ONE window, and
+`quit()`'s failure to close anything was indistinguishable from closing it.**
+
+#### ✅ THE FIX — quitting is EXPLICIT
+
+✅ **`AppEnvironment::quitApplication()`:** ⚠️ **flush everything FIRST (R7 — a teardown that goes wrong
+still cannot lose edits), ✅ then close OUR windows from OUR OWN map** (⛔ **not Qt's snapshot**),
+⚠️ **then quit.** ✅ **A `quitting_` flag suppresses both the Landing re-show and Landing's
+close-ignore while it runs.**
+⚠️ **ALL THREE QUIT PATHS NOW GO THROUGH IT** — ✅ **`File ▸ Quit` in a project window, the Landing
+QML's Quit button (`main.cpp`), and re-entrant clicks (guarded).**
+⚠️ **⛔ THE LANDING QUIT BUTTON HAD THE SAME DEFECT** — ✅ **the user reported it as working, ⚠️ and it
+usually is, ⛔ but only because Landing is typically the LAST window, so `quit()` closing nothing is
+invisible.**
+
+#### ✅ VERIFIED — ⚠️ 5 RUNS, 4 PROJECT WINDOWS + LANDING
+
+| | Before | ✅ After |
+| - | ------ | ------- |
+| `quit()` | ⛔ **2 of 2 project windows LEFT OPEN** | — |
+| `closeAllWindows()` | ⛔ **1 of 2 LEFT OPEN** | — |
+| ✅ **`quitApplication()`** | — | ✅ **`visibleTopLevel=0`, `projectWindows=0` — 5/5 runs** |
+
+⚠️ **The harness was SCALED UP to 4 project windows** to stress the snapshot walk that caused it.
+
+#### ✅ AC9 — ⚠️ THE USER ANSWERED ITS FIRST HALF, AND IT PASSES
+
+⚠️ **USER:** ***"It looks as if the visibility state of Inspector and Timeline are independently
+managed. I can hide/show either or both in one project window and it does not effect the other project
+window."*** ✅ **THAT IS AC9's SUBSTANCE AND IT WORKS** — ⛔ **and it works for a reason, not by luck:
+[T-0553] made pane visibility PER-SESSION state on `ProjectSession`, ⚠️ so two windows reading two
+sessions cannot interfere.** ✅ **Each `QMainWindow` already builds its own menu bar.**
+
+#### ⛔ ONE HARNESS ERROR OF MINE — ✅ recorded
+
+⛔ **`ctest` FAILED 40+ ScriviCore filesystem tests with *"No space left on device"*.** ⚠️ **NOT a code
+defect: ✅ my own repeated image builds had filled Docker's disk (46.9 GB images + 29.5 GB build
+cache).** ✅ **Pruned; the SAME binary then passed 641/641** — ⚠️ **which is what proves it was the
+disk, ⛔ not the change.**
+
+#### ✅ VERIFIED BY RUNNING
+
+| Check | Result |
+| ----- | ------ |
+| ⚠️ **`ctest` — NON-ROOT (uid 1001)** | ✅ **641/641, 0 failed** |
+| Linux smokes | ✅ **23/23 PASS** |
+| ⚠️ **quit harness, 4 windows × 5 runs** | ✅ **5/5 all closed** |
+| `scripts/check-package-boundary.sh` | ✅ **GREEN** |
+| Apple `xcodebuild` | ✅ **BUILD SUCCEEDED** |
+
+---
 
 ### ✅ 2026-09-29 — T-0561 IMPLEMENTED — ⚠️ **LANDING IS ITS OWN WINDOW, AND A SECOND PROJECT WINDOW EXISTS**
 

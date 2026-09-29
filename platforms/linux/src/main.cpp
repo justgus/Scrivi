@@ -138,8 +138,13 @@ int main(int argc, char* argv[])
     // QCoreApplication::quit(); a QQuickWidget's engine is NOT, so we connect it
     // ourselves (both quit() and the exit(int) variant), or the Quit button does
     // nothing ("Signal QQmlEngine::quit() emitted, but no receivers connected").
+    // ⛔ [I-0257] — THE LANDING QUIT BUTTON GOES THROUGH THE SAME EXPLICIT PATH.
+    // ⚠️ The user reported Landing's Quit as working, ✅ and it usually does —
+    // ⛔ but only because Landing is typically the LAST window, so `quit()`'s
+    // failure to close anything is invisible. ⚠️ With two projects open it has the
+    // identical defect. ✅ One quit path for the whole app.
     QObject::connect(landing->engine(), &QQmlEngine::quit,
-                     &app, &QApplication::quit);
+                     &app, [&env] { env.quitApplication(); });
     QObject::connect(landing->engine(), &QQmlEngine::exit,
                      &app, [](int code) { QApplication::exit(code); });
 
