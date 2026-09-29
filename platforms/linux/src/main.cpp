@@ -140,12 +140,21 @@ int main(int argc, char* argv[])
     // button's Qt.quit() reaches QApplication::quit() (above) → aboutToQuit fires
     // → we flush here. This is the reliable hook for the Docker/VNC foreground quit;
     // the window's closeEvent covers the window-X path too.
+    // ⚠️ [SP-146] T-0560 — R7: QUIT FLUSHES **EVERY** SESSION, NOT ONE.
+    //
+    // ⛔ THIS HOOK USED TO BE `&window, &ScriviWindow::flushEditor` — SINGULAR BY
+    // CONSTRUCTION. ⚠️ It bound quit to the ONE window `main()` holds, so with N
+    // windows it would have flushed that one and SILENTLY DROPPED the edits in
+    // every other. ✅ Now it asks the app environment, which flushes each open
+    // window in turn.
     QObject::connect(&app, &QCoreApplication::aboutToQuit,
-                     &window, &ScriviWindow::flushEditor);
+                     &app, [&env] { env.flushAllWindows(); });
 
     // ShellController is the QML → shell boundary for the landing→editor swap.
     // Parented to the window; exposed to the landing QML as "shell".
-    auto* shell = new ShellController(&window, appSupportRoot);
+    // ⚠️ [SP-146] T-0560 — `env` goes in too: the R3 check lives in `openEditor`,
+    // which is the single funnel every open flow reaches.
+    auto* shell = new ShellController(&window, appSupportRoot, &env);
     landing->rootContext()->setContextProperty(QStringLiteral("shell"), shell);
     // Let File ▸ New Project ask the landing QML to open its New Project panel.
     window.setShellController(shell);
@@ -157,6 +166,9 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    // ⚠️ [SP-146] T-0560 — the FIRST window registers itself when its project
+    // loads (see `ScriviWindow::showEditor`'s loadFinished handler), so nothing is
+    // registered here: at this point no project is open yet.
     window.show();
     return app.exec();
 }

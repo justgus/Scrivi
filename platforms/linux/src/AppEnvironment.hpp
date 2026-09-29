@@ -2,7 +2,10 @@
 
 #include <QString>
 
+class ScriviWindow;
+
 #include "OpenProjectRegistry.hpp"
+#include "ProjectWindowManager.hpp"
 
 // AppEnvironment — Linux's app-global state owner (EP-043 / SP-146, T-0558).
 //
@@ -51,9 +54,8 @@
 // ⚠️ T-0560: `openProject()` gains the R3 check and window orchestration.
 // ⛔ [SP-147]: the open-session manifest and geometry restore. ⛔ NOT HERE YET.
 //
-// ⚠️ THE REGISTRY IS DECLARED HERE FROM THE START, unused by this Task, because
-// T-0559 moves its OWNERSHIP and a half-moved registry is worse than either end
-// state. ✅ It is empty until T-0559 populates it.
+// ✅ T-0559 DONE: the registry's owner. ✅ T-0560 DONE: the window manager and
+// `openProject()`'s R3 check.
 class AppEnvironment
 {
 public:
@@ -80,7 +82,39 @@ public:
     [[nodiscard]] OpenProjectRegistry&       openProjects()       { return openProjects_; }
     [[nodiscard]] const OpenProjectRegistry& openProjects() const { return openProjects_; }
 
+    // ✅ projectID → the WINDOW showing it (T-0560). ⚠️ A SEPARATE map from the
+    // registry, as Apple keeps them: ⛔ state and surface are different questions.
+    [[nodiscard]] ProjectWindowManager&       windows()       { return windows_; }
+    [[nodiscard]] const ProjectWindowManager& windows() const { return windows_; }
+
+    // ---- R3 — THE NON-REENTRANCY CHECK (T-0560) -------------------------
+    //
+    // ✅ *"Is this project already open?"* — ⚠️ answered from the REGISTRY, never
+    // from the window list. ⛔ [EP-018] proved on evidence that the platform's own
+    // de-duplication could not be trusted (macOS 26's `WindowGroup(for:)` was not
+    // race-safe, T-0191); ⚠️ Qt has no de-duplication to trust at all.
+    //
+    // ⚠️ RETURNS THE EXISTING WINDOW, or nullptr when the project is not open.
+    // ✅ The caller RAISES what it gets back instead of opening a second copy.
+    [[nodiscard]] ScriviWindow* existingWindowFor(const QString& projectID) const
+    {
+        if (projectID.isEmpty() || !openProjects_.isOpen(projectID)) {
+            return nullptr;
+        }
+        return windows_.window(projectID);
+    }
+
+    // ---- R7 — quit must flush EVERY session, not one --------------------
+    //
+    // ⛔ `main()`'s `aboutToQuit → ScriviWindow::flushEditor` was SINGULAR BY
+    // CONSTRUCTION: `main.cpp` built ONE window by value and bound quit to it.
+    // ⚠️ With N windows that hook would flush one and silently drop the rest.
+    // ✅ Defined out-of-line (AppEnvironment.cpp) because it calls into
+    // `ScriviWindow`, which is only forward-declared here.
+    void flushAllWindows();
+
 private:
-    QString            appSupportRoot_;
+    QString             appSupportRoot_;
     OpenProjectRegistry openProjects_;
+    ProjectWindowManager windows_;
 };

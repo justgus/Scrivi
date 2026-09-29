@@ -22,17 +22,49 @@
 
 // ---- ShellController --------------------------------------------------------
 
-ShellController::ShellController(ScriviWindow* window, QString appSupportRoot)
-    : QObject(window), window_(window), appSupportRoot_(std::move(appSupportRoot))
+ShellController::ShellController(ScriviWindow* window, QString appSupportRoot,
+                                 AppEnvironment* env)
+    : QObject(window), window_(window), appSupportRoot_(std::move(appSupportRoot)),
+      env_(env)
 {
 }
 
 void ShellController::openEditor(const QString& projectPath, const QString& title,
                                  const QVariantMap& openedProject)
 {
-    if (window_ != nullptr) {
-        window_->showEditor(projectPath, title, openedProject);
+    // ⚠️ [SP-146] T-0560 — R3 IS CHECKED HERE, AND THIS IS THE RIGHT PLACE.
+    //
+    // ✅ This is the SINGLE FUNNEL through which a project becomes a window: the
+    // landing's Open button, a recents click and the New Project flow ALL reach
+    // `shell.openEditor(...)` (`Landing.qml:121`, `:413`). ⛔ Putting the check
+    // deeper (in `showEditor`) would be too late — the window would already be the
+    // one being reused; putting it in QML would put policy in the view.
+    //
+    // ⚠️ THE ANSWER COMES FROM THE REGISTRY, NOT THE WINDOW LIST — ✅ that is the
+    // whole reason [EP-018] made an app-side registry authoritative: macOS 26's own
+    // `WindowGroup(for:)` de-duplication was NOT race-safe (T-0191), and Qt offers
+    // no de-duplication at all.
+    //
+    // ⛔ WE CANNOT ASK BY PATH. ⚠️ `projectID` is the identity ([R-Q2]) and the
+    // landing's envelope is where it first appears — ✅ so the check uses the id
+    // from `openedProject` when the caller has one. ⚠️ When it does not (an empty
+    // envelope means "the editor opens it itself"), there is no identity to compare
+    // yet and the open proceeds; ✅ the session registration in `EditorShell` still
+    // keeps the registry honest.
+    if (window_ == nullptr) {
+        return;
     }
+
+    if (env_ != nullptr) {
+        const QString projectID = openedProject.value(QStringLiteral("projectID")).toString();
+        if (ScriviWindow* existing = env_->existingWindowFor(projectID)) {
+            // ✅ ALREADY OPEN — raise it instead of opening a second copy.
+            existing->raiseToFront();
+            return;
+        }
+    }
+
+    window_->showEditor(projectPath, title, openedProject);
 }
 
 // ---- ScriviWindow -----------------------------------------------------------
@@ -364,6 +396,16 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
                     }
                     // Already on the editor page; nothing to switch.
                     updateMenuState(/*editorActive=*/true);
+
+                    // ⚠️ [SP-146] T-0560 — REGISTER THE WINDOW under the project it
+                    // now shows. ✅ Done HERE, on a SUCCESSFUL load, because this is
+                    // the first point where the project's IDENTITY is known —
+                    // ⛔ `showEditor()` has only a path, and a path is not an
+                    // identity. ⚠️ Same reasoning as the session registration in
+                    // `EditorShell` (T-0552), and the same empty-ID guard applies.
+                    if (env_ != nullptr) {
+                        env_->windows().registerWindow(shownProjectID(), this);
+                    }
                 });
         stack_->addWidget(editor_);   // page 1 — editor
     }
@@ -422,5 +464,40 @@ void ScriviWindow::flushEditor()
 void ScriviWindow::closeEvent(QCloseEvent* event)
 {
     flushEditor();   // don't lose edits when the window (and app) closes
+
+    // ⚠️ [SP-146] T-0560 — R8: release the project as this window goes away.
+    // ✅ `releaseProject()` calls `scrivi_close_project` for THIS project and
+    // deregisters its session — ⛔ and only this one. ⚠️ Without it, closing a
+    // window would leave the core's index resident and R3 reporting the project as
+    // open forever, so it could never be reopened.
+    if (editor_ != nullptr) {
+        editor_->releaseProject();
+    }
     QMainWindow::closeEvent(event);
+}
+
+// ⚠️ [SP-146] T-0560 — deregister from the window map BEFORE this window dies.
+// ⛔ The manager holds BORROWED pointers, so a window that dies while still mapped
+// leaves a dangle that the next R3 check would follow.
+ScriviWindow::~ScriviWindow()
+{
+    if (env_ != nullptr) {
+        env_->windows().deregisterWindow(this);
+    }
+}
+
+QString ScriviWindow::shownProjectID() const
+{
+    return editor_ != nullptr ? editor_->currentProjectID() : QString();
+}
+
+void ScriviWindow::raiseToFront()
+{
+    // ⚠️ THREE CALLS, AND ALL THREE ARE NEEDED. ✅ `show()` restores a minimised
+    // window, `raise()` lifts it in the stacking order, and `activateWindow()`
+    // gives it keyboard focus. ⛔ Any one alone leaves a case where the writer
+    // asked for a project and nothing visibly happened.
+    show();
+    raise();
+    activateWindow();
 }

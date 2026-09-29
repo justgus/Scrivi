@@ -36,7 +36,9 @@ class ShellController : public QObject
     Q_OBJECT
 
 public:
-    explicit ShellController(ScriviWindow* window, QString appSupportRoot);
+    // ⚠️ [SP-146] T-0560 — `env` carries the R3 check; nullptr in tests.
+    explicit ShellController(ScriviWindow* window, QString appSupportRoot,
+                             AppEnvironment* env = nullptr);
 
     // Called from Landing.qml on a successful "ready" open, in place of pushing the
     // old placeholder ProjectWindow. Swaps the central stack to the editor and
@@ -69,6 +71,9 @@ signals:
 private:
     ScriviWindow* window_ = nullptr;
     QString appSupportRoot_;
+
+    // ⚠️ [SP-146] T-0560 — the app-global owner, for the R3 check. ⛔ NOT owned.
+    AppEnvironment* env_ = nullptr;
 };
 
 class ScriviWindow : public QMainWindow
@@ -99,13 +104,23 @@ public:
     // New can ask the landing QML to open its New Project panel (SP-077, T-0314).
     void setShellController(ShellController* shell) { shell_ = shell; }
 
-    // Flush any pending editor edits to disk (T-0239). Wired to
-    // QCoreApplication::aboutToQuit in main() so the quit legs of the auto-save
-    // cadence fire on every exit path — the landing Quit button (Qt.quit()), the
-    // window close, and a normal app termination (incl. the Docker/VNC
-    // foreground-process quit). No-op if no project is open. Public so main() can
-    // connect it.
+    // Flush any pending editor edits to disk (T-0239).
+    // ⚠️ [SP-146] T-0560 — NO LONGER WIRED DIRECTLY TO `aboutToQuit`.
+    // ⛔ That hook was SINGULAR BY CONSTRUCTION (one window built by value in
+    // `main()`), so with N windows it would flush one and drop the rest.
+    // ✅ `AppEnvironment::flushAllWindows()` now calls this on EVERY open window.
+    // No-op if no project is open.
     void flushEditor();
+
+    // ⚠️ [SP-146] T-0560 — the projectID this window is showing, or empty.
+    // ✅ Used by the window manager and by teardown.
+    [[nodiscard]] QString shownProjectID() const;
+
+    // ⚠️ [SP-146] T-0560 — bring this window to the front (R3).
+    // ✅ Called when the writer asks to open a project that is ALREADY open.
+    void raiseToFront();
+
+    ~ScriviWindow() override;
 
 protected:
     // The window-close (X) path also flushes before the app tears down.

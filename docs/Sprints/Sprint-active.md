@@ -3,7 +3,9 @@
 ## 🟡 **[SP-146]** `[Linux]` **The App Object and the Windows** — ✅ **ACTIVE 2026-09-29**
 
 ✅ **Record:** → [`Sprint-SP-146.md`](Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
-⚠️ **T-0558 · T-0559 · T-0560 — ⛔ STRICTLY SERIAL, none started.**
+⚠️ **T-0558 · T-0559 · T-0560 ✅ IMPLEMENTED (not verified) · [T-0561] ⛔ not started.**
+⚠️ **T-0560 WAS SPLIT 2026-09-29 (user-approved)** — ✅ **the plumbing (`ProjectWindowManager`, R3, R7,
+R8) landed and verifies; ⛔ the Landing-window split became [T-0561]** (⚠️ **AC4/AC5/AC6/AC9 unmet**).
 ✅ **Serves R1 · R2 · R3 · R7 · R8.** ⛔ **Size: HIGH — the Epic's biggest Sprint.**
 
 ⛔ **NOT BEHAVIOUR-PRESERVING, and that is the point:** ⚠️ **one window becomes N; a local in `main()`

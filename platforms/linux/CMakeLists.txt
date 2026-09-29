@@ -34,11 +34,19 @@ qt_add_executable(scrivi_linux
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     # SP-061 (EP-022): the Widgets host shell + native editor screen.
+    # ⚠️ [SP-146] T-0560 — AppEnvironment.cpp is listed ONLY HERE, beside
+    # ScriviWindow.cpp, while AppEnvironment.hpp is listed in every target.
+    # ⛔ Its flushAllWindows() calls ScriviWindow::flushEditor(), so a smoke target
+    # that compiles the .cpp WITHOUT ScriviWindow.cpp fails to LINK — measured, not
+    # guessed: 2026-09-29 a blanket add broke persistence_smoke and lifecycle_smoke
+    # with "undefined reference to ScriviWindow::flushEditor()".
+    src/AppEnvironment.cpp
     src/ScriviWindow.cpp
     src/ScriviWindow.hpp
     src/EditorShell.cpp
@@ -179,6 +187,7 @@ qt_add_executable(scrivi_linux_persistence_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -206,6 +215,7 @@ qt_add_executable(scrivi_linux_lifecycle_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -234,6 +244,7 @@ qt_add_executable(scrivi_linux_scene_load_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -283,6 +294,7 @@ qt_add_executable(scrivi_linux_scene_save_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -308,6 +320,7 @@ qt_add_executable(scrivi_linux_scene_create_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -338,6 +351,7 @@ qt_add_executable(scrivi_linux_scene_delete_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -368,6 +382,7 @@ qt_add_executable(scrivi_linux_scene_rename_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -401,6 +416,7 @@ qt_add_executable(scrivi_linux_scene_reorder_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -431,6 +447,7 @@ qt_add_executable(scrivi_linux_chapter_reorder_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -462,6 +479,7 @@ qt_add_executable(scrivi_linux_scene_merge_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/SceneDocument.cpp
@@ -493,6 +511,7 @@ qt_add_executable(scrivi_linux_timeline_story_time_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -520,6 +539,7 @@ qt_add_executable(scrivi_linux_story_structure_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/StoryStructures.cpp
@@ -550,6 +570,7 @@ qt_add_executable(scrivi_linux_bridge_parity_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -578,6 +599,7 @@ qt_add_executable(scrivi_linux_timeline_events_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
 )
@@ -653,6 +675,7 @@ qt_add_executable(scrivi_linux_scene_inspector_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp
     src/ScriviBridge.cpp
@@ -682,6 +705,7 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -746,6 +770,7 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
     src/ScriviBridge.cpp
@@ -808,6 +833,7 @@ qt_add_executable(scrivi_linux_inspector_fixture
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/ProjectWindowManager.hpp
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp
     src/ScriviBridge.cpp

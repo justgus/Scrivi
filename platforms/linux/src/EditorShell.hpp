@@ -120,6 +120,11 @@ public:
     // everything released is derived and rebuildable from disk.
     void releaseProject();
 
+    // ⚠️ [SP-146] T-0560 — the identity of the project this shell is showing, or
+    // empty when none is loaded. ✅ Read by `ScriviWindow` for the window map and
+    // for R3. ⛔ Reads the SESSION, not a widget.
+    [[nodiscard]] QString currentProjectID() const { return session_.projectID(); }
+
     // --- SP-077 menu-bar triggers (T-0310/T-0311) -------------------------
     //
     // Public entry points so the ScriviWindow menu bar can invoke the same operations

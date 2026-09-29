@@ -54,7 +54,8 @@ progress log, ⛔ not silently edited.**
 | -- | ----- | --------------- |
 | **T-0558** | ✅ **Create `AppEnvironment`** — ⚠️ **Linux's FIRST app-level state owner.** ✅ Move `appSupportRoot` onto it; construct it in `main()` | ⚠️ **MECHANICAL, no behaviour change.** ✅ **Do it FIRST AND ALONE so the rest has a home** — ⛔ the Epic warns this is *"a real Task, not a preamble"* |
 | **T-0559** | ✅ **Move `OpenProjectRegistry` AND `ProjectSession` OWNERSHIP onto `AppEnvironment`** — ⚠️ `EditorShell` takes a `ProjectSession*` instead of holding one | ⛔ **CHANGES `EditorShell`'s LIFETIME CONTRACT.** ✅ **This is where [SP-145]'s reference-binding seam is removed — ⚠️ it was built for exactly this moment** |
-| **T-0560** | ✅ **N windows + the separate Landing window** — ⚠️ R3 focus-existing, R7 quit-flushes-the-registry, R8 per-window `scrivi_close_project`, ⛔ and N menu bars | ⛔ **THE BIG ONE.** ⚠️ **Everything that is welded to the single window comes apart here** |
+| **T-0560** | ✅ **The multi-window PLUMBING** — ⚠️ `ProjectWindowManager` · R3 check at the open funnel · R7 quit-flushes-every-window · R8 per-window release · window register/deregister | ⚠️ **SPLIT FROM THE ORIGINAL T-0560 (2026-09-29, user-approved)** — ✅ **it is verifiable on its own and it builds the structure T-0561 needs** |
+| **T-0561** | ⚠️ **Landing as its OWN window, and a SECOND project window** — ✅ [R-Q3] · ⛔ AC4 and AC5 | ⛔ **SPLIT OUT: comparable in size to T-0560 again, ⚠️ and it touches the QML boundary — the least test-covered surface in the app** |
 
 ⚠️ **STRICTLY SERIAL.** ⛔ **T-0559 cannot start before T-0558 has a home to move things into, and
 T-0560 cannot start before ownership is on the app object.**
@@ -73,11 +74,11 @@ T-0560 cannot start before ownership is on the app object.**
       and does NOT create a second one. ⚠️ **The check lives in `AppEnvironment::openProject`** —
       ⛔ **the first point where the registry does real work.**
 - [ ] **AC4** — ⚠️ **[R1]** ✅ **Two different projects open in TWO windows simultaneously**, each with
-      its own navigator, editor, inspector and timeline.
-- [ ] **AC5** — ⚠️ **[R-Q3]** ✅ **Landing is its OWN window.** ⚠️ **Project windows are editor-only.**
+      its own navigator, editor, inspector and timeline. ⛔ **[T-0561] — NOT MET BY [T-0560].**
+- [ ] **AC5** — ⚠️ **[R-Q3]** ⛔ **[T-0561] — NOT MET BY [T-0560].** ✅ **Landing is its OWN window.** ⚠️ **Project windows are editor-only.**
       ✅ **`File ▸ New` / `File ▸ Open` from a project window RAISE Landing and trigger its EXISTING
       flow** — ⛔ **the flow is NOT reimplemented.**
-- [ ] **AC6** — ✅ **Closing the LAST project window SHOWS Landing.** ⛔ **The app NEVER quits
+- [ ] **AC6** — ⛔ **[T-0561] — depends on AC5.** ✅ **Closing the LAST project window SHOWS Landing.** ⛔ **The app NEVER quits
       implicitly on a window close.**
 - [ ] **AC7** — ⚠️ **[R7]** ⛔ **Quit flushes EVERY open session, not one.** ✅ **`main.cpp:124`'s
       `aboutToQuit → ScriviWindow::flushEditor` is SINGULAR BY CONSTRUCTION** (⚠️ `main.cpp:107`
@@ -86,7 +87,7 @@ T-0560 cannot start before ownership is on the app object.**
 - [ ] **AC8** — ⚠️ **[R8]** ✅ **Closing a project window calls `scrivi_close_project` for THAT
       project** — ⛔ **and only that one.** ⚠️ **Linux already does this correctly for its single
       project; ✅ do not regress it** (⚠️ **Apple's failure to do this at all is [I-0233]**).
-- [ ] **AC9** — ⚠️ **N menu bars.** ✅ **`buildMenuBar()` / `updateMenuState()` become PER-WINDOW**,
+- [ ] **AC9** — ⛔ **[T-0561] — there is only one window until AC4.** ⚠️ **N menu bars.** ✅ **`buildMenuBar()` / `updateMenuState()` become PER-WINDOW**,
       ⚠️ **including the `showInspectorAction_` / `showTimelineAction_` check-state sync** — ⛔ **which
       must reflect the state of THAT window's project, not the app's.**
 - [ ] **AC10** — ✅ **Every existing Linux smoke still passes.** ⚠️ **Assertions MAY change here
@@ -150,6 +151,68 @@ Sprint is otherwise not adding.**
 ---
 
 ## Progress log
+
+### ⚠️ 2026-09-29 — T-0560 SPLIT, and the PLUMBING half IMPLEMENTED
+
+⛔ **T-0560 AS PLANNED WAS TOO BIG, AND THAT WAS FOUND BY BUILDING IT, NOT BY GUESSING.**
+✅ **Five of its six parts are done and verify cleanly. ⚠️ The sixth — a genuinely separate Landing
+window so a SECOND project window can exist — is comparable in size to the other five combined.**
+✅ **USER RULED 2026-09-29: split it.** ⚠️ **T-0560 keeps the plumbing; ✅ [T-0561] takes the windows.**
+
+#### ⛔ WHY THE SIXTH PART IS NOT A CONTINUATION BUT A TASK
+
+⚠️ **`main()` creates ONE `QQuickWidget` for Landing and hands it to ONE `ScriviWindow` as page 0 of a
+`QStackedWidget`.** ⛔ **The QML context properties (`appSupportRoot`, `defaultProjectsFolder`, `shell`)
+are set on THAT widget, and `shell` is bound to THAT window.** ✅ **So a second project window requires
+re-homing all three and rewiring `File ▸ New`/`Open` from `showLanding()` to *raise the Landing
+window*** — ⚠️ **the [R-Q3] shape.**
+⛔ **THE CHEAP ALTERNATIVE IS ALREADY REJECTED:** ✅ **a second `ScriviWindow` with its own landing
+widget is "both pages in every window", ⚠️ which the Epic rejected on measurement — N QML engines, N
+bridges, and [I-0232] cost ~79% of an open for ONE duplicate.**
+
+#### ✅ WHAT T-0560 DELIVERS
+
+✅ **`ProjectWindowManager`** (`platforms/linux/src/ProjectWindowManager.hpp`) — ⚠️ `projectID` → window.
+⛔ **A SEPARATE map from `OpenProjectRegistry`, deliberately**, ✅ **as Apple keeps them: state and
+surface are different questions.** ⛔ **Borrowed pointers; ⚠️ `ScriviWindow`'s destructor deregisters.**
+
+✅ **R3 — the non-reentrancy check** in `ShellController::openEditor`. ⚠️ **THAT IS THE RIGHT PLACE:
+✅ it is the SINGLE FUNNEL every open flow reaches** (⚠️ the landing's Open button, a recents click and
+New Project all call `shell.openEditor(...)` — `Landing.qml:121`, `:413`). ⛔ **Deeper would be too
+late; in QML would be policy in the view.** ✅ **The answer comes from the REGISTRY, never the window
+list.** ⚠️ **The `projectID` key was VERIFIED against the existing consumer (`EditorShell.cpp:450`
+reads the same key from the same envelope), ⛔ not assumed.**
+
+✅ **R7 — quit flushes EVERY window** (`AppEnvironment::flushAllWindows`). ⛔ **The old hook was
+`&window, &ScriviWindow::flushEditor` — SINGULAR BY CONSTRUCTION** (⚠️ `main.cpp` built ONE window by
+value) — ✅ **so with N windows it would have flushed one and SILENTLY DROPPED the rest.**
+
+✅ **R8 — per-window release.** ⚠️ **`closeEvent` now calls `releaseProject()`**, ✅ **which closes THAT
+project in the core and deregisters its session — ⛔ and only that one.**
+
+#### ✅ VERIFIED BY RUNNING
+
+| Check | Result |
+| ----- | ------ |
+| Docker build (shipping image) | ✅ **clean** |
+| ⚠️ **`ctest` — NON-ROOT (uid 1001), tests-ON image** | ✅ **641/641, 0 failed** |
+| Linux smokes (⚠️ each wrapper + its binary, offscreen) | ✅ **23/23 PASS** |
+| `scripts/check-package-boundary.sh` | ✅ **GREEN** |
+| Apple `xcodebuild -scheme ScriviApp` | ✅ **BUILD SUCCEEDED** |
+
+⚠️ **ASSERTION-CHANGE LEDGER: ✅ STILL EMPTY.** ⛔ **T-0560 changed NO test assertions** — ⚠️ **the
+plumbing adds structure that nothing yet drives; ✅ the behaviour changes arrive with [T-0561].**
+
+#### ⛔ ONE BUILD BREAK OF MINE — ✅ recorded, it is the instructive part
+
+⛔ **A BLANKET CMake ADD PUT `AppEnvironment.cpp` IN ALL 19 TARGETS AND BROKE THE LINK.**
+⚠️ **`flushAllWindows()` calls `ScriviWindow::flushEditor()`, and `ScriviWindow.cpp` is in exactly ONE
+target** — ✅ **so `persistence_smoke` and `lifecycle_smoke` failed with *"undefined reference to
+ScriviWindow::flushEditor()"*.** ✅ **FIXED: the `.hpp` is listed in all 19 (it is header-only and
+IDE-visible); ⛔ the `.cpp` ONLY beside `ScriviWindow.cpp`.** ⚠️ **The reason is now a comment in
+`CMakeLists.txt`, so the next blanket add does not repeat it.**
+
+---
 
 ### ✅ 2026-09-29 — T-0558 and T-0559 IMPLEMENTED
 

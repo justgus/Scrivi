@@ -2,7 +2,13 @@
 
 ---
 
-## 🟡 [SP-146] — T-0558 · T-0559 · T-0560 — ⚠️ **ACTIVE 2026-09-29, NOT STARTED**
+## 🟡 [SP-146] — T-0558 · T-0559 · T-0560 · T-0561 — ⚠️ **ACTIVE 2026-09-29**
+
+⚠️ **T-0560 WAS SPLIT 2026-09-29 (user-approved)** — ⛔ **as planned it was too big, ✅ and that was
+found by BUILDING it rather than by guessing.** ⚠️ **Five of its six parts verify cleanly; ⛔ the sixth
+(a separate Landing window, so a SECOND project window can exist) is comparable in size to the other
+five combined and touches the QML boundary.** ✅ **T-0560 keeps the plumbing; [T-0561] takes the
+windows.** ⛔ **AC4, AC5, AC6 and AC9 are therefore NOT met by [T-0560].**
 
 ✅ **Sprint record (the detail lives there, not here):** →
 [`../Sprints/Sprint-SP-146.md`](../Sprints/Sprint-SP-146.md). ✅ **[EP-043] S2 of 4.**
@@ -10,9 +16,10 @@
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| **T-0558** | ✅ **Create `AppEnvironment`** — ⚠️ **Linux's FIRST app-level state owner**; move `appSupportRoot` onto it | 🔵 **Not started** |
-| **T-0559** | ✅ **Move `OpenProjectRegistry` + `ProjectSession` OWNERSHIP onto it** — ⚠️ `EditorShell` takes a `ProjectSession*` | 🔵 **Not started** |
-| **T-0560** | ✅ **N windows + separate Landing window** — ⚠️ R3 focus-existing · R7 quit flushes the REGISTRY · R8 per-window `scrivi_close_project` · ⛔ N menu bars | 🔵 **Not started** |
+| **T-0558** | ✅ **Create `AppEnvironment`** — ⚠️ **Linux's FIRST app-level state owner**; move `appSupportRoot` onto it | ✅ **Implemented - Not Verified** (2026-09-29) |
+| **T-0559** | ✅ **Move `OpenProjectRegistry` OWNERSHIP onto it** — ⚠️ `EditorShell` holds a non-owning `AppEnvironment*` | ✅ **Implemented - Not Verified** (2026-09-29) |
+| **T-0560** | ✅ **The multi-window PLUMBING** — `ProjectWindowManager` · R3 at the open funnel · R7 quit-flushes-every-window · R8 per-window release | ✅ **Implemented - Not Verified** (2026-09-29) |
+| **T-0561** | ⚠️ **Landing as its OWN window + a SECOND project window** — ✅ [R-Q3], AC4, AC5 | 🔵 **Not started** |
 
 ⛔ **THIS SPRINT IS NOT BEHAVIOUR-PRESERVING — ⚠️ and that inverts [SP-145]'s discipline.**
 ✅ **[SP-145] could prove itself with *"0 deletions in `tests/`"*; ⛔ this one cannot.**
