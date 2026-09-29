@@ -11,6 +11,7 @@
 
 #include "AppEnvironment.hpp"
 #include "AppSupport.hpp"
+#include "LandingWindow.hpp"
 #include "RecentsStore.hpp"
 #include "ScriviWindow.hpp"
 
@@ -121,10 +122,16 @@ int main(int argc, char* argv[])
     landing->rootContext()->setContextProperty(QStringLiteral("defaultProjectsFolder"),
                                                defaultProjectsFolder);
 
-    // The window owns the stacked landing/editor central widget.
-    // ⚠️ [SP-146] T-0559 — the window is handed `env` so every `EditorShell` it
-    // builds registers into the APP's registry, not a per-shell one.
-    ScriviWindow window(landing, appSupportRoot, &env);
+    // ⚠️ [SP-146] T-0561 ([R-Q3]) — LANDING IS ITS OWN WINDOW NOW.
+    //
+    // ⛔ IT USED TO BE PAGE 0 OF A `QStackedWidget` inside the ONE `ScriviWindow`,
+    // with a project as page 1 — ✅ which is exactly why a second project had
+    // nowhere to go ([I-0178]).
+    // ✅ Project windows are created ON DEMAND by
+    // `AppEnvironment::openProjectWindow()`, each editor-only, each its own
+    // top-level window.
+    auto* landingWindow = new LandingWindow(landing, &env);
+    env.setLandingWindow(landingWindow);
 
     // The landing's Quit button calls Qt.quit(), which emits QQmlEngine::quit().
     // Under the old QQmlApplicationEngine bootstrap that signal was auto-wired to
@@ -151,13 +158,16 @@ int main(int argc, char* argv[])
                      &app, [&env] { env.flushAllWindows(); });
 
     // ShellController is the QML → shell boundary for the landing→editor swap.
-    // Parented to the window; exposed to the landing QML as "shell".
-    // ⚠️ [SP-146] T-0560 — `env` goes in too: the R3 check lives in `openEditor`,
-    // which is the single funnel every open flow reaches.
-    auto* shell = new ShellController(&window, appSupportRoot, &env);
+    // ⚠️ [SP-146] T-0561 — parented to the LANDING window (it is the QML's host),
+    // ⛔ no longer to a project window. ✅ `env` carries R3 and window creation:
+    // `openEditor` is the single funnel every open flow reaches.
+    auto* shell = new ShellController(/*window=*/nullptr, appSupportRoot, &env);
+    shell->setParent(landingWindow);
     landing->rootContext()->setContextProperty(QStringLiteral("shell"), shell);
-    // Let File ▸ New Project ask the landing QML to open its New Project panel.
-    window.setShellController(shell);
+    // ⚠️ [SP-146] T-0561 — each PROJECT window is given the shell controller when
+    // it is created (`AppEnvironment::openProjectWindow`), so `File ▸ New`/`Open`
+    // from any window can drive the landing QML's flow.
+    env.setShellController(shell);
 
     // QQuickWidget can't loadFromModule on Qt 6.4; load the module's Landing.qml
     // by its qrc URL (CMake pins RESOURCE_PREFIX "/" → qrc:/<URI>/<QML_FILES path>).
@@ -166,9 +176,9 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // ⚠️ [SP-146] T-0560 — the FIRST window registers itself when its project
-    // loads (see `ScriviWindow::showEditor`'s loadFinished handler), so nothing is
-    // registered here: at this point no project is open yet.
-    window.show();
+    // ⚠️ [SP-146] T-0561 — the app starts on LANDING, with no project window.
+    // ✅ Each project window registers itself when its project finishes loading
+    // (`ScriviWindow::showEditor`'s `loadFinished` handler).
+    landingWindow->show();
     return app.exec();
 }

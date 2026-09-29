@@ -1,8 +1,11 @@
 #pragma once
 
 #include <QString>
+#include <QVariantMap>
 
 class ScriviWindow;
+class LandingWindow;
+class ShellController;
 
 #include "OpenProjectRegistry.hpp"
 #include "ProjectWindowManager.hpp"
@@ -113,8 +116,46 @@ public:
     // `ScriviWindow`, which is only forward-declared here.
     void flushAllWindows();
 
+    // ---- The Landing window ([R-Q3], T-0561) ----------------------------
+    //
+    // ⚠️ EXACTLY ONE, app-wide. ⛔ "Both pages in every window" was rejected on
+    // measurement (N QML engines, N bridges; [I-0232] cost ~79% of an open for one
+    // duplicate). ✅ Set once by `main()`; ⛔ NOT owned here.
+    void setLandingWindow(LandingWindow* landing) { landing_ = landing; }
+    [[nodiscard]] LandingWindow* landingWindow() const { return landing_; }
+
+    // ✅ Bring Landing to the front — ⚠️ what `File ▸ New` / `File ▸ Open` in a
+    // PROJECT window do, instead of swapping their own central widget.
+    void showLanding();
+
+    // ---- Project windows (T-0561) ---------------------------------------
+    //
+    // ✅ Create a NEW editor-only window for a project, or RAISE the existing one.
+    // ⚠️ THIS IS WHERE R3 IS ENFORCED for real: ⛔ `existingWindowFor()` only
+    // answers the question; this acts on the answer.
+    // ⚠️ Returns the window showing that project — ✅ new or existing.
+    ScriviWindow* openProjectWindow(const QString& projectPath,
+                                    const QString& title,
+                                    const QVariantMap& openedProject);
+
+    // ⚠️ Called by a project window as it closes. ✅ When the LAST one goes, Landing
+    // is shown — ⛔ the app never quits implicitly on a window close ([R-Q3]).
+    void projectWindowClosing(ScriviWindow* window);
+
+    // ⚠️ The QML↔C++ boundary controller, owned by the Landing window.
+    // ✅ Handed to every project window it creates, so `File ▸ New` / `File ▸ Open`
+    // from ANY window can drive the landing QML's existing flow ([R-Q3]) —
+    // ⛔ rather than each window reimplementing an open UI.
+    void setShellController(ShellController* shell) { shell_ = shell; }
+
+private:
+    ShellController* shell_ = nullptr;   // NOT owned — the Landing window parents it
+
+public:
+
 private:
     QString             appSupportRoot_;
+    LandingWindow*      landing_ = nullptr;   // NOT owned — main() owns it
     OpenProjectRegistry openProjects_;
     ProjectWindowManager windows_;
 };

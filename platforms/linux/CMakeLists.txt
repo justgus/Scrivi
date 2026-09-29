@@ -47,6 +47,8 @@ qt_add_executable(scrivi_linux
     # guessed: 2026-09-29 a blanket add broke persistence_smoke and lifecycle_smoke
     # with "undefined reference to ScriviWindow::flushEditor()".
     src/AppEnvironment.cpp
+    src/LandingWindow.cpp
+    src/LandingWindow.hpp
     src/ScriviWindow.cpp
     src/ScriviWindow.hpp
     src/EditorShell.cpp

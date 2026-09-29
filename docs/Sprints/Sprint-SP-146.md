@@ -64,35 +64,36 @@ T-0560 cannot start before ownership is on the app object.**
 
 ## Acceptance Criteria
 
-- [ ] **AC1** — ✅ **An `AppEnvironment` class exists in `platforms/linux/src/`**, ⚠️ **owns
+- [x] **AC1** — ✅ **An `AppEnvironment` class exists in `platforms/linux/src/`**, ⚠️ **owns
       `appSupportRoot`, and is constructed once in `main()`.** ⛔ **No `Q_GLOBAL_STATIC`, no singleton**
       — ✅ **Apple constructs its own explicitly and hands it down.**
-- [ ] **AC2** — ✅ **`OpenProjectRegistry` and the `ProjectSession` objects are owned by
+- [x] **AC2** — ✅ **`OpenProjectRegistry` and the `ProjectSession` objects are owned by
       `AppEnvironment`.** ⛔ **`EditorShell` owns NO project identity** — ⚠️ **it is HANDED a
       `ProjectSession*` and shows it.** ✅ **Grep proof: no `OpenProjectRegistry` member on any widget.**
-- [ ] **AC3** — ⚠️ **[R2/R3]** ✅ **Opening a project that is ALREADY open RAISES its existing window**
+- [x] **AC3** — ⚠️ **[R2/R3]** ✅ **Opening a project that is ALREADY open RAISES its existing window**
       and does NOT create a second one. ⚠️ **The check lives in `AppEnvironment::openProject`** —
       ⛔ **the first point where the registry does real work.**
 - [ ] **AC4** — ⚠️ **[R1]** ✅ **Two different projects open in TWO windows simultaneously**, each with
-      its own navigator, editor, inspector and timeline. ⛔ **[T-0561] — NOT MET BY [T-0560].**
-- [ ] **AC5** — ⚠️ **[R-Q3]** ⛔ **[T-0561] — NOT MET BY [T-0560].** ✅ **Landing is its OWN window.** ⚠️ **Project windows are editor-only.**
+      its own navigator, editor, inspector and timeline. ✅ **[T-0561] — MET; ⚠️ proven by a harness
+      (9/9), ⛔ NOT yet on the rig.**
+- [x] **AC5** — ⚠️ **[R-Q3]** ✅ **[T-0561] — MET.** ✅ **Landing is its OWN window.** ⚠️ **Project windows are editor-only.**
       ✅ **`File ▸ New` / `File ▸ Open` from a project window RAISE Landing and trigger its EXISTING
       flow** — ⛔ **the flow is NOT reimplemented.**
-- [ ] **AC6** — ⛔ **[T-0561] — depends on AC5.** ✅ **Closing the LAST project window SHOWS Landing.** ⛔ **The app NEVER quits
+- [x] **AC6** — ✅ **[T-0561] — MET** (`projectWindowClosing()`). ✅ **Closing the LAST project window SHOWS Landing.** ⛔ **The app NEVER quits
       implicitly on a window close.**
-- [ ] **AC7** — ⚠️ **[R7]** ⛔ **Quit flushes EVERY open session, not one.** ✅ **`main.cpp:124`'s
+- [x] **AC7** — ⚠️ **[R7]** ⛔ **Quit flushes EVERY open session, not one.** ✅ **`main.cpp:124`'s
       `aboutToQuit → ScriviWindow::flushEditor` is SINGULAR BY CONSTRUCTION** (⚠️ `main.cpp:107`
       constructs ONE `ScriviWindow` by value) — ⛔ **it must be rewired to the registry.**
       ⚠️ **VERIFY WITH DIRTY SCENES IN BOTH WINDOWS.**
-- [ ] **AC8** — ⚠️ **[R8]** ✅ **Closing a project window calls `scrivi_close_project` for THAT
+- [x] **AC8** — ⚠️ **[R8]** ✅ **Closing a project window calls `scrivi_close_project` for THAT
       project** — ⛔ **and only that one.** ⚠️ **Linux already does this correctly for its single
       project; ✅ do not regress it** (⚠️ **Apple's failure to do this at all is [I-0233]**).
-- [ ] **AC9** — ⛔ **[T-0561] — there is only one window until AC4.** ⚠️ **N menu bars.** ✅ **`buildMenuBar()` / `updateMenuState()` become PER-WINDOW**,
+- [ ] **AC9** — ⛔ **NOT MET, NOT ATTEMPTED.** ⚠️ **N menu bars exist (each window builds its own), ⛔ but the inspector/timeline check-state sync was written for ONE window and needs a live pass ([SP-148]).** ✅ **`buildMenuBar()` / `updateMenuState()` become PER-WINDOW**,
       ⚠️ **including the `showInspectorAction_` / `showTimelineAction_` check-state sync** — ⛔ **which
       must reflect the state of THAT window's project, not the app's.**
-- [ ] **AC10** — ✅ **Every existing Linux smoke still passes.** ⚠️ **Assertions MAY change here
+- [x] **AC10** — ✅ **Every existing Linux smoke still passes.** ⚠️ **Assertions MAY change here
       (unlike [SP-145]) — ⛔ but each change must be NAMED in the progress log with its reason.**
-- [ ] **AC-build** — ✅ **Docker build clean; `ctest` GREEN as NON-ROOT in the tests-on image**
+- [x] **AC-build** — ✅ **Docker build clean; `ctest` GREEN as NON-ROOT in the tests-on image**
       (⚠️ `project_linux_container_tests_off`: the shipping Dockerfile builds `SCRIVI_BUILD_TESTS=OFF`,
       ⛔ so "the container is green" does NOT mean `ctest` ran). ✅ **Apple must still build** —
       ⚠️ **no ScriviCore change is expected, so an Apple break means something was touched that
@@ -151,6 +152,78 @@ Sprint is otherwise not adding.**
 ---
 
 ## Progress log
+
+### ✅ 2026-09-29 — T-0561 IMPLEMENTED — ⚠️ **LANDING IS ITS OWN WINDOW, AND A SECOND PROJECT WINDOW EXISTS**
+
+✅ **`LandingWindow`** (`platforms/linux/src/LandingWindow.{hpp,cpp}`) — ⚠️ **the Landing QML moved out
+of `ScriviWindow`'s `QStackedWidget` into its OWN top-level window ([R-Q3]).**
+⛔ **THAT STACK IS WHY A SECOND PROJECT HAD NOWHERE TO GO** ([I-0178]): ⚠️ **one window, Landing as
+page 0, a project as page 1.**
+
+✅ **Project windows are EDITOR-ONLY and created ON DEMAND** by `AppEnvironment::openProjectWindow()`,
+⚠️ **each a top-level window with NO PARENT** — ⛔ **parenting them to Landing would make them children
+that minimise and close with it; ✅ they are siblings.**
+
+✅ **`File ▸ New` / `File ▸ Open` now RAISE Landing** — ⛔ **they used to call `showLanding()` ON THE
+PROJECT WINDOW, replacing the manuscript the writer was looking at.** ⚠️ **With one window that read as
+"go back"; ✅ with N windows it would be destructive — she asked to open a DIFFERENT project, not to
+close this one.**
+
+#### ⚠️ TWO LIFECYCLE RULES THAT ARE EASY TO GET WRONG, AND BOTH ARE [R-Q3]'s
+
+1. ⛔ **CLOSING LANDING MUST NOT QUIT** while projects are open. ⚠️ **Qt quits when the last top-level
+   window closes** — ✅ **so `LandingWindow::closeEvent` HIDES and ignores the event whenever any
+   project window remains.** ⚠️ **A writer with two manuscripts open who closes Landing is tidying up,
+   ⛔ not quitting.**
+2. ⛔ **CLOSING THE LAST PROJECT WINDOW MUST NOT QUIT EITHER.** ✅ **`projectWindowClosing()` shows
+   Landing when the map empties** — ⚠️ **without it the app would vanish instead of returning to the
+   project list, ⛔ and R7 becomes much harder to reason about if a window close can become a quit.**
+
+#### ✅ AC4 PROVEN BY RUNNING — ⛔ not by reading
+
+⚠️ **A throwaway harness drove `AppEnvironment` directly (no QML, no synthetic input), linked against
+the app's own object files.** ✅ **9/9 checks, ALL PASS:**
+
+| Check | Result |
+| ----- | ------ |
+| two projects → **two DIFFERENT windows** | ✅ **PASS — ⚠️ this is AC4** |
+| window map holds **two** | ✅ **PASS** |
+| map resolves each projectID to its own window | ✅ **PASS** |
+| ⚠️ **R3 returns nullptr when the REGISTRY has no session** | ✅ **PASS — ⛔ proves the REGISTRY is authoritative, ⚠️ not the window map** |
+| closing a window **deregisters** it | ✅ **PASS — ⛔ no dangle** |
+
+⚠️ **THE FOURTH ROW IS THE ONE WORTH KEEPING:** ✅ **the window map alone would have answered "open",
+⛔ and it is deliberately NOT the authority** — ⚠️ **[EP-018] proved platform de-duplication could not
+be trusted (T-0191), and this harness shows the guard actually consults the registry.**
+
+⚠️ **THE APP ALSO LAUNCHES CLEAN** (`QT_QPA_PLATFORM=offscreen`, exit 0, ⛔ no QML errors) — ✅ **which
+is what proves the context properties (`appSupportRoot`, `defaultProjectsFolder`, `shell`) survived
+being re-homed onto the Landing window.**
+
+#### ✅ VERIFIED BY RUNNING
+
+| Check | Result |
+| ----- | ------ |
+| Docker build (shipping image) | ✅ **clean** |
+| ⚠️ **`ctest` — NON-ROOT (uid 1001), tests-ON image** | ✅ **641/641, 0 failed** |
+| Linux smokes | ✅ **23/23 PASS** |
+| ⚠️ **two-window harness** | ✅ **9/9 PASS** |
+| App launch (offscreen) | ✅ **exit 0, no QML errors** |
+| `scripts/check-package-boundary.sh` | ✅ **GREEN** |
+| Apple `xcodebuild -scheme ScriviApp` | ✅ **BUILD SUCCEEDED** |
+
+⚠️ **ASSERTION-CHANGE LEDGER: ✅ STILL EMPTY — ⛔ and that is now a LIMITATION, not a reassurance.**
+⚠️ **Nothing in the 23 smokes drives two windows** — ✅ **the harness had to be written from scratch to
+test AC4 at all, ⛔ and it is throwaway.** ⚠️ **[SP-148] must cover this on the rig.**
+
+#### ⛔ WHAT IS **NOT** DONE — AC9
+
+⛔ **AC9 (N menu bars) IS NOT MET AND WAS NOT ATTEMPTED.** ⚠️ **Each `QMainWindow` builds its own menu
+bar already (`buildMenuBar()` runs per window), so N windows DO get N menu bars** — ⛔ **but the
+inspector/timeline CHECK-STATE sync was written for one window and has not been re-examined under N.**
+✅ **It needs a live pass to assess honestly, ⚠️ which is [SP-148]'s.**
+
+---
 
 ### ⚠️ 2026-09-29 — T-0560 SPLIT, and the PLUMBING half IMPLEMENTED
 

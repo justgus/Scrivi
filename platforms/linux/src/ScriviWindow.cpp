@@ -51,20 +51,21 @@ void ShellController::openEditor(const QString& projectPath, const QString& titl
     // envelope means "the editor opens it itself"), there is no identity to compare
     // yet and the open proceeds; ✅ the session registration in `EditorShell` still
     // keeps the registry honest.
-    if (window_ == nullptr) {
+    // ⚠️ [SP-146] T-0561 — THE ENVIRONMENT OPENS THE WINDOW NOW, not this controller.
+    //
+    // ✅ `openProjectWindow()` enforces R3 (raise an already-open project) and
+    // otherwise creates a NEW editor-only window ([R-Q3]). ⛔ It no longer swaps the
+    // Landing window's own central widget, which is what made a second project
+    // impossible.
+    if (env_ != nullptr) {
+        env_->openProjectWindow(projectPath, title, openedProject);
         return;
     }
 
-    if (env_ != nullptr) {
-        const QString projectID = openedProject.value(QStringLiteral("projectID")).toString();
-        if (ScriviWindow* existing = env_->existingWindowFor(projectID)) {
-            // ✅ ALREADY OPEN — raise it instead of opening a second copy.
-            existing->raiseToFront();
-            return;
-        }
+    // ⚠️ FALLBACK — no app environment (tests). ✅ Behaves exactly as before.
+    if (window_ != nullptr) {
+        window_->showEditor(projectPath, title, openedProject);
     }
-
-    window_->showEditor(projectPath, title, openedProject);
 }
 
 // ---- ScriviWindow -----------------------------------------------------------
@@ -81,9 +82,15 @@ ScriviWindow::ScriviWindow(QQuickWidget* landing, QString appSupportRoot,
     resize(1220, 760);
 
     stack_ = new QStackedWidget(this);
-    // The QQuickWidget resizes with the view so the QML fills the window.
-    landing_->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    stack_->addWidget(landing_);   // page 0 — landing
+    // ⚠️ [SP-146] T-0561 — `landing` MAY BE NULL, and that is the new normal.
+    // ✅ A window created by `AppEnvironment::openProjectWindow()` is EDITOR-ONLY
+    // ([R-Q3]): Landing is its own window now, so a project window has no landing
+    // page to stack. ⛔ The first window still receives one, so the single-window
+    // path is unchanged until [SP-147] retires it.
+    if (landing_ != nullptr) {
+        landing_->setResizeMode(QQuickWidget::SizeRootObjectToView);
+        stack_->addWidget(landing_);   // page 0 — landing
+    }
     setCentralWidget(stack_);
 
     buildMenuBar();
@@ -113,8 +120,15 @@ void ScriviWindow::buildMenuBar()
         // Return to the landing page, then ask its QML to open the New Project panel.
         // showLanding() alone only shows the landing screen (== Close Project); the New
         // Project flow lives in the landing StackView, reachable only from QML.
-        flushEditor();   // never lose edits when leaving the editor
-        showLanding();
+        // ⚠️ [SP-146] T-0561 ([R-Q3]) — RAISE LANDING; ⛔ do NOT replace the
+        // manuscript in THIS window. ✅ The writer asked to create a DIFFERENT
+        // project, not to close this one.
+        flushEditor();   // never lose edits
+        if (env_ != nullptr) {
+            env_->showLanding();
+        } else {
+            showLanding();   // single-window fallback (tests)
+        }
         if (shell_ != nullptr) {
             shell_->requestNewProject();
         }
@@ -126,8 +140,13 @@ void ScriviWindow::buildMenuBar()
         // Return to landing, then run its Open flow (folder picker + open) — the same as
         // the landing's Open Project button. showLanding() alone would just show the
         // landing screen (== Close Project) without the file dialog.
-        flushEditor();   // never lose edits when leaving the editor
-        showLanding();
+        // ⚠️ [SP-146] T-0561 ([R-Q3]) — RAISE LANDING, same reasoning as New.
+        flushEditor();   // never lose edits
+        if (env_ != nullptr) {
+            env_->showLanding();
+        } else {
+            showLanding();   // single-window fallback (tests)
+        }
         if (shell_ != nullptr) {
             shell_->requestOpenProject();
         }
@@ -432,6 +451,24 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
 
 void ScriviWindow::showLanding()
 {
+    // ⚠️ [SP-146] T-0561 — AN EDITOR-ONLY WINDOW HAS NO LANDING PAGE TO SHOW.
+    //
+    // ✅ [R-Q3]: Landing is its own window. ⚠️ So "go to landing" from a project
+    // window means RAISE THAT WINDOW — ⛔ and this window CLOSES, because a project
+    // window with no project is not a thing this app has.
+    // ⚠️ `AppEnvironment::projectWindowClosing()` shows Landing when the last one
+    // goes, so closing here is safe: ⛔ the app never quits implicitly.
+    if (landing_ == nullptr) {
+        if (editor_ != nullptr) {
+            editor_->releaseProject();
+        }
+        if (env_ != nullptr) {
+            env_->showLanding();
+        }
+        close();
+        return;
+    }
+
     // ⚠️ This IS "Close Project" on Linux — the editor page is left behind and a
     // DIFFERENT project may be opened next, in the same process.
     // ✅ EP-039 T-0512: release the core's in-memory index for the outgoing project,
@@ -472,6 +509,12 @@ void ScriviWindow::closeEvent(QCloseEvent* event)
     // open forever, so it could never be reopened.
     if (editor_ != nullptr) {
         editor_->releaseProject();
+    }
+
+    // ⚠️ [SP-146] T-0561 — tell the app environment, so that when the LAST project
+    // window closes Landing is shown rather than the app quitting ([R-Q3]).
+    if (env_ != nullptr) {
+        env_->projectWindowClosing(this);
     }
     QMainWindow::closeEvent(event);
 }
