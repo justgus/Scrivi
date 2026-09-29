@@ -1872,7 +1872,32 @@ struct ManuscriptTextView: NSViewRepresentable {
             // equivalent, so it blocked the iOS port independently of performance.
             // ✅ `DividerTextAttachment` overrides the TextKit 2 sizing/imaging API, which is
             // `macos(12.0), ios(15.0)` — the SAME type on both platforms.
-            return DividerTextAttachment()
+            let attachment = DividerTextAttachment()
+
+            // ⛔ [I-0252] / T-0554 — THIS ONE LINE IS THE FIX, AND WITHOUT IT THE
+            // DIVIDER DRAWS NOTHING AT ALL.
+            //
+            // ⚠️ MEASURED 2026-09-29 by rendering a real `NSTextView` to a bitmap
+            // and sampling it: with no `image` PROPERTY set, TextKit 2 calls
+            // `attachmentBounds` (so the 24 pt gap IS reserved) but NEVER calls
+            // `image(for:)` — ⛔ `image(for:) calls = 0`, and an OPAQUE MAGENTA bar
+            // did not put a single pixel on the canvas.
+            //
+            // ✅ Setting a placeholder `image` makes TK2 take the image path; the
+            // `image(for:)` override then supplies the real, correctly-width-ed art
+            // per layout pass (measured: `image(for:) calls = 2`, 48 rows drawn).
+            // ⚠️ 1×1 is deliberate — the override always replaces it, so the
+            // placeholder's own size is never used and must not be mistaken for the
+            // divider's geometry (`attachmentBounds` owns that).
+            //
+            // ⚠️ WHY THIS TOOK THREE ATTEMPTS, recorded because the pattern is the
+            // lesson: the first fix blamed a dropped appearance guard, the second
+            // blamed `separatorColor`'s 1.34:1 contrast. ⛔ BOTH MEASUREMENTS WERE
+            // CORRECT AND BOTH ANSWERED THE WRONG QUESTION — the line was never
+            // being drawn, so no colour could have made it visible.
+            attachment.image = NSImage(size: NSSize(width: 1, height: 1))
+
+            return attachment
         }
 
         // MARK: — Cross-boundary Cut/Copy/Paste support (EP-029 SP-089, T-0354)
