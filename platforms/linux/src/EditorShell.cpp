@@ -2014,6 +2014,38 @@ void EditorShell::manageWorlds()
     dlg.exec();
 }
 
+// ⚠️ [I-0256] — the Scene Navigator's show/hide. ✅ USER-RULED MECHANISM.
+//
+// ⚠️ The user, 2026-09-29: *"You cannot hide the navigator, but you can set its
+// slider width to 0. That will be adequate. On macOS the mechanism is similar, you
+// are just sliding the navigator away so it doesn't show by operating its button."*
+//
+// ✅ AND THE SPLITTER ALREADY ALLOWS IT, which is why this is a menu item rather
+// than a mechanism: ⚠️ `setCollapsible(2, false)` is applied to the INSPECTOR ONLY
+// (index 2), ⛔ so the navigator at index 0 has been collapsible all along.
+// ✅ `setVisible(false)` collapses the pane to zero width inside the splitter and
+// the viewport (stretch=1) reclaims it — ⚠️ the SAME call `setInspectorVisible`
+// already makes, so the two panes behave identically.
+//
+// ⛔ SESSION-SCOPED, NOT PERSISTED — ⚠️ deliberately, and NOT by omission.
+// ✅ [I-0255] ruled that TIMELINE visibility should persist and is a `[Cross]`
+// defect on BOTH platforms; ⛔ the Navigator has had no ruling, and Apple's
+// `columnVisibility` is `@State` (per-view, in-memory) — ⚠️ so persisting Linux's
+// alone would invent a parity gap rather than close one.
+// ✅ [T-0556]'s focus-mode work is where all three panes get settled together.
+void EditorShell::setNavigatorVisible(bool visible)
+{
+    if (navigator_ == nullptr) {
+        return;
+    }
+    navigator_->setVisible(visible);
+}
+
+bool EditorShell::isNavigatorVisible() const
+{
+    return navigator_ != nullptr && navigator_->isVisible();
+}
+
 void EditorShell::setInspectorVisible(bool visible)
 {
     if (inspector_ == nullptr) {

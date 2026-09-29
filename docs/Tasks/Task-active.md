@@ -2,6 +2,47 @@
 
 ---
 
+## ✅ T-0563 — `[Linux]` **Scene Navigator show/hide ([I-0256])** — ✅ **Implemented 2026-09-29, NOT VERIFIED**
+
+⚠️ **NO SPRINT** — ✅ **taken standalone; ⛔ deliberately NOT folded into [SP-146]**, which closed the
+same day. ⚠️ **It is a small pane fix with its own proof, ✅ and [SP-146]'s ACs were already met.**
+
+✅ **`View ▸ Show Scene Navigator` (`Ctrl+Alt+N`)** — ⚠️ **joins `Ctrl+Alt+I` (inspector) and
+`Ctrl+Alt+T` (timeline).** ✅ **The Ctrl+Alt family is deliberate:
+`project_linux_vnc_input_constraints` records that the macOS→VNC path EATS Ctrl+Shift combos.**
+
+✅ **THE USER'S RULED MECHANISM, AND IT NEEDED NO NEW MACHINERY** — ⚠️ ***"you can set its slider width
+to 0. That will be adequate."*** ⛔ **`setCollapsible(2, false)` is applied to the INSPECTOR ONLY
+(`EditorShell.cpp:160`), ✅ so the navigator at index 0 has been collapsible all along** — ⚠️ **the work
+was a menu item and a per-window check-state sync, ⛔ not a mechanism.**
+
+✅ **MEASURED, ⛔ not assumed** (throwaway harness, 8/8 PASS):
+
+| | Result |
+| - | ------ |
+| navigator pane width, shown → hidden | ✅ **`240 → 0` px** |
+| viewport width | ✅ **RECLAIMS `572 → 816`** |
+| restore | ✅ **back to `240`** |
+| `isCollapsible(0)` / `isCollapsible(2)` | ✅ **true / false — ⚠️ the inspector's guard is untouched** |
+
+⚠️ **A HARNESS ERROR OF MINE, recorded:** ⛔ **the first run FAILED the two width checks** — ✅ **because
+`findChild<QSplitter*>()` returned the OUTER VERTICAL splitter (panes over timeline), not the inner
+three-pane row.** ⚠️ **Qt said so plainly (*"isCollapsible: Index 2 out of range"*) and I nearly read
+it as a code defect.** ✅ **Fixed by selecting the horizontal splitter with 3 panes.**
+
+⛔ **SESSION-SCOPED, NOT PERSISTED — ⚠️ deliberately, and NOT an omission.** ✅ **[I-0255] ruled
+TIMELINE visibility should persist and is a `[Cross]` defect on both platforms; ⛔ the Navigator has had
+no such ruling, ⚠️ and Apple's `columnVisibility` is `@State` (per-view, in-memory)** — ✅ **so
+persisting Linux's alone would INVENT a parity gap rather than close one.** ⚠️ **[T-0556]'s focus mode
+is where all three panes get settled together.**
+
+✅ **VERIFIED BY RUNNING:** ⚠️ **`ctest` 641/641 NON-ROOT** · ✅ **smokes 23/23** · ✅ **nav harness 8/8**
+· ✅ **boundary GREEN.** ⛔ **NOT user-Verified — ⚠️ needs the rig.**
+
+---
+
+---
+
 ## ✅ [SP-146] — T-0558 · T-0559 · T-0560 · T-0561 · T-0562 — ✅ **VERIFIED 2026-09-29, ARCHIVED**
 
 ✅ **All five USER-VERIFIED by live pass on the rig and ARCHIVED** →

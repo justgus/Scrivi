@@ -223,6 +223,21 @@ void ScriviWindow::buildMenuBar()
     // the macOS→VNC input path. Editor-only; the check-state is synced to the
     // editor's real inspector visibility in updateMenuState().
     QMenu* view = bar->addMenu(tr("&View"));
+
+    // ⚠️ [I-0256] — Show Scene Navigator. ⛔ THERE WAS NO CONTROL FOR THIS AT ALL.
+    // ✅ Found by the user's live pass 2026-09-29: *"there is no option to hide the
+    // Scene Navigator."*
+    // ⚠️ Ctrl+Alt+N joins Ctrl+Alt+I (inspector) and Ctrl+Alt+T (timeline) — ✅ the
+    // Ctrl+Alt family is deliberate: `project_linux_vnc_input_constraints` records
+    // that the macOS→VNC path EATS Ctrl+Shift combos, ⛔ so they cannot be used.
+    showNavigatorAction_ = view->addAction(tr("Show Scene Navigator"));
+    showNavigatorAction_->setCheckable(true);
+    showNavigatorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N));
+    connect(showNavigatorAction_, &QAction::toggled, this, [this](bool on) {
+        if (editor_ != nullptr) { editor_->setNavigatorVisible(on); }
+    });
+    editorOnlyActions_.append(showNavigatorAction_);
+
     showInspectorAction_ = view->addAction(tr("Show Inspector"));
     showInspectorAction_->setCheckable(true);
     showInspectorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_I));
@@ -370,6 +385,14 @@ void ScriviWindow::updateMenuState(bool editorActive)
     // Reflect the editor's real inspector visibility in the View ▸ Show Inspector
     // check-state whenever a project is active (block signals so syncing the box
     // doesn't re-drive setInspectorVisible). No editor → leave it unchecked.
+    // ⚠️ [I-0256] — same per-window check-state sync the other two panes get.
+    if (showNavigatorAction_ != nullptr) {
+        const bool shown = editorActive && editor_ != nullptr
+                           && editor_->isNavigatorVisible();
+        const QSignalBlocker block(showNavigatorAction_);
+        showNavigatorAction_->setChecked(shown);
+    }
+
     if (showInspectorAction_ != nullptr) {
         const bool shown = editorActive && editor_ != nullptr
                            && editor_->isInspectorVisible();

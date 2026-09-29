@@ -161,6 +161,21 @@ public:
     void setInspectorVisible(bool visible);
     bool isInspectorVisible() const;
 
+    // ⚠️ [I-0256] — THE SCENE NAVIGATOR'S VISIBILITY.
+    //
+    // ⛔ THERE WAS NO CONTROL FOR THIS AT ALL until 2026-09-29, and the reason is
+    // worth keeping: ⚠️ on Apple the Navigator is a `NavigationSplitView` COLUMN
+    // whose visibility belonged to SwiftUI, ⛔ not to the app — ✅ which is exactly
+    // why it was [I-0203], *"the one pane a writer could not get back"*.
+    // ⚠️ Linux's Navigator is a `QSplitter` PANE, so there was never an implicit
+    // mechanism to expose; ✅ the control had to be built.
+    //
+    // ✅ USER RULING 2026-09-29: ⛔ do NOT invent a hide mechanism —
+    // ⚠️ *"you can set its slider width to 0. That will be adequate."*
+    // ✅ `setVisible(false)` on a COLLAPSIBLE splitter pane does exactly that.
+    void setNavigatorVisible(bool visible);
+    bool isNavigatorVisible() const;
+
     // --- EP-025 Timeline Panel (SP-079, T-0323) ---------------------------
     //
     // Show/hide the bottom Timeline strip (a resizable pane below the
