@@ -108,6 +108,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ScriviCore PRIVATE OpenSSL::Crypto)
 endif()
 
+# [I-0216] (SP-151) — Apple's persistent SecureStore: the KEYCHAIN, via
+# Security.framework's C API. ⚠️ Until this, Apple fell through to the in-memory
+# PrototypeSecureStore and minted a NEW identity on every launch.
+# ✅ `APPLE` covers macOS, iOS and visionOS. ⚠️ The app links the static lib, so each
+# Xcode target must ALSO pass `-framework Security` (OTHER_LDFLAGS).
+if(APPLE)
+    target_sources(ScriviCore PRIVATE src/platform/KeychainSecureStore.cpp)
+    target_compile_definitions(ScriviCore PRIVATE SCRIVI_HAS_KEYCHAIN_SECURE_STORE)
+    target_link_libraries(ScriviCore PRIVATE "-framework Security" "-framework CoreFoundation")
+endif()
+
 target_link_libraries(ScriviCore
     PRIVATE
         nlohmann_json::nlohmann_json

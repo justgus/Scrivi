@@ -65,6 +65,7 @@ add_executable(ScriviCoreTests
     integration/FragmentPasteTests.cpp
     integration/FragmentCutTests.cpp
     integration/EncryptedSecureStoreTests.cpp
+    integration/KeychainSecureStoreTests.cpp
 )
 
 # SP-144 / [I-0231] — the read-amplification bounds live HERE, not in the test
@@ -99,6 +100,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(ScriviCoreTests PRIVATE SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
     find_package(OpenSSL 3 REQUIRED)
     target_link_libraries(ScriviCoreTests PRIVATE OpenSSL::Crypto)
+endif()
+
+# [I-0216] — KeychainSecureStore is Apple-only; same pattern as the Linux store above.
+if(APPLE)
+    target_compile_definitions(ScriviCoreTests PRIVATE SCRIVI_HAS_KEYCHAIN_SECURE_STORE)
 endif()
 
 target_include_directories(ScriviCoreTests

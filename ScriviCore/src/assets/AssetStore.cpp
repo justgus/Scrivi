@@ -5,6 +5,8 @@
 #include "util/PathUtils.hpp"
 #include "worlds/WorldStore.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <optional>
 
 namespace scrivi::assets {
@@ -240,6 +242,38 @@ Result<ListAssetsResult> AssetStore::list(const ListAssetsRequest& request) cons
 }
         }
     }
+
+    // ⚠️ [I-0218] — SORT, because nothing did: the order was whatever
+    // `listDirectory` returned, arbitrary and not stable across filesystems, and at
+    // 206 images the writer could not find a known one ("We should really order
+    // those alphabetically").
+    // ✅ RULED 2026-09-30: sorted HERE so every platform gets the same order, by the
+    // DISPLAYED name — `title`, falling back to `filename`, exactly as the picker
+    // renders it — ⛔ never by something the writer cannot see.
+    // ✅ Case-insensitive, so `PET2.png` files beside `pet1.png`. ⚠️ ASCII folding
+    // only: the core has no locale, so non-ASCII letters compare by code point.
+    // ✅ Ties broken by filename then assetID, so the order is TOTAL and stable.
+    // ⚠️ A UI remains free to re-sort by another key (ruled the same day).
+    auto folded = [](std::string_view text) {
+        std::string out(text);
+        std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        return out;
+    };
+    auto displayName = [](const ListedAsset& a) -> const std::string& {
+        return a.meta.title.empty() ? a.meta.filename : a.meta.title;
+    };
+    std::sort(result.assets.begin(), result.assets.end(),
+              [&](const ListedAsset& a, const ListedAsset& b) {
+                  const auto ka = folded(displayName(a));
+                  const auto kb = folded(displayName(b));
+                  if (ka != kb) { return ka < kb; }
+                  const auto fa = folded(a.meta.filename);
+                  const auto fb = folded(b.meta.filename);
+                  if (fa != fb) { return fa < fb; }
+                  return a.meta.assetID < b.meta.assetID;
+              });
 
     return Result<ListAssetsResult>::success(std::move(result));
 }

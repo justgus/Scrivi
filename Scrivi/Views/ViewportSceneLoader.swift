@@ -43,6 +43,10 @@ struct SceneSegment: Identifiable {
     // @ObservationIgnored: wiring, not view state.
     @ObservationIgnored weak var historyCapture: HistoryCapture?
 
+    // ⚠️ [T-0570] — called when a scene write FAILS, so the session can find out WHY
+    // (the project's drive gone) and warn the writer. Wiring, not view state.
+    @ObservationIgnored var onSaveFailed: (() -> Void)?
+
     // Full ordered scene list. Used by SceneNavigatorView to build the sidebar.
     private(set) var allScenes: [SceneInfo]
 
@@ -327,6 +331,13 @@ struct SceneSegment: Identifiable {
         }
     }
 
+    // ⚠️ [I-0259] — a caller whose OWN write failed hands the scene back as dirty, so
+    // the next save retries it instead of the edit living only in memory.
+    func markDirty(at index: Int) {
+        guard segments.indices.contains(index) else { return }
+        segments[index].isDirty = true
+    }
+
     // Called by ManuscriptTextView when the author edits text in a segment.
     func updateText(_ text: String, at index: Int) {
         guard segments.indices.contains(index) else { return }
@@ -356,19 +367,35 @@ struct SceneSegment: Identifiable {
         guard segments.indices.contains(index), segments[index].isDirty else { return }
         let seg = segments[index]
         let isCurrent = index == currentIndex
-        _ = try? engine.saveScene(
-            projectID: projectID,
-            projectRootPath: projectRootPath,
-            appSupportRoot: appSupportRoot,
-            sceneID: seg.sceneID,
-            sceneMetadataPath: seg.metadataPath,
-            sceneContentPath: seg.contentPath,
-            markdown: seg.text,
-            selectionAnchor: isCurrent ? currentSceneCursorOffset : 0,
-            selectionFocus: isCurrent ? currentSceneCursorOffset : 0,
-            scroll: isCurrent ? scrollFraction : 0,
-            authorshipRef: ref
-        )
+        // ⛔ [I-0259] — A FAILED WRITE MUST LEAVE THE SCENE DIRTY.
+        //
+        // This was `_ = try? engine.saveScene(…)` followed UNCONDITIONALLY by
+        // `isDirty = false`, a "WROTE" log line and `noteScenePersisted`. ⚠️ Found
+        // 2026-09-30 with the project's own drive pulled: every save failed
+        // ("Operation not permitted"), yet each scene was marked clean and history
+        // was told its bytes were on disk — so NOTHING retried when the drive came
+        // back, and the edits lived only in memory until quit discarded them.
+        // ✅ Now: on failure the scene stays dirty (the next save cadence retries
+        // it), the failure is logged as a failure, and history is NOT told.
+        do {
+            _ = try engine.saveScene(
+                projectID: projectID,
+                projectRootPath: projectRootPath,
+                appSupportRoot: appSupportRoot,
+                sceneID: seg.sceneID,
+                sceneMetadataPath: seg.metadataPath,
+                sceneContentPath: seg.contentPath,
+                markdown: seg.text,
+                selectionAnchor: isCurrent ? currentSceneCursorOffset : 0,
+                selectionFocus: isCurrent ? currentSceneCursorOffset : 0,
+                scroll: isCurrent ? scrollFraction : 0,
+                authorshipRef: ref
+            )
+        } catch {
+            NSLog("[SCRIVI-DIAG] saveSceneBlocking FAILED scene=\(seg.sceneID) — kept DIRTY: \(error)")
+            onSaveFailed?()
+            return
+        }
         NSLog("[SCRIVI-DIAG] saveSceneBlocking WROTE scene=\(seg.sceneID) isCurrent=\(isCurrent)")
         segments[index].isDirty = false
 
@@ -451,19 +478,25 @@ struct SceneSegment: Identifiable {
         // and place the cursor safely).
         let offset = cursorIsHere ? currentSceneCursorOffset : 0
 
-        _ = try? engine.saveScene(
-            projectID: projectID,
-            projectRootPath: projectRootPath,
-            appSupportRoot: appSupportRoot,
-            sceneID: seg.sceneID,
-            sceneMetadataPath: seg.metadataPath,
-            sceneContentPath: seg.contentPath,
-            markdown: seg.text,
-            selectionAnchor: offset,
-            selectionFocus: offset,
-            scroll: scrollFraction,
-            authorshipRef: ref
-        )
+        // ⛔ [I-0259] — only a write that SUCCEEDED may be reported to history.
+        do {
+            _ = try engine.saveScene(
+                projectID: projectID,
+                projectRootPath: projectRootPath,
+                appSupportRoot: appSupportRoot,
+                sceneID: seg.sceneID,
+                sceneMetadataPath: seg.metadataPath,
+                sceneContentPath: seg.contentPath,
+                markdown: seg.text,
+                selectionAnchor: offset,
+                selectionFocus: offset,
+                scroll: scrollFraction,
+                authorshipRef: ref
+            )
+        } catch {
+            NSLog("[SCRIVI-DIAG] stampWritingSurface FAILED scene=\(seg.sceneID): \(error)")
+            return
+        }
         NSLog("[SCRIVI-DIAG] stampWritingSurface WROTE scene=\(seg.sceneID) cursorIsHere=\(cursorIsHere) offset=\(offset)")
         // I-0104: this path writes the scene file too, so it must report the bytes it
         // wrote — otherwise a scene stamped here keeps a stale baseline and re-flags as

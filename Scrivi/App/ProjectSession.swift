@@ -68,6 +68,13 @@ import os
     var chapterStartAction: (() -> Void)?
     var chapterEndAction:   (() -> Void)?
 
+    // ⚠️ [T-0568] — Go to Manuscript Start / End (2026-09-30).
+    // ✅ The WHOLE manuscript is one text view, so this is the caret's first/last
+    // character. ⚠️ Menu-only (user ruling 2026-09-30: the toolbar buttons read as
+    // Scene Start/End). ✅ The navigator follows on its own (`SceneNavigatorView`).
+    var manuscriptStartAction: (() -> Void)?
+    var manuscriptEndAction:   (() -> Void)?
+
     // Scene a pending deep link wants selected once the project is open.
     // EditorView observes this and forwards it into its navigation.
     var pendingNavigationSceneID: String?
@@ -268,6 +275,8 @@ import os
         ScriviDiag.measure("viewportLoader = loader (@Observable)") {
             viewportLoader = loader
         }
+        // ⚠️ [T-0570] — a failed write is the first sign the project's drive has gone.
+        loader.onSaveFailed = { [weak self] in self?.refreshProjectAvailability() }
         NSLog("[SCRIVI-TIMING] <<< done: viewportLoader assignment")
         let prefs = ProjectPreferences(projectID: result.projectID)
         // Show the real project.json title instead of "Untitled" (I-0093). The backend now returns
@@ -410,6 +419,40 @@ import os
         historyCapture = nil
     }
 
+    // MARK: — [T-0570] Project availability (user request, 2026-09-30)
+
+    /// True while this project's OWN folder cannot be reached — its drive unplugged.
+    ///
+    /// ⚠️ Found on the real rig 2026-09-30: with the drive pulled, every read failed with a
+    /// raw *"Operation not permitted"* (the SANDBOX refusing a path whose grant went with
+    /// the volume) and every save failed SILENTLY ([I-0259]). ✅ This drives the red banner,
+    /// the writer-facing message, and the quit / close-window guards.
+    private(set) var projectUnavailable = false
+
+    /// Scenes holding edits that have not reached disk.
+    var unsavedSceneCount: Int {
+        viewportLoader?.segments.filter(\.isDirty).count ?? 0
+    }
+
+    /// Re-checks whether the project folder is reachable. ✅ Called from the SAME triggers
+    /// that re-acquire worlds (activation, mount, unmount — `AppEnvironment.reconnectWorlds`)
+    /// and from a failed save.
+    ///
+    /// ⚠️ When the folder comes BACK, every scene kept dirty while it was gone is saved at
+    /// once — ✅ the writer's typing reaches disk without her having to touch those scenes.
+    func refreshProjectAvailability() {
+        guard let path = projectRootPath, !path.isEmpty else { return }
+        let reachable = ProjectAvailability.isReachable(path)
+        let wasUnavailable = projectUnavailable
+        if projectUnavailable != !reachable {
+            NSLog("[SCRIVI-DIAG] project availability: \(reachable ? "REACHABLE" : "UNAVAILABLE") \(path)")
+            projectUnavailable = !reachable
+        }
+        if wasUnavailable && reachable {
+            Task { @MainActor in await self.saveAllDirty() }
+        }
+    }
+
     func saveAllDirty() async {
         guard let loader = viewportLoader, let ref = authorshipRef else { return }
 
@@ -452,5 +495,32 @@ import os
         } catch {
             log.error("extract FAILED: \(String(describing: error), privacy: .public)")
         }
+    }
+}
+
+
+// MARK: — [T-0570] Project availability, as the writer should hear it
+
+enum ProjectAvailability {
+    /// ✅ RULED 2026-09-30. ⛔ Never "missing" or "not found" for a drive that may only be
+    /// unplugged ([I-0115]: a confident wrong status invites destructive remedies).
+    static let title = "Project File Not Available"
+    static let detail = "This project's drive isn't connected. Your changes are being kept, "
+        + "but they can't be saved until you reconnect it."
+
+    /// ⚠️ `fileExists` is false both for an unmounted volume AND for a path the sandbox now
+    /// refuses (EPERM once the volume's grant is gone) — ✅ exactly the two cases meant.
+    static func isReachable(_ projectRootPath: String) -> Bool {
+        FileManager.default.fileExists(atPath: projectRootPath)
+    }
+
+    /// The message to show for a failed read: the ruled wording when the PROJECT itself is
+    /// unreachable, ⛔ never the raw *"Operation not permitted"* ([I-0260]); otherwise the
+    /// error's own description.
+    static func writerMessage(for error: Error, projectRootPath: String) -> String {
+        if !projectRootPath.isEmpty && !isReachable(projectRootPath) {
+            return "\(title). \(detail)"
+        }
+        return error.localizedDescription
     }
 }

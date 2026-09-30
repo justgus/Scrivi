@@ -11,6 +11,9 @@
 #if defined(SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
 #include "platform/EncryptedFileSecureStore.hpp"
 #endif
+#if defined(SCRIVI_HAS_KEYCHAIN_SECURE_STORE)
+#include "platform/KeychainSecureStore.hpp"
+#endif
 #include "schemas/RepairIssueJson.hpp"
 #include "schemas/SceneMetaJson.hpp"   // T-0549 — patch re-reads the one changed sidecar
 #include "schemas/ObjectJson.hpp"
@@ -96,9 +99,16 @@ struct PrototypeSecureStore final : public scrivi::SecureStore {
 
 // Selects the persistent SecureStore where one is available (Linux/POSIX:
 // EncryptedFileSecureStore under <appSupportRoot>/secure, so the local identity
-// survives process restart — SP-059 / AC4). Platforms without a persistent store
-// wired here fall back to the in-memory PrototypeSecureStore.
+// survives process restart — SP-059 / AC4; Apple: the Keychain — [I-0216]).
+// Platforms without a persistent store wired here fall back to the in-memory
+// PrototypeSecureStore.
 static std::unique_ptr<scrivi::SecureStore> makeSecureStore() {
+#if defined(SCRIVI_HAS_KEYCHAIN_SECURE_STORE)
+    // ⚠️ [I-0216] — Apple minted a NEW identity every launch until this: it fell
+    // through to the in-memory store below. ✅ The production service name; tests
+    // construct their own store with a different one and never reach this.
+    return std::make_unique<scrivi::platform::KeychainSecureStore>();
+#endif
 #if defined(SCRIVI_HAS_ENCRYPTED_SECURE_STORE)
     auto rootR = scrivi::util::platformDefault();
     if (rootR.ok()) {

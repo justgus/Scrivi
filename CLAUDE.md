@@ -94,9 +94,10 @@ The approved architecture uses a **shared C++23 static library (ScriviCore)** as
 The Swift/Apple layer is a thin wrapper over ScriviCore's **C ABI**. All Apple-platform source lives in `Scrivi/` at the repo root, owned directly by `Scrivi.xcodeproj`. There is no SPM package (`platforms/apple/` is stale).
 
 - `ScriviEngine.swift` (`Scrivi/Engine/`) calls the `scrivi_*` C functions directly, converts Swift types, decodes JSON envelopes, throws `ScriviError`.
-- ⚠️ **SecureStore is NOT persistent on Apple** — `makeSecureStore()` (`scrivi_c_api.cpp`) is gated to Linux,
-  so macOS falls back to the in-memory `PrototypeSecureStore` and the local identity is re-minted every
-  launch. ✅ **[I-0216]**, unruled. Apple's `KeychainSecureStore` was **deleted** and does not exist.
+- ✅ **SecureStore on Apple is the KEYCHAIN** ([I-0216], ruled 2026-09-30, SP-151): a C++
+  `KeychainSecureStore` in `ScriviCore/src/platform/` (Security.framework C API), selected by
+  `makeSecureStore()` under `if(APPLE)`. Linux uses `EncryptedFileSecureStore`. ⚠️ Its tests are HIDDEN
+  (`[.keychain]`) because they touch the real login keychain — run `ScriviCoreTests "[keychain]"`.
 - App source in `Scrivi/App/` and `Scrivi/Views/`. Interop tests in `Scrivi/Tests/`.
 - `Scrivi.xcworkspace` is the entry point — open this, not the xcodeproj directly.
 - SwiftUI for all UI on Apple platforms (macOS active; iOS/visionOS targets stubbed, in progress)

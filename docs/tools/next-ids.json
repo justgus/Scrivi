@@ -1,11 +1,11 @@
 {
   "_comment": "Authoritative next-available tracking IDs. Claude assigns from here; the tracking documents no longer restate these figures. Inspect this file, or run `python3 docs/tools/next-id.py --peek`, to see what is next.",
-  "_updated": "2026-09-29",
+  "_updated": "2026-09-30",
   "next": {
     "epic": 49,
-    "sprint": 148,
-    "task": 568,
-    "issue": 258
+    "sprint": 152,
+    "task": 571,
+    "issue": 264
   },
   "format": {
     "epic": "EP-%03d",
@@ -13,5 +13,5 @@
     "task": "T-%04d",
     "issue": "I-%04d"
   },
-  "_reserved": "SP-148 is RESERVED for [EP-043]'s serial chain (S4 verification). ⚠ The sprint counter is a HIGH-WATER MARK, not a free-list. ✅ SP-145 CLOSED 2026-09-29; SP-146 CLOSED 2026-09-29; SP-147 ACTIVATED 2026-09-29."
+  "_reserved": "SP-148 is RESERVED for [EP-043]'s serial chain (S4 verification). ⚠ The sprint counter is a HIGH-WATER MARK, not a free-list. ✅ SP-145 CLOSED 2026-09-29; SP-146 CLOSED 2026-09-29; SP-147 ACTIVATED 2026-09-29. ⚠ 2026-09-30: SP-151 taken for the Apple batch; the counter was moved PAST 149/150 (already used) so the tool cannot re-issue them. SP-148 stays RESERVED."
 }

@@ -60,7 +60,10 @@ struct WorldsView: View {
 
             Divider()
 
-            if worlds.isEmpty {
+            // ⛔ [I-0262] — only a SUCCESSFUL read may say "no worlds". After a failed
+            // one the list is empty because nothing could be read, and saying "uses no
+            // worlds" beside the error told the writer something false.
+            if worlds.isEmpty && loadError == nil {
                 Text("This project uses no worlds yet.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -185,7 +188,10 @@ struct WorldsView: View {
             Button(role: .destructive) {
                 pendingRemoval = world
             } label: {
+                // ✅ Red (user request, 2026-09-30) — ⚠️ `role: .destructive` alone does
+                // NOT tint a BORDERLESS image button on macOS, so it rendered grey.
                 Image(systemName: "minus.circle")
+                    .foregroundStyle(.red)
             }
             .buttonStyle(.borderless)
             .help("Remove this world from the project")
@@ -201,7 +207,9 @@ struct WorldsView: View {
             loadError = nil
         } catch {
             worlds = []
-            loadError = error.localizedDescription
+            // ⚠️ [I-0260] — the ruled wording when the project's drive is gone.
+            loadError = ProjectAvailability.writerMessage(for: error,
+                                                          projectRootPath: projectRootPath)
         }
     }
 

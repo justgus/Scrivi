@@ -33,6 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // manifest can be frozen to the still-open set BEFORE windows tear down (R4 / T-0195).
     @MainActor static var onWillTerminate: (() -> Void)?
 
+    // ⚠️ [T-0570] — asked before quitting; false CANCELS the quit (edits that cannot be
+    // saved because the project's drive is gone). Set by ScriviApp at launch.
+    @MainActor static var onShouldTerminate: (() -> Bool)?
+
     // ⚠️ T-0546 — AN UNCAUGHT-EXCEPTION HANDLER, so a layout fault does not take the
     // writer's work with it silently.
     //
@@ -61,10 +65,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             for line in exception.callStackSymbols {
                 NSLog("[SCRIVI-FATAL]   %@", line)
             }
-            // Best effort, and deliberately guarded: the handler runs on whatever thread
-            // threw, and the app is already going down.
-            MainActor.assumeIsolated {
-                AppDelegate.onWillTerminate?()
+            // ⚠️ [I-0202] — THIS HANDLER RUNS ON WHATEVER THREAD THREW.
+            //
+            // ⛔ `MainActor.assumeIsolated` ASSERTS main-actor isolation; it does not
+            // establish it. It used to run here unconditionally, so an exception thrown
+            // off the main thread TRAPPED inside the handler — killing the process before
+            // the freeze below could run, the one thing this handler exists to do.
+            // ✅ So: freeze only when we genuinely are on the main thread.
+            // ⛔ NOT `DispatchQueue.main.sync` — at a crash the main thread may be blocked
+            // or waiting on this one, and a deadlock would lose the log lines above too.
+            // ⚠️ Skipping it off-main loses little: the manifest is also written on every
+            // project open and close (`persistOpenManifest`).
+            // ✅ The delegate's own `assumeIsolated` calls are NOT this case: they are
+            // main-actor isolated by `NSApplicationDelegate` (proven by compile check).
+            if Thread.isMainThread {
+                MainActor.assumeIsolated {
+                    AppDelegate.onWillTerminate?()
+                }
+            } else {
+                NSLog("[SCRIVI-FATAL] exception off the main thread — session manifest not re-frozen (I-0202)")
             }
         }
     }
@@ -106,6 +125,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             AppDelegate.onOpenURLs?(urls)
         }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        (AppDelegate.onShouldTerminate?() ?? true) ? .terminateNow : .terminateCancel
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -195,6 +218,11 @@ struct ScriviApp: App {
         }
         // Freeze the restore manifest at quit, before windows tear down.
         AppDelegate.onWillTerminate = { env.beginTermination() }
+        // [T-0570] — warn before quitting with edits the pulled drive cannot receive.
+        AppDelegate.onShouldTerminate = {
+            env.confirmDiscardingUnsavable(in: Array(env.openProjects.sessions.values),
+                                           action: "Quit")
+        }
         #endif
         // Restore projects open at last quit (R4 / T-0195). On iOS this surfaces the
         // most-recent project into the single window via the active session.
@@ -240,6 +268,14 @@ struct ScriviApp: App {
             }
             .keyboardShortcut(",", modifiers: .command)
             .disabled(focusedSession == nil)
+
+            // ⚠️ [T-0568] — ruled 2026-09-30: the Project menu. ⛔ NO key equivalent: a
+            // menu ⌘↑/⌘↓ would intercept the text view's own (see the Scene menu's note).
+            Divider()
+            Button("Go to Manuscript Start") { focusedSession?.manuscriptStartAction?() }
+                .disabled(focusedSession?.manuscriptStartAction == nil)
+            Button("Go to Manuscript End") { focusedSession?.manuscriptEndAction?() }
+                .disabled(focusedSession?.manuscriptEndAction == nil)
         }
 
         // Worlds menu (EP-031 SP-099 T-0408) — Doc 2 §7.3.

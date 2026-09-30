@@ -2,6 +2,24 @@
 
 ---
 
+## 🟡 [SP-151] — T-0568 · T-0569 — ⚠️ **ACTIVE 2026-09-30** `[Apple]`
+
+✅ **Sprint record:** → [`../Sprints/Sprint-SP-151.md`](../Sprints/Sprint-SP-151.md). ⚠️ Also carries
+[I-0202], [I-0216], [I-0217], [I-0218] (Issues — tracked in `Issue-active.md`).
+
+| ID | Title | Status |
+| -- | ----- | ------ |
+| **T-0568** | ✅ **Go to Manuscript Start / End** — `Project` menu ONLY (⛔ toolbar group REMOVED by user ruling 2026-09-30: read as Scene Start/End) | ✅ **Implemented - Not Verified** (2026-09-30) — ✅ user: *"Manuscript start/end both work ok"*; ⚠️ navigator half moved to [I-0258] |
+| **T-0570** | ✅ **Project-drive-lost warning** — ⚠️ user request 2026-09-30: *"surface a more stringent warning… since now any typing the writer does cannot be saved to disk"*, and replace the raw *"Operation not permitted"* ([I-0260]). ⚠️ Builds on [I-0259] (failed saves now stay dirty) | ✅ **Implemented - Not Verified** (2026-09-30) — ✅ **RULED:** wording *"Project File Not Available"*; keep typing under a RED, non-dismissable TOP banner (⚠️ **BANNER PULLED 2026-09-30 on a WRONG diagnosis** — the layout break was the [I-0261] phantom world + pre-existing [I-0263]; placement waits on [I-0263]); WARN before quit (and before closing the window — same loss). ✅ Detection reuses `reconnectWorlds`' triggers (activate/mount/unmount) + a failed save; on reconnect every kept-dirty scene is SAVED automatically and the banner clears |
+| **T-0569** | ✅ **Scene navigator search** — always-visible field at the BOTTOM of the navigator; filters by scene body, derived scene title and chapter title, over the app's LIVE text (✅ ruled 2026-09-30) | 🔵 **Not started** |
+
+⚠️ **Why T-0568 matters to the writer:** with 1,000+ scenes, reaching the start or end of the manuscript
+meant scrolling both the text and the navigator by hand. ✅ **The navigator deliberately does NOT follow
+the caret** ([I-0132]), ⚠️ so this command uses the one path that is ALLOWED to move it — a navigation
+driven from another surface ([I-0161]).
+
+---
+
 ## 🟡 [SP-147] — T-0565 · T-0566 · T-0567 — ⚠️ **ACTIVE 2026-09-29** — ✅ **ALL THREE IMPLEMENTED 2026-09-30, awaiting verification**
 
 ✅ **Sprint record:** → [`../Sprints/Sprint-SP-147.md`](../Sprints/Sprint-SP-147.md). ✅ **[EP-043] S3 of 4.**

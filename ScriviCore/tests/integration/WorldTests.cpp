@@ -1218,3 +1218,60 @@ TEST_CASE("⚠️ an ORDINARY deleted world still reports missing (T-0498 must n
     auto res = store.resolve(fix.root(), w.worldID);
     REQUIRE(res.status == WorldStatus::missing);
 }
+
+// ---------------------------------------------------------------------------
+// [I-0261] — a FAILED read of the project's worlds is never "no worlds"
+// ---------------------------------------------------------------------------
+
+TEST_CASE("⛔ an UNREADABLE worlds directory FAILS the list — never 'uses no worlds' (I-0261)",
+          "[integration][SP-151][I-0261]") {
+    // ⚠️ Found 2026-09-30 with the PROJECT's own drive pulled: the existence check
+    // failed, was read as "never used worlds", and the sheet said so with no error.
+    WorldFixture fix;
+    fix.makeWorld();
+
+    HostDownFileSystem driveGone{fix.fileSystem, WorldStore::worldsDir(fix.root())};
+    CoreServices svc = fix.services;
+    svc.fileSystem = &driveGone;
+    WorldStore store{svc};
+
+    REQUIRE_FALSE(store.listBoundWorldIDs(fix.root()).ok());
+    REQUIRE_FALSE(store.listWorlds(fix.root()).ok());
+}
+
+TEST_CASE("⛔ a world whose BINDING cannot be read stays LISTED as unavailable (I-0261)",
+          "[integration][SP-151][I-0261]") {
+    // ⚠️ `listWorlds` used to `continue` past it — a success that silently dropped
+    // a bound world.
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+
+    HostDownFileSystem bindingGone{
+        fix.fileSystem, WorldStore::worldsDir(fix.root()) + "/" + w.worldID};
+    CoreServices svc = fix.services;
+    svc.fileSystem = &bindingGone;
+    WorldStore store{svc};
+
+    auto list = store.listWorlds(fix.root());
+    REQUIRE(list.ok());
+    REQUIRE(list.value().size() == 1);
+    REQUIRE(list.value()[0].worldID == w.worldID);
+    REQUIRE(list.value()[0].status == WorldStatus::unavailable);
+    REQUIRE(list.value()[0].statusReason == "hostUnreachable");
+}
+
+TEST_CASE("✅ a REMOVED world (empty directory, no binding) is NOT listed (I-0261 regression)",
+          "[integration][SP-151][I-0261]") {
+    // ⛔ My first I-0261 fix listed this as `unavailable`. `removeReference` deletes
+    // only `binding.json`, so every removed world leaves exactly this shape behind —
+    // and the phantom's warning bar broke the editor layout on every open.
+    WorldFixture fix;
+    auto w = fix.makeWorld();
+    WorldStore store{fix.services};
+    REQUIRE(store.removeReference(fix.root(), w.worldID).ok());
+    REQUIRE(fs::exists(fs::path(WorldStore::worldsDir(fix.root())) / w.worldID));   // left behind
+
+    auto list = store.listWorlds(fix.root());
+    REQUIRE(list.ok());
+    REQUIRE(list.value().empty());
+}

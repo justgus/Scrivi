@@ -137,6 +137,9 @@ struct SceneNavigatorView: View {
                 // helped and one where it actively fought her. Scene-to-scene reveal is
                 // the manuscript's job (`navigateToScene` centres the text), not the
                 // list's.
+                // ⚠️ SUPERSEDED IN PART 2026-09-30: the list now FOLLOWS the viewport with
+                // `anchor: nil` (see the `viewportSceneID` handler below) — ✅ the nudge
+                // above was the `.center` anchor's, which a minimal scroll cannot cause.
                 if let sceneID = loader.viewportSceneID {
                     proxy.scrollTo("scene-\(sceneID)", anchor: .center)
                 }
@@ -182,11 +185,28 @@ struct SceneNavigatorView: View {
                     if pendingReveal == requested { pendingReveal = nil }
                 }
             }
-            // Reveal when the row actually BECOMES the highlighted one — the same
-            // signal the highlight itself uses, so the two can never disagree.
+            // ⚠️ [T-0568 finding, user ruling 2026-09-30] — THE LIST FOLLOWS THE
+            // MANUSCRIPT: whenever the highlighted scene changes, keep its row VISIBLE.
+            //
+            // ⛔ The writer's report: scrolling the manuscript moved the highlight onto
+            // rows BELOW (or above) the list's viewport, and the list never followed —
+            // so "where am I?" had no visible answer. `Go to Manuscript End` failed the
+            // same way.
+            //
+            // ⚠️ THIS IS NOT THE REVEAL [I-0132] REMOVED, and the difference is the
+            // anchor. That one used `anchor: .center`, which RE-CENTRES a row even when
+            // it is already visible — so every click nudged the list. ✅ `anchor: nil`
+            // scrolls the MINIMUM distance and does NOTHING for a visible row, so a
+            // click on a row she can see cannot move the list.
+            // ✅ It keys on `viewportSceneID` — the SAME signal the highlight uses — so
+            // the revealed row and the highlighted row can never disagree. (A reveal
+            // aimed at a DIFFERENT scene is what broke `Manuscript End`: at the end the
+            // viewport's scene can be an earlier one than the last.)
+            // ✅ Subsumes the I-0161 deferred reveal below, which is kept only to clear
+            // its pending state.
             .onChange(of: loader.viewportSceneID) { _, sceneID in
-                guard let sceneID, sceneID == pendingReveal else { return }
                 pendingReveal = nil
+                guard let sceneID else { return }
                 proxy.scrollTo("scene-\(sceneID)", anchor: nil)
             }
         }

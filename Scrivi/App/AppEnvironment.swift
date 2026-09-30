@@ -508,6 +508,9 @@ import UniformTypeIdentifiers
     /// already-active URL is a no-op.
     func reconnectWorlds() {
         for (_, session) in openProjects.sessions {
+            // ⚠️ [T-0570] — the PROJECT first: its drive coming back is what lets the
+            // kept edits be saved, and its going is what the red banner reports.
+            session.refreshProjectAvailability()
             activateWorlds(for: session)
             // T-0523 / [I-0207] half (b): the pending-edge sweep is the expensive part
             // and it now runs OFF the main thread. `activateWorlds` above stays
@@ -548,6 +551,31 @@ import UniformTypeIdentifiers
         DispatchQueue.main.async { [weak self] in self?.reconnectScheduled = false }
         reconnectWorlds()
     }
+
+    #if os(macOS)
+    /// ⚠️ [T-0570] — ruled 2026-09-30: WARN before quitting or closing a window while edits
+    /// cannot be saved because the project's drive is gone. ✅ Returns true to proceed.
+    /// ⚠️ Re-checks availability first: if the drive is BACK, nothing is lost — the normal
+    /// quit/close path saves — so no prompt.
+    func confirmDiscardingUnsavable(in sessions: [ProjectSession], action: String) -> Bool {
+        var unsaved = 0
+        for s in sessions {
+            s.refreshProjectAvailability()
+            if s.projectUnavailable { unsaved += s.unsavedSceneCount }
+        }
+        guard unsaved > 0 else { return true }
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "Some changes can't be saved"
+        alert.informativeText = "\(unsaved) scene\(unsaved == 1 ? " has" : "s have") changes that "
+            + "can't be saved because the project's drive isn't connected. Reconnect the drive "
+            + "first, or \(action.lowercased()) and lose those changes."
+        alert.addButton(withTitle: "Cancel")            // ✅ the DEFAULT — nothing lost
+        let proceed = alert.addButton(withTitle: "\(action) Anyway")
+        proceed.hasDestructiveAction = true
+        return alert.runModal() == .alertSecondButtonReturn
+    }
+    #endif
 
     /// True only within one run-loop turn of a `coalescedReconnectWorlds()` call.
     private var reconnectScheduled = false

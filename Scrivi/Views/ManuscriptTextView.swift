@@ -122,6 +122,16 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let tv = textView else { return }
             coordinator?.takeFocus(); coordinator?.moveToChapterBoundary(.end, in: tv)
         }
+        // ⚠️ [T-0568] — Manuscript Start / End. ✅ Same take-focus-first discipline; the
+        // navigator follows the viewport on its own.
+        session.manuscriptStartAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveToManuscriptBoundary(.start, in: tv)
+        }
+        session.manuscriptEndAction = { [weak coordinator, weak textView] in
+            guard let tv = textView else { return }
+            coordinator?.takeFocus(); coordinator?.moveToManuscriptBoundary(.end, in: tv)
+        }
 
         let scroll = NSScrollView()
         scroll.documentView = textView
@@ -1024,7 +1034,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                         let tailText = splitTail(of: currentText, at: splitOffsetInSeg)
 
                         // Save head into current scene.
-                        _ = try? env.engine.saveScene(
+                        // ⛔ [I-0259] — success is CAPTURED: `splitScene` marks both halves
+                        // clean ("saved by caller"), so a failed half is re-marked dirty below.
+                        let headSaved = (try? env.engine.saveScene(
                             projectID: proj.projectID,
                             projectRootPath: rootPath,
                             appSupportRoot: env.appSupportRoot,
@@ -1033,9 +1045,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                             sceneContentPath: currentSeg.contentPath,
                             markdown: headText,
                             authorshipRef: ref
-                        )
+                        )) != nil
                         // Save tail into new scene.
-                        _ = try? env.engine.saveScene(
+                        let tailSaved = (try? env.engine.saveScene(
                             projectID: proj.projectID,
                             projectRootPath: rootPath,
                             appSupportRoot: env.appSupportRoot,
@@ -1044,8 +1056,10 @@ struct ManuscriptTextView: NSViewRepresentable {
                             sceneContentPath: result.contentPath,
                             markdown: tailText,
                             authorshipRef: ref
-                        )
+                        )) != nil
                         let newIdx = loader.splitScene(result, at: segIdx, headText: headText, tailText: tailText)
+                        if !headSaved { loader.markDirty(at: segIdx) }   // [I-0259]
+                        if !tailSaved { loader.markDirty(at: newIdx) }
                         loader.setCurrentIndex(newIdx)
                         insertDividerAndMoveCursor(after: segIdx, placeCursorAtStart: true)
                     }
@@ -1168,7 +1182,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                         let tailText = splitTail(of: currentText, at: splitOffsetInSeg)
 
                         // Save head into current scene.
-                        _ = try? env.engine.saveScene(
+                        // ⛔ [I-0259] — success is CAPTURED: `splitScene` marks both halves
+                        // clean ("saved by caller"), so a failed half is re-marked dirty below.
+                        let headSaved = (try? env.engine.saveScene(
                             projectID: proj.projectID,
                             projectRootPath: rootPath,
                             appSupportRoot: env.appSupportRoot,
@@ -1177,9 +1193,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                             sceneContentPath: currentSeg.contentPath,
                             markdown: headText,
                             authorshipRef: ref
-                        )
+                        )) != nil
                         // Save tail into new chapter's first scene.
-                        _ = try? env.engine.saveScene(
+                        let tailSaved = (try? env.engine.saveScene(
                             projectID: proj.projectID,
                             projectRootPath: rootPath,
                             appSupportRoot: env.appSupportRoot,
@@ -1188,7 +1204,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                             sceneContentPath: result.firstSceneContentPath,
                             markdown: tailText,
                             authorshipRef: ref
-                        )
+                        )) != nil
 
                         // Capture old chapter ID before splitScene changes the segment.
                         let oldChapterID = loader.segments.indices.contains(segIdx)
@@ -1203,6 +1219,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                         )
                         let newIdx = loader.splitScene(chapterFirstResult, at: segIdx,
                                                        headText: headText, tailText: tailText)
+                        if !headSaved { loader.markDirty(at: segIdx) }   // [I-0259]
+                        if !tailSaved { loader.markDirty(at: newIdx) }
                         // Re-assign subsequent scenes in the old chapter to the new chapter.
                         loader.splitChapter(result, movingFrom: newIdx, oldChapterID: oldChapterID)
                         // Fix chapter titles in-memory — engine wrote correct ordinals to disk.
@@ -1828,6 +1846,14 @@ struct ManuscriptTextView: NSViewRepresentable {
                 ? sceneBoundaries[first].location
                 : sceneBoundaries[last].location + sceneBoundaries[last].length
             placeCursorAt(target, in: tv)
+        }
+
+        // ⚠️ [T-0568] — the manuscript's first or last character.
+        // ✅ The end is measured in UTF-16 (`NSString.length`), the unit `NSRange` uses —
+        // ⛔ not `String.count`, which counts Characters and falls SHORT of the true end
+        // whenever the text holds an emoji or a combining mark.
+        func moveToManuscriptBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
+            placeCursorAt(edge == .start ? 0 : (tv.string as NSString).length, in: tv)
         }
 
         // Place cursor at a given NSTextStorage offset and take focus.

@@ -1,5 +1,13 @@
 # Active Sprints
 
+🟡 **[SP-151] ACTIVE 2026-09-30** `[Apple]` → [`Sprint-SP-151.md`](Sprint-SP-151.md) — ⚠️ the Apple issue
+batch ([I-0202], [I-0216], [I-0217], [I-0218]) + long-manuscript navigation ([T-0568], [T-0569]).
+🟡 **[SP-147] ACTIVE 2026-09-29** `[Linux]` → [`Sprint-SP-147.md`](Sprint-SP-147.md) — ✅ **implementation
+complete 2026-09-30**; ⚠️ **awaiting the rig** (down) for its live pass.
+⚠️ **The "NO SPRINT IS ACTIVE" note below is SUPERSEDED** — it predates SP-147's activation.
+
+---
+
 ✅ **[SP-146] CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md).
 ✅ **ALL ELEVEN ACs MET; ⚠️ LIVE PASS PASSED on the rig** — ✅ ***"I tested it on the rig and it
 passed."*** ✅ **T-0558 · T-0559 · T-0560 · T-0561 · T-0562 VERIFIED and archived** →

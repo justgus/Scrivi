@@ -217,8 +217,12 @@ Result<WorldBindingRecord> WorldStore::loadBinding(const AbsolutePath& projectRo
     auto compute = [&]() -> Result<WorldBindingRecord> {
         auto textR = services_.fileSystem->readTextFile(path);
         if (!textR.ok()) {
+            // ⚠️ [I-0261] — code and message unchanged (callers rely on them), but the
+            // read's REASON is kept: an unreachable drive and a never-bound world are
+            // different facts, and `listWorlds` now reports the first honestly.
             return Result<WorldBindingRecord>::failure(
-                {.code = ErrorCode::invalidArgument, .message = "world not bound: " + worldID});
+                {.code = ErrorCode::invalidArgument, .message = "world not bound: " + worldID,
+                 .detail = textR.error().detail});
         }
         return schemas::parseWorldBinding(textR.value());
     };
@@ -248,7 +252,16 @@ WorldStore::listBoundWorldIDs(const AbsolutePath& projectRoot) const {
     std::vector<std::string> out;
 
     auto dir = worldsDir(projectRoot);
-    if (auto e = fs_.exists(dir); !e.ok() || !e.value()) {
+    auto e = fs_.exists(dir);
+    // ⛔ [I-0261] — A FAILED CHECK IS NOT "NO WORLDS". This read `!e.ok() || !e.value()`
+    // and returned an EMPTY SUCCESS for both. ⚠️ Found 2026-09-30 with the project's own
+    // drive pulled: the check failed ("Operation not permitted"), the sheet received a
+    // clean empty list with no error, and told the writer *"This project uses no worlds
+    // yet."* ✅ Absence is never inferred from a failed read (I-0183).
+    if (!e.ok()) {
+        return Result<std::vector<std::string>>::failure(e.error());
+    }
+    if (!e.value()) {
         // A project that never used worlds does nothing here (§4.5).
         return Result<std::vector<std::string>>::success(std::move(out));
     }
@@ -534,8 +547,36 @@ WorldStore::listWorlds(const AbsolutePath& projectRoot) const {
 
     std::vector<WorldSummary> out;
     for (const auto& id : idsR.value()) {
+        // ⚠️ [I-0261] — TWO DIFFERENT FACTS, and they must not be conflated.
+        //
+        // ✅ Binding file POSITIVELY ABSENT (the directory read fine and holds none):
+        // NOT a bound world. ⚠️ This is the NORMAL state after "Remove Reference" —
+        // `removeReference` deletes only `binding.json` and leaves the directory — so
+        // every world a writer has ever removed looks like this. ⛔ My first I-0261 fix
+        // listed these as `unavailable`, resurrecting removed worlds as phantoms; the
+        // resulting world-warning bar broke the editor layout on EVERY open (user
+        // report 2026-09-30: all three panels taller than the window, Timeline gone).
+        //
+        // ✅ Binding present but UNREADABLE, or its existence cannot be established:
+        // UNKNOWN, not absent — kept, as `unavailable`.
+        const auto bp = bindingPath(projectRoot, id);
+        if (auto present = services_.fileSystem->exists(bp); present.ok() && !present.value()) {
+            continue;
+        }
+
         auto bindingR = loadBinding(projectRoot, id);
-        if (!bindingR.ok()) { continue; }
+        if (!bindingR.ok()) {
+            // ⛔ NEVER DROP A WORLD WHOSE BINDING COULD NOT BE READ. This was `continue`,
+            // which made it vanish — a success that silently under-reports. ✅ It stays,
+            // as `unavailable` (the honest default: cause undetermined), with the reason.
+            WorldSummary s;
+            s.worldID      = id;
+            s.displayName  = id;
+            s.status       = WorldStatus::unavailable;
+            s.statusReason = bindingR.error().detail;
+            out.push_back(std::move(s));
+            continue;
+        }
 
         WorldSummary s;
         s.worldID       = id;

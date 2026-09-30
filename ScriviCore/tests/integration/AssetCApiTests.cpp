@@ -943,3 +943,40 @@ TEST_CASE("C ABI: the kind-scope endpoint agrees with what the object endpoints 
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// [I-0218] — list_assets is SORTED by the name the writer SEES
+// ---------------------------------------------------------------------------
+
+TEST_CASE("C ABI: list_assets is ordered case-insensitively by displayed title, across categories",
+          "[integration][SP-151][I-0218]") {
+    // ⚠️ Before I-0218 nothing sorted: the order was whatever `listDirectory`
+    // returned. ✅ Ruled 2026-09-30: sort in the CORE by the DISPLAYED name —
+    // `title`, falling back to `filename` — case-insensitively.
+    // ⚠️ Imported in a deliberately scrambled order, and across TWO categories, so
+    // a per-category or insertion-order result cannot pass by accident.
+    AssetCApiFixture fix;
+    struct Item { const char* file; const char* category; const char* title; };
+    const Item items[] = {
+        {"a.png",     "image",    "zebra"},
+        {"z.pdf",     "document", "apple"},
+        {"PET2.png",  "image",    "PET2"},
+        {"Myton.png", "image",    ""},        // no title → displayed as its filename
+        {"q.png",     "image",    "pet1"},
+    };
+    for (const auto& it : items) {
+        const auto src = fix.writeSource(it.file, "FAKE");
+        okResult(scrivi_import_asset(fix.root(), src.c_str(), it.category, it.title,
+                                     "identity-001", "persona-001", "Test Author", "", ""));
+    }
+
+    auto listed = okResult(scrivi_list_assets(fix.root(), "", ""));
+    REQUIRE(listed.arraySize("assets") == 5);
+    std::vector<std::string> shown;
+    for (std::size_t i = 0; i < 5; ++i) {
+        auto item = listed.arrayItem("assets", i);
+        const auto title = item.getString("title");
+        shown.push_back(title.empty() ? item.getString("filename") : title);
+    }
+    REQUIRE(shown == std::vector<std::string>{"apple", "Myton.png", "pet1", "PET2", "zebra"});
+}

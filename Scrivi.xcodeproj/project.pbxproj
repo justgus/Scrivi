@@ -884,6 +884,8 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lScriviCore",
+					"-framework",
+					Security,
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
@@ -915,6 +917,8 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lScriviCore",
+					"-framework",
+					Security,
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;

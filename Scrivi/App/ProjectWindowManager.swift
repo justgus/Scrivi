@@ -196,6 +196,12 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
     }
 
     // NSWindowDelegate: fires for every close path (red button, ⌘W, window.close()).
+    // ⚠️ [T-0570] — closing the window closes the project, which loses edits the pulled
+    // drive could not receive exactly as quitting does, so it is guarded the same way.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        env?.confirmDiscardingUnsavable(in: [session], action: "Close") ?? true
+    }
+
     func windowWillClose(_ notification: Notification) {
         // Persist final size/position before teardown so reopening this project restores it
         // (I-0051). Quit-time also routes through here as each window closes.
@@ -343,6 +349,10 @@ private struct ProjectWindowContent: View {
                 Label("Scene", systemImage: "plus.rectangle")
             }
         }
+
+        // ⛔ [T-0568] NO Manuscript toolbar group — REMOVED by user ruling 2026-09-30: its
+        // buttons read as Scene Start/End. ✅ The commands live in the Project menu only,
+        // and ⌘↑/⌘↓ already reach the manuscript's ends from the text view.
 
         // Chapter — mirrors the Chapter menu (ScriviApp.swift:220-231).
         ToolbarItemGroup {

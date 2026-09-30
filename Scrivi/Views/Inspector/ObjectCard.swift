@@ -251,8 +251,11 @@ struct ObjectCardKind: Sendable, Hashable {
                       + "Reconnect it to see these entries."
         } catch {
             // Report in place; the stack keeps rendering (§7.1).
+            // ⚠️ [I-0260] — the ruled wording when the PROJECT's drive is gone, ⛔ never
+            // the raw "Operation not permitted", which read as an authentication error.
             entries = []
-            loadError = error.localizedDescription
+            loadError = ProjectAvailability.writerMessage(for: error,
+                                                          projectRootPath: projectRootPath)
         }
     }
 
@@ -447,7 +450,11 @@ struct ObjectCardBody: View {
                 }
 
                 let entries = model.sorted(by: context.sort)
-                if entries.isEmpty {
+                // ⛔ [I-0262] — "No … in this scene yet" is a claim about the scene, and
+                // only a SUCCESSFUL read can make it. After a failed one (the project's
+                // drive pulled, 2026-09-30) it sat under the error, stating the opposite
+                // of the truth: there were characters, they just could not be read.
+                if entries.isEmpty && model.loadError == nil {
                     // §2: empty is a normal state, not an error. Nothing is ever
                     // inferred into this card from the scene's text.
                     Text("No \(cardKind.title.lowercased()) in this scene yet.")
