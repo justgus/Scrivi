@@ -34,6 +34,8 @@ qt_add_executable(scrivi_linux
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
@@ -184,11 +186,31 @@ target_compile_features(scrivi_linux PRIVATE cxx_std_23)
 # persist across a simulated restart. Driven by the persistence_smoke.sh script
 # (two passes against one temp $XDG_DATA_HOME). Does not open a window — but links
 # Widgets because ScriviBridge references QFileDialog (chooseFolder), unused here.
+# session_store_smoke (EP-043 / SP-147, T-0565) — the SessionStore round-trip.
+# ⚠️ SessionStore owns NO widgets, so this needs Core only: no Gui, no display.
+# ✅ Driven by session_store_smoke.sh (two passes over one temp root — the
+# "restart" case, proving the FILE carries the session, not process memory).
+qt_add_executable(scrivi_linux_session_store_smoke
+    tests/session_store_smoke.cpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+)
+
+target_link_libraries(scrivi_linux_session_store_smoke
+    PRIVATE
+        Qt6::Core
+)
+
+target_include_directories(scrivi_linux_session_store_smoke PRIVATE src)
+target_compile_features(scrivi_linux_session_store_smoke PRIVATE cxx_std_23)
+
 qt_add_executable(scrivi_linux_persistence_smoke
     tests/persistence_smoke.cpp
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
@@ -217,6 +239,8 @@ qt_add_executable(scrivi_linux_lifecycle_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
@@ -246,6 +270,8 @@ qt_add_executable(scrivi_linux_scene_load_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -296,6 +322,8 @@ qt_add_executable(scrivi_linux_scene_save_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -322,6 +350,8 @@ qt_add_executable(scrivi_linux_scene_create_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -353,6 +383,8 @@ qt_add_executable(scrivi_linux_scene_delete_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -384,6 +416,8 @@ qt_add_executable(scrivi_linux_scene_rename_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -418,6 +452,8 @@ qt_add_executable(scrivi_linux_scene_reorder_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -449,6 +485,8 @@ qt_add_executable(scrivi_linux_chapter_reorder_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -481,6 +519,8 @@ qt_add_executable(scrivi_linux_scene_merge_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -513,6 +553,8 @@ qt_add_executable(scrivi_linux_timeline_story_time_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -541,6 +583,8 @@ qt_add_executable(scrivi_linux_story_structure_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -572,6 +616,8 @@ qt_add_executable(scrivi_linux_bridge_parity_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -601,6 +647,8 @@ qt_add_executable(scrivi_linux_timeline_events_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
@@ -677,6 +725,8 @@ qt_add_executable(scrivi_linux_scene_inspector_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp
@@ -707,6 +757,8 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
@@ -772,6 +824,8 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/RecentsStore.cpp
     src/RecentsStore.hpp
@@ -835,6 +889,8 @@ qt_add_executable(scrivi_linux_inspector_fixture
     src/AppSupport.cpp
     src/AppSupport.hpp
     src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
     src/ProjectWindowManager.hpp
     src/ObjectKindScope.cpp
     src/ObjectKindScope.hpp

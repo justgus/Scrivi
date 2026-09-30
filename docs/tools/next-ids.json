@@ -3,8 +3,8 @@
   "_updated": "2026-09-29",
   "next": {
     "epic": 49,
-    "sprint": 147,
-    "task": 565,
+    "sprint": 148,
+    "task": 568,
     "issue": 258
   },
   "format": {
@@ -13,5 +13,5 @@
     "task": "T-%04d",
     "issue": "I-%04d"
   },
-  "_reserved": "SP-147–SP-148 are RESERVED for [EP-043]'s serial chain (S3 persistence, S4 verification) and are allocated IN ORDER as each activates. ⚠ The sprint counter is a HIGH-WATER MARK, not a free-list: it read 152 on 2026-09-27 because SP-149/SP-150 were created for EP-040/EP-041 work while SP-145–148 sat reserved and unused. ⛔ Do NOT 'correct' it upward again — an Epic's reserved block is named in its own record and in Sprint-backlog.md, and honouring those beats a counter. ✅ SP-145 CLOSED 2026-09-29; SP-146 ACTIVATED 2026-09-29."
+  "_reserved": "SP-148 is RESERVED for [EP-043]'s serial chain (S4 verification). ⚠ The sprint counter is a HIGH-WATER MARK, not a free-list. ✅ SP-145 CLOSED 2026-09-29; SP-146 CLOSED 2026-09-29; SP-147 ACTIVATED 2026-09-29."
 }
