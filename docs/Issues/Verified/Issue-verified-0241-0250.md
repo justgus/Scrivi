@@ -2,6 +2,7 @@
 
 Issues the user has VERIFIED, archived out of `Issue-active.md`.
 ⚠️ **A new decade.** ✅ **I-0231–I-0240 are in [`Issue-verified-0231-0240.md`](Issue-verified-0231-0240.md).**
+✅ **I-0251–I-0260 are in [`Issue-verified-0251-0260.md`](Issue-verified-0251-0260.md).**
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |

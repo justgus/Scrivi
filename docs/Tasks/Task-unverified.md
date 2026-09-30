@@ -41,63 +41,6 @@ which is what it claims.**
 
 ---
 
-## 🟠 T-0554 — `[Apple]` ✅ **Divider visibility ([I-0252])** — ✅ **FIXED 2026-09-29 (third attempt), NOT VERIFIED**
-
-⛔ **THE CAUSE WAS FOUND BY MEASUREMENT, AND IT WAS NEITHER OF THE FIRST TWO DIAGNOSES.**
-✅ **MEASURED by rendering a REAL `NSTextView` to a bitmap and sampling it** — ⚠️ **not a screenshot,
-⛔ not documentation:**
-
-| Probe | Result |
-| ----- | ------ |
-| engine | ✅ **TextKit 2** |
-| `attachmentBounds` calls | ✅ **1 — ⚠️ the 24 pt gap IS reserved** |
-| ⛔ **`image(for:)` calls** | ⛔ **ZERO** |
-| ⛔ **an OPAQUE MAGENTA bar on the canvas** | ⛔ **0 pixels** |
-
-⛔ **THE LINE WAS NEVER BEING DRAWN AT ALL** — ⚠️ **TK2 reserved its height and drew nothing, ✅ which
-presents as a GAP between scenes, not a faint line.** ⛔ **So no colour could ever have fixed it.**
-
-### ✅ THE FIX — one line
-
-```swift
-attachment.image = NSImage(size: NSSize(width: 1, height: 1))
-```
-
-⚠️ **A placeholder `image` PROPERTY makes TK2 take the image path; ✅ the `image(for:)` override then
-supplies the real, correctly-width-ed art per layout pass** (⚠️ measured: `image(for:) calls = 2`).
-⚠️ **1×1 is deliberate — ⛔ the override always replaces it, so the placeholder's size is never used
-and must not be mistaken for the divider's geometry (`attachmentBounds` owns that).**
-
-### ✅ PROVEN WITH THE APP'S REAL DRAWING CODE, ⛔ not the probe
-
-⚠️ **Sampling a column PAST the text so glyphs cannot be counted:**
-
-| Appearance | ⛔ without the fix | ✅ with the fix |
-| ---------- | ------------------ | -------------- |
-| **DARK** | ⛔ **0 drawn rows** | ✅ **2** (⚠️ 1 pt stroke + one antialiased row) |
-| **LIGHT** | ⛔ **0 drawn rows** | ✅ **2** |
-
-✅ **THE TWO EARLIER FIXES WERE KEPT AND ARE NOT WASTED** — ⚠️ **`secondaryLabelColor` (`5.89 : 1`
-Dark) and the half-pixel alignment were correctly measured; ⛔ they were invisible behind a line that
-never drew.** ✅ **Now that it draws, they are what make it READABLE.**
-
-### ⚠️ Why this took three attempts — ✅ the lesson
-
-⛔ **1:** [T-0526] dropping [I-0112]'s appearance guard. ✅ **Disproven by measurement.**
-⛔ **2:** `separatorColor` at `1.34 : 1`. ✅ **Correct arithmetic, ⛔ wrong layer.**
-✅ **3:** *"does it draw AT ALL?"* — ⚠️ **the question [EP-045]'s design doc said to ask FIRST.**
-⚠️ **`feedback_prove_code_is_reached`: *"it didn't change anything" meant it wasn't running.*** ⛔ **The
-same class, twice, on one Issue.**
-
-✅ **VERIFIED:** ⚠️ **`xcodebuild -scheme ScriviApp` → BUILD SUCCEEDED** · ✅ **pixel measurement, both
-appearances.** ⛔ **`xcodebuild test` NOT RUN** — ⚠️ **[I-0150]: the runner LAUNCHES the app and once
-rewrote a real project.** ✅ **View-layer drawing, no ScriviCore involvement; ⚠️ the pixel measurement
-is the stronger evidence anyway.**
-⛔ **NOT user-Verified — ✅ the user is in Dark Mode and can confirm by eye.**
-⚠️ **STILL SUPERSEDED BY the ruled CONFIGURABLE GLYPH** — ✅ **this restores VISIBILITY only.**
-✅ **[EP-045] AC2's diagnostic obligation is DISCHARGED.**
-
----
 
 
 ## ✅ [SP-145] — T-0551 · T-0552 · T-0553 — ✅ **VERIFIED 2026-09-29, ARCHIVED**
@@ -110,8 +53,8 @@ is the stronger evidence anyway.**
 ✅ **[EP-043] S1 of 4 COMPLETE.**
 
 ⚠️ **ONE Task still awaits verification: ✅ [T-0555]** (`[Apple]` engine stub parity) — ⚠️ **above.**
-✅ **[T-0554] WAS FIXED 2026-09-29 on the third attempt** (⚠️ **above**) — ⛔ **the cause was that the
-divider was never DRAWN, not that it was the wrong colour.**
+✅ **[T-0554] VERIFIED 2026-09-29 and ARCHIVED** →
+[`Verified/Task-verified-0554-0564.md`](Verified/Task-verified-0554-0564.md).
 
 ---
 
