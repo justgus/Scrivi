@@ -305,6 +305,36 @@ private struct ManuscriptEditorView: View {
                 // it, never about this one.
                 .frame(maxWidth: .infinity, maxHeight: .infinity)  // layout-ok: the manuscript absorbs the remaining width; it IS the axis, not a claimant on it
             }
+            // ⛔ [I-0263] — THE WORLD WARNING IS AN OVERLAY, NOT A `safeAreaBar`.
+            //
+            // ⚠️ As a second stacked bottom `safeAreaBar` (T-0545) it made the WHOLE editor lay
+            // out taller than its window the moment it appeared — all three columns clipped at
+            // the top, the Timeline and the bar itself pushed off the bottom — ✅ and the user
+            // proved by bisect (2026-09-30) that it had done so since `8586582`: the failure
+            // hides exactly the two things that would reveal it. ⛔ Maximising did not cure it.
+            // ⛔ As a `VStack` sibling it was [I-0203]: its appearance moved everything.
+            //
+            // ✅ An overlay takes part in NO layout negotiation — it cannot resize or push
+            // anything, which is the whole class of defect both earlier shapes fell into.
+            // ✅ User ruling 2026-09-30: *"make it translucent and ZStack it so it appears
+            // above the existing components."* ⚠️ Cost, accepted: while shown it covers the
+            // last lines of the VISIBLE manuscript (scrollable, and the bar is dismissable).
+            // ⚠️ Attached to the manuscript BEFORE the Timeline's bar, so it sits along the
+            // manuscript's bottom edge, just above the Timeline.
+            .overlay(alignment: .bottom) {
+                if session.worldWarningVisible, session.worldWarning.isVisible {
+                    WorldWarningView(model: session.worldWarning) {
+                        session.showWorlds = true
+                    }
+                }
+            }
+            // ⛔ [T-0570] — THE PROJECT'S OWN DRIVE IS GONE: red, at the TOP, not dismissable.
+            // ✅ An OVERLAY for the same reason as the world warning ([I-0263]).
+            .overlay(alignment: .top) {
+                if session.projectUnavailable {
+                    ProjectUnavailableBanner(unsavedScenes: session.unsavedSceneCount)
+                }
+            }
 
             // ⚠️ T-0545 / [I-0203] — THE TIMELINE IS A `safeAreaBar` TOO.
             //
@@ -312,9 +342,8 @@ private struct ManuscriptEditorView: View {
             // taking stack space. ✅ As a bar it INSETS instead — the manuscript keeps its
             // layout and simply has less visible height.
             //
-            // ⚠️ INSIDE the world-warning bar (attached after this one, so nearer the content):
-            // the Timeline is FURNITURE a writer leaves on, the warning is TRANSIENT. Q2 ruled
-            // the transient bar outermost so its appearance moves the fewest stable surfaces.
+            // ⚠️ [I-0263] — now the ONLY bottom bar. The world warning is an overlay on the
+            // manuscript (above); two stacked bottom bars overflowed the window.
             //
             // ⚠️ Its visibility remains its OWN (`session.timelineVisible`) and is deliberately
             // NOT tied to the warning strip (SP-102 R1). Converting both to bars must not couple
@@ -387,34 +416,8 @@ private struct ManuscriptEditorView: View {
             }
             #endif
             }
-            // ⚠️ T-0545 / [I-0203] — THE BANNER IS A `safeAreaBar`, NOT A STACK SIBLING.
-            //
-            // ⛔ IT USED TO SIT INSIDE THE VSTACK ABOVE, between the manuscript and the Timeline.
-            // A sibling TAKES vertical space from the stack it joins, so the banner appearing
-            // pushed on everything sharing that stack — which is why [I-0203] read as FOUR bugs
-            // (Nav Bar, Inspector tab bar, Timeline and a stray title panel all moving at once)
-            // rather than one structural mistake.
-            //
-            // ✅ A safe-area bar INSETS the content instead. The manuscript gets smaller; nothing
-            // else moves.
-            //
-            // ⚠️ BELOW THE TIMELINE, DELIBERATELY (user ruling Q2, 2026-09-22). This REVERSES the
-            // old order — the previous comment read "ABOVE the Timeline" — because a warning is
-            // TRANSIENT and the Timeline is FURNITURE: putting the transient thing outermost means
-            // its appearance disturbs the fewest stable surfaces, which is exactly AC2's subject.
-            // ⚠️ The old note's reasoning (visible whether or not the Timeline shows) is satisfied
-            // either way, and still holds: this bar has its OWN visibility (SP-102 R1) and is not
-            // tied to the Timeline's.
-            //
-            // ⚠️ It renders only when a bound world is actually unavailable, so in normal use the
-            // bar does not exist and costs no space at all.
-            .safeAreaBar(edge: .bottom) {
-                if session.worldWarningVisible, session.worldWarning.isVisible {
-                    WorldWarningView(model: session.worldWarning) {
-                        session.showWorlds = true
-                    }
-                }
-            }
+            // ⛔ [I-0263] — the world warning USED TO BE a second `.safeAreaBar(edge: .bottom)`
+            // here (T-0545). It is now an OVERLAY on the manuscript, above — see the note there.
             #if os(iOS)
             if UIDevice.current.userInterfaceIdiom != .phone && session.inspectorVisible {
                 inspector(loader: loader)

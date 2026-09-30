@@ -39,6 +39,9 @@ unfalsifiable: *"nothing else moves"* cannot be proven while any bar is still a 
 ## ✅ How it was verified — ⚠️ **both halves, checked separately**
 
 ✅ **APPEARING:** *"The banners all appeared in the correct places and did not deform the UI."*
+⛔ **SUPERSEDED 2026-09-30 by [I-0263]:** with a world ACTUALLY unavailable, the world-warning bar (as a second
+stacked bottom `safeAreaBar`) laid the editor out taller than the window — ⚠️ reproduced on `8586582`, this
+Task's own commit. The failure hides the bar and the Timeline, which is how it passed. ✅ Now an overlay.
 ✅ **DISMISSING:** *"I closed the banner and only the timeline adjusted its size."*
 
 ⚠️ **THE SECOND RESULT IS THE PROOF, NOT A CAVEAT.** ✅ **The Timeline is the INNER bar, so it

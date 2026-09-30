@@ -137,6 +137,26 @@ same `safeAreaBar` mechanism [I-0263] implicates, so it waits for that finding. 
 ✅ Everything else in [T-0570] stays: the failed-save detection, auto-save on reconnect, the ruled
 wording, and the quit / close-window guards.
 
+### ✅ 2026-09-30 — [I-0263] fixed as an OVERLAY; red banner restored — USER PASS
+
+✅ **[I-0263]:** the world warning is an `.overlay(alignment: .bottom)` on the manuscript (user ruling:
+*"translucent… ZStack it"*); ⛔ its amber bleed into the Timeline fixed with `ignoresSafeAreaEdges: []`.
+✅ User: *"banner appeared, only over ManuscriptView. timeline no change… banner went away."*
+✅ **[T-0570] red banner** restored as a TOP overlay. ✅ User: project drive pulled → red banner; cards show
+the drive-unavailable message; drive restored → banner and warnings disappear.
+✅ **THEN EXERCISED — ALL PASS:** typing while the drive is out (every scene kept dirty and counted), ✅ the
+kept edits **saved automatically on reconnect** ([I-0259]'s payoff), ✅ the Quit AND close-window guards
+(Cancel aborts; Quit Anyway discards), ✅ the ruled wording confirmed.
+
+✅ **2026-09-30 — USER-DIRECTED: [I-0216], [I-0217], [I-0218], [I-0263] VERIFIED and ARCHIVED**
+(`Verified/Issue-verified-0211-0220.md`, new `Verified/Issue-verified-0261-0270.md`).
+✅ **ALSO VERIFIED (user-directed, same day): [I-0261], [I-0262], [T-0568]** — archived
+(`Verified/Issue-verified-0261-0270.md`, `../Tasks/Verified/Task-verified-0568.md`).
+✅ **AND VERIFIED (user-reported passes): [I-0258], [I-0259], [I-0260], [T-0570]** — archived.
+⚠️ **Only [I-0202] remains unverified** (the off-main exception path cannot be triggered on demand), and
+**[T-0569] (search) is not started.**
+⚠️ `Task-verified-0545.md` annotated: its *"did not deform the UI"* is SUPERSEDED by [I-0263].
+
 ⏳ **[T-0569] (search) NOT STARTED** — awaiting the index-vs-brute-force ruling.
 
 ⚠️ **2026-09-30 — Sprint created and ACTIVATED.**

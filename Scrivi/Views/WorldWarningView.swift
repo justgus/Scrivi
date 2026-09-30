@@ -201,7 +201,15 @@ struct WorldWarningView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.orange.opacity(0.10))
+        // ⚠️ [I-0263] — now an OVERLAY on the manuscript, so it must read over TEXT:
+        // a material behind the orange tint, ⛔ not the tint alone (which let the
+        // manuscript show through).
+        // ⛔ `ignoresSafeAreaEdges: []` — a ShapeStyle background EXTENDS INTO THE SAFE
+        // AREA BY DEFAULT (`.all`), and the Timeline's bar IS the bottom safe area: the
+        // first build painted the Timeline amber until the warning was dismissed
+        // (user, 2026-09-30).
+        .background(.orange.opacity(0.10), ignoresSafeAreaEdges: [])
+        .background(.regularMaterial, ignoresSafeAreaEdges: [])
         .overlay(alignment: .top) { Divider() }
         // Non-blocking by construction: it is a strip in the layout, never a sheet,
         // never an alert, and it never takes focus from the manuscript.
@@ -224,5 +232,42 @@ struct WorldWarningView: View {
                 ? "1 link is held pending"
                 : "\(row.pendingCount) links are held pending")
         return "“\(row.displayName)” is \(row.status.writerDescription). \(links)."
+    }
+}
+
+
+// MARK: — [T-0570] The project-drive-lost banner
+
+/// ⛔ The PROJECT's own drive is gone — the writer's typing is NOT reaching disk.
+/// ✅ Ruled 2026-09-30: red, not dismissable, wording *"Project File Not Available"*.
+/// ⚠️ Shown as an OVERLAY at the TOP of the manuscript ([I-0263]): ⛔ its first form, a
+/// `.safeAreaBar(edge: .top)`, was pulled the same day. It clears itself when the drive
+/// returns, after the kept edits are saved (`ProjectSession.refreshProjectAvailability`).
+struct ProjectUnavailableBanner: View {
+    let unsavedScenes: Int
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "externaldrive.badge.exclamationmark")
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(ProjectAvailability.title)
+                    .font(.headline)
+                Text(ProjectAvailability.detail + (unsavedScenes > 0
+                     ? " \(unsavedScenes) scene\(unsavedScenes == 1 ? "" : "s") waiting to be saved."
+                     : ""))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // ⛔ `ignoresSafeAreaEdges: []` — otherwise the red runs up behind the toolbar,
+        // the same default that painted the Timeline amber.
+        .background(Color.red, ignoresSafeAreaEdges: [])
+        .accessibilityElement(children: .combine)
     }
 }
