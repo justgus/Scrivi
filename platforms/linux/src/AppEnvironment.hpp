@@ -3,6 +3,8 @@
 #include <QFileInfo>
 #include <QHash>
 #include <QList>
+#include <QPoint>
+#include <QRect>
 #include <QString>
 #include <QVariantMap>
 #include <QtGlobal>
@@ -183,6 +185,32 @@ public:
     // ✅ Each project goes through `openProjectWindow()`, the same funnel as a
     // Landing open — ⛔ no second open path.
     void restoreSession();
+
+    // ---- [I-0264] WAYLAND: POSITION IS NOT THE APP'S TO KNOW ------------
+    //
+    // ⚠️ Under Wayland a client is never told where its window is, and cannot place it;
+    // the compositor decides (GNOME centres new windows). ✅ Established on the rig
+    // 2026-09-30: every saved frame read `0,0,W,H`. ✅ RULED (user): ACCEPT it — size and
+    // maximized state still restore — ⛔ but stop RECORDING the meaningless `0,0`, which
+    // would overwrite a real position saved from an X11 session.
+    //
+    // ✅ Pure, so it can be tested with no display: when the position is not known, keep
+    // the PREVIOUSLY stored position and take only the new SIZE.
+    [[nodiscard]] static QRect recordableFrame(const QRect& current, const QRect& previous,
+                                               bool positionKnown)
+    {
+        if (positionKnown || !current.isValid()) {
+            return current;
+        }
+        return QRect(previous.isValid() ? previous.topLeft() : QPoint(0, 0), current.size());
+    }
+
+    // False under Wayland. Defined out-of-line (needs QGuiApplication).
+    [[nodiscard]] static bool platformReportsWindowPosition();
+
+    // A saved frame whose display is gone is re-centred on the primary screen
+    // (Apple's `clampedOnscreen`). Out-of-line (needs QScreen).
+    [[nodiscard]] static QRect clampedOnscreen(const QRect& frame);
 
     // ⚠️ Called by a project window just BEFORE it releases its project (T-0566),
     // with the window's state captured while it still has a project to describe.

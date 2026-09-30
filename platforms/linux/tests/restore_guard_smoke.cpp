@@ -125,6 +125,20 @@ int main(int argc, char** argv)
     ck(env.sessionStore().entry(QStringLiteral("proj-A")).frame == QRect(60, 70, 1000, 700),
        "[R-Q2] ...and its final geometry is KEPT");
 
+    // ---- [I-0264] Wayland: a position the platform never reported is NOT recorded
+    {
+        const QRect prev(300, 200, 900, 600);
+        const QRect wayland(0, 0, 1100, 700);    // what `geometry()` says on Wayland
+        ck(AppEnvironment::recordableFrame(wayland, prev, /*positionKnown=*/false)
+               == QRect(300, 200, 1100, 700),
+           "[I-0264] Wayland: keep the STORED position, take the new SIZE");
+        ck(AppEnvironment::recordableFrame(wayland, QRect(), false) == QRect(0, 0, 1100, 700),
+           "[I-0264] Wayland, nothing stored: size only, at the origin");
+        ck(AppEnvironment::recordableFrame(QRect(50, 60, 800, 500), prev, /*positionKnown=*/true)
+               == QRect(50, 60, 800, 500),
+           "[I-0264] X11: the real position IS recorded");
+    }
+
     if (failures > 0) {
         std::fprintf(stderr, "FAIL: %d assertion(s)\n", failures);
         return 1;

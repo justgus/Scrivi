@@ -16,16 +16,15 @@ archived 2026-09-30.
 
 ---
 
-## 🟡 [SP-147] — T-0565 · T-0566 · T-0567 — ⚠️ **ACTIVE 2026-09-29** — ✅ **ALL THREE IMPLEMENTED 2026-09-30, awaiting verification**
+## 🟡 [SP-147] — ([I-0264] · [I-0265]) — ⚠️ **ACTIVE 2026-09-29** — ✅ **ALL THREE IMPLEMENTED 2026-09-30, awaiting verification**
+
+✅ **[T-0565], [T-0566] and [T-0567] VERIFIED 2026-09-30 (rig pass) and ARCHIVED** → [`Verified/Task-verified-0565-0567.md`](Verified/Task-verified-0565-0567.md). ⚠️ The Sprint still carries [I-0264] (Wayland position, ruled) and [I-0265] (Landing size) — both implemented, awaiting the rig.
 
 ✅ **Sprint record:** → [`../Sprints/Sprint-SP-147.md`](../Sprints/Sprint-SP-147.md). ✅ **[EP-043] S3 of 4.**
 ⛔ **STRICTLY SERIAL** — ⚠️ **T-0567 must NOT land before T-0566's R6 guard.**
 
 | ID | Title | Status |
 | -- | ----- | ------ |
-| **T-0565** | ✅ **`SessionStore`** — `session.ini` via `QSettings`; open set + geometry + splitter state | ✅ **Implemented - Not Verified** (2026-09-29) |
-| **T-0566** | ✅ **Save on close/quit + the R6 guard** | ✅ **Implemented - Not Verified** (2026-09-30) |
-| **T-0567** | ✅ **Restore at launch** (R4/R5) | ✅ **Implemented - Not Verified** (2026-09-30) |
 
 ⛔ **R6 IS NOT DEFERRABLE.** ⚠️ **[I-0150] is what it pays for: on Apple, `xcodebuild test` LAUNCHED the
 app and rewrote a real project.** ✅ **Apple's guard was READ BEFORE PLANNING

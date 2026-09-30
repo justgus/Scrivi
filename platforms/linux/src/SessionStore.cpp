@@ -212,6 +212,41 @@ QList<QString> SessionStore::openProjectIDs() const
     return out;
 }
 
+QRect SessionStore::landingFrame() const
+{
+    const QString path = filePath();
+    if (path.isEmpty()) {
+        return {};
+    }
+    QSettings settings(path, QSettings::IniFormat);
+    return frameFromString(settings.value(QStringLiteral("landing/frame")).toString());
+}
+
+bool SessionStore::landingMaximized() const
+{
+    const QString path = filePath();
+    if (path.isEmpty()) {
+        return false;
+    }
+    QSettings settings(path, QSettings::IniFormat);
+    return settings.value(QStringLiteral("landing/maximized"), false).toBool();
+}
+
+void SessionStore::recordLanding(const QRect& frame, bool maximized)
+{
+    const QString path = filePath();
+    if (path.isEmpty()) {
+        return;
+    }
+    QSettings settings(path, QSettings::IniFormat);
+    if (frame.isValid()) {
+        settings.setValue(QStringLiteral("landing/frame"), frameToString(frame));
+    }
+    settings.setValue(QStringLiteral("landing/maximized"), maximized);
+    // ⚠️ FLUSH NOW — same reason as every other write here.
+    settings.sync();
+}
+
 void SessionStore::clearAll()
 {
     const QString path = filePath();

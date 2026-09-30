@@ -133,6 +133,42 @@ writer's session.**
 
 ## Progress log
 
+### ✅ 2026-09-30 — THE RIG PASS (build on the rig, GNOME **Wayland** session over RDP)
+
+| # | Test | Result |
+| - | ---- | ------ |
+| 1 | Projects open at Quit reopen | ✅ PASS |
+| 2 | Size / position / splitters per window | ✅ size, maximized, splitters — ⛔ **POSITION NOT RESTORED** → [I-0264] |
+| 3 | Maximized restores maximized ([I-0177]'s own symptom) | ✅ PASS |
+| 4 | Closed-before-quit does not return; reopening it keeps its size | ✅ PASS |
+| 5 | Project on an unplugged drive skipped, returns with its geometry | ✅ PASS — *"through multiple restarts"* |
+| 6 | `SCRIVI_NO_RESTORE=1` → Landing only; nothing lost | ✅ PASS |
+| 7 | Hidden pane → sane layout | ✅ PASS (inspector) |
+
+⚠️ **[I-0264] — CAUSE ESTABLISHED:** the session is **Wayland** (`loginctl` `Type=wayland`) and every saved
+frame reads `0,0,W,H`: ⛔ a Wayland client can neither learn nor set its window position; GNOME centres
+new windows. ⚠️ A platform limit, not a T-0567 defect — **ruling needed**.
+⚠️ **[I-0265] (new):** the LANDING window's size is never remembered (Apple's Welcome is).
+✅ **Expected, not defects:** a hidden Timeline or Navigator reappears after relaunch — Timeline
+visibility persistence is [I-0255] (`[Cross]`, out of scope), and Navigator visibility is session-scoped
+by ruling (T-0563). ✅ Both came back at their last saved size.
+✅ **RULINGS (user, same day):** [I-0264] **(a) ACCEPT** position on Wayland; [I-0265] **INTO [SP-147]**; hidden
+Timeline/Navigator reappearing is **expected**.
+✅ **[T-0565], [T-0566] AND [T-0567] VERIFIED and ARCHIVED** → `../Tasks/Verified/Task-verified-0565-0567.md`.
+
+### ✅ 2026-09-30 — [I-0264] + [I-0265] IMPLEMENTED
+
+✅ **[I-0264]:** `AppEnvironment::recordableFrame` — when the platform does not report position (Wayland),
+keep the PREVIOUSLY stored position and take only the new size, ⛔ so the meaningless `0,0` never overwrites a
+real X11 position. Used by project windows and Landing.
+✅ **[I-0265]:** `SessionStore` `[landing]` group (frame + maximized); `LandingWindow::showRestored()` at launch,
+`recordGeometry()` on every close path (hide / close / quit).
+✅ `ctest` **645/645** NON-ROOT; smokes **25/25**; new checks **proven red** (Wayland rule broken →
+1 FAIL; `recordLanding` disabled → 3 FAIL); `check-package-boundary.sh` GREEN.
+⚠️ **Awaiting the rig:** resize/maximize Landing → quit → relaunch; project-window sizes still restore.
+
+---
+
 ### ✅ 2026-09-30 — T-0567 IMPLEMENTED (restore at launch) — ✅ SPRINT IMPLEMENTATION COMPLETE
 
 ✅ **`AppEnvironment::restoreSession()`, called ONCE from `main()`** after Landing and the shell

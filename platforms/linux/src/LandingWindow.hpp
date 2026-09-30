@@ -52,11 +52,18 @@ public:
     // ✅ Bring Landing to the front (File ▸ New / File ▸ Open from a project window).
     void raiseToFront();
 
+    // ⚠️ [I-0265] — the first show at launch: at the remembered size (and maximized
+    // state), or the designed 820×560 when nothing is stored.
+    void showRestored();
+
 protected:
     // ⛔ Closing Landing must NOT quit the app while projects are open.
     void closeEvent(QCloseEvent* event) override;
 
 private:
+    // ⚠️ [I-0265] — record this window's geometry in `session.ini`.
+    void recordGeometry();
+
     QQuickWidget*   landing_ = nullptr;
     AppEnvironment* env_     = nullptr;   // NOT owned
 };

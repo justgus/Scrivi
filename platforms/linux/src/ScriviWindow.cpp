@@ -560,6 +560,11 @@ void ScriviWindow::closeEvent(QCloseEvent* event)
         state.title      = title_;
         state.maximized  = isMaximized();
         state.frame      = state.maximized ? normalGeometry() : geometry();
+        // ⚠️ [I-0264] — on Wayland the position above is a meaningless `0,0`; keep the
+        // previously stored one and take only the new size.
+        state.frame      = AppEnvironment::recordableFrame(
+            state.frame, env_->sessionStore().entry(state.projectID).frame,
+            AppEnvironment::platformReportsWindowPosition());
         state.paneSizes  = editor_->paneSizes();
         state.outerSizes = editor_->outerSizes();
         env_->projectWindowReleasing(state);

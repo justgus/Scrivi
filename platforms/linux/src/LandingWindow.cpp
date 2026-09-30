@@ -21,6 +21,38 @@ LandingWindow::LandingWindow(QQuickWidget* landing, AppEnvironment* env)
     }
 }
 
+void LandingWindow::showRestored()
+{
+    // ⚠️ [I-0265] — Apple remembers its Welcome window's frame (`WindowFrameAutosave`);
+    // ⛔ Linux always reopened Landing at 820×560, however the writer had sized it.
+    // ✅ `setGeometry` BEFORE showing, then `showMaximized` — so the stored frame becomes
+    // the size un-maximizing returns to. ⚠️ On Wayland only the SIZE takes effect ([I-0264]).
+    if (env_ != nullptr) {
+        const QRect frame = env_->sessionStore().landingFrame();
+        if (frame.isValid()) {
+            setGeometry(AppEnvironment::clampedOnscreen(frame));
+        }
+        if (env_->sessionStore().landingMaximized()) {
+            showMaximized();
+            return;
+        }
+    }
+    show();
+}
+
+void LandingWindow::recordGeometry()
+{
+    if (env_ == nullptr) {
+        return;
+    }
+    const bool maximized = isMaximized();
+    const QRect frame = AppEnvironment::recordableFrame(
+        maximized ? normalGeometry() : geometry(),
+        env_->sessionStore().landingFrame(),
+        AppEnvironment::platformReportsWindowPosition());
+    env_->sessionStore().recordLanding(frame, maximized);
+}
+
 void LandingWindow::raiseToFront()
 {
     // ⚠️ THREE CALLS, ALL NEEDED — ✅ `show()` restores a hidden or minimised
@@ -34,6 +66,10 @@ void LandingWindow::raiseToFront()
 
 void LandingWindow::closeEvent(QCloseEvent* event)
 {
+    // ⚠️ [I-0265] — record FIRST, on every path: a hide (projects still open), a real
+    // close, and the quit teardown (`quitApplication()` → `close()`).
+    recordGeometry();
+
     // ⛔ CLOSING LANDING MUST NOT QUIT THE APP WHILE A PROJECT IS OPEN.
     //
     // ⚠️ Qt quits when the LAST top-level window closes

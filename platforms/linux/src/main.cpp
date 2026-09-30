@@ -184,7 +184,8 @@ int main(int argc, char* argv[])
     // ⚠️ [SP-146] T-0561 — the app starts on LANDING, with no project window.
     // ✅ Each project window registers itself when its project finishes loading
     // (`ScriviWindow::showEditor`'s `loadFinished` handler).
-    landingWindow->show();
+    // ⚠️ [I-0265] — at its remembered size, not always 820×560.
+    landingWindow->showRestored();
 
     // ⚠️ [SP-147] T-0567 — R4: REOPEN WHAT WAS OPEN AT THE LAST QUIT.
     // ✅ After Landing and the shell controller exist, so each restored window is

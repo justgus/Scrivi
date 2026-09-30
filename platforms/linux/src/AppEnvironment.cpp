@@ -18,13 +18,11 @@
 // ✅ Now quit asks the WINDOW MANAGER for every open window and flushes each.
 // ⚠️ `flushEditor()` is a no-op when a window has no project, so a Landing-only
 // window costs nothing.
-namespace {
-
 // ⚠️ [SP-147] T-0567 — a saved frame whose display is GONE must not open the window
 // off-screen. ✅ APPLE'S RULE, ported as-is (`ProjectWindowFrameStore.clampedOnscreen`):
 // keep the frame if it overlaps some screen by at least 80×80; otherwise re-centre
 // it on the primary screen, shrinking it only as far as needed to fit.
-QRect clampedOnscreen(const QRect& frame)
+QRect AppEnvironment::clampedOnscreen(const QRect& frame)
 {
     for (const QScreen* screen : QGuiApplication::screens()) {
         const QRect i = screen->availableGeometry().intersected(frame);
@@ -42,7 +40,12 @@ QRect clampedOnscreen(const QRect& frame)
     return f;
 }
 
-}  // namespace
+
+// [I-0264] — Wayland never reports a window's position to the client.
+bool AppEnvironment::platformReportsWindowPosition()
+{
+    return !QGuiApplication::platformName().startsWith(QLatin1String("wayland"));
+}
 
 void AppEnvironment::flushAllWindows()
 {

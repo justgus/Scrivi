@@ -99,12 +99,21 @@ int main(int argc, char** argv)
     store.record(empty);
     ck(store.entries().size() == 2, "an EMPTY projectID is NOT recorded (no phantom row)");
 
+    // ⚠️ [I-0265] — the Landing window's size, in its OWN group, beside the projects.
+    ck(!store.landingFrame().isValid(), "Landing: nothing stored reads back INVALID");
+    store.recordLanding(QRect(30, 40, 1000, 700), /*maximized=*/true);
+    ck(store.landingFrame() == QRect(30, 40, 1000, 700), "Landing: frame round-trips");
+    ck(store.landingMaximized(),                         "Landing: maximized round-trips");
+    ck(store.entries().size() == 2, "Landing's group is NOT mistaken for a project row");
+
     // A fresh store over the same root sees the persisted state — the "restart" case.
     SessionStore reread(root);
     ck(reread.entries().size() == 2,                    "a FRESH store reads the same file");
     ck(reread.openProjectIDs().contains(a.projectID),   "open set survives a new instance");
     ck(reread.entry(a.projectID).paneSizes == a.paneSizes,
        "splitter sizes survive a new instance (the RESTART case)");
+    ck(reread.landingFrame() == QRect(30, 40, 1000, 700),
+       "Landing: frame survives a new instance (the RESTART case)");
 
     store.clearAll();
     ck(store.entries().isEmpty(), "clearAll empties the file");

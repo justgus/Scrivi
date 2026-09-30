@@ -94,6 +94,15 @@ public:
     // The projectIDs that were open at the last quit, for the restore pass.
     [[nodiscard]] QList<QString> openProjectIDs() const;
 
+    // ---- The Landing window ([I-0265]) ----------------------------------
+    //
+    // ⚠️ Apple remembers its Welcome window's frame (`WindowFrameAutosave`); Linux never
+    // remembered Landing's at all. ✅ One `[landing]` group in the SAME file — this class
+    // stays its only owner (AC1). ⚠️ An invalid frame means "never stored".
+    [[nodiscard]] QRect landingFrame() const;
+    [[nodiscard]] bool  landingMaximized() const;
+    void recordLanding(const QRect& frame, bool maximized);
+
     // ⛔ TEST SUPPORT ONLY — wipes the file. ⚠️ Never called by the app.
     void clearAll();
 
