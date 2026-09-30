@@ -8,14 +8,14 @@ activated: 2026-09-25
 
 # EP-043: `[Linux]` ⚠️ **The Session** — ✅ **many projects, each in its own window, restored where the writer left it**
 
-**Status:** ✅ **COMPLETE 2026-09-30 — all ten ACs met; ⚠️ AWAITING the user's CLOSE approval.** ✅ S1–S4 ([SP-145]–[SP-148]) all CLOSED.
+**Status:** ✅ **CLOSED 2026-09-30 (user-approved).** ✅ All ten ACs met; S1–S4 ([SP-145]–[SP-148]) all CLOSED. ✅ Closes [I-0176], [I-0177], [I-0178] (all VERIFIED). ⚠️ R5's window POSITION ruled out on Wayland ([I-0264]).
 ✅ **ALL FIVE OWED RULINGS ARE ANSWERED — 2026-09-26 (user-approved)** (✅ **§Rulings**).
 ✅ **[SP-145] CLOSED 2026-09-29 (user-approved) — ⚠️ S1 of 4 COMPLETE** →
-[`../Sprints/Closed/Sprint-SP-145.md`](../Sprints/Closed/Sprint-SP-145.md).
+[`../Sprints/Closed/Sprint-SP-145.md`](../../Sprints/Closed/Sprint-SP-145.md).
 ✅ **All eight ACs MET; ⚠️ LIVE PASS PASSED on the rig** (*"hide inspector survived a restart"*).
 ✅ **T-0551/T-0552/T-0553 VERIFIED and archived; [I-0251] VERIFIED.**
 ✅ **[SP-146] CLOSED 2026-09-29 (user-approved) — ⚠️ S2 of 4 COMPLETE** →
-[`../Sprints/Closed/Sprint-SP-146.md`](../Sprints/Closed/Sprint-SP-146.md).
+[`../Sprints/Closed/Sprint-SP-146.md`](../../Sprints/Closed/Sprint-SP-146.md).
 ✅ **ALL ELEVEN ACs MET; ⚠️ LIVE PASS PASSED on the rig.** ✅ **T-0558–T-0562 VERIFIED and archived;
 [I-0257] VERIFIED.** ⚠️ **HEADLINE: ✅ Linux opens TWO projects in TWO windows — ⛔ [I-0178], the
 defect this Epic exists for.** ✅ **[SP-147] IS NOW UNBLOCKED.**
@@ -47,9 +47,9 @@ EP-039 blocker EXPIRED when [EP-039] closed 2026-09-15.**
 **Sprints:** ✅ **[SP-145] CLOSED** · ✅ **[SP-146] CLOSED 2026-09-29** · ✅ **[SP-147] CLOSED 2026-09-30** · ✅ **[SP-148] CLOSED 2026-09-30**
 **Primary Issues:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (geometry)
 **Codebase:** `[Linux]` — ⚠️ **`platforms/linux/` ONLY.** ✅ **No ScriviCore change is expected.**
-**Apple precedent:** [EP-018](Closed/Epic-EP-018.md) — *Per-Window / Per-Project Window Model*,
+**Apple precedent:** [EP-018](Epic-EP-018.md) — *Per-Window / Per-Project Window Model*,
 R1–R5 user-verified 2026-06-25, delivered in **3 Sprints (SP-048 → SP-050)**.
-**Reference:** [`../Scrivi_Platform_Porting_Outline_v0_1.md`](../Scrivi_Platform_Porting_Outline_v0_1.md)
+**Reference:** [`../Scrivi_Platform_Porting_Outline_v0_1.md`](../../Scrivi_Platform_Porting_Outline_v0_1.md)
 — ⚠️ **read BEFORE the first Sprint**, per the standing rule on that document.
 
 ---
@@ -182,7 +182,7 @@ compiled** — ⚠️ **which is [I-0176]'s own warning, and [I-0150]'s lived on
 in `Task-backlog.md` is exactly the layer-discipline defect `feedback_task_layer_discipline` records.**
 ⚠️ **The shape below is planning, not a claim on IDs.**
 ⛔ **NO NEXT-AVAILABLE FIGURE IS STATED HERE** — ✅ **user ruling 2026-09-24: they live in
-[`../tools/next-ids.json`](../tools/next-ids.json), allocated by `python3 docs/tools/next-id.py`.**
+[`../tools/next-ids.json`](../../tools/next-ids.json), allocated by `python3 docs/tools/next-id.py`.**
 ⚠️ **This section previously read *"Next available Task ID at the time of writing: T-0540"*** —
 ⛔ **exactly the restated counter that ruling removed, and it was already stale.**
 ✅ **ONE ID IS ALREADY ISSUED against this Epic:** ⚠️ **[I-0251] (an ISSUE, not a Task), allocated

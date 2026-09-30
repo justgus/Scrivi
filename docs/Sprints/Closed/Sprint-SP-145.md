@@ -46,13 +46,13 @@ and was proven mechanically (81 insertions, ⛔ 0 deletions in `tests/`).**
 [T-0557], `[Apple]`-only.** ⛔ **It could not have come here: ✅ the palette is `#if os(macOS)`
 (`AppEnvironment.swift:92`) and this Sprint is `[Linux]`** — ⚠️ **there is nothing in
 `platforms/linux/src/` for it to change.**
-**Epic:** [EP-043](../../Epics/Epic-EP-043.md) `[Linux]` **The Session** — ⚠️ **S1 of a SERIAL chain
+**Epic:** [EP-043](../../Epics/Closed/Epic-EP-043.md) `[Linux]` **The Session** — ⚠️ **S1 of a SERIAL chain
 [SP-145] → [SP-146] → [SP-147] → [SP-148]**; ⛔ **a stall here stalls the Epic.**
 **Goal:** ✅ **Separate "the project's state" from "the widget showing it"** — ⚠️ **so that [SP-146] can
 put one project in each window.** ⛔ **NO window changes in this Sprint.**
 **ACs contributed:** — ✅ **foundation only** (⚠️ **R1–R8 are [SP-146]/[SP-147]'s**) · ⚠️ **[I-0251]**
 **Rulings in force:** ✅ **[R-Q2]** (identity = `projectID`) · ✅ **[R-Q4]** ([I-0251]) · ✅ **[R-Q5]**
-(the visibility carve-out) — → [`../Epics/Epic-EP-043.md`](../../Epics/Epic-EP-043.md) §Rulings.
+(the visibility carve-out) — → [`../Epics/Epic-EP-043.md`](../../Epics/Closed/Epic-EP-043.md) §Rulings.
 
 ⚠️ **ID NOTE:** ✅ **This Sprint is SP-145 because [EP-043] and `Sprint-backlog.md` reserved that ID for
 it in five places.** ⛔ **`next-id.py sprint` returned SP-151** — ⚠️ **the counter is a HIGH-WATER MARK

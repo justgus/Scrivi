@@ -11,7 +11,7 @@ closed: 2026-09-30
 # SP-148 — `[Linux]` **Verification** (S4 of [EP-043])
 
 **Status:** ✅ **CLOSED 2026-09-30 (user-approved).** ✅ All five ACs met. ✅ **[EP-043] S4 of 4 COMPLETE.**
-**Epic:** ✅ **[EP-043]** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md)
+**Epic:** ✅ **[EP-043]** → [`../Epics/Epic-EP-043.md`](../../Epics/Closed/Epic-EP-043.md)
 **Serves:** ✅ **AC-build · AC-live**, and the sweep of **R1–R8**
 **Depends on:** ✅ **[SP-147] CLOSED 2026-09-30** → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md)
 **Size:** ✅ **LOW** — ⛔ no new features. ⚠️ A defect found here is filed as an Issue, not fixed silently.
@@ -107,6 +107,7 @@ I-0257–I-0265) is filed; registry peek `EP-049 · SP-152 · T-0571 · I-0266`.
 | A5 | 4 batch files brought to row/section parity (P4): `0171-0180` 8/8, `0211-0220` 6/6, `0251-0260` 7/7, `0261-0270` 5/5 — pointer sections, ⛔ no content duplicated |
 | A6 | `Issue-Documentation.md` batch table extended 15→27, counts RE-DERIVED. ⚠️ Batch 16 holds **11** IDs in a ten-ID range — recorded, not "corrected" (cf. batches 2/3) |
 | A7 | stale *"NO SPRINT IS ACTIVE… [SP-147] IS NEXT"* block removed from `Sprint-active.md` |
+| — | ✅ **[EP-043] CLOSED 2026-09-30 (user-approved)** → `../../Epics/Closed/Epic-EP-043.md` |
 | A8 | `Sprint-SP-130-RESTRUCTURE.md` / `-VERIFICATION.md` → `Closed/`; 5 links fixed — ⚠️ incl. `Epics/Closed/Epic-EP-040.md`'s, which was ALREADY broken (`../Sprints/…` from `Epics/Closed/`) |
 
 

@@ -165,7 +165,7 @@ hand-mounted one, so a USB-stick test will not exercise AC4.**
 ## ✅ EP-043 — ACTIVATED 2026-09-25, no longer on this backlog
 
 ⚠️ **[EP-043] `[Linux]` The Session MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-09-25
-(user-approved).** ✅ **Its full record is [`Epic-EP-043.md`](Epic-EP-043.md)** — ⛔ **the body that used
+(user-approved).** ✅ **Its full record is [`Epic-EP-043.md`](Closed/Epic-EP-043.md)** — ⛔ **the body that used
 to be restated here is deleted rather than kept, because a second copy is what goes stale**
 (`Epic-GUIDELINES.md`: *"strip the active-file entry down to a pointer"*).
 ⚠️ **[SP-145] MAY NOT ACTIVATE until FIVE rulings are answered** — ✅ **Q1–Q4 in that record, plus the

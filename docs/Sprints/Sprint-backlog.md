@@ -53,7 +53,7 @@ governs anything is a second source of truth.
 ✅ **[SP-146] IS CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md).
 ✅ **[SP-147] IS CLOSED 2026-09-30 (user-approved)** → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md).
 ✅ **[SP-148] CLOSED 2026-09-30 (user-approved)** → [`Closed/Sprint-SP-148.md`](Closed/Sprint-SP-148.md). ✅ **No IDs remain reserved for this Epic.**
-✅ **[EP-043] is ACTIVE** (activated 2026-09-25) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
+✅ **[EP-043] is ACTIVE** (activated 2026-09-25) → [`../Epics/Epic-EP-043.md`](../Epics/Closed/Epic-EP-043.md).
 ⚠️ **The IDs are recorded here ONLY so they are not reissued** — ✅ **the same precaution taken for
 EP-032's SP-107–SP-114 above**, and for the same reason the user gave when ordering that one.
 

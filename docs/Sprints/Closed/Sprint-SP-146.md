@@ -16,7 +16,7 @@ and it passed."***
 ✅ **T-0558 · T-0559 · T-0560 · T-0561 · T-0562 VERIFIED and ARCHIVED** →
 [`../Tasks/Verified/Task-verified-0558-0562.md`](../../Tasks/Verified/Task-verified-0558-0562.md).
 ✅ **[I-0257] VERIFIED.** ✅ **[EP-043] S2 of 4 COMPLETE.**
-**Epic:** ✅ **[EP-043]** `[Linux]` **The Session** → [`../Epics/Epic-EP-043.md`](../../Epics/Epic-EP-043.md)
+**Epic:** ✅ **[EP-043]** `[Linux]` **The Session** → [`../Epics/Epic-EP-043.md`](../../Epics/Closed/Epic-EP-043.md)
 **Serves:** ✅ **R1 · R2 · R3 · R7 · R8**
 **Depends on:** ✅ **[SP-145] CLOSED 2026-09-29** → [`Closed/Sprint-SP-145.md`](Sprint-SP-145.md)
 **Size:** ⛔ **HIGH** — ⚠️ **the Epic's biggest Sprint, and the planning already said so.**

@@ -107,7 +107,7 @@ user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbrok
 | EP-041 | `[Cross]` **The Boundary** — close [I-0197]'s Swift-bypass chain; the app talks to the core, never the package | ✅ **CLOSED** (user-approved) — [record](Closed/Epic-EP-041.md) | 2026-09-18 | 2026-09-22 |
 | EP-042 | `[Cross]` **Project Open Cost** — ⚠️ **opening a project costs what its DATA costs, not a multiple of it** | ✅ **CLOSED** — [record](Closed/Epic-EP-042.md) | 2026-09-18 | 2026-09-20 |
 | EP-044 | `[ScriviCore]` **World Resolution** — ⚠️ **the core stops giving CONFIDENT WRONG ANSWERS about where a world is.** ⚠️ **[I-0223] + [I-0192] + [I-0181]'s residual** | 🔵 **Draft** (backlog) — [record](Epic-EP-044.md) | 2026-09-22 | — |
-| EP-043 | `[Linux]` **The Session** — many projects, one window each, restored where the writer left them. ⚠️ **Closes [I-0176]/[I-0177]/[I-0178]**; ports ✅ **[EP-018]** | ✅ **COMPLETE** — activated 2026-09-25 — [record](Epic-EP-043.md) — ✅ **COMPLETE 2026-09-30 — all four Sprints ([SP-145]–[SP-148]) CLOSED, all 10 ACs met; ⚠️ awaiting close approval** | 2026-09-21 | — |
+| EP-043 | `[Linux]` **The Session** — many projects, one window each, restored where the writer left them. ⚠️ **Closes [I-0176]/[I-0177]/[I-0178]**; ports ✅ **[EP-018]** | ✅ **CLOSED** — activated 2026-09-25 — [record](Closed/Epic-EP-043.md) — ✅ **CLOSED 2026-09-30 (user-approved)** — all four Sprints ([SP-145]–[SP-148]) closed, all 10 ACs met | 2026-09-21 | — |
 | EP-045 | `[Apple]` **Manuscript Renderer — Foundations** — ⚠️ **typed attachments (a live save-path corruption), the SOURCE↔PRESENTED caret mapping, the escape layer, the divider** | 🔵 **Draft** (backlog) — [record](Epic-EP-045.md) | 2026-09-29 | — |
 | EP-046 | `[Apple]` **Manuscript Renderer — Inline Rendering** — ⚠️ **WYSIWYG: bold/italic/headings render, markers hide (Model B) + the formatting COMMANDS** | 🔵 **Draft** (backlog) — ⛔ **blocked on [EP-045]** | 2026-09-29 | — |
 | EP-047 | `[Apple]` **Manuscript Typography & Preferences** — ✅ **F1 typeface + `paragraphIndent`** (⛔ **a tab or 4 spaces makes a `codeBlock`; ✅ `firstLineHeadIndent` costs ZERO characters**) | 🔵 **Draft** (backlog) | 2026-09-29 | — |
@@ -127,7 +127,7 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
   ([`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md))
   and TWO owed rulings.** — ⚠️ **EP-044 `[ScriviCore]` World Resolution created 2026-09-22** (🔵 Draft,
   no Sprint). — ⚠️ **EP-043 `[Linux]` The Session was created 2026-09-21**
-  into the backlog (🔵 Draft, no Sprint): → [`Epic-EP-043.md`](Epic-EP-043.md).
+  into the backlog (🔵 Draft, no Sprint): → [`Epic-EP-043.md`](Closed/Epic-EP-043.md).
 - ✅ **[EP-040] CLOSED 2026-09-24** `[Apple]` The Editor Shell (SP-134–SP-137 · SP-150). ⚠️ **Prior line read "TWO ACTIVE EPICS as of 2026-09-20"**
   ✅ **[EP-041] `[Cross]` The Boundary CLOSED 2026-09-22** → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md)
   (SP-140 · SP-141 · SP-142 · SP-149 · SP-143). ⚠️ **That line read "TWO ACTIVE EPICS"; ✅ only [EP-040] is.**

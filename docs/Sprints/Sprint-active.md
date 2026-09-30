@@ -2,7 +2,7 @@
 
 🟡 **[SP-151] ACTIVE 2026-09-30** `[Apple]` → [`Sprint-SP-151.md`](Sprint-SP-151.md) — ⚠️ the Apple issue
 batch ([I-0202], [I-0216], [I-0217], [I-0218]) + long-manuscript navigation ([T-0568], [T-0569]).
-✅ **[SP-148] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-148.md`](Closed/Sprint-SP-148.md) — ✅ [EP-043] S4 complete; ✅ **[EP-043] marked COMPLETE — awaiting close approval.**
+✅ **[SP-148] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-148.md`](Closed/Sprint-SP-148.md) — ✅ [EP-043] S4 complete; ✅ **[EP-043] CLOSED 2026-09-30 (user-approved).**
 ✅ **[SP-147] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md) — ✅ [EP-043] S3 complete; ➡️ **[SP-148] next**.
 
 ---
@@ -117,7 +117,7 @@ under ✅ **[EP-041]** (now CLOSED). ✅ **T-0507 VERIFIED by live pass; [EP-041
 ---
 
 ## 🟡 **[EP-043]** `[Linux]` **The Session** IS ACTIVE — ✅ **activated 2026-09-25**
-✅ **Record:** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
+✅ **Record:** → [`../Epics/Epic-EP-043.md`](../Epics/Closed/Epic-EP-043.md).
 
 ## ✅ **[SP-145]** `[Linux]` **The Session Split** — ✅ **CLOSED 2026-09-29 (user-approved)**
 

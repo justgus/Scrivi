@@ -12,7 +12,7 @@ closed: 2026-09-30
 
 **Status:** ✅ **CLOSED 2026-09-30 (user-approved).** ✅ **All ACs met on the rig** — ⚠️ AC5's window POSITION
 is RULED out on Wayland ([I-0264]). ✅ **[EP-043] S3 of 4 COMPLETE.**
-**Epic:** ✅ **[EP-043]** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md)
+**Epic:** ✅ **[EP-043]** → [`../Epics/Epic-EP-043.md`](../../Epics/Closed/Epic-EP-043.md)
 **Serves:** ✅ **R4 · R5 · R6**
 **Depends on:** ✅ **[SP-146] CLOSED 2026-09-29** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md)
 **Size:** ✅ **MEDIUM**
