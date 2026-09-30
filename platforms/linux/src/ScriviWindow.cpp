@@ -412,6 +412,7 @@ void ScriviWindow::updateMenuState(bool editorActive)
 void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
                               const QVariantMap& openedProject)
 {
+    title_ = title;
     if (editor_ == nullptr) {
         // ⚠️ [SP-146] T-0559 — hand the shell the app-global owner so the
         // registry it registers into is the APP's, not its own.
@@ -438,6 +439,11 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
         // `if (editor_ == nullptr)`, which runs exactly once per window.
         connect(editor_, &EditorShell::loadFinished, this,
                 [this](bool ok) {
+                    // ⚠️ [SP-147] T-0567 — the load has SETTLED either way, so the
+                    // pending-open hold for R3 ends; the registry answers now.
+                    if (env_ != nullptr) {
+                        env_->projectLoadSettled(this);
+                    }
                     if (!ok) {
                         // ⚠️ [I-0199]: the editor is ALREADY showing (we switch
                         // before loading, so the progress bar is visible), so a
@@ -458,6 +464,11 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
                     // `EditorShell` (T-0552), and the same empty-ID guard applies.
                     if (env_ != nullptr) {
                         env_->windows().registerWindow(shownProjectID(), this);
+                        // ⚠️ [SP-147] T-0566 — record it OPEN now, not only at
+                        // quit: ✅ a SIGKILLed session still knows what was open.
+                        env_->sessionStore().setOpen(shownProjectID(),
+                                                     editor_->currentProjectPath(),
+                                                     title_);
                     }
                 });
         stack_->addWidget(editor_);   // page 1 — editor
@@ -536,6 +547,24 @@ void ScriviWindow::closeEvent(QCloseEvent* event)
 {
     flushEditor();   // don't lose edits when the window (and app) closes
 
+    // ⚠️ [SP-147] T-0566 — RECORD WHERE THIS WINDOW WAS, BEFORE THE RELEASE BELOW.
+    // ✅ Every way a project window goes away arrives here: the X, `Close Project`
+    // (`showLanding()` → `close()`), and Quit (`quitApplication()` → `close()`).
+    // ⚠️ The environment decides open-vs-closed from whether the app is QUITTING.
+    // ⚠️ A maximized window records its NORMAL geometry — ✅ what un-maximizing
+    // after a restore should return to — ⛔ not the screen-sized maximized rect.
+    if (env_ != nullptr && editor_ != nullptr && !shownProjectID().isEmpty()) {
+        SessionStore::Entry state;
+        state.projectID  = shownProjectID();
+        state.path       = editor_->currentProjectPath();
+        state.title      = title_;
+        state.maximized  = isMaximized();
+        state.frame      = state.maximized ? normalGeometry() : geometry();
+        state.paneSizes  = editor_->paneSizes();
+        state.outerSizes = editor_->outerSizes();
+        env_->projectWindowReleasing(state);
+    }
+
     // ⚠️ [SP-146] T-0560 — R8: release the project as this window goes away.
     // ✅ `releaseProject()` calls `scrivi_close_project` for THIS project and
     // deregisters its session — ⛔ and only this one. ⚠️ Without it, closing a
@@ -560,6 +589,15 @@ ScriviWindow::~ScriviWindow()
 {
     if (env_ != nullptr) {
         env_->windows().deregisterWindow(this);
+    }
+}
+
+void ScriviWindow::applySplitterSizes(const QList<int>& paneSizes,
+                                      const QList<int>& outerSizes)
+{
+    if (editor_ != nullptr) {
+        editor_->setPaneSizes(paneSizes);
+        editor_->setOuterSizes(outerSizes);
     }
 }
 

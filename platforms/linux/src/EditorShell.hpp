@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QHash>
+#include <QList>
 #include <QSet>
 #include <QString>
 #include <QVariantMap>
@@ -124,6 +125,22 @@ public:
     // empty when none is loaded. ✅ Read by `ScriviWindow` for the window map and
     // for R3. ⛔ Reads the SESSION, not a widget.
     [[nodiscard]] QString currentProjectID() const { return session_.projectID(); }
+
+    // ⚠️ [SP-147] T-0566 — what `session.ini` records for this window: the path the
+    // project was opened from, and both splitters' current sizes. ✅ Read by
+    // `ScriviWindow::closeEvent` BEFORE the project is released.
+    [[nodiscard]] QString    currentProjectPath() const { return session_.projectPath(); }
+    [[nodiscard]] QList<int> paneSizes() const;    // navigator | viewport | inspector
+    [[nodiscard]] QList<int> outerSizes() const;   // panes above | timeline below
+
+    // ⚠️ [SP-147] T-0567 — apply saved sizes. ✅ IGNORED unless the list has one
+    // entry per pane and EVERY entry is positive: ⚠️ a pane that was HIDDEN when
+    // the window closed recorded a ZERO, and navigator/inspector visibility is
+    // session-scoped (T-0563) — ⛔ applying that zero to a now-VISIBLE pane would
+    // collapse it. Defaults are the better fallback, as `SessionStore` rules for a
+    // malformed list.
+    void setPaneSizes(const QList<int>& sizes);
+    void setOuterSizes(const QList<int>& sizes);
 
     // --- SP-077 menu-bar triggers (T-0310/T-0311) -------------------------
     //

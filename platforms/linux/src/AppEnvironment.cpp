@@ -1,6 +1,7 @@
 #include "AppEnvironment.hpp"
 
 #include <QApplication>
+#include <QScreen>
 
 #include "LandingWindow.hpp"
 #include "ScriviWindow.hpp"
@@ -17,6 +18,32 @@
 // ✅ Now quit asks the WINDOW MANAGER for every open window and flushes each.
 // ⚠️ `flushEditor()` is a no-op when a window has no project, so a Landing-only
 // window costs nothing.
+namespace {
+
+// ⚠️ [SP-147] T-0567 — a saved frame whose display is GONE must not open the window
+// off-screen. ✅ APPLE'S RULE, ported as-is (`ProjectWindowFrameStore.clampedOnscreen`):
+// keep the frame if it overlaps some screen by at least 80×80; otherwise re-centre
+// it on the primary screen, shrinking it only as far as needed to fit.
+QRect clampedOnscreen(const QRect& frame)
+{
+    for (const QScreen* screen : QGuiApplication::screens()) {
+        const QRect i = screen->availableGeometry().intersected(frame);
+        if (i.width() >= 80 && i.height() >= 80) {
+            return frame;
+        }
+    }
+    const QScreen* primary = QGuiApplication::primaryScreen();
+    if (primary == nullptr) {
+        return frame;
+    }
+    const QRect avail = primary->availableGeometry();
+    QRect f(0, 0, qMin(frame.width(), avail.width()), qMin(frame.height(), avail.height()));
+    f.moveCenter(avail.center());
+    return f;
+}
+
+}  // namespace
+
 void AppEnvironment::flushAllWindows()
 {
     // ⚠️ Iterate a COPY: `flushEditor()` writes to disk and must not be affected by
@@ -51,10 +78,14 @@ void AppEnvironment::showLanding()
 // editor-only one.
 ScriviWindow* AppEnvironment::openProjectWindow(const QString& projectPath,
                                                 const QString& title,
-                                                const QVariantMap& openedProject)
+                                                const QVariantMap& openedProject,
+                                                const QString& projectIDHint)
 {
-    const QString projectID =
-        openedProject.value(QStringLiteral("projectID")).toString();
+    // ⚠️ The envelope's identity when there is one; ✅ restore's hint otherwise.
+    QString projectID = openedProject.value(QStringLiteral("projectID")).toString();
+    if (projectID.isEmpty()) {
+        projectID = projectIDHint;
+    }
 
     // ✅ R3 — ALREADY OPEN: raise, never duplicate.
     if (ScriviWindow* existing = existingWindowFor(projectID)) {
@@ -77,9 +108,56 @@ ScriviWindow* AppEnvironment::openProjectWindow(const QString& projectPath,
     if (shell_ != nullptr) {
         window->setShellController(shell_);
     }
-    window->show();
+
+    // ⚠️ [SP-147] T-0567 — AC5: THIS PROJECT'S window state, keyed BY PROJECT.
+    // ⛔ [EP-018] shipped one global autosave frame once and every restored window
+    // stacked at the default. ✅ No record (a first-ever open, or New Project with
+    // no identity yet) ⇒ Qt's default placement, as before.
+    const SessionStore::Entry saved =
+        projectID.isEmpty() ? SessionStore::Entry{} : session_.entry(projectID);
+    if (saved.frame.isValid()) {
+        window->setGeometry(clampedOnscreen(saved.frame));
+    }
+
+    // ✅ Hold the identity until the load settles — see `existingWindowFor()`.
+    if (!projectID.isEmpty()) {
+        pendingOpens_.insert(projectID, window);
+    }
+
+    // ⚠️ `setGeometry` FIRST, then `showMaximized` — ✅ the stored frame becomes the
+    // NORMAL geometry the window returns to when un-maximized.
+    if (saved.maximized) {
+        window->showMaximized();
+    } else {
+        window->show();
+    }
     window->showEditor(projectPath, title, openedProject);
+    window->applySplitterSizes(saved.paneSizes, saved.outerSizes);
     return window;
+}
+
+void AppEnvironment::projectLoadSettled(ScriviWindow* window)
+{
+    for (const QString& key : pendingOpens_.keys(window)) {
+        pendingOpens_.remove(key);
+    }
+}
+
+// ⚠️ [SP-147] T-0567 — R4. ✅ THE GUARD IS INSIDE `projectsToRestore()`, reached
+// through `resolvableProjectsToRestore()`: ⛔ a headless or `SCRIVI_NO_RESTORE`
+// launch gets an EMPTY list here and opens nothing.
+//
+// ✅ NO ENVELOPE: each window's editor performs the project's one and only open
+// (the reload path, `EditorShell::load` with an empty map) — ⛔ opening here first
+// would reintroduce [I-0232]'s double open.
+// ⚠️ A project that is no longer `ready` (needs repair) FAILS that load and its
+// window closes back to Landing — ⛔ restore NEVER repairs without the writer's
+// consent; the repair prompt lives on Landing, which she can open it from.
+void AppEnvironment::restoreSession()
+{
+    for (const SessionStore::Entry& e : resolvableProjectsToRestore()) {
+        openProjectWindow(e.path, e.title, /*openedProject=*/{}, e.projectID);
+    }
 }
 
 // ⚠️ [SP-146] T-0561 — [R-Q3]: closing the LAST project window SHOWS Landing and
@@ -94,6 +172,7 @@ ScriviWindow* AppEnvironment::openProjectWindow(const QString& projectPath,
 void AppEnvironment::projectWindowClosing(ScriviWindow* window)
 {
     windows_.deregisterWindow(window);
+    projectLoadSettled(window);   // ⚠️ closed before its load finished — T-0567
 
     // ⛔ [I-0257] — DO NOT RE-SHOW LANDING WHILE QUITTING. ⚠️ Re-showing a window
     // during a teardown is what aborted `closeAllWindows()`'s cascade and left

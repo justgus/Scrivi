@@ -8,7 +8,7 @@ activated: 2026-09-25
 
 # EP-043: `[Linux]` ⚠️ **The Session** — ✅ **many projects, each in its own window, restored where the writer left it**
 
-**Status:** 🟡 **ACTIVE — activated 2026-09-25 (user-approved).** ✅ **S1 and S2 COMPLETE; ⚠️ [SP-147] NEXT.**
+**Status:** 🟡 **ACTIVE — activated 2026-09-25 (user-approved).** ✅ **S1 and S2 COMPLETE; ⚠️ [SP-147] ACTIVE — implementation complete 2026-09-30, awaiting verification.**
 ✅ **ALL FIVE OWED RULINGS ARE ANSWERED — 2026-09-26 (user-approved)** (✅ **§Rulings**).
 ✅ **[SP-145] CLOSED 2026-09-29 (user-approved) — ⚠️ S1 of 4 COMPLETE** →
 [`../Sprints/Closed/Sprint-SP-145.md`](../Sprints/Closed/Sprint-SP-145.md).
@@ -44,7 +44,7 @@ shell"*).** ⚠️ **Running [EP-035] first would write CRUD into `EditorShell` 
 immediately relocate it** — ✅ **the "paying the extraction cost twice" this Epic already predicted for
 [I-0244].** ⚠️ **[EP-035]'s AC5 (thumbnails) does NOT collide** (✅ `SceneInspector.cpp`) — ⛔ **and its
 EP-039 blocker EXPIRED when [EP-039] closed 2026-09-15.**
-**Sprints:** ✅ **[SP-145] CLOSED** · ✅ **[SP-146] CLOSED 2026-09-29** · [SP-147] (⚠️ **NEXT**) · [SP-148]
+**Sprints:** ✅ **[SP-145] CLOSED** · ✅ **[SP-146] CLOSED 2026-09-29** · [SP-147] (🟡 **ACTIVE — implemented, not verified**) · [SP-148]
 **Primary Issues:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (geometry)
 **Codebase:** `[Linux]` — ⚠️ **`platforms/linux/` ONLY.** ✅ **No ScriviCore change is expected.**
 **Apple precedent:** [EP-018](Closed/Epic-EP-018.md) — *Per-Window / Per-Project Window Model*,

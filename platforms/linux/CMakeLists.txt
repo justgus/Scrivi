@@ -180,12 +180,6 @@ target_include_directories(scrivi_linux PRIVATE src)
 # Match ScriviCore's C++ standard so the shared headers compile identically.
 target_compile_features(scrivi_linux PRIVATE cxx_std_23)
 
-# --- Headless persistence smoke (SP-059 / T-0228) -------------------------
-# A console (no-GUI) harness that exercises the same AppSupport + RecentsStore +
-# ScriviBridge code the app uses, proving identity (AC4) and recents (AC5)
-# persist across a simulated restart. Driven by the persistence_smoke.sh script
-# (two passes against one temp $XDG_DATA_HOME). Does not open a window — but links
-# Widgets because ScriviBridge references QFileDialog (chooseFolder), unused here.
 # session_store_smoke (EP-043 / SP-147, T-0565) — the SessionStore round-trip.
 # ⚠️ SessionStore owns NO widgets, so this needs Core only: no Gui, no display.
 # ✅ Driven by session_store_smoke.sh (two passes over one temp root — the
@@ -204,6 +198,34 @@ target_link_libraries(scrivi_linux_session_store_smoke
 target_include_directories(scrivi_linux_session_store_smoke PRIVATE src)
 target_compile_features(scrivi_linux_session_store_smoke PRIVATE cxx_std_23)
 
+# restore_guard_smoke (EP-043 / SP-147, T-0566/T-0567) — the R6 guard + AC4 skip.
+# ⚠️ Asserts `AppEnvironment::projectsToRestore()` returns nothing under
+# QT_QPA_PLATFORM=offscreen and SCRIVI_NO_RESTORE, and leaves session.ini
+# BYTE-IDENTICAL (AC6). ✅ Core only: AppEnvironment's guard is header-inline.
+# Driven by restore_guard_smoke.sh (three passes, the first a negative control).
+qt_add_executable(scrivi_linux_restore_guard_smoke
+    tests/restore_guard_smoke.cpp
+    src/AppEnvironment.hpp
+    src/OpenProjectRegistry.hpp
+    src/ProjectWindowManager.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+)
+
+target_link_libraries(scrivi_linux_restore_guard_smoke
+    PRIVATE
+        Qt6::Core
+)
+
+target_include_directories(scrivi_linux_restore_guard_smoke PRIVATE src)
+target_compile_features(scrivi_linux_restore_guard_smoke PRIVATE cxx_std_23)
+
+# --- Headless persistence smoke (SP-059 / T-0228) -------------------------
+# A console (no-GUI) harness that exercises the same AppSupport + RecentsStore +
+# ScriviBridge code the app uses, proving identity (AC4) and recents (AC5)
+# persist across a simulated restart. Driven by the persistence_smoke.sh script
+# (two passes against one temp $XDG_DATA_HOME). Does not open a window — but links
+# Widgets because ScriviBridge references QFileDialog (chooseFolder), unused here.
 qt_add_executable(scrivi_linux_persistence_smoke
     tests/persistence_smoke.cpp
     src/AppSupport.cpp

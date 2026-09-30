@@ -10,6 +10,7 @@ namespace {
 // (`timeline/<projectID>`), so a reader of one recognises the other.
 constexpr auto kGroupPrefix = "project/";
 constexpr auto kKeyPath      = "path";
+constexpr auto kKeyTitle     = "title";
 constexpr auto kKeyOpen      = "open";
 constexpr auto kKeyFrame     = "frame";
 constexpr auto kKeyMaximized = "maximized";
@@ -102,6 +103,7 @@ QList<SessionStore::Entry> SessionStore::entries() const
             Entry e;
             e.projectID  = id;
             e.path       = settings.value(QLatin1String(kKeyPath)).toString();
+            e.title      = settings.value(QLatin1String(kKeyTitle)).toString();
             e.frame      = frameFromString(settings.value(QLatin1String(kKeyFrame)).toString());
             e.maximized  = settings.value(QLatin1String(kKeyMaximized), false).toBool();
             e.paneSizes  = splitSizes(settings.value(QLatin1String(kKeyPanes)).toString());
@@ -137,6 +139,9 @@ void SessionStore::record(const Entry& e)
     settings.beginGroup(QLatin1String(kGroupPrefix) + e.projectID);
     settings.setValue(QLatin1String(kKeyPath), e.path);
     settings.setValue(QLatin1String(kKeyOpen), true);
+    if (!e.title.isEmpty()) {
+        settings.setValue(QLatin1String(kKeyTitle), e.title);
+    }
     if (e.frame.isValid()) {
         settings.setValue(QLatin1String(kKeyFrame), frameToString(e.frame));
     }
@@ -150,6 +155,24 @@ void SessionStore::record(const Entry& e)
     settings.endGroup();
     // ⚠️ FLUSH NOW — ⛔ a `--rm` container may SIGKILL before Qt's lazy flush.
     // ✅ Same habit and same reason as `onTimelineViewStateChanged` (`:2906`).
+    settings.sync();
+}
+
+void SessionStore::setOpen(const QString& projectID, const QString& path,
+                           const QString& title)
+{
+    const QString file = filePath();
+    if (file.isEmpty() || projectID.isEmpty()) {
+        return;
+    }
+    QSettings settings(file, QSettings::IniFormat);
+    settings.beginGroup(QLatin1String(kGroupPrefix) + projectID);
+    settings.setValue(QLatin1String(kKeyPath), path);
+    if (!title.isEmpty()) {
+        settings.setValue(QLatin1String(kKeyTitle), title);
+    }
+    settings.setValue(QLatin1String(kKeyOpen), true);
+    settings.endGroup();
     settings.sync();
 }
 

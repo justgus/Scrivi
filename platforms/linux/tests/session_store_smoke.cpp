@@ -40,6 +40,7 @@ int main(int argc, char** argv)
     SessionStore::Entry a;
     a.projectID  = QStringLiteral("PROJ-A");
     a.path       = QStringLiteral("/tmp/a.scrivi");
+    a.title      = QStringLiteral("Project A");
     a.frame      = QRect(100, 120, 1220, 760);
     a.maximized  = false;
     a.paneSizes  = {240, 580, 400};
@@ -49,6 +50,7 @@ int main(int argc, char** argv)
     const SessionStore::Entry got = store.entry(QStringLiteral("PROJ-A"));
     ck(got.projectID == a.projectID,   "projectID round-trips");
     ck(got.path      == a.path,        "path round-trips (an ATTRIBUTE, not the key)");
+    ck(got.title     == a.title,       "title round-trips (T-0567)");
     ck(got.frame     == a.frame,       "frame round-trips");
     ck(got.maximized == false,         "maximized round-trips");
     ck(got.paneSizes  == a.paneSizes,  "3-pane splitter sizes round-trip");
@@ -80,6 +82,16 @@ int main(int argc, char** argv)
     store.record(reopen);
     ck(store.openProjectIDs().contains(a.projectID), "re-recording marks it OPEN again");
     ck(store.entry(a.projectID).frame == a.frame,    "geometry still intact after reopen");
+
+    // ⚠️ T-0566 `setOpen` — marks OPEN and touches NOTHING else. ⛔ `record()`
+    // would write a fresh window's `maximized=false` over the stored state.
+    store.record(b);   // B is maximized, from above
+    store.setClosed(b.projectID);
+    store.setOpen(b.projectID, QStringLiteral("/tmp/b-moved.scrivi"), QString());
+    ck(store.openProjectIDs().contains(b.projectID), "setOpen marks a closed project OPEN");
+    ck(store.entry(b.projectID).maximized == true,   "setOpen does NOT clobber maximized");
+    ck(store.entry(b.projectID).path == QLatin1String("/tmp/b-moved.scrivi"),
+       "setOpen updates the path ([R-Q2]: a moved project keeps its record)");
 
     // ⛔ An empty projectID must never be recorded.
     SessionStore::Entry empty;

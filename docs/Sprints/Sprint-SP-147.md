@@ -9,7 +9,8 @@ activated: 2026-09-29
 
 # SP-147 — `[Linux]` **The Persistence** (S3 of [EP-043])
 
-**Status:** 🟡 **ACTIVE — 2026-09-29 (user-approved).**
+**Status:** 🟡 **ACTIVE — 2026-09-29 (user-approved).** ✅ **IMPLEMENTATION COMPLETE 2026-09-30** —
+⚠️ **all three Tasks Implemented - Not Verified; ⛔ closing needs the user's approval, and AC4/AC5 a rig look (trap 7).**
 **Epic:** ✅ **[EP-043]** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md)
 **Serves:** ✅ **R4 · R5 · R6**
 **Depends on:** ✅ **[SP-146] CLOSED 2026-09-29** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md)
@@ -131,6 +132,128 @@ writer's session.**
 ---
 
 ## Progress log
+
+### ✅ 2026-09-30 — T-0567 IMPLEMENTED (restore at launch) — ✅ SPRINT IMPLEMENTATION COMPLETE
+
+✅ **`AppEnvironment::restoreSession()`, called ONCE from `main()`** after Landing and the shell
+controller exist. ⚠️ **Each project goes through `openProjectWindow()` — the SAME funnel as a Landing
+open**, ⛔ no second open path.
+
+| Piece | ⚠️ What it does |
+| ----- | --------------- |
+| ✅ **`resolvableProjectsToRestore()`** | ⚠️ The guarded set (through `projectsToRestore()`, ⛔ so R6 still holds), minus paths that do not resolve. ⛔ **A skip writes nothing** — [R-Q2] |
+| ✅ **No envelope on restore** | ⚠️ Each editor performs the project's ONE open (the reload path) — ⛔ opening first would re-earn [I-0232]'s double open |
+| ✅ **Geometry on EVERY open** | ⚠️ `openProjectWindow()` applies the project's saved frame, maximized state and splitters **whenever the identity is known** — ✅ **Apple's shape** (`ProjectWindowFrameStore`, I-0051), ⛔ not restore-only |
+| ✅ **`clampedOnscreen()`** | ⚠️ Apple's rule ported as-is: keep a frame overlapping a screen by ≥ 80×80, else re-centre on the primary |
+| ✅ **Splitters: all-positive or nothing** | ⚠️ **Resolves T-0566's surfaced item 1:** a pane HIDDEN at close recorded a 0; ⛔ applying it to a now-visible pane would collapse it, so such a list is ignored and defaults stay |
+| ✅ **`title` in `session.ini`** | ⚠️ Restore has no Landing envelope to take a title from |
+| ⚠️ **`pendingOpens_` — R3 while a load is in flight** | ⛔ **The registry learns a project only when its load FINISHES.** A writer clicking a recent while restore is still loading that same project would get a SECOND window on it — two editors on one project. ✅ An open whose identity is known up front is held until it settles; `existingWindowFor()` consults it. ⚠️ **This also closes the same gap for ordinary Landing opens** |
+
+⚠️ **A project that is no longer `ready` (needs repair) FAILS its restore load and its window closes
+back to Landing** — ⛔ **restore NEVER repairs without the writer's consent**; the repair prompt lives on
+Landing. ⚠️ Its record is untouched (the failed load never gets an identity), so it is retried next launch.
+
+#### ✅ VERIFIED BY RUNNING — the smokes, AND the real app under Xvfb
+
+⚠️ **The smokes CANNOT exercise the reopen — by design:** every smoke is `offscreen`, which is exactly
+what R6 suppresses. ✅ So the **real `scrivi_linux`** was run under **Xvfb (no `offscreen`)** in a
+throwaway container, against two generated fixture projects and a hand-seeded `session.ini`
+(⛔ never real work — `feedback_never_drive_synthetic_input_at_real_work`):
+
+| Step | Observed |
+| ---- | -------- |
+| Launch 1 — seeded Alpha `900x650+50+60`, Beta `800x600+1000+100`, `gone-id` at a missing path | ✅ **Both windows at EXACTLY those frames**; ✅ `skipping gone-id — path does not resolve; record kept` |
+| Ctrl+W on Beta | ✅ Beta `open=false`, ✅ its geometry and splitters RECORDED |
+| Ctrl+Q | ✅ Alpha stays `open=true` (the quit freeze); ✅ **seeded splitters APPLIED**: navigator 200 / inspector 250 / timeline 150 (⚠️ defaults are 240 / 400 / 120) |
+| Launch 2 — `SCRIVI_NO_RESTORE=1` | ✅ **Landing only**; ✅ **`session.ini` BYTE-IDENTICAL** afterwards |
+| Launch 3 | ✅ **Alpha ONLY**, at `900x650+50+60`; ✅ `gone-id` record still present |
+
+| Check | Result |
+| ----- | ------ |
+| ⚠️ **`ctest` — NON-ROOT (uid 1001)** | ✅ **641/641** |
+| Linux smokes | ✅ **25/25** — ⚠️ `restore_guard_smoke` now also covers **AC4** (skip + record kept); `session_store_smoke` covers `title` and **`setOpen` directly** (⚠️ T-0566 added it untested) |
+| Docker build | ✅ **clean** (⚠️ only the pre-existing `DeterministicUUIDProvider.hpp` warning) |
+| `check-package-boundary.sh` | ✅ **GREEN** |
+| Apple `xcodebuild build` | ✅ **SUCCEEDED** (no Apple source touched) |
+
+⚠️ **WHAT IS STILL UNPROVEN — for the rig (trap 7, [SP-148]):**
+1. ⛔ **MAXIMIZED RESTORE.** ⚠️ Xvfb has no window manager, so maximize could not be observed.
+   ✅ Code path: `setGeometry(normal frame)` then `showMaximized()`. ⚠️ **[I-0177]'s own symptom.**
+2. ⚠️ **A HUNG network mount at launch.** `QFileInfo::exists` is a synchronous stat on the UI thread;
+   ✅ an absent path or unplugged drive answers at once, ⛔ a hung mount would block launch
+   ([I-0193]'s class). Unmeasured.
+3. ⚠️ **Desktop logout** (carried from T-0566): a close that bypasses `quitApplication()` marks each
+   window closed.
+4. ⚠️ **Landing stays up beside restored windows.** ⚠️ **Apple DISMISSES Welcome when a project opens**
+   (`WelcomeWindowRoot`); ⛔ Linux never has, for ANY open ([SP-146] shipped it that way). ✅ Not changed
+   here — **a parity gap to rule, not a T-0567 regression.**
+5. ⚠️ **Both project windows are titled `Scrivi — Linux (alpha)`**, not by project — pre-existing, seen
+   in `xwininfo` during the run.
+
+---
+
+### ✅ 2026-09-30 — T-0566 IMPLEMENTED (save on close/quit + the R6 guard)
+
+✅ **`AppEnvironment` now OWNS the `SessionStore`** (`platforms/linux/src/AppEnvironment.hpp`) —
+⛔ **the only owner of `session.ini` (AC1).**
+
+⚠️ **WHAT IS WRITTEN, AND WHEN:**
+- ✅ **On a SUCCESSFUL load** — `SessionStore::setOpen(id, path)` (**new**), from `ScriviWindow`'s
+  `loadFinished` handler, beside the window registration. ⚠️ **Only `open` + `path`:** ⛔ `record()`
+  writes `maximized` unconditionally, so recording a fresh window's DEFAULT state would clobber the
+  geometry the project was last closed with. ✅ **Writing at load, not only at quit, means a SIGKILLed
+  session still knows what was open.**
+- ✅ **In `ScriviWindow::closeEvent`, BEFORE `releaseProject()`** — frame, maximized, both splitters,
+  handed to `AppEnvironment::projectWindowReleasing()`. ⚠️ **Every project-window exit arrives there:**
+  the X, `Close Project` (`showLanding()` → `close()`), and Quit (`quitApplication()` → `close()`).
+- ⛔ **`setClosed` is SKIPPED while quitting** — ✅ **Apple's `isTerminating` freeze, via the existing
+  `quitting_` flag.** ⚠️ A quit closes every window; ⛔ marking them closed would leave R4 nothing.
+- ⚠️ **A maximized window records `normalGeometry()`** — ✅ what un-maximizing after a restore returns
+  to, ⛔ not the screen-sized rect.
+
+⛔ **THE R6 GUARD — `AppEnvironment::projectsToRestore()`, the ONE route from `session.ini` to a
+reopened window.** ✅ **Returns nothing when `QT_QPA_PLATFORM=offscreen` OR `SCRIVI_NO_RESTORE` is
+set; ⛔ WRITES NOTHING (AC6).** ✅ Both signals are function-local `static const` — Apple's stored-`let`
+rule. ⚠️ **T-0567 MUST start its restore there**, ⛔ never at `sessionStore().openProjectIDs()`.
+
+⚠️ **The WRITE side is deliberately unguarded — as on Apple.** ✅ **Checked: no smoke constructs an
+`AppEnvironment` or a `ScriviWindow`**, so only the real app writes `session.ini`. ✅ And because the
+manifest is per-project `open` FLAGS (not Apple's whole-set rewrite), ⚠️ a `SCRIVI_NO_RESTORE` launch
+that opens project A marks A open **without touching B's flag** — ✅ the un-restored session survives.
+
+#### ✅ AC7 — PROVEN BY BREAKING IT (twice, in a throwaway container, never the repo)
+
+✅ **`restore_guard_smoke` — three passes over one seeded temp root:** ⚠️ **(1) NO signal — the
+NEGATIVE CONTROL: the funnel MUST return the open project**, which is what makes (2) and (3) mean
+anything; **(2) `QT_QPA_PLATFORM=offscreen`; (3) `SCRIVI_NO_RESTORE=1`.** ✅ **Each suppressed pass
+asserts `session.ini` is BYTE-IDENTICAL afterwards.**
+
+| Break | Result |
+| ----- | ------ |
+| ⛔ **Guard removed** (`if (false)`) | ✅ **RED** — `[R6] a guarded run restores NOTHING` |
+| ⛔ **Guard CLEARS the manifest** (`clearAll()` before return) | ✅ **RED** — `[AC6] BYTE-IDENTICAL`, `[AC6] the open set SURVIVES suppression` |
+
+| Check | Result |
+| ----- | ------ |
+| ⚠️ **`ctest` — NON-ROOT (uid 1001)** | ✅ **641/641** |
+| Linux smokes | ✅ **25/25** (⚠️ **was 24 — the new one is included**) |
+| Docker build | ✅ **clean** (⚠️ only the pre-existing `DeterministicUUIDProvider.hpp` `-Wformat-truncation`) |
+| `check-package-boundary.sh` | ✅ **GREEN** (AC8) |
+| Apple `xcodebuild build` | ✅ **SUCCEEDED** (⚠️ no Apple source touched) |
+
+⚠️ **TWO THINGS FOR T-0567, SURFACED NOT SOLVED:**
+1. ⚠️ **A HIDDEN pane records a ZERO in its splitter sizes** (`QSplitter::sizes()` reports 0 for a
+   hidden widget). ⛔ Navigator/inspector visibility is session-scoped (T-0563), so restoring
+   `{0, …}` into a VISIBLE navigator would collapse it. ✅ **T-0567 must decide how to apply them.**
+2. ⚠️ **Only the Quit paths set `quitting_`.** ⛔ An end-of-desktop-session close that bypasses
+   `quitApplication()` would close each window as a *writer* close and mark it closed. ✅ **Unmeasured
+   — worth a rig look in [SP-148]'s live pass.**
+
+⛔ **ONE MESS OF MINE CLEANED UP:** ⚠️ **T-0565 spliced the `session_store_smoke` CMake block INTO THE
+MIDDLE of the persistence smoke's comment header**, leaving that comment describing the wrong target.
+✅ **Restored.**
+
+---
 
 ### ✅ 2026-09-29 — T-0565 IMPLEMENTED (`SessionStore`)
 

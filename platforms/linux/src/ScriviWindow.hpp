@@ -116,6 +116,10 @@ public:
     // ✅ Used by the window manager and by teardown.
     [[nodiscard]] QString shownProjectID() const;
 
+    // ⚠️ [SP-147] T-0567 — apply this project's saved splitter proportions.
+    // ✅ Safe with empty lists (nothing stored) — the defaults stay.
+    void applySplitterSizes(const QList<int>& paneSizes, const QList<int>& outerSizes);
+
     // ⚠️ [SP-146] T-0560 — bring this window to the front (R3).
     // ✅ Called when the writer asks to open a project that is ALREADY open.
     void raiseToFront();
@@ -139,6 +143,7 @@ private:
     EditorShell*      editor_      = nullptr;
     ShellController*  shell_       = nullptr;   // QML boundary (New Project panel)
     QString           appSupportRoot_;
+    QString           title_;   // ⚠️ [SP-147] T-0567 — recorded so restore can show it
 
     // ⚠️ [SP-146] T-0559 — the app-global owner, handed down from `main()`.
     // ⛔ NOT owned: it outlives this window. ✅ Passed on to each `EditorShell`.

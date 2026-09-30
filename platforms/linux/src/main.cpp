@@ -185,5 +185,12 @@ int main(int argc, char* argv[])
     // ✅ Each project window registers itself when its project finishes loading
     // (`ScriviWindow::showEditor`'s `loadFinished` handler).
     landingWindow->show();
+
+    // ⚠️ [SP-147] T-0567 — R4: REOPEN WHAT WAS OPEN AT THE LAST QUIT.
+    // ✅ After Landing and the shell controller exist, so each restored window is
+    // wired exactly like one opened from Landing. ⛔ The R6 guard lives inside
+    // `AppEnvironment::projectsToRestore()`: a headless run (`QT_QPA_PLATFORM=
+    // offscreen`) or `SCRIVI_NO_RESTORE` opens NOTHING and leaves `session.ini` intact.
+    env.restoreSession();
     return app.exec();
 }

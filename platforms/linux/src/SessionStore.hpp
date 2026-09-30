@@ -45,6 +45,9 @@ public:
     struct Entry {
         QString     projectID;
         QString     path;
+        // ⚠️ [SP-147] T-0567 — the title the window showed, so a RESTORED window can
+        // show it too. ✅ Restore has no Landing envelope to take it from.
+        QString     title;
         QRect       frame;
         bool        maximized = false;
         // ⚠️ Splitter proportions, as the INTEGER SIZES `QSplitter::sizes()` returns.
@@ -75,6 +78,14 @@ public:
     // ⚠️ An empty `projectID` is IGNORED — ✅ the same guard `OpenProjectRegistry`
     // applies: a failed load has no identity and must not become a phantom row.
     void record(const Entry& entry);
+
+    // Mark a project as OPEN at `path`, touching NOTHING else (T-0566).
+    // ⚠️ Called when a project finishes loading. ⛔ `record()` is wrong there: it
+    // writes `maximized` unconditionally, so recording a fresh window's DEFAULT
+    // state would overwrite the geometry this project was last closed with.
+    // ✅ Writing `open` at load time — not only at quit — means a SIGKILLed
+    // session still knows what was open; only its geometry is lost.
+    void setOpen(const QString& projectID, const QString& path, const QString& title);
 
     // Mark a project as no longer open. ⛔ DOES NOT DELETE ITS GEOMETRY — ⚠️ [R-Q2]:
     // a project the writer closes today should reopen where she left it tomorrow.

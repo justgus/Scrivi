@@ -1,7 +1,11 @@
 #pragma once
 
+#include <QFileInfo>
+#include <QHash>
+#include <QList>
 #include <QString>
 #include <QVariantMap>
+#include <QtGlobal>
 
 class ScriviWindow;
 class LandingWindow;
@@ -9,6 +13,7 @@ class ShellController;
 
 #include "OpenProjectRegistry.hpp"
 #include "ProjectWindowManager.hpp"
+#include "SessionStore.hpp"
 
 // AppEnvironment — Linux's app-global state owner (EP-043 / SP-146, T-0558).
 //
@@ -55,7 +60,8 @@ class ShellController;
 // ⚠️ T-0559: the registry and `ProjectSession` OWNERSHIP move here; `EditorShell`
 //    takes a `ProjectSession*` instead of holding one.
 // ⚠️ T-0560: `openProject()` gains the R3 check and window orchestration.
-// ⛔ [SP-147]: the open-session manifest and geometry restore. ⛔ NOT HERE YET.
+// ✅ [SP-147]: the open-session manifest and geometry. T-0566 records it and
+//    adds the R6 guard; T-0567 restores from it.
 //
 // ✅ T-0559 DONE: the registry's owner. ✅ T-0560 DONE: the window manager and
 // `openProject()`'s R3 check.
@@ -66,7 +72,8 @@ public:
     // and injected, so this class does no environment lookup of its own — ✅ the same
     // discipline `ProjectSession` already follows.
     explicit AppEnvironment(QString appSupportRoot)
-        : appSupportRoot_(std::move(appSupportRoot))
+        : appSupportRoot_(appSupportRoot)
+        , session_(std::move(appSupportRoot))
     {
     }
 
@@ -90,6 +97,107 @@ public:
     [[nodiscard]] ProjectWindowManager&       windows()       { return windows_; }
     [[nodiscard]] const ProjectWindowManager& windows() const { return windows_; }
 
+    // ✅ `<appSupportRoot>/session.ini` ([SP-147] AC1) — ⛔ the ONLY owner of that
+    // file. ⚠️ Written by project windows as they load and close (T-0566).
+    [[nodiscard]] SessionStore&       sessionStore()       { return session_; }
+    [[nodiscard]] const SessionStore& sessionStore() const { return session_; }
+
+    // ---- R6 — THE RESTORE GUARD ([SP-147] T-0566) -----------------------
+    //
+    // ⚠️ APPLE'S GUARD IS THE PRECEDENT (`AppEnvironment.swift:353-375`) — ✅ same
+    // two questions, ⛔ different signals. ⚠️ [I-0150] is what it pays for: on
+    // Apple, `xcodebuild test` LAUNCHED the app and rewrote a real project.
+    //
+    // ✅ Both are evaluated ONCE (function-local `static const`), as Apple's are
+    // stored `let`s: ⚠️ *"the decision must not change underneath the app mid-run."*
+
+    // True for a headless run — ✅ every smoke wrapper already exports
+    // `QT_QPA_PLATFORM=offscreen`, so a test run identifies itself with NO new
+    // plumbing. ⛔ `XDG_DATA_HOME` redirection was REJECTED: it depends on the
+    // harness remembering to redirect, and one that forgets touches the real file.
+    // ⚠️ Reads the env var, not `QGuiApplication::platformName()`, so it answers
+    // without a display — ⛔ a `-platform offscreen` ARGUMENT is therefore not seen.
+    [[nodiscard]] static bool isHeadlessRun()
+    {
+        static const bool headless =
+            qEnvironmentVariable("QT_QPA_PLATFORM").startsWith(QLatin1String("offscreen"));
+        return headless;
+    }
+
+    // True when the operator asked for a launch with NO project restored —
+    // `SCRIVI_NO_RESTORE=1`. ✅ An ENV VAR, like Apple's `SCRIVI_NO_PROJECT_LOAD`;
+    // ⚠️ presence is what counts, as on Apple.
+    [[nodiscard]] static bool suppressRestore()
+    {
+        static const bool suppress = qEnvironmentVariableIsSet("SCRIVI_NO_RESTORE");
+        return suppress;
+    }
+
+    // ✅ THE ONE ROUTE FROM `session.ini` TO A REOPENED WINDOW. ⚠️ T-0567's restore
+    // MUST start here, ⛔ never at `sessionStore().openProjectIDs()` — the guard lives
+    // in this function and nowhere else.
+    //
+    // ⛔ THE GUARD SUPPRESSES THE RESTORE ONLY. ⚠️ It returns nothing and WRITES
+    // NOTHING: `session.ini` is left INTACT ([SP-147] AC6), so a suppressed launch
+    // cannot lose the writer's windows — ⛔ a guard that CLEARED the file would erase
+    // her session on the first test run. ✅ Apple says the same, explicitly.
+    //
+    // ⚠️ Returns every entry marked open, UNFILTERED by path — ✅ see
+    // `resolvableProjectsToRestore()` for the AC4 filter.
+    [[nodiscard]] QList<SessionStore::Entry> projectsToRestore() const
+    {
+        if (isHeadlessRun() || suppressRestore()) {
+            qInfo("[Scrivi] %s — session restore suppressed; session.ini intact (R6).",
+                  isHeadlessRun() ? "Headless run" : "SCRIVI_NO_RESTORE");
+            return {};
+        }
+        QList<SessionStore::Entry> out;
+        for (const QString& projectID : session_.openProjectIDs()) {
+            out.append(session_.entry(projectID));
+        }
+        return out;
+    }
+
+    // ⚠️ [SP-147] AC4 / T-0567 — the guarded set, minus any project whose path no
+    // longer resolves. ⛔ A SKIP WRITES NOTHING: [R-Q2] — a project moved or on an
+    // unplugged drive is skipped for ONE launch and keeps its record and geometry.
+    // ⚠️ `QFileInfo::exists` is a synchronous stat on the UI thread; ✅ an absent
+    // path or unplugged drive answers at once, ⛔ but a HUNG network mount would
+    // block launch here ([I-0193]'s class). Unmeasured on the rig.
+    [[nodiscard]] QList<SessionStore::Entry> resolvableProjectsToRestore() const
+    {
+        QList<SessionStore::Entry> out;
+        for (const SessionStore::Entry& e : projectsToRestore()) {
+            if (!e.path.isEmpty() && QFileInfo::exists(e.path)) {
+                out.append(e);
+            } else {
+                qInfo("[Scrivi] Restore: skipping %s — path does not resolve (%s); record kept.",
+                      qPrintable(e.projectID), qPrintable(e.path));
+            }
+        }
+        return out;
+    }
+
+    // ✅ R4 — reopen every project that was open at the last quit (T-0567).
+    // ⚠️ Called ONCE by `main()`, after Landing and the shell controller exist.
+    // ✅ Each project goes through `openProjectWindow()`, the same funnel as a
+    // Landing open — ⛔ no second open path.
+    void restoreSession();
+
+    // ⚠️ Called by a project window just BEFORE it releases its project (T-0566),
+    // with the window's state captured while it still has a project to describe.
+    // ✅ Records geometry and splitters; ⚠️ marks the project CLOSED unless the app
+    // is QUITTING — ⛔ a quit closes every window, and a project open at quit must
+    // stay open in the manifest or R4 has nothing to restore. ✅ Apple's
+    // `isTerminating` freeze is the same rule.
+    void projectWindowReleasing(const SessionStore::Entry& state)
+    {
+        session_.record(state);
+        if (!quitting_) {
+            session_.setClosed(state.projectID);
+        }
+    }
+
     // ---- R3 — THE NON-REENTRANCY CHECK (T-0560) -------------------------
     //
     // ✅ *"Is this project already open?"* — ⚠️ answered from the REGISTRY, never
@@ -99,13 +207,27 @@ public:
     //
     // ⚠️ RETURNS THE EXISTING WINDOW, or nullptr when the project is not open.
     // ✅ The caller RAISES what it gets back instead of opening a second copy.
+    //
+    // ⚠️ [SP-147] T-0567 — OR A WINDOW STILL LOADING IT. ⛔ The registry learns a
+    // project only when its load FINISHES, so a writer clicking a recent while
+    // restore is still loading that same project would get a SECOND window on it
+    // — two editors writing one project. ✅ Restore makes that likely at launch
+    // (Landing is up, loads are async), so an open whose identity is KNOWN up
+    // front is held in `pendingOpens_` until it settles.
     [[nodiscard]] ScriviWindow* existingWindowFor(const QString& projectID) const
     {
-        if (projectID.isEmpty() || !openProjects_.isOpen(projectID)) {
+        if (projectID.isEmpty()) {
             return nullptr;
         }
-        return windows_.window(projectID);
+        if (openProjects_.isOpen(projectID)) {
+            return windows_.window(projectID);
+        }
+        return pendingOpens_.value(projectID, nullptr);
     }
+
+    // ⚠️ A project window's load has finished, SUCCESS OR FAILURE — ✅ it leaves the
+    // pending set (the registry answers from here on, or the window closes).
+    void projectLoadSettled(ScriviWindow* window);
 
     // ---- R7 — quit must flush EVERY session, not one --------------------
     //
@@ -134,9 +256,14 @@ public:
     // ⚠️ THIS IS WHERE R3 IS ENFORCED for real: ⛔ `existingWindowFor()` only
     // answers the question; this acts on the answer.
     // ⚠️ Returns the window showing that project — ✅ new or existing.
+    // ⚠️ [SP-147] T-0567 — `projectIDHint` is the identity when the caller knows it
+    // WITHOUT an envelope (restore). ✅ With an identity, the window takes that
+    // project's saved geometry and splitters — ON EVERY OPEN, as Apple's
+    // `ProjectWindowFrameStore` does (I-0051), ⛔ not only during restore.
     ScriviWindow* openProjectWindow(const QString& projectPath,
                                     const QString& title,
-                                    const QVariantMap& openedProject);
+                                    const QVariantMap& openedProject,
+                                    const QString& projectIDHint = {});
 
     // ⚠️ Called by a project window as it closes. ✅ When the LAST one goes, Landing
     // is shown — ⛔ the app never quits implicitly on a window close ([R-Q3]).
@@ -176,4 +303,7 @@ private:
     bool                quitting_ = false;   // ⚠️ [I-0257] — teardown in progress
     OpenProjectRegistry openProjects_;
     ProjectWindowManager windows_;
+    SessionStore        session_;
+    // ⚠️ projectID → a window whose load of it has not finished (T-0567). BORROWED.
+    QHash<QString, ScriviWindow*> pendingOpens_;
 };

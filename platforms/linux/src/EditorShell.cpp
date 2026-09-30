@@ -1384,6 +1384,36 @@ bool EditorShell::saveScene(int segmentIndex)
     return !r.isEmpty() && r.value(QStringLiteral("saved")).toBool();
 }
 
+QList<int> EditorShell::paneSizes() const
+{
+    return splitter_ != nullptr ? splitter_->sizes() : QList<int>{};
+}
+
+QList<int> EditorShell::outerSizes() const
+{
+    return outerSplitter_ != nullptr ? outerSplitter_->sizes() : QList<int>{};
+}
+
+namespace {
+void applySizes(QSplitter* splitter, const QList<int>& sizes)
+{
+    if (splitter == nullptr || sizes.size() != splitter->count()) {
+        return;
+    }
+    for (const int s : sizes) {
+        if (s <= 0) {
+            return;
+        }
+    }
+    // ✅ `setSizes` keeps the PROPORTIONS when the splitter's total differs (e.g. a
+    // window restored maximized on a different screen).
+    splitter->setSizes(sizes);
+}
+}  // namespace
+
+void EditorShell::setPaneSizes(const QList<int>& sizes)  { applySizes(splitter_, sizes); }
+void EditorShell::setOuterSizes(const QList<int>& sizes) { applySizes(outerSplitter_, sizes); }
+
 void EditorShell::releaseProject()
 {
     // EP-039 T-0512. ⚠️ Order matters: the core is keyed by the project ROOT, so this
