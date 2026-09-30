@@ -210,7 +210,7 @@ two closed Sprints whose subject it does not own; ✅ that is recorded rather th
 outcomes are credited in [EP-041]'s own class table.**
 
 ✅ **Restructure rationale (still the reference for why the chain is four Sprints):**
-[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).
+[`Sprint-SP-130-RESTRUCTURE.md`](../../Sprints/Closed/Sprint-SP-130-RESTRUCTURE.md).
 
 ### ⚠️ Sequencing constraints — ✅ these are NOT preferences
 

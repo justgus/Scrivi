@@ -34,7 +34,7 @@ open non-deterministically, ⚠️ a regression from [T-0561]) — ✅ **reprodu
 
 ✅ **[SP-147] CLOSED 2026-09-30 (user-approved) — ⚠️ S3 of 4 COMPLETE** →
 [`../Sprints/Closed/Sprint-SP-147.md`](../Sprints/Closed/Sprint-SP-147.md). ✅ Projects reopen where the writer left them
-(size, maximized, splitters); ⚠️ window POSITION ruled out on Wayland ([I-0264]). ➡️ **[SP-148] (S4) is NEXT.**
+(size, maximized, splitters); ⚠️ window POSITION ruled out on Wayland ([I-0264]). ✅ **[SP-148] CLOSED 2026-09-30 — S4 of 4 COMPLETE.** ✅ **[EP-043] is COMPLETE (all 10 ACs met) — ⚠️ awaiting the user's close approval.**
 ⚠️ **[I-0256] remains a fold-in candidate** (⛔ still not built).
 
 ⚠️ **PRIOR STATE — ✅ ALL FIVE OWED RULINGS WERE ANSWERED 2026-09-26 (user-approved).** ✅ **Full text in the Epic record's §Rulings.** The five, in one line each:

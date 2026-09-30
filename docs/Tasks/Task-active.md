@@ -143,7 +143,7 @@ main-actor block at `ExistingAssetPicker.swift:130`.
 ⚠️ **SP-130 WAS RESTRUCTURED INTO FIVE SPRINTS 2026-09-15** (user-ruled). ⚠️ **T-0537 / T-0510 belong
 to PLANNED sprints (SP-142 – SP-143) and live in those records** — ⛔ **NOT in this file, which holds
 ACTIVE work only** (`feedback_task_layer_discipline`). ✅ **Their planning detail:
-[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Sprint-SP-130-RESTRUCTURE.md).**
+[`Sprint-SP-130-RESTRUCTURE.md`](../Sprints/Closed/Sprint-SP-130-RESTRUCTURE.md).**
 ✅ **T-0536 is VERIFIED (SP-140, closed).** ✅ **T-0507 is VERIFIED 2026-09-21 and has LEFT this file**
 → [`Verified/Task-verified-0507.md`](Verified/Task-verified-0507.md).
 ⛔ **NO Task is active.** ✅ **T-0546 VERIFIED and archived 2026-09-23 with [SP-136]'s close** → [`Verified/Task-verified-0546.md`](Verified/Task-verified-0546.md). ✅ **T-0545 VERIFIED and archived 2026-09-22.** ✅ **T-0544 and T-0543 both VERIFIED and archived 2026-09-22;

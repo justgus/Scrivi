@@ -13,7 +13,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 
 ---
 
-## ⚠️ I-0263 — why it went unnoticed for a week
+## I-0263 — ⚠️ why it went unnoticed for a week
 
 ⛔ **The failure hid exactly the two things that would have revealed it:** the world-warning bar and the
 Timeline were both pushed off the bottom of the window. ✅ It surfaced only because [I-0261]'s first fix
@@ -25,3 +25,21 @@ column) by the user's toggle test.
 ✅ **Fix:** an OVERLAY (user ruling: *"translucent… ZStack it"*) — it takes part in no layout.
 ⚠️ **Lesson:** a ShapeStyle `.background` extends into the safe area by default; the first overlay painted
 the Timeline amber until `ignoresSafeAreaEdges: []`.
+
+---
+
+## I-0261 — A FAILED READ OF THE PROJECT'S WORLDS WAS REPORTED AS "NO WORLDS".
+
+✅ The full record is this Issue's row in the table above. ⚠️ Section added 2026-09-30 ([SP-148] Audit Check A5) so the table and the sections agree (P4).
+
+## I-0262 — "NO WORLDS" / "NO CHARACTERS IN THIS SCENE YET" SHOWN AFTER A *FAILED* READ.
+
+✅ The full record is this Issue's row in the table above. ⚠️ Section added 2026-09-30 ([SP-148] Audit Check A5) so the table and the sections agree (P4).
+
+## I-0264 — WINDOW POSITION IS NOT RESTORED — every window opens CENTRED.
+
+✅ The full record is this Issue's row in the table above. ⚠️ Section added 2026-09-30 ([SP-148] Audit Check A5) so the table and the sections agree (P4).
+
+## I-0265 — THE LANDING WINDOW'S SIZE IS NEVER REMEMBERED
+
+✅ The full record is this Issue's row in the table above. ⚠️ Section added 2026-09-30 ([SP-148] Audit Check A5) so the table and the sections agree (P4).

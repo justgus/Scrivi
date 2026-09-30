@@ -2,9 +2,8 @@
 
 🟡 **[SP-151] ACTIVE 2026-09-30** `[Apple]` → [`Sprint-SP-151.md`](Sprint-SP-151.md) — ⚠️ the Apple issue
 batch ([I-0202], [I-0216], [I-0217], [I-0218]) + long-manuscript navigation ([T-0568], [T-0569]).
-🟡 **[SP-148] ACTIVE 2026-09-30** `[Linux]` → [`Sprint-SP-148.md`](Sprint-SP-148.md) — ⚠️ [EP-043] S4: the AC sweep, AC-build on the rig, the final live pass, Epic close prep.
+✅ **[SP-148] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-148.md`](Closed/Sprint-SP-148.md) — ✅ [EP-043] S4 complete; ✅ **[EP-043] marked COMPLETE — awaiting close approval.**
 ✅ **[SP-147] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md) — ✅ [EP-043] S3 complete; ➡️ **[SP-148] next**.
-⚠️ **The "NO SPRINT IS ACTIVE" note below is SUPERSEDED** — it predates SP-147 and SP-151.
 
 ---
 
@@ -17,12 +16,6 @@ passed."*** ✅ **T-0558 · T-0559 · T-0560 · T-0561 · T-0562 VERIFIED and ar
 for.** ⚠️ **The user's FIRST rig pass confirmed AC9 and FOUND [I-0257]** (⛔ a quit that left windows
 open non-deterministically) — ✅ **fixed in [T-0562] and re-verified.**
 
-⛔ **NO SPRINT IS ACTIVE.** ✅ **[SP-147] IS NEXT** — ⚠️ **[EP-043] S3: the open-session manifest,
-launch restore, and per-project geometry AND splitter state ([R-Q1] `session.ini`, R4/R5/R6).**
-⚠️ **The R6 test guard lands there, with the first line of restore code** — ✅ **and Apple's
-`SCRIVI_NO_PROJECT_LOAD` guard is the precedent to read first.**
-
----
 
 
 ✅ **[SP-145] CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md).

@@ -95,6 +95,21 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 12 | I-0111 – I-0120 | [`Issue-verified-0111-0120.md`](Verified/Issue-verified-0111-0120.md) | 9 |
 | 13 | I-0121 – I-0130 | [`Issue-verified-0121-0130.md`](Verified/Issue-verified-0121-0130.md) | 10 |
 | **14** | I-0131 – I-0140 | [`Issue-verified-0131-0140.md`](Verified/Issue-verified-0131-0140.md) | **3** |
+| 15 | I-0141 – I-0150 | [`Issue-verified-0141-0150.md`](Verified/Issue-verified-0141-0150.md) | 7 |
+| 16 | I-0151 – I-0160 | [`Issue-verified-0151-0160.md`](Verified/Issue-verified-0151-0160.md) | 11 |
+| 17 | I-0161 – I-0170 | [`Issue-verified-0161-0170.md`](Verified/Issue-verified-0161-0170.md) | 9 |
+| 18 | I-0171 – I-0180 | [`Issue-verified-0171-0180.md`](Verified/Issue-verified-0171-0180.md) | 8 |
+| 19 | I-0181 – I-0190 | [`Issue-verified-0181-0190.md`](Verified/Issue-verified-0181-0190.md) | 6 |
+| 20 | I-0191 – I-0200 | [`Issue-verified-0191-0200.md`](Verified/Issue-verified-0191-0200.md) | 6 |
+| 21 | I-0201 – I-0210 | [`Issue-verified-0201-0210.md`](Verified/Issue-verified-0201-0210.md) | 4 |
+| 22 | I-0211 – I-0220 | [`Issue-verified-0211-0220.md`](Verified/Issue-verified-0211-0220.md) | 6 |
+| 23 | I-0221 – I-0230 | [`Issue-verified-0221-0230.md`](Verified/Issue-verified-0221-0230.md) | 2 |
+| 24 | I-0231 – I-0240 | [`Issue-verified-0231-0240.md`](Verified/Issue-verified-0231-0240.md) | 5 |
+| 25 | I-0241 – I-0250 | [`Issue-verified-0241-0250.md`](Verified/Issue-verified-0241-0250.md) | 8 |
+| 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 7 |
+| 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 5 |
+
+⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
 **⚠️ Batches 2 and 3 — a known, deliberate irregularity. Do not "fix" it.**
 `Issue-verified-0011-0020.md` physically contains **I-0021 – I-0024**, which belong to batch 3; batch 3

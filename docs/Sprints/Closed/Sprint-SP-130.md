@@ -15,7 +15,7 @@ platform: Apple
 ⛔ **T-0509 STRUCK** — its remainder was provably zero.
 
 ⚠️ **RESTRUCTURED 2026-09-15 (user-ruled).** ✅ **SP-130 was ONE sprint of four tasks; ⚠️ it is now
-FIVE sprints** — ✅ **see [`Sprint-SP-130-RESTRUCTURE.md`](../Sprint-SP-130-RESTRUCTURE.md) for why.**
+FIVE sprints** — ✅ **see [`Sprint-SP-130-RESTRUCTURE.md`](Sprint-SP-130-RESTRUCTURE.md) for why.**
 ✅ **This sprint keeps ONLY T-0508**, ⚠️ **the one piece that blocks on nothing and decides nothing.**
 
 ## ⛔ T-0509 IS STRUCK — its remainder is provably ZERO
@@ -150,7 +150,7 @@ what this Sprint changed.**
 press *Choose Existing…*"** — ⛔ **untestable: the Detail Sheet goes read-only the moment the world
 vanishes and DISABLES the button under test**, ⚠️ **so the picker never opens and the changed code is
 never reached.** ✅ **A pass that way would have been a FALSE GREEN.** ✅ **Correct order, and the one
-actually run: OPEN THE PICKER FIRST, THEN PULL THE DRIVE.** ✅ **[`Sprint-SP-130-VERIFICATION.md`](../Sprint-SP-130-VERIFICATION.md) corrected.**
+actually run: OPEN THE PICKER FIRST, THEN PULL THE DRIVE.** ✅ **[`Sprint-SP-130-VERIFICATION.md`](Sprint-SP-130-VERIFICATION.md) corrected.**
 
 ✅ **OBSERVED, with the drive pulled out from under an open 206-row picker:**
 
@@ -186,7 +186,7 @@ Sprint changed but is the surrounding behaviour it depends on** ([EP-031] AC23/A
 
 ## ✅ Verification procedure
 
-✅ **Setup / Test / Teardown: [`Sprint-SP-130-VERIFICATION.md`](../Sprint-SP-130-VERIFICATION.md).**
+✅ **Setup / Test / Teardown: [`Sprint-SP-130-VERIFICATION.md`](Sprint-SP-130-VERIFICATION.md).**
 
 ⚠️ **TWO THINGS IT FOUND BEFORE IT COULD BE WRITTEN, both blocking:**
 1. ⛔ **Eskandar does NOT currently resolve.** ⚠️ **`binding.json` records

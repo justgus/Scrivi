@@ -415,7 +415,10 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-137** | ✅ **`[Apple]`** **The Object Detail Sheet** — real chrome + a layout guard | EP-040 `[Apple]` | — | 2026-09-23 | ✅ **CLOSED 2026-09-23 — user-approved** → [record](Closed/Sprint-SP-137.md). ⚠️ **produced [I-0248] · [I-0249] · [I-0250]** |
 | **SP-149** | ⚠️ **`[Cross]`** — ⚠️ **[EP-041]'s last Sprint** | ⚠️ **EP-041** `[Cross]` | — | 2026-09-22 | ✅ **CLOSED 2026-09-22 — user-approved** → [record](Closed/Sprint-SP-149.md) |
 | **SP-150** | ✅ **`[ScriviCore]`** **[I-0213]'s accepted remainder** — ⚠️ **stop a structural op re-walking the WHOLE manuscript** | EP-040 `[Apple]` | 2026-09-24 | 2026-09-24 | ✅ **CLOSED 2026-09-24 — user-approved** → [record](Closed/Sprint-SP-150.md). ✅ **T-0549 + T-0550 VERIFIED; `reloadSceneDots` ~235 ms → `1.4 ms`** |
+| **SP-145** | ✅ **`[Linux]`** **The session split** — `ProjectSession` out of `EditorShell`; `OpenProjectRegistry`; [I-0251] | EP-043 `[Linux]` | 2026-09-29 | 2026-09-29 | ✅ **CLOSED 2026-09-29 — user-approved** → [record](Closed/Sprint-SP-145.md) |
+| **SP-146** | ✅ **`[Linux]`** **The app object + the windows** — `AppEnvironment`, one window per project, separate Landing, R3/R7/R8 | EP-043 `[Linux]` | 2026-09-29 | 2026-09-29 | ✅ **CLOSED 2026-09-29 — user-approved** → [record](Closed/Sprint-SP-146.md) |
 | **SP-147** | ✅ **`[Linux]`** **The persistence** — `session.ini`, launch restore, per-project geometry + splitters, the R6 guard; + [I-0264] [I-0265] | EP-043 `[Linux]` | 2026-09-29 | 2026-09-30 | ✅ **CLOSED 2026-09-30 — user-approved** → [record](Closed/Sprint-SP-147.md) |
+| **SP-148** | ✅ **`[Linux]`** **Verification** — AC sweep, `ctest` on the rig (non-root), the final live pass, the Audit Check | EP-043 `[Linux]` | 2026-09-30 | 2026-09-30 | ✅ **CLOSED 2026-09-30 — user-approved** → [record](Closed/Sprint-SP-148.md) |
 | **SP-151** | ✅ **`[Apple]`** **Apple issue batch + long-manuscript navigation** — [I-0202] [I-0216] [I-0217] [I-0218] · [T-0568] Go to Manuscript Start/End · [T-0569] navigator search | — `[Apple]` | 2026-09-30 | — | 🟡 **ACTIVE** → [record](Sprint-SP-151.md) |
 
 ## Statistics

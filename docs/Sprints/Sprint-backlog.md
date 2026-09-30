@@ -46,13 +46,13 @@ governs anything is a second source of truth.
 
 ---
 
-## ⚠️ RESERVED Sprint IDs — SP-148 ([EP-043] `[Linux]` The Session)
+## ✅ [EP-043] `[Linux]` The Session — ALL FOUR SPRINTS CLOSED (SP-145–SP-148)
 
 ✅ **[SP-145] IS CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md).
 ⚠️ **Its row below is kept struck for the chain's shape only.**
 ✅ **[SP-146] IS CLOSED 2026-09-29 (user-approved)** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md).
 ✅ **[SP-147] IS CLOSED 2026-09-30 (user-approved)** → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md).
-🟡 **[SP-148] ACTIVATED 2026-09-30** → [`Sprint-SP-148.md`](Sprint-SP-148.md).
+✅ **[SP-148] CLOSED 2026-09-30 (user-approved)** → [`Closed/Sprint-SP-148.md`](Closed/Sprint-SP-148.md). ✅ **No IDs remain reserved for this Epic.**
 ✅ **[EP-043] is ACTIVE** (activated 2026-09-25) → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md).
 ⚠️ **The IDs are recorded here ONLY so they are not reissued** — ✅ **the same precaution taken for
 EP-032's SP-107–SP-114 above**, and for the same reason the user gave when ordering that one.
@@ -68,7 +68,7 @@ and reissue SP-146–148 to something else.**
 | ~~**SP-145**~~ | ~~S1~~ | ✅ **CLOSED 2026-09-29** — the session split → [`Closed/Sprint-SP-145.md`](Closed/Sprint-SP-145.md) | ✅ **all 8 MET** |
 | ~~**SP-146**~~ | ~~S2~~ | ✅ **CLOSED 2026-09-29** — the app object + the windows → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md) | ✅ **all 11 MET** |
 | ~~**SP-147**~~ | ~~S3~~ | ✅ **CLOSED 2026-09-30** — the persistence → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md) | ✅ **all met** (AC5 position ruled out on Wayland) |
-| 🟡 **SP-148** (ACTIVE) | S4 | ✅ **Verification** — AC sweep, Docker `ctest` as non-root, ⚠️ **live pass on the real rig**, close prep | AC-build AC-live |
+| ~~**SP-148**~~ | ~~S4~~ | ✅ **Verification** — AC sweep, Docker `ctest` as non-root, ⚠️ **live pass on the real rig**, close prep | AC-build AC-live |
 
 ⚠️ **THE CHAIN IS SERIAL** — ✅ **for a real reason (⛔ you cannot persist per-window state before there
 are per-window identities)** — ⚠️ **but a stall in SP-145 stalls the whole Epic.** ✅ **[EP-018]

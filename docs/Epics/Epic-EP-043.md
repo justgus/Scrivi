@@ -8,7 +8,7 @@ activated: 2026-09-25
 
 # EP-043: `[Linux]` ⚠️ **The Session** — ✅ **many projects, each in its own window, restored where the writer left it**
 
-**Status:** 🟡 **ACTIVE — activated 2026-09-25 (user-approved).** ✅ **S1, S2 AND S3 COMPLETE** — ✅ [SP-147] CLOSED 2026-09-30. ➡️ **[SP-148] (S4, verification) is NEXT.**
+**Status:** ✅ **COMPLETE 2026-09-30 — all ten ACs met; ⚠️ AWAITING the user's CLOSE approval.** ✅ S1–S4 ([SP-145]–[SP-148]) all CLOSED.
 ✅ **ALL FIVE OWED RULINGS ARE ANSWERED — 2026-09-26 (user-approved)** (✅ **§Rulings**).
 ✅ **[SP-145] CLOSED 2026-09-29 (user-approved) — ⚠️ S1 of 4 COMPLETE** →
 [`../Sprints/Closed/Sprint-SP-145.md`](../Sprints/Closed/Sprint-SP-145.md).
@@ -44,7 +44,7 @@ shell"*).** ⚠️ **Running [EP-035] first would write CRUD into `EditorShell` 
 immediately relocate it** — ✅ **the "paying the extraction cost twice" this Epic already predicted for
 [I-0244].** ⚠️ **[EP-035]'s AC5 (thumbnails) does NOT collide** (✅ `SceneInspector.cpp`) — ⛔ **and its
 EP-039 blocker EXPIRED when [EP-039] closed 2026-09-15.**
-**Sprints:** ✅ **[SP-145] CLOSED** · ✅ **[SP-146] CLOSED 2026-09-29** · ✅ **[SP-147] CLOSED 2026-09-30** · 🟡 **[SP-148] ACTIVE**
+**Sprints:** ✅ **[SP-145] CLOSED** · ✅ **[SP-146] CLOSED 2026-09-29** · ✅ **[SP-147] CLOSED 2026-09-30** · ✅ **[SP-148] CLOSED 2026-09-30**
 **Primary Issues:** [I-0178] (multi-project) · [I-0176] (reopen at launch) · [I-0177] (geometry)
 **Codebase:** `[Linux]` — ⚠️ **`platforms/linux/` ONLY.** ✅ **No ScriviCore change is expected.**
 **Apple precedent:** [EP-018](Closed/Epic-EP-018.md) — *Per-Window / Per-Project Window Model*,
@@ -115,35 +115,35 @@ inspector by Apple's Doc 2 AC4** (see §*Rulings*).
 ⚠️ **Deliberately numbered R1–R5 to match [EP-018]**, so a reviewer can read the two Epics side by
 side and see what parity means. ✅ **R6–R8 are Linux-specific and have no Apple counterpart.**
 
-- [ ] **R1** — Multiple **distinct** projects can be open simultaneously. *(Mirrors EP-018 R1.)*
-- [ ] **R2** — Each open project lives in **its own window**. *(Mirrors EP-018 R2.)*
-- [ ] **R3** — The same project is **non-reentrant**: opening an already-open project **raises and
+- [x] **R1** — Multiple **distinct** projects can be open simultaneously. *(Mirrors EP-018 R1.)*
+- [x] **R2** — Each open project lives in **its own window**. *(Mirrors EP-018 R2.)*
+- [x] **R3** — The same project is **non-reentrant**: opening an already-open project **raises and
       focuses its existing window** instead of opening a second copy. ⚠️ **An app-side registry is
       authoritative** — ✅ **EP-018 proved the platform's own de-duplication was not race-safe (T-0191)
       and abandoned it on evidence.** *(Mirrors EP-018 R3.)*
-- [ ] **R4** — On relaunch, the app **restores every project window that was open at quit**, skipping
+- [x] **R4** — On relaunch, the app **restores every project window that was open at quit**, skipping
       any whose path no longer resolves. ⚠️ **Closes [I-0176].** *(Mirrors EP-018 R4.)*
-- [ ] **R5** — A restored or reopened project window returns to **the size, position and maximized
+- [x] **R5** — ⚠️ *(Met for size, maximized and splitters; POSITION ruled out on Wayland — [I-0264], user ruling 2026-09-30.)* A restored or reopened project window returns to **the size, position and maximized
       state it had when last closed**, ✅ **and to its SPLITTER PROPORTIONS.** ⚠️ **Closes [I-0177].**
       ⚠️ **Geometry is keyed BY PROJECT**, not one global frame — ✅ **EP-018 hit exactly this: the
       pre-EP-018 single autosave stored ONE frame, so every restored window stacked at the default.**
-- [ ] **R6** — ⚠️ **THE TEST GUARD.** A test run, a smoke run, or a headless/offscreen run **NEVER
+- [x] **R6** — ⚠️ **THE TEST GUARD.** A test run, a smoke run, or a headless/offscreen run **NEVER
       restores the writer's real project windows.** ⚠️ **[I-0176] names this as mandatory**, and
       `feedback_never_drive_synthetic_input_at_real_work` / [I-0150] are what it is paying for: ✅ **on
       Apple, `xcodebuild test` LAUNCHED the app and rewrote a real project.** ⛔ **This AC is not
       optional and is not deferrable to the end.**
-- [ ] **R7** — **Quit flushes EVERY open project**, not just the front one. ⚠️ **`main.cpp` wires
+- [x] **R7** — **Quit flushes EVERY open project**, not just the front one. ⚠️ **`main.cpp` wires
       `aboutToQuit → ScriviWindow::flushEditor`, which is singular by construction** — ✅ **a
       multi-window app whose quit path saves one window is a data-loss defect, not a polish item.**
-- [ ] **R8** — ⚠️ **`scrivi_close_project` is called for every window that closes.** ✅ **Linux already
+- [x] **R8** — ⚠️ **`scrivi_close_project` is called for every window that closes.** ✅ **Linux already
       does this correctly for its single project** (`project_apple_index_leak` records Apple as the
       side that does NOT) — ⛔ **and a multi-window rework is exactly where that correctness gets
       dropped silently.** ✅ **Guard it while the code is being touched, not afterwards.**
-- [ ] **AC-build** — Docker build clean; `ctest` green on Linux; the existing Linux smokes still pass;
+- [x] **AC-build** — Docker build clean; `ctest` green on Linux; the existing Linux smokes still pass;
       ⚠️ **no regression to open / save / close.** ✅ **Run the tests as a NON-ROOT user in the second
       image** (`project_linux_container_tests_off` — ⚠️ **the Dockerfile builds `SCRIVI_BUILD_TESTS=OFF`,
       so "the container is green" does NOT mean `ctest` ran**).
-- [ ] **AC-live** — ⚠️ **A LIVE PASS ON THE REAL RIG, by the user.** ✅ **All three Issues were found
+- [x] **AC-live** — ⚠️ **A LIVE PASS ON THE REAL RIG, by the user.** ✅ **All three Issues were found
       that way and none can be verified any other way** — ⚠️ **"was it still there after a quit?" is
       not a question a headless smoke can ask.** ⚠️ **Confirm the build under test first**
       (`scrivi_linux --version`, `feedback_confirm_the_build_under_test`).
@@ -164,7 +164,7 @@ behaviour-preserving mandate.**
 | ✅ **[SP-145]** ⚠️ **CLOSED 2026-09-29** | **S1** | ✅ **The session split** — extract per-project state out of `EditorShell` into a `ProjectSession` equivalent; ⚠️ **BEHAVIOUR-PRESERVING, still one window.** ✅ **Introduce the registry (projectID → session), keyed by `projectID` per [R-Q2].** ⚠️ **[R-Q5] CARVE-OUT: take `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ per-project state, NOT per-widget). ⚠️ **PLUS [I-0251] as a SEPARATE, NAMED Task** — ⛔ **it is a real behaviour CHANGE inside a behaviour-preserving Sprint, so it must not be folded into the extraction Task.** | ✅ **all 8 MET** · ✅ **[I-0251] VERIFIED** | ⚠️ **MED-HIGH** | ✅ **nothing** |
 | ✅ **[SP-146]** ⚠️ **CLOSED 2026-09-29** | **S2** | ⚠️ **THE APP OBJECT *AND* THE WINDOWS — renamed 2026-09-27, see §The app-level owner.** ⛔ **Linux has NO app-global state owner at all**, so S2 must FIRST create one (Apple's `AppEnvironment`) and move the registry + session OWNERSHIP onto it. ✅ Then: one window per open project; separate Landing window ([R-Q3]); **R3 focus-existing**; quit flushes the REGISTRY; close calls `scrivi_close_project`. | ✅ **all 11 MET** | ⛔ **HIGH** | ✅ **done** |
 | ✅ **[SP-147]** ⚠️ **CLOSED 2026-09-30** | **S3** | ✅ **The persistence** — open-session manifest + launch restore; **per-project geometry AND splitter state**; ⚠️ **the test guard lands HERE, with the first line of restore code.** | **R4 R5 R6** | ✅ **MEDIUM** | **[SP-146]** |
-| 🟡 **[SP-148]** **ACTIVE 2026-09-30** | **S4** | ✅ **Verification** — AC sweep, Docker `ctest`, ⚠️ **the live pass on the real rig**, Epic close prep. | **AC-build AC-live** | ✅ **LOW** | **[SP-147]** |
+| ✅ **[SP-148]** ⚠️ **CLOSED 2026-09-30** | **S4** | ✅ **Verification** — AC sweep, Docker `ctest`, ⚠️ **the live pass on the real rig**, Epic close prep. | **AC-build AC-live** | ✅ **LOW** | **[SP-147]** |
 
 ⚠️ **THE CHAIN IS SERIAL, and that is stated up front because [EP-041] is currently paying for the same
 shape.** ✅ **It is serial for a real reason — ⛔ you cannot persist per-window state before there are
