@@ -89,6 +89,52 @@ int main(int argc, char** argv)
         }
     }
 
+    // ⚠️ [I-0252] Linux half (2026-09-29) — THE SCENE DIVIDER, which hit this exact
+    // defect on a surface this smoke did not cover.
+    //
+    // ⛔ It was painted with `palette(Mid)` and the user reported it *"only barely
+    // visible in dark mode"*. ✅ MEASURED under real GTK themes:
+    //     Yaru-dark   Mid #262626 on Base #242424  ->  1.03:1
+    //     Yaru light  Mid #b8b8b8 on Base #ffffff  ->  1.98:1
+    // ⚠️ Light was faint too — the user noticed it in dark, ⛔ but it was wrong in both.
+    //
+    // ⚠️ IT IS CHECKED AGAINST `Base`, NOT `Window`: the manuscript is a
+    // QPlainTextEdit, so its background is the TEXT-ENTRY role. ⛔ Measuring a mark
+    // drawn on Base against Window would be the wrong comparison and could pass
+    // while the divider stayed invisible.
+    //
+    // ⚠️ AND AGAINST A LOWER FLOOR THAN TEXT, DELIBERATELY: ⛔ WCAG AA's 4.5:1 is a
+    // TEXT threshold. ✅ A divider is a structural MARK that must be SEEN without
+    // COMPETING with prose — macOS settled the same band by measurement
+    // (`secondaryLabelColor` 5.89:1 against body text's 16.67:1).
+    {
+        const QColor base = pal.color(QPalette::Active, QPalette::Base);
+        const QColor rule = ThemeColours::rule(pal);
+        const double r    = contrast(rule, base);
+        constexpr double kMinRule = 3.0;
+        std::printf("  %-13s #%02x%02x%02x on #%02x%02x%02x  %.2f:1  %s\n",
+                    "rule", rule.red(), rule.green(), rule.blue(),
+                    base.red(), base.green(), base.blue(), r,
+                    r >= kMinRule ? "ok" : "FAIL");
+        if (r < kMinRule) {
+            std::fprintf(stderr,
+                         "FAIL: the scene divider is %.2f:1 against the manuscript "
+                         "background in %s (a structural mark needs %.1f:1)\n",
+                         r, themeLabel, kMinRule);
+            ++failures;
+        }
+
+        // ⛔ AND PIN THE REGRESSION: if a future edit reaches for `Mid` again, say so
+        // with the number that made it invisible.
+        const QColor midOnBase = pal.color(QPalette::Active, QPalette::Mid);
+        const double midRatio  = contrast(midOnBase, base);
+        if (midRatio < kMinRule) {
+            std::printf("  note: palette(Mid) on Base is %.2f:1 here — "
+                        "this is what [I-0252] shipped; do NOT go back to it\n",
+                        midRatio);
+        }
+    }
+
     // ⚠️ And the roles that CAUSED this must never come back as text colours.
     // If a future edit reaches for them again, say so with the number.
     const QColor mid = pal.color(QPalette::Active, QPalette::Mid);

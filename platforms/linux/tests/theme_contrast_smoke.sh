@@ -18,7 +18,12 @@ export QT_QPA_PLATFORM=offscreen
 
 # ⚠️ Without the gtk3 platform theme Qt uses its built-in palette and the test is
 # meaningless. Skip loudly rather than pass vacuously if the plugin is absent.
-if [ ! -e /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqgtk3.so ]; then
+# ⚠️ ARCH-AGNOSTIC GLOB, fixed 2026-09-29 ([I-0252]'s Linux half).
+# ⛔ This line hardcoded `x86_64-linux-gnu` and therefore SKIPPED — silently, with
+# exit 0 — on every aarch64 machine, including the ARM Docker image used for
+# development. ⚠️ A guard that skips on the developer's own architecture is not a
+# guard; it is the same blind spot [I-0186] lived in, one level up.
+if ! compgen -G "/usr/lib/*/qt6/plugins/platformthemes/libqgtk3.so" >/dev/null; then
     echo "SKIP: no gtk3 Qt platform theme installed — cannot test real palettes." >&2
     exit 0
 fi
@@ -48,4 +53,5 @@ GTK_THEME=Yaru-dark "$BIN" "Yaru-dark"
 echo "== theme contrast: light =="
 GTK_THEME=Yaru "$BIN" "Yaru"
 
-echo "PASS: secondary text meets WCAG AA in both theme polarities."
+echo "PASS: secondary text meets WCAG AA, and the scene divider is visible, in both"
+echo "      theme polarities."

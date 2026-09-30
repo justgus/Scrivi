@@ -4,6 +4,8 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPalette>
+
+#include "ThemeColours.hpp"
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -212,9 +214,21 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
 
     QPainter painter(viewport());
     painter.setRenderHint(QPainter::Antialiasing, false);   // crisp 1px hairline
-    // Theme-aware faint tone — the Qt analogue of NSColor.separatorColor; adapts to the
-    // active light/dark palette automatically.
-    QColor ruleColor = palette().color(QPalette::Mid);
+    // ⛔ [I-0252] Linux half (2026-09-29) — THIS WAS `palette().color(QPalette::Mid)`,
+    // and that is the defect `ThemeColours` exists to prevent.
+    //
+    // ⚠️ USER: *"on Linux it is only barely visible in dark mode."*
+    // ⛔ `Mid` is a STRUCTURAL role with NO contrast guarantee — ✅ [I-0186] already
+    // MEASURED it at **1.07:1** on Yaru-dark (`ThemeColours.hpp`), which is the same
+    // invisibility, in the same theme, for the same reason.
+    // ⚠️ The old comment called `Mid` *"the Qt analogue of NSColor.separatorColor"* —
+    // ⛔ and `separatorColor` is exactly what [I-0252] removed on macOS.
+    //
+    // ✅ DERIVED from `WindowText` on `Base`, so it is correct in a light theme, a
+    // dark theme, and a theme nobody has written yet.
+    // ⚠️ Deliberately fainter than `deemphasised()`: a divider is a MARK, not text,
+    // and must not compete with prose (macOS settled the same band by measurement).
+    const QColor ruleColor = ThemeColours::rule(palette());
     painter.setPen(QPen(ruleColor, 1));
 
     const QRectF vp = viewport()->rect();

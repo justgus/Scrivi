@@ -2,6 +2,68 @@
 
 ---
 
+## ✅ T-0564 — `[Linux]` **Scene divider visibility ([I-0252] Linux half)** — ✅ **Implemented 2026-09-29, NOT VERIFIED**
+
+⚠️ **USER, after the macOS fix landed:** ***"on macOS the line is now fully visible. However, on Linux
+it is only barely visible in dark mode."***
+
+⛔ **A SEPARATE IMPLEMENTATION AND A SEPARATE DEFECT** — ✅ **Linux paints the rule itself in
+`ManuscriptEditor::paintEvent`; ⚠️ it was never affected by the TextKit 2 attachment bug [T-0554]
+fixed.**
+
+### ⛔ THE CAUSE — ✅ a role this project had ALREADY measured as invisible
+
+⚠️ **The divider used `palette().color(QPalette::Mid)`.** ⛔ **`Mid` is a STRUCTURAL role with NO
+contrast guarantee** — ✅ **and [I-0186] MEASURED it at `1.07:1` on Yaru-dark in 2026, which is why
+`ThemeColours.hpp` exists and says in its own header: *"NEVER name a palette role for text colour."***
+⚠️ **The divider's comment even called `Mid` *"the Qt analogue of NSColor.separatorColor"*** — ⛔ **and
+`separatorColor` is exactly what [I-0252] removed on macOS for the same reason.**
+
+✅ **MEASURED 2026-09-29 UNDER REAL GTK THEMES** (⚠️ **not Qt's fallback —
+`ThemeColours.hpp` is explicit that a headless no-theme render is NOT evidence about colour**):
+
+| | Yaru-dark | Yaru light |
+| - | --------- | ---------- |
+| body text (⚠️ the scale) | `13.62:1` | `21.00:1` |
+| ⛔ **old `palette(Mid)`** | ⛔ **`1.03:1`** (`#262626` on `#242424`) | ⛔ **`1.98:1`** |
+| ✅ **new `ThemeColours::rule()`** | ✅ **`3.93:1`** | ✅ **`3.36:1`** |
+
+⚠️ **LIGHT MODE WAS WRONG TOO** — ✅ **the user noticed it in dark, ⛔ but at `1.98:1` it was faint in
+both, exactly as [I-0186] was.**
+
+### ✅ THE FIX
+
+✅ **A new `ThemeColours::rule()`, DERIVED from `WindowText` on `Base`** — ⚠️ **`Base`, not `Window`,
+because the manuscript is a `QPlainTextEdit` and its background is the text-entry role.**
+⚠️ **Deliberately fainter than `deemphasised()` (55% vs 30% blend): ⛔ a divider is a MARK, not text,
+and must not compete with prose** — ✅ **macOS settled the same band by measurement
+(`secondaryLabelColor` `5.89:1` against body text's `16.67:1`).**
+
+### ✅ A REGRESSION GUARD, ⛔ AND IT WAS PROVEN BY BREAKING IT
+
+✅ **`theme_contrast_smoke` now checks `rule()` against `Base` under BOTH real theme polarities**, ⚠️ **at
+a `3.0:1` floor rather than WCAG AA's `4.5:1`** — ⛔ **AA is a TEXT threshold and does not apply to a
+structural mark.**
+✅ **PROVEN RED: `rule()` was temporarily reverted to `palette(Mid)` and the smoke FAILED with
+*"the scene divider is 1.03:1 … needs 3.0:1"***, ⚠️ **then green on restore.**
+
+### ⛔ AND THE GUARD ITSELF HAD A HOLE — ✅ found while using it
+
+⛔ **`theme_contrast_smoke.sh` tested for `libqgtk3.so` at a HARDCODED `x86_64-linux-gnu` path**, ⚠️ **so
+on every **aarch64** machine — including the ARM Docker image used for development — it SKIPPED
+SILENTLY with exit 0.** ✅ **Fixed to an arch-agnostic glob.** ⚠️ **A guard that skips on the
+developer's own architecture is not a guard** — ⛔ **it is the same blind spot [I-0186] lived in, one
+level up.**
+
+✅ **VERIFIED BY RUNNING:** ⚠️ **`ctest` 641/641 NON-ROOT** · ✅ **smokes 23/23** · ✅ **theme contrast
+PASS both polarities (⚠️ under real Yaru/Yaru-dark, gtk3 + xvfb)** · ✅ **Docker build 0 warnings** ·
+✅ **boundary GREEN.**
+⛔ **NOT user-Verified — ⚠️ needs the rig in dark mode.**
+
+---
+
+---
+
 ## ✅ T-0563 — `[Linux]` **Scene Navigator show/hide ([I-0256])** — ✅ **Implemented 2026-09-29, NOT VERIFIED**
 
 ⚠️ **NO SPRINT** — ✅ **taken standalone; ⛔ deliberately NOT folded into [SP-146]**, which closed the
