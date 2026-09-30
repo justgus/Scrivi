@@ -32,8 +32,9 @@ new control ([I-0256]) — ✅ and index 0 already collapses, so no widget chang
 for.** ⚠️ **The user's FIRST rig pass confirmed AC9 and FOUND [I-0257]** (⛔ a quit that left windows
 open non-deterministically, ⚠️ a regression from [T-0561]) — ✅ **reproduced, fixed, re-verified.**
 
-⛔ **NO SPRINT IS ACTIVE.** ✅ **[SP-147] IS NEXT and UNBLOCKED** — ⚠️ **S3: the open-session manifest,
-launch restore, per-project geometry AND splitter state ([R-Q1] `session.ini`, R4/R5/R6).**
+✅ **[SP-147] CLOSED 2026-09-30 (user-approved) — ⚠️ S3 of 4 COMPLETE** →
+[`../Sprints/Closed/Sprint-SP-147.md`](../Sprints/Closed/Sprint-SP-147.md). ✅ Projects reopen where the writer left them
+(size, maximized, splitters); ⚠️ window POSITION ruled out on Wayland ([I-0264]). ➡️ **[SP-148] (S4) is NEXT.**
 ⚠️ **[I-0256] remains a fold-in candidate** (⛔ still not built).
 
 ⚠️ **PRIOR STATE — ✅ ALL FIVE OWED RULINGS WERE ANSWERED 2026-09-26 (user-approved).** ✅ **Full text in the Epic record's §Rulings.** The five, in one line each:

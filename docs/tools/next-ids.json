@@ -13,5 +13,5 @@
     "task": "T-%04d",
     "issue": "I-%04d"
   },
-  "_reserved": "SP-148 is RESERVED for [EP-043]'s serial chain (S4 verification). ⚠ The sprint counter is a HIGH-WATER MARK, not a free-list. ✅ SP-145 CLOSED 2026-09-29; SP-146 CLOSED 2026-09-29; SP-147 ACTIVATED 2026-09-29. ⚠ 2026-09-30: SP-151 taken for the Apple batch; the counter was moved PAST 149/150 (already used) so the tool cannot re-issue them. SP-148 stays RESERVED."
+  "_reserved": "SP-148 is RESERVED for [EP-043]'s serial chain (S4 verification). ⚠ The sprint counter is a HIGH-WATER MARK, not a free-list. ✅ SP-145 CLOSED 2026-09-29; SP-146 CLOSED 2026-09-29; SP-147 ACTIVATED 2026-09-29. ⚠ 2026-09-30: SP-151 taken for the Apple batch; the counter was moved PAST 149/150 (already used) so the tool cannot re-issue them. SP-148 stays RESERVED. ✅ SP-147 CLOSED 2026-09-30."
 }

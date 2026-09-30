@@ -1,16 +1,17 @@
 ---
 sprint: SP-147
 epic: EP-043
-status: Active
+status: Closed
 platform: Linux
 created: 2026-09-29
 activated: 2026-09-29
+closed: 2026-09-30
 ---
 
 # SP-147 — `[Linux]` **The Persistence** (S3 of [EP-043])
 
-**Status:** 🟡 **ACTIVE — 2026-09-29 (user-approved).** ✅ **IMPLEMENTATION COMPLETE 2026-09-30** —
-⚠️ **all three Tasks Implemented - Not Verified; ⛔ closing needs the user's approval, and AC4/AC5 a rig look (trap 7).**
+**Status:** ✅ **CLOSED 2026-09-30 (user-approved).** ✅ **All ACs met on the rig** — ⚠️ AC5's window POSITION
+is RULED out on Wayland ([I-0264]). ✅ **[EP-043] S3 of 4 COMPLETE.**
 **Epic:** ✅ **[EP-043]** → [`../Epics/Epic-EP-043.md`](../Epics/Epic-EP-043.md)
 **Serves:** ✅ **R4 · R5 · R6**
 **Depends on:** ✅ **[SP-146] CLOSED 2026-09-29** → [`Closed/Sprint-SP-146.md`](Closed/Sprint-SP-146.md)
@@ -46,28 +47,28 @@ on Apple, `xcodebuild test` LAUNCHED the app and rewrote a real project.**
 
 ## Acceptance Criteria
 
-- [ ] **AC1** — ✅ **A `SessionStore` owns `<appSupportRoot>/session.ini` via `QSettings`**
+- [x] **AC1** — ✅ **A `SessionStore` owns `<appSupportRoot>/session.ini` via `QSettings`**
       (⚠️ **`QSettings::IniFormat`, [R-Q1]**), ⛔ **and nothing else reads or writes that file.**
-- [ ] **AC2** — ⚠️ **[R-Q2]** ✅ **Keyed `[project/<projectID>]`, with `path` as a stored ATTRIBUTE** —
+- [x] **AC2** — ⚠️ **[R-Q2]** ✅ **Keyed `[project/<projectID>]`, with `path` as a stored ATTRIBUTE** —
       ⛔ **NOT keyed by path.** ⚠️ **A moved project is skipped for one launch and KEEPS its geometry.**
-- [ ] **AC3** — ✅ **Every write calls `settings.sync()`.** ⚠️ **Mirrors `onTimelineViewStateChanged`
+- [x] **AC3** — ✅ **Every write calls `settings.sync()`.** ⚠️ **Mirrors `onTimelineViewStateChanged`
       (`EditorShell.cpp:2906`) and its stated reason: ⛔ *"a --rm container may SIGKILL before Qt's lazy
       flush."***
-- [ ] **AC4** — ⚠️ **[R4]** ✅ **On relaunch, every project open at quit is reopened**, ⛔ **skipping any
+- [x] **AC4** — ⚠️ **[R4]** ✅ **On relaunch, every project open at quit is reopened**, ⛔ **skipping any
       whose path no longer resolves** (⚠️ **and a skip must NOT delete its record — R-Q2**).
       ⚠️ **Closes [I-0176].**
-- [ ] **AC5** — ⚠️ **[R5]** ✅ **A restored window returns to its size, position and maximized state**,
+- [x] **AC5** — ⚠️ **[R5]** ✅ **A restored window returns to its size, position and maximized state**,
       ✅ **AND its splitter proportions.** ⚠️ **Keyed BY PROJECT** — ⛔ **[EP-018] hit exactly this: one
       global autosave frame made every restored window stack at the default.** ⚠️ **Closes [I-0177].**
-- [ ] **AC6** — ⛔ **[R6] THE GUARD.** ✅ **A test, smoke or headless/offscreen run NEVER restores the
+- [x] **AC6** — ⛔ **[R6] THE GUARD.** ✅ **A test, smoke or headless/offscreen run NEVER restores the
       writer's windows**, ⚠️ **and the manifest is left INTACT while restore is suppressed** —
       ⛔ **suppressing must not be able to LOSE the open set.**
-- [ ] **AC7** — ✅ **The guard is PROVEN BY BREAKING IT.** ⚠️ **A smoke asserts restore is suppressed;
+- [x] **AC7** — ✅ **The guard is PROVEN BY BREAKING IT.** ⚠️ **A smoke asserts restore is suppressed;
       ⛔ removing the guard must make it go RED.** ✅ **Same discipline as [T-0553]'s and [T-0564]'s.**
-- [ ] **AC8** — ⚠️ **No `QFile`/`QSaveFile` added under `platforms/linux/src/`.**
+- [x] **AC8** — ⚠️ **No `QFile`/`QSaveFile` added under `platforms/linux/src/`.**
       ✅ **`scripts/check-package-boundary.sh` stays GREEN** — ⚠️ **`session.ini` is APP state under
       app-support, ⛔ NOT project data, so it does not cross the package boundary.**
-- [ ] **AC-build** — ✅ **Docker build clean; `ctest` GREEN as NON-ROOT in the tests-on image**
+- [x] **AC-build** — ✅ **Docker build clean; `ctest` GREEN as NON-ROOT in the tests-on image**
       (⚠️ `project_linux_container_tests_off`). ✅ **Apple must still build.**
 
 ---
@@ -132,6 +133,18 @@ writer's session.**
 ---
 
 ## Progress log
+
+### ✅ 2026-09-30 — CLOSED (user-approved)
+
+✅ **Close approved by the user 2026-09-30** after the final rig pass: [I-0264] (Wayland: no `0,0` recorded) and
+[I-0265] (Landing size) — *"they pass."* ✅ **[T-0565], [T-0566], [T-0567] VERIFIED** →
+`../../Tasks/Verified/Task-verified-0565-0567.md`. ✅ **[I-0264], [I-0265] VERIFIED** →
+`../../Issues/Verified/Issue-verified-0261-0270.md`. ✅ **Closes [I-0176] and [I-0177]'s substance on Linux** —
+⚠️ their records are [SP-148]'s AC sweep to reconcile.
+⚠️ **Carried forward, not in scope here:** [I-0255] (Timeline visibility persistence, `[Cross]`); the desktop-logout
+path (untested); Landing staying up beside restored windows (Apple dismisses its Welcome — a parity question).
+➡️ **[SP-148] (S4, verification) is NEXT.**
+
 
 ### ✅ 2026-09-30 — THE RIG PASS (build on the rig, GNOME **Wayland** session over RDP)
 

@@ -16,29 +16,13 @@ archived 2026-09-30.
 
 ---
 
-## 🟡 [SP-147] — ([I-0264] · [I-0265]) — ⚠️ **ACTIVE 2026-09-29** — ✅ **ALL THREE IMPLEMENTED 2026-09-30, awaiting verification**
+## ✅ [SP-147] — T-0565 · T-0566 · T-0567 — ✅ **VERIFIED 2026-09-30, ARCHIVED**
 
-✅ **[T-0565], [T-0566] and [T-0567] VERIFIED 2026-09-30 (rig pass) and ARCHIVED** → [`Verified/Task-verified-0565-0567.md`](Verified/Task-verified-0565-0567.md). ⚠️ The Sprint still carries [I-0264] (Wayland position, ruled) and [I-0265] (Landing size) — both implemented, awaiting the rig.
-
-✅ **Sprint record:** → [`../Sprints/Sprint-SP-147.md`](../Sprints/Sprint-SP-147.md). ✅ **[EP-043] S3 of 4.**
-⛔ **STRICTLY SERIAL** — ⚠️ **T-0567 must NOT land before T-0566's R6 guard.**
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-
-⛔ **R6 IS NOT DEFERRABLE.** ⚠️ **[I-0150] is what it pays for: on Apple, `xcodebuild test` LAUNCHED the
-app and rewrote a real project.** ✅ **Apple's guard was READ BEFORE PLANNING
-(`AppEnvironment.swift:353-375`) and its load-bearing property is now AC6: ⚠️ suppress the RESTORE
-only, ⛔ leave the manifest UNTOUCHED** — ✅ **a guard that cleared it would lose the writer's session on
-the first test run.**
-
----
-
----
-
-
----
-
+✅ **All three USER-VERIFIED by live pass on the rig and ARCHIVED** →
+[`Verified/Task-verified-0565-0567.md`](Verified/Task-verified-0565-0567.md) **in the same step [SP-147]
+closed.** ✅ **[SP-147] CLOSED 2026-09-30 (user-approved)** →
+[`../Sprints/Closed/Sprint-SP-147.md`](../Sprints/Closed/Sprint-SP-147.md). ✅ **[I-0264], [I-0265] VERIFIED.**
+✅ **[EP-043] S3 of 4 COMPLETE.** ➡️ **[SP-148] next.**
 
 ---
 
