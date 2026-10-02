@@ -72,6 +72,11 @@ struct EventNode {
     // — nothing in the undo/redo walk consumes it; it is preserved across reload.
     std::string bufferID;
 
+    // Edit group (I-0270): consecutive events sharing a non-empty groupID are ONE edit
+    // that touched several scenes (a delete/cut across scene breaks). Undo and redo step
+    // across the whole run in one call. Empty for every ordinary event. Persisted.
+    std::string groupID;
+
     // Barrier-only: the structural reason undo stops here (§4.5).
     std::string barrierKind;
     std::string barrierNote;
@@ -94,6 +99,7 @@ struct RecordParams {
     std::int64_t cursorAfter = 0;
     std::string timestamp;   // caller-supplied ISO-8601; kept verbatim
     std::string bufferID;    // cut-into-buffer provenance ("1"-"9"); empty otherwise
+    std::string groupID;     // edit group (I-0270); empty for an ordinary event
 };
 
 // What branch-aware eviction did, so the store can persist matching ctl records
@@ -157,6 +163,9 @@ struct ForkAhead {
 struct StepResult {
     bool moved = false;                    // false when nothing to undo/redo
     std::optional<SceneChange> change;     // the scene text to apply (if moved)
+    // The REST of an edit group (I-0270), in the order the steps were taken — applied
+    // after `change`. Empty unless the step crossed a run of events sharing a groupID.
+    std::vector<SceneChange> groupChanges;
     std::string nodeID;                    // the new current node
     bool canUndo = false;
     bool canRedo = false;

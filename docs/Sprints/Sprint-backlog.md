@@ -4,6 +4,23 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
+## SP-152 — 🔵 `[Cross]` Carried defects from SP-151 (PLANNING, created 2026-10-02)
+
+✅ **Created at [SP-151]'s close by user ruling:** *"close SP-151 and carry the Issues into the next Sprint."*
+**Epic:** none. ⚠️ **Not activated** — activation is the user's call.
+
+| ID | Title | Severity | Note |
+| -- | ----- | -------- | ---- |
+| **[I-0268]** | `[ScriviCore]` History fails to open on `the-stairs-of-tintagael` — `unknown node` | High | ⚠️ Real writing work: forensics on a COPY of the history log only. Same message as [I-0110] (fixed SP-093) |
+| **[I-0267]** | `[Apple]` Keystrokes 60–95 ms on dumas (were 1.7–8.6 ms) | High | ✅ T-0569 ruled out. ⚠️ Lead: the slow run opened + CLOSED another project's window first (cf. [I-0233]: Apple never calls `scrivi_close_project`). Repro first, in that order |
+
+**Provisional ACs**
+- [ ] **AC1** — [I-0268] root cause shown on a COPY of the log; history opens; proven through `scrivi_*`.
+- [ ] **AC2** — [I-0267] reproduced in the slow-run order and attributed by measurement; keystrokes back to the 2026-09-14 range.
+- [ ] **AC-build** — macOS + iOS build; `ctest` green on macOS and Linux (if the core changes).
+
+---
+
 ## ⚠️ RESERVED Sprint IDs — SP-107–SP-114 (EP-032)
 
 **These are NOT in Planning, and none is ready to activate.** ⚠️ **EP-032 was returned to the Epic backlog

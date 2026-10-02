@@ -258,6 +258,7 @@ RecordResult HistoryService::record(const RecordParams& p, std::string eventID) 
     node.timestamp = p.timestamp;
     node.sessionID = sessionID_;
     node.bufferID = p.bufferID;   // cut-into-buffer provenance (Trade T3)
+    node.groupID = p.groupID;     // edit group (I-0270)
 
     const std::string newID = node.eventID;
     EventNode& parent = nodeRef(currentNodeID_);
@@ -400,6 +401,25 @@ StepResult HistoryService::undo() {
     change.newText = parentText;
     change.cursorAfter = cur.cursorBefore;   // restore where the cursor was
     r.change = change;
+
+    // Edit group (I-0270): keep undoing while the node we land on belongs to the same
+    // group, so one undo restores every scene the edit touched. Stops at the root, a
+    // barrier, a structural node, or the first node outside the group.
+    const std::string group = cur.groupID;
+    while (!group.empty()) {
+        const EventNode& n = nodeRef(currentNodeID_);
+        if (currentNodeID_ == rootID_ || !n.parentID.has_value() ||
+            n.kind == EventKind::Barrier || n.kind == EventKind::Structural ||
+            n.groupID != group) break;
+        SceneChange gc;
+        gc.sceneID = n.sceneID;
+        gc.newText = applyReverse(headTextForScene(n.sceneID), n.diff);
+        gc.cursorAfter = n.cursorBefore;
+        currentNodeID_ = *n.parentID;
+        headText_[gc.sceneID] = gc.newText;
+        r.groupChanges.push_back(std::move(gc));
+    }
+
     r.moved = true;
     r.nodeID = currentNodeID_;
     r.canUndo = canUndo();
@@ -472,6 +492,24 @@ StepResult HistoryService::redo() {
     change.newText = childText;
     change.cursorAfter = child.cursorAfter;
     r.change = change;
+
+    // Edit group (I-0270): keep redoing along the primary chain while the next node
+    // belongs to the same group, so one redo re-applies every scene the edit touched.
+    const std::string group = child.groupID;
+    while (!group.empty()) {
+        const EventNode& n = nodeRef(currentNodeID_);
+        if (!n.primaryChildID.has_value()) break;
+        const EventNode& next = nodeRef(*n.primaryChildID);
+        if (next.kind == EventKind::Barrier || next.kind == EventKind::Structural ||
+            next.groupID != group) break;
+        SceneChange gc;
+        gc.sceneID = next.sceneID;
+        gc.newText = applyForward(headTextForScene(next.sceneID), next.diff);
+        gc.cursorAfter = next.cursorAfter;
+        currentNodeID_ = next.eventID;
+        headText_[gc.sceneID] = gc.newText;
+        r.groupChanges.push_back(std::move(gc));
+    }
     r.moved = true;
     r.nodeID = currentNodeID_;
     r.canUndo = canUndo();

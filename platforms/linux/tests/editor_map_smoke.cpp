@@ -184,6 +184,36 @@ int main(int argc, char* argv[])
           "seg2 start shifted by -1 after seg1 deletion");
     check(doc.bodyText(2) == QStringLiteral("CCCC"), "seg2 body still CCCC");
 
+    // ---- [I-0270] delete across scene breaks keeps every scene ----
+    // Selection from inside seg0 ("AAAA") to inside seg2 ("CCCC"), spanning seg1 whole
+    // plus a separator and a chapter heading. Expected: seg0 keeps its head, seg1 is
+    // EMPTY (not removed), seg2 keeps its tail; three segments; boundaries intact.
+    {
+        // (seg0 is "XXAAAA" here — the insert check above added "XX".)
+        const int selStart = doc.segments().at(0).bodyStart + 2;   // after "XX"
+        const int selEnd   = doc.segments().at(2).bodyStart + 1;   // after "C"
+        check(!doc.isEditableRange(selStart, selEnd), "cross-scene selection is not one body");
+        const auto cuts = doc.crossSceneCuts(selStart, selEnd);
+        check(cuts.size() == 3, "crossSceneCuts returns one range per overlapped body");
+        // Apply exactly as ManuscriptEditor does: back to front, one edit per body.
+        for (int k = cuts.size() - 1; k >= 0; --k) {
+            QTextCursor c(doc.document());
+            c.setPosition(cuts.at(k).first);
+            c.setPosition(cuts.at(k).second, QTextCursor::KeepAnchor);
+            c.removeSelectedText();
+            doc.applyContentsChange(cuts.at(k).first, cuts.at(k).second - cuts.at(k).first, 0);
+        }
+        check(doc.segments().size() == 3, "still three scenes after a cross-scene delete");
+        check(doc.bodyText(0) == QStringLiteral("XX"), "seg0 kept its head (XX)");
+        check(doc.bodyText(1).isEmpty(), "seg1 wholly selected → EMPTY, not removed");
+        check(doc.bodyText(2) == QStringLiteral("CCC"), "seg2 kept its tail (CCC)");
+        check(doc.document()->toPlainText().contains(QStringLiteral("Two")),
+              "chapter heading survives a cross-scene delete");
+        // Within ONE body it is not a cross-scene edit.
+        const int s2 = doc.segments().at(2).bodyStart;
+        check(doc.crossSceneCuts(s2, s2 + 2).isEmpty(), "single-body range → no cross-scene cuts");
+    }
+
     if (failures == 0) {
         std::fprintf(stderr, "OK: offset map + boundary classification hold across "
                              "insert and delete.\n");

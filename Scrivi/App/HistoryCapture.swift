@@ -314,6 +314,45 @@ final class HistoryCapture {
         }
     }
 
+    // MARK: — Edit groups (I-0270)
+
+    /// One scene's part of an edit that changed several scenes at once.
+    struct GroupedSceneEdit {
+        let sceneID: String
+        let textBefore: String
+        let textAfter: String
+        let cursorByte: Int     // scene-local UTF-8 offset where the edit began
+    }
+
+    /// I-0270 (ruled 2026-10-02) — ONE edit that changed several scenes (⌫ / ⌦ / ⌘X on a
+    /// selection across scene breaks, which removes text from EACH scene and keeps them
+    /// all): records one event per scene, all sharing a fresh groupID, so a single undo
+    /// restores every scene and a single redo re-applies them. Commits pending typing
+    /// first, so it stays its own step.
+    func recordGroupedEdit(_ edits: [GroupedSceneEdit], kind: String) {
+        guard isOpen, !isApplying, !edits.isEmpty else { return }
+        flush(trigger: kind)
+        let groupID = "grp_" + UUID().uuidString.lowercased()
+        for e in edits {
+            seedBaselineIfNeeded(sceneID: e.sceneID, baseline: e.textBefore)
+            do {
+                let r = try engine.historyRecordEvent(
+                    projectRootPath: projectRootPath, sceneID: e.sceneID,
+                    newSceneText: e.textAfter, kind: kind,
+                    cursorBefore: Int64(e.cursorByte), cursorAfter: Int64(e.cursorByte),
+                    groupID: groupID)
+                engineCanUndo = r.canUndo
+                engineCanRedo = r.canRedo
+            } catch {
+                print("[Scrivi] historyRecordEvent (group) failed: \(error)")
+            }
+        }
+        // The caret ends in the FIRST scene of the edit.
+        lastCommittedText = edits[0].textAfter
+        bumpRevision()   // I-0105: real commits — the card must re-fetch
+        endContinuation()
+    }
+
     // True if `a` → `b` differs only in whitespace (space/tab/newline) — i.e. the
     // non-whitespace content is identical. Used to defer whitespace-only commits.
     private func isWhitespaceOnlyDelta(from a: String, to b: String) -> Bool {

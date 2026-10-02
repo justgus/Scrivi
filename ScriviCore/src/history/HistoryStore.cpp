@@ -136,6 +136,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     node.diff.removed  = diff.getString("removed");
                     node.diff.inserted = diff.getString("inserted");
                     node.bufferID = d.getString("bufferID");  // cut-into-buffer tag; "" when absent
+                    node.groupID = d.getString("groupID");    // edit group (I-0270); "" when absent
                 }
                 // Recording a node advances the current pointer to it; in seq
                 // order a later ctl:undo/redo may move it back. Last write wins.
@@ -300,6 +301,10 @@ void HistoryStore::persistEvent(const EventNode& node) {
         // ordinary events keep their existing on-disk shape.
         if (!node.bufferID.empty()) {
             d.setString("bufferID", node.bufferID);
+        }
+        // Edit group (I-0270) — likewise written only when set.
+        if (!node.groupID.empty()) {
+            d.setString("groupID", node.groupID);
         }
     }
     appendLine(d.dump(-1));

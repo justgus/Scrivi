@@ -345,6 +345,15 @@ struct SceneSegment: Identifiable {
         segments[index].isDirty = true
     }
 
+    /// T-0571 — a navigator click made while searching: the manuscript puts the caret at the
+    /// query's first match in that scene instead of the scene start. Read by
+    /// `navigateToScene`; ⚠️ NOT observed, so writing it never re-renders anything.
+    struct SearchCaretHint: Equatable {
+        let sceneID: String
+        let query: String
+    }
+    @ObservationIgnored var searchCaretHint: SearchCaretHint? = nil
+
     // Update the live navigator title for a scene (debounced by caller).
     func updateLiveTitle(_ title: String, forSceneID sceneID: String) {
         liveTitles[sceneID] = title

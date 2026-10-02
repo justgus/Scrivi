@@ -37,6 +37,11 @@ public:
     // used only in the read-only state before a project is loaded).
     void setSceneDocument(SceneDocument* doc) { sceneDoc_ = doc; }
 
+    // Edit ▸ Cut. ⛔ [I-0270] `QPlainTextEdit::cut()` is not virtual and never passes the
+    // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
+    // separator text and desynchronised the offset map. Routes through the guard instead.
+    void cutSelection();
+
 signals:
     // Ctrl+Return — the Linux analogue of Apple's ⌘↩ "new scene" (T-0240). The
     // editor does NOT insert a newline; EditorShell handles the create.
@@ -79,6 +84,11 @@ private:
     // [pos,pos). With a selection every modifying key replaces the selection.
     // Returns false if the guard should simply block (e.g. nothing to check).
     bool modifiedRangeFor(const QKeyEvent* event, int& start, int& end) const;
+
+    // [I-0270] Removes [start, end)'s text from each scene it spans, keeping the scenes.
+    // `copyFirst` copies the selection to the clipboard first (a cut). Returns false —
+    // and changes nothing — when the range does not span two or more scene bodies.
+    bool deleteAcrossScenes(int start, int end, bool copyFirst);
 
     SceneDocument* sceneDoc_ = nullptr;   // non-owning
     bool normalizingCaret_ = false;       // re-entrancy guard for normalizeCaret()

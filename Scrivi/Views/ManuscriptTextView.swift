@@ -147,6 +147,27 @@ struct ManuscriptTextView: NSViewRepresentable {
             name: NSView.boundsDidChangeNotification,
             object: scroll.contentView
         )
+        // ⚠️ [I-0273] A RESIZE posts FRAME-changed, not bounds-changed (AppKit), so the
+        // observer above never hears the window giving the manuscript its height. The
+        // restore needs exactly that moment.
+        scroll.contentView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.clipFrameDidChange(_:)),
+            name: NSView.frameDidChangeNotification,
+            object: scroll.contentView
+        )
+        // ⚠️ [I-0273] …and the TEXT's own height: TextKit 2 keeps revising its document-height
+        // ESTIMATE as it lays out (logged 237,598 → 640,264 pt within a second), and a fixed
+        // scroll offset then shows different text. That change arrives as the document view's
+        // frame change.
+        textView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.clipFrameDidChange(_:)),
+            name: NSView.frameDidChangeNotification,
+            object: textView
+        )
 
         return scroll
     }
@@ -340,7 +361,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 return
             }
 
-            guard step.moved, let change = step.changes.first,
+            guard step.moved, !step.changes.isEmpty,
                   let tv = textView, let storage = tv.textStorage else {
                 // A step that did not move (nothing left to undo/redo) still
                 // means we are no longer on the previous fork — dismiss it.
@@ -349,18 +370,57 @@ struct ManuscriptTextView: NSViewRepresentable {
                 return
             }
 
+            // ⚠️ [I-0270] A step can carry SEVERAL scene changes — an edit group (a delete or
+            // cut across scene breaks) undoes/redoes as ONE step. It used to apply only
+            // `changes.first`, which would have restored one scene of the group and silently
+            // dropped the rest. ✅ Apply every change, then leave the caret in the EARLIEST
+            // scene the step touched (where the cross-scene edit began).
+            var placed: [(segIdx: Int, caret: Int)] = []
+            for change in step.changes {
+                if let p = applySceneChange(change, in: tv, storage: storage, capture: capture) {
+                    placed.append(p)
+                }
+            }
+            if placed.count > 1, let first = placed.min(by: { $0.segIdx < $1.segIdx }) {
+                tv.setSelectedRange(NSRange(location: first.caret, length: 0))
+                tv.scrollRangeToVisible(NSRange(location: first.caret, length: 0))
+                if parent.loader.segments.indices.contains(first.segIdx) {
+                    capture.syncCommittedText(parent.loader.segments[first.segIdx].text)
+                }
+            }
+            capture.refreshCanState()
+
+            // Fork popover (§10 T2, T-0211): if this step landed on a fork show
+            // the branch chooser at the caret; otherwise the writer has moved off
+            // any prior fork, so dismiss a lingering popover.
+            if let fork = step.forkAhead {
+                presentForkPopover(fork, in: tv)
+            } else {
+                forkPopover.close()
+            }
+
+            // Session-boundary warning (§5, T-0209): the engine flags the first
+            // undo that steps into a previous session's work (once per crossing).
+            if step.crossedSessionBoundary {
+                presentSessionBoundaryNotice(boundaryTimestamp: step.boundaryTimestamp)
+            }
+        }
+
+        // Applies ONE scene's undo/redo text into its storage range, places the caret,
+        // syncs the loader and saves. Returns the segment and caret it used, or nil when
+        // the scene is not loaded. (Body unchanged from when `apply` handled one change.)
+        private func applySceneChange(_ change: HistorySceneChange, in tv: NSTextView,
+                                      storage: NSTextStorage,
+                                      capture: HistoryCapture) -> (segIdx: Int, caret: Int)? {
             // Map the changed scene to its loaded segment / storage range.
             guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == change.sceneID }) else {
-                capture.refreshCanState()
-                return
+                return nil
             }
 
             recomputeBoundaries(tv)
-            guard sceneBoundaries.indices.contains(segIdx) else {
-                capture.refreshCanState()
-                return
-            }
+            guard sceneBoundaries.indices.contains(segIdx) else { return nil }
             let range = sceneBoundaries[segIdx]
+            var caret = range.location
 
             // Apply the full scene text into the scene's boundary under the
             // rebuild/apply guard so textDidChange does not record it as an edit.
@@ -386,6 +446,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     let sceneText = (tv.string as NSString).substring(with: newRange)
                     let charOffset = charOffsetForByteOffset(Int(change.cursorAfter), in: sceneText)
                     let storageLoc = min(newRange.location + charOffset, (tv.string as NSString).length)
+                    caret = storageLoc
                     tv.setSelectedRange(NSRange(location: storageLoc, length: 0))
                     tv.scrollRangeToVisible(NSRange(location: storageLoc, length: 0))
                 }
@@ -402,22 +463,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     await loader.saveScene(at: segIdx, engine: env.engine, ref: ref)
                 }
             }
-            capture.refreshCanState()
-
-            // Fork popover (§10 T2, T-0211): if this step landed on a fork show
-            // the branch chooser at the caret; otherwise the writer has moved off
-            // any prior fork, so dismiss a lingering popover.
-            if let fork = step.forkAhead {
-                presentForkPopover(fork, in: tv)
-            } else {
-                forkPopover.close()
-            }
-
-            // Session-boundary warning (§5, T-0209): the engine flags the first
-            // undo that steps into a previous session's work (once per crossing).
-            if step.crossedSessionBoundary {
-                presentSessionBoundaryNotice(boundaryTimestamp: step.boundaryTimestamp)
-            }
+            return (segIdx, caret)
         }
 
         // Shows the inline fork popover for `fork` at the caret. Selecting a
@@ -537,6 +583,44 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
         }
 
+        // [I-0273] The restore's centring target, held until the scroll view has a height
+        // and kept while the window and TextKit 2 settle.
+        // ⛔ 2nd attempt stopped after a FIXED 1 s: the user's log showed it centred correctly
+        // at viewH=493, then the view grew to 787 and the document-height estimate went
+        // 237,598 → 640,264 pt — after the window closed — and the centre drifted ~145,000
+        // characters back (to 1,710,569 against a target of 1,855,739).
+        // ✅ Now: re-centre on ANY clip or document frame change, but ONLY when the target has
+        // left the visible rect (never a no-op scroll, never a loop); END on the writer's first
+        // key, click or scroll (`cancelRestoreCentre`), with a 5 s safety cap.
+        private var pendingRestoreCentre: (target: Int, sceneID: String)?
+        private var restoreCentreUntil: Date?
+        private var isCentringRestore = false
+
+        func cancelRestoreCentre() {
+            pendingRestoreCentre = nil
+            restoreCentreUntil = nil
+        }
+
+        @objc func clipFrameDidChange(_ notification: Notification) {
+            guard let pending = pendingRestoreCentre, !isCentringRestore, let tv = textView,
+                  let clip = tv.enclosingScrollView?.contentView, clip.bounds.height > 0 else { return }
+            if let until = restoreCentreUntil, Date() > until { cancelRestoreCentre(); return }
+            // Still on screen → leave the scroll alone.
+            if let rect = boundingRect(forCharacterIndex: pending.target, in: tv),
+               clip.bounds.intersects(rect) { return }
+            applyPendingRestoreCentre(in: tv)
+        }
+
+        private func applyPendingRestoreCentre(in tv: NSTextView) {
+            guard let pending = pendingRestoreCentre else { return }
+            if restoreCentreUntil == nil { restoreCentreUntil = Date().addingTimeInterval(5.0) }
+            isCentringRestore = true
+            defer { isCentringRestore = false }
+            navigationLockUntil = Date().addingTimeInterval(0.5)
+            centerStorageOffset(pending.target, in: tv)
+            parent.loader.setViewportScene(pending.sceneID)
+        }
+
         // Called by NSScrollView bounds-change notification.
         // Updates the viewport scene (Navigator highlight) based on scroll position.
         // Does not load or release any scenes.
@@ -576,6 +660,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Rebuild the entire NSTextStorage from the current segments.
         // Called when the segment list changes (new scene inserted, viewport shifted, toggle flipped).
         func rebuildStorage(_ tv: NSTextView, segments: [SceneSegment]) {
+            // T-0573 — remember how far below the top of the viewport the caret sits, so
+            // `revealCaretAfterRebuild` can put it back at the same height.
+            caretViewportOffset = caretOffsetInViewport(tv)
             // Suppress delegate callbacks and undo registration during rebuild.
             // NSTextStorage fires textDidChange synchronously mid-rebuild, before
             // sceneBoundaries is valid — which would corrupt segment text extraction.
@@ -622,7 +709,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 if i > 0 {
                     // Insert divider between every pair of adjacent scenes.
-                    let divider = makeDividerAttachment()
+                    // ✅ T-0575 — the divider that CLOSES a chapter is drawn at full strength.
+                    let divider = makeDividerAttachment(endsChapter: isChapterBoundary)
                     let divStr = NSMutableAttributedString(attachment: divider)
                     divStr.append(NSAttributedString(string: "\n", attributes: attrs))
                     storage.append(divStr)
@@ -676,6 +764,12 @@ struct ManuscriptTextView: NSViewRepresentable {
             // caret can now trust that placement to survive.
             lastSegmentIDs = segments.map(\.id)
             lastShowChapterTitles = parent.showChapterTitles
+            // ⚠️ [I-0272] ALL THREE keys `updateNSView` compares — the chapter-title
+            // fingerprint (added by I-0095) was never synced here. A chapter create/merge
+            // renumbers titles, so the next update pass saw a "changed" fingerprint and
+            // rebuilt AGAIN — after the handler had placed the caret — undoing T-0573's
+            // scroll and I-0271's viewport layout (the blank band came back).
+            lastChapterTitleFingerprint = chapterHeadingFingerprint(for: parent.loader)
         }
 
         // MARK: — Copy buffers (EP-019 SP-056, T-0214)
@@ -725,33 +819,13 @@ struct ManuscriptTextView: NSViewRepresentable {
             let sel = tv.selectedRange()
             guard sel.length > 0 else { return }
 
-            // Cross-boundary cut → structured fragmentCut (delete + merge, reload, BARRIER),
-            // mirroring ⌘X (AC3), and store the fragment in slot N so ⌃N reconstructs it
-            // (T-0355 / AC4). Reversible structured undo is T-0356/AC6. Single-scene cut falls
-            // through to the flat, reversible cut path below (AC5).
-            if selectionCrossesBoundary(sel),
-               let spans = fragmentSpans(for: sel),
-               let rootPath = parent.session.projectRootPath {
-                parent.session.historyCapture?.flush(trigger: "flush")
-                if let result = try? parent.env.engine.fragmentCut(projectRootPath: rootPath, spans: spans) {
-                    parent.session.bufferService?.load(result.fragment.plainText, intoSlot: bufferID,
-                                                       fragmentJSON: result.fragment.toJSON())
-                    // Reversible structural op (T-0356 / AC6): undo re-pastes the fragment at the
-                    // fold point; redo re-runs the cut.
-                    let caretByte = spans.first?.start ?? 0
-                    parent.session.historyCapture?.recordBarrier(
-                        kind: "structuredCut", note: "Can't undo past a cross-boundary cut",
-                        structuralPayload: HistoryStructuralPayload(
-                            op: "structuredCut",
-                            fragmentJSON: result.fragment.toJSON(),
-                            caretSceneID: result.survivingSceneID,
-                            caretByte: caretByte,
-                            removedSceneIDs: result.removedSceneIDs,
-                            removedChapterIDs: result.removedChapterIDs))
-                    reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: caretByte)
-                    return
-                }
-                // fragmentCut failed → fall through to the flat cut rather than losing the action.
+            // ✅ [I-0270] Cross-boundary cut into a slot = the cross-boundary COPY into the slot
+            // (unchanged, structured fragment) + delete-keeping-scenes. ⛔ No longer the
+            // collapsing `fragmentCut` (user ruling 2026-10-02).
+            if selectionCrossesBoundary(sel) {
+                copyIntoBuffer(bufferID)
+                deleteAcrossScenes(sel, kind: "cut")
+                return
             }
 
             let text = (tv.string as NSString).substring(with: sel)
@@ -1427,9 +1501,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 if let tv = textView {
                     rebuildStorage(tv, segments: loader.segments)
                     if sceneBoundaries.indices.contains(segIdx) {
-                        let cursorLoc = sceneBoundaries[segIdx].location
-                        tv.setSelectedRange(NSRange(location: cursorLoc, length: 0))
-                        tv.scrollRangeToVisible(NSRange(location: cursorLoc, length: 0))
+                        revealCaretAfterRebuild(sceneBoundaries[segIdx].location, in: tv)
                     }
                 }
 
@@ -1445,9 +1517,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             rebuildStorage(tv, segments: parent.loader.segments)
             let newSegIdx = segIdx + 1
             if sceneBoundaries.indices.contains(newSegIdx) {
-                let loc = sceneBoundaries[newSegIdx].location
-                tv.setSelectedRange(NSRange(location: loc, length: 0))
-                tv.scrollRangeToVisible(NSRange(location: loc, length: 0))
+                revealCaretAfterRebuild(sceneBoundaries[newSegIdx].location, in: tv)
             }
         }
 
@@ -1457,10 +1527,60 @@ struct ManuscriptTextView: NSViewRepresentable {
             rebuildStorage(tv, segments: parent.loader.segments)
             if sceneBoundaries.indices.contains(segIdx) {
                 let loc = sceneBoundaries[segIdx].location + textOffset
-                let clamped = min(loc, tv.string.count)
-                tv.setSelectedRange(NSRange(location: clamped, length: 0))
-                tv.scrollRangeToVisible(NSRange(location: clamped, length: 0))
+                revealCaretAfterRebuild(min(loc, tv.string.count), in: tv)
             }
+        }
+
+        // ⚠️ [I-0271] Place the caret after a FULL storage rebuild and make the viewport show
+        // it. ⛔ The user saw the top of the viewport stay BLANK after create/merge until the
+        // next scroll or keystroke — with the caret dropped at the BOTTOM edge, because
+        // `scrollRangeToVisible` scrolls the minimum distance. ✅ Present on `dbc158f`, so it
+        // predates SP-151's work (A/B by the user, 2026-10-02). ✅ TextKit 2 lays out only the
+        // viewport; after the rebuild + scroll, nothing asked it to lay that viewport out again
+        // until the next interaction did. `layoutViewport()` asks now (AppKit,
+        // `NSTextViewportLayoutController.layoutViewport()`, macOS — doc fetched 2026-10-02).
+        // ⚠️ Every rebuild-then-place-caret path goes through here so the fix is not partial.
+        //
+        // ✅ T-0573 (user request 2026-10-02): the caret STAYS AT THE SAME HEIGHT in the
+        // viewport across create/merge — *"I find it jarring when the cursor that was in the
+        // middle of the viewport is suddenly at the bottom."* `rebuildStorage` measures the
+        // caret's offset below the viewport top BEFORE it rebuilds.
+        // ⛔ FIRST ATTEMPT FAILED (user, same day: it scrolled to "somewhere around Chapter
+        // 44"): it scrolled to the caret's ABSOLUTE y right after the rebuild. ✅ MEASURED in a
+        // standalone TextKit 2 harness (~1.8 M chars): after a full rebuild most of the document
+        // is not laid out, so y is an ESTIMATE — and the whole coordinate space shifts (the same
+        // text moved ~16,000 pt). ✅ So: let AppKit scroll to the caret (it resolves this
+        // correctly), lay the viewport out, THEN nudge by the RELATIVE difference between where
+        // the caret now sits and where it sat — measured only inside laid-out text. ✅ Harness:
+        // one nudge lands exactly on the requested offset, and the text drawn there is the
+        // caret's line. ⚠️ No measurement (caret was off screen) → `scrollRangeToVisible` only.
+        private func revealCaretAfterRebuild(_ loc: Int, in tv: NSTextView) {
+            let caret = NSRange(location: loc, length: 0)
+            tv.setSelectedRange(caret)
+            tv.scrollRangeToVisible(caret)
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            if let offset = caretViewportOffset,
+               let scroll = tv.enclosingScrollView,
+               let rect = boundingRect(forCharacterIndex: loc, in: tv) {
+                let clip = scroll.contentView
+                let delta = (rect.minY - clip.bounds.minY) - offset
+                let maxY = max(0, tv.bounds.height - clip.bounds.height)
+                clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
+                scroll.reflectScrolledClipView(clip)
+                tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            }
+            caretViewportOffset = nil
+        }
+
+        // T-0573 — the caret's distance below the top of the visible area, or nil when the
+        // caret is not on screen (then there is no position to preserve).
+        private var caretViewportOffset: CGFloat?
+        private func caretOffsetInViewport(_ tv: NSTextView) -> CGFloat? {
+            guard let clip = tv.enclosingScrollView?.contentView,
+                  let rect = boundingRect(forCharacterIndex: tv.selectedRange().location, in: tv)
+            else { return nil }
+            let offset = rect.minY - clip.bounds.minY
+            return (0...clip.bounds.height).contains(offset) ? offset : nil
         }
 
         // Return the substring of `text` before `offset`.
@@ -1519,10 +1639,16 @@ struct ManuscriptTextView: NSViewRepresentable {
             // ⚠️ The text view insets its container; fragment coordinates are container-relative.
             let p = NSPoint(x: point.x - tv.textContainerInset.width,
                             y: point.y - tv.textContainerInset.height)
+            // ⛔ [I-0273] Lay out the point FIRST. It used to look up a fragment only among
+            // those ALREADY laid out and, finding none, report END OF DOCUMENT — so a not-yet-
+            // laid-out centre read as the last scene. That fed `viewportSceneID`, and the quit
+            // stamp saves `viewportSceneID`: the log showed viewport = an END scene at
+            // scroll 0.0 (the TOP).
+            lm.ensureLayout(for: CGRect(x: p.x, y: p.y, width: 1, height: 1))
             guard let fragment = lm.textLayoutFragment(for: p) else {
-                // ⚠️ Below the last laid-out fragment (e.g. past the end) — clamp to the end
-                // rather than failing, so a scroll to the bottom still resolves a scene.
-                return tv.string.count
+                // ⚠️ Truly beyond the text — clamp to the nearer end, rather than failing, so
+                // a scroll to the bottom still resolves a scene.
+                return p.y <= 0 ? 0 : (tv.string as NSString).length
             }
             let loc = fragment.rangeInElement.location
             return content.offset(from: content.documentRange.location, to: loc)
@@ -1688,8 +1814,17 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Current Scene Model), then hold the scene against the resulting scroll.
             navigationLockUntil = Date().addingTimeInterval(0.5)
             placeCursorAt(target, in: tv)
-            centerStorageOffset(target, in: tv)
+            // ⛔ [I-0273] MEASURED on the user's relaunch 2026-10-02: `viewH=0` — the restore
+            // runs BEFORE the window has given the scroll view any height, so centring here
+            // scrolled nothing (`clipY=0`): caret at the end, viewport at the top. ✅ Centre
+            // now if there is a height; otherwise hold the target for `clipFrameDidChange`.
+            pendingRestoreCentre = (target, sceneID)
+            restoreCentreUntil = nil
+            if let clip = tv.enclosingScrollView?.contentView, clip.bounds.height > 0 {
+                applyPendingRestoreCentre(in: tv)
+            }
             loader.setViewportScene(sceneID)
+
 
             // Consume the one-shot restore state so it can't reapply on a later rebuild.
             //
@@ -1731,13 +1866,14 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else { return }
             // Same fallback as restoreWritingSurface: boundaries are authoritative when
             // they exist, but empty storage (a new project) leaves them unbuilt.
-            let storageOffset: Int
+            let sceneStart: Int
             if sceneBoundaries.indices.contains(segIdx) {
-                storageOffset = sceneBoundaries[segIdx].location
+                sceneStart = sceneBoundaries[segIdx].location
             } else if let mapped = parent.loader.storageOffset(forSceneID: sceneID) {
-                storageOffset = mapped
+                sceneStart = mapped
             } else { return }
-            NSLog("[SCRIVI-DIAG] navigateToScene -> \(sceneID) boundaryStart=\(storageOffset) mapSaid=\(parent.loader.storageOffset(forSceneID: sceneID) ?? -1)")
+            let storageOffset = searchMatchOffset(sceneID: sceneID, segIdx: segIdx, in: tv) ?? sceneStart
+            NSLog("[SCRIVI-DIAG] navigateToScene -> \(sceneID) boundaryStart=\(sceneStart) caret=\(storageOffset) mapSaid=\(parent.loader.storageOffset(forSceneID: sceneID) ?? -1)")
             scrollTask?.cancel()
             highlightTask?.cancel()
             navigationLockUntil = Date().addingTimeInterval(0.5)
@@ -1777,20 +1913,61 @@ struct ManuscriptTextView: NSViewRepresentable {
             parent.loader.setCurrentIndex(segIdx)
         }
 
+        // T-0571 — where a navigator click made WHILE SEARCHING puts the caret: the query's
+        // FIRST match inside the scene's own text (ruled 2026-10-01: caret only, no selection;
+        // first match only). nil → the scene start, as for any other navigation — including a
+        // scene listed only because its CHAPTER title matched (ruled the same day).
+        //
+        // ✅ Same semantics as the navigator's `localizedStandardContains`: case- and
+        // diacritic-insensitive, current locale — so the scene the list showed is the scene
+        // this finds a match in.
+        // ⚠️ The hint is NOT consumed here: one click drives `navigateToScene` two or three
+        // times (see the log of 2026-10-01), and consuming it on the first call would send
+        // the later ones back to the scene start. It expires after the same window as
+        // `navigationLockUntil`, so a LATER navigation to this scene from elsewhere (timeline,
+        // Detail Sheet) lands at the scene start as before.
+        private func searchMatchOffset(sceneID: String, segIdx: Int, in tv: NSTextView) -> Int? {
+            guard let hint = parent.loader.searchCaretHint, hint.sceneID == sceneID,
+                  sceneBoundaries.indices.contains(segIdx) else { return nil }
+            let loader = parent.loader
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if loader.searchCaretHint == hint { loader.searchCaretHint = nil }
+            }
+            let ns = tv.string as NSString
+            let scene = NSIntersectionRange(sceneBoundaries[segIdx], NSRange(location: 0, length: ns.length))
+            let match = ns.range(of: hint.query,
+                                 options: [.caseInsensitive, .diacriticInsensitive],
+                                 range: scene,
+                                 locale: .current)
+            return match.location == NSNotFound ? nil : match.location
+        }
+
         // Scroll so `storageOffset` sits near the VERTICAL CENTRE of the viewport.
         //
         // `scrollRangeToVisible` only guarantees visibility, which puts a target at the
         // edge — and the scroll handler then reads the centre and concludes a different
         // scene is current. Centring makes the two agree.
+        //
+        // ⛔ [I-0273] It used to scroll to the target's ABSOLUTE y. After a full rebuild (a
+        // project OPEN, i.e. the restore) TextKit 2 has laid out almost nothing, so that y is
+        // an ESTIMATE — measured for T-0573 (2026-10-02) — and the restore landed ~12
+        // chapters away (the log's first viewport scene after restoring index 1180 was in
+        // chapter 46 of 58). ✅ Same cure as T-0573: let AppKit reveal the target (it resolves
+        // the estimate), lay the viewport out, then nudge by the RELATIVE distance from the
+        // viewport centre, measured inside laid-out text. ⚠️ Also: the clamp used
+        // `tv.string.count` (Characters) against UTF-16 offsets.
         func centerStorageOffset(_ storageOffset: Int, in tv: NSTextView) {
-            guard let clipView = tv.enclosingScrollView?.contentView else { return }
-            let loc = min(storageOffset, max(0, tv.string.count))
+            guard let scroll = tv.enclosingScrollView else { return }
+            let clip = scroll.contentView
+            let loc = min(storageOffset, (tv.string as NSString).length)
+            tv.scrollRangeToVisible(NSRange(location: loc, length: 0))
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
             guard let rect = self.boundingRect(forCharacterIndex: loc, in: tv) else { return }
-            let docHeight = tv.bounds.height
-            let viewH = clipView.bounds.height
-            let targetY = max(0, min(rect.midY - viewH / 2, max(0, docHeight - viewH)))
-            clipView.scroll(to: NSPoint(x: 0, y: targetY))
-            tv.enclosingScrollView?.reflectScrolledClipView(clipView)
+            let delta = rect.midY - (clip.bounds.minY + clip.bounds.height / 2)
+            let maxY = max(0, tv.bounds.height - clip.bounds.height)
+            clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
+            scroll.reflectScrolledClipView(clip)
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
         }
 
         // MARK: — Scene / Chapter boundary navigation
@@ -1853,7 +2030,16 @@ struct ManuscriptTextView: NSViewRepresentable {
         // ⛔ not `String.count`, which counts Characters and falls SHORT of the true end
         // whenever the text holds an emoji or a combining mark.
         func moveToManuscriptBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
-            placeCursorAt(edge == .start ? 0 : (tv.string as NSString).length, in: tv)
+            // ⚠️ [I-0266] The start is the FIRST SCENE's first character, not offset 0 —
+            // with chapter titles shown, offset 0 is in front of Chapter 1's heading.
+            let target: Int
+            if edge == .start {
+                recomputeBoundaries(tv)
+                target = sceneBoundaries.first?.location ?? 0
+            } else {
+                target = (tv.string as NSString).length
+            }
+            placeCursorAt(target, in: tv)
         }
 
         // Place cursor at a given NSTextStorage offset and take focus.
@@ -1892,13 +2078,14 @@ struct ManuscriptTextView: NSViewRepresentable {
             return sceneBoundaries.isEmpty ? nil : sceneBoundaries.count - 1
         }
 
-        private func makeDividerAttachment() -> NSTextAttachment {
+        private func makeDividerAttachment(endsChapter: Bool) -> NSTextAttachment {
             // ⚠️ EP-039 T-0526: was `attachment.attachmentCell = DividerAttachmentCell()`.
             // ✅ `NSTextAttachmentCell` is TEXTKIT 1 **and APPKIT-ONLY** — it has no UIKit
             // equivalent, so it blocked the iOS port independently of performance.
             // ✅ `DividerTextAttachment` overrides the TextKit 2 sizing/imaging API, which is
             // `macos(12.0), ios(15.0)` — the SAME type on both platforms.
             let attachment = DividerTextAttachment()
+            attachment.endsChapter = endsChapter
 
             // ⛔ [I-0252] / T-0554 — THIS ONE LINE IS THE FIX, AND WITHOUT IT THE
             // DIVIDER DRAWS NOTHING AT ALL.
@@ -1943,6 +2130,46 @@ struct ManuscriptTextView: NSViewRepresentable {
                 if touched > 1 { return true }
             }
             return false
+        }
+
+        // T-0572 — where a caret proposed at `loc` goes instead, when `loc` is in the GAP
+        // between two scenes (nil = not in a gap, leave it).
+        //
+        // ✅ Layout: `[scene][divider][\n][heading][scene]` (heading only at a chapter break).
+        // ✅ The DIVIDER'S OWN POSITION is the previous scene's END — a real caret stop, kept
+        // by user ruling 2026-10-02 (typing there appends to that scene).
+        // ⛔ The gap is everything AFTER it up to the next scene's first character: the
+        // divider's `\n` and any heading. Typing after the divider prepended to the next
+        // scene — or, at a chapter break, landed in FRONT of the heading and pulled it into
+        // the scene text (user report 2026-10-02).
+        // Moving BACKWARD (from a later position) → the divider position (previous scene's
+        // end); otherwise → the next scene's start. Chapter 1's heading has no divider before
+        // it, so it always resolves forward.
+        // ✅ Read from the TEXT's own markers (attachment + heading attribute), not from
+        // `sceneBoundaries`, which can be a beat stale mid-rebuild.
+        func caretOutsideSceneGap(_ loc: Int, from previous: Int) -> Int? {
+            guard let storage = textView?.textStorage else { return nil }
+            func isDivider(_ i: Int) -> Bool {
+                i >= 0 && i < storage.length && storage.attribute(.attachment, at: i, effectiveRange: nil) != nil
+            }
+            func headingRun(at i: Int) -> NSRange? {
+                guard i < storage.length else { return nil }
+                var run = NSRange()
+                return storage.attribute(.scriviHeading, at: i, longestEffectiveRange: &run,
+                                         in: NSRange(location: 0, length: storage.length)) != nil ? run : nil
+            }
+            let heading = headingRun(at: loc)
+            let afterDivider = isDivider(loc - 1)
+            guard heading != nil || afterDivider else { return nil }
+
+            if loc < previous {
+                if afterDivider { return loc - 1 }
+                if let h = heading, isDivider(h.location - 2) { return h.location - 2 }
+            }
+            var p = loc
+            if afterDivider { p += 1 }                       // past the divider's `\n`
+            if let h = headingRun(at: p) { p = h.location + h.length }
+            return min(p, storage.length)
         }
 
         // True if the caret at storage offset `loc` sits inside a non-editable scriviHeading run.
@@ -2013,7 +2240,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                sceneBoundaries.indices.contains(segIdx) {
                 let base = sceneBoundaries[segIdx].location
                 let charOff = charOffsetForByteOffset(caretByteOffset, in: loader.segments[segIdx].text)
-                placeCursorAt(base + charOff, in: tv)
+                revealCaretAfterRebuild(base + charOff, in: tv)   // [I-0271] + T-0573
+                takeFocus()
                 loader.setCurrentIndex(segIdx)
                 loader.setViewportScene(caretSceneID)
             }
@@ -2062,37 +2290,71 @@ struct ManuscriptTextView: NSViewRepresentable {
             return true
         }
 
-        // Cross-boundary ⌘X: fragmentCut (delete + collapse), flat plainText to the pasteboard,
-        // hold the fragment internally, reload from disk, place the caret at the survivor, and
-        // record a structural barrier. Returns true if handled.
-        func structuredCutIfCrossBoundary() -> Bool {
-            guard let tv = textView else { return false }
-            let sel = tv.selectedRange()
-            guard selectionCrossesBoundary(sel), let spans = fragmentSpans(for: sel),
-                  let rootPath = parent.session.projectRootPath else { return false }
-            // Flush pending edits so the on-disk bodies the cut reads are current.
-            parent.session.historyCapture?.flush(trigger: "flush")
-            guard let result = try? parent.env.engine.fragmentCut(
-                projectRootPath: rootPath, spans: spans) else { return false }
-            internalClipboardFragment = result.fragment
-            let pb = NSPasteboard.general
-            pb.clearContents()
-            pb.setString(result.fragment.plainText, forType: .string)
+        // ✅ [I-0270] (user ruling 2026-10-02) — DELETE ACROSS SCENES, KEEP THE SCENES.
+        // ⌫ / ⌦ / ⌘X / ⌥N on a selection that spans scene breaks removes the selected text
+        // from EACH scene it overlaps and keeps every scene, divider and heading; a scene
+        // wholly inside the selection becomes EMPTY, not deleted. User: *"when I copy text
+        // across a scene boundary and paste it somewhere else the scene boundary does not
+        // copy with the text. Therefore in this instance, and with cut, the scene boundary
+        // also must not disappear."*
+        // ⛔ This REPLACES the EP-029 cross-boundary cut (`fragmentCut` = delete + COLLAPSE
+        // into a survivor). Old `structuredCut` history nodes still undo via
+        // `applyStructuralInverse`.
+        // ✅ Recorded as ONE edit group (one event per scene, shared groupID), so a single
+        // ⌘Z restores every scene and a single redo re-applies them (user ruling, same day).
+        // Returns false for a selection inside one scene — the ordinary path handles it.
+        @discardableResult
+        func deleteAcrossScenes(_ sel: NSRange, kind: String) -> Bool {
+            guard let tv = textView, let storage = tv.textStorage, sel.length > 0 else { return false }
+            recomputeBoundaries(tv)
+            let loader = parent.loader
+            // Every scene the selection overlaps: its index, its range BEFORE the edit,
+            // and the part of it that is selected.
+            var parts: [(segIdx: Int, range: NSRange, cut: NSRange)] = []
+            for (i, range) in sceneBoundaries.enumerated() where loader.segments.indices.contains(i) {
+                let cut = NSIntersectionRange(range, sel)
+                if cut.length > 0 { parts.append((i, range, cut)) }
+            }
+            guard parts.count > 1 else { return false }
 
-            // Reversible structural op (T-0356 / AC6). The survivor keeps the caret at the fold
-            // point (end of the head prefix = the first span's start byte). Undo re-pastes the
-            // extracted fragment there (undo-cut == paste-splice, §5); redo re-runs the cut.
-            let caretByte = spans.first?.start ?? 0
-            parent.session.historyCapture?.recordBarrier(
-                kind: "structuredCut", note: "Can't undo past a cross-boundary cut",
-                structuralPayload: HistoryStructuralPayload(
-                    op: "structuredCut",
-                    fragmentJSON: result.fragment.toJSON(),
-                    caretSceneID: result.survivingSceneID,
-                    caretByte: caretByte,
-                    removedSceneIDs: result.removedSceneIDs,
-                    removedChapterIDs: result.removedChapterIDs))
-            reloadManuscriptFromDisk(caretSceneID: result.survivingSceneID, caretByteOffset: caretByte)
+            let ns = tv.string as NSString
+            let before = parts.map { ns.substring(with: $0.range) }
+            // Back to front, so the earlier ranges stay valid. Only scene text is removed;
+            // dividers and headings sit outside every scene range.
+            storage.beginEditing()
+            for part in parts.reversed() { storage.deleteCharacters(in: part.cut) }
+            storage.endEditing()
+            recomputeBoundaries(tv)
+
+            var edits: [HistoryCapture.GroupedSceneEdit] = []
+            for (n, part) in parts.enumerated() where sceneBoundaries.indices.contains(part.segIdx) {
+                let after = (tv.string as NSString).substring(with: sceneBoundaries[part.segIdx])
+                let seg = loader.segments[part.segIdx]
+                loader.updateText(after, at: part.segIdx)
+                edits.append(.init(sceneID: seg.sceneID, textBefore: before[n], textAfter: after,
+                                   cursorByte: byteOffset(charOffset: part.cut.location - part.range.location,
+                                                          in: before[n])))
+                let firstLine = after.components(separatedBy: .newlines)
+                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
+            }
+            parent.session.historyCapture?.recordGroupedEdit(edits, kind: kind)
+
+            // The caret goes where the edit began, in the first scene.
+            let caret = parts[0].cut.location
+            tv.setSelectedRange(NSRange(location: caret, length: 0))
+            tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
+            lastCursorSegmentIndex = parts[0].segIdx
+            loader.setCurrentIndex(parts[0].segIdx)
+
+            // Save every touched scene — the 1 s autosave only writes the CURRENT one.
+            if let ref = parent.env.authorshipRef {
+                let env = parent.env
+                for part in parts {
+                    Task { @MainActor in await loader.saveScene(at: part.segIdx, engine: env.engine, ref: ref) }
+                }
+            }
+            parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             return true
         }
 
@@ -2181,15 +2443,19 @@ final class ManuscriptNSTextView: NSTextView {
             return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
         }
         // Block any edit that touches a character with the scriviHeading attribute.
-        // For pure insertions (length == 0, non-empty replacement) check only the
-        // insertion point itself — do NOT look backward, as that would land inside
+        // For pure insertions (length == 0, non-empty replacement) check the character
+        // AT the insertion point — do NOT look backward, as that would land inside
         // heading text when the cursor is at the start of a scene.
+        // ⚠️ [I-0266] It used to check a ZERO-length range, which matches nothing, so
+        // typing at offset 0 (before Chapter 1's heading) was let through. ✅ An insertion
+        // whose next character is heading text is BEFORE or INSIDE a heading — the same
+        // rule `caretInHeading` applies to structured paste.
         // For deletions (length > 0) or backspace-style (length == 0, empty replacement)
         // check the character being removed, falling back one position for backspace.
         let isInsertion = affectedCharRange.length == 0 && replacementString?.isEmpty == false
         let checkRange: NSRange
         if isInsertion {
-            checkRange = NSRange(location: affectedCharRange.location, length: 0)
+            checkRange = NSRange(location: affectedCharRange.location, length: 1)
         } else {
             checkRange = affectedCharRange.length > 0
                 ? affectedCharRange
@@ -2208,6 +2474,21 @@ final class ManuscriptNSTextView: NSTextView {
             }
         }
         if isHeading { return false }
+        // ⛔ [I-0270] NEVER let an ordinary edit remove a scene DIVIDER. Each divider is one
+        // scene boundary; `recomputeBoundaries` maps the Nth text segment to the Nth loaded
+        // scene, so deleting one made the merged text save into the first scene (the second
+        // scene's tail then existed TWICE on disk) and shifted every later scene's edits into
+        // the PREVIOUS scene's file. Joining scenes is a structural op (⌘⌫ merge, cross-scene
+        // ⌘X) that goes through ScriviCore and rebuilds — never a text edit.
+        if affectedCharRange.length > 0, affectedCharRange.location < storage.length {
+            let safe = NSRange(location: affectedCharRange.location,
+                               length: min(affectedCharRange.length, storage.length - affectedCharRange.location))
+            var hasDivider = false
+            storage.enumerateAttribute(.attachment, in: safe, options: []) { value, _, stop in
+                if value != nil { hasDivider = true; stop.pointee = true }
+            }
+            if hasDivider { return false }
+        }
         return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
     }
 
@@ -2219,6 +2500,30 @@ final class ManuscriptNSTextView: NSTextView {
     // custom HistoryService-backed apply path. validateUserInterfaceItem drives
     // the enable state (and could set the menu titles). ⌘Z/⇧⌘Z arrive as these
     // same actions via the SwiftUI menu item's key equivalents.
+
+    // ✅ T-0572 — THE CARET NEVER RESTS BETWEEN SCENES: not on a chapter heading (user
+    // request 2026-10-01: *"it would be better if the cursor just skipped the chapter lines
+    // entirely"*), and not after a divider (2026-10-02: *"skip the scene dividers too"*).
+    // Every caret placement — arrows, clicks, programmatic — arrives here, so this is the
+    // one place to enforce it. A selection with LENGTH is left alone: selecting across
+    // scenes (fragment cut/copy) must still span headings.
+    // ⚠️ Not while `stillSelecting` (a mouse drag in progress) — only the settled caret.
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity,
+                                    stillSelecting: Bool) {
+        var ranges = ranges
+        if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, r.length == 0,
+           let target = coordinator?.caretOutsideSceneGap(r.location, from: selectedRange().location) {
+            ranges = [NSValue(range: NSRange(location: target, length: 0))]
+        }
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+    }
+
+    // ⚠️ [I-0266] ⌘↑ lands where `Go to Manuscript Start` does — the first scene's first
+    // character — not at offset 0, in front of Chapter 1's heading, where typing is refused.
+    override func moveToBeginningOfDocument(_ sender: Any?) {
+        guard let coordinator else { return super.moveToBeginningOfDocument(sender) }
+        coordinator.moveToManuscriptBoundary(.start, in: self)
+    }
 
     @objc func undo(_ sender: Any?) {
         coordinator?.performUndo()
@@ -2259,9 +2564,15 @@ final class ManuscriptNSTextView: NSTextView {
     }
 
     override func cut(_ sender: Any?) {
-        // A cross-boundary selection cuts as a structured fragment (delete + collapse; barrier).
-        // A single-scene selection uses the normal cut (AC5). EP-029 SP-089.
-        if coordinator?.structuredCutIfCrossBoundary() == true { return }
+        // ✅ [I-0270] A cross-boundary cut = the cross-boundary COPY (unchanged) + delete the
+        // selected text from each scene, KEEPING the scenes (user ruling 2026-10-02). ⛔ Not the
+        // EP-029 collapse. A single-scene selection uses the normal cut (AC5).
+        if let c = coordinator, c.selectionCrossesBoundary(selectedRange()) {
+            let sel = selectedRange()
+            copy(sender)
+            c.deleteAcrossScenes(sel, kind: "cut")
+            return
+        }
         coordinator?.parent.session.historyCapture?.beginPasteOrCut(kind: "cut")
         super.cut(sender)
         coordinator?.parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
@@ -2288,7 +2599,19 @@ final class ManuscriptNSTextView: NSTextView {
         deleteBackward(nil)
     }
 
+    // [I-0273] The writer's first key, click or scroll ends the restore's re-centring.
+    override func mouseDown(with event: NSEvent) {
+        coordinator?.cancelRestoreCentre()
+        super.mouseDown(with: event)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        coordinator?.cancelRestoreCentre()
+        super.scrollWheel(with: event)
+    }
+
     override func keyDown(with event: NSEvent) {
+        coordinator?.cancelRestoreCentre()
         // T-0531 DIAGNOSTIC — the OUTERMOST boundary for a keystroke.
         // ⚠️ If this is slow while `[SCRIVI-KEY]` (textDidChange) is fast, the cost is in
         // AppKit's own edit/layout/display work, NOT in Scrivi's delegate.
@@ -2356,8 +2679,17 @@ final class ManuscriptNSTextView: NSTextView {
         super.keyDown(with: event)
     }
 
+    // ⚠️ [I-0269] Both delete overrides guard the ONE character a bare caret would remove.
+    // With a SELECTION, the selection is what is deleted — so a selection starting at a
+    // scene's first character was refused because the character BEFORE it is the divider's
+    // `\n`. ✅ A selection across scenes → `deleteAcrossScenes` ([I-0270], text removed
+    // from each scene, scenes kept); within one scene → super.
     override func deleteBackward(_ sender: Any?) {
         guard let storage = textStorage else { super.deleteBackward(sender); return }
+        if selectedRange().length > 0 {
+            if coordinator?.deleteAcrossScenes(selectedRange(), kind: "delete") == true { return }
+            super.deleteBackward(sender); return
+        }
         let loc = selectedRange().location
         guard loc > 0 else { return }
         // The character that would be deleted is at loc-1.
@@ -2368,6 +2700,10 @@ final class ManuscriptNSTextView: NSTextView {
 
     override func deleteForward(_ sender: Any?) {
         guard let storage = textStorage else { super.deleteForward(sender); return }
+        if selectedRange().length > 0 {
+            if coordinator?.deleteAcrossScenes(selectedRange(), kind: "delete") == true { return }
+            super.deleteForward(sender); return
+        }
         let loc = selectedRange().location
         guard loc < storage.length else { return }
         // The character that would be deleted is at loc.
@@ -2411,6 +2747,15 @@ private let dividerCellHeight: CGFloat = 24
 // ⚠️ `recomputeBoundaries` finds dividers by the `.attachment` ATTRIBUTE, which is unchanged
 // — ✅ so scene boundary detection is unaffected by this swap.
 private final class DividerTextAttachment: NSTextAttachment {
+
+    // ✅ T-0575 (user request 2026-10-02): with chapter titles OFF nothing showed where a
+    // chapter ended — *"slightly dim the current Scene separator and use the full color one
+    // for the last scene in the Chapter."* ⚠️ Done by RAISING the chapter-end rule to
+    // `labelColor`, NOT by dimming the scene rule: `secondaryLabelColor` (5.89:1) is the
+    // measured visibility floor for a 1 px rule ([I-0252]; `tertiaryLabelColor` at 2.26:1
+    // was rejected as too faint), so the relative difference is made above it.
+    // ✅ Drawn the same with titles ON — what a divider means does not change with the toggle.
+    var endsChapter = false
 
     override func attachmentBounds(
         for attributes: [NSAttributedString.Key: Any],
@@ -2472,7 +2817,13 @@ private final class DividerTextAttachment: NSTextAttachment {
             path.lineWidth = 1.0
             path.move(to: NSPoint(x: rect.minX + 20, y: lineY))
             path.line(to: NSPoint(x: rect.maxX - 20, y: lineY))
-            NSColor.secondaryLabelColor.setStroke()
+            // T-0575 — first pass used `labelColor`; ⛔ user: *"The dividers are too subtle.
+            // Perhaps a slight tint to the chapter divider?"* ✅ The ACCENT colour: a different
+            // KIND of mark, not merely a darker line, and it follows the writer's own
+            // System Settings accent.
+            // ⚠️ 3rd pass — user: *"The tinted divider may be too much."* ✅ Softened to 60%.
+            (self.endsChapter ? NSColor.controlAccentColor.withAlphaComponent(0.6)
+                              : NSColor.secondaryLabelColor).setStroke()
             path.stroke()
             return true
         }

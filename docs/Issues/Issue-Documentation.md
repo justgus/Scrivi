@@ -107,7 +107,8 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 24 | I-0231 – I-0240 | [`Issue-verified-0231-0240.md`](Verified/Issue-verified-0231-0240.md) | 5 |
 | 25 | I-0241 – I-0250 | [`Issue-verified-0241-0250.md`](Verified/Issue-verified-0241-0250.md) | 8 |
 | 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 7 |
-| 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 5 |
+| 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 8 |
+| 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 3 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -156,6 +157,8 @@ stands as a marker.**
 | [`Issue-closed-0134.md`](Closed/Issue-closed-0134.md) | I-0134 — ⚠️ **non-issue** (erroneous parity premise; Apple authoritative) |
 
 ---
+
+*Last Updated: 2026-10-02 (**SP-151 closed** — I-0266, I-0269, I-0270 → `Issue-verified-0261-0270.md` (8, re-counted); I-0271–I-0273 → new `Issue-verified-0271-0280.md` (3, re-counted); I-0202 → backlog (AC2 closed without a resolution); I-0267 + I-0268 → SP-152. ⚠️ I-0266–I-0273 had been issued without `next-id.py`; registry advanced at close — no collision.)*
 
 *Last Updated: 2026-08-20 (**SP-115 ✅ closed — six Issues Verified and archived**: I-0135–I-0139 →
 `Verified/Issue-verified-0131-0140.md`, **I-0142 → the new `Issue-verified-0141-0150.md`**. Open Issues

@@ -2,20 +2,6 @@
 
 ---
 
-## 🟡 [SP-151] — T-0569 — ⚠️ **ACTIVE 2026-09-30** `[Apple]`
-
-✅ **Sprint record:** → [`../Sprints/Sprint-SP-151.md`](../Sprints/Sprint-SP-151.md). ⚠️ Also carries
-[I-0202] (open — tracked in `Issue-active.md`); ✅ [I-0216]–[I-0218], [I-0258]–[I-0263] VERIFIED and
-archived 2026-09-30.
-
-| ID | Title | Status |
-| -- | ----- | ------ |
-| **T-0569** | ✅ **Scene navigator search** — always-visible field at the BOTTOM of the navigator; filters by scene body, derived scene title and chapter title, over the app's LIVE text (✅ ruled 2026-09-30) | 🔵 **Not started** |
-
-✅ **[T-0568] and [T-0570] VERIFIED 2026-09-30 and ARCHIVED** → [`Verified/Task-verified-0568.md`](Verified/Task-verified-0568.md), [`Verified/Task-verified-0570.md`](Verified/Task-verified-0570.md).
-
----
-
 ## ✅ [SP-147] — T-0565 · T-0566 · T-0567 — ✅ **VERIFIED 2026-09-30, ARCHIVED**
 
 ✅ **All three USER-VERIFIED by live pass on the rig and ARCHIVED** →

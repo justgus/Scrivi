@@ -56,6 +56,11 @@ struct SceneNavigatorView: View {
     // The scene ID currently highlighted in the list — driven only by viewportSceneID.
     // Never drives navigation; navigation is triggered by explicit tap gestures only.
     @State private var highlightedRowID: String? = nil
+    // T-0569 — the navigator search field's text.
+    @State private var searchText: String = ""
+    // T-0569 — scenes whose BODY matched, tagged with the query that produced them so a
+    // result still in flight for an older query is never applied to a newer one.
+    @State private var bodyMatches: BodyMatches? = nil
 
     var body: some View {
         // ⚠️ T-0544 / [I-0243]: there is NO project-title header here any more. The title is the
@@ -90,7 +95,11 @@ struct SceneNavigatorView: View {
                     selection.wrappedValue = nil
                     return
                 }
-                selection.wrappedValue = String(rowID.dropFirst("scene-".count))
+                let sceneID = String(rowID.dropFirst("scene-".count))
+                // T-0571 — written BEFORE the selection, which is what drives the manuscript.
+                let query = searchQuery
+                loader.searchCaretHint = query.isEmpty ? nil : .init(sceneID: sceneID, query: query)
+                selection.wrappedValue = sceneID
             }
         )
     }
@@ -117,9 +126,34 @@ struct SceneNavigatorView: View {
                             .id(row.rowID)
                     }
                 }
-                .onMove { source, destination in
+                // ⚠️ T-0569 — reorder is OFF while filtering. `performMove` reads the
+                // drop's predecessor from `flatRows`, and with rows hidden that predecessor
+                // is not the scene's real neighbour, so a drop would land somewhere else.
+                .onMove(perform: searchQuery.isEmpty ? { source, destination in
                     performMove(from: source, to: destination)
+                } : nil)
+            }
+            // ✅ T-0569 — always-visible search at the BOTTOM of the navigator, as a
+            // `safeAreaBar` like the Inspector's tab bar (T-0545), so it insets the list
+            // rather than competing with it for stack space.
+            .safeAreaBar(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    searchField
                 }
+            }
+            // ✅ T-0569 — the body scan runs OFF the main actor (~24 ms on a Bible-sized
+            // manuscript, measured 2026-10-01) and is cancelled by the next keystroke.
+            // ⚠️ Re-runs when the query or the scene COUNT changes; it deliberately does not
+            // observe `segments`, which would re-render the navigator on every keystroke
+            // typed in the manuscript.
+            .task(id: SearchKey(query: searchQuery, sceneCount: loader.allScenes.count)) {
+                let query = searchQuery
+                guard !query.isEmpty else { bodyMatches = nil; return }
+                // The LIVE text (ruled 2026-09-30): unsaved edits are searched.
+                let texts = loader.segments.map { SceneText(sceneID: $0.sceneID, text: $0.text) }
+                guard let ids = await Self.scenesMatching(query, in: texts) else { return }
+                bodyMatches = BodyMatches(query: query, sceneIDs: ids)
             }
             .onAppear {
                 // ⚠️ REVEAL ON LAUNCH ONLY — deliberately not on every selection change.
@@ -597,6 +631,65 @@ struct SceneNavigatorView: View {
         }
     }
 
+    // MARK: — Search (T-0569)
+
+    private var searchField: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search", text: $searchText)
+                .textFieldStyle(.plain)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Clear Search")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+    }
+
+    /// The query as matched — surrounding whitespace is not part of it.
+    private var searchQuery: String {
+        searchText.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// IDs of the scenes whose text contains `query`, or nil if the search was cancelled.
+    ///
+    /// ✅ `localizedStandardContains` — case- and diacritic-insensitive, locale-aware: the
+    /// platform's own user-facing search semantics. ⛔ NOT `String.range(of:options:)`,
+    /// measured ~10× slower (~260 ms vs ~24 ms on 4.2 MB, 2026-10-01).
+    @concurrent
+    private nonisolated static func scenesMatching(_ query: String,
+                                                    in texts: [SceneText]) async -> Set<String>? {
+        var ids: Set<String> = []
+        for (i, scene) in texts.enumerated() {
+            if i % 64 == 0, Task.isCancelled { return nil }
+            if scene.text.localizedStandardContains(query) { ids.insert(scene.sceneID) }
+        }
+        return Task.isCancelled ? nil : ids
+    }
+
+    struct SearchKey: Equatable {
+        let query: String
+        let sceneCount: Int
+    }
+
+    struct SceneText: Sendable {
+        let sceneID: String
+        let text: String
+    }
+
+    struct BodyMatches {
+        let query: String
+        let sceneIDs: Set<String>
+    }
+
     // MARK: — Helpers
 
     private func truncated(_ title: String, limit: Int = 30) -> String {
@@ -661,11 +754,26 @@ struct SceneNavigatorView: View {
     }
 
     // Flat array of rows used by the List. Chapter header rows interleaved with scene rows.
+    //
+    // T-0569 — while searching, a chapter whose TITLE matches keeps all its scenes; otherwise
+    // a scene is kept when its displayed title or its body matches, under its chapter header.
+    // Titles are matched here (cheap); bodies come from the off-main scan (`bodyMatches`).
     private var flatRows: [FlatRow] {
+        let query = searchQuery
+        let bodyIDs = bodyMatches?.query == query ? bodyMatches?.sceneIDs : nil
         var rows: [FlatRow] = []
         for group in chapterGroups {
+            let scenes: [SceneEntry]
+            if query.isEmpty || group.chapterTitle.localizedStandardContains(query) {
+                scenes = group.scenes
+            } else {
+                scenes = group.scenes.filter {
+                    $0.title.localizedStandardContains(query) || bodyIDs?.contains($0.sceneID) == true
+                }
+                if scenes.isEmpty { continue }
+            }
             rows.append(.chapterHeader(group))
-            for entry in group.scenes {
+            for entry in scenes {
                 rows.append(.scene(entry, group))
             }
         }

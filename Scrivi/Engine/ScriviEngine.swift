@@ -1081,10 +1081,12 @@ public final class ScriviEngine: @unchecked Sendable {
         kind: String = "typing",
         cursorBefore: Int64 = 0,
         cursorAfter: Int64 = 0,
-        bufferID: String? = nil
+        bufferID: String? = nil,
+        groupID: String? = nil
     ) throws -> HistoryRecordResult {
         let paramsData = try JSONEncoder().encode(HistoryRecordParams(
-            kind: kind, cursorBefore: cursorBefore, cursorAfter: cursorAfter, bufferID: bufferID))
+            kind: kind, cursorBefore: cursorBefore, cursorAfter: cursorAfter,
+            bufferID: bufferID, groupID: groupID))
         let params = String(decoding: paramsData, as: UTF8.self)
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in
@@ -1547,7 +1549,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historyOpen(projectRootPath: String) throws -> HistoryOpenResult { try unavailable() }
     @discardableResult
     public func historySeedScene(projectRootPath: String, sceneID: String, sceneText: String) throws -> HistorySeedResult { try unavailable() }
-    public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0, bufferID: String? = nil) throws -> HistoryRecordResult { try unavailable() }
+    public func historyRecordEvent(projectRootPath: String, sceneID: String, newSceneText: String, kind: String = "typing", cursorBefore: Int64 = 0, cursorAfter: Int64 = 0, bufferID: String? = nil, groupID: String? = nil) throws -> HistoryRecordResult { try unavailable() }
     public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", sceneID: String? = nil, structuralPayload: HistoryStructuralPayload? = nil) throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
@@ -2469,6 +2471,9 @@ struct HistoryRecordParams: Encodable {
     // Cut-into-buffer provenance (EP-019 SP-056, Trade T3). Encoded only when set,
     // so ordinary events send the same params JSON as before.
     var bufferID: String? = nil
+    // Edit group (I-0270): events sharing a groupID undo/redo as one step. Encoded only
+    // when set, so ordinary events send the same params JSON as before.
+    var groupID: String? = nil
 }
 
 public struct HistoryOpenResult: Decodable, Sendable {

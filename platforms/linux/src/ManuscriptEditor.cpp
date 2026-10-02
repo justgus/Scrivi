@@ -175,6 +175,16 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
         return;   // e.g. Backspace at document start — nothing to do; swallow.
     }
 
+    // [I-0270] (user ruling 2026-10-02, Apple shape): Backspace / Delete / Cut on a
+    // selection that spans scene breaks removes the selected text from EACH scene and
+    // keeps every scene. Anything else that crosses a boundary is still refused below.
+    const bool deletes = event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete
+                         || event->matches(QKeySequence::Cut);
+    if (deletes && textCursor().hasSelection() && !sceneDoc_->isEditableRange(start, end)) {
+        deleteAcrossScenes(start, end, event->matches(QKeySequence::Cut));
+        return;
+    }
+
     // Allow the edit only if the touched range stays entirely inside one scene's
     // editable body. Otherwise swallow the keystroke (boundary stays intact).
     if (!sceneDoc_->isEditableRange(start, end)) {
@@ -256,4 +266,48 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
         painter.drawLine(QPointF(r.left() + kRuleInset, y),
                          QPointF(r.right() - kRuleInset, y));
     }
+}
+
+void ManuscriptEditor::cutSelection()
+{
+    const QTextCursor cursor = textCursor();
+    if (sceneDoc_ == nullptr || !cursor.hasSelection()) {
+        cut();
+        return;
+    }
+    const int start = cursor.selectionStart();
+    const int end = cursor.selectionEnd();
+    if (sceneDoc_->isEditableRange(start, end)) {
+        cut();   // inside one scene — the ordinary cut
+        return;
+    }
+    // Across scenes → per-scene removal; touching only a boundary → refused (no-op).
+    deleteAcrossScenes(start, end, /*copyFirst=*/true);
+}
+
+bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst)
+{
+    if (sceneDoc_ == nullptr) {
+        return false;
+    }
+    const QList<QPair<int, int>> cuts = sceneDoc_->crossSceneCuts(start, end);
+    if (cuts.isEmpty()) {
+        return false;
+    }
+    if (copyFirst) {
+        copy();
+    }
+    // Back to front, ONE edit per body, so each contentsChange lands inside a single
+    // body and SceneDocument::applyContentsChange reconciles it (an edit spanning a
+    // boundary would be charged entirely to one scene).
+    for (int k = cuts.size() - 1; k >= 0; --k) {
+        QTextCursor c(document());
+        c.setPosition(cuts.at(k).first);
+        c.setPosition(cuts.at(k).second, QTextCursor::KeepAnchor);
+        c.removeSelectedText();
+    }
+    QTextCursor caret = textCursor();
+    caret.setPosition(cuts.first().first);
+    setTextCursor(caret);
+    return true;
 }

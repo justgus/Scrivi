@@ -3,6 +3,8 @@
 #include <QPlainTextDocumentLayout>
 #include <QTextCursor>
 
+#include <algorithm>
+
 SceneDocument::SceneDocument()
 {
     // QPlainTextEdit requires its document to use QPlainTextDocumentLayout. A bare
@@ -190,6 +192,25 @@ bool SceneDocument::isEditableRange(int start, int end) const
     }
     const SceneSegment& seg = segments_.at(i);
     return end <= seg.bodyStart + seg.bodyLength;
+}
+
+QList<QPair<int, int>> SceneDocument::crossSceneCuts(int start, int end) const
+{
+    if (start > end) {
+        std::swap(start, end);
+    }
+    QList<QPair<int, int>> cuts;
+    for (const SceneSegment& seg : segments_) {
+        const int a = std::max(start, seg.bodyStart);
+        const int b = std::min(end, seg.bodyStart + seg.bodyLength);
+        if (b > a) {
+            cuts.append({a, b});
+        }
+    }
+    if (cuts.size() < 2) {
+        cuts.clear();
+    }
+    return cuts;
 }
 
 int SceneDocument::applyContentsChange(int pos, int charsRemoved, int charsAdded)

@@ -269,12 +269,17 @@ struct ScriviApp: App {
             .keyboardShortcut(",", modifiers: .command)
             .disabled(focusedSession == nil)
 
-            // ⚠️ [T-0568] — ruled 2026-09-30: the Project menu. ⛔ NO key equivalent: a
-            // menu ⌘↑/⌘↓ would intercept the text view's own (see the Scene menu's note).
+            // ⚠️ [T-0568] — ruled 2026-09-30: the Project menu. ⛔ NOT ⌘↑/⌘↓: a menu
+            // equivalent there would intercept the text view's own (see the Scene menu's note).
+            // ✅ [T-0574] (user ruling 2026-10-02): ⇧⌘0 = Start, ⇧⌘1 = End — opposite ends of
+            // the number row, so not mis-typed, and not a system chord (the screenshot chords
+            // are ⇧⌘3/4/5; the copy buffers use ⌘/⌃/⌥ + 1–9 WITHOUT ⇧).
             Divider()
             Button("Go to Manuscript Start") { focusedSession?.manuscriptStartAction?() }
+                .keyboardShortcut("0", modifiers: [.command, .shift])
                 .disabled(focusedSession?.manuscriptStartAction == nil)
             Button("Go to Manuscript End") { focusedSession?.manuscriptEndAction?() }
+                .keyboardShortcut("1", modifiers: [.command, .shift])
                 .disabled(focusedSession?.manuscriptEndAction == nil)
         }
 

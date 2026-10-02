@@ -2006,7 +2006,7 @@ void EditorShell::mergeChapter()
     onMergeChapterRequested();
 }
 
-void EditorShell::cutSelection()   { viewport_->cut(); }
+void EditorShell::cutSelection()   { viewport_->cutSelection(); }   // [I-0270] through the guard
 void EditorShell::copySelection()  { viewport_->copy(); }
 void EditorShell::pasteClipboard() { viewport_->paste(); }
 

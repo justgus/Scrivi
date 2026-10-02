@@ -693,6 +693,10 @@ const char* scrivi_history_seed_scene(const char* projectRootPath,
  *   bufferID (optional, "1".."9") tags a cut-into-buffer event with the copy-buffer
  *   slot it fed (EP-019 SP-056, Trade T3); omitted/empty for ordinary events.
  *   It is metadata only — preserved across reload, not consumed by undo/redo.
+ *   groupID (optional): events recorded with the SAME non-empty groupID, one after
+ *   another, are ONE edit across several scenes (I-0270). scrivi_history_undo/redo
+ *   step across the whole run in one call and return one entry per step in `changes`,
+ *   in the order taken — the app applies ALL of them, not only the first.
  * result: {eventID, createdBranch, evictedCount, noOp, canUndo, canRedo} */
 const char* scrivi_history_record_event(const char* projectRootPath,
                                          const char* sceneID,

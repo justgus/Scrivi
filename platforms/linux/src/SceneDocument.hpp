@@ -132,6 +132,15 @@ public:
     // eats a boundary). Empty ranges defer to isEditablePosition(start).
     bool isEditableRange(int start, int end) const;
 
+    // [I-0270] (user ruling 2026-10-02, Apple shape) — a delete/cut over a selection that
+    // spans scene breaks removes the selected text from EACH scene and keeps every scene.
+    // Returns the per-body ranges [first, second) of [start, end) — one per body the
+    // selection overlaps, in document order — or an EMPTY list when it overlaps fewer
+    // than two bodies (then it is not a cross-scene edit). Headings/separators are never
+    // in a returned range. Pure: the caller removes them, back to front, one edit each,
+    // so every contentsChange stays inside one body.
+    QList<QPair<int, int>> crossSceneCuts(int start, int end) const;
+
     // Apply a document contentsChange to the map: the body containing `pos` grows or
     // shrinks by (charsAdded - charsRemoved), and every later body's bodyStart
     // shifts by the same delta. Returns the index of the affected (now-dirty) scene,

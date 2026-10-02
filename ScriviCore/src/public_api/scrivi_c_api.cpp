@@ -665,6 +665,14 @@ static void appendStepChanges(scrivi::util::JsonDoc& doc,
         c.setInt64("cursorAfter", step.change->cursorAfter);
         doc.appendToArray("changes", std::move(c));
     }
+    // The rest of an edit group (I-0270), in the order the steps were taken.
+    for (const auto& g : step.groupChanges) {
+        scrivi::util::JsonDoc c;
+        c.setString("sceneID",    g.sceneID);
+        c.setString("newText",    g.newText);
+        c.setInt64("cursorAfter", g.cursorAfter);
+        doc.appendToArray("changes", std::move(c));
+    }
 }
 
 // Serializes a reversible structural step (T-0356 / AC6) into the undo/redo envelope:
@@ -3240,6 +3248,8 @@ const char* scrivi_history_record_event(const char* projectRootPath,
         // Cut-into-buffer provenance (EP-019 SP-056, Trade T3): the slot a cut
         // took its text from. Optional; empty for ordinary events.
         p.bufferID     = pj.getString("bufferID", "");
+        // Edit group (I-0270): events sharing a groupID undo/redo as one step.
+        p.groupID      = pj.getString("groupID", "");
     }
 
     auto& svc = it->second->service();

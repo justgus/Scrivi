@@ -59,6 +59,17 @@ std::string recordParamsWithBuffer(const char* kind, int64_t before, int64_t aft
     return p.dump();
 }
 
+// Builds record-event params tagged with an edit group (I-0270).
+std::string recordParamsInGroup(const char* kind, int64_t before, int64_t after,
+                                const char* groupID) {
+    JsonDoc p;
+    p.setString("kind", kind);
+    p.setInt64("cursorBefore", before);
+    p.setInt64("cursorAfter", after);
+    p.setString("groupID", groupID);
+    return p.dump();
+}
+
 // Reads and concatenates every history log segment (log-*.jsonl) under `root`
 // (empty if none). The log is the ground truth for what got persisted.
 std::string readHistoryLog(const std::string& root) {
@@ -1106,4 +1117,107 @@ TEST_CASE("C ABI: a prune-driven purge does not reset the sequence counter (I-01
         }
     }
     REQUIRE(sawPurge);   // the test is meaningless if no purge was written
+}
+
+// ── I-0270: an edit across scene breaks is ONE undo step ───────────────────────────
+// A delete/cut over a cross-scene selection removes text from EACH scene and keeps the
+// scenes (user ruling 2026-10-02). The app records one event per scene, all sharing a
+// groupID; one undo must restore EVERY scene, one redo re-apply them all.
+
+TEST_CASE("C ABI: one undo restores every scene of an edit group; one redo re-applies it (I-0270)",
+          "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "AAA bbb"));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_b", "ccc DDD"));
+
+    // An ordinary event first — the group must not swallow it.
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AAA bbb!", recordParams("typing", 7, 8).c_str()));
+    // The grouped delete: tail of scene_a, head of scene_b.
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AAA", recordParamsInGroup("delete", 8, 3, "grp_1").c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_b", "DDD", recordParamsInGroup("delete", 0, 0, "grp_1").c_str()));
+
+    {   // ONE undo → both scenes back, newest step first.
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arraySize("changes") == 2);
+        REQUIRE(r.arrayItem("changes", 0).getString("sceneID") == "scene_b");
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "ccc DDD");
+        REQUIRE(r.arrayItem("changes", 1).getString("sceneID") == "scene_a");
+        REQUIRE(r.arrayItem("changes", 1).getString("newText") == "AAA bbb!");
+        REQUIRE(r.arrayItem("changes", 1).getInt64("cursorAfter") == 8);
+        REQUIRE(r.getBool("canUndo"));
+    }
+    {   // The NEXT undo is the ordinary event alone.
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.arraySize("changes") == 1);
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "AAA bbb");
+    }
+    scrivi_free(scrivi_history_redo(ROOT));   // the ordinary event
+    {   // ONE redo → both scenes re-applied, in recorded order.
+        auto r = okResult(scrivi_history_redo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arraySize("changes") == 2);
+        REQUIRE(r.arrayItem("changes", 0).getString("sceneID") == "scene_a");
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "AAA");
+        REQUIRE(r.arrayItem("changes", 1).getString("sceneID") == "scene_b");
+        REQUIRE(r.arrayItem("changes", 1).getString("newText") == "DDD");
+        REQUIRE_FALSE(r.getBool("canRedo"));
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: an edit group survives close/re-open and is persisted only when set (I-0270)",
+          "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "AAA bbb"));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_b", "ccc DDD"));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AAA bbb!", recordParams("typing", 7, 8).c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "AAA", recordParamsInGroup("delete", 8, 3, "grp_1").c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_b", "DDD", recordParamsInGroup("delete", 0, 0, "grp_1").c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    const std::string log = readHistoryLog(ROOT);
+    std::size_t tagged = 0, pos = 0;
+    while ((pos = log.find("\"groupID\":\"grp_1\"", pos)) != std::string::npos) { ++tagged; ++pos; }
+    REQUIRE(tagged == 2);                                   // both grouped events, nothing else
+
+    scrivi_free(scrivi_history_open(ROOT));
+    auto r = okResult(scrivi_history_undo(ROOT));
+    REQUIRE(r.arraySize("changes") == 2);
+    REQUIRE(r.arrayItem("changes", 0).getString("newText") == "ccc DDD");
+    REQUIRE(r.arrayItem("changes", 1).getString("newText") == "AAA bbb!");
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+TEST_CASE("C ABI: two adjacent edit groups undo separately (I-0270)", "[HistoryCApi]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", "123456"));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_b", "abcdef"));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "12345", recordParamsInGroup("delete", 6, 5, "grp_1").c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_b", "bcdef", recordParamsInGroup("delete", 0, 0, "grp_1").c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "1234", recordParamsInGroup("delete", 5, 4, "grp_2").c_str()));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_b", "cdef", recordParamsInGroup("delete", 0, 0, "grp_2").c_str()));
+
+    auto r2 = okResult(scrivi_history_undo(ROOT));
+    REQUIRE(r2.arraySize("changes") == 2);
+    REQUIRE(r2.arrayItem("changes", 0).getString("newText") == "bcdef");
+    REQUIRE(r2.arrayItem("changes", 1).getString("newText") == "12345");
+    auto r1 = okResult(scrivi_history_undo(ROOT));
+    REQUIRE(r1.arraySize("changes") == 2);
+    REQUIRE(r1.arrayItem("changes", 0).getString("newText") == "abcdef");
+    REQUIRE(r1.arrayItem("changes", 1).getString("newText") == "123456");
+    scrivi_free(scrivi_history_close(ROOT));
 }
