@@ -10,38 +10,6 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ---
 
-## EP-045: `[Apple]` ⚠️ **The Manuscript Renderer — Foundations**
-
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **No Sprint assigned; not activated.**
-**Full record:** → [`Epic-EP-045.md`](Epic-EP-045.md) — ⚠️ **AC1–AC10 and TWO owed rulings.**
-**Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
-**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)
-(✅ **sixteen questions RULED 2026-09-29**).
-
-**Goal:** ✅ **Make a RENDERED manuscript possible, and pay the data-loss debt that blocks it.**
-
-⚠️ **IT RENDERS ALMOST NOTHING THE WRITER ASKED FOR, AND THAT IS DELIBERATE.** ✅ **Typed attachments
-(⛔ a live corruption path — ⚠️ every attachment is currently treated as a scene divider, and
-`sceneBoundaries` is what the save path slices with) · the SOURCE↔PRESENTED caret mapping · the escape
-layer · Enter/Backspace · block-intent suppression · and the divider restored.**
-
-⛔ **THE DIVIDER'S CAUSE IS STILL UNKNOWN AFTER TWO FAILED FIXES** — ✅ **AC2 diagnoses LIVE before it
-fixes.** ⚠️ **First: [T-0526] dropping [I-0112]'s appearance guard — ⛔ DISPROVEN by measurement.
-Then: `separatorColor` at 1.34:1 — ⛔ FIXED, and the user reported *"they are still invisible."***
-
-⚠️ **TWO RULINGS OWED:** ⛔ **PASTE** (⚠️ the escape ruling's words were *"that the user types"*) ·
-⛔ **EXISTING MANUSCRIPTS** (⚠️ they hold unescaped `*` and will change appearance).
-
-⛔ **VERIFIED GAP:** ✅ **`scrivi_merge_scene` exists (`scrivi.h:533`); ⛔ `scrivi_split_scene` DOES
-NOT.** ⚠️ **The ruled scene-break COMMAND needs a core endpoint nobody has written — ✅ `[Cross]` work,
-⛔ not in this Epic.**
-
-✅ **SEQUENCES BEFORE [EP-032]** — ⚠️ **user ruling (study §8, Q1): ⛔ two Epics answering the same
-FORMAT question independently will diverge, ✅ and [EP-032] cannot be built safely on today's
-attachment handling anyway.** ✅ **[EP-032] keeps SP-107–SP-114 and its planning.**
-
----
-
 ## EP-046: `[Apple]` ⚠️ **The Manuscript Renderer — Inline Rendering** (WYSIWYG)
 
 **Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-045].**

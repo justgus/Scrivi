@@ -746,6 +746,8 @@ archive files reconstructed after the fact from secondary sources.
 | T-0549 | ⚠️ **`[ScriviCore]` [I-0213] Class A — PATCH the index for single-scene ops that do NOT change manuscript order** (`set/clear_scene_story_time`, `rename_scene`) | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0550 | ⚠️ **`[ScriviCore]` [I-0213] Class B — rebuild ONLY the affected chapter for order/membership ops** (13 endpoints) — ⛔ **BLOCKED ON T-0549** | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0555 | `[Apple]` Engine stub parity ([I-0253]) | — | — | ✅ **Verified 2026-10-03** | [`Task-verified-0555.md`](Verified/Task-verified-0555.md) |
+| T-0578 | `[Apple]` Source↔presented offsets + hidden-escape caret snap (EP-045 AC3) | ✅ **SP-154** | **EP-045** | ✅ **Verified 2026-10-03** | [`Task-verified-0578.md`](Verified/Task-verified-0578.md) |
+| T-0577 | `[Apple]` Typed scene dividers + save-fidelity guard (EP-045 AC1 + AC9) | ✅ **SP-153** | **EP-045** | ✅ **Verified 2026-10-03** | [`Task-verified-0577.md`](Verified/Task-verified-0577.md) |
 | T-0576 | `[Linux]` Per-row relationship labels (revert, [I-0180]) | — | — | 🟠 **Implemented - Not Verified** | — |
 | T-0568 | `[Apple]` Go to Manuscript Start / End (Project menu) | ✅ **SP-151** | — | ✅ **Verified 2026-09-30** | [`Task-verified-0568.md`](Verified/Task-verified-0568.md) |
 | T-0569 | `[Apple]` Scene navigator search — full scan, per platform | ✅ **SP-151** | — | ✅ **Verified 2026-10-01** | [`Task-verified-0569.md`](Verified/Task-verified-0569.md) |
@@ -767,6 +769,14 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-03 (**T-0578 ✅ Verified** (user) → `Verified/Task-verified-0578.md`.)*
+
+*Last Updated: 2026-10-03 (**T-0578** issued via `next-id.py` — EP-045 AC3, Implemented - Not Verified.)*
+
+*Last Updated: 2026-10-03 (**T-0577 ✅ Verified** (user live look) → `Verified/Task-verified-0577.md`, archived with the SP-153 close.)*
+
+*Last Updated: 2026-10-03 (**T-0577** issued via `next-id.py` — EP-045 AC1 + AC9, Implemented - Not Verified.)*
 
 *Last Updated: 2026-10-03, later (**T-0576** issued via `next-id.py` — Linux per-row labels revert, Implemented - Not Verified.)*
 

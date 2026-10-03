@@ -5,6 +5,23 @@ import AppKit
 // Custom attribute key used to mark chapter title heading ranges as non-editable.
 extension NSAttributedString.Key {
     static let scriviHeading = NSAttributedString.Key("scrivi.heading")
+    /// ✅ EP-045 AC1 — THE ONE TEST FOR "is this a scene divider?". Its value is a
+    /// `DividerRenderState`. ⛔ Never test `.attachment` for that question: any attachment a
+    /// future feature inserts (EP-032 references, EP-046 rendering) would then split scenes,
+    /// and `sceneBoundaries` is what the save path slices scene bytes with.
+    static let scriviDivider = NSAttributedString.Key("scrivi.divider")
+}
+
+/// EP-045 AC1 — the rendering state of a `DividerTextAttachment`, carried as the value of
+/// `.scriviDivider` on the divider's character (user ruling 2026-10-03: *"We can make the class
+/// manage different rendering states without changing the type. The attribute key can be
+/// managed via an enum and can represent the rendering state of the class."*).
+/// ⚠️ View-only: ScriviCore has no dividers, so this never crosses the ABI or reaches disk.
+enum DividerRenderState: Equatable {
+    /// Between two scenes of the same chapter.
+    case sceneBreak
+    /// Closes a chapter — drawn tinted (T-0575).
+    case chapterEnd
 }
 
 // ManuscriptTextView presents all loaded SceneSegments as a single continuous NSTextView.
@@ -710,9 +727,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                 if i > 0 {
                     // Insert divider between every pair of adjacent scenes.
                     // ✅ T-0575 — the divider that CLOSES a chapter is drawn at full strength.
-                    let divider = makeDividerAttachment(endsChapter: isChapterBoundary)
-                    let divStr = NSMutableAttributedString(attachment: divider)
-                    divStr.append(NSAttributedString(string: "\n", attributes: attrs))
+                    let state: DividerRenderState = isChapterBoundary ? .chapterEnd : .sceneBreak
+                    let divStr = SceneDivider.string(makeDividerAttachment(state), state: state,
+                                                     newlineAttributes: attrs)
                     storage.append(divStr)
                     offset += divStr.length
                 }
@@ -1690,54 +1707,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         // source of truth for boundaries (I-0131), this only stops re-deriving it the
         // slowest possible way.
         func recomputeBoundaries(_ tv: NSTextView) {
-            guard let storage = tv.textStorage else { return }
-            let fullLen = storage.length
-            guard fullLen > 0 else { return }
-            let whole = NSRange(location: 0, length: fullLen)
-
-            // Attachment (scene divider) positions, found by RUN, not by character.
-            var dividers: [Int] = []
-            storage.enumerateAttribute(.attachment, in: whole, options: []) { value, range, _ in
-                if value != nil { dividers.append(range.location) }
-            }
-
-            // Ranges carrying chapter-heading text, so a segment can start AFTER one.
-            // ⚠️ `skipHeading`'s job, expressed once up front instead of per position.
-            var headings: [NSRange] = []
-            storage.enumerateAttribute(.scriviHeading, in: whole, options: []) { value, range, _ in
-                if value != nil { headings.append(range) }
-            }
-
-            // First position at or after `pos` that is not inside a heading run.
-            func skipHeading(from pos: Int) -> Int {
-                var p = pos
-                var moved = true
-                while moved {
-                    moved = false
-                    for h in headings where h.location <= p && p < h.location + h.length {
-                        p = h.location + h.length
-                        moved = true
-                    }
-                }
-                return min(p, fullLen)
-            }
-
-            var newBoundaries: [NSRange] = []
-            newBoundaries.reserveCapacity(dividers.count + 1)
-            var segStart = skipHeading(from: 0)
-
-            for divider in dividers {
-                // ⚠️ A divider inside the leading heading run cannot close a segment.
-                guard divider >= segStart else { continue }
-                newBoundaries.append(NSRange(location: segStart, length: divider - segStart))
-                // Skip the attachment + its trailing newline, then any heading after it.
-                segStart = skipHeading(from: divider + 2)
-            }
-            // Last (or only) segment runs to end of storage.
-            newBoundaries.append(NSRange(location: segStart,
-                                         length: max(0, fullLen - segStart)))
-
-            sceneBoundaries = newBoundaries
+            guard let storage = tv.textStorage,
+                  let scanned = SceneDivider.sceneBoundaries(in: storage) else { return }
+            sceneBoundaries = scanned
         }
 
         // Resume the writing surface restored from the last session (I-0058).
@@ -2057,7 +2029,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             var separatorCount = 0
             var pos = 0
             while pos < storageOffset && pos < storage.length {
-                if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil {
+                if SceneDivider.isDivider(in: storage, at: pos) {
                     separatorCount += 1
                     pos += 2
                 } else {
@@ -2078,14 +2050,14 @@ struct ManuscriptTextView: NSViewRepresentable {
             return sceneBoundaries.isEmpty ? nil : sceneBoundaries.count - 1
         }
 
-        private func makeDividerAttachment(endsChapter: Bool) -> NSTextAttachment {
+        private func makeDividerAttachment(_ state: DividerRenderState) -> NSTextAttachment {
             // ⚠️ EP-039 T-0526: was `attachment.attachmentCell = DividerAttachmentCell()`.
             // ✅ `NSTextAttachmentCell` is TEXTKIT 1 **and APPKIT-ONLY** — it has no UIKit
             // equivalent, so it blocked the iOS port independently of performance.
             // ✅ `DividerTextAttachment` overrides the TextKit 2 sizing/imaging API, which is
             // `macos(12.0), ios(15.0)` — the SAME type on both platforms.
             let attachment = DividerTextAttachment()
-            attachment.endsChapter = endsChapter
+            attachment.renderState = state
 
             // ⛔ [I-0252] / T-0554 — THIS ONE LINE IS THE FIX, AND WITHOUT IT THE
             // DIVIDER DRAWS NOTHING AT ALL.
@@ -2150,7 +2122,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         func caretOutsideSceneGap(_ loc: Int, from previous: Int) -> Int? {
             guard let storage = textView?.textStorage else { return nil }
             func isDivider(_ i: Int) -> Bool {
-                i >= 0 && i < storage.length && storage.attribute(.attachment, at: i, effectiveRange: nil) != nil
+                SceneDivider.isDivider(in: storage, at: i)
             }
             func headingRun(at i: Int) -> NSRange? {
                 guard i < storage.length else { return nil }
@@ -2484,7 +2456,7 @@ final class ManuscriptNSTextView: NSTextView {
             let safe = NSRange(location: affectedCharRange.location,
                                length: min(affectedCharRange.length, storage.length - affectedCharRange.location))
             var hasDivider = false
-            storage.enumerateAttribute(.attachment, in: safe, options: []) { value, _, stop in
+            storage.enumerateAttribute(.scriviDivider, in: safe, options: []) { value, _, stop in
                 if value != nil { hasDivider = true; stop.pointee = true }
             }
             if hasDivider { return false }
@@ -2514,6 +2486,18 @@ final class ManuscriptNSTextView: NSTextView {
         if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, r.length == 0,
            let target = coordinator?.caretOutsideSceneGap(r.location, from: selectedRange().location) {
             ranges = [NSValue(range: NSRange(location: target, length: 0))]
+        }
+        // ✅ EP-045 AC3 / R3 = (c): nor inside a HIDDEN ESCAPE — the boundary between a hidden
+        // backslash and its mark looks identical to the one before it, so resting there is an
+        // invisible extra stop. A selection's ends are snapped too, so cut/copy never splits
+        // `\` from its mark. Same single entry point as T-0572; no-op until AC4 hides anything.
+        if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, let storage = textStorage {
+            if r.length == 0,
+               let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location, in: storage) {
+                ranges = [NSValue(range: NSRange(location: target, length: 0))]
+            } else if r.length > 0, let snapped = MarkdownEscapes.snapSelection(r, in: storage) {
+                ranges = [NSValue(range: snapped)]
+            }
         }
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
     }
@@ -2714,12 +2698,12 @@ final class ManuscriptNSTextView: NSTextView {
     // Returns true if the character at `pos` is part of a separator (attachment or its \n).
     private func isSeparatorPosition(_ pos: Int, in storage: NSTextStorage) -> Bool {
         guard pos >= 0, pos < storage.length else { return false }
-        // Direct attachment character.
-        if storage.attribute(.attachment, at: pos, effectiveRange: nil) != nil { return true }
-        // The \n that immediately follows an attachment.
+        // The divider character itself (EP-045 AC1: by `.scriviDivider`, not `.attachment`).
+        if SceneDivider.isDivider(in: storage, at: pos) { return true }
+        // The \n that immediately follows a divider.
         if (storage.string as NSString).character(at: pos) == 10,
            pos >= 1,
-           storage.attribute(.attachment, at: pos - 1, effectiveRange: nil) != nil { return true }
+           SceneDivider.isDivider(in: storage, at: pos - 1) { return true }
         return false
     }
 
@@ -2734,6 +2718,87 @@ final class ManuscriptNSTextView: NSTextView {
 // No text, no label — purely visual separation.
 private let dividerCellHeight: CGFloat = 24
 
+// MARK: — EP-045 AC1: the ONE definition of "scene divider"
+
+/// ✅ Every question "is this a scene divider?" is answered here, from the `.scriviDivider` key.
+/// ⛔ Never from `.attachment` — that matches ANY attachment, and `sceneBoundaries` (computed
+/// here) is what the save path slices scene bytes with.
+enum SceneDivider {
+
+    /// The divider as it goes into storage: the attachment character carrying the
+    /// `.scriviDivider` KEY, then a "\n". ✅ The ONLY place a divider is built, so the key
+    /// cannot be forgotten. ⚠️ The key is on the attachment character ALONE — the "\n" keeps
+    /// the body attributes, so text typed after it never inherits the key.
+    static func string(_ attachment: NSTextAttachment, state: DividerRenderState,
+                       newlineAttributes: [NSAttributedString.Key: Any]) -> NSAttributedString {
+        let s = NSMutableAttributedString(attachment: attachment)
+        s.addAttribute(.scriviDivider, value: state, range: NSRange(location: 0, length: s.length))
+        s.append(NSAttributedString(string: "\n", attributes: newlineAttributes))
+        return s
+    }
+
+    /// True when the character at `i` is a scene divider.
+    static func isDivider(in storage: NSAttributedString, at i: Int) -> Bool {
+        i >= 0 && i < storage.length
+            && storage.attribute(.scriviDivider, at: i, effectiveRange: nil) != nil
+    }
+
+    /// Scene ranges in storage: the text between dividers, skipping chapter-heading runs.
+    /// Pure — reads only `storage` — so the save path's slicing can be tested directly.
+    /// `nil` for empty storage (the caller keeps its previous boundaries).
+    static func sceneBoundaries(in storage: NSAttributedString) -> [NSRange]? {
+        let fullLen = storage.length
+        guard fullLen > 0 else { return nil }
+        let whole = NSRange(location: 0, length: fullLen)
+
+        // Scene divider positions, found by RUN, not by character. ✅ EP-045 AC1: by the
+        // `.scriviDivider` KEY — ⛔ not `.attachment`, which any attachment would match.
+        var dividers: [Int] = []
+        storage.enumerateAttribute(.scriviDivider, in: whole, options: []) { value, range, _ in
+            if value != nil { dividers.append(range.location) }
+        }
+
+        // Ranges carrying chapter-heading text, so a segment can start AFTER one.
+        // ⚠️ `skipHeading`'s job, expressed once up front instead of per position.
+        var headings: [NSRange] = []
+        storage.enumerateAttribute(.scriviHeading, in: whole, options: []) { value, range, _ in
+            if value != nil { headings.append(range) }
+        }
+
+        // First position at or after `pos` that is not inside a heading run.
+        func skipHeading(from pos: Int) -> Int {
+            var p = pos
+            var moved = true
+            while moved {
+                moved = false
+                for h in headings where h.location <= p && p < h.location + h.length {
+                    p = h.location + h.length
+                    moved = true
+                }
+            }
+            return min(p, fullLen)
+        }
+
+        var newBoundaries: [NSRange] = []
+        newBoundaries.reserveCapacity(dividers.count + 1)
+        var segStart = skipHeading(from: 0)
+
+        for divider in dividers {
+            // ⚠️ A divider inside the leading heading run cannot close a segment.
+            guard divider >= segStart else { continue }
+            newBoundaries.append(NSRange(location: segStart, length: divider - segStart))
+            // Skip the attachment + its trailing newline, then any heading after it.
+            segStart = skipHeading(from: divider + 2)
+        }
+        // Last (or only) segment runs to end of storage.
+        newBoundaries.append(NSRange(location: segStart,
+                                     length: max(0, fullLen - segStart)))
+
+        return newBoundaries
+    }
+}
+
+
 // Renders a 1pt horizontal rule across the full text column — the scene divider.
 // No text, no label; purely visual separation.
 //
@@ -2744,8 +2809,8 @@ private let dividerCellHeight: CGFloat = 24
 // `image(forBounds:attributes:location:textContainer:)` are `macos(12.0), ios(15.0)` — the
 // SAME API on both platforms, so this class ports with only its drawing primitives changed.
 //
-// ⚠️ `recomputeBoundaries` finds dividers by the `.attachment` ATTRIBUTE, which is unchanged
-// — ✅ so scene boundary detection is unaffected by this swap.
+// ✅ EP-045 AC1: dividers are found by the `.scriviDivider` KEY, whose value is this class's
+// `renderState` — never by `.attachment`. ONE class; its rendering states live in the enum.
 private final class DividerTextAttachment: NSTextAttachment {
 
     // ✅ T-0575 (user request 2026-10-02): with chapter titles OFF nothing showed where a
@@ -2755,7 +2820,7 @@ private final class DividerTextAttachment: NSTextAttachment {
     // measured visibility floor for a 1 px rule ([I-0252]; `tertiaryLabelColor` at 2.26:1
     // was rejected as too faint), so the relative difference is made above it.
     // ✅ Drawn the same with titles ON — what a divider means does not change with the toggle.
-    var endsChapter = false
+    var renderState: DividerRenderState = .sceneBreak
 
     override func attachmentBounds(
         for attributes: [NSAttributedString.Key: Any],
@@ -2822,7 +2887,7 @@ private final class DividerTextAttachment: NSTextAttachment {
             // KIND of mark, not merely a darker line, and it follows the writer's own
             // System Settings accent.
             // ⚠️ 3rd pass — user: *"The tinted divider may be too much."* ✅ Softened to 60%.
-            (self.endsChapter ? NSColor.controlAccentColor.withAlphaComponent(0.6)
+            (self.renderState == .chapterEnd ? NSColor.controlAccentColor.withAlphaComponent(0.6)
                               : NSColor.secondaryLabelColor).setStroke()
             path.stroke()
             return true

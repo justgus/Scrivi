@@ -84,6 +84,13 @@ extension NSAttributedString.Key {
 correct for the divider and WRONG for any other attachment.** ✅ **Filtering by type keeps it correct;
 ⛔ leaving it untyped makes it silently wrong the moment E2 or [EP-032] adds one.**
 
+### 2.2a ✅ AS BUILT (2026-10-03, [T-0577]) — supersedes §2.2's detail
+
+✅ **User ruling:** one `DividerTextAttachment` class that manages its own rendering states; the
+`.scriviDivider` key's VALUE is `enum DividerRenderState { sceneBreak, chapterEnd }`. ✅ `enum SceneDivider`
+(`ManuscriptTextView.swift`) is the single definition — `string(…)` builds every divider, `isDivider(in:at:)`
+and `sceneBoundaries(in:)` answer every question. ⚠️ **SIX readers, not two**, all converted.
+
 ### 2.3 ✅ Why this cannot be deferred
 
 ⚠️ **It is cheap now** (⛔ one attribute, two call sites) ✅ **and expensive after three features depend
@@ -170,6 +177,46 @@ writer's caret  --[AC3 presented→source]-->  storage offset  --[:1933 existing
 ⛔ **DO NOT MERGE THESE TWO.** ⚠️ **`:1933` is scene-local and byte-oriented; ✅ AC3 is fragment-local
 and character-oriented.**
 
+### 4.4 ⚠️ AC-R3 MEASUREMENT — how the escape backslash can be hidden (2026-10-03, [SP-154])
+
+✅ **Method:** an off-screen TextKit 2 `NSTextView` (`textLayoutManager != nil`), storage `ab\*cd⏎line two`,
+rendered to a bitmap and driven with `moveRight`. ⚠️ **A harness, not the app** — results are evidence for R3,
+not a shipped behaviour.
+
+| Route | Backslash drawn? | Caret | Copy | Verdict |
+| ----- | ---------------- | ----- | ---- | ------- |
+| **(a)** `NSTextContentStorage` delegate presents each paragraph with the backslash removed | ✅ **hidden** — renders `ab*cd` | ⛔ **BROKEN** — the element keeps the SOURCE length (7) while presenting 6; `moveRight` from 0 **jumped to 8**, skipping the whole line | stored text (backslash included) | ⛔ **Rejected as built.** Fixing it means a custom content manager that maps locations itself — the expensive path. |
+| **(c)** storage attributes on the backslash: 0.01 pt font + clear colour | ✅ **hidden** — renders `ab*cd` | ✅ steps one stored offset at a time, ⚠️ **but offsets 2 and 3 are the SAME visual spot** (x = 35.32 / 35.33): an invisible extra caret stop | stored text (backslash included) | ✅ **Works, with one known gap** — exactly the "unreachable boundary" `MarkdownEscapes.map` already identifies |
+
+✅ **What (c) means for AC3c:** the caret and every selection stay in **SOURCE** offsets, so the 46 caret call
+sites do **not** need converting. ✅ The only new behaviour is a **single selection hook** that snaps the caret off
+the boundary between a hidden backslash and its mark, in the direction of travel.
+
+⚠️ **What (c) costs, all already known:** (1) design trap #3 — the undo path re-applies only `.font` +
+`.foregroundColor`, so the hiding attributes must be re-applied over the replaced range (and in
+`rebuildStorage`); (2) **copy returns the stored text**, so with R1 (paste is escaped) an in-app copy→paste would
+DOUBLE-escape `\*` unless copy un-escapes or paste recognises it — an AC4 concern; (3) ⚠️ mouse-click targeting
+and shift-selection across a hidden backslash were **not measured**.
+
+✅ **R3 RULED 2026-10-03 — (c)** (user: *"YEs R3 should be (c)."*).
+
+⛔ **Option (b)** (a layout-fragment subclass that skips drawing) was not built: skipping a glyph's DRAWING still
+reserves its WIDTH, which (c) avoids.
+
+### 4.5 ⚠️ AC8 — parsing mode: MEASURED 2026-10-03, ⛔ awaiting the user's confirmation
+
+✅ **The AC3 corpus (2,000 typed strings, escaped) re-run under `.full`:** 614 differ from what was typed —
+✅ **572 in WHITESPACE ONLY** (`.full` drops leading/trailing spaces and appends a newline — study §4C.2), and
+⛔ **42 that all begin with a TAB**: a leading tab makes a CODE BLOCK, inside which escapes are NOT processed, so
+the backslashes show. ✅ **That is exactly AC7's job** (suppress `codeBlock`). ✅ Under
+`.inlineOnlyPreservingWhitespace` all 2,000 agree (AC3b).
+
+✅ **RECOMMENDATION:** parse with **`.full`** — ⚠️ R2 makes existing `##` lines INTENDED headings, and AC7's
+block suppression only exists in a block-parsing mode; ⛔ the inline-only modes see neither. ⚠️ **But the
+writer's WHITESPACE is never taken from the parser:** under R3 = (c) the screen shows STORAGE (minus hidden
+characters), and the parser only decides attributes. ✅ So `.full`'s whitespace collapsing never reaches the
+writer — the §4C.2 disagreement stops mattering because the parser's STRING is never displayed.
+
 ---
 
 ## 5. ✅ AC4 — The escape layer
@@ -188,8 +235,8 @@ downstream — save, undo, [EP-019] history, ScriviCore — sees ordinary charac
 | -------- | ---------- | ----- |
 | ✅ **The writer types `*`** | ✅ **YES → `\*`** | ⚠️ **AC4** |
 | ⛔ **A formatting COMMAND writes `**`** | ⛔ **NO** | ✅ **Scrivi is the author; ⚠️ this is the ONLY route to real markup (Study §3A.0)** |
-| ⛔ **PASTE** | ⛔ **UNRULED — ✅ see §8** | ⚠️ **The ruling's words were *"that the user types"*** |
-| ⛔ **Text already in a scene file** | ⛔ **NO — ✅ see §8** | ⚠️ **Existing manuscripts are unmigrated** |
+| ✅ **PASTE** | ✅ **YES → escaped like typing** | ✅ **R1 RULED 2026-10-03 (user: *"R1 is yes."*)** |
+| ⛔ **Text already in a scene file** | ⛔ **NO** | ✅ **R2 RULED 2026-10-03: no escape pass — existing Markdown (e.g. `##` scene headings) is intended markup** |
 
 ### 5.3 ⚠️ The accepted cost, restated so nobody "fixes" it later
 
@@ -247,8 +294,8 @@ or already in the file — which a preference cannot.**
 
 | # | ⚠️ Question | ✅ Why it is the user's | ⚠️ Study's recommendation |
 | - | ---------- | ---------------------- | ------------------------- |
-| **R1** | ⛔ **PASTE — is pasted text escaped like typed text?** | ⚠️ **The ruling said *"that the user types"*. ✅ Escaping paste is SAFE but surprising to someone pasting real Markdown** | ⚠️ **Escape it — ✅ consistency beats the rarer case; ⛔ but offer "Paste as Markdown" later if asked** |
-| **R2** | ⛔ **EXISTING MANUSCRIPTS — is there a one-time escape pass?** | ⚠️ **Scene files already hold unescaped `*`. ⛔ Under the renderer they will silently change appearance** | ⚠️ **NO migration — ✅ AC7's suppression plus E2's per-element rollout makes the change small; ⛔ a bulk rewrite of a writer's prose is the larger risk** |
+| **R1** | ✅ **PASTE — is pasted text escaped like typed text? RULED 2026-10-03: YES** (user: *"R1 is yes."*) | — | — |
+| **R2** | ✅ **EXISTING MANUSCRIPTS — one-time escape pass? RULED 2026-10-03: NO.** Existing Markdown is intended markup (user: the `dumas` projects' `##` scene headings *"are intended to represent formatted MArkup text"*). | — | — |
 
 ---
 

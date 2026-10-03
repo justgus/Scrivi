@@ -1,6 +1,6 @@
 # EP-045: `[Apple]` **The Manuscript Renderer — Foundations**
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **No Sprint assigned; not activated.**
+**Status:** 🟡 **ACTIVE 2026-10-03** (user-approved) — created 2026-09-29. ✅ **[SP-153] CLOSED 2026-10-03 — AC1, AC2, AC9 MET.** ⚠️ Remaining: AC3–AC8, AC10. ✅ R1 ruled (paste escaped). ✅ R2 ruled (no escape pass). ✅ R3 ruled (c). **[SP-154]** (AC3) ACTIVE.
 **Platform:** ⚠️ **`[Apple]` ONLY** — ✅ **Linux parity is [EP-048], SCHEDULED not assumed.**
 **Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)
@@ -54,14 +54,32 @@ unclosable.**
 
 ---
 
+### ⚠️ AC status at activation (2026-10-03) — read in the code, not carried over
+
+- ✅ **AC2 — LARGELY MET BY [T-0554]** (→ `../Tasks/Verified/Task-verified-0554-0564.md`). ✅ Its cause
+  WAS found (third attempt), the divider is now a `DividerTextAttachment` with its own drawing, ✅ the
+  user verified it by eye on macOS (*"on macOS the line is now fully visible"*, 2026-09-29), ✅ and a
+  bitmap measurement of a real `NSTextView` found it drawn in BOTH Dark and Light. ⚠️ **What the AC's
+  evidence obligation still lacks is a LIVE look in LIGHT mode** — [SP-153] collects it.
+  ⛔ **Known trap #1 below is therefore OUT OF DATE.**
+- ✅ **AC3 + AC8 — MET 2026-10-03** ([T-0578] user-verified; `.full` confirmed). [SP-154] complete.
+- ✅ **AC2 — MET 2026-10-03** (user's Light-mode live look). ✅ **AC1 + AC9 — MET 2026-10-03**
+  ([T-0577] user-verified by live look; [SP-153] CLOSED). ✅ Design ruled by the user: one `DividerTextAttachment`, rendering
+  states in an enum carried by the `.scriviDivider` key.
+- ⛔ ~~**AC1 — STILL OPEN, and WIDER than the design says.**~~ ⚠️ The design (§2.2) names *"two call sites"*;
+  ✅ **SIX code sites read `.attachment` today** (`ManuscriptTextView.swift` `:1700`, `:2060`, `:2153`,
+  `:2487`, `:2718`, `:2722`), every one treating ANY attachment as a divider. ✅ The divider already has its
+  own class (`DividerTextAttachment`, `:2749`), which is a candidate for the type test.
+
 ## ⛔ TWO RULINGS OWED — ✅ recorded up front
 
 ⚠️ **Neither blocks the START. ✅ Both block the CLOSE.**
 
 | # | ⚠️ Question | ⚠️ Recommendation |
 | - | ---------- | ----------------- |
-| **R1** | ⛔ **Is PASTED text escaped like typed text?** ⚠️ The ruling said *"that the user types"* | ⚠️ **Escape it** — ✅ consistency beats the rarer case |
-| **R2** | ⛔ **Is there a one-time escape pass over EXISTING manuscripts?** ⚠️ They hold unescaped `*` today | ⚠️ **NO migration** — ⛔ a bulk rewrite of a writer's prose is the larger risk |
+| **R1** | ⛔ **Is PASTED text escaped like typed text?** ⚠️ The ruling said *"that the user types"* | ✅ **RULED 2026-10-03 — YES** (user: *"R1 is yes."*). Pasted text is escaped exactly like typed text. |
+| **R2** | ⛔ **Is there a one-time escape pass over EXISTING manuscripts?** ⚠️ They hold unescaped `*` today | ✅ **RULED 2026-10-03 — NO ESCAPE PASS** (user: *"R2 is no escape pass. The dumas projects do have ## at the top of every scene, but these are intended to represent formatted MArkup text, so no escape pass for that either."*). ✅ Existing scene files are never rewritten; ✅ existing Markdown in them (e.g. the `dumas` projects' `##` scene headings) is INTENDED markup and will render as such. |
+| **R3** | ⛔ **How is the escape BACKSLASH hidden in E1?** ⚠️ **Raised 2026-10-03 at SP-154 planning — the design never says.** AC4 stores `*` as `\*`; the study measured that rendering attributes CANNOT hide a character (§4A.1) and scoped hiding to [EP-046]. ⛔ **As designed, the writer would SEE `\*`.** ⚠️ **Blocks AC4, not AC3.** | ✅ **RULED 2026-10-03 — (c)** (user: *"YEs R3 should be (c)."*): storage attributes hide the backslash; ONE caret-snap hook skips its unreachable boundary. Measured first (design §4.4). |
 
 ---
 
@@ -103,5 +121,9 @@ a NEW break waits.**
 
 ## Sprints
 
-⛔ **NONE ASSIGNED.** ⚠️ **Sprint numbering is a HIGH-WATER MARK, not a free list** — ✅ **allocate from
-`docs/tools/next-ids.json` at activation, ⛔ honouring [EP-043]'s SP-146–SP-148 reservation.**
+| Sprint | Scope | Status |
+| ------ | ----- | ------ |
+| **[SP-154]** | ✅ **AC3 two coordinate spaces** + **AC8 parsing mode** + ⚠️ **AC-R3 measurement for ruling R3** | 🟢 **COMPLETE 2026-10-03** (awaiting close) → [`../Sprints/Sprint-SP-154.md`](../Sprints/Sprint-SP-154.md) |
+| **[SP-153]** | ⛔ **AC1 typed attachments (the data-loss item, all six readers)** + **AC9 save fidelity** + **AC2 Light-mode live look** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-153.md`](../Sprints/Closed/Sprint-SP-153.md) |
+
+⚠️ Later Sprints (AC3–AC8, AC10) are NOT pre-allocated; IDs come from `docs/tools/next-ids.json` when each is created.

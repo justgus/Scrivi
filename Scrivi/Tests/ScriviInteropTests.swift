@@ -3551,3 +3551,299 @@ struct SourcesCardTests {
         #expect(SourcesCardModel.sourceKind == "source")
     }
 }
+
+#if os(macOS)
+import AppKit
+
+/// EP-045 AC1 — only a DIVIDER is a scene boundary. ⛔ Before AC1 every reader tested
+/// `.attachment`, so the first non-divider attachment any feature inserted would split a scene,
+/// and `sceneBoundaries` is what the save path slices scene bytes with.
+@Suite("Typed scene dividers (EP-045 AC1)")
+@MainActor
+struct TypedSceneDividerTests {
+
+    private final class TempDir: @unchecked Sendable {
+        let url: URL
+
+        init() throws {
+            url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("scrivi-interop-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+
+        deinit {
+            try? FileManager.default.removeItem(at: url)
+        }
+
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+
+    private let body: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12)]
+
+    /// "Alpha" | divider | "Beta"
+    private func twoScenes() -> NSMutableAttributedString {
+        let s = NSMutableAttributedString(string: "Alpha", attributes: body)
+        s.append(SceneDivider.string(NSTextAttachment(), state: .sceneBreak, newlineAttributes: body))
+        s.append(NSAttributedString(string: "Beta", attributes: body))
+        return s
+    }
+
+    @Test("a divider splits scenes; its key carries the render state")
+    func dividerSplits() {
+        let s = twoScenes()
+        #expect(SceneDivider.sceneBoundaries(in: s) == [NSRange(location: 0, length: 5),
+                                                        NSRange(location: 7, length: 4)])
+        #expect(SceneDivider.isDivider(in: s, at: 5))
+        #expect(!SceneDivider.isDivider(in: s, at: 6), "the trailing \\n does not carry the key")
+        #expect(s.attribute(.scriviDivider, at: 5, effectiveRange: nil) as? DividerRenderState == .sceneBreak)
+    }
+
+    @Test("a NON-divider attachment inside a scene is ordinary text, not a boundary")
+    func strayAttachmentIsNotABoundary() {
+        let s = twoScenes()
+        // A plain attachment in the middle of "Beta" — what EP-032 / EP-046 will insert.
+        s.insert(NSAttributedString(attachment: NSTextAttachment()), at: 9)
+
+        // ⚠️ Proof this test could fail: the storage now holds TWO attachments, so the old
+        // `.attachment` rule would have produced THREE scenes and sliced "Beta" in half.
+        var attachments = 0
+        s.enumerateAttribute(.attachment, in: NSRange(location: 0, length: s.length)) { v, _, _ in
+            if v != nil { attachments += 1 }
+        }
+        #expect(attachments == 2)
+
+        // ✅ Still two scenes; the second simply grew by the one attachment character.
+        #expect(SceneDivider.sceneBoundaries(in: s) == [NSRange(location: 0, length: 5),
+                                                        NSRange(location: 7, length: 5)])
+        #expect(!SceneDivider.isDivider(in: s, at: 9))
+    }
+
+    @Test("an undo-style replace of a scene's range leaves the divider and its key intact")
+    func sceneReplaceKeepsDivider() {
+        let s = twoScenes()
+        // What `applySceneChange` does: replace exactly the scene's boundary range.
+        s.replaceCharacters(in: NSRange(location: 7, length: 4),
+                            with: NSAttributedString(string: "Gamma!", attributes: body))
+        #expect(SceneDivider.isDivider(in: s, at: 5))
+        #expect(SceneDivider.sceneBoundaries(in: s) == [NSRange(location: 0, length: 5),
+                                                        NSRange(location: 7, length: 6)])
+    }
+
+    @Test("chapter headings are skipped and the chapter-end state is carried")
+    func headingsAndChapterEnd() {
+        let heading: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12),
+                                                      .scriviHeading: true]
+        let s = NSMutableAttributedString(string: "One\n", attributes: heading)      // 0..<4
+        s.append(NSAttributedString(string: "Alpha", attributes: body))             // 4..<9
+        s.append(SceneDivider.string(NSTextAttachment(), state: .chapterEnd,
+                                     newlineAttributes: body))                      // 9, 10
+        s.append(NSAttributedString(string: "Two\n", attributes: heading))          // 11..<15
+        s.append(NSAttributedString(string: "Beta", attributes: body))              // 15..<19
+        #expect(SceneDivider.sceneBoundaries(in: s) == [NSRange(location: 4, length: 5),
+                                                        NSRange(location: 15, length: 4)])
+        #expect(s.attribute(.scriviDivider, at: 9, effectiveRange: nil) as? DividerRenderState == .chapterEnd)
+    }
+
+    /// EP-045 AC9 — save fidelity, through the C ABI on a real temp project. ✅ Builds the storage
+    /// the way `rebuildStorage` does (heading + typed dividers), slices it with the SAME function the
+    /// save path uses, saves every slice through `scrivi_save_scene`, and reloads: each scene's file
+    /// bytes must be unchanged.
+    @Test("edit → save → reload round-trips every scene's bytes unchanged (EP-045 AC9)")
+    func saveFidelityRoundTrip() throws {
+        let appSupport = try TempDir()
+        let projectDir = try TempDir()
+        let engine = ScriviEngine()
+        let identity = try engine.ensureLocalIdentity(displayName: "Test Author",
+                                                      appSupportRoot: appSupport.path)
+        let ref = AuthorshipRef(identityID: identity.identityID,
+                                personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        _ = try engine.createProject(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                     title: "AC9", slug: "ac9", authorshipRef: ref)
+        let opened = try engine.openProject(projectRootPath: projectDir.path,
+                                            appSupportRoot: appSupport.path)
+        guard let first = opened.scenes.first else { Issue.record("no first scene"); return }
+
+        // Bytes that are easy to mangle: multi-unit UTF-16 (é, 👋), Markdown punctuation, trailing
+        // spaces, blank lines, a tab, a trailing newline.
+        let bodies = [
+            "Café — *not* emphasis? # nor a heading.\n\nTrailing spaces   \n\tTabbed.\n",
+            "👋 Hello, “quoted” _under_ `code` \\ backslash.\n\n\n",
+            "Last scene, no trailing newline",
+        ]
+        var scenes = [first]
+        for _ in 1..<bodies.count {
+            let made = try engine.createScene(projectRootPath: projectDir.path,
+                                              appSupportRoot: appSupport.path,
+                                              projectID: opened.projectID, chapterID: first.chapterID,
+                                              afterSceneID: scenes.last!.sceneID, authorshipRef: ref)
+            let reopened = try engine.openProject(projectRootPath: projectDir.path,
+                                                  appSupportRoot: appSupport.path)
+            guard let info = reopened.scenes.first(where: { $0.sceneID == made.sceneID }) else {
+                Issue.record("created scene not listed"); return
+            }
+            scenes.append(info)
+        }
+        func save(_ i: Int, _ text: String) throws {
+            _ = try engine.saveScene(projectID: opened.projectID, projectRootPath: projectDir.path,
+                                     appSupportRoot: appSupport.path, sceneID: scenes[i].sceneID,
+                                     sceneMetadataPath: scenes[i].metadataPath,
+                                     sceneContentPath: scenes[i].contentPath,
+                                     markdown: text, authorshipRef: ref)
+        }
+        func load(_ i: Int) throws -> String {
+            try engine.openScene(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                 projectID: opened.projectID, sceneID: scenes[i].sceneID).markdown
+        }
+        for (i, b) in bodies.enumerated() { try save(i, b) }
+        let loaded = try (0..<bodies.count).map(load)
+        #expect(loaded == bodies, "the core must store each body verbatim before the cycle starts")
+
+        // Storage as `rebuildStorage` builds it: a chapter heading, then scenes split by dividers.
+        let heading: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12),
+                                                      .scriviHeading: true]
+        let storage = NSMutableAttributedString(string: "Chapter One\n", attributes: heading)
+        for (i, text) in loaded.enumerated() {
+            if i > 0 {
+                storage.append(SceneDivider.string(NSTextAttachment(), state: .sceneBreak,
+                                                   newlineAttributes: body))
+            }
+            storage.append(NSAttributedString(string: text, attributes: body))
+        }
+
+        // The save path: slice by `sceneBoundaries`, save each slice.
+        guard let ranges = SceneDivider.sceneBoundaries(in: storage) else {
+            Issue.record("no boundaries"); return
+        }
+        #expect(ranges.count == bodies.count)
+        for (i, r) in ranges.enumerated() {
+            try save(i, (storage.string as NSString).substring(with: r))
+        }
+
+        // Reload: every scene byte-identical.
+        let reloaded = try (0..<bodies.count).map(load)
+        for i in bodies.indices {
+            #expect(Array(reloaded[i].utf8) == Array(bodies[i].utf8), "scene \(i) bytes changed")
+        }
+    }
+}
+#endif
+
+/// EP-045 AC3 — SOURCE ↔ PRESENTED offsets. ✅ The ORACLE is Apple's own Markdown parser
+/// (`AttributedString(markdown:)`), not this code's idea of CommonMark (design §4.2: *"Ten probes is
+/// not a proof — AC3's test obligation is a CORPUS"*).
+@Suite("Markdown escapes: source ↔ presented (EP-045 AC3)")
+struct MarkdownEscapeMapTests {
+
+    /// What the writer would SEE if Apple's parser rendered `source` (inline syntax only).
+    private func oracle(_ source: String) throws -> String {
+        let a = try AttributedString(
+            markdown: source,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))
+        return String(a.characters)
+    }
+
+    /// The two maps must be mutually consistent boundaries, monotonic, and end-to-end.
+    private func checkMapShape(_ source: String, _ m: MarkdownEscapes.Map,
+                               sourceLocation: SourceLocation = #_sourceLocation) {
+        let srcLen = source.utf16.count
+        #expect(m.presentedToSource.count == m.presented.utf16.count + 1, sourceLocation: sourceLocation)
+        #expect(m.sourceToPresented.count == srcLen + 1, sourceLocation: sourceLocation)
+        #expect(m.presentedToSource.last == srcLen, sourceLocation: sourceLocation)
+        for (p, s) in m.presentedToSource.enumerated() {
+            #expect(m.sourceToPresented[s] == p, "round trip at presented \(p)", sourceLocation: sourceLocation)
+        }
+        #expect(m.presentedToSource == m.presentedToSource.sorted(), sourceLocation: sourceLocation)
+        #expect(m.sourceToPresented == m.sourceToPresented.sorted(), sourceLocation: sourceLocation)
+    }
+
+    @Test("fixed edge cases match the oracle")
+    func edgeCases() throws {
+        let cases: [String] = [
+            "", "plain prose", #"\*"#, #"a\*b"#, #"\\"#, #"a\\b"#, #"\a stays"#, #"ends with \"#,
+            #"👋\*é\_"#, ##"\# not a heading"##, #"Mr\. Smith\, in \"quotes\" — really\?"#,
+            #"\\\*"#, "tab\there", "line one\nline two",
+            // Existing text only (R2): a backslash before a newline is a HARD LINE BREAK.
+            "foo\\\nbar", "a\\\n", "x\\  y",
+        ]
+        for src in cases {
+            let m = MarkdownEscapes.map(src)
+            #expect(m.presented == (try oracle(src)), "presented text disagrees with Apple's parser for \(src.debugDescription)")
+            checkMapShape(src, m)
+        }
+    }
+
+    @Test("each of the 32 escapable marks presents as itself")
+    func all32() throws {
+        let marks = ##"!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"##
+        #expect(marks.utf16.count == 32)
+        #expect(MarkdownEscapes.escapable.count == 32)
+        for ch in marks {
+            let src = MarkdownEscapes.escape("x\(ch)y")
+            let m = MarkdownEscapes.map(src)
+            #expect(m.presented == "x\(ch)y")
+            #expect(try oracle(src) == "x\(ch)y", "Apple's parser disagrees for \(ch)")
+            // The caret before the mark maps to BEFORE ITS BACKSLASH (source 1), never between.
+            #expect(m.presentedToSource == [0, 1, 3, 4])
+            #expect(m.sourceToPresented == [0, 1, 1, 2, 3])
+        }
+    }
+
+    @Test("a 2,000-string typed corpus: escape → present round-trips and matches the oracle")
+    func corpus() throws {
+        // Deterministic generator, so a failure reproduces.
+        var state: UInt64 = 0x5C21_0453
+        func next() -> UInt64 { state = state &* 6364136223846793005 &+ 1442695040888963407; return state >> 33 }
+        let alphabet: [String] = Array(##"!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"##).map(String.init)
+            + ["a", "b", "Z", "é", "👋", " ", "\t", "\n"]
+        var oracleMismatches: [String] = []
+        for _ in 0..<2_000 {
+            let len = Int(next() % 24)
+            let typed = (0..<len).map { _ in alphabet[Int(next() % UInt64(alphabet.count))] }.joined()
+            let src = MarkdownEscapes.escape(typed)
+            let m = MarkdownEscapes.map(src)
+            #expect(m.presented == typed, "escape→present must return what was typed: \(typed.debugDescription)")
+            checkMapShape(src, m)
+            if try oracle(src) != typed { oracleMismatches.append(typed) }
+        }
+        #expect(oracleMismatches.isEmpty,
+                "Apple's parser disagreed on \(oracleMismatches.count) strings, e.g. \(oracleMismatches.prefix(5).map(\.debugDescription))")
+    }
+
+    // MARK: R3 = (c) — the caret never rests inside a hidden escape
+
+    /// `ab\*cd` with the backslash (offset 2) marked hidden, as the (c) styler will mark it.
+    private func hiddenEscape() -> NSAttributedString {
+        let s = NSMutableAttributedString(string: #"ab\*cd"#)
+        s.addAttribute(MarkdownEscapes.hiddenKey, value: true, range: NSRange(location: 2, length: 1))
+        return s
+    }
+
+    @Test("only the boundary between a hidden backslash and its mark is unreachable")
+    func unreachable() {
+        let s = hiddenEscape()
+        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, in: s) } == [3])
+        // ⚠️ An UNMARKED escape is never snapped — nothing is hidden until the styler says so.
+        let plain = NSAttributedString(string: #"ab\*cd"#)
+        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, in: plain) }.isEmpty)
+    }
+
+    @Test("caret: → steps past the mark; ←, clicks and jumps land before the backslash")
+    func caretSnap() {
+        let s = hiddenEscape()
+        #expect(MarkdownEscapes.snapCaret(3, from: 2, in: s) == 4)   // → from before the backslash
+        #expect(MarkdownEscapes.snapCaret(3, from: 4, in: s) == 2)   // ← from after the mark
+        #expect(MarkdownEscapes.snapCaret(3, from: 0, in: s) == 2)   // click / jump: same visual spot
+        #expect(MarkdownEscapes.snapCaret(3, from: 6, in: s) == 2)
+        #expect(MarkdownEscapes.snapCaret(4, from: 2, in: s) == nil) // a reachable spot is left alone
+    }
+
+    @Test("a selection never splits a hidden backslash from its mark")
+    func selectionSnap() {
+        let s = hiddenEscape()
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), in: s) == NSRange(location: 0, length: 4))
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 3, length: 3), in: s) == NSRange(location: 2, length: 4))
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: s) == nil)
+    }
+}
