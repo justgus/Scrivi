@@ -113,6 +113,8 @@ private:
     std::int64_t lastSeq_ = 0;
     std::string  activeSegment_ = "log-000001.jsonl";
     int recordsSinceCheckpoint_ = 0;
+    // Records whose append failed (volume gone), written ahead of the next (I-0268).
+    std::string unwrittenLines_;
 
     // sceneID → head-text sha256 persisted at last close (state.json sceneHeads).
     // Loaded at open for §6.b validation; empty for a fresh history.

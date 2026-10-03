@@ -41,7 +41,7 @@ only.
 | **[T-0574]** | ⇧⌘0 / ⇧⌘1 shortcuts | ✅ Verified 2026-10-02 |
 | **[T-0575]** | Chapter-ending divider tint | ✅ Verified 2026-10-02 |
 | **[I-0273]** | Position not restored on load (UI refactor timing) | ✅ Verified 2026-10-02 |
-| **[I-0267]** | Keystrokes 60–95 ms after open+close of another window | ➡️ **CARRIED to [SP-152]** (T-0569 ruled out) |
+| **[I-0267]** | Keystrokes 60–95 ms after open+close of another window | ⚪ **CLOSED 2026-10-02 after this close — a DUPLICATE of [I-0206]'s 2026-09-25 ruling** (was briefly carried to SP-152) |
 | **[I-0268]** | History fails to open on tintagael (`unknown node`) | ➡️ **CARRIED to [SP-152]** (not investigated) |
 
 <details><summary>Planning-time item table (as activated 2026-09-30)</summary>
@@ -156,7 +156,8 @@ live pass on the largest real project shows lag, or search grows beyond the navi
 - ⚠️ A stale binary produced a false red once (`ctest` after restoring a disabled loop) — re-run on a forced rebuild.
 
 ➡️ **Carried / owed — and WHO closes the loop**
-- **[I-0267], [I-0268]** → **[SP-152]** (🔵 Planning). Owner: Claude when SP-152 is activated.
+- **[I-0268]** → **[SP-152]** (🔵 Planning). Owner: Claude when SP-152 is activated.
+- ⛔ **[I-0267] should never have been filed:** [I-0206] had accepted the same keystroke cost on 2026-09-25 and I did not search `Closed/`. ✅ Closed as a duplicate, 2026-10-02.
 - **[I-0202]** → Issue backlog; ⚠️ re-opened only if the user reports the crash reproducing.
 - **[I-0270] Linux live pass** → the user, at the next rig session (non-blocking by ruling).
 - ⚠️ **Task index gap T-0551–T-0567** (no rows in `Task-Documentation.md`) — noticed at close, not backfilled.

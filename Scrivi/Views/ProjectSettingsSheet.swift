@@ -24,12 +24,14 @@ struct ProjectSettingsSheet: View {
             Form {
                 Section("Project") {
                     LabeledContent("Title") {
-                        TextField("Untitled", text: Bindable(prefs).projectTitle)
+                        TextField("Title", text: Bindable(prefs).projectTitle, prompt: Text("Untitled"))
                             .multilineTextAlignment(.trailing)
+                            .labelsHidden()
                     }
                     LabeledContent("Subtitle") {
-                        TextField("Optional", text: Bindable(prefs).projectSubtitle)
+                        TextField("Subtitle", text: Bindable(prefs).projectSubtitle, prompt: Text("Optional"))
                             .multilineTextAlignment(.trailing)
+                            .labelsHidden()
                     }
                 }
                 Section("Writing Surface") {
@@ -37,8 +39,9 @@ struct ProjectSettingsSheet: View {
                 }
                 Section("Undo History") {
                     LabeledContent("Maximum undo events") {
-                        TextField("20000", value: $historyCapacity, format: .number)
+                        TextField("Maximum undo events", value: $historyCapacity, format: .number)
                             .multilineTextAlignment(.trailing)
+                            .labelsHidden()
                             #if os(macOS)
                             .frame(width: 100)
                             #endif
@@ -47,8 +50,9 @@ struct ProjectSettingsSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     LabeledContent("Stale after (days)") {
-                        TextField("7", value: $staleBranchDays, format: .number)
+                        TextField("Stale after (days)", value: $staleBranchDays, format: .number)
                             .multilineTextAlignment(.trailing)
+                            .labelsHidden()
                             #if os(macOS)
                             .frame(width: 100)
                             #endif
@@ -82,6 +86,12 @@ struct ProjectSettingsSheet: View {
                     }
                 }
             }
+            // I-0254: the default macOS form style (`.columns`) needed ~574 pt for these
+            // labels but the sheet opened at its 380 pt minimum, clipping them. Grouped
+            // rows put label and value on one line at a width the sheet can hold.
+            // ⚠️ `.labelsHidden()` on each field: a TextField inside LabeledContent
+            // otherwise draws its title as a SECOND label beside the row's own.
+            .formStyle(.grouped)
             .onAppear(perform: loadHistorySettings)
             .confirmationDialog(
                 "Purge this branch?",
@@ -106,7 +116,7 @@ struct ProjectSettingsSheet: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 380, minHeight: 300)
+        .frame(minWidth: 460, idealWidth: 460, minHeight: 300)
         #endif
     }
 

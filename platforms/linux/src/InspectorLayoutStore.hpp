@@ -100,7 +100,21 @@ public:
     // loaded or the value is unchanged (so showing an already-shown pane is free).
     void setInspectorHidden(bool hidden);
 
+    // ---- Timeline + Scene Navigator visibility ([I-0255], 2026-10-03) ----
+    //
+    // ✅ Same rule, same document, same keys as Apple (`timelineHidden`,
+    // `navigatorHidden` in `InspectorLayoutStore.swift`). ⚠️ ABSENT means SHOWN,
+    // for the same reason as `inspectorHidden` above.
+    [[nodiscard]] bool timelineHidden() const;
+    void setTimelineHidden(bool hidden);
+    [[nodiscard]] bool navigatorHidden() const;
+    void setNavigatorHidden(bool hidden);
+
 private:
+    // One boolean key, patched in place (absent ⇒ false; no write for a no-op).
+    [[nodiscard]] bool hiddenKey(const char* key) const;
+    void setHiddenKey(const char* key, bool hidden);
+
     // Hand the (patched) document to the core. ✅ ATOMICITY IS THE CORE'S JOB now —
     // it writes a temp and renames, the same discipline this class used to
     // implement itself. ⛔ Do not reintroduce a write here.

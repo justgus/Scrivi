@@ -102,7 +102,24 @@ import os
             inspectorLayout?.setInspectorHidden(!inspectorVisible)
         }
     }
-    var timelineVisible: Bool = true
+    /// Restored from (and written back to) inspector-layout.json, exactly as `inspectorVisible`
+    /// is (I-0255, ruled 2026-09-29). SP-078/T-0320's "a member, not persisted" is superseded.
+    var timelineVisible: Bool = true {
+        didSet {
+            guard oldValue != timelineVisible else { return }
+            inspectorLayout?.setTimelineHidden(!timelineVisible)
+        }
+    }
+    /// Scene Navigator shown (I-0255) — persisted like the two above. ⚠️ The Navigator is the
+    /// SYSTEM sidebar of a `NavigationSplitView`, not an app-built pane: this value only SEEDS the
+    /// split view's initial `columnVisibility` and RECORDS the writer's changes to it
+    /// (`EditorView.swift`); it does not drive the sidebar while the window is open.
+    var navigatorVisible: Bool = true {
+        didSet {
+            guard oldValue != navigatorVisible else { return }
+            inspectorLayout?.setNavigatorHidden(!navigatorVisible)
+        }
+    }
     var showProjectSettings: Bool = false
     /// Worlds manager sheet (EP-031 SP-099 T-0408).
     var showWorlds: Bool = false
@@ -327,6 +344,8 @@ import os
         // so `inspectorVisible`'s didSet has no store to write back to. Otherwise
         // restoring would immediately re-save the value we just read.
         inspectorVisible = !layout.document.inspectorHidden
+        timelineVisible = !layout.document.timelineHidden
+        navigatorVisible = !layout.document.navigatorHidden
         inspectorLayout = layout
 
         // Donate the project's indexable content to Spotlight (best-effort).

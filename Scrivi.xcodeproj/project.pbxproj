@@ -793,7 +793,7 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.scrivi$(SCRIVI_TEST_HOST_ID_SUFFIX)";
 				PRODUCT_MODULE_NAME = ScriviApp;
 				PRODUCT_NAME = Scrivi;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -850,7 +850,7 @@
 					Security,
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.caposoft.scrivi;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.caposoft.scrivi$(SCRIVI_TEST_HOST_ID_SUFFIX)";
 				PRODUCT_MODULE_NAME = ScriviApp;
 				PRODUCT_NAME = Scrivi;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;

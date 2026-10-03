@@ -10,38 +10,25 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0555 — `[Apple]` ✅ **Engine stub parity ([I-0253])** — **Implemented 2026-09-28, NOT VERIFIED**
+## 🟠 T-0576 — `[Linux]` Per-row relationship labels in the Scene Inspector (revert, [I-0180]) — **Implemented 2026-10-03, NOT VERIFIED**
 
-⚠️ **NO SPRINT** — ✅ **raised by the user from a symptom they had patched themselves.**
+⚠️ **NO SPRINT** — ✅ user-directed 2026-10-03: *"close I-0180, revert Linux to per-row labels."*
 
-✅ **THE FIX (two parts, and the second matters more):**
-1. ✅ **Four methods added to the visionOS stub** in `Scrivi/Engine/ScriviEngine.swift`:
-   `closeProject` (a no-op — it is non-throwing and runs on teardown), `openSceneForBulkLoad`,
-   `mergeScene`, `mergeChapter`.
-2. ✅ **`scripts/check-engine-stub-parity.sh`** — ⚠️ **the guard, wired into `scrivi-apple-ci.yml`**
-   (step + both path filters). ⛔ **Because the stub's own comment already predicted this recurrence
-   and a comment cannot fail a build.**
+✅ **WHY:** [I-0180] was closed as NOT A DEFECT (→ `../Issues/Closed/Issue-closed-0180.md`). SP-126 build 8
+had implemented that Issue's proposed fix on Linux only, hoisting the label into the group header —
+⚠️ **so Linux differed from Apple, the reference shape** (`feedback_linux_adopts_apple_shape`).
 
-⚠️ **THE GUARD WAS PROVEN BY BREAKING IT:** ✅ **`mergeScene` was removed from the stub, the guard went
-RED naming it, and green on restore.**
+✅ **THE CHANGE (`platforms/linux/src/SceneInspector.cpp`):** the group header is `"<kind> (<count>)"`
+again; each row is `"<name> — <label>"` (the pre-SP-126 form, name leading); the tooltip carries the same
+text, including on a pending row. The label is still the core's projection, never recomputed.
 
-⛔ **I GOT THE GUARD WRONG ONCE, AND IT BROKE THE BUILD — recorded because it is the instructive part.**
-⚠️ **The first pattern anchored on whitespace-then-`public func`, so it MISSED every
-`@discardableResult public func` in the stub and reported FOUR methods as absent that were ALREADY
-THERE** (`:1536-1539`). ⛔ **Acting on that phantom added duplicates and broke the visionOS build — the
-exact build the guard exists to protect.** ✅ **Fixed to skip leading attributes; the reverted additions
-are gone.** ⚠️ **A check that reports a phantom is worse than no check: it invites a "fix" that breaks
-something real.**
+⚠️ **Shape note, not a defect:** Apple puts the label on a SECOND LINE under the name; a
+`QTreeWidgetItem` row is one line, so Linux joins them with `—`, as it did before SP-126.
 
-✅ **VERIFIED BY BUILDING: `ScriviApp` ✅ · `ScriviApp-iOS` ✅ · `ScriviApp-visionOS` ✅ — all BUILD
-SUCCEEDED.** ✅ **All four guards green.**
-⛔ **NOT VERIFIED: the app was not RUN on visionOS** — ⚠️ **it cannot usefully be: the stub throws by
-design because ScriviCore is not linked for visionOS ([I-0053]).** ✅ **This Task restores COMPILATION,
-which is what it claims.**
+✅ **VERIFIED BY BUILDING:** `docker build --no-cache -f platforms/linux/docker/Dockerfile` succeeded 2026-10-03 (Qt app + ScriviCore, GCC). ⛔ **NOT VERIFIED
+LIVE** — ⚠️ **needs a rig look at a scene's Characters and Locations groups.**
 
 ---
-
-
 
 ## ✅ [SP-145] — T-0551 · T-0552 · T-0553 — ✅ **VERIFIED 2026-09-29, ARCHIVED**
 

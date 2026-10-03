@@ -9,7 +9,8 @@ struct EditorView: View {
 
     var body: some View {
         if let loader = session.viewportLoader, let prefs = session.projectPreferences {
-            ManuscriptEditorView(loader: loader, prefs: prefs)
+            ManuscriptEditorView(loader: loader, prefs: prefs,
+                                 navigatorHidden: !session.navigatorVisible)
         } else {
             ProgressView("Loading…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -54,6 +55,21 @@ private struct ManuscriptEditorView: View {
     // FORCE the sidebar open and `.detailOnly` would hide it, either of which would be a
     // behaviour change smuggled in under a structural sprint.
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+
+    /// I-0255: a writer who hid the Navigator gets it back HIDDEN. ⚠️ The sidebar belongs to
+    /// the system, so the only way to restore it is through the split view's own control — the
+    /// `columnVisibility` binding — and it must be set BEFORE THE FIRST RENDER or the sidebar
+    /// flashes open and then collapses. ✅ Seeding the `@State` here does exactly that: measured
+    /// 2026-10-03 in an off-screen `NavigationSplitView`, an initial `.detailOnly` draws the first
+    /// frame with no sidebar and fires no `onChange` (so restoring does not write the file back).
+    /// ⚠️ macOS only: on iOS this binding also drives the compact-width push and stays `.automatic`.
+    init(loader: ViewportSceneLoader, prefs: ProjectPreferences, navigatorHidden: Bool) {
+        self.loader = loader
+        self.prefs = prefs
+        #if os(macOS)
+        _columnVisibility = State(initialValue: navigatorHidden ? .detailOnly : .automatic)
+        #endif
+    }
 
     // MARK: — Object Detail Sheet (EP-034 SP-117, D1-E)
     //
@@ -245,6 +261,11 @@ private struct ManuscriptEditorView: View {
         }
         .frame(minWidth: 700, minHeight: 400)
         .navigationSplitViewStyle(.balanced)
+        // I-0255: record the writer's sidebar choice. ✅ Measured: the system sidebar button
+        // reports `.detailOnly` on collapse and `.all` on expand, so hidden ≡ `.detailOnly`.
+        .onChange(of: columnVisibility) { _, newValue in
+            session.navigatorVisible = (newValue != .detailOnly)
+        }
         // Same two rules as iOS, now that macOS is selection-driven too.
         .onAppear { selectDefaultSceneIfNeeded() }
         // Selecting a scene in the master scrolls the manuscript to it, places the caret

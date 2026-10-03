@@ -110,6 +110,13 @@ public:
     // avoids with a signal blocker at load).
     void setStoredInspectorHidden(bool hidden) { layout_.setInspectorHidden(hidden); }
 
+    // [I-0255] — the timeline's and the Scene Navigator's stored choice. ✅ Same owner,
+    // same document, same "never while restoring" rule as the inspector's above.
+    [[nodiscard]] bool storedTimelineHidden() const { return layout_.timelineHidden(); }
+    void setStoredTimelineHidden(bool hidden) { layout_.setTimelineHidden(hidden); }
+    [[nodiscard]] bool storedNavigatorHidden() const { return layout_.navigatorHidden(); }
+    void setStoredNavigatorHidden(bool hidden) { layout_.setNavigatorHidden(hidden); }
+
     // Follow the active scene. EditorShell routes BOTH the caret hook and the
     // scroll hook through selectNavigatorScene(), which is the single existing
     // active-scene notification point — the same hook the navigator highlight and

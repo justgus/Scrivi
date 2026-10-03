@@ -1221,3 +1221,129 @@ TEST_CASE("C ABI: two adjacent edit groups undo separately (I-0270)", "[HistoryC
     REQUIRE(r1.arrayItem("changes", 1).getString("newText") == "123456");
     scrivi_free(scrivi_history_close(ROOT));
 }
+
+// I-0268 — an event whose PARENT never reached the log must not break open().
+//
+// Reported 2026-10-01 from the writer's real project:
+//   [Scrivi] historyOpen failed: ScriviError(code: 13,
+//     "unhandled exception: HistoryService: unknown node evt_01a0f3d6-...")
+// Same message as I-0110, different path. Forensics on a COPY of the log: seq 3862 →
+// 3869, and the last record (seq 3869) named a parent that appears nowhere. The system
+// log showed the USB drive holding the project dropping off the bus 15:41:40–15:42:48;
+// the parent was minted at 15:42:04 and its append failed silently; the child, at
+// 15:42:50, landed. Replay then walked current→root into the missing parent.
+//
+// This reproduces that log shape directly: drop a mid-chain event line, so the next
+// event (the current node) is an orphan.
+TEST_CASE("C ABI: open survives an event whose parent is missing from the log (I-0268)",
+          "[HistoryCApi][I-0268]") {
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", ""));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "one", recordParams("typing", 0, 3).c_str()));
+    std::string lostID;
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "one two", recordParams("typing", 3, 7).c_str()));
+        lostID = r.getString("eventID");
+    }
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "one two three", recordParams("typing", 7, 13).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    // Remove the middle event's line — the append that never reached the disk.
+    {
+        namespace fs = std::filesystem;
+        const fs::path log = fs::path(ROOT_.path) / "history" / "log-000001.jsonl";
+        std::ifstream in(log);
+        std::string kept, line;
+        while (std::getline(in, line)) {
+            if (line.find("\"eventID\":\"" + lostID + "\"") == std::string::npos) {
+                kept += line + "\n";
+            }
+        }
+        in.close();
+        std::ofstream(log, std::ios::trunc) << kept;
+        REQUIRE(readHistoryLog(ROOT_.path).find("\"eventID\":\"" + lostID + "\"") == std::string::npos);
+    }
+
+    // Must open cleanly, not throw.
+    {
+        auto env = envelope(scrivi_history_open(ROOT));
+        REQUIRE(env.getBool("ok"));
+        REQUIRE(env.getSubDoc("result").getBool("canUndo"));
+    }
+    // The pointer fell back to the last node the log pointed at that survived ("one"),
+    // not to the root: the first undo restores the text BEFORE "one".
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "");
+    }
+    // And the history is usable: a new edit records and undoes.
+    scrivi_free(scrivi_history_redo(ROOT));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "one more", recordParams("typing", 3, 8).c_str()));
+    {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == "one");
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}
+
+// I-0268 — the CAUSE: a failed append was discarded while the node stayed in memory.
+//
+// An unwritable log stands in for the unmounted volume. The event recorded during the
+// outage must reach the log once appends succeed again, ahead of the next record.
+TEST_CASE("C ABI: an event recorded while the log is unwritable is written once it recovers "
+          "(I-0268)", "[HistoryCApi][I-0268]") {
+    namespace fs = std::filesystem;
+    HistoryRoot ROOT_; const char* ROOT = ROOT_.c();
+    const fs::path log = fs::path(ROOT_.path) / "history" / "log-000001.jsonl";
+
+    scrivi_free(scrivi_history_open(ROOT));
+    scrivi_free(scrivi_history_seed_scene(ROOT, "scene_a", ""));
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "one", recordParams("typing", 0, 3).c_str()));
+
+    // "Unmount": the log cannot be opened for append.
+    fs::permissions(log, fs::perms::owner_read, fs::perm_options::replace);
+    if (std::ofstream(log, std::ios::app)) {
+        fs::permissions(log, fs::perms::owner_read | fs::perms::owner_write,
+                        fs::perm_options::replace);
+        scrivi_free(scrivi_history_close(ROOT));
+        SKIP("running as a user that ignores file permissions (root)");
+    }
+    std::string outageID;
+    {
+        auto r = okResult(scrivi_history_record_event(
+            ROOT, "scene_a", "one two", recordParams("typing", 3, 7).c_str()));
+        outageID = r.getString("eventID");
+    }
+    REQUIRE(readHistoryLog(ROOT_.path).find(outageID) == std::string::npos);   // not on disk
+
+    // "Remount", then the next record.
+    fs::permissions(log, fs::perms::owner_read | fs::perms::owner_write,
+                    fs::perm_options::replace);
+    scrivi_free(scrivi_history_record_event(
+        ROOT, "scene_a", "one two three", recordParams("typing", 7, 13).c_str()));
+    scrivi_free(scrivi_history_close(ROOT));
+
+    const std::string text = readHistoryLog(ROOT_.path);
+    REQUIRE(text.find("\"eventID\":\"" + outageID + "\"") != std::string::npos);
+
+    // The full chain replays: three undos walk back to the empty seed.
+    {
+        auto env = envelope(scrivi_history_open(ROOT));
+        REQUIRE(env.getBool("ok"));
+    }
+    for (const char* expected : {"one two", "one", ""}) {
+        auto r = okResult(scrivi_history_undo(ROOT));
+        REQUIRE(r.getBool("moved"));
+        REQUIRE(r.arrayItem("changes", 0).getString("newText") == expected);
+    }
+    scrivi_free(scrivi_history_close(ROOT));
+}

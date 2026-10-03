@@ -158,17 +158,20 @@ public:
     // the inspector is a property of how she is working on THAT manuscript.
     // ✅ Apple agrees for the inspector and persists it (Doc 2 AC4).
     //
-    // ⚠️ THE TWO FLAGS ARE DELIBERATELY ASYMMETRIC — ⛔ do not "tidy" this:
-    //   • `inspectorVisible` PERSISTS, through the core, in `inspector-layout.json`
-    //     ([I-0251]). ✅ Apple does exactly this.
-    //   • `timelineVisible` is SESSION-SCOPED. ✅ Apple does not persist it either
-    //     (`ProjectSession.swift:98`), and SP-078/T-0320's ruling STANDS for it.
-    // ✅ Both default to SHOWN (Apple parity — user decision 2026-07-22).
+    // ✅ ALL THREE PANES PERSIST, through the core, in `inspector-layout.json`:
+    //   • `inspectorVisible` ([I-0251]);
+    //   • `timelineVisible` and `navigatorVisible` ([I-0255], 2026-10-03). ⛔ The old
+    //     "timeline is session-scoped — Apple does not persist it either" asymmetry is
+    //     SUPERSEDED: the user ruled 2026-09-29 that it persists, and Apple now does.
+    // ✅ All default to SHOWN (Apple parity — user decision 2026-07-22).
     [[nodiscard]] bool inspectorVisible() const { return inspectorVisible_; }
     void setInspectorVisible(bool visible) { inspectorVisible_ = visible; }
 
     [[nodiscard]] bool timelineVisible() const { return timelineVisible_; }
     void setTimelineVisible(bool visible) { timelineVisible_ = visible; }
+
+    [[nodiscard]] bool navigatorVisible() const { return navigatorVisible_; }
+    void setNavigatorVisible(bool visible) { navigatorVisible_ = visible; }
 
     // ---- Reset ----------------------------------------------------------
     // Clear per-project state for a fresh load. ⚠️ Does NOT touch `bridge_` or
@@ -196,4 +199,5 @@ private:
     // Defaults SHOWN — Apple parity (user decision 2026-07-22).
     bool inspectorVisible_ = true;
     bool timelineVisible_  = true;
+    bool navigatorVisible_ = true;
 };

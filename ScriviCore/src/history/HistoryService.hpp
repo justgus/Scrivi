@@ -382,10 +382,17 @@ public:
     // Rehydration (load): install a node, set pointers, then finalize. The store
     // calls addLoadedFloor/addLoadedNode for each record, then setPointers, then
     // finalizeLoad() which derives childIDs and rebuilds the head cache.
+    //
+    // I-0268: finalizeLoad() also drops ORPHANS — nodes whose parent record is not in
+    // the log (an append that never reached the disk) — with their subtrees. If the
+    // current pointer was among them it falls back to the latest entry of
+    // `currentTrail` (every node the replay pointed at, in log order) that survived,
+    // root at worst. Without this, rebuildHeadCache() threw `unknown node` and the
+    // project opened with no history at all.
     void addLoadedFloor(const std::string& sceneID, std::string text);
     void addLoadedNode(EventNode node);
     void setPointers(std::string rootID, std::string currentNodeID, std::string sessionID);
-    void finalizeLoad();
+    void finalizeLoad(const std::vector<std::string>& currentTrail = {});
 
     // Replays persisted branch-aware eviction (§4.1) after finalizeLoad() has
     // derived childIDs. For each purged branch root, erases that subtree; for

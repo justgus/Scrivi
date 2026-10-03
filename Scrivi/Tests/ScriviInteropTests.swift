@@ -2894,6 +2894,53 @@ struct ObjectCardConfigurationTests {
                 "the mutated known property must also have been written")
     }
 
+    /// I-0255 — timeline visibility persists in the SAME document as `inspectorHidden`.
+    /// An older layout has no `timelineHidden` key and must read as visible.
+    @Test("timelineHidden + navigatorHidden round-trip through inspector-layout.json; absent reads false (I-0255)")
+    func timelineHiddenRoundTrips() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("scrivi-i0255-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("inspector-layout.json")
+
+        // A layout written before the ruling: no `timelineHidden` key at all.
+        let onDisk: [String: Any] = [
+            "schema": "scrivi.inspector-layout.v1",
+            "selectedTab": "writing",
+            "inspectorHidden": false,
+            "defaultStacks": ["writing": [], "worldbuilding": []],
+            "stackSort": ["writing": "manual", "worldbuilding": "manual"],
+            "scenes": [:],
+        ]
+        try JSONSerialization.data(withJSONObject: onDisk, options: [.prettyPrinted])
+            .write(to: url)
+
+        let store = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
+        #expect(store.loadError == nil)
+        #expect(store.document.timelineHidden == false, "an absent key must read as visible")
+
+        store.setTimelineHidden(true)
+        let reread = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
+            as? [String: Any]
+        #expect(reread?["timelineHidden"] as? Bool == true, "the choice must be written")
+        #expect(reread?["inspectorHidden"] as? Bool == false, "a neighbour key must be untouched")
+
+        // A fresh store — the next launch — reads it back.
+        let relaunched = InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
+        #expect(relaunched.document.timelineHidden == true)
+
+        // The Scene Navigator (same Issue, same document): absent reads shown; a write
+        // persists and leaves `timelineHidden` alone.
+        #expect(relaunched.document.navigatorHidden == false, "an absent key must read as shown")
+        relaunched.setNavigatorHidden(true)
+        let third = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
+        #expect(third?["navigatorHidden"] as? Bool == true)
+        #expect(third?["timelineHidden"] as? Bool == true, "the timeline choice must survive")
+        #expect(InspectorLayoutStore(engine: ScriviEngine(), projectRootPath: dir.path)
+                    .document.navigatorHidden == true)
+    }
+
     /// ⚠️ **THE CROSS-PLATFORM CASE, run against a REAL project's layout file.**
     ///
     /// ⛔ **A first attempt at this test took the project path from an environment

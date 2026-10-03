@@ -588,33 +588,8 @@ void SceneInspector::rebuildTree()
             return a.displayName.localeAwareCompare(b.displayName) < 0;
         });
 
-        // ⚠️ THE RELATIONSHIP LABEL BELONGS HERE, not on every row (user ruling
-        // 2026-08-30). A scene relates to its objects the same way each time —
-        // every character "appears in" it — so a per-row label repeats one word
-        // down the whole list while saying nothing that distinguishes the rows.
-        //
-        // ✅ "characters (2) (appears in)" says it ONCE, compacts the list, and
-        // loses nothing.
-        //
-        // ⚠️ The labels are READ from the core's projection, never recomputed —
-        // and they are collected from the ROWS rather than assumed, because a
-        // group CAN legitimately hold more than one. Of the seeded vocabulary,
-        // two types constrain to a scene: `appears-in` (scene "features" X) and
-        // `located-at` (scene "takes place at" a location), so a Locations group
-        // can hold both. ⚠️ When that happens ALL of them are named — narrowing
-        // to the first would silently misdescribe the others.
-        QStringList groupLabels;
-        for (const Entry& e : rows) {
-            if (!e.label.isEmpty() && !groupLabels.contains(e.label)) {
-                groupLabels.append(e.label);
-            }
-        }
         auto* group = new QTreeWidgetItem(tree_);
-        const QString countText = tr("%1 (%2)").arg(kind, QString::number(rows.size()));
-        group->setText(0, groupLabels.isEmpty()
-                              ? countText
-                              : tr("%1 (%2)").arg(countText,
-                                                  groupLabels.join(QStringLiteral(", "))));
+        group->setText(0, tr("%1 (%2)").arg(kind, QString::number(rows.size())));
         QFont groupFont = group->font(0);
         groupFont.setBold(true);
         group->setFont(0, groupFont);
@@ -625,24 +600,15 @@ void SceneInspector::rebuildTree()
         for (const Entry& e : rows) {
             auto* item = new QTreeWidgetItem(group);
 
-            // ⚠️ THE ROW IS THE NAME ALONE. The relationship label lives on the
-            // GROUP HEADER — see rebuildTree()'s header construction.
-            //
-            // ⚠️ User ruling 2026-08-30, and it corrects two of my mistakes:
-            //
-            //  1. ⚠️ "Myton at 23 — features" reads as though *Myton* features
-            //     something. He does not. The stored edge is "Myton APPEARS IN
-            //     scene"; asked from the SCENE's side the core projects the
-            //     inverse, "scene FEATURES Myton". ⚠️ **The label describes what
-            //     the SCENE does**, so rendering it beside the OBJECT's name
-            //     inverts its meaning.
-            //  2. ⚠️ Stacking it on a second line fixed the grammar and kept the
-            //     REDUNDANCY: every row in a group repeats the identical word,
-            //     because a scene relates to its objects the same way each time.
-            //
-            // ✅ Hoisting it to the header says it ONCE, compacts the list, and
-            // loses nothing.
-            const QString rowText = e.displayName;
+            // ✅ THE RELATIONSHIP LABEL IS ON EVERY ROW, as Apple renders it
+            // (`ObjectCard.swift`, name then label). ⚠️ SP-126 hoisted it to the group
+            // header on I-0180's reasoning; ✅ I-0180 was CLOSED 2026-10-03 as NOT A
+            // DEFECT and this is the revert (Apple is the reference shape). The label
+            // is the core's projection for the SCENE — "features X" — and with
+            // writer-defined relation types it is what tells rows apart.
+            const QString rowText = e.label.isEmpty()
+                                        ? e.displayName
+                                        : tr("%1 — %2").arg(e.displayName, e.label);
             item->setText(0, rowText);
             // ⚠️ I-0173: the panel is ~200px by default, so a row of the form
             // "<name> — <relationship>" ELIDES to "character 1 — doc…" and the
@@ -655,10 +621,6 @@ void SceneInspector::rebuildTree()
             // this is a supplement to a readable row, not a hover-only
             // affordance. Apple learned that one the hard way — T-0389 exists
             // because a pending object's world appeared ONLY in a tooltip.
-            // ⚠️ The tooltip is the NAME only — the label is on the header, so
-            // repeating it here would reintroduce exactly the duplication the
-            // header hoist removed. The tooltip still earns its place: a long
-            // name elides in a narrow panel (I-0173).
             item->setToolTip(0, rowText);
             item->setData(0, kRoleObjectID, e.objectID);
             item->setData(0, kRoleKind,     e.kind);
@@ -672,7 +634,7 @@ void SceneInspector::rebuildTree()
                 // Both facts, not one replacing the other: a pending row still
                 // needs its full label readable (I-0173).
                 item->setToolTip(0, tr("%1\n\nHeld pending — this object's world is %2.")
-                                        .arg(e.displayName, writerDescription(e.pendingStatus)));
+                                        .arg(rowText, writerDescription(e.pendingStatus)));
             }
             ++shown;
         }

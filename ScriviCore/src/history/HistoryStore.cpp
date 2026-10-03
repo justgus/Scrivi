@@ -50,7 +50,16 @@ AbsolutePath HistoryStore::statePath() const {
 
 void HistoryStore::appendLine(const std::string& jsonLine) {
     if (!fs_) return;
-    fs_->appendTextFile(logPath(), jsonLine + "\n");
+    // I-0268: a failed append used to be DISCARDED while the node stayed in memory, so
+    // the next record to land named a parent the log never got — and every later open
+    // failed. Reported when the writer's USB drive dropped off the bus for ~70s with
+    // the project open. Keep what did not land and write it ahead of the next record,
+    // so the log stays in order and complete once the volume is back.
+    unwrittenLines_ += jsonLine;
+    unwrittenLines_ += '\n';
+    if (fs_->appendTextFile(logPath(), unwrittenLines_).ok()) {
+        unwrittenLines_.clear();
+    }
     if (++recordsSinceCheckpoint_ >= 200) {
         checkpoint();
         recordsSinceCheckpoint_ = 0;
@@ -81,6 +90,9 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
         std::string loadedSessionID = newSessionID;
         std::int64_t maxSeq = 0;
         bool sawAnyRecord = false;
+        // Every node the replay pointed at, in log order — finalizeLoad()'s fallback
+        // when the final pointer turns out to be an orphan (I-0268).
+        std::vector<std::string> currentTrail;
         // Fork re-selections (ctl:setPrimary) collected during replay; applied
         // after finalizeLoad() derives childIDs (D4/SP-055). forkNodeID → childID.
         std::map<std::string, std::string> primaryOverrides;
@@ -141,11 +153,13 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                 // Recording a node advances the current pointer to it; in seq
                 // order a later ctl:undo/redo may move it back. Last write wins.
                 currentNodeID = node.eventID;
+                currentTrail.push_back(currentNodeID);
                 svc->addLoadedNode(std::move(node));
             } else if (rec == "ctl") {
                 const std::string op = d.getString("op");
                 if (op == "undo" || op == "redo") {
                     currentNodeID = d.getString("nodeID");
+                    currentTrail.push_back(currentNodeID);
                 } else if (op == "session") {
                     loadedSessionID = d.getString("sessionID");
                 } else if (op == "setPrimary") {
@@ -168,7 +182,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
 
         if (sawAnyRecord) {
             svc->setPointers(rootID, currentNodeID, loadedSessionID);
-            svc->finalizeLoad();
+            svc->finalizeLoad(currentTrail);
             // §4.1/SP-055: replay branch-aware eviction (drop purged subtrees,
             // advance the root) BEFORE restoring fork primaries — evicted forks
             // are gone, so their overrides become harmless no-ops.
@@ -370,6 +384,10 @@ void HistoryStore::persistPurge(const std::string& branchRootEventID) {
 
 void HistoryStore::checkpoint() {
     if (!fs_ || !service_) return;
+    // Last chance for records an outage held back (I-0268) — checkpoint runs at close.
+    if (!unwrittenLines_.empty() && fs_->appendTextFile(logPath(), unwrittenLines_).ok()) {
+        unwrittenLines_.clear();
+    }
     util::JsonDoc d;
     d.setString("schema", "scrivi.history.v1");
 

@@ -1,7 +1,9 @@
 # Active Sprints
 
-⚪ **NO ACTIVE SPRINT.** 🔵 **[SP-152] is in PLANNING** → [`Sprint-backlog.md`](Sprint-backlog.md) — carries [I-0267] and [I-0268].
-✅ **[SP-151] CLOSED 2026-10-02 (user-approved)** `[Apple]` → [`Closed/Sprint-SP-151.md`](Closed/Sprint-SP-151.md) — ✅ 18 items verified (incl. [I-0270] data-corruption fix on both platforms, edit-group undo in the core); ⚪ AC2/[I-0202] closed WITHOUT a resolution (user ruling) → Issue backlog; ➡️ [I-0267], [I-0268] carried to [SP-152].
+## No Sprint is active (SP-152 closed 2026-10-03)
+
+✅ **[SP-152] CLOSED 2026-10-03 (user-approved)** `[Cross]` → [`Closed/Sprint-SP-152.md`](Closed/Sprint-SP-152.md) — ✅ [I-0268] tintagael history fails to open — **fixed and USER-VERIFIED 2026-10-03, archived** (⚪ [I-0267] closed 2026-10-02: duplicate of [I-0206]'s ruling).
+✅ **[SP-151] CLOSED 2026-10-02 (user-approved)** `[Apple]` → [`Closed/Sprint-SP-151.md`](Closed/Sprint-SP-151.md) — ✅ 18 items verified (incl. [I-0270] data-corruption fix on both platforms, edit-group undo in the core); ⚪ AC2/[I-0202] closed WITHOUT a resolution (user ruling) → Issue backlog; ➡️ [I-0268] carried to [SP-152]; ⚪ [I-0267] closed as a duplicate of [I-0206].
 ✅ **[SP-148] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-148.md`](Closed/Sprint-SP-148.md) — ✅ [EP-043] S4 complete; ✅ **[EP-043] CLOSED 2026-09-30 (user-approved).**
 ✅ **[SP-147] CLOSED 2026-09-30 (user-approved)** `[Linux]` → [`Closed/Sprint-SP-147.md`](Closed/Sprint-SP-147.md) — ✅ [EP-043] S3 complete; ➡️ **[SP-148] next**.
 

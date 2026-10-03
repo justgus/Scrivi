@@ -630,6 +630,9 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         // without it writes the file on every open with the value just read.
         restoringPaneVisibility_ = true;
         setInspectorVisible(!inspector_->storedInspectorHidden());
+        // [I-0255] — the other two panes, same document, same guard.
+        setTimelineVisible(!inspector_->storedTimelineHidden());
+        setNavigatorVisible(!inspector_->storedNavigatorHidden());
         restoringPaneVisibility_ = false;
     }
 
@@ -2057,18 +2060,22 @@ void EditorShell::manageWorlds()
 // the viewport (stretch=1) reclaims it — ⚠️ the SAME call `setInspectorVisible`
 // already makes, so the two panes behave identically.
 //
-// ⛔ SESSION-SCOPED, NOT PERSISTED — ⚠️ deliberately, and NOT by omission.
-// ✅ [I-0255] ruled that TIMELINE visibility should persist and is a `[Cross]`
-// defect on BOTH platforms; ⛔ the Navigator has had no ruling, and Apple's
-// `columnVisibility` is `@State` (per-view, in-memory) — ⚠️ so persisting Linux's
-// alone would invent a parity gap rather than close one.
-// ✅ [T-0556]'s focus-mode work is where all three panes get settled together.
+// ✅ PERSISTED ([I-0255], 2026-10-03, user-directed): the writer's choice is stored
+// in `inspector-layout.json` as `navigatorHidden`, the same key Apple writes. ⛔ This
+// comment used to say the navigator was deliberately session-scoped because Apple's
+// `columnVisibility` was in-memory — ✅ Apple now persists it too.
+// ⚠️ Only the MENU toggle is recorded here. A splitter drag to zero width is a
+// SIZE, which [EP-043]'s session already restores with the splitter geometry.
 void EditorShell::setNavigatorVisible(bool visible)
 {
     if (navigator_ == nullptr) {
         return;
     }
     navigator_->setVisible(visible);
+    session_.setNavigatorVisible(visible);
+    if (!restoringPaneVisibility_ && inspector_ != nullptr) {
+        inspector_->setStoredNavigatorHidden(!visible);
+    }
 }
 
 bool EditorShell::isNavigatorVisible() const
@@ -2125,14 +2132,14 @@ void EditorShell::setTimelineVisible(bool visible)
     // height when hidden.
     timeline_->setVisible(visible);
 
-    // ⚠️ SP-145 / T-0553 — recorded on the session, ⛔ but NOT persisted.
-    //
-    // ✅ THE ASYMMETRY WITH THE INSPECTOR IS DELIBERATE AND RULED ([R-Q4]):
-    // ⚠️ Apple does NOT persist `timelineVisible` either (`ProjectSession.swift:98`),
-    // so SP-078/T-0320's "session-scoped" ruling STANDS for the timeline and is
-    // superseded ONLY for the inspector. ⛔ Do not "make these consistent" without
-    // a ruling — the inconsistency is the parity.
+    // ✅ [I-0255] — PERSISTED, exactly as the inspector is: ⛔ the [R-Q4] "session-
+    // scoped, Apple does not persist it either" asymmetry is SUPERSEDED (user ruling
+    // 2026-09-29; Apple persists `timelineHidden` as of 2026-10-03).
     session_.setTimelineVisible(visible);
+    if (!restoringPaneVisibility_ && inspector_ != nullptr) {
+        // ⚠️ Guarded for the same reason as the inspector: no write-back while restoring.
+        inspector_->setStoredTimelineHidden(!visible);
+    }
 }
 
 bool EditorShell::isTimelineVisible() const

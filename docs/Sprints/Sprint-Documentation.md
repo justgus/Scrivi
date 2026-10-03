@@ -420,7 +420,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-147** | ✅ **`[Linux]`** **The persistence** — `session.ini`, launch restore, per-project geometry + splitters, the R6 guard; + [I-0264] [I-0265] | EP-043 `[Linux]` | 2026-09-29 | 2026-09-30 | ✅ **CLOSED 2026-09-30 — user-approved** → [record](Closed/Sprint-SP-147.md) |
 | **SP-148** | ✅ **`[Linux]`** **Verification** — AC sweep, `ctest` on the rig (non-root), the final live pass, the Audit Check | EP-043 `[Linux]` | 2026-09-30 | 2026-09-30 | ✅ **CLOSED 2026-09-30 — user-approved** → [record](Closed/Sprint-SP-148.md) |
 | **SP-151** | ✅ **`[Apple]`** **Apple issue batch + long-manuscript navigation** — [I-0202] [I-0216] [I-0217] [I-0218] · [T-0568] Go to Manuscript Start/End · [T-0569] navigator search | — `[Apple]` | 2026-09-30 | 2026-10-02 | ✅ **CLOSED 2026-10-02** (user-approved) → [record](Closed/Sprint-SP-151.md) |
-| **SP-152** | `[Cross]` **Carried defects from SP-151** — [I-0267] keystroke latency after open+close of another window · [I-0268] tintagael history fails to open | — | — | — | 🔵 **PLANNING** → [backlog](Sprint-backlog.md) |
+| **SP-152** | `[Cross]` **Carried defect from SP-151** — [I-0268] tintagael history fails to open (⚪ [I-0267] removed: duplicate of [I-0206]'s ruling) | — | 2026-10-02 | — | ✅ **CLOSED 2026-10-03** (user-approved) → [record](Closed/Sprint-SP-152.md) |
 
 ## Statistics
 
@@ -459,6 +459,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-03 (**SP-152 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-152.md`; I-0268 verified and archived. ⚠️ **No Sprint is active.**)*
+
+*Last Updated: 2026-10-02 (**SP-152 ACTIVATED** (user-directed) → `Sprint-SP-152.md`; left the backlog at activation.)*
 
 *Last Updated: 2026-10-02 (**SP-151 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-151.md`; AC2/I-0202 closed without a resolution; **SP-152 created in 🔵 Planning** carrying I-0267 + I-0268. SP-152 issued via `next-id.py`.)*
 

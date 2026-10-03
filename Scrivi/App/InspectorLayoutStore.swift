@@ -66,6 +66,12 @@ struct InspectorLayoutDocument: Codable, Equatable, Sendable {
     var schema: String
     var selectedTab: InspectorTab
     var inspectorHidden: Bool
+    /// Timeline strip hidden (I-0255, ruled 2026-09-29: it persists, like `inspectorHidden`).
+    /// ⚠️ It lives in THIS document, not a second file — [I-0215] is what two owners of one
+    /// schema cost. Absent in every layout written before the ruling, so it decodes `false`.
+    var timelineHidden: Bool = false
+    /// Scene Navigator (the split view's sidebar) hidden — I-0255, same rule, same document.
+    var navigatorHidden: Bool = false
     var defaultStacks: [String: [InspectorCardEntry]]
     var stackSort: [String: InspectorSort]
     var scenes: [String: InspectorSceneLayout]
@@ -96,12 +102,16 @@ struct InspectorLayoutDocument: Codable, Equatable, Sendable {
     init(schema: String,
          selectedTab: InspectorTab,
          inspectorHidden: Bool,
+         timelineHidden: Bool = false,
+         navigatorHidden: Bool = false,
          defaultStacks: [String: [InspectorCardEntry]],
          stackSort: [String: InspectorSort],
          scenes: [String: InspectorSceneLayout]) {
         self.schema = schema
         self.selectedTab = selectedTab
         self.inspectorHidden = inspectorHidden
+        self.timelineHidden = timelineHidden
+        self.navigatorHidden = navigatorHidden
         self.defaultStacks = defaultStacks
         self.stackSort = stackSort
         self.scenes = scenes
@@ -114,6 +124,8 @@ struct InspectorLayoutDocument: Codable, Equatable, Sendable {
         // default rather than failing the whole load.
         selectedTab = (try? c.decode(InspectorTab.self, forKey: .selectedTab)) ?? .writing
         inspectorHidden = (try? c.decode(Bool.self, forKey: .inspectorHidden)) ?? false
+        timelineHidden = (try? c.decode(Bool.self, forKey: .timelineHidden)) ?? false
+        navigatorHidden = (try? c.decode(Bool.self, forKey: .navigatorHidden)) ?? false
         defaultStacks = (try? c.decode([String: [InspectorCardEntry]].self, forKey: .defaultStacks))
             ?? Self.makeDefault().defaultStacks
         stackSort = (try? c.decode([String: InspectorSort].self, forKey: .stackSort))
@@ -289,6 +301,18 @@ struct ResolvedStack {
     func setInspectorHidden(_ hidden: Bool) {
         guard document.inspectorHidden != hidden else { return }
         document.inspectorHidden = hidden
+        save()
+    }
+
+    func setTimelineHidden(_ hidden: Bool) {
+        guard document.timelineHidden != hidden else { return }
+        document.timelineHidden = hidden
+        save()
+    }
+
+    func setNavigatorHidden(_ hidden: Bool) {
+        guard document.navigatorHidden != hidden else { return }
+        document.navigatorHidden = hidden
         save()
     }
 

@@ -990,7 +990,7 @@ void HistoryService::setPointers(std::string rootID, std::string currentNodeID,
     sessionID_     = std::move(sessionID);
 }
 
-void HistoryService::finalizeLoad() {
+void HistoryService::finalizeLoad(const std::vector<std::string>& currentTrail) {
     // Derive childIDs from parent links, in eventID (map) order. Records replay in
     // append (seq) order, and eventIDs are minted monotonically, so this preserves
     // creation order. The last-recorded child is the DEFAULT primary — correct for
@@ -1007,6 +1007,33 @@ void HistoryService::finalizeLoad() {
                 it->second.childIDs.push_back(id);
                 it->second.primaryChildID = id;   // default: last child wins
             }
+        }
+    }
+
+    // I-0268: drop orphans — a node whose parent record is not in the log.
+    //
+    // Reported 2026-10-01 on the writer's real project: the USB drive holding it
+    // dropped off the bus while it was open, an event recorded during the outage never
+    // reached the log, and the next event (recorded after the drive came back) named
+    // it as its parent. rebuildHeadCache() walked current→root, hit the missing parent
+    // and threw `unknown node`, so every open failed. A subtree hanging off a missing
+    // parent cannot be replayed (its diffs assume text that was never recorded), so it
+    // goes, exactly as an inconsistent subtree does in pruneInconsistentNodes().
+    std::vector<std::string> orphans;
+    for (const auto& [id, node] : nodes_) {
+        if (id != rootID_ && node.parentID.has_value() && !nodes_.contains(*node.parentID)) {
+            orphans.push_back(id);
+        }
+    }
+    for (const std::string& o : orphans) eraseSubtree(o);
+
+    // The current pointer may have been inside a dropped subtree. It has no surviving
+    // ancestor, so fall back to where the log pointed last before it — the state the
+    // scenes on disk most nearly match — and only then to the root.
+    if (!nodes_.contains(currentNodeID_)) {
+        currentNodeID_ = rootID_;
+        for (auto it = currentTrail.rbegin(); it != currentTrail.rend(); ++it) {
+            if (nodes_.contains(*it)) { currentNodeID_ = *it; break; }
         }
     }
     rebuildHeadCache();

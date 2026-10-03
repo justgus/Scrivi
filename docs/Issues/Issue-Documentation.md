@@ -100,14 +100,14 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 17 | I-0161 – I-0170 | [`Issue-verified-0161-0170.md`](Verified/Issue-verified-0161-0170.md) | 9 |
 | 18 | I-0171 – I-0180 | [`Issue-verified-0171-0180.md`](Verified/Issue-verified-0171-0180.md) | 8 |
 | 19 | I-0181 – I-0190 | [`Issue-verified-0181-0190.md`](Verified/Issue-verified-0181-0190.md) | 6 |
-| 20 | I-0191 – I-0200 | [`Issue-verified-0191-0200.md`](Verified/Issue-verified-0191-0200.md) | 6 |
-| 21 | I-0201 – I-0210 | [`Issue-verified-0201-0210.md`](Verified/Issue-verified-0201-0210.md) | 4 |
-| 22 | I-0211 – I-0220 | [`Issue-verified-0211-0220.md`](Verified/Issue-verified-0211-0220.md) | 6 |
+| 20 | I-0191 – I-0200 | [`Issue-verified-0191-0200.md`](Verified/Issue-verified-0191-0200.md) | 9 |
+| 21 | I-0201 – I-0210 | [`Issue-verified-0201-0210.md`](Verified/Issue-verified-0201-0210.md) | 7 |
+| 22 | I-0211 – I-0220 | [`Issue-verified-0211-0220.md`](Verified/Issue-verified-0211-0220.md) | 8 |
 | 23 | I-0221 – I-0230 | [`Issue-verified-0221-0230.md`](Verified/Issue-verified-0221-0230.md) | 2 |
 | 24 | I-0231 – I-0240 | [`Issue-verified-0231-0240.md`](Verified/Issue-verified-0231-0240.md) | 5 |
 | 25 | I-0241 – I-0250 | [`Issue-verified-0241-0250.md`](Verified/Issue-verified-0241-0250.md) | 8 |
-| 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 7 |
-| 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 8 |
+| 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 9 |
+| 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 3 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
@@ -155,8 +155,27 @@ stands as a marker.**
 | [`Issue-closed-0019.md`](Closed/Issue-closed-0019.md) | I-0019 |
 | [`Issue-closed-0072-0103.md`](Closed/Issue-closed-0072-0103.md) | I-0072, I-0073, I-0085, I-0103 |
 | [`Issue-closed-0134.md`](Closed/Issue-closed-0134.md) | I-0134 — ⚠️ **non-issue** (erroneous parity premise; Apple authoritative) |
+| [`Issue-closed-0174.md`](Closed/Issue-closed-0174.md) | I-0174 — ⚠️ **not a defect** ("opening a project writes to it" — the write is a shared world propagating another project's objects; closed 2026-08-28) |
+| [`Issue-closed-0206.md`](Closed/Issue-closed-0206.md) | I-0206 — ⚠️ **not a defect** (keystroke / `setSel` cost on a 1.85 MB manuscript; no latency requirement exists; closed 2026-09-25) |
+| [`Issue-closed-0180.md`](Closed/Issue-closed-0180.md) | I-0180 — ⚪ **not a defect** (per-row label is the scene's projection; Linux reverted in T-0576; closed 2026-10-03) |
+| [`Issue-closed-0201.md`](Closed/Issue-closed-0201.md) | I-0201 — ⚪ **OBE** (`[Apple]` launch arguments no longer used; closed 2026-10-03) |
+| [`Issue-closed-0267.md`](Closed/Issue-closed-0267.md) | I-0267 — ⚠️ **duplicate of [I-0206]'s ruling** (keystroke cost accepted 2026-09-25; filed 2026-10-01 without checking `Closed/`) |
 
 ---
+
+*Last Updated: 2026-10-03, close of day (**I-0255** — Apple half fully VERIFIED (timeline + Scene Navigator); Linux half awaits the rig.)*
+
+*Last Updated: 2026-10-03, end of day (**I-0255** — Apple Navigator + Linux timeline/navigator implemented, not verified; Linux awaits the rig.)*
+
+*Last Updated: 2026-10-03, latest (**I-0254 ✅ VERIFIED** → `Issue-verified-0251-0260.md` (9); **I-0255** Apple timeline half verified, Scene Navigator persistence ADDED to its scope.)*
+
+*Last Updated: 2026-10-03, later (**I-0180 CLOSED — not a defect** → `Closed/Issue-closed-0180.md`; Linux reverted in T-0576. **I-0254** Resolved - Not Verified. **I-0255** retagged `[Cross]`; Apple half Resolved - Not Verified, Linux half open.)*
+
+*Last Updated: 2026-10-03 (**User verifications archived** — I-0191, I-0194, I-0200 → `Issue-verified-0191-0200.md`; I-0208, I-0209, I-0210 → `Issue-verified-0201-0210.md`; I-0211, I-0212 → `Issue-verified-0211-0220.md`; I-0253 → `Issue-verified-0251-0260.md`; I-0268 → `Issue-verified-0261-0270.md` (counts re-derived). ⚠️ I-0200, I-0208, I-0211 had been user-verified 2026-09-14 and never archived. **I-0201 CLOSED — OBE** → `Closed/Issue-closed-0201.md`. **I-0147 → backlog** (accepted limitation).)*
+
+*Last Updated: 2026-10-02 (closed-issues index: rows added for **I-0174** and **I-0206**, which existed in `Closed/` without rows — user-directed.)*
+
+*Last Updated: 2026-10-02 (**I-0267 CLOSED — duplicate of I-0206's 2026-09-25 ruling** → `Closed/Issue-closed-0267.md`; removed from SP-152.)*
 
 *Last Updated: 2026-10-02 (**SP-151 closed** — I-0266, I-0269, I-0270 → `Issue-verified-0261-0270.md` (8, re-counted); I-0271–I-0273 → new `Issue-verified-0271-0280.md` (3, re-counted); I-0202 → backlog (AC2 closed without a resolution); I-0267 + I-0268 → SP-152. ⚠️ I-0266–I-0273 had been issued without `next-id.py`; registry advanced at close — no collision.)*
 

@@ -53,6 +53,8 @@ QJsonObject makeDefaultDocument()
     doc.insert(QStringLiteral("schema"), QLatin1String(InspectorLayoutStore::kSchemaID));
     doc.insert(QStringLiteral("selectedTab"), QLatin1String(kTabWriting));
     doc.insert(QStringLiteral("inspectorHidden"), false);
+    doc.insert(QStringLiteral("timelineHidden"), false);    // [I-0255] — Apple writes both
+    doc.insert(QStringLiteral("navigatorHidden"), false);
     doc.insert(QStringLiteral("defaultStacks"), defaultStacks);
     doc.insert(QStringLiteral("stackSort"), stackSort);
     doc.insert(QStringLiteral("scenes"), QJsonObject{});
@@ -166,6 +168,29 @@ void InspectorLayoutStore::setInspectorHidden(bool hidden)
     }
     save();
 }
+
+bool InspectorLayoutStore::hiddenKey(const char* key) const
+{
+    return document_.value(QLatin1String(key)).toBool(false);
+}
+
+void InspectorLayoutStore::setHiddenKey(const char* key, bool hidden)
+{
+    if (!loaded_ || hiddenKey(key) == hidden) {
+        return;
+    }
+    // ⚠️ ONE key is touched; everything else round-trips ([I-0215]).
+    document_.insert(QLatin1String(key), hidden);
+    if (!document_.contains(QStringLiteral("schema"))) {
+        document_.insert(QStringLiteral("schema"), QLatin1String(kSchemaID));
+    }
+    save();
+}
+
+bool InspectorLayoutStore::timelineHidden() const { return hiddenKey("timelineHidden"); }
+void InspectorLayoutStore::setTimelineHidden(bool hidden) { setHiddenKey("timelineHidden", hidden); }
+bool InspectorLayoutStore::navigatorHidden() const { return hiddenKey("navigatorHidden"); }
+void InspectorLayoutStore::setNavigatorHidden(bool hidden) { setHiddenKey("navigatorHidden", hidden); }
 
 bool InspectorLayoutStore::save() const
 {

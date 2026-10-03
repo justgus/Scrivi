@@ -238,6 +238,48 @@ int main(int argc, char* argv[])
     }
 
     // ================================================================
+    // 1b2 — [I-0255] `timelineHidden` + `navigatorHidden`: absent ⇒ shown,
+    //       persisted, lossless, re-read agrees (same keys Apple writes)
+    // ================================================================
+    {
+        const QString root = QDir(base).filePath(QStringLiteral("hidden-panes"));
+        const QString path = writeFile(root, kAppleLayout);
+        check(!path.isEmpty(), "fixture: Apple layout written for the panes test");
+        const QJsonObject before = readFile(path);
+
+        InspectorLayoutStore store;
+        store.load(&bridge, root);
+        check(!store.timelineHidden(), "absent timelineHidden reads as SHOWN");
+        check(!store.navigatorHidden(), "absent navigatorHidden reads as SHOWN");
+
+        store.setTimelineHidden(true);
+        store.setNavigatorHidden(true);
+
+        const QJsonObject after = readFile(path);
+        check(after.value(QStringLiteral("timelineHidden")).toBool() == true,
+              "timelineHidden was PERSISTED");
+        check(after.value(QStringLiteral("navigatorHidden")).toBool() == true,
+              "navigatorHidden was PERSISTED");
+        for (const QString& key : before.keys()) {
+            const bool same = after.contains(key) && after.value(key) == before.value(key);
+            if (!same) {
+                std::fprintf(stderr, "  lost or altered key: %s\n", key.toUtf8().constData());
+            }
+            check(same, "an Apple key survived the timeline/navigator writes");
+        }
+
+        InspectorLayoutStore reread;
+        reread.load(&bridge, root);
+        check(reread.timelineHidden() && reread.navigatorHidden(),
+              "a re-opened project reports both panes as hidden");
+
+        const QJsonObject beforeNoop = readFile(path);
+        reread.setTimelineHidden(true);
+        reread.setNavigatorHidden(true);
+        check(readFile(path) == beforeNoop, "setting the SAME values writes nothing");
+    }
+
+    // ================================================================
     // 1c — ⚠️ an ABSENT `inspectorHidden` means SHOWN, not hidden
     // ================================================================
     //

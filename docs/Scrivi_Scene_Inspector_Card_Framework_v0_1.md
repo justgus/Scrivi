@@ -186,6 +186,8 @@ each scene's stack readable on its own — consistent with §2's manual-surfacin
   "schema": "scrivi.inspector-layout.v1",
   "selectedTab": "writing",              // project-level; default "writing" when absent (§4.7)
   "inspectorHidden": false,              // whole tab view hidden/shown via menu (§4.7)
+  "timelineHidden": false,               // timeline strip hidden/shown (I-0255, ruled 2026-09-29); absent ⇒ false
+  "navigatorHidden": false,              // Scene Navigator (sidebar) hidden/shown (I-0255, 2026-10-03); absent ⇒ false
   "defaultStacks": {
     "worldbuilding": [],                 // ships EMPTY (ruled)
     "writing": ["tags", "outline", "todo"]  // ships with these three, empty (ruled)

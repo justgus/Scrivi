@@ -745,6 +745,8 @@ archive files reconstructed after the fact from secondary sources.
 | **T-0538** | ⚠️ **`[Cross]` Project open cost** — [I-0231] + [I-0232]; ⚠️ **the premise did not survive contact: the dominant cost was a per-scene WRITE ([I-0234]), not a per-file read** | **SP-144** | ⚠️ **EP-042** | ✅ **VERIFIED 2026-09-20** | — | — |
 | T-0549 | ⚠️ **`[ScriviCore]` [I-0213] Class A — PATCH the index for single-scene ops that do NOT change manuscript order** (`set/clear_scene_story_time`, `rename_scene`) | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0550 | ⚠️ **`[ScriviCore]` [I-0213] Class B — rebuild ONLY the affected chapter for order/membership ops** (13 endpoints) — ⛔ **BLOCKED ON T-0549** | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
+| T-0555 | `[Apple]` Engine stub parity ([I-0253]) | — | — | ✅ **Verified 2026-10-03** | [`Task-verified-0555.md`](Verified/Task-verified-0555.md) |
+| T-0576 | `[Linux]` Per-row relationship labels (revert, [I-0180]) | — | — | 🟠 **Implemented - Not Verified** | — |
 | T-0568 | `[Apple]` Go to Manuscript Start / End (Project menu) | ✅ **SP-151** | — | ✅ **Verified 2026-09-30** | [`Task-verified-0568.md`](Verified/Task-verified-0568.md) |
 | T-0569 | `[Apple]` Scene navigator search — full scan, per platform | ✅ **SP-151** | — | ✅ **Verified 2026-10-01** | [`Task-verified-0569.md`](Verified/Task-verified-0569.md) |
 | T-0570 | `[Apple]` Project drive gone → red top banner | ✅ **SP-151** | — | ✅ **Verified 2026-09-30** | [`Task-verified-0570.md`](Verified/Task-verified-0570.md) |
@@ -765,6 +767,10 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-03, later (**T-0576** issued via `next-id.py` — Linux per-row labels revert, Implemented - Not Verified.)*
+
+*Last Updated: 2026-10-03 (**T-0555 ✅ Verified** (user) → `Verified/Task-verified-0555.md`; row added.)*
 
 *Last Updated: 2026-10-02 (**SP-151 closed** — rows added for T-0568–T-0575, all ✅ Verified and archived. ⚠️ T-0551–T-0567 still have no rows (noted, not backfilled). ⚠️ T-0571–T-0575 had been issued without `next-id.py`; the registry was advanced at close — no collision.)*
 
