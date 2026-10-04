@@ -135,4 +135,13 @@ enum MarkdownEscapes {
         guard start != r.location || end != r.location + r.length else { return nil }
         return NSRange(location: start, length: end - start)
     }
+
+    /// UTF-16 offsets in `source` of every backslash HIDDEN when it is presented (an escape or
+    /// a hard line break) — what the R3 = (c) styler marks with `hiddenKey`.
+    static func hiddenBackslashes(in source: String) -> [Int] {
+        let p2s = map(source).presentedToSource
+        var out: [Int] = []
+        for p in 0..<(p2s.count - 1) where p2s[p + 1] - p2s[p] == 2 { out.append(p2s[p]) }
+        return out
+    }
 }

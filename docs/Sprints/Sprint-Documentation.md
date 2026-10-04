@@ -422,7 +422,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-151** | ✅ **`[Apple]`** **Apple issue batch + long-manuscript navigation** — [I-0202] [I-0216] [I-0217] [I-0218] · [T-0568] Go to Manuscript Start/End · [T-0569] navigator search | — `[Apple]` | 2026-09-30 | 2026-10-02 | ✅ **CLOSED 2026-10-02** (user-approved) → [record](Closed/Sprint-SP-151.md) |
 | **SP-152** | `[Cross]` **Carried defect from SP-151** — [I-0268] tintagael history fails to open (⚪ [I-0267] removed: duplicate of [I-0206]'s ruling) | — | 2026-10-02 | — | ✅ **CLOSED 2026-10-03** (user-approved) → [record](Closed/Sprint-SP-152.md) |
 | **SP-153** | `[Apple]` **[EP-045] S1** — typed attachments (AC1, all six readers), save fidelity (AC9), divider Light-mode look (AC2) | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-153.md) |
-| **SP-154** | `[Apple]` **[EP-045] S2** — two coordinate spaces (AC3), parsing mode (AC8), R3 measurement | EP-045 | 2026-10-03 | — | 🟢 **COMPLETE** (awaiting close approval) → [record](Sprint-SP-154.md) |
+| **SP-154** | `[Apple]` **[EP-045] S2** — two coordinate spaces (AC3), parsing mode (AC8), R3 measurement | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-154.md) |
+| **SP-155** | `[Apple]` **[EP-045] S3** — the escape layer (AC4) | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-155.md) |
 
 ## Statistics
 
@@ -461,6 +462,14 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-03 (**SP-155 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-155.md`; T-0579 verified. ⚠️ No Sprint is active.)*
+
+*Last Updated: 2026-10-03 (**SP-155 ACTIVATED**; Q-Linux ruled option 1.)*
+
+*Last Updated: 2026-10-03 (**SP-155 created in 🔵 Planning** for EP-045 AC4.)*
+
+*Last Updated: 2026-10-03 (**SP-154 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-154.md`. ⚠️ No Sprint is active.)*
 
 *Last Updated: 2026-10-03 (**SP-154 COMPLETE** — awaiting close approval.)*
 

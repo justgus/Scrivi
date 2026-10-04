@@ -3847,3 +3847,132 @@ struct MarkdownEscapeMapTests {
         #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: s) == nil)
     }
 }
+
+#if os(macOS)
+/// EP-045 AC4 — the escape layer, driven through the REAL `ManuscriptNSTextView` with the REAL
+/// `EscapeHidingStyler` as its storage delegate. ⚠️ Private pasteboards only — a test run must
+/// never touch the writer's clipboard.
+@Suite("Escape layer (EP-045 AC4)")
+@MainActor
+struct EscapeLayerTests {
+
+    @MainActor private final class Fixture {
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        let styler = EscapeHidingStyler()
+        let window: NSWindow
+        init(_ text: String = "") {
+            tv.isRichText = false
+            tv.allowsUndo = false
+            tv.font = EscapeHidingStyler.bodyFont
+            tv.frame = NSRect(x: 0, y: 0, width: 500, height: 100)
+            tv.textStorage?.delegate = styler
+            window = NSWindow(contentRect: tv.frame, styleMask: [.titled], backing: .buffered, defer: false)
+            window.contentView = tv
+            window.makeFirstResponder(tv)
+            if !text.isEmpty { tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0), with: text) }
+        }
+        var text: String { tv.string }
+        func hidden(_ i: Int) -> Bool {
+            tv.textStorage?.attribute(MarkdownEscapes.hiddenKey, at: i, effectiveRange: nil) != nil
+        }
+        func caret(_ i: Int) { tv.setSelectedRange(NSRange(location: i, length: 0)) }
+        func type(_ s: String) { tv.insertText(s, replacementRange: tv.selectedRange()) }
+    }
+
+    /// ⚠️ The type AppKit ACTUALLY passes on copy/paste (measured) — ⛔ NOT `.string`. The first
+    /// version of these tests named `.string` and so passed while the real copy and paste failed.
+    private let appKitStringType = NSPasteboard.PasteboardType("NSStringPboardType")
+
+    private func pasteboard() -> NSPasteboard {
+        let pb = NSPasteboard(name: .init("scrivi.test.\(UUID().uuidString)"))
+        pb.clearContents()
+        return pb
+    }
+
+    @Test("typing escapes a mark and the styler hides its backslash")
+    func typingEscapesAndHides() {
+        let f = Fixture()
+        f.type("a*b")
+        #expect(f.text == #"a\*b"#)
+        #expect(f.hidden(1), "the escape backslash is hidden")
+        #expect(!f.hidden(0) && !f.hidden(2) && !f.hidden(3))
+    }
+
+    @Test("⌫ after the mark and ⌦ before the backslash remove the WHOLE pair")
+    func pairDeletion() {
+        let f = Fixture(#"a\*b"#)
+        f.caret(3); f.tv.deleteBackward(nil)
+        #expect(f.text == "ab", "no orphaned backslash")
+        let g = Fixture(#"a\*b"#)
+        g.caret(1); g.tv.deleteForward(nil)
+        #expect(g.text == "ab", "no live, unescaped mark")
+    }
+
+    @Test("copy puts what the writer SEES on the pasteboard; pasting it back restores the stored text")
+    func ownCopyRoundTrip() {
+        let f = Fixture(#"a\*b"#)
+        let pb = pasteboard()
+        f.tv.setSelectedRange(NSRange(location: 0, length: 4))
+        #expect(f.tv.writeSelection(to: pb, type: appKitStringType))
+        #expect(pb.string(forType: .string) == "a*b", "other apps get the writer's text, not backslashes")
+        f.caret(4)
+        #expect(f.tv.readSelection(from: pb))
+        #expect(f.text == #"a\*ba\*b"#, "not double-escaped")
+    }
+
+    @Test("an in-app copy of EXISTING markup stays markup (R2)")
+    func ownCopyKeepsIntendedMarkup() {
+        let f = Fixture("## Scene")
+        let pb = pasteboard()
+        f.tv.setSelectedRange(NSRange(location: 0, length: 8))
+        _ = f.tv.writeSelection(to: pb, type: appKitStringType)
+        f.caret(8)
+        _ = f.tv.readSelection(from: pb)
+        #expect(f.text == "## Scene## Scene", "re-escaping would have turned the intended ## literal")
+    }
+
+    @Test("text pasted from another app is escaped like typing (R1)")
+    func externalPasteEscapes() {
+        let f = Fixture()
+        let pb = pasteboard()
+        pb.setString("x_y", forType: .string)
+        #expect(f.tv.readSelection(from: pb))
+        #expect(f.text == #"x\_y"#)
+        #expect(f.hidden(1))
+    }
+
+    @Test("a TextEdit-style paste (rich text + plain) is escaped too")
+    func richPasteEscapes() throws {
+        let f = Fixture()
+        let pb = pasteboard()
+        let rich = NSAttributedString(string: "x*y")
+        let rtf = try rich.data(from: NSRange(location: 0, length: rich.length),
+                                documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
+        pb.setData(rtf, forType: .rtf)
+        pb.setString("x*y", forType: .string)
+        #expect(f.tv.readSelection(from: pb))
+        #expect(f.text == #"x\*y"#)
+    }
+
+    @Test("a backslash that stops escaping anything is un-hidden")
+    func unhidesBrokenEscape() {
+        let f = Fixture(#"a\*b"#)
+        #expect(f.hidden(1))
+        // A programmatic replace (as undo's apply does) turns `\*` into `\c`.
+        f.tv.textStorage?.replaceCharacters(in: NSRange(location: 2, length: 1), with: "c")
+        #expect(f.text == #"a\cb"#)
+        #expect(!f.hidden(1), "a backslash before `c` is ordinary text and must be visible")
+    }
+
+    @Test("design AC4: type → store → parse (.full, AC8) → presented equals what was typed, all 32")
+    func roundTripAll32() throws {
+        for ch in ##"!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"## {
+            let f = Fixture()
+            f.type("x\(ch)y")
+            let parsed = try AttributedString(
+                markdown: f.text, options: .init(interpretedSyntax: MarkdownEscapes.interpretedSyntax))
+            #expect(String(parsed.characters) == "x\(ch)y", "\(ch) → stored \(f.text.debugDescription)")
+        }
+    }
+}
+#endif

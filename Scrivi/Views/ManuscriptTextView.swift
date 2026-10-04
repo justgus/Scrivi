@@ -66,6 +66,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         textView.textContainerInset = NSSize(width: 60, height: 40)
         textView.delegate = context.coordinator
         context.coordinator.textView = textView
+        // EP-045 AC4: hide escape backslashes after every storage change (weak delegate — the
+        // coordinator owns the styler).
+        textView.textStorage?.delegate = context.coordinator.escapeStyler
 
         // T-0531 DIAGNOSTIC — report which layout engine this view ACTUALLY uses.
         // ⚠️ Reading `.layoutManager` to check would itself cause the downgrade, so the
@@ -307,6 +310,8 @@ struct ManuscriptTextView: NSViewRepresentable {
         private let forkPopover = ForkPopoverController()
 
         init(_ parent: ManuscriptTextView) { self.parent = parent }
+        /// EP-045 AC4 — the storage delegate that keeps escape backslashes hidden.
+        let escapeStyler = EscapeHidingStyler()
 
         // MARK: — History capture helpers (EP-019)
 
@@ -2258,7 +2263,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             internalClipboardFragment = frag
             let pb = NSPasteboard.general
             pb.clearContents()
-            pb.setString(frag.plainText, forType: .string)
+            // EP-045 AC4: other apps get what the writer SEES, not escape backslashes. ⌘V in
+            // Scrivi still reconstructs from `internalClipboardFragment`, which keeps the source.
+            pb.setString(MarkdownEscapes.map(frag.plainText).presented, forType: .string)
             return true
         }
 
@@ -2461,7 +2468,104 @@ final class ManuscriptNSTextView: NSTextView {
             }
             if hasDivider { return false }
         }
+        // ✅ EP-045 AC4: an escape pair (`\*`) is ONE unit. ⚠️ Measured 2026-10-03: ⌫ after a `*`
+        // removed only the `*` (leaving `a\b` — an orphaned backslash that becomes VISIBLE), and
+        // ⌦ before the `\` removed only the backslash (leaving a LIVE `*`). Re-issue the edit
+        // over the whole pair instead.
+        if affectedCharRange.length > 0,
+           let pair = MarkdownEscapes.snapSelection(affectedCharRange, in: storage) {
+            if shouldChangeText(in: pair, replacementString: replacementString) {
+                let replacement = NSAttributedString(
+                    string: replacementString ?? "",
+                    attributes: [.font: EscapeHidingStyler.bodyFont, .foregroundColor: NSColor.textColor])
+                storage.replaceCharacters(in: pair, with: replacement)
+                didChangeText()
+                setSelectedRange(NSRange(location: pair.location + replacement.length, length: 0))
+            }
+            return false
+        }
         return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+    }
+
+    // MARK: — EP-045 AC4: the escape layer
+
+    /// True while inserting text that is ALREADY in stored form (a copy-buffer slot, or Scrivi's
+    /// own copy coming back) — it must not be escaped a second time.
+    private var insertsVerbatim = false
+    /// What THIS view last put on a pasteboard, in STORED form, keyed to that pasteboard write.
+    /// ⚠️ The pasteboard carries what the writer SEES; pasting it back must restore the exact
+    /// source — re-escaping it would turn intended markup (R2: e.g. a `##` heading) literal.
+    private var ownCopy: (pasteboard: NSPasteboard.Name, changeCount: Int, source: String)?
+
+    /// ✅ Typing escapes: every keystroke and IME commit arrives here (measured 2026-10-03).
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        guard !insertsVerbatim else { return super.insertText(string, replacementRange: replacementRange) }
+        let typed = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        super.insertText(MarkdownEscapes.escape(typed), replacementRange: replacementRange)
+    }
+
+    /// Insert text that is already in stored form, unescaped.
+    func insertVerbatim(_ source: String, replacementRange: NSRange) {
+        insertsVerbatim = true
+        defer { insertsVerbatim = false }
+        insertText(source, replacementRange: replacementRange)
+    }
+
+    /// ✅ Copy, cut and drag put what the writer SEES on the pasteboard (measured: all three
+    /// route here), and remember the stored form for a paste back into Scrivi.
+    override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        let sel = selectedRange()
+        guard Self.isPlainTextType(type), sel.length > 0, let storage = textStorage else {
+            return super.writeSelection(to: pboard, type: type)
+        }
+        let source = (storage.string as NSString).substring(with: sel)
+        let ok = pboard.setString(MarkdownEscapes.map(source).presented, forType: .string)
+        if ok { ownCopy = (pboard.name, pboard.changeCount, source) }
+        return ok
+    }
+
+    /// ⛔ USER-FOUND 2026-10-03: AppKit calls the two overrides below with the LEGACY type
+    /// `NSStringPboardType` — ⚠️ which is NOT equal to `.string` (`public.utf8-plain-text`). The
+    /// first version tested `type == .string`, so BOTH fell through to AppKit: copy wrote the
+    /// stored backslashes and paste inserted unescaped text. Its tests passed only because they
+    /// named `.string` themselves. ✅ Accept either spelling.
+    private static let legacyStringType = NSPasteboard.PasteboardType("NSStringPboardType")
+    static func isPlainTextType(_ type: NSPasteboard.PasteboardType) -> Bool {
+        type == .string || type == legacyStringType
+    }
+
+    /// The plain text a paste of `type` would insert, or nil to leave it to AppKit.
+    /// ⚠️ A plain view still READS rich text, RTFD and HTML (measured `readablePasteboardTypes`),
+    /// so those are reduced to their plain text here and escaped like any other paste (R1).
+    /// ⛔ Left to AppKit: colours, fonts, rulers — and URLs / filenames with no plain-text form.
+    static func plainText(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> String? {
+        if isPlainTextType(type) || pboard.string(forType: .string) != nil {
+            return pboard.string(forType: .string)
+        }
+        let rich: [NSPasteboard.PasteboardType: NSAttributedString.DocumentType] = [
+            .rtf: .rtf, .init("NeXT Rich Text Format v1.0 pasteboard type"): .rtf,
+            .rtfd: .rtfd, .init("NeXT RTFD pasteboard type"): .rtfd,
+            .html: .html, .init("Apple HTML pasteboard type"): .html,
+        ]
+        guard let docType = rich[type], let data = pboard.data(forType: type) else { return nil }
+        return (try? NSAttributedString(data: data, options: [.documentType: docType],
+                                        documentAttributes: nil))?.string
+    }
+
+    /// ✅ Paste and drop (measured: both route here, NOT through `insertText`). R1: text from
+    /// anywhere else is escaped like typing; Scrivi's own copy goes back exactly as stored.
+    override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        guard let text = Self.plainText(from: pboard, type: type) else {
+            return super.readSelection(from: pboard, type: type)
+        }
+        let range = rangeForUserTextChange
+        guard range.location != NSNotFound else { return false }
+        if let own = ownCopy, own.pasteboard == pboard.name, own.changeCount == pboard.changeCount {
+            insertVerbatim(own.source, replacementRange: range)
+        } else {
+            insertText(text, replacementRange: range)
+        }
+        return true
     }
 
     // MARK: — Custom undo/redo routing (EP-019 T-0205, T-0199-validated mechanism)
@@ -2572,7 +2676,9 @@ final class ManuscriptNSTextView: NSTextView {
     // Inserts `text` at the caret (replacing any selection), routed through
     // insertText so it commits as a normal editable change. Used by pasteFromBuffer.
     func insertTextForBuffer(_ text: String) {
-        insertText(text, replacementRange: selectedRange())
+        // EP-045 AC4: a slot holds STORED text (`copyIntoBuffer` slices storage), so it goes
+        // back verbatim — escaping it again would turn `\*` into `\\\*`.
+        insertVerbatim(text, replacementRange: selectedRange())
     }
 
     // Deletes the current selection, routed through AppKit's delete so the removal
@@ -2798,6 +2904,72 @@ enum SceneDivider {
     }
 }
 
+
+// MARK: — EP-045 AC4: hiding the escape backslash (R3 = (c), ruled 2026-10-03)
+
+/// Keeps every escape backslash HIDDEN by storage attributes — and un-hides one that no longer
+/// escapes anything — after EVERY change to the manuscript's storage: typing, paste, undo/redo's
+/// apply, the cross-scene delete and `rebuildStorage` alike.
+/// ✅ ONE hook for all of them: the text storage's delegate. ⚠️ Measured 2026-10-03 under TextKit 2:
+/// the slot is free (`nil`), `didProcessEditing` fires for typed AND programmatic edits, the view
+/// stays on TextKit 2, and the backslash renders hidden. ⛔ Hooking each edit path instead would
+/// miss the next one added — design trap #3 (undo re-applies only font + colour) is exactly that.
+final class EscapeHidingStyler: NSObject, NSTextStorageDelegate {
+
+    // Computed, not stored: Swift 6 rejects a static `NSFont` / attribute dictionary as not
+    // concurrency-safe, and both are cheap to build.
+    static var bodyFont: NSFont { NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular) }
+    /// What a hidden backslash carries: the KEY (the snap and the delete read only this) plus a
+    /// near-zero, transparent rendering (measured: no visible width, no visible glyph).
+    static var hiddenAttributes: [NSAttributedString.Key: Any] {
+        [MarkdownEscapes.hiddenKey: true,
+         .font: NSFont.systemFont(ofSize: 0.01),
+         .foregroundColor: NSColor.clear]
+    }
+
+    func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
+                     range editedRange: NSRange, changeInLength delta: Int) {
+        guard editedMask.contains(.editedCharacters) else { return }
+        Self.restyle(textStorage, in: editedRange)
+    }
+
+    /// Re-derive hiding over the paragraphs that `range` touches. ⚠️ Escapes never cross a line,
+    /// so paragraphs are the whole scope; ✅ only paragraphs that contain a backslash are scanned,
+    /// so a rebuild of the full manuscript costs one string search, not a parse.
+    static func restyle(_ ts: NSTextStorage, in range: NSRange) {
+        let ns = ts.string as NSString
+        guard ns.length > 0 else { return }
+        let loc = min(range.location, ns.length)
+        let span = ns.paragraphRange(for: NSRange(location: loc, length: min(range.length, ns.length - loc)))
+
+        // 1. Un-hide anything hidden here before; step 2 re-hides what still escapes.
+        var stale: [NSRange] = []
+        ts.enumerateAttribute(MarkdownEscapes.hiddenKey, in: span, options: []) { v, r, _ in
+            if v != nil { stale.append(r) }
+        }
+        for r in stale {
+            ts.removeAttribute(MarkdownEscapes.hiddenKey, range: r)
+            ts.addAttributes([.font: bodyFont, .foregroundColor: NSColor.textColor], range: r)
+        }
+
+        // 2. Hide, paragraph by paragraph, only where a backslash occurs. ⛔ Never inside a
+        // chapter heading (headings are not scene text).
+        var search = span
+        while search.length > 0 {
+            let hit = ns.range(of: "\\", options: .literal, range: search)
+            if hit.location == NSNotFound { break }
+            let para = ns.paragraphRange(for: hit)
+            for off in MarkdownEscapes.hiddenBackslashes(in: ns.substring(with: para)) {
+                let i = para.location + off
+                if ts.attribute(.scriviHeading, at: i, effectiveRange: nil) == nil {
+                    ts.addAttributes(hiddenAttributes, range: NSRange(location: i, length: 1))
+                }
+            }
+            let next = NSMaxRange(para)
+            search = NSRange(location: next, length: max(0, NSMaxRange(span) - next))
+        }
+    }
+}
 
 // Renders a 1pt horizontal rule across the full text column — the scene divider.
 // No text, no label; purely visual separation.

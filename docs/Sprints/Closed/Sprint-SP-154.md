@@ -1,7 +1,8 @@
 ---
 sprint: SP-154
 epic: EP-045
-status: Complete
+status: Closed
+closed: 2026-10-03
 activated: 2026-10-03
 platform: Apple
 created: 2026-10-03
@@ -9,7 +10,7 @@ created: 2026-10-03
 
 # SP-154 — `[Apple]` [EP-045] S2: The two coordinate spaces (AC3) + parsing mode (AC8)
 
-**Status:** 🟢 **COMPLETE 2026-10-03 — awaiting user approval to close.** (Activated 2026-10-03.)
+**Status:** ✅ **CLOSED 2026-10-03 (user-approved):** *"Close SP-154."* (Activated and completed 2026-10-03.)
 **Epic:** [EP-045] → [`../Epics/Epic-EP-045.md`](../Epics/Epic-EP-045.md)
 **Design:** [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md) §4 (AC3)
 **Size:** ⚠️ **MEDIUM** — a new seam through every caret path, plus one measurement for a ruling.
@@ -122,3 +123,7 @@ backslash** (re-measured: click → 2). ✅ 145/145 interop; macOS / iOS / visio
 ✅ User: *"1. confirm .full for AC8. 2. passes."* ✅ **AC8:** `MarkdownEscapes.interpretedSyntax = .full`, stated with
 its reasons in `ManuscriptEscapes.swift` and design §4.5. ✅ **[T-0578] verified** and archived →
 `../Tasks/Verified/Task-verified-0578.md`. ✅ **All ACs met. ⚠️ Awaiting approval to CLOSE.**
+
+### ✅ 2026-10-03 — Sprint CLOSED (user-approved)
+
+✅ *"Close SP-154."* ✅ [T-0578] already verified and archived. ✅ EP-045 AC3 + AC8 met. Nothing carried forward.

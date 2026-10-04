@@ -1,8 +1,9 @@
 # Active Sprints
 
-## SP-154 — 🟢 COMPLETE 2026-10-03 (awaiting close approval)
+## No Sprint is active (SP-155 closed 2026-10-03)
 
-🟢 **[SP-154] COMPLETE 2026-10-03 — awaiting close approval** `[Apple]` [EP-045] S2 → [`Sprint-SP-154.md`](Sprint-SP-154.md) — two coordinate spaces (AC3), parsing mode (AC8), R3 measurement.
+✅ **[SP-155] CLOSED 2026-10-03 (user-approved)** `[Apple]` [EP-045] S3 → [`Closed/Sprint-SP-155.md`](Closed/Sprint-SP-155.md) — ✅ the escape layer (AC4), [T-0579] verified. Linux shows backslashes until EP-048 (ruled).
+✅ **[SP-154] CLOSED 2026-10-03 (user-approved)** `[Apple]` [EP-045] S2 → [`Closed/Sprint-SP-154.md`](Closed/Sprint-SP-154.md) — two coordinate spaces (AC3), parsing mode (AC8), R3 measurement.
 ✅ **[SP-153] CLOSED 2026-10-03 (user-approved)** `[Apple]` [EP-045] S1 → [`Closed/Sprint-SP-153.md`](Closed/Sprint-SP-153.md) — ✅ AC1 typed dividers + AC9 save fidelity ([T-0577] verified), AC2 met.
 ✅ **[SP-152] CLOSED 2026-10-03 (user-approved)** `[Cross]` → [`Closed/Sprint-SP-152.md`](Closed/Sprint-SP-152.md) — ✅ [I-0268] tintagael history fails to open — **fixed and USER-VERIFIED 2026-10-03, archived** (⚪ [I-0267] closed 2026-10-02: duplicate of [I-0206]'s ruling).
 ✅ **[SP-151] CLOSED 2026-10-02 (user-approved)** `[Apple]` → [`Closed/Sprint-SP-151.md`](Closed/Sprint-SP-151.md) — ✅ 18 items verified (incl. [I-0270] data-corruption fix on both platforms, edit-group undo in the core); ⚪ AC2/[I-0202] closed WITHOUT a resolution (user ruling) → Issue backlog; ➡️ [I-0268] carried to [SP-152]; ⚪ [I-0267] closed as a duplicate of [I-0206].

@@ -75,7 +75,9 @@ final class BufferService {
     // A short single-line preview for slot `bufferID`, or nil when empty. Used by the
     // palette rows.
     func preview(forSlot bufferID: String) -> String? {
-        text(inSlot: bufferID).map { Self.previewLine($0) }
+        // EP-045 AC4: a slot holds STORED text (escape backslashes included); the palette shows
+        // what the writer sees.
+        text(inSlot: bufferID).map { Self.previewLine(MarkdownEscapes.map($0).presented) }
     }
 
     // Collapses `text` to a single trimmed line for display in the palette.

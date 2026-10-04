@@ -62,7 +62,8 @@ unclosable.**
   bitmap measurement of a real `NSTextView` found it drawn in BOTH Dark and Light. ⚠️ **What the AC's
   evidence obligation still lacks is a LIVE look in LIGHT mode** — [SP-153] collects it.
   ⛔ **Known trap #1 below is therefore OUT OF DATE.**
-- ✅ **AC3 + AC8 — MET 2026-10-03** ([T-0578] user-verified; `.full` confirmed). [SP-154] complete.
+- ✅ **AC4 — MET 2026-10-03** ([T-0579] user-verified; [SP-155] CLOSED). ⚠️ Linux shows backslashes until [EP-048] (ruled); Find/Replace across hidden backslashes is a follow-up.
+- ✅ **AC3 + AC8 — MET 2026-10-03** ([T-0578] user-verified; `.full` confirmed). [SP-154] CLOSED.
 - ✅ **AC2 — MET 2026-10-03** (user's Light-mode live look). ✅ **AC1 + AC9 — MET 2026-10-03**
   ([T-0577] user-verified by live look; [SP-153] CLOSED). ✅ Design ruled by the user: one `DividerTextAttachment`, rendering
   states in an enum carried by the `.scriviDivider` key.
@@ -123,7 +124,8 @@ a NEW break waits.**
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
-| **[SP-154]** | ✅ **AC3 two coordinate spaces** + **AC8 parsing mode** + ⚠️ **AC-R3 measurement for ruling R3** | 🟢 **COMPLETE 2026-10-03** (awaiting close) → [`../Sprints/Sprint-SP-154.md`](../Sprints/Sprint-SP-154.md) |
+| **[SP-155]** | ✅ **AC4 the escape layer** (typing, paste, pair-deletion, copy un-escape, hiding styler) | (Linux shows backslashes until [EP-048] — ruled) → ✅ **CLOSED 2026-10-03** [`../Sprints/Closed/Sprint-SP-155.md`](../Sprints/Closed/Sprint-SP-155.md) |
+| **[SP-154]** | ✅ **AC3 two coordinate spaces** + **AC8 parsing mode** + ⚠️ **AC-R3 measurement for ruling R3** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-154.md`](../Sprints/Closed/Sprint-SP-154.md) |
 | **[SP-153]** | ⛔ **AC1 typed attachments (the data-loss item, all six readers)** + **AC9 save fidelity** + **AC2 Light-mode live look** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-153.md`](../Sprints/Closed/Sprint-SP-153.md) |
 
 ⚠️ Later Sprints (AC3–AC8, AC10) are NOT pre-allocated; IDs come from `docs/tools/next-ids.json` when each is created.
