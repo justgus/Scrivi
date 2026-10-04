@@ -424,6 +424,9 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-153** | `[Apple]` **[EP-045] S1** — typed attachments (AC1, all six readers), save fidelity (AC9), divider Light-mode look (AC2) | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-153.md) |
 | **SP-154** | `[Apple]` **[EP-045] S2** — two coordinate spaces (AC3), parsing mode (AC8), R3 measurement | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-154.md) |
 | **SP-155** | `[Apple]` **[EP-045] S3** — the escape layer (AC4) | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-155.md) |
+| **SP-156** | `[Apple]` **[EP-045] S4** — Enter/Backspace (AC5), trailing whitespace (AC6) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-156.md) |
+| **SP-157** | `[Apple]` **[EP-045] S5** — block intents as prose (AC7), caret-path measurement (AC10) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-157.md) |
+| **SP-158** | `[Apple]` **[EP-045] S6** — maintain the scene-boundary table (AC11, T-0583) | EP-045 | 2026-10-04 | — | 🟡 **ACTIVE** → [record](Sprint-SP-158.md) |
 
 ## Statistics
 
@@ -462,6 +465,24 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-04 (**SP-158 ACTIVATED** (user-approved); T-0583 active.)*
+
+*Last Updated: 2026-10-04 (**SP-158 created in 🔵 Planning** for EP-045 AC11 (T-0583), issued via `next-id.py`.)*
+
+*Last Updated: 2026-10-04 (**SP-157 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-157.md`; T-0581, T-0582 archived. ⚠️ No Sprint is active.)*
+
+*Last Updated: 2026-10-04 (**SP-157 ACTIVATED** (user-approved); Q-AC7 = (a) adopted as recommended; T-0581, T-0582 allocated.)*
+
+*Last Updated: 2026-10-04 (**SP-157 created in 🔵 Planning** for EP-045 S5 (AC7 + AC10), issued via `next-id.py`. Q-AC7 owed.)*
+
+*Last Updated: 2026-10-04 (**SP-156 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-156.md`; T-0580 archived. ⚠️ No Sprint is active.)*
+
+*Last Updated: 2026-10-04 (**SP-156 COMPLETE** — live check passed, T-0580 verified; awaiting close approval.)*
+
+*Last Updated: 2026-10-04 (**SP-156 ACTIVATED** (user-approved); Q1 ruled (a); T-0580 implemented, live check owed.)*
+
+*Last Updated: 2026-10-04 (**SP-156 created in 🔵 Planning** for EP-045 S4 (AC5 + AC6), issued via `next-id.py`. Q1/Q2 owed.)*
 
 *Last Updated: 2026-10-03 (**SP-155 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-155.md`; T-0579 verified. ⚠️ No Sprint is active.)*
 

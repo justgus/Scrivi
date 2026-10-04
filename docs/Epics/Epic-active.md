@@ -2,7 +2,7 @@
 
 ## EP-045: `[Apple]` ⚠️ **The Manuscript Renderer — Foundations**
 
-**Status:** 🟡 **ACTIVE 2026-10-03** (user: *"Let's activate that epic next (EP-045?)."*) — created 2026-09-29. ✅ **[SP-153] CLOSED 2026-10-03 — AC1, AC2, AC9 MET** → [`../Sprints/Closed/Sprint-SP-153.md`](../Sprints/Closed/Sprint-SP-153.md). ⚠️ Remaining: AC3–AC8, AC10.
+**Status:** 🟡 **ACTIVE 2026-10-03** (user: *"Let's activate that epic next (EP-045?)."*) — created 2026-09-29. ✅ **AC1–AC10 MET** ([SP-153]–[SP-157] closed). ⚠️ **AC11 ADDED 2026-10-04** ([T-0583]) → 🟡 **[SP-158]** ACTIVE → [`../Sprints/Sprint-SP-158.md`](../Sprints/Sprint-SP-158.md). ⛔ Cannot close until AC11 is met.
 **Full record:** → [`Epic-EP-045.md`](Epic-EP-045.md) — ⚠️ **AC1–AC10 and TWO owed rulings.**
 **Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)

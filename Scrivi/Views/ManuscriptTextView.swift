@@ -69,6 +69,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // EP-045 AC4: hide escape backslashes after every storage change (weak delegate — the
         // coordinator owns the styler).
         textView.textStorage?.delegate = context.coordinator.escapeStyler
+        if let storage = textView.textStorage { context.coordinator.boundaryTable.observe(storage) }
 
         // T-0531 DIAGNOSTIC — report which layout engine this view ACTUALLY uses.
         // ⚠️ Reading `.layoutManager` to check would itself cause the downgrade, so the
@@ -258,7 +259,13 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // Character range for each scene segment in the NSTextStorage.
         // Dividers occupy 1 character each between segments.
-        var sceneBoundaries: [NSRange] = []
+        // ✅ EP-045 AC11 (T-0583): MAINTAINED by `boundaryTable` from each edit; read here, it
+        // is current or rescanned — never a stale copy (ONE authority, [I-0131]).
+        let boundaryTable = SceneBoundaryTable()
+        var sceneBoundaries: [NSRange] {
+            guard let storage = textView?.textStorage else { return [] }
+            return boundaryTable.ranges(in: storage)
+        }
 
         var lastSegmentIDs: [String] = []
         var lastShowChapterTitles: Bool = false
@@ -439,7 +446,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 return nil
             }
 
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
             guard sceneBoundaries.indices.contains(segIdx) else { return nil }
             let range = sceneBoundaries[segIdx]
             var caret = range.location
@@ -460,7 +467,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     .foregroundColor: NSColor.textColor
                 ]
                 storage.replaceCharacters(in: range, with: NSAttributedString(string: change.newText, attributes: attrs))
-                recomputeBoundaries(tv)
+                ensureBoundaries(tv)
 
                 // Restore the cursor: scene-local UTF-8 byte offset → storage char.
                 if sceneBoundaries.indices.contains(segIdx) {
@@ -670,7 +677,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     if Date() < until { return }
                     self.navigationLockUntil = nil
                 }
-                recomputeBoundaries(tv)
+                ensureBoundaries(tv)
                 guard let charIdx = self.characterIndex(atPoint: NSPoint(x: 0, y: centerY), in: tv),
                       let segIdx = segmentIndex(for: charIdx),
                       loader.segments.indices.contains(segIdx) else { return }
@@ -722,7 +729,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             ]
             let showTitles = parent.showChapterTitles
 
-            sceneBoundaries = []
+            var built: [NSRange] = []
             var offset = 0
 
             for (i, seg) in segments.enumerated() {
@@ -773,10 +780,13 @@ struct ManuscriptTextView: NSViewRepresentable {
                 storage.append(segStr)
                 offset += segStr.length
 
-                sceneBoundaries.append(NSRange(location: start, length: segStr.length))
+                built.append(NSRange(location: start, length: segStr.length))
             }
 
             storage.endEditing()
+            // ✅ EP-045 AC11: the ranges were built exactly while appending — install them, so
+            // the whole-storage edit above (which marked the table dirty) costs no rescan.
+            boundaryTable.reset(built)
 
             // Sync the change-detection keys so the NEXT updateNSView pass — which the
             // @Observable segment mutation that prompted this rebuild will schedule — sees no
@@ -906,7 +916,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             // T-0531 DIAGNOSTIC — per-keystroke cost, by step.
             let __k0 = Date()
             // Recompute boundaries from live storage — they shift with every keystroke.
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
             let __kBounds = Date()
 
             guard let segIdx = segmentIndex(for: loc) else { return }
@@ -1711,10 +1721,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         // CHARACTERS. ⚠️ Same output, same authority — the storage is still the single
         // source of truth for boundaries (I-0131), this only stops re-deriving it the
         // slowest possible way.
-        func recomputeBoundaries(_ tv: NSTextView) {
-            guard let storage = tv.textStorage,
-                  let scanned = SceneDivider.sceneBoundaries(in: storage) else { return }
-            sceneBoundaries = scanned
+        /// ✅ EP-045 AC11: makes `sceneBoundaries` trustworthy — a no-op unless an edit the
+        /// table could not prove local marked it dirty, in which case it rescans the storage.
+        /// ⛔ It used to RESCAN the whole manuscript on every call, keystrokes included.
+        func ensureBoundaries(_ tv: NSTextView) {
+            guard let storage = tv.textStorage else { return }
+            _ = boundaryTable.ranges(in: storage)
         }
 
         // Resume the writing surface restored from the last session (I-0058).
@@ -1741,7 +1753,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             //
             // Boundaries are computed from the REAL storage, so they are authoritative.
             // Recompute FIRST, then resolve the offset from them.
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
 
             guard let segIdx = loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else {
                 NSLog("[SCRIVI-DIAG] restoreWritingSurface BAILED: scene not loaded \(sceneID)")
@@ -1839,7 +1851,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             // ignores chapter-heading text, so it scrolls short by the heading length of
             // every chapter before the target. Use the boundaries computed from real
             // storage instead.
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
             guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == sceneID }) else { return }
             // Same fallback as restoreWritingSurface: boundaries are authoritative when
             // they exist, but empty storage (a new project) leaves them unbuilt.
@@ -1965,7 +1977,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // Storage range of the scene containing `storageOffset`, boundaries recomputed.
         private func sceneStorageRange(containing storageOffset: Int, in tv: NSTextView) -> NSRange? {
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
             return sceneBoundaries.first { NSLocationInRange(storageOffset, $0)
                 || storageOffset == $0.location + $0.length }
                 ?? sceneBoundaries.last
@@ -1979,7 +1991,7 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         func moveToChapterBoundary(_ edge: ManuscriptEdge, in tv: NSTextView) {
             let caret = tv.selectedRange().location
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
             // Find the caret's scene, then widen to every contiguous scene sharing its
             // chapter. Scene order in `segments` is manuscript order, so the chapter is a
             // contiguous run — the same assumption the Linux chapter-reorder splice makes.
@@ -2011,7 +2023,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             // with chapter titles shown, offset 0 is in front of Chapter 1's heading.
             let target: Int
             if edge == .start {
-                recomputeBoundaries(tv)
+                ensureBoundaries(tv)
                 target = sceneBoundaries.first?.location ?? 0
             } else {
                 target = (tv.string as NSString).length
@@ -2210,7 +2222,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             loader.replaceScenes(reopened.scenes, activeSceneID: caretSceneID)
             rebuildStorage(tv, segments: loader.segments)
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
 
             // Place the caret at the target scene + scene-local byte offset.
             if let segIdx = loader.segments.firstIndex(where: { $0.sceneID == caretSceneID }),
@@ -2285,7 +2297,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         @discardableResult
         func deleteAcrossScenes(_ sel: NSRange, kind: String) -> Bool {
             guard let tv = textView, let storage = tv.textStorage, sel.length > 0 else { return false }
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
             let loader = parent.loader
             // Every scene the selection overlaps: its index, its range BEFORE the edit,
             // and the part of it that is selected.
@@ -2303,7 +2315,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             storage.beginEditing()
             for part in parts.reversed() { storage.deleteCharacters(in: part.cut) }
             storage.endEditing()
-            recomputeBoundaries(tv)
+            ensureBoundaries(tv)
 
             var edits: [HistoryCapture.GroupedSceneEdit] = []
             for (n, part) in parts.enumerated() where sceneBoundaries.indices.contains(part.segIdx) {
@@ -2504,6 +2516,32 @@ final class ManuscriptNSTextView: NSTextView {
         super.insertText(MarkdownEscapes.escape(typed), replacementRange: replacementRange)
     }
 
+    /// ✅ EP-045 AC5 + AC6 — Return starts a PARAGRAPH: it stores `\n\n` (study §3A.6), first
+    /// reducing the trailing spaces before the caret to AT MOST ONE (§4B.6: two or more are a
+    /// CommonMark hard break once a ⌫ merges the paragraphs) and collapsing a trailing typed
+    /// backslash (`\\`) to `\`, so that a merge leaves the break the writer typed.
+    /// ⚠️ Measured 2026-10-04: Return, keypad Enter AND Shift-Return all send `insertNewline:`;
+    /// Option-Return sends `insertNewlineIgnoringFieldEditor:` and is NOT changed here.
+    /// ⛔ ONE replacement, never several: Return is a history commit boundary
+    /// (`isCommitBoundary`), so a split edit would commit half the gesture as its own undo step.
+    override func insertNewline(_ sender: Any?) {
+        guard let storage = textStorage, !hasMarkedText() else { return super.insertNewline(sender) }
+        let sel = selectedRange()
+        // ⚠️ Read backward from the caret only — ⛔ never copy the document (EP-045 trap #2).
+        let ns = storage.string as NSString
+        var start = sel.location
+        while start > 0, ns.character(at: start - 1) == 0x20 { start -= 1 }
+        var tail = start < sel.location ? " " : ""
+        if tail.isEmpty {
+            // Only an escape PAIR collapses: an even run of backslashes is all `\\` pairs.
+            var run = 0
+            while run < start, ns.character(at: start - 1 - run) == 0x5C { run += 1 }
+            if run >= 2, run % 2 == 0 { start -= 2; tail = "\\" }
+        }
+        let range = NSRange(location: start, length: NSMaxRange(sel) - start)
+        insertVerbatim(tail + "\n\n", replacementRange: range)
+    }
+
     /// Insert text that is already in stored form, unescaped.
     func insertVerbatim(_ source: String, replacementRange: NSRange) {
         insertsVerbatim = true
@@ -2596,6 +2634,12 @@ final class ManuscriptNSTextView: NSTextView {
         // invisible extra stop. A selection's ends are snapped too, so cut/copy never splits
         // `\` from its mark. Same single entry point as T-0572; no-op until AC4 hides anything.
         if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, let storage = textStorage {
+            // ✅ EP-045 AC10a: the snap's own cost, separate from `[SCRIVI-NAV] setSel`.
+            let t0 = Date()
+            defer {
+                let ms = Date().timeIntervalSince(t0) * 1000
+                if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] caretSnap=%.1f ms", ms)) }
+            }
             if r.length == 0,
                let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location, in: storage) {
                 ranges = [NSValue(range: NSRange(location: target, length: 0))]
@@ -2785,7 +2829,37 @@ final class ManuscriptNSTextView: NSTextView {
         // The character that would be deleted is at loc-1.
         let target = loc - 1
         if isSeparatorPosition(target, in: storage) { return }
+        if let join = paragraphJoin(at: loc, in: storage.string as NSString) {
+            insertVerbatim(" ", replacementRange: join)
+            return
+        }
         super.deleteBackward(sender)
+    }
+
+    /// ✅ EP-045 Q3 (ruled 2026-10-04): ⌫ at the start of a paragraph JOINS it to the one above
+    /// with ONE space — `a.⏎⏎b.` → `a. b.`. ⚠️ §3A.6 ruled "delete one `\n`" on the premise that
+    /// a soft break RENDERS as a space; ⛔ E1 renders nothing, so it showed as a line break and
+    /// the paragraphs never visibly joined (live check 2026-10-04). ✅ A space is what [EP-046]
+    /// would render for that soft break anyway, so nothing needs reverting later.
+    /// ✅ Q2 is subsumed: the trailing-space run becomes exactly ONE space and no newline is
+    /// left, so no hard break can form. Returns the range to replace with `" "`, or nil to let
+    /// ⌫ delete one character:
+    /// - ⛔ the line above ends in a BARE `\` — the writer's deliberate hard break (§4B.6): one
+    ///   `\n` goes, `end\⏎next` remains, and the styler hides the `\`;
+    /// - the paragraph above or the one being joined is EMPTY — ⌫ just removes a blank line.
+    private func paragraphJoin(at loc: Int, in ns: NSString) -> NSRange? {
+        let nl = loc - 2   // the first newline of the `\n\n` before the caret
+        guard nl > 0, ns.character(at: loc - 1) == 0x0A, ns.character(at: nl) == 0x0A else { return nil }
+        guard loc < ns.length, ns.character(at: loc) != 0x0A else { return nil }
+        var start = nl
+        while start > 0, ns.character(at: start - 1) == 0x20 { start -= 1 }
+        guard start > 0, ns.character(at: start - 1) != 0x0A else { return nil }
+        if start == nl {
+            var run = 0
+            while run < start, ns.character(at: start - 1 - run) == 0x5C { run += 1 }
+            if run % 2 == 1 { return nil }
+        }
+        return NSRange(location: start, length: loc - start)
     }
 
     override func deleteForward(_ sender: Any?) {
@@ -2905,6 +2979,85 @@ enum SceneDivider {
 }
 
 
+// MARK: — EP-045 AC11: the scene-boundary table, MAINTAINED (T-0583)
+
+/// `sceneBoundaries`, kept current from each edit instead of rescanned over the whole manuscript.
+/// ⛔ It used to be REBUILT by `SceneDivider.sceneBoundaries` (two whole-storage attribute scans)
+/// on every keystroke: measured 2.3–3.9 ms on 1.85 MB (SP-157 AC10).
+/// ✅ The shape Linux already ships (`SceneDocument::applyContentsChange`): an edit inside scene
+/// `i` changes that scene's length and shifts every LATER scene by the edit's `changeInLength`.
+/// ⚠️ Anything it cannot prove local — an edit spanning scenes, or text that carries a divider or
+/// heading — marks the table DIRTY, and the next reader rescans. ⛔ ONE authority ([I-0131] was a
+/// second scene-offset table drifting from the real one): readers take `ranges(in:)`, nothing else.
+/// ⚠️ The storage DELEGATE slot belongs to `EscapeHidingStyler`, so this observes a NOTIFICATION.
+/// ⛔ MEASURED 2026-10-04: by `didProcessEditing`, `editedRange` has been WIDENED to whole lines
+/// (cause not traced), and a scene's LAST line holds its divider character — so every edit in a
+/// scene's last line looked cross-scene and forced a rescan. ✅ `willProcessEditing` carries the
+/// raw edit (the AC11 tests fail with `did`, pass with `will`).
+final class SceneBoundaryTable: NSObject {
+    private var table: [NSRange] = []
+    private(set) var isDirty = true
+    private weak var storage: NSTextStorage?
+
+    func observe(_ storage: NSTextStorage) {
+        if let old = self.storage {
+            NotificationCenter.default.removeObserver(self, name: NSTextStorage.willProcessEditingNotification, object: old)
+        }
+        self.storage = storage
+        isDirty = true
+        NotificationCenter.default.addObserver(self, selector: #selector(storageWillProcessEditing(_:)),
+                                               name: NSTextStorage.willProcessEditingNotification, object: storage)
+    }
+
+    /// The scene ranges, rescanned only when the table cannot be trusted.
+    func ranges(in storage: NSAttributedString) -> [NSRange] {
+        if isDirty, let scanned = SceneDivider.sceneBoundaries(in: storage) {
+            table = scanned
+            isDirty = false
+        }
+        return table
+    }
+
+    /// Install ranges already known to be exact (`rebuildStorage` builds them as it appends).
+    func reset(_ ranges: [NSRange]) { table = ranges; isDirty = false }
+
+    func invalidate() { isDirty = true }
+
+    @objc private func storageWillProcessEditing(_ note: Notification) {
+        guard let ts = note.object as? NSTextStorage, ts.editedMask.contains(.editedCharacters) else { return }
+        apply(editedRange: ts.editedRange, changeInLength: ts.changeInLength, in: ts)
+    }
+
+    /// One processed edit. `editedRange` is in POST-edit coordinates.
+    func apply(editedRange: NSRange, changeInLength delta: Int, in storage: NSAttributedString) {
+        guard !isDirty, !table.isEmpty, editedRange.location != NSNotFound else { return }
+        let start = editedRange.location
+        let oldEnd = start + editedRange.length - delta
+        // The last scene starting at or before the edit (binary search; scenes are ordered).
+        var lo = 0, hi = table.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if table[mid].location <= start { lo = mid } else { hi = mid - 1 }
+        }
+        let scene = table[lo]
+        guard scene.location <= start, oldEnd <= scene.location + scene.length, oldEnd >= start else {
+            isDirty = true; return
+        }
+        // Inserted text that brings structure (a divider or heading) changes the scene list.
+        if editedRange.length > 0 {
+            var structural = false
+            for key in [NSAttributedString.Key.scriviDivider, .scriviHeading] where !structural {
+                storage.enumerateAttribute(key, in: editedRange, options: []) { value, _, stop in
+                    if value != nil { structural = true; stop.pointee = true }
+                }
+            }
+            if structural { isDirty = true; return }
+        }
+        table[lo].length += delta
+        for j in (lo + 1)..<table.count { table[j].location += delta }
+    }
+}
+
 // MARK: — EP-045 AC4: hiding the escape backslash (R3 = (c), ruled 2026-10-03)
 
 /// Keeps every escape backslash HIDDEN by storage attributes — and un-hides one that no longer
@@ -2930,7 +3083,12 @@ final class EscapeHidingStyler: NSObject, NSTextStorageDelegate {
     func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
                      range editedRange: NSRange, changeInLength delta: Int) {
         guard editedMask.contains(.editedCharacters) else { return }
+        // ✅ EP-045 AC10a: attributes E1's own per-edit cost inside `keyDown` (same pattern as
+        // `[SCRIVI-EDIT] didChangeText`; logged only above 0.5 ms).
+        let t0 = Date()
         Self.restyle(textStorage, in: editedRange)
+        let ms = Date().timeIntervalSince(t0) * 1000
+        if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] restyle=%.1f ms (range=%d)", ms, editedRange.length)) }
     }
 
     /// Re-derive hiding over the paragraphs that `range` touches. ⚠️ Escapes never cross a line,
@@ -2940,7 +3098,13 @@ final class EscapeHidingStyler: NSObject, NSTextStorageDelegate {
         let ns = ts.string as NSString
         guard ns.length > 0 else { return }
         let loc = min(range.location, ns.length)
-        let span = ns.paragraphRange(for: NSRange(location: loc, length: min(range.length, ns.length - loc)))
+        var span = ns.paragraphRange(for: NSRange(location: loc, length: min(range.length, ns.length - loc)))
+        // ✅ EP-045 AC6: whether a line-end backslash is a hidden hard break depends on the NEXT
+        // line (Q1 = (a)), so an edit here can flip the line ABOVE — e.g. a ⌫ merge that turns
+        // `end.\⏎⏎next` into `end.\⏎next`. Restyle that one line too.
+        if span.location > 0 {
+            span = NSUnionRange(span, ns.paragraphRange(for: NSRange(location: span.location - 1, length: 0)))
+        }
 
         // 1. Un-hide anything hidden here before; step 2 re-hides what still escapes.
         var stale: [NSRange] = []
@@ -2959,7 +3123,8 @@ final class EscapeHidingStyler: NSObject, NSTextStorageDelegate {
             let hit = ns.range(of: "\\", options: .literal, range: search)
             if hit.location == NSNotFound { break }
             let para = ns.paragraphRange(for: hit)
-            for off in MarkdownEscapes.hiddenBackslashes(in: ns.substring(with: para)) {
+            let continues = lineContinuesParagraph(ts, at: NSMaxRange(para))
+            for off in MarkdownEscapes.hiddenBackslashes(in: ns.substring(with: para), continues: continues) {
                 let i = para.location + off
                 if ts.attribute(.scriviHeading, at: i, effectiveRange: nil) == nil {
                     ts.addAttributes(hiddenAttributes, range: NSRange(location: i, length: 1))
@@ -2968,6 +3133,16 @@ final class EscapeHidingStyler: NSObject, NSTextStorageDelegate {
             let next = NSMaxRange(para)
             search = NSRange(location: next, length: max(0, NSMaxRange(span) - next))
         }
+    }
+
+    /// True when the line starting at `loc` continues the paragraph above it: it exists, is not
+    /// blank, and is scene text — ⚠️ a divider or chapter heading is the END of the scene's file.
+    private static func lineContinuesParagraph(_ ts: NSTextStorage, at loc: Int) -> Bool {
+        let ns = ts.string as NSString
+        guard loc < ns.length else { return false }
+        if ts.attribute(.scriviDivider, at: loc, effectiveRange: nil) != nil
+            || ts.attribute(.scriviHeading, at: loc, effectiveRange: nil) != nil { return false }
+        return !MarkdownEscapes.isBlankLine(ns.substring(with: ns.paragraphRange(for: NSRange(location: loc, length: 0))))
     }
 }
 

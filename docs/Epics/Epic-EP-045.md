@@ -1,6 +1,6 @@
 # EP-045: `[Apple]` **The Manuscript Renderer — Foundations**
 
-**Status:** 🟡 **ACTIVE 2026-10-03** (user-approved) — created 2026-09-29. ✅ **[SP-153] CLOSED 2026-10-03 — AC1, AC2, AC9 MET.** ⚠️ Remaining: AC3–AC8, AC10. ✅ R1 ruled (paste escaped). ✅ R2 ruled (no escape pass). ✅ R3 ruled (c). **[SP-154]** (AC3) ACTIVE.
+**Status:** 🟡 **ACTIVE 2026-10-03** (user-approved) — created 2026-09-29. ✅ **AC1–AC10 MET** ([SP-153]–[SP-157] closed). ⚠️ **AC11 ADDED 2026-10-04** ([T-0583]) → 🟡 **[SP-158]** ACTIVE. ⛔ **Cannot close until AC11 is met;** then the Audit Check and the close.
 **Platform:** ⚠️ **`[Apple]` ONLY** — ✅ **Linux parity is [EP-048], SCHEDULED not assumed.**
 **Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)
@@ -45,12 +45,13 @@ unclosable.**
 | **AC2** | ✅ **The scene divider is VISIBLE** in Light and Dark | ✅ **Study §1.4A** | ⛔ **A LIVE PASS with a screenshot — ⚠️ NOT a suite** |
 | **AC3** | ✅ **A SOURCE↔PRESENTED mapping exists**; every caret path uses it | ✅ **Study §3.4A** (user ruling) | ✅ **Corpus test against the §4B.3 oracle** |
 | **AC4** | ✅ **Typed reserved characters are ESCAPED — all 32** | ✅ **Study §4B.4** (user: *"use the READ set"*) | ✅ **Round-trip: type → store → parse → equals what was typed** |
-| **AC5** | ⛔ **Enter inserts `\n\n`**; ✅ **Backspace at paragraph start deletes ONE `\n`** | ✅ **Study §3A.6** (user ruling) | ✅ **Unit test on the edit path** |
+| **AC5** | ⛔ **Enter inserts `\n\n`**; ⚠️ ~~**Backspace at paragraph start deletes ONE `\n`**~~ → ✅ **AMENDED by Q3 (user, 2026-10-04): JOINS the paragraphs with ONE space** (`a.⏎⏎b.` → `a. b.`); ⛔ except after a deliberate trailing `\` (one `\n` goes, keeping the hard break) — [SP-156] | ✅ **Study §3A.6** (user ruling) | ✅ **Unit test on the edit path** |
 | **AC6** | ✅ **Trailing spaces reduced to AT MOST ONE on Enter**; ⚠️ trailing `\\` → `\` | ✅ **Study §4B.6** | ✅ **Unit test: `"x␣␣␣"` + Enter → `"x␣\n\n"`** |
 | **AC7** | ✅ **Unexposed block intents SUPPRESSED** (`codeBlock`, `blockQuote`, `table`) | ✅ **Study §4D.4(a)** (user: *"option 2"*) | ✅ **Unit test: a 4-leading-space paragraph renders as prose** |
 | **AC8** | ✅ **ONE parsing mode chosen and STATED** | ⛔ **Study §4C.2 — the study itself mixes them** | ✅ **Code comment naming the mode and why** |
 | **AC9** | ✅ **No regression in save fidelity** | ✅ **Study §2** | ✅ **Integration test on a real temp project** |
 | **AC10** | ✅ **The caret path MEASURED on a 1.85 MB manuscript** | ⚠️ **[I-0206]'s re-open condition** | ⛔ **A recorded measurement — ⚠️ not a pass/fail gate** |
+| **AC11** | ✅ **The scene-boundary table is MAINTAINED across edits, not rescanned over the whole manuscript per keystroke** | ✅ **User, 2026-10-04** ([SP-157] AC10 finding; T-0583 linked here at the user's direction) | ✅ **`[SCRIVI-KEY] bounds` ≈ 0 on 1.85 MB + a test that the maintained table equals a full rescan** |
 
 ---
 
@@ -62,6 +63,10 @@ unclosable.**
   bitmap measurement of a real `NSTextView` found it drawn in BOTH Dark and Light. ⚠️ **What the AC's
   evidence obligation still lacks is a LIVE look in LIGHT mode** — [SP-153] collects it.
   ⛔ **Known trap #1 below is therefore OUT OF DATE.**
+- ⚠️ **AC11 — ADDED 2026-10-04, OPEN** — [T-0583] → [SP-158]. ⛔ It had been filed unlinked (Epic "None"); the user's rule is that a Task belongs to the Epic it was created in unless stated otherwise.
+- ✅ **AC7 — MET 2026-10-04** ([T-0581] user-verified: *"no backslashes appeared"*; Q-AC7 = (a), drawing carried to [EP-046]).
+- ✅ **AC10 — MEASURED 2026-10-04** ([SP-157], [T-0582]) → full tables in [`../Sprints/Closed/Sprint-SP-157.md`](../Sprints/Closed/Sprint-SP-157.md). ✅ E1's additions negligible (restyle ≤0.7 ms/edit, 4.7 ms/rebuild; snap unmeasurable). ⚠️ **Keystroke cost is LINEAR IN OFFSET** (~20–43 ms at the start → ~89–122 ms at the end, arrows 1 → 90 ms) — AppKit's, our work flat at 2.3–4.3 ms; revises [I-0206]'s *"typing is constant"*. ⛔ Not a gate; a NEW Issue only if it bites.
+- ✅ **AC5 + AC6 — MET 2026-10-04** ([T-0580] user-verified by live check; [SP-156]). ⚠️ AC5's Backspace half AMENDED by Q3: ⌫ joins with one space until/unless re-ruled.
 - ✅ **AC4 — MET 2026-10-03** ([T-0579] user-verified; [SP-155] CLOSED). ⚠️ Linux shows backslashes until [EP-048] (ruled); Find/Replace across hidden backslashes is a follow-up.
 - ✅ **AC3 + AC8 — MET 2026-10-03** ([T-0578] user-verified; `.full` confirmed). [SP-154] CLOSED.
 - ✅ **AC2 — MET 2026-10-03** (user's Light-mode live look). ✅ **AC1 + AC9 — MET 2026-10-03**
@@ -124,6 +129,9 @@ a NEW break waits.**
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
+| **[SP-158]** | **AC11 maintain the scene-boundary table** ([T-0583]; Linux already does this) | 🟡 **ACTIVE 2026-10-04** → [`../Sprints/Sprint-SP-158.md`](../Sprints/Sprint-SP-158.md) |
+| **[SP-157]** | **AC7 block intents as prose** + **AC10 caret-path measurement** (✅ Q-AC7 = (a), ruled) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-157.md`](../Sprints/Closed/Sprint-SP-157.md) — filed [T-0583], [I-0275] |
+| **[SP-156]** | **AC5 Enter/Backspace** + **AC6 trailing whitespace** (✅ Q1 = (a); ✅ Q2; ✅ Q3: ⌫ joins with a space) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-156.md`](../Sprints/Closed/Sprint-SP-156.md) |
 | **[SP-155]** | ✅ **AC4 the escape layer** (typing, paste, pair-deletion, copy un-escape, hiding styler) | (Linux shows backslashes until [EP-048] — ruled) → ✅ **CLOSED 2026-10-03** [`../Sprints/Closed/Sprint-SP-155.md`](../Sprints/Closed/Sprint-SP-155.md) |
 | **[SP-154]** | ✅ **AC3 two coordinate spaces** + **AC8 parsing mode** + ⚠️ **AC-R3 measurement for ruling R3** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-154.md`](../Sprints/Closed/Sprint-SP-154.md) |
 | **[SP-153]** | ⛔ **AC1 typed attachments (the data-loss item, all six readers)** + **AC9 save fidelity** + **AC2 Light-mode live look** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-153.md`](../Sprints/Closed/Sprint-SP-153.md) |

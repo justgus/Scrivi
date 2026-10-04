@@ -41,7 +41,7 @@ does not exist and is owed to no one yet.**
 
 ## Backlog Issues (open, no Sprint)
 
-Currently: **0.** The Issue backlog is empty.
+✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04). ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
 
 ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified (audit ruling **R-02**) → batch 2.
 Its rescoped behaviour was delivered by I-0131's restore centring, verified 2026-08-18.
@@ -160,8 +160,17 @@ stands as a marker.**
 | [`Issue-closed-0180.md`](Closed/Issue-closed-0180.md) | I-0180 — ⚪ **not a defect** (per-row label is the scene's projection; Linux reverted in T-0576; closed 2026-10-03) |
 | [`Issue-closed-0201.md`](Closed/Issue-closed-0201.md) | I-0201 — ⚪ **OBE** (`[Apple]` launch arguments no longer used; closed 2026-10-03) |
 | [`Issue-closed-0267.md`](Closed/Issue-closed-0267.md) | I-0267 — ⚠️ **duplicate of [I-0206]'s ruling** (keystroke cost accepted 2026-09-25; filed 2026-10-01 without checking `Closed/`) |
+| [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-04 (**I-0275**: sync-vs-async background added at the user's request.)*
+
+*Last Updated: 2026-10-04 (**I-0275 filed** to the backlog — keystroke cost grows with manuscript position (AppKit); user: "kind of concerned", not ruled as biting.)*
+
+*Last Updated: 2026-10-04 (**I-0274 CLOSED — not a defect** (user-directed) → `Closed/Issue-closed-0274.md`; removed from the backlog.)*
+
+*Last Updated: 2026-10-04 (**I-0274 filed** to the backlog — Control-Return writes U+2028; found by SP-156's key measurement. Backlog section corrected: it claimed empty while I-0202 and I-0147 were there.)*
 
 *Last Updated: 2026-10-03, close of day (**I-0255** — Apple half fully VERIFIED (timeline + Scene Navigator); Linux half awaits the rig.)*
 

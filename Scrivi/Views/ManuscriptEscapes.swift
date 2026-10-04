@@ -32,14 +32,33 @@ enum MarkdownEscapes {
 
     private static let backslash: UInt16 = 0x5C
     private static let newline: UInt16 = 0x0A
+    private static let space: UInt16 = 0x20
+    private static let tab: UInt16 = 0x09
 
     /// True when the backslash at `i` is HIDDEN when presented: it escapes one of the 32, or
     /// it is a CommonMark HARD LINE BREAK (a backslash immediately before a newline).
     /// ⚠️ The second case was found by the AC3 oracle (2026-10-03): Apple's parser presents
     /// `foo\⏎bar` as `foo⏎bar`. Typing never produces it (a typed backslash is itself escaped),
     /// but existing scene files may (R2: no escape pass), so the map agrees with the parser there.
-    private static func hidesBackslash(_ u: [UInt16], at i: Int) -> Bool {
-        u[i] == backslash && i + 1 < u.count && (escapable.contains(u[i + 1]) || u[i + 1] == newline)
+    /// ✅ EP-045 AC6 / Q1 = (a), MEASURED 2026-10-04 under `.full`: a hard break cannot END a
+    /// paragraph, so a backslash before a BLANK line (or the end of the text) stays LITERAL —
+    /// `end.\⏎⏎next.` presents `end.\`. AC6's Enter writes exactly that form.
+    /// `continues` says whether a non-blank line follows when the `\n` is the LAST character
+    /// of `u` (the styler maps one line at a time, so it supplies what comes next).
+    private static func hidesBackslash(_ u: [UInt16], at i: Int, continues: Bool) -> Bool {
+        guard u[i] == backslash, i + 1 < u.count else { return false }
+        if escapable.contains(u[i + 1]) { return true }
+        guard u[i + 1] == newline else { return false }
+        var j = i + 2
+        if j == u.count { return continues }
+        while j < u.count, u[j] == space || u[j] == tab { j += 1 }
+        return j < u.count && u[j] != newline
+    }
+
+    /// True when `line` (one line, with or without its `\n`) holds only spaces and tabs —
+    /// a CommonMark BLANK line, which ends a paragraph.
+    static func isBlankLine(_ line: String) -> Bool {
+        line.utf16.allSatisfy { $0 == space || $0 == tab || $0 == newline }
     }
 
     /// Boundary maps for one fragment. Indices are caret BOUNDARIES (0...length), not
@@ -58,8 +77,16 @@ enum MarkdownEscapes {
         var isIdentity: Bool { presentedToSource.count == sourceToPresented.count }
     }
 
-    /// Scan one SOURCE fragment.
-    static func map(_ source: String) -> Map {
+    /// ✅ EP-045 AC7 (study §4D.4(a), Q-AC7 = (a)): UNEXPOSED BLOCK INTENTS ARE PROSE. A line led by
+    /// a tab or ≥4 spaces is a `codeBlock` to the parser, which then shows `\*` literally; ✅ this
+    /// map ignores indentation and hides the escape anyway — Scrivi reads such text as ordinary
+    /// prose. Measured 2026-10-04: 2,000/2,000 against `.full` of the source with its leading
+    /// indentation removed (the 42 that differ from plain `.full` are exactly the indented ones).
+    /// ⚠️ Drawing those blocks as prose is [EP-046]'s, where a renderer exists.
+    ///
+    /// Scan one SOURCE fragment. `continues`: whether a non-blank line follows the fragment
+    /// (only matters when it ends in `\` + `\n` — see `hidesBackslash`).
+    static func map(_ source: String, continues: Bool = false) -> Map {
         let u = Array(source.utf16)
         let n = u.count
         var p2s: [Int] = []
@@ -70,7 +97,7 @@ enum MarkdownEscapes {
         var i = 0
         while i < n {
             let p = p2s.count
-            if hidesBackslash(u, at: i) {
+            if hidesBackslash(u, at: i, continues: continues) {
                 p2s.append(i)          // the caret sits before the backslash
                 s2p[i] = p
                 s2p[i + 1] = p         // between `\` and its mark → before the mark
@@ -138,8 +165,8 @@ enum MarkdownEscapes {
 
     /// UTF-16 offsets in `source` of every backslash HIDDEN when it is presented (an escape or
     /// a hard line break) — what the R3 = (c) styler marks with `hiddenKey`.
-    static func hiddenBackslashes(in source: String) -> [Int] {
-        let p2s = map(source).presentedToSource
+    static func hiddenBackslashes(in source: String, continues: Bool = false) -> [Int] {
+        let p2s = map(source, continues: continues).presentedToSource
         var out: [Int] = []
         for p in 0..<(p2s.count - 1) where p2s[p + 1] - p2s[p] == 2 { out.append(p2s[p]) }
         return out

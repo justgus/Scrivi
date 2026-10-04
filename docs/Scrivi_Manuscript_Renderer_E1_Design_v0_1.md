@@ -36,12 +36,12 @@ would make E1 unclosable.**
 | **AC2** | ✅ **The scene divider is VISIBLE** in both Light and Dark | ✅ **Study §1.4A** | ⛔ **A LIVE PASS with a screenshot — ⚠️ NOT a suite** (`feedback_live_pass_finds_what_suites_cannot`) |
 | **AC3** | ✅ **A SOURCE↔PRESENTED offset mapping exists**, and every caret/selection path goes through it | ✅ **Study §3.4A** (user ruling) | ✅ **Unit test against the §4B.3 oracle over a corpus** |
 | **AC4** | ✅ **Typed Markdown reserved characters are ESCAPED** — ⚠️ **all 32 ASCII punctuation marks** | ✅ **Study §3A.0 + §4B.4** (user ruling: *"use the READ set"*) | ✅ **Round-trip test: type → store → parse → presented text equals what was typed** |
-| **AC5** | ⛔ **Enter inserts `\n\n`**; ✅ **Backspace at paragraph start deletes ONE `\n`** | ✅ **Study §3A.6** (user ruling) | ✅ **Unit test on the edit path** |
+| **AC5** | ⛔ **Enter inserts `\n\n`**; ⚠️ ~~**Backspace at paragraph start deletes ONE `\n`**~~ → ✅ **AMENDED by Q3 (user, 2026-10-04): JOINS the paragraphs with ONE space** (`a.⏎⏎b.` → `a. b.`); ⛔ except after a deliberate trailing `\` (one `\n` goes, keeping the hard break) — [SP-156] | ✅ **Study §3A.6** (user ruling) | ✅ **Unit test on the edit path** |
 | **AC6** | ✅ **Trailing spaces are normalised to AT MOST ONE on Enter**; ⚠️ a trailing `\\` collapses to `\` | ✅ **Study §4B.6** (user ruling + study amendment) | ✅ **Unit test: `"x␣␣␣"` + Enter → `"x␣\n\n"`** |
 | **AC7** | ✅ **Block intents Scrivi does not expose are SUPPRESSED** — ⚠️ `codeBlock`, `blockQuote`, `table` render as ordinary prose | ✅ **Study §4C.4 / §4D.4(a)** (user ruling: *"option 2"*) | ✅ **Unit test: 4-leading-space paragraph renders as prose, ⛔ not monospace** |
 | **AC8** | ✅ **ONE parsing mode is chosen and stated** in code and in this document | ⛔ **Study §4C.2 — the study itself mixes them** | ✅ **Code review + a comment naming the mode and why** |
 | **AC9** | ✅ **No regression in save fidelity** — ⚠️ a scene's bytes round-trip unchanged through an edit-save-reload cycle | ✅ **Study §2** | ✅ **Integration test against a real temp project** |
-| **AC10** | ✅ **The caret path is MEASURED against a 1.85 MB manuscript** | ⚠️ **Study §10.2, [I-0206] re-open condition** | ⛔ **A measurement, recorded — ⚠️ not a pass/fail gate (§7)** |
+| **AC10** | ✅ **The caret path is MEASURED against a 1.85 MB manuscript** | ⚠️ **Study §10.2, [I-0206] re-open condition** | ⛔ **A measurement, recorded — ⚠️ not a pass/fail gate (§7)**  ✅ **RECORDED 2026-10-04 ([SP-157]):** E1's additions negligible; ⚠️ keystroke cost linear in offset (AppKit), ~20–43 → ~89–122 ms. |
 
 ⚠️ **⛔ NOT IN E1, STATED SO IT IS NOT DRIFTED IN:** ⛔ **marker hiding (E2)** · ⛔ **bold/italic/heading
 RENDERING (E2)** · ⛔ **the formatting COMMANDS (E2)** · ⛔ **`paragraphIndent` preference (E3)** ·
@@ -254,11 +254,19 @@ identically; ⚠️ the cost is raw-file legibility, ⛔ not correctness.** ⛔ 
 | ⚠️ Keystroke | ✅ Behaviour |
 | ------------ | ----------- |
 | ✅ **Enter** | ⚠️ **insert `\n\n`**; ✅ **first reduce trailing spaces on the line to AT MOST ONE**; ✅ **collapse a trailing `\\` to `\`** |
-| ✅ **Backspace at paragraph start** | ⚠️ **delete ONE `\n`** |
+| ✅ **Backspace at paragraph start** | ⚠️ ~~**delete ONE `\n`**~~ → ✅ **join with ONE space** (Q3, 2026-10-04 — see below) |
 
 ⛔ **"AT MOST ONE", NOT "DELETE ONE" — ⚠️ this is the study's amendment (§4B.6) and it matters:**
 ✅ **CommonMark's hard-break rule is TWO OR MORE spaces**, ⛔ **so "delete one" leaves three spaces
 producing a hard break anyway.**
+
+⚠️ **AMENDED 2026-10-04 — Q3 (user ruling, [SP-156] live check).** ⛔ *"Delete ONE `\n`"* rested on the premise that
+a single `\n` is RENDERED as a space. ⛔ **E1 renders nothing** (R3 = (c) shows storage), so the soft break showed as
+a line break and the paragraphs never visibly joined. ✅ **Ruled: ⌫ at a paragraph start replaces the trailing spaces
+and the `\n\n` with ONE space** — what [EP-046] would render for the soft break anyway, so nothing reverts later.
+⛔ **Exceptions (one character, as before):** the line above ends in a BARE `\` (the deliberate hard break §4B.6
+preserves); the line above, or the paragraph being joined, is empty. ✅ This also settles §4B.6's inverse case (Q2):
+no newline is left, so no hard break can form.
 
 ### 6.2 ✅ Why the merge itself needs no work
 
@@ -285,6 +293,17 @@ intent Scrivi does not expose, render the run as ordinary prose.** ⛔ **Touch n
 paragraph into a `codeBlock` (Study §4C.3, §4D.2).** ⛔ **A novelist indenting by reflex gets monospace
 with no emphasis and no wrapping.** ✅ **Suppression catches it wherever it comes from — ⚠️ typed, pasted,
 or already in the file — which a preference cannot.**
+
+### 7.1 ⚠️ AMENDED 2026-10-04 — E1 has no renderer; ✅ what AC7 means in E1 ([SP-157], Q-AC7 = (a))
+
+⛔ **Nothing in E1 reads the parser's block intents** — R3 = (c) shows STORAGE in the body font, so an indented
+paragraph already DISPLAYS as prose. ✅ **The one place E1 interprets Markdown for display is the escape map**, and
+it reads indented text as prose (escapes hidden): ✅ **2,000/2,000** of the AC3 corpus against `.full` of the source
+with leading indentation removed; ⛔ the **42** that differ from plain `.full` are exactly §4.5's tab-led cases.
+✅ **E1's AC7 = that behaviour, codified** (stated on `MarkdownEscapes.map`, tested against the prose oracle and
+through the real view). ⚠️ **DRAWING `codeBlock` / `blockQuote` / `table` as prose moves to [EP-046]** as one of its
+acceptance criteria. ⚠️ Typing cannot create a quote or a table (`>` and `|` are escaped); existing files can, and
+E1 shows their markers as stored.
 
 ---
 

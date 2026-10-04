@@ -29,6 +29,12 @@ undo) or an `NSTextLayoutFragment` subclass. ✅ Measured, not feared.**
 ⚠️ **Whole-LINE markers (`#`, `##`, bullets) are much easier to hide than INLINE ones (`**`)** —
 ✅ **take them in that order.**
 
+✅ **CARRIED FROM [EP-045] AC7 ([SP-157], Q-AC7 = (a), 2026-10-04) — an acceptance criterion of THIS Epic:**
+⚠️ **unexposed block intents (`codeBlock`, `blockQuote`, `table`) are DRAWN as ordinary prose** (study §4D.4(a)).
+✅ E1 has no renderer, so E1 met AC7 only for what it interprets — the escape map reads indented text as prose
+(2,000/2,000 against the prose oracle). ⛔ **The first renderer to read block intents must demote these three**, or
+an indented paragraph turns into monospace with visible backslashes.
+
 ⛔ **OUT:** ⚠️ **the scene-SPLIT command** (✅ needs a core endpoint — see [EP-045]).
 
 ---

@@ -3765,7 +3765,9 @@ struct MarkdownEscapeMapTests {
             #"👋\*é\_"#, ##"\# not a heading"##, #"Mr\. Smith\, in \"quotes\" — really\?"#,
             #"\\\*"#, "tab\there", "line one\nline two",
             // Existing text only (R2): a backslash before a newline is a HARD LINE BREAK.
-            "foo\\\nbar", "a\\\n", "x\\  y",
+            // ⚠️ `"a\\\n"` (the backslash ENDS the text) moved to `paragraphEndBackslash`: under
+            // `.full` it stays literal (Q1 = (a)), where this inline-only oracle has no paragraphs.
+            "foo\\\nbar", "x\\  y",
         ]
         for src in cases {
             let m = MarkdownEscapes.map(src)
@@ -3811,6 +3813,80 @@ struct MarkdownEscapeMapTests {
                 "Apple's parser disagreed on \(oracleMismatches.count) strings, e.g. \(oracleMismatches.prefix(5).map(\.debugDescription))")
     }
 
+    /// ✅ EP-045 AC6c / Q1 = (a): a hard break cannot END a paragraph. Checked against `.full`
+    /// (AC8's mode) — ⚠️ not this suite's inline-only oracle, which has no notion of paragraphs.
+    /// `.full` collapses whitespace, so presented texts are compared with whitespace removed.
+    @Test("a backslash before a blank line or the end stays literal (Q1 = (a), .full)")
+    func paragraphEndBackslash() throws {
+        func full(_ s: String) throws -> String {
+            String(try AttributedString(markdown: s, options: .init(interpretedSyntax: MarkdownEscapes.interpretedSyntax)).characters)
+        }
+        func squeezed(_ s: String) -> String { s.filter { !$0.isWhitespace } }
+        let cases: [(source: String, continues: Bool, literal: Bool)] = [
+            ("end.\\\n\nnext.", false, true),     // AC6's Enter result
+            ("end.\\\n \t\nnext.", false, true), // a whitespace-only line is blank too
+            ("end.\\\n", false, true),             // the end of the text
+            ("a\\\n", false, true),
+            ("end.\\\nnext.", false, false),       // after a ⌫ merge: a HARD BREAK, hidden
+        ]
+        for c in cases {
+            let m = MarkdownEscapes.map(c.source, continues: c.continues)
+            #expect(m.presented.contains("\\") == c.literal, "map for \(c.source.debugDescription)")
+            #expect(squeezed(m.presented) == squeezed(try full(c.source)), "oracle for \(c.source.debugDescription)")
+            checkMapShape(c.source, m)
+        }
+        // The styler maps ONE line: it says whether the next line continues the paragraph.
+        #expect(MarkdownEscapes.map("end.\\\n", continues: true).presented == "end.\n")
+        #expect(MarkdownEscapes.map("end.\\\n", continues: false).presented == "end.\\\n")
+    }
+
+    // MARK: EP-045 AC7 — unexposed block intents are PROSE (Q-AC7 = (a))
+
+    /// The PROSE reading of `source`: `.full` (AC8) with every line's leading indentation removed,
+    /// so no line can be a code block. ⚠️ `.full` collapses whitespace: compare squeezed.
+    private func proseOracle(_ source: String) throws -> String {
+        let unindented = source.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { String($0.drop(while: { $0 == " " || $0 == "\t" })) }
+            .joined(separator: "\n")
+        return String(try AttributedString(
+            markdown: unindented, options: .init(interpretedSyntax: MarkdownEscapes.interpretedSyntax)).characters)
+    }
+    private func squeezed(_ s: String) -> String { s.filter { !$0.isWhitespace } }
+
+    @Test("AC7: design's test — a 4-leading-space (or tab-led) paragraph presents as PROSE")
+    func indentedParagraphIsProse() throws {
+        for src in ["    a\\*b", "\ta\\*b", "\t\ta\\_b\n\nnext"] {
+            let m = MarkdownEscapes.map(src)
+            #expect(!m.presented.contains("\\"), "escape hidden as in prose: \(src.debugDescription)")
+            #expect(squeezed(m.presented) == squeezed(try proseOracle(src)))
+            // ⚠️ Plain `.full` reads it as a CODE BLOCK and shows the backslash — what AC7 overrides.
+            let codeBlock = String(try AttributedString(
+                markdown: src, options: .init(interpretedSyntax: MarkdownEscapes.interpretedSyntax)).characters)
+            #expect(codeBlock.contains("\\"), "the oracle this test departs from: \(src.debugDescription)")
+        }
+    }
+
+    @Test("AC7: the 2,000-string corpus agrees with the PROSE oracle (the 42 tab-led included)")
+    func corpusIsProse() throws {
+        var state: UInt64 = 0x5C21_0453   // the AC3 corpus seed, so these are the same strings
+        func next() -> UInt64 { state = state &* 6364136223846793005 &+ 1442695040888963407; return state >> 33 }
+        let alphabet: [String] = Array(##"!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"##).map(String.init)
+            + ["a", "b", "Z", "é", "👋", " ", "\t", "\n"]
+        var mismatches: [String] = []
+        var codeBlockCases = 0
+        for _ in 0..<2_000 {
+            let typed = (0..<Int(next() % 24)).map { _ in alphabet[Int(next() % UInt64(alphabet.count))] }.joined()
+            let src = MarkdownEscapes.escape(typed)
+            let presented = MarkdownEscapes.map(src).presented
+            if squeezed(presented) != squeezed(try proseOracle(src)) { mismatches.append(typed) }
+            let full = String(try AttributedString(
+                markdown: src, options: .init(interpretedSyntax: MarkdownEscapes.interpretedSyntax)).characters)
+            if squeezed(presented) != squeezed(full) { codeBlockCases += 1 }
+        }
+        #expect(mismatches.isEmpty, "e.g. \(mismatches.prefix(5).map(\.debugDescription))")
+        #expect(codeBlockCases == 42, "the design §4.5 count of indented (code-block) cases")
+    }
+
     // MARK: R3 = (c) — the caret never rests inside a hidden escape
 
     /// `ab\*cd` with the backslash (offset 2) marked hidden, as the (c) styler will mark it.
@@ -3849,6 +3925,31 @@ struct MarkdownEscapeMapTests {
 }
 
 #if os(macOS)
+/// The REAL `ManuscriptNSTextView` with the REAL `EscapeHidingStyler` as its storage delegate,
+/// in a window so AppKit's key and pasteboard dispatch run as they do in the app.
+@MainActor fileprivate final class ManuscriptFixture {
+    let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+    let styler = EscapeHidingStyler()
+    let window: NSWindow
+    init(_ text: String = "") {
+        tv.isRichText = false
+        tv.allowsUndo = false
+        tv.font = EscapeHidingStyler.bodyFont
+        tv.frame = NSRect(x: 0, y: 0, width: 500, height: 100)
+        tv.textStorage?.delegate = styler
+        window = NSWindow(contentRect: tv.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = tv
+        window.makeFirstResponder(tv)
+        if !text.isEmpty { tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0), with: text) }
+    }
+    var text: String { tv.string }
+    func hidden(_ i: Int) -> Bool {
+        tv.textStorage?.attribute(MarkdownEscapes.hiddenKey, at: i, effectiveRange: nil) != nil
+    }
+    func caret(_ i: Int) { tv.setSelectedRange(NSRange(location: i, length: 0)) }
+    func type(_ s: String) { tv.insertText(s, replacementRange: tv.selectedRange()) }
+}
+
 /// EP-045 AC4 — the escape layer, driven through the REAL `ManuscriptNSTextView` with the REAL
 /// `EscapeHidingStyler` as its storage delegate. ⚠️ Private pasteboards only — a test run must
 /// never touch the writer's clipboard.
@@ -3856,28 +3957,7 @@ struct MarkdownEscapeMapTests {
 @MainActor
 struct EscapeLayerTests {
 
-    @MainActor private final class Fixture {
-        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
-        let styler = EscapeHidingStyler()
-        let window: NSWindow
-        init(_ text: String = "") {
-            tv.isRichText = false
-            tv.allowsUndo = false
-            tv.font = EscapeHidingStyler.bodyFont
-            tv.frame = NSRect(x: 0, y: 0, width: 500, height: 100)
-            tv.textStorage?.delegate = styler
-            window = NSWindow(contentRect: tv.frame, styleMask: [.titled], backing: .buffered, defer: false)
-            window.contentView = tv
-            window.makeFirstResponder(tv)
-            if !text.isEmpty { tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0), with: text) }
-        }
-        var text: String { tv.string }
-        func hidden(_ i: Int) -> Bool {
-            tv.textStorage?.attribute(MarkdownEscapes.hiddenKey, at: i, effectiveRange: nil) != nil
-        }
-        func caret(_ i: Int) { tv.setSelectedRange(NSRange(location: i, length: 0)) }
-        func type(_ s: String) { tv.insertText(s, replacementRange: tv.selectedRange()) }
-    }
+    private typealias Fixture = ManuscriptFixture
 
     /// ⚠️ The type AppKit ACTUALLY passes on copy/paste (measured) — ⛔ NOT `.string`. The first
     /// version of these tests named `.string` and so passed while the real copy and paste failed.
@@ -3973,6 +4053,292 @@ struct EscapeLayerTests {
                 markdown: f.text, options: .init(interpretedSyntax: MarkdownEscapes.interpretedSyntax))
             #expect(String(parsed.characters) == "x\(ch)y", "\(ch) → stored \(f.text.debugDescription)")
         }
+    }
+}
+/// EP-045 AC11 (T-0583) — the scene-boundary table is MAINTAINED from each edit; after every kind of
+/// edit it must EQUAL a full rescan. ⚠️ It must also NOT have rescanned for an in-scene edit — a table
+/// that silently rescans every time would pass the equality check and save nothing.
+@Suite("Scene-boundary table (EP-045 AC11)")
+@MainActor
+struct SceneBoundaryTableTests {
+
+    private let body: [NSAttributedString.Key: Any] = [.font: EscapeHidingStyler.bodyFont, .foregroundColor: NSColor.textColor]
+
+    /// heading | "Alpha one." | divider | "Beta two." | divider | heading | "Gamma three."
+    private func manuscript() -> NSAttributedString {
+        let heading: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: 14), .scriviHeading: true]
+        let s = NSMutableAttributedString(string: "Chapter 1\n", attributes: heading)
+        s.append(NSAttributedString(string: "Alpha one.", attributes: body))
+        s.append(SceneDivider.string(NSTextAttachment(), state: .sceneBreak, newlineAttributes: body))
+        s.append(NSAttributedString(string: "Beta two.", attributes: body))
+        s.append(SceneDivider.string(NSTextAttachment(), state: .chapterEnd, newlineAttributes: body))
+        s.append(NSAttributedString(string: "\nChapter 2\n", attributes: heading))
+        s.append(NSAttributedString(string: "Gamma three.", attributes: body))
+        return s
+    }
+
+    private func fixture() -> (ManuscriptFixture, SceneBoundaryTable) {
+        let f = ManuscriptFixture()
+        let ts = f.tv.textStorage!
+        ts.setAttributedString(manuscript())
+        let table = SceneBoundaryTable()
+        table.observe(ts)
+        table.reset(SceneDivider.sceneBoundaries(in: ts)!)
+        return (f, table)
+    }
+
+    private func backspace(_ f: ManuscriptFixture) {
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: "\u{7f}",
+                                 charactersIgnoringModifiers: "\u{7f}", isARepeat: false, keyCode: 51)!
+        f.tv.keyDown(with: e)
+    }
+    private func pressReturn(_ f: ManuscriptFixture) {
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: "\r",
+                                 charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36)!
+        f.tv.keyDown(with: e)
+    }
+
+    /// The table equals a fresh full scan, and (when `local`) it got there WITHOUT rescanning.
+    private func check(_ f: ManuscriptFixture, _ table: SceneBoundaryTable, local: Bool, _ what: String,
+                       sourceLocation: SourceLocation = #_sourceLocation) {
+        if local { #expect(!table.isDirty, "\(what): an in-scene edit must not need a rescan", sourceLocation: sourceLocation) }
+        let ts = f.tv.textStorage!
+        #expect(table.ranges(in: ts) == SceneDivider.sceneBoundaries(in: ts)!, "\(what)", sourceLocation: sourceLocation)
+    }
+
+    @Test("typing, Return, ⌫-join and an in-scene paste are maintained without a rescan")
+    func inSceneEdits() {
+        let (f, table) = fixture()
+        let ns = f.tv.string as NSString
+        let beta = ns.range(of: "Beta two.")
+        f.caret(beta.location + 4); f.type(" *x*")
+        check(f, table, local: true, "typing (with escapes) in the middle scene")
+        f.caret(ns.range(of: "Alpha one.").location + 5); pressReturn(f)
+        check(f, table, local: true, "Return in the first scene")
+        f.caret((f.tv.string as NSString).range(of: " one.").location); backspace(f)
+        check(f, table, local: true, "⌫ at a paragraph start (Q3 join)")
+        let gamma = (f.tv.string as NSString).range(of: "Gamma")
+        f.caret(gamma.location); f.type("Pasted ")
+        check(f, table, local: true, "insertion at the start of a scene that follows a heading")
+        f.caret((f.tv.string as NSString).length); f.type(" End.")
+        check(f, table, local: true, "typing at the very end of the manuscript")
+    }
+
+    @Test("an undo-style scene replacement is maintained; a structural edit rescans and is still exact")
+    func replacementsAndStructure() {
+        let (f, table) = fixture()
+        let ts = f.tv.textStorage!
+        // `applySceneChange` replaces a scene's whole range with its restored text.
+        let mid = table.ranges(in: ts)[1]
+        ts.replaceCharacters(in: mid, with: NSAttributedString(string: "Restored beta, longer than before.", attributes: body))
+        check(f, table, local: true, "undo apply over a whole scene")
+        // An empty scene, then text typed into it.
+        ts.replaceCharacters(in: table.ranges(in: ts)[1], with: NSAttributedString(string: "", attributes: body))
+        check(f, table, local: true, "a scene emptied")
+        f.caret(table.ranges(in: ts)[1].location); f.type("Refilled")
+        check(f, table, local: true, "typing into an empty scene")
+        // A cross-scene replacement (as a structural op would make) must rescan — and be exact.
+        let a = table.ranges(in: ts)[0], c = table.ranges(in: ts)[2]
+        ts.replaceCharacters(in: NSRange(location: a.location + 2, length: c.location + 2 - (a.location + 2)),
+                             with: NSAttributedString(string: "--", attributes: body))
+        #expect(table.isDirty, "an edit spanning scenes marks the table dirty")
+        check(f, table, local: false, "cross-scene replacement")
+        // Inserting a NEW divider (a split) brings structure: rescan, exact.
+        let at = table.ranges(in: ts)[0].location + 3
+        ts.replaceCharacters(in: NSRange(location: at, length: 0),
+                             with: SceneDivider.string(NSTextAttachment(), state: .sceneBreak, newlineAttributes: body))
+        #expect(table.isDirty, "an inserted divider marks the table dirty")
+        check(f, table, local: false, "inserted divider")
+        // A rebuild (whole-storage replacement) — then `reset` with exact ranges, as rebuildStorage does.
+        ts.setAttributedString(manuscript())
+        #expect(table.isDirty)
+        table.reset(SceneDivider.sceneBoundaries(in: ts)!)
+        check(f, table, local: true, "after a rebuild + reset")
+    }
+}
+
+/// EP-045 AC7 — indented text TYPED into the real view stays prose: its escapes are hidden.
+@Suite("Block intents as prose (EP-045 AC7)")
+@MainActor
+struct BlockIntentsAsProseTests {
+    @Test("a tab-led and a 4-space-led paragraph keep their escapes hidden")
+    func indentedTypingIsProse() {
+        for (indent, mark) in [("\t", "*"), ("    ", "_")] {
+            let f = ManuscriptFixture()
+            f.type("\(indent)a\(mark)b")
+            let backslash = indent.utf16.count + 1
+            #expect(f.text == "\(indent)a\\\(mark)b")
+            #expect(f.hidden(backslash), "indentation does not make it a code block: \(indent.debugDescription)")
+        }
+    }
+}
+
+/// EP-045 AC5 + AC6 — Return, Backspace and trailing whitespace, through the REAL view and
+/// AppKit's OWN key dispatch (`keyDown` → `interpretKeyEvents` → the action), ⚠️ never by
+/// calling `insertNewline` directly (`feedback_test_through_the_real_dispatch`: T-0579's tests
+/// named the override's input themselves and passed while AppKit took another route).
+@Suite("Return and Backspace (EP-045 AC5/AC6)")
+@MainActor
+struct ReturnAndBackspaceTests {
+
+    private typealias Fixture = ManuscriptFixture
+
+    /// Press Return-family keys as the keyboard does. Key codes: 36 Return, 76 keypad Enter.
+    private func press(_ f: Fixture, keyCode: UInt16 = 36, _ mods: NSEvent.ModifierFlags = []) {
+        let ch = keyCode == 76 ? "\u{3}" : "\r"
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: mods, timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: ch,
+                                 charactersIgnoringModifiers: ch, isARepeat: false, keyCode: keyCode)!
+        f.tv.keyDown(with: e)
+    }
+
+    @Test("AC5a: Return stores a blank line and leaves the caret after it")
+    func returnInsertsBlankLine() {
+        let f = Fixture("x")
+        f.caret(1); press(f)
+        #expect(f.text == "x\n\n")
+        #expect(f.tv.selectedRange() == NSRange(location: 3, length: 0))
+        let mid = Fixture("abcd")
+        mid.caret(2); press(mid)
+        #expect(mid.text == "ab\n\ncd", "Return mid-paragraph splits it")
+        let sel = Fixture("abXYZ")
+        sel.tv.setSelectedRange(NSRange(location: 2, length: 3)); press(sel)
+        #expect(sel.text == "ab\n\n", "Return replaces a selection")
+    }
+
+    @Test("AC5a: keypad Enter and Shift-Return send the same action; Option-Return is unchanged")
+    func returnFamily() {
+        let k = Fixture("x"); k.caret(1); press(k, keyCode: 76, [.numericPad])
+        #expect(k.text == "x\n\n")
+        let s = Fixture("x"); s.caret(1); press(s, [.shift])
+        #expect(s.text == "x\n\n", "measured: Shift-Return sends insertNewline: like Return")
+        let o = Fixture("x"); o.caret(1); press(o, [.option])
+        #expect(o.text == "x\n", "Option-Return (insertNewlineIgnoringFieldEditor:) is NOT changed — no ruling")
+    }
+
+    @Test("AC6a: trailing spaces are reduced to AT MOST ONE (design: x␣␣␣ + Return → x␣⏎⏎)")
+    func trailingSpaces() {
+        for (before, after) in [("x   ", "x \n\n"), ("x  ", "x \n\n"), ("x ", "x \n\n"), ("x", "x\n\n")] {
+            let f = Fixture(before)
+            f.caret(before.utf16.count); press(f)
+            #expect(f.text == after, "\(before.debugDescription)")
+        }
+        let mid = Fixture("ab   cd")
+        mid.caret(5); press(mid)
+        #expect(mid.text == "ab \n\ncd", "only the run BEFORE the caret is touched")
+        let tabs = Fixture("x\t\t")
+        tabs.caret(3); press(tabs)
+        #expect(tabs.text == "x\t\t\n\n", "tabs are not a hard break and are left alone")
+    }
+
+    @Test("AC6b: a trailing typed backslash collapses to a bare one; only the FINAL pair")
+    func trailingBackslash() {
+        let f = Fixture()
+        f.type("end\\")
+        #expect(f.text == #"end\\"#)
+        press(f)
+        #expect(f.text == "end\\\n\n")
+        #expect(!f.hidden(3), "Q1 = (a): before a blank line the backslash is LITERAL, so it shows")
+
+        let two = Fixture()
+        two.type("a\\\\")
+        #expect(two.text == #"a\\\\"#)
+        press(two)
+        #expect(two.text == "a\\\\\\\n\n", "one literal backslash, then the break marker")
+
+        let mark = Fixture()
+        mark.type("a*")
+        press(mark)
+        #expect(mark.text == "a\\*\n\n", "an escaped MARK is never collapsed")
+    }
+
+    @Test("AC-undo: one Return is ONE edit and ONE textDidChange — so ONE history event")
+    func returnIsOneEdit() {
+        // ⚠️ The coordinator records history per `textDidChange` and commits on `\n`
+        // (`isCommitBoundary`); one notification therefore means one undo step.
+        let f = Fixture()
+        f.type("end\\")
+        var count = 0
+        let token = NotificationCenter.default.addObserver(
+            forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in count += 1 }
+        defer { NotificationCenter.default.removeObserver(token) }
+        press(f)
+        let g = Fixture("x   ")
+        g.caret(4)
+        let token2 = NotificationCenter.default.addObserver(
+            forName: NSText.didChangeNotification, object: g.tv, queue: nil) { _ in count += 1 }
+        defer { NotificationCenter.default.removeObserver(token2) }
+        press(g)
+        #expect(count == 2, "backslash collapse and space trim each happen inside their Return's one edit")
+    }
+
+    /// Backspace as the keyboard sends it (key code 51 → `deleteBackward:`).
+    private func backspace(_ f: Fixture) {
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: "\u{7f}",
+                                 charactersIgnoringModifiers: "\u{7f}", isARepeat: false, keyCode: 51)!
+        f.tv.keyDown(with: e)
+    }
+
+    @Test("Q3: ⌫ at a paragraph start JOINS it with one space — one edit (subsumes Q2)")
+    func backspaceJoinsWithSpace() {
+        let f = Fixture("a.\n\nb.")
+        f.caret(4)
+        var count = 0
+        let token = NotificationCenter.default.addObserver(
+            forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in count += 1 }
+        defer { NotificationCenter.default.removeObserver(token) }
+        backspace(f)
+        #expect(f.text == "a. b.", "what EP-046 would render for the soft break")
+        #expect(f.tv.selectedRange() == NSRange(location: 3, length: 0), "caret stays before b")
+        #expect(count == 1, "ONE edit, so ONE undo step")
+
+        // Q2: trailing spaces become exactly one — no hard break can form (no newline is left).
+        for (before, caret) in [("x   \n\nb", 6), ("x \n\nb", 4)] {
+            let g = Fixture(before)
+            g.caret(caret); backspace(g)
+            #expect(g.text == "x b", "\(before.debugDescription)")
+        }
+        // §4B.6's inverse route: Return FIRST, spaces added to the line above later.
+        let late = Fixture("x\n\nb")
+        late.caret(1); late.type("  ")
+        late.caret(5); backspace(late)
+        #expect(late.text == "x b")
+        // An escaped (literal) backslash is not a break marker: join as usual.
+        let lit = Fixture("end\\\\\n\nnext")
+        lit.caret(7); backspace(lit)
+        #expect(lit.text == "end\\\\ next")
+    }
+
+    @Test("Q3: ⌫ only removes one newline when a paragraph is EMPTY, or after a single soft break")
+    func backspaceOneCharacterCases() {
+        let below = Fixture("a.\n\n")
+        below.caret(4); backspace(below)
+        #expect(below.text == "a.\n", "the paragraph being joined is empty")
+        let above = Fixture("a.\n\n\n\nb")
+        above.caret(6); backspace(above)
+        #expect(above.text == "a.\n\n\nb", "the line above is blank: just remove a blank line")
+        let soft = Fixture("x  \nb")
+        soft.caret(4); backspace(soft)
+        #expect(soft.text == "x  b", "a single soft break (existing text) is one character")
+    }
+
+    @Test("the deliberate break: \\ + Return, then ⌫ merges to a HIDDEN hard break")
+    func backslashBreakAfterMerge() {
+        let f = Fixture()
+        f.type("end\\")
+        press(f)
+        f.type("next")
+        #expect(f.text == "end\\\n\nnext")
+        #expect(!f.hidden(3))
+        f.caret(6); backspace(f)
+        #expect(f.text == "end\\\nnext", "Q3 exception: the deliberate break survives the join")
+        #expect(f.hidden(3), "the line ABOVE the edit is restyled: now a hard break, hidden")
+        // A second ⌫ removes the break and its hidden marker together (AC4 pair-widening).
+        f.tv.deleteBackward(nil)
+        #expect(f.text == "endnext")
     }
 }
 #endif
