@@ -164,6 +164,8 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-04 (**I-0276 filed + Resolved - Not Verified** — Linux launch window opened a project on a single click; now select/double-click. SP-160.)*
+
 *Last Updated: 2026-10-04 (**I-0255 ✅ VERIFIED** — Linux half passed on the rig, build 54 → `Issue-verified-0251-0260.md` (10).)*
 
 *Last Updated: 2026-10-04 (Audit Check F-5: `Issue-backlog.md`'s restated count line removed — R-15.)*

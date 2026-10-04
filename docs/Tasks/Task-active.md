@@ -2,7 +2,7 @@
 
 ---
 
-## 🟠 T-0586 — `[Linux]` The escape layer's WRITE half — Linux stores Apple's manuscript format — Implemented 2026-10-04 · ⚠️ **NOT VERIFIED** (rig pass owed)
+## ✅ T-0586 — `[Linux]` The escape layer's WRITE half — Linux stores Apple's manuscript format — Implemented 2026-10-04 · ✅ **VERIFIED 2026-10-04 (user, rig):** *"All five checks pass."* — ⚠️ archive with the [SP-160] close
 
 **Created:** 2026-10-04 (user: *"yes, and complete its planning."*) · **Epic:** **[EP-049]** (all ACs) · **Sprint:**
 🟡 **[SP-160]** (ACTIVE) → [`../Sprints/Sprint-SP-160.md`](../Sprints/Sprint-SP-160.md) — the plan, the code map and M1–M4 are there.

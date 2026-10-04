@@ -338,22 +338,41 @@ Item {
                     }
 
                     ListView {
+                        id: recentsList
                         anchors.fill: parent
                         visible: recents.entries.length > 0
                         clip: true
                         model: recents.entries
                         spacing: 4
+                        // ⛔ [I-0276] (user, 2026-10-04): a single click OPENED a project — the user
+                        // clicked a row while moving the window and it began opening. ✅ A click now
+                        // SELECTS; a double-click, Return or Enter opens the selection.
+                        currentIndex: -1
+                        keyNavigationEnabled: true
+                        function openCurrent() {
+                            if (currentIndex >= 0 && currentIndex < recents.entries.length)
+                                window.openPath(recents.entries[currentIndex].path)
+                        }
+                        Keys.onReturnPressed: openCurrent()
+                        Keys.onEnterPressed: openCurrent()
 
                         delegate: ItemDelegate {
                             required property var modelData
+                            required property int index
                             width: ListView.view ? ListView.view.width : 0
+                            highlighted: ListView.isCurrentItem
                             // ⚠️ SP-144 / [I-0232]: also disabled DURING an open.
                             // `openPath` guards re-entry anyway, but a row that
                             // still looks clickable while nothing happens reads as
                             // a hang — which is the defect this Sprint is about.
                             enabled: bridge.ready && !window.opening
-                            // Click a recent to open it (SP-060 / T-0231).
-                            onClicked: window.openPath(modelData.path)
+                            // [I-0276]: click SELECTS (and takes focus, so Return opens it);
+                            // double-click OPENS. (SP-060 / T-0231 opened on a single click.)
+                            onClicked: {
+                                ListView.view.currentIndex = index
+                                ListView.view.forceActiveFocus()
+                            }
+                            onDoubleClicked: window.openPath(modelData.path)
 
                             contentItem: ColumnLayout {
                                 spacing: 2

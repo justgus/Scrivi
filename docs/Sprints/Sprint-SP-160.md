@@ -80,7 +80,7 @@ a byte-level test.
 - [x] **AC7** — Existing text is never rewritten; untouched scenes save byte-identical (M4).
 - [x] **AC8** — The shared corpus passes on BOTH platforms: the same gestures produce the same bytes.
 - [x] **AC-build** — The Docker build plus every Linux smoke green; the Apple interop suite green (the corpus resource); macOS / iOS / visionOS build.
-- [ ] **AC-live** — On the rig (build stamp confirmed): type and paste punctuation, Return, Shift-Return and Backspace; the scene file holds Apple's format; copy into another app gives clean text.
+- [x] **AC-live** — On the rig (build stamp confirmed): type and paste punctuation, Return, Shift-Return and Backspace; the scene file holds Apple's format; copy into another app gives clean text.
 
 ⚠️ **Interim, accepted (EP-049):** Linux SHOWS the backslashes until the display half ([SP-159] design → [EP-048]).
 ⛔ **NOT in this Sprint:** hiding or rendering (→ [SP-159] / [EP-048]); undo (→ EP-026); Find/Replace ([T-0585]).
@@ -125,3 +125,15 @@ builder that needs a project argument — the generic loop cannot run it, with o
 ⚠️ **AC-live owed** (rig, build 55): type and paste punctuation; Return, Shift-Return, keypad Enter, Alt-Return;
 Backspace at a paragraph start; copy into another app; check the scene file.
 ✅ **AC-build:** the canonical `docker build --no-cache -f platforms/linux/docker/Dockerfile` SUCCEEDED (362/362 targets).
+
+### ✅ 2026-10-04 — AC-live PASSED; [T-0586] VERIFIED · ⚠️ ADDED TO THIS SPRINT: [I-0276]
+
+✅ User: *"On Linux I accidentally clicked on an item in the launch window while trying to move it.  Now it is opening the file.  We need to arrest this behavior.  Perhaps we should only open on a double click.  and select on single click.  All five checks pass."*
+✅ **AC-live MET → all EP-049 ACs met.** [T-0586] Verified (archived with the close).
+⚠️ **SCOPE ADDITION, noted explicitly (Sprint guidelines):** **[I-0276]** — the Linux launch window opened a project
+on a SINGLE click. Found in this Sprint's live pass, so linked here by the user's standing rule. ✅ Fixed:
+click selects, double-click / Return / Enter opens (`Landing.qml`). ✅ Built; no QML errors at launch. ⚠️ Rig check
+owed on **build 57**.
+⚠️ **Environment note:** Docker's disk is FULL (56/59 GB; 72 images, 43.7 GB reclaimable). The SP-160 no-cache
+image was removed; the rest are the user's to prune.
+
