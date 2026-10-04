@@ -12,7 +12,7 @@ created: 2026-10-04
 
 **Status:** ✅ **CLOSED 2026-10-04 (user-approved):** *"You may close SP-157, archive T-0581 and T-0582."* → [`../../Tasks/Verified/Task-verified-0581-0582.md`](../../Tasks/Verified/Task-verified-0581-0582.md).
 **Tasks:** [T-0581] AC7 · [T-0582] AC10 → [`../../Tasks/Verified/Task-verified-0581-0582.md`](../../Tasks/Verified/Task-verified-0581-0582.md)
-**Epic:** [EP-045] → [`../Epics/Epic-EP-045.md`](../../Epics/Epic-EP-045.md) — ⚠️ **its LAST two ACs.** Closing this Sprint leaves the Epic ready for its Audit Check and close.
+**Epic:** [EP-045] → [`../../Epics/Closed/Epic-EP-045.md`](../../Epics/Closed/Epic-EP-045.md) — ⚠️ **its LAST two ACs.** Closing this Sprint leaves the Epic ready for its Audit Check and close.
 **Design:** [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md) §7 (AC7), §4.5 (the 42 tab-led cases), AC10 row
 **Authority:** [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §4D.4(a) (user: *"option 2"*), §10.2; [I-0206]'s re-open condition → [`../Issues/Closed/Issue-closed-0206.md`](../../Issues/Closed/Issue-closed-0206.md)
 **Size:** ⚠️ **SMALL.** AC7 is mostly a decision plus tests; AC10 is a measurement, not a gate.

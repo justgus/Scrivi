@@ -42,6 +42,7 @@ would make E1 unclosable.**
 | **AC8** | ✅ **ONE parsing mode is chosen and stated** in code and in this document | ⛔ **Study §4C.2 — the study itself mixes them** | ✅ **Code review + a comment naming the mode and why** |
 | **AC9** | ✅ **No regression in save fidelity** — ⚠️ a scene's bytes round-trip unchanged through an edit-save-reload cycle | ✅ **Study §2** | ✅ **Integration test against a real temp project** |
 | **AC10** | ✅ **The caret path is MEASURED against a 1.85 MB manuscript** | ⚠️ **Study §10.2, [I-0206] re-open condition** | ⛔ **A measurement, recorded — ⚠️ not a pass/fail gate (§7)**  ✅ **RECORDED 2026-10-04 ([SP-157]):** E1's additions negligible; ⚠️ keystroke cost linear in offset (AppKit), ~20–43 → ~89–122 ms. |
+| **AC11** | ✅ **The scene-boundary table is MAINTAINED across edits, not rescanned over the whole manuscript per keystroke** — ✅ added 2026-10-04 (user), the Linux `SceneDocument` shape | ✅ **User, 2026-10-04** ([SP-157] AC10 finding → [T-0583]) | ✅ **MET 2026-10-04 ([SP-158]):** `[SCRIVI-KEY] bounds=0.0` on 1.85 MB + a test that the maintained table equals a full rescan |
 
 ⚠️ **⛔ NOT IN E1, STATED SO IT IS NOT DRIFTED IN:** ⛔ **marker hiding (E2)** · ⛔ **bold/italic/heading
 RENDERING (E2)** · ⛔ **the formatting COMMANDS (E2)** · ⛔ **`paragraphIndent` preference (E3)** ·

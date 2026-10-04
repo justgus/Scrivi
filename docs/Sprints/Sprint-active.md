@@ -1,8 +1,8 @@
 # Active Sprints
 
-## SP-158 — 🟡 ACTIVE 2026-10-04
+## No Sprint is active (SP-158 closed 2026-10-04)
 
-🟡 **[SP-158] ACTIVE 2026-10-04** `[Apple]` [EP-045] S6 → [`Sprint-SP-158.md`](Sprint-SP-158.md) — maintain the scene-boundary table (AC11, [T-0583]).
+✅ **[SP-158] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S6 → [`Closed/Sprint-SP-158.md`](Closed/Sprint-SP-158.md) — ✅ AC11 ([T-0583] verified): no whole-manuscript scan per keystroke.
 ✅ **[SP-157] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S5 → [`Closed/Sprint-SP-157.md`](Closed/Sprint-SP-157.md) — ✅ AC7 + AC10 ([T-0581], [T-0582] verified); filed [T-0583], [I-0275]. ✅ AC7 + AC10 met (AC11 added afterwards → [SP-158]).
 ✅ **[SP-156] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S4 → [`Closed/Sprint-SP-156.md`](Closed/Sprint-SP-156.md) — ✅ AC5 + AC6 ([T-0580] verified); Q1 = (a), Q2, Q3 ruled; ⚪ [I-0274] closed (not a defect).
 ✅ **[SP-155] CLOSED 2026-10-03 (user-approved)** `[Apple]` [EP-045] S3 → [`Closed/Sprint-SP-155.md`](Closed/Sprint-SP-155.md) — ✅ the escape layer (AC4), [T-0579] verified. Linux shows backslashes until EP-048 (ruled).

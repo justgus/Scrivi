@@ -11,7 +11,7 @@ created: 2026-10-03
 # SP-154 — `[Apple]` [EP-045] S2: The two coordinate spaces (AC3) + parsing mode (AC8)
 
 **Status:** ✅ **CLOSED 2026-10-03 (user-approved):** *"Close SP-154."* (Activated and completed 2026-10-03.)
-**Epic:** [EP-045] → [`../Epics/Epic-EP-045.md`](../Epics/Epic-EP-045.md)
+**Epic:** [EP-045] → [`../../Epics/Closed/Epic-EP-045.md`](../../Epics/Closed/Epic-EP-045.md)
 **Design:** [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md) §4 (AC3)
 **Size:** ⚠️ **MEDIUM** — a new seam through every caret path, plus one measurement for a ruling.
 

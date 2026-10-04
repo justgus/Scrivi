@@ -229,7 +229,7 @@ file. **`Sprint-backlog.md` is authoritative; consult it rather than this copy.*
 ## All Sprints
 
 ⚠️ **This table is the single source for Sprint status (P7).** Counts are **not** restated here or in
-Statistics — read the rows. Next available ID: **SP-119** — ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
+Statistics — read the rows. ✅ Next-available IDs live in `../tools/next-ids.json` (user ruling 2026-09-24). ⚠️ **SP-107–SP-114 are RESERVED to EP-032**
 (see the reserved-ID note in Statistics). **Do not reissue them.** ⚠️ **SP-115 runs BEFORE them** (Q-a).
 
 **SP-106 ✅ closed 2026-08-17 (user-approved)** — `[Cross]` test integrity & CI trust. It ran **first**, before
@@ -426,7 +426,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-155** | `[Apple]` **[EP-045] S3** — the escape layer (AC4) | EP-045 | 2026-10-03 | 2026-10-03 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-155.md) |
 | **SP-156** | `[Apple]` **[EP-045] S4** — Enter/Backspace (AC5), trailing whitespace (AC6) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-156.md) |
 | **SP-157** | `[Apple]` **[EP-045] S5** — block intents as prose (AC7), caret-path measurement (AC10) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-157.md) |
-| **SP-158** | `[Apple]` **[EP-045] S6** — maintain the scene-boundary table (AC11, T-0583) | EP-045 | 2026-10-04 | — | 🟡 **ACTIVE** → [record](Sprint-SP-158.md) |
+| **SP-158** | `[Apple]` **[EP-045] S6** — maintain the scene-boundary table (AC11, T-0583) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-158.md) |
 
 ## Statistics
 
@@ -465,6 +465,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-04 (Audit Check O-1: the stale "Next available ID: SP-119" line removed; EP-045 closed.)*
+
+*Last Updated: 2026-10-04 (**SP-158 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-158.md`; T-0583 archived. ⚠️ No Sprint is active.)*
 
 *Last Updated: 2026-10-04 (**SP-158 ACTIVATED** (user-approved); T-0583 active.)*
 

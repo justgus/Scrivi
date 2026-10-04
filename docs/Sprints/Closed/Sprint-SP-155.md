@@ -11,7 +11,7 @@ created: 2026-10-03
 # SP-155 — `[Apple]` [EP-045] S3: The escape layer (AC4)
 
 **Status:** ✅ **CLOSED 2026-10-03 (user-approved):** *"live check passes, close SP-155"*. Q-Linux ruled (option 1).
-**Epic:** [EP-045] → [`../Epics/Epic-EP-045.md`](../Epics/Epic-EP-045.md)
+**Epic:** [EP-045] → [`../../Epics/Closed/Epic-EP-045.md`](../../Epics/Closed/Epic-EP-045.md)
 **Design:** [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md) §5 (AC4), §4.4 (R3 = (c))
 **Size:** ⚠️ **MEDIUM** — the first change the writer can SEE (or rather, should not see).
 

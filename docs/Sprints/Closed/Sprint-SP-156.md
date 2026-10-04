@@ -12,7 +12,7 @@ created: 2026-10-04
 
 **Status:** ✅ **CLOSED 2026-10-04 (user-approved):** *"yes, close I-0274 as not a defect. Archive T-0580. Close SP-156."* Live check passed; [T-0580] verified and archived → [`../../Tasks/Verified/Task-verified-0580.md`](../../Tasks/Verified/Task-verified-0580.md).
 **Task:** [T-0580] → [`../../Tasks/Verified/Task-verified-0580.md`](../../Tasks/Verified/Task-verified-0580.md)
-**Epic:** [EP-045] → [`../Epics/Epic-EP-045.md`](../../Epics/Epic-EP-045.md)
+**Epic:** [EP-045] → [`../../Epics/Closed/Epic-EP-045.md`](../../Epics/Closed/Epic-EP-045.md)
 **Design:** [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md) §6
 **Authority:** [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §3A.6 (Enter/Backspace ruling), §4B.5–§4B.6 (trailing-space ruling + amendment)
 **Size:** ⚠️ **SMALL–MEDIUM.** One keystroke path, but it changes what the writer's Return key stores, and it touches undo.

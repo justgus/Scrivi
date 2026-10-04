@@ -1,7 +1,8 @@
 ---
 sprint: SP-158
 epic: EP-045
-status: Active
+status: Closed
+closed: 2026-10-04
 activated: 2026-10-04
 platform: Apple
 created: 2026-10-04
@@ -9,10 +10,10 @@ created: 2026-10-04
 
 # SP-158 — `[Apple]` [EP-045] S6: Maintain the scene-boundary table instead of rescanning it (AC11)
 
-**Status:** 🟡 **ACTIVE 2026-10-04** (user: *"yes, add it to I-0275 and activate SP-158"*). 🟠 **[T-0583] implemented — AC11a + AC11d need the user's live check.**
-**Epic:** [EP-045] → [`../Epics/Epic-EP-045.md`](../Epics/Epic-EP-045.md) — ⚠️ **AC11, added 2026-10-04.** EP-045 cannot close until it is met.
-**Task:** [T-0583] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md)
-**Origin:** [SP-157] AC10 → [`Closed/Sprint-SP-157.md`](Closed/Sprint-SP-157.md)
+**Status:** ✅ **CLOSED 2026-10-04 (user-approved):** *"yes the text all landed where I put it and showed up where I expected. you have my approval to mark T-0583 verfied, close SP-158, and do the Audit Check for EP-045."*
+**Epic:** [EP-045] → [`../../Epics/Closed/Epic-EP-045.md`](../../Epics/Closed/Epic-EP-045.md) — ⚠️ **AC11, added 2026-10-04.** EP-045 cannot close until it is met.
+**Task:** [T-0583] → [`../../Tasks/Verified/Task-verified-0583.md`](../../Tasks/Verified/Task-verified-0583.md)
+**Origin:** [SP-157] AC10 → [`Closed/Sprint-SP-157.md`](Sprint-SP-157.md)
 **Size:** ⚠️ **SMALL–MEDIUM.** The change is small; it touches nine call sites, and a wrong table puts edits in the wrong scene file.
 
 ---
@@ -81,14 +82,14 @@ another copy. A full rescan stays as the fallback whenever the table cannot be t
 
 ## Acceptance Criteria (= EP-045 AC11)
 
-- [ ] **AC11a — No whole-manuscript scan on an ordinary keystroke:** `[SCRIVI-KEY] bounds` ≈ 0 (well below 0.5 ms) on the
+- [x] **AC11a — No whole-manuscript scan on an ordinary keystroke:** `[SCRIVI-KEY] bounds` ≈ 0 (well below 0.5 ms) on the
   1.85 MB fixture, typing at the start, middle and end (it was 2.3–3.9 ms).
 - [x] **AC11b — The maintained table EQUALS a full rescan**, tested through the real view after: typing,
   Return, ⌫-join (Q3), paste within a scene, cross-scene delete, an undo apply, and a rebuild. ✅ A debug-build
   self-check (maintained vs rescanned, compared on demand) is used by the tests and never runs per keystroke in release.
 - [x] **AC11c — Save fidelity unchanged:** the EP-045 AC9 test (edit → save → reload round-trips every scene) stays
   green. ⚠️ A wrong table saves text into the wrong scene file, so this is the guard that matters.
-- [ ] **AC11d — Live check:** the user types and navigates on `dumas-prose-timelines`; the console shows `bounds` ≈ 0
+- [x] **AC11d — Live check:** the user types and navigates on `dumas-prose-timelines`; the console shows `bounds` ≈ 0
   and every edit lands in the right scene.
 - [x] **AC-build** — macOS + iOS + visionOS; interop green via `scripts/run-interop-tests.sh`.
 
@@ -129,4 +130,29 @@ replacement and an inserted divider mark it dirty and the rescan is exact; rebui
 ✅ **Mutation:** removing the shift of later scenes fails 8 checks; restored. ✅ **167/167**, incl. the AC9 save
 round-trip; macOS / iOS / visionOS BUILD SUCCEEDED.
 ⚠️ **Owed (user):** AC11a (`[SCRIVI-KEY] bounds` ≈ 0 on the 1.85 MB fixture) + AC11d (edits land in the right scene).
+
+### ✅ 2026-10-04 — live check PASSED; [T-0583] VERIFIED; Sprint CLOSED (user-approved)
+
+✅ User: *"yes the text all landed where I put it and showed up where I expected. you have my approval to mark T-0583 verfied, close SP-158, and do the Audit Check for EP-045."*
+✅ **AC11a — measured in the user's console (`dumas-prose-timelines`, 1,855,917 chars):** `bounds=0.0`. ✅ Only **2** of
+~150 keystrokes logged `[SCRIVI-KEY]` at all (it logs above 0.5 ms; the previous run logged EVERY keystroke at
+2.3–4.3 ms) — both Returns, 0.9 / 0.7 ms, all in `rest` (the undo commit a Return triggers). ✅ Load: one 4.7 ms
+styler pass, no rescan.
+✅ **`keyDown`:** start 16–37 ms (was 20–43), scene 15 18–43 ms, end 89–121 ms (was 89–122) — ✅ as expected: ~3 ms
+saved; the position-dependent cost is AppKit's ([I-0275], unchanged).
+✅ **AC11d:** every `saveSceneBlocking` wrote the caret's scene (0, 15, 1184 — including at the end, where the viewport
+scene 1183 differed from the caret's), ✅ and the user confirmed the text landed where typed.
+✅ **EP-045 AC11 MET.**
+
+## Retrospective
+
+**Completed:** ✅ AC11 ([T-0583]): `SceneBoundaryTable` maintained from each edit (the Linux shape), one authority,
+rescan only when dirty; twelve call sites → `ensureBoundaries`.
+**Returned to Backlog:** none.
+**What went well:** ✅ the tests asserted "no rescan happened" as well as "equals a rescan" — ✅ which is what caught
+the `didProcessEditing` widening; a table that silently rescanned would have passed equality. ✅ Checking Linux
+first found the design already shipped there.
+**What to improve:** ⛔ [T-0583] was first filed with Epic "None" — the orphan pattern the user named. ✅ A Task
+belongs to the Sprint/Epic it was created in unless stated otherwise.
+**Carry-forward notes:** ✅ EP-045 AC1–AC11 met → Audit Check, then the close.
 

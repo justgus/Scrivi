@@ -11,7 +11,7 @@ created: 2026-10-03
 # SP-153 — `[Apple]` [EP-045] S1: Typed attachments, save fidelity, divider close-out
 
 **Status:** ✅ **CLOSED 2026-10-03 (user-approved):** *"the live look passes, close SP-153"*. Created and activated 2026-10-03.
-**Epic:** [EP-045] `[Apple]` The Manuscript Renderer — Foundations → [`../Epics/Epic-EP-045.md`](../Epics/Epic-EP-045.md)
+**Epic:** [EP-045] `[Apple]` The Manuscript Renderer — Foundations → [`../../Epics/Closed/Epic-EP-045.md`](../../Epics/Closed/Epic-EP-045.md)
 **Design:** [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md) §2 (AC1), §3 (AC2)
 **Size:** ✅ **SMALL** — one data-loss fix, its integration guard, one live look.
 

@@ -164,6 +164,8 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-04 (Audit Check F-5: `Issue-backlog.md`'s restated count line removed — R-15.)*
+
 *Last Updated: 2026-10-04 (**I-0275**: sync-vs-async background added at the user's request.)*
 
 *Last Updated: 2026-10-04 (**I-0275 filed** to the backlog — keystroke cost grows with manuscript position (AppKit); user: "kind of concerned", not ruled as biting.)*

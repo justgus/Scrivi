@@ -1,9 +1,9 @@
 # EP-045: `[Apple]` **The Manuscript Renderer — Foundations**
 
-**Status:** 🟡 **ACTIVE 2026-10-03** (user-approved) — created 2026-09-29. ✅ **AC1–AC10 MET** ([SP-153]–[SP-157] closed). ⚠️ **AC11 ADDED 2026-10-04** ([T-0583]) → 🟡 **[SP-158]** ACTIVE. ⛔ **Cannot close until AC11 is met;** then the Audit Check and the close.
+**Status:** ✅ **CLOSED 2026-10-04 (user-approved):** *"fix all findingd as per your reccomendations.  Close the Epic."* — activated 2026-10-03, created 2026-09-29. ✅ **All eleven ACs met** across [SP-153]–[SP-158]. ✅ Rulings R1, R2, R3, Q-AC7 (and SP-156's Q1–Q3). ✅ Audit Check → [`../../Audits/Audit-Check-20261004.md`](../../Audits/Audit-Check-20261004.md), all findings remediated.
 **Platform:** ⚠️ **`[Apple]` ONLY** — ✅ **Linux parity is [EP-048], SCHEDULED not assumed.**
-**Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
-**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)
+**Design:** → [`../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E1_Design_v0_1.md)
+**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md)
 — ✅ **sixteen questions RULED by the user 2026-09-29.**
 
 ---
@@ -55,31 +55,19 @@ unclosable.**
 
 ---
 
-### ⚠️ AC status at activation (2026-10-03) — read in the code, not carried over
+### ✅ AC status at close (2026-10-04)
 
-- ✅ **AC2 — LARGELY MET BY [T-0554]** (→ `../Tasks/Verified/Task-verified-0554-0564.md`). ✅ Its cause
-  WAS found (third attempt), the divider is now a `DividerTextAttachment` with its own drawing, ✅ the
-  user verified it by eye on macOS (*"on macOS the line is now fully visible"*, 2026-09-29), ✅ and a
-  bitmap measurement of a real `NSTextView` found it drawn in BOTH Dark and Light. ⚠️ **What the AC's
-  evidence obligation still lacks is a LIVE look in LIGHT mode** — [SP-153] collects it.
-  ⛔ **Known trap #1 below is therefore OUT OF DATE.**
-- ⚠️ **AC11 — ADDED 2026-10-04, OPEN** — [T-0583] → [SP-158]. ⛔ It had been filed unlinked (Epic "None"); the user's rule is that a Task belongs to the Epic it was created in unless stated otherwise.
+- ✅ **AC11 — MET 2026-10-04** ([T-0583] user-verified; [SP-158]): `[SCRIVI-KEY] bounds=0.0` on 1.85 MB. ⚠️ Added 2026-10-04 — ⛔ It had been filed unlinked (Epic "None"); the user's rule is that a Task belongs to the Epic it was created in unless stated otherwise.
 - ✅ **AC7 — MET 2026-10-04** ([T-0581] user-verified: *"no backslashes appeared"*; Q-AC7 = (a), drawing carried to [EP-046]).
-- ✅ **AC10 — MEASURED 2026-10-04** ([SP-157], [T-0582]) → full tables in [`../Sprints/Closed/Sprint-SP-157.md`](../Sprints/Closed/Sprint-SP-157.md). ✅ E1's additions negligible (restyle ≤0.7 ms/edit, 4.7 ms/rebuild; snap unmeasurable). ⚠️ **Keystroke cost is LINEAR IN OFFSET** (~20–43 ms at the start → ~89–122 ms at the end, arrows 1 → 90 ms) — AppKit's, our work flat at 2.3–4.3 ms; revises [I-0206]'s *"typing is constant"*. ⛔ Not a gate; a NEW Issue only if it bites.
+- ✅ **AC10 — MEASURED 2026-10-04** ([SP-157], [T-0582]) → full tables in [`../Sprints/Closed/Sprint-SP-157.md`](../../Sprints/Closed/Sprint-SP-157.md). ✅ E1's additions negligible (restyle ≤0.7 ms/edit, 4.7 ms/rebuild; snap unmeasurable). ⚠️ **Keystroke cost is LINEAR IN OFFSET** (~20–43 ms at the start → ~89–122 ms at the end, arrows 1 → 90 ms) — AppKit's, our work flat at 2.3–4.3 ms; revises [I-0206]'s *"typing is constant"*. ⛔ Not a gate; a NEW Issue only if it bites.
 - ✅ **AC5 + AC6 — MET 2026-10-04** ([T-0580] user-verified by live check; [SP-156]). ⚠️ AC5's Backspace half AMENDED by Q3: ⌫ joins with one space until/unless re-ruled.
 - ✅ **AC4 — MET 2026-10-03** ([T-0579] user-verified; [SP-155] CLOSED). ⚠️ Linux shows backslashes until [EP-048] (ruled); Find/Replace across hidden backslashes is a follow-up.
 - ✅ **AC3 + AC8 — MET 2026-10-03** ([T-0578] user-verified; `.full` confirmed). [SP-154] CLOSED.
 - ✅ **AC2 — MET 2026-10-03** (user's Light-mode live look). ✅ **AC1 + AC9 — MET 2026-10-03**
   ([T-0577] user-verified by live look; [SP-153] CLOSED). ✅ Design ruled by the user: one `DividerTextAttachment`, rendering
   states in an enum carried by the `.scriviDivider` key.
-- ⛔ ~~**AC1 — STILL OPEN, and WIDER than the design says.**~~ ⚠️ The design (§2.2) names *"two call sites"*;
-  ✅ **SIX code sites read `.attachment` today** (`ManuscriptTextView.swift` `:1700`, `:2060`, `:2153`,
-  `:2487`, `:2718`, `:2722`), every one treating ANY attachment as a divider. ✅ The divider already has its
-  own class (`DividerTextAttachment`, `:2749`), which is a candidate for the type test.
 
-## ⛔ TWO RULINGS OWED — ✅ recorded up front
-
-⚠️ **Neither blocks the START. ✅ Both block the CLOSE.**
+## ✅ THE RULINGS — R1, R2, R3: all RULED (2026-10-03)
 
 | # | ⚠️ Question | ⚠️ Recommendation |
 | - | ---------- | ----------------- |
@@ -91,8 +79,7 @@ unclosable.**
 
 ## ⛔ Known traps — each already paid for once
 
-1. ⛔ **AC2's CAUSE IS UNKNOWN AND TWO FIXES HAVE ALREADY FAILED.** ✅ **Diagnose LIVE first
-   (`feedback_prove_code_is_reached`); ⛔ do NOT ship a third speculative colour change.**
+1. ✅ **AC2's cause — FOUND on the third attempt ([T-0554]).** ⚠️ The lesson stands: two speculative colour fixes failed before a LIVE diagnosis found it (`feedback_prove_code_is_reached`).
 2. ⛔ **`rebuildStorage` IS WHOLE-DOCUMENT** (`:568-668`) — ✅ **[I-0196] names it *"the prime suspect for
    the hang"*.** ⚠️ **AC3's scanner must be PER FRAGMENT; ⛔ never a document-wide table.**
 3. ⛔ **THE UNDO PATH STRIPS STORAGE ATTRIBUTES** (`:366-369`, only `.font` + `.foregroundColor`).
@@ -129,11 +116,25 @@ a NEW break waits.**
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
-| **[SP-158]** | **AC11 maintain the scene-boundary table** ([T-0583]; Linux already does this) | 🟡 **ACTIVE 2026-10-04** → [`../Sprints/Sprint-SP-158.md`](../Sprints/Sprint-SP-158.md) |
-| **[SP-157]** | **AC7 block intents as prose** + **AC10 caret-path measurement** (✅ Q-AC7 = (a), ruled) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-157.md`](../Sprints/Closed/Sprint-SP-157.md) — filed [T-0583], [I-0275] |
-| **[SP-156]** | **AC5 Enter/Backspace** + **AC6 trailing whitespace** (✅ Q1 = (a); ✅ Q2; ✅ Q3: ⌫ joins with a space) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-156.md`](../Sprints/Closed/Sprint-SP-156.md) |
-| **[SP-155]** | ✅ **AC4 the escape layer** (typing, paste, pair-deletion, copy un-escape, hiding styler) | (Linux shows backslashes until [EP-048] — ruled) → ✅ **CLOSED 2026-10-03** [`../Sprints/Closed/Sprint-SP-155.md`](../Sprints/Closed/Sprint-SP-155.md) |
-| **[SP-154]** | ✅ **AC3 two coordinate spaces** + **AC8 parsing mode** + ⚠️ **AC-R3 measurement for ruling R3** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-154.md`](../Sprints/Closed/Sprint-SP-154.md) |
-| **[SP-153]** | ⛔ **AC1 typed attachments (the data-loss item, all six readers)** + **AC9 save fidelity** + **AC2 Light-mode live look** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-153.md`](../Sprints/Closed/Sprint-SP-153.md) |
+| **[SP-158]** | **AC11 maintain the scene-boundary table** ([T-0583]; the Linux shape) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-158.md`](../../Sprints/Closed/Sprint-SP-158.md) |
+| **[SP-157]** | **AC7 block intents as prose** + **AC10 caret-path measurement** (✅ Q-AC7 = (a), ruled) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-157.md`](../../Sprints/Closed/Sprint-SP-157.md) — filed [T-0583], [I-0275] |
+| **[SP-156]** | **AC5 Enter/Backspace** + **AC6 trailing whitespace** (✅ Q1 = (a); ✅ Q2; ✅ Q3: ⌫ joins with a space) | ✅ **CLOSED 2026-10-04** → [`../Sprints/Closed/Sprint-SP-156.md`](../../Sprints/Closed/Sprint-SP-156.md) |
+| **[SP-155]** | ✅ **AC4 the escape layer** (typing, paste, pair-deletion, copy un-escape, hiding styler) | (Linux shows backslashes until [EP-048] — ruled) → ✅ **CLOSED 2026-10-03** [`../Sprints/Closed/Sprint-SP-155.md`](../../Sprints/Closed/Sprint-SP-155.md) |
+| **[SP-154]** | ✅ **AC3 two coordinate spaces** + **AC8 parsing mode** + ⚠️ **AC-R3 measurement for ruling R3** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-154.md`](../../Sprints/Closed/Sprint-SP-154.md) |
+| **[SP-153]** | ⛔ **AC1 typed attachments (the data-loss item, all six readers)** + **AC9 save fidelity** + **AC2 Light-mode live look** | ✅ **CLOSED 2026-10-03** → [`../Sprints/Closed/Sprint-SP-153.md`](../../Sprints/Closed/Sprint-SP-153.md) |
 
-⚠️ Later Sprints (AC3–AC8, AC10) are NOT pre-allocated; IDs come from `docs/tools/next-ids.json` when each is created.
+---
+
+## ✅ Close — 2026-10-04 (user-approved)
+
+✅ User: *"fix all findingd as per your reccomendations.  Close the Epic."*
+✅ **Delivered:** typed scene dividers (a live save-path corruption fixed) · the SOURCE↔PRESENTED caret mapping ·
+the escape layer (typed and pasted Markdown marks can never become formatting) · a visible divider · Return /
+Backspace paragraph semantics · indented text read as prose · the caret path measured · the scene-boundary table
+maintained instead of rescanned.
+⚠️ **Carried forward, NOT closed by this Epic:** drawing unexposed block intents as prose → [EP-046] (its AC);
+Linux parity → [EP-048]; Find/Replace across hidden backslashes (follow-up); Option-Return storing one `\n`
+(unruled); [I-0275] keystroke cost that grows with position (Issue backlog; first step a profile).
+⚠️ **Lesson:** a Task created inside an Epic belongs to it unless stated otherwise — [T-0583] was first filed
+unlinked and became AC11 at the user's direction.
+

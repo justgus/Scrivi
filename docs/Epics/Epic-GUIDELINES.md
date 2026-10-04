@@ -133,6 +133,7 @@ docs/Epics/
 ├── Epic-Documentation.md       ← Index of all Epics
 ├── Epic-backlog.md             ← Proposed Epics not yet being actively defined
 ├── Epic-active.md              ← Epics that are Draft, Active, or Complete-pending-close
+├── Epic-EP-XXX.md              ← (optional) full record of a Draft/Active Epic too large for Epic-active.md
 ├── Closed/
 │   ├── Epic-EP-001.md
 │   ├── Epic-EP-002.md
@@ -142,6 +143,9 @@ docs/Epics/
 - **Epic-Documentation.md** — Lean index. One row per Epic, always up to date.
 - **Epic-backlog.md** — Proposed Epics queued for future planning. Rough goal and scope only.
 - **Epic-active.md** — Full detail on Epics that are Draft, Active, or Complete-pending-close. Multiple Epics may be active simultaneously.
+- **Epic-EP-XXX.md** *(optional)* — the full record of a Draft or Active Epic whose detail is too large for
+  `Epic-active.md`, which then carries a summary and a link. ⚠️ It moves to `Closed/` IN THE SAME STEP the Epic
+  closes. *(Named 2026-10-04 — Audit Check F-6: the practice existed — EP-043, EP-044, EP-045 — unnamed.)*
 - **Closed/Epic-EP-XXX.md** — Archive file per closed Epic.
 
 ## Epic Entry Template

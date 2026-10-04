@@ -12,7 +12,7 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ## EP-046: `[Apple]` ⚠️ **The Manuscript Renderer — Inline Rendering** (WYSIWYG)
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-045].**
+**Status:** 🔵 **Draft** — created 2026-09-29. ✅ **Unblocked: [EP-045] CLOSED 2026-10-04** → [`Closed/Epic-EP-045.md`](Closed/Epic-EP-045.md).
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §4.3, §4A.
 
 **Goal:** ⚠️ **What the user actually asked for — *"my inclination is to wysiwyg."*** ✅ **Bold, italic
@@ -71,7 +71,7 @@ the indent vanishes on undo, or on the next rebuild, and reads as a rendering bu
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-045]/[EP-046]. ⚠️ NOT SCOPED.**
+**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-046]** ([EP-045] closed 2026-10-04). ⚠️ NOT SCOPED.
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
 
 **Goal:** ✅ **The same manuscript surface on Linux.**
