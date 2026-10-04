@@ -109,9 +109,10 @@ user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbrok
 | EP-044 | `[ScriviCore]` **World Resolution** — ⚠️ **the core stops giving CONFIDENT WRONG ANSWERS about where a world is.** ⚠️ **[I-0223] + [I-0192] + [I-0181]'s residual** | 🔵 **Draft** (backlog) — [record](Epic-EP-044.md) | 2026-09-22 | — |
 | EP-043 | `[Linux]` **The Session** — many projects, one window each, restored where the writer left them. ⚠️ **Closes [I-0176]/[I-0177]/[I-0178]**; ports ✅ **[EP-018]** | ✅ **CLOSED** — activated 2026-09-25 — [record](Closed/Epic-EP-043.md) — ✅ **CLOSED 2026-09-30 (user-approved)** — all four Sprints ([SP-145]–[SP-148]) closed, all 10 ACs met | 2026-09-21 | — |
 | EP-045 | `[Apple]` **Manuscript Renderer — Foundations** — ⚠️ **typed attachments (a live save-path corruption), the SOURCE↔PRESENTED caret mapping, the escape layer, the divider** | ✅ **CLOSED 2026-10-04** (user-approved) — all eleven ACs met; SP-153–158 → [record](Closed/Epic-EP-045.md) | 2026-09-29 | 2026-10-04 |
-| EP-046 | `[Apple]` **Manuscript Renderer — Inline Rendering** — ⚠️ **WYSIWYG: bold/italic/headings render, markers hide (Model B) + the formatting COMMANDS** | 🔵 **Draft** (backlog) — ✅ **unblocked — [EP-045] closed 2026-10-04** | 2026-09-29 | — |
+| EP-046 | `[Apple]` **Manuscript Renderer — Inline Rendering** — ⚠️ **WYSIWYG: bold/italic/headings render, markers hide (Model B) + the formatting COMMANDS** | 🔵 **Draft** (backlog) — ✅ **unblocked — [EP-045] closed 2026-10-04**; 🔵 planning Sprint **SP-159** created | 2026-09-29 | — |
 | EP-047 | `[Apple]` **Manuscript Typography & Preferences** — ✅ **F1 typeface + `paragraphIndent`** (⛔ **a tab or 4 spaces makes a `codeBlock`; ✅ `firstLineHeadIndent` costs ZERO characters**) | 🔵 **Draft** (backlog) | 2026-09-29 | — |
 | EP-048 | `[Linux]` **Manuscript Renderer Parity** — ⚠️ **honours `feedback_linux_adopts_apple_shape`; ⛔ NOT SCOPED — Qt is not TextKit and no parser is chosen** | 🔵 **Draft** (backlog) — ⛔ **blocked on [EP-046]** ([EP-045] closed 2026-10-04) | 2026-09-29 | — |
+| EP-049 | `[Linux]` **Manuscript Storage Format on Linux** — ⚠️ **the escape layer's WRITE half: Linux writes the same `.md` Apple does** (escaping, paste/copy, pair deletion, Return/Backspace) | 🟡 **ACTIVE 2026-10-04** — SP-160 active | 2026-10-04 | — |
 
 ## Statistics
 
@@ -155,6 +156,12 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-04 (**EP-049 ACTIVATED** (user-approved) with SP-160; moved from `Epic-backlog.md` to `Epic-active.md`.)*
+
+*Last Updated: 2026-10-04 (**EP-049 created** (Draft) — Linux escape-layer write half, "now"; EP-048 keeps the display half.)*
+
+*Last Updated: 2026-10-04 (**EP-046**: planning Sprint SP-159 created; T-0584, T-0585 linked.)*
 
 *Last Updated: 2026-10-04 (**EP-045 ✅ CLOSED (user-approved)** → `Closed/Epic-EP-045.md`; Audit Check findings F-1–F-6 and O-1 remediated as recommended. ⚠️ No Epic is active.)*
 

@@ -12,12 +12,19 @@
 
 #include <cmath>
 
+#include "ManuscriptEscapes.hpp"
 #include "SceneDocument.hpp"
+
+#include <QInputMethodEvent>
+#include <QMimeData>
 
 namespace {
 // Horizontal inset (px) at each end of the rule, matching Apple's DividerAttachmentCell
 // (which insets 20pt). Keeps the line from touching the text margins.
 constexpr int kRuleInset = 20;
+// EP-049: Scrivi's own clipboard data carries the STORED source here, so an in-app paste restores it
+// exactly (Apple remembers its own pasteboard write — `ownCopy`; same result, Qt means).
+const QString kSourceMime = QStringLiteral("application/x-scrivi-manuscript-source");
 }   // namespace
 
 ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
@@ -149,17 +156,18 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
         && (event->modifiers() & Qt::ControlModifier)) {
         if (event->modifiers() & Qt::ShiftModifier) {
             emit mergeChapterRequested();
-        } else if (event->key() == Qt::Key_Backspace) {
-            // Plain Ctrl+Backspace = scene merge. (Ctrl+Delete with no Shift is left to the
-            // edit path — it is not a merge gesture.)
-            emit mergeSceneRequested();
-        } else {
-            // Ctrl+Delete without Shift — not a merge; fall through to normal handling.
-            QPlainTextEdit::keyPressEvent(event);
+            event->accept();
             return;
         }
-        event->accept();
-        return;
+        if (event->key() == Qt::Key_Backspace) {
+            // Plain Ctrl+Backspace = scene merge.
+            emit mergeSceneRequested();
+            event->accept();
+            return;
+        }
+        // Ctrl+Delete without Shift is not a merge: it is Qt's delete-to-next-word, and it takes
+        // the EDIT path below. ⛔ EP-049 (SP-160, M3): it used to go straight to QPlainTextEdit,
+        // skipping the boundary guard AND the escape-pair rule (it orphaned a `\`).
     }
 
     // No document loaded, or a non-modifying key (navigation, copy, modifiers):
@@ -181,6 +189,7 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
     const bool deletes = event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete
                          || event->matches(QKeySequence::Cut);
     if (deletes && textCursor().hasSelection() && !sceneDoc_->isEditableRange(start, end)) {
+        widenOverPairs(start, end);   // EP-049: never leave half an escape pair at either end
         deleteAcrossScenes(start, end, event->matches(QKeySequence::Cut));
         return;
     }
@@ -191,7 +200,268 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
         return;
     }
 
+    // ✅ EP-049 (SP-160, T-0586): Apple's escape layer, behind the same guard Apple's overrides sit
+    // behind (`shouldChangeText` / `isSeparatorPosition`). Each handled gesture is ONE document edit.
+    if (handleReturn(event) || handleDeletion(event) || handleTyping(event)) {
+        return;
+    }
+    // Paste / cut keys: widen a selection that would split an escape pair, then let Qt run them —
+    // paste lands in insertFromMimeData, cut builds its data in createMimeDataFromSelection.
+    QTextCursor c = textCursor();
+    if (c.hasSelection()) {
+        int s = c.selectionStart();
+        int e = c.selectionEnd();
+        widenOverPairs(s, e);
+        c.setPosition(s);
+        c.setPosition(e, QTextCursor::KeepAnchor);
+        setTextCursor(c);
+    }
     QPlainTextEdit::keyPressEvent(event);
+}
+
+// ── EP-049 (SP-160, T-0586): the escape layer's WRITE half — a port of Apple's ──────────────────
+// Apple: `ManuscriptNSTextView` in `Scrivi/Views/ManuscriptTextView.swift` + `ManuscriptEscapes.swift`.
+
+bool ManuscriptEditor::isInsideEscapePair(int pos) const
+{
+    if (pos <= 0) {
+        return false;
+    }
+    const QTextBlock block = document()->findBlock(pos - 1);
+    const QString text = block.text();
+    const int off = pos - 1 - block.position();
+    if (off < 0 || off >= text.size() || text.at(off) != QLatin1Char('\\')) {
+        return false;
+    }
+    // Escapes are decided left to right within the line (`\\*` is an escaped backslash, then a
+    // bare mark), so ask the rules about the whole line — as Apple's styler maps one paragraph.
+    QString source = text;
+    bool continues = false;
+    const QTextBlock next = block.next();
+    if (next.isValid()) {
+        source += QLatin1Char('\n');
+        // Q1 = (a): a hard break needs a non-blank line of the SAME scene after it.
+        const bool sameScene = sceneDoc_ == nullptr
+            || (sceneDoc_->sceneIndexForEditablePosition(next.position()) >= 0
+                && sceneDoc_->sceneIndexForEditablePosition(next.position())
+                       == sceneDoc_->sceneIndexForEditablePosition(block.position()));
+        continues = sameScene && !ManuscriptEscapes::isBlankLine(next.text());
+    }
+    return ManuscriptEscapes::hiddenBackslashes(source, continues).contains(off);
+}
+
+void ManuscriptEditor::widenOverPairs(int& start, int& end) const
+{
+    if (start == end) {
+        // AC4b — an INSERTION point inside a pair moves before the backslash (Apple's caret never
+        // rests there: `presentedToSource`). ⛔ Never widened, which would delete the pair.
+        if (isInsideEscapePair(start)) {
+            start = end = start - 1;
+        }
+        return;
+    }
+    if (isInsideEscapePair(start)) {
+        --start;
+    }
+    if (isInsideEscapePair(end)) {
+        ++end;
+    }
+}
+
+void ManuscriptEditor::replaceRange(int start, int end, const QString& text)
+{
+    QTextCursor c(document());
+    c.beginEditBlock();
+    c.setPosition(start);
+    c.setPosition(end, QTextCursor::KeepAnchor);
+    c.insertText(text);   // a '\n' becomes a block break, as Return's does
+    c.endEditBlock();
+    setTextCursor(c);
+    ensureCursorVisible();
+}
+
+bool ManuscriptEditor::handleReturn(QKeyEvent* event)
+{
+    if (event->key() != Qt::Key_Return && event->key() != Qt::Key_Enter) {
+        return false;
+    }
+    const QTextCursor cursor = textCursor();
+    int selStart = cursor.selectionStart();
+    int selEnd = cursor.selectionEnd();
+    widenOverPairs(selStart, selEnd);
+    // Apple's Option-Return (`insertNewlineIgnoringFieldEditor:`) stores ONE `\n`. ⚠️ [T-0584] will
+    // rule what it SHOULD store; until then, Apple's behaviour today. (M1: Qt's own Alt-Return inserted
+    // nothing.)
+    if (event->modifiers() & Qt::AltModifier) {
+        if (sceneDoc_->isEditableRange(selStart, selEnd)) {
+            replaceRange(selStart, selEnd, QStringLiteral("\n"));
+        }
+        return true;
+    }
+    // ✅ Apple's `insertNewline` (EP-045 AC5/AC6): Return, keypad Enter AND Shift-Return store `\n\n`.
+    // ⛔ M1: Qt's Shift-Return inserted U+2028, which `bodyText` wrote into the scene file.
+    const QTextDocument* d = document();
+    int start = selStart;
+    while (start > 0 && d->characterAt(start - 1) == QLatin1Char(' ')) {
+        --start;
+    }
+    QString tail = start < selStart ? QStringLiteral(" ") : QString();
+    if (tail.isEmpty()) {
+        // Only an escape PAIR collapses: an even run of backslashes is all `\\` pairs.
+        int run = 0;
+        while (run < start && d->characterAt(start - 1 - run) == QLatin1Char('\\')) {
+            ++run;
+        }
+        if (run >= 2 && run % 2 == 0) {
+            start -= 2;
+            tail = QStringLiteral("\\");
+        }
+    }
+    if (sceneDoc_->isEditableRange(start, selEnd)) {
+        replaceRange(start, selEnd, tail + QStringLiteral("\n\n"));
+    }
+    return true;
+}
+
+bool ManuscriptEditor::paragraphJoinRange(int loc, int& start) const
+{
+    // Apple's `paragraphJoin` (Q3): ⌫ at a paragraph start JOINS it to the one above with ONE space.
+    // ⚠️ Qt stores each paragraph break as U+2029.
+    const QTextDocument* d = document();
+    const QChar ps(QChar::ParagraphSeparator);
+    const int nl = loc - 2;
+    if (nl <= 0 || d->characterAt(loc - 1) != ps || d->characterAt(nl) != ps) {
+        return false;
+    }
+    if (loc >= d->characterCount() || d->characterAt(loc) == ps) {
+        return false;   // the paragraph being joined is empty — remove one break instead
+    }
+    int s = nl;
+    while (s > 0 && d->characterAt(s - 1) == QLatin1Char(' ')) {
+        --s;
+    }
+    if (s <= 0 || d->characterAt(s - 1) == ps) {
+        return false;   // the paragraph above is empty
+    }
+    if (s == nl) {
+        int run = 0;
+        while (run < s && d->characterAt(s - 1 - run) == QLatin1Char('\\')) {
+            ++run;
+        }
+        if (run % 2 == 1) {
+            return false;   // a BARE trailing `\` — the writer's deliberate hard break survives
+        }
+    }
+    start = s;
+    return true;
+}
+
+bool ManuscriptEditor::handleDeletion(QKeyEvent* event)
+{
+    const bool back = event->key() == Qt::Key_Backspace;
+    const bool forward = event->key() == Qt::Key_Delete;
+    if ((!back && !forward) || event->matches(QKeySequence::Cut)) {
+        return false;   // Shift+Del is Cut (M3) — the cut path
+    }
+    const QTextCursor cursor = textCursor();
+    int start = 0;
+    int end = 0;
+    if (cursor.hasSelection()) {
+        start = cursor.selectionStart();
+        end = cursor.selectionEnd();
+    } else if (back) {
+        const int loc = cursor.position();
+        int joinStart = 0;
+        if (paragraphJoinRange(loc, joinStart)) {
+            if (sceneDoc_->isEditableRange(joinStart, loc)) {
+                replaceRange(joinStart, loc, QStringLiteral(" "));
+            }
+            return true;
+        }
+        start = loc - 1;
+        end = loc;
+    } else if (event->modifiers() & Qt::ControlModifier) {
+        // M3: Ctrl+Delete deletes to the next word INSIDE Qt — compute its real range here so the
+        // pair rule (and the boundary guard) see it, not the one character `modifiedRangeFor` assumed.
+        QTextCursor word = cursor;
+        word.movePosition(QTextCursor::NextWord, QTextCursor::KeepAnchor);
+        start = word.selectionStart();
+        end = word.selectionEnd();
+    } else {
+        start = cursor.position();
+        end = start + 1;
+    }
+    if (start == end) {
+        return true;
+    }
+    widenOverPairs(start, end);   // Apple: `snapSelection` in `shouldChangeText`
+    if (sceneDoc_->isEditableRange(start, end)) {
+        replaceRange(start, end, QString());
+    }
+    return true;
+}
+
+bool ManuscriptEditor::handleTyping(QKeyEvent* event)
+{
+    const QString text = event->text();
+    if (text.isEmpty() || event->matches(QKeySequence::Paste) || event->matches(QKeySequence::Cut)) {
+        return false;
+    }
+    const QTextCursor cursor = textCursor();
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    if (sceneDoc_->isEditableRange(start, end)) {
+        replaceRange(start, end, ManuscriptEscapes::escape(text));   // Apple: `insertText`
+    }
+    return true;
+}
+
+void ManuscriptEditor::inputMethodEvent(QInputMethodEvent* event)
+{
+    if (sceneDoc_ == nullptr || event->commitString().isEmpty()) {
+        QPlainTextEdit::inputMethodEvent(event);
+        return;
+    }
+    // M2: a composed character commits here only. Escape it exactly as typing does.
+    QTextCursor cursor = textCursor();
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    if (!sceneDoc_->isEditableRange(start, end)) {
+        event->accept();
+        return;
+    }
+    if (start != cursor.selectionStart() || end != cursor.selectionEnd()) {
+        cursor.setPosition(start);
+        cursor.setPosition(end, QTextCursor::KeepAnchor);
+        setTextCursor(cursor);
+    }
+    QInputMethodEvent escaped(event->preeditString(), event->attributes());
+    escaped.setCommitString(ManuscriptEscapes::escape(event->commitString()),
+                            event->replacementStart(), event->replacementLength());
+    QPlainTextEdit::inputMethodEvent(&escaped);
+}
+
+QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
+{
+    const QTextCursor cursor = textCursor();
+    if (!cursor.hasSelection()) {
+        return QPlainTextEdit::createMimeDataFromSelection();
+    }
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    QTextCursor sel(document());
+    sel.setPosition(start);
+    sel.setPosition(end, QTextCursor::KeepAnchor);
+    QString source = sel.selectedText();
+    source.replace(QChar(QChar::ParagraphSeparator), QLatin1Char('\n'));
+    auto* mime = new QMimeData;
+    // Apple: `writeSelection` — other apps get the writer's text, not backslashes.
+    mime->setText(ManuscriptEscapes::map(source).presented);
+    mime->setData(kSourceMime, source.toUtf8());
+    return mime;
 }
 
 void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
@@ -200,11 +470,24 @@ void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
     // lands at the caret) and must stay inside one body.
     if (sceneDoc_ != nullptr) {
         const QTextCursor cursor = textCursor();
-        const int start = cursor.selectionStart();
-        const int end   = cursor.selectionEnd();
+        int start = cursor.selectionStart();
+        int end   = cursor.selectionEnd();
+        widenOverPairs(start, end);   // EP-049: never split an escape pair (AC4 / AC4b)
         if (!sceneDoc_->isEditableRange(start, end)) {
             return;   // paste target touches a boundary — reject
         }
+        // ✅ EP-049 (Apple: `readSelection`): Scrivi's OWN copy is restored EXACTLY — re-escaping it
+        // would turn intended markup (R2, e.g. a `##` heading) literal; foreign text is escaped (R1).
+        QString text;
+        if (source->hasFormat(kSourceMime)) {
+            text = QString::fromUtf8(source->data(kSourceMime));
+        } else if (source->hasText()) {
+            text = ManuscriptEscapes::escape(source->text());
+        } else {
+            return;
+        }
+        replaceRange(start, end, text);
+        return;
     }
     QPlainTextEdit::insertFromMimeData(source);
 }
@@ -275,9 +558,14 @@ void ManuscriptEditor::cutSelection()
         cut();
         return;
     }
-    const int start = cursor.selectionStart();
-    const int end = cursor.selectionEnd();
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);   // EP-049: a cut never leaves half an escape pair
     if (sceneDoc_->isEditableRange(start, end)) {
+        QTextCursor widened(document());
+        widened.setPosition(start);
+        widened.setPosition(end, QTextCursor::KeepAnchor);
+        setTextCursor(widened);
         cut();   // inside one scene — the ordinary cut
         return;
     }

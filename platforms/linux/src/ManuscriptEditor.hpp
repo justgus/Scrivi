@@ -60,6 +60,12 @@ signals:
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void insertFromMimeData(const QMimeData* source) override;
+    // EP-049 (SP-160): copy / cut / drag put the PRESENTED text on the clipboard (Apple: `writeSelection`),
+    // and carry the stored source in a private format so Scrivi's own paste restores it exactly.
+    QMimeData* createMimeDataFromSelection() const override;
+    // EP-049 (SP-160, M2): composed input (dead keys, IME) commits HERE, never through keyPressEvent —
+    // so it is escaped here too (Apple's `insertText` covers both).
+    void inputMethodEvent(QInputMethodEvent* event) override;
     // Draw the faint between-scene separator rule (EP-028 SP-076, T-0308) — the Linux
     // analogue of Apple's DividerAttachmentCell. Runs AFTER the base class paints text,
     // then strokes a 1px inset line centered in each within-chapter scene-separator gap.
@@ -84,6 +90,21 @@ private:
     // [pos,pos). With a selection every modifying key replaces the selection.
     // Returns false if the guard should simply block (e.g. nothing to check).
     bool modifiedRangeFor(const QKeyEvent* event, int& start, int& end) const;
+
+    // ── EP-049 (SP-160, T-0586): the escape layer's WRITE half — a port of Apple's ──
+    // True when document boundary `pos` sits between a hidden backslash and the mark it escapes.
+    // ⚠️ Linux SHOWS the backslash, so the caret can rest there; an insertion must not (AC4b).
+    bool isInsideEscapePair(int pos) const;
+    // Widen [start, end) so it never splits an escape pair (Apple: `snapSelection`).
+    void widenOverPairs(int& start, int& end) const;
+    // One edit replacing [start, end) with `text` (already in STORED form), caret after it.
+    void replaceRange(int start, int end, const QString& text);
+    // The escaped-edit paths; each returns true when it handled the key.
+    bool handleReturn(QKeyEvent* event);
+    bool handleDeletion(QKeyEvent* event);
+    bool handleTyping(QKeyEvent* event);
+    // Apple's `paragraphJoin` (Q3): the range to replace with one space, or false.
+    bool paragraphJoinRange(int loc, int& start) const;
 
     // [I-0270] Removes [start, end)'s text from each scene it spans, keeping the scenes.
     // `copyFirst` copies the selection to the clipboard first (a cut). Returns false —

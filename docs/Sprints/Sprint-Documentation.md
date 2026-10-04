@@ -427,6 +427,8 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-156** | `[Apple]` **[EP-045] S4** — Enter/Backspace (AC5), trailing whitespace (AC6) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-156.md) |
 | **SP-157** | `[Apple]` **[EP-045] S5** — block intents as prose (AC7), caret-path measurement (AC10) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-157.md) |
 | **SP-158** | `[Apple]` **[EP-045] S6** — maintain the scene-boundary table (AC11, T-0583) | EP-045 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-158.md) |
+| **SP-159** | `[Cross]` **[EP-046] S1 — Planning** — the manuscript DISPLAY design for both platforms (rendering + escape hiding; reviews R3 = (c); scopes EP-048); T-0584, T-0585 | EP-046 (+EP-048) | 2026-10-04 | — | 🔵 **PLANNING** → [plan](Sprint-SP-159.md) |
+| **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586) | EP-049 | 2026-10-04 | — | 🟡 **ACTIVE** → [record](Sprint-SP-160.md) |
 
 ## Statistics
 
@@ -465,6 +467,14 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-04 (**SP-160 ACTIVATED** (user-approved); EP-049 activated.)*
+
+*Last Updated: 2026-10-04 (**SP-160 created in 🔵 Planning** for EP-049, plan complete, issued via `next-id.py`.)*
+
+*Last Updated: 2026-10-04 (**SP-159 WIDENED** to `[Cross]` — display design for both platforms; Linux write half → EP-049.)*
+
+*Last Updated: 2026-10-04 (**SP-159 created in 🔵 Planning** for EP-046 (planning Sprint), issued via `next-id.py`.)*
 
 *Last Updated: 2026-10-04 (Audit Check O-1: the stale "Next available ID: SP-119" line removed; EP-045 closed.)*
 

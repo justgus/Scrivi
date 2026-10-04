@@ -746,6 +746,9 @@ archive files reconstructed after the fact from secondary sources.
 | T-0549 | ⚠️ **`[ScriviCore]` [I-0213] Class A — PATCH the index for single-scene ops that do NOT change manuscript order** (`set/clear_scene_story_time`, `rename_scene`) | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0550 | ⚠️ **`[ScriviCore]` [I-0213] Class B — rebuild ONLY the affected chapter for order/membership ops** (13 endpoints) — ⛔ **BLOCKED ON T-0549** | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0555 | `[Apple]` Engine stub parity ([I-0253]) | — | — | ✅ **Verified 2026-10-03** | [`Task-verified-0555.md`](Verified/Task-verified-0555.md) |
+| T-0586 | `[Linux]` Escape layer write half — Linux stores Apple's format | 🟡 **SP-160** | **EP-049** | 🟠 **Implemented - Not Verified** | [`Task-active.md`](Task-active.md) |
+| T-0585 | `[Apple]` Find/Replace across hidden escape backslashes | 🔵 SP-159 (design) | **EP-046** | 🔵 **Backlog** | [`Task-backlog.md`](Task-backlog.md) |
+| T-0584 | `[Apple]` Option-Return: rule what it stores | 🔵 SP-159 (ruling) | **EP-046** | 🔵 **Backlog** | [`Task-backlog.md`](Task-backlog.md) |
 | T-0583 | `[Apple]` Cache the scene boundaries (no whole-manuscript scan per keystroke) | ✅ **SP-158** | **EP-045** (AC11) | ✅ **Verified 2026-10-04** | [`Task-verified-0583.md`](Verified/Task-verified-0583.md) |
 | T-0582 | `[Apple]` The caret path measured on 1.85 MB (EP-045 AC10) | ✅ **SP-157** | **EP-045** | ✅ **Verified 2026-10-04** | [`Task-verified-0581-0582.md`](Verified/Task-verified-0581-0582.md) |
 | T-0581 | `[Apple]` Unexposed block intents are prose (EP-045 AC7) | ✅ **SP-157** | **EP-045** | ✅ **Verified 2026-10-04** | [`Task-verified-0581-0582.md`](Verified/Task-verified-0581-0582.md) |
@@ -753,7 +756,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0579 | `[Apple]` The escape layer (EP-045 AC4) | ✅ **SP-155** | **EP-045** | ✅ **Verified 2026-10-03** | [`Task-verified-0579.md`](Verified/Task-verified-0579.md) |
 | T-0578 | `[Apple]` Source↔presented offsets + hidden-escape caret snap (EP-045 AC3) | ✅ **SP-154** | **EP-045** | ✅ **Verified 2026-10-03** | [`Task-verified-0578.md`](Verified/Task-verified-0578.md) |
 | T-0577 | `[Apple]` Typed scene dividers + save-fidelity guard (EP-045 AC1 + AC9) | ✅ **SP-153** | **EP-045** | ✅ **Verified 2026-10-03** | [`Task-verified-0577.md`](Verified/Task-verified-0577.md) |
-| T-0576 | `[Linux]` Per-row relationship labels (revert, [I-0180]) | — | — | 🟠 **Implemented - Not Verified** | — |
+| T-0576 | `[Linux]` Per-row relationship labels (revert, [I-0180]) | — | — | ✅ **Verified 2026-10-04** (rig, build 54) | [`Task-verified-0576.md`](Verified/Task-verified-0576.md) |
 | T-0568 | `[Apple]` Go to Manuscript Start / End (Project menu) | ✅ **SP-151** | — | ✅ **Verified 2026-09-30** | [`Task-verified-0568.md`](Verified/Task-verified-0568.md) |
 | T-0569 | `[Apple]` Scene navigator search — full scan, per platform | ✅ **SP-151** | — | ✅ **Verified 2026-10-01** | [`Task-verified-0569.md`](Verified/Task-verified-0569.md) |
 | T-0570 | `[Apple]` Project drive gone → red top banner | ✅ **SP-151** | — | ✅ **Verified 2026-09-30** | [`Task-verified-0570.md`](Verified/Task-verified-0570.md) |
@@ -774,6 +777,16 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-04 (**T-0586 implemented** (SP-160) — Implemented - Not Verified; rig pass owed.)*
+
+*Last Updated: 2026-10-04 (**T-0586 ACTIVE** — SP-160 activated.)*
+
+*Last Updated: 2026-10-04 (**T-0586 filed** — EP-049's implementation, assigned to SP-160.)*
+
+*Last Updated: 2026-10-04 (**T-0584, T-0585 filed** — EP-045's two unfiled follow-ups, linked to EP-046 and SP-159.)*
+
+*Last Updated: 2026-10-04 (**T-0576 ✅ Verified** on the rig, build 54 → `Verified/Task-verified-0576.md`.)*
 
 *Last Updated: 2026-10-04 (**T-0583 ✅ Verified** (user live check) → `Verified/Task-verified-0583.md`, archived with the SP-158 close.)*
 

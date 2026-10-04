@@ -1,0 +1,143 @@
+{
+ "_comment": "EP-049 AC8 (SP-160) — the manuscript STORAGE FORMAT, as gestures → stored bytes. Run by BOTH platforms' tests: Apple's interop suite (real ManuscriptNSTextView, AppKit dispatch) and Linux's escape_smoke (real ManuscriptEditor). Offsets are UTF-16 units within one scene body. A change here is a change to the format: make it on Apple first.",
+ "cases": [
+  {
+   "name": "typing escapes a mark",
+   "before": "",
+   "caret": 0,
+   "gesture": "type",
+   "text": "a*b",
+   "after": "a\\*b"
+  },
+  {
+   "name": "typing escapes all 32 marks",
+   "before": "",
+   "caret": 0,
+   "gesture": "type",
+   "text": "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
+   "after": "\\!\\\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~"
+  },
+  {
+   "name": "a typed backslash is itself escaped",
+   "before": "",
+   "caret": 0,
+   "gesture": "type",
+   "text": "\\",
+   "after": "\\\\"
+  },
+  {
+   "name": "AC4b: an insertion never lands between a backslash and its mark",
+   "before": "a\\*b",
+   "caret": 2,
+   "gesture": "type",
+   "text": "x",
+   "after": "ax\\*b"
+  },
+  {
+   "name": "backspace after a pair removes the whole pair",
+   "before": "a\\*b",
+   "caret": 3,
+   "gesture": "backspace",
+   "after": "ab"
+  },
+  {
+   "name": "delete before a pair removes the whole pair",
+   "before": "a\\*b",
+   "caret": 1,
+   "gesture": "delete",
+   "after": "ab"
+  },
+  {
+   "name": "Return trims trailing spaces to one and stores a blank line",
+   "before": "x   ",
+   "caret": 4,
+   "gesture": "return",
+   "after": "x \n\n"
+  },
+  {
+   "name": "Return collapses a trailing typed backslash",
+   "before": "end\\\\",
+   "caret": 5,
+   "gesture": "return",
+   "after": "end\\\n\n"
+  },
+  {
+   "name": "keypad Enter is Return",
+   "before": "x",
+   "caret": 1,
+   "gesture": "enter",
+   "after": "x\n\n"
+  },
+  {
+   "name": "Shift-Return is Return",
+   "before": "x",
+   "caret": 1,
+   "gesture": "shiftReturn",
+   "after": "x\n\n"
+  },
+  {
+   "name": "Option/Alt-Return stores one newline (until T-0584 rules)",
+   "before": "x",
+   "caret": 1,
+   "gesture": "altReturn",
+   "after": "x\n"
+  },
+  {
+   "name": "Q3: backspace at a paragraph start joins with one space",
+   "before": "a.\n\nb.",
+   "caret": 4,
+   "gesture": "backspace",
+   "after": "a. b."
+  },
+  {
+   "name": "Q3: the join reduces trailing spaces to one",
+   "before": "x   \n\nb",
+   "caret": 6,
+   "gesture": "backspace",
+   "after": "x b"
+  },
+  {
+   "name": "Q3: a bare trailing backslash keeps its hard break",
+   "before": "end\\\n\nnext",
+   "caret": 6,
+   "gesture": "backspace",
+   "after": "end\\\nnext"
+  },
+  {
+   "name": "Q3: an empty paragraph below loses one newline",
+   "before": "a.\n\n",
+   "caret": 4,
+   "gesture": "backspace",
+   "after": "a.\n"
+  },
+  {
+   "name": "foreign paste is escaped (R1)",
+   "before": "",
+   "caret": 0,
+   "gesture": "paste",
+   "text": "x_y",
+   "after": "x\\_y"
+  },
+  {
+   "name": "copy puts the writer's text on the clipboard",
+   "before": "a\\*b",
+   "selection": [
+    0,
+    4
+   ],
+   "gesture": "copy",
+   "clipboard": "a*b",
+   "after": "a\\*b"
+  },
+  {
+   "name": "Scrivi's own copy pasted back is restored exactly (R2)",
+   "before": "## Scene",
+   "selection": [
+    0,
+    8
+   ],
+   "gesture": "copyThenPasteAtEnd",
+   "after": "## Scene## Scene"
+  }
+ ]
+}

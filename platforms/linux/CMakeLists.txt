@@ -69,6 +69,8 @@ qt_add_executable(scrivi_linux
     # SP-062 (EP-022): the editable writing surface with boundary integrity.
     src/ManuscriptEditor.cpp
     src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
     # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
@@ -333,6 +335,31 @@ target_link_libraries(scrivi_linux_editor_map_smoke
 
 target_include_directories(scrivi_linux_editor_map_smoke PRIVATE src)
 target_compile_features(scrivi_linux_editor_map_smoke PRIVATE cxx_std_23)
+
+# --- escape_smoke (EP-049 / SP-160, T-0586) — Linux writes Apple's manuscript format ---------------
+# Drives the REAL ManuscriptEditor over a real SceneDocument through the SHARED corpus
+# (ScriviCore/tests/fixtures/manuscript_format_corpus.json — the same cases Apple's interop suite runs).
+# Driven by escape_smoke.sh (offscreen; no project on disk).
+qt_add_executable(scrivi_linux_escape_smoke
+    tests/escape_smoke.cpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ThemeColours.hpp
+)
+
+target_link_libraries(scrivi_linux_escape_smoke
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_escape_smoke PRIVATE src)
+target_compile_features(scrivi_linux_escape_smoke PRIVATE cxx_std_23)
 
 # --- Headless per-scene save smoke (SP-062 / T-0239, EP-022 AC3) -----------
 # Drives create → open → saveScene(new body) → reopen and asserts the new bytes
@@ -796,6 +823,8 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/SceneDocument.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
     src/SceneInspector.cpp
@@ -863,6 +892,8 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/SceneDocument.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
     src/SceneInspector.cpp

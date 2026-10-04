@@ -4175,6 +4175,72 @@ struct BlockIntentsAsProseTests {
     }
 }
 
+/// Finds the test bundle (Swift Testing suites are structs; a class gives `Bundle(for:)` its anchor).
+private final class CorpusBundleToken {}
+
+/// EP-049 AC8 (SP-160) — the manuscript STORAGE FORMAT, shared with Linux. The SAME cases
+/// (`ScriviCore/tests/fixtures/manuscript_format_corpus.json`, bundled as a test resource — the host is
+/// sandboxed) run here through the real `ManuscriptNSTextView` and AppKit's own dispatch, and on Linux
+/// through the real `ManuscriptEditor` (`escape_smoke`). ⚠️ A failure on either side means the two
+/// platforms would write different bytes for the same gesture.
+@Suite("Manuscript format corpus, shared with Linux (EP-049 AC8)")
+@MainActor
+struct ManuscriptFormatCorpusTests {
+
+    private let appKitStringType = NSPasteboard.PasteboardType("NSStringPboardType")
+
+    private func key(_ f: ManuscriptFixture, code: UInt16, chars: String, _ mods: NSEvent.ModifierFlags = []) {
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: mods, timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: chars,
+                                 charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code)!
+        f.tv.keyDown(with: e)
+    }
+
+    @Test("every corpus gesture stores the corpus bytes")
+    func corpus() throws {
+        let url = try #require(Bundle(for: CorpusBundleToken.self)
+            .url(forResource: "manuscript_format_corpus", withExtension: "json"), "the corpus is bundled")
+        let doc = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let cases = try #require(doc["cases"] as? [[String: Any]])
+        #expect(cases.count >= 18)
+        for c in cases {
+            let name = c["name"] as? String ?? "?"
+            let f = ManuscriptFixture(c["before"] as? String ?? "")
+            if let sel = c["selection"] as? [Int] {
+                f.tv.setSelectedRange(NSRange(location: sel[0], length: sel[1] - sel[0]))
+            } else {
+                f.caret(c["caret"] as? Int ?? 0)
+            }
+            let text = c["text"] as? String ?? ""
+            let pb = NSPasteboard(name: .init("scrivi.test.\(UUID().uuidString)"))
+            pb.clearContents()
+            switch c["gesture"] as? String {
+            case "type": f.type(text)
+            case "return": key(f, code: 36, chars: "\r")
+            case "enter": key(f, code: 76, chars: "\u{3}", [.numericPad])
+            case "shiftReturn": key(f, code: 36, chars: "\r", [.shift])
+            case "altReturn": key(f, code: 36, chars: "\r", [.option])
+            case "backspace": key(f, code: 51, chars: "\u{7f}")
+            case "delete": key(f, code: 117, chars: "\u{F728}", [.function])
+            case "paste":
+                pb.setString(text, forType: .string)
+                _ = f.tv.readSelection(from: pb)
+            case "copy":
+                _ = f.tv.writeSelection(to: pb, type: appKitStringType)
+                #expect(pb.string(forType: .string) == c["clipboard"] as? String, "\(name): clipboard")
+            case "copyThenPasteAtEnd":
+                _ = f.tv.writeSelection(to: pb, type: appKitStringType)
+                f.caret((f.text as NSString).length)
+                _ = f.tv.readSelection(from: pb)
+            default:
+                Issue.record("\(name): unknown gesture")
+            }
+            #expect(f.text == c["after"] as? String,
+                    "\(name): stored \(f.text.debugDescription), expected \(String(describing: c["after"]).debugDescription)")
+        }
+    }
+}
+
 /// EP-045 AC5 + AC6 — Return, Backspace and trailing whitespace, through the REAL view and
 /// AppKit's OWN key dispatch (`keyDown` → `interpretKeyEvents` → the action), ⚠️ never by
 /// calling `insertNewline` directly (`feedback_test_through_the_real_dispatch`: T-0579's tests

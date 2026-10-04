@@ -106,7 +106,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 23 | I-0221 – I-0230 | [`Issue-verified-0221-0230.md`](Verified/Issue-verified-0221-0230.md) | 2 |
 | 24 | I-0231 – I-0240 | [`Issue-verified-0231-0240.md`](Verified/Issue-verified-0231-0240.md) | 5 |
 | 25 | I-0241 – I-0250 | [`Issue-verified-0241-0250.md`](Verified/Issue-verified-0241-0250.md) | 8 |
-| 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 9 |
+| 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 10 |
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 3 |
 
@@ -163,6 +163,8 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-04 (**I-0255 ✅ VERIFIED** — Linux half passed on the rig, build 54 → `Issue-verified-0251-0260.md` (10).)*
 
 *Last Updated: 2026-10-04 (Audit Check F-5: `Issue-backlog.md`'s restated count line removed — R-15.)*
 

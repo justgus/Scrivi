@@ -174,6 +174,7 @@
 		E_EAPICK_BF /* ExistingAssetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B020 /* ExistingAssetPicker.swift */; };
 		E_SRCSEC_BF /* ObjectSourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B021 /* ObjectSourcesSection.swift */; };
 		F001_BF /* ScriviInteropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F001 /* ScriviInteropTests.swift */; };
+		CORPUS_BF /* manuscript_format_corpus.json in Resources */ = {isa = PBXBuildFile; fileRef = CORPUS_REF /* manuscript_format_corpus.json */; };
 		F020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 /* End PBXBuildFile section */
 
@@ -247,6 +248,7 @@
 		D_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E_PRODUCT /* Scrivi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scrivi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F001 /* ScriviInteropTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ScriviInteropTests.swift; path = Scrivi/Tests/ScriviInteropTests.swift; sourceTree = SOURCE_ROOT; };
+		CORPUS_REF /* manuscript_format_corpus.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manuscript_format_corpus.json; path = ScriviCore/tests/fixtures/manuscript_format_corpus.json; sourceTree = SOURCE_ROOT; };
 		F_PRODUCT /* ScriviInteropTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriviInteropTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		GRP_SCRIVI /* Scrivi */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Scrivi; sourceTree = SOURCE_ROOT; };
 		LINUX_PLATFORM_REF /* platforms/linux */ = {isa = PBXFileReference; lastKnownFileType = folder; path = platforms/linux; sourceTree = SOURCE_ROOT; };
@@ -369,6 +371,7 @@
 				C055 /* ProjectWindowFrameStore.swift */,
 				SCRIVI_CORE_LIB /* libScriviCore.a */,
 				F001 /* ScriviInteropTests.swift */,
+				CORPUS_REF /* manuscript_format_corpus.json */,
 				ASSETS_REF /* Scrivi/Assets.xcassets */,
 			);
 			name = Sources;
@@ -436,6 +439,7 @@
 			buildPhases = (
 				F_SOURCES /* Sources */,
 				F_FW /* Frameworks */,
+				F_RESOURCES /* Resources */,
 			);
 			buildRules = (
 			);
@@ -512,6 +516,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				ASSETS_BF /* Scrivi/Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F_RESOURCES /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CORPUS_BF /* manuscript_format_corpus.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
