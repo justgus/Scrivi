@@ -19,6 +19,7 @@
 		C007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		C078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
 		C079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		C081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
 		C080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
 		C008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		C010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
@@ -76,6 +77,7 @@
 		D007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		D078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
 		D079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		D081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
 		D080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
 		D008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		D010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
@@ -132,6 +134,7 @@
 		E007_BF /* ManuscriptTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C007 /* ManuscriptTextView.swift */; };
 		E078_BF /* ManuscriptEscapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C078 /* ManuscriptEscapes.swift */; };
 		E079_BF /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C079 /* MarkdownBlocks.swift */; };
+		E081_BF /* MarkdownEmphasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C081 /* MarkdownEmphasis.swift */; };
 		E080_BF /* ManuscriptPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C080 /* ManuscriptPresenter.swift */; };
 		E008_BF /* SceneNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008 /* SceneNavigatorView.swift */; };
 		E010_BF /* ScriviEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* ScriviEngine.swift */; };
@@ -218,6 +221,7 @@
 		C007 /* ManuscriptTextView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTextView.swift; path = Scrivi/Views/ManuscriptTextView.swift; sourceTree = SOURCE_ROOT; };
 		C078 /* ManuscriptEscapes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptEscapes.swift; path = Scrivi/Views/ManuscriptEscapes.swift; sourceTree = SOURCE_ROOT; };
 		C079 /* MarkdownBlocks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownBlocks.swift; path = Scrivi/Views/MarkdownBlocks.swift; sourceTree = SOURCE_ROOT; };
+		C081 /* MarkdownEmphasis.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MarkdownEmphasis.swift; path = Scrivi/Views/MarkdownEmphasis.swift; sourceTree = SOURCE_ROOT; };
 		C080 /* ManuscriptPresenter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresenter.swift; path = Scrivi/Views/ManuscriptPresenter.swift; sourceTree = SOURCE_ROOT; };
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
 		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Scrivi/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
@@ -345,6 +349,7 @@
 				C007 /* ManuscriptTextView.swift */,
 				C078 /* ManuscriptEscapes.swift */,
 				C079 /* MarkdownBlocks.swift */,
+				C081 /* MarkdownEmphasis.swift */,
 				C080 /* ManuscriptPresenter.swift */,
 				C061 /* ForkPopover.swift */,
 				C008 /* SceneNavigatorView.swift */,
@@ -607,6 +612,7 @@
 				C007_BF /* ManuscriptTextView.swift in Sources */,
 				C078_BF /* ManuscriptEscapes.swift in Sources */,
 				C079_BF /* MarkdownBlocks.swift in Sources */,
+				C081_BF /* MarkdownEmphasis.swift in Sources */,
 				C080_BF /* ManuscriptPresenter.swift in Sources */,
 				C061_BF /* ForkPopover.swift in Sources */,
 				C008_BF /* SceneNavigatorView.swift in Sources */,
@@ -670,6 +676,7 @@
 				D007_BF /* ManuscriptTextView.swift in Sources */,
 				D078_BF /* ManuscriptEscapes.swift in Sources */,
 				D079_BF /* MarkdownBlocks.swift in Sources */,
+				D081_BF /* MarkdownEmphasis.swift in Sources */,
 				D080_BF /* ManuscriptPresenter.swift in Sources */,
 				D061_BF /* ForkPopover.swift in Sources */,
 				D008_BF /* SceneNavigatorView.swift in Sources */,
@@ -733,6 +740,7 @@
 				E007_BF /* ManuscriptTextView.swift in Sources */,
 				E078_BF /* ManuscriptEscapes.swift in Sources */,
 				E079_BF /* MarkdownBlocks.swift in Sources */,
+				E081_BF /* MarkdownEmphasis.swift in Sources */,
 				E080_BF /* ManuscriptPresenter.swift in Sources */,
 				E061_BF /* ForkPopover.swift in Sources */,
 				E008_BF /* SceneNavigatorView.swift in Sources */,

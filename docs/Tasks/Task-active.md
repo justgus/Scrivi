@@ -4,6 +4,7 @@
 
 
 
+
 ## 🟡 T-0584 — `[Apple]` Option-Return stores ONE `\n` — rule what it should store
 
 **Created:** 2026-10-04 (user: *"file the two tasks and create a planning sprint for EP-046"*)

@@ -3889,45 +3889,50 @@ struct MarkdownEscapeMapTests {
 
     // MARK: R3 = (c) — the caret never rests inside a hidden escape
 
-    /// `ab\*cd` with the backslash (offset 2) hidden, as the presenter hides it.
-    /// ⚠️ EP-046 E2-S1: hidden-ness is a TEST now (storage carries no hiding attribute).
+    /// `ab\*cd` with the backslash (offset 2) a stop run whose home is BEFORE it, as the presenter reports it.
+    /// ⚠️ EP-046: hidden-ness is a LOOKUP now (storage carries no hiding attribute).
     private let text: NSString = #"ab\*cd"#
-    private let hidden: (Int) -> Bool = { $0 == 2 }
+    private let escape: (Int) -> MarkdownEscapes.StopRun? = { $0 == 2 ? (NSRange(location: 2, length: 1), false) : nil }
 
     @Test("only the boundary between a hidden backslash and its mark is unreachable")
     func unreachable() {
-        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, length: 6, isHidden: hidden) } == [3])
-        // ⚠️ Nothing hidden → nothing snapped.
-        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, length: 6, isHidden: { _ in false }) }.isEmpty)
+        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, length: 6, runAt: escape) } == [3])
+        // ⚠️ No stop run → nothing snapped.
+        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, length: 6, runAt: { _ in nil }) }.isEmpty)
     }
 
     @Test("caret: → steps past the mark; ←, clicks and jumps land before the backslash")
     func caretSnap() {
-        #expect(MarkdownEscapes.snapCaret(3, from: 2, length: 6, isHidden: hidden) == 4)   // → from before the backslash
-        #expect(MarkdownEscapes.snapCaret(3, from: 4, length: 6, isHidden: hidden) == 2)   // ← from after the mark
-        #expect(MarkdownEscapes.snapCaret(3, from: 0, length: 6, isHidden: hidden) == 2)   // click / jump: same visual spot
-        #expect(MarkdownEscapes.snapCaret(3, from: 6, length: 6, isHidden: hidden) == 2)
-        #expect(MarkdownEscapes.snapCaret(4, from: 2, length: 6, isHidden: hidden) == nil) // a reachable spot is left alone
+        #expect(MarkdownEscapes.snapCaret(3, from: 2, length: 6, runAt: escape) == 4)   // → from before the backslash
+        #expect(MarkdownEscapes.snapCaret(3, from: 4, length: 6, runAt: escape) == 2)   // ← from after the mark
+        #expect(MarkdownEscapes.snapCaret(3, from: 0, length: 6, runAt: escape) == 2)   // click / jump: same visual spot
+        #expect(MarkdownEscapes.snapCaret(3, from: 6, length: 6, runAt: escape) == 2)
+        #expect(MarkdownEscapes.snapCaret(4, from: 2, length: 6, runAt: escape) == nil) // a reachable spot is left alone
     }
 
     @Test("a selection never splits a hidden backslash from its mark")
     func selectionSnap() {
-        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), in: text, isHidden: hidden) == NSRange(location: 0, length: 4))
-        #expect(MarkdownEscapes.snapSelection(NSRange(location: 3, length: 3), in: text, isHidden: hidden) == NSRange(location: 2, length: 4))
-        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: text, isHidden: hidden) == nil)
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), in: text, runAt: escape) == NSRange(location: 0, length: 4))
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 3, length: 3), in: text, runAt: escape) == NSRange(location: 2, length: 4))
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: text, runAt: escape) == nil)
     }
 
-    @Test("EP-046 AC5: a hidden RUN is skipped whole; a SHRINKING selection drops it instead of stalling")
-    func hiddenRuns() {
-        // `## H` with the 3-character prefix hidden (a heading line the caret is not on).
-        let run: (Int) -> Bool = { $0 < 3 }
-        #expect(MarkdownEscapes.snapCaret(1, from: 0, length: 4, isHidden: run) == 4)  // → lands after `H`
-        #expect(MarkdownEscapes.snapCaret(3, from: 4, length: 4, isHidden: run) == 0)  // ← lands before the run
-        #expect(MarkdownEscapes.snapCaret(2, from: 9, length: 4, isHidden: run) == 0)  // a click inside it
+    @Test("EP-046 AC5 + [SP-162] Q1: a heading prefix or opener sends the caret AFTER it; ← steps out past the character before")
+    func stopRuns() {
+        // `x⏎## H`: the prefix (2..<5) is a stop run whose home is AFTER it.
+        let prefix: (Int) -> MarkdownEscapes.StopRun? = { (2..<5).contains($0) ? (NSRange(location: 2, length: 3), true) : nil }
+        #expect(MarkdownEscapes.snapCaret(2, from: 1, length: 6, runAt: prefix) == 5)  // → onto the line: after `## `
+        #expect(MarkdownEscapes.snapCaret(3, from: 9, length: 6, runAt: prefix) == 5)  // a click inside the prefix
+        #expect(MarkdownEscapes.snapCaret(4, from: 5, length: 6, runAt: prefix) == 1)  // ← from home: end of the line above
+        #expect(MarkdownEscapes.snapCaret(5, from: 2, length: 6, runAt: prefix) == nil) // home is left alone
+        // A closer (`**b**`, closer 3..<5): home BEFORE it; → from home steps past the character after.
+        let closer: (Int) -> MarkdownEscapes.StopRun? = { (3..<5).contains($0) ? (NSRange(location: 3, length: 2), false) : nil }
+        #expect(MarkdownEscapes.snapCaret(5, from: 9, length: 7, runAt: closer) == 3)  // just past it → home
+        #expect(MarkdownEscapes.snapCaret(4, from: 3, length: 7, runAt: closer) == 6)  // → from home
         // ⛔ E1 moved a selection's end FORWARD whatever the direction, so shift-← from `ab\*c|d`
         // landed between `\` and `*` and was pushed straight back (SP-161 step 1).
         #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), previousEnd: 4,
-                                              in: text, isHidden: hidden) == NSRange(location: 0, length: 2))
+                                              in: text, runAt: escape) == NSRange(location: 0, length: 2))
     }
 }
 
@@ -4578,6 +4583,211 @@ struct ManuscriptPresenterTests {
         // ⚠️ Compared with a LAID-OUT `end` (the fixture's text carries the view's default font).
         let plain = ManuscriptFixture("end")
         #expect(abs(try laidOutWidth(f, at: 0) - laidOutWidth(plain, at: 0)) < 0.05)
+    }
+}
+/// EP-046 E2-S2 (SP-162, T-0590) — bold and italic, the span reveal, the caret's home beside a marker
+/// (Q1), and edits that keep emphasis BALANCED (AC12, Q3). ⚠️ Stored bytes are asserted exactly: the
+/// balancing writes the fewest markers, so the expected text is canonical.
+@Suite("Inline emphasis (EP-046 E2-S2)")
+@MainActor
+struct InlineEmphasisTests {
+
+    private let appKitStringType = NSPasteboard.PasteboardType("NSStringPboardType")
+
+    /// A fixture whose storage carries the BODY font, as the app's does (so widths compare).
+    private func fixture(_ text: String) -> ManuscriptFixture {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(NSAttributedString(string: text, attributes: [
+            .font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+        return f
+    }
+
+    private func pasteboard() -> NSPasteboard {
+        let pb = NSPasteboard(name: .init("scrivi.test.\(UUID().uuidString)"))
+        pb.clearContents()
+        return pb
+    }
+
+    private func laidOutWidth(_ f: ManuscriptFixture, at loc: Int) throws -> CGFloat {
+        let tlm = try #require(f.tv.textLayoutManager), cs = try #require(f.tv.textContentStorage)
+        tlm.ensureLayout(for: tlm.documentRange)
+        let at = try #require(cs.location(cs.documentRange.location, offsetBy: loc))
+        return try #require(tlm.textLayoutFragment(for: at)?.textLineFragments.first).typographicBounds.width
+    }
+
+    private func key(_ f: ManuscriptFixture, code: UInt16, chars: String) {
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: chars,
+                                 charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code)!
+        f.tv.keyDown(with: e)
+    }
+
+    @Test("the analyzer: markers (opening/closing), styles, spans — and what is NOT a marker")
+    func analyzer() {
+        let a = MarkdownBlocks.analyze("This is **emphasized** and *it*.")
+        #expect(a.markers == [.init(range: NSRange(location: 8, length: 2), opens: true),
+                              .init(range: NSRange(location: 20, length: 2), opens: false),
+                              .init(range: NSRange(location: 27, length: 1), opens: true),
+                              .init(range: NSRange(location: 30, length: 1), opens: false)])
+        #expect(a.style(at: 10) == MarkdownBlocks.bold && a.style(at: 28) == MarkdownBlocks.italic && a.style(at: 0) == 0)
+        #expect(a.spans == [NSRange(location: 8, length: 14), NSRange(location: 27, length: 4)])
+        let nested = MarkdownBlocks.analyze("**a *b* c**")
+        #expect(nested.style(at: 5) == MarkdownBlocks.bold | MarkdownBlocks.italic)
+        #expect(nested.markers.map(\.opens) == [true, true, false, false])
+        #expect(nested.spans == [NSRange(location: 0, length: 11)], "one span: the reveal shows all its markers")
+        #expect(MarkdownBlocks.analyze("* item one").markers.isEmpty, "a bullet is not emphasis")
+        #expect(MarkdownBlocks.analyze("**unclosed bold").markers.isEmpty, "Q-E2-7: shown as the parser reads it")
+        #expect(MarkdownBlocks.analyze(#"2 \* 3 \* 4"#).markers.isEmpty)
+        // ✅ AC7 (inline half): an indented paragraph and a quote render their emphasis; a table does not.
+        #expect(MarkdownBlocks.analyze("    an **indented** line").markers.count == 2)
+        #expect(MarkdownBlocks.analyze("> a **quoted** line").markers.count == 2)
+        #expect(MarkdownBlocks.analyze("| **a** | b |\n|---|---|\n| 1 | 2 |").markers.isEmpty)
+    }
+
+    @Test("live pass: bold is a REAL weight step (Bold 0.40 on body, Heavy in a heading) — not Semibold")
+    func boldWeight() throws {
+        let f = fixture("x **bold** y\n\n## a **b** c")
+        f.caret(0)
+        let cs = try #require(f.tv.textContentStorage)
+        func weight(_ para: NSRange, _ at: Int) throws -> CGFloat {
+            let p = try #require(f.presenter.textContentStorage(cs, textParagraphWith: para)).attributedString
+            let font = try #require(p.attribute(.font, at: at, effectiveRange: nil) as? NSFont)
+            let traits = font.fontDescriptor.object(forKey: .traits) as? [NSFontDescriptor.TraitKey: Any]
+            return CGFloat((traits?[.weight] as? Double) ?? -1)
+        }
+        #expect(try weight(NSRange(location: 0, length: 13), 4) >= NSFont.Weight.bold.rawValue - 0.01, "body bold is Bold, not Semibold (0.30)")
+        #expect(try weight(NSRange(location: 14, length: 12), 7) >= NSFont.Weight.heavy.rawValue - 0.01, "bold inside a heading is Heavy")
+    }
+
+    @Test("AC3: bold is PRESENTED and laid out without its markers; storage keeps one plain font")
+    func boldPresented() throws {
+        let f = fixture("This is **emphasized**.")
+        f.caret(0)
+        #expect(f.hidden(8) && f.hidden(9) && f.hidden(20) && f.hidden(21) && !f.hidden(10))
+        let plain = fixture("This is emphasized.")
+        #expect(abs(try laidOutWidth(f, at: 0) - laidOutWidth(plain, at: 0)) < 0.05, "the markers take no width")
+        let cs = try #require(f.tv.textContentStorage)
+        let p = try #require(f.presenter.textContentStorage(cs, textParagraphWith: NSRange(location: 0, length: 23))).attributedString
+        #expect((p.attribute(.font, at: 10, effectiveRange: nil) as? NSFont)?.fontDescriptor.symbolicTraits.contains(.bold) == true)
+        var sizes = Set<CGFloat>()
+        f.tv.textStorage!.enumerateAttribute(.font, in: NSRange(location: 0, length: 23)) { v, _, _ in
+            if let font = v as? NSFont, !font.fontDescriptor.symbolicTraits.contains(.bold) { sizes.insert(font.pointSize) }
+        }
+        #expect(sizes == [NSFont.systemFontSize], "AC1: no rendering attribute reached storage")
+    }
+
+    @Test("AC4 (span half): markers show only with the caret at the span's FIRST or LAST character — no textDidChange")
+    func spanReveal() throws {
+        let f = fixture("a **bold** b *it* c")
+        let counter = DidChangeCounter()
+        f.tv.delegate = counter
+        f.caret(0)
+        let hidden = try laidOutWidth(f, at: 0)
+        f.caret(4)                                    // the first character of "bold"
+        #expect(!f.hidden(2) && !f.hidden(8), "this span's markers show")
+        #expect(f.hidden(13) && f.hidden(16), "the other span's do not")
+        #expect(try laidOutWidth(f, at: 0) > hidden + 10, "TextKit re-laid the revealed span")
+        // ✅ Live-pass amendment (user, 2026-10-05): in the MIDDLE of the span the hints go away…
+        f.caret(6)
+        #expect(f.hidden(2) && f.hidden(8), "mid-span: hidden")
+        // …and come back at its last character.
+        f.caret(8)
+        #expect(!f.hidden(2) && !f.hidden(8), "end of the span: shown")
+        f.caret(0)
+        #expect(f.hidden(2))
+        #expect(abs(try laidOutWidth(f, at: 0) - hidden) < 0.01)
+        #expect(counter.count == 0)
+    }
+
+    @Test("Q1: the caret goes AFTER an opener (hint to its left) and BEFORE a closer; → and ← never stall")
+    func caretHomes() {
+        let f = fixture("a **bold** b")             // `**` at 2..<4 and 8..<10
+        // ⚠️ From a NEUTRAL caret each time: a placement one unit from home looks exactly like an arrow
+        // step out of the span, and is (correctly) treated as one.
+        f.caret(0); f.caret(2); #expect(f.tv.selectedRange().location == 4, "start of the bold word: inside, after `**`")
+        f.caret(0); f.caret(3); #expect(f.tv.selectedRange().location == 4)
+        f.caret(0); f.caret(10); #expect(f.tv.selectedRange().location == 8, "end of the bold word: before the closer")
+        f.caret(0); f.caret(9); #expect(f.tv.selectedRange().location == 8)
+        f.caret(0)
+        var seq = [0]
+        for _ in 0..<8 { f.tv.moveRight(nil); seq.append(f.tv.selectedRange().location) }
+        #expect(seq == [0, 1, 4, 5, 6, 7, 8, 11, 12], "→ stops: \(seq)")
+        var back = [12]
+        for _ in 0..<8 { f.tv.moveLeft(nil); back.append(f.tv.selectedRange().location) }
+        #expect(back == [12, 11, 8, 7, 6, 5, 4, 1, 0], "← stops: \(back)")
+        // Headings too (*"headers too"*): a caret proposed at the line start lands after `## `.
+        let g = fixture("x\n\n## Head")
+        g.caret(3); #expect(g.tv.selectedRange().location == 6)
+    }
+
+    @Test("AC12: a cut that starts INSIDE bold and ends outside closes the span; the cut text carries its own markers")
+    func cutInsideToOutside() {
+        let f = fixture("**bold** and")
+        let counter = DidChangeCounter()
+        f.tv.delegate = counter
+        let pb = pasteboard()
+        f.tv.setSelectedRange(NSRange(location: 4, length: 7))       // "ld** an"
+        #expect(f.tv.writeSelection(to: pb, type: appKitStringType))
+        #expect(pb.string(forType: .string) == "ld an", "Q2: other apps get no markers")
+        f.tv.deleteBackward(nil)
+        #expect(f.text == "**bo**d")
+        #expect(counter.count == 1, "one balanced edit, one history event")
+        f.caret((f.text as NSString).length)
+        #expect(f.tv.readSelection(from: pb))
+        #expect(f.text == "**bo**d**ld** an", "Scrivi's own paste keeps the bold")
+    }
+
+    @Test("AC12: a cut that starts OUTSIDE and ends inside re-opens the span; inside on both ends keeps it")
+    func cutOutsideToInside() {
+        let f = fixture("pre **bold**")
+        let pb = pasteboard()
+        f.tv.setSelectedRange(NSRange(location: 2, length: 6))       // "e **bo"
+        _ = f.tv.writeSelection(to: pb, type: appKitStringType)
+        f.tv.deleteBackward(nil)
+        #expect(f.text == "pr**ld**")
+        let g = fixture("**abcd**")
+        let pb2 = pasteboard()
+        g.tv.setSelectedRange(NSRange(location: 3, length: 2))       // "bc"
+        _ = g.tv.writeSelection(to: pb2, type: appKitStringType)
+        g.tv.deleteBackward(nil)
+        #expect(g.text == "**ad**")
+        g.caret(3)                                                   // between a and d — inside the bold
+        #expect(g.tv.readSelection(from: pb2))
+        #expect(g.text == "**abcd**", "bold pasted into bold MERGES — it does not toggle")
+    }
+
+    @Test("Q3: typing over, Return inside, and ⌫ of a span's last character all leave it balanced")
+    func everyReplacementBalances() {
+        let f = fixture("**bold** and")
+        f.tv.setSelectedRange(NSRange(location: 4, length: 7))
+        f.type("X")
+        #expect(f.text == "**boX**d", "the typed text takes the style of the first selected character")
+        let g = fixture("**bold**")
+        g.caret(4)
+        key(g, code: 36, chars: "\r")
+        #expect(g.text == "**bo**\n\n**ld**", "Return inside bold splits it into two balanced spans")
+        #expect(g.tv.selectedRange().location == 10, "the caret starts the new paragraph inside its bold")
+        let h = fixture("a **b** c")
+        h.caret(5)
+        h.tv.deleteBackward(nil)
+        #expect(h.text == "a  c", "an emptied span takes its markers with it")
+    }
+
+    @Test("markers are ATOMIC: ⌫ after an opener, ⌫ at a heading's start, ⌦ before a closer")
+    func atomicMarkers() {
+        let f = fixture("a **bold**")
+        f.caret(4)
+        f.tv.deleteBackward(nil)
+        #expect(f.text == "a**bold**", "⌫ deletes the character before the marker, not the marker")
+        #expect(f.tv.selectedRange().location == 3)
+        let g = fixture("x\n\n## Head")
+        g.caret(6)
+        g.tv.deleteBackward(nil)
+        #expect(g.text == "x\n\nHead", "⌫ at the start of a heading makes it body text")
+        let h = fixture("**bold** x")
+        h.caret(6)
+        h.tv.deleteForward(nil)
+        #expect(h.text == "**bold**x", "⌦ deletes the character after the marker")
     }
 }
 #endif

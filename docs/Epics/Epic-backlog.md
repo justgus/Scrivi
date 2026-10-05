@@ -14,6 +14,7 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 **Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Independent of [EP-046]; ⚠️ needs [EP-045]'s seam.**
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §5.1, §4D.
+**Tasks:** 🔵 [T-0589] **Markup Hints on/off** (filed 2026-10-05, user) — a View-menu toggle (persisted in the project) for EP-046's re-entry reveal; caret rules ruled 2026-10-05; after EP-046 E2-S2 → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 
 **Goal:** ✅ **The writer sets how her manuscript LOOKS, once, and never types formatting to get it.**
 

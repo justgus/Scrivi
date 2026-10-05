@@ -200,6 +200,25 @@ create). The presenter is asked only for paragraphs that are **laid out** (143 a
 - ✅ The analyzer cache is keyed by block TEXT (what it depends on) — no invalidation needed.
 - ⚠️ **Found, not fixed: VoiceOver reads the STORED text** (backslashes, `##`) — true since E1; not an EP-046 AC.
 
+### 3.6 ✅ AS BUILT — E2-S2 ([SP-162], 2026-10-05)
+
+- ✅ **Markers are STOP RUNS with a home side**, independent of the reveal: escape → before; opener and heading prefix →
+  AFTER (Q1: the hint shows to the caret's left); closer → before. One arrow step from home passes one visible
+  character. ⚠️ This replaced E2-S1's "a revealed prefix is a caret stop".
+- ✅ **Markers are atomic.** ⌫ after an opener deletes the character before it; ⌫ at a heading's start removes the whole
+  prefix; ⌦ before a closer deletes the character after it.
+- ✅ **Balanced edits (AC12, Q3)** — `MarkdownEmphasis`: tokens (units minus markers, with style) → edit → fewest
+  markers. Whitespace takes the style both neighbours share; a newline carries none; a span never opens on whitespace;
+  the longer-lasting style opens outside. ⚠️ CommonMark cannot open a span on punctuation glued to a preceding letter
+  (or close one before a following letter): that punctuation mark loses its style. ✅ Checked by the parser in context
+  before it is applied; on failure the stretch is written without emphasis (logged). Measured 5,999/6,000 realistic edits.
+- ⚠️ **Not balanced yet:** cut/copy across a SCENE boundary (ScriviCore structured fragments).
+- ✅ **Live-pass amendments (user, 2026-10-05):** (A) a span's markers show only with the caret at its FIRST or LAST
+  character (it was: anywhere inside) — refines §5's span reveal; (B) bold is a real weight step — `NSFontManager`'s bold
+  trait gives this face SEMIBOLD (0.30, measured); body bold is now Bold (0.40), bold in a heading Heavy (0.56).
+  ✅ Decisions confirmed: ⌫ at a heading's start removes the `## `; copy to other apps drops `## `; edge punctuation glued
+  to a letter loses its style.
+
 ---
 
 ## 4. Element order (Q-E2-3) and per-element notes

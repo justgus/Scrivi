@@ -128,51 +128,72 @@ enum MarkdownEscapes {
         return String(utf16CodeUnits: out, count: out.count)
     }
 
-    // MARK: — R3 = (c): the caret never rests inside a HIDDEN RUN (ruled 2026-10-03; generalised EP-046 AC5)
+    // MARK: — R3 = (c): the caret never rests inside a STOP RUN (ruled 2026-10-03; generalised EP-046 AC5)
     //
-    // ⚠️ EP-046 E2-S1: a hidden character is no longer marked in STORAGE (route (a′) keeps storage
-    // plain), so these take an `isHidden` test — `ManuscriptPresenter.hiddenTest(in:revealing:)` in
-    // the app. ✅ A hidden RUN is one or more hidden characters in a row: an escape backslash, or a
-    // heading prefix (`## `) on a line the caret is not on.
-
-    /// True when boundary `s` sits just after a hidden character — a spot that LOOKS identical to
-    /// the boundary before the hidden run (measured: x 35.32 vs 35.33).
-    static func isUnreachable(_ s: Int, length: Int, isHidden: (Int) -> Bool) -> Bool {
-        s > 0 && s < length && isHidden(s - 1)
-    }
+    // A STOP RUN is markup the caret never rests inside: an escape backslash (home BEFORE it), an opening
+    // emphasis marker or a heading prefix (home AFTER it — [SP-162] Q1: the hint shows to the caret's
+    // LEFT), a closing marker (home BEFORE it — the end of a bold word continues the bold). ⚠️ EP-046:
+    // storage carries no hiding attribute, so these take a lookup — `ManuscriptPresenter.stopTest` in
+    // the app — returning the run that holds a unit and which side is home.
+    typealias StopRun = (range: NSRange, homeAfter: Bool)
 
     /// Where a CARET proposed at `loc` (coming from `previous`) must land instead, or nil to leave it.
-    /// ✅ A forward STEP from just before the run (→) lands after the first VISIBLE character past it;
-    /// ✅ everything else — ←, a click, a jump — lands BEFORE the run, the visually identical spot.
-    /// ⚠️ Measured 2026-10-03: a click there hit-tests to the unreachable boundary, and snapping it
-    /// forward put the caret one character right of the click.
-    static func snapCaret(_ loc: Int, from previous: Int, length: Int, isHidden: (Int) -> Bool) -> Int? {
-        guard isUnreachable(loc, length: length, isHidden: isHidden) else { return nil }
-        var start = loc - 1
-        while start > 0, isHidden(start - 1) { start -= 1 }
-        guard previous == loc - 1 else { return start }
-        var end = loc
-        while end < length, isHidden(end) { end += 1 }
-        return min(end + 1, length)
+    /// ✅ Any spot inside a run, or on its far side, goes HOME. ✅ A single arrow step from home INTO the
+    /// run leaves it on the other side and passes ONE visible character — the visually next stop
+    /// (→ past a closer or escape; ← past the character before an opener or prefix). ⚠️ Measured
+    /// 2026-10-03: a click at an escape hit-tests to the unreachable boundary; going home lands the
+    /// caret where it was clicked.
+    static func snapCaret(_ loc: Int, from previous: Int, length: Int, runAt: (Int) -> StopRun?) -> Int? {
+        var cur = loc
+        // Landing past one run can land beside the next (`**a** **b**`): settle, a few steps at most.
+        for _ in 0..<4 {
+            guard let next = snapOnce(cur, from: previous, length: length, runAt: runAt), next != cur else { break }
+            cur = next
+        }
+        return cur == loc ? nil : cur
     }
 
-    /// A SELECTION never ends inside a hidden run: its start moves before the run. Its end moves
-    /// past the run when the selection grows (an escape backslash keeps its mark with it), and
-    /// ⚠️ BEFORE the run when it shrinks — E1 always moved the end forward, so shift-← stalled at a
-    /// hidden escape (SP-161 step 1). `previousEnd` is the end before this change (nil: growing).
+    private static func snapOnce(_ loc: Int, from previous: Int, length: Int, runAt: (Int) -> StopRun?) -> Int? {
+        let run: StopRun
+        if loc > 0, let r = runAt(loc - 1) { run = r }                       // inside, or just past it
+        else if loc < length, let r = runAt(loc), r.homeAfter { run = r }    // just before an opener
+        else { return nil }
+        let s = run.range.location, e = NSMaxRange(run.range)
+        if run.homeAfter {
+            if loc == e { return nil }
+            // ← from home: out to the left, past the character before the run.
+            if previous == e, loc == e - 1 { return s > 0 ? s - 1 : e }
+            return e
+        } else {
+            if loc == s { return nil }
+            // → from home: out to the right, past the character after the run.
+            if previous == s, loc == s + 1 { return min(e + 1, length) }
+            return s
+        }
+    }
+
+    /// True when boundary `s` sits inside a stop run or just past it.
+    static func isUnreachable(_ s: Int, length: Int, runAt: (Int) -> StopRun?) -> Bool {
+        s > 0 && s < length && runAt(s - 1) != nil
+    }
+
+    /// A SELECTION never ends inside a stop run: its start moves before the run. Its end moves past
+    /// the run when the selection grows (an escape backslash keeps its mark with it), and ⚠️ BEFORE
+    /// the run when it shrinks — E1 always moved the end forward, so shift-← stalled at a hidden escape
+    /// (SP-161 step 1). `previousEnd` is the end before this change (nil: growing).
     /// nil when neither end needs moving.
     static func snapSelection(_ r: NSRange, previousEnd: Int? = nil, in text: NSString,
-                              isHidden: (Int) -> Bool) -> NSRange? {
+                              runAt: (Int) -> StopRun?) -> NSRange? {
         let n = text.length
         var start = r.location, end = NSMaxRange(r)
-        if isUnreachable(start, length: n, isHidden: isHidden) {
-            while start > 0, isHidden(start - 1) { start -= 1 }
+        if isUnreachable(start, length: n, runAt: runAt) {
+            while start > 0, runAt(start - 1) != nil { start -= 1 }
         }
-        if isUnreachable(end, length: n, isHidden: isHidden) {
+        if isUnreachable(end, length: n, runAt: runAt) {
             if let p = previousEnd, end < p {
-                while end > 0, isHidden(end - 1) { end -= 1 }
+                while end > 0, runAt(end - 1) != nil { end -= 1 }
             } else {
-                while end < n, isHidden(end) { end += 1 }
+                while end < n, runAt(end) != nil { end += 1 }
                 if end < n, text.character(at: end - 1) == backslash { end += 1 }
             }
         }

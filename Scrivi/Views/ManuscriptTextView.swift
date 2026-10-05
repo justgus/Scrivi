@@ -2486,10 +2486,10 @@ final class ManuscriptNSTextView: NSTextView {
         // ✅ EP-045 AC4: an escape pair (`\*`) is ONE unit. ⚠️ Measured 2026-10-03: ⌫ after a `*`
         // removed only the `*` (leaving `a\b` — an orphaned backslash that becomes VISIBLE), and
         // ⌦ before the `\` removed only the backslash (leaving a LIVE `*`). Re-issue the edit
-        // over the whole pair instead.
+        // over the whole pair instead. (EP-046: the same for any stop run — a marker is never split.)
         if affectedCharRange.length > 0, let presenter,
            let pair = MarkdownEscapes.snapSelection(affectedCharRange, in: storage.string as NSString,
-                                                    isHidden: presenter.hiddenTest(in: storage, revealing: selectedRange())) {
+                                                    runAt: Self.runLookup(presenter, storage)) {
             if shouldChangeText(in: pair, replacementString: replacementString) {
                 let replacement = NSAttributedString(
                     string: replacementString ?? "",
@@ -2500,7 +2500,33 @@ final class ManuscriptNSTextView: NSTextView {
             }
             return false
         }
+        // ✅ EP-046 AC12 / [SP-162] Q3: an edit that would leave emphasis UNBALANCED — a cut or delete
+        // across a span edge, typing or pasting over one, a Return inside bold, Scrivi's own copy pasted
+        // into bold — is re-issued as the BALANCED edit of the stretch it touches (`balancedEdit`). ONE
+        // replacement, so ONE history event. ✅ Plain typing inside or outside a span returns nil there.
+        if !applyingBalancedEdit, let presenter, let replacementString,
+           let edit = presenter.balancedEdit(in: storage, replacing: affectedCharRange, with: replacementString) {
+            applyingBalancedEdit = true
+            defer { applyingBalancedEdit = false }
+            if shouldChangeText(in: edit.range, replacementString: edit.replacement) {
+                storage.replaceCharacters(in: edit.range, with: NSAttributedString(
+                    string: edit.replacement,
+                    attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+                didChangeText()
+                setSelectedRange(NSRange(location: edit.caret, length: 0))
+            }
+            return false
+        }
         return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+    }
+
+    /// True while a balanced edit is being applied — it must not be balanced again.
+    private var applyingBalancedEdit = false
+
+    /// The presenter's stop runs in the form the snap takes.
+    static func runLookup(_ presenter: ManuscriptPresenter, _ ts: NSAttributedString) -> (Int) -> MarkdownEscapes.StopRun? {
+        let stops = presenter.stopTest(in: ts)
+        return { i in stops(i).map { ($0.range, $0.homeAfter) } }
     }
 
     /// ✅ EP-046 E2-S1 — the view's presenter, found through TextKit 2's own delegate slot so a view
@@ -2564,9 +2590,14 @@ final class ManuscriptNSTextView: NSTextView {
         guard Self.isPlainTextType(type), sel.length > 0, let storage = textStorage else {
             return super.writeSelection(to: pboard, type: type)
         }
-        let source = (storage.string as NSString).substring(with: sel)
-        let ok = pboard.setString(MarkdownEscapes.map(source).presented, forType: .string)
-        if ok { ownCopy = (pboard.name, pboard.changeCount, source) }
+        // ✅ EP-046 AC12 + [SP-162] Q2: other apps get what the writer SEES (no markers, no prefix, no
+        // escapes); Scrivi's own paste gets the BALANCED source — a selection that starts or ends inside a
+        // bold span carries its own markers, so the paste stays bold.
+        let raw = (storage.string as NSString).substring(with: sel)
+        let copy: (source: String, presented: String) = presenter?.balancedCopy(in: storage, sel)
+            ?? (raw, MarkdownEscapes.map(raw).presented)
+        let ok = pboard.setString(copy.presented, forType: .string)
+        if ok { ownCopy = (pboard.name, pboard.changeCount, copy.source) }
         return ok
     }
 
@@ -2637,11 +2668,11 @@ final class ManuscriptNSTextView: NSTextView {
            let target = coordinator?.caretOutsideSceneGap(r.location, from: selectedRange().location) {
             ranges = [NSValue(range: NSRange(location: target, length: 0))]
         }
-        // ✅ EP-045 AC3 / R3 = (c), generalised by EP-046 AC5: nor inside a HIDDEN RUN — the boundary
-        // after a hidden character looks identical to the one before the run, so resting there is an
-        // invisible extra stop. A selection's ends are snapped too, so cut/copy never splits `\`
-        // from its mark. ⚠️ Hidden-ness is judged under the reveal the PROPOSED selection makes:
-        // a caret arriving on a heading line reveals that line's prefix, so it is not hidden there.
+        // ✅ EP-045 AC3 / R3 = (c), generalised by EP-046 AC5: nor inside a STOP RUN — an escape
+        // backslash, an emphasis marker or a heading prefix. ✅ [SP-162] Q1: at the start of a span or a
+        // heading the caret goes AFTER the marker, so the revealed hint shows to its LEFT; at the end of
+        // a span it stays before the closer. A selection's ends are snapped too, so cut/copy never
+        // splits `\` from its mark or a marker in two.
         if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, let storage = textStorage,
            let presenter {
             // ✅ EP-045 AC10a: the snap's own cost, separate from `[SCRIVI-NAV] setSel`.
@@ -2650,19 +2681,20 @@ final class ManuscriptNSTextView: NSTextView {
                 let ms = Date().timeIntervalSince(t0) * 1000
                 if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] caretSnap=%.1f ms", ms)) }
             }
-            let hidden = presenter.hiddenTest(in: storage, revealing: r)
+            let runAt = Self.runLookup(presenter, storage)
             if r.length == 0,
                let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location,
-                                                      length: storage.length, isHidden: hidden) {
+                                                      length: storage.length, runAt: runAt) {
                 ranges = [NSValue(range: NSRange(location: target, length: 0))]
             } else if r.length > 0,
                       let snapped = MarkdownEscapes.snapSelection(r, previousEnd: NSMaxRange(selectedRange()),
-                                                                  in: storage.string as NSString, isHidden: hidden) {
+                                                                  in: storage.string as NSString, runAt: runAt) {
                 ranges = [NSValue(range: snapped)]
             }
         }
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
-        // ✅ EP-046 AC4 (line half, Q-E2-1): the heading prefixes on the selection's lines show.
+        // ✅ EP-046 AC4 (Q-E2-1): the heading prefixes on the selection's lines, and the markers of the
+        // span it is in, show.
         // ⚠️ Not mid-drag — a reveal reflows the line, which must not happen under the pointer.
         if !stillSelecting, let storage = textStorage { presenter?.reveal(for: selectedRange(), in: storage) }
     }
@@ -2843,6 +2875,28 @@ final class ManuscriptNSTextView: NSTextView {
         }
         let loc = selectedRange().location
         guard loc > 0 else { return }
+        // ✅ EP-046: markers are ATOMIC — ⌫ never deletes part of one. Just after an opening marker (the
+        // start of a bold word, [SP-162] Q1) ⌫ acts on what the writer SEES before the caret: the
+        // character before the marker, or the paragraph join. ⚠️ Just after a heading's `## ` (the
+        // visible start of the heading) ⌫ removes the WHOLE prefix — the line becomes body text.
+        if let presenter, let stop = presenter.stopTest(in: storage)(loc - 1), NSMaxRange(stop.range) == loc {
+            switch stop.kind {
+            case .prefix:
+                insertVerbatim("", replacementRange: stop.range)
+                return
+            case .opener:
+                let s = stop.range.location
+                guard s > 0, !isSeparatorPosition(s - 1, in: storage) else { return }
+                if let join = paragraphJoin(at: s, in: storage.string as NSString) {
+                    insertVerbatim(" ", replacementRange: join)
+                } else {
+                    insertVerbatim("", replacementRange: NSRange(location: s - 1, length: 1))
+                }
+                return
+            case .escape, .closer:
+                break
+            }
+        }
         // The character that would be deleted is at loc-1.
         let target = loc - 1
         if isSeparatorPosition(target, in: storage) { return }
@@ -2887,6 +2941,15 @@ final class ManuscriptNSTextView: NSTextView {
         }
         let loc = selectedRange().location
         guard loc < storage.length else { return }
+        // ✅ EP-046: just before a CLOSING marker (the end of a bold word) ⌦ deletes what the writer SEES
+        // after the caret — the character after the marker — never the marker itself.
+        if let presenter, let stop = presenter.stopTest(in: storage)(loc), stop.kind == .closer,
+           stop.range.location == loc {
+            let after = NSMaxRange(stop.range)
+            guard after < storage.length, !isSeparatorPosition(after, in: storage) else { return }
+            insertVerbatim("", replacementRange: NSRange(location: after, length: 1))
+            return
+        }
         // The character that would be deleted is at loc.
         if isSeparatorPosition(loc, in: storage) { return }
         super.deleteForward(sender)
