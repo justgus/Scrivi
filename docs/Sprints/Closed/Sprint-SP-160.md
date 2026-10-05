@@ -1,7 +1,8 @@
 ---
 sprint: SP-160
 epic: EP-049
-status: Active
+status: Closed
+closed: 2026-10-04
 activated: 2026-10-04
 platform: Linux
 created: 2026-10-04
@@ -9,10 +10,10 @@ created: 2026-10-04
 
 # SP-160 — `[Linux]` [EP-049] S1: Linux writes Apple's manuscript format (the escape layer's write half)
 
-**Status:** 🟡 **ACTIVE 2026-10-04** (user: *"activate SP-160 and implement it"*). ✅ [EP-049] ACTIVATED with it.
+**Status:** ✅ **CLOSED 2026-10-04 (user-approved):** *"close SP-160, run the Audit Check, and close EP-049"* ✅ [T-0586] and [I-0276] verified.
 needs the user's approval, and it ACTIVATES [EP-049] (backlog → `Epic-active.md`).
-**Epic:** [EP-049] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md) — this Sprint carries ALL of its ACs.
-**Task:** [T-0586] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md)
+**Epic:** [EP-049] → [`../../Epics/Closed/Epic-EP-049.md`](../../Epics/Closed/Epic-EP-049.md) — this Sprint carries ALL of its ACs.
+**Task:** [T-0586] → [`../../Tasks/Verified/Task-verified-0586.md`](../../Tasks/Verified/Task-verified-0586.md)
 **The maxim:** ✅ *"do what Apple does, the way Apple does it"* — the Apple reference for every step is named below.
 **Size:** ⚠️ **MEDIUM–LARGE.** It is small in code, but it changes what Linux WRITES, so every step is guarded by
 a byte-level test.
@@ -136,4 +137,28 @@ click selects, double-click / Return / Enter opens (`Landing.qml`). ✅ Built; n
 owed on **build 57**.
 ⚠️ **Environment note:** Docker's disk is FULL (56/59 GB; 72 images, 43.7 GB reclaimable). The SP-160 no-cache
 image was removed; the rest are the user's to prune.
+
+### ✅ 2026-10-04 — [I-0276] VERIFIED; Sprint COMPLETE (awaiting close approval)
+
+✅ User: *"This (I-0276) is confirmed fixed on the rig."* → archived (`../../Issues/Verified/Issue-verified-0271-0280.md`). ✅ Docker cleaned at the user's direction (all images, containers, volumes, build cache).
+
+### ✅ 2026-10-04 — Sprint CLOSED (user-approved); [T-0586] archived
+
+✅ User: *"close SP-160, run the Audit Check, and close EP-049"*
+
+## Retrospective
+
+**Completed:** ✅ EP-049 AC1–AC8 + AC4b ([T-0586]): Linux writes Apple's manuscript format, proven byte-for-byte by
+a SHARED corpus that both platforms' tests run. ✅ [I-0276] (added in scope): the launch window opens on a
+double-click, not a single click.
+**Fixed in scope (pre-existing Linux defects found by measuring first):** Shift-Return wrote U+2028 into scene
+files; Ctrl+Delete bypassed the boundary guard.
+**Returned to Backlog:** none.
+**What went well:** ✅ measuring Qt BEFORE porting (M1–M4) turned two "beliefs" into fixes; ✅ the shared corpus
+made "do what Apple does" CHECKABLE, and a mutation proved it bites on both sides.
+**What to improve:** ⛔ I twice misattributed state to the user (work "uncommitted" without `git status`; Docker
+images "yours" — they were mine) and let my Docker images fill the disk. ✅ Check before attributing; clean up
+build images when a Sprint's builds are done.
+**Carry-forward notes:** ⚠️ Linux still SHOWS the escape backslashes — the display half is [SP-159]'s design →
+[EP-048]. ⚠️ Alt-Return follows Apple's single `\n` until [T-0584] rules.
 

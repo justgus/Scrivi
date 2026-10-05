@@ -75,6 +75,7 @@ docs/Sprints/
 ├── Sprint-Documentation.md       ← Index of all Sprints
 ├── Sprint-active.md              ← Currently active Sprint
 ├── Sprint-backlog.md             ← Planned Sprints in 🔵 Planning status
+├── Sprint-SP-XXX.md              ← (optional) the full record of a Planning or Active Sprint
 ├── Closed/
 │   ├── Sprint-SP-001.md
 │   ├── Sprint-SP-002.md
@@ -90,10 +91,16 @@ docs/Sprints/
   never returns. No closure note is written here** — whether a Sprint later closed is
   `Closed/Sprint-SP-XXX.md`'s business and the All-Sprints table's. **The backlog contains Planning
   Sprints and nothing else.**
+- **Sprint-SP-XXX.md** *(optional)* — the full record of a 🔵 Planning or 🟡 Active Sprint: plan, ACs and progress
+  log. `Sprint-active.md` then carries a one-line status pointer to it. ⚠️ **It moves to `Closed/Sprint-SP-XXX.md`
+  IN THE SAME STEP the Sprint closes**, and its relative links are re-pointed from there. ⚠️ Unlike a planning draft
+  it is NOT folded into `Sprint-active.md` at activation; it IS the record, from planning to close.
+  *(Named 2026-10-05 — Audit Check `Audit-Check-20261004-EP049.md` F-3: the practice existed since SP-153, unnamed.)*
 - **Closed/Sprint-SP-XXX.md** — Archive file per closed Sprint, including retrospective.
 
-⚠️ **Nothing else belongs in `docs/Sprints/`.** Anything that is not one of the four files above or
-`Closed/` is an orphan. *(The 2026-08-19 audit found **13** loose files there — 12 superseded planning
+⚠️ **Nothing else belongs in `docs/Sprints/`.** Anything that is not one of the four files above, a
+`Sprint-SP-XXX.md` record of a Sprint that is still 🔵 Planning or 🟡 Active, or `Closed/` is an orphan. ⚠️ **A
+`Sprint-SP-XXX.md` whose Sprint has CLOSED is an orphan** — the SP-039 failure below. *(The 2026-08-19 audit found **13** loose files there — 12 superseded planning
 drafts and one sprint whose only record was a draft still declaring "🔵 Planning" two months after it
 closed.)*
 
