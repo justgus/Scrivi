@@ -66,9 +66,12 @@ struct ManuscriptTextView: NSViewRepresentable {
         textView.textContainerInset = NSSize(width: 60, height: 40)
         textView.delegate = context.coordinator
         context.coordinator.textView = textView
-        // EP-045 AC4: hide escape backslashes after every storage change (weak delegate — the
-        // coordinator owns the styler).
-        textView.textStorage?.delegate = context.coordinator.escapeStyler
+        // ✅ EP-046 E2-S1 — the PRESENTER (route (a′)): TextKit 2 asks it for each paragraph and gets
+        // the same characters with styled attributes; storage stays plain. It is also the storage
+        // delegate, to re-present a whole block after a character edit. (Weak delegates — the
+        // coordinator owns it.) It replaces EP-045's `EscapeHidingStyler`.
+        textView.textContentStorage?.delegate = context.coordinator.presenter
+        textView.textStorage?.delegate = context.coordinator.presenter
         if let storage = textView.textStorage { context.coordinator.boundaryTable.observe(storage) }
 
         // T-0531 DIAGNOSTIC — report which layout engine this view ACTUALLY uses.
@@ -317,8 +320,8 @@ struct ManuscriptTextView: NSViewRepresentable {
         private let forkPopover = ForkPopoverController()
 
         init(_ parent: ManuscriptTextView) { self.parent = parent }
-        /// EP-045 AC4 — the storage delegate that keeps escape backslashes hidden.
-        let escapeStyler = EscapeHidingStyler()
+        /// EP-046 E2-S1 — presents headings and hides escape backslashes (see `ManuscriptPresenter`).
+        let presenter = ManuscriptPresenter()
 
         // MARK: — History capture helpers (EP-019)
 
@@ -2484,12 +2487,13 @@ final class ManuscriptNSTextView: NSTextView {
         // removed only the `*` (leaving `a\b` — an orphaned backslash that becomes VISIBLE), and
         // ⌦ before the `\` removed only the backslash (leaving a LIVE `*`). Re-issue the edit
         // over the whole pair instead.
-        if affectedCharRange.length > 0,
-           let pair = MarkdownEscapes.snapSelection(affectedCharRange, in: storage) {
+        if affectedCharRange.length > 0, let presenter,
+           let pair = MarkdownEscapes.snapSelection(affectedCharRange, in: storage.string as NSString,
+                                                    isHidden: presenter.hiddenTest(in: storage, revealing: selectedRange())) {
             if shouldChangeText(in: pair, replacementString: replacementString) {
                 let replacement = NSAttributedString(
                     string: replacementString ?? "",
-                    attributes: [.font: EscapeHidingStyler.bodyFont, .foregroundColor: NSColor.textColor])
+                    attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor])
                 storage.replaceCharacters(in: pair, with: replacement)
                 didChangeText()
                 setSelectedRange(NSRange(location: pair.location + replacement.length, length: 0))
@@ -2498,6 +2502,10 @@ final class ManuscriptNSTextView: NSTextView {
         }
         return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
     }
+
+    /// ✅ EP-046 E2-S1 — the view's presenter, found through TextKit 2's own delegate slot so a view
+    /// built without a coordinator (the interop fixtures) works the same way.
+    var presenter: ManuscriptPresenter? { textContentStorage?.delegate as? ManuscriptPresenter }
 
     // MARK: — EP-045 AC4: the escape layer
 
@@ -2629,25 +2637,34 @@ final class ManuscriptNSTextView: NSTextView {
            let target = coordinator?.caretOutsideSceneGap(r.location, from: selectedRange().location) {
             ranges = [NSValue(range: NSRange(location: target, length: 0))]
         }
-        // ✅ EP-045 AC3 / R3 = (c): nor inside a HIDDEN ESCAPE — the boundary between a hidden
-        // backslash and its mark looks identical to the one before it, so resting there is an
-        // invisible extra stop. A selection's ends are snapped too, so cut/copy never splits
-        // `\` from its mark. Same single entry point as T-0572; no-op until AC4 hides anything.
-        if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, let storage = textStorage {
+        // ✅ EP-045 AC3 / R3 = (c), generalised by EP-046 AC5: nor inside a HIDDEN RUN — the boundary
+        // after a hidden character looks identical to the one before the run, so resting there is an
+        // invisible extra stop. A selection's ends are snapped too, so cut/copy never splits `\`
+        // from its mark. ⚠️ Hidden-ness is judged under the reveal the PROPOSED selection makes:
+        // a caret arriving on a heading line reveals that line's prefix, so it is not hidden there.
+        if !stillSelecting, ranges.count == 1, let r = ranges.first?.rangeValue, let storage = textStorage,
+           let presenter {
             // ✅ EP-045 AC10a: the snap's own cost, separate from `[SCRIVI-NAV] setSel`.
             let t0 = Date()
             defer {
                 let ms = Date().timeIntervalSince(t0) * 1000
                 if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] caretSnap=%.1f ms", ms)) }
             }
+            let hidden = presenter.hiddenTest(in: storage, revealing: r)
             if r.length == 0,
-               let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location, in: storage) {
+               let target = MarkdownEscapes.snapCaret(r.location, from: selectedRange().location,
+                                                      length: storage.length, isHidden: hidden) {
                 ranges = [NSValue(range: NSRange(location: target, length: 0))]
-            } else if r.length > 0, let snapped = MarkdownEscapes.snapSelection(r, in: storage) {
+            } else if r.length > 0,
+                      let snapped = MarkdownEscapes.snapSelection(r, previousEnd: NSMaxRange(selectedRange()),
+                                                                  in: storage.string as NSString, isHidden: hidden) {
                 ranges = [NSValue(range: snapped)]
             }
         }
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        // ✅ EP-046 AC4 (line half, Q-E2-1): the heading prefixes on the selection's lines show.
+        // ⚠️ Not mid-drag — a reveal reflows the line, which must not happen under the pointer.
+        if !stillSelecting, let storage = textStorage { presenter?.reveal(for: selectedRange(), in: storage) }
     }
 
     // ⚠️ [I-0266] ⌘↑ lands where `Go to Manuscript Start` does — the first scene's first
@@ -2989,7 +3006,8 @@ enum SceneDivider {
 /// ⚠️ Anything it cannot prove local — an edit spanning scenes, or text that carries a divider or
 /// heading — marks the table DIRTY, and the next reader rescans. ⛔ ONE authority ([I-0131] was a
 /// second scene-offset table drifting from the real one): readers take `ranges(in:)`, nothing else.
-/// ⚠️ The storage DELEGATE slot belongs to `EscapeHidingStyler`, so this observes a NOTIFICATION.
+/// ⚠️ It observes a NOTIFICATION, not the storage delegate (the presenter's slot), and it needs
+/// `willProcessEditing` anyway — see below.
 /// ⛔ MEASURED 2026-10-04: by `didProcessEditing`, `editedRange` has been WIDENED to whole lines
 /// (cause not traced), and a scene's LAST line holds its divider character — so every edit in a
 /// scene's last line looked cross-scene and forced a rescan. ✅ `willProcessEditing` carries the
@@ -3055,94 +3073,6 @@ final class SceneBoundaryTable: NSObject {
         }
         table[lo].length += delta
         for j in (lo + 1)..<table.count { table[j].location += delta }
-    }
-}
-
-// MARK: — EP-045 AC4: hiding the escape backslash (R3 = (c), ruled 2026-10-03)
-
-/// Keeps every escape backslash HIDDEN by storage attributes — and un-hides one that no longer
-/// escapes anything — after EVERY change to the manuscript's storage: typing, paste, undo/redo's
-/// apply, the cross-scene delete and `rebuildStorage` alike.
-/// ✅ ONE hook for all of them: the text storage's delegate. ⚠️ Measured 2026-10-03 under TextKit 2:
-/// the slot is free (`nil`), `didProcessEditing` fires for typed AND programmatic edits, the view
-/// stays on TextKit 2, and the backslash renders hidden. ⛔ Hooking each edit path instead would
-/// miss the next one added — design trap #3 (undo re-applies only font + colour) is exactly that.
-final class EscapeHidingStyler: NSObject, NSTextStorageDelegate {
-
-    // Computed, not stored: Swift 6 rejects a static `NSFont` / attribute dictionary as not
-    // concurrency-safe, and both are cheap to build.
-    static var bodyFont: NSFont { NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular) }
-    /// What a hidden backslash carries: the KEY (the snap and the delete read only this) plus a
-    /// near-zero, transparent rendering (measured: no visible width, no visible glyph).
-    static var hiddenAttributes: [NSAttributedString.Key: Any] {
-        [MarkdownEscapes.hiddenKey: true,
-         .font: NSFont.systemFont(ofSize: 0.01),
-         .foregroundColor: NSColor.clear]
-    }
-
-    func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions,
-                     range editedRange: NSRange, changeInLength delta: Int) {
-        guard editedMask.contains(.editedCharacters) else { return }
-        // ✅ EP-045 AC10a: attributes E1's own per-edit cost inside `keyDown` (same pattern as
-        // `[SCRIVI-EDIT] didChangeText`; logged only above 0.5 ms).
-        let t0 = Date()
-        Self.restyle(textStorage, in: editedRange)
-        let ms = Date().timeIntervalSince(t0) * 1000
-        if ms > 0.5 { NSLog(String(format: "[SCRIVI-EDIT] restyle=%.1f ms (range=%d)", ms, editedRange.length)) }
-    }
-
-    /// Re-derive hiding over the paragraphs that `range` touches. ⚠️ Escapes never cross a line,
-    /// so paragraphs are the whole scope; ✅ only paragraphs that contain a backslash are scanned,
-    /// so a rebuild of the full manuscript costs one string search, not a parse.
-    static func restyle(_ ts: NSTextStorage, in range: NSRange) {
-        let ns = ts.string as NSString
-        guard ns.length > 0 else { return }
-        let loc = min(range.location, ns.length)
-        var span = ns.paragraphRange(for: NSRange(location: loc, length: min(range.length, ns.length - loc)))
-        // ✅ EP-045 AC6: whether a line-end backslash is a hidden hard break depends on the NEXT
-        // line (Q1 = (a)), so an edit here can flip the line ABOVE — e.g. a ⌫ merge that turns
-        // `end.\⏎⏎next` into `end.\⏎next`. Restyle that one line too.
-        if span.location > 0 {
-            span = NSUnionRange(span, ns.paragraphRange(for: NSRange(location: span.location - 1, length: 0)))
-        }
-
-        // 1. Un-hide anything hidden here before; step 2 re-hides what still escapes.
-        var stale: [NSRange] = []
-        ts.enumerateAttribute(MarkdownEscapes.hiddenKey, in: span, options: []) { v, r, _ in
-            if v != nil { stale.append(r) }
-        }
-        for r in stale {
-            ts.removeAttribute(MarkdownEscapes.hiddenKey, range: r)
-            ts.addAttributes([.font: bodyFont, .foregroundColor: NSColor.textColor], range: r)
-        }
-
-        // 2. Hide, paragraph by paragraph, only where a backslash occurs. ⛔ Never inside a
-        // chapter heading (headings are not scene text).
-        var search = span
-        while search.length > 0 {
-            let hit = ns.range(of: "\\", options: .literal, range: search)
-            if hit.location == NSNotFound { break }
-            let para = ns.paragraphRange(for: hit)
-            let continues = lineContinuesParagraph(ts, at: NSMaxRange(para))
-            for off in MarkdownEscapes.hiddenBackslashes(in: ns.substring(with: para), continues: continues) {
-                let i = para.location + off
-                if ts.attribute(.scriviHeading, at: i, effectiveRange: nil) == nil {
-                    ts.addAttributes(hiddenAttributes, range: NSRange(location: i, length: 1))
-                }
-            }
-            let next = NSMaxRange(para)
-            search = NSRange(location: next, length: max(0, NSMaxRange(span) - next))
-        }
-    }
-
-    /// True when the line starting at `loc` continues the paragraph above it: it exists, is not
-    /// blank, and is scene text — ⚠️ a divider or chapter heading is the END of the scene's file.
-    private static func lineContinuesParagraph(_ ts: NSTextStorage, at loc: Int) -> Bool {
-        let ns = ts.string as NSString
-        guard loc < ns.length else { return false }
-        if ts.attribute(.scriviDivider, at: loc, effectiveRange: nil) != nil
-            || ts.attribute(.scriviHeading, at: loc, effectiveRange: nil) != nil { return false }
-        return !MarkdownEscapes.isBlankLine(ns.substring(with: ns.paragraphRange(for: NSRange(location: loc, length: 0))))
     }
 }
 

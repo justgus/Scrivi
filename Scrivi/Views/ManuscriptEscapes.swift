@@ -117,8 +117,7 @@ enum MarkdownEscapes {
     }
 
     /// The WRITE half: what typed text becomes in storage — every escapable mark gets a
-    /// backslash. ⚠️ Not yet wired to typing: that is AC4, blocked on ruling R3 (how the
-    /// backslash is hidden). `map(escape(t)).presented == t` for every `t`.
+    /// backslash. `map(escape(t)).presented == t` for every `t`.
     static func escape(_ typed: String) -> String {
         var out: [UInt16] = []
         out.reserveCapacity(typed.utf16.count)
@@ -129,42 +128,60 @@ enum MarkdownEscapes {
         return String(utf16CodeUnits: out, count: out.count)
     }
 
-    // MARK: — R3 = (c): the caret never rests inside a hidden escape (ruled 2026-10-03)
+    // MARK: — R3 = (c): the caret never rests inside a HIDDEN RUN (ruled 2026-10-03; generalised EP-046 AC5)
+    //
+    // ⚠️ EP-046 E2-S1: a hidden character is no longer marked in STORAGE (route (a′) keeps storage
+    // plain), so these take an `isHidden` test — `ManuscriptPresenter.hiddenTest(in:revealing:)` in
+    // the app. ✅ A hidden RUN is one or more hidden characters in a row: an escape backslash, or a
+    // heading prefix (`## `) on a line the caret is not on.
 
-    /// Marks a backslash that is HIDDEN by storage attributes (R3 = (c)). ✅ The ONE test for
-    /// "is this backslash hidden?" — the snap below reads only this key, never the styling.
-    /// ⚠️ Set by the hiding styler, which lands with AC4's wiring; until then no character
-    /// carries it and every snap below is a no-op.
-    static let hiddenKey = NSAttributedString.Key("scrivi.hiddenEscape")
-
-    /// True when boundary `s` sits between a hidden backslash and the mark it escapes — a spot
-    /// that LOOKS identical to the boundary before the backslash (measured: x 35.32 vs 35.33).
-    static func isUnreachable(_ s: Int, in storage: NSAttributedString) -> Bool {
-        s > 0 && s < storage.length && storage.attribute(hiddenKey, at: s - 1, effectiveRange: nil) != nil
+    /// True when boundary `s` sits just after a hidden character — a spot that LOOKS identical to
+    /// the boundary before the hidden run (measured: x 35.32 vs 35.33).
+    static func isUnreachable(_ s: Int, length: Int, isHidden: (Int) -> Bool) -> Bool {
+        s > 0 && s < length && isHidden(s - 1)
     }
 
-    /// Where a CARET proposed at `loc` (coming from `previous`) must land instead, or nil to
-    /// leave it. ✅ A forward STEP from just before the backslash (→) continues past the mark;
-    /// ✅ everything else — ←, a click, a jump — lands BEFORE the backslash, the visually
-    /// identical spot. ⚠️ Measured 2026-10-03: a click there hit-tests to the unreachable
-    /// boundary, and snapping it forward put the caret one character right of the click.
-    static func snapCaret(_ loc: Int, from previous: Int, in storage: NSAttributedString) -> Int? {
-        guard isUnreachable(loc, in: storage) else { return nil }
-        return previous == loc - 1 ? loc + 1 : loc - 1
+    /// Where a CARET proposed at `loc` (coming from `previous`) must land instead, or nil to leave it.
+    /// ✅ A forward STEP from just before the run (→) lands after the first VISIBLE character past it;
+    /// ✅ everything else — ←, a click, a jump — lands BEFORE the run, the visually identical spot.
+    /// ⚠️ Measured 2026-10-03: a click there hit-tests to the unreachable boundary, and snapping it
+    /// forward put the caret one character right of the click.
+    static func snapCaret(_ loc: Int, from previous: Int, length: Int, isHidden: (Int) -> Bool) -> Int? {
+        guard isUnreachable(loc, length: length, isHidden: isHidden) else { return nil }
+        var start = loc - 1
+        while start > 0, isHidden(start - 1) { start -= 1 }
+        guard previous == loc - 1 else { return start }
+        var end = loc
+        while end < length, isHidden(end) { end += 1 }
+        return min(end + 1, length)
     }
 
-    /// A SELECTION never splits a hidden backslash from its mark: its start moves before the
-    /// backslash, its end after the mark. nil when neither end needs moving.
-    static func snapSelection(_ r: NSRange, in storage: NSAttributedString) -> NSRange? {
-        var start = r.location, end = r.location + r.length
-        if isUnreachable(start, in: storage) { start -= 1 }
-        if isUnreachable(end, in: storage) { end += 1 }
-        guard start != r.location || end != r.location + r.length else { return nil }
+    /// A SELECTION never ends inside a hidden run: its start moves before the run. Its end moves
+    /// past the run when the selection grows (an escape backslash keeps its mark with it), and
+    /// ⚠️ BEFORE the run when it shrinks — E1 always moved the end forward, so shift-← stalled at a
+    /// hidden escape (SP-161 step 1). `previousEnd` is the end before this change (nil: growing).
+    /// nil when neither end needs moving.
+    static func snapSelection(_ r: NSRange, previousEnd: Int? = nil, in text: NSString,
+                              isHidden: (Int) -> Bool) -> NSRange? {
+        let n = text.length
+        var start = r.location, end = NSMaxRange(r)
+        if isUnreachable(start, length: n, isHidden: isHidden) {
+            while start > 0, isHidden(start - 1) { start -= 1 }
+        }
+        if isUnreachable(end, length: n, isHidden: isHidden) {
+            if let p = previousEnd, end < p {
+                while end > 0, isHidden(end - 1) { end -= 1 }
+            } else {
+                while end < n, isHidden(end) { end += 1 }
+                if end < n, text.character(at: end - 1) == backslash { end += 1 }
+            }
+        }
+        guard start != r.location || end != NSMaxRange(r) else { return nil }
         return NSRange(location: start, length: end - start)
     }
 
     /// UTF-16 offsets in `source` of every backslash HIDDEN when it is presented (an escape or
-    /// a hard line break) — what the R3 = (c) styler marks with `hiddenKey`.
+    /// a hard line break) — what `ManuscriptPresenter` hides.
     static func hiddenBackslashes(in source: String, continues: Bool = false) -> [Int] {
         let p2s = map(source, continues: continues).presentedToSource
         var out: [Int] = []

@@ -200,6 +200,7 @@ DOUBLE-escape `\*` unless copy un-escapes or paste recognises it — an AC4 conc
 and shift-selection across a hidden backslash were **not measured**.
 
 ✅ **R3 RULED 2026-10-03 — (c)** (user: *"YEs R3 should be (c)."*).
+⚠️ **MECHANISM REVISED 2026-10-05 by E2 Q-E2-6 = route (a′)**: the same 0.01 pt + clear attributes, applied to the PRESENTED paragraph by an `NSTextContentStorageDelegate` instead of to storage (lands in EP-046 E2-S1) → [`Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.
 
 ⛔ **Option (b)** (a layout-fragment subclass that skips drawing) was not built: skipping a glyph's DRAWING still
 reserves its WIDTH, which (c) avoids.

@@ -3889,69 +3889,78 @@ struct MarkdownEscapeMapTests {
 
     // MARK: R3 = (c) — the caret never rests inside a hidden escape
 
-    /// `ab\*cd` with the backslash (offset 2) marked hidden, as the (c) styler will mark it.
-    private func hiddenEscape() -> NSAttributedString {
-        let s = NSMutableAttributedString(string: #"ab\*cd"#)
-        s.addAttribute(MarkdownEscapes.hiddenKey, value: true, range: NSRange(location: 2, length: 1))
-        return s
-    }
+    /// `ab\*cd` with the backslash (offset 2) hidden, as the presenter hides it.
+    /// ⚠️ EP-046 E2-S1: hidden-ness is a TEST now (storage carries no hiding attribute).
+    private let text: NSString = #"ab\*cd"#
+    private let hidden: (Int) -> Bool = { $0 == 2 }
 
     @Test("only the boundary between a hidden backslash and its mark is unreachable")
     func unreachable() {
-        let s = hiddenEscape()
-        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, in: s) } == [3])
-        // ⚠️ An UNMARKED escape is never snapped — nothing is hidden until the styler says so.
-        let plain = NSAttributedString(string: #"ab\*cd"#)
-        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, in: plain) }.isEmpty)
+        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, length: 6, isHidden: hidden) } == [3])
+        // ⚠️ Nothing hidden → nothing snapped.
+        #expect((0...6).filter { MarkdownEscapes.isUnreachable($0, length: 6, isHidden: { _ in false }) }.isEmpty)
     }
 
     @Test("caret: → steps past the mark; ←, clicks and jumps land before the backslash")
     func caretSnap() {
-        let s = hiddenEscape()
-        #expect(MarkdownEscapes.snapCaret(3, from: 2, in: s) == 4)   // → from before the backslash
-        #expect(MarkdownEscapes.snapCaret(3, from: 4, in: s) == 2)   // ← from after the mark
-        #expect(MarkdownEscapes.snapCaret(3, from: 0, in: s) == 2)   // click / jump: same visual spot
-        #expect(MarkdownEscapes.snapCaret(3, from: 6, in: s) == 2)
-        #expect(MarkdownEscapes.snapCaret(4, from: 2, in: s) == nil) // a reachable spot is left alone
+        #expect(MarkdownEscapes.snapCaret(3, from: 2, length: 6, isHidden: hidden) == 4)   // → from before the backslash
+        #expect(MarkdownEscapes.snapCaret(3, from: 4, length: 6, isHidden: hidden) == 2)   // ← from after the mark
+        #expect(MarkdownEscapes.snapCaret(3, from: 0, length: 6, isHidden: hidden) == 2)   // click / jump: same visual spot
+        #expect(MarkdownEscapes.snapCaret(3, from: 6, length: 6, isHidden: hidden) == 2)
+        #expect(MarkdownEscapes.snapCaret(4, from: 2, length: 6, isHidden: hidden) == nil) // a reachable spot is left alone
     }
 
     @Test("a selection never splits a hidden backslash from its mark")
     func selectionSnap() {
-        let s = hiddenEscape()
-        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), in: s) == NSRange(location: 0, length: 4))
-        #expect(MarkdownEscapes.snapSelection(NSRange(location: 3, length: 3), in: s) == NSRange(location: 2, length: 4))
-        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: s) == nil)
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), in: text, isHidden: hidden) == NSRange(location: 0, length: 4))
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 3, length: 3), in: text, isHidden: hidden) == NSRange(location: 2, length: 4))
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 4), in: text, isHidden: hidden) == nil)
+    }
+
+    @Test("EP-046 AC5: a hidden RUN is skipped whole; a SHRINKING selection drops it instead of stalling")
+    func hiddenRuns() {
+        // `## H` with the 3-character prefix hidden (a heading line the caret is not on).
+        let run: (Int) -> Bool = { $0 < 3 }
+        #expect(MarkdownEscapes.snapCaret(1, from: 0, length: 4, isHidden: run) == 4)  // → lands after `H`
+        #expect(MarkdownEscapes.snapCaret(3, from: 4, length: 4, isHidden: run) == 0)  // ← lands before the run
+        #expect(MarkdownEscapes.snapCaret(2, from: 9, length: 4, isHidden: run) == 0)  // a click inside it
+        // ⛔ E1 moved a selection's end FORWARD whatever the direction, so shift-← from `ab\*c|d`
+        // landed between `\` and `*` and was pushed straight back (SP-161 step 1).
+        #expect(MarkdownEscapes.snapSelection(NSRange(location: 0, length: 3), previousEnd: 4,
+                                              in: text, isHidden: hidden) == NSRange(location: 0, length: 2))
     }
 }
 
 #if os(macOS)
-/// The REAL `ManuscriptNSTextView` with the REAL `EscapeHidingStyler` as its storage delegate,
-/// in a window so AppKit's key and pasteboard dispatch run as they do in the app.
+/// The REAL `ManuscriptNSTextView` with the REAL `ManuscriptPresenter` installed as the app installs
+/// it, in a window so AppKit's key and pasteboard dispatch run as they do in the app.
 @MainActor fileprivate final class ManuscriptFixture {
     let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
-    let styler = EscapeHidingStyler()
+    let presenter = ManuscriptPresenter()
     let window: NSWindow
     init(_ text: String = "") {
         tv.isRichText = false
         tv.allowsUndo = false
-        tv.font = EscapeHidingStyler.bodyFont
+        tv.font = ManuscriptPresenter.bodyFont
         tv.frame = NSRect(x: 0, y: 0, width: 500, height: 100)
-        tv.textStorage?.delegate = styler
+        tv.textContentStorage?.delegate = presenter
+        tv.textStorage?.delegate = presenter
         window = NSWindow(contentRect: tv.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = tv
         window.makeFirstResponder(tv)
         if !text.isEmpty { tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0), with: text) }
     }
     var text: String { tv.string }
+    /// Hidden as the presenter presents it NOW (under the current selection's reveal).
     func hidden(_ i: Int) -> Bool {
-        tv.textStorage?.attribute(MarkdownEscapes.hiddenKey, at: i, effectiveRange: nil) != nil
+        presenter.isHidden(i, in: tv.textStorage!, revealing: tv.selectedRange())
     }
     func caret(_ i: Int) { tv.setSelectedRange(NSRange(location: i, length: 0)) }
     func type(_ s: String) { tv.insertText(s, replacementRange: tv.selectedRange()) }
 }
 
 /// EP-045 AC4 — the escape layer, driven through the REAL `ManuscriptNSTextView` with the REAL
-/// `EscapeHidingStyler` as its storage delegate. ⚠️ Private pasteboards only — a test run must
+/// `ManuscriptPresenter` (EP-046 E2-S1; it replaced `EscapeHidingStyler`). ⚠️ Private pasteboards only — a test run must
 /// never touch the writer's clipboard.
 @Suite("Escape layer (EP-045 AC4)")
 @MainActor
@@ -3969,7 +3978,7 @@ struct EscapeLayerTests {
         return pb
     }
 
-    @Test("typing escapes a mark and the styler hides its backslash")
+    @Test("typing escapes a mark and the presenter hides its backslash")
     func typingEscapesAndHides() {
         let f = Fixture()
         f.type("a*b")
@@ -4062,7 +4071,7 @@ struct EscapeLayerTests {
 @MainActor
 struct SceneBoundaryTableTests {
 
-    private let body: [NSAttributedString.Key: Any] = [.font: EscapeHidingStyler.bodyFont, .foregroundColor: NSColor.textColor]
+    private let body: [NSAttributedString.Key: Any] = [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]
 
     /// heading | "Alpha one." | divider | "Beta two." | divider | heading | "Gamma three."
     private func manuscript() -> NSAttributedString {
@@ -4405,6 +4414,170 @@ struct ReturnAndBackspaceTests {
         // A second ⌫ removes the break and its hidden marker together (AC4 pair-widening).
         f.tv.deleteBackward(nil)
         #expect(f.text == "endnext")
+    }
+}
+/// Counts `textDidChange` through the delegate (a notification observer's closure is `@Sendable`).
+@MainActor private final class DidChangeCounter: NSObject, NSTextViewDelegate {
+    var count = 0
+    func textDidChange(_ notification: Notification) { count += 1 }
+}
+
+/// EP-046 E2-S1 (SP-161, T-0588) — the PRESENTER (route (a′)): headings render, storage stays plain,
+/// the caret's line reveals its prefix, and the caret never rests on an invisible stop.
+/// ⚠️ Where it matters, these read what TextKit LAID OUT, not only what the presenter answers —
+/// a presenter that is never asked again after an edit would pass a query-only test.
+@Suite("Manuscript presenter (EP-046 E2-S1)")
+@MainActor
+struct ManuscriptPresenterTests {
+
+    private let doc = "Body line.\n\n## Heading two\n\nMore body."   // `##` at 12; its line is 12..<27
+    private let headingLine = NSRange(location: 12, length: 15)
+
+    private func presented(_ f: ManuscriptFixture, _ r: NSRange) throws -> NSAttributedString {
+        let cs = try #require(f.tv.textContentStorage)
+        return try #require(f.presenter.textContentStorage(cs, textParagraphWith: r)).attributedString
+    }
+
+    /// The laid-out width of the first line fragment of the paragraph holding `loc`.
+    private func laidOutWidth(_ f: ManuscriptFixture, at loc: Int) throws -> CGFloat {
+        let tlm = try #require(f.tv.textLayoutManager), cs = try #require(f.tv.textContentStorage)
+        tlm.ensureLayout(for: tlm.documentRange)
+        let at = try #require(cs.location(cs.documentRange.location, offsetBy: loc))
+        let frag = try #require(tlm.textLayoutFragment(for: at))
+        return try #require(frag.textLineFragments.first).typographicBounds.width
+    }
+
+    private func caretPoint(_ f: ManuscriptFixture) -> NSPoint {
+        f.tv.textLayoutManager?.ensureLayout(for: f.tv.textLayoutManager!.documentRange)
+        return f.tv.firstRect(forCharacterRange: f.tv.selectedRange(), actualRange: nil).origin
+    }
+
+    @Test("the analyzer finds the ATX headings the parser reports, and only those (AC2, AC7)")
+    func analyzer() {
+        func h(_ s: String) -> [MarkdownBlocks.Heading] { MarkdownBlocks.analyze(s).headings }
+        // The dumas fixture's form, trailing space included.
+        #expect(h("## The claim stated plainly ") ==
+                [.init(line: NSRange(location: 0, length: 28), prefix: NSRange(location: 0, length: 3), level: 2)])
+        for n in 1...6 { #expect(h(String(repeating: "#", count: n) + " T").first?.level == n) }
+        #expect(h("####### seven").isEmpty)
+        #expect(h("\\#\\# typed").isEmpty, "typed `#` is escaped and never a heading")
+        #expect(h("    ## indented").isEmpty, "AC7: an indented block is prose")
+        #expect(h("> ## quoted").isEmpty, "AC7: a quote is prose")
+        #expect(h("- ## listed").isEmpty)
+        #expect(h("Title\n=====").isEmpty, "setext: drawn as stored (design §13)")
+        #expect(h("para line\n## Interrupts") ==
+                [.init(line: NSRange(location: 10, length: 13), prefix: NSRange(location: 10, length: 3), level: 2)])
+    }
+
+    @Test("AC1 + AC2: the heading is PRESENTED (Q1 font, hidden prefix); storage keeps no rendering attribute")
+    func headingPresented() throws {
+        let f = ManuscriptFixture(doc)
+        f.caret(0)
+        let p = try presented(f, headingLine)
+        #expect(p.length == headingLine.length, "Apple's contract: the SAME length")
+        #expect((p.attribute(.font, at: 3, effectiveRange: nil) as? NSFont)?.pointSize == 18, "Q1: H2 = 18 pt")
+        #expect(((p.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize ?? 99) < 0.1, "prefix hidden")
+        #expect(f.hidden(12) && f.hidden(14) && !f.hidden(15))
+        // ✅ AC1: nothing the presenter shows is in STORAGE.
+        let ts = f.tv.textStorage!
+        var sizes = Set<CGFloat>()
+        ts.enumerateAttribute(.font, in: NSRange(location: 0, length: ts.length)) { v, _, _ in
+            if let font = v as? NSFont { sizes.insert(font.pointSize) }
+        }
+        #expect(sizes.isSubset(of: [NSFont.systemFontSize]), "storage fonts: \(sizes)")
+        // ✅ And TextKit LAID IT OUT that way: the line is as wide as the heading text alone.
+        let target = ("Heading two" as NSString).size(withAttributes: [.font: ManuscriptPresenter.headingFont(level: 2)]).width
+        #expect(abs(try laidOutWidth(f, at: 12) - target) < 0.5)
+    }
+
+    @Test("AC4 (line half): the caret's line shows its prefix — attributes only, no textDidChange")
+    func lineReveal() throws {
+        let f = ManuscriptFixture(doc)
+        let counter = DidChangeCounter()
+        f.tv.delegate = counter
+        f.caret(0)
+        let hiddenWidth = try laidOutWidth(f, at: 12)
+        f.caret(17)                                   // inside "Heading"
+        #expect(!f.hidden(12), "revealed on the caret's line")
+        let p = try presented(f, headingLine)
+        #expect(p.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor == .tertiaryLabelColor, "Q2: dimmed")
+        #expect((p.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize == NSFont.systemFontSize, "Q2: body font")
+        #expect(try laidOutWidth(f, at: 12) > hiddenWidth + 10, "TextKit re-laid the revealed line")
+        f.caret(0)
+        #expect(f.hidden(12))
+        #expect(abs(try laidOutWidth(f, at: 12) - hiddenWidth) < 0.01, "hidden again when the caret leaves")
+        #expect(counter.count == 0, "a reveal is not an edit — no history event")
+        #expect(f.text == doc)
+    }
+
+    @Test("AC5: arrowing through escapes and a heading never rests on an invisible stop; shift-selection never stalls")
+    func noInvisibleStops() {
+        let text = "a \\*b\n\n## Head \\#x\n\nend"
+        let f = ManuscriptFixture(text)
+        let n = (text as NSString).length
+        f.caret(0)
+        var stalls: [Int] = []
+        var last = caretPoint(f)
+        while f.tv.selectedRange().location < n {
+            let before = f.tv.selectedRange().location
+            f.tv.moveRight(nil)
+            let p = caretPoint(f)
+            if abs(p.x - last.x) < 0.05 && abs(p.y - last.y) < 0.05 { stalls.append(f.tv.selectedRange().location) }
+            if f.tv.selectedRange().location == before { break }
+            last = p
+        }
+        #expect(stalls.isEmpty, "→ rested where the caret did not visibly move: \(stalls)")
+        // ← back to the start
+        stalls = []
+        last = caretPoint(f)
+        while f.tv.selectedRange().location > 0 {
+            let before = f.tv.selectedRange().location
+            f.tv.moveLeft(nil)
+            let p = caretPoint(f)
+            if abs(p.x - last.x) < 0.05 && abs(p.y - last.y) < 0.05 { stalls.append(f.tv.selectedRange().location) }
+            if f.tv.selectedRange().location == before { break }
+            last = p
+        }
+        #expect(stalls.isEmpty, "← rested where the caret did not visibly move: \(stalls)")
+        // Shift-selection, both ways: every step moves the moving end (E1's snap stalled shrinking).
+        f.caret(0)
+        var ends = [0]
+        for _ in 0..<n { f.tv.moveRightAndModifySelection(nil); ends.append(NSMaxRange(f.tv.selectedRange())) }
+        #expect(ends.last == n && zip(ends, ends.dropFirst()).allSatisfy { $0 < $1 || $0 == n }, "shift-→ ends: \(ends)")
+        ends = [n]
+        for _ in 0..<n { f.tv.moveLeftAndModifySelection(nil); ends.append(NSMaxRange(f.tv.selectedRange())) }
+        #expect(ends.last == 0 && zip(ends, ends.dropFirst()).allSatisfy { $0 > $1 || $0 == 0 }, "shift-← ends: \(ends)")
+    }
+
+    @Test("a block ends at the divider CHARACTER: a scene with no final newline does not swallow the next heading")
+    func blockEndsAtDivider() throws {
+        let f = ManuscriptFixture()
+        let s = NSMutableAttributedString(string: "testr")       // the four such dumas files (step 1)
+        s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak]))
+        s.append(NSAttributedString(string: "\n## Next scene\n\nbody"))
+        f.tv.textStorage!.setAttributedString(s)
+        f.caret(s.length)
+        let ts = f.tv.textStorage!
+        #expect(f.presenter.block(in: ts, at: 0) == NSRange(location: 0, length: 5), "the scene text before the divider")
+        #expect(f.presenter.block(in: ts, at: 5) == nil, "the divider is not scene text")
+        #expect(f.hidden(7), "`## Next scene` is a heading of its own block")
+        // A chapter heading (view-inserted, not scene text) is never presented.
+        let g = ManuscriptFixture()
+        g.tv.textStorage!.setAttributedString(NSAttributedString(string: "## Chapter\n", attributes: [.scriviHeading: true]))
+        #expect(g.presenter.block(in: g.tv.textStorage!, at: 0) == nil)
+    }
+
+    @Test("an edit re-presents its WHOLE block: a ⌫ merge hides the hard break on the line ABOVE, as laid out")
+    func editRepresentsBlock() throws {
+        let f = ManuscriptFixture("end\\\n\nnext")
+        f.caret(6)
+        let visible = try laidOutWidth(f, at: 0)
+        f.tv.deleteBackward(nil)
+        #expect(f.text == "end\\\nnext")
+        #expect(try laidOutWidth(f, at: 0) < visible - 1, "the backslash stopped taking width")
+        // ⚠️ Compared with a LAID-OUT `end` (the fixture's text carries the view's default font).
+        let plain = ManuscriptFixture("end")
+        #expect(abs(try laidOutWidth(f, at: 0) - laidOutWidth(plain, at: 0)) < 0.05)
     }
 }
 #endif

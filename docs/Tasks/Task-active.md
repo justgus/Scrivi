@@ -2,6 +2,37 @@
 
 ---
 
+
+
+## 🟡 T-0584 — `[Apple]` Option-Return stores ONE `\n` — rule what it should store
+
+**Created:** 2026-10-04 (user: *"file the two tasks and create a planning sprint for EP-046"*)
+**Epic:** ✅ **[EP-045] follow-up → [EP-046]** · **Sprint:** ✅ RULED in **[SP-159]** (CLOSED) → [`../Sprints/Closed/Sprint-SP-159.md`](../Sprints/Closed/Sprint-SP-159.md); implementation → EP-046 **E2-S3** (not yet created).
+**Origin:** [SP-156] AC-measure (→ [`../Sprints/Closed/Sprint-SP-156.md`](../Sprints/Closed/Sprint-SP-156.md)): Option-Return sends
+`insertNewlineIgnoringFieldEditor:` and stores a single `\n` (the user confirmed `0x0A` on 2026-10-04).
+⚠️ **Why it matters under EP-046:** a single `\n` is a SOFT break — it displays as a line break today (E1 shows
+storage) but RENDERS AS A SPACE once inline rendering lands, so the writer's line break would silently vanish.
+✅ **Options:** (a) treat as Return (`\n\n`, a paragraph); (b) a deliberate hard break (`\` + `\n`, the backslash hidden
+— the same form AC6 gives a typed trailing backslash); (c) leave it. ⚠️ Recommendation at filing: (b) — a modified
+Return usually means "line break within the paragraph".
+✅ **RULED 2026-10-05 (Q-E2-4): (b) a hard break, `\` + `\n`.** Implementation → EP-046 **E2-S3** (AC9).
+
+---
+
+## 🟡 T-0585 — `[Apple]` Find/Replace across hidden escape backslashes
+
+**Created:** 2026-10-04 (same request) · **Epic:** **[EP-046]** · **Sprint:** ✅ RULED in **[SP-159]** (CLOSED) → [`../Sprints/Closed/Sprint-SP-159.md`](../Sprints/Closed/Sprint-SP-159.md); implementation → EP-046 **E2-S4** (not yet created).
+**Origin:** [SP-155] (EP-045 AC4), recorded there as a follow-up and carried unfiled until now.
+⛔ **The defect:** the writer sees `*`; storage holds `\*`. AppKit's Find matches STORAGE, so searching for `*` does
+not find it, and a Replace could split an escape pair (leaving an orphaned `\` or a live mark).
+⚠️ **Why under EP-046:** once markers hide too (Model B), the gap between what the writer sees and what is stored
+widens — `**bold**` shows as **bold** — so Find must match the PRESENTED text, and Replace must write through the
+escape layer. ✅ The AC3 SOURCE↔PRESENTED map is the existing seam for this.
+✅ **RULED 2026-10-05 (Q-E2-5): match the PRESENTED text; replacements written through the escape layer.** Implementation →
+EP-046 **E2-S4** (AC10); first task: whether `NSTextFinder` can be pointed at presented text (design §7).
+
+---
+
 ## ✅ [SP-147] — T-0565 · T-0566 · T-0567 — ✅ **VERIFIED 2026-09-30, ARCHIVED**
 
 ✅ **All three USER-VERIFIED by live pass on the rig and ARCHIVED** →

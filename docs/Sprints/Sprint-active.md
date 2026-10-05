@@ -1,9 +1,10 @@
 # Active Sprints
 
-## No Sprint is active (SP-160 closed 2026-10-04)
+## ⛔ No Sprint is active — SP-161 ✅ CLOSED 2026-10-05
 
 ✅ **[SP-160] CLOSED 2026-10-04 (user-approved)** `[Linux]` [EP-049] S1 → [`Closed/Sprint-SP-160.md`](Closed/Sprint-SP-160.md) — ✅ Linux writes Apple's manuscript format ([T-0586]); ✅ [I-0276] launch-window double-click.
-🔵 **[SP-159] PLANNING (not active)** `[Cross]` [EP-046] S1 → [`Sprint-SP-159.md`](Sprint-SP-159.md) — the manuscript DISPLAY design for both platforms (inline rendering + escape hiding; reviews R3 = (c)); scopes EP-048. No production code. ⚠️ Activation needs user approval and also activates EP-046.
+✅ **[SP-159] CLOSED 2026-10-05 (user-approved)** `[Cross]` [EP-046] S1 → [`Closed/Sprint-SP-159.md`](Closed/Sprint-SP-159.md) — ✅ the E2 display design approved, 8 rulings taken, EP-046 ACs written, EP-048 scoped; [T-0587] verified.
+✅ **[SP-161] CLOSED 2026-10-05 (user-approved)** `[Apple]` [EP-046] **E2-S1** → [`Closed/Sprint-SP-161.md`](Closed/Sprint-SP-161.md) — ✅ the presenter (route (a′)) + headings; [T-0588] verified by live pass; [I-0277] filed.
 ✅ **[SP-158] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S6 → [`Closed/Sprint-SP-158.md`](Closed/Sprint-SP-158.md) — ✅ AC11 ([T-0583] verified): no whole-manuscript scan per keystroke.
 ✅ **[SP-157] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S5 → [`Closed/Sprint-SP-157.md`](Closed/Sprint-SP-157.md) — ✅ AC7 + AC10 ([T-0581], [T-0582] verified); filed [T-0583], [I-0275]. ✅ AC7 + AC10 met (AC11 added afterwards → [SP-158]).
 ✅ **[SP-156] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S4 → [`Closed/Sprint-SP-156.md`](Closed/Sprint-SP-156.md) — ✅ AC5 + AC6 ([T-0580] verified); Q1 = (a), Q2, Q3 ruled; ⚪ [I-0274] closed (not a defect).

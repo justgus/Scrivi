@@ -25,8 +25,6 @@ status changes on its own layer.
 
 | Task | Title | Epic | Status |
 | ---- | ----- | ---- | ------ |
-| **T-0584** | `[Apple]` **Option-Return stores ONE `\n` — rule what it should store** (soft break · deliberate hard break · paragraph) | **EP-046** | 🔵 **Backlog** — ruling taken in 🔵 **[SP-159]** (EP-046 planning) |
-| **T-0585** | `[Apple]` **Find/Replace across hidden escape backslashes** — searching for `*` does not find a stored `\*` | **EP-046** | 🔵 **Backlog** — design question for 🔵 **[SP-159]** |
 | T-0118 | Scroll bar fidelity — per-scene character-ratio thumb position and size | EP-011 | 🔵 Backlog |
 | T-0197 | Enable Core Spotlight donation on iOS/iPadOS (+ iOS deep-link/bookmark consumer); visionOS when backend links | EP-017 (deferred from T-0190) | 🔵 Backlog |
 | T-0249 | `[Linux]` Manuscript navigation gestures — Page Forward/Backward + jump to absolute manuscript start/end | EP-022 (unscheduled) | 🔵 Backlog |
@@ -64,32 +62,6 @@ status changes on its own layer.
 ---
 
 ## Detail
-
-### T-0584 — `[Apple]` Option-Return stores ONE `\n` — rule what it should store
-
-**Created:** 2026-10-04 (user: *"file the two tasks and create a planning sprint for EP-046"*)
-**Epic:** ✅ **[EP-045] follow-up → [EP-046]** · **Sprint:** the ruling is owed in 🔵 **[SP-159]** → [`../Sprints/Sprint-SP-159.md`](../Sprints/Sprint-SP-159.md); implementation in a later EP-046 Sprint.
-**Origin:** [SP-156] AC-measure (→ [`../Sprints/Closed/Sprint-SP-156.md`](../Sprints/Closed/Sprint-SP-156.md)): Option-Return sends
-`insertNewlineIgnoringFieldEditor:` and stores a single `\n` (the user confirmed `0x0A` on 2026-10-04).
-⚠️ **Why it matters under EP-046:** a single `\n` is a SOFT break — it displays as a line break today (E1 shows
-storage) but RENDERS AS A SPACE once inline rendering lands, so the writer's line break would silently vanish.
-✅ **Options:** (a) treat as Return (`\n\n`, a paragraph); (b) a deliberate hard break (`\` + `\n`, the backslash hidden
-— the same form AC6 gives a typed trailing backslash); (c) leave it. ⚠️ Recommendation at filing: (b) — a modified
-Return usually means "line break within the paragraph".
-
----
-
-### T-0585 — `[Apple]` Find/Replace across hidden escape backslashes
-
-**Created:** 2026-10-04 (same request) · **Epic:** **[EP-046]** · **Sprint:** design question in 🔵 **[SP-159]**.
-**Origin:** [SP-155] (EP-045 AC4), recorded there as a follow-up and carried unfiled until now.
-⛔ **The defect:** the writer sees `*`; storage holds `\*`. AppKit's Find matches STORAGE, so searching for `*` does
-not find it, and a Replace could split an escape pair (leaving an orphaned `\` or a live mark).
-⚠️ **Why under EP-046:** once markers hide too (Model B), the gap between what the writer sees and what is stored
-widens — `**bold**` shows as **bold** — so Find must match the PRESENTED text, and Replace must write through the
-escape layer. ✅ The AC3 SOURCE↔PRESENTED map is the existing seam for this.
-
----
 
 ### T-0459 — ⚠️ `[Cross]` Per-citation reference markers belong on the EDGE, not the source
 

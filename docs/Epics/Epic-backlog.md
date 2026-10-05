@@ -10,37 +10,6 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ---
 
-## EP-046: `[Apple]` ⚠️ **The Manuscript Renderer — Inline Rendering** (WYSIWYG)
-
-**Status:** 🔵 **Draft** — created 2026-09-29. ✅ **Unblocked: [EP-045] CLOSED 2026-10-04** → [`Closed/Epic-EP-045.md`](Closed/Epic-EP-045.md).
-**Sprint:** 🔵 **[SP-159]** (planning — design, spikes, rulings, ACs) → [`../Sprints/Sprint-SP-159.md`](../Sprints/Sprint-SP-159.md). ⚠️ Activating it activates this Epic.
-**Tasks:** [T-0584] Option-Return (ruling) · [T-0585] Find/Replace across hidden characters (design) → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
-**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §4.3, §4A.
-
-**Goal:** ⚠️ **What the user actually asked for — *"my inclination is to wysiwyg."*** ✅ **Bold, italic
-and headings RENDER; ⚠️ markers hide unless the caret is inside them (Model B).**
-✅ **Plus the formatting COMMANDS — ⛔ which under the escape ruling are the feature's ENTIRE input
-surface, ⚠️ not a toolbar nicety.**
-
-⛔ **THIS IS THE EXPENSIVE ONE AND THE STUDY MEASURED WHY.** ✅ **[Q7 SPIKE, 2026-09-28]: rendering
-attributes CANNOT hide a marker** — ⚠️ **`.font(0.01)` and `.kern(-100)` as RENDERING attributes left
-layout at `184.83 pt`, identical to baseline; ✅ the SAME font in STORAGE collapsed it to `152.71 pt`.**
-⛔ **So Model B needs STORAGE attributes (⚠️ which `ManuscriptTextView.swift:366-369` STRIPS on every
-undo) or an `NSTextLayoutFragment` subclass. ✅ Measured, not feared.**
-
-⚠️ **Whole-LINE markers (`#`, `##`, bullets) are much easier to hide than INLINE ones (`**`)** —
-✅ **take them in that order.**
-
-✅ **CARRIED FROM [EP-045] AC7 ([SP-157], Q-AC7 = (a), 2026-10-04) — an acceptance criterion of THIS Epic:**
-⚠️ **unexposed block intents (`codeBlock`, `blockQuote`, `table`) are DRAWN as ordinary prose** (study §4D.4(a)).
-✅ E1 has no renderer, so E1 met AC7 only for what it interprets — the escape map reads indented text as prose
-(2,000/2,000 against the prose oracle). ⛔ **The first renderer to read block intents must demote these three**, or
-an indented paragraph turns into monospace with visible backslashes.
-
-⛔ **OUT:** ⚠️ **the scene-SPLIT command** (✅ needs a core endpoint — see [EP-045]).
-
----
-
 ## EP-047: `[Apple]` ⚠️ **Manuscript Typography & Preferences**
 
 **Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Independent of [EP-046]; ⚠️ needs [EP-045]'s seam.**
@@ -73,7 +42,7 @@ the indent vanishes on undo, or on the next rebuild, and reads as a rendering bu
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-046]** ([EP-045] closed 2026-10-04). ⚠️ NOT SCOPED.
+**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-046]** ([EP-045] closed 2026-10-04). ✅ **SCOPED 2026-10-05 ([SP-159]) — ACs L1–L8 below.**
 ⚠️ **2026-10-04:** the escape layer's WRITE half moved OUT to **[EP-049]** (now). ✅ This Epic keeps the DISPLAY half, whose design for BOTH platforms is ruled in **[SP-159]** (widened).
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
 
@@ -92,6 +61,26 @@ warns about.**
 ⚠️ **ALSO UNKNOWN: ⛔ Linux has no Markdown parser chosen.** ✅ **Apple's `AttributedString(markdown:)`
 won the Q7(b) spike on CORRECTNESS** — ⚠️ **Linux gets no such gift and must pick one, ⛔ or re-earn the
 `2 * 3 * 4` class of defect the spike caught.**
+
+✅ **SCOPED 2026-10-05 ([SP-159], Q-E2-8 ruled) — design → [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4, §9.**
+⚠️ The two "unknowns" above are now MEASURED (W3, Qt 6.4.2): ⛔ `QTextDocument::toMarkdown()` cannot be the save path
+(0/1,185 dumas files identical, 1,179 re-wrapped, **escapes written unescaped**). ✅ `QSyntaxHighlighter` on today's
+`QPlainTextEdit` is the same shape as Apple's route (a′): presentation-only, survives undo, hidden `**` residue 0.00 pt,
+heading line 32 vs 20. ✅ Parser ruled: **md4c inside ScriviCore** (L-b; `libmd4c-dev` 0.4.8 in Ubuntu 24.04).
+
+| AC | Criterion |
+| -- | --------- |
+| **L1** | **A source-mapped Markdown analyzer in ScriviCore (md4c)**: per block → kind, markers, bold, italic, prefixes, spans; ⚠️ first measurement: how md4c reports escaped characters |
+| **L2** | **Agreement test:** the core analyzer and Apple's `AttributedString` parser agree over the AC3 corpus + the S5 corpus (interop test) |
+| **L3** | **The Linux presenter:** a `QSyntaxHighlighter` on `ManuscriptEditor`; the document's stored text and formats untouched; save bytes unchanged |
+| **L4** | **Escape backslashes hidden** (Linux shows them today) with E1's rule; hard-break backslash per E1 AC6 |
+| **L5** | **Hidden-run caret snap** (W3 measured the same invisible stops as Apple) |
+| **L6** | **Headings + bold/italic render; re-entry span/line** (Q-E2-1) via `rehighlightBlock`; AC7 prose demotion |
+| **L7** | **Commands** as EP-046 AC6 (Ctrl in place of ⌘) and Option/Alt-Return = hard break (Q-E2-4) |
+| **L8** | **Find/Replace on presented text** (Q-E2-5) |
+
+⚠️ Where Qt cannot match Apple's mechanism, match the RESULT and record the difference (T-0576 precedent).
+⚠️ Not measured yet: `QPlainTextDocumentLayout` hanging indent for lists; md4c per-block cost on 1.85 MB.
 
 ---
 
