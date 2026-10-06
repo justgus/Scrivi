@@ -4288,14 +4288,15 @@ struct ReturnAndBackspaceTests {
         #expect(sel.text == "ab\n\n", "Return replaces a selection")
     }
 
-    @Test("AC5a: keypad Enter and Shift-Return send the same action; Option-Return is unchanged")
+    @Test("AC5a: keypad Enter and Shift-Return send the same action; Option-Return stores a hard break (T-0584)")
     func returnFamily() {
         let k = Fixture("x"); k.caret(1); press(k, keyCode: 76, [.numericPad])
         #expect(k.text == "x\n\n")
         let s = Fixture("x"); s.caret(1); press(s, [.shift])
         #expect(s.text == "x\n\n", "measured: Shift-Return sends insertNewline: like Return")
         let o = Fixture("x"); o.caret(1); press(o, [.option])
-        #expect(o.text == "x\n", "Option-Return (insertNewlineIgnoringFieldEditor:) is NOT changed — no ruling")
+        // ✅ [T-0584] Q-E2-4 = (b), ruled 2026-10-05 — this expectation pinned the old, unruled behaviour.
+        #expect(o.text == "x\\\n", "Option-Return (insertNewlineIgnoringFieldEditor:) stores `\\` + `\\n`")
     }
 
     @Test("AC6a: trailing spaces are reduced to AT MOST ONE (design: x␣␣␣ + Return → x␣⏎⏎)")
@@ -4788,6 +4789,275 @@ struct InlineEmphasisTests {
         h.caret(6)
         h.tv.deleteForward(nil)
         #expect(h.text == "**bold**x", "⌦ deletes the character after the marker")
+    }
+}
+/// EP-046 E2-S3 (SP-163, T-0592 + T-0584 + T-0591) — the Format commands (the ONLY way formatting enters a manuscript),
+/// lists, the pending pair (Q1) and balancing across scene boundaries. Driven through `applyFormat`, the method the
+/// Format menu calls, and AppKit's own key dispatch for Return; stored bytes asserted exactly.
+@Suite("Format commands (EP-046 E2-S3)")
+@MainActor
+struct FormatCommandTests {
+
+    private func fixture(_ text: String) -> ManuscriptFixture {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(NSAttributedString(string: text, attributes: [
+            .font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+        return f
+    }
+
+    private func key(_ f: ManuscriptFixture, code: UInt16, chars: String) {
+        let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                 windowNumber: f.window.windowNumber, context: nil, characters: chars,
+                                 charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code)!
+        f.tv.keyDown(with: e)
+    }
+
+    @Test("⌘B on a selection: ONE edit, whitespace at the edges left out; again toggles it off")
+    func boldToggle() {
+        let f = fixture("Some words to make bold here.")
+        let counter = DidChangeCounter()
+        f.tv.delegate = counter
+        f.tv.setSelectedRange(NSRange(location: 4, length: 15))           // " words to make " — with its spaces
+        f.tv.applyFormat(.bold)
+        #expect(f.text == "Some **words to make** bold here.")
+        #expect(counter.count == 1, "one command, one history event")
+        // The formatted text stays selected; the selection snap takes the opening `**` with it (E2-S2: a selection's
+        // start never sits just after a marker).
+        #expect(f.tv.selectedRange() == NSRange(location: 5, length: 15), "the formatted text stays selected")
+        f.tv.applyFormat(.bold)
+        #expect(f.text == "Some words to make bold here.", "the same command again takes it off")
+    }
+
+    @Test("⌘I writes `*` and nests inside bold; un-bolding the middle of a span splits it")
+    func italicAndSplit() {
+        let f = fixture("**alpha beta gamma**")
+        f.tv.setSelectedRange(NSRange(location: 8, length: 4))            // "beta"
+        f.tv.applyFormat(.italic)
+        #expect(f.text == "**alpha *beta* gamma**")
+        let g = fixture("**alpha beta gamma**")
+        g.tv.setSelectedRange(NSRange(location: 8, length: 4))
+        g.tv.applyFormat(.bold)
+        #expect(g.text == "**alpha** beta **gamma**")
+    }
+
+    @Test("Q1: ⌘B with the caret IN a word formats the word; the caret stays in place")
+    func caretInWord() {
+        let f = fixture("Some words here")
+        f.caret(7)                                                       // "wo|rds"
+        f.tv.applyFormat(.bold)
+        #expect(f.text == "Some **words** here")
+        #expect(f.tv.selectedRange() == NSRange(location: 9, length: 0))
+    }
+
+    @Test("Q1: BETWEEN words — a pending pair; typing fills it, leaving it or ⌘B again removes it, nothing recorded")
+    func pendingPair() {
+        let f = fixture("a  b")
+        let counter = DidChangeCounter()
+        f.tv.delegate = counter
+        f.caret(2)
+        f.tv.applyFormat(.bold)
+        #expect(f.text == "a **** b", "the hints, smashed together")
+        #expect(f.tv.selectedRange().location == 4, "the caret between them")
+        #expect(!f.hidden(2) && !f.hidden(5), "shown as hints")
+        #expect(counter.count == 0, "nothing recorded yet")
+        f.type("x")
+        #expect(f.text == "a **x** b", "typing makes it a real span")
+        #expect(counter.count == 1)
+        // Abandoned: the caret leaves an EMPTY pair → it goes, and nothing was recorded.
+        let g = fixture("a  b")
+        let c2 = DidChangeCounter()
+        g.tv.delegate = c2
+        g.caret(2); g.tv.applyFormat(.italic)
+        #expect(g.text == "a ** b")
+        g.caret(0)
+        #expect(g.text == "a  b")
+        #expect(c2.count == 0, "an abandoned pair leaves no history")
+        // ⌘B again on the pending pair takes it away.
+        let h = fixture("a  b")
+        h.caret(2); h.tv.applyFormat(.bold); h.tv.applyFormat(.bold)
+        #expect(h.text == "a  b")
+        // Whitespace typed into it goes BEFORE it; the pair stays pending. (⚠️ Between TWO spaces: a caret just before
+        // a letter is IN that word, per Q1.)
+        let k = fixture("a  b")
+        k.caret(2); k.tv.applyFormat(.bold); k.type(" ")
+        #expect(k.text == "a  **** b")
+        #expect(k.tv.selectedRange().location == 5)
+    }
+
+    @Test("headings and body: set, replace (Q5), toggle back; the caret keeps its text")
+    func headings() {
+        let f = fixture("Title line\n\nbody")
+        f.caret(3)
+        f.tv.applyFormat(.heading(2))
+        #expect(f.text == "## Title line\n\nbody")
+        f.tv.applyFormat(.heading(1))
+        #expect(f.text == "# Title line\n\nbody", "a heading command replaces the level")
+        f.tv.applyFormat(.heading(1))
+        #expect(f.text == "Title line\n\nbody", "the same level again is body")
+        f.tv.applyFormat(.bulletList)
+        f.tv.applyFormat(.heading(3))
+        #expect(f.text == "### Title line\n\nbody", "Q5: a heading replaces a list prefix")
+    }
+
+    @Test("lists: per paragraph, numbered SEQUENTIALLY (Q4); Return continues and renumbers; an empty item ends it")
+    func lists() {
+        let f = fixture("alpha\n\nbeta")
+        f.tv.setSelectedRange(NSRange(location: 0, length: 11))
+        f.tv.applyFormat(.bulletList)
+        #expect(f.text == "- alpha\n\n- beta")
+        f.tv.setSelectedRange(NSRange(location: 0, length: (f.text as NSString).length))
+        f.tv.applyFormat(.numberedList)
+        #expect(f.text == "1. alpha\n\n2. beta")
+        f.caret(8)                                                       // end of "alpha"
+        key(f, code: 36, chars: "\r")
+        #expect(f.text == "1. alpha\n\n2. \n\n3. beta", "the next item, and what follows renumbered")
+        #expect(f.tv.selectedRange().location == 13, "the caret after the new prefix")
+        key(f, code: 36, chars: "\r")
+        #expect(f.text == "1. alpha\n\n\n\n2. beta", "Return on an EMPTY item ends it; what follows closes the gap (Q4)")
+        let g = fixture("- item")
+        g.caret(2)
+        g.tv.deleteBackward(nil)
+        #expect(g.text == "item", "⌫ at an item's start makes it body text")
+    }
+
+    @Test("Q7: a list prefix stays VISIBLE, dimmed, with a hanging indent; the caret's home is after it")
+    func listRendering() throws {
+        let f = fixture("- an item long enough to wrap")
+        f.caret(0)
+        #expect(f.tv.selectedRange().location == 2, "the caret goes after `- `")
+        #expect(!f.hidden(0) && !f.hidden(1))
+        let cs = try #require(f.tv.textContentStorage)
+        let p = try #require(f.presenter.textContentStorage(cs, textParagraphWith: NSRange(location: 0, length: 29))).attributedString
+        #expect(p.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor == .tertiaryLabelColor)
+        #expect(((p.attribute(.paragraphStyle, at: 2, effectiveRange: nil) as? NSParagraphStyle)?.headIndent ?? 0) > 5,
+                "wrapped lines align under the text")
+    }
+
+    @Test("live pass, step 12: Return at the START of item 1 inserts an empty item above; the caret stays with its text")
+    func returnAtItemStart() {
+        let f = fixture("1. alpha\n\n2. beta\n\n3. gamma")
+        f.caret(0)
+        #expect(f.tv.selectedRange().location == 3, "the caret's home is after `1. `")
+        key(f, code: 36, chars: "\r")
+        #expect(f.text == "1. \n\n2. alpha\n\n3. beta\n\n4. gamma", "the prefix of item 1 is kept")
+        #expect(f.tv.selectedRange().location == 8, "the caret stays at the start of `alpha`, now item 2")
+    }
+
+    @Test("live pass, step 17: Scrivi's own paste keeps ITS formatting — plain text pasted inside bold stays plain")
+    func ownPasteKeepsFormatting() {
+        let f = fixture("**abcd** xy")
+        let pb = NSPasteboard(name: .init("scrivi.test.\(UUID().uuidString)"))
+        pb.clearContents()
+        f.tv.setSelectedRange(NSRange(location: 9, length: 2))            // "xy" (plain)
+        _ = f.tv.writeSelection(to: pb, type: NSPasteboard.PasteboardType("NSStringPboardType"))
+        f.caret(0); f.caret(4)                                            // between "ab" and "cd" — inside the bold
+        #expect(f.tv.readSelection(from: pb))
+        let toks = MarkdownEmphasis.tokens(of: f.text).filter { ManuscriptPresenter.isWordUnit($0.unit) }
+        #expect(toks.map { $0.style == MarkdownBlocks.bold } == [true, true, false, false, true, true, false, false],
+                "stored \(f.text.debugDescription): ab cd bold, the pasted xy plain")
+    }
+
+    @Test("live pass: a SPACE typed or left at a span's edge goes OUTSIDE it — the span never shows its markers")
+    func edgeWhitespace() {
+        let f = fixture("x **bold** y")
+        f.caret(0); f.caret(4)                                           // the start of "bold" (home after `**`)
+        f.type(" ")
+        #expect(f.text == "x  **bold** y", "a space at the start goes before the opener")
+        let g = fixture("x **bold** y")
+        g.caret(0); g.caret(8)                                           // the end of "bold" (home before `**`)
+        g.type(" ")
+        #expect(g.text == "x **bold**  y", "a space at the end goes after the closer")
+        #expect(g.tv.selectedRange().location == 11, "the caret is after the space, outside the bold")
+        let h = fixture("**a b**")
+        h.caret(0); h.caret(3)                                           // after "a"
+        h.tv.deleteBackward(nil)
+        #expect(h.text == " **b**", "⌫ that leaves whitespace at the edge moves it out")
+        // A LETTER at the edge still joins the span ([T-0589] rules 2–3).
+        let k = fixture("x **bold** y")
+        k.caret(0); k.caret(8); k.type("s")
+        #expect(k.text == "x **bolds** y")
+        k.caret(0); k.caret(4); k.type("A")
+        #expect(k.text == "x **Abolds** y")
+    }
+
+    @Test("I-0279: a held cross-scene fragment goes stale the moment anything else is copied")
+    func structuredClipboardGoesStale() throws {
+        let json = #"{"schema":"scrivi.fragment.v1","pieces":[{"opensWith":"none","text":"**w** a"},{"opensWith":"scene","text":"b"}],"plainText":"w a\n\nb"}"#
+        let frag = try JSONDecoder().decode(FragmentResult.self, from: Data(json.utf8))
+        var clip = StructuredClipboard()
+        clip.hold(frag, changeCount: 41)
+        #expect(clip.fragment(currentChangeCount: 41) != nil, "still the pasteboard's contents: paste it")
+        #expect(clip.fragment(currentChangeCount: 42) == nil, "something else was copied: the normal paste runs")
+    }
+
+    @Test("live pass: the Format menu sits BETWEEN Edit and View")
+    func formatMenuPlacement() throws {
+        let titles = try #require(NSApp.mainMenu).items.map(\.title)
+        let edit = try #require(titles.firstIndex(of: "Edit")), format = try #require(titles.firstIndex(of: "Format"))
+        let view = try #require(titles.firstIndex(of: "View"))
+        #expect(edit < format && format < view, "menus: \(titles)")
+    }
+
+    @Test("AC6 + Q3: random selections over escaped prose — the command always lands, and only on the selection")
+    func commandCorpus() {
+        let base = [
+            #"d\'Artagnan arrives in Paris with a yellow horse and no money\; Edmond Dantes arrives in Marseille\."#,
+            #"Both are provincials\, walking into a system that has \"already decided\" what they are worth\."#,
+            #"He wrote at speed\, for serial publication \(and was paid by the line\)\; the pattern is real\."#,
+        ]
+        var rng = SystemRandomNumberGenerator()
+        var refused = 0, leaked = 0, missed = 0
+        for _ in 0..<300 {
+            let src = base.randomElement(using: &rng)!
+            let f = fixture(src)
+            let n = (src as NSString).length
+            let a = Int.random(in: 0..<(n - 1), using: &rng)
+            let b = min(n, a + Int.random(in: 1...30, using: &rng))
+            f.tv.setSelectedRange(NSRange(location: a, length: b - a))
+            let sel = f.tv.selectedRange()                                // after the snap
+            let before = f.text
+            // A selection with no LETTER or DIGIT in it (a lone space, or punctuation glued to a letter, which Q3 shrinks
+            // away) has nothing that can carry the format — no change is right there.
+            if !(before as NSString).substring(with: sel).utf16.contains(where: ManuscriptPresenter.isWordUnit) { continue }
+            f.tv.applyFormat(.bold)
+            if f.text == before { refused += 1; continue }
+            // Read the result back: every visible LETTER of the selection is bold, nothing outside it is.
+            let a2 = MarkdownBlocks.analyze(f.text)
+            let toks = MarkdownEmphasis.tokens(of: f.text)
+            let selectedText = MarkdownEmphasis.tokens(of: (before as NSString).substring(with: sel))
+            _ = a2
+            let boldLetters = toks.filter { $0.style & MarkdownBlocks.bold != 0 && ManuscriptPresenter.isWordUnit($0.unit) }.count
+            let wanted = selectedText.filter { ManuscriptPresenter.isWordUnit($0.unit) }.count
+            if boldLetters > wanted { leaked += 1 }
+            if boldLetters < wanted { missed += 1 }
+        }
+        #expect(refused == 0 && leaked == 0 && missed == 0, "refused \(refused), leaked \(leaked), missed \(missed) of 300")
+    }
+
+    @Test("T-0591: each scene part of a cross-scene cut stays balanced; a cross-scene paste into bold continues it")
+    func acrossScenes() throws {
+        let f = fixture("")
+        let s = NSMutableAttributedString(string: "x **bold** y", attributes: [.font: ManuscriptPresenter.bodyFont])
+        s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak]))
+        s.append(NSAttributedString(string: "\nnext **two** z", attributes: [.font: ManuscriptPresenter.bodyFont]))
+        f.tv.textStorage!.setAttributedString(s)
+        let ts = f.tv.textStorage!
+        // A selection from inside "bold" (after "bo") to inside "two" (before "o"): scene 1 part 6..<12 ("ld** y"),
+        // scene 2 part 14..<23 ("next **tw").
+        let first = try #require(f.presenter.balancedEdit(in: ts, replacing: NSRange(location: 6, length: 6), with: ""))
+        let second = try #require(f.presenter.balancedEdit(in: ts, replacing: NSRange(location: 14, length: 9), with: ""))
+        ts.replaceCharacters(in: second.range, with: second.replacement)   // back to front, as deleteAcrossScenes does
+        ts.replaceCharacters(in: first.range, with: first.replacement)
+        #expect(f.text == "x **bo**\u{FFFC}\n**o** z", "each scene closes / re-opens its own span")
+        // The copy of a part: it carries its own markers.
+        let g = fixture("x **bold** y")
+        #expect(g.presenter.balancedCopy(in: g.tv.textStorage!, NSRange(location: 6, length: 6)).source == "**ld** y")
+        // Paste into bold: the pasted text KEEPS ITS OWN formatting ([SP-163] live pass) — the first piece closes the
+        // span the caret was in, the last re-opens it for the text after the split (`ld**`); bold stays bold.
+        #expect(ManuscriptPresenter.balancePastePieces(["one", "mid", "last"], caretStyle: MarkdownBlocks.bold)
+                == ["**one", "mid", "last**"])
+        #expect(ManuscriptPresenter.balancePastePieces(["**w** one", "mid", "last"], caretStyle: MarkdownBlocks.bold)
+                == ["w** one", "mid", "last**"], "only the word that was bold stays bold")
     }
 }
 #endif

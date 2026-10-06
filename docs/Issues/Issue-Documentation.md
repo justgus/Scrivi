@@ -164,6 +164,10 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-06 (**I-0279 ✅ Verified** (live re-check) — archived with the SP-163 close.)*
+
+*Last Updated: 2026-10-05 (**I-0279 filed + Resolved - Not Verified** (SP-163) — after one cross-scene copy every ⌘V pasted it; High.)*
+
 *Last Updated: 2026-10-05 (**I-0278 filed** to the backlog — three Project Settings stored in `UserDefaults` do not travel with the project; Medium.)*
 
 *Last Updated: 2026-10-05 (**I-0277 filed** to the backlog — VoiceOver reads the stored manuscript (escapes, hidden `##`); Medium; found in SP-161.)*

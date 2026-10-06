@@ -63,6 +63,10 @@ import os
     // conventional key equivalent is already taken (⌘↑/↓ document, ⌥↑/↓ paragraph,
     // ⌃↑/↓ Mission Control), so the binding is an open question and these exist so the
     // functions can be exercised meanwhile.
+    // ✅ EP-046 E2-S3 ([SP-163]) — the Format menu: performed by the manuscript view on its selection.
+    // nil until the manuscript view is live; the menu items disable when nil.
+    var formatAction: ((ManuscriptFormat) -> Void)?
+
     var sceneStartAction:   (() -> Void)?
     var sceneEndAction:     (() -> Void)?
     var chapterStartAction: (() -> Void)?

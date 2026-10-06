@@ -430,6 +430,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-159** | `[Cross]` **[EP-046] S1 — Planning** — the manuscript DISPLAY design for both platforms (rendering + escape hiding; reviews R3 = (c); scopes EP-048); T-0584, T-0585 | EP-046 (+EP-048) | 2026-10-04 | 2026-10-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-159.md) |
 | **SP-161** | `[Apple]` **[EP-046] E2-S1** — the presenter (route (a′), `NSTextContentStorageDelegate`): block analyzer + AC7 prose demotion, E1 escape hiding moved onto it, hidden-run caret snap, **headings** + line reveal | EP-046 | 2026-10-05 | 2026-10-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-161.md) |
 | **SP-162** | `[Apple]` **[EP-046] E2-S2** — bold and italic + span reveal; inline AC7; presented copy | EP-046 | 2026-10-05 | 2026-10-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-162.md) |
+| **SP-163** | `[Apple]` **[EP-046] E2-S3** — formatting commands (⌘B/⌘I, headings, lists), list rendering, Option-Return (T-0584), cross-scene balancing (T-0591) | EP-046 | 2026-10-05 | — | 🟡 **ACTIVE** → [record](Sprint-SP-163.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -469,6 +470,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-05 (**SP-163 ACTIVATED** (user-approved); T-0592 allocated; T-0591 added.)*
+
+*Last Updated: 2026-10-05 (**SP-163 (EP-046 E2-S3) created in 🔵 Planning**, issued via `next-id.py`.)*
 
 *Last Updated: 2026-10-05 (**SP-162 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-162.md`; T-0590 archived. ⛔ No Sprint is active.)*
 

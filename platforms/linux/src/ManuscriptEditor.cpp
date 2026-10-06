@@ -289,12 +289,12 @@ bool ManuscriptEditor::handleReturn(QKeyEvent* event)
     int selStart = cursor.selectionStart();
     int selEnd = cursor.selectionEnd();
     widenOverPairs(selStart, selEnd);
-    // Apple's Option-Return (`insertNewlineIgnoringFieldEditor:`) stores ONE `\n`. ⚠️ [T-0584] will
-    // rule what it SHOULD store; until then, Apple's behaviour today. (M1: Qt's own Alt-Return inserted
-    // nothing.)
+    // ✅ [T-0584] (Q-E2-4 = (b), ruled 2026-10-05): Apple's Option-Return (`insertNewlineIgnoringFieldEditor:`)
+    // stores a deliberate HARD LINE BREAK — `\` + `\n`, the form EP-045 AC6 writes. Changed on both platforms in
+    // the same work ([SP-163]); the shared corpus pins it. (M1: Qt's own Alt-Return inserted nothing.)
     if (event->modifiers() & Qt::AltModifier) {
         if (sceneDoc_->isEditableRange(selStart, selEnd)) {
-            replaceRange(selStart, selEnd, QStringLiteral("\n"));
+            replaceRange(selStart, selEnd, QStringLiteral("\\\n"));
         }
         return true;
     }

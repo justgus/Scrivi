@@ -409,6 +409,10 @@ task rather than reviving T-0216.
 
 ---
 
+*Last Updated: 2026-10-05 (**T-0591 LEFT this file** — added to SP-163 at its activation → `Task-active.md`.)*
+
+*Last Updated: 2026-10-05 (**T-0591 filed** — balance emphasis across scene boundaries, EP-046, user-requested.)*
+
 *Last Updated: 2026-10-05 (**T-0589 filed** — Markup Hints on/off, EP-047, user-requested.)*
 
 *Last Updated: 2026-08-23, ninth pass (**T-0446–T-0450 MOVED to `Task-active.md`** — SP-119 activated

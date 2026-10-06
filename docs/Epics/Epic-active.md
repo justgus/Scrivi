@@ -10,9 +10,9 @@
 | **[SP-159]** | S1 — Planning: spikes, design, rulings, ACs | ✅ **CLOSED 2026-10-05** (user-approved) → [`../Sprints/Closed/Sprint-SP-159.md`](../Sprints/Closed/Sprint-SP-159.md) |
 | **[SP-161]** | **E2-S1** — presenter (route (a′)) + headings: AC1, AC2, AC4 (line), AC5, AC7, AC8, AC11 | ✅ **CLOSED 2026-10-05** (user-approved) → [`../Sprints/Closed/Sprint-SP-161.md`](../Sprints/Closed/Sprint-SP-161.md) · ✅ [T-0588] verified |
 | **[SP-162]** | **E2-S2** — bold / italic + span reveal: AC3, AC4 (span), AC7 (inline); AC5 + AC8 re-checked | ✅ **CLOSED 2026-10-05** (user-approved) → [`../Sprints/Closed/Sprint-SP-162.md`](../Sprints/Closed/Sprint-SP-162.md) · ✅ [T-0590] verified |
-| E2-S3 | commands + [T-0584]: AC6, AC9 | not yet created |
+| **[SP-163]** | **E2-S3** — commands + list rendering + [T-0584] + [T-0591] (cross-scene balancing): AC6, AC9; AC12 across scenes | 🟡 **ACTIVE 2026-10-05** → [`../Sprints/Sprint-SP-163.md`](../Sprints/Sprint-SP-163.md) · [T-0592] · [T-0584] · [T-0591] |
 | E2-S4 | Find/Replace + [T-0585]: AC10 | not yet created |
-**Tasks:** ✅ [T-0590] (SP-162 E2-S2 — VERIFIED, archived) · ✅ [T-0588] (SP-161 E2-S1 — VERIFIED, archived) · ✅ [T-0587] (SP-159 design — VERIFIED, archived) · [T-0584] Option-Return (ruled; → E2-S3) · [T-0585] Find/Replace across hidden characters (ruled; → E2-S4) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
+**Tasks:** 🟡 [T-0592] (SP-163 E2-S3) · 🟡 [T-0591] (balance emphasis across scene boundaries — SP-163) · ✅ [T-0590] (SP-162 E2-S2 — VERIFIED, archived) · ✅ [T-0588] (SP-161 E2-S1 — VERIFIED, archived) · ✅ [T-0587] (SP-159 design — VERIFIED, archived) · [T-0584] Option-Return (ruled; → E2-S3) · [T-0585] Find/Replace across hidden characters (ruled; → E2-S4) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §4.3, §4A.
 
 **Goal:** ⚠️ **What the user actually asked for — *"my inclination is to wysiwyg."*** ✅ **Bold, italic

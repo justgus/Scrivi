@@ -230,7 +230,7 @@ the last). ⏳ **Re-check owed:** click into the middle of a bold word (no hints
 AC8 re-checked. Bold and italic render; markers are atomic stop runs with a home side; every edit that would unbalance
 emphasis is re-issued as one balanced edit, checked by the parser before it is applied.
 **Returned to Backlog:** none. **Carried:** cut/copy across a SCENE boundary is not balanced (ScriviCore structured
-fragments) — ⚠️ not yet filed; the Markup Hints toggle + keystroke → [T-0589].
+fragments) → ✅ filed 2026-10-05 as [T-0591]; the Markup Hints toggle + keystroke → [T-0589].
 **What went well:** ✅ The balancing model was proven in a harness BEFORE it was wired in (5,999/6,000 realistic edits),
 and each failure class found there became a rule (longer style opens outside; never open on whitespace; punctuation at an
 edge). ✅ The user's caret rulings (Q1, rules 2–3) made one consistent "home side" model that also simplified the snap —

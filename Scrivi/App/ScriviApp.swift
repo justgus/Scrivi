@@ -340,6 +340,41 @@ struct ScriviApp: App {
                 .disabled(focusedSession?.chapterEndAction == nil)
         }
 
+        // ✅ EP-046 E2-S3 ([SP-163], Q-E2-2 / Q2 ruled 2026-10-05) — the Format menu: under the escape ruling these are
+        // the ONLY way formatting enters a manuscript. ✅ Shortcuts checked free 2026-10-05: the copy buffers take
+        // ⌘/⌃/⌥ + 1–9 with exactly ONE modifier; the View toggles take ⌥⌘I/T/B; ⇧⌘0/1 go to the manuscript ends.
+        // ⚠️ The user's own Mac maps ⌥⌘3 to a Dropbox screenshot (noted [SP-163] live pass) — kept, per Q2.
+        // ✅ [SP-163] live pass (user): the menu sits BETWEEN Edit and View — the system Format menu's place, which
+        // SwiftUI exposes as `.textFormatting`. ⛔ A `CommandMenu("Format")` lands after View.
+        CommandGroup(replacing: .textFormatting) {
+            Button("Bold") { focusedSession?.formatAction?(.bold) }
+                .keyboardShortcut("b", modifiers: .command)
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Italic") { focusedSession?.formatAction?(.italic) }
+                .keyboardShortcut("i", modifiers: .command)
+                .disabled(focusedSession?.formatAction == nil)
+            Divider()
+            Button("Heading 1") { focusedSession?.formatAction?(.heading(1)) }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Heading 2") { focusedSession?.formatAction?(.heading(2)) }
+                .keyboardShortcut("2", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Heading 3") { focusedSession?.formatAction?(.heading(3)) }
+                .keyboardShortcut("3", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Body") { focusedSession?.formatAction?(.body) }
+                .keyboardShortcut("0", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Divider()
+            Button("Bulleted List") { focusedSession?.formatAction?(.bulletList) }
+                .keyboardShortcut("l", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Numbered List") { focusedSession?.formatAction?(.numberedList) }
+                .keyboardShortcut("n", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+        }
+
         // View menu — toggles act on the focused project window. Inspector/Timeline are
         // per-window (session); the buffers palette is app-global (one panel that follows
         // the frontmost project), so its toggle binds to AppEnvironment, not the session.

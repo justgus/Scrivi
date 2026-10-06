@@ -1,11 +1,12 @@
 # Active Sprints
 
-## ⛔ No Sprint is active — SP-162 ✅ CLOSED 2026-10-05
+## SP-163 — 🟡 ACTIVE 2026-10-05
 
 ✅ **[SP-160] CLOSED 2026-10-04 (user-approved)** `[Linux]` [EP-049] S1 → [`Closed/Sprint-SP-160.md`](Closed/Sprint-SP-160.md) — ✅ Linux writes Apple's manuscript format ([T-0586]); ✅ [I-0276] launch-window double-click.
 ✅ **[SP-159] CLOSED 2026-10-05 (user-approved)** `[Cross]` [EP-046] S1 → [`Closed/Sprint-SP-159.md`](Closed/Sprint-SP-159.md) — ✅ the E2 display design approved, 8 rulings taken, EP-046 ACs written, EP-048 scoped; [T-0587] verified.
 ✅ **[SP-161] CLOSED 2026-10-05 (user-approved)** `[Apple]` [EP-046] **E2-S1** → [`Closed/Sprint-SP-161.md`](Closed/Sprint-SP-161.md) — ✅ the presenter (route (a′)) + headings; [T-0588] verified by live pass; [I-0277] filed.
 ✅ **[SP-162] CLOSED 2026-10-05 (user-approved)** `[Apple]` [EP-046] **E2-S2** → [`Closed/Sprint-SP-162.md`](Closed/Sprint-SP-162.md) — ✅ bold and italic + span reveal + balanced edits; [T-0590] verified.
+🟡 **[SP-163] ACTIVE 2026-10-05** `[Apple]` [EP-046] **E2-S3** → [`Sprint-SP-163.md`](Sprint-SP-163.md) — the formatting commands + lists + Option-Return + cross-scene balancing ([T-0592], [T-0584], [T-0591]). ✅ Q1–Q7 ruled. ✅ **All ACs met 2026-10-06** — 198/198; live pass complete; T-0592, T-0584, T-0591, I-0279 verified. ⏳ Close awaits user approval.
 ✅ **[SP-158] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S6 → [`Closed/Sprint-SP-158.md`](Closed/Sprint-SP-158.md) — ✅ AC11 ([T-0583] verified): no whole-manuscript scan per keystroke.
 ✅ **[SP-157] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S5 → [`Closed/Sprint-SP-157.md`](Closed/Sprint-SP-157.md) — ✅ AC7 + AC10 ([T-0581], [T-0582] verified); filed [T-0583], [I-0275]. ✅ AC7 + AC10 met (AC11 added afterwards → [SP-158]).
 ✅ **[SP-156] CLOSED 2026-10-04 (user-approved)** `[Apple]` [EP-045] S4 → [`Closed/Sprint-SP-156.md`](Closed/Sprint-SP-156.md) — ✅ AC5 + AC6 ([T-0580] verified); Q1 = (a), Q2, Q3 ruled; ⚪ [I-0274] closed (not a defect).

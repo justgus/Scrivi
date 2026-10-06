@@ -53,6 +53,7 @@ enum MarkdownEmphasis {
         for m in a.markers { for k in m.range.location..<NSMaxRange(m.range) { markerUnits.insert(k) } }
         var prefixUnits = Set<Int>()
         for h in a.headings { for k in h.prefix.location..<NSMaxRange(h.prefix) { prefixUnits.insert(k) } }
+        for li in a.listItems { for k in li.prefix.location..<NSMaxRange(li.prefix) { prefixUnits.insert(k) } }
         var out: [Token] = []
         for k in from..<to where !markerUnits.contains(k) {
             out.append(Token(unit: u[base + k], style: a.style(at: k), isPrefix: prefixUnits.contains(k)))
@@ -91,10 +92,24 @@ enum MarkdownEmphasis {
 
     /// ✅ A formatted span always begins and ends with a VISIBLE character (user rule, 2026-10-05) — and
     /// CommonMark needs it: `** x**` is not emphasis. Whitespace takes the style BOTH neighbours share, so
-    /// span edges land on visible characters. ⚠️ A newline never carries a style: a span is closed before a
-    /// line break and re-opened after (a Return inside bold splits it into two balanced spans).
+    /// span edges land on visible characters. ⚠️ A paragraph break never carries a style: a span is closed
+    /// before it and re-opened after (a Return inside bold splits it into two balanced spans).
     static func normalize(_ tokens: [Token]) -> [Token] {
         var t = tokens
+        // ⚠️ The two passes repeat until nothing changes: moving an edge off punctuation can leave whitespace at the
+        // span's new edge (`p**ublication **\(` — measured [SP-163]), which the whitespace pass then takes out.
+        var changed = true
+        while changed {
+            changed = whitespacePass(&t)
+            if punctuationPass(&t) { changed = true }
+        }
+        return t
+    }
+
+    /// Whitespace takes the style both neighbours share; a PARAGRAPH break (two newlines) ends every span, while a
+    /// single newline (a soft or hard line break) may sit inside one. Returns whether anything changed.
+    private static func whitespacePass(_ t: inout [Token]) -> Bool {
+        var changed = false
         var i = 0
         while i < t.count {
             guard isSpace(t[i].unit) else { i += 1; continue }
@@ -102,35 +117,37 @@ enum MarkdownEmphasis {
             while j < t.count, isSpace(t[j].unit) { j += 1 }
             let left: UInt8 = i > 0 ? t[i - 1].style : 0
             let right: UInt8 = j < t.count ? t[j].style : 0
-            let hasNewline = t[i..<j].contains { $0.unit == 0x0A }
-            for k in i..<j { t[k].style = hasNewline ? 0 : (left & right) }
+            let paragraphBreak = t[i..<j].filter { $0.unit == 0x0A }.count >= 2
+            let style: UInt8 = paragraphBreak ? 0 : (left & right)
+            for k in i..<j where t[k].style != style { t[k].style = style; changed = true }
             i = j
         }
-        // ⚠️ CommonMark cannot open a span on PUNCTUATION that follows a letter (`x*,*` is not emphasis),
-        // nor close one on punctuation that precedes a letter. There the span edge moves past that one
-        // punctuation mark (with its escape backslash), which loses its style — the only representable
-        // result. Measured: the cases a random edit produces in [SP-162]'s corpus.
-        var changed = true
-        while changed {
-            changed = false
-            for k in 1..<max(1, t.count) {
-                let before = t[k - 1], here = t[k]
-                let opening = here.style & ~before.style, closing = before.style & ~here.style
-                if opening != 0, isWordUnit(before.unit), isPunct(here.unit) {
-                    var e = k + (here.unit == 0x5C && k + 1 < t.count ? 2 : 1)
-                    e = min(e, t.count)
-                    for m in k..<e { t[m].style &= ~opening }
-                    changed = true
-                }
-                if closing != 0, isPunct(before.unit), isWordUnit(here.unit) {
-                    var s = k - 1
-                    if s > 0, t[s - 1].unit == 0x5C { s -= 1 }
-                    for m in s..<k { t[m].style &= ~closing }
-                    changed = true
-                }
+        return changed
+    }
+
+    /// ⚠️ CommonMark cannot open a span on PUNCTUATION that follows a letter (`x*,*` is not emphasis), nor close one
+    /// on punctuation that precedes a letter. There the span edge moves past that one punctuation mark (with its
+    /// escape backslash), which loses its style — the only representable result (user-confirmed, [SP-162] decision 3).
+    private static func punctuationPass(_ t: inout [Token]) -> Bool {
+        var changed = false
+        var k = 1
+        while k < t.count {
+            let before = t[k - 1], here = t[k]
+            let opening = here.style & ~before.style, closing = before.style & ~here.style
+            if opening != 0, isWordUnit(before.unit), isPunct(here.unit) {
+                let e = min(k + (here.unit == 0x5C && k + 1 < t.count ? 2 : 1), t.count)
+                for m in k..<e { t[m].style &= ~opening }
+                changed = true
             }
+            if closing != 0, isPunct(before.unit), isWordUnit(here.unit) {
+                var s = k - 1
+                if s > 0, t[s - 1].unit == 0x5C { s -= 1 }
+                for m in s..<k { t[m].style &= ~closing }
+                changed = true
+            }
+            k += 1
         }
-        return t
+        return changed
     }
 
     private static func isPunct(_ c: UInt16) -> Bool {
@@ -142,15 +159,18 @@ enum MarkdownEmphasis {
     private static let boldMarker = Array("**".utf16), italicMarker = Array("*".utf16)
 
     /// Write tokens back with the fewest markers. `ends[i]` is the output offset just after token `i`.
+    /// `open`: styles already open where the output will be inserted (no opener is written for them);
+    /// `leaveOpen`: styles to leave open at the end (they continue into what follows). ✅ [T-0591]: a
+    /// cross-scene paste lands INSIDE the caret's span, then the scene is split there.
     /// ✅ Spans nest properly: a style that ends inside another closes the inner ones first and re-opens
     /// them. ✅ When two styles open together, the one that LASTS LONGER opens outside, so the shorter one
     /// can close without closing (and re-opening) the other — `***a* b**`, not `***a****b**`.
     /// ✅ Italic is written `*`, never `_` (Q-E2-2: `_` cannot open inside a word — measured 286/2000).
-    static func serialize(_ tokens: [Token]) -> (text: String, ends: [Int]) {
+    static func serialize(_ tokens: [Token], open: UInt8 = 0, leaveOpen: UInt8 = 0) -> (text: String, ends: [Int]) {
         var out: [UInt16] = []
         out.reserveCapacity(tokens.count + 8)
         var ends: [Int] = []
-        var stack: [UInt8] = []
+        var stack: [UInt8] = [MarkdownBlocks.bold, MarkdownBlocks.italic].filter { open & $0 != 0 }
         func persists(_ bit: UInt8, from i: Int) -> Int {
             var j = i
             while j < tokens.count, tokens[j].style & bit != 0 { j += 1 }
@@ -178,7 +198,7 @@ enum MarkdownEmphasis {
             out.append(t.unit)
             ends.append(out.count)
         }
-        move(to: 0, at: tokens.count)
+        move(to: leaveOpen, at: tokens.count)
         return (String(utf16CodeUnits: out, count: out.count), ends)
     }
 
@@ -197,4 +217,13 @@ enum MarkdownEmphasis {
         }
         return true
     }
+}
+
+/// EP-046 E2-S3 ([SP-163]) — the Format menu's commands (Q-E2-2). Cross-platform: the menu and the session
+/// carry it; the macOS manuscript view performs it.
+enum ManuscriptFormat: Equatable, Sendable {
+    case bold, italic
+    case heading(Int)      // 1…3
+    case body
+    case bulletList, numberedList
 }

@@ -219,6 +219,17 @@ create). The presenter is asked only for paragraphs that are **laid out** (143 a
   ✅ Decisions confirmed: ⌫ at a heading's start removes the `## `; copy to other apps drops `## `; edge punctuation glued
   to a letter loses its style.
 
+### 3.7 ✅ AS BUILT — E2-S3 ([SP-163], 2026-10-05)
+
+- ✅ **Commands are STYLE edits on the tokens** — the same rewrite core as E2-S2's balanced edits, with one difference: an edit
+  that cannot be balanced is written without emphasis; a COMMAND that cannot be is refused (it must never drop formatting).
+- ✅ **The normaliser needs CONTEXT** (one token each side of the rewritten stretch) and its passes repeat until stable.
+- ✅ **Lists:** prefix visible + dimmed, hanging indent (§4.2 v1); a stop run like a heading prefix; numbering kept sequential.
+  ⚠️ An EMPTY item gives the parser no run — recognised by the analyzer directly.
+- ✅ **Q1's pending pair** lives in the text view's storage only (no `didChangeText`): autosave would otherwise write `****`.
+- ✅ **Option-Return** stores `\` + `\n` on Apple AND Linux; a single newline may sit inside a span.
+- ✅ **[T-0591] Apple-side:** each scene part of a cross-scene edit / copy / paste goes through the same balancing.
+
 ---
 
 ## 4. Element order (Q-E2-3) and per-element notes

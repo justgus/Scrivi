@@ -121,6 +121,10 @@ struct ManuscriptTextView: NSViewRepresentable {
         // the same handlers as the ⌘↩ / ⌘⇧↩ / ⌘⌫ / ⌘⇧⌫ keys. Take focus first so the
         // operation acts on the manuscript caret (menu clicks don't change first
         // responder), matching what the keyboard path already has.
+        // ✅ EP-046 E2-S3: the Format menu acts on the manuscript's own selection.
+        session.formatAction = { [weak coordinator, weak textView] format in
+            coordinator?.takeFocus(); textView?.applyFormat(format)
+        }
         session.createSceneAction   = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateScene() }
         session.createChapterAction = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleCreateChapter() }
         session.mergeSceneAction    = { [weak coordinator] in coordinator?.takeFocus(); coordinator?.handleMergeScene() }
@@ -2249,7 +2253,13 @@ struct ManuscriptTextView: NSViewRepresentable {
         // fragment lives here so an internal ⌘V can reconstruct boundaries. Nil until a
         // cross-boundary copy/cut runs; a single-scene copy/cut clears it (so ⌘V falls back to the
         // plain system-pasteboard path).
-        private var internalClipboardFragment: FragmentResult?
+        private var internalClipboardFragment: FragmentResult? {
+            get { structuredClipboard.fragment(currentChangeCount: NSPasteboard.general.changeCount) }
+            set { structuredClipboard.hold(newValue, changeCount: NSPasteboard.general.changeCount) }
+        }
+        /// ⛔ [I-0279]: the fragment used to be held FOREVER — every later ⌘V pasted it, whatever had been copied
+        /// since. ✅ Now it is tied to the system pasteboard's change count, as `ownCopy` is.
+        private var structuredClipboard = StructuredClipboard()
 
         // Flash the screen + beep and do NOT paste — the caret sits in a non-editable chapter
         // heading (§4.2, §10 Q2, user ruling 2026-07-27). Leaves the caret where it is.
@@ -2273,14 +2283,30 @@ struct ManuscriptTextView: NSViewRepresentable {
             let sel = tv.selectedRange()
             guard selectionCrossesBoundary(sel), let spans = fragmentSpans(for: sel),
                   let rootPath = parent.session.projectRootPath else { return false }
-            guard let frag = try? parent.env.engine.fragmentExtract(
+            guard let raw = try? parent.env.engine.fragmentExtract(
                 projectRootPath: rootPath, spans: spans) else { return false }
-            internalClipboardFragment = frag
+            // ✅ [T-0591] (ruled 2026-10-05: Apple-side): each scene's piece is BALANCED — a piece that starts or ends
+            // inside a bold span carries its own markers (AC12) — and other apps get what the writer SEES ([SP-162] Q2:
+            // no markers, no `## `, no escapes), pieces joined by a blank line as ScriviCore joins them.
+            var frag = raw
+            var presented = MarkdownEscapes.map(raw.plainText).presented
+            if let storage = tv.textStorage, let parts = sceneParts(of: sel), parts.count == raw.pieces.count {
+                let copies = parts.map { presenter.balancedCopy(in: storage, $0) }
+                let pieces = zip(raw.pieces, copies).map { piece, copy in
+                    FragmentPiece(opensWith: piece.opensWith, chapterTitle: piece.chapterTitle,
+                                  sceneTitle: piece.sceneTitle, text: copy.source, partial: piece.partial)
+                }
+                frag = FragmentResult(schema: raw.schema, pieces: pieces,
+                                      plainText: pieces.map(\.text).joined(separator: "\n\n"))
+                presented = copies.map(\.presented).joined(separator: "\n\n")
+            }
             let pb = NSPasteboard.general
             pb.clearContents()
             // EP-045 AC4: other apps get what the writer SEES, not escape backslashes. ⌘V in
             // Scrivi still reconstructs from `internalClipboardFragment`, which keeps the source.
-            pb.setString(MarkdownEscapes.map(frag.plainText).presented, forType: .string)
+            pb.setString(presented, forType: .string)
+            // ⚠️ [I-0279]: held AFTER the pasteboard write, so it matches the change count that write produced.
+            internalClipboardFragment = frag
             return true
         }
 
@@ -2298,6 +2324,19 @@ struct ManuscriptTextView: NSViewRepresentable {
         // ⌘Z restores every scene and a single redo re-applies them (user ruling, same day).
         // Returns false for a selection inside one scene — the ordinary path handles it.
         @discardableResult
+        /// The selected part of each scene `sel` overlaps, in storage order — what `fragmentSpans` sends ScriviCore.
+        func sceneParts(of sel: NSRange) -> [NSRange]? {
+            var parts: [NSRange] = []
+            for range in sceneBoundaries {
+                let inter = NSIntersectionRange(range, sel)
+                if inter.length > 0 { parts.append(inter) }
+                else if sel.location <= range.location && range.location < NSMaxRange(sel) {
+                    parts.append(NSRange(location: range.location, length: 0))
+                }
+            }
+            return parts.isEmpty ? nil : parts
+        }
+
         func deleteAcrossScenes(_ sel: NSRange, kind: String) -> Bool {
             guard let tv = textView, let storage = tv.textStorage, sel.length > 0 else { return false }
             ensureBoundaries(tv)
@@ -2315,8 +2354,18 @@ struct ManuscriptTextView: NSViewRepresentable {
             let before = parts.map { ns.substring(with: $0.range) }
             // Back to front, so the earlier ranges stay valid. Only scene text is removed;
             // dividers and headings sit outside every scene range.
+            // ✅ [T-0591]: each scene's removal is BALANCED (E2-S2's `balancedEdit`) — a cut that starts inside bold
+            // closes it in the first scene, one that ends inside bold re-opens it in the last.
+            var caret = parts[0].cut.location
             storage.beginEditing()
-            for part in parts.reversed() { storage.deleteCharacters(in: part.cut) }
+            for part in parts.reversed() {
+                if let edit = presenter.balancedEdit(in: storage, replacing: part.cut, with: "") {
+                    storage.replaceCharacters(in: edit.range, with: edit.replacement)
+                    if part.segIdx == parts[0].segIdx { caret = edit.caret }
+                } else {
+                    storage.deleteCharacters(in: part.cut)
+                }
+            }
             storage.endEditing()
             ensureBoundaries(tv)
 
@@ -2335,7 +2384,6 @@ struct ManuscriptTextView: NSViewRepresentable {
             parent.session.historyCapture?.recordGroupedEdit(edits, kind: kind)
 
             // The caret goes where the edit began, in the first scene.
-            let caret = parts[0].cut.location
             tv.setSelectedRange(NSRange(location: caret, length: 0))
             tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
             lastCursorSegmentIndex = parts[0].segIdx
@@ -2379,6 +2427,20 @@ struct ManuscriptTextView: NSViewRepresentable {
             let caretByte = byteOffset(charOffset: caretChar, in: seg.text)
 
             parent.session.historyCapture?.flush(trigger: "flush")
+            // ✅ [T-0591]: pasting INSIDE a bold span — the first piece closes it, the last re-opens it for the text after
+            // the split. ✅ [SP-163] live pass (user): the pasted text KEEPS ITS OWN formatting (only what was bold is).
+            var frag = frag
+            if let storage = tv.textStorage {
+                let style = presenter.styleAtCaret(in: storage, loc)
+                let texts = ManuscriptPresenter.balancePastePieces(frag.pieces.map(\.text), caretStyle: style)
+                if texts != frag.pieces.map(\.text) {
+                    let pieces = zip(frag.pieces, texts).map { piece, text in
+                        FragmentPiece(opensWith: piece.opensWith, chapterTitle: piece.chapterTitle,
+                                      sceneTitle: piece.sceneTitle, text: text, partial: piece.partial)
+                    }
+                    frag = FragmentResult(schema: frag.schema, pieces: pieces, plainText: pieces.map(\.text).joined(separator: "\n\n"))
+                }
+            }
             guard let result = try? parent.env.engine.fragmentPaste(
                 projectRootPath: rootPath,
                 appSupportRoot: parent.session.appSupportRoot,
@@ -2487,7 +2549,9 @@ final class ManuscriptNSTextView: NSTextView {
         // removed only the `*` (leaving `a\b` — an orphaned backslash that becomes VISIBLE), and
         // ⌦ before the `\` removed only the backslash (leaving a LIVE `*`). Re-issue the edit
         // over the whole pair instead. (EP-046: the same for any stop run — a marker is never split.)
-        if affectedCharRange.length > 0, let presenter,
+        // ⚠️ Never on an edit the presenter COMPUTED (balanced edits, Format commands): it is exact, and widening it
+        // past a stop run it starts beside (a list's `1. `) replaced the prefix — [SP-163] live pass, step 12.
+        if affectedCharRange.length > 0, !applyingBalancedEdit, let presenter,
            let pair = MarkdownEscapes.snapSelection(affectedCharRange, in: storage.string as NSString,
                                                     runAt: Self.runLookup(presenter, storage)) {
             if shouldChangeText(in: pair, replacementString: replacementString) {
@@ -2505,7 +2569,8 @@ final class ManuscriptNSTextView: NSTextView {
         // into bold — is re-issued as the BALANCED edit of the stretch it touches (`balancedEdit`). ONE
         // replacement, so ONE history event. ✅ Plain typing inside or outside a span returns nil there.
         if !applyingBalancedEdit, let presenter, let replacementString,
-           let edit = presenter.balancedEdit(in: storage, replacing: affectedCharRange, with: replacementString) {
+           let edit = presenter.balancedEdit(in: storage, replacing: affectedCharRange, with: replacementString,
+                                             keepsOwnFormatting: pastingOwnCopy) {
             applyingBalancedEdit = true
             defer { applyingBalancedEdit = false }
             if shouldChangeText(in: edit.range, replacementString: edit.replacement) {
@@ -2522,6 +2587,8 @@ final class ManuscriptNSTextView: NSTextView {
 
     /// True while a balanced edit is being applied — it must not be balanced again.
     private var applyingBalancedEdit = false
+    /// True while Scrivi's OWN copy is pasted: it keeps its own formatting.
+    private var pastingOwnCopy = false
 
     /// The presenter's stop runs in the form the snap takes.
     static func runLookup(_ presenter: ManuscriptPresenter, _ ts: NSAttributedString) -> (Int) -> MarkdownEscapes.StopRun? {
@@ -2547,6 +2614,16 @@ final class ManuscriptNSTextView: NSTextView {
     override func insertText(_ string: Any, replacementRange: NSRange) {
         guard !insertsVerbatim else { return super.insertText(string, replacementRange: replacementRange) }
         let typed = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        // ✅ [SP-163] Q1: whitespace typed into an EMPTY pending pair cannot start a span (`** x**` is not emphasis):
+        // it goes BEFORE the pair, which stays pending with the caret inside it.
+        if let p = presenter?.pending, selectedRange() == NSRange(location: p.caret, length: 0),
+           !typed.isEmpty, typed.allSatisfy({ $0 == " " || $0 == "\t" }) {
+            let markers = String(repeating: "*", count: p.markerLength)
+            removePendingPair()
+            super.insertText(MarkdownEscapes.escape(typed), replacementRange: NSRange(location: p.range.location, length: 0))
+            insertPendingPair(at: selectedRange().location, markers: markers)
+            return
+        }
         super.insertText(MarkdownEscapes.escape(typed), replacementRange: replacementRange)
     }
 
@@ -2561,6 +2638,11 @@ final class ManuscriptNSTextView: NSTextView {
     override func insertNewline(_ sender: Any?) {
         guard let storage = textStorage, !hasMarkedText() else { return super.insertNewline(sender) }
         let sel = selectedRange()
+        // ✅ [SP-163] Return in a LIST ITEM starts the next item (an empty item ends the list), renumbering what follows.
+        if let presenter, let edit = presenter.listReturnEdit(in: storage, selection: sel) {
+            applyCommandEdit(edit)
+            return
+        }
         // ⚠️ Read backward from the caret only — ⛔ never copy the document (EP-045 trap #2).
         let ns = storage.string as NSString
         var start = sel.location
@@ -2582,6 +2664,92 @@ final class ManuscriptNSTextView: NSTextView {
         defer { insertsVerbatim = false }
         insertText(source, replacementRange: replacementRange)
     }
+
+    /// ✅ [T-0584] (Q-E2-4 = (b), ruled 2026-10-05): Option-Return is a deliberate HARD LINE BREAK — `\` + `\n`, the
+    /// form EP-045 AC6 already writes. ⚠️ Measured 2026-10-04: Option-Return sends THIS action, not `insertNewline:`.
+    /// ⚠️ [SP-163] Q6: at a paragraph's END the backslash shows until the next line is typed (CommonMark reads it as
+    /// literal before a blank line) — accepted.
+    override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
+        guard !hasMarkedText() else { return super.insertNewlineIgnoringFieldEditor(sender) }
+        insertVerbatim("\\\n", replacementRange: selectedRange())
+    }
+
+    // MARK: — EP-046 E2-S3: the Format commands ([SP-163], Q-E2-2)
+
+    /// What the Format menu calls. ✅ ONE edit per command — one history event.
+    func applyFormat(_ format: ManuscriptFormat) {
+        guard let storage = textStorage, let presenter else { return }
+        let sel = selectedRange()
+        switch format {
+        case .bold, .italic:
+            let bit = format == .bold ? MarkdownBlocks.bold : MarkdownBlocks.italic
+            let markers = format == .bold ? "**" : "*"
+            if sel.length > 0 {
+                if let edit = presenter.emphasisEdit(in: storage, selection: sel, bit: bit) { applyCommandEdit(edit) } else { NSSound.beep() }
+                return
+            }
+            // ✅ Q1: the same command on a pending pair takes it away again.
+            if let p = presenter.pending, sel.location == p.caret {
+                removePendingPair()
+                return
+            }
+            // ✅ Q1: IN a word → format the word, the caret stays where it was.
+            if let word = presenter.wordRange(in: storage, at: sel.location) {
+                if let edit = presenter.emphasisEdit(in: storage, selection: word, bit: bit, caret: sel.location) {
+                    applyCommandEdit(edit)
+                } else { NSSound.beep() }
+                return
+            }
+            // ✅ Q1: BETWEEN words → a pending pair, the caret between its hints.
+            insertPendingPair(at: sel.location, markers: markers)
+        case .heading, .body, .bulletList, .numberedList:
+            if let edit = presenter.paragraphEdit(in: storage, selection: sel, format: format) { applyCommandEdit(edit) } else { NSSound.beep() }
+        }
+    }
+
+    /// Apply a presenter-computed edit as ONE replacement (one `textDidChange`, one history event), through the
+    /// heading/divider guards but never re-balanced (it already is).
+    private func applyCommandEdit(_ edit: ManuscriptPresenter.CommandEdit) {
+        guard let storage = textStorage else { return }
+        applyingBalancedEdit = true
+        defer { applyingBalancedEdit = false }
+        guard shouldChangeText(in: edit.range, replacementString: edit.replacement) else { return }
+        storage.replaceCharacters(in: edit.range, with: NSAttributedString(
+            string: edit.replacement,
+            attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+        didChangeText()
+        setSelectedRange(edit.selection)
+    }
+
+    /// Insert the PENDING pair (Q1) — storage only, NO `didChangeText`: history, autosave and the scene text never see
+    /// it (see `ManuscriptPresenter.PendingPair`).
+    private func insertPendingPair(at loc: Int, markers: String) {
+        guard let storage = textStorage, let presenter else { return }
+        presenter.insertingPending = true
+        storage.replaceCharacters(in: NSRange(location: loc, length: 0), with: NSAttributedString(
+            string: markers + markers,
+            attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+        presenter.insertingPending = false
+        presenter.pending = .init(range: NSRange(location: loc, length: markers.utf16.count * 2), markerLength: markers.utf16.count)
+        keepingPending = true
+        setSelectedRange(NSRange(location: loc + markers.utf16.count, length: 0))
+        keepingPending = false
+    }
+
+    /// Take the pending pair out again — storage only, nothing recorded (user: *"it should be removed"*).
+    func removePendingPair() {
+        guard let storage = textStorage, let presenter, let p = presenter.pending else { return }
+        presenter.pending = nil
+        let text = (storage.string as NSString)
+        guard NSMaxRange(p.range) <= text.length,
+              text.substring(with: p.range) == String(repeating: "*", count: p.range.length) else { return }
+        presenter.insertingPending = true
+        storage.replaceCharacters(in: p.range, with: "")
+        presenter.insertingPending = false
+    }
+
+    /// True while the view itself places the caret inside a pending pair.
+    private var keepingPending = false
 
     /// ✅ Copy, cut and drag put what the writer SEES on the pasteboard (measured: all three
     /// route here), and remember the stored form for a paste back into Scrivi.
@@ -2638,6 +2806,10 @@ final class ManuscriptNSTextView: NSTextView {
         let range = rangeForUserTextChange
         guard range.location != NSNotFound else { return false }
         if let own = ownCopy, own.pasteboard == pboard.name, own.changeCount == pboard.changeCount {
+            // ✅ [SP-163] live pass (user, 2026-10-05): Scrivi's own copy keeps ITS formatting where it lands — plain
+            // text pasted inside bold stays plain (the bold closes around it); bold into bold still merges.
+            pastingOwnCopy = true
+            defer { pastingOwnCopy = false }
             insertVerbatim(own.source, replacementRange: range)
         } else {
             insertText(text, replacementRange: range)
@@ -2696,6 +2868,14 @@ final class ManuscriptNSTextView: NSTextView {
         // ✅ EP-046 AC4 (Q-E2-1): the heading prefixes on the selection's lines, and the markers of the
         // span it is in, show.
         // ⚠️ Not mid-drag — a reveal reflows the line, which must not happen under the pointer.
+        // ✅ [SP-163] Q1: the caret LEFT an empty pending pair — remove it (nothing was recorded, nothing to undo).
+        if !stillSelecting, !keepingPending, let p = presenter?.pending, selectedRange() != NSRange(location: p.caret, length: 0) {
+            let sel = selectedRange()
+            removePendingPair()
+            let shift = sel.location >= NSMaxRange(p.range) ? p.range.length : (sel.location > p.range.location ? sel.location - p.range.location : 0)
+            setSelectedRange(NSRange(location: sel.location - shift, length: sel.length))
+            return
+        }
         if !stillSelecting, let storage = textStorage { presenter?.reveal(for: selectedRange(), in: storage) }
     }
 
@@ -2874,6 +3054,8 @@ final class ManuscriptNSTextView: NSTextView {
             super.deleteBackward(sender); return
         }
         let loc = selectedRange().location
+        // ✅ [SP-163] Q1: ⌫ inside an empty pending pair takes the pair away.
+        if let p = presenter?.pending, loc == p.caret { removePendingPair(); setSelectedRange(NSRange(location: p.range.location, length: 0)); return }
         guard loc > 0 else { return }
         // ✅ EP-046: markers are ATOMIC — ⌫ never deletes part of one. Just after an opening marker (the
         // start of a bold word, [SP-162] Q1) ⌫ acts on what the writer SEES before the caret: the
@@ -2881,7 +3063,8 @@ final class ManuscriptNSTextView: NSTextView {
         // visible start of the heading) ⌫ removes the WHOLE prefix — the line becomes body text.
         if let presenter, let stop = presenter.stopTest(in: storage)(loc - 1), NSMaxRange(stop.range) == loc {
             switch stop.kind {
-            case .prefix:
+            case .prefix, .listPrefix:
+                // ✅ [SP-163]: a list item's `- ` / `1. ` goes the same way — the item becomes body text.
                 insertVerbatim("", replacementRange: stop.range)
                 return
             case .opener:
@@ -2940,6 +3123,7 @@ final class ManuscriptNSTextView: NSTextView {
             super.deleteForward(sender); return
         }
         let loc = selectedRange().location
+        if let p = presenter?.pending, loc == p.caret { removePendingPair(); setSelectedRange(NSRange(location: p.range.location, length: 0)); return }
         guard loc < storage.length else { return }
         // ✅ EP-046: just before a CLOSING marker (the end of a bold word) ⌦ deletes what the writer SEES
         // after the caret — the character after the marker — never the marker itself.
@@ -3058,6 +3242,25 @@ enum SceneDivider {
     }
 }
 
+
+// MARK: — [I-0279]: the held cross-scene fragment
+
+/// Scrivi's cross-scene copy (a structured fragment ScriviCore can paste back as scenes), valid only while the
+/// system pasteboard still holds what that copy put there. ⛔ It was held forever (SP-089), so after one cross-scene
+/// copy every ⌘V pasted it — whatever had been copied since ([I-0279], found in [SP-163]'s live pass).
+struct StructuredClipboard {
+    private var held: (fragment: FragmentResult, changeCount: Int)?
+
+    mutating func hold(_ fragment: FragmentResult?, changeCount: Int) {
+        held = fragment.map { ($0, changeCount) }
+    }
+
+    /// The fragment, or nil once anything else has been copied (the change count moved on).
+    func fragment(currentChangeCount: Int) -> FragmentResult? {
+        guard let held, held.changeCount == currentChangeCount else { return nil }
+        return held.fragment
+    }
+}
 
 // MARK: — EP-045 AC11: the scene-boundary table, MAINTAINED (T-0583)
 

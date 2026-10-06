@@ -77,7 +77,7 @@ heading line 32 vs 20. ✅ Parser ruled: **md4c inside ScriviCore** (L-b; `libmd
 | **L4** | **Escape backslashes hidden** (Linux shows them today) with E1's rule; hard-break backslash per E1 AC6 |
 | **L5** | **Hidden-run caret snap** (W3 measured the same invisible stops as Apple) |
 | **L6** | **Headings + bold/italic render; re-entry span/line** (Q-E2-1) via `rehighlightBlock`; AC7 prose demotion |
-| **L7** | **Commands** as EP-046 AC6 (Ctrl in place of ⌘) and Option/Alt-Return = hard break (Q-E2-4) |
+| **L7** | **Commands** as EP-046 AC6 (Ctrl in place of ⌘) and Option/Alt-Return = hard break (Q-E2-4). ✅ **The Alt-Return STORAGE half is done** — matched in [SP-163] (2026-10-05) with the shared corpus, `escape_smoke` PASS |
 | **L8** | **Find/Replace on presented text** (Q-E2-5) |
 
 ⚠️ Where Qt cannot match Apple's mechanism, match the RESULT and record the difference (T-0576 precedent).

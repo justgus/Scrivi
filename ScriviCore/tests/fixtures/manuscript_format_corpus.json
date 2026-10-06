@@ -76,11 +76,11 @@
    "after": "x\n\n"
   },
   {
-   "name": "Option/Alt-Return stores one newline (until T-0584 rules)",
+   "name": "Option/Alt-Return stores a hard line break: backslash + newline (T-0584, Q-E2-4 = (b))",
    "before": "x",
    "caret": 1,
    "gesture": "altReturn",
-   "after": "x\n"
+   "after": "x\\\n"
   },
   {
    "name": "Q3: backspace at a paragraph start joins with one space",

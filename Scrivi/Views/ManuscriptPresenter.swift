@@ -53,7 +53,9 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         var escapes: Set<Int> = []
         var analysis = MarkdownBlocks.Analysis()
         var headings: [MarkdownBlocks.Heading] { analysis.headings }
-        var isEmpty: Bool { escapes.isEmpty && analysis.headings.isEmpty && analysis.markers.isEmpty }
+        var isEmpty: Bool {
+            escapes.isEmpty && analysis.headings.isEmpty && analysis.markers.isEmpty && analysis.listItems.isEmpty
+        }
     }
 
     private var cache: [String: BlockInfo] = [:]
@@ -64,6 +66,20 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     private(set) var revealedLines: [NSRange] = []
     /// The inline spans whose markers are SHOWN — those the selection's ends are inside (Q-E2-1, span half).
     private(set) var revealedSpans: [NSRange] = []
+
+    /// ✅ [SP-163] Q1 (user, 2026-10-05): ⌘B / ⌘I with the caret BETWEEN words shows *"the start and end hints smashed
+    /// together with the caret between them"*. ⚠️ Markdown cannot STORE an empty `****` (it reads as four literal
+    /// asterisks), so the pair is PENDING: it is in the text view's storage ONLY — inserted and removed without
+    /// `didChangeText`, so history, autosave and the scene's text never see it. Typing into it makes it a real span
+    /// (an ordinary, recorded edit); leaving it removes it, with nothing to undo (user: *"it should be removed"*).
+    struct PendingPair: Equatable {
+        var range: NSRange          // the marker characters, opener + closer
+        let markerLength: Int       // 2 for `**`, 1 for `*`
+        var caret: Int { range.location + markerLength }
+    }
+    var pending: PendingPair?
+    /// True while the presenter itself inserts or removes the pending pair.
+    var insertingPending = false
 
     // MARK: — Blocks
 
@@ -138,7 +154,7 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     }
 
     /// The blocks overlapping the CLOSED range [a, b], each with its info.
-    private func blocks(in ts: NSAttributedString, from a: Int, to b: Int) -> [(range: NSRange, info: BlockInfo)] {
+    func blocks(in ts: NSAttributedString, from a: Int, to b: Int) -> [(range: NSRange, info: BlockInfo)] {
         let ns = ts.string as NSString
         var out: [(NSRange, BlockInfo)] = []
         var p = a
@@ -240,7 +256,7 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     // MARK: — Where the caret may rest (the snap reads ONLY this)
 
-    enum StopKind { case escape, opener, closer, prefix }
+    enum StopKind { case escape, opener, closer, prefix, listPrefix }
 
     /// The run of characters the caret never rests inside, and where its HOME is:
     /// ✅ an escape backslash → before it (E1); ✅ an opening emphasis marker or a heading prefix → AFTER it,
@@ -250,7 +266,7 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     struct Stop {
         let range: NSRange
         let kind: StopKind
-        var homeAfter: Bool { kind == .opener || kind == .prefix }
+        var homeAfter: Bool { kind == .opener || kind == .prefix || kind == .listPrefix }
     }
 
     /// A lookup for "which stop run holds storage unit `i`?", memoised per block.
@@ -259,6 +275,11 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         var memo: (block: NSRange, info: BlockInfo)?
         return { [self] i in
             guard i >= 0, i < ns.length else { return nil }
+            // The pending pair: its opener's home is after it, its closer's before it — the same spot, between them.
+            if let p = pending, NSLocationInRange(i, p.range) {
+                return i < p.caret ? Stop(range: NSRange(location: p.range.location, length: p.markerLength), kind: .opener)
+                                   : Stop(range: NSRange(location: p.caret, length: p.markerLength), kind: .closer)
+            }
             if memo == nil || !NSLocationInRange(i, memo!.block) {
                 guard let b = block(in: ts, at: i) else { return nil }
                 memo = (b, info(ns.substring(with: b)))
@@ -268,6 +289,9 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
             if info.escapes.contains(rel) { return Stop(range: NSRange(location: i, length: 1), kind: .escape) }
             for h in info.headings where NSLocationInRange(rel, h.prefix) {
                 return Stop(range: NSRange(location: b.location + h.prefix.location, length: h.prefix.length), kind: .prefix)
+            }
+            for li in info.analysis.listItems where NSLocationInRange(rel, li.prefix) {
+                return Stop(range: NSRange(location: b.location + li.prefix.location, length: li.prefix.length), kind: .listPrefix)
             }
             if let m = info.analysis.marker(containing: rel) {
                 return Stop(range: NSRange(location: b.location + m.range.location, length: m.range.length),
@@ -279,9 +303,11 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     /// True when storage unit `i` is HIDDEN on screen under the reveal `selection` would produce.
     func isHidden(_ i: Int, in ts: NSAttributedString, revealing selection: NSRange) -> Bool {
+        if let p = pending, NSLocationInRange(i, p.range) { return false }   // shown, dimmed
         guard let stop = stopTest(in: ts)(i) else { return false }
         switch stop.kind {
         case .escape: return true
+        case .listPrefix: return false     // [SP-163] Q7: always visible, dimmed
         case .prefix:
             let ns = ts.string as NSString
             let line = ns.paragraphRange(for: NSRange(location: i, length: 0))
@@ -299,7 +325,7 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
               let b = block(in: ts, at: range.location) else { return nil }
         let ns = ts.string as NSString
         let info = info(ns.substring(with: b))
-        guard !info.isEmpty else { return nil }
+        guard !info.isEmpty || pending.map({ NSIntersectionRange($0.range, range).length > 0 }) == true else { return nil }
         let a = info.analysis
 
         // Block-relative → paragraph-relative, clipped to this paragraph.
@@ -341,6 +367,21 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         for e in info.escapes {
             if let r = local(NSRange(location: e, length: 1)) { out.addAttributes(Self.hiddenAttributes, range: r) }
         }
+        // 5. ✅ [SP-163] lists: the prefix stays VISIBLE, dimmed (Q7), with a HANGING indent so wrapped lines align
+        // under the text (design §4.2). ⛔ TextKit's own `NSTextList` bullet draws invisible here (SP-159 S1).
+        for li in a.listItems {
+            guard let line = local(li.line), let p = local(li.prefix) else { continue }
+            out.addAttributes(Self.revealedPrefixAttributes, range: p)
+            let width = (ns.substring(with: NSRange(location: b.location + li.prefix.location, length: li.prefix.length)) as NSString)
+                .size(withAttributes: [.font: Self.bodyFont]).width
+            let style = NSMutableParagraphStyle()
+            style.headIndent = width
+            out.addAttribute(.paragraphStyle, value: style, range: line)
+        }
+        // 6. The PENDING pair (Q1): shown as revealed hints, the caret between them.
+        if let pp = pending, let r = local(pp.range) {
+            out.addAttributes(Self.revealedMarkerAttributes, range: r)
+        }
         // ✅ SAME LENGTH as `range` — Apple's contract; only attributes differ.
         return NSTextParagraph(attributedString: out)
     }
@@ -373,9 +414,10 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     /// stored form), or nil when the plain edit is already balanced — ✅ the common case (typing inside
     /// or outside a span) costs one scan of the touched blocks' markers.
     /// ✅ Rewrites ONLY the stretch the edit touches: the spans it crosses, plus the edit itself.
+    /// `keepsOwnFormatting`: Scrivi's own copy being pasted keeps ITS styles instead of taking the caret's ([SP-163]
+    /// live pass) — so it is rewritten even when it carries no marker, if it lands inside a span.
     func balancedEdit(in ts: NSAttributedString, replacing range: NSRange,
-                      with replacement: String) -> (range: NSRange, replacement: String, caret: Int)? {
-        let ns = ts.string as NSString
+                      with replacement: String, keepsOwnFormatting: Bool = false) -> (range: NSRange, replacement: String, caret: Int)? {
         let a = range.location, b = NSMaxRange(range)
         let touched = blocks(in: ts, from: a, to: b)
         var spans: [NSRange] = []
@@ -392,46 +434,96 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         let emptiesSpan = range.length > 0 && replacement.isEmpty && spans.contains { s in
             (s.location..<NSMaxRange(s)).allSatisfy { markerUnits.contains($0) || ($0 >= a && $0 < b) }
         }
-        let splitsSpan = replacement.utf16.contains(0x0A) && ((styleAt[a] ?? 0) != 0 || (styleAt[a - 1] ?? 0) != 0)
-        guard fragment || crossesMarker || emptiesSpan || splitsSpan else { return nil }
+        // Only a PARAGRAPH break (a blank line) splits a span — ⚠️ a single newline (Option-Return's hard break,
+        // [T-0584]) may sit inside bold, and closing before it would put the closer after the `\` and escape it.
+        let splitsSpan = replacement.contains("\n\n") && ((styleAt[a] ?? 0) != 0 || (styleAt[a - 1] ?? 0) != 0)
+        let insideSpan = (styleAt[a] ?? 0) != 0 || (styleAt[a - 1] ?? 0) != 0
+        let ownInsideSpan = keepsOwnFormatting && !replacement.isEmpty && insideSpan
+        // ✅ [SP-163] live pass (user, 2026-10-05): *"I thought we were going to push or pull the spaces to outside the
+        // attributed sections."* ⛔ A space typed at a span's FIRST or LAST character took the plain path and left
+        // `** bold**` — not emphasis, so both markers showed. ✅ Any edit AT a span's edge (just after an opener, just
+        // before a closer) goes through the rewrite, whose normaliser moves edge whitespace outside.
+        let atSpanEdge = touched.contains { blk, info in
+            info.analysis.markers.contains { m in
+                let g = NSRange(location: blk.location + m.range.location, length: m.range.length)
+                return m.opens ? NSMaxRange(g) == a : g.location == b
+            }
+        }
+        guard fragment || crossesMarker || emptiesSpan || splitsSpan || ownInsideSpan || atSpanEdge else { return nil }
 
-        // The stretch to rewrite: the edit plus every span it touches (closed interval).
+        let insertStyle = keepsOwnFormatting ? 0 : insertionStyle(in: ts, at: a, selected: tokens(in: ts, range))
+        let inserted = MarkdownEmphasis.tokens(of: replacement).map {
+            // A prefix written by the edit (a list's `- ` on Return) never carries emphasis.
+            MarkdownEmphasis.Token(unit: $0.unit, style: $0.isPrefix ? 0 : $0.style | insertStyle, isPrefix: $0.isPrefix)
+        }
+        guard let r = rewrite(in: ts, replacing: range, with: inserted, spans: spans, refuseIfUnbalanced: false) else { return nil }
+        return (r.range, r.text, r.range.location + r.caret)
+    }
+
+    /// The style new text takes when it replaces `selected` at `a`: that of the first selected character, or —
+    /// for an insertion — the caret's: just after an OPENING marker the span's ([SP-162] Q1), otherwise the
+    /// text's before it.
+    func insertionStyle(in ts: NSAttributedString, at a: Int, selected: [MarkdownEmphasis.Token]) -> UInt8 {
+        if let first = selected.first { return first.style }
+        let touched = blocks(in: ts, from: a, to: a)
+        let afterOpener = touched.contains { blk, info in
+            info.analysis.markers.contains { $0.opens && blk.location + NSMaxRange($0.range) == a }
+        }
+        if afterOpener { return tokens(in: ts, NSRange(location: a, length: min(1, (ts.string as NSString).length - a))).first?.style ?? 0 }
+        guard a > 0 else { return 0 }
+        // The nearest character before `a` that is not a marker.
+        var k = a - 1
+        let stops = stopTest(in: ts)
+        while k > 0, let st = stops(k), st.kind == .opener || st.kind == .closer { k -= 1 }
+        return tokens(in: ts, NSRange(location: k, length: 1)).first?.style ?? 0
+    }
+
+    /// The emphasis spans (storage ranges) of the blocks overlapping the closed range [a, b].
+    func spans(in ts: NSAttributedString, from a: Int, to b: Int) -> [NSRange] {
+        blocks(in: ts, from: a, to: b).flatMap { blk, info in
+            info.analysis.spans.map { NSRange(location: blk.location + $0.location, length: $0.length) }
+        }
+    }
+
+    /// THE REWRITE CORE (E2-S2, shared by edits and the Format commands): replace `range` by `inserted` tokens and
+    /// write the stretch — the edit plus every span it touches — back with the fewest markers.
+    /// ✅ Checked by the parser IN CONTEXT before it is applied. If it would not read back as intended: an EDIT is
+    /// written without emphasis there (formatting lost, but no stray marker shows; logged); a COMMAND
+    /// (`refuseIfUnbalanced`) is refused instead — a command must never destroy formatting.
+    /// `caret` is the output offset just after the last inserted token; `starts[i]` is where output token `i` begins.
+    func rewrite(in ts: NSAttributedString, replacing range: NSRange, with inserted: [MarkdownEmphasis.Token],
+                 spans: [NSRange], refuseIfUnbalanced: Bool) -> (range: NSRange, text: String, caret: Int, ends: [Int], leftCount: Int)? {
+        let ns = ts.string as NSString
+        let a = range.location, b = NSMaxRange(range)
         var w0 = a, w1 = b
         for s in spans where s.location <= b && NSMaxRange(s) >= a {
             w0 = min(w0, s.location); w1 = max(w1, NSMaxRange(s))
         }
         let left = tokens(in: ts, NSRange(location: w0, length: a - w0))
-        let selected = tokens(in: ts, range)
         let right = tokens(in: ts, NSRange(location: b, length: w1 - b))
-        // The style the new text takes: that of the first selected character, or — for an insertion —
-        // the caret's: just after an OPENING marker the span's (Q1), otherwise the text's before it.
-        let afterOpener = touched.contains { blk, info in
-            info.analysis.markers.contains { $0.opens && blk.location + NSMaxRange($0.range) == a }
-        }
-        let insertStyle: UInt8 = selected.first?.style ?? (afterOpener ? (right.first?.style ?? 0) : (left.last?.style ?? 0))
-        let inserted = MarkdownEmphasis.tokens(of: replacement).map {
-            MarkdownEmphasis.Token(unit: $0.unit, style: $0.style | insertStyle, isPrefix: $0.isPrefix)
-        }
-        var all = MarkdownEmphasis.normalize(left + inserted + right)
-        var (text, ends) = MarkdownEmphasis.serialize(all)
-
-        // ✅ Checked by the parser, IN CONTEXT, before it is applied. ⚠️ If it would not read back as
-        // intended, the stretch is written with no emphasis: formatting is lost there, but no stray
-        // marker ever shows. Measured in [SP-162]: 5,999/6,000 realistic edits read back exactly.
+        let touched = blocks(in: ts, from: w0, to: w1)
         let r0 = touched.first.map { min($0.range.location, w0) } ?? w0
         let r1 = touched.last.map { max(NSMaxRange($0.range), w1) } ?? w1
+        let before = tokens(in: ts, NSRange(location: r0, length: w0 - r0))
+        let after = tokens(in: ts, NSRange(location: w1, length: r1 - w1))
+        // ⚠️ Normalise WITH one token of context each side: whether a span edge can sit on punctuation depends on
+        // the character just outside the stretch (`d\'Artagnan`: the `'` follows a letter). Measured [SP-163]:
+        // without it, 6.9% of random selections were refused. The context itself is never rewritten.
+        let ctxL = Array(before.suffix(1)), ctxR = Array(after.prefix(1))
+        var all = Array(MarkdownEmphasis.normalize(ctxL + left + inserted + right + ctxR).dropFirst(ctxL.count).dropLast(ctxR.count))
+        var (text, ends) = MarkdownEmphasis.serialize(all)
         let prefix = ns.substring(with: NSRange(location: r0, length: w0 - r0))
         let suffix = ns.substring(with: NSRange(location: w1, length: r1 - w1))
-        let expected = tokens(in: ts, NSRange(location: r0, length: w0 - r0)) + all
-            + tokens(in: ts, NSRange(location: w1, length: r1 - w1))
+        let expected = before + all + after
         if !MarkdownEmphasis.sameRendering(expected, MarkdownEmphasis.tokens(of: prefix + text + suffix)) {
+            if refuseIfUnbalanced { return nil }
             NSLog("[SCRIVI-EDIT] emphasis could not be balanced at %d — written without emphasis", w0)
             all = all.map { MarkdownEmphasis.Token(unit: $0.unit, style: 0, isPrefix: $0.isPrefix) }
             (text, ends) = MarkdownEmphasis.serialize(all)
         }
         let lastInserted = left.count + inserted.count - 1
         let caret = lastInserted >= 0 && !ends.isEmpty ? ends[lastInserted] : 0
-        return (NSRange(location: w0, length: w1 - w0), text, w0 + caret)
+        return (NSRange(location: w0, length: w1 - w0), text, caret, ends, left.count)
     }
 
     /// What a copy of `selection` puts on the pasteboards: the BALANCED source (Scrivi's own paste keeps the
@@ -456,6 +548,21 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
                      range editedRange: NSRange, changeInLength delta: Int) {
         guard editedMask.contains(.editedCharacters) else { return }
         let t0 = Date()
+        // The pending pair: typing INTO it makes it a real span (no longer pending); an edit before it moves it; any
+        // other edit that touches it ends it.
+        if var p = pending, !insertingPending {
+            let oldEnd = NSMaxRange(editedRange) - delta
+            if editedRange.location == p.caret, oldEnd == p.caret, delta > 0 {
+                pending = nil
+            } else if oldEnd <= p.range.location {
+                p.range.location += delta
+                pending = p
+            } else if editedRange.location >= NSMaxRange(p.range) {
+                // after it: unaffected
+            } else {
+                pending = nil
+            }
+        }
         let ns = textStorage.string as NSString
         guard ns.length > 0 else { return }
         let loc = min(editedRange.location, ns.length)
