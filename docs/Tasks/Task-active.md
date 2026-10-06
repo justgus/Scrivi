@@ -5,69 +5,23 @@
 
 
 
-## ✅ T-0592 — `[Apple]` E2-S3: the formatting commands + lists + Option-Return — ✅ **VERIFIED 2026-10-06 (user, live pass)**
 
-**Created:** 2026-10-05 at [SP-163]'s activation (user: *"Lets activate SP-163."*) · **Epic:** **[EP-046]** ·
-**Sprint:** 🟡 **[SP-163]** → [`../Sprints/Sprint-SP-163.md`](../Sprints/Sprint-SP-163.md)
-✅ Carries SP-163's work: EP-046 **AC6** (a Format menu — ⌘B, ⌘I, Heading 1–3 ⌥⌘1–3, Body ⌥⌘0, Bulleted ⌥⌘L, Numbered
-⌥⌘N; one edit each; S5 corpus 100% with Q3's shrink rule), Q1 (format the word; between words, a PENDING pair), list
-rendering (dimmed prefix, hanging indent; Return continues / ends a list; sequential numbering, Q4), Q5 (a paragraph is
-one of body / heading / list item). ([T-0584] and [T-0591] are their own entries.)
 
-🟠 **2026-10-05 — IMPLEMENTED - NOT VERIFIED** ([SP-163]): the Format menu + commands, lists, the pending pair — 193/193, mutations bite (5/5). ⏳ Live pass + 6 decisions to confirm → [`../Sprints/Sprint-SP-163.md`](../Sprints/Sprint-SP-163.md).
-✅ **VERIFIED 2026-10-06 (user):** the full SP-163 live pass, its two fixes and their re-checks — last: *"1 through 6 above all pass."* ⏳ Archived with the Sprint close.
+
+## ✅ T-0593 — `[Apple]` E2-S4: Find and Replace over what the writer sees — Verified (user, 2026-10-06)
+
+**Created:** 2026-10-06 at [SP-164]'s activation (user: *"activate and then implement SP-164"*) · **Epic:** **[EP-046]** ·
+**Sprint:** 🟡 **[SP-164]** → [`../Sprints/Sprint-SP-164.md`](../Sprints/Sprint-SP-164.md)
+✅ Carries SP-164's work: the manuscript's Find (none exists) — AppKit's find bar over a PRESENTED-text client if the spike
+proves it (Q1); Replace escaped + balanced, the match's first character's style (Q3); Replace All as one undo step (Q2); no
+chapter titles (Q4); the Navigator's search jump on presented text (Q5); AppKit's options (Q6). ([T-0585] is its own entry.)
+
+🟠 **2026-10-06 — IMPLEMENTED - NOT VERIFIED** ([SP-164]): Edit ▸ Find over presented text (AppKit's find bar, spike-proven), Replace (escaped, balanced, Q3), Replace All (one grouped step, Q2), Navigator jump (Q5) — 202/202, mutations bite. ⏳ Live pass.
 ---
 
-## ✅ T-0591 — `[Apple]` Balance emphasis across SCENE boundaries — ✅ **VERIFIED 2026-10-06 (user, live pass)**
+## ✅ T-0585 — `[Apple]` Find/Replace across hidden escape backslashes — Verified (user, 2026-10-06)
 
-**Created:** 2026-10-05 (user: *"Lets file the balancing task for the cut copy across scene boundaries."*) · **Epic:** **[EP-046]** · **Sprint:** 🟡 **[SP-163]** (added by the user at activation, 2026-10-05) → [`../Sprints/Sprint-SP-163.md`](../Sprints/Sprint-SP-163.md).
-**Origin:** [SP-162] retrospective (→ [`../Sprints/Closed/Sprint-SP-162.md`](../Sprints/Closed/Sprint-SP-162.md)).
-
-**"Balanced"** = every opening emphasis marker has its closing marker in the same paragraph, so the parser renders the
-formatting and the markers stay hidden. An unbalanced `**bo` shows its `**` LITERALLY and the bold is lost (Q-E2-7).
-E2-S2 keeps every in-scene edit balanced (`ManuscriptPresenter.balancedEdit` via `shouldChangeText`, EP-046 AC12 / Q3).
-
-⛔ **READ 2026-10-05 — a selection that crosses a scene divider takes a separate path that never reaches it:**
-1. **Cut / ⌫ / ⌦ across scenes** — `Coordinator.deleteAcrossScenes` (`ManuscriptTextView.swift`, [I-0270]) deletes each
-   scene's part with `storage.deleteCharacters`, bypassing `shouldChangeText`: `**bo|ld**` ⟨divider⟩ `|…` leaves an
-   unclosed `**bo` in the first scene.
-2. **The cross-scene copy for Scrivi's own paste** — `structuredCopyIfCrossBoundary` keeps ScriviCore's
-   `fragmentExtract` result: raw source slices per scene, no markers added at the cut points.
-3. **What other apps get** from that copy — `MarkdownEscapes.map(frag.plainText).presented` removes escapes but KEEPS
-   `**`/`*` and `## ` (⛔ against [SP-162] Q2: markers removed).
-4. **Pasting that fragment** — `pasteStructuredFragment` (through ScriviCore) does not merge bold into bold.
-
-✅ **Expected:** the same rules as E2-S2, per scene — each scene's remaining text balanced; each scene slice of the
-fragment carries its own markers; other apps get the presented text (`balancedCopy`); a paste merges like an in-scene
-paste. ✅ **Seam:** `balancedEdit` / `balancedCopy` work on any storage range inside one scene, so each scene part can
-go through them; ⚠️ open: whether the per-scene balancing belongs in ScriviCore's fragment ops (Linux would then get it
-— [EP-048] L7) or stays Apple-side, as E2-S2's does. Rule that when scheduled.
-⚠️ Each scene part must stay ONE history event per gesture (`recordGroupedEdit`), as [I-0270] made it.
-
-🟠 **2026-10-05 — IMPLEMENTED - NOT VERIFIED** ([SP-163]) — ✅ **RULED Apple-side** (2026-10-05): `deleteAcrossScenes` balances each scene part; the structured copy carries balanced pieces and gives other apps the presented text; the structured paste continues / re-opens the caret's span. ⏳ Live pass.
-✅ **VERIFIED 2026-10-06 (user):** the full SP-163 live pass, its two fixes and their re-checks — last: *"1 through 6 above all pass."* ⏳ Archived with the Sprint close.
----
-
-## ✅ T-0584 — `[Apple]` Option-Return stores ONE `\n` — rule what it should store — ✅ **VERIFIED 2026-10-06 (user, live pass)**
-
-**Created:** 2026-10-04 (user: *"file the two tasks and create a planning sprint for EP-046"*)
-**Epic:** ✅ **[EP-045] follow-up → [EP-046]** · **Sprint:** ✅ RULED in **[SP-159]** (CLOSED) → [`../Sprints/Closed/Sprint-SP-159.md`](../Sprints/Closed/Sprint-SP-159.md); implementation → EP-046 **E2-S3** = 🔵 **[SP-163]** (Planning) → [`../Sprints/Sprint-SP-163.md`](../Sprints/Sprint-SP-163.md).
-**Origin:** [SP-156] AC-measure (→ [`../Sprints/Closed/Sprint-SP-156.md`](../Sprints/Closed/Sprint-SP-156.md)): Option-Return sends
-`insertNewlineIgnoringFieldEditor:` and stores a single `\n` (the user confirmed `0x0A` on 2026-10-04).
-⚠️ **Why it matters under EP-046:** a single `\n` is a SOFT break — it displays as a line break today (E1 shows
-storage) but RENDERS AS A SPACE once inline rendering lands, so the writer's line break would silently vanish.
-✅ **Options:** (a) treat as Return (`\n\n`, a paragraph); (b) a deliberate hard break (`\` + `\n`, the backslash hidden
-— the same form AC6 gives a typed trailing backslash); (c) leave it. ⚠️ Recommendation at filing: (b) — a modified
-Return usually means "line break within the paragraph".
-✅ **RULED 2026-10-05 (Q-E2-4): (b) a hard break, `\` + `\n`.** Implementation → EP-046 **E2-S3** (AC9).
-
-🟠 **2026-10-05 — IMPLEMENTED - NOT VERIFIED** ([SP-163]): `insertNewlineIgnoringFieldEditor:` stores `\` + `\n` — ✅ and Linux's Alt-Return the same (shared corpus updated; `escape_smoke` PASS in the canonical Linux image). ⏳ Live pass.
-✅ **VERIFIED 2026-10-06 (user):** the full SP-163 live pass, its two fixes and their re-checks — last: *"1 through 6 above all pass."* ⏳ Archived with the Sprint close.
----
-
-## 🟡 T-0585 — `[Apple]` Find/Replace across hidden escape backslashes
-
-**Created:** 2026-10-04 (same request) · **Epic:** **[EP-046]** · **Sprint:** ✅ RULED in **[SP-159]** (CLOSED) → [`../Sprints/Closed/Sprint-SP-159.md`](../Sprints/Closed/Sprint-SP-159.md); implementation → EP-046 **E2-S4** (not yet created).
+**Created:** 2026-10-04 (same request) · **Epic:** **[EP-046]** · **Sprint:** ✅ RULED in **[SP-159]** (CLOSED) → [`../Sprints/Closed/Sprint-SP-159.md`](../Sprints/Closed/Sprint-SP-159.md); implementation → EP-046 **E2-S4** = 🟡 **[SP-164]** (ACTIVE) → [`../Sprints/Sprint-SP-164.md`](../Sprints/Sprint-SP-164.md).
 **Origin:** [SP-155] (EP-045 AC4), recorded there as a follow-up and carried unfiled until now.
 ⛔ **The defect:** the writer sees `*`; storage holds `\*`. AppKit's Find matches STORAGE, so searching for `*` does
 not find it, and a Replace could split an escape pair (leaving an orphaned `\` or a live mark).
@@ -77,6 +31,7 @@ escape layer. ✅ The AC3 SOURCE↔PRESENTED map is the existing seam for this.
 ✅ **RULED 2026-10-05 (Q-E2-5): match the PRESENTED text; replacements written through the escape layer.** Implementation →
 EP-046 **E2-S4** (AC10); first task: whether `NSTextFinder` can be pointed at presented text (design §7).
 
+🟠 **2026-10-06 — IMPLEMENTED - NOT VERIFIED** ([SP-164]) — Find matches the PRESENTED text; Replace writes through the escape layer. ⏳ Live pass.
 ---
 
 ## ✅ [SP-147] — T-0565 · T-0566 · T-0567 — ✅ **VERIFIED 2026-09-30, ARCHIVED**

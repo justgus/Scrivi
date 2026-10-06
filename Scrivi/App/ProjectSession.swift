@@ -66,6 +66,8 @@ import os
     // ✅ EP-046 E2-S3 ([SP-163]) — the Format menu: performed by the manuscript view on its selection.
     // nil until the manuscript view is live; the menu items disable when nil.
     var formatAction: ((ManuscriptFormat) -> Void)?
+    // ✅ EP-046 E2-S4 ([SP-164]) — Edit ▸ Find, performed by the manuscript view's find bar.
+    var findAction: ((ManuscriptFindCommand) -> Void)?
 
     var sceneStartAction:   (() -> Void)?
     var sceneEndAction:     (() -> Void)?

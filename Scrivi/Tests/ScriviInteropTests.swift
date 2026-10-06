@@ -5060,4 +5060,130 @@ struct FormatCommandTests {
                 == ["w** one", "mid", "last**"], "only the word that was bold stays bold")
     }
 }
+/// EP-046 E2-S4 (SP-164, T-0593 + T-0585) — Find and Replace over what the writer SEES (Q-E2-5): AppKit's find bar (Q1) over a
+/// presented-text client. ⚠️ `NSTextFinder` reads its query from the SYSTEM find pasteboard — the tests that drive it save and
+/// restore the writer's find string.
+@Suite("Find and Replace (EP-046 E2-S4)")
+@MainActor
+struct FindReplaceTests {
+
+    private func fixture(_ text: NSAttributedString) -> (ManuscriptFixture, NSScrollView) {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(text)
+        let sv = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
+        sv.documentView = f.tv
+        f.window.contentView = sv
+        // ⚠️ The find bar needs its window ON SCREEN and key (measured in the [SP-164] spike).
+        f.window.makeKeyAndOrderFront(nil)
+        f.window.makeFirstResponder(f.tv)
+        _ = f.tv.textFinder                     // as in the app: the find bar exists before any Find or Replace
+        return (f, sv)
+    }
+
+    private func body(_ s: String) -> NSAttributedString {
+        NSAttributedString(string: s, attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor])
+    }
+
+    @Test("the presented text: no escapes, markers or heading prefixes; no chapter titles; one chunk per scene")
+    func presentedText() {
+        let s = NSMutableAttributedString(string: "Chapter One\n", attributes: [.scriviHeading: true])
+        s.append(body(#"Mr\. **Smith** said \*no\*\."#))
+        s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak]))
+        s.append(body("\n## Head\n\n- item"))
+        let (f, _) = fixture(s)
+        let p = PresentedText.build(f.tv.textStorage!, presenter: f.presenter)
+        #expect(p.string as String == "Mr. Smith said *no*.\nHead\n\n- item", "presented: \((p.string as String).debugDescription)")
+        #expect(p.chunks.count == 2, "a match never crosses the scene break")
+        // A match across a hidden marker maps back WITHOUT the closer that follows it.
+        let smith = p.string.range(of: "Smith")
+        #expect((f.text as NSString).substring(with: p.storageRange(smith)) == "Smith")
+        #expect(p.firstMatch(of: "mr. smith").map { (f.text as NSString).substring(with: $0) } == #"Mr\. **Smith"#,
+                "Q5: the Navigator's jump finds a query with punctuation across a hidden marker")
+    }
+
+    @Test("Q1: AppKit's find bar, through the client — Use Selection for Find, then Find Next, over what the writer SEES")
+    func findBar() {
+        // ⚠️ Driven with Use Selection for Find: a test-host app is not the ACTIVE app, so its find bar never loads the find
+        // pasteboard on its own (measured: window not key) — the selection route needs no activation.
+        let (f, _) = fixture(body(#"x Mr\. **Smith** said \*no\*\. y Mr\. Smith said \*no\*\. z"#))
+        let pb = NSPasteboard(name: .find)
+        let saved = pb.string(forType: .string)
+        defer { pb.clearContents(); if let saved { pb.setString(saved, forType: .string) } }
+        f.tv.setSelectedRange(NSRange(location: 2, length: 26))          // `Mr\. **Smith** said \*no\*` — the FIRST one
+        f.tv.performFind(.useSelectionForFind)
+        #expect(pb.string(forType: .string) == "Mr. Smith said *no*", "the query is what the writer SEES")
+        f.tv.performFind(.nextMatch)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        let found = (f.text as NSString).substring(with: f.tv.selectedRange())
+        #expect(found == #"Mr\. Smith said \*no\*"#, "the SECOND occurrence, selected in storage: \(found.debugDescription)")
+    }
+
+    @Test("Replace writes ESCAPED text and takes the match's first character's style (Q3); Replace All in one pass")
+    func replace() {
+        let (f, _) = fixture(body("a **Smith** b"))
+        let client = f.tv.finderClient
+        client.textView = f.tv
+        let p = client.presented
+        client.replaceCharacters(in: p.string.range(of: "Smith"), with: "J. Jones")
+        #expect(f.text == #"a **J\. Jones** b"#, "escaped, and bold like the word it replaced")
+        // Replace All, in the order AppKit drives it: should (→ true, so the find bar reports its count), one
+        // replaceCharacters per range, did. ✅ Applied ONCE, in one pass, from the ranges `should` was given.
+        let (g, _) = fixture(body("cat and **cat** and cat"))
+        let gc = g.tv.finderClient
+        gc.textView = g.tv
+        let q = gc.presented
+        let ranges = [0, 8, 16].map { NSValue(range: NSRange(location: $0, length: 3)) }
+        #expect(q.string as String == "cat and cat and cat")
+        #expect(gc.shouldReplaceCharacters(inRanges: ranges, with: ["d*g", "d*g", "d*g"]), "true: the find bar reports the count")
+        for r in ranges.reversed() { gc.replaceCharacters(in: r.rangeValue, with: "d*g") }
+        gc.didReplaceCharacters()
+        #expect(g.text == #"d\*g and **d\*g** and d\*g"#, "escaped, and the bold one stays bold: \(g.text.debugDescription)")
+        // The batch is over: a single Replace acts again.
+        gc.replaceCharacters(in: gc.presented.string.range(of: "d*g"), with: "x")
+        #expect(g.text.hasPrefix("x and"), "\(g.text.debugDescription)")
+    }
+
+    @Test("Replace All of 1,200 matches is one editing pass — fast ([SP-164] live pass: ~1 min through the typing path)")
+    func replaceAllIsFast() {
+        let para = #"He said **cat**, and Mr\. cat went on\. The cat sat; the *cat* ran past a cat.\#n\#n"#
+        let (f, _) = fixture(body(String(repeating: para, count: 240)))
+        let client = f.tv.finderClient
+        client.textView = f.tv
+        let p = client.presented
+        var ranges: [NSValue] = []
+        var at = 0
+        while true {
+            let r = p.string.range(of: "cat", range: NSRange(location: at, length: p.length - at))
+            if r.location == NSNotFound { break }
+            ranges.append(NSValue(range: r)); at = NSMaxRange(r)
+        }
+        #expect(ranges.count == 1200)
+        let t0 = Date()
+        _ = client.shouldReplaceCharacters(inRanges: ranges, with: Array(repeating: "dog", count: ranges.count))
+        for r in ranges.reversed() { client.replaceCharacters(in: r.rangeValue, with: "dog") }
+        client.didReplaceCharacters()
+        let ms = Date().timeIntervalSince(t0) * 1000
+        #expect(!f.text.contains("cat"))
+        #expect(f.text.components(separatedBy: "**dog**").count == 241, "bold stays bold")
+        #expect(f.text.components(separatedBy: "*dog*").count == 481, "italic stays italic (and bold contains *dog*)")
+        #expect(ms < 2000, "Replace All took \(Int(ms)) ms")
+        print("[SCRIVI-FIND-TEST] replace all 1200: \(Int(ms)) ms")
+    }
+
+    @Test("Q5: the Navigator's filter searches what the writer SEES — a period, across markers, a heading's text")
+    func navigatorSearchable() {
+        #expect(MarkdownEmphasis.searchable(#"Mr\. **Smith** said \*no\*\."#) == "Mr. Smith said *no*.")
+        #expect(MarkdownEmphasis.searchable("## Head\n\nText") == "Head\n\nText")
+        #expect(MarkdownEmphasis.searchable("- item\n- two") == "- item\n- two", "list prefixes are visible")
+        #expect(MarkdownEmphasis.searchable("plain, text. here") == "plain, text. here")
+        #expect(MarkdownEmphasis.searchable(#"nation\. Conceived"#).localizedStandardContains("nation. Conceived"))
+    }
+
+    @Test("Edit ▸ Find exists, with its five commands")
+    func findMenu() throws {
+        let edit = try #require(NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu)
+        let find = try #require(edit.items.first { $0.title == "Find" }?.submenu, "Edit ▸ Find: \(edit.items.map(\.title))")
+        #expect(Set(find.items.map(\.title)).isSuperset(of: ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find"]))
+    }
+}
 #endif

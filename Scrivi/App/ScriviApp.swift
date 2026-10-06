@@ -233,6 +233,62 @@ struct ScriviApp: App {
 
     #if os(macOS)
     @CommandsBuilder
+    private var manuscriptCommands: some Commands {
+        // ✅ EP-046 E2-S4 ([SP-164]) — Edit ▸ Find: AppKit's find bar over what the writer SEES (Q1). ⛔ There was no Find before.
+        // ✅ Shortcuts checked free 2026-10-06 (⌘F, ⌥⌘F, ⌘G, ⇧⌘G, ⌘E — none in Scrivi's menus or the manuscript's keyDown).
+        CommandGroup(after: .textEditing) {
+            Menu("Find") {
+                Button("Find…") { focusedSession?.findAction?(.showFind) }
+                    .keyboardShortcut("f", modifiers: .command)
+                Button("Find and Replace…") { focusedSession?.findAction?(.showReplace) }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
+                Button("Find Next") { focusedSession?.findAction?(.nextMatch) }
+                    .keyboardShortcut("g", modifiers: .command)
+                Button("Find Previous") { focusedSession?.findAction?(.previousMatch) }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                Button("Use Selection for Find") { focusedSession?.findAction?(.useSelectionForFind) }
+                    .keyboardShortcut("e", modifiers: .command)
+            }
+            .disabled(focusedSession?.findAction == nil)
+        }
+
+        // ✅ EP-046 E2-S3 ([SP-163], Q-E2-2 / Q2 ruled 2026-10-05) — the Format menu: under the escape ruling these are
+        // the ONLY way formatting enters a manuscript. ✅ Shortcuts checked free 2026-10-05: the copy buffers take
+        // ⌘/⌃/⌥ + 1–9 with exactly ONE modifier; the View toggles take ⌥⌘I/T/B; ⇧⌘0/1 go to the manuscript ends.
+        // ⚠️ The user's own Mac maps ⌥⌘3 to a Dropbox screenshot (noted [SP-163] live pass) — kept, per Q2.
+        // ✅ [SP-163] live pass (user): the menu sits BETWEEN Edit and View — the system Format menu's place, which
+        // SwiftUI exposes as `.textFormatting`. ⛔ A `CommandMenu("Format")` lands after View.
+        CommandGroup(replacing: .textFormatting) {
+            Button("Bold") { focusedSession?.formatAction?(.bold) }
+                .keyboardShortcut("b", modifiers: .command)
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Italic") { focusedSession?.formatAction?(.italic) }
+                .keyboardShortcut("i", modifiers: .command)
+                .disabled(focusedSession?.formatAction == nil)
+            Divider()
+            Button("Heading 1") { focusedSession?.formatAction?(.heading(1)) }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Heading 2") { focusedSession?.formatAction?(.heading(2)) }
+                .keyboardShortcut("2", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Heading 3") { focusedSession?.formatAction?(.heading(3)) }
+                .keyboardShortcut("3", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Body") { focusedSession?.formatAction?(.body) }
+                .keyboardShortcut("0", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Divider()
+            Button("Bulleted List") { focusedSession?.formatAction?(.bulletList) }
+                .keyboardShortcut("l", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+            Button("Numbered List") { focusedSession?.formatAction?(.numberedList) }
+                .keyboardShortcut("n", modifiers: [.command, .option])
+                .disabled(focusedSession?.formatAction == nil)
+        }
+    }
+
+    @CommandsBuilder
     private var appCommands: some Commands {
         // Standard File menu: New / Open / Close, in place of the system new-item group.
         CommandGroup(replacing: .newItem) {
@@ -340,40 +396,9 @@ struct ScriviApp: App {
                 .disabled(focusedSession?.chapterEndAction == nil)
         }
 
-        // ✅ EP-046 E2-S3 ([SP-163], Q-E2-2 / Q2 ruled 2026-10-05) — the Format menu: under the escape ruling these are
-        // the ONLY way formatting enters a manuscript. ✅ Shortcuts checked free 2026-10-05: the copy buffers take
-        // ⌘/⌃/⌥ + 1–9 with exactly ONE modifier; the View toggles take ⌥⌘I/T/B; ⇧⌘0/1 go to the manuscript ends.
-        // ⚠️ The user's own Mac maps ⌥⌘3 to a Dropbox screenshot (noted [SP-163] live pass) — kept, per Q2.
-        // ✅ [SP-163] live pass (user): the menu sits BETWEEN Edit and View — the system Format menu's place, which
-        // SwiftUI exposes as `.textFormatting`. ⛔ A `CommandMenu("Format")` lands after View.
-        CommandGroup(replacing: .textFormatting) {
-            Button("Bold") { focusedSession?.formatAction?(.bold) }
-                .keyboardShortcut("b", modifiers: .command)
-                .disabled(focusedSession?.formatAction == nil)
-            Button("Italic") { focusedSession?.formatAction?(.italic) }
-                .keyboardShortcut("i", modifiers: .command)
-                .disabled(focusedSession?.formatAction == nil)
-            Divider()
-            Button("Heading 1") { focusedSession?.formatAction?(.heading(1)) }
-                .keyboardShortcut("1", modifiers: [.command, .option])
-                .disabled(focusedSession?.formatAction == nil)
-            Button("Heading 2") { focusedSession?.formatAction?(.heading(2)) }
-                .keyboardShortcut("2", modifiers: [.command, .option])
-                .disabled(focusedSession?.formatAction == nil)
-            Button("Heading 3") { focusedSession?.formatAction?(.heading(3)) }
-                .keyboardShortcut("3", modifiers: [.command, .option])
-                .disabled(focusedSession?.formatAction == nil)
-            Button("Body") { focusedSession?.formatAction?(.body) }
-                .keyboardShortcut("0", modifiers: [.command, .option])
-                .disabled(focusedSession?.formatAction == nil)
-            Divider()
-            Button("Bulleted List") { focusedSession?.formatAction?(.bulletList) }
-                .keyboardShortcut("l", modifiers: [.command, .option])
-                .disabled(focusedSession?.formatAction == nil)
-            Button("Numbered List") { focusedSession?.formatAction?(.numberedList) }
-                .keyboardShortcut("n", modifiers: [.command, .option])
-                .disabled(focusedSession?.formatAction == nil)
-        }
+        // ✅ EP-046 — the manuscript's Edit ▸ Find and Format menus, in their own builder (a Commands builder takes at most
+        // ten entries; [SP-164] made this one eleven).
+        manuscriptCommands
 
         // View menu — toggles act on the focused project window. Inspector/Timeline are
         // per-window (session); the buffers palette is app-global (one panel that follows

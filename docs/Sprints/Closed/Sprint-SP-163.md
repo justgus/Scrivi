@@ -1,7 +1,8 @@
 ---
 sprint: SP-163
 epic: EP-046
-status: Active
+status: Closed
+closed: 2026-10-06
 activated: 2026-10-05
 platform: Apple
 created: 2026-10-05
@@ -9,11 +10,11 @@ created: 2026-10-05
 
 # SP-163 — `[Apple]` [EP-046] **E2-S3**: the formatting commands + lists + Option-Return
 
-**Status:** 🟡 **ACTIVE 2026-10-05** (user: *"Lets activate SP-163."*) — created 2026-10-05. ✅ Q1–Q7 ruled.
-**Tasks:** [T-0592] (this Sprint's work) · [T-0584] Option-Return · [T-0591] cross-scene balancing (added at activation) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md)
-**Epic:** [EP-046] `[Apple]` The Manuscript Renderer — Inline Rendering → [`../Epics/Epic-active.md`](../Epics/Epic-active.md)
+**Status:** ✅ **CLOSED 2026-10-06 (user-approved):** *"yes, close SP-163."* — activated 2026-10-05. ✅ Q1–Q7 ruled; all ACs met; [T-0592], [T-0584], [T-0591], [I-0279] VERIFIED and archived.
+**Tasks:** ✅ [T-0592] · ✅ [T-0584] · ✅ [T-0591] → `../../Tasks/Verified/` · ✅ [I-0279] → `../../Issues/Verified/Issue-verified-0271-0280.md`
+**Epic:** [EP-046] `[Apple]` The Manuscript Renderer — Inline Rendering → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md)
 **Carries:** [T-0584] Option-Return (ruled Q-E2-4 = (b), a hard break) · ✅ [T-0591] balance emphasis across SCENE boundaries (added by the user at activation).
-**Authority:** [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) — §0A
+**Authority:** [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) — §0A
 (Q-E2-2 command surface, Q-E2-4), §4.2 (lists), §6 (commands: the S5 measurements and the flank rule), §3.6 (E2-S2 as built).
 Previous Sprint: [`Closed/Sprint-SP-162.md`](Closed/Sprint-SP-162.md).
 **Size:** M. ✅ The machinery exists: a command is a STYLE edit on E2-S2's tokens (`MarkdownEmphasis`), written back balanced.
@@ -231,3 +232,27 @@ whitespace outside: a space at the start → ` **bold**`; at the end → `**bold
 ### ✅ 2026-10-06 — Span-edge re-check PASSES; [T-0592], [T-0584], [T-0591], [I-0279] VERIFIED
 
 ✅ User: *"1 through 6 above all pass."* ✅ Every AC met; the live pass is complete. ⏳ Archive with the Sprint close — awaiting the user's approval.
+
+### ✅ 2026-10-06 — Sprint CLOSED (user-approved); four items archived
+
+✅ User: *"yes, close SP-163."* ✅ [T-0592], [T-0584], [T-0591] → `Tasks/Verified/`; [I-0279] → `Issues/Verified/Issue-verified-0271-0280.md`.
+
+---
+
+## Retrospective
+
+**Completed:** ✅ EP-046 AC6 (the Format menu: ⌘B ⌘I ⌥⌘1–3 ⌥⌘0 ⌥⌘L ⌥⌘N, one edit each), AC9 (Option-Return = hard break,
+Apple AND Linux), list rendering, Q1's pending pair, AC12 across scenes ([T-0591], Apple-side). Plus, from the live pass: the
+Format menu moved between Edit and View; Scrivi's own paste keeps its formatting; edge whitespace leaves a span on EVERY edit.
+**Filed and fixed in scope:** [I-0279] — after one cross-scene copy every ⌘V pasted it (held since SP-089).
+**Returned to Backlog:** none.
+**What went well:** ✅ The harness-first habit kept paying: the context bug in the normaliser (6.9% refusals) and the pass-order
+bug were found in a harness in minutes, and fixing them lifted E2-S2's realistic corpus to 6,000/6,000. ✅ Linux matched in the
+same work, and the old corpus was run against the new binary to prove the check bites.
+**What to improve:** ⚠️ **Three of the four live-pass defects were mine and were reachable by tests I did not write:**
+(1) the escape-pair snap re-widening a COMPUTED edit (step 12) — no test placed the caret at an item's start; (2) pasted text
+taking the caret's style (step 17) — I chose a rule the user had not ruled; (3) a typed space at a span's edge — I tested ⌫ at
+the edge but not typing there. ⚠️ Rule chosen without asking → ask. Edge of a construct → test EVERY kind of edit there
+(type, ⌫, ⌦, paste), not one. [I-0279] was older (SP-089) and found because the pass mixed copy kinds.
+⚠️ **Carried:** the ⌥⌘3 shortcut clashes with Dropbox's screenshot on the user's Mac (kept, Q2). Return in a list item does
+not trim trailing spaces before the caret (minor). EP-046's last Sprint, E2-S4 (Find/Replace, [T-0585]), is not yet created.

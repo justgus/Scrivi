@@ -670,7 +670,8 @@ struct SceneNavigatorView: View {
         var ids: Set<String> = []
         for (i, scene) in texts.enumerated() {
             if i % 64 == 0, Task.isCancelled { return nil }
-            if scene.text.localizedStandardContains(query) { ids.insert(scene.sceneID) }
+            // ✅ [SP-164] Q5: the text the writer SEES — a stored `Mr\. Smith` or `**bold** here` matches what she typed.
+            if MarkdownEmphasis.searchable(scene.text).localizedStandardContains(query) { ids.insert(scene.sceneID) }
         }
         return Task.isCancelled ? nil : ids
     }

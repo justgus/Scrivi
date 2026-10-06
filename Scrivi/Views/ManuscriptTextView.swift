@@ -121,6 +121,11 @@ struct ManuscriptTextView: NSViewRepresentable {
         // the same handlers as the ⌘↩ / ⌘⇧↩ / ⌘⌫ / ⌘⇧⌫ keys. Take focus first so the
         // operation acts on the manuscript caret (menu clicks don't change first
         // responder), matching what the keyboard path already has.
+        // ✅ EP-046 E2-S4: Edit ▸ Find acts on this manuscript; Replace All is one grouped step (Q2).
+        textView.finderClient.replaceAllHandler = { [weak coordinator] edits in coordinator?.replaceAll(edits) }
+        session.findAction = { [weak coordinator, weak textView] command in
+            coordinator?.takeFocus(); textView?.performFind(command)
+        }
         // ✅ EP-046 E2-S3: the Format menu acts on the manuscript's own selection.
         session.formatAction = { [weak coordinator, weak textView] format in
             coordinator?.takeFocus(); textView?.applyFormat(format)
@@ -411,13 +416,16 @@ struct ManuscriptTextView: NSViewRepresentable {
             // `changes.first`, which would have restored one scene of the group and silently
             // dropped the rest. ✅ Apply every change, then leave the caret in the EARLIEST
             // scene the step touched (where the cross-scene edit began).
+            // ⚠️ [SP-164] live pass: undoing a Replace All across ~880 scenes moved the caret and SCROLLED to each scene in
+            // turn. ✅ A multi-scene step places the caret once, below.
+            let single = step.changes.count == 1
             var placed: [(segIdx: Int, caret: Int)] = []
             for change in step.changes {
-                if let p = applySceneChange(change, in: tv, storage: storage, capture: capture) {
+                if let p = applySceneChange(change, in: tv, storage: storage, capture: capture, placesCaret: single) {
                     placed.append(p)
                 }
             }
-            if placed.count > 1, let first = placed.min(by: { $0.segIdx < $1.segIdx }) {
+            if !single, let first = placed.min(by: { $0.segIdx < $1.segIdx }) {
                 tv.setSelectedRange(NSRange(location: first.caret, length: 0))
                 tv.scrollRangeToVisible(NSRange(location: first.caret, length: 0))
                 if parent.loader.segments.indices.contains(first.segIdx) {
@@ -447,7 +455,8 @@ struct ManuscriptTextView: NSViewRepresentable {
         // the scene is not loaded. (Body unchanged from when `apply` handled one change.)
         private func applySceneChange(_ change: HistorySceneChange, in tv: NSTextView,
                                       storage: NSTextStorage,
-                                      capture: HistoryCapture) -> (segIdx: Int, caret: Int)? {
+                                      capture: HistoryCapture,
+                                      placesCaret: Bool = true) -> (segIdx: Int, caret: Int)? {
             // Map the changed scene to its loaded segment / storage range.
             guard let segIdx = parent.loader.segments.firstIndex(where: { $0.sceneID == change.sceneID }) else {
                 return nil
@@ -483,8 +492,10 @@ struct ManuscriptTextView: NSViewRepresentable {
                     let charOffset = charOffsetForByteOffset(Int(change.cursorAfter), in: sceneText)
                     let storageLoc = min(newRange.location + charOffset, (tv.string as NSString).length)
                     caret = storageLoc
-                    tv.setSelectedRange(NSRange(location: storageLoc, length: 0))
-                    tv.scrollRangeToVisible(NSRange(location: storageLoc, length: 0))
+                    if placesCaret {
+                        tv.setSelectedRange(NSRange(location: storageLoc, length: 0))
+                        tv.scrollRangeToVisible(NSRange(location: storageLoc, length: 0))
+                    }
                 }
             }
 
@@ -1931,11 +1942,10 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             let ns = tv.string as NSString
             let scene = NSIntersectionRange(sceneBoundaries[segIdx], NSRange(location: 0, length: ns.length))
-            let match = ns.range(of: hint.query,
-                                 options: [.caseInsensitive, .diacriticInsensitive],
-                                 range: scene,
-                                 locale: .current)
-            return match.location == NSNotFound ? nil : match.location
+            // ✅ [SP-164] Q5: match what the writer SEES — a query with punctuation (`Mr. Smith`, stored `Mr\. Smith`) or one
+            // across a hidden marker (`bold here`, stored `**bold** here`) used to find nothing here.
+            guard let storage = tv.textStorage else { return nil }
+            return PresentedText.build(storage, presenter: presenter, range: scene).firstMatch(of: hint.query)?.location
         }
 
         // Scroll so `storageOffset` sits near the VERTICAL CENTRE of the viewport.
@@ -2324,6 +2334,52 @@ struct ManuscriptTextView: NSViewRepresentable {
         // ⌘Z restores every scene and a single redo re-applies them (user ruling, same day).
         // Returns false for a selection inside one scene — the ordinary path handles it.
         @discardableResult
+        /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — the replacements are applied with history
+        /// capture suppressed, then recorded as ONE grouped edit (as [I-0270]'s cross-scene delete is). `edits` run back to
+        /// front (storage ranges, unescaped replacement text).
+        func replaceAll(_ edits: [(NSRange, String)]) {
+            guard let tv = textView as? ManuscriptNSTextView, !edits.isEmpty else { return }
+            ensureBoundaries(tv)
+            let touched = Set(edits.compactMap { segmentIndex(for: $0.0.location) })
+            var before: [Int: String] = [:]
+            for i in touched where sceneBoundaries.indices.contains(i) {
+                before[i] = (tv.string as NSString).substring(with: sceneBoundaries[i])
+            }
+            let t0 = Date()
+            guard let capture = parent.session.historyCapture else {
+                tv.applyReplacements(edits)
+                return
+            }
+            capture.flush(trigger: "replace")
+            capture.withApplying { tv.applyReplacements(edits) }
+            let tApplied = Date()
+            ensureBoundaries(tv)
+            let loader = parent.loader
+            var grouped: [HistoryCapture.GroupedSceneEdit] = []
+            for i in touched.sorted() where sceneBoundaries.indices.contains(i) && loader.segments.indices.contains(i) {
+                let after = (tv.string as NSString).substring(with: sceneBoundaries[i])
+                let seg = loader.segments[i]
+                loader.updateText(after, at: i)
+                grouped.append(.init(sceneID: seg.sceneID, textBefore: before[i] ?? after,
+                                     textAfter: after, cursorByte: 0))
+                let firstLine = after.components(separatedBy: .newlines)
+                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
+            }
+            capture.recordGroupedEdit(grouped, kind: "replace")
+            let tRecorded = Date()
+            if let ref = parent.env.authorshipRef {
+                let env = parent.env
+                for i in touched {
+                    Task { @MainActor in await loader.saveScene(at: i, engine: env.engine, ref: ref) }
+                }
+            }
+            parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
+            NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: apply=%.0f ms  history=%.0f ms",
+                         edits.count, touched.count, tApplied.timeIntervalSince(t0) * 1000,
+                         tRecorded.timeIntervalSince(tApplied) * 1000))
+        }
+
         /// The selected part of each scene `sel` overlaps, in storage order — what `fragmentSpans` sends ScriviCore.
         func sceneParts(of sel: NSRange) -> [NSRange]? {
             var parts: [NSRange] = []
@@ -2587,6 +2643,77 @@ final class ManuscriptNSTextView: NSTextView {
 
     /// True while a balanced edit is being applied — it must not be balanced again.
     private var applyingBalancedEdit = false
+
+    // MARK: — EP-046 E2-S4: Find and Replace over what the writer SEES ([SP-164])
+
+    /// The client AppKit's find bar searches: the manuscript AS PRESENTED (Q1, Q-E2-5).
+    let finderClient = ManuscriptFinderClient()
+    private var finderObserver: NSObjectProtocol?
+    lazy var textFinder: NSTextFinder = {
+        let finder = NSTextFinder()
+        finderClient.textView = self
+        finder.client = finderClient
+        finder.findBarContainer = enclosingScrollView
+        finder.isIncrementalSearchingEnabled = true
+        // Every character edit invalidates the presented text; AppKit must hear of it BEFORE the change.
+        if let storage = textStorage {
+            finderObserver = NotificationCenter.default.addObserver(
+                forName: NSTextStorage.willProcessEditingNotification, object: storage, queue: nil) { [weak self] note in
+                guard let ts = note.object as? NSTextStorage, ts.editedMask.contains(.editedCharacters) else { return }
+                MainActor.assumeIsolated {
+                    self?.textFinder.noteClientStringWillChange()
+                    self?.finderClient.storageVersion += 1
+                }
+            }
+        }
+        return finder
+    }()
+
+    /// What Edit ▸ Find calls.
+    func performFind(_ command: ManuscriptFindCommand) {
+        guard let action = NSTextFinder.Action(rawValue: command.rawValue) else { return }
+        textFinder.performAction(action)
+    }
+
+    /// AppKit's own Find items (if any reach this view) go to the same finder.
+    override func performTextFinderAction(_ sender: Any?) {
+        guard let tag = (sender as? NSValidatedUserInterfaceItem)?.tag,
+              let action = NSTextFinder.Action(rawValue: tag) else { return }
+        textFinder.performAction(action)
+    }
+
+    /// Replace one found range (STORAGE) with what the writer typed in the find bar: ✅ escaped like typing and balanced like
+    /// any edit — it takes the style of the match's first character (Q3).
+    func replaceFound(_ range: NSRange, with string: String) {
+        insertText(string, replacementRange: range)
+    }
+
+    /// Replace All's replacements (STORAGE ranges, back to front, typed text) in ONE editing pass — each escaped, snapped
+    /// and balanced exactly as `replaceFound` does it. ⚠️ [SP-164] live pass: 1,172 replacements through the typing path
+    /// (`replaceFound` each) kept the app busy for about a minute on dumas.
+    func applyReplacements(_ edits: [(NSRange, String)]) {
+        guard let storage = textStorage else { return }
+        let attrs: [NSAttributedString.Key: Any] = [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]
+        storage.beginEditing()
+        for (r, typed) in edits {
+            let escaped = MarkdownEscapes.escape(typed)
+            var range = r
+            if range.length > 0, let presenter,
+               let pair = MarkdownEscapes.snapSelection(range, in: storage.string as NSString,
+                                                        runAt: Self.runLookup(presenter, storage)) {
+                range = pair
+            }
+            if let presenter, let edit = presenter.balancedEdit(in: storage, replacing: range, with: escaped) {
+                storage.replaceCharacters(in: edit.range, with: NSAttributedString(string: edit.replacement, attributes: attrs))
+            } else {
+                storage.replaceCharacters(in: range, with: NSAttributedString(string: escaped, attributes: attrs))
+            }
+        }
+        storage.endEditing()
+        let len = storage.length
+        let sel = selectedRange()
+        setSelectedRange(NSRange(location: min(sel.location, len), length: 0))
+    }
     /// True while Scrivi's OWN copy is pasted: it keeps its own formatting.
     private var pastingOwnCopy = false
 

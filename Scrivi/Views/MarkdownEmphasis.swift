@@ -208,6 +208,29 @@ enum MarkdownEmphasis {
         return MarkdownEscapes.map(String(utf16CodeUnits: u, count: u.count)).presented
     }
 
+    /// A whole scene as the writer SEES it, for SEARCH — the Navigator's filter ([SP-164] live pass: a query with a period
+    /// found nothing, the stored text being `Mr\.`): no emphasis markers, no heading prefixes, no escape backslashes.
+    /// ⚠️ A list prefix is VISIBLE, so it stays (as in the find bar's `PresentedText`). Text with none of `\ * _ #` is
+    /// already what the writer sees and is returned as is.
+    static func searchable(_ source: String) -> String {
+        guard source.utf16.contains(where: { $0 == 0x5C || $0 == 0x2A || $0 == 0x5F || $0 == 0x23 }) else { return source }
+        let u = Array(source.utf16)
+        var out: [UInt16] = []
+        out.reserveCapacity(u.count)
+        var p = 0
+        for b in blocks(of: u) {
+            out += u[p..<b.location]
+            let a = MarkdownBlocks.analyze(String(utf16CodeUnits: Array(u[b.location..<NSMaxRange(b)]), count: b.length))
+            var hidden = Set<Int>()
+            for m in a.markers { hidden.formUnion(m.range.location..<NSMaxRange(m.range)) }
+            for h in a.headings { hidden.formUnion(h.prefix.location..<NSMaxRange(h.prefix)) }
+            for k in 0..<b.length where !hidden.contains(k) { out.append(u[b.location + k]) }
+            p = NSMaxRange(b)
+        }
+        out += u[p...]
+        return MarkdownEscapes.map(String(utf16CodeUnits: out, count: out.count)).presented
+    }
+
     /// Token lists agree when their units match and every VISIBLE unit has the same style.
     static func sameRendering(_ a: [Token], _ b: [Token]) -> Bool {
         guard a.count == b.count else { return false }

@@ -230,6 +230,15 @@ create). The presenter is asked only for paragraphs that are **laid out** (143 a
 - ✅ **Option-Return** stores `\` + `\n` on Apple AND Linux; a single newline may sit inside a span.
 - ✅ **[T-0591] Apple-side:** each scene part of a cross-scene edit / copy / paste goes through the same balancing.
 
+### 3.8 ✅ AS BUILT — E2-S4 ([SP-164], 2026-10-06) — supersedes §7's "not spiked"
+
+- ⛔ There was NO in-manuscript Find before; ✅ AppKit's find bar (`NSTextFinder`) over a presented-text client — spike-proven on
+  1.85 MB (escape, hidden marker and heading-prefix matches all map back to storage). Presented text: 166–178 ms to build, rebuilt
+  only after an edit.
+- ⚠️ Incremental search reads the client on a BACKGROUND queue: the client reads an immutable snapshot.
+- ✅ Replace = typed text (escaped, balanced, the match's first character's style); Replace All = one grouped history step.
+- ✅ The Navigator's search jump uses the same presented matching.
+
 ---
 
 ## 4. Element order (Q-E2-3) and per-element notes
