@@ -435,6 +435,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-165** | `[Cross]` **[EP-048] S1** — md4c Markdown analyzer in ScriviCore, `scrivi_analyze_markdown` (new endpoint), Apple agreement test (L1, L2) | EP-048 | 2026-10-07 | 2026-10-07 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-165.md) |
 | **SP-166** | `[Linux]` **[EP-048] S2** — the presenter: escapes hidden, headings + emphasis rendered, reveal, caret snap (L3–L6, L9 atomic markers) | EP-048 | 2026-10-07 | — | 🟡 **ACTIVE** → [record](Sprint-SP-166.md) |
 | **SP-167** | `[Cross]` **[EP-047] S1** — `project-settings.json` (get/put), `scrivi_set_project_title`, [I-0278] migration, stale-branch purge → Project menu | EP-047 | 2026-10-07 | 2026-10-07 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-167.md) |
+| **SP-168** | `[Apple]` **[EP-047] S2** — one source for the manuscript's type; the seven bundled faces, Literata 16 pt default (AC4, AC5) | EP-047 | 2026-10-07 | 2026-10-07 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-168.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -474,6 +475,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-07 (**SP-168 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-168.md`; T-0597, I-0282 archived.)*
+
+*Last Updated: 2026-10-07 (**SP-168 ACTIVATED** (user-approved); T-0597 allocated.)*
+
+*Last Updated: 2026-10-07 (**SP-168 (EP-047 S2) created in 🔵 Planning**, issued via `next-id.py`.)*
 
 *Last Updated: 2026-10-07 (**SP-167 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-167.md`; T-0596, I-0278 archived.)*
 

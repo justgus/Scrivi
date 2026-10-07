@@ -3946,14 +3946,20 @@ struct MarkdownEscapeMapTests {
     init(_ text: String = "") {
         tv.isRichText = false
         tv.allowsUndo = false
-        tv.font = ManuscriptPresenter.bodyFont
+        tv.font = ManuscriptTypography.default.bodyFont
         tv.frame = NSRect(x: 0, y: 0, width: 500, height: 100)
         tv.textContentStorage?.delegate = presenter
         tv.textStorage?.delegate = presenter
         window = NSWindow(contentRect: tv.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = tv
         window.makeFirstResponder(tv)
-        if !text.isEmpty { tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0), with: text) }
+        // ⚠️ EP-047: the text carries the app's BODY attributes, as every app write does. (It was a bare String into empty
+        // storage — NO font at all — so the size checks below compared EMPTY sets, and `isSubset` passed vacuously.)
+        tv.typingAttributes = ManuscriptTypography.default.bodyAttributes
+        if !text.isEmpty {
+            tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0),
+                                              with: NSAttributedString(string: text, attributes: ManuscriptTypography.default.bodyAttributes))
+        }
     }
     var text: String { tv.string }
     /// Hidden as the presenter presents it NOW (under the current selection's reveal).
@@ -4076,7 +4082,7 @@ struct EscapeLayerTests {
 @MainActor
 struct SceneBoundaryTableTests {
 
-    private let body: [NSAttributedString.Key: Any] = [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]
+    private let body: [NSAttributedString.Key: Any] = [.font: ManuscriptTypography.default.bodyFont, .foregroundColor: NSColor.textColor]
 
     /// heading | "Alpha one." | divider | "Beta two." | divider | heading | "Gamma three."
     private func manuscript() -> NSAttributedString {
@@ -4481,7 +4487,8 @@ struct ManuscriptPresenterTests {
         f.caret(0)
         let p = try presented(f, headingLine)
         #expect(p.length == headingLine.length, "Apple's contract: the SAME length")
-        #expect((p.attribute(.font, at: 3, effectiveRange: nil) as? NSFont)?.pointSize == 18, "Q1: H2 = 18 pt")
+        #expect((p.attribute(.font, at: 3, effectiveRange: nil) as? NSFont)?.pointSize == ManuscriptTypography.default.headingSize(level: 2),
+                "Q1: H2 = 18/13 of the body size (EP-047 keeps Apple's heading sizes as ratios)")
         #expect(((p.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize ?? 99) < 0.1, "prefix hidden")
         #expect(f.hidden(12) && f.hidden(14) && !f.hidden(15))
         // ✅ AC1: nothing the presenter shows is in STORAGE.
@@ -4490,9 +4497,9 @@ struct ManuscriptPresenterTests {
         ts.enumerateAttribute(.font, in: NSRange(location: 0, length: ts.length)) { v, _, _ in
             if let font = v as? NSFont { sizes.insert(font.pointSize) }
         }
-        #expect(sizes.isSubset(of: [NSFont.systemFontSize]), "storage fonts: \(sizes)")
+        #expect(sizes == [ManuscriptTypography.default.size], "storage fonts: \(sizes)")
         // ✅ And TextKit LAID IT OUT that way: the line is as wide as the heading text alone.
-        let target = ("Heading two" as NSString).size(withAttributes: [.font: ManuscriptPresenter.headingFont(level: 2)]).width
+        let target = ("Heading two" as NSString).size(withAttributes: [.font: ManuscriptTypography.default.font(level: 2, style: 0)]).width
         #expect(abs(try laidOutWidth(f, at: 12) - target) < 0.5)
     }
 
@@ -4507,7 +4514,7 @@ struct ManuscriptPresenterTests {
         #expect(!f.hidden(12), "revealed on the caret's line")
         let p = try presented(f, headingLine)
         #expect(p.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor == .tertiaryLabelColor, "Q2: dimmed")
-        #expect((p.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize == NSFont.systemFontSize, "Q2: body font")
+        #expect((p.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize == ManuscriptTypography.default.size, "Q2: body font")
         #expect(try laidOutWidth(f, at: 12) > hiddenWidth + 10, "TextKit re-laid the revealed line")
         f.caret(0)
         #expect(f.hidden(12))
@@ -4599,7 +4606,7 @@ struct InlineEmphasisTests {
     private func fixture(_ text: String) -> ManuscriptFixture {
         let f = ManuscriptFixture()
         f.tv.textStorage!.setAttributedString(NSAttributedString(string: text, attributes: [
-            .font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+            .font: ManuscriptTypography.default.bodyFont, .foregroundColor: NSColor.textColor]))
         return f
     }
 
@@ -4665,8 +4672,14 @@ struct InlineEmphasisTests {
         let f = fixture("This is **emphasized**.")
         f.caret(0)
         #expect(f.hidden(8) && f.hidden(9) && f.hidden(20) && f.hidden(21) && !f.hidden(10))
-        let plain = fixture("This is emphasized.")
-        #expect(abs(try laidOutWidth(f, at: 0) - laidOutWidth(plain, at: 0)) < 0.05, "the markers take no width")
+        // ⚠️ EP-047: compare with the SAME text, styled the same, WITHOUT markers. (It compared bold "emphasized" with PLAIN
+        // "emphasized", which only matched while bold and regular were the same width — a monospaced face.)
+        let t = ManuscriptTypography.default
+        let expected = NSMutableAttributedString(string: "This is ", attributes: [.font: t.bodyFont])
+        expected.append(NSAttributedString(string: "emphasized", attributes: [.font: t.font(level: nil, style: MarkdownBlocks.bold)]))
+        expected.append(NSAttributedString(string: ".", attributes: [.font: t.bodyFont]))
+        let laid = try laidOutWidth(f, at: 0)
+        #expect(abs(laid - expected.size().width) < 0.5, "the markers take no width (laid out \(laid), unmarked \(expected.size().width))")
         let cs = try #require(f.tv.textContentStorage)
         let p = try #require(f.presenter.textContentStorage(cs, textParagraphWith: NSRange(location: 0, length: 23))).attributedString
         #expect((p.attribute(.font, at: 10, effectiveRange: nil) as? NSFont)?.fontDescriptor.symbolicTraits.contains(.bold) == true)
@@ -4674,7 +4687,7 @@ struct InlineEmphasisTests {
         f.tv.textStorage!.enumerateAttribute(.font, in: NSRange(location: 0, length: 23)) { v, _, _ in
             if let font = v as? NSFont, !font.fontDescriptor.symbolicTraits.contains(.bold) { sizes.insert(font.pointSize) }
         }
-        #expect(sizes == [NSFont.systemFontSize], "AC1: no rendering attribute reached storage")
+        #expect(sizes == [ManuscriptTypography.default.size], "AC1: no rendering attribute reached storage")
     }
 
     @Test("AC4 (span half): markers show only with the caret at the span's FIRST or LAST character — no textDidChange")
@@ -4801,7 +4814,7 @@ struct FormatCommandTests {
     private func fixture(_ text: String) -> ManuscriptFixture {
         let f = ManuscriptFixture()
         f.tv.textStorage!.setAttributedString(NSAttributedString(string: text, attributes: [
-            .font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+            .font: ManuscriptTypography.default.bodyFont, .foregroundColor: NSColor.textColor]))
         return f
     }
 
@@ -5037,9 +5050,9 @@ struct FormatCommandTests {
     @Test("T-0591: each scene part of a cross-scene cut stays balanced; a cross-scene paste into bold continues it")
     func acrossScenes() throws {
         let f = fixture("")
-        let s = NSMutableAttributedString(string: "x **bold** y", attributes: [.font: ManuscriptPresenter.bodyFont])
+        let s = NSMutableAttributedString(string: "x **bold** y", attributes: [.font: ManuscriptTypography.default.bodyFont])
         s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak]))
-        s.append(NSAttributedString(string: "\nnext **two** z", attributes: [.font: ManuscriptPresenter.bodyFont]))
+        s.append(NSAttributedString(string: "\nnext **two** z", attributes: [.font: ManuscriptTypography.default.bodyFont]))
         f.tv.textStorage!.setAttributedString(s)
         let ts = f.tv.textStorage!
         // A selection from inside "bold" (after "bo") to inside "two" (before "o"): scene 1 part 6..<12 ("ld** y"),
@@ -5081,7 +5094,7 @@ struct FindReplaceTests {
     }
 
     private func body(_ s: String) -> NSAttributedString {
-        NSAttributedString(string: s, attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor])
+        NSAttributedString(string: s, attributes: [.font: ManuscriptTypography.default.bodyFont, .foregroundColor: NSColor.textColor])
     }
 
     @Test("the presented text: no escapes, markers or heading prefixes; no chapter titles; one chunk per scene")
@@ -5479,6 +5492,428 @@ struct ProjectSettingsTravelTests {
         #expect(try String(contentsOfFile: f.root + "/project-settings.json", encoding: .utf8) == "{ damaged")
         #expect(f.legacyPresent)
         #expect(f.schemaTitle() == "Schema Title")
+    }
+}
+
+// MARK: - EP-047 S2 — the manuscript's type: one source, bundled faces (SP-168)
+
+/// ✅ EP-047 AC4 + AC5: every path that WRITES manuscript text writes the project's typography (face, size, the 1.45 line), and
+/// the faces are the BUNDLED ones. Each test uses a NON-default typography, so passing cannot mean "it happened to be the default".
+@Suite("Manuscript typography — one source, bundled faces (EP-047 S2)")
+@MainActor
+struct ManuscriptTypographyTests {
+
+    /// Static files (Courier Prime) and a variable face (Figtree), each at a non-default size.
+    static let courier = ManuscriptTypography(faceName: "Courier Prime", size: 20)
+    static let figtree = ManuscriptTypography(faceName: "Figtree", size: 14)
+
+    /// Every storage run in `range` is body text in `t`: the face, the size, and the fixed 1.45 line.
+    private func expectBody(_ ts: NSTextStorage, _ t: ManuscriptTypography, _ range: NSRange? = nil, _ what: String) {
+        let r = range ?? NSRange(location: 0, length: ts.length)
+        ts.enumerateAttributes(in: r) { a, run, _ in
+            let font = a[.font] as? NSFont
+            let ps = a[.paragraphStyle] as? NSParagraphStyle
+            #expect(font?.familyName == t.face?.name, "\(what): face at \(run) — \(font?.familyName ?? "none")")
+            #expect(font?.pointSize == t.size, "\(what): size at \(run) — \(font?.pointSize ?? 0)")
+            #expect(ps?.minimumLineHeight == t.size * ManuscriptTypography.lineSpacing, "\(what): line height at \(run)")
+        }
+    }
+
+    private func fixture(_ t: ManuscriptTypography, _ text: String = "") -> ManuscriptFixture {
+        let f = ManuscriptFixture()
+        f.presenter.typography = t                    // as `makeNSView` / `updateNSView` do
+        f.tv.typingAttributes = t.bodyAttributes
+        if !text.isEmpty {
+            f.tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0),
+                                                with: NSAttributedString(string: text, attributes: t.bodyAttributes))
+        }
+        return f
+    }
+
+    @Test("the bundled faces load from Fonts/fonts.json: seven, default Literata, every file present, each drawn in its family")
+    func bundledFaces() throws {
+        let faces = BundledFonts.faces
+        #expect(faces.count == 7, "\(faces.map(\.name))")
+        #expect(BundledFonts.manifest.default == "Literata")
+        for face in faces {
+            for file in face.files {
+                let url = try #require(BundledFonts.url(of: file, in: face))
+                #expect(FileManager.default.fileExists(atPath: url.path), "\(face.name): \(file.file) is in the bundle")
+            }
+            let t = ManuscriptTypography(faceName: face.name, size: 16)
+            #expect(t.bodyFont.familyName == face.name, "\(face.name) draws in its own family, not a fallback")
+            // ✅ Italic is the face's ITALIC FILE; bold is a real heavier weight.
+            #expect(t.font(level: nil, style: MarkdownBlocks.italic).fontDescriptor.symbolicTraits.contains(.italic), "\(face.name) italic")
+            let w = { (f: NSFont) in (f.fontDescriptor.object(forKey: .traits) as? [NSFontDescriptor.TraitKey: Any])?[.weight] as? Double ?? 0 }
+            #expect(w(t.font(level: nil, style: MarkdownBlocks.bold)) > w(t.bodyFont), "\(face.name) bold is heavier")
+        }
+        // The licenses ship with the fonts (OFL §2).
+        for face in faces {
+            let dir = try #require(BundledFonts.directory).appendingPathComponent(face.folder)
+            #expect(FileManager.default.fileExists(atPath: dir.appendingPathComponent("OFL.txt").path), "\(face.name) OFL.txt")
+        }
+    }
+
+    @Test("default: Literata at 16 pt on a 1.45 line; headings keep Apple's ratios; chapter titles are Heading 1 in the text colour")
+    func defaults() {
+        let t = ManuscriptTypography.default
+        #expect(t.faceName == "Literata" && t.size == 16)
+        #expect(t.bodyFont.familyName == "Literata")
+        #expect(abs(t.headingSize(level: 1) - 16 * 22 / 13) < 0.001 && abs(t.headingSize(level: 2) - 16 * 18 / 13) < 0.001)
+        #expect(t.chapterTitleFont.pointSize == t.headingSize(level: 1))
+        #expect(t.chapterTitleAttributes[.foregroundColor] as? NSColor == NSColor.textColor)
+        #expect((t.paragraphStyle().minimumLineHeight) == 16 * 1.45)
+    }
+
+    @Test("a face this build does not bundle: the name is KEPT, the drawing falls back to Literata")
+    func unknownFaceFallsBack() {
+        let t = ManuscriptTypography(faceName: "Garamond From The Future", size: 16)
+        #expect(t.faceName == "Garamond From The Future")
+        #expect(t.bodyFont.familyName == "Literata")
+    }
+
+    @Test("typing and Return write the project's type (AC4)")
+    func typingAndReturn() {
+        let f = fixture(Self.courier)
+        f.type("Typed words.")
+        f.tv.insertNewline(nil)
+        f.type("More.")
+        expectBody(f.tv.textStorage!, Self.courier, nil, "typing + Return")
+    }
+
+    @Test("paste writes the project's type (AC4)")
+    func paste() {
+        let f = fixture(Self.figtree, "start ")
+        let pb = NSPasteboard(name: .init("scrivi.test.\(UUID().uuidString)"))
+        pb.clearContents()
+        pb.setString("pasted text", forType: .string)
+        f.caret(6)
+        _ = f.tv.readSelection(from: pb)
+        #expect(f.text.contains("pasted text"))
+        expectBody(f.tv.textStorage!, Self.figtree, nil, "paste")
+    }
+
+    @Test("Replace All writes the project's type (AC4)")
+    func replaceAll() {
+        let f = fixture(Self.courier, "one two one two")
+        f.tv.applyReplacements([(NSRange(location: 0, length: 3), "uno"), (NSRange(location: 8, length: 3), "uno")])
+        #expect(f.text == "uno two uno two")
+        expectBody(f.tv.textStorage!, Self.courier, nil, "Replace All")
+    }
+
+    @Test("the REBUILD (open, a typeface change) writes the project's type; chapter titles in the face at H1; scene text unchanged")
+    func rebuild() throws {
+        let info = try JSONDecoder().decode(SceneInfo.self, from: Data(#"""
+            {"sceneID":"s1","chapterID":"c1","title":"S","chapterTitle":"The Harbour","slug":"s",
+             "metadataPath":"","contentPath":"","chapterMetadataPath":""}
+            """#.utf8))
+        let loader = ViewportSceneLoader(engine: ScriviEngine(), projectRootPath: "/tmp/typography-test",
+                                         appSupportRoot: "/tmp/typography-test-support", projectID: "p", allScenes: [info])
+        let session = ProjectSession(engine: ScriviEngine(), authorshipRef: nil, appSupportRoot: "/tmp/typography-test-support", identityID: "")
+        let t = Self.courier
+        let view = ManuscriptTextView(loader: loader, env: AppEnvironment(), session: session, navigateToSceneID: .constant(nil),
+                                      showChapterTitles: true, typography: t)
+        let c = view.makeCoordinator()
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        tv.frame = NSRect(x: 0, y: 0, width: 500, height: 200)
+        let window = NSWindow(contentRect: tv.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = tv
+        tv.textContentStorage?.delegate = c.presenter
+        tv.textStorage?.delegate = c.presenter
+        c.textView = tv
+        c.presenter.typography = t
+        let body = "The ship came in on the evening tide."
+        c.rebuildStorage(tv, segments: [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: body)])
+        let ts = try #require(tv.textStorage)
+        let titleRange = (ts.string as NSString).range(of: "The Harbour")
+        #expect(titleRange.location != NSNotFound, "the chapter title is drawn: \(ts.string.debugDescription)")
+        let titleFont = ts.attribute(.font, at: titleRange.location, effectiveRange: nil) as? NSFont
+        #expect(titleFont?.familyName == "Courier Prime" && titleFont?.pointSize == t.headingSize(level: 1), "chapter title: H1 in the face")
+        #expect(ts.attribute(.foregroundColor, at: titleRange.location, effectiveRange: nil) as? NSColor == NSColor.textColor)
+        let bodyRange = (ts.string as NSString).range(of: body)
+        #expect(bodyRange.location != NSNotFound, "scene text unchanged by the rebuild")
+        expectBody(ts, t, bodyRange, "rebuild")
+    }
+
+    /// A real coordinator + text view inside a SCROLL VIEW and a window — what `rebuildKeepingReadingPosition` needs.
+    /// `layoutAll: false` is what the APP does — TextKit 2 lays out only what is near the viewport, and ESTIMATES the rest.
+    private func scrolledHarness(_ t: ManuscriptTypography, body: String, layoutAll: Bool = true) throws -> (ManuscriptTextView.Coordinator, ManuscriptNSTextView, NSScrollView, NSWindow) {
+        let info = try JSONDecoder().decode(SceneInfo.self, from: Data(#"""
+            {"sceneID":"s1","chapterID":"c1","title":"S","chapterTitle":"The Harbour","slug":"s",
+             "metadataPath":"","contentPath":"","chapterMetadataPath":""}
+            """#.utf8))
+        let loader = ViewportSceneLoader(engine: ScriviEngine(), projectRootPath: "/tmp/typography-test",
+                                         appSupportRoot: "/tmp/typography-test-support", projectID: "p", allScenes: [info])
+        let session = ProjectSession(engine: ScriviEngine(), authorshipRef: nil, appSupportRoot: "/tmp/typography-test-support", identityID: "")
+        let view = ManuscriptTextView(loader: loader, env: AppEnvironment(), session: session, navigateToSceneID: .constant(nil),
+                                      showChapterTitles: true, typography: t)
+        let c = view.makeCoordinator()
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        tv.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        tv.isVerticallyResizable = true
+        tv.autoresizingMask = [.width]
+        tv.textContainer?.widthTracksTextView = true
+        scroll.documentView = tv
+        scroll.hasVerticalScroller = true
+        let window = NSWindow(contentRect: scroll.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = scroll
+        tv.textContentStorage?.delegate = c.presenter
+        tv.textStorage?.delegate = c.presenter
+        c.textView = tv
+        c.presenter.typography = t
+        c.rebuildStorage(tv, segments: [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: body)])
+        if layoutAll { tv.textLayoutManager?.ensureLayout(for: tv.textLayoutManager!.documentRange) }
+        return (c, tv, scroll, window)
+    }
+
+    private static let longBody = (0..<120).map { "Paragraph \($0): the ship came in on the evening tide, her sails the colour of old parchment against a sky already turning to brass." }
+        .joined(separator: "\n\n")
+
+    @Test("[I-0282] a face or size change keeps the CARET's line where it was on screen, and the selection")
+    func keepsCaretPosition() throws {
+        let (c, tv, scroll, window) = try scrolledHarness(.default, body: Self.longBody)
+        _ = window
+        let caret = (tv.string as NSString).range(of: "Paragraph 60:").location
+        tv.setSelectedRange(NSRange(location: caret, length: 0))
+        tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        let before = try #require(c.readingAnchor(tv))
+        #expect(before.index == caret, "the caret is on screen, so it is the anchor")
+        for t in [ManuscriptTypography(faceName: "Courier Prime", size: 24), ManuscriptTypography(faceName: "Inter", size: 11)] {
+            c.applyTypography(t, to: tv, segments: [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: Self.longBody)])   // the app's path (updateNSView)
+            #expect(tv.selectedRange() == NSRange(location: caret, length: 0), "\(t.faceName): the selection is kept")
+            let line = try #require(c.lineRect(forCharacterIndex: caret, in: tv))
+            let offset = line.minY - scroll.contentView.bounds.minY
+            #expect(abs(offset - before.offset) < 2, "\(t.faceName) \(t.size): the caret's line stays at \(before.offset) (now \(offset))")
+        }
+    }
+
+    @Test("[I-0282] scrolled away from the caret: the TOP of the visible text stays at the top")
+    func keepsTopOfView() throws {
+        let (c, tv, scroll, window) = try scrolledHarness(.default, body: Self.longBody)
+        _ = window
+        tv.setSelectedRange(NSRange(location: 0, length: 0))      // caret at the start, off screen below
+        let target = (tv.string as NSString).range(of: "Paragraph 70:").location
+        // Scroll there first: `lineRect` measures only what the viewport has DRAWN ([I-0282] re-check 2).
+        tv.scrollRangeToVisible(NSRange(location: target, length: 0))
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        let r = try #require(c.lineRect(forCharacterIndex: target, in: tv))
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: r.minY))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        let before = try #require(c.readingAnchor(tv))
+        #expect(before.index != 0, "not the caret: the top of the view")
+        c.applyTypography(ManuscriptTypography(faceName: "Courier Prime", size: 24), to: tv, segments: [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: Self.longBody)])   // the app's path (updateNSView)
+        let line = try #require(c.lineRect(forCharacterIndex: before.index, in: tv))
+        #expect(abs((line.minY - scroll.contentView.bounds.minY) - before.offset) < 2, "the same text is at the top of the view")
+        #expect(tv.selectedRange().location == 0, "the caret did not move")
+    }
+
+    /// The user's [I-0282] re-check (2026-10-07): Literata 20 → Courier Prime 16 with the caret deep in a REAL-SIZED manuscript
+    /// (Chapter 51 of dumas) moved the view to Chapter 25. 120 paragraphs never showed it: on a long document TextKit 2 holds
+    /// ESTIMATED heights for everything above the viewport.
+    private static let hugeBody = (0..<6000).map { "Paragraph \($0): the ship came in on the evening tide, her sails the colour of old parchment against a sky already turning to brass, and the boy on the quay watched." }
+        .joined(separator: "\n\n")
+
+    @Test("[I-0282] at manuscript scale (1.8 MB): the caret's text stays on screen at the same height across a face + size change")
+    func keepsCaretPositionAtScale() throws {
+        let (c, tv, scroll, window) = try scrolledHarness(ManuscriptTypography(faceName: "Literata", size: 20), body: Self.hugeBody, layoutAll: false)
+        _ = window
+        let seg = [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: Self.hugeBody)]
+        let caret = (tv.string as NSString).range(of: "Paragraph 5100:").location
+        tv.setSelectedRange(NSRange(location: caret, length: 0))
+        tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        let before = try #require(c.readingAnchor(tv))
+        #expect(before.index == caret)
+        c.applyTypography(ManuscriptTypography(faceName: "Courier Prime", size: 16), to: tv, segments: seg)   // the app's path (updateNSView)
+        // What the WRITER sees: the character at the top of the visible area must be near the caret's paragraph,
+        // and the caret's line on screen at the same height.
+        let clip = scroll.contentView
+        let topIndex = tv.characterIndexForInsertion(at: NSPoint(x: tv.textContainerInset.width + 1, y: clip.bounds.minY + 1))
+        let topText = (tv.string as NSString).substring(with: NSRange(location: topIndex, length: min(30, (tv.string as NSString).length - topIndex)))
+        #expect(abs(topIndex - caret) < 3_000, "the view shows the caret's neighbourhood, not elsewhere — top of view: \(topText.debugDescription)")
+        let line = try #require(c.lineRect(forCharacterIndex: caret, in: tv))
+        #expect(abs((line.minY - clip.bounds.minY) - before.offset) < 2, "the caret's line at \(before.offset) (now \(line.minY - clip.bounds.minY))")
+        #expect(tv.selectedRange().location == caret)
+    }
+
+    @Test("[I-0282] a dumas-shaped manuscript (1,200 scenes, 60 chapters, dividers + titles): face then size change keeps the place")
+    func keepsPlaceInScenedManuscript() throws {
+        // 60 chapters × 20 scenes; each scene a few paragraphs — the shape of dumas-prose.
+        var infos: [SceneInfo] = []
+        var segs: [SceneSegment] = []
+        for ch in 0..<60 {
+            for sc in 0..<20 {
+                let id = "s\(ch)_\(sc)"
+                infos.append(try JSONDecoder().decode(SceneInfo.self, from: Data("""
+                    {"sceneID":"\(id)","chapterID":"c\(ch)","title":"S","chapterTitle":"Chapter \(ch + 1)","slug":"s",
+                     "metadataPath":"","contentPath":"","chapterMetadataPath":""}
+                    """.utf8)))
+                let text = (0..<4).map { "Ch \(ch + 1) sc \(sc + 1) p \($0): the ship came in on the evening tide, her sails the colour of old parchment against a sky already turning to brass." }.joined(separator: "\n\n")
+                segs.append(SceneSegment(id: id, sceneID: id, chapterID: "c\(ch)", metadataPath: "", contentPath: "", text: text))
+            }
+        }
+        let loader = ViewportSceneLoader(engine: ScriviEngine(), projectRootPath: "/tmp/typography-test",
+                                         appSupportRoot: "/tmp/typography-test-support", projectID: "p", allScenes: infos)
+        let session = ProjectSession(engine: ScriviEngine(), authorshipRef: nil, appSupportRoot: "/tmp/typography-test-support", identityID: "")
+        let start = ManuscriptTypography(faceName: "Literata", size: 20)
+        let view = ManuscriptTextView(loader: loader, env: AppEnvironment(), session: session, navigateToSceneID: .constant(nil),
+                                      showChapterTitles: true, typography: start)
+        let c = view.makeCoordinator()
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 900, height: 700))
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        tv.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
+        tv.isVerticallyResizable = true
+        tv.autoresizingMask = [.width]
+        tv.textContainer?.widthTracksTextView = true
+        tv.textContainerInset = NSSize(width: 60, height: 40)          // the app's
+        scroll.documentView = tv
+        scroll.hasVerticalScroller = true
+        let window = NSWindow(contentRect: scroll.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = scroll
+        _ = window
+        tv.textContentStorage?.delegate = c.presenter
+        tv.textStorage?.delegate = c.presenter
+        c.textView = tv
+        c.presenter.typography = start
+        c.rebuildStorage(tv, segments: segs)
+        // The caret on the BLANK line between two paragraphs of Chapter 51, scene 8 — as the writer had it.
+        let ns = tv.string as NSString
+        let caret = ns.range(of: "Ch 51 sc 8 p 1:").location - 1
+        tv.setSelectedRange(NSRange(location: caret, length: 0))
+        tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        let before = try #require(c.readingAnchor(tv))
+        for t in [ManuscriptTypography(faceName: "Courier Prime", size: 20), ManuscriptTypography(faceName: "Courier Prime", size: 16)] {
+            c.applyTypography(t, to: tv, segments: segs)   // the app's path (updateNSView)
+            let clip = scroll.contentView
+            let top = tv.characterIndexForInsertion(at: NSPoint(x: tv.textContainerInset.width + 1, y: clip.bounds.minY + 1))
+            let topText = (tv.string as NSString).substring(with: NSRange(location: top, length: 24))
+            #expect(abs(top - caret) < 4_000, "\(t.faceName) \(t.size): the view shows Chapter 51 — top of view: \(topText.debugDescription)")
+            let line = try #require(c.lineRect(forCharacterIndex: caret, in: tv))
+            #expect(abs((line.minY - clip.bounds.minY) - before.offset) < 2, "\(t.size): caret line at \(before.offset) (now \(line.minY - clip.bounds.minY))")
+            #expect(tv.selectedRange().location == caret)
+        }
+    }
+
+    @Test("[I-0282] after reading around a long manuscript, the caret in mid-view is the anchor, measured from what is DRAWN")
+    func anchorsOnDrawnCaretAfterScrolling() throws {
+        let (c, tv, scroll, window) = try scrolledHarness(ManuscriptTypography(faceName: "Literata", size: 20), body: Self.hugeBody, layoutAll: false)
+        _ = window
+        let seg = [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: Self.hugeBody)]
+        let ns = tv.string as NSString
+        // Read around: jump to several places, as a writer does over a session — TextKit 2's estimates drift from the truth.
+        for p in ["Paragraph 300:", "Paragraph 4000:", "Paragraph 1200:", "Paragraph 5800:", "Paragraph 2500:"] {
+            tv.scrollRangeToVisible(NSRange(location: ns.range(of: p).location, length: 0))
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        }
+        // The caret near the END, centred in the view (the user's position: Chapter 51 of ~60).
+        let caret = ns.range(of: "Paragraph 5500:").location - 1
+        tv.setSelectedRange(NSRange(location: caret, length: 0))
+        tv.scrollRangeToVisible(NSRange(location: caret, length: 0))
+        tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        let clip = scroll.contentView
+        if let r = c.lineRect(forCharacterIndex: caret, in: tv) {             // centre it
+            clip.scroll(to: NSPoint(x: 0, y: max(0, r.minY - clip.bounds.height / 2)))
+            scroll.reflectScrolledClipView(clip)
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        }
+        let before = try #require(c.readingAnchor(tv))
+        #expect(before.index == caret, "the caret is on screen, so IT is the anchor (was: the top of the view, Chapter 25)")
+        c.applyTypography(ManuscriptTypography(faceName: "Courier Prime", size: 16), to: tv, segments: seg)   // the app's path (updateNSView)
+        let line = try #require(c.lineRect(forCharacterIndex: caret, in: tv), "the caret is drawn after the change")
+        #expect(abs((line.minY - clip.bounds.minY) - before.offset) < 2, "caret line at \(before.offset) (now \(line.minY - clip.bounds.minY))")
+        let top = try #require(c.firstVisibleLine(in: tv))
+        #expect(abs(top.index - caret) < 4_000, "the view shows the caret's neighbourhood (top index \(top.index), caret \(caret))")
+    }
+
+    @Test("settings: face and size round-trip; ABSENT means the default and nothing is written until the writer chooses")
+    func settings() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-type-\(UUID().uuidString)")
+        let support = base.appendingPathComponent("s").path(percentEncoded: false)
+        let root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+        try FileManager.default.createDirectory(atPath: support, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let engine = ScriviEngine()
+        let id = try engine.ensureLocalIdentity(displayName: "T", appSupportRoot: support)
+        let pid = try engine.createProject(projectRootPath: root, appSupportRoot: support, title: "T", slug: "t",
+            authorshipRef: AuthorshipRef(identityID: id.identityID, personaID: id.defaultPersonaID, displayName: "T")).projectID
+        let defaults = UserDefaults(suiteName: "scrivi.tests.type.\(UUID().uuidString)")!
+        func prefs() -> ProjectPreferences {
+            ProjectPreferences(projectID: pid, projectRootPath: root, schemaTitle: "T", engine: engine, defaults: defaults)
+        }
+        func file() -> [String: Any] {
+            let json = (try? engine.getProjectSettings(projectRootPath: root).documentJSON) ?? nil
+            return json.flatMap { (try? JSONSerialization.jsonObject(with: Data($0.utf8))) as? [String: Any] } ?? [:]
+        }
+        let p = prefs()
+        #expect(p.typography == .default)
+        p.projectSubtitle = "Sub"                              // ANOTHER setting saves …
+        #expect(file()["typeface"] == nil && file()["textSize"] == nil, "… without pinning today's default into the project")
+        p.typeface = "Newsreader"
+        p.textSize = 18
+        let again = prefs()
+        #expect(again.typeface == "Newsreader" && again.textSize == 18)
+        #expect(again.typography == ManuscriptTypography(faceName: "Newsreader", size: 18))
+        #expect(file()["typeface"] as? String == "Newsreader")
+    }
+}
+
+// MARK: - EP-047 S2 — cost of the new type (SP-168 plan step 7)
+
+/// ⚠️ A MEASUREMENT, not a gate: the relative cost of laying out and typing in the bundled faces against the OLD storage font
+/// (13 pt monospaced system, reconstructed here — the app no longer builds it). Same harness, same text, so only the face differs.
+/// Run on demand: `TEST_RUNNER_SCRIVI_PERF=1 scripts/run-interop-tests.sh -only-testing:…/TypographyCostTests/cost()`.
+@Suite("Typography cost (EP-047 S2, on demand)")
+@MainActor
+struct TypographyCostTests {
+    @Test("1.8 MB: first layout, a keystroke and an arrow near the end — old monospace vs bundled faces",
+          .enabled(if: ProcessInfo.processInfo.environment["SCRIVI_PERF"] != nil))
+    func cost() throws {
+        var paras: [String] = []
+        var n = 0
+        var total = 0
+        while total < 1_800_000 {
+            let p = "\(n) " + #"He wrote at speed\, for *serial* publication \(and was **paid** by the line\)\; the pattern is real\. D\'Artagnan arrives in Paris with a yellow horse and no money\."#
+            paras.append(p); total += p.utf16.count + 2; n += 1
+        }
+        let text = paras.joined(separator: "\n\n")
+        let old: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),   // type-source-ok
+                                                  .foregroundColor: NSColor.textColor]
+        let cases: [(String, [NSAttributedString.Key: Any], ManuscriptTypography)] = [
+            ("old 13 pt monospaced (system)", old, .default),
+            ("Literata 16 pt (default)", ManuscriptTypography.default.bodyAttributes, .default),
+            ("Courier Prime 16 pt", ManuscriptTypography(faceName: "Courier Prime", size: 16).bodyAttributes,
+             ManuscriptTypography(faceName: "Courier Prime", size: 16)),
+            ("Inter 16 pt", ManuscriptTypography(faceName: "Inter", size: 16).bodyAttributes, ManuscriptTypography(faceName: "Inter", size: 16)),
+        ]
+        func ms(_ start: Date) -> Double { Date().timeIntervalSince(start) * 1000 }
+        for (name, attrs, t) in cases {
+            let f = ManuscriptFixture()
+            f.presenter.typography = t
+            f.tv.frame = NSRect(x: 0, y: 0, width: 900, height: 800)
+            f.window.setContentSize(f.tv.frame.size)
+            f.tv.typingAttributes = attrs
+            let t0 = Date()
+            f.tv.textStorage!.setAttributedString(NSAttributedString(string: text, attributes: attrs))
+            let end = (text as NSString).length - 5
+            f.caret(end)
+            f.tv.scrollRangeToVisible(NSRange(location: end, length: 0))
+            f.tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            let open = ms(t0)
+            var keys: [Double] = [], arrows: [Double] = []
+            for _ in 0..<7 {
+                let k = Date(); f.type("a"); f.tv.textLayoutManager?.textViewportLayoutController.layoutViewport(); keys.append(ms(k))
+                let a = Date(); f.tv.moveLeft(nil); f.tv.textLayoutManager?.textViewportLayoutController.layoutViewport(); arrows.append(ms(a))
+            }
+            let med = { (v: [Double]) in v.sorted()[v.count / 2] }
+            print(String(format: "[TYPE-COST] %-32@ open+viewport %7.1f ms · keystroke near end %6.1f ms · arrow %6.1f ms",
+                         name as NSString, open, med(keys), med(arrows)))
+        }
     }
 }
 

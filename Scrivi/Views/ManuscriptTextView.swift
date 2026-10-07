@@ -41,6 +41,8 @@ struct ManuscriptTextView: NSViewRepresentable {
     var session: ProjectSession
     @Binding var navigateToSceneID: String?
     var showChapterTitles: Bool
+    /// ✅ EP-047 S2: the project's type (face + size). Applied to the presenter's ONE stored value; a change re-presents.
+    var typography: ManuscriptTypography
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -52,7 +54,10 @@ struct ManuscriptTextView: NSViewRepresentable {
         // ManuscriptNSTextView (T-0199 spike: a real allowsUndo=false + first-
         // responder action methods, NOT an UndoManager proxy).
         textView.allowsUndo = false
-        textView.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        // ✅ EP-047 S2: the project's type, from the ONE source (the presenter's `typography`).
+        context.coordinator.presenter.typography = typography
+        textView.font = typography.bodyFont
+        textView.typingAttributes = typography.bodyAttributes
         // I-0112: an NSTextView whose textColor is nil renders runs that carry no
         // .foregroundColor as literal NSColor.black — NOT the adaptive default — so in
         // Dark Mode the manuscript was black text on a dark gray background. Body runs
@@ -228,13 +233,22 @@ struct ManuscriptTextView: NSViewRepresentable {
                              total, __uGuard.timeIntervalSince(__u0) * 1000))
             }
         }
+        // ✅ EP-047 S2: a new face or size re-presents through the rebuild — attributes only; no history event, and the
+        // scene text (so the `.md`) is untouched.
+        let typographyChanged = typography != coordinator.presenter.typography
         if segIDs != coordinator.lastSegmentIDs
             || showChapterTitles != coordinator.lastShowChapterTitles
-            || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint {
+            || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint
+            || typographyChanged {
             coordinator.lastSegmentIDs = segIDs
             coordinator.lastShowChapterTitles = showChapterTitles
             coordinator.lastChapterTitleFingerprint = chapterTitleFingerprint
-            coordinator.rebuildStorage(tv, segments: loader.segments)
+            if typographyChanged {
+                // ✅ [I-0282]: a new face or size must not move the writer's place — ONE method does the whole sequence.
+                coordinator.applyTypography(typography, to: tv, segments: loader.segments)
+            } else {
+                coordinator.rebuildStorage(tv, segments: loader.segments)
+            }
         }
 
         // Resume the last-session writing surface once, after storage is built (I-0058).
@@ -478,10 +492,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 // rebuildStorage — omitting it renders literal black, so an undo/redo
                 // would otherwise re-blacken a scene's text under Dark Mode even after
                 // the initial build was fixed.
-                let attrs: [NSAttributedString.Key: Any] = [
-                    .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
-                    .foregroundColor: NSColor.textColor
-                ]
+                // ✅ EP-047 AC4: the ONE source — the face survives an undo.
+                let attrs = presenter.typography.bodyAttributes
                 storage.replaceCharacters(in: range, with: NSAttributedString(string: change.newText, attributes: attrs))
                 ensureBoundaries(tv)
 
@@ -738,13 +750,9 @@ struct ManuscriptTextView: NSViewRepresentable {
             storage.beginEditing()
             storage.setAttributedString(NSAttributedString(string: ""))
 
-            let font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-            // I-0112: .foregroundColor is required — a run without it renders as literal
-            // NSColor.black, which is invisible against the dark background in Dark Mode.
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: font,
-                .foregroundColor: NSColor.textColor
-            ]
+            // ✅ EP-047 AC4: the ONE source (font, line height). I-0112: it carries `.foregroundColor` — a run without
+            // it renders as literal NSColor.black, invisible in Dark Mode.
+            let attrs = presenter.typography.bodyAttributes
             let showTitles = parent.showChapterTitles
 
             var built: [NSRange] = []
@@ -779,12 +787,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                             }
                             return "Chapter \(seen[info.chapterID] ?? ordinal)"
                         } ?? ""
-                    let headingFont = NSFont.boldSystemFont(ofSize: NSFont.systemFontSize + 2)
-                    let headingAttrs: [NSAttributedString.Key: Any] = [
-                        .font: headingFont,
-                        .foregroundColor: NSColor.secondaryLabelColor,
-                        .scriviHeading: true
-                    ]
+                    // ✅ EP-047 P7 + P9: chapter titles in the manuscript face, at Heading 1 size, in the text colour.
+                    var headingAttrs = presenter.typography.chapterTitleAttributes
+                    headingAttrs[.scriviHeading] = true
                     let headingStr = NSAttributedString(
                         string: i == 0 ? "\(chapterTitle)\n" : "\n\(chapterTitle)\n",
                         attributes: headingAttrs
@@ -1620,6 +1625,117 @@ struct ManuscriptTextView: NSViewRepresentable {
                 tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
             }
             caretViewportOffset = nil
+        }
+
+        // ✅ [I-0282] (SP-168 live pass, user: *"when changing font or font size, the position of the caret is not maintained
+        // … my manuscript position will shift from say, 53 to say, 35"*). A typeface or size change rebuilds the storage
+        // with the SAME text but different line heights, so the scroll's PIXEL offset lands on different text. ✅ Anchor on a
+        // CHARACTER instead: the caret's line when it is on screen, else the character at the top of the visible area —
+        // and put that character's line back at the same height. The selection is kept.
+        /// ✅ [I-0282] THE way a typeface or size change is applied: read the writer's place FIRST, then change the type,
+        /// rebuild, and restore. ⛔ LIVE RE-CHECK 3 (log `caretLineY=nan`): `updateNSView` used to set `tv.font` BEFORE the
+        /// place was read — an `NSTextView` font assignment re-fonts the WHOLE document and invalidates every line position,
+        /// so the place was read from garbage. (It also overwrote the chapter titles' font, which the rebuild then repaired.)
+        /// ⛔ No `tv.font` assignment here: the rebuild writes every attribute; typing uses `typingAttributes`.
+        func applyTypography(_ t: ManuscriptTypography, to tv: NSTextView, segments: [SceneSegment]) {
+            rebuildKeepingReadingPosition(tv, segments: segments) {
+                self.presenter.typography = t
+                tv.typingAttributes = t.bodyAttributes
+            }
+        }
+
+        func rebuildKeepingReadingPosition(_ tv: NSTextView, segments: [SceneSegment], change: () -> Void = {}) {
+            let selection = tv.selectedRanges
+            let anchor = readingAnchor(tv)
+            change()                       // only AFTER the place has been read
+            rebuildStorage(tv, segments: segments)
+            let length = tv.textStorage?.length ?? 0
+            tv.selectedRanges = selection.map { v in
+                let r = v.rangeValue
+                let loc = min(r.location, length)
+                return NSValue(range: NSRange(location: loc, length: min(r.length, length - loc)))
+            }
+            guard let anchor, let scroll = tv.enclosingScrollView else { return }
+            let clip = scroll.contentView
+            let target = min(anchor.index, length)
+            // ⛔ LIVE RE-CHECK (user, 2026-10-07): computing a pixel target and clamping it to `tv.bounds.height` sent the view
+            // to Chapter 25 from Chapter 51 — right after a rebuild the text view's FRAME still holds TextKit 2's provisional
+            // height, so the clamp landed mid-document. ✅ The pattern that already works in the app (T-0573,
+            // `revealCaretAfterRebuild`): bring the anchor on screen with `scrollRangeToVisible` FIRST — AppKit sizes the
+            // document as it goes — then correct by the small remaining delta.
+            tv.scrollRangeToVisible(NSRange(location: target, length: 0))
+            // ⚠️ Measured: straight after `scrollRangeToVisible` the first `layoutViewport` has not yet brought the anchor into
+            // the DRAWN range — one more layout does. So a not-yet-drawn anchor means "lay out again", not "give up".
+            for _ in 0..<10 {
+                tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+                guard let line = lineRect(forCharacterIndex: target, in: tv) else { continue }   // not drawn yet: lay out again
+                let delta = (line.minY - clip.bounds.minY) - anchor.offset
+                if abs(delta) < 0.5 { break }
+                let maxY = max(0, (scroll.documentView?.frame.height ?? tv.bounds.height) - clip.bounds.height)
+                clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
+                scroll.reflectScrolledClipView(clip)
+            }
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+        }
+
+        /// The character the writer is "at", and its line's distance below the top of the visible area.
+        /// ⛔ [I-0282] live re-check 2 (log): `caret=1846568 caretLineY=624533.0 clipY=591857.6` — the caret WAS on screen, but
+        /// `ensureLayout` put its line at ~1.2 M pt (past the document's end) while the viewport draws Chapter 51 at ~0.6 M:
+        /// TextKit 2 places the VIEWPORT's paragraphs on ESTIMATED heights above them, and `ensureLayout` computes TRUE
+        /// positions — two frames that disagree. `characterIndexForInsertion` mis-read the top of the view the same way
+        /// (index 898922, Chapter 25). ✅ Read ONLY what the viewport has laid out: the caret is on screen iff it is in the
+        /// viewport's range, and the top of the view is the first DRAWN line at or below the visible top.
+        func readingAnchor(_ tv: NSTextView) -> (index: Int, offset: CGFloat)? {
+            guard let clip = tv.enclosingScrollView?.contentView else { return nil }
+            tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
+            let caret = tv.selectedRange().location
+            if let r = lineRect(forCharacterIndex: caret, in: tv), (0...clip.bounds.height).contains(r.minY - clip.bounds.minY) {
+                return (caret, r.minY - clip.bounds.minY)
+            }
+            guard let top = firstVisibleLine(in: tv) else { return nil }
+            return (top.index, top.rect.minY - clip.bounds.minY)
+        }
+
+        /// The first line the viewport has DRAWN whose top is at or below the visible top — its character and rect.
+        func firstVisibleLine(in tv: NSTextView) -> (index: Int, rect: NSRect)? {
+            guard let lm = tv.textLayoutManager, let content = lm.textContentManager,
+                  let clip = tv.enclosingScrollView?.contentView,
+                  let viewport = lm.textViewportLayoutController.viewportRange else { return nil }
+            let inset = tv.textContainerInset
+            var found: (Int, NSRect)?
+            lm.enumerateTextLayoutFragments(from: viewport.location, options: []) { fragment in
+                let frame = fragment.layoutFragmentFrame
+                for line in fragment.textLineFragments {
+                    let b = line.typographicBounds
+                    let rect = NSRect(x: frame.minX + b.minX + inset.width, y: frame.minY + b.minY + inset.height,
+                                      width: b.width, height: b.height)
+                    if rect.minY >= clip.bounds.minY - 0.5 {
+                        let start = content.offset(from: content.documentRange.location, to: fragment.rangeInElement.location)
+                        found = (start + line.characterRange.location, rect)
+                        return false
+                    }
+                }
+                return fragment.rangeInElement.endLocation.compare(viewport.endLocation) == .orderedAscending
+            }
+            return found
+        }
+
+        /// The LINE holding character `index`, in the text view's coordinates — ⚠️ ONLY if the viewport has laid it out
+        /// (nil otherwise). Never `ensureLayout`: see `readingAnchor` for why its positions disagree with what is drawn.
+        func lineRect(forCharacterIndex index: Int, in tv: NSTextView) -> NSRect? {
+            guard let lm = tv.textLayoutManager, let content = lm.textContentManager,
+                  let viewport = lm.textViewportLayoutController.viewportRange,
+                  let loc = content.location(content.documentRange.location, offsetBy: index) else { return nil }
+            let inViewport = viewport.contains(loc) || loc.compare(viewport.endLocation) == .orderedSame
+            guard inViewport, let fragment = lm.textLayoutFragment(for: loc) else { return nil }
+            let frame = fragment.layoutFragmentFrame
+            let within = content.offset(from: fragment.rangeInElement.location, to: loc)
+            let line = fragment.textLineFragments.first { NSLocationInRange(within, $0.characterRange) }
+                ?? fragment.textLineFragments.last
+            let bounds = line?.typographicBounds ?? CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
+            return NSRect(x: frame.minX + bounds.minX + tv.textContainerInset.width,
+                          y: frame.minY + bounds.minY + tv.textContainerInset.height,
+                          width: bounds.width, height: bounds.height)
         }
 
         // T-0573 — the caret's distance below the top of the visible area, or nil when the
@@ -2613,7 +2729,7 @@ final class ManuscriptNSTextView: NSTextView {
             if shouldChangeText(in: pair, replacementString: replacementString) {
                 let replacement = NSAttributedString(
                     string: replacementString ?? "",
-                    attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor])
+                    attributes: typography.bodyAttributes)
                 storage.replaceCharacters(in: pair, with: replacement)
                 didChangeText()
                 setSelectedRange(NSRange(location: pair.location + replacement.length, length: 0))
@@ -2632,7 +2748,7 @@ final class ManuscriptNSTextView: NSTextView {
             if shouldChangeText(in: edit.range, replacementString: edit.replacement) {
                 storage.replaceCharacters(in: edit.range, with: NSAttributedString(
                     string: edit.replacement,
-                    attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+                    attributes: typography.bodyAttributes))
                 didChangeText()
                 setSelectedRange(NSRange(location: edit.caret, length: 0))
             }
@@ -2693,7 +2809,7 @@ final class ManuscriptNSTextView: NSTextView {
     /// (`replaceFound` each) kept the app busy for about a minute on dumas.
     func applyReplacements(_ edits: [(NSRange, String)]) {
         guard let storage = textStorage else { return }
-        let attrs: [NSAttributedString.Key: Any] = [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]
+        let attrs: [NSAttributedString.Key: Any] = typography.bodyAttributes
         storage.beginEditing()
         for (r, typed) in edits {
             let escaped = MarkdownEscapes.escape(typed)
@@ -2726,6 +2842,8 @@ final class ManuscriptNSTextView: NSTextView {
     /// ✅ EP-046 E2-S1 — the view's presenter, found through TextKit 2's own delegate slot so a view
     /// built without a coordinator (the interop fixtures) works the same way.
     var presenter: ManuscriptPresenter? { textContentStorage?.delegate as? ManuscriptPresenter }
+    /// ✅ EP-047 AC4: the project's type — read from the presenter's ONE stored value, never kept here.
+    var typography: ManuscriptTypography { presenter?.typography ?? .default }
 
     // MARK: — EP-045 AC4: the escape layer
 
@@ -2843,7 +2961,7 @@ final class ManuscriptNSTextView: NSTextView {
         guard shouldChangeText(in: edit.range, replacementString: edit.replacement) else { return }
         storage.replaceCharacters(in: edit.range, with: NSAttributedString(
             string: edit.replacement,
-            attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+            attributes: typography.bodyAttributes))
         didChangeText()
         setSelectedRange(edit.selection)
     }
@@ -2855,7 +2973,7 @@ final class ManuscriptNSTextView: NSTextView {
         presenter.insertingPending = true
         storage.replaceCharacters(in: NSRange(location: loc, length: 0), with: NSAttributedString(
             string: markers + markers,
-            attributes: [.font: ManuscriptPresenter.bodyFont, .foregroundColor: NSColor.textColor]))
+            attributes: typography.bodyAttributes))
         presenter.insertingPending = false
         presenter.pending = .init(range: NSRange(location: loc, length: markers.utf16.count * 2), markerLength: markers.utf16.count)
         keepingPending = true
@@ -3574,6 +3692,7 @@ struct ManuscriptTextView: View {
     var session: ProjectSession
     @Binding var navigateToSceneID: String?
     var showChapterTitles: Bool
+    var typography: ManuscriptTypography   // EP-047: the macOS surface draws with it; not used here yet
 
     var body: some View {
         Text("Manuscript editor not yet available on this platform.")

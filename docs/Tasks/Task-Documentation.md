@@ -750,6 +750,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0594 | `[Cross]` EP-048 S1: md4c Markdown analyzer in ScriviCore + Apple agreement test | ✅ **SP-165** | **EP-048** | ✅ **Verified 2026-10-07** | [`Task-verified-0594.md`](Verified/Task-verified-0594.md) |
 | T-0595 | `[Linux]` EP-048 S2: the presenter (L3–L6, L9 atomic markers) | 🟡 **SP-166** | **EP-048** | 🟠 **Implemented - Not Verified** (live pass blocked on the rig) | — |
 | T-0596 | `[Cross]` EP-047 S1: project settings that travel (`project-settings.json`, title, I-0278 migration) | ✅ **SP-167** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0596.md`](Verified/Task-verified-0596.md) |
+| T-0597 | `[Apple]` EP-047 S2: one source for the manuscript's type; the seven bundled typefaces | ✅ **SP-168** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0597.md`](Verified/Task-verified-0597.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -787,6 +788,14 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-07 (**T-0597 archived** → `Verified/Task-verified-0597.md`, with the SP-168 close.)*
+
+*Last Updated: 2026-10-07 (**T-0597 ✅ VERIFIED** (SP-168 live pass, user) — archive with the SP-168 close.)*
+
+*Last Updated: 2026-10-07 (**T-0597 implemented** (SP-168) — Implemented - Not Verified; live pass on the Mac owed.)*
+
+*Last Updated: 2026-10-07 (**SP-168 activated** — T-0597 created.)*
 
 *Last Updated: 2026-10-07 (**T-0596 archived** → `Verified/Task-verified-0596.md`, with the SP-167 close.)*
 

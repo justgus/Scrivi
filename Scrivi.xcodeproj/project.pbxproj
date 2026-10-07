@@ -10,6 +10,9 @@
 		86BF02842FEDE0AE00531EAC /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		86BF02862FEDE0BF00531EAC /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
 		ASSETS_BF /* Scrivi/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ASSETS_REF /* Scrivi/Assets.xcassets */; };
+		FONTS_BF1 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		FONTS_BF2 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
+		FONTS_BF3 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = FONTS_REF /* Fonts */; };
 		C001_BF /* ScriviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C001 /* ScriviApp.swift */; };
 		C002_BF /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C002 /* AppEnvironment.swift */; };
 		C003_BF /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C003 /* LandingView.swift */; };
@@ -37,6 +40,7 @@
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		C2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		C032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -97,6 +101,7 @@
 		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		D2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -157,6 +162,7 @@
 		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
+		E2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -237,6 +243,8 @@
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
 		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Scrivi/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
 		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Scrivi/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
+		C2A2 /* ManuscriptTypography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTypography.swift; path = Scrivi/Views/ManuscriptTypography.swift; sourceTree = SOURCE_ROOT; };
+		FONTS_REF /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
 		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Scrivi/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
 		C032 /* WindowFrameAutosave.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WindowFrameAutosave.swift; path = Scrivi/App/WindowFrameAutosave.swift; sourceTree = SOURCE_ROOT; };
 		C033 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Scrivi/Views/AboutView.swift; sourceTree = SOURCE_ROOT; };
@@ -369,6 +377,7 @@
 				C008 /* SceneNavigatorView.swift */,
 				C030 /* ProjectSettingsSheet.swift */,
 				C2A1 /* StaleBranchesSheet.swift */,
+				C2A2 /* ManuscriptTypography.swift */,
 				C031 /* ProjectPreferences.swift */,
 				C032 /* WindowFrameAutosave.swift */,
 				C033 /* AboutView.swift */,
@@ -403,6 +412,7 @@
 				F001 /* ScriviInteropTests.swift */,
 				CORPUS_REF /* manuscript_format_corpus.json */,
 				ASSETS_REF /* Scrivi/Assets.xcassets */,
+				FONTS_REF /* Fonts */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -530,6 +540,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				86BF02842FEDE0AE00531EAC /* Scrivi/Assets.xcassets in Resources */,
+				FONTS_BF2 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -538,6 +549,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				86BF02862FEDE0BF00531EAC /* Scrivi/Assets.xcassets in Resources */,
+				FONTS_BF3 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -546,6 +558,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				ASSETS_BF /* Scrivi/Assets.xcassets in Resources */,
+				FONTS_BF1 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -635,6 +648,7 @@
 				C008_BF /* SceneNavigatorView.swift in Sources */,
 				C030_BF /* ProjectSettingsSheet.swift in Sources */,
 				C2A1_BF /* StaleBranchesSheet.swift in Sources */,
+				C2A2_BF /* ManuscriptTypography.swift in Sources */,
 				C031_BF /* ProjectPreferences.swift in Sources */,
 				C032_BF /* WindowFrameAutosave.swift in Sources */,
 				C033_BF /* AboutView.swift in Sources */,
@@ -702,6 +716,7 @@
 				D008_BF /* SceneNavigatorView.swift in Sources */,
 				D030_BF /* ProjectSettingsSheet.swift in Sources */,
 				D2A1_BF /* StaleBranchesSheet.swift in Sources */,
+				D2A2_BF /* ManuscriptTypography.swift in Sources */,
 				D031_BF /* ProjectPreferences.swift in Sources */,
 				D032_BF /* WindowFrameAutosave.swift in Sources */,
 				D033_BF /* AboutView.swift in Sources */,
@@ -769,6 +784,7 @@
 				E008_BF /* SceneNavigatorView.swift in Sources */,
 				E030_BF /* ProjectSettingsSheet.swift in Sources */,
 				E2A1_BF /* StaleBranchesSheet.swift in Sources */,
+				E2A2_BF /* ManuscriptTypography.swift in Sources */,
 				E031_BF /* ProjectPreferences.swift in Sources */,
 				E032_BF /* WindowFrameAutosave.swift in Sources */,
 				E033_BF /* AboutView.swift in Sources */,

@@ -13,7 +13,7 @@
 EP-047."*); acceptance criteria from the four rulings below. Created 2026-09-29. ✅ Its seam exists ([EP-045] / [EP-046] closed).
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §5.1 (F1), §4D (the indent);
 [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §3.5–§3.7 (the presenter it extends).
-**Tasks:** ✅ [T-0596] (SP-167 — VERIFIED, archived) · 🔵 [T-0589] **Markup Hints on/off** (caret rules ruled 2026-10-05) → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Tasks:** ✅ [T-0596] (SP-167 — VERIFIED, archived) · ✅ [T-0597] (SP-168 — VERIFIED, archived) · 🔵 [T-0589] **Markup Hints on/off** (caret rules ruled 2026-10-05) → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Issues:** ✅ [I-0278] `[Apple]` three Project Settings do not travel (✅ fixed + VERIFIED in [SP-167], archived) · 🔵 [I-0281] `[Apple]` emphasis
 positions shift after an indented first line (linked forward 2026-10-07) → [`../Issues/Issue-backlog.md`](../Issues/Issue-backlog.md).
 
@@ -33,7 +33,8 @@ positions shift after an indented first line (linked forward 2026-10-07) → [`.
 | **P4** | Linux parity | ✅ **Linux rendering joins [EP-048] as L10.** EP-047 builds the core storage (which Linux shares) and the Apple side |
 | **P5** | Which typefaces | ✅ **BUNDLED ONLY** (user, 2026-10-07): Scrivi ships ~6 open-licensed faces (SIL OFL — verified per family from Google Fonts metadata); no installed fonts for now. ⚠️ **They must work on iOS** (registration measured as no obstacle: `CTFontManagerRegisterFontURLs`, process scope, macOS 10.15+ / iOS 13+ / visionOS 1+; Linux: `QFontDatabase::addApplicationFont`). Neo (reference, read 2026-10-07) uses macOS SYSTEM serifs, which would not travel to Linux |
 | **P5a** | The set | ✅ **CHOSEN 2026-10-07 (user):** *"Literata, Newsreader, Crimson Pro, Inter, Fig Tree, Courier Prime, and Source Code Pro."* — 3 serif, 2 sans, 1 monospaced, 1 submission; 5.7 MB; all SIL OFL 1.1 (read from each font file). Picked from a 28-face Core Text specimen. ⚠️ Learned on the way, for the record: **Tinos** (not chosen) was relicensed Apache → OFL in 2026 though Google Fonts' description still says Apache; **iA Writer Duo/Quattro**'s variable italics contain a malformed glyph Core Text blanks (their static files are clean) → `Resources/Fonts/README.md` |
-| **P6** | Default face | ✅ ***"the default font should make the app look wonderful … a Book Serif"*** — **Literata** (proposed; ⏳ to be confirmed by the user). ✅ **Projects with NO typeface setting — existing ones included — open in the default** (user, 2026-10-07: *"yes that is the intention"*), so existing manuscripts change look on first open |
+| **P6** | Default face | ✅ ***"the default font should make the app look wonderful … a Book Serif"*** — ✅ **Literata — CONFIRMED 2026-10-07** (user: *"Yes, Literata should be the default."*). ✅ **Projects with NO typeface setting — existing ones included — open in the default** (user, 2026-10-07: *"yes that is the intention"*), so existing manuscripts change look on first open |
+| **P9** | Size, spacing, chapter titles (ruled 2026-10-07, user) | ✅ **Default size 16 pt** (control 10–32 pt) · ✅ **line spacing FIXED at 1.45 × size, not a setting** (every face on one rhythm; switching faces does not reflow vertically) · ✅ **chapter titles at Heading 1 size, in the text colour** (today: system bold 15 pt, secondary grey) |
 | **P7** | Headings | ✅ **Headings AND chapter titles in the manuscript face** |
 | **P8** | Size | ✅ **Per project, for now** — ⛔ not per scene: that would put type information in the `.md` or the scene JSON (*"I don't want to open that can of worms yet"*) |
 
@@ -62,7 +63,7 @@ paragraph for a block with no markup (`ManuscriptPresenter.swift:328`), so a pla
 | Sprint | Platform | Content | ACs |
 | ------ | -------- | ------- | --- |
 | **[SP-167]** S1 | `[ScriviCore]` + `[Apple]` | the settings home, the title endpoint, [I-0278]'s migration; Linux binding (bridge only) — ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-167.md`](../Sprints/Closed/Sprint-SP-167.md) · ✅ AC1–AC3 met | AC1–AC3 |
-| S2 | `[Apple]` | one body-attribute source; the typeface | AC4, AC5 |
+| **[SP-168]** S2 | `[Apple]` | one body-attribute source; the typeface — ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-168.md`](../Sprints/Closed/Sprint-SP-168.md) · ✅ AC4, AC5 met | AC4, AC5 |
 | S3 | `[Apple]` | the indent; [I-0281] | AC6, AC8 |
 | S4 | `[Apple]` | Markup Hints ([T-0589]) | AC7 |
 

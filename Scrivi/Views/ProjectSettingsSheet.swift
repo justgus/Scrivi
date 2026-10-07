@@ -32,6 +32,23 @@ struct ProjectSettingsSheet: View {
                 Section("Writing Surface") {
                     Toggle("Show chapter titles in manuscript", isOn: Bindable(prefs).showChapterTitles)
                 }
+                // ✅ EP-047 S2 (P2, P5a, P8): the manuscript's type — a BUNDLED face and a size, per project (it travels).
+                Section("Typography") {
+                    Picker("Typeface", selection: Bindable(prefs).typeface) {
+                        ForEach(BundledFonts.faces) { face in
+                            Text(face.name).font(.custom(face.name, size: 14)).tag(face.name)
+                        }
+                        // A face from a later Scrivi stays selected (and stored) — drawn in the default meanwhile.
+                        if !BundledFonts.faces.contains(where: { $0.name == prefs.typeface }) {
+                            Text("\(prefs.typeface) (not in this version)").tag(prefs.typeface)
+                        }
+                    }
+                    Stepper(value: Bindable(prefs).textSize,
+                            in: Double(ManuscriptTypography.sizeRange.lowerBound)...Double(ManuscriptTypography.sizeRange.upperBound),
+                            step: 1) {
+                        LabeledContent("Text size", value: "\(Int(prefs.textSize)) pt")
+                    }
+                }
                 Section("Undo History") {
                     LabeledContent("Maximum undo events") {
                         TextField("Maximum undo events", value: $historyCapacity, format: .number)

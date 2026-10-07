@@ -29,7 +29,7 @@ modified version (subset, converted, renamed instance) must not be called "Sourc
 
 All seven from [google/fonts](https://github.com/google/fonts) `ofl/<family>/`: the `OFL.txt` files and the later files pinned at
 `5e8a3ba899557829a76cfdac30fa512bda91d7ca`; the first-fetched `.ttf` (Literata, Newsreader, Crimson Pro, Inter, Courier Prime) from
-`main` the same day. Per-family files, styles and weights: [`../../docs/specimens/specimen-fonts.json`](../../docs/specimens/specimen-fonts.json).
+`main` the same day. Per-family files, styles and weights: [`fonts.json`](fonts.json) (the one list — Apple, Linux and the specimen all read it).
 (The 21 candidates not chosen — and what was learned about them: Tinos's 2026 relicense to OFL, the malformed glyph in iA Writer
 Duo/Quattro's variable italics — are recorded in EP-047.)
 

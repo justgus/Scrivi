@@ -19,33 +19,23 @@ import AppKit
 // its attributes moved from storage to the presented paragraph.
 final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextStorageDelegate {
 
-    // Computed, not stored: Swift 6 rejects a static `NSFont` / attribute dictionary as not
-    // concurrency-safe, and both are cheap to build.
-    static var bodyFont: NSFont { NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular) }
-
-    /// ✅ SP-161 Q1 (ruled 2026-10-05): H1 22 pt, H2 18 pt, H3 16 pt, H4–H6 the body size — all bold.
-    static func headingFont(level: Int) -> NSFont {
-        let size: CGFloat = switch level {
-        case 1: 22
-        case 2: 18
-        case 3: 16
-        default: NSFont.systemFontSize
-        }
-        return NSFont.monospacedSystemFont(ofSize: size, weight: .bold)
-    }
+    /// ✅ EP-047 S2 (SP-168, AC4): the manuscript's TYPE — the ONE stored value. The text view reads it through this
+    /// presenter (its `textContentStorage` delegate) for every body run it writes; the presenter draws headings, emphasis
+    /// and list lines from it. ⛔ The old static `bodyFont` / `headingFont` are GONE, so nothing can keep a second source.
+    var typography: ManuscriptTypography = .default
 
     /// A hidden character: near-zero and transparent (measured: no visible width, no glyph).
     static var hiddenAttributes: [NSAttributedString.Key: Any] {
-        [.font: NSFont.systemFont(ofSize: 0.01), .foregroundColor: NSColor.clear]
+        [.font: NSFont.systemFont(ofSize: 0.01), .foregroundColor: NSColor.clear]   // type-source-ok: hides a character; not manuscript type
     }
 
     /// ✅ SP-161 Q2 (ruled 2026-10-05): a REVEALED prefix — dimmed, in the body font.
-    static var revealedPrefixAttributes: [NSAttributedString.Key: Any] {
-        [.font: bodyFont, .foregroundColor: NSColor.tertiaryLabelColor]
+    var revealedPrefixAttributes: [NSAttributedString.Key: Any] {
+        [.font: typography.bodyFont, .foregroundColor: NSColor.tertiaryLabelColor]
     }
 
     /// A REVEALED inline marker (Q-E2-1 span half; [SP-162] Q2 attributes as for the prefix).
-    static var revealedMarkerAttributes: [NSAttributedString.Key: Any] { revealedPrefixAttributes }
+    var revealedMarkerAttributes: [NSAttributedString.Key: Any] { revealedPrefixAttributes }
 
     /// What one block hides and renders. It depends on the block's TEXT alone, so it is cached by text.
     struct BlockInfo {
@@ -59,7 +49,6 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     }
 
     private var cache: [String: BlockInfo] = [:]
-    private var fonts: [Int: NSFont] = [:]
 
     /// The storage lines whose heading prefixes are SHOWN — the lines holding the selection's ends
     /// (Q-E2-1, line half). Kept as ranges so the lines that stop being revealed can be re-presented.
@@ -171,21 +160,10 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     // MARK: — Fonts
 
-    /// The font for a heading level (nil = body) with italic / bold bits.
+    /// The font for a heading level (nil = body) with italic / bold bits — `ManuscriptTypography`'s rule (bold 700; bold
+    /// inside a heading = the face's heaviest weight; the face's own italic file).
     private func font(level: Int?, style: UInt8) -> NSFont {
-        let key = (level ?? 0) * 4 + Int(style)
-        if let f = fonts[key] { return f }
-        var f = level.map(Self.headingFont(level:)) ?? Self.bodyFont
-        // ✅ [SP-162] live pass (user, 2026-10-05: *"I find the BOLD text to be too subtle in both Light and Dark
-        // modes … a fine adjustment on how bold is bold"*): ⛔ `NSFontManager`'s bold trait gives the monospaced
-        // system font SEMIBOLD (weight 0.30, measured). ✅ Bold is one real weight step above the text: body →
-        // Bold (0.40); a heading (already bold) → Heavy (0.56), so bold inside a heading still shows.
-        if style & MarkdownBlocks.bold != 0 {
-            f = NSFont.monospacedSystemFont(ofSize: f.pointSize, weight: level == nil ? .bold : .heavy)
-        }
-        if style & MarkdownBlocks.italic != 0 { f = NSFontManager.shared.convert(f, toHaveTrait: .italicFontMask) }
-        fonts[key] = f
-        return f
+        typography.font(level: level, style: style)
     }
 
     // MARK: — The reveal (Q-E2-1: line half for prefixes, span half for inline markers)
@@ -350,18 +328,26 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
                 k = j
             }
         }
+        // 1b. ✅ EP-047 P9: a heading line sits on ITS OWN line height (1.25 × its size) — the storage paragraph style is the
+        // body's 1.45 × body size, whose FIXED maximum would clip a larger heading.
+        for h in a.headings {
+            if let r = local(h.line) {
+                out.addAttribute(.paragraphStyle, value: typography.paragraphStyle(
+                    lineFor: typography.headingSize(level: h.level), heading: true), range: r)
+            }
+        }
         // 2. Heading prefixes: hidden, or shown dimmed on the caret's line (Q2).
         for h in a.headings {
             guard let p = local(h.prefix) else { continue }
             let shown = Self.isRevealed(lineAt: b.location + h.line.location, by: revealedLines)
-            out.addAttributes(shown ? Self.revealedPrefixAttributes : Self.hiddenAttributes, range: p)
+            out.addAttributes(shown ? revealedPrefixAttributes : Self.hiddenAttributes, range: p)
         }
         // 3. Inline markers: hidden, or shown dimmed in the span the caret is in.
         for m in a.markers {
             guard let r = local(m.range) else { continue }
             let g = NSRange(location: b.location + m.range.location, length: m.range.length)
             let shown = revealedSpans.contains { NSIntersectionRange($0, g).length == g.length }
-            out.addAttributes(shown ? Self.revealedMarkerAttributes : Self.hiddenAttributes, range: r)
+            out.addAttributes(shown ? revealedMarkerAttributes : Self.hiddenAttributes, range: r)
         }
         // 4. Escape backslashes: always hidden.
         for e in info.escapes {
@@ -371,16 +357,15 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         // under the text (design §4.2). ⛔ TextKit's own `NSTextList` bullet draws invisible here (SP-159 S1).
         for li in a.listItems {
             guard let line = local(li.line), let p = local(li.prefix) else { continue }
-            out.addAttributes(Self.revealedPrefixAttributes, range: p)
+            out.addAttributes(revealedPrefixAttributes, range: p)
             let width = (ns.substring(with: NSRange(location: b.location + li.prefix.location, length: li.prefix.length)) as NSString)
-                .size(withAttributes: [.font: Self.bodyFont]).width
-            let style = NSMutableParagraphStyle()
-            style.headIndent = width
-            out.addAttribute(.paragraphStyle, value: style, range: line)
+                .size(withAttributes: [.font: typography.bodyFont]).width
+            // ✅ EP-047: from THE paragraph-style builder, so a list line keeps the body line height.
+            out.addAttribute(.paragraphStyle, value: typography.paragraphStyle(headIndent: width), range: line)
         }
         // 6. The PENDING pair (Q1): shown as revealed hints, the caret between them.
         if let pp = pending, let r = local(pp.range) {
-            out.addAttributes(Self.revealedMarkerAttributes, range: r)
+            out.addAttributes(revealedMarkerAttributes, range: r)
         }
         // ✅ SAME LENGTH as `range` — Apple's contract; only attributes differ.
         return NSTextParagraph(attributedString: out)

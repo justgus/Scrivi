@@ -2,6 +2,8 @@
 
 ## SP-166 — 🟡 ACTIVE 2026-10-07 (blocked on the rig)
 
+✅ **[SP-168] CLOSED 2026-10-07 (user-approved)** `[Apple]` [EP-047] **S2** → [`Closed/Sprint-SP-168.md`](Closed/Sprint-SP-168.md) — ✅ the seven bundled faces, Literata 16 pt default, one typography source; [T-0597], [I-0282] verified.
+
 ✅ **[SP-167] CLOSED 2026-10-07 (user-approved)** `[Cross]` [EP-047] **S1** → [`Closed/Sprint-SP-167.md`](Closed/Sprint-SP-167.md) — ✅ settings travel with the project; [T-0596], [I-0278] verified.
 
 🟡 **[SP-166] ACTIVE 2026-10-07** `[Linux]` [EP-048] **S2** → [`Sprint-SP-166.md`](Sprint-SP-166.md) — the presenter (L3–L6 + L9 atomic markers, [T-0595]). ✅ Q1–Q2 ruled. ✅ Code + offscreen smokes done 2026-10-07. ⏳ **Blocked on the rig** for the live pass.

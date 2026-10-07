@@ -6,7 +6,7 @@ import CoreText
 //
 // Usage (from the repo root):
 //   swiftc -O docs/specimens/typeface_specimen.swift -o /tmp/specimen
-//   /tmp/specimen Resources/Fonts docs/specimens/specimen-fonts.json docs/specimens/Scrivi-Typeface-Specimen.pdf
+//   /tmp/specimen Resources/Fonts Resources/Fonts/fonts.json docs/specimens/Scrivi-Typeface-Specimen.pdf
 // Font files are found by name anywhere under the fonts directory (one folder per family). The manifest lists the
 // families, their category and note, and each file's style and weight (from Google Fonts' METADATA.pb).
 
@@ -20,7 +20,8 @@ struct Face: Decodable {
     let variable: Bool
     let files: [FontFile]
 }
-let faces = try! JSONDecoder().decode([Face].self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
+struct Manifest: Decodable { let faces: [Face] }
+let faces = try! JSONDecoder().decode(Manifest.self, from: Data(contentsOf: URL(fileURLWithPath: args[2]))).faces
 
 var fontFiles: [String: URL] = [:]
 for case let u as URL in FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil)! where u.pathExtension == "ttf" {

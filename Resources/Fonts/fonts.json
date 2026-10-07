@@ -1,0 +1,156 @@
+{
+ "_comment": "EP-047 (SP-168): THE list of bundled manuscript typefaces \u2014 read by the Apple app, the Linux app (EP-048 L10) and docs/specimens/typeface_specimen.swift. Never restate it in code. 'default' is ruling P6; files/weights come from each family's Google Fonts METADATA.pb.",
+ "default": "Literata",
+ "faces": [
+  {
+   "name": "Literata",
+   "role": "serif",
+   "category": "Serif",
+   "note": "Default \u00b7 book serif designed for long reading on screens (Google Play Books)",
+   "folder": "Literata",
+   "variable": true,
+   "files": [
+    {
+     "file": "Literata[opsz,wght].ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "Literata-Italic[opsz,wght].ttf",
+     "italic": true,
+     "weight": 400
+    }
+   ]
+  },
+  {
+   "name": "Newsreader",
+   "role": "serif",
+   "category": "Serif",
+   "note": "Warm editorial serif with optical sizes (Production Type)",
+   "folder": "Newsreader",
+   "variable": true,
+   "files": [
+    {
+     "file": "Newsreader[opsz,wght].ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "Newsreader-Italic[opsz,wght].ttf",
+     "italic": true,
+     "weight": 400
+    }
+   ]
+  },
+  {
+   "name": "Crimson Pro",
+   "role": "serif",
+   "category": "Serif",
+   "note": "Elegant and compact book face",
+   "folder": "CrimsonPro",
+   "variable": true,
+   "files": [
+    {
+     "file": "CrimsonPro[wght].ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "CrimsonPro-Italic[wght].ttf",
+     "italic": true,
+     "weight": 400
+    }
+   ]
+  },
+  {
+   "name": "Inter",
+   "role": "sans",
+   "category": "Sans",
+   "note": "Clean, neutral sans designed for screens",
+   "folder": "Inter",
+   "variable": true,
+   "files": [
+    {
+     "file": "Inter[opsz,wght].ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "Inter-Italic[opsz,wght].ttf",
+     "italic": true,
+     "weight": 400
+    }
+   ]
+  },
+  {
+   "name": "Figtree",
+   "role": "sans",
+   "category": "Sans",
+   "note": "Light-footed geometric sans",
+   "folder": "Figtree",
+   "variable": true,
+   "files": [
+    {
+     "file": "Figtree[wght].ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "Figtree-Italic[wght].ttf",
+     "italic": true,
+     "weight": 400
+    }
+   ]
+  },
+  {
+   "name": "Courier Prime",
+   "role": "submission",
+   "category": "Manuscript submission",
+   "note": "Courier refined for screenplays and manuscript submission",
+   "folder": "CourierPrime",
+   "variable": false,
+   "files": [
+    {
+     "file": "CourierPrime-Regular.ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "CourierPrime-Italic.ttf",
+     "italic": true,
+     "weight": 400
+    },
+    {
+     "file": "CourierPrime-Bold.ttf",
+     "italic": false,
+     "weight": 700
+    },
+    {
+     "file": "CourierPrime-BoldItalic.ttf",
+     "italic": true,
+     "weight": 700
+    }
+   ]
+  },
+  {
+   "name": "Source Code Pro",
+   "role": "monospaced",
+   "category": "Monospaced",
+   "note": "Monospaced companion to Source Sans (Adobe)",
+   "folder": "SourceCodePro",
+   "variable": true,
+   "files": [
+    {
+     "file": "SourceCodePro[wght].ttf",
+     "italic": false,
+     "weight": 400
+    },
+    {
+     "file": "SourceCodePro-Italic[wght].ttf",
+     "italic": true,
+     "weight": 400
+    }
+   ]
+  }
+ ]
+}

@@ -157,6 +157,8 @@ struct ScriviApp: App {
     @State private var showAbout = false
 
     init() {
+        // ✅ EP-047 S2 (P5): the bundled manuscript typefaces, registered for this process before any view draws.
+        BundledFonts.register()
         // Populate the Scene Inspector card registry once (EP-030 SP-090). The layout
         // file stores typeIDs, so a card must be registered before its entries resolve;
         // unregistered typeIDs are reported, not dropped.

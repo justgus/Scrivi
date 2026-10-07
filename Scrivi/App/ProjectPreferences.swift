@@ -36,8 +36,28 @@ import Foundation
         didSet { save() }
     }
 
+    // ✅ EP-047 S2 (P2, P5a, P6, P8): the manuscript's typeface (a BUNDLED face's name) and text size, per project.
+    // ABSENT from the file = the defaults (Literata, 16 pt) — nothing is written until the writer chooses, so a project
+    // opened by an older Scrivi keeps its file untouched. ⚠️ A name this build does not bundle is KEPT; only the drawing
+    // falls back (`BundledFonts.face(named:)`).
+    var typeface: String {
+        didSet { typefaceChosen = true; save() }
+    }
+
+    var textSize: Double {
+        didSet { textSizeChosen = true; save() }
+    }
+    /// Whether the file holds an explicit choice — so a save of ANOTHER setting never pins today's default into it.
+    @ObservationIgnored private var typefaceChosen = false
+    @ObservationIgnored private var textSizeChosen = false
+
+    /// The type the manuscript draws with.
+    var typography: ManuscriptTypography { ManuscriptTypography(faceName: typeface, size: CGFloat(textSize)) }
+
     static let subtitleKey = "subtitle"
     static let showChapterTitlesKey = "showChapterTitles"
+    static let typefaceKey = "typeface"
+    static let textSizeKey = "textSize"
 
     init(projectID: String, projectRootPath: String, schemaTitle: String, engine: ScriviEngine,
          defaults: UserDefaults = .standard) {
@@ -77,12 +97,18 @@ import Foundation
         unreadableMessage = fetch?.status == .unreadable ? (fetch?.message ?? "unreadable") : nil
         showChapterTitles = doc[Self.showChapterTitlesKey] as? Bool ?? false
         projectSubtitle = doc[Self.subtitleKey] as? String ?? ""
+        typeface = doc[Self.typefaceKey] as? String ?? BundledFonts.manifest.default
+        textSize = (doc[Self.textSizeKey] as? NSNumber)?.doubleValue ?? Double(ManuscriptTypography.defaultSize)
+        typefaceChosen = doc[Self.typefaceKey] != nil
+        textSizeChosen = doc[Self.textSizeKey] != nil
         projectTitle = title
     }
 
     private func save() {
         document[Self.subtitleKey] = projectSubtitle
         document[Self.showChapterTitlesKey] = showChapterTitles
+        if typefaceChosen { document[Self.typefaceKey] = typeface }
+        if textSizeChosen { document[Self.textSizeKey] = textSize }
         if Self.put(document, engine: engine, root: projectRootPath) { unreadableMessage = nil }
     }
 
