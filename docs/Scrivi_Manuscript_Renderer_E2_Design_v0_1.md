@@ -390,6 +390,18 @@ everywhere else (the parser decides), with no second interpretation to drift fro
 ✅ **Recommendation: (L-b).** One Linux parser in the shared core, with an agreement test tying it to Apple's. That
 matches the standing rule that parallel lists must not be allowed to drift silently.
 
+⛔ **CORRECTION 2026-10-07 ([SP-165] Q1): Linux does NOT call C++ directly.** `platforms/linux/src` includes one core
+header, `<scrivi/scrivi.h>`; the Linux app is a C ABI client like Apple. ✅ So (L-b) is reached through a new endpoint,
+`scrivi_analyze_markdown` (JSON-over-string, UTF-8 byte offsets per `scrivi.h`), which the Swift agreement test also calls.
+✅ md4c 0.5.2 via pinned FetchContent, compiled into `libScriviCore.a` (Q2). ✅ Escapes MEASURED: md4c reports an escaped mark
+as covered text at its own offset and leaves the backslash uncovered (the §13 open question). ✅ Cost MEASURED (Debug core):
+1.82 MB dumas, 5,771 blocks, 30 ms whole manuscript through the ABI; median 4.5 µs per block.
+⚠️ **Agreement MEASURED (L2):** S5 4,000/4,000, AC3-escaped 1,918/1,918, structural 46/46 after one rule (an escape backslash
+takes its mark's coverage, as Apple's source positions do); AC3-raw 1,912/1,918. The six are listed in [SP-165]: md4c
+counts Unicode SYMBOLS as punctuation (CommonMark 0.31) where Apple's parser does not; a GFM `~` case; and two Apple
+source-position errors, one of which, [I-0281], mis-renders real prose on Apple. ✅ **Symbol class ACCEPTED** (user, [SP-165] Q4,
+2026-10-07); md4c is not patched.
+
 ---
 
 ## 10. Spike numbers (AC-P1)

@@ -5,6 +5,8 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
+#include "MarkdownAnalysis.hpp"
+
 // ScriviBridge — the QML ↔ ScriviCore C ABI boundary for the Linux app.
 //
 // This is the Qt analogue of ScriviEngine.swift on Apple: it calls the plain-C
@@ -421,6 +423,14 @@ public:
     Q_INVOKABLE QVariantMap putInspectorLayout(const QString& projectRootPath,
                                                const QString& documentJson);
 
+    // EP-047 AC1/AC2 (SP-167) — settings that TRAVEL with the project ([I-0278]): the inspector
+    // layout's opaque contract for `project-settings.json` (status ok | absent | unreadable; PUT
+    // replaces the whole document — read, merge your keys, write), and the project rename, which
+    // writes `project.json`'s `title`. ⚠️ No Linux UI reads them yet (EP-048 L10).
+    Q_INVOKABLE QVariantMap getProjectSettings(const QString& projectRootPath);
+    Q_INVOKABLE QVariantMap putProjectSettings(const QString& projectRootPath, const QString& documentJson);
+    Q_INVOKABLE QVariantMap setProjectTitle(const QString& projectRootPath, const QString& title);
+
     // Imports an external timeline. `timelineJSON` is the file body; `epochOffsetMs`
     // shifts every event; `assignedGreyShade` is the row's per-source grey (hex). On
     // failure emits errorOccurred, returns {}.
@@ -533,6 +543,11 @@ public:
     Q_INVOKABLE QVariantMap setTimelineEpochOffset(const QString& projectRootPath, const QString& worldID, const QString& timelineID, long long epochOffsetMs);
     Q_INVOKABLE QVariantMap setWorldEpochOffset(const QString& projectRootPath, const QString& worldID, long long epochOffsetMs);
     Q_INVOKABLE QVariantMap upsertRelationType(const QString& projectRootPath, const QString& relationTypeJson);
+
+    // EP-048 L3 (SP-166) — `scrivi_analyze_markdown`: what one Markdown block is, in UTF-16 offsets.
+    // ✅ STATIC: the endpoint is stateless (no project), and the manuscript presenter calls it per block
+    // without a bridge instance. A failed call returns an empty analysis — the block is drawn as stored.
+    static MarkdownAnalysis analyzeMarkdown(const QString& block);
 
     // Whether the MOST RECENT scrivi_* call through this bridge failed.
     //

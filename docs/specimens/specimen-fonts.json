@@ -1,0 +1,145 @@
+[
+ {
+  "name": "Literata",
+  "category": "Serif",
+  "folder": "Literata",
+  "variable": true,
+  "files": [
+   {
+    "file": "Literata[opsz,wght].ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "Literata-Italic[opsz,wght].ttf",
+    "italic": true,
+    "weight": 400
+   }
+  ],
+  "note": "Default \u00b7 book serif designed for long reading on screens (Google Play Books)"
+ },
+ {
+  "name": "Newsreader",
+  "category": "Serif",
+  "folder": "Newsreader",
+  "variable": true,
+  "files": [
+   {
+    "file": "Newsreader[opsz,wght].ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "Newsreader-Italic[opsz,wght].ttf",
+    "italic": true,
+    "weight": 400
+   }
+  ],
+  "note": "Warm editorial serif with optical sizes (Production Type)"
+ },
+ {
+  "name": "Crimson Pro",
+  "category": "Serif",
+  "folder": "CrimsonPro",
+  "variable": true,
+  "files": [
+   {
+    "file": "CrimsonPro[wght].ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "CrimsonPro-Italic[wght].ttf",
+    "italic": true,
+    "weight": 400
+   }
+  ],
+  "note": "Elegant and compact book face"
+ },
+ {
+  "name": "Inter",
+  "category": "Sans",
+  "folder": "Inter",
+  "variable": true,
+  "files": [
+   {
+    "file": "Inter[opsz,wght].ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "Inter-Italic[opsz,wght].ttf",
+    "italic": true,
+    "weight": 400
+   }
+  ],
+  "note": "Clean, neutral sans designed for screens"
+ },
+ {
+  "name": "Figtree",
+  "category": "Sans",
+  "folder": "Figtree",
+  "variable": true,
+  "files": [
+   {
+    "file": "Figtree[wght].ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "Figtree-Italic[wght].ttf",
+    "italic": true,
+    "weight": 400
+   }
+  ],
+  "note": "Light-footed geometric sans"
+ },
+ {
+  "name": "Courier Prime",
+  "category": "Manuscript submission",
+  "folder": "CourierPrime",
+  "variable": false,
+  "files": [
+   {
+    "file": "CourierPrime-Regular.ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "CourierPrime-Italic.ttf",
+    "italic": true,
+    "weight": 400
+   },
+   {
+    "file": "CourierPrime-Bold.ttf",
+    "italic": false,
+    "weight": 700
+   },
+   {
+    "file": "CourierPrime-BoldItalic.ttf",
+    "italic": true,
+    "weight": 700
+   }
+  ],
+  "note": "Courier refined for screenplays and manuscript submission"
+ },
+ {
+  "name": "Source Code Pro",
+  "category": "Monospaced",
+  "folder": "SourceCodePro",
+  "variable": true,
+  "files": [
+   {
+    "file": "SourceCodePro[wght].ttf",
+    "italic": false,
+    "weight": 400
+   },
+   {
+    "file": "SourceCodePro-Italic[wght].ttf",
+    "italic": true,
+    "weight": 400
+   }
+  ],
+  "note": "Monospaced companion to Source Sans (Adobe)"
+ }
+]

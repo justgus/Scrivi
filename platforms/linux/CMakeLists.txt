@@ -68,6 +68,9 @@ qt_add_executable(scrivi_linux
     src/SceneDocument.hpp
     # SP-062 (EP-022): the editable writing surface with boundary integrity.
     src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
     src/ManuscriptEditor.hpp
     src/ManuscriptEscapes.cpp
     src/ManuscriptEscapes.hpp
@@ -343,6 +346,9 @@ target_compile_features(scrivi_linux_editor_map_smoke PRIVATE cxx_std_23)
 qt_add_executable(scrivi_linux_escape_smoke
     tests/escape_smoke.cpp
     src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
     src/ManuscriptEditor.hpp
     src/ManuscriptEscapes.cpp
     src/ManuscriptEscapes.hpp
@@ -360,6 +366,44 @@ target_link_libraries(scrivi_linux_escape_smoke
 
 target_include_directories(scrivi_linux_escape_smoke PRIVATE src)
 target_compile_features(scrivi_linux_escape_smoke PRIVATE cxx_std_23)
+
+# --- EP-048 S2 presenter smoke (SP-166 / T-0595) ----------------------------
+# The Linux manuscript presenter, offscreen, against the REAL analyzer (ScriviCore through
+# ScriviBridge::analyzeMarkdown): stored text untouched, hidden widths ~0, caret stops, reveal,
+# atomic markers, scene edges, cost on a large document.
+qt_add_executable(scrivi_linux_presenter_smoke
+    tests/presenter_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ThemeColours.hpp
+)
+
+target_link_libraries(scrivi_linux_presenter_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets
+)
+
+target_include_directories(scrivi_linux_presenter_smoke PRIVATE src)
+target_compile_features(scrivi_linux_presenter_smoke PRIVATE cxx_std_23)
 
 # --- Headless per-scene save smoke (SP-062 / T-0239, EP-022 AC3) -----------
 # Drives create → open → saveScene(new body) → reopen and asserts the new bytes
@@ -822,6 +866,9 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/SceneDocument.cpp
     src/SceneDocument.hpp
     src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
     src/ManuscriptEditor.hpp
     src/ManuscriptEscapes.cpp
     src/ManuscriptEscapes.hpp
@@ -891,6 +938,9 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/SceneDocument.cpp
     src/SceneDocument.hpp
     src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
     src/ManuscriptEditor.hpp
     src/ManuscriptEscapes.cpp
     src/ManuscriptEscapes.hpp

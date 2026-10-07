@@ -239,6 +239,22 @@ int main(int argc, char* argv[])
     reaches(bridge.setTimelineEpochLabel(projectPath, QStringLiteral("Second Age")),
             "setTimelineEpochLabel reached");
 
+    // ================================================================
+    // EP-047 SP-167 — settings that travel; checked by READING BACK, never by the write's own return
+    // ================================================================
+    check(bridge.getProjectSettings(projectPath).value(QStringLiteral("status")).toString()
+              == QStringLiteral("absent"),
+          "getProjectSettings: absent on a new project");
+    bridge.putProjectSettings(projectPath, QStringLiteral(R"({"subtitle":"From Linux","showChapterTitles":true})"));
+    const QVariantMap settings =
+        bridge.getProjectSettings(projectPath).value(QStringLiteral("document")).toMap();
+    check(settings.value(QStringLiteral("subtitle")).toString() == QStringLiteral("From Linux"),
+          "putProjectSettings → getProjectSettings round-trips");
+    bridge.setProjectTitle(projectPath, QStringLiteral("Renamed On Linux"));
+    check(bridge.openProject(projectPath, appSupport).value(QStringLiteral("projectTitle")).toString()
+              == QStringLiteral("Renamed On Linux"),
+          "setProjectTitle: the reopened project reports the new title");
+
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);
     if (failures != 0) return 1;
 

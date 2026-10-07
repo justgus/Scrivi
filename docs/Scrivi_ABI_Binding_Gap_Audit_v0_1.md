@@ -76,6 +76,11 @@ They are reachable **by the app's code**. Reachability by a writer is EP-035's j
 
 ## 5. The full table — all 100 endpoints
 
+⚠️ **2026-10-07 ([SP-165]): this table is a 2026-08-24 snapshot and is NOT complete.** `scrivi.h` now declares
+**106** endpoints (excluding `scrivi_free`). `scrivi_analyze_markdown` (SP-165) is added below. ⛔ **Five later
+endpoints have NO row:** `scrivi_close_project`, `scrivi_get_inspector_layout`, `scrivi_put_inspector_layout`,
+`scrivi_list_story_times`, `scrivi_open_scene_for_bulk_load`. ⏳ Reconciling them is not SP-165's; it is recorded for a ruling.
+
 **Legend:** ✅ present · — absent · 🔵 in scope for SP-121 · ⚠️ excluded to EP-019
 
 | Endpoint | Cluster | Linux | Apple | Disposition |
@@ -83,6 +88,7 @@ They are reachable **by the app's code**. Reachability by a writer is EP-035's j
 | `scrivi_import_asset` | Asset | — | ✅ | 🔵 **In scope (SP-121)** |
 | `scrivi_list_assets` | Asset | — | ✅ | 🔵 **In scope (SP-121)** |
 | `scrivi_remove_asset` | Asset | — | ✅ | 🔵 **In scope (SP-121)** |
+| `scrivi_analyze_markdown` | Markdown (EP-048, added 2026-10-07 SP-165) | ✅ (SP-166: `ScriviBridge::analyzeMarkdown`, static) | ✅ (interop test only) | ✅ **Present** — the Linux presenter's caller; Apple renders with its own parser and binds it only for the L2 agreement test |
 | `scrivi_buffers_clear` | Buffers (EP-019) | — | ✅ | ⚠️ **EXCLUDED → EP-019** |
 | `scrivi_buffers_get` | Buffers (EP-019) | — | ✅ | ⚠️ **EXCLUDED → EP-019** |
 | `scrivi_buffers_list` | Buffers (EP-019) | — | ✅ | ⚠️ **EXCLUDED → EP-019** |

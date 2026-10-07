@@ -604,6 +604,18 @@ const char* scrivi_get_inspector_layout(const char* projectRootPath);
 const char* scrivi_put_inspector_layout(const char* projectRootPath,
                                          const char* documentJson);
 
+/* EP-047 AC1 (SP-167) — settings that TRAVEL with the project ([I-0278]), in
+   `project-settings.json` at the package root. The SAME contract as the inspector layout:
+   an opaque JSON object whose keys the apps define; GET result {status: "absent"|"unreadable"|"ok"
+   [, message][, document]}; PUT replaces the whole document (read, merge your keys, write — so
+   another platform's keys survive) and rejects a non-object. */
+const char* scrivi_get_project_settings(const char* projectRootPath);
+const char* scrivi_put_project_settings(const char* projectRootPath, const char* documentJson);
+
+/* EP-047 AC2 (SP-167) — renames the project: writes `project.json`'s `title` in place (every
+   other field kept). An empty or whitespace-only title is rejected. result: {title} */
+const char* scrivi_set_project_title(const char* projectRootPath, const char* title);
+
 const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char* sceneID,
                                          const char* bandID);
 const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const char* sceneID);
@@ -953,6 +965,20 @@ const char* scrivi_buffers_list(const char* projectRootPath);
  * is false when the slot was already empty. */
 const char* scrivi_buffers_clear(const char* projectRootPath,
                                  const char* bufferID);
+
+/* EP-048 L1 (SP-165) — what one BLOCK of manuscript Markdown is (a block = a maximal run of
+ * non-blank lines). Stateless: no project. For a platform with no Markdown parser of its own
+ * (Linux); it reports what Apple's MarkdownBlocks.analyze reports, and an interop test holds
+ * the two in agreement.
+ * Every range is {start, end}: half-open UTF-8 BYTE offsets relative to `blockUtf8`.
+ * result: {length,
+ *          headings:  [{line, prefix, level}],
+ *          listItems: [{line, prefix, ordered, number}],
+ *          markers:   [{range, opens}],          emphasis delimiters the parser used
+ *          styleRuns: [{range, bits}],           bits: 1 italic, 2 bold; unstyled bytes omitted
+ *          spans:     [{start, end}]}            emphasis + its markers (the reveal unit)
+ * ⚠️ An EMPTY array is OMITTED (the envelope convention) — read a missing key as empty. */
+const char* scrivi_analyze_markdown(const char* blockUtf8);
 
 #ifdef __cplusplus
 }

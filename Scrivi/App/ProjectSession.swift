@@ -127,6 +127,8 @@ import os
         }
     }
     var showProjectSettings: Bool = false
+    /// EP-047 (SP-167 Q1): Project ▸ Purge Stale History Branches… — an ACTION, so its own sheet.
+    var showStaleBranches: Bool = false
     /// Worlds manager sheet (EP-031 SP-099 T-0408).
     var showWorlds: Bool = false
 
@@ -301,12 +303,10 @@ import os
         // ⚠️ [T-0570] — a failed write is the first sign the project's drive has gone.
         loader.onSaveFailed = { [weak self] in self?.refreshProjectAvailability() }
         NSLog("[SCRIVI-TIMING] <<< done: viewportLoader assignment")
-        let prefs = ProjectPreferences(projectID: result.projectID)
-        // Show the real project.json title instead of "Untitled" (I-0093). The backend now returns
-        // it in the open envelope; seed the display title from it when the writer hasn't set one on
-        // this machine (an explicit Project-Settings rename, persisted to UserDefaults, still wins).
-        prefs.seedTitleFromSchemaIfUnset(result.projectTitle)
-        projectPreferences = prefs
+        // ✅ EP-047 (SP-167, [I-0278]): the title is project.json's (I-0093's open envelope carries it); subtitle and
+        // "Show chapter titles" come from the package. This Mac's old UserDefaults record is migrated once.
+        projectPreferences = ProjectPreferences(projectID: result.projectID, projectRootPath: path,
+                                                schemaTitle: result.projectTitle, engine: engine)
 
         let tlModel = TimelineViewModel()
         NSLog("[SCRIVI-TIMING] >>> entering: TimelineViewModel.load")
@@ -418,6 +418,7 @@ import os
         projectPreferences = nil
         timelineModel = nil
         showProjectSettings = false
+        showStaleBranches = false
         showWorlds = false
         pendingNavigationSceneID = nil
     }

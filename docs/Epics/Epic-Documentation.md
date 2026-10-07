@@ -36,7 +36,7 @@ See: [Epic-active.md](Epic-active.md)
 went stale: this section said "Currently: 3 Backlog Epics" and listed three, when there are SEVEN.**
 
 🔵 **EP-026** `[Linux]` · 🔵 **EP-032** `[Cross]` · 🔵 **EP-033** `[Cross]` · 🔵 **EP-035** `[Linux]` ·
-🔵 **EP-036** `[Linux]` · 🔵 **EP-037** `[Linux]` · 🔵 **EP-044** `[ScriviCore]` · 🔵 **EP-047** `[Apple]` · 🔵 **EP-048** `[Linux]`
+🔵 **EP-036** `[Linux]` · 🔵 **EP-037** `[Linux]` · 🔵 **EP-044** `[ScriviCore]`
 
 ⚠️ **Full entries — goal, scope and any owed rulings — are in
 [`Epic-backlog.md`](Epic-backlog.md);** ⛔ **they are NOT summarised here.**
@@ -110,8 +110,8 @@ user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbrok
 | EP-043 | `[Linux]` **The Session** — many projects, one window each, restored where the writer left them. ⚠️ **Closes [I-0176]/[I-0177]/[I-0178]**; ports ✅ **[EP-018]** | ✅ **CLOSED** — activated 2026-09-25 — [record](Closed/Epic-EP-043.md) — ✅ **CLOSED 2026-09-30 (user-approved)** — all four Sprints ([SP-145]–[SP-148]) closed, all 10 ACs met | 2026-09-21 | — |
 | EP-045 | `[Apple]` **Manuscript Renderer — Foundations** — ⚠️ **typed attachments (a live save-path corruption), the SOURCE↔PRESENTED caret mapping, the escape layer, the divider** | ✅ **CLOSED 2026-10-04** (user-approved) — all eleven ACs met; SP-153–158 → [record](Closed/Epic-EP-045.md) | 2026-09-29 | 2026-10-04 |
 | EP-046 | `[Apple]` **Manuscript Renderer — Inline Rendering** — ⚠️ **WYSIWYG: bold/italic/headings render, markers hide (Model B) + the formatting COMMANDS** | ✅ **CLOSED 2026-10-06** (user-approved) — SP-159 (design, ACs AC1–AC12); SP-161 (E2-S1) — AC1, AC2, AC4 (line), AC5, AC7, AC8, AC11; SP-162 (E2-S2) — AC3, AC4 (span), AC7 (inline), AC12; SP-163 (E2-S3) — AC6, AC9, AC12 across scenes; SP-164 (E2-S4) — AC10. ✅ All twelve met → [record](Closed/Epic-EP-046.md) | 2026-09-29 | 2026-10-06 |
-| EP-047 | `[Apple]` **Manuscript Typography & Preferences** — ✅ **F1 typeface + `paragraphIndent`** (⛔ **a tab or 4 spaces makes a `codeBlock`; ✅ `firstLineHeadIndent` costs ZERO characters**) | 🔵 **Draft** (backlog) | 2026-09-29 | — |
-| EP-048 | `[Linux]` **Manuscript Renderer Parity** — ⚠️ **honours `feedback_linux_adopts_apple_shape`; ✅ SCOPED 2026-10-05 (SP-159): `QSyntaxHighlighter` presenter + md4c in ScriviCore, ACs L1–L8** | 🔵 **Draft** (backlog) — ✅ **unblocked**: [EP-046] closed 2026-10-06 | 2026-09-29 | — |
+| EP-047 | `[Apple]` **Manuscript Typography & Preferences** — typeface (F1), first-line indent (None · Every · Book), Markup Hints, and a `project-settings.json` home so settings TRAVEL ([I-0278]) | 🟡 **Active** 2026-10-07 — SP-167 (S1) ✅ closed: AC1–AC3 met; AC1–AC9, rulings P1–P4 | 2026-09-29 | — |
+| EP-048 | `[Linux]` **Manuscript Renderer Parity** — ⚠️ **honours `feedback_linux_adopts_apple_shape`; ✅ SCOPED 2026-10-05 (SP-159): `QSyntaxHighlighter` presenter + md4c in ScriviCore (reached through the C ABI, SP-165 Q1), ACs L1–L9 (L9 added 2026-10-07)** | 🟡 **Active** 2026-10-07 — SP-165 (S1) ✅ closed: L1, L2 met; SP-166 (S2) active | 2026-09-29 | — |
 | EP-049 | `[Linux]` **Manuscript Storage Format on Linux** — ⚠️ **the escape layer's WRITE half: Linux writes the same `.md` Apple does** (escaping, paste/copy, pair deletion, Return/Backspace) | ✅ **CLOSED 2026-10-05** (user-approved) — all ACs met; SP-160 → [record](Closed/Epic-EP-049.md) | 2026-10-04 | 2026-10-05 |
 
 ## Statistics
@@ -122,8 +122,7 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 - ✅ **[EP-041] CLOSED 2026-09-22** — ⚠️ **its Audit Check RECOVERED [I-0223], which had been
   referenced in five documents and present in none since 2026-09-18.**
-- ⚠️ **EP-044 `[ScriviCore]` World Resolution** (created 2026-09-22), **EP-047** and **EP-048** (the Manuscript Renderer
-  family, created 2026-09-29) are 🔵 Draft in the backlog. ✅ **[EP-045] CLOSED 2026-10-04; [EP-046] CLOSED 2026-10-06.** ✅ Next-available IDs
+- ⚠️ **EP-044 `[ScriviCore]` World Resolution** (created 2026-09-22), is 🔵 Draft in the backlog; 🟡 **EP-047** ACTIVE 2026-10-07 ([SP-167]). ✅ **[EP-045] CLOSED 2026-10-04; [EP-046] CLOSED 2026-10-06.** 🟡 **[EP-048] ACTIVE 2026-10-07** ([SP-165]). ✅ Next-available IDs
   live in [`../tools/next-ids.json`](../tools/next-ids.json), not here (user ruling 2026-09-24).
 - ✅ **[EP-040] CLOSED 2026-09-24** `[Apple]` The Editor Shell (SP-134–SP-137 · SP-150). ⚠️ **Prior line read "TWO ACTIVE EPICS as of 2026-09-20"**
   ✅ **[EP-041] `[Cross]` The Boundary CLOSED 2026-09-22** → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md)
@@ -156,6 +155,12 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-07 (**EP-047 ACTIVATED** (user-approved) with SP-167.)*
+
+*Last Updated: 2026-10-07 (**EP-047 PLANNED** (Draft) — moved to `Epic-active.md`; AC1–AC9 from rulings P1–P4; I-0278 joined. **EP-048** gains L10.)*
+
+*Last Updated: 2026-10-07 (**EP-048 ACTIVATED** (user-approved) with SP-165; moved from `Epic-backlog.md` to `Epic-active.md`.)*
 
 *Last Updated: 2026-10-06 (**EP-046 ✅ CLOSED (user-approved)** → `Closed/Epic-EP-046.md`; Audit Check findings F-1…F-6, O-1 remediated; EP-048 unblocked. ⛔ No Epic is active.)*
 

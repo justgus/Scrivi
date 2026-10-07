@@ -5186,4 +5186,300 @@ struct FindReplaceTests {
         #expect(Set(find.items.map(\.title)).isSuperset(of: ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find"]))
     }
 }
+// MARK: - EP-048 L2 — the core analyzer agrees with Apple's
+
+/// ✅ EP-048 L2 (SP-165, T-0594): ScriviCore's md4c analyzer (`scrivi_analyze_markdown`, what Linux renders with)
+/// and Apple's `MarkdownBlocks.analyze` (`AttributedString`) must report the SAME analysis for every block — or
+/// Linux and Apple show one manuscript two ways. ⚠️ Two parsers, one set of rules: this is the guard on their drift.
+/// Every disagreement is LISTED, never averaged away.
+@Suite("Markdown analyzer agreement: ScriviCore md4c vs MarkdownBlocks (EP-048 L2)")
+struct MarkdownAnalyzerAgreementTests {
+    private let engine = ScriviEngine()
+
+    /// Blocks as the presenter cuts them: maximal runs of non-blank lines, each line keeping its newline.
+    static func blocks(_ text: String) -> [String] {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        var out: [String] = [], cur = ""
+        for (i, l) in lines.enumerated() {
+            let line = String(l) + (i < lines.count - 1 ? "\n" : "")
+            if MarkdownEscapes.isBlankLine(line) { if !cur.isEmpty { out.append(cur); cur = "" } } else { cur += line }
+        }
+        if !cur.isEmpty { out.append(cur) }
+        return out
+    }
+
+    /// The core's analysis converted to UTF-16 units, shaped as `MarkdownBlocks.Analysis`.
+    private func core(_ block: String) throws -> MarkdownBlocks.Analysis {
+        let r = try engine.analyzeMarkdown(block: block)
+        var u16 = [Int](repeating: 0, count: r.length + 1)
+        var b = 0, u = 0
+        for scalar in block.unicodeScalars {
+            let nb = String(scalar).utf8.count
+            for k in 0..<nb { u16[b + k] = u }
+            b += nb; u += scalar.utf16.count
+        }
+        u16[b] = u
+        func ns(_ x: MarkdownAnalysisResult.ByteRange) -> NSRange {
+            NSRange(location: u16[x.start], length: u16[x.end] - u16[x.start])
+        }
+        var a = MarkdownBlocks.Analysis()
+        a.headings = (r.headings ?? []).map { .init(line: ns($0.line), prefix: ns($0.prefix), level: $0.level) }
+        a.listItems = (r.listItems ?? []).map {
+            .init(line: ns($0.line), prefix: ns($0.prefix), ordered: $0.ordered, number: $0.number)
+        }
+        a.markers = (r.markers ?? []).map { .init(range: ns($0.range), opens: $0.opens) }
+        a.spans = (r.spans ?? []).map(ns)
+        if let runs = r.styleRuns, !runs.isEmpty {
+            a.styles = [UInt8](repeating: 0, count: u)
+            // Every UTF-16 unit of a scalar takes its bytes' style (👋 is TWO units).
+            for run in runs {
+                for unit in u16[run.range.start]..<u16[run.range.end] { a.styles[unit] = UInt8(run.bits) }
+            }
+        }
+        return a
+    }
+
+    /// `styles` is empty when a block has no emphasis — compare as all-zero instead.
+    private static func normalized(_ a: MarkdownBlocks.Analysis, _ n: Int) -> MarkdownBlocks.Analysis {
+        var a = a
+        if a.styles.isEmpty { a.styles = [UInt8](repeating: 0, count: n) }
+        return a
+    }
+
+    /// Runs every block of `texts` through both analyzers; returns the disagreeing blocks with both readings.
+    private func disagreements(_ texts: [String]) throws -> (blocks: Int, diffs: [String]) {
+        var count = 0, diffs: [String] = []
+        for text in texts {
+            for block in Self.blocks(text) {
+                count += 1
+                let n = block.utf16.count
+                let apple = Self.normalized(MarkdownBlocks.analyze(block), n)
+                let ours = Self.normalized(try core(block), n)
+                if apple != ours { diffs.append("\(block.debugDescription)\n  apple: \(apple)\n  core:  \(ours)") }
+            }
+        }
+        return (count, diffs)
+    }
+
+    /// The AC3 corpus (EP-045): the same seed and alphabet, so these are the same 2,000 strings.
+    static func ac3Typed() -> [String] {
+        var state: UInt64 = 0x5C21_0453
+        func next() -> UInt64 { state = state &* 6364136223846793005 &+ 1442695040888963407; return state >> 33 }
+        let alphabet: [String] = Array(##"!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"##).map(String.init)
+            + ["a", "b", "Z", "é", "👋", " ", "\t", "\n"]
+        return (0..<2_000).map { _ in
+            let len = Int(next() % 24)
+            return (0..<len).map { _ in alphabet[Int(next() % UInt64(alphabet.count))] }.joined()
+        }
+    }
+
+    /// The S5 corpus (design §6.1, [SP-163]): escaped dumas prose with an arbitrary selection wrapped in `**` or `*` —
+    /// RAW, without the Q3 shrink, so the flanking failures are in it too. Seeded, so a failure reproduces.
+    static func s5() -> [String] {
+        let base = [
+            #"d\'Artagnan arrives in Paris with a yellow horse and no money\; Edmond Dantes arrives in Marseille\."#,
+            #"Both are provincials\, walking into a system that has \"already decided\" what they are worth\."#,
+            #"He wrote at speed\, for serial publication \(and was paid by the line\)\; the pattern is real\."#,
+        ]
+        var state: UInt64 = 0x0E48_05C5
+        func next() -> Int { state = state &* 6364136223846793005 &+ 1442695040888963407; return Int(state >> 33) }
+        var out: [String] = []
+        for i in 0..<4_000 {
+            let src = Array(base[next() % base.count])
+            let a = next() % (src.count - 1)
+            let b = min(src.count, a + 1 + next() % 30)
+            let d = i % 2 == 0 ? "**" : "*"
+            out.append(String(src[..<a]) + d + String(src[a..<b]) + d + String(src[b...]))
+        }
+        return out
+    }
+
+    /// Block shapes neither random corpus reaches: headings, lists, quotes, code, tables, the SP-165 spike.
+    static let structural = [
+        "# One", "## Two **bold**", "###### Six", "####### seven", "#nospace", "  ### indented", "# Heading \\#5",
+        "Title\n=====", "> # quoted", "> **q**", "- # in a list", "- one\n- two", "* item", "* **x**", "+ plus",
+        "1. one\n2. two", "3) paren", "2. ", "- ", "- a\n  - nested\n- b", "1. *it*\n2. **b**",
+        "    indented **code**", "\tsome *it*", "```\nfenced *x*\n```", "| a | **b** |\n| - | - |\n| 1 | 2 |",
+        "Mr\\. Smith\\, ok", "2 \\* 3 \\* 4", "2 * 3 * 4", "**bold** and *it* x", "line one\\\nline two",
+        "a &amp; b **c**", "\\\\back", "_x_ and \\_y\\_", "*it***bold**", "**a**\n*b*", "***both***",
+        "**bold *both* bold**", "**see [here](x.md) now**", "é👋 **b**", "wheth_er Dumas_ inten", "`code *x*` **y**",
+        "~~strike~~ **b**", "<em>html</em> *x*", "a  \nb *c*", "**unclosed", "__dunder__ and _u_",
+    ]
+
+    /// ⚠️ The disagreements MEASURED 2026-10-07 ([SP-165]), each reduced to a minimal block. ✅ The symbol and `~` classes are
+    /// ACCEPTED (user, SP-165 Q4); the Apple position errors are Apple's to fix ([I-0281] → EP-047).
+    /// Every one must STILL disagree — when a fix lands on either side this fails, and the entry is removed.
+    static let knownDisagreements: [(block: String, why: String)] = [
+        // md4c 0.5.2 = CommonMark 0.31: Unicode SYMBOLS (S*) count as punctuation for flanking; Apple's parser: P* only.
+        ("👋*{*", "symbol-as-punctuation"), ("*<*👋", "symbol-as-punctuation"), ("_._👋", "symbol-as-punctuation"),
+        // GFM strikethrough: a lone `~` between `*`s — Apple: no emphasis; md4c: emphasis.
+        ("*~*", "tilde"),
+        // Apple source positions: the leftover `*` of `**` is attributed to the inner position.
+        ("**$*", "apple-position-leftover"),
+        // ⛔ [I-0281] Apple source positions: a first line indented 1–3 spaces shifts every continuation line by
+        // that indent. ⚠️ Real prose — Apple hides the wrong character. md4c's positions are the true ones.
+        (" She said\n*no* twice.", "apple-position-indent [I-0281]"),
+    ]
+
+    /// The six typed AC3 strings whose RAW blocks disagree, every one an instance of a class above.
+    static let ac3RawKnown: Set<String> = [
+        " \\|_\'| ^\"*^&&\n:+=!):*[", "%/*^#/ ~*_👋(<b],`+[\t[", "/>👋*{*/?}*.Z\'?. \"(%aZ",
+        "|\t;!%{***$~$$=*👋*{=>\'[}", "<;>__.a&_^>- |@+$,*<*👋", ";*`_.\'[👋_👋é\"!$( &%.^@)#",
+    ]
+
+    @Test("the AC3 corpus agrees — escaped as typed (all), and RAW (all but the six known)")
+    func ac3() throws {
+        let typed = Self.ac3Typed()
+        let escaped = try disagreements(typed.map(MarkdownEscapes.escape))
+        #expect(escaped.diffs.isEmpty, "\(escaped.diffs.count)/\(escaped.blocks) escaped blocks disagree:\n\(escaped.diffs.prefix(8).joined(separator: "\n"))")
+        let raw = try disagreements(typed.filter { !Self.ac3RawKnown.contains($0) })
+        #expect(raw.diffs.isEmpty, "\(raw.diffs.count)/\(raw.blocks) raw blocks disagree:\n\(raw.diffs.prefix(8).joined(separator: "\n"))")
+        #expect(Self.ac3RawKnown.isSubset(of: Set(typed)), "the known strings are in the corpus")
+    }
+
+    @Test("the known disagreements still disagree (accepted, or awaiting an Apple fix)")
+    func known() throws {
+        for k in Self.knownDisagreements {
+            #expect(try !disagreements([k.block]).diffs.isEmpty, "now AGREES — remove it: \(k.why) \(k.block.debugDescription)")
+        }
+    }
+
+    @Test("the S5 corpus agrees — 4,000 arbitrary selections wrapped in ** or *")
+    func s5Corpus() throws {
+        let r = try disagreements(Self.s5())
+        #expect(r.diffs.isEmpty, "\(r.diffs.count)/\(r.blocks) blocks disagree:\n\(r.diffs.prefix(8).joined(separator: "\n"))")
+    }
+
+    @Test("structural blocks agree")
+    func structuralBlocks() throws {
+        let r = try disagreements(Self.structural)
+        #expect(r.diffs.isEmpty, "\(r.diffs.count)/\(r.blocks) blocks disagree:\n\(r.diffs.joined(separator: "\n"))")
+    }
+}
+
+// MARK: - EP-047 S1 — project settings that TRAVEL ([I-0278], SP-167)
+
+/// ✅ EP-047 AC1–AC3: `ProjectPreferences` reads and writes the PACKAGE (`project-settings.json` and `project.json`'s
+/// title) through ScriviCore, keeps keys it did not write, and migrates this Mac's old `UserDefaults` record ONCE
+/// per the Q2 ruling (package wins; a title renamed on this Mac goes to `project.json` only while the package has
+/// no settings yet). Each case uses its own `UserDefaults` suite — never the writer's.
+@Suite("Project settings travel with the project (EP-047 S1)")
+@MainActor
+struct ProjectSettingsTravelTests {
+
+    @MainActor private struct Fixture {
+        let engine = ScriviEngine()
+        let root: String
+        let projectID: String
+        let defaults: UserDefaults
+        let suite: String
+
+        init() throws {
+            let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-settings-\(UUID().uuidString)")
+            let appSupport = base.appendingPathComponent("support").path(percentEncoded: false)
+            root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+            try FileManager.default.createDirectory(atPath: appSupport, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+            let id = try engine.ensureLocalIdentity(displayName: "Test", appSupportRoot: appSupport)
+            let ref = AuthorshipRef(identityID: id.identityID, personaID: id.defaultPersonaID, displayName: id.displayName)
+            projectID = try engine.createProject(projectRootPath: root, appSupportRoot: appSupport,
+                                                 title: "Schema Title", slug: "schema-title", authorshipRef: ref).projectID
+            suite = "scrivi.tests.settings.\(UUID().uuidString)"
+            defaults = UserDefaults(suiteName: suite)!
+        }
+
+        func prefs() -> ProjectPreferences {
+            ProjectPreferences(projectID: projectID, projectRootPath: root, schemaTitle: schemaTitle(), engine: engine,
+                               defaults: defaults)
+        }
+        func schemaTitle() -> String {
+            let data = FileManager.default.contents(atPath: root + "/project.json") ?? Data()
+            return ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["title"] as? String ?? ""
+        }
+        func settings() -> [String: Any]? {
+            guard let json = try? engine.getProjectSettings(projectRootPath: root).documentJSON else { return nil }
+            return (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any]
+        }
+        func legacy(title: String, subtitle: String, show: Bool) {
+            let data = try! JSONEncoder().encode(ProjectPreferences.LegacyStored(
+                showChapterTitles: show, projectTitle: title, projectSubtitle: subtitle))
+            defaults.set(data, forKey: ProjectPreferences.legacyKey(for: projectID))
+        }
+        var legacyPresent: Bool { defaults.data(forKey: ProjectPreferences.legacyKey(for: projectID)) != nil }
+        func cleanUp() { defaults.removePersistentDomain(forName: suite) }
+    }
+
+    @Test("a fresh project: defaults, the schema title, and no settings file written on open")
+    func fresh() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        let p = f.prefs()
+        #expect(p.projectTitle == "Schema Title" && p.projectSubtitle.isEmpty && !p.showChapterTitles)
+        #expect(try f.engine.getProjectSettings(projectRootPath: f.root).status == .absent)
+    }
+
+    @Test("subtitle and Show chapter titles are written to the package and read back by a new session")
+    func roundTrip() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        let p = f.prefs()
+        p.projectSubtitle = "A Novel"
+        p.showChapterTitles = true
+        let again = f.prefs()
+        #expect(again.projectSubtitle == "A Novel" && again.showChapterTitles)
+        #expect(f.settings()?["subtitle"] as? String == "A Novel")
+    }
+
+    @Test("a save keeps keys this build did not write (another platform's) — [I-0215]")
+    func keepsUnknownKeys() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        try f.engine.putProjectSettings(projectRootPath: f.root, documentJson: #"{"linuxOnly":{"x":1}}"#)
+        let p = f.prefs()
+        p.projectSubtitle = "Sub"
+        #expect((f.settings()?["linuxOnly"] as? [String: Any])?["x"] as? Int == 1)
+    }
+
+    @Test("a rename is written to project.json; an empty title is not")
+    func title() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        let p = f.prefs()
+        p.projectTitle = "Renamed"
+        #expect(f.schemaTitle() == "Renamed")
+        p.projectTitle = "   "
+        #expect(f.schemaTitle() == "Renamed")
+    }
+
+    @Test("Q2 migration, package has no settings: this Mac's values move in, its rename goes to project.json, key deleted")
+    func migrateIntoEmptyPackage() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        f.legacy(title: "Mac Title", subtitle: "Mac Sub", show: true)
+        let p = f.prefs()
+        #expect(p.projectTitle == "Mac Title" && p.projectSubtitle == "Mac Sub" && p.showChapterTitles)
+        #expect(f.schemaTitle() == "Mac Title")
+        #expect(f.settings()?["subtitle"] as? String == "Mac Sub")
+        #expect(!f.legacyPresent)
+    }
+
+    @Test("Q2 migration, package already has settings: the PACKAGE wins and the title is untouched; key deleted")
+    func packageWins() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        try f.engine.putProjectSettings(projectRootPath: f.root, documentJson: #"{"subtitle":"Package Sub","showChapterTitles":false}"#)
+        f.legacy(title: "Mac Title", subtitle: "Mac Sub", show: true)
+        let p = f.prefs()
+        #expect(p.projectSubtitle == "Package Sub" && !p.showChapterTitles)
+        #expect(p.projectTitle == "Schema Title" && f.schemaTitle() == "Schema Title")
+        #expect(!f.legacyPresent)
+    }
+
+    @Test("an UNREADABLE settings file is neither migrated over nor overwritten on open; the key is kept")
+    func unreadable() throws {
+        let f = try Fixture(); defer { f.cleanUp() }
+        try "{ damaged".write(toFile: f.root + "/project-settings.json", atomically: true, encoding: .utf8)
+        f.legacy(title: "Mac Title", subtitle: "Mac Sub", show: true)
+        let p = f.prefs()
+        #expect(p.unreadableMessage != nil)
+        #expect(try String(contentsOfFile: f.root + "/project-settings.json", encoding: .utf8) == "{ damaged")
+        #expect(f.legacyPresent)
+        #expect(f.schemaTitle() == "Schema Title")
+    }
+}
+
 #endif

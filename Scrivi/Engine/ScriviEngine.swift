@@ -866,6 +866,34 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — Project settings and title (EP-047 AC1/AC2, SP-167)
+
+    /// `project-settings.json` — settings that TRAVEL with the project ([I-0278]). The inspector
+    /// layout's opaque contract: the document comes back RAW so a save can keep keys this build
+    /// does not know (another platform's, or a later Scrivi's).
+    public func getProjectSettings(projectRootPath: String) throws -> ProjectSettingsFetch {
+        let raw = projectRootPath.withCString { prp in scrivi_get_project_settings(prp) }
+        return try decodeC(raw)
+    }
+
+    /// Replaces `project-settings.json` wholesale — read, merge, then write.
+    @discardableResult
+    public func putProjectSettings(projectRootPath: String, documentJson: String) throws -> ProjectSettingsSave {
+        let raw = projectRootPath.withCString { prp in
+            documentJson.withCString { dj in scrivi_put_project_settings(prp, dj) }
+        }
+        return try decodeC(raw)
+    }
+
+    /// Renames the project: `project.json`'s `title` (the core rejects an empty one).
+    @discardableResult
+    public func setProjectTitle(projectRootPath: String, title: String) throws -> ProjectTitleResult {
+        let raw = projectRootPath.withCString { prp in
+            title.withCString { t in scrivi_set_project_title(prp, t) }
+        }
+        return try decodeC(raw)
+    }
+
     @discardableResult
     public func setSceneTags(projectRootPath: String, sceneID: String,
                              tags: [String]) throws -> SceneNotesUpdateResult {
@@ -1294,6 +1322,16 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — Markdown analyzer (EP-048 L1, SP-165)
+
+    /// What one block of manuscript Markdown is, as ScriviCore's md4c analyzer reads it. ⚠️ Apple renders
+    /// with its OWN analyzer (`MarkdownBlocks`); this exists so the L2 interop test can hold the two in
+    /// agreement — the Linux presenter is its real caller. Ranges are UTF-8 byte offsets into `block`.
+    public func analyzeMarkdown(block: String) throws -> MarkdownAnalysisResult {
+        let raw = block.withCString { scrivi_analyze_markdown($0) }
+        return try decodeC(raw)
+    }
+
     // MARK: — Structured Cut/Copy/Paste (EP-029 SP-089, T-0354)
 
     // Serialize spans to { "spans": [ {sceneID,startByte,endByte}, … ] }.
@@ -1526,6 +1564,9 @@ public final class ScriviEngine: @unchecked Sendable {
     public func getSceneNotes(projectRootPath: String, sceneID: String) throws -> SceneNotesResult { try unavailable() }
     public func getInspectorLayout(projectRootPath: String) throws -> InspectorLayoutFetch { try unavailable() }
     @discardableResult public func putInspectorLayout(projectRootPath: String, documentJson: String) throws -> InspectorLayoutSave { try unavailable() }
+    public func getProjectSettings(projectRootPath: String) throws -> ProjectSettingsFetch { try unavailable() }
+    @discardableResult public func putProjectSettings(projectRootPath: String, documentJson: String) throws -> ProjectSettingsSave { try unavailable() }
+    @discardableResult public func setProjectTitle(projectRootPath: String, title: String) throws -> ProjectTitleResult { try unavailable() }
     @discardableResult public func setSceneTags(projectRootPath: String, sceneID: String, tags: [String]) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneOutline(projectRootPath: String, sceneID: String, outline: String) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneTodo(projectRootPath: String, sceneID: String, todo: [SceneTodoItem]) throws -> SceneNotesUpdateResult { try unavailable() }
@@ -1576,6 +1617,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func buffersList(projectRootPath: String) throws -> BufferListResult { try unavailable() }
     @discardableResult
     public func buffersClear(projectRootPath: String, bufferID: String) throws -> BufferClearResult { try unavailable() }
+    public func analyzeMarkdown(block: String) throws -> MarkdownAnalysisResult { try unavailable() }
 
     // Structured Cut/Copy/Paste (EP-029 SP-089) — unavailable on this platform.
     public func fragmentExtract(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentResult { try unavailable() }
@@ -2301,6 +2343,15 @@ public struct InspectorLayoutSave: Decodable, Sendable {
     public let saved: Bool
 }
 
+/// EP-047 (SP-167): `project-settings.json` shares the inspector layout's opaque contract in the
+/// core (one helper pair), so it shares its result shapes here.
+public typealias ProjectSettingsFetch = InspectorLayoutFetch
+public typealias ProjectSettingsSave = InspectorLayoutSave
+
+public struct ProjectTitleResult: Decodable, Sendable {
+    public let title: String
+}
+
 /// A JSON value of any shape, used to carry a document the app must not reshape.
 ///
 /// ⚠️ This exists so an opaque document can cross `Codable` WITHOUT a schema. Swift's
@@ -2888,6 +2939,24 @@ public struct BufferListResult: Decodable, Sendable {
 public struct BufferClearResult: Decodable, Sendable {
     public let bufferID: String
     public let cleared: Bool
+}
+
+// EP-048 L1 (SP-165) — `scrivi_analyze_markdown`. Every range is half-open UTF-8 BYTES into the block.
+// ⚠️ An empty array is OMITTED by the core, so every array is optional: read nil as empty.
+public struct MarkdownAnalysisResult: Decodable, Sendable {
+    public struct ByteRange: Decodable, Sendable, Equatable { public let start: Int; public let end: Int }
+    public struct Heading: Decodable, Sendable { public let line: ByteRange; public let prefix: ByteRange; public let level: Int }
+    public struct ListItem: Decodable, Sendable {
+        public let line: ByteRange; public let prefix: ByteRange; public let ordered: Bool; public let number: Int
+    }
+    public struct Marker: Decodable, Sendable { public let range: ByteRange; public let opens: Bool }
+    public struct StyleRun: Decodable, Sendable { public let range: ByteRange; public let bits: Int }
+    public let length: Int
+    public let headings: [Heading]?
+    public let listItems: [ListItem]?
+    public let markers: [Marker]?
+    public let styleRuns: [StyleRun]?
+    public let spans: [ByteRange]?
 }
 
 // ScriviError, Envelope, ErrorPayload are in ScriviError.swift.

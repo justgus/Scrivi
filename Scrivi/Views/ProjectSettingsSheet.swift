@@ -14,11 +14,6 @@ struct ProjectSettingsSheet: View {
     @State private var staleBranchDays: Int = 7
     @State private var historyLoaded = false
 
-    // Stale branches surfaced for user-confirmed purge (T-0212).
-    @State private var staleBranches: [HistoryStaleBranch] = []
-    @State private var didScanStale = false
-    @State private var pendingPurge: HistoryStaleBranch?
-
     var body: some View {
         NavigationStack {
             Form {
@@ -57,34 +52,11 @@ struct ProjectSettingsSheet: View {
                             .frame(width: 100)
                             #endif
                     }
-                    Text("Abandoned branches untouched for this many days can be purged below.")
+                    Text("Abandoned branches untouched for this many days can be purged from Project ▸ Purge Stale History Branches….")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Stale Branches") {
-                    if !didScanStale {
-                        Button("Find stale branches", action: scanStaleBranches)
-                    } else if staleBranches.isEmpty {
-                        Text("No stale branches.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(staleBranches, id: \.branchRootEventID) { branch in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(branch.preview.isEmpty ? "(no preview)" : branch.preview)
-                                        .lineLimit(1)
-                                    Text(staleSubtitle(branch))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Button("Purge", role: .destructive) { pendingPurge = branch }
-                            }
-                        }
-                        Button("Rescan", action: scanStaleBranches)
-                    }
-                }
             }
             // I-0254: the default macOS form style (`.columns`) needed ~574 pt for these
             // labels but the sheet opened at its 380 pt minimum, clipping them. Grouped
@@ -93,18 +65,6 @@ struct ProjectSettingsSheet: View {
             // otherwise draws its title as a SECOND label beside the row's own.
             .formStyle(.grouped)
             .onAppear(perform: loadHistorySettings)
-            .confirmationDialog(
-                "Purge this branch?",
-                isPresented: Binding(get: { pendingPurge != nil },
-                                     set: { if !$0 { pendingPurge = nil } }),
-                presenting: pendingPurge
-            ) { branch in
-                Button("Purge \(branch.nodeCount) step\(branch.nodeCount == 1 ? "" : "s")",
-                       role: .destructive) { purge(branch) }
-                Button("Cancel", role: .cancel) { pendingPurge = nil }
-            } message: { _ in
-                Text("This permanently discards the abandoned branch and its edits. It cannot be undone.")
-            }
             .navigationTitle("Project Settings")
             #if os(macOS)
             .padding()
@@ -139,29 +99,5 @@ struct ProjectSettingsSheet: View {
             capacityEvents: capacity,
             staleBranchDays: max(0, staleBranchDays),
             idleRolloverHours: current?.idleRolloverHours ?? 8)
-    }
-
-    // Scans for stale branches. Saves the threshold first so the just-edited
-    // "stale after (days)" value is what the engine detects against.
-    private func scanStaleBranches() {
-        saveHistorySettings()
-        staleBranches = session.historyCapture?.listStaleBranches() ?? []
-        didScanStale = true
-    }
-
-    private func purge(_ branch: HistoryStaleBranch) {
-        pendingPurge = nil
-        guard session.historyCapture?.purgeStaleBranch(branchRootEventID: branch.branchRootEventID) == true
-        else { return }
-        staleBranches.removeAll { $0.branchRootEventID == branch.branchRootEventID }
-    }
-
-    // "3 steps · last edited on Jul 2 at 4:10 PM"
-    private func staleSubtitle(_ branch: HistoryStaleBranch) -> String {
-        let steps = "\(branch.nodeCount) step\(branch.nodeCount == 1 ? "" : "s")"
-        if let when = HistoryTimestamp.friendly(branch.tipTimestamp) {
-            return "\(steps) · last edited \(when)"
-        }
-        return steps
     }
 }

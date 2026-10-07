@@ -37,6 +37,7 @@
 #include "EpochOffsetDialog.hpp"
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
+#include "ManuscriptPresenter.hpp"
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
 #include "WorldsDialog.hpp"
@@ -640,6 +641,14 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // in build() don't churn dirty flags / the offset map through onContentsChange.
     loading_ = true;
     dirtyScenes_.clear();
+    // EP-048 (SP-166): detach the presenter while the text and the scene map are rebuilt — it would
+    // highlight 1.8 MB against a stale map, then again — and re-attach once both are current.
+    if (presenter_ == nullptr) {
+        presenter_ = new ManuscriptPresenter(&ScriviBridge::analyzeMarkdown, this);
+        presenter_->setSceneDocument(&sceneDoc_);
+        viewport_->setPresenter(presenter_);
+    }
+    presenter_->attach(nullptr);
     sceneDoc_.build(inputs);
     viewport_->setDocument(sceneDoc_.document());
     // setDocument re-enables undo on the freshly-attached document; keep it off.
@@ -650,6 +659,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     viewport_->setSceneDocument(&sceneDoc_);
     connect(viewport_->document(), &QTextDocument::contentsChange,
             this, &EditorShell::onContentsChange, Qt::UniqueConnection);
+    presenter_->attach(sceneDoc_.document());   // highlights the whole manuscript once
     loading_ = false;
 
     // Populate the navigator: chapter parents → scene children.

@@ -4,6 +4,7 @@
 #include "PackageFolderDialog.hpp"
 
 #include <QFileDialog>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -752,6 +753,41 @@ QVariantMap ScriviBridge::getInspectorLayout(const QString& projectRootPath)
     }
     const ScriviString envelope(
         scrivi_get_inspector_layout(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::getProjectSettings(const QString& projectRootPath)
+{
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_get_project_settings(projectRootPath.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::putProjectSettings(const QString& projectRootPath, const QString& documentJson)
+{
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_put_project_settings(projectRootPath.toUtf8().constData(),
+                                                            documentJson.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::setProjectTitle(const QString& projectRootPath, const QString& title)
+{
+    if (!ready_) {
+        lastCallFailed_ = true;
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_set_project_title(projectRootPath.toUtf8().constData(),
+                                                         title.toUtf8().constData()));
     return parseEnvelope(envelope.toQString());
 }
 
@@ -1646,6 +1682,82 @@ QVariantMap ScriviBridge::upsertRelationType(const QString& projectRootPath, con
     const ScriviString envelope(scrivi_upsert_relation_type(projectRootPath.toUtf8().constData(),
                                                  relationTypeJson.toUtf8().constData()));
     return parseEnvelope(envelope.toQString());
+}
+
+MarkdownAnalysis ScriviBridge::analyzeMarkdown(const QString& block)
+{
+    const QByteArray utf8 = block.toUtf8();
+    const char* raw = scrivi_analyze_markdown(utf8.constData());
+    if (raw == nullptr) {
+        return {};
+    }
+    const QJsonDocument doc = QJsonDocument::fromJson(QByteArray(raw));
+    scrivi_free(raw);
+    const QJsonObject root = doc.object();
+    if (!root.value(QStringLiteral("ok")).toBool()) {
+        return {};
+    }
+    const QJsonObject r = root.value(QStringLiteral("result")).toObject();
+
+    // UTF-8 byte → UTF-16 unit. Every byte of a scalar maps to the scalar's FIRST unit; a range end
+    // maps to the unit after the scalar, so a range covers both units of 👋.
+    QVector<int> u16(utf8.size() + 1, 0);
+    {
+        int b = 0, u = 0;
+        for (int i = 0; i < block.size(); ++i) {
+            const QChar c = block.at(i);
+            if (c.isLowSurrogate()) {
+                continue;   // counted with its high surrogate
+            }
+            const bool pair = c.isHighSurrogate() && i + 1 < block.size() && block.at(i + 1).isLowSurrogate();
+            const uint cp = pair ? QChar::surrogateToUcs4(c, block.at(i + 1)) : c.unicode();
+            const int nb = cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+            for (int k = 0; k < nb && b + k < u16.size(); ++k) {
+                u16[b + k] = u;
+            }
+            b += nb;
+            u += pair ? 2 : 1;
+        }
+        if (b < u16.size()) {
+            u16[b] = u;
+        }
+    }
+    auto at = [&](const QJsonValue& v) { return u16.value(v.toInt(), block.size()); };
+    auto range = [&](const QJsonValue& v) {
+        const QJsonObject o = v.toObject();
+        return MarkdownRange{at(o.value(QStringLiteral("start"))), at(o.value(QStringLiteral("end")))};
+    };
+
+    MarkdownAnalysis a;
+    for (const QJsonValue& v : r.value(QStringLiteral("headings")).toArray()) {
+        const QJsonObject o = v.toObject();
+        a.headings.append({range(o.value(QStringLiteral("line"))), range(o.value(QStringLiteral("prefix"))),
+                           o.value(QStringLiteral("level")).toInt()});
+    }
+    for (const QJsonValue& v : r.value(QStringLiteral("listItems")).toArray()) {
+        const QJsonObject o = v.toObject();
+        a.listItems.append({range(o.value(QStringLiteral("line"))), range(o.value(QStringLiteral("prefix"))),
+                            o.value(QStringLiteral("ordered")).toBool(), o.value(QStringLiteral("number")).toInt()});
+    }
+    for (const QJsonValue& v : r.value(QStringLiteral("markers")).toArray()) {
+        const QJsonObject o = v.toObject();
+        a.markers.append({range(o.value(QStringLiteral("range"))), o.value(QStringLiteral("opens")).toBool()});
+    }
+    const QJsonArray runs = r.value(QStringLiteral("styleRuns")).toArray();
+    if (!runs.isEmpty()) {
+        a.styles = QVector<std::uint8_t>(block.size(), 0);
+        for (const QJsonValue& v : runs) {
+            const QJsonObject o = v.toObject();
+            const MarkdownRange rr = range(o.value(QStringLiteral("range")));
+            for (int i = rr.start; i < rr.end && i < a.styles.size(); ++i) {
+                a.styles[i] = std::uint8_t(o.value(QStringLiteral("bits")).toInt());
+            }
+        }
+    }
+    for (const QJsonValue& v : r.value(QStringLiteral("spans")).toArray()) {
+        a.spans.append(range(v));
+    }
+    return a;
 }
 
 QVariantMap ScriviBridge::parseEnvelope(const QString& json)

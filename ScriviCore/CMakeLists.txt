@@ -7,6 +7,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# EP-048 / SP-165 (Q2, ruled 2026-10-07) — md4c, the Markdown parser behind
+# MarkdownAnalyzer. Pinned like nlohmann/json. ⚠️ md4c's own CMake project is NOT
+# added (SOURCE_SUBDIR names nothing): only md4c.c is compiled, straight into this
+# static library, so libScriviCore.a stays the app's single link input. PRIVATE —
+# md4c never appears in a public header.
+FetchContent_Declare(
+    md4c
+    URL https://github.com/mity/md4c/archive/refs/tags/release-0.5.2.tar.gz
+    URL_HASH SHA256=55d0111d48fb11883aaee91465e642b8b640775a4d6993c2d0e7a8092758ef21
+    SOURCE_SUBDIR not-a-cmake-project
+)
+FetchContent_MakeAvailable(md4c)
+enable_language(C)
+
 add_library(ScriviCore STATIC)
 
 target_compile_features(ScriviCore PUBLIC cxx_std_23)
@@ -94,7 +108,11 @@ target_sources(ScriviCore
         src/history/HistoryService.cpp
         src/history/HistoryStore.cpp
         src/history/BufferStore.cpp
+        src/markdown/MarkdownAnalyzer.cpp
+        ${md4c_SOURCE_DIR}/src/md4c.c
 )
+
+target_include_directories(ScriviCore SYSTEM PRIVATE ${md4c_SOURCE_DIR}/src)
 
 # Persistent SecureStore (SP-059 / AC4, per T-0058 trade study). On Linux the
 # in-memory PrototypeSecureStore is replaced by EncryptedFileSecureStore

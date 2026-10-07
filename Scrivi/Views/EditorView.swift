@@ -106,6 +106,10 @@ private struct ManuscriptEditorView: View {
             ProjectSettingsSheet(prefs: prefs)
         }
         #endif
+        // EP-047 (SP-167 Q1): Project ▸ Purge Stale History Branches…
+        .sheet(isPresented: Bindable(session).showStaleBranches) {
+            StaleBranchesSheet()
+        }
         // Worlds manager (T-0408). Not platform-gated: the Worlds menu is macOS
         // today, but nothing here is macOS-specific except the file panels.
         .sheet(isPresented: Bindable(session).showWorlds) {

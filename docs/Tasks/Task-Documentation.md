@@ -747,6 +747,9 @@ archive files reconstructed after the fact from secondary sources.
 | T-0550 | ⚠️ **`[ScriviCore]` [I-0213] Class B — rebuild ONLY the affected chapter for order/membership ops** (13 endpoints) — ⛔ **BLOCKED ON T-0549** | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0555 | `[Apple]` Engine stub parity ([I-0253]) | — | — | ✅ **Verified 2026-10-03** | [`Task-verified-0555.md`](Verified/Task-verified-0555.md) |
 | T-0593 | `[Apple]` E2-S4: Find and Replace over what the writer sees | ✅ **SP-164** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0593.md`](Verified/Task-verified-0593.md) |
+| T-0594 | `[Cross]` EP-048 S1: md4c Markdown analyzer in ScriviCore + Apple agreement test | ✅ **SP-165** | **EP-048** | ✅ **Verified 2026-10-07** | [`Task-verified-0594.md`](Verified/Task-verified-0594.md) |
+| T-0595 | `[Linux]` EP-048 S2: the presenter (L3–L6, L9 atomic markers) | 🟡 **SP-166** | **EP-048** | 🟠 **Implemented - Not Verified** (live pass blocked on the rig) | — |
+| T-0596 | `[Cross]` EP-047 S1: project settings that travel (`project-settings.json`, title, I-0278 migration) | ✅ **SP-167** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0596.md`](Verified/Task-verified-0596.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -784,6 +787,24 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-07 (**T-0596 archived** → `Verified/Task-verified-0596.md`, with the SP-167 close.)*
+
+*Last Updated: 2026-10-07 (**T-0596 ✅ VERIFIED** (SP-167 live pass, user) — archive with the SP-167 close.)*
+
+*Last Updated: 2026-10-07 (**T-0596 implemented** (SP-167) — Implemented - Not Verified; live pass on the Mac owed.)*
+
+*Last Updated: 2026-10-07 (**SP-167 activated** — T-0596 created.)*
+
+*Last Updated: 2026-10-07 (**T-0595 implemented** (SP-166) — Implemented - Not Verified; live pass blocked on the rig.)*
+
+*Last Updated: 2026-10-07 (**SP-166 activated** — T-0595 created.)*
+
+*Last Updated: 2026-10-07 (**T-0594 ✅ VERIFIED** (user) and archived → `Verified/Task-verified-0594.md`, with the SP-165 close.)*
+
+*Last Updated: 2026-10-07 (**T-0594 implemented** (SP-165) — Implemented - Not Verified; one L2 ruling owed.)*
+
+*Last Updated: 2026-10-07 (**SP-165 activated** — T-0594 created.)*
 
 *Last Updated: 2026-10-06 (**T-0593, T-0585 archived** → `Verified/Task-verified-0593.md`, `-0585.md`, with the SP-164 close.)*
 

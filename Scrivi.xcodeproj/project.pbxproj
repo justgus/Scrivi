@@ -36,6 +36,7 @@
 		C019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		C020_BF /* libScriviCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = SCRIVI_CORE_LIB /* libScriviCore.a */; };
 		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
+		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		C032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -95,6 +96,7 @@
 		D018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		D019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
+		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -154,6 +156,7 @@
 		E018_BF /* ObjectRelationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B018 /* ObjectRelationPicker.swift */; };
 		E019_BF /* ObjectImageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B019 /* ObjectImageSection.swift */; };
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
+		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -233,6 +236,7 @@
 		C083 /* ManuscriptFind.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptFind.swift; path = Scrivi/Views/ManuscriptFind.swift; sourceTree = SOURCE_ROOT; };
 		C008 /* SceneNavigatorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneNavigatorView.swift; path = Scrivi/Views/SceneNavigatorView.swift; sourceTree = SOURCE_ROOT; };
 		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Scrivi/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
+		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Scrivi/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
 		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Scrivi/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
 		C032 /* WindowFrameAutosave.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WindowFrameAutosave.swift; path = Scrivi/App/WindowFrameAutosave.swift; sourceTree = SOURCE_ROOT; };
 		C033 /* AboutView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Scrivi/Views/AboutView.swift; sourceTree = SOURCE_ROOT; };
@@ -364,6 +368,7 @@
 				C061 /* ForkPopover.swift */,
 				C008 /* SceneNavigatorView.swift */,
 				C030 /* ProjectSettingsSheet.swift */,
+				C2A1 /* StaleBranchesSheet.swift */,
 				C031 /* ProjectPreferences.swift */,
 				C032 /* WindowFrameAutosave.swift */,
 				C033 /* AboutView.swift */,
@@ -629,6 +634,7 @@
 				C061_BF /* ForkPopover.swift in Sources */,
 				C008_BF /* SceneNavigatorView.swift in Sources */,
 				C030_BF /* ProjectSettingsSheet.swift in Sources */,
+				C2A1_BF /* StaleBranchesSheet.swift in Sources */,
 				C031_BF /* ProjectPreferences.swift in Sources */,
 				C032_BF /* WindowFrameAutosave.swift in Sources */,
 				C033_BF /* AboutView.swift in Sources */,
@@ -695,6 +701,7 @@
 				D061_BF /* ForkPopover.swift in Sources */,
 				D008_BF /* SceneNavigatorView.swift in Sources */,
 				D030_BF /* ProjectSettingsSheet.swift in Sources */,
+				D2A1_BF /* StaleBranchesSheet.swift in Sources */,
 				D031_BF /* ProjectPreferences.swift in Sources */,
 				D032_BF /* WindowFrameAutosave.swift in Sources */,
 				D033_BF /* AboutView.swift in Sources */,
@@ -761,6 +768,7 @@
 				E061_BF /* ForkPopover.swift in Sources */,
 				E008_BF /* SceneNavigatorView.swift in Sources */,
 				E030_BF /* ProjectSettingsSheet.swift in Sources */,
+				E2A1_BF /* StaleBranchesSheet.swift in Sources */,
 				E031_BF /* ProjectPreferences.swift in Sources */,
 				E032_BF /* WindowFrameAutosave.swift in Sources */,
 				E033_BF /* AboutView.swift in Sources */,

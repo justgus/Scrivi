@@ -141,7 +141,9 @@ enum MarkdownBlocks {
             for i in s..<e { covered[i] = true; styles[i] = bits }
         }
         // ✅ AC7: an INDENTED block is prose — re-read with its indentation stripped, inline only.
-        if codeBlock { return demoteIndented(block) }
+        // ⛔ [I-0280]: ONCE. Still a code block after stripping means a FENCE (``` / ~~~), which no
+        // stripping removes — demoting again recursed until the stack overflowed. Drawn as stored, like a table.
+        if codeBlock { return allowHeadings ? demoteIndented(block) : out }
         // ✅ AC7: a TABLE is drawn exactly as stored.
         if table { return out }
 

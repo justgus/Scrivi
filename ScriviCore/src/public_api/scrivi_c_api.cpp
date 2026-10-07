@@ -5,6 +5,7 @@
 #include "scrivi/Results.hpp"
 #include "scrivi/Services.hpp"
 #include "git/SystemGitProvider.hpp"
+#include "markdown/MarkdownAnalyzer.hpp"
 #include "platform/AppSupportLayout.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
@@ -2702,16 +2703,17 @@ const char* scrivi_get_scene_notes(const char* projectRootPath, const char* scen
 extern "C++" {
 namespace {
 
-// The layout file's path for a project root. One definition, so the two endpoints
-// cannot disagree about where the file lives.
-scrivi::AbsolutePath inspectorLayoutPath(const std::string& projectRootPath) {
-    return scrivi::util::join(projectRootPath, "inspector-layout.json");
+// ✅ [SP-167] (EP-047 AC1): the opaque-document contract below serves TWO files —
+// `inspector-layout.json` and `project-settings.json` — through one pair of helpers,
+// so the two contracts cannot drift the way the two apps' copies once did ([I-0215]).
+scrivi::AbsolutePath opaqueDocumentPath(const std::string& projectRootPath, const char* fileName) {
+    return scrivi::util::join(projectRootPath, fileName);
 }
 
 } // namespace
 } // extern "C++"
 
-const char* scrivi_get_inspector_layout(const char* projectRootPath) {
+static const char* getOpaqueDocument(const char* projectRootPath, const char* fileName) {
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty()) {
@@ -2720,7 +2722,7 @@ const char* scrivi_get_inspector_layout(const char* projectRootPath) {
     }
 
     auto services = abiServices();
-    const auto path = inspectorLayoutPath(root);
+    const auto path = opaqueDocumentPath(root, fileName);
 
     // ⚠️ ABSENT IS NOT AN ERROR (ruled 2026-09-21). Every project created before
     // this file existed has no layout, so `absent` is the NORMAL first answer for
@@ -2761,8 +2763,8 @@ const char* scrivi_get_inspector_layout(const char* projectRootPath) {
   });
 }
 
-const char* scrivi_put_inspector_layout(const char* projectRootPath,
-                                         const char* documentJson) {
+static const char* putOpaqueDocument(const char* projectRootPath, const char* fileName,
+                                     const char* documentJson) {
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty()) {
@@ -2802,13 +2804,67 @@ const char* scrivi_put_inspector_layout(const char* projectRootPath,
     // Atomic (temp + rename), the same discipline every other schema here uses: an
     // interrupted save must not truncate the live file. A HALF file would not parse
     // and would take the writer's whole card layout with it.
-    auto wrote = scrivi::util::atomicWriteTextFile(inspectorLayoutPath(root),
+    auto wrote = scrivi::util::atomicWriteTextFile(opaqueDocumentPath(root, fileName),
                                                    parsed.value().dump(2));
     if (!wrote.ok()) return heap(errorEnvelope(wrote.error()));
 
     scrivi::util::JsonDoc doc;
     doc.setBool("saved", true);
     return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_get_inspector_layout(const char* projectRootPath) {
+    return getOpaqueDocument(projectRootPath, "inspector-layout.json");
+}
+
+const char* scrivi_put_inspector_layout(const char* projectRootPath, const char* documentJson) {
+    return putOpaqueDocument(projectRootPath, "inspector-layout.json", documentJson);
+}
+
+// --- Project settings (EP-047 AC1, SP-167) ----------------------------------
+// ✅ Settings that TRAVEL with the project ([I-0278]): the same opaque contract as the
+// inspector layout. The apps define the keys (`docs/Scrivi_Project_Package_Structure_v0_1.md`).
+const char* scrivi_get_project_settings(const char* projectRootPath) {
+    return getOpaqueDocument(projectRootPath, "project-settings.json");
+}
+
+const char* scrivi_put_project_settings(const char* projectRootPath, const char* documentJson) {
+    return putOpaqueDocument(projectRootPath, "project-settings.json", documentJson);
+}
+
+// --- Project title (EP-047 AC2, SP-167) -------------------------------------
+// ⚠️ Edits `project.json`'s `title` IN PLACE: `parseProject` → `serializeProject` writes only
+// the fields it knows and would drop any other. ⛔ An empty title is refused (the app shows
+// "Untitled" for none; a blank written here would read as a deliberate name).
+const char* scrivi_set_project_title(const char* projectRootPath, const char* title) {
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "projectRootPath is required"));
+    }
+    const std::string t = S(title);
+    if (t.find_first_not_of(" \t\r\n") == std::string::npos) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "title is required"));
+    }
+    auto services = abiServices();
+    const auto path = scrivi::util::join(root, "project.json");
+    auto textR = services.fileSystem->readTextFile(path);
+    if (!textR.ok()) return heap(errorEnvelope(textR.error()));
+    auto parsed = scrivi::util::parseJson(textR.value());
+    if (!parsed.ok()) return heap(errorEnvelope(parsed.error()));
+    if (!parsed.value().isObject()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                  "project.json is not a JSON object"));
+    }
+    auto doc = std::move(parsed.value());
+    doc.setString("title", t);
+    auto wrote = scrivi::util::atomicWriteTextFile(path, doc.dump(2));
+    if (!wrote.ok()) return heap(errorEnvelope(wrote.error()));
+    scrivi::util::JsonDoc out;
+    out.setString("title", t);
+    return heap(okEnvelope(std::move(out)));
   });
 }
 
@@ -3974,6 +4030,57 @@ const char* scrivi_buffers_clear(const char* projectRootPath, const char* buffer
     scrivi::util::JsonDoc doc;
     doc.setString("bufferID", S(bufferID));
     doc.setBool("cleared",    r.value());
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+static scrivi::util::JsonDoc byteRangeDoc(const scrivi::markdown::ByteRange& r) {
+    scrivi::util::JsonDoc d;
+    d.setInt64("start", static_cast<int64_t>(r.start));
+    d.setInt64("end",   static_cast<int64_t>(r.end));
+    return d;
+}
+
+const char* scrivi_analyze_markdown(const char* blockUtf8) {
+  return guarded([&]() -> const char* {
+    const std::string_view block = S(blockUtf8);
+    const auto a = scrivi::markdown::analyze(block);
+    scrivi::util::JsonDoc doc;
+    doc.setInt64("length", static_cast<int64_t>(block.size()));
+    for (const auto& h : a.headings) {
+        scrivi::util::JsonDoc d;
+        d.setSubDoc("line",   byteRangeDoc(h.line));
+        d.setSubDoc("prefix", byteRangeDoc(h.prefix));
+        d.setInt("level", h.level);
+        doc.appendToArray("headings", std::move(d));
+    }
+    for (const auto& li : a.listItems) {
+        scrivi::util::JsonDoc d;
+        d.setSubDoc("line",   byteRangeDoc(li.line));
+        d.setSubDoc("prefix", byteRangeDoc(li.prefix));
+        d.setBool("ordered", li.ordered);
+        d.setInt("number", li.number);
+        doc.appendToArray("listItems", std::move(d));
+    }
+    for (const auto& m : a.markers) {
+        scrivi::util::JsonDoc d;
+        d.setSubDoc("range", byteRangeDoc(m.range));
+        d.setBool("opens", m.opens);
+        doc.appendToArray("markers", std::move(d));
+    }
+    // Per-byte styles cross as RUNS — a per-byte array would cost a JSON number per byte.
+    for (std::size_t i = 0; i < a.styles.size();) {
+        auto j = i;
+        while (j < a.styles.size() && a.styles[j] == a.styles[i]) ++j;
+        if (a.styles[i] != 0) {
+            scrivi::util::JsonDoc d;
+            d.setSubDoc("range", byteRangeDoc({i, j}));
+            d.setInt("bits", a.styles[i]);
+            doc.appendToArray("styleRuns", std::move(d));
+        }
+        i = j;
+    }
+    for (const auto& sp : a.spans) doc.appendToArray("spans", byteRangeDoc(sp));
     return heap(okEnvelope(std::move(doc)));
   });
 }

@@ -61,6 +61,8 @@ add_executable(ScriviCoreTests
     integration/SearchableContentTests.cpp
     integration/HistoryCApiTests.cpp
     integration/BuffersCApiTests.cpp
+    integration/MarkdownAnalyzerCApiTests.cpp
+    integration/ProjectSettingsCApiTests.cpp
     integration/FragmentExtractTests.cpp
     integration/FragmentPasteTests.cpp
     integration/FragmentCutTests.cpp

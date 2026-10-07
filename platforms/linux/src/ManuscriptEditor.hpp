@@ -2,6 +2,7 @@
 
 #include <QPlainTextEdit>
 
+class ManuscriptPresenter;
 class SceneDocument;
 
 // ManuscriptEditor — the editable continuous writing surface (SP-062, T-0238).
@@ -36,6 +37,11 @@ public:
     // nullptr disables the guard (nothing is editable / everything passes through —
     // used only in the read-only state before a project is loaded).
     void setSceneDocument(SceneDocument* doc) { sceneDoc_ = doc; }
+
+    // EP-048 (SP-166): the presenter that draws this document (non-owning; nullptr = drawn as stored).
+    // The editor reads its STOP RUNS to snap the caret (L5) and keep markers atomic (L9), and moves
+    // its REVEAL with the selection (L6).
+    void setPresenter(ManuscriptPresenter* presenter) { presenter_ = presenter; }
 
     // Edit ▸ Cut. ⛔ [I-0270] `QPlainTextEdit::cut()` is not virtual and never passes the
     // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
@@ -72,6 +78,9 @@ protected:
     // Purely visual: no document text or offset-map change (positions come from
     // SceneDocument::sceneSeparatorPositions()).
     void paintEvent(QPaintEvent* event) override;
+    // EP-048 (SP-166): no snap and no reveal MID-DRAG (Apple: never while `stillSelecting`) — applied on release.
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private slots:
     // Keep the caret out of protected boundary text (T-0246): when the cursor lands
@@ -111,7 +120,20 @@ private:
     // and changes nothing — when the range does not span two or more scene bodies.
     bool deleteAcrossScenes(int start, int end, bool copyFirst);
 
+    // ── EP-048 (SP-166): stop runs (Apple: `MarkdownEscapes.snapCaret` / `snapSelection`) ──
+    // Where a caret proposed at `loc`, coming from `previous`, must land instead (or `loc`).
+    int snapCaret(int loc, int previous) const;
+    int snapOnce(int loc, int previous) const;
+    bool isUnreachable(int pos) const;
+    // A selection never ends inside a stop run; the end moves back when the selection SHRANK.
+    void snapSelection(int& start, int& end, int previousEnd) const;
+    // ⌫ / ⌦ next to a marker act on what the writer SEES (L9 part); true when handled.
+    bool handleAtomicDeletion(bool back, int loc);
+
     SceneDocument* sceneDoc_ = nullptr;   // non-owning
+    ManuscriptPresenter* presenter_ = nullptr;   // non-owning
+    bool mouseSelecting_ = false;
+    int lastSelEnd_ = 0;
     bool normalizingCaret_ = false;       // re-entrancy guard for normalizeCaret()
     int  lastCaretPos_ = 0;               // previous caret pos → gives normalizeCaret()
                                           // the direction of travel across a boundary gap

@@ -67,7 +67,7 @@ status changes on its own layer.
 ### T-0589 — `[Apple]` + `[Linux]` Markup Hints on/off (View menu; persisted in the project)
 
 **Created:** 2026-10-05 (user: *"I think we will need to eventually make the feature \"show/hide markup\" as an optional feature that the writer chooses from the Project Settings"* · *"Yes file the feature as a backlog task linked to EP-047. What \"show\" will mean in this context is exactly what it does right now. I'm not adking you to show all the markup, just the \"Markup Hints\" that appear when the caret is right next to a markup."*)
-**Epic:** **[EP-047]** (Typography & Preferences) · **Sprint:** not assigned · ⚠️ **Sequence AFTER [EP-046] E2-S2** (inline
+**Epic:** **[EP-047]** (Typography & Preferences) — ✅ **AC7**; planned for S4 (2026-10-07) · **Sprint:** not assigned · ⚠️ **Sequence AFTER [EP-046] E2-S2** (inline
 markers), so the setting covers every kind of hint at once. **Linux:** the same preference under [EP-048].
 
 **What it is — exactly, and no more:** ✅ **"Markup Hints" = the re-entry reveal** that EP-046 builds: the dimmed
@@ -94,7 +94,8 @@ decides where typing goes:
    the E2 design §6.1 rule (CommonMark flanking needs it) → EP-046 **E2-S3** (AC6).
 
 ✅ **WHERE IT LIVES — recommended 2026-10-05, user concurs:** the **View menu** (a display toggle, like panel
-visibility), persisted **inside the project** like panel visibility (`inspector-layout.json`, through ScriviCore).
+visibility), persisted **inside the project** like panel visibility (`inspector-layout.json`, through ScriviCore). ✅ **RULED 2026-10-07 ([EP-047] P1):
+`project-settings.json`**, not `inspector-layout.json`.
 ⛔ NOT `ProjectPreferences`: that class persists to `UserDefaults` (`ProjectPreferences.swift:3, 8, 67`), so it would
 not travel with the project. ⚠️ Rule the exact file when this is scheduled.
 

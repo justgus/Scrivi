@@ -21,6 +21,7 @@ class QTimer;
 class QSplitter;
 class ScriviBridge;
 class ManuscriptEditor;
+class ManuscriptPresenter;
 class SceneInspector;
 class TimelinePanel;
 
@@ -502,6 +503,9 @@ private:
 
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;
+    // EP-048 (SP-166): draws the manuscript (escapes hidden, headings + emphasis rendered). Child of this
+    // shell; attached to the document only between loads, so a load highlights ONCE, with a current scene map.
+    ManuscriptPresenter* presenter_ = nullptr;
     NavigatorTree*      navigator_ = nullptr;
     QStandardItemModel* navModel_  = nullptr;
     QLabel*             errorLabel_ = nullptr;

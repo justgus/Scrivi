@@ -3,11 +3,17 @@
 ---
 
 
+## 🟠 T-0595 — `[Linux]` EP-048 S2: the presenter — escapes hidden, headings and emphasis rendered, reveal, caret snap, atomic markers
 
+**Created:** 2026-10-07 at [SP-166]'s activation (user: *"Q1: Add the new criterion.  Q2: one Sprint."*) · **Epic:** **[EP-048]** ·
+**Sprint:** 🟡 **[SP-166]** → [`../Sprints/Sprint-SP-166.md`](../Sprints/Sprint-SP-166.md)
+✅ Carries SP-166's work: EP-048 **L3** (a `QSyntaxHighlighter` presenter on `ManuscriptEditor`; stored text and save bytes
+untouched), **L4** (escape + hard-break backslashes hidden), **L5** (caret snap over hidden runs), **L6** (headings, bold, italic,
+line/span reveal, AC7), **L9 part** (atomic markers), lists (dimmed prefix; hanging indent measured), offscreen smokes. ⏳ Live pass needs the rig.
 
+🟠 **2026-10-07 — IMPLEMENTED - NOT VERIFIED** ([SP-166]): `presenter_smoke` ✅ (11/11 mutations killed), all 27 Linux smokes ✅, app builds; cost 1.8 MB: highlight ~185 ms, keystroke 1 ms. ⚠️ No hanging indent for lists (would break L3) — recorded. ⏳ **Live pass blocked on the rig** — steps in [`../Sprints/Sprint-SP-166.md`](../Sprints/Sprint-SP-166.md).
 
-
-
+---
 
 
 ## ✅ [SP-147] — T-0565 · T-0566 · T-0567 — ✅ **VERIFIED 2026-09-30, ARCHIVED**

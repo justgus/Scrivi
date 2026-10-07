@@ -10,78 +10,16 @@ _(EP-019 `[Apple]` Undo/Redo was un-deferred back to Active 2026-07-24 — now i
 
 ---
 
-## EP-047: `[Apple]` ⚠️ **Manuscript Typography & Preferences**
+## ➡️ EP-047 — PLANNED 2026-10-07, no longer on this backlog
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Independent of [EP-046]; ⚠️ needs [EP-045]'s seam.**
-**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §5.1, §4D.
-**Tasks:** 🔵 [T-0589] **Markup Hints on/off** (filed 2026-10-05, user) — a View-menu toggle (persisted in the project) for EP-046's re-entry reveal; caret rules ruled 2026-10-05; after EP-046 E2-S2 → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
-
-**Goal:** ✅ **The writer sets how her manuscript LOOKS, once, and never types formatting to get it.**
-
-✅ **TWO preferences, both display-only, ⛔ neither touching the `.md`:**
-- ✅ **F1 — the manuscript TYPEFACE** (⚠️ user ruling Q3 = *"f1"*; ⛔ F3 per-passage fonts CLOSED).
-- ✅ **`paragraphIndent` — a global first-line indent**, ⚠️ user's own proposal, ✅ rendered via
-  `NSParagraphStyle.firstLineHeadIndent`.
-
-⛔ **THE INDENT PREFERENCE IS A DEFECT TURNED INTO A FEATURE.** ⚠️ **MEASURED (study §4C.3/§4D.2):
-≥4 leading spaces — ⛔ or ONE TAB — turns a paragraph into a `codeBlock`** (monospace, no emphasis, no
-wrapping). ✅ **MEASURED (§4D.3): `firstLineHeadIndent = 28` in STORAGE indents line 1 to x=33 and
-leaves the wrap at x=5** — ⚠️ **exactly how a novel sets prose, ✅ with ZERO characters in the file.**
-✅ **The user's reasoning, recorded: *"reducing the temptation to enter a character sequence that would
-lead to unintended results."***
-
-⛔ **AN OPEN DESIGN QUESTION FOUND WHILE READING FOR [EP-045]:** ⚠️ **`ProjectPreferences` persists to
-`UserDefaults`, NOT into the `.scrivi` package** (✅ read: `ProjectPreferences.swift`, key
-`"scrivi.project.<id>.preferences"`). ⛔ **So an indent set on one machine would NOT travel with the
-project.** ⚠️ **Whether that is acceptable is this Epic's to answer.**
-
-⛔ **TRAP:** ⚠️ **`firstLineHeadIndent` must live in STORAGE, ⛔ and BOTH the undo path (`:366-369`) and
-`rebuildStorage` (`:568-668`) rebuild body attributes.** ✅ **Both sites or neither** — ⚠️ **otherwise
-the indent vanishes on undo, or on the next rebuild, and reads as a rendering bug.**
+⚠️ **[EP-047] `[Apple]` Manuscript Typography & Preferences MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-07** — 🔵 Draft with
+acceptance criteria written (user: *"Ok, lets complete the planning for EP-047."*). Not yet activated.
 
 ---
 
-## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
+## ✅ EP-048 — ACTIVATED 2026-10-07, no longer on this backlog
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ✅ **Unblocked** — [EP-046] closed 2026-10-06 ([EP-045] closed 2026-10-04). ✅ **SCOPED 2026-10-05 ([SP-159]) — ACs L1–L8 below.**
-⚠️ **2026-10-04:** the escape layer's WRITE half moved OUT to **[EP-049]** (now). ✅ This Epic keeps the DISPLAY half, whose design for BOTH platforms is ruled in **[SP-159]** (widened).
-**Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
-
-**Goal:** ✅ **The same manuscript surface on Linux.**
-
-⚠️ **THIS EPIC EXISTS TO HONOUR A RULE, NOT BECAUSE IT IS UNDERSTOOD.** ✅ **`feedback_linux_adopts_apple_shape`:
-a shape change on Apple must be made the same way on Linux.** ⛔ **Naming it is how that is honoured
-without blocking Apple on Qt** — ⚠️ **but it MUST be scheduled, ⛔ not assumed.**
-
-⛔ **NOTHING HERE IS MEASURED.** ⚠️ **Qt's text stack is NOT TextKit: ⛔ there is no
-`setRenderingAttributes`, no `NSTextLayoutFragment`, and the format decisions (escaping, `\n\n`,
-block-intent suppression) are `[Cross]` and bind Linux permanently — ✅ while the MECHANISM is entirely
-different.** ⛔ **Assuming parity is cheap would be the error `feedback_design_to_capability_not_lcd`
-warns about.**
-
-⚠️ **ALSO UNKNOWN: ⛔ Linux has no Markdown parser chosen.** ✅ **Apple's `AttributedString(markdown:)`
-won the Q7(b) spike on CORRECTNESS** — ⚠️ **Linux gets no such gift and must pick one, ⛔ or re-earn the
-`2 * 3 * 4` class of defect the spike caught.**
-
-✅ **SCOPED 2026-10-05 ([SP-159], Q-E2-8 ruled) — design → [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4, §9.**
-⚠️ The two "unknowns" above are now MEASURED (W3, Qt 6.4.2): ⛔ `QTextDocument::toMarkdown()` cannot be the save path
-(0/1,185 dumas files identical, 1,179 re-wrapped, **escapes written unescaped**). ✅ `QSyntaxHighlighter` on today's
-`QPlainTextEdit` is the same shape as Apple's route (a′): presentation-only, survives undo, hidden `**` residue 0.00 pt,
-heading line 32 vs 20. ✅ Parser ruled: **md4c inside ScriviCore** (L-b; `libmd4c-dev` 0.4.8 in Ubuntu 24.04).
-
-| AC | Criterion |
-| -- | --------- |
-| **L1** | **A source-mapped Markdown analyzer in ScriviCore (md4c)**: per block → kind, markers, bold, italic, prefixes, spans; ⚠️ first measurement: how md4c reports escaped characters |
-| **L2** | **Agreement test:** the core analyzer and Apple's `AttributedString` parser agree over the AC3 corpus + the S5 corpus (interop test) |
-| **L3** | **The Linux presenter:** a `QSyntaxHighlighter` on `ManuscriptEditor`; the document's stored text and formats untouched; save bytes unchanged |
-| **L4** | **Escape backslashes hidden** (Linux shows them today) with E1's rule; hard-break backslash per E1 AC6 |
-| **L5** | **Hidden-run caret snap** (W3 measured the same invisible stops as Apple) |
-| **L6** | **Headings + bold/italic render; re-entry span/line** (Q-E2-1) via `rehighlightBlock`; AC7 prose demotion |
-| **L7** | **Commands** as EP-046 AC6 (Ctrl in place of ⌘) and Option/Alt-Return = hard break (Q-E2-4). ✅ **The Alt-Return STORAGE half is done** — matched in [SP-163] (2026-10-05) with the shared corpus, `escape_smoke` PASS |
-| **L8** | **Find/Replace on presented text** (Q-E2-5) |
-
-⚠️ Where Qt cannot match Apple's mechanism, match the RESULT and record the difference (T-0576 precedent).
-⚠️ Not measured yet: `QPlainTextDocumentLayout` hanging indent for lists; md4c per-block cost on 1.85 MB.
+⚠️ **[EP-048] `[Linux]` Manuscript Renderer Parity MOVED TO [`Epic-active.md`](Epic-active.md) on 2026-10-07 (user-approved)** with [SP-165].
 
 ---
 

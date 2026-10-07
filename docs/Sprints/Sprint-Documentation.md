@@ -432,6 +432,9 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-162** | `[Apple]` **[EP-046] E2-S2** — bold and italic + span reveal; inline AC7; presented copy | EP-046 | 2026-10-05 | 2026-10-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-162.md) |
 | **SP-163** | `[Apple]` **[EP-046] E2-S3** — formatting commands (⌘B/⌘I, headings, lists), list rendering, Option-Return (T-0584), cross-scene balancing (T-0591) | EP-046 | 2026-10-05 | 2026-10-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-163.md) |
 | **SP-164** | `[Apple]` **[EP-046] E2-S4** — Find and Replace over presented text (builds the manuscript's Find), Navigator search jump (T-0585) | EP-046 | 2026-10-06 | 2026-10-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-164.md) |
+| **SP-165** | `[Cross]` **[EP-048] S1** — md4c Markdown analyzer in ScriviCore, `scrivi_analyze_markdown` (new endpoint), Apple agreement test (L1, L2) | EP-048 | 2026-10-07 | 2026-10-07 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-165.md) |
+| **SP-166** | `[Linux]` **[EP-048] S2** — the presenter: escapes hidden, headings + emphasis rendered, reveal, caret snap (L3–L6, L9 atomic markers) | EP-048 | 2026-10-07 | — | 🟡 **ACTIVE** → [record](Sprint-SP-166.md) |
+| **SP-167** | `[Cross]` **[EP-047] S1** — `project-settings.json` (get/put), `scrivi_set_project_title`, [I-0278] migration, stale-branch purge → Project menu | EP-047 | 2026-10-07 | 2026-10-07 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-167.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -471,6 +474,18 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-07 (**SP-167 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-167.md`; T-0596, I-0278 archived.)*
+
+*Last Updated: 2026-10-07 (**SP-167 (EP-047 S1) created and ACTIVATED** (user-approved); T-0596 allocated.)*
+
+*Last Updated: 2026-10-07 (**SP-166 ACTIVATED** (user-approved: Q1 add L9, Q2 one Sprint); T-0595 allocated.)*
+
+*Last Updated: 2026-10-07 (**SP-166 (EP-048 S2) created in 🔵 Planning**, issued via `next-id.py`.)*
+
+*Last Updated: 2026-10-07 (**SP-165 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-165.md`; T-0594 archived; I-0280 stays active (live check owed). ⛔ No Sprint is active.)*
+
+*Last Updated: 2026-10-07 (**SP-165 (EP-048 S1) created and ACTIVATED** (user-approved), issued via `next-id.py`; T-0594 allocated.)*
 
 *Last Updated: 2026-10-06 (**SP-164 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-164.md`; T-0593, T-0585 archived. ⛔ No Sprint is active.)*
 

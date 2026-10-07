@@ -1,6 +1,12 @@
 # Active Sprints
 
-## ⛔ No Sprint is active (SP-164 CLOSED 2026-10-06)
+## SP-166 — 🟡 ACTIVE 2026-10-07 (blocked on the rig)
+
+✅ **[SP-167] CLOSED 2026-10-07 (user-approved)** `[Cross]` [EP-047] **S1** → [`Closed/Sprint-SP-167.md`](Closed/Sprint-SP-167.md) — ✅ settings travel with the project; [T-0596], [I-0278] verified.
+
+🟡 **[SP-166] ACTIVE 2026-10-07** `[Linux]` [EP-048] **S2** → [`Sprint-SP-166.md`](Sprint-SP-166.md) — the presenter (L3–L6 + L9 atomic markers, [T-0595]). ✅ Q1–Q2 ruled. ✅ Code + offscreen smokes done 2026-10-07. ⏳ **Blocked on the rig** for the live pass.
+
+✅ **[SP-165] CLOSED 2026-10-07 (user-approved)** `[Cross]` [EP-048] **S1** → [`Closed/Sprint-SP-165.md`](Closed/Sprint-SP-165.md) — ✅ the md4c analyzer in ScriviCore + `scrivi_analyze_markdown` + the Apple agreement test; [T-0594] verified; [I-0280] fixed (live check owed); [I-0281] filed.
 
 ✅ **[SP-160] CLOSED 2026-10-04 (user-approved)** `[Linux]` [EP-049] S1 → [`Closed/Sprint-SP-160.md`](Closed/Sprint-SP-160.md) — ✅ Linux writes Apple's manuscript format ([T-0586]); ✅ [I-0276] launch-window double-click.
 ✅ **[SP-159] CLOSED 2026-10-05 (user-approved)** `[Cross]` [EP-046] S1 → [`Closed/Sprint-SP-159.md`](Closed/Sprint-SP-159.md) — ✅ the E2 display design approved, 8 rulings taken, EP-046 ACs written, EP-048 scoped; [T-0587] verified.

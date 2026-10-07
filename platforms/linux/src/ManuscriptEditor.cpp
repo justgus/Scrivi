@@ -1,6 +1,7 @@
 #include "ManuscriptEditor.hpp"
 
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPalette>
@@ -13,6 +14,7 @@
 #include <cmath>
 
 #include "ManuscriptEscapes.hpp"
+#include "ManuscriptPresenter.hpp"
 #include "SceneDocument.hpp"
 
 #include <QInputMethodEvent>
@@ -38,15 +40,29 @@ ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
 
 void ManuscriptEditor::normalizeCaret()
 {
-    if (sceneDoc_ == nullptr || normalizingCaret_) {
+    if (sceneDoc_ == nullptr || normalizingCaret_ || mouseSelecting_) {
         return;
     }
     QTextCursor cursor = textCursor();
-    // Don't fight an active selection (the user may be selecting across a body); the
-    // edit guard already prevents boundary-touching edits. Only normalize a plain
-    // caret that has come to rest inside a heading/separator gap.
+    // Don't fight an active selection across the scene boundaries (the edit guard already prevents
+    // boundary-touching edits); only its ends are kept out of hidden runs (EP-048 L5).
     if (cursor.hasSelection()) {
+        int s = cursor.selectionStart();
+        int e = cursor.selectionEnd();
+        snapSelection(s, e, lastSelEnd_);
+        if (s != cursor.selectionStart() || e != cursor.selectionEnd()) {
+            const bool forward = cursor.anchor() <= cursor.position();
+            normalizingCaret_ = true;
+            cursor.setPosition(forward ? s : e);
+            cursor.setPosition(forward ? e : s, QTextCursor::KeepAnchor);
+            setTextCursor(cursor);
+            normalizingCaret_ = false;
+        }
         lastCaretPos_ = cursor.position();
+        lastSelEnd_ = e;
+        if (presenter_ != nullptr) {
+            presenter_->reveal(s, e);
+        }
         return;
     }
     const int pos = cursor.position();
@@ -55,16 +71,191 @@ void ManuscriptEditor::normalizeCaret()
     // when the caret advanced; backward (Up/Left) when it retreated. A same-position event
     // (no movement) keeps the previous direction bias as "forward" by default.
     const bool movingForward = (pos >= lastCaretPos_);
-    const int snapped = sceneDoc_->editablePositionInDirection(pos, movingForward);
+    int snapped = sceneDoc_->editablePositionInDirection(pos, movingForward);
+    // EP-048 L5: then out of any hidden run, to its home (Apple: `snapCaret`).
     if (snapped == pos) {
-        lastCaretPos_ = pos;
+        snapped = snapCaret(pos, lastCaretPos_);
+    }
+    if (snapped != pos) {
+        normalizingCaret_ = true;
+        cursor.setPosition(snapped);
+        setTextCursor(cursor);
+        normalizingCaret_ = false;
+    }
+    lastCaretPos_ = snapped;
+    lastSelEnd_ = snapped;
+    if (presenter_ != nullptr) {
+        presenter_->reveal(snapped, snapped);
+    }
+}
+
+void ManuscriptEditor::mousePressEvent(QMouseEvent* event)
+{
+    mouseSelecting_ = true;
+    QPlainTextEdit::mousePressEvent(event);
+}
+
+void ManuscriptEditor::mouseReleaseEvent(QMouseEvent* event)
+{
+    QPlainTextEdit::mouseReleaseEvent(event);
+    mouseSelecting_ = false;
+    normalizeCaret();
+}
+
+// ── EP-048 L5 (SP-166): stop runs — a port of Apple's `MarkdownEscapes.snapCaret` / `snapSelection` ──
+
+int ManuscriptEditor::snapCaret(int loc, int previous) const
+{
+    if (presenter_ == nullptr) {
+        return loc;
+    }
+    int cur = loc;
+    // Landing past one run can land beside the next (`**a** **b**`): settle, a few steps at most.
+    for (int k = 0; k < 4; ++k) {
+        const int next = snapOnce(cur, previous);
+        if (next == cur) {
+            break;
+        }
+        cur = next;
+    }
+    return cur;
+}
+
+int ManuscriptEditor::snapOnce(int loc, int previous) const
+{
+    const int length = document()->characterCount() - 1;
+    std::optional<ManuscriptPresenter::Stop> run;
+    if (loc > 0) {
+        run = presenter_->stopAt(loc - 1);                                   // inside, or just past it
+    }
+    if (!run && loc < length) {
+        if (auto r = presenter_->stopAt(loc); r && r->homeAfter()) {         // just before an opener
+            run = r;
+        }
+    }
+    if (!run) {
+        return loc;
+    }
+    const int s = run->start, e = run->end;
+    if (run->homeAfter()) {
+        if (loc == e) {
+            return loc;
+        }
+        // ← from home: out to the left, past the character before the run.
+        if (previous == e && loc == e - 1) {
+            return s > 0 ? s - 1 : e;
+        }
+        return e;
+    }
+    if (loc == s) {
+        return loc;
+    }
+    // → from home: out to the right, past the character after the run.
+    if (previous == s && loc == s + 1) {
+        return std::min(e + 1, length);
+    }
+    return s;
+}
+
+bool ManuscriptEditor::isUnreachable(int pos) const
+{
+    const int length = document()->characterCount() - 1;
+    return presenter_ != nullptr && pos > 0 && pos < length && presenter_->stopAt(pos - 1).has_value();
+}
+
+void ManuscriptEditor::snapSelection(int& start, int& end, int previousEnd) const
+{
+    if (presenter_ == nullptr) {
         return;
     }
-    normalizingCaret_ = true;
-    cursor.setPosition(snapped);
-    setTextCursor(cursor);
-    normalizingCaret_ = false;
-    lastCaretPos_ = snapped;
+    const int length = document()->characterCount() - 1;
+    if (isUnreachable(start)) {
+        while (start > 0 && presenter_->stopAt(start - 1)) {
+            --start;
+        }
+    }
+    if (isUnreachable(end)) {
+        if (end < previousEnd) {
+            while (end > 0 && presenter_->stopAt(end - 1)) {
+                --end;
+            }
+        } else {
+            while (end < length && presenter_->stopAt(end)) {
+                ++end;
+            }
+            if (end < length && document()->characterAt(end - 1) == QLatin1Char('\\')) {
+                ++end;   // an escape backslash keeps its mark with it
+            }
+        }
+    }
+}
+
+bool ManuscriptEditor::handleAtomicDeletion(bool back, int loc)
+{
+    if (presenter_ == nullptr) {
+        return false;
+    }
+    using Kind = ManuscriptPresenter::StopKind;
+    if (back) {
+        const auto stop = loc > 0 ? presenter_->stopAt(loc - 1) : std::nullopt;
+        if (!stop || stop->end != loc) {
+            return false;
+        }
+        switch (stop->kind) {
+        case Kind::Prefix:
+        case Kind::ListPrefix:
+            // ⌫ at a heading's (or list item's) visible start removes the WHOLE prefix — the line becomes body text.
+            if (sceneDoc_->isEditableRange(stop->start, stop->end)) {
+                replaceRange(stop->start, stop->end, QString());
+            }
+            return true;
+        case Kind::Opener: {
+            // ⌫ after an opening marker deletes what the writer SEES before the caret: the character before
+            // the marker, or the paragraph join — never part of the marker.
+            const int s = stop->start;
+            int joinStart = 0;
+            if (paragraphJoinRange(s, joinStart)) {
+                if (sceneDoc_->isEditableRange(joinStart, s)) {
+                    replaceRange(joinStart, s, QStringLiteral(" "));
+                }
+                return true;
+            }
+            int a = s - 1, b = s;
+            if (a < 0) {
+                return true;
+            }
+            widenOverPairs(a, b);
+            if (sceneDoc_->isEditableRange(a, b)) {
+                replaceRange(a, b, QString());
+                QTextCursor c = textCursor();   // the caret stays at the marker's home
+                c.setPosition(stop->end - (b - a));
+                setTextCursor(c);
+            }
+            return true;
+        }
+        case Kind::Escape:
+        case Kind::Closer:
+            return false;
+        }
+        return false;
+    }
+    // ⌦ before a CLOSING marker deletes the character after it — never the marker.
+    const auto stop = presenter_->stopAt(loc);
+    if (!stop || stop->kind != Kind::Closer || stop->start != loc) {
+        return false;
+    }
+    int a = stop->end, b = stop->end + 1;
+    if (b > document()->characterCount() - 1) {
+        return true;
+    }
+    widenOverPairs(a, b);
+    if (sceneDoc_->isEditableRange(a, b)) {
+        replaceRange(a, b, QString());
+        QTextCursor c = textCursor();
+        c.setPosition(loc);
+        setTextCursor(c);
+    }
+    return true;
 }
 
 bool ManuscriptEditor::isModifyingKey(const QKeyEvent* event)
@@ -369,6 +560,8 @@ bool ManuscriptEditor::handleDeletion(QKeyEvent* event)
     if (cursor.hasSelection()) {
         start = cursor.selectionStart();
         end = cursor.selectionEnd();
+    } else if (handleAtomicDeletion(back, cursor.position())) {
+        return true;   // EP-048 L9: a marker is never deleted alone
     } else if (back) {
         const int loc = cursor.position();
         int joinStart = 0;

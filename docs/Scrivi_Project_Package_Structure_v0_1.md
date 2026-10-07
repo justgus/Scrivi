@@ -137,6 +137,9 @@ MyNovel.scrivi/
   snapshots/
     scrivi-snapshots.json
 
+  project-settings.json   ← EP-047 (SP-167): settings that travel with the project
+  inspector-layout.json
+
   history/
     state.json
     log-000001.jsonl
@@ -152,6 +155,13 @@ If Git-backed snapshots are enabled, the package also contains:
 ```
 
 The `.git/` directory is present only when Git is enabled.
+
+> ✅ **`project-settings.json` (EP-047 AC1, SP-167, [I-0278]).** Written and read ONLY through ScriviCore
+> (`scrivi_get_project_settings` / `scrivi_put_project_settings`) — the inspector layout's OPAQUE contract: a JSON
+> object whose keys the apps define; `absent` ≠ `unreadable`; never repaired or overwritten on read; a writer
+> merges its keys into what it read (another platform's keys survive). Keys today: `subtitle` (string),
+> `showChapterTitles` (bool). EP-047 S2–S4 add the typeface, the first-line indent and Markup Hints. ⚠️ The project
+> TITLE is not here: it is `project.json`'s `title`, renamed through `scrivi_set_project_title`.
 
 > **On-disk naming and key conventions (verified against a real package, 2026-06-25).**
 > These are the *actual* names ScriviCore writes — earlier drafts of this doc used

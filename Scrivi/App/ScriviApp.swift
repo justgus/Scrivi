@@ -324,6 +324,11 @@ struct ScriviApp: App {
             }
             .keyboardShortcut(",", modifiers: .command)
             .disabled(focusedSession == nil)
+            // ✅ EP-047 (SP-167 Q1): an ACTION, not a setting — its own sheet.
+            Button("Purge Stale History Branches…") {
+                focusedSession?.showStaleBranches = true
+            }
+            .disabled(focusedSession == nil)
 
             // ⚠️ [T-0568] — ruled 2026-09-30: the Project menu. ⛔ NOT ⌘↑/⌘↓: a menu
             // equivalent there would intercept the text view's own (see the Scene menu's note).
@@ -531,6 +536,10 @@ struct ScriviApp: App {
         CommandMenu("Project") {
             Button("Project Settings…") {
                 env.activeSession?.showProjectSettings = true
+            }
+            .disabled(env.activeSession == nil)
+            Button("Purge Stale History Branches…") {
+                env.activeSession?.showStaleBranches = true
             }
             .disabled(env.activeSession == nil)
 
