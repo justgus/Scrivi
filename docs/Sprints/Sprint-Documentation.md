@@ -30,7 +30,7 @@ currently active"* and *"No Sprint is active or planned"* while listing five clo
 drift R-22(④) removed the per-status totals for.** It now names only what is active.
 
 ⚠️ **SP-107–SP-114 stay RESERVED to EP-032**, which runs AFTER EP-034 (Q-a), so ⚠️ **IDs execute OUT OF
-SEQUENCE**. **Next available ID is in Statistics** — recorded once, there, not restated here (P7).
+SEQUENCE**. Next available IDs live in [`../tools/next-ids.json`](../tools/next-ids.json) — not restated here (P7; Audit Check 2026-10-06 O-1).
 
 > ✅ **SP-102 delivered AC23 + AC24**, the last two clauses of AC9. ⚠️ **T-0365 closed as a PARTIAL
 > delivery** — the `sources` card renders only its empty state because nothing in the app creates a
@@ -431,7 +431,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-161** | `[Apple]` **[EP-046] E2-S1** — the presenter (route (a′), `NSTextContentStorageDelegate`): block analyzer + AC7 prose demotion, E1 escape hiding moved onto it, hidden-run caret snap, **headings** + line reveal | EP-046 | 2026-10-05 | 2026-10-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-161.md) |
 | **SP-162** | `[Apple]` **[EP-046] E2-S2** — bold and italic + span reveal; inline AC7; presented copy | EP-046 | 2026-10-05 | 2026-10-05 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-162.md) |
 | **SP-163** | `[Apple]` **[EP-046] E2-S3** — formatting commands (⌘B/⌘I, headings, lists), list rendering, Option-Return (T-0584), cross-scene balancing (T-0591) | EP-046 | 2026-10-05 | 2026-10-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-163.md) |
-| **SP-164** | `[Apple]` **[EP-046] E2-S4** — Find and Replace over presented text (builds the manuscript's Find), Navigator search jump (T-0585) | EP-046 | 2026-10-06 | — | 🟡 **ACTIVE** → [record](Sprint-SP-164.md) |
+| **SP-164** | `[Apple]` **[EP-046] E2-S4** — Find and Replace over presented text (builds the manuscript's Find), Navigator search jump (T-0585) | EP-046 | 2026-10-06 | 2026-10-06 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-164.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -471,6 +471,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-06 (**SP-164 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-164.md`; T-0593, T-0585 archived. ⛔ No Sprint is active.)*
 
 *Last Updated: 2026-10-06 (**SP-164 ACTIVATED** (user-approved); T-0593 allocated.)*
 

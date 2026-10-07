@@ -1,7 +1,8 @@
 ---
 sprint: SP-164
 epic: EP-046
-status: Active
+status: Closed
+closed: 2026-10-06
 activated: 2026-10-06
 platform: Apple
 created: 2026-10-06
@@ -9,14 +10,14 @@ created: 2026-10-06
 
 # SP-164 — `[Apple]` [EP-046] **E2-S4**: Find and Replace over what the writer SEES
 
-**Status:** 🟡 **ACTIVE 2026-10-06** (user: *"activate and then implement SP-164"*) — created 2026-10-06. ✅ Q1–Q6 ruled.
-**Tasks:** [T-0593] (this Sprint's work) · [T-0585] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md)
-**Epic:** [EP-046] `[Apple]` The Manuscript Renderer — Inline Rendering → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED 2026-10-06 (user-approved):** *"yes, close SP-164 and run the Audit Check."* — activated 2026-10-06. ✅ Q1–Q6 ruled; all ACs met; [T-0593], [T-0585] VERIFIED and archived.
+**Tasks:** ✅ [T-0593] · ✅ [T-0585] → `../../Tasks/Verified/`
+**Epic:** [EP-046] `[Apple]` The Manuscript Renderer — Inline Rendering → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 ⚠️ **EP-046's LAST Sprint** — after it, the Epic's Audit Check and close.
 **Carries:** [T-0585] Find/Replace across hidden characters (ruled Q-E2-5: match the PRESENTED text; replacements written
 through the escape layer).
-**Authority:** [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §7 (Find/Replace),
-§0A (Q-E2-5). Previous Sprint: [`Closed/Sprint-SP-163.md`](Closed/Sprint-SP-163.md).
+**Authority:** [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §7 (Find/Replace),
+§0A (Q-E2-5). Previous Sprint: [`Closed/Sprint-SP-163.md`](Sprint-SP-163.md).
 **Size:** ⚠️ **M–L — larger than design §7 assumed.**
 
 ---
@@ -172,3 +173,8 @@ history=220 ms` (was ~1 minute); the find bar shows its count; one ⌘Z restores
 ✅ Step 7: clicking a filtered scene now lands the caret ON the searched text (the Q5 jump), not the scene's start — user:
 *"Its a wash. I'll take it! the exigent behavior is approved."*
 ✅ A pass the user reports is the instruction to verify: [T-0593] and [T-0585] → ✅ Verified. ⏳ Sprint close awaits approval.
+
+### ✅ 2026-10-06 — Sprint CLOSED (user-approved)
+
+✅ User: *"I pushed. yes, close SP-164 and run the Audit Check."* ✅ [T-0593] → `Verified/Task-verified-0593.md`; [T-0585] →
+`Verified/Task-verified-0585.md` (same step). ✅ EP-046's last Sprint — its Audit Check follows.

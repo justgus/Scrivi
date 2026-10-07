@@ -43,7 +43,7 @@ the indent vanishes on undo, or on the next rebuild, and reads as a rendering bu
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🔵 **Draft** — created 2026-09-29. ⛔ **Blocked on [EP-046]** ([EP-045] closed 2026-10-04). ✅ **SCOPED 2026-10-05 ([SP-159]) — ACs L1–L8 below.**
+**Status:** 🔵 **Draft** — created 2026-09-29. ✅ **Unblocked** — [EP-046] closed 2026-10-06 ([EP-045] closed 2026-10-04). ✅ **SCOPED 2026-10-05 ([SP-159]) — ACs L1–L8 below.**
 ⚠️ **2026-10-04:** the escape layer's WRITE half moved OUT to **[EP-049]** (now). ✅ This Epic keeps the DISPLAY half, whose design for BOTH platforms is ruled in **[SP-159]** (widened).
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
 

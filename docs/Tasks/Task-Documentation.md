@@ -746,7 +746,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0549 | ⚠️ **`[ScriviCore]` [I-0213] Class A — PATCH the index for single-scene ops that do NOT change manuscript order** (`set/clear_scene_story_time`, `rename_scene`) | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0550 | ⚠️ **`[ScriviCore]` [I-0213] Class B — rebuild ONLY the affected chapter for order/membership ops** (13 endpoints) — ⛔ **BLOCKED ON T-0549** | ✅ **SP-150** | **EP-040** | ✅ **Verified 2026-09-24** | [`Task-verified-0549-0550.md`](Verified/Task-verified-0549-0550.md) |
 | T-0555 | `[Apple]` Engine stub parity ([I-0253]) | — | — | ✅ **Verified 2026-10-03** | [`Task-verified-0555.md`](Verified/Task-verified-0555.md) |
-| T-0593 | `[Apple]` E2-S4: Find and Replace over what the writer sees | 🟡 **SP-164** | **EP-046** | ✅ **Verified 2026-10-06** (live pass) | [`Task-active.md`](Task-active.md) |
+| T-0593 | `[Apple]` E2-S4: Find and Replace over what the writer sees | ✅ **SP-164** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0593.md`](Verified/Task-verified-0593.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -754,7 +754,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0588 | `[Apple]` E2-S1: the presenter (route (a′)) + headings | ✅ **SP-161** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0588.md`](Verified/Task-verified-0588.md) |
 | T-0587 | `[Cross]` Manuscript display design (E2): spikes, design doc, rulings, EP-046 ACs, EP-048 scope | ✅ **SP-159** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0587.md`](Verified/Task-verified-0587.md) |
 | T-0586 | `[Linux]` Escape layer write half — Linux stores Apple's format | ✅ **SP-160** | **EP-049** | ✅ **Verified 2026-10-04** | [`Task-verified-0586.md`](Verified/Task-verified-0586.md) |
-| T-0585 | `[Apple]` Find/Replace across hidden escape backslashes | ✅ SP-159 (ruled) → 🟡 **SP-164** | **EP-046** | ✅ **Verified 2026-10-06** (live pass) | [`Task-active.md`](Task-active.md) |
+| T-0585 | `[Apple]` Find/Replace across hidden escape backslashes | ✅ SP-159 (ruled) → ✅ **SP-164** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0585.md`](Verified/Task-verified-0585.md) |
 | T-0584 | `[Apple]` Option-Return: rule what it stores | ✅ SP-159 (ruled) → 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0584.md`](Verified/Task-verified-0584.md) |
 | T-0583 | `[Apple]` Cache the scene boundaries (no whole-manuscript scan per keystroke) | ✅ **SP-158** | **EP-045** (AC11) | ✅ **Verified 2026-10-04** | [`Task-verified-0583.md`](Verified/Task-verified-0583.md) |
 | T-0582 | `[Apple]` The caret path measured on 1.85 MB (EP-045 AC10) | ✅ **SP-157** | **EP-045** | ✅ **Verified 2026-10-04** | [`Task-verified-0581-0582.md`](Verified/Task-verified-0581-0582.md) |
@@ -784,6 +784,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-06 (**T-0593, T-0585 archived** → `Verified/Task-verified-0593.md`, `-0585.md`, with the SP-164 close.)*
 
 *Last Updated: 2026-10-06 (**T-0593, T-0585 ✅ VERIFIED** (SP-164 live pass, user) — archive with the SP-164 close.)*
 

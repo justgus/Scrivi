@@ -238,6 +238,11 @@ create). The presenter is asked only for paragraphs that are **laid out** (143 a
 - ⚠️ Incremental search reads the client on a BACKGROUND queue: the client reads an immutable snapshot.
 - ✅ Replace = typed text (escaped, balanced, the match's first character's style); Replace All = one grouped history step.
 - ✅ The Navigator's search jump uses the same presented matching.
+- ✅ **Live-pass fixes ([SP-164], 2026-10-06):** Replace All is applied in ONE editing pass (`applyReplacements`: each
+  replacement escaped, escape-snapped and balanced as a single Replace) — 1,173 replacements on dumas: apply 83 ms, history
+  220 ms (was ~1 minute through the typing path). The client returns **true** from `shouldReplaceCharacters` and applies the
+  batch once, so the find bar reports its count. A multi-scene undo/redo places the caret ONCE. The Navigator's FILTER matches
+  presented text too (`MarkdownEmphasis.searchable`), and the jump lands the caret ON the match (approved by the user).
 
 ---
 
@@ -431,6 +436,7 @@ matches the standing rule that parallel lists must not be allowed to drift silen
 | **AC9** | **Option-Return stores a hard break** `\` + `\n` (Q-E2-4, [T-0584]) | unit test on the edit path |
 | **AC10** | **Find/Replace matches the presented text** and writes replacements escaped (Q-E2-5, [T-0585]) | corpus test + live pass |
 | **AC11** | **E1's escape hiding moved onto the presenter**; `EscapeHidingStyler` retired; every E1 escape test still passes | the existing E1 suite, green |
+| **AC12** *(added 2026-10-05, user — [SP-162])* | **A cut, copy or any selection replacement that partly covers a formatted span SPLITS it, never unbalances it** — closed/re-opened at the cut point, the cut text carrying its own markers (both directions, nested); across scenes by [T-0591] ([SP-163]) | balanced-edit tests + live pass |
 
 ---
 
