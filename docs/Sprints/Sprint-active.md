@@ -2,6 +2,8 @@
 
 ## SP-166 — 🟡 ACTIVE 2026-10-07 (blocked on the rig)
 
+✅ **[SP-170] CLOSED 2026-10-08 (user-approved)** `[Apple]` [EP-047] **S4** → [`Closed/Sprint-SP-170.md`](Closed/Sprint-SP-170.md) — ✅ Markup Hints on/off (⇧⌘H, per project, default ON); [T-0589] verified. ✅ EP-047's last Sprint.
+
 ✅ **[SP-169] CLOSED 2026-10-08 (user-approved)** `[Apple]` [EP-047] **S3** → [`Closed/Sprint-SP-169.md`](Closed/Sprint-SP-169.md) — ✅ the first-line indent (Book by default, 1.5 em, the small gap); [I-0281] fixed; [T-0598], [I-0281] verified.
 
 ✅ **[SP-168] CLOSED 2026-10-07 (user-approved)** `[Apple]` [EP-047] **S2** → [`Closed/Sprint-SP-168.md`](Closed/Sprint-SP-168.md) — ✅ the seven bundled faces, Literata 16 pt default, one typography source; [T-0597], [I-0282] verified.

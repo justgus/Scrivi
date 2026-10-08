@@ -53,6 +53,19 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     /// The storage lines whose heading prefixes are SHOWN — the lines holding the selection's ends
     /// (Q-E2-1, line half). Kept as ranges so the lines that stop being revealed can be re-presented.
     private(set) var revealedLines: [NSRange] = []
+    /// ✅ EP-047 S4 ([T-0589], AC7, P11): Markup Hints — the re-entry reveal. OFF: nothing is revealed; every marker and heading
+    /// prefix stays hidden even beside the caret. ⛔ It changes what is DRAWN only — a stop run's caret HOME is independent of
+    /// it (design §3.6), which is exactly T-0589's ruled caret rules 1–3. ⚠️ The PENDING pair (⌘B between words) stays shown:
+    /// it is the only sign of where the next characters will be bold.
+    private(set) var hintsEnabled = true
+
+    /// Turn the hints on or off — re-presents only what was (or will be) revealed: no rebuild, no history event.
+    func setHints(_ on: Bool, selection: NSRange, in ts: NSTextStorage) {
+        guard on != hintsEnabled else { return }
+        hintsEnabled = on
+        reveal(for: selection, in: ts)
+    }
+
     /// The inline spans whose markers are SHOWN — those the selection's ends are inside (Q-E2-1, span half).
     private(set) var revealedSpans: [NSRange] = []
 
@@ -257,8 +270,8 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
     /// `textDidChange`, registers no undo, and the scene-boundary table ignores it (AC4).
     func reveal(for selection: NSRange, in ts: NSTextStorage) {
         let ns = ts.string as NSString
-        let lines = Self.revealLines(for: selection, in: ns)
-        let spans = revealSpans(for: selection, in: ts)
+        let lines = hintsEnabled ? Self.revealLines(for: selection, in: ns) : []
+        let spans = hintsEnabled ? revealSpans(for: selection, in: ts) : []
         guard lines != revealedLines || spans != revealedSpans else { return }
         let previousLines = revealedLines, previousSpans = revealedSpans
         revealedLines = lines
@@ -336,6 +349,8 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         switch stop.kind {
         case .escape: return true
         case .listPrefix: return false     // [SP-163] Q7: always visible, dimmed
+        case .prefix where !hintsEnabled, .opener where !hintsEnabled, .closer where !hintsEnabled:
+            return true                    // EP-047 S4: hints off — never revealed
         case .prefix:
             let ns = ts.string as NSString
             let line = ns.paragraphRange(for: NSRange(location: i, length: 0))

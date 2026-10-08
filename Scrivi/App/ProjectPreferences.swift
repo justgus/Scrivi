@@ -57,11 +57,17 @@ import Foundation
         didSet { indentEmChosen = true; save() }
     }
 
+    // ✅ EP-047 S4 ([T-0589], P11): Markup Hints — absent = ON. View ▸ Show Markup Hints (⇧⌘H).
+    var markupHints: Bool {
+        didSet { markupHintsChosen = true; save() }
+    }
+
     /// Whether the file holds an explicit choice — so a save of ANOTHER setting never pins today's default into it.
     @ObservationIgnored private var typefaceChosen = false
     @ObservationIgnored private var textSizeChosen = false
     @ObservationIgnored private var paragraphIndentChosen = false
     @ObservationIgnored private var indentEmChosen = false
+    @ObservationIgnored private var markupHintsChosen = false
 
     /// The type the manuscript draws with.
     var typography: ManuscriptTypography {
@@ -76,6 +82,7 @@ import Foundation
     static let textSizeKey = "textSize"
     static let paragraphIndentKey = "paragraphIndent"
     static let indentEmKey = "indentEm"
+    static let markupHintsKey = "markupHints"
 
     init(projectID: String, projectRootPath: String, schemaTitle: String, engine: ScriviEngine,
          defaults: UserDefaults = .standard) {
@@ -121,7 +128,9 @@ import Foundation
         indentEm = (doc[Self.indentEmKey] as? NSNumber)?.doubleValue ?? Double(ManuscriptTypography.defaultIndentEm)
         typefaceChosen = doc[Self.typefaceKey] != nil
         textSizeChosen = doc[Self.textSizeKey] != nil
+        markupHints = doc[Self.markupHintsKey] as? Bool ?? true
         paragraphIndentChosen = doc[Self.paragraphIndentKey] != nil
+        markupHintsChosen = doc[Self.markupHintsKey] != nil
         indentEmChosen = doc[Self.indentEmKey] != nil
         projectTitle = title
     }
@@ -133,6 +142,7 @@ import Foundation
         if textSizeChosen { document[Self.textSizeKey] = textSize }
         if paragraphIndentChosen { document[Self.paragraphIndentKey] = paragraphIndent }
         if indentEmChosen { document[Self.indentEmKey] = indentEm }
+        if markupHintsChosen { document[Self.markupHintsKey] = markupHints }
         if Self.put(document, engine: engine, root: projectRootPath) { unreadableMessage = nil }
     }
 

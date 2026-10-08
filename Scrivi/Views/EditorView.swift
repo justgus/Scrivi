@@ -324,7 +324,8 @@ private struct ManuscriptEditorView: View {
                     session: session,
                     navigateToSceneID: $navigateToSceneID,
                     showChapterTitles: prefs.showChapterTitles,
-                    typography: prefs.typography
+                    typography: prefs.typography,
+                    markupHints: prefs.markupHints
                 )
                 // ⚠️ T-0548: THE MANUSCRIPT ITSELF — the view that SHOULD absorb
                 // whatever width is left. [I-0245] was about a SECOND claimant beside

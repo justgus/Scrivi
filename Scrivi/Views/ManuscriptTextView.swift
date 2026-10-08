@@ -43,6 +43,8 @@ struct ManuscriptTextView: NSViewRepresentable {
     var showChapterTitles: Bool
     /// ✅ EP-047 S2: the project's type (face + size). Applied to the presenter's ONE stored value; a change re-presents.
     var typography: ManuscriptTypography
+    /// ✅ EP-047 S4: Markup Hints on/off — applied WITHOUT a rebuild (the presenter re-presents what changes).
+    var markupHints: Bool = true
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -56,6 +58,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         textView.allowsUndo = false
         // ✅ EP-047 S2: the project's type, from the ONE source (the presenter's `typography`).
         context.coordinator.presenter.typography = typography
+        if let ts = textView.textStorage {
+            context.coordinator.presenter.setHints(markupHints, selection: textView.selectedRange(), in: ts)
+        }
         textView.font = typography.bodyFont
         textView.typingAttributes = typography.bodyAttributes
         // I-0112: an NSTextView whose textColor is nil renders runs that carry no
@@ -236,6 +241,10 @@ struct ManuscriptTextView: NSViewRepresentable {
         // ✅ EP-047 S2: a new face or size re-presents through the rebuild — attributes only; no history event, and the
         // scene text (so the `.md`) is untouched.
         let typographyChanged = typography != coordinator.presenter.typography
+        // ✅ EP-047 S4: hints on/off — attributes only, never a rebuild.
+        if markupHints != coordinator.presenter.hintsEnabled, let ts = tv.textStorage {
+            coordinator.presenter.setHints(markupHints, selection: tv.selectedRange(), in: ts)
+        }
         if segIDs != coordinator.lastSegmentIDs
             || showChapterTitles != coordinator.lastShowChapterTitles
             || chapterTitleFingerprint != coordinator.lastChapterTitleFingerprint
@@ -3693,6 +3702,7 @@ struct ManuscriptTextView: View {
     @Binding var navigateToSceneID: String?
     var showChapterTitles: Bool
     var typography: ManuscriptTypography   // EP-047: the macOS surface draws with it; not used here yet
+    var markupHints: Bool = true           // EP-047 S4: likewise
 
     var body: some View {
         Text("Manuscript editor not yet available on this platform.")

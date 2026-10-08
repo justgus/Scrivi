@@ -755,7 +755,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
-| T-0589 | `[Apple]`+`[Linux]` Markup Hints on/off — View-menu toggle for the re-entry reveal | — | **EP-047** | 🔵 **Backlog** | [`Task-backlog.md`](Task-backlog.md) |
+| T-0589 | `[Apple]` + `[Linux]` Markup Hints on/off (View menu, ⇧⌘H; per project) | ✅ **SP-170** | **EP-047** | ✅ **Verified 2026-10-08** | [`Task-verified-0589.md`](Verified/Task-verified-0589.md) |
 | T-0588 | `[Apple]` E2-S1: the presenter (route (a′)) + headings | ✅ **SP-161** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0588.md`](Verified/Task-verified-0588.md) |
 | T-0587 | `[Cross]` Manuscript display design (E2): spikes, design doc, rulings, EP-046 ACs, EP-048 scope | ✅ **SP-159** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0587.md`](Verified/Task-verified-0587.md) |
 | T-0586 | `[Linux]` Escape layer write half — Linux stores Apple's format | ✅ **SP-160** | **EP-049** | ✅ **Verified 2026-10-04** | [`Task-verified-0586.md`](Verified/Task-verified-0586.md) |
@@ -789,6 +789,14 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-08 (**T-0589 archived** → `Verified/Task-verified-0589.md`, with the SP-170 close.)*
+
+*Last Updated: 2026-10-08 (**T-0589 ✅ VERIFIED** (SP-170 live pass, user) — archive with the SP-170 close.)*
+
+*Last Updated: 2026-10-08 (**T-0589 implemented** (SP-170) — Implemented - Not Verified; live pass owed.)*
+
+*Last Updated: 2026-10-08 (**T-0589 → active** with SP-170.)*
 
 *Last Updated: 2026-10-08 (**T-0598 archived** → `Verified/Task-verified-0598.md`, with the SP-169 close.)*
 

@@ -13,7 +13,7 @@
 EP-047."*); acceptance criteria from the four rulings below. Created 2026-09-29. ✅ Its seam exists ([EP-045] / [EP-046] closed).
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §5.1 (F1), §4D (the indent);
 [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §3.5–§3.7 (the presenter it extends).
-**Tasks:** ✅ [T-0596] (SP-167 — VERIFIED, archived) · ✅ [T-0597] (SP-168 — VERIFIED, archived) · ✅ [T-0598] (SP-169 — VERIFIED, archived) · 🔵 [T-0589] **Markup Hints on/off** (caret rules ruled 2026-10-05) → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Tasks:** ✅ [T-0596] (SP-167 — VERIFIED, archived) · ✅ [T-0597] (SP-168 — VERIFIED, archived) · ✅ [T-0598] (SP-169 — VERIFIED, archived) · ✅ [T-0589] **Markup Hints on/off** (SP-170 — VERIFIED, archived).
 **Issues:** ✅ [I-0278] `[Apple]` three Project Settings do not travel (✅ fixed + VERIFIED in [SP-167], archived) · ✅ [I-0281] `[Apple]` emphasis
 positions shift after an indented first line (fixed + VERIFIED in [SP-169], archived) → [`../Issues/Issue-backlog.md`](../Issues/Issue-backlog.md).
 
@@ -36,6 +36,7 @@ positions shift after an indented first line (fixed + VERIFIED in [SP-169], arch
 | **P6** | Default face | ✅ ***"the default font should make the app look wonderful … a Book Serif"*** — ✅ **Literata — CONFIRMED 2026-10-07** (user: *"Yes, Literata should be the default."*). ✅ **Projects with NO typeface setting — existing ones included — open in the default** (user, 2026-10-07: *"yes that is the intention"*), so existing manuscripts change look on first open |
 | **P9** | Size, spacing, chapter titles (ruled 2026-10-07, user) | ✅ **Default size 16 pt** (control 10–32 pt) · ✅ **line spacing FIXED at 1.45 × size, not a setting** (every face on one rhythm; switching faces does not reflow vertically) · ✅ **chapter titles at Heading 1 size, in the text colour** (today: system bold 15 pt, secondary grey) |
 | **P10** | The indent (ruled 2026-10-07, user — S3 planning) | ✅ **Default: Book convention** for every project with no setting (*"Book Convention … but with an option for none in settings"*; P3's three modes stay: None · Every body paragraph · Book) · ✅ **amount in ems, default 1.5 em** (stepper 0.5–4) · ✅ **with an indent, the stored blank line between paragraphs draws as a SMALL GAP** (display only; the `.md` keeps it; None → the full blank line) · ✅ **Book convention: no indent after anything but body text** (scene start, heading, list, block quote, chapter title) |
+| **P11** | Markup Hints (ruled 2026-10-08, user — S4 planning) | ✅ **Shortcut ⇧⌘H** ("Hints"; ⌥⌘M is macOS's Minimize All, ⌥⌘H Hide Others) · ✅ **default ON** for a project that never set it (T-0589: ON = today's behaviour) |
 | **P7** | Headings | ✅ **Headings AND chapter titles in the manuscript face** |
 | **P8** | Size | ✅ **Per project, for now** — ⛔ not per scene: that would put type information in the `.md` or the scene JSON (*"I don't want to open that can of worms yet"*) |
 
@@ -66,7 +67,7 @@ paragraph for a block with no markup (`ManuscriptPresenter.swift:328`), so a pla
 | **[SP-167]** S1 | `[ScriviCore]` + `[Apple]` | the settings home, the title endpoint, [I-0278]'s migration; Linux binding (bridge only) — ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-167.md`](../Sprints/Closed/Sprint-SP-167.md) · ✅ AC1–AC3 met | AC1–AC3 |
 | **[SP-168]** S2 | `[Apple]` | one body-attribute source; the typeface — ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-168.md`](../Sprints/Closed/Sprint-SP-168.md) · ✅ AC4, AC5 met | AC4, AC5 |
 | **[SP-169]** S3 | `[Apple]` | the indent; [I-0281] — ✅ **CLOSED 2026-10-08** (user-approved) → [`../Sprints/Closed/Sprint-SP-169.md`](../Sprints/Closed/Sprint-SP-169.md) · ✅ AC6, AC8 met | AC6, AC8 |
-| S4 | `[Apple]` | Markup Hints ([T-0589]) | AC7 |
+| **[SP-170]** S4 | `[Apple]` | Markup Hints ([T-0589]) — ✅ **CLOSED 2026-10-08** (user-approved) → [`../Sprints/Closed/Sprint-SP-170.md`](../Sprints/Closed/Sprint-SP-170.md) · ✅ AC7 met | AC7 |
 
 ✅ AC9's live pass closes each Sprint on the Mac. ⛔ **OUT:** Linux rendering ([EP-048] **L10**, P4) · F3 per-passage fonts (closed) ·
 a "show all markup" mode (T-0589: hints only).

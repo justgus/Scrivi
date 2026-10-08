@@ -434,6 +434,12 @@ struct ScriviApp: App {
                 Toggle("Show World Warnings", isOn: Bindable(session).worldWarningVisible)
                 Toggle("Show Buffers", isOn: Bindable(env).buffersPaletteVisible)
                     .keyboardShortcut("b", modifiers: [.command, .option])
+                // ✅ EP-047 S4 ([T-0589], P11): ⇧⌘H — "Hints". Per project; it travels (project-settings.json).
+                if let prefs = session.projectPreferences {
+                    Divider()
+                    Toggle("Show Markup Hints", isOn: Bindable(prefs).markupHints)
+                        .keyboardShortcut("h", modifiers: [.command, .shift])
+                }
             } else {
                 Toggle("Show Scene Inspector", isOn: .constant(false))
                     .keyboardShortcut("i", modifiers: [.command, .option])
@@ -445,6 +451,10 @@ struct ScriviApp: App {
                     .disabled(true)
                 Toggle("Show Buffers", isOn: .constant(false))
                     .keyboardShortcut("b", modifiers: [.command, .option])
+                    .disabled(true)
+                Divider()
+                Toggle("Show Markup Hints", isOn: .constant(true))
+                    .keyboardShortcut("h", modifiers: [.command, .shift])
                     .disabled(true)
             }
         }

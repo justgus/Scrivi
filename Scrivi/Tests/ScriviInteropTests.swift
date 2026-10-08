@@ -6077,4 +6077,119 @@ struct ManuscriptIndentTests {
     }
 }
 
+// MARK: - EP-047 S4 — Markup Hints on/off (SP-170, T-0589)
+
+/// ✅ EP-047 AC7: hints OFF hides every marker and heading prefix even beside the caret; the caret's HOME is unchanged (T-0589
+/// rules 1–3); a toggle re-presents only — the text and its history are untouched. Through the real text view and presenter.
+@Suite("Markup Hints on/off (EP-047 S4)")
+@MainActor
+struct MarkupHintsTests {
+
+    //                    0         1         2
+    //                    012345678901234567890123456789
+    static let text = "## Heading\n\nSome **bold** words here."
+
+    private func fixture() -> ManuscriptFixture {
+        let f = ManuscriptFixture(Self.text)
+        f.tv.frame = NSRect(x: 0, y: 0, width: 700, height: 300)
+        f.window.setContentSize(f.tv.frame.size)
+        return f
+    }
+    private func setHints(_ f: ManuscriptFixture, _ on: Bool) {
+        f.presenter.setHints(on, selection: f.tv.selectedRange(), in: f.tv.textStorage!)
+    }
+    /// The presented point size at `loc` (a hidden character is drawn at 0.01 pt).
+    private func drawnSize(_ f: ManuscriptFixture, at loc: Int) throws -> CGFloat {
+        let ns = f.text as NSString
+        let r = ns.paragraphRange(for: NSRange(location: loc, length: 0))
+        let cs = try #require(f.tv.textContentStorage)
+        let p = try #require(f.presenter.textContentStorage(cs, textParagraphWith: r))
+        return (p.attributedString.attribute(.font, at: loc - r.location, effectiveRange: nil) as? NSFont)?.pointSize ?? -1
+    }
+
+    @Test("ON (the default): the caret at a heading's start reveals its prefix; at a bold word's first letter, its markers")
+    func onReveals() throws {
+        let f = fixture()
+        #expect(f.presenter.hintsEnabled, "default ON (P11)")
+        f.caret(3)                                            // the heading's visible start
+        #expect(!f.hidden(0) && !f.hidden(1), "prefix revealed")
+        let bold = (f.text as NSString).range(of: "bold").location
+        f.caret(bold)
+        #expect(!f.hidden(bold - 2) && !f.hidden(bold + 4), "the span's markers revealed")
+    }
+
+    @Test("OFF: nothing is revealed — prefix and markers stay hidden beside the caret, and are DRAWN hidden")
+    func offHides() throws {
+        let f = fixture()
+        setHints(f, false)
+        f.caret(3)
+        #expect(f.hidden(0) && f.hidden(1), "prefix hidden with the caret on its line")
+        #expect(try drawnSize(f, at: 0) < 0.1, "and DRAWN hidden")
+        let bold = (f.text as NSString).range(of: "bold").location
+        f.caret(bold)
+        #expect(f.hidden(bold - 2) && f.hidden(bold + 4), "markers hidden with the caret at the span's first letter")
+        #expect(try drawnSize(f, at: bold - 2) < 0.1)
+        f.caret(bold + 4)                                     // last letter's end
+        #expect(f.hidden(bold + 4) && f.hidden(bold + 5))
+    }
+
+    @Test("OFF keeps T-0589's caret rules: prefix and opener → AFTER, closer → BEFORE")
+    func offCaretRules() throws {
+        let f = fixture()
+        setHints(f, false)
+        f.caret(1)                                            // inside the hidden `## `
+        #expect(f.tv.selectedRange().location == 3, "rule 1: the caret goes AFTER the hidden prefix (got \(f.tv.selectedRange().location))")
+        let bold = (f.text as NSString).range(of: "bold").location
+        f.caret(bold - 1)                                     // inside the hidden opener
+        #expect(f.tv.selectedRange().location == bold, "rule 2: AFTER the opener — typing prepends to the bold (got \(f.tv.selectedRange().location))")
+        f.caret(bold + 5)                                     // inside the hidden closer
+        #expect(f.tv.selectedRange().location == bold + 4, "rule 3: BEFORE the closer — typing continues the bold (got \(f.tv.selectedRange().location))")
+    }
+
+    @Test("a toggle re-presents only: the text is unchanged and nothing reaches storage")
+    func toggleIsPresentationOnly() throws {
+        let f = fixture()
+        f.caret(3)
+        var changes = 0
+        let token = NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in changes += 1 }
+        defer { NotificationCenter.default.removeObserver(token) }
+        #expect(try drawnSize(f, at: 0) > 0.1, "revealed before the toggle")
+        setHints(f, false)
+        #expect(f.hidden(0))
+        #expect(try drawnSize(f, at: 0) < 0.1, "the toggle re-presents the caret's line WITHOUT the caret moving")
+        setHints(f, true)
+        #expect(!f.hidden(0))
+        #expect(try drawnSize(f, at: 0) > 0.1)
+        #expect(f.text == Self.text, "the stored text is untouched")
+        #expect(changes == 0, "no textDidChange — so no history event and no save")
+    }
+
+    @Test("settings: absent = ON; a choice round-trips and is written only once chosen")
+    func settings() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-hints-\(UUID().uuidString)")
+        let support = base.appendingPathComponent("s").path(percentEncoded: false)
+        let root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+        try FileManager.default.createDirectory(atPath: support, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let engine = ScriviEngine()
+        let id = try engine.ensureLocalIdentity(displayName: "T", appSupportRoot: support)
+        let pid = try engine.createProject(projectRootPath: root, appSupportRoot: support, title: "T", slug: "t",
+            authorshipRef: AuthorshipRef(identityID: id.identityID, personaID: id.defaultPersonaID, displayName: "T")).projectID
+        let defaults = UserDefaults(suiteName: "scrivi.tests.hints.\(UUID().uuidString)")!
+        func prefs() -> ProjectPreferences { ProjectPreferences(projectID: pid, projectRootPath: root, schemaTitle: "T", engine: engine, defaults: defaults) }
+        func file() -> [String: Any] {
+            let json = (try? engine.getProjectSettings(projectRootPath: root).documentJSON) ?? nil
+            return json.flatMap { (try? JSONSerialization.jsonObject(with: Data($0.utf8))) as? [String: Any] } ?? [:]
+        }
+        let p = prefs()
+        #expect(p.markupHints, "absent = ON")
+        p.projectSubtitle = "Sub"
+        #expect(file()["markupHints"] == nil, "another setting's save pins no default")
+        p.markupHints = false
+        #expect(prefs().markupHints == false)
+        #expect(file()["markupHints"] as? Bool == false)
+    }
+}
+
 #endif
