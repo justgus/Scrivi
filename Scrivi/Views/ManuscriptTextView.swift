@@ -2783,6 +2783,8 @@ final class ManuscriptNSTextView: NSTextView {
 
     /// The client AppKit's find bar searches: the manuscript AS PRESENTED (Q1, Q-E2-5).
     let finderClient = ManuscriptFinderClient()
+    /// ✅ EP-050 S1: the ONE presented ⇄ storage map (Find and accessibility) — built at first use, patched per edit.
+    lazy var presentedMap = PresentedMap(textView: self)
     private var finderObserver: NSObjectProtocol?
     lazy var textFinder: NSTextFinder = {
         let finder = NSTextFinder()
@@ -2995,6 +2997,7 @@ final class ManuscriptNSTextView: NSTextView {
             attributes: typography.bodyAttributes))
         presenter.insertingPending = false
         presenter.pending = .init(range: NSRange(location: loc, length: markers.utf16.count * 2), markerLength: markers.utf16.count)
+        presentedMap.noteChange(in: presenter.pending!.range)     // the pair is now hidden on the page at rest
         keepingPending = true
         setSelectedRange(NSRange(location: loc + markers.utf16.count, length: 0))
         keepingPending = false

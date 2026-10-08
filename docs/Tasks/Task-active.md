@@ -2,7 +2,6 @@
 
 ---
 
-
 ## 🟠 T-0595 — `[Linux]` EP-048 S2: the presenter — escapes hidden, headings and emphasis rendered, reveal, caret snap, atomic markers
 
 **Created:** 2026-10-07 at [SP-166]'s activation (user: *"Q1: Add the new criterion.  Q2: one Sprint."*) · **Epic:** **[EP-048]** ·

@@ -752,6 +752,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0596 | `[Cross]` EP-047 S1: project settings that travel (`project-settings.json`, title, I-0278 migration) | ✅ **SP-167** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0596.md`](Verified/Task-verified-0596.md) |
 | T-0597 | `[Apple]` EP-047 S2: one source for the manuscript's type; the seven bundled typefaces | ✅ **SP-168** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0597.md`](Verified/Task-verified-0597.md) |
 | T-0598 | `[Apple]` EP-047 S3: the first-line indent (None · Every · Book, ems, the small gap) | ✅ **SP-169** | **EP-047** | ✅ **Verified 2026-10-08** | [`Task-verified-0598.md`](Verified/Task-verified-0598.md) |
+| T-0599 | `[Apple]` EP-050 S1: the manuscript's accessibility translation layer (one map for Find + VoiceOver; dividers read as words) | ✅ **SP-171** | **EP-050** | ✅ **Verified 2026-10-08** | [`Task-verified-0599.md`](Verified/Task-verified-0599.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |
@@ -789,6 +790,10 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-08 (**T-0599 archived** → `Verified/Task-verified-0599.md`, with the SP-171 close.)*
+
+*Last Updated: 2026-10-08 (**T-0599 ✅ VERIFIED** (SP-171 VoiceOver live pass) — archive with the SP-171 close.)*
 
 *Last Updated: 2026-10-08 (**T-0589 archived** → `Verified/Task-verified-0589.md`, with the SP-170 close.)*
 

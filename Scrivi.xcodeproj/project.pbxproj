@@ -41,6 +41,8 @@
 		C030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		C2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		C2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		C2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		C2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		C031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		C032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		C033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -102,6 +104,8 @@
 		D030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		D2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		D2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		D2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		D2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		D031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		D032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		D033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -163,6 +167,8 @@
 		E030_BF /* ProjectSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C030 /* ProjectSettingsSheet.swift */; };
 		E2A1_BF /* StaleBranchesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A1 /* StaleBranchesSheet.swift */; };
 		E2A2_BF /* ManuscriptTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A2 /* ManuscriptTypography.swift */; };
+		E2A3_BF /* ManuscriptAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A3 /* ManuscriptAccessibility.swift */; };
+		E2A4_BF /* ManuscriptPresentedMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A4 /* ManuscriptPresentedMap.swift */; };
 		E031_BF /* ProjectPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031 /* ProjectPreferences.swift */; };
 		E032_BF /* WindowFrameAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = C032 /* WindowFrameAutosave.swift */; };
 		E033_BF /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C033 /* AboutView.swift */; };
@@ -244,6 +250,8 @@
 		C030 /* ProjectSettingsSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectSettingsSheet.swift; path = Scrivi/Views/ProjectSettingsSheet.swift; sourceTree = SOURCE_ROOT; };
 		C2A1 /* StaleBranchesSheet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = StaleBranchesSheet.swift; path = Scrivi/Views/StaleBranchesSheet.swift; sourceTree = SOURCE_ROOT; };
 		C2A2 /* ManuscriptTypography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptTypography.swift; path = Scrivi/Views/ManuscriptTypography.swift; sourceTree = SOURCE_ROOT; };
+		C2A3 /* ManuscriptAccessibility.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptAccessibility.swift; path = Scrivi/Views/ManuscriptAccessibility.swift; sourceTree = SOURCE_ROOT; };
+		C2A4 /* ManuscriptPresentedMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ManuscriptPresentedMap.swift; path = Scrivi/Views/ManuscriptPresentedMap.swift; sourceTree = SOURCE_ROOT; };
 		FONTS_REF /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fonts; path = Resources/Fonts; sourceTree = SOURCE_ROOT; };
 		C031 /* ProjectPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ProjectPreferences.swift; path = Scrivi/App/ProjectPreferences.swift; sourceTree = SOURCE_ROOT; };
 		C032 /* WindowFrameAutosave.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = WindowFrameAutosave.swift; path = Scrivi/App/WindowFrameAutosave.swift; sourceTree = SOURCE_ROOT; };
@@ -378,6 +386,8 @@
 				C030 /* ProjectSettingsSheet.swift */,
 				C2A1 /* StaleBranchesSheet.swift */,
 				C2A2 /* ManuscriptTypography.swift */,
+				C2A3 /* ManuscriptAccessibility.swift */,
+				C2A4 /* ManuscriptPresentedMap.swift */,
 				C031 /* ProjectPreferences.swift */,
 				C032 /* WindowFrameAutosave.swift */,
 				C033 /* AboutView.swift */,
@@ -649,6 +659,8 @@
 				C030_BF /* ProjectSettingsSheet.swift in Sources */,
 				C2A1_BF /* StaleBranchesSheet.swift in Sources */,
 				C2A2_BF /* ManuscriptTypography.swift in Sources */,
+				C2A3_BF /* ManuscriptAccessibility.swift in Sources */,
+				C2A4_BF /* ManuscriptPresentedMap.swift in Sources */,
 				C031_BF /* ProjectPreferences.swift in Sources */,
 				C032_BF /* WindowFrameAutosave.swift in Sources */,
 				C033_BF /* AboutView.swift in Sources */,
@@ -717,6 +729,8 @@
 				D030_BF /* ProjectSettingsSheet.swift in Sources */,
 				D2A1_BF /* StaleBranchesSheet.swift in Sources */,
 				D2A2_BF /* ManuscriptTypography.swift in Sources */,
+				D2A3_BF /* ManuscriptAccessibility.swift in Sources */,
+				D2A4_BF /* ManuscriptPresentedMap.swift in Sources */,
 				D031_BF /* ProjectPreferences.swift in Sources */,
 				D032_BF /* WindowFrameAutosave.swift in Sources */,
 				D033_BF /* AboutView.swift in Sources */,
@@ -785,6 +799,8 @@
 				E030_BF /* ProjectSettingsSheet.swift in Sources */,
 				E2A1_BF /* StaleBranchesSheet.swift in Sources */,
 				E2A2_BF /* ManuscriptTypography.swift in Sources */,
+				E2A3_BF /* ManuscriptAccessibility.swift in Sources */,
+				E2A4_BF /* ManuscriptPresentedMap.swift in Sources */,
 				E031_BF /* ProjectPreferences.swift in Sources */,
 				E032_BF /* WindowFrameAutosave.swift in Sources */,
 				E033_BF /* AboutView.swift in Sources */,

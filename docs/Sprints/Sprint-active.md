@@ -1,5 +1,7 @@
 # Active Sprints
 
+✅ **[SP-171] CLOSED 2026-10-08 (user-approved)** `[Apple]` [EP-050] **S1** → [`Closed/Sprint-SP-171.md`](Closed/Sprint-SP-171.md) — ✅ VoiceOver reads the page at rest (one map, shared with Find; dividers read as words); [T-0599], [I-0277] verified.
+
 ## SP-166 — 🟡 ACTIVE 2026-10-07 (blocked on the rig)
 
 ✅ **[SP-170] CLOSED 2026-10-08 (user-approved)** `[Apple]` [EP-047] **S4** → [`Closed/Sprint-SP-170.md`](Closed/Sprint-SP-170.md) — ✅ Markup Hints on/off (⇧⌘H, per project, default ON); [T-0589] verified. ✅ EP-047's last Sprint.

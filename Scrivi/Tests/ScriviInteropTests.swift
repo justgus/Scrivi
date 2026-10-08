@@ -5097,7 +5097,7 @@ struct FindReplaceTests {
         NSAttributedString(string: s, attributes: [.font: ManuscriptTypography.default.bodyFont, .foregroundColor: NSColor.textColor])
     }
 
-    @Test("the presented text: no escapes, markers or heading prefixes; no chapter titles; one chunk per scene")
+    @Test("the presented text: no escapes, markers or heading prefixes; titles + dividers IN it (EP-050 Q1/Q3) but unsearched; one chunk per scene")
     func presentedText() {
         let s = NSMutableAttributedString(string: "Chapter One\n", attributes: [.scriviHeading: true])
         s.append(body(#"Mr\. **Smith** said \*no\*\."#))
@@ -5105,8 +5105,9 @@ struct FindReplaceTests {
         s.append(body("\n## Head\n\n- item"))
         let (f, _) = fixture(s)
         let p = PresentedText.build(f.tv.textStorage!, presenter: f.presenter)
-        #expect(p.string as String == "Mr. Smith said *no*.\nHead\n\n- item", "presented: \((p.string as String).debugDescription)")
+        #expect(p.string as String == "Chapter One\nMr. Smith said *no*.Scene break\nHead\n\n- item", "presented: \((p.string as String).debugDescription)")
         #expect(p.chunks.count == 2, "a match never crosses the scene break")
+        #expect(p.firstMatch(of: "Chapter") == nil, "Q4: a chapter title is on the page but never searched")
         // A match across a hidden marker maps back WITHOUT the closer that follows it.
         let smith = p.string.range(of: "Smith")
         #expect((f.text as NSString).substring(with: p.storageRange(smith)) == "Smith")
@@ -6232,6 +6233,464 @@ struct SmartQuotesOffTests {
         let f = ManuscriptFixture("x")
         let item = NSMenuItem(title: "Smart Quotes", action: #selector(NSTextView.toggleAutomaticQuoteSubstitution(_:)), keyEquivalent: "")
         #expect(f.tv.validateUserInterfaceItem(item) == false)
+    }
+}
+
+// MARK: — EP-050 S1 ([SP-171]) Plan 1 — measure before building
+
+/// [SP-171] Plan 1(a) and 1(c). ⚠️ SPIKE: measurements, recorded in `Sprint-SP-171.md`. Production code is untouched — the probe
+/// override is added through the ObjC runtime, so the question "is a member on `ManuscriptNSTextView` REACHED by AppKit's
+/// attribute dispatch?" is asked without shipping one.
+@Suite("Manuscript accessibility — Plan 1 spike (EP-050 S1)")
+@MainActor
+struct ManuscriptAccessibilitySpike {
+
+    /// 1(a) static: does `NSTextView` implement the LEGACY attribute entry points itself? If it inherits them, the legacy
+    /// path is NSObject/NSView's generic mapper onto the new-style members — which a subclass override reaches.
+    @Test("1(a) which class implements the legacy attribute dispatch")
+    func legacyDispatchOwner() {
+        for name in ["accessibilityAttributeValue:", "accessibilityAttributeValue:forParameter:",
+                     "accessibilityAttributeNames", "accessibilityParameterizedAttributeNames",
+                     "accessibilityValue", "accessibilityStringForRange:", "accessibilityNumberOfCharacters"] {
+            let sel = NSSelectorFromString(name)
+            func owner(_ c: AnyClass) -> String {
+                var k: AnyClass? = c
+                let imp = class_getMethodImplementation(c, sel)
+                var last = NSStringFromClass(c)
+                while let cur = k, let sup = class_getSuperclass(cur), class_getMethodImplementation(sup, sel) == imp {
+                    last = NSStringFromClass(sup); k = sup
+                }
+                return last
+            }
+            print("[SP-171 1a] \(name): ManuscriptNSTextView inherits it from \(owner(ManuscriptNSTextView.self))")
+        }
+    }
+
+    // 1(a) dynamic (probe overrides asked through the LEGACY names) was REMOVED at Plan 3: its finding is recorded in
+    // `Sprint-SP-171.md`, and 1(b) measured VoiceOver entering at the new-style members — which the members suite tests.
+
+    /// 1(c) → AC3: the map's cost on a dumas-shaped 1.7 MB manuscript (60 chapters × 20 scenes, titles and dividers, escapes and
+    /// emphasis in every paragraph). ⚠️ Generated: the test host is sandboxed and cannot read the dumas fixture; [SP-164]'s
+    /// whole-build figure on the real dumas (166–178 ms) calibrates it. The first run of this test (the flat-array design) is
+    /// recorded in `Sprint-SP-171.md`.
+    @Test("1(c)/AC3 presented-map cost on 1.7 MB: whole build, a patched edit at the start and the end, a snapshot")
+    func patchCost() throws {
+        var infos: [SceneInfo] = []
+        var segs: [SceneSegment] = []
+        let para = #"Mr\. Smith said \*no\* \- the ship came in on the **evening** tide, her sails the colour of *old parchment* against a sky turning to brass\."#
+        for ch in 0..<60 {
+            for sc in 0..<20 {
+                let id = "s\(ch)_\(sc)"
+                infos.append(try JSONDecoder().decode(SceneInfo.self, from: Data("""
+                    {"sceneID":"\(id)","chapterID":"c\(ch)","title":"S","chapterTitle":"Chapter \(ch + 1)","slug":"s",
+                     "metadataPath":"","contentPath":"","chapterMetadataPath":""}
+                    """.utf8)))
+                let text = (sc == 0 ? "## Part \(ch + 1)\n\n" : "") + (0..<10).map { _ in para }.joined(separator: "\n\n")
+                segs.append(SceneSegment(id: id, sceneID: id, chapterID: "c\(ch)", metadataPath: "", contentPath: "", text: text))
+            }
+        }
+        let loader = ViewportSceneLoader(engine: ScriviEngine(), projectRootPath: "/tmp/ax-spike",
+                                         appSupportRoot: "/tmp/ax-spike-support", projectID: "p", allScenes: infos)
+        let session = ProjectSession(engine: ScriviEngine(), authorshipRef: nil, appSupportRoot: "/tmp/ax-spike-support", identityID: "")
+        let view = ManuscriptTextView(loader: loader, env: AppEnvironment(), session: session, navigateToSceneID: .constant(nil),
+                                      showChapterTitles: true, typography: .default)
+        let c = view.makeCoordinator()
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        tv.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
+        tv.textContentStorage?.delegate = c.presenter
+        tv.textStorage?.delegate = c.presenter
+        c.textView = tv
+        c.rebuildStorage(tv, segments: segs)
+        let ts = try #require(tv.textStorage)
+        print("[SP-171 AC3] storage length \(ts.length)")
+
+        func ms(_ body: () -> Void) -> Double {
+            let t0 = DispatchTime.now().uptimeNanoseconds; body()
+            return Double(DispatchTime.now().uptimeNanoseconds - t0) / 1e6
+        }
+        func median(_ xs: [Double]) -> Double { xs.sorted()[xs.count / 2] }
+        let start = (ts.string as NSString).range(of: "Mr").location + 4, end = ts.length - 20
+        // The same one-character edit (and its undo) with no map, then with the map live: the difference is the patch.
+        func edits(at loc: Int) -> Double {
+            median((0..<7).map { _ in
+                ms {
+                    ts.replaceCharacters(in: NSRange(location: loc, length: 0), with: NSAttributedString(string: "x"))
+                    ts.replaceCharacters(in: NSRange(location: loc, length: 1), with: NSAttributedString(string: ""))
+                }
+            })
+        }
+        let bareStart = edits(at: start), bareEnd = edits(at: end)
+        var built = 0.0
+        built = ms { _ = tv.presentedMap.current() }
+        let lay = try #require(tv.presentedMap.current())
+        let liveStart = edits(at: start), liveEnd = edits(at: end)
+        let snap = ms { _ = tv.presentedMap.snapshot() }
+        let whole = ms { _ = tv.presentedMap.snapshot().string }
+        print(String(format: "[SP-171 AC3] whole build %.1f ms (%d segments, %d units) · 2 edits at START %.2f → %.2f ms · at END %.2f → %.2f ms · snapshot %.2f ms · whole presented string %.1f ms · builds %d",
+                     built, lay.segments.count, lay.length, bareStart, liveStart, bareEnd, liveEnd, snap, whole, tv.presentedMap.builds))
+        // VoiceOver's per-keystroke query set (measured in Plan 1(b)), after a typed edit near the START — the map's members only;
+        // the LINE members are AppKit's own work on storage (they lay the text out) and are measured in the live pass.
+        tv.setSelectedRange(NSRange(location: start, length: 0))
+        let queries = median((0..<7).map { _ in
+            ts.replaceCharacters(in: NSRange(location: start, length: 0), with: NSAttributedString(string: "x"))
+            return ms {
+                let k = tv.accessibilitySelectedTextRange().location
+                for _ in 0..<2 { _ = tv.accessibilityNumberOfCharacters() }
+                for d in 0..<7 { _ = tv.accessibilityString(for: NSRange(location: max(0, k - 40 + d * 10), length: 40)) }
+                for _ in 0..<3 { _ = tv.accessibilitySelectedTextRange() }
+                for _ in 0..<2 { _ = tv.accessibilityAttributedString(for: NSRange(location: max(0, k - 20), length: 40)) }
+            }
+        })
+        print(String(format: "[SP-171 AC3] VoiceOver's per-keystroke query set (map members) after an edit: %.2f ms", queries))
+        #expect(tv.presentedMap.builds == 1, "every edit PATCHED the map")
+    }
+}
+
+/// EP-050 S1 ([SP-171]) Plan 2 / AC1 — THE ONE MAP, patched per edit, against a fresh build.
+@Suite("Presented map (EP-050 S1)")
+@MainActor
+struct PresentedMapTests {
+
+    private func body(_ s: String) -> NSAttributedString {
+        NSAttributedString(string: s, attributes: ManuscriptTypography.default.bodyAttributes)
+    }
+
+    /// Titles, dividers, escapes, emphasis, headings, lists, hard breaks, blank lines.
+    private func corpus() -> NSAttributedString {
+        let s = NSMutableAttributedString()
+        for ch in 0..<3 {
+            s.append(NSAttributedString(string: "Chapter \(ch + 1)\n", attributes: [.scriviHeading: true]))
+            for sc in 0..<3 {
+                s.append(body(#"## A heading \*here\*"# + "\n\n"))
+                s.append(body(#"Mr\. **Smith** said \*no\* to *her* \- twice\."# + "\n\n"))
+                s.append(body("- one\n- two **bold**\n\n"))
+                // ⚠️ [I-0284]: a block holding a hard break renders NO emphasis (screen and map agree), so the hard break and the
+                // `_` / `***` emphasis are in separate paragraphs here.
+                s.append(body(#"A hard break\"# + "\n" + #"then on\."# + "\n\n"))
+                s.append(body("And _under_ and ***both***."))
+                if sc < 2 { s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak])); s.append(body("\n")) }
+            }
+            if ch < 2 { s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.chapterEnd])); s.append(body("\n")) }
+        }
+        return s
+    }
+
+    /// The live map and a fresh build agree at EVERY position, both ways, and on the text and the chunks.
+    private func expectAgrees(_ f: ManuscriptFixture, _ note: @autoclosure () -> String) {
+        let ts = f.tv.textStorage!
+        guard let live = f.tv.presentedMap.current() else { Issue.record("no map"); return }
+        let fresh = PresentedLayout.build(ts, presenter: f.presenter)
+        let storage = ts.string as NSString
+        guard live.length == fresh.length, live.storageEnd == fresh.storageEnd else {
+            Issue.record("length \(live.length) vs \(fresh.length), storage \(live.storageEnd) vs \(fresh.storageEnd) — \(note())")
+            return
+        }
+        let whole = NSRange(location: 0, length: fresh.length)
+        if live.units(in: whole, from: storage) != fresh.units(in: whole, from: storage) { Issue.record("text differs — \(note())"); return }
+        for k in 0...fresh.length where live.storageIndex(k) != fresh.storageIndex(k) {
+            Issue.record("storageIndex(\(k)) \(live.storageIndex(k)) vs \(fresh.storageIndex(k)) — \(note())"); return
+        }
+        for x in 0...ts.length where live.presentedIndex(x) != fresh.presentedIndex(x) {
+            Issue.record("presentedIndex(\(x)) \(live.presentedIndex(x)) vs \(fresh.presentedIndex(x)) — \(note())"); return
+        }
+        if live.chunks() != fresh.chunks() { Issue.record("chunks differ — \(note())") }
+    }
+
+    private func storageLen(_ f: ManuscriptFixture) -> Int { f.tv.textStorage!.length }
+
+    @Test("AC1: the page at rest — every mark hidden, list prefixes kept, titles and dividers present; round trips")
+    func pageAtRest() throws {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(corpus())
+        f.caret(40)                                        // a caret beside markup reveals it on screen — never in the map (A1)
+        let p = f.tv.presentedMap.snapshot()
+        let text = p.string as String
+        #expect(text.hasPrefix("Chapter 1\nA heading *here*\n\nMr. Smith said *no* to her - twice.\n\n- one\n- two bold\n\n"),
+                "presented: \(text.prefix(120).debugDescription)")
+        // ✅ The map hides EXACTLY what the presenter hides on screen at rest (the caret far away; hints cannot reveal anything there).
+        let far = NSRange(location: f.text.utf16.count, length: 0)
+        let hiddenByMap = Set((0..<storageLen(f)).filter { p.layout.presentedIndex($0) == p.layout.presentedIndex($0 + 1) })
+        let hiddenOnScreen = Set((0..<storageLen(f)).filter { f.presenter.isHidden($0, in: f.tv.textStorage!, revealing: far) })
+        #expect(hiddenByMap == hiddenOnScreen, "map-only: \(hiddenByMap.subtracting(hiddenOnScreen).sorted().prefix(10)) · screen-only: \(hiddenOnScreen.subtracting(hiddenByMap).sorted().prefix(10))")
+        for mark in ["\\", "**", "## "] {
+            let r = (text as NSString).range(of: mark)
+            #expect(r.location == NSNotFound, "\(mark.debugDescription) presented in: \((text as NSString).substring(with: NSRange(location: max(0, r.location - 30), length: min(60, (text as NSString).length - max(0, r.location - 30)))).debugDescription)")
+        }
+        #expect(text.contains("Scene break") && text.contains("End of chapter") && !text.contains("\u{FFFC}"), "Q2: dividers present as WORDS")
+        // Round trips: every presented unit maps to a storage character that IS that unit.
+        let storage = f.text as NSString
+        for k in 0..<p.length {
+            let s = p.layout.storageIndex(k)
+            if storage.character(at: s) == 0xFFFC {                 // a divider's words: every unit maps to the divider character
+                #expect(p.layout.presentedIndex(s) <= k)
+                continue
+            }
+            #expect(p.layout.presentedIndex(s) == k)
+            if storage.character(at: s) != p.string.character(at: k) { Issue.record("unit \(k) ≠ storage \(s)"); break }
+        }
+    }
+
+    @Test("Plan 2: after every edit the PATCHED map equals a fresh build — and no edit rebuilt it")
+    func patchedEqualsFresh() {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(corpus())
+        _ = f.tv.presentedMap.current()
+        #expect(f.tv.presentedMap.builds == 1)
+        var rng = SystemRandomNumberGenerator()
+        var seed: UInt64 = 0x5EED_0171
+        func next(_ n: Int) -> Int {                       // deterministic (SplitMix64), so a failure reproduces
+            seed &+= 0x9E37_79B9_7F4A_7C15
+            var z = seed
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            return Int((z ^ (z >> 31)) % UInt64(max(n, 1)))
+        }
+        _ = rng
+        let tokens = ["a", " ", "\n", "\n\n", "*", "**", "\\", "\\*", "# ", "## ", "- ", "x y", "_", "***"]
+        let ts = f.tv.textStorage!
+        for step in 0..<300 {
+            let len = ts.length
+            let loc = next(len + 1)
+            switch next(3) {
+            case 0:
+                let t = tokens[next(tokens.count)]
+                ts.replaceCharacters(in: NSRange(location: loc, length: 0), with: body(t))
+                expectAgrees(f, "step \(step): insert \(t.debugDescription) at \(loc)")
+            case 1:
+                let n = min(1 + next(6), len - loc)
+                guard n > 0 else { continue }
+                ts.replaceCharacters(in: NSRange(location: loc, length: n), with: body(""))
+                expectAgrees(f, "step \(step): delete \(n) at \(loc)")
+            default:
+                let n = min(1 + next(4), len - loc)
+                let t = tokens[next(tokens.count)]
+                ts.replaceCharacters(in: NSRange(location: loc, length: max(0, n)), with: body(t))
+                expectAgrees(f, "step \(step): replace \(n) at \(loc) with \(t.debugDescription)")
+            }
+        }
+        #expect(f.tv.presentedMap.builds == 1, "every edit PATCHED the map (\(f.tv.presentedMap.builds) builds)")
+    }
+
+    @Test("Plan 2: typed edits through the view (escape layer, Return, ⌫) keep the map exact")
+    func typedEdits() {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(corpus())
+        _ = f.tv.presentedMap.current()
+        f.caret(20); f.type("Mr. *quoted* #1")
+        expectAgrees(f, "typed punctuation")
+        f.tv.insertNewline(nil); f.type("## new")
+        expectAgrees(f, "Return then a heading")
+        f.tv.deleteBackward(nil); f.tv.deleteBackward(nil)
+        expectAgrees(f, "⌫ ⌫")
+        #expect(f.tv.presentedMap.builds == 1)
+    }
+
+    @Test("Plan 2: the PENDING pair (⌘B between words) is hidden on the page at rest")
+    func pendingPairHidden() {
+        let f = ManuscriptFixture("one  two")
+        _ = f.tv.presentedMap.current()
+        f.caret(4)                                                // BETWEEN the words (in a word formats the word)
+        f.tv.applyFormat(.bold)
+        #expect(f.text == "one ****two" || f.text == "one **** two", "the pair is in storage: \(f.text.debugDescription)")
+        #expect(f.tv.presentedMap.snapshot().string as String == "one  two")
+        expectAgrees(f, "pending inserted")
+        f.tv.applyFormat(.bold)                                   // the same command takes it away
+        #expect(f.tv.presentedMap.snapshot().string as String == "one  two")
+        expectAgrees(f, "pending removed")
+    }
+
+    @Test("Q4: Find never matches inside a chapter title or divider — the finder is handed them masked")
+    func findSkipsTitles() {
+        let f = ManuscriptFixture()
+        f.tv.textStorage!.setAttributedString(corpus())
+        let client = f.tv.finderClient
+        client.textView = f.tv
+        let p = client.presented
+        var range = NSRange()
+        var flag: ObjCBool = false
+        let title = (p.string as NSString).range(of: "Chapter 2")
+        let s = client.string(at: title.location + 2, effectiveRange: &range, endsWithSearchBoundary: &flag)
+        #expect(!s.contains("Chapter"), "masked: \(s.debugDescription)")
+        #expect(NSLocationInRange(title.location + 2, range) && (s as NSString).length == range.length)
+        #expect(flag.boolValue)
+    }
+}
+
+/// EP-050 S1 ([SP-171]) Plan 3 / AC1 — every accessibility member answers through the ONE map, and the members agree. ✅ Called
+/// at the NEW-STYLE members (VoiceOver's entry, measured in Plan 1(b)); `AXValue` through its legacy attribute name.
+@Suite("Manuscript accessibility members (EP-050 AC1)")
+@MainActor
+struct ManuscriptAccessibilityTests {
+
+    private func fixture(_ text: String) -> ManuscriptFixture {
+        let f = ManuscriptFixture(text)
+        f.tv.frame = NSRect(x: 0, y: 0, width: 300, height: 2000)
+        f.tv.textContainer?.widthTracksTextView = true
+        f.tv.textLayoutManager?.ensureLayout(for: f.tv.textLayoutManager!.documentRange)
+        return f
+    }
+
+    private let text = "## A heading \\*here\\*\n\nMr\\. **Smith** said \\*no\\* to *her* \\- twice, and then once more for the long line to wrap.\n\n- one\n- two **bold**"
+    private let presented = "A heading *here*\n\nMr. Smith said *no* to her - twice, and then once more for the long line to wrap.\n\n- one\n- two bold"
+
+    @Test("Q2: a divider is READ as words — \"Scene break\" / \"End of chapter\" (an AXAttachment label was ignored by VoiceOver)")
+    func dividersNamed() throws {
+        let f = fixture("")
+        let s = NSMutableAttributedString(string: "one", attributes: ManuscriptTypography.default.bodyAttributes)
+        s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak]))
+        s.append(NSAttributedString(string: "\ntwo **b**", attributes: ManuscriptTypography.default.bodyAttributes))
+        s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.chapterEnd]))
+        s.append(NSAttributedString(string: "\nthree", attributes: ManuscriptTypography.default.bodyAttributes))
+        f.tv.textStorage!.setAttributedString(s)
+        let expected = "oneScene break\ntwo bEnd of chapter\nthree" as NSString
+        #expect(f.tv.accessibilityAttributeValue(.value) as? String == expected as String)
+        #expect(f.tv.accessibilityNumberOfCharacters() == expected.length)
+        // Every range — including ranges that START or END inside the words — reads the same through both members.
+        for loc in 0..<expected.length {
+            for len in [1, 4, 9] where loc + len <= expected.length {
+                let r = NSRange(location: loc, length: len)
+                #expect(f.tv.accessibilityString(for: r) == expected.substring(with: r), "string(for: \(NSStringFromRange(r)))")
+                #expect(f.tv.accessibilityAttributedString(for: r)?.string == expected.substring(with: r), "attributed(for: \(NSStringFromRange(r)))")
+            }
+        }
+        // The words are ONE unit of the page: index and line ranges inside them cover all of them.
+        let words = expected.range(of: "End of chapter")
+        #expect(f.tv.accessibilityRange(for: words.location + 5) == words)
+        // A caret set inside the words is proposed AT the divider character, then Scrivi's caret rules place it: here (no
+        // coordinator, so no [T-0572] scene-gap move) before the `**` closer just ahead of it — a home, never past the divider.
+        f.tv.setAccessibilitySelectedTextRange(NSRange(location: words.location + 3, length: 0))
+        let c = f.tv.selectedRange().location
+        let divider = (f.text as NSString).range(of: "\u{FFFC}", options: .backwards).location
+        #expect(c <= divider && MarkdownEscapes.snapCaret(c, from: c, length: f.tv.textStorage!.length,
+                                                          runAt: ManuscriptNSTextView.runLookup(f.presenter, f.tv.textStorage!)) == nil,
+                "caret \(c), divider \(divider)")
+    }
+
+    @Test("[I-0277] AXValue, the character count and every range string are the PRESENTED text")
+    func valueAndStrings() {
+        let f = fixture(text)
+        let value = f.tv.accessibilityAttributeValue(.value) as? String
+        #expect(value == presented, "AXValue: \(value.debugDescription)")
+        #expect(f.tv.accessibilityNumberOfCharacters() == (presented as NSString).length)
+        let ns = presented as NSString
+        for loc in stride(from: 0, to: ns.length, by: 7) {
+            for len in [0, 1, 5, 23] where loc + len <= ns.length {
+                let r = NSRange(location: loc, length: len)
+                #expect(f.tv.accessibilityString(for: r) == ns.substring(with: r), "string(for: \(NSStringFromRange(r)))")
+                #expect(f.tv.accessibilityAttributedString(for: r)?.string == ns.substring(with: r), "attributed(for: \(NSStringFromRange(r)))")
+            }
+        }
+        #expect(f.tv.accessibilityString(for: NSRange(location: ns.length - 3, length: 50)) == ns.substring(from: ns.length - 3),
+                "a range past the end is clamped")
+        let rtf = f.tv.accessibilityRTF(for: NSRange(location: 18, length: 9))
+        let back = rtf.flatMap { try? NSAttributedString(data: $0, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil) }
+        #expect(back?.string == "Mr. Smith")
+    }
+
+    @Test("AC1: the attributed string keeps the page's fonts — Smith is bold, the markers are gone")
+    func attributedKeepsFonts() throws {
+        let f = fixture(text)
+        let ns = presented as NSString
+        let smith = ns.range(of: "Smith")
+        let a = try #require(f.tv.accessibilityAttributedString(for: NSRange(location: smith.location - 4, length: 14)))
+        #expect(a.string == "Mr. Smith said")
+        #expect(!a.string.contains("*"))
+    }
+
+    @Test("AC1: lines agree — line(for:) and range(forLine:) round-trip at every presented index")
+    func linesAgree() {
+        let f = fixture(text)
+        let n = f.tv.accessibilityNumberOfCharacters()
+        var lines = Set<Int>()
+        for k in 0..<n {
+            let line = f.tv.accessibilityLine(for: k)
+            lines.insert(line)
+            let r = f.tv.accessibilityRange(forLine: line)
+            if !NSLocationInRange(k, r) { Issue.record("index \(k): line \(line) range \(NSStringFromRange(r)) does not hold it"); break }
+            if NSMaxRange(r) > n { Issue.record("line \(line) range \(NSStringFromRange(r)) past the end \(n)"); break }
+        }
+        #expect(lines.count >= 6, "a wrapped line counts as more than one VISUAL line: \(lines.count)")
+    }
+
+    @Test("AC1: index, style and position ranges are presented ranges holding the index")
+    func positionRanges() {
+        let f = fixture(text)
+        let n = f.tv.accessibilityNumberOfCharacters()
+        for k in stride(from: 0, to: n, by: 3) {
+            let r = f.tv.accessibilityRange(for: k)
+            #expect(NSLocationInRange(k, r) && NSMaxRange(r) <= n, "rangeForIndex(\(k)) = \(NSStringFromRange(r))")
+            let st = f.tv.accessibilityStyleRange(for: k)
+            #expect(NSLocationInRange(k, st) && NSMaxRange(st) <= n, "styleRange(\(k)) = \(NSStringFromRange(st))")
+        }
+        let smith = (presented as NSString).range(of: "Smith")
+        let frame = f.tv.accessibilityFrame(for: smith)
+        // The SAME screen rect AppKit gives the stored "Smith" (the presented range is mapped before AppKit measures it).
+        let sr = (f.text as NSString).range(of: "Smith")
+        var stored = NSRect.zero
+        if let tlm = f.tv.textLayoutManager, let cs = f.tv.textContentStorage,
+           let a = cs.location(cs.documentRange.location, offsetBy: sr.location), let b = cs.location(a, offsetBy: sr.length),
+           let tr = NSTextRange(location: a, end: b) {
+            tlm.enumerateTextSegments(in: tr, type: .standard, options: []) { _, rect, _, _ in
+                let inView = rect.offsetBy(dx: f.tv.textContainerOrigin.x, dy: f.tv.textContainerOrigin.y)
+                stored = f.window.convertToScreen(f.tv.convert(inView, to: nil))
+                return false
+            }
+        }
+        #expect(frame.width > 10 && abs(frame.minX - stored.minX) < 0.5 && abs(frame.width - stored.width) < 0.5,
+                "frame(for: Smith) = \(frame), stored Smith = \(stored)")
+        let vis = f.tv.accessibilityVisibleCharacterRange()
+        #expect(NSMaxRange(vis) <= n)
+    }
+
+    @Test("AC2: a caret VoiceOver sets at ANY presented index lands at home (never inside markup) and reads back as that index")
+    func caretRoundTrip() {
+        let f = fixture(text)
+        let storage = f.tv.textStorage!
+        let runAt = ManuscriptNSTextView.runLookup(f.presenter, storage)
+        let n = f.tv.accessibilityNumberOfCharacters()
+        // In order, in reverse, and re-set in place: VoiceOver's cursor and Scrivi's caret never drift apart.
+        for k in Array(0...n) + Array((0...n).reversed()) {
+            for _ in 0..<2 {                                              // the second set re-sets the SAME position
+                f.tv.setAccessibilitySelectedTextRange(NSRange(location: k, length: 0))
+                let c = f.tv.selectedRange().location
+                // A HOME: the caret rules, asked to place a caret there, leave it there.
+                if let moved = MarkdownEscapes.snapCaret(c, from: c, length: storage.length, runAt: runAt) {
+                    Issue.record("presented \(k) → storage \(c): not a home (the rules move it to \(moved))"); return
+                }
+                let back = f.tv.accessibilitySelectedTextRange()
+                // It reads back as k — ⚠️ except at a LIST PREFIX: visible ([SP-163] Q7) but never a caret home, so a caret set
+                // before or inside `- ` lands after it. That is the ONLY move allowed.
+                let atListPrefix = k < n && f.presenter.stopTest(in: storage)(f.tv.presentedMap.current()!.storageIndex(k))?.kind == .listPrefix
+                if back.length != 0 || (back.location != k && !(atListPrefix && back.location > k)) {
+                    Issue.record("presented \(k) → storage \(c) → reads back \(NSStringFromRange(back))"); return
+                }
+            }
+        }
+    }
+
+    @Test("AC2: the homes — before an escape, after an opener and a heading prefix, before a closer")
+    func caretHomes() {
+        let f = fixture(text)
+        let ns = f.text as NSString, p = presented as NSString
+        func set(_ k: Int) -> Int { f.tv.setAccessibilitySelectedTextRange(NSRange(location: k, length: 0)); return f.tv.selectedRange().location }
+        #expect(set(0) == 3, "after the `## ` prefix")
+        #expect(set(p.range(of: "*here").location) == ns.range(of: #"\*here"#).location, "before the escape backslash")
+        #expect(set(p.range(of: "Smith").location) == ns.range(of: "Smith").location, "after the opener")
+        #expect(set(NSMaxRange(p.range(of: "her"))) == NSMaxRange(ns.range(of: "*her")) , "before the closer")
+    }
+
+    @Test("AC2 (mapping half): Scrivi's caret is reported in presented positions; a selection set by VoiceOver lands in storage")
+    func selectionMapped() {
+        let f = fixture(text)
+        let storage = f.text as NSString
+        let ns = presented as NSString
+        f.caret(storage.range(of: "Smith").location + 2)                  // "Sm|ith"
+        #expect(f.tv.accessibilitySelectedTextRange() == NSRange(location: ns.range(of: "Smith").location + 2, length: 0))
+        f.tv.setSelectedRange(storage.range(of: "Smith"))
+        #expect(f.tv.accessibilitySelectedText() == "Smith")
+        #expect(f.tv.accessibilitySelectedTextRanges()?.first?.rangeValue == ns.range(of: "Smith"))
+        f.tv.setAccessibilitySelectedTextRange(ns.range(of: "said *no*"))
+        #expect(storage.substring(with: f.tv.selectedRange()) == #"said \*no\*"#)
     }
 }
 

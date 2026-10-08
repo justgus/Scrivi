@@ -15,106 +15,8 @@ import AppKit
 // whose client hands it the manuscript AS PRESENTED: escape backslashes, emphasis markers and heading prefixes are not there
 // (Q-E2-5), and neither are chapter titles (Q4: chapter metadata, not manuscript text). Every match maps back to STORAGE.
 
-/// The manuscript (or part of it) as the writer sees it, with the map back to storage.
-/// ✅ Immutable once built (its `NSString` is never mutated), so a background reader may hold it.
-struct PresentedText: @unchecked Sendable {
-    /// What the writer sees.
-    let string: NSString
-    /// `source[i]` = the storage offset of presented unit `i`; one extra entry at the end (the storage end of the text).
-    let source: [Int]
-    /// Presented ranges that end at a SEARCH BOUNDARY — one per run of scene text (a match never crosses a scene break or a
-    /// chapter title).
-    let chunks: [NSRange]
-
-    var length: Int { string.length }
-
-    /// Build it for `range` of storage. ✅ Per block, from the presenter's cached analysis — hidden: escape backslashes,
-    /// emphasis markers, heading prefixes. ⚠️ A list prefix is VISIBLE (dimmed, [SP-163] Q7), so it stays.
-    @MainActor
-    static func build(_ ts: NSAttributedString, presenter: ManuscriptPresenter, range: NSRange? = nil) -> PresentedText {
-        let ns = ts.string as NSString
-        let whole = range ?? NSRange(location: 0, length: ns.length)
-        var units: [UInt16] = []
-        var source: [Int] = []
-        units.reserveCapacity(whole.length)
-        source.reserveCapacity(whole.length + 1)
-        // Divider and chapter-title characters are not manuscript text: each run of them ends a chunk.
-        var excluded: [NSRange] = []
-        for key in [NSAttributedString.Key.scriviDivider, .scriviHeading] {
-            ts.enumerateAttribute(key, in: whole, options: []) { v, r, _ in if v != nil { excluded.append(r) } }
-        }
-        excluded.sort { $0.location < $1.location }
-        var chunks: [NSRange] = []
-        var chunkStart = 0
-        func closeChunk() {
-            if units.count > chunkStart { chunks.append(NSRange(location: chunkStart, length: units.count - chunkStart)) }
-            chunkStart = units.count
-        }
-        var x = 0                                   // index into `excluded`
-        var p = whole.location
-        let end = NSMaxRange(whole)
-        while p < end {
-            while x < excluded.count, NSMaxRange(excluded[x]) <= p { x += 1 }
-            if x < excluded.count, NSLocationInRange(p, excluded[x]) {
-                closeChunk()
-                p = NSMaxRange(excluded[x])
-                continue
-            }
-            let limit = x < excluded.count ? min(end, excluded[x].location) : end
-            if let b = presenter.block(in: ts, at: p), NSLocationInRange(p, b) {
-                let info = presenter.info(ns.substring(with: b))
-                var hidden = info.escapes
-                for m in info.analysis.markers { for k in m.range.location..<NSMaxRange(m.range) { hidden.insert(k) } }
-                for h in info.analysis.headings { for k in h.prefix.location..<NSMaxRange(h.prefix) { hidden.insert(k) } }
-                let stop = min(limit, NSMaxRange(b))
-                for q in p..<stop where !hidden.contains(q - b.location) {
-                    units.append(ns.character(at: q))
-                    source.append(q)
-                }
-                p = stop
-            } else {
-                units.append(ns.character(at: p))
-                source.append(p)
-                p += 1
-            }
-        }
-        closeChunk()
-        source.append(end)
-        return PresentedText(string: String(utf16CodeUnits: units, count: units.count) as NSString,
-                             source: source, chunks: chunks)
-    }
-
-    /// Storage range of a presented range. Its end is just after the last presented character, so hidden characters that
-    /// FOLLOW the match (a closing marker) are not part of it.
-    func storageRange(_ r: NSRange) -> NSRange {
-        let lo = min(max(r.location, 0), length)
-        let start = source[lo]
-        let stop = r.length == 0 ? start : source[min(NSMaxRange(r), length) - 1] + 1
-        return NSRange(location: start, length: max(0, stop - start))
-    }
-
-    /// Presented index of a storage offset: the first presented unit at or after it.
-    func presentedIndex(_ s: Int) -> Int {
-        var lo = 0, hi = length
-        while lo < hi {
-            let mid = (lo + hi) / 2
-            if source[mid] < s { lo = mid + 1 } else { hi = mid }
-        }
-        return lo
-    }
-
-    func presentedRange(_ r: NSRange) -> NSRange {
-        let a = presentedIndex(r.location), b = presentedIndex(NSMaxRange(r))
-        return NSRange(location: a, length: max(0, b - a))
-    }
-
-    /// The first PRESENTED match of `query` (case- and diacritic-insensitive), as a storage range — the Navigator's search
-    /// jump (Q5).
-    func firstMatch(of query: String) -> NSRange? {
-        let m = string.range(of: query, options: [.caseInsensitive, .diacriticInsensitive])
-        return m.location == NSNotFound ? nil : storageRange(m)
-    }
-}
+// The presented text and its map back to storage live in `ManuscriptPresentedMap.swift` (EP-050 Q3: ONE map for Find and
+// accessibility). ✅ Chapter titles and dividers are now IN it; Find skips them through its chunks.
 
 /// The `NSTextFinderClient` over the presented manuscript. The view owns one, with its own `NSTextFinder`.
 /// ⚠️ AppKit runs INCREMENTAL search on a background queue (`NSTextFinder.h`), so the text it reads — `string(at:…)`,
@@ -139,17 +41,9 @@ final class ManuscriptFinderClient: NSObject, NSTextFinderClient, @unchecked Sen
         let current = snapshot, fresh = snapshotVersion == storageVersion
         lock.unlock()
         if let current, fresh || !Thread.isMainThread { return current }
-        guard Thread.isMainThread else { return PresentedText(string: "", source: [0], chunks: []) }
-        let built: PresentedText = MainActor.assumeIsolated {
-            guard let tv = textView, let ts = tv.textStorage, let presenter = tv.presenter else {
-                return PresentedText(string: "", source: [0], chunks: [])
-            }
-            let t0 = Date()
-            let p = PresentedText.build(ts, presenter: presenter)
-            let ms = Date().timeIntervalSince(t0) * 1000
-            if ms > 5 { NSLog(String(format: "[SCRIVI-FIND] presented text built in %.1f ms (%d units)", ms, p.length)) }
-            return p
-        }
+        guard Thread.isMainThread else { return .empty }
+        // ✅ EP-050 S1: a snapshot of the view's LIVE map (patched per edit), not a whole rebuild per edit.
+        let built: PresentedText = MainActor.assumeIsolated { textView?.presentedMap.snapshot() ?? .empty }
         lock.lock()
         snapshot = built
         snapshotVersion = storageVersion
@@ -176,12 +70,21 @@ final class ManuscriptFinderClient: NSObject, NSTextFinderClient, @unchecked Sen
             else {
                 outRange.pointee = c
                 outFlag.pointee = true
-                return p.string.substring(with: c)
+                return p.substring(c)
             }
         }
-        outRange.pointee = NSRange(location: characterIndex, length: 0)
+        // Between chunks: a chapter title or divider (Q4: never searched) — handed over MASKED, the same length, so the
+        // finder's walk through the text stays in step and nothing can match inside it.
+        let gapStart = lo > 0 ? NSMaxRange(p.chunks[lo - 1]) : 0
+        let gapEnd = lo < p.chunks.count ? p.chunks[lo].location : p.length
+        guard gapStart <= characterIndex, characterIndex < gapEnd else {
+            outRange.pointee = NSRange(location: characterIndex, length: 0)
+            outFlag.pointee = true
+            return ""
+        }
+        outRange.pointee = NSRange(location: gapStart, length: gapEnd - gapStart)
         outFlag.pointee = true
-        return ""
+        return String(repeating: "\u{FFFC}", count: gapEnd - gapStart)
     }
 
     func stringLength() -> Int { presented.length }

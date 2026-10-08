@@ -113,6 +113,7 @@ user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbrok
 | EP-047 | `[Apple]` **Manuscript Typography & Preferences** — typeface (F1), first-line indent (None · Every · Book), Markup Hints, and a `project-settings.json` home so settings TRAVEL ([I-0278]) | ✅ **CLOSED 2026-10-08** (user-approved) — SP-167 (S1): AC1–AC3; SP-168 (S2): AC4, AC5; SP-169 (S3): AC6, AC8; SP-170 (S4): AC7; AC9 each Sprint. ✅ All nine met; rulings P1–P11 → [record](Closed/Epic-EP-047.md) | 2026-09-29 | 2026-10-08 |
 | EP-048 | `[Linux]` **Manuscript Renderer Parity** — ⚠️ **honours `feedback_linux_adopts_apple_shape`; ✅ SCOPED 2026-10-05 (SP-159): `QSyntaxHighlighter` presenter + md4c in ScriviCore (reached through the C ABI, SP-165 Q1), ACs L1–L9 (L9 added 2026-10-07)** | 🟡 **Active** 2026-10-07 — SP-165 (S1) ✅ closed: L1, L2 met; SP-166 (S2) active | 2026-09-29 | — |
 | EP-049 | `[Linux]` **Manuscript Storage Format on Linux** — ⚠️ **the escape layer's WRITE half: Linux writes the same `.md` Apple does** (escaping, paste/copy, pair deletion, Return/Backspace) | ✅ **CLOSED 2026-10-05** (user-approved) — all ACs met; SP-160 → [record](Closed/Epic-EP-049.md) | 2026-10-04 | 2026-10-05 |
+| EP-050 | `[Apple]` **Manuscript Accessibility** — VoiceOver reads the page at rest (one presented⇄storage translation layer across every AX member) + a Headings rotor; Linux measured ([I-0277]) | 🟡 **ACTIVE** 2026-10-08 — rulings A1–A3, AC1–AC6; S1 = [SP-171] (🟡 active) | 2026-10-08 | — |
 
 ## Statistics
 
@@ -149,6 +150,12 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-08 (**EP-050 ACTIVE** — [SP-171] activated.)*
+
+*Last Updated: 2026-10-08 (**EP-050 S1 planned** — [SP-171] 🔵 Planning, [T-0599] filed.)*
+
+*Last Updated: 2026-10-08 (**EP-050 created** (Draft, in `Epic-active.md`) — Manuscript Accessibility; I-0277 its first Issue.)*
 
 *Last Updated: 2026-10-08 (**EP-047 ✅ CLOSED (user-approved)** → `Closed/Epic-EP-047.md`; Audit Check F-1–F-4 applied (F-4: the restated Epic total removed, R-15).)*
 
