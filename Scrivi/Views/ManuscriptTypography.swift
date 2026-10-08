@@ -79,9 +79,27 @@ enum BundledFonts {
 /// on a fixed 1.45 line, chapter titles at Heading 1 size in the text colour.
 struct ManuscriptTypography: Equatable, Sendable {
 
+    /// ✅ EP-047 S3 (P3, P10): which body paragraphs get a first-line indent. Drawn by the presenter — ⛔ never a character
+    /// in the `.md` (a tab or 4 spaces would make a `codeBlock`, study §4D).
+    enum ParagraphIndent: String, Sendable, CaseIterable {
+        case book    // indent a body paragraph only when it follows body text in the same scene (the default, P10)
+        case every   // indent every body paragraph
+        case none    // no indent; the stored blank line between paragraphs draws full height
+    }
+
     /// The face's NAME as stored in `project-settings.json` — kept even when this build does not bundle it.
     let faceName: String
     let size: CGFloat
+    let indent: ParagraphIndent
+    /// The indent in ems — it follows the size and the face (P10).
+    let indentEm: CGFloat
+
+    static let defaultIndent: ParagraphIndent = .book
+    static let defaultIndentEm: CGFloat = 1.5
+    static let indentEmRange: ClosedRange<CGFloat> = 0.5...4
+    /// P10: with an indent on, the stored blank line between paragraphs draws at this fraction of a body line — paragraphs
+    /// sit together like a book, and the caret can still land on the line.
+    static let gapFraction: CGFloat = 1.0 / 3.0
 
     static let defaultSize: CGFloat = 16
     static let sizeRange: ClosedRange<CGFloat> = 10...32
@@ -94,10 +112,15 @@ struct ManuscriptTypography: Equatable, Sendable {
         ManuscriptTypography(faceName: BundledFonts.manifest.default, size: defaultSize)
     }
 
-    init(faceName: String, size: CGFloat) {
+    init(faceName: String, size: CGFloat, indent: ParagraphIndent = defaultIndent, indentEm: CGFloat = defaultIndentEm) {
         self.faceName = faceName
         self.size = min(max(size, Self.sizeRange.lowerBound), Self.sizeRange.upperBound)
+        self.indent = indent
+        self.indentEm = min(max(indentEm, Self.indentEmRange.lowerBound), Self.indentEmRange.upperBound)
     }
+
+    /// The first-line indent in points (0 when the mode is `none`).
+    var firstLineIndent: CGFloat { indent == .none ? 0 : indentEm * size }
 
     /// The face drawn — the stored one, or the default if this build does not bundle it.
     var face: BundledFonts.Face? { BundledFonts.face(named: faceName) }
@@ -145,12 +168,23 @@ extension ManuscriptTypography {
 
     /// THE paragraph-style builder: every manuscript paragraph style is made here (body, heading, list — and S3's first-line
     /// indent), so none can lose the line height. `lineFor` is the line's font size (a heading's own size).
-    func paragraphStyle(lineFor fontSize: CGFloat? = nil, heading: Bool = false, headIndent: CGFloat = 0) -> NSParagraphStyle {
+    func paragraphStyle(lineFor fontSize: CGFloat? = nil, heading: Bool = false, headIndent: CGFloat = 0,
+                        firstLineIndent: CGFloat = 0) -> NSParagraphStyle {
         let line = (fontSize ?? size) * (heading ? Self.headingLineSpacing : Self.lineSpacing)
         let p = NSMutableParagraphStyle()
         p.minimumLineHeight = line
         p.maximumLineHeight = line
         p.headIndent = headIndent
+        p.firstLineHeadIndent = firstLineIndent
+        return p
+    }
+
+    /// P10: the stored blank line between paragraphs, drawn as a small gap (only when an indent is on).
+    var gapParagraphStyle: NSParagraphStyle {
+        let line = size * Self.lineSpacing * Self.gapFraction
+        let p = NSMutableParagraphStyle()
+        p.minimumLineHeight = line
+        p.maximumLineHeight = line
         return p
     }
 

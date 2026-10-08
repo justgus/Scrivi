@@ -119,6 +119,56 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         return NSUnionRange(start, end.line)
     }
 
+    // MARK: — EP-047 S3: the first-line indent (P3, P10)
+
+    /// A stored blank line of SCENE text (not a divider's or a chapter title's line).
+    private func isGapLine(_ ts: NSAttributedString, _ ns: NSString, _ range: NSRange) -> Bool {
+        guard let line = Self.sceneLine(ts, ns, containing: range.location), line.line.length > 0 else { return false }
+        return Self.isBlank(ns, line.line)
+    }
+
+    /// True when the block is BODY TEXT — not a heading, a list item, a block quote, a table or a fenced block.
+    func isBody(_ ns: NSString, block b: NSRange, info: BlockInfo) -> Bool {
+        if info.analysis.headings.contains(where: { $0.line.location == 0 }) { return false }
+        if info.analysis.listItems.contains(where: { $0.line.location == 0 }) { return false }
+        let text = ns.substring(with: b).drop { $0 == " " }
+        return !(text.hasPrefix(">") || text.hasPrefix("|") || text.hasPrefix("```") || text.hasPrefix("~~~"))
+    }
+
+    /// The first-line indent this block's first line gets, in points (0 = none).
+    /// ✅ P10 book rule: indent only when the PREVIOUS block in the SAME scene is body text — not at a scene's start, not
+    /// after a heading, a list, a quote or a chapter title.
+    func firstLineIndent(_ ts: NSAttributedString, _ ns: NSString, block b: NSRange, info: BlockInfo) -> CGFloat {
+        guard typography.indent != .none, isBody(ns, block: b, info: info) else { return 0 }
+        if typography.indent == .every { return typography.firstLineIndent }
+        guard let prev = previousBlock(in: ts, ns, before: b.location) else { return 0 }
+        return isBody(ns, block: prev, info: self.info(ns.substring(with: prev))) ? typography.firstLineIndent : 0
+    }
+
+    /// The block before `loc` in the SAME scene, skipping blank lines; nil at a scene's start or after a chapter title.
+    func previousBlock(in ts: NSAttributedString, _ ns: NSString, before loc: Int) -> NSRange? {
+        var at = loc - 1
+        while at >= 0 {
+            guard let line = Self.sceneLine(ts, ns, containing: at), !line.endsScene || at < NSMaxRange(line.line) else { return nil }
+            if line.line.length == 0 { return nil }
+            if !Self.isBlank(ns, line.line) { return block(in: ts, at: line.line.location) }
+            at = line.line.location - 1
+        }
+        return nil
+    }
+
+    /// The block after `loc` in the same scene, skipping blank lines.
+    func nextBlock(in ts: NSAttributedString, _ ns: NSString, after loc: Int) -> NSRange? {
+        var at = loc
+        while at < ns.length {
+            guard let line = Self.sceneLine(ts, ns, containing: at), line.line.length > 0 else { return nil }
+            if !Self.isBlank(ns, line.line) { return block(in: ts, at: line.line.location) }
+            if line.endsScene { return nil }
+            at = NSMaxRange(line.line)
+        }
+        return nil
+    }
+
     func info(_ text: String) -> BlockInfo {
         if let hit = cache[text] { return hit }
         var info = BlockInfo()
@@ -299,11 +349,22 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
 
     func textContentStorage(_ textContentStorage: NSTextContentStorage,
                             textParagraphWith range: NSRange) -> NSTextParagraph? {
-        guard let ts = textContentStorage.textStorage, range.length > 0, NSMaxRange(range) <= ts.length,
-              let b = block(in: ts, at: range.location) else { return nil }
+        guard let ts = textContentStorage.textStorage, range.length > 0, NSMaxRange(range) <= ts.length else { return nil }
         let ns = ts.string as NSString
+        guard let b = block(in: ts, at: range.location) else {
+            // ✅ EP-047 S3 (P10): with an indent on, a stored BLANK line of scene text draws as a small gap.
+            if typography.indent != .none, isGapLine(ts, ns, range) {
+                let out = NSMutableAttributedString(attributedString: ts.attributedSubstring(from: range))
+                out.addAttribute(.paragraphStyle, value: typography.gapParagraphStyle, range: NSRange(location: 0, length: out.length))
+                return NSTextParagraph(attributedString: out)
+            }
+            return nil
+        }
         let info = info(ns.substring(with: b))
-        guard !info.isEmpty || pending.map({ NSIntersectionRange($0.range, range).length > 0 }) == true else { return nil }
+        // ✅ EP-047 S3: a body block's FIRST line gets the first-line indent — so a PLAIN paragraph (no markup) is presented
+        // too whenever an indent is on. Presentation only: ⛔ zero characters in storage, so the `.md` cannot change.
+        let indent = range.location == b.location ? firstLineIndent(ts, ns, block: b, info: info) : 0
+        guard !info.isEmpty || indent > 0 || pending.map({ NSIntersectionRange($0.range, range).length > 0 }) == true else { return nil }
         let a = info.analysis
 
         // Block-relative → paragraph-relative, clipped to this paragraph.
@@ -362,6 +423,12 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
                 .size(withAttributes: [.font: typography.bodyFont]).width
             // ✅ EP-047: from THE paragraph-style builder, so a list line keeps the body line height.
             out.addAttribute(.paragraphStyle, value: typography.paragraphStyle(headIndent: width), range: line)
+        }
+        // 5b. ✅ EP-047 S3: the first-line indent, from THE paragraph-style builder (body line height kept).
+        if indent > 0 {
+            // `indent > 0` only when `range` starts the block, so `range` IS the block's first line.
+            out.addAttribute(.paragraphStyle, value: typography.paragraphStyle(firstLineIndent: indent),
+                             range: NSRange(location: 0, length: out.length))
         }
         // 6. The PENDING pair (Q1): shown as revealed hints, the caret between them.
         if let pp = pending, let r = local(pp.range) {
@@ -557,6 +624,12 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         }
         if let b = block(in: textStorage, at: span.location) { span = NSUnionRange(span, b) }
         if span.length > 0, let b = block(in: textStorage, at: NSMaxRange(span) - 1) { span = NSUnionRange(span, b) }
+        // ✅ EP-047 S3: the FOLLOWING block too — under the book rule its indent depends on this one (body ⇄ heading).
+        // ⚠️ Measured (SP-169 mutation M3): TextKit 2 already re-asks for paragraphs AFTER an edit (their ranges shift), so
+        // removing this changed no test. Kept on purpose: that re-asking is observed behaviour, not API.
+        if typography.indent == .book, let next = nextBlock(in: textStorage, ns, after: NSMaxRange(span)) {
+            span = NSUnionRange(span, next)
+        }
         if span != editedRange { textStorage.edited(.editedAttributes, range: span, changeInLength: 0) }
         // EP-046 AC8: the presenter's own per-edit cost (logged only above 0.5 ms, as E1's was).
         let ms = Date().timeIntervalSince(t0) * 1000

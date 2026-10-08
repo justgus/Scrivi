@@ -48,6 +48,18 @@ struct ProjectSettingsSheet: View {
                             step: 1) {
                         LabeledContent("Text size", value: "\(Int(prefs.textSize)) pt")
                     }
+                    // ✅ EP-047 S3 (P3, P10): drawn, never typed — zero characters in the manuscript.
+                    Picker("Paragraph indent", selection: Bindable(prefs).paragraphIndent) {
+                        Text("Book convention").tag(ManuscriptTypography.ParagraphIndent.book.rawValue)
+                        Text("Every paragraph").tag(ManuscriptTypography.ParagraphIndent.every.rawValue)
+                        Text("None").tag(ManuscriptTypography.ParagraphIndent.none.rawValue)
+                    }
+                    Stepper(value: Bindable(prefs).indentEm,
+                            in: Double(ManuscriptTypography.indentEmRange.lowerBound)...Double(ManuscriptTypography.indentEmRange.upperBound),
+                            step: 0.5) {
+                        LabeledContent("Indent", value: String(format: "%.1f em", prefs.indentEm))
+                    }
+                    .disabled(prefs.paragraphIndent == ManuscriptTypography.ParagraphIndent.none.rawValue)
                 }
                 Section("Undo History") {
                     LabeledContent("Maximum undo events") {

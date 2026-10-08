@@ -5317,6 +5317,8 @@ struct MarkdownAnalyzerAgreementTests {
         "a &amp; b **c**", "\\\\back", "_x_ and \\_y\\_", "*it***bold**", "**a**\n*b*", "***both***",
         "**bold *both* bold**", "**see [here](x.md) now**", "é👋 **b**", "wheth_er Dumas_ inten", "`code *x*` **y**",
         "~~strike~~ **b**", "<em>html</em> *x*", "a  \nb *c*", "**unclosed", "__dunder__ and _u_",
+        // ✅ [I-0281] (SP-169): a first line indented 1–3 spaces — continuation lines now agree with md4c.
+        " She said\n*no* twice.", "   Three\nlines *of* it\nand *more* here.", " x\n  *c* d", "  ab\n  *c* d",
     ]
 
     /// ⚠️ The disagreements MEASURED 2026-10-07 ([SP-165]), each reduced to a minimal block. ✅ The symbol and `~` classes are
@@ -5329,14 +5331,12 @@ struct MarkdownAnalyzerAgreementTests {
         ("*~*", "tilde"),
         // Apple source positions: the leftover `*` of `**` is attributed to the inner position.
         ("**$*", "apple-position-leftover"),
-        // ⛔ [I-0281] Apple source positions: a first line indented 1–3 spaces shifts every continuation line by
-        // that indent. ⚠️ Real prose — Apple hides the wrong character. md4c's positions are the true ones.
-        (" She said\n*no* twice.", "apple-position-indent [I-0281]"),
     ]
 
-    /// The six typed AC3 strings whose RAW blocks disagree, every one an instance of a class above.
+    /// The typed AC3 strings whose RAW blocks disagree, every one an instance of a class above. ([I-0281]'s — a leading-space
+    /// first line — AGREES since SP-169 and left this list.)
     static let ac3RawKnown: Set<String> = [
-        " \\|_\'| ^\"*^&&\n:+=!):*[", "%/*^#/ ~*_👋(<b],`+[\t[", "/>👋*{*/?}*.Z\'?. \"(%aZ",
+        "%/*^#/ ~*_👋(<b],`+[\t[", "/>👋*{*/?}*.Z\'?. \"(%aZ",
         "|\t;!%{***$~$$=*👋*{=>\'[}", "<;>__.a&_^>- |@+$,*<*👋", ";*`_.\'[👋_👋é\"!$( &%.^@)#",
     ]
 
@@ -5830,6 +5830,26 @@ struct ManuscriptTypographyTests {
         #expect(abs(top.index - caret) < 4_000, "the view shows the caret's neighbourhood (top index \(top.index), caret \(caret))")
     }
 
+    @Test("EP-047 S3: the indent survives the REBUILD (applyTypography) — the presenter draws it; storage carries none")
+    func indentSurvivesRebuild() throws {
+        let body = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
+        let (c, tv, _, window) = try scrolledHarness(ManuscriptTypography(faceName: "Literata", size: 16, indent: .none), body: body)
+        _ = window
+        let seg = [SceneSegment(id: "s1", sceneID: "s1", chapterID: "c1", metadataPath: "", contentPath: "", text: body)]
+        let every = ManuscriptTypography(faceName: "Literata", size: 16, indent: .every, indentEm: 2)
+        c.applyTypography(every, to: tv, segments: seg)
+        let ns = tv.string as NSString
+        let cs = try #require(tv.textContentStorage)
+        for word in ["First", "Second", "Third"] {
+            let r = ns.paragraphRange(for: NSRange(location: ns.range(of: word).location, length: 0))
+            let p = try #require(c.presenter.textContentStorage(cs, textParagraphWith: r), "\(word) is presented")
+            let ps = p.attributedString.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+            #expect(ps?.firstLineHeadIndent == every.firstLineIndent, "\(word): 2 em after the rebuild")
+            let stored = tv.textStorage!.attribute(.paragraphStyle, at: r.location, effectiveRange: nil) as? NSParagraphStyle
+            #expect((stored?.firstLineHeadIndent ?? 0) == 0, "\(word): storage carries NO indent (presentation only)")
+        }
+    }
+
     @Test("settings: face and size round-trip; ABSENT means the default and nothing is written until the writer chooses")
     func settings() throws {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-type-\(UUID().uuidString)")
@@ -5886,7 +5906,9 @@ struct TypographyCostTests {
                                                   .foregroundColor: NSColor.textColor]
         let cases: [(String, [NSAttributedString.Key: Any], ManuscriptTypography)] = [
             ("old 13 pt monospaced (system)", old, .default),
-            ("Literata 16 pt (default)", ManuscriptTypography.default.bodyAttributes, .default),
+            ("Literata 16 pt, indent NONE", ManuscriptTypography.default.bodyAttributes,
+             ManuscriptTypography(faceName: "Literata", size: 16, indent: .none)),
+            ("Literata 16 pt, Book indent (default)", ManuscriptTypography.default.bodyAttributes, .default),
             ("Courier Prime 16 pt", ManuscriptTypography(faceName: "Courier Prime", size: 16).bodyAttributes,
              ManuscriptTypography(faceName: "Courier Prime", size: 16)),
             ("Inter 16 pt", ManuscriptTypography(faceName: "Inter", size: 16).bodyAttributes, ManuscriptTypography(faceName: "Inter", size: 16)),
@@ -5914,6 +5936,144 @@ struct TypographyCostTests {
             print(String(format: "[TYPE-COST] %-32@ open+viewport %7.1f ms · keystroke near end %6.1f ms · arrow %6.1f ms",
                          name as NSString, open, med(keys), med(arrows)))
         }
+    }
+}
+
+// MARK: - EP-047 S3 — the first-line indent (SP-169)
+
+/// ✅ EP-047 AC6 (P3, P10): the indent is DRAWN by the presenter — measured here where TextKit actually lays out each line,
+/// so an edit that TextKit is not re-asked about would fail. ⛔ Zero characters ever reach storage.
+@Suite("Manuscript indent (EP-047 S3)")
+@MainActor
+struct ManuscriptIndentTests {
+
+    private func fixture(_ text: String, _ indent: ManuscriptTypography.ParagraphIndent = .book, em: CGFloat = 1.5) -> (ManuscriptFixture, ManuscriptTypography) {
+        let t = ManuscriptTypography(faceName: "Literata", size: 16, indent: indent, indentEm: em)
+        let f = ManuscriptFixture()
+        f.presenter.typography = t
+        f.tv.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
+        f.window.setContentSize(f.tv.frame.size)
+        f.tv.typingAttributes = t.bodyAttributes
+        f.tv.textStorage?.replaceCharacters(in: NSRange(location: 0, length: 0), with: NSAttributedString(string: text, attributes: t.bodyAttributes))
+        return (f, t)
+    }
+
+    /// Where TextKit DREW the first glyph of the line holding `needle` (x, relative to the line's own fragment origin).
+    private func indentOf(_ f: ManuscriptFixture, _ needle: String) throws -> CGFloat {
+        let lm = try #require(f.tv.textLayoutManager)
+        lm.ensureLayout(for: lm.documentRange)
+        let loc = (f.text as NSString).range(of: needle).location
+        let cm = try #require(lm.textContentManager)
+        let tl = try #require(cm.location(cm.documentRange.location, offsetBy: loc))
+        let frag = try #require(lm.textLayoutFragment(for: tl))
+        let within = cm.offset(from: frag.rangeInElement.location, to: tl)
+        let line = try #require(frag.textLineFragments.first { NSLocationInRange(within, $0.characterRange) })
+        // ⚠️ Measured (probe, 2026-10-07): TextKit 2 applies `firstLineHeadIndent` by moving the paragraph's FRAGMENT frame
+        // (x = 5 pt padding + 24 pt), not the line's own bounds (x = 0) — so the drawn x is frame + line − padding.
+        return frag.layoutFragmentFrame.minX + line.typographicBounds.minX - (f.tv.textContainer?.lineFragmentPadding ?? 0)
+    }
+    /// The drawn height of the (blank) line at `loc`.
+    private func lineHeight(_ f: ManuscriptFixture, at loc: Int) throws -> CGFloat {
+        let lm = try #require(f.tv.textLayoutManager)
+        lm.ensureLayout(for: lm.documentRange)
+        let cm = try #require(lm.textContentManager)
+        let tl = try #require(cm.location(cm.documentRange.location, offsetBy: loc))
+        return try #require(lm.textLayoutFragment(for: tl)).layoutFragmentFrame.height
+    }
+
+    static let three = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
+
+    @Test("Book (the default): no indent on a scene's first paragraph; 1.5 em after body text")
+    func book() throws {
+        let (f, t) = fixture(Self.three)
+        #expect(ManuscriptTypography.defaultIndent == .book && ManuscriptTypography.defaultIndentEm == 1.5)
+        #expect(try indentOf(f, "First") < 0.5, "a scene's first paragraph is not indented")
+        #expect(abs(try indentOf(f, "Second") - t.firstLineIndent) < 0.5, "indented after body text")
+        #expect(abs(try indentOf(f, "Third") - 24) < 0.5, "1.5 em of 16 pt = 24 pt")
+    }
+
+    @Test("Every: every body paragraph, the first included · None: no indent at all")
+    func everyAndNone() throws {
+        let (e, t) = fixture(Self.three, .every)
+        #expect(abs(try indentOf(e, "First") - t.firstLineIndent) < 0.5)
+        let (n, _) = fixture(Self.three, .none)
+        #expect(try indentOf(n, "Second") < 0.5 && indentOf(n, "Third") < 0.5)
+    }
+
+    @Test("Book: not after a heading, a list or a quote; headings and list items never indented")
+    func bookRule() throws {
+        let (f, t) = fixture("## A Heading\n\nAfter the heading.\n\nThen body.\n\n- a list item\n\nAfter the list.\n\n> a quote\n\nAfter the quote.")
+        #expect(try indentOf(f, "A Heading") < 0.5, "a heading is never indented")
+        #expect(try indentOf(f, "After the heading") < 0.5, "not after a heading")
+        #expect(abs(try indentOf(f, "Then body") - t.firstLineIndent) < 0.5, "after body text")
+        #expect(try indentOf(f, "After the list") < 0.5, "not after a list")
+        #expect(try indentOf(f, "After the quote") < 0.5, "not after a quote")
+    }
+
+    @Test("only a paragraph's FIRST line: a soft break's next line is not indented")
+    func firstLineOnly() throws {
+        let (f, t) = fixture("Opening paragraph.\n\nLine one of two\nline two of two.")
+        #expect(abs(try indentOf(f, "Line one") - t.firstLineIndent) < 0.5)
+        #expect(try indentOf(f, "line two") < 0.5)
+    }
+
+    @Test("with an indent, the blank line between paragraphs is a SMALL GAP; with None, a full line")
+    func gap() throws {
+        let blank = ("A.\n\nB." as NSString).range(of: "\n\n").location + 1
+        let (f, t) = fixture("A.\n\nB.")
+        #expect(abs(try lineHeight(f, at: blank) - t.size * ManuscriptTypography.lineSpacing * ManuscriptTypography.gapFraction) < 0.5)
+        let (n, tn) = fixture("A.\n\nB.", .none)
+        #expect(abs(try lineHeight(n, at: blank) - tn.size * ManuscriptTypography.lineSpacing) < 0.5, "None: the full blank line")
+    }
+
+    @Test("zero characters: typing and Return keep the stored text exactly what was typed, and the indent follows")
+    func zeroCharacters() throws {
+        let (f, t) = fixture("First paragraph.")
+        f.caret((f.text as NSString).length)
+        f.tv.insertNewline(nil)                         // Return writes "\n\n" (EP-045 AC5)
+        f.type("Typed second")
+        #expect(f.text == "First paragraph.\n\nTyped second", "nothing but the writer's characters is stored")
+        #expect(abs(try indentOf(f, "Typed second") - t.firstLineIndent) < 0.5, "the new paragraph is indented as it is typed")
+    }
+
+    @Test("an edit re-presents the FOLLOWING paragraph: making the one above a heading removes its indent (book rule)")
+    func followingBlockRepresented() throws {
+        let (f, t) = fixture("Opening.\n\nMiddle paragraph.\n\nLast paragraph.")
+        #expect(abs(try indentOf(f, "Last") - t.firstLineIndent) < 0.5)
+        let mid = (f.text as NSString).range(of: "Middle").location
+        // Typing `#` stores `\#` (escaped), so write the heading as a FILE or the Format command does — through storage.
+        f.tv.textStorage?.replaceCharacters(in: NSRange(location: mid, length: 0),
+                                            with: NSAttributedString(string: "## ", attributes: t.bodyAttributes))
+        #expect(f.text.contains("## Middle"), "\(f.text)")
+        #expect(try indentOf(f, "Last") < 0.5, "the paragraph after a heading lost its indent — TextKit was re-asked")
+    }
+
+    @Test("settings: absent = Book at 1.5 em; a choice round-trips and is written only once chosen")
+    func settings() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-indent-\(UUID().uuidString)")
+        let support = base.appendingPathComponent("s").path(percentEncoded: false)
+        let root = base.appendingPathComponent("p.scrivi").path(percentEncoded: false)
+        try FileManager.default.createDirectory(atPath: support, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let engine = ScriviEngine()
+        let id = try engine.ensureLocalIdentity(displayName: "T", appSupportRoot: support)
+        let pid = try engine.createProject(projectRootPath: root, appSupportRoot: support, title: "T", slug: "t",
+            authorshipRef: AuthorshipRef(identityID: id.identityID, personaID: id.defaultPersonaID, displayName: "T")).projectID
+        let defaults = UserDefaults(suiteName: "scrivi.tests.indent.\(UUID().uuidString)")!
+        func prefs() -> ProjectPreferences { ProjectPreferences(projectID: pid, projectRootPath: root, schemaTitle: "T", engine: engine, defaults: defaults) }
+        func file() -> [String: Any] {
+            let json = (try? engine.getProjectSettings(projectRootPath: root).documentJSON) ?? nil
+            return json.flatMap { (try? JSONSerialization.jsonObject(with: Data($0.utf8))) as? [String: Any] } ?? [:]
+        }
+        let p = prefs()
+        #expect(p.typography.indent == .book && p.typography.indentEm == 1.5)
+        p.projectSubtitle = "Sub"
+        #expect(file()["paragraphIndent"] == nil && file()["indentEm"] == nil, "another setting's save pins no default")
+        p.paragraphIndent = "none"
+        p.indentEm = 2.5
+        let again = prefs()
+        #expect(again.typography.indent == .none && again.typography.indentEm == 2.5)
     }
 }
 

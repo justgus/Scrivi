@@ -99,6 +99,28 @@ enum MarkdownBlocks {
             return lineStarts[li] + String(decoding: bytes[0..<b], as: UTF8.self).utf16.count
         }
 
+        // ✅ [I-0281] (SP-169, spiked 2026-10-07): for the CONTINUATION lines of a paragraph, Apple's parser reports a
+        // column measured AFTER stripping that line's own leading whitespace, PLUS the paragraph's FIRST-line indent —
+        // `" She said⏎*no*"` reports `no` at column 3 (true: 2); `" x⏎  *c*"` reports 3 (true: 4). True column =
+        // reported − first-line indent + this line's indent. md4c (the core, Linux) reports true columns; the L2 agreement
+        // test pinned the difference until this. ⚠️ Plain top-level paragraphs only: lists, quotes and code carry their own
+        // content offsets and were never measured off.
+        func leadingWhitespace(_ line: Int) -> Int {
+            let li = max(0, min(line - 1, lines.count - 1))
+            return lines[li].prefix { $0 == 0x20 || $0 == 0x09 }.count
+        }
+        var paragraphFirstLine: [Int: Int] = [:]   // paragraph identity → its first source line
+        for run in parsed.runs {
+            guard let intent = run.presentationIntent, let pos = run.markdownSourcePosition,
+                  intent.components.allSatisfy({ if case .paragraph = $0.kind { return true } else { return false } }),
+                  let para = intent.components.first else { continue }
+            paragraphFirstLine[para.identity] = min(paragraphFirstLine[para.identity] ?? .max, pos.startLine)
+        }
+        func trueColumn(_ line: Int, _ column: Int, paragraphFirst: Int?) -> Int {
+            guard let first = paragraphFirst, line > first else { return column }
+            return column - leadingWhitespace(first) + leadingWhitespace(line)
+        }
+
         var covered = [Bool](repeating: false, count: n)
         var styles = [UInt8](repeating: 0, count: n)
         var levels: [Int: Int] = [:]          // 1-based source line → heading level
@@ -130,8 +152,12 @@ enum MarkdownBlocks {
             }
             // ✅ EP-045 AC7 / Q-AC7 = (a): a heading inside a code block, quote, list or table is NOT rendered.
             if level > 0, !nested { levels[pos.startLine] = level }
-            let s = offset(pos.startLine, pos.startColumn, after: false)
-            let e = min(offset(pos.endLine, pos.endColumn, after: true), n)
+            let first = run.presentationIntent.flatMap { intent -> Int? in
+                guard intent.components.count == 1, let c = intent.components.first, case .paragraph = c.kind else { return nil }
+                return paragraphFirstLine[c.identity]
+            }
+            let s = offset(pos.startLine, trueColumn(pos.startLine, pos.startColumn, paragraphFirst: first), after: false)
+            let e = min(offset(pos.endLine, trueColumn(pos.endLine, pos.endColumn, paragraphFirst: first), after: true), n)
             guard e > s else { continue }
             var bits: UInt8 = 0
             if let ii = run.inlinePresentationIntent {

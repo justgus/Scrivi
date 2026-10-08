@@ -47,17 +47,35 @@ import Foundation
     var textSize: Double {
         didSet { textSizeChosen = true; save() }
     }
+    // ✅ EP-047 S3 (P3, P10): the first-line indent — `book` · `every` · `none` (absent = `book`) and its amount in ems
+    // (absent = 1.5). Same rule as the type: written only once the writer chooses.
+    var paragraphIndent: String {
+        didSet { paragraphIndentChosen = true; save() }
+    }
+
+    var indentEm: Double {
+        didSet { indentEmChosen = true; save() }
+    }
+
     /// Whether the file holds an explicit choice — so a save of ANOTHER setting never pins today's default into it.
     @ObservationIgnored private var typefaceChosen = false
     @ObservationIgnored private var textSizeChosen = false
+    @ObservationIgnored private var paragraphIndentChosen = false
+    @ObservationIgnored private var indentEmChosen = false
 
     /// The type the manuscript draws with.
-    var typography: ManuscriptTypography { ManuscriptTypography(faceName: typeface, size: CGFloat(textSize)) }
+    var typography: ManuscriptTypography {
+        ManuscriptTypography(faceName: typeface, size: CGFloat(textSize),
+                             indent: ManuscriptTypography.ParagraphIndent(rawValue: paragraphIndent) ?? ManuscriptTypography.defaultIndent,
+                             indentEm: CGFloat(indentEm))
+    }
 
     static let subtitleKey = "subtitle"
     static let showChapterTitlesKey = "showChapterTitles"
     static let typefaceKey = "typeface"
     static let textSizeKey = "textSize"
+    static let paragraphIndentKey = "paragraphIndent"
+    static let indentEmKey = "indentEm"
 
     init(projectID: String, projectRootPath: String, schemaTitle: String, engine: ScriviEngine,
          defaults: UserDefaults = .standard) {
@@ -99,8 +117,12 @@ import Foundation
         projectSubtitle = doc[Self.subtitleKey] as? String ?? ""
         typeface = doc[Self.typefaceKey] as? String ?? BundledFonts.manifest.default
         textSize = (doc[Self.textSizeKey] as? NSNumber)?.doubleValue ?? Double(ManuscriptTypography.defaultSize)
+        paragraphIndent = doc[Self.paragraphIndentKey] as? String ?? ManuscriptTypography.defaultIndent.rawValue
+        indentEm = (doc[Self.indentEmKey] as? NSNumber)?.doubleValue ?? Double(ManuscriptTypography.defaultIndentEm)
         typefaceChosen = doc[Self.typefaceKey] != nil
         textSizeChosen = doc[Self.textSizeKey] != nil
+        paragraphIndentChosen = doc[Self.paragraphIndentKey] != nil
+        indentEmChosen = doc[Self.indentEmKey] != nil
         projectTitle = title
     }
 
@@ -109,6 +131,8 @@ import Foundation
         document[Self.showChapterTitlesKey] = showChapterTitles
         if typefaceChosen { document[Self.typefaceKey] = typeface }
         if textSizeChosen { document[Self.textSizeKey] = textSize }
+        if paragraphIndentChosen { document[Self.paragraphIndentKey] = paragraphIndent }
+        if indentEmChosen { document[Self.indentEmKey] = indentEm }
         if Self.put(document, engine: engine, root: projectRootPath) { unreadableMessage = nil }
     }
 
