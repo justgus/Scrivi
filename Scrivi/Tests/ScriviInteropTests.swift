@@ -6192,4 +6192,47 @@ struct MarkupHintsTests {
     }
 }
 
+// MARK: - [I-0283] macOS Smart Quotes are OFF in the manuscript
+
+/// ✅ [I-0283] (ruling (a), 2026-10-08): AppKit's Smart Quotes rewrote STORED text outside the escape layer — three typed apostrophes
+/// became curly·straight·curly, a typed "hi" gained an extra quote, the caret thrown. Typed through the real `keyDown`, then AppKit's
+/// own text-checking pass, with Smart Quotes switched ON for the view — the manuscript must ignore it.
+@Suite("Smart Quotes off in the manuscript ([I-0283])")
+@MainActor
+struct SmartQuotesOffTests {
+    private func type(_ chars: [String], into f: ManuscriptFixture) {
+        for ch in chars {
+            let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: f.window.windowNumber,
+                                     context: nil, characters: ch, charactersIgnoringModifiers: ch, isARepeat: false, keyCode: 0)!
+            f.tv.keyDown(with: e)
+        }
+        f.tv.checkTextInDocument(nil)                      // AppKit's substitution pass — what rewrote the text
+        RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+    }
+
+    @Test("typed quotes stay as typed (escaped, straight) and the caret stays put — even with Smart Quotes switched on")
+    func quotesUntouched() {
+        let f = ManuscriptFixture("Before ")
+        f.tv.isAutomaticQuoteSubstitutionEnabled = true    // the Edit ▸ Substitutions toggle
+        #expect(f.tv.isAutomaticQuoteSubstitutionEnabled == false, "the manuscript never turns it on")
+        f.caret(7)
+        type(["'", "'", "'"], into: f)
+        #expect(f.text == #"Before \'\'\'"#, "single quotes untouched — \(f.text.debugDescription)")
+        #expect(f.tv.selectedRange().location == (f.text as NSString).length)
+        let g = ManuscriptFixture("Before ")
+        g.tv.isAutomaticQuoteSubstitutionEnabled = true
+        g.caret(7)
+        type(["\"", "h", "i", "\""], into: g)
+        #expect(g.text == #"Before \"hi\""#, "double quotes untouched, none added — \(g.text.debugDescription)")
+        #expect(g.tv.selectedRange().location == (g.text as NSString).length)
+    }
+
+    @Test("Edit ▸ Substitutions ▸ Smart Quotes is disabled for the manuscript")
+    func menuDisabled() {
+        let f = ManuscriptFixture("x")
+        let item = NSMenuItem(title: "Smart Quotes", action: #selector(NSTextView.toggleAutomaticQuoteSubstitution(_:)), keyEquivalent: "")
+        #expect(f.tv.validateUserInterfaceItem(item) == false)
+    }
+}
+
 #endif

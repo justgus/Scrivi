@@ -2659,6 +2659,16 @@ struct ManuscriptTextView: NSViewRepresentable {
 // Subclass so we can intercept ⌘↩ and ⌘⇧↩ before the text system handles them.
 final class ManuscriptNSTextView: NSTextView {
 
+    // ⛔ [I-0283] (ruled 2026-10-08, user: "a … Fix now.") — macOS SMART QUOTES are OFF in the manuscript, whatever
+    // Edit ▸ Substitutions says. AppKit substitutes asynchronously over STORAGE and does not know a backslash belongs to an
+    // escape: measured, three typed apostrophes became curly·straight·curly with their escape backslashes deleted, and a typed
+    // "hi" became ”hi\"” (a quote ADDED), each with the caret thrown. A typed ' or " is stored escaped and drawn straight.
+    // (Smart Dashes need nothing: a typed -- is stored \-\-, which AppKit never sees as two hyphens — measured.)
+    override var isAutomaticQuoteSubstitutionEnabled: Bool {
+        get { false }
+        set { }
+    }
+
     // T-0531 DIAGNOSTIC — the OUTERMOST edit boundary AppKit gives us.
     // ⚠️ `[SCRIVI-KEY]` covers `textDidChange` only. If a keystroke is slow but KEY is
     // fast, the cost is BETWEEN these two — i.e. in AppKit's own edit/layout/display
@@ -3152,6 +3162,7 @@ final class ManuscriptNSTextView: NSTextView {
         switch item.action {
         case #selector(undo(_:)): return coordinator?.canUndo ?? false
         case #selector(redo(_:)): return coordinator?.canRedo ?? false
+        case #selector(toggleAutomaticQuoteSubstitution(_:)): return false   // [I-0283]: never on in the manuscript
         default:                  return super.validateUserInterfaceItem(item)
         }
     }

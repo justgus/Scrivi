@@ -19,6 +19,10 @@ reachable by the test suite as it stood.**
 
 ---
 
+*Last Updated: 2026-10-08 — **I-0283 → active** (ruled (a), fixed now; it left this file).*
+
+*Last Updated: 2026-10-08 — **I-0283 filed** (user, reproduced): macOS Smart Quotes rewrite stored text outside the escape layer; ruling owed.*
+
 *Last Updated: 2026-10-07 — **I-0281 filed** ([SP-165] L2): a first line indented 1–3 spaces shifts Apple's emphasis positions on the following lines.*
 
 *Last Updated: 2026-10-05 — **I-0278 filed** (user): Title, Subtitle, Show chapter titles live in `UserDefaults` and do not travel with the project.*

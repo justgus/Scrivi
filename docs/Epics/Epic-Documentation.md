@@ -110,7 +110,7 @@ user-approved), ⛔ not from either copy.** ⚠️ **The table is now ONE unbrok
 | EP-043 | `[Linux]` **The Session** — many projects, one window each, restored where the writer left them. ⚠️ **Closes [I-0176]/[I-0177]/[I-0178]**; ports ✅ **[EP-018]** | ✅ **CLOSED** — activated 2026-09-25 — [record](Closed/Epic-EP-043.md) — ✅ **CLOSED 2026-09-30 (user-approved)** — all four Sprints ([SP-145]–[SP-148]) closed, all 10 ACs met | 2026-09-21 | — |
 | EP-045 | `[Apple]` **Manuscript Renderer — Foundations** — ⚠️ **typed attachments (a live save-path corruption), the SOURCE↔PRESENTED caret mapping, the escape layer, the divider** | ✅ **CLOSED 2026-10-04** (user-approved) — all eleven ACs met; SP-153–158 → [record](Closed/Epic-EP-045.md) | 2026-09-29 | 2026-10-04 |
 | EP-046 | `[Apple]` **Manuscript Renderer — Inline Rendering** — ⚠️ **WYSIWYG: bold/italic/headings render, markers hide (Model B) + the formatting COMMANDS** | ✅ **CLOSED 2026-10-06** (user-approved) — SP-159 (design, ACs AC1–AC12); SP-161 (E2-S1) — AC1, AC2, AC4 (line), AC5, AC7, AC8, AC11; SP-162 (E2-S2) — AC3, AC4 (span), AC7 (inline), AC12; SP-163 (E2-S3) — AC6, AC9, AC12 across scenes; SP-164 (E2-S4) — AC10. ✅ All twelve met → [record](Closed/Epic-EP-046.md) | 2026-09-29 | 2026-10-06 |
-| EP-047 | `[Apple]` **Manuscript Typography & Preferences** — typeface (F1), first-line indent (None · Every · Book), Markup Hints, and a `project-settings.json` home so settings TRAVEL ([I-0278]) | 🟡 **Active** 2026-10-07 — SP-167 (S1) ✅ closed: AC1–AC3 met; SP-168 (S2) ✅ closed: AC4, AC5 met; SP-169 (S3) ✅ closed: AC6, AC8 met; SP-170 (S4) ✅ closed: AC7 met — all planned Sprints closed, Audit Check + close owed; AC1–AC9, rulings P1–P4 | 2026-09-29 | — |
+| EP-047 | `[Apple]` **Manuscript Typography & Preferences** — typeface (F1), first-line indent (None · Every · Book), Markup Hints, and a `project-settings.json` home so settings TRAVEL ([I-0278]) | ✅ **CLOSED 2026-10-08** (user-approved) — SP-167 (S1): AC1–AC3; SP-168 (S2): AC4, AC5; SP-169 (S3): AC6, AC8; SP-170 (S4): AC7; AC9 each Sprint. ✅ All nine met; rulings P1–P11 → [record](Closed/Epic-EP-047.md) | 2026-09-29 | 2026-10-08 |
 | EP-048 | `[Linux]` **Manuscript Renderer Parity** — ⚠️ **honours `feedback_linux_adopts_apple_shape`; ✅ SCOPED 2026-10-05 (SP-159): `QSyntaxHighlighter` presenter + md4c in ScriviCore (reached through the C ABI, SP-165 Q1), ACs L1–L9 (L9 added 2026-10-07)** | 🟡 **Active** 2026-10-07 — SP-165 (S1) ✅ closed: L1, L2 met; SP-166 (S2) active | 2026-09-29 | — |
 | EP-049 | `[Linux]` **Manuscript Storage Format on Linux** — ⚠️ **the escape layer's WRITE half: Linux writes the same `.md` Apple does** (escaping, paste/copy, pair deletion, Return/Backspace) | ✅ **CLOSED 2026-10-05** (user-approved) — all ACs met; SP-160 → [record](Closed/Epic-EP-049.md) | 2026-10-04 | 2026-10-05 |
 
@@ -122,7 +122,7 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 - ✅ **[EP-041] CLOSED 2026-09-22** — ⚠️ **its Audit Check RECOVERED [I-0223], which had been
   referenced in five documents and present in none since 2026-09-18.**
-- ⚠️ **EP-044 `[ScriviCore]` World Resolution** (created 2026-09-22), is 🔵 Draft in the backlog; 🟡 **EP-047** ACTIVE 2026-10-07 ([SP-167]). ✅ **[EP-045] CLOSED 2026-10-04; [EP-046] CLOSED 2026-10-06.** 🟡 **[EP-048] ACTIVE 2026-10-07** ([SP-165]). ✅ Next-available IDs
+- ⚠️ **EP-044 `[ScriviCore]` World Resolution** (created 2026-09-22), is 🔵 Draft in the backlog. ✅ **[EP-047] CLOSED 2026-10-08.** ✅ **[EP-045] CLOSED 2026-10-04; [EP-046] CLOSED 2026-10-06.** 🟡 **[EP-048] ACTIVE 2026-10-07** ([SP-165]). ✅ Next-available IDs
   live in [`../tools/next-ids.json`](../tools/next-ids.json), not here (user ruling 2026-09-24).
 - ✅ **[EP-040] CLOSED 2026-09-24** `[Apple]` The Editor Shell (SP-134–SP-137 · SP-150). ⚠️ **Prior line read "TWO ACTIVE EPICS as of 2026-09-20"**
   ✅ **[EP-041] `[Cross]` The Boundary CLOSED 2026-09-22** → [`Closed/Epic-EP-041.md`](Closed/Epic-EP-041.md)
@@ -135,13 +135,7 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
   ✅ **EP-041 was SPLIT OUT of EP-040 2026-09-18** (user ruling) — ⚠️ **[I-0197]'s bypass chain is
   boundary work, not chrome**, ✅ **which EP-040's own scope note had already flagged.**
   ⛔ **[SP-129]/[SP-130] did NOT move** — ✅ **a closed Sprint keeps the provenance of the Epic it ran under.**
-- **Total Epic IDs issued:** **48** (EP-001–EP-048); none cancelled, skipped or superseded.
-  ⚠️ **UPDATED 2026-09-29 — read `43 (EP-001–EP-043)` and was stale by five** (⛔ **EP-044 was created
-  2026-09-22 and this line was not updated then either**). ✅ **The four new IDs are EP-045–EP-048.**
-  ⚠️ **CORRECTED 2026-09-21 — read `40 (EP-001–EP-040)` and was stale by three.** ⚠️ **It had ALREADY
-  been corrected once for the same reason** (stated as 38 until 2026-09-14, stale since EP-039) —
-  ✅ **a hand-maintained total that has now gone stale TWICE is a candidate for deletion, not a third
-  correction**, ⚠️ **since the table's own last row already answers it.
+- ⛔ **REMOVED 2026-10-08 — Audit Check F-4 (EP-047 close), per ruling [R-15].** This read *"Total Epic IDs issued: 48 (EP-001–EP-048)"* — stale since EP-049 (2026-10-04), and a hand-kept total that had gone stale THREE times. ✅ **Count the table above; the next ID is in [`../tools/next-ids.json`](../tools/next-ids.json).**
   - ⚠️ **EP-036 and EP-037 were created 2026-08-25 by SPLITTING the draft EP-035 three ways** (user
     ruling). ⚠️ **The draft's AC1 read "inherits EP-034's AC1–AC9 verbatim" — nine ACs in one**, over a
     surface Apple took EP-030 + EP-031 (planned 6, delivered **11**) + EP-034 (**8 sprints**) to build.
@@ -155,6 +149,10 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 > been acted on. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-08 (**EP-047 ✅ CLOSED (user-approved)** → `Closed/Epic-EP-047.md`; Audit Check F-1–F-4 applied (F-4: the restated Epic total removed, R-15).)*
+
+*Last Updated: 2026-10-08 (**EP-047 🟠 COMPLETE** — all Sprints closed, AC1–AC9 met; Audit Check run (`Audit-Check-20261008-EP047.md`); close awaits approval.)*
 
 *Last Updated: 2026-10-07 (**EP-047 ACTIVATED** (user-approved) with SP-167.)*
 
