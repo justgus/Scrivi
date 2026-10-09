@@ -2720,7 +2720,12 @@ final class ManuscriptNSTextView: NSTextView {
                 }
             }
         }
-        if isHeading { return false }
+        if isHeading {
+            #if DEBUG
+            NSLog("[SCRIVI-ROTOR] refused edit %@ (chapter title)", NSStringFromRange(affectedCharRange))
+            #endif
+            return false
+        }
         // ⛔ [I-0270] NEVER let an ordinary edit remove a scene DIVIDER. Each divider is one
         // scene boundary; `recomputeBoundaries` maps the Nth text segment to the Nth loaded
         // scene, so deleting one made the merged text save into the first scene (the second
@@ -3243,6 +3248,12 @@ final class ManuscriptNSTextView: NSTextView {
 
     override func keyDown(with event: NSEvent) {
         coordinator?.cancelRestoreCentre()
+        #if DEBUG
+        // EP-050 S2 (SP-172): which keys reach the manuscript after a rotor choice, and with what caret.
+        NSLog("[SCRIVI-ROTOR] key code=%d chars=%@ firstResponder=%@ sel=%@", Int(event.keyCode),
+              (event.characters ?? "").debugDescription, window?.firstResponder === self ? "self" : String(describing: window?.firstResponder),
+              NSStringFromRange(selectedRange()))
+        #endif
         // T-0531 DIAGNOSTIC — the OUTERMOST boundary for a keystroke.
         // ⚠️ If this is slow while `[SCRIVI-KEY]` (textDidChange) is fast, the cost is in
         // AppKit's own edit/layout/display work, NOT in Scrivi's delegate.

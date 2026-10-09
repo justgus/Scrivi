@@ -439,6 +439,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-169** | `[Apple]` **[EP-047] S3** — the first-line indent (None · Every · Book, default Book 1.5 em, the small gap) + [I-0281] (AC6, AC8) | EP-047 | 2026-10-07 | 2026-10-08 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-169.md) |
 | **SP-170** | `[Apple]` **[EP-047] S4** — Markup Hints on/off: View menu + ⇧⌘H, per project, default ON (AC7, T-0589) | EP-047 | 2026-10-08 | 2026-10-08 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-170.md) |
 | **SP-171** | `[Apple]` **[EP-050] S1** — the translation layer: VoiceOver reads the page at rest; one map shared with Find; caret both ways; cost (AC1–AC3, AC5 reading half; T-0599, I-0277) | EP-050 | 2026-10-08 | 2026-10-08 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-171.md) |
+| **SP-172** | `[Apple]` **[EP-050] S2** — the Headings rotor: Markdown headings and chapter titles, next/previous (AC4, AC5 rotor half; T-0600) | EP-050 | 2026-10-08 | 2026-10-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-172.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -478,6 +479,12 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-08 (**SP-172 ACTIVATED** (user-approved); T-0600 → active.)*
+
+*Last Updated: 2026-10-08 (**SP-172 (EP-050 S2) created in 🔵 Planning**, issued via `next-id.py`; T-0600 filed.)*
+
+*Last Updated: 2026-10-09 (**SP-172 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-172.md`; T-0600 archived.)*
 
 *Last Updated: 2026-10-08 (**SP-171 ✅ CLOSED (user-approved)** → `Closed/Sprint-SP-171.md`; T-0599, I-0277 archived.)*
 

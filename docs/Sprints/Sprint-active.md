@@ -1,5 +1,7 @@
 # Active Sprints
 
+✅ **[SP-172] CLOSED 2026-10-09 (user-approved)** `[Apple]` [EP-050] **S2** → [`Closed/Sprint-SP-172.md`](Closed/Sprint-SP-172.md) — ✅ the Headings rotor (titles + Markdown headings, next/previous from VoiceOver's position); [T-0600] verified.
+
 ✅ **[SP-171] CLOSED 2026-10-08 (user-approved)** `[Apple]` [EP-050] **S1** → [`Closed/Sprint-SP-171.md`](Closed/Sprint-SP-171.md) — ✅ VoiceOver reads the page at rest (one map, shared with Find; dividers read as words); [T-0599], [I-0277] verified.
 
 ## SP-166 — 🟡 ACTIVE 2026-10-07 (blocked on the rig)

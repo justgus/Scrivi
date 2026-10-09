@@ -171,6 +171,9 @@ extension ManuscriptNSTextView {
     }
 
     override func setAccessibilitySelectedTextRange(_ range: NSRange) {
+        #if DEBUG
+        NSLog("[SCRIVI-ROTOR] SET selection %@", NSStringFromRange(range))     // Plan 1 (S2): what VoiceOver does on a rotor choice
+        #endif
         ax("set selectedTextRange") {
             guard let m = axMap else { return super.setAccessibilitySelectedTextRange(range) }
             setSelectedRange(axStorageSelection(range, m))
@@ -188,6 +191,18 @@ extension ManuscriptNSTextView {
         ax("visibleCharacterRange") {
             let r = super.accessibilityVisibleCharacterRange()
             return axMap?.presentedRange(r) ?? r
+        }
+    }
+
+    /// ⛔ SP-172 Plan 5 (user: a click with VoiceOver on showed Chapter 16 with the caret in 18): unmapped, AppKit scrolled to the
+    /// presented index read as a STORAGE index — earlier in the book by the hidden markup before it (measured: 60,390 → 53,502).
+    override func setAccessibilityVisibleCharacterRange(_ range: NSRange) {
+        #if DEBUG
+        NSLog("[SCRIVI-ROTOR] SET visibleCharacterRange %@", NSStringFromRange(range))
+        #endif
+        ax("set visibleCharacterRange") {
+            guard let m = axMap else { return super.setAccessibilityVisibleCharacterRange(range) }
+            super.setAccessibilityVisibleCharacterRange(m.storageRange(clamped(range, m)))
         }
     }
 
@@ -238,6 +253,46 @@ extension ManuscriptNSTextView {
         ax("rangeForLine") {
             let r = super.accessibilityRange(forLine: line)
             return axMap?.presentedRange(r) ?? r
+        }
+    }
+}
+// MARK: — EP-050 S2 ([SP-172], T-0600): the Headings rotor (A2, R1: one rotor; R2: chapter titles only when shown)
+
+extension ManuscriptNSTextView: @MainActor NSAccessibilityCustomRotorItemSearchDelegate {
+
+    override func accessibilityCustomRotors() -> [NSAccessibilityCustomRotor] {
+        guard presenter != nil else { return super.accessibilityCustomRotors() }
+        return [NSAccessibilityCustomRotor(rotorType: .heading, itemSearchDelegate: self)]
+    }
+
+    /// ✅ R3: from VoiceOver's reading position — the `currentItem` it passes (it never passes the caret: measured, Plan 1);
+    /// nil → the first / last item (`NSAccessibilityCustomRotor.h`). `next` takes the first heading at or past the END of
+    /// `currentItem`: VoiceOver builds its list from `{0, 0}`, so a heading at 0 must be included; a heading item never re-finds itself.
+    func rotor(_ rotor: NSAccessibilityCustomRotor,
+               resultFor searchParameters: NSAccessibilityCustomRotor.SearchParameters) -> NSAccessibilityCustomRotor.ItemResult? {
+        ax("rotor") {
+            guard axMap != nil else { return nil }
+            let filter = searchParameters.filterString
+            let items = presentedMap.outline(matching: filter)
+            let next = searchParameters.searchDirection == .next
+            let found: (heading: OutlineHeading, label: String)?
+            if let cur = searchParameters.currentItem?.targetRange, cur.location != NSNotFound {
+                found = next ? items.first { $0.heading.range.location >= NSMaxRange(cur) }
+                             : items.last { $0.heading.range.location < cur.location }
+            } else {
+                found = next ? items.first : items.last
+            }
+            #if DEBUG
+            let cur = searchParameters.currentItem.map { NSStringFromRange($0.targetRange) } ?? "nil"
+            NSLog("[SCRIVI-ROTOR] %@ current=%@ filter=%@ caret=%@ → %@ %@", next ? "next" : "prev", cur, filter.debugDescription,
+                  NSStringFromRange(axMap?.presentedRange(selectedRange()) ?? selectedRange()),
+                  found.map { NSStringFromRange($0.heading.range) } ?? "nil", found?.label.debugDescription ?? "")
+            #endif
+            guard let found else { return nil }
+            let result = NSAccessibilityCustomRotor.ItemResult(targetElement: self)
+            result.targetRange = found.heading.range
+            result.customLabel = found.label
+            return result
         }
     }
 }

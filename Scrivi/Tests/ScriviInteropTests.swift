@@ -6394,6 +6394,7 @@ struct PresentedMapTests {
             Issue.record("presentedIndex(\(x)) \(live.presentedIndex(x)) vs \(fresh.presentedIndex(x)) — \(note())"); return
         }
         if live.chunks() != fresh.chunks() { Issue.record("chunks differ — \(note())") }
+        if live.outline() != fresh.outline() { Issue.record("outline differs — \(note())") }
     }
 
     private func storageLen(_ f: ManuscriptFixture) -> Int { f.tv.textStorage!.length }
@@ -6642,6 +6643,28 @@ struct ManuscriptAccessibilityTests {
         #expect(NSMaxRange(vis) <= n)
     }
 
+    /// SP-172 Plan 5 finding (user): with VoiceOver on, a click sometimes shows a part of the manuscript EARLIER than the caret.
+    @Test("Setting the visible range (presented) scrolls to that presented text — not to the same index in storage")
+    func setVisibleRange() throws {
+        let body = (0..<2_000).map { #"Para \#($0): Mr\. Smith said \*no\* \- twice\."# }.joined(separator: "\n\n")
+        let f = fixture(body)
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
+        f.tv.isVerticallyResizable = true
+        f.tv.textContainer?.widthTracksTextView = true
+        scroll.documentView = f.tv
+        f.window.setContentSize(scroll.frame.size)
+        f.window.contentView = scroll
+        f.tv.textLayoutManager?.ensureLayout(for: f.tv.textLayoutManager!.documentRange)
+        let presented = try #require(f.tv.accessibilityString(for: NSRange(location: 0, length: f.tv.accessibilityNumberOfCharacters())))
+        let target = (presented as NSString).range(of: "Para 1500:")
+        f.tv.setAccessibilityVisibleCharacterRange(target)
+        let vis = f.tv.accessibilityVisibleCharacterRange()
+        let shown = f.tv.accessibilityString(for: vis) ?? ""
+        // ⚠️ Offscreen, AppKit reports the visible range with ZERO length — its location is the top of the viewport. Unmapped it
+        // landed 6,888 presented characters early (53,502 for 60,390); a screen here is ~300 pt ≈ 15 paragraphs ≈ 600 characters.
+        #expect(abs(vis.location - target.location) < 600, "visible \(vis) shows \(shown.prefix(40).debugDescription), target \(target)")
+    }
+
     @Test("AC2: a caret VoiceOver sets at ANY presented index lands at home (never inside markup) and reads back as that index")
     func caretRoundTrip() {
         let f = fixture(text)
@@ -6691,6 +6714,157 @@ struct ManuscriptAccessibilityTests {
         #expect(f.tv.accessibilitySelectedTextRanges()?.first?.rangeValue == ns.range(of: "Smith"))
         f.tv.setAccessibilitySelectedTextRange(ns.range(of: "said *no*"))
         #expect(storage.substring(with: f.tv.selectedRange()) == #"said \*no\*"#)
+    }
+}
+
+/// EP-050 S2 ([SP-172]) — the Headings rotor, called as VoiceOver calls it: `accessibilityCustomRotors`, then the delegate.
+@Suite("Headings rotor (EP-050 S2)")
+@MainActor
+struct HeadingsRotorTests {
+
+    private func search(_ rotor: NSAccessibilityCustomRotor, from current: NSRange?, next: Bool = true,
+                        filter: String = "") -> NSAccessibilityCustomRotor.ItemResult? {
+        let p = NSAccessibilityCustomRotor.SearchParameters()
+        p.searchDirection = next ? .next : .previous
+        p.filterString = filter
+        if let current {
+            let item = NSAccessibilityCustomRotor.ItemResult(targetElement: rotor.itemSearchDelegate as! NSAccessibilityElementProtocol)
+            item.targetRange = current
+            p.currentItem = item
+        }
+        return rotor.itemSearchDelegate?.rotor(rotor, resultFor: p)
+    }
+
+    @Test("AC4: one Headings rotor; chapter titles and Markdown headings in order, as presented text, both ways")
+    func order() throws {
+        let f = ManuscriptFixture()
+        // ⚠️ Measured shape (Plan 1 run): a title run can begin with a newline; a heading line can end with a space.
+        let s = NSMutableAttributedString(string: "\nChapter One\n", attributes: [.scriviHeading: true])
+        s.append(NSAttributedString(string: "## First \\*part\\* \n\nbody **b**\n\n# Second\n\nmore", attributes: ManuscriptTypography.default.bodyAttributes))
+        s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.chapterEnd]))
+        s.append(NSAttributedString(string: "\n", attributes: ManuscriptTypography.default.bodyAttributes))
+        s.append(NSAttributedString(string: "Chapter Two\n", attributes: [.scriviHeading: true]))
+        s.append(NSAttributedString(string: "### Third", attributes: ManuscriptTypography.default.bodyAttributes))
+        f.tv.textStorage!.setAttributedString(s)
+        let rotors = f.tv.accessibilityCustomRotors()
+        #expect(rotors.count == 1 && rotors.first?.type == .heading, "R1: one Headings rotor")
+        let rotor = try #require(rotors.first)
+        var labels: [String] = []
+        var cur: NSRange? = nil
+        while let r = search(rotor, from: cur) {
+            labels.append(r.customLabel ?? "")
+            #expect(f.tv.accessibilityString(for: r.targetRange) == r.customLabel, "targetRange is presented")
+            cur = r.targetRange
+            if labels.count > 10 { break }
+        }
+        #expect(labels == ["Chapter One", "First *part*", "Second", "Chapter Two", "Third"])
+        var back: [String] = []
+        cur = nil
+        while let r = search(rotor, from: cur, next: false) { back.append(r.customLabel ?? ""); cur = r.targetRange; if back.count > 10 { break } }
+        #expect(back == labels.reversed())
+        #expect(search(rotor, from: nil, filter: "thi")?.customLabel == "Third", "type-ahead filter")
+    }
+
+    /// The manuscript as the app builds it (`rebuildStorage`), one scene per chapter — so R2's titles setting is the app's own.
+    /// The text view and the coordinator that owns its presenter (the text view holds the presenter weakly).
+    private struct Rebuilt { let tv: ManuscriptNSTextView; let owner: AnyObject }
+    private func rebuilt(_ scenes: [String], titles: Bool, perChapter: Int = 1) -> Rebuilt {
+        var infos: [SceneInfo] = []
+        var segs: [SceneSegment] = []
+        for (i, text) in scenes.enumerated() {
+            let ch = i / perChapter
+            infos.append(try! JSONDecoder().decode(SceneInfo.self, from: Data("""
+                {"sceneID":"s\(i)","chapterID":"c\(ch)","title":"S","chapterTitle":"Chapter \(ch + 1)","slug":"s",
+                 "metadataPath":"","contentPath":"","chapterMetadataPath":""}
+                """.utf8)))
+            segs.append(SceneSegment(id: "s\(i)", sceneID: "s\(i)", chapterID: "c\(ch)", metadataPath: "", contentPath: "", text: text))
+        }
+        let loader = ViewportSceneLoader(engine: ScriviEngine(), projectRootPath: "/tmp/ax-spike",
+                                         appSupportRoot: "/tmp/ax-spike-support", projectID: "p", allScenes: infos)
+        let session = ProjectSession(engine: ScriviEngine(), authorshipRef: nil, appSupportRoot: "/tmp/ax-spike-support", identityID: "")
+        let view = ManuscriptTextView(loader: loader, env: AppEnvironment(), session: session, navigateToSceneID: .constant(nil),
+                                      showChapterTitles: titles, typography: .default)
+        let c = view.makeCoordinator()
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        tv.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
+        tv.textContentStorage?.delegate = c.presenter
+        tv.textStorage?.delegate = c.presenter
+        c.textView = tv
+        c.rebuildStorage(tv, segments: segs)
+        return Rebuilt(tv: tv, owner: c)
+    }
+
+    /// Every label, walked as VoiceOver builds its VO-U list (measured): `next` from `{0, 0}`, one call per item.
+    private func list(_ view: Rebuilt, filter: String = "") throws -> [String] {
+        let rotor = try #require(view.tv.accessibilityCustomRotors().first)
+        var out: [String] = []
+        var cur = NSRange(location: 0, length: 0)
+        while let r = search(rotor, from: cur, filter: filter), out.count < 5_000 { out.append(r.customLabel ?? ""); cur = r.targetRange }
+        return out
+    }
+
+    @Test("R2: chapter titles follow the page — listed when shown, absent when hidden; Markdown headings either way")
+    func titlesFollowThePage() throws {
+        let scenes = ["# Opening\n\nbody", "Plain body\n\n## Middle", "### Last\n\nend"]
+        let on = try list(rebuilt(scenes, titles: true)), off = try list(rebuilt(scenes, titles: false))
+        #expect(on == ["Chapter 1", "Opening", "Chapter 2", "Middle", "Chapter 3", "Last"])
+        #expect(off == ["Opening", "Middle", "Last"],
+                "titles OFF: the manuscript begins WITH a heading — VoiceOver's list (from {0, 0}) must still include it")
+    }
+
+    @Test("R3: next / previous from VoiceOver's reading position (a zero-length currentItem), not from the caret")
+    func fromReadingPosition() throws {
+        let r = rebuilt(["Before\n\n## Alpha\n\nmiddle text\n\n## Beta\n\nafter"], titles: true), tv = r.tv
+        let rotor = try #require(tv.accessibilityCustomRotors().first)
+        let presented = tv.accessibilityString(for: NSRange(location: 0, length: tv.accessibilityNumberOfCharacters())) ?? ""
+        let mid = (presented as NSString).range(of: "middle").location
+        tv.setSelectedRange(NSRange(location: tv.string.utf16.count, length: 0))      // the caret at the END — must not matter
+        #expect(search(rotor, from: NSRange(location: mid, length: 0))?.customLabel == "Beta")
+        #expect(search(rotor, from: NSRange(location: mid, length: 0), next: false)?.customLabel == "Alpha")
+        #expect(search(rotor, from: nil)?.customLabel == "Chapter 1", "nil → the first item (the API)")
+        #expect(search(rotor, from: nil, next: false)?.customLabel == "Beta", "nil → the last item (the API)")
+        let beta = try #require(search(rotor, from: NSRange(location: mid, length: 0)))
+        #expect(search(rotor, from: beta.targetRange) == nil, "past the last heading: none")
+    }
+
+    @Test("Type-ahead filter: case- and diacritic-insensitive, over the presented text")
+    func filter() throws {
+        let r = rebuilt(["## Élan vital\n\nx\n\n## Other \\*mark\\*"], titles: false)
+        let elan = try list(r, filter: "ELAN"), mark = try list(r, filter: "*mark"), none = try list(r, filter: "zz")
+        #expect(elan == ["Élan vital"])
+        #expect(mark == ["Other *mark*"], "matched as PRESENTED (no escapes)")
+        #expect(none.isEmpty)
+    }
+
+    @Test("Labels follow an edit — the cached outline is re-derived when the map is patched")
+    func labelsFollowEdits() throws {
+        let r = rebuilt(["## Alpha\n\nbody"], titles: false)
+        #expect(try list(r) == ["Alpha"])
+        let ts = try #require(r.tv.textStorage)
+        ts.replaceCharacters(in: (ts.string as NSString).range(of: "Alpha"), with: NSAttributedString(string: "Omega"))
+        let after = try list(r), filtered = try list(r, filter: "ome")
+        #expect(after == ["Omega"] && filtered == ["Omega"])
+    }
+
+    /// VoiceOver re-walks the whole list each time the rotor opens and on every type-ahead letter (Plan 1, measured on dumas).
+    @Test("Cost on 1.7 MB: VoiceOver's full list walk, unfiltered and filtered")
+    func cost() throws {
+        let para = #"Mr\. Smith said \*no\* \- the ship came in on the **evening** tide, her sails the colour of *old parchment* against a sky turning to brass\."#
+        // dumas-shaped: 60 chapters × 20 scenes, a heading per scene → 1,260 items (dumas: ~1,200).
+        let scenes = (0..<1_200).map { i in "## Part \(i + 1)\n\n" + (0..<10).map { _ in para }.joined(separator: "\n\n") }
+        let r = rebuilt(scenes, titles: true, perChapter: 20)
+        print("[SP-172 cost] storage length \(r.tv.textStorage!.length)")
+        _ = r.tv.presentedMap.current()
+        func ms(_ body: () throws -> Void) rethrows -> Double {
+            let t0 = DispatchTime.now().uptimeNanoseconds; try body()
+            return Double(DispatchTime.now().uptimeNanoseconds - t0) / 1e6
+        }
+        var n = 0, nf = 0
+        let whole = try ms { n = try list(r).count }
+        let filtered = try ms { nf = try list(r, filter: "part").count }
+        print(String(format: "[SP-172 cost] list walk %d items %.1f ms · filtered walk %d items %.1f ms", n, whole, nf, filtered))
+        #expect(n == 1_260 && nf == 1_200)
+        #expect(whole < 250 && filtered < 250, "a rotor open or a type-ahead letter must not stall VoiceOver")
     }
 }
 

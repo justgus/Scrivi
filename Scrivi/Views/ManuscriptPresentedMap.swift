@@ -26,7 +26,21 @@ struct PresentedSegment: Equatable {
     /// ✅ Q2 (ruled 2026-10-08, after the live pass): a DIVIDER presents as WORDS — one storage character, several presented
     /// ones. ⚠️ VoiceOver ignored an `AXAttachment` label (measured by ear), so the words are in the text it reads.
     var replacement: [UInt16]? = nil
+    /// ✅ EP-050 S2 ([SP-172]): the headings in this segment — the heading TEXT (without its hidden prefix) as SEGMENT-LOCAL
+    /// storage, and its level (0 = a chapter title). Recorded by the builder, so the outline is patched with the map.
+    var headings: [SegmentHeading] = []
     var pLen: Int { replacement?.count ?? (sLen - hidden.count) }
+}
+
+struct SegmentHeading: Equatable {
+    var local: NSRange
+    var level: Int
+}
+
+/// One entry of the outline: a presented range and its level (0 = a chapter title).
+struct OutlineHeading: Equatable {
+    var range: NSRange
+    var level: Int
 }
 
 /// The map's lookups — value-typed, so a snapshot for a background reader is a copy.
@@ -143,6 +157,19 @@ struct PresentedLayout {
         return out
     }
 
+    /// ✅ EP-050 S2: the outline — every heading in presented order, as presented ranges of its text.
+    func outline() -> [OutlineHeading] {
+        var out: [OutlineHeading] = []
+        for g in segments where !g.headings.isEmpty {
+            for h in g.headings {
+                let a = g.p + h.local.location - Self.countBelow(g.hidden, h.local.location)
+                let b = g.p + NSMaxRange(h.local) - Self.countBelow(g.hidden, NSMaxRange(h.local))
+                if b > a { out.append(OutlineHeading(range: NSRange(location: a, length: b - a), level: h.level)) }
+            }
+        }
+        return out
+    }
+
     /// Presented ranges that end at a SEARCH BOUNDARY: one per run of scene text between excluded segments.
     func chunks() -> [NSRange] {
         var out: [NSRange] = []
@@ -218,6 +245,11 @@ struct PresentedLayout {
                 }
                 let stop = min(end, NSMaxRange(excluded[x]))
                 append(p, stop - p, [], true)
+                // ✅ A chapter title is a heading (level 0) — its text, trimmed of the newlines and spaces around it (measured in the
+                // Plan 1 run: the title run begins with a newline, so the label read "\nChapter 2").
+                if segs.last?.s == p, let t = Self.trimmed(ns, NSRange(location: p, length: stop - p)) {
+                    segs[segs.count - 1].headings.append(SegmentHeading(local: NSRange(location: t.location - p, length: t.length), level: 0))
+                }
                 p = stop
                 continue
             }
@@ -236,6 +268,13 @@ struct PresentedLayout {
                 for hd in info.analysis.headings { hide(hd.prefix) }
                 if let pending { hide(NSRange(location: pending.location - b.location, length: pending.length)) }
                 append(p, stop - p, h.sorted(), false)
+                // ✅ The block's Markdown headings: the line after its hidden prefix, clipped to this segment.
+                for hd in info.headings {
+                    let a = max(lo, NSMaxRange(hd.prefix)), z = min(hi, NSMaxRange(hd.line))
+                    if a < z, let t = Self.trimmed(ns, NSRange(location: b.location + a, length: z - a)) {
+                        segs[segs.count - 1].headings.append(SegmentHeading(local: NSRange(location: t.location - p, length: t.length), level: hd.level))
+                    }
+                }
                 p = stop
             } else {
                 append(p, 1, pending.map { NSLocationInRange(p, $0) } == true ? [0] : [], false, mergeable: true)
@@ -243,6 +282,15 @@ struct PresentedLayout {
             }
         }
         return segs
+    }
+
+    /// `r` without the whitespace and newlines at either end; nil when nothing is left.
+    static func trimmed(_ ns: NSString, _ r: NSRange) -> NSRange? {
+        var a = r.location, z = NSMaxRange(r)
+        func ws(_ c: unichar) -> Bool { c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D }
+        while a < z, ws(ns.character(at: a)) { a += 1 }
+        while z > a, ws(ns.character(at: z - 1)) { z -= 1 }
+        return z > a ? NSRange(location: a, length: z - a) : nil
     }
 
     /// ✅ Q2: what a divider says.
@@ -330,6 +378,33 @@ final class PresentedMap {
     nonisolated(unsafe) private var observer: NSObjectProtocol?
     /// Whole builds since creation — a test proves an edit PATCHES (this does not grow).
     private(set) var builds = 0
+    /// Bumped by every build and patch — the outline cache's key.
+    private(set) var version = 0
+    private var cachedOutline: (version: Int, items: [OutlineHeading])?
+
+    /// ✅ EP-050 S2: the outline, cached per map version (VoiceOver asks once per heading when it builds its rotor list).
+    func outline() -> [OutlineHeading] {
+        guard let lay = current() else { return [] }
+        if let c = cachedOutline, c.version == version { return c.items }
+        let items = lay.outline()
+        cachedOutline = (version, items)
+        return items
+    }
+    private var cachedLabelled: (version: Int, filter: String, items: [(heading: OutlineHeading, label: String)])?
+
+    /// ✅ EP-050 S2: the outline with each heading's presented text, narrowed by VoiceOver's type-ahead — cached per map version
+    /// AND filter: VoiceOver re-walks the whole list (one call per item) every time the rotor opens and on every letter.
+    func outline(matching filter: String) -> [(heading: OutlineHeading, label: String)] {
+        guard let lay = current(), let storage = textView?.textStorage else { return [] }
+        if let c = cachedLabelled, c.version == version, c.filter == filter { return c.items }
+        let all = outline().map { h in
+            let u = lay.units(in: h.range, from: storage.mutableString)
+            return (heading: h, label: String(utf16CodeUnits: u, count: u.count))
+        }
+        let items = filter.isEmpty ? all : all.filter { $0.label.range(of: filter, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
+        cachedLabelled = (version, filter, items)
+        return items
+    }
 
     init(textView: NSTextView) { self.textView = textView }
 
@@ -355,6 +430,7 @@ final class PresentedMap {
         let ms = Date().timeIntervalSince(t0) * 1000
         if ms > 5 { NSLog(String(format: "[SCRIVI-AX] presented map built in %.1f ms (%d segments, %d units)", ms, built.segments.count, built.length)) }
         layout = built
+        version += 1
         return built
     }
 
@@ -401,6 +477,7 @@ final class PresentedMap {
         }
         layout!.storageEnd = newLen
         layout!.length += dp
+        version += 1
     }
 }
 #endif
