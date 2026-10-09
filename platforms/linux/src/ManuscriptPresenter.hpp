@@ -69,6 +69,7 @@ public:
     };
     // The stop run holding document position `i` (the character AT i), if any.
     std::optional<Stop> stopAt(int i) const;
+    int revealedSpanCount() const { return int(revealedSpans_.size()); }   // SP-166 measurement
 
     // ── The reveal (Q-E2-1) ──
     // Move the reveal to a selection [selStart, selEnd]; re-highlights only the lines whose drawing changes.

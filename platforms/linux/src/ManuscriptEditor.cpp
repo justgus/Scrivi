@@ -12,6 +12,7 @@
 #include <QTextDocument>
 
 #include <cmath>
+#include <cstdio>
 
 #include "ManuscriptEscapes.hpp"
 #include "ManuscriptPresenter.hpp"
@@ -66,12 +67,14 @@ void ManuscriptEditor::normalizeCaret()
         return;
     }
     const int pos = cursor.position();
+    const int previousPos = lastCaretPos_;
     // Snap in the DIRECTION the caret was travelling, so arrow keys cross a boundary into
     // the next/previous scene instead of getting stuck at it. Forward (Down/Right/typing)
     // when the caret advanced; backward (Up/Left) when it retreated. A same-position event
     // (no movement) keeps the previous direction bias as "forward" by default.
     const bool movingForward = (pos >= lastCaretPos_);
     int snapped = sceneDoc_->editablePositionInDirection(pos, movingForward);
+    const int editable = snapped;
     // EP-048 L5: then out of any hidden run, to its home (Apple: `snapCaret`).
     if (snapped == pos) {
         snapped = snapCaret(pos, lastCaretPos_);
@@ -87,6 +90,25 @@ void ManuscriptEditor::normalizeCaret()
     if (presenter_ != nullptr) {
         presenter_->reveal(snapped, snapped);
     }
+    logCaret(previousPos, pos, editable, snapped);
+}
+
+// SP-166 live pass (user): ← out of a BOLD word takes an extra, invisible press on the rig; italic does not, and the
+// offscreen smoke shows Apple's stops for both. ⏳ Measurement only — set SCRIVI_CARET_LOG=1 and read stderr.
+void ManuscriptEditor::logCaret(int previous, int qtPos, int editable, int snapped) const
+{
+    static const bool on = qEnvironmentVariableIsSet("SCRIVI_CARET_LOG");
+    if (!on || presenter_ == nullptr) {
+        return;
+    }
+    auto run = [this](int i) {
+        const auto r = presenter_->stopAt(i);
+        return r ? QStringLiteral("[%1,%2)%3").arg(r->start).arg(r->end).arg(r->homeAfter() ? "A" : "B") : QStringLiteral("-");
+    };
+    const QString around = document()->toPlainText().mid(std::max(0, snapped - 4), 8).replace(QLatin1Char('\n'), QLatin1Char('|'));
+    std::fprintf(stderr, "[SCRIVI-CARET] prev=%d qt=%d editable=%d snapped=%d stop(qt-1)=%s stop(qt)=%s around=\"%s\" revealed=%d\n",
+                 previous, qtPos, editable, snapped, qPrintable(run(qtPos - 1)), qPrintable(run(qtPos)), qPrintable(around),
+                 int(presenter_->revealedSpanCount()));
 }
 
 void ManuscriptEditor::mousePressEvent(QMouseEvent* event)
@@ -317,6 +339,12 @@ bool ManuscriptEditor::modifiedRangeFor(const QKeyEvent* event,
 
 void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
 {
+    // SP-166 measurement (SCRIVI_CARET_LOG): every arrow press, including one that does not move the cursor (no
+    // cursorPositionChanged → no normalizeCaret line).
+    static const bool caretLog = qEnvironmentVariableIsSet("SCRIVI_CARET_LOG");
+    if (caretLog && (event->key() == Qt::Key_Left || event->key() == Qt::Key_Right)) {
+        std::fprintf(stderr, "[SCRIVI-CARET] key %s at %d\n", event->key() == Qt::Key_Left ? "LEFT" : "RIGHT", textCursor().position());
+    }
     // In-editor structure creation (T-0240 / T-0241): Ctrl+Return = new scene,
     // Ctrl+Shift+Return = new chapter (the Linux analogues of ⌘↩ / ⌘⇧↩). Catch
     // these before the modifying-key path so they never insert a newline; the

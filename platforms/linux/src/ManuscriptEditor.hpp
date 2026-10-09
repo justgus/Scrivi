@@ -123,6 +123,7 @@ private:
     // ── EP-048 (SP-166): stop runs (Apple: `MarkdownEscapes.snapCaret` / `snapSelection`) ──
     // Where a caret proposed at `loc`, coming from `previous`, must land instead (or `loc`).
     int snapCaret(int loc, int previous) const;
+    void logCaret(int previous, int qtPos, int editable, int snapped) const;   // SP-166 measurement (SCRIVI_CARET_LOG)
     int snapOnce(int loc, int previous) const;
     bool isUnreachable(int pos) const;
     // A selection never ends inside a stop run; the end moves back when the selection SHRANK.
