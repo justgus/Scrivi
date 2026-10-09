@@ -169,6 +169,49 @@ void caretSnap()
     b.key(Qt::Key_Right);
     check(b.pos() == 11, QStringLiteral("L5: → from a closer's home passes ONE visible character (got %1)").arg(b.pos()));
 
+    // SP-166 live pass (user): ENTERING bold by arrow took an extra, invisible press on each side. Apple's
+    // stops (`caretHomes`, "a **bold** b"): → 0 1 4 5 6 7 8 11 12, and ← the same reversed.
+    {
+        Harness a(QStringLiteral("a **bold** b"));
+        a.caret(0);
+        QStringList fwd{QStringLiteral("0")}, back;
+        for (int k = 0; k < 8; ++k) { a.key(Qt::Key_Right); fwd << QString::number(a.pos()); }
+        back << QString::number(a.pos());
+        for (int k = 0; k < 8; ++k) { a.key(Qt::Key_Left); back << QString::number(a.pos()); }
+        std::printf("arrows: → %s · ← %s\n", qPrintable(fwd.join(' ')), qPrintable(back.join(' ')));
+        check(fwd.join(' ') == QStringLiteral("0 1 4 5 6 7 8 11 12"), QStringLiteral("L5: → stops as Apple's (got %1)").arg(fwd.join(' ')));
+        check(back.join(' ') == QStringLiteral("12 11 8 7 6 5 4 1 0"), QStringLiteral("L5: ← stops as Apple's (got %1)").arg(back.join(' ')));
+    }
+    {
+        // The live-pass line itself (dumas, "Test the tester"): an escape, two spaces, then bold.
+        Harness d(QStringLiteral("thing\\.  **Much** x"));
+        d.caret(0);
+        QStringList fwd{QStringLiteral("0")};
+        for (int k = 0; k < 13; ++k) { d.key(Qt::Key_Right); fwd << QString::number(d.pos()); }
+        std::printf("arrows (dumas line): → %s\n", qPrintable(fwd.join(' ')));
+        check(fwd.join(' ') == QStringLiteral("0 1 2 3 4 5 7 8 11 12 13 14 15 18"),
+              QStringLiteral("L5: → through the dumas line (got %1)").arg(fwd.join(' ')));
+        // The user's ← sequence: mid-word (between "u" and "c"), then ← three times, out of the word.
+        d.caret(13);
+        QStringList back{QStringLiteral("13")};
+        for (int k = 0; k < 4; ++k) { d.key(Qt::Key_Left); back << QString::number(d.pos()) + (d.hidden(9) ? "h" : "R"); }
+        std::printf("arrows (dumas line, ←): %s\n", qPrintable(back.join(' ')));
+        check(back.join(' ') == QStringLiteral("13 12h 11R 8h 7h"),
+              QStringLiteral("L5: ← through the dumas line (got %1)").arg(back.join(' ')));
+    }
+    {
+        // The EXACT live-pass paragraph (dumas "Test the tester", line 3): ← out of "Much" and out of "*Wallowing".
+        Harness r(QStringLiteral("This becomes the new thing\\.  **Much Better than the old thing\\.** Flitting around\\.   *Wallowing in self pity\\.*  The quick brown fox jumps tentacle over the lazy dog\\. Now is the\\, time for all**goodly** and honest men to come the aid of their country\\.  All work and no play males jack a dull boy\\."));
+        const QString t = r.body();
+        for (const QString& w : {QStringLiteral("Much"), QStringLiteral("Wallowing")}) {
+            const int m = t.indexOf(w);
+            r.caret(m + 2);
+            QStringList back{QString::number(m + 2)};
+            for (int k = 0; k < 4; ++k) { r.key(Qt::Key_Left); back << QString::number(r.pos() - m); }
+            std::printf("arrows (exact line, ← out of %s, relative to its first letter): %s\n", qPrintable(w), qPrintable(back.join(' ')));
+        }
+    }
+
     // Selection: never ends inside a run; shrinking moves the end BACK (SP-161 step 1).
     Harness s(QStringLiteral("ab\\*cd"));
     s.select(0, 3);

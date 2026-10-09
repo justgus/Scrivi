@@ -55,22 +55,6 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 
 ---
 
-## ✅ **[EP-046]** — `[Apple]` **The Manuscript Renderer — Inline Rendering** — **CLOSED 2026-10-06 (user-approved)**
-
-→ [`Closed/Epic-EP-046.md`](Closed/Epic-EP-046.md). ✅ **Five Sprints: [SP-159] · [SP-161] · [SP-162] · [SP-163] ·
-[SP-164]**, all closed. ✅ **All twelve ACs met.** ✅ Audit Check → [`../Audits/Audit-Check-20261006-EP046.md`](../Audits/Audit-Check-20261006-EP046.md).
-⚠️ **Carried forward:** Linux parity → [EP-048] (unblocked); [T-0589] → [EP-047]; [I-0277], [I-0278] (Issue backlog).
----
-
-## ✅ **[EP-047]** — `[Apple]` **Manuscript Typography & Preferences** — **CLOSED 2026-10-08 (user-approved)**
-
-→ [`Closed/Epic-EP-047.md`](Closed/Epic-EP-047.md). ✅ **Four Sprints: [SP-167] · [SP-168] · [SP-169] · [SP-170]**, all closed.
-✅ **All nine ACs met** — settings travel with the project; seven bundled faces, Literata 16 pt default; the first-line indent (Book
-by default); Markup Hints. ✅ Audit Check → [`../Audits/Audit-Check-20261008-EP047.md`](../Audits/Audit-Check-20261008-EP047.md).
-⚠️ **Carried forward:** Linux rendering → [EP-048] L10; [I-0277] (Issue backlog).
-
----
-
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
 **Status:** 🟡 **ACTIVE 2026-10-07** (user: *"We do want to activate EP-048"*) — created 2026-09-29. ✅ Scoped 2026-10-05 ([SP-159]), ACs L1–L8 below. ⚠️ **The Linux rig is unavailable (2026-10-07)** — work that needs no rig goes first; at the first live pass work switches to [EP-047] (user).
@@ -128,34 +112,3 @@ heading line 32 vs 20. ✅ Parser ruled: **md4c inside ScriviCore** (L-b). ✅ *
 ⚠️ Not measured yet: `QPlainTextDocumentLayout` hanging indent for lists; md4c per-block cost on 1.85 MB.
 
 ---
-
----
-
-## ✅ **[EP-049]** — `[Linux]` **The Manuscript Storage Format on Linux** — **CLOSED 2026-10-05 (user-approved)**
-
-→ [`Closed/Epic-EP-049.md`](Closed/Epic-EP-049.md). ✅ One Sprint, [SP-160], closed. ✅ All ACs met; [T-0586] and [I-0276]
-verified. ✅ Audit Check → [`../Audits/Audit-Check-20261004-EP049.md`](../Audits/Audit-Check-20261004-EP049.md).
-⚠️ **Carried forward:** the display half → [SP-159] → [EP-048]; [T-0584] (Alt/Option-Return).
-✅ [EP-046] followed it (closed 2026-10-06, above).
----
-
-## ✅ **[EP-045]** — `[Apple]` **The Manuscript Renderer — Foundations** — **CLOSED 2026-10-04 (user-approved)**
-
-→ [`Closed/Epic-EP-045.md`](Closed/Epic-EP-045.md). ✅ **Six Sprints: [SP-153] · [SP-154] · [SP-155] · [SP-156] ·
-[SP-157] · [SP-158]**, all closed. ✅ **All eleven ACs met.** ✅ Audit Check → [`../Audits/Audit-Check-20261004.md`](../Audits/Audit-Check-20261004.md).
-⚠️ **Carried forward:** block-intent drawing → [EP-046]; Linux parity → [EP-048]; [I-0275] (Issue backlog).
----
-
-## ✅ **[EP-043]** — `[Linux]` **The Session** — **CLOSED 2026-09-30 (user-approved)**
-
-→ [`Closed/Epic-EP-043.md`](Closed/Epic-EP-043.md). ✅ **Four Sprints: [SP-145] · [SP-146] · [SP-147] ·
-[SP-148]**, all closed. ✅ **All ten ACs met** (R1–R8, AC-build, AC-live) — ✅ **[I-0176], [I-0177], [I-0178]
-VERIFIED**: Linux opens many projects, one window each, reopening where the writer left them (size,
-maximized, splitters). ⚠️ **Window POSITION is ruled out on Wayland** ([I-0264]).
-⚠️ **Carried forward, NOT closed by this Epic:** [I-0255] (Timeline visibility persistence, `[Cross]`);
-[I-0244] (the Linux shell gap — its SIBLING Epic, sequenced after this one per [R-Q5]); the untested
-desktop-logout path; Landing staying up beside restored windows (a parity question — Apple dismisses its
-Welcome).
-
----
-
