@@ -6868,4 +6868,82 @@ struct HeadingsRotorTests {
     }
 }
 
+
+/// SP-173 / I-0285 — the core concurrency design on Apple (Scrivi_Core_Concurrency_Design_v0_1.md D2–D4), through the engine and
+/// the real `ProjectSession.loadAsync`.
+@Suite("Core concurrency (SP-173)")
+@MainActor
+struct CoreConcurrencyTests {
+
+    private final class TempDir: @unchecked Sendable {
+        let url: URL
+        init() throws {
+            url = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-interop-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+    private func project() throws -> (engine: ScriviEngine, ref: AuthorshipRef, root: TempDir, support: TempDir, identityID: String) {
+        let support = try TempDir()
+        let root = try TempDir()
+        let engine = ScriviEngine()
+        let identity = try engine.ensureLocalIdentity(displayName: "Test Author", appSupportRoot: support.path)
+        let ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        _ = try engine.createProject(projectRootPath: root.path, appSupportRoot: support.path,
+                                     title: "Concurrency", slug: "concurrency", authorshipRef: ref)
+        return (engine, ref, root, support, identity.identityID)
+    }
+
+    @Test("D3/D2: loadTimeline returns the five parts and a revision; projectRevision moves only on a write")
+    func bindings() throws {
+        let (engine, ref, root, support, identityID) = try project()
+        let opened = try engine.openProject(projectRootPath: root.path, appSupportRoot: support.path, identityID: identityID)
+        let sceneID = try #require(opened.scenes.first?.sceneID)
+        // ⚠️ `try?`, and checked by READING BACK below: the Swift binding decodes `setSceneStoryTime`'s reply as a full
+        // SceneStoryTimeResult, but the C ABI returns only {sceneID, updated}, so it THROWS after the write has succeeded
+        // (found here, 2026-10-10; the app's two callers use `try?` too).
+        _ = try? engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 5_000, source: "manual",
+                                          gapMs: 0, durationMs: 60_000, durationSource: "manual")
+        _ = try engine.createHistoricalEvent(projectRootPath: root.path, title: "Coronation", offsetMs: -86_400_000,
+                                             authorshipRef: ref)
+
+        let before = try engine.projectRevision(projectRootPath: root.path)
+        let all = try engine.loadTimeline(projectRootPath: root.path)
+        #expect(all.revision == before, "a read does not move the revision")
+        #expect(all.parts.timeline?.epochLabel == (try engine.getTimeline(projectRootPath: root.path)).epochLabel)
+        #expect(all.parts.storyTimes?.storyTimes.map(\.sceneID) == [sceneID])
+        #expect(all.parts.historicalEvents?.count == 1)
+        #expect(all.parts.storyStructure?.hasStructure == false)
+        #expect(all.parts.importedTimelines?.count == 0)
+
+        _ = try? engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 9_000, source: "manual",
+                                          gapMs: 0, durationMs: 60_000, durationSource: "manual")
+        #expect(try engine.projectRevision(projectRootPath: root.path) == before + 1, "a write moves it by one")
+    }
+
+    @Test("D4/AC4/AC5: loadAsync draws the timeline from its worker's read; progress ends at scenes + 1")
+    func loadAsyncAppliesTheWorkersRead() async throws {
+        let (engine, ref, root, support, identityID) = try project()
+        let session = ProjectSession(engine: engine, authorshipRef: ref, appSupportRoot: support.path, identityID: identityID)
+        nonisolated(unsafe) var reports: [(Int, Int)] = []
+        let result = try await session.loadAsync(at: root.path) { done, total in reports.append((done, total)) }
+        #expect(session.timelineAppliedFromWorker, "no main-actor timeline read during the load")
+        #expect(session.timelineModel?.dots.count == result.scenes.count)
+        let last = try #require(reports.last)
+        #expect(last.0 == result.scenes.count + 1 && last.1 == result.scenes.count + 1, "the timeline is the last step")
+    }
+
+    @Test("apply(nil): a failed read draws defaults and leaves imported timelines alone")
+    func applyFailedRead() throws {
+        let model = TimelineViewModel()
+        model.apply(nil, scenes: [])
+        #expect(model.epochLabel == "Story Open")
+        #expect(model.historicalEvents.isEmpty)
+        #expect(model.activeBands.isEmpty)
+    }
+}
+
 #endif

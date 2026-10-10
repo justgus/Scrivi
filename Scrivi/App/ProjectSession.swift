@@ -37,6 +37,9 @@ import os
 
     // Timeline model — created on load, cleared on close.
     var timelineModel: TimelineViewModel?
+    /// SP-173 / I-0285 (AC4): true when the last load drew the timeline from the read its worker made (no main-actor read);
+    /// false when the project changed under the load and the timeline was read again on the main actor.
+    private(set) var timelineAppliedFromWorker = false
 
     // Undo/redo history capture (EP-019) — created on load, closed on close.
     // Owned here (both are @MainActor) so the editor coordinator can reach it
@@ -197,8 +200,9 @@ import os
         let appSupportRoot = self.appSupportRoot
         let identityID = self.identityID
 
-        // Off the main thread: open the project, then read every scene.
-        let (result, loaded) = try await Task.detached(priority: .userInitiated) {
+        // Off the main thread: open the project, then read every scene, then (SP-173 / I-0285) the timeline.
+        // ⚠️ Progress counts every scene PLUS the timeline read, the last step: `total` = scenes + 1 (AC5).
+        let (result, loaded, timeline) = try await Task.detached(priority: .userInitiated) {
             let result = try engine.openProject(
                 projectRootPath: path,
                 appSupportRoot: appSupportRoot,
@@ -210,9 +214,11 @@ import os
                 appSupportRoot: appSupportRoot,
                 projectID: result.projectID,
                 allScenes: result.scenes,
-                onProgress: onProgress
+                onProgress: { done, total in onProgress(done, total + 1) }
             )
-            return (result, loaded)
+            let timeline = try? engine.loadTimeline(projectRootPath: path)
+            onProgress(result.scenes.count + 1, result.scenes.count + 1)
+            return (result, loaded, timeline)
         }.value
 
         // ---- main actor from here down ----
@@ -231,7 +237,7 @@ import os
             activeSceneID: result.activeScene?.sceneID,
             restoredSelection: result.restored?.anchor
         )
-        finishLoad(result: result, loader: loader)
+        finishLoad(result: result, loader: loader, timelineRead: timeline)
         return result
     }
 
@@ -293,7 +299,8 @@ import os
     /// must run before `loader.historyCapture` is set (it establishes the session's
     /// baseline from disk), and `inspectorVisible` must be restored BEFORE
     /// `inspectorLayout` is published or the didSet writes the value straight back.
-    private func finishLoad(result: OpenProjectResult, loader: ViewportSceneLoader) {
+    private func finishLoad(result: OpenProjectResult, loader: ViewportSceneLoader,
+                            timelineRead: LoadTimelineResult? = nil) {
         // Both callers set `projectRootPath` before calling this.
         let path = projectRootPath ?? ""
         NSLog("[SCRIVI-TIMING] >>> entering: viewportLoader assignment")
@@ -311,8 +318,22 @@ import os
         let tlModel = TimelineViewModel()
         NSLog("[SCRIVI-TIMING] >>> entering: TimelineViewModel.load")
         ScriviDiag.measure("TimelineViewModel.load") {
-            tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
+            // ✅ SP-173 / I-0285 (D4): the worker's read, if the project has not changed since (one revision check, no file
+            // touched); otherwise read it again here — one call.
+            if let timelineRead,
+               let now = try? engine.projectRevision(projectRootPath: path), now == timelineRead.revision {
+                tlModel.apply(timelineRead, scenes: result.scenes)
+                timelineAppliedFromWorker = true
+            } else {
+                tlModel.load(engine: engine, projectRootPath: path, scenes: result.scenes)
+                timelineAppliedFromWorker = false
+            }
         }
+        // SP-173 (Q1): what the exclusive project lock has cost this process so far.
+        let waits = coreLockWaits.withLock { $0 }
+        NSLog("[SCRIVI-TIMING] timeline %@; lock waits so far: %lld ms total over %lld waits, longest %lld ms",
+              timelineAppliedFromWorker ? "applied from the worker's read" : "RE-READ on the main actor",
+              waits.totalMs, waits.count, waits.maxMs)
         timelineModel = tlModel
 
         // Open the undo/redo history for this project (best-effort — never blocks open).

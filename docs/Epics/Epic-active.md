@@ -64,7 +64,7 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 | ------ | ----- | ------ |
 | **[SP-165]** | **S1** — md4c analyzer in ScriviCore + `scrivi_analyze_markdown` + agreement test: L1, L2 (no rig) | ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-165.md`](../Sprints/Closed/Sprint-SP-165.md) · ✅ [T-0594] verified · ✅ L1, L2 met |
 | **[SP-166]** | **S2** — the presenter: L3, L4, L5, L6 (⚠️ live pass needs the rig) | ✅ **CLOSED 2026-10-09** (user-approved) → [`../Sprints/Closed/Sprint-SP-166.md`](../Sprints/Closed/Sprint-SP-166.md) · ✅ L3–L6, L9 (part) met; [T-0595] verified |
-| **[SP-173]** | **I-0285** (found in S2): project load — no frozen UI, timeline built once, load measured | 🟡 **ACTIVE 2026-10-09** → [`../Sprints/Sprint-SP-173.md`](../Sprints/Sprint-SP-173.md) |
+| **[SP-173]** | `[Cross]` **I-0285** (found in S2): project load — no frozen UI, timeline built once, load measured; core calls synchronised (both platforms) | 🟡 **ACTIVE 2026-10-09** → [`../Sprints/Sprint-SP-173.md`](../Sprints/Sprint-SP-173.md) |
 | S3 | commands: L7; balanced edits + copy: L9 (rest); ruling owed: is the missing hanging indent for list items acceptable (from SP-166) | not yet created |
 | S4 | Find/Replace: L8 | not yet created |
 | S5 | EP-047's preferences on Linux: L10 (after EP-047 S1–S4) | not yet created |

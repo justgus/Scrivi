@@ -18,6 +18,13 @@ extern "C" {
  *
  * All input const char* parameters must be valid UTF-8 C strings.
  * Passing NULL for any input is safe — it is treated as an empty string.
+ *
+ * THREADS (SP-173, Scrivi_Core_Concurrency_Design_v0_1.md). Any function may be called from any thread. Every function that
+ * takes a project root runs under that project's EXCLUSIVE lock, so no call sees another part-way through, and its envelope
+ * (ok or not) also carries:
+ *   "revision"   -- the project's change counter in this process: a call that may change the project bumps it, a read
+ *                   does not. A result read in the background is current only if the revision has not moved since.
+ *   "lockWaitMs" -- present only when the call waited 1 ms or more for the project's lock.
  */
 
 void        scrivi_free(const char* json);
@@ -653,6 +660,22 @@ const char* scrivi_set_imported_timeline_visible(const char* projectRootPath,
 const char* scrivi_list_imported_timelines(const char* projectRootPath);
 const char* scrivi_remove_imported_timeline(const char* projectRootPath, const char* timelineID);
 const char* scrivi_export_project_timeline(const char* projectRootPath);
+
+/* SP-173 / I-0285 (Scrivi_Core_Concurrency_Design_v0_1.md D3) -- the timeline's five reads in ONE call, under ONE project
+ * lock, so they describe one state of the project. Result keys, each exactly what its standalone endpoint returns:
+ *   "timeline"          (scrivi_get_timeline)            "storyTimes"        (scrivi_list_story_times)
+ *   "storyStructure"    (scrivi_get_story_structure)     "historicalEvents"  (scrivi_list_historical_events)
+ *   "importedTimelines" (scrivi_list_imported_timelines)
+ * A part that fails is replaced by "<part>Error" ({code, message}); the others are still returned.
+ * WARNING: the standalone endpoints' empty-array traps apply inside each part (e.g. "storyTimes"."storyTimes" is OMITTED
+ * when no scene has an explicit story time; use its "count").
+ *
+ * Every project endpoint's envelope carries "revision" (D2): this call's is the revision all five parts describe. */
+const char* scrivi_load_timeline(const char* projectRootPath);
+
+/* SP-173 / I-0285 (D4) -- the project's current "revision" (in the envelope) and nothing else; touches no file. Ask it on the
+ * main thread just before applying a result read in the background: apply only if the two revisions match. */
+const char* scrivi_get_project_revision(const char* projectRootPath);
 
 /* ---- Searchable content (EP-017 SP-044 — Spotlight indexing facade) ----- */
 

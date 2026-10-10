@@ -90,6 +90,13 @@ public:
               const QString& title,
               const QVariantMap& openedProject = {});
 
+    // [I-0285] How many times the timeline has been BUILT (past `reloadTimeline`'s guard). A load builds it once; the smoke
+    // that opens a project asserts that, so the double build cannot return unnoticed.
+    int timelineBuildCount() const { return timelineBuilds_; }
+    // SP-173 / I-0285 (AC4): how many timeline READS ran on the UI thread (`reloadTimeline`). A load reads it in the worker,
+    // so a load alone leaves this at 0 unless the project changed under it.
+    int timelineUiThreadReadCount() const { return timelineUiReads_; }
+
     // Flush any pending edits to disk immediately (T-0239). Called by the shell on
     // Close and by the host on app-quit so no edit is lost on the way out — the
     // Docker/VNC quit path in particular (the app is the container's foreground
@@ -361,6 +368,24 @@ private:
     // widget, no model, and nothing owned by the UI thread (AsyncCall.hpp states
     // the rule; violating it is the classic way an async refactor introduces a
     // crash that only appears under load).
+    // SP-173 / I-0285 (D3, D4): everything the timeline reads from the core, in ONE `scrivi_load_timeline` call. Fetched
+    // on any thread (`fetchTimelineData`), applied on the UI thread (`applyTimelineData`), and only if `revision` is still
+    // the project's revision — otherwise it describes a project that has since changed.
+    struct TimelineData {
+        bool    fetched  = false;
+        qint64  revision = -1;
+        QString epochLabel;
+        struct StoryTime { qint64 gapMs = 0; qint64 durationMs = 0; QString bandID; };
+        QHash<QString, StoryTime> storyTimes;    // EXPLICIT story times only; an absent scene is on the default chain
+        QString eventsJSON;
+        bool    hasStructure = false;
+        QString structureID;
+        QString bandLayoutJSON;
+        QVariantMap imported;                     // the importedTimelines part, as listImportedTimelines returns it
+    };
+    static TimelineData fetchTimelineData(ScriviBridge* bridge, const QString& projectRootPath);
+    void applyTimelineData(const TimelineData& data);
+
     struct LoadPayload {
         bool                       ok = false;
         QString                    failureMessage;   // writer-facing, already composed
@@ -370,6 +395,7 @@ private:
         int                        restoredAnchor = 0;
         int                        restoredFocus  = 0;
         double                     restoredScroll = 0.0;
+        TimelineData               timeline;         // SP-173 (D4): read in the worker, after the bodies
     };
 
     // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY
@@ -382,10 +408,9 @@ private:
                             const QString& appSupportRoot,
                             const LoadPayload& payload);
 
-    // Load the imported-timeline rows into the panel (T-0342). Reads listImportedTimelines
-    // for metadata + each stored file in objects/imported-timelines/ for the per-event
-    // dots (the list projection omits events). Called from reloadTimeline.
-    void reloadImportedTimelines();
+    // Load the imported-timeline rows into the panel (T-0342) from the importedTimelines part of the timeline read
+    // (SP-173: no call of its own). Called from applyTimelineData.
+    void reloadImportedTimelines(const QVariantMap& li);
     // Absolute path to the timeline view-state INI. Lives INSIDE the app-support root
     // (not the default ~/.config) so it survives the Docker/VNC container's --rm restart,
     // which only bind-mounts app-support (T-0338 persistence fix). Empty appSupportRoot_
@@ -401,9 +426,10 @@ private:
     void rebuildNavigator();
 
     // --- EP-025 Timeline (SP-079, T-0322/T-0324) --------------------------
+    // ✅ SP-173 / I-0285: ONE core call (`scrivi_load_timeline`) instead of ~2 per scene; see TimelineData.
     // Rebuild the Timeline panel's dots from the current segments + the backend
-    // story-time: epoch label from bridge_->getTimeline, then per-scene gapMs +
-    // durationMs from bridge_->getSceneStoryTime, run through the default gap chain
+    // story-time: epoch label from the timeline settings, then per-scene gapMs +
+    // durationMs from the explicit story times, run through the default gap chain
     // (offset[i] = prevEnd + gapMs[i]) to get each dot's story-time offset — mirroring
     // Apple's TimelineViewModel.load + recomputeAllOffsets. Called on load() and after
     // any structural change so the strip tracks the manuscript. Guarded by loading_
@@ -632,6 +658,8 @@ private:
     // True while load() is programmatically assembling the document, so the
     // contentsChange / cursor hooks ignore those (non-user) events.
     bool                loading_ = false;
+    int                 timelineBuilds_ = 0;   // [I-0285] see timelineBuildCount()
+    int                 timelineUiReads_ = 0;  // [I-0285] see timelineUiThreadReadCount()
 
     // Guard against a scroll↔selection feedback loop (T-0243/T-0244): set while the
     // shell is programmatically scrolling/selecting the viewport (navigator click,

@@ -288,6 +288,11 @@ public:
     // (EP-016/SP-039); scrivi.h is untouched. On failure emits errorOccurred, returns {}.
     Q_INVOKABLE QVariantMap getTimeline(const QString& projectRootPath);
 
+    // SP-173 / I-0285 (D3): all five timeline reads in one call, under one project lock; worker-safe. See the .cpp.
+    QVariantMap loadTimeline(const QString& projectRootPath);
+    // SP-173 (D4): the project's current revision (-1 on failure); touches no file.
+    qint64 projectRevision(const QString& projectRootPath);
+
     // Returns one scene's story-time (EP-025 / SP-079, T-0321). Calls
     // scrivi_get_scene_story_time(projectRootPath, sceneID) and returns its ok
     // "result": {sceneID, offsetMs, offsetSource, gapMs, durationMs, durationSource,
@@ -566,7 +571,17 @@ public:
     //
     // Set by every call that goes through parseEnvelope, so it must be read
     // IMMEDIATELY after the call it refers to.
-    bool lastCallFailed() const { return lastCallFailed_; }
+    //
+    // ✅ SP-173 (D5, Scrivi_Core_Concurrency_Design_v0_1.md): PER THREAD, not per bridge. Background reads (SceneInspector,
+    // WorldsDialog, the project load) call through the same bridge as the main thread; a shared flag let one thread's call
+    // overwrite the other's answer between its call and its read (a data race, and a wrong answer). Each thread now sees
+    // only its own last call.
+    bool lastCallFailed() const;
+    // SP-173 (D2): the project revision THIS thread's last call reported, or -1. Read immediately after the call.
+    qint64 lastRevision() const;
+    // SP-173 (Q1): the project-lock waits the core has reported in this process (each ≥ 1 ms), across all threads.
+    struct LockWaitStats { qint64 totalMs = 0; qint64 count = 0; qint64 maxMs = 0; };
+    static LockWaitStats lockWaitStats();
 
 signals:
     void readyChanged();
@@ -583,9 +598,6 @@ private:
     QVariantMap parseEnvelope(const QString& json);
 
     bool    ready_ = false;
-    // See lastCallFailed(). Starts false: no call has failed before the first
-    // call is made.
-    bool    lastCallFailed_ = false;
     QString identityID_;
     QString personaID_;
     QString displayName_;

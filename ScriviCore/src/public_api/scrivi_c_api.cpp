@@ -33,6 +33,7 @@
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
 #include "util/Json.hpp"
+#include "public_api/ProjectLock.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -190,6 +191,16 @@ scrivi::CoreServices abiServices() {
     return svc;
 }
 
+// The current call's project context (SP-173 / I-0285, D1 + D2 — `ProjectLock.hpp`). Every project call reports the project's
+// REVISION, and any lock wait, without each endpoint passing it on.
+static void addProjectCallFields(scrivi::util::JsonDoc& root) {
+    const scrivi::abi::ProjectCallContext* call = scrivi::abi::currentProjectCall();
+    if (call == nullptr) { return; }
+    root.setInt64("revision", call->revision);
+    // Q1 (exclusive lock): the wait is MEASURED, not assumed. Only a wait of 1 ms or more is reported.
+    if (call->lockWaitMs > 0) { root.setInt64("lockWaitMs", call->lockWaitMs); }
+}
+
 // ---------------------------------------------------------------------------
 // JSON envelope helpers
 // ---------------------------------------------------------------------------
@@ -207,6 +218,7 @@ static std::string errorEnvelope(const scrivi::Error& e) {
     scrivi::util::JsonDoc root;
     root.setBool("ok",    false);
     root.setSubDoc("error", std::move(err));
+    addProjectCallFields(root);
     return root.dump();
 }
 
@@ -214,6 +226,7 @@ static std::string okEnvelope(scrivi::util::JsonDoc result) {
     scrivi::util::JsonDoc root;
     root.setBool("ok", true);
     root.setSubDoc("result", std::move(result));
+    addProjectCallFields(root);
     return root.dump();
 }
 
@@ -234,6 +247,7 @@ static std::string errorEnvelope(scrivi::ErrorCode code, std::string_view messag
     scrivi::util::JsonDoc root;
     root.setBool("ok", false);
     root.setSubDoc("error", std::move(err));
+    addProjectCallFields(root);
     return root.dump();
 }
 
@@ -294,6 +308,11 @@ static const char* guarded(Fn&& fn) {
                                   "unhandled non-standard exception"));
     }
 }
+
+// D1 + D2 (SP-173 / I-0285): every project endpoint opens with `SCRIVI_PROJECT_READ` or `SCRIVI_PROJECT_WRITE` — see
+// `ProjectLock.hpp`; `scripts/check-abi-project-guards.sh` (ctest) fails if one does not.
+#define SCRIVI_PROJECT_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::read)
+#define SCRIVI_PROJECT_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::write)
 
 // ---------------------------------------------------------------------------
 // Undo/Redo history registry (EP-019 SP-052 — T-0202)
@@ -819,6 +838,7 @@ const char* scrivi_create_project(
     const char* personaID,
     const char* displayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::CreateProjectRequest req;
     req.projectRootPath = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -850,6 +870,7 @@ const char* scrivi_open_project(
     const char* appSupportRoot,
     const char* identityID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::OpenProjectRequest req;
     req.projectRootPath = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -915,6 +936,7 @@ const char* scrivi_open_project(
 }
 
 const char* scrivi_close_project(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC1-AC3 (SP-131 T-0512). ⚠️ WITHOUT THIS THE REGISTRY LEAKS: an
     // index is built per project root and nothing else ever removes it, so a
     // session that opens two projects holds two indexes for the life of the
@@ -978,6 +1000,7 @@ const char* scrivi_open_scene(
     const char* projectID,
     const char* sceneID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // ✅ Unchanged behaviour: a scene the writer NAVIGATED TO is recorded as the
     // last writing surface, which is what restores their cursor next session.
     return openSceneImpl(projectRootPath, appSupportRoot, projectID, sceneID,
@@ -990,6 +1013,7 @@ const char* scrivi_open_scene_for_bulk_load(
     const char* projectID,
     const char* sceneID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // ⚠️ SP-144: the viewport's per-scene loop. See the header for the
     // measurement — 61 atomic workspace writes per 61-scene load.
     return openSceneImpl(projectRootPath, appSupportRoot, projectID, sceneID,
@@ -1011,6 +1035,7 @@ const char* scrivi_save_scene(
     const char* personaID,
     const char* displayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SaveSceneRequest req;
     req.projectID         = scrivi::ProjectID{S(projectID)};
     req.projectRootPath   = S(projectRootPath);
@@ -1047,6 +1072,7 @@ const char* scrivi_scan_for_external_changes(
     const char* appSupportRoot,
     int         includeGitStatus)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::ExternalChangeScanRequest req;
     req.projectRootPath  = S(projectRootPath);
     SCRIVI_REQUIRE_PATH(appSupportRoot, "appSupportRoot");
@@ -1076,6 +1102,7 @@ const char* scrivi_apply_repair(
     const char* personaID,
     const char* displayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -1114,6 +1141,7 @@ const char* scrivi_enable_git_snapshots(
     const char* displayName,
     const char* initialSnapshotLabel)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::EnableGitRequest req;
     req.projectRootPath      = S(projectRootPath);
     req.initialSnapshotLabel = initialSnapshotLabel && initialSnapshotLabel[0]
@@ -1144,6 +1172,7 @@ const char* scrivi_create_snapshot(
     const char* label,
     const char* note)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::CreateSnapshotRequest req;
     req.projectRootPath = S(projectRootPath);
     req.label           = S(label);
@@ -1176,6 +1205,7 @@ const char* scrivi_create_object(
     const char* authorDisplayName,
     const char* worldID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
 
@@ -1208,6 +1238,7 @@ const char* scrivi_open_object(
     const char* objectID,
     const char* worldID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
 
@@ -1235,6 +1266,7 @@ const char* scrivi_save_object(
     const char* personaID,
     const char* authorDisplayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
 
@@ -1266,6 +1298,7 @@ const char* scrivi_delete_object(
     const char* objectID,
     const char* worldID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto kind = objectKindFromStr(S(objectKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(objectKind))));
 
@@ -1296,6 +1329,7 @@ const char* scrivi_create_edge(
     const char* relationTypeCode,
     const char* note)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::objects::RelationshipStore store{svc};
     auto r = store.create(S(projectRootPath), S(fromID), S(toID),
@@ -1317,6 +1351,7 @@ const char* scrivi_delete_edge(
     const char* projectRootPath,
     const char* edgeID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::objects::RelationshipStore store{svc};
     auto r = store.remove(S(projectRootPath), S(edgeID));
@@ -1332,6 +1367,7 @@ const char* scrivi_list_edges_for(
     const char* projectRootPath,
     const char* endpointID)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::objects::RelationshipStore store{svc};
     auto r = store.listFor(S(projectRootPath), S(endpointID));
@@ -1372,6 +1408,7 @@ const char* scrivi_list_edges_for(
 
 const char* scrivi_list_pending_edges(const char* projectRootPath)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::objects::RelationshipStore store{svc};
     auto r = store.listPending(S(projectRootPath));
@@ -1500,6 +1537,7 @@ void putObjectEntry(scrivi::util::JsonDoc& item,
 
 const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrNull)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
 
     const std::string kindFilter = S(kindOrNull);
@@ -1536,6 +1574,7 @@ const char* scrivi_list_objects(const char* projectRootPath, const char* kindOrN
 
 const char* scrivi_list_orphaned_objects(const char* projectRootPath)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     const std::string root = S(projectRootPath);
 
@@ -1570,6 +1609,7 @@ const char* scrivi_promote_object(const char* projectRootPath,
                                   const char* targetKind,
                                   const char* worldIDOrNull)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto kind = objectKindFromStr(S(targetKind));
     if (!kind) return heap(errorEnvelope(unknownObjectKindError(S(targetKind))));
 
@@ -1618,6 +1658,7 @@ const char* scrivi_create_world(const char* projectRootPath,
                                 const char* displayName,
                                 const char* epochLabel)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.createWorld(S(projectRootPath), S(packagePath),
@@ -1631,6 +1672,7 @@ const char* scrivi_create_world(const char* projectRootPath,
 
 const char* scrivi_add_world(const char* projectRootPath, const char* packagePath)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.addWorld(S(projectRootPath), S(packagePath));
@@ -1643,6 +1685,7 @@ const char* scrivi_add_world(const char* projectRootPath, const char* packagePat
 
 const char* scrivi_list_worlds(const char* projectRootPath)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.listWorlds(S(projectRootPath));
@@ -1668,6 +1711,7 @@ const char* scrivi_list_worlds(const char* projectRootPath)
 
 const char* scrivi_get_world_status(const char* projectRootPath, const char* worldID)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto res = store.resolve(S(projectRootPath), S(worldID));
@@ -1684,6 +1728,7 @@ const char* scrivi_get_world_status(const char* projectRootPath, const char* wor
 
 const char* scrivi_get_world_binding(const char* projectRootPath, const char* worldID)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.loadBinding(S(projectRootPath), S(worldID));
@@ -1710,6 +1755,7 @@ const char* scrivi_relink_world(const char* projectRootPath,
                                 const char* worldID,
                                 const char* newPackagePath)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.relink(S(projectRootPath), S(worldID), S(newPackagePath));
@@ -1723,6 +1769,7 @@ const char* scrivi_relink_world(const char* projectRootPath,
 
 const char* scrivi_remove_world_reference(const char* projectRootPath, const char* worldID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.removeReference(S(projectRootPath), S(worldID));
@@ -1738,6 +1785,7 @@ const char* scrivi_set_world_epoch_offset(const char* projectRootPath,
                                           const char* worldID,
                                           long long epochOffsetMs)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.setWorldEpochOffset(S(projectRootPath), S(worldID), epochOffsetMs);
@@ -1754,6 +1802,7 @@ const char* scrivi_set_timeline_epoch_offset(const char* projectRootPath,
                                              const char* timelineID,
                                              long long epochOffsetMs)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.setTimelineEpochOffset(S(projectRootPath), S(worldID),
@@ -1770,6 +1819,7 @@ const char* scrivi_resolve_timeline_project_times(const char* projectRootPath,
                                                   const char* worldID,
                                                   const char* timelineID)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::worlds::WorldStore store{svc};
     auto r = store.resolveTimelineProjectOffset(S(projectRootPath), S(worldID), S(timelineID));
@@ -1823,6 +1873,7 @@ const char* scrivi_list_object_kinds(void)
 
 const char* scrivi_list_relation_types(const char* projectRootPath)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     auto svc = abiServices();
     scrivi::objects::RelationTypeStore store{svc};
     auto r = store.load(S(projectRootPath));
@@ -1852,6 +1903,7 @@ const char* scrivi_upsert_relation_type(
     const char* projectRootPath,
     const char* relationTypeJson)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     auto parsedR = scrivi::util::parseJson(S(relationTypeJson));
     if (!parsedR.ok()) return heap(errorEnvelope(parsedR.error()));
     const auto& d = parsedR.value();
@@ -1896,6 +1948,7 @@ const char* scrivi_import_asset(
     const char* worldID,
     const char* projectID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::ImportAssetRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sourcePath      = S(sourcePath);
@@ -1925,6 +1978,7 @@ const char* scrivi_list_assets(
     const char* category,
     const char* worldID)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     scrivi::ListAssetsRequest req;
     req.projectRootPath = S(projectRootPath);
     req.worldID         = S(worldID);
@@ -1965,6 +2019,7 @@ const char* scrivi_remove_asset(
     const char* worldID,
     const char* projectID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::RemoveAssetRequest req;
     req.projectRootPath = S(projectRootPath);
     req.assetID         = S(assetID);
@@ -1990,6 +2045,7 @@ const char* scrivi_add_comment(
     const char* personaID,
     const char* authorDisplayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::AddCommentRequest req;
     req.projectRootPath = S(projectRootPath);
     req.scopeKind       = S(scopeKind);
@@ -2016,6 +2072,7 @@ const char* scrivi_list_comments(
     const char* scopeKind,
     const char* targetID)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     scrivi::ListCommentsRequest req;
     req.projectRootPath = S(projectRootPath);
     req.scopeKind       = S(scopeKind);
@@ -2041,6 +2098,7 @@ const char* scrivi_resolve_comment(
     const char* personaID,
     const char* resolverDisplayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::ResolveCommentRequest req;
     req.projectRootPath = S(projectRootPath);
     req.scopeKind       = S(scopeKind);
@@ -2064,6 +2122,7 @@ const char* scrivi_resolve_comment(
 
 const char* scrivi_list_inbox(const char* projectRootPath)
 {
+    SCRIVI_PROJECT_READ(projectRootPath);
     scrivi::ListInboxRequest req;
     req.projectRootPath = S(projectRootPath);
 
@@ -2094,6 +2153,7 @@ const char* scrivi_import_from_inbox(
     const char* personaID,
     const char* authorDisplayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     static const auto actionFromStr = [](std::string_view s) -> scrivi::InboxAction {
         if (s == "ignore")     return scrivi::InboxAction::ignore;
         if (s == "deleteFile") return scrivi::InboxAction::deleteFile;
@@ -2133,6 +2193,7 @@ const char* scrivi_create_scene(
     const char* personaID,
     const char* displayName)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2176,6 +2237,7 @@ const char* scrivi_create_chapter(
     const char* displayName,
     const char* afterChapterID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2215,6 +2277,7 @@ const char* scrivi_delete_scene(
     const char* projectRootPath,
     const char* sceneID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -2238,6 +2301,7 @@ const char* scrivi_delete_chapter(
     const char* projectRootPath,
     const char* chapterID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2269,6 +2333,7 @@ const char* scrivi_reorder_scene(
     const char* targetChapterID,
     const char* afterSceneID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2307,6 +2372,7 @@ const char* scrivi_reorder_chapter(
     const char* chapterID,
     const char* afterChapterID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2338,6 +2404,7 @@ const char* scrivi_rename_scene(
     const char* metadataPath,
     const char* newTitle)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -2364,6 +2431,7 @@ const char* scrivi_rename_chapter(
     const char* metadataPath,
     const char* newTitle)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -2391,6 +2459,7 @@ const char* scrivi_merge_scene(
     const char* projectRootPath,
     const char* sceneID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2423,6 +2492,7 @@ const char* scrivi_merge_chapter(
     const char* projectRootPath,
     const char* chapterID)
 {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // T-0550 (SP-150) — ✅ per-chapter rebuild instead of a whole-index drop.
     // ⚠️ AC5b's contract is UNCHANGED: dropped on both sides by default, and the
     // partial rebuild is attempted only after the write SUCCEEDED, with the chapter
@@ -2452,21 +2522,159 @@ const char* scrivi_merge_chapter(
 
 // ---- Timeline (EP-016 SP-039) -----------------------------------------------
 
-const char* scrivi_get_timeline(const char* projectRootPath) {
+// ---------------------------------------------------------------------------
+// The timeline's five reads as PARTS (SP-173 / I-0285, D3). Each standalone endpoint returns one part; `scrivi_load_timeline`
+// returns all five under ONE project lock, so they describe one state of the project (L2). One builder per part, shared by
+// both paths: the composite cannot drift from the endpoints it replaces.
+// ---------------------------------------------------------------------------
+struct TimelinePart {
+    bool ok = false;
+    scrivi::util::JsonDoc doc;
+    scrivi::Error error;
+    static TimelinePart failure(scrivi::Error e) { TimelinePart p; p.error = std::move(e); return p; }
+    static TimelinePart success(scrivi::util::JsonDoc d) { TimelinePart p; p.ok = true; p.doc = std::move(d); return p; }
+};
+
+static const char* timelinePartEnvelope(TimelinePart part) {
+    return part.ok ? heap(okEnvelope(std::move(part.doc))) : heap(errorEnvelope(part.error));
+}
+
+static TimelinePart timelineSettingsPart(const char* projectRootPath) {
     scrivi::GetTimelineRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().getTimeline(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    if (!r.ok()) return TimelinePart::failure(r.error());
     const auto& v = r.value();
     scrivi::util::JsonDoc doc;
     doc.setString("timelineID", v.timelineID);
     doc.setString("epochLabel", v.epochLabel);
     doc.setString("projectID",  v.projectID);
     doc.setString("createdAt",  v.createdAt);
-    return heap(okEnvelope(std::move(doc)));
+    return TimelinePart::success(std::move(doc));
+}
+
+static TimelinePart storyTimesPart(const char* projectRootPath) {
+    // EP-039 AC4 (SP-131 T-0515) — THE SPARSE BULK CALL.
+    //
+    // ⚠️ WHAT THIS REPLACES: the timeline called `scrivi_get_scene_story_time` ONCE PER
+    // SCENE, and each of those resolved the WHOLE manuscript to locate one sidecar.
+    // ✅ MEASURED at 234-251 s on a 1,153-scene manuscript — 78% of a ~300 s frozen open.
+    //
+    // ⚠️ SPARSE BY DESIGN. A record is returned ONLY for a scene whose story time is
+    // EXPLICITLY SET. Scenes on the default chain are OMITTED — their offsets are
+    // DERIVED (FR-022m) and cost nothing to omit.
+    //
+    // ⚠️ AN EMPTY RESULT IS THE COMMON CASE AND IS NOT AN ERROR. MEASURED on the
+    // 1,203-sidecar fixture: ZERO scenes have a storyTime block — the key is `null`.
+    // ✅ So this returns an EMPTY ARRAY and the timeline draws its default chain with NO
+    // per-scene I/O at all. ⚠️ 234-251 s was spent discovering that nothing is set.
+    //
+    // ⚠️ THE EMPTY-ARRAY TRAP APPLIES, AND HERE EMPTY IS THE NORM.
+    // `appendToArray` OMITS THE KEY ENTIRELY for an empty list, so a bare `{}` result is
+    // ambiguous between "none set" and "the call failed". ✅ THE CALLER MUST USE THE
+    // FAILURE SIGNAL (`ok`/`ScriviBridge::lastCallFailed()`), NEVER emptiness — reading
+    // empty as failure would make a real timeline draw as blank.
+    // ✅ `count` is emitted UNCONDITIONALLY below so the key is always present.
+    const std::string root = S(projectRootPath);
+    if (root.empty()) {
+        return TimelinePart::failure({.code = scrivi::ErrorCode::invalidArgument,
+                                      .message = "projectRootPath is required"});
+    }
+
+    auto services = abiServices();
+    services.sceneLocator = nullptr;   // no recursion through the locator
+
+    std::vector<std::pair<scrivi::SceneID, scrivi::manuscript::SceneStoryTime>> found;
+    bool served = withProjectIndex(root, services,
+        [&](const scrivi::manuscript::ProjectIndex& idx) {
+            found = idx.explicitStoryTimes();
+        });
+
+    if (!served) {
+        // ⚠️ The index could not be built. ✅ FALL BACK TO A REAL TRAVERSAL — never
+        // report "nothing is set", which is what an empty array would claim (AC5a).
+        scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+        auto scenesR = resolver.resolve(root);
+        if (!scenesR.ok()) return TimelinePart::failure(scenesR.error());
+        for (const auto& sc : scenesR.value()) {
+            if (scrivi::manuscript::storyTimeIsExplicitlySet(sc.storyTime)) {
+                found.emplace_back(sc.sceneID, sc.storyTime);
+            }
+        }
+    }
+
+    scrivi::util::JsonDoc doc;
+    for (const auto& [sceneID, st] : found) {
+        scrivi::util::JsonDoc item;
+        item.setString("sceneID",        sceneID.value);
+        item.setInt("offsetMs",          st.offsetMs);
+        item.setString("offsetSource",   st.offsetSource);
+        item.setInt("gapMs",             st.gapMs);
+        item.setInt("durationMs",        st.durationMs);
+        item.setString("durationSource", st.durationSource);
+        item.setString("inferenceHint",  st.inferenceHint);
+        item.setString("bandID",         st.bandID);
+        item.setString("bandAssignedAt", st.bandAssignedAt);
+        doc.appendToArray("storyTimes", std::move(item));
+    }
+    // ⚠️ ALWAYS PRESENT, even at zero — this is the unambiguous "the call ran" signal,
+    // because `storyTimes` itself vanishes when the list is empty.
+    doc.setInt("count", static_cast<long long>(found.size()));
+    return TimelinePart::success(std::move(doc));
+}
+
+static TimelinePart storyStructurePart(const char* projectRootPath) {
+    scrivi::GetStoryStructureRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().getStoryStructure(req);
+    if (!r.ok()) return TimelinePart::failure(r.error());
+    const auto& v = r.value();
+    scrivi::util::JsonDoc doc;
+    doc.setBool("hasStructure",   v.hasStructure);
+    doc.setString("structureID",  v.structureID);
+    doc.setString("bandLayoutJSON", v.bandLayoutJSON);
+    return TimelinePart::success(std::move(doc));
+}
+
+static TimelinePart historicalEventsPart(const char* projectRootPath) {
+    scrivi::ListHistoricalEventsRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().listHistoricalEvents(req);
+    if (!r.ok()) return TimelinePart::failure(r.error());
+    scrivi::util::JsonDoc doc;
+    doc.setInt("count",        r.value().count);
+    doc.setString("eventsJSON", r.value().eventsJSON);
+    return TimelinePart::success(std::move(doc));
+}
+
+static TimelinePart importedTimelinesPart(const char* projectRootPath) {
+    scrivi::ListImportedTimelinesRequest req;
+    req.projectRootPath = S(projectRootPath);
+    auto r = core().listImportedTimelines(req);
+    if (!r.ok()) return TimelinePart::failure(r.error());
+    scrivi::util::JsonDoc doc;
+    doc.setInt("count",           r.value().count);
+    doc.setString("timelinesJSON", r.value().timelinesJSON);
+    // [I-0214] Files that could not be read or parsed. ⚠️ `rejectedCount` is emitted
+    // ALWAYS — including 0 — so a caller can branch on it without the empty-array trap
+    // (an omitted key is indistinguishable from a failed call: project_envelope_empty_vs_failed).
+    doc.setInt("rejectedCount", static_cast<int>(r.value().rejected.size()));
+    for (const auto& rej : r.value().rejected) {
+        scrivi::util::JsonDoc rd;
+        rd.setString("path",   rej.path);
+        rd.setString("reason", rej.reason);
+        doc.appendToArray("rejected", std::move(rd));
+    }
+    return TimelinePart::success(std::move(doc));
+}
+
+const char* scrivi_get_timeline(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return timelinePartEnvelope(timelineSettingsPart(projectRootPath));
 }
 
 const char* scrivi_set_timeline_epoch_label(const char* projectRootPath, const char* label) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SetTimelineEpochLabelRequest req;
     req.projectRootPath = S(projectRootPath);
     req.label           = S(label);
@@ -2481,6 +2689,7 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
                                          int64_t offsetMs, const char* source,
                                          int64_t gapMs,
                                          int64_t durationMs, const char* durationSource) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -2512,6 +2721,7 @@ const char* scrivi_set_scene_story_time(const char* projectRootPath, const char*
 
 const char* scrivi_set_scene_tags(const char* projectRootPath, const char* sceneID,
                                    const char* tagsJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SetSceneTagsRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2538,6 +2748,7 @@ const char* scrivi_set_scene_tags(const char* projectRootPath, const char* scene
 
 const char* scrivi_set_scene_outline(const char* projectRootPath, const char* sceneID,
                                       const char* outline) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SetSceneOutlineRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2552,6 +2763,7 @@ const char* scrivi_set_scene_outline(const char* projectRootPath, const char* sc
 
 const char* scrivi_set_scene_todo(const char* projectRootPath, const char* sceneID,
                                    const char* todoJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SetSceneTodoRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2581,78 +2793,12 @@ const char* scrivi_set_scene_todo(const char* projectRootPath, const char* scene
 }
 
 const char* scrivi_list_story_times(const char* projectRootPath) {
-  return guarded([&]() -> const char* {
-    // EP-039 AC4 (SP-131 T-0515) — THE SPARSE BULK CALL.
-    //
-    // ⚠️ WHAT THIS REPLACES: the timeline called `scrivi_get_scene_story_time` ONCE PER
-    // SCENE, and each of those resolved the WHOLE manuscript to locate one sidecar.
-    // ✅ MEASURED at 234-251 s on a 1,153-scene manuscript — 78% of a ~300 s frozen open.
-    //
-    // ⚠️ SPARSE BY DESIGN. A record is returned ONLY for a scene whose story time is
-    // EXPLICITLY SET. Scenes on the default chain are OMITTED — their offsets are
-    // DERIVED (FR-022m) and cost nothing to omit.
-    //
-    // ⚠️ AN EMPTY RESULT IS THE COMMON CASE AND IS NOT AN ERROR. MEASURED on the
-    // 1,203-sidecar fixture: ZERO scenes have a storyTime block — the key is `null`.
-    // ✅ So this returns an EMPTY ARRAY and the timeline draws its default chain with NO
-    // per-scene I/O at all. ⚠️ 234-251 s was spent discovering that nothing is set.
-    //
-    // ⚠️ THE EMPTY-ARRAY TRAP APPLIES, AND HERE EMPTY IS THE NORM.
-    // `appendToArray` OMITS THE KEY ENTIRELY for an empty list, so a bare `{}` result is
-    // ambiguous between "none set" and "the call failed". ✅ THE CALLER MUST USE THE
-    // FAILURE SIGNAL (`ok`/`ScriviBridge::lastCallFailed()`), NEVER emptiness — reading
-    // empty as failure would make a real timeline draw as blank.
-    // ✅ `count` is emitted UNCONDITIONALLY below so the key is always present.
-    const std::string root = S(projectRootPath);
-    if (root.empty()) {
-        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
-                                  "projectRootPath is required"));
-    }
-
-    auto services = abiServices();
-    services.sceneLocator = nullptr;   // no recursion through the locator
-
-    std::vector<std::pair<scrivi::SceneID, scrivi::manuscript::SceneStoryTime>> found;
-    bool served = withProjectIndex(root, services,
-        [&](const scrivi::manuscript::ProjectIndex& idx) {
-            found = idx.explicitStoryTimes();
-        });
-
-    if (!served) {
-        // ⚠️ The index could not be built. ✅ FALL BACK TO A REAL TRAVERSAL — never
-        // report "nothing is set", which is what an empty array would claim (AC5a).
-        scrivi::manuscript::ManuscriptOrderResolver resolver{services};
-        auto scenesR = resolver.resolve(root);
-        if (!scenesR.ok()) return heap(errorEnvelope(scenesR.error()));
-        for (const auto& sc : scenesR.value()) {
-            if (scrivi::manuscript::storyTimeIsExplicitlySet(sc.storyTime)) {
-                found.emplace_back(sc.sceneID, sc.storyTime);
-            }
-        }
-    }
-
-    scrivi::util::JsonDoc doc;
-    for (const auto& [sceneID, st] : found) {
-        scrivi::util::JsonDoc item;
-        item.setString("sceneID",        sceneID.value);
-        item.setInt("offsetMs",          st.offsetMs);
-        item.setString("offsetSource",   st.offsetSource);
-        item.setInt("gapMs",             st.gapMs);
-        item.setInt("durationMs",        st.durationMs);
-        item.setString("durationSource", st.durationSource);
-        item.setString("inferenceHint",  st.inferenceHint);
-        item.setString("bandID",         st.bandID);
-        item.setString("bandAssignedAt", st.bandAssignedAt);
-        doc.appendToArray("storyTimes", std::move(item));
-    }
-    // ⚠️ ALWAYS PRESENT, even at zero — this is the unambiguous "the call ran" signal,
-    // because `storyTimes` itself vanishes when the list is empty.
-    doc.setInt("count", static_cast<long long>(found.size()));
-    return heap(okEnvelope(std::move(doc)));
-  });
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return guarded([&]() -> const char* { return timelinePartEnvelope(storyTimesPart(projectRootPath)); });
 }
 
 const char* scrivi_get_scene_notes(const char* projectRootPath, const char* sceneID) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     scrivi::GetSceneNotesRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2815,10 +2961,12 @@ static const char* putOpaqueDocument(const char* projectRootPath, const char* fi
 }
 
 const char* scrivi_get_inspector_layout(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     return getOpaqueDocument(projectRootPath, "inspector-layout.json");
 }
 
 const char* scrivi_put_inspector_layout(const char* projectRootPath, const char* documentJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     return putOpaqueDocument(projectRootPath, "inspector-layout.json", documentJson);
 }
 
@@ -2826,10 +2974,12 @@ const char* scrivi_put_inspector_layout(const char* projectRootPath, const char*
 // ✅ Settings that TRAVEL with the project ([I-0278]): the same opaque contract as the
 // inspector layout. The apps define the keys (`docs/Scrivi_Project_Package_Structure_v0_1.md`).
 const char* scrivi_get_project_settings(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     return getOpaqueDocument(projectRootPath, "project-settings.json");
 }
 
 const char* scrivi_put_project_settings(const char* projectRootPath, const char* documentJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     return putOpaqueDocument(projectRootPath, "project-settings.json", documentJson);
 }
 
@@ -2838,6 +2988,7 @@ const char* scrivi_put_project_settings(const char* projectRootPath, const char*
 // the fields it knows and would drop any other. ⛔ An empty title is refused (the app shows
 // "Untitled" for none; a blank written here would read as a deliberate name).
 const char* scrivi_set_project_title(const char* projectRootPath, const char* title) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty()) {
@@ -2869,6 +3020,7 @@ const char* scrivi_set_project_title(const char* projectRootPath, const char* ti
 }
 
 const char* scrivi_get_scene_story_time(const char* projectRootPath, const char* sceneID) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     scrivi::GetSceneStoryTimeRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2890,6 +3042,7 @@ const char* scrivi_get_scene_story_time(const char* projectRootPath, const char*
 }
 
 const char* scrivi_clear_scene_story_time(const char* projectRootPath, const char* sceneID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -2915,6 +3068,7 @@ const char* scrivi_clear_scene_story_time(const char* projectRootPath, const cha
 
 const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char* sceneID,
                                          const char* bandID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::AssignSceneToBandRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2928,6 +3082,7 @@ const char* scrivi_assign_scene_to_band(const char* projectRootPath, const char*
 }
 
 const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const char* sceneID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::UnassignSceneFromBandRequest req;
     req.projectRootPath = S(projectRootPath);
     req.sceneID.value   = S(sceneID);
@@ -2940,20 +3095,13 @@ const char* scrivi_unassign_scene_from_band(const char* projectRootPath, const c
 }
 
 const char* scrivi_get_story_structure(const char* projectRootPath) {
-    scrivi::GetStoryStructureRequest req;
-    req.projectRootPath = S(projectRootPath);
-    auto r = core().getStoryStructure(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
-    const auto& v = r.value();
-    scrivi::util::JsonDoc doc;
-    doc.setBool("hasStructure",   v.hasStructure);
-    doc.setString("structureID",  v.structureID);
-    doc.setString("bandLayoutJSON", v.bandLayoutJSON);
-    return heap(okEnvelope(std::move(doc)));
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return timelinePartEnvelope(storyStructurePart(projectRootPath));
 }
 
 const char* scrivi_set_story_structure(const char* projectRootPath, const char* structureID,
                                         const char* bandLayoutJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SetStoryStructureRequest req;
     req.projectRootPath = S(projectRootPath);
     req.structureID     = S(structureID);
@@ -2966,6 +3114,7 @@ const char* scrivi_set_story_structure(const char* projectRootPath, const char* 
 }
 
 const char* scrivi_update_band_layout(const char* projectRootPath, const char* bandLayoutJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::UpdateBandLayoutRequest req;
     req.projectRootPath = S(projectRootPath);
     req.bandLayoutJSON  = S(bandLayoutJSON);
@@ -2977,6 +3126,7 @@ const char* scrivi_update_band_layout(const char* projectRootPath, const char* b
 }
 
 const char* scrivi_remove_story_structure(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::RemoveStoryStructureRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().removeStoryStructure(req);
@@ -3017,6 +3167,7 @@ const char* scrivi_create_historical_event(const char* projectRootPath,
                                              const char* description, const char* tagsJSON,
                                              const char* identityID, const char* personaID,
                                              const char* displayName) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::CreateHistoricalEventRequest req;
     req.projectRootPath = S(projectRootPath);
     req.title           = S(title);
@@ -3039,6 +3190,7 @@ const char* scrivi_create_historical_event(const char* projectRootPath,
 const char* scrivi_update_historical_event(const char* projectRootPath, const char* eventID,
                                              const char* title, int64_t offsetMs,
                                              const char* description, const char* tagsJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::UpdateHistoricalEventRequest req;
     req.projectRootPath = S(projectRootPath);
     req.eventID         = S(eventID);
@@ -3055,6 +3207,7 @@ const char* scrivi_update_historical_event(const char* projectRootPath, const ch
 }
 
 const char* scrivi_delete_historical_event(const char* projectRootPath, const char* eventID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::DeleteHistoricalEventRequest req;
     req.projectRootPath = S(projectRootPath);
     req.eventID         = S(eventID);
@@ -3067,19 +3220,14 @@ const char* scrivi_delete_historical_event(const char* projectRootPath, const ch
 }
 
 const char* scrivi_list_historical_events(const char* projectRootPath) {
-    scrivi::ListHistoricalEventsRequest req;
-    req.projectRootPath = S(projectRootPath);
-    auto r = core().listHistoricalEvents(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
-    scrivi::util::JsonDoc doc;
-    doc.setInt("count",        r.value().count);
-    doc.setString("eventsJSON", r.value().eventsJSON);
-    return heap(okEnvelope(std::move(doc)));
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return timelinePartEnvelope(historicalEventsPart(projectRootPath));
 }
 
 const char* scrivi_import_external_timeline(const char* projectRootPath,
                                               const char* timelineJSON, int64_t epochOffsetMs,
                                               const char* assignedGreyShade) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::ImportExternalTimelineRequest req;
     req.projectRootPath    = S(projectRootPath);
     req.timelineJSON       = S(timelineJSON);
@@ -3096,6 +3244,7 @@ const char* scrivi_import_external_timeline(const char* projectRootPath,
 const char* scrivi_update_imported_timeline_offset(const char* projectRootPath,
                                                      const char* timelineID,
                                                      int64_t epochOffsetMs) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::UpdateImportedTimelineOffsetRequest req;
     req.projectRootPath = S(projectRootPath);
     req.timelineID      = S(timelineID);
@@ -3110,6 +3259,7 @@ const char* scrivi_update_imported_timeline_offset(const char* projectRootPath,
 
 const char* scrivi_set_imported_timeline_visible(const char* projectRootPath,
                                                    const char* timelineID, int visible) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::SetImportedTimelineVisibleRequest req;
     req.projectRootPath = S(projectRootPath);
     req.timelineID      = S(timelineID);
@@ -3123,27 +3273,46 @@ const char* scrivi_set_imported_timeline_visible(const char* projectRootPath,
 }
 
 const char* scrivi_list_imported_timelines(const char* projectRootPath) {
-    scrivi::ListImportedTimelinesRequest req;
-    req.projectRootPath = S(projectRootPath);
-    auto r = core().listImportedTimelines(req);
-    if (!r.ok()) return heap(errorEnvelope(r.error()));
-    scrivi::util::JsonDoc doc;
-    doc.setInt("count",           r.value().count);
-    doc.setString("timelinesJSON", r.value().timelinesJSON);
-    // [I-0214] Files that could not be read or parsed. ⚠️ `rejectedCount` is emitted
-    // ALWAYS — including 0 — so a caller can branch on it without the empty-array trap
-    // (an omitted key is indistinguishable from a failed call: project_envelope_empty_vs_failed).
-    doc.setInt("rejectedCount", static_cast<int>(r.value().rejected.size()));
-    for (const auto& rej : r.value().rejected) {
-        scrivi::util::JsonDoc rd;
-        rd.setString("path",   rej.path);
-        rd.setString("reason", rej.reason);
-        doc.appendToArray("rejected", std::move(rd));
-    }
-    return heap(okEnvelope(std::move(doc)));
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return timelinePartEnvelope(importedTimelinesPart(projectRootPath));
+}
+
+// SP-173 / I-0285, D4 — the project's current revision, and nothing else: no file is touched. A platform asks this on the
+// main thread just before applying a result read in the background, and applies it only if the revisions match.
+const char* scrivi_get_project_revision(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return guarded([&]() -> const char* {
+        SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+        return heap(okEnvelope(scrivi::util::JsonDoc{}));
+    });
+}
+
+// SP-173 / I-0285, D3 — the timeline's five reads under ONE project lock (L2). Each part is its endpoint's own result, or that
+// part's error: a failing part does not fail the others (the platforms already draw a timeline with defaults for any part
+// that fails). The envelope's `revision` is the state all five describe.
+const char* scrivi_load_timeline(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return guarded([&]() -> const char* {
+        SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+        scrivi::util::JsonDoc doc;
+        auto add = [&doc](const char* key, TimelinePart part) {
+            if (part.ok) { doc.setSubDoc(key, std::move(part.doc)); return; }
+            scrivi::util::JsonDoc err;
+            err.setInt("code", static_cast<int>(part.error.code));
+            err.setString("message", part.error.message);
+            doc.setSubDoc(std::string(key) + "Error", std::move(err));
+        };
+        add("timeline",          timelineSettingsPart(projectRootPath));
+        add("storyTimes",        storyTimesPart(projectRootPath));
+        add("storyStructure",    storyStructurePart(projectRootPath));
+        add("historicalEvents",  historicalEventsPart(projectRootPath));
+        add("importedTimelines", importedTimelinesPart(projectRootPath));
+        return heap(okEnvelope(std::move(doc)));
+    });
 }
 
 const char* scrivi_remove_imported_timeline(const char* projectRootPath, const char* timelineID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::RemoveImportedTimelineRequest req;
     req.projectRootPath = S(projectRootPath);
     req.timelineID      = S(timelineID);
@@ -3156,6 +3325,7 @@ const char* scrivi_remove_imported_timeline(const char* projectRootPath, const c
 }
 
 const char* scrivi_export_project_timeline(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     scrivi::ExportProjectTimelineRequest req;
     req.projectRootPath = S(projectRootPath);
     auto r = core().exportProjectTimeline(req);
@@ -3166,6 +3336,7 @@ const char* scrivi_export_project_timeline(const char* projectRootPath) {
 }
 
 const char* scrivi_extract_searchable_text(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     scrivi::ExtractSearchableTextRequest req;
     req.projectRootPath = S(projectRootPath);
 
@@ -3212,6 +3383,7 @@ static scrivi::AbsolutePath historyDirFor(const std::string& projectRoot) {
 }
 
 const char* scrivi_history_open(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -3255,6 +3427,7 @@ const char* scrivi_history_open(const char* projectRootPath) {
 const char* scrivi_history_seed_scene(const char* projectRootPath,
                                       const char* sceneID,
                                       const char* sceneTextUtf8) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3281,6 +3454,7 @@ const char* scrivi_history_record_event(const char* projectRootPath,
                                          const char* sceneID,
                                          const char* newSceneTextUtf8,
                                          const char* paramsJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3331,6 +3505,7 @@ const char* scrivi_history_record_event(const char* projectRootPath,
 
 const char* scrivi_history_record_barrier(const char* projectRootPath,
                                            const char* paramsJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3374,6 +3549,7 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
 }
 
 const char* scrivi_history_undo(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
@@ -3410,6 +3586,7 @@ const char* scrivi_history_undo(const char* projectRootPath) {
 }
 
 const char* scrivi_history_redo(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
@@ -3439,6 +3616,7 @@ const char* scrivi_history_redo(const char* projectRootPath) {
 const char* scrivi_history_select_branch(const char* projectRootPath,
                                          const char* forkNodeID,
                                          const char* childEventID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3461,6 +3639,7 @@ const char* scrivi_history_select_branch(const char* projectRootPath,
 }
 
 const char* scrivi_history_get_tree(const char* projectRootPath, const char* paramsJSON) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3517,6 +3696,7 @@ const char* scrivi_history_get_tree(const char* projectRootPath, const char* par
 }
 
 const char* scrivi_history_list_stale_branches(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3546,6 +3726,7 @@ const char* scrivi_history_list_stale_branches(const char* projectRootPath) {
 
 const char* scrivi_history_purge_branch(const char* projectRootPath,
                                         const char* branchRootEventID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3571,6 +3752,7 @@ const char* scrivi_history_purge_branch(const char* projectRootPath,
 const char* scrivi_history_validate_scene(const char* projectRootPath,
                                           const char* sceneID,
                                           const char* currentDiskTextUtf8) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3590,6 +3772,7 @@ const char* scrivi_history_validate_scene(const char* projectRootPath,
 const char* scrivi_history_note_scene_persisted(const char* projectRootPath,
                                                 const char* sceneID,
                                                 const char* diskTextUtf8) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3606,6 +3789,7 @@ const char* scrivi_history_note_scene_persisted(const char* projectRootPath,
 }
 
 const char* scrivi_history_get_settings(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3623,6 +3807,7 @@ const char* scrivi_history_get_settings(const char* projectRootPath) {
 
 const char* scrivi_history_set_settings(const char* projectRootPath,
                                         const char* settingsJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3647,6 +3832,7 @@ const char* scrivi_history_set_settings(const char* projectRootPath,
 }
 
 const char* scrivi_history_close(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     const std::string root = S(projectRootPath);
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
@@ -3733,6 +3919,7 @@ scrivi::util::JsonDoc serializeFragment(const scrivi::manuscript::Fragment& frag
 } // extern "C++"
 
 const char* scrivi_fragment_extract(const char* projectRootPath, const char* spansJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -3759,6 +3946,7 @@ const char* scrivi_fragment_extract(const char* projectRootPath, const char* spa
 // extracted fragment (for the buffer / undo) + the survivingSceneID + the removed scene/chapter
 // IDs (for undo, §5).
 const char* scrivi_fragment_cut(const char* projectRootPath, const char* spansJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -3837,6 +4025,7 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
                                   const char* identityID,
                                   const char* personaID,
                                   const char* displayName) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -3892,6 +4081,7 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
                                         const char* fragmentJson,
                                         const char* targetSceneID,
                                         const char* createdIDsJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
     // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
     // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
     // sides — the work itself re-reads through the locator and would otherwise
@@ -3941,6 +4131,7 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
 
 const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferID,
                                 const char* textUtf8, const char* fragmentJson) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -3959,6 +4150,7 @@ const char* scrivi_buffers_load(const char* projectRootPath, const char* bufferI
 }
 
 const char* scrivi_buffers_get(const char* projectRootPath, const char* bufferID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -3991,6 +4183,7 @@ const char* scrivi_buffers_get(const char* projectRootPath, const char* bufferID
 }
 
 const char* scrivi_buffers_list(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -4018,6 +4211,7 @@ const char* scrivi_buffers_list(const char* projectRootPath) {
 }
 
 const char* scrivi_buffers_clear(const char* projectRootPath, const char* bufferID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())

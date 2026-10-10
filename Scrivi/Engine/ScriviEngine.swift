@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 #if os(macOS) || os(iOS)
 import ScriviCore
 #endif
@@ -1060,6 +1061,22 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    /// SP-173 / I-0285 (D3) — the timeline's five reads in ONE crossing, under ONE project lock, so they describe one state of
+    /// the project; `revision` is that state. Safe off the main actor (the engine keeps no state between calls).
+    public func loadTimeline(projectRootPath: String) throws -> LoadTimelineResult {
+        let raw = projectRootPath.withCString { scrivi_load_timeline($0) }
+        let (parts, revision): (LoadTimelineParts, Int64) = try decodeCWithRevision(raw)
+        return LoadTimelineResult(parts: parts, revision: revision)
+    }
+
+    /// SP-173 (D4) — the project's current revision; touches no file. Asked on the main actor just before applying a result
+    /// read in the background: apply only if the two match.
+    public func projectRevision(projectRootPath: String) throws -> Int64 {
+        let raw = projectRootPath.withCString { scrivi_get_project_revision($0) }
+        let (_, revision): (ProjectRevisionResult, Int64) = try decodeCWithRevision(raw)
+        return revision
+    }
+
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult {
         let raw = projectRootPath.withCString { prp in
             timelineID.withCString { tid in scrivi_remove_imported_timeline(prp, tid) }
@@ -1448,6 +1465,17 @@ private struct FragmentCreatedIDs: Encodable {
 // `internal`, not `private`: ScriviEngineGraph.swift (T-0407) extends the engine
 // from a second file and decodes through the same helper. Still not public API.
 func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
+    try decodeCWithRevision(ptr).result
+}
+
+/// SP-173 (D2): `decodeC`, plus the project revision the envelope reported (-1 when it carried none). One decoder: `decodeC`
+/// is this with the revision dropped.
+/// SP-173 (Q1, user: "concerned that [an exclusive lock] will increase delays") — every project-lock wait the core reported
+/// (each ≥ 1 ms), summed across all threads, so the load can log what the lock COST.
+struct LockWaitStats: Sendable { var totalMs: Int64 = 0; var count: Int64 = 0; var maxMs: Int64 = 0 }
+let coreLockWaits = Mutex(LockWaitStats())
+
+func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (result: T, revision: Int64) {
     guard let ptr else {
         throw ScriviError(code: -1, message: "scrivi returned null")
     }
@@ -1455,6 +1483,9 @@ func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
     scrivi_free(ptr)
     let data = Data(json.utf8)
     let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
+    if let waited = envelope.lockWaitMs {
+        coreLockWaits.withLock { $0.totalMs += waited; $0.count += 1; $0.maxMs = max($0.maxMs, waited) }
+    }
     if !envelope.ok {
         let e = envelope.error
             ?? ErrorPayload(code: -1, message: "unknown error", detail: nil, path: nil)
@@ -1477,11 +1508,11 @@ func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
         // type with required fields still throws — so a genuinely missing result
         // is still caught.
         if let empty = try? JSONDecoder().decode(T.self, from: Data("{}".utf8)) {
-            return empty
+            return (empty, envelope.revision ?? -1)
         }
         throw ScriviError(code: -1, message: "ok=true but result missing")
     }
-    return result
+    return (result, envelope.revision ?? -1)
 }
 
 #else
@@ -1584,6 +1615,8 @@ public final class ScriviEngine: @unchecked Sendable {
     public func updateImportedTimelineOffset(projectRootPath: String, timelineID: String, epochOffsetMs: Int64) throws -> TimelineBoolResult { try unavailable() }
     public func setImportedTimelineVisible(projectRootPath: String, timelineID: String, visible: Bool) throws -> TimelineBoolResult { try unavailable() }
     public func listImportedTimelines(projectRootPath: String) throws -> ImportedTimelinesListResult { try unavailable() }
+    public func loadTimeline(projectRootPath: String) throws -> LoadTimelineResult { try unavailable() }
+    public func projectRevision(projectRootPath: String) throws -> Int64 { try unavailable() }
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
     public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
     public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult { try unavailable() }
@@ -2437,6 +2470,37 @@ public struct ImportedTimelinesListResult: Decodable, Sendable {
         rejected      = (try? c.decode([ImportedTimelineRejection].self, forKey: .rejected)) ?? []
     }
 }
+
+/// SP-173 / I-0285 (D3) — `scrivi_load_timeline`'s result: each part exactly what its standalone call returns, or nil when that
+/// part failed (the C ABI then sends `<part>Error`; callers draw that part with defaults, as they did when each call was
+/// separate). `revision` is the project state all five describe.
+public struct LoadTimelineResult: Sendable {
+    public let parts: LoadTimelineParts
+    public let revision: Int64
+}
+
+public struct LoadTimelineParts: Decodable, Sendable {
+    public let timeline:          GetTimelineResult?
+    public let storyTimes:        StoryTimesResult?
+    public let storyStructure:    StoryStructureResult?
+    public let historicalEvents:  HistoricalEventsListResult?
+    public let importedTimelines: ImportedTimelinesListResult?
+
+    private enum CodingKeys: String, CodingKey {
+        case timeline, storyTimes, storyStructure, historicalEvents, importedTimelines
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        timeline          = try? c.decodeIfPresent(GetTimelineResult.self,           forKey: .timeline)
+        storyTimes        = try? c.decodeIfPresent(StoryTimesResult.self,            forKey: .storyTimes)
+        storyStructure    = try? c.decodeIfPresent(StoryStructureResult.self,        forKey: .storyStructure)
+        historicalEvents  = try? c.decodeIfPresent(HistoricalEventsListResult.self,  forKey: .historicalEvents)
+        importedTimelines = try? c.decodeIfPresent(ImportedTimelinesListResult.self, forKey: .importedTimelines)
+    }
+}
+
+/// SP-173 (D4) — `scrivi_get_project_revision`'s (empty) result; the revision is in the envelope.
+struct ProjectRevisionResult: Decodable {}
 
 public struct ExportTimelineResult: Decodable, Sendable {
     public let timelineJSON: String

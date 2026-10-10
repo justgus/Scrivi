@@ -108,13 +108,20 @@ int main(int argc, char** argv)
     loop.exec();
 
     check(finishedOk, "the project loaded");
+    // [I-0285] AC1: the load builds the timeline ONCE (it was built twice: once inside the navigator rebuild).
+    std::printf("timeline builds during the load: %d\n", shell.timelineBuildCount());
+    check(shell.timelineBuildCount() == 1, "[I-0285] the load builds the timeline exactly once");
+    // [I-0285] AC4: the load reads the timeline in its worker, never on the UI thread.
+    std::printf("timeline reads on the UI thread during the load: %d\n", shell.timelineUiThreadReadCount());
+    check(shell.timelineUiThreadReadCount() == 0, "[I-0285] the load reads the timeline OFF the UI thread");
     check(!seen.empty(), "progress was reported at all");
 
     if (!seen.empty()) {
         // ✅ THE TOTAL IS KNOWN FROM THE FIRST REPORT -- that is what makes it
         // determinate. A spinner has no total; an estimate would change.
         const int total = seen.front().second;
-        check(total == expectedTotal, "the FIRST report already carries the real total");
+        // SP-173 / I-0285 (AC5): every scene body, plus the timeline read as the load's last step.
+        check(total == expectedTotal + 1, "the FIRST report already carries the real total (scenes + the timeline)");
 
         bool totalStable = true;
         bool monotonic   = true;
@@ -133,7 +140,7 @@ int main(int argc, char** argv)
         check(seen.back().first == total, "progress ENDS at the total, not short of it");
         // One report before the loop plus one per scene.
         check(static_cast<int>(seen.size()) == total + 1,
-              "one report per scene, plus the initial zero");
+              "one report per scene and one for the timeline, plus the initial zero");
     }
 
     if (failures == 0) {

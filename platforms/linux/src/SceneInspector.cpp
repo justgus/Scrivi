@@ -376,8 +376,9 @@ void SceneInspector::reload()
 
     // ⚠️ Captured BY VALUE for the worker. `bridge_` is a raw pointer owned by the
     // UI thread, but the C ABI it wraps is call-thread-safe and the bridge holds
-    // no mutable state across a call except `lastCallFailed_`, which is read here
-    // on the worker and copied into the payload before returning.
+    // no mutable state across a call except the failure flag, which is PER THREAD
+    // (SP-173 D5): read here on the worker, it is the worker's own last call, and
+    // it is copied into the payload before returning.
     ScriviBridge* bridge = bridge_;
     const QString root   = projectRootPath_;
     const QString scene  = sceneID_;

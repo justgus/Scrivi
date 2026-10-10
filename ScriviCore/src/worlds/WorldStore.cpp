@@ -2,6 +2,9 @@
 
 #include "objects/ObjectIndex.hpp"
 #include "schemas/WorldJson.hpp"
+#include <map>
+#include <mutex>
+#include <memory>
 #include "util/Json.hpp"
 #include "scrivi/AssetTypes.hpp"
 #include "util/PathUtils.hpp"
@@ -923,6 +926,21 @@ Result<void> WorldLock::release() {
 
 // --- WorldWriteGuard (I-0144, T-0431) ---------------------------------------
 
+namespace {
+// SP-173 (Q2): one in-process mutex per world package, keyed by the package path LEXICALLY normalised (never canonicalised:
+// a stat per write over a share). Entries are never erased, so the reference stays valid.
+std::recursive_mutex& worldInProcessMutex(const AbsolutePath& packagePath) {
+    static std::mutex registryMutex;
+    static std::map<std::string, std::unique_ptr<std::recursive_mutex>> byPackage;
+    std::string key = std::filesystem::path(packagePath).lexically_normal().string();
+    while (key.size() > 1 && key.back() == '/') { key.pop_back(); }
+    std::lock_guard<std::mutex> lock(registryMutex);
+    auto& slot = byPackage[key];
+    if (!slot) { slot = std::make_unique<std::recursive_mutex>(); }
+    return *slot;
+}
+}  // namespace
+
 WorldWriteGuard::WorldWriteGuard(CoreServices& services,
                                  const AbsolutePath& projectRoot,
                                  const std::string& worldID,
@@ -946,6 +964,7 @@ WorldWriteGuard::WorldWriteGuard(CoreServices& services,
     }
 
     packagePath_ = res.packagePath;
+    inProcess_ = std::unique_lock<std::recursive_mutex>(worldInProcessMutex(res.packagePath));   // SP-173 (Q2)
     lock_.emplace(services, res.packagePath);
     status_ = lock_->acquire(projectID.empty() ? "unknown" : projectID);
     if (!status_.ok()) {

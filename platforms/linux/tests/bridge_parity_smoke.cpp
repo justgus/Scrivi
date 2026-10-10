@@ -34,6 +34,7 @@
 #include <QVariantMap>
 
 #include <cstdio>
+#include <thread>
 
 #include "AppSupport.hpp"
 #include "ScriviBridge.hpp"
@@ -254,6 +255,22 @@ int main(int argc, char* argv[])
     check(bridge.openProject(projectPath, appSupport).value(QStringLiteral("projectTitle")).toString()
               == QStringLiteral("Renamed On Linux"),
           "setProjectTitle: the reopened project reports the new title");
+
+    // ================================================================
+    // SP-173 D5 — the failure flag is PER THREAD: a worker's failed call must not change what the main thread reads
+    // ================================================================
+    {
+        bridge.getProjectSettings(projectPath);                            // main thread: succeeds
+        check(!bridge.lastCallFailed(), "D5: the main thread's call succeeded");
+        bool workerSawFailure = false;
+        std::thread worker([&] {
+            bridge.getProjectSettings(QString());                          // worker: fails (no project root)
+            workerSawFailure = bridge.lastCallFailed();
+        });
+        worker.join();
+        check(workerSawFailure, "D5: the worker sees its OWN failure");
+        check(!bridge.lastCallFailed(), "D5: the worker's failure does not overwrite the main thread's answer");
+    }
 
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);
     if (failures != 0) return 1;

@@ -137,6 +137,10 @@ struct Envelope<T: Decodable>: Decodable {
     let ok:     Bool
     let result: T?
     let error:  ErrorPayload?
+    /// SP-173 (D2): the project's revision, carried by every project endpoint's envelope (ok or not); nil for the others.
+    let revision: Int64?
+    /// SP-173 (Q1): present when the call waited 1 ms or more for its project's lock.
+    let lockWaitMs: Int64?
 }
 
 struct ErrorPayload: Decodable {

@@ -440,7 +440,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-170** | `[Apple]` **[EP-047] S4** — Markup Hints on/off: View menu + ⇧⌘H, per project, default ON (AC7, T-0589) | EP-047 | 2026-10-08 | 2026-10-08 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-170.md) |
 | **SP-171** | `[Apple]` **[EP-050] S1** — the translation layer: VoiceOver reads the page at rest; one map shared with Find; caret both ways; cost (AC1–AC3, AC5 reading half; T-0599, I-0277) | EP-050 | 2026-10-08 | 2026-10-08 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-171.md) |
 | **SP-172** | `[Apple]` **[EP-050] S2** — the Headings rotor: Markdown headings and chapter titles, next/previous (AC4, AC5 rotor half; T-0600) | EP-050 | 2026-10-08 | 2026-10-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-172.md) |
-| **SP-173** | `[Linux]` **[EP-048]** — project load: no frozen UI, timeline built once, load measured (I-0285) | EP-048 | 2026-10-09 | — | 🟡 **ACTIVE** → [record](Sprint-SP-173.md) |
+| **SP-173** | `[Cross]` **[EP-048]** — project load: no frozen UI, timeline built once, load measured, core calls synchronised (I-0285) | EP-048 | 2026-10-09 | — | 🟡 **ACTIVE** → [record](Sprint-SP-173.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics

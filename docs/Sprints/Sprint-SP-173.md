@@ -3,11 +3,11 @@ sprint: SP-173
 epic: EP-048
 status: Active
 activated: 2026-10-09
-platform: Linux
+platform: Cross
 created: 2026-10-09
 ---
 
-# SP-173 — `[Linux]` [EP-048] Project load: no frozen UI, built once, measured ([I-0285])
+# SP-173 — `[Cross]` [EP-048] Project load: no frozen UI, built once, measured, synchronised ([I-0285])
 
 **Status:** 🟡 **ACTIVE 2026-10-09** (user: *"close SP-166 and activate SP-173"*) — created 2026-10-09 (user: *"Schedule I-0285 into a new Sprint"*).
 **Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). I-0285 was found in
@@ -66,7 +66,48 @@ progress bar, and the load is as short as the measurements allow.**
 9. **Live pass on the rig (user):** open dumas; the UI stays responsive throughout; the progress bar covers the whole wait; the
    timeline draws correctly; the load log shows the new figures.
 
+## ✅ Plan 1 — Apple's shape at open (read 2026-10-10)
+
+| Step | Apple | Linux today |
+| ---- | ----- | ----------- |
+| Core open | `engine.openProject`, off the main thread (`ProjectSession.loadAsync` → `Task.detached`) | `bridge->openProject`, off the main thread (`AsyncCall` worker) — ✅ same |
+| Scene bodies | `ViewportSceneLoader.loadSegmentsOffMain`: ONE `openSceneForBulkLoad` per scene, same worker, progress per scene | ONE `openSceneForBulkLoad` per scene, same worker, progress per scene — ✅ same |
+| Timeline | `finishLoad` → `TimelineViewModel.load`, **main thread, ONCE**, about five calls: `getTimeline`, **`listStoryTimes` (one call for every scene)**, `getStoryStructure`, `listHistoricalEvents`, imported timelines | **main thread, TWICE**, `getSceneStoryTime` **per scene** (up to twice per scene per build) — ⛔ differs |
+| Other main-thread work | `HistoryCapture.open` + `validateScenes` (undo history) | none (Linux has no undo history) |
+
+- ✅ **The 113 s in the worker has Apple's shape.** Its cost is the core open and one ABI call per scene over the share, so
+  reducing it is core work, `[Cross]` (→ Q1), not a Linux shape fix.
+- ⛔ **The timeline is where Linux left Apple's shape**, in two ways: it is built twice, and it reads story time per scene instead
+  of `listStoryTimes` (adopted on Apple in [I-0213]). Plans 3 and 4 restore Apple's shape.
+- ⚠️ **AC4 goes beyond Apple's shape:** Apple builds the timeline on the main thread, because it is about five calls. Moving it to
+  the worker on Linux alone would be a shape divergence (`feedback_linux_adopts_apple_shape`) → **Q3**.
+
+## ✅ Scope widened 2026-10-10 (user)
+
+*"Put the Apple half in SP-173, design a cross platform sync so that timeline loads and other core operations such as manuscript
+edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_Concurrency_Design_v0_1.md`](../Scrivi_Core_Concurrency_Design_v0_1.md)
+(⚠️ DRAFT, Q1–Q4 for ruling there). It adds, once ruled:
+
+10. **Core (D1–D3):** a per-project lock around every project endpoint; a project revision in every envelope; one endpoint for
+    the timeline's reads (`scrivi_load_timeline`). Boundary tests through `scrivi_*`; a ThreadSanitizer stress test.
+11. **Linux bridge (D5):** the failure flag travels with each call's result (prerequisite to any new background call).
+12. **Both platforms (D4):** the timeline's data is read in the background with the open's other reads, on the progress bar,
+    and applied only if the revision is still current; the same pattern for a timeline reload after an edit.
+13. **Apple live pass** (user, Mac): open dumas; the timeline draws; an edit during a timeline reload is never overdrawn.
+
 ## Questions for ruling (before activation or at the step that raises them)
+
+- ✅ **Q3 RULED 2026-10-10 (user): (a)** — *"I will agree to (a) but I still think it should be loaded off the main thread in both
+  places."* Linux adopts Apple's shape first (once, `listStoryTimes`, main thread) and measures what remains. ➡️ **Direction
+  recorded:** the timeline's data belongs off the main thread on BOTH platforms. Apple's reason for the main thread was looked
+  for and not found: `TimelineViewModel` is `@MainActor` (UI state), its `load` fetches as a side effect, and the engine is
+  already called off-main at open (`Task.detached` in `ProjectSession.loadAsync`). The fetch can move to the worker with only the
+  assignment left on the main thread. ⏳ Not yet verified: whether ScriviCore is safe for concurrent calls (it matters only for a
+  background reload after the load).
+- ~~**Q3** (from Plan 1): AC4 asks for the timeline's data off the main thread; Apple does it on the main thread in ~5 calls.
+  (a) Linux adopts Apple's shape exactly (once, batched, main thread); measure what remains on the rig. If it is small, AC4 is
+  ruled met by the measurement; if not, move it to the worker on BOTH platforms. (b) Move it to the worker on Linux now, and
+  record the divergence or make the same change on Apple in this Sprint.~~
 
 - **Q1** (Plan 6): if the body reads need a batched read endpoint, is that in this Sprint (`[Cross]`) or a follow-on?
 - **Q2**: the measurement log (`SCRIVI_LOAD_LOG`) — keep it as a permanent, env-gated diagnostic, or remove it at close?
@@ -77,3 +118,61 @@ progress bar, and the load is as short as the measurements allow.**
 
 - **2026-10-09** — created in 🔵 Planning; I-0285 assigned.
 - **2026-10-09** — activated; I-0285 → `Issue-active.md`. Plan 1 next.
+- **2026-10-10** — Plan 1 done: Apple's shape recorded; Q3 raised.
+- **2026-10-10** — Q3 ruled (a); off-main on both platforms recorded as the direction.
+- **2026-10-10** — scope widened to `[Cross]` (user): the Apple half, plus the core concurrency design (DRAFT, awaiting ruling).
+- **2026-10-10** — design Q1–Q4 ruled (exclusive lock, measured; world locks for writes only; timeline composite only; Linux failure flag in this Sprint). Recorded in the design doc §6–§7.
+- **2026-10-10 — Plan 3 done (I-0285 AC1).** `applyLoadedProject` now clears `loading_` AFTER `rebuildNavigator()`, so the
+  navigator's trailing `reloadTimeline()` skips and the load builds the timeline once, at its end (`EditorShell.cpp`). ✅
+  `EditorShell::timelineBuildCount()` + `open_progress_smoke` asserts 1 build per load: fixed → 1, PASS; mutant (flag cleared
+  first) → 2, FAIL. ⏳ Rig figure owed (the load log should show one timeline phase).
+- ➡️ **Order from here:** the core first (D1 lock + lock-wait timing, D2 revision, D3 `scrivi_load_timeline`), then D5 (Linux
+  failure flag), then D4 on both platforms — so Plan 4's per-scene reads are replaced by the composite endpoint directly, not by
+  `listStoryTimes` and then again.
+- **2026-10-10 — Core D1–D3 done (macOS ctest 679/679).**
+  - **D1:** `ProjectLock.{hpp,cpp}` (`ScriviCore/src/public_api/`): one exclusive `std::mutex` per project root, key lexically
+    normalised (never canonicalised: a stat per call over the share). All **107** project endpoints open with
+    `SCRIVI_PROJECT_READ` (25) or `SCRIVI_PROJECT_WRITE` (82) — write unless proven read-only. No endpoint calls another (checked),
+    so the lock cannot deadlock on itself. `scripts/check-abi-project-guards.sh`, registered in ctest as `AbiProjectGuards`, fails
+    on an unguarded project endpoint.
+  - **D2:** every project envelope (ok or error) carries `revision`; `lockWaitMs` appears when a call waited ≥ 1 ms (Q1's measure).
+    Documented in `scrivi.h`'s envelope contract.
+  - **D3:** `scrivi_load_timeline` — the five timeline reads under one lock; each part built by the SAME function its standalone
+    endpoint now uses (no copy to drift); a failing part becomes `<part>Error`, the others still return.
+  - ✅ Tests (`ProjectConcurrencyCApiTests.cpp`, through `scrivi_*`): revision bumps on writes only, also on errors; two spellings
+    share a lock; a call waits while another holds its project's lock (and not another project's); writer + reader stress;
+    `load_timeline` parts equal the standalone results with real story-time and event data.
+  - ✅ Mutation-checked: no bump · no lock · un-normalised key · an endpoint without its guard · a wrong part builder — each caught.
+    ⚠️ Honest gap: with the lock removed, only the "waits while held" test fails; the stress test passes, because each settings write
+    is one atomic file write.
+  - ✅ ThreadSanitizer (macOS, separate build): clean. With the lock removed, TSan flags the revision counter in
+    `ProjectCallGuard`. ⚠️ My first version asserted from worker threads; TSan's 13 reports were all in Catch2, now fixed.
+  - ⚠️ Found on the way: the design's §1 said the core is built per call; it is ONE singleton (corrected in the design).
+    `Scrivi_ABI_Binding_Gap_Audit_v0_1.md`'s count (100) is now one short; it is updated with the bindings.
+- ⏳ **Next:** Q2's world write locks (in `ObjectStore`); D5 (Linux failure flag); D4 on both platforms (bindings, the timeline read
+  in the background, applied if current, on the progress bar); the Linux container ctest; then the rig and the Mac.
+- **2026-10-10 — Q2 world write locks (design D6).** The lock already existed (`WorldWriteGuard`, a lock FILE, reads never lock),
+  but a second writer in the SAME process was REFUSED ("worldLocked"). ⛔ Measured: two projects sharing a world, 30 creates each
+  at once → 46–47 of 60 refused (three runs). ✅ An in-process recursive mutex per package, taken before the lock file → 60 of 60.
+  Test `Q2: two projects in ONE process …`; mutation (mutex removed) → 46–47 refused, caught every run. ctest 680/680; TSan clean.
+- **2026-10-10 — D5, D4 on both platforms, Q1 measurement: code complete; ⏳ the rig and the Mac.**
+  - **D5:** Linux's failure flag is `thread_local` (`ScriviBridge.cpp`), with a per-thread `lastRevision()`. `bridge_parity_smoke`
+    adds 3 checks (a worker's failure does not overwrite the main thread's answer); mutation (shared flag) → caught.
+  - **D4 core:** `scrivi_get_project_revision` (no file touched). ctest 681/681 (macOS), 685/685 (Linux, non-root).
+  - **D4 Linux:** `EditorShell::fetchTimelineData` (worker-safe, one `loadTimeline`) / `applyTimelineData` (UI thread, no core
+    call); the load reads the timeline in its worker as the bar's last step; applied if `projectRevision` matches, else re-read.
+    `open_progress_smoke`: 1 build, **0 UI-thread timeline reads**, total = scenes + 1; mutation (always re-read) → caught. The
+    per-scene `getSceneStoryTime` reads are gone (they were up to 2 per scene per build). All 27 Linux smokes green.
+  - **D4 Apple:** `ScriviEngine.loadTimeline` / `projectRevision` (+ `revision`, `lockWaitMs` on `Envelope`);
+    `TimelineViewModel.apply(_:scenes:)` + `apply…` per part (each keeping its old failure behaviour); `ProjectSession.loadAsync`
+    reads the timeline in its `Task.detached`, `finishLoad` applies it if current. `CoreConcurrencyTests` (3); mutation (always
+    re-read) → caught. Full interop suite **270/270**.
+  - **Progress (AC5), both:** the bar counts scenes + the timeline step; the label still counts scenes only.
+  - **Q1:** both platforms sum the core's `lockWaitMs` and log it at each load's end.
+  - ⚠️ **Found, not fixed — owed a ruling:** Apple's `setSceneStoryTime` binding decodes the reply as a full `SceneStoryTimeResult`,
+    but the C ABI returns `{sceneID, updated}`: the call THROWS after a successful write. The app's two callers use `try?`, so it
+    has been invisible.
+  - ⚠️ A timeline reload after an edit stays on the main thread (one call now), as Apple already did — recorded in the design.
+  - ⚠️ `Scrivi_ABI_Binding_Gap_Audit_v0_1.md` (and CLAUDE.md) say 100 endpoints: an as-of 2026-08-24 snapshot, already stale
+    before this Sprint (109); now 111. Left for EP-051.
+

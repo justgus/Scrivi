@@ -37,6 +37,7 @@ add_executable(ScriviCoreTests
     integration/ObjectCrudTests.cpp
     integration/ObjectCApiTests.cpp
     integration/InspectorLayoutCApiTests.cpp
+    integration/ProjectConcurrencyCApiTests.cpp
     integration/HistoricalEventTagsCApiTests.cpp
     integration/ObjectIndexTests.cpp
     integration/ProjectIndexTests.cpp
@@ -139,3 +140,8 @@ include(Catch)
 # the Xcode generator, which sandboxes post-build scripts and kills the
 # subprocess that BUILD_TIME mode tries to launch.
 catch_discover_tests(ScriviCoreTests DISCOVERY_MODE PRE_TEST)
+
+# SP-173 / I-0285 (D1): every project endpoint runs under its project's lock — a source check, so a NEW endpoint cannot ship
+# unlocked. Needs bash + python3 (present on the macOS and Linux build hosts).
+add_test(NAME AbiProjectGuards
+         COMMAND bash "${CMAKE_SOURCE_DIR}/scripts/check-abi-project-guards.sh")

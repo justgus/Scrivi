@@ -356,13 +356,21 @@ private struct ImportedTimelinesPayload: Decodable {
     }
 
     func load(engine: ScriviEngine, projectRootPath: String, scenes: [SceneInfo]) {
-        epochLabel = (try? engine.getTimeline(projectRootPath: projectRootPath))?.epochLabel ?? "Story Open"
+        // ✅ SP-173 / I-0285 (D3): ONE crossing for the timeline's five reads, under one project lock.
+        apply(try? engine.loadTimeline(projectRootPath: projectRootPath), scenes: scenes)
+    }
+
+    /// SP-173 / I-0285 (D4) — builds the whole timeline from ONE read, which may have been made OFF the main actor
+    /// (`ProjectSession.loadAsync` reads it in its worker). A failed read, or a failed part, draws that part with its defaults,
+    /// exactly as when each part was its own call: the epoch label falls back to "Story Open", every scene sits on the default
+    /// chain, historical events clear, imported timelines are left alone, the story structure clears.
+    func apply(_ result: LoadTimelineResult?, scenes: [SceneInfo]) {
+        epochLabel = result?.parts.timeline?.epochLabel ?? "Story Open"
 
         // ✅ EP-039 AC4 ADOPTED (I-0213) — ONE bulk crossing instead of one per scene.
         // This path cost `TimelineViewModel.load = 113 ms` at open on 1,174 scenes.
         // ⚠️ Empty is normal, not failure — see `explicitStoryTimes`.
-        let explicitByScene = Self.explicitStoryTimes(engine: engine,
-                                                      projectRootPath: projectRootPath)
+        let explicitByScene = Self.explicitStoryTimes(result?.parts.storyTimes)
 
         var raw: [SceneDot] = scenes.enumerated().map { idx, info in
             let st = explicitByScene[info.sceneID]
@@ -383,9 +391,9 @@ private struct ImportedTimelinesPayload: Decodable {
         recomputeAllOffsets(in: &raw)
         dots = raw
 
-        loadStoryStructure(engine: engine, projectRootPath: projectRootPath)
-        loadHistoricalEvents(engine: engine, projectRootPath: projectRootPath)
-        loadImportedTimelines(projectRootPath: projectRootPath, engine: engine)
+        applyStoryStructure(result?.parts.storyStructure)
+        applyHistoricalEvents(result?.parts.historicalEvents)
+        applyImportedTimelines(result?.parts.importedTimelines)
     }
 
     // Reload only the scene dots from an updated scene list.
@@ -439,9 +447,12 @@ private struct ImportedTimelinesPayload: Decodable {
     /// drawing a blank timeline because a read failed would hide the writer's story.
     static func explicitStoryTimes(engine: ScriviEngine,
                                    projectRootPath: String) -> [String: SceneStoryTimeEntry] {
-        guard let result = try? engine.listStoryTimes(projectRootPath: projectRootPath) else {
-            return [:]
-        }
+        explicitStoryTimes(try? engine.listStoryTimes(projectRootPath: projectRootPath))
+    }
+
+    /// The same map from a result already read (SP-173: the `storyTimes` part of `loadTimeline`). nil → no explicit times.
+    static func explicitStoryTimes(_ result: StoryTimesResult?) -> [String: SceneStoryTimeEntry] {
+        guard let result else { return [:] }
         var byScene: [String: SceneStoryTimeEntry] = [:]
         byScene.reserveCapacity(result.storyTimes.count)
         for st in result.storyTimes { byScene[st.sceneID] = st }
@@ -499,7 +510,12 @@ private struct ImportedTimelinesPayload: Decodable {
     // MARK: Historical events
 
     func loadHistoricalEvents(engine: ScriviEngine, projectRootPath: String) {
-        guard let result = try? engine.listHistoricalEvents(projectRootPath: projectRootPath),
+        applyHistoricalEvents(try? engine.listHistoricalEvents(projectRootPath: projectRootPath))
+    }
+
+    /// SP-173: from a result already read. nil (a failed read) clears the events, as `loadHistoricalEvents` always has.
+    func applyHistoricalEvents(_ result: HistoricalEventsListResult?) {
+        guard let result,
               !result.eventsJSON.isEmpty,
               let data = result.eventsJSON.data(using: .utf8) else {
             historicalEvents = []
@@ -582,7 +598,12 @@ private struct ImportedTimelinesPayload: Decodable {
     /// ⛔ A THROW leaves the existing rows ALONE rather than blanking them: a failed
     /// read must not look to a writer like "your imported timelines are gone".
     func loadImportedTimelines(projectRootPath: String, engine: ScriviEngine) {
-        guard let result = try? engine.listImportedTimelines(projectRootPath: projectRootPath) else {
+        applyImportedTimelines(try? engine.listImportedTimelines(projectRootPath: projectRootPath))
+    }
+
+    /// SP-173: from a result already read. ⛔ nil (a failed read) leaves the existing rows ALONE, as above.
+    func applyImportedTimelines(_ result: ImportedTimelinesListResult?) {
+        guard let result else {
             return
         }
         // [I-0214] Record what the core refused, so the panel can say so.
@@ -633,8 +654,12 @@ private struct ImportedTimelinesPayload: Decodable {
 
     // Load the active story structure from disk.
     func loadStoryStructure(engine: ScriviEngine, projectRootPath: String) {
-        guard let ss = try? engine.getStoryStructure(projectRootPath: projectRootPath),
-              ss.hasStructure else {
+        applyStoryStructure(try? engine.getStoryStructure(projectRootPath: projectRootPath))
+    }
+
+    /// SP-173: from a result already read. nil (a failed read) or no structure clears the bands, as always.
+    func applyStoryStructure(_ ss: StoryStructureResult?) {
+        guard let ss, ss.hasStructure else {
             activeBands = []
             activeStructureID = ""
             return

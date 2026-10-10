@@ -9,6 +9,7 @@
 #include "worlds/WorldTypes.hpp"
 
 #include <map>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -311,6 +312,12 @@ public:
     [[nodiscard]] bool locksAWorld() const { return lock_.has_value(); }
 
 private:
+    // SP-173 (Q2, user 2026-10-10: world locks for WRITES only). Taken BEFORE the lock file, so two writers in ONE process
+    // (two windows, two projects sharing a world) QUEUE instead of one being refused "worldLocked"; other processes still meet
+    // the lock file and are refused, as designed (§6.5). Declared before `lock_`, so it is released AFTER the file lock.
+    // ⚠️ Recursive: WorldLock is not reentrant (ObjectIndex.cpp); a nested acquire on the same thread therefore behaves as it
+    // always has — the lock file refuses it — rather than hanging on this mutex.
+    std::unique_lock<std::recursive_mutex> inProcess_;
     std::optional<WorldLock> lock_;
     AbsolutePath             packagePath_;
     Result<void>             status_ = Result<void>::success();

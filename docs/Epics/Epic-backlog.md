@@ -23,6 +23,34 @@ acceptance criteria written (user: *"Ok, lets complete the planning for EP-047."
 
 ---
 
+## EP-051: `[Docs]` **Design Documentation Consolidation** — one living design document
+
+**Status:** 🔵 **Draft** — created 2026-10-10 (user, during [SP-173]: *"One living design document. Lets create folders for
+"studies", "runbooks", and "archives" … file a backlog Epic for this consolidation work."*). No Sprint assigned.
+
+**Goal:** `docs/` holds ONE living design document that says what Scrivi is, versioned by git rather than by `v0_x` filenames;
+the reasons behind it, the procedures, and superseded versions live in their own folders; `CLAUDE.md` points at the design
+document instead of restating a list of documents.
+
+**Why:** `docs/` holds 51 files of four kinds mixed together (design, studies, runbooks, superseded versions). Superseded versions
+sit beside current ones (Behavior Spec v0.1/v0.2, API Sketch v0.2/v0.3, Timeline Panel v0.1/v0.3, …), and `CLAUDE.md`'s document
+list restates them and goes stale (it names the Apple wrapper design as a key document while also saying the wrapper was retired).
+
+**Acceptance Criteria:**
+- [ ] **AC1 — Folders:** `docs/studies/` (trade studies and rulings: why a choice was made), `docs/runbooks/` (procedures: rig setup,
+  platform porting), `docs/archives/` (superseded versions). Every existing document placed by what it is.
+- [ ] **AC2 — One living design document** consolidating the current design documents (architecture, behavior spec, schemas,
+  package structure, the design docs per feature, core concurrency). Its version is its git history.
+- [ ] **AC3 — Contradictions surfaced:** every place two documents disagree is listed and ruled by the user before the merged text
+  is written (CLAUDE.md: contradictions are reconciled before implementation).
+- [ ] **AC4 — Links:** every reference to a moved document (tracking docs, code comments, `CLAUDE.md`, memory) resolves.
+- [ ] **AC5 — `CLAUDE.md`** references the design document and the three folders; its per-document list is removed.
+
+**Open questions (for planning):** the design document's structure (one file, or one file with numbered parts); whether studies
+are cited from the design document by section; how the tracking documents' many links into `docs/*.md` are rewritten.
+
+---
+
 ## EP-044: `[ScriviCore]` ⚠️ **World Resolution** — know where a world really is, or say you don't
 
 **Status:** 🔵 **Draft** — created 2026-09-22. ⛔ **No Sprint assigned; not activated.**

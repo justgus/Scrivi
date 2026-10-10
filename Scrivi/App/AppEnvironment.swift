@@ -55,6 +55,10 @@ import UniformTypeIdentifiers
         var projectName: String
         var scenesLoaded: Int
         var sceneCount: Int
+        /// SP-173 / I-0285 (AC5): the load's steps — every scene, then the timeline read. The BAR counts these; the label
+        /// counts scenes only, so it never claims a scene that does not exist.
+        var stepsDone: Int = 0
+        var stepsTotal: Int = 0
         /// ⚠️ False until the load has been slow enough to be worth showing (AC6 surface
         /// rule, user-ruled 2026-09-14): a ~1 s local open must not flash a bar. The
         /// worker keeps COUNTING from the first scene either way, so when the bar does
@@ -62,7 +66,7 @@ import UniformTypeIdentifiers
         var isVisible: Bool = false
 
         var fraction: Double {
-            sceneCount > 0 ? Double(scenesLoaded) / Double(sceneCount) : 0
+            stepsTotal > 0 ? Double(stepsDone) / Double(stepsTotal) : 0
         }
     }
 
@@ -420,8 +424,11 @@ import UniformTypeIdentifiers
                 guard done == total || done % 25 == 0 else { return }
                 Task { @MainActor in
                     guard var p = self.loadProgress else { return }
-                    p.scenesLoaded = done
-                    p.sceneCount   = total
+                    // `total` = scenes + 1: the timeline read is the last step (SP-173).
+                    p.stepsDone    = done
+                    p.stepsTotal   = total
+                    p.sceneCount   = max(total - 1, 0)
+                    p.scenesLoaded = min(done, p.sceneCount)
                     self.loadProgress = p
                 }
             }

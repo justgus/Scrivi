@@ -34,6 +34,7 @@
 #include <QVBoxLayout>
 #include <QVariantList>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 
@@ -484,7 +485,8 @@ void EditorShell::load(const QString& projectPath,
             // ⚠️ `openProject` has already returned the scene list, so this is a
             // COUNT, not an estimate -- which is exactly what makes the progress
             // bar DETERMINATE rather than a spinner (SP-128 §2a).
-            const int total = scenes.size();
+            // SP-173 / I-0285 (AC5): the timeline read is the load's last step, counted on the bar like each scene body.
+            const int total = scenes.size() + 1;
             int done = 0;
             emit self->loadProgress(done, total);
 
@@ -527,6 +529,11 @@ void EditorShell::load(const QString& projectPath,
             }
 
             loadLog("worker: all scene bodies read", done);
+            // SP-173 / I-0285 (AC4): the timeline's data, read HERE and not on the UI thread; applied there only if the
+            // project has not changed since (its revision).
+            out.timeline = EditorShell::fetchTimelineData(bridge, path);
+            emit self->loadProgress(++done, total);
+            loadLog("worker: timeline read");
             out.ok = true;
             return out;
         },
@@ -574,9 +581,13 @@ void EditorShell::onLoadProgress(int done, int total)
 {
     if (progressBar_ == nullptr) { return; }
 
-    // ⚠️ A total of 0 or 1 is not worth a bar: a single-scene project has one
+    // SP-173 / I-0285 (AC5): `total` counts every scene body PLUS the timeline read (the load's last step). The BAR counts
+    // all of it; the LABEL counts scenes only, so it never claims a scene that does not exist.
+    const int scenes = total - 1;
+
+    // ⚠️ A scene count of 0 or 1 is not worth a bar: a single-scene project has one
     // read, and there is no meaningful fraction to show.
-    if (total <= 1) { return; }
+    if (scenes <= 1) { return; }
 
     progressBar_->setRange(0, total);
     progressBar_->setValue(done);
@@ -584,7 +595,7 @@ void EditorShell::onLoadProgress(int done, int total)
     // can see that it is MOVING and roughly how much is left -- which is the
     // difference between waiting and wondering whether it has hung.
     progressLabel_->setText(tr("Opening this project… %1 of %2 scenes")
-                                .arg(done).arg(total));
+                                .arg(std::min(done, scenes)).arg(scenes));
 }
 
 void EditorShell::applyLoadedProject(const QString& projectPath,
@@ -687,10 +698,12 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         presenter_->attach(sceneDoc_.document());   // highlights the whole manuscript once
     }
     loadLog("main: presenter attached (first highlight)");
-    loading_ = false;
 
-    // Populate the navigator: chapter parents → scene children.
+    // Populate the navigator: chapter parents → scene children. ⛔ [I-0285] Still under `loading_`: `rebuildNavigator()` ends
+    // in `reloadTimeline()`, which skips while loading — the load builds the timeline ONCE, at its end. (Clearing the flag first
+    // built it twice: 27 s each on dumas over the share.)
     rebuildNavigator();
+    loading_ = false;
     loadLog("main: navigator rebuilt");
 
     // Apply the initial active scene (T-0247): restore the *saved* caret + scroll
@@ -742,9 +755,22 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     viewport_->setFocus();
 
     // EP-025: build the timeline dots from the backend story-time now that the
-    // segments + activeSegment are set.
-    reloadTimeline();
-    loadLog("main: timeline reloaded — applyLoaded done");
+    // segments + activeSegment are set. ✅ SP-173 / I-0285 (D4): from the worker's read, if the project has not changed since
+    // (one cheap revision check, no file touched); otherwise read again — one call, on this thread.
+    if (payload.timeline.fetched && payload.timeline.revision == bridge_->projectRevision(projectPath_)) {
+        applyTimelineData(payload.timeline);
+        loadLog("main: timeline applied from the worker's read — applyLoaded done");
+    } else {
+        reloadTimeline();
+        loadLog("main: timeline RE-READ (project changed since the worker read it) — applyLoaded done");
+    }
+    {
+        // SP-173 (Q1): what the exclusive project lock cost this process so far — waits of 1 ms or more, all threads.
+        const ScriviBridge::LockWaitStats w = ScriviBridge::lockWaitStats();
+        const QByteArray line = QStringLiteral("lock waits so far: %1 ms total over %2 waits, longest %3 ms")
+                                    .arg(w.totalMs).arg(w.count).arg(w.maxMs).toUtf8();
+        loadLog(line.constData());
+    }
     QTimer::singleShot(0, this, []() { loadLog("main: event loop idle (layout + first paint queued before this)"); });
 }
 
@@ -2201,15 +2227,55 @@ void EditorShell::reloadTimeline()
     if (timeline_ == nullptr || loading_) {
         return;   // load() calls this once at the end, past the loading_ guard
     }
+    ++timelineUiReads_;
+    applyTimelineData(fetchTimelineData(bridge_, projectPath_));
+}
+
+// SP-173 / I-0285 (D3): ONE core call for everything the timeline reads, safe on any thread (the bridge keeps only per-thread
+// state across a call). ⚠️ The empty-array traps: `storyTimes` is OMITTED when no scene has an explicit story time (the
+// common case) — absence means "every scene on the default chain", never failure.
+EditorShell::TimelineData EditorShell::fetchTimelineData(ScriviBridge* bridge, const QString& projectRootPath)
+{
+    TimelineData d;
+    const QVariantMap all = bridge->loadTimeline(projectRootPath);
+    if (bridge->lastCallFailed()) {
+        return d;   // fetched = false: the caller draws nothing new
+    }
+    d.fetched  = true;
+    d.revision = bridge->lastRevision();
+    d.epochLabel = all.value(QStringLiteral("timeline")).toMap().value(QStringLiteral("epochLabel")).toString();
+    for (const QVariant& v : all.value(QStringLiteral("storyTimes")).toMap().value(QStringLiteral("storyTimes")).toList()) {
+        const QVariantMap st = v.toMap();
+        TimelineData::StoryTime t;
+        t.gapMs      = st.value(QStringLiteral("gapMs")).toLongLong();
+        t.durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
+        t.bandID     = st.value(QStringLiteral("bandID")).toString();
+        d.storyTimes.insert(st.value(QStringLiteral("sceneID")).toString(), t);
+    }
+    d.eventsJSON = all.value(QStringLiteral("historicalEvents")).toMap().value(QStringLiteral("eventsJSON")).toString();
+    const QVariantMap ss = all.value(QStringLiteral("storyStructure")).toMap();
+    d.hasStructure   = ss.value(QStringLiteral("hasStructure")).toBool();
+    d.structureID    = ss.value(QStringLiteral("structureID")).toString();
+    d.bandLayoutJSON = ss.value(QStringLiteral("bandLayoutJSON")).toString();
+    d.imported = all.value(QStringLiteral("importedTimelines")).toMap();
+    return d;
+}
+
+// ⚠️ UI THREAD ONLY. Builds the panel from data already read — no core call.
+void EditorShell::applyTimelineData(const TimelineData& data)
+{
+    if (timeline_ == nullptr || !data.fetched) {
+        return;
+    }
+    ++timelineBuilds_;
 
     // Epoch label from the timeline meta (falls back to "Story Open" inside the panel).
-    const QVariantMap tl = bridge_->getTimeline(projectPath_);
-    const QString epochLabel = tl.value(QStringLiteral("epochLabel")).toString();
+    const QString epochLabel = data.epochLabel;
 
     // Build the dots in manuscript order, computing each dot's story-time offset via
     // the default gap chain (mirrors Apple's TimelineViewModel.recomputeAllOffsets):
     //   offset[0] = gap[0]; offset[i] = (offset[i-1] + duration[i-1]) + gap[i].
-    // gapMs + durationMs come from scrivi_get_scene_story_time per scene; unset scenes
+    // gapMs + durationMs come from the explicit story times (SP-173: one call for all scenes); unset scenes
     // fall back to gap 0 + the 1-hour default duration.
     constexpr qint64 kDefaultDurationMs = 3'600'000;   // 1 hour (project default)
     QList<TimelinePanel::Dot> dots;
@@ -2219,9 +2285,9 @@ void EditorShell::reloadTimeline()
     const QList<SceneSegment>& segs = sceneDoc_.segments();
     for (int i = 0; i < segs.size(); ++i) {
         const SceneSegment& seg = segs.at(i);
-        const QVariantMap st = bridge_->getSceneStoryTime(projectPath_, seg.sceneID);
-        const qint64 gapMs = st.value(QStringLiteral("gapMs")).toLongLong();
-        qint64 durationMs = st.value(QStringLiteral("durationMs")).toLongLong();
+        const TimelineData::StoryTime st = data.storyTimes.value(seg.sceneID);
+        const qint64 gapMs = st.gapMs;
+        qint64 durationMs = st.durationMs;
         if (durationMs <= 0) {
             durationMs = kDefaultDurationMs;
         }
@@ -2251,8 +2317,7 @@ void EditorShell::reloadTimeline()
     // recomputes the window). Empty on failure — the strip degrades to scenes only.
     QList<TimelinePanel::HistDot> histDots;
     histEvents_.clear();
-    const QVariantMap he = bridge_->listHistoricalEvents(projectPath_);
-    const QString eventsJSON = he.value(QStringLiteral("eventsJSON")).toString();
+    const QString eventsJSON = data.eventsJSON;
     if (!eventsJSON.isEmpty()) {
         const QJsonDocument doc = QJsonDocument::fromJson(eventsJSON.toUtf8());
         const QJsonArray arr = doc.object().value(QStringLiteral("events")).toArray();
@@ -2279,7 +2344,7 @@ void EditorShell::reloadTimeline()
     timeline_->setHistoricalEvents(histDots);
 
     // Imported timelines (SP-082, T-0342): grey rows below the project row.
-    reloadImportedTimelines();
+    reloadImportedTimelines(data.imported);
 
     // SP-083 T-0338: restore the persisted zoom/pan for this project (default = full-fit).
     // Read from the app-support INI (same path onTimelineViewStateChanged writes). Applied
@@ -2296,14 +2361,12 @@ void EditorShell::reloadTimeline()
     }
 
     // Story structure (SP-081): load the current structure + band assignments and push
-    // them to the panel. Empty structure → no bands. bandID per scene comes from
-    // getSceneStoryTime (already fetched above would be ideal, but the story-time call
-    // returns bandID too — re-read here keeps reloadTimeline's dot loop unchanged).
-    const QVariantMap ss = bridge_->getStoryStructure(projectPath_);
+    // them to the panel. Empty structure → no bands. bandID per scene comes from the same
+    // explicit story times the dots used (SP-173: it was a second per-scene call).
     QList<TimelinePanel::Band> panelBands;
-    if (ss.value(QStringLiteral("hasStructure")).toBool()) {
-        currentStructureID_    = ss.value(QStringLiteral("structureID")).toString();
-        currentBandLayoutJSON_ = ss.value(QStringLiteral("bandLayoutJSON")).toString();
+    if (data.hasStructure) {
+        currentStructureID_    = data.structureID;
+        currentBandLayoutJSON_ = data.bandLayoutJSON;
         for (const story::Band& b : story::parseBandLayout(currentBandLayoutJSON_)) {
             panelBands.append({b.bandID, b.label, b.color, b.proportion});
         }
@@ -2314,8 +2377,7 @@ void EditorShell::reloadTimeline()
     QHash<QString, QString> sceneBands;
     if (!panelBands.isEmpty()) {
         for (const SceneSegment& seg : segs) {
-            const QVariantMap st = bridge_->getSceneStoryTime(projectPath_, seg.sceneID);
-            const QString bandID = st.value(QStringLiteral("bandID")).toString();
+            const QString bandID = data.storyTimes.value(seg.sceneID).bandID;
             if (!bandID.isEmpty()) {
                 sceneBands.insert(seg.sceneID, bandID);
             }
@@ -2776,7 +2838,7 @@ void EditorShell::onExportTimelineRequested()
 // The core projection carries events with `projectOffsetMs` pre-resolved; ⛔ do not
 // reintroduce a direct read of objects/imported-timelines/.
 
-void EditorShell::reloadImportedTimelines()
+void EditorShell::reloadImportedTimelines(const QVariantMap& li)
 {
     QList<TimelinePanel::ImportedRow> rows;
 
@@ -2784,7 +2846,7 @@ void EditorShell::reloadImportedTimelines()
     // The projection used to omit events, so this re-opened and re-parsed every stored
     // file the core had already parsed; it now carries `events` with `projectOffsetMs`
     // pre-resolved, so the epoch arithmetic lives in the core instead of here.
-    const QVariantMap li = bridge_->listImportedTimelines(projectPath_);
+    // ✅ SP-173: `li` is the importedTimelines part of the one timeline read (no call of its own).
 
     // [I-0214] Files the core could not read or parse. ⚠️ They were previously discarded
     // in silence, so an empty panel was indistinguishable from "nothing imported".
