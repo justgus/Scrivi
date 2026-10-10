@@ -3,9 +3,9 @@
   "_updated": "2026-09-30",
   "next": {
     "epic": 51,
-    "sprint": 173,
+    "sprint": 174,
     "task": 601,
-    "issue": 285
+    "issue": 286
   },
   "format": {
     "epic": "EP-%03d",

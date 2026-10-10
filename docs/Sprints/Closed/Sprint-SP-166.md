@@ -1,7 +1,8 @@
 ---
 sprint: SP-166
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-10-09
 activated: 2026-10-07
 platform: Linux
 created: 2026-10-07
@@ -9,10 +10,11 @@ created: 2026-10-07
 
 # SP-166 — `[Linux]` [EP-048] **S2**: the presenter: escapes hidden, headings and emphasis rendered, caret snap
 
-**Status:** 🟡 **ACTIVE 2026-10-07** — ✅ **code + offscreen evidence done 2026-10-07; ⏳ BLOCKED on the rig for the live pass** (→ work switches to [EP-047]). — created 2026-10-07 (user: *"Then begin the S2 planning."*). ✅ Q1–Q2 ruled (*"Q1: Add the new criterion.  Q2: one Sprint."*).
-**Tasks:** 🟡 [T-0595] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md)
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). Previous: [`Closed/Sprint-SP-165.md`](Closed/Sprint-SP-165.md).
-**Authority:** [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4 (W3), §3.5–§3.7 (Apple as built, the
+**Status:** ✅ **CLOSED 2026-10-09 (user-approved):** *"close SP-166 and activate SP-173"* — L3–L6 and L9 (part) met; live pass
+passed on the rig; [T-0595] VERIFIED and archived; [I-0285] found and filed (→ [SP-173]). Activated 2026-10-07; created 2026-10-07.
+**Tasks:** ✅ [T-0595] → [`../../Tasks/Verified/Task-verified-0595.md`](../../Tasks/Verified/Task-verified-0595.md)
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). Previous: [`Sprint-SP-165.md`](Sprint-SP-165.md).
+**Authority:** [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4 (W3), §3.5–§3.7 (Apple as built, the
 shape to adopt), §5 (re-entry), §9 (Qt means). Apple reference: `ManuscriptPresenter.swift`, `MarkdownBlocks.swift`, `ManuscriptEscapes.swift`.
 **Size:** L. ⚠️ **The live pass needs the Linux rig, which is unavailable (2026-10-07).** Code + offscreen smokes can be done without it;
 at the live pass, work switches to [EP-047] (user, 2026-10-07).
@@ -123,11 +125,26 @@ slot of the half-destroyed presenter → *"pure virtual method called"*. ✅ The
 
 ## Acceptance Criteria
 
-- [ ] L3: presenter attached; stored text, formats and save bytes unchanged (smoke)
-- [ ] L4: escape and hard-break backslashes hidden per E1's rule (smoke over the shared corpus)
-- [ ] L5: no caret stop inside a hidden run; selection snapping direction-aware (smoke)
-- [ ] L6: headings and bold/italic render; line and span reveal; AC7 demotion; blocks end at scene edges (smoke)
-- [ ] L9 (part): atomic markers — ⌫ / ⌦ never delete a hidden marker alone
-- [ ] Lists: dimmed prefix; hanging indent measured, or the difference recorded
-- [ ] Cost on dumas recorded; ctest + Linux smokes green in Docker
-- [ ] ⏳ Live pass on the rig (user)
+- [x] L3: presenter attached; stored text, formats and save bytes unchanged (smoke)
+- [x] L4: escape and hard-break backslashes hidden per E1's rule (smoke over the shared corpus)
+- [x] L5: no caret stop inside a hidden run; selection snapping direction-aware (smoke)
+- [x] L6: headings and bold/italic render; line and span reveal; AC7 demotion; blocks end at scene edges (smoke)
+- [x] L9 (part): atomic markers — ⌫ / ⌦ never delete a hidden marker alone
+- [x] Lists: dimmed prefix; hanging indent difference recorded → ➡️ acceptability ruled in S3 (user, 2026-10-09)
+- [x] Cost on dumas recorded; ctest + Linux smokes green in Docker
+- [x] Live pass on the rig (user, 2026-10-09, build 59–61)
+
+## ✅ Live pass — 2026-10-09 (user, rig, build 59; dumas over the share)
+
+✅ **PASSED** (user: *"yes to all three"*). Setup, 1 (escapes hidden), 2 (heading reveal), 5 (atomic markers: ⌫ before **goodly** kept
+both `**`; ⌫ at the heading start removed `# `) and 6 passed. The scene file on disk held exactly the user's edits (diffed against a
+pre-pass copy). Steps 3–4 first read as an extra stop at a bold edge; the user narrowed it (italic fine, bold not) and the build-61
+caret log (`SCRIVI_CARET_LOG`) showed Apple's stops: ← from inside `**Much` lands between the line's TWO spaces, one ~2 px space-width
+left of the bold. Not a defect. ✅ `presenter_smoke` now pins → and ← across bold and italic, including that exact paragraph.
+
+- Ctrl+F does nothing on Linux: Find is S4 (L8). Lists and undo do not exist on Linux yet (S3 / L7; undo not scheduled).
+- ➡️ The hanging-indent question for list items moves to S3, where lists can be made.
+- ⚠️ **Load time, observed live:** launch 19:09 → all scenes loaded 19:11:35 → text shown 19:12:42 (about 3½ min; 67 s after
+  load). ✅ Measured (build 62, load-phase log, with and without the presenter): the presenter costs ~3.4 s; the frozen gap is the
+  timeline built twice on the main thread → **filed [I-0285]** (user: file it, linked to EP-048).
+- ⏳ The caret log is measurement only; it is removed in the next build.

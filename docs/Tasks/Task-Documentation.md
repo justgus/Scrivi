@@ -748,7 +748,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0555 | `[Apple]` Engine stub parity ([I-0253]) | — | — | ✅ **Verified 2026-10-03** | [`Task-verified-0555.md`](Verified/Task-verified-0555.md) |
 | T-0593 | `[Apple]` E2-S4: Find and Replace over what the writer sees | ✅ **SP-164** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0593.md`](Verified/Task-verified-0593.md) |
 | T-0594 | `[Cross]` EP-048 S1: md4c Markdown analyzer in ScriviCore + Apple agreement test | ✅ **SP-165** | **EP-048** | ✅ **Verified 2026-10-07** | [`Task-verified-0594.md`](Verified/Task-verified-0594.md) |
-| T-0595 | `[Linux]` EP-048 S2: the presenter (L3–L6, L9 atomic markers) | 🟡 **SP-166** | **EP-048** | 🟠 **Implemented - Not Verified** (live pass blocked on the rig) | — |
+| T-0595 | `[Linux]` EP-048 S2: the presenter (L3–L6, L9 atomic markers) | ✅ **SP-166** | **EP-048** | ✅ **Verified 2026-10-09** | [`Task-verified-0595.md`](Verified/Task-verified-0595.md) |
 | T-0596 | `[Cross]` EP-047 S1: project settings that travel (`project-settings.json`, title, I-0278 migration) | ✅ **SP-167** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0596.md`](Verified/Task-verified-0596.md) |
 | T-0597 | `[Apple]` EP-047 S2: one source for the manuscript's type; the seven bundled typefaces | ✅ **SP-168** | **EP-047** | ✅ **Verified 2026-10-07** | [`Task-verified-0597.md`](Verified/Task-verified-0597.md) |
 | T-0598 | `[Apple]` EP-047 S3: the first-line indent (None · Every · Book, ems, the small gap) | ✅ **SP-169** | **EP-047** | ✅ **Verified 2026-10-08** | [`Task-verified-0598.md`](Verified/Task-verified-0598.md) |
