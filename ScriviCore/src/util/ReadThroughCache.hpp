@@ -49,6 +49,10 @@
 // any one pass, so the fix belongs where the repetition is visible.
 
 #include <optional>
+#include <vector>
+#include <thread>
+#include <atomic>
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -60,6 +64,35 @@ namespace scrivi::util {
 class ReadThroughCache final : public FileSystem {
 public:
     explicit ReadThroughCache(FileSystem& inner) : inner_(inner) {}
+
+    // SP-173 (I-0285 AC3): read many files IN PARALLEL and keep the successes, so the sequential passes that follow are
+    // served from memory. ⛔ Measured on the rig (dumas over the share): the open read 1,186 scene sidecars one network
+    // round trip after another (~25 s). ⚠️ `threadSafeReader` must be safe to call from several threads at once (the ABI's
+    // LocalFileSystem is; this cache is NOT, which is why the results are stored afterwards, on the calling thread). It
+    // must read the same files `inner_` would. A path already cached is not re-read; a failed read is not stored.
+    void prefetch(const std::vector<AbsolutePath>& paths, FileSystem& threadSafeReader, std::size_t readers) {
+        std::vector<AbsolutePath> todo;
+        for (const auto& p : paths) { if (!textCache_.count(p)) { todo.push_back(p); } }
+        std::vector<std::optional<Utf8Text>> got(todo.size());
+        std::atomic<std::size_t> next{0};
+        auto work = [&]() {
+            for (std::size_t i = next++; i < todo.size(); i = next++) {
+                if (auto r = threadSafeReader.readTextFile(todo[i]); r.ok()) { got[i] = std::move(r.value()); }
+            }
+        };
+        {
+            std::vector<std::jthread> pool;
+            const std::size_t n = std::min(readers, std::max<std::size_t>(todo.size(), 1));
+            for (std::size_t t = 1; t < n; ++t) { pool.emplace_back(work); }
+            work();
+        }
+        for (std::size_t i = 0; i < todo.size(); ++i) {
+            if (got[i]) {
+                textCache_.emplace(todo[i], std::move(*got[i]));
+                existsCache_[todo[i]] = true;
+            }
+        }
+    }
 
     // --- cached: reads and existence probes --------------------------------
 

@@ -6,6 +6,8 @@
 #include "util/PathUtils.hpp"
 
 #include <filesystem>
+#include <unordered_set>
+#include <optional>
 
 namespace scrivi::project_package {
 
@@ -105,10 +107,28 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
         const std::string chapterDir =
             std::filesystem::path(chRef.path).parent_path().string();
 
+        // SP-173 (I-0285 AC3, item 4): ONE listing of the chapter's folder answers "does this file exist?" for every scene
+        // in it. ⛔ Measured on the rig (dumas over the share): a stat per scene text file cost ~7–9 s of the open — every
+        // one a network round trip. Compared by FILE NAME (no path-spelling mismatch). If the listing fails, each check
+        // falls back to `exists`, so a missing file is still reported exactly as before.
+        std::optional<std::unordered_set<std::string>> namesInDir;
+        if (auto listR = fs.listDirectory(util::join(projectRoot, chapterDir)); listR.ok()) {
+            namesInDir.emplace();
+            for (const auto& entry : listR.value()) {
+                namesInDir->insert(std::filesystem::path(entry).filename().string());
+            }
+        }
+        auto existsInChapter = [&](const AbsolutePath& path) -> Result<bool> {
+            if (namesInDir) {
+                return Result<bool>::success(namesInDir->count(std::filesystem::path(path).filename().string()) > 0);
+            }
+            return fs.exists(path);
+        };
+
         for (auto& scRef : chParsed.value().scenes) {
             const std::string sMetaRel = chapterDir + "/" + scRef.metadataFilename;
             auto sMetaPath  = util::join(projectRoot, sMetaRel);
-            auto sMetaExistsR = fs.exists(sMetaPath);
+            auto sMetaExistsR = existsInChapter(sMetaPath);
             if (!sMetaExistsR.ok()) {
                 return Result<std::vector<RepairIssue>>::failure(sMetaExistsR.error());
 }
@@ -145,7 +165,7 @@ Result<std::vector<RepairIssue>> ProjectValidator::validate(
             // Check content file exists — contentPath is a bare filename (§8.1).
             auto contentPath   =
                 util::join(projectRoot, chapterDir + "/" + sParsed.value().contentPath);
-            auto contentExistsR = fs.exists(contentPath);
+            auto contentExistsR = existsInChapter(contentPath);
             if (!contentExistsR.ok()) {
                 return Result<std::vector<RepairIssue>>::failure(contentExistsR.error());
 }

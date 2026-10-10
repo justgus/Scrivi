@@ -316,6 +316,10 @@ static const char* guarded(Fn&& fn) {
 
 // D1 + D2 (SP-173 / I-0285): every project endpoint opens with `SCRIVI_PROJECT_READ` or `SCRIVI_PROJECT_WRITE` — see
 // `ProjectLock.hpp`; `scripts/check-abi-project-guards.sh` (ctest) fails if one does not.
+// SP-173 (I-0285 AC3): how many files the core reads AT ONCE when it reads many (scene texts; the open's sidecars). On a
+// network share the cost is per-file latency, so a few readers divide it; measured on the rig with 8.
+static constexpr std::size_t kParallelReaders = 8;
+
 #define SCRIVI_PROJECT_READ(root)  scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::read)
 #define SCRIVI_PROJECT_WRITE(root) scrivi::abi::ProjectCallGuard scriviProjectGuard_((root), scrivi::abi::ProjectCallGuard::Kind::write)
 
@@ -891,6 +895,23 @@ const char* scrivi_open_project(
     scrivi::util::ReadThroughCache openCache{singleton().fileSystem};
     scrivi::CoreServices openServices = abiServices();
     openServices.fileSystem = &openCache;
+    // SP-173 (I-0285 AC3): every manuscript sidecar (manuscript, chapter and scene `.meta.json`) read IN PARALLEL into
+    // that cache before the open's passes ask for them one by one. ⛔ Measured on the rig: ~25 s of sequential round trips
+    // over the share. The listings go through the cache too, so the passes reuse them.
+    {
+        const std::string manuscriptDir = scrivi::util::join(req.projectRootPath, "manuscript");
+        std::vector<scrivi::AbsolutePath> sidecars;
+        if (auto top = openCache.listDirectory(manuscriptDir); top.ok()) {
+            for (const auto& entry : top.value()) {
+                if (entry.ends_with(".meta.json")) { sidecars.push_back(entry); continue; }
+                if (auto dir = openCache.isDirectory(entry); !dir.ok() || !dir.value()) { continue; }
+                if (auto inside = openCache.listDirectory(entry); inside.ok()) {
+                    for (const auto& f : inside.value()) { if (f.ends_with(".meta.json")) { sidecars.push_back(f); } }
+                }
+            }
+        }
+        openCache.prefetch(sidecars, singleton().fileSystem, kParallelReaders);
+    }
     scrivi::ScriviCore openCore{openServices};
     auto r = openCore.openProject(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
@@ -1050,7 +1071,6 @@ const char* scrivi_open_scene_for_bulk_load(
 // Read-only: each scene is located through the project index (`scrivi_open_project` leaves it built), and only its text
 // file is read. A scene the index does not know falls back to a manuscript traversal; one that still cannot be read is
 // reported in "failed" — the others are still returned, in the order asked.
-static constexpr std::size_t kSceneTextReaders = 8;
 
 const char* scrivi_read_scene_texts(const char* projectRootPath, const char* sceneIDsJson)
 {
@@ -1099,7 +1119,7 @@ const char* scrivi_read_scene_texts(const char* projectRootPath, const char* sce
         };
         {
             std::vector<std::jthread> pool;
-            const std::size_t n = std::min(kSceneTextReaders, std::max<std::size_t>(ids.size(), 1));
+            const std::size_t n = std::min(kParallelReaders, std::max<std::size_t>(ids.size(), 1));
             for (std::size_t t = 1; t < n; ++t) { pool.emplace_back(reader); }
             reader();                                   // this thread reads too
         }                                               // jthreads join here
