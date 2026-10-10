@@ -99,6 +99,8 @@ public:
     // Writes entries to objects/index.json atomically.
     [[nodiscard]] Result<void> write(const AbsolutePath& projectRoot,
                                      const std::vector<ObjectIndexEntry>& entries) const;
+    // The index file's exact text for `entries` (what `write` writes).
+    [[nodiscard]] std::string serialize(const std::vector<ObjectIndexEntry>& entries) const;
 
     // Resolves an objectID through the index, falling back to a rebuild when
     // the entry is absent (the index may simply be behind disk).

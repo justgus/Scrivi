@@ -192,4 +192,6 @@ edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_
     `removeStoryStructure`, `deleteHistoricalEvent`, `importExternalTimeline`, `removeImportedTimeline` → it now reads whichever
     confirmation key the reply carries). `CoreConcurrencyTests.storyTimeWritesDecode`; it failed on each original type. Interop
     271/271.
+- **2026-10-10 — Rig check, build 64: ✅ all three passed** (user): the four imported rows show their dots with dumas's scenes
+  inside the historical range; hiding a row narrows the range; showing it widens it back.
 

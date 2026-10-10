@@ -32,6 +32,7 @@
 #include "manuscript/FragmentPaster.hpp"
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
+#include "util/ReadThroughCache.hpp"
 #include "util/Json.hpp"
 #include "public_api/ProjectLock.hpp"
 
@@ -878,10 +879,25 @@ const char* scrivi_open_project(
     if (identityID && identityID[0] != '\0')
         req.currentIdentityID = scrivi::IdentityID{identityID};
 
-    auto r = core().openProject(req);
+    // SP-173 (I-0285 AC3): ONE read-through cache for the open AND the project index, so the index every bulk scene read
+    // locates its scene through is built from what the open has just read. ⛔ Measured on the rig (dumas over the share):
+    // the first bulk read built it with a second full traversal of the manuscript — every chapter and scene sidecar again,
+    // ~31 s. The cache invalidates per path on a write (the open's repairs), so nothing it serves is stale; it dies with
+    // this call (it is not a persistent cache).
+    scrivi::util::ReadThroughCache openCache{singleton().fileSystem};
+    scrivi::CoreServices openServices = abiServices();
+    openServices.fileSystem = &openCache;
+    scrivi::ScriviCore openCore{openServices};
+    auto r = openCore.openProject(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
+    if (v.mode != scrivi::OpenMode::repairRequired && v.mode != scrivi::OpenMode::cannotOpen) {
+        invalidateProjectIndex(req.projectRootPath);   // the open may have repaired the manuscript: index what is there NOW
+        scrivi::CoreServices indexServices = openServices;
+        indexServices.sceneLocator = nullptr;           // no recursion through the locator
+        (void)withProjectIndex(req.projectRootPath, indexServices, [](const scrivi::manuscript::ProjectIndex&) {});
+    }
 
     if (v.mode == scrivi::OpenMode::cannotOpen) {
         scrivi::Error err;

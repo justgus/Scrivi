@@ -234,6 +234,14 @@ ObjectIndex::rebuild(const AbsolutePath& projectRoot) const {
     // it.
     auto entries = scanDir(util::join(projectRoot, "objects"), /*worldScoped=*/false);
 
+    // SP-173 (I-0285 AC3): write only when the scan CHANGED the index. A rebuild that finds what the index already says
+    // (the common case: a lookup of an object that genuinely is not here — e.g. every endpoint in an UNAVAILABLE world)
+    // rewrote it anyway. ⛔ Measured on the rig: a dumas open rewrote it 270 times — a write, close and rename over the share
+    // each time, and each write dropped the open's read-through cache, so the NEXT rebuild re-read the share too.
+    if (auto onDisk = services_.fileSystem->readTextFile(indexPath(projectRoot));
+        onDisk.ok() && onDisk.value() == serialize(entries)) {
+        return Result<std::vector<ObjectIndexEntry>>::success(std::move(entries));
+    }
     if (auto r = write(projectRoot, entries); !r.ok()) {
         return Result<std::vector<ObjectIndexEntry>>::failure(r.error());
     }
@@ -248,6 +256,10 @@ Result<void> ObjectIndex::write(const AbsolutePath& projectRoot,
     auto objectsDir = util::join(projectRoot, "objects");
     if (auto r = fs.createDirectories(objectsDir); !r.ok()) { return r; }
 
+    return fs.atomicWriteTextFile(indexPath(projectRoot), serialize(entries));
+}
+
+std::string ObjectIndex::serialize(const std::vector<ObjectIndexEntry>& entries) const {
     util::JsonDoc root;
     root.setString("schema", std::string(kIndexSchema));
     root.setInt("generation", kIndexGeneration);
@@ -256,7 +268,7 @@ Result<void> ObjectIndex::write(const AbsolutePath& projectRoot,
         root.appendToArray("entries", serializeEntry(e));
     }
 
-    return fs.atomicWriteTextFile(indexPath(projectRoot), root.dump());
+    return root.dump();
 }
 
 // --- world-package index (Doc 3 §6.1) ---------------------------------------

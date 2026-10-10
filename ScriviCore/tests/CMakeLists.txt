@@ -38,6 +38,7 @@ add_executable(ScriviCoreTests
     integration/ObjectCApiTests.cpp
     integration/InspectorLayoutCApiTests.cpp
     integration/ProjectConcurrencyCApiTests.cpp
+    integration/ObjectIndexRebuildTests.cpp
     integration/HistoricalEventTagsCApiTests.cpp
     integration/ObjectIndexTests.cpp
     integration/ProjectIndexTests.cpp
