@@ -1,7 +1,8 @@
 ---
 sprint: SP-174
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-10-10
 activated: 2026-10-10
 platform: Cross
 created: 2026-10-10
@@ -9,9 +10,9 @@ created: 2026-10-10
 
 # SP-174 — `[Cross]` [EP-048] **S3a**: the Format-command and balanced-edit logic moves into ScriviCore; Apple re-pointed
 
-**Status:** 🟡 **ACTIVE 2026-10-10** (user: *"activate SP-174 and start step 1"*) — created 2026-10-10 (user: *"begin S3 planning"*); Q1–Q5 ruled the same day.
-**Carries:** [T-0601] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED 2026-10-10** (user: *"close SP-174"*; live pass passed). Activated 2026-10-10 (user: *"activate SP-174 and start step 1"*) — created 2026-10-10 (user: *"begin S3 planning"*); Q1–Q5 ruled the same day.
+**Carries:** ✅ [T-0601] (Verified) → [`../../Tasks/Verified/Task-verified-0601.md`](../../Tasks/Verified/Task-verified-0601.md).
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Authority:** EP-048 **L7** (commands, as EP-046 AC6; Alt-Return = hard break) and **L9**'s rest (balanced edits and copy, as
 EP-046 AC12); the hanging-indent ruling carried from [SP-166]. Apple reference: [SP-163] (commands, lists, pending pair, T-0591),
 [SP-162] (AC12, balanced edits).
@@ -163,5 +164,11 @@ It works on the manuscript STORAGE, but a block never crosses a scene, so the co
     Swift treated a caret on the divider as "the divider itself", and the core keeps that rule.
   - Results: app builds with no warnings; interop 274/274 (AC6, AC12, lists, pending pair, T-0591 unchanged); ctest macOS
     708/708; Linux (Docker, GCC) ctest 712/712, smokes 27/27.
-- ⏳ **Next:** Plan 4 — Mac live pass.
+- **2026-10-10 — the two GCC `-Wformat-truncation` warnings fixed** (user: *"fix the two GCC warnings too"*): the scene-key
+  buffers in `OpenProjectReadAmplificationTests.cpp` and `StructuralOpIndexRebuildTests.cpp` were 8 bytes for a `%03d` of an
+  `int`; now 12 (any int). Linux build: 0 warnings; ctest Linux 712/712, macOS 708/708.
+- ✅ **2026-10-10 — Plan 4: Mac live pass PASSED** (user: *"Live Pass (Mac): 1-7 passes."*). The SP-163 steps (⌘B/⌘I toggle,
+  split and nest; word-for-caret and the pending pair; headings, body, lists, Return and renumbering; Option-Return; the
+  cross-scene cut and paste; undo), plus the new ones (a cross-divider ⌘B beeps; an emoji after a letter stays outside the bold).
+- ✅ **2026-10-10 — CLOSED** (user: *"close SP-174"*). T-0601 archived → `Tasks/Verified/Task-verified-0601.md`.
 

@@ -143,7 +143,7 @@ struct Harness {
             if (!entry.is_directory()) { continue; }
             ++ci;
             for (int s = 2; s <= scenesPerChapter; ++s) {
-                char key[8];
+                char key[12];   // any int: sign + 10 digits + NUL
                 std::snprintf(key, sizeof key, "%03d", s);
                 writeScene(entry.path().string(), key,
                            "scene-c" + std::to_string(ci) + "-" + key);
