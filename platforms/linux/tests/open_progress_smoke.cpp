@@ -138,9 +138,12 @@ int main(int argc, char** argv)
 
         check(seen.front().first == 0, "progress starts at 0");
         check(seen.back().first == total, "progress ENDS at the total, not short of it");
-        // One report before the loop plus one per scene.
-        check(static_cast<int>(seen.size()) == total + 1,
-              "one report per scene and one for the timeline, plus the initial zero");
+        // SP-173 (fix 3): scene texts are read in chunks of 64 (in parallel, inside the core), so: the initial zero, one
+        // report per CHUNK, and one for the timeline.
+        const int scenes = total - 1;
+        const int chunks = (scenes + 63) / 64;
+        check(static_cast<int>(seen.size()) == 1 + chunks + 1,
+              "one report per chunk of scenes and one for the timeline, plus the initial zero");
     }
 
     if (failures == 0) {

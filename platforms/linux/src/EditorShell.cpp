@@ -510,22 +510,28 @@ void EditorShell::load(const QString& projectPath,
 
                 if (sceneID == out.activeSceneID) {
                     in.markdown = activeMarkdown;   // already have it — no round-trip
-                } else {
-                    // ⚠️ SP-144 — BULK variant: does not record this scene as the
-                    // last writing surface. Through plain `openScene` this loop
-                    // performed one atomic read-modify-write of
-                    // `workspace-state.json` PER SCENE, to record a value only
-                    // the last of which survives.
-                    const QVariantMap sc = bridge->openSceneForBulkLoad(
-                        path, appSup, out.projectID, sceneID);
-                    in.markdown = sc.value(QStringLiteral("markdown")).toString();
                 }
                 out.inputs.append(in);
+            }
 
-                // ⚠️ Emitted per scene, so the fraction MOVES on a slow mount --
-                // which is the whole point. A bar that only appears at the end
-                // reports history, not progress.
-                emit self->loadProgress(++done, total);
+            // ✅ SP-173 / I-0285 (fix 3): the texts in CHUNKS through `scrivi_read_scene_texts`, which reads each chunk IN
+            // PARALLEL inside the core. ⛔ One `openSceneForBulkLoad` per scene cost ~32 ms each over the share — one
+            // network round trip after another (the project lock serialises our own calls, so the parallelism must be the
+            // core's). ⚠️ Progress is emitted per CHUNK, so the fraction still MOVES on a slow mount.
+            constexpr int kChunk = 64;
+            for (int start = 0; start < out.inputs.size(); start += kChunk) {
+                const int end = std::min<int>(start + kChunk, out.inputs.size());
+                QStringList ids;
+                for (int i = start; i < end; ++i) {
+                    if (out.inputs.at(i).sceneID != out.activeSceneID) { ids.append(out.inputs.at(i).sceneID); }
+                }
+                const QHash<QString, QString> texts = bridge->readSceneTexts(path, ids);
+                for (int i = start; i < end; ++i) {
+                    SceneDocument::Input& in = out.inputs[i];
+                    if (in.sceneID != out.activeSceneID) { in.markdown = texts.value(in.sceneID); }
+                }
+                done = end;
+                emit self->loadProgress(done, total);
             }
 
             loadLog("worker: all scene bodies read", done);

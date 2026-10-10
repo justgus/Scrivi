@@ -36,8 +36,10 @@ static void mark(const char* phase) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 3) { std::fprintf(stderr, "usage: %s <projectRoot> <appSupportRoot>\n", argv[0]); return 2; }
+    if (argc < 3) { std::fprintf(stderr, "usage: %s <projectRoot> <appSupportRoot> [--batch]\n", argv[0]); return 2; }
     const char* root = argv[1]; const char* asr = argv[2];
+    // --batch: the bodies as the apps read them since SP-173 fix 3 — chunks of 64 through scrivi_read_scene_texts.
+    const bool batch = argc > 3 && std::string(argv[3]) == "--batch";
     using clk = std::chrono::steady_clock;
     auto ms = [](clk::time_point a, clk::time_point b) {
         return std::chrono::duration_cast<std::chrono::milliseconds>(b - a).count();
@@ -51,8 +53,17 @@ int main(int argc, char** argv) {
     std::string pid; auto ids = scenesOf(le, pid);
 
     mark("bodies");
-    for (auto& id : ids) {
-        scrivi_free(scrivi_open_scene_for_bulk_load(root, asr, pid.c_str(), id.c_str()));
+    if (batch) {
+        for (size_t start = 0; start < ids.size(); start += 64) {
+            std::string json = "[";
+            for (size_t i = start; i < ids.size() && i < start + 64; ++i) { json += (i > start ? ",\"" : "\"") + ids[i] + "\""; }
+            json += "]";
+            scrivi_free(scrivi_read_scene_texts(root, json.c_str()));
+        }
+    } else {
+        for (auto& id : ids) {
+            scrivi_free(scrivi_open_scene_for_bulk_load(root, asr, pid.c_str(), id.c_str()));
+        }
     }
     const auto t2 = clk::now();
 
@@ -61,8 +72,8 @@ int main(int argc, char** argv) {
     const auto t3 = clk::now();
     mark("end");
 
-    std::fprintf(stderr, "scenes=%zu  open=%lld ms  bodies=%lld ms (%.1f ms/scene)  timeline=%lld ms\n",
-                 ids.size(), (long long)ms(t0, t1), (long long)ms(t1, t2),
+    std::fprintf(stderr, "%s  scenes=%zu  open=%lld ms  bodies=%lld ms (%.1f ms/scene)  timeline=%lld ms\n",
+                 batch ? "[batch]    " : "[per-scene]", ids.size(), (long long)ms(t0, t1), (long long)ms(t1, t2),
                  ids.empty() ? 0.0 : double(ms(t1, t2)) / double(ids.size()), (long long)ms(t2, t3));
     return 0;
 }

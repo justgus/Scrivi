@@ -24,12 +24,13 @@ echo "=== SP-173 Plan 6 — load cost on $(hostname), $(date -u +%FT%TZ) ==="
 echo "project : $PROJECT"
 echo "mount   : $(findmnt -T "$PROJECT" -o TARGET,FSTYPE,OPTIONS -n 2>/dev/null | cut -c1-160 || echo unknown)"
 echo
-echo "--- run 1: untraced (wall times) ---"
+echo "--- run 1: untraced (wall times): per-scene reads, then the batch read (SP-173 fix 3) ---"
 "$BIN" "$PROJECT" "$APPSUP"
+"$BIN" "$PROJECT" "$APPSUP" --batch
 echo
 echo "--- run 2: strace (attribution; strace itself slows every call) ---"
 strace -f -T -e trace=openat,read,write,close,newfstatat,statx,getdents64,rename,unlink,mkdir \
-    -o "$TRACE" "$BIN" "$PROJECT" "$APPSUP"
+    -o "$TRACE" "$BIN" "$PROJECT" "$APPSUP" ${PROBE_TRACE_MODE:-}
 python3 - "$TRACE" "$PROJECT" <<'PY'
 import re, sys, collections
 trace, root = sys.argv[1], sys.argv[2].rstrip('/')

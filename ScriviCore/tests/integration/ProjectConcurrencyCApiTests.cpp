@@ -7,10 +7,12 @@
 #include "public_api/ProjectLock.hpp"
 #include "util/Json.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -265,4 +267,89 @@ TEST_CASE("D4: scrivi_get_project_revision reports the current revision without 
     REQUIRE(writeSettings(f.root(), "x").getBool("ok"));
     CHECK(envelope(scrivi_get_project_revision(f.root())).getInt64("revision") == base + 1);
     CHECK_FALSE(envelope(scrivi_get_project_revision(nullptr)).getBool("ok"));
+}
+
+namespace {
+
+// A project with `n` scenes, each scene's text file holding a line that names its sceneID. Returns the scene IDs in
+// manuscript order.
+std::vector<std::string> manyScenes(const ConcurrencyFixture& f, int n) {
+    JsonDoc opened = envelope(scrivi_open_project(f.root(), f.appSupport(), ""));
+    REQUIRE(opened.getBool("ok"));
+    const JsonDoc first = opened.getSubDoc("result").getSubDoc("activeScene");
+    const std::string projectID = opened.getSubDoc("result").getString("projectID");
+    const std::string chapterID = opened.getSubDoc("result").arrayItem("scenes", 0).getString("chapterID");
+    std::string after = first.getString("sceneID");
+    for (int i = 1; i < n; ++i) {
+        JsonDoc made = envelope(scrivi_create_scene(f.root(), f.appSupport(), projectID.c_str(), chapterID.c_str(),
+                                                    after.c_str(), "", "identity-001", "persona-001", "Test Author"));
+        INFO("create_scene: " << made.dump());
+        REQUIRE(made.getBool("ok"));
+        after = made.getSubDoc("result").getString("sceneID");
+    }
+    JsonDoc reopened = envelope(scrivi_open_project(f.root(), f.appSupport(), ""));
+    REQUIRE(reopened.getBool("ok"));
+    const JsonDoc r = reopened.getSubDoc("result");
+    std::vector<std::string> ids;
+    for (std::size_t i = 0; i < r.arraySize("scenes"); ++i) {
+        const JsonDoc s = r.arrayItem("scenes", i);
+        ids.push_back(s.getString("sceneID"));
+        std::ofstream(f.projectDir / s.getString("contentPath"), std::ios::binary | std::ios::trunc)
+            << "Text of " << s.getString("sceneID") << ".\n";
+    }
+    REQUIRE(static_cast<int>(ids.size()) == n);
+    return ids;
+}
+
+std::string jsonArray(const std::vector<std::string>& ids) {
+    std::string out = "[";
+    for (std::size_t i = 0; i < ids.size(); ++i) { out += (i ? ",\"" : "\"") + ids[i] + "\""; }
+    return out + "]";
+}
+
+}  // namespace
+
+TEST_CASE("Fix 3: scrivi_read_scene_texts returns every scene's text, in the order asked, exactly as the per-scene read does",
+          "[concurrency][capi][bulk]") {
+    ConcurrencyFixture f;
+    auto ids = manyScenes(f, 40);
+    std::reverse(ids.begin(), ids.end());   // an order that is NOT manuscript order: the reply must follow the request
+    JsonDoc all = envelope(scrivi_read_scene_texts(f.root(), jsonArray(ids).c_str()));
+    INFO("envelope: " << all.dump().substr(0, 400));
+    REQUIRE(all.getBool("ok"));
+    const JsonDoc r = all.getSubDoc("result");
+    REQUIRE(r.getInt("count") == 40);
+    REQUIRE(r.getInt("failedCount") == 0);
+    JsonDoc opened = envelope(scrivi_open_project(f.root(), f.appSupport(), ""));
+    const std::string projectID = opened.getSubDoc("result").getString("projectID");
+    for (std::size_t i = 0; i < ids.size(); ++i) {
+        const JsonDoc item = r.arrayItem("scenes", i);
+        CHECK(item.getString("sceneID") == ids[i]);
+        CHECK(item.getString("markdown") == "Text of " + ids[i] + ".\n");
+        JsonDoc one = envelope(scrivi_open_scene_for_bulk_load(f.root(), f.appSupport(), projectID.c_str(), ids[i].c_str()));
+        CHECK(one.getSubDoc("result").getString("markdown") == item.getString("markdown"));
+    }
+}
+
+TEST_CASE("Fix 3: an unknown scene is reported in failed; the others are still returned", "[concurrency][capi][bulk]") {
+    ConcurrencyFixture f;
+    auto ids = manyScenes(f, 3);
+    ids.insert(ids.begin() + 1, "scene_does_not_exist");
+    JsonDoc all = envelope(scrivi_read_scene_texts(f.root(), jsonArray(ids).c_str()));
+    REQUIRE(all.getBool("ok"));
+    const JsonDoc r = all.getSubDoc("result");
+    CHECK(r.getInt("count") == 3);
+    CHECK(r.getInt("failedCount") == 1);
+    CHECK(r.arrayItem("failed", 0).getString("sceneID") == "scene_does_not_exist");
+    CHECK(r.arrayItem("scenes", 1).getString("sceneID") == ids[2]);   // order kept around the gap
+}
+
+TEST_CASE("Fix 3: bad input is refused; an empty list is an empty answer", "[concurrency][capi][bulk]") {
+    ConcurrencyFixture f;
+    CHECK_FALSE(envelope(scrivi_read_scene_texts(f.root(), "not json")).getBool("ok"));
+    CHECK_FALSE(envelope(scrivi_read_scene_texts(nullptr, "[]")).getBool("ok"));
+    JsonDoc empty = envelope(scrivi_read_scene_texts(f.root(), "[]"));
+    REQUIRE(empty.getBool("ok"));
+    CHECK(empty.getSubDoc("result").getInt("count") == 0);
+    CHECK(empty.getSubDoc("result").getInt("failedCount") == 0);
 }

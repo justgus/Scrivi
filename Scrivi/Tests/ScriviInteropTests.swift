@@ -6951,6 +6951,14 @@ struct CoreConcurrencyTests {
         #expect(session.timelineModel?.dots.count == result.scenes.count)
         let last = try #require(reports.last)
         #expect(last.0 == result.scenes.count + 1 && last.1 == result.scenes.count + 1, "the timeline is the last step")
+        // Fix 3: the texts arrive through the parallel batch read — exactly what the per-scene read returns.
+        let segments = try #require(session.viewportLoader?.segments)
+        #expect(segments.count == result.scenes.count)
+        for seg in segments {
+            let one = try engine.openSceneForBulkLoad(projectRootPath: root.path, appSupportRoot: support.path,
+                                                      projectID: result.projectID, sceneID: seg.sceneID)
+            #expect(seg.text == one.markdown, "scene \(seg.sceneID)")
+        }
     }
 
     @Test("apply(nil): a failed read draws defaults and leaves imported timelines alone")

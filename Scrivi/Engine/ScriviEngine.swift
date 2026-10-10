@@ -1069,6 +1069,15 @@ public final class ScriviEngine: @unchecked Sendable {
         return LoadTimelineResult(parts: parts, revision: revision)
     }
 
+    /// SP-173 / I-0285 (fix 3) — many scenes' texts in ONE crossing, read IN PARALLEL inside the core. ⛔ One
+    /// `openSceneForBulkLoad` per scene cost ~32 ms each over a network share, one round trip after another (the project
+    /// lock serialises our own calls, so the parallelism must be the core's). Read-only; safe off the main actor.
+    public func readSceneTexts(projectRootPath: String, sceneIDs: [String]) throws -> ReadSceneTextsResult {
+        let ids = String(decoding: try JSONEncoder().encode(sceneIDs), as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in ids.withCString { scrivi_read_scene_texts(prp, $0) } }
+        return try decodeC(raw)
+    }
+
     /// SP-173 (D4) — the project's current revision; touches no file. Asked on the main actor just before applying a result
     /// read in the background: apply only if the two match.
     public func projectRevision(projectRootPath: String) throws -> Int64 {
@@ -1617,6 +1626,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func listImportedTimelines(projectRootPath: String) throws -> ImportedTimelinesListResult { try unavailable() }
     public func loadTimeline(projectRootPath: String) throws -> LoadTimelineResult { try unavailable() }
     public func projectRevision(projectRootPath: String) throws -> Int64 { try unavailable() }
+    public func readSceneTexts(projectRootPath: String, sceneIDs: [String]) throws -> ReadSceneTextsResult { try unavailable() }
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
     public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
     public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult { try unavailable() }
@@ -2517,6 +2527,24 @@ public struct LoadTimelineParts: Decodable, Sendable {
         storyStructure    = try? c.decodeIfPresent(StoryStructureResult.self,        forKey: .storyStructure)
         historicalEvents  = try? c.decodeIfPresent(HistoricalEventsListResult.self,  forKey: .historicalEvents)
         importedTimelines = try? c.decodeIfPresent(ImportedTimelinesListResult.self, forKey: .importedTimelines)
+    }
+}
+
+/// SP-173 / I-0285 (fix 3) — `scrivi_read_scene_texts`'s result, in the order asked. ⚠️ The C ABI omits `scenes` / `failed`
+/// when empty (the empty-array trap); `count` and `failedCount` are always present.
+public struct ReadSceneTextsResult: Decodable, Sendable {
+    public struct Scene: Decodable, Sendable { public let sceneID: String; public let markdown: String }
+    public struct Failure: Decodable, Sendable { public let sceneID: String; public let code: Int; public let message: String }
+    public let scenes: [Scene]
+    public let failed: [Failure]
+    public let count: Int
+
+    private enum CodingKeys: String, CodingKey { case scenes, failed, count }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        scenes = try c.decodeIfPresent([Scene].self, forKey: .scenes) ?? []
+        failed = try c.decodeIfPresent([Failure].self, forKey: .failed) ?? []
+        count  = try c.decodeIfPresent(Int.self, forKey: .count) ?? scenes.count
     }
 }
 

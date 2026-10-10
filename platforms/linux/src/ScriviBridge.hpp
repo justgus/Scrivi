@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QString>
 #include <QVariantMap>
+#include <QStringList>
+#include <QHash>
 #include <qqmlintegration.h>
 
 #include "MarkdownAnalysis.hpp"
@@ -292,6 +294,8 @@ public:
     QVariantMap loadTimeline(const QString& projectRootPath);
     // SP-173 (D4): the project's current revision (-1 on failure); touches no file.
     qint64 projectRevision(const QString& projectRootPath);
+    // SP-173 (fix 3): many scenes' texts in one call, read in parallel by the core; sceneID → markdown. Worker-safe.
+    QHash<QString, QString> readSceneTexts(const QString& projectRootPath, const QStringList& sceneIDs);
 
     // Returns one scene's story-time (EP-025 / SP-079, T-0321). Calls
     // scrivi_get_scene_story_time(projectRootPath, sceneID) and returns its ok

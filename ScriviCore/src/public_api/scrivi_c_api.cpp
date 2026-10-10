@@ -28,6 +28,7 @@
 #include "history/HistoryStore.hpp"
 #include "manuscript/FragmentCutter.hpp"
 #include "manuscript/ProjectIndex.hpp"
+#include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
 #include "util/AtomicWrite.hpp"
@@ -37,6 +38,9 @@
 #include "public_api/ProjectLock.hpp"
 
 #include <chrono>
+#include <algorithm>
+#include <thread>
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -1034,6 +1038,94 @@ const char* scrivi_open_scene_for_bulk_load(
     // measurement — 61 atomic workspace writes per 61-scene load.
     return openSceneImpl(projectRootPath, appSupportRoot, projectID, sceneID,
                          /*recordAsWritingSurface=*/false);
+}
+
+// SP-173 / I-0285 (AC3, fix 3; user: "3 in this sprint") — the TEXT of many scenes in ONE call, read IN PARALLEL.
+//
+// ⛔ Measured on the rig (dumas over the share): reading 1,186 scene texts one call at a time cost ~32 ms each — open, read,
+// read-to-EOF, close, every one a network round trip, strictly one after another. The cost is LATENCY, not bandwidth, so
+// reading several files at once divides it. ⚠️ It must happen INSIDE the core: the platforms cannot issue parallel calls,
+// because the project lock (D1, Q1: exclusive) serialises them.
+//
+// Read-only: each scene is located through the project index (`scrivi_open_project` leaves it built), and only its text
+// file is read. A scene the index does not know falls back to a manuscript traversal; one that still cannot be read is
+// reported in "failed" — the others are still returned, in the order asked.
+static constexpr std::size_t kSceneTextReaders = 8;
+
+const char* scrivi_read_scene_texts(const char* projectRootPath, const char* sceneIDsJson)
+{
+    SCRIVI_PROJECT_READ(projectRootPath);
+    return guarded([&]() -> const char* {
+        SCRIVI_REQUIRE_PATH(projectRootPath, "projectRootPath");
+        const std::string root = S(projectRootPath);
+        auto idsDoc = scrivi::util::parseJson(S(sceneIDsJson));
+        if (!idsDoc.ok()) {
+            return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
+                                      "sceneIDsJson must be a JSON array of scene IDs"));
+        }
+        const std::vector<std::string> ids = idsDoc.value().rootStringArray();
+
+        // 1. Locate every scene (in memory), BEFORE any thread starts: the registry's mutex is not held while reading.
+        auto services = abiServices();
+        services.sceneLocator = nullptr;
+        std::vector<std::optional<scrivi::RelativePath>> contentPaths(ids.size());
+        withProjectIndex(root, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
+            for (std::size_t i = 0; i < ids.size(); ++i) {
+                if (auto loc = idx.findScene(scrivi::SceneID{ids[i]})) { contentPaths[i] = loc->contentPath; }
+            }
+        });
+        for (std::size_t i = 0; i < ids.size(); ++i) {
+            if (contentPaths[i]) { continue; }
+            scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+            if (auto found = resolver.findScene(root, scrivi::SceneID{ids[i]}); found.ok()) {
+                contentPaths[i] = found.value().contentPath;
+            }
+        }
+
+        // 2. Read the texts in parallel. Each reader takes the next index; results land in their own slots, so the order
+        //    is the order asked and no slot is shared.
+        std::vector<scrivi::Result<std::string>> texts;
+        texts.reserve(ids.size());
+        for (std::size_t i = 0; i < ids.size(); ++i) {
+            texts.push_back(scrivi::Result<std::string>::failure(
+                {.code = scrivi::ErrorCode::invalidArgument, .message = "scene not found: " + ids[i]}));
+        }
+        std::atomic<std::size_t> next{0};
+        auto reader = [&]() {
+            for (std::size_t i = next++; i < ids.size(); i = next++) {
+                if (!contentPaths[i]) { continue; }
+                texts[i] = singleton().fileSystem.readTextFile(scrivi::util::join(root, *contentPaths[i]));
+            }
+        };
+        {
+            std::vector<std::jthread> pool;
+            const std::size_t n = std::min(kSceneTextReaders, std::max<std::size_t>(ids.size(), 1));
+            for (std::size_t t = 1; t < n; ++t) { pool.emplace_back(reader); }
+            reader();                                   // this thread reads too
+        }                                               // jthreads join here
+
+        scrivi::util::JsonDoc doc;
+        std::size_t failed = 0;
+        for (std::size_t i = 0; i < ids.size(); ++i) {
+            if (texts[i].ok()) {
+                scrivi::util::JsonDoc item;
+                item.setString("sceneID",  ids[i]);
+                item.setString("markdown", texts[i].value());
+                doc.appendToArray("scenes", std::move(item));
+            } else {
+                scrivi::util::JsonDoc item;
+                item.setString("sceneID", ids[i]);
+                item.setInt("code",       static_cast<int>(texts[i].error().code));
+                item.setString("message", texts[i].error().message);
+                doc.appendToArray("failed", std::move(item));
+                ++failed;
+            }
+        }
+        // ⚠️ The empty-array trap: "scenes" / "failed" are OMITTED when empty. These counts are ALWAYS present.
+        doc.setInt("count",       static_cast<int>(ids.size() - failed));
+        doc.setInt("failedCount", static_cast<int>(failed));
+        return heap(okEnvelope(std::move(doc)));
+    });
 }
 
 const char* scrivi_save_scene(

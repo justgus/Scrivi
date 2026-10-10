@@ -111,6 +111,14 @@ const char* scrivi_open_scene_for_bulk_load(
     const char* projectID,
     const char* sceneID);
 
+/* SP-173 / I-0285 (fix 3) -- the TEXT of many scenes in one call, read in PARALLEL inside the core (the cost of reading a
+ * manuscript over a network share is per-file latency; the project lock serialises the platforms' own calls).
+ * sceneIDsJson: a JSON array of scene IDs, e.g. ["scene_a","scene_b"]. Read-only.
+ * Result: {"scenes":[{"sceneID","markdown"}...], "failed":[{"sceneID","code","message"}...], "count", "failedCount"}, in the
+ * order asked. WARNING: "scenes" / "failed" are OMITTED when empty; "count" and "failedCount" are always present.
+ * A platform loading a manuscript asks in CHUNKS (e.g. 64) so its progress bar moves between calls. */
+const char* scrivi_read_scene_texts(const char* projectRootPath, const char* sceneIDsJson);
+
 const char* scrivi_save_scene(
     const char* projectID,
     const char* projectRootPath,

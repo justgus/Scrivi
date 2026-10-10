@@ -177,28 +177,33 @@ struct SceneSegment: Identifiable {
         var liveTitles: [String: String] = [:]
         segments.reserveCapacity(allScenes.count)
 
-        for (i, info) in allScenes.enumerated() {
-            // ⚠️ SP-144 — BULK variant: no per-scene workspace-state write.
-            let loaded = try? engine.openSceneForBulkLoad(
-                projectRootPath: projectRootPath,
-                appSupportRoot: appSupportRoot,
-                projectID: projectID,
-                sceneID: info.sceneID
-            )
-            let text = loaded?.markdown ?? ""
-            segments.append(SceneSegment(
-                id: info.sceneID,
-                sceneID: info.sceneID,
-                chapterID: info.chapterID,
-                metadataPath: info.metadataPath,
-                contentPath: info.contentPath,
-                text: text
-            ))
-            let firstLine = text.components(separatedBy: .newlines)
-                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
-            if !firstLine.isEmpty { liveTitles[info.sceneID] = firstLine }
-
-            onProgress(i + 1, allScenes.count)
+        // ✅ SP-173 / I-0285 (fix 3): the texts in CHUNKS through `readSceneTexts`, which reads each chunk IN PARALLEL inside
+        // the core (one `openSceneForBulkLoad` per scene was one network round trip after another on a share). Read-only,
+        // like the bulk variant before it (SP-144: no workspace-state write). Progress is reported per CHUNK, so the bar
+        // still moves on a slow mount.
+        let chunk = 64
+        var start = 0
+        while start < allScenes.count {
+            let slice = allScenes[start ..< min(start + chunk, allScenes.count)]
+            let read = try? engine.readSceneTexts(projectRootPath: projectRootPath, sceneIDs: slice.map(\.sceneID))
+            var textByID: [String: String] = [:]
+            for s in read?.scenes ?? [] { textByID[s.sceneID] = s.markdown }
+            for info in slice {
+                let text = textByID[info.sceneID] ?? ""
+                segments.append(SceneSegment(
+                    id: info.sceneID,
+                    sceneID: info.sceneID,
+                    chapterID: info.chapterID,
+                    metadataPath: info.metadataPath,
+                    contentPath: info.contentPath,
+                    text: text
+                ))
+                let firstLine = text.components(separatedBy: .newlines)
+                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                if !firstLine.isEmpty { liveTitles[info.sceneID] = firstLine }
+            }
+            start += slice.count
+            onProgress(start, allScenes.count)
         }
         return (segments, liveTitles)
     }

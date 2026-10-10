@@ -194,4 +194,21 @@ edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_
     271/271.
 - **2026-10-10 — Rig check, build 64: ✅ all three passed** (user): the four imported rows show their dots with dumas's scenes
   inside the historical range; hiding a row narrows the range; showing it widens it back.
+- **2026-10-10 — Plan 6, measured (rig, dumas over `/mnt/scrivi-net`, `sp173-load-cost-probe.sh`).** Build 63: open 57.5 s,
+  bodies 58.4 s (49 ms/scene), timeline 0.18 s. Attribution (strace, per phase, by what each call touched): open — object index
+  rebuilt AND rewritten 270× (24 s; every relationship endpoint into the unavailable world missed, each miss rewrote the index and
+  dropped the open's read cache), sidecars 22 s, a stat of every scene text 9 s; bodies — a full `ProjectIndex::build` on the first
+  bulk read (every chapter + sidecar again, ~31 s), then scene text ~25 ms/scene. Local SSD for comparison: ~1 s in all. ⚠️ An
+  attribution bug of mine (reads' DATA strings taken for paths) first blamed local app support; corrected by attributing by fd.
+  - User (2026-10-10): *"do 1 and 2 now, 3 in this sprint, investigate 4."* Linux and Apple make the SAME core calls for loading
+    (checked), so these are core fixes for both.
+  - ✅ **Fix 1:** `ObjectIndex::rebuild` writes only when the scan changed the index (`ObjectIndex.cpp`). A "rebuild at most once
+    per pass" half was written, measured as having no effect (the open's read cache already serves repeat rebuilds once nothing
+    writes), and REMOVED. Test `ObjectIndexRebuildTests` (20 edges into an unavailable world): 0 index writes; original code → 40.
+  - ✅ **Fix 2:** `scrivi_open_project` runs the open AND builds the project index through ONE read-through cache, leaving the
+    index in the registry for the bulk reads. ⚠️ Not unit-testable (the registry sits behind the ABI's own file system); evidence is
+    the rig run.
+  - **Build 65 on the rig:** open **31.7 s** (−25.8), bodies **38.1 s** (−20.3, now 32 ms/scene, scene text only), total
+    **70 s** (was 116). ctest 682/682, Linux smokes 27/27, interop 271/271.
+  - ⏳ Fix 3 (parallel bulk read, `[Cross]` endpoint); item 4 (the open's stat of every scene text; 270 calls per edge left).
 

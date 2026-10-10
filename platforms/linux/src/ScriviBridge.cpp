@@ -1852,3 +1852,27 @@ qint64 ScriviBridge::projectRevision(const QString& projectRootPath)
     parseEnvelope(envelope.toQString());
     return tlsLastCallFailed ? -1 : tlsLastRevision;
 }
+
+// SP-173 / I-0285 (fix 3) — many scenes' texts in ONE call, read in parallel inside the core. Worker-safe. Returns
+// sceneID → markdown; a scene the core could not read is absent (and logged), never an empty string mistaken for text.
+QHash<QString, QString> ScriviBridge::readSceneTexts(const QString& projectRootPath, const QStringList& sceneIDs)
+{
+    QHash<QString, QString> out;
+    if (sceneIDs.isEmpty()) {
+        return out;
+    }
+    const QByteArray idsJson = QJsonDocument(QJsonArray::fromStringList(sceneIDs)).toJson(QJsonDocument::Compact);
+    const ScriviString envelope(
+        scrivi_read_scene_texts(projectRootPath.toUtf8().constData(), idsJson.constData()));
+    const QVariantMap r = parseEnvelope(envelope.toQString());
+    for (const QVariant& v : r.value(QStringLiteral("scenes")).toList()) {
+        const QVariantMap s = v.toMap();
+        out.insert(s.value(QStringLiteral("sceneID")).toString(), s.value(QStringLiteral("markdown")).toString());
+    }
+    for (const QVariant& v : r.value(QStringLiteral("failed")).toList()) {
+        const QVariantMap f = v.toMap();
+        qWarning("[SP-173] scene text not read: %s — %s", qUtf8Printable(f.value(QStringLiteral("sceneID")).toString()),
+                 qUtf8Printable(f.value(QStringLiteral("message")).toString()));
+    }
+    return out;
+}
