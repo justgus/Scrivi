@@ -34,6 +34,9 @@
 #include <QVBoxLayout>
 #include <QVariantList>
 
+#include <chrono>
+#include <cstdio>
+
 #include "EpochOffsetDialog.hpp"
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
@@ -48,6 +51,20 @@
 
 // Short alias for the built-in story-structure presets (SP-081).
 namespace story = scrivi::linux_app::story;
+
+// SP-166 measurement (user, rig: ~3½ min to open dumas, 67 s of it AFTER all scenes loaded). Set SCRIVI_LOAD_LOG=1 to print
+// each load phase as ms since launch; SCRIVI_NO_PRESENTER=1 skips the presenter, so one build compares with and without it.
+namespace {
+const auto kLaunch = std::chrono::steady_clock::now();
+void loadLog(const char* phase, int n = -1)
+{
+    static const bool on = qEnvironmentVariableIsSet("SCRIVI_LOAD_LOG");
+    if (!on) { return; }
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - kLaunch).count();
+    if (n >= 0) { std::fprintf(stderr, "[SCRIVI-LOAD] %8lld ms  %s (%d)\n", (long long)ms, phase, n); }
+    else        { std::fprintf(stderr, "[SCRIVI-LOAD] %8lld ms  %s\n", (long long)ms, phase); }
+}
+}
 
 namespace {
 
@@ -356,6 +373,7 @@ void EditorShell::load(const QString& projectPath,
                        const QString& title,
                        const QVariantMap& openedProject)
 {
+    loadLog(openedProject.isEmpty() ? "load: entered (will open the project)" : "load: entered (open handed over)");
     errorLabel_->hide();
     errorLabel_->clear();
 
@@ -438,6 +456,7 @@ void EditorShell::load(const QString& projectPath,
             const QVariantMap opened = handedOver.isEmpty()
                 ? bridge->openProject(path, appSup)
                 : handedOver;
+            loadLog("worker: openProject done");
             if (opened.value(QStringLiteral("mode")).toString()
                 != QStringLiteral("ready")) {
                 // repairRequired / cannotOpen were already handled by the landing
@@ -507,10 +526,12 @@ void EditorShell::load(const QString& projectPath,
                 emit self->loadProgress(++done, total);
             }
 
+            loadLog("worker: all scene bodies read", done);
             out.ok = true;
             return out;
         },
         [this, projectPath, appSupportRoot](const LoadPayload& payload) {
+            loadLog("main: payload received");
             hideLoadProgress();
             if (!payload.ok) {
                 if (!errorLabel_->isVisible()) {
@@ -649,8 +670,11 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         viewport_->setPresenter(presenter_);
     }
     presenter_->attach(nullptr);
+    loadLog("main: sceneDoc build start");
     sceneDoc_.build(inputs);
+    loadLog("main: sceneDoc built");
     viewport_->setDocument(sceneDoc_.document());
+    loadLog("main: setDocument done");
     // setDocument re-enables undo on the freshly-attached document; keep it off.
     viewport_->document()->setUndoRedoEnabled(false);
     // Point the boundary guard at the freshly-built map, and hook edits. The
@@ -659,11 +683,15 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     viewport_->setSceneDocument(&sceneDoc_);
     connect(viewport_->document(), &QTextDocument::contentsChange,
             this, &EditorShell::onContentsChange, Qt::UniqueConnection);
-    presenter_->attach(sceneDoc_.document());   // highlights the whole manuscript once
+    if (!qEnvironmentVariableIsSet("SCRIVI_NO_PRESENTER")) {
+        presenter_->attach(sceneDoc_.document());   // highlights the whole manuscript once
+    }
+    loadLog("main: presenter attached (first highlight)");
     loading_ = false;
 
     // Populate the navigator: chapter parents → scene children.
     rebuildNavigator();
+    loadLog("main: navigator rebuilt");
 
     // Apply the initial active scene (T-0247): restore the *saved* caret + scroll
     // within it, rather than snapping to the scene start. ScriviCore returns the
@@ -716,6 +744,8 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // EP-025: build the timeline dots from the backend story-time now that the
     // segments + activeSegment are set.
     reloadTimeline();
+    loadLog("main: timeline reloaded — applyLoaded done");
+    QTimer::singleShot(0, this, []() { loadLog("main: event loop idle (layout + first paint queued before this)"); });
 }
 
 void EditorShell::showEvent(QShowEvent* event)
