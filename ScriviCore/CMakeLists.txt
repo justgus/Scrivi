@@ -110,6 +110,10 @@ target_sources(ScriviCore
         src/history/HistoryStore.cpp
         src/history/BufferStore.cpp
         src/markdown/MarkdownAnalyzer.cpp
+        src/markdown/MarkdownText.cpp
+        src/markdown/Escapes.cpp
+        src/markdown/Emphasis.cpp
+        src/markdown/Editing.cpp
         ${md4c_SOURCE_DIR}/src/md4c.c
 )
 

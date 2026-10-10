@@ -57,7 +57,7 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🟡 **ACTIVE 2026-10-07** (user: *"We do want to activate EP-048"*) — created 2026-09-29. ✅ Scoped 2026-10-05 ([SP-159]), ACs L1–L8 below. ⚠️ **The Linux rig is unavailable (2026-10-07)** — work that needs no rig goes first; at the first live pass work switches to [EP-047] (user).
+**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; **S3a active** (SP-174, 2026-10-10). L1–L6 met; L7 and L9 partly met; L8 and L10 open. The rig is available.
 **Sprints:**
 
 | Sprint | Scope | Status |
@@ -65,36 +65,28 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 | **[SP-165]** | **S1** — md4c analyzer in ScriviCore + `scrivi_analyze_markdown` + agreement test: L1, L2 (no rig) | ✅ **CLOSED 2026-10-07** (user-approved) → [`../Sprints/Closed/Sprint-SP-165.md`](../Sprints/Closed/Sprint-SP-165.md) · ✅ [T-0594] verified · ✅ L1, L2 met |
 | **[SP-166]** | **S2** — the presenter: L3, L4, L5, L6 (⚠️ live pass needs the rig) | ✅ **CLOSED 2026-10-09** (user-approved) → [`../Sprints/Closed/Sprint-SP-166.md`](../Sprints/Closed/Sprint-SP-166.md) · ✅ L3–L6, L9 (part) met; [T-0595] verified |
 | **[SP-173]** | `[Cross]` **I-0285** (found in S2): project load — no frozen UI, timeline built once, load measured; core calls synchronised (both platforms) | ✅ **CLOSED 2026-10-10** (user-approved) → [`../Sprints/Closed/Sprint-SP-173.md`](../Sprints/Closed/Sprint-SP-173.md) · ✅ I-0285 verified: load 172 s → 15.4 s |
-| S3 | commands: L7; balanced edits + copy: L9 (rest); ruling owed: is the missing hanging indent for list items acceptable (from SP-166) | not yet created |
+| **[SP-174]** | **S3a** — `[Cross]` the command and balanced-edit logic moves into ScriviCore; Apple re-pointed (no visible change) | 🟡 **ACTIVE 2026-10-10** → [`../Sprints/Sprint-SP-174.md`](../Sprints/Sprint-SP-174.md) · ✅ Q1–Q5 ruled |
+| S3b | Linux: the Format commands (L7) and balanced edits + copy (L9 rest) on the core logic; navigator toggle moves off Ctrl+Alt+N; rig live pass | not yet created |
 | S4 | Find/Replace: L8 | not yet created |
-| S5 | EP-047's preferences on Linux: L10 (after EP-047 S1–S4) | not yet created |
+| S5 | EP-047's preferences on Linux: L10 (EP-047 closed 2026-10-08, so not blocked) | not yet created |
 
-**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived).
+**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived) · 🟡 [T-0601] (SP-174).
 **Issues:** ✅ [I-0285] (SP-173 — VERIFIED, archived) · 🟠 [I-0280] (found + fixed in SP-165, Apple and core) · 🔵 [I-0281] `[Apple]` (found by L2 → Issue backlog, ➡️ linked forward to [EP-047]).
-⚠️ **2026-10-04:** the escape layer's WRITE half moved OUT to **[EP-049]** (now). ✅ This Epic keeps the DISPLAY half, whose design for BOTH platforms is ruled in **[SP-159]** (widened).
+This Epic is the escape layer's DISPLAY half on Linux; the WRITE half was [EP-049] (closed 2026-10-05). The design for both platforms was ruled in [SP-159].
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
 
 **Goal:** ✅ **The same manuscript surface on Linux.**
 
-⚠️ **THIS EPIC EXISTS TO HONOUR A RULE, NOT BECAUSE IT IS UNDERSTOOD.** ✅ **`feedback_linux_adopts_apple_shape`:
-a shape change on Apple must be made the same way on Linux.** ⛔ **Naming it is how that is honoured
-without blocking Apple on Qt** — ⚠️ **but it MUST be scheduled, ⛔ not assumed.**
+**Why:** `feedback_linux_adopts_apple_shape` — a shape change on Apple is made the same way on Linux. Where Qt cannot match
+Apple's mechanism, the RESULT is matched and the difference recorded.
 
-⛔ **NOTHING HERE IS MEASURED.** ⚠️ **Qt's text stack is NOT TextKit: ⛔ there is no
-`setRenderingAttributes`, no `NSTextLayoutFragment`, and the format decisions (escaping, `\n\n`,
-block-intent suppression) are `[Cross]` and bind Linux permanently — ✅ while the MECHANISM is entirely
-different.** ⛔ **Assuming parity is cheap would be the error `feedback_design_to_capability_not_lcd`
-warns about.**
-
-⚠️ **ALSO UNKNOWN: ⛔ Linux has no Markdown parser chosen.** ✅ **Apple's `AttributedString(markdown:)`
-won the Q7(b) spike on CORRECTNESS** — ⚠️ **Linux gets no such gift and must pick one, ⛔ or re-earn the
-`2 * 3 * 4` class of defect the spike caught.**
-
-✅ **SCOPED 2026-10-05 ([SP-159], Q-E2-8 ruled) — design → [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4, §9.**
-⚠️ The two "unknowns" above are now MEASURED (W3, Qt 6.4.2): ⛔ `QTextDocument::toMarkdown()` cannot be the save path
-(0/1,185 dumas files identical, 1,179 re-wrapped, **escapes written unescaped**). ✅ `QSyntaxHighlighter` on today's
-`QPlainTextEdit` is the same shape as Apple's route (a′): presentation-only, survives undo, hidden `**` residue 0.00 pt,
-heading line 32 vs 20. ✅ Parser ruled: **md4c inside ScriviCore** (L-b). ✅ **2026-10-07 ([SP-165] Q1–Q2):** ⛔ Linux does NOT call C++ directly — it is a C ABI client (`<scrivi/scrivi.h>` only), so L-b's route is a new endpoint `scrivi_analyze_markdown`; md4c 0.5.2 via pinned FetchContent, not the Ubuntu package. ✅ md4c's escape reporting MEASURED: the escaped mark is covered text at its own offset, the backslash uncovered (→ [SP-165] spike).
+**Established (design: [`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §2.4, §9):**
+- The parser is **md4c inside ScriviCore**, reached through `scrivi_analyze_markdown` (Linux is a C ABI client); the core
+  analyzer agrees with Apple's parser over the shared corpora (L2).
+- The presenter is a `QSyntaxHighlighter` on `ManuscriptEditor` — presentation only; stored text and save bytes untouched (L3).
+- ⛔ `QTextDocument::toMarkdown()` is NOT a save path (it re-wraps and writes escapes unescaped); Linux saves Apple's format.
+- Measured differences, recorded: no hanging indent for list items (a block format is a document edit — ✅ accepted, SP-174 Q3);
+  heading sizes are Apple's ratios over the body size.
 
 | AC | Criterion |
 | -- | --------- |
@@ -109,7 +101,6 @@ heading line 32 vs 20. ✅ Parser ruled: **md4c inside ScriviCore** (L-b). ✅ *
 | **L9** | ✅ **ADDED 2026-10-07 (user, [SP-166] Q1)** — **Markers are atomic and edits stay balanced** (EP-046 AC12, design §3.6): ⌫/⌦ never delete a hidden marker alone (→ S2); balanced edits and copy without markers (→ S3, with the commands) |
 | **L10** | ✅ **ADDED 2026-10-07 (user, [EP-047] P4)** — **[EP-047]'s preferences rendered on Linux**: the project typeface, the first-line indent (None · Every · Book convention), Markup Hints on/off — read from the shared `project-settings.json`. ⚠️ Qt's first-line indent is a BLOCK format (a document format, not a highlighter one — the SP-166 hanging-indent finding); measure it before ruling the mechanism |
 
-⚠️ Where Qt cannot match Apple's mechanism, match the RESULT and record the difference (T-0576 precedent).
-⚠️ Not measured yet: `QPlainTextDocumentLayout` hanging indent for lists; md4c per-block cost on 1.85 MB.
+Measured (SP-166): attach + first highlight of 1.8 MB ≈ 185 ms (Docker), a keystroke ~1 ms; the load as a whole → [SP-173].
 
 ---

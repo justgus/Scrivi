@@ -1011,6 +1011,35 @@ const char* scrivi_buffers_clear(const char* projectRootPath,
  * ⚠️ An EMPTY array is OMITTED (the envelope convention) — read a missing key as empty. */
 const char* scrivi_analyze_markdown(const char* blockUtf8);
 
+/* SP-174 / T-0601 (EP-048 S3a) -- THE FORMAT COMMANDS AND BALANCED EDITS, for both platforms (a port of Apple's Swift).
+ * Stateless: each takes ONE SCENE's text (UTF-8; a formatting block never crosses a scene) and returns ONE edit to apply as ONE
+ * history event. ALL OFFSETS ARE UTF-16 UNITS of that text (both platforms index text in UTF-16).
+ * An edit result: {refused, range:{location,length}, replacement, selection:{location,length}} -- `refused` true means "do
+ * nothing" (a command that could only be done by destroying formatting is refused, never half-done).
+ * Bits: 1 italic, 2 bold.
+ *
+ * word_range:      the word the caret is IN -> {found, range}; between words found is false (the platform's pending pair).
+ * emphasis_edit:   toggle bold/italic on a selection; caret >= 0: a WORD formatted for that caret, which is kept.
+ * paragraph_edit:  format = body | heading1 | heading2 | heading3 | bulletList | numberedList, per paragraph touched;
+ *                  numbered items stay sequential.
+ * list_return_edit: Return in a list item (continue / end the list); refused when the caret is not in one.
+ * balanced_edit:   replace a range with `replacementUtf8` (stored form) keeping emphasis balanced -> {plain} when the edit as
+ *                  typed is already balanced (the common case), else {range, replacement, caret}.
+ *                  keepsOwnFormatting != 0: Scrivi's own copy being pasted keeps ITS styles.
+ * balanced_copy:   {source, presented} -- what Scrivi's own paste gets, and what other apps get.
+ * style_at_caret:  {style} -- what typing at the caret would take.
+ * balance_paste_pieces: a cross-scene paste's pieces (JSON array of strings) inside the caret's span -> {pieces, count}.
+ *                  WARNING: "pieces" is OMITTED when empty; use "count". */
+const char* scrivi_markdown_word_range(const char* sceneUtf8, int caret);
+const char* scrivi_markdown_emphasis_edit(const char* sceneUtf8, int location, int length, int bit, int caret);
+const char* scrivi_markdown_paragraph_edit(const char* sceneUtf8, int location, int length, const char* format);
+const char* scrivi_markdown_list_return_edit(const char* sceneUtf8, int caret);
+const char* scrivi_markdown_balanced_edit(const char* sceneUtf8, int location, int length, const char* replacementUtf8,
+                                          int keepsOwnFormatting);
+const char* scrivi_markdown_balanced_copy(const char* sceneUtf8, int location, int length);
+const char* scrivi_markdown_style_at_caret(const char* sceneUtf8, int caret);
+const char* scrivi_markdown_balance_paste_pieces(const char* piecesJson, int caretStyle);
+
 #ifdef __cplusplus
 }
 #endif

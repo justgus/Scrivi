@@ -15,6 +15,7 @@ add_executable(ScriviCoreTests
     unit/SlugTests.cpp
     unit/TextStatsTests.cpp
     unit/MarkdownStripTests.cpp
+    unit/MarkdownEditingCoreTests.cpp
     unit/JsonSchemaTests.cpp
     unit/HistoryServiceTests.cpp
     unit/LocalFileSystemTests.cpp
@@ -39,6 +40,7 @@ add_executable(ScriviCoreTests
     integration/InspectorLayoutCApiTests.cpp
     integration/ProjectConcurrencyCApiTests.cpp
     integration/ObjectIndexRebuildTests.cpp
+    integration/MarkdownEditingCApiTests.cpp
     integration/HistoricalEventTagsCApiTests.cpp
     integration/ObjectIndexTests.cpp
     integration/ProjectIndexTests.cpp
@@ -95,6 +97,9 @@ target_compile_definitions(ScriviCoreTests PRIVATE
     # on any return of per-scene re-resolution, whose signature is a RISING
     # per-file cost ([I-0196]).
     SCRIVI_AMP_SCALING_TOLERANCE=1.25
+
+    # SP-174: the Markdown editing parity fixture (MarkdownEditingCApiTests).
+    SCRIVI_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
 )
 
 # EncryptedFileSecureStore is Linux-only (SP-059 / AC4). Its symbols live in the

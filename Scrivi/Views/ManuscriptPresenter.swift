@@ -453,156 +453,86 @@ final class ManuscriptPresenter: NSObject, NSTextContentStorageDelegate, NSTextS
         return NSTextParagraph(attributedString: out)
     }
 
-    // MARK: — EP-046 AC12 / Q3: edits keep emphasis BALANCED
+    // MARK: — EP-046 AC12 / Q3: edits keep emphasis BALANCED — computed by ScriviCore ([SP-174], T-0601)
 
-    /// Tokens (`MarkdownEmphasis`) of a storage range: every unit except emphasis markers, with the
-    /// style its block gives it. Units outside any block (blank lines) carry no style.
-    func tokens(in ts: NSAttributedString, _ r: NSRange) -> [MarkdownEmphasis.Token] {
-        let ns = ts.string as NSString
-        var out: [MarkdownEmphasis.Token] = []
-        var p = r.location
-        let end = NSMaxRange(r)
-        while p < end {
-            if let b = block(in: ts, at: p), NSLocationInRange(p, b) {
-                let units = Array(ns.substring(with: b).utf16)
-                let stop = min(end, NSMaxRange(b))
-                out += MarkdownEmphasis.tokens(of: units[...], analysis: info(ns.substring(with: b)).analysis,
-                                               from: p - b.location, to: stop - b.location)
-                p = stop
-            } else {
-                out.append(MarkdownEmphasis.Token(unit: ns.character(at: p), style: 0))
-                p += 1
-            }
+    /// The SCENE TEXT holding the closed range `r` — between dividers, chapter titles excluded: exactly the stretch
+    /// `sceneBoundaries` slices for the save, so the core sees the scene's own text. nil when `r` reaches into a divider or
+    /// a chapter title (a structural edit — the view's guards refuse those anyway).
+    func sceneRange(in ts: NSAttributedString, containing r: NSRange) -> NSRange? {
+        let n = ts.length
+        guard r.location >= 0, NSMaxRange(r) <= n else { return nil }
+        let whole = NSRange(location: 0, length: n)
+        func structural(_ i: Int) -> Bool {
+            ts.attribute(.scriviDivider, at: i, effectiveRange: nil) != nil
+                || ts.attribute(.scriviHeading, at: i, effectiveRange: nil) != nil
         }
-        return out
+        // A caret at a scene's END sits ON its divider (or at the end of storage): read the character before it.
+        var probe = r.location
+        if probe == n || structural(probe) { probe -= 1 }
+        guard probe >= 0, !structural(probe) else {
+            // A caret ON a divider (or at the end) with a title or the start of storage before it: an EMPTY scene.
+            let onDivider = r.location == n || ts.attribute(.scriviDivider, at: r.location, effectiveRange: nil) != nil
+            return r.length == 0 && onDivider ? NSRange(location: r.location, length: 0) : nil
+        }
+        var d = NSRange(), h = NSRange()
+        _ = ts.attribute(.scriviDivider, at: probe, longestEffectiveRange: &d, in: whole)
+        _ = ts.attribute(.scriviHeading, at: probe, longestEffectiveRange: &h, in: whole)
+        var start = max(d.location, h.location)
+        let end = min(NSMaxRange(d), NSMaxRange(h))
+        // The "\n" after a divider is the divider's line, not the next scene's text.
+        if start > 0, ts.attribute(.scriviDivider, at: start - 1, effectiveRange: nil) != nil { start += 1 }
+        guard r.location >= start, NSMaxRange(r) <= end else { return nil }
+        return NSRange(location: start, length: end - start)
     }
 
-    /// The edit that keeps emphasis balanced when `range` is replaced by `replacement` (already in
-    /// stored form), or nil when the plain edit is already balanced — ✅ the common case (typing inside
-    /// or outside a span) costs one scan of the touched blocks' markers.
-    /// ✅ Rewrites ONLY the stretch the edit touches: the spans it crosses, plus the edit itself.
-    /// `keepsOwnFormatting`: Scrivi's own copy being pasted keeps ITS styles instead of taking the caret's ([SP-163]
-    /// live pass) — so it is rewritten even when it carries no marker, if it lands inside a span.
+    /// `body` on the scene text holding `r`, with `r` made scene-relative; nil when there is no such scene.
+    func inScene<T>(_ ts: NSAttributedString, _ r: NSRange, _ body: (String, NSRange, Int) throws -> T?) -> T? {
+        guard let scene = sceneRange(in: ts, containing: r) else { return nil }
+        let text = (ts.string as NSString).substring(with: scene)
+        do {
+            return try body(text, NSRange(location: r.location - scene.location, length: r.length), scene.location)
+        } catch {
+            NSLog("[SCRIVI-EDIT] markdown edit failed in the core: %@", String(describing: error))
+            return nil
+        }
+    }
+
+    /// The edit that keeps emphasis balanced when `range` is replaced by `replacement` (already in stored form), or nil
+    /// when the plain edit is already balanced — ✅ the common case (typing inside or outside a span).
+    /// `keepsOwnFormatting`: Scrivi's own copy being pasted keeps ITS styles instead of taking the caret's ([SP-163]).
     func balancedEdit(in ts: NSAttributedString, replacing range: NSRange,
                       with replacement: String, keepsOwnFormatting: Bool = false) -> (range: NSRange, replacement: String, caret: Int)? {
-        let a = range.location, b = NSMaxRange(range)
-        let touched = blocks(in: ts, from: a, to: b)
-        var spans: [NSRange] = []
-        var markers: [NSRange] = []
-        var styleAt: [Int: UInt8] = [:]
-        for (blk, info) in touched {
-            spans += info.analysis.spans.map { NSRange(location: blk.location + $0.location, length: $0.length) }
-            markers += info.analysis.markers.map { NSRange(location: blk.location + $0.range.location, length: $0.range.length) }
-            for k in [a - 1, a] where NSLocationInRange(k, blk) { styleAt[k] = info.analysis.style(at: k - blk.location) }
+        inScene(ts, range) { text, local, base in
+            try ScriviEngine.markdownBalancedEdit(scene: text, range: local, replacement: replacement,
+                                                  keepsOwnFormatting: keepsOwnFormatting)
+                .map { (NSRange(location: base + $0.range.location, length: $0.range.length), $0.replacement, base + $0.caret) }
         }
-        let fragment = MarkdownEmphasis.mayHaveMarkers(replacement)
-        let crossesMarker = range.length > 0 && markers.contains { $0.location < b && NSMaxRange($0) > a }
-        let markerUnits = Set(markers.flatMap { $0.location..<NSMaxRange($0) })
-        let emptiesSpan = range.length > 0 && replacement.isEmpty && spans.contains { s in
-            (s.location..<NSMaxRange(s)).allSatisfy { markerUnits.contains($0) || ($0 >= a && $0 < b) }
-        }
-        // Only a PARAGRAPH break (a blank line) splits a span — ⚠️ a single newline (Option-Return's hard break,
-        // [T-0584]) may sit inside bold, and closing before it would put the closer after the `\` and escape it.
-        let splitsSpan = replacement.contains("\n\n") && ((styleAt[a] ?? 0) != 0 || (styleAt[a - 1] ?? 0) != 0)
-        let insideSpan = (styleAt[a] ?? 0) != 0 || (styleAt[a - 1] ?? 0) != 0
-        let ownInsideSpan = keepsOwnFormatting && !replacement.isEmpty && insideSpan
-        // ✅ [SP-163] live pass (user, 2026-10-05): *"I thought we were going to push or pull the spaces to outside the
-        // attributed sections."* ⛔ A space typed at a span's FIRST or LAST character took the plain path and left
-        // `** bold**` — not emphasis, so both markers showed. ✅ Any edit AT a span's edge (just after an opener, just
-        // before a closer) goes through the rewrite, whose normaliser moves edge whitespace outside.
-        let atSpanEdge = touched.contains { blk, info in
-            info.analysis.markers.contains { m in
-                let g = NSRange(location: blk.location + m.range.location, length: m.range.length)
-                return m.opens ? NSMaxRange(g) == a : g.location == b
-            }
-        }
-        guard fragment || crossesMarker || emptiesSpan || splitsSpan || ownInsideSpan || atSpanEdge else { return nil }
-
-        let insertStyle = keepsOwnFormatting ? 0 : insertionStyle(in: ts, at: a, selected: tokens(in: ts, range))
-        let inserted = MarkdownEmphasis.tokens(of: replacement).map {
-            // A prefix written by the edit (a list's `- ` on Return) never carries emphasis.
-            MarkdownEmphasis.Token(unit: $0.unit, style: $0.isPrefix ? 0 : $0.style | insertStyle, isPrefix: $0.isPrefix)
-        }
-        guard let r = rewrite(in: ts, replacing: range, with: inserted, spans: spans, refuseIfUnbalanced: false) else { return nil }
-        return (r.range, r.text, r.range.location + r.caret)
-    }
-
-    /// The style new text takes when it replaces `selected` at `a`: that of the first selected character, or —
-    /// for an insertion — the caret's: just after an OPENING marker the span's ([SP-162] Q1), otherwise the
-    /// text's before it.
-    func insertionStyle(in ts: NSAttributedString, at a: Int, selected: [MarkdownEmphasis.Token]) -> UInt8 {
-        if let first = selected.first { return first.style }
-        let touched = blocks(in: ts, from: a, to: a)
-        let afterOpener = touched.contains { blk, info in
-            info.analysis.markers.contains { $0.opens && blk.location + NSMaxRange($0.range) == a }
-        }
-        if afterOpener { return tokens(in: ts, NSRange(location: a, length: min(1, (ts.string as NSString).length - a))).first?.style ?? 0 }
-        guard a > 0 else { return 0 }
-        // The nearest character before `a` that is not a marker.
-        var k = a - 1
-        let stops = stopTest(in: ts)
-        while k > 0, let st = stops(k), st.kind == .opener || st.kind == .closer { k -= 1 }
-        return tokens(in: ts, NSRange(location: k, length: 1)).first?.style ?? 0
-    }
-
-    /// The emphasis spans (storage ranges) of the blocks overlapping the closed range [a, b].
-    func spans(in ts: NSAttributedString, from a: Int, to b: Int) -> [NSRange] {
-        blocks(in: ts, from: a, to: b).flatMap { blk, info in
-            info.analysis.spans.map { NSRange(location: blk.location + $0.location, length: $0.length) }
-        }
-    }
-
-    /// THE REWRITE CORE (E2-S2, shared by edits and the Format commands): replace `range` by `inserted` tokens and
-    /// write the stretch — the edit plus every span it touches — back with the fewest markers.
-    /// ✅ Checked by the parser IN CONTEXT before it is applied. If it would not read back as intended: an EDIT is
-    /// written without emphasis there (formatting lost, but no stray marker shows; logged); a COMMAND
-    /// (`refuseIfUnbalanced`) is refused instead — a command must never destroy formatting.
-    /// `caret` is the output offset just after the last inserted token; `starts[i]` is where output token `i` begins.
-    func rewrite(in ts: NSAttributedString, replacing range: NSRange, with inserted: [MarkdownEmphasis.Token],
-                 spans: [NSRange], refuseIfUnbalanced: Bool) -> (range: NSRange, text: String, caret: Int, ends: [Int], leftCount: Int)? {
-        let ns = ts.string as NSString
-        let a = range.location, b = NSMaxRange(range)
-        var w0 = a, w1 = b
-        for s in spans where s.location <= b && NSMaxRange(s) >= a {
-            w0 = min(w0, s.location); w1 = max(w1, NSMaxRange(s))
-        }
-        let left = tokens(in: ts, NSRange(location: w0, length: a - w0))
-        let right = tokens(in: ts, NSRange(location: b, length: w1 - b))
-        let touched = blocks(in: ts, from: w0, to: w1)
-        let r0 = touched.first.map { min($0.range.location, w0) } ?? w0
-        let r1 = touched.last.map { max(NSMaxRange($0.range), w1) } ?? w1
-        let before = tokens(in: ts, NSRange(location: r0, length: w0 - r0))
-        let after = tokens(in: ts, NSRange(location: w1, length: r1 - w1))
-        // ⚠️ Normalise WITH one token of context each side: whether a span edge can sit on punctuation depends on
-        // the character just outside the stretch (`d\'Artagnan`: the `'` follows a letter). Measured [SP-163]:
-        // without it, 6.9% of random selections were refused. The context itself is never rewritten.
-        let ctxL = Array(before.suffix(1)), ctxR = Array(after.prefix(1))
-        var all = Array(MarkdownEmphasis.normalize(ctxL + left + inserted + right + ctxR).dropFirst(ctxL.count).dropLast(ctxR.count))
-        var (text, ends) = MarkdownEmphasis.serialize(all)
-        let prefix = ns.substring(with: NSRange(location: r0, length: w0 - r0))
-        let suffix = ns.substring(with: NSRange(location: w1, length: r1 - w1))
-        let expected = before + all + after
-        if !MarkdownEmphasis.sameRendering(expected, MarkdownEmphasis.tokens(of: prefix + text + suffix)) {
-            if refuseIfUnbalanced { return nil }
-            NSLog("[SCRIVI-EDIT] emphasis could not be balanced at %d — written without emphasis", w0)
-            all = all.map { MarkdownEmphasis.Token(unit: $0.unit, style: 0, isPrefix: $0.isPrefix) }
-            (text, ends) = MarkdownEmphasis.serialize(all)
-        }
-        let lastInserted = left.count + inserted.count - 1
-        let caret = lastInserted >= 0 && !ends.isEmpty ? ends[lastInserted] : 0
-        return (NSRange(location: w0, length: w1 - w0), text, caret, ends, left.count)
     }
 
     /// What a copy of `selection` puts on the pasteboards: the BALANCED source (Scrivi's own paste keeps the
-    /// formatting — AC12) and the PRESENTED text, markers removed ([SP-162] Q2).
+    /// formatting — AC12) and the PRESENTED text, markers removed ([SP-162] Q2). A selection across scenes is copied
+    /// scene by scene; the dividers and chapter titles between them are copied as they are.
     func balancedCopy(in ts: NSAttributedString, _ selection: NSRange) -> (source: String, presented: String) {
-        var toks = MarkdownEmphasis.normalize(tokens(in: ts, selection))
-        var source = MarkdownEmphasis.serialize(toks).text
-        if !MarkdownEmphasis.sameRendering(toks, MarkdownEmphasis.tokens(of: source)) {
-            toks = toks.map { MarkdownEmphasis.Token(unit: $0.unit, style: 0, isPrefix: $0.isPrefix) }
-            source = MarkdownEmphasis.serialize(toks).text
+        let ns = ts.string as NSString
+        var source = "", presented = ""
+        var p = selection.location
+        let end = NSMaxRange(selection)
+        while p < end {
+            if let scene = sceneRange(in: ts, containing: NSRange(location: p, length: 0)), NSMaxRange(scene) > p {
+                let part = NSRange(location: p, length: min(end, NSMaxRange(scene)) - p)
+                let copy: (source: String, presented: String) = inScene(ts, part) { text, local, _ in try ScriviEngine.markdownBalancedCopy(scene: text, selection: local) }
+                    ?? (ns.substring(with: part), ns.substring(with: part))
+                source += copy.source
+                presented += copy.presented
+                p = NSMaxRange(part)
+            } else {
+                let c = ns.substring(with: NSRange(location: p, length: 1))
+                source += c
+                presented += c
+                p += 1
+            }
         }
-        return (source, MarkdownEmphasis.presented(toks))
+        return (source, presented)
     }
 
     // MARK: — NSTextStorageDelegate: a character edit re-presents its whole block

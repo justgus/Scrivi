@@ -6,6 +6,8 @@
 #include "scrivi/Services.hpp"
 #include "git/SystemGitProvider.hpp"
 #include "markdown/MarkdownAnalyzer.hpp"
+#include "markdown/Editing.hpp"
+#include "markdown/MarkdownText.hpp"
 #include "platform/AppSupportLayout.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "platform/SystemUUIDProvider.hpp"
@@ -4361,6 +4363,150 @@ static scrivi::util::JsonDoc byteRangeDoc(const scrivi::markdown::ByteRange& r) 
     d.setInt64("start", static_cast<int64_t>(r.start));
     d.setInt64("end",   static_cast<int64_t>(r.end));
     return d;
+}
+
+// ---------------------------------------------------------------------------
+// SP-174 / T-0601 (EP-048 S3a) — the Format commands and balanced edits, for BOTH platforms (`markdown/Editing`, a port of
+// Apple's Swift). Stateless: each takes ONE scene's text (UTF-8) and returns ONE edit; offsets are UTF-16 units of that text.
+// ---------------------------------------------------------------------------
+// ⚠️ Inside the file's `extern "C"` span: the helpers are wrapped in `extern "C++"` (the file's rule — an anonymous namespace
+// does not restore C++ linkage).
+namespace mdedit = scrivi::markdown::editing;
+extern "C++" {
+namespace {
+
+scrivi::util::JsonDoc urangeDoc(const scrivi::markdown::URange& r) {
+    scrivi::util::JsonDoc d;
+    d.setInt("location", r.location);
+    d.setInt("length", r.length);
+    return d;
+}
+
+const char* editEnvelope(const std::optional<mdedit::Edit>& e) {
+    scrivi::util::JsonDoc doc;
+    doc.setBool("refused", !e.has_value());
+    if (e) {
+        doc.setSubDoc("range", urangeDoc(e->range));
+        doc.setString("replacement", scrivi::markdown::toUtf8(e->replacement));
+        doc.setSubDoc("selection", urangeDoc(e->selection));
+    }
+    return heap(okEnvelope(std::move(doc)));
+}
+
+// A UTF-16 range must lie inside the text; a platform bug must not read past it.
+bool validRange(const scrivi::markdown::Units& u, int location, int length) {
+    return location >= 0 && length >= 0 && location + length <= static_cast<int>(u.size());
+}
+
+std::string badRange() { return errorEnvelope(scrivi::ErrorCode::invalidArgument, "range outside the scene text"); }
+
+} // namespace
+} // extern "C++"
+
+const char* scrivi_markdown_word_range(const char* sceneUtf8, int caret) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), caret, 0)) { return heap(badRange()); }
+    const auto w = mdedit::wordRange(s, caret);
+    scrivi::util::JsonDoc doc;
+    doc.setBool("found", w.has_value());
+    if (w) { doc.setSubDoc("range", urangeDoc(*w)); }
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_markdown_emphasis_edit(const char* sceneUtf8, int location, int length, int bit, int caret) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), location, length) || (caret >= 0 && !validRange(s.text(), caret, 0))) { return heap(badRange()); }
+    if (bit != scrivi::markdown::kBoldBit && bit != scrivi::markdown::kItalicBit) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "bit must be 1 (italic) or 2 (bold)"));
+    }
+    return editEnvelope(mdedit::emphasisEdit(s, {location, length}, static_cast<std::uint8_t>(bit),
+                                             caret >= 0 ? std::optional<int>(caret) : std::nullopt));
+  });
+}
+
+const char* scrivi_markdown_paragraph_edit(const char* sceneUtf8, int location, int length, const char* format) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), location, length)) { return heap(badRange()); }
+    const std::string f = S(format);
+    mdedit::ParagraphFormat pf;
+    if (f == "body") { pf = mdedit::ParagraphFormat::body; }
+    else if (f == "heading1") { pf = mdedit::ParagraphFormat::heading1; }
+    else if (f == "heading2") { pf = mdedit::ParagraphFormat::heading2; }
+    else if (f == "heading3") { pf = mdedit::ParagraphFormat::heading3; }
+    else if (f == "bulletList") { pf = mdedit::ParagraphFormat::bulletList; }
+    else if (f == "numberedList") { pf = mdedit::ParagraphFormat::numberedList; }
+    else { return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "unknown paragraph format: " + f)); }
+    return editEnvelope(mdedit::paragraphEdit(s, {location, length}, pf));
+  });
+}
+
+const char* scrivi_markdown_list_return_edit(const char* sceneUtf8, int caret) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), caret, 0)) { return heap(badRange()); }
+    return editEnvelope(mdedit::listReturnEdit(s, {caret, 0}));
+  });
+}
+
+const char* scrivi_markdown_balanced_edit(const char* sceneUtf8, int location, int length, const char* replacementUtf8,
+                                          int keepsOwnFormatting) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), location, length)) { return heap(badRange()); }
+    const auto e = mdedit::balancedEdit(s, {location, length}, scrivi::markdown::toUnits(S(replacementUtf8)),
+                                        keepsOwnFormatting != 0);
+    scrivi::util::JsonDoc doc;
+    doc.setBool("plain", !e.has_value());   // true: apply the edit as typed — it is already balanced
+    if (e) {
+        doc.setSubDoc("range", urangeDoc(e->range));
+        doc.setString("replacement", scrivi::markdown::toUtf8(e->replacement));
+        doc.setInt("caret", e->caret);
+    }
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_markdown_balanced_copy(const char* sceneUtf8, int location, int length) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), location, length)) { return heap(badRange()); }
+    const auto c = mdedit::balancedCopy(s, {location, length});
+    scrivi::util::JsonDoc doc;
+    doc.setString("source", scrivi::markdown::toUtf8(c.source));
+    doc.setString("presented", scrivi::markdown::toUtf8(c.presented));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_markdown_style_at_caret(const char* sceneUtf8, int caret) {
+  return guarded([&]() -> const char* {
+    const mdedit::Scene s(scrivi::markdown::toUnits(S(sceneUtf8)));
+    if (!validRange(s.text(), caret, 0)) { return heap(badRange()); }
+    scrivi::util::JsonDoc doc;
+    doc.setInt("style", mdedit::styleAtCaret(s, caret));
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_markdown_balance_paste_pieces(const char* piecesJson, int caretStyle) {
+  return guarded([&]() -> const char* {
+    auto parsed = scrivi::util::parseJson(S(piecesJson));
+    if (!parsed.ok()) {
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "piecesJson must be a JSON array of strings"));
+    }
+    std::vector<scrivi::markdown::Units> pieces;
+    for (const auto& p : parsed.value().rootStringArray()) { pieces.push_back(scrivi::markdown::toUnits(p)); }
+    scrivi::util::JsonDoc doc;
+    for (const auto& p : mdedit::balancePastePieces(pieces, static_cast<std::uint8_t>(caretStyle & 3))) {
+        doc.appendStringToArray("pieces", scrivi::markdown::toUtf8(p));
+    }
+    doc.setInt("count", static_cast<int>(pieces.size()));
+    return heap(okEnvelope(std::move(doc)));
+  });
 }
 
 const char* scrivi_analyze_markdown(const char* blockUtf8) {

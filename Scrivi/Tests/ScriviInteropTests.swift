@@ -6972,4 +6972,102 @@ struct CoreConcurrencyTests {
     }
 }
 
+
+/// SP-174 / T-0601 (EP-048 S3a) Plan 3 — Apple's Format commands and balanced edits are computed by ScriviCore on ONE SCENE's
+/// text. What is Apple's own is the translation: finding the scene in storage (between dividers, chapter titles excluded) and
+/// moving offsets between storage and the scene. (The answers themselves are the core's: Plan 2's 5,661-case fixture, generated
+/// by Apple's Swift before it was removed, is replayed by `MarkdownEditingCApiTests`.)
+@Suite("Markdown editing in storage: the scene the core sees (SP-174)")
+@MainActor
+struct MarkdownEditingSceneTests {
+
+    static let scene1 = "Alpha **bold** one."
+    static let scene2 = "👋 an emoji, then **bold 👋 text** here.\n\n1. alpha\n\n2. beta"
+    static let scene3 = "last *scene*"
+
+    /// Chapter One ▸ scene 1 ▸ divider ▸ Chapter Two ▸ scene 2 ▸ divider ▸ scene 3 — the app's storage shape.
+    private func storage() -> (f: ManuscriptFixture, s2: NSRange, divider1: Int) {
+        let f = ManuscriptFixture()
+        let body = ManuscriptTypography.default.bodyAttributes
+        var heading = body
+        heading[.scriviHeading] = true
+        let s = NSMutableAttributedString()
+        func divider() {
+            s.append(NSAttributedString(string: "\u{FFFC}", attributes: [.scriviDivider: DividerRenderState.sceneBreak]))
+            s.append(NSAttributedString(string: "\n", attributes: body))
+        }
+        s.append(NSAttributedString(string: "Chapter One\n", attributes: heading))
+        s.append(NSAttributedString(string: Self.scene1, attributes: body))
+        let divider1 = s.length
+        divider()
+        s.append(NSAttributedString(string: "\nChapter Two\n", attributes: heading))
+        let s2 = NSRange(location: s.length, length: (Self.scene2 as NSString).length)
+        s.append(NSAttributedString(string: Self.scene2, attributes: body))
+        divider()
+        s.append(NSAttributedString(string: Self.scene3, attributes: body))
+        f.tv.textStorage!.setAttributedString(s)
+        return (f, s2, divider1)
+    }
+
+    @Test("the scene holding a range: its own text, never a divider's line or a chapter title")
+    func sceneRange() {
+        let (f, s2, divider1) = storage()
+        let ts = f.tv.textStorage!, p = f.presenter
+        let s1 = NSRange(location: 12, length: (Self.scene1 as NSString).length)
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: s2.location + 5, length: 3)) == s2)
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: s2.location, length: 0)) == s2)            // its start
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: NSMaxRange(s2), length: 0)) == s2)         // its end (on the divider)
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: divider1, length: 0)) == s1)               // scene 1's end
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: 14, length: 0)) == s1)
+        let s3 = NSRange(location: NSMaxRange(s2) + 2, length: (Self.scene3 as NSString).length)
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: ts.length, length: 0)) == s3)              // end of storage
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: divider1 + 1, length: 0)) == nil)          // the divider's line
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: s2.location - 3, length: 0)) == nil)       // a chapter title
+        #expect(p.sceneRange(in: ts, containing: NSRange(location: divider1 - 2, length: 6)) == nil)          // across a divider
+    }
+
+    @Test("every command on a scene AFTER a divider and a chapter title: the core's answer, moved to storage offsets")
+    func offsets() throws {
+        let (f, s2, _) = storage()
+        let ts = f.tv.textStorage!, p = f.presenter
+        let base = s2.location, scene = Self.scene2
+        func moved(_ r: NSRange) -> NSRange { NSRange(location: base + r.location, length: r.length) }
+        // "bold" inside the bold span, the emoji, the end of the list's first item.
+        let bold = NSRange(location: 20, length: 4), word = 22, item = NSMaxRange((scene as NSString).range(of: "alpha"))
+        let e = try #require(p.emphasisEdit(in: ts, selection: moved(bold), bit: MarkdownBlocks.italic))
+        let ce = try #require(try ScriviEngine.markdownEmphasisEdit(scene: scene, selection: bold, bit: MarkdownBlocks.italic, caret: nil))
+        #expect(e.range == moved(ce.range) && e.replacement == ce.replacement && e.selection == moved(ce.selection))
+        #expect(p.wordRange(in: ts, at: base + word) == moved(try #require(try ScriviEngine.markdownWordRange(scene: scene, caret: word))))
+        let w = try #require(p.emphasisEdit(in: ts, selection: moved(bold), bit: MarkdownBlocks.bold, caret: base + word))
+        let cw = try #require(try ScriviEngine.markdownEmphasisEdit(scene: scene, selection: bold, bit: MarkdownBlocks.bold, caret: word))
+        #expect(w.range == moved(cw.range) && w.replacement == cw.replacement && w.selection == moved(cw.selection))
+        let h = try #require(p.paragraphEdit(in: ts, selection: NSRange(location: base + 3, length: 0), format: .heading(2)))
+        #expect(h.range.location == base && h.replacement.hasPrefix("## 👋"))
+        let r = try #require(p.listReturnEdit(in: ts, selection: NSRange(location: base + item, length: 0)))
+        let cr = try #require(try ScriviEngine.markdownListReturnEdit(scene: scene, caret: item))
+        #expect(r.range == moved(cr.range) && r.replacement == cr.replacement && r.selection == moved(cr.selection))
+        let b = try #require(p.balancedEdit(in: ts, replacing: moved(NSRange(location: 28, length: 8)), with: ""))
+        let cb = try #require(try ScriviEngine.markdownBalancedEdit(scene: scene, range: NSRange(location: 28, length: 8),
+                                                                   replacement: "", keepsOwnFormatting: false))
+        #expect(b.range == moved(cb.range) && b.replacement == cb.replacement && b.caret == base + cb.caret)
+        #expect(p.styleAtCaret(in: ts, base + word) == MarkdownBlocks.bold)
+        #expect(p.styleAtCaret(in: ts, base + 1) == 0)
+    }
+
+    @Test("a command across a divider is refused; a COPY across scenes is copied scene by scene")
+    func acrossScenes() throws {
+        let (f, s2, divider1) = storage()
+        let ts = f.tv.textStorage!, p = f.presenter
+        let across = NSRange(location: divider1 - 4, length: s2.location + 6 - (divider1 - 4))
+        #expect(p.emphasisEdit(in: ts, selection: across, bit: MarkdownBlocks.bold) == nil)
+        #expect(p.balancedEdit(in: ts, replacing: across, with: "") == nil)
+        let copy = p.balancedCopy(in: ts, NSRange(location: 27, length: s2.location + 27 - 27))   // "one." … into scene 2's bold
+        let one = try ScriviEngine.markdownBalancedCopy(scene: Self.scene1, selection: NSRange(location: 15, length: 4))
+        let two = try ScriviEngine.markdownBalancedCopy(scene: Self.scene2, selection: NSRange(location: 0, length: 27))
+        #expect(copy.source == one.source + "\u{FFFC}\n\nChapter Two\n" + two.source)
+        #expect(copy.presented == one.presented + "\u{FFFC}\n\nChapter Two\n" + two.presented)
+        #expect(two.source.hasSuffix("**bold 👋**"), "the copy's own markers close the span it cuts: \(two.source)")
+    }
+}
+
 #endif

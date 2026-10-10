@@ -1473,6 +1473,97 @@ private struct FragmentCreatedIDs: Encodable {
 // Swift Decodable value, calling scrivi_free() unconditionally before returning.
 // `internal`, not `private`: ScriviEngineGraph.swift (T-0407) extends the engine
 // from a second file and decodes through the same helper. Still not public API.
+// MARK: — Markdown editing in the core (SP-174 / T-0601, EP-048 S3a)
+//
+// The Format commands and balanced edits, computed by ScriviCore for BOTH platforms (`markdown/Editing`). Stateless: each takes
+// ONE SCENE's text and returns ONE edit; every offset is a UTF-16 unit of that text (NSString's units). A throw means the
+// platform passed something invalid (a range outside the text) — a bug, never a user-facing case.
+private struct MarkdownRangeJSON: Decodable { let location: Int; let length: Int; var ns: NSRange { NSRange(location: location, length: length) } }
+private struct MarkdownEditJSON: Decodable {
+    let refused: Bool
+    let range: MarkdownRangeJSON?
+    let replacement: String?
+    let selection: MarkdownRangeJSON?
+    var edit: MarkdownEdit? {
+        guard !refused, let range, let selection else { return nil }
+        return MarkdownEdit(range: range.ns, replacement: replacement ?? "", selection: selection.ns)
+    }
+}
+
+extension ScriviEngine {
+    /// The word the caret is IN, or nil BETWEEN words (the pending pair's case).
+    public static func markdownWordRange(scene: String, caret: Int) throws -> NSRange? {
+        struct R: Decodable { let found: Bool; let range: MarkdownRangeJSON? }
+        let r: R = try decodeC(scene.withCString { scrivi_markdown_word_range($0, Int32(caret)) })
+        return r.found ? r.range?.ns : nil
+    }
+
+    /// Toggle bold (`bit` 2) or italic (`bit` 1) on `selection`; `caret`: a WORD formatted for that caret. nil = refused.
+    public static func markdownEmphasisEdit(scene: String, selection: NSRange, bit: UInt8, caret: Int?) throws -> MarkdownEdit? {
+        let r: MarkdownEditJSON = try decodeC(scene.withCString {
+            scrivi_markdown_emphasis_edit($0, Int32(selection.location), Int32(selection.length), Int32(bit), Int32(caret ?? -1))
+        })
+        return r.edit
+    }
+
+    /// `format`: body | heading1 | heading2 | heading3 | bulletList | numberedList. nil = refused.
+    public static func markdownParagraphEdit(scene: String, selection: NSRange, format: String) throws -> MarkdownEdit? {
+        let r: MarkdownEditJSON = try decodeC(scene.withCString { s in format.withCString { f in
+            scrivi_markdown_paragraph_edit(s, Int32(selection.location), Int32(selection.length), f)
+        } })
+        return r.edit
+    }
+
+    /// Return in a list item; nil when the caret is not in one.
+    public static func markdownListReturnEdit(scene: String, caret: Int) throws -> MarkdownEdit? {
+        let r: MarkdownEditJSON = try decodeC(scene.withCString { scrivi_markdown_list_return_edit($0, Int32(caret)) })
+        return r.edit
+    }
+
+    /// The balanced form of replacing `range` by `replacement` (stored form); nil when the edit as typed is already balanced.
+    public static func markdownBalancedEdit(scene: String, range: NSRange, replacement: String,
+                                            keepsOwnFormatting: Bool) throws -> MarkdownBalancedEdit? {
+        struct R: Decodable { let plain: Bool; let range: MarkdownRangeJSON?; let replacement: String?; let caret: Int? }
+        let r: R = try decodeC(scene.withCString { s in replacement.withCString { t in
+            scrivi_markdown_balanced_edit(s, Int32(range.location), Int32(range.length), t, keepsOwnFormatting ? 1 : 0)
+        } })
+        guard !r.plain, let rr = r.range else { return nil }
+        return MarkdownBalancedEdit(range: rr.ns, replacement: r.replacement ?? "", caret: r.caret ?? rr.location)
+    }
+
+    /// What a copy puts on the pasteboards: the balanced SOURCE (Scrivi's own paste) and the PRESENTED text (other apps).
+    public static func markdownBalancedCopy(scene: String, selection: NSRange) throws -> (source: String, presented: String) {
+        struct R: Decodable { let source: String; let presented: String }
+        let r: R = try decodeC(scene.withCString {
+            scrivi_markdown_balanced_copy($0, Int32(selection.location), Int32(selection.length))
+        })
+        return (r.source, r.presented)
+    }
+
+    /// The style typing at `caret` would take (bits: 1 italic, 2 bold).
+    public static func markdownStyleAtCaret(scene: String, caret: Int) throws -> UInt8 {
+        struct R: Decodable { let style: Int }
+        let r: R = try decodeC(scene.withCString { scrivi_markdown_style_at_caret($0, Int32(caret)) })
+        return UInt8(truncatingIfNeeded: r.style)
+    }
+
+    /// A cross-scene paste's pieces, balanced inside the caret's span (`caretStyle`).
+    public static func markdownBalancePastePieces(_ pieces: [String], caretStyle: UInt8) throws -> [String] {
+        struct R: Decodable {
+            let pieces: [String]; let count: Int
+            init(from d: Decoder) throws {
+                let c = try d.container(keyedBy: K.self)
+                pieces = try c.decodeIfPresent([String].self, forKey: .pieces) ?? []   // OMITTED when empty
+                count = try c.decode(Int.self, forKey: .count)
+            }
+            enum K: String, CodingKey { case pieces, count }
+        }
+        let json = String(decoding: try JSONEncoder().encode(pieces), as: UTF8.self)
+        let r: R = try decodeC(json.withCString { scrivi_markdown_balance_paste_pieces($0, Int32(caretStyle)) })
+        return r.pieces
+    }
+}
+
 func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
     try decodeCWithRevision(ptr).result
 }
@@ -1627,6 +1718,14 @@ public final class ScriviEngine: @unchecked Sendable {
     public func loadTimeline(projectRootPath: String) throws -> LoadTimelineResult { try unavailable() }
     public func projectRevision(projectRootPath: String) throws -> Int64 { try unavailable() }
     public func readSceneTexts(projectRootPath: String, sceneIDs: [String]) throws -> ReadSceneTextsResult { try unavailable() }
+    public static func markdownWordRange(scene: String, caret: Int) throws -> NSRange? { nil }
+    public static func markdownEmphasisEdit(scene: String, selection: NSRange, bit: UInt8, caret: Int?) throws -> MarkdownEdit? { nil }
+    public static func markdownParagraphEdit(scene: String, selection: NSRange, format: String) throws -> MarkdownEdit? { nil }
+    public static func markdownListReturnEdit(scene: String, caret: Int) throws -> MarkdownEdit? { nil }
+    public static func markdownBalancedEdit(scene: String, range: NSRange, replacement: String, keepsOwnFormatting: Bool) throws -> MarkdownBalancedEdit? { nil }
+    public static func markdownBalancedCopy(scene: String, selection: NSRange) throws -> (source: String, presented: String) { (scene, scene) }
+    public static func markdownStyleAtCaret(scene: String, caret: Int) throws -> UInt8 { 0 }
+    public static func markdownBalancePastePieces(_ pieces: [String], caretStyle: UInt8) throws -> [String] { pieces }
     public func removeImportedTimeline(projectRootPath: String, timelineID: String) throws -> TimelineBoolResult { try unavailable() }
     public func exportProjectTimeline(projectRootPath: String) throws -> ExportTimelineResult { try unavailable() }
     public func extractSearchableText(projectRootPath: String) throws -> SearchableContentResult { try unavailable() }
@@ -1689,6 +1788,21 @@ public final class ScriviEngine: @unchecked Sendable {
 }
 
 #endif
+
+/// SP-174 / T-0601 — one Format-command edit from the core: replace `range` by `replacement`, then select `selection`
+/// (UTF-16 offsets of the scene's text).
+public struct MarkdownEdit: Sendable, Equatable {
+    public let range: NSRange
+    public let replacement: String
+    public let selection: NSRange
+}
+
+public struct MarkdownBalancedEdit: Sendable, Equatable {
+    public let range: NSRange
+    public let replacement: String
+    public let caret: Int
+}
+
 
 // MARK: — Swift result types
 
