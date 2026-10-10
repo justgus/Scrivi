@@ -38,7 +38,7 @@ enum BundledFonts {
 
     static let manifest: Manifest = {
         guard let dir = directory,
-              let data = try? Data(contentsOf: dir.appendingPathComponent("fonts.json")),
+              let data = try? Data(contentsOf: dir.appendingPathComponent("fonts.json")),  // boundary-ok: the APP BUNDLE's font manifest (Resources/Fonts), never a project package
               let m = try? JSONDecoder().decode(Manifest.self, from: data), !m.faces.isEmpty else {
             NSLog("[BundledFonts] ⚠️ Fonts/fonts.json missing or unreadable — the manuscript falls back to the system font")
             return Manifest(default: "", faces: [])

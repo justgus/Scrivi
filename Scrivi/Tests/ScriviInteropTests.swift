@@ -1,4 +1,5 @@
 import Testing
+import Synchronization
 import Foundation
 import SwiftUI
 @testable import ScriviApp
@@ -1333,7 +1334,7 @@ struct ScriviInteropTests {
         let engine = ScriviEngine()
         let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
         _ = try engine.historyOpen(projectRootPath: root)
-        defer { try? engine.historyClose(projectRootPath: root) }
+        defer { _ = try? engine.historyClose(projectRootPath: root) }
 
         // A fresh history is root-only: the root has no parentID and no childIDs, so
         // the C API omits BOTH keys. Decoding this at all is the I-0094 regression
@@ -1374,7 +1375,7 @@ struct ScriviInteropTests {
         let engine = ScriviEngine()
         let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
         _ = try engine.historyOpen(projectRootPath: root)
-        defer { try? engine.historyClose(projectRootPath: root) }
+        defer { _ = try? engine.historyClose(projectRootPath: root) }
 
         let r1 = try engine.historyRecordEvent(
             projectRootPath: root, sceneID: "scene_a",
@@ -1410,7 +1411,7 @@ struct ScriviInteropTests {
         let engine = ScriviEngine()
         let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
         _ = try engine.historyOpen(projectRootPath: root)
-        defer { try? engine.historyClose(projectRootPath: root) }
+        defer { _ = try? engine.historyClose(projectRootPath: root) }
 
         // A text event, then a reversible structural node carrying an inverse-op payload.
         _ = try engine.historyRecordEvent(
@@ -1450,7 +1451,7 @@ struct ScriviInteropTests {
         let engine = ScriviEngine()
         let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
         _ = try engine.historyOpen(projectRootPath: root)
-        defer { try? engine.historyClose(projectRootPath: root) }
+        defer { _ = try? engine.historyClose(projectRootPath: root) }
 
         _ = try engine.historySeedScene(
             projectRootPath: root, sceneID: "scene_a", sceneText: "Base. Cut me.")
@@ -1472,7 +1473,7 @@ struct ScriviInteropTests {
         let engine = ScriviEngine()
         let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
         _ = try engine.historyOpen(projectRootPath: root)
-        defer { try? engine.historyClose(projectRootPath: root) }
+        defer { _ = try? engine.historyClose(projectRootPath: root) }
 
         let r = try engine.historyRecordEvent(
             projectRootPath: root, sceneID: "scene_a", newSceneText: "")
@@ -1485,7 +1486,7 @@ struct ScriviInteropTests {
         let engine = ScriviEngine()
         let root = "/tmp/scrivi-history-\(UUID().uuidString).scrivi"
         _ = try engine.historyOpen(projectRootPath: root)
-        defer { try? engine.historyClose(projectRootPath: root) }
+        defer { _ = try? engine.historyClose(projectRootPath: root) }
 
         _ = try engine.historyRecordEvent(
             projectRootPath: root, sceneID: "scene_a",
@@ -1653,7 +1654,7 @@ struct ScriviInteropTests {
         let dir = try TempDir()
         let sentence = "Now is the winter of our discontent made glorious summer by this son of york"
 
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
         // Coalesced: the session's final text recorded once, at a real boundary.
         _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
@@ -1683,7 +1684,7 @@ struct ScriviInteropTests {
         let dir = try TempDir()
         let finalText = "First sentence. Second."
 
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
         _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
                                           newSceneText: "First sentence.", kind: "typing",
@@ -1699,7 +1700,7 @@ struct ScriviInteropTests {
         try engine.historyClose(projectRootPath: dir.path)
 
         for cycle in 1...3 {
-            try engine.historyOpen(projectRootPath: dir.path)
+            _ = try engine.historyOpen(projectRootPath: dir.path)
             let r = try engine.historyValidateScene(projectRootPath: dir.path,
                                                     sceneID: "scene_a",
                                                     currentDiskText: finalText)
@@ -1717,7 +1718,7 @@ struct ScriviInteropTests {
     func deletionCarriesRemovedLength() throws {
         let engine = ScriviEngine()
         let dir = try TempDir()
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
 
         _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
@@ -1745,7 +1746,7 @@ struct ScriviInteropTests {
     func deletionHasCaretSpan() throws {
         let engine = ScriviEngine()
         let dir = try TempDir()
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
         _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
                                           newSceneText: "the cat sat", kind: "typing",
@@ -1772,7 +1773,7 @@ struct ScriviInteropTests {
     func newlineEventIsNamed() throws {
         let engine = ScriviEngine()
         let dir = try TempDir()
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
         _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
                                           newSceneText: "Line one", kind: "typing",
@@ -1798,7 +1799,7 @@ struct ScriviInteropTests {
     func realTextHasNoWhitespaceLabel() throws {
         let engine = ScriviEngine()
         let dir = try TempDir()
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
         _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
                                           newSceneText: "Hello world", kind: "typing",
@@ -1822,7 +1823,7 @@ struct ScriviInteropTests {
                       "Now is the winter of our discontent made glo",
                       "Now is the winter of our discontent made glorious summer by this son of york"]
 
-        try engine.historyOpen(projectRootPath: dir.path)
+        _ = try engine.historyOpen(projectRootPath: dir.path)
         try engine.historySeedScene(projectRootPath: dir.path, sceneID: "scene_a", sceneText: "")
         for p in pieces {
             _ = try engine.historyRecordEvent(projectRootPath: dir.path, sceneID: "scene_a",
@@ -2785,7 +2786,7 @@ struct ObjectCardConfigurationTests {
         let byKind = Dictionary(uniqueKeysWithValues: reported.kinds.map { ($0.kind, $0.isWorldScoped) })
 
         for card in ObjectCardKind.all {
-            let expected = try #require(byKind[card.kind],
+            let expected = try #require(byKind[card.kind] as Bool?,
                                         "core does not know kind \(card.kind)")
             #expect(card.isWorldScoped == expected,
                     "scope disagrees for \(card.kind)")
@@ -4347,18 +4348,18 @@ struct ReturnAndBackspaceTests {
         // (`isCommitBoundary`); one notification therefore means one undo step.
         let f = Fixture()
         f.type("end\\")
-        var count = 0
+        let count = Mutex(0)   // the observer block is @Sendable: count through a lock, not a captured var
         let token = NotificationCenter.default.addObserver(
-            forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in count += 1 }
+            forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in count.withLock { $0 += 1 } }
         defer { NotificationCenter.default.removeObserver(token) }
         press(f)
         let g = Fixture("x   ")
         g.caret(4)
         let token2 = NotificationCenter.default.addObserver(
-            forName: NSText.didChangeNotification, object: g.tv, queue: nil) { _ in count += 1 }
+            forName: NSText.didChangeNotification, object: g.tv, queue: nil) { _ in count.withLock { $0 += 1 } }
         defer { NotificationCenter.default.removeObserver(token2) }
         press(g)
-        #expect(count == 2, "backslash collapse and space trim each happen inside their Return's one edit")
+        #expect(count.withLock { $0 } == 2, "backslash collapse and space trim each happen inside their Return's one edit")
     }
 
     /// Backspace as the keyboard sends it (key code 51 → `deleteBackward:`).
@@ -4373,14 +4374,14 @@ struct ReturnAndBackspaceTests {
     func backspaceJoinsWithSpace() {
         let f = Fixture("a.\n\nb.")
         f.caret(4)
-        var count = 0
+        let count = Mutex(0)   // the observer block is @Sendable: count through a lock, not a captured var
         let token = NotificationCenter.default.addObserver(
-            forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in count += 1 }
+            forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in count.withLock { $0 += 1 } }
         defer { NotificationCenter.default.removeObserver(token) }
         backspace(f)
         #expect(f.text == "a. b.", "what EP-046 would render for the soft break")
         #expect(f.tv.selectedRange() == NSRange(location: 3, length: 0), "caret stays before b")
-        #expect(count == 1, "ONE edit, so ONE undo step")
+        #expect(count.withLock { $0 } == 1, "ONE edit, so ONE undo step")
 
         // Q2: trailing spaces become exactly one — no hard break can form (no newline is left).
         for (before, caret) in [("x   \n\nb", 6), ("x \n\nb", 4)] {
@@ -6151,8 +6152,8 @@ struct MarkupHintsTests {
     func toggleIsPresentationOnly() throws {
         let f = fixture()
         f.caret(3)
-        var changes = 0
-        let token = NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in changes += 1 }
+        let changes = Mutex(0)   // the observer block is @Sendable: count through a lock, not a captured var
+        let token = NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: f.tv, queue: nil) { _ in changes.withLock { $0 += 1 } }
         defer { NotificationCenter.default.removeObserver(token) }
         #expect(try drawnSize(f, at: 0) > 0.1, "revealed before the toggle")
         setHints(f, false)
@@ -6162,7 +6163,7 @@ struct MarkupHintsTests {
         #expect(!f.hidden(0))
         #expect(try drawnSize(f, at: 0) > 0.1)
         #expect(f.text == Self.text, "the stored text is untouched")
-        #expect(changes == 0, "no textDidChange — so no history event and no save")
+        #expect(changes.withLock { $0 } == 0, "no textDidChange — so no history event and no save")
     }
 
     @Test("settings: absent = ON; a choice round-trips and is written only once chosen")
@@ -6437,7 +6438,7 @@ struct PresentedMapTests {
         f.tv.textStorage!.setAttributedString(corpus())
         _ = f.tv.presentedMap.current()
         #expect(f.tv.presentedMap.builds == 1)
-        var rng = SystemRandomNumberGenerator()
+        let rng = SystemRandomNumberGenerator()
         var seed: UInt64 = 0x5EED_0171
         func next(_ n: Int) -> Int {                       // deterministic (SplitMix64), so a failure reproduces
             seed &+= 0x9E37_79B9_7F4A_7C15
@@ -6518,7 +6519,7 @@ struct PresentedMapTests {
 }
 
 /// EP-050 S1 ([SP-171]) Plan 3 / AC1 — every accessibility member answers through the ONE map, and the members agree. ✅ Called
-/// at the NEW-STYLE members (VoiceOver's entry, measured in Plan 1(b)); `AXValue` through its legacy attribute name.
+/// at the NEW-STYLE members (VoiceOver's entry, measured in Plan 1(b)); `AXValue` through `accessibilityValue()`.
 @Suite("Manuscript accessibility members (EP-050 AC1)")
 @MainActor
 struct ManuscriptAccessibilityTests {
@@ -6544,7 +6545,7 @@ struct ManuscriptAccessibilityTests {
         s.append(NSAttributedString(string: "\nthree", attributes: ManuscriptTypography.default.bodyAttributes))
         f.tv.textStorage!.setAttributedString(s)
         let expected = "oneScene break\ntwo bEnd of chapter\nthree" as NSString
-        #expect(f.tv.accessibilityAttributeValue(.value) as? String == expected as String)
+        #expect(f.tv.accessibilityValue() == expected as String)
         #expect(f.tv.accessibilityNumberOfCharacters() == expected.length)
         // Every range — including ranges that START or END inside the words — reads the same through both members.
         for loc in 0..<expected.length {
@@ -6570,7 +6571,7 @@ struct ManuscriptAccessibilityTests {
     @Test("[I-0277] AXValue, the character count and every range string are the PRESENTED text")
     func valueAndStrings() {
         let f = fixture(text)
-        let value = f.tv.accessibilityAttributeValue(.value) as? String
+        let value = f.tv.accessibilityValue()
         #expect(value == presented, "AXValue: \(value.debugDescription)")
         #expect(f.tv.accessibilityNumberOfCharacters() == (presented as NSString).length)
         let ns = presented as NSString

@@ -2445,20 +2445,6 @@ struct ManuscriptTextView: NSViewRepresentable {
             return true
         }
 
-        // ✅ [I-0270] (user ruling 2026-10-02) — DELETE ACROSS SCENES, KEEP THE SCENES.
-        // ⌫ / ⌦ / ⌘X / ⌥N on a selection that spans scene breaks removes the selected text
-        // from EACH scene it overlaps and keeps every scene, divider and heading; a scene
-        // wholly inside the selection becomes EMPTY, not deleted. User: *"when I copy text
-        // across a scene boundary and paste it somewhere else the scene boundary does not
-        // copy with the text. Therefore in this instance, and with cut, the scene boundary
-        // also must not disappear."*
-        // ⛔ This REPLACES the EP-029 cross-boundary cut (`fragmentCut` = delete + COLLAPSE
-        // into a survivor). Old `structuredCut` history nodes still undo via
-        // `applyStructuralInverse`.
-        // ✅ Recorded as ONE edit group (one event per scene, shared groupID), so a single
-        // ⌘Z restores every scene and a single redo re-applies them (user ruling, same day).
-        // Returns false for a selection inside one scene — the ordinary path handles it.
-        @discardableResult
         /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — the replacements are applied with history
         /// capture suppressed, then recorded as ONE grouped edit (as [I-0270]'s cross-scene delete is). `edits` run back to
         /// front (storage ranges, unescaped replacement text).
@@ -2518,6 +2504,20 @@ struct ManuscriptTextView: NSViewRepresentable {
             return parts.isEmpty ? nil : parts
         }
 
+        // ✅ [I-0270] (user ruling 2026-10-02) — DELETE ACROSS SCENES, KEEP THE SCENES.
+        // ⌫ / ⌦ / ⌘X / ⌥N on a selection that spans scene breaks removes the selected text
+        // from EACH scene it overlaps and keeps every scene, divider and heading; a scene
+        // wholly inside the selection becomes EMPTY, not deleted. User: *"when I copy text
+        // across a scene boundary and paste it somewhere else the scene boundary does not
+        // copy with the text. Therefore in this instance, and with cut, the scene boundary
+        // also must not disappear."*
+        // ⛔ This REPLACES the EP-029 cross-boundary cut (`fragmentCut` = delete + COLLAPSE
+        // into a survivor). Old `structuredCut` history nodes still undo via
+        // `applyStructuralInverse`.
+        // ✅ Recorded as ONE edit group (one event per scene, shared groupID), so a single
+        // ⌘Z restores every scene and a single redo re-applies them (user ruling, same day).
+        // Returns false for a selection inside one scene — the ordinary path handles it.
+        @discardableResult
         func deleteAcrossScenes(_ sel: NSRange, kind: String) -> Bool {
             guard let tv = textView, let storage = tv.textStorage, sel.length > 0 else { return false }
             ensureBoundaries(tv)

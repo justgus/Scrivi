@@ -6,16 +6,17 @@ import AppKit
 // ✅ Every position member answers in PRESENTED positions through the ONE map (`presentedMap`, Q3) — AC1.
 // ✅ MEASURED ([SP-171] Plan 1(b), the user's VoiceOver run): VoiceOver enters at the NEW-STYLE members, and `NSTextView`'s own
 // implementations forward to the legacy `accessibilityAttributeValue:`. So the members are overridden at the new-style level.
-// ⚠️ Exception: `accessibilityValue()` cannot be overridden from Swift (`NSView` does not declare it — measured), and `AXValue`
-// arrives at the legacy entry (once per focus), so it is served there.
+// ✅ The whole text (`AXValue`) is `accessibilityValue()` — the NSAccessibilityProtocol getter Apple documents for customising a
+// standard AppKit view ("If you override a getter method, the system lets assistive apps call your getter"). ⚠️ Corrected
+// 2026-10-10: this was served through the DEPRECATED legacy `accessibilityAttributeValue(_:)`, on SP-171's finding that
+// `accessibilityValue()` could not be overridden from Swift — it can, as `-> String?` (NSTextView's text-role signature).
 // ✅ LINES and FRAMES are AppKit's: lines are VISUAL, and a hidden character is zero-width, so the presented and stored text
 // have the same lines — positions are mapped in and out, and the line / frame work is `super`'s on the mapped range.
 // ✅ AC2: a selection VoiceOver SETS goes through Scrivi's caret rules (`axStorageSelection`).
 // DEBUG: each member is timed into `[SCRIVI-AX]` bursts (Plan 1(b)'s probe, kept for AC3 and the live pass).
 
 #if DEBUG
-/// ⚠️ Not `@MainActor`: the legacy entry points are nonisolated. AppKit serves AX requests on the main thread; the tallies
-/// assume it (diagnostic only).
+/// ⚠️ Not `@MainActor`: AppKit serves AX requests on the main thread; the tallies assume it (diagnostic only).
 enum AXProbe {
     private struct Tally { var calls = 0; var ms = 0.0 }
     nonisolated(unsafe) private static var tallies: [String: Tally] = [:]
@@ -73,18 +74,14 @@ extension ManuscriptNSTextView {
         return NSRange(location: lo, length: min(max(r.length, 0), m.length - lo))
     }
 
-    // MARK: — The whole text (legacy entry, once per focus)
+    // MARK: — The whole text
 
-    /// ⚠️ The legacy entry is nonisolated. AppKit serves accessibility on the main thread; off it (never observed) this falls
-    /// back to AppKit's answer rather than ASSERTING isolation (the [I-0202] lesson).
-    override func accessibilityAttributeValue(_ attribute: NSAccessibility.Attribute) -> Any? {
-        if attribute == .value, Thread.isMainThread {
-            let presented: String? = MainActor.assumeIsolated {
-                ax("L:AXValue") { axMap.map { axString($0, NSRange(location: 0, length: $0.length)) } }
-            }
-            if let presented { return presented }
+    /// The presented text (once per focus): the documented NSAccessibilityProtocol getter, computed on demand from the map.
+    override func accessibilityValue() -> String? {
+        ax("value") {
+            guard let m = axMap else { return super.accessibilityValue() }
+            return axString(m, NSRange(location: 0, length: m.length))
         }
-        return super.accessibilityAttributeValue(attribute)
     }
 
     // MARK: — Text and counts
