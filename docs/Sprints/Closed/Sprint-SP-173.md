@@ -1,7 +1,8 @@
 ---
 sprint: SP-173
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-10-10
 activated: 2026-10-09
 platform: Cross
 created: 2026-10-09
@@ -9,10 +10,10 @@ created: 2026-10-09
 
 # SP-173 — `[Cross]` [EP-048] Project load: no frozen UI, built once, measured, synchronised ([I-0285])
 
-**Status:** 🟡 **ACTIVE 2026-10-09** (user: *"close SP-166 and activate SP-173"*) — created 2026-10-09 (user: *"Schedule I-0285 into a new Sprint"*).
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). I-0285 was found in
+**Status:** ✅ **CLOSED 2026-10-10 (user-approved):** *"close SP-173"* — I-0285 VERIFIED and archived (launch to idle 172 s → 15.4 s, no frozen UI); the core concurrency design built on both platforms. Activated 2026-10-09; created 2026-10-09 (user: *"Schedule I-0285 into a new Sprint"*).
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../../Epics/Epic-active.md). I-0285 was found in
 [SP-166] and is not caused by this Epic; it is scheduled here so this Epic's work does not make it worse (I-0285 AC2).
-**Carries:** [I-0285] → [`../Issues/Issue-active.md`](../Issues/Issue-active.md#i-0285).
+**Carries:** ✅ [I-0285] → [`../../Issues/Verified/Issue-verified-0281-0290.md`](../../Issues/Verified/Issue-verified-0281-0290.md#i-0285).
 **Size:** M. ⚠️ Needs the rig: every figure is taken on dumas over the share, where the cost lives (Docker's page cache hides it).
 
 ---
@@ -85,7 +86,7 @@ progress bar, and the load is as short as the measurements allow.**
 ## ✅ Scope widened 2026-10-10 (user)
 
 *"Put the Apple half in SP-173, design a cross platform sync so that timeline loads and other core operations such as manuscript
-edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_Concurrency_Design_v0_1.md`](../Scrivi_Core_Concurrency_Design_v0_1.md)
+edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_Concurrency_Design_v0_1.md`](../../Scrivi_Core_Concurrency_Design_v0_1.md)
 (⚠️ DRAFT, Q1–Q4 for ruling there). It adds, once ruled:
 
 10. **Core (D1–D3):** a per-project lock around every project endpoint; a project revision in every envelope; one endpoint for
@@ -110,7 +111,8 @@ edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_
   record the divergence or make the same change on Apple in this Sprint.~~
 
 - **Q1** (Plan 6): if the body reads need a batched read endpoint, is that in this Sprint (`[Cross]`) or a follow-on?
-- **Q2**: the measurement log (`SCRIVI_LOAD_LOG`) — keep it as a permanent, env-gated diagnostic, or remove it at close?
+- ✅ **Q2 RULED 2026-10-10 (user): (a) keep it** — `SCRIVI_LOAD_LOG` is a permanent, env-gated diagnostic, documented in
+  `Scrivi_Linux_Rig_Setup_v0_1.md` §5.1.
 
 ⛔ **NOT in this Sprint:** EP-048's S3–S5 scope · the Linux double open (SP-144 AC5, deferred) unless Plan 1 shows it on this path.
 
@@ -211,4 +213,30 @@ edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_
   - **Build 65 on the rig:** open **31.7 s** (−25.8), bodies **38.1 s** (−20.3, now 32 ms/scene, scene text only), total
     **70 s** (was 116). ctest 682/682, Linux smokes 27/27, interop 271/271.
   - ⏳ Fix 3 (parallel bulk read, `[Cross]` endpoint); item 4 (the open's stat of every scene text; 270 calls per edge left).
-
+- **2026-10-10 — Plan 6 fix 3 (`[Cross]`, user: *"3 in this sprint"*).** ✅ `scrivi_read_scene_texts(root, sceneIDsJson)` — read-only;
+  locates each scene through the project index, reads the texts with 8 parallel readers inside the core (the project lock
+  serialises the platforms' own calls, so the parallelism must be the core's). Both platforms load scene texts in CHUNKS of 64
+  (progress per chunk): Linux `EditorShell::load` + `ScriviBridge::readSceneTexts`; Apple `ViewportSceneLoader.loadSegmentsOffMain`
+  + `ScriviEngine.readSceneTexts`. Tests: 40 scenes in reverse order equal the per-scene reads; an unknown scene → `failed`, the
+  rest returned in order; bad input refused; TSan clean; mutation (every reader reads scene 0) → caught. Build 66 on the rig:
+  bodies **36.0 s → 5.5–6.7 s**.
+- **2026-10-10 — Item 4 and the sidecar prefetch** (user: *"yes do both"*).
+  - ✅ `ProjectValidator` checks each chapter's scene files against ONE listing of the chapter folder (by file name; falls back
+    to `exists` if the listing fails). Test: 30 registered scenes → 0 existence probes of scene texts (mutant: 30); the existing
+    missing-content tests still pass (mutant "always present" → 2 fail).
+  - ✅ `ReadThroughCache::prefetch` (parallel reads through a thread-safe reader, results stored on the calling thread), used by
+    `scrivi_open_project` for every manuscript `.meta.json` before the open's passes run. Test: prefetched files served from memory,
+    failures not stored, a later write still invalidates; TSan clean; mutation (store nothing) → caught.
+  - ✅ **Build 67 on the rig: open 8.7–9.3 s, bodies (batch) 5.0–5.8 s, timeline 0.1–0.4 s — about 14–15 s in all** (start of
+    the Sprint: ~172 s with ~55 s of frozen UI). ctest 687/687, Linux smokes 27/27, interop 271/271.
+  - Lesson (recorded for myself): after restoring a mutated file, `sleep 1` before `touch`, or the build can miss the change —
+    a stale object made restored code look broken three times in this Sprint.
+- **2026-10-10 — Plan 9 live pass: ✅ PASSED** (user: *"Rig: All tests pass."*; Mac: *"timeline applied from the worker's read;
+  lock waits so far: 0 ms total over 0 waits, longest 0 ms"*). Rig app log (build 67, `SCRIVI_LOAD_LOG`): open 8.3 s, scene texts
+  6.6 s, timeline 0.18 s (all in the worker), UI-thread work 0.12 s, **launch to idle 15.4 s** (build 62: 172 s, 59 s of it
+  frozen); lock waits 67 ms over 2.
+- **I-0285 acceptance:** ✅ AC1 built once (smoke) · ✅ AC2 the load log is permanent (Q2) and every EP-048 load change is measured
+  against it · ✅ AC3 every phase measured and reduced (index rewrites, second index build, per-file stats, sequential sidecar and
+  text reads) · ✅ AC4 the timeline's data is read off the UI thread on both platforms · ✅ AC5 on the progress bar · ✅ Apple's
+  shape checked first (Plan 1). ➡️ **I-0285 VERIFIED** (user's live pass) — archive with the SP-173 close.
+- **2026-10-10 — ✅ CLOSED (user-approved):** *"close SP-173"*. I-0285 archived → `Issues/Verified/Issue-verified-0281-0290.md`.

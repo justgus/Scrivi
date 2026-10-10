@@ -53,8 +53,9 @@
 // Short alias for the built-in story-structure presets (SP-081).
 namespace story = scrivi::linux_app::story;
 
-// SP-166 measurement (user, rig: ~3½ min to open dumas, 67 s of it AFTER all scenes loaded). Set SCRIVI_LOAD_LOG=1 to print
-// each load phase as ms since launch; SCRIVI_NO_PRESENTER=1 skips the presenter, so one build compares with and without it.
+// ✅ A PERMANENT diagnostic (SP-173 Q2, user 2026-10-10: "keep it"); born measuring I-0285 (dumas took ~3½ min to open).
+// Set SCRIVI_LOAD_LOG=1 to print each load phase as ms since launch; SCRIVI_NO_PRESENTER=1 skips the presenter, so one build
+// compares with and without it. How to use it: docs/Scrivi_Linux_Rig_Setup_v0_1.md §5.1.
 namespace {
 const auto kLaunch = std::chrono::steady_clock::now();
 void loadLog(const char* phase, int n = -1)

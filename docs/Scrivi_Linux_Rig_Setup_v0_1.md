@@ -417,6 +417,20 @@ gio set ~/Desktop/scrivi.desktop metadata::trusted true
 ⚠️ **Running `update-desktop-database` while a session is live can cause a brief icon refresh** —
 harmless, but warn the user first.
 
+### 5.1 ✅ Measuring a load — `SCRIVI_LOAD_LOG` (permanent diagnostic, ruled 2026-10-10, SP-173 Q2)
+
+```bash
+SCRIVI_LOAD_LOG=1 ~/Dev/Scrivi/build-native/platforms/linux/scrivi_linux 2> ~/load.log
+grep SCRIVI-LOAD ~/load.log
+```
+
+Each line is a load phase in **ms since launch**: the core open, the scene texts, the timeline read (all in the worker), then the
+UI-thread steps, the total time spent waiting on the project lock, and "event loop idle". Off unless the variable is set; it costs
+nothing then. `SCRIVI_NO_PRESENTER=1` also skips the manuscript presenter, so one build compares with and without it.
+✅ Use it to answer "did this change make loading slower?" ([I-0285] AC2). For the core alone, with per-phase `strace`
+attribution, use `platforms/linux/tools/sp173-load-cost-probe.sh <project>` (quit Scrivi first).
+Reference (dumas over `/mnt/scrivi-net`, build 67): open ~9 s, scene texts ~5 s, timeline ~0.2 s.
+
 ---
 
 ## 6. Test data on the rig
