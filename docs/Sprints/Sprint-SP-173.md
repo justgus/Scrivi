@@ -175,4 +175,21 @@ edits occur atomically."* → the Sprint is `[Cross]`. Design: [`../Scrivi_Core_
   - ⚠️ A timeline reload after an edit stays on the main thread (one call now), as Apple already did — recorded in the design.
   - ⚠️ `Scrivi_ABI_Binding_Gap_Audit_v0_1.md` (and CLAUDE.md) say 100 endpoints: an as-of 2026-08-24 snapshot, already stale
     before this Sprint (109); now 111. Left for EP-051.
+- **2026-10-10 — Live passes (user).** Rig, build 63: ✅ the window stayed responsive throughout; ✅ the bar covered the wait
+  and its label never exceeded the scene count. Load log against build 62: **timeline 0.18 s in the worker** (was 27 s + 28 s on
+  the UI thread), navigator 0.001 s, timeline build on the UI thread 0.1 s; total **122 s** (was 172 s); **lock waits 91 ms over 2
+  waits, longest 59 ms**. Mac: *"timeline applied from the worker's read; lock waits so far: 0 ms total over 0 waits"*.
+  ⏳ The background reads (open 56 s, bodies 62 s) remain → Plan 6.
+- **2026-10-10 — Two untracked fixes (user: *"fix both in SP-173 as untracked fixes"*), not filed.**
+  - ⛔ **Linux never adopted Apple's I-0211** (imported timelines FRAME the main timeline, user ruling 2026-09-14). Linux's window
+    was scenes + historical events only, so dumas's four imported rows (years to centuries from its ~49 days of scenes) drew as
+    bare lines (user: *"They never have"*; on the Mac the scenes sit inside the historical range). ✅ `TimelinePanel::recomputeWindow`
+    includes the VISIBLE imported rows' events; `setImportedTimelines` recomputes. `timeline_cluster_smoke` (+2 checks: frames;
+    hiding narrows); mutation → caught. ⏳ Rig check owed.
+  - ⛔ **Apple bindings that THREW after every successful write** (decoding a reply shape the core never sends; invisible because
+    every caller used `try?`): the four story-time writes (set / clear / assign band / unassign band → new
+    `SceneStoryTimeWriteResult`), and five of the ten calls sharing `TimelineBoolResult` (`setStoryStructure`,
+    `removeStoryStructure`, `deleteHistoricalEvent`, `importExternalTimeline`, `removeImportedTimeline` → it now reads whichever
+    confirmation key the reply carries). `CoreConcurrencyTests.storyTimeWritesDecode`; it failed on each original type. Interop
+    271/271.
 

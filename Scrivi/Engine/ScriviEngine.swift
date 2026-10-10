@@ -784,7 +784,7 @@ public final class ScriviEngine: @unchecked Sendable {
                                    offsetMs: Int64, source: String,
                                    gapMs: Int64 = 0,
                                    durationMs: Int64 = 3_600_000,
-                                   durationSource: String = "default") throws -> SceneStoryTimeResult {
+                                   durationSource: String = "default") throws -> SceneStoryTimeWriteResult {
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in
                 source.withCString { src in
@@ -820,7 +820,7 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
-    public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult {
+    public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeWriteResult {
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in scrivi_clear_scene_story_time(prp, sid) }
         }
@@ -930,7 +930,7 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
-    public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeResult {
+    public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeWriteResult {
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in
                 bandID.withCString { bid in scrivi_assign_scene_to_band(prp, sid, bid) }
@@ -939,7 +939,7 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
-    public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult {
+    public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeWriteResult {
         let raw = projectRootPath.withCString { prp in
             sceneID.withCString { sid in scrivi_unassign_scene_from_band(prp, sid) }
         }
@@ -1588,10 +1588,10 @@ public final class ScriviEngine: @unchecked Sendable {
     public func createChapter(projectRootPath: String, appSupportRoot: String, projectID: String, authorshipRef: AuthorshipRef) throws -> CreateChapterResult { try unavailable() }
     public func getTimeline(projectRootPath: String) throws -> GetTimelineResult { try unavailable() }
     public func setTimelineEpochLabel(projectRootPath: String, label: String) throws -> TimelineBoolResult { try unavailable() }
-    public func setSceneStoryTime(projectRootPath: String, sceneID: String, offsetMs: Int64, source: String, gapMs: Int64 = 0, durationMs: Int64 = 3_600_000, durationSource: String = "default") throws -> SceneStoryTimeResult { try unavailable() }
+    public func setSceneStoryTime(projectRootPath: String, sceneID: String, offsetMs: Int64, source: String, gapMs: Int64 = 0, durationMs: Int64 = 3_600_000, durationSource: String = "default") throws -> SceneStoryTimeWriteResult { try unavailable() }
     public func getSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
     public func listStoryTimes(projectRootPath: String) throws -> StoryTimesResult { try unavailable() }
-    public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func clearSceneStoryTime(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeWriteResult { try unavailable() }
     public func getSceneNotes(projectRootPath: String, sceneID: String) throws -> SceneNotesResult { try unavailable() }
     public func getInspectorLayout(projectRootPath: String) throws -> InspectorLayoutFetch { try unavailable() }
     @discardableResult public func putInspectorLayout(projectRootPath: String, documentJson: String) throws -> InspectorLayoutSave { try unavailable() }
@@ -1601,8 +1601,8 @@ public final class ScriviEngine: @unchecked Sendable {
     @discardableResult public func setSceneTags(projectRootPath: String, sceneID: String, tags: [String]) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneOutline(projectRootPath: String, sceneID: String, outline: String) throws -> SceneNotesUpdateResult { try unavailable() }
     @discardableResult public func setSceneTodo(projectRootPath: String, sceneID: String, todo: [SceneTodoItem]) throws -> SceneNotesUpdateResult { try unavailable() }
-    public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeResult { try unavailable() }
-    public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeResult { try unavailable() }
+    public func assignSceneToBand(projectRootPath: String, sceneID: String, bandID: String) throws -> SceneStoryTimeWriteResult { try unavailable() }
+    public func unassignSceneFromBand(projectRootPath: String, sceneID: String) throws -> SceneStoryTimeWriteResult { try unavailable() }
     public func getStoryStructure(projectRootPath: String) throws -> StoryStructureResult { try unavailable() }
     public func setStoryStructure(projectRootPath: String, structureID: String, bandLayoutJSON: String = "") throws -> TimelineBoolResult { try unavailable() }
     public func updateBandLayout(projectRootPath: String, bandLayoutJSON: String) throws -> TimelineBoolResult { try unavailable() }
@@ -2227,6 +2227,27 @@ public struct SceneStoryTimeResult: Decodable, Sendable {
     public let bandAssignedAt:      String
 }
 
+/// SP-173 — what the four story-time WRITES actually return: `{sceneID, <flag>}`, the flag named `updated`
+/// (`setSceneStoryTime`), `cleared`, `assigned` or `unassigned`. ⛔ They were declared as returning a full
+/// `SceneStoryTimeResult`, which their replies never carried, so every one THREW after a successful write (found in SP-173;
+/// invisible because every caller used `try?`).
+public struct SceneStoryTimeWriteResult: Decodable, Sendable {
+    public let sceneID: String
+    /// The call's own confirmation flag, whichever it is.
+    public let changed: Bool
+
+    private enum CodingKeys: String, CodingKey { case sceneID, updated, cleared, assigned, unassigned }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        sceneID = try c.decode(String.self, forKey: .sceneID)
+        changed = (try? c.decode(Bool.self, forKey: .updated))
+            ?? (try? c.decode(Bool.self, forKey: .cleared))
+            ?? (try? c.decode(Bool.self, forKey: .assigned))
+            ?? (try? c.decode(Bool.self, forKey: .unassigned))
+            ?? false
+    }
+}
+
 /// EP-039 AC4 — the SPARSE bulk story-time read (`scrivi_list_story_times`).
 ///
 /// ⚠️ **SPARSE BY DESIGN.** A record comes back ONLY for a scene whose story time is
@@ -2507,7 +2528,25 @@ public struct ExportTimelineResult: Decodable, Sendable {
 }
 
 public struct TimelineBoolResult: Decodable, Sendable {
+    /// The call's confirmation flag. ⛔ SP-173: ten calls share this type, but only five reply `updated`; the others reply
+    /// `set` (setStoryStructure), `removed` (removeStoryStructure, removeImportedTimeline), `deleted` (deleteHistoricalEvent)
+    /// or `imported` (importExternalTimeline) — and those five THREW after every successful write (invisible: every caller
+    /// used `try?`). Read from whichever key the reply carries.
     public let updated: Bool
+
+    private enum CodingKeys: String, CodingKey { case updated, set, removed, deleted, imported }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        guard let flag = (try? c.decode(Bool.self, forKey: .updated))
+                ?? (try? c.decode(Bool.self, forKey: .set))
+                ?? (try? c.decode(Bool.self, forKey: .removed))
+                ?? (try? c.decode(Bool.self, forKey: .deleted))
+                ?? (try? c.decode(Bool.self, forKey: .imported)) else {
+            throw DecodingError.keyNotFound(CodingKeys.updated, .init(codingPath: c.codingPath,
+                debugDescription: "no confirmation flag (updated/set/removed/deleted/imported) in the reply"))
+        }
+        updated = flag
+    }
 }
 
 // MARK: — Searchable Content Result Types (EP-017 SP-045)

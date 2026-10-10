@@ -142,6 +142,7 @@ void TimelinePanel::setImportedTimelines(const QList<ImportedRow>& rows)
     // imported row adds kImportedRowHeight.
     const int visibleCount = static_cast<int>(visibleImportedRowIndices().size());
     setMinimumHeight(kMinHeight + visibleCount * static_cast<int>(kImportedRowHeight));
+    recomputeWindow();   // SP-173 (Apple's I-0211): visible imported timelines FRAME the main timeline
     update();
 }
 
@@ -237,6 +238,18 @@ void TimelinePanel::recomputeWindow()
     for (const HistDot& h : histDots_) {
         if (!any) { lo = h.offsetMs; hi = h.offsetMs + 1; any = true; }
         else      { lo = std::min(lo, h.offsetMs); hi = std::max(hi, h.offsetMs + 1); }
+    }
+    // ✅ SP-173 — Apple's I-0211 rule (user ruling 2026-09-14), which Linux never adopted: once a timeline is imported it
+    // FRAMES the main timeline — the earliest event across all VISIBLE imported rows is the start, the latest the end, and
+    // the manuscript's scenes sit WITHIN that frame. ⛔ Without it, dumas's scenes (default story time: 1,186 × 1 h ≈ 49
+    // days) defined the window and every imported event (years to centuries away) fell off the strip: the four rows drew
+    // as bare lines (user, SP-173 live pass). ⚠️ VISIBLE rows only: hiding a row must narrow the frame.
+    for (const ImportedRow& row : importedRows_) {
+        if (!row.visible) { continue; }
+        for (const ImportedEvent& e : row.events) {
+            if (!any) { lo = e.projectOffsetMs; hi = e.projectOffsetMs + 1; any = true; }
+            else      { lo = std::min(lo, e.projectOffsetMs); hi = std::max(hi, e.projectOffsetMs + 1); }
+        }
     }
     if (!any) { lo = 0; hi = 1; }
     if (hi <= lo) { hi = lo + 1; }

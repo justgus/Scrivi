@@ -6902,11 +6902,10 @@ struct CoreConcurrencyTests {
         let (engine, ref, root, support, identityID) = try project()
         let opened = try engine.openProject(projectRootPath: root.path, appSupportRoot: support.path, identityID: identityID)
         let sceneID = try #require(opened.scenes.first?.sceneID)
-        // ⚠️ `try?`, and checked by READING BACK below: the Swift binding decodes `setSceneStoryTime`'s reply as a full
-        // SceneStoryTimeResult, but the C ABI returns only {sceneID, updated}, so it THROWS after the write has succeeded
-        // (found here, 2026-10-10; the app's two callers use `try?` too).
-        _ = try? engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 5_000, source: "manual",
-                                          gapMs: 0, durationMs: 60_000, durationSource: "manual")
+        // SP-173: this THREW after a successful write (the binding expected a full record; the core replies {sceneID, updated}).
+        let set = try engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 5_000, source: "manual",
+                                               gapMs: 0, durationMs: 60_000, durationSource: "manual")
+        #expect(set.sceneID == sceneID && set.changed)
         _ = try engine.createHistoricalEvent(projectRootPath: root.path, title: "Coronation", offsetMs: -86_400_000,
                                              authorshipRef: ref)
 
@@ -6919,9 +6918,27 @@ struct CoreConcurrencyTests {
         #expect(all.parts.storyStructure?.hasStructure == false)
         #expect(all.parts.importedTimelines?.count == 0)
 
-        _ = try? engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 9_000, source: "manual",
-                                          gapMs: 0, durationMs: 60_000, durationSource: "manual")
+        _ = try engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 9_000, source: "manual",
+                                         gapMs: 0, durationMs: 60_000, durationSource: "manual")
         #expect(try engine.projectRevision(projectRootPath: root.path) == before + 1, "a write moves it by one")
+    }
+
+    @Test("The four story-time WRITES decode their replies (they threw after every successful write)")
+    func storyTimeWritesDecode() throws {
+        let (engine, _, root, support, identityID) = try project()
+        let opened = try engine.openProject(projectRootPath: root.path, appSupportRoot: support.path, identityID: identityID)
+        let sceneID = try #require(opened.scenes.first?.sceneID)
+        _ = try engine.setStoryStructure(projectRootPath: root.path, structureID: "three-act",
+                                         bandLayoutJSON: ##"{"bands":[{"bandID":"act1","label":"Act I","color":"#FF0000","proportion":1.0}]}"##)
+        #expect(try engine.setSceneStoryTime(projectRootPath: root.path, sceneID: sceneID, offsetMs: 1_000, source: "manual").sceneID == sceneID)
+        #expect(try engine.assignSceneToBand(projectRootPath: root.path, sceneID: sceneID, bandID: "act1").sceneID == sceneID)
+        #expect(try engine.getSceneStoryTime(projectRootPath: root.path, sceneID: sceneID).bandID == "act1", "read back")
+        #expect(try engine.unassignSceneFromBand(projectRootPath: root.path, sceneID: sceneID).sceneID == sceneID)
+        #expect(try engine.clearSceneStoryTime(projectRootPath: root.path, sceneID: sceneID).sceneID == sceneID)
+        #expect(try engine.getSceneStoryTime(projectRootPath: root.path, sceneID: sceneID).offsetSource == "default", "read back")
+        // The shared TimelineBoolResult: five calls replied with a different flag key and threw.
+        #expect(try engine.removeStoryStructure(projectRootPath: root.path).updated)
+        #expect(try engine.getStoryStructure(projectRootPath: root.path).hasStructure == false, "read back")
     }
 
     @Test("D4/AC4/AC5: loadAsync draws the timeline from its worker's read; progress ends at scenes + 1")

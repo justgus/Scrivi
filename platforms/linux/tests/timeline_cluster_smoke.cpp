@@ -125,6 +125,35 @@ int main(int argc, char* argv[])
               "the aggregate includes the historical event (3 members)");
     }
 
+    // SP-173 — Apple's I-0211: VISIBLE imported timelines FRAME the main timeline (dumas: scenes span ~49 days, imported
+    // history spans centuries; without the frame every imported event fell off the strip).
+    {
+        QList<TimelinePanel::Dot> dots;
+        dots.append(scene(QStringLiteral("s1"), 0));
+        dots.append(scene(QStringLiteral("s2"), 3'600'000));
+        panel.setTimeline(QStringLiteral("Story Open"), dots);
+        panel.setHistoricalEvents({});
+        panel.setImportedTimelines({});
+        qint64 lo = 0, hi = 0;
+        panel.storyTimeWindow(lo, hi);
+        const qint64 sceneLo = lo, sceneHi = hi;
+
+        TimelinePanel::ImportedRow row;
+        row.timelineID = QStringLiteral("history");
+        row.visible = true;
+        row.events.append({QStringLiteral("Before"), -1'000'000'000'000LL});
+        row.events.append({QStringLiteral("After"),   7'000'000'000'000LL});
+        panel.setImportedTimelines({row});
+        panel.storyTimeWindow(lo, hi);
+        check(lo <= -1'000'000'000'000LL && hi >= 7'000'000'000'000LL,
+              "I-0211: a visible imported timeline frames the window (its earliest and latest events)");
+
+        row.visible = false;
+        panel.setImportedTimelines({row});
+        panel.storyTimeWindow(lo, hi);
+        check(lo == sceneLo && hi == sceneHi, "I-0211: hiding the row narrows the frame back to the scenes");
+    }
+
     if (failures > 0) {
         std::fprintf(stderr, "timeline_cluster_smoke: %d check(s) FAILED\n", failures);
         return 1;
