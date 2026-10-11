@@ -26,6 +26,7 @@
 #include "objects/RelationshipStore.hpp"
 #include "worlds/WorldStore.hpp"
 #include "history/BufferStore.hpp"
+#include "history/CaptureSession.hpp"
 #include "history/HistoryService.hpp"
 #include "history/HistoryStore.hpp"
 #include "manuscript/FragmentCutter.hpp"
@@ -336,6 +337,8 @@ static constexpr std::size_t kParallelReaders = 8;
 struct HistoryRegistry {
     std::mutex mutex;
     std::unordered_map<std::string, std::unique_ptr<scrivi::history::HistoryStore>> byRoot;
+    // SP-177 (EP-026 S1): the capture rules' state, one per open history — opened and closed with it.
+    std::unordered_map<std::string, scrivi::history::CaptureSession> capture;
 };
 
 static HistoryRegistry& historyRegistry() {
@@ -687,22 +690,34 @@ static scrivi::history::EventKind eventKindFromStr(std::string_view s) {
 
 // Appends the {sceneID,newText,cursorAfter} change (if any) to a "changes"
 // array on `doc`, matching the multi-scene envelope shape (v1 emits at most one).
+// SP-177: the UTF-16 offset of a UTF-8 byte offset into `text` — so a platform never converts (SP-177 Q2).
+static std::int64_t utf16Offset(const std::string& text, std::int64_t byte) {
+    std::int64_t units = 0;
+    for (std::size_t i = 0; i < text.size() && static_cast<std::int64_t>(i) < byte;) {
+        const auto c = static_cast<unsigned char>(text[i]);
+        const std::size_t n = c < 0x80 ? 1 : (c >> 5) == 0x6 ? 2 : (c >> 4) == 0xE ? 3 : (c >> 3) == 0x1E ? 4 : 1;
+        units += n == 4 ? 2 : 1;
+        i += n;
+    }
+    return units;
+}
+
 static void appendStepChanges(scrivi::util::JsonDoc& doc,
                               const scrivi::history::StepResult& step) {
-    if (step.change.has_value()) {
+    auto append = [&](const std::string& sceneID, const std::string& newText, std::int64_t cursorAfter) {
         scrivi::util::JsonDoc c;
-        c.setString("sceneID",    step.change->sceneID);
-        c.setString("newText",    step.change->newText);
-        c.setInt64("cursorAfter", step.change->cursorAfter);
+        c.setString("sceneID",    sceneID);
+        c.setString("newText",    newText);
+        c.setInt64("cursorAfter", cursorAfter);
+        c.setInt64("cursorAfterUtf16", utf16Offset(newText, cursorAfter));   // SP-177 (additive)
         doc.appendToArray("changes", std::move(c));
+    };
+    if (step.change.has_value()) {
+        append(step.change->sceneID, step.change->newText, step.change->cursorAfter);
     }
     // The rest of an edit group (I-0270), in the order the steps were taken.
     for (const auto& g : step.groupChanges) {
-        scrivi::util::JsonDoc c;
-        c.setString("sceneID",    g.sceneID);
-        c.setString("newText",    g.newText);
-        c.setInt64("cursorAfter", g.cursorAfter);
-        doc.appendToArray("changes", std::move(c));
+        append(g.sceneID, g.newText, g.cursorAfter);
     }
 }
 
@@ -3512,6 +3527,168 @@ static scrivi::AbsolutePath historyDirFor(const std::string& projectRoot) {
     return scrivi::util::join(projectRoot, "history");
 }
 
+// ⚠️ Inside the file's `extern "C"` span: these C++ helpers are wrapped in `extern "C++"` (the file's rule).
+extern "C++" {
+namespace {
+
+// Seeds a scene's floor (scrivi_history_seed_scene; SP-177's capture sink). Persisted once, when the scene enters history.
+void seedSceneOn(scrivi::history::HistoryStore& store, const std::string& sid, const std::string& text) {
+    auto& svc = store.service();
+    const bool wasNew = svc.headTextForScene(sid).empty()
+                        && svc.floorTexts().find(sid) == svc.floorTexts().end();
+    svc.seedSceneBaseline(sid, text);
+    if (wasNew) { store.persistFloor(sid, text, "seed"); }
+}
+
+// Records one text event and persists it (scrivi_history_record_event; SP-177's capture sink).
+scrivi::history::RecordResult recordEventOn(scrivi::history::HistoryStore& store,
+                                                   const scrivi::history::RecordParams& p) {
+    auto& svc = store.service();
+    const auto r = svc.record(p, mintHistoryID("evt"));
+    // Persist the new event node (if one was actually created).
+    if (!r.noOp && !r.eventID.empty()) {
+        auto nit = svc.nodes().find(r.eventID);
+        if (nit != svc.nodes().end()) { store.persistEvent(nit->second); }
+    }
+    // Persist any branch-aware eviction the record triggered (§4.1) — ctl:purge /
+    // ctl:evict records so evicted branches don't resurrect from the log on reload.
+    if (r.evictedCount > 0) { store.persistEviction(r.eviction); }
+    return r;
+}
+
+// SP-177: a direct history call that moved the pointer keeps the capture session's can-undo/redo current.
+void syncCapture(HistoryRegistry& reg, const std::string& root, bool canUndo, bool canRedo) {
+    if (auto c = reg.capture.find(root); c != reg.capture.end()) { c->second.noteEngineState(canUndo, canRedo); }
+}
+
+// Barrier params from the endpoint's JSON (scrivi_history_record_barrier; SP-177's scrivi_capture_record_barrier).
+scrivi::history::BarrierParams barrierParamsFrom(const std::string& paramsJSON) {
+    scrivi::history::BarrierParams p;
+    p.timestamp = nowTimestamp();
+    auto paramsR = scrivi::util::parseJson(paramsJSON);
+    if (paramsR.ok()) {
+        const auto& pj = paramsR.value();
+        p.barrierKind = pj.getString("barrierKind", "");
+        p.barrierNote = pj.getString("note", "");
+        // Optional — attributes the barrier to a scene so the history card can filter
+        // by scene (I-0102). Absent for barriers with no single owning scene.
+        p.sceneID     = pj.getString("sceneID", "");
+        // Optional (T-0356 / AC6): when present, records a REVERSIBLE structural node the
+        // app replays on undo/redo, rather than a hard barrier. The payload is opaque JSON
+        // (serialized here as a string so the engine never parses it).
+        if (pj.contains("structuralPayload")) {
+            const auto& sp = pj.getSubDoc("structuralPayload");
+            p.structuralPayload = sp.dump(0);
+        }
+    }
+    return p;
+}
+
+scrivi::util::JsonDoc recordBarrierOn(scrivi::history::HistoryStore& store,
+                                             const scrivi::history::BarrierParams& p) {
+    auto& svc = store.service();
+    const auto r = svc.recordBarrier(p, mintHistoryID("evt"));
+    if (!r.eventID.empty()) {
+        auto nit = svc.nodes().find(r.eventID);
+        if (nit != svc.nodes().end()) { store.persistEvent(nit->second); }
+    }
+    scrivi::util::JsonDoc doc;
+    doc.setString("eventID", r.eventID);
+    doc.setBool("canUndo",   svc.canUndo());
+    doc.setBool("canRedo",   svc.canRedo());
+    return doc;
+}
+
+scrivi::util::JsonDoc undoOn(scrivi::history::HistoryStore& store) {
+    const auto step = store.service().undo();
+    if (step.moved) { store.persistCtl("undo", step.nodeID); }
+    scrivi::util::JsonDoc doc;
+    doc.setBool("moved",  step.moved);
+    doc.setString("nodeID", step.nodeID);
+    doc.setBool("canUndo", step.canUndo);
+    doc.setBool("canRedo", step.canRedo);
+    doc.setBool("crossedSessionBoundary", step.crossedSessionBoundary);
+    if (step.crossedSessionBoundary)
+        doc.setString("boundaryTimestamp", step.boundaryTimestamp);
+    if (step.stoppedAtBarrier) {
+        scrivi::util::JsonDoc b;
+        b.setString("kind", step.barrierKind);
+        b.setString("note", step.barrierNote);
+        doc.setSubDoc("stoppedAtBarrier", std::move(b));
+    }
+    appendStructuralInverse(doc, step);
+    appendStepChanges(doc, step);
+    appendForkAhead(doc, step);
+    return doc;
+}
+
+scrivi::util::JsonDoc redoOn(scrivi::history::HistoryStore& store) {
+    const auto step = store.service().redo();
+    if (step.moved) { store.persistCtl("redo", step.nodeID); }
+    scrivi::util::JsonDoc doc;
+    doc.setBool("moved",  step.moved);
+    doc.setString("nodeID", step.nodeID);
+    doc.setBool("canUndo", step.canUndo);
+    doc.setBool("canRedo", step.canRedo);
+    appendStructuralInverse(doc, step);
+    appendStepChanges(doc, step);
+    appendForkAhead(doc, step);
+    return doc;
+}
+
+// SP-177: the capture session's view of one project's history.
+class StoreSink final : public scrivi::history::CaptureSink {
+public:
+    explicit StoreSink(scrivi::history::HistoryStore& store) : store_(store) {}
+    void seed(const std::string& sceneID, const std::string& text) override { seedSceneOn(store_, sceneID, text); }
+    Recorded record(const std::string& sceneID, const std::string& text, const std::string& kind,
+                    std::int64_t cursorBefore, std::int64_t cursorAfter, const std::string& bufferID,
+                    const std::string& groupID) override {
+        scrivi::history::RecordParams p;
+        p.sceneID      = sceneID;
+        p.newSceneText = text;
+        p.timestamp    = nowTimestamp();
+        p.kind         = eventKindFromStr(kind);
+        p.cursorBefore = cursorBefore;
+        p.cursorAfter  = cursorAfter;
+        p.bufferID     = bufferID;
+        p.groupID      = groupID;
+        const auto r = recordEventOn(store_, p);
+        auto& svc = store_.service();
+        return {r.noOp, svc.canUndo(), svc.canRedo()};
+    }
+private:
+    scrivi::history::HistoryStore& store_;
+};
+
+// SP-177: every scrivi_capture_* envelope — what the platform needs after any capture call.
+scrivi::util::JsonDoc captureStateDoc(const scrivi::history::CaptureSession& c, bool committed) {
+    scrivi::util::JsonDoc doc;
+    doc.setBool("committed", committed);
+    doc.setBool("canUndo", c.canUndo());
+    doc.setBool("canRedo", c.canRedo());
+    doc.setBool("hasPending", c.hasPending());
+    doc.setInt64("idleDeadlineMs", c.idleDeadline());
+    return doc;
+}
+
+// SP-177: runs `fn(session, sink)` on the project's open history; an error envelope when it is not open.
+template <typename Fn>
+const char* withCapture(const char* projectRootPath, Fn&& fn) {
+    const std::string root = S(projectRootPath);
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    auto it = reg.byRoot.find(root);
+    auto c = reg.capture.find(root);
+    if (it == reg.byRoot.end() || c == reg.capture.end())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "history not open for this project"));
+    StoreSink sink(*it->second);
+    return heap(okEnvelope(fn(c->second, sink, *it->second)));
+}
+
+}  // namespace
+}  // extern "C++"
+
 const char* scrivi_history_open(const char* projectRootPath) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
@@ -3550,6 +3727,8 @@ const char* scrivi_history_open(const char* projectRootPath) {
     doc.setSubDoc("settings", std::move(st));
 
     reg.byRoot[root] = std::move(store);
+    reg.capture[root] = scrivi::history::CaptureSession{};   // SP-177: a fresh capture session with each open
+    reg.capture[root].noteEngineState(svc.canUndo(), svc.canRedo());
     return heap(okEnvelope(std::move(doc)));
   });
 }
@@ -3567,13 +3746,7 @@ const char* scrivi_history_seed_scene(const char* projectRootPath,
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    auto& svc = it->second->service();
-    const std::string sid = S(sceneID);
-    const bool wasNew = svc.headTextForScene(sid).empty()
-                        && svc.floorTexts().find(sid) == svc.floorTexts().end();
-    svc.seedSceneBaseline(sid, S(sceneTextUtf8));
-    // Persist the floor record once, the first time this scene enters history.
-    if (wasNew) { it->second->persistFloor(sid, S(sceneTextUtf8), "seed"); }
+    seedSceneOn(*it->second, S(sceneID), S(sceneTextUtf8));
 
     scrivi::util::JsonDoc doc;
     doc.setBool("seeded", true);
@@ -3613,15 +3786,8 @@ const char* scrivi_history_record_event(const char* projectRootPath,
     }
 
     auto& svc = it->second->service();
-    const auto r = svc.record(p, mintHistoryID("evt"));
-    // Persist the new event node (if one was actually created).
-    if (!r.noOp && !r.eventID.empty()) {
-        auto nit = svc.nodes().find(r.eventID);
-        if (nit != svc.nodes().end()) { it->second->persistEvent(nit->second); }
-    }
-    // Persist any branch-aware eviction the record triggered (§4.1) — ctl:purge /
-    // ctl:evict records so evicted branches don't resurrect from the log on reload.
-    if (r.evictedCount > 0) { it->second->persistEviction(r.eviction); }
+    const auto r = recordEventOn(*it->second, p);
+    syncCapture(reg, root, svc.canUndo(), svc.canRedo());
 
     scrivi::util::JsonDoc doc;
     doc.setString("eventID",      r.eventID);
@@ -3645,36 +3811,9 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    scrivi::history::BarrierParams p;
-    p.timestamp = nowTimestamp();
-    auto paramsR = scrivi::util::parseJson(S(paramsJSON));
-    if (paramsR.ok()) {
-        const auto& pj = paramsR.value();
-        p.barrierKind = pj.getString("barrierKind", "");
-        p.barrierNote = pj.getString("note", "");
-        // Optional — attributes the barrier to a scene so the history card can filter
-        // by scene (I-0102). Absent for barriers with no single owning scene.
-        p.sceneID     = pj.getString("sceneID", "");
-        // Optional (T-0356 / AC6): when present, records a REVERSIBLE structural node the
-        // app replays on undo/redo, rather than a hard barrier. The payload is opaque JSON
-        // (serialized here as a string so the engine never parses it).
-        if (pj.contains("structuralPayload")) {
-            const auto& sp = pj.getSubDoc("structuralPayload");
-            p.structuralPayload = sp.dump(0);
-        }
-    }
-
-    auto& svc = it->second->service();
-    const auto r = svc.recordBarrier(p, mintHistoryID("evt"));
-    if (!r.eventID.empty()) {
-        auto nit = svc.nodes().find(r.eventID);
-        if (nit != svc.nodes().end()) { it->second->persistEvent(nit->second); }
-    }
-
-    scrivi::util::JsonDoc doc;
-    doc.setString("eventID", r.eventID);
-    doc.setBool("canUndo",   svc.canUndo());
-    doc.setBool("canRedo",   svc.canRedo());
+    scrivi::history::BarrierParams p = barrierParamsFrom(S(paramsJSON));
+    scrivi::util::JsonDoc doc = recordBarrierOn(*it->second, p);
+    syncCapture(reg, root, doc.getBool("canUndo"), doc.getBool("canRedo"));
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -3690,27 +3829,8 @@ const char* scrivi_history_undo(const char* projectRootPath) {
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    auto& svc = it->second->service();
-    const auto step = svc.undo();
-    if (step.moved) { it->second->persistCtl("undo", step.nodeID); }
-
-    scrivi::util::JsonDoc doc;
-    doc.setBool("moved",  step.moved);
-    doc.setString("nodeID", step.nodeID);
-    doc.setBool("canUndo", step.canUndo);
-    doc.setBool("canRedo", step.canRedo);
-    doc.setBool("crossedSessionBoundary", step.crossedSessionBoundary);
-    if (step.crossedSessionBoundary)
-        doc.setString("boundaryTimestamp", step.boundaryTimestamp);
-    if (step.stoppedAtBarrier) {
-        scrivi::util::JsonDoc b;
-        b.setString("kind", step.barrierKind);
-        b.setString("note", step.barrierNote);
-        doc.setSubDoc("stoppedAtBarrier", std::move(b));
-    }
-    appendStructuralInverse(doc, step);
-    appendStepChanges(doc, step);
-    appendForkAhead(doc, step);
+    scrivi::util::JsonDoc doc = undoOn(*it->second);
+    syncCapture(reg, root, doc.getBool("canUndo"), doc.getBool("canRedo"));
     return heap(okEnvelope(std::move(doc)));
   });
 }
@@ -3727,18 +3847,8 @@ const char* scrivi_history_redo(const char* projectRootPath) {
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument,
                                   "history not open for this project"));
 
-    auto& svc = it->second->service();
-    const auto step = svc.redo();
-    if (step.moved) { it->second->persistCtl("redo", step.nodeID); }
-
-    scrivi::util::JsonDoc doc;
-    doc.setBool("moved",  step.moved);
-    doc.setString("nodeID", step.nodeID);
-    doc.setBool("canUndo", step.canUndo);
-    doc.setBool("canRedo", step.canRedo);
-    appendStructuralInverse(doc, step);
-    appendStepChanges(doc, step);
-    appendForkAhead(doc, step);
+    scrivi::util::JsonDoc doc = redoOn(*it->second);
+    syncCapture(reg, root, doc.getBool("canUndo"), doc.getBool("canRedo"));
     return heap(okEnvelope(std::move(doc)));
   });
 }
@@ -3765,6 +3875,7 @@ const char* scrivi_history_select_branch(const char* projectRootPath,
     doc.setString("forkNodeID",  r.forkNodeID);
     doc.setString("childEventID", r.childEventID);
     doc.setBool("canRedo",       r.canRedo);
+    syncCapture(reg, root, svc.canUndo(), r.canRedo);
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -3876,6 +3987,7 @@ const char* scrivi_history_purge_branch(const char* projectRootPath,
     doc.setInt("purgedCount",        r.purgedCount);
     doc.setBool("canUndo",           r.canUndo);
     doc.setBool("canRedo",           r.canRedo);
+    syncCapture(reg, root, r.canUndo, r.canRedo);
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -3970,13 +4082,158 @@ const char* scrivi_history_close(const char* projectRootPath) {
     auto it = reg.byRoot.find(root);
     const bool wasOpen = it != reg.byRoot.end();
     if (wasOpen) {
+        // SP-177: commit the pending typing first, so the final sentence is not lost (Apple's `HistoryCapture.close`).
+        if (auto c = reg.capture.find(root); c != reg.capture.end()) {
+            StoreSink sink(*it->second);
+            c->second.flush(sink, "flush");
+        }
         it->second->checkpoint();   // final checkpoint before discarding
         reg.byRoot.erase(it);
     }
+    reg.capture.erase(root);
 
     scrivi::util::JsonDoc doc;
     doc.setBool("closed", wasOpen);
     return heap(okEnvelope(std::move(doc)));
+}
+
+// --- Undo capture rules (SP-177 / T-0604, EP-026 S1) ---------------------------
+// WHEN an undo step ends, decided here for every platform (`history/CaptureSession`). Each endpoint returns
+// {committed, canUndo, canRedo, hasPending, idleDeadlineMs}; undo/redo return the step envelope plus those.
+
+const char* scrivi_capture_note_edit(const char* projectRootPath, const char* sceneID, const char* sceneTextUtf8,
+                                     int caretUtf16, const char* textBeforeUtf8, long long nowMs) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        const bool committed = c.noteEdit(sink, S(sceneID), S(sceneTextUtf8), caretUtf16, S(textBeforeUtf8), nowMs);
+        return captureStateDoc(c, committed);
+    });
+  });
+}
+
+const char* scrivi_capture_caret_moved(const char* projectRootPath, const char* sceneID, int editInFlight, int applying) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        return captureStateDoc(c, c.caretMoved(sink, S(sceneID), editInFlight != 0, applying != 0));
+    });
+  });
+}
+
+const char* scrivi_capture_begin(const char* projectRootPath, const char* kind, const char* bufferID) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        c.begin(sink, S(kind), S(bufferID));
+        return captureStateDoc(c, false);
+    });
+  });
+}
+
+const char* scrivi_capture_flush(const char* projectRootPath, const char* trigger, const char* kind) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        const std::string k = S(kind);
+        return captureStateDoc(c, c.flush(sink, S(trigger), k.empty() ? "typing" : k));
+    });
+  });
+}
+
+const char* scrivi_capture_before_save(const char* projectRootPath, long long nowMs) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        return captureStateDoc(c, c.beforeSave(sink, nowMs));
+    });
+  });
+}
+
+const char* scrivi_capture_idle(const char* projectRootPath, long long nowMs) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        return captureStateDoc(c, c.idle(sink, nowMs));
+    });
+  });
+}
+
+const char* scrivi_capture_grouped_edit(const char* projectRootPath, const char* editsJSON, const char* kind) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    auto parsed = scrivi::util::parseJson(std::string("{\"edits\":") + S(editsJSON) + "}");
+    if (!parsed.ok())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "editsJSON must be a JSON array"));
+    std::vector<scrivi::history::CaptureSession::GroupEdit> edits;
+    const auto& doc = parsed.value();
+    for (std::size_t i = 0; i < doc.arraySize("edits"); ++i) {
+        const auto e = doc.arrayItem("edits", i);
+        edits.push_back({e.getString("sceneID", ""), e.getString("textBefore", ""), e.getString("textAfter", ""),
+                         static_cast<int>(e.getInt("caret", 0))});
+    }
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto&) {
+        c.groupedEdit(sink, edits, S(kind), mintHistoryID("grp"));
+        return captureStateDoc(c, !edits.empty());
+    });
+  });
+}
+
+const char* scrivi_capture_record_barrier(const char* projectRootPath, const char* paramsJSON) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto& store) {
+        scrivi::history::BarrierParams p = barrierParamsFrom(S(paramsJSON));
+        p.sceneID = c.beforeBarrier(sink, p.sceneID);
+        scrivi::util::JsonDoc r = recordBarrierOn(store, p);
+        c.noteEngineState(r.getBool("canUndo"), r.getBool("canRedo"));
+        scrivi::util::JsonDoc doc = captureStateDoc(c, true);
+        doc.setString("eventID", r.getString("eventID", ""));
+        return doc;
+    });
+  });
+}
+
+const char* scrivi_capture_undo(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto& sink, auto& store) {
+        c.flush(sink, "flush");   // the newest keystrokes become an event before we walk back
+        scrivi::util::JsonDoc doc = undoOn(store);
+        c.noteEngineState(doc.getBool("canUndo"), doc.getBool("canRedo"));
+        doc.setBool("hasPending", c.hasPending());
+        return doc;
+    });
+  });
+}
+
+const char* scrivi_capture_redo(const char* projectRootPath) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto&, auto& store) {
+        scrivi::util::JsonDoc doc = redoOn(store);   // Apple's redo never flushed — kept
+        c.noteEngineState(doc.getBool("canUndo"), doc.getBool("canRedo"));
+        doc.setBool("hasPending", c.hasPending());
+        return doc;
+    });
+  });
+}
+
+const char* scrivi_capture_note_applied(const char* projectRootPath, const char* sceneID, const char* sceneTextUtf8) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto&, auto&) {
+        c.noteApplied(S(sceneID), S(sceneTextUtf8));
+        return captureStateDoc(c, false);
+    });
+  });
+}
+
+const char* scrivi_capture_state(const char* projectRootPath) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+  return guarded([&]() -> const char* {
+    return withCapture(projectRootPath, [&](auto& c, auto&, auto&) { return captureStateDoc(c, false); });
+  });
 }
 
 // --- Structured Cut/Copy/Paste: extract-fragment (EP-029 SP-086, T-0351) --

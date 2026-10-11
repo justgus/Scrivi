@@ -8,6 +8,13 @@ import ScriviCore
 // macOS and iOS/iPadOS build & link ScriviCore (libScriviCore.a) and use the real
 // engine. visionOS is not yet wired and falls through to the stub (I-0053).
 
+/// SP-173 (Q1, user: "concerned that [an exclusive lock] will increase delays") — every project-lock wait the core reported
+/// (each ≥ 1 ms), summed across all threads, so the load can log what the lock COST.
+/// ⚠️ Outside the platform split ([SP-177] found the visionOS build broken): `ProjectSession` reads it on every platform;
+/// the visionOS stub engine simply never adds to it.
+struct LockWaitStats: Sendable { var totalMs: Int64 = 0; var count: Int64 = 0; var maxMs: Int64 = 0 }
+let coreLockWaits = Mutex(LockWaitStats())
+
 #if os(macOS) || os(iOS)
 
 public final class ScriviEngine: @unchecked Sendable {
@@ -1301,6 +1308,99 @@ public final class ScriviEngine: @unchecked Sendable {
         return try decodeC(raw)
     }
 
+    // MARK: — Undo capture rules (SP-177 / T-0604, EP-026 S1)
+    // WHEN an undo step ends is ScriviCore's (`scrivi_capture_*`): pure decode wrappers. Carets are UTF-16 units of the
+    // scene text; `nowMs` is any monotonic millisecond clock the caller keeps (SP-177 Q1, Q2).
+
+    public func captureNoteEdit(projectRootPath: String, sceneID: String, text: String, caretUTF16: Int,
+                                textBefore: String, nowMs: Int64) throws -> CaptureState {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in
+                text.withCString { txt in
+                    textBefore.withCString { before in
+                        scrivi_capture_note_edit(prp, sid, txt, Int32(caretUTF16), before, nowMs)
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    public func captureCaretMoved(projectRootPath: String, sceneID: String, editInFlight: Bool,
+                                  applying: Bool) throws -> CaptureState {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in scrivi_capture_caret_moved(prp, sid, editInFlight ? 1 : 0, applying ? 1 : 0) }
+        }
+        return try decodeC(raw)
+    }
+
+    public func captureBegin(projectRootPath: String, kind: String, bufferID: String = "") throws -> CaptureState {
+        let raw = projectRootPath.withCString { prp in
+            kind.withCString { k in bufferID.withCString { b in scrivi_capture_begin(prp, k, b) } }
+        }
+        return try decodeC(raw)
+    }
+
+    public func captureFlush(projectRootPath: String, trigger: String, kind: String = "typing") throws -> CaptureState {
+        let raw = projectRootPath.withCString { prp in
+            trigger.withCString { t in kind.withCString { k in scrivi_capture_flush(prp, t, k) } }
+        }
+        return try decodeC(raw)
+    }
+
+    public func captureBeforeSave(projectRootPath: String, nowMs: Int64) throws -> CaptureState {
+        let raw = projectRootPath.withCString { scrivi_capture_before_save($0, nowMs) }
+        return try decodeC(raw)
+    }
+
+    public func captureIdle(projectRootPath: String, nowMs: Int64) throws -> CaptureState {
+        let raw = projectRootPath.withCString { scrivi_capture_idle($0, nowMs) }
+        return try decodeC(raw)
+    }
+
+    public func captureGroupedEdit(projectRootPath: String, edits: [CaptureGroupEdit],
+                                   kind: String) throws -> CaptureState {
+        let json = String(decoding: try JSONEncoder().encode(edits), as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in
+            json.withCString { e in kind.withCString { k in scrivi_capture_grouped_edit(prp, e, k) } }
+        }
+        return try decodeC(raw)
+    }
+
+    public func captureRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "",
+                                     sceneID: String? = nil,
+                                     structuralPayload: HistoryStructuralPayload? = nil) throws -> CaptureState {
+        let paramsData = try JSONEncoder().encode(
+            RecordBarrierParams(barrierKind: barrierKind, note: note, sceneID: sceneID,
+                                structuralPayload: structuralPayload))
+        let params = String(decoding: paramsData, as: UTF8.self)
+        let raw = projectRootPath.withCString { prp in params.withCString { p in scrivi_capture_record_barrier(prp, p) } }
+        return try decodeC(raw)
+    }
+
+    public func captureUndo(projectRootPath: String) throws -> HistoryStepResult {
+        let raw = projectRootPath.withCString { scrivi_capture_undo($0) }
+        return try decodeC(raw)
+    }
+
+    public func captureRedo(projectRootPath: String) throws -> HistoryStepResult {
+        let raw = projectRootPath.withCString { scrivi_capture_redo($0) }
+        return try decodeC(raw)
+    }
+
+    @discardableResult
+    public func captureNoteApplied(projectRootPath: String, sceneID: String, text: String) throws -> CaptureState {
+        let raw = projectRootPath.withCString { prp in
+            sceneID.withCString { sid in text.withCString { t in scrivi_capture_note_applied(prp, sid, t) } }
+        }
+        return try decodeC(raw)
+    }
+
+    public func captureState(projectRootPath: String) throws -> CaptureState {
+        let raw = projectRootPath.withCString { scrivi_capture_state($0) }
+        return try decodeC(raw)
+    }
+
     // MARK: — Copy buffers (EP-019 SP-056 — T-0213)
     // Pure decode wrappers over scrivi_buffers_*; no buffer logic in Swift. Buffers
     // are per-project persistent slots ("1"-"9") stored in history/buffers.json; the
@@ -1570,11 +1670,6 @@ func decodeC<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> T {
 
 /// SP-173 (D2): `decodeC`, plus the project revision the envelope reported (-1 when it carried none). One decoder: `decodeC`
 /// is this with the revision dropped.
-/// SP-173 (Q1, user: "concerned that [an exclusive lock] will increase delays") — every project-lock wait the core reported
-/// (each ≥ 1 ms), summed across all threads, so the load can log what the lock COST.
-struct LockWaitStats: Sendable { var totalMs: Int64 = 0; var count: Int64 = 0; var maxMs: Int64 = 0 }
-let coreLockWaits = Mutex(LockWaitStats())
-
 func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (result: T, revision: Int64) {
     guard let ptr else {
         throw ScriviError(code: -1, message: "scrivi returned null")
@@ -1736,6 +1831,19 @@ public final class ScriviEngine: @unchecked Sendable {
     public func historyRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", sceneID: String? = nil, structuralPayload: HistoryStructuralPayload? = nil) throws -> HistoryBarrierResult { try unavailable() }
     public func historyUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func historyRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    public func captureNoteEdit(projectRootPath: String, sceneID: String, text: String, caretUTF16: Int, textBefore: String, nowMs: Int64) throws -> CaptureState { try unavailable() }
+    public func captureCaretMoved(projectRootPath: String, sceneID: String, editInFlight: Bool, applying: Bool) throws -> CaptureState { try unavailable() }
+    public func captureBegin(projectRootPath: String, kind: String, bufferID: String = "") throws -> CaptureState { try unavailable() }
+    public func captureFlush(projectRootPath: String, trigger: String, kind: String = "typing") throws -> CaptureState { try unavailable() }
+    public func captureBeforeSave(projectRootPath: String, nowMs: Int64) throws -> CaptureState { try unavailable() }
+    public func captureIdle(projectRootPath: String, nowMs: Int64) throws -> CaptureState { try unavailable() }
+    public func captureGroupedEdit(projectRootPath: String, edits: [CaptureGroupEdit], kind: String) throws -> CaptureState { try unavailable() }
+    public func captureRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", sceneID: String? = nil, structuralPayload: HistoryStructuralPayload? = nil) throws -> CaptureState { try unavailable() }
+    public func captureUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    public func captureRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
+    @discardableResult
+    public func captureNoteApplied(projectRootPath: String, sceneID: String, text: String) throws -> CaptureState { try unavailable() }
+    public func captureState(projectRootPath: String) throws -> CaptureState { try unavailable() }
     @discardableResult
     public func historySelectBranch(projectRootPath: String, forkNodeID: String, childEventID: String) throws -> HistorySelectBranchResult { try unavailable() }
     public func historyListStaleBranches(projectRootPath: String) throws -> HistoryStaleBranchesResult { try unavailable() }
@@ -2813,6 +2921,8 @@ public struct HistorySceneChange: Decodable, Sendable {
     public let sceneID:     String
     public let newText:     String
     public let cursorAfter: Int64
+    /// SP-177: the same caret in UTF-16 units of `newText` (present from `scrivi_history_undo/redo` and `scrivi_capture_*`).
+    public let cursorAfterUtf16: Int64?
 }
 
 // A barrier that blocked an undo (undo did not move).
@@ -3103,6 +3213,27 @@ public struct HistoryPurgeResult: Decodable, Sendable {
 
 public struct HistoryCloseResult: Decodable, Sendable {
     public let closed: Bool
+}
+
+/// SP-177: what every `scrivi_capture_*` call reports.
+public struct CaptureState: Decodable, Sendable {
+    public let committed:      Bool
+    public let canUndo:        Bool
+    public let canRedo:        Bool
+    public let hasPending:     Bool
+    /// When the idle timer should fire (the caller's `nowMs` clock), or -1 when nothing is pending.
+    public let idleDeadlineMs: Int64
+}
+
+/// SP-177: one scene's part of an edit across several scenes (I-0270). `caret`: UTF-16 in `textBefore`.
+public struct CaptureGroupEdit: Encodable, Sendable {
+    public let sceneID:    String
+    public let textBefore: String
+    public let textAfter:  String
+    public let caret:      Int
+    public init(sceneID: String, textBefore: String, textAfter: String, caret: Int) {
+        self.sceneID = sceneID; self.textBefore = textBefore; self.textAfter = textAfter; self.caret = caret
+    }
 }
 
 public struct HistorySeedResult: Decodable, Sendable {

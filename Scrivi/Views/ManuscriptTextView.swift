@@ -365,24 +365,10 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Scene-local UTF-8 byte offset of the insertion point. `sceneText` is
         // the scene's full text, `storageLoc` the storage char offset, `segRange`
         // the scene's storage char range. History offsets are UTF-8 bytes (§4.b).
-        func sceneLocalByteOffset(in sceneText: String, storageLoc: Int, segRange: NSRange) -> Int {
+        static func sceneLocalByteOffset(in sceneText: String, storageLoc: Int, segRange: NSRange) -> Int {
             let charOffset = max(0, min(storageLoc - segRange.location, (sceneText as NSString).length))
             let prefix = (sceneText as NSString).substring(to: charOffset)
             return prefix.utf8.count
-        }
-
-        // True if the character just typed (at cursorCharOffset-1 within the
-        // scene) is a sentence terminator or newline — history trigger #1 (§4.a).
-        // Trailing whitespace after a terminator does NOT re-commit: it starts the
-        // next pending edit and is deferred by the soft cursor-move trigger until
-        // real text follows (whitespace-only-delta rule in HistoryCapture.flush).
-        func isCommitBoundary(_ sceneText: String, cursorCharOffset: Int) -> Bool {
-            let ns = sceneText as NSString
-            let idx = cursorCharOffset - 1
-            guard idx >= 0, idx < ns.length else { return false }
-            let ch = ns.character(at: idx)
-            // '.' 46, '!' 33, '?' 63, '\n' 10, '\r' 13
-            return ch == 46 || ch == 33 || ch == 63 || ch == 10 || ch == 13
         }
 
         // MARK: — Undo / Redo apply path (T-0205, design §8)
@@ -452,7 +438,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 tv.setSelectedRange(NSRange(location: first.caret, length: 0))
                 tv.scrollRangeToVisible(NSRange(location: first.caret, length: 0))
                 if parent.loader.segments.indices.contains(first.segIdx) {
-                    capture.syncCommittedText(parent.loader.segments[first.segIdx].text)
+                    let seg = parent.loader.segments[first.segIdx]
+                    capture.noteApplied(sceneID: seg.sceneID, text: seg.text)
                 }
             }
             capture.refreshCanState()
@@ -510,7 +497,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                 if sceneBoundaries.indices.contains(segIdx) {
                     let newRange = sceneBoundaries[segIdx]
                     let sceneText = (tv.string as NSString).substring(with: newRange)
-                    let charOffset = charOffsetForByteOffset(Int(change.cursorAfter), in: sceneText)
+                    // SP-177 Q2: the core reports the caret in UTF-16 too.
+                    let charOffset = change.cursorAfterUtf16.map(Int.init)
+                        ?? charOffsetForByteOffset(Int(change.cursorAfter), in: sceneText)
                     let storageLoc = min(newRange.location + charOffset, (tv.string as NSString).length)
                     caret = storageLoc
                     if placesCaret {
@@ -522,8 +511,8 @@ struct ManuscriptTextView: NSViewRepresentable {
 
             // Keep the loader's in-memory text in sync and save immediately.
             parent.loader.updateText(change.newText, at: segIdx)
-            // The restored text is now the whitespace-delta reference.
-            capture.syncCommittedText(change.newText)
+            // The restored text is now the whitespace-delta reference (SP-177: told to the core).
+            if placesCaret { capture.noteApplied(sceneID: change.sceneID, text: change.newText) }
             let env = parent.env
             let loader = parent.loader
             if let ref = env.authorshipRef {
@@ -982,23 +971,17 @@ struct ManuscriptTextView: NSViewRepresentable {
                 parent.loader.setCurrentIndex(segIdx)
             }
 
-            // History capture (EP-019 §4.a): latch the edit, then commit on a
-            // sentence terminator or Return. `editInFlight` lets the following
+            // History capture (EP-019 §4.a): report the edit; ✅ SP-177: the CORE latches it and decides whether it ends
+            // an undo step (a sentence terminator or Return; not trailing whitespace). `editInFlight` lets the following
             // selection-change callback know this run came from an edit.
             if !isHistoryApply, let capture = parent.session.historyCapture,
                let sceneID = loader(for: segIdx)?.sceneID {
                 let cursorCharOffset = loc - range.location
-                let cursorByte = sceneLocalByteOffset(in: extracted, storageLoc: loc, segRange: range)
+                // The history card's caret highlight reads UTF-8 bytes (EP-030) — not a capture rule.
+                let cursorByte = Self.sceneLocalByteOffset(in: extracted, storageLoc: loc, segRange: range)
                 parent.loader.setCursorByteOffset(cursorByte, sceneID: sceneID)
-                capture.noteEdit(sceneID: sceneID, text: extracted, cursor: cursorByte,
-                                 baselineIfFirst: preEditText)
+                capture.noteEdit(sceneID: sceneID, text: extracted, caretUTF16: cursorCharOffset, textBefore: preEditText)
                 editInFlight = true
-                // Commit on a sentence terminator or Return — but NOT on trailing
-                // whitespace (e.g. the second space of ". "). Whitespace is carried
-                // into the next event once real text follows (§4.a refinement).
-                if isCommitBoundary(extracted, cursorCharOffset: cursorCharOffset) {
-                    capture.flush(trigger: "sentence")
-                }
             }
 
             // Debounce 1-second auto-save.
@@ -1041,22 +1024,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             let loc = tv.selectedRange().location
             guard let segIdx = segmentIndex(for: loc) else { return }
 
-            // History triggers #2 and #5 (§4.a). A selection change that did NOT
-            // come from an edit this turn is a pure cursor move: commit any
-            // pending edit. A scene switch also commits (against the previous
-            // scene, which the pending edit already targets). An undo/redo apply
-            // moves the selection too — skip capture in that case.
-            let isHistoryApply = parent.session.historyCapture?.isApplying ?? false
-            if !isHistoryApply, let capture = parent.session.historyCapture {
-                let sceneSwitched = segIdx != lastCursorSegmentIndex
-                if sceneSwitched {
-                    // Leaving a scene: commit its pending edit (hard).
-                    capture.flush(trigger: "sceneSwitch")
-                } else if !editInFlight && capture.hasPendingChanges {
-                    // In-scene cursor move: soft — defers a whitespace-only pending
-                    // change so double-spaces never become a standalone undo step.
-                    capture.flush(trigger: "cursorMove", soft: true)
-                }
+            // History triggers #2 and #5 (§4.a), ✅ SP-177 decided by the CORE: a scene switch commits (hard); a caret
+            // move in the same scene commits unless only whitespace changed (soft); a selection change that came from an
+            // edit this turn, or from an undo/redo apply, is not a move.
+            if let capture = parent.session.historyCapture, let sceneID = loader(for: segIdx)?.sceneID {
+                capture.caretMoved(sceneID: sceneID, editInFlight: editInFlight, applying: capture.isApplying)
             }
             editInFlight = false
 
@@ -1065,7 +1037,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Done on every selection change, not just edits, so plain arrow-key moves
             // update the highlight too.
             if let seg = loader(for: segIdx), sceneBoundaries.indices.contains(segIdx) {
-                let byte = sceneLocalByteOffset(in: seg.text, storageLoc: loc,
+                let byte = Self.sceneLocalByteOffset(in: seg.text, storageLoc: loc,
                                                 segRange: sceneBoundaries[segIdx])
                 parent.loader.setCursorByteOffset(byte, sceneID: seg.sceneID)
             }
@@ -2472,7 +2444,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 let seg = loader.segments[i]
                 loader.updateText(after, at: i)
                 grouped.append(.init(sceneID: seg.sceneID, textBefore: before[i] ?? after,
-                                     textAfter: after, cursorByte: 0))
+                                     textAfter: after, caret: 0))
                 let firstLine = after.components(separatedBy: .newlines)
                     .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
                 loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
@@ -2556,8 +2528,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 let seg = loader.segments[part.segIdx]
                 loader.updateText(after, at: part.segIdx)
                 edits.append(.init(sceneID: seg.sceneID, textBefore: before[n], textAfter: after,
-                                   cursorByte: byteOffset(charOffset: part.cut.location - part.range.location,
-                                                          in: before[n])))
+                                   caret: part.cut.location - part.range.location))
                 let firstLine = after.components(separatedBy: .newlines)
                     .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
                 loader.updateLiveTitle(firstLine, forSceneID: seg.sceneID)
@@ -2905,7 +2876,7 @@ final class ManuscriptNSTextView: NSTextView {
     /// ⚠️ Measured 2026-10-04: Return, keypad Enter AND Shift-Return all send `insertNewline:`;
     /// Option-Return sends `insertNewlineIgnoringFieldEditor:` and is NOT changed here.
     /// ⛔ ONE replacement, never several: Return is a history commit boundary
-    /// (`isCommitBoundary`), so a split edit would commit half the gesture as its own undo step.
+    /// (the core's `CaptureSession::isCommitBoundary`, SP-177), so a split edit would commit half the gesture as its own undo step.
     override func insertNewline(_ sender: Any?) {
         guard let storage = textStorage, !hasMarkedText() else { return super.insertNewline(sender) }
         let sel = selectedRange()

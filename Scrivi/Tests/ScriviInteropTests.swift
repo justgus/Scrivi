@@ -4345,7 +4345,7 @@ struct ReturnAndBackspaceTests {
     @Test("AC-undo: one Return is ONE edit and ONE textDidChange — so ONE history event")
     func returnIsOneEdit() {
         // ⚠️ The coordinator records history per `textDidChange` and commits on `\n`
-        // (`isCommitBoundary`); one notification therefore means one undo step.
+        // (the core's `CaptureSession::isCommitBoundary`, SP-177); one notification therefore means one undo step.
         let f = Fixture()
         f.type("end\\")
         let count = Mutex(0)   // the observer block is @Sendable: count through a lock, not a captured var
@@ -7069,5 +7069,11 @@ struct MarkdownEditingSceneTests {
         #expect(two.source.hasSuffix("**bold 👋**"), "the copy's own markers close the span it cuts: \(two.source)")
     }
 }
+
+
+// MARK: — SP-177 / T-0604 (EP-026 S1): undo capture parity
+// The generator (`UndoCaptureParityTests`) ran Apple's Swift capture rules and `scrivi_capture_*` side by side on 203
+// sessions — all agreed — and wrote `ScriviCore/tests/fixtures/history_capture_parity.jsonl`. It was removed with the Swift
+// rules it drove; the core test "every session of Apple's parity fixture…" (`CaptureCApiTests.cpp`) replays the answers.
 
 #endif

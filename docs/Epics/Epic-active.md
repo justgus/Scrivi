@@ -110,7 +110,7 @@ Measured (SP-166): attach + first highlight of 1.8 MB ≈ 185 ms (Docker), a key
 
 ## EP-026: `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste
 
-**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 = [SP-177] 🟡 ACTIVE 2026-10-11. **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
+**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 next. **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
 is (or should be) planned in a subsequent epic given that Apple has the branching undo history and multiple copy buffers already
 in place."* · *"we need to rescope EP-026 and check other epics to see if the copy buffers were mentioned anywhere else."*).
 ✅ **Q1–Q5 RULED 2026-10-11.** ✅ **[EP-048] stays open until this Epic lands** (user). ⛔ **[EP-048] L8 (Find/Replace, [SP-176]) waits on it** (SP-176 Q3).
@@ -164,11 +164,13 @@ undoes the same on both platforms.
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
-| **[SP-177]** | **S1** — `[Cross]` the capture rules (`HistoryCapture.swift`) move into ScriviCore; Apple re-pointed, no visible change (Q1) | 🟡 **ACTIVE 2026-10-11** → [`../Sprints/Sprint-SP-177.md`](../Sprints/Sprint-SP-177.md) · ✅ Q1–Q4 ruled |
+| **[SP-177]** | **S1** — `[Cross]` the capture rules (`HistoryCapture.swift`) move into ScriviCore; Apple re-pointed, no visible change (Q1) | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-177.md`](../Sprints/Closed/Sprint-SP-177.md) · ✅ Q1–Q4 ruled · ✅ Mac live pass; [T-0604] verified |
 | S2 | `[Linux]` undo/redo (Ctrl+Z / Ctrl+Shift+Z), persistence, session warning, barriers, grouped edits — ➡️ unblocks [EP-048] S4b | not yet created |
 | S3 | `[Linux]` branching: fork popover, History card, stale-branch purge, Undo History settings section | not yet created |
 | S4 | `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux) | not yet created |
 | S5 | `[Linux]` copy buffers (Ctrl / Ctrl+Shift / Alt + 1–9), View ▸ Show Buffers (Ctrl+Alt+B) and the palette, structured buffers | not yet created |
+
+**Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived).
 
 **Provisional Sprints (original note):** S1 `[Cross]` capture rules into the core (Q1), Apple re-pointed with no visible change · S2 undo/redo + persistence +
 session warning + barriers + grouped edits · S3 branching: fork popover, History card, stale-branch purge, Undo History

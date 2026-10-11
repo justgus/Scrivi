@@ -105,6 +105,15 @@ creates a node, and undo walks one node per step. The writer would have seen one
 Deferring the commit was ruled instead (user, 2026-08-10). Coalescing stays **app-side**; `HistoryService`
 remains pure.
 
+> ✅ **Amended 2026-10-11 ([SP-177] / T-0604, EP-026 S1 — EP-026 Q1 ruled by the user):** the capture rules —
+> every trigger in the table above, the 45 s idle rule, the soft whitespace deferral, paste/cut labels, autosave-never-seals,
+> grouped edits — moved out of Swift into ScriviCore's **`CaptureSession`** (`ScriviCore/src/history/`), behind
+> `scrivi_capture_*`, so every platform calls one copy. ✅ **`HistoryService` remains pure** — `CaptureSession` is a separate
+> component that calls it exactly as `HistoryCapture.swift` did. "App-side" now means *outside the tree engine*, not *inside one
+> platform*. The platform passes a monotonic `nowMs` and runs the idle timer at the deadline the core returns; carets cross the
+> ABI in UTF-16 units. Proven against Apple's Swift by a 203-session parity fixture
+> (`ScriviCore/tests/fixtures/history_capture_parity.jsonl`) recorded before the Swift was removed.
+
 ### 4.b Event record (`scrivi.history.v1` node)
 
 ```json
@@ -240,6 +249,10 @@ const char* scrivi_buffers_clear(const char* projectRootPath, const char* buffer
 **Write policy:** the engine is in-memory with per-event log append (I/O ≈ once per sentence — negligible) and checkpoints on pointer operations and close.
 
 ## 8. Swift Layer
+
+> ✅ **Amended 2026-10-11 ([SP-177]):** `HistoryCapture` no longer detects triggers — it REPORTS (an edit, a caret move, a
+> paste/cut, a save, an applied undo) to `scrivi_capture_*` and runs the idle timer; the trigger rules are ScriviCore's
+> `CaptureSession` (§4.a.1 amendment). The apply path and ⌘Z routing below are unchanged.
 
 - **`HistoryCapture`** (new, `@MainActor`, owned by `ProjectSession`): pending-flag state machine, trigger detection, engine calls, session-warning popup and fork-popover state. The `Coordinator` in `ManuscriptTextView.swift` only *notifies* it (edit occurred in scene X with text T; cursor moved; paste/cut occurred). `ViewportSceneLoader` stays history-agnostic apart from applying returned texts via the existing `updateText`.
 - **Apply path (undo/redo):** ranged `replaceCharacters(in: sceneBoundaries[segIdx], with: newText)` on the storage under the `isRebuilding` guard (bypassing `shouldChangeText`; dividers and `scriviHeading` runs untouched), then `recomputeBoundaries`, cursor placement from `cursorAfter` (scene-local → storage offset via existing maps), `loader.updateText`, and an **immediate** (non-debounced) `engine.saveScene`.

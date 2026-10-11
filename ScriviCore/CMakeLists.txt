@@ -109,6 +109,7 @@ target_sources(ScriviCore
         src/history/HistoryService.cpp
         src/history/HistoryStore.cpp
         src/history/BufferStore.cpp
+        src/history/CaptureSession.cpp
         src/markdown/MarkdownAnalyzer.cpp
         src/markdown/MarkdownText.cpp
         src/markdown/Escapes.cpp

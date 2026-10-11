@@ -755,6 +755,49 @@ const char* scrivi_history_record_event(const char* projectRootPath,
 const char* scrivi_history_record_barrier(const char* projectRootPath,
                                            const char* paramsJSON);
 
+/* ---- Undo capture rules (SP-177 / T-0604, EP-026 S1) -------------------- *
+ * WHEN an undo step ends — the rules every platform used to carry itself (Apple: HistoryCapture.swift) — decided by the
+ * core, one session per open history (opened by scrivi_history_open; scrivi_history_close commits what is pending).
+ * Carets are UTF-16 units of the scene text (SP-177 Q2). `nowMs` is any monotonic millisecond clock the platform keeps
+ * (SP-177 Q1): the core never reads a clock or owns a timer — it returns `idleDeadlineMs`, and the platform calls
+ * scrivi_capture_idle at that time. Every envelope's result carries
+ *   {committed, canUndo, canRedo, hasPending, idleDeadlineMs}   (idleDeadlineMs -1 = nothing pending)
+ * Rules (design §4.a / §4.a.1): an edit LATCHES; it commits on `.` `!` `?` or a newline typed, a caret move (another
+ * scene: always; the same scene: unless only whitespace changed), paste/cut, 45 s idle, a barrier, undo, close. An
+ * autosave never commits unless already idle. A scene's floor is seeded on its first edit of the session. */
+
+/* The writer changed sceneID to sceneTextUtf8 (its whole text); caretUtf16 = the caret after the edit; textBeforeUtf8 =
+ * the scene before the edit. Do NOT call for text an undo/redo applied. */
+const char* scrivi_capture_note_edit(const char* projectRootPath, const char* sceneID, const char* sceneTextUtf8,
+                                     int caretUtf16, const char* textBeforeUtf8, long long nowMs);
+/* The caret moved into sceneID. editInFlight: the move came from an edit this turn. applying: an undo/redo is being
+ * applied (position only). */
+const char* scrivi_capture_caret_moved(const char* projectRootPath, const char* sceneID, int editInFlight, int applying);
+/* A paste or cut is about to change the text: commits what was pending and labels the next event kind ("paste"|"cut");
+ * bufferID ("1".."9", or "") tags a cut into a copy buffer. Follow the change with scrivi_capture_flush(trigger=kind). */
+const char* scrivi_capture_begin(const char* projectRootPath, const char* kind, const char* bufferID);
+/* Commits the pending edit now (trigger is a label; kind defaults to "typing"). */
+const char* scrivi_capture_flush(const char* projectRootPath, const char* trigger, const char* kind);
+/* An autosave is about to write: commits only if the session is already idle (T-0396). */
+const char* scrivi_capture_before_save(const char* projectRootPath, long long nowMs);
+/* The platform's idle timer fired: commits if idle at nowMs (a stale timer does nothing). */
+const char* scrivi_capture_idle(const char* projectRootPath, long long nowMs);
+/* One edit across several scenes (I-0270): editsJSON = [{sceneID, textBefore, textAfter, caret}] (caret: UTF-16 in
+ * textBefore, where the edit began); one undo step. */
+const char* scrivi_capture_grouped_edit(const char* projectRootPath, const char* editsJSON, const char* kind);
+/* Commits what was pending, then records a barrier — params as scrivi_history_record_barrier; with no sceneID the
+ * pending scene is the attribution. result adds eventID. */
+const char* scrivi_capture_record_barrier(const char* projectRootPath, const char* paramsJSON);
+/* Commits what was pending, then scrivi_history_undo; result as scrivi_history_undo plus hasPending. Each change also
+ * carries cursorAfterUtf16. */
+const char* scrivi_capture_undo(const char* projectRootPath);
+/* scrivi_history_redo (nothing is committed first — as Apple); result as scrivi_history_redo plus hasPending. */
+const char* scrivi_capture_redo(const char* projectRootPath);
+/* After applying an undo/redo: the caret rests in sceneID, which now reads sceneTextUtf8. */
+const char* scrivi_capture_note_applied(const char* projectRootPath, const char* sceneID, const char* sceneTextUtf8);
+/* The current {canUndo, canRedo, hasPending, idleDeadlineMs}. */
+const char* scrivi_capture_state(const char* projectRootPath);
+
 /* Moves the current pointer back one node.
  * result: {moved, changes:[{sceneID,newText,cursorAfter}], nodeID,
  *          canUndo, canRedo, crossedSessionBoundary, boundaryTimestamp?,

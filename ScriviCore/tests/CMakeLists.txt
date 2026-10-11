@@ -64,6 +64,7 @@ add_executable(ScriviCoreTests
     integration/TimelineTests.cpp
     integration/SearchableContentTests.cpp
     integration/HistoryCApiTests.cpp
+    integration/CaptureCApiTests.cpp
     integration/BuffersCApiTests.cpp
     integration/MarkdownAnalyzerCApiTests.cpp
     integration/ProjectSettingsCApiTests.cpp
