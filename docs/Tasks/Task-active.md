@@ -4,7 +4,7 @@
 
 ## 🟡 T-0603 — `[Linux]` EP-048 S4: Find over the presented text
 
-**Epic:** [EP-048] (L8) · **Status:** 🟠 **Implemented - Not Verified (2026-10-11)** — ⏳ rig live pass · **Sprint:** [SP-176] (🟡 Active) →
+**Epic:** [EP-048] (L8) · **Status:** ✅ **Verified 2026-10-11** (user: *"All steps in the SP-176 Livra pass on the rig passed."*) — archive with the Sprint close · **Sprint:** [SP-176] (🟡 Active) →
 [`../Sprints/Sprint-SP-176.md`](../Sprints/Sprint-SP-176.md) · **Date Requested:** 2026-10-11 (user: *"plan S4"*)
 
 **What:** Linux has no Find. Build Edit ▸ Find and a find bar that match the text the writer SEES — across hidden escapes,

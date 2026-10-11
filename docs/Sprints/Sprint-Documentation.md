@@ -443,7 +443,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-173** | `[Cross]` **[EP-048]** — project load: no frozen UI, timeline built once, load measured, core calls synchronised (I-0285) | EP-048 | 2026-10-09 | 2026-10-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-173.md) |
 | **SP-174** | `[Cross]` **[EP-048] S3a** — command and balanced-edit logic moves into ScriviCore; Apple re-pointed | EP-048 | 2026-10-10 | 2026-10-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-174.md) |
 | **SP-175** | `[Linux]` **[EP-048] S3b** — the Format commands and balanced edits on Linux, on the core logic | EP-048 | 2026-10-10 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-175.md) |
-| **SP-176** | `[Linux]` **[EP-048] S4** — Find over the presented text (L8 Find half, T-0603) | EP-048 | 2026-10-11 | — | 🟡 **ACTIVE** → [`Sprint-SP-176.md`](Sprint-SP-176.md) |
+| **SP-176** | `[Linux]` **[EP-048] S4** — Find over the presented text (L8 Find half, T-0603) | EP-048 | 2026-10-11 | — | ✅ **COMPLETE** (awaiting close) → [`Sprint-SP-176.md`](Sprint-SP-176.md) |
 | **SP-177** | `[Cross]` **[EP-026] S1** — the undo capture rules move into ScriviCore; Apple re-pointed (T-0604) | EP-026 | — | — | 🔵 **PLANNING** → [`Sprint-SP-177.md`](Sprint-SP-177.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
@@ -484,6 +484,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-11 (**SP-176 COMPLETE** — rig live pass passed, T-0603 verified; awaiting close approval. **SP-177 Q1–Q4 ruled.**)*
 
 *Last Updated: 2026-10-11 (**SP-177 (EP-026 S1) created in 🔵 Planning**, issued via `next-id.py`; T-0604 filed.)*
 

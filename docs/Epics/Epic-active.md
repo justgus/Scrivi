@@ -57,7 +57,7 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — L8's Find half is S4 ([SP-176]); ⛔ its Replace half (S4b) waits on Linux undo ([EP-026]). ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11). The rig is available.
+**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — ✅ L8's Find half met (S4, [SP-176], rig live pass 2026-10-11); ⛔ its Replace half (S4b) waits on Linux undo ([EP-026]). ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11). The rig is available.
 **Sprints:**
 
 | Sprint | Scope | Status |
@@ -67,11 +67,11 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 | **[SP-173]** | `[Cross]` **I-0285** (found in S2): project load — no frozen UI, timeline built once, load measured; core calls synchronised (both platforms) | ✅ **CLOSED 2026-10-10** (user-approved) → [`../Sprints/Closed/Sprint-SP-173.md`](../Sprints/Closed/Sprint-SP-173.md) · ✅ I-0285 verified: load 172 s → 15.4 s |
 | **[SP-174]** | **S3a** — `[Cross]` the command and balanced-edit logic moves into ScriviCore; Apple re-pointed (no visible change) | ✅ **CLOSED 2026-10-10** (user-approved) → [`../Sprints/Closed/Sprint-SP-174.md`](../Sprints/Closed/Sprint-SP-174.md) · ✅ Q1–Q5 ruled |
 | **[SP-175]** | **S3b** — `[Linux]` the Format commands (L7) and balanced edits + copy (L9 rest) on the core logic; navigator toggle moves off Ctrl+Alt+N; rig live pass | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-175.md`](../Sprints/Closed/Sprint-SP-175.md) · ✅ [T-0602] verified · ✅ L7, L9 met |
-| **[SP-176]** | **S4** — `[Linux]` **Find** over the presented text: L8's Find half | 🟠 **IMPLEMENTED 2026-10-11** (⏳ rig live pass) → [`../Sprints/Sprint-SP-176.md`](../Sprints/Sprint-SP-176.md) · ✅ Q1–Q4 ruled; ✅ split ruled 2026-10-11 |
+| **[SP-176]** | **S4** — `[Linux]` **Find** over the presented text: L8's Find half | ✅ **COMPLETE 2026-10-11** (awaiting close) → [`../Sprints/Sprint-SP-176.md`](../Sprints/Sprint-SP-176.md) · ✅ Q1–Q4 ruled; ✅ split ruled 2026-10-11 · ✅ rig live pass passed; [T-0603] verified · ✅ L8 Find half met |
 | S4b | **Replace / Replace All** over the presented text: L8's Replace half — escaped, balanced, Replace All ONE undo step | ⛔ **waits for [EP-026]** (Linux undo; SP-176 Q3) — not yet created |
 | S5 | EP-047's preferences on Linux: L10 — ✅ **builds Linux's Project Settings dialog** (replacing the *"coming soon"* stub) with Typography **and the "Show chapter titles" toggle** ([EP-026] Q4, ruled 2026-10-11); EP-026 later adds its Undo History section | not yet created |
 
-**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived) · ✅ [T-0601] (SP-174 — VERIFIED, archived) · ✅ [T-0602] (SP-175 — VERIFIED, archived) · 🔵 [T-0603] (SP-176 — backlog).
+**Tasks:** ✅ [T-0594] (SP-165 — VERIFIED, archived) · ✅ [T-0595] (SP-166 — VERIFIED, archived) · ✅ [T-0601] (SP-174 — VERIFIED, archived) · ✅ [T-0602] (SP-175 — VERIFIED, archived) · ✅ [T-0603] (SP-176 — VERIFIED).
 **Issues:** ✅ [I-0285] (SP-173 — VERIFIED, archived) · 🟠 [I-0280] (found + fixed in SP-165, Apple and core) · 🔵 [I-0281] `[Apple]` (found by L2 → Issue backlog, ➡️ linked forward to [EP-047]).
 This Epic is the escape layer's DISPLAY half on Linux; the WRITE half was [EP-049] (closed 2026-10-05). The design for both platforms was ruled in [SP-159].
 **Authority:** → [`../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md`](../Scrivi_Manuscript_Rendering_Trade_Study_v0_1.md) §9.
@@ -164,7 +164,7 @@ undoes the same on both platforms.
 
 | Sprint | Scope | Status |
 | ------ | ----- | ------ |
-| **[SP-177]** | **S1** — `[Cross]` the capture rules (`HistoryCapture.swift`) move into ScriviCore; Apple re-pointed, no visible change (Q1) | 🔵 **PLANNING** → [`../Sprints/Sprint-SP-177.md`](../Sprints/Sprint-SP-177.md) · ⏳ Q1–Q4 |
+| **[SP-177]** | **S1** — `[Cross]` the capture rules (`HistoryCapture.swift`) move into ScriviCore; Apple re-pointed, no visible change (Q1) | 🔵 **PLANNING** (ready to activate) → [`../Sprints/Sprint-SP-177.md`](../Sprints/Sprint-SP-177.md) · ✅ Q1–Q4 ruled |
 | S2 | `[Linux]` undo/redo (Ctrl+Z / Ctrl+Shift+Z), persistence, session warning, barriers, grouped edits — ➡️ unblocks [EP-048] S4b | not yet created |
 | S3 | `[Linux]` branching: fork popover, History card, stale-branch purge, Undo History settings section | not yet created |
 | S4 | `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux) | not yet created |

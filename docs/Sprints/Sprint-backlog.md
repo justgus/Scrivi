@@ -6,7 +6,7 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ## 🔵 [SP-177] `[Cross]` [EP-026] **S1** — the undo capture rules move into ScriviCore; Apple re-pointed
 
-→ [`Sprint-SP-177.md`](Sprint-SP-177.md) · Task: [T-0604] · ⏳ Q1–Q4 to rule before activation.
+→ [`Sprint-SP-177.md`](Sprint-SP-177.md) · Task: [T-0604] · ✅ Q1–Q4 ruled — ready to activate.
 
 ---
 

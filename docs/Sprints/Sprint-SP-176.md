@@ -9,7 +9,7 @@ created: 2026-10-11
 
 # SP-176 — `[Linux]` [EP-048] **S4**: Find over what the writer SEES
 
-**Status:** 🟠 **IMPLEMENTED 2026-10-11 — ⏳ rig live pass owed** · 🟡 ACTIVE 2026-10-11 (user: *"activate SP-176 and implement it."*) — created 2026-10-11 (user: *"plan S4"*). ✅ Q1–Q4 ruled; ✅ **SPLIT** (user: *"Find can go ahead now"*): this Sprint is **Find**; **Replace waits for Linux undo** ([EP-026]) → EP-048 **S4b**. ⏳ Q5 recommended, not ruled.
+**Status:** ✅ **COMPLETE 2026-10-11 — awaiting close approval** (rig live pass passed) · 🟡 ACTIVE 2026-10-11 (user: *"activate SP-176 and implement it."*) — created 2026-10-11 (user: *"plan S4"*). ✅ Q1–Q4 ruled; ✅ **SPLIT** (user: *"Find can go ahead now"*): this Sprint is **Find**; **Replace waits for Linux undo** ([EP-026]) → EP-048 **S4b**. ⏳ Q5 recommended, not ruled.
 **Carries:** [T-0603] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Authority:** EP-048 **L8** (its Find half; Replace → S4b) — Find/Replace on presented text (Q-E2-5); design
@@ -98,9 +98,9 @@ filter (Q5) · undo · L10 (S5).
 - [x] Plan step 1 measured and recorded (map build, per-keystroke search, rebuild after an edit, on 1.85 MB) ✅
 - [x] **L8 (Find half)** — Find matches presented text across escapes, markers and heading prefixes; never across a scene; never in a
       chapter title; Contains / Starts With / Whole Word / Ignore Case ✅ (smoke; live pass owed)
-- [ ] Edit ▸ Find with the Q2 shortcuts, proven through the real dispatch ✅; none bound by GNOME (⏳ measured on the rig — live pass)
+- [x] Edit ▸ Find with the Q2 shortcuts, proven through the real dispatch ✅; none bound by GNOME ✅ (rig live pass, step 12)
 - [x] `find_smoke` in CI; mutation-checked ✅
-- [ ] ⏳ **Live pass (user, rig)**
+- [x] ✅ **Live pass (user, rig)** — passed 2026-10-11
 
 ---
 
@@ -175,3 +175,9 @@ F3, Ctrl+Shift+G, Shift+F3, Return, Shift+Return, Ctrl+E, Esc), Find changes not
 keystroke, one scene rebuilt after an edit. ✅ **Mutation bites:** a presenter hiding nothing → 5 checks red. ✅ All **29**
 Linux smokes PASS in Docker; the whole Linux build has **no warnings**.
 ⚠️ **Not covered (live only):** GNOME's own bindings for the Find keys; the bar's look on the rig's theme; a real manuscript.
+
+### ✅ 2026-10-11 — RIG LIVE PASS: ALL STEPS PASS; [T-0603] VERIFIED
+
+✅ User: *"All steps in the SP-176 Livra pass on the rig passed."* Steps 1–12 (build 70; the menu; the bar; matching across emphasis, escapes and headings; Next / Previous with
+wrap; chapter titles not searched; the options; Use Selection; no lag typing with the bar open; Esc; none of the Find keys
+taken by GNOME). ✅ A pass the user reports is the instruction to verify: [T-0603] → ✅ Verified. ⏳ Sprint close awaits approval.

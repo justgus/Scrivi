@@ -8,7 +8,7 @@ created: 2026-10-11
 
 # SP-177 — `[Cross]` [EP-026] **S1**: the undo capture rules move into ScriviCore; Apple re-pointed
 
-**Status:** 🔵 **PLANNING** — created 2026-10-11 (user: *"plan EP-026 S1"*). ⏳ Q1–Q4 to rule.
+**Status:** 🔵 **PLANNING — ready to activate** — created 2026-10-11 (user: *"plan EP-026 S1"*). ✅ Q1–Q4 ruled 2026-10-11 (all as recommended).
 **Carries:** [T-0604] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
 [`../Epics/Epic-active.md`](../Epics/Epic-active.md). ✅ EP-026 **Q1** (ruled 2026-10-11): *the capture rules move into the
@@ -75,14 +75,14 @@ calling it, not by porting 590 lines of Swift. ✅ **No visible change on the Ma
 6. **Mac live pass** (user) — the reference sentence, a pause, a paste, a cut into a buffer, a cross-scene delete, undo/redo
    through them; steps in the chat reply.
 
-## ⏳ Questions — to rule
+## ✅ Questions — Q1–Q4 RULED 2026-10-11 (all as recommended)
 
 | # | Question | Recommendation |
 | - | -------- | -------------- |
-| **Q1** | The 45 s idle clock | ✅ **The platform passes `now` with every call; the core never reads a clock or owns a timer** — it returns the idle DEADLINE, and the platform's timer calls back at it. Pure and testable with a fake clock; no thread in the core. Alternative: the core reads a monotonic clock itself (harder to test; the timer still has to be the platform's) |
-| **Q2** | Caret offsets across the ABI | ✅ **UTF-16 units in** (as `scrivi_markdown_*`, [SP-174]); the core converts to the UTF-8 bytes `HistoryService` stores. Apple drops `sceneLocalByteOffset`; Linux passes `QTextCursor` offsets as they are. Alternative: keep UTF-8 bytes (each platform keeps its own conversion) |
-| **Q3** | How parity is proven | ✅ **Apple-generated fixture before the Swift logic is deleted** (plan 1) **+ EP-019's existing interop tests unchanged + a Mac live pass** — the SP-174 method, which caught the emoji edge. Alternative: interop tests and live pass only |
-| **Q4** | The sentence-boundary characters | ✅ **Move them exactly as they are** (`.` `!` `?` newline — approved 2026-07-06). ⚠️ They are ASCII only: `…` `。` `？` `！` do not end an undo step today. Changing that is a behaviour change — a separate ruling, not this Sprint |
+| **Q1** | The 45 s idle clock | ✅ **RULED: the platform passes `now` with every call; the core never reads a clock or owns a timer** — it returns the idle DEADLINE, and the platform's timer calls back at it. Pure and testable with a fake clock; no thread in the core. Alternative: the core reads a monotonic clock itself (harder to test; the timer still has to be the platform's) |
+| **Q2** | Caret offsets across the ABI | ✅ **RULED: UTF-16 units in** (as `scrivi_markdown_*`, [SP-174]); the core converts to the UTF-8 bytes `HistoryService` stores. Apple drops `sceneLocalByteOffset`; Linux passes `QTextCursor` offsets as they are. Alternative: keep UTF-8 bytes (each platform keeps its own conversion) |
+| **Q3** | How parity is proven | ✅ **RULED: Apple-generated fixture before the Swift logic is deleted** (plan 1) **+ EP-019's existing interop tests unchanged + a Mac live pass** — the SP-174 method, which caught the emoji edge. Alternative: interop tests and live pass only |
+| **Q4** | The sentence-boundary characters | ✅ **RULED (*"agreed exactly as they are"*): move them exactly as they are** (`.` `!` `?` newline — approved 2026-07-06). ⚠️ They are ASCII only: `…` `。` `？` `！` do not end an undo step today. Changing that is a behaviour change — a separate ruling, not this Sprint |
 
 ⛔ **NOT in this Sprint:** any Linux wiring (S2) · any change to `HistoryService`, `scrivi.history.v1` or the buffers ·
 the fork popover, History card, stale-branch UI (S3) · structured cut/copy/paste (S4) · copy buffers (S5).
@@ -104,3 +104,8 @@ the fork popover, History card, stale-branch UI (S3) · structured cut/copy/past
 ✅ User: *"plan EP-026 S1."* ✅ SP-177 and [T-0604] issued by `next-id.py`. ✅ Read first: `HistoryCapture.swift` (590 lines) and
 its call sites in `ManuscriptTextView.swift`; design §4.a, §4.a.1, §8. The engine is already the core's; the rules for WHEN a
 step ends are Swift's, in two files.
+
+### 🔵 2026-10-11 — Q1–Q4 RULED (all as recommended) — ready to activate
+
+✅ user: *"Q1: agreed.  Q2: agreed.  Q3: agreed.  Q4: agreed exactly as they are."* Q1 the platform passes `now`, the core returns the idle deadline · Q2 UTF-16 caret offsets in · Q3 Apple-generated
+parity fixture + EP-019's tests unchanged + a Mac live pass · Q4 `.` `!` `?` newline, exactly as today.
