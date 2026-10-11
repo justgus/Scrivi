@@ -2,9 +2,9 @@
 
 ---
 
-## 🟡 T-0602 — `[Linux]` EP-048 S3b: the Format commands and balanced edits on Linux, on the core logic
+## ✅ T-0602 — `[Linux]` EP-048 S3b: the Format commands and balanced edits on Linux, on the core logic
 
-**Status:** 🟡 **Active** — filed 2026-10-10; active since [SP-175]'s activation (2026-10-10). **Epic:** [EP-048] · **Sprint:** [SP-175] →
+**Status:** ✅ **Verified 2026-10-10** (user: *"All live pass rig tests (1-10) pass."*) — filed 2026-10-10; archive with the Sprint close. **Epic:** [EP-048] · **Sprint:** [SP-175] →
 [`../Sprints/Sprint-SP-175.md`](../Sprints/Sprint-SP-175.md)
 
 **What:** a Format menu (Bold Ctrl+B, Italic Ctrl+I, Heading 1–3 Ctrl+Alt+1–3, Body Ctrl+Alt+0, Bulleted Ctrl+Alt+L, Numbered

@@ -442,7 +442,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-172** | `[Apple]` **[EP-050] S2** — the Headings rotor: Markdown headings and chapter titles, next/previous (AC4, AC5 rotor half; T-0600) | EP-050 | 2026-10-08 | 2026-10-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-172.md) |
 | **SP-173** | `[Cross]` **[EP-048]** — project load: no frozen UI, timeline built once, load measured, core calls synchronised (I-0285) | EP-048 | 2026-10-09 | 2026-10-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-173.md) |
 | **SP-174** | `[Cross]` **[EP-048] S3a** — command and balanced-edit logic moves into ScriviCore; Apple re-pointed | EP-048 | 2026-10-10 | 2026-10-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-174.md) |
-| **SP-175** | `[Linux]` **[EP-048] S3b** — the Format commands and balanced edits on Linux, on the core logic | EP-048 | 2026-10-10 | — | 🟡 **ACTIVE** → [`Sprint-SP-175.md`](Sprint-SP-175.md) |
+| **SP-175** | `[Linux]` **[EP-048] S3b** — the Format commands and balanced edits on Linux, on the core logic | EP-048 | 2026-10-10 | — | ✅ **COMPLETE** (awaiting close) → [`Sprint-SP-175.md`](Sprint-SP-175.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics

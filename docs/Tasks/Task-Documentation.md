@@ -755,7 +755,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0599 | `[Apple]` EP-050 S1: the manuscript's accessibility translation layer (one map for Find + VoiceOver; dividers read as words) | ✅ **SP-171** | **EP-050** | ✅ **Verified 2026-10-08** | [`Task-verified-0599.md`](Verified/Task-verified-0599.md) |
 | T-0600 | `[Apple]` EP-050 S2: the Headings rotor | 🟡 **SP-172** | **EP-050** | ✅ **Verified 2026-10-09** | [`Task-verified-0600.md`](Verified/Task-verified-0600.md) |
 | T-0601 | `[Cross]` EP-048 S3a: command + balanced-edit logic into ScriviCore; Apple re-pointed | ✅ **SP-174** | **EP-048** | ✅ **Verified 2026-10-10** | [`Task-verified-0601.md`](Verified/Task-verified-0601.md) |
-| T-0602 | `[Linux]` EP-048 S3b: the Format commands and balanced edits on Linux, on the core logic | 🟡 **SP-175** | **EP-048** | 🟡 Active | — |
+| T-0602 | `[Linux]` EP-048 S3b: the Format commands and balanced edits on Linux, on the core logic | 🟡 **SP-175** | **EP-048** | ✅ Verified 2026-10-10 | — |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
 | T-0591 | `[Apple]` Balance emphasis across SCENE boundaries (cross-scene cut/copy/paste) | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0591.md`](Verified/Task-verified-0591.md) |
 | T-0590 | `[Apple]` E2-S2: bold and italic + span reveal + the split rule | ✅ **SP-162** | **EP-046** | ✅ **Verified 2026-10-05** | [`Task-verified-0590.md`](Verified/Task-verified-0590.md) |

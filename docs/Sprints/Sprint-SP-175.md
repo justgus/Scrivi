@@ -9,7 +9,7 @@ created: 2026-10-10
 
 # SP-175 — `[Linux]` [EP-048] **S3b**: the Format commands and balanced edits on Linux, on the core logic
 
-**Status:** 🟡 **ACTIVE 2026-10-10** (user: *"activate SP-175 and implement it"*) — created 2026-10-10 (user: *"plan S3b"*); Q1–Q4 ruled the same day.
+**Status:** ✅ **COMPLETE 2026-10-10 — awaiting close approval** (rig live pass passed). Activated 2026-10-10 (user: *"activate SP-175 and implement it"*) — created 2026-10-10 (user: *"plan S3b"*); Q1–Q4 ruled the same day.
 **Carries:** [T-0602] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
 **Authority:** EP-048 **L7** (commands as EP-046 AC6, Ctrl in place of ⌘) and **L9**'s rest (balanced edits and copy, as
@@ -125,4 +125,12 @@ Ctrl+Alt+T (Show Timeline, ScriviWindow.cpp:253) collides with GNOME's terminal*
   - ⚠️ Measured while writing the smoke: `QTest::keyClick(Ctrl+C)` sends the text "c", which the editor takes as typing;
     X11 sends U+0003. The smoke sends the control character, as a keyboard does.
   - Linux build stamp bumped to **69** (not committed).
-- ⏳ **Next:** Plan 8 — the rig live pass (needs the commit pushed and pulled on the rig).
+- **2026-10-10 — CI runs every Linux smoke** (user: *"add the missing smokes to CI too"*): eleven existed that CI never ran
+  (bridge_parity, escape, presenter, scene_inspector, inspector_layout, package_folder, theme_contrast, worlds_path,
+  open_progress, session_store, restore_guard) — added beside format_smoke; 28/28 in the workflow. ⚠️ Each passes in the CI
+  image (Docker, non-root); the first GitHub run is their first run on the hosted runner.
+- ✅ **2026-10-10 — Plan 8: rig live pass PASSED** (user: *"All live pass rig tests (1-10) pass."*) — build 69: the Format menu
+  and its shortcuts; bold/italic toggle, split and nest; word-for-caret and the pending pair; headings, body, lists, Return and
+  renumbering; Alt-Return; balanced cut, own paste, presented copy to another app; refusal and balanced cut across scenes;
+  Ctrl+Alt+S / Ctrl+Alt+M (Ctrl+Alt+T is GNOME's terminal again); the pending pair never saved across a quit.
+- ✅ **Sprint complete** — ⏳ awaiting the user's approval to close.

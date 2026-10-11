@@ -245,3 +245,71 @@ jobs:
         run: |
           platforms/linux/tests/format_smoke.sh \
             ./build/platforms/linux/scrivi_linux_format_smoke
+
+      # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
+
+      # ABI parity (EP-034 / SP-121, T-0464).
+      - name: ABI parity smoke test
+        run: |
+          platforms/linux/tests/bridge_parity_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_bridge_parity_smoke
+
+      # Linux writes Apple's manuscript format: the shared corpus (EP-049 / SP-160, T-0586).
+      - name: Manuscript storage format smoke test
+        run: |
+          platforms/linux/tests/escape_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_escape_smoke
+
+      # The manuscript presenter: hidden markup, reveal, caret stops, atomic markers (EP-048 / SP-166, T-0595).
+      - name: Manuscript presenter smoke test
+        run: |
+          platforms/linux/tests/presenter_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_presenter_smoke
+
+      # The Scene Inspector (EP-035 / SP-125, T-0480–T-0483).
+      - name: Scene Inspector smoke test
+        run: |
+          platforms/linux/tests/scene_inspector_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_scene_inspector_smoke
+
+      # inspector-layout.json read + write, round-tripping what Linux does not model (EP-035 / SP-126, T-0486).
+      - name: Inspector layout smoke test
+        run: |
+          platforms/linux/tests/inspector_layout_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_inspector_layout_smoke
+
+      # The package-aware folder chooser (EP-035 / SP-127, I-0185).
+      - name: Package folder chooser smoke test
+        run: |
+          platforms/linux/tests/package_folder_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_package_folder_smoke
+
+      # Secondary text colours derived from the live palette (EP-035 / SP-127, I-0186).
+      - name: Theme contrast smoke test
+        run: |
+          platforms/linux/tests/theme_contrast_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_theme_contrast_smoke
+
+      # World paths (EP-035 / SP-127, I-0184).
+      - name: Worlds path smoke test
+        run: |
+          platforms/linux/tests/worlds_path_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_worlds_path_smoke
+
+      # Project-open progress (SP-128 / T-0500, I-0195).
+      - name: Open progress smoke test
+        run: |
+          platforms/linux/tests/open_progress_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_open_progress_smoke
+
+      # Session persistence (EP-043 / SP-147, T-0565).
+      - name: Session store smoke test
+        run: |
+          platforms/linux/tests/session_store_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_session_store_smoke
+
+      # The session-restore guard (EP-043 / SP-147, T-0566).
+      - name: Restore guard smoke test
+        run: |
+          platforms/linux/tests/restore_guard_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_restore_guard_smoke
