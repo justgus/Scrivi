@@ -4,11 +4,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-## 🔵 [SP-177] `[Cross]` [EP-026] **S1** — the undo capture rules move into ScriviCore; Apple re-pointed
-
-→ [`Sprint-SP-177.md`](Sprint-SP-177.md) · Task: [T-0604] · ✅ Q1–Q4 ruled — ready to activate.
-
----
 
 
 
@@ -40,6 +35,8 @@ the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequenc
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
 ---
+
+*Last Updated: 2026-10-11 (SP-177 activated and removed.)*
 
 *Last Updated: 2026-10-11 (SP-177 created in 🔵 Planning.)*
 

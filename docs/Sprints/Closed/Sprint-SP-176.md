@@ -1,7 +1,8 @@
 ---
 sprint: SP-176
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-10-11
 activated: 2026-10-11
 platform: Linux
 created: 2026-10-11
@@ -9,11 +10,11 @@ created: 2026-10-11
 
 # SP-176 — `[Linux]` [EP-048] **S4**: Find over what the writer SEES
 
-**Status:** ✅ **COMPLETE 2026-10-11 — awaiting close approval** (rig live pass passed) · 🟡 ACTIVE 2026-10-11 (user: *"activate SP-176 and implement it."*) — created 2026-10-11 (user: *"plan S4"*). ✅ Q1–Q4 ruled; ✅ **SPLIT** (user: *"Find can go ahead now"*): this Sprint is **Find**; **Replace waits for Linux undo** ([EP-026]) → EP-048 **S4b**. ⏳ Q5 recommended, not ruled.
-**Carries:** [T-0603] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED 2026-10-11** (user: *"close SP-176 and activate SP-177"*) — complete 2026-10-11, rig live pass passed · 🟡 ACTIVE 2026-10-11 (user: *"activate SP-176 and implement it."*) — created 2026-10-11 (user: *"plan S4"*). ✅ Q1–Q4 ruled; ✅ **SPLIT** (user: *"Find can go ahead now"*): this Sprint is **Find**; **Replace waits for Linux undo** ([EP-026]) → EP-048 **S4b**. ⏳ Q5 recommended, not ruled.
+**Carries:** [T-0603] → [`../../Tasks/Verified/Task-verified-0603.md`](../../Tasks/Verified/Task-verified-0603.md).
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Authority:** EP-048 **L8** (its Find half; Replace → S4b) — Find/Replace on presented text (Q-E2-5); design
-[`../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §7. Apple's shape:
+[`../../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md`](../../Scrivi_Manuscript_Renderer_E2_Design_v0_1.md) §7. Apple's shape:
 [SP-164] (EP-046 E2-S4, T-0585) and the presented map of [SP-171] (`Scrivi/Views/ManuscriptPresentedMap.swift`,
 `ManuscriptFind.swift`).
 **Size:** S–M. ⚠️ Needs the rig for the live pass.
@@ -181,3 +182,7 @@ Linux smokes PASS in Docker; the whole Linux build has **no warnings**.
 ✅ User: *"All steps in the SP-176 Livra pass on the rig passed."* Steps 1–12 (build 70; the menu; the bar; matching across emphasis, escapes and headings; Next / Previous with
 wrap; chapter titles not searched; the options; Use Selection; no lag typing with the bar open; Esc; none of the Find keys
 taken by GNOME). ✅ A pass the user reports is the instruction to verify: [T-0603] → ✅ Verified. ⏳ Sprint close awaits approval.
+
+### ✅ 2026-10-11 — Sprint CLOSED (user-approved)
+
+✅ User: *"close SP-176 and activate SP-177"* ✅ [T-0603] → `Verified/Task-verified-0603.md` (same step).

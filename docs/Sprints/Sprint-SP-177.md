@@ -1,15 +1,16 @@
 ---
 sprint: SP-177
 epic: EP-026
-status: Planning
+status: Active
+activated: 2026-10-11
 platform: Cross
 created: 2026-10-11
 ---
 
 # SP-177 — `[Cross]` [EP-026] **S1**: the undo capture rules move into ScriviCore; Apple re-pointed
 
-**Status:** 🔵 **PLANNING — ready to activate** — created 2026-10-11 (user: *"plan EP-026 S1"*). ✅ Q1–Q4 ruled 2026-10-11 (all as recommended).
-**Carries:** [T-0604] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"close SP-176 and activate SP-177"*) — created 2026-10-11 (user: *"plan EP-026 S1"*). ✅ Q1–Q4 ruled 2026-10-11 (all as recommended).
+**Carries:** [T-0604] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
 [`../Epics/Epic-active.md`](../Epics/Epic-active.md). ✅ EP-026 **Q1** (ruled 2026-10-11): *the capture rules move into the
 core first, Apple re-pointed with no visible change, then Linux wires to them* — [SP-174]'s pattern.
@@ -109,3 +110,7 @@ step ends are Swift's, in two files.
 
 ✅ user: *"Q1: agreed.  Q2: agreed.  Q3: agreed.  Q4: agreed exactly as they are."* Q1 the platform passes `now`, the core returns the idle deadline · Q2 UTF-16 caret offsets in · Q3 Apple-generated
 parity fixture + EP-019's tests unchanged + a Mac live pass · Q4 `.` `!` `?` newline, exactly as today.
+
+### 🟡 2026-10-11 — Sprint ACTIVATED (user-approved)
+
+✅ User: *"close SP-176 and activate SP-177"* ✅ Left `Sprint-backlog.md`; [T-0604] → active.

@@ -1,3 +1,3 @@
 # Active Sprints
 
-✅ **[SP-176] COMPLETE 2026-10-11 — awaiting close approval** `[Linux]` [EP-048] **S4** → [`Sprint-SP-176.md`](Sprint-SP-176.md) — Find over the presented text. Task: T-0603.
+🟡 **[SP-177] ACTIVE 2026-10-11** `[Cross]` [EP-026] **S1** → [`Sprint-SP-177.md`](Sprint-SP-177.md) — the undo capture rules move into ScriviCore; Apple re-pointed. Task: T-0604.

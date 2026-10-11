@@ -2,12 +2,13 @@
 
 ---
 
-## 🟡 T-0603 — `[Linux]` EP-048 S4: Find over the presented text
+## 🟡 T-0604 — `[Cross]` EP-026 S1: the undo capture rules move into ScriviCore; Apple re-pointed
 
-**Epic:** [EP-048] (L8) · **Status:** ✅ **Verified 2026-10-11** (user: *"All steps in the SP-176 Livra pass on the rig passed."*) — archive with the Sprint close · **Sprint:** [SP-176] (🟡 Active) →
-[`../Sprints/Sprint-SP-176.md`](../Sprints/Sprint-SP-176.md) · **Date Requested:** 2026-10-11 (user: *"plan S4"*)
+**Epic:** [EP-026] (S1) · **Status:** 🟡 Active (2026-10-11) · **Sprint:** [SP-177] (🟡 Active) →
+[`../Sprints/Sprint-SP-177.md`](../Sprints/Sprint-SP-177.md) · **Date Requested:** 2026-10-11 (user: *"plan EP-026 S1."*)
 
-**What:** Linux has no Find. Build Edit ▸ Find and a find bar that match the text the writer SEES — across hidden escapes,
-emphasis markers and heading prefixes, never across a scene, never in a chapter title — with Contains / Starts With / Whole
-Word / Ignore Case. ⛔ **Replace is NOT this Task** — it waits for Linux undo ([EP-026]; SP-176 split, ruled 2026-10-11) → EP-048 S4b.
-Apple's shape: [SP-164] / [SP-171]. Proven by `find_smoke` (in CI) and a rig live pass.
+**What:** the rules that decide when an undo step ends — the pending latch, floor seeding, the 45 s idle boundary, the
+sentence boundary, the soft whitespace deferral, scene switch vs caret move, paste/cut kinds, autosave-never-seals, grouped
+edits — move from `HistoryCapture.swift` and `ManuscriptTextView.swift` into a ScriviCore `CaptureSession` behind
+`scrivi_capture_*`; `HistoryService` unchanged. Apple calls them, with no visible change. Proven by an Apple-generated parity
+fixture, EP-019's interop tests unchanged, and a Mac live pass.
