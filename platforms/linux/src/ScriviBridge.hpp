@@ -5,6 +5,8 @@
 #include <QVariantMap>
 #include <QStringList>
 #include <QHash>
+#include <optional>
+#include <utility>
 #include <qqmlintegration.h>
 
 #include "MarkdownAnalysis.hpp"
@@ -557,6 +559,21 @@ public:
     // ✅ STATIC: the endpoint is stateless (no project), and the manuscript presenter calls it per block
     // without a bridge instance. A failed call returns an empty analysis — the block is drawn as stored.
     static MarkdownAnalysis analyzeMarkdown(const QString& block);
+
+    // SP-175 / T-0602 (EP-048 S3b) — the Format commands and balanced edits (`scrivi_markdown_*`, built in SP-174): pure
+    // functions on ONE SCENE's text, offsets in UTF-16 units (QString indices). ✅ STATIC, as `analyzeMarkdown`. A refusal —
+    // or a failed call — is `std::nullopt` (the caller beeps, or applies the plain edit).
+    static std::optional<MarkdownRange> markdownWordRange(const QString& scene, int caret);
+    static std::optional<MarkdownEdit> markdownEmphasisEdit(const QString& scene, int start, int end, int bit, int caret = -1);
+    // `format`: body | heading1 | heading2 | heading3 | bulletList | numberedList.
+    static std::optional<MarkdownEdit> markdownParagraphEdit(const QString& scene, int start, int end, const QString& format);
+    static std::optional<MarkdownEdit> markdownListReturnEdit(const QString& scene, int caret);
+    // The balanced form of replacing [start, end) by `replacement`; nullopt = the plain edit is already balanced.
+    // The result's `selection` is the caret after it (empty).
+    static std::optional<MarkdownEdit> markdownBalancedEdit(const QString& scene, int start, int end,
+                                                            const QString& replacement, bool keepsOwnFormatting);
+    // {source, presented} of a copy of [start, end).
+    static std::pair<QString, QString> markdownBalancedCopy(const QString& scene, int start, int end);
 
     // Whether the MOST RECENT scrivi_* call through this bridge failed.
     //

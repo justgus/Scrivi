@@ -892,6 +892,7 @@ void EditorShell::deleteSceneByID(const QString& sceneID)
     // was the deletion target.
     const int fallbackSeg = (idx < sceneCount - 1) ? idx : idx - 1;
 
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
     loading_ = true;
     sceneDoc_.removeScene(idx);
     loading_ = false;
@@ -956,6 +957,7 @@ void EditorShell::deleteChapterByID(const QString& chapterID)
         return;
     }
 
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
     loading_ = true;
     sceneDoc_.removeChapter(chapterID);
     loading_ = false;
@@ -1046,6 +1048,7 @@ void EditorShell::onSceneDropped(const QString& draggedSceneID,
 
     // Re-splice the live document + offset map to the new order (no full rebuild), then
     // rebuild the navigator projection and re-anchor the caret on the moved scene.
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
     loading_ = true;
     const int newIdx = sceneDoc_.moveScene(
         fromIdx, targetChapterID, targetChapterTitle, afterSceneID);
@@ -1108,6 +1111,7 @@ void EditorShell::onChapterDropped(const QString& draggedChapterID,
         draggedChapterID, r.value(QStringLiteral("metadataPath")).toString());
 
     // Re-splice the live document + offset map (chapter block move, no full rebuild).
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
     loading_ = true;
     const int newIdx = sceneDoc_.moveChapter(draggedChapterID, afterChapterID);
     loading_ = false;
@@ -1162,6 +1166,7 @@ void EditorShell::applyDerivedLabels()
     // Guard the document edits (setChapterTitle rewrites the live heading) so the
     // programmatic changes don't churn dirty flags / active-scene tracking.
     const bool wasLoading = loading_;
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
     loading_ = true;
 
     // Scene labels: match by sceneID, apply the derived title to that segment.
@@ -1326,8 +1331,8 @@ void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdde
     // and later scenes shift. ManuscriptEditor has already ensured the edit stayed
     // inside one body, so this resolves to a real scene.
     const int idx = sceneDoc_.applyContentsChange(position, charsRemoved, charsAdded);
-    if (idx < 0) {
-        return;
+    if (idx < 0 || sceneDoc_.pendingEditInProgress()) {
+        return;   // SP-175: the pending pair going in or out is not a scene edit — nothing to save
     }
     dirtyScenes_.insert(sceneDoc_.segments().at(idx).sceneID);
     saveTimer_->start();   // (re)arm the idle-save debounce (T-0239)
@@ -1741,6 +1746,7 @@ void EditorShell::onCreateSceneRequested()
     // End-of-scene: splice the new EMPTY scene into the live document + map (guarded so the
     // programmatic boundary insert doesn't churn dirty flags), refresh the navigator, and
     // drop the caret into the new body — the original append behaviour.
+    viewport_->removePendingPair();   // SP-175: a structural edit drops the pending pair (Apple: a rebuild does)
     loading_ = true;
     const int newIdx = sceneDoc_.insertSceneAfter(
         idx, newSceneID,
@@ -2084,6 +2090,7 @@ void EditorShell::mergeChapter()
 
 void EditorShell::cutSelection()   { viewport_->cutSelection(); }   // [I-0270] through the guard
 void EditorShell::copySelection()  { viewport_->copy(); }
+void EditorShell::applyFormat(ManuscriptEditor::Format format) { viewport_->applyFormat(format); }   // SP-175
 void EditorShell::pasteClipboard() { viewport_->paste(); }
 
 // --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------

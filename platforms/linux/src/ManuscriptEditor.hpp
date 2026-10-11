@@ -2,6 +2,8 @@
 
 #include <QPlainTextEdit>
 
+#include "MarkdownAnalysis.hpp"
+
 class ManuscriptPresenter;
 class SceneDocument;
 
@@ -47,6 +49,17 @@ public:
     // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
     // separator text and desynchronised the offset map. Routes through the guard instead.
     void cutSelection();
+
+    // ── SP-175 / T-0602 (EP-048 S3b): the Format commands (Apple: `ManuscriptNSTextView.applyFormat`) ──
+    // ✅ The edits are ScriviCore's (`scrivi_markdown_*`, SP-174) on the scene holding the selection; each is ONE
+    // document edit, then the selection it returns. A command that cannot be done — across a boundary, nothing
+    // visible to format, or one that could not be written balanced — beeps and changes nothing.
+    enum class Format { Bold, Italic, Heading1, Heading2, Heading3, Body, BulletList, NumberedList };
+    void applyFormat(Format format);
+
+    // Take the PENDING pair out again (✅ [SP-174] Q5): document only, never scene text, never dirty. Called when the
+    // caret leaves it, and by the shell before any structural edit (Apple: a storage rebuild drops it).
+    void removePendingPair();
 
 signals:
     // Ctrl+Return — the Linux analogue of Apple's ⌘↩ "new scene" (T-0240). The
@@ -107,7 +120,17 @@ private:
     // Widen [start, end) so it never splits an escape pair (Apple: `snapSelection`).
     void widenOverPairs(int& start, int& end) const;
     // One edit replacing [start, end) with `text` (already in STORED form), caret after it.
+    // ✅ SP-175 (EP-046 AC12, Apple's `shouldChangeText`): an edit that would leave emphasis unbalanced is re-issued as
+    // the core's BALANCED edit of the stretch it touches — still ONE edit. Never for a computed edit (`computed_`).
     void replaceRange(int start, int end, const QString& text);
+    // Apply an edit the core computed for the scene starting at document position `base`, then its selection.
+    void applyComputed(int base, const MarkdownEdit& edit);
+    // The pending pair (Q1 of SP-163): `markers` twice at `pos`, the caret between them.
+    void insertPendingPair(int pos, const QString& markers);
+    // The caret LEFT the pending pair: remove it, keeping the caret on the same character.
+    void leavePendingPair();
+    // The document text of [start, end), newlines as '\n'.
+    QString textOf(int start, int end) const;
     // The escaped-edit paths; each returns true when it handled the key.
     bool handleReturn(QKeyEvent* event);
     bool handleDeletion(QKeyEvent* event);
@@ -129,6 +152,10 @@ private:
     void snapSelection(int& start, int& end, int previousEnd) const;
     // ⌫ / ⌦ next to a marker act on what the writer SEES (L9 part); true when handled.
     bool handleAtomicDeletion(bool back, int loc);
+
+    bool computed_ = false;        // applying an edit the core computed — never re-balanced
+    bool pastingOwnCopy_ = false;  // Scrivi's own copy is being pasted: it keeps ITS formatting
+    bool keepingPending_ = false;  // the editor itself is placing the caret inside the pending pair
 
     SceneDocument* sceneDoc_ = nullptr;   // non-owning
     ManuscriptPresenter* presenter_ = nullptr;   // non-owning

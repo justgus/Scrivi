@@ -10,6 +10,7 @@
 #include "AppEnvironment.hpp"
 #include "OpenProjectRegistry.hpp"
 #include "ProjectSession.hpp"
+#include "ManuscriptEditor.hpp"
 #include "SceneDocument.hpp"
 
 class NavigatorTree;
@@ -163,6 +164,7 @@ public:
     void mergeChapter();   // Chapter ▸ Merge (== Ctrl+Shift+Backspace)
     void cutSelection();   // Edit ▸ Cut      → viewport cut()
     void copySelection();  // Edit ▸ Copy     → viewport copy()
+    void applyFormat(ManuscriptEditor::Format format);   // Format ▸ … (SP-175) → viewport applyFormat()
     void pasteClipboard(); // Edit ▸ Paste    → viewport paste()
 
     // --- EP-035 AC3 Worlds surface (SP-127, T-0494) -----------------------

@@ -4,6 +4,8 @@
 #include <QString>
 #include <QTextDocument>
 
+#include <optional>
+
 // SceneDocument — assembles every scene body of an open project into ONE
 // continuous QTextDocument, and keeps the side offset map that is the authority
 // for "which scene owns this character position" (the sceneStartMap /
@@ -153,6 +155,26 @@ public:
     // recorded offsets). Empty string if index is out of range. Used by the per-scene
     // save path (T-0239).
     QString bodyText(int index) const;
+
+    // --- SP-175 (EP-048 S3b): the Format commands and balanced edits -------
+    //
+    // The scene body holding the range [start, end] (both ends inside ONE body's inclusive span), with its live text
+    // (the pending pair INCLUDED — the core edits what the writer sees) and the document position of its start; nullopt
+    // when the range reaches into a heading or separator. The Linux twin of Apple's `sceneRange` (SP-174).
+    struct SceneSlice { int index = -1; int start = 0; QString text; };
+    std::optional<SceneSlice> sceneHolding(int start, int end) const;
+
+    // ✅ [SP-174] Q5 / [SP-175] Q2 — THE PENDING PAIR (⌘B / ⌘I with the caret between words): `****` or `**` in the
+    // document with the caret between, which is NOT scene text until typed into. `bodyText` leaves it out, and the
+    // edits that insert or remove it run under `pendingEditInProgress`, so the shell never marks the scene dirty
+    // for them. `applyContentsChange` keeps it in step with other edits by Apple's rules (`didProcessEditing`):
+    // typing AT its caret makes it real; an edit before it moves it; an edit that touches it otherwise ends it.
+    struct PendingPair { int start = 0; int markerLength = 0; int caret() const { return start + markerLength; }
+                         int end() const { return start + 2 * markerLength; } };
+    const std::optional<PendingPair>& pending() const { return pending_; }
+    void setPending(std::optional<PendingPair> p) { pending_ = p; }
+    bool pendingEditInProgress() const { return pendingEdit_; }
+    void setPendingEditInProgress(bool on) { pendingEdit_ = on; }
 
     // --- SP-062 in-editor structure creation (T-0240 / T-0241) ------------
     //
@@ -330,6 +352,10 @@ private:
     // for removeScene.
     void reflowBoundaryAt(int index);
 
+    QString rawBodyText(int index) const;   // bodyText with the pending pair, if any
+
     QTextDocument doc_;
     QList<SceneSegment> segments_;
+    std::optional<PendingPair> pending_;
+    bool pendingEdit_ = false;
 };

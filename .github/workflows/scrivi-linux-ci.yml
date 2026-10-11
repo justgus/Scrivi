@@ -238,3 +238,10 @@ jobs:
         run: |
           platforms/linux/tests/quit_smoke.sh \
             ./build/platforms/linux/scrivi_linux_quit_smoke
+
+      # Format commands + balanced edits (SP-175 / T-0602, EP-048 S3b): the Format menu's real shortcuts,
+      # the pending pair (never scene text, never dirty), balanced cut/copy/paste, across scenes. Offscreen.
+      - name: Format commands smoke test
+        run: |
+          platforms/linux/tests/format_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_format_smoke

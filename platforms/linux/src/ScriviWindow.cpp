@@ -1,3 +1,4 @@
+#include "FormatMenu.hpp"
 #include "AppEnvironment.hpp"
 #include "ScriviWindow.hpp"
 
@@ -216,6 +217,14 @@ void ScriviWindow::buildMenuBar()
             [this]() { if (editor_ != nullptr) { editor_->pasteClipboard(); } });
     editorOnlyActions_.append(paste);
 
+    // --- Format (SP-175 / T-0602, EP-048 S3b) ---------------------------------
+    // ✅ [SP-175] Q4: between Edit and View, as Apple ([SP-163]).
+    for (QAction* a : addFormatMenu(bar, this, [this](ManuscriptEditor::Format format) {
+             if (editor_ != nullptr) { editor_->applyFormat(format); }
+         })) {
+        editorOnlyActions_.append(a);
+    }
+
     // --- View -------------------------------------------------------------
     // Show Inspector (EP-024 / SP-078, T-0320) — a checkable toggle for the Scene
     // Inspector panel, the Linux analogue of Apple's View ▸ Show Inspector at ⌘⌥I.
@@ -227,12 +236,13 @@ void ScriviWindow::buildMenuBar()
     // ⚠️ [I-0256] — Show Scene Navigator. ⛔ THERE WAS NO CONTROL FOR THIS AT ALL.
     // ✅ Found by the user's live pass 2026-09-29: *"there is no option to hide the
     // Scene Navigator."*
-    // ⚠️ Ctrl+Alt+N joins Ctrl+Alt+I (inspector) and Ctrl+Alt+T (timeline) — ✅ the
-    // Ctrl+Alt family is deliberate: `project_linux_vnc_input_constraints` records
+    // ⚠️ The Ctrl+Alt family is deliberate: `project_linux_vnc_input_constraints` records
     // that the macOS→VNC path EATS Ctrl+Shift combos, ⛔ so they cannot be used.
+    // ✅ [SP-175] Q1: Ctrl+Alt+S (Apple's sidebar toggle is ⌃⌘S) — Ctrl+Alt+N is Format ▸ Numbered List
+    // (Apple's ⌥⌘N, [SP-174] Q4). Measured on the rig: GNOME binds no Ctrl+Alt+S.
     showNavigatorAction_ = view->addAction(tr("Show Scene Navigator"));
     showNavigatorAction_->setCheckable(true);
-    showNavigatorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N));
+    showNavigatorAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S));
     connect(showNavigatorAction_, &QAction::toggled, this, [this](bool on) {
         if (editor_ != nullptr) { editor_->setNavigatorVisible(on); }
     });
@@ -246,11 +256,12 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(showInspectorAction_);
 
-    // Show Timeline (EP-025 / SP-079, T-0323) — the bottom timeline strip. Ctrl+Alt+T,
-    // the timeline analogue of the inspector's Ctrl+Alt+I; not macOS→VNC-intercepted.
+    // Show Timeline (EP-025 / SP-079, T-0323) — the bottom timeline strip.
+    // ✅ [SP-175] Q3: Ctrl+Alt+M. ⛔ It was Ctrl+Alt+T, which GNOME binds to OPEN A TERMINAL (measured on the
+    // rig, `gsettings` media-keys `terminal`), so the desktop took the key first.
     showTimelineAction_ = view->addAction(tr("Show Timeline"));
     showTimelineAction_->setCheckable(true);
-    showTimelineAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_T));
+    showTimelineAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_M));
     connect(showTimelineAction_, &QAction::toggled, this, [this](bool on) {
         if (editor_ != nullptr) { editor_->setTimelineVisible(on); }
     });

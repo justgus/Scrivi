@@ -271,8 +271,21 @@ void ManuscriptPresenter::highlightBlock(const QString& text)
     if (!b || text.isEmpty()) {
         return;
     }
+    // 6. ✅ SP-175 ([SP-163] Q1): the PENDING pair — shown as revealed hints, dimmed, the caret between them. Drawn last
+    // (and on a block with no other markup), so it wins.
+    auto drawPending = [&]() {
+        if (sceneDoc_ == nullptr || !sceneDoc_->pending()) {
+            return;
+        }
+        const auto& p = *sceneDoc_->pending();
+        const int s = std::max(p.start, line.position()), e = std::min(p.end(), line.position() + int(text.size()));
+        if (e > s) {
+            setFormat(s - line.position(), e - s, dimmedFormat());
+        }
+    };
     const Info& in = info(b->text);
     if (in.a.isEmpty() && in.escapes.isEmpty()) {
+        drawPending();
         return;
     }
     const MarkdownAnalysis& a = in.a;
@@ -346,6 +359,7 @@ void ManuscriptPresenter::highlightBlock(const QString& text)
             setFormat(p->first, p->second, dimmedFormat());
         }
     }
+    drawPending();
 }
 
 // ── Edits ────────────────────────────────────────────────────────────────────────────────────────

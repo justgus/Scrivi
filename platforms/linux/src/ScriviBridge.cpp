@@ -1708,6 +1708,88 @@ QVariantMap ScriviBridge::upsertRelationType(const QString& projectRootPath, con
     return parseEnvelope(envelope.toQString());
 }
 
+namespace {
+// One `scrivi_markdown_*` envelope's result, or nullopt when the call failed.
+std::optional<QJsonObject> markdownResult(const char* raw)
+{
+    if (raw == nullptr) {
+        return std::nullopt;
+    }
+    const QJsonDocument doc = QJsonDocument::fromJson(QByteArray(raw));
+    scrivi_free(raw);
+    const QJsonObject root = doc.object();
+    if (!root.value(QStringLiteral("ok")).toBool()) {
+        return std::nullopt;
+    }
+    return root.value(QStringLiteral("result")).toObject();
+}
+
+MarkdownRange markdownRange(const QJsonValue& v)
+{
+    const QJsonObject o = v.toObject();
+    const int loc = o.value(QStringLiteral("location")).toInt();
+    return {loc, loc + o.value(QStringLiteral("length")).toInt()};
+}
+
+std::optional<MarkdownEdit> markdownCommandEdit(const char* raw)
+{
+    const auto r = markdownResult(raw);
+    if (!r || r->value(QStringLiteral("refused")).toBool()) {
+        return std::nullopt;
+    }
+    return MarkdownEdit{markdownRange(r->value(QStringLiteral("range"))), r->value(QStringLiteral("replacement")).toString(),
+                        markdownRange(r->value(QStringLiteral("selection")))};
+}
+}   // namespace
+
+std::optional<MarkdownRange> ScriviBridge::markdownWordRange(const QString& scene, int caret)
+{
+    const auto r = markdownResult(scrivi_markdown_word_range(scene.toUtf8().constData(), caret));
+    if (!r || !r->value(QStringLiteral("found")).toBool()) {
+        return std::nullopt;
+    }
+    return markdownRange(r->value(QStringLiteral("range")));
+}
+
+std::optional<MarkdownEdit> ScriviBridge::markdownEmphasisEdit(const QString& scene, int start, int end, int bit, int caret)
+{
+    return markdownCommandEdit(scrivi_markdown_emphasis_edit(scene.toUtf8().constData(), start, end - start, bit, caret));
+}
+
+std::optional<MarkdownEdit> ScriviBridge::markdownParagraphEdit(const QString& scene, int start, int end, const QString& format)
+{
+    return markdownCommandEdit(scrivi_markdown_paragraph_edit(scene.toUtf8().constData(), start, end - start,
+                                                              format.toUtf8().constData()));
+}
+
+std::optional<MarkdownEdit> ScriviBridge::markdownListReturnEdit(const QString& scene, int caret)
+{
+    return markdownCommandEdit(scrivi_markdown_list_return_edit(scene.toUtf8().constData(), caret));
+}
+
+std::optional<MarkdownEdit> ScriviBridge::markdownBalancedEdit(const QString& scene, int start, int end,
+                                                               const QString& replacement, bool keepsOwnFormatting)
+{
+    const auto r = markdownResult(scrivi_markdown_balanced_edit(scene.toUtf8().constData(), start, end - start,
+                                                                replacement.toUtf8().constData(), keepsOwnFormatting ? 1 : 0));
+    if (!r || r->value(QStringLiteral("plain")).toBool()) {
+        return std::nullopt;
+    }
+    const int caret = r->value(QStringLiteral("caret")).toInt();
+    return MarkdownEdit{markdownRange(r->value(QStringLiteral("range"))), r->value(QStringLiteral("replacement")).toString(),
+                        {caret, caret}};
+}
+
+std::pair<QString, QString> ScriviBridge::markdownBalancedCopy(const QString& scene, int start, int end)
+{
+    const auto r = markdownResult(scrivi_markdown_balanced_copy(scene.toUtf8().constData(), start, end - start));
+    if (!r) {
+        const QString raw = scene.mid(start, end - start);
+        return {raw, raw};
+    }
+    return {r->value(QStringLiteral("source")).toString(), r->value(QStringLiteral("presented")).toString()};
+}
+
 MarkdownAnalysis ScriviBridge::analyzeMarkdown(const QString& block)
 {
     const QByteArray utf8 = block.toUtf8();

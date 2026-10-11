@@ -74,6 +74,9 @@ qt_add_executable(scrivi_linux
     src/ManuscriptEditor.hpp
     src/ManuscriptEscapes.cpp
     src/ManuscriptEscapes.hpp
+    # SP-175 (EP-048 S3b): the Format menu — one builder, shared with format_smoke.
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
     # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
@@ -345,6 +348,15 @@ target_compile_features(scrivi_linux_editor_map_smoke PRIVATE cxx_std_23)
 # Driven by escape_smoke.sh (offscreen; no project on disk).
 qt_add_executable(scrivi_linux_escape_smoke
     tests/escape_smoke.cpp
+    # SP-175: the editor keeps edits BALANCED through ScriviCore (`scrivi_markdown_*`), so it needs the bridge.
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
     src/ManuscriptEditor.cpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -359,8 +371,10 @@ qt_add_executable(scrivi_linux_escape_smoke
 
 target_link_libraries(scrivi_linux_escape_smoke
     PRIVATE
+        ScriviCore
         Qt6::Core
         Qt6::Gui
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
         Qt6::Widgets
 )
 
@@ -404,6 +418,46 @@ target_link_libraries(scrivi_linux_presenter_smoke
 
 target_include_directories(scrivi_linux_presenter_smoke PRIVATE src)
 target_compile_features(scrivi_linux_presenter_smoke PRIVATE cxx_std_23)
+
+# --- EP-048 S3b Format commands smoke (SP-175 / T-0602) -------------------------
+# The Format menu and the balanced edits, offscreen, through the REAL dispatch: the shared Format-menu builder's
+# QAction shortcuts (QTest key clicks), keyPressEvent, the mime paths — against ScriviCore's `scrivi_markdown_*`.
+qt_add_executable(scrivi_linux_format_smoke
+    tests/format_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ThemeColours.hpp
+)
+
+target_link_libraries(scrivi_linux_format_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets
+        Qt6::Test           # QTest key clicks reach QAction shortcuts (sendEvent does not)
+)
+
+target_include_directories(scrivi_linux_format_smoke PRIVATE src)
+target_compile_features(scrivi_linux_format_smoke PRIVATE cxx_std_23)
 
 # --- Headless per-scene save smoke (SP-062 / T-0239, EP-022 AC3) -----------
 # Drives create → open → saveScene(new body) → reopen and asserts the new bytes

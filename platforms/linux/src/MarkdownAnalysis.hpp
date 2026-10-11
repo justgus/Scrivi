@@ -6,6 +6,7 @@
 // fields, the same meaning. ⚠️ Offsets are UTF-16 code units RELATIVE TO THE BLOCK (QString indices) —
 // the bridge converts from the ABI's UTF-8 bytes, as the L2 agreement test does.
 
+#include <QString>
 #include <QVector>
 
 #include <cstdint>
@@ -15,6 +16,14 @@ struct MarkdownRange {
     int end = 0;    // half-open
     bool contains(int i) const { return i >= start && i < end; }
     bool operator==(const MarkdownRange&) const = default;
+};
+
+// SP-175 / T-0602 (EP-048 S3b) — one edit from ScriviCore's Format commands and balanced edits
+// (`scrivi_markdown_*`), in UTF-16 offsets into ONE SCENE's text. `selection` / `caret` are where the caret goes after it.
+struct MarkdownEdit {
+    MarkdownRange range;            // replaced range
+    QString replacement;
+    MarkdownRange selection;        // the selection after the edit (a caret when empty)
 };
 
 struct MarkdownAnalysis {

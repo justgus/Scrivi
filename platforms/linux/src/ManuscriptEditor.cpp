@@ -11,11 +11,15 @@
 #include <QTextCursor>
 #include <QTextDocument>
 
+#include <algorithm>
 #include <cmath>
 
 #include "ManuscriptEscapes.hpp"
 #include "ManuscriptPresenter.hpp"
 #include "SceneDocument.hpp"
+#include "ScriviBridge.hpp"
+
+#include <QApplication>
 
 #include <QInputMethodEvent>
 #include <QMimeData>
@@ -43,6 +47,7 @@ void ManuscriptEditor::normalizeCaret()
     if (sceneDoc_ == nullptr || normalizingCaret_ || mouseSelecting_) {
         return;
     }
+    leavePendingPair();
     QTextCursor cursor = textCursor();
     // Don't fight an active selection across the scene boundaries (the edit guard already prevents
     // boundary-touching edits); only its ends are kept out of hidden runs (EP-048 L5).
@@ -368,6 +373,12 @@ void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
         return;
     }
 
+    // SP-175: a cut (also Shift+Del) is the BALANCED cut, inside one scene or across scenes.
+    if (event->matches(QKeySequence::Cut)) {
+        cutSelection();
+        return;
+    }
+
     int start = 0;
     int end = 0;
     if (!modifiedRangeFor(event, start, end)) {
@@ -461,6 +472,15 @@ void ManuscriptEditor::widenOverPairs(int& start, int& end) const
 
 void ManuscriptEditor::replaceRange(int start, int end, const QString& text)
 {
+    if (!computed_ && sceneDoc_ != nullptr) {
+        if (const auto scene = sceneDoc_->sceneHolding(start, end)) {
+            if (const auto e = ScriviBridge::markdownBalancedEdit(scene->text, start - scene->start, end - scene->start,
+                                                                  text, pastingOwnCopy_)) {
+                applyComputed(scene->start, *e);
+                return;
+            }
+        }
+    }
     QTextCursor c(document());
     c.beginEditBlock();
     c.setPosition(start);
@@ -488,6 +508,16 @@ bool ManuscriptEditor::handleReturn(QKeyEvent* event)
             replaceRange(selStart, selEnd, QStringLiteral("\\\n"));
         }
         return true;
+    }
+    // ✅ SP-175 ([SP-163] Q4): Return in a LIST ITEM starts the next item (an empty item ends the list), renumbering
+    // what follows — one edit (Apple: `listReturnEdit` first in `insertNewline`).
+    if (!cursor.hasSelection()) {
+        if (const auto scene = sceneDoc_->sceneHolding(selStart, selStart)) {
+            if (const auto e = ScriviBridge::markdownListReturnEdit(scene->text, selStart - scene->start)) {
+                applyComputed(scene->start, *e);
+                return true;
+            }
+        }
     }
     // ✅ Apple's `insertNewline` (EP-045 AC5/AC6): Return, keypad Enter AND Shift-Return store `\n\n`.
     // ⛔ M1: Qt's Shift-Return inserted U+2028, which `bodyText` wrote into the scene file.
@@ -555,6 +585,15 @@ bool ManuscriptEditor::handleDeletion(QKeyEvent* event)
         return false;   // Shift+Del is Cut (M3) — the cut path
     }
     const QTextCursor cursor = textCursor();
+    // ✅ [SP-163] Q1: ⌫ or ⌦ inside an EMPTY pending pair takes the pair away.
+    if (!cursor.hasSelection() && sceneDoc_->pending() && cursor.position() == sceneDoc_->pending()->caret()) {
+        const int at = sceneDoc_->pending()->start;
+        removePendingPair();
+        QTextCursor c = textCursor();
+        c.setPosition(at);
+        setTextCursor(c);
+        return true;
+    }
     int start = 0;
     int end = 0;
     if (cursor.hasSelection()) {
@@ -601,6 +640,17 @@ bool ManuscriptEditor::handleTyping(QKeyEvent* event)
         return false;
     }
     const QTextCursor cursor = textCursor();
+    // ✅ [SP-163] Q1: whitespace typed into an EMPTY pending pair cannot start a span (`** x**` is not emphasis): it
+    // goes BEFORE the pair, which stays pending with the caret inside it.
+    if (const auto& p = sceneDoc_->pending(); p && !cursor.hasSelection() && cursor.position() == p->caret()
+        && std::all_of(text.begin(), text.end(), [](QChar c) { return c == QLatin1Char(' ') || c == QLatin1Char('\t'); })) {
+        const QString markers(p->markerLength, QLatin1Char('*'));
+        const int at = p->start;
+        removePendingPair();
+        replaceRange(at, at, ManuscriptEscapes::escape(text));
+        insertPendingPair(textCursor().position(), markers);
+        return true;
+    }
     int start = cursor.selectionStart();
     int end = cursor.selectionEnd();
     widenOverPairs(start, end);
@@ -625,6 +675,12 @@ void ManuscriptEditor::inputMethodEvent(QInputMethodEvent* event)
         event->accept();
         return;
     }
+    // SP-175: a commit that REPLACES a selection is one edit through `replaceRange`, so it is kept balanced.
+    if (start != end && event->preeditString().isEmpty()) {
+        replaceRange(start, end, ManuscriptEscapes::escape(event->commitString()));
+        event->accept();
+        return;
+    }
     if (start != cursor.selectionStart() || end != cursor.selectionEnd()) {
         cursor.setPosition(start);
         cursor.setPosition(end, QTextCursor::KeepAnchor);
@@ -645,14 +701,40 @@ QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
     int start = cursor.selectionStart();
     int end = cursor.selectionEnd();
     widenOverPairs(start, end);
-    QTextCursor sel(document());
-    sel.setPosition(start);
-    sel.setPosition(end, QTextCursor::KeepAnchor);
-    QString source = sel.selectedText();
-    source.replace(QChar(QChar::ParagraphSeparator), QLatin1Char('\n'));
+    // ✅ SP-175 (EP-046 AC12, Apple's `balancedCopy`): Scrivi's own clipboard gets the BALANCED source — a selection
+    // that starts or ends inside a span carries its own markers; other apps get the presented text. Scene by scene;
+    // the headings and separators between scenes are copied as they are.
+    QString source;
+    QString presented;
+    int p = start;
+    if (sceneDoc_ != nullptr) {
+        for (const SceneSegment& seg : sceneDoc_->segments()) {
+            const int a = std::max(start, seg.bodyStart);
+            const int b = std::min(end, seg.bodyStart + seg.bodyLength);
+            if (b <= a) {
+                continue;
+            }
+            if (a > p) {
+                const QString gap = textOf(p, a);
+                source += gap;
+                presented += gap;
+            }
+            const auto scene = sceneDoc_->sceneHolding(a, b);
+            const auto copy = scene ? ScriviBridge::markdownBalancedCopy(scene->text, a - scene->start, b - scene->start)
+                                    : std::pair<QString, QString>{textOf(a, b), ManuscriptEscapes::map(textOf(a, b)).presented};
+            source += copy.first;
+            presented += copy.second;
+            p = b;
+        }
+    }
+    if (p < end) {
+        const QString rest = textOf(p, end);
+        source += rest;
+        presented += ManuscriptEscapes::map(rest).presented;
+    }
     auto* mime = new QMimeData;
     // Apple: `writeSelection` — other apps get the writer's text, not backslashes.
-    mime->setText(ManuscriptEscapes::map(source).presented);
+    mime->setText(presented);
     mime->setData(kSourceMime, source.toUtf8());
     return mime;
 }
@@ -679,7 +761,9 @@ void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
         } else {
             return;
         }
+        pastingOwnCopy_ = source->hasFormat(kSourceMime);
         replaceRange(start, end, text);
+        pastingOwnCopy_ = false;
         return;
     }
     QPlainTextEdit::insertFromMimeData(source);
@@ -759,7 +843,8 @@ void ManuscriptEditor::cutSelection()
         widened.setPosition(start);
         widened.setPosition(end, QTextCursor::KeepAnchor);
         setTextCursor(widened);
-        cut();   // inside one scene — the ordinary cut
+        copy();                              // the balanced copy (createMimeDataFromSelection)
+        replaceRange(start, end, QString());  // ✅ SP-175: the balanced removal — a span it cuts into is closed and re-opened
         return;
     }
     // Across scenes → per-scene removal; touching only a boundary → refused (no-op).
@@ -781,14 +866,155 @@ bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst)
     // Back to front, ONE edit per body, so each contentsChange lands inside a single
     // body and SceneDocument::applyContentsChange reconciles it (an edit spanning a
     // boundary would be charged entirely to one scene).
+    // ✅ SP-175: each part through `replaceRange`, so every scene stays balanced (Apple: T-0591's per-scene cut).
     for (int k = cuts.size() - 1; k >= 0; --k) {
-        QTextCursor c(document());
-        c.setPosition(cuts.at(k).first);
-        c.setPosition(cuts.at(k).second, QTextCursor::KeepAnchor);
-        c.removeSelectedText();
+        replaceRange(cuts.at(k).first, cuts.at(k).second, QString());
     }
     QTextCursor caret = textCursor();
     caret.setPosition(cuts.first().first);
     setTextCursor(caret);
     return true;
+}
+
+// ── SP-175 / T-0602 (EP-048 S3b): the Format commands and the pending pair ──────────────────────────────────────
+// Apple: `ManuscriptNSTextView.applyFormat`, `insertPendingPair`, `removePendingPair` (Scrivi/Views/ManuscriptTextView.swift).
+
+QString ManuscriptEditor::textOf(int start, int end) const
+{
+    QTextCursor c(document());
+    c.setPosition(start);
+    c.setPosition(end, QTextCursor::KeepAnchor);
+    return c.selectedText().replace(QChar(QChar::ParagraphSeparator), QLatin1Char('\n'));
+}
+
+void ManuscriptEditor::applyComputed(int base, const MarkdownEdit& edit)
+{
+    computed_ = true;
+    replaceRange(base + edit.range.start, base + edit.range.end, edit.replacement);
+    computed_ = false;
+    QTextCursor c = textCursor();
+    c.setPosition(base + edit.selection.start);
+    c.setPosition(base + edit.selection.end, QTextCursor::KeepAnchor);
+    setTextCursor(c);
+}
+
+void ManuscriptEditor::applyFormat(Format format)
+{
+    if (sceneDoc_ == nullptr) {
+        return;
+    }
+    const QTextCursor cursor = textCursor();
+    const int start = cursor.selectionStart();
+    const int end = cursor.selectionEnd();
+    const auto scene = sceneDoc_->sceneHolding(start, end);
+    std::optional<MarkdownEdit> edit;
+    if (format == Format::Bold || format == Format::Italic) {
+        const int bit = format == Format::Bold ? MarkdownAnalysis::kBold : MarkdownAnalysis::kItalic;
+        const QString markers = format == Format::Bold ? QStringLiteral("**") : QStringLiteral("*");
+        if (start == end) {
+            // ✅ Q1: the same command on a pending pair takes it away again.
+            if (const auto& p = sceneDoc_->pending(); p && start == p->caret()) {
+                const int at = p->start;
+                removePendingPair();
+                QTextCursor c = textCursor();
+                c.setPosition(at);
+                setTextCursor(c);
+                return;
+            }
+            if (!scene) {
+                QApplication::beep();
+                return;
+            }
+            // ✅ Q1: IN a word → format the word, the caret stays where it was; BETWEEN words → a pending pair.
+            const int local = start - scene->start;
+            const auto word = ScriviBridge::markdownWordRange(scene->text, local);
+            if (!word) {
+                insertPendingPair(start, markers);
+                return;
+            }
+            edit = ScriviBridge::markdownEmphasisEdit(scene->text, word->start, word->end, bit, local);
+        } else if (scene) {
+            edit = ScriviBridge::markdownEmphasisEdit(scene->text, start - scene->start, end - scene->start, bit);
+        }
+    } else if (scene) {
+        QString name;
+        switch (format) {
+        case Format::Heading1: name = QStringLiteral("heading1"); break;
+        case Format::Heading2: name = QStringLiteral("heading2"); break;
+        case Format::Heading3: name = QStringLiteral("heading3"); break;
+        case Format::Body: name = QStringLiteral("body"); break;
+        case Format::BulletList: name = QStringLiteral("bulletList"); break;
+        case Format::NumberedList: name = QStringLiteral("numberedList"); break;
+        case Format::Bold:
+        case Format::Italic: break;
+        }
+        edit = ScriviBridge::markdownParagraphEdit(scene->text, start - scene->start, end - scene->start, name);
+    }
+    if (!scene || !edit) {
+        QApplication::beep();   // across a boundary, nothing to format, or not writable balanced
+        return;
+    }
+    applyComputed(scene->start, *edit);
+}
+
+void ManuscriptEditor::insertPendingPair(int pos, const QString& markers)
+{
+    // ✅ Document only: SceneDocument knows the pair FIRST (so the presenter dims it as it is drawn), and the insert runs
+    // under `pendingEditInProgress`, so the shell does not mark the scene dirty — it is not scene text.
+    // ⚠️ The insert moves the editor's own caret, and that must not count as LEAVING the pair (`keepingPending_`).
+    keepingPending_ = true;
+    sceneDoc_->setPending(SceneDocument::PendingPair{pos, static_cast<int>(markers.size())});
+    sceneDoc_->setPendingEditInProgress(true);
+    QTextCursor c(document());
+    c.setPosition(pos);
+    c.insertText(markers + markers);
+    sceneDoc_->setPendingEditInProgress(false);
+    QTextCursor caret = textCursor();
+    caret.setPosition(pos + markers.size());
+    setTextCursor(caret);
+    keepingPending_ = false;
+}
+
+void ManuscriptEditor::removePendingPair()
+{
+    if (sceneDoc_ == nullptr || !sceneDoc_->pending()) {
+        return;
+    }
+    const SceneDocument::PendingPair p = *sceneDoc_->pending();
+    sceneDoc_->setPending(std::nullopt);
+    const int len = p.end() - p.start;
+    // Only the markers the pair put there (Apple makes the same check).
+    if (p.end() > document()->characterCount() - 1 || textOf(p.start, p.end()) != QString(len, QLatin1Char('*'))) {
+        return;
+    }
+    sceneDoc_->setPendingEditInProgress(true);
+    QTextCursor c(document());
+    c.setPosition(p.start);
+    c.setPosition(p.end(), QTextCursor::KeepAnchor);
+    c.removeSelectedText();
+    sceneDoc_->setPendingEditInProgress(false);
+}
+
+void ManuscriptEditor::leavePendingPair()
+{
+    if (keepingPending_ || !sceneDoc_->pending()) {
+        return;
+    }
+    const SceneDocument::PendingPair p = *sceneDoc_->pending();
+    QTextCursor cursor = textCursor();
+    if (!cursor.hasSelection() && cursor.position() == p.caret()) {
+        return;
+    }
+    // ✅ [SP-163] Q1: the caret LEFT an empty pending pair — remove it, and keep the caret on the same character.
+    const int len = p.end() - p.start;
+    auto shifted = [&](int x) { return x >= p.end() ? x - len : (x > p.start ? p.start : x); };
+    const int anchor = shifted(cursor.anchor());
+    const int position = shifted(cursor.position());
+    removePendingPair();
+    normalizingCaret_ = true;
+    cursor = textCursor();
+    cursor.setPosition(anchor);
+    cursor.setPosition(position, QTextCursor::KeepAnchor);
+    setTextCursor(cursor);
+    normalizingCaret_ = false;
 }

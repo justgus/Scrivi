@@ -16,6 +16,8 @@ SceneDocument::SceneDocument()
 
 void SceneDocument::build(const QList<Input>& inputs)
 {
+    pending_.reset();   // SP-175: a fresh document holds no pending pair
+    pendingEdit_ = false;
     segments_.clear();
     doc_.clear();
 
@@ -216,6 +218,21 @@ QList<QPair<int, int>> SceneDocument::crossSceneCuts(int start, int end) const
 int SceneDocument::applyContentsChange(int pos, int charsRemoved, int charsAdded)
 {
     const int delta = charsAdded - charsRemoved;
+    // The pending pair follows the edit (Apple: `ManuscriptPresenter.textStorage(_:didProcessEditing:…)`), except for
+    // the edits that insert or remove the pair itself.
+    if (pending_ && !pendingEdit_) {
+        PendingPair& p = *pending_;
+        const int oldEnd = pos + charsRemoved;
+        if (pos == p.caret() && oldEnd == p.caret() && charsAdded > 0) {
+            pending_.reset();                 // typed into: a real span now
+        } else if (oldEnd <= p.start) {
+            p.start += delta;                 // before it: it moves
+        } else if (pos >= p.end()) {
+            // after it: unaffected
+        } else {
+            pending_.reset();                 // it touches the pair: the pair ends
+        }
+    }
     if (delta == 0) {
         // No length change (e.g. a formatting-only change); ownership unaffected.
         return sceneIndexForCaret(pos);
@@ -803,6 +820,34 @@ void SceneDocument::setChapterTitle(const QString& chapterID,
 }
 
 QString SceneDocument::bodyText(int index) const
+{
+    QString text = rawBodyText(index);
+    // The pending pair is not scene text ([SP-175] Q2) — ⚠️ only when the document still holds exactly its markers
+    // there (Apple's `removePendingPair` makes the same check).
+    if (pending_ && index >= 0 && index < segments_.size()) {
+        const int local = pending_->start - segments_.at(index).bodyStart;
+        const int len = 2 * pending_->markerLength;
+        if (local >= 0 && local + len <= text.size() && text.mid(local, len) == QString(len, QLatin1Char('*'))) {
+            text.remove(local, len);
+        }
+    }
+    return text;
+}
+
+std::optional<SceneDocument::SceneSlice> SceneDocument::sceneHolding(int start, int end) const
+{
+    const int i = sceneIndexForEditablePosition(start);
+    if (i < 0 || end < start) {
+        return std::nullopt;
+    }
+    const SceneSegment& seg = segments_.at(i);
+    if (start < seg.bodyStart || end > seg.bodyStart + seg.bodyLength) {
+        return std::nullopt;
+    }
+    return SceneSlice{i, seg.bodyStart, rawBodyText(i)};
+}
+
+QString SceneDocument::rawBodyText(int index) const
 {
     if (index < 0 || index >= segments_.size()) {
         return {};
