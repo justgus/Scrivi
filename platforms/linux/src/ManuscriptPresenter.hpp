@@ -75,6 +75,12 @@ public:
     void reveal(int selStart, int selEnd);
     // True when the character at `i` is drawn hidden under the CURRENT reveal (tests, and Apple's `isHidden`).
     bool isHidden(int i) const;
+    // ── SP-176 / T-0603 (EP-048 S4): the page AT REST, for Find ──
+    // Block-relative offsets of `blockText` that are hidden whatever the caret or reveal (Apple's presented map, A1):
+    // escape backslashes, emphasis markers, heading prefixes. List prefixes are visible, so never in it. Sorted.
+    QVector<int> hiddenAtRest(const QString& blockText) const;
+    // Block-relative offsets of the hidden ESCAPE backslashes alone (a match starting at an escaped mark takes its `\`).
+    QSet<int> escapesOf(const QString& blockText) const { return info(blockText).escapes; }
 
     // Body text height multipliers, Apple's SP-161 Q1 sizes over its 13 pt body: H1 22 · H2 18 · H3 16.
     static double headingScale(int level);

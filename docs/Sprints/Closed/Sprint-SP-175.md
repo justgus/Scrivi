@@ -1,7 +1,8 @@
 ---
 sprint: SP-175
 epic: EP-048
-status: Active
+status: Closed
+closed: 2026-10-11
 activated: 2026-10-10
 platform: Linux
 created: 2026-10-10
@@ -9,9 +10,9 @@ created: 2026-10-10
 
 # SP-175 — `[Linux]` [EP-048] **S3b**: the Format commands and balanced edits on Linux, on the core logic
 
-**Status:** ✅ **COMPLETE 2026-10-10 — awaiting close approval** (rig live pass passed). Activated 2026-10-10 (user: *"activate SP-175 and implement it"*) — created 2026-10-10 (user: *"plan S3b"*); Q1–Q4 ruled the same day.
-**Carries:** [T-0602] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
-**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
+**Status:** ✅ **CLOSED 2026-10-11** (user: *"the CI workflow passed.  Close SP-175."*) — complete 2026-10-10, rig live pass passed; CI ran all 28 Linux smokes green. Activated 2026-10-10 (user: *"activate SP-175 and implement it"*) — created 2026-10-10 (user: *"plan S3b"*); Q1–Q4 ruled the same day.
+**Carries:** [T-0602] → [`../../Tasks/Verified/Task-verified-0602.md`](../../Tasks/Verified/Task-verified-0602.md).
+**Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
 **Authority:** EP-048 **L7** (commands as EP-046 AC6, Ctrl in place of ⌘) and **L9**'s rest (balanced edits and copy, as
 EP-046 AC12). Rulings carried from [SP-174]: Q3 (no hanging indent on Linux, accepted), Q4 (Numbered List takes Ctrl+Alt+N;
 the navigator moves), Q5 (the pending pair follows Apple's rule).

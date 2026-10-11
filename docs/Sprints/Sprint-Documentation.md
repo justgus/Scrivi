@@ -394,7 +394,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-121** | ⚠️ **`[Linux]`** Complete `ScriviBridge` to ABI parity (⚠️ **47** of 66 missing endpoints — ⚠️ **not 43; corrected by T-0460's audit**) + ⚠️ **the Porting Outline** — ⚠️ **NOT AC11, which moved to EP-035** | EP-034 `[Cross]` | 2026-08-24 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-121.md) |
 | **SP-122** | ⚠️ **`[Cross]`** AC verification + ⚠️ **the LIVE-USE pass on the real rig** + **EP-034 close prep** — ⚠️ **AC12 only; two of its five legs (x86-64, sanitizers) are rarely run** | EP-034 `[Cross]` | 2026-08-25 | 2026-08-25 | ✅ **Closed** — [record](Closed/Sprint-SP-122.md) |
 | **SP-123** | ⚠️ **`[Linux]`** Rig reachable + building natively — ⚠️ **NO application code**; ⚠️ **real X session, NOT xvfb** | EP-038 `[Linux]` | 2026-08-25 | 2026-08-29 | ✅ **CLOSED** → [`Closed/Sprint-SP-123.md`](Closed/Sprint-SP-123.md) |
-| **SP-124** | ⚠️ **`[Linux]`** Drive-loss GROUND TRUTH + `WorldVolumeStatus` — ⚠️ **instrument BEFORE implement** | EP-038 `[Linux]` | — | — | ✅ **COMPLETE 2026-09-10** — ⚠️ **awaiting close approval.** ✅ **All 4 Tasks verified; EP-038 AC4–AC7 closed.** ⚠️ **Found FIVE lying signals; `offline` emitted for the first time ever** |
+| **SP-124** | ⚠️ **`[Linux]`** Drive-loss GROUND TRUTH + `WorldVolumeStatus` — ⚠️ **instrument BEFORE implement** | EP-038 `[Linux]` | — | 2026-09-11 | ✅ **CLOSED** (user-approved, with the EP-038 close) → [record](Closed/Sprint-SP-124.md) |
 | **SP-128** | ⚠️ **`[Linux]`** Honest waiting — ⚠️ **[I-0195] determinate progress + [I-0182] rig verification** | EP-038 `[Linux]` | — | — | ✅ **CLOSED 2026-09-11 — user-approved.** ✅ **All 3 Tasks verified; rig 590/590 ctest + 23/23 smokes, build 42.** ⚠️ **Its live pass found TWO defects in its OWN work ([I-0198], [I-0199]) that 23/23 smokes were green through** |
 | **SP-129** | ⚠️ **`[Apple]`+`[ScriviCore]`+`[Linux]`** The unbuilt surfaces — ⚠️ **and the bypass they exposed** | EP-040 `[Apple]` | — | — | ✅ **CLOSED 2026-09-15 — user-approved** → [record](Closed/Sprint-SP-129.md) |
 | **SP-130** | ⚠️ **`[Apple]`** Rule the asset presence-checks — Class C of [I-0197] | EP-040 `[Apple]` | 2026-09-15 | 2026-09-18 | ✅ **CLOSED 2026-09-18 — user-approved** → [record](Closed/Sprint-SP-130.md). ✅ **T-0508 VERIFIED**; ⛔ **[I-0197] Classes A and B remain OPEN** |
@@ -442,7 +442,9 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-172** | `[Apple]` **[EP-050] S2** — the Headings rotor: Markdown headings and chapter titles, next/previous (AC4, AC5 rotor half; T-0600) | EP-050 | 2026-10-08 | 2026-10-09 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-172.md) |
 | **SP-173** | `[Cross]` **[EP-048]** — project load: no frozen UI, timeline built once, load measured, core calls synchronised (I-0285) | EP-048 | 2026-10-09 | 2026-10-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-173.md) |
 | **SP-174** | `[Cross]` **[EP-048] S3a** — command and balanced-edit logic moves into ScriviCore; Apple re-pointed | EP-048 | 2026-10-10 | 2026-10-10 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-174.md) |
-| **SP-175** | `[Linux]` **[EP-048] S3b** — the Format commands and balanced edits on Linux, on the core logic | EP-048 | 2026-10-10 | — | ✅ **COMPLETE** (awaiting close) → [`Sprint-SP-175.md`](Sprint-SP-175.md) |
+| **SP-175** | `[Linux]` **[EP-048] S3b** — the Format commands and balanced edits on Linux, on the core logic | EP-048 | 2026-10-10 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-175.md) |
+| **SP-176** | `[Linux]` **[EP-048] S4** — Find over the presented text (L8 Find half, T-0603) | EP-048 | 2026-10-11 | — | 🟡 **ACTIVE** → [`Sprint-SP-176.md`](Sprint-SP-176.md) |
+| **SP-177** | `[Cross]` **[EP-026] S1** — the undo capture rules move into ScriviCore; Apple re-pointed (T-0604) | EP-026 | — | — | 🔵 **PLANNING** → [`Sprint-SP-177.md`](Sprint-SP-177.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -482,6 +484,14 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-11 (**SP-177 (EP-026 S1) created in 🔵 Planning**, issued via `next-id.py`; T-0604 filed.)*
+
+*Last Updated: 2026-10-11 (**SP-176 ACTIVATED** (user-approved); T-0603 → active.)*
+
+*Last Updated: 2026-10-11 (**SP-176 (EP-048 S4) created in 🔵 Planning**, issued via `next-id.py`; T-0603 filed.)*
+
+*Last Updated: 2026-10-11 (**SP-175 CLOSED** (user-approved) → `Closed/Sprint-SP-175.md`; T-0602 archived.)*
 
 *Last Updated: 2026-10-10 (**SP-175 ACTIVATED** (user-approved); T-0602 → active.)*
 

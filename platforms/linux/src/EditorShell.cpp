@@ -138,6 +138,14 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     viewport_->setLineWrapMode(QPlainTextEdit::WidgetWidth);
     // Editable (SP-062, T-0238). Boundary integrity is enforced by ManuscriptEditor;
     // per-scene dirty tracking + map maintenance happen in onContentsChange.
+    // SP-176 (EP-048 S4, Q4): the find bar sits at the top of the manuscript, hidden until Edit ▸ Find.
+    findBar_ = new FindBar(viewport_, this);
+    auto* manuscript = new QWidget(this);
+    auto* manuscriptColumn = new QVBoxLayout(manuscript);
+    manuscriptColumn->setContentsMargins(0, 0, 0, 0);
+    manuscriptColumn->setSpacing(0);
+    manuscriptColumn->addWidget(findBar_);
+    manuscriptColumn->addWidget(viewport_, 1);
 
     // --- Inspector (right): EP-024 Scene Inspector panel ------------------
     // Docks as the THIRD pane of the same splitter (navigator | viewport |
@@ -172,7 +180,7 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
 
     splitter_ = new QSplitter(Qt::Horizontal, this);
     splitter_->addWidget(navigator_);
-    splitter_->addWidget(viewport_);
+    splitter_->addWidget(manuscript);   // the find bar + the viewport
     splitter_->addWidget(inspector_);
     splitter_->setStretchFactor(0, 0);   // navigator — fixed-ish
     splitter_->setStretchFactor(1, 1);   // viewport — takes the slack
@@ -705,6 +713,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         presenter_->attach(sceneDoc_.document());   // highlights the whole manuscript once
     }
     loadLog("main: presenter attached (first highlight)");
+    findBar_->attach(&sceneDoc_, presenter_);   // SP-176: the presented text is rebuilt at the next Find
 
     // Populate the navigator: chapter parents → scene children. ⛔ [I-0285] Still under `loading_`: `rebuildNavigator()` ends
     // in `reloadTimeline()`, which skips while loading — the load builds the timeline ONCE, at its end. (Clearing the flag first
@@ -2091,6 +2100,7 @@ void EditorShell::mergeChapter()
 void EditorShell::cutSelection()   { viewport_->cutSelection(); }   // [I-0270] through the guard
 void EditorShell::copySelection()  { viewport_->copy(); }
 void EditorShell::applyFormat(ManuscriptEditor::Format format) { viewport_->applyFormat(format); }   // SP-175
+void EditorShell::find(FindCommand command) { findBar_->run(command); }   // SP-176
 void EditorShell::pasteClipboard() { viewport_->paste(); }
 
 // --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------

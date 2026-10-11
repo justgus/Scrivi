@@ -2,12 +2,12 @@
 
 ---
 
-## ✅ T-0602 — `[Linux]` EP-048 S3b: the Format commands and balanced edits on Linux, on the core logic
+## 🟡 T-0603 — `[Linux]` EP-048 S4: Find over the presented text
 
-**Status:** ✅ **Verified 2026-10-10** (user: *"All live pass rig tests (1-10) pass."*) — filed 2026-10-10; archive with the Sprint close. **Epic:** [EP-048] · **Sprint:** [SP-175] →
-[`../Sprints/Sprint-SP-175.md`](../Sprints/Sprint-SP-175.md)
+**Epic:** [EP-048] (L8) · **Status:** 🟠 **Implemented - Not Verified (2026-10-11)** — ⏳ rig live pass · **Sprint:** [SP-176] (🟡 Active) →
+[`../Sprints/Sprint-SP-176.md`](../Sprints/Sprint-SP-176.md) · **Date Requested:** 2026-10-11 (user: *"plan S4"*)
 
-**What:** a Format menu (Bold Ctrl+B, Italic Ctrl+I, Heading 1–3 Ctrl+Alt+1–3, Body Ctrl+Alt+0, Bulleted Ctrl+Alt+L, Numbered
-Ctrl+Alt+N), Return in a list, balanced cut/copy/⌫/⌦/typing/paste, and the pending pair — all wired to ScriviCore's
-`scrivi_markdown_*` (no Linux editing logic). The navigator toggle moves off Ctrl+Alt+N. Proven by a Linux smoke through the real
-dispatch and a rig live pass.
+**What:** Linux has no Find. Build Edit ▸ Find and a find bar that match the text the writer SEES — across hidden escapes,
+emphasis markers and heading prefixes, never across a scene, never in a chapter title — with Contains / Starts With / Whole
+Word / Ignore Case. ⛔ **Replace is NOT this Task** — it waits for Linux undo ([EP-026]; SP-176 split, ruled 2026-10-11) → EP-048 S4b.
+Apple's shape: [SP-164] / [SP-171]. Proven by `find_smoke` (in CI) and a rig live pass.

@@ -246,6 +246,13 @@ jobs:
           platforms/linux/tests/format_smoke.sh \
             ./build/platforms/linux/scrivi_linux_format_smoke
 
+      # Find over the presented text (SP-176 / T-0603, EP-048 S4): escapes, markers and heading prefixes hidden; never across
+      # a scene or into a chapter title; the options; Edit ▸ Find's real shortcuts; the presented text measured on ~1.85 MB.
+      - name: Find smoke test
+        run: |
+          platforms/linux/tests/find_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_find_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

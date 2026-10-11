@@ -9,6 +9,8 @@
 #include "SceneDocument.hpp"
 #include "ThemeColours.hpp"
 
+#include <algorithm>
+
 ManuscriptPresenter::ManuscriptPresenter(Analyzer analyzer, QObject* parent)
     : QSyntaxHighlighter(parent), analyzer_(std::move(analyzer))
 {
@@ -240,6 +242,25 @@ bool ManuscriptPresenter::isHidden(int i) const
         return true;
     }
     return false;
+}
+
+QVector<int> ManuscriptPresenter::hiddenAtRest(const QString& blockText) const
+{
+    const Info& in = info(blockText);
+    QSet<int> hidden = in.escapes;
+    for (const auto& h : in.a.headings) {
+        for (int k = h.prefix.start; k < h.prefix.end; ++k) {
+            hidden.insert(k);
+        }
+    }
+    for (const auto& m : in.a.markers) {
+        for (int k = m.range.start; k < m.range.end; ++k) {
+            hidden.insert(k);
+        }
+    }
+    QVector<int> out(hidden.begin(), hidden.end());
+    std::sort(out.begin(), out.end());
+    return out;
 }
 
 // ── Drawing ──────────────────────────────────────────────────────────────────────────────────────

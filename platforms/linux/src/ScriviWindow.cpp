@@ -217,6 +217,14 @@ void ScriviWindow::buildMenuBar()
             [this]() { if (editor_ != nullptr) { editor_->pasteClipboard(); } });
     editorOnlyActions_.append(paste);
 
+    // Edit ▸ Find (SP-176 / T-0603, EP-048 S4) — Find over the presented text; ⛔ Replace waits for Linux undo (EP-026).
+    edit->addSeparator();
+    for (QAction* a : addFindMenu(edit, this, [this](FindCommand command) {
+             if (editor_ != nullptr) { editor_->find(command); }
+         })) {
+        editorOnlyActions_.append(a);
+    }
+
     // --- Format (SP-175 / T-0602, EP-048 S3b) ---------------------------------
     // ✅ [SP-175] Q4: between Edit and View, as Apple ([SP-163]).
     for (QAction* a : addFormatMenu(bar, this, [this](ManuscriptEditor::Format format) {

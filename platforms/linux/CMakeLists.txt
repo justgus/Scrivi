@@ -77,6 +77,12 @@ qt_add_executable(scrivi_linux
     # SP-175 (EP-048 S3b): the Format menu — one builder, shared with format_smoke.
     src/FormatMenu.cpp
     src/FormatMenu.hpp
+    # SP-176 (EP-048 S4): Find over the presented text — the map (ManuscriptFind) and the bar + Edit ▸ Find (FindBar),
+    # shared with find_smoke.
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
     # SP-067 (EP-023): the scene navigator with app-mediated drag-reorder.
     src/NavigatorTree.cpp
     src/NavigatorTree.hpp
@@ -458,6 +464,49 @@ target_link_libraries(scrivi_linux_format_smoke
 
 target_include_directories(scrivi_linux_format_smoke PRIVATE src)
 target_compile_features(scrivi_linux_format_smoke PRIVATE cxx_std_23)
+
+# --- Find smoke (SP-176 / T-0603, EP-048 S4) --------------------------------
+# Find over the PRESENTED text, offscreen, through the REAL dispatch: the shared Edit ▸ Find builder's QAction shortcuts
+# (QTest key clicks), the bar's own keys — against the presenter's at-rest hidden set. Also MEASURES the presented-text
+# build and a search on a ~1.85 MB manuscript.
+qt_add_executable(scrivi_linux_find_smoke
+    tests/find_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ThemeColours.hpp
+)
+
+target_link_libraries(scrivi_linux_find_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets
+        Qt6::Test           # QTest key clicks reach QAction shortcuts (sendEvent does not)
+)
+
+target_include_directories(scrivi_linux_find_smoke PRIVATE src)
+target_compile_features(scrivi_linux_find_smoke PRIVATE cxx_std_23)
 
 # --- Headless per-scene save smoke (SP-062 / T-0239, EP-022 AC3) -----------
 # Drives create → open → saveScene(new body) → reopen and asserts the new bytes
@@ -913,6 +962,10 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/ScriviBridge.hpp
     src/EditorShell.cpp
     src/EditorShell.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
     # SP-145 — required by EditorShell::applyLoadedProject (registerSession).
     src/ProjectSession.hpp
     src/OpenProjectRegistry.cpp
@@ -985,6 +1038,10 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/ScriviBridge.hpp
     src/EditorShell.cpp
     src/EditorShell.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
     # SP-145 — required by EditorShell::applyLoadedProject (registerSession).
     src/ProjectSession.hpp
     src/OpenProjectRegistry.cpp

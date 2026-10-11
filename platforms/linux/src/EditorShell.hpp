@@ -10,6 +10,7 @@
 #include "AppEnvironment.hpp"
 #include "OpenProjectRegistry.hpp"
 #include "ProjectSession.hpp"
+#include "FindBar.hpp"
 #include "ManuscriptEditor.hpp"
 #include "SceneDocument.hpp"
 
@@ -165,6 +166,7 @@ public:
     void cutSelection();   // Edit ▸ Cut      → viewport cut()
     void copySelection();  // Edit ▸ Copy     → viewport copy()
     void applyFormat(ManuscriptEditor::Format format);   // Format ▸ … (SP-175) → viewport applyFormat()
+    void find(FindCommand command);                      // Edit ▸ Find ▸ … (SP-176) → the find bar
     void pasteClipboard(); // Edit ▸ Paste    → viewport paste()
 
     // --- EP-035 AC3 Worlds surface (SP-127, T-0494) -----------------------
@@ -531,6 +533,7 @@ private:
 
     ScriviBridge*       bridge_    = nullptr;   // owns its own bootstrapped bridge
     ManuscriptEditor*   viewport_  = nullptr;
+    FindBar*            findBar_   = nullptr;   // SP-176: above the manuscript, hidden until Find
     // EP-048 (SP-166): draws the manuscript (escapes hidden, headings + emphasis rendered). Child of this
     // shell; attached to the document only between loads, so a load highlights ONCE, with a current scene map.
     ManuscriptPresenter* presenter_ = nullptr;
