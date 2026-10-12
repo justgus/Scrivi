@@ -1,15 +1,15 @@
 ---
 sprint: SP-179
 epic: EP-026
-status: Planning
+status: Active
 platform: Linux
 created: 2026-10-12
 ---
 
 # SP-179 — `[Linux]` [EP-026] **S5**: copy buffers 1–9, View ▸ Show Buffers (Ctrl+Alt+B) and the Buffers palette
 
-**Status:** 🟡 **ACTIVE 2026-10-12** (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ⏳ Linux steps 1–8 next.
-**Carries:** [T-0606] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
+**Status:** 🟡 **ACTIVE 2026-10-12** (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ✅ Linux steps 1–7 IMPLEMENTED 2026-10-12 (user: *"proceed with the SP-179 implementation."*); ⏳ AC8 rig live pass.
+**Carries:** [T-0606] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
 [`../Epics/Epic-active.md`](../Epics/Epic-active.md). ⚠️ **Planned BEFORE S3 and S4** on my recommendation (user: *"start planning S5"*): it depends least on
 [SP-178]'s not-yet-live-passed undo path, and its key chords can be measured on the rig in the same session as SP-178's pass.
@@ -127,13 +127,13 @@ change Q2 ruled ([I-0289]: the three buffer gaps + the stale comment) — ⛔ no
 - [x] AC0 — `[Apple]` [I-0289]: ⌘N / ⌥N store the balanced copy (one scene and across scenes); ⌃N keeps the slot's own formatting; `BufferService.swift` header current. `BufferBalanceTests` 4/4, each failing before the fix; interop 281/281. ✅ **VERIFIED 2026-10-12** (user, Mac)
 - [x] AC0b — `[Apple]` [I-0290]: buffer paste is ⌃⌘1–9 (⌃1–9 is macOS's "Switch to Desktop N"); menu and palette labels follow. `BufferPasteChordTests` 2/2, mutation-checked; interop 283/283. ✅ **VERIFIED 2026-10-12** (user, Mac)
 - [x] AC0c — `[Apple]` [I-0291]: the palette's button turns to paste on ⌃⌘, not ⌃ alone. Test failed before the fix; interop 284/284. ✅ **VERIFIED 2026-10-12** (user, Mac)
-- [ ] AC1 — Ctrl+1–9 copies the selection into slot N: no text change, no undo step, system clipboard untouched; nothing selected → no-op
-- [ ] AC2 — Ctrl+Shift+1–9 pastes slot N at the caret, replacing any selection: ONE undo step, stored text verbatim; an empty slot → no-op
-- [ ] AC3 — Alt+1–9 cuts the selection into slot N: ONE undo step, its history node tagged with the slot; undo restores text and disk, and the slot keeps the text
-- [ ] AC4 — Slots persist per project across quit, in the same `history/buffers.json` the Mac reads and writes (a Mac-written slot pastes on Linux per Q1)
-- [ ] AC5 — View ▸ Show Buffers (Ctrl+Alt+B) toggles ONE app-wide palette that follows the front project window: nine rows, presented preview, time, a modifier-following action button, clear; disabled with no project open; closing it unchecks the menu item
-- [ ] AC6 — Copy into a slot is balanced or raw per Q2; a cross-scene copy/cut per Q1
-- [ ] AC7 — Smokes green through the real key dispatch, mutation-checked; `bridge_parity_smoke` covers the four endpoints; ctest green on macOS and Linux
+- [x] AC1 — Ctrl+1–9 copies the selection into slot N: no text change, no undo step, system clipboard untouched; nothing selected → no-op — `buffers_smoke` §1
+- [x] AC2 — Ctrl+Shift+1–9 pastes slot N at the caret, replacing any selection: ONE undo step, stored text verbatim; an empty slot → no-op — `buffers_smoke` §2–4, §6 (sent as the SHIFTED key, `!`)
+- [x] AC3 — Alt+1–9 cuts the selection into slot N: ONE undo step, its history node tagged with the slot; undo restores text and disk, and the slot keeps the text — `buffers_smoke` §5, §7 (across scenes: one grouped `cut` step, untagged, as Apple's)
+- [x] AC4 — Slots persist per project across quit, in the same `history/buffers.json` the Mac reads and writes (a Mac-written slot pastes on Linux per Q1) — `buffers_smoke` §8, §13; every slot asserted through `scrivi_buffers_get`
+- [x] AC5 — View ▸ Show Buffers (Ctrl+Alt+B) toggles ONE app-wide palette that follows the front project window: nine rows, presented preview, time, a modifier-following action button, clear; disabled with no project open; closing it unchecks the menu item — `buffers_smoke` §9–12 (two real windows through `AppEnvironment`)
+- [x] AC6 — Copy into a slot is balanced or raw per Q2; a cross-scene copy/cut per Q1 — balanced (§1, §3); cross-scene = flat text (§7)
+- [x] AC7 — Smokes green through the real key dispatch, mutation-checked; `bridge_parity_smoke` covers the four endpoints; ctest green on macOS and Linux — Linux (Docker, clean build): ctest 721 test cases as uid 1000, smokes **31/31**, no warnings; 7 mutations all caught; `bridge_parity_smoke` 60 checks. macOS ctest 718/718 is from earlier today — ⚠️ no ScriviCore change since, so not re-run
 - [ ] AC8 — ✅ **Rig live pass (user)** — every chord measured against GNOME over RDP
 
 ---
@@ -193,3 +193,33 @@ FAILED on the old code; interop 284/284.
 
 ✅ User: *"I-0291 passes"* (incl. the ⌃⌘-click paste) → archived to the new batch `Issue-verified-0291-0300.md`. All three
 Apple Issues of step 0 are verified. ⏳ Next: Linux, plan steps 1–8.
+
+### 🟠 2026-10-12 — Linux steps 1–7 IMPLEMENTED; ⏳ AC8 rig live pass
+
+✅ User: *"proceed with the SP-179 implementation."*
+- **Bridge** (`ScriviBridge`): `buffersLoad` / `buffersGet` / `buffersList` / `buffersClear`, static and best-effort as S2's.
+  `bridge_parity_smoke` covers all four (stored text verbatim, an unset slot, the file on disk, list, clear, slot 0 refused).
+- **`BufferService`** (`src/BufferService.{hpp,cpp}`): the slot mirror, Apple's shape. ⚠️ **Deviation from step 2: owned by
+  `EditorShell`, beside `HistoryCapture` — NOT by `ProjectSession`**, whose rule is that it holds state and never calls the core.
+- **Editor** (`ManuscriptEditor`): `selectionSource` (the balanced copy, shared with Ctrl+C via `balancedCopyOf`),
+  `cutSelectionIntoBuffer` (slot FIRST, then the balanced removal tagged with the slot; across scenes [I-0270]'s grouped `cut`),
+  `pasteStored` (verbatim, own formatting). Chords in `keyPressEvent`, claimed in `ShortcutOverride`; the digit from the
+  physical key (`nativeScanCode` 10–18), then `Key_1…9`, then the US shifted marks. `HistoryCapture::beginPasteOrCut` takes
+  the slot.
+- **Shell** (`EditorShell::copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`): Q1's notice once per open project.
+- **Front project + palette** (`AppEnvironment`, `ScriviWindow::changeEvent`, `src/BuffersPalette.{hpp,cpp}`): ONE palette,
+  non-activating; follows the window last activated; hides (toggle kept) with no project in front; its click acts with the
+  modifiers of the press itself. Landing is ignored, per step 5.
+- ✅ **Also Apple's shape, not in the written plan:** Edit ▸ Copy To / Paste From / Cut To Buffer submenus (no key equivalents,
+  a chord header each) — and the route that always works if RDP swallows a chord.
+- **`buffers_smoke`** (new, offscreen): two real project windows through `AppEnvironment`; keys through `QTest`; text from disk.
+- ⛔→✅ **Found by the full run:** `open_progress_smoke` FAILED — the slots were read mid-load, and `scrivi_buffers_list` takes
+  the core's project WRITE guard, which moves `projectRevision`; the worker's timeline read then looked stale and the open
+  re-read the timeline on the UI thread ([I-0285]'s cost). Fixed by creating the slots after the timeline is applied.
+- ⛔→✅ A first full build failed to LINK: an out-of-line `~AppEnvironment` broke the Core-only smokes that use the header alone
+  (the trap `CMakeLists.txt` records). Now inline, deleting the palette through its QObject base.
+- **Mutations (7, all caught):** own-formatting flag off · shifted-digit fallback off · cut tag dropped · palette paste on Ctrl
+  alone · raw (unbalanced) copy · front-window tracking off · cut skips the slot write. ⚠️ Not mutation-checked: the
+  `ShortcutOverride` claim (no window shortcut competes for these chords today).
+- ⏳ **Next: AC8 — the rig live pass** (every chord against GNOME over RDP; shares a session with [SP-178]'s if both are ready).
+

@@ -2,6 +2,9 @@
 
 #include <QPlainTextEdit>
 
+#include <functional>
+#include <utility>
+
 #include "MarkdownAnalysis.hpp"
 
 class ManuscriptPresenter;
@@ -61,6 +64,22 @@ public:
     // caret leaves it, and by the shell before any structural edit (Apple: a storage rebuild drops it).
     void removePendingPair();
 
+    // ── EP-026 S5 (SP-179 / T-0606): the copy buffers — Apple's `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`
+    // (`ManuscriptTextView.swift`). The editor does the text; `EditorShell` talks to the slots (`BufferService`). ──
+    // What a slot gets for the selection: the BALANCED stored source Ctrl+C keeps for Scrivi's own paste ([I-0289], Q2) —
+    // across scenes, the flat text with its headings and separators ([SP-179] Q1). Empty when nothing is selected.
+    [[nodiscard]] QString selectionSource() const;
+    // Cut the selection into a slot: `store(source)` FIRST (a cut must never lose its text), then the balanced removal as
+    // ONE `cut` step tagged with `bufferID` — across scenes, [I-0270]'s per-scene removal, one grouped `cut` step (Apple's
+    // shape: the grouped step carries no slot). Changes nothing when nothing removable is selected or `store` fails.
+    bool cutSelectionIntoBuffer(const QString& bufferID, const std::function<bool(const QString& source)>& store);
+    // Paste a slot's STORED text verbatim (never re-escaped, EP-045 AC4) over the selection: ONE `paste` step. A slot is
+    // always Scrivi's own copy, so it keeps ITS formatting where it lands ([I-0289], [SP-163]). False when refused.
+    bool pasteStored(const QString& source);
+    // The digit 1–9 the key event's PHYSICAL key carries, or 0. ⚠️ Ctrl+Shift+1 arrives as `!` (the shifted key), so the
+    // scan code decides; the US-layout shifted marks are the fallback when there is none (offscreen tests).
+    [[nodiscard]] static int bufferDigit(const QKeyEvent* event);
+
 signals:
     // Ctrl+Return — the Linux analogue of Apple's ⌘↩ "new scene" (T-0240). The
     // editor does NOT insert a newline; EditorShell handles the create.
@@ -83,14 +102,23 @@ signals:
     void redoRequested();
     // A paste or an in-scene cut is about to change the text / has changed it (Apple: `beginPasteOrCut` … `flush`).
     // `kind` is "paste" | "cut".
-    void pasteOrCutBegins(const QString& kind);
+    // `bufferID` tags a cut INTO a copy buffer (S5); empty otherwise.
+    void pasteOrCutBegins(const QString& kind, const QString& bufferID);
     void pasteOrCutEnded(const QString& kind);
     // [I-0270] ONE edit across several scenes is about to run / has run, one `contentsChange` per scene in between —
     // EditorShell reports it as ONE grouped undo step. `kind` is "delete" | "cut".
     void groupedEditBegins();
     void groupedEditEnded(const QString& kind);
 
+    // ── EP-026 S5 (SP-179): the buffer chords (✅ EP-026 Q3: Ctrl+N copy · Ctrl+Shift+N paste · Alt+N cut). Caught HERE,
+    // each claimed in ShortcutOverride first; EditorShell acts on the slot. `bufferID` is "1"–"9". ──
+    void bufferCopyRequested(const QString& bufferID);
+    void bufferPasteRequested(const QString& bufferID);
+    void bufferCutRequested(const QString& bufferID);
+
 protected:
+    // Claims the buffer chords in ShortcutOverride, so no window shortcut takes them while the editor has focus.
+    bool event(QEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void insertFromMimeData(const QMimeData* source) override;
     // EP-049 (SP-160): copy / cut / drag put the PRESENTED text on the clipboard (Apple: `writeSelection`),
@@ -155,7 +183,12 @@ private:
     // [I-0270] Removes [start, end)'s text from each scene it spans, keeping the scenes.
     // `copyFirst` copies the selection to the clipboard first (a cut). Returns false —
     // and changes nothing — when the range does not span two or more scene bodies.
-    bool deleteAcrossScenes(int start, int end, bool copyFirst);
+    // `kind` names the grouped step; empty = "cut" when copying first, else "delete" (S5: a cut into a slot is a "cut").
+    bool deleteAcrossScenes(int start, int end, bool copyFirst, const QString& kind = {});
+    // The balanced {source, presented} of [start, end) — scene by scene, headings and separators as they are (SP-175).
+    [[nodiscard]] std::pair<QString, QString> balancedCopyOf(int start, int end) const;
+    // The buffer chord `event` is ({action, digit}), or {0, 0}: action 1 copy · 2 paste · 3 cut.
+    [[nodiscard]] static std::pair<int, int> bufferChord(const QKeyEvent* event);
 
     // ── EP-048 (SP-166): stop runs (Apple: `MarkdownEscapes.snapCaret` / `snapSelection`) ──
     // Where a caret proposed at `loc`, coming from `previous`, must land instead (or `loc`).

@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <QHash>
 #include <QList>
+#include <QObject>
 #include <QPoint>
 #include <QRect>
 #include <QString>
@@ -12,6 +13,7 @@
 class ScriviWindow;
 class LandingWindow;
 class ShellController;
+class BuffersPalette;
 
 #include "OpenProjectRegistry.hpp"
 #include "ProjectWindowManager.hpp"
@@ -81,6 +83,11 @@ public:
 
     // ⚠️ NON-COPYABLE, NON-MOVABLE. ✅ It is handed out by pointer and things bind to
     // it; ⛔ a copy would be a second app-global state owner, which is a contradiction.
+    // ⚠️ INLINE, as everything here: Core-only smokes use this header without `AppEnvironment.cpp` (see CMakeLists).
+    // The palette is deleted through its QObject base, so this needs only QtCore — ⚠️ before QApplication goes
+    // (main() builds the environment after it).
+    ~AppEnvironment() { delete paletteOwner_; }
+
     AppEnvironment(const AppEnvironment&)            = delete;
     AppEnvironment& operator=(const AppEnvironment&) = delete;
     AppEnvironment(AppEnvironment&&)                 = delete;
@@ -320,6 +327,35 @@ public:
     // ⛔ rather than each window reimplementing an open UI.
     void setShellController(ShellController* shell) { shell_ = shell; }
 
+    // ---- EP-026 S5 (SP-179 / T-0606): the Buffers palette and the FRONT project -------------------
+    //
+    // ✅ Apple's shape (`AppEnvironment.swift`: `frontmostSession`, `buffersPaletteVisible`, `syncBuffersPalette`): ONE
+    // app-wide palette that mirrors the front project's slots. ✅ The front project is the window last ACTIVATED; the
+    // palette and Landing never become it (the palette never takes focus; Landing is ignored — [SP-179] plan step 5).
+    // When no project is in front the palette hides but the toggle is kept, so it comes back with a project (Apple).
+
+    // A project window was activated (`ScriviWindow::changeEvent`). Ignored until it has a project registered.
+    void projectWindowActivated(ScriviWindow* window);
+    // A project window finished loading — its buffers exist now. It becomes the front if it is active or none is.
+    void projectWindowLoaded(ScriviWindow* window);
+    [[nodiscard]] ScriviWindow* frontProjectWindow() const { return front_; }
+    // ⚠️ A window being destroyed (its destructor) — never left as the front.
+    void projectWindowDestroyed(ScriviWindow* window)
+    {
+        if (front_ == window) {
+            front_ = nullptr;
+            syncBuffersPalette();
+        }
+    }
+
+    // View ▸ Show Buffers (Ctrl+Alt+B) — app-wide; every window's check follows.
+    [[nodiscard]] bool buffersPaletteVisible() const { return buffersVisible_; }
+    void setBuffersPaletteVisible(bool on);
+    // Show / hide / re-point the palette for the visible flag and the front project.
+    void syncBuffersPalette();
+    // The palette, once first shown (for smokes); nullptr before.
+    [[nodiscard]] BuffersPalette* buffersPalette() const { return palette_; }
+
 private:
     ShellController* shell_ = nullptr;   // NOT owned — the Landing window parents it
 
@@ -334,4 +370,10 @@ private:
     SessionStore        session_;
     // ⚠️ projectID → a window whose load of it has not finished (T-0567). BORROWED.
     QHash<QString, ScriviWindow*> pendingOpens_;
+
+    // EP-026 S5 (SP-179) — borrowed, like the window map (cleared in `projectWindowClosing`).
+    ScriviWindow*       front_ = nullptr;
+    bool                buffersVisible_ = false;
+    BuffersPalette*     palette_ = nullptr;   // created on first show, deleted with the environment…
+    QObject*            paletteOwner_ = nullptr;   // …through this, its QObject base (see the destructor)
 };

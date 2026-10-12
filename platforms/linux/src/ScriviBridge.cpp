@@ -2024,6 +2024,29 @@ QVariantMap ScriviBridge::captureBegin(const QString& root, const QString& kind,
                            scrivi_capture_begin(u8(root).constData(), u8(kind).constData(), u8(bufferID).constData()));
 }
 
+QVariantMap ScriviBridge::buffersLoad(const QString& root, const QString& bufferID, const QString& text,
+                                      const QString& fragmentJson)
+{
+    return historyEnvelope("scrivi_buffers_load",
+                           scrivi_buffers_load(u8(root).constData(), u8(bufferID).constData(), u8(text).constData(),
+                                               u8(fragmentJson).constData()));
+}
+
+QVariantMap ScriviBridge::buffersGet(const QString& root, const QString& bufferID)
+{
+    return historyEnvelope("scrivi_buffers_get", scrivi_buffers_get(u8(root).constData(), u8(bufferID).constData()));
+}
+
+QVariantMap ScriviBridge::buffersList(const QString& root)
+{
+    return historyEnvelope("scrivi_buffers_list", scrivi_buffers_list(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::buffersClear(const QString& root, const QString& bufferID)
+{
+    return historyEnvelope("scrivi_buffers_clear", scrivi_buffers_clear(u8(root).constData(), u8(bufferID).constData()));
+}
+
 QVariantMap ScriviBridge::captureFlush(const QString& root, const QString& trigger, const QString& kind)
 {
     return historyEnvelope("scrivi_capture_flush",

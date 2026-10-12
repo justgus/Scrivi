@@ -3,8 +3,12 @@
 #include <QApplication>
 #include <QScreen>
 
+#include "BufferService.hpp"
+#include "BuffersPalette.hpp"
+#include "EditorShell.hpp"
 #include "LandingWindow.hpp"
 #include "ScriviWindow.hpp"
+
 
 // ⚠️ [SP-146] T-0560 — R7: QUIT FLUSHES EVERY SESSION, NOT ONE.
 //
@@ -176,6 +180,11 @@ void AppEnvironment::projectWindowClosing(ScriviWindow* window)
 {
     windows_.deregisterWindow(window);
     projectLoadSettled(window);   // ⚠️ closed before its load finished — T-0567
+    // EP-026 S5: the palette lets go of a closing front project (the next window activated takes over).
+    if (front_ == window) {
+        front_ = nullptr;
+        syncBuffersPalette();
+    }
 
     // ⛔ [I-0257] — DO NOT RE-SHOW LANDING WHILE QUITTING. ⚠️ Re-showing a window
     // during a teardown is what aborted `closeAllWindows()`'s cascade and left
@@ -245,3 +254,85 @@ void AppEnvironment::quitApplication()
     }
     QApplication::quit();
 }
+
+// ── EP-026 S5 (SP-179 / T-0606): the Buffers palette and the front project ─────────────────────────────────────────
+// Apple: `AppEnvironment.frontmostSession` / `buffersPaletteVisible` / `syncBuffersPalette` (Scrivi/App/AppEnvironment.swift).
+
+void AppEnvironment::projectWindowActivated(ScriviWindow* window)
+{
+    // Only a window showing a project (registered) — a window still loading has no buffers to show yet.
+    if (window == nullptr || window->shownProjectID().isEmpty() || windows_.window(window->shownProjectID()) != window) {
+        return;
+    }
+    if (front_ != window) {
+        front_ = window;
+        syncBuffersPalette();
+    }
+}
+
+void AppEnvironment::projectWindowLoaded(ScriviWindow* window)
+{
+    if (window != nullptr && (window->isActiveWindow() || front_ == nullptr)) {
+        front_ = nullptr;   // re-point even when it was already front: its buffers are new
+        projectWindowActivated(window);
+    }
+}
+
+void AppEnvironment::setBuffersPaletteVisible(bool on)
+{
+    buffersVisible_ = on;
+    for (ScriviWindow* window : windows_.allWindows()) {
+        if (window != nullptr) {
+            window->setBuffersActionChecked(on);
+        }
+    }
+    syncBuffersPalette();
+}
+
+void AppEnvironment::syncBuffersPalette()
+{
+    BufferService* service = front_ != nullptr ? front_->bufferService() : nullptr;
+    if (!buffersVisible_ || service == nullptr) {
+        if (palette_ != nullptr) {
+            palette_->setService(service);
+            palette_->hideQuietly();   // the toggle is kept (Apple)
+        }
+        return;
+    }
+    if (palette_ == nullptr) {
+        palette_ = new BuffersPalette;
+        paletteOwner_ = palette_;
+        // ✅ Every action goes to the project in front AT THAT MOMENT (Apple: the row actions route to the front
+        // project's service each call).
+        QObject::connect(palette_, &BuffersPalette::actionRequested, palette_,
+                         [this](BuffersPalette::Action action, const QString& bufferID) {
+                             EditorShell* shell = front_ != nullptr ? front_->editorShell() : nullptr;
+                             if (shell == nullptr) {
+                                 return;
+                             }
+                             switch (action) {
+                             case BuffersPalette::Action::Copy:  shell->copyIntoBuffer(bufferID); break;
+                             case BuffersPalette::Action::Paste: shell->pasteFromBuffer(bufferID); break;
+                             case BuffersPalette::Action::Cut:   shell->cutIntoBuffer(bufferID); break;
+                             }
+                         });
+        QObject::connect(palette_, &BuffersPalette::clearRequested, palette_, [this](const QString& bufferID) {
+            if (BufferService* s = palette_->service()) {
+                s->clear(bufferID);
+            }
+        });
+        QObject::connect(palette_, &BuffersPalette::closedByWriter, palette_,
+                         [this]() { setBuffersPaletteVisible(false); });
+        // ✅ [SP-179] Q3: beside the front window where the platform allows (X11); Wayland places it itself, and its
+        // position is never restored.
+        if (platformReportsWindowPosition()) {
+            const QRect f = front_->frameGeometry();
+            palette_->move(clampedOnscreen(QRect(f.right() + 12, f.top(), 320, 420)).topLeft());
+        }
+    }
+    palette_->setService(service);
+    if (!palette_->isVisible()) {
+        palette_->show();
+    }
+}
+

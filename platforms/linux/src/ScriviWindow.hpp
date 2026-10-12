@@ -11,6 +11,7 @@ class QAction;
 class QQuickWidget;
 class QStackedWidget;
 class EditorShell;
+class BufferService;
 
 // ScriviWindow — the Qt Widgets host shell (SP-061, EP-022 T-0234).
 //
@@ -124,11 +125,20 @@ public:
     // ✅ Called when the writer asks to open a project that is ALREADY open.
     void raiseToFront();
 
+    // EP-026 S5 (SP-179 / T-0606): the editor (for the Buffers palette's actions) and this project's copy buffers, or
+    // nullptr when no project is shown.
+    [[nodiscard]] EditorShell* editorShell() const { return editor_; }
+    [[nodiscard]] BufferService* bufferService() const;
+    // View ▸ Show Buffers follows the ONE app-wide palette — every window's check is set from `AppEnvironment`.
+    void setBuffersActionChecked(bool on);
+
     ~ScriviWindow() override;
 
 protected:
     // The window-close (X) path also flushes before the app tears down.
     void closeEvent(QCloseEvent* event) override;
+    // EP-026 S5: a project window coming to the front tells the app (the palette follows the FRONT project).
+    void changeEvent(QEvent* event) override;
 
 private:
     // Build the native menu bar (SP-077, T-0310/T-0311/T-0312) and stash the actions
@@ -163,4 +173,7 @@ private:
     // ⚠️ [I-0256] — View ▸ Show Scene Navigator. ✅ Check-state synced per window in
     // `updateMenuState()`, exactly as the inspector and timeline actions are.
     QAction* showNavigatorAction_ = nullptr;
+
+    // EP-026 S5 (SP-179) — View ▸ Show Buffers (Ctrl+Alt+B), checkable; bound to the app-wide palette.
+    QAction* showBuffersAction_ = nullptr;
 };

@@ -19,6 +19,7 @@
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
+#include "BufferService.hpp"
 #include "EditorShell.hpp"
 
 // ---- ShellController --------------------------------------------------------
@@ -245,6 +246,31 @@ void ScriviWindow::buildMenuBar()
             [this]() { if (editor_ != nullptr) { editor_->pasteClipboard(); } });
     editorOnlyActions_.append(paste);
 
+    // Edit ▸ Copy To / Paste From / Cut To Buffer (EP-026 S5, SP-179 / T-0606) — Apple's three submenus, the discoverable
+    // face of the chords. ⛔ No key equivalents on the items: the chords are the EDITOR's (it claims them first); each
+    // submenu names its chord in a header, as Apple's do. A click acts on THIS window's project. ✅ Also the route that
+    // always works if a remote session swallows a chord (`project_linux_vnc_input_constraints`).
+    edit->addSeparator();
+    {
+        struct BufferMenu { const char* title; const char* header; void (EditorShell::*act)(const QString&); };
+        static const BufferMenu menus[] = {
+            {QT_TR_NOOP("Copy To Buffer"), QT_TR_NOOP("Ctrl+1–9 — copy the selection"), &EditorShell::copyIntoBuffer},
+            {QT_TR_NOOP("Paste From Buffer"), QT_TR_NOOP("Ctrl+Shift+1–9 — paste at the cursor"), &EditorShell::pasteFromBuffer},
+            {QT_TR_NOOP("Cut To Buffer"), QT_TR_NOOP("Alt+1–9 — cut the selection"), &EditorShell::cutIntoBuffer},
+        };
+        for (const BufferMenu& m : menus) {
+            QMenu* sub = edit->addMenu(tr(m.title));
+            sub->addAction(tr(m.header))->setEnabled(false);
+            for (const QString& id : BufferService::slotIDs()) {
+                const auto act = m.act;
+                connect(sub->addAction(tr("Buffer %1").arg(id)), &QAction::triggered, this, [this, act, id]() {
+                    if (editor_ != nullptr) { (editor_->*act)(id); }
+                });
+            }
+            editorOnlyActions_.append(sub->menuAction());
+        }
+    }
+
     // Edit ▸ Find (SP-176 / T-0603, EP-048 S4) — Find over the presented text; ⛔ Replace waits for Linux undo (EP-026).
     edit->addSeparator();
     for (QAction* a : addFindMenu(edit, this, [this](FindCommand command) {
@@ -302,6 +328,17 @@ void ScriviWindow::buildMenuBar()
         if (editor_ != nullptr) { editor_->setTimelineVisible(on); }
     });
     editorOnlyActions_.append(showTimelineAction_);
+
+    // Show Buffers (EP-026 S5, SP-179 / T-0606) — the ONE app-wide Copy Buffers palette, following the front project.
+    // ✅ Ctrl+Alt+B (user, 2026-10-11: *"Ctrl-Alt-B is correct."*), Apple's ⌥⌘B. Every window's check follows the one
+    // palette (`AppEnvironment::setBuffersPaletteVisible`).
+    showBuffersAction_ = view->addAction(tr("Show Buffers"));
+    showBuffersAction_->setCheckable(true);
+    showBuffersAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_B));
+    connect(showBuffersAction_, &QAction::toggled, this, [this](bool on) {
+        if (env_ != nullptr) { env_->setBuffersPaletteVisible(on); }
+    });
+    editorOnlyActions_.append(showBuffersAction_);
 
     // Story Structure… (EP-025 / SP-081, T-0330) — pick a built-in structure (Three Act
     // / Five Act / Hero's Journey / …) or remove it; the timeline paints the bands.
@@ -454,6 +491,31 @@ void ScriviWindow::updateMenuState(bool editorActive)
         const QSignalBlocker block(showTimelineAction_);
         showTimelineAction_->setChecked(shown);
     }
+
+    // EP-026 S5: View ▸ Show Buffers is app-wide — the same check in every window.
+    setBuffersActionChecked(env_ != nullptr && env_->buffersPaletteVisible());
+}
+
+void ScriviWindow::setBuffersActionChecked(bool on)
+{
+    if (showBuffersAction_ != nullptr) {
+        const QSignalBlocker block(showBuffersAction_);
+        showBuffersAction_->setChecked(on);
+    }
+}
+
+BufferService* ScriviWindow::bufferService() const
+{
+    return editor_ != nullptr ? editor_->buffers() : nullptr;
+}
+
+void ScriviWindow::changeEvent(QEvent* event)
+{
+    // EP-026 S5 (SP-179): the FRONT project is the one whose window was last activated (Apple: `frontmostSession`).
+    if (event->type() == QEvent::ActivationChange && isActiveWindow() && env_ != nullptr) {
+        env_->projectWindowActivated(this);
+    }
+    QMainWindow::changeEvent(event);
 }
 
 void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
@@ -516,6 +578,8 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
                         env_->sessionStore().setOpen(shownProjectID(),
                                                      editor_->currentProjectPath(),
                                                      title_);
+                        // EP-026 S5 (SP-179): its buffers now exist — the palette follows it if it is in front.
+                        env_->projectWindowLoaded(this);
                     }
                 });
         stack_->addWidget(editor_);   // page 1 — editor
@@ -645,6 +709,7 @@ ScriviWindow::~ScriviWindow()
 {
     if (env_ != nullptr) {
         env_->windows().deregisterWindow(this);
+        env_->projectWindowDestroyed(this);   // EP-026 S5: the palette's front project
     }
 }
 

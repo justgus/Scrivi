@@ -41,6 +41,7 @@
 #include <cstdio>
 
 #include "EpochOffsetDialog.hpp"
+#include "BufferService.hpp"
 #include "HistoryCapture.hpp"
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
@@ -357,8 +358,8 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     // (Apple: `beginPasteOrCut` … `flush`, `recordGroupedEdit`).
     connect(viewport_, &ManuscriptEditor::undoRequested, this, &EditorShell::undo);
     connect(viewport_, &ManuscriptEditor::redoRequested, this, &EditorShell::redo);
-    connect(viewport_, &ManuscriptEditor::pasteOrCutBegins, this, [this](const QString& kind) {
-        if (history_ != nullptr) { history_->beginPasteOrCut(kind); }
+    connect(viewport_, &ManuscriptEditor::pasteOrCutBegins, this, [this](const QString& kind, const QString& bufferID) {
+        if (history_ != nullptr) { history_->beginPasteOrCut(kind, bufferID); }
     });
     connect(viewport_, &ManuscriptEditor::pasteOrCutEnded, this, [this](const QString& kind) {
         if (history_ != nullptr) { history_->flush(kind, kind); }
@@ -385,6 +386,11 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
             history_->groupedEdit(QString::fromUtf8(QJsonDocument(edits).toJson(QJsonDocument::Compact)), kind);
         }
     });
+
+    // EP-026 S5 (SP-179 / T-0606): the copy-buffer chords (Ctrl+N copy · Ctrl+Shift+N paste · Alt+N cut).
+    connect(viewport_, &ManuscriptEditor::bufferCopyRequested, this, &EditorShell::copyIntoBuffer);
+    connect(viewport_, &ManuscriptEditor::bufferPasteRequested, this, &EditorShell::pasteFromBuffer);
+    connect(viewport_, &ManuscriptEditor::bufferCutRequested, this, &EditorShell::cutIntoBuffer);
 
     // Surface bridge errors inline rather than silently failing.
     //
@@ -875,6 +881,17 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     } else {
         reloadTimeline();
         loadLog("main: timeline RE-READ (project changed since the worker read it) — applyLoaded done");
+    }
+    // EP-026 S5 (SP-179): this project's copy buffers (a reload of the same project keeps them).
+    // ⚠️ AFTER the timeline check above, never before: `scrivi_buffers_list` takes the core's project WRITE guard, which
+    // moves `projectRevision` — so reading the slots first made the worker's timeline read look stale and re-read the
+    // timeline on the UI thread ([I-0285]'s cost; `open_progress_smoke` caught it).
+    if (buffers_ == nullptr || buffers_->projectRootPath() != projectPath) {
+        if (buffers_ != nullptr) {
+            buffers_->deleteLater();
+        }
+        buffers_ = new BufferService(projectPath, this);
+        structuredSlotNoticeShown_ = false;
     }
     {
         // SP-173 (Q1): what the exclusive project lock cost this process so far — waits of 1 ms or more, all threads.
@@ -1669,6 +1686,11 @@ void EditorShell::releaseProject()
         history_ = nullptr;
     }
     historyText_.clear();
+    // EP-026 S5 (SP-179): the copy buffers go with the project (the palette lets go of them as they are destroyed).
+    if (buffers_ != nullptr) {
+        buffers_->deleteLater();
+        buffers_ = nullptr;
+    }
 
     // EP-039 T-0512. ⚠️ Order matters: the core is keyed by the project ROOT, so this
     // must run while `projectPath_` still holds it.
@@ -2352,6 +2374,53 @@ void historyNotice(QWidget* parent, const QString& text, const QString& detail =
     box.exec();
 }
 }   // namespace
+
+// ── EP-026 S5 (SP-179 / T-0606): the copy buffers ─────────────────────────────────────────────────────────────────
+// Apple: the coordinator's `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`. The editor does the text; the slots
+// are `buffers_`'s.
+
+void EditorShell::copyIntoBuffer(const QString& bufferID)
+{
+    if (buffers_ == nullptr) {
+        return;
+    }
+    // Copy is not a text change: no history event (Trade T3), and the system clipboard is untouched.
+    const QString source = viewport_->selectionSource();
+    if (!source.isEmpty()) {
+        buffers_->load(source, bufferID);
+    }
+}
+
+void EditorShell::cutIntoBuffer(const QString& bufferID)
+{
+    if (buffers_ == nullptr || loading_) {
+        return;
+    }
+    viewport_->setFocus();   // a palette click must not leave the editor unfocused (Apple: `makeFirstResponder`)
+    viewport_->cutSelectionIntoBuffer(bufferID, [this, bufferID](const QString& source) {
+        return buffers_->load(source, bufferID);
+    });
+}
+
+void EditorShell::pasteFromBuffer(const QString& bufferID)
+{
+    if (buffers_ == nullptr || loading_) {
+        return;
+    }
+    const QString text = buffers_->text(bufferID);
+    if (text.isEmpty()) {
+        return;   // an empty slot → silent no-op (Apple)
+    }
+    viewport_->setFocus();
+    // ✅ [SP-179] Q1: a slot the Mac filled with SCENES pastes its plain text until S4 rebuilds scene breaks — said once.
+    // Nothing is lost: the slot keeps its scenes for the Mac.
+    if (buffers_->isStructured(bufferID) && !structuredSlotNoticeShown_) {
+        structuredSlotNoticeShown_ = true;
+        historyNotice(this, tr("This buffer holds scenes copied on the Mac. It is pasted as plain text; scene breaks are "
+                               "not restored yet."));
+    }
+    viewport_->pasteStored(text);
+}
 
 int EditorShell::replaceSceneBody(int idx, const QString& text, int caretUtf16)
 {

@@ -52,8 +52,9 @@ public:
     // the scene before it. ⛔ Not while applying an undo/redo.
     void noteEdit(const QString& sceneID, const QString& text, int caretUtf16, const QString& textBefore);
     void caretMoved(const QString& sceneID, bool editInFlight);
-    // A paste or cut is about to change the text; follow the change with `flush(kind, kind)`.
-    void beginPasteOrCut(const QString& kind);
+    // A paste or cut is about to change the text; follow the change with `flush(kind, kind)`. `bufferID` tags a cut INTO a
+    // copy buffer with its slot (Apple: `beginCutIntoBuffer(bufferID:)`, Trade T3); empty for an ordinary paste or cut.
+    void beginPasteOrCut(const QString& kind, const QString& bufferID = {});
     void flush(const QString& trigger, const QString& kind = QStringLiteral("typing"));
     // ONE edit across several scenes ([I-0270]): `editsJson` = [{sceneID, textBefore, textAfter, caret}].
     void groupedEdit(const QString& editsJson, const QString& kind);

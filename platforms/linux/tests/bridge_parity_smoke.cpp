@@ -323,6 +323,32 @@ int main(int argc, char* argv[])
               "a failed history call is quiet: {} + lastCallFailed, no errorOccurred");
     }
 
+    // ================================================================
+    // EP-026 S5 (SP-179 / T-0606) — the copy buffers, through the bridge (all 4 `scrivi_buffers_*`)
+    // ================================================================
+    {
+        // Stored text, escapes included, round-trips VERBATIM (EP-045 AC4).
+        const QString stored = QStringLiteral("**Bold** a\\. b");
+        check(!ScriviBridge::buffersLoad(projectPath, QStringLiteral("3"), stored).isEmpty(), "buffersLoad");
+        const QVariantMap got = ScriviBridge::buffersGet(projectPath, QStringLiteral("3"));
+        check(got.value(QStringLiteral("present")).toBool() && got.value(QStringLiteral("text")).toString() == stored,
+              "buffersGet: the slot holds the stored text verbatim");
+        check(!ScriviBridge::buffersGet(projectPath, QStringLiteral("4")).value(QStringLiteral("present")).toBool(),
+              "buffersGet: an unset slot is not present");
+        // Written to the SAME file the Mac reads — checked on disk, not trusted from the call.
+        check(QFile::exists(projectPath + QStringLiteral("/history/buffers.json")), "buffersLoad wrote history/buffers.json");
+        const QVariantList listed = ScriviBridge::buffersList(projectPath).value(QStringLiteral("buffers")).toList();
+        check(listed.size() == 1 && listed.first().toMap().value(QStringLiteral("bufferID")).toString() == QStringLiteral("3"),
+              "buffersList: the one filled slot");
+        check(ScriviBridge::buffersClear(projectPath, QStringLiteral("3")).value(QStringLiteral("cleared")).toBool(),
+              "buffersClear: cleared a filled slot");
+        const QVariantMap after = ScriviBridge::buffersList(projectPath);
+        check(!bridge.lastCallFailed() && after.value(QStringLiteral("buffers")).toList().isEmpty(),
+              "buffersList after clear: empty (and the call succeeded)");
+        check(ScriviBridge::buffersLoad(projectPath, QStringLiteral("0"), QStringLiteral("x")).isEmpty()
+                  && bridge.lastCallFailed(), "buffersLoad: slot 0 is not a slot (the system clipboard) — refused");
+    }
+
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);
     if (failures != 0) return 1;
 

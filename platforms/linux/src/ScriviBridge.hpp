@@ -505,7 +505,8 @@ public:
     // ✅ **The undo history is bound by [EP-026]** (its Linux story, ruled 2026-10-11) — Sprint by Sprint, never ahead
     // of its surface (the lesson of I-0144): S2 ([SP-178]) binds the history lifecycle and the 12 `scrivi_capture_*`
     // below (`historyOpen` … `captureState`). ⛔ Still absent: `scrivi_history_get_tree`, `_list_stale_branches`,
-    // `_purge_branch`, `_select_branch`, `_get_settings`/`_set_settings` (S3) and `scrivi_buffers_*` (S5).
+    // `_purge_branch`, `_select_branch`, `_get_settings`/`_set_settings` (S3). ✅ S5 ([SP-179]) binds the four
+    // `scrivi_buffers_*` (`buffersLoad` … `buffersClear`, below).
 
     Q_INVOKABLE QVariantMap addComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& body);
     Q_INVOKABLE QVariantMap addWorld(const QString& projectRootPath, const QString& packagePath);
@@ -602,6 +603,19 @@ public:
     static QVariantMap captureRedo(const QString& projectRootPath);
     static QVariantMap captureNoteApplied(const QString& projectRootPath, const QString& sceneID, const QString& text);
     static QVariantMap captureState(const QString& projectRootPath);
+
+    // ── EP-026 S5 (SP-179 / T-0606): the copy buffers 1–9 (`scrivi_buffers_*`, `history/buffers.json`) ──
+    // ✅ Static and best-effort, as the capture calls above: a failure is logged and returns {} (⛔ never `errorOccurred`).
+    // Stateless in the core — no open / close. A bufferID outside "1"–"9" fails. Text is STORED text (escapes included).
+    // `fragmentJson` "" = a plain-text slot; Linux writes only those until S4 ([SP-179] Q1).
+    static QVariantMap buffersLoad(const QString& projectRootPath, const QString& bufferID, const QString& text,
+                                   const QString& fragmentJson = {});
+    // {bufferID, text, updatedAt, present[, fragment]}
+    static QVariantMap buffersGet(const QString& projectRootPath, const QString& bufferID);
+    // {count, buffers: [{bufferID, text, updatedAt[, fragment]}]} — ⚠️ `buffers` is ABSENT for an empty list.
+    static QVariantMap buffersList(const QString& projectRootPath);
+    // {bufferID, cleared}
+    static QVariantMap buffersClear(const QString& projectRootPath, const QString& bufferID);
 
     // Whether the MOST RECENT scrivi_* call through this bridge failed.
     //

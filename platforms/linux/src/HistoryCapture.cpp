@@ -113,12 +113,12 @@ void HistoryCapture::caretMoved(const QString& sceneID, bool editInFlight)
     take(ScriviBridge::captureCaretMoved(root_, sceneID, editInFlight, applying_));
 }
 
-void HistoryCapture::beginPasteOrCut(const QString& kind)
+void HistoryCapture::beginPasteOrCut(const QString& kind, const QString& bufferID)
 {
     if (!open_) {
         return;
     }
-    take(ScriviBridge::captureBegin(root_, kind));
+    take(ScriviBridge::captureBegin(root_, kind, bufferID));
 }
 
 void HistoryCapture::flush(const QString& trigger, const QString& kind)

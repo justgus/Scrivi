@@ -24,6 +24,7 @@ class QSplitter;
 class ScriviBridge;
 class ManuscriptEditor;
 class HistoryCapture;
+class BufferService;
 class ManuscriptPresenter;
 class SceneInspector;
 class TimelinePanel;
@@ -183,6 +184,16 @@ public:
     void flushHistory();
     // For smokes: the open history, or nullptr.
     [[nodiscard]] HistoryCapture* history() const { return history_; }
+
+    // --- EP-026 S5 copy buffers (SP-179, T-0606) --------------------------
+    // Apple: the coordinator's `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`, reached from the chords
+    // (Ctrl+N / Alt+N / Ctrl+Shift+N, the editor signals them), Edit ▸ … To/From Buffer and the Buffers palette.
+    // `bufferID` is "1"–"9". Copy is no undo step; a cut and a paste are one each. Nothing selected / an empty slot → no-op.
+    void copyIntoBuffer(const QString& bufferID);
+    void cutIntoBuffer(const QString& bufferID);
+    void pasteFromBuffer(const QString& bufferID);
+    // This project's slots (the palette shows the FRONT project's), or nullptr before a load.
+    [[nodiscard]] BufferService* buffers() const { return buffers_; }
 
     // --- EP-035 AC3 Worlds surface (SP-127, T-0494) -----------------------
     //
@@ -710,6 +721,11 @@ private:
     // ✅ Owned here, not by `session_`: `ProjectSession` holds state and never talks to the core; this does.
     // Created on a project's first load; closed and released in `releaseProject()`.
     HistoryCapture*         history_ = nullptr;
+    // EP-026 S5 (SP-179): this project's copy buffers — owned here for the same reason as `history_`. Created on load,
+    // released in `releaseProject()`.
+    BufferService*          buffers_ = nullptr;
+    // [SP-179] Q1: the "scenes copied on the Mac" notice is said once per open project.
+    bool                    structuredSlotNoticeShown_ = false;
     // Each scene's text as history last saw it — the "text before" of the next report (Apple keeps the text before the
     // edit, `preEditText`; Qt's `contentsChange` arrives AFTER the change). Refilled on every load.
     QHash<QString, QString> historyText_;

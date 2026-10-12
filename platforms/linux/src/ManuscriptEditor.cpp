@@ -320,8 +320,75 @@ bool ManuscriptEditor::modifiedRangeFor(const QKeyEvent* event,
     return true;
 }
 
+int ManuscriptEditor::bufferDigit(const QKeyEvent* event)
+{
+    // ✅ The physical key first: xkb keycodes (X11 and Wayland alike) are evdev + 8, so the digit row 1–9 is 10–18 —
+    // whatever the layout and Shift made of it (Ctrl+Shift+1 arrives as `!` on a US layout, EP-026 Q3's trap).
+    const quint32 scan = event->nativeScanCode();
+    if (scan >= 10 && scan <= 18) {
+        return static_cast<int>(scan) - 9;
+    }
+    const int key = event->key();
+    if (key >= Qt::Key_1 && key <= Qt::Key_9) {
+        return key - Qt::Key_0;
+    }
+    // No scan code (offscreen, synthesized input): the US-layout shifted digits.
+    static const int shifted[] = {Qt::Key_Exclam, Qt::Key_At, Qt::Key_NumberSign, Qt::Key_Dollar, Qt::Key_Percent,
+                                  Qt::Key_AsciiCircum, Qt::Key_Ampersand, Qt::Key_Asterisk, Qt::Key_ParenLeft};
+    for (int i = 0; i < 9; ++i) {
+        if (key == shifted[i]) {
+            return i + 1;
+        }
+    }
+    return 0;
+}
+
+std::pair<int, int> ManuscriptEditor::bufferChord(const QKeyEvent* event)
+{
+    const int digit = bufferDigit(event);
+    if (digit == 0) {
+        return {0, 0};
+    }
+    // Each chord names its modifiers EXACTLY, so they never overlap (Apple's rule; [I-0291]'s lesson).
+    const Qt::KeyboardModifiers mods = event->modifiers() & ~Qt::KeypadModifier;
+    if (mods == Qt::ControlModifier) {
+        return {1, digit};   // copy
+    }
+    if (mods == (Qt::ControlModifier | Qt::ShiftModifier)) {
+        return {2, digit};   // paste
+    }
+    if (mods == Qt::AltModifier) {
+        return {3, digit};   // cut
+    }
+    return {0, 0};
+}
+
+bool ManuscriptEditor::event(QEvent* event)
+{
+    // EP-026 S5: the buffer chords are the editor's while it has focus — claimed before any window shortcut sees them.
+    if (event->type() == QEvent::ShortcutOverride && bufferChord(static_cast<QKeyEvent*>(event)).first != 0) {
+        event->accept();
+        return true;
+    }
+    return QPlainTextEdit::event(event);
+}
+
 void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
 {
+    // EP-026 S5 (SP-179 / T-0606): the copy-buffer chords (Apple: `keyDown`'s ⌘ / ⌃⌘ / ⌥ + digit).
+    if (const auto [action, digit] = bufferChord(event); action != 0) {
+        const QString bufferID = QString::number(digit);
+        if (action == 1) {
+            emit bufferCopyRequested(bufferID);
+        } else if (action == 2) {
+            emit bufferPasteRequested(bufferID);
+        } else {
+            emit bufferCutRequested(bufferID);
+        }
+        event->accept();
+        return;
+    }
+
     // EP-026 S2 (SP-178): Ctrl+Z undo, Ctrl+Shift+Z redo — matched EXPLICITLY. ⛔ Not `QKeySequence::Undo/Redo`: on X11
     // `Redo` also matches Ctrl+Y, which EP-026 Q3 ruled out (Ctrl+Y falls through to the disabled document undo — nothing).
     // The editor accepts these in ShortcutOverride, so the Edit-menu shortcut only fires when the editor lacks focus.
@@ -709,15 +776,8 @@ void ManuscriptEditor::inputMethodEvent(QInputMethodEvent* event)
     QPlainTextEdit::inputMethodEvent(&escaped);
 }
 
-QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
+std::pair<QString, QString> ManuscriptEditor::balancedCopyOf(int start, int end) const
 {
-    const QTextCursor cursor = textCursor();
-    if (!cursor.hasSelection()) {
-        return QPlainTextEdit::createMimeDataFromSelection();
-    }
-    int start = cursor.selectionStart();
-    int end = cursor.selectionEnd();
-    widenOverPairs(start, end);
     // ✅ SP-175 (EP-046 AC12, Apple's `balancedCopy`): Scrivi's own clipboard gets the BALANCED source — a selection
     // that starts or ends inside a span carries its own markers; other apps get the presented text. Scene by scene;
     // the headings and separators between scenes are copied as they are.
@@ -749,6 +809,19 @@ QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
         source += rest;
         presented += ManuscriptEscapes::map(rest).presented;
     }
+    return {source, presented};
+}
+
+QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
+{
+    const QTextCursor cursor = textCursor();
+    if (!cursor.hasSelection()) {
+        return QPlainTextEdit::createMimeDataFromSelection();
+    }
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    const auto [source, presented] = balancedCopyOf(start, end);
     auto* mime = new QMimeData;
     // Apple: `writeSelection` — other apps get the writer's text, not backslashes.
     mime->setText(presented);
@@ -779,7 +852,7 @@ void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
             return;
         }
         pastingOwnCopy_ = source->hasFormat(kSourceMime);
-        emit pasteOrCutBegins(QStringLiteral("paste"));   // EP-026 S2: a paste is its own undo step
+        emit pasteOrCutBegins(QStringLiteral("paste"), QString());   // EP-026 S2: a paste is its own undo step
         replaceRange(start, end, text);
         emit pasteOrCutEnded(QStringLiteral("paste"));
         pastingOwnCopy_ = false;
@@ -863,7 +936,7 @@ void ManuscriptEditor::cutSelection()
         widened.setPosition(end, QTextCursor::KeepAnchor);
         setTextCursor(widened);
         copy();                              // the balanced copy (createMimeDataFromSelection)
-        emit pasteOrCutBegins(QStringLiteral("cut"));   // EP-026 S2: a cut is its own undo step
+        emit pasteOrCutBegins(QStringLiteral("cut"), QString());   // EP-026 S2: a cut is its own undo step
         replaceRange(start, end, QString());  // ✅ SP-175: the balanced removal — a span it cuts into is closed and re-opened
         emit pasteOrCutEnded(QStringLiteral("cut"));
         return;
@@ -872,7 +945,69 @@ void ManuscriptEditor::cutSelection()
     deleteAcrossScenes(start, end, /*copyFirst=*/true);
 }
 
-bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst)
+// ── EP-026 S5 (SP-179 / T-0606): the copy buffers ─────────────────────────────────────────────────────────────────
+// Apple: the coordinator's `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer` (Scrivi/Views/ManuscriptTextView.swift).
+
+QString ManuscriptEditor::selectionSource() const
+{
+    const QTextCursor cursor = textCursor();
+    if (!cursor.hasSelection()) {
+        return {};
+    }
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    return balancedCopyOf(start, end).first;
+}
+
+bool ManuscriptEditor::cutSelectionIntoBuffer(const QString& bufferID,
+                                              const std::function<bool(const QString& source)>& store)
+{
+    const QTextCursor cursor = textCursor();
+    if (sceneDoc_ == nullptr || !cursor.hasSelection()) {
+        return false;
+    }
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);   // EP-049: a cut never leaves half an escape pair
+    const bool inOneScene = sceneDoc_->isEditableRange(start, end);
+    if (!inOneScene && sceneDoc_->crossSceneCuts(start, end).isEmpty()) {
+        return false;   // it touches only a boundary — refused, as Ctrl+X refuses it
+    }
+    // The slot FIRST: the text must survive a store failure and the delete being undone.
+    if (!store(balancedCopyOf(start, end).first)) {
+        return false;
+    }
+    if (!inOneScene) {
+        return deleteAcrossScenes(start, end, /*copyFirst=*/false, QStringLiteral("cut"));   // [I-0270]
+    }
+    emit pasteOrCutBegins(QStringLiteral("cut"), bufferID);   // ONE `cut` step, tagged with the slot (Trade T3)
+    replaceRange(start, end, QString());                       // ✅ SP-175: the balanced removal
+    emit pasteOrCutEnded(QStringLiteral("cut"));
+    return true;
+}
+
+bool ManuscriptEditor::pasteStored(const QString& source)
+{
+    if (sceneDoc_ == nullptr || source.isEmpty()) {
+        return false;
+    }
+    const QTextCursor cursor = textCursor();
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    if (!sceneDoc_->isEditableRange(start, end)) {
+        return false;   // the target touches a boundary — refused, as any paste
+    }
+    pastingOwnCopy_ = true;   // ✅ [I-0289]: a slot is Scrivi's own copy — it keeps ITS formatting
+    emit pasteOrCutBegins(QStringLiteral("paste"), QString());
+    replaceRange(start, end, source);
+    emit pasteOrCutEnded(QStringLiteral("paste"));
+    pastingOwnCopy_ = false;
+    return true;
+}
+
+bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst, const QString& kind)
 {
     if (sceneDoc_ == nullptr) {
         return false;
@@ -893,7 +1028,7 @@ bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst)
     for (int k = cuts.size() - 1; k >= 0; --k) {
         replaceRange(cuts.at(k).first, cuts.at(k).second, QString());
     }
-    emit groupedEditEnded(copyFirst ? QStringLiteral("cut") : QStringLiteral("delete"));
+    emit groupedEditEnded(!kind.isEmpty() ? kind : copyFirst ? QStringLiteral("cut") : QStringLiteral("delete"));
     QTextCursor caret = textCursor();
     caret.setPosition(cuts.first().first);
     setTextCursor(caret);
