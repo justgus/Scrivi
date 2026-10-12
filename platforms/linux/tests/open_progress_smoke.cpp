@@ -120,8 +120,11 @@ int main(int argc, char** argv)
         // ✅ THE TOTAL IS KNOWN FROM THE FIRST REPORT -- that is what makes it
         // determinate. A spinner has no total; an estimate would change.
         const int total = seen.front().second;
-        // SP-173 / I-0285 (AC5): every scene body, plus the timeline read as the load's last step.
-        check(total == expectedTotal + 1, "the FIRST report already carries the real total (scenes + the timeline)");
+        // SP-173 / I-0285 (AC5): every scene body, plus the timeline read. ✅ [SP-178] Q1 (EP-026 S2): a FIRST load also
+        // opens the undo history (1) and validates every scene against it (one each) — counted from the first report.
+        std::printf("first report's total: %d\n", total);
+        check(total == expectedTotal + 1 + expectedTotal + 1,
+              "the FIRST report already carries the real total (scenes + timeline + history open + scene validations)");
 
         bool totalStable = true;
         bool monotonic   = true;
@@ -139,11 +142,12 @@ int main(int argc, char** argv)
         check(seen.front().first == 0, "progress starts at 0");
         check(seen.back().first == total, "progress ENDS at the total, not short of it");
         // SP-173 (fix 3): scene texts are read in chunks of 64 (in parallel, inside the core), so: the initial zero, one
-        // report per CHUNK, and one for the timeline.
-        const int scenes = total - 1;
+        // report per CHUNK, and one for the timeline. ✅ [SP-178]: plus one for opening the history and one per chunk of
+        // 64 scene validations.
+        const int scenes = expectedTotal;
         const int chunks = (scenes + 63) / 64;
-        check(static_cast<int>(seen.size()) == 1 + chunks + 1,
-              "one report per chunk of scenes and one for the timeline, plus the initial zero");
+        check(static_cast<int>(seen.size()) == 1 + chunks + 1 + chunks + 1,
+              "one report per chunk of scenes, the history open, each chunk of validations, the timeline, plus the initial zero");
     }
 
     if (failures == 0) {

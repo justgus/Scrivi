@@ -21,6 +21,7 @@
 // ✅ SP-177 Q2: carets arrive in UTF-16 units of the scene text; the engine stores UTF-8 bytes, converted here.
 
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -71,6 +72,9 @@ public:
 
     // Before a barrier: commits what was pending; returns the scene to attribute it to (`sceneID`, or the pending scene).
     std::string beforeBarrier(CaptureSink& sink, const std::string& sceneID);
+    // After a barrier that rewrote scenes ([I-0287]): the engine already reads `sceneTexts` for them — they need no
+    // seed, and the caret scene's whitespace reference is its new text.
+    void afterBarrier(const std::map<std::string, std::string>& sceneTexts);
 
     // After an undo/redo was applied: the caret rests in `sceneID`, which now reads `text` (the whitespace reference).
     void noteApplied(const std::string& sceneID, const std::string& text);

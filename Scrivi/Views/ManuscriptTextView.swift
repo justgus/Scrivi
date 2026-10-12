@@ -1106,8 +1106,6 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 let currentSeg = loader.segments[segIdx]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-                // Structural op — record a barrier so undo stops here (§4.5).
-                session.historyCapture?.recordBarrier(kind: "sceneSplit", note: "Can't undo past creating a scene")
 
                 // Caret at the very start of a (non-empty) scene → insert a new empty scene
                 // BEFORE this one, exactly as a newline at position 0 would in one big buffer.
@@ -1126,6 +1124,15 @@ struct ManuscriptTextView: NSViewRepresentable {
                         beforeSceneID: insertBefore ? currentSeg.sceneID : "",
                         authorshipRef: ref
                     )
+                    // Structural op — record a barrier so undo stops here (§4.5). [I-0287]: AFTER the create, so a
+                    // mid-scene split can say what it leaves in each half — the head here, the tail in the new scene.
+                    let splitsText = !insertBefore && !isAtEnd
+                    session.historyCapture?.recordBarrier(
+                        kind: "sceneSplit", note: "Can't undo past creating a scene",
+                        sceneTexts: splitsText
+                            ? [currentSeg.sceneID: splitHead(of: currentText, at: splitOffsetInSeg),
+                               result.sceneID: splitTail(of: currentText, at: splitOffsetInSeg)]
+                            : [:])
 
                     if insertBefore {
                         // Empty scene inserted before the current one; current scene untouched.
@@ -1258,8 +1265,6 @@ struct ManuscriptTextView: NSViewRepresentable {
 
                 let currentSeg = loader.segments[segIdx]
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
-                // Structural op — record a barrier so undo stops here (§4.5).
-                session.historyCapture?.recordBarrier(kind: "chapterSplit", note: "Can't undo past creating a chapter")
 
                 do {
                     // ⚠️ I-0213 — the C ABI call is SYNCHRONOUS ON THE MAIN ACTOR and was
@@ -1278,6 +1283,14 @@ struct ManuscriptTextView: NSViewRepresentable {
                     if __eMs > 0.5 {
                         NSLog("[SCRIVI-STRUCT]   engine.createChapter (C ABI)=%.1f ms", __eMs)
                     }
+                    // Structural op — record a barrier so undo stops here (§4.5). [I-0287]: AFTER the create, with what
+                    // a mid-scene split leaves in each half — the head here, the tail in the new chapter's first scene.
+                    session.historyCapture?.recordBarrier(
+                        kind: "chapterSplit", note: "Can't undo past creating a chapter",
+                        sceneTexts: isAtEnd
+                            ? [:]
+                            : [currentSeg.sceneID: splitHead(of: currentText, at: splitOffsetInSeg),
+                               result.firstSceneID: splitTail(of: currentText, at: splitOffsetInSeg)])
 
                     if isAtEnd {
                         // Append empty chapter after current — original behaviour.
@@ -1413,8 +1426,6 @@ struct ManuscriptTextView: NSViewRepresentable {
                 // edits too; save it explicitly.)
                 await loader.saveCurrentIfDirty(engine: env.engine, ref: ref)
                 await loader.saveScene(at: segIdx - 1, engine: env.engine, ref: ref)
-                // Structural op — record a barrier so undo stops here (§4.5).
-                session.historyCapture?.recordBarrier(kind: "sceneMerge", note: "Can't undo past a scene merge")
 
                 // Atomic same-chapter merge in ScriviCore: the current scene joins into the
                 // predecessor (survivor), which keeps its own files; the current scene's files
@@ -1432,6 +1443,10 @@ struct ManuscriptTextView: NSViewRepresentable {
                 // (SceneMerger.joinBodies), elided when either side is empty — match it so the
                 // in-memory text equals disk.
                 let joinText = Self.joinedMergeBody(predecessorSeg.text, currentSeg.text)
+                // Structural op — record a barrier so undo stops here (§4.5). [I-0287]: AFTER the merge, with the
+                // survivor's joined text — what the editor now holds for it.
+                session.historyCapture?.recordBarrier(kind: "sceneMerge", note: "Can't undo past a scene merge",
+                                                      sceneTexts: [predecessorSeg.sceneID: joinText])
                 let mergedIdx = loader.mergeSceneIntoPredecessor(at: segIdx, joinText: joinText)
                 loader.setCurrentIndex(mergedIdx)
                 rebuildStorageAndPlaceCursor(at: mergedIdx, textOffset: joinPoint)

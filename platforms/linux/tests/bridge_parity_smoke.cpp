@@ -272,6 +272,57 @@ int main(int argc, char* argv[])
         check(!bridge.lastCallFailed(), "D5: the worker's failure does not overwrite the main thread's answer");
     }
 
+    // ================================================================
+    // EP-026 S2 (SP-178 / T-0605) — the undo history and its capture rules, through the bridge (all 16 S2 endpoints)
+    // ================================================================
+    {
+        const QString scene = QStringLiteral("scene_parity");
+        check(!ScriviBridge::historyOpen(projectPath).isEmpty(), "historyOpen");
+        check(!ScriviBridge::historyValidateScene(projectPath, scene, QStringLiteral("Floor.")).isEmpty(),
+              "historyValidateScene");
+        reaches(ScriviBridge::captureState(projectPath), "captureState");
+        reaches(ScriviBridge::captureCaretMoved(projectPath, scene, false, false), "captureCaretMoved");
+        // A sentence typed: the boundary commits it (the core's rule), so there is something to undo.
+        const QVariantMap edit = ScriviBridge::captureNoteEdit(projectPath, scene, QStringLiteral("Floor. One."), 11,
+                                                               QStringLiteral("Floor."), 1000);
+        check(edit.value(QStringLiteral("committed")).toBool() && edit.value(QStringLiteral("canUndo")).toBool(),
+              "captureNoteEdit: a sentence commits one undoable step");
+        reaches(ScriviBridge::captureBeforeSave(projectPath, 1100), "captureBeforeSave");
+        check(!ScriviBridge::historyNoteScenePersisted(projectPath, scene, QStringLiteral("Floor. One.")).isEmpty(),
+              "historyNoteScenePersisted");
+        reaches(ScriviBridge::captureBegin(projectPath, QStringLiteral("paste")), "captureBegin");
+        ScriviBridge::captureNoteEdit(projectPath, scene, QStringLiteral("Floor. One. Pasted"), 18,
+                                      QStringLiteral("Floor. One."), 1200);
+        check(ScriviBridge::captureFlush(projectPath, QStringLiteral("paste"), QStringLiteral("paste"))
+                  .value(QStringLiteral("committed")).toBool(), "captureFlush: the paste is its own step");
+        reaches(ScriviBridge::captureIdle(projectPath, 1300), "captureIdle");
+        const QString grouped = QStringLiteral(
+            "[{\"sceneID\":\"scene_parity\",\"textBefore\":\"Floor. One. Pasted\",\"textAfter\":\"Floor.\",\"caret\":6},"
+            "{\"sceneID\":\"scene_two\",\"textBefore\":\"Two.\",\"textAfter\":\"\",\"caret\":0}]");
+        check(ScriviBridge::captureGroupedEdit(projectPath, grouped, QStringLiteral("delete"))
+                  .value(QStringLiteral("canUndo")).toBool(), "captureGroupedEdit");
+        const QVariantMap undo = ScriviBridge::captureUndo(projectPath);
+        check(undo.value(QStringLiteral("changes")).toList().size() == 2,
+              "captureUndo: ONE undo restores both scenes of the grouped edit");
+        reaches(ScriviBridge::captureNoteApplied(projectPath, scene, QStringLiteral("Floor. One. Pasted")),
+                "captureNoteApplied");
+        check(ScriviBridge::captureRedo(projectPath).value(QStringLiteral("moved")).toBool(), "captureRedo");
+        check(!ScriviBridge::historyClose(projectPath).isEmpty(), "historyClose");
+        // Written BY REOPENING, never trusted from the call: the history persisted across close.
+        check(ScriviBridge::historyOpen(projectPath).value(QStringLiteral("canUndo")).toBool(),
+              "history persists: the reopened history can undo");
+        // A barrier stops undo (the reopened history could undo; now it cannot).
+        check(!ScriviBridge::captureRecordBarrier(
+                   projectPath, QStringLiteral("{\"barrierKind\":\"sceneSplit\",\"note\":\"Can't undo past creating a scene\"}"))
+                   .value(QStringLiteral("canUndo")).toBool(), "captureRecordBarrier: undo stops at it");
+        ScriviBridge::historyClose(projectPath);
+        // Best-effort: a failed call returns {} and sets the flag, and never emits errorOccurred.
+        bool emitted = false;
+        QObject::connect(&bridge, &ScriviBridge::errorOccurred, [&emitted](int, const QString&) { emitted = true; });
+        check(ScriviBridge::captureUndo(QString()).isEmpty() && bridge.lastCallFailed() && !emitted,
+              "a failed history call is quiet: {} + lastCallFailed, no errorOccurred");
+    }
+
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);
     if (failures != 0) return 1;
 

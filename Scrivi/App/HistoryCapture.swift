@@ -279,13 +279,17 @@ final class HistoryCapture {
 
     // Records a structural barrier; the core commits any pending edit first and, with no `sceneID`, attributes it to the
     // pending scene (I-0102). A non-nil `structuralPayload` records a REVERSIBLE structural node (T-0356 / AC6).
+    // `sceneTexts` ([I-0287]): sceneID → the text the op left in each scene it rewrote or created, exactly as the editor
+    // will next report it — so the next edit's undo returns to THAT text, not the pre-op one. ⚠️ Record it AFTER the op.
     func recordBarrier(kind: String, note: String,
                        sceneID: String? = nil,
-                       structuralPayload: HistoryStructuralPayload? = nil) {
+                       structuralPayload: HistoryStructuralPayload? = nil,
+                       sceneTexts: [String: String] = [:]) {
         guard isOpen else { return }
         do {
             take(try engine.captureRecordBarrier(projectRootPath: projectRootPath, barrierKind: kind, note: note,
-                                                 sceneID: sceneID, structuralPayload: structuralPayload))
+                                                 sceneID: sceneID, structuralPayload: structuralPayload,
+                                                 sceneTexts: sceneTexts))
             bumpRevision()   // I-0105: a barrier node was appended
         } catch { print("[Scrivi] captureRecordBarrier failed: \(error)") }
     }

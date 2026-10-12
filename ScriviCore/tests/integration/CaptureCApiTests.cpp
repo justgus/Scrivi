@@ -181,6 +181,63 @@ TEST_CASE("capture ABI: a barrier commits pending typing and takes the pending s
     CHECK(nodeCount(r) == 1);
 }
 
+// [I-0287] — a split or merge REWRITES scene text, then records a barrier. The barrier must carry what the op left in
+// each scene it rewrote, or the next edit diffs against the PRE-op text and undoing it puts that text back: the merged-in
+// scene's words gone (its file already deleted), or a split's tail duplicated into the head. Proven at this ABI first
+// (Linux `undo_smoke`, SP-178); Apple and Linux both record their barriers here.
+TEST_CASE("capture ABI: a barrier's sceneTexts are what the next edit's undo returns to — merge, split, reopen, eviction",
+          "[capture-abi]") {
+    const std::string merged = "Alpha. One.\n\nBravo.";
+
+    SECTION("merge: undoing the next edit keeps the merged-in text, also after a reopen") {
+        Root r;
+        ok(scrivi_capture_note_edit(r.c(), "S", "Alpha. One.", 11, "Alpha.", 1000));   // '.' → one step
+        ok(scrivi_capture_record_barrier(
+            r.c(), R"({"barrierKind":"sceneMerge","note":"m","sceneID":"S","sceneTexts":{"S":"Alpha. One.\n\nBravo."}})"));
+        ok(scrivi_capture_note_edit(r.c(), "S", (merged + " Two.").c_str(), 24, merged.c_str(), 2000));
+        CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == merged);
+        CHECK(ok(scrivi_capture_undo(r.c())).getSubDoc("stoppedAtBarrier").getString("kind") == "sceneMerge");   // stops
+        CHECK(change(ok(scrivi_capture_redo(r.c()))).getString("newText") == merged + " Two.");
+
+        scrivi_free(scrivi_history_close(r.c()));   // the barrier's texts survive the log replay
+        ok(scrivi_history_open(r.c()));
+        CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == merged);
+    }
+
+    SECTION("split: the head's undo restores the HEAD, and the new tail scene is undoable from its own text") {
+        Root r;
+        ok(scrivi_capture_note_edit(r.c(), "H", "One. Two.", 9, "One.", 1000));
+        ok(scrivi_capture_record_barrier(
+            r.c(), R"({"barrierKind":"sceneSplit","note":"s","sceneID":"H","sceneTexts":{"H":"One.","T":" Two."}})"));
+        ok(scrivi_capture_note_edit(r.c(), "H", "One. Uno.", 9, "One.", 2000));
+        CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == "One.");
+        ok(scrivi_capture_note_edit(r.c(), "T", " Two. Dos.", 10, " Two.", 3000));   // forks off; the tail's first edit
+        CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == " Two.");
+        // The tail entered history at the barrier: it has a floor, so an outside edit to it is still detected.
+        scrivi_free(scrivi_history_close(r.c()));
+        ok(scrivi_history_open(r.c()));
+        CHECK(ok(scrivi_history_validate_scene(r.c(), "T", "changed outside")).getBool("externalChange"));
+    }
+
+    SECTION("eviction: a barrier promoted to the root becomes the floor") {
+        Root r;
+        ok(scrivi_history_set_settings(r.c(), R"({"capacityEvents":2})"));
+        ok(scrivi_capture_note_edit(r.c(), "S", "Alpha. One.", 11, "Alpha.", 1000));
+        ok(scrivi_capture_record_barrier(
+            r.c(), R"({"barrierKind":"sceneMerge","note":"m","sceneID":"S","sceneTexts":{"S":"Alpha. One.\n\nBravo."}})"));
+        ok(scrivi_capture_note_edit(r.c(), "S", (merged + " Two.").c_str(), 24, merged.c_str(), 2000));
+        ok(scrivi_capture_note_edit(r.c(), "S", (merged + " Two. Three.").c_str(), 31, (merged + " Two.").c_str(), 3000));
+        for (int pass = 0; pass < 2; ++pass) {   // in session, then from the log
+            CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == merged + " Two.");
+            CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == merged);
+            ok(scrivi_capture_redo(r.c()));
+            ok(scrivi_capture_redo(r.c()));
+            scrivi_free(scrivi_history_close(r.c()));
+            ok(scrivi_history_open(r.c()));
+        }
+    }
+}
+
 TEST_CASE("capture ABI: not open → an error, never a crash", "[capture-abi]") {
     const char* raw = scrivi_capture_state("/nonexistent/never-opened.scrivi");
     auto parsed = parseJson(raw);

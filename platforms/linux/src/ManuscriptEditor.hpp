@@ -22,8 +22,8 @@ class SceneDocument;
 // selection, and copy pass through untouched. Paste and drops route through
 // insertFromMimeData, which applies the same gate.
 //
-// Document-level undo stays DISABLED here (setUndoRedoEnabled(false)) — ⌘Z is
-// reserved for the future custom history (EP-026).
+// Document-level undo stays DISABLED here (setUndoRedoEnabled(false)) — Ctrl+Z is the
+// custom history's (EP-026 S2, SP-178): the editor signals undoRequested / redoRequested.
 //
 // The editor holds a non-owning pointer to the SceneDocument (owned by EditorShell)
 // and consults it read-only; it never rebuilds the map. Offset-map maintenance on
@@ -75,6 +75,20 @@ signals:
     // Ctrl+Shift+Backspace — the analogue of ⇧⌘⌫ "merge chapter into the previous
     // chapter" (EP-028 / T-0304). Same division of labor: EditorShell decides.
     void mergeChapterRequested();
+
+    // ── EP-026 S2 (SP-178 / T-0605): the undo history ──
+    // Ctrl+Z / Ctrl+Shift+Z (✅ EP-026 Q3; ⛔ no Ctrl+Y). Caught HERE because the editor claims both through
+    // ShortcutOverride before an Edit-menu shortcut can see them; EditorShell undoes / redoes.
+    void undoRequested();
+    void redoRequested();
+    // A paste or an in-scene cut is about to change the text / has changed it (Apple: `beginPasteOrCut` … `flush`).
+    // `kind` is "paste" | "cut".
+    void pasteOrCutBegins(const QString& kind);
+    void pasteOrCutEnded(const QString& kind);
+    // [I-0270] ONE edit across several scenes is about to run / has run, one `contentsChange` per scene in between —
+    // EditorShell reports it as ONE grouped undo step. `kind` is "delete" | "cut".
+    void groupedEditBegins();
+    void groupedEditEnded(const QString& kind);
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;

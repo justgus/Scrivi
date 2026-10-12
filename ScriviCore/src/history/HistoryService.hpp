@@ -81,6 +81,12 @@ struct EventNode {
     std::string barrierKind;
     std::string barrierNote;
 
+    // Barrier-only ([I-0287]): what the structural op left in each scene it rewrote (a merge's surviving scene, a
+    // split's head and tail). From this node on, those scenes read THIS text — replay resets the head here instead of
+    // carrying the pre-op text forward. Without it the next edit diffed against the pre-op text, and undoing that edit
+    // put the pre-op text back. Empty for a barrier that rewrote no scene text, and for every non-barrier. Persisted.
+    std::map<std::string, std::string> sceneTexts;
+
     // Structural-only (EventKind::Structural, EP-029 AC6 / T-0356): an OPAQUE JSON
     // payload the app minted describing how to reverse this structural edit (the
     // inverse fragment op + fragment JSON + caret + created/removed IDs). HistoryService
@@ -135,6 +141,10 @@ struct BarrierParams {
     // EP-029 AC6 / T-0356) instead of a hard barrier: the opaque inverse-op payload
     // the app replays on undo/redo. Empty ⇒ the classic barrier (undo stops here).
     std::string structuralPayload;
+
+    // Optional ([I-0287]): sceneID → the text the structural op left in that scene. Recorded on the barrier node; see
+    // EventNode::sceneTexts. Ignored for a structural (reversible) node.
+    std::map<std::string, std::string> sceneTexts;
 };
 
 // One scene's resulting text after an undo/redo step.

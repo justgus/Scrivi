@@ -3580,6 +3580,9 @@ scrivi::history::BarrierParams barrierParamsFrom(const std::string& paramsJSON) 
             const auto& sp = pj.getSubDoc("structuralPayload");
             p.structuralPayload = sp.dump(0);
         }
+        // Optional ([I-0287]): {sceneID: text} — what the structural op left in each scene it rewrote.
+        const auto texts = pj.getSubDoc("sceneTexts");
+        for (const std::string& sid : texts.objectKeys()) p.sceneTexts[sid] = texts.getString(sid);
     }
     return p;
 }
@@ -3587,11 +3590,16 @@ scrivi::history::BarrierParams barrierParamsFrom(const std::string& paramsJSON) 
 scrivi::util::JsonDoc recordBarrierOn(scrivi::history::HistoryStore& store,
                                              const scrivi::history::BarrierParams& p) {
     auto& svc = store.service();
+    std::vector<std::string> newScenes;   // [I-0287]: scenes the barrier brings into history get a floor record
+    for (const auto& [sid, text] : p.sceneTexts) {
+        if (!svc.floorTexts().contains(sid)) { newScenes.push_back(sid); }
+    }
     const auto r = svc.recordBarrier(p, mintHistoryID("evt"));
     if (!r.eventID.empty()) {
         auto nit = svc.nodes().find(r.eventID);
         if (nit != svc.nodes().end()) { store.persistEvent(nit->second); }
     }
+    for (const std::string& sid : newScenes) { store.persistFloor(sid, p.sceneTexts.at(sid), "seed"); }
     scrivi::util::JsonDoc doc;
     doc.setString("eventID", r.eventID);
     doc.setBool("canUndo",   svc.canUndo());
@@ -3814,6 +3822,7 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
     scrivi::history::BarrierParams p = barrierParamsFrom(S(paramsJSON));
     scrivi::util::JsonDoc doc = recordBarrierOn(*it->second, p);
     syncCapture(reg, root, doc.getBool("canUndo"), doc.getBool("canRedo"));
+    if (auto c = reg.capture.find(root); c != reg.capture.end()) { c->second.afterBarrier(p.sceneTexts); }
     return heap(okEnvelope(std::move(doc)));
 }
 
@@ -4186,6 +4195,7 @@ const char* scrivi_capture_record_barrier(const char* projectRootPath, const cha
         scrivi::history::BarrierParams p = barrierParamsFrom(S(paramsJSON));
         p.sceneID = c.beforeBarrier(sink, p.sceneID);
         scrivi::util::JsonDoc r = recordBarrierOn(store, p);
+        c.afterBarrier(p.sceneTexts);
         c.noteEngineState(r.getBool("canUndo"), r.getBool("canRedo"));
         scrivi::util::JsonDoc doc = captureStateDoc(c, true);
         doc.setString("eventID", r.getString("eventID", ""));

@@ -1958,3 +1958,119 @@ QHash<QString, QString> ScriviBridge::readSceneTexts(const QString& projectRootP
     }
     return out;
 }
+
+// ── EP-026 S2 (SP-178 / T-0605): the undo history and its capture rules ─────────────────────────────────────────────
+namespace {
+// Best-effort, as Apple's `try?`: parse, LOG a failure, and return {} — ⛔ never `errorOccurred` (see the header).
+QVariantMap historyEnvelope(const char* endpoint, const char* json)
+{
+    const ScriviString envelope(json);   // ✅ freed by RAII, as every other endpoint here
+    const QString text = envelope.toQString();
+    tlsLastCallFailed = false;
+    const QJsonObject root = QJsonDocument::fromJson(text.toUtf8()).object();
+    if (!root.value(QStringLiteral("ok")).toBool()) {
+        tlsLastCallFailed = true;
+        qWarning("[EP-026] %s failed: %s", endpoint,
+                 qUtf8Printable(root.value(QStringLiteral("error")).toObject().value(QStringLiteral("message")).toString(text)));
+        return {};
+    }
+    return root.value(QStringLiteral("result")).toObject().toVariantMap();
+}
+QByteArray u8(const QString& s) { return s.toUtf8(); }
+}   // namespace
+
+QVariantMap ScriviBridge::historyOpen(const QString& root)
+{
+    return historyEnvelope("scrivi_history_open", scrivi_history_open(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::historyValidateScene(const QString& root, const QString& sceneID, const QString& diskText)
+{
+    return historyEnvelope("scrivi_history_validate_scene",
+                           scrivi_history_validate_scene(u8(root).constData(), u8(sceneID).constData(),
+                                                         u8(diskText).constData()));
+}
+
+QVariantMap ScriviBridge::historyNoteScenePersisted(const QString& root, const QString& sceneID, const QString& diskText)
+{
+    return historyEnvelope("scrivi_history_note_scene_persisted",
+                           scrivi_history_note_scene_persisted(u8(root).constData(), u8(sceneID).constData(),
+                                                               u8(diskText).constData()));
+}
+
+QVariantMap ScriviBridge::historyClose(const QString& root)
+{
+    return historyEnvelope("scrivi_history_close", scrivi_history_close(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::captureNoteEdit(const QString& root, const QString& sceneID, const QString& text,
+                                          int caretUtf16, const QString& textBefore, qint64 nowMs)
+{
+    return historyEnvelope("scrivi_capture_note_edit",
+                           scrivi_capture_note_edit(u8(root).constData(), u8(sceneID).constData(), u8(text).constData(),
+                                                    caretUtf16, u8(textBefore).constData(), nowMs));
+}
+
+QVariantMap ScriviBridge::captureCaretMoved(const QString& root, const QString& sceneID, bool editInFlight, bool applying)
+{
+    return historyEnvelope("scrivi_capture_caret_moved",
+                           scrivi_capture_caret_moved(u8(root).constData(), u8(sceneID).constData(),
+                                                      editInFlight ? 1 : 0, applying ? 1 : 0));
+}
+
+QVariantMap ScriviBridge::captureBegin(const QString& root, const QString& kind, const QString& bufferID)
+{
+    return historyEnvelope("scrivi_capture_begin",
+                           scrivi_capture_begin(u8(root).constData(), u8(kind).constData(), u8(bufferID).constData()));
+}
+
+QVariantMap ScriviBridge::captureFlush(const QString& root, const QString& trigger, const QString& kind)
+{
+    return historyEnvelope("scrivi_capture_flush",
+                           scrivi_capture_flush(u8(root).constData(), u8(trigger).constData(), u8(kind).constData()));
+}
+
+QVariantMap ScriviBridge::captureBeforeSave(const QString& root, qint64 nowMs)
+{
+    return historyEnvelope("scrivi_capture_before_save", scrivi_capture_before_save(u8(root).constData(), nowMs));
+}
+
+QVariantMap ScriviBridge::captureIdle(const QString& root, qint64 nowMs)
+{
+    return historyEnvelope("scrivi_capture_idle", scrivi_capture_idle(u8(root).constData(), nowMs));
+}
+
+QVariantMap ScriviBridge::captureGroupedEdit(const QString& root, const QString& editsJson, const QString& kind)
+{
+    return historyEnvelope("scrivi_capture_grouped_edit",
+                           scrivi_capture_grouped_edit(u8(root).constData(), u8(editsJson).constData(),
+                                                       u8(kind).constData()));
+}
+
+QVariantMap ScriviBridge::captureRecordBarrier(const QString& root, const QString& paramsJson)
+{
+    return historyEnvelope("scrivi_capture_record_barrier",
+                           scrivi_capture_record_barrier(u8(root).constData(), u8(paramsJson).constData()));
+}
+
+QVariantMap ScriviBridge::captureUndo(const QString& root)
+{
+    return historyEnvelope("scrivi_capture_undo", scrivi_capture_undo(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::captureRedo(const QString& root)
+{
+    return historyEnvelope("scrivi_capture_redo", scrivi_capture_redo(u8(root).constData()));
+}
+
+QVariantMap ScriviBridge::captureNoteApplied(const QString& root, const QString& sceneID, const QString& text)
+{
+    return historyEnvelope("scrivi_capture_note_applied",
+                           scrivi_capture_note_applied(u8(root).constData(), u8(sceneID).constData(),
+                                                       u8(text).constData()));
+}
+
+QVariantMap ScriviBridge::captureState(const QString& root)
+{
+    return historyEnvelope("scrivi_capture_state", scrivi_capture_state(u8(root).constData()));
+}

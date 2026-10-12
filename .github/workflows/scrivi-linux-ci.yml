@@ -253,6 +253,13 @@ jobs:
           platforms/linux/tests/find_smoke.sh \
             ./build/platforms/linux/scrivi_linux_find_smoke
 
+      # Undo / redo (SP-178 / T-0605, EP-026 S2): a real EditorShell and real keys — one step per sentence, Ctrl+Z /
+      # Ctrl+Shift+Z (not Ctrl+Y), paste and cross-scene delete as one step, persistence + the session warning, barriers.
+      - name: Undo / redo smoke test
+        run: |
+          platforms/linux/tests/undo_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_undo_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

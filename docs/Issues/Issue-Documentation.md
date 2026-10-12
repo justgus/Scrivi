@@ -41,7 +41,7 @@ does not exist and is owed to no one yet.**
 
 ## Backlog Issues (open, no Sprint)
 
-✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
+✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0287] → `Issue-active.md`, fixed in [SP-178], 2026-10-11.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
 
 ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified (audit ruling **R-02**) → batch 2.
 Its rescoped behaviour was delivered by I-0131's restore centring, verified 2026-08-18.
@@ -164,6 +164,10 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-11 (**I-0287 → active**, Resolved - Not Verified in [SP-178].)*
+
+*Last Updated: 2026-10-11 (**I-0287 filed** to the backlog — found by [SP-178]'s undo smoke; ruling owed.)*
 
 *Last Updated: 2026-10-08 (**I-0277 archived** → `Issue-verified-0271-0280.md` (8), with the SP-171 close.)*
 

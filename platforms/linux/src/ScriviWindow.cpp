@@ -199,6 +199,34 @@ void ScriviWindow::buildMenuBar()
     // --- Edit -------------------------------------------------------------
     // Cut/Copy/Paste forward to the focused writing surface (QPlainTextEdit slots).
     QMenu* edit = bar->addMenu(tr("&Edit"));
+
+    // Edit ▸ Undo / Redo (EP-026 S2, SP-178 / T-0605) — the custom history. ✅ EP-026 Q3: Ctrl+Z / Ctrl+Shift+Z, ⛔ no
+    // Ctrl+Y — so explicit sequences, not `QKeySequence::Undo/Redo` (whose X11 Redo includes Ctrl+Y). While the writing
+    // surface has focus it claims both keys itself (ShortcutOverride) and signals the same `undo()` / `redo()`; these
+    // shortcuts serve the rest of the window. Enabled from the history's can-state each time the menu opens (Apple's
+    // `validateUserInterfaceItem`).
+    QAction* undo = edit->addAction(tr("Undo"));
+    undo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
+    connect(undo, &QAction::triggered, this, [this]() { if (editor_ != nullptr) { editor_->undo(); } });
+    editorOnlyActions_.append(undo);
+    QAction* redo = edit->addAction(tr("Redo"));
+    redo->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Z));
+    connect(redo, &QAction::triggered, this, [this]() { if (editor_ != nullptr) { editor_->redo(); } });
+    editorOnlyActions_.append(redo);
+    connect(edit, &QMenu::aboutToShow, this, [this, undo, redo]() {
+        const bool editing = editor_ != nullptr && stack_->currentWidget() == editor_;
+        undo->setEnabled(editing && editor_->canUndo());
+        redo->setEnabled(editing && editor_->canRedo());
+    });
+    // ⚠️ Re-enabled on close so the SHORTCUTS keep working: a disabled action's shortcut never fires, and the can-state
+    // changes between menu openings. An undo with nothing to undo does nothing.
+    connect(edit, &QMenu::aboutToHide, this, [this, undo, redo]() {
+        const bool editing = editor_ != nullptr && stack_->currentWidget() == editor_;
+        undo->setEnabled(editing);
+        redo->setEnabled(editing);
+    });
+    edit->addSeparator();
+
     QAction* cut = edit->addAction(tr("Cut"));
     cut->setShortcut(QKeySequence::Cut);
     connect(cut, &QAction::triggered, this,
@@ -547,6 +575,10 @@ void ScriviWindow::showLanding()
 void ScriviWindow::flushEditor()
 {
     if (editor_ != nullptr) {
+        // EP-026 S2 (SP-178): commit the pending typing FIRST — an autosave never seals it (T-0396), so without this the
+        // last sentence would reach disk but not history. Apple's order: flush → save → close (close is in
+        // `releaseProject`).
+        editor_->flushHistory();
         editor_->saveDirtyScenes();
         // ⚠️ SP-144 — then record WHERE THE WRITER WAS, even if nothing was dirty.
         //

@@ -475,6 +475,9 @@ must never read scene files (they may have changed since); floors make replay se
 For `kind:"barrier"`, `diff`/`cursorBefore`/`cursorAfter` are omitted and a `barrier` object is
 present instead: `{ "barrierKind": "sceneSplit | sceneDelete | sceneMerge | chapterSplit |
 chapterMerge | reorder | externalChange", "note": "…" }`.
+✅ **[I-0287] (2026-10-11):** the `barrier` object may also carry `"sceneTexts": { "<sceneID>": "<text>", … }` — the text a
+split or merge LEFT in each scene it rewrote or created. Replay resets those scenes' heads at the barrier (not their floors),
+so the next edit diffs against the post-op text. Absent ⇒ no scene text changed (and in every log written before the field).
 
 **A.1.c `rec:"ctl"` — pointer/maintenance operations** (log is the source of truth; the
 checkpoint is derived):

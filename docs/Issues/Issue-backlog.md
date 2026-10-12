@@ -50,6 +50,10 @@ reachable by the test suite as it stood.**
 
 ---
 
+*Last Updated: 2026-10-11 — **I-0287 → active** (ruled: fix in [SP-178]; resolved, not verified — it left this file).*
+
+*Last Updated: 2026-10-11 — **I-0287 filed** ([SP-178] `undo_smoke`): after a merge or split, undoing the next edit restores the pre-structural text (proven at the ABI).*
+
 *Last Updated: 2026-10-08 — **I-0284 filed** ([SP-171] AC1 corpus test): a hard break in a paragraph switches off its emphasis rendering.*
 
 *Last Updated: 2026-10-08 — **I-0277 → active** ([SP-171] activated; it left this file).*

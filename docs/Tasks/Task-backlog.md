@@ -364,6 +364,10 @@ task rather than reviving T-0216.
 
 ---
 
+*Last Updated: 2026-10-11 (**T-0605 → active** — SP-178 activated; it left this file.)*
+
+*Last Updated: 2026-10-11 (**T-0605 filed** — EP-026 S2, [SP-178] 🔵 Planning.)*
+
 *Last Updated: 2026-10-08 (**T-0600 → active** — SP-172 activated; it left this file.)*
 
 *Last Updated: 2026-10-08 (**T-0600 filed** — EP-050 S2, [SP-172] 🔵 Planning.)*

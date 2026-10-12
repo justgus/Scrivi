@@ -126,6 +126,12 @@ std::string applyReverse(const std::string& newText, const Diff& d) {
     return out;
 }
 
+// [I-0287]: a barrier that rewrote scenes resets them to the text it recorded. A no-op for every other node.
+void applyBarrierTexts(const EventNode& n, std::map<std::string, std::string>& texts) {
+    if (n.kind != EventKind::Barrier) return;
+    for (const auto& [sceneID, text] : n.sceneTexts) texts[sceneID] = text;
+}
+
 // True iff diff `d` is self-consistent against `oldText`: its offset lies within
 // the text and the bytes it claims to remove actually appear there. A false result
 // means the diff cannot have been produced from `oldText` — the log is corrupt or
@@ -298,6 +304,14 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
     node.structuralPayload = p.structuralPayload;
     node.timestamp = p.timestamp;
     node.sessionID = sessionID_;
+    // [I-0287]: a hard barrier carries the text the op left in each scene it rewrote; from here those scenes read it.
+    if (node.kind == EventKind::Barrier) {
+        node.sceneTexts = p.sceneTexts;
+        applyBarrierTexts(node, headText_);
+        // A scene the op CREATED (a split's tail) enters history here: its floor is this text, as a first-edit seed
+        // would have made it — so the save path's hash covers it and an outside edit to it is still detected.
+        for (const auto& [sceneID, text] : node.sceneTexts) floorTexts_.try_emplace(sceneID, text);
+    }
 
     const std::string newID = node.eventID;
     EventNode& parent = nodeRef(currentNodeID_);
@@ -893,8 +907,9 @@ void HistoryService::rebuildHeadCache() {
     // floorTexts_ at eviction, or it is the original empty anchor).
     headText_ = floorTexts_;
     for (const EventNode* n : path) {
-        if (!carriesDiff(n->kind)) continue;   // root/barrier/structural carry no diff
         if (n->eventID == rootID_) continue;
+        applyBarrierTexts(*n, headText_);      // [I-0287]: a barrier resets the scenes it rewrote
+        if (!carriesDiff(n->kind)) continue;   // root/barrier/structural carry no diff
         auto& text = headText_[n->sceneID];
         text = applyForward(text, n->diff);
     }
@@ -963,6 +978,7 @@ int HistoryService::evictToCapacity(EvictionDetail& detail) {
             auto& floor = floorTexts_[keep.sceneID];
             floor = applyForward(floor, keep.diff);
         }
+        applyBarrierTexts(keep, floorTexts_);   // [I-0287]: a promoted barrier's texts become the floor
         keep.parentID.reset();
         nodes_.erase(rootID_);
         rootID_ = keepChildID;
@@ -1076,6 +1092,7 @@ void HistoryService::applyLoadedEviction(const std::vector<std::string>& purgedB
             auto& floor = floorTexts_[keep.sceneID];
             floor = applyForward(floor, keep.diff);
         }
+        applyBarrierTexts(keep, floorTexts_);   // [I-0287]: a promoted barrier's texts become the floor
         const std::string oldRoot = rootID_;
         keep.parentID.reset();
         rootID_ = newRoot;
@@ -1128,6 +1145,9 @@ std::vector<std::string> HistoryService::pruneInconsistentNodes() {
 
         // Apply this node's diff to its scene (the root/barriers/structural carry none),
         // after validating it. A mismatch on a non-root textual node → prune the subtree.
+        if (node.eventID != rootID_) {
+            applyBarrierTexts(node, frame.text);   // [I-0287]: later diffs are against the barrier's texts
+        }
         if (node.eventID != rootID_ && carriesDiff(node.kind)) {
             auto& sceneText = frame.text[node.sceneID];
             if (!diffMatches(sceneText, node.diff)) {

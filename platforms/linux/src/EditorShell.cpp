@@ -4,6 +4,7 @@
 #include "ThemeColours.hpp"
 
 #include <QAction>
+#include <QApplication>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -29,6 +30,7 @@
 #include <QStandardItemModel>
 #include <QStringList>
 #include <QRegularExpression>
+#include <QTextCharFormat>
 #include <QTextCursor>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -39,6 +41,7 @@
 #include <cstdio>
 
 #include "EpochOffsetDialog.hpp"
+#include "HistoryCapture.hpp"
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
 #include "ManuscriptPresenter.hpp"
@@ -350,6 +353,39 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     connect(viewport_, &ManuscriptEditor::mergeChapterRequested,
             this, &EditorShell::onMergeChapterRequested);
 
+    // EP-026 S2 (SP-178 / T-0605): Ctrl+Z / Ctrl+Shift+Z, and the paste / cut / multi-scene brackets the history needs
+    // (Apple: `beginPasteOrCut` … `flush`, `recordGroupedEdit`).
+    connect(viewport_, &ManuscriptEditor::undoRequested, this, &EditorShell::undo);
+    connect(viewport_, &ManuscriptEditor::redoRequested, this, &EditorShell::redo);
+    connect(viewport_, &ManuscriptEditor::pasteOrCutBegins, this, [this](const QString& kind) {
+        if (history_ != nullptr) { history_->beginPasteOrCut(kind); }
+    });
+    connect(viewport_, &ManuscriptEditor::pasteOrCutEnded, this, [this](const QString& kind) {
+        if (history_ != nullptr) { history_->flush(kind, kind); }
+    });
+    connect(viewport_, &ManuscriptEditor::groupedEditBegins, this, [this]() {
+        grouping_ = true;
+        groupParts_.clear();
+    });
+    connect(viewport_, &ManuscriptEditor::groupedEditEnded, this, [this](const QString& kind) {
+        grouping_ = false;
+        QJsonArray edits;
+        for (const GroupPart& part : std::as_const(groupParts_)) {
+            const int idx = sceneDoc_.sceneIndexForScene(part.sceneID);
+            if (idx < 0) { continue; }
+            const QString after = sceneDoc_.bodyText(idx);
+            historyText_.insert(part.sceneID, after);
+            edits.append(QJsonObject{{QStringLiteral("sceneID"), part.sceneID},
+                                     {QStringLiteral("textBefore"), part.before},
+                                     {QStringLiteral("textAfter"), after},
+                                     {QStringLiteral("caret"), part.caret}});
+        }
+        groupParts_.clear();
+        if (history_ != nullptr && !edits.isEmpty()) {
+            history_->groupedEdit(QString::fromUtf8(QJsonDocument(edits).toJson(QJsonDocument::Compact)), kind);
+        }
+    });
+
     // Surface bridge errors inline rather than silently failing.
     //
     // ⚠️ The core's message is written for a DEVELOPER and names raw identifiers.
@@ -451,6 +487,11 @@ void EditorShell::load(const QString& projectPath,
     // must stay behaviourally identical; only the OPENER differs.
     const QVariantMap handedOver = openedProject;
 
+    // EP-026 S2 ([SP-178] Q1): the undo history opens IN THE WORKER on a project's FIRST load — ⛔ never on a structural
+    // reload of the project already open here, which keeps its history (a second `scrivi_history_open` mints a new
+    // session: a false "previous session" warning on the next undo, and the pending edit dropped).
+    const bool openHistory = history_ == nullptr || !history_->isOpen() || history_->projectRootPath() != projectPath;
+
     // ⚠️ Progress is emitted FROM THE WORKER THREAD, so it is queued to the UI
     // thread rather than called directly. A direct call would touch widgets from
     // the wrong thread.
@@ -458,7 +499,7 @@ void EditorShell::load(const QString& projectPath,
 
     AsyncCall::run<LoadPayload>(
         this,
-        [bridge, path, appSup, self, handedOver]() -> LoadPayload {
+        [bridge, path, appSup, self, handedOver, openHistory]() -> LoadPayload {
             LoadPayload out;
 
             // ✅ Use the landing's envelope when it handed one over; open only
@@ -495,9 +536,11 @@ void EditorShell::load(const QString& projectPath,
             // COUNT, not an estimate -- which is exactly what makes the progress
             // bar DETERMINATE rather than a spinner (SP-128 §2a).
             // SP-173 / I-0285 (AC5): the timeline read is the load's last step, counted on the bar like each scene body.
-            const int total = scenes.size() + 1;
+            // ✅ [SP-178] Q1: opening the undo history is counted too — 1 for the log, 1 per scene validated against it.
+            const int sceneCount = scenes.size();
+            const int total = sceneCount + 1 + (openHistory ? sceneCount + 1 : 0);
             int done = 0;
-            emit self->loadProgress(done, total);
+            emit self->loadProgress(done, total, sceneCount);
 
             out.inputs.reserve(scenes.size());
             for (const QVariant& v : scenes) {
@@ -540,15 +583,37 @@ void EditorShell::load(const QString& projectPath,
                     if (in.sceneID != out.activeSceneID) { in.markdown = texts.value(in.sceneID); }
                 }
                 done = end;
-                emit self->loadProgress(done, total);
+                emit self->loadProgress(done, total, sceneCount);
             }
 
             loadLog("worker: all scene bodies read", done);
+            // EP-026 S2 ([SP-178] Q1): open the undo history and validate every scene's disk text against the head hash
+            // its last close persisted (§6.b — a scene edited outside Scrivi gets an externalChange barrier). History is
+            // best-effort: a failed open leaves it closed, and the project opens regardless.
+            out.historyRequested = openHistory;
+            if (openHistory) {
+                out.historyOpened = !ScriviBridge::historyOpen(path).isEmpty();
+                emit self->loadProgress(++done, total, sceneCount);
+                constexpr int kValidateReport = 64;   // progress per chunk, as the bodies
+                for (int i = 0; i < out.inputs.size(); ++i) {
+                    if (out.historyOpened) {
+                        ScriviBridge::historyValidateScene(path, out.inputs.at(i).sceneID, out.inputs.at(i).markdown);
+                    }
+                    ++done;
+                    if ((i + 1) % kValidateReport == 0 || i + 1 == out.inputs.size()) {
+                        emit self->loadProgress(done, total, sceneCount);
+                    }
+                }
+                loadLog("worker: undo history opened", done);
+            }
+            // ⚠️ BEFORE the timeline read, not after: opening history is a project WRITE (it bumps the revision), and a
+            // timeline read older than it is discarded and re-read on the UI thread ([I-0285] AC4 — measured, smoke).
             // SP-173 / I-0285 (AC4): the timeline's data, read HERE and not on the UI thread; applied there only if the
             // project has not changed since (its revision).
             out.timeline = EditorShell::fetchTimelineData(bridge, path);
-            emit self->loadProgress(++done, total);
+            emit self->loadProgress(++done, total, sceneCount);
             loadLog("worker: timeline read");
+
             out.ok = true;
             return out;
         },
@@ -592,13 +657,13 @@ void EditorShell::hideLoadProgress()
     if (progressRow_ != nullptr)   { progressRow_->hide(); }
 }
 
-void EditorShell::onLoadProgress(int done, int total)
+void EditorShell::onLoadProgress(int done, int total, int scenes)
 {
     if (progressBar_ == nullptr) { return; }
 
-    // SP-173 / I-0285 (AC5): `total` counts every scene body PLUS the timeline read (the load's last step). The BAR counts
-    // all of it; the LABEL counts scenes only, so it never claims a scene that does not exist.
-    const int scenes = total - 1;
+    // SP-173 / I-0285 (AC5): `total` counts every scene body PLUS the timeline read. ✅ [SP-178] Q1: on a first load it
+    // also counts opening the undo history (1) and validating each scene against it (`scenes`). The BAR counts all of it;
+    // the LABEL names the phase, and never claims a scene that does not exist.
 
     // ⚠️ A scene count of 0 or 1 is not worth a bar: a single-scene project has one
     // read, and there is no meaningful fraction to show.
@@ -609,8 +674,18 @@ void EditorShell::onLoadProgress(int done, int total)
     // ✅ The NUMBERS are shown, not just a bar. A writer waiting on a slow mount
     // can see that it is MOVING and roughly how much is left -- which is the
     // difference between waiting and wondering whether it has hung.
-    progressLabel_->setText(tr("Opening this project… %1 of %2 scenes")
-                                .arg(std::min(done, scenes)).arg(scenes));
+    // Phases, in the worker's order: the scene bodies (`scenes`), then — first load only — the history log (1) and each
+    // scene's validation (`scenes`), then the timeline (1). Each report arrives AFTER its step, so the label names the NEXT.
+    const bool withHistory = total > scenes + 1;
+    if (!withHistory || done < scenes) {
+        progressLabel_->setText(tr("Opening this project… %1 of %2 scenes")
+                                    .arg(std::min(done, scenes)).arg(scenes));
+    } else if (done == scenes) {
+        progressLabel_->setText(tr("Opening undo history…"));
+    } else {
+        progressLabel_->setText(tr("Checking undo history… %1 of %2 scenes")
+                                    .arg(std::min(done - scenes - 1, scenes)).arg(scenes));
+    }
 }
 
 void EditorShell::applyLoadedProject(const QString& projectPath,
@@ -618,6 +693,9 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
                                      const LoadPayload& payload)
 {
     // ⚠️ UI THREAD ONLY. Everything below touches widgets and the document.
+    // EP-026 S2 (SP-178): the caret this load places is not the writer's move — not reported to history. ⚠️ A report is a
+    // project WRITE (it bumps the revision), and it would make the worker's timeline read stale ([I-0285] AC4, smoke).
+    applyingLoad_ = true;
     const QString projectID     = payload.projectID;
     const QString activeSceneID = payload.activeSceneID;
     const int restoredAnchor    = payload.restoredAnchor;
@@ -719,6 +797,24 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     // in `reloadTimeline()`, which skips while loading — the load builds the timeline ONCE, at its end. (Clearing the flag first
     // built it twice: 27 s each on dumas over the share.)
     rebuildNavigator();
+
+    // EP-026 S2 (SP-178): adopt the history the worker opened (first load only), and record each scene's text as history
+    // now sees it — the "text before" of its first edit.
+    if (payload.historyRequested) {
+        if (history_ != nullptr) {
+            history_->close();
+            history_->deleteLater();
+        }
+        history_ = new HistoryCapture(projectPath, this);
+        history_->adoptOpened(payload.historyOpened);
+    }
+    historyText_.clear();
+    grouping_ = false;
+    groupParts_.clear();
+    for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
+        historyText_.insert(sceneDoc_.segments().at(i).sceneID, sceneDoc_.bodyText(i));
+    }
+
     loading_ = false;
     loadLog("main: navigator rebuilt");
 
@@ -788,6 +884,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
         loadLog(line.constData());
     }
     QTimer::singleShot(0, this, []() { loadLog("main: event loop idle (layout + first paint queued before this)"); });
+    applyingLoad_ = false;
 }
 
 void EditorShell::showEvent(QShowEvent* event)
@@ -882,6 +979,8 @@ void EditorShell::deleteSceneByID(const QString& sceneID)
     // won't rewrite the .md we're about to delete.
     dirtyScenes_.remove(sceneID);
     saveDirtyScenes();
+    // Barrier BEFORE the delete (Apple, I-0066): undo cannot walk back into the deleted scene.
+    recordBarrier(QStringLiteral("sceneDelete"), tr("Can't undo past deleting a scene"));
 
     const QVariantMap r = bridge_->deleteScene(projectPath_, sceneID);
     if (r.isEmpty()) {
@@ -960,6 +1059,8 @@ void EditorShell::deleteChapterByID(const QString& chapterID)
         }
     }
     saveDirtyScenes();
+    // Barrier BEFORE the delete (Apple, I-0066) — Apple's kind for a chapter delete is `sceneDelete` too.
+    recordBarrier(QStringLiteral("sceneDelete"), tr("Can't undo past deleting a chapter"));
 
     const QVariantMap r = bridge_->deleteChapter(projectPath_, chapterID);
     if (r.isEmpty()) {
@@ -1345,6 +1446,50 @@ void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdde
     }
     dirtyScenes_.insert(sceneDoc_.segments().at(idx).sceneID);
     saveTimer_->start();   // (re)arm the idle-save debounce (T-0239)
+    reportEdit(idx, position, charsAdded);
+}
+
+// EP-026 S2 (SP-178): one scene edit → history (Apple: `textDidChange` → `noteEdit`). ⛔ Not for text an undo/redo applied
+// (`applyHistoryStep` keeps `historyText_` itself), and a multi-scene edit is collected and reported ONCE at its end.
+void EditorShell::reportEdit(int idx, int position, int charsAdded)
+{
+    if (history_ == nullptr || history_->isApplying()) {
+        return;
+    }
+    const SceneSegment& seg = sceneDoc_.segments().at(idx);
+    if (grouping_) {
+        const int caret = storedOffset(idx, position);
+        for (GroupPart& part : groupParts_) {
+            if (part.sceneID == seg.sceneID) {
+                part.caret = std::min(part.caret, caret);
+                return;
+            }
+        }
+        groupParts_.append({seg.sceneID, historyText_.value(seg.sceneID), caret});
+        return;
+    }
+    const QString after = sceneDoc_.bodyText(idx);
+    const QString before = historyText_.value(seg.sceneID);
+    if (after == before) {
+        return;   // no text change (a re-highlight reports `contentsChange` with equal counts)
+    }
+    historyText_.insert(seg.sceneID, after);
+    // ⚠️ The caret AFTER the edit, from the change itself: the editor moves its own cursor only once the edit block ends.
+    history_->noteEdit(seg.sceneID, after, storedOffset(idx, position + charsAdded), before);
+    editInFlight_ = true;
+    QTimer::singleShot(0, this, [this]() { editInFlight_ = false; });
+}
+
+int EditorShell::storedOffset(int idx, int docPos) const
+{
+    const SceneSegment& seg = sceneDoc_.segments().at(idx);
+    int local = std::clamp(docPos - seg.bodyStart, 0, seg.bodyLength);
+    // The pending pair is document-only (`bodyText` leaves it out): a caret after it sits that much earlier in the text.
+    if (const auto& p = sceneDoc_.pending(); p && p->start >= seg.bodyStart && p->start - seg.bodyStart < local
+        && sceneDoc_.bodyText(idx).size() < seg.bodyLength) {
+        local = std::max(p->start - seg.bodyStart, local - 2 * p->markerLength);
+    }
+    return local;
 }
 
 void EditorShell::onCursorMoved()
@@ -1356,7 +1501,13 @@ void EditorShell::onCursorMoved()
     // caret jump across scenes (e.g. a click or arrow into another scene) should
     // still flush the departing scene — route it through the single active-scene
     // writer, which promotes + saves only when the scene actually changes.
-    promoteActiveScene(sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position()));
+    const int seg = sceneDoc_.sceneIndexForCaret(viewport_->textCursor().position());
+    // EP-026 S2 (SP-178): another scene commits the pending edit; the same scene commits unless only whitespace changed
+    // (the core decides). Apple: `textViewDidChangeSelection` → `caretMoved`.
+    if (history_ != nullptr && seg >= 0 && !grouping_ && !applyingLoad_) {
+        history_->caretMoved(sceneDoc_.segments().at(seg).sceneID, editInFlight_);
+    }
+    promoteActiveScene(seg);
 }
 
 void EditorShell::onScrolled()
@@ -1460,11 +1611,15 @@ bool EditorShell::saveScene(int segmentIndex)
         }
     }
 
+    const QString body = sceneDoc_.bodyText(segmentIndex);
     const QVariantMap r = bridge_->saveScene(
         projectID_, projectPath_, appSupportRoot_,
         seg.sceneID, seg.metadataPath, seg.contentPath,
-        sceneDoc_.bodyText(segmentIndex),
+        body,
         selectionAnchor, selectionFocus, scroll);
+    if (!r.isEmpty() && r.value(QStringLiteral("saved")).toBool()) {
+        notePersisted(seg.sceneID, body);   // EP-026 S2: [I-0104] / [I-0259]
+    }
 
     // Whatever the outcome, drop the scene from the dirty set: on success it's
     // clean; on failure the bridge already surfaced errorOccurred and re-queuing it
@@ -1506,6 +1661,15 @@ void EditorShell::setOuterSizes(const QList<int>& sizes) { applySizes(outerSplit
 
 void EditorShell::releaseProject()
 {
+    // EP-026 S2 (SP-178): close the undo history — after `flushHistory()` and the saves (Apple's order: flush → save →
+    // close). `scrivi_history_close` writes the final checkpoint; without it every repair made this session re-flags.
+    if (history_ != nullptr) {
+        history_->close();
+        history_->deleteLater();
+        history_ = nullptr;
+    }
+    historyText_.clear();
+
     // EP-039 T-0512. ⚠️ Order matters: the core is keyed by the project ROOT, so this
     // must run while `projectPath_` still holds it.
     if (bridge_ != nullptr && !projectPath_.isEmpty()) {
@@ -1581,12 +1745,15 @@ void EditorShell::stampWritingSurface()
     // stamps `lastWritingSurface` on every `saveScene`, and there is no
     // surface-only endpoint. ✅ Idempotent for unchanged bytes, and this is one
     // write on the teardown path, not one per scene on load.
+    const QString body = sceneDoc_.bodyText(activeSegment_);
     const QVariantMap r = bridge_->saveScene(
         projectID_, projectPath_, appSupportRoot_,
         seg.sceneID, seg.metadataPath, seg.contentPath,
-        sceneDoc_.bodyText(activeSegment_),
+        body,
         selectionAnchor, selectionFocus, scroll);
-    Q_UNUSED(r);
+    if (!r.isEmpty() && r.value(QStringLiteral("saved")).toBool()) {
+        notePersisted(seg.sceneID, body);   // EP-026 S2: [I-0104] / [I-0259]
+    }
 
     // The scene is now on disk; do not re-flush it on a later debounce.
     dirtyScenes_.remove(seg.sceneID);
@@ -1598,6 +1765,11 @@ void EditorShell::saveDirtyScenes()
         return;
     }
     saveTimer_->stop();   // an explicit flush supersedes a pending debounce
+    // EP-026 S2 (SP-178): an autosave never seals the typing session unless the writer is already idle (T-0396;
+    // Apple: `flushThenSave`). Teardown commits first, in `flushHistory()`.
+    if (history_ != nullptr) {
+        history_->beforeSave();
+    }
 
     // Snapshot the dirty sceneIDs, then save each by its current segment index (the
     // offset map is authoritative for the body text). saveScene() drains the set.
@@ -1714,6 +1886,11 @@ void EditorShell::onCreateSceneRequested()
     if (newSceneID.isEmpty()) {
         return;   // bridge already surfaced errorOccurred
     }
+    // Structural op — undo stops here (§4.5; Apple's kind and note). [I-0287]: AFTER the create, so a mid-scene split
+    // can say what it leaves in each half — the head in the host, the tail in the new scene.
+    recordBarrier(QStringLiteral("sceneSplit"), tr("Can't undo past creating a scene"),
+                  isAtEnd ? QHash<QString, QString>{}
+                          : QHash<QString, QString>{{host.sceneID, headText}, {newSceneID, tailText}});
     const QString newMeta    = result.value(QStringLiteral("metadataPath")).toString();
     const QString newContent = result.value(QStringLiteral("contentPath")).toString();
 
@@ -1729,6 +1906,8 @@ void EditorShell::onCreateSceneRequested()
             bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
                                newSceneID, newMeta, newContent,
                                tailText, 0, 0, 0.0);
+        if (!headR.isEmpty()) { notePersisted(host.sceneID, headText); }
+        if (!tailR.isEmpty()) { notePersisted(newSceneID, tailText); }
         if (headR.isEmpty() || tailR.isEmpty()) {
             // A save failed (bridge surfaced errorOccurred). Reload to whatever persisted so
             // the UI matches disk, then bail.
@@ -1851,6 +2030,11 @@ void EditorShell::onCreateChapterRequested()
             tr("The new chapter could not be created; the manuscript was left unchanged."));
         return;
     }
+    // Structural op — undo stops here (§4.5; Apple's kind and note). [I-0287]: AFTER the create, with what a mid-scene
+    // split leaves in each half — the head in S, the tail in K0.
+    recordBarrier(QStringLiteral("chapterSplit"), tr("Can't undo past creating a chapter"),
+                  isAtEnd ? QHash<QString, QString>{}
+                          : QHash<QString, QString>{{sceneS.sceneID, headText}, {firstSceneID, tailText}});
 
     // The scene that will carry the caret afterward: mid-scene → K0 (holds the tail);
     // end-of-scene with followers → the first follower; end-of-scene without followers
@@ -1875,11 +2059,13 @@ void EditorShell::onCreateChapterRequested()
                                sceneS.sceneID, sHead.metadataPath, sHead.contentPath,
                                headText, 0, 0, 0.0);
         if (headR.isEmpty()) { failSplit(tr("saving the current scene")); return; }
+        notePersisted(sceneS.sceneID, headText);
         const QVariantMap tailR =
             bridge_->saveScene(projectID_, projectPath_, appSupportRoot_,
                                firstSceneID, k0MetadataPath, k0ContentPath,
                                tailText, 0, 0, 0.0);
         if (tailR.isEmpty()) { failSplit(tr("writing the new chapter's first scene")); return; }
+        notePersisted(firstSceneID, tailText);
     }
 
     // 3. Followers move into K after K0, in order (runs in every case — mid-scene AND
@@ -1966,6 +2152,11 @@ void EditorShell::onMergeSceneRequested()
     if (r.isEmpty()) {
         return;   // bridge already surfaced errorOccurred; leave the UI untouched
     }
+    // Structural op — undo stops here (§4.5; Apple's kind and note). [I-0287]: AFTER the merge, with the survivor's
+    // joined text as the core wrote it — the reload below shows the editor exactly that text.
+    recordBarrier(QStringLiteral("sceneMerge"), tr("Can't undo past a scene merge"),
+                  {{predecessor.sceneID,
+                    bridge_->readSceneTexts(projectPath_, {predecessor.sceneID}).value(predecessor.sceneID)}});
 
     // The merge rewrote disk (predecessor body grew, current scene's files gone). Disk
     // is authoritative, so reload the document/map/navigator from it rather than
@@ -2038,6 +2229,9 @@ void EditorShell::onMergeChapterRequested()
 
     // Flush pending edits before the relocation rewrites the chapter's files.
     saveDirtyScenes();
+    // Structural op — undo stops here (§4.5; Apple's kind and note). No scene texts: the relocation moves files and
+    // keeps every scene's ID and text ([I-0287] concerns only ops that rewrite text).
+    recordBarrier(QStringLiteral("chapterMerge"), tr("Can't undo past a chapter merge"));
 
     // Atomic whole-chapter merge: RELOCATE every scene of the current chapter into the
     // predecessor's folder, then remove the emptied chapter (the I-0083 fix — no scene
@@ -2102,6 +2296,154 @@ void EditorShell::copySelection()  { viewport_->copy(); }
 void EditorShell::applyFormat(ManuscriptEditor::Format format) { viewport_->applyFormat(format); }   // SP-175
 void EditorShell::find(FindCommand command) { findBar_->run(command); }   // SP-176
 void EditorShell::pasteClipboard() { viewport_->paste(); }
+
+// ── EP-026 S2 (SP-178 / T-0605): undo / redo ───────────────────────────────────────────────────────────────────────
+// Apple: `ManuscriptTextView.Coordinator` — `performUndo`, `apply(step:)`, `applySceneChange`, the barrier and
+// session-boundary notices.
+
+bool EditorShell::canUndo() const { return history_ != nullptr && history_->canUndo(); }
+bool EditorShell::canRedo() const { return history_ != nullptr && history_->canRedo(); }
+
+void EditorShell::undo()
+{
+    if (history_ != nullptr && !loading_) {
+        applyHistoryStep(history_->undo(), /*isUndo=*/true);
+    }
+}
+
+void EditorShell::redo()
+{
+    if (history_ != nullptr && !loading_) {
+        applyHistoryStep(history_->redo(), /*isUndo=*/false);
+    }
+}
+
+void EditorShell::flushHistory()
+{
+    if (history_ != nullptr) {
+        history_->flush(QStringLiteral("flush"));
+    }
+}
+
+void EditorShell::notePersisted(const QString& sceneID, const QString& text)
+{
+    if (history_ != nullptr) {
+        history_->noteScenePersisted(sceneID, text);
+    }
+}
+
+void EditorShell::recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts)
+{
+    if (history_ != nullptr) {
+        history_->recordBarrier(kind, note, sceneTexts);
+    }
+}
+
+namespace {
+// Apple's `NSAlert` (informational, one OK button) — a modal notice.
+void historyNotice(QWidget* parent, const QString& text, const QString& detail = {})
+{
+    QMessageBox box(parent);
+    box.setIcon(QMessageBox::Information);
+    box.setObjectName(QStringLiteral("historyNotice"));
+    box.setText(text);
+    box.setInformativeText(detail);
+    box.setStandardButtons(QMessageBox::Ok);
+    box.exec();
+}
+}   // namespace
+
+int EditorShell::replaceSceneBody(int idx, const QString& text, int caretUtf16)
+{
+    const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy: the edit below moves the map
+    QTextCursor c(sceneDoc_.document());
+    c.beginEditBlock();
+    c.setPosition(seg.bodyStart);
+    c.setPosition(seg.bodyStart + seg.bodyLength, QTextCursor::KeepAnchor);
+    // ⛔ Raw — never the editor's `replaceRange`, which would re-balance the restored text into something else.
+    c.insertText(text, QTextCharFormat());   // a '\n' becomes a block break, as typing's does
+    c.endEditBlock();
+    const SceneSegment& now = sceneDoc_.segments().at(idx);
+    return now.bodyStart + std::clamp(caretUtf16, 0, now.bodyLength);
+}
+
+void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
+{
+    if (history_ == nullptr || step.isEmpty()) {
+        return;
+    }
+
+    // A structural barrier (§4.5): the notice, and no text change.
+    const QVariantMap barrier = step.value(QStringLiteral("stoppedAtBarrier")).toMap();
+    if (!barrier.isEmpty()) {
+        const QString note = barrier.value(QStringLiteral("note")).toString();
+        historyNotice(this, note.isEmpty() ? tr("Can't undo past this point.") : note);
+        return;
+    }
+
+    // ✅ [SP-178] Q2: a reversible structural node (EP-029's cross-scene cut/paste, recorded on the Mac). Replaying it is
+    // S4's; until then step straight back over it — the pointer has already moved — so history and disk stay in step.
+    const QVariantMap inverse = step.value(QStringLiteral("structuralInverse")).toMap();
+    if (!inverse.isEmpty()) {
+        if (inverse.value(QStringLiteral("direction")).toString() == QStringLiteral("undo")) {
+            history_->redo();
+        } else {
+            history_->undo();
+        }
+        historyNotice(this, isUndo ? tr("This step is a cross-scene cut or paste. Undo it on the Mac for now.")
+                                   : tr("This step is a cross-scene cut or paste. Redo it on the Mac for now."));
+        return;
+    }
+
+    // ✅ [SP-178] Q3: `forkAhead` (the branch chooser) is S3's — redo follows the primary branch meanwhile.
+    const QVariantList changes = step.value(QStringLiteral("changes")).toList();
+    if (!step.value(QStringLiteral("moved")).toBool() || changes.isEmpty()) {
+        return;
+    }
+
+    // ⚠️ [I-0270] A step can carry SEVERAL scene changes (an edit across scene breaks) — apply every one.
+    viewport_->removePendingPair();   // an undo rewrites scene text; the document-only pair goes first
+    struct Placed { int seg; int pos; QString sceneID; QString text; };
+    QList<Placed> placed;
+    history_->setApplying(true);
+    for (const QVariant& v : changes) {
+        const QVariantMap change = v.toMap();
+        const QString sceneID = change.value(QStringLiteral("sceneID")).toString();
+        const int idx = sceneDoc_.sceneIndexForScene(sceneID);
+        if (idx < 0) {
+            continue;   // the scene is not in this manuscript
+        }
+        const QString text = change.value(QStringLiteral("newText")).toString();
+        const int caret = change.value(QStringLiteral("cursorAfterUtf16"), text.size()).toInt();
+        placed.append({idx, replaceSceneBody(idx, text, caret), sceneID, text});
+        historyText_.insert(sceneID, text);
+    }
+    // Saved at once, as Apple's `applySceneChange` (each write reported to history by `saveScene`).
+    for (const Placed& p : std::as_const(placed)) {
+        saveScene(p.seg);
+    }
+    // The caret: one change places its own; several place it ONCE, in the EARLIEST scene ([SP-164]).
+    if (!placed.isEmpty()) {
+        const Placed first = *std::min_element(placed.cbegin(), placed.cend(),
+                                               [](const Placed& a, const Placed& b) { return a.seg < b.seg; });
+        QTextCursor c = viewport_->textCursor();
+        c.setPosition(first.pos);
+        viewport_->setTextCursor(c);
+        viewport_->ensureCursorVisible();
+        history_->setApplying(false);
+        // The restored text is now the whitespace reference (SP-177: told to the core).
+        history_->noteApplied(first.sceneID, first.text);
+    }
+    history_->setApplying(false);
+
+    // The session-boundary warning (§5, T-0209): the first undo into a previous session's work, once per crossing.
+    if (step.value(QStringLiteral("crossedSessionBoundary")).toBool()) {
+        const QString when = HistoryCapture::friendlyTimestamp(step.value(QStringLiteral("boundaryTimestamp")).toString());
+        historyNotice(this, tr("Undoing changes from a previous session"),
+                      when.isEmpty() ? tr("You are now undoing changes made before this session.")
+                                     : tr("You are now undoing changes made %1.").arg(when));
+    }
+}
 
 // --- EP-024 Scene Inspector visibility (SP-078, T-0319) -------------------
 

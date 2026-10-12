@@ -23,6 +23,7 @@ class QTimer;
 class QSplitter;
 class ScriviBridge;
 class ManuscriptEditor;
+class HistoryCapture;
 class ManuscriptPresenter;
 class SceneInspector;
 class TimelinePanel;
@@ -169,6 +170,20 @@ public:
     void find(FindCommand command);                      // Edit ▸ Find ▸ … (SP-176) → the find bar
     void pasteClipboard(); // Edit ▸ Paste    → viewport paste()
 
+    // --- EP-026 S2 undo history (SP-178, T-0605) --------------------------
+    // Edit ▸ Undo / Redo and Ctrl+Z / Ctrl+Shift+Z (the editor signals them). Applies the step the core returns —
+    // Apple's `ManuscriptTextView.apply(step:)`: a barrier's notice, every scene's text, the caret, an immediate save, the
+    // session-boundary warning. No-ops when no history is open.
+    void undo();
+    void redo();
+    [[nodiscard]] bool canUndo() const;
+    [[nodiscard]] bool canRedo() const;
+    // Commits the pending typing now (Apple's `saveAllDirtyBlocking` flush). ✅ Called on every teardown BEFORE the dirty
+    // scenes are saved; the history itself closes in `releaseProject()`, after them.
+    void flushHistory();
+    // For smokes: the open history, or nullptr.
+    [[nodiscard]] HistoryCapture* history() const { return history_; }
+
     // --- EP-035 AC3 Worlds surface (SP-127, T-0494) -----------------------
     //
     // Project ▸ Manage Worlds… — opens the Worlds dialog for THIS project.
@@ -246,12 +261,16 @@ signals:
     // returns BEFORE the expensive per-scene loop begins. ⚠️ It is a COUNT, never
     // an estimate -- filesystem calls are deterministic and the package layout is
     // OURS. ⚠️ A spinner here would be a REGRESSION against a settled decision.
-    void loadProgress(int done, int total);
+    //
+    // ✅ [SP-178] Q1 (EP-026 S2): when the load also OPENS the undo history, `total` counts that too — 1 to open the
+    // history log + 1 per scene validated against it — still known before the work starts. `scenes` is the scene count,
+    // so the label can name the phase it is in.
+    void loadProgress(int done, int total, int scenes);
 
 private slots:
     // T-0500 ([I-0195]): update the determinate open-progress strip.
     // ⚠️ Queued from the worker thread — see the loadProgress signal.
-    void onLoadProgress(int done, int total);
+    void onLoadProgress(int done, int total, int scenes);
 
     void onNavigatorActivated(const QModelIndex& index);
     // Right-click on a navigator row (T-0251): build a context menu with Delete for
@@ -400,6 +419,11 @@ private:
         int                        restoredFocus  = 0;
         double                     restoredScroll = 0.0;
         TimelineData               timeline;         // SP-173 (D4): read in the worker, after the bodies
+        // EP-026 S2 ([SP-178] Q1): the undo history was opened (and every scene validated) IN THE WORKER. ⛔ Only on a
+        // project's FIRST load — a structural reload keeps the history it has (`scrivi_history_open` would mint a new
+        // session and drop the pending edit).
+        bool                       historyRequested = false;
+        bool                       historyOpened    = false;
     };
 
     // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY
@@ -681,4 +705,34 @@ private:
     // is MINE, not the writer's" flag, which is how this shell already distinguishes
     // programmatic from user-driven change.
     bool                restoringPaneVisibility_ = false;
+
+    // --- EP-026 S2 undo history (SP-178, T-0605) --------------------------
+    // ✅ Owned here, not by `session_`: `ProjectSession` holds state and never talks to the core; this does.
+    // Created on a project's first load; closed and released in `releaseProject()`.
+    HistoryCapture*         history_ = nullptr;
+    // Each scene's text as history last saw it — the "text before" of the next report (Apple keeps the text before the
+    // edit, `preEditText`; Qt's `contentsChange` arrives AFTER the change). Refilled on every load.
+    QHash<QString, QString> historyText_;
+    // The caret move this turn came from an edit (Apple's `editInFlight`); cleared when the event loop turns.
+    bool                    editInFlight_ = false;
+    // `applyLoadedProject` is placing the caret — not a writer's move, never reported (see there).
+    bool                    applyingLoad_ = false;
+    // [I-0270] A multi-scene edit in progress: each scene's text before it and where its part began (UTF-16, scene-local).
+    struct GroupPart { QString sceneID; QString before; int caret = 0; };
+    bool                    grouping_ = false;
+    QList<GroupPart>        groupParts_;
+
+    // Report one scene edit to history (`onContentsChange`).
+    void reportEdit(int segmentIndex, int position, int charsAdded);
+    // A document position as a UTF-16 offset into segment `index`'s STORED text (the pending pair is not scene text).
+    int storedOffset(int index, int docPos) const;
+    // Apply one undo/redo result (Apple's `apply(step:)`).
+    void applyHistoryStep(const QVariantMap& step, bool isUndo);
+    // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.
+    int replaceSceneBody(int index, const QString& text, int caretUtf16);
+    // The save path wrote `text` for `sceneID` ([I-0104]); ⛔ only after a write that SUCCEEDED ([I-0259]).
+    void notePersisted(const QString& sceneID, const QString& text);
+    // A structural barrier (§4.5), Apple's kinds and notes. ⚠️ AFTER the op: `sceneTexts` is what it left in each
+    // scene it rewrote or created ([I-0287]).
+    void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {});
 };

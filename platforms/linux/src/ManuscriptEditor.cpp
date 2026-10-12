@@ -35,7 +35,7 @@ const QString kSourceMime = QStringLiteral("application/x-scrivi-manuscript-sour
 
 ManuscriptEditor::ManuscriptEditor(QWidget* parent) : QPlainTextEdit(parent)
 {
-    document()->setUndoRedoEnabled(false);   // ⌘Z reserved for EP-026 custom history
+    document()->setUndoRedoEnabled(false);   // Ctrl+Z is the custom history's (EP-026 S2) — see keyPressEvent
 
     // Keep the caret out of protected boundary text (T-0246).
     connect(this, &QPlainTextEdit::cursorPositionChanged,
@@ -322,6 +322,23 @@ bool ManuscriptEditor::modifiedRangeFor(const QKeyEvent* event,
 
 void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
 {
+    // EP-026 S2 (SP-178): Ctrl+Z undo, Ctrl+Shift+Z redo — matched EXPLICITLY. ⛔ Not `QKeySequence::Undo/Redo`: on X11
+    // `Redo` also matches Ctrl+Y, which EP-026 Q3 ruled out (Ctrl+Y falls through to the disabled document undo — nothing).
+    // The editor accepts these in ShortcutOverride, so the Edit-menu shortcut only fires when the editor lacks focus.
+    if (event->key() == Qt::Key_Z) {
+        const Qt::KeyboardModifiers mods = event->modifiers() & ~Qt::KeypadModifier;
+        if (mods == Qt::ControlModifier) {
+            emit undoRequested();
+            event->accept();
+            return;
+        }
+        if (mods == (Qt::ControlModifier | Qt::ShiftModifier)) {
+            emit redoRequested();
+            event->accept();
+            return;
+        }
+    }
+
     // In-editor structure creation (T-0240 / T-0241): Ctrl+Return = new scene,
     // Ctrl+Shift+Return = new chapter (the Linux analogues of ⌘↩ / ⌘⇧↩). Catch
     // these before the modifying-key path so they never insert a newline; the
@@ -762,7 +779,9 @@ void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
             return;
         }
         pastingOwnCopy_ = source->hasFormat(kSourceMime);
+        emit pasteOrCutBegins(QStringLiteral("paste"));   // EP-026 S2: a paste is its own undo step
         replaceRange(start, end, text);
+        emit pasteOrCutEnded(QStringLiteral("paste"));
         pastingOwnCopy_ = false;
         return;
     }
@@ -844,7 +863,9 @@ void ManuscriptEditor::cutSelection()
         widened.setPosition(end, QTextCursor::KeepAnchor);
         setTextCursor(widened);
         copy();                              // the balanced copy (createMimeDataFromSelection)
+        emit pasteOrCutBegins(QStringLiteral("cut"));   // EP-026 S2: a cut is its own undo step
         replaceRange(start, end, QString());  // ✅ SP-175: the balanced removal — a span it cuts into is closed and re-opened
+        emit pasteOrCutEnded(QStringLiteral("cut"));
         return;
     }
     // Across scenes → per-scene removal; touching only a boundary → refused (no-op).
@@ -867,9 +888,12 @@ bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst)
     // body and SceneDocument::applyContentsChange reconciles it (an edit spanning a
     // boundary would be charged entirely to one scene).
     // ✅ SP-175: each part through `replaceRange`, so every scene stays balanced (Apple: T-0591's per-scene cut).
+    // EP-026 S2: the parts are ONE undo step — the shell reports them together.
+    emit groupedEditBegins();
     for (int k = cuts.size() - 1; k >= 0; --k) {
         replaceRange(cuts.at(k).first, cuts.at(k).second, QString());
     }
+    emit groupedEditEnded(copyFirst ? QStringLiteral("cut") : QStringLiteral("delete"));
     QTextCursor caret = textCursor();
     caret.setPosition(cuts.first().first);
     setTextCursor(caret);

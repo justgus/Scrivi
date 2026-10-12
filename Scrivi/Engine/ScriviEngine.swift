@@ -1171,6 +1171,8 @@ public final class ScriviEngine: @unchecked Sendable {
         // (I-0102). Omitted when nil — barriers with no single owning scene.
         let sceneID: String?
         let structuralPayload: HistoryStructuralPayload?
+        // [I-0287]: sceneID → the text the structural op left in each scene it rewrote or created. Omitted when nil.
+        var sceneTexts: [String: String]? = nil
     }
 
     public func historyRecordBarrier(
@@ -1369,10 +1371,12 @@ public final class ScriviEngine: @unchecked Sendable {
 
     public func captureRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "",
                                      sceneID: String? = nil,
-                                     structuralPayload: HistoryStructuralPayload? = nil) throws -> CaptureState {
+                                     structuralPayload: HistoryStructuralPayload? = nil,
+                                     sceneTexts: [String: String] = [:]) throws -> CaptureState {
         let paramsData = try JSONEncoder().encode(
             RecordBarrierParams(barrierKind: barrierKind, note: note, sceneID: sceneID,
-                                structuralPayload: structuralPayload))
+                                structuralPayload: structuralPayload,
+                                sceneTexts: sceneTexts.isEmpty ? nil : sceneTexts))
         let params = String(decoding: paramsData, as: UTF8.self)
         let raw = projectRootPath.withCString { prp in params.withCString { p in scrivi_capture_record_barrier(prp, p) } }
         return try decodeC(raw)

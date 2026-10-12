@@ -502,10 +502,10 @@ public:
     // these returns through it, so a leak is structurally impossible rather
     // than a thing each method must remember.
     //
-    // ⚠️ **19 `scrivi_history_*` / `scrivi_buffers_*` endpoints are
-    // DELIBERATELY ABSENT** — they belong to EP-019, whose Linux story has
-    // never been ruled. Bridging them here would set that direction by
-    // accident (the lesson of I-0144).
+    // ✅ **The undo history is bound by [EP-026]** (its Linux story, ruled 2026-10-11) — Sprint by Sprint, never ahead
+    // of its surface (the lesson of I-0144): S2 ([SP-178]) binds the history lifecycle and the 12 `scrivi_capture_*`
+    // below (`historyOpen` … `captureState`). ⛔ Still absent: `scrivi_history_get_tree`, `_list_stale_branches`,
+    // `_purge_branch`, `_select_branch`, `_get_settings`/`_set_settings` (S3) and `scrivi_buffers_*` (S5).
 
     Q_INVOKABLE QVariantMap addComment(const QString& projectRootPath, const QString& scopeKind, const QString& targetID, const QString& body);
     Q_INVOKABLE QVariantMap addWorld(const QString& projectRootPath, const QString& packagePath);
@@ -574,6 +574,34 @@ public:
                                                             const QString& replacement, bool keepsOwnFormatting);
     // {source, presented} of a copy of [start, end).
     static std::pair<QString, QString> markdownBalancedCopy(const QString& scene, int start, int end);
+
+    // ── EP-026 S2 (SP-178 / T-0605): the undo history and its capture rules (`scrivi_history_*`, `scrivi_capture_*`) ──
+    // ✅ STATIC, as the markdown calls: no identity is threaded, and the load worker calls `historyOpen` /
+    // `historyValidateScene` off the UI thread. ✅ BEST-EFFORT, as Apple's `try?` (`HistoryCapture.swift`): a failure is
+    // logged and returns an empty map — ⛔ never `errorOccurred`, so a history fault can never interrupt writing.
+    // Carets are UTF-16 units of the scene text (SP-177 Q2) — `QString` indices. `nowMs` is a monotonic clock (SP-177 Q1).
+    static QVariantMap historyOpen(const QString& projectRootPath);
+    static QVariantMap historyValidateScene(const QString& projectRootPath, const QString& sceneID, const QString& diskText);
+    static QVariantMap historyNoteScenePersisted(const QString& projectRootPath, const QString& sceneID,
+                                                 const QString& diskText);
+    static QVariantMap historyClose(const QString& projectRootPath);
+    static QVariantMap captureNoteEdit(const QString& projectRootPath, const QString& sceneID, const QString& text,
+                                       int caretUtf16, const QString& textBefore, qint64 nowMs);
+    static QVariantMap captureCaretMoved(const QString& projectRootPath, const QString& sceneID, bool editInFlight,
+                                         bool applying);
+    static QVariantMap captureBegin(const QString& projectRootPath, const QString& kind, const QString& bufferID = {});
+    static QVariantMap captureFlush(const QString& projectRootPath, const QString& trigger,
+                                    const QString& kind = QStringLiteral("typing"));
+    static QVariantMap captureBeforeSave(const QString& projectRootPath, qint64 nowMs);
+    static QVariantMap captureIdle(const QString& projectRootPath, qint64 nowMs);
+    // `editsJson`: [{sceneID, textBefore, textAfter, caret}] — one undo step across several scenes ([I-0270]).
+    static QVariantMap captureGroupedEdit(const QString& projectRootPath, const QString& editsJson, const QString& kind);
+    // `paramsJson`: {barrierKind, note, sceneID?} (as `scrivi_history_record_barrier`).
+    static QVariantMap captureRecordBarrier(const QString& projectRootPath, const QString& paramsJson);
+    static QVariantMap captureUndo(const QString& projectRootPath);
+    static QVariantMap captureRedo(const QString& projectRootPath);
+    static QVariantMap captureNoteApplied(const QString& projectRootPath, const QString& sceneID, const QString& text);
+    static QVariantMap captureState(const QString& projectRootPath);
 
     // Whether the MOST RECENT scrivi_* call through this bridge failed.
     //

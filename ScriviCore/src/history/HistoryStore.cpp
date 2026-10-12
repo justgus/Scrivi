@@ -135,6 +135,8 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     util::JsonDoc b = d.getSubDoc("barrier");
                     node.barrierKind = b.getString("barrierKind");
                     node.barrierNote = b.getString("note");
+                    const util::JsonDoc texts = b.getSubDoc("sceneTexts");   // [I-0287]; absent in older logs
+                    for (const std::string& sid : texts.objectKeys()) node.sceneTexts[sid] = texts.getString(sid);
                 } else if (node.kind == EventKind::Structural) {
                     // Reversible structural node (T-0356): the barrier-style label plus the
                     // opaque inverse-op payload the app replays. No diff.
@@ -296,6 +298,12 @@ void HistoryStore::persistEvent(const EventNode& node) {
         util::JsonDoc b;
         b.setString("barrierKind", node.barrierKind);
         b.setString("note", node.barrierNote);
+        // [I-0287] — written only when the op rewrote scene text, so other barriers keep their on-disk shape.
+        if (!node.sceneTexts.empty()) {
+            util::JsonDoc texts;
+            for (const auto& [sceneID, text] : node.sceneTexts) texts.setString(sceneID, text);
+            b.setSubDoc("sceneTexts", std::move(texts));
+        }
         d.setSubDoc("barrier", std::move(b));
     } else if (node.kind == EventKind::Structural) {
         // Reversible structural node (T-0356): the barrier-style label plus the opaque

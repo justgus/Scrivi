@@ -751,7 +751,12 @@ const char* scrivi_history_record_event(const char* projectRootPath,
  * structural node instead of a hard barrier (T-0356 / AC6) — undo/redo step ACROSS it
  * and return the payload as `structuralInverse` for the app to replay (the inverse
  * fragment op + reload). The engine treats the payload as opaque. Absent ⇒ classic
- * barrier (undo stops with a notice). result: {eventID, canUndo, canRedo} */
+ * barrier (undo stops with a notice).
+ * OPTIONAL `sceneTexts` (an object, sceneID → text; classic barrier only) [I-0287]:
+ * the text the structural op left in EACH scene it rewrote or created — a merge's
+ * surviving scene, a split's head and tail. History reads those scenes as this text
+ * from the barrier on. ⚠️ Omit it after an op that rewrote scene text and the next
+ * edit's undo restores the PRE-op text. result: {eventID, canUndo, canRedo} */
 const char* scrivi_history_record_barrier(const char* projectRootPath,
                                            const char* paramsJSON);
 
@@ -785,8 +790,8 @@ const char* scrivi_capture_idle(const char* projectRootPath, long long nowMs);
 /* One edit across several scenes (I-0270): editsJSON = [{sceneID, textBefore, textAfter, caret}] (caret: UTF-16 in
  * textBefore, where the edit began); one undo step. */
 const char* scrivi_capture_grouped_edit(const char* projectRootPath, const char* editsJSON, const char* kind);
-/* Commits what was pending, then records a barrier — params as scrivi_history_record_barrier; with no sceneID the
- * pending scene is the attribution. result adds eventID. */
+/* Commits what was pending, then records a barrier — params as scrivi_history_record_barrier (including sceneTexts,
+ * [I-0287]); with no sceneID the pending scene is the attribution. result adds eventID. */
 const char* scrivi_capture_record_barrier(const char* projectRootPath, const char* paramsJSON);
 /* Commits what was pending, then scrivi_history_undo; result as scrivi_history_undo plus hasPending. Each change also
  * carries cursorAfterUtf16. */

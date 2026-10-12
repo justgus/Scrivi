@@ -222,6 +222,16 @@ std::string CaptureSession::beforeBarrier(CaptureSink& sink, const std::string& 
     return attributed;
 }
 
+void CaptureSession::afterBarrier(const std::map<std::string, std::string>& sceneTexts)
+{
+    for (const auto& [sceneID, text] : sceneTexts) {
+        seeded_.insert(sceneID);
+        if (caretScene_ && *caretScene_ == sceneID) {
+            lastCommittedText_ = text;
+        }
+    }
+}
+
 void CaptureSession::noteApplied(const std::string& sceneID, const std::string& text)
 {
     lastCommittedText_ = text;
