@@ -64,8 +64,12 @@ jobs:
             qml6-module-qtqml-workerscript qml6-module-qtqml-models \
             libgl1-mesa-dev
 
+      # ⚠️ Release, as the rig (Scrivi_Linux_Rig_Setup_v0_1.md) and the Docker image build it. With no build type GCC
+      # compiles at -O0, and find_smoke's timing check ("the build stays in seconds", < 5000 ms on 1,186 scenes) failed
+      # on every push from SP-176 on (6.7–6.8 s): measured 2026-10-12, an -O0 build is 4.2x slower (1179 ms vs 284 ms).
+      # A timing check means nothing against a build nobody ships.
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=OFF
+        run: cmake -S . -B build -G Ninja -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
@@ -259,6 +263,13 @@ jobs:
         run: |
           platforms/linux/tests/undo_smoke.sh \
             ./build/platforms/linux/scrivi_linux_undo_smoke
+
+      # Copy buffers 1–9 (SP-179 / T-0606, EP-026 S5): two real project windows through AppEnvironment and real keys —
+      # Ctrl+N copy, Ctrl+Shift+N paste, Alt+N cut, View ▸ Show Buffers and the palette following the front project.
+      - name: Copy buffers smoke test
+        run: |
+          platforms/linux/tests/buffers_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_buffers_smoke
 
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 

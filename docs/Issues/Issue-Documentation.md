@@ -166,6 +166,8 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-12 (**I-0292 filed** `[Build]` to `Issue-active.md`: Linux App CI red since SP-176 — `find_smoke` timed an -O0 build; CI now builds Release. Resolved - Not Verified.)*
+
 *Last Updated: 2026-10-12 (**I-0291 VERIFIED** (user) → new batch 30, `Issue-verified-0291-0300.md` (1).)*
 
 *Last Updated: 2026-10-12 (**I-0290 VERIFIED** (user) → `Issue-verified-0281-0290.md`, now 7; **I-0291 filed** `[Apple]` to `Issue-active.md`, fixed in [SP-179]: the palette button followed ⌃ alone.)*

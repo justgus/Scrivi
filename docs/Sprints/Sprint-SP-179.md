@@ -222,4 +222,6 @@ Apple Issues of step 0 are verified. ⏳ Next: Linux, plan steps 1–8.
   alone · raw (unbalanced) copy · front-window tracking off · cut skips the slot write. ⚠️ Not mutation-checked: the
   `ShortcutOverride` claim (no window shortcut competes for these chords today).
 - ⏳ **Next: AC8 — the rig live pass** (every chord against GNOME over RDP; shares a session with [SP-178]'s if both are ready).
+- ✅ 2026-10-12: `buffers_smoke` added to the Linux App CI workflow (beside `undo_smoke`); it was missing. Found while fixing
+  [I-0292] (that CI built -O0).
 
