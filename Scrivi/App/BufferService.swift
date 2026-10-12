@@ -7,13 +7,16 @@ import Foundation
 //   Ten buffers, 0–9. Buffer 0 IS the system pasteboard — ordinary ⌘C/⌘V, never
 //   touched here. Buffers 1–9 are the ScriviCore-persisted slots (history/buffers.json,
 //   scrivi.buffers.v1), mirrored in memory for display. The writer's existing ⌘C/⌘V
-//   muscle memory is unchanged; ⌘1–9 are a single-chord, context-sensitive extension:
-//     • ⌘N with a selection → copy the selection into slot N (copy-only; no text
-//       change ⇒ NO history event, Trade T3).
-//     • ⌘N with no selection → paste slot N at the caret (an ordinary paste event;
-//       empty slot ⇒ silent no-op).
-//     • ⇧⌘N with a selection → cut the selection into slot N (mutates text ⇒ a `cut`
-//       history event, bufferID-tagged, Trade T3).
+//   muscle memory is unchanged; one chord per action (✅ [I-0289]: this header used to
+//   describe the REPLACED context-sensitive ⌘N / ⇧⌘N design):
+//     • ⌘N → copy the selection into slot N (copy-only; no text change ⇒ NO history
+//       event, Trade T3).
+//     • ⌃⌘N → paste slot N at the caret (an ordinary paste event; empty slot ⇒
+//       silent no-op). ⛔ [I-0290]: not ⌃N — macOS takes it ("Switch to Desktop N").
+//     • ⌥N → cut the selection into slot N (mutates text ⇒ a `cut` history event,
+//       bufferID-tagged, Trade T3).
+//   ✅ [I-0289]: a slot holds the BALANCED source ⌘C keeps for Scrivi's own paste, and
+//   its paste keeps its own formatting, as ⌘V of Scrivi's own copy does.
 //
 // This type owns NO text mutation: the editor coordinator performs the actual
 // insert/remove against the NSTextView so it flows through the existing history

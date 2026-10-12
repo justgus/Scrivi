@@ -81,12 +81,28 @@ fixed), [EP-019] AC7 (barriers).
   detected), eviction past the barrier (in session and from the log) — **5 checks red with the core fix reverted, green with it**.
   Linux `undo_smoke` §4b/§5 green; **red again with the Linux texts removed**. ctest macOS 717/717, Linux (non-root) 721/721;
   interop 274 tests; all 30 Linux smokes.
-- ⚠️ **Not run on the Mac by hand** — Apple's half is proven by build + the core test, not a live step.
-- ⚠️ **Seen, not fixed:** the `externalChange` repair (`HistoryStore::validateSceneHead`) re-floors the scene — the same shape this
-  fix avoids. Whether it corrupts at the next open is unmeasured; not filed.
-
+- ✅ **Apple's half, tested 2026-10-12:** `UndoAfterStructuralOpTests` (`ScriviInteropTests.swift`): a real project opened by
+  `loadAsync`, the REAL coordinator's `handleCreateScene` / `handleMergeScene`, typing through `insertText` → `textDidChange`,
+  then `performUndo`, with the text checked in the loader AND on disk. Split (head, tail) and merge: 3/3 green. ✅ **Red with
+  Apple's `sceneTexts` dropped** (split head + merge fail; the tail passes either way, as it should). ⚠️ The case needs the scene
+  to have an edit BEFORE the op; a never-edited scene seeds correctly from "text before". (Not a live step on the Mac.)
+- ⛔ **The `externalChange` repair DID corrupt at the next open** — measured 2026-10-12 as [I-0288], fixed the same day in [SP-178].
 
 ---
+
+*Last Updated: 2026-10-12 — **I-0291 VERIFIED** (user: *"I-0291 passes"*) → `Verified/Issue-verified-0291-0300.md` (new batch); it left this file.*
+
+*Last Updated: 2026-10-12 — **I-0290 VERIFIED** (user: *"I-0290 passes."*) → `Verified/`; **I-0291 filed and fixed** in [SP-179]; Resolved - Not Verified.*
+
+*Last Updated: 2026-10-12 — **I-0290 filed and fixed** in [SP-179] (Option B, user); Resolved - Not Verified.*
+
+*Last Updated: 2026-10-12 — **I-0289 VERIFIED** (user, Mac) → `Verified/Issue-verified-0281-0290.md`; it left this file.*
+
+*Last Updated: 2026-10-12 — **I-0289 filed and fixed** in [SP-179] (Q2 Option A, user); Resolved - Not Verified.*
+
+*Last Updated: 2026-10-12 — **I-0288 VERIFIED** (user: *"mark I-0288 as verified"*) → `Verified/Issue-verified-0281-0290.md`; it left this file.*
+
+*Last Updated: 2026-10-12 — **I-0288 → active** (user: *"fix it inside SP-178"*); Resolved - Not Verified.*
 
 *Last Updated: 2026-10-11 — **I-0287 → active** (user: *"Fix I-0287 in SP-178."*); Resolved - Not Verified.*
 

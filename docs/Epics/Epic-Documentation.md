@@ -127,6 +127,10 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 
 ---
 
+*Last Updated: 2026-10-12 (**EP-026**: [SP-179] (S5) ACTIVATED; [I-0289] `[Apple]` buffer balancing fixed in it first.)*
+
+*Last Updated: 2026-10-12 (**EP-026** record corrected (user): S2's [I-0287] / [I-0288] listed; the `scrivi.history.v1` scope line now records the two ruled-in changes. S5 planning started.)*
+
 *Last Updated: 2026-10-11 (**EP-026 `[Linux]` ACTIVATED** (user) → `Epic-active.md`; View ▸ Show Buffers = Ctrl+Alt+B ruled.)*
 
 *Last Updated: 2026-10-11 (**EP-026 `[Linux]` RESCOPED** (user) — undo/redo history + copy buffers + EP-029's structured cut/copy/paste on Linux; menus and the parity pass dropped as OBE. ✅ Q1–Q5 ruled the same day (capture rules into the core; EP-029's Linux side in; Ctrl+Z / Ctrl+Shift+Z; buffers Ctrl / Ctrl+Shift / Alt + 1–9). EP-048 stays open until EP-026 lands.)*

@@ -240,10 +240,6 @@ void HistoryService::seedSceneBaseline(const std::string& sceneID, const std::st
     }
 }
 
-void HistoryService::reseedSceneFloor(const std::string& sceneID, const std::string& text) {
-    floorTexts_[sceneID] = text;
-    headText_[sceneID]   = text;
-}
 
 RecordResult HistoryService::record(const RecordParams& p, std::string eventID) {
     const std::string oldText = headTextForScene(p.sceneID);
@@ -992,6 +988,12 @@ int HistoryService::evictToCapacity(EvictionDetail& detail) {
 void HistoryService::addLoadedFloor(const std::string& sceneID, std::string text) {
     floorTexts_[sceneID] = text;
     headText_[sceneID]   = std::move(text);
+}
+
+void HistoryService::attachLoadedBarrierText(const std::string& eventID, const std::string& sceneID, std::string text) {
+    auto it = nodes_.find(eventID);
+    if (it == nodes_.end()) return;
+    it->second.sceneTexts.try_emplace(sceneID, std::move(text));   // a text the barrier already carries wins
 }
 
 void HistoryService::addLoadedNode(EventNode node) {

@@ -256,7 +256,7 @@ struct ScriviApp: App {
 
         // ✅ EP-046 E2-S3 ([SP-163], Q-E2-2 / Q2 ruled 2026-10-05) — the Format menu: under the escape ruling these are
         // the ONLY way formatting enters a manuscript. ✅ Shortcuts checked free 2026-10-05: the copy buffers take
-        // ⌘/⌃/⌥ + 1–9 with exactly ONE modifier; the View toggles take ⌥⌘I/T/B; ⇧⌘0/1 go to the manuscript ends.
+        // ⌘ / ⌃⌘ / ⌥ + 1–9 ([I-0290]); the View toggles take ⌥⌘I/T/B; ⇧⌘0/1 go to the manuscript ends.
         // ⚠️ The user's own Mac maps ⌥⌘3 to a Dropbox screenshot (noted [SP-163] live pass) — kept, per Q2.
         // ✅ [SP-163] live pass (user): the menu sits BETWEEN Edit and View — the system Format menu's place, which
         // SwiftUI exposes as `.textFormatting`. ⛔ A `CommandMenu("Format")` lands after View.
@@ -336,7 +336,7 @@ struct ScriviApp: App {
             // equivalent there would intercept the text view's own (see the Scene menu's note).
             // ✅ [T-0574] (user ruling 2026-10-02): ⇧⌘0 = Start, ⇧⌘1 = End — opposite ends of
             // the number row, so not mis-typed, and not a system chord (the screenshot chords
-            // are ⇧⌘3/4/5; the copy buffers use ⌘/⌃/⌥ + 1–9 WITHOUT ⇧).
+            // are ⇧⌘3/4/5; the copy buffers use ⌘ / ⌃⌘ / ⌥ + 1–9 WITHOUT ⇧).
             Divider()
             Button("Go to Manuscript Start") { focusedSession?.manuscriptStartAction?() }
                 .keyboardShortcut("0", modifiers: [.command, .shift])
@@ -460,7 +460,7 @@ struct ScriviApp: App {
         }
 
         // Edit menu — copy-buffer discoverability items (EP-019 SP-056, T-0214). The
-        // three submenus are the discoverable face of the ⌘/⌃/⌥ + digit chords. We do
+        // three submenus are the discoverable face of the ⌘ / ⌃⌘ / ⌥ + digit chords. We do
         // NOT attach the digit key equivalents here: the chords are owned by the editor's
         // keyDown (a menu key equivalent fires before the responder chain and would
         // shadow the editor path); the chord is named in each submenu's header instead.
@@ -478,7 +478,7 @@ struct ScriviApp: App {
             .disabled(focusedSession?.bufferService == nil)
 
             Menu("Paste From Buffer") {
-                Text("⌃1–9 — paste at the cursor")
+                Text("⌃⌘1–9 — paste at the cursor")
                 ForEach(BufferService.slotIDs, id: \.self) { slotID in
                     Button("Buffer \(slotID)") {
                         focusedSession?.bufferService?.pasteFromBufferHandler?(slotID)

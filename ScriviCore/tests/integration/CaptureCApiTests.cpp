@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <string>
 
@@ -235,6 +236,83 @@ TEST_CASE("capture ABI: a barrier's sceneTexts are what the next edit's undo ret
             scrivi_free(scrivi_history_close(r.c()));
             ok(scrivi_history_open(r.c()));
         }
+    }
+}
+
+// [I-0288] — the `externalChange` repair (`HistoryStore::validateSceneHead`) used to RE-SEED the scene's floor from disk and
+// persist that floor; the next open replayed every diff since the root onto it — including the ones computed against the
+// OLD text — and undo restored a mix of the two ("Zulu. one. Alpha two."). Now the disk text rides on the barrier
+// ([I-0287]'s `sceneTexts`). Measured: session 1 edits, the file is rewritten outside Scrivi, session 2 edits on top,
+// session 3 must still undo to the outside text. `legacyLog` rewrites the log into the PRE-fix shape (a barrier without
+// texts, then a `floor` record) before session 3: a project repaired by an older build must open correctly too.
+namespace {
+void runOutsideEditSessions(Root& r, bool legacyLog) {
+    // Session 1: two steps on the original text, the bytes reported as written (the save path, I-0104).
+    ok(scrivi_capture_note_edit(r.c(), "S", "Alpha one.", 10, "Alpha", 1000));
+    ok(scrivi_capture_note_edit(r.c(), "S", "Alpha one. Alpha two.", 21, "Alpha one.", 2000));
+    ok(scrivi_capture_flush(r.c(), "flush", "typing"));
+    scrivi_free(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha one. Alpha two."));
+    scrivi_free(scrivi_history_close(r.c()));
+
+    // Outside Scrivi: the file is rewritten — shorter, and nothing like the old text.
+    const std::string outside = "Zulu.";
+    ok(scrivi_history_open(r.c()));
+    CHECK(ok(scrivi_history_validate_scene(r.c(), "S", outside.c_str())).getBool("externalChange"));
+
+    // Session 2: one step on top of the outside text.
+    ok(scrivi_capture_note_edit(r.c(), "S", "Zulu. Yankee.", 13, outside.c_str(), 3000));
+    ok(scrivi_capture_flush(r.c(), "flush", "typing"));
+    CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == outside);
+    CHECK(ok(scrivi_capture_undo(r.c())).getSubDoc("stoppedAtBarrier").getString("kind") == "externalChange");
+    CHECK(change(ok(scrivi_capture_redo(r.c()))).getString("newText") == "Zulu. Yankee.");
+    scrivi_free(scrivi_history_note_scene_persisted(r.c(), "S", "Zulu. Yankee."));
+    scrivi_free(scrivi_history_close(r.c()));
+
+    if (legacyLog) {
+        namespace fs = std::filesystem;
+        const std::string texts = R"(,"sceneTexts":{"S":"Zulu."})";
+        int rewritten = 0;
+        for (const auto& e : fs::directory_iterator(fs::path(r.path) / "history")) {
+            if (e.path().extension() != ".jsonl") continue;
+            std::ifstream in(e.path());
+            std::string line, out;
+            while (std::getline(in, line)) {
+                const auto at = line.find(texts);
+                if (line.find(R"("barrierKind":"externalChange")") != std::string::npos && at != std::string::npos) {
+                    line.erase(at, texts.size());
+                    out += line + "\n";
+                    out += R"({"rec":"floor","seq":0,"sceneID":"S","reason":"externalChange","text":"Zulu.","sha256":"","timestamp":""})";
+                    out += "\n";
+                    ++rewritten;
+                } else {
+                    out += line + "\n";
+                }
+            }
+            in.close();
+            std::ofstream(e.path(), std::ios::trunc) << out;
+        }
+        REQUIRE(rewritten == 1);
+    }
+
+    // Session 3: the log replays. Disk matches the head (no second warning), and undo still returns to the outside text,
+    // then stops at the barrier — never the pre-change text, never a mix of the two.
+    ok(scrivi_history_open(r.c()));
+    CHECK_FALSE(ok(scrivi_history_validate_scene(r.c(), "S", "Zulu. Yankee.")).getBool("externalChange"));
+    CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == outside);
+    CHECK(ok(scrivi_capture_undo(r.c())).getSubDoc("stoppedAtBarrier").getString("kind") == "externalChange");
+    CHECK(change(ok(scrivi_capture_redo(r.c()))).getString("newText") == "Zulu. Yankee.");
+}
+}   // namespace
+
+TEST_CASE("capture ABI: after an outside edit, the next edits undo to the OUTSIDE text — in session and after a reopen",
+          "[capture-abi][I-0288]") {
+    SECTION("a log written by this build") {
+        Root r;
+        runOutsideEditSessions(r, false);
+    }
+    SECTION("a log the repair wrote BEFORE the fix (barrier, then a floor record)") {
+        Root r;
+        runOutsideEditSessions(r, true);
     }
 }
 

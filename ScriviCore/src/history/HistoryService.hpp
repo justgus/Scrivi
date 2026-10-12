@@ -307,11 +307,6 @@ public:
     // on-disk text is then the HEAD (reached by replaying events), not the floor.
     void seedSceneBaseline(const std::string& sceneID, const std::string& text);
 
-    // Forcibly resets a scene's floor AND current head text to `text`, replacing
-    // any existing value. Used by §6.b external-change repair after an
-    // externalChange barrier: the on-disk text becomes the new baseline. Unlike
-    // seedSceneBaseline this overwrites; it does not touch the tree.
-    void reseedSceneFloor(const std::string& sceneID, const std::string& text);
 
     // Records a text event by diffing `p.newSceneText` against the cached head
     // text for `p.sceneID`. If the text is unchanged, returns noOp=true and
@@ -401,6 +396,8 @@ public:
     // project opened with no history at all.
     void addLoadedFloor(const std::string& sceneID, std::string text);
     void addLoadedNode(EventNode node);
+    // [I-0288]: an old log's externalChange `floor` record — its text belongs to the barrier written just before it.
+    void attachLoadedBarrierText(const std::string& eventID, const std::string& sceneID, std::string text);
     void setPointers(std::string rootID, std::string currentNodeID, std::string sessionID);
     void finalizeLoad(const std::vector<std::string>& currentTrail = {});
 

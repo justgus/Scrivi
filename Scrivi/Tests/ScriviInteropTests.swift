@@ -7076,4 +7076,284 @@ struct MarkdownEditingSceneTests {
 // sessions — all agreed — and wrote `ScriviCore/tests/fixtures/history_capture_parity.jsonl`. It was removed with the Swift
 // rules it drove; the core test "every session of Apple's parity fixture…" (`CaptureCApiTests.cpp`) replays the answers.
 
+/// [I-0287] / SP-178 AC9 — Apple's half: after a split or merge, undoing the next edit in an affected scene returns it to its
+/// text right AFTER the op. Driven through the REAL coordinator (`handleCreateScene` / `handleMergeScene`, `textDidChange`,
+/// `performUndo`) on a real project opened by `loadAsync` — the core test cannot see whether Apple passes the right texts.
+@Suite("Undo after split / merge (I-0287, Apple)")
+@MainActor
+struct UndoAfterStructuralOpTests {
+
+    fileprivate final class TempDir: @unchecked Sendable {
+        let url: URL
+        init() throws {
+            url = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-i0287-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+    @MainActor fileprivate struct Harness {
+        let root: TempDir
+        let env: AppEnvironment
+        let session: ProjectSession
+        let loader: ViewportSceneLoader
+        let c: ManuscriptTextView.Coordinator
+        let tv: ManuscriptNSTextView
+        let window: NSWindow
+        let projectID: String
+
+        /// The scene's body as the core reads it from disk.
+        func onDisk(_ sceneID: String) throws -> String {
+            try env.engine.openSceneForBulkLoad(projectRootPath: root.path, appSupportRoot: env.appSupportRoot,
+                                                projectID: projectID, sceneID: sceneID).markdown
+        }
+        /// Puts the caret `offset` characters into scene `segIdx`.
+        func caret(scene segIdx: Int, at offset: Int) {
+            c.ensureBoundaries(tv)
+            tv.setSelectedRange(NSRange(location: c.sceneBoundaries[segIdx].location + offset, length: 0))
+        }
+        /// Types " Pre" (no period — a typed `.` is stored escaped, EP-045) at the end of scene `segIdx` — so the scene has a history head BEFORE the op (⚠️ [I-0287] needs one:
+        /// a scene never edited this session is seeded from the platform's "text before" and was always right).
+        func typeBeforeTheOp(scene segIdx: Int) {
+            caret(scene: segIdx, at: loader.segments[segIdx].text.utf16.count)
+            tv.insertText(" Pre", replacementRange: tv.selectedRange())
+            #expect(loader.segments[segIdx].text.hasSuffix(" Pre"))
+        }
+        /// Waits for a structural op's Task to land (it changes the scene count).
+        func waitForSceneCount(_ n: Int) async throws {
+            for _ in 0..<500 where loader.segments.count != n { try await Task.sleep(for: .milliseconds(10)) }
+            #expect(loader.segments.count == n, "the structural op finished")
+        }
+    }
+
+    /// One chapter holding `bodies`, opened through `loadAsync` — the app's own open (history opened + every scene validated).
+    fileprivate func harness(_ bodies: [String]) async throws -> Harness {
+        let root = try TempDir()
+        let env = AppEnvironment()
+        let engine = env.engine
+        let support = env.appSupportRoot
+        let identity = try engine.ensureLocalIdentity(displayName: "Test Author", appSupportRoot: support)
+        let ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+        env.authorshipRef = ref
+        let created = try engine.createProject(projectRootPath: root.path, appSupportRoot: support,
+                                               title: "Undo Structural", slug: "undo-structural", authorshipRef: ref)
+        _ = try engine.saveScene(projectID: created.projectID, projectRootPath: root.path, appSupportRoot: support,
+                                 sceneID: created.firstScene.sceneID, sceneMetadataPath: created.firstScene.metadataPath,
+                                 sceneContentPath: created.firstScene.contentPath, markdown: bodies[0], authorshipRef: ref)
+        var after = created.firstScene.sceneID
+        let opened = try engine.openProject(projectRootPath: root.path, appSupportRoot: support, identityID: identity.identityID)
+        let chapterID = try #require(opened.scenes.first?.chapterID)
+        for body in bodies.dropFirst() {
+            let s = try engine.createScene(projectRootPath: root.path, appSupportRoot: support, projectID: created.projectID,
+                                           chapterID: chapterID, afterSceneID: after, authorshipRef: ref)
+            _ = try engine.saveScene(projectID: created.projectID, projectRootPath: root.path, appSupportRoot: support,
+                                     sceneID: s.sceneID, sceneMetadataPath: s.metadataPath, sceneContentPath: s.contentPath,
+                                     markdown: body, authorshipRef: ref)
+            after = s.sceneID
+        }
+
+        let session = ProjectSession(engine: engine, authorshipRef: ref, appSupportRoot: support, identityID: identity.identityID)
+        _ = try await session.loadAsync(at: root.path) { _, _ in }
+        let loader = try #require(session.viewportLoader)
+        #expect(session.historyCapture != nil, "history opened by the load")
+        #expect(loader.segments.map(\.text) == bodies)
+
+        let view = ManuscriptTextView(loader: loader, env: env, session: session, navigateToSceneID: .constant(nil),
+                                      showChapterTitles: false, typography: .default)
+        let c = view.makeCoordinator()
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
+        let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
+        tv.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        tv.isVerticallyResizable = true
+        tv.autoresizingMask = [.width]
+        tv.textContainer?.widthTracksTextView = true
+        scroll.documentView = tv
+        let window = NSWindow(contentRect: scroll.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = scroll
+        tv.delegate = c
+        tv.textContentStorage?.delegate = c.presenter
+        tv.textStorage?.delegate = c.presenter
+        if let storage = tv.textStorage { c.boundaryTable.observe(storage) }
+        c.textView = tv
+        c.rebuildStorage(tv, segments: loader.segments)
+        return Harness(root: root, env: env, session: session, loader: loader, c: c, tv: tv, window: window,
+                       projectID: created.projectID)
+    }
+
+    @Test("split mid-scene, type in the HEAD, undo → the head (⛔ not the pre-split text — the tail came back)")
+    func splitThenUndoInHead() async throws {
+        let h = try await harness(["Alpha one. Alpha two."])
+        h.typeBeforeTheOp(scene: 0)                                 // the scene gets a history head ("… Pre")
+        h.caret(scene: 0, at: 11)                                   // after "Alpha one. "
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(2)
+        #expect(h.loader.segments.map(\.text) == ["Alpha one. ", "Alpha two. Pre"])
+        let head = h.loader.segments[0].sceneID
+
+        h.caret(scene: 0, at: 11)
+        h.tv.insertText("Zed", replacementRange: h.tv.selectedRange())
+        #expect(h.loader.segments[0].text == "Alpha one. Zed")
+        h.c.performUndo()
+
+        #expect(h.loader.segments[0].text == "Alpha one. ", "undo returns the head to its text right after the split")
+        #expect(try h.onDisk(head) == "Alpha one. ", "and saves it")
+        #expect(h.loader.segments[1].text == "Alpha two. Pre", "the tail is untouched")
+    }
+
+    @Test("split mid-scene, type in the TAIL, undo → the tail")
+    func splitThenUndoInTail() async throws {
+        let h = try await harness(["Alpha one. Alpha two."])
+        h.typeBeforeTheOp(scene: 0)                                 // the scene gets a history head ("… Pre")
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()
+        try await h.waitForSceneCount(2)
+        let tail = h.loader.segments[1].sceneID
+
+        h.caret(scene: 1, at: 14)                                   // end of "Alpha two. Pre"
+        h.tv.insertText(" Zed", replacementRange: h.tv.selectedRange())
+        #expect(h.loader.segments[1].text == "Alpha two. Pre Zed")
+        h.c.performUndo()
+
+        #expect(h.loader.segments[1].text == "Alpha two. Pre")
+        #expect(try h.onDisk(tail) == "Alpha two. Pre")
+        #expect(h.loader.segments[0].text == "Alpha one. ", "the head is untouched")
+    }
+
+    @Test("merge, type in the survivor, undo → the JOINED text (⛔ not the survivor's pre-merge text — the merged-in text lost)")
+    func mergeThenUndo() async throws {
+        let h = try await harness(["Alpha.", "Beta."])
+        h.typeBeforeTheOp(scene: 0)                                 // the survivor gets a history head ("Alpha. Pre")
+        let survivor = h.loader.segments[0].sceneID
+        h.caret(scene: 1, at: 0)
+        h.c.handleMergeScene()
+        try await h.waitForSceneCount(1)
+        #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta.")
+
+        h.caret(scene: 0, at: "Alpha. Pre\n\nBeta.".utf16.count)
+        h.tv.insertText(" Zed", replacementRange: h.tv.selectedRange())
+        #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta. Zed")
+        h.c.performUndo()
+
+        #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta.", "undo keeps the merged-in text")
+        #expect(try h.onDisk(survivor) == "Alpha. Pre\n\nBeta.", "and saves it")
+    }
+}
+
+/// [I-0289] — copy buffers 1–9 keep emphasis BALANCED, as ⌘C / ⌘X / ⌘V do (EP-046 AC12, [T-0591], [SP-163]). Driven
+/// through the coordinator's own buffer actions — the ones ⌘N / ⌥N / ⌃N and the palette call.
+@Suite("Copy buffers keep emphasis balanced ([I-0289], Apple)")
+@MainActor
+struct BufferBalanceTests {
+
+    private func harness(_ bodies: [String]) async throws -> UndoAfterStructuralOpTests.Harness {
+        try await UndoAfterStructuralOpTests().harness(bodies)
+    }
+    /// Selects scene `a`'s offset `from` through scene `b`'s offset `to`.
+    private func select(_ h: UndoAfterStructuralOpTests.Harness, _ a: Int, _ from: Int, _ b: Int, _ to: Int) {
+        h.c.ensureBoundaries(h.tv)
+        let start = h.c.sceneBoundaries[a].location + from
+        h.tv.setSelectedRange(NSRange(location: start, length: h.c.sceneBoundaries[b].location + to - start))
+    }
+
+    @Test("⌘N inside bold: the slot holds the BALANCED copy (⛔ was raw storage — the paste lost the bold)")
+    func copyInsideBold() async throws {
+        let h = try await harness(["x **bold text** y"])
+        select(h, 0, 5, 0, 11)                                      // "old te"
+        h.c.copyIntoBuffer("1")
+        #expect(h.session.bufferService?.text(inSlot: "1") == "**old te**")
+    }
+
+    @Test("⌥N across a span edge: the slot holds the balanced copy; the scene stays balanced")
+    func cutAcrossSpanEdge() async throws {
+        let h = try await harness(["x **bold** y"])
+        select(h, 0, 6, 0, 12)                                      // "ld** y" — from inside "bold" to the end
+        h.c.cutIntoBuffer("2")
+        #expect(h.session.bufferService?.text(inSlot: "2") == "**ld** y")
+        #expect(h.loader.segments[0].text == "x **bo**")
+    }
+
+    @Test("⌘N across scenes: each scene's piece is balanced, as ⌘C's are ([T-0591])")
+    func copyAcrossScenes() async throws {
+        let h = try await harness(["x **bold** y", "next **two** z"])
+        select(h, 0, 6, 1, 9)                                       // "ld** y" … "next **tw"
+        h.c.copyIntoBuffer("3")
+        let frag = try #require(h.session.bufferService?.fragment(inSlot: "3"))
+        #expect(frag.pieces.map(\.text) == ["**ld** y", "next **tw**"])
+        #expect(h.session.bufferService?.text(inSlot: "3") == "**ld** y\n\nnext **tw**")
+    }
+
+    @Test("⌃N inside bold: the pasted text keeps ITS formatting, as Scrivi's own ⌘V does ([SP-163])")
+    func pasteInsideBold() async throws {
+        let h = try await harness(["**abcd** xy"])
+        select(h, 0, 9, 0, 11)                                      // "xy" (plain)
+        h.c.copyIntoBuffer("4")
+        h.caret(scene: 0, at: 4)                                    // between "ab" and "cd" — inside the bold
+        h.c.pasteFromBuffer("4")
+        let text = h.loader.segments[0].text
+        let toks = MarkdownEmphasis.tokens(of: text).filter { ManuscriptPresenter.isWordUnit($0.unit) }
+        #expect(toks.map { $0.style == MarkdownBlocks.bold } == [true, true, false, false, true, true, false, false],
+                "stored \(text.debugDescription): ab cd bold, the pasted xy plain")
+    }
+}
+
+/// [I-0290] — buffer paste is ⌃⌘1–9. ⛔ ⌃1–9 is macOS Mission Control's "Switch to Desktop N": measured 2026-10-12, ⌃1 never
+/// reached Scrivi on the user's Mac.
+@Suite("Buffer paste chord ⌃⌘1–9 ([I-0290], Apple)")
+@MainActor
+struct BufferPasteChordTests {
+
+    private static let digitCodes: [Character: UInt16] = ["1": 18, "2": 19, "3": 20, "4": 21, "5": 23, "6": 22, "7": 26, "8": 28, "9": 25]
+
+    private func event(_ digit: Character, _ mods: NSEvent.ModifierFlags, window: NSWindow) -> NSEvent {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: mods, timestamp: 0,
+                         windowNumber: window.windowNumber, context: nil, characters: String(digit),
+                         charactersIgnoringModifiers: String(digit), isARepeat: false, keyCode: Self.digitCodes[digit]!)!
+    }
+
+    @Test("⌃⌘2 pastes slot 2; ⌃2 alone does not")
+    func chord() async throws {
+        let h = try await UndoAfterStructuralOpTests().harness(["Alpha beta."])
+        h.tv.setSelectedRange(NSRange(location: 0, length: 5))     // "Alpha"
+        h.tv.keyDown(with: event("2", .command, window: h.window))  // ⌘2 — copy
+        #expect(h.session.bufferService?.text(inSlot: "2") == "Alpha")
+
+        h.caret(scene: 0, at: 11)                                   // the end
+        h.tv.keyDown(with: event("2", .control, window: h.window))
+        #expect(h.loader.segments[0].text == "Alpha beta.", "⌃2 is no longer the paste chord")
+        h.tv.keyDown(with: event("2", [.control, .command], window: h.window))
+        #expect(h.loader.segments[0].text == "Alpha beta.Alpha", "⌃⌘2 pastes slot 2")
+    }
+
+    @Test("no Scrivi menu item claims ⌃⌘1–9 (a menu key equivalent fires before the editor's keyDown)")
+    func menusLeaveTheChordAlone() throws {
+        let menu = try #require(NSApp.mainMenu)
+        #expect(menu.items.count > 3, "the real app menu is installed (\(menu.items.count) items)")
+        func claimed(_ items: [NSMenuItem], _ mods: NSEvent.ModifierFlags) -> [String] {
+            items.flatMap { item -> [String] in
+                var out: [String] = []
+                let digit = item.keyEquivalent
+                if digit.count == 1, ("1"..."9").contains(digit),
+                   item.keyEquivalentModifierMask.intersection([.command, .control, .option, .shift]) == mods {
+                    out.append(item.title)
+                }
+                return out + claimed(item.submenu?.items ?? [], mods)
+            }
+        }
+        // The walk SEES Scrivi's digit shortcuts: the View toggles are ⌥⌘1–3.
+        #expect(claimed(menu.items, [.command, .option]).count >= 3, "found \(claimed(menu.items, [.command, .option]))")
+        #expect(claimed(menu.items, [.command, .control]).isEmpty, "menu items on ⌃⌘digit: \(claimed(menu.items, [.command, .control]))")
+    }
+
+    @Test("the palette's button follows the CHORDS: ⌃⌘ → paste, ⌥ → cut, ⌃ alone or ⌘ alone → copy (user, 2026-10-12)")
+    func paletteButtonFollowsTheChord() {
+        #expect(BufferAction.current([.control, .command]) == .paste)
+        #expect(BufferAction.current([.control]) == .copy, "⌃ alone is not the paste chord")
+        #expect(BufferAction.current([.command]) == .copy)
+        #expect(BufferAction.current([.option]) == .cut)
+        #expect(BufferAction.current([]) == .copy)
+    }
+}
+
 #endif

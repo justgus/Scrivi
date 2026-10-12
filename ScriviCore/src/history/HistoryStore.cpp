@@ -96,6 +96,9 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
         // Fork re-selections (ctl:setPrimary) collected during replay; applied
         // after finalizeLoad() derives childIDs (D4/SP-055). forkNodeID → childID.
         std::map<std::string, std::string> primaryOverrides;
+        // [I-0288]: the externalChange barrier the PREVIOUS record wrote, if it was one — an old log's repair floor
+        // record follows it directly.
+        std::string lastExternalBarrierID;
         // Branch-aware eviction (§4.1) collected during replay; applied after
         // finalizeLoad() so evicted branches don't resurrect. Purges first, then
         // promotions in log order (mirrors persistEviction()).
@@ -118,8 +121,19 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
             sawAnyRecord = true;
 
             if (rec == "floor") {
-                svc->addLoadedFloor(d.getString("sceneID"), d.getString("text"));
-            } else if (rec == "event") {
+                // ⛔ [I-0288] — a log written before the fix: the externalChange repair wrote its barrier, then a floor
+                // record for the same text. Replayed as a FLOOR it puts every earlier diff on top of the new text. It
+                // belongs to that barrier, so attach it there — the shape the repair writes now.
+                if (d.getString("reason") == "externalChange" && !lastExternalBarrierID.empty()) {
+                    svc->attachLoadedBarrierText(lastExternalBarrierID, d.getString("sceneID"), d.getString("text"));
+                } else {
+                    svc->addLoadedFloor(d.getString("sceneID"), d.getString("text"));
+                }
+                lastExternalBarrierID.clear();
+                continue;
+            }
+            lastExternalBarrierID.clear();
+            if (rec == "event") {
                 EventNode node;
                 node.eventID = d.getString("eventID");
                 if (d.contains("parentID") && !d.getString("parentID").empty()) {
@@ -137,6 +151,7 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     node.barrierNote = b.getString("note");
                     const util::JsonDoc texts = b.getSubDoc("sceneTexts");   // [I-0287]; absent in older logs
                     for (const std::string& sid : texts.objectKeys()) node.sceneTexts[sid] = texts.getString(sid);
+                    if (node.barrierKind == "externalChange") lastExternalBarrierID = node.eventID;   // [I-0288]
                 } else if (node.kind == EventKind::Structural) {
                     // Reversible structural node (T-0356): the barrier-style label plus the
                     // opaque inverse-op payload the app replays. No diff.
@@ -488,21 +503,21 @@ bool HistoryStore::validateSceneHead(const std::string& sceneID,
     if (diskHash == it->second) return false;          // unchanged — all good
 
     // Mismatch: the scene was edited outside Scrivi. Record an externalChange
-    // barrier so undo stops at this point, and re-seed the scene's cached text
-    // from disk. The manuscript is never modified by this repair (§6.b).
+    // barrier so undo stops at this point. The manuscript is never modified by
+    // this repair (§6.b).
+    // ⛔ [I-0288]: the disk text goes ON THE BARRIER (sceneTexts, [I-0287]), so the scene reads it from this node on.
+    // It used to RE-FLOOR the scene and persist a `floor` record — and the next open replayed every diff since the root
+    // onto that new floor, including the ones computed against the OLD text: undo restored a mix of the two.
     if (service_) {
         BarrierParams bp;
         bp.barrierKind = "externalChange";
         bp.barrierNote = "This scene was changed outside Scrivi; undo stops here.";
         bp.sceneID = sceneID;   // attribute the barrier so the history card can filter (I-0102)
         bp.timestamp = nowTimestamp;
+        bp.sceneTexts[sceneID] = currentDiskText;
         auto r = service_->recordBarrier(bp, barrierEventID);
         auto nit = service_->nodes().find(r.eventID);
         if (nit != service_->nodes().end()) { persistEvent(nit->second); }
-        // Re-seed this scene's floor from the on-disk text so future diffs and
-        // undo restores use the real current text as the new baseline.
-        service_->reseedSceneFloor(sceneID, currentDiskText);
-        persistFloor(sceneID, currentDiskText, "externalChange");
     }
     loadedHeadHashes_[sceneID] = diskHash;   // don't re-warn for the same edit
     return true;

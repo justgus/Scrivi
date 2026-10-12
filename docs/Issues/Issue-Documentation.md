@@ -41,7 +41,7 @@ does not exist and is owed to no one yet.**
 
 ## Backlog Issues (open, no Sprint)
 
-✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0287] → `Issue-active.md`, fixed in [SP-178], 2026-10-11.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
+✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0287] → `Issue-active.md`, fixed in [SP-178], 2026-10-11.) ([I-0288] fixed in [SP-178] and verified 2026-10-12, archived.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
 
 ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified (audit ruling **R-02**) → batch 2.
 Its rescoped behaviour was delivered by I-0131's restore centring, verified 2026-08-18.
@@ -109,7 +109,8 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 10 |
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
-| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 3 |
+| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 7 |
+| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 1 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -164,6 +165,22 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-12 (**I-0291 VERIFIED** (user) → new batch 30, `Issue-verified-0291-0300.md` (1).)*
+
+*Last Updated: 2026-10-12 (**I-0290 VERIFIED** (user) → `Issue-verified-0281-0290.md`, now 7; **I-0291 filed** `[Apple]` to `Issue-active.md`, fixed in [SP-179]: the palette button followed ⌃ alone.)*
+
+*Last Updated: 2026-10-12 (**I-0290 filed** `[Apple]` straight to `Issue-active.md`, fixed in [SP-179]: buffer paste moved ⌃1–9 → ⌃⌘1–9 (Mission Control took ⌃1); Resolved - Not Verified.)*
+
+*Last Updated: 2026-10-12 (**I-0289 VERIFIED** (user, Mac) → `Issue-verified-0281-0290.md`, now 6.)*
+
+*Last Updated: 2026-10-12 (**I-0289 filed** `[Apple]` straight to `Issue-active.md`, fixed in [SP-179]: the copy buffers skipped emphasis balancing; Resolved - Not Verified.)*
+
+*Last Updated: 2026-10-12 (**I-0288 VERIFIED** (user) → `Issue-verified-0281-0290.md`, now 5 — ⚠️ the count read 3 while the file held 4 (I-0285 was archived without it); corrected.)*
+
+*Last Updated: 2026-10-12 (**I-0288 → active**, Resolved - Not Verified in [SP-178].)*
+
+*Last Updated: 2026-10-12 (**I-0288 filed** to the backlog: undo after an outside edit replays stale diffs at the next open; ruling owed.)*
 
 *Last Updated: 2026-10-11 (**I-0287 → active**, Resolved - Not Verified in [SP-178].)*
 

@@ -828,7 +828,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         // MARK: — Copy buffers (EP-019 SP-056, T-0214)
         //
         // Ten buffers 0–9; buffer 0 is the system pasteboard (ordinary ⌘C/⌘V, never
-        // touched here). Slots 1–9 are ScriviCore-persisted. ⌘N/⇧⌘N route here from
+        // touched here). Slots 1–9 are ScriviCore-persisted. ⌘N/⌃⌘N/⌥N route here from
         // ManuscriptNSTextView.keyDown. These mutate text via the same paths the
         // native paste/cut overrides use, so history capture + auto-save happen
         // through the existing textDidChange flow (Trade T3).
@@ -842,18 +842,26 @@ struct ManuscriptTextView: NSViewRepresentable {
             let sel = tv.selectedRange()
             guard sel.length > 0 else { return }
             // Cross-boundary selection → store a STRUCTURED fragment (flat text + fragment) so
-            // ⌃N can reconstruct the scene/chapter boundaries (T-0355 / AC4). Single-scene keeps
+            // ⌃⌘N can reconstruct the scene/chapter boundaries (T-0355 / AC4). Single-scene keeps
             // the flat-text slot (AC5). Copy is not a text change → no history event (Trade T3).
             if selectionCrossesBoundary(sel),
                let spans = fragmentSpans(for: sel),
                let rootPath = parent.session.projectRootPath,
-               let frag = try? parent.env.engine.fragmentExtract(projectRootPath: rootPath, spans: spans) {
+               let raw = try? parent.env.engine.fragmentExtract(projectRootPath: rootPath, spans: spans) {
+                // ✅ [I-0289]: each scene's piece balanced, as ⌘C's are ([T-0591]).
+                let frag = balancedFragment(raw, sel).fragment
                 parent.session.bufferService?.load(frag.plainText, intoSlot: bufferID,
                                                    fragmentJSON: frag.toJSON())
                 return
             }
-            let text = (tv.string as NSString).substring(with: sel)
-            parent.session.bufferService?.load(text, intoSlot: bufferID)
+            parent.session.bufferService?.load(balancedSource(tv, sel), intoSlot: bufferID)
+        }
+
+        /// ✅ [I-0289]: what a slot holds is what ⌘C keeps for Scrivi's own paste — the BALANCED source (EP-046 AC12): a
+        /// selection that starts or ends inside a bold span carries its own markers. ⛔ It was raw storage.
+        private func balancedSource(_ tv: NSTextView, _ sel: NSRange) -> String {
+            guard let storage = tv.textStorage else { return (tv.string as NSString).substring(with: sel) }
+            return presenter.balancedCopy(in: storage, sel).source
         }
 
         // ⌥N (or the palette's Option button): cut the selection into slot N. This DOES
@@ -881,7 +889,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                 return
             }
 
-            let text = (tv.string as NSString).substring(with: sel)
+            let text = balancedSource(tv, sel)   // ✅ [I-0289]; the delete below is balanced by `shouldChangeText`
             // Load into the slot first — a cut must not lose the text if the store
             // write and the delete are ever separated by a failure.
             guard parent.session.bufferService?.load(text, intoSlot: bufferID) == true else { return }
@@ -893,7 +901,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             parent.session.historyCapture?.flush(trigger: "cut", kind: "cut")
         }
 
-        // ⌃N (or the palette's Control button): paste slot N at the caret, replacing any
+        // ⌃⌘N (or the palette's button with ⌃⌘ held): paste slot N at the caret, replacing any
         // selection. An empty slot is a silent no-op. A non-empty paste inserts text and
         // records an ordinary `paste` history event (one undo step) — the system
         // pasteboard is untouched.
@@ -2407,21 +2415,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                   let rootPath = parent.session.projectRootPath else { return false }
             guard let raw = try? parent.env.engine.fragmentExtract(
                 projectRootPath: rootPath, spans: spans) else { return false }
-            // ✅ [T-0591] (ruled 2026-10-05: Apple-side): each scene's piece is BALANCED — a piece that starts or ends
-            // inside a bold span carries its own markers (AC12) — and other apps get what the writer SEES ([SP-162] Q2:
-            // no markers, no `## `, no escapes), pieces joined by a blank line as ScriviCore joins them.
-            var frag = raw
-            var presented = MarkdownEscapes.map(raw.plainText).presented
-            if let storage = tv.textStorage, let parts = sceneParts(of: sel), parts.count == raw.pieces.count {
-                let copies = parts.map { presenter.balancedCopy(in: storage, $0) }
-                let pieces = zip(raw.pieces, copies).map { piece, copy in
-                    FragmentPiece(opensWith: piece.opensWith, chapterTitle: piece.chapterTitle,
-                                  sceneTitle: piece.sceneTitle, text: copy.source, partial: piece.partial)
-                }
-                frag = FragmentResult(schema: raw.schema, pieces: pieces,
-                                      plainText: pieces.map(\.text).joined(separator: "\n\n"))
-                presented = copies.map(\.presented).joined(separator: "\n\n")
-            }
+            let (frag, presented) = balancedFragment(raw, sel)
             let pb = NSPasteboard.general
             pb.clearContents()
             // EP-045 AC4: other apps get what the writer SEES, not escape backslashes. ⌘V in
@@ -2430,6 +2424,24 @@ struct ManuscriptTextView: NSViewRepresentable {
             // ⚠️ [I-0279]: held AFTER the pasteboard write, so it matches the change count that write produced.
             internalClipboardFragment = frag
             return true
+        }
+
+        /// ✅ [T-0591] (ruled 2026-10-05: Apple-side): each scene's piece of a cross-scene copy is BALANCED — a piece that
+        /// starts or ends inside a bold span carries its own markers (AC12) — and other apps get what the writer SEES
+        /// ([SP-162] Q2: no markers, no `## `, no escapes), pieces joined by a blank line as ScriviCore joins them.
+        /// Shared by ⌘C and the copy buffers ([I-0289]).
+        func balancedFragment(_ raw: FragmentResult, _ sel: NSRange) -> (fragment: FragmentResult, presented: String) {
+            guard let storage = textView?.textStorage, let parts = sceneParts(of: sel), parts.count == raw.pieces.count else {
+                return (raw, MarkdownEscapes.map(raw.plainText).presented)
+            }
+            let copies = parts.map { presenter.balancedCopy(in: storage, $0) }
+            let pieces = zip(raw.pieces, copies).map { piece, copy in
+                FragmentPiece(opensWith: piece.opensWith, chapterTitle: piece.chapterTitle,
+                              sceneTitle: piece.sceneTitle, text: copy.source, partial: piece.partial)
+            }
+            return (FragmentResult(schema: raw.schema, pieces: pieces,
+                                   plainText: pieces.map(\.text).joined(separator: "\n\n")),
+                    copies.map(\.presented).joined(separator: "\n\n"))
         }
 
         /// ✅ [SP-164] Q2: Replace All is ONE undoable step, even across scenes — the replacements are applied with history
@@ -2575,7 +2587,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             return pasteStructuredFragment(frag)
         }
 
-        // Reconstruct `frag` at the caret (shared by ⌘V of the internal clipboard and ⌃N of a
+        // Reconstruct `frag` at the caret (shared by ⌘V of the internal clipboard and ⌃⌘N of a
         // structured buffer slot — T-0355). Refuses (flash) if the caret is in a heading.
         // Returns true if handled (pasted or refused); false → caller should fall back.
         func pasteStructuredFragment(_ frag: FragmentResult) -> Bool {
@@ -3208,8 +3220,12 @@ final class ManuscriptNSTextView: NSTextView {
     // Inserts `text` at the caret (replacing any selection), routed through
     // insertText so it commits as a normal editable change. Used by pasteFromBuffer.
     func insertTextForBuffer(_ text: String) {
-        // EP-045 AC4: a slot holds STORED text (`copyIntoBuffer` slices storage), so it goes
+        // EP-045 AC4: a slot holds STORED text (`copyIntoBuffer` stores the balanced source), so it goes
         // back verbatim — escaping it again would turn `\*` into `\\\*`.
+        // ✅ [I-0289]: a slot is always Scrivi's OWN copy, so it keeps ITS formatting where it lands, as ⌘V of Scrivi's
+        // own copy does ([SP-163] live pass) — plain text pasted inside bold stays plain. ⛔ It took the caret's style.
+        pastingOwnCopy = true
+        defer { pastingOwnCopy = false }
         insertVerbatim(text, replacementRange: selectedRange())
     }
 
@@ -3279,11 +3295,13 @@ final class ManuscriptNSTextView: NSTextView {
         // be selected (the earlier context-sensitive ⌘N was ambiguous and couldn't
         // paste-over-selection). The palette's modifier-sensitive button mirrors these.
         //   ⌘1–9  → copy selection into slot N (copy-only, no history event, Trade T3)
-        //   ⌃1–9  → paste slot N at the caret, replacing any selection (a `paste` event)
+        //   ⌃⌘1–9 → paste slot N at the caret, replacing any selection (a `paste` event)
+        //           ⛔ [I-0290]: was ⌃1–9, which macOS Mission Control takes ("Switch to Desktop N") —
+        //           ⌃1 never reached Scrivi on the user's Mac. ⌃⌘ + digit is bound by neither macOS nor Scrivi.
         //   ⌥1–9  → cut selection into slot N (a `cut` history event, bufferID-tagged)
         // ⇧⌘digit is deliberately NOT used (⇧⌘3/4/5 are the system screenshot chords).
-        // ⌘C/⌘V (buffer 0 = system pasteboard) are untouched. Each branch requires its
-        // one modifier and none of the other two, so the chords never overlap.
+        // ⌘C/⌘V (buffer 0 = system pasteboard) are untouched. Each branch names its exact
+        // modifiers and excludes the rest, so the chords never overlap.
         let ctrl = event.modifierFlags.contains(.control)
         let opt  = event.modifierFlags.contains(.option)
         if let digit = event.charactersIgnoringModifiers,
@@ -3294,8 +3312,8 @@ final class ManuscriptNSTextView: NSTextView {
                 coordinator?.copyIntoBuffer(bufferID)      // ⌘N — copy
                 return
             }
-            if ctrl && !cmd && !opt && !shift {
-                coordinator?.pasteFromBuffer(bufferID)     // ⌃N — paste
+            if ctrl && cmd && !opt && !shift {
+                coordinator?.pasteFromBuffer(bufferID)     // ⌃⌘N — paste ([I-0290])
                 return
             }
             if opt && !cmd && !ctrl && !shift {

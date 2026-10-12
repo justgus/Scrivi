@@ -4,8 +4,6 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
-
-
 ## ⚠️ RESERVED Sprint IDs — SP-107–SP-114 (EP-032)
 
 **These are NOT in Planning, and none is ready to activate.** ⚠️ **EP-032 was returned to the Epic backlog
@@ -34,6 +32,8 @@ the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequenc
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
 ---
+
+*Last Updated: 2026-10-12 (SP-179 activated and removed.)*
 
 *Last Updated: 2026-10-11 (SP-178 activated and removed.)*
 

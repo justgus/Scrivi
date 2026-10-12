@@ -100,16 +100,18 @@ private final class PanelCloseObserver: NSObject, NSWindowDelegate {
 // MARK: — Modifier tracking
 
 // The action a row's single action button performs, chosen by the modifier the writer
-// is holding — mirroring the ⌘/⌃/⌥ + digit keyboard chords exactly.
-private enum BufferAction {
+// is holding — mirroring the ⌘ / ⌃⌘ / ⌥ + digit keyboard chords.
+enum BufferAction {
     case copy    // no modifier  → ⌘N: copy selection into the slot (down arrow)
-    case paste   // Control held → ⌃N: paste the slot at the caret (up arrow)
+    case paste   // Control+Command held → ⌃⌘N: paste the slot at the caret (up arrow)
     case cut     // Option held  → ⌥N: cut selection into the slot (scissors)
 
-    // Which modifier drives this action, derived from live NSEvent flags. Command,
-    // Shift, or no relevant modifier all fall back to copy (the default, matching ⌘N).
+    // Which modifiers drive this action, derived from live NSEvent flags — the same ones
+    // as the chord ([I-0291], user 2026-10-12: the button changed on ⌃ alone after paste
+    // moved to ⌃⌘, [I-0290]). ⌃ alone, ⌘ alone, Shift, or nothing fall back to copy
+    // (the default, matching ⌘N).
     static func current(_ flags: NSEvent.ModifierFlags) -> BufferAction {
-        if flags.contains(.control) { return .paste }
+        if flags.contains(.control) && flags.contains(.command) { return .paste }
         if flags.contains(.option)  { return .cut }
         return .copy
     }
@@ -125,7 +127,7 @@ private enum BufferAction {
 }
 
 // Publishes the currently-held modifier flags so the palette buttons can reflect them
-// live (⌃ → paste icon, ⌥ → cut icon), the way vim registers change meaning by prefix.
+// live (⌃⌘ → paste icon, ⌥ → cut icon), the way vim registers change meaning by prefix.
 // SwiftUI has no built-in live modifier state, so we watch NSEvent flagsChanged. The
 // monitor is local (this process only) and removed on deinit.
 @MainActor
@@ -164,7 +166,7 @@ struct BuffersPaletteView: View {
                 .padding(.top, 10)
                 .padding(.bottom, 2)
             // The hint states all three chords and how the button follows the modifier.
-            Text("⌘1–9 copy · ⌃1–9 paste · ⌥1–9 cut  ·  hold ⌃/⌥ to change the button")
+            Text("⌘1–9 copy · ⌃⌘1–9 paste · ⌥1–9 cut  ·  hold ⌃⌘ or ⌥ to change the button")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -216,7 +218,7 @@ private struct BufferRow: View {
         case .copy:  return "Copy the selected manuscript text into buffer \(slotID) (⌘\(slotID))"
         case .paste: return isEmpty
             ? "Buffer \(slotID) is empty — nothing to paste"
-            : "Paste buffer \(slotID) at the cursor, replacing any selection (⌃\(slotID))"
+            : "Paste buffer \(slotID) at the cursor, replacing any selection (⌃⌘\(slotID))"
         case .cut:   return "Cut the selected manuscript text into buffer \(slotID) (⌥\(slotID))"
         }
     }
@@ -244,7 +246,7 @@ private struct BufferRow: View {
             Spacer(minLength: 0)
 
             // One modifier-sensitive action button. Its icon follows the held modifier
-            // (↓ copy / ↑ paste / ✂ cut), mirroring the ⌘/⌃/⌥ + digit chords, so the
+            // (↓ copy / ↑ paste / ✂ cut), mirroring the ⌘ / ⌃⌘ / ⌥ + digit chords, so the
             // button IS the chord. Rendered inert (not .disabled) so the tooltip still
             // attaches even when a paste would no-op.
             Button(action: { if !actionDisabled { onAction() } }) {

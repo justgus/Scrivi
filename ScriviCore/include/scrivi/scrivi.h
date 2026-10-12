@@ -880,7 +880,8 @@ const char* scrivi_history_purge_branch(const char* projectRootPath,
 
 /* Head-hash validation (§6.b). Compares currentDiskTextUtf8 for sceneID against
  * the head hash persisted at last close; on mismatch (edited outside Scrivi)
- * records an externalChange barrier and re-seeds the scene's floor from disk —
+ * records an externalChange barrier carrying the disk text (barrier.sceneTexts,
+ * I-0288 — the scene reads it from that node on; its floor is untouched) —
  * never modifying the manuscript. Call once per loaded scene right after open.
  * result: {externalChange} (true if a mismatch/barrier occurred). */
 const char* scrivi_history_validate_scene(const char* projectRootPath,

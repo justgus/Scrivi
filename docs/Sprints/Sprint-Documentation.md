@@ -446,6 +446,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-176** | `[Linux]` **[EP-048] S4** — Find over the presented text (L8 Find half, T-0603) | EP-048 | 2026-10-11 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-176.md) |
 | **SP-177** | `[Cross]` **[EP-026] S1** — the undo capture rules move into ScriviCore; Apple re-pointed (T-0604) | EP-026 | 2026-10-11 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-177.md) |
 | **SP-178** | `[Linux]` **[EP-026] S2** — undo/redo on Linux: Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits (T-0605) | EP-026 | 2026-10-11 | — | 🟡 **ACTIVE** → [`Sprint-SP-178.md`](Sprint-SP-178.md) |
+| **SP-179** | `[Linux]` **[EP-026] S5** — copy buffers 1–9 (Ctrl / Ctrl+Shift / Alt + digit), View ▸ Show Buffers (Ctrl+Alt+B), the Buffers palette (T-0606) | EP-026 | 2026-10-12 | — | 🟡 **ACTIVE** → [`Sprint-SP-179.md`](Sprint-SP-179.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -485,6 +486,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-12 (**SP-179 ACTIVATED** (user: *"Fix it here."*); Q1–Q4 ruled; T-0606 → active; [I-0289] `[Apple]` fixed in it.)*
+
+*Last Updated: 2026-10-12 (**SP-179 (EP-026 S5) created in 🔵 Planning**, issued via `next-id.py`; T-0606 filed. Runs before S3/S4.)*
 
 *Last Updated: 2026-10-11 (**SP-178 ACTIVATED** (user-approved); T-0605 → active.)*
 

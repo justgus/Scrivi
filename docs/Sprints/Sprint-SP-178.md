@@ -114,8 +114,8 @@ undoes the same on both.
 ⛔ **NOT in this Sprint:** the fork popover, History card, stale-branch purge, Undo History settings section (S3) ·
 structured cut/copy/paste and its structural undo (S4) · copy buffers and View ▸ Show Buffers (S5) · Replace / Replace All
 ([EP-048] S4b) · Windows · any change to ScriviCore, `scrivi.history.v1` or Apple. ⚠️ None is expected; if one is found it is
-surfaced, not slipped in. ✅ **One was found and ruled IN (2026-10-11): [I-0287]** — a ScriviCore + `scrivi.history.v1`
-(optional `barrier.sceneTexts`) + Apple + Linux change, AC9.
+surfaced, not slipped in. ✅ **Two were found and ruled IN: [I-0287] (2026-10-11) — a ScriviCore + `scrivi.history.v1`
+(optional `barrier.sceneTexts`) + Apple + Linux change, AC9; and [I-0288] (2026-10-12) — a ScriviCore change, AC10.
 
 ## Acceptance Criteria
 
@@ -128,6 +128,7 @@ surfaced, not slipped in. ✅ **One was found and ruled IN (2026-10-11): [I-0287
 - [ ] AC7 — Smokes green through the real key dispatch, mutation-checked; ctest green on macOS and Linux
 - [ ] AC8 — ✅ **Rig live pass (user)**
 - [ ] AC9 — [I-0287]: after a split or merge, undoing the next edit in an affected scene returns it to its text right AFTER the op (core + Apple + Linux; tested through `scrivi_*` and Linux's real keys)
+- [x] AC10 — ✅ **VERIFIED 2026-10-12 (user)** — [I-0288]: after an outside edit, undo in a LATER session returns the scene to the outside text — never a mix with the old text; logs written before the fix open correctly (tested through `scrivi_*`)
 
 ---
 
@@ -210,3 +211,39 @@ ScriviCore change (+ both platforms' split/merge paths), which this Sprint said 
 - ⚠️ **Seen, not fixed:** the `externalChange` repair (`HistoryStore::validateSceneHead`) re-floors the scene — the shape avoided
   above. Unmeasured whether it corrupts at the next open; not filed.
 
+
+### 🟡 2026-10-12 — Apple's half of [I-0287] tested on the Mac; ⛔ [I-0288] measured and filed — ⏳ rig offline, live pass waiting
+
+✅ User: *"do both of those things."* (the Mac check of Apple's half, and measuring the `externalChange` repair).
+
+- ✅ **AC9, Apple:** new `UndoAfterStructuralOpTests` (`ScriviInteropTests.swift`, 3 tests): real project through `loadAsync`,
+  the real coordinator's `handleCreateScene` / `handleMergeScene`, typing through `textDidChange`, `performUndo`; text checked in
+  the loader and on disk. ✅ Green; ✅ **red with Apple's `sceneTexts` dropped** (split head + merge). ⚠️ First version stayed
+  green under the mutation: the defect needs an edit in the scene BEFORE the op, so the test now types one.
+- ⛔ **[I-0288] filed (High, backlog, ruling owed):** after an outside edit, undo in a LATER session restores
+  `"Zulu. one. Alpha two."` where `"Zulu."` is correct — the repair re-floors and the next open replays the pre-change diffs.
+  Repro test in `CaptureCApiTests.cpp`, ⛔ red, HIDDEN as `[.I-0288]` until ruled (ctest still 717). Not this Sprint's scope
+  unless ruled in.
+- ✅ ctest macOS **717/717**; ✅ interop **277** (274 + 3).
+- ⏳ **AC8 live pass** waits for the rig to come back on the network.
+
+### ✅ 2026-10-12 — [I-0288] RULED IN and FIXED (AC10)
+
+✅ User: *"fix it inside SP-178"*.
+
+- **Core:** the `externalChange` repair's barrier carries the disk text (`sceneTexts`, [I-0287]'s mechanism) and writes no
+  `floor` record; `reseedSceneFloor` removed. ✅ **Old logs:** a `floor` record with `reason: externalChange` that directly
+  follows an `externalChange` barrier is read as that barrier's text, never as a floor (`attachLoadedBarrierText`). Nothing is
+  rewritten on disk.
+- **Docs:** `scrivi.h` (`scrivi_history_validate_scene`), the history design doc (A.1, §4, §6.b).
+- **Tests:** `CaptureCApiTests.cpp` `[I-0288]` (no longer hidden): a log from this build and a log rewritten into the pre-fix
+  shape. ✅ **Mutation-checked:** legacy attach off → legacy section red; repair without the text → both red.
+- ✅ ctest macOS **718/718**; ✅ Linux (GCC, non-root) **721 test cases**, `[I-0288]` confirmed run there; ✅ interop **277**;
+  ✅ **all 30 Linux smokes**.
+- ⚠️ Not checked on `the-stairs-of-tintagael`, which took this repair per [I-0268]. The old-log path is what opens it, and it
+  is proven only on a log rewritten by hand.
+- ⏳ AC8 live pass still waits for the rig.
+
+### ✅ 2026-10-12 — [I-0288] VERIFIED (AC10)
+
+✅ User: *"mark I-0288 as verified."* → archived to `../Issues/Verified/Issue-verified-0281-0290.md` in the same step.
