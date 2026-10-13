@@ -2592,8 +2592,15 @@ struct ManuscriptTextView: NSViewRepresentable {
         // Returns true if handled (pasted or refused); false → caller should fall back.
         func pasteStructuredFragment(_ frag: FragmentResult) -> Bool {
             guard let tv = textView else { return false }
+            let sel = tv.selectedRange()
+            if caretInHeading(sel.location) { flashRefuse(tv); return true }   // handled = refused, no super
+            // ✅ [I-0295] ([SP-180] Q2): a selection is REPLACED, as a flat paste replaces it — removed first, as its own
+            // undo step (across scenes [I-0270]'s grouped delete, inside one scene an ordinary delete), then the fragment
+            // lands where it began. ⛔ It landed BEFORE the selection and left the selection in place.
+            if sel.length > 0, !deleteAcrossScenes(sel, kind: "delete") {
+                tv.insertText("", replacementRange: sel)
+            }
             let loc = tv.selectedRange().location
-            if caretInHeading(loc) { flashRefuse(tv); return true }   // handled = refused, no super
             guard let segIdx = segmentIndex(for: loc),
                   parent.loader.segments.indices.contains(segIdx),
                   sceneBoundaries.indices.contains(segIdx),
@@ -2606,6 +2613,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             let caretByte = byteOffset(charOffset: caretChar, in: seg.text)
 
             parent.session.historyCapture?.flush(trigger: "flush")
+            // ✅ [I-0294]: the core splits the target AS SAVED, and the reload below replaces EVERY scene with what is on
+            // disk — so each scene with unsaved typing is written first (a split saves first too). ⛔ That typing was lost.
+            for i in parent.loader.segments.indices where parent.loader.segments[i].isDirty {
+                parent.loader.saveSceneBlocking(at: i, engine: parent.env.engine, ref: ref)
+            }
             // ✅ [T-0591]: pasting INSIDE a bold span — the first piece closes it, the last re-opens it for the text after
             // the split. ✅ [SP-163] live pass (user): the pasted text KEEPS ITS OWN formatting (only what was bold is).
             var frag = frag
@@ -2632,6 +2644,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Reversible structural op (T-0356 / AC6): undo cuts away exactly the created
             // scenes/chapters and re-joins the split target (undo-paste == cut-merge, §5); redo
             // re-runs the paste.
+            // ✅ [I-0293]: with the texts the paste left (read back — the core wrote them) and the target's text before it,
+            // so the next edit there diffs against what the writer now sees. ⛔ Without them its undo put the pre-paste
+            // text back, and the paste's own undo was then refused.
+            let after = (try? parent.env.engine.readSceneTexts(
+                projectRootPath: rootPath, sceneIDs: [result.targetSceneID] + result.createdSceneIDs))?.scenes ?? []
             parent.session.historyCapture?.recordBarrier(
                 kind: "structuredPaste", note: "Can't undo past a cross-boundary paste",
                 structuralPayload: HistoryStructuralPayload(
@@ -2640,7 +2657,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                     caretSceneID: result.targetSceneID,
                     caretByte: caretByte,
                     createdSceneIDs: result.createdSceneIDs,
-                    createdChapterIDs: result.createdChapterIDs))
+                    createdChapterIDs: result.createdChapterIDs),
+                sceneTexts: Dictionary(after.map { ($0.sceneID, $0.markdown) }, uniquingKeysWith: { a, _ in a }),
+                sceneTextsBefore: [seg.sceneID: seg.text])
             // Place the caret at the start of the paste target (the split point); the reload
             // re-anchors to a valid scene.
             reloadManuscriptFromDisk(caretSceneID: result.targetSceneID, caretByteOffset: caretByte)

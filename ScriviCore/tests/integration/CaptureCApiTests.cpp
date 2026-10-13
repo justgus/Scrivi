@@ -8,6 +8,7 @@
 #include "util/Json.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -37,6 +38,8 @@ struct Root {
                 ("scrivi-capture-capi-" + std::to_string(counter.fetch_add(1)) + "-" +
                  std::to_string(reinterpret_cast<std::uintptr_t>(this)) + ".scrivi"))
                    .string();
+        std::error_code ec;
+        std::filesystem::remove_all(path, ec);   // a crashed earlier run can leave this exact path behind with a log in it
         ok(scrivi_history_open(c()));
     }
     ~Root() {
@@ -314,6 +317,216 @@ TEST_CASE("capture ABI: after an outside edit, the next edits undo to the OUTSID
         Root r;
         runOutsideEditSessions(r, true);
     }
+}
+
+// [I-0293] — a STRUCTURED paste (a reversible structural node, EP-029 AC6) rewrites the target scene too: head + first piece.
+// It carried no texts, so a target already edited this session kept its PRE-paste head: the next edit's undo put the
+// pre-paste text back (the tail now also in the last created scene), and the paste's own undo was then refused by
+// `fragment_uncut_paste`. Proven through `scrivi_*` on a real project first ([SP-180] Q3). Now the node carries
+// `sceneTexts` (after the op) and `sceneTextsBefore` (each existing scene before it): redo and replay read the first,
+// undo the second, and a scene the node brings into history takes its BEFORE text as its floor.
+TEST_CASE("capture ABI: a structured paste's texts are what undo returns to on either side of it — seeded or not, reopened",
+          "[capture-abi][I-0293]") {
+    const std::string before = "Alpha. Bravo.";
+    const std::string after = "Alpha. one";   // a fragment [none:"one", scene:"two", tail:"three"] pasted at byte 7
+    const char* paste =
+        R"({"barrierKind":"structuredPaste","note":"p","sceneID":"S","structuralPayload":{"op":"structuredPaste"},)"
+        R"("sceneTexts":{"S":"Alpha. one","N1":"two","N2":"threeBravo."},"sceneTextsBefore":{"S":"Alpha. Bravo."}})";
+
+    for (const bool seeded : {true, false}) {
+        DYNAMIC_SECTION((seeded ? "the target was edited before the paste" : "the target's first edit is after the paste")) {
+            Root r;
+            if (seeded) {
+                ok(scrivi_capture_note_edit(r.c(), "S", "Alpha.", 6, "", 1000));
+                ok(scrivi_capture_note_edit(r.c(), "S", before.c_str(), 13, "Alpha.", 2000));
+            }
+            ok(scrivi_capture_record_barrier(r.c(), paste));
+            ok(scrivi_capture_note_edit(r.c(), "S", (after + ".").c_str(), 11, after.c_str(), 3000));
+
+            auto reopen = [&] { scrivi_free(scrivi_history_close(r.c())); ok(scrivi_history_open(r.c())); };
+            auto undoText = [&] { return change(ok(scrivi_capture_undo(r.c()))).getString("newText"); };
+            auto crossed = [&](const char* raw) { return ok(raw).getSubDoc("structuralInverse").getString("direction"); };
+
+            CHECK(undoText() == after);                                     // the edit after the paste
+            CHECK(crossed(scrivi_capture_undo(r.c())) == "undo");          // the paste (the app uncuts it)
+            CHECK(crossed(scrivi_capture_redo(r.c())) == "redo");          // and back (the app re-pastes)
+            ok(scrivi_capture_note_edit(r.c(), "S", (after + "!").c_str(), 11, after.c_str(), 4000));
+            CHECK(undoText() == after);                                     // after a redo over it
+
+            reopen();                                                       // replayed from the log, AFTER the paste
+            ok(scrivi_capture_note_edit(r.c(), "S", (after + "?").c_str(), 11, after.c_str(), 5000));
+            CHECK(undoText() == after);
+
+            CHECK(crossed(scrivi_capture_undo(r.c())) == "undo");          // BEFORE the paste: S reads `before` again
+            ok(scrivi_capture_note_edit(r.c(), "S", (before + " X.").c_str(), 16, before.c_str(), 6000));
+            CHECK(undoText() == before);
+
+            reopen();                                                       // replayed from the log, BEFORE the paste
+            ok(scrivi_capture_note_edit(r.c(), "S", (before + " Y.").c_str(), 16, before.c_str(), 7000));
+            CHECK(undoText() == before);
+        }
+    }
+}
+
+// [I-0293], end to end on a real project: the calls a platform makes for ⌘V of a cross-scene fragment (Apple's
+// `pasteStructuredFragment`), then the writer's next edit, its undo, and the paste's own undo (`fragment_uncut_paste`).
+// Before the fix the edit's undo returned the pre-paste text and the uncut was REFUSED.
+TEST_CASE("capture ABI: after a real structured paste, the next edit and then the paste undo cleanly", "[capture-abi][I-0293]") {
+    namespace fs = std::filesystem;
+    const fs::path base = fs::temp_directory_path() /
+                          ("scrivi-i0293-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::remove_all(base);
+    fs::create_directories(base / "as");
+    const std::string root = (base / "p.scrivi").string(), as = (base / "as").string();
+    const JsonDoc created = ok(scrivi_create_project(root.c_str(), as.c_str(), "I-0293", "i0293", "identity-001",
+                                                     "persona-001", "T"));
+    const std::string pid = created.getString("projectID");
+    const JsonDoc first = created.getSubDoc("firstScene");
+    const std::string S = first.getString("sceneID");
+    auto save = [&](const std::string& text) {
+        ok(scrivi_save_scene(pid.c_str(), root.c_str(), as.c_str(), S.c_str(), first.getString("metadataPath").c_str(),
+                             first.getString("contentPath").c_str(), text.c_str(), 0, 0, 0.0, "identity-001",
+                             "persona-001", "T"));
+    };
+    auto textOf = [&](const std::string& sceneID) {
+        const JsonDoc r = ok(scrivi_read_scene_texts(root.c_str(), ("[\"" + sceneID + "\"]").c_str()));
+        return r.arrayItem("scenes", 0).getString("markdown");
+    };
+    ok(scrivi_open_project(root.c_str(), as.c_str(), "identity-001"));
+    ok(scrivi_history_open(root.c_str()));
+
+    // The writer types two sentences into the scene (so history has seeded it), and they are saved.
+    ok(scrivi_capture_note_edit(root.c_str(), S.c_str(), "Alpha.", 6, "", 1000));
+    ok(scrivi_capture_note_edit(root.c_str(), S.c_str(), "Alpha. Bravo.", 13, "Alpha.", 2000));
+    save("Alpha. Bravo.");
+
+    // ⌘V of [none:"one", scene:"two", tail:"three"] at "Alpha. |Bravo." — flush, paste, then the structural node with
+    // the texts the paste left (read back from disk) and the target's text before it.
+    const std::string frag = R"({"schema":"scrivi.fragment.v1","pieces":[{"opensWith":"none","text":"one","partial":"head"},)"
+                             R"({"opensWith":"scene","text":"two"},{"opensWith":"scene","text":"three","partial":"tail"}],)"
+                             R"("plainText":"one\n\ntwo\n\nthree"})";
+    ok(scrivi_capture_flush(root.c_str(), "flush", ""));
+    const JsonDoc pasted = ok(scrivi_fragment_paste(root.c_str(), as.c_str(), pid.c_str(), frag.c_str(), S.c_str(), 7,
+                                                    "identity-001", "persona-001", "T"));
+    const auto made = pasted.getStringArray("createdSceneIDs");
+    REQUIRE(made.size() == 2);
+    REQUIRE(textOf(S) == "Alpha. one");
+    REQUIRE(textOf(made[1]) == "threeBravo.");
+    const std::string ids = "[\"" + made[0] + "\",\"" + made[1] + "\"]";
+    JsonDoc payload;
+    payload.setString("op", "structuredPaste");
+    payload.setString("fragmentJSON", frag);
+    payload.setString("caretSceneID", S);
+    payload.setInt64("caretByte", 7);
+    JsonDoc texts, prior, params;
+    texts.setString(S, textOf(S));
+    for (const std::string& id : made) texts.setString(id, textOf(id));
+    prior.setString(S, "Alpha. Bravo.");
+    params.setString("barrierKind", "structuredPaste");
+    params.setString("note", "Can't undo past a cross-boundary paste");
+    params.setSubDoc("structuralPayload", std::move(payload));
+    params.setSubDoc("sceneTexts", std::move(texts));
+    params.setSubDoc("sceneTextsBefore", std::move(prior));
+    ok(scrivi_capture_record_barrier(root.c_str(), params.dump(-1).c_str()));
+
+    // The writer ends the sentence in the target scene; ⌘Z returns it to what the paste left.
+    ok(scrivi_capture_note_edit(root.c_str(), S.c_str(), "Alpha. one.", 11, "Alpha. one", 3000));
+    save("Alpha. one.");
+    const JsonDoc u1 = ok(scrivi_capture_undo(root.c_str()));
+    CHECK(change(u1).getString("newText") == "Alpha. one");
+    save(change(u1).getString("newText"));
+
+    // ⌘Z again crosses the paste; the app's inverse op is accepted and the scene is whole again.
+    CHECK(ok(scrivi_capture_undo(root.c_str())).getSubDoc("structuralInverse").getString("direction") == "undo");
+    ok(scrivi_fragment_uncut_paste(root.c_str(), frag.c_str(), S.c_str(), ("{\"sceneIDs\":" + ids + "}").c_str()));
+    CHECK(textOf(S) == "Alpha. Bravo.");
+
+    scrivi_free(scrivi_history_close(root.c_str()));
+    scrivi_free(scrivi_close_project(root.c_str()));
+    std::error_code ec;
+    fs::remove_all(base, ec);
+}
+
+// [I-0296] — at an open, history compares each scene's file with the last bytes SCRIVI wrote (the save path reports them,
+// [I-0104]). A structured paste, and its undo (`fragment_uncut_paste`), are written by the CORE, and nothing reported those
+// bytes: the next open took the pasted-into scene for an outside edit, and undo stopped there. Now the two endpoints report
+// what they wrote while the project's history is open.
+TEST_CASE("capture ABI: a reopen after a structured paste, or its undo, takes no scene for an outside edit",
+          "[capture-abi][I-0296]") {
+    namespace fs = std::filesystem;
+    const fs::path base = fs::temp_directory_path() /
+                          ("scrivi-i0296-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::remove_all(base);
+    fs::create_directories(base / "as");
+    const std::string root = (base / "p.scrivi").string(), as = (base / "as").string();
+    const JsonDoc created = ok(scrivi_create_project(root.c_str(), as.c_str(), "I-0296", "i0296", "identity-001",
+                                                     "persona-001", "T"));
+    const std::string pid = created.getString("projectID");
+    const JsonDoc first = created.getSubDoc("firstScene");
+    const std::string S = first.getString("sceneID");
+    auto textOf = [&](const std::string& sceneID) {
+        return ok(scrivi_read_scene_texts(root.c_str(), ("[\"" + sceneID + "\"]").c_str())).arrayItem("scenes", 0).getString("markdown");
+    };
+    // Reopen as a platform does: close (the checkpoint), open, and validate every scene against its file.
+    auto flaggedOnReopen = [&](const std::vector<std::string>& scenes) {
+        scrivi_free(scrivi_history_close(root.c_str()));
+        ok(scrivi_history_open(root.c_str()));
+        std::vector<std::string> flagged;
+        for (const std::string& id : scenes) {
+            if (ok(scrivi_history_validate_scene(root.c_str(), id.c_str(), textOf(id).c_str())).getBool("externalChange")) {
+                flagged.push_back(id == S ? "target" : id);
+            }
+        }
+        return flagged;
+    };
+    ok(scrivi_open_project(root.c_str(), as.c_str(), "identity-001"));
+    ok(scrivi_history_open(root.c_str()));
+
+    // The writer's text, saved — and reported, as the save path does.
+    ok(scrivi_capture_note_edit(root.c_str(), S.c_str(), "Alpha. Bravo.", 13, "", 1000));
+    ok(scrivi_save_scene(pid.c_str(), root.c_str(), as.c_str(), S.c_str(), first.getString("metadataPath").c_str(),
+                         first.getString("contentPath").c_str(), "Alpha. Bravo.", 0, 0, 0.0, "identity-001", "persona-001", "T"));
+    ok(scrivi_history_note_scene_persisted(root.c_str(), S.c_str(), "Alpha. Bravo."));
+    CHECK(flaggedOnReopen({S}).empty());
+
+    const std::string frag = R"({"schema":"scrivi.fragment.v1","pieces":[{"opensWith":"none","text":"one","partial":"head"},)"
+                             R"({"opensWith":"scene","text":"two","partial":"tail"}],"plainText":"one\n\ntwo"})";
+    ok(scrivi_capture_flush(root.c_str(), "flush", ""));
+    const JsonDoc pasted = ok(scrivi_fragment_paste(root.c_str(), as.c_str(), pid.c_str(), frag.c_str(), S.c_str(), 7,
+                                                    "identity-001", "persona-001", "T"));
+    const std::string made = pasted.getStringArray("createdSceneIDs").at(0);
+    JsonDoc texts, prior, payload, params;
+    texts.setString(S, textOf(S));
+    texts.setString(made, textOf(made));
+    prior.setString(S, "Alpha. Bravo.");
+    payload.setString("op", "structuredPaste");
+    params.setString("barrierKind", "structuredPaste");
+    params.setSubDoc("structuralPayload", std::move(payload));
+    params.setSubDoc("sceneTexts", std::move(texts));
+    params.setSubDoc("sceneTextsBefore", std::move(prior));
+    ok(scrivi_capture_record_barrier(root.c_str(), params.dump(-1).c_str()));
+    CHECK(flaggedOnReopen({S, made}).empty());   // ⛔ was {"target"}
+
+    // Its undo: the app uncuts the paste (the core writes the target again).
+    CHECK(ok(scrivi_capture_undo(root.c_str())).getSubDoc("structuralInverse").getString("direction") == "undo");
+    ok(scrivi_fragment_uncut_paste(root.c_str(), frag.c_str(), S.c_str(), ("{\"sceneIDs\":[\"" + made + "\"]}").c_str()));
+    REQUIRE(textOf(S) == "Alpha. Bravo.");
+    CHECK(flaggedOnReopen({S}).empty());
+
+    // EP-029's collapsing cut (`fragment_cut`, no longer called by either platform, but in old histories) writes too.
+    const std::string again = ok(scrivi_fragment_paste(root.c_str(), as.c_str(), pid.c_str(), frag.c_str(), S.c_str(), 7,
+                                                       "identity-001", "persona-001", "T")).getStringArray("createdSceneIDs").at(0);
+    REQUIRE(textOf(S) == "Alpha. one");
+    const std::string spans = R"({"spans":[{"sceneID":")" + S + R"(","startByte":7,"endByte":10},{"sceneID":")" + again +
+                              R"(","startByte":0,"endByte":3}]})";
+    ok(scrivi_fragment_cut(root.c_str(), spans.c_str()));
+    REQUIRE(textOf(S) == "Alpha. Bravo.");
+    CHECK(flaggedOnReopen({S}).empty());
+
+    scrivi_free(scrivi_history_close(root.c_str()));
+    scrivi_free(scrivi_close_project(root.c_str()));
+    std::error_code ec;
+    fs::remove_all(base, ec);
 }
 
 TEST_CASE("capture ABI: not open → an error, never a crash", "[capture-abi]") {

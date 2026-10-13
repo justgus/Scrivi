@@ -7239,6 +7239,110 @@ struct UndoAfterStructuralOpTests {
         #expect(h.loader.segments[0].text == "Alpha. Pre\n\nBeta.", "undo keeps the merged-in text")
         #expect(try h.onDisk(survivor) == "Alpha. Pre\n\nBeta.", "and saves it")
     }
+
+    /// [I-0293] — the same gap for a STRUCTURED paste (a reversible structural node): ⛔ the next edit's undo put the
+    /// target's pre-paste text back — its tail then twice — and the paste's own undo was refused.
+    @Test("structured paste, type in the target, undo → what the paste left; undo again → the paste is gone")
+    func structuredPasteThenUndo() async throws {
+        let h = try await harness(["Alpha Bravo"])
+        h.typeBeforeTheOp(scene: 0)                                 // the target gets a history head ("Alpha Bravo Pre")
+        let target = h.loader.segments[0].sceneID
+        // Saved first, so this test isolates [I-0293] (unsaved typing is [I-0294]'s test, below).
+        await h.loader.saveScene(at: 0, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
+        h.caret(scene: 0, at: 6)                                    // after "Alpha "
+        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
+            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: nil),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "three", partial: "tail"),
+        ], plainText: "one\n\ntwo\n\nthree")
+        #expect(h.c.pasteStructuredFragment(frag))
+        #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "threeBravo Pre"])
+
+        h.caret(scene: 0, at: 9)                                    // end of "Alpha one"
+        h.tv.insertText(" Zed", replacementRange: h.tv.selectedRange())
+        #expect(h.loader.segments[0].text == "Alpha one Zed")
+        h.c.performUndo()
+        #expect(h.loader.segments[0].text == "Alpha one", "undo returns the target to what the paste left")
+        #expect(try h.onDisk(target) == "Alpha one", "and saves it")
+
+        h.c.performUndo()                                           // crosses the paste: the app uncuts it
+        #expect(h.loader.segments.map(\.text) == ["Alpha Bravo Pre"], "the paste's own undo is accepted")
+        #expect(try h.onDisk(target) == "Alpha Bravo Pre")
+    }
+
+    /// [I-0294] — the paste splits the target AS SAVED and then reloads every scene from disk: ⛔ typing the autosave had
+    /// not written yet was dropped (`" Pre"` gone from `"threeBravo Pre"`). Two scenes typed in, neither saved.
+    @Test("structured paste right after typing keeps the typing — in the target and in another scene")
+    func structuredPasteKeepsUnsavedTyping() async throws {
+        let h = try await harness(["Alpha Bravo", "Second"])
+        h.typeBeforeTheOp(scene: 1)                                 // "Second Pre", not saved
+        h.typeBeforeTheOp(scene: 0)                                 // "Alpha Bravo Pre", not saved
+        let second = h.loader.segments[1].sceneID
+        h.caret(scene: 0, at: 6)                                    // after "Alpha "
+        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
+            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: nil),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "three", partial: "tail"),
+        ], plainText: "one\n\ntwo\n\nthree")
+        #expect(h.c.pasteStructuredFragment(frag))
+        #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "threeBravo Pre", "Second Pre"])
+        #expect(try h.onDisk(second) == "Second Pre")
+    }
+
+    /// A structured paste is written by the CORE, so the save path never reports its bytes. Does the next open take the
+    /// pasted scenes for an outside edit (undo stopping there)? Close the history as a window does, reopen it, and validate
+    /// every scene against its file, as `loadAsync` does.
+    @Test("after a structured paste, a reopen does not take the pasted scenes for an outside edit")
+    func structuredPasteThenReopen() async throws {
+        let h = try await harness(["Alpha Bravo"])
+        h.typeBeforeTheOp(scene: 0)
+        await h.loader.saveScene(at: 0, engine: h.env.engine, ref: try #require(h.env.authorshipRef))
+        h.caret(scene: 0, at: 6)
+        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
+            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: "tail"),
+        ], plainText: "one\n\ntwo")
+        #expect(h.c.pasteStructuredFragment(frag))
+        #expect(h.loader.segments.map(\.text) == ["Alpha one", "twoBravo Pre"])
+
+        h.session.closeHistoryBlocking()
+        _ = try h.env.engine.historyOpen(projectRootPath: h.root.path)
+        for seg in h.loader.segments {
+            let flagged = try h.env.engine.historyValidateScene(projectRootPath: h.root.path, sceneID: seg.sceneID,
+                                                                currentDiskText: try h.onDisk(seg.sceneID)).externalChange
+            #expect(!flagged, "\"\(seg.text)\" was taken for an outside edit")
+        }
+        _ = try h.env.engine.historyClose(projectRootPath: h.root.path)
+    }
+
+    /// [SP-180] Q2 — a structured paste REPLACES the selection, as a flat paste does: the selection is removed (its own
+    /// undo step), then the fragment lands where it began. ⛔ It used to land BEFORE the selection and leave it in place.
+    @Test("structured paste over a selection replaces it — inside one scene, and across a scene break")
+    func structuredPasteReplacesTheSelection() async throws {
+        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
+            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: nil),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "three", partial: "tail"),
+        ], plainText: "one\n\ntwo\n\nthree")
+
+        let h = try await harness(["Alpha Bravo Charlie"])
+        h.caret(scene: 0, at: 6)
+        h.tv.setSelectedRange(NSRange(location: h.tv.selectedRange().location, length: 5))   // "Bravo"
+        #expect(h.c.pasteStructuredFragment(frag))
+        #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "three Charlie"])
+        h.c.performUndo()                                           // the paste
+        #expect(h.loader.segments.map(\.text) == ["Alpha  Charlie"])
+        h.c.performUndo()                                           // the removal
+        #expect(h.loader.segments.map(\.text) == ["Alpha Bravo Charlie"])
+
+        let x = try await harness(["Alpha Bravo", "Second"])
+        x.caret(scene: 0, at: 6)
+        let from = x.tv.selectedRange().location
+        x.caret(scene: 1, at: 3)                                    // "Bravo" … across the break … "Sec"
+        x.tv.setSelectedRange(NSRange(location: from, length: x.tv.selectedRange().location - from))
+        #expect(x.c.pasteStructuredFragment(frag))
+        #expect(x.loader.segments.map(\.text) == ["Alpha one", "two", "three", "ond"])
+    }
 }
 
 /// [I-0289] — copy buffers 1–9 keep emphasis BALANCED, as ⌘C / ⌘X / ⌘V do (EP-046 AC12, [T-0591], [SP-163]). Driven

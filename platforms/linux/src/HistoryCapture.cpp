@@ -154,18 +154,28 @@ void HistoryCapture::noteScenePersisted(const QString& sceneID, const QString& d
     ScriviBridge::historyNoteScenePersisted(root_, sceneID, diskText);
 }
 
-void HistoryCapture::recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts)
+void HistoryCapture::recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts,
+                                   const QJsonObject& structuralPayload, const QHash<QString, QString>& sceneTextsBefore)
 {
     if (!open_) {
         return;
     }
     QJsonObject params{{QStringLiteral("barrierKind"), kind}, {QStringLiteral("note"), note}};
-    if (!sceneTexts.isEmpty()) {
-        QJsonObject texts;
-        for (auto it = sceneTexts.cbegin(); it != sceneTexts.cend(); ++it) {
-            texts.insert(it.key(), it.value());
+    const auto textsOf = [](const QHash<QString, QString>& h) {
+        QJsonObject o;
+        for (auto it = h.cbegin(); it != h.cend(); ++it) {
+            o.insert(it.key(), it.value());
         }
-        params.insert(QStringLiteral("sceneTexts"), texts);
+        return o;
+    };
+    if (!sceneTexts.isEmpty()) {
+        params.insert(QStringLiteral("sceneTexts"), textsOf(sceneTexts));
+    }
+    if (!structuralPayload.isEmpty()) {
+        params.insert(QStringLiteral("structuralPayload"), structuralPayload);
+        if (!sceneTextsBefore.isEmpty()) {
+            params.insert(QStringLiteral("sceneTextsBefore"), textsOf(sceneTextsBefore));
+        }
     }
     take(ScriviBridge::captureRecordBarrier(
         root_, QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact))));

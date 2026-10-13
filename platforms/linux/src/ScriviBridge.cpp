@@ -1790,6 +1790,27 @@ std::pair<QString, QString> ScriviBridge::markdownBalancedCopy(const QString& sc
     return {r->value(QStringLiteral("source")).toString(), r->value(QStringLiteral("presented")).toString()};
 }
 
+int ScriviBridge::markdownStyleAtCaret(const QString& scene, int caret)
+{
+    const auto r = markdownResult(scrivi_markdown_style_at_caret(scene.toUtf8().constData(), caret));
+    return r ? r->value(QStringLiteral("style")).toInt() : 0;
+}
+
+QStringList ScriviBridge::markdownBalancePastePieces(const QStringList& pieces, int caretStyle)
+{
+    const QByteArray json = QJsonDocument(QJsonArray::fromStringList(pieces)).toJson(QJsonDocument::Compact);
+    const auto r = markdownResult(scrivi_markdown_balance_paste_pieces(json.constData(), caretStyle));
+    // ⚠️ `pieces` is OMITTED when empty — `count` says how many there are.
+    if (!r || r->value(QStringLiteral("count")).toInt() != pieces.size()) {
+        return pieces;
+    }
+    QStringList out;
+    for (const QJsonValue& v : r->value(QStringLiteral("pieces")).toArray()) {
+        out.append(v.toString());
+    }
+    return out.size() == pieces.size() ? out : pieces;
+}
+
 MarkdownAnalysis ScriviBridge::analyzeMarkdown(const QString& block)
 {
     const QByteArray utf8 = block.toUtf8();

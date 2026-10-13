@@ -10,6 +10,23 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0607 — `[Linux]` EP-026 S4: structured cut / copy / paste across scenes
+
+**Epic:** [EP-026] (S4) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-13) — ⏳ rig live pass (AC9) · **Sprint:** [SP-180] (🟡 Active 2026-10-13) → [`../Sprints/Sprint-SP-180.md`](../Sprints/Sprint-SP-180.md) ·
+**Date Requested:** 2026-10-13 (user: *"start planning EP-026 S4"*)
+
+**What:** Apple's structured cut/copy/paste on Linux, in its current shape (a cut keeps the scenes, [I-0270]).
+- A cross-scene Ctrl+C / Ctrl+X holds a balanced fragment, in the editor and tied to its own clipboard write (Q1).
+- Ctrl+V rebuilds the scenes and chapters at the caret as ONE reversible structural step. A selection is replaced (Q2), and the flat text is Apple's (Q4).
+- The copy buffers hold fragments.
+- Structural history nodes replay on either platform.
+- It replaces [SP-178] Q2's and [SP-179] Q1's stopgaps.
+- Proven by Linux smokes through the real key dispatch and a rig live pass.
+
+**Also in this Task (all Resolved - Not Verified):** [I-0293] `[ScriviCore]` + Apple, the history texts on both sides of a structured paste · [I-0294] `[Apple]`, unsaved typing saved first · [I-0295] `[Apple]`, a selection is replaced (Q2) · [I-0296] `[ScriviCore]`, the core's own writes are recorded, so a reopen flags nothing.
+
+---
+
 ## 🟠 T-0606 — `[Linux]` EP-026 S5: copy buffers 1–9, View ▸ Show Buffers (Ctrl+Alt+B) and the Buffers palette
 
 **Epic:** [EP-026] (S5) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-12) — ⏳ rig live pass (AC8) · **Sprint:** [SP-179] (🟡 Active 2026-10-12) → [`../Sprints/Sprint-SP-179.md`](../Sprints/Sprint-SP-179.md) ·

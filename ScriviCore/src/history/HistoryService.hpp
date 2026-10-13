@@ -81,11 +81,16 @@ struct EventNode {
     std::string barrierKind;
     std::string barrierNote;
 
-    // Barrier-only ([I-0287]): what the structural op left in each scene it rewrote (a merge's surviving scene, a
-    // split's head and tail). From this node on, those scenes read THIS text — replay resets the head here instead of
-    // carrying the pre-op text forward. Without it the next edit diffed against the pre-op text, and undoing that edit
-    // put the pre-op text back. Empty for a barrier that rewrote no scene text, and for every non-barrier. Persisted.
+    // Barrier and structural nodes ([I-0287], [I-0293]): what the op left in each scene it rewrote or created (a
+    // merge's surviving scene, a split's head and tail, a structured paste's target and new scenes). From this node on,
+    // those scenes read THIS text — replay and redo reset the head here instead of carrying the pre-op text forward.
+    // Without it the next edit diffed against the pre-op text, and undoing that edit put the pre-op text back. Empty for
+    // a node that rewrote no scene text, and for every text event. Persisted.
     std::map<std::string, std::string> sceneTexts;
+    // Structural-only ([I-0293]): what each scene that EXISTED before the op held then (a structured paste's target).
+    // Undo across the node resets those heads to it — the app's inverse op puts that text back on disk — and a scene
+    // the node brings into history takes it as its floor. Empty for every other node. Persisted.
+    std::map<std::string, std::string> sceneTextsBefore;
 
     // Structural-only (EventKind::Structural, EP-029 AC6 / T-0356): an OPAQUE JSON
     // payload the app minted describing how to reverse this structural edit (the
@@ -142,9 +147,12 @@ struct BarrierParams {
     // the app replays on undo/redo. Empty ⇒ the classic barrier (undo stops here).
     std::string structuralPayload;
 
-    // Optional ([I-0287]): sceneID → the text the structural op left in that scene. Recorded on the barrier node; see
-    // EventNode::sceneTexts. Ignored for a structural (reversible) node.
+    // Optional ([I-0287]): sceneID → the text the structural op left in that scene. Recorded on the node; see
+    // EventNode::sceneTexts. ([I-0293]: a structural node too.)
     std::map<std::string, std::string> sceneTexts;
+    // Optional, structural nodes only ([I-0293]): sceneID → the text each existing scene held BEFORE the op. See
+    // EventNode::sceneTextsBefore. Ignored for a hard barrier (undo never crosses one).
+    std::map<std::string, std::string> sceneTextsBefore;
 };
 
 // One scene's resulting text after an undo/redo step.

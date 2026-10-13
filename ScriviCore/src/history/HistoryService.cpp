@@ -126,9 +126,10 @@ std::string applyReverse(const std::string& newText, const Diff& d) {
     return out;
 }
 
-// [I-0287]: a barrier that rewrote scenes resets them to the text it recorded. A no-op for every other node.
+// [I-0287]: a barrier that rewrote scenes resets them to the text it recorded — and so does a structural node, read
+// forward ([I-0293]). A no-op for every text event.
 void applyBarrierTexts(const EventNode& n, std::map<std::string, std::string>& texts) {
-    if (n.kind != EventKind::Barrier) return;
+    if (n.kind != EventKind::Barrier && n.kind != EventKind::Structural) return;
     for (const auto& [sceneID, text] : n.sceneTexts) texts[sceneID] = text;
 }
 
@@ -300,13 +301,17 @@ RecordResult HistoryService::recordBarrier(const BarrierParams& p, std::string e
     node.structuralPayload = p.structuralPayload;
     node.timestamp = p.timestamp;
     node.sessionID = sessionID_;
-    // [I-0287]: a hard barrier carries the text the op left in each scene it rewrote; from here those scenes read it.
-    if (node.kind == EventKind::Barrier) {
-        node.sceneTexts = p.sceneTexts;
-        applyBarrierTexts(node, headText_);
-        // A scene the op CREATED (a split's tail) enters history here: its floor is this text, as a first-edit seed
-        // would have made it — so the save path's hash covers it and an outside edit to it is still detected.
-        for (const auto& [sceneID, text] : node.sceneTexts) floorTexts_.try_emplace(sceneID, text);
+    // [I-0287]: the node carries the text the op left in each scene it rewrote; from here those scenes read it.
+    // [I-0293]: a structural node too, with what each existing scene held BEFORE the op (undo crosses it).
+    node.sceneTexts = p.sceneTexts;
+    if (node.kind == EventKind::Structural) node.sceneTextsBefore = p.sceneTextsBefore;
+    applyBarrierTexts(node, headText_);
+    // A scene the op brings into history gets its floor here, as a first-edit seed would have made it — so the save
+    // path's hash covers it and an outside edit to it is still detected. A scene that existed before a structural op
+    // takes its BEFORE text: undo walks back past this node, and the floor is the oldest state history can reach.
+    for (const auto& [sceneID, text] : node.sceneTexts) {
+        const auto b = node.sceneTextsBefore.find(sceneID);
+        floorTexts_.try_emplace(sceneID, b != node.sceneTextsBefore.end() ? b->second : text);
     }
 
     const std::string newID = node.eventID;
@@ -378,6 +383,8 @@ StepResult HistoryService::undo() {
     // to the parent so a subsequent undo continues into the pre-structural history.
     if (cur.kind == EventKind::Structural) {
         currentNodeID_ = *cur.parentID;
+        // [I-0293]: the app's inverse op puts the pre-op text back — the heads follow.
+        for (const auto& [sceneID, text] : cur.sceneTextsBefore) headText_[sceneID] = text;
         r.moved = true;
         r.crossedStructural = true;
         r.structuralDirection = "undo";
@@ -479,6 +486,7 @@ StepResult HistoryService::redo() {
     // re-runs the structural op + reloads. The pointer advances onto the structural node.
     if (child.kind == EventKind::Structural) {
         currentNodeID_ = child.eventID;
+        applyBarrierTexts(child, headText_);   // [I-0293]: the app re-runs the op — the heads read what it leaves
         r.moved = true;
         r.crossedStructural = true;
         r.structuralDirection = "redo";

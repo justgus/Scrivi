@@ -33,6 +33,10 @@ source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures
 
 ---
 
+*Last Updated: 2026-10-13 (SP-180 activated and removed.)*
+
+*Last Updated: 2026-10-13 (SP-180 created in 🔵 Planning.)*
+
 *Last Updated: 2026-10-12 (SP-179 activated and removed.)*
 
 *Last Updated: 2026-10-11 (SP-178 activated and removed.)*

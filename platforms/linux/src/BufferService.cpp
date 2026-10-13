@@ -3,6 +3,7 @@
 #include "ManuscriptEscapes.hpp"
 #include "ScriviBridge.hpp"
 
+#include <QJsonDocument>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -32,7 +33,8 @@ void BufferService::refresh()
     for (const QVariant& v : listed.value(QStringLiteral("buffers")).toList()) {
         const QVariantMap m = v.toMap();
         listedSlots.append({m.value(QStringLiteral("bufferID")).toString(), m.value(QStringLiteral("text")).toString(),
-                      m.value(QStringLiteral("updatedAt")).toString(), m.contains(QStringLiteral("fragment"))});
+                      m.value(QStringLiteral("updatedAt")).toString(),
+                      QJsonObject::fromVariantMap(m.value(QStringLiteral("fragment")).toMap())});
     }
     slots_ = listedSlots;
     emit changed();
@@ -63,7 +65,13 @@ QString BufferService::updatedAt(const QString& bufferID) const
 bool BufferService::isStructured(const QString& bufferID) const
 {
     const Slot* s = find(bufferID);
-    return s != nullptr && s->structured;
+    return s != nullptr && !s->fragment.isEmpty();
+}
+
+QJsonObject BufferService::fragment(const QString& bufferID) const
+{
+    const Slot* s = find(bufferID);
+    return s != nullptr ? s->fragment : QJsonObject();
 }
 
 QString BufferService::preview(const QString& bufferID) const
@@ -78,9 +86,11 @@ QString BufferService::preview(const QString& bufferID) const
     return {};
 }
 
-bool BufferService::load(const QString& text, const QString& bufferID)
+bool BufferService::load(const QString& text, const QString& bufferID, const QJsonObject& fragment)
 {
-    if (ScriviBridge::buffersLoad(root_, bufferID, text).isEmpty()) {
+    const QString fragmentJson =
+        fragment.isEmpty() ? QString() : QString::fromUtf8(QJsonDocument(fragment).toJson(QJsonDocument::Compact));
+    if (ScriviBridge::buffersLoad(root_, bufferID, text, fragmentJson).isEmpty()) {
         return false;   // {} = the call failed (logged by the bridge); a success carries {bufferID, updatedAt}
     }
     refresh();

@@ -364,6 +364,10 @@ task rather than reviving T-0216.
 
 ---
 
+*Last Updated: 2026-10-13 (**T-0607 → active** — SP-180 activated; it left this file.)*
+
+*Last Updated: 2026-10-13 (**T-0607 filed** — EP-026 S4, [SP-180] 🔵 Planning.)*
+
 *Last Updated: 2026-10-12 (**T-0606 → active** — SP-179 activated; it left this file.)*
 
 *Last Updated: 2026-10-12 (**T-0606 filed** — EP-026 S5, [SP-179] 🔵 Planning.)*
@@ -636,3 +640,4 @@ the same flag in a different file; ✅ leaving it on `env` would give two toggle
   ⛔ **runs on project close** — ✅ **confirm the panel closes cleanly when the last project goes.**
 - ⚠️ **Persistence is NOT in scope.** ⛔ **The flag is in-memory today and stays in-memory** — ✅ **if it
   should survive a quit, that is [I-0255]'s ruling and [T-0556]'s question, not this Task's.**
+

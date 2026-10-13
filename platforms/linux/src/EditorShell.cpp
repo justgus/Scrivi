@@ -392,6 +392,16 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     connect(viewport_, &ManuscriptEditor::bufferPasteRequested, this, &EditorShell::pasteFromBuffer);
     connect(viewport_, &ManuscriptEditor::bufferCutRequested, this, &EditorShell::cutIntoBuffer);
 
+    // EP-026 S4 (SP-180 / T-0607): structured cut / copy / paste across scenes. The editor builds the spans; the core
+    // reads the scenes AS SAVED, so what is unsaved is written first.
+    viewport_->setFragmentExtractor([this](const QJsonArray& spans) {
+        saveDirtyScenes();
+        const QJsonObject params{{QStringLiteral("spans"), spans}};
+        return QJsonObject::fromVariantMap(bridge_->fragmentExtract(
+            projectPath_, QString::fromUtf8(QJsonDocument(params).toJson(QJsonDocument::Compact))));
+    });
+    connect(viewport_, &ManuscriptEditor::structuredPasteRequested, this, &EditorShell::pasteFragment);
+
     // Surface bridge errors inline rather than silently failing.
     //
     // ⚠️ The core's message is written for a DEVELOPER and names raw identifiers.
@@ -891,7 +901,6 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
             buffers_->deleteLater();
         }
         buffers_ = new BufferService(projectPath, this);
-        structuredSlotNoticeShown_ = false;
     }
     {
         // SP-173 (Q1): what the exclusive project lock cost this process so far — waits of 1 ms or more, all threads.
@@ -1686,6 +1695,7 @@ void EditorShell::releaseProject()
         history_ = nullptr;
     }
     historyText_.clear();
+    structuralRedoCreated_.clear();
     // EP-026 S5 (SP-179): the copy buffers go with the project (the palette lets go of them as they are destroyed).
     if (buffers_ != nullptr) {
         buffers_->deleteLater();
@@ -2317,7 +2327,7 @@ void EditorShell::cutSelection()   { viewport_->cutSelection(); }   // [I-0270] 
 void EditorShell::copySelection()  { viewport_->copy(); }
 void EditorShell::applyFormat(ManuscriptEditor::Format format) { viewport_->applyFormat(format); }   // SP-175
 void EditorShell::find(FindCommand command) { findBar_->run(command); }   // SP-176
-void EditorShell::pasteClipboard() { viewport_->paste(); }
+void EditorShell::pasteClipboard() { viewport_->pasteClipboard(); }   // EP-026 S4: may be structured
 
 // ── EP-026 S2 (SP-178 / T-0605): undo / redo ───────────────────────────────────────────────────────────────────────
 // Apple: `ManuscriptTextView.Coordinator` — `performUndo`, `apply(step:)`, `applySceneChange`, the barrier and
@@ -2385,6 +2395,11 @@ void EditorShell::copyIntoBuffer(const QString& bufferID)
         return;
     }
     // Copy is not a text change: no history event (Trade T3), and the system clipboard is untouched.
+    // ✅ EP-026 S4: across scenes the slot holds the fragment too, so its paste rebuilds the scene breaks.
+    if (const auto cross = viewport_->crossSceneCopy()) {
+        buffers_->load(cross->fragment.value(QStringLiteral("plainText")).toString(), bufferID, cross->fragment);
+        return;
+    }
     const QString source = viewport_->selectionSource();
     if (!source.isEmpty()) {
         buffers_->load(source, bufferID);
@@ -2397,8 +2412,8 @@ void EditorShell::cutIntoBuffer(const QString& bufferID)
         return;
     }
     viewport_->setFocus();   // a palette click must not leave the editor unfocused (Apple: `makeFirstResponder`)
-    viewport_->cutSelectionIntoBuffer(bufferID, [this, bufferID](const QString& source) {
-        return buffers_->load(source, bufferID);
+    viewport_->cutSelectionIntoBuffer(bufferID, [this, bufferID](const QString& source, const QJsonObject& fragment) {
+        return buffers_->load(source, bufferID, fragment);
     });
 }
 
@@ -2412,14 +2427,161 @@ void EditorShell::pasteFromBuffer(const QString& bufferID)
         return;   // an empty slot → silent no-op (Apple)
     }
     viewport_->setFocus();
-    // ✅ [SP-179] Q1: a slot the Mac filled with SCENES pastes its plain text until S4 rebuilds scene breaks — said once.
-    // Nothing is lost: the slot keeps its scenes for the Mac.
-    if (buffers_->isStructured(bufferID) && !structuredSlotNoticeShown_) {
-        structuredSlotNoticeShown_ = true;
-        historyNotice(this, tr("This buffer holds scenes copied on the Mac. It is pasted as plain text; scene breaks are "
-                               "not restored yet."));
+    // ✅ EP-026 S4: a slot holding scenes — copied here or on the Mac — rebuilds them (Apple: `pasteStructuredFragment`).
+    if (const QJsonObject fragment = buffers_->fragment(bufferID); !fragment.isEmpty()) {
+        pasteFragment(fragment);
+        return;
     }
     viewport_->pasteStored(text);
+}
+
+// ── EP-026 S4 (SP-180 / T-0607): structured paste — Apple's `pasteStructuredFragment` and `applyStructuralInverse` ───
+
+namespace {
+QStringList stringsOf(const QVariant& v) { return v.toStringList(); }
+QJsonArray arrayOf(const QStringList& l) { return QJsonArray::fromStringList(l); }
+}   // namespace
+
+void EditorShell::pasteFragment(const QJsonObject& fragmentIn)
+{
+    if (loading_ || projectPath_.isEmpty() || fragmentIn.value(QStringLiteral("pieces")).toArray().isEmpty()) {
+        return;
+    }
+    viewport_->setFocus();
+    viewport_->removePendingPair();
+    // ✅ [SP-180] Q2 ([I-0295]): a selection is replaced — removed first, as its own step.
+    if (!viewport_->removeSelectionForPaste()) {
+        QApplication::beep();   // the caret is in a heading or separator (Apple flashes and does not paste)
+        return;
+    }
+    const int pos = viewport_->textCursor().position();
+    const int idx = sceneDoc_.sceneIndexForEditablePosition(pos);
+    if (idx < 0) {
+        QApplication::beep();
+        return;
+    }
+    const SceneSegment seg = sceneDoc_.segments().at(idx);   // copy: the reload replaces the map
+    const QString before = sceneDoc_.bodyText(idx);
+    const int caretChar = std::clamp(pos - seg.bodyStart, 0, int(before.size()));
+    const qint64 caretByte = before.left(caretChar).toUtf8().size();
+
+    flushHistory();      // the removal and any typing are their own steps, before the paste
+    saveDirtyScenes();   // ✅ [I-0294]: the core pastes into the scene AS SAVED, and the reload replaces every scene
+
+    // ✅ [T-0591]: pasting INSIDE a span — the first piece closes it, the last re-opens it for the text after the split;
+    // the pasted text keeps its own formatting ([SP-163]).
+    QJsonObject fragment = fragmentIn;
+    QJsonArray pieces = fragment.value(QStringLiteral("pieces")).toArray();
+    QStringList texts;
+    for (const QJsonValue& p : std::as_const(pieces)) {
+        texts.append(p.toObject().value(QStringLiteral("text")).toString());
+    }
+    const QStringList balanced =
+        ScriviBridge::markdownBalancePastePieces(texts, ScriviBridge::markdownStyleAtCaret(before, caretChar));
+    if (balanced != texts) {
+        for (int k = 0; k < pieces.size(); ++k) {
+            QJsonObject piece = pieces.at(k).toObject();
+            piece.insert(QStringLiteral("text"), balanced.at(k));
+            pieces.replace(k, piece);
+        }
+        fragment.insert(QStringLiteral("pieces"), pieces);
+        fragment.insert(QStringLiteral("plainText"), balanced.join(QStringLiteral("\n\n")));
+    }
+    const QString fragmentJson = QString::fromUtf8(QJsonDocument(fragment).toJson(QJsonDocument::Compact));
+
+    const QVariantMap r = bridge_->fragmentPaste(projectPath_, appSupportRoot_, projectID_, fragmentJson, seg.sceneID,
+                                                 caretByte, bridge_->displayName());
+    if (bridge_->lastCallFailed()) {
+        return;   // the bridge surfaced it; nothing changed on disk
+    }
+    const QString target = r.value(QStringLiteral("targetSceneID")).toString();
+    const QStringList createdScenes = stringsOf(r.value(QStringLiteral("createdSceneIDs")));
+    const QStringList createdChapters = stringsOf(r.value(QStringLiteral("createdChapterIDs")));
+
+    // ONE reversible structural step (T-0356 / AC6) with Apple's payload, field for field — so the Mac undoes it too —
+    // and ✅ [I-0293] the texts on both sides of it: what the paste left (read back; the core wrote it) and the target before.
+    const QJsonObject payload{{QStringLiteral("op"), QStringLiteral("structuredPaste")},
+                              {QStringLiteral("fragmentJSON"), fragmentJson},
+                              {QStringLiteral("caretSceneID"), target},
+                              {QStringLiteral("caretByte"), caretByte},
+                              {QStringLiteral("createdSceneIDs"), arrayOf(createdScenes)},
+                              {QStringLiteral("createdChapterIDs"), arrayOf(createdChapters)},
+                              {QStringLiteral("removedSceneIDs"), QJsonArray()},
+                              {QStringLiteral("removedChapterIDs"), QJsonArray()}};
+    if (history_ != nullptr) {
+        history_->recordBarrier(QStringLiteral("structuredPaste"), tr("Can't undo past a cross-boundary paste"),
+                                bridge_->readSceneTexts(projectPath_, QStringList{target} + createdScenes), payload,
+                                {{seg.sceneID, before}});
+    }
+    reloadThenPlaceCaret(target, caretByte);
+}
+
+void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo)
+{
+    const QString direction = inverse.value(QStringLiteral("direction")).toString();
+    const QVariantMap p = inverse.value(QStringLiteral("payload")).toMap();
+    const QString op = p.value(QStringLiteral("op")).toString();
+    const QString fragmentJson = p.value(QStringLiteral("fragmentJSON")).toString();
+    const QString caretScene = p.value(QStringLiteral("caretSceneID")).toString();
+    const qint64 caretByte = p.value(QStringLiteral("caretByte")).toLongLong();
+    const QString key = QStringLiteral("%1|%2|%3|%4").arg(op, caretScene, QString::number(caretByte), fragmentJson);
+    // Does this direction re-INSERT the fragment (a paste) or REMOVE it (an uncut)?
+    const bool isPaste = (op == QStringLiteral("structuredCut") && direction == QStringLiteral("undo"))
+                         || (op == QStringLiteral("structuredPaste") && direction == QStringLiteral("redo"));
+    const auto failed = [this, isUndo] {
+        historyNotice(this, isUndo ? tr("This cross-scene step could not be undone.")
+                                   : tr("This cross-scene step could not be redone."));
+    };
+    viewport_->removePendingPair();
+    saveDirtyScenes();   // the inverse reads the scenes AS SAVED
+
+    if (isPaste) {
+        const QVariantMap r = bridge_->fragmentPaste(projectPath_, appSupportRoot_, projectID_, fragmentJson, caretScene,
+                                                     caretByte, bridge_->displayName());
+        if (bridge_->lastCallFailed()) {
+            failed();
+            return;
+        }
+        // What this re-paste created, so the matching uncut removes it.
+        structuralRedoCreated_.insert(key, {stringsOf(r.value(QStringLiteral("createdSceneIDs"))),
+                                            stringsOf(r.value(QStringLiteral("createdChapterIDs")))});
+        reloadThenPlaceCaret(r.value(QStringLiteral("targetSceneID")).toString(), caretByte);
+        return;
+    }
+    // Uncut: an undo-paste removes what the paste created (in the payload); a redo-cut what the undo-cut re-pasted.
+    const auto cached = structuralRedoCreated_.take(key);
+    const QStringList scenes = cached.first.isEmpty() && cached.second.isEmpty()
+                                   ? stringsOf(p.value(QStringLiteral("createdSceneIDs"))) : cached.first;
+    const QStringList chapters = cached.first.isEmpty() && cached.second.isEmpty()
+                                     ? stringsOf(p.value(QStringLiteral("createdChapterIDs"))) : cached.second;
+    const QJsonObject created{{QStringLiteral("sceneIDs"), arrayOf(scenes)}, {QStringLiteral("chapterIDs"), arrayOf(chapters)}};
+    const QVariantMap r = bridge_->fragmentUncutPaste(projectPath_, fragmentJson, caretScene,
+                                                      QString::fromUtf8(QJsonDocument(created).toJson(QJsonDocument::Compact)));
+    if (bridge_->lastCallFailed()) {
+        failed();
+        return;
+    }
+    reloadThenPlaceCaret(r.value(QStringLiteral("survivingSceneID")).toString(), caretByte);
+}
+
+void EditorShell::reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset)
+{
+    viewport_->removePendingPair();
+    connect(this, &EditorShell::loadFinished, this, [this, sceneID, byteOffset](bool ok) {
+        const int idx = ok ? sceneDoc_.sceneIndexForScene(sceneID) : -1;
+        if (idx < 0) {
+            return;
+        }
+        const QString text = sceneDoc_.bodyText(idx);
+        const int chars = int(QString::fromUtf8(text.toUtf8().left(int(byteOffset))).size());
+        QTextCursor c = viewport_->textCursor();
+        c.setPosition(sceneDoc_.segments().at(idx).bodyStart + std::min(chars, int(text.size())));
+        viewport_->setTextCursor(c);
+        viewport_->ensureCursorVisible();
+        selectNavigatorScene(sceneID);
+    }, Qt::SingleShotConnection);
+    const auto* title = findChild<QLabel*>(QStringLiteral("editorTitle"));
+    load(projectPath_, appSupportRoot_, title != nullptr ? title->text() : QString());
 }
 
 int EditorShell::replaceSceneBody(int idx, const QString& text, int caretUtf16)
@@ -2450,17 +2612,11 @@ void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
         return;
     }
 
-    // ✅ [SP-178] Q2: a reversible structural node (EP-029's cross-scene cut/paste, recorded on the Mac). Replaying it is
-    // S4's; until then step straight back over it — the pointer has already moved — so history and disk stay in step.
+    // ✅ EP-026 S4: a reversible structural node (a cross-scene paste — or EP-029's old collapsing cut, recorded on the
+    // Mac): its inverse runs on disk, then the manuscript reloads. ⛔ It replaces [SP-178] Q2's step-back-over stopgap.
     const QVariantMap inverse = step.value(QStringLiteral("structuralInverse")).toMap();
     if (!inverse.isEmpty()) {
-        if (inverse.value(QStringLiteral("direction")).toString() == QStringLiteral("undo")) {
-            history_->redo();
-        } else {
-            history_->undo();
-        }
-        historyNotice(this, isUndo ? tr("This step is a cross-scene cut or paste. Undo it on the Mac for now.")
-                                   : tr("This step is a cross-scene cut or paste. Redo it on the Mac for now."));
+        applyStructuralInverse(inverse, isUndo);
         return;
     }
 

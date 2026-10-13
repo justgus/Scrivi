@@ -159,6 +159,11 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     node.barrierKind = b.getString("barrierKind");
                     node.barrierNote = b.getString("note");
                     node.structuralPayload = d.getString("structuralPayload");
+                    // [I-0293]; both absent in older logs.
+                    const util::JsonDoc texts = b.getSubDoc("sceneTexts");
+                    for (const std::string& sid : texts.objectKeys()) node.sceneTexts[sid] = texts.getString(sid);
+                    const util::JsonDoc prior = b.getSubDoc("sceneTextsBefore");
+                    for (const std::string& sid : prior.objectKeys()) node.sceneTextsBefore[sid] = prior.getString(sid);
                 } else {
                     util::JsonDoc diff = d.getSubDoc("diff");
                     node.diff.offsetUtf8 = static_cast<std::size_t>(diff.getInt64("offsetUtf8"));
@@ -326,6 +331,17 @@ void HistoryStore::persistEvent(const EventNode& node) {
         util::JsonDoc b;
         b.setString("barrierKind", node.barrierKind);
         b.setString("note", node.barrierNote);
+        // [I-0293] — written only when present, so a node without them keeps its on-disk shape.
+        if (!node.sceneTexts.empty()) {
+            util::JsonDoc texts;
+            for (const auto& [sceneID, text] : node.sceneTexts) texts.setString(sceneID, text);
+            b.setSubDoc("sceneTexts", std::move(texts));
+        }
+        if (!node.sceneTextsBefore.empty()) {
+            util::JsonDoc prior;
+            for (const auto& [sceneID, text] : node.sceneTextsBefore) prior.setString(sceneID, text);
+            b.setSubDoc("sceneTextsBefore", std::move(prior));
+        }
         d.setSubDoc("barrier", std::move(b));
         d.setString("structuralPayload", node.structuralPayload);
     } else {

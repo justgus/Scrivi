@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QHash>
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
 #include <QVariantMap>
@@ -65,7 +66,11 @@ public:
     // A structural barrier (§4.5) — the core commits what is pending first and attributes it to the pending scene.
     // `sceneTexts` ([I-0287]): sceneID → the text the op left in each scene it rewrote or created, exactly as the editor
     // will next report it — so the next edit's undo returns to THAT text, not the pre-op one. ⚠️ Record it AFTER the op.
-    void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {});
+    // A non-empty `structuralPayload` (EP-026 S4, Apple's `HistoryStructuralPayload`) records a REVERSIBLE structural
+    // node instead: undo/redo step across it and hand the payload back. With it, `sceneTextsBefore` ([I-0293]): what
+    // each scene that EXISTED before the op held then.
+    void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {},
+                       const QJsonObject& structuralPayload = {}, const QHash<QString, QString>& sceneTextsBefore = {});
 
     // ── Undo / Redo — the shell applies what comes back ──
     // {} when history is closed or the call failed.

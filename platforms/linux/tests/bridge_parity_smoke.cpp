@@ -349,6 +349,21 @@ int main(int argc, char* argv[])
                   && bridge.lastCallFailed(), "buffersLoad: slot 0 is not a slot (the system clipboard) — refused");
     }
 
+    // ================================================================
+    // EP-026 S4 (SP-180 / T-0607) — a cross-scene paste's balancing (`style_at_caret`, `balance_paste_pieces`)
+    // ================================================================
+    {
+        check(ScriviBridge::markdownStyleAtCaret(QStringLiteral("**bold** plain"), 3) == 2, "markdownStyleAtCaret: inside bold → 2");
+        check(ScriviBridge::markdownStyleAtCaret(QStringLiteral("**bold** plain"), 11) == 0, "markdownStyleAtCaret: plain → 0");
+        const QStringList pieces{QStringLiteral("one"), QStringLiteral("two")};
+        check(ScriviBridge::markdownBalancePastePieces(pieces, 0) == pieces,
+              "markdownBalancePastePieces: outside any span, unchanged");
+        // Pasted INSIDE bold, the pasted text keeps its own (plain) formatting: the span closes before the first piece and
+        // re-opens after the last.
+        check(ScriviBridge::markdownBalancePastePieces(pieces, 2) == QStringList({QStringLiteral("**one"), QStringLiteral("two**")}),
+              "markdownBalancePastePieces: inside bold, the span closes before the pieces and re-opens after them");
+    }
+
     std::fprintf(stderr, "bridge_parity_smoke: %d checks, %d failures\n", checks, failures);
     if (failures != 0) return 1;
 

@@ -225,3 +225,8 @@ Apple Issues of step 0 are verified. ⏳ Next: Linux, plan steps 1–8.
 - ✅ 2026-10-12: `buffers_smoke` added to the Linux App CI workflow (beside `undo_smoke`); it was missing. Found while fixing
   [I-0292] (that CI built -O0).
 
+### 2026-10-13 — Q1's stopgap replaced by [SP-180]
+
+A cross-scene Ctrl+N / Alt+N now stores the fragment, and Ctrl+Shift+N rebuilds the scene breaks, including for a slot the
+Mac filled. Q1's flat paste and its *"…pasted as plain text"* notice are gone, and `buffers_smoke` §8 is retired: covered by
+`structured_paste_smoke` §5. ⚠️ This Sprint's live pass (AC8) should expect the rebuild, not the notice.

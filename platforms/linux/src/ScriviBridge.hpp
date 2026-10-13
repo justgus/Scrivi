@@ -575,6 +575,12 @@ public:
                                                             const QString& replacement, bool keepsOwnFormatting);
     // {source, presented} of a copy of [start, end).
     static std::pair<QString, QString> markdownBalancedCopy(const QString& scene, int start, int end);
+    // EP-026 S4 (SP-180): a cross-scene paste's balancing (Apple: `styleAtCaret` / `balancePastePieces`). The style typing
+    // at `caret` would take (bits: 1 italic, 2 bold); 0 when the call fails.
+    static int markdownStyleAtCaret(const QString& scene, int caret);
+    // The pieces' texts balanced inside a span of `caretStyle` — the first piece starts with it open, the last re-opens it.
+    // Unchanged when the call fails.
+    static QStringList markdownBalancePastePieces(const QStringList& pieces, int caretStyle);
 
     // ── EP-026 S2 (SP-178 / T-0605): the undo history and its capture rules (`scrivi_history_*`, `scrivi_capture_*`) ──
     // ✅ STATIC, as the markdown calls: no identity is threaded, and the load worker calls `historyOpen` /
@@ -607,7 +613,7 @@ public:
     // ── EP-026 S5 (SP-179 / T-0606): the copy buffers 1–9 (`scrivi_buffers_*`, `history/buffers.json`) ──
     // ✅ Static and best-effort, as the capture calls above: a failure is logged and returns {} (⛔ never `errorOccurred`).
     // Stateless in the core — no open / close. A bufferID outside "1"–"9" fails. Text is STORED text (escapes included).
-    // `fragmentJson` "" = a plain-text slot; Linux writes only those until S4 ([SP-179] Q1).
+    // `fragmentJson` "" = a plain-text slot; a cross-scene copy stores its `scrivi.fragment.v1` too (EP-026 S4, SP-180).
     static QVariantMap buffersLoad(const QString& projectRootPath, const QString& bufferID, const QString& text,
                                    const QString& fragmentJson = {});
     // {bufferID, text, updatedAt, present[, fragment]}

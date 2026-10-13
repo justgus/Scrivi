@@ -110,7 +110,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
 | 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 7 |
-| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 1 |
+| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 2 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -165,6 +165,18 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-13 (**I-0296 → Resolved - Not Verified** — the fragment endpoints record the bytes they write.)*
+
+*Last Updated: 2026-10-13 (**I-0295** `[Apple]` filed + Resolved - Not Verified ([SP-180] Q2: a structured paste replaces a selection); **I-0296** `[Apple]` filed: a structured paste is taken for an outside edit at the next open.)*
+
+*Last Updated: 2026-10-13 (**I-0294 → Resolved - Not Verified** — ruled into [SP-180]; every unsaved scene is written before a structured paste.)*
+
+*Last Updated: 2026-10-13 (**I-0293 → Resolved - Not Verified** ([SP-180] step 0: core + Apple); **I-0294 filed** `[Apple]`: a structured paste drops unsaved typing in the target.)*
+
+*Last Updated: 2026-10-13 (**I-0293 filed** `[ScriviCore]` to `Issue-active.md`: structured paste leaves a stale history head — proven through `scrivi_*`; [SP-180].)*
+
+*Last Updated: 2026-10-13 (**I-0292 VERIFIED** (user; CI run 38315453907 green) → `Issue-verified-0291-0300.md`, now 2.)*
 
 *Last Updated: 2026-10-12 (**I-0292 filed** `[Build]` to `Issue-active.md`: Linux App CI red since SP-176 — `find_smoke` timed an -O0 build; CI now builds Release. Resolved - Not Verified.)*
 

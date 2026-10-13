@@ -1,8 +1,11 @@
 #pragma once
 
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QPlainTextEdit>
 
 #include <functional>
+#include <optional>
 #include <utility>
 
 #include "MarkdownAnalysis.hpp"
@@ -52,6 +55,10 @@ public:
     // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
     // separator text and desynchronised the offset map. Routes through the guard instead.
     void cutSelection();
+    // Edit ▸ Paste and Ctrl+V (EP-026 S4, SP-180). A fragment this editor copied, while the clipboard still holds THAT
+    // copy ([SP-180] Q1), is handed to the shell to rebuild (`structuredPasteRequested`); anything else is the flat paste,
+    // through `insertFromMimeData`. ⚠️ A drop is always flat, as on the Mac (its `paste:` override is the only way in).
+    void pasteClipboard();
 
     // ── SP-175 / T-0602 (EP-048 S3b): the Format commands (Apple: `ManuscriptNSTextView.applyFormat`) ──
     // ✅ The edits are ScriviCore's (`scrivi_markdown_*`, SP-174) on the scene holding the selection; each is ONE
@@ -66,19 +73,39 @@ public:
 
     // ── EP-026 S5 (SP-179 / T-0606): the copy buffers — Apple's `copyIntoBuffer` / `cutIntoBuffer` / `pasteFromBuffer`
     // (`ManuscriptTextView.swift`). The editor does the text; `EditorShell` talks to the slots (`BufferService`). ──
-    // What a slot gets for the selection: the BALANCED stored source Ctrl+C keeps for Scrivi's own paste ([I-0289], Q2) —
-    // across scenes, the flat text with its headings and separators ([SP-179] Q1). Empty when nothing is selected.
+    // What a slot gets for a selection inside ONE scene: the BALANCED stored source Ctrl+C keeps for Scrivi's own paste
+    // ([I-0289], Q2). Across scenes the shell stores `crossSceneCopy()` instead (EP-026 S4). Empty when nothing is selected.
     [[nodiscard]] QString selectionSource() const;
-    // Cut the selection into a slot: `store(source)` FIRST (a cut must never lose its text), then the balanced removal as
-    // ONE `cut` step tagged with `bufferID` — across scenes, [I-0270]'s per-scene removal, one grouped `cut` step (Apple's
-    // shape: the grouped step carries no slot). Changes nothing when nothing removable is selected or `store` fails.
-    bool cutSelectionIntoBuffer(const QString& bufferID, const std::function<bool(const QString& source)>& store);
+    // Cut the selection into a slot: `store(source, fragment)` FIRST (a cut must never lose its text), then the balanced
+    // removal as ONE `cut` step tagged with `bufferID` — across scenes, [I-0270]'s per-scene removal, one grouped `cut`
+    // step (Apple's shape: the grouped step carries no slot), and `store` gets the cross-scene copy's fragment and flat
+    // source (EP-026 S4). Changes nothing when nothing removable is selected or `store` fails.
+    bool cutSelectionIntoBuffer(const QString& bufferID,
+                                const std::function<bool(const QString& source, const QJsonObject& fragment)>& store);
     // Paste a slot's STORED text verbatim (never re-escaped, EP-045 AC4) over the selection: ONE `paste` step. A slot is
     // always Scrivi's own copy, so it keeps ITS formatting where it lands ([I-0289], [SP-163]). False when refused.
     bool pasteStored(const QString& source);
     // The digit 1–9 the key event's PHYSICAL key carries, or 0. ⚠️ Ctrl+Shift+1 arrives as `!` (the shifted key), so the
     // scan code decides; the US-layout shifted marks are the fallback when there is none (offscreen tests).
     [[nodiscard]] static int bufferDigit(const QKeyEvent* event);
+
+    // ── EP-026 S4 (SP-180 / T-0607): structured cut / copy / paste across scenes — Apple's `structuredCopyIfCrossBoundary`,
+    // `balancedFragment` and `pasteStructuredFragment` (`ManuscriptTextView.swift`, EP-029). ──
+    // The core's `scrivi.fragment.v1` for `spans` ([{sceneID, startByte, endByte}], reading order) — set by the shell,
+    // which knows the project. Returns {} when the core refuses.
+    void setFragmentExtractor(std::function<QJsonObject(const QJsonArray& spans)> extractor)
+    {
+        extractFragment_ = std::move(extractor);
+    }
+    // A selection across scene breaks: its fragment, each scene's piece BALANCED ([T-0591]), and what other apps get —
+    // the presented pieces joined by a blank line, no headings ([SP-180] Q4). nullopt for a selection inside one scene,
+    // or when the core refuses (the flat copy then runs).
+    struct CrossSceneCopy { QJsonObject fragment; QString presented; };
+    [[nodiscard]] std::optional<CrossSceneCopy> crossSceneCopy() const;
+    // Before a structured paste ([SP-180] Q2, Apple [I-0295]): the selection is REMOVED, as its own step — inside one
+    // scene a plain delete, across scenes [I-0270]'s grouped delete. False (nothing changed) when the caret or selection
+    // is only in a heading or separator.
+    bool removeSelectionForPaste();
 
 signals:
     // Ctrl+Return — the Linux analogue of Apple's ⌘↩ "new scene" (T-0240). The
@@ -115,6 +142,9 @@ signals:
     void bufferCopyRequested(const QString& bufferID);
     void bufferPasteRequested(const QString& bufferID);
     void bufferCutRequested(const QString& bufferID);
+    // EP-026 S4: paste `fragment` at the caret, rebuilding its scenes and chapters — the shell's (it calls the core and
+    // reloads). Emitted by `pasteClipboard`.
+    void structuredPasteRequested(const QJsonObject& fragment);
 
 protected:
     // Claims the buffer chords in ShortcutOverride, so no window shortcut takes them while the editor has focus.
@@ -199,6 +229,13 @@ private:
     void snapSelection(int& start, int& end, int previousEnd) const;
     // ⌫ / ⌦ next to a marker act on what the writer SEES (L9 part); true when handled.
     bool handleAtomicDeletion(bool back, int loc);
+
+    std::function<QJsonObject(const QJsonArray&)> extractFragment_;   // set by the shell (EP-026 S4)
+    // [SP-180] Q1: the last cross-scene copy's fragment and the token its clipboard data carries — valid only while the
+    // clipboard still holds that token (Apple: tied to the pasteboard's change count, [I-0279]).
+    mutable QJsonObject heldFragment_;
+    mutable QString heldToken_;
+    mutable quint64 copySerial_ = 0;
 
     bool computed_ = false;        // applying an edit the core computed — never re-balanced
     bool pastingOwnCopy_ = false;  // Scrivi's own copy is being pasted: it keeps ITS formatting

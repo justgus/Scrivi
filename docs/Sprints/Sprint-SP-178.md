@@ -247,3 +247,9 @@ ScriviCore change (+ both platforms' split/merge paths), which this Sprint said 
 ### ✅ 2026-10-12 — [I-0288] VERIFIED (AC10)
 
 ✅ User: *"mark I-0288 as verified."* → archived to `../Issues/Verified/Issue-verified-0281-0290.md` in the same step.
+
+### 2026-10-13 — Q2's stopgap replaced by [SP-180]
+
+A structural node from the Mac (`structuredPaste`, `structuredCut`) is now REPLAYED on Linux: [SP-180]'s
+`applyStructuralInverse`, tested by `structured_paste_smoke` §7. Q2's step-back-over and its *"Undo it on the Mac for now"*
+notice are gone. ⚠️ This Sprint's live pass (AC6) should expect the replay, not the notice.

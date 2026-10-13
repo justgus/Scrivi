@@ -110,7 +110,7 @@ Measured (SP-166): attach + first highlight of 1.8 MB ≈ 185 ms (Docker), a key
 
 ## EP-026: `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste
 
-**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 active ([SP-178]); S5 active ([SP-179]). **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
+**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 active ([SP-178]); S4 active ([SP-180]); S5 active ([SP-179]). **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
 is (or should be) planned in a subsequent epic given that Apple has the branching undo history and multiple copy buffers already
 in place."* · *"we need to rescope EP-026 and check other epics to see if the copy buffers were mentioned anywhere else."*).
 ✅ **Q1–Q5 RULED 2026-10-11.** ✅ **[EP-048] stays open until this Epic lands** (user). ⛔ **[EP-048] L8 (Find/Replace, [SP-176]) waits on it** (SP-176 Q3).
@@ -167,10 +167,10 @@ undoes the same on both platforms.
 | **[SP-177]** | **S1** — `[Cross]` the capture rules (`HistoryCapture.swift`) move into ScriviCore; Apple re-pointed, no visible change (Q1) | ✅ **CLOSED 2026-10-11** (user-approved) → [`../Sprints/Closed/Sprint-SP-177.md`](../Sprints/Closed/Sprint-SP-177.md) · ✅ Q1–Q4 ruled · ✅ Mac live pass; [T-0604] verified |
 | **[SP-178]** | **S2** — `[Linux]` undo/redo (Ctrl+Z / Ctrl+Shift+Z), persistence, session warning, barriers, grouped edits — ➡️ unblocks [EP-048] S4b | 🟡 **ACTIVE 2026-10-11** → [`../Sprints/Sprint-SP-178.md`](../Sprints/Sprint-SP-178.md) · ✅ Q1–Q4 ruled |
 | S3 | `[Linux]` branching: fork popover, History card, stale-branch purge, Undo History settings section | not yet created |
-| S4 | `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux) | not yet created |
+| **[SP-180]** | **S4** — `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux); replaces [SP-178] Q2's and [SP-179] Q1's stopgaps | 🟡 **ACTIVE 2026-10-13** → [`../Sprints/Sprint-SP-180.md`](../Sprints/Sprint-SP-180.md) · ✅ Q1–Q4 ruled · ✅ AC0–AC8 met; ⏳ AC9 rig live pass |
 | **[SP-179]** | **S5** — `[Linux]` copy buffers (Ctrl / Ctrl+Shift / Alt + 1–9), View ▸ Show Buffers (Ctrl+Alt+B) and the palette; ⚠️ structured buffers wait for S4 (SP-179 Q1) | 🟡 **ACTIVE 2026-10-12** → [`../Sprints/Sprint-SP-179.md`](../Sprints/Sprint-SP-179.md) · ⏳ Q1–Q4 · ⚠️ **planned BEFORE S3/S4** on my recommendation (user: *"start planning S5"*) |
 
-**Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived) · 🟠 [T-0605] (SP-178 — implemented, not verified; incl. [I-0287]) · 🟠 [T-0606] (SP-179 — implemented, not verified; ⏳ rig pass; incl. `[Apple]` [I-0289] ✅ verified (balanced buffers) and [I-0290] ✅ verified (paste chord ⌃⌘1–9); [I-0291] ✅ verified (palette modifier)). **Issues found in S2 and ruled into [SP-178]:** 🟢 [I-0287] (undo after split/merge — resolved, not verified) · ✅ [I-0288] (undo after an outside edit, in a later session — VERIFIED 2026-10-12, archived).
+**Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived) · 🟠 [T-0605] (SP-178 — implemented, not verified; incl. [I-0287]) · 🟠 [T-0607] (SP-180 — implemented, not verified; ⏳ rig pass; incl. [I-0293]–[I-0296]) · 🟠 [T-0606] (SP-179 — implemented, not verified; ⏳ rig pass; incl. `[Apple]` [I-0289] ✅ verified (balanced buffers) and [I-0290] ✅ verified (paste chord ⌃⌘1–9); [I-0291] ✅ verified (palette modifier)). **Issues found in S2 and ruled into [SP-178]:** 🟢 [I-0287] (undo after split/merge — resolved, not verified) · ✅ [I-0288] (undo after an outside edit, in a later session — VERIFIED 2026-10-12, archived).
 
 **Provisional Sprints (original note):** S1 `[Cross]` capture rules into the core (Q1), Apple re-pointed with no visible change · S2 undo/redo + persistence +
 session warning + barriers + grouped edits · S3 branching: fork popover, History card, stale-branch purge, Undo History

@@ -9,7 +9,7 @@
 //   • Ctrl+Shift+N (arriving as the SHIFTED key, `!`, as X11 delivers it) pastes it — ONE undo step, stored text verbatim;
 //     the paste keeps ITS own formatting ([I-0289]); an empty slot pastes nothing;
 //   • Alt+N cuts into slot N — ONE undo step, its history node tagged with the slot; across scenes, one grouped step;
-//   • a slot the Mac filled with scenes pastes its plain text, with the notice said ONCE ([SP-179] Q1);
+//   • (a slot holding scenes — the Mac's or Linux's — is `structured_paste_smoke`'s, EP-026 S4);
 //   • View ▸ Show Buffers shows ONE palette that follows the FRONT project window; its button follows Ctrl+Shift / Alt;
 //     a click acts with the modifiers held; clear empties a slot; closing it unchecks the item in EVERY window;
 //   • the slots survive the window closing and reopening.
@@ -338,24 +338,8 @@ int main(int argc, char** argv)
         check(disk(bridge, wa, A, 0) == d0 && disk(bridge, wa, A, 1) == d1, QStringLiteral("ONE Ctrl+Z restored both scenes"));
     }
 
-    // ── 8. A slot the Mac filled with SCENES: plain text, the notice said ONCE ([SP-179] Q1) ──────────────────────────────
-    {
-        ScriviBridge::buffersLoad(A.dir, QStringLiteral("7"), QStringLiteral("Mac one\n\nMac two"),
-                                  QStringLiteral("{\"schema\":\"scrivi.fragment.v1\",\"pieces\":[]}"));
-        sa->buffers()->refresh();
-        check(sa->buffers()->isStructured(QStringLiteral("7")), QStringLiteral("precondition: slot 7 is structured"));
-        notices.clear();
-        caret(ea, found(ea, QStringLiteral("two")).second);
-        pasteChord(ea, 7);
-        check(notices.size() == 1 && notices.first().contains(QStringLiteral("scenes copied on the Mac")),
-              QStringLiteral("the notice was shown (%1)").arg(notices.join(QStringLiteral(" | "))));
-        check(disk(bridge, wa, A, 1).contains(QStringLiteral("Mac one\n\nMac two")), QStringLiteral("its plain text was pasted"));
-        undo(ea);
-        pasteChord(ea, 7);
-        check(notices.size() == 1, QStringLiteral("the notice is said only once"));
-        undo(ea);
-        check(sa->buffers()->isStructured(QStringLiteral("7")), QStringLiteral("the slot keeps its scenes"));
-    }
+    // ── 8. (A slot the Mac filled with SCENES rebuilds them since EP-026 S4 — `structured_paste_smoke` §5. [SP-179] Q1's
+    //       plain-text paste and its notice are gone.) ─────────────────────────────────────────────────────────────────
 
     // ── 9. View ▸ Show Buffers: ONE palette, following the FRONT project (AC5) ────────────────────────────────────────────
     ScriviWindow* wb = openWindow(env, B);

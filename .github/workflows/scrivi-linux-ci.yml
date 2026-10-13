@@ -271,6 +271,13 @@ jobs:
           platforms/linux/tests/buffers_smoke.sh \
             ./build/platforms/linux/scrivi_linux_buffers_smoke
 
+      # Structured cut / copy / paste (SP-180 / T-0607, EP-026 S4): Ctrl+C / Ctrl+V across scene and chapter breaks as ONE
+      # undo step, the buffers holding the structure, and a history made on the Mac replayed on Linux.
+      - name: Structured paste smoke test
+        run: |
+          platforms/linux/tests/structured_paste_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_structured_paste_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

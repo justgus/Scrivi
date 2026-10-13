@@ -3583,6 +3583,9 @@ scrivi::history::BarrierParams barrierParamsFrom(const std::string& paramsJSON) 
         // Optional ([I-0287]): {sceneID: text} — what the structural op left in each scene it rewrote.
         const auto texts = pj.getSubDoc("sceneTexts");
         for (const std::string& sid : texts.objectKeys()) p.sceneTexts[sid] = texts.getString(sid);
+        // Optional ([I-0293], structural nodes): {sceneID: text} — what each existing scene held before the op.
+        const auto prior = pj.getSubDoc("sceneTextsBefore");
+        for (const std::string& sid : prior.objectKeys()) p.sceneTextsBefore[sid] = prior.getString(sid);
     }
     return p;
 }
@@ -3599,7 +3602,8 @@ scrivi::util::JsonDoc recordBarrierOn(scrivi::history::HistoryStore& store,
         auto nit = svc.nodes().find(r.eventID);
         if (nit != svc.nodes().end()) { store.persistEvent(nit->second); }
     }
-    for (const std::string& sid : newScenes) { store.persistFloor(sid, p.sceneTexts.at(sid), "seed"); }
+    // The floor recordBarrier gave it: the BEFORE text of a scene that existed before a structural op ([I-0293]).
+    for (const std::string& sid : newScenes) { store.persistFloor(sid, svc.floorTexts().at(sid), "seed"); }
     scrivi::util::JsonDoc doc;
     doc.setString("eventID", r.eventID);
     doc.setBool("canUndo",   svc.canUndo());
@@ -4315,6 +4319,25 @@ scrivi::util::JsonDoc serializeFragment(const scrivi::manuscript::Fragment& frag
 } // namespace
 } // extern "C++"
 
+// [I-0296]: the fragment endpoints WRITE scene files themselves. While the project's history is open, each is reported as
+// the platforms' save path reports a save (`noteScenePersisted`, [I-0104]) — ⛔ or the next open compares the file with the
+// bytes Scrivi wrote BEFORE, takes it for an outside edit, and undo stops there.
+static void noteScenesWritten(const std::string& root, const std::vector<std::string>& sceneIDs) {
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    const auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end()) return;   // no history open: nothing to keep in step
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+    for (const std::string& id : sceneIDs) {
+        const auto found = resolver.findScene(root, scrivi::SceneID{id});
+        if (!found.ok()) continue;
+        const auto text = singleton().fileSystem.readTextFile(scrivi::util::join(root, found.value().contentPath));
+        if (text.ok()) it->second->noteScenePersisted(id, text.value());
+    }
+}
+
 const char* scrivi_fragment_extract(const char* projectRootPath, const char* spansJson) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
@@ -4365,6 +4388,7 @@ const char* scrivi_fragment_cut(const char* projectRootPath, const char* spansJs
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
+    noteScenesWritten(root, {v.survivingSceneID.value});   // [I-0296]
     scrivi::util::JsonDoc doc;
     doc.setSubDoc("fragment", serializeFragment(v.fragment));
     doc.setString("survivingSceneID", v.survivingSceneID.value);
@@ -4459,6 +4483,9 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
+    std::vector<std::string> written{v.targetSceneID.value};
+    for (const auto& id : v.createdSceneIDs) written.push_back(id.value);
+    noteScenesWritten(root, written);   // [I-0296]
     scrivi::util::JsonDoc doc;
     doc.setString("targetSceneID", v.targetSceneID.value);
     for (const auto& id : v.createdSceneIDs)
@@ -4512,6 +4539,7 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
     scrivi::manuscript::FragmentPaster paster{svc};
     auto r = paster.uncutPaste(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+    noteScenesWritten(root, {r.value().survivingSceneID.value});   // [I-0296]
 
     scrivi::util::JsonDoc doc;
     doc.setString("survivingSceneID", r.value().survivingSceneID.value);

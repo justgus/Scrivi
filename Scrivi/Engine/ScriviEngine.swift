@@ -1173,6 +1173,8 @@ public final class ScriviEngine: @unchecked Sendable {
         let structuralPayload: HistoryStructuralPayload?
         // [I-0287]: sceneID → the text the structural op left in each scene it rewrote or created. Omitted when nil.
         var sceneTexts: [String: String]? = nil
+        // [I-0293], a reversible structural node only: sceneID → what each EXISTING scene held before the op. Omitted when nil.
+        var sceneTextsBefore: [String: String]? = nil
     }
 
     public func historyRecordBarrier(
@@ -1372,11 +1374,13 @@ public final class ScriviEngine: @unchecked Sendable {
     public func captureRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "",
                                      sceneID: String? = nil,
                                      structuralPayload: HistoryStructuralPayload? = nil,
-                                     sceneTexts: [String: String] = [:]) throws -> CaptureState {
+                                     sceneTexts: [String: String] = [:],
+                                     sceneTextsBefore: [String: String] = [:]) throws -> CaptureState {
         let paramsData = try JSONEncoder().encode(
             RecordBarrierParams(barrierKind: barrierKind, note: note, sceneID: sceneID,
                                 structuralPayload: structuralPayload,
-                                sceneTexts: sceneTexts.isEmpty ? nil : sceneTexts))
+                                sceneTexts: sceneTexts.isEmpty ? nil : sceneTexts,
+                                sceneTextsBefore: sceneTextsBefore.isEmpty ? nil : sceneTextsBefore))
         let params = String(decoding: paramsData, as: UTF8.self)
         let raw = projectRootPath.withCString { prp in params.withCString { p in scrivi_capture_record_barrier(prp, p) } }
         return try decodeC(raw)
@@ -1842,7 +1846,7 @@ public final class ScriviEngine: @unchecked Sendable {
     public func captureBeforeSave(projectRootPath: String, nowMs: Int64) throws -> CaptureState { try unavailable() }
     public func captureIdle(projectRootPath: String, nowMs: Int64) throws -> CaptureState { try unavailable() }
     public func captureGroupedEdit(projectRootPath: String, edits: [CaptureGroupEdit], kind: String) throws -> CaptureState { try unavailable() }
-    public func captureRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", sceneID: String? = nil, structuralPayload: HistoryStructuralPayload? = nil) throws -> CaptureState { try unavailable() }
+    public func captureRecordBarrier(projectRootPath: String, barrierKind: String, note: String = "", sceneID: String? = nil, structuralPayload: HistoryStructuralPayload? = nil, sceneTexts: [String: String] = [:], sceneTextsBefore: [String: String] = [:]) throws -> CaptureState { try unavailable() }
     public func captureUndo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     public func captureRedo(projectRootPath: String) throws -> HistoryStepResult { try unavailable() }
     @discardableResult

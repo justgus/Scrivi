@@ -192,6 +192,12 @@ public:
     void copyIntoBuffer(const QString& bufferID);
     void cutIntoBuffer(const QString& bufferID);
     void pasteFromBuffer(const QString& bufferID);
+    // --- EP-026 S4 structured paste (SP-180, T-0607) -----------------------
+    // Paste `fragment` (a `scrivi.fragment.v1`) at the caret, rebuilding its scenes and chapters — Ctrl+V of a cross-scene
+    // copy, and Ctrl+Shift+N of a slot holding one. Apple: `pasteStructuredFragment`. A selection is removed first, as
+    // its own undo step ([SP-180] Q2); unsaved scenes are saved ([I-0294]); the paste is ONE reversible structural step
+    // with the texts on both sides of it ([I-0293]); then the manuscript reloads, the caret at the split.
+    void pasteFragment(const QJsonObject& fragment);
     // This project's slots (the palette shows the FRONT project's), or nullptr before a load.
     [[nodiscard]] BufferService* buffers() const { return buffers_; }
 
@@ -724,8 +730,9 @@ private:
     // EP-026 S5 (SP-179): this project's copy buffers — owned here for the same reason as `history_`. Created on load,
     // released in `releaseProject()`.
     BufferService*          buffers_ = nullptr;
-    // [SP-179] Q1: the "scenes copied on the Mac" notice is said once per open project.
-    bool                    structuredSlotNoticeShown_ = false;
+    // EP-026 S4 (SP-180): what each structural RE-PASTE created, so the uncut that follows removes those scenes (Apple:
+    // `structuralRedoCreated`). Keyed by op | caret scene | caret byte | fragment; this window's session only.
+    QHash<QString, QPair<QStringList, QStringList>> structuralRedoCreated_;
     // Each scene's text as history last saw it — the "text before" of the next report (Apple keeps the text before the
     // edit, `preEditText`; Qt's `contentsChange` arrives AFTER the change). Refilled on every load.
     QHash<QString, QString> historyText_;
@@ -744,6 +751,13 @@ private:
     int storedOffset(int index, int docPos) const;
     // Apply one undo/redo result (Apple's `apply(step:)`).
     void applyHistoryStep(const QVariantMap& step, bool isUndo);
+    // EP-026 S4: undo/redo crossed a structural node — run its inverse on disk, then reload (Apple's
+    // `applyStructuralInverse`). Two disk ops cover four directions: a re-paste (undo of a cut, redo of a paste) and an
+    // uncut (undo of a paste, redo of a cut).
+    void applyStructuralInverse(const QVariantMap& inverse, bool isUndo);
+    // Reload the manuscript from disk (a structural op changed it), then put the caret `byteOffset` UTF-8 bytes into
+    // `sceneID` (Apple: `reloadManuscriptFromDisk(caretSceneID:caretByteOffset:)`).
+    void reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset);
     // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.
     int replaceSceneBody(int index, const QString& text, int caretUtf16);
     // The save path wrote `text` for `sceneID` ([I-0104]); ⛔ only after a write that SUCCEEDED ([I-0259]).

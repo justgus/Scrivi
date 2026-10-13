@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QJsonObject>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -28,7 +29,7 @@ public:
         QString bufferID;
         QString text;        // STORED text (escapes included)
         QString updatedAt;   // ISO-8601
-        bool structured = false;   // the Mac stored a scene fragment ([SP-179] Q1: Linux pastes its plain text until S4)
+        QJsonObject fragment;      // a cross-scene copy's `scrivi.fragment.v1` (EP-026 S4); empty for a plain-text slot
     };
 
     // The persistent slot IDs. Buffer 0 (the system clipboard) is deliberately not one.
@@ -47,11 +48,14 @@ public:
     [[nodiscard]] QString text(const QString& bufferID) const;
     [[nodiscard]] QString updatedAt(const QString& bufferID) const;
     [[nodiscard]] bool isStructured(const QString& bufferID) const;
+    // Slot `bufferID`'s fragment, or empty (a plain-text slot, or an empty one).
+    [[nodiscard]] QJsonObject fragment(const QString& bufferID) const;
     // One line for the palette: the first non-blank line of what the writer SEES (no escapes), or empty.
     [[nodiscard]] QString preview(const QString& bufferID) const;
 
-    // Create-or-replace slot `bufferID` with `text` (stored form); a plain-text slot. Refreshes. False on a store failure.
-    bool load(const QString& text, const QString& bufferID);
+    // Create-or-replace slot `bufferID` with `text` (stored form) and, for a cross-scene copy, its `fragment` (EP-026 S4)
+    // — `text` is then the fragment's flat form. Refreshes. False on a store failure.
+    bool load(const QString& text, const QString& bufferID, const QJsonObject& fragment = {});
     // Empties slot `bufferID`. Refreshes. Whether a slot was removed.
     bool clear(const QString& bufferID);
 
