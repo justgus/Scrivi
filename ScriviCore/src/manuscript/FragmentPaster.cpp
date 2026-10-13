@@ -92,6 +92,7 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
     };
 
     // Small helper: persist `text` into a scene given its identity + paths.
+    std::map<std::string, std::string> written;
     auto saveBody = [&](const SceneID& id, const RelativePath& metaPath,
                         const RelativePath& contentPath, const std::string& text) -> Result<void> {
         SaveSceneRequest sv;
@@ -105,6 +106,7 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
         sv.author            = request.author;
         auto r = writer.save(sv);
         if (!r.ok()) return Result<void>::failure(r.error());
+        written[id.value] = text;   // [I-0297]
         return Result<void>::success();
     };
 
@@ -198,6 +200,7 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
     auto w = saveBody(runSceneID, runSceneMetaPath, runSceneContent, runSceneBody);
     if (!w.ok()) return R::failure(w.error());
 
+    result.writtenTexts = std::move(written);
     return R::success(std::move(result));
 }
 
@@ -270,6 +273,7 @@ Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& req
         tail = lastBody.substr(lastPieceText.size());
     }
 
+    std::string restored;
     // 1. Fold the restored body back into the target BEFORE deleting anything (so a later failure
     //    never loses text). Direct write, matching FragmentCutter's fold — no authorship re-stamp.
     {
@@ -277,6 +281,7 @@ Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& req
         auto write = fs.atomicWriteTextFile(util::join(root, target->contentPath), head + tail);
         if (!write.ok())
             return R::failure(write.error());
+        restored = head + tail;   // [I-0297]
     }
 
     // 2. Delete every created scene (reading order doesn't matter for deletion by ID). A created
@@ -310,6 +315,7 @@ Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& req
 
     UncutPasteResult result;
     result.survivingSceneID = target->sceneID;
+    result.survivingText    = std::move(restored);
     return R::success(std::move(result));
 }
 

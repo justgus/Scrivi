@@ -4322,7 +4322,18 @@ scrivi::util::JsonDoc serializeFragment(const scrivi::manuscript::Fragment& frag
 // [I-0296]: the fragment endpoints WRITE scene files themselves. While the project's history is open, each is reported as
 // the platforms' save path reports a save (`noteScenePersisted`, [I-0104]) — ⛔ or the next open compares the file with the
 // bytes Scrivi wrote BEFORE, takes it for an outside edit, and undo stops there.
-static void noteScenesWritten(const std::string& root, const std::vector<std::string>& sceneIDs) {
+// ✅ [I-0297]: paste and uncut hand over the texts they wrote — nothing is looked up. (Looking each scene up walked the
+// manuscript, ~920 sidecar reads a scene on 1,186 scenes; over a network share that froze the app.)
+static void noteScenesWritten(const std::string& root, const std::map<std::string, std::string>& written) {
+    auto& reg = historyRegistry();
+    std::lock_guard<std::mutex> lock(reg.mutex);
+    const auto it = reg.byRoot.find(root);
+    if (it == reg.byRoot.end()) return;   // no history open: nothing to keep in step
+    for (const auto& [id, text] : written) it->second->noteScenePersisted(id, text);
+}
+
+// The collapsing cut (`scrivi_fragment_cut`) reports its survivor by ID: it is called by neither platform any more.
+static void noteScenesWrittenByID(const std::string& root, const std::vector<std::string>& sceneIDs) {
     auto& reg = historyRegistry();
     std::lock_guard<std::mutex> lock(reg.mutex);
     const auto it = reg.byRoot.find(root);
@@ -4388,7 +4399,7 @@ const char* scrivi_fragment_cut(const char* projectRootPath, const char* spansJs
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
-    noteScenesWritten(root, {v.survivingSceneID.value});   // [I-0296]
+    noteScenesWrittenByID(root, {v.survivingSceneID.value});   // [I-0296]
     scrivi::util::JsonDoc doc;
     doc.setSubDoc("fragment", serializeFragment(v.fragment));
     doc.setString("survivingSceneID", v.survivingSceneID.value);
@@ -4483,11 +4494,13 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
-    std::vector<std::string> written{v.targetSceneID.value};
-    for (const auto& id : v.createdSceneIDs) written.push_back(id.value);
-    noteScenesWritten(root, written);   // [I-0296]
+    noteScenesWritten(root, v.writtenTexts);   // [I-0296]
     scrivi::util::JsonDoc doc;
     doc.setString("targetSceneID", v.targetSceneID.value);
+    // [I-0297]: what the paste wrote — the platform records it on its structural node ([I-0293]) without re-reading.
+    scrivi::util::JsonDoc texts;
+    for (const auto& [id, text] : v.writtenTexts) texts.setString(id, text);
+    doc.setSubDoc("sceneTexts", std::move(texts));
     for (const auto& id : v.createdSceneIDs)
         doc.appendStringToArray("createdSceneIDs", id.value);
     for (const auto& id : v.createdChapterIDs)
@@ -4539,10 +4552,14 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
     scrivi::manuscript::FragmentPaster paster{svc};
     auto r = paster.uncutPaste(req);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
-    noteScenesWritten(root, {r.value().survivingSceneID.value});   // [I-0296]
+    const std::map<std::string, std::string> written{{r.value().survivingSceneID.value, r.value().survivingText}};
+    noteScenesWritten(root, written);   // [I-0296]
 
     scrivi::util::JsonDoc doc;
     doc.setString("survivingSceneID", r.value().survivingSceneID.value);
+    scrivi::util::JsonDoc texts;   // [I-0297]
+    texts.setString(r.value().survivingSceneID.value, r.value().survivingText);
+    doc.setSubDoc("sceneTexts", std::move(texts));
     return heap(okEnvelope(std::move(doc)));
   });
 }

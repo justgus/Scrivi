@@ -755,9 +755,22 @@ private:
     // `applyStructuralInverse`). Two disk ops cover four directions: a re-paste (undo of a cut, redo of a paste) and an
     // uncut (undo of a paste, redo of a cut).
     void applyStructuralInverse(const QVariantMap& inverse, bool isUndo);
+    // The step crossed into a previous session's work: Apple's warning, once per crossing (§5, T-0209). Every kind of step
+    // — text or structural ([I-0298]).
+    void warnIfSessionBoundary(const QVariantMap& step);
     // Reload the manuscript from disk (a structural op changed it), then put the caret `byteOffset` UTF-8 bytes into
     // `sceneID` (Apple: `reloadManuscriptFromDisk(caretSceneID:caretByteOffset:)`).
     void reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset);
+    // ⚠️ [I-0300]: `load()` reloads ASYNCHRONOUSLY ([T-0499]) — anything that must see the NEW manuscript (the caret, a
+    // renumber) runs in `after`, once the reload has finished. Never straight after `load()`.
+    void reloadThen(std::function<void()> after);
+    // ✅ [I-0297]: a structural step's ScriviCore `work` runs OFF the UI thread (over a network share it walks the whole
+    // manuscript — it froze the app for minutes), with the progress row showing `label`. The editor is read-only and
+    // `loading_` set until `then` has run and its reload has landed (or, on failure, `failed`).
+    void runStructural(const QString& label, std::function<QVariantMap()> work,
+                       std::function<void(const QVariantMap&)> then, std::function<void()> failed);
+    // The caret `byteOffset` UTF-8 bytes into `sceneID`'s body, the navigator following; false when the scene is not loaded.
+    bool placeCaret(const QString& sceneID, qint64 byteOffset);
     // Replace segment `index`'s body with `text`, under `isApplying`; returns the document position of `caretUtf16`.
     int replaceSceneBody(int index, const QString& text, int caretUtf16);
     // The save path wrote `text` for `sceneID` ([I-0104]); ⛔ only after a write that SUCCEEDED ([I-0259]).

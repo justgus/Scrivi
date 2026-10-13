@@ -495,6 +495,9 @@ TEST_CASE("capture ABI: a reopen after a structured paste, or its undo, takes no
     const JsonDoc pasted = ok(scrivi_fragment_paste(root.c_str(), as.c_str(), pid.c_str(), frag.c_str(), S.c_str(), 7,
                                                     "identity-001", "persona-001", "T"));
     const std::string made = pasted.getStringArray("createdSceneIDs").at(0);
+    // [I-0297]: the paste hands back what it wrote, byte for byte — the platform records it without re-reading.
+    CHECK(pasted.getSubDoc("sceneTexts").getString(S) == textOf(S));
+    CHECK(pasted.getSubDoc("sceneTexts").getString(made) == textOf(made));
     JsonDoc texts, prior, payload, params;
     texts.setString(S, textOf(S));
     texts.setString(made, textOf(made));
@@ -509,8 +512,10 @@ TEST_CASE("capture ABI: a reopen after a structured paste, or its undo, takes no
 
     // Its undo: the app uncuts the paste (the core writes the target again).
     CHECK(ok(scrivi_capture_undo(root.c_str())).getSubDoc("structuralInverse").getString("direction") == "undo");
-    ok(scrivi_fragment_uncut_paste(root.c_str(), frag.c_str(), S.c_str(), ("{\"sceneIDs\":[\"" + made + "\"]}").c_str()));
+    const JsonDoc uncut =
+        ok(scrivi_fragment_uncut_paste(root.c_str(), frag.c_str(), S.c_str(), ("{\"sceneIDs\":[\"" + made + "\"]}").c_str()));
     REQUIRE(textOf(S) == "Alpha. Bravo.");
+    CHECK(uncut.getSubDoc("sceneTexts").getString(S) == "Alpha. Bravo.");   // [I-0297]
     CHECK(flaggedOnReopen({S}).empty());
 
     // EP-029's collapsing cut (`fragment_cut`, no longer called by either platform, but in old histories) writes too.

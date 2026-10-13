@@ -240,3 +240,42 @@ User: *"yes fix it in SP-180."*
 - **Final runs:** ctest macOS 721/721, Linux 724/724 (uid 1000); 32/32 Linux smokes, no warnings; interop 288/288.
 - ⏳ **Next: AC9, the rig live pass.** It can share a session with [SP-178]'s and [SP-179]'s passes. Bump the build stamp
   before that push.
+
+### 🟡 2026-10-13 — Rig live pass (build 73): steps 24–34 and 38 PASS; 36, 37 and 39 FAIL → [I-0297]–[I-0300]
+
+The user ran SP-178, SP-179 and SP-180 together.
+- **Steps 24–34 pass** (`Live Pass 73b`, local disk): user, *"steps 24 to 34 passed"*. These cover the paste, the
+  cross-chapter paste with its title, the I-0293/I-0294/I-0295 checks, an expired copy, buffers, the cut, and the reopen.
+- **One observation in step 24:** after Ctrl+Shift+Return the caret stayed in Chapter 1 → [I-0300].
+- **Steps 35–39** (dumas-prose-timelines over the share, Mac ↔ Linux):
+  - Opening took about 4–5 s.
+  - ⛔ The undo of the Mac's paste froze the UI about 90 s; Ctrl+Shift+4 froze about 2 min and its undo about 1.5 min → [I-0297].
+  - ⛔ No "previous session" warning on that undo → [I-0298].
+  - ✅ The Mac's buffer pasted with its scene break.
+  - ✅ Step 38's paste happened (the log, 21:17:29 UTC).
+  - ⛔ Step 39: the Mac's reopen flagged scenes Linux's core had written, and two the Mac itself had → [I-0299].
+- The extra history sessions in the log are the user's quits (user: *"I quit Scrivi more often than I should have"*), not a
+  defect.
+- ✅ **Ruled 2026-10-13** (user: *"We'll take your recommendations for 36, 37, 39 and 24. But do the new Issue now as well."*):
+  all four are fixed in this Sprint; AC9 is re-run after them.
+
+### 🟡 2026-10-13 — [I-0300], [I-0298] and [I-0297] fixed; [I-0299] probed
+
+- **[I-0300]:** `reloadThen` places the caret, and runs the new chapter's renumber, once the asynchronous reload has landed.
+  This covers the new chapter, the split and both merges. `undo_smoke` §7's step-24 case is red before the fix.
+- **[I-0298]:** both platforms warn after a structural step that crosses into an earlier session.
+  - Mac: `structuralUndoAcrossSessionsWarns`, red first.
+  - Linux: §7, red first; the mutation is caught.
+  - ⚠️ Both first tests passed the wrong way: an undo landing on the history's root, which belongs to no session, never warns.
+    The tests now keep earlier work underneath, as on the rig.
+- **[I-0297]:** measured with `strace` in Docker on 1,186 scenes. The paste's UI thread went from 7,683 file calls to 16, the
+  undo's from 4,966 to 16.
+  - ScriviCore returns what it wrote (`sceneTexts`), so neither the core nor the platforms look the scenes up again.
+  - Linux runs the ScriviCore call off the UI thread (`runStructural`) behind the progress row, with the editor read-only
+    until the reload lands.
+  - About 4,200 of the 6,642 sidecar reads had come from SP-180's own code (the [I-0296] lookups and the read-back).
+- **[I-0299]:** a Mac cross-scene delete with a clean close and reopen flags nothing.
+  - Leading hypothesis: sessions that ended without closing their history (a force-quit, or Xcode stopping the app), which
+    lose every recorded byte.
+  - ⏳ Asked the user.
+- **Runs:** ctest macOS 721/721, Linux 724/724 (uid 1000); 32/32 Linux smokes, no warnings; interop 290/290.

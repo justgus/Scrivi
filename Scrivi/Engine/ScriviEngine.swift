@@ -2416,17 +2416,20 @@ public struct FragmentPasteResult: Decodable, Sendable {
     public let targetSceneID:     String
     public let createdSceneIDs:   [String]
     public let createdChapterIDs: [String]
+    /// [I-0297]: sceneID → the body the paste WROTE (the target and every created scene), exactly as on disk.
+    public let sceneTexts: [String: String]
 
     // Same omit-empty contract as FragmentCutResult: a paste that creates no new chapters
     // ships no `createdChapterIDs` key. Decode absent arrays as empty.
     private enum CodingKeys: String, CodingKey {
-        case targetSceneID, createdSceneIDs, createdChapterIDs
+        case targetSceneID, createdSceneIDs, createdChapterIDs, sceneTexts
     }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         targetSceneID     = try c.decode(String.self, forKey: .targetSceneID)
         createdSceneIDs   = try c.decodeIfPresent([String].self, forKey: .createdSceneIDs)   ?? []
         createdChapterIDs = try c.decodeIfPresent([String].self, forKey: .createdChapterIDs) ?? []
+        sceneTexts        = try c.decodeIfPresent([String: String].self, forKey: .sceneTexts) ?? [:]
     }
 }
 

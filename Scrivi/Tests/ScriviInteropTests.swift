@@ -7102,6 +7102,7 @@ struct UndoAfterStructuralOpTests {
         let tv: ManuscriptNSTextView
         let window: NSWindow
         let projectID: String
+        let identityID: String
 
         /// The scene's body as the core reads it from disk.
         func onDisk(_ sceneID: String) throws -> String {
@@ -7119,6 +7120,11 @@ struct UndoAfterStructuralOpTests {
             caret(scene: segIdx, at: loader.segments[segIdx].text.utf16.count)
             tv.insertText(" Pre", replacementRange: tv.selectedRange())
             #expect(loader.segments[segIdx].text.hasSuffix(" Pre"))
+        }
+        /// Closes this window's history (as quitting does) and opens the project again, in a NEW session.
+        func reopened() async throws -> Harness {
+            session.closeHistoryBlocking()
+            return try await UndoAfterStructuralOpTests().attach(root, env, identityID: identityID, projectID: projectID)
         }
         /// Waits for a structural op's Task to land (it changes the scene count).
         func waitForSceneCount(_ n: Int) async throws {
@@ -7154,11 +7160,20 @@ struct UndoAfterStructuralOpTests {
             after = s.sceneID
         }
 
-        let session = ProjectSession(engine: engine, authorshipRef: ref, appSupportRoot: support, identityID: identity.identityID)
+        let h = try await attach(root, env, identityID: identity.identityID, projectID: created.projectID)
+        #expect(h.loader.segments.map(\.text) == bodies)
+        return h
+    }
+
+    /// Opens the project at `root` through `loadAsync` (the app's own open: history opened, every scene validated) into a
+    /// real coordinator and text view.
+    fileprivate func attach(_ root: TempDir, _ env: AppEnvironment, identityID: String, projectID: String) async throws -> Harness {
+        let ref = try #require(env.authorshipRef)
+        let session = ProjectSession(engine: env.engine, authorshipRef: ref, appSupportRoot: env.appSupportRoot,
+                                     identityID: identityID)
         _ = try await session.loadAsync(at: root.path) { _, _ in }
         let loader = try #require(session.viewportLoader)
         #expect(session.historyCapture != nil, "history opened by the load")
-        #expect(loader.segments.map(\.text) == bodies)
 
         let view = ManuscriptTextView(loader: loader, env: env, session: session, navigateToSceneID: .constant(nil),
                                       showChapterTitles: false, typography: .default)
@@ -7179,7 +7194,7 @@ struct UndoAfterStructuralOpTests {
         c.textView = tv
         c.rebuildStorage(tv, segments: loader.segments)
         return Harness(root: root, env: env, session: session, loader: loader, c: c, tv: tv, window: window,
-                       projectID: created.projectID)
+                       projectID: projectID, identityID: identityID)
     }
 
     @Test("split mid-scene, type in the HEAD, undo → the head (⛔ not the pre-split text — the tail came back)")
@@ -7287,6 +7302,50 @@ struct UndoAfterStructuralOpTests {
         #expect(h.c.pasteStructuredFragment(frag))
         #expect(h.loader.segments.map(\.text) == ["Alpha one", "two", "threeBravo Pre", "Second Pre"])
         #expect(try h.onDisk(second) == "Second Pre")
+    }
+
+    /// [I-0299] — the Mac's reopen flagged two scenes it had itself deleted text across. A cross-scene delete followed by a
+    /// CLEAN close and reopen does not: its saves record their bytes (measured 2026-10-13; the probe stays as a guard).
+    @Test("a cross-scene delete, then a reopen: no scene is taken for an outside edit")
+    func crossSceneDeleteThenReopen() async throws {
+        let h = try await harness(["Alpha Bravo", "Charlie Delta"])
+        h.caret(scene: 0, at: 6)
+        let from = h.tv.selectedRange().location
+        h.caret(scene: 1, at: 7)
+        let sel = NSRange(location: from, length: h.tv.selectedRange().location - from)
+        #expect(h.c.deleteAcrossScenes(sel, kind: "delete"))
+        try await Task.sleep(for: .milliseconds(300))               // the per-scene saves are Tasks
+        #expect(h.loader.segments.map(\.text) == ["Alpha ", " Delta"])
+        let again = try await h.reopened()
+        var flagged: [String] = []
+        for seg in again.loader.segments {
+            if try again.env.engine.historyValidateScene(projectRootPath: again.root.path, sceneID: seg.sceneID,
+                                                         currentDiskText: try again.onDisk(seg.sceneID)).externalChange {
+                flagged.append(seg.text)
+            }
+        }
+        #expect(flagged.isEmpty, "taken for outside edits: \(flagged)")
+    }
+
+    /// [I-0298] — an undo across a STRUCTURAL step into an earlier session warns, as any undo into it does. ⛔ The structural
+    /// branch of `apply(step:)` returned before the warning.
+    @Test("a structural undo into an earlier session shows the previous-session warning")
+    func structuralUndoAcrossSessionsWarns() async throws {
+        let h = try await harness(["Alpha Bravo"])
+        h.typeBeforeTheOp(scene: 0)                                 // an edit in the first session, before the paste
+        h.caret(scene: 0, at: 6)
+        let frag = FragmentResult(schema: "scrivi.fragment.v1", pieces: [
+            FragmentPiece(opensWith: "none", chapterTitle: nil, sceneTitle: nil, text: "one", partial: "head"),
+            FragmentPiece(opensWith: "scene", chapterTitle: nil, sceneTitle: nil, text: "two", partial: "tail"),
+        ], plainText: "one\n\ntwo")
+        #expect(h.c.pasteStructuredFragment(frag))
+        let again = try await h.reopened()
+        #expect(again.loader.segments.map(\.text) == ["Alpha one", "twoBravo Pre"])
+        var warned: [String?] = []
+        again.c.onSessionBoundary = { warned.append($0) }
+        again.c.performUndo()
+        #expect(again.loader.segments.map(\.text) == ["Alpha Bravo Pre"], "the paste is undone")
+        #expect(warned.count == 1, "the previous-session warning was shown once (\(warned.count))")
     }
 
     /// A structured paste is written by the CORE, so the save path never reports its bytes. Does the next open take the

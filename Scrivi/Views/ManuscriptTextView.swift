@@ -408,6 +408,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             if let inverse = step.structuralInverse {
                 applyStructuralInverse(inverse)
                 capture.refreshCanState()
+                // ✅ [I-0298]: a structural step can cross into an earlier session too — warn, as below. ⛔ It returned first.
+                if step.crossedSessionBoundary { sessionBoundaryReached(step.boundaryTimestamp) }
                 return
             }
 
@@ -456,7 +458,7 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Session-boundary warning (§5, T-0209): the engine flags the first
             // undo that steps into a previous session's work (once per crossing).
             if step.crossedSessionBoundary {
-                presentSessionBoundaryNotice(boundaryTimestamp: step.boundaryTimestamp)
+                sessionBoundaryReached(step.boundaryTimestamp)
             }
         }
 
@@ -544,6 +546,12 @@ struct ManuscriptTextView: NSViewRepresentable {
 
         // Warns that undo has stepped into a previous session's changes, showing
         // the boundary's wall-clock time when available.
+        /// Tests replace the modal notice with this ([I-0298]); nil = the notice.
+        var onSessionBoundary: ((String?) -> Void)?
+        private func sessionBoundaryReached(_ boundaryTimestamp: String?) {
+            if let hook = onSessionBoundary { hook(boundaryTimestamp) } else { presentSessionBoundaryNotice(boundaryTimestamp: boundaryTimestamp) }
+        }
+
         private func presentSessionBoundaryNotice(boundaryTimestamp: String?) {
             let alert = NSAlert()
             alert.alertStyle = .informational
@@ -2644,11 +2652,10 @@ struct ManuscriptTextView: NSViewRepresentable {
             // Reversible structural op (T-0356 / AC6): undo cuts away exactly the created
             // scenes/chapters and re-joins the split target (undo-paste == cut-merge, §5); redo
             // re-runs the paste.
-            // ✅ [I-0293]: with the texts the paste left (read back — the core wrote them) and the target's text before it,
-            // so the next edit there diffs against what the writer now sees. ⛔ Without them its undo put the pre-paste
-            // text back, and the paste's own undo was then refused.
-            let after = (try? parent.env.engine.readSceneTexts(
-                projectRootPath: rootPath, sceneIDs: [result.targetSceneID] + result.createdSceneIDs))?.scenes ?? []
+            // ✅ [I-0293]: with the texts the paste left and the target's text before it, so the next edit there diffs
+            // against what the writer now sees. ⛔ Without them its undo put the pre-paste text back, and the paste's own
+            // undo was then refused. ✅ [I-0297]: the texts come back with the paste — re-reading them rebuilt the
+            // project's scene index (a walk of every scene) on the main thread.
             parent.session.historyCapture?.recordBarrier(
                 kind: "structuredPaste", note: "Can't undo past a cross-boundary paste",
                 structuralPayload: HistoryStructuralPayload(
@@ -2658,7 +2665,7 @@ struct ManuscriptTextView: NSViewRepresentable {
                     caretByte: caretByte,
                     createdSceneIDs: result.createdSceneIDs,
                     createdChapterIDs: result.createdChapterIDs),
-                sceneTexts: Dictionary(after.map { ($0.sceneID, $0.markdown) }, uniquingKeysWith: { a, _ in a }),
+                sceneTexts: result.sceneTexts,
                 sceneTextsBefore: [seg.sceneID: seg.text])
             // Place the caret at the start of the paste target (the split point); the reload
             // re-anchors to a valid scene.

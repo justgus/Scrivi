@@ -34,6 +34,7 @@
 #include "scrivi/Types.hpp"
 
 #include <cstddef>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -55,6 +56,9 @@ struct PasteFragmentResult {
     SceneID                targetSceneID;      // the (split) scene the paste began in
     std::vector<SceneID>   createdSceneIDs;    // scenes minted by the paste, in reading order
     std::vector<ChapterID> createdChapterIDs;  // chapters minted by the paste, in reading order
+    // [I-0297]: sceneID → the body this paste WROTE (the target and every created scene), exactly as on disk — so nothing
+    // has to find and re-read them (each lookup walked the manuscript; over a network share that froze the app).
+    std::map<std::string, std::string> writtenTexts;
 };
 
 // The exact inverse of a paste (EP-029 AC6 / T-0356 — undo of a structured paste, and redo of a
@@ -71,6 +75,7 @@ struct UncutPasteRequest {
 
 struct UncutPasteResult {
     SceneID survivingSceneID;   // the target scene, now restored to its pre-paste body
+    std::string survivingText;  // [I-0297]: that body, exactly as written
 };
 
 class FragmentPaster {

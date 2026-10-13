@@ -8,6 +8,10 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0300** | `[Linux]` ⚠️ **After Ctrl+Shift+Return (new chapter) — and a mid-scene Ctrl+Return — the caret stays where it was instead of moving into the new chapter or scene.** Found on the rig 2026-10-13 ([SP-180] live pass, step 24). ✅ Fixed: the caret is placed when the reload has finished (also after a merge). → [details](#i-0300) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
+| **I-0299** | `[ScriviCore]` ⛔ **A reopen on the Mac took scenes written by Linux over the network share — and two scenes the Mac itself had pasted into and deleted from — for OUTSIDE edits.** Found 2026-10-13 ([SP-180] live pass, step 39). ⏳ Leading hypothesis: sessions that ended without closing their history (a force-quit, or Xcode stopping the app). → [details](#i-0299) | **Medium** | [SP-180] | 🔵 **Open** |
+| **I-0298** | `[Apple]` `[Linux]` ⚠️ **An undo that crosses a structural step (a cross-scene paste) into an earlier session shows no "Undoing changes from a previous session" warning.** Found 2026-10-13 ([SP-180] live pass, step 36). ✅ Fixed on both platforms. → [details](#i-0298) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
+| **I-0297** | `[Linux]` ⛔ **A structured paste, its undo and its redo FREEZE the UI for 90 s – 2 min on a project over the network share** (dumas-prose-timelines, 1,186 scenes). 436 ms in Docker on local disk. Found 2026-10-13 ([SP-180] live pass, steps 36–37). ✅ Fixed: measured, the walks cut, and the work moved off the UI thread (7,683 UI-thread file calls → 16). → [details](#i-0297) | **High** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0296** | `[Apple]` ⛔ **After a structured paste, the next open takes the target scene for an OUTSIDE edit — undo stops there.** The core wrote the scene, so the save path never reported its bytes. Proven 2026-10-13 (interop + Linux smoke). ✅ Fixed in the core: the fragment endpoints report what they write. → [details](#i-0296) | **Medium** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0295** | `[Apple]` ⚠️ **A structured paste landed BEFORE a selection and left the selection in place; a flat paste replaces it.** Proven 2026-10-13 ([SP-180] Q2). ✅ Fixed: the selection is removed first, as its own step. → [details](#i-0295) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0294** | `[Apple]` ⚠️ **A structured (cross-scene) ⌘V builds on the target scene AS SAVED: typing not yet autosaved is dropped by the reload.** Found 2026-10-13 by [I-0293]'s interop test. ✅ Fixed: every scene with unsaved typing is saved before the paste. → [details](#i-0294) | **Medium** | [SP-180] | ✅ **Resolved - Not Verified** |
@@ -18,6 +22,171 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 |  **I-0244** | `[Linux]` ⚠️ **THE LINUX APP HAS NONE OF [EP-040]'s EDITOR SHELL, AND NOTHING TRACKS THE GAP.** ⚠️ **RAISED 2026-09-22 from the user's own observation during [SP-135]'s live pass:** ⚠️ ***"I did not toggle the panels on Linux or any of the more recent UI changes because many of them have not been made on Linux yet."*** ✅ **MEASURED THE SAME DAY, not asserted:** ⛔ **Linux has ZERO `QToolBar`/`addToolBar` in `platforms/linux/src/`** · ⛔ **ZERO navigator-visibility state** · ⚠️ **Apple now has a `.toolbar` with 3 `ControlGroup`s and SIX `safeAreaBar`s.** ⚠️ **THIS IS NOT A DEFECT IN EITHER PLATFORM.** ✅ **[EP-040] is scoped `[Apple]` DELIBERATELY** — ⛔ **but four Sprints of shell work ([SP-134] toolbar · [SP-135] bars · [SP-136] inspector column · [SP-137] detail sheet) have no Linux counterpart, and NO Epic, Sprint or Issue records that.** ⚠️ **`feedback_linux_adopts_apple_shape` is the standing rule: *Apple is the reference for architecture; a shape change on Apple must be made the same way on Linux in the SAME work.*** ⛔ **That has not happened, and the divergence is now FOUR SPRINTS DEEP AND GROWING.** ✅ **WHAT THE APPLE WORK ALREADY PROVED, and Linux will re-earn without it:** ⚠️ **[I-0203]'s root cause was that bars were STACK SIBLINGS** — ✅ **Linux's `EditorShell` uses the same layout idiom** — ⚠️ **and the Navigator was unrecoverable because NOTHING OWNED ITS VISIBILITY STATE.** ⛔ **Linux's pane visibility is SESSION-SCOPED ONLY (SP-078/T-0320), which is the same class of gap.** ⚠️ **IT IS NOT [EP-043]'s EITHER:** ✅ **that Epic is the SESSION (multi-window, restore, geometry)** — ⛔ **this is the SHELL (toolbar, bars, panes).** ✅ **They are adjacent and both wait on the same `EditorShell` rework, which is an argument for SEQUENCING them together, not for merging them.** ⚠️ **NOT URGENT AND NOT A REGRESSION** — ✅ **Linux works as it did** — ⛔ **but an untracked divergence is how a port silently falls behind, which is exactly what the Porting Outline exists to prevent.** ---- ⚠️ **A PERFORMANCE EXPECTATION IS INHERITED FROM [I-0213]** (⚠️ *`[Apple]` chapter create froze the app ~2.7 s on a 1,174-scene manuscript; now `~305–400 ms` of work*) **AND IS RECORDED HERE SO LINUX DOES NOT RE-DISCOVER IT AS A DEFECT.** ✅ **[I-0213] was VERIFIED on Apple 2026-09-24 with `createChapter WORK=396.7 ms` on 1,179 scenes, ⚠️ measured DELIBERATELY from a USB mount as a WORST-CASE FLOOR.** ⚠️ **The user named what follows:** *"On Linux it will be even worse because it has to also come through this computer's operating system."* ✅ **SO A LINUX FIGURE WORSE THAN `396.7 ms` ON THE SAME FIXTURE IS ANTICIPATED — ⛔ NOT a regression against [I-0213], and NOT a new Issue on its own.** ⛔ **NOTHING HAS BEEN MEASURED ON LINUX YET; ✅ this is an EXPECTATION TO TEST AGAINST, not a claim about the rig.** ⚠️ **When the Linux editor shell is built, the structural ops MUST be timed with the SAME `[SCRIVI-STRUCT]`-style instrumentation** — ✅ **[I-0213] proved the cost was UNATTRIBUTABLE until each op reported its own number, and that three code-read diagnoses were wrong before it did.** | **Low** | ⛔ **UNASSIGNED — awaiting its OWN Epic.** ✅ **SCOPE RULED 2026-09-26 ([EP-043] [R-Q5], user-approved): it becomes its OWN `[Linux]` Epic, SEQUENCED AFTER [EP-043]** — ⛔ **NOT ACs inside it.** ⚠️ **THIS ROW PREVIOUSLY SAID *"sequenced WITH or after"*; ✅ it is AFTER, and [EP-043]'s record now says the same** — ⛔ **the two records disagreed and no longer do.** ✅ **WHY NOT FOLDED IN: this Issue is FOUR Apple Sprints deep ([SP-134]–[SP-137]), and folding it into a SESSION Epic would repeat the [EP-035] AC1 collapse [I-0178] cites.** ✅ **THE COLLISION IS ALREADY HANDLED: [SP-145] carries a NAMED CARVE-OUT** — ⚠️ **its extraction takes `inspectorVisible_` + `timelineVisible_` onto the session object** (⛔ **per-project state, not per-widget**), ✅ **so this Epic will NOT have to re-open `EditorShell` for pane state.** ⚠️ **Of this Issue's THREE measured gaps, ONLY pane-visibility overlapped, and that is the carve-out** | 🔵 **Open**  |
 | **I-0192** | `[ScriviCore]` ⚠️ **A world on a PHYSICALLY REMOVED volume resolved `available`, and a full object read SUCCEEDED through it, until a scene change forced a re-resolve.** ⚠️ **Found by the USER on the REAL RIG during T-0477's S3 physical yank, 2026-09-07.** ⚠️ **RE-SCOPED 2026-09-07 from `[Linux]` to `[ScriviCore]` after reading the code — ⚠️ MY ORIGINAL DIAGNOSIS WAS WRONG.** ⚠️ **I filed this as an app-layer 'cached status with no invalidation' and as a placeholder dialog reusing a name it already held. ✅ **The code says otherwise, and the truth is WORSE:** `EditorShell::onOpenObjectRequested` (`EditorShell.cpp:~1790`) calls `bridge_->openObject(...)`, checks `lastCallFailed()`, and ⚠️ **parses the displayed name out of the `objectJson` THAT CALL RETURNED** — its own comment reads *"the object is genuinely read here."* ⚠️ **There is no app-side status cache to go stale.** ✅ **The read is guarded end-to-end**: `ObjectStore::open` → `findByID` → `kindDirFor` (`ObjectStore.cpp:~250`), which calls `WorldStore::resolve()` and ⚠️ **refuses unless status is `available`.** ✅ **And `resolve` caches NO verdict** — it sets `available` only after actually reading and parsing `world.json` from the candidate path (`WorldStore.cpp:337-342`). ⚠️ **SO THE DEFECT IS NOT STALENESS ANYWHERE — the filesystem itself answered successfully for a volume that was physically gone**, and every layer above correctly trusted a correct answer. ⚠️ **The likely mechanism is the PAGE CACHE / unreaped dentries**, which ✅ **the 2b container pass ALREADY measured in a stronger form**: a held FD survived `umount -l` + `losetup -D` entirely, reading and writing fine while the PATH broke instantly. ⚠️ **THIS IS I-0181's SIBLING, NOT ITS OPPOSITE**: I-0181 is `resolve` inferring absence it cannot prove; ⚠️ **I-0192 is `resolve` inferring PRESENCE it cannot prove** — ✅ **and `read succeeded` is no more proof of a mounted volume than `directory exists` is proof of a deleted one.** ⚠️ **T-0498's `st_dev` primitive is plausibly the SAME fix for both** — ⚠️ **but that must be MEASURED, not assumed.** ⚠️ **PARTIALLY MEASURED 2026-09-07 (over SSH, drive already out): the STEADY STATE is CORRECT** — `scrivi_get_world_status` returns ✅ **`unavailable`** (not `missing`), with `packagePath` empty and `lastKnownPackagePath` preserved, ⚠️ **stable across repeated calls**, and ✅ **`binding.json` stores no status key at all** — ⚠️ **so there is no persisted verdict to go stale.** ⚠️ **Therefore I-0192 is a TRANSIENT WINDOW, not a stuck verdict** — ⚠️ **severity lowered accordingly.** ⚠️ **The decay-vs-persist question across the yank itself is STILL OPEN and needs the sampled run.** | **Low** | ✅ **[EP-044]** `[ScriviCore]` **World Resolution** — ⚠️ **assigned 2026-09-22 by user ruling.** ✅ **AC3.** ⛔ **Its former candidate home, T-0498, is CLOSED and VERIFIED** — ⚠️ **so this had no owner at all; ✅ [EP-044] carries T-0498's unfinished work by design** | 🔵 **Open** |
 
+
+## I-0300
+
+**Title:** After a new chapter (Ctrl+Shift+Return) or a mid-scene split (Ctrl+Return), the caret does not move into what was created
+**Status:** ✅ **Resolved - Not Verified** (2026-10-13) — ruled into [SP-180] (user, 2026-10-13: *"do the new Issue now as well"*)
+**Platform:** `[Linux]`
+**Component:** `EditorShell::onCreateChapterRequested`, `onCreateSceneRequested` (mid-scene path)
+**Severity:** Low — the writer clicks into the new chapter; nothing is lost
+**Sprint:** [SP-180]
+**Date Identified:** 2026-10-13 (user, [SP-180] live pass step 24: *"When I hit Ctrl-Shift-Return in Step 24, the caret remained in Chapter 1 instead of moving on to Chapter 2."*)
+
+**Cause (read):** both paths call `load(…)`, which reloads ASYNCHRONOUSLY (a worker, [T-0499]), then at once call
+`moveCaretToSegment` / `selectNavigatorScene` — on the document the reload is about to replace. When the reload lands, it
+places the caret from the restored writing surface instead. [SP-180]'s structured paste hit the same trap and waits for
+`loadFinished` (`reloadThenPlaceCaret`).
+
+**Fix direction:** place the caret when the reload has finished, through the same `reloadThenPlaceCaret`, with a smoke check
+that fails first.
+
+**Resolution (2026-10-13):**
+- **`EditorShell::reloadThen(after)`:** runs `after` once the asynchronous reload has landed, and `placeCaret(sceneID, byte)`
+  is shared with the structured paste.
+- **Moved into `after`:**
+  - the new chapter's caret and its I-0063 renumber, which also read the pre-split document;
+  - the mid-scene split's caret;
+  - the scene merge's seam caret;
+  - the chapter merge's caret.
+- **Tests:** `undo_smoke` §5 (the split's caret), §4b (the merge's seam), §7 (a new chapter mid-scene, and at the END of the
+  last scene, the rig's step 24).
+  - The step-24 case is red before the fix (caret at 103, want 150).
+  - The other two pass either way: the reload's restore happens to land there. They are guards, not proofs.
+  - Docker: `undo_smoke`, `structured_paste_smoke`, `scene_merge_smoke`, `scene_create_smoke` and `chapter_reorder_smoke` pass.
+
+**To verify (rig):** at the end of the last scene press Ctrl+Shift+Return. The caret is in the new chapter's blank scene.
+
+---
+
+## I-0299
+
+**Title:** The Mac's reopen takes scenes written by Linux on the share, and scenes the Mac pasted into, for outside edits
+**Status:** 🔵 **Open** — ruled into [SP-180] (user, 2026-10-13); reproduce before any fix
+**Platform:** `[ScriviCore]` (the saved-bytes baseline, [I-0104] / [I-0296]); reached from both
+**Severity:** Medium — nothing is lost, but undo stops at a false *"This scene was changed outside Scrivi"*
+**Sprint:** [SP-180]
+**Date Identified:** 2026-10-13 ([SP-180] live pass, step 39)
+
+**Measured (the project's own history log, `dumas-prose-timelines`, UTC):**
+- Linux undid a structured paste at 21:08:02 (the core's uncut wrote scene `…d97a6d134813`) and pasted at 21:17:29 (the core
+  wrote `…bb0f621e6f95`). The Mac's reopen at 21:21:12 raised `externalChange` for exactly those two scenes.
+- The Mac pasted at 21:29:17 (its own session) and did a cross-scene delete at 21:33:12. Its reopen at 21:36:42 raised
+  `externalChange` for the two scenes it had pasted into and deleted from (`…0d7e9c547b11`, `…1dfc91282744`). That one is
+  Mac-only.
+- [I-0296]'s fix is in build 73 (commit `139e532`); the same sequence on local disk passed (step 34, and the tests).
+
+**Unknown:** why the recorded bytes did not hold here — the share, how those sessions ended (several quits), or a path the
+tests do not cover. ⛔ No fix before a reproduction.
+
+**Probes (2026-10-13):**
+- ✅ A Mac cross-scene delete followed by a CLEAN close and reopen flags nothing (interop `crossSceneDeleteThenReopen`, kept
+  as a guard).
+- ✅ The Mac's save path records its bytes (`saveSceneBlocking` → `noteScenePersisted`).
+- ✅ The [I-0296] path passes on local disk (tests, and rig step 34).
+- ⚠️ **A clean close leaves no mark in the log;** only `state.json` changes. So the log cannot show which of those sessions
+  ended cleanly.
+
+**Leading hypothesis (not proven):** the recorded bytes reach `state.json` ONLY when the history closes. A session that ends
+without closing loses every byte it recorded, and the next open flags each scene it wrote. That covers a force-quit, Xcode
+stopping or relaunching the app, and a crash. ⏳ Asked the user how those sessions ended. If it is this, the remedy is to
+record the bytes as they are written (an append-only log record, replayed at open) rather than only at close: a
+`scrivi.history.v1` change, to be ruled.
+
+---
+
+## I-0298
+
+**Title:** A structural undo into an earlier session skips the "Undoing changes from a previous session" warning
+**Status:** ✅ **Resolved - Not Verified** (2026-10-13) — ruled into [SP-180] (user, 2026-10-13)
+**Platform:** `[Apple]` and `[Linux]` — the same shape on both
+**Component:** Apple `ManuscriptTextView.swift` `apply(step:)`; Linux `EditorShell::applyHistoryStep`
+**Severity:** Low — the undo works; the writer is not told it reached into an earlier session
+**Sprint:** [SP-180]
+**Date Identified:** 2026-10-13 (user, [SP-180] live pass step 36: *"no dialog was shown warning us that we are undoing past
+the session boundary"*)
+
+**Cause (read):** the core reports `crossedSessionBoundary` on a structural step as on any other (`HistoryService.cpp`, the
+structural branch of `undo`). Both platforms return early for `structuralInverse` (Apple `apply(step:)` `:408`; Linux
+`applyHistoryStep`) — BEFORE the code that shows the warning (Apple `:458`; Linux at the end of `applyHistoryStep`).
+
+**Fix direction:** show the warning for a structural step too, on both platforms. A failing test first.
+
+**Resolution (2026-10-13):** both platforms show the warning after a structural step as after any other. Apple:
+`sessionBoundaryReached`, with an `onSessionBoundary` hook replacing the modal in tests. Linux: `warnIfSessionBoundary`.
+
+**Tests:**
+- **Mac** (interop `structuralUndoAcrossSessionsWarns`): paste, reopen in a new session, undo. Red without the fix (0
+  warnings); 290/290 with it.
+  - The first version passed the wrong way: with nothing before the paste, the undo lands on the history's root, which belongs
+    to no session. The test now edits first, as the rig's case had real work underneath.
+- **Linux** (`structured_paste_smoke` §7, the Mac's paste undone on Linux): red without the fix. The new mutation
+  `no-structural-session-warning` is caught.
+  - §7 now keeps one Linux edit before the Mac's paste, for the same reason.
+
+**To verify:** quit and reopen after a cross-scene paste, then Ctrl+Z / ⌘Z. "Undoing changes from a previous session" appears.
+
+---
+
+## I-0297
+
+**Title:** A structured paste, its undo and its redo freeze the UI for 90 s – 2 min on a project over the network share
+**Status:** ✅ **Resolved - Not Verified** (2026-10-13) — ruled into [SP-180] (user, 2026-10-13); measured, then fixed
+**Platform:** `[Linux]` (the Mac runs the same ScriviCore calls on its main thread, but on local disk)
+**Component:** `EditorShell::pasteFragment`, `applyStructuralInverse`; ScriviCore `scrivi_fragment_*` and `noteScenesWritten`
+**Severity:** High — the app looks hung; on the writer's real setup structured paste is unusable
+**Sprint:** [SP-180]
+**Date Identified:** 2026-10-13 (user, [SP-180] live pass: step 36's undo froze *"something like 90 seconds"*; step 37's
+paste *"froze for 2 minutes"*, its undo *"1:30 ? maybe?"*)
+
+**Measured:** in Docker on local disk, on 1,186 scenes, a paste + reload is 436 ms and an undo + reload 393 ms
+(`structured_paste_smoke` §8). The rig opens the same project from the share in ~4–5 s (off the UI thread, with progress). The
+history log shows each operation completing; the freeze came before the reload's progress bar.
+
+**Likely cause (read, NOT measured):** these run on the UI thread, and over the share every call that has to FIND scenes
+walks the manuscript's folders (the cost [I-0196] / [I-0285] measured):
+- `scrivi_fragment_*` drop the project index on both sides (`ProjectIndexInvalidation`) and resolve through the walking
+  locator;
+- [I-0296]'s `noteScenesWritten` looks each written scene up with `ManuscriptOrderResolver::findScene`, a walk per scene;
+- `readSceneTexts` afterwards rebuilds the index that was just dropped.
+
+**Fix direction:** first COUNT the filesystem calls one structured paste makes (`CountingFileSystem`, as [I-0207] did) and time
+each phase on the rig. Then cut the walks, and move the structural work off the UI thread with the progress bar, as opening
+already does. ⚠️ The count guard must fail before the fix.
+
+**Measured (2026-10-13, `strace` in Docker, 1,186 scenes, `structured_paste_smoke` §8 with markers).** `CountingFileSystem`
+cannot reach the C ABI's own file system, so this measured the real Linux app.
+
+| | UI thread before | UI thread after | Other threads after |
+| - | - | - | - |
+| Structured paste | 7,683 calls (6,642 scene sidecars) | **16** | 7,697 |
+| Structural undo | 4,966 (4,244 sidecars) | **16** | 8,767 |
+
+Before the fix, the paste's UI-thread walks were:
+- the core's index rebuild (its deliberate drop on entry, EP-039 AC5b), about 2,372 sidecar reads;
+- [I-0296]'s `noteScenesWritten` finding each written scene (922 + 922);
+- Linux re-reading the written texts, which rebuilt the index the paste had just dropped (2,374).
+
+About 4,200 of those sidecar reads came from SP-180's own code.
+
+**Resolution:**
+- **ScriviCore:** `FragmentPaster` returns what it wrote (`writtenTexts`, `survivingText`).
+  - `scrivi_fragment_paste` and `scrivi_fragment_uncut_paste` record those bytes without looking anything up, and return them
+    as `sceneTexts` (additive).
+  - The collapsing cut keeps its lookup; neither platform calls it.
+  - ⛔ The index drop on entry is unchanged: it is load-bearing (EP-039 AC5b).
+- **Linux and Apple:** use the returned `sceneTexts` instead of reading the scenes back.
+- **Linux:** `EditorShell::runStructural` runs the ScriviCore call on a worker (`AsyncCall`, the open's budget) with the
+  progress row ("Pasting…", "Undoing…", "Redoing…"). The editor is read-only and `loading_` is set until the reload lands,
+  so undo, redo and the buffer actions wait.
+- **Tests:** `CaptureCApiTests` `[I-0296]` checks the returned `sceneTexts` against the files. ctest macOS 721/721 and
+  Linux 724/724; 32/32 Linux smokes; interop 290/290. The strace counts above are the measurement; ⚠️ there is no CI count
+  guard, because the C ABI's file system cannot be swapped in a test.
+
+**To verify (rig, over the share):** a cross-scene paste and its undo in dumas-prose-timelines. The editor stays responsive
+behind the progress row; the paste completes.
+
+---
 
 ## I-0296
 
@@ -277,6 +446,10 @@ fixed), [EP-019] AC7 (barriers).
 - ⛔ **The `externalChange` repair DID corrupt at the next open** — measured 2026-10-12 as [I-0288], fixed the same day in [SP-178].
 
 ---
+
+*Last Updated: 2026-10-13 — **I-0297, I-0298, I-0300 → Resolved - Not Verified**; I-0299 probed (hypothesis: sessions that ended without closing).*
+
+*Last Updated: 2026-10-13 — **I-0297–I-0300 filed** from [SP-180]'s rig live pass (freeze over the share; no session warning on a structural undo; outside-edit flags at the Mac's reopen; caret after a new chapter); all ruled into [SP-180].*
 
 *Last Updated: 2026-10-13 — **I-0296 → Resolved - Not Verified** (fixed in the core, [SP-180]).*
 

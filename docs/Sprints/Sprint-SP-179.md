@@ -8,7 +8,7 @@ created: 2026-10-12
 
 # SP-179 — `[Linux]` [EP-026] **S5**: copy buffers 1–9, View ▸ Show Buffers (Ctrl+Alt+B) and the Buffers palette
 
-**Status:** 🟡 **ACTIVE 2026-10-12** (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ✅ Linux steps 1–7 IMPLEMENTED 2026-10-12 (user: *"proceed with the SP-179 implementation."*); ⏳ AC8 rig live pass.
+**Status:** 🟡 **ACTIVE 2026-10-12** (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ✅ Linux steps 1–7 IMPLEMENTED 2026-10-12 (user: *"proceed with the SP-179 implementation."*); ✅ AC8 rig live pass PASSED 2026-10-13 (user). ⏳ Close awaits the user.
 **Carries:** [T-0606] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
 [`../Epics/Epic-active.md`](../Epics/Epic-active.md). ⚠️ **Planned BEFORE S3 and S4** on my recommendation (user: *"start planning S5"*): it depends least on
@@ -134,7 +134,7 @@ change Q2 ruled ([I-0289]: the three buffer gaps + the stale comment) — ⛔ no
 - [x] AC5 — View ▸ Show Buffers (Ctrl+Alt+B) toggles ONE app-wide palette that follows the front project window: nine rows, presented preview, time, a modifier-following action button, clear; disabled with no project open; closing it unchecks the menu item — `buffers_smoke` §9–12 (two real windows through `AppEnvironment`)
 - [x] AC6 — Copy into a slot is balanced or raw per Q2; a cross-scene copy/cut per Q1 — balanced (§1, §3); cross-scene = flat text (§7)
 - [x] AC7 — Smokes green through the real key dispatch, mutation-checked; `bridge_parity_smoke` covers the four endpoints; ctest green on macOS and Linux — Linux (Docker, clean build): ctest 721 test cases as uid 1000, smokes **31/31**, no warnings; 7 mutations all caught; `bridge_parity_smoke` 60 checks. macOS ctest 718/718 is from earlier today — ⚠️ no ScriviCore change since, so not re-run
-- [ ] AC8 — ✅ **Rig live pass (user)** — every chord measured against GNOME over RDP
+- [x] AC8 — ✅ **Rig live pass (user) — PASSED 2026-10-13** (build 73, steps 13–23). Every chord measured against GNOME over RDP; Ctrl+1 is taken by the macOS freerdp client, not Scrivi (ruled not a defect)
 
 ---
 
@@ -230,3 +230,13 @@ Apple Issues of step 0 are verified. ⏳ Next: Linux, plan steps 1–8.
 A cross-scene Ctrl+N / Alt+N now stores the fragment, and Ctrl+Shift+N rebuilds the scene breaks, including for a slot the
 Mac filled. Q1's flat paste and its *"…pasted as plain text"* notice are gone, and `buffers_smoke` §8 is retired: covered by
 `structured_paste_smoke` §5. ⚠️ This Sprint's live pass (AC8) should expect the rebuild, not the notice.
+
+### 🟡 2026-10-13 — Rig live pass (build 73): steps 13–23 PASS
+
+✅ User: every chord, the palette, the modifier-following button, ✕, closing with its own button, the second project window
+and Edit ▸ Paste From Buffer passed.
+- **Ctrl+1 over freerdp on macOS** switched Mac desktops, so the user copied with Edit ▸ Copy To Buffer ▸ 1. That is the
+  client, not Scrivi; on the rig's own keyboard Ctrl+1 reaches the app. ✅ Ruled not a defect (user: *"let's not 'fix'
+  it"*).
+- A slot filled on the Mac pasted with its scene break (step 37) but froze the UI over the share. That's [I-0297], in
+  [SP-180].

@@ -41,6 +41,8 @@
 #include <cstdio>
 #include <memory>
 
+#include <fcntl.h>
+
 namespace {
 
 int failures = 0;
@@ -450,6 +452,12 @@ int main(int argc, char** argv)
     }
 
     // ── 7. A history made on the MAC: a `structuredPaste`, then an old collapsing `structuredCut` ───────────────────
+    // An edit KEPT on Linux first, so the Mac's paste sits on real work from an earlier session — an undo across it
+    // crosses a session boundary ([I-0298]), as in the rig's step 36.
+    rig.caretAt(QStringLiteral("Delta two."));
+    rig.type(QStringLiteral(" Kept"));
+    const QString D2 = D + QStringLiteral(" Kept");
+    const QStringList kept{A, B, C, D2};
     rig.close();
     {
         // The Mac pastes [none "Mac one", scene "Mac two"] at "Delta one.|", the way `pasteStructuredFragment` records it.
@@ -474,19 +482,24 @@ int main(int argc, char** argv)
         ScriviBridge::captureRecordBarrier(rig.projectDir, compact(QJsonObject{
             {QStringLiteral("barrierKind"), QStringLiteral("structuredPaste")}, {QStringLiteral("note"), QStringLiteral("mac")},
             {QStringLiteral("structuralPayload"), payload}, {QStringLiteral("sceneTexts"), after},
-            {QStringLiteral("sceneTextsBefore"), QJsonObject{{s.at(3).sceneID, D}}}}));
+            {QStringLiteral("sceneTextsBefore"), QJsonObject{{s.at(3).sceneID, D2}}}}));
         ScriviBridge::historyClose(rig.projectDir);
         rig.bridge.closeProject(rig.projectDir);
     }
-    const QStringList macPasted{A, B, C, QStringLiteral("Delta one.Mac one"), QStringLiteral("Mac two Delta two.")};
+    const QStringList macPasted{A, B, C, QStringLiteral("Delta one.Mac one"), QStringLiteral("Mac two Delta two. Kept")};
     check(rig.texts() == macPasted, QStringLiteral("(the Mac's paste, on disk): %1").arg(shown(rig.texts())));
     check(rig.load(), QStringLiteral("reopened after the Mac's paste"));
+    notices.clear();
     check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's paste reloaded"));
-    check(rig.texts() == base, QStringLiteral("the Mac's paste undone on Linux: %1").arg(shown(rig.texts())));
+    // [I-0298]: the undo crossed into an earlier session — the warning, as for any undo.
+    check(notices.contains(QStringLiteral("Undoing changes from a previous session")),
+          QStringLiteral("[I-0298] the previous-session warning after a structural undo (notices: %1)")
+              .arg(notices.join(QStringLiteral(" | "))));
+    check(rig.texts() == kept, QStringLiteral("the Mac's paste undone on Linux: %1").arg(shown(rig.texts())));
     check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z reloaded"));
     check(rig.texts() == macPasted, QStringLiteral("and redone on Linux: %1").arg(shown(rig.texts())));
     check(rig.undoStructural(), QStringLiteral("(undone again)"));
-    check(rig.texts() == base, QStringLiteral("(undone again): %1").arg(shown(rig.texts())));
+    check(rig.texts() == kept, QStringLiteral("(undone again): %1").arg(shown(rig.texts())));
 
     rig.close();
     {
@@ -517,14 +530,17 @@ int main(int argc, char** argv)
         ScriviBridge::historyClose(rig.projectDir);
         rig.bridge.closeProject(rig.projectDir);
     }
-    const QStringList collapsed{QStringLiteral("Alpha one.  Bravo two."), C, D};
+    const QStringList collapsed{QStringLiteral("Alpha one.  Bravo two."), C, D2};
     check(rig.texts() == collapsed, QStringLiteral("(the Mac's old cut, on disk): %1").arg(shown(rig.texts())));
     check(rig.load(), QStringLiteral("reopened after the Mac's cut"));
     check(rig.undoStructural(), QStringLiteral("Ctrl+Z over the Mac's cut reloaded"));
-    check(rig.texts() == base, QStringLiteral("the Mac's collapsing cut undone on Linux — scenes and text back: %1").arg(shown(rig.texts())));
+    check(rig.texts() == kept, QStringLiteral("the Mac's collapsing cut undone on Linux — scenes and text back: %1").arg(shown(rig.texts())));
     check(rig.redoStructural(), QStringLiteral("Ctrl+Shift+Z reloaded"));
     check(rig.texts() == collapsed, QStringLiteral("and redone on Linux: %1").arg(shown(rig.texts())));
-    check(notices.isEmpty(), QStringLiteral("no notices (got: %1)").arg(notices.join(QStringLiteral(" | "))));
+    for (const QString& n : std::as_const(notices)) {
+        check(!n.contains(QStringLiteral("outside Scrivi")),
+              QStringLiteral("no outside-change barrier after the Mac's own writes (got: %1)").arg(n));
+    }
 
     std::printf("structured paste: paste + reload %lld ms (5 scenes)\n", static_cast<long long>(pasteMs));
     rig.close();
@@ -578,10 +594,16 @@ int main(int argc, char** argv)
         big.select(QStringLiteral("best of times 600, it was"), QStringLiteral("best of times 601, it was"));
         big.copy();
         big.caretAt(QStringLiteral("best of times 900, it was"));
+        // Markers for a syscall trace ([I-0297]): a filesystem probe of a path that never exists, so `strace` can split
+        // the calls one structured paste makes — and on which thread.
+        (void)::open("/scrivi-mark/paste-begin", O_RDONLY);   // fails: ENOENT
         check(big.paste(), QStringLiteral("the large paste reloaded"));
+        (void)::open("/scrivi-mark/paste-end", O_RDONLY);   // fails: ENOENT
         std::printf("measure: structured paste + reload %lld ms\n", static_cast<long long>(big.lastReloadMs));
         check(big.manuscript().size() == 1187, QStringLiteral("one scene more after the paste"));
+        (void)::open("/scrivi-mark/undo-begin", O_RDONLY);   // fails: ENOENT
         check(big.undoStructural(), QStringLiteral("the large undo reloaded"));
+        (void)::open("/scrivi-mark/undo-end", O_RDONLY);   // fails: ENOENT
         std::printf("measure: structural undo + reload %lld ms\n", static_cast<long long>(big.lastReloadMs));
         check(big.manuscript().size() == 1186, QStringLiteral("back to 1,186 after the undo"));
         big.close();

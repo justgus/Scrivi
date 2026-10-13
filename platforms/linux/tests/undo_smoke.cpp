@@ -276,6 +276,15 @@ int main(int argc, char** argv)
     notices.clear();
     const QString merged = rig.disk(0);
     check(merged.contains(QStringLiteral("Bravo two.")), QStringLiteral("the merge joined the scenes (got: \"%1\")").arg(merged));
+    {
+        // [I-0300]: the caret lands at the JOIN SEAM — the end of the predecessor's own text, before the blank-line join —
+        // once the reload has finished (it was placed on the document the reload replaced).
+        const int seam = rig.editor->document()->find(QStringLiteral("Bravo two.")).selectionStart()
+                         - (merged.contains(QStringLiteral("\n\nBravo two.")) ? 2 : 0);
+        check(rig.editor->textCursor().position() == seam,
+              QStringLiteral("[I-0300] after a merge the caret is at the seam (at %1, want %2)")
+                  .arg(rig.editor->textCursor().position()).arg(seam));
+    }
     rig.caretAt(QStringLiteral("Bravo two."));
     rig.type(QStringLiteral(" Joined."));
     rig.undo();
@@ -298,6 +307,11 @@ int main(int argc, char** argv)
     }
     rig.editor->setFocus();
     Rig::settle();
+    // [I-0300]: the caret lands at the start of the new (tail) scene — placed AFTER the asynchronous reload, not before it.
+    check(rig.editor->textCursor().position() == rig.editor->document()->find(QStringLiteral("Then more")).selectionStart(),
+          QStringLiteral("[I-0300] after the split the caret is at the start of the new scene (at %1, want %2)")
+              .arg(rig.editor->textCursor().position())
+              .arg(rig.editor->document()->find(QStringLiteral("Then more")).selectionStart()));
     check(rig.shell->history() == before && before->isOpen(), QStringLiteral("the split's reload kept the SAME history"));
     notices.clear();
     rig.undo();
@@ -325,6 +339,42 @@ int main(int argc, char** argv)
     for (const QString& n : std::as_const(notices)) {
         check(!n.contains(QStringLiteral("outside Scrivi")),
               QStringLiteral("no external-change barrier after the split's own writes (got: %1)").arg(n));
+    }
+
+    // ── 7. [I-0300] A new chapter mid-scene (Ctrl+Shift+Return): the caret moves INTO the new chapter ─────────────────
+    rig.caretAt(QStringLiteral("two."), /*before=*/true);
+    {
+        QEventLoop loop;
+        QObject::connect(rig.shell.get(), &EditorShell::loadFinished, &loop, &QEventLoop::quit);
+        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier);
+        loop.exec();
+    }
+    Rig::settle();
+    check(rig.editor->textCursor().position() == rig.editor->document()->find(QStringLiteral("two.")).selectionStart(),
+          QStringLiteral("[I-0300] after a new chapter the caret is at the start of its first scene (at %1, want %2)")
+              .arg(rig.editor->textCursor().position())
+              .arg(rig.editor->document()->find(QStringLiteral("two.")).selectionStart()));
+    // …and at the END of the last scene (the rig's step 24): a new, EMPTY chapter — the caret goes into its blank scene.
+    {
+        QTextCursor end = rig.editor->textCursor();
+        end.movePosition(QTextCursor::End);
+        rig.editor->setTextCursor(end);
+        QApplication::processEvents();
+        QEventLoop loop;
+        QObject::connect(rig.shell.get(), &EditorShell::loadFinished, &loop, &QEventLoop::quit);
+        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        QTest::keyClick(rig.editor, Qt::Key_Return, Qt::ControlModifier | Qt::ShiftModifier);
+        loop.exec();
+    }
+    Rig::settle();
+    {
+        QTextCursor docEnd(rig.editor->document());
+        docEnd.movePosition(QTextCursor::End);
+        check(rig.editor->textCursor().position() == docEnd.position(),
+              QStringLiteral("[I-0300] after a new chapter at the end, the caret is in its blank scene (at %1, want %2)")
+                  .arg(rig.editor->textCursor().position())
+                  .arg(docEnd.position()));
     }
 
     rig.close();

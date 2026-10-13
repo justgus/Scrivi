@@ -975,8 +975,10 @@ const char* scrivi_fragment_cut(const char* projectRootPath,
  * normalisation are SP-089 preconditions). identity/persona/displayName authorise the create
  * primitives.
  *
- * result: { targetSceneID, createdSceneIDs:[...], createdChapterIDs:[...] } — the created IDs
- * are in reading order (for history/undo, §5). invalidArgument if the fragment is empty, the
+ * result: { targetSceneID, createdSceneIDs:[...], createdChapterIDs:[...], sceneTexts:{sceneID: body} } — the created
+ * IDs are in reading order (for history/undo, §5); sceneTexts [I-0297] is the body it WROTE to the target and every
+ * created scene, exactly as on disk (no need to read them back). While the project's history is open, those writes are
+ * recorded as Scrivi's own [I-0296]. invalidArgument if the fragment is empty, the
  * caret scene is unknown, or the caret offset exceeds the scene body. Standard envelope
  * conventions (heap JSON, free with scrivi_free). Design §4.2. */
 const char* scrivi_fragment_paste(const char* projectRootPath,
@@ -998,7 +1000,8 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
  * `fragmentJson` is the same scrivi.fragment.v1 that was pasted (its piece lengths drive the
  * strip). `targetSceneID` is the scene the paste split. `createdIDsJson` is an object
  * { "sceneIDs":[...], "chapterIDs":[...] } listing exactly what the paste created (as reported by
- * scrivi_fragment_paste); absent keys ⇒ empty. result: { survivingSceneID }. invalidArgument if
+ * scrivi_fragment_paste); absent keys ⇒ empty. result: { survivingSceneID, sceneTexts:{survivingSceneID: body} } —
+ * sceneTexts [I-0297] is the restored body as written. invalidArgument if
  * the fragment is empty, the target/created scenes are unknown, or a scene body does not match the
  * pasted piece text it should bound (a state this fragment's paste could not have produced). */
 const char* scrivi_fragment_uncut_paste(const char* projectRootPath,

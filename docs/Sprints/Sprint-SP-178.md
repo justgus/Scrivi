@@ -119,15 +119,15 @@ surfaced, not slipped in. ✅ **Two were found and ruled IN: [I-0287] (2026-10-1
 
 ## Acceptance Criteria
 
-- [ ] AC1 — Typing on Linux makes the steps the core decides (EP-019 AC1/AC2): one step per sentence, Return its own step, no step for a caret move or an autosave
-- [ ] AC2 — Ctrl+Z / Ctrl+Shift+Z undo and redo from the keyboard and Edit ▸ Undo / Redo, restoring text, caret and the scene file; enabled only when possible; ⛔ Ctrl+Y does nothing; measured against GNOME on the rig
-- [ ] AC3 — History survives a quit; the first undo into a previous session warns once with its time (EP-019 AC3); a clean reopen raises no external-change barrier
-- [ ] AC4 — Split, merge and delete of scenes and chapters stop undo with Apple's notice (EP-019 AC7); a structural reload does not start a new session
-- [ ] AC5 — A cross-scene ⌫ / ⌦ / Ctrl+X is ONE undo step restoring every scene ([I-0270]); a paste is one step
+- [x] AC1 — Typing on Linux makes the steps the core decides (EP-019 AC1/AC2): one step per sentence, Return its own step, no step for a caret move or an autosave — ✅ rig live pass 2026-10-13 (steps 4–12)
+- [x] AC2 — Ctrl+Z / Ctrl+Shift+Z undo and redo from the keyboard and Edit ▸ Undo / Redo, restoring text, caret and the scene file; enabled only when possible; ⛔ Ctrl+Y does nothing; measured against GNOME on the rig — ✅ rig live pass 2026-10-13 (steps 4–12)
+- [x] AC3 — History survives a quit; the first undo into a previous session warns once with its time (EP-019 AC3); a clean reopen raises no external-change barrier — ✅ rig live pass 2026-10-13 (steps 4–12)
+- [x] AC4 — Split, merge and delete of scenes and chapters stop undo with Apple's notice (EP-019 AC7); a structural reload does not start a new session — ✅ rig live pass 2026-10-13 (steps 4–12)
+- [x] AC5 — A cross-scene ⌫ / ⌦ / Ctrl+X is ONE undo step restoring every scene ([I-0270]); a paste is one step — ✅ rig live pass 2026-10-13 (steps 4–12)
 - [ ] AC6 — A history made on the Mac undoes on Linux (same file); a structural node from the Mac is handled per Q2
-- [ ] AC7 — Smokes green through the real key dispatch, mutation-checked; ctest green on macOS and Linux
+- [x] AC7 — Smokes green through the real key dispatch, mutation-checked; ctest green on macOS and Linux — ✅ (see the 2026-10-11/12 entries; re-run green 2026-10-13: ctest Linux 724/724, 32/32 smokes)
 - [ ] AC8 — ✅ **Rig live pass (user)**
-- [ ] AC9 — [I-0287]: after a split or merge, undoing the next edit in an affected scene returns it to its text right AFTER the op (core + Apple + Linux; tested through `scrivi_*` and Linux's real keys)
+- [x] AC9 — [I-0287]: after a split or merge, undoing the next edit in an affected scene returns it to its text right AFTER the op (core + Apple + Linux; tested through `scrivi_*` and Linux's real keys) — ✅ rig live pass 2026-10-13 (steps 4–12)
 - [x] AC10 — ✅ **VERIFIED 2026-10-12 (user)** — [I-0288]: after an outside edit, undo in a LATER session returns the scene to the outside text — never a mix with the old text; logs written before the fix open correctly (tested through `scrivi_*`)
 
 ---
@@ -253,3 +253,13 @@ ScriviCore change (+ both platforms' split/merge paths), which this Sprint said 
 A structural node from the Mac (`structuredPaste`, `structuredCut`) is now REPLAYED on Linux: [SP-180]'s
 `applyStructuralInverse`, tested by `structured_paste_smoke` §7. Q2's step-back-over and its *"Undo it on the Mac for now"*
 notice are gone. ⚠️ This Sprint's live pass (AC6) should expect the replay, not the notice.
+
+### 🟡 2026-10-13 — Rig live pass (build 73), run together with [SP-179] and [SP-180]
+
+- ✅ **Steps 4–12 pass** (user): one step per sentence and Return its own step; Ctrl+Z / Ctrl+Shift+Z; Ctrl+Y does nothing;
+  the menu items' enabled state; a caret move or autosave makes no step; the previous-session warning once after a quit; the
+  split and merge notices with [I-0287]'s undo; the cross-scene delete as one step.
+  - The extra Ctrl+Z at the end is the user's trailing space, which undo holds as its own step until real text follows. As
+    designed.
+- **AC6** (a history made on the Mac): the Mac's structured paste undid and redid on Linux, but the session warning was
+  missing ([I-0298]) and the UI froze ([I-0297]). Both are being fixed in [SP-180]; AC6 waits for the re-run.

@@ -166,6 +166,10 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-13 (**I-0297, I-0298, I-0300 → Resolved - Not Verified** in [SP-180]; I-0299 open: probed, a hypothesis to confirm.)*
+
+*Last Updated: 2026-10-13 (**I-0297–I-0300 filed** from [SP-180]'s rig live pass, all ruled into [SP-180]: I-0297 `[Linux]` freeze over the share · I-0298 `[Apple]` `[Linux]` session warning skipped on a structural undo · I-0299 `[ScriviCore]` false outside-edit flags · I-0300 `[Linux]` caret after a new chapter.)*
+
 *Last Updated: 2026-10-13 (**I-0296 → Resolved - Not Verified** — the fragment endpoints record the bytes they write.)*
 
 *Last Updated: 2026-10-13 (**I-0295** `[Apple]` filed + Resolved - Not Verified ([SP-180] Q2: a structured paste replaces a selection); **I-0296** `[Apple]` filed: a structured paste is taken for an outside edit at the next open.)*
