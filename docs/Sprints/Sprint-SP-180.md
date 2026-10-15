@@ -279,3 +279,69 @@ The user ran SP-178, SP-179 and SP-180 together.
     lose every recorded byte.
   - ⏳ Asked the user.
 - **Runs:** ctest macOS 721/721, Linux 724/724 (uid 1000); 32/32 Linux smokes, no warnings; interop 290/290.
+
+### 🟡 2026-10-13 (evening) — Rig re-run, build 74
+
+- ✅ **[I-0300] passes** (user: step 5, *"yes the caret landed correctly"*).
+- **[I-0297]:** the undo of the Mac's paste over the share completes, but *"takes about 40 seconds"* (the log: 03:12:59 →
+  03:13:36 UTC). Down from about 90 s. ⏳ Whether that is acceptable is the user's call.
+- **[I-0299]:** every quit was clean, and no new false flag appeared. The "changed outside Scrivi" stops were yesterday's
+  barriers.
+- **The resume position:** Linux reopens where Linux last was, not where the Mac was. ✅ By design: `workspace-state.json`
+  lives outside the project, per device (Architecture v0.3, "confirmed correct"). Not a defect.
+- **Step 11** was recorded as a plain (flat) paste. Either the copy did not cross a scene break, or the structure had expired.
+  ⏳ Asked the user.
+- **New:** [I-0301] `[Apple]`, scroll jitter at the manuscript's start (user report). ⏳ Which Sprint is to be ruled.
+
+### 🟡 2026-10-14 — Rulings; [I-0299] proven; [I-0301] instrumented
+
+User: *"1. yes, the window kept redrawing … We can accept it for now, but I reserve the right to revisit it … 2. Ok, you may
+conduct your test. 3. Yes … we should fix it right now."*
+
+- **[I-0297]:** about 40 s over the share, accepted for now. The user reserves the right to revisit it.
+- **[I-0299] proven:** three processes through `scrivi_*`. A session that ends without closing its history loses the bytes it
+  recorded, and the next open flags them; the control with a clean close does not. The fix (record each save's bytes in the
+  log as it happens) is a `scrivi.history.v1` change. ⏳ It needs the user's ruling.
+- **[I-0301] ruled into SP-180.** Reading did not single out a cause, and [I-0204]'s three wrong code-read diagnoses argue
+  against guessing. `[SCRIVI-SCROLL]` diagnostics were added (marked to remove with the fix): the scroll wheel, every
+  `scrollRangeToVisible` with its callers, the three explicit clip scrolls, the restore re-centre, and document-height changes
+  or jumps. ⏳ The user reproduces it and pastes the console.
+
+### 🟡 2026-10-14 — [I-0299] fixed; [I-0301] not reproduced
+
+User: *"It didn't do it this time. Scrolled smoothly. I guess we'll need to keep an eye on it. yes, lets fix I-0299 in
+SP-180."*
+
+- **[I-0299]:** a `rec:"persisted"` log record per reported write (and per repair), replayed at open over `state.json`.
+  - The new fork-based test was red first; 3 mutations are caught.
+  - The I-0104 loop test now strips the records, so it still models a pre-fix log.
+  - Design doc A.1.d added.
+- **[I-0301]:** stays open. The `[SCRIVI-SCROLL]` diagnostics are now Debug-only, so the next occurrence is caught with
+  evidence.
+- **Runs:** ctest macOS 722/722, Linux 725/725 (uid 1000); 32/32 Linux smokes; interop 290/290.
+  - Linux's only warnings are the pre-existing ones in the test mock `DeterministicUUIDProvider.hpp` (unchanged since
+    `7d2bd5d`).
+
+### 🟡 2026-10-14 — [I-0299] second half; [I-0301] → backlog; [I-0302] filed
+
+User: *"detach I-0301 from SP-180 and move it to the backlog."*
+- **[I-0301]** moved to `Issue-backlog.md`, unassigned.
+- **The user's Mac check, first part:** the first ⌘Z only flashed. The history's newest step is a 14:56 `externalChange`
+  barrier, from a session killed by an Xcode relaunch while it ran the pre-fix build. The Mac disables Undo at a barrier, so
+  its notice never shows → **[I-0302]** `[Apple]`, filed; ⏳ ruling.
+- **The user's Mac check, second part, plus a probe:** the first half of [I-0299] had opened a data-loss path. Pending
+  typing at a crash was saved but never recorded, and undoing the next edit removed it.
+  - Fixed per the user's ruling (*"record the session close as a historical event"*): `ctl:close` plus
+    `closesRecorded`, and the saved-but-unrecorded difference recorded as a step after an unclean end.
+  - Red first; 2 mutations caught; design doc A.1.c updated.
+- **Runs:** ctest macOS 723/723, Linux 726/726; 32/32 Linux smokes; interop 290/290.
+
+### 🟡 2026-10-15 — [I-0302] fixed
+
+User: *"Ok fix it in SP-180."*
+
+- ScriviCore's capture results carry `atBarrier`. The Mac's Edit ▸ Undo and Linux's menu item stay available there, so the
+  undo shows the barrier's notice.
+- Red first, three times: the core test, the Mac interop test through `validateUserInterfaceItem`, and Linux `undo_smoke`
+  with the Linux change removed.
+- **Runs:** ctest macOS 724/724, Linux 727/727; 32/32 Linux smokes; interop 291/291.

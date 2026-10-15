@@ -8,8 +8,9 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
+| **I-0302** | `[Apple]` ⚠️ **When the newest history step is a barrier, ⌘Z only flashes the screen — the barrier's notice (e.g. "This scene was changed outside Scrivi; undo stops here") never appears.** Linux shows it. Reported by the user 2026-10-14. ✅ Fixed: Undo stays available at a barrier, on both platforms. → [details](#i-0302) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0300** | `[Linux]` ⚠️ **After Ctrl+Shift+Return (new chapter) — and a mid-scene Ctrl+Return — the caret stays where it was instead of moving into the new chapter or scene.** Found on the rig 2026-10-13 ([SP-180] live pass, step 24). ✅ Fixed: the caret is placed when the reload has finished (also after a merge). → [details](#i-0300) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
-| **I-0299** | `[ScriviCore]` ⛔ **A reopen on the Mac took scenes written by Linux over the network share — and two scenes the Mac itself had pasted into and deleted from — for OUTSIDE edits.** Found 2026-10-13 ([SP-180] live pass, step 39). ⏳ Leading hypothesis: sessions that ended without closing their history (a force-quit, or Xcode stopping the app). → [details](#i-0299) | **Medium** | [SP-180] | 🔵 **Open** |
+| **I-0299** | `[ScriviCore]` ⛔ **A reopen on the Mac took scenes written by Linux over the network share — and two scenes the Mac itself had pasted into and deleted from — for OUTSIDE edits.** Found 2026-10-13 ([SP-180] live pass, step 39). ✅ PROVEN 2026-10-14: a session that ends without closing its history (a force-quit, Xcode's Stop) lost the bytes it recorded. ✅ Fixed: each save's bytes are recorded in the log as they happen. → [details](#i-0299) | **Medium** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0298** | `[Apple]` `[Linux]` ⚠️ **An undo that crosses a structural step (a cross-scene paste) into an earlier session shows no "Undoing changes from a previous session" warning.** Found 2026-10-13 ([SP-180] live pass, step 36). ✅ Fixed on both platforms. → [details](#i-0298) | **Low** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0297** | `[Linux]` ⛔ **A structured paste, its undo and its redo FREEZE the UI for 90 s – 2 min on a project over the network share** (dumas-prose-timelines, 1,186 scenes). 436 ms in Docker on local disk. Found 2026-10-13 ([SP-180] live pass, steps 36–37). ✅ Fixed: measured, the walks cut, and the work moved off the UI thread (7,683 UI-thread file calls → 16). → [details](#i-0297) | **High** | [SP-180] | ✅ **Resolved - Not Verified** |
 | **I-0296** | `[Apple]` ⛔ **After a structured paste, the next open takes the target scene for an OUTSIDE edit — undo stops there.** The core wrote the scene, so the save path never reported its bytes. Proven 2026-10-13 (interop + Linux smoke). ✅ Fixed in the core: the fragment endpoints report what they write. → [details](#i-0296) | **Medium** | [SP-180] | ✅ **Resolved - Not Verified** |
@@ -59,10 +60,51 @@ that fails first.
 
 ---
 
+## I-0302
+
+**Title:** On the Mac, ⌘Z at a barrier flashes instead of showing the barrier's notice
+**Status:** ✅ **Resolved - Not Verified** (2026-10-15) — ruled into [SP-180] (user: *"Ok fix it in SP-180."*)
+**Platform:** `[Apple]` (and Linux's Edit ▸ Undo menu item, the same rule)
+**Component:** `ManuscriptTextView.swift` `validateUserInterfaceItem` (`#selector(undo(_:))` → `coordinator.canUndo`)
+**Severity:** Low — nothing is lost, but the writer is told nothing about why undo does nothing
+**Date Identified:** 2026-10-14 (user: *"I load the project and the very first thing I do is type Cmd-Z. The screen flashes as if
+there is nothing to undo … I get no dialogs. Just the flash."*)
+
+**Cause (read; matches the project's log):**
+- The newest step of dumas-prose-timelines' history is an `externalChange` barrier (14:56 local, 2026-10-14), from a session
+  that ended without closing under a build without [I-0299]'s fix.
+- The core reports `canUndo: false` at a hard barrier. The Mac DISABLES Edit ▸ Undo on that, so ⌘Z only beeps or flashes,
+  and `apply(step:)`'s barrier notice is never reached.
+- Linux calls undo regardless and shows the notice (`EditorShell::applyHistoryStep`).
+
+**Fix direction:** the core's capture state says when the newest step is a barrier (`atBarrier`). The Mac enables Undo
+then, and ⌘Z shows the barrier's own notice, as Linux does. A failing interop test first.
+
+**Resolution (2026-10-15):**
+- **ScriviCore:** every capture result carries `atBarrier`: the newest step is a hard barrier
+  (`HistoryService::atBarrier`, added once in `withCapture`). A reversible structural step is not one.
+- **Mac:** `CaptureState.atBarrier`, `HistoryCapture.atBarrierNow`, and `Coordinator.undoAvailable` (`canUndo ||
+  atBarrier`) decide Edit ▸ Undo. ⌘Z at a barrier now shows its notice. `onBarrierNotice` replaces the modal in tests.
+- **Linux:** Ctrl+Z already reached the notice, but the Edit ▸ Undo menu item was disabled at a barrier. It now follows
+  `EditorShell::undoAvailable()`, the same rule.
+
+**Tests:**
+- `CaptureCApiTests` `[I-0302]`: the flag at the root, after an edit, at a barrier, after an undo back onto it, and not for a
+  reversible structural step. Red before the fix.
+- Mac interop `undoAtBarrierShowsTheNotice`: a split, then Undo validated through `validateUserInterfaceItem` (the
+  validation AppKit calls), then ⌘Z shows "Can't undo past creating a scene". Red without the Mac change (Undo disabled).
+- Linux `undo_smoke` §5: at the split's barrier, `!canUndo && undoAvailable`. Red without the Linux change.
+- ctest macOS 724/724, Linux 727/727; 32/32 Linux smokes; interop 291/291.
+
+**To verify (Mac):** in dumas-prose-timelines (its newest step is the 14:56 barrier), press ⌘Z. A dialog says *"This scene was
+changed outside Scrivi; undo stops here."* instead of a flash.
+
+---
+
 ## I-0299
 
 **Title:** The Mac's reopen takes scenes written by Linux on the share, and scenes the Mac pasted into, for outside edits
-**Status:** 🔵 **Open** — ruled into [SP-180] (user, 2026-10-13); reproduce before any fix
+**Status:** ✅ **Resolved - Not Verified** (2026-10-14) — ruled into [SP-180] (user, 2026-10-13); proven, then fixed (user, 2026-10-14: *"yes, lets fix I-0299 in SP-180."*)
 **Platform:** `[ScriviCore]` (the saved-bytes baseline, [I-0104] / [I-0296]); reached from both
 **Severity:** Medium — nothing is lost, but undo stops at a false *"This scene was changed outside Scrivi"*
 **Sprint:** [SP-180]
@@ -92,6 +134,72 @@ without closing loses every byte it recorded, and the next open flags each scene
 stopping or relaunching the app, and a crash. ⏳ Asked the user how those sessions ended. If it is this, the remedy is to
 record the bytes as they are written (an append-only log record, replayed at open) rather than only at close: a
 `scrivi.history.v1` change, to be ruled.
+
+**Rig re-run (2026-10-13 evening, build 74, every quit clean):** a watcher on the Mac logged each `state.json` checkpoint.
+- **Sessions:** six or more across the Mac and Linux, each closed with a checkpoint.
+- **What they did:** a Mac paste, undone and redone on Linux; a Linux paste of the Mac's buffer; a Linux paste then undone on
+  the Mac.
+- ✅ **No new `externalChange` barrier was recorded.**
+- **What the user hit first:** "changed outside Scrivi; undo stops here". Those were **yesterday's** barriers (5:36 pm,
+  session `c9201f`). The Mac's paste sat directly on top of them, so once that paste had been undone, the next undo stopped
+  there, as a barrier should.
+- **Conclusion:** consistent with the unclean-ending hypothesis; not proof of it.
+
+**PROVEN 2026-10-14 (the user: *"Ok, you may conduct your test."*).** Three processes, `scrivi_*` only:
+- **Session 1:** an edit, saved and reported (`note_scene_persisted`), then a clean close.
+- **Session 2:** an edit, saved and reported, then the process ends WITHOUT closing (`_Exit`, as a force-quit or Xcode's Stop
+  does).
+- **Session 3:** reopens and validates the scene against the bytes session 2 wrote → ⛔ `externalChange: true`.
+- **Control** (session 2 closes normally) → ✅ `externalChange: false`.
+
+**Cause:** the recorded bytes live in memory (`persistedDiskHashes_`) and reach disk only at a checkpoint, which happens at
+close (or every 200 records). A session that ends any other way loses them, and the next open compares each file with an
+older hash.
+
+**Fix direction (⏳ needs the user's ruling, a `scrivi.history.v1` change):** append a small "persisted" record to the log as
+each save is reported, and replay it at open, so the baseline survives an unclean end. Older logs, without such records, read
+as before.
+
+**Resolution (2026-10-14):** `HistoryStore` appends a `rec:"persisted"` record (sceneID and sha256) to the log whenever the
+save path reports a write and the bytes changed, and whenever an `externalChange` repair adopts the disk text. At open the
+newest record per scene outranks `state.json`, for scenes with a floor, as `state.json` covers. Documented as A.1.d in
+`Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`. Additive: older logs read as before.
+
+**Tests:**
+- New `CaptureCApiTests` `[I-0299]` case. A child process (`fork`) saves and exits without closing; the reopen flags nothing.
+  A real outside edit is still flagged. A repair made in a session that then dies also holds.
+  - Red before the fix at both points.
+  - Each of the three parts removed in turn is caught.
+  - POSIX only: `fork`, skipped on Windows.
+- `HistoryCApiTests` "a stale state.json hash does not re-warn forever (I-0104 loop)" now strips the new records, so it still
+  models a log from before the fix. With them present, a stale `state.json` alone no longer warns at all, which is the point.
+- ctest macOS 722/722, Linux 725/725 (Docker, uid 1000); 32/32 Linux smokes; interop 290/290.
+
+**To verify:** with the Mac's Scrivi run from Xcode, edit a scene, wait a second for the save, press Xcode's **Stop**, run
+again, open the project, ⌘Z. There is no "This scene was changed outside Scrivi".
+
+**The second half (2026-10-14).** The user's Mac check, and a probe through `scrivi_*`, showed the first fix opened a
+data-loss path:
+- Typing still PENDING (latched, not yet a step) when a session dies was saved by the autosave but never recorded.
+- Once the unclean end no longer raised a barrier, the next edit diffed against history's OLDER copy, and undoing it also
+  removed the pre-crash typing: `"Alpha. Beta gamma"` → `"Alpha."`.
+- The barrier the first half removed had, wrongly worded, been re-syncing history to the file.
+
+✅ **Ruled** (user: *"You need to record the session close as a historical event."*). The resolution:
+- A clean `scrivi_history_close` appends `ctl:close` before its checkpoint, and every session record carries
+  `closesRecorded: true`.
+- At open, a last session that says it records its close but has none ended uncleanly. For each scene whose file is what
+  Scrivi last wrote but whose history copy differs, the difference is recorded as an ordinary undo step.
+- Nothing is lost, there is no false message, and Ctrl+Z / ⌘Z undoes that typing.
+- After a clean close, or on a log from an older build (no `closesRecorded`), nothing is added. A file that differs from
+  what Scrivi wrote is still an `externalChange` barrier.
+
+**Tests (second half):** `CaptureCApiTests` "typing pending when a session dies is recovered as an undo step".
+- The killed session: red before the fix, `"Alpha."` where `"Alpha. Beta"` belongs.
+- A clean close adds nothing.
+- A clean close with bytes history never saw adds nothing; this one depends on the close record.
+- Mutations caught: no close record; no recovery.
+- ctest macOS 723/723, Linux 726/726; 32/32 Linux smokes; interop 290/290.
 
 ---
 
@@ -185,6 +293,14 @@ About 4,200 of those sidecar reads came from SP-180's own code.
 
 **To verify (rig, over the share):** a cross-scene paste and its undo in dumas-prose-timelines. The editor stays responsive
 behind the progress row; the paste completes.
+
+**Rig re-run (2026-10-13 evening, build 74):** the undo of the Mac's paste completes in about 40 s, down from about 90 s.
+- The window kept redrawing, and the progress row showed and moved.
+- At about 20 s the window "flashed": the reload rebuilding the manuscript.
+- ✅ **Ruled 2026-10-14** (user): *"We can accept it for now, but I reserve the right to revisit it in the future if
+  necessary."*
+- The remaining cost is ScriviCore's deliberate index rebuild on a structural write (EP-039 AC5b), plus a full reload of the
+  manuscript. Both apply to splits and merges as well.
 
 ---
 
@@ -446,6 +562,16 @@ fixed), [EP-019] AC7 (barriers).
 - ⛔ **The `externalChange` repair DID corrupt at the next open** — measured 2026-10-12 as [I-0288], fixed the same day in [SP-178].
 
 ---
+
+*Last Updated: 2026-10-15 — **I-0302 → Resolved - Not Verified** (Undo stays available at a barrier; Mac and Linux).*
+
+*Last Updated: 2026-10-14 — **I-0299**, its second half (pending typing at a crash; `ctl:close`); **I-0302 filed** `[Apple]` (⌘Z at a barrier flashes, no notice).*
+
+*Last Updated: 2026-10-14 — **I-0301 → backlog** (detached from [SP-180], user).*
+
+*Last Updated: 2026-10-14 — **I-0299 → Resolved - Not Verified** (saved bytes recorded in the log as written); **I-0301** not reproduced, kept open with Debug diagnostics.*
+
+*Last Updated: 2026-10-13 — **I-0301 filed** `[Apple]` (scroll jitter at the manuscript's start; user report).*
 
 *Last Updated: 2026-10-13 — **I-0297, I-0298, I-0300 → Resolved - Not Verified**; I-0299 probed (hypothesis: sessions that ended without closing).*
 

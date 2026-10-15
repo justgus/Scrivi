@@ -38,6 +38,8 @@ final class HistoryCapture {
     // The core's last report: can-undo includes a pending edit; the idle deadline drives the timer.
     private var state: CaptureState?
     var canUndoNow: Bool { state?.canUndo ?? false }
+    /// [I-0302]: the newest step is a hard barrier — Undo stays available so ⌘Z shows its notice.
+    var atBarrierNow: Bool { state?.atBarrier ?? false }
     var canRedoNow: Bool { state?.canRedo ?? false }
     var hasPendingChanges: Bool { state?.hasPending ?? false }
 

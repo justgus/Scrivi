@@ -487,7 +487,7 @@ every earlier diff onto the new text.
 checkpoint is derived):
 
 ```json
-{ "rec": "ctl", "seq": 103, "op": "undo | redo | setPrimary | purge | evict | session",
+{ "rec": "ctl", "seq": 103, "op": "undo | redo | setPrimary | purge | evict | session | close",
   "timestamp": "…",
   "nodeID": "evt_…",              // undo/redo: the resulting currentNodeID
   "forkNodeID": "evt_…",          // setPrimary
@@ -498,6 +498,24 @@ checkpoint is derived):
 ```
 
 Only the fields relevant to each `op` are present.
+
+✅ [I-0299] (2026-10-14, additive): every `session` record also carries `"closesRecorded": true`, and a clean close appends
+`{ "op": "close" }` before its final checkpoint. At open, a last session that says it records its close but has none ended
+uncleanly (a force-quit, a debugger stop, a crash). Then, for each scene whose file is what Scrivi last wrote (A.1.d) but
+whose history copy differs, the difference is recorded as an ordinary step: typing the autosave wrote but that had not yet
+become a step. A log without `closesRecorded` is never judged.
+
+**A.1.d `rec:"persisted"` — the bytes last written to a scene file** ([I-0299], 2026-10-14; additive):
+
+```json
+{ "rec": "persisted", "seq": 104, "sceneID": "scene_…", "sha256": "…", "timestamp": "…" }
+```
+
+Appended when the save path reports a write (`noteScenePersisted`; ScriviCore's own fragment writes report the same way,
+[I-0296]) and when an `externalChange` repair adopts the disk text. It is not repeated for unchanged bytes. At open, the
+newest record per scene outranks `state.json`'s `sceneHeads`, for scenes that have a floor. ⛔ Why: `state.json` is written
+only at a checkpoint, so a session that ended without closing (a force-quit, a debugger stop, a crash) lost every hash it
+held, and the next open took each saved scene for an outside edit. A log without these records reads exactly as before.
 
 ### A.2 Checkpoint (`history/state.json`, atomic write)
 

@@ -924,6 +924,18 @@ TEST_CASE("C ABI: a stale state.json hash does not re-warn forever (I-0104 loop)
         doc = doc.substr(0, q1 + 1) + bad + doc.substr(q2);
         std::ofstream out(sp); out << doc; out.close();
     }
+    // [I-0299]: a log written since then also RECORDS each save's bytes, and that record outranks state.json — so a stale
+    // state.json alone no longer warns at all. This test is about the loop on a log from BEFORE that (no such records):
+    // strip them, so the log is exactly what an older build wrote.
+    {
+        const fs::path lp = fs::path(ROOT_.path) / "history" / "log-000001.jsonl";
+        std::ifstream in(lp); std::string line, kept;
+        while (std::getline(in, line)) {
+            if (line.find("\"rec\":\"persisted\"") == std::string::npos) kept += line + "\n";
+        }
+        in.close();
+        std::ofstream out(lp); out << kept; out.close();
+    }
 
     // First open after corruption: warning here is CORRECT — as far as history knows,
     // the file no longer matches its recorded baseline.

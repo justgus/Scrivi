@@ -2315,6 +2315,7 @@ void EditorShell::pasteClipboard() { viewport_->pasteClipboard(); }   // EP-026 
 // session-boundary notices.
 
 bool EditorShell::canUndo() const { return history_ != nullptr && history_->canUndo(); }
+bool EditorShell::undoAvailable() const { return canUndo() || (history_ != nullptr && history_->atBarrier()); }
 bool EditorShell::canRedo() const { return history_ != nullptr && history_->canRedo(); }
 
 void EditorShell::undo()

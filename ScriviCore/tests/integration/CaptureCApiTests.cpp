@@ -14,6 +14,11 @@
 #include <map>
 #include <string>
 
+#if !defined(_WIN32)
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
 using scrivi::util::JsonDoc;
 using scrivi::util::parseJson;
 
@@ -532,6 +537,133 @@ TEST_CASE("capture ABI: a reopen after a structured paste, or its undo, takes no
     scrivi_free(scrivi_close_project(root.c_str()));
     std::error_code ec;
     fs::remove_all(base, ec);
+}
+
+#if !defined(_WIN32)
+// [I-0299] — the bytes a save wrote were kept IN MEMORY and reached disk only at a checkpoint (close, or every 200 records).
+// A session that ended any other way — a force-quit, Xcode's Stop, a crash — lost them, and the next open took every scene
+// that session had saved for an OUTSIDE edit. Proven 2026-10-14 with three processes; this is the same sequence, the
+// unclean session in a CHILD process that exits without closing.
+TEST_CASE("capture ABI: a session that ends WITHOUT closing keeps the bytes it saved — the next open flags nothing",
+          "[capture-abi][I-0299]") {
+    Root r;
+    ok(scrivi_capture_note_edit(r.c(), "S", "Alpha.", 6, "", 1000));
+    ok(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha."));
+    scrivi_free(scrivi_history_close(r.c()));   // session 1 ends cleanly
+
+    const pid_t child = fork();
+    REQUIRE(child >= 0);
+    if (child == 0) {   // session 2: an edit, saved and reported — then the process ends with no close
+        scrivi_free(scrivi_history_open(r.c()));
+        scrivi_free(scrivi_capture_note_edit(r.c(), "S", "Alpha. Beta.", 12, "Alpha.", 1000));
+        scrivi_free(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha. Beta."));
+        _exit(0);
+    }
+    int status = 0;
+    REQUIRE(waitpid(child, &status, 0) == child);
+
+    ok(scrivi_history_open(r.c()));   // session 3
+    CHECK_FALSE(ok(scrivi_history_validate_scene(r.c(), "S", "Alpha. Beta.")).getBool("externalChange"));
+    // …and a REAL outside edit is still caught.
+    CHECK(ok(scrivi_history_validate_scene(r.c(), "S", "Changed in another app.")).getBool("externalChange"));
+    // The repair's baseline survives an unclean end too: a session that validates (and repairs) and then dies.
+    scrivi_free(scrivi_history_close(r.c()));
+    const pid_t again = fork();
+    REQUIRE(again >= 0);
+    if (again == 0) {
+        scrivi_free(scrivi_history_open(r.c()));
+        scrivi_free(scrivi_history_validate_scene(r.c(), "S", "Changed again outside."));   // a repair, recorded
+        _exit(0);
+    }
+    REQUIRE(waitpid(again, &status, 0) == again);
+    ok(scrivi_history_open(r.c()));
+    CHECK_FALSE(ok(scrivi_history_validate_scene(r.c(), "S", "Changed again outside.")).getBool("externalChange"));
+}
+
+// [I-0299], the second half — typing still PENDING (latched, not yet an undo step) when the session ends without closing.
+// The autosave wrote it; history never got the step. Once the unclean end no longer raised a barrier (the first half), the
+// next edit diffed against history's OLDER copy: undoing it also removed the pre-crash typing ("Alpha. Beta gamma" →
+// "Alpha."). ✅ Now: every clean close is RECORDED in the log; an open that finds the last session never closed records
+// the saved-but-unrecorded difference as an ordinary step — so nothing is lost, and Ctrl+Z / ⌘Z undoes that typing.
+TEST_CASE("capture ABI: typing pending when a session dies is recovered as an undo step — and a clean close adds none",
+          "[capture-abi][I-0299]") {
+    auto session2 = [](const Root& r, bool clean) {
+        const pid_t child = fork();
+        REQUIRE(child >= 0);
+        if (child == 0) {
+            scrivi_free(scrivi_history_open(r.c()));
+            scrivi_free(scrivi_capture_note_edit(r.c(), "S", "Alpha. Beta", 11, "Alpha.", 2000));   // no sentence end
+            scrivi_free(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha. Beta"));            // the autosave
+            if (clean) { scrivi_free(scrivi_history_close(r.c())); }
+            _exit(0);
+        }
+        int status = 0;
+        REQUIRE(waitpid(child, &status, 0) == child);
+    };
+    auto session1 = [](const Root& r) {
+        ok(scrivi_capture_note_edit(r.c(), "S", "Alpha.", 6, "", 1000));
+        ok(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha."));
+        scrivi_free(scrivi_history_close(r.c()));
+    };
+
+    SECTION("the session died: the saved typing is a step, and nothing is lost") {
+        Root r;
+        session1(r);
+        session2(r, /*clean=*/false);
+        ok(scrivi_history_open(r.c()));
+        CHECK_FALSE(ok(scrivi_history_validate_scene(r.c(), "S", "Alpha. Beta")).getBool("externalChange"));
+        // The writer's next change, undone: the pre-crash typing stays.
+        ok(scrivi_capture_note_edit(r.c(), "S", "Alpha. Beta gamma", 17, "Alpha. Beta", 3000));
+        CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == "Alpha. Beta");
+        // …and the pre-crash typing is itself one undo step.
+        CHECK(change(ok(scrivi_capture_undo(r.c()))).getString("newText") == "Alpha.");
+        CHECK(change(ok(scrivi_capture_redo(r.c()))).getString("newText") == "Alpha. Beta");
+    }
+    SECTION("the session closed cleanly: no step is added at the next open") {
+        Root r;
+        session1(r);
+        session2(r, /*clean=*/true);
+        ok(scrivi_history_open(r.c()));
+        const int before = nodeCount(r);
+        CHECK_FALSE(ok(scrivi_history_validate_scene(r.c(), "S", "Alpha. Beta")).getBool("externalChange"));
+        CHECK(nodeCount(r) == before);
+    }
+    SECTION("a CLEAN session that saved bytes history never saw as typing: the close record says so — no step") {
+        Root r;
+        session1(r);
+        // Bytes Scrivi wrote and reported, with no matching edit (history's copy stays "Alpha."), then a clean close.
+        ok(scrivi_history_open(r.c()));
+        ok(scrivi_history_note_scene_persisted(r.c(), "S", "Alpha. Written."));
+        scrivi_free(scrivi_history_close(r.c()));
+        ok(scrivi_history_open(r.c()));
+        const int before = nodeCount(r);
+        CHECK_FALSE(ok(scrivi_history_validate_scene(r.c(), "S", "Alpha. Written.")).getBool("externalChange"));
+        CHECK(nodeCount(r) == before);
+    }
+}
+#endif
+
+// [I-0302] — at a hard barrier there is nothing to undo (`canUndo` false), but an undo there still TELLS the writer why (the
+// barrier's notice). A platform that disables Undo on `canUndo` alone never reaches that notice — the Mac flashed instead.
+// The state says when the newest step is a barrier.
+TEST_CASE("capture ABI: the state says when the newest step is a barrier", "[capture-abi][I-0302]") {
+    Root r;
+    CHECK_FALSE(ok(scrivi_capture_state(r.c())).getBool("atBarrier"));   // a fresh history: the root
+    ok(scrivi_capture_note_edit(r.c(), "S", "Alpha.", 6, "", 1000));
+    CHECK_FALSE(ok(scrivi_capture_state(r.c())).getBool("atBarrier"));
+    const JsonDoc barrier = ok(scrivi_capture_record_barrier(r.c(), R"({"barrierKind":"sceneSplit","note":"Can't undo past creating a scene"})"));
+    CHECK(barrier.getBool("atBarrier"));
+    const JsonDoc state = ok(scrivi_capture_state(r.c()));
+    CHECK(state.getBool("atBarrier"));
+    CHECK_FALSE(state.getBool("canUndo"));
+    ok(scrivi_capture_note_edit(r.c(), "S", "Alpha. Beta.", 12, "Alpha.", 2000));
+    CHECK_FALSE(ok(scrivi_capture_state(r.c())).getBool("atBarrier"));
+    CHECK(ok(scrivi_capture_undo(r.c())).getBool("atBarrier"));           // back onto the barrier
+    // A REVERSIBLE structural step is not a barrier: undo steps across it.
+    Root s;
+    ok(scrivi_capture_note_edit(s.c(), "S", "Alpha.", 6, "", 1000));
+    ok(scrivi_capture_record_barrier(s.c(), R"({"barrierKind":"structuredPaste","note":"p","structuralPayload":{"op":"structuredPaste"}})"));
+    CHECK_FALSE(ok(scrivi_capture_state(s.c())).getBool("atBarrier"));
 }
 
 TEST_CASE("capture ABI: not open → an error, never a crash", "[capture-abi]") {

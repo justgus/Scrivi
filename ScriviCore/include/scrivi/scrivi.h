@@ -766,7 +766,9 @@ const char* scrivi_history_record_barrier(const char* projectRootPath,
  * Carets are UTF-16 units of the scene text (SP-177 Q2). `nowMs` is any monotonic millisecond clock the platform keeps
  * (SP-177 Q1): the core never reads a clock or owns a timer — it returns `idleDeadlineMs`, and the platform calls
  * scrivi_capture_idle at that time. Every envelope's result carries
- *   {committed, canUndo, canRedo, hasPending, idleDeadlineMs}   (idleDeadlineMs -1 = nothing pending)
+ *   {committed, canUndo, canRedo, hasPending, idleDeadlineMs, atBarrier}   (idleDeadlineMs -1 = nothing pending)
+ * atBarrier [I-0302]: the newest step is a hard barrier — canUndo is false, but an undo there reports the barrier
+ * (stoppedAtBarrier), so a platform keeps Undo available to show its notice.
  * Rules (design §4.a / §4.a.1): an edit LATCHES; it commits on `.` `!` `?` or a newline typed, a caret move (another
  * scene: always; the same scene: unless only whitespace changed), paste/cut, 45 s idle, a barrier, undo, close. An
  * autosave never commits unless already idle. A scene's floor is seeded on its first edit of the session. */

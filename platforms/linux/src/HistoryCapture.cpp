@@ -61,6 +61,7 @@ void HistoryCapture::take(const QVariantMap& r)
         return;   // a failed call (logged by the bridge) — keep the last known state
     }
     canUndo_ = r.value(QStringLiteral("canUndo")).toBool();
+    atBarrier_ = r.value(QStringLiteral("atBarrier")).toBool();
     canRedo_ = r.value(QStringLiteral("canRedo")).toBool();
     hasPending_ = r.value(QStringLiteral("hasPending")).toBool();
     idleTimer_->stop();
@@ -94,7 +95,7 @@ void HistoryCapture::close()
     idleTimer_->stop();
     ScriviBridge::historyClose(root_);
     open_ = false;
-    canUndo_ = canRedo_ = hasPending_ = false;
+    canUndo_ = canRedo_ = hasPending_ = atBarrier_ = false;
 }
 
 void HistoryCapture::noteEdit(const QString& sceneID, const QString& text, int caretUtf16, const QString& textBefore)

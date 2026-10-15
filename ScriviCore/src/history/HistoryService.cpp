@@ -336,6 +336,11 @@ bool HistoryService::canUndo() const {
     return cur.kind != EventKind::Barrier && cur.parentID.has_value();
 }
 
+bool HistoryService::atBarrier() const {
+    if (currentNodeID_ == rootID_) return false;
+    return nodeRef(currentNodeID_).kind == EventKind::Barrier;
+}
+
 bool HistoryService::canRedo() const {
     const EventNode& cur = nodeRef(currentNodeID_);
     if (!cur.primaryChildID.has_value()) return false;

@@ -313,6 +313,10 @@ int main(int argc, char** argv)
               .arg(rig.editor->textCursor().position())
               .arg(rig.editor->document()->find(QStringLiteral("Then more")).selectionStart()));
     check(rig.shell->history() == before && before->isOpen(), QStringLiteral("the split's reload kept the SAME history"));
+    // [I-0302]: at the split's barrier nothing can be undone, but Edit ▸ Undo stays available — to show the notice.
+    check(!rig.shell->canUndo() && rig.shell->undoAvailable(),
+          QStringLiteral("[I-0302] at the barrier Undo is available (canUndo %1, undoAvailable %2)")
+              .arg(rig.shell->canUndo()).arg(rig.shell->undoAvailable()));
     notices.clear();
     rig.undo();
     check(notices == QStringList{QStringLiteral("Can't undo past creating a scene")},

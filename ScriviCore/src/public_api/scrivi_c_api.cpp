@@ -3695,7 +3695,11 @@ const char* withCapture(const char* projectRootPath, Fn&& fn) {
     if (it == reg.byRoot.end() || c == reg.capture.end())
         return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "history not open for this project"));
     StoreSink sink(*it->second);
-    return heap(okEnvelope(fn(c->second, sink, *it->second)));
+    scrivi::util::JsonDoc doc = fn(c->second, sink, *it->second);
+    // [I-0302]: every capture result says whether the newest step is a hard barrier — the platform keeps Undo available
+    // there, so an undo shows the barrier's notice instead of doing nothing at all.
+    doc.setBool("atBarrier", it->second->service().atBarrier());
+    return heap(okEnvelope(std::move(doc)));
 }
 
 }  // namespace
@@ -4100,6 +4104,7 @@ const char* scrivi_history_close(const char* projectRootPath) {
             StoreSink sink(*it->second);
             c->second.flush(sink, "flush");
         }
+        it->second->recordClose();  // [I-0299]: an open can then tell a clean end from a crash
         it->second->checkpoint();   // final checkpoint before discarding
         reg.byRoot.erase(it);
     }

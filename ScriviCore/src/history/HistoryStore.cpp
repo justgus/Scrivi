@@ -104,6 +104,13 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
         // promotions in log order (mirrors persistEviction()).
         std::vector<std::string> purgedBranchRoots;
         std::vector<std::string> promotedRoots;
+        // [I-0299]: the bytes each save wrote, as the log recorded them — newest wins. Applied after state.json, which a
+        // session that ended without closing never got to update.
+        std::map<std::string, std::string> replayedPersisted;
+        // [I-0299]: did the last session in the log close? Only a session whose record says it records its close can be
+        // judged — a log from an older build never wrote one, and must not be read as a crash.
+        bool lastSessionRecordsClose = false;
+        bool lastSessionClosed = false;
 
         std::istringstream ss(logText);
         std::string line;
@@ -120,6 +127,10 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
             if (seq > maxSeq) maxSeq = seq;
             sawAnyRecord = true;
 
+            if (rec == "persisted") {
+                replayedPersisted[d.getString("sceneID")] = d.getString("sha256");
+                continue;
+            }
             if (rec == "floor") {
                 // ⛔ [I-0288] — a log written before the fix: the externalChange repair wrote its barrier, then a floor
                 // record for the same text. Replayed as a FLOOR it puts every earlier diff on top of the new text. It
@@ -184,6 +195,11 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     currentTrail.push_back(currentNodeID);
                 } else if (op == "session") {
                     loadedSessionID = d.getString("sessionID");
+                    // [I-0299]: a session that RECORDS its close, and has not (yet) — the next record may be its close.
+                    lastSessionRecordsClose = d.getBool("closesRecorded");
+                    lastSessionClosed = false;
+                } else if (op == "close") {
+                    lastSessionClosed = true;
                 } else if (op == "setPrimary") {
                     // Collect fork re-selections; applied after finalizeLoad()
                     // (childIDs must exist first). Last write per fork wins.
@@ -266,6 +282,12 @@ bool HistoryStore::openOrCreate(const std::string& newSessionID,
                     }
                 }
             }
+            // [I-0299]: the log's record of what was last written wins over state.json — it is at least as new, and a
+            // session that ended without closing never updated state.json. Same scenes as state.json covers (a floor).
+            for (const auto& [sceneID, sha] : replayedPersisted) {
+                if (svc->floorTexts().contains(sceneID)) loadedHeadHashes_[sceneID] = sha;
+            }
+            previousSessionEndedUncleanly_ = lastSessionRecordsClose && !lastSessionClosed;
             // Mint a NEW session for this open (Trade T5) — the loaded sessionID
             // is what distinguishes "previous session" nodes for the warning.
             svc->setSessionID(newSessionID);
@@ -363,6 +385,16 @@ void HistoryStore::persistEvent(const EventNode& node) {
     appendLine(d.dump(-1));
 }
 
+void HistoryStore::persistPersisted(const std::string& sceneID, const std::string& sha256) {
+    util::JsonDoc d;
+    d.setString("rec", "persisted");
+    d.setInt64("seq", ++lastSeq_);
+    d.setString("sceneID", sceneID);
+    d.setString("sha256", sha256);
+    d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
+    appendLine(d.dump(-1));
+}
+
 void HistoryStore::persistCtl(const std::string& op, const std::string& nodeID) {
     util::JsonDoc d;
     d.setString("rec", "ctl");
@@ -371,6 +403,7 @@ void HistoryStore::persistCtl(const std::string& op, const std::string& nodeID) 
     d.setString("timestamp", clock_ ? clock_->nowUTC() : std::string{});
     if (!nodeID.empty()) d.setString("nodeID", nodeID);
     if (op == "session" && service_) d.setString("sessionID", service_->sessionID());
+    if (op == "session") d.setBool("closesRecorded", true);   // [I-0299]: this session will write `close` when it closes
     appendLine(d.dump(-1));
 }
 
@@ -502,6 +535,11 @@ void HistoryStore::checkpoint() {
 void HistoryStore::noteScenePersisted(const std::string& sceneID, const std::string& diskText) {
     if (sceneID.empty()) return;
     const std::string h = util::sha256Hex(diskText);
+    // ✅ [I-0299]: in the LOG as well, as it happens — state.json is written only at a checkpoint, and a session that ends
+    // without closing (a force-quit, Xcode's Stop, a crash) lost every hash it held. Not repeated for unchanged bytes.
+    if (auto it = persistedDiskHashes_.find(sceneID); it == persistedDiskHashes_.end() || it->second != h) {
+        persistPersisted(sceneID, h);
+    }
     persistedDiskHashes_[sceneID] = h;
     // Keep the in-session baseline in step too: a later validateSceneHead() in
     // this same session (e.g. a reopen without quitting) must not treat text we
@@ -516,7 +554,22 @@ bool HistoryStore::validateSceneHead(const std::string& sceneID,
     auto it = loadedHeadHashes_.find(sceneID);
     if (it == loadedHeadHashes_.end()) return false;   // no baseline to compare
     const std::string diskHash = util::sha256Hex(currentDiskText);
-    if (diskHash == it->second) return false;          // unchanged — all good
+    if (diskHash == it->second) {
+        // ✅ [I-0299]: the file is what Scrivi itself last wrote. After a session that ended WITHOUT closing, history's
+        // copy can still be older — typing the autosave wrote but that had not yet become a step. Record that difference
+        // as an ordinary step, so the next edit diffs against the real text (⛔ undoing it used to remove the pre-crash
+        // typing too) and the writer can undo it. Never after a clean close, which commits all pending typing.
+        if (previousSessionEndedUncleanly_ && service_ && service_->floorTexts().contains(sceneID)
+            && util::sha256Hex(service_->headTextForScene(sceneID)) != diskHash) {
+            RecordParams p;
+            p.sceneID = sceneID;
+            p.newSceneText = currentDiskText;
+            p.timestamp = nowTimestamp;
+            const auto r = service_->record(p, barrierEventID);
+            if (auto nit = service_->nodes().find(r.eventID); nit != service_->nodes().end()) { persistEvent(nit->second); }
+        }
+        return false;                                  // unchanged — all good
+    }
 
     // Mismatch: the scene was edited outside Scrivi. Record an externalChange
     // barrier so undo stops at this point. The manuscript is never modified by
@@ -536,6 +589,7 @@ bool HistoryStore::validateSceneHead(const std::string& sceneID,
         if (nit != service_->nodes().end()) { persistEvent(nit->second); }
     }
     loadedHeadHashes_[sceneID] = diskHash;   // don't re-warn for the same edit
+    persistPersisted(sceneID, diskHash);     // [I-0299]: and survive a session that ends without closing
     return true;
 }
 

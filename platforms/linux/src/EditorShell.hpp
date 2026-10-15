@@ -178,6 +178,8 @@ public:
     void undo();
     void redo();
     [[nodiscard]] bool canUndo() const;
+    // ✅ [I-0302]: Edit ▸ Undo is available at a barrier too — the undo then shows the barrier's notice (Apple's rule).
+    [[nodiscard]] bool undoAvailable() const;
     [[nodiscard]] bool canRedo() const;
     // Commits the pending typing now (Apple's `saveAllDirtyBlocking` flush). ✅ Called on every teardown BEFORE the dirty
     // scenes are saved; the history itself closes in `releaseProject()`, after them.

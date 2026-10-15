@@ -374,6 +374,9 @@ struct ManuscriptTextView: NSViewRepresentable {
         // MARK: — Undo / Redo apply path (T-0205, design §8)
 
         var canUndo: Bool { parent.session.historyCapture?.canUndoNow ?? false }
+        /// ✅ [I-0302]: Edit ▸ Undo is available at a barrier too — the undo then shows the barrier's notice ("This scene was
+        /// changed outside Scrivi; undo stops here"). ⛔ Disabled on `canUndo` alone, ⌘Z only flashed and never said why.
+        var undoAvailable: Bool { canUndo || (parent.session.historyCapture?.atBarrierNow ?? false) }
         var canRedo: Bool { parent.session.historyCapture?.canRedoNow ?? false }
 
         // Performs an undo: asks HistoryService for the prior state, applies the
@@ -579,7 +582,11 @@ struct ManuscriptTextView: NSViewRepresentable {
             return chars
         }
 
+        /// Tests replace the modal barrier notice with this ([I-0302]); nil = the notice.
+        var onBarrierNotice: ((String) -> Void)?
+
         private func presentBarrierNotice(_ message: String) {
+            if let hook = onBarrierNotice { hook(message); return }
             let alert = NSAlert()
             alert.messageText = message
             alert.alertStyle = .informational
@@ -658,6 +665,8 @@ struct ManuscriptTextView: NSViewRepresentable {
         // left the visible rect (never a no-op scroll, never a loop); END on the writer's first
         // key, click or scroll (`cancelRestoreCentre`), with a 5 s safety cap.
         private var pendingRestoreCentre: (target: Int, sceneID: String)?
+        private var lastLoggedClipY: CGFloat = 0        // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+        private var lastLoggedDocHeight: CGFloat = 0    // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
         private var restoreCentreUntil: Date?
         private var isCentringRestore = false
 
@@ -679,6 +688,7 @@ struct ManuscriptTextView: NSViewRepresentable {
         private func applyPendingRestoreCentre(in tv: NSTextView) {
             guard let pending = pendingRestoreCentre else { return }
             if restoreCentreUntil == nil { restoreCentreUntil = Date().addingTimeInterval(5.0) }
+            scrollDiag(String(format: "[SCRIVI-SCROLL] restore re-centre target=%d", pending.target))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
             isCentringRestore = true
             defer { isCentringRestore = false }
             navigationLockUntil = Date().addingTimeInterval(0.5)
@@ -693,6 +703,16 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let clipView = notification.object as? NSClipView,
                   let tv = textView else { return }
 
+            // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): the document's height changing, or the view jumping.
+            if let docView = clipView.documentView {
+                let y = clipView.bounds.minY, h = docView.frame.height
+                if abs(h - lastLoggedDocHeight) > 0.5 || abs(y - lastLoggedClipY) > 150 {
+                    scrollDiag(String(format: "[SCRIVI-SCROLL] clip y=%.0f (was %.0f) docH=%.0f (was %.0f)", y, lastLoggedClipY, h,
+                          lastLoggedDocHeight))
+                }
+                lastLoggedClipY = y
+                lastLoggedDocHeight = h
+            }
             // Record the document scroll fraction so the next save persists it (I-0058).
             if let docView = clipView.documentView {
                 let scrollable = max(0, docView.bounds.height - clipView.bounds.height)
@@ -1632,6 +1652,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 let clip = scroll.contentView
                 let delta = (rect.minY - clip.bounds.minY) - offset
                 let maxY = max(0, tv.bounds.height - clip.bounds.height)
+                scrollDiag(String(format: "[SCRIVI-SCROLL] revealCaretAfterRebuild loc=%d clipY=%.0f -> %.0f", loc, clip.bounds.minY,
+                      max(0, min(clip.bounds.minY + delta, maxY))))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
                 clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
                 scroll.reflectScrolledClipView(clip)
                 tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
@@ -1684,6 +1706,8 @@ struct ManuscriptTextView: NSViewRepresentable {
                 let delta = (line.minY - clip.bounds.minY) - anchor.offset
                 if abs(delta) < 0.5 { break }
                 let maxY = max(0, (scroll.documentView?.frame.height ?? tv.bounds.height) - clip.bounds.height)
+                scrollDiag(String(format: "[SCRIVI-SCROLL] anchor loc=%d clipY=%.0f -> %.0f", target, clip.bounds.minY,
+                      max(0, min(clip.bounds.minY + delta, maxY))))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
                 clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
                 scroll.reflectScrolledClipView(clip)
             }
@@ -2099,6 +2123,8 @@ struct ManuscriptTextView: NSViewRepresentable {
             guard let rect = self.boundingRect(forCharacterIndex: loc, in: tv) else { return }
             let delta = rect.midY - (clip.bounds.minY + clip.bounds.height / 2)
             let maxY = max(0, tv.bounds.height - clip.bounds.height)
+            scrollDiag(String(format: "[SCRIVI-SCROLL] centerStorageOffset loc=%d clipY=%.0f -> %.0f", loc, clip.bounds.minY,
+                  max(0, min(clip.bounds.minY + delta, maxY))))   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
             clip.scroll(to: NSPoint(x: clip.bounds.minX, y: max(0, min(clip.bounds.minY + delta, maxY))))
             scroll.reflectScrolledClipView(clip)
             tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
@@ -2678,6 +2704,14 @@ struct ManuscriptTextView: NSViewRepresentable {
     }
 }
 
+/// ⚠️ [I-0301] DIAGNOSTIC — the `[SCRIVI-SCROLL]` console lines, Debug builds only. The jitter at the manuscript's start did
+/// not reproduce on its first instrumented run (2026-10-14); these stay so the next occurrence is caught with evidence.
+@inline(__always) func scrollDiag(_ message: @autoclosure () -> String) {
+    #if DEBUG
+    NSLog("%@", message())
+    #endif
+}
+
 // MARK: — Custom NSTextView for key binding interception
 
 // Subclass so we can intercept ⌘↩ and ⌘⇧↩ before the text system handles them.
@@ -3192,7 +3226,7 @@ final class ManuscriptNSTextView: NSTextView {
 
     override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
         switch item.action {
-        case #selector(undo(_:)): return coordinator?.canUndo ?? false
+        case #selector(undo(_:)): return coordinator?.undoAvailable ?? false
         case #selector(redo(_:)): return coordinator?.canRedo ?? false
         case #selector(toggleAutomaticQuoteSubstitution(_:)): return false   // [I-0283]: never on in the manuscript
         default:                  return super.validateUserInterfaceItem(item)
@@ -3271,7 +3305,23 @@ final class ManuscriptNSTextView: NSTextView {
 
     override func scrollWheel(with event: NSEvent) {
         coordinator?.cancelRestoreCentre()
+        // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): the writer's scroll, against what the clip view then does.
+        if let clip = enclosingScrollView?.contentView {
+            scrollDiag(String(format: "[SCRIVI-SCROLL] wheel dy=%.1f phase=%lu momentum=%lu clipY=%.0f docH=%.0f", event.scrollingDeltaY,
+                  event.phase.rawValue, event.momentumPhase.rawValue, clip.bounds.minY, frame.height))
+        }
         super.scrollWheel(with: event)
+    }
+
+    // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): every programmatic "scroll this range into view", and who asked.
+    override func scrollRangeToVisible(_ range: NSRange) {
+        #if DEBUG
+        let callers = Thread.callStackSymbols.dropFirst(1).prefix(4)
+            .map { $0.split(separator: " ", omittingEmptySubsequences: true).dropFirst(3).prefix(1).joined() }
+        scrollDiag(String(format: "[SCRIVI-SCROLL] scrollRangeToVisible loc=%d clipY=%.0f callers=%@", range.location,
+              enclosingScrollView?.contentView.bounds.minY ?? -1, callers.joined(separator: " < ")))
+        #endif
+        super.scrollRangeToVisible(range)
     }
 
     override func keyDown(with event: NSEvent) {

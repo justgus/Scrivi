@@ -37,6 +37,8 @@ public:
     [[nodiscard]] bool isOpen() const { return open_; }
     [[nodiscard]] const QString& projectRootPath() const { return root_; }
     [[nodiscard]] bool canUndo() const { return canUndo_; }
+    // [I-0302]: the newest step is a hard barrier — nothing to undo, but an undo there shows the barrier's notice.
+    [[nodiscard]] bool atBarrier() const { return atBarrier_; }
     [[nodiscard]] bool canRedo() const { return canRedo_; }
     [[nodiscard]] bool hasPending() const { return hasPending_; }
     [[nodiscard]] bool isApplying() const { return applying_; }
@@ -88,6 +90,7 @@ private:
     bool open_ = false;
     bool applying_ = false;
     bool canUndo_ = false;
+    bool atBarrier_ = false;
     bool canRedo_ = false;
     bool hasPending_ = false;
     QTimer* idleTimer_ = nullptr;

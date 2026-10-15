@@ -372,6 +372,8 @@ public:
                                      int maxNodes) const;
 
     [[nodiscard]] bool canUndo() const;
+    // [I-0302]: the newest step is a hard barrier — nothing to undo, but an undo there shows the barrier's notice.
+    [[nodiscard]] bool atBarrier() const;
     [[nodiscard]] bool canRedo() const;
     [[nodiscard]] const std::string& sessionID() const { return sessionID_; }
     [[nodiscard]] const std::string& currentNodeID() const { return currentNodeID_; }

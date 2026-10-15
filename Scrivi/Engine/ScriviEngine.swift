@@ -3234,6 +3234,19 @@ public struct CaptureState: Decodable, Sendable {
     public let hasPending:     Bool
     /// When the idle timer should fire (the caller's `nowMs` clock), or -1 when nothing is pending.
     public let idleDeadlineMs: Int64
+    /// [I-0302]: the newest step is a hard barrier — `canUndo` is false, but an undo there shows the barrier's notice.
+    public let atBarrier:      Bool
+
+    private enum CodingKeys: String, CodingKey { case committed, canUndo, canRedo, hasPending, idleDeadlineMs, atBarrier }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        committed      = try c.decode(Bool.self, forKey: .committed)
+        canUndo        = try c.decode(Bool.self, forKey: .canUndo)
+        canRedo        = try c.decode(Bool.self, forKey: .canRedo)
+        hasPending     = try c.decode(Bool.self, forKey: .hasPending)
+        idleDeadlineMs = try c.decode(Int64.self, forKey: .idleDeadlineMs)
+        atBarrier      = try c.decodeIfPresent(Bool.self, forKey: .atBarrier) ?? false
+    }
 }
 
 /// SP-177: one scene's part of an edit across several scenes (I-0270). `caret`: UTF-16 in `textBefore`.

@@ -7304,6 +7304,24 @@ struct UndoAfterStructuralOpTests {
         #expect(try h.onDisk(second) == "Second Pre")
     }
 
+    /// [I-0302] — at a barrier there is nothing to undo, but ⌘Z must SAY so: Edit ▸ Undo stays enabled (through the same
+    /// validation AppKit calls), and the undo shows the barrier's notice. ⛔ It was disabled, and ⌘Z only flashed.
+    @Test("at a barrier, Undo stays enabled and ⌘Z shows the barrier's notice")
+    func undoAtBarrierShowsTheNotice() async throws {
+        let h = try await harness(["Alpha one. Alpha two."])
+        h.caret(scene: 0, at: 11)
+        h.c.handleCreateScene()                                     // a split: a barrier is now the newest step
+        try await h.waitForSceneCount(2)
+        h.session.historyCapture?.refreshCanState()
+        let undo = NSMenuItem(title: "Undo", action: #selector(ManuscriptNSTextView.undo(_:)), keyEquivalent: "z")
+        #expect(h.tv.validateUserInterfaceItem(undo), "Edit ▸ Undo is enabled at the barrier")
+        var notices: [String] = []
+        h.c.onBarrierNotice = { notices.append($0) }
+        h.tv.undo(nil)
+        #expect(notices == ["Can't undo past creating a scene"], "the barrier's notice (\(notices))")
+        #expect(h.loader.segments.count == 2, "and nothing changed")
+    }
+
     /// [I-0299] — the Mac's reopen flagged two scenes it had itself deleted text across. A cross-scene delete followed by a
     /// CLEAN close and reopen does not: its saves record their bytes (measured 2026-10-13; the probe stays as a guard).
     @Test("a cross-scene delete, then a reopen: no scene is taken for an outside edit")

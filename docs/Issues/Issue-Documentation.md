@@ -166,6 +166,16 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-15 (**I-0302 → Resolved - Not Verified** in [SP-180]: `atBarrier` in every capture result; Mac and Linux keep Undo available at a barrier.)*
+
+*Last Updated: 2026-10-14 (**I-0299** second half: `ctl:close` recorded, pending typing recovered after a crash; **I-0302 filed** `[Apple]`: ⌘Z at a barrier flashes instead of showing its notice.)*
+
+*Last Updated: 2026-10-14 (**I-0301 → `Issue-backlog.md`**, detached from [SP-180] by the user; Open, not reproduced.)*
+
+*Last Updated: 2026-10-14 (**I-0299 → Resolved - Not Verified** in [SP-180]: a `rec:"persisted"` log record survives an unclean session end; **I-0301** not reproduced, open with Debug diagnostics.)*
+
+*Last Updated: 2026-10-13 (**I-0301 filed** `[Apple]` to `Issue-active.md`: scrolling down from the manuscript's start jitters and does not move; reported during [SP-180]'s live pass, unassigned.)*
+
 *Last Updated: 2026-10-13 (**I-0297, I-0298, I-0300 → Resolved - Not Verified** in [SP-180]; I-0299 open: probed, a hypothesis to confirm.)*
 
 *Last Updated: 2026-10-13 (**I-0297–I-0300 filed** from [SP-180]'s rig live pass, all ruled into [SP-180]: I-0297 `[Linux]` freeze over the share · I-0298 `[Apple]` `[Linux]` session warning skipped on a structural undo · I-0299 `[ScriviCore]` false outside-edit flags · I-0300 `[Linux]` caret after a new chapter.)*

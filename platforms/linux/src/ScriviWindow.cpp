@@ -216,7 +216,7 @@ void ScriviWindow::buildMenuBar()
     editorOnlyActions_.append(redo);
     connect(edit, &QMenu::aboutToShow, this, [this, undo, redo]() {
         const bool editing = editor_ != nullptr && stack_->currentWidget() == editor_;
-        undo->setEnabled(editing && editor_->canUndo());
+        undo->setEnabled(editing && editor_->undoAvailable());   // [I-0302]: at a barrier too, to show its notice
         redo->setEnabled(editing && editor_->canRedo());
     });
     // ⚠️ Re-enabled on close so the SHORTCUTS keep working: a disabled action's shortcut never fires, and the can-state

@@ -56,6 +56,10 @@ public:
                       const std::string& reason);
     void persistEvent(const EventNode& node);
     void persistCtl(const std::string& op, const std::string& nodeID);
+    // [I-0299]: the session closed cleanly — written by `scrivi_history_close`, before its final checkpoint.
+    void recordClose() { persistCtl("close", ""); }
+    // [I-0299]: a save's bytes (their hash) recorded in the log as they are written; replayed at open over state.json.
+    void persistPersisted(const std::string& sceneID, const std::string& sha256);
 
     // Persists a ctl:setPrimary record (branch re-selection, §5/§10 T2). Call
     // after HistoryService::selectBranch succeeds so a re-primaried branch
@@ -125,6 +129,10 @@ private:
     // head-derived hash so the next open compares disk-to-disk. A scene absent
     // here was never saved this session, so its loaded baseline still stands.
     std::map<std::string, std::string> persistedDiskHashes_;
+
+    // [I-0299]: the log's last session recorded that it would write `close`, and did not — it ended without closing (a
+    // force-quit, a debugger stop, a crash). Set at open.
+    bool previousSessionEndedUncleanly_ = false;
 };
 
 } // namespace scrivi::history
