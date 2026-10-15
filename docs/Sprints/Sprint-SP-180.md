@@ -8,7 +8,7 @@ created: 2026-10-13
 
 # SP-180 — `[Linux]` [EP-026] **S4**: structured cut / copy / paste across scenes
 
-**Status:** 🟡 **ACTIVE 2026-10-13** (user: *"yes, as step 0 for both platforms."*) — created 2026-10-13 (user: *"start planning EP-026 S4"*). ✅ Q1–Q4 ruled. ✅ AC0–AC8 met 2026-10-13 ([I-0293]–[I-0296] Resolved - Not Verified); ⏳ AC9 rig live pass.
+**Status:** 🟡 **ACTIVE 2026-10-13** (user: *"yes, as step 0 for both platforms."*) — created 2026-10-13 (user: *"start planning EP-026 S4"*). ✅ Q1–Q4 ruled. ✅ AC0–AC8 met 2026-10-13 ([I-0293]–[I-0296] Verified 2026-10-15); ⏳ AC9 rig live pass.
 **Carries:** [T-0607] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified) · [I-0293] `[ScriviCore]` · [I-0294] `[Apple]` · [I-0295] `[Apple]` · [I-0296] `[ScriviCore]`.
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
 [`../Epics/Epic-active.md`](../Epics/Epic-active.md). EP-026 Q2 (ruled 2026-10-11): EP-029's Linux follow-on is in this Epic.
@@ -345,3 +345,15 @@ User: *"Ok fix it in SP-180."*
 - Red first, three times: the core test, the Mac interop test through `validateUserInterfaceItem`, and Linux `undo_smoke`
   with the Linux change removed.
 - **Runs:** ctest macOS 724/724, Linux 727/727; 32/32 Linux smokes; interop 291/291.
+
+### 🟡 2026-10-15 — [I-0302] Verified (Mac)
+
+User: *"I-0302 passes, the dialog appeared"* (⌘Z at dumas-prose-timelines' 14:56 barrier). Archived to
+`Issues/Verified/Issue-verified-0301-0310.md` (new batch 31). Its Linux menu-item half rests on `undo_smoke`; not checked live.
+
+### 🟡 2026-10-15 — [I-0293]–[I-0296], [I-0299] Verified (Mac); [I-0298] Mac half passed
+
+User: *"I-0293 through I-0299 passes"* (the Mac steps). Five archived to `Issues/Verified/Issue-verified-0291-0300.md`.
+- [I-0297] is Linux-only (its check is over the share on the rig), so it stays Resolved - Not Verified.
+- [I-0298] covers both platforms. The Mac half passed; its Linux half (Ctrl+Z) waits for the rig.
+- ⏳ AC9 on the rig: [I-0297], [I-0298] Linux, [I-0300], and the Linux side of [I-0293]–[I-0295].

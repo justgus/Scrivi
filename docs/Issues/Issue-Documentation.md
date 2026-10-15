@@ -110,7 +110,8 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
 | 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 7 |
-| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) | 2 |
+| 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) || 7 |
+| 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 1 |
 
 ⚠️ **Rows 15 onward added 2026-09-30 ([SP-148] Audit Check A6)** — the table had stopped at batch 14. ✅ Each count is re-derived from the file (distinct IDs in its table rows ∪ `## I-0` sections), ⛔ never copied.
 
@@ -165,6 +166,10 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-15 (**I-0293, I-0294, I-0295, I-0296, I-0299 VERIFIED** (user, Mac) → `Issue-verified-0291-0300.md`, now 7.)*
+
+*Last Updated: 2026-10-15 (**I-0302 VERIFIED** (user, Mac) → new batch 31, `Issue-verified-0301-0310.md` (1).)*
 
 *Last Updated: 2026-10-15 (**I-0302 → Resolved - Not Verified** in [SP-180]: `atBarrier` in every capture result; Mac and Linux keep Undo available at a barrier.)*
 
