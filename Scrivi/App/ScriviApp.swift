@@ -36,6 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // ⚠️ [T-0570] — asked before quitting; false CANCELS the quit (edits that cannot be
     // saved because the project's drive is gone). Set by ScriviApp at launch.
     @MainActor static var onShouldTerminate: (() -> Bool)?
+    /// [I-0305] — true when quitting must first wait for background writes; it then runs its argument once they land.
+    @MainActor static var onWaitBeforeTerminate: ((@escaping @MainActor () -> Void) -> Bool)?
 
     // ⚠️ T-0546 — AN UNCAUGHT-EXCEPTION HANDLER, so a layout fault does not take the
     // writer's work with it silently.
@@ -128,7 +130,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        (AppDelegate.onShouldTerminate?() ?? true) ? .terminateNow : .terminateCancel
+        // ✅ [I-0305] — not while scenes are being written in the background: wait behind the panel, then ask as usual.
+        if let wait = AppDelegate.onWaitBeforeTerminate, wait({
+            sender.reply(toApplicationShouldTerminate: AppDelegate.onShouldTerminate?() ?? true)
+        }) {
+            return .terminateLater
+        }
+        return (AppDelegate.onShouldTerminate?() ?? true) ? .terminateNow : .terminateCancel
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -224,6 +232,10 @@ struct ScriviApp: App {
         AppDelegate.onShouldTerminate = {
             env.confirmDiscardingUnsavable(in: Array(env.openProjects.sessions.values),
                                            action: "Quit")
+        }
+        // [I-0305] — Quit waits for every project's background writes, behind ONE panel.
+        AppDelegate.onWaitBeforeTerminate = { then in
+            SavingUpdatesWait.waitFor(Array(env.openProjects.sessions.values), over: nil, then: then)
         }
         #endif
         // Restore projects open at last quit (R4 / T-0195). On iOS this surfaces the

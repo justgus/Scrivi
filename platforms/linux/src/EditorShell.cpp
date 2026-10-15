@@ -45,6 +45,7 @@
 #include "HistoryCapture.hpp"
 #include "HistoricalEventDialog.hpp"
 #include "ManuscriptEditor.hpp"
+#include "ManuscriptEscapes.hpp"
 #include "ManuscriptPresenter.hpp"
 #include "NavigatorTree.hpp"
 #include "SceneInspector.hpp"
@@ -53,6 +54,8 @@
 #include "StoryStructures.hpp"
 #include "TimeDeltaPicker.hpp"
 #include "TimelinePanel.hpp"
+
+#include <utility>
 
 // Short alias for the built-in story-structure presets (SP-081).
 namespace story = scrivi::linux_app::story;
@@ -364,28 +367,11 @@ EditorShell::EditorShell(QWidget* parent, AppEnvironment* env)
     connect(viewport_, &ManuscriptEditor::pasteOrCutEnded, this, [this](const QString& kind) {
         if (history_ != nullptr) { history_->flush(kind, kind); }
     });
-    connect(viewport_, &ManuscriptEditor::groupedEditBegins, this, [this]() {
-        grouping_ = true;
-        groupParts_.clear();
-    });
-    connect(viewport_, &ManuscriptEditor::groupedEditEnded, this, [this](const QString& kind) {
-        grouping_ = false;
-        QJsonArray edits;
-        for (const GroupPart& part : std::as_const(groupParts_)) {
-            const int idx = sceneDoc_.sceneIndexForScene(part.sceneID);
-            if (idx < 0) { continue; }
-            const QString after = sceneDoc_.bodyText(idx);
-            historyText_.insert(part.sceneID, after);
-            edits.append(QJsonObject{{QStringLiteral("sceneID"), part.sceneID},
-                                     {QStringLiteral("textBefore"), part.before},
-                                     {QStringLiteral("textAfter"), after},
-                                     {QStringLiteral("caret"), part.caret}});
-        }
-        groupParts_.clear();
-        if (history_ != nullptr && !edits.isEmpty()) {
-            history_->groupedEdit(QString::fromUtf8(QJsonDocument(edits).toJson(QJsonDocument::Compact)), kind);
-        }
-    });
+    connect(viewport_, &ManuscriptEditor::groupedEditBegins, this, &EditorShell::beginGroupedEdit);
+    connect(viewport_, &ManuscriptEditor::groupedEditEnded, this, &EditorShell::endGroupedEdit);
+    // SP-181 (EP-048 S4b): the find bar's Replace All is the shell's — off the GUI thread (Q3).
+    findBar_->setReplaceAllHandler([this](const QVector<MarkdownRange>& matches, const QString& typed,
+                                          std::function<void(int)> done) { replaceAll(matches, typed, std::move(done)); });
 
     // EP-026 S5 (SP-179 / T-0606): the copy-buffer chords (Ctrl+N copy · Ctrl+Shift+N paste · Alt+N cut).
     connect(viewport_, &ManuscriptEditor::bufferCopyRequested, this, &EditorShell::copyIntoBuffer);
@@ -1643,16 +1629,15 @@ bool EditorShell::saveScene(int segmentIndex)
         seg.sceneID, seg.metadataPath, seg.contentPath,
         body,
         selectionAnchor, selectionFocus, scroll);
-    if (!r.isEmpty() && r.value(QStringLiteral("saved")).toBool()) {
+    const bool saved = !r.isEmpty() && r.value(QStringLiteral("saved")).toBool();
+    if (saved) {
         notePersisted(seg.sceneID, body);   // EP-026 S2: [I-0104] / [I-0259]
+        dirtyScenes_.remove(seg.sceneID);
     }
-
-    // Whatever the outcome, drop the scene from the dirty set: on success it's
-    // clean; on failure the bridge already surfaced errorOccurred and re-queuing it
-    // would just fail again every debounce. (A retry policy is out of scope here.)
-    dirtyScenes_.remove(seg.sceneID);
-
-    return !r.isEmpty() && r.value(QStringLiteral("saved")).toBool();
+    // ⛔ [I-0304] — A FAILED WRITE LEAVES THE SCENE DIRTY (Apple: [I-0259]). It was dropped "whatever the outcome", so
+    // nothing retried it and a close never wrote it: the edit lived only on screen. The bridge has already surfaced
+    // errorOccurred; the next save (the debounce after an edit, a scene change, a close) retries it.
+    return saved;
 }
 
 QList<int> EditorShell::paneSizes() const
@@ -1785,10 +1770,8 @@ void EditorShell::stampWritingSurface()
         selectionAnchor, selectionFocus, scroll);
     if (!r.isEmpty() && r.value(QStringLiteral("saved")).toBool()) {
         notePersisted(seg.sceneID, body);   // EP-026 S2: [I-0104] / [I-0259]
+        dirtyScenes_.remove(seg.sceneID);   // on disk now; ⛔ [I-0304]: a failed write stays dirty
     }
-
-    // The scene is now on disk; do not re-flush it on a later debounce.
-    dirtyScenes_.remove(seg.sceneID);
 }
 
 void EditorShell::saveDirtyScenes()
@@ -2563,6 +2546,265 @@ void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo
         failed);
 }
 
+void EditorShell::beginGroupedEdit()
+{
+    grouping_ = true;
+    groupParts_.clear();
+}
+
+void EditorShell::endGroupedEdit(const QString& kind)
+{
+    grouping_ = false;
+    QJsonArray edits;
+    for (const GroupPart& part : std::as_const(groupParts_)) {
+        const int idx = sceneDoc_.sceneIndexForScene(part.sceneID);
+        if (idx < 0) { continue; }
+        const QString after = sceneDoc_.bodyText(idx);
+        historyText_.insert(part.sceneID, after);
+        edits.append(QJsonObject{{QStringLiteral("sceneID"), part.sceneID},
+                                 {QStringLiteral("textBefore"), part.before},
+                                 {QStringLiteral("textAfter"), after},
+                                 {QStringLiteral("caret"), part.caret}});
+    }
+    groupParts_.clear();
+    if (history_ != nullptr && !edits.isEmpty()) {
+        history_->groupedEdit(QString::fromUtf8(QJsonDocument(edits).toJson(QJsonDocument::Compact)), kind);
+    }
+}
+
+void EditorShell::lockForWork(const QString& label)
+{
+    loading_ = true;                 // undo, redo and the buffer actions wait; nothing is reported to history meanwhile
+    viewport_->setReadOnly(true);
+    if (progressBar_ != nullptr) {
+        progressBar_->setRange(0, 0);
+        progressLabel_->setText(label);
+    }
+    if (progressDelay_ != nullptr) { progressDelay_->start(); }
+}
+
+void EditorShell::unlockAfterWork()
+{
+    hideLoadProgress();
+    loading_ = false;
+    viewport_->setReadOnly(false);
+}
+
+void EditorShell::beginBackgroundWork()
+{
+    ++backgroundWork_;
+}
+
+void EditorShell::endBackgroundWork()
+{
+    if (backgroundWork_ <= 0 || --backgroundWork_ > 0) {
+        return;
+    }
+    const QList<std::function<void()>> waiters = std::exchange(backgroundWaiters_, {});
+    for (const auto& w : waiters) {
+        w();
+    }
+}
+
+void EditorShell::whenBackgroundWorkDone(std::function<void()> then)
+{
+    if (backgroundWork_ == 0) {
+        then();
+        return;
+    }
+    backgroundWaiters_.append(std::move(then));
+}
+
+// ✅ SP-181 (EP-048 S4b) — Replace All. Apple's shape (`replaceAll` + `applyReplacements`): every match escaped, snapped and
+// balanced as a single Replace, back to front, ONE grouped `replace` step ([SP-164] Q2). ✅ Q3: nothing heavy on the GUI
+// thread — the balanced edits are computed on a worker (the scene texts are plain strings there), the GUI thread only
+// applies the finished texts (Qt's document is GUI-only), and the writes run on a worker again. Only scenes holding a match
+// are edited or written.
+void EditorShell::replaceAll(const QVector<MarkdownRange>& matches, const QString& typed, std::function<void(int)> done)
+{
+    if (loading_ || matches.isEmpty() || projectPath_.isEmpty()) {
+        done(0);
+        return;
+    }
+    viewport_->removePendingPair();   // not scene text ([SP-175] Q2): the offsets below are the scenes' own
+    struct SceneEdits { QString sceneID; QString before; QVector<MarkdownRange> ranges; };   // ranges: scene-local
+    QVector<SceneEdits> scenes;
+    for (const MarkdownRange& m : matches) {
+        int start = m.start;
+        int end = m.end;
+        viewport_->snapForTyping(start, end);
+        const auto slice = sceneDoc_.sceneHolding(start, end);
+        if (!slice) {
+            continue;
+        }
+        const QString id = sceneDoc_.segments().at(slice->index).sceneID;
+        if (scenes.isEmpty() || scenes.last().sceneID != id) {
+            scenes.append({id, slice->text, {}});
+        }
+        scenes.last().ranges.append({start - slice->start, end - slice->start});
+    }
+    if (scenes.isEmpty()) {
+        done(0);
+        return;
+    }
+    const QString escaped = ManuscriptEscapes::escape(typed);
+    lockForWork(tr("Replacing…"));
+    beginBackgroundWork();   // [I-0305]: a close waits for it
+    AsyncCall::run<QVector<QString>>(
+        this,
+        // ⚠️ The WORKER: the C ABI only, on copies.
+        [scenes, escaped]() {
+            QVector<QString> after;
+            after.reserve(scenes.size());
+            for (const SceneEdits& sc : scenes) {
+                QString text = sc.before;
+                for (qsizetype k = sc.ranges.size() - 1; k >= 0; --k) {   // back to front: earlier offsets stay valid
+                    const MarkdownRange r = sc.ranges.at(k);
+                    if (const auto e = ScriviBridge::markdownBalancedEdit(text, r.start, r.end, escaped, false)) {
+                        text.replace(e->range.start, e->range.end - e->range.start, e->replacement);
+                    } else {
+                        text.replace(r.start, r.end - r.start, escaped);
+                    }
+                }
+                after.append(text);
+            }
+            return after;
+        },
+        [this, scenes, done](const QVector<QString>& after) {
+            // The GUI thread: the finished texts go in as the writer's own edit — reconciled, dirtied, ONE step.
+            loading_ = false;
+            beginGroupedEdit();
+            QList<int> touched;
+            int replaced = 0;
+            for (qsizetype k = 0; k < scenes.size(); ++k) {
+                const int idx = sceneDoc_.sceneIndexForScene(scenes.at(k).sceneID);
+                if (idx < 0 || after.at(k) == scenes.at(k).before || sceneDoc_.bodyText(idx) != scenes.at(k).before) {
+                    continue;
+                }
+                replaceSceneSpan(idx, scenes.at(k).before, after.at(k));
+                touched.append(idx);
+                replaced += int(scenes.at(k).ranges.size());
+            }
+            endGroupedEdit(QStringLiteral("replace"));
+            loading_ = true;
+            qInfo("[SCRIVI-FIND] replaceAll %d edits / %lld scenes", replaced, qlonglong(touched.size()));
+            saveScenesOffMain(touched, [this, done, replaced] {
+                unlockAfterWork();
+                done(replaced);
+                endBackgroundWork();
+            });
+        },
+        [this, done] {
+            unlockAfterWork();
+            errorLabel_->setText(tr("Replace All is taking longer than expected — the project may be on a disconnected or "
+                                    "unreachable volume. Reopen it before editing further."));
+            errorLabel_->show();
+            done(0);
+            endBackgroundWork();
+        },
+        kProjectOpenTimeoutMs);
+}
+
+void EditorShell::replaceSceneSpan(int index, const QString& before, const QString& after)
+{
+    qsizetype head = 0;
+    const qsizetype most = std::min(before.size(), after.size());
+    while (head < most && before.at(head) == after.at(head)) {
+        ++head;
+    }
+    qsizetype tail = 0;
+    while (tail < most - head && before.at(before.size() - 1 - tail) == after.at(after.size() - 1 - tail)) {
+        ++tail;
+    }
+    const int bodyStart = sceneDoc_.segments().at(index).bodyStart;
+    QTextCursor c(sceneDoc_.document());
+    c.beginEditBlock();
+    c.setPosition(bodyStart + int(head));
+    c.setPosition(bodyStart + int(before.size() - tail), QTextCursor::KeepAnchor);
+    // ⛔ Raw — the text is already balanced; `replaceRange` would balance it again.
+    c.insertText(after.mid(head, after.size() - tail - head), QTextCharFormat());
+    c.endEditBlock();
+}
+
+void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<void()> landed)
+{
+    struct Job { QString sceneID; QString metadataPath; QString contentPath; QString text; };
+    QVector<Job> jobs;
+    for (const int idx : indices) {
+        const SceneSegment& seg = sceneDoc_.segments().at(idx);
+        if (!dirtyScenes_.contains(seg.sceneID)) {
+            continue;
+        }
+        jobs.append({seg.sceneID, seg.metadataPath, seg.contentPath, sceneDoc_.bodyText(idx)});
+        dirtyScenes_.remove(seg.sceneID);   // ⛔ never also written by the autosave on the GUI thread
+    }
+    if (dirtyScenes_.isEmpty()) {
+        saveTimer_->stop();
+    }
+    if (jobs.isEmpty()) {
+        landed();
+        return;
+    }
+    if (history_ != nullptr) {
+        history_->beforeSave();   // an autosave never seals the session unless the writer is idle (T-0396)
+    }
+    beginBackgroundWork();
+    if (progressLabel_ != nullptr) {
+        progressLabel_->setText(jobs.size() == 1 ? tr("Saving 1 scene…") : tr("Saving %1 scenes…").arg(jobs.size()));
+    }
+    ScriviBridge* bridge = bridge_;
+    const QString projectID = projectID_;
+    const QString path = projectPath_;
+    const QString support = appSupportRoot_;
+    AsyncCall::run<QVector<bool>>(
+        this,
+        // ⚠️ The WORKER: the C ABI only. Body-only saves (0/0/0.0): the writing surface is the caret scene's, kept by
+        // the next ordinary save.
+        [jobs, bridge, projectID, path, support]() {
+            QVector<bool> ok;
+            ok.reserve(jobs.size());
+            for (const Job& j : jobs) {
+                const QVariantMap r = bridge->saveScene(projectID, path, support, j.sceneID, j.metadataPath, j.contentPath,
+                                                        j.text, 0, 0, 0.0);
+                ok.append(!r.isEmpty() && r.value(QStringLiteral("saved")).toBool());
+            }
+            return ok;
+        },
+        [this, jobs, landed](const QVector<bool>& ok) {
+            for (qsizetype k = 0; k < jobs.size(); ++k) {
+                const Job& j = jobs.at(k);
+                const int idx = sceneDoc_.sceneIndexForScene(j.sceneID);
+                if (!ok.at(k)) {
+                    if (idx >= 0) {
+                        dirtyScenes_.insert(j.sceneID);   // ⛔ [I-0304]: a failed write stays dirty; the next save retries
+                    }
+                    continue;
+                }
+                notePersisted(j.sceneID, j.text);   // [I-0104] / [I-0259]: only after a write that succeeded
+                if (idx >= 0 && sceneDoc_.bodyText(idx) != j.text) {
+                    dirtyScenes_.insert(j.sceneID);     // changed meanwhile: the next save writes it
+                    saveTimer_->start();
+                }
+            }
+            landed();
+            endBackgroundWork();
+        },
+        [this, jobs, landed] {
+            // ⛔ [I-0304]: the writes did not report back, so as far as anyone knows they failed — kept dirty.
+            for (const Job& j : jobs) {
+                if (sceneDoc_.sceneIndexForScene(j.sceneID) >= 0) {
+                    dirtyScenes_.insert(j.sceneID);
+                }
+            }
+            errorLabel_->setText(tr("Saving is taking longer than expected — the project may be on a disconnected or "
+                                    "unreachable volume. Reopen it before editing further."));
+            errorLabel_->show();
+            landed();
+            endBackgroundWork();
+        },
+        kProjectOpenTimeoutMs);
+}
+
 void EditorShell::runStructural(const QString& label, std::function<QVariantMap()> work,
                                 std::function<void(const QVariantMap&)> then, std::function<void()> failed)
 {
@@ -2573,6 +2815,7 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
         progressLabel_->setText(label);
     }
     if (progressDelay_ != nullptr) { progressDelay_->start(); }
+    beginBackgroundWork();   // [I-0305]: a close waits for the worker's writes
     struct Outcome { QVariantMap result; bool failed = false; };
     ScriviBridge* bridge = bridge_;
     const auto release = [this] {
@@ -2594,15 +2837,18 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
             if (o.failed) {
                 release();
                 if (failed) { failed(); }
+                endBackgroundWork();
                 return;
             }
             then(o.result);   // records history, then a reload — which lifts the guard when it lands
+            endBackgroundWork();   // the writes are done; the reload only reads (a close mid-load is T-0567's)
         },
         [this, release] {
             release();
             errorLabel_->setText(tr("This change is taking longer than expected — the project may be on a disconnected or "
                                     "unreachable volume. Reopen it before editing further."));
             errorLabel_->show();
+            endBackgroundWork();
         },
         kProjectOpenTimeoutMs);
 }

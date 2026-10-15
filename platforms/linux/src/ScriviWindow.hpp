@@ -3,9 +3,13 @@
 #include <QList>
 #include <QMainWindow>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QVariantMap>
 
+#include <functional>
+
+class QProgressDialog;
 class AppEnvironment;
 class QAction;
 class QQuickWidget;
@@ -132,6 +136,13 @@ public:
     // View ▸ Show Buffers follows the ONE app-wide palette — every window's check is set from `AppEnvironment`.
     void setBuffersActionChecked(bool on);
 
+    // ✅ [I-0305] (user, 2026-10-15): a close while this project's background work runs WAITS for it, behind
+    // `showSavingUpdates`. When work is running, shows the dialog, runs `then` (later, on the GUI thread) once it is done,
+    // and returns true; otherwise returns false and runs nothing. A second call while one waits only returns true.
+    bool waitForBackgroundWork(std::function<void()> then);
+    // The modal "Please wait — saving updates…" dialog with a spinner, shown at once over `parent` (nullptr: app-modal).
+    static QProgressDialog* showSavingUpdates(QWidget* parent);
+
     ~ScriviWindow() override;
 
 protected:
@@ -158,6 +169,7 @@ private:
     // ⚠️ [SP-146] T-0559 — the app-global owner, handed down from `main()`.
     // ⛔ NOT owned: it outlives this window. ✅ Passed on to each `EditorShell`.
     AppEnvironment*   env_ = nullptr;
+    QPointer<QProgressDialog> waitDialog_;   // [I-0305]: shown while a close waits for background work
 
     // Actions that are only meaningful with a project open in the editor.
     QList<QAction*> editorOnlyActions_;

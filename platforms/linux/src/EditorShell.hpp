@@ -184,6 +184,11 @@ public:
     // Commits the pending typing now (Apple's `saveAllDirtyBlocking` flush). ✅ Called on every teardown BEFORE the dirty
     // scenes are saved; the history itself closes in `releaseProject()`, after them.
     void flushHistory();
+    // ✅ [I-0305] (user, 2026-10-15: a close "must WAIT until the background process is completed"): true while a worker
+    // is writing this project — the off-main scene saves, a Replace All, a structural step. `whenBackgroundWorkDone` runs
+    // `then` on the GUI thread once none is left (at once when none is running).
+    [[nodiscard]] bool backgroundWorkInProgress() const { return backgroundWork_ > 0; }
+    void whenBackgroundWorkDone(std::function<void()> then);
     // For smokes: the open history, or nullptr.
     [[nodiscard]] HistoryCapture* history() const { return history_; }
 
@@ -780,4 +785,27 @@ private:
     // A structural barrier (§4.5), Apple's kinds and notes. ⚠️ AFTER the op: `sceneTexts` is what it left in each
     // scene it rewrote or created ([I-0287]).
     void recordBarrier(const QString& kind, const QString& note, const QHash<QString, QString>& sceneTexts = {});
+
+    // ── SP-181 (EP-048 S4b): Replace All ──
+    // ✅ Q3 (ruled 2026-10-15: "Replace All must not run on the gui thread. always use the worker"): the balanced
+    // replacements are computed OFF the GUI thread, applied as ONE grouped `replace` step, and the touched scenes —
+    // ONLY those holding a match — written off it too. The editor is read-only, with the progress row, throughout.
+    // `done(replaced)` runs on the GUI thread at the end (0 when nothing was replaced).
+    void replaceAll(const QVector<MarkdownRange>& matches, const QString& typed, std::function<void(int)> done);
+    // Writes the dirty scenes at `indices` OFF the GUI thread (Apple: `ViewportSceneLoader.saveScenesOffMain`, [I-0303]),
+    // then runs `landed` on it. A scene the writer changed meanwhile stays dirty.
+    void saveScenesOffMain(const QList<int>& indices, std::function<void()> landed);
+    // Replace `before` (segment `index`'s body) by `after`, raw, editing only the span that differs.
+    void replaceSceneSpan(int index, const QString& before, const QString& after);
+    // ONE edit across several scenes ([I-0270]) — the parts in between are collected and reported together.
+    void beginGroupedEdit();
+    void endGroupedEdit(const QString& kind);
+    // The editor read-only and `loading_` set, with the progress row showing `label` — and back.
+    void lockForWork(const QString& label);
+    void unlockAfterWork();
+    // [I-0305]: brackets one piece of background work; the last `end` runs the `whenBackgroundWorkDone` waiters.
+    void beginBackgroundWork();
+    void endBackgroundWork();
+    int                                backgroundWork_ = 0;
+    QList<std::function<void()>>       backgroundWaiters_;
 };

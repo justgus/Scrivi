@@ -41,7 +41,7 @@ does not exist and is owed to no one yet.**
 
 ## Backlog Issues (open, no Sprint)
 
-✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0287] → `Issue-active.md`, fixed in [SP-178], 2026-10-11.) ([I-0288] fixed in [SP-178] and verified 2026-10-12, archived.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
+✅ **The rows live in [`Issue-backlog.md`](Issue-backlog.md)** — [I-0202], [I-0147], [I-0275] (filed 2026-10-04), [I-0284] (filed 2026-10-08), [I-0286] (filed 2026-10-10). ([I-0287] fixed in [SP-178] 2026-10-11 and verified 2026-10-15, archived.) ([I-0288] fixed in [SP-178] and verified 2026-10-12, archived.) ([I-0277] fixed and verified in [SP-171], archived.) ([I-0283] fixed and verified 2026-10-08, archived.) ([I-0281] fixed and verified in [SP-169], archived.) ([I-0278] fixed and verified in [SP-167], archived.) ⛔ This line read *"Currently: 0 — the backlog is empty"* while two Issues sat there; corrected 2026-10-04.
 
 ✅ **I-0018 was the last entry**, archived 2026-08-19 as ✅ Verified (audit ruling **R-02**) → batch 2.
 Its rescoped behaviour was delivered by I-0131's restore centring, verified 2026-08-18.
@@ -109,7 +109,7 @@ never used). **This is not a filing defect** — do not re-open it as one.
 | 26 | I-0251 – I-0260 | [`Issue-verified-0251-0260.md`](Verified/Issue-verified-0251-0260.md) | 10 |
 | 27 | I-0261 – I-0270 | [`Issue-verified-0261-0270.md`](Verified/Issue-verified-0261-0270.md) | 9 |
 | 28 | I-0271 – I-0280 | [`Issue-verified-0271-0280.md`](Verified/Issue-verified-0271-0280.md) | 8 |
-| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 7 |
+| 29 | I-0281 – I-0290 | [`Issue-verified-0281-0290.md`](Verified/Issue-verified-0281-0290.md) | 8 |
 | 30 | I-0291 – I-0300 | [`Issue-verified-0291-0300.md`](Verified/Issue-verified-0291-0300.md) || 7 |
 | 31 | I-0301 – I-0310 | [`Issue-verified-0301-0310.md`](Verified/Issue-verified-0301-0310.md) | 1 |
 
@@ -166,6 +166,18 @@ stands as a marker.**
 | [`Issue-closed-0274.md`](Closed/Issue-closed-0274.md) | I-0274 — ⚪ **not a defect** (Control-Return mis-measured by a direct-`keyDown` harness; in the app it opens the context menu; closed 2026-10-04) |
 
 ---
+
+*Last Updated: 2026-10-15 (**I-0306 filed** `[Apple]` to `Issue-active.md`: ⌘W skips the unsavable-changes question; unassigned.)*
+
+*Last Updated: 2026-10-15 (**I-0304** and **I-0305 → 🟠 Resolved - Not Verified** in [SP-181].)*
+
+*Last Updated: 2026-10-15 (**I-0304** `[Linux]` and **I-0305** `[Apple]` `[Linux]` filed to `Issue-active.md`, ruled into [SP-181]: a failed Linux save is kept dirty; a close or quit waits for background writes.)*
+
+*Last Updated: 2026-10-15 (**I-0303 → 🟠 Resolved - Not Verified** in [SP-181]: Replace All writes its scenes off the main thread, only the matched ones.)*
+
+*Last Updated: 2026-10-15 (**I-0303 filed** `[Apple]` to `Issue-active.md`: Replace All writes its scenes on the main thread; ruled into [SP-181] before its Linux work.)*
+
+*Last Updated: 2026-10-15 (**I-0287 VERIFIED** (user) → `Issue-verified-0281-0290.md`, now 8 — counted from its table rows.)*
 
 *Last Updated: 2026-10-15 (**I-0293, I-0294, I-0295, I-0296, I-0299 VERIFIED** (user, Mac) → `Issue-verified-0291-0300.md`, now 7.)*
 

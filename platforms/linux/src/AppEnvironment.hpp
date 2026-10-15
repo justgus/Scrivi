@@ -4,12 +4,14 @@
 #include <QHash>
 #include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QPoint>
 #include <QRect>
 #include <QString>
 #include <QVariantMap>
 #include <QtGlobal>
 
+class QProgressDialog;
 class ScriviWindow;
 class LandingWindow;
 class ShellController;
@@ -315,6 +317,8 @@ public:
     // ✅ So quitting is explicit: flush everything, tear down OUR windows from OUR
     // OWN map, then quit. ⚠️ `quitting_` suppresses the re-show while it runs.
     void quitApplication();
+    // [I-0305]: the rest of Quit — flush, wait for any background work, then close every window and quit.
+    void finishQuit();
 
     // ✅ True while `quitApplication()` is tearing down — ⚠️ read by
     // `projectWindowClosing()` and `LandingWindow::closeEvent` so neither fights
@@ -365,6 +369,7 @@ private:
     QString             appSupportRoot_;
     LandingWindow*      landing_ = nullptr;   // NOT owned — main() owns it
     bool                quitting_ = false;   // ⚠️ [I-0257] — teardown in progress
+    QPointer<QProgressDialog> quitWaitDialog_;   // [I-0305]: Quit waiting for background work
     OpenProjectRegistry openProjects_;
     ProjectWindowManager windows_;
     SessionStore        session_;

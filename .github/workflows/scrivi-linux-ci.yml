@@ -278,6 +278,20 @@ jobs:
           platforms/linux/tests/structured_paste_smoke.sh \
             ./build/platforms/linux/scrivi_linux_structured_paste_smoke
 
+      # Replace / Replace All (SP-181 / T-0608, EP-048 S4b): Replace over the current match; Replace All off the GUI thread,
+      # ONE undo step, only the scenes holding a match written.
+      - name: Replace smoke test
+        run: |
+          platforms/linux/tests/replace_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_replace_smoke
+
+      # Background writes (SP-181, I-0304 / I-0305): a failed save stays dirty; closing a window or quitting while a
+      # project's background writes run waits for them. ⚠️ Non-root (the runner user): a read-only directory fails a save.
+      - name: Background wait smoke test
+        run: |
+          platforms/linux/tests/background_wait_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_background_wait_smoke
+
       # ✅ 2026-10-10 (user: "add the missing smokes to CI too") — these eleven smokes existed but CI never ran them.
 
       # ABI parity (EP-034 / SP-121, T-0464).

@@ -1266,6 +1266,83 @@ target_link_libraries(scrivi_linux_structured_paste_smoke
 target_include_directories(scrivi_linux_structured_paste_smoke PRIVATE src)
 target_compile_features(scrivi_linux_structured_paste_smoke PRIVATE cxx_std_23)
 
+# --- Replace / Replace All smoke (SP-181 / T-0608, EP-048 S4b) ----------------
+# A REAL EditorShell + the find bar driven as the writer drives it: Replace types over the current match, Replace All runs
+# off the GUI thread as ONE undo step and writes only the scenes holding a match. Driven by replace_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_replace_smoke
+    tests/replace_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/EditorShell.cpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    # SP-145 — required by EditorShell::applyLoadedProject (registerSession).
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_replace_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+        Qt6::Test           # QTest key clicks: the real dispatch, ShortcutOverride included
+)
+
+target_include_directories(scrivi_linux_replace_smoke PRIVATE src)
+target_compile_features(scrivi_linux_replace_smoke PRIVATE cxx_std_23)
+
 # buffers_smoke (EP-026 S5 / SP-179, T-0606) — the copy buffers 1–9 on Linux, end to end.
 # REAL project windows through AppEnvironment (the palette follows the FRONT project) + real key events: Ctrl+N copy,
 # Ctrl+Shift+N paste, Alt+N cut, View ▸ Show Buffers, the palette's modifier-following button. Text read FROM DISK, slots
@@ -1351,6 +1428,92 @@ target_link_libraries(scrivi_linux_buffers_smoke
 
 target_include_directories(scrivi_linux_buffers_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
 target_compile_features(scrivi_linux_buffers_smoke PRIVATE cxx_std_23)
+
+# background_wait_smoke (SP-181, [I-0304] / [I-0305]) — a failed save stays dirty; closing a window or quitting while a
+# project's background writes run waits for them behind "Please wait — saving updates…". REAL project windows through
+# AppEnvironment, Replace All through the find bar, text read FROM DISK. ⚠️ Must run as a NON-ROOT user (a read-only scene
+# directory is how a save is made to fail). The app's own sources minus main.cpp, as buffers_smoke.
+# Driven by background_wait_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_background_wait_smoke
+    tests/background_wait_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/AppEnvironment.cpp
+    src/LandingWindow.cpp
+    src/LandingWindow.hpp
+    src/ScriviWindow.cpp
+    src/ScriviWindow.hpp
+    src/BuffersPalette.cpp
+    src/BuffersPalette.hpp
+    src/EditorShell.cpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_background_wait_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::QuickWidgets
+        Qt6::Concurrent
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_background_wait_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+target_compile_features(scrivi_linux_background_wait_smoke PRIVATE cxx_std_23)
 
 # --- Live-pass fixture builder (SP-125, EP-035 AC9) -------------------------
 # NOT a test — it asserts nothing. Builds a throwaway project whose first scene

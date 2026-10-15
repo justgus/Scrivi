@@ -377,18 +377,20 @@ struct ManuscriptTextView: NSViewRepresentable {
         /// ✅ [I-0302]: Edit ▸ Undo is available at a barrier too — the undo then shows the barrier's notice ("This scene was
         /// changed outside Scrivi; undo stops here"). ⛔ Disabled on `canUndo` alone, ⌘Z only flashed and never said why.
         var undoAvailable: Bool { canUndo || (parent.session.historyCapture?.atBarrierNow ?? false) }
-        var canRedo: Bool { parent.session.historyCapture?.canRedoNow ?? false }
+        var canRedo: Bool { !isWritingOffMain && (parent.session.historyCapture?.canRedoNow ?? false) }
+        /// [I-0303]: a Replace All's scenes are being written off the main actor — the manuscript is locked.
+        var isWritingOffMain: Bool { parent.loader.scenesWritingOffMain > 0 }
 
         // Performs an undo: asks HistoryService for the prior state, applies the
         // returned full scene text into that scene's storage range, restores the
         // cursor, and saves immediately.
         func performUndo() {
-            guard let capture = parent.session.historyCapture else { return }
+            guard !isWritingOffMain, let capture = parent.session.historyCapture else { return }
             apply(step: capture.undo(), fallbackMessage: "Nothing to undo")
         }
 
         func performRedo() {
-            guard let capture = parent.session.historyCapture else { return }
+            guard !isWritingOffMain, let capture = parent.session.historyCapture else { return }
             apply(step: capture.redo(), fallbackMessage: nil)
         }
 
@@ -2512,11 +2514,12 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
             capture.recordGroupedEdit(grouped, kind: "replace")
             let tRecorded = Date()
-            if let ref = parent.env.authorshipRef {
-                let env = parent.env
-                for i in touched {
-                    Task { @MainActor in await loader.saveScene(at: i, engine: env.engine, ref: ref) }
-                }
+            // ✅ [I-0303]: the touched scenes — ONLY those holding a match — are written OFF the main actor, with the
+            // manuscript locked (and Undo / Redo off) until they land; the editor shows progress meanwhile.
+            if let ref = parent.env.authorshipRef,
+               loader.saveScenesOffMain(touched, engine: parent.env.engine, ref: ref,
+                                        whenLanded: { [weak tv] in tv?.isEditable = true }) {
+                tv.isEditable = false
             }
             parent.session.timelineModel?.updateDotTitles(liveTitles: loader.liveTitles, allScenes: loader.allScenes)
             NSLog(String(format: "[SCRIVI-FIND] replaceAll %d edits / %d scenes: apply=%.0f ms  history=%.0f ms",
@@ -3226,7 +3229,7 @@ final class ManuscriptNSTextView: NSTextView {
 
     override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
         switch item.action {
-        case #selector(undo(_:)): return coordinator?.undoAvailable ?? false
+        case #selector(undo(_:)): return !(coordinator?.isWritingOffMain ?? false) && (coordinator?.undoAvailable ?? false)
         case #selector(redo(_:)): return coordinator?.canRedo ?? false
         case #selector(toggleAutomaticQuoteSubstitution(_:)): return false   // [I-0283]: never on in the manuscript
         default:                  return super.validateUserInterfaceItem(item)

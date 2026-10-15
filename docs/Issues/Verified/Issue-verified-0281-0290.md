@@ -9,6 +9,7 @@ Issues the user has VERIFIED, archived out of `Issue-active.md`.
 | **I-0282** | `[Apple]` ⚠️ **Changing the manuscript TYPEFACE or SIZE loses the writer's place — the caret and the reading position jump.** ✅ **REPORTED BY THE USER 2026-10-07** ([SP-168] live pass, step 4): *"when changing font or font size, the position of the caret is not maintained. This means that If I select a \"wider\" font my manuscript position will shift from say, 53 to say, 35. Same if the font size changes"* ✅ **CAUSE (read):** a typography change re-presents through `updateNSView` → plain `rebuildStorage`, which keeps neither the selection nor the place; the scroll keeps its PIXEL offset, and the same text is now taller or shorter, so the pixels land on different text. (Structural edits restore the caret through `revealCaretAfterRebuild`; this path never did.) ✅ **FIX:** `Coordinator.rebuildKeepingReadingPosition` — anchors on a CHARACTER (the caret's LINE when it is on screen, else the character at the top of the visible area), keeps the selection, and puts that line back at the same height, SETTLING over several passes (TextKit 2 gives unlaid paragraphs estimated heights; one pass was measured 170 pt off). Line positions come from TextKit 2 directly (`lineRect(forCharacterIndex:)`), not `firstRect`, which needs an on-screen window. ✅ 2 interop tests (caret on screen across Courier Prime 24 / Inter 11; scrolled away), mutation-checked (2/2); interop 226/226. ⛔ **LIVE RE-CHECK FAILED (user, 2026-10-07):** *"Using Literata-20 … caret at the blank line … in Chapter 51 … selected Courier Prime-16 … The viewport has moved to somewhere in the first three of four scenes of Chapter 25 (its slightly different each time). The caret is at the same spot. But it sometimes takes two arrow moves to get the display to show it."* ⚠️ **Not reproduced by the tests** — not at 1.8 MB, not with 1,200 scenes, dividers and titles, two changes: the harness gives the text view a FIXED frame. ✅ **CAUSE (read):** the fix computed a PIXEL target and clamped it to `tv.bounds.height`; right after a rebuild the app's text-view FRAME still holds TextKit 2's provisional height, so the clamp landed mid-document. ✅ **FIX 2:** the pattern already proven in the app (T-0573 `revealCaretAfterRebuild`) — `scrollRangeToVisible(anchor)` FIRST (AppKit sizes the document), then correct by the small delta; clamp against the scroll's document view. `[SCRIVI-TYPE] keep place: anchor=… wanted=… landed=…` is logged on every change so the next live run proves itself. 4 placement tests pass (incl. 1.8 MB and a 1,200-scene manuscript); interop 228/228. ⛔ **LIVE RE-CHECK 2 FAILED (user, 2026-10-07):** *"The view jumped again. a lot. Just as before. the caret is never off the viewport"* — log: `anchor?: caret=1846568 caretLineY=624533.0 clipY=591857.6 clipH=782.0` · `anchor = TOP OF VIEW (index 898922)` · `keep place: anchor=898922 wanted=-36.0 landed=-36.0`. ✅ **ROOT CAUSE (from the log):** the caret WAS on screen, but `lineRect` (via `ensureLayout`) put its line at ≈1.22 M pt — PAST the document's end (docH ≈1.18 M) — while the viewport drew Chapter 51 at ≈0.59 M: TextKit 2 positions the VIEWPORT's paragraphs on ESTIMATED heights above them, and `ensureLayout` returns TRUE positions; the two frames disagree. So the caret was judged off screen, and the top-of-view fallback (`characterIndexForInsertion`) mis-read the same way — index 898922, Chapter 25 — and FAITHFULLY kept Chapter 25 at the top. ✅ **FIX 3:** measure ONLY what the viewport has DRAWN — `lineRect` returns a line only inside `viewportRange` (no `ensureLayout`); the top of the view is the first drawn line (`firstVisibleLine`); after the rebuild, `scrollRangeToVisible` then lay out AGAIN until the anchor is drawn (measured: the first `layoutViewport` after the scroll has not yet drawn it), then correct the delta — converges in 2–3 passes in every test. ⚠️ **HONEST LIMIT:** no test reproduces the two-frame disagreement — a new 'read around a long manuscript' test passes even with the OLD measurement restored (checked). The fix rests on the user's log; the per-pass `[SCRIVI-TYPE]` lines stay until the live re-check passes. Interop 229/229. ⛔ **LIVE RE-CHECK 3 FAILED (user, 2026-10-07):** *"Still Jumps."* — log: `anchor?: caret=1846568 caretLineY=nan clipY=825947.2` · `anchor = TOP OF VIEW (index 833266)`. ✅ **THE ACTUAL ROOT CAUSE:** `updateNSView` set `presenter.typography` AND **`tv.font`** BEFORE calling the place-keeping rebuild — an `NSTextView` `font` assignment re-fonts the WHOLE document and invalidates every line position, so the writer's place was read from an invalid layout (NaN), and the fallback read garbage too. ⚠️ The tests called the rebuild DIRECTLY, never through `updateNSView`'s order — which is why three rounds of fixes passed every test and failed live. ✅ **FIX 4:** ONE coordinator method, `applyTypography(_:to:segments:)`, does the whole sequence — read the place FIRST, then change the type (presenter + `typingAttributes` only; ⛔ no `tv.font`: the rebuild writes every attribute, and `font` also overwrote the chapter titles' font), rebuild, restore; `updateNSView` calls it, and so do all five placement tests. ✅ **REPRODUCED:** with the old order restored, the tests log `caretLineY=nan` — the user's exact symptom — and fail (7 issues); with the fix they pass. (Fixes 2 and 3 stay: measuring only what is DRAWN is still right — the log's ≈1.22 M pt reading came from the same invalid layout.) Interop 229/229. ✅ **VERIFIED 2026-10-07 (user, live re-check 4):** *"works perfectly. Both for font changes and size changes."* The `[SCRIVI-TYPE]` diagnostics were removed after it (interop 229/229). | Medium | ✅ [SP-168] | ✅ **Verified 2026-10-07** — archived with the SP-168 close |
 | **I-0283** | `[Apple]` ⚠️ **macOS SMART QUOTES rewrite the stored text OUTSIDE the escape layer — inconsistently: typed `'''` ends up `’\'’` (curly · straight · curly) and the caret jumps.** ✅ **REPORTED BY THE USER 2026-10-08** (during the I-0280 check): *"When I type ''' the displayed text shows <single-quote>'<single-quote><newline><single-quote> (where <single-quote> is a comma glyph displayed in the superscript position and ' is the \"tick\" glyph which are different in Literata). Also the caret moves to just after the second <single-quote>."* ✅ **REPRODUCED 2026-10-08** (interop harness, Smart Quotes on, three `'` keystrokes through the real `keyDown`): stored `Before \'\'\'` (each escaped, as designed), caret 13 → after AppKit's text-checking pass: stored **`Before ’\'’`**, caret **11** — AppKit replaced the OUTER two `\'` (backslash + quote) with `’`, DELETING their escape backslashes, and left the middle one straight and escaped. ⚠️ The `<newline>` the user saw was NOT reproduced (possibly a Return). ✅ **CAUSE (read):** Scrivi never sets `isAutomaticQuoteSubstitutionEnabled`, so the manuscript inherits macOS's Edit ▸ Substitutions ▸ Smart Quotes (normally ON); AppKit substitutes asynchronously over STORAGE ranges and does not know a backslash is part of an escape. ⏳ **RULING OWED:** (a) turn Smart Quotes OFF in the manuscript (a typed `'` is stored `\'` and shown straight); (b) Scrivi's OWN smart quotes — the typing path inserts `‘ ’ “ ”` by context (they are not Markdown punctuation, so need no escape) and AppKit's pass is turned off; (c) keep AppKit's and teach the escape layer to accept its replacements. ⚠️ Not EP-047's; the escape layer is EP-045/EP-049's, so Linux needs the same ruling (EP-048). ✅ **RULED 2026-10-08 (user): (a) — *"a for I-0283. Fix now."*** ✅ **FIX 2026-10-08** (outside a Sprint, at the user's instruction): `ManuscriptNSTextView` overrides `isAutomaticQuoteSubstitutionEnabled` to ALWAYS false (the Edit ▸ Substitutions toggle is ignored) and disables that menu item for the manuscript. ✅ **Measured on the way:** a typed `"hi"` was WORSE — it became `”hi\"”` (a quote ADDED, caret to 8); ✅ Smart DASHES need nothing (`--` is stored `\-\-`, which AppKit never sees as two hyphens). ✅ 2 interop tests through the real `keyDown` + AppKit's own checking pass, with Smart Quotes switched ON; with the override removed they fail with the user's exact text (`’\'’`, `”hi\"”`). Interop 245/245. ✅ **Linux:** already as ruled — Qt's `QPlainTextEdit` has no automatic quote substitution. ✅ **VERIFIED 2026-10-08 (user, live check):** *"Live check 1. passes."* (Step 2 moot: the Edit menu has no Substitutions item — *"I don't want one either"*; the validation still disables Smart Quotes in the text view's right-click Substitutions menu.) | Medium | — (fixed outside a Sprint) | ✅ **Verified 2026-10-08** — archived |
 | **I-0285** | `[Linux]` ⚠️ **Opening dumas takes ~3 minutes and FREEZES the UI for ~55 s: the timeline is built TWICE on the main thread, each build asking for every scene's story time one call at a time.** ✅ **MEASURED 2026-10-09** on the rig (build 62, `SCRIVI_LOAD_LOG`), found in [SP-166]. Linked to [EP-048]. → [details](#i-0285) | High | [SP-173] | ✅ Verified 2026-10-10 |
+| **I-0287** | `[ScriviCore]` ⛔ **After a scene MERGE or SPLIT, undoing the next edit in that scene restored its PRE-structural text — a merge's joined-in text DROPPED, a split's moved tail DUPLICATED.** Found 2026-10-11 by [SP-178]'s `undo_smoke`; proven through `scrivi_*` alone. ✅ Fixed: a barrier carries the scenes' new texts; both platforms record it after the op. → [details](#i-0287) | **High** | [SP-178] | ✅ **VERIFIED 2026-10-15** |
 | **I-0288** | `[ScriviCore]` ⛔ **After an outside edit, undo in a LATER session restored a MIX of the old and new text — the `externalChange` repair re-floored the scene and the next open replayed the pre-change diffs onto it.** Measured 2026-10-12 through `scrivi_*`. ✅ Fixed: the repair's barrier carries the disk text; old logs' repair floors are read as that. → [details](#i-0288) | **High** | [SP-178] | ✅ **VERIFIED 2026-10-12** (user: *"mark I-0288 as verified"*) |
 | **I-0289** | `[Apple]` ⛔ **Copy buffers 1–9 skipped the emphasis balancing ⌘C / ⌘X / ⌘V do: ⌘N / ⌥N stored raw storage (one scene and across scenes), and ⌃N pasted with the caret's style instead of its own.** Found 2026-10-12 planning [SP-179]; measured by 4 interop tests that failed. ✅ Fixed: the buffers reuse ⌘C's balanced copy and ⌘V's own-copy paste. → [details](#i-0289) | **Medium** | [SP-179] | ✅ **VERIFIED 2026-10-12** |
 | **I-0290** | `[Apple]` ⛔ **Buffer paste ⌃1–9 collides with macOS Mission Control "Switch to Desktop N": ⌃1 never reaches Scrivi.** Found 2026-10-12 on the user's Mac during [I-0289]'s check. ✅ Fixed: paste moved to ⌃⌘1–9 (user: *"Option B"*). → [details](#i-0290) | **Medium** | [SP-179] | ✅ **VERIFIED 2026-10-12** |
@@ -134,6 +135,82 @@ a fix must repair them (e.g. ignore an `externalChange` floor when replaying) is
   repair without the barrier text → both sections red. ✅ ctest macOS **718/718**; ✅ Linux (GCC, non-root) **721 test cases**, `[I-0288]` run on its own there too; ✅ interop **277**; ✅ **all 30 Linux smokes** (incl. `undo_smoke`).
 - ⚠️ **The real project is not checked.** If `the-stairs-of-tintagael` holds such a record ([I-0268]), the legacy path is what
   opens it correctly; whether it does on that log is untested.
+
+---
+
+## I-0287
+
+**Title:** After a structural rewrite of a scene (merge, split), undoing the next edit there restores the scene's text from BEFORE
+the structural op
+**Status:** ✅ **VERIFIED 2026-10-15** (user: *"verify I-0287"*), on the rig live pass of 2026-10-13 (build 73, [SP-178] steps 4–12: the split and merge notices with this Issue's undo). Resolved 2026-10-11.
+**Platform:** `[ScriviCore]` — reached from Linux and Apple alike (both call the same `scrivi_capture_*`)
+**Component:** `history/CaptureSession` + `HistoryService` per-scene cached head; every platform's split / merge path
+**Severity:** High — the merge case loses text from disk: the merged scene's file was deleted, so the joined-in text then
+survives only in redo
+**Sprint:** [SP-178] — ✅ ruled 2026-10-11 (user: *"Fix I-0287 in SP-178."*)
+**Date Identified:** 2026-10-11 ([SP-178], `platforms/linux/tests/undo_smoke.cpp`, while building Linux undo)
+
+**Description:** the core diffs every edit against its OWN cached copy of the scene (the head of its history). A merge or a split
+rewrites the scene on disk without telling history the new text, so the cache stays at the pre-structural text. The next edit is
+recorded as a diff from that stale text; undoing it puts the stale text back.
+
+**Expected:** after a merge or split (which already stops undo with a barrier), undoing the next edit in the affected scene
+restores the scene as it was right after the structural op.
+
+**Actual (measured):**
+- **Merge** (Linux, `undo_smoke` §4b): scene 2 merged into scene 1; type in the survivor; Ctrl+Z → the survivor holds its
+  PRE-MERGE text, the merged-in text is gone (and its scene file was deleted by the merge).
+- **Split** (Linux, `undo_smoke` §5): split mid-scene; type in the head scene; Ctrl+Z → the head scene holds its PRE-SPLIT text,
+  so the tail now exists twice (here and in the new scene).
+- **Through `scrivi_*` alone** (a scratch program, 2026-10-11): `note_edit(S, "Alpha. One.", …, before "Alpha.")` →
+  `record_barrier(sceneMerge, S)` → `note_edit(S, "Alpha. One.\n\nBravo. Two.", …, before "Alpha. One.\n\nBravo.")` →
+  `capture_undo` returns `newText: "Alpha. One."` — "Bravo." is dropped. The platform passed the correct text before; the core
+  uses it only to SEED a scene's first edit (`CaptureSession::seedIfNeeded`, `CaptureSession.cpp:90`), never again.
+
+**Why Apple has it too (read, not run):** Apple's split writes both halves with `engine.saveScene` directly
+(`ManuscriptTextView.swift:~1149–1160`) and its merge rewrites through `engine.mergeScene`; neither tells history the new text, and
+the next `noteEdit` reaches the same core path. ⚠️ Not yet reproduced on the Mac by a live step — the ABI proof above is the
+evidence.
+
+**Root cause:** history's per-scene head is re-seedable only on first edit (`seedIfNeeded`) or by
+`scrivi_history_validate_scene` on an external-change mismatch (which also records a misleading "changed outside Scrivi"
+barrier). [I-0270]'s record already notes the gap: *"the core keeps a per-scene head text and its reseed is NOT on the ABI"*, and
+flags the old collapsing cut as *"SUSPECTED, unverified"* for the same reason.
+
+**Fix direction (as filed):** let a structural barrier carry the affected scenes' new texts (or a separate re-seed call after
+the op), so the core resets each scene's head — no diff, no externalChange note — then call it from both platforms' split, merge,
+chapter-split and chapter-merge paths. A ScriviCore + Apple + Linux change, tested through `scrivi_*`.
+
+**Related:** [I-0270] (grouped edits; names the missing reseed), [I-0104] (head HASH vs disk — the hash half of the same idea,
+fixed), [EP-019] AC7 (barriers).
+
+**Resolution (2026-10-11, [SP-178]) — the fix direction's first option:**
+- **Core:** a hard barrier now carries `sceneTexts` (sceneID → the text the op left in each scene it rewrote or created). From
+  that node on, those scenes read that text: `HistoryService::recordBarrier` resets the cached head, and the same reset runs
+  wherever the head is REBUILT — `rebuildHeadCache` (reopen, branch select), `pruneInconsistentNodes` (load validation), and both
+  eviction paths (`evictToCapacity`, `applyLoadedEviction`: a barrier promoted to the root becomes the floor). Shared helper
+  `applyBarrierTexts` (`HistoryService.cpp`). Persisted in the barrier record (`barrier.sceneTexts`, written only when present;
+  older logs read as before). A scene the op CREATED (a split's tail) gets its floor at the barrier (`floorTexts_.try_emplace` +
+  a `seed` floor record), so its head hash is still checked at the next open. `CaptureSession::afterBarrier` marks those scenes
+  seeded and resets the caret scene's whitespace reference. ABI: optional `sceneTexts` on `scrivi_history_record_barrier` and
+  `scrivi_capture_record_barrier` (`scrivi.h`). ⚠️ Not a re-seed of the FLOOR: the floor is the root's state, and re-flooring
+  would replay pre-op diffs onto post-op text at the next open.
+- **Both platforms record split/merge barriers AFTER the op**, with the texts (they were recorded BEFORE it, when a split's new
+  scene ID did not exist yet). Linux `EditorShell.cpp` (`onCreateSceneRequested`, `onCreateChapterRequested`,
+  `onMergeSceneRequested` — the survivor's text is read back with `readSceneTexts`, the loader's own call); Apple
+  `ManuscriptTextView.swift` (`handleCreateScene`, `handleCreateChapter`, `handleMergeScene` — the loader's `joinText` / head /
+  tail). Chapter merge only relocates files (IDs and texts unchanged), so its barrier carries no texts.
+- **Tests:** `CaptureCApiTests.cpp` — merge (and after a reopen), split (head and new tail; the tail's outside edit is still
+  detected), eviction past the barrier (in session and from the log) — **5 checks red with the core fix reverted, green with it**.
+  Linux `undo_smoke` §4b/§5 green; **red again with the Linux texts removed**. ctest macOS 717/717, Linux (non-root) 721/721;
+  interop 274 tests; all 30 Linux smokes.
+- ✅ **Apple's half, tested 2026-10-12:** `UndoAfterStructuralOpTests` (`ScriviInteropTests.swift`): a real project opened by
+  `loadAsync`, the REAL coordinator's `handleCreateScene` / `handleMergeScene`, typing through `insertText` → `textDidChange`,
+  then `performUndo`, with the text checked in the loader AND on disk. Split (head, tail) and merge: 3/3 green. ✅ **Red with
+  Apple's `sceneTexts` dropped** (split head + merge fail; the tail passes either way, as it should). ⚠️ The case needs the scene
+  to have an edit BEFORE the op; a never-edited scene seeds correctly from "text before". (Not a live step on the Mac.)
+- ⛔ **The `externalChange` repair DID corrupt at the next open** — measured 2026-10-12 as [I-0288], fixed the same day in [SP-178].
+
 
 ---
 

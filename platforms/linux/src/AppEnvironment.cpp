@@ -1,7 +1,11 @@
 #include "AppEnvironment.hpp"
 
 #include <QApplication>
+#include <QProgressDialog>
 #include <QScreen>
+#include <QTimer>
+
+#include <memory>
 
 #include "BufferService.hpp"
 #include "BuffersPalette.hpp"
@@ -234,10 +238,42 @@ void AppEnvironment::quitApplication()
         return;
     }
     quitting_ = true;
+    finishQuit();
+}
 
+void AppEnvironment::finishQuit()
+{
     // ✅ R7 FIRST, AND UNCONDITIONALLY. ⚠️ Flushing before any window dies means a
     // teardown that goes wrong still cannot lose edits.
     flushAllWindows();
+
+    // ✅ [I-0305] (user, 2026-10-15) — QUIT WAITS FOR BACKGROUND WORK, behind ONE "Please wait — saving updates…"
+    // dialog. ⚠️ Each window would also wait on its own close; waiting here, before any closes, keeps one dialog and keeps
+    // the cascade below intact. When the last busy project is done, this runs again: flush what landed dirty, then close.
+    QList<EditorShell*> busy;
+    for (ScriviWindow* window : windows_.allWindows()) {
+        if (window != nullptr && window->editorShell() != nullptr && window->editorShell()->backgroundWorkInProgress()) {
+            busy.append(window->editorShell());
+        }
+    }
+    if (!busy.isEmpty()) {
+        if (quitWaitDialog_ == nullptr) {
+            quitWaitDialog_ = ScriviWindow::showSavingUpdates(nullptr);
+        }
+        auto remaining = std::make_shared<int>(int(busy.size()));
+        for (EditorShell* shell : busy) {
+            shell->whenBackgroundWorkDone([this, remaining] {
+                if (--*remaining == 0) {
+                    QTimer::singleShot(0, qApp, [this] { finishQuit(); });   // outside the landing still on the stack
+                }
+            });
+        }
+        return;
+    }
+    if (quitWaitDialog_ != nullptr) {
+        quitWaitDialog_->close();
+        quitWaitDialog_->deleteLater();
+    }
 
     // ✅ Close from OUR map, which we control, rather than Qt's snapshot.
     // ⚠️ `allWindows()` returns a VALUE list, so deregistration during the loop

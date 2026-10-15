@@ -47,6 +47,23 @@ struct SceneSegment: Identifiable {
     // (the project's drive gone) and warn the writer. Wiring, not view state.
     @ObservationIgnored var onSaveFailed: (() -> Void)?
 
+    // ✅ [I-0303]: how many scenes a bulk save is writing OFF the main actor right now. Above zero, the manuscript is locked
+    // and the editor shows progress (Replace All).
+    private(set) var scenesWritingOffMain = 0
+    /// [I-0305] — run once no off-main write is left (`whenOffMainWritesLand`).
+    @ObservationIgnored private var offMainWaiters: [@MainActor () -> Void] = []
+
+    // Tests ([I-0303]): told of every scene write that succeeded — its sceneID and whether it ran on the main thread.
+    @ObservationIgnored var onSceneWritten: (@Sendable (_ sceneID: String, _ onMainThread: Bool) -> Void)?
+
+    // [I-0303]: the scenes an off-main write holds, and those a main-actor save found in flight. ⚠️ A main save of a scene in
+    // flight is DEFERRED until the flight lands, so an older write can never land over a newer one.
+    @ObservationIgnored private var inFlight: Set<String> = []
+    @ObservationIgnored private var saveAfterFlight: Set<String> = []
+    // Left when an off-main write's last file is written (on the worker, not after the main-actor hop), so the quit path
+    // can wait for it without needing the main thread.
+    @ObservationIgnored private let offMainWrites = DispatchGroup()
+
     // Full ordered scene list. Used by SceneNavigatorView to build the sidebar.
     private(set) var allScenes: [SceneInfo]
 
@@ -380,6 +397,10 @@ struct SceneSegment: Identifiable {
     func saveSceneBlocking(at index: Int, engine: ScriviEngine, ref: AuthorshipRef) {
         guard segments.indices.contains(index), segments[index].isDirty else { return }
         let seg = segments[index]
+        guard !inFlight.contains(seg.sceneID) else {
+            saveAfterFlight.insert(seg.sceneID)   // [I-0303]: written once the off-main write of it lands
+            return
+        }
         let isCurrent = index == currentIndex
         // ⛔ [I-0259] — A FAILED WRITE MUST LEAVE THE SCENE DIRTY.
         //
@@ -411,6 +432,7 @@ struct SceneSegment: Identifiable {
             return
         }
         NSLog("[SCRIVI-DIAG] saveSceneBlocking WROTE scene=\(seg.sceneID) isCurrent=\(isCurrent)")
+        onSceneWritten?(seg.sceneID, pthread_main_np() != 0)
         segments[index].isDirty = false
 
         // I-0104: tell history the bytes we just wrote. The head hash persisted at
@@ -440,8 +462,93 @@ struct SceneSegment: Identifiable {
         saveAllDirtyBlocking(engine: engine, ref: ref)
     }
 
+    /// One scene's write, taken on the main actor and done off it ([I-0303]).
+    private struct OffMainWrite: Sendable {
+        let sceneID, metadataPath, contentPath, text: String
+        let cursor: Int
+        let scroll: Double
+    }
+
+    // ✅ [I-0303] — writes the dirty scenes at `indices` OFF the main actor (a Replace All's: only the scenes holding a
+    // match). Their texts are taken now; each written scene is marked clean and its bytes told to history when the writes
+    // land, unless the writer changed it meanwhile (then it is saved again). ⛔ [I-0259]: a failed write leaves it dirty.
+    // `whenLanded` runs on the main actor in the same step that brings `scenesWritingOffMain` back down, so a lock it lifts
+    // never outlives the count. Returns false (and never calls it) when nothing was dirty.
+    @discardableResult
+    func saveScenesOffMain(_ indices: some Sequence<Int>, engine: ScriviEngine, ref: AuthorshipRef,
+                           whenLanded: @escaping @MainActor () -> Void = {}) -> Bool {
+        let jobs: [OffMainWrite] = Set(indices).sorted().compactMap { i in
+            guard segments.indices.contains(i), segments[i].isDirty, !inFlight.contains(segments[i].sceneID) else { return nil }
+            let seg = segments[i]
+            let isCurrent = i == currentIndex
+            return OffMainWrite(sceneID: seg.sceneID, metadataPath: seg.metadataPath, contentPath: seg.contentPath, text: seg.text,
+                       cursor: isCurrent ? currentSceneCursorOffset : 0, scroll: isCurrent ? scrollFraction : 0)
+        }
+        guard !jobs.isEmpty else { return false }
+        inFlight.formUnion(jobs.map(\.sceneID))
+        scenesWritingOffMain += jobs.count
+        let projectID = projectID, root = projectRootPath, support = appSupportRoot
+        let observe = onSceneWritten
+        let group = offMainWrites
+        group.enter()
+        Task { @MainActor in
+            let written: [Bool] = await Task.detached(priority: .userInitiated) {
+                defer { group.leave() }
+                return jobs.map { job in
+                    do {
+                        _ = try engine.saveScene(projectID: projectID, projectRootPath: root, appSupportRoot: support,
+                                                 sceneID: job.sceneID, sceneMetadataPath: job.metadataPath,
+                                                 sceneContentPath: job.contentPath, markdown: job.text,
+                                                 selectionAnchor: job.cursor, selectionFocus: job.cursor, scroll: job.scroll,
+                                                 authorshipRef: ref)
+                    } catch {
+                        NSLog("[SCRIVI-DIAG] saveScenesOffMain FAILED scene=\(job.sceneID) — kept DIRTY: \(error)")
+                        return false
+                    }
+                    observe?(job.sceneID, pthread_main_np() != 0)
+                    return true
+                }
+            }.value
+            // ---- main actor from here down ----
+            inFlight.subtract(jobs.map(\.sceneID))
+            scenesWritingOffMain -= jobs.count
+            whenLanded()
+            var again: [Int] = []
+            for (job, ok) in zip(jobs, written) {
+                guard let i = segments.firstIndex(where: { $0.sceneID == job.sceneID }) else { continue }
+                if ok {
+                    NSLog("[SCRIVI-DIAG] saveScenesOffMain WROTE scene=\(job.sceneID)")
+                    historyCapture?.noteScenePersisted(sceneID: job.sceneID, diskText: job.text)
+                    if segments[i].text == job.text { segments[i].isDirty = false }
+                }
+                if saveAfterFlight.remove(job.sceneID) != nil || (ok && segments[i].isDirty) { again.append(i) }
+            }
+            if written.contains(false) { onSaveFailed?() }
+            for i in again { saveSceneBlocking(at: i, engine: engine, ref: ref) }
+            if scenesWritingOffMain == 0 {
+                let waiters = offMainWaiters
+                offMainWaiters = []
+                for w in waiters { w() }
+            }
+        }
+        return true
+    }
+
+    // ✅ [I-0305] — runs `then` on the main actor once every off-main write has landed (at once when none is running). A
+    // close or quit waits on it (user, 2026-10-15: the close "must WAIT until the background process is completed").
+    func whenOffMainWritesLand(_ then: @escaping @MainActor () -> Void) {
+        if scenesWritingOffMain == 0 { then() } else { offMainWaiters.append(then) }
+    }
+
     // Synchronous counterpart for the quit path (I-0104/I-0108).
     func saveAllDirtyBlocking(engine: ScriviEngine, ref: AuthorshipRef) {
+        // ✅ [I-0303]: let an off-main write finish first — its main-actor hop will never run during quit, so its scenes
+        // (still dirty) are written again below, with their newest text.
+        if !inFlight.isEmpty {
+            _ = offMainWrites.wait(timeout: .now() + 30)
+            inFlight.removeAll()
+            saveAfterFlight.removeAll()
+        }
         NSLog("[SCRIVI-DIAG] quit: currentIndex=\(currentIndex) cursorScene=\(cursorSceneID ?? "nil") viewportScene=\(viewportSceneID ?? "nil") dirty=\(segments.filter{$0.isDirty}.count) cursorOffset=\(currentSceneCursorOffset) scroll=\(scrollFraction)")
         for i in segments.indices where segments[i].isDirty && i != currentIndex {
             saveSceneBlocking(at: i, engine: engine, ref: ref)

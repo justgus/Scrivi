@@ -1,21 +1,23 @@
 ---
 sprint: SP-179
 epic: EP-026
-status: Active
+status: Closed
+closed: 2026-10-15
+activated: 2026-10-12
 platform: Linux
 created: 2026-10-12
 ---
 
 # SP-179 — `[Linux]` [EP-026] **S5**: copy buffers 1–9, View ▸ Show Buffers (Ctrl+Alt+B) and the Buffers palette
 
-**Status:** 🟡 **ACTIVE 2026-10-12** (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ✅ Linux steps 1–7 IMPLEMENTED 2026-10-12 (user: *"proceed with the SP-179 implementation."*); ✅ AC8 rig live pass PASSED 2026-10-13 (user). ⏳ Close awaits the user.
-**Carries:** [T-0606] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md) (🟠 Implemented - Not Verified).
+**Status:** ✅ **CLOSED 2026-10-15** (user: *"close SP-179"*) · ACTIVATED 2026-10-12 (user: *"I'll go with Option A. Fix it here."*) — created 2026-10-12 (user: *"fix the Epic record and start planning S5"*). ✅ Q1–Q4 ruled and the plan accepted 2026-10-12. ✅ Step 0 complete: [I-0289], [I-0290], [I-0291] all VERIFIED (Apple). ✅ Linux steps 1–7 IMPLEMENTED 2026-10-12 (user: *"proceed with the SP-179 implementation."*); ✅ AC8 rig live pass PASSED 2026-10-13 (user).
+**Carries:** [T-0606] → [`../../Tasks/Verified/Task-verified-0606.md`](../../Tasks/Verified/Task-verified-0606.md).
 **Epic:** [EP-026] `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste →
-[`../Epics/Epic-active.md`](../Epics/Epic-active.md). ⚠️ **Planned BEFORE S3 and S4** on my recommendation (user: *"start planning S5"*): it depends least on
+[`../../Epics/Epic-active.md`](../../Epics/Epic-active.md). ⚠️ **Planned BEFORE S3 and S4** on my recommendation (user: *"start planning S5"*): it depends least on
 [SP-178]'s not-yet-live-passed undo path, and its key chords can be measured on the rig in the same session as SP-178's pass.
 **Builds on:** [SP-178] (S2) — a cut into a slot and a paste from one are UNDO steps, through S2's `HistoryCapture`.
 ⚠️ SP-178 is implemented but not live-passed; a defect its pass finds in the undo path may touch this Sprint.
-**Authority:** [`../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`](../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md)
+**Authority:** [`../../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md`](../../Scrivi_UndoRedo_History_and_Copy_Buffers_Design_v0_1.md)
 §9 (buffers), Trade T3 (copy ≠ event · cut = event · paste = paste event), T4 (palette). EP-019 AC6. EP-026 Q3 (keys, ruled
 2026-10-11) and the Show Buffers ruling (*"Ctrl-Alt-B is correct."*).
 **Shape:** ✅ Apple's (`feedback_linux_adopts_apple_shape`): `BufferService.swift` (129 lines — the slot mirror, ScriviCore
@@ -240,3 +242,18 @@ and Edit ▸ Paste From Buffer passed.
   it"*).
 - A slot filled on the Mac pasted with its scene break (step 37) but froze the UI over the share. That's [I-0297], in
   [SP-180].
+
+### ✅ 2026-10-15 — Sprint CLOSED (user-approved)
+
+✅ User: *"close SP-179"*. AC8 had passed on the rig 2026-10-13 (build 73, steps 13–23). [T-0606] → `Verified/Task-verified-0606.md`
+(same step). Its three `[Apple]` Issues ([I-0289], [I-0290], [I-0291]) were archived when verified, 2026-10-12. The freeze a
+Mac-filled slot caused over the share is [I-0297], [SP-180]'s.
+
+**Retrospective:**
+- ✅ Making Apple's buffers balanced first (step 0, [I-0289]) meant Linux copied the corrected shape, not the defect.
+- ✅ The full smoke run found what `buffers_smoke` alone could not: the slot read mid-load moved `projectRevision` and put
+  the timeline re-read back on the UI thread.
+- ⚠️ `buffers_smoke` was missing from the Linux CI workflow until [I-0292] turned it up. Wire a new smoke into CI in the
+  same step it is written.
+- ⚠️ A client's own shortcut (Ctrl+1 over freerdp on macOS) can look like an app defect on the rig. Check it on the rig's
+  own keyboard before filing.

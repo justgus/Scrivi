@@ -6,6 +6,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QProgressDialog>
 #include <QCloseEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -17,6 +18,7 @@
 #include <QQuickWidget>
 #include <QSignalBlocker>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "BufferService.hpp"
@@ -607,6 +609,11 @@ void ScriviWindow::showEditor(const QString& projectPath, const QString& title,
 
 void ScriviWindow::showLanding()
 {
+    // ✅ [I-0305]: Close Project releases the project below, so it waits for background work first — then flushes what
+    // landed dirty and closes.
+    if (waitForBackgroundWork([this] { flushEditor(); showLanding(); })) {
+        return;
+    }
     // ⚠️ [SP-146] T-0561 — AN EDITOR-ONLY WINDOW HAS NO LANDING PAGE TO SHOW.
     //
     // ✅ [R-Q3]: Landing is its own window. ⚠️ So "go to landing" from a project
@@ -660,6 +667,14 @@ void ScriviWindow::flushEditor()
 
 void ScriviWindow::closeEvent(QCloseEvent* event)
 {
+    // ✅ [I-0305] — NOT WHILE THIS PROJECT IS BEING WRITTEN. The scenes a worker is writing are out of the dirty set, so
+    // the flush below would not write them, and the worker's landing would never run (the window is gone). Wait, then
+    // close as usual.
+    if (waitForBackgroundWork([this] { close(); })) {
+        event->ignore();
+        return;
+    }
+
     flushEditor();   // don't lose edits when the window (and app) closes
 
     // ⚠️ [SP-147] T-0566 — RECORD WHERE THIS WINDOW WAS, BEFORE THE RELEASE BELOW.
@@ -700,6 +715,41 @@ void ScriviWindow::closeEvent(QCloseEvent* event)
         env_->projectWindowClosing(this);
     }
     QMainWindow::closeEvent(event);
+}
+
+bool ScriviWindow::waitForBackgroundWork(std::function<void()> then)
+{
+    if (editor_ == nullptr || !editor_->backgroundWorkInProgress()) {
+        return false;
+    }
+    if (waitDialog_ != nullptr) {
+        return true;   // already waiting: the first request finishes the close
+    }
+    waitDialog_ = showSavingUpdates(this);
+    editor_->whenBackgroundWorkDone([this, then = std::move(then)] {
+        if (waitDialog_ != nullptr) {
+            waitDialog_->close();
+            waitDialog_->deleteLater();
+        }
+        QTimer::singleShot(0, this, then);   // outside the worker's landing, which is still on the stack
+    });
+    return true;
+}
+
+QProgressDialog* ScriviWindow::showSavingUpdates(QWidget* parent)
+{
+    // ⛔ No Cancel: the work cannot be stopped, only waited for (the user's ruling).
+    auto* dialog = new QProgressDialog(tr("Please wait — saving updates…"), QString(), 0, 0, parent);
+    dialog->setObjectName(QStringLiteral("savingUpdatesDialog"));
+    dialog->setWindowTitle(tr("Saving"));
+    dialog->setWindowModality(parent != nullptr ? Qt::WindowModal : Qt::ApplicationModal);
+    dialog->setWindowFlag(Qt::WindowCloseButtonHint, false);
+    dialog->setCancelButton(nullptr);
+    dialog->setMinimumDuration(0);
+    dialog->setAutoClose(false);
+    dialog->setAutoReset(false);
+    dialog->show();
+    return dialog;
 }
 
 // ⚠️ [SP-146] T-0560 — deregister from the window map BEFORE this window dies.

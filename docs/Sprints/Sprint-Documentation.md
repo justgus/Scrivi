@@ -255,7 +255,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 > ⚠️ **EP-031 AC1 must be re-verified** against the new scope model — SP-100 owns that.
 
 > ⚠️ **SP-104 opened UNPLANNED 2026-08-14**, during live verification of SP-103's scope change — the user
-> could not create an object in the app. See [Sprint-SP-104.md](Sprint-SP-104.md). It carries four Issues
+> could not create an object in the app. See [Closed/Sprint-SP-104.md](Closed/Sprint-SP-104.md). It carries four Issues
 > (I-0114–I-0117), of which **I-0114 is a class issue**: the 4th and 5th occurrence of a restated kind
 > list in this Epic. (SP-103 closed 2026-08-15: its 11 test realignments were finished in SP-104, and
 > T-0410 was removed as OBE.)
@@ -446,8 +446,12 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-176** | `[Linux]` **[EP-048] S4** — Find over the presented text (L8 Find half, T-0603) | EP-048 | 2026-10-11 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-176.md) |
 | **SP-177** | `[Cross]` **[EP-026] S1** — the undo capture rules move into ScriviCore; Apple re-pointed (T-0604) | EP-026 | 2026-10-11 | 2026-10-11 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-177.md) |
 | **SP-178** | `[Linux]` **[EP-026] S2** — undo/redo on Linux: Ctrl+Z / Ctrl+Shift+Z, persistence, session warning, barriers, grouped edits (T-0605) | EP-026 | 2026-10-11 | — | 🟡 **ACTIVE** → [`Sprint-SP-178.md`](Sprint-SP-178.md) |
-| **SP-179** | `[Linux]` **[EP-026] S5** — copy buffers 1–9 (Ctrl / Ctrl+Shift / Alt + digit), View ▸ Show Buffers (Ctrl+Alt+B), the Buffers palette (T-0606) | EP-026 | 2026-10-12 | — | 🟡 **ACTIVE** → [`Sprint-SP-179.md`](Sprint-SP-179.md) |
+| **SP-179** | `[Linux]` **[EP-026] S5** — copy buffers 1–9 (Ctrl / Ctrl+Shift / Alt + digit), View ▸ Show Buffers (Ctrl+Alt+B), the Buffers palette (T-0606) | EP-026 | 2026-10-12 | 2026-10-15 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-179.md) |
 | **SP-180** | `[Linux]` **[EP-026] S4** — structured cut / copy / paste across scenes (T-0607) | EP-026 | 2026-10-13 | — | 🟡 **ACTIVE** → [`Sprint-SP-180.md`](Sprint-SP-180.md) |
+| **SP-181** | `[Linux]` **[EP-048] S4b** — Replace and Replace All over the presented text: L8's Replace half (T-0608) | EP-048 | 2026-10-15 | — | 🟡 **ACTIVE** → [`Sprint-SP-181.md`](Sprint-SP-181.md) |
+| **SP-182** | `[Linux]` **[EP-048] S5a** — Project Settings dialog, the typeface, Markup Hints: L10 (T-0609) | EP-048 | 2026-10-15 | — | 🟡 **ACTIVE** → [`Sprint-SP-182.md`](Sprint-SP-182.md) |
+| **SP-183** | `[Linux]` **[EP-048] S5b** — line spacing and the first-line indent: L10 (T-0610) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-183.md`](Sprint-SP-183.md) |
+| **SP-184** | `[Linux]` **[EP-048] S5c** — Show chapter titles, and the divider that closes a chapter (T-0611) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-184.md`](Sprint-SP-184.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -487,6 +491,14 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-15 (**SP-182 → 🟡 ACTIVE** (user: *"activate SP-182"*); T-0609 → `Task-active.md`.)*
+
+*Last Updated: 2026-10-15 (**SP-181 ACTIVATED** (user: *"activate SP-181 and implement it."*); T-0608 → active; [I-0303] `[Apple]` is its step 0.)*
+
+*Last Updated: 2026-10-15 (**SP-181–SP-184 (EP-048 S4b, S5a–S5c) created in 🔵 Planning** (user: *"plan EP-048 fully."*), issued via `next-id.py`; T-0608–T-0611 filed. The S5 split awaits [SP-182] Q2.)*
+
+*Last Updated: 2026-10-15 (**SP-179 CLOSED** (user-approved) → `Closed/Sprint-SP-179.md`; T-0606 verified and archived.)*
 
 *Last Updated: 2026-10-13 (**SP-180 ACTIVATED** (user: *"yes, as step 0 for both platforms."*); Q1–Q4 ruled; T-0607 → active; [I-0293] fixed in it.)*
 

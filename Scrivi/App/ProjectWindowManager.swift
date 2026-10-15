@@ -56,6 +56,56 @@ final class ProjectWindowManager {
     }
 }
 
+// ✅ [I-0305] (user, 2026-10-15) — a close or quit while scenes are being written in the background WAITS for them,
+// behind a spinner: *"Please wait — saving updates…"*. A sheet over `window`, or (quit) a panel of its own.
+@MainActor
+enum SavingUpdatesWait {
+    static let identifier = NSUserInterfaceItemIdentifier("savingUpdates")
+
+    /// When any of `sessions` is writing in the background: shows the wait, runs `then` once all have landed (the wait
+    /// gone first), and returns true. Otherwise returns false and runs nothing.
+    static func waitFor(_ sessions: [ProjectSession], over window: NSWindow?,
+                        then: @escaping @MainActor () -> Void) -> Bool {
+        let busy = sessions.filter(\.isWritingInBackground)
+        guard !busy.isEmpty else { return false }
+        let host = NSHostingController(rootView: SavingUpdatesView())
+        host.sizingOptions = .preferredContentSize   // the sheet takes the view's size, so the label is never cut
+        let panel = NSPanel(contentViewController: host)
+        panel.styleMask = [.titled]
+        panel.title = "Saving"
+        panel.identifier = identifier
+        if let window {
+            window.beginSheet(panel)
+        } else {
+            panel.level = .modalPanel
+            panel.center()
+            panel.makeKeyAndOrderFront(nil)
+        }
+        var remaining = busy.count
+        for session in busy {
+            session.whenBackgroundWritesLand {
+                remaining -= 1
+                guard remaining == 0 else { return }
+                if let window { window.endSheet(panel) } else { panel.orderOut(nil) }
+                then()
+            }
+        }
+        return true
+    }
+}
+
+private struct SavingUpdatesView: View {
+    var body: some View {
+        // The label ABOVE the spinner, at its full width (user, 2026-10-15: the sheet cut the text off).
+        VStack(spacing: 12) {
+            Text("Please wait — saving updates…")
+                .fixedSize()
+            ProgressView().controlSize(.small)
+        }
+        .padding(20)
+    }
+}
+
 // Holds a NotificationCenter observer token so a one-shot @Sendable observer closure can
 // remove itself. @unchecked Sendable is sound: the token is only written after addObserver
 // returns and read back on the main queue where the notification is delivered.
@@ -191,15 +241,37 @@ final class ProjectWindowController: NSObject, NSWindowDelegate {
         }
     }
 
+    // File ▸ Close Project. ⚠️ `NSWindow.close()` does NOT ask `windowShouldClose`, so the [I-0305] wait is here too.
     func close() {
+        if waitingForWrites { return }
+        if SavingUpdatesWait.waitFor([session], over: window, then: { [weak self] in
+            self?.waitingForWrites = false
+            self?.window.close()
+        }) {
+            waitingForWrites = true
+            return
+        }
         window.close()
     }
 
-    // NSWindowDelegate: fires for every close path (red button, ⌘W, window.close()).
+    /// [I-0305] — a close is waiting for this project's background writes.
+    private var waitingForWrites = false
+
+    // NSWindowDelegate: the red button and File ▸ Close (performClose). ⚠️ NOT ⌘W (`close()` above) — [I-0306].
     // ⚠️ [T-0570] — closing the window closes the project, which loses edits the pulled
     // drive could not receive exactly as quitting does, so it is guarded the same way.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        env?.confirmDiscardingUnsavable(in: [session], action: "Close") ?? true
+        // ✅ [I-0305] — not while scenes are being written in the background: wait behind the sheet, then close again
+        // (which asks this again, with nothing in flight).
+        if waitingForWrites { return false }
+        if SavingUpdatesWait.waitFor([session], over: window, then: { [weak self] in
+            self?.waitingForWrites = false
+            self?.window.performClose(nil)
+        }) {
+            waitingForWrites = true
+            return false
+        }
+        return env?.confirmDiscardingUnsavable(in: [session], action: "Close") ?? true
     }
 
     func windowWillClose(_ notification: Notification) {

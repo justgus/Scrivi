@@ -1137,6 +1137,30 @@ bool ManuscriptEditor::pasteStored(const QString& source)
     return true;
 }
 
+bool ManuscriptEditor::typeOver(const QString& typed)
+{
+    if (sceneDoc_ == nullptr || isReadOnly()) {
+        return false;
+    }
+    const QTextCursor cursor = textCursor();
+    int start = cursor.selectionStart();
+    int end = cursor.selectionEnd();
+    widenOverPairs(start, end);
+    if (!sceneDoc_->isEditableRange(start, end)) {
+        return false;
+    }
+    replaceRange(start, end, ManuscriptEscapes::escape(typed));   // as `handleTyping`
+    return true;
+}
+
+void ManuscriptEditor::snapForTyping(int& start, int& end) const
+{
+    if (start < end) {
+        snapSelection(start, end, end);
+    }
+    widenOverPairs(start, end);
+}
+
 bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst, const QString& kind)
 {
     if (sceneDoc_ == nullptr) {

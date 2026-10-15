@@ -362,6 +362,22 @@ private struct ManuscriptEditorView: View {
                     ProjectUnavailableBanner(unsavedScenes: session.unsavedSceneCount)
                 }
             }
+            // ✅ [I-0303] — a Replace All's scenes being written off the main actor; the manuscript is locked until they land.
+            // An overlay for the same reason as the two above ([I-0263]).
+            .overlay(alignment: .topTrailing) {
+                if loader.scenesWritingOffMain > 0 {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text(loader.scenesWritingOffMain == 1 ? "Saving 1 scene…"
+                                                               : "Saving \(loader.scenesWritingOffMain) scenes…")
+                            .font(.callout)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(8)
+                }
+            }
 
             // ⚠️ T-0545 / [I-0203] — THE TIMELINE IS A `safeAreaBar` TOO.
             //

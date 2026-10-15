@@ -4,6 +4,18 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
+## 🔵 EP-048 — S5a–S5c (created 2026-10-15)
+
+| Sprint | Scope | Record | Waits on |
+| ------ | ----- | ------ | -------- |
+| **SP-183** | `[Linux]` **S5b** — line spacing and the first-line indent (L10) | [`Sprint-SP-183.md`](Sprint-SP-183.md) | Q1–Q2, ruled after its step 0 measurement |
+| **SP-184** | `[Linux]` **S5c** — Show chapter titles and the chapter-ending divider | [`Sprint-SP-184.md`](Sprint-SP-184.md) | ✅ ruled 2026-10-15 — after [SP-182] |
+
+Recommended order: SP-183 → SP-184 (SP-182 activated 2026-10-15). [EP-026] S3 (Undo History section) needs SP-182's dialog. Each live
+pass needs the rig; the implementation does not.
+
+---
+
 ## ⚠️ RESERVED Sprint IDs — SP-107–SP-114 (EP-032)
 
 **These are NOT in Planning, and none is ready to activate.** ⚠️ **EP-032 was returned to the Epic backlog
@@ -32,6 +44,10 @@ the manuscript), so **AC7 is unverifiable as written**; and the **EP-034 sequenc
 source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures.
 
 ---
+
+*Last Updated: 2026-10-15 (SP-181 activated and removed.)*
+
+*Last Updated: 2026-10-15 (SP-181–SP-184 created in 🔵 Planning.)*
 
 *Last Updated: 2026-10-13 (SP-180 activated and removed.)*
 

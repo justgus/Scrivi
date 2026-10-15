@@ -7420,6 +7420,74 @@ struct UndoAfterStructuralOpTests {
         #expect(x.c.pasteStructuredFragment(frag))
         #expect(x.loader.segments.map(\.text) == ["Alpha one", "two", "three", "ond"])
     }
+
+    /// [I-0303] — Replace All wrote every changed scene ON THE MAIN THREAD, one after another (`saveScene` is `async` in name
+    /// only), so a large Replace All froze the window. ✅ The writes run off the main actor with the manuscript locked, and
+    /// ONLY the scenes holding a match are written ([SP-181] Q3: *"if replace all would only replace one or two occurences,
+    /// then it must only write to those"*).
+    @Test("Replace All writes only the matched scenes, none on the main thread, with the manuscript locked until they land")
+    func replaceAllWritesOffTheMainThread() async throws {
+        let h = try await harness(["Alpha cat", "Bravo", "Charlie cat and cat", "Delta", "Echo"])
+        h.typeBeforeTheOp(scene: 3)                                 // "Delta Pre": unsaved, and holds no match
+        let ids = h.loader.segments.map(\.sceneID)
+        let writes = Mutex<[(sceneID: String, onMain: Bool)]>([])
+        h.loader.onSceneWritten = { id, onMain in writes.withLock { $0.append((id, onMain)) } }
+
+        // The storage ranges of every "cat", back to front — as the find client hands them over.
+        let text = h.tv.string as NSString
+        var edits: [(NSRange, String)] = []
+        var at = 0
+        while true {
+            let r = text.range(of: "cat", range: NSRange(location: at, length: text.length - at))
+            if r.location == NSNotFound { break }
+            edits.insert((r, "dog"), at: 0)
+            at = NSMaxRange(r)
+        }
+        #expect(edits.count == 3)
+
+        h.c.replaceAll(edits)
+        #expect(h.loader.segments.map(\.text) == ["Alpha dog", "Bravo", "Charlie dog and dog", "Delta Pre", "Echo"])
+        #expect(!h.tv.isEditable, "the manuscript is locked while the writes run")
+        #expect(h.loader.scenesWritingOffMain == 2, "two scenes are being written")
+        for _ in 0..<500 where h.loader.scenesWritingOffMain > 0 { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(h.loader.scenesWritingOffMain == 0)
+        #expect(h.tv.isEditable, "unlocked once they land")
+
+        let log = writes.withLock { $0 }
+        #expect(log.map(\.sceneID).sorted() == [ids[0], ids[2]].sorted(), "only the matched scenes were written: \(log)")
+        #expect(log.allSatisfy { !$0.onMain }, "none on the main thread")
+        #expect(try h.onDisk(ids[0]) == "Alpha dog")
+        #expect(try h.onDisk(ids[2]) == "Charlie dog and dog")
+        #expect(!h.loader.segments[0].isDirty && !h.loader.segments[2].isDirty, "the written scenes are clean")
+        #expect(h.loader.segments[3].isDirty, "the unmatched scene was not written by the Replace All (its autosave will)")
+
+        h.c.performUndo()                                           // ONE step ([SP-164] Q2)
+        #expect(h.loader.segments.map(\.text) == ["Alpha cat", "Bravo", "Charlie cat and cat", "Delta Pre", "Echo"])
+    }
+
+    /// [I-0305] — a close or quit while scenes are being written in the background WAITS for them, behind *"Please wait —
+    /// saving updates…"* (user, 2026-10-15). `SavingUpdatesWait` is what window close, Close Project and Quit all ask.
+    @Test("a close waits for Replace All's background writes, behind the wait panel, and goes on once they land")
+    func closeWaitsForBackgroundWrites() async throws {
+        let h = try await harness(["Alpha cat", "Bravo"])
+        var ran = 0
+        #expect(!SavingUpdatesWait.waitFor([h.session], over: nil) { ran += 1 }, "nothing in flight: no wait")
+        #expect(ran == 0)
+
+        let r = (h.tv.string as NSString).range(of: "cat")
+        h.c.replaceAll([(r, "dog")])
+        #expect(h.session.isWritingInBackground)
+        #expect(SavingUpdatesWait.waitFor([h.session], over: nil) { ran += 1 }, "writes in flight: it waits")
+        let panel = { NSApp.windows.first { $0.identifier == SavingUpdatesWait.identifier && $0.isVisible } }
+        #expect(panel() != nil, "the wait panel shows")
+        #expect(ran == 0, "the close has not gone on yet")
+
+        for _ in 0..<500 where ran == 0 { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(ran == 1, "it goes on, once, when the writes land")
+        #expect(!h.session.isWritingInBackground)
+        #expect(panel() == nil, "the panel is gone")
+        #expect(try h.onDisk(h.loader.segments[0].sceneID) == "Alpha dog")
+    }
 }
 
 /// [I-0289] — copy buffers 1–9 keep emphasis BALANCED, as ⌘C / ⌘X / ⌘V do (EP-046 AC12, [T-0591], [SP-163]). Driven

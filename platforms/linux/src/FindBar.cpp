@@ -16,6 +16,7 @@
 #include <QTextDocument>
 #include <QTimer>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #include <algorithm>
 
@@ -27,6 +28,8 @@ QList<QAction*> addFindMenu(QMenu* edit, QObject* context, std::function<void(Fi
     struct Item { const char* title; QList<QKeySequence> keys; FindCommand command; };
     const Item items[] = {
         {QT_TRANSLATE_NOOP("FindMenu", "Find…"), {QKeySequence(Qt::CTRL | Qt::Key_F)}, FindCommand::ShowFind},
+        {QT_TRANSLATE_NOOP("FindMenu", "Find and Replace…"), {QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F)},
+         FindCommand::ShowFindAndReplace},
         {QT_TRANSLATE_NOOP("FindMenu", "Find Next"), {QKeySequence(Qt::CTRL | Qt::Key_G), QKeySequence(Qt::Key_F3)},
          FindCommand::NextMatch},
         {QT_TRANSLATE_NOOP("FindMenu", "Find Previous"),
@@ -71,8 +74,30 @@ FindBar::FindBar(ManuscriptEditor* editor, QWidget* parent)
     ignoreCase_->setChecked(true);   // [SP-164] Q6: on by default
     auto* done = new QPushButton(tr("Done"), this);
 
-    auto* row = new QHBoxLayout(this);
-    row->setContentsMargins(6, 4, 6, 4);
+    // SP-181: the Replace row (Q1), under the find row.
+    replaceRow_ = new QWidget(this);
+    replaceField_ = new QLineEdit(replaceRow_);
+    replaceField_->setObjectName(QStringLiteral("replaceField"));
+    replaceField_->setPlaceholderText(tr("Replace"));
+    replaceField_->setClearButtonEnabled(true);
+    auto* replaceOne = new QPushButton(tr("Replace"), replaceRow_);
+    auto* replaceAllButton = new QPushButton(tr("Replace All"), replaceRow_);
+    auto* replaceLine = new QHBoxLayout(replaceRow_);
+    replaceLine->setContentsMargins(0, 0, 0, 0);
+    replaceLine->addWidget(replaceField_, 1);
+    replaceLine->addWidget(replaceOne);
+    replaceLine->addWidget(replaceAllButton);
+    replaceRow_->hide();
+    connect(replaceField_, &QLineEdit::returnPressed, this, &FindBar::replace);
+    connect(replaceOne, &QPushButton::clicked, this, &FindBar::replace);
+    connect(replaceAllButton, &QPushButton::clicked, this, &FindBar::replaceAll);
+
+    auto* rows = new QVBoxLayout(this);
+    rows->setContentsMargins(6, 4, 6, 4);
+    rows->setSpacing(4);
+    auto* row = new QHBoxLayout;
+    rows->addLayout(row);
+    rows->addWidget(replaceRow_);
     row->addWidget(query_, 1);
     row->addWidget(count_);
     row->addWidget(previous);
@@ -130,15 +155,18 @@ void FindBar::attach(SceneDocument* doc, ManuscriptPresenter* presenter)
 void FindBar::run(FindCommand command)
 {
     switch (command) {
-    case FindCommand::ShowFind: showFind(); break;
+    case FindCommand::ShowFind: showFind(false); break;
+    case FindCommand::ShowFindAndReplace: showFind(true); break;
     case FindCommand::NextMatch: step(true); break;
     case FindCommand::PreviousMatch: step(false); break;
     case FindCommand::UseSelectionForFind: useSelection(); break;
     }
 }
 
-void FindBar::showFind()
+void FindBar::showFind(bool withReplace)
 {
+    replaceRow_->setVisible(withReplace);
+    note_.clear();
     show();
     query_->setFocus();
     query_->selectAll();
@@ -148,6 +176,7 @@ void FindBar::showFind()
 
 void FindBar::closeBar()
 {
+    note_.clear();
     hide();
     editor_->setExtraSelections({});
     editor_->setFocus();
@@ -215,9 +244,10 @@ void FindBar::select(int index)
 void FindBar::step(bool forward)
 {
     if (query_->text().isEmpty()) {
-        showFind();
+        showFind(replaceRow_->isVisibleTo(this));
         return;
     }
+    note_.clear();
     const auto& all = matches();
     if (all.isEmpty()) {
         QApplication::beep();
@@ -249,6 +279,7 @@ void FindBar::queryChanged()
     // Incremental search (AppKit's incremental find): the first match at or after the selection's start.
     matchesStale_ = true;
     selectedIndex_ = -1;
+    note_.clear();
     const auto& all = matches();
     if (!all.isEmpty()) {
         const int from = editor_->textCursor().selectionStart();
@@ -300,10 +331,51 @@ void FindBar::onContentsChange(int position, int removed, int added)
 
 QString FindBar::countText() const { return count_->text(); }
 
+// ✅ SP-181 Q2 (ruled 2026-10-15: "find first, then replace"): Replace changes the CURRENT match only — typed over it as a
+// keystroke would be (Apple: `replaceFound` → `insertText`) — then finds the next. With no current match it only finds.
+void FindBar::replace()
+{
+    if (query_->text().isEmpty()) {
+        showFind(true);
+        return;
+    }
+    matches();
+    if (currentIndex() >= 0 && !editor_->typeOver(replaceField_->text())) {
+        QApplication::beep();   // refused (the editor is locked, or the match touches a boundary)
+        return;
+    }
+    step(true);
+}
+
+// ✅ SP-181 Q3: every match, as ONE undo step — the shell's work, off the GUI thread.
+void FindBar::replaceAll()
+{
+    if (query_->text().isEmpty() || editor_->isReadOnly() || !replaceAll_) {
+        QApplication::beep();
+        return;
+    }
+    const QVector<MarkdownRange> all = matches();
+    if (all.isEmpty()) {
+        QApplication::beep();
+        updateCount();
+        return;
+    }
+    replaceAll_(all, replaceField_->text(), [this](int replaced) {
+        refresh_->stop();
+        note_ = replaced == 1 ? tr("1 replaced") : tr("%1 replaced").arg(replaced);
+        updateHighlights();
+        updateCount();
+    });
+}
+
 void FindBar::updateCount()
 {
     if (query_->text().isEmpty()) {
         count_->clear();
+        return;
+    }
+    if (!note_.isEmpty()) {
+        count_->setText(note_);
         return;
     }
     const int total = int(matches().size());

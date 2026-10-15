@@ -85,6 +85,13 @@ public:
     // Paste a slot's STORED text verbatim (never re-escaped, EP-045 AC4) over the selection: ONE `paste` step. A slot is
     // always Scrivi's own copy, so it keeps ITS formatting where it lands ([I-0289], [SP-163]). False when refused.
     bool pasteStored(const QString& source);
+    // SP-181 (EP-048 S4b): Replace — `typed` over the selection, exactly as typing it would go in (escaped, never half an
+    // escape pair, balanced; the first character's style, [SP-164] Q3). Apple: `replaceFound` → `insertText`. False when
+    // the selection touches a boundary.
+    bool typeOver(const QString& typed);
+    // SP-181: a document range snapped as the editor snaps a selection (L5) and widened over escape pairs — the range a
+    // Replace All replaces for one match (Apple: `snapSelection` in `applyReplacements`).
+    void snapForTyping(int& start, int& end) const;
     // The digit 1–9 the key event's PHYSICAL key carries, or 0. ⚠️ Ctrl+Shift+1 arrives as `!` (the shifted key), so the
     // scan code decides; the US-layout shifted marks are the fallback when there is none (offscreen tests).
     [[nodiscard]] static int bufferDigit(const QKeyEvent* event);

@@ -263,3 +263,8 @@ notice are gone. ⚠️ This Sprint's live pass (AC6) should expect the replay, 
     designed.
 - **AC6** (a history made on the Mac): the Mac's structured paste undid and redid on Linux, but the session warning was
   missing ([I-0298]) and the UI froze ([I-0297]). Both are being fixed in [SP-180]; AC6 waits for the re-run.
+
+### ✅ 2026-10-15 — [I-0287] VERIFIED (AC9)
+
+✅ User: *"verify I-0287"*, on the 2026-10-13 rig pass (steps 4–12). Archived to
+`../Issues/Verified/Issue-verified-0281-0290.md` in the same step.

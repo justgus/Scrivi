@@ -477,6 +477,14 @@ import os
     private(set) var projectUnavailable = false
 
     /// Scenes holding edits that have not reached disk.
+    /// [I-0305] — true while scenes are being written off the main actor (a Replace All's). A close waits for them.
+    var isWritingInBackground: Bool { (viewportLoader?.scenesWritingOffMain ?? 0) > 0 }
+
+    /// [I-0305] — runs `then` once those writes have landed (at once when none is running).
+    func whenBackgroundWritesLand(_ then: @escaping @MainActor () -> Void) {
+        if let loader = viewportLoader { loader.whenOffMainWritesLand(then) } else { then() }
+    }
+
     var unsavedSceneCount: Int {
         viewportLoader?.segments.filter(\.isDirty).count ?? 0
     }
