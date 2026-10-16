@@ -181,6 +181,7 @@ private:
     // View ▸ Show Timeline (SP-079, T-0323) — checkable; check-state synced to the
     // editor's actual timeline visibility on every page swap.
     QAction* showTimelineAction_ = nullptr;
+    QAction* showMarkupHintsAction_ = nullptr;   // [SP-182]
 
     // ⚠️ [I-0256] — View ▸ Show Scene Navigator. ✅ Check-state synced per window in
     // `updateMenuState()`, exactly as the inspector and timeline actions are.

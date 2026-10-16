@@ -190,8 +190,10 @@ void ManuscriptPresenter::reveal(int selStart, int selEnd)
     if (doc == nullptr) {
         return;
     }
-    QSet<int> lines{doc->findBlock(selStart).blockNumber(), doc->findBlock(selEnd).blockNumber()};
-    const QVector<MarkdownRange> spans = revealSpans(selStart, selEnd);
+    // Hints OFF: nothing is revealed ([SP-182]).
+    const QSet<int> lines = hintsEnabled_ ? QSet<int>{doc->findBlock(selStart).blockNumber(), doc->findBlock(selEnd).blockNumber()}
+                                          : QSet<int>{};
+    const QVector<MarkdownRange> spans = hintsEnabled_ ? revealSpans(selStart, selEnd) : QVector<MarkdownRange>{};
     if (lines == revealedLines_ && spans == revealedSpans_) {
         return;
     }
@@ -220,6 +222,15 @@ void ManuscriptPresenter::reveal(int selStart, int selEnd)
     for (int n : touched) {
         rehighlightBlock(doc->findBlockByNumber(n));
     }
+}
+
+void ManuscriptPresenter::setHintsEnabled(bool on, int selStart, int selEnd)
+{
+    if (on == hintsEnabled_) {
+        return;
+    }
+    hintsEnabled_ = on;
+    reveal(selStart, selEnd);   // re-presents only what was (or will be) revealed: no edit, no history event
 }
 
 bool ManuscriptPresenter::isHidden(int i) const
@@ -285,10 +296,24 @@ QTextCharFormat ManuscriptPresenter::dimmedFormat() const
     return f;
 }
 
+QTextCharFormat ManuscriptPresenter::chapterTitleFormat() const
+{
+    // ✅ EP-047 P7, P9 ([SP-182]): a chapter title is Heading 1, in the face, in the text colour (Apple: `chapterTitleFont`).
+    QTextCharFormat f;
+    f.setFontPointSize(document()->defaultFont().pointSizeF() * headingScale(1));
+    f.setFontWeight(QFont::Bold);
+    return f;
+}
+
 void ManuscriptPresenter::highlightBlock(const QString& text)
 {
     const QTextBlock line = currentBlock();
     const auto b = blockAt(line.position());
+    if (!b && sceneDoc_ != nullptr && !ManuscriptEscapes::isBlankLine(text) && sceneOf(line) < 0) {
+        // Not scene text and not blank: a chapter title (scene separators are blank lines).
+        setFormat(0, int(text.size()), chapterTitleFormat());
+        return;
+    }
     if (!b || text.isEmpty()) {
         return;
     }

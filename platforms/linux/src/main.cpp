@@ -1,3 +1,4 @@
+#include "ManuscriptTypography.hpp"
 #include <QApplication>
 #include <cstdio>
 #include <QDir>
@@ -85,6 +86,8 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("Scrivi"));
     QApplication::setOrganizationName(QStringLiteral("Caposoft"));
+    // ✅ EP-048 S5a ([SP-182]): the bundled manuscript faces (compiled in from Resources/Fonts, `fonts.json`'s list).
+    BundledFonts::registerAll();
 
     // ⚠️ [SP-146] T-0558 — Linux's FIRST app-level state owner.
     //

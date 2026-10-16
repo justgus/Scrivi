@@ -14,6 +14,7 @@
 #include "ManuscriptEditor.hpp"
 #include "SceneDocument.hpp"
 
+class ProjectPreferences;
 class NavigatorTree;
 class QStandardItemModel;
 class QStandardItem;
@@ -189,6 +190,12 @@ public:
     // `then` on the GUI thread once none is left (at once when none is running).
     [[nodiscard]] bool backgroundWorkInProgress() const { return backgroundWork_ > 0; }
     void whenBackgroundWorkDone(std::function<void()> then);
+    // ── EP-048 S5a ([SP-182]): the project's settings — its type and Markup Hints ──
+    // This project's preferences (nullptr until a load); Project ▸ Project Settings… edits them.
+    [[nodiscard]] ProjectPreferences* preferences() const { return prefs_; }
+    // View ▸ Show Markup Hints (absent = ON). A toggle re-presents only: no edit, no history event.
+    [[nodiscard]] bool markupHints() const;
+    void setMarkupHints(bool on);
     // For smokes: the open history, or nullptr.
     [[nodiscard]] HistoryCapture* history() const { return history_; }
 
@@ -448,6 +455,9 @@ private:
         // session and drop the pending edit).
         bool                       historyRequested = false;
         bool                       historyOpened    = false;
+        // EP-048 S5a ([SP-182]): `project.json`'s title and `project-settings.json`, read in the worker.
+        QString                    projectTitle;
+        QVariantMap                settings;
     };
 
     // T-0500: stop the delayed reveal and hide the strip. ⚠️ Must run on EVERY
@@ -803,6 +813,10 @@ private:
     // The editor read-only and `loading_` set, with the progress row showing `label` — and back.
     void lockForWork(const QString& label);
     void unlockAfterWork();
+    // [SP-182]: the project's face and size become the editor's font and the document's default font (THE one source,
+    // EP-047 AC4); the presenter re-presents. No document edit, no dirty scene, no history event.
+    void applyTypography();
+    ProjectPreferences* prefs_ = nullptr;   // owned (Qt parent); one per loaded project
     // [I-0305]: brackets one piece of background work; the last `end` runs the `whenBackgroundWorkDone` waiters.
     void beginBackgroundWork();
     void endBackgroundWork();

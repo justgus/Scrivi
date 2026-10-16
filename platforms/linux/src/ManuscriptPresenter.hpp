@@ -73,6 +73,11 @@ public:
     // ── The reveal (Q-E2-1) ──
     // Move the reveal to a selection [selStart, selEnd]; re-highlights only the lines whose drawing changes.
     void reveal(int selStart, int selEnd);
+    // ✅ EP-047 P11 / [SP-182] (Apple: `setHints`): Markup Hints. OFF reveals nothing — every marker and heading prefix
+    // stays hidden even beside the caret. ⛔ It changes what is DRAWN only: a stop run's caret home does not depend on it.
+    // The pending pair stays shown (it is the only sign of where the next characters will be bold).
+    void setHintsEnabled(bool on, int selStart, int selEnd);
+    bool hintsEnabled() const { return hintsEnabled_; }
     // True when the character at `i` is drawn hidden under the CURRENT reveal (tests, and Apple's `isHidden`).
     bool isHidden(int i) const;
     // ── SP-176 / T-0603 (EP-048 S4): the page AT REST, for Find ──
@@ -101,6 +106,7 @@ private:
 
     QTextCharFormat hiddenFormat() const;
     QTextCharFormat dimmedFormat() const;
+    QTextCharFormat chapterTitleFormat() const;
 
     Analyzer analyzer_;
     const SceneDocument* sceneDoc_ = nullptr;
@@ -109,5 +115,6 @@ private:
     QSet<int> revealedLines_;                 // Qt block numbers holding a selection end
     QVector<MarkdownRange> revealedSpans_;    // document positions
     bool rehighlighting_ = false;
+    bool hintsEnabled_ = true;
     QMetaObject::Connection edits_;
 };

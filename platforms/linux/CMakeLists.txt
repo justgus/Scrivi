@@ -29,6 +29,30 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets QuickWidgets Test Concurr
 # Qt's AUTOMOC etc. are enabled per-target below via qt_standard_project_setup.
 qt_standard_project_setup(REQUIRES 6.4)
 
+# ✅ EP-048 S5a ([SP-182] Q1): the bundled manuscript faces, COMPILED IN as a Qt resource (`:/fonts/…`). ⛔ The file list is
+# READ from Resources/Fonts/fonts.json — THE one list (EP-047 P5a, shared with the Apple app) — never restated here. Each
+# family's OFL.txt ships with it (EP-047 AC5). Re-configures when fonts.json changes.
+set(SCRIVI_FONTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Fonts")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${SCRIVI_FONTS_DIR}/fonts.json")
+file(READ "${SCRIVI_FONTS_DIR}/fonts.json" _scriviFontsJson)
+set(SCRIVI_FONT_FILES "${SCRIVI_FONTS_DIR}/fonts.json")
+string(JSON _scriviFaceCount LENGTH "${_scriviFontsJson}" faces)
+math(EXPR _scriviFaceLast "${_scriviFaceCount} - 1")
+foreach(_i RANGE ${_scriviFaceLast})
+    string(JSON _folder GET "${_scriviFontsJson}" faces ${_i} folder)
+    list(APPEND SCRIVI_FONT_FILES "${SCRIVI_FONTS_DIR}/${_folder}/OFL.txt")
+    string(JSON _fileCount LENGTH "${_scriviFontsJson}" faces ${_i} files)
+    math(EXPR _fileLast "${_fileCount} - 1")
+    foreach(_j RANGE ${_fileLast})
+        string(JSON _file GET "${_scriviFontsJson}" faces ${_i} files ${_j} file)
+        list(APPEND SCRIVI_FONT_FILES "${SCRIVI_FONTS_DIR}/${_folder}/${_file}")
+    endforeach()
+endforeach()
+function(scrivi_add_bundled_fonts target)
+    qt_add_resources(${target} "scrivi_bundled_fonts" PREFIX "/fonts" BASE "${SCRIVI_FONTS_DIR}" BIG_RESOURCES
+                     FILES ${SCRIVI_FONT_FILES})
+endfunction()
+
 qt_add_executable(scrivi_linux
     src/main.cpp
     src/AppSupport.cpp
@@ -52,11 +76,17 @@ qt_add_executable(scrivi_linux
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
     # EP-026 S5 (SP-179): the one app-wide Buffers palette (AppEnvironment owns it).
     src/BuffersPalette.cpp
     src/BuffersPalette.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
@@ -162,6 +192,7 @@ target_link_libraries(scrivi_linux
         Qt6::QuickWidgets   # QQuickWidget host for the landing QML (shell flip)
         Qt6::Concurrent     # I-0193: world/project reads off the UI thread
 )
+scrivi_add_bundled_fonts(scrivi_linux)   # [SP-182]
 
 # The qmltyperegistrar-generated TU (scrivi_linux_qmltyperegistrations.cpp) is
 # emitted at the build-tree root and #includes "ScriviBridge.hpp" by bare name.
@@ -969,6 +1000,10 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
@@ -1050,6 +1085,10 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
@@ -1127,6 +1166,10 @@ qt_add_executable(scrivi_linux_undo_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
@@ -1205,6 +1248,10 @@ qt_add_executable(scrivi_linux_structured_paste_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
@@ -1282,6 +1329,10 @@ qt_add_executable(scrivi_linux_replace_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
@@ -1364,10 +1415,16 @@ qt_add_executable(scrivi_linux_buffers_smoke
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
     src/BuffersPalette.cpp
     src/BuffersPalette.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     src/BufferService.cpp
@@ -1450,10 +1507,16 @@ qt_add_executable(scrivi_linux_background_wait_smoke
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
     src/BuffersPalette.cpp
     src/BuffersPalette.hpp
     src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
     src/HistoryCapture.cpp
     src/HistoryCapture.hpp
     src/BufferService.cpp
@@ -1514,6 +1577,97 @@ target_link_libraries(scrivi_linux_background_wait_smoke
 
 target_include_directories(scrivi_linux_background_wait_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
 target_compile_features(scrivi_linux_background_wait_smoke PRIVATE cxx_std_23)
+
+# settings_smoke (EP-048 S5a / SP-182, T-0609) — Linux's Project Settings dialog, the bundled typefaces and Markup Hints.
+# REAL project windows through AppEnvironment, the dialog through the real menu, Ctrl+Shift+H through the real dispatch;
+# every file claim read FROM DISK. The bundled faces compiled in, as the app has them. Driven by settings_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_settings_smoke
+    tests/settings_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/AppEnvironment.cpp
+    src/LandingWindow.cpp
+    src/LandingWindow.hpp
+    src/ScriviWindow.cpp
+    src/ProjectSettingsDialog.cpp
+    src/ProjectSettingsDialog.hpp
+    src/ScriviWindow.hpp
+    src/BuffersPalette.cpp
+    src/BuffersPalette.hpp
+    src/EditorShell.cpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/FormatMenu.cpp
+    src/FormatMenu.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_settings_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Quick
+        Qt6::Widgets
+        Qt6::QuickWidgets
+        Qt6::Concurrent
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_settings_smoke PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+target_compile_features(scrivi_linux_settings_smoke PRIVATE cxx_std_23)
+scrivi_add_bundled_fonts(scrivi_linux_settings_smoke)
 
 # --- Live-pass fixture builder (SP-125, EP-035 AC9) -------------------------
 # NOT a test — it asserts nothing. Builds a throwaway project whose first scene

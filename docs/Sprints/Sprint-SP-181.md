@@ -254,7 +254,7 @@ User:
 1. *"I think you believe it should be undo in the background in this one instance on both platforms … Perhaps we should
    consider doing all undos in a background thread (at least the ScriviCore part). Perhaps we can create the beginnings of
    a persistent thread pool (if the OS doesn't already do that) or … a dedicated thread for performing undo/history update
-   operations."* ⏳ Thinking aloud, not yet a ruling. ✅ Design note written 2026-10-15 (user: *"write the design not[e]"*): [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md), DRAFT, Q1–Q5 awaiting ruling. Not this Sprint's work.
+   operations."* ⏳ Thinking aloud, not yet a ruling. ✅ Design note written 2026-10-15 (user: *"write the design not[e]"*): [`../Scrivi_Background_Writes_Design_v0_1.md`](../Scrivi_Background_Writes_Design_v0_1.md), ✅ Q1–Q5 ruled 2026-10-15 → a new Epic, [EP-052] `[ScriviCore]` Background Writes (Draft). Not this Sprint's work.
 2. *"We'll have to remark it as needing saving when the save fails."* ✅ Linux keeps a scene dirty after a failed save, as
    the Mac does ([I-0259]).
 3. *"In both cases (Apple and Linux), if we attempt to close the application while a background update is in progress the

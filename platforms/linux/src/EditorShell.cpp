@@ -54,6 +54,8 @@
 #include "StoryStructures.hpp"
 #include "TimeDeltaPicker.hpp"
 #include "TimelinePanel.hpp"
+#include "ManuscriptTypography.hpp"
+#include "ProjectPreferences.hpp"
 
 #include <utility>
 
@@ -521,6 +523,8 @@ void EditorShell::load(const QString& projectPath,
             }
 
             out.projectID = opened.value(QStringLiteral("projectID")).toString();
+            out.projectTitle = opened.value(QStringLiteral("projectTitle")).toString();
+            out.settings = bridge->getProjectSettings(path);   // [SP-182]: read here, off the GUI thread
             const QVariantList scenes = opened.value(QStringLiteral("scenes")).toList();
             const QVariantMap active  = opened.value(QStringLiteral("activeScene")).toMap();
             out.activeSceneID = active.value(QStringLiteral("sceneID")).toString();
@@ -781,6 +785,27 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
     loadLog("main: sceneDoc built");
     viewport_->setDocument(sceneDoc_.document());
     loadLog("main: setDocument done");
+    // EP-048 S5a ([SP-182]): the project's settings — kept across a reload of the same project (an open dialog holds them),
+    // and the type applied to EVERY new document, so a reload never resets the face.
+    if (prefs_ == nullptr) {
+        prefs_ = new ProjectPreferences(bridge_, projectPath, payload.projectTitle, payload.settings, this);
+        connect(prefs_, &ProjectPreferences::typographyChanged, this, &EditorShell::applyTypography);
+        connect(prefs_, &ProjectPreferences::markupHintsChanged, this, [this](bool on) {
+            const QTextCursor c = viewport_->textCursor();
+            presenter_->setHintsEnabled(on, c.selectionStart(), c.selectionEnd());
+        });
+        connect(prefs_, &ProjectPreferences::titleChanged, this, [this](const QString& t) {
+            if (auto* l = findChild<QLabel*>(QStringLiteral("editorTitle"))) {
+                l->setText(t.trimmed().isEmpty() ? tr("Project") : t);
+            }
+        });
+    }
+    // The title shown is `project.json`'s (a rename in the dialog is there; the recents' copy may be older).
+    if (auto* l = findChild<QLabel*>(QStringLiteral("editorTitle")); l != nullptr && !prefs_->title().trimmed().isEmpty()) {
+        l->setText(prefs_->title());
+    }
+    presenter_->setHintsEnabled(prefs_->markupHints(), 0, 0);   // detached: sets the switch, draws at attach
+    applyTypography();
     // setDocument re-enables undo on the freshly-attached document; keep it off.
     viewport_->document()->setUndoRedoEnabled(false);
     // Point the boundary guard at the freshly-built map, and hook edits. The
@@ -1681,6 +1706,11 @@ void EditorShell::releaseProject()
     }
     historyText_.clear();
     structuralRedoCreated_.clear();
+    // EP-048 S5a ([SP-182]): the settings go with the project.
+    if (prefs_ != nullptr) {
+        prefs_->deleteLater();
+        prefs_ = nullptr;
+    }
     // EP-026 S5 (SP-179): the copy buffers go with the project (the palette lets go of them as they are destroyed).
     if (buffers_ != nullptr) {
         buffers_->deleteLater();
@@ -2588,6 +2618,30 @@ void EditorShell::unlockAfterWork()
     hideLoadProgress();
     loading_ = false;
     viewport_->setReadOnly(false);
+}
+
+void EditorShell::applyTypography()
+{
+    const QFont font = prefs_ != nullptr ? prefs_->typography().bodyFont() : ManuscriptTypography().bodyFont();
+    // ✅ Not an edit: Qt reports no text change for a font or a re-highlight, so nothing is dirtied or reported (measured:
+    // `settings_smoke` §3, and a guard here caught no mutation).
+    viewport_->setFont(font);
+    viewport_->document()->setDefaultFont(font);
+    if (presenter_ != nullptr && presenter_->document() != nullptr) {
+        presenter_->rehighlight();   // headings, emphasis and chapter titles are sized from the default font
+    }
+}
+
+bool EditorShell::markupHints() const
+{
+    return prefs_ == nullptr || prefs_->markupHints();
+}
+
+void EditorShell::setMarkupHints(bool on)
+{
+    if (prefs_ != nullptr) {
+        prefs_->setMarkupHints(on);
+    }
 }
 
 void EditorShell::beginBackgroundWork()

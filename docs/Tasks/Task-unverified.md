@@ -10,6 +10,27 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0609 — `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints
+
+**Epic:** [EP-048] (S5a, L10) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-15) — ⏳ rig live pass (AC5) · **Sprint:** [SP-182] (🟡 Active) →
+[`../Sprints/Sprint-SP-182.md`](../Sprints/Sprint-SP-182.md) · **Date Requested:** 2026-10-15 (user: *"plan EP-048 fully."*)
+
+**What:**
+- Replace the T-0312 *"coming soon"* stub with Linux's Project Settings dialog (Project: Title, Subtitle · Typography:
+  Typeface, Text size).
+- Back it with a Linux `ProjectPreferences` in Apple's shape over the shared `project-settings.json`: the whole document
+  kept, keys written only once chosen.
+- Register the seven bundled faces from `Resources/Fonts/fonts.json` and ship their OFL texts. The manuscript, headings and
+  chapter titles draw in the project's face and size.
+- View ▸ Show Markup Hints (Ctrl+Shift+H).
+- Variable-font weights are measured on Qt 6.4.2 and 6.10.2 first.
+
+**Done (2026-10-15):** `ManuscriptTypography` (`BundledFonts` from `fonts.json`, compiled in), `ProjectPreferences`,
+`ProjectSettingsDialog`, the presenter's hints switch and chapter titles, View ▸ Show Markup Hints. Proven by a new
+`settings_smoke` (CI), 5 mutations caught.
+
+---
+
 ## 🟠 T-0608 — `[Linux]` EP-048 S4b: Replace and Replace All over the presented text
 
 **Epic:** [EP-048] (S4b, L8's Replace half) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-15) — ⏳ rig live pass (AC6) · **Sprint:** [SP-181] (🟡 Active) →
@@ -49,4 +70,6 @@ plumbing-only `HistoryCapture` (idle timer at the core's deadline, `isApplying`)
 reload) and close in `ScriviWindow::closeEvent`; report edits, caret moves, paste/cut, grouped cross-scene edits and saves;
 barriers on split/merge/delete ([I-0287]: split and merge record theirs AFTER the op, carrying the scenes' new texts); Edit ▸ Undo (Ctrl+Z) / Redo (Ctrl+Shift+Z) with Apple's barrier and session-boundary
 notices. Proven by Linux smokes through the real key dispatch and a rig live pass.
+
+*Last Updated: 2026-10-15 (**T-0609 → 🟠 Implemented - Not Verified** ([SP-182]); ⏳ rig live pass.)*
 

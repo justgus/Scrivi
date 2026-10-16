@@ -1,6 +1,6 @@
 # Scrivi — Background Writes Design v0.1
 
-⚠️ **DRAFT, awaiting ruling.** Written 2026-10-15, from [SP-181]'s ruling 1.
+✅ **RULED 2026-10-15** (§7): Q1 (a), Q2 (c) + autosave, Q3 (a), Q4 (a), Q5 (a) → [EP-052]. Written 2026-10-15, from [SP-181]'s ruling 1.
 **Request (user, 2026-10-15):** *"Perhaps we should consider doing all undos in a background thread (at least the ScriviCore
 part). Perhaps we can create the beginnings of a persistent thread pool (if the OS doesn't already do that) or we can
 instantiate a dedicated thread for performing undo/history update operations."* Then: *"write the design note ruling."*
@@ -139,7 +139,28 @@ What already keeps order, and where:
   write leaves its scene dirty; close and quit wait.
 - **Rig:** undo of a Replace All on dumas over the share, timed before and after.
 
-## 7. Questions for ruling
+## 7. ✅ Rulings — 2026-10-15 (user)
+
+| # | Ruling | What it changes in §3 |
+| - | ------ | --------------------- |
+| **Q1** | ✅ *"ScriviCore."* (a) | As written: one writer thread per open project, in the core |
+| **Q2** | ✅ *"everything and autosave."* (c), with every typing autosave | ⚠️ **Wider than recommended.** Structural operations (split, merge, chapter create, reorder, cross-scene cut and paste, their undo and redo) are queued jobs too, not only synchronous calls ordered by W3. See W7 |
+| **Q3** | ✅ *"No no no."* (a): the editor does NOT lock while writes run | Replace All and undo stop locking the manuscript for their writes; *"Saving N scenes…"* shows without blocking. ⚠️ Read as an emphatic *No* to the question asked (*"Does the editor still lock?"*) |
+| **Q4** | ✅ *"accept it."* (a) | No journal. Close and quit drain the queue |
+| **Q5** | ✅ *"A new Epic."* (a) | [EP-052] |
+
+### W7 — Structural operations through the queue (Q2 (c))
+
+- A structural operation becomes a queued job like a save: the platform enqueues it, gets a ticket, and waits for that
+  ticket's outcome (W4) on a background thread before it reloads the manuscript.
+- ✅ **Consequence on Apple:** split, merge and cross-scene paste stop running on the main thread, which is what Linux already
+  does ([I-0297], `runStructural`). On Linux, `runStructural`'s worker becomes a wait for the ticket.
+- ⚠️ **What still waits:** the editor cannot show the result of a structural operation until it has run, so the platform keeps
+  today's progress row and read-only manuscript for THAT wait. That is waiting for a result, not for a write, so it does not
+  contradict Q3. Typing during it would be lost to the reload that follows ([I-0297]'s reason).
+- The synchronous structural endpoints stay, ordered by W3, for callers that need them (tests, tools). Neither app uses them.
+
+## 8. Questions for ruling (original text)
 
 ### Q1 — Where the write order lives
 

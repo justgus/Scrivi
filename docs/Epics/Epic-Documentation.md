@@ -90,6 +90,7 @@ user-approved), ⛔ not from either copy.\*\* ⚠️ **The table is now ONE unbr
 | EP-049 | `[Linux]` **Manuscript Storage Format on Linux** — ⚠️ **the escape layer's WRITE half: Linux writes the same `.md` Apple does** (escaping, paste/copy, pair deletion, Return/Backspace)                                                                  | ✅ **CLOSED 2026-10-05** (user-approved) — all ACs met; SP-160 → [record][18]                                                                                                                                                                                                                     | 2026-10-04 | 2026-10-05 |
 | EP-050 | `[Apple]` **Manuscript Accessibility** — VoiceOver reads the page at rest (one presented⇄storage translation layer across every AX member) + a Headings rotor; Linux measured ([I-0277])                                                                 | 🟡 **ACTIVE** 2026-10-08 — rulings A1–A3, AC1–AC6; S1 = [SP-171] (🟡 active)                                                                                                                                                                                                                     | 2026-10-08 | —          |
 | EP-051 | `[Docs]` **Design Documentation Consolidation** — one living design document; `docs/studies`, `docs/runbooks`, `docs/archives`; CLAUDE.md points at the design document | 🔵 **Draft** (backlog) 2026-10-10 | — | — |
+| EP-052 | `[ScriviCore]` **Background Writes** — one ordered write queue per project in the core: undo, redo, Replace All, structural operations and the autosave off the GUI thread; Apple and Linux adopt it together | 🔵 **Draft** (backlog) 2026-10-15 | — | — |
 
 ## Statistics
 
@@ -130,6 +131,8 @@ ruling **R-23(②)**. **To count Epics by status, read the table.**
 *Last Updated: 2026-10-15 (**EP-048**: S4b and S5a–S5c planned as [SP-181]–[SP-184] (🔵 Planning); the S5 split awaits [SP-182] Q2. The index row's stale *"SP-166 (S2) active"* replaced by a pointer.)*
 
 *Last Updated: 2026-10-15 (**EP-026**: [SP-179] (S5) CLOSED (user-approved); [I-0287] VERIFIED; the index row's stale *"S1 next"* replaced by a pointer.)*
+
+*Last Updated: 2026-10-15 (**EP-052 `[ScriviCore]` created** (Draft, in `Epic-backlog.md`) — Background Writes, from the ruled `Scrivi_Background_Writes_Design_v0_1.md`.)*
 
 *Last Updated: 2026-10-12 (**EP-026**: [SP-179] (S5) ACTIVATED; [I-0289] `[Apple]` buffer balancing fixed in it first.)*
 

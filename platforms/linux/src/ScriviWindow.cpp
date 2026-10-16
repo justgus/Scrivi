@@ -23,6 +23,7 @@
 
 #include "BufferService.hpp"
 #include "EditorShell.hpp"
+#include "ProjectSettingsDialog.hpp"
 
 // ---- ShellController --------------------------------------------------------
 
@@ -342,6 +343,18 @@ void ScriviWindow::buildMenuBar()
     });
     editorOnlyActions_.append(showBuffersAction_);
 
+    // ✅ EP-048 S5a ([SP-182] Q4, EP-047 P11): View ▸ Show Markup Hints, Ctrl+Shift+H (Apple's ⇧⌘H). Per project window, and
+    // it travels (`project-settings.json` `markupHints`, absent = ON). ⚠️ A Ctrl+Shift chord: the macOS→VNC path eats them
+    // (`project_linux_vnc_input_constraints`), so it is measured on the rig (RDP), with the menu always available.
+    view->addSeparator();
+    showMarkupHintsAction_ = view->addAction(tr("Show Markup Hints"));
+    showMarkupHintsAction_->setCheckable(true);
+    showMarkupHintsAction_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H));
+    connect(showMarkupHintsAction_, &QAction::toggled, this, [this](bool on) {
+        if (editor_ != nullptr) { editor_->setMarkupHints(on); }
+    });
+    editorOnlyActions_.append(showMarkupHintsAction_);
+
     // Story Structure… (EP-025 / SP-081, T-0330) — pick a built-in structure (Three Act
     // / Five Act / Hero's Journey / …) or remove it; the timeline paints the bands.
     QAction* storyStructure = view->addAction(tr("Story Structure…"));
@@ -384,17 +397,11 @@ void ScriviWindow::buildMenuBar()
     QMenu* project = bar->addMenu(tr("&Project"));
     QAction* settings = project->addAction(tr("Project Settings…"));
     connect(settings, &QAction::triggered, this, [this]() {
-        // T-0312 stub: no settings backend yet. A placeholder dialog so the menu item
-        // is real and discoverable; real settings are a future task.
-        QDialog dlg(this);
-        dlg.setWindowTitle(tr("Project Settings"));
-        auto* layout = new QVBoxLayout(&dlg);
-        layout->addWidget(new QLabel(
-            tr("Project settings are coming soon."), &dlg));
-        auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dlg);
-        connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-        connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-        layout->addWidget(buttons);
+        // ✅ EP-048 S5a ([SP-182]): the real dialog — it replaces the T-0312 "coming soon" stub. Changes apply live.
+        if (editor_ == nullptr || editor_->preferences() == nullptr) {
+            return;
+        }
+        ProjectSettingsDialog dlg(editor_->preferences(), this);
         dlg.exec();
     });
     editorOnlyActions_.append(settings);
@@ -492,6 +499,12 @@ void ScriviWindow::updateMenuState(bool editorActive)
                            && editor_->isTimelineVisible();
         const QSignalBlocker block(showTimelineAction_);
         showTimelineAction_->setChecked(shown);
+    }
+
+    // [SP-182]: View ▸ Show Markup Hints follows THIS window's project.
+    if (showMarkupHintsAction_ != nullptr) {
+        const QSignalBlocker block(showMarkupHintsAction_);
+        showMarkupHintsAction_->setChecked(editorActive && editor_ != nullptr && editor_->markupHints());
     }
 
     // EP-026 S5: View ▸ Show Buffers is app-wide — the same check in every window.

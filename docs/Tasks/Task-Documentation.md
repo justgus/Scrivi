@@ -762,7 +762,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0606 | `[Linux]` EP-026 S5: copy buffers 1–9, View ▸ Show Buffers (Ctrl+Alt+B), the Buffers palette (incl. [I-0289] `[Apple]`) | ✅ **SP-179** | **EP-026** | ✅ **Verified 2026-10-13** | [`Task-verified-0606.md`](Verified/Task-verified-0606.md) |
 | T-0607 | `[Linux]` EP-026 S4: structured cut / copy / paste across scenes (incl. [I-0293]–[I-0296]) | 🟡 **SP-180** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0608 | `[Linux]` EP-048 S4b: Replace and Replace All over the presented text | 🟡 **SP-181** | **EP-048** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0609 | `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints | 🟡 **SP-182** | **EP-048** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0609 | `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints | 🟡 **SP-182** | **EP-048** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | 🔵 **SP-183** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | 🔵 **SP-184** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0592 | `[Apple]` E2-S3: formatting commands + lists + Option-Return | 🟡 **SP-163** | **EP-046** | ✅ **Verified 2026-10-06** | [`Task-verified-0592.md`](Verified/Task-verified-0592.md) |
@@ -802,6 +802,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-15 (**T-0609 → 🟠 Implemented - Not Verified** → `Task-unverified.md`; ⏳ SP-182 rig pass.)*
 
 *Last Updated: 2026-10-15 (**T-0609 → active** (backlog → `Task-active.md`) with SP-182's activation.)*
 

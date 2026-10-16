@@ -9,9 +9,9 @@ created: 2026-10-15
 
 # SP-182 — `[Linux]` [EP-048] **S5a**: Project Settings dialog, the typeface, Markup Hints
 
-**Status:** 🟡 **ACTIVATED 2026-10-15** (user: *"activate SP-182"*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ Q1–Q5 ruled 2026-10-15, all as
+**Status:** 🟠 **IMPLEMENTED 2026-10-15** (user: *"implement SP-182"*) — ⏳ **Q6** (bold on Linux) for ruling, AC5 rig pass · 🟡 ACTIVATED 2026-10-15 (user: *"activate SP-182"*) — created 2026-10-15 (user: *"plan EP-048 fully."*). ✅ Q1–Q5 ruled 2026-10-15, all as
 recommended; the S5 split is ruled (Q2).
-**Carries:** [T-0609] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
+**Carries:** [T-0609] → [`../Tasks/Task-unverified.md`](../Tasks/Task-unverified.md).
 **Epic:** [EP-048] `[Linux]` Manuscript Renderer Parity → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). **L10, its
 character half:** the project typeface and size, and Markup Hints on/off. ✅ [EP-026] Q4 (ruled 2026-10-11): **EP-048 S5
 builds Linux's Project Settings dialog**, and EP-026 S3 later adds its Undo History section.
@@ -101,22 +101,46 @@ reads and writes the same `project-settings.json`, with Markup Hints on or off.
 | **Q4** | **The Markup Hints shortcut.** | ✅ **Ctrl+Shift+H** (Apple's ⇧⌘H, Ctrl in place of ⌘), measured against GNOME on the rig. Alternative: menu only · ✅ **RULED** (user, 2026-10-15) |
 | **Q5** | **Existing Linux manuscripts change look.** P6 (*"Projects with NO typeface setting — existing ones included — open in the default"*) was ruled for the Mac. | ✅ **Apply it on Linux too**: a project with no setting opens in Literata, 16 pt, as it does on the Mac. The setting travels, so anything else would make one project look different on each machine · ✅ **RULED** (user, 2026-10-15) |
 
+### Q6 — How bold draws on Linux (raised 2026-10-15 by AC0) — ⏳ awaiting ruling
+
+**The situation.** Six of the seven faces are VARIABLE fonts. Qt registers each as only Regular and Italic, on 6.4.2 AND
+6.10.2, so a bold run is **synthesized**: Qt thickens the regular strokes. It reads as bold, but it is not the face's own bold,
+and bold inside a heading looks the same as the heading. Qt 6.7+ can draw the real weight through `QFont::setVariableAxis`
+(measured on 6.10.2: real widths and weights). ⛔ But the presenter draws through `QTextCharFormat`, which has no way to carry
+a variable axis in 6.10, so the manuscript cannot use it. Courier Prime is unaffected (static Bold files).
+
+**Options.**
+- (a) Accept synthesized bold for now; revisit only if the live pass shows it falls short.
+- (b) Generate static Bold (and heaviest) instances of each variable face AT BUILD TIME from the shipped files (fontTools'
+  instancer), from `fonts.json`'s list, so no file list is restated. Real weights on every Qt version; adds a build-time
+  Python dependency and roughly doubles the 5.7 MB.
+- (c) Ship Google's static instances alongside the variable files. ⛔ That restates the font list (the files would not be
+  in `fonts.json`) unless `fonts.json` grows a Linux-only list.
+
+✅ **Recommendation: (a)**, then decide (b) from the live pass. Synthesized bold is legible and costs nothing; (b) is real work
+whose value the user can judge by eye on the rig.
+
 ⛔ **NOT in this Sprint:** line spacing and the first-line indent (→ S5b, Q3) · Show chapter titles (→ S5c) · the Undo History
 section (→ EP-026 S3) · installed (non-bundled) fonts (P5: bundled only) · per-scene type (P8).
 
 ## Acceptance Criteria
 
-- [ ] AC0 — Plan step 0 measured and recorded on Qt 6.4.2 and Qt 6.10.2: regular, bold, italic and bold-italic from the
-      variable files
-- [ ] AC1 — Project ▸ Project Settings… is a real dialog: Title (to `project.json`) and Subtitle, read from and written to the
+- [x] AC0 — Plan step 0 measured and recorded on Qt 6.4.2 and Qt 6.10.2: regular, bold, italic and bold-italic from the
+      variable files — see the progress log. ⚠️ 6.10.2 was measured in Docker (Qt's own arm64 build), not on the rig. Decides
+      **Q6**
+- [x] AC1 — Project ▸ Project Settings… is a real dialog: Title (to `project.json`) and Subtitle, read from and written to the
       same files as the Mac; the whole settings document is kept; an unchosen key is never written; an unreadable file is
-      not overwritten on open
-- [ ] AC2 — **L10 (type):** the seven bundled faces register from `fonts.json`, and their OFL texts ship; the manuscript,
+      not overwritten on open — `settings_smoke` §1–§2 (`drop-unknown`, `pin-default` caught). ⚠️ "Unreadable" is by
+      construction (nothing is written on open), not asserted
+- [x] AC2 — **L10 (type):** the seven bundled faces register from `fonts.json`, and their OFL texts ship; the manuscript,
       headings, chapter titles and bold/italic draw in the project's face and size; a face the build does not have is kept
-      and drawn in the default; a change re-presents only (save bytes unchanged, no history event, no dirty scene)
-- [ ] AC3 — **L10 (hints):** View ▸ Show Markup Hints, Ctrl+Shift+H, persisted (absent = ON); OFF reveals nothing and the
-      caret rules hold; a toggle changes no text and records no step
-- [ ] AC4 — `settings_smoke` in CI, mutation-checked; ctest green on macOS and Linux; all Linux smokes green
+      and drawn in the default; a change re-presents only (save bytes unchanged, no history event, no dirty scene) —
+      `settings_smoke` §2–§3 (`reload-reset`, `no-chapter-title` caught). ⚠️ Bold is SYNTHESIZED on variable faces (Q6)
+- [x] AC3 — **L10 (hints):** View ▸ Show Markup Hints, Ctrl+Shift+H, persisted (absent = ON); OFF reveals nothing and the
+      caret rules hold; a toggle changes no text and records no step — `settings_smoke` §4 (`hints-ignored` caught). ⏳
+      GNOME's Ctrl+Shift+H, on the rig
+- [x] AC4 — `settings_smoke` in CI, mutation-checked (5 of 6 caught; the 6th showed a guard was unneeded, removed); all Linux
+      smokes green 35/35. ScriviCore unchanged, so ctest not re-run
 - [ ] AC5 — ✅ **Rig live pass (user)**, including a typeface crossing between the Mac and Linux in both directions
 
 ## Progress log
@@ -130,3 +154,44 @@ rulings; Q2 also rules the S5 split behind [SP-183] and [SP-184].
 
 User: *"SP-182 Q2 agreed. SP-182 Q5 and SP-184 Q1: agreed. SP-182 Q1: agreed. SP-182 Q3-Q4: agreed."* The S5 split
 stands: [SP-183] and [SP-184] go ahead.
+
+### 🟠 2026-10-15 — Implemented
+
+User: *"implement SP-182"*.
+
+**Step 0 (AC0), measured** with a probe registering the shipped files by path (`QFontDatabase::addApplicationFont`), at 24 pt,
+`QFontInfo` plus an offscreen render (advance width and ink):
+
+| Qt | Variable faces (Literata, Inter) | Courier Prime (static) |
+| -- | -------------------------------- | ---------------------- |
+| 6.4.2 (Docker, Ubuntu 24.04) | registers `Regular` and `Italic` only. Italic = the real italic file. Bold (700) = **synthesized**: same advance (468.2), heavier ink; ExtraBold (800) = identical to Bold | `Regular`, `Italic`, `Bold`, `Bold Italic`: the real files |
+| 6.10.2 (Docker, Qt's own arm64 build) | the same as 6.4.2 by default | the same |
+| 6.10.2 with `QFont::setVariableAxis("wght", w)` | **real weights**: Literata 700 = 500.8, 800 = 520.0 wide; italic from its file | — |
+
+⛔ `QTextCharFormat` (6.10.2 `qtextformat.h`) has no variable-axis property, so the presenter cannot carry the axis → **Q6**.
+⚠️ The rig's Qt 6.10.2 links its own fontconfig/FreeType; the Docker figure is Qt's, not the rig's, so the live pass looks too.
+
+**Built (Apple's shape):**
+- `ManuscriptTypography.hpp/.cpp`: `BundledFonts` reads `:/fonts/fonts.json` and registers every file it lists; a face
+  this build lacks is kept and drawn in the default. `ManuscriptTypography` is the one source (face, size 10–32, default
+  Literata 16, P6/P9).
+- **Q1:** CMake reads `Resources/Fonts/fonts.json` and compiles every file it names, plus each `OFL.txt`, into a Qt resource
+  (`scrivi_add_bundled_fonts`); the list is never restated.
+- `ProjectPreferences.hpp/.cpp`: the whole document kept, a key written only once chosen, the title through
+  `setProjectTitle` (empty not written), nothing written on open. The load's worker reads the settings off the GUI thread.
+  ⚠️ Apple always writes `subtitle` and `showChapterTitles` on a save; Linux writes neither until chosen (`showChapterTitles`
+  is [SP-184]'s), so the same file results.
+- The type: the face and size become the editor's font and the document's default font, applied to every new document, so a
+  reload keeps it. The presenter's headings and emphasis follow, and **chapter titles** now draw at Heading 1 size, bold
+  (P7/P9). ⚠️ Chapter titles were drawn as body text on Linux until now.
+- `ProjectSettingsDialog.hpp/.cpp` replaces the T-0312 stub: Project (Title, Subtitle) and Typography (Typeface, each name in
+  its own face; Text size), live; Close. The editor's title shows `project.json`'s title.
+- View ▸ Show Markup Hints, Ctrl+Shift+H (Q4), per window, persisted. OFF reveals nothing (`ManuscriptPresenter::setHintsEnabled`);
+  the caret rules hold.
+
+**Tests:** a new `settings_smoke` (CI): §1 files, §2 a Mac-written file and an unbundled face, §3 the type (no text change,
+no scene file written, no history step; survives typing, Return, undo, a paste, a structured paste and its reload), §4 hints
+through the real dispatch. Mutations: `drop-unknown`, `pin-default`, `hints-ignored`, `reload-reset`, `no-chapter-title`
+caught; `no-guard` survived, which showed `applyTypography`'s loading guard was unneeded, so it was removed.
+**Runs:** Linux smokes 35/35 (Docker, Qt 6.4.2, uid 1000); no compiler warnings.
+
