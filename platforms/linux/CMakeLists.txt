@@ -51,7 +51,7 @@ endforeach()
 function(scrivi_add_bundled_fonts target)
     # ⚠️ The resource NAME must be unique per target: BIG_RESOURCES writes `.qt/rcc/qrc_<name>.o` in this directory, and
     # two targets sharing a name collide ("already has a custom rule" — the rig's first configure, 2026-10-15).
-    qt_add_resources(${target} "scrivi_bundled_fonts" PREFIX "/fonts" BASE "${SCRIVI_FONTS_DIR}" BIG_RESOURCES
+    qt_add_resources(${target} "scrivi_bundled_fonts_${target}" PREFIX "/fonts" BASE "${SCRIVI_FONTS_DIR}" BIG_RESOURCES
                      FILES ${SCRIVI_FONT_FILES})
 endfunction()
 

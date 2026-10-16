@@ -195,3 +195,14 @@ through the real dispatch. Mutations: `drop-unknown`, `pin-default`, `hints-igno
 caught; `no-guard` survived, which showed `applyTypography`'s loading guard was unneeded, so it was removed.
 **Runs:** Linux smokes 35/35 (Docker, Qt 6.4.2, uid 1000); no compiler warnings.
 
+
+### 🟠 2026-10-15 — ⛔ The rig's first configure failed; fixed
+
+The rig reported *"Attempt to add a custom rule to output …/.qt/rcc/qrc_scrivi_bundled_fonts.o.rule which already has a
+custom rule"* (`Qt6CoreMacros.cmake:602`, from `scrivi_add_bundled_fonts`).
+- **Cause:** the app and `settings_smoke` both added the fonts resource under ONE name with `BIG_RESOURCES`, which writes
+  `.qt/rcc/qrc_<name>.o` in the directory. Qt 6.10.2's macros refuse the second rule; Qt 6.4.2's accept it.
+- ⚠️ **Why the check missed it:** every build here used Docker's Qt 6.4.2, and the first one was an incremental build.
+- **Fix:** the resource name includes the target (`scrivi_bundled_fonts_<target>`).
+- **Proven against Qt 6.10.2** (Qt's own arm64 build, in Docker): the old name fails at the same line; the fix configures,
+  builds with no warnings in `platforms/linux`, and all 35 CI smokes pass. Also a fresh configure on Qt 6.4.2.
