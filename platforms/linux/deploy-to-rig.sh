@@ -113,7 +113,9 @@ ssh "$RIG" "set -e
     if [ ! -f build-native/CMakeCache.txt ]; then
         cmake -S . -B build-native -G Ninja \
               -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=ON \
-              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_BUILD_TYPE=Debug
+    else
+        cmake -B build-native -DCMAKE_BUILD_TYPE=Debug >/dev/null   # an older tree's cache may say Release
     fi
     cmake --build build-native --parallel"
 

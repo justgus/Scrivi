@@ -1,6 +1,9 @@
 #include "EditorShell.hpp"
 
+#include <QElapsedTimer>
+
 #include "AsyncCall.hpp"
+#include "DiagnosticLog.hpp"
 #include "ThemeColours.hpp"
 
 #include <QAction>
@@ -83,6 +86,7 @@ namespace {
 // because SP-144 / [I-0232] gave `ScriviBridge::openProjectAsync` a SECOND call
 // site for it. ⛔ Two copies of a tuned timeout drift apart silently.
 using AsyncCall::kProjectOpenTimeoutMs;
+using DiagnosticLog::Span;
 
 // Custom data roles on navigator items (shared with NavigatorTree's drop resolution):
 // scene rows carry kSceneIDRole; chapter rows carry kChapterIDRole.
@@ -424,6 +428,9 @@ void EditorShell::load(const QString& projectPath,
                        const QVariantMap& openedProject)
 {
     loadLog(openedProject.isEmpty() ? "load: entered (will open the project)" : "load: entered (open handed over)");
+    DiagnosticLog::note(QStringLiteral("load: %1").arg(projectPath));   // [SP-185] T-0612
+    QElapsedTimer loadClock;
+    loadClock.start();
     errorLabel_->hide();
     errorLabel_->clear();
 
@@ -623,7 +630,7 @@ void EditorShell::load(const QString& projectPath,
             out.ok = true;
             return out;
         },
-        [this, projectPath, appSupportRoot](const LoadPayload& payload) {
+        [this, projectPath, appSupportRoot, loadClock](const LoadPayload& payload) {
             loadLog("main: payload received");
             hideLoadProgress();
             if (!payload.ok) {
@@ -635,6 +642,7 @@ void EditorShell::load(const QString& projectPath,
                 return;
             }
             applyLoadedProject(projectPath, appSupportRoot, payload);
+            DiagnosticLog::note(QStringLiteral("load: finished in %1 ms (%2 scenes)").arg(loadClock.elapsed()).arg(sceneDoc_.segments().size()));
             emit loadFinished(true);
         },
         [this]() {
@@ -698,6 +706,7 @@ void EditorShell::applyLoadedProject(const QString& projectPath,
                                      const QString& appSupportRoot,
                                      const LoadPayload& payload)
 {
+    const Span span("load: build the manuscript (main thread)", Span::Mode::Always);   // [SP-185] T-0612
     // ⚠️ UI THREAD ONLY. Everything below touches widgets and the document.
     // EP-026 S2 (SP-178): the caret this load places is not the writer's move — not reported to history. ⚠️ A report is a
     // project WRITE (it bumps the revision), and it would make the worker's timeline read stale ([I-0285] AC4, smoke).
@@ -1466,6 +1475,7 @@ void EditorShell::renameChapterByID(const QString& chapterID)
 
 void EditorShell::onContentsChange(int position, int charsRemoved, int charsAdded)
 {
+    const Span span("edit");
     // Ignore the programmatic assembly in load(); only user edits are dirty.
     if (loading_) {
         return;
@@ -1531,6 +1541,7 @@ int EditorShell::storedOffset(int idx, int docPos) const
 
 void EditorShell::onCursorMoved()
 {
+    const Span span("caret moved");
     if (loading_) {
         return;
     }
@@ -1542,6 +1553,7 @@ void EditorShell::onCursorMoved()
     // EP-026 S2 (SP-178): another scene commits the pending edit; the same scene commits unless only whitespace changed
     // (the core decides). Apple: `textViewDidChangeSelection` → `caretMoved`.
     if (history_ != nullptr && seg >= 0 && !grouping_ && !applyingLoad_) {
+        const Span historySpan("history: caret moved");
         history_->caretMoved(sceneDoc_.segments().at(seg).sceneID, editInFlight_);
     }
     promoteActiveScene(seg);
@@ -1549,6 +1561,7 @@ void EditorShell::onCursorMoved()
 
 void EditorShell::onScrolled()
 {
+    const Span span("scrolled");
     if (loading_ || programmaticViewportChange_) {
         return;   // ignore our own programmatic scrolls (navigator click, caret move)
     }
@@ -1573,6 +1586,7 @@ void EditorShell::promoteActiveScene(int newSeg)
     if (newSeg < 0 || newSeg == activeSegment_) {
         return;   // undeterminable, or still in the same scene — nothing to do
     }
+    const Span span("active scene changed");
     // The active scene changed. Flush everything dirty now so the departing scene is
     // on disk before we move on (scene-switch leg of the T-0239 cadence). Single
     // writer of activeSegment_ — both the caret and scroll hooks land here.
@@ -1592,6 +1606,7 @@ void EditorShell::selectNavigatorScene(const QString& sceneID)
     // is the single hook both promoteActiveScene and moveCaretToSegment route through,
     // so the timeline stays in sync with the navigator without a separate wiring.
     if (timeline_ != nullptr) {
+        const Span span("timeline: active scene");
         timeline_->setActiveScene(sceneID);
     }
 
@@ -1601,10 +1616,12 @@ void EditorShell::selectNavigatorScene(const QString& sceneID)
     // stays in sync without a separate wiring. setScene() is a no-op when the
     // scene has not actually changed, so scroll traffic costs nothing.
     if (inspector_ != nullptr) {
+        const Span span("inspector: set scene");
         inspector_->setScene(sceneID);
     }
 
     // Highlight-only: find the matching child row and select it. No scroll, no caret.
+    const Span navigatorSpan("navigator: highlight");
     for (int r = 0; r < navModel_->rowCount(); ++r) {
         QStandardItem* chapter = navModel_->item(r);
         for (int c = 0; c < chapter->rowCount(); ++c) {
@@ -1809,6 +1826,7 @@ void EditorShell::saveDirtyScenes()
     if (dirtyScenes_.isEmpty()) {
         return;
     }
+    const Span span("save dirty scenes (main thread)");
     saveTimer_->stop();   // an explicit flush supersedes a pending debounce
     // EP-026 S2 (SP-178): an autosave never seals the typing session unless the writer is already idle (T-0396;
     // Apple: `flushThenSave`). Teardown commits first, in `flushHistory()`.
@@ -2333,6 +2351,7 @@ bool EditorShell::canRedo() const { return history_ != nullptr && history_->canR
 
 void EditorShell::undo()
 {
+    const Span span("undo");
     if (history_ != nullptr && !loading_) {
         applyHistoryStep(history_->undo(), /*isUndo=*/true);
     }
@@ -2340,6 +2359,7 @@ void EditorShell::undo()
 
 void EditorShell::redo()
 {
+    const Span span("redo");
     if (history_ != nullptr && !loading_) {
         applyHistoryStep(history_->redo(), /*isUndo=*/false);
     }
@@ -2447,6 +2467,7 @@ QHash<QString, QString> textsOf(const QVariantMap& m)
 
 void EditorShell::pasteFragment(const QJsonObject& fragmentIn)
 {
+    const Span span("structured paste (main thread)");
     if (loading_ || projectPath_.isEmpty() || fragmentIn.value(QStringLiteral("pieces")).toArray().isEmpty()) {
         return;
     }
@@ -2704,6 +2725,9 @@ void EditorShell::replaceAll(const QVector<MarkdownRange>& matches, const QStrin
     const QString escaped = ManuscriptEscapes::escape(typed);
     lockForWork(tr("Replacing…"));
     beginBackgroundWork();   // [I-0305]: a close waits for it
+    DiagnosticLog::note(QStringLiteral("replace all: %1 matches in %2 scenes, worker started").arg(matches.size()).arg(scenes.size()));
+    QElapsedTimer replaceClock;
+    replaceClock.start();
     AsyncCall::run<QVector<QString>>(
         this,
         // ⚠️ The WORKER: the C ABI only, on copies.
@@ -2724,7 +2748,8 @@ void EditorShell::replaceAll(const QVector<MarkdownRange>& matches, const QStrin
             }
             return after;
         },
-        [this, scenes, done](const QVector<QString>& after) {
+        [this, scenes, done, replaceClock](const QVector<QString>& after) {
+            DiagnosticLog::note(QStringLiteral("replace all: worker finished in %1 ms").arg(replaceClock.elapsed()));
             // The GUI thread: the finished texts go in as the writer's own edit — reconciled, dirtied, ONE step.
             loading_ = false;
             beginGroupedEdit();
@@ -2803,6 +2828,9 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
         history_->beforeSave();   // an autosave never seals the session unless the writer is idle (T-0396)
     }
     beginBackgroundWork();
+    DiagnosticLog::note(QStringLiteral("save off main: %1 scene(s), worker started").arg(jobs.size()));
+    QElapsedTimer saveClock;
+    saveClock.start();
     if (progressLabel_ != nullptr) {
         progressLabel_->setText(jobs.size() == 1 ? tr("Saving 1 scene…") : tr("Saving %1 scenes…").arg(jobs.size()));
     }
@@ -2824,7 +2852,9 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
             }
             return ok;
         },
-        [this, jobs, landed](const QVector<bool>& ok) {
+        [this, jobs, landed, saveClock](const QVector<bool>& ok) {
+            DiagnosticLog::note(QStringLiteral("save off main: %1 scene(s) landed in %2 ms (%3 failed)")
+                                    .arg(jobs.size()).arg(saveClock.elapsed()).arg(ok.count(false)));
             for (qsizetype k = 0; k < jobs.size(); ++k) {
                 const Job& j = jobs.at(k);
                 const int idx = sceneDoc_.sceneIndexForScene(j.sceneID);
@@ -2844,6 +2874,7 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
             endBackgroundWork();
         },
         [this, jobs, landed] {
+            DiagnosticLog::note(QStringLiteral("save off main: TIMED OUT (%1 scene(s))").arg(jobs.size()));
             // ⛔ [I-0304]: the writes did not report back, so as far as anyone knows they failed — kept dirty.
             for (const Job& j : jobs) {
                 if (sceneDoc_.sceneIndexForScene(j.sceneID) >= 0) {
@@ -2870,6 +2901,9 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
     }
     if (progressDelay_ != nullptr) { progressDelay_->start(); }
     beginBackgroundWork();   // [I-0305]: a close waits for the worker's writes
+    DiagnosticLog::note(QStringLiteral("structural \"%1\": worker started").arg(label));
+    QElapsedTimer structuralClock;
+    structuralClock.start();
     struct Outcome { QVariantMap result; bool failed = false; };
     ScriviBridge* bridge = bridge_;
     const auto release = [this] {
@@ -2886,7 +2920,9 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
             o.failed = bridge->lastCallFailed();
             return o;
         },
-        [this, release, then = std::move(then), failed](const Outcome& o) {
+        [this, release, then = std::move(then), failed, label, structuralClock](const Outcome& o) {
+            DiagnosticLog::note(QStringLiteral("structural \"%1\": worker finished in %2 ms%3")
+                                    .arg(label).arg(structuralClock.elapsed()).arg(o.failed ? QStringLiteral(" (FAILED)") : QString()));
             hideLoadProgress();
             if (o.failed) {
                 release();
@@ -2897,7 +2933,8 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
             then(o.result);   // records history, then a reload — which lifts the guard when it lands
             endBackgroundWork();   // the writes are done; the reload only reads (a close mid-load is T-0567's)
         },
-        [this, release] {
+        [this, release, label] {
+            DiagnosticLog::note(QStringLiteral("structural \"%1\": TIMED OUT").arg(label));
             release();
             errorLabel_->setText(tr("This change is taking longer than expected — the project may be on a disconnected or "
                                     "unreachable volume. Reopen it before editing further."));
@@ -2964,6 +3001,7 @@ int EditorShell::replaceSceneBody(int idx, const QString& text, int caretUtf16)
 
 void EditorShell::applyHistoryStep(const QVariantMap& step, bool isUndo)
 {
+    const Span span("apply history step");
     if (history_ == nullptr || step.isEmpty()) {
         return;
     }

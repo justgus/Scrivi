@@ -1,3 +1,4 @@
+#include "DiagnosticLog.hpp"
 #include "ManuscriptTypography.hpp"
 #include <QApplication>
 #include <cstdio>
@@ -88,6 +89,8 @@ int main(int argc, char* argv[])
     QApplication::setOrganizationName(QStringLiteral("Caposoft"));
     // ✅ EP-048 S5a ([SP-182]): the bundled manuscript faces (compiled in from Resources/Fonts, `fonts.json`'s list).
     BundledFonts::registerAll();
+    // [SP-185] T-0612: the diagnostic log (~/.local/state/scrivi/scrivi.log) — from here to the end of the session.
+    DiagnosticLog::start(buildStamp());
 
     // ⚠️ [SP-146] T-0558 — Linux's FIRST app-level state owner.
     //
@@ -196,5 +199,7 @@ int main(int argc, char* argv[])
     // `AppEnvironment::projectsToRestore()`: a headless run (`QT_QPA_PLATFORM=
     // offscreen`) or `SCRIVI_NO_RESTORE` opens NOTHING and leaves `session.ini` intact.
     env.restoreSession();
-    return app.exec();
+    const int exitCode = app.exec();
+    DiagnosticLog::stop(exitCode);   // "session ended": its absence means the app crashed or was killed
+    return exitCode;
 }

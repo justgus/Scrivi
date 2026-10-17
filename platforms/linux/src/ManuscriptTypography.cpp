@@ -16,7 +16,7 @@ Manifest& mutableManifest()
 {
     static Manifest m = [] {
         Manifest out;
-        QFile f(QStringLiteral(":/fonts/fonts.json"));
+        QFile f(QStringLiteral(":/fonts/fonts.json"));   // boundary-ok: the font manifest compiled into the app (a Qt resource), not a package
         if (!f.open(QIODevice::ReadOnly)) {
             qWarning("[BundledFonts] fonts.json missing from the resources — the manuscript falls back to the system font");
             return out;

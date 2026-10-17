@@ -166,8 +166,8 @@ isn't."* → plan steps 0b and 4.
       measure it"*
 - [x] AC3 — Replace All runs on a worker, never the GUI thread (Q3); every scene with a match is on disk afterwards, and no
       other scene file is written — `replace_smoke` §3 (`on-gui` caught, after the check was sharpened)
-- [ ] AC4 — Edit ▸ Find ▸ Find and Replace… Ctrl+Alt+F through the real dispatch ✅ (`replace_smoke` §1); ⏳ not bound by GNOME
-      (rig)
+- [x] AC4 — Edit ▸ Find ▸ Find and Replace… Ctrl+Alt+F through the real dispatch ✅ (`replace_smoke` §1); ✅ not bound by GNOME
+      (rig live pass 2026-10-15, step 11: the bar opens with the Replace row)
 - [x] AC5 — a new `replace_smoke` (in CI) rather than `find_smoke` extended, since Replace All needs a real project, history
       and disk; mutation-checked (5 of 5); ctest macOS 724/724, Linux 727/727 (uid 1000); Linux smokes 33/33; interop 292/292
 - [x] AC7 — `[Linux]` [I-0304]: a scene whose save fails stays dirty and is retried by the next save — `background_wait_smoke`
@@ -296,3 +296,9 @@ the view's size (`NSHostingController.sizingOptions = .preferredContentSize`). `
 
 ✅ **Re-check (user, 2026-10-15):** *"the sheet looks right now."* The Mac half of [I-0305]'s live check passes; Linux waits for
 the rig.
+
+### 🔵 2026-10-15 — Rig live pass, step 11
+
+✅ AC4: Ctrl+Alt+F opens the find bar with the Replace row on the rig. ⛔ Typing in the bar then crashed the app → [I-0308]
+`[Linux]` (filed, unassigned). The pass stopped there for the day; AC6 is not yet run.
+

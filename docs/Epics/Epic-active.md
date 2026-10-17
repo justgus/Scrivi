@@ -112,7 +112,7 @@ Measured (SP-166): attach + first highlight of 1.8 MB ≈ 185 ms (Docker), a key
 
 ## EP-026: `[Linux]` Undo/Redo History, Copy Buffers & Structured Cut/Copy/Paste
 
-**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 active ([SP-178]); S4 active ([SP-180]); S5 closed ([SP-179], 2026-10-15). **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
+**Status:** 🟡 **ACTIVE 2026-10-11** (user: *"Activate EP-026."*) — S1 closed ([SP-177], 2026-10-11): the capture rules are ScriviCore's; S2 active ([SP-178]); S4 active ([SP-180]); S5 closed ([SP-179], 2026-10-15); [SP-185] active (responsive after load). **RESCOPED 2026-10-11** (user: *"We need to implement undo first on Linux. This is a large activity that
 is (or should be) planned in a subsequent epic given that Apple has the branching undo history and multiple copy buffers already
 in place."* · *"we need to rescope EP-026 and check other epics to see if the copy buffers were mentioned anywhere else."*).
 ✅ **Q1–Q5 RULED 2026-10-11.** ✅ **[EP-048] stays open until this Epic lands** (user). ⛔ **[EP-048] L8 (Find/Replace, [SP-176]) waits on it** (SP-176 Q3).
@@ -171,6 +171,7 @@ undoes the same on both platforms.
 | S3 | `[Linux]` branching: fork popover, History card, stale-branch purge, Undo History settings section — ⚠️ the section goes into the dialog [EP-048] S5a ([SP-182]) builds | not yet created |
 | **[SP-180]** | **S4** — `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux); replaces [SP-178] Q2's and [SP-179] Q1's stopgaps | 🟡 **ACTIVE 2026-10-13** → [`../Sprints/Sprint-SP-180.md`](../Sprints/Sprint-SP-180.md) · ✅ Q1–Q4 ruled · ✅ AC0–AC8 met; ⏳ AC9 rig live pass |
 | **[SP-179]** | **S5** — `[Linux]` copy buffers (Ctrl / Ctrl+Shift / Alt + 1–9), View ▸ Show Buffers (Ctrl+Alt+B) and the palette; ⚠️ structured buffers wait for S4 (SP-179 Q1) | ✅ **CLOSED 2026-10-15** (user-approved) → [`../Sprints/Closed/Sprint-SP-179.md`](../Sprints/Closed/Sprint-SP-179.md) · ✅ Q1–Q4 ruled · ✅ rig live pass 2026-10-13; [T-0606] verified · ⚠️ **planned BEFORE S3/S4** on my recommendation (user: *"start planning S5"*) |
+| **[SP-185]** | `[Linux]` responsive after load: the 2026-10-15 rig pass's crash in the find bar ([I-0308]) and freezes ([I-0307], [I-0297]); [I-0309]; a diagnostic log ([T-0612]) | 🟡 **ACTIVE 2026-10-17** → [`../Sprints/Sprint-SP-185.md`](../Sprints/Sprint-SP-185.md) · ⏳ Q1–Q3 |
 
 **Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived) · 🟠 [T-0605] (SP-178 — implemented, not verified; incl. [I-0287]) · 🟠 [T-0607] (SP-180 — implemented, not verified; ⏳ rig pass; incl. [I-0293]–[I-0296]) · ✅ [T-0606] (SP-179 — VERIFIED, archived; incl. `[Apple]` [I-0289] ✅ verified (balanced buffers) and [I-0290] ✅ verified (paste chord ⌃⌘1–9); [I-0291] ✅ verified (palette modifier)). **Issues found in S2 and ruled into [SP-178]:** ✅ [I-0287] (undo after split/merge — VERIFIED 2026-10-15, archived) · ✅ [I-0288] (undo after an outside edit, in a later session — VERIFIED 2026-10-12, archived).
 

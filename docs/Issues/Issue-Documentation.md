@@ -167,6 +167,10 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-17 (**I-0309** `[Linux]` filed: closing a window mid-load frees the load worker's bridge (ASan); I-0297, I-0307–I-0309 → SP-185.)*
+
+*Last Updated: 2026-10-15 (**I-0307**, **I-0308** `[Linux]` filed from the rig live pass; I-0297's acceptance revisited.)*
+
 *Last Updated: 2026-10-15 (**I-0306 filed** `[Apple]` to `Issue-active.md`: ⌘W skips the unsavable-changes question; unassigned.)*
 
 *Last Updated: 2026-10-15 (**I-0304** and **I-0305 → 🟠 Resolved - Not Verified** in [SP-181].)*

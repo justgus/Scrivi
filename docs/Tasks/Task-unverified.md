@@ -10,6 +10,22 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0612 — `[Linux]` A diagnostic log: what the app was doing, and when the window stopped answering
+
+**Epic:** [EP-026] · **Status:** 🟠 **Implemented - Not Verified** (2026-10-17) — ⏳ rig live pass (SP-185 AC6) · **Sprint:** [SP-185] (🟡 Active) →
+[`../Sprints/Sprint-SP-185.md`](../Sprints/Sprint-SP-185.md) · **Date Requested:** 2026-10-17 (user: *"We may need to create a
+log file so that we can record what the app is doing. A simple code inspection may not be adequate."*)
+
+**What:** a log file the rig keeps between runs, so a freeze or a disappearance can be attributed afterwards. Its shape is
+[SP-185] Q1 (✅ ruled 2026-10-17: *"build the log as proposed."*): one file under `~/.local/state/scrivi/`, timed spans of the app's operations, a
+main-thread stall watchdog, and Qt's own warnings and fatal messages.
+
+**Done (2026-10-17):** `DiagnosticLog` (`platforms/linux/src/DiagnosticLog.hpp/.cpp`) with the watchdog, Qt's messages, a
+crash report with a backtrace, timed spans across the editor, find bar and workers, and Help ▸ Show Log Folder. Proven by a
+new `diagnostic_log_smoke` (CI); 3 mutations caught.
+
+---
+
 ## 🟠 T-0609 — `[Linux]` EP-048 S5a: Project Settings dialog, the bundled typefaces, Markup Hints
 
 **Epic:** [EP-048] (S5a, L10) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-15) — ⏳ rig live pass (AC5) · **Sprint:** [SP-182] (🟡 Active) →
@@ -70,6 +86,8 @@ plumbing-only `HistoryCapture` (idle timer at the core's deadline, `isApplying`)
 reload) and close in `ScriviWindow::closeEvent`; report edits, caret moves, paste/cut, grouped cross-scene edits and saves;
 barriers on split/merge/delete ([I-0287]: split and merge record theirs AFTER the op, carrying the scenes' new texts); Edit ▸ Undo (Ctrl+Z) / Redo (Ctrl+Shift+Z) with Apple's barrier and session-boundary
 notices. Proven by Linux smokes through the real key dispatch and a rig live pass.
+
+*Last Updated: 2026-10-17 (**T-0612 → 🟠 Implemented - Not Verified** ([SP-185]); ⏳ rig live pass.)*
 
 *Last Updated: 2026-10-15 (**T-0609 → 🟠 Implemented - Not Verified** ([SP-182]); ⏳ rig live pass.)*
 

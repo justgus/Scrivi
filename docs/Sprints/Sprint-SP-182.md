@@ -206,3 +206,10 @@ custom rule"* (`Qt6CoreMacros.cmake:602`, from `scrivi_add_bundled_fonts`).
 - **Fix:** the resource name includes the target (`scrivi_bundled_fonts_<target>`).
 - **Proven against Qt 6.10.2** (Qt's own arm64 build, in Docker): the old name fails at the same line; the fix configures,
   builds with no warnings in `platforms/linux`, and all 35 CI smokes pass. Also a fresh configure on Qt 6.4.2.
+
+### 🟠 2026-10-17 — Linux CI red on the last three pushes of 2026-10-15 (fixed)
+- `scripts/check-package-boundary.sh` rejected `ManuscriptTypography.cpp:19`, the `QFile` read of `:/fonts/fonts.json`.
+  That is the font manifest compiled into the app (a Qt resource), not project data. ✅ Given the script's per-site
+  `boundary-ok:` marker with that reason.
+- ⚠️ My verification ran the build and the smokes but not the workflow's script steps. All four of them (`check-package-boundary`,
+  `check-textkit2`, `check-layout-convergence`, `check-engine-stub-parity`) now pass locally.

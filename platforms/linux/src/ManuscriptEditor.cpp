@@ -1,4 +1,5 @@
 #include "ManuscriptEditor.hpp"
+#include "DiagnosticLog.hpp"
 
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -379,6 +380,7 @@ bool ManuscriptEditor::event(QEvent* event)
 
 void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
 {
+    const DiagnosticLog::Span span("key press in the manuscript");
     // EP-026 S5 (SP-179 / T-0606): the copy-buffer chords (Apple: `keyDown`'s ⌘ / ⌃⌘ / ⌥ + digit).
     if (const auto [action, digit] = bufferChord(event); action != 0) {
         const QString bufferID = QString::number(digit);
@@ -824,6 +826,7 @@ std::pair<QString, QString> ManuscriptEditor::balancedCopyOf(int start, int end)
 
 QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
 {
+    const DiagnosticLog::Span span("copy: clipboard data from the selection");
     const QTextCursor cursor = textCursor();
     if (!cursor.hasSelection()) {
         return QPlainTextEdit::createMimeDataFromSelection();
@@ -851,6 +854,7 @@ QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
 
 void ManuscriptEditor::pasteClipboard()
 {
+    const DiagnosticLog::Span span("paste");
     const QMimeData* clip = QApplication::clipboard()->mimeData();
     // [SP-180] Q1: only THIS editor's last cross-scene copy, and only while the clipboard still holds it — anything copied
     // since, here or in any other app, replaced the token. A copy from another project's window carries its own token.
@@ -957,6 +961,7 @@ bool ManuscriptEditor::removeSelectionForPaste()
 
 void ManuscriptEditor::insertFromMimeData(const QMimeData* source)
 {
+    const DiagnosticLog::Span span("paste: insert from the clipboard");
     // Paste / drop: gate the same way. The insertion replaces the selection (or
     // lands at the caret) and must stay inside one body.
     if (sceneDoc_ != nullptr) {
@@ -1048,6 +1053,7 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
 
 void ManuscriptEditor::cutSelection()
 {
+    const DiagnosticLog::Span span("cut");
     const QTextCursor cursor = textCursor();
     if (sceneDoc_ == nullptr || !cursor.hasSelection()) {
         cut();

@@ -78,6 +78,8 @@ qt_add_executable(scrivi_linux
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ProjectSettingsDialog.cpp
     src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
@@ -195,6 +197,8 @@ target_link_libraries(scrivi_linux
         Qt6::Concurrent     # I-0193: world/project reads off the UI thread
 )
 scrivi_add_bundled_fonts(scrivi_linux)   # [SP-182]
+# [SP-185] T-0612: export the app's symbols, so the diagnostic log's crash backtrace names functions, not only addresses.
+set_property(TARGET scrivi_linux PROPERTY ENABLE_EXPORTS ON)
 
 # The qmltyperegistrar-generated TU (scrivi_linux_qmltyperegistrations.cpp) is
 # emitted at the build-tree root and #includes "ScriviBridge.hpp" by bare name.
@@ -405,6 +409,8 @@ qt_add_executable(scrivi_linux_escape_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/ManuscriptEditor.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
     src/MarkdownAnalysis.hpp
@@ -443,6 +449,8 @@ qt_add_executable(scrivi_linux_presenter_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/ManuscriptEditor.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptEditor.hpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -482,6 +490,8 @@ qt_add_executable(scrivi_linux_format_smoke
     src/FormatMenu.cpp
     src/FormatMenu.hpp
     src/ManuscriptEditor.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptEditor.hpp
     src/ManuscriptPresenter.cpp
     src/ManuscriptPresenter.hpp
@@ -521,6 +531,8 @@ qt_add_executable(scrivi_linux_find_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/FindBar.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/FindBar.hpp
     src/ManuscriptFind.cpp
     src/ManuscriptFind.hpp
@@ -1002,6 +1014,8 @@ qt_add_executable(scrivi_linux_dumas_world_fixture
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptTypography.cpp
     src/ManuscriptTypography.hpp
     src/ProjectPreferences.cpp
@@ -1087,6 +1101,8 @@ qt_add_executable(scrivi_linux_open_progress_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptTypography.cpp
     src/ManuscriptTypography.hpp
     src/ProjectPreferences.cpp
@@ -1168,6 +1184,8 @@ qt_add_executable(scrivi_linux_undo_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptTypography.cpp
     src/ManuscriptTypography.hpp
     src/ProjectPreferences.cpp
@@ -1250,6 +1268,8 @@ qt_add_executable(scrivi_linux_structured_paste_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptTypography.cpp
     src/ManuscriptTypography.hpp
     src/ProjectPreferences.cpp
@@ -1331,6 +1351,8 @@ qt_add_executable(scrivi_linux_replace_smoke
     src/ScriviBridge.cpp
     src/ScriviBridge.hpp
     src/EditorShell.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ManuscriptTypography.cpp
     src/ManuscriptTypography.hpp
     src/ProjectPreferences.cpp
@@ -1417,6 +1439,8 @@ qt_add_executable(scrivi_linux_buffers_smoke
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ProjectSettingsDialog.cpp
     src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
@@ -1509,6 +1533,8 @@ qt_add_executable(scrivi_linux_background_wait_smoke
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ProjectSettingsDialog.cpp
     src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
@@ -1599,6 +1625,8 @@ qt_add_executable(scrivi_linux_settings_smoke
     src/LandingWindow.cpp
     src/LandingWindow.hpp
     src/ScriviWindow.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
     src/ProjectSettingsDialog.cpp
     src/ProjectSettingsDialog.hpp
     src/ScriviWindow.hpp
@@ -1787,3 +1815,23 @@ target_link_libraries(scrivi_linux_package_folder_smoke
 
 target_include_directories(scrivi_linux_package_folder_smoke PRIVATE src)
 target_compile_features(scrivi_linux_package_folder_smoke PRIVATE cxx_std_23)
+
+# --- Diagnostic log smoke (SP-185 / T-0612) -------------------------------------
+# The log read back from the file: the watchdog reports a deliberate stall with what was running, the writer's typing is
+# never written, two sessions are kept, and a real crash leaves its report. Driven by diagnostic_log_smoke.sh (offscreen).
+qt_add_executable(scrivi_linux_diagnostic_log_smoke
+    tests/diagnostic_log_smoke.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
+)
+
+target_link_libraries(scrivi_linux_diagnostic_log_smoke
+    PRIVATE
+        Qt6::Widgets
+        Qt6::Test
+)
+
+target_include_directories(scrivi_linux_diagnostic_log_smoke PRIVATE src)
+target_compile_features(scrivi_linux_diagnostic_log_smoke PRIVATE cxx_std_23)
+# Function names in the crash backtrace the smoke reads.
+set_property(TARGET scrivi_linux_diagnostic_log_smoke PROPERTY ENABLE_EXPORTS ON)

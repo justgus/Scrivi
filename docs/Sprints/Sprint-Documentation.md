@@ -452,6 +452,7 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-182** | `[Linux]` **[EP-048] S5a** — Project Settings dialog, the typeface, Markup Hints: L10 (T-0609) | EP-048 | 2026-10-15 | — | 🟡 **ACTIVE** → [`Sprint-SP-182.md`](Sprint-SP-182.md) |
 | **SP-183** | `[Linux]` **[EP-048] S5b** — line spacing and the first-line indent: L10 (T-0610) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-183.md`](Sprint-SP-183.md) |
 | **SP-184** | `[Linux]` **[EP-048] S5c** — Show chapter titles, and the divider that closes a chapter (T-0611) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-184.md`](Sprint-SP-184.md) |
+| **SP-185** | `[Linux]` **[EP-026]** — responsive after load: [I-0308], [I-0307], [I-0297], [I-0309]; the diagnostic log (T-0612) | EP-026 | 2026-10-17 | — | 🟡 **ACTIVE** → [`Sprint-SP-185.md`](Sprint-SP-185.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -491,6 +492,8 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-17 (**SP-185 created and → 🟡 ACTIVE** (user: *"Yes lets do them all in a new sprint."*), issued via `next-id.py`; T-0612 → active.)*
 
 *Last Updated: 2026-10-15 (**SP-182 → 🟡 ACTIVE** (user: *"activate SP-182"*); T-0609 → `Task-active.md`.)*
 

@@ -114,7 +114,7 @@ $SSH "$RIG" "set -e
     git checkout ${BRANCH}
     git pull --ff-only origin ${BRANCH}
     cmake -S . -B build-native -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=ON \
-        -DCMAKE_BUILD_TYPE=Release >/dev/null
+        -DCMAKE_BUILD_TYPE=Debug >/dev/null
     cmake --build build-native --parallel"
 
 # --- 6. PROVE what is installed --------------------------------------------

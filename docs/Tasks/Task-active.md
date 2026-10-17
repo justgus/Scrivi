@@ -6,6 +6,10 @@ No Tasks are active.
 
 ---
 
+*Last Updated: 2026-10-17 (**T-0612 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
+
+*Last Updated: 2026-10-17 (**T-0612 filed → active** with SP-185's activation.)*
+
 *Last Updated: 2026-10-15 (**T-0609 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 
 *Last Updated: 2026-10-15 (**T-0609 → active** with SP-182's activation.)*

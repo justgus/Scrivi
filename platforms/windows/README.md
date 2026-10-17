@@ -14,7 +14,7 @@
 ```powershell
 # Prerequisites: Qt 6.x installed, MSVC 2022, cmake 3.24+
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=<Qt6_DIR>
-cmake --build build --config Release
+cmake --build build --config Debug
 ```
 
 ## Development begins when Apple platform is mature

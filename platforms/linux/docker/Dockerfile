@@ -48,7 +48,7 @@ COPY . /src
 RUN cmake -S . -B build -G Ninja \
         -DSCRIVI_BUILD_LINUX=ON \
         -DSCRIVI_BUILD_TESTS=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=Debug \
     && cmake --build build --parallel
 
 COPY platforms/linux/docker/run-vnc.sh /usr/local/bin/run-vnc.sh

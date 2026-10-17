@@ -64,12 +64,10 @@ jobs:
             qml6-module-qtqml-workerscript qml6-module-qtqml-models \
             libgl1-mesa-dev
 
-      # ⚠️ Release, as the rig (Scrivi_Linux_Rig_Setup_v0_1.md) and the Docker image build it. With no build type GCC
-      # compiles at -O0, and find_smoke's timing check ("the build stays in seconds", < 5000 ms on 1,186 scenes) failed
-      # on every push from SP-176 on (6.7–6.8 s): measured 2026-10-12, an -O0 build is 4.2x slower (1179 ms vs 284 ms).
-      # A timing check means nothing against a build nobody ships.
+      # ⚠️ Debug, as every build is until Scrivi reaches its release state (user, 2026-10-17). Debug is -O0: about 4x
+      # slower than Release on CPU-bound work (measured 2026-10-12), so no smoke asserts a tight time.
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -G Ninja -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug
 
       - name: Build
         run: cmake --build build --parallel
@@ -291,6 +289,12 @@ jobs:
         run: |
           platforms/linux/tests/background_wait_smoke.sh \
             ./build/platforms/linux/scrivi_linux_background_wait_smoke
+
+      # Diagnostic log (SP-185 / T-0612): the watchdog's stall report, the privacy rule, two sessions, a real crash's report.
+      - name: Diagnostic log smoke test
+        run: |
+          platforms/linux/tests/diagnostic_log_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_diagnostic_log_smoke
 
       # Project settings (SP-182 / T-0609, EP-048 S5a): the dialog over the shared project-settings.json, the bundled faces,
       # View ▸ Show Markup Hints (Ctrl+Shift+H).

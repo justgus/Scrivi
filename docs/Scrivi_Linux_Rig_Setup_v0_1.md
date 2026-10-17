@@ -228,10 +228,13 @@ version. ⚠️ **A future dependency without a range WILL fail here.**
 # Repo at ~/Dev/Scrivi
 cd ~/Dev/Scrivi
 cmake -S . -B build-native -G Ninja \
-      -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+      -DSCRIVI_BUILD_LINUX=ON -DSCRIVI_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
 cmake --build build-native --parallel
 ctest --test-dir build-native            # expect 571/571, run NON-ROOT
 ```
+
+⚠️ **Debug, on every platform, until Scrivi reaches its release state** (user, 2026-10-17: *"all builds on all platforms
+should be Debug until we actually reach the release state."*). Until 2026-10-17 this step said Release.
 
 ✅ **Linux smokes** (each needs its `.sh` wrapper, not the bare binary):
 

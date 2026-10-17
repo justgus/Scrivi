@@ -357,3 +357,16 @@ User: *"I-0293 through I-0299 passes"* (the Mac steps). Five archived to `Issues
 - [I-0297] is Linux-only (its check is over the share on the rig), so it stays Resolved - Not Verified.
 - [I-0298] covers both platforms. The Mac half passed; its Linux half (Ctrl+Z) waits for the rig.
 - ⏳ AC9 on the rig: [I-0297], [I-0298] Linux, [I-0300], and the Linux side of [I-0293]–[I-0295].
+
+### 🔵 2026-10-15 — Rig live pass (combined run sheet), steps 9–11; stopped for the day
+
+- **Step 9** ⛔ → **[I-0307]** `[Linux]`: selecting across a scene break, Ctrl+C and Ctrl+V each froze the window 10–15 s on
+  dumas over the share.
+- **Step 10** ⛔ → **[I-0297] reopened.** User: *"I never approved a 40 seconds wait for anything. Ever. … Cut Copy and
+  Paste must be as fast as possible at all times. I'll accept long load times, but once loaded the app must do everything
+  instantly. Writers will demand it!"* (The 2026-10-14 record reads *"We can accept it for now, but I reserve the right to
+  revisit it"*; it is revisited.)
+- **Step 11:** ✅ Ctrl+Alt+F opens the bar with the Replace row (GNOME does not take it: [SP-181] AC4). ⛔ → **[I-0308]**
+  `[Linux]`: the app crashed while typing in the Find bar.
+- ⚠️ The binary reported build 74: the stamp bump never reached a commit. The rig was on `8ebb438`, the Mac's HEAD, built
+  after the pull, so the code under test was current.

@@ -7,3 +7,5 @@
 🟡 **[SP-181] ACTIVE 2026-10-15** `[Linux]` + `[Apple]` [EP-048] **S4b** → [`Sprint-SP-181.md`](Sprint-SP-181.md) — Replace and Replace All over the presented text; [I-0303] `[Apple]` first; then [I-0304] `[Linux]` and [I-0305] `[Apple]` `[Linux]` (ruled in 2026-10-15). AC7–AC8 implemented; ⏳ AC4 (GNOME) and AC6 rig pass, with I-0304/I-0305 live. Task: T-0608.
 
 🟡 **[SP-182] ACTIVE 2026-10-15** `[Linux]` [EP-048] **S5a** → [`Sprint-SP-182.md`](Sprint-SP-182.md) — Linux's Project Settings dialog, the bundled typefaces and size, Markup Hints (L10's character half). Implemented; ⏳ Q6 (bold on Linux) for ruling, AC5 rig pass. Task: T-0609.
+
+🟡 **[SP-185] ACTIVE 2026-10-17** `[Linux]` [EP-026] → [`Sprint-SP-185.md`](Sprint-SP-185.md) — responsive after load: the rig pass's crash ([I-0308]), freezes ([I-0307], [I-0297]), a crash found reproducing it ([I-0309]), and a diagnostic log. Task: T-0612.

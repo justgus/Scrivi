@@ -1,4 +1,5 @@
 #include "FindBar.hpp"
+#include "DiagnosticLog.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -185,6 +186,7 @@ void FindBar::closeBar()
 const ManuscriptFind::PresentedText& FindBar::presented()
 {
     if (presentedStale_ && doc_ != nullptr) {
+        const DiagnosticLog::Span span("find: refresh presented text");
         QElapsedTimer t;
         t.start();
         const int rebuilt = presented_.refresh(*doc_, presenter_);
@@ -276,6 +278,7 @@ void FindBar::step(bool forward)
 
 void FindBar::queryChanged()
 {
+    const DiagnosticLog::Span span("find: query changed");
     // Incremental search (AppKit's incremental find): the first match at or after the selection's start.
     matchesStale_ = true;
     selectedIndex_ = -1;
@@ -370,6 +373,7 @@ void FindBar::replaceAll()
 
 void FindBar::updateCount()
 {
+    const DiagnosticLog::Span span("find: count");
     if (query_->text().isEmpty()) {
         count_->clear();
         return;
@@ -390,6 +394,7 @@ void FindBar::updateCount()
 
 void FindBar::updateHighlights()
 {
+    const DiagnosticLog::Span span("find: highlights");
     if (!isVisible() || query_->text().isEmpty()) {
         editor_->setExtraSelections({});
         return;

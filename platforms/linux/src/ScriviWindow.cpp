@@ -8,6 +8,9 @@
 #include <QApplication>
 #include <QProgressDialog>
 #include <QCloseEvent>
+#include <QDesktopServices>
+#include <QDir>
+#include <QUrl>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFont>
@@ -22,6 +25,7 @@
 #include <QVBoxLayout>
 
 #include "BufferService.hpp"
+#include "DiagnosticLog.hpp"
 #include "EditorShell.hpp"
 #include "ProjectSettingsDialog.hpp"
 
@@ -466,6 +470,14 @@ void ScriviWindow::buildMenuBar()
         connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
         layout->addWidget(buttons);
         dlg.exec();
+    });
+
+    // [SP-185] T-0612 — Help ▸ Show Log Folder: the diagnostic log, for a writer to send with a report. Not gated either.
+    QAction* showLog = help->addAction(tr("Show Log Folder"));
+    showLog->setObjectName(QStringLiteral("showLogFolderAction"));
+    connect(showLog, &QAction::triggered, this, []() {
+        QDir().mkpath(DiagnosticLog::folder());
+        QDesktopServices::openUrl(QUrl::fromLocalFile(DiagnosticLog::folder()));
     });
 }
 
