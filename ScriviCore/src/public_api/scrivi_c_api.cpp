@@ -521,16 +521,16 @@ struct StoryTimePatchGuard {
 // ⛔ THE CHAPTER LIST IS RE-OBSERVED ON EVERY CALL, never reused from the cached
 // index — a Class B op can rename, add or remove a chapter folder, and manuscript
 // order is FILESYSTEM-AUTHORITATIVE (EP-027 B3).
-// ⛔ SIX CLASS B ENDPOINTS DELIBERATELY STILL DROP THE WHOLE INDEX, AND THAT IS A
+// ⛔ FOUR CLASS B ENDPOINTS DELIBERATELY STILL DROP THE WHOLE INDEX, AND THAT IS A
 // RULING, NOT AN OVERSIGHT. `rebuildAfterWrite` needs the AFFECTED CHAPTER IDS from
-// the write's own result. These six do not report them:
+// the write's own result. These do not report them (✅ [I-0297], SP-185, widened
+// `scrivi_fragment_paste` and `scrivi_fragment_uncut_paste` to report theirs — the
+// honest fix named below):
 //
 //   `scrivi_delete_scene`      — `DeleteSceneResult` carries sceneID + deleted only.
 //   `scrivi_rename_scene`      — `RenameSceneResult` carries a path + title only.
 //   `scrivi_rename_chapter`    — `RenameChapterResult` likewise.
-//   `scrivi_fragment_cut`      — spans across arbitrary scenes; no chapter scope.
-//   `scrivi_fragment_paste`    — same.
-//   `scrivi_fragment_uncut_paste` — same.
+//   `scrivi_fragment_cut`      — spans across arbitrary scenes; no chapter scope (neither platform calls it).
 //   `scrivi_apply_repair`      — can move, add or remove anything, by design.
 //
 // ⚠️ THE TEMPTING WRONG FIX IS TO LOOK THE CHAPTER UP FROM THE CACHED INDEX BEFORE
@@ -573,6 +573,13 @@ struct ChapterRebuildGuard {
     // erase — the index is simply gone. ✅ The erase still runs for the case where
     // the WORK ITSELF repopulated the registry through the locator.
     ~ChapterRebuildGuard() { if (!cancelled) { invalidateProjectIndex(root); } }
+
+    // ✅ [I-0297] (SP-185): the index this write took — the PRE-WRITE state, i.e. where the scenes ARE as the write begins,
+    // which is exactly what a write needs to find what it touches. ⛔ Never what the write CHANGED (that is
+    // `rebuildAfterWrite`'s, from the write's own report). nullptr when none was cached.
+    [[nodiscard]] const scrivi::manuscript::ProjectIndex* taken() const {
+        return taken_ && taken_->valid() ? taken_.get() : nullptr;
+    }
 
 private:
     std::unique_ptr<scrivi::manuscript::ProjectIndex> taken_;
@@ -4354,6 +4361,45 @@ static void noteScenesWrittenByID(const std::string& root, const std::vector<std
     }
 }
 
+// An index entry as the manuscript resolver would report it.
+static scrivi::manuscript::ResolvedScene resolvedFrom(const scrivi::manuscript::SceneLocation& loc) {
+    scrivi::manuscript::ResolvedScene scene;
+    scene.sceneID             = loc.sceneID;
+    scene.chapterID           = loc.chapterID;
+    scene.title               = loc.title;
+    scene.chapterTitle        = loc.chapterTitle;
+    scene.slug                = loc.slug;
+    scene.status              = loc.status;
+    scene.metadataPath        = loc.metadataPath;
+    scene.contentPath         = loc.contentPath;
+    scene.chapterMetadataPath = loc.chapterMetadataPath;
+    return scene;
+}
+
+// ✅ [I-0297] (SP-185): a paste's scene lookup — from the index the write took, and when it has no answer, from ONE
+// resolve of the manuscript on disk (built on the first miss, kept for the rest). ⛔ Absence in the index is never an
+// answer (AC5a).
+static scrivi::manuscript::FragmentPaster::SceneLookup pasteLookup(const scrivi::manuscript::ProjectIndex* index,
+                                                                    const std::string& root) {
+    auto fromDisk = std::make_shared<std::optional<std::unordered_map<std::string, scrivi::manuscript::ResolvedScene>>>();
+    return [index, root, fromDisk](const scrivi::SceneID& id) -> std::optional<scrivi::manuscript::ResolvedScene> {
+        if (index != nullptr) {
+            if (auto loc = index->findScene(id)) { return resolvedFrom(*loc); }
+        }
+        if (!fromDisk->has_value()) {
+            auto services = abiServices();
+            services.sceneLocator = nullptr;
+            scrivi::manuscript::ManuscriptOrderResolver resolver{services};
+            fromDisk->emplace();
+            if (auto all = resolver.resolve(scrivi::AbsolutePath{root}); all.ok()) {
+                for (const auto& s : all.value()) { (*fromDisk)->emplace(s.sceneID.value, s); }
+            }
+        }
+        const auto it = (*fromDisk)->find(id.value);
+        return it == (*fromDisk)->end() ? std::nullopt : std::optional<scrivi::manuscript::ResolvedScene>{it->second};
+    };
+}
+
 const char* scrivi_fragment_extract(const char* projectRootPath, const char* spansJson) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
   return guarded([&]() -> const char* {
@@ -4370,7 +4416,19 @@ const char* scrivi_fragment_extract(const char* projectRootPath, const char* spa
 
     scrivi::CoreServices svc = abiServices();
     scrivi::manuscript::FragmentExtractor extractor{svc};
-    auto r = extractor.extract(root, parseSpans(parsed.value()));
+    // ✅ [I-0307] (SP-185): the reading order from the project INDEX, not a fresh `resolve()` (every scene sidecar read
+    // and parsed — 2,492 reads for one cross-scene copy of 1,186 scenes, on the GUI thread; over a network share, the
+    // writer's frozen window). Extract is a READ, so the index stands. ⚠️ No index (it could not be built) ⇒ the
+    // resolving overload: absence is never an answer (AC5a).
+    std::vector<scrivi::manuscript::ResolvedScene> ordered;
+    auto indexServices = abiServices();
+    indexServices.sceneLocator = nullptr;   // no recursion through the locator during a build
+    const bool fromIndex = withProjectIndex(root, indexServices, [&](const scrivi::manuscript::ProjectIndex& idx) {
+        ordered.reserve(idx.scenesInOrder().size());
+        for (const auto& loc : idx.scenesInOrder()) { ordered.push_back(resolvedFrom(loc)); }
+    });
+    const auto spans = parseSpans(parsed.value());
+    auto r = fromIndex ? extractor.extract(root, spans, ordered) : extractor.extract(root, spans);
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     return heap(okEnvelope(serializeFragment(r.value())));
@@ -4463,11 +4521,11 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
                                   const char* personaID,
                                   const char* displayName) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // ✅ [I-0297] (SP-185): a per-CHAPTER rebuild instead of a whole-index drop (T-0550's mechanism). AC5b's contract is
+    // unchanged: dropped on both sides by default, rebuilt only after the write SUCCEEDED, and only for the chapters the
+    // write itself reports (`affectedChapterIDs`). ⛔ The whole drop cost the next read a full manuscript walk — over the
+    // writer's share, most of a 40 s structural undo. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -4495,10 +4553,11 @@ const char* scrivi_fragment_paste(const char* projectRootPath,
 
     scrivi::CoreServices svc = abiServices();
     scrivi::manuscript::FragmentPaster paster{svc};
-    auto r = paster.paste(req);
+    auto r = paster.paste(req, pasteLookup(scriviIndexGuard.taken(), root));   // [I-0297]: no whole-manuscript resolve
     if (!r.ok()) return heap(errorEnvelope(r.error()));
 
     const auto& v = r.value();
+    (void)scriviIndexGuard.rebuildAfterWrite(v.affectedChapterIDs);   // [I-0297]: false ⇒ dropped, as before
     noteScenesWritten(root, v.writtenTexts);   // [I-0296]
     scrivi::util::JsonDoc doc;
     doc.setString("targetSceneID", v.targetSceneID.value);
@@ -4524,11 +4583,11 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
                                         const char* targetSceneID,
                                         const char* createdIDsJson) {
     SCRIVI_PROJECT_WRITE(projectRootPath);
-    // EP-039 AC5b (SP-131): this can move, add, remove or retime a scene, so the
-    // derived index is dropped WHOLE and rebuilt on next use. ⚠️ Dropped on BOTH
-    // sides — the work itself re-reads through the locator and would otherwise
-    // leave a freshly-built PRE-WRITE index behind. See ProjectIndexInvalidation.
-    const ProjectIndexInvalidation scriviIndexGuard{S(projectRootPath)};
+    // ✅ [I-0297] (SP-185): a per-CHAPTER rebuild instead of a whole-index drop (T-0550's mechanism). AC5b's contract is
+    // unchanged: dropped on both sides by default, rebuilt only after the write SUCCEEDED, and only for the chapters the
+    // write itself reports (`affectedChapterIDs`). ⛔ The whole drop cost the next read a full manuscript walk — over the
+    // writer's share, most of a 40 s structural undo. See ChapterRebuildGuard.
+    ChapterRebuildGuard scriviIndexGuard{S(projectRootPath)};
   return guarded([&]() -> const char* {
     const std::string root = S(projectRootPath);
     if (root.empty())
@@ -4555,8 +4614,9 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
 
     scrivi::CoreServices svc = abiServices();
     scrivi::manuscript::FragmentPaster paster{svc};
-    auto r = paster.uncutPaste(req);
+    auto r = paster.uncutPaste(req, pasteLookup(scriviIndexGuard.taken(), root));   // [I-0297]: no whole-manuscript resolve
     if (!r.ok()) return heap(errorEnvelope(r.error()));
+    (void)scriviIndexGuard.rebuildAfterWrite(r.value().affectedChapterIDs);   // [I-0297]: false ⇒ dropped, as before
     const std::map<std::string, std::string> written{{r.value().survivingSceneID.value, r.value().survivingText}};
     noteScenesWritten(root, written);   // [I-0296]
 

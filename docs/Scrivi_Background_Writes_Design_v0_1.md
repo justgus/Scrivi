@@ -1,6 +1,7 @@
 # Scrivi — Background Writes Design v0.1
 
 ✅ **RULED 2026-10-15** (§7): Q1 (a), Q2 (c) + autosave, Q3 (a), Q4 (a), Q5 (a) → [EP-052]. Written 2026-10-15, from [SP-181]'s ruling 1.
+⚠️ **W7 REVISED 2026-10-20, DRAFT for ruling** (W7-Q1, W7-Q2): structural jobs return [EP-053]'s delta; no reload.
 **Request (user, 2026-10-15):** *"Perhaps we should consider doing all undos in a background thread (at least the ScriviCore
 part). Perhaps we can create the beginnings of a persistent thread pool (if the OS doesn't already do that) or we can
 instantiate a dedicated thread for performing undo/history update operations."* Then: *"write the design note ruling."*
@@ -149,16 +150,53 @@ What already keeps order, and where:
 | **Q4** | ✅ *"accept it."* (a) | No journal. Close and quit drain the queue |
 | **Q5** | ✅ *"A new Epic."* (a) | [EP-052] |
 
-### W7 — Structural operations through the queue (Q2 (c))
+### W7 — Structural operations through the queue (Q2 (c)) — ⚠️ REVISED 2026-10-20, DRAFT for ruling
 
-- A structural operation becomes a queued job like a save: the platform enqueues it, gets a ticket, and waits for that
-  ticket's outcome (W4) on a background thread before it reloads the manuscript.
-- ✅ **Consequence on Apple:** split, merge and cross-scene paste stop running on the main thread, which is what Linux already
-  does ([I-0297], `runStructural`). On Linux, `runStructural`'s worker becomes a wait for the ticket.
-- ⚠️ **What still waits:** the editor cannot show the result of a structural operation until it has run, so the platform keeps
-  today's progress row and read-only manuscript for THAT wait. That is waiting for a result, not for a write, so it does not
-  contradict Q3. Typing during it would be lost to the reload that follows ([I-0297]'s reason).
-- The synchronous structural endpoints stay, ordered by W3, for callers that need them (tests, tools). Neither app uses them.
+⚠️ **Why revised:** the 2026-10-15 text had the platform wait for the ticket and then **reload the manuscript**, read-only
+for the whole wait. [EP-053]'s design (`Scrivi_Structured_CutCopyPaste_Design_v0_2.md`, ruled 2026-10-17) removes that
+reload: every structural call returns its **delta**, the platform applies it to its in-memory scene list, and a background
+sync verification follows (v0.2 P3, P4, R3). This revision gives W7 that shape. Nothing else in §3 changes. ⏳ Awaiting
+ruling: W7-Q1 and W7-Q2 below.
+
+- **W7a — A structural operation is a queued job with a ticket**, like a save: `scrivi_range_paste`, `scrivi_range_cut`,
+  split, merge, chapter create and reorder, and the undo and redo of each (v0.2 §4.5: undo of a paste is a range cut, undo of
+  a cut is a range paste). Each gets an enqueue form. The synchronous endpoints stay, ordered by W3, for tests, tools and
+  any platform that has not adopted the queue yet.
+- **W7b — The queue's order replaces "save first".** v0.2 §4.2b says the range's scenes are *"saved already, or saved
+  first."* With the queue, the platform enqueues the dirty scenes' saves and then the structural job; first in, first out
+  means the job runs on what was saved. No synchronous save comes before a structural call on either platform.
+- **W7c — The range is checked when the job RUNS, not when it is queued.** v0.2 P1 refuses a range that does not match the
+  index. Earlier jobs in the queue can change the index, so the check runs at the head of the queue. A refusal is a failed
+  outcome (W4) with its reason; the platform has applied nothing yet, so its memory is unchanged.
+- **W7d — The delta comes back with the outcome (W7-Q1).** `scrivi_wait_for_writes` reports a structural job's outcome
+  with its full delta (v0.2 P3: each scene created, removed, moved or rewritten; each chapter created or removed). The
+  platform applies it to its in-memory list on the main thread and re-renders only the scenes it names. ⛔ No reload, no
+  re-read.
+- **W7e — Coalescing never crosses a structural job.** A save queued before the job and one queued after it are never
+  merged, and a save is never moved past a structural job. (A scene the job deletes cannot receive a later save: the
+  editor is read-only until the delta is applied, W7f.)
+- **W7f — What the writer sees: unchanged from v0.2 Q5.** The manuscript is read-only from the enqueue until the delta is
+  applied, with the progress row after 400 ms. That is waiting for a **result**, not for a write, so it does not contradict
+  Q3 (a). v0.2 §4.4's disk budget (a two-scene paste: 4 reads + 4 writes) is what keeps the pause short; the queue adds only
+  the wait for any saves ahead of the job.
+- **W7g — History and verification follow the job in the queue.** The structural step's history append (W2) is queued
+  directly behind its job. v0.2 P4's sync verification reads only the files the delta names, through W3, so it sees the
+  job's writes; *"the disk wins, silently"* (v0.2 Q3).
+- **W7h — What each platform loses (adds to W6).** Apple: the `Task.detached` that EP-053 S2 adds for the structural call
+  becomes a wait for the ticket. Linux: `runStructural`'s worker becomes the same wait. Both: the save-before-structural
+  step (W7b).
+
+#### W7 questions for ruling
+
+- **W7-Q1 — How the delta reaches the platform.** (a) ✅ recommended: inside the job's outcome in `scrivi_wait_for_writes`,
+  one call, the same pull model as W4. (b) A separate `scrivi_structural_result(ticket)`: outcome and delta fetched apart,
+  a second call per operation, and a result the core must keep until it is fetched.
+- **W7-Q2 — Order of the two Epics.** EP-053 S2 (no reload, the structural call off the main thread on both platforms)
+  and EP-052 S2 (the queue's adoption) both rewrite the same call sites.
+  (a) ✅ recommended: **EP-053 S2 first.** It lands the delta and the in-memory apply on the synchronous endpoints, and
+  EP-052 S2 then only swaps the background call for a ticket wait (W7h).
+  (b) EP-052 first: the queue would carry today's fragment operations and their reload, which EP-053 then deletes. Work
+  done twice.
 
 ## 8. Questions for ruling (original text)
 

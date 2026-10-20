@@ -69,6 +69,7 @@ add_executable(ScriviCoreTests
     integration/MarkdownAnalyzerCApiTests.cpp
     integration/ProjectSettingsCApiTests.cpp
     integration/FragmentExtractTests.cpp
+    integration/RangeOperationBudgetTests.cpp   # EP-053 S1 (SP-186): the disk budget of a structural operation
     integration/FragmentPasteTests.cpp
     integration/FragmentCutTests.cpp
     integration/EncryptedSecureStoreTests.cpp

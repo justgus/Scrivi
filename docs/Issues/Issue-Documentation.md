@@ -167,6 +167,12 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-17 (**I-0311** `[ScriviCore]` filed: a chapter-opening paste scrambles the reading order.)*
+
+*Last Updated: 2026-10-17 (**I-0307 → Resolved - Not Verified**; **I-0310** `[Linux]` filed and resolved (teardown crash); I-0297 partly fixed.)*
+
+*Last Updated: 2026-10-17 (**I-0309 → Resolved - Not Verified**: every worker builds its own bridge; proven under ASan.)*
+
 *Last Updated: 2026-10-17 (**I-0309** `[Linux]` filed: closing a window mid-load frees the load worker's bridge (ASan); I-0297, I-0307–I-0309 → SP-185.)*
 
 *Last Updated: 2026-10-15 (**I-0307**, **I-0308** `[Linux]` filed from the rig live pass; I-0297's acceptance revisited.)*

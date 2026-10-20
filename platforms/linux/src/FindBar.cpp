@@ -19,7 +19,11 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <QDateTime>
+
 #include <algorithm>
+#include <climits>
+#include <utility>
 
 #include "ManuscriptEditor.hpp"
 #include "SceneDocument.hpp"
@@ -115,12 +119,26 @@ FindBar::FindBar(ManuscriptEditor* editor, QWidget* parent)
         updateCount();
     });
 
-    connect(query_, &QLineEdit::textEdited, this, &FindBar::queryChanged);
+    // ✅ [T-0613]: a keystroke only restarts the pause; the search runs when it ends.
+    queryPause_ = new QTimer(this);
+    queryPause_->setSingleShot(true);
+    queryPause_->setInterval(kQueryPauseMs);
+    connect(queryPause_, &QTimer::timeout, this, &FindBar::queryChanged);
+    // ✅ [T-0613]: the presented text is built ahead, a slice per idle turn of the event loop.
+    buildTimer_ = new QTimer(this);
+    buildTimer_->setInterval(0);
+    connect(buildTimer_, &QTimer::timeout, this, &FindBar::buildSlice);
+
+    connect(query_, &QLineEdit::textEdited, this, &FindBar::onQueryEdited);
     connect(query_, &QLineEdit::returnPressed, this, [this]() { step(true); });
     connect(previous, &QToolButton::clicked, this, [this]() { step(false); });
     connect(next, &QToolButton::clicked, this, [this]() { step(true); });
-    connect(mode_, &QComboBox::currentIndexChanged, this, &FindBar::queryChanged);
-    connect(ignoreCase_, &QCheckBox::toggled, this, &FindBar::queryChanged);
+    const auto researchNow = [this]() {   // a click is not typing: no pause
+        queryPause_->stop();
+        queryChanged();
+    };
+    connect(mode_, &QComboBox::currentIndexChanged, this, researchNow);
+    connect(ignoreCase_, &QCheckBox::toggled, this, researchNow);
     connect(done, &QPushButton::clicked, this, &FindBar::closeBar);
     auto* escape = new QShortcut(QKeySequence(Qt::Key_Escape), this);
     escape->setContext(Qt::WidgetWithChildrenShortcut);
@@ -148,9 +166,102 @@ void FindBar::attach(SceneDocument* doc, ManuscriptPresenter* presenter)
     presented_ = {};
     presentedStale_ = true;
     matchesStale_ = true;
+    // ✅ [T-0613]: built ahead, from now, while the app is idle.
+    presentedReady_ = false;
+    buildCursor_ = 0;
+    longestSliceMs_ = 0;
     if (doc_ != nullptr) {
         connect(doc_->document(), &QTextDocument::contentsChange, this, &FindBar::onContentsChange, Qt::UniqueConnection);
+        buildStartedMs_ = QDateTime::currentMSecsSinceEpoch();
+        buildTimer_->start();
+    } else {
+        buildTimer_->stop();
     }
+}
+
+bool FindBar::searchSettled() const
+{
+    return !queryPause_->isActive() && presentedReady_ && pending_ == Pending::None;
+}
+
+void FindBar::buildSlice()
+{
+    if (doc_ == nullptr) {
+        buildTimer_->stop();
+        return;
+    }
+    const DiagnosticLog::Span span("find: build the searchable text (a slice)");
+    QElapsedTimer t;
+    t.start();
+    buildCursor_ = presented_.refreshSlice(*doc_, presenter_, buildCursor_, kSliceMs);
+    if (buildCursor_ >= doc_->segments().size()) {
+        presented_.refresh(*doc_, presenter_);   // only checks now: an edit or a structural change since a slice
+        buildTimer_->stop();
+        presentedReady_ = true;
+        presentedStale_ = false;
+        matchesStale_ = true;
+        ++builds_;
+        lastRebuilt_ = int(doc_->segments().size());
+        longestSliceMs_ = std::max(longestSliceMs_, t.elapsed());
+        qInfo("[SCRIVI-FIND] presented text built ahead: %d scene(s), %d units, %lld ms after the load, longest slice %lld ms",
+              lastRebuilt_, presented_.length(), QDateTime::currentMSecsSinceEpoch() - buildStartedMs_, longestSliceMs_);
+        runPending();
+        return;
+    }
+    longestSliceMs_ = std::max(longestSliceMs_, t.elapsed());
+}
+
+bool FindBar::readyFor(Pending action)
+{
+    if (presentedReady_) {
+        return true;
+    }
+    pending_ = action;   // the latest wins
+    count_->setText(tr("Searching…"));
+    if (doc_ != nullptr && !buildTimer_->isActive()) {
+        buildTimer_->start();
+    }
+    return false;
+}
+
+void FindBar::runPending()
+{
+    switch (std::exchange(pending_, Pending::None)) {
+    case Pending::None: break;
+    case Pending::Query: queryChanged(); break;
+    case Pending::Next: step(true); break;
+    case Pending::Previous: step(false); break;
+    case Pending::Replace: replace(); break;
+    case Pending::ReplaceAll: replaceAll(); break;
+    case Pending::UseSelection: useSelection(); break;
+    }
+}
+
+void FindBar::onQueryEdited()
+{
+    // ✅ [T-0613]: nothing is searched on a keystroke. What was shown belongs to the old query, so it goes.
+    note_.clear();
+    pending_ = Pending::None;   // the new query supersedes an action queued on the build
+    matchesStale_ = true;
+    selectedIndex_ = -1;
+    editor_->setExtraSelections({});
+    count_->clear();
+    if (query_->text().isEmpty()) {
+        queryPause_->stop();
+        queryChanged();
+        return;
+    }
+    queryPause_->start();
+}
+
+bool FindBar::flushQuery()
+{
+    if (!queryPause_->isActive()) {
+        return false;
+    }
+    queryPause_->stop();
+    queryChanged();   // the search the writer typed, now: it selects the first match (or queues on the build)
+    return true;
 }
 
 void FindBar::run(FindCommand command)
@@ -178,6 +289,8 @@ void FindBar::showFind(bool withReplace)
 void FindBar::closeBar()
 {
     note_.clear();
+    queryPause_->stop();
+    pending_ = Pending::None;
     hide();
     editor_->setExtraSelections({});
     editor_->setFocus();
@@ -185,6 +298,16 @@ void FindBar::closeBar()
 
 const ManuscriptFind::PresentedText& FindBar::presented()
 {
+    if (!presentedReady_ && doc_ != nullptr) {
+        // ⚠️ Only a caller that cannot wait reaches this (the tests' `matches()`); every action waits on `readyFor`.
+        buildCursor_ = presented_.refreshSlice(*doc_, presenter_, buildCursor_, INT_MAX);
+        const Pending queued = std::exchange(pending_, Pending::None);
+        buildSlice();   // completes: marks ready
+        if (queued != Pending::None) {
+            pending_ = queued;
+            QTimer::singleShot(0, this, &FindBar::runPending);   // not from inside a caller's `matches()`
+        }
+    }
     if (presentedStale_ && doc_ != nullptr) {
         const DiagnosticLog::Span span("find: refresh presented text");
         QElapsedTimer t;
@@ -249,6 +372,9 @@ void FindBar::step(bool forward)
         showFind(replaceRow_->isVisibleTo(this));
         return;
     }
+    if (flushQuery() || !readyFor(forward ? Pending::Next : Pending::Previous)) {
+        return;   // [T-0613]: a pending search runs instead (selecting the first match), or the step waits for the build
+    }
     note_.clear();
     const auto& all = matches();
     if (all.isEmpty()) {
@@ -278,6 +404,10 @@ void FindBar::step(bool forward)
 
 void FindBar::queryChanged()
 {
+    queryPause_->stop();
+    if (!readyFor(Pending::Query)) {
+        return;   // [T-0613]: runs when the presented text is built
+    }
     const DiagnosticLog::Span span("find: query changed");
     // Incremental search (AppKit's incremental find): the first match at or after the selection's start.
     matchesStale_ = true;
@@ -299,6 +429,9 @@ void FindBar::useSelection()
     const QTextCursor c = editor_->textCursor();
     if (!c.hasSelection()) {
         QApplication::beep();
+        return;
+    }
+    if (!readyFor(Pending::UseSelection)) {
         return;
     }
     const QString text = presented().presentedOf(c.selectionStart(), c.selectionEnd());
@@ -342,6 +475,9 @@ void FindBar::replace()
         showFind(true);
         return;
     }
+    if (flushQuery() || !readyFor(Pending::Replace)) {
+        return;   // [T-0613]: Q2 — with no current match Replace only finds, so a pending search is that find
+    }
     matches();
     if (currentIndex() >= 0 && !editor_->typeOver(replaceField_->text())) {
         QApplication::beep();   // refused (the editor is locked, or the match touches a boundary)
@@ -355,6 +491,13 @@ void FindBar::replaceAll()
 {
     if (query_->text().isEmpty() || editor_->isReadOnly() || !replaceAll_) {
         QApplication::beep();
+        return;
+    }
+    if (queryPause_->isActive()) {   // [T-0613]: every match of what was typed, not of the last search
+        queryPause_->stop();
+        matchesStale_ = true;
+    }
+    if (!readyFor(Pending::ReplaceAll)) {
         return;
     }
     const QVector<MarkdownRange> all = matches();
@@ -382,6 +525,14 @@ void FindBar::updateCount()
         count_->setText(note_);
         return;
     }
+    if (queryPause_->isActive()) {   // [T-0613]: the writer is still typing
+        count_->clear();
+        return;
+    }
+    if (!presentedReady_) {
+        count_->setText(tr("Searching…"));
+        return;
+    }
     const int total = int(matches().size());
     if (total == 0) {
         count_->setText(tr("Not found"));
@@ -395,8 +546,8 @@ void FindBar::updateCount()
 void FindBar::updateHighlights()
 {
     const DiagnosticLog::Span span("find: highlights");
-    if (!isVisible() || query_->text().isEmpty()) {
-        editor_->setExtraSelections({});
+    if (!isVisible() || query_->text().isEmpty() || queryPause_->isActive() || !presentedReady_) {
+        editor_->setExtraSelections({});   // [T-0613]: nothing until the search has run
         return;
     }
     const auto& all = matches();

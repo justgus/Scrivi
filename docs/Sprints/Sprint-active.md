@@ -9,3 +9,5 @@
 🟡 **[SP-182] ACTIVE 2026-10-15** `[Linux]` [EP-048] **S5a** → [`Sprint-SP-182.md`](Sprint-SP-182.md) — Linux's Project Settings dialog, the bundled typefaces and size, Markup Hints (L10's character half). Implemented; ⏳ Q6 (bold on Linux) for ruling, AC5 rig pass. Task: T-0609.
 
 🟡 **[SP-185] ACTIVE 2026-10-17** `[Linux]` [EP-026] → [`Sprint-SP-185.md`](Sprint-SP-185.md) — responsive after load: the rig pass's crash ([I-0308]), freezes ([I-0307], [I-0297]), a crash found reproducing it ([I-0309]), and a diagnostic log. Task: T-0612.
+
+🟡 **[SP-186] ACTIVE 2026-10-17** `[ScriviCore]` [EP-053] **S1** → [`Sprint-SP-186.md`](Sprint-SP-186.md) — the Range (`scrivi.range.v1`) and the aggregate range operations (read, paste, structural cut), each returning the delta; a two-scene paste = 4 reads + 4 writes. Task: T-0614; [I-0311].

@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QFile>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QPointer>
@@ -32,6 +33,8 @@
 #include <QTest>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QThreadPool>
+#include <QTimer>
 
 #include <cstdio>
 #include <unistd.h>
@@ -234,6 +237,47 @@ int main(int argc, char** argv)
     check(dialogs == 1, QStringLiteral("§4 … ONE wait dialog shows (%1)").arg(dialogs));
     check(waitFor([&] { return wa2 == nullptr && wb == nullptr; }), QStringLiteral("§4 … and every window closed when it landed"));
     check(disk(bridge, B, 0) == QStringLiteral("dog b"), QStringLiteral("§4 B's writes are on disk (%1)").arg(disk(bridge, B, 0)));
+
+    // ── §5 [I-0309] A window destroyed while its project is still LOADING: the load's worker touches nothing it freed ──
+    // ⚠️ A use-after-free rarely crashes on demand: this section is PROVEN under AddressSanitizer (SP-185), where the old
+    // code's worker read the freed bridge (`ScriviBridge::getProjectSettings`). In a plain build it shows only that the
+    // workers finish and the process survives them.
+    {
+        QStringList seeds;
+        for (int i = 0; i < 30; ++i) {
+            seeds << QStringLiteral("Scene %1 of the loading test.").arg(i);
+        }
+        const Project C = makeProject(bridge, appSupport, scratch + QStringLiteral("/c.scrivi"), seeds);
+        for (int round = 0; round < 6; ++round) {
+            auto* shell = new EditorShell;
+            shell->load(C.dir, appSupport, QStringLiteral("Loading"));   // no envelope handed over: the worker opens it
+            QTest::qWait(round * 4);                                    // a different moment in the worker each round
+            delete shell;                                               // what a closed (WA_DeleteOnClose) window does
+        }
+        check(QThreadPool::globalInstance()->waitForDone(120000), QStringLiteral("§5 every load worker finished"));
+        QApplication::processEvents();   // the relays' deferred deletes
+    }
+
+    // ── §6 [I-0310] A SHOWN, focused window torn down: the editor's focus-out must not read the document already freed ──
+    {
+        QStringList seeds{QStringLiteral("Shown and focused.")};
+        const Project D = makeProject(bridge, appSupport, scratch + QStringLiteral("/d.scrivi"), seeds);
+        auto* shell = new EditorShell;
+        QEventLoop loop;
+        QObject::connect(shell, &EditorShell::loadFinished, &loop, &QEventLoop::quit);
+        shell->load(D.dir, appSupport, QStringLiteral("Shown"));
+        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        loop.exec();
+        shell->show();
+        shell->activateWindow();
+        check(QTest::qWaitForWindowActive(shell), QStringLiteral("§6 precondition: the window is active"));
+        auto* editor = shell->findChild<ManuscriptEditor*>();
+        editor->setFocus();
+        QApplication::processEvents();
+        check(editor->hasFocus(), QStringLiteral("§6 precondition: the editor has the focus"));
+        delete shell;   // ⛔ crashed in QPlainTextEdit::focusOutEvent before [I-0310]
+        QApplication::processEvents();
+    }
 
     QApplication::processEvents();
     if (failures == 0) {

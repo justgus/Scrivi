@@ -8,9 +8,11 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. → [details](#i-0309) | **High** | [SP-185] | 🔵 **Open** |
+| **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-186] | 🔵 **Open** |
+| **I-0310** | `[Linux]` ⛔ **Destroying a shown, focused project window crashed: the editor's focus-out read the document its shell had already freed.** Found 2026-10-17 by the [I-0307] measurement harness (a segfault at its exit). ✅ Fixed. → [details](#i-0310) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
+| **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. ✅ Fixed: every worker builds its own bridge. → [details](#i-0309) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, right after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15 (live pass, step 11). No crash trace was kept. → [details](#i-0308) | **High** | [SP-185] | 🔵 **Open** |
-| **I-0307** | `[Linux]` ⛔ **Selecting across a scene break, Ctrl+C and Ctrl+V each FREEZE the window for 10–15 s** (dumas-prose-timelines over the share). Found on the rig 2026-10-15 (live pass, step 9). → [details](#i-0307) | **High** | [SP-185] | 🔵 **Open** |
+| **I-0307** | `[Linux]` ⛔ **Selecting across a scene break, Ctrl+C and Ctrl+V each FREEZE the window for 10–15 s** (dumas-prose-timelines over the share). Found on the rig 2026-10-15 (live pass, step 9). ✅ Measured and fixed in Docker: Ctrl+C's GUI-thread file calls 2,678 → 3; a mouse selection no longer extracts. → [details](#i-0307) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0306** | `[Apple]` ⚠️ **File ▸ Close Project (⌘W) skips the "Some changes can't be saved" question** ([T-0570]): it calls `NSWindow.close()`, which never asks `windowShouldClose`. Found 2026-10-15 by reading ([SP-181]). → [details](#i-0306) | **Medium** | ⛔ **Unassigned** | 🔵 **Open** |
 | **I-0305** | `[Apple]` `[Linux]` ⚠️ **Closing a project window, or quitting, while scenes are being written in the background does not wait for the writes.** Found 2026-10-15 by reading ([SP-181]). ✅ Fixed on both platforms: a close or quit waits behind *"Please wait — saving updates…"*. → [details](#i-0305) | **Medium** | [SP-181] | 🟠 **Resolved - Not Verified** |
 | **I-0304** | `[Linux]` ⛔ **A scene whose save FAILS is dropped from the dirty set, so it is never retried and quitting loses its edits.** The Mac keeps it dirty ([I-0259]). Found 2026-10-15 by reading ([SP-181]). ✅ Fixed: a failed write stays dirty. → [details](#i-0304) | **High** | [SP-181] | 🟠 **Resolved - Not Verified** |
@@ -24,10 +26,49 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 | **I-0192** | `[ScriviCore]` ⚠️ **A world on a PHYSICALLY REMOVED volume resolved `available`, and a full object read SUCCEEDED through it, until a scene change forced a re-resolve.** ⚠️ **Found by the USER on the REAL RIG during T-0477's S3 physical yank, 2026-09-07.** ⚠️ **RE-SCOPED 2026-09-07 from `[Linux]` to `[ScriviCore]` after reading the code — ⚠️ MY ORIGINAL DIAGNOSIS WAS WRONG.** ⚠️ **I filed this as an app-layer 'cached status with no invalidation' and as a placeholder dialog reusing a name it already held. ✅ **The code says otherwise, and the truth is WORSE:** `EditorShell::onOpenObjectRequested` (`EditorShell.cpp:~1790`) calls `bridge_->openObject(...)`, checks `lastCallFailed()`, and ⚠️ **parses the displayed name out of the `objectJson` THAT CALL RETURNED** — its own comment reads *"the object is genuinely read here."* ⚠️ **There is no app-side status cache to go stale.** ✅ **The read is guarded end-to-end**: `ObjectStore::open` → `findByID` → `kindDirFor` (`ObjectStore.cpp:~250`), which calls `WorldStore::resolve()` and ⚠️ **refuses unless status is `available`.** ✅ **And `resolve` caches NO verdict** — it sets `available` only after actually reading and parsing `world.json` from the candidate path (`WorldStore.cpp:337-342`). ⚠️ **SO THE DEFECT IS NOT STALENESS ANYWHERE — the filesystem itself answered successfully for a volume that was physically gone**, and every layer above correctly trusted a correct answer. ⚠️ **The likely mechanism is the PAGE CACHE / unreaped dentries**, which ✅ **the 2b container pass ALREADY measured in a stronger form**: a held FD survived `umount -l` + `losetup -D` entirely, reading and writing fine while the PATH broke instantly. ⚠️ **THIS IS I-0181's SIBLING, NOT ITS OPPOSITE**: I-0181 is `resolve` inferring absence it cannot prove; ⚠️ **I-0192 is `resolve` inferring PRESENCE it cannot prove** — ✅ **and `read succeeded` is no more proof of a mounted volume than `directory exists` is proof of a deleted one.** ⚠️ **T-0498's `st_dev` primitive is plausibly the SAME fix for both** — ⚠️ **but that must be MEASURED, not assumed.** ⚠️ **PARTIALLY MEASURED 2026-09-07 (over SSH, drive already out): the STEADY STATE is CORRECT** — `scrivi_get_world_status` returns ✅ **`unavailable`** (not `missing`), with `packagePath` empty and `lastKnownPackagePath` preserved, ⚠️ **stable across repeated calls**, and ✅ **`binding.json` stores no status key at all** — ⚠️ **so there is no persisted verdict to go stale.** ⚠️ **Therefore I-0192 is a TRANSIENT WINDOW, not a stuck verdict** — ⚠️ **severity lowered accordingly.** ⚠️ **The decay-vs-persist question across the yank itself is STILL OPEN and needs the sampled run.** | **Low** | ✅ **[EP-044]** `[ScriviCore]` **World Resolution** — ⚠️ **assigned 2026-09-22 by user ruling.** ✅ **AC3.** ⛔ **Its former candidate home, T-0498, is CLOSED and VERIFIED** — ⚠️ **so this had no owner at all; ✅ [EP-044] carries T-0498's unfinished work by design** | 🔵 **Open** |
 
 
+## I-0311
+
+**Title:** A paste that opens a chapter mid-chapter moves the target's tail past the following scenes
+**Status:** 🔵 **Open**
+**Platform:** `[ScriviCore]` (both platforms call it)
+**Severity:** High — the writer's text comes out in the wrong order; nothing is lost.
+**Sprint:** [SP-186] ([EP-053] S1 — `scrivi_range_paste` fixes it; design v0.2 §4.4)
+**Date Identified:** 2026-10-17 (reading `FragmentPaster::paste` while measuring [I-0297])
+
+**What happens:** chapter 1 = [a1 "Alpha. Bravo.", a2 "Charlie."], chapter 2 = [b1]. Paste [head "one", chapter "two", scene
+"three"] at "Alpha. |Bravo.". As one flat document the result reads: "Alpha. one" · [new chapter] "two" · "three Bravo." ·
+"Charlie." · [chapter 2] … ✅ What the core writes: a1 "Alpha. one" · a2 "Charlie." · [new chapter] "two" · "threeBravo." · b1.
+"Bravo." and the new chapter now come AFTER "Charlie.".
+**Cause:** the paste creates each new chapter after the target's chapter (`afterChapterID = runChapterID`,
+`FragmentPaster.cpp`) but leaves the target chapter's scenes after the caret where they were. A flat insert of a chapter
+boundary should carry them into the last created chapter — the mirror of the cut's "promote the survivors" (design §4.4).
+⚠️ `CaptureCApiTests` `[I-0297]` encodes the scrambled order as expected; it must change with the fix.
+
+---
+
+## I-0310
+
+**Title:** Destroying a shown, focused project window crashes in the editor's focus-out
+**Status:** 🟠 **Resolved - Not Verified** (2026-10-17)
+**Platform:** `[Linux]`
+**Severity:** High — a crash. Found tearing down a shown shell in a test harness; in the app a window is normally hidden
+before it is deleted (`WA_DeleteOnClose`), so this is latent there, not observed.
+**Sprint:** [SP-185] (found by its [I-0307] measurement; a crash of the kind the Sprint is chasing)
+**Date Identified:** 2026-10-17 (the harness segfaulted at exit; gdb)
+
+**Cause (gdb backtrace):** `EditorShell::~EditorShell` → `QWidget::~QWidget` → `QWindow::close` → hide → the focus leaves the
+editor → `QPlainTextEdit::focusOutEvent` → a cast on the editor's document. The shell OWNS that document (`sceneDoc_`), and
+its members are destroyed BEFORE `QWidget`'s destructor runs, so the editor read freed memory.
+
+**Resolution:** `~EditorShell` hides the shell first (`EditorShell.cpp`), while everything still exists. ✅
+`background_wait_smoke` §6 tears down a shown, focused shell; removing the `hide()` makes it crash (mutation caught).
+
+---
+
 ## I-0309
 
 **Title:** Closing a window during a load frees the bridge its load worker is still using
-**Status:** 🔵 **Open**
+**Status:** 🟠 **Resolved - Not Verified** (2026-10-17)
 **Platform:** `[Linux]`
 **Severity:** High. A crash, not a wrong result. Over the share a large project takes seconds to load, so closing or quitting
 during it is ordinary.
@@ -45,9 +86,33 @@ load worker (`EditorShell.cpp:527`), on memory freed by `EditorShell::~EditorShe
 - It also follows the open's last-resort timeout (`kProjectOpenTimeoutMs`, 600 s): the worker is left running by design.
 - ⚠️ Not proven on the rig. It is not, by itself, [I-0308]: that crash came long after the load.
 
-**Fix direction (not started):** the worker must not borrow anything the window owns. Either the shell outlives its load
+**Fix direction (as planned):** the worker must not borrow anything the window owns. Either the shell outlives its load
 (close waits, as [I-0305] does for writes), or the worker holds a bridge it owns. Other workers capture the same raw pointer
 (`EditorShell.cpp:2496`, `:2547`, `:2809`, `:2874`); [I-0305]'s wait covers those, and each needs checking.
+
+**Resolution (2026-10-17, user: *"fix I-0309 while the probe runs"*):**
+- A bridge carries only who is calling (`ScriviBridge::Identity`); its failure flag was already per thread (SP-173 D5).
+- `WorkerBridge` (`ScriviBridge.hpp`): the GUI thread builds a `Handle` (a copy of the identity, plus a `ScriviBridgeRelay`
+  the worker co-owns, deleted with `deleteLater`). The worker builds its OWN bridge from it, on its own thread. Errors reach
+  the window's bridge's `errorOccurred` listeners through the relay, queued, as before. A load's progress crosses the same
+  relay to `EditorShell::loadProgress`, so the worker no longer touches the shell either (`emit self->loadProgress` was the
+  second use-after-free in waiting).
+- All six workers moved:
+  - the load (`EditorShell::load`);
+  - the off-main save (`saveScenesOffMain`);
+  - the structural steps: `runStructural`'s `work` is now handed the worker's bridge, so paste, undo and redo no longer
+    capture `bridge_`;
+  - the Scene Inspector's reload (`SceneInspector.cpp:382`) and the Worlds dialog's (`WorldsDialog.cpp:193`): the same raw
+    capture, found by the sweep.
+- **Test:** `background_wait_smoke` §5 (in CI) destroys six windows at different moments of their loads, then waits for every
+  worker.
+  - ✅ **Under AddressSanitizer, the OLD code fails it** with this Issue's `heap-use-after-free` at
+    `ScriviBridge.cpp:785`, and the fixed code passes it clean.
+  - ⚠️ In a plain build the use-after-free rarely crashes, so CI shows only that the workers finish.
+- Debug build in Docker (Qt 6.4.2): smokes 36/36, ScriviCore ctest 728/728, the four CI script checks pass.
+
+**To verify (rig):** open dumas over the share and close its window (or quit) while the progress row is still showing. Scrivi
+closes or quits normally.
 
 ---
 
@@ -71,12 +136,23 @@ load worker (`EditorShell.cpp:527`), on memory freed by `EditorShell::~EditorShe
 Docker on a large generated project. Suspects, by reading only: the find bar's presented-text build after a reload, and
 SP-182's presenter changes (chapter-title lines). ⏳ Not yet proven either way.
 
+- **2026-10-17 — the Docker reproduction: NOT reproduced.** The real dumas-prose manuscript (1,153 scenes), Crimson Pro 18 pt,
+  the rig pass's steps 7–11 through a real `EditorShell` under AddressSanitizer + UBSan (Qt 6.4.2, arm64, offscreen): the
+  cross-scene copy and paste, a quit and reopen, the undo from the previous session, Ctrl+Alt+F, then 9 searches typed key by
+  key (accented names, `e`, `the`), backspacing, and typing in the manuscript with the bar open. No memory error; the app
+  survived.
+- Ruled out in that setting: a use-after-free or overflow in the find bar's presented text or in SP-182's chapter-title
+  drawing on this path. ⚠️ NOT ruled out: what Docker does not have — Qt 6.10.2 (the rig's), x86-64, Wayland and its primary
+  selection, the network share's timing, the real dumas-prose-timelines (with timelines).
+- Found on the way: [I-0309] and [I-0310], both crashes, both fixed. The diagnostic log ([T-0612]) now records a crash's
+  backtrace on the rig.
+
 ---
 
 ## I-0307
 
 **Title:** Cross-scene select, copy and paste each freeze the window 10–15 s
-**Status:** 🔵 **Open**
+**Status:** 🟠 **Resolved - Not Verified** (2026-10-17)
 **Platform:** `[Linux]`
 **Severity:** High. The user, 2026-10-15: *"Cut Copy and Paste must be as fast as possible at all times. I'll accept long
 load times, but once loaded the app must do everything instantly."*
@@ -90,6 +166,36 @@ each time."*
 - Not yet measured. The first step is to attribute each freeze (select, Ctrl+C, Ctrl+V) on the rig, as [I-0297] did, before
   any fix. The user, 2026-10-17: *"This is surprising. We may need to create a log file so that we can record what the app is
   doing. A simple code inspection may not be adequate."* → [T-0612].
+
+**Measured (2026-10-17, Docker, `strace -f`, a real `EditorShell` on 1,186 generated scenes; each phase bracketed by marker
+probes, calls split by thread):**
+
+| Phase | GUI-thread file calls |
+| - | - |
+| The cross-scene selection | 10 |
+| Ctrl+C | **2,678** (2,492 scene sidecars, 122 directory listings) |
+| The click into scene 5 | 10 |
+
+- **Copy:** Linux's structured copy asks ScriviCore for the fragment (`scrivi_fragment_extract`) on the GUI thread, and the
+  extractor RESOLVED the whole manuscript (every scene sidecar read and parsed, the [I-0196] class) to find two scenes.
+- **Select:** Qt fills the X11 / Wayland PRIMARY selection on every mouse selection by calling the same
+  `createMimeDataFromSelection` Ctrl+C uses: the selection ran the same extract. ⚠️ Inferred, not observed: the offscreen
+  platform Docker runs has no primary selection. It also replaced the held fragment and token, so a mouse selection after a
+  Ctrl+C turned the next Ctrl+V flat.
+- **Paste:** 21 GUI-thread calls; its cost is the worker's, which is [I-0297]'s.
+
+**Resolution:**
+- **ScriviCore:** `scrivi_fragment_extract` takes the reading order from the project index
+  (`FragmentExtractor::extract(root, spans, ordered)`); with no index it resolves as before. Ctrl+C: **2,678 → 3** GUI-thread
+  file calls (measured again).
+- **Linux:** the structured fragment is built ONLY for the clipboard (`ManuscriptEditor::copyToClipboard`: Ctrl+C, Edit ▸
+  Copy, cut); the primary selection gets the flat text and leaves the held copy alone.
+- **Tests:** `FragmentExtractTests` `[I-0307]` (no sidecar read given the order); `structured_paste_smoke` §1 (the primary
+  selection carries no fragment token, and Ctrl+V after it is still structured); 1 mutation caught (the primary selection
+  doing the structured copy). ctest Linux 730/730, macOS 726/726; smokes 36/36; interop 292/292.
+
+**To verify (rig, over the share):** in dumas, drag a selection from scene 1 into scene 2, then Ctrl+C, then click and Ctrl+V.
+No freeze on the selection or the copy. The diagnostic log ([T-0612]) times each.
 
 ---
 
@@ -421,7 +527,32 @@ behind the progress row; the paste completes.
 - 2026-10-17: moved into [SP-185] (user: *"Yes lets do them all in a new sprint."*). The user's standard, walked back from
   "instant": *"we must meet the writer's expectations"*; a large operation may take time if the app shows it working.
 
+- **2026-10-17 — Q2 ruled (user): cut the reads, then progress.** Measured as [I-0307] was (`strace`, Docker, 1,186 scenes):
+
+  | Worker-thread file calls | Before | After |
+  | - | - | - |
+  | Structured paste + reload | 5,642 | **1,890** |
+  | Its undo + reload | 5,688 | **1,933** |
+
+  - The paste's own work resolved the whole manuscript to find ONE scene (2,641 sidecar reads): `FragmentPaster` now takes a
+    scene lookup, answered from the project index the write took (`ChapterRebuildGuard::taken`), from disk when it has no
+    answer → 174.
+  - The paste and its undo DROPPED the whole index (their results named no chapters — the core's own comment called widening
+    them "the honest fix"): both now report `affectedChapterIDs`, and only those chapters are rebuilt.
+  - Linux's reload re-read every scene's text (1,186): it now reads only what the step wrote (`reloadThen(…, sceneTexts)`).
+  - ⏳ **Left: the reload's full `scrivi_open_project`, ~1,700 calls** (its parallel sidecar prefetch, 1,148, plus the
+    folder listings). An open rebuilds from disk by design ("index what is there NOW"). Cutting it needs the reload to get
+    the scene list from the index instead of re-opening — a new C ABI read, for ruling.
+  - Tests: `CaptureCApiTests` `[I-0297]` checks the index after a chapter paste, a scene-and-chapter paste and both undos,
+    without re-opening; 1 mutation caught (the paste not naming the target's chapter).
+
 ---
+
+*Last Updated: 2026-10-17 — **I-0311** `[ScriviCore]` filed: a chapter-opening paste scrambles the reading order.*
+
+*Last Updated: 2026-10-17 — **I-0307 → Resolved - Not Verified** (copy 2,678 → 3 GUI-thread calls; the primary selection); **I-0310** filed and resolved; **I-0297** paste 5,642 → 1,890 (open: the reload's open); **I-0308** not reproduced in Docker.*
+
+*Last Updated: 2026-10-17 — **I-0309 → Resolved - Not Verified** (every worker builds its own bridge; ASan-proven).*
 
 *Last Updated: 2026-10-17 — **I-0309** `[Linux]` filed (ASan, Docker); **I-0297**, **I-0307**, **I-0308** and I-0309 → [SP-185].*
 

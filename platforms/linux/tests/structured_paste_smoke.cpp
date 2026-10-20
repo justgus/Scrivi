@@ -289,8 +289,21 @@ int main(int argc, char** argv)
     check(QApplication::clipboard()->text() == QStringLiteral("Alpha two.\n\nBravo one."),
           QStringLiteral("Q4: the clipboard's text is the pieces joined by a blank line (got \"%1\")")
               .arg(QApplication::clipboard()->text()));
+    // ✅ [I-0307]: a mouse selection afterwards fills the PRIMARY selection (X11 / Wayland) — with the flat text only.
+    // ⛔ It used to build the structured fragment there: a ScriviCore extract on the GUI thread (the rig's freeze "after
+    // select across scene") that also replaced the held copy, so the next Ctrl+V was flat.
+    rig.select(QStringLiteral("Alpha one."), QStringLiteral("Bravo two."));
+    {
+        std::unique_ptr<QMimeData> primary(rig.editor->primarySelectionMime());
+        check(primary != nullptr && primary->text().startsWith(QStringLiteral("Alpha one."))
+                  && primary->text().endsWith(QStringLiteral("Bravo two.")),
+              QStringLiteral("[I-0307] the primary selection holds the writer's text (got \"%1\")")
+                  .arg(primary != nullptr ? primary->text() : QString()));
+        check(primary != nullptr && !primary->hasFormat(QStringLiteral("application/x-scrivi-fragment-token")),
+              QStringLiteral("[I-0307] … and no structured copy (no fragment token)"));
+    }
     rig.caretAt(QStringLiteral("Charlie one."));
-    check(rig.paste(), QStringLiteral("Ctrl+V reloaded the manuscript"));
+    check(rig.paste(), QStringLiteral("Ctrl+V reloaded the manuscript ([I-0307]: the mouse selection left the copy alone)"));
     const qint64 pasteMs = rig.lastReloadMs;
     const QStringList pasted{A, B, QStringLiteral("Charlie one.Alpha two."), QStringLiteral("Bravo one. Charlie two."), D};
     QList<Scene> m = rig.manuscript();

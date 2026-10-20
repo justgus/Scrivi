@@ -33,7 +33,17 @@ Result<Fragment> FragmentExtractor::extract(const AbsolutePath& projectRoot,
     auto resolvedR = resolver.resolve(projectRoot);
     if (!resolvedR.ok())
         return R::failure(resolvedR.error());
-    const auto& ordered = resolvedR.value();
+    return extract(projectRoot, spans, resolvedR.value());
+}
+
+Result<Fragment> FragmentExtractor::extract(const AbsolutePath& projectRoot,
+                                            const std::vector<FragmentSpan>& spans,
+                                            const std::vector<ResolvedScene>& ordered) const
+{
+    using R = Result<Fragment>;
+
+    if (spans.empty())
+        return R::failure(invalidArg("no spans: a fragment must cover at least one scene"));
 
     // sceneID -> manuscript index, so we can (a) look a span's scene up and (b) verify order.
     std::unordered_map<std::string, std::size_t> indexByScene;

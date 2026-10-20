@@ -55,6 +55,8 @@ over a newer one, which have already drifted once ([I-0304] against [I-0259]).
 - [ ] **AC5 — `[Linux]` Adoption:** the same, in the same Sprint as AC4.
 - [ ] **AC6 — Rig:** undoing a Replace All on dumas over the share does not freeze the window, and typing never waits on a save.
 
+**Waiting on it:** [SP-185] AC5 (user, 2026-10-20): Replace All's visible progress (SP-185 Q3: a real count, the view
+follows), to be designed against the queue.
 **Rough span:** 2 Sprints: S1 ScriviCore (AC1–AC3), S2 Apple + Linux (AC4–AC6). Sequenced after [SP-181] closes.
 **Out of scope:** world writes (concurrency design D6), two processes on one project, the speed of the structural
 operations themselves.

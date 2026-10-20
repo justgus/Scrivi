@@ -55,6 +55,12 @@ public:
     // keyPressEvent edit guard, so a menu cut across a scene break deleted heading and
     // separator text and desynchronised the offset map. Routes through the guard instead.
     void cutSelection();
+    // Edit ▸ Copy and Ctrl+C. ✅ [I-0307]: the ONLY copy that builds the structured (cross-scene) fragment — see
+    // `clipboardCopy_`.
+    void copyToClipboard();
+    // For smokes ([I-0307]): what Qt fills the X11 / Wayland PRIMARY selection with on a mouse selection. The offscreen
+    // platform has no primary selection for Qt to fill, so the smoke asks for it directly.
+    QMimeData* primarySelectionMime() const { return createMimeDataFromSelection(); }
     // Edit ▸ Paste and Ctrl+V (EP-026 S4, SP-180). A fragment this editor copied, while the clipboard still holds THAT
     // copy ([SP-180] Q1), is handed to the shell to rebuild (`structuredPasteRequested`); anything else is the flat paste,
     // through `insertFromMimeData`. ⚠️ A drop is always flat, as on the Mac (its `paste:` override is the only way in).
@@ -243,6 +249,11 @@ private:
     mutable QJsonObject heldFragment_;
     mutable QString heldToken_;
     mutable quint64 copySerial_ = 0;
+    // ✅ [I-0307] (SP-185): true only while copying to the CLIPBOARD. Qt also calls `createMimeDataFromSelection` to fill
+    // the X11 / Wayland PRIMARY selection on every mouse selection (and for a drag, whose drop is flat anyway); building
+    // the structured fragment there asked ScriviCore for an extract on the GUI thread — the rig's freeze "after select
+    // across scene" — and replaced the held fragment and token, so the clipboard's copy no longer matched them.
+    bool clipboardCopy_ = false;
 
     bool computed_ = false;        // applying an edit the core computed — never re-balanced
     bool pastingOwnCopy_ = false;  // Scrivi's own copy is being pasted: it keeps ITS formatting

@@ -478,9 +478,17 @@ void EditorShell::load(const QString& projectPath,
     if (progressRow_ != nullptr) { progressRow_->hide(); }
     if (progressDelay_ != nullptr) { progressDelay_->start(); }
 
-    ScriviBridge* bridge = bridge_;
+    // ✅ [I-0309]: the worker builds its OWN bridge from this handle — closing the window mid-load freed `bridge_` under it.
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);
     const QString path   = projectPath;
     const QString appSup = appSupportRoot;
+    // ✅ [I-0297]: a reload after a paste or its undo reads only what the step wrote (`reloadThen`); any other load reads all.
+    const QHash<QString, QString> knownTexts = projectPath == projectPath_ ? std::exchange(reloadTexts_, {})
+                                                                           : QHash<QString, QString>{};
+    reloadTexts_.clear();
+    if (!knownTexts.isEmpty()) {
+        DiagnosticLog::note(QStringLiteral("load: %1 scene texts from memory (a structural step's reload)").arg(knownTexts.size()));
+    }
 
     // ⚠️ SP-144 ([I-0232] AC5) — THE PROJECT IS OPENED ONCE, NOT TWICE.
     //
@@ -506,11 +514,15 @@ void EditorShell::load(const QString& projectPath,
     // ⚠️ Progress is emitted FROM THE WORKER THREAD, so it is queued to the UI
     // thread rather than called directly. A direct call would touch widgets from
     // the wrong thread.
-    auto* self = this;
+    // ✅ [I-0309]: through the worker's relay, never `this` — the window may be gone before the worker is.
+    connect(bridgeHandle.relay.get(), &ScriviBridgeRelay::progress, this, &EditorShell::loadProgress,
+            Qt::QueuedConnection);
 
     AsyncCall::run<LoadPayload>(
         this,
-        [bridge, path, appSup, self, handedOver, openHistory]() -> LoadPayload {
+        [bridgeHandle, path, appSup, handedOver, openHistory, knownTexts]() -> LoadPayload {
+            WorkerBridge bridge(bridgeHandle);
+            ScriviBridgeRelay* const progress = bridge.relay();
             LoadPayload out;
 
             // ✅ Use the landing's envelope when it handed one over; open only
@@ -553,7 +565,7 @@ void EditorShell::load(const QString& projectPath,
             const int sceneCount = scenes.size();
             const int total = sceneCount + 1 + (openHistory ? sceneCount + 1 : 0);
             int done = 0;
-            emit self->loadProgress(done, total, sceneCount);
+            emit progress->progress(done, total, sceneCount);
 
             out.inputs.reserve(scenes.size());
             for (const QVariant& v : scenes) {
@@ -588,15 +600,19 @@ void EditorShell::load(const QString& projectPath,
                 const int end = std::min<int>(start + kChunk, out.inputs.size());
                 QStringList ids;
                 for (int i = start; i < end; ++i) {
-                    if (out.inputs.at(i).sceneID != out.activeSceneID) { ids.append(out.inputs.at(i).sceneID); }
+                    const QString& id = out.inputs.at(i).sceneID;
+                    if (id != out.activeSceneID && !knownTexts.contains(id)) { ids.append(id); }
                 }
-                const QHash<QString, QString> texts = bridge->readSceneTexts(path, ids);
+                const QHash<QString, QString> texts = ids.isEmpty() ? QHash<QString, QString>{} : bridge->readSceneTexts(path, ids);
                 for (int i = start; i < end; ++i) {
                     SceneDocument::Input& in = out.inputs[i];
-                    if (in.sceneID != out.activeSceneID) { in.markdown = texts.value(in.sceneID); }
+                    if (in.sceneID != out.activeSceneID) {
+                        const auto known = knownTexts.constFind(in.sceneID);
+                        in.markdown = known != knownTexts.cend() ? *known : texts.value(in.sceneID);
+                    }
                 }
                 done = end;
-                emit self->loadProgress(done, total, sceneCount);
+                emit progress->progress(done, total, sceneCount);
             }
 
             loadLog("worker: all scene bodies read", done);
@@ -606,7 +622,7 @@ void EditorShell::load(const QString& projectPath,
             out.historyRequested = openHistory;
             if (openHistory) {
                 out.historyOpened = !ScriviBridge::historyOpen(path).isEmpty();
-                emit self->loadProgress(++done, total, sceneCount);
+                emit progress->progress(++done, total, sceneCount);
                 constexpr int kValidateReport = 64;   // progress per chunk, as the bodies
                 for (int i = 0; i < out.inputs.size(); ++i) {
                     if (out.historyOpened) {
@@ -614,7 +630,7 @@ void EditorShell::load(const QString& projectPath,
                     }
                     ++done;
                     if ((i + 1) % kValidateReport == 0 || i + 1 == out.inputs.size()) {
-                        emit self->loadProgress(done, total, sceneCount);
+                        emit progress->progress(done, total, sceneCount);
                     }
                 }
                 loadLog("worker: undo history opened", done);
@@ -623,8 +639,8 @@ void EditorShell::load(const QString& projectPath,
             // timeline read older than it is discarded and re-read on the UI thread ([I-0285] AC4 — measured, smoke).
             // SP-173 / I-0285 (AC4): the timeline's data, read HERE and not on the UI thread; applied there only if the
             // project has not changed since (its revision).
-            out.timeline = EditorShell::fetchTimelineData(bridge, path);
-            emit self->loadProgress(++done, total, sceneCount);
+            out.timeline = EditorShell::fetchTimelineData(&*bridge, path);
+            emit progress->progress(++done, total, sceneCount);
             loadLog("worker: timeline read");
 
             out.ok = true;
@@ -663,6 +679,15 @@ void EditorShell::load(const QString& projectPath,
         // ✅ This budget is a LAST-RESORT backstop for a hung volume, not a
         // latency policy -- progress, not a timeout, is the answer to slowness.
         kProjectOpenTimeoutMs);
+}
+
+EditorShell::~EditorShell()
+{
+    // ✅ [I-0310] (SP-185): the shell OWNS the document its editor shows (`sceneDoc_`), and its members are destroyed BEFORE
+    // `QWidget`'s destructor runs. That destructor closes a shown shell; the focus leaving the editor then made
+    // `QPlainTextEdit::focusOutEvent` read the freed document (a crash, found tearing down a shown, focused shell). Hiding
+    // here moves the focus while everything still exists, so the close below finds nothing left to do.
+    hide();
 }
 
 void EditorShell::hideLoadProgress()
@@ -2336,7 +2361,7 @@ void EditorShell::mergeChapter()
 }
 
 void EditorShell::cutSelection()   { viewport_->cutSelection(); }   // [I-0270] through the guard
-void EditorShell::copySelection()  { viewport_->copy(); }
+void EditorShell::copySelection()  { viewport_->copyToClipboard(); }   // [I-0307]
 void EditorShell::applyFormat(ManuscriptEditor::Format format) { viewport_->applyFormat(format); }   // SP-175
 void EditorShell::find(FindCommand command) { findBar_->run(command); }   // SP-176
 void EditorShell::pasteClipboard() { viewport_->pasteClipboard(); }   // EP-026 S4: may be structured
@@ -2513,13 +2538,12 @@ void EditorShell::pasteFragment(const QJsonObject& fragmentIn)
     }
     const QString fragmentJson = QString::fromUtf8(QJsonDocument(fragment).toJson(QJsonDocument::Compact));
 
-    // ✅ [I-0297]: the core's work OFF the UI thread, with the progress row.
-    ScriviBridge* bridge = bridge_;
+    // ✅ [I-0297]: the core's work OFF the UI thread, with the progress row (on the worker's own bridge, [I-0309]).
     const QString root = projectPath_, appSupport = appSupportRoot_, project = projectID_, name = bridge_->displayName();
     const QString targetScene = seg.sceneID;
     runStructural(
         tr("Pasting…"),
-        [=] { return bridge->fragmentPaste(root, appSupport, project, fragmentJson, targetScene, caretByte, name); },
+        [=](ScriviBridge& bridge) { return bridge.fragmentPaste(root, appSupport, project, fragmentJson, targetScene, caretByte, name); },
         [this, fragmentJson, caretByte, targetScene, before](const QVariantMap& r) {
             const QString target = r.value(QStringLiteral("targetSceneID")).toString();
             const QStringList createdScenes = stringsOf(r.value(QStringLiteral("createdSceneIDs")));
@@ -2541,7 +2565,7 @@ void EditorShell::pasteFragment(const QJsonObject& fragmentIn)
                                         textsOf(r.value(QStringLiteral("sceneTexts")).toMap()), payload,
                                         {{targetScene, before}});
             }
-            reloadThenPlaceCaret(target, caretByte);
+            reloadThenPlaceCaret(target, caretByte, r.value(QStringLiteral("sceneTexts")).toMap());
         },
         [] {});   // failed: the bridge surfaced it, and nothing changed on disk
 }
@@ -2565,17 +2589,17 @@ void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo
     viewport_->removePendingPair();
     saveDirtyScenes();   // the inverse reads the scenes AS SAVED
 
-    ScriviBridge* bridge = bridge_;
     const QString root = projectPath_, appSupport = appSupportRoot_, project = projectID_, name = bridge_->displayName();
     if (isPaste) {
         runStructural(
             isUndo ? tr("Undoing…") : tr("Redoing…"),
-            [=] { return bridge->fragmentPaste(root, appSupport, project, fragmentJson, caretScene, caretByte, name); },
+            [=](ScriviBridge& bridge) { return bridge.fragmentPaste(root, appSupport, project, fragmentJson, caretScene, caretByte, name); },
             [this, key, caretByte](const QVariantMap& r) {
                 // What this re-paste created, so the matching uncut removes it.
                 structuralRedoCreated_.insert(key, {stringsOf(r.value(QStringLiteral("createdSceneIDs"))),
                                                     stringsOf(r.value(QStringLiteral("createdChapterIDs")))});
-                reloadThenPlaceCaret(r.value(QStringLiteral("targetSceneID")).toString(), caretByte);
+                reloadThenPlaceCaret(r.value(QStringLiteral("targetSceneID")).toString(), caretByte,
+                                     r.value(QStringLiteral("sceneTexts")).toMap());
             },
             failed);
         return;
@@ -2590,9 +2614,10 @@ void EditorShell::applyStructuralInverse(const QVariantMap& inverse, bool isUndo
     const QString createdJson = QString::fromUtf8(QJsonDocument(created).toJson(QJsonDocument::Compact));
     runStructural(
         isUndo ? tr("Undoing…") : tr("Redoing…"),
-        [=] { return bridge->fragmentUncutPaste(root, fragmentJson, caretScene, createdJson); },
+        [=](ScriviBridge& bridge) { return bridge.fragmentUncutPaste(root, fragmentJson, caretScene, createdJson); },
         [this, caretByte](const QVariantMap& r) {
-            reloadThenPlaceCaret(r.value(QStringLiteral("survivingSceneID")).toString(), caretByte);
+            reloadThenPlaceCaret(r.value(QStringLiteral("survivingSceneID")).toString(), caretByte,
+                                 r.value(QStringLiteral("sceneTexts")).toMap());
         },
         failed);
 }
@@ -2834,7 +2859,7 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
     if (progressLabel_ != nullptr) {
         progressLabel_->setText(jobs.size() == 1 ? tr("Saving 1 scene…") : tr("Saving %1 scenes…").arg(jobs.size()));
     }
-    ScriviBridge* bridge = bridge_;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
     const QString projectID = projectID_;
     const QString path = projectPath_;
     const QString support = appSupportRoot_;
@@ -2842,7 +2867,8 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
         this,
         // ⚠️ The WORKER: the C ABI only. Body-only saves (0/0/0.0): the writing surface is the caret scene's, kept by
         // the next ordinary save.
-        [jobs, bridge, projectID, path, support]() {
+        [jobs, bridgeHandle, projectID, path, support]() {
+            WorkerBridge bridge(bridgeHandle);
             QVector<bool> ok;
             ok.reserve(jobs.size());
             for (const Job& j : jobs) {
@@ -2890,7 +2916,7 @@ void EditorShell::saveScenesOffMain(const QList<int>& indices, std::function<voi
         kProjectOpenTimeoutMs);
 }
 
-void EditorShell::runStructural(const QString& label, std::function<QVariantMap()> work,
+void EditorShell::runStructural(const QString& label, std::function<QVariantMap(ScriviBridge&)> work,
                                 std::function<void(const QVariantMap&)> then, std::function<void()> failed)
 {
     loading_ = true;                 // undo, redo and the buffer actions wait; nothing is reported to history meanwhile
@@ -2905,7 +2931,7 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
     QElapsedTimer structuralClock;
     structuralClock.start();
     struct Outcome { QVariantMap result; bool failed = false; };
-    ScriviBridge* bridge = bridge_;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
     const auto release = [this] {
         hideLoadProgress();
         loading_ = false;
@@ -2914,9 +2940,10 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
     AsyncCall::run<Outcome>(
         this,
         // ⚠️ The WORKER: the C ABI only (`AsyncCall`'s rule). `lastCallFailed` is per thread, so it is read here.
-        [work = std::move(work), bridge]() -> Outcome {
+        [work = std::move(work), bridgeHandle]() -> Outcome {
+            WorkerBridge bridge(bridgeHandle);
             Outcome o;
-            o.result = work();
+            o.result = work(*bridge);
             o.failed = bridge->lastCallFailed();
             return o;
         },
@@ -2944,14 +2971,28 @@ void EditorShell::runStructural(const QString& label, std::function<QVariantMap(
         kProjectOpenTimeoutMs);
 }
 
-void EditorShell::reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset)
+void EditorShell::reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset, const QVariantMap& writtenTexts)
 {
-    reloadThen([this, sceneID, byteOffset] { placeCaret(sceneID, byteOffset); });
+    reloadThen([this, sceneID, byteOffset] { placeCaret(sceneID, byteOffset); }, writtenTexts);
 }
 
-void EditorShell::reloadThen(std::function<void()> after)
+void EditorShell::reloadThen(std::function<void()> after, const QVariantMap& writtenTexts)
 {
     viewport_->removePendingPair();
+    reloadTexts_.clear();
+    if (!writtenTexts.isEmpty()) {
+        // ✅ [I-0297]: every scene the step did not write is as the editor holds it — saved, unless still dirty (then the
+        // disk is read, as before).
+        for (int i = 0; i < sceneDoc_.segments().size(); ++i) {
+            const QString& id = sceneDoc_.segments().at(i).sceneID;
+            if (!dirtyScenes_.contains(id)) {
+                reloadTexts_.insert(id, sceneDoc_.bodyText(i));
+            }
+        }
+        for (auto it = writtenTexts.cbegin(); it != writtenTexts.cend(); ++it) {
+            reloadTexts_.insert(it.key(), it.value().toString());
+        }
+    }
     connect(this, &EditorShell::loadFinished, this, [this, after = std::move(after)](bool ok) {
         // A structural step's guard ([I-0297], `runStructural`) ends with its reload — landed or not.
         viewport_->setReadOnly(false);

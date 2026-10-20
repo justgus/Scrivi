@@ -141,6 +141,9 @@ struct Rig {
         emit bar->queryField()->textEdited(query);   // the incremental search, as typing it does
         bar->replaceField()->setText(replacement);
         settle();
+        for (int i = 0; i < 6000 && !bar->searchSettled(); ++i) {   // [T-0613]: after the typing pause
+            QTest::qWait(10);
+        }
     }
     void press(const QString& button)
     {

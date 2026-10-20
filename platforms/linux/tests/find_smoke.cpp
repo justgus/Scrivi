@@ -134,7 +134,16 @@ struct Harness {
     void typeQuery(const QString& text)
     {
         QTest::keyClicks(bar->queryField(), text);
+        settle();
+    }
+    // [T-0613]: the search runs after the typing pause, over text built ahead — wait for both.
+    bool settle(int ms = 60000)
+    {
+        for (int i = 0; i < ms / 10 && !bar->searchSettled(); ++i) {
+            QTest::qWait(10);
+        }
         QApplication::processEvents();
+        return bar->searchSettled();
     }
 };
 
@@ -231,6 +240,7 @@ int main(int argc, char** argv)
         h.bar->modeBox()->setCurrentIndex(2);
         h.bar->queryField()->setText(QStringLiteral("bol"));
         Q_EMIT h.bar->queryField()->textEdited(QStringLiteral("bol"));
+        h.settle();
         same(h.bar->countText(), QStringLiteral("Not found"), QStringLiteral("Whole Word: `bol` is not found"));
         h.bar->modeBox()->setCurrentIndex(0);
 
@@ -248,6 +258,60 @@ int main(int argc, char** argv)
         h.key(h.focus(), Qt::Key_E, Qt::ControlModifier);
         same(h.bar->queryField()->text(), QStringLiteral("bold word,"), QStringLiteral("Ctrl+E: the selection as the writer sees it"));
         check(h.bar->isVisible(), QStringLiteral("Use Selection shows the bar"));
+    }
+
+    // ── [T-0613] Typing never waits: the search runs after a 500 ms pause, over text built ahead of time ──
+    {
+        Harness h({scene("s1", "c1", "One", QStringLiteral("One **bold** word, then bold again.")),
+                   scene("s2", "c1", "One", QStringLiteral("A last BOLD one."))});
+        for (int i = 0; i < 500 && !h.bar->presentedReady(); ++i) {
+            QTest::qWait(10);
+        }
+        check(h.bar->presentedReady(), QStringLiteral("[T-0613] built ahead after the load, before any Find"));
+        const int builds = h.bar->presentedBuilds();
+        h.caret(0, 0);
+        h.key(h.focus(), Qt::Key_F, Qt::ControlModifier);
+        QTest::keyClicks(h.bar->queryField(), QStringLiteral("bold"));   // the writer's pace: no wait between keys
+        check(h.bar->countText().isEmpty() && !h.editor->textCursor().hasSelection(),
+              QStringLiteral("[T-0613] a keystroke searches nothing: no count, no selection (count: %1)").arg(h.bar->countText()));
+        QTest::qWait(FindBar::kQueryPauseMs / 2);
+        check(h.bar->countText().isEmpty(), QStringLiteral("[T-0613] still nothing half a pause after the last key"));
+        check(h.settle(), QStringLiteral("[T-0613] the search ran once typing paused"));
+        same(h.bar->countText(), QStringLiteral("1 of 3"), QStringLiteral("[T-0613] … and found every match"));
+        check(h.editor->textCursor().hasSelection(), QStringLiteral("[T-0613] … selecting the first"));
+        check(h.bar->presentedBuilds() == builds, QStringLiteral("[T-0613] the search built nothing (it was built ahead)"));
+        // Return during the pause searches at once.
+        h.bar->queryField()->selectAll();
+        QTest::keyClicks(h.bar->queryField(), QStringLiteral("one"));
+        h.key(h.bar->queryField(), Qt::Key_Return);
+        check(h.bar->searchSettled() && h.bar->countText().endsWith(QStringLiteral(" of 2")),
+              QStringLiteral("[T-0613] Return runs a pending search at once (count: %1)").arg(h.bar->countText()));
+    }
+
+    // ── [T-0613] An action before the build is complete waits for it ("Searching…"); no slice holds the GUI thread long ──
+    {
+        QList<SceneDocument::Input> in;
+        const QString para = QStringLiteral("It was the *best* of times %1, Mr\\. Defarge said nothing at all to anyone %2. ");
+        for (int i = 0; i < 1186; ++i) {
+            QString body;
+            for (int k = 0; body.size() < 1550; ++k) {
+                body += para.arg(i).arg(k);
+            }
+            in.push_back(scene(QStringLiteral("s%1").arg(i), QStringLiteral("c%1").arg(i / 20), QStringLiteral("Chapter"), body));
+        }
+        Harness h(in);
+        check(!h.bar->presentedReady(), QStringLiteral("[T-0613] precondition: 1,186 scenes are not built in the first idle turns"));
+        h.key(h.focus(), Qt::Key_F, Qt::ControlModifier);
+        h.bar->queryField()->setText(QStringLiteral("Mr. Defarge"));
+        h.key(h.bar->queryField(), Qt::Key_Return);
+        same(h.bar->countText(), QStringLiteral("Searching…"), QStringLiteral("[T-0613] Next before the build: \"Searching…\""));
+        check(h.settle(), QStringLiteral("[T-0613] … then the build completed and the search ran"));
+        check(h.bar->countText().contains(QStringLiteral(" of ")) && h.editor->textCursor().hasSelection(),
+              QStringLiteral("[T-0613] … to a match (count: %1)").arg(h.bar->countText()));
+        std::printf("measure: built ahead in slices; the longest held the GUI thread %lld ms\n",
+                    static_cast<long long>(h.bar->longestSliceMs()));
+        check(h.bar->longestSliceMs() < 100, QStringLiteral("[T-0613] no slice held the GUI thread 100 ms (longest %1 ms)")
+                                                  .arg(h.bar->longestSliceMs()));
     }
 
     // ── An edit while the bar is open: no rebuild per keystroke; the count catches up once typing pauses ──

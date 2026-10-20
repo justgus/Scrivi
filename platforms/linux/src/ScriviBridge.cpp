@@ -89,6 +89,34 @@ private:
 
 ScriviBridge::ScriviBridge(QObject* parent) : QObject(parent) {}
 
+ScriviBridge::ScriviBridge(const Identity& identity, QObject* parent)
+    : QObject(parent),
+      ready_(identity.ready),
+      identityID_(identity.identityID),
+      personaID_(identity.personaID),
+      displayName_(identity.displayName)
+{
+}
+
+WorkerBridge::Handle WorkerBridge::handleFor(ScriviBridge* source)
+{
+    // ⚠️ `deleteLater`, not `delete`: the last owner may be the worker, and the relay belongs to the GUI thread.
+    std::shared_ptr<ScriviBridgeRelay> relay(new ScriviBridgeRelay, [](ScriviBridgeRelay* r) { r->deleteLater(); });
+    if (source != nullptr) {
+        // ⚠️ QUEUED: the worker emits on its own thread; the listeners (an error label) are widgets.
+        QObject::connect(relay.get(), &ScriviBridgeRelay::errorOccurred, source, &ScriviBridge::errorOccurred,
+                         Qt::QueuedConnection);
+    }
+    return {source != nullptr ? source->identity() : ScriviBridge::Identity{}, std::move(relay)};
+}
+
+WorkerBridge::WorkerBridge(const Handle& handle) : relay_(handle.relay), bridge_(handle.identity)
+{
+    // DIRECT: the relay re-emits on this (the worker's) thread; its own connections are the queued ones.
+    QObject::connect(&bridge_, &ScriviBridge::errorOccurred, relay_.get(), &ScriviBridgeRelay::errorOccurred,
+                     Qt::DirectConnection);
+}
+
 void ScriviBridge::bootstrap(const QString& displayName,
                              const QString& appSupportRoot)
 {

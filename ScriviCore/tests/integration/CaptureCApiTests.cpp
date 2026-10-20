@@ -12,7 +12,9 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <iterator>
 #include <string>
+#include <vector>
 
 #if !defined(_WIN32)
 #include <sys/wait.h>
@@ -816,4 +818,107 @@ TEST_CASE("capture ABI: every session of Apple's parity fixture leaves the same 
     }
     CHECK(sessions == 203);
     CHECK(wrong == 0);
+}
+
+// [I-0297] (SP-185) — a structured paste and its undo now REBUILD the project index for the chapters they changed instead of
+// dropping it whole (the drop cost the next read a full manuscript walk: over a network share, most of a 40 s undo). Two
+// ABI reads answer from that index: `scrivi_read_scene_texts` finds each scene's file through it, and
+// `scrivi_fragment_extract` orders by it ([I-0307]). ⚠️ No `scrivi_open_project` between the steps and the checks: an open
+// rebuilds the index from disk ("index what is there NOW"), which would hide a wrong rebuild. The expected reading order and
+// texts are what the paster must produce.
+TEST_CASE("fragment ABI: a paste and its undo keep the project index true to the disk", "[capture-abi][I-0297]") {
+    namespace fs = std::filesystem;
+    const fs::path base = fs::temp_directory_path() /
+                          ("scrivi-i0297-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::remove_all(base);
+    fs::create_directories(base / "as");
+    const std::string root = (base / "p.scrivi").string(), as = (base / "as").string();
+    const char* id = "identity-001";
+    const char* persona = "persona-001";
+    const JsonDoc created = ok(scrivi_create_project(root.c_str(), as.c_str(), "I-0297", "i0297", id, persona, "T"));
+    const std::string pid = created.getString("projectID");
+    const JsonDoc first = created.getSubDoc("firstScene");
+    const std::string a1 = first.getString("sceneID");
+    const std::string ch1 = ok(scrivi_open_project(root.c_str(), as.c_str(), id)).arrayItem("scenes", 0).getString("chapterID");
+    REQUIRE(!ch1.empty());
+
+    // Chapter 1: a1, a2 · chapter 2: b1 — every body distinct.
+    auto saveAt = [&](const std::string& scene, const std::string& meta, const std::string& content, const std::string& text) {
+        ok(scrivi_save_scene(pid.c_str(), root.c_str(), as.c_str(), scene.c_str(), meta.c_str(), content.c_str(), text.c_str(),
+                             0, 0, 0.0, id, persona, "T"));
+    };
+    saveAt(a1, first.getString("metadataPath"), first.getString("contentPath"), "Alpha. Bravo.");
+    const JsonDoc a2doc = ok(scrivi_create_scene(root.c_str(), as.c_str(), pid.c_str(), ch1.c_str(), a1.c_str(), "", id, persona, "T"));
+    const std::string a2 = a2doc.getString("sceneID");
+    saveAt(a2, a2doc.getString("metadataPath"), a2doc.getString("contentPath"), "Charlie.");
+    const JsonDoc c2 = ok(scrivi_create_chapter(root.c_str(), as.c_str(), pid.c_str(), id, persona, "T", ch1.c_str()));
+    const std::string b1 = c2.getString("firstSceneID");
+    saveAt(b1, c2.getString("firstSceneMetadataPath"), c2.getString("firstSceneContentPath"), "Delta.");
+    ok(scrivi_open_project(root.c_str(), as.c_str(), id));   // the index, built from disk — the last open of this test
+
+    // The index's view: each scene's text through it, and an extract over every scene in the EXPECTED reading order.
+    auto checkIndex = [&](const char* when, const std::vector<std::string>& ids, const std::vector<std::string>& texts) {
+        std::string idsJson = "[";
+        for (std::size_t i = 0; i < ids.size(); ++i) idsJson += (i ? ",\"" : "\"") + ids[i] + "\"";
+        idsJson += "]";
+        const JsonDoc read = ok(scrivi_read_scene_texts(root.c_str(), idsJson.c_str()));
+        REQUIRE(read.arraySize("scenes") == ids.size());
+        for (std::size_t i = 0; i < ids.size(); ++i) {
+            INFO(when << ": scene " << i);
+            CHECK(read.arrayItem("scenes", i).getString("markdown") == texts[i]);
+        }
+        std::string spans = "{\"spans\":[";
+        for (std::size_t i = 0; i < ids.size(); ++i)
+            spans += std::string(i ? "," : "") + "{\"sceneID\":\"" + ids[i] + "\",\"startByte\":0,\"endByte\":1}";
+        spans += "]}";
+        INFO(when << ": extract over every scene, in reading order");
+        CHECK(ok(scrivi_fragment_extract(root.c_str(), spans.c_str())).arraySize("pieces") == ids.size());
+    };
+    const std::vector<std::string> beforeIDs{a1, a2, b1};
+    const std::vector<std::string> beforeTexts{"Alpha. Bravo.", "Charlie.", "Delta."};
+    checkIndex("before", beforeIDs, beforeTexts);
+
+    // ⌘V into a1 at "Alpha. |Bravo." of [head "one", a NEW CHAPTER "two", scene "three" (tail)]: the chapter goes after a1's.
+    const std::string frag = R"({"schema":"scrivi.fragment.v1","pieces":[{"opensWith":"none","text":"one","partial":"head"},)"
+                             R"({"opensWith":"chapter","chapterTitle":"Pasted","text":"two"},)"
+                             R"({"opensWith":"scene","text":"three","partial":"tail"}],"plainText":"one\n\ntwo\n\nthree"})";
+    const JsonDoc pasted = ok(scrivi_fragment_paste(root.c_str(), as.c_str(), pid.c_str(), frag.c_str(), a1.c_str(), 7,
+                                                    id, persona, "T"));
+    const auto made = pasted.getStringArray("createdSceneIDs");
+    const auto madeChapters = pasted.getStringArray("createdChapterIDs");
+    REQUIRE(made.size() == 2);
+    REQUIRE(madeChapters.size() == 1);
+    checkIndex("after the chapter paste", {a1, a2, made[0], made[1], b1},
+               {"Alpha. one", "Charlie.", "two", "threeBravo.", "Delta."});
+    ok(scrivi_fragment_uncut_paste(root.c_str(), frag.c_str(), a1.c_str(),
+                                   ("{\"sceneIDs\":[\"" + made[0] + "\",\"" + made[1] + "\"],\"chapterIDs\":[\"" +
+                                    madeChapters[0] + "\"]}").c_str()));
+    checkIndex("after its undo", beforeIDs, beforeTexts);
+    const JsonDoc gone = ok(scrivi_read_scene_texts(root.c_str(), ("[\"" + made[1] + "\"]").c_str()));
+    CHECK(gone.arraySize("scenes") == 0);   // a deleted scene is nowhere — not served from a stale entry either
+    CHECK(gone.arraySize("failed") == 1);
+
+    // ⌘V of [head "four", scene "five", CHAPTER "six" (tail)]: "five" lands IN a1's chapter and "six" opens a new one. ⚠️ The
+    // index must re-read a1's chapter, not carry it over: naming only the new chapter would leave "five" out (and a paste
+    // that creates no chapter cannot show it — naming nothing drops the whole index, which is always correct).
+    const std::string frag2 = R"({"schema":"scrivi.fragment.v1","pieces":[{"opensWith":"none","text":"four","partial":"head"},)"
+                              R"({"opensWith":"scene","text":"five"},)"
+                              R"({"opensWith":"chapter","chapterTitle":"Six","text":"six","partial":"tail"}],)"
+                              R"("plainText":"four\n\nfive\n\nsix"})";
+    const JsonDoc pasted2 = ok(scrivi_fragment_paste(root.c_str(), as.c_str(), pid.c_str(), frag2.c_str(), a1.c_str(), 7,
+                                                     id, persona, "T"));
+    const auto made2 = pasted2.getStringArray("createdSceneIDs");
+    const auto made2Chapters = pasted2.getStringArray("createdChapterIDs");
+    REQUIRE(made2.size() == 2);
+    REQUIRE(made2Chapters.size() == 1);
+    checkIndex("after the scene-and-chapter paste", {a1, made2[0], a2, made2[1], b1},
+               {"Alpha. four", "five", "Charlie.", "sixBravo.", "Delta."});
+    ok(scrivi_fragment_uncut_paste(root.c_str(), frag2.c_str(), a1.c_str(),
+                                   ("{\"sceneIDs\":[\"" + made2[0] + "\",\"" + made2[1] + "\"],\"chapterIDs\":[\"" +
+                                    made2Chapters[0] + "\"]}").c_str()));
+    checkIndex("after its undo", beforeIDs, beforeTexts);
+
+    scrivi_free(scrivi_close_project(root.c_str()));
+    std::error_code ec;
+    fs::remove_all(base, ec);
 }

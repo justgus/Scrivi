@@ -669,6 +669,15 @@ struct ManuscriptTextView: NSViewRepresentable {
         private var pendingRestoreCentre: (target: Int, sceneID: String)?
         private var lastLoggedClipY: CGFloat = 0        // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
         private var lastLoggedDocHeight: CGFloat = 0    // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+        // ⚠️ [I-0301] DIAGNOSTIC (Debug only): the writer's last wheel direction, to catch a clip move that goes AGAINST it.
+        private var lastWheelDY: CGFloat = 0
+        private var lastWheelAt = Date.distantPast
+
+        func noteWheel(_ dy: CGFloat) {   // ⚠️ [I-0301] DIAGNOSTIC (Debug only)
+            guard dy != 0 else { return }   // a phase's begin/end event carries no direction
+            lastWheelDY = dy
+            lastWheelAt = Date()
+        }
         private var restoreCentreUntil: Date?
         private var isCentringRestore = false
 
@@ -712,6 +721,21 @@ struct ManuscriptTextView: NSViewRepresentable {
                     scrollDiag(String(format: "[SCRIVI-SCROLL] clip y=%.0f (was %.0f) docH=%.0f (was %.0f)", y, lastLoggedClipY, h,
                           lastLoggedDocHeight))
                 }
+                #if DEBUG
+                // ⚠️ [I-0301] The 2026-10-17 log: mid-gesture the view went BACK ~35 pt, with none of Scrivi's scroll calls
+                // logged. A wheel step moves the clip opposite to its delta (dy > 0 → y falls), so a move the same way as dy,
+                // within 0.3 s of a wheel event, is something else moving the view. This notification is posted from INSIDE
+                // the origin change, so the call stack here names the caller.
+                let moved = y - lastLoggedClipY
+                if abs(moved) > 4, lastWheelDY != 0, moved * lastWheelDY > 0, Date().timeIntervalSince(lastWheelAt) < 0.3 {
+                    let stack = Thread.callStackSymbols.dropFirst(1).prefix(18).map { frame -> String in
+                        let parts = frame.split(separator: " ", omittingEmptySubsequences: true)
+                        return parts.count > 3 ? "\(parts[1]):\(parts[3])" : String(frame)
+                    }
+                    scrollDiag(String(format: "[SCRIVI-SCROLL] AGAINST WHEEL clip y=%.0f (was %.0f, moved %+.0f) wheel dy=%.1f docH=%.0f stack=%@",
+                                      y, lastLoggedClipY, moved, lastWheelDY, h, stack.joined(separator: " < ")))
+                }
+                #endif
                 lastLoggedClipY = y
                 lastLoggedDocHeight = h
             }
@@ -3309,6 +3333,9 @@ final class ManuscriptNSTextView: NSTextView {
     override func scrollWheel(with event: NSEvent) {
         coordinator?.cancelRestoreCentre()
         // ⚠️ [I-0301] DIAGNOSTIC (Debug builds only; kept until the jitter is caught): the writer's scroll, against what the clip view then does.
+        #if DEBUG
+        coordinator?.noteWheel(event.scrollingDeltaY)
+        #endif
         if let clip = enclosingScrollView?.contentView {
             scrollDiag(String(format: "[SCRIVI-SCROLL] wheel dy=%.1f phase=%lu momentum=%lu clipY=%.0f docH=%.0f", event.scrollingDeltaY,
                   event.phase.rawValue, event.momentumPhase.rawValue, clip.bounds.minY, frame.height))

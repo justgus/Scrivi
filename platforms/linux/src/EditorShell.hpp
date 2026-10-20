@@ -58,6 +58,8 @@ public:
     // ⚠️ [SP-146] T-0559 — `env` is the app-global owner, or nullptr in tests.
     // ⛔ NOT owned here; it outlives this widget.
     explicit EditorShell(QWidget* parent = nullptr, AppEnvironment* env = nullptr);
+    // ✅ [I-0310]: hides first, while the document the editor shows still exists (see the definition).
+    ~EditorShell() override;
 
     // Open `projectPath` into the editor. `appSupportRoot` is the injected stable
     // path; `title` is the display title (from recents).
@@ -721,6 +723,8 @@ private:
     // True while load() is programmatically assembling the document, so the
     // contentsChange / cursor hooks ignore those (non-user) events.
     bool                loading_ = false;
+    // [I-0297]: the texts the next `load()` of THIS project takes from memory instead of the disk (`reloadThen`).
+    QHash<QString, QString> reloadTexts_;
     int                 timelineBuilds_ = 0;   // [I-0285] see timelineBuildCount()
     int                 timelineUiReads_ = 0;  // [I-0285] see timelineUiThreadReadCount()
 
@@ -777,14 +781,18 @@ private:
     void warnIfSessionBoundary(const QVariantMap& step);
     // Reload the manuscript from disk (a structural op changed it), then put the caret `byteOffset` UTF-8 bytes into
     // `sceneID` (Apple: `reloadManuscriptFromDisk(caretSceneID:caretByteOffset:)`).
-    void reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset);
+    // ✅ [I-0297] (SP-185, Q2 "cut the reads"): `writtenTexts` = EVERY scene the step wrote, as the core reports them
+    // (`sceneTexts`). Given it, the reload reads no other scene's text: the rest come from memory (unchanged, and saved —
+    // the step saved any dirty scene first). ⛔ Only for a step that reports all it wrote: paste, uncut-paste.
+    void reloadThenPlaceCaret(const QString& sceneID, qint64 byteOffset, const QVariantMap& writtenTexts = {});
     // ⚠️ [I-0300]: `load()` reloads ASYNCHRONOUSLY ([T-0499]) — anything that must see the NEW manuscript (the caret, a
     // renumber) runs in `after`, once the reload has finished. Never straight after `load()`.
-    void reloadThen(std::function<void()> after);
+    void reloadThen(std::function<void()> after, const QVariantMap& writtenTexts = {});
     // ✅ [I-0297]: a structural step's ScriviCore `work` runs OFF the UI thread (over a network share it walks the whole
     // manuscript — it froze the app for minutes), with the progress row showing `label`. The editor is read-only and
     // `loading_` set until `then` has run and its reload has landed (or, on failure, `failed`).
-    void runStructural(const QString& label, std::function<QVariantMap()> work,
+    // ✅ [I-0309]: `work` is handed the worker's OWN bridge — it must never capture `bridge_`.
+    void runStructural(const QString& label, std::function<QVariantMap(ScriviBridge&)> work,
                        std::function<void(const QVariantMap&)> then, std::function<void()> failed);
     // The caret `byteOffset` UTF-8 bytes into `sceneID`'s body, the navigator following; false when the scene is not loaded.
     bool placeCaret(const QString& sceneID, qint64 byteOffset);

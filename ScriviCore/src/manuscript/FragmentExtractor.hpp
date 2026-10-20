@@ -71,6 +71,8 @@ struct Fragment {
     std::string                plainText;  // pieces' text joined by a blank-line seam (T2 flattening)
 };
 
+struct ResolvedScene;   // ManuscriptOrderResolver.hpp
+
 class FragmentExtractor {
 public:
     explicit FragmentExtractor(CoreServices& services);
@@ -81,6 +83,14 @@ public:
     // span exceeds its scene body's byte length. ioError if a scene body can't be read.
     [[nodiscard]] Result<Fragment> extract(const AbsolutePath& projectRoot,
                                            const std::vector<FragmentSpan>& spans) const;
+
+    // ✅ [I-0307] (SP-185): the same, given the manuscript's reading order. The overload above RESOLVES it, which reads
+    // and parses EVERY scene sidecar (`ManuscriptOrderResolver::resolve`, the [I-0196] cost): measured 2,492 sidecar reads
+    // for one cross-scene copy of 1,186 scenes, on the GUI thread. A caller holding the project index passes its order,
+    // and only the spanned scenes' bodies are read.
+    [[nodiscard]] Result<Fragment> extract(const AbsolutePath& projectRoot,
+                                           const std::vector<FragmentSpan>& spans,
+                                           const std::vector<ResolvedScene>& ordered) const;
 
 private:
     CoreServices& services_;

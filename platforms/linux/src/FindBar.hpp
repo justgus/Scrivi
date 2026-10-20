@@ -8,8 +8,14 @@
 // ✅ SP-181 (EP-048 S4b): the Replace row — the replacement, Replace and Replace All ([SP-181] Q1) — shown by Find and
 // Replace… (Ctrl+Alt+F). Replace acts on the CURRENT match only, then finds the next; with no current match it only finds
 // (Q2). Replace All is the shell's: the work runs off the GUI thread and only the scenes holding a match are written (Q3).
-// Matches are of the PRESENTED text (`ManuscriptFind::PresentedText`), built at the first Find and rebuilt after an edit —
-// a writer who never searches never pays for it. Every match in view is highlighted (extra selections: drawing only, the
+// Matches are of the PRESENTED text (`ManuscriptFind::PresentedText`), rebuilt per scene after an edit.
+// ✅ [T-0613] (SP-185, user 2026-10-17: *"you begin typing, it allows you to type a word or a phrase, and when you stop typing
+// (say 500 ms), then it does all the initialization it needs"*): typing in the query never waits.
+//   • A keystroke only restarts a 500 ms pause; the search runs when it ends. Return, Next, Previous and the buttons run a
+//     pending search at once.
+//   • The presented text is built AHEAD, after each load, in ~8 ms slices while the app is idle — never on a keystroke (it
+//     was built on the first one, on the GUI thread: ~1 s in Debug on dumas). An action asked for before it is complete
+//     waits for it, the count reading "Searching…", and runs when it is. Every match in view is highlighted (extra selections: drawing only, the
 // document is untouched); the current one is the editor's selection.
 
 #include <QWidget>
@@ -70,6 +76,13 @@ public:
     QCheckBox* ignoreCaseBox() const { return ignoreCase_; }
     int presentedBuilds() const { return builds_; }   // refreshes that rebuilt anything
     int scenesRebuilt() const { return lastRebuilt_; }  // by the last of them
+    // [T-0613] Tests: the presented text is built; nothing is waiting (no pause running, no action queued on the build).
+    bool presentedReady() const { return presentedReady_; }
+    bool searchSettled() const;
+    qint64 longestSliceMs() const { return longestSliceMs_; }   // the longest the build has held the GUI thread at once
+
+    static constexpr int kQueryPauseMs = 500;   // [T-0613] the user's "say 500 ms"
+    static constexpr int kSliceMs = 8;
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -79,6 +92,13 @@ private:
     void step(bool forward);
     void useSelection();
     void queryChanged();            // incremental: re-search, select the first match from the selection's start
+    // [T-0613]
+    enum class Pending { None, Query, Next, Previous, Replace, ReplaceAll, UseSelection };
+    void onQueryEdited();           // a keystroke: restart the pause, nothing else
+    bool flushQuery();              // a pending search runs NOW; true when it did
+    bool readyFor(Pending action);  // false (and `action` queued, "Searching…") until the presented text is built
+    void buildSlice();
+    void runPending();
     void onContentsChange(int position, int removed, int added);   // a member slot: Qt::UniqueConnection needs one
     const ManuscriptFind::PresentedText& presented();
     ManuscriptFind::Options options() const;
@@ -109,4 +129,12 @@ private:
     MarkdownRange selectedAs_;
     int builds_ = 0;
     int lastRebuilt_ = 0;
+    // [T-0613]
+    QTimer* queryPause_;
+    QTimer* buildTimer_;
+    bool presentedReady_ = false;
+    int buildCursor_ = 0;
+    qint64 buildStartedMs_ = 0;
+    qint64 longestSliceMs_ = 0;
+    Pending pending_ = Pending::None;
 };

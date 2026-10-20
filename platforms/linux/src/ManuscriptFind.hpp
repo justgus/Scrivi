@@ -41,6 +41,9 @@ public:
     // Bring it up to date with `doc`: a scene is rebuilt when it was marked edited, or its id or body length no longer
     // match (a structural change — insert, delete, move — shows up as one of those). Returns how many scenes were rebuilt.
     int refresh(const SceneDocument& doc, const ManuscriptPresenter* presenter);
+    // ✅ [T-0613]: the same, a SLICE at a time — from scene `from`, until `budgetMs` has passed (at least one scene).
+    // Returns the scene to resume from; at `doc.segments().size()` call `refresh()` once more, which then only checks.
+    int refreshSlice(const SceneDocument& doc, const ManuscriptPresenter* presenter, int from, int budgetMs);
     // An edit at document position `pos` (after the scene map was reconciled): its scene is rebuilt at the next refresh.
     void markEdited(const SceneDocument& doc, int pos);
 
@@ -67,6 +70,8 @@ private:
     };
     static void buildScene(Scene& scene, QTextDocument* doc, int bodyStart, int bodyLength,
                            const ManuscriptPresenter* presenter);
+    // Brings scene `i` up to date with segment `i`; true when it was rebuilt.
+    bool refreshScene(int i, const SceneDocument& doc, QTextDocument* text, const ManuscriptPresenter* presenter);
     QVector<Scene> scenes_;
 };
 

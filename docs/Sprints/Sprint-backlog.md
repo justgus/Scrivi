@@ -4,6 +4,19 @@ Sprints listed here are in 🔵 Planning status — defined and ready to activat
 
 ---
 
+## 🔵 EP-053 — S2–S5 (created 2026-10-20)
+
+| Sprint | Scope | Record | Waits on |
+| ------ | ----- | ------ | -------- |
+| **SP-187** | `[Cross]` **S2** — the scene list as the model of record; copy, paste and its undo, split and merge; no reload | [`Sprint-SP-187.md`](Sprint-SP-187.md) | [SP-186]; Q1–Q3 |
+| **SP-188** | `[Cross]` **S3** — structural cut, Backspace / Delete over scenes, and their undo | [`Sprint-SP-188.md`](Sprint-SP-188.md) | SP-187; Q1–Q2 |
+| **SP-189** | `[Cross]` **S4** — the background sync verification | [`Sprint-SP-189.md`](Sprint-SP-189.md) | SP-188; Q1–Q2 |
+| **SP-190** | `[Cross]` **S5** — Mac and rig live passes over the share, timed | [`Sprint-SP-190.md`](Sprint-SP-190.md) | SP-189; Q1 |
+
+Order: SP-187 → SP-188 → SP-189 → SP-190 (user, 2026-10-20: each operation ships with its undo).
+
+---
+
 ## 🔵 EP-048 — S5a–S5c (created 2026-10-15)
 
 | Sprint | Scope | Record | Waits on |
@@ -47,7 +60,7 @@ source *creation*, AC5's footnotes are verifiable only on hand-authored fixtures
 
 *Last Updated: 2026-10-15 (SP-181 activated and removed.)*
 
-*Last Updated: 2026-10-15 (SP-181–SP-184 created in 🔵 Planning.)*
+*Last Updated: 2026-10-20 (SP-187–SP-190, EP-053 S2–S5, created in 🔵 Planning.)*
 
 *Last Updated: 2026-10-13 (SP-180 activated and removed.)*
 

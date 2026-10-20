@@ -11,6 +11,8 @@
 #include "manuscript/SceneWriter.hpp"
 #include "util/PathUtils.hpp"
 
+#include <memory>
+#include <optional>
 #include <unordered_map>
 
 namespace scrivi::manuscript {
@@ -27,7 +29,38 @@ Error invalidArg(std::string message)
 FragmentPaster::FragmentPaster(CoreServices& services)
     : services_(services) {}
 
+namespace {
+
+// The whole manuscript, resolved from disk, as a lookup (the overloads without one).
+Result<FragmentPaster::SceneLookup> resolvingLookup(CoreServices& services, const AbsolutePath& root)
+{
+    ManuscriptOrderResolver resolver{services};
+    auto resolvedR = resolver.resolve(root);
+    if (!resolvedR.ok())
+        return Result<FragmentPaster::SceneLookup>::failure(resolvedR.error());
+    auto byID = std::make_shared<std::unordered_map<std::string, ResolvedScene>>();
+    for (const auto& s : resolvedR.value())
+        byID->emplace(s.sceneID.value, s);
+    return Result<FragmentPaster::SceneLookup>::success([byID](const SceneID& id) -> std::optional<ResolvedScene> {
+        const auto it = byID->find(id.value);
+        return it == byID->end() ? std::nullopt : std::optional<ResolvedScene>{it->second};
+    });
+}
+
+}   // namespace
+
 Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& request)
+{
+    using R = Result<PasteFragmentResult>;
+    if (request.fragment.pieces.empty())
+        return R::failure(invalidArg("empty fragment: nothing to paste"));
+    auto lookup = resolvingLookup(services_, request.projectRootPath);
+    if (!lookup.ok())
+        return R::failure(lookup.error());
+    return paste(request, lookup.value());
+}
+
+Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& request, const SceneLookup& lookup)
 {
     using R = Result<PasteFragmentResult>;
 
@@ -37,18 +70,11 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
 
     const AbsolutePath& root = request.projectRootPath;
 
-    // Locate the caret's scene (identity + paths + chapter) from disk order.
-    ManuscriptOrderResolver resolver{services_};
-    auto resolvedR = resolver.resolve(root);
-    if (!resolvedR.ok())
-        return R::failure(resolvedR.error());
-
-    const ResolvedScene* targetPtr = nullptr;
-    for (const auto& scene : resolvedR.value())
-        if (scene.sceneID.value == request.caretSceneID.value) { targetPtr = &scene; break; }
-    if (targetPtr == nullptr)
+    // Locate the caret's scene (identity + paths + chapter).
+    const std::optional<ResolvedScene> found = lookup(request.caretSceneID);
+    if (!found)
         return R::failure(invalidArg("caret scene not in manuscript: " + request.caretSceneID.value));
-    const ResolvedScene target = *targetPtr;
+    const ResolvedScene target = *found;
 
     // Read the target body and split it at the caret.
     SceneReader reader{services_};
@@ -201,10 +227,24 @@ Result<PasteFragmentResult> FragmentPaster::paste(const PasteFragmentRequest& re
     if (!w.ok()) return R::failure(w.error());
 
     result.writtenTexts = std::move(written);
+    // [I-0297]: the write's own report of what it changed — never looked up from a cached index.
+    result.affectedChapterIDs.push_back(target.chapterID);
+    for (const auto& id : result.createdChapterIDs) result.affectedChapterIDs.push_back(id);
     return R::success(std::move(result));
 }
 
 Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& request)
+{
+    using R = Result<UncutPasteResult>;
+    if (request.fragment.pieces.empty())
+        return R::failure(invalidArg("empty fragment: nothing to un-paste"));
+    auto lookup = resolvingLookup(services_, request.projectRootPath);
+    if (!lookup.ok())
+        return R::failure(lookup.error());
+    return uncutPaste(request, lookup.value());
+}
+
+Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& request, const SceneLookup& lookup)
 {
     using R = Result<UncutPasteResult>;
 
@@ -214,20 +254,16 @@ Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& req
 
     const AbsolutePath& root = request.projectRootPath;
 
-    // Resolve the manuscript to find the target scene + every created scene by ID.
-    ManuscriptOrderResolver resolver{services_};
-    auto resolvedR = resolver.resolve(root);
-    if (!resolvedR.ok())
-        return R::failure(resolvedR.error());
-
-    std::unordered_map<std::string, const ResolvedScene*> sceneByID;
-    for (const auto& s : resolvedR.value())
-        sceneByID.emplace(s.sceneID.value, &s);
-
+    // ✅ [I-0297]: the target and every created scene, each looked up ONCE and all of them BEFORE any delete — so every
+    // later answer (the chapters a deleted scene was in) is the pre-write one the write itself used.
+    std::unordered_map<std::string, std::optional<ResolvedScene>> looked;
     auto findScene = [&](const std::string& id) -> const ResolvedScene* {
-        auto it = sceneByID.find(id);
-        return it == sceneByID.end() ? nullptr : it->second;
+        auto it = looked.find(id);
+        if (it == looked.end()) it = looked.emplace(id, lookup(SceneID{id})).first;
+        return it->second ? &*it->second : nullptr;
     };
+    (void)findScene(request.targetSceneID.value);
+    for (const auto& sid : request.createdSceneIDs) (void)findScene(sid.value);
 
     const ResolvedScene* target = findScene(request.targetSceneID.value);
     if (target == nullptr)
@@ -291,6 +327,12 @@ Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& req
     for (const auto& ch : request.createdChapterIDs)
         createdChapterSet.emplace(ch.value, true);
 
+    // [I-0297]: what this un-paste changes, from its OWN resolution (taken above, before any delete).
+    std::vector<ChapterID> affected{target->chapterID};
+    for (const auto& sid : request.createdSceneIDs)
+        if (const ResolvedScene* sc = findScene(sid.value)) affected.push_back(sc->chapterID);
+    for (const auto& cid : request.createdChapterIDs) affected.push_back(cid);
+
     SceneDeleter sceneDeleter{services_};
     for (const auto& sid : request.createdSceneIDs) {
         const ResolvedScene* sc = findScene(sid.value);
@@ -316,6 +358,7 @@ Result<UncutPasteResult> FragmentPaster::uncutPaste(const UncutPasteRequest& req
     UncutPasteResult result;
     result.survivingSceneID = target->sceneID;
     result.survivingText    = std::move(restored);
+    result.affectedChapterIDs = std::move(affected);
     return R::success(std::move(result));
 }
 

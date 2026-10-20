@@ -1,6 +1,8 @@
 #include "ManuscriptEditor.hpp"
 #include "DiagnosticLog.hpp"
 
+#include <QScopedValueRollback>
+
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
@@ -381,6 +383,11 @@ bool ManuscriptEditor::event(QEvent* event)
 void ManuscriptEditor::keyPressEvent(QKeyEvent* event)
 {
     const DiagnosticLog::Span span("key press in the manuscript");
+    if (event->matches(QKeySequence::Copy)) {   // ✅ [I-0307]: the clipboard copy, marked as one
+        copyToClipboard();
+        event->accept();
+        return;
+    }
     // EP-026 S5 (SP-179 / T-0606): the copy-buffer chords (Apple: `keyDown`'s ⌘ / ⌃⌘ / ⌥ + digit).
     if (const auto [action, digit] = bufferChord(event); action != 0) {
         const QString bufferID = QString::number(digit);
@@ -837,7 +844,7 @@ QMimeData* ManuscriptEditor::createMimeDataFromSelection() const
     auto* mime = new QMimeData;
     // ✅ EP-026 S4: across scenes, the fragment is held here for Scrivi's own paste and its token rides on the clipboard;
     // the clipboard's text is the pieces joined by a blank line, no headings ([SP-180] Q4).
-    if (const auto cross = crossSceneCopy()) {
+    if (const auto cross = clipboardCopy_ ? crossSceneCopy() : std::nullopt) {   // [I-0307]: the clipboard's only
         heldFragment_ = cross->fragment;
         heldToken_ = QStringLiteral("%1:%2").arg(quintptr(this)).arg(++copySerial_);
         mime->setText(cross->presented);
@@ -1051,6 +1058,12 @@ void ManuscriptEditor::paintEvent(QPaintEvent* event)
     }
 }
 
+void ManuscriptEditor::copyToClipboard()
+{
+    const QScopedValueRollback<bool> clipboard(clipboardCopy_, true);
+    copy();
+}
+
 void ManuscriptEditor::cutSelection()
 {
     const DiagnosticLog::Span span("cut");
@@ -1067,7 +1080,7 @@ void ManuscriptEditor::cutSelection()
         widened.setPosition(start);
         widened.setPosition(end, QTextCursor::KeepAnchor);
         setTextCursor(widened);
-        copy();                              // the balanced copy (createMimeDataFromSelection)
+        copyToClipboard();                   // the balanced copy (createMimeDataFromSelection)
         emit pasteOrCutBegins(QStringLiteral("cut"), QString());   // EP-026 S2: a cut is its own undo step
         replaceRange(start, end, QString());  // ✅ SP-175: the balanced removal — a span it cuts into is closed and re-opened
         emit pasteOrCutEnded(QStringLiteral("cut"));
@@ -1177,7 +1190,7 @@ bool ManuscriptEditor::deleteAcrossScenes(int start, int end, bool copyFirst, co
         return false;
     }
     if (copyFirst) {
-        copy();
+        copyToClipboard();
     }
     // Back to front, ONE edit per body, so each contentsChange lands inside a single
     // body and SceneDocument::applyContentsChange reconciles it (an edit spanning a

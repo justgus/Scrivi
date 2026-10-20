@@ -190,12 +190,13 @@ void WorldsDialog::reload()
     loading_ = true;
     rebuildRows();
 
-    ScriviBridge* bridge = bridge_;
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);   // ✅ [I-0309]: never `bridge_` itself
     const QString root   = projectRootPath_;
 
     AsyncCall::run<WorldsPayload>(
         this,
-        [bridge, root]() -> WorldsPayload {
+        [bridgeHandle, root]() -> WorldsPayload {
+            WorkerBridge bridge(bridgeHandle);
             WorldsPayload p;
             p.result = bridge->listWorlds(root);
             // ⚠️ An empty envelope is AMBIGUOUS — appendToArray omits the key

@@ -1,5 +1,45 @@
 # Active Epics
 
+## EP-053: `[Cross]` **Range-Based Structural Editing** — cut, copy, paste and undo as one Range, one core call, no reload
+
+**Status:** 🟡 **ACTIVE 2026-10-17** — created and started the same day (user: *"draft EP-053, start the first sprint and publish
+the design doc for my perusal"*). S1 = [SP-186] (active).
+**Design:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — ✅ ruled
+2026-10-17 (R1–R7, Q1–Q5). Supersedes v0.1 (EP-029) where they differ.
+**Codebase:** `[ScriviCore]` first, then `[Apple]` and `[Linux]` together — the same shape and the same threads on both (R5).
+**Absorbs:** [I-0297] (a paste's undo takes 40 s over the share — its last part, the reload), [I-0311] (a chapter-opening paste
+scrambles the reading order), and the structural half of [SP-185].
+**Relates to:** [EP-052] (Background Writes): once EP-052's per-project write queue exists, EP-053's structural calls run on
+it; until then each platform runs them off its main thread itself (S2).
+
+**Goal:** ✅ A cut, copy, paste or undo across scenes and chapters touches only the files in its range — a two-scene paste is
+4 reads and 4 writes — is one ScriviCore call, never reloads the manuscript, and behaves and performs the same on the Mac and
+on Linux, over a network share as on a local disk.
+
+**Why (measured 2026-10-17, 1,186 scenes):** a copy read every scene sidecar (2,678 file calls); a paste re-read its chapter
+three times (184); both apps re-opened the whole project after every paste (~1,700 + every scene text — the Mac on its main
+thread, one core call per scene); a cut no longer removed structure, so paste and cut were not inverses. Design §2–§3.
+
+**Sprints:**
+
+| Sprint | Scope | Status |
+| ------ | ----- | ------ |
+| **[SP-186]** | **S1** — `[ScriviCore]` the Range (`scrivi.range.v1`) and the range operations: read, paste ([I-0311] fixed), structural cut, each returning the delta; order keys from the index; the index patched in place; count guards (a two-scene paste = 4 reads + 4 writes) | 🟡 **ACTIVE 2026-10-17** → [`../Sprints/Sprint-SP-186.md`](../Sprints/Sprint-SP-186.md) |
+| **[SP-187]** | **S2** — `[Apple]` + `[Linux]` the scene list as the model of record (design §4.2a); copy builds the Range from memory; paste and its undo (a range cut); split, merge, chapter create and merge; the delta applied, no reload, the core call off the main thread on both · ➡️ takes [SP-185] AC4 | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-187.md`](../Sprints/Sprint-SP-187.md) · ⏳ Q1–Q3 |
+| **[SP-188]** | **S3** — `[Apple]` + `[Linux]` structural cut; Backspace / Delete over scenes = Cut minus the clipboard (Q4); cut's undo (a range paste); old `structuredCut` nodes still undo | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-188.md`](../Sprints/Sprint-SP-188.md) · ⏳ Q1–Q2 |
+| **[SP-189]** | **S4** — `[Cross]` the background sync verification (disk wins, silently — Q3) | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-189.md`](../Sprints/Sprint-SP-189.md) · ⏳ Q1–Q2 |
+| **[SP-190]** | **S5** — Mac and rig live passes over the share, timed by the diagnostic logs | 🔵 **PLANNING 2026-10-20** → [`../Sprints/Sprint-SP-190.md`](../Sprints/Sprint-SP-190.md) · ⏳ Q1 |
+
+**Planning rulings (user, 2026-10-20):** ✅ each operation ships with its undo (paste + its undo in S2, cut + its undo in
+S3; verification moves to S4, history no longer a Sprint of its own) · ✅ split, merge and chapter create/merge are in scope,
+in S2 · ✅ new history op names `rangePaste` / `rangeCut` in `scrivi.history.v1`, backward-compatible (old
+`structuredPaste` / `structuredCut` nodes keep undoing).
+
+**Tasks:** 🟡 [T-0614] (SP-186) · 🔵 [T-0615] (SP-187) · 🔵 [T-0616] (SP-188) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
+**Issues:** 🔵 [I-0311] (→ [SP-186]) · 🔵 [I-0297] (its reload half → S2).
+
+---
+
 ## EP-050: `[Apple]` ⚠️ **Manuscript Accessibility** — VoiceOver reads the page the writer reads
 
 **Status:** 🟡 **ACTIVE 2026-10-08** (SP-171 activated) — created 2026-10-08 (user: *"let's look at I-0277"*; rulings A1–A3 the same day). ✅ S1 = [SP-171], ✅ closed 2026-10-08; S2 = [SP-172], ✅ closed 2026-10-09.
@@ -57,7 +97,7 @@ caret-snap rules. ✅ `NSAccessibilityCustomRotor` (macOS 10.13+) has `NSAccessi
 
 ## EP-048: `[Linux]` ⚠️ **Manuscript Renderer Parity**
 
-**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11); S4 (Find) closed (SP-176, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — ✅ L8's Find half met (S4, [SP-176], rig live pass 2026-10-11); its Replace half is S4b ([SP-181], 🟡 Active; Linux undo now exists). L10 is S5a–S5c ([SP-182]–[SP-184], 🔵 Planning). ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11).
+**Status:** 🟡 **ACTIVE** since 2026-10-07 — S1, S2 and SP-173 closed; S3a closed (SP-174, 2026-10-10); S3b closed (SP-175, 2026-10-11); S4 (Find) closed (SP-176, 2026-10-11). L1–L7 and L9 met (S3b, 2026-10-10; Linux has no undo yet and no structured cross-scene paste — recorded in SP-175); L8 and L10 open — ✅ L8's Find half met (S4, [SP-176], rig live pass 2026-10-11); its Replace half is S4b ([SP-181], 🟡 Active; implemented, ⏳ rig pass). L10 is S5a–S5c: S5a ([SP-182]) 🟡 Active (implemented, ⏳ rig pass); S5b ([SP-183]) and S5c ([SP-184]) 🔵 Planning. ✅ **EP-048 stays open until EP-026 lands** (user, 2026-10-11).
 **Sprints:**
 
 | Sprint | Scope | Status |
@@ -171,7 +211,7 @@ undoes the same on both platforms.
 | S3 | `[Linux]` branching: fork popover, History card, stale-branch purge, Undo History settings section — ⚠️ the section goes into the dialog [EP-048] S5a ([SP-182]) builds | not yet created |
 | **[SP-180]** | **S4** — `[Linux]` structured cut/copy/paste across scenes (EP-029 on Linux); replaces [SP-178] Q2's and [SP-179] Q1's stopgaps | 🟡 **ACTIVE 2026-10-13** → [`../Sprints/Sprint-SP-180.md`](../Sprints/Sprint-SP-180.md) · ✅ Q1–Q4 ruled · ✅ AC0–AC8 met; ⏳ AC9 rig live pass |
 | **[SP-179]** | **S5** — `[Linux]` copy buffers (Ctrl / Ctrl+Shift / Alt + 1–9), View ▸ Show Buffers (Ctrl+Alt+B) and the palette; ⚠️ structured buffers wait for S4 (SP-179 Q1) | ✅ **CLOSED 2026-10-15** (user-approved) → [`../Sprints/Closed/Sprint-SP-179.md`](../Sprints/Closed/Sprint-SP-179.md) · ✅ Q1–Q4 ruled · ✅ rig live pass 2026-10-13; [T-0606] verified · ⚠️ **planned BEFORE S3/S4** on my recommendation (user: *"start planning S5"*) |
-| **[SP-185]** | `[Linux]` responsive after load: the 2026-10-15 rig pass's crash in the find bar ([I-0308]) and freezes ([I-0307], [I-0297]); [I-0309]; a diagnostic log ([T-0612]) | 🟡 **ACTIVE 2026-10-17** → [`../Sprints/Sprint-SP-185.md`](../Sprints/Sprint-SP-185.md) · ⏳ Q1–Q3 |
+| **[SP-185]** | `[Linux]` responsive after load: the 2026-10-15 rig pass's crash in the find bar ([I-0308]) and freezes ([I-0307], [I-0297]); [I-0309]; a diagnostic log ([T-0612]) | 🟡 **ACTIVE 2026-10-17** → [`../Sprints/Sprint-SP-185.md`](../Sprints/Sprint-SP-185.md) · ✅ Q1–Q3 ruled 2026-10-17 |
 
 **Tasks:** ✅ [T-0604] (SP-177 — VERIFIED, archived) · 🟠 [T-0605] (SP-178 — implemented, not verified; incl. [I-0287]) · 🟠 [T-0607] (SP-180 — implemented, not verified; ⏳ rig pass; incl. [I-0293]–[I-0296]) · ✅ [T-0606] (SP-179 — VERIFIED, archived; incl. `[Apple]` [I-0289] ✅ verified (balanced buffers) and [I-0290] ✅ verified (paste chord ⌃⌘1–9); [I-0291] ✅ verified (palette modifier)). **Issues found in S2 and ruled into [SP-178]:** ✅ [I-0287] (undo after split/merge — VERIFIED 2026-10-15, archived) · ✅ [I-0288] (undo after an outside edit, in a later session — VERIFIED 2026-10-12, archived).
 

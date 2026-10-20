@@ -5,6 +5,7 @@
 #include <QVariantMap>
 #include <QStringList>
 #include <QHash>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <qqmlintegration.h>
@@ -36,6 +37,17 @@ class ScriviBridge : public QObject
 
 public:
     explicit ScriviBridge(QObject* parent = nullptr);
+
+    // ✅ [I-0309] What a bridge carries between calls: only who is calling. A worker builds its OWN bridge from a copy of
+    // this (`WorkerBridge`), so it never borrows one a window owns (closing the window freed it under a running load).
+    struct Identity {
+        bool ready = false;
+        QString identityID;
+        QString personaID;
+        QString displayName;
+    };
+    Identity identity() const { return {ready_, identityID_, personaID_, displayName_}; }
+    explicit ScriviBridge(const Identity& identity, QObject* parent = nullptr);
 
     bool ready() const { return ready_; }
     QString identityID() const { return identityID_; }
@@ -670,4 +682,44 @@ private:
     QString identityID_;
     QString personaID_;
     QString displayName_;
+};
+
+// ✅ [I-0309] A worker's link back to the GUI: its bridge's errors (and a load's progress) cross through this, never through
+// an object the window owns. Owned jointly by the window and the worker (`WorkerBridge::Handle`), deleted on the GUI thread
+// (`deleteLater`) when the last of them lets go. If the window closes first, Qt drops its connections, and the worker's
+// emits go nowhere — harmlessly.
+class ScriviBridgeRelay : public QObject
+{
+    Q_OBJECT
+
+public:
+    using QObject::QObject;
+
+signals:
+    void errorOccurred(int code, const QString& message);
+    void progress(int done, int total, int scenes);   // a load's (EditorShell::loadProgress)
+};
+
+// ✅ [I-0309] THE ONLY WAY A WORKER CALLS THE CORE. Build the handle on the GUI thread (`WorkerBridge::handleFor`), capture
+// it BY VALUE, and build the `WorkerBridge` INSIDE the worker: it lives and dies on the worker thread, and the bridge's
+// failure flag is per thread anyway (SP-173 D5). Errors reach the source bridge's `errorOccurred` listeners exactly as
+// before (queued), while the source exists.
+class WorkerBridge
+{
+public:
+    struct Handle {
+        ScriviBridge::Identity identity;
+        std::shared_ptr<ScriviBridgeRelay> relay;
+    };
+    // GUI thread. `source` is the bridge whose `errorOccurred` the worker's errors are forwarded to.
+    static Handle handleFor(ScriviBridge* source);
+
+    explicit WorkerBridge(const Handle& handle);
+    ScriviBridge* operator->() { return &bridge_; }
+    ScriviBridge& operator*() { return bridge_; }
+    ScriviBridgeRelay* relay() const { return relay_.get(); }
+
+private:
+    std::shared_ptr<ScriviBridgeRelay> relay_;
+    ScriviBridge bridge_;
 };

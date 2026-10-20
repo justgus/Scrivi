@@ -27,6 +27,7 @@
 // Design: docs/Scrivi_Structured_CutCopyPaste_Design_v0_1.md §3, §4.2 (approved 2026-07-27).
 
 #include "manuscript/FragmentExtractor.hpp"  // Fragment / FragmentPiece / OpensWith / Partial
+#include "manuscript/ManuscriptOrderResolver.hpp"  // ResolvedScene
 
 #include "scrivi/IDs.hpp"
 #include "scrivi/Result.hpp"
@@ -34,7 +35,9 @@
 #include "scrivi/Types.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -59,6 +62,11 @@ struct PasteFragmentResult {
     // [I-0297]: sceneID → the body this paste WROTE (the target and every created scene), exactly as on disk — so nothing
     // has to find and re-read them (each lookup walked the manuscript; over a network share that froze the app).
     std::map<std::string, std::string> writtenTexts;
+    // ✅ [I-0297] (SP-185): every chapter this paste CHANGED on disk — the target scene's (rewritten, scenes added) and each
+    // chapter it created. No other chapter is touched (scenes are only ever added after the running scene, chapters only
+    // after the running chapter). The C ABI rebuilds just these in the project index (`ChapterRebuildGuard`) instead of
+    // dropping it whole — a whole drop cost a full manuscript walk on the next read (1,186 scenes: ~1,250 sidecars).
+    std::vector<ChapterID> affectedChapterIDs;
 };
 
 // The exact inverse of a paste (EP-029 AC6 / T-0356 — undo of a structured paste, and redo of a
@@ -76,6 +84,9 @@ struct UncutPasteRequest {
 struct UncutPasteResult {
     SceneID survivingSceneID;   // the target scene, now restored to its pre-paste body
     std::string survivingText;  // [I-0297]: that body, exactly as written
+    // ✅ [I-0297] (SP-185): every chapter this un-paste CHANGED on disk — the target's (restored), each chapter a deleted
+    // scene was in, and each deleted chapter (gone from disk, so the rebuild simply no longer lists it).
+    std::vector<ChapterID> affectedChapterIDs;
 };
 
 class FragmentPaster {
@@ -86,10 +97,18 @@ public:
     // offset exceeds the target scene body. ioError on a read/write failure.
     [[nodiscard]] Result<PasteFragmentResult> paste(const PasteFragmentRequest& request);
 
+    // ✅ [I-0297] (SP-185): finds ONE scene (identity, paths, chapter); nullopt = not in the manuscript.
+    // ⚠️ The overloads above RESOLVE the whole manuscript to find the few scenes they touch — every scene sidecar read
+    // twice (2,641 reads for one paste into 1,186 scenes, measured; over a network share most of a frozen undo). The C ABI
+    // answers from the project index instead, and from disk when the index has no answer.
+    using SceneLookup = std::function<std::optional<ResolvedScene>(const SceneID&)>;
+    [[nodiscard]] Result<PasteFragmentResult> paste(const PasteFragmentRequest& request, const SceneLookup& lookup);
+
     // The inverse of paste (T-0356). invalidArgument if the fragment is empty, the target scene is
     // unknown, or a created scene body is shorter than the piece text it should end with (a state
     // that cannot have come from this fragment's paste). ioError on a read/write failure.
     [[nodiscard]] Result<UncutPasteResult> uncutPaste(const UncutPasteRequest& request);
+    [[nodiscard]] Result<UncutPasteResult> uncutPaste(const UncutPasteRequest& request, const SceneLookup& lookup);
 
 private:
     CoreServices& services_;

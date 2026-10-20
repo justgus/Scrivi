@@ -20,6 +20,7 @@
 #include "mocks/FixedClock.hpp"
 #include "mocks/MockGitProvider.hpp"
 #include "mocks/MockSecureStore.hpp"
+#include "mocks/CountingFileSystem.hpp"
 
 #include "platform/LocalFileSystem.hpp"
 #include "manuscript/FragmentExtractor.hpp"
@@ -321,4 +322,45 @@ TEST_CASE("extract - out-of-order spans rejected", "[integration][T-0351]") {
     auto r = p.extractor().extract(p.projectDir.str(), { whole(p.s1bID, S1B), whole(p.s1aID, S1A) });
     REQUIRE_FALSE(r.ok());
     CHECK(r.error().code == scrivi::ErrorCode::invalidArgument);
+}
+
+// ---------------------------------------------------------------------------
+// [I-0307] (SP-185): given the reading order, extract reads ONLY the spanned scenes
+// ---------------------------------------------------------------------------
+// ⚠️ The resolving overload reads and parses EVERY scene sidecar: measured 2,492 sidecar reads for one cross-scene copy of
+// 1,186 scenes, on the Linux GUI thread (a 10-15 s freeze over the writer's network share). `scrivi_fragment_extract` now
+// passes the project index's order; this pins what that buys.
+TEST_CASE("extract - given the reading order, only the spanned scenes are read", "[integration][I-0307]") {
+    FragProject p;
+    ms::ManuscriptOrderResolver resolver{p.services};
+    auto ordered = resolver.resolve(p.projectDir.str());
+    REQUIRE(ordered.ok());
+
+    scrivi::testing::CountingFileSystem counting{p.lfs};
+    scrivi::CoreServices counted = p.services;
+    counted.fileSystem = &counting;
+    ms::FragmentExtractor ex{counted};
+    const std::vector<ms::FragmentSpan> spans{ms::FragmentSpan{p.s1bID, 6, S1B.size()},
+                                              ms::FragmentSpan{p.s2ID, 0, 7}};
+    auto r = ex.extract(p.projectDir.str(), spans, ordered.value());
+    REQUIRE(r.ok());
+    // The two spanned bodies, plus the tail's one documented re-read (its length decides `partial`) — and NO sidecar.
+    CHECK(counting.total().readTextFile == 3);
+    for (const auto& [path, counts] : counting.byPath()) {
+        INFO("read: " << path);
+        CHECK(path.find(".json") == std::string::npos);
+    }
+    CHECK(counting.total().listDirectory == 0);   // no walk
+
+    // ✅ The same fragment as the resolving overload.
+    auto viaResolve = p.extractor().extract(p.projectDir.str(), spans);
+    REQUIRE(viaResolve.ok());
+    REQUIRE(r.value().pieces.size() == viaResolve.value().pieces.size());
+    for (std::size_t i = 0; i < r.value().pieces.size(); ++i) {
+        CHECK(r.value().pieces[i].text == viaResolve.value().pieces[i].text);
+        CHECK(r.value().pieces[i].opensWith == viaResolve.value().pieces[i].opensWith);
+        CHECK(r.value().pieces[i].chapterTitle == viaResolve.value().pieces[i].chapterTitle);
+        CHECK(r.value().pieces[i].sceneTitle == viaResolve.value().pieces[i].sceneTitle);
+    }
+    CHECK(r.value().plainText == viaResolve.value().plainText);
 }

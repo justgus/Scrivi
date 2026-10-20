@@ -10,9 +10,9 @@ created: 2026-10-17
 
 **Status:** 🟡 **ACTIVE** — created and activated 2026-10-17 (user: *"Yes lets do them all in a new sprint."*).
 **Carries:** [I-0308] (crash in the find bar), [I-0307] (select, copy and paste each freeze 10–15 s), [I-0297] (a structured
-paste's undo takes 40 s over the share), [I-0309] (closing a window mid-load frees memory its worker uses; found by plan step 0)
+paste's undo takes 40 s over the share), [I-0309] (closing a window mid-load frees memory its worker uses; found by plan step 0), [I-0310] (a shown window torn down crashed)
 → [`../Issues/Issue-active.md`](../Issues/Issue-active.md) · [T-0612] (a diagnostic
-log) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
+log) · [T-0613] (the find bar never freezes while the writer types) → [`../Tasks/Task-active.md`](../Tasks/Task-active.md).
 **Epic:** [EP-026] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md). Two of the three are its structured cut, copy and
 paste. [I-0308] came from [EP-048]'s find bar; it is here because the same rig pass found it, in the same session.
 **Size:** M–L. ⚠️ Every acceptance needs the **rig**: each finding showed only on the writer's 1,186-scene project over the
@@ -59,12 +59,14 @@ time, the window shows the work being done and how much remains.
 - Help ▸ Show Log Folder opens it, so the writer can send it.
 
 ### Q2 — [I-0297]: optimise, or only show progress?
+✅ **RULED 2026-10-17** (user): **cut the reads first, then progress** for whatever remains.
 The user's understanding (2026-10-17): *"optimization may not gain us anything."* ⚠️ The measurement says otherwise for
 this one. On local disk the same undo is 393 ms; over the share it is about 40 s. The difference is file calls on the
 share, and most of them re-read scenes the paste did not touch. Recommended: cut those reads first, then add progress
 for whatever remains.
 
 ### Q3 — Showing Replace All working (user's proposal)
+✅ **RULED 2026-10-17** (user): **a real count, and the view follows** a few times a second, showing replacements land.
 *"Scrolling to each location of the word and replacing it visually while also providing a real progress indicator (since we
 know exactly how many items need to be changed)."*
 - ✅ A real count works: the matches are known before the first replacement ("Replacing 312 of 2,048").
@@ -76,14 +78,22 @@ know exactly how many items need to be changed)."*
 
 ## Acceptance Criteria
 
-- [ ] AC0 — [I-0308] reproduced in Docker, or the reproduction attempt recorded with what it ruled out.
+- [x] AC0 — [I-0308] reproduced in Docker, or the reproduction attempt recorded with what it ruled out — ✅ not reproduced;
+  recorded in [I-0308] with what it rules out and what it cannot.
 - [ ] AC1 — [I-0308] fixed, with a test that fails before the fix; no crash in the rig pass's step 11.
-- [ ] AC1b — [I-0309] fixed: a window closed, or the app quit, during a load does not crash; proven under ASan.
+- [x] AC1b — [I-0309] fixed: a window closed, or the app quit, during a load does not crash; proven under ASan — ✅
+  `background_wait_smoke` §5 fails the old code under ASan and passes the fix. ⏳ The rig pass (AC6) closes dumas mid-load.
 - [x] AC2 — [T-0612] the log exists as ruled in Q1, and a deliberate stall shows up in it — ✅ `diagnostic_log_smoke` (CI),
   3 mutations caught (no watchdog · typed text logged · no crash handlers). ⏳ The rig pass (AC6) still reads a real one.
-- [ ] AC3 — [I-0307] measured on the rig; select, copy and paste across scenes do not freeze the window.
-- [ ] AC4 — [I-0297] a structured paste's undo over the share completes as Q2 rules.
-- [ ] AC5 — Q3 ruled, and built as ruled.
+- [ ] AC3 — [I-0307] measured on the rig; select, copy and paste across scenes do not freeze the window — ✅ measured and
+  fixed in Docker (Ctrl+C 2,678 → 3 GUI-thread file calls; the primary selection); ⏳ the rig.
+- [ ] AC4 — [I-0297] a structured paste's undo over the share completes as Q2 rules — ✅ paste 5,642 → 1,890 and undo
+  5,688 → 1,933 worker file calls. ➡️ **MOVED to [EP-053] S2** (user, 2026-10-20): the reload's full open (~1,700) is
+  removed there (no reload), not given progress here.
+- [ ] AC5 — Q3 ruled, and built as ruled. ✅ Q3 ruled 2026-10-17. ➡️ **The build WAITS FOR [EP-052]** (user, 2026-10-20):
+  showing replacements land changes Replace All's locked-editor shape, which EP-052's queue replaces.
+- [x] AC5b — [T-0613] typing in the find bar never waits: the search runs after a 500 ms pause, over text built ahead —
+  ✅ `find_smoke` (CI), 3 mutations caught. ⏳ The rig pass (AC6) types a search in dumas.
 - [ ] AC6 — ✅ **Rig live pass (user)**
 
 ## Progress log
@@ -119,3 +129,54 @@ know exactly how many items need to be changed)."*
 - Help ▸ Show Log Folder.
 - ✅ Debug build in Docker (Qt 6.4.2): smokes 36/36 (the new `diagnostic_log_smoke` included), ScriviCore ctest 728/728.
   The real app headless writes the header, Qt's message and the SIGTERM line.
+
+### 🟡 2026-10-17 — [I-0309] fixed
+- User: *"fix I-0309 while the probe runs"*. Every worker now builds its own bridge from a copy of the identity
+  (`WorkerBridge`); errors and a load's progress cross a relay the worker co-owns. Six workers moved, including the Scene
+  Inspector's and the Worlds dialog's (the same capture).
+- ✅ `background_wait_smoke` §5: the old code fails it under ASan (the same `heap-use-after-free`), and the fix passes it.
+  Debug Docker: smokes 36/36, ctest 728/728, CI script checks pass.
+
+### 🟡 2026-10-17 — [T-0613] filed: the find bar's first-keystroke build
+- The [I-0308] probe measured Linux building the whole manuscript's searchable text on the find bar's first keystroke, on the
+  GUI thread: 17 s under ASan (about 1.1 s Debug, 0.3 s Release).
+- User: *"I would prefer it if it worked like search on the mac … when you stop typing (say 500 ms), then it does all the
+  initialization it needs to complete the search."* Planned as [T-0613].
+
+### 🟡 2026-10-17 — [T-0613] built
+- User: *"yes, build T-0613 now"*. The search runs 500 ms after the last keystroke (Return, Next, Previous and Replace run a
+  pending one at once); the searchable text is built ahead after each load, in 8 ms idle slices; an action before it is
+  ready waits behind "Searching…".
+- Measured (Debug, Docker): 1,186 scenes built ahead over 1,132 ms, longest slice 8 ms. `find_smoke` 2 new sections, 3
+  mutations caught. Smokes 36/36, ctest 728/728, CI script checks pass.
+
+### 🟡 2026-10-17 — Q2 and Q3 ruled; the rest of the Sprint started
+- User: *"build the rest of SP-185 while the probe runs"*. Q2: cut the reads, then progress. Q3: count, and the view follows.
+- First step, as the plan says: attribute [I-0307] and [I-0297] by counting each phase's file calls per thread (`strace`, Docker).
+
+### 🟡 2026-10-17 — [I-0307] fixed, [I-0297] mostly cut, [I-0310] found and fixed; [I-0308] not reproduced
+- **Measured** (`strace`, Docker, 1,186 scenes, a real `EditorShell`, phases bracketed by marker probes): the cross-scene
+  Ctrl+C made 2,678 GUI-thread file calls; the paste's worker 5,642 and its undo's 5,688 (see the Issues).
+- **[I-0307]:** the extract takes its order from the project index (ScriviCore); the structured copy is built only for the
+  clipboard, never for the primary selection (Linux). Ctrl+C: 2,678 → 3.
+- **[I-0297] (Q2):** the paste and its undo find their scenes through the index, report the chapters they changed and rebuild
+  only those, and Linux's reload reads only what the step wrote. Paste 5,642 → 1,890; undo 5,688 → 1,933. ⏳ Left: the reload's
+  full open (~1,700).
+- **[I-0310]:** the measurement harness crashed at exit (a shown shell torn down); fixed and tested.
+- **[I-0308]:** the ASan replay of steps 7–11 on the real dumas-prose survived (Qt 6.4.2, offscreen). Recorded.
+- ✅ ctest Linux 730/730, macOS 726/726; Linux smokes 36/36; interop 292/292 (1 on-demand skipped); 6 mutations caught across
+  the new tests; the 2 that survived are recorded with why (a redundant chapter in the report; an unreachable dirty scene).
+
+### 🟡 2026-10-17 — The structural half re-planned (user)
+- After the measurements, user: *"do the design revision, answer my follow on questions above, provide a more detailed
+  description … and then start planning how we're going to get out of it."*
+- `docs/Scrivi_Structured_CutCopyPaste_Design_v0_2.md` (DRAFT, for ruling): range-based structural calls, the delta applied in
+  memory with no reload, a background sync verification, cut structural again (reversing 2026-10-02), the same threads on
+  both platforms; a proposed Epic (EP-053) absorbing [I-0297], [I-0311] and this Sprint's structural half.
+- [I-0311] filed: a chapter-opening paste scrambles the reading order.
+
+### 🟡 2026-10-20 — AC4 and AC5 re-homed (user)
+- User: *"AC4 goes to EP-053 S2; AC5 waits for EP-052."*
+- AC4: the paste and undo reads are cut here; the remaining reload goes away in [EP-053] S2 rather than getting progress.
+- AC5: Q3 (a real count; the view follows) stands as ruled; its design and build wait for [EP-052]'s write queue.
+- ⚠️ Neither AC closes in this Sprint. What remains here: AC1 ([I-0308]), AC3's rig half, AC6 (rig live pass).

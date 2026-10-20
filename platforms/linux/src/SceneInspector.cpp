@@ -379,7 +379,9 @@ void SceneInspector::reload()
     // no mutable state across a call except the failure flag, which is PER THREAD
     // (SP-173 D5): read here on the worker, it is the worker's own last call, and
     // it is copied into the payload before returning.
-    ScriviBridge* bridge = bridge_;
+    // ✅ [I-0309]: …and the worker builds its OWN bridge from this handle: the window owning `bridge_` can be closed while
+    // the worker is still parked on an unreachable volume.
+    const WorkerBridge::Handle bridgeHandle = WorkerBridge::handleFor(bridge_);
     const QString root   = projectRootPath_;
     const QString scene  = sceneID_;
 
@@ -389,7 +391,8 @@ void SceneInspector::reload()
 
     AsyncCall::run<ReloadPayload>(
         this,
-        [bridge, root, scene]() -> ReloadPayload {
+        [bridgeHandle, root, scene]() -> ReloadPayload {
+            WorkerBridge bridge(bridgeHandle);
             ReloadPayload p;
             p.edgesResult   = bridge->listEdgesFor(root, scene);
             p.edgesFailed   = bridge->lastCallFailed();

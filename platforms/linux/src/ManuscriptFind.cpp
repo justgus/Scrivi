@@ -1,5 +1,6 @@
 #include "ManuscriptFind.hpp"
 
+#include <QElapsedTimer>
 #include <QSet>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -51,19 +52,42 @@ int PresentedText::refresh(const SceneDocument& sceneDoc, const ManuscriptPresen
 {
     // ⚠️ `document()` is non-const on SceneDocument; reading text does not change it.
     QTextDocument* doc = const_cast<SceneDocument&>(sceneDoc).document();
-    const auto& segments = sceneDoc.segments();
-    scenes_.resize(segments.size());
+    scenes_.resize(sceneDoc.segments().size());
     int rebuilt = 0;
-    for (int i = 0; i < segments.size(); ++i) {
-        const SceneSegment& seg = segments[i];
-        Scene& scene = scenes_[i];
-        if (scene.edited || scene.sceneID != seg.sceneID || scene.bodyLength != seg.bodyLength) {
-            scene.sceneID = seg.sceneID;
-            buildScene(scene, doc, seg.bodyStart, seg.bodyLength, presenter);
-            ++rebuilt;
-        }
-        scene.bodyStart = seg.bodyStart;
+    for (int i = 0; i < sceneDoc.segments().size(); ++i) {
+        rebuilt += refreshScene(i, sceneDoc, doc, presenter) ? 1 : 0;
     }
+    return rebuilt;
+}
+
+int PresentedText::refreshSlice(const SceneDocument& sceneDoc, const ManuscriptPresenter* presenter, int from, int budgetMs)
+{
+    QTextDocument* doc = const_cast<SceneDocument&>(sceneDoc).document();
+    const int n = int(sceneDoc.segments().size());
+    scenes_.resize(n);   // ⚠️ the manuscript may have changed since the last slice; `refresh()`'s checks catch it after
+    QElapsedTimer t;
+    t.start();
+    int i = std::max(0, from);
+    for (; i < n; ++i) {
+        if (i > from && t.elapsed() >= budgetMs) {
+            break;
+        }
+        refreshScene(i, sceneDoc, doc, presenter);
+    }
+    return i;
+}
+
+bool PresentedText::refreshScene(int i, const SceneDocument& sceneDoc, QTextDocument* doc, const ManuscriptPresenter* presenter)
+{
+    const SceneSegment& seg = sceneDoc.segments()[i];
+    Scene& scene = scenes_[i];
+    bool rebuilt = false;
+    if (scene.edited || scene.sceneID != seg.sceneID || scene.bodyLength != seg.bodyLength) {
+        scene.sceneID = seg.sceneID;
+        buildScene(scene, doc, seg.bodyStart, seg.bodyLength, presenter);
+        rebuilt = true;
+    }
+    scene.bodyStart = seg.bodyStart;
     return rebuilt;
 }
 
