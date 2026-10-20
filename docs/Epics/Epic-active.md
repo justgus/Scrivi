@@ -35,7 +35,7 @@ S3; verification moves to S4, history no longer a Sprint of its own) · ✅ spli
 in S2 · ✅ new history op names `rangePaste` / `rangeCut` in `scrivi.history.v1`, backward-compatible (old
 `structuredPaste` / `structuredCut` nodes keep undoing).
 
-**Tasks:** 🟡 [T-0614] (SP-186) · 🔵 [T-0615] (SP-187) · 🔵 [T-0616] (SP-188) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
+**Tasks:** 🟠 [T-0614] (SP-186 — implemented, not verified) · 🔵 [T-0615] (SP-187) · 🔵 [T-0616] (SP-188) · 🔵 [T-0617] (SP-189) · 🔵 [T-0618] (SP-190).
 **Issues:** 🔵 [I-0311] (→ [SP-186]) · 🔵 [I-0297] (its reload half → S2).
 
 ---

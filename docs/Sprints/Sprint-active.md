@@ -10,4 +10,4 @@
 
 🟡 **[SP-185] ACTIVE 2026-10-17** `[Linux]` [EP-026] → [`Sprint-SP-185.md`](Sprint-SP-185.md) — responsive after load: the rig pass's crash ([I-0308]), freezes ([I-0307], [I-0297]), a crash found reproducing it ([I-0309]), and a diagnostic log. Task: T-0612.
 
-🟡 **[SP-186] ACTIVE 2026-10-17** `[ScriviCore]` [EP-053] **S1** → [`Sprint-SP-186.md`](Sprint-SP-186.md) — the Range (`scrivi.range.v1`) and the aggregate range operations (read, paste, structural cut), each returning the delta; a two-scene paste = 4 reads + 4 writes. Task: T-0614; [I-0311].
+🟡 **[SP-186] ACTIVE 2026-10-17** `[ScriviCore]` [EP-053] **S1** → [`Sprint-SP-186.md`](Sprint-SP-186.md) — the Range (`scrivi.range.v1`) and the aggregate range operations (read, paste, structural cut), each returning the delta; a two-scene paste = 3 reads + 5 writes (re-ruled 2026-10-20). AC0–AC6 met; ⏳ the user's review. Task: T-0614 (🟠); [I-0311]; [I-0312] found.

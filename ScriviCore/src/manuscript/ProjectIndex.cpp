@@ -188,6 +188,53 @@ bool ProjectIndex::rebuildChapters(const AbsolutePath&           projectRoot,
     return true;
 }
 
+void ProjectIndex::restampOrdinals() {
+    bySceneID_.clear();
+    bySceneID_.reserve(scenes_.size());
+    for (std::size_t i = 0; i < scenes_.size(); ++i) {
+        scenes_[i].ordinal = i;
+        bySceneID_.try_emplace(scenes_[i].sceneID.value, i);
+    }
+}
+
+bool ProjectIndex::insertScenesAfter(const SceneID& after, std::vector<SceneLocation> scenes) {
+    if (!valid_) { return false; }
+    const auto at = bySceneID_.find(after.value);
+    if (at == bySceneID_.end()) { return false; }
+    std::unordered_set<std::string> seen;
+    for (const auto& s : scenes) {
+        // ⛔ A scene already in the index, or named twice, means the caller is wrong about the manuscript.
+        if (bySceneID_.count(s.sceneID.value) > 0 || !seen.insert(s.sceneID.value).second) { return false; }
+    }
+    for (const auto& s : scenes) { storyTimes_.try_emplace(s.sceneID.value, SceneStoryTime{}); }
+    scenes_.insert(scenes_.begin() + static_cast<std::ptrdiff_t>(at->second + 1),
+                   std::make_move_iterator(scenes.begin()), std::make_move_iterator(scenes.end()));
+    restampOrdinals();
+    return true;
+}
+
+bool ProjectIndex::removeScenes(const std::vector<SceneID>& sceneIDs) {
+    if (!valid_) { return false; }
+    std::unordered_set<std::string> gone;
+    for (const auto& id : sceneIDs) {
+        if (bySceneID_.count(id.value) == 0 || !gone.insert(id.value).second) { return false; }
+    }
+    std::erase_if(scenes_, [&](const SceneLocation& s) { return gone.count(s.sceneID.value) > 0; });
+    for (const auto& id : gone) { storyTimes_.erase(id); }
+    restampOrdinals();
+    return true;
+}
+
+bool ProjectIndex::relocateScene(const SceneLocation& moved) {
+    if (!valid_) { return false; }
+    const auto it = bySceneID_.find(moved.sceneID.value);
+    if (it == bySceneID_.end()) { return false; }
+    const std::size_t ordinal = it->second;
+    scenes_[ordinal] = moved;
+    scenes_[ordinal].ordinal = ordinal;
+    return true;
+}
+
 bool ProjectIndex::patchStoryTime(const SceneID& sceneID, const SceneStoryTime& st) {
     // ⚠️ An invalid index is not patchable -- it describes nothing, so there is no
     // entry to correct. ✅ The caller drops it and the next query rebuilds.

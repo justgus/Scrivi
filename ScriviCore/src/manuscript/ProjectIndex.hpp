@@ -161,10 +161,28 @@ public:
                                        CoreServices&       services,
                                        const std::vector<ChapterID>& changed);
 
+    // EP-053 S1 (SP-186) — ✅ PATCH IN PLACE AFTER A RANGE OPERATION.
+    //
+    // ✅ R7 (design v0.2 §4.4): "the index is patched in place (no re-observation)". A range operation is the ONE writer
+    // that knows exactly what it changed, because it computed every name it wrote: it never asks the disk what the write
+    // touched, so the "which entries might this have touched?" question `rebuildChapters` exists to avoid does not arise.
+    // ⚠️ Each patch returns FALSE when a scene it names is not in the index (or is named twice); ⛔ the caller MUST then drop
+    // the whole index. On false the index is left UNTOUCHED.
+    //
+    // `insertScenesAfter`: the scenes go IMMEDIATELY after `after`, in the order given, with the default story time.
+    [[nodiscard]] bool insertScenesAfter(const SceneID& after, std::vector<SceneLocation> scenes);
+    // `removeScenes`: the scenes leave the reading order (a cut).
+    [[nodiscard]] bool removeScenes(const std::vector<SceneID>& sceneIDs);
+    // `relocateScene`: the same scene at the same reading position, in a new chapter or under new paths (a scene a paste or
+    // cut moves between chapters). Its story time is kept.
+    [[nodiscard]] bool relocateScene(const SceneLocation& moved);
+
     [[nodiscard]] bool        valid() const { return valid_; }
     [[nodiscard]] std::size_t sceneCount() const { return scenes_.size(); }
 
 private:
+    void restampOrdinals();
+
     std::vector<SceneLocation>                       scenes_;
     std::unordered_map<std::string, std::size_t>     bySceneID_;   // sceneID → ordinal
     std::unordered_map<std::string, SceneStoryTime>  storyTimes_;  // sceneID → story time

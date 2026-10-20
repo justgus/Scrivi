@@ -1011,6 +1011,63 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
                                         const char* targetSceneID,
                                         const char* createdIDsJson);
 
+/* ---- Range operations (EP-053 S1, SP-186 — T-0614) ---------------------- */
+
+/*
+ * The Range (design v0.2 §4.2): ONE contiguous run through the manuscript, as an ordered list of scene entries —
+ * scrivi.range.v1:
+ *   { "schema": "scrivi.range.v1",
+ *     "scenes": [ { sceneID, chapterID, chapterTitle, sceneTitle, start, length, sceneLength, text }, ... ] }
+ * The array's order IS the links. A scene break is the step from one entry to the next; a CHAPTER break is a step between
+ * entries whose chapterID differs. `start`, `length` and `sceneLength` are UTF-8 BYTES; only the first entry may start
+ * mid-scene and only the last may end mid-scene; `length` is the byte length of `text`.
+ *
+ * The write operations return the DELTA, the whole change in reading order, for the platform to apply to its own scene
+ * list instead of re-opening the project:
+ *   { scenes: [ { change: "created"|"rewritten"|"moved", sceneID, chapterID, title, chapterTitle, metadataPath,
+ *                 contentPath, chapterMetadataPath, afterSceneID, text? } ],      (text absent for "moved")
+ *     removedSceneIDs: [...], createdChapters: [ { chapterID, title, metadataPath, afterChapterID } ],
+ *     removedChapterIDs: [...] }
+ * ⚠️ An empty list is an ABSENT key. `afterSceneID` is the scene before it in reading order now ("" = the first).
+ * While the project's history is open, every scene text written is recorded as Scrivi's own [I-0296].
+ * Standard envelope conventions (heap JSON, free with scrivi_free). Neither app calls these yet (EP-053 S2).
+ */
+
+/* Reads the Range from (startSceneID, startByte) to (endSceneID, endByte), walking the manuscript's order — reads only
+ * those scenes' texts. result: { range }. invalidArgument if a scene is unknown, the end precedes the start, or an
+ * offset is outside its scene or inside a UTF-8 sequence. */
+const char* scrivi_range_read(const char* projectRootPath,
+                              const char* startSceneID, long long startByte,
+                              const char* endSceneID, long long endByte);
+
+/* Pastes a Range at a caret (design §4.4). The caret scene is split at `caretByteOffset`; its head takes the first
+ * entry's text; each later entry creates a scene, or a chapter and its first scene where the chapter changes; the tail
+ * goes onto the last created scene. When the Range opens a chapter, the caret chapter's scenes after the caret move into
+ * the last created chapter [I-0311]. A scene or chapter is re-created under the Range's own ID when the manuscript does
+ * not have it (it was cut), else under a fresh one (it was copied). `caretSceneText` is the caret scene's text as the
+ * editor holds it: ⛔ refused (invalidArgument) when it is not what is on disk. result: { delta, range } — `range` is what
+ * the paste INSERTED, under the real IDs (its undo is scrivi_range_cut of exactly that). */
+const char* scrivi_range_paste(const char* projectRootPath,
+                               const char* rangeJson,
+                               const char* caretSceneID,
+                               long long   caretByteOffset,
+                               const char* caretSceneText,
+                               const char* identityID,
+                               const char* personaID,
+                               const char* displayName);
+
+/* Cuts a Range out of the manuscript (design §4.3): the start scene keeps the text before it, joined directly to the
+ * text after it in the end scene; every other scene in it is deleted; every chapter left empty is deleted; the end
+ * chapter's scenes after it join the start scene's chapter. Relationship edges are NOT pruned (a paste of the same Range
+ * brings the IDs back). ⛔ Refused (invalidArgument) when the Range is not what the manuscript holds — its scenes
+ * consecutive, in the chapters it names, its first and last texts as on disk. result: { delta, range } — `range` is the
+ * Range removed (the clipboard's content; its undo is scrivi_range_paste of it at the cut's start). */
+const char* scrivi_range_cut(const char* projectRootPath,
+                             const char* rangeJson,
+                             const char* identityID,
+                             const char* personaID,
+                             const char* displayName);
+
 /* ---- Copy buffers (EP-019 SP-056 — T-0213) ------------------------------ */
 
 /*

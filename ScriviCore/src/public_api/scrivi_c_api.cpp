@@ -34,6 +34,7 @@
 #include "manuscript/ManuscriptOrderResolver.hpp"
 #include "manuscript/FragmentExtractor.hpp"
 #include "manuscript/FragmentPaster.hpp"
+#include "manuscript/RangeOperations.hpp"
 #include "util/AtomicWrite.hpp"
 #include "util/PathUtils.hpp"
 #include "util/ReadThroughCache.hpp"
@@ -4626,6 +4627,187 @@ const char* scrivi_fragment_uncut_paste(const char* projectRootPath,
     texts.setString(r.value().survivingSceneID.value, r.value().survivingText);
     doc.setSubDoc("sceneTexts", std::move(texts));
     return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+// --- Range operations (EP-053 S1, SP-186 — T-0614) ---------------------------
+// ✅ The Range (`scrivi.range.v1`, design v0.2 §4.2) and the three operations on it. Each makes one pass over exactly the
+// files in its range and returns the DELTA — the whole change, in reading order — so a platform applies it to its own scene
+// list instead of re-opening the project (P3). The index is PATCHED in place from what the operation wrote (R7).
+// ⛔ Neither app calls these yet: EP-053 S2 ([SP-187]) switches both platforms together.
+
+extern "C++" {
+namespace {
+
+// The index a range write patches: TAKEN from the registry (built when absent) and put back only when the write
+// succeeded AND patched it. ⛔ Any other ending leaves the project with no index, so the next read rebuilds (AC5b).
+struct RangeIndexGuard {
+    std::string root;
+    std::unique_ptr<scrivi::manuscript::ProjectIndex> index;
+
+    explicit RangeIndexGuard(std::string r) : root(std::move(r)) {
+        {
+            auto& reg = projectIndexRegistry();
+            std::lock_guard<std::mutex> lock(reg.mutex);
+            if (auto it = reg.byRoot.find(root); it != reg.byRoot.end()) {
+                index = std::move(it->second);
+                reg.byRoot.erase(it);
+            }
+        }
+        if (!index || !index->valid()) {
+            auto services = abiServices();
+            services.sceneLocator = nullptr;   // no recursion through the locator during a build
+            auto built = scrivi::manuscript::ProjectIndex::build(root, services);
+            index = built.ok() ? std::make_unique<scrivi::manuscript::ProjectIndex>(std::move(built.value())) : nullptr;
+        }
+    }
+    ~RangeIndexGuard() { if (!kept_) { invalidateProjectIndex(root); } }
+    RangeIndexGuard(const RangeIndexGuard&)            = delete;
+    RangeIndexGuard& operator=(const RangeIndexGuard&) = delete;
+
+    void keep() {
+        auto& reg = projectIndexRegistry();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+        reg.byRoot.insert_or_assign(root, std::move(index));
+        kept_ = true;
+    }
+
+private:
+    bool kept_ = false;
+};
+
+scrivi::util::JsonDoc sceneLocationJson(const scrivi::manuscript::SceneLocation& loc) {
+    scrivi::util::JsonDoc d;
+    d.setString("sceneID", loc.sceneID.value);
+    d.setString("chapterID", loc.chapterID.value);
+    d.setString("title", loc.title);
+    d.setString("chapterTitle", loc.chapterTitle);
+    d.setString("metadataPath", loc.metadataPath);
+    d.setString("contentPath", loc.contentPath);
+    d.setString("chapterMetadataPath", loc.chapterMetadataPath);
+    return d;
+}
+
+// The delta (design P3). ⚠️ An empty list is an ABSENT key (`appendToArray`), so a reader treats a missing key as empty.
+scrivi::util::JsonDoc deltaJson(const scrivi::manuscript::RangeDelta& delta) {
+    using Kind = scrivi::manuscript::RangeSceneChange::Kind;
+    scrivi::util::JsonDoc d;
+    for (const auto& c : delta.scenes) {
+        scrivi::util::JsonDoc item = sceneLocationJson(c.location);
+        item.setString("change", c.kind == Kind::Created ? "created" : c.kind == Kind::Moved ? "moved" : "rewritten");
+        item.setString("afterSceneID", c.afterSceneID.value);
+        if (c.kind != Kind::Moved) { item.setString("text", c.text); }
+        d.appendToArray("scenes", std::move(item));
+    }
+    for (const auto& id : delta.removedSceneIDs) { d.appendStringToArray("removedSceneIDs", id.value); }
+    for (const auto& ch : delta.createdChapters) {
+        scrivi::util::JsonDoc item;
+        item.setString("chapterID", ch.chapterID.value);
+        item.setString("title", ch.title);
+        item.setString("metadataPath", ch.metadataPath);
+        item.setString("afterChapterID", ch.afterChapterID.value);
+        d.appendToArray("createdChapters", std::move(item));
+    }
+    for (const auto& id : delta.removedChapterIDs) { d.appendStringToArray("removedChapterIDs", id.value); }
+    return d;
+}
+
+const char* rangeResultEnvelope(const std::string& root, RangeIndexGuard& guard,
+                                const scrivi::manuscript::RangeOperationResult& r) {
+    if (r.indexCurrent) { guard.keep(); }   // ⛔ else the guard drops it: the disk is right, the index is not
+    noteScenesWritten(root, r.writtenTexts);   // [I-0296]
+    scrivi::util::JsonDoc doc;
+    doc.setSubDoc("delta", deltaJson(r.delta));
+    doc.setSubDoc("range", r.range.toJson());
+    return heap(okEnvelope(std::move(doc)));
+}
+
+} // namespace
+} // extern "C++"
+
+const char* scrivi_range_read(const char* projectRootPath,
+                              const char* startSceneID, long long startByte,
+                              const char* endSceneID, long long endByte) {
+    SCRIVI_PROJECT_READ(projectRootPath);
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    if (startByte < 0 || endByte < 0)
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "byte offsets must be >= 0"));
+
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    std::optional<scrivi::Result<scrivi::manuscript::Range>> r;
+    const bool served = withProjectIndex(root, services, [&](const scrivi::manuscript::ProjectIndex& idx) {
+        r = scrivi::manuscript::RangeOperations::read(services, root, idx,
+                                                      scrivi::SceneID{S(startSceneID)}, static_cast<std::size_t>(startByte),
+                                                      scrivi::SceneID{S(endSceneID)}, static_cast<std::size_t>(endByte));
+    });
+    if (!served)
+        return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the manuscript could not be read to find the range"));
+    if (!r->ok()) return heap(errorEnvelope(r->error()));
+    scrivi::util::JsonDoc doc;
+    doc.setSubDoc("range", r->value().toJson());
+    return heap(okEnvelope(std::move(doc)));
+  });
+}
+
+const char* scrivi_range_paste(const char* projectRootPath,
+                               const char* rangeJson,
+                               const char* caretSceneID,
+                               long long   caretByteOffset,
+                               const char* caretSceneText,
+                               const char* identityID,
+                               const char* personaID,
+                               const char* displayName) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+    RangeIndexGuard indexGuard{S(projectRootPath)};
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    if (caretByteOffset < 0)
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "caretByteOffset must be >= 0"));
+    auto range = scrivi::manuscript::Range::fromJsonString(S(rangeJson));
+    if (!range.ok()) return heap(errorEnvelope(range.error()));
+    if (!indexGuard.index)
+        return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the manuscript could not be read to place the paste"));
+
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    scrivi::manuscript::RangeOperations ops{services, root, *indexGuard.index};
+    auto r = ops.paste(range.value(), scrivi::SceneID{S(caretSceneID)}, static_cast<std::size_t>(caretByteOffset),
+                       S(caretSceneText),
+                       {scrivi::IdentityID{S(identityID)}, scrivi::PersonaID{S(personaID)}, S(displayName)});
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    return rangeResultEnvelope(root, indexGuard, r.value());
+  });
+}
+
+const char* scrivi_range_cut(const char* projectRootPath,
+                             const char* rangeJson,
+                             const char* identityID,
+                             const char* personaID,
+                             const char* displayName) {
+    SCRIVI_PROJECT_WRITE(projectRootPath);
+    RangeIndexGuard indexGuard{S(projectRootPath)};
+  return guarded([&]() -> const char* {
+    const std::string root = S(projectRootPath);
+    if (root.empty())
+        return heap(errorEnvelope(scrivi::ErrorCode::invalidArgument, "projectRootPath is required"));
+    auto range = scrivi::manuscript::Range::fromJsonString(S(rangeJson));
+    if (!range.ok()) return heap(errorEnvelope(range.error()));
+    if (!indexGuard.index)
+        return heap(errorEnvelope(scrivi::ErrorCode::ioError, "the manuscript could not be read to find the range"));
+
+    auto services = abiServices();
+    services.sceneLocator = nullptr;
+    scrivi::manuscript::RangeOperations ops{services, root, *indexGuard.index};
+    auto r = ops.cut(range.value(),
+                     {scrivi::IdentityID{S(identityID)}, scrivi::PersonaID{S(personaID)}, S(displayName)});
+    if (!r.ok()) return heap(errorEnvelope(r.error()));
+    return rangeResultEnvelope(root, indexGuard, r.value());
   });
 }
 

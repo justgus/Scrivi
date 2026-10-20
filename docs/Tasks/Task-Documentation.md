@@ -767,7 +767,7 @@ archive files reconstructed after the fact from secondary sources.
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | 🔵 **SP-184** | **EP-048** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0612 | `[Linux]` A diagnostic log: timed operations and a main-thread stall watchdog | 🟡 **SP-185** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0613 | `[Linux]` Find bar: search after a 500 ms pause; the searchable text built ahead, never on a keystroke | 🟡 **SP-185** | **EP-026** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
-| T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | 🟡 **SP-186** | **EP-053** | 🟡 Active | [`Task-active.md`](Task-active.md) |
+| T-0614 | `[ScriviCore]` EP-053 S1: the Range (`scrivi.range.v1`) and the aggregate range operations | 🟡 **SP-186** | **EP-053** | 🟠 Implemented - Not Verified | [`Task-unverified.md`](Task-unverified.md) |
 | T-0615 | `[Cross]` EP-053 S2: the scene list as the model of record; copy, paste and its undo, split and merge — no reload | 🔵 **SP-187** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | 🔵 **SP-188** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | 🔵 **SP-189** | **EP-053** | 🔵 Backlog | [`Task-backlog.md`](Task-backlog.md) |
@@ -809,6 +809,8 @@ archive files reconstructed after the fact from secondary sources.
 ⚠️ **This index ended at `T-0485 (next available)` until 2026-09-10 — ✅ that was STALE.** ⚠️ **T-0485–T-0498 had all been taken**, and T-0485–T-0490/T-0492–T-0496 are archived as Verified. ⚠️ **Rows for T-0486–T-0497 are NOT reconstructed here** — ✅ **their Sprints' closed records are authoritative** (`feedback_archive_on_close`).
 
 ---
+
+*Last Updated: 2026-10-20 (**T-0614 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 
 *Last Updated: 2026-10-20 (**T-0615–T-0618 filed** with SP-187–SP-190 (🔵 Planning), EP-053 S2–S5.)*
 

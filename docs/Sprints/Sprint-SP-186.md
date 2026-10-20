@@ -69,13 +69,23 @@ two-scene paste into a 1,186-scene manuscript is **4 reads and 4 writes** or few
 - [x] AC1 — the Range: C++ type, `scrivi.range.v1` round trip, fragment conversion both ways — ✅ `Range.hpp/.cpp`
   (`std::list` of `RangeEntry`), 2 tests / 37 assertions: the round trip, contiguity refused when broken, a length that is not
   its text refused, the fragment conversion both ways.
-- [ ] AC2 — `scrivi_range_read`: only the range's texts are read; a range that does not match the index is refused.
-- [ ] AC3 — `scrivi_range_paste`: a two-scene paste ≤ 4 reads + 4 writes, no listing; [I-0311]'s order is right; the delta
-  matches the disk; a stale caret text is refused.
-- [ ] AC4 — `scrivi_range_cut`: within its budget; head + tail joined directly; emptied chapters gone; Q2's promotion; the delta
-  matches the disk.
-- [ ] AC5 — cut∘paste and paste∘cut restore the disk.
-- [ ] AC6 — ABI documented, parity check passes, ctest green on Linux and macOS.
+- [x] AC2 — `scrivi_range_read`: only the range's texts are read; a range that does not match the index is refused — ✅ a
+  five-scene read across a chapter boundary makes exactly 5 reads, no listing; an end before its start, an offset past a
+  scene's end and an unknown scene are refused.
+- [x] AC3 — `scrivi_range_paste`: a two-scene paste ✅ **≤ 3 reads + 5 writes** (re-ruled 2026-10-20, see below), no listing
+  — measured **3 / 0 / 5** (1 probe); [I-0311]'s order is right (the whole manuscript reads as the old text with the range
+  inserted at the caret); the delta matches the disk; a stale caret text is refused and writes nothing.
+- [x] AC4 — `scrivi_range_cut`: within its budget — measured **4 reads / 0 listings / 5 writes** for a two-scene cut
+  (⚠️ the cut's budget was not ruled; it follows the paste ruling's rule: the chapter sidecar's list kept current); head +
+  tail joined directly; emptied chapters gone (folder and `manuscript.meta.json` entry); Q2's promotion; the delta matches
+  the disk; a Range that skips a scene, or whose text is not on disk, is refused.
+- [x] AC5 — cut∘paste and paste∘cut restore the disk — ✅ chapter IDs and titles, scene IDs and titles, every text (order
+  keys and file names aside), each followed by a clean `scrivi_scan_for_external_changes`.
+- [x] AC6 — ABI documented, parity check passes, ctest green on Linux and macOS — ✅ `scrivi.h` documents the three endpoints
+  and the delta; `check-engine-stub-parity.sh` passes (no engine method added: S2 adds them); ctest **macOS 741/741**,
+  **Linux 745/745** (Docker, Debug, non-root); the Mac app builds. ⚠️ `Scrivi_ABI_Binding_Gap_Audit_v0_1.md` was NOT
+  updated: it is a dated audit of 100 endpoints, and `scrivi.h` now declares 135 — a one-line bump would contradict its own
+  table. Recorded for an audit refresh.
 
 ## Progress log
 
@@ -93,3 +103,38 @@ two-scene paste into a 1,186-scene manuscript is **4 reads and 4 writes** or few
   conversion with `scrivi.fragment.v1`. ⚠️ Two decisions recorded in the header: offsets in UTF-8 bytes, and one field beyond
   R6's list, `sceneLength`, without which an entry cannot say it covers its whole scene.
 - Next: step 2 (`scrivi_range_read`), then the aggregate paste.
+
+### 🟡 2026-10-20 — Steps 2–6: the range operations built (two rulings on the way)
+- User: *"complete the implementation of SP-186"*.
+- ✅ **Two rulings (user, 2026-10-20), asked before the operations were written:**
+  1. **The budget: 3 reads + 5 writes** for a two-scene paste. R7's 4 + 4 left out the chapter sidecar's `scenes[]` list; the
+     validator and `scanForExternalChanges` (called by both apps) still read it, and a stale one reports a cut scene as a
+     BLOCKING *"Missing scene.meta.json"*. It is now written once per changed chapter, from the index.
+  2. **Scene identity: reuse an absent ID; no prune on cut.** A paste re-creates a scene (and a chapter) under the Range's own
+     ID when the manuscript does not have it — a cut — and mints a fresh one when it does — a copy. A cut deletes the files but
+     not the scene's relationship edges, so its undo, or a paste elsewhere (a move), brings them back. ⚠️ Only identity and
+     titles travel: a re-created scene's sidecar is new (status, story time, tags, outline and todo are not in a Range).
+- **Built:** `RangeOperations` (`ScriviCore/src/manuscript/RangeOperations.hpp/.cpp`) — read, paste, cut; every location,
+  order key and title from the index, every file written once, no `workspace-state.json`; a new chapter's folder (and a new
+  scene's sidecar in an existing chapter) PROBED first, because a chapter with no scenes is invisible to the index.
+  `ProjectIndex::insertScenesAfter`, `removeScenes`, `relocateScene` patch the index in place. C ABI: `scrivi_range_read`
+  (read guard, served from the cached index), `scrivi_range_paste`, `scrivi_range_cut` (write guard; the index is TAKEN,
+  patched and put back only on success — any other ending drops it).
+- **The delta** (design P3): each scene `created` / `rewritten` / `moved`, with its chapter, paths and the scene it now
+  follows; removed scenes; created chapters with the chapter they follow; removed chapters. The paste also returns the Range
+  it INSERTED under the real IDs (its undo cuts exactly that); the cut returns the Range it removed.
+- ⚠️ **Found while testing — a cut's own ordering:** promoting the end chapter's scenes BEFORE deleting the cut scenes
+  collided on a file name (keys are unique only within a chapter). The deletes now run first.
+- ⚠️ **Found while testing — [I-0312] filed (pre-existing, not this Sprint's):** `util::keyBetween` renders an undotted
+  legacy key as a dotted one that sorts BEFORE it (`keyBetween("004", "005")` → `"0.0.4.H"`, which byte-sorts before
+  `"004"`). `SceneCreator` has the same exposure. The test fixtures now use generated-shape keys, as the app writes them.
+- **Tests:** `RangeOperationBudgetTests.cpp` (the paste guard now drives the range paste; a cut guard and a read guard
+  added) and `RangeOperationCApiTests.cpp` (11 cases through `scrivi_range_*`: read; in-chapter paste; chapter-opening paste
+  as a flat insert [I-0311]; stale refusal; in-chapter cut; cross-chapter cut with Q2; both inverses; refusals; the patched
+  index answering as a fresh one). ✅ **10 mutations, 10 caught** (chapter sidecar not written ×2, [I-0311] move off, ID
+  reuse off, stale caret accepted, P1 order check off, the cut's text check off, the index patched at the wrong place, moved
+  scenes not relocated in the index, a removed chapter left in `manuscript.meta.json`). The text-check mutation first
+  SURVIVED — the stale edit changed the scene's length, so the length check caught it — and the test now edits in place.
+- ✅ ctest macOS 741/741, Linux 745/745 (Docker, Debug, non-root); repo checks pass; the Mac app builds. ⏳ Neither app calls
+  the endpoints yet — that is [SP-187] — so there is no live pass for this Sprint; verification is the user's review.
+

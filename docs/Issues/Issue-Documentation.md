@@ -167,6 +167,8 @@ stands as a marker.**
 
 ---
 
+*Last Updated: 2026-10-20 (**I-0312** `[ScriviCore]` filed → backlog: `keyBetween` mis-places a key next to an undotted legacy key. **I-0311** fixed in `scrivi_range_paste`; the apps reach it in SP-187.)*
+
 *Last Updated: 2026-10-17 (**I-0311** `[ScriviCore]` filed: a chapter-opening paste scrambles the reading order.)*
 
 *Last Updated: 2026-10-17 (**I-0307 → Resolved - Not Verified**; **I-0310** `[Linux]` filed and resolved (teardown crash); I-0297 partly fixed.)*

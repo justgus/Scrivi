@@ -8,7 +8,7 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 
 | ID | Title | Severity | Sprint | Status |
 | -- | ----- | -------- | ------ | ------ |
-| **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-186] | 🔵 **Open** |
+| **I-0311** | `[ScriviCore]` ⛔ **A structured paste that opens a CHAPTER in the middle of a chapter scrambles the reading order: the target scene's remaining text lands AFTER the scenes that followed it.** Found 2026-10-17 by reading the core while measuring [I-0297]; ⚠️ the new `[I-0297]` ABI test asserts the wrong order (expectations taken from the code). → [details](#i-0311) | **High** | [SP-186] | 🟡 **Fixed in `scrivi_range_paste`; the apps still call the old paste** |
 | **I-0310** | `[Linux]` ⛔ **Destroying a shown, focused project window crashed: the editor's focus-out read the document its shell had already freed.** Found 2026-10-17 by the [I-0307] measurement harness (a segfault at its exit). ✅ Fixed. → [details](#i-0310) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0309** | `[Linux]` ⛔ **Closing a project window while the project is still LOADING frees memory the load's worker is still using** (use-after-free of the shell's `ScriviBridge`). Found 2026-10-17 by AddressSanitizer in Docker, while reproducing [I-0308]. ✅ Fixed: every worker builds its own bridge. → [details](#i-0309) | **High** | [SP-185] | 🟠 **Resolved - Not Verified** |
 | **I-0308** | `[Linux]` ⛔ **The app CRASHED while the writer typed in the Find bar** (dumas-prose-timelines over the share, right after a cross-scene paste, a quit, a reopen and an undo of the paste). Found on the rig 2026-10-15 (live pass, step 11). No crash trace was kept. → [details](#i-0308) | **High** | [SP-185] | 🔵 **Open** |
@@ -29,7 +29,9 @@ Issues awaiting **user verification**. An Issue leaves this file only when the u
 ## I-0311
 
 **Title:** A paste that opens a chapter mid-chapter moves the target's tail past the following scenes
-**Status:** 🔵 **Open**
+**Status:** 🟡 **Fixed in the new paste, not yet reachable** (2026-10-20). `scrivi_range_paste` carries the caret chapter's
+later scenes into the last created chapter; `RangeOperationCApiTests` proves the manuscript then reads as a flat insert.
+⚠️ Both apps still call `scrivi_fragment_paste`, which still scrambles, until [EP-053] S2 switches them. Not Resolved until then.
 **Platform:** `[ScriviCore]` (both platforms call it)
 **Severity:** High — the writer's text comes out in the wrong order; nothing is lost.
 **Sprint:** [SP-186] ([EP-053] S1 — `scrivi_range_paste` fixes it; design v0.2 §4.4)

@@ -5,6 +5,7 @@
 // Every filesystem call is counted (`CountingFileSystem`) on a real on-disk project — 6 chapters of 20 scenes, written in the
 // shipped shape — so a budget here is absolute: it does not grow with the manuscript, and a walk that comes back fails it.
 // ⚠️ Measured 2026-10-17 against `FragmentPaster` (EP-029) before the range operations existed: see the Sprint log.
+// ✅ Budgets re-ruled 2026-10-20 (user): the chapter sidecar's scene list is kept current (paste 3 reads + 5 writes).
 
 #include "mocks/CountingFileSystem.hpp"
 #include "mocks/DeterministicUUIDProvider.hpp"
@@ -12,9 +13,9 @@
 #include "mocks/MockGitProvider.hpp"
 #include "mocks/MockSecureStore.hpp"
 
-#include "manuscript/FragmentPaster.hpp"
 #include "manuscript/ProjectIndex.hpp"
 #include "manuscript/Range.hpp"
+#include "manuscript/RangeOperations.hpp"
 #include "platform/LocalFileSystem.hpp"
 #include "schemas/SceneMetaJson.hpp"
 #include "scrivi/Requests.hpp"
@@ -28,6 +29,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 
 namespace {
@@ -98,8 +100,8 @@ struct Harness {
             if (!entry.is_directory()) { continue; }
             ++ci;
             for (int s = 2; s <= scenesPerChapter; ++s) {
-                char key[12];
-                std::snprintf(key, sizeof key, "%03d", s);
+                // ⚠️ Generated-shape keys ("B", "C", …), as the app makes them — not legacy "002": see [I-0312].
+                const std::string key(1, char('A' + s - 1));
                 writeScene(entry.path().string(), key, "scene-c" + std::to_string(ci) + "-" + key);
             }
         }
@@ -140,50 +142,90 @@ void report(const char* what, const scrivi::testing::CountingFileSystem& cfs) {
     std::cout << std::endl;
 }
 
+scrivi::AuthorshipRef author() {
+    return {scrivi::IdentityID{"identity-001"}, scrivi::PersonaID{"persona-001"}, "Test Author"};
+}
+
+std::string readBody(const Harness& h, const ms::SceneLocation& loc) {
+    std::ifstream in(fs::path(h.root()) / loc.contentPath, std::ios::binary);
+    return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+}
+
 }  // namespace
 
-// ⛔ AC0: the budget — a two-scene paste (head into the caret scene + ONE new scene) into a 120-scene manuscript.
-// R7: ≤ 4 reads and ≤ 4 writes, and no listing.
-TEST_CASE("[EP-053] a two-scene paste stays within 4 reads and 4 writes", "[ep053][budget]") {
+// ⛔ AC0 → AC3: the budget — a two-scene paste (head into the caret scene + ONE new scene) into a 120-scene manuscript.
+// ✅ Re-ruled 2026-10-20 (user): ≤ 3 reads and ≤ 5 writes, no listing — R7's 8 file calls, with the chapter sidecar's scene
+// list kept current. ⚠️ Measured 2026-10-17 through `FragmentPaster` + the index: 47 reads, 2 listings, 11 writes.
+TEST_CASE("[EP-053] a two-scene paste stays within 3 reads and 5 writes", "[ep053][budget]") {
     Harness h;
     h.build(6, 20);
     auto indexR = ms::ProjectIndex::build(h.root(), h.services);   // what the C ABI holds in memory
     REQUIRE(indexR.ok());
-    const ms::ProjectIndex& index = indexR.value();
-    const auto& target = index.scenesInOrder().at(3);               // chapter 1's fourth scene
+    ms::ProjectIndex& index = indexR.value();
+    const ms::SceneLocation source = index.scenesInOrder().at(40);   // chapter 3
+    const ms::SceneLocation target = index.scenesInOrder().at(3);    // chapter 1's fourth scene
+    const std::string caretText = readBody(h, target);
+
+    ms::Range range;   // copied from chapter 3: its own scenes are still there, so the paste mints fresh IDs
+    range.append({source.sceneID, source.chapterID, source.chapterTitle, source.title, 0, 11, 11, "pasted head"});
+    range.append({index.scenesInOrder().at(41).sceneID, source.chapterID, source.chapterTitle, "", 0, 12, 20, "pasted scene"});
     h.counting.reset();
 
-    // ⚠️ TODAY'S BEST PATH (SP-185): `FragmentPaster` with the index lookup — measured, to show the guard can see the cost.
-    ms::PasteFragmentRequest req;
-    req.projectRootPath = h.root();
-    req.appSupportRoot  = h.appSupportDir.str();
-    req.projectID       = scrivi::ProjectID{h.projectID};
-    req.author          = h.author();
-    req.caretSceneID    = target.sceneID;
-    req.caretByteOffset = 5;
-    ms::FragmentPiece head;
-    head.opensWith = ms::OpensWith::None;
-    head.text      = "pasted head";
-    ms::FragmentPiece next;
-    next.opensWith = ms::OpensWith::Scene;
-    next.text      = "pasted scene";
-    req.fragment.pieces = {head, next};
-    ms::FragmentPaster paster{h.services};
-    auto r = paster.paste(req, [&](const scrivi::SceneID& id) -> std::optional<ms::ResolvedScene> {
-        auto loc = index.findScene(id);
-        if (!loc) { return std::nullopt; }
-        ms::ResolvedScene s;
-        s.sceneID = loc->sceneID; s.chapterID = loc->chapterID; s.title = loc->title; s.chapterTitle = loc->chapterTitle;
-        s.slug = loc->slug; s.status = loc->status; s.metadataPath = loc->metadataPath; s.contentPath = loc->contentPath;
-        s.chapterMetadataPath = loc->chapterMetadataPath;
-        return s;
-    });
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.paste(range, target.sceneID, 5, caretText, author());
     REQUIRE(r.ok());
     report("two-scene paste", h.counting);
     const auto& t = h.counting.total();
     CHECK(t.listDirectory == 0);
+    CHECK(t.readTextFile <= 3);
+    CHECK(writesOf(t) <= 5);
+    CHECK(r.value().indexCurrent);
+    CHECK(index.sceneCount() == 121);
+}
+
+// AC4: a two-scene cut (the end of one scene + the start of the next) — the start scene's text and sidecar, the end
+// scene's text, the chapter sidecar; the start scene's two files written, the end scene's two removed, the chapter sidecar.
+TEST_CASE("[EP-053] a two-scene cut stays within 4 reads and 5 writes", "[ep053][budget]") {
+    Harness h;
+    h.build(6, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    ms::ProjectIndex& index = indexR.value();
+    auto read = ms::RangeOperations::read(h.services, h.root(), index,
+                                          index.scenesInOrder().at(3).sceneID, 4,
+                                          index.scenesInOrder().at(4).sceneID, 6);
+    REQUIRE(read.ok());
+    h.counting.reset();
+
+    ms::RangeOperations ops{h.services, h.root(), index};
+    auto r = ops.cut(read.value(), author());
+    REQUIRE(r.ok());
+    report("two-scene cut", h.counting);
+    const auto& t = h.counting.total();
+    CHECK(t.listDirectory == 0);
     CHECK(t.readTextFile <= 4);
-    CHECK(writesOf(t) <= 4);
+    CHECK(writesOf(t) <= 5);
+    CHECK(r.value().indexCurrent);
+    CHECK(index.sceneCount() == 119);
+}
+
+// AC2: a range read reads its scenes' texts and nothing else.
+TEST_CASE("[EP-053] a range read reads only its scenes", "[ep053][budget]") {
+    Harness h;
+    h.build(6, 20);
+    auto indexR = ms::ProjectIndex::build(h.root(), h.services);
+    REQUIRE(indexR.ok());
+    const ms::ProjectIndex& index = indexR.value();
+    h.counting.reset();
+    auto r = ms::RangeOperations::read(h.services, h.root(), index,
+                                       index.scenesInOrder().at(18).sceneID, 2,
+                                       index.scenesInOrder().at(22).sceneID, 3);   // across a chapter boundary
+    REQUIRE(r.ok());
+    CHECK(r.value().size() == 5);
+    const auto& t = h.counting.total();
+    CHECK(t.listDirectory == 0);
+    CHECK(t.readTextFile == 5);
+    CHECK(writesOf(t) == 0);
 }
 
 // ── AC1: the Range itself ────────────────────────────────────────────────────────────────────────────────────────────────

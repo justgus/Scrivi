@@ -60,6 +60,7 @@ target_sources(ScriviCore
         src/manuscript/SceneWriter.cpp
         src/manuscript/FragmentExtractor.cpp
         src/manuscript/Range.cpp            # EP-053 S1: scrivi.range.v1
+        src/manuscript/RangeOperations.cpp  # EP-053 S1: range read / paste / cut
         src/manuscript/FragmentPaster.cpp
         src/manuscript/FragmentCutter.cpp
         src/workspace/WorkspaceStateService.cpp

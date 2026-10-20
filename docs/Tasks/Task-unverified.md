@@ -10,6 +10,21 @@ in the backlog carrying a 🟠 status.
 
 ---
 
+## 🟠 T-0614 — `[ScriviCore]` EP-053 S1: the Range and the aggregate range operations
+
+**Epic:** [EP-053] (S1) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-20; user: *"complete the implementation of
+SP-186"*) — ⏳ the user's review (no app calls these until [SP-187]) · **Sprint:** [SP-186] (🟡 Active) →
+[`../Sprints/Sprint-SP-186.md`](../Sprints/Sprint-SP-186.md) · **Date Requested:** 2026-10-17 (user: *"start the first sprint"*)
+
+**What:** in ScriviCore, the Range (`scrivi.range.v1`, design v0.2 §4.2) and three aggregate operations — `scrivi_range_read`,
+`scrivi_range_paste`, `scrivi_range_cut` (structural) — each making one pass over exactly its files, returning the delta and
+patching the project index in place. ✅ A two-scene paste: 3 reads + 5 writes, no listing (re-ruled 2026-10-20); a two-scene
+cut: 4 reads + 5 writes. ✅ A cut Range pasted back restores scene and chapter IDs (ruled 2026-10-20).
+**Where:** `ScriviCore/src/manuscript/RangeOperations.hpp/.cpp`, `ProjectIndex.hpp/.cpp` (in-place patches),
+`scrivi_c_api.cpp` + `scrivi.h` (the three endpoints); tests `RangeOperationBudgetTests.cpp`, `RangeOperationCApiTests.cpp`.
+
+---
+
 ## 🟠 T-0613 — `[Linux]` The find bar never freezes while the writer types: search after a pause, the searchable text built ahead
 
 **Epic:** [EP-026] · **Status:** 🟠 **Implemented - Not Verified** (2026-10-17; user: *"yes, build T-0613 now"*) — ⏳ rig live pass (SP-185 AC6) · **Sprint:** [SP-185] (🟡 Active) →
