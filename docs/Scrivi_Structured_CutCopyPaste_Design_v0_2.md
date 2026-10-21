@@ -212,7 +212,9 @@ structural half of SP-185. Sprints, in order — each Sprint changes ScriviCore 
    chapters; each step timed by the diagnostic log ([T-0612]) and the Mac's equivalent.
 
 ✅ **Re-ordered 2026-10-20 (user), planning EP-053:** each operation ships with its undo. S2 = the scene list, copy, paste
-and paste's undo (a range cut), plus split, merge and chapter create/merge (now in scope) — [SP-187]; S3 = structural cut,
+and paste's undo (a range cut), plus split, merge and chapter create/merge (now in scope) — split the same day into S2a,
+the list as the model of record with no visible change ([SP-187]), and S2b, the operations as deltas ([SP-191]); the list
+stays an ordered array (a neighbour is index ±1); S3 = structural cut,
 Backspace / Delete over scenes and cut's undo (a range paste) — [SP-188]; S4 = the background sync verification —
 [SP-189]; S5 = the live passes — [SP-190]. Step 4 above (history) is folded into S2 and S3. New history op names
 `rangePaste` / `rangeCut` are approved, backward-compatible.

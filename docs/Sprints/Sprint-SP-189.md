@@ -11,7 +11,7 @@ created: 2026-10-20
 **Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ⏳ Q1–Q2 below.
 **Carries:** [T-0617] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Builds on:** [SP-187] and [SP-188]: every structural operation returns a delta that the editor applies in memory.
+**Builds on:** [SP-187] and [SP-191] (S2a, S2b) and [SP-188]: every structural operation returns a delta that the editor applies in memory.
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R3,
 P4, Q3 (*"silently reconciled"*: the disk wins, no notice).
 **Size:** M.
@@ -21,7 +21,7 @@ P4, Q3 (*"silently reconciled"*: the disk wins, no notice).
 ## What reading the code found (2026-10-20)
 
 - Nothing does this today. After a structural step both platforms reload, so memory is the disk by construction. Once
-  [SP-187] removes the reload, nothing checks that the delta the editor applied matches what the core wrote.
+  [SP-191] removes the reload, nothing checks that the delta the editor applied matches what the core wrote.
 - `scrivi_range_read` ([SP-186]) already reads exactly a range's texts. The delta names every scene and chapter it touched.
 - Both platforms already run background work with a guard: Apple `Task.detached` with `whenOffMainWritesLand`
   ([I-0305]); Linux `AsyncCall` with `beginBackgroundWork` / `endBackgroundWork`.

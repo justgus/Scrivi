@@ -536,6 +536,13 @@ public:
     Q_INVOKABLE QVariantMap fragmentExtract(const QString& projectRootPath, const QString& spansJson);
     Q_INVOKABLE QVariantMap fragmentPaste(const QString& projectRootPath, const QString& appSupportRoot, const QString& projectID, const QString& fragmentJson, const QString& caretSceneID, long long caretByteOffset, const QString& displayName);
     Q_INVOKABLE QVariantMap fragmentUncutPaste(const QString& projectRootPath, const QString& fragmentJson, const QString& targetSceneID, const QString& createdIDsJson);
+    // EP-053 S1 endpoints, bound in S2a (SP-187 / T-0615). Offsets are scene-local UTF-8 bytes. `rangeJson` is a
+    // scrivi.range.v1 object. Paste and cut answer { delta, range } — decode the delta with `RangeDelta::fromVariant`.
+    Q_INVOKABLE QVariantMap rangeRead(const QString& projectRootPath, const QString& startSceneID, long long startByte,
+                                      const QString& endSceneID, long long endByte);
+    Q_INVOKABLE QVariantMap rangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
+                                       long long caretByteOffset, const QString& caretSceneText, const QString& displayName);
+    Q_INVOKABLE QVariantMap rangeCut(const QString& projectRootPath, const QString& rangeJson, const QString& displayName);
     Q_INVOKABLE QVariantMap getSceneNotes(const QString& projectRootPath, const QString& sceneID);
     Q_INVOKABLE QVariantMap getWorldBinding(const QString& projectRootPath, const QString& worldID);
     Q_INVOKABLE QVariantMap getWorldStatus(const QString& projectRootPath, const QString& worldID);
@@ -663,6 +670,8 @@ public:
     // SP-173 (Q1): the project-lock waits the core has reported in this process (each ≥ 1 ms), across all threads.
     struct LockWaitStats { qint64 totalMs = 0; qint64 count = 0; qint64 maxMs = 0; };
     static LockWaitStats lockWaitStats();
+    // EP-053 S2a (SP-187): core calls made ON THE GUI THREAD, process-wide — the baseline S2b removes. Read by smokes.
+    static qint64 guiThreadCallCount();
 
 signals:
     void readyChanged();

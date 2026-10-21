@@ -28,6 +28,10 @@ jobs:
   build-linux-app:
     name: ubuntu-24.04 (Qt 6.4)
     runs-on: ubuntu-24.04
+    env:
+      # EP-053 S2a (SP-187): every smoke checks that each scene's text in the scene list equals its body in the document
+      # (SceneDocument::verifyText) — a path that forgets the text is fatal in the smoke that exercises it.
+      SCRIVI_VERIFY_SCENE_TEXT: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -370,3 +374,15 @@ jobs:
         run: |
           platforms/linux/tests/restore_guard_smoke.sh \
             ./build/platforms/linux/scrivi_linux_restore_guard_smoke
+
+      # The range endpoints through the bridge (EP-053 S2a / SP-187, T-0615).
+      - name: Range smoke test
+        run: |
+          platforms/linux/tests/range_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_range_smoke
+
+      # What each structural operation costs today (EP-053 S2a / SP-187, T-0615): the baseline S2b removes.
+      - name: Structural baseline smoke test
+        run: |
+          platforms/linux/tests/structural_baseline_smoke.sh \
+            ./build/platforms/linux/scrivi_linux_structural_baseline_smoke

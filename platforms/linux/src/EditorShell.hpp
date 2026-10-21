@@ -100,6 +100,10 @@ public:
     // [I-0285] How many times the timeline has been BUILT (past `reloadTimeline`'s guard). A load builds it once; the smoke
     // that opens a project asserts that, so the double build cannot return unnoticed.
     int timelineBuildCount() const { return timelineBuilds_; }
+    // EP-053 S2a (SP-187): how many times this shell has loaded a project (a structural reload is one) — the baseline S2b
+    // removes. `sceneDocument().builds()` counts the full document renders.
+    int loadCount() const { return loads_; }
+    const SceneDocument& sceneDocument() const { return sceneDoc_; }
     // SP-173 / I-0285 (AC4): how many timeline READS ran on the UI thread (`reloadTimeline`). A load reads it in the worker,
     // so a load alone leaves this at 0 unless the project changed under it.
     int timelineUiThreadReadCount() const { return timelineUiReads_; }
@@ -726,6 +730,7 @@ private:
     // [I-0297]: the texts the next `load()` of THIS project takes from memory instead of the disk (`reloadThen`).
     QHash<QString, QString> reloadTexts_;
     int                 timelineBuilds_ = 0;   // [I-0285] see timelineBuildCount()
+    int                 loads_ = 0;            // EP-053 S2a: see loadCount()
     int                 timelineUiReads_ = 0;  // [I-0285] see timelineUiThreadReadCount()
 
     // Guard against a scroll↔selection feedback loop (T-0243/T-0244): set while the

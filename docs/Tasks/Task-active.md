@@ -2,6 +2,10 @@
 
 ---
 
+*Last Updated: 2026-10-20 (**T-0615 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
+
+*Last Updated: 2026-10-20 (**T-0615 → active** with SP-187's activation (EP-053 S2a).)*
+
 *Last Updated: 2026-10-20 (**T-0614 → 🟠 Implemented - Not Verified** → `Task-unverified.md`.)*
 
 *Last Updated: 2026-10-17 (**T-0614 filed → active** with SP-186 (EP-053 S1).)*

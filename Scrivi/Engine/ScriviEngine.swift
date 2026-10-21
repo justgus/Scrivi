@@ -15,6 +15,11 @@ import ScriviCore
 struct LockWaitStats: Sendable { var totalMs: Int64 = 0; var count: Int64 = 0; var maxMs: Int64 = 0 }
 let coreLockWaits = Mutex(LockWaitStats())
 
+/// EP-053 S2a (SP-187, T-0615) — the baseline S2b ([SP-191]) is measured against: how many core calls a structural operation
+/// makes ON THE MAIN THREAD, and how many times it re-opens the project. Read by tests; never by the app.
+struct CoreCallStats: Sendable, Equatable { var mainThreadCalls = 0; var openProjectCalls = 0 }
+let coreCallCounts = Mutex(CoreCallStats())
+
 #if os(macOS) || os(iOS)
 
 public final class ScriviEngine: @unchecked Sendable {
@@ -69,6 +74,7 @@ public final class ScriviEngine: @unchecked Sendable {
         appSupportRoot: String,
         identityID: String = ""
     ) throws -> OpenProjectResult {
+        coreCallCounts.withLock { $0.openProjectCalls += 1 }   // EP-053 S2a baseline
         let raw = projectRootPath.withCString { prp in
             appSupportRoot.withCString { asr in
                 identityID.withCString { iid in
@@ -1568,6 +1574,70 @@ public final class ScriviEngine: @unchecked Sendable {
         }
         return try decodeC(raw)
     }
+
+    // MARK: — Range operations (EP-053 S1 endpoints; bound in S2a, SP-187 / T-0615)
+
+    /// `scrivi_range_read`: the Range from (startSceneID, startByte) to (endSceneID, endByte). Offsets are scene-local UTF-8
+    /// bytes. Reads only those scenes' texts.
+    public func rangeRead(projectRootPath: String,
+                          startSceneID: String, startByte: Int,
+                          endSceneID: String, endByte: Int) throws -> ScriviRange {
+        let raw = projectRootPath.withCString { prp in
+            startSceneID.withCString { s in
+                endSceneID.withCString { e in
+                    scrivi_range_read(prp, s, Int64(startByte), e, Int64(endByte))
+                }
+            }
+        }
+        let result: RangeReadResult = try decodeC(raw)
+        return result.range
+    }
+
+    /// `scrivi_range_paste`: paste `range` at the caret. `caretSceneText` is the caret scene's text as the editor holds it —
+    /// ⛔ refused when it is not what is on disk. The result's `range` is what the paste INSERTED (its undo is `rangeCut`).
+    public func rangePaste(projectRootPath: String,
+                           range: ScriviRange,
+                           caretSceneID: String,
+                           caretByteOffset: Int,
+                           caretSceneText: String,
+                           authorshipRef: AuthorshipRef) throws -> RangeOperationResult {
+        let rangeJSON = try range.toJSON()
+        let raw = projectRootPath.withCString { prp in
+            rangeJSON.withCString { rj in
+                caretSceneID.withCString { csid in
+                    caretSceneText.withCString { cst in
+                        authorshipRef.identityID.withCString { iid in
+                            authorshipRef.personaID.withCString { pers in
+                                authorshipRef.displayName.withCString { dn in
+                                    scrivi_range_paste(prp, rj, csid, Int64(caretByteOffset), cst, iid, pers, dn)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
+
+    /// `scrivi_range_cut`: remove `range` from the manuscript (structural). The result's `range` is what was removed.
+    public func rangeCut(projectRootPath: String,
+                         range: ScriviRange,
+                         authorshipRef: AuthorshipRef) throws -> RangeOperationResult {
+        let rangeJSON = try range.toJSON()
+        let raw = projectRootPath.withCString { prp in
+            rangeJSON.withCString { rj in
+                authorshipRef.identityID.withCString { iid in
+                    authorshipRef.personaID.withCString { pers in
+                        authorshipRef.displayName.withCString { dn in
+                            scrivi_range_cut(prp, rj, iid, pers, dn)
+                        }
+                    }
+                }
+            }
+        }
+        return try decodeC(raw)
+    }
 }
 
 private struct FragmentCreatedIDs: Encodable {
@@ -1684,6 +1754,7 @@ func decodeCWithRevision<T: Decodable>(_ ptr: UnsafePointer<CChar>?) throws -> (
     }
     let json = String(cString: ptr)
     scrivi_free(ptr)
+    if Thread.isMainThread { coreCallCounts.withLock { $0.mainThreadCalls += 1 } }   // EP-053 S2a baseline
     let data = Data(json.utf8)
     let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
     if let waited = envelope.lockWaitMs {
@@ -1882,6 +1953,9 @@ public final class ScriviEngine: @unchecked Sendable {
     public func fragmentCut(projectRootPath: String, spans: [FragmentSpanArg]) throws -> FragmentCutResult { try unavailable() }
     public func fragmentPaste(projectRootPath: String, appSupportRoot: String, projectID: String, fragmentJSON: String, caretSceneID: String, caretByteOffset: Int, authorshipRef: AuthorshipRef) throws -> FragmentPasteResult { try unavailable() }
     public func fragmentUncutPaste(projectRootPath: String, fragmentJSON: String, targetSceneID: String, createdSceneIDs: [String], createdChapterIDs: [String]) throws -> FragmentUncutPasteResult { try unavailable() }
+    public func rangeRead(projectRootPath: String, startSceneID: String, startByte: Int, endSceneID: String, endByte: Int) throws -> ScriviRange { try unavailable() }
+    public func rangePaste(projectRootPath: String, range: ScriviRange, caretSceneID: String, caretByteOffset: Int, caretSceneText: String, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
+    public func rangeCut(projectRootPath: String, range: ScriviRange, authorshipRef: AuthorshipRef) throws -> RangeOperationResult { try unavailable() }
 
     // Relationship graph, object discovery, and worlds (EP-031 SP-099 T-0407) —
     // unavailable on this platform. Mirrors ScriviEngineGraph.swift, whose real
@@ -2436,6 +2510,91 @@ public struct FragmentPasteResult: Decodable, Sendable {
 /// Result of scrivi_fragment_uncut_paste — the target scene, restored to its pre-paste body.
 public struct FragmentUncutPasteResult: Decodable, Sendable {
     public let survivingSceneID: String
+}
+
+// MARK: — Range types (EP-053; design v0.2 §4.2, P3)
+
+/// `scrivi.range.v1` — ONE contiguous run through the manuscript, an ordered list of scene entries. The array's order IS
+/// the links: a scene break is the step from one entry to the next, a chapter break a step between entries whose chapterID
+/// differs. ⚠️ `start`, `length` and `sceneLength` are UTF-8 BYTES.
+public struct ScriviRange: Codable, Sendable, Equatable {
+    public var schema: String = "scrivi.range.v1"
+    public var scenes: [Entry]
+
+    public struct Entry: Codable, Sendable, Equatable {
+        public var sceneID: String
+        public var chapterID: String
+        public var chapterTitle: String
+        public var sceneTitle: String
+        public var start: Int
+        public var length: Int
+        public var sceneLength: Int
+        public var text: String
+
+        public init(sceneID: String, chapterID: String, chapterTitle: String, sceneTitle: String,
+                    start: Int, length: Int, sceneLength: Int, text: String) {
+            self.sceneID = sceneID; self.chapterID = chapterID; self.chapterTitle = chapterTitle
+            self.sceneTitle = sceneTitle; self.start = start; self.length = length
+            self.sceneLength = sceneLength; self.text = text
+        }
+    }
+
+    public init(scenes: [Entry]) { self.scenes = scenes }
+
+    /// The wire form the range endpoints take.
+    public func toJSON() throws -> String { String(decoding: try JSONEncoder().encode(self), as: UTF8.self) }
+}
+
+/// The whole change a range operation made, in reading order (design P3) — what the editor applies to its scene list
+/// instead of re-opening the project. ⚠️ The C ABI OMITS an empty list, so every list decodes absent as empty.
+public struct RangeDelta: Decodable, Sendable, Equatable {
+    public enum Change: String, Decodable, Sendable { case created, rewritten, moved }
+
+    public struct Scene: Decodable, Sendable, Equatable {
+        public let change: Change
+        public let sceneID: String
+        public let chapterID: String
+        public let title: String
+        public let chapterTitle: String
+        public let metadataPath: String
+        public let contentPath: String
+        public let chapterMetadataPath: String
+        /// The scene before it in reading order now; "" = the manuscript's first.
+        public let afterSceneID: String
+        /// The body as written; nil for `.moved` (its text is unchanged).
+        public let text: String?
+    }
+
+    public struct Chapter: Decodable, Sendable, Equatable {
+        public let chapterID: String
+        public let title: String
+        public let metadataPath: String
+        public let afterChapterID: String
+    }
+
+    public let scenes: [Scene]
+    public let removedSceneIDs: [String]
+    public let createdChapters: [Chapter]
+    public let removedChapterIDs: [String]
+
+    private enum CodingKeys: String, CodingKey { case scenes, removedSceneIDs, createdChapters, removedChapterIDs }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        scenes            = try c.decodeIfPresent([Scene].self, forKey: .scenes) ?? []
+        removedSceneIDs   = try c.decodeIfPresent([String].self, forKey: .removedSceneIDs) ?? []
+        createdChapters   = try c.decodeIfPresent([Chapter].self, forKey: .createdChapters) ?? []
+        removedChapterIDs = try c.decodeIfPresent([String].self, forKey: .removedChapterIDs) ?? []
+    }
+}
+
+/// Result of `scrivi_range_paste` / `scrivi_range_cut`: the change, and the Range inserted (paste) or removed (cut).
+public struct RangeOperationResult: Decodable, Sendable {
+    public let delta: RangeDelta
+    public let range: ScriviRange
+}
+
+struct RangeReadResult: Decodable, Sendable {
+    let range: ScriviRange
 }
 
 public struct MergeChapterResult: Decodable, Sendable {

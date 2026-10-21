@@ -42,6 +42,12 @@ struct SceneSegment
     int bodyStart = 0;
     // Length in characters of this scene's body as inserted.
     int bodyLength = 0;
+
+    // EP-053 S2a (SP-187 / T-0615): the scene's TEXT. The scene list is the model of record (design v0.2 §4.2a) and the
+    // document a rendering of it, so the text lives here, kept current by `applyContentsChange` and by every structural
+    // edit below. ⚠️ While a pending pair (SP-175) sits in the body it holds the pair's markers, as the document does
+    // (`bodyText` leaves them out). With SCRIVI_VERIFY_SCENE_TEXT=1 every change is checked against the document.
+    QString text;
 };
 
 class SceneDocument
@@ -344,6 +350,16 @@ public:
     // Empty string if index is out of range.
     QString chapterHeadingText(int index) const;
 
+    // EP-053 S2a: true when every segment's `text` equals its body in the document (the invariant the smokes check).
+    bool textMatchesDocument() const;
+    // EP-053 S2a: how many full builds (`build`) this document has had — the baseline: a structural edit that rebuilds
+    // the whole document shows here.
+    int builds() const { return builds_; }
+    // SCRIVI_VERIFY_SCENE_TEXT=1 (CI and the smoke runner set it): a segment whose `text` is not its body in the document
+    // is fatal. Run after every change, so a path that forgets the text fails the smoke that exercises it.
+    void verifyText(int index) const;
+    void verifyAllText() const;
+
 private:
     // Recompute the leading-boundary text (heading/separator) for segment `index`
     // from scratch — used when a delete promotes a following scene to a chapter's
@@ -352,10 +368,13 @@ private:
     // for removeScene.
     void reflowBoundaryAt(int index);
 
-    QString rawBodyText(int index) const;   // bodyText with the pending pair, if any
+    QString rawBodyText(int index) const;   // bodyText with the pending pair, if any (the segment's `text`)
+    // EP-053 S2a: the body as the DOCUMENT holds it — what `text` must always equal. Only the verification reads it.
+    QString documentBodyText(int index) const;
 
     QTextDocument doc_;
     QList<SceneSegment> segments_;
     std::optional<PendingPair> pending_;
     bool pendingEdit_ = false;
+    int builds_ = 0;
 };

@@ -14,8 +14,23 @@ SceneDocument::SceneDocument()
     doc_.setDocumentLayout(new QPlainTextDocumentLayout(&doc_));
 }
 
+namespace {
+// Checks the whole list when the structural edit it guards returns, on every return path.
+struct VerifyOnExit {
+    const SceneDocument& doc;
+    ~VerifyOnExit() { doc.verifyAllText(); }
+};
+
+bool verifying()
+{
+    static const bool on = qEnvironmentVariableIntValue("SCRIVI_VERIFY_SCENE_TEXT") == 1;
+    return on;
+}
+}   // namespace
+
 void SceneDocument::build(const QList<Input>& inputs)
 {
+    ++builds_;          // EP-053 S2a baseline
     pending_.reset();   // SP-175: a fresh document holds no pending pair
     pendingEdit_ = false;
     segments_.clear();
@@ -67,10 +82,12 @@ void SceneDocument::build(const QList<Input>& inputs)
         cursor.insertText(in.markdown);
 
         seg.bodyLength = cursor.position() - seg.bodyStart;
+        seg.text       = in.markdown;
         segments_.append(seg);
     }
 
     cursor.endEditBlock();
+    verifyAllText();
 }
 
 int SceneDocument::bodyStartForScene(const QString& sceneID) const
@@ -234,8 +251,14 @@ int SceneDocument::applyContentsChange(int pos, int charsRemoved, int charsAdded
         }
     }
     if (delta == 0) {
-        // No length change (e.g. a formatting-only change); ownership unaffected.
-        return sceneIndexForCaret(pos);
+        // No length change; ownership unaffected. ⚠️ A same-length REPLACEMENT ("a" → "b") reports the same counts as a
+        // formatting-only change, so the scene's text is re-read either way (EP-053 S2a).
+        const int same = sceneIndexForCaret(pos);
+        if (same >= 0 && charsRemoved > 0) {
+            segments_[same].text = documentBodyText(same);
+            verifyText(same);
+        }
+        return same;
     }
 
     // The edit is anchored at pos. For a removal the affected scene is the one
@@ -256,6 +279,8 @@ int SceneDocument::applyContentsChange(int pos, int charsRemoved, int charsAdded
     for (int j = i + 1; j < segments_.size(); ++j) {
         segments_[j].bodyStart += delta;
     }
+    segments_[i].text = documentBodyText(i);   // EP-053 S2a: the list holds the text
+    verifyText(i);
     return i;
 }
 
@@ -270,6 +295,7 @@ int SceneDocument::insertSceneAfter(int afterIndex,
                                     const QString& chapterMetadataPath,
                                     bool newChapter)
 {
+    const VerifyOnExit verify{*this};   // EP-053 S2a
     if (afterIndex < 0 || afterIndex >= segments_.size()) {
         return -1;
     }
@@ -397,6 +423,7 @@ void SceneDocument::reflowBoundaryAt(int index)
 
 bool SceneDocument::removeScene(int index)
 {
+    const VerifyOnExit verify{*this};   // EP-053 S2a
     if (index < 0 || index >= segments_.size()) {
         return false;
     }
@@ -470,6 +497,7 @@ int SceneDocument::moveScene(int fromIndex,
                              const QString& targetChapterTitle,
                              const QString& afterSceneID)
 {
+    const VerifyOnExit verify{*this};   // EP-053 S2a
     if (fromIndex < 0 || fromIndex >= segments_.size()) {
         return -1;
     }
@@ -562,6 +590,7 @@ int SceneDocument::moveScene(int fromIndex,
 
 int SceneDocument::moveChapter(const QString& chapterID, const QString& afterChapterID)
 {
+    const VerifyOnExit verify{*this};   // EP-053 S2a
     if (chapterID.isEmpty() || chapterID == afterChapterID) {
         return -1;
     }
@@ -761,6 +790,7 @@ QList<int> SceneDocument::sceneSeparatorPositions() const
 
 void SceneDocument::reflowAllChapterHeadings()
 {
+    const VerifyOnExit verify{*this};   // EP-053 S2a
     // Reflow each chapter's first segment. Walk by chapter boundary; reflowBoundaryAt
     // may shift later offsets, but we re-derive the boundary from live segment data each
     // time and iterate forward, so subsequent first-segments are found correctly.
@@ -804,6 +834,7 @@ QString SceneDocument::chapterHeadingText(int index) const
 void SceneDocument::setChapterTitle(const QString& chapterID,
                                     const QString& chapterTitle)
 {
+    const VerifyOnExit verify{*this};   // EP-053 S2a
     const int first = firstSegmentOfChapter(chapterID);
     if (first < 0) {
         return;   // unknown chapter
@@ -848,6 +879,41 @@ std::optional<SceneDocument::SceneSlice> SceneDocument::sceneHolding(int start, 
 }
 
 QString SceneDocument::rawBodyText(int index) const
+{
+    // ✅ EP-053 S2a: the scene list holds the text — no document read.
+    return index < 0 || index >= segments_.size() ? QString() : segments_.at(index).text;
+}
+
+bool SceneDocument::textMatchesDocument() const
+{
+    for (int i = 0; i < segments_.size(); ++i) {
+        if (segments_.at(i).text != documentBodyText(i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+void SceneDocument::verifyText(int index) const
+{
+    if (verifying() && index >= 0 && index < segments_.size() && segments_.at(index).text != documentBodyText(index)) {
+        qFatal("SceneDocument: scene %d's text (%lld chars) is not its body in the document (%lld chars) — EP-053 S2a",
+               index, qlonglong(segments_.at(index).text.size()), qlonglong(documentBodyText(index).size()));
+    }
+}
+
+void SceneDocument::verifyAllText() const
+{
+    if (!verifying()) {
+        return;
+    }
+    for (int i = 0; i < segments_.size(); ++i) {
+        verifyText(i);
+    }
+}
+
+QString SceneDocument::documentBodyText(int index) const
 {
     if (index < 0 || index >= segments_.size()) {
         return {};

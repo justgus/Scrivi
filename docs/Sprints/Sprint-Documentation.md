@@ -453,11 +453,12 @@ keys); **Doc 3 §4.6 amended at planning**, before any code.
 | **SP-183** | `[Linux]` **[EP-048] S5b** — line spacing and the first-line indent: L10 (T-0610) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-183.md`](Sprint-SP-183.md) |
 | **SP-184** | `[Linux]` **[EP-048] S5c** — Show chapter titles, and the divider that closes a chapter (T-0611) | EP-048 | — | — | 🔵 **PLANNING** → [`Sprint-SP-184.md`](Sprint-SP-184.md) |
 | **SP-185** | `[Linux]` **[EP-026]** — responsive after load: [I-0308], [I-0307], [I-0297], [I-0309]; the diagnostic log (T-0612) | EP-026 | 2026-10-17 | — | 🟡 **ACTIVE** → [`Sprint-SP-185.md`](Sprint-SP-185.md) |
-| **SP-186** | `[ScriviCore]` **[EP-053] S1** — the Range and the range operations: read, paste ([I-0311]), structural cut; the delta; 4 reads + 4 writes (T-0614) | EP-053 | 2026-10-17 | — | 🟡 **ACTIVE** → [`Sprint-SP-186.md`](Sprint-SP-186.md) |
-| **SP-187** | `[Cross]` **[EP-053] S2** — the scene list as the model of record; copy, paste and its undo, split and merge: delta applied, no reload (T-0615) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-187.md`](Sprint-SP-187.md) |
+| **SP-186** | `[ScriviCore]` **[EP-053] S1** — the Range and the range operations: read, paste ([I-0311]), structural cut; the delta; 4 reads + 4 writes (T-0614) | EP-053 | 2026-10-17 | 2026-10-20 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-186.md) |
+| **SP-187** | `[Cross]` **[EP-053] S2a** — the scene list as the model of record, no visible change; the range bindings and delta types (T-0615) | EP-053 | 2026-10-20 | — | 🟡 **ACTIVE** → [`Sprint-SP-187.md`](Sprint-SP-187.md) |
 | **SP-188** | `[Cross]` **[EP-053] S3** — structural cut, Backspace / Delete over scenes, and their undo (T-0616) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-188.md`](Sprint-SP-188.md) |
 | **SP-189** | `[Cross]` **[EP-053] S4** — the background sync verification: disk wins, silently (T-0617) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-189.md`](Sprint-SP-189.md) |
 | **SP-190** | `[Cross]` **[EP-053] S5** — Mac and rig live passes over the share, timed (T-0618) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-190.md`](Sprint-SP-190.md) |
+| **SP-191** | `[Cross]` **[EP-053] S2b** — copy, paste and its undo, split and merge: as deltas, off the main thread, no reload (T-0619) | EP-053 | — | — | 🔵 **PLANNING** → [`Sprint-SP-191.md`](Sprint-SP-191.md) |
 | **SP-160** | `[Linux]` **[EP-049] S1** — Linux writes Apple's manuscript format: escaping, paste/copy, pair deletion, Return/⌫, shared corpus (T-0586); + I-0276 | EP-049 | 2026-10-04 | 2026-10-04 | ✅ **CLOSED** (user-approved) → [record](Closed/Sprint-SP-160.md) |
 
 ## Statistics
@@ -497,6 +498,10 @@ by status, read the table.**
 > on neither time. **Do not reintroduce per-status counts here.**
 
 ---
+
+*Last Updated: 2026-10-20 (**SP-187 → 🟡 ACTIVE** as EP-053 S2a (user: *"complete planning for SP-187 and activate it"*); Q1 split S2 → **SP-191** (S2b) created in 🔵 Planning via `next-id.py`; T-0615 → active, T-0619 filed.)*
+
+*Last Updated: 2026-10-20 (**SP-186 CLOSED** (user-approved) → `Closed/Sprint-SP-186.md`; T-0614 verified and archived.)*
 
 *Last Updated: 2026-10-20 (**SP-187–SP-190 created in 🔵 Planning** — EP-053 S2–S5 (user: *"complete planning for EP-053"*), issued via `next-id.py`; T-0615–T-0618 filed.)*
 

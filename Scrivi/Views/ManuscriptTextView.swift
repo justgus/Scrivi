@@ -799,69 +799,15 @@ struct ManuscriptTextView: NSViewRepresentable {
                              Date().timeIntervalSince(rebuildStart)))
             }
             let storage = tv.textStorage!
+            let (rendered, built) = renderedManuscript(segments)
             storage.beginEditing()
-            storage.setAttributedString(NSAttributedString(string: ""))
-
-            // ✅ EP-047 AC4: the ONE source (font, line height). I-0112: it carries `.foregroundColor` — a run without
-            // it renders as literal NSColor.black, invisible in Dark Mode.
-            let attrs = presenter.typography.bodyAttributes
-            let showTitles = parent.showChapterTitles
-
-            var built: [NSRange] = []
-            var offset = 0
-
-            for (i, seg) in segments.enumerated() {
-                ScriviDiag.tick("rebuildStorage", i, of: segments.count)
-                let isChapterBoundary = i == 0 || segments[i - 1].chapterID != seg.chapterID
-
-                if i > 0 {
-                    // Insert divider between every pair of adjacent scenes.
-                    // ✅ T-0575 — the divider that CLOSES a chapter is drawn at full strength.
-                    let state: DividerRenderState = isChapterBoundary ? .chapterEnd : .sceneBreak
-                    let divStr = SceneDivider.string(makeDividerAttachment(state), state: state,
-                                                     newlineAttributes: attrs)
-                    storage.append(divStr)
-                    offset += divStr.length
-                }
-
-                // Insert chapter heading at every chapter boundary (including the first scene).
-                if showTitles && isChapterBoundary {
-                    let chapterTitle = parent.loader.allScenes
-                        .first(where: { $0.sceneID == seg.sceneID })
-                        .map { info -> String in
-                            let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
-                            if !t.isEmpty { return t }
-                            let chapterIDs = parent.loader.allScenes.map(\.chapterID)
-                            var seen: [String: Int] = [:]
-                            var ordinal = 0
-                            for cid in chapterIDs {
-                                if seen[cid] == nil { ordinal += 1; seen[cid] = ordinal }
-                            }
-                            return "Chapter \(seen[info.chapterID] ?? ordinal)"
-                        } ?? ""
-                    // ✅ EP-047 P7 + P9: chapter titles in the manuscript face, at Heading 1 size, in the text colour.
-                    var headingAttrs = presenter.typography.chapterTitleAttributes
-                    headingAttrs[.scriviHeading] = true
-                    let headingStr = NSAttributedString(
-                        string: i == 0 ? "\(chapterTitle)\n" : "\n\(chapterTitle)\n",
-                        attributes: headingAttrs
-                    )
-                    storage.append(headingStr)
-                    offset += headingStr.length
-                }
-
-                let start = offset
-                let segStr = NSAttributedString(string: seg.text, attributes: attrs)
-                storage.append(segStr)
-                offset += segStr.length
-
-                built.append(NSRange(location: start, length: segStr.length))
-            }
-
+            storage.setAttributedString(rendered)
             storage.endEditing()
             // ✅ EP-045 AC11: the ranges were built exactly while appending — install them, so
             // the whole-storage edit above (which marked the table dirty) costs no rescan.
             boundaryTable.reset(built)
+            fullRenders += 1
+            renderedChapterCount = Self.chapterCount(segments)
 
             // Sync the change-detection keys so the NEXT updateNSView pass — which the
             // @Observable segment mutation that prompted this rebuild will schedule — sees no
@@ -876,6 +822,133 @@ struct ManuscriptTextView: NSViewRepresentable {
             // renumbers titles, so the next update pass saw a "changed" fingerprint and
             // rebuilt AGAIN — after the handler had placed the caret — undoing T-0573's
             // scroll and I-0271's viewport layout (the blank band came back).
+            lastChapterTitleFingerprint = chapterHeadingFingerprint(for: parent.loader)
+        }
+
+        // MARK: — EP-053 S2a (SP-187, T-0615): the scene list renders; a run re-renders on its own
+        //
+        // ✅ Design v0.2 §4.2a: the scene list (`loader.segments`) is the model of record and the storage is a rendering of
+        // it. ONE renderer builds every scene's prefix (the divider before it, and its chapter title when titles show) and its
+        // body, for the whole manuscript (`rebuildStorage`) or for a run (`renderRun`), so the two cannot drift.
+
+        /// Full renders and run renders since this coordinator was made — the baseline S2b is measured against, and the
+        /// proof a structural operation did not re-render everything.
+        var fullRenders = 0
+        var runRenders = 0
+        /// How many chapters the storage shows. A run render cannot renumber "Chapter N" titles outside its run, so when
+        /// titles show and the chapter count changed it renders everything instead.
+        private var renderedChapterCount = 0
+
+        static func chapterCount(_ segments: [SceneSegment]) -> Int {
+            var n = 0
+            for (i, seg) in segments.enumerated() where i == 0 || segments[i - 1].chapterID != seg.chapterID { n += 1 }
+            return n
+        }
+
+        /// What goes before scene `i`: the divider (every scene but the first; the one that CLOSES a chapter at full
+        /// strength, T-0575), then its chapter title at a chapter boundary when titles show.
+        private func renderedPrefix(_ i: Int, _ segments: [SceneSegment]) -> NSAttributedString {
+            let out = NSMutableAttributedString()
+            let seg = segments[i]
+            let isChapterBoundary = i == 0 || segments[i - 1].chapterID != seg.chapterID
+            if i > 0 {
+                let state: DividerRenderState = isChapterBoundary ? .chapterEnd : .sceneBreak
+                out.append(SceneDivider.string(makeDividerAttachment(state), state: state,
+                                               newlineAttributes: presenter.typography.bodyAttributes))
+            }
+            if parent.showChapterTitles && isChapterBoundary {
+                let chapterTitle = parent.loader.allScenes
+                    .first(where: { $0.sceneID == seg.sceneID })
+                    .map { info -> String in
+                        let t = info.chapterTitle.trimmingCharacters(in: .whitespaces)
+                        if !t.isEmpty { return t }
+                        let chapterIDs = parent.loader.allScenes.map(\.chapterID)
+                        var seen: [String: Int] = [:]
+                        var ordinal = 0
+                        for cid in chapterIDs {
+                            if seen[cid] == nil { ordinal += 1; seen[cid] = ordinal }
+                        }
+                        return "Chapter \(seen[info.chapterID] ?? ordinal)"
+                    } ?? ""
+                // ✅ EP-047 P7 + P9: chapter titles in the manuscript face, at Heading 1 size, in the text colour.
+                var headingAttrs = presenter.typography.chapterTitleAttributes
+                headingAttrs[.scriviHeading] = true
+                out.append(NSAttributedString(string: i == 0 ? "\(chapterTitle)\n" : "\n\(chapterTitle)\n",
+                                              attributes: headingAttrs))
+            }
+            return out
+        }
+
+        /// The whole manuscript as the storage shows it, with each scene body's range. ✅ EP-047 AC4: the ONE source
+        /// (font, line height); I-0112: it carries `.foregroundColor` (a run without it is black in Dark Mode).
+        func renderedManuscript(_ segments: [SceneSegment]) -> (NSAttributedString, [NSRange]) {
+            let out = NSMutableAttributedString()
+            var ranges: [NSRange] = []
+            ranges.reserveCapacity(segments.count)
+            let attrs = presenter.typography.bodyAttributes
+            for i in segments.indices {
+                ScriviDiag.tick("rebuildStorage", i, of: segments.count)
+                out.append(renderedPrefix(i, segments))
+                let body = NSAttributedString(string: segments[i].text, attributes: attrs)
+                ranges.append(NSRange(location: out.length, length: body.length))
+                out.append(body)
+            }
+            return (out, ranges)
+        }
+
+        /// Re-render ONE run of scenes: `old` is where the run sat in the storage before the scene list changed, `new` where
+        /// it sits in `loader.segments` now (both start at the same index). Replaces the run's prefixes and bodies, and the
+        /// prefix of the scene after it (its divider can change with the run), and nothing else. The boundary table is
+        /// spliced, not rescanned. ⚠️ Renders everything instead when the storage does not match the run's assumptions,
+        /// or when titles show and the chapter count changed ("Chapter N" titles outside the run renumber).
+        func renderRun(_ tv: NSTextView, old: Range<Int>, new: Range<Int>) {
+            let segments = parent.loader.segments
+            guard let storage = tv.textStorage else { return }
+            let table = boundaryTable.ranges(in: storage)
+            let oldCount = segments.count - new.count + old.count
+            let chapters = Self.chapterCount(segments)
+            guard !old.isEmpty, !new.isEmpty, old.lowerBound == new.lowerBound, table.count == oldCount,
+                  old.upperBound <= oldCount, new.upperBound <= segments.count,
+                  !(parent.showChapterTitles && chapters != renderedChapterCount) else {
+                rebuildStorage(tv, segments: segments)
+                return
+            }
+            caretViewportOffset = caretOffsetInViewport(tv)   // T-0573: the caret keeps its height
+            isRebuilding = true
+            let undoManager = tv.undoManager
+            undoManager?.disableUndoRegistration()
+            defer {
+                undoManager?.enableUndoRegistration()
+                isRebuilding = false
+            }
+
+            let a = old.lowerBound
+            let replaceStart = a == 0 ? 0 : NSMaxRange(table[a - 1])
+            let replaceEnd = old.upperBound < oldCount ? table[old.upperBound].location : storage.length
+            let attrs = presenter.typography.bodyAttributes
+            let built = NSMutableAttributedString()
+            var runRanges: [NSRange] = []
+            for j in new {
+                built.append(renderedPrefix(j, segments))
+                let body = NSAttributedString(string: segments[j].text, attributes: attrs)
+                runRanges.append(NSRange(location: replaceStart + built.length, length: body.length))
+                built.append(body)
+            }
+            if new.upperBound < segments.count { built.append(renderedPrefix(new.upperBound, segments)) }
+
+            storage.beginEditing()
+            storage.replaceCharacters(in: NSRange(location: replaceStart, length: replaceEnd - replaceStart), with: built)
+            storage.endEditing()
+
+            let delta = built.length - (replaceEnd - replaceStart)
+            var spliced = Array(table[0..<a]) + runRanges
+            for r in table[old.upperBound...] { spliced.append(NSRange(location: r.location + delta, length: r.length)) }
+            boundaryTable.reset(spliced)
+            runRenders += 1
+            renderedChapterCount = chapters
+            // The keys `updateNSView` compares, as `rebuildStorage` syncs them ([I-0272]).
+            lastSegmentIDs = segments.map(\.id)
+            lastShowChapterTitles = parent.showChapterTitles
             lastChapterTitleFingerprint = chapterHeadingFingerprint(for: parent.loader)
         }
 
@@ -1200,8 +1273,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                         // Empty scene inserted before the current one; current scene untouched.
                         let newIdx = loader.insertScene(result, before: segIdx)
                         loader.setCurrentIndex(newIdx)
-                        // Rebuild and drop the caret at the start of the new empty scene.
-                        rebuildStorageAndPlaceCursor(at: newIdx, textOffset: 0)
+                        // Render the new empty scene and the one it precedes; drop the caret at the start of the new one.
+                        renderRunAndPlaceCursor(old: segIdx..<segIdx + 1, new: segIdx..<segIdx + 2,
+                                                at: newIdx, textOffset: 0)
                     } else if isAtEnd {
                         // Append empty scene — original behaviour.
                         let newIdx = loader.insertScene(result, after: segIdx)
@@ -1511,7 +1585,9 @@ struct ManuscriptTextView: NSViewRepresentable {
                                                       sceneTexts: [predecessorSeg.sceneID: joinText])
                 let mergedIdx = loader.mergeSceneIntoPredecessor(at: segIdx, joinText: joinText)
                 loader.setCurrentIndex(mergedIdx)
-                rebuildStorageAndPlaceCursor(at: mergedIdx, textOffset: joinPoint)
+                // EP-053 S2a: render the two scenes that became one — nothing else.
+                renderRunAndPlaceCursor(old: segIdx - 1..<segIdx + 1, new: mergedIdx..<mergedIdx + 1,
+                                        at: mergedIdx, textOffset: joinPoint)
 
                 session.timelineModel?.reloadSceneDots(
                     engine: env.engine, projectRootPath: rootPath, scenes: loader.allScenes)
@@ -1610,9 +1686,10 @@ struct ManuscriptTextView: NSViewRepresentable {
                 let renumberFrom = loader.segments.firstIndex(where: { $0.chapterID == predecessorChapterID }) ?? segIdx
                 loader.renumberChapterTitlesFrom(segmentIndex: renumberFrom)
 
-                // Rebuild storage; cursor stays at segIdx (now in predecessor chapter).
+                // EP-053 S2a: render the scene at the seam (its divider is a scene break now) — nothing else. The caret
+                // stays at segIdx (now in the predecessor chapter).
                 if let tv = textView {
-                    rebuildStorage(tv, segments: loader.segments)
+                    renderRun(tv, old: segIdx..<segIdx + 1, new: segIdx..<segIdx + 1)
                     if sceneBoundaries.indices.contains(segIdx) {
                         revealCaretAfterRebuild(sceneBoundaries[segIdx].location, in: tv)
                     }
@@ -1624,20 +1701,21 @@ struct ManuscriptTextView: NSViewRepresentable {
             }
         }
 
-        // After inserting a new segment, rebuild storage and position cursor.
+        // After inserting a new segment after `segIdx`, render the two and position the cursor. EP-053 S2a: a run render —
+        // `segIdx`'s scene (a split rewrote it) and the new one after it, nothing else.
         private func insertDividerAndMoveCursor(after segIdx: Int, placeCursorAtStart: Bool) {
             guard let tv = textView else { return }
-            rebuildStorage(tv, segments: parent.loader.segments)
+            renderRun(tv, old: segIdx..<segIdx + 1, new: segIdx..<segIdx + 2)
             let newSegIdx = segIdx + 1
             if sceneBoundaries.indices.contains(newSegIdx) {
                 revealCaretAfterRebuild(sceneBoundaries[newSegIdx].location, in: tv)
             }
         }
 
-        // Rebuild storage and place the cursor at `textOffset` characters into segment `segIdx`.
-        private func rebuildStorageAndPlaceCursor(at segIdx: Int, textOffset: Int) {
+        // Render the run that changed (EP-053 S2a) and place the cursor at `textOffset` characters into segment `segIdx`.
+        private func renderRunAndPlaceCursor(old: Range<Int>, new: Range<Int>, at segIdx: Int, textOffset: Int) {
             guard let tv = textView else { return }
-            rebuildStorage(tv, segments: parent.loader.segments)
+            renderRun(tv, old: old, new: new)
             if sceneBoundaries.indices.contains(segIdx) {
                 let loc = sceneBoundaries[segIdx].location + textOffset
                 revealCaretAfterRebuild(min(loc, tv.string.count), in: tv)

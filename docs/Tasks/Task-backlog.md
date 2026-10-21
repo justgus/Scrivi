@@ -35,7 +35,7 @@ status changes on its own layer.
 | **T-0497** | ⚠️ **`[Linux]` World CREATION** — the one Worlds action SP-127 deliberately deferred. ⚠️ **Apple entangles it with `WorldBookmarkStore` (macOS sandbox grants, NO Linux equivalent)**, and ✅ **AC3 asks for added / status read / relinked, not created**. ⚠️ **PRIORITY ARGUMENT CHANGED BY THE T-0496 LIVE PASS (2026-09-01):** ⚠️ **the user hit this as a DEAD END while setting up a test** — `Project ▸ Manage Worlds…` offers **no create affordance**, so ⚠️ **a project with no world cannot proceed on Linux at all**: there is nothing to *add* or *relink*. ✅ **Apple detects the no-world case and PROMPTS the writer to create one** — ⚠️ **the deferral assumed add+relink were enough to be USABLE, and they are not.** ⚠️ **The step-7 test could not be completed on Linux alone; the world (`Alpha Centauri`) had to be created in the APPLE app** — ⚠️ **the sharpest evidence available that this is a gap, not a nicety.** | **EP-035** | 🔵 **Backlog** — ⚠️ **unscheduled, but ⚠️ NOW BLOCKING a Linux-only writer** |
 | T-0610 | `[Linux]` EP-048 S5b: line spacing and the first-line indent | EP-048 ([SP-183], 🔵 Planning) | 🔵 Backlog |
 | T-0611 | `[Linux]` EP-048 S5c: Show chapter titles, and the chapter-ending divider | EP-048 ([SP-184], 🔵 Planning) | 🔵 Backlog |
-| T-0615 | `[Cross]` EP-053 S2: the scene list as the model of record; copy, paste and its undo, split and merge — no reload | EP-053 ([SP-187], 🔵 Planning) | 🔵 Backlog |
+| T-0619 | `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload | EP-053 ([SP-191], 🔵 Planning) | 🔵 Backlog |
 | T-0616 | `[Cross]` EP-053 S3: structural cut, Backspace / Delete over scenes, and their undo | EP-053 ([SP-188], 🔵 Planning) | 🔵 Backlog |
 | T-0617 | `[Cross]` EP-053 S4: the background sync verification | EP-053 ([SP-189], 🔵 Planning) | 🔵 Backlog |
 | T-0618 | `[Cross]` EP-053 S5: Mac and rig live passes over the share, timed | EP-053 ([SP-190], 🔵 Planning) | 🔵 Backlog |
@@ -393,14 +393,15 @@ full-strength closing divider ([T-0575]). Every structural operation and its und
 
 ---
 
-## 🔵 T-0615 — `[Cross]` EP-053 S2: the scene list as the model of record; copy, paste and its undo, split and merge — no reload
+## 🔵 T-0619 — `[Cross]` EP-053 S2b: copy, paste and its undo, split and merge — as deltas, off the main thread, no reload
 
-**Epic:** [EP-053] (S2) · **Status:** 🔵 Backlog · **Sprint:** [SP-187] (🔵 Planning) →
-[`../Sprints/Sprint-SP-187.md`](../Sprints/Sprint-SP-187.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for EP-053"*)
+**Epic:** [EP-053] (S2b) · **Status:** 🔵 Backlog · **Sprint:** [SP-191] (🔵 Planning) →
+[`../Sprints/Sprint-SP-191.md`](../Sprints/Sprint-SP-191.md) · **Date Requested:** 2026-10-20 (from [SP-187]'s Q1 ruling: split S2)
 
-**What:** on the Mac and on Linux, the in-memory scene list becomes the model of record (design v0.2 §4.2a). Copy builds the
-Range from it; paste, paste's undo (a range cut) and redo, split, merge, chapter create and chapter merge each make one core
-call off the main thread, and the editor applies the returned delta with no reload. Absorbs [SP-185] AC4.
+**What:** on the Mac and on Linux, copy builds the Range from the in-memory list; paste, paste's undo (a range cut) and redo,
+split, merge, chapter create and chapter merge each make one core call off the main thread, and the editor applies the
+returned delta with no reload. Old `structuredPaste` / `structuredCut` history nodes convert to the same path. Absorbs
+[SP-185] AC4.
 
 ---
 
@@ -434,6 +435,8 @@ corrects any difference from the disk silently (design v0.2 R3, P4, Q3), never o
 and redo, timed by each platform's log, with no freeze. Includes the Mac's timing source if [SP-190] Q1 rules one.
 
 ---
+
+*Last Updated: 2026-10-20 (**T-0615 → active** with SP-187's activation; it left this file. **T-0619 filed** (EP-053 S2b, [SP-191] 🔵 Planning).)*
 
 *Last Updated: 2026-10-20 (**T-0615–T-0618 filed** — EP-053 S2–S5, [SP-187]–[SP-190] 🔵 Planning.)*
 

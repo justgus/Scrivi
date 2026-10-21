@@ -7134,7 +7134,7 @@ struct UndoAfterStructuralOpTests {
     }
 
     /// One chapter holding `bodies`, opened through `loadAsync` — the app's own open (history opened + every scene validated).
-    fileprivate func harness(_ bodies: [String]) async throws -> Harness {
+    fileprivate func harness(_ bodies: [String], showChapterTitles: Bool = false) async throws -> Harness {
         let root = try TempDir()
         let env = AppEnvironment()
         let engine = env.engine
@@ -7160,14 +7160,16 @@ struct UndoAfterStructuralOpTests {
             after = s.sceneID
         }
 
-        let h = try await attach(root, env, identityID: identity.identityID, projectID: created.projectID)
+        let h = try await attach(root, env, identityID: identity.identityID, projectID: created.projectID,
+                                 showChapterTitles: showChapterTitles)
         #expect(h.loader.segments.map(\.text) == bodies)
         return h
     }
 
     /// Opens the project at `root` through `loadAsync` (the app's own open: history opened, every scene validated) into a
     /// real coordinator and text view.
-    fileprivate func attach(_ root: TempDir, _ env: AppEnvironment, identityID: String, projectID: String) async throws -> Harness {
+    fileprivate func attach(_ root: TempDir, _ env: AppEnvironment, identityID: String, projectID: String,
+                            showChapterTitles: Bool = false) async throws -> Harness {
         let ref = try #require(env.authorshipRef)
         let session = ProjectSession(engine: env.engine, authorshipRef: ref, appSupportRoot: env.appSupportRoot,
                                      identityID: identityID)
@@ -7176,7 +7178,7 @@ struct UndoAfterStructuralOpTests {
         #expect(session.historyCapture != nil, "history opened by the load")
 
         let view = ManuscriptTextView(loader: loader, env: env, session: session, navigateToSceneID: .constant(nil),
-                                      showChapterTitles: false, typography: .default)
+                                      showChapterTitles: showChapterTitles, typography: .default)
         let c = view.makeCoordinator()
         let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
         let tv = ManuscriptNSTextView(usingTextLayoutManager: true)
@@ -7602,6 +7604,249 @@ struct BufferPasteChordTests {
         #expect(BufferAction.current([.command]) == .copy)
         #expect(BufferAction.current([.option]) == .cut)
         #expect(BufferAction.current([]) == .copy)
+    }
+}
+
+
+// MARK: — EP-053 S2a (SP-187 / T-0615): the range endpoints, through ScriviEngine
+
+/// The binding, not the core (the core's behaviour is `RangeOperationCApiTests.cpp`): every argument reaches
+/// `scrivi_range_*`, every answer decodes, and the delta's fields land in `RangeDelta`. Every write is checked by reopening.
+@Suite("Range endpoints through ScriviEngine (EP-053 S2a)")
+struct RangeBindingInteropTests {
+
+    private final class TempDir: @unchecked Sendable {
+        let url: URL
+        init() throws {
+            url = FileManager.default.temporaryDirectory.appendingPathComponent("scrivi-range-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        deinit { try? FileManager.default.removeItem(at: url) }
+        var path: String { url.path(percentEncoded: false) }
+    }
+
+    private struct Row: Equatable { let sceneID: String; let chapterID: String; let text: String }
+
+    private struct Fixture {
+        let engine = ScriviEngine()
+        let projectDir: TempDir
+        let appSupport: TempDir
+        let ref: AuthorshipRef
+        let identityID: String
+        let projectID: String
+
+        /// Two chapters of three scenes, "C<c>S<s> body.", built through the engine as the app builds them.
+        init() throws {
+            projectDir = try TempDir()
+            appSupport = try TempDir()
+            let identity = try engine.ensureLocalIdentity(displayName: "Range Tester", appSupportRoot: appSupport.path)
+            identityID = identity.identityID
+            ref = AuthorshipRef(identityID: identity.identityID, personaID: identity.defaultPersonaID,
+                                displayName: identity.displayName)
+            projectID = try engine.createProject(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                                 title: "Range", slug: "range", authorshipRef: ref).projectID
+            let first = try engine.openProject(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                               identityID: identityID).scenes[0]
+            try save(first.sceneID, first.metadataPath, first.contentPath, "C1S1 body.")
+            var prev = first.sceneID
+            for s in 2...3 {
+                let made = try engine.createScene(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                                  projectID: projectID, chapterID: first.chapterID, afterSceneID: prev,
+                                                  authorshipRef: ref)
+                try save(made.sceneID, made.metadataPath, made.contentPath, "C1S\(s) body.")
+                prev = made.sceneID
+            }
+            let ch2 = try engine.createChapter(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                               projectID: projectID, authorshipRef: ref)
+            try save(ch2.firstSceneID, ch2.firstSceneMetadataPath, ch2.firstSceneContentPath, "C2S1 body.")
+            prev = ch2.firstSceneID
+            for s in 2...3 {
+                let made = try engine.createScene(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                                  projectID: projectID, chapterID: ch2.chapterID, afterSceneID: prev,
+                                                  authorshipRef: ref)
+                try save(made.sceneID, made.metadataPath, made.contentPath, "C2S\(s) body.")
+                prev = made.sceneID
+            }
+        }
+
+        func save(_ id: String, _ meta: String, _ content: String, _ text: String) throws {
+            _ = try engine.saveScene(projectID: projectID, projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                     sceneID: id, sceneMetadataPath: meta, sceneContentPath: content, markdown: text,
+                                     authorshipRef: ref)
+        }
+
+        /// The manuscript as the DISK has it.
+        func rows() throws -> [Row] {
+            let opened = try engine.openProject(projectRootPath: projectDir.path, appSupportRoot: appSupport.path,
+                                                identityID: identityID)
+            return try opened.scenes.map { s in
+                let text = try String(contentsOf: projectDir.url.appendingPathComponent(s.contentPath), encoding: .utf8)
+                return Row(sceneID: s.sceneID, chapterID: s.chapterID, text: text)
+            }
+        }
+    }
+
+    @Test("rangeRead, rangePaste and rangeCut reach the core, and the delta decodes field for field")
+    func rangeEndpointsRoundTrip() throws {
+        let f = try Fixture()
+        defer { f.engine.closeProject(projectRootPath: f.projectDir.path) }
+        let start = try f.rows()
+        try #require(start.count == 6)
+
+        // Across the chapter boundary.
+        let range = try f.engine.rangeRead(projectRootPath: f.projectDir.path,
+                                           startSceneID: start[2].sceneID, startByte: 4,
+                                           endSceneID: start[3].sceneID, endByte: 4)
+        #expect(range.schema == "scrivi.range.v1")
+        try #require(range.scenes.count == 2)
+        #expect(range.scenes[0].text == " body.")
+        #expect(range.scenes[1].text == "C2S1")
+        #expect(throws: ScriviError.self) {
+            _ = try f.engine.rangeRead(projectRootPath: f.projectDir.path, startSceneID: start[3].sceneID, startByte: 0,
+                                       endSceneID: start[2].sceneID, endByte: 0)
+        }
+
+        // Pasted mid-scene in chapter 1: it opens a chapter, so chapter 1's later scene moves into it [I-0311].
+        let pasted = try f.engine.rangePaste(projectRootPath: f.projectDir.path, range: range,
+                                             caretSceneID: start[1].sceneID, caretByteOffset: 2,
+                                             caretSceneText: start[1].text, authorshipRef: f.ref)
+        let d = pasted.delta
+        try #require(d.scenes.count == 3)
+        #expect(d.scenes[0].change == .rewritten && d.scenes[0].sceneID == start[1].sceneID)
+        #expect(d.scenes[0].text == "C1 body.")
+        #expect(d.scenes[1].change == .created && d.scenes[1].afterSceneID == start[1].sceneID)
+        #expect(d.scenes[1].text == "C2S1S2 body.")
+        #expect(d.scenes[2].change == .moved && d.scenes[2].sceneID == start[2].sceneID && d.scenes[2].text == nil)
+        #expect(d.scenes[2].chapterID == d.scenes[1].chapterID)
+        #expect(d.createdChapters.count == 1 && d.createdChapters[0].afterChapterID == start[0].chapterID)
+        #expect(d.removedSceneIDs.isEmpty && d.removedChapterIDs.isEmpty)   // absent keys decode empty
+        let afterPaste = try f.rows()
+        #expect(afterPaste.count == 7)
+        #expect(afterPaste[2] == Row(sceneID: d.scenes[1].sceneID, chapterID: d.scenes[1].chapterID, text: "C2S1S2 body."))
+
+        // A cut of what the paste inserted restores the manuscript, IDs included.
+        let cut = try f.engine.rangeCut(projectRootPath: f.projectDir.path, range: pasted.range, authorshipRef: f.ref)
+        #expect(cut.delta.removedSceneIDs.count == 1 && cut.delta.removedChapterIDs.count == 1)
+        #expect(try f.rows() == start)
+
+        // A stale caret text is refused and writes nothing.
+        #expect(throws: ScriviError.self) {
+            _ = try f.engine.rangePaste(projectRootPath: f.projectDir.path, range: range, caretSceneID: start[4].sceneID,
+                                        caretByteOffset: 1, caretSceneText: "not on disk", authorshipRef: f.ref)
+        }
+        #expect(try f.rows() == start)
+    }
+}
+
+
+// MARK: — EP-053 S2a (SP-187 / T-0615): structural operations render a RUN, not the manuscript
+
+/// ✅ Design v0.2 §4.2a: the scene list is the model of record and the storage renders it. After every structural path the
+/// storage must be EXACTLY a full render of the list, the boundary table must say where each body is — and the operation
+/// must not have re-rendered everything. The core-call counts are printed: they are the baseline S2b ([SP-191]) removes.
+@MainActor
+@Suite("Run renders after structural operations (EP-053 S2a)")
+struct RunRenderTests {
+    private let base = UndoAfterStructuralOpTests()
+
+    private func rendersTheList(_ h: UndoAfterStructuralOpTests.Harness, _ what: String) {
+        let (full, ranges) = h.c.renderedManuscript(h.loader.segments)
+        #expect(h.tv.string == full.string, "\(what): the storage is a full render of the scene list")
+        #expect(h.c.sceneBoundaries == ranges, "\(what): the boundary table says where each body is")
+    }
+
+    private func chapters(_ h: UndoAfterStructuralOpTests.Harness) -> Int {
+        ManuscriptTextView.Coordinator.chapterCount(h.loader.segments)
+    }
+
+    private func waitForChapters(_ h: UndoAfterStructuralOpTests.Harness, _ n: Int) async throws {
+        for _ in 0..<500 where chapters(h) != n { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(chapters(h) == n, "the chapter operation finished")
+    }
+
+    /// Runs `op`, then reports the baseline: renders, main-thread core calls, project re-opens.
+    private func measured(_ h: UndoAfterStructuralOpTests.Harness, _ what: String,
+                          expectRun: Bool = true, _ op: () async throws -> Void) async throws {
+        let full = h.c.fullRenders, runs = h.c.runRenders
+        let calls = coreCallCounts.withLock { $0 }
+        try await op()
+        let after = coreCallCounts.withLock { $0 }
+        print("[EP-053 baseline] \(what): fullRenders=\(h.c.fullRenders - full) runRenders=\(h.c.runRenders - runs) "
+              + "mainThreadCoreCalls=\(after.mainThreadCalls - calls.mainThreadCalls) "
+              + "projectReopens=\(after.openProjectCalls - calls.openProjectCalls)")
+        if expectRun {
+            #expect(h.c.fullRenders == full, "\(what): nothing re-rendered the whole manuscript")
+            #expect(h.c.runRenders == runs + 1, "\(what): one run render")
+        } else {
+            #expect(h.c.fullRenders == full + 1, "\(what): one full render (the designed fallback)")
+            #expect(h.c.runRenders == runs, "\(what): no run render")
+        }
+        rendersTheList(h, what)
+    }
+
+    @Test("split mid-scene, append a scene, insert one before, merge — each renders a run")
+    func sceneOperations() async throws {
+        let h = try await base.harness(["Alpha one. Alpha two.", "Beta.", "Gamma."])
+        try await measured(h, "split mid-scene") {
+            h.caret(scene: 0, at: 11)
+            h.c.handleCreateScene()
+            try await h.waitForSceneCount(4)
+        }
+        #expect(h.loader.segments.map(\.text) == ["Alpha one. ", "Alpha two.", "Beta.", "Gamma."])
+        try await measured(h, "new scene at a scene's end") {
+            h.caret(scene: 2, at: 5)
+            h.c.handleCreateScene()
+            try await h.waitForSceneCount(5)
+        }
+        try await measured(h, "new scene before a scene") {
+            h.caret(scene: 4, at: 0)
+            h.c.handleCreateScene()
+            try await h.waitForSceneCount(6)
+        }
+        try await measured(h, "merge") {
+            h.caret(scene: 1, at: 0)
+            h.c.handleMergeScene()
+            try await h.waitForSceneCount(5)
+        }
+        #expect(h.loader.segments[0].text == "Alpha one. \n\nAlpha two.")
+        // ✅ Typing after run renders lands in the right scene: the spliced table is the one the edit path reads.
+        // ⚠️ Into a scene WITH text: typing into an empty scene that sits before another empty one is attributed to the
+        // next scene, after a full render too — [I-0313], not this Sprint's.
+        h.caret(scene: 1, at: 0)
+        h.tv.insertText("Z", replacementRange: h.tv.selectedRange())
+        #expect(h.loader.segments[1].text == "ZBeta.")
+        rendersTheList(h, "typing after the run renders")
+    }
+
+    @Test("split a chapter, then merge it back — each renders a run (titles off)")
+    func chapterOperations() async throws {
+        let h = try await base.harness(["Alpha one. Alpha two.", "Beta."])
+        try await measured(h, "split chapter") {
+            h.caret(scene: 0, at: 11)
+            h.c.handleCreateChapter()
+            try await waitForChapters(h, 2)
+        }
+        let second = try #require(h.loader.segments.firstIndex { $0.chapterID != h.loader.segments[0].chapterID })
+        try await measured(h, "merge chapter") {
+            h.caret(scene: second, at: 0)
+            h.c.handleMergeChapter()
+            try await waitForChapters(h, 1)
+        }
+    }
+
+    @Test("with chapter titles showing, a chapter split renders everything (titles renumber) and still matches the list")
+    func chapterTitlesFallBack() async throws {
+        let h = try await base.harness(["Alpha one. Alpha two.", "Beta."], showChapterTitles: true)
+        try await measured(h, "split chapter, titles on", expectRun: false) {
+            h.caret(scene: 0, at: 11)
+            h.c.handleCreateChapter()
+            try await waitForChapters(h, 2)
+        }
+        try await measured(h, "split scene, titles on") {   // the chapter count does not change: a run
+            h.caret(scene: 0, at: 3)
+            h.c.handleCreateScene()
+            try await h.waitForSceneCount(4)
+        }
     }
 }
 

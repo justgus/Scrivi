@@ -883,6 +883,33 @@ target_link_libraries(scrivi_linux_bridge_parity_smoke
 target_include_directories(scrivi_linux_bridge_parity_smoke PRIVATE src)
 target_compile_features(scrivi_linux_bridge_parity_smoke PRIVATE cxx_std_23)
 
+# --- range_smoke (EP-053 S2a / SP-187, T-0615) — the range endpoints through the bridge ---------------
+# scrivi_range_read / _paste / _cut reached THROUGH ScriviBridge; the delta decoded into RangeDelta; every write checked
+# by reopening. Driven by range_smoke.sh (offscreen; no window).
+qt_add_executable(scrivi_linux_range_smoke
+    tests/range_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RangeDelta.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+)
+
+target_link_libraries(scrivi_linux_range_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Qml            # ScriviBridge header pulls <qqmlintegration.h>
+        Qt6::Widgets        # ScriviBridge references QFileDialog (link-only here)
+)
+
+target_include_directories(scrivi_linux_range_smoke PRIVATE src)
+target_compile_features(scrivi_linux_range_smoke PRIVATE cxx_std_23)
+
 # --- Headless timeline-events smoke (SP-082 / T-0344, EP-025 AC5) -----------
 # Historical events + imported timelines + export through the bridge (the layer
 # EditorShell's SP-082 slots call): create/update/delete a historical event (list
@@ -1334,6 +1361,89 @@ target_link_libraries(scrivi_linux_structured_paste_smoke
 
 target_include_directories(scrivi_linux_structured_paste_smoke PRIVATE src)
 target_compile_features(scrivi_linux_structured_paste_smoke PRIVATE cxx_std_23)
+
+# --- structural_baseline_smoke (EP-053 S2a / SP-187, T-0615) — what each structural op costs today ------
+# A real EditorShell: split, merge, chapter split and merge, copy, structured paste and its undo, each printing the
+# baseline S2b removes (GUI-thread core calls, project loads, document builds). Same link set as structured_paste_smoke.
+qt_add_executable(scrivi_linux_structural_baseline_smoke
+    tests/structural_baseline_smoke.cpp
+    src/AppSupport.cpp
+    src/AppSupport.hpp
+    src/AppEnvironment.hpp
+    src/SessionStore.cpp
+    src/SessionStore.hpp
+    src/ProjectWindowManager.hpp
+    src/RecentsStore.cpp
+    src/RecentsStore.hpp
+    src/ScriviBridge.cpp
+    src/ScriviBridge.hpp
+    src/EditorShell.cpp
+    src/DiagnosticLog.cpp
+    src/DiagnosticLog.hpp
+    src/ManuscriptTypography.cpp
+    src/ManuscriptTypography.hpp
+    src/ProjectPreferences.cpp
+    src/ProjectPreferences.hpp
+    src/HistoryCapture.cpp
+    src/HistoryCapture.hpp
+    # EP-026 S5 (SP-179): the copy buffers — EditorShell owns one per project.
+    src/BufferService.cpp
+    src/BufferService.hpp
+    src/EditorShell.hpp
+    src/FindBar.cpp
+    src/FindBar.hpp
+    src/ManuscriptFind.cpp
+    src/ManuscriptFind.hpp
+    # SP-145 — required by EditorShell::applyLoadedProject (registerSession).
+    src/ProjectSession.hpp
+    src/OpenProjectRegistry.cpp
+    src/OpenProjectRegistry.hpp
+    src/SceneDocument.cpp
+    src/SceneDocument.hpp
+    src/ManuscriptEditor.cpp
+    src/ManuscriptPresenter.cpp
+    src/ManuscriptPresenter.hpp
+    src/MarkdownAnalysis.hpp
+    src/ManuscriptEditor.hpp
+    src/ManuscriptEscapes.cpp
+    src/ManuscriptEscapes.hpp
+    src/NavigatorTree.cpp
+    src/NavigatorTree.hpp
+    src/SceneInspector.cpp
+    src/SceneInspector.hpp
+    src/ObjectKindScope.cpp
+    src/ObjectKindScope.hpp
+    src/InspectorLayoutStore.cpp
+    src/InspectorLayoutStore.hpp
+    src/WorldsDialog.cpp
+    src/WorldsDialog.hpp
+    src/WorldStatusText.hpp
+    src/ThemeColours.hpp
+    src/PackageFolderDialog.hpp
+    src/TimelinePanel.cpp
+    src/TimelinePanel.hpp
+    src/TimeDeltaPicker.cpp
+    src/TimeDeltaPicker.hpp
+    src/StoryStructures.cpp
+    src/StoryStructures.hpp
+    src/HistoricalEventDialog.cpp
+    src/HistoricalEventDialog.hpp
+    src/EpochOffsetDialog.cpp
+    src/EpochOffsetDialog.hpp
+)
+
+target_link_libraries(scrivi_linux_structural_baseline_smoke
+    PRIVATE
+        ScriviCore
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Widgets
+        Qt6::Test           # QTest key clicks: the real dispatch, ShortcutOverride included
+)
+
+target_include_directories(scrivi_linux_structural_baseline_smoke PRIVATE src)
+target_compile_features(scrivi_linux_structural_baseline_smoke PRIVATE cxx_std_23)
 
 # --- Replace / Replace All smoke (SP-181 / T-0608, EP-048 S4b) ----------------
 # A REAL EditorShell + the find bar driven as the writer drives it: Replace types over the current match, Replace All runs

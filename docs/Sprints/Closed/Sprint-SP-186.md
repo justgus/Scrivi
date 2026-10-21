@@ -1,17 +1,19 @@
 ---
 sprint: SP-186
 epic: EP-053
-status: Active
+status: Closed
+closed: 2026-10-20
+activated: 2026-10-17
 platform: ScriviCore
 created: 2026-10-17
 ---
 
 # SP-186 — `[ScriviCore]` [EP-053] **S1**: the Range and the range operations
 
-**Status:** 🟡 **ACTIVE** — created and activated 2026-10-17 (user: *"draft EP-053, start the first sprint"*).
-**Carries:** [T-0614] → [`../Tasks/Task-active.md`](../Tasks/Task-active.md) · [I-0311] → [`../Issues/Issue-active.md`](../Issues/Issue-active.md).
-**Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R2, R4, R6,
+**Status:** ✅ **CLOSED 2026-10-20** (user: *"mark T-0614 as verified and close SP-186"*) · created and ACTIVATED 2026-10-17 (user: *"draft EP-053, start the first sprint"*).
+**Carries:** [T-0614] → [`../../Tasks/Verified/Task-verified-0614.md`](../../Tasks/Verified/Task-verified-0614.md) · [I-0311] → [`../../Issues/Issue-active.md`](../../Issues/Issue-active.md).
+**Epic:** [EP-053] → [`../../Epics/Epic-active.md`](../../Epics/Epic-active.md).
+**Authority:** [`../../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R2, R4, R6,
 R7, §4.2–4.5, Q2, Q4 (all ruled 2026-10-17).
 **Size:** L. ScriviCore only: the platforms keep today's endpoints until S2 switches both to these together. No rig needed
 (file-call counts are exact in tests; the live passes are S5).
@@ -137,4 +139,9 @@ two-scene paste into a 1,186-scene manuscript is **4 reads and 4 writes** or few
   SURVIVED — the stale edit changed the scene's length, so the length check caught it — and the test now edits in place.
 - ✅ ctest macOS 741/741, Linux 745/745 (Docker, Debug, non-root); repo checks pass; the Mac app builds. ⏳ Neither app calls
   the endpoints yet — that is [SP-187] — so there is no live pass for this Sprint; verification is the user's review.
+
+### ✅ 2026-10-20 — Sprint CLOSED (user)
+- User: *"mark T-0614 as verified and close SP-186."* T-0614 → ✅ Verified, archived.
+- [I-0311] stays open, moved to [SP-187]: fixed in `scrivi_range_paste`, but both apps still call the old paste until S2.
+- [I-0312] (found here) stays in the Issue backlog, unassigned.
 

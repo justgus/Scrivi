@@ -3,7 +3,9 @@
 #include "AsyncCall.hpp"
 #include "PackageFolderDialog.hpp"
 
+#include <QCoreApplication>
 #include <QFileDialog>
+#include <QThread>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -34,6 +36,9 @@ ScriviBridge::LockWaitStats ScriviBridge::lockWaitStats()
 {
     return {gLockWaitTotalMs.load(), gLockWaitCount.load(), gLockWaitMaxMs.load()};
 }
+
+static std::atomic<qint64> gGuiThreadCalls{0};   // EP-053 S2a baseline
+qint64 ScriviBridge::guiThreadCallCount() { return gGuiThreadCalls.load(); }
 
 // RAII guard for the heap-allocated JSON strings ScriviCore returns. Every
 // scrivi_* return value MUST reach scrivi_free() exactly once; this makes that
@@ -1254,6 +1259,49 @@ QVariantMap ScriviBridge::fragmentPaste(const QString& projectRootPath, const QS
     return parseEnvelope(envelope.toQString());
 }
 
+QVariantMap ScriviBridge::rangeRead(const QString& projectRootPath, const QString& startSceneID, long long startByte,
+                                    const QString& endSceneID, long long endByte)
+{
+    const ScriviString envelope(scrivi_range_read(projectRootPath.toUtf8().constData(),
+                                                  startSceneID.toUtf8().constData(), startByte,
+                                                  endSceneID.toUtf8().constData(), endByte));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::rangePaste(const QString& projectRootPath, const QString& rangeJson, const QString& caretSceneID,
+                                     long long caretByteOffset, const QString& caretSceneText, const QString& displayName)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;   // never reaches parseEnvelope; see fragmentPaste
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_range_paste(projectRootPath.toUtf8().constData(),
+                                                   rangeJson.toUtf8().constData(),
+                                                   caretSceneID.toUtf8().constData(),
+                                                   caretByteOffset,
+                                                   caretSceneText.toUtf8().constData(),
+                                                   identityID_.toUtf8().constData(),
+                                                   personaID_.toUtf8().constData(),
+                                                   displayName.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
+QVariantMap ScriviBridge::rangeCut(const QString& projectRootPath, const QString& rangeJson, const QString& displayName)
+{
+    if (!ready_) {
+        tlsLastCallFailed = true;   // never reaches parseEnvelope; see fragmentPaste
+        emit errorOccurred(-1, QStringLiteral("Identity not bootstrapped"));
+        return {};
+    }
+    const ScriviString envelope(scrivi_range_cut(projectRootPath.toUtf8().constData(),
+                                                 rangeJson.toUtf8().constData(),
+                                                 identityID_.toUtf8().constData(),
+                                                 personaID_.toUtf8().constData(),
+                                                 displayName.toUtf8().constData()));
+    return parseEnvelope(envelope.toQString());
+}
+
 QVariantMap ScriviBridge::fragmentUncutPaste(const QString& projectRootPath, const QString& fragmentJson, const QString& targetSceneID, const QString& createdIDsJson)
 {
     if (!ready_) {
@@ -1922,6 +1970,9 @@ QVariantMap ScriviBridge::parseEnvelope(const QString& json)
     // an empty result map alone cannot carry this.
     tlsLastCallFailed = false;
     tlsLastRevision = -1;
+    if (QCoreApplication::instance() != nullptr && QThread::currentThread() == QCoreApplication::instance()->thread()) {
+        ++gGuiThreadCalls;   // EP-053 S2a baseline
+    }
 
     QJsonParseError parseError;
     const QJsonDocument doc =

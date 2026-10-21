@@ -11,7 +11,7 @@ created: 2026-10-20
 **Status:** 🔵 **PLANNING** — created 2026-10-20 (user: *"complete planning for EP-053"*). ⏳ Q1–Q2 below.
 **Carries:** [T-0616] → [`../Tasks/Task-backlog.md`](../Tasks/Task-backlog.md).
 **Epic:** [EP-053] → [`../Epics/Epic-active.md`](../Epics/Epic-active.md).
-**Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] (S2: the scene list as the model of record, the delta applied,
+**Builds on:** [SP-186] (S1, `scrivi_range_cut`) · [SP-187] + [SP-191] (S2a + S2b: the scene list as the model of record, the delta applied,
 `rangePaste` history).
 **Authority:** [`../Scrivi_Structured_CutCopyPaste_Design_v0_2.md`](../Scrivi_Structured_CutCopyPaste_Design_v0_2.md) — R4,
 §4.3, §4.5, Q2, Q4. ⛔ R4 **reverses** the 2026-10-02 ruling ([I-0270]: a cross-scene cut deletes text and keeps scenes).

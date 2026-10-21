@@ -10,18 +10,17 @@ in the backlog carrying a 🟠 status.
 
 ---
 
-## 🟠 T-0614 — `[ScriviCore]` EP-053 S1: the Range and the aggregate range operations
+## 🟠 T-0615 — `[Cross]` EP-053 S2a: the scene list as the model of record — no visible change
 
-**Epic:** [EP-053] (S1) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-20; user: *"complete the implementation of
-SP-186"*) — ⏳ the user's review (no app calls these until [SP-187]) · **Sprint:** [SP-186] (🟡 Active) →
-[`../Sprints/Sprint-SP-186.md`](../Sprints/Sprint-SP-186.md) · **Date Requested:** 2026-10-17 (user: *"start the first sprint"*)
+**Epic:** [EP-053] (S2a) · **Status:** 🟠 **Implemented - Not Verified** (2026-10-20; user: *"yes please implement SP-187."*) — ⏳ Mac and rig live passes (SP-187 AC7) · **Sprint:** [SP-187] (🟡 Active) →
+[`../Sprints/Sprint-SP-187.md`](../Sprints/Sprint-SP-187.md) · **Date Requested:** 2026-10-20 (user: *"complete planning for
+EP-053"*; re-scoped by [SP-187] Q1, the S2 split)
 
-**What:** in ScriviCore, the Range (`scrivi.range.v1`, design v0.2 §4.2) and three aggregate operations — `scrivi_range_read`,
-`scrivi_range_paste`, `scrivi_range_cut` (structural) — each making one pass over exactly its files, returning the delta and
-patching the project index in place. ✅ A two-scene paste: 3 reads + 5 writes, no listing (re-ruled 2026-10-20); a two-scene
-cut: 4 reads + 5 writes. ✅ A cut Range pasted back restores scene and chapter IDs (ruled 2026-10-20).
-**Where:** `ScriviCore/src/manuscript/RangeOperations.hpp/.cpp`, `ProjectIndex.hpp/.cpp` (in-place patches),
-`scrivi_c_api.cpp` + `scrivi.h` (the three endpoints); tests `RangeOperationBudgetTests.cpp`, `RangeOperationCApiTests.cpp`.
+**What:** on the Mac and on Linux, the in-memory scene list (an ordered array, Q4) holds every scene's identity and stored text
+and is the model of record; the text view renders it. The range endpoints are bound on both platforms and the delta decodes
+into one type on each. Linux's segments hold their text (today it lives only in the document); Apple gains a partial
+re-render, used by its existing split, merge and chapter paths in place of the full rebuild. Baseline counts recorded for
+S2b. No visible change, proven by Mac and rig live passes.
 
 ---
 
@@ -133,6 +132,10 @@ plumbing-only `HistoryCapture` (idle timer at the core's deadline, `isApplying`)
 reload) and close in `ScriviWindow::closeEvent`; report edits, caret moves, paste/cut, grouped cross-scene edits and saves;
 barriers on split/merge/delete ([I-0287]: split and merge record theirs AFTER the op, carrying the scenes' new texts); Edit ▸ Undo (Ctrl+Z) / Redo (Ctrl+Shift+Z) with Apple's barrier and session-boundary
 notices. Proven by Linux smokes through the real key dispatch and a rig live pass.
+
+*Last Updated: 2026-10-20 (**T-0615 → 🟠 Implemented - Not Verified** ([SP-187]); ⏳ live passes.)*
+
+*Last Updated: 2026-10-20 (**T-0614 → ✅ Verified** (user) and archived → `Verified/Task-verified-0614.md`, with SP-186's close.)*
 
 *Last Updated: 2026-10-17 (**T-0613 → 🟠 Implemented - Not Verified** ([SP-185]); ⏳ rig live pass.)*
 

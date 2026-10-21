@@ -10,4 +10,4 @@
 
 🟡 **[SP-185] ACTIVE 2026-10-17** `[Linux]` [EP-026] → [`Sprint-SP-185.md`](Sprint-SP-185.md) — responsive after load: the rig pass's crash ([I-0308]), freezes ([I-0307], [I-0297]), a crash found reproducing it ([I-0309]), and a diagnostic log. Task: T-0612.
 
-🟡 **[SP-186] ACTIVE 2026-10-17** `[ScriviCore]` [EP-053] **S1** → [`Sprint-SP-186.md`](Sprint-SP-186.md) — the Range (`scrivi.range.v1`) and the aggregate range operations (read, paste, structural cut), each returning the delta; a two-scene paste = 3 reads + 5 writes (re-ruled 2026-10-20). AC0–AC6 met; ⏳ the user's review. Task: T-0614 (🟠); [I-0311]; [I-0312] found.
+🟡 **[SP-187] ACTIVE 2026-10-20** `[Apple]` + `[Linux]` [EP-053] **S2a** → [`Sprint-SP-187.md`](Sprint-SP-187.md) — the scene list as the model of record on both platforms, no visible change: the range endpoints bound, the delta types, Linux's list holding the text, Apple's partial re-render. Q1–Q4 ruled. AC1–AC6 met; ⏳ AC7 Mac + rig live passes. Task: T-0615 (🟠); [I-0313] found.

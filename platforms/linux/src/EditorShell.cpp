@@ -428,6 +428,7 @@ void EditorShell::load(const QString& projectPath,
                        const QVariantMap& openedProject)
 {
     loadLog(openedProject.isEmpty() ? "load: entered (will open the project)" : "load: entered (open handed over)");
+    ++loads_;   // EP-053 S2a baseline
     DiagnosticLog::note(QStringLiteral("load: %1").arg(projectPath));   // [SP-185] T-0612
     QElapsedTimer loadClock;
     loadClock.start();
